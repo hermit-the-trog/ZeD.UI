@@ -16,8 +16,8 @@
 --          chosen town; the houses a new character can wake up in are marked;
 --          the town's video plays in a small inset; drag pans, the wheel zooms
 --          below: the town's name and vanilla's description
---   strip  BACK, NEXT (NEXT waits for a usable save name; the reason shows
---          under the field with a red status dot)
+--   band   Back, Next (Next waits for a usable save name; the reason shows
+--          under the field with a red status square)
 -- ============================================================================
 
 require "ZeD/ZeD_MainMenu"
@@ -383,13 +383,13 @@ function ZeD_MMSpawn:prerender()
     if self.sel > #items then self.sel = math.max(1, #items) end
     local it = items[self.sel]
     self.title = ZeD.tr("UI_ZeD_Spawn_Title")
-    self.titleStats = { { text = MM.modeName(getWorld():getGameMode()), color = { r = 0, g = 0, b = 0, a = 0 } } }
+    self.titleStats = { { text = MM.modeName(getWorld():getGameMode()), noMark = true } }
     ZeD_Window.prerender(self)
     if not isMouseButtonDown(0) then self._drag = nil end
 
     local tb = T.titleBarH
     local pad = T.px(U.STACK_PAD)
-    local stripH = T.px(U.STRIP_BTN_H) + T.px(U.STRIP_PAD_Y) * 2
+    local stripH = MM.bandH()
     local stripY = h - self:footerHeight() - stripH
     local bodyY, bodyH = tb + pad, stripY - tb - pad * 2
     local lw = math.floor((w - pad * 3) * LIST_SHARE)
@@ -414,17 +414,16 @@ function ZeD_MMSpawn:prerender()
     self:placeMap(rx, bodyY, rw, mapH, it)
     self:drawDesc(rx, bodyY + mapH + pad, rw, descH, it)
 
-    -- the action strip
+    -- the band at the foot
     UI.stripSpecs(self, stripY, w, 1000,
         { { "back", getText("UI_btn_back"), function() self:back() end } },
         { { "next", getText("UI_btn_next"), function() self:next() end, "primary", (it == nil) or (self:nameProblem() ~= nil) } })
-    self._stripY, self._stripH = stripY, stripH
     self._cur = it
 end
 
 function ZeD_MMSpawn:render()
     self:drawMapOverlay(self._cur)
-    UI.drawStripAndButtons(self, self._stripY, self._stripH, nil)
+    UI.drawStripAndButtons(self)
     ZeD_Window.render(self)
 end
 
@@ -441,7 +440,6 @@ function ZeD_MMSpawn:drawTowns(x, y, w, h, items)
     self.scroll = math.max(0, math.min(self.scroll, math.max(0, rowsH - vh)))
     self._list = { x = x, y = vy, w = w, h = vh, rowsH = rowsH }
     local gp = MM.gamepad()
-    local ac = T.accent
     local f2 = T.fontF2
     self:setStencilRect(x + T.px(1), vy, w - T.px(2), vh)
     for i, it in ipairs(items) do
@@ -449,10 +447,10 @@ function ZeD_MMSpawn:drawTowns(x, y, w, h, items)
         local fid = "town:" .. i
         self._specs[#self._specs + 1] = { id = fid, listRow = true, row = i, col = 1, fn = function() self:next() end, index = i, ry = (i - 1) * rh, rh = rh }
         if ry + rh > vy and ry < vy + vh then
-            if gp and self.focusId == fid then self:drawRect(x + T.px(1), ry, rw, rh, 0.55, ac.r, ac.g, ac.b)
-            elseif i == self.sel then self:drawRect(x + T.px(1), ry, rw, rh, 0.22, ac.r, ac.g, ac.b) end
+            local onFocus = MM.rowLook(self, x + T.px(1), ry, rw, rh, i == self.sel, (not gp) and MM.ctx.hot == "spawn:" .. fid, gp and self.focusId == fid)
+            if (not gp) and MM.ctx.hot == "spawn:" .. fid then ZeD.Help.set(self, ZeD.tr("UI_ZeD_MMHelp_TownRow")) end
             self:drawRect(x + T.px(1), ry + rh - T.px(1), rw, T.px(1), T.border.a, T.border.r, T.border.g, T.border.b)
-            local c = (i == self.sel) and T.textHead or T.text
+            local c = onFocus and T.textOnFocus or ((i == self.sel) and T.textHead or T.text)
             local name = ZeD.Atoms.truncateText(tostring(it.name or ""), f2, rw - T.px(20))
             self:drawText(name, x + T.px(10), ry + math.floor((rh - MM.fontH(f2)) / 2), c.r, c.g, c.b, c.a or 1, f2)
             local cy, ch = math.max(ry, vy), math.min(ry + rh, vy + vh) - math.max(ry, vy)
@@ -478,22 +476,21 @@ function ZeD_MMSpawn:drawDetails(x, y, w, h)
     local T = ZeD.T
     local bs = T.borderS
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
-    self:drawRectBorder(x, y, w, h, bs.a, bs.r, bs.g, bs.b)
+    ZeD.Atoms.frame(self, x, y, w, h, bs)
     local gp = MM.gamepad()
-    local ac = T.accent
     local f1, f2, f3 = T.fontF1, T.fontF2, T.fontF3
     local ix, iw = x + T.px(DET_PAD), w - T.px(DET_PAD) * 2
     local lh, fh = T.px(LABEL_H), T.px(FIELD_H)
     local cy = y + T.px(DET_PAD)
-    -- a field's label; the controller's focus fills the label and field together
+    -- a field's label; the controller's mark takes the label and field together
     local function label(text, ry, fid)
         local focused = gp and self.focusId == fid
-        if focused then self:drawRect(x + T.px(1), ry - T.px(3), w - 2 * T.px(1), lh + fh + 2 * T.px(3), 0.55, ac.r, ac.g, ac.b) end
-        local la = focused and T.textOnAccent or T.accent
+        local onFocus = focused and ZeD.Focus.mark(self, x + T.px(1), ry - T.px(3), w - 2 * T.px(1), lh + fh + 2 * T.px(3), MM.focusOpts())
+        local la = onFocus and T.textOnFocus or T.accent
         self:drawText(text, ix, ry + math.floor((lh - MM.fontH(f1)) / 2) - T.px(1), la.r, la.g, la.b, la.a or 1, f1)
     end
-    -- SAVE NAME
-    label(ZeD.upper(ZeD.trBare("UI_mapselecter_savename")), cy, "field:name")
+    -- the save name
+    label(ZeD.textCase(ZeD.trBare("UI_mapselecter_savename")), cy, "field:name")
     cy = cy + lh
     if not self.nameEntry:isVisible() then self.nameEntry:setVisible(true) end
     UI.styleEntry(self.nameEntry, ix, cy, iw, fh)
@@ -510,19 +507,19 @@ function ZeD_MMSpawn:drawDetails(x, y, w, h)
         self:drawText(ZeD.Atoms.truncateText(why, f2, iw - dsz - T.px(6)), ix + dsz + T.px(6), ny, c.r, c.g, c.b, c.a or 1, f2)
     end
     cy = cy + T.px(NOTE_H)
-    -- SEED, and a fresh one beside it
-    label(ZeD.upper(ZeD.tr("UI_advWorld_seed_label")), cy, "field:seed")
+    -- the seed, and a fresh one beside it
+    label(ZeD.textCase(ZeD.tr("UI_advWorld_seed_label")), cy, "field:seed")
     cy = cy + lh
     if not self.seedEntry:isVisible() then self.seedEntry:setVisible(true) end
     local bText = ZeD.tr("UI_ZeD_Spawn_NewSeed")
-    local bw = MM.textW(f3, bText) + T.px(U.STRIP_BTN_PAD) * 2
+    local bw = ZeD.Molecules.buttonW(bText)
     local bx = ix + iw - bw
     local fw = bx - T.px(8) - ix
     UI.styleEntry(self.seedEntry, ix, cy, fw, fh)
     self._specs[#self._specs + 1] = { id = "field:seed", listRow = true, row = 501, col = 1, fn = function() self:edit(self.seedEntry) end, x = ix, y = cy, w = fw, h = fh }
     self._hits[#self._hits + 1] = { id = "spawn:seed", x = ax + ix, y = ay + cy, w = fw, h = fh, fn = function() self.seedEntry:focus() end }
     self._specs[#self._specs + 1] = { id = "seed:new", text = bText, fn = function() self:newSeed() end, variant = "default", row = 501, col = 2,
-                                      x = bx, y = cy, w = bw, h = fh }
+                                      x = bx, y = cy + math.floor((fh - T.buttonH) / 2), w = bw, h = T.buttonH }
 end
 
 -- a field with the controller: vanilla's on-screen keyboard; with the mouse / keys: the caret
@@ -604,17 +601,13 @@ function ZeD_MMSpawn:drawMapOverlay(it)
         end
         self:clearStencilRect()
     end
-    -- the inset's dark inner edge over the map
-    self:drawRect(m.x, m.y, m.w, T.px(1), 0.45, 0, 0, 0)
-    self:drawRect(m.x, m.y, T.px(1), m.h, 0.45, 0, 0, 0)
     -- the video: a small framed picture in the map's top-right corner
     local r = self:insetRect(m, it)
     if r then
         local vid = self:townVideo(it)
         local s1, bs = T.surf1, T.borderS
-        ZeD.Atoms.drawSteppedShadow(self, r.x, r.y, r.w, r.h, { r = 0, g = 0, b = 0, a = 0.55 })
         self:drawRect(r.x, r.y, r.w, r.h, 1, s1.r, s1.g, s1.b)
-        self:drawRectBorder(r.x, r.y, r.w, r.h, bs.a, bs.r, bs.g, bs.b)
+        ZeD.Atoms.frame(self, r.x, r.y, r.w, r.h, bs)
         self:drawRect(r.x + r.fr, r.y + r.fr, r.vw, r.vh, 1, 0, 0, 0)
         if vid.video then vid.tex:RenderFrame() end
         self:drawTextureScaledAspect(vid.tex, r.x + r.fr, r.y + r.fr, r.vw, r.vh, 1, 1, 1, 1)

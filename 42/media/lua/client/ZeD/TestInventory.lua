@@ -61,7 +61,7 @@ local function toggleTestInventory()
     local bodyH = win:getBodyHeight()
 
     local content = ZeD_Panel:new(0, bodyY, winW, bodyH)
-    content.drawBg = true
+    content.drawBg = false   -- (the window body is under it: one layer of see-through)
     content:initialise()
     win:addChild(content)
     win._content = content

@@ -2,10 +2,11 @@
 -- ============================================================================
 -- OBJECT CARD: FIRES (HOOK_MAP row 12; mockup zed_info_cards_v1.html)
 -- One fire card for campfires, charcoal barbecues and fireplaces: fuel as time
--- left on a strip that ends at the sandbox maximum, ADD FUEL (what you carry
--- that burns and the time each piece adds), LIGHT WITH (the methods vanilla
+-- left on a strip that ends at the sandbox maximum, Add fuel (what you carry
+-- that burns and the time each piece adds), Light with (the methods vanilla
 -- offers), what is on the fire with the item card's cooking reading, and
--- SMOULDERING as a third state. The propane barbecue gets its own plate: the
+-- smouldering as a third state. Put out, Light and Add fuel are shown only
+-- when they make sense and can be done (hidden actions). The propane barbecue gets its own plate: the
 -- game's Jorge Foreguy cart grill in pixel art (director, Oct 16 2026; the
 -- shared plate template ZeD_Plate.lua draws it from PhysPx.lua): the burner
 -- knobs' pointers, the flames' glow under the hood, the lid thermometer, the
@@ -181,20 +182,24 @@ local function refreshPropane(t, player)
     d.container = call(o, "getContainer")
     d.spare = ISBBQMenu.FindPropaneTank(player, o)
     t.d = d
-    local verbs, needs = {}, {}
+    local verbs = {}
     local toggle = function(p, tt) ISBBQMenu.onToggle(nil, p:getPlayerNum(), tt.obj) end
     t.toggle = d.hasFuel and toggle or nil
-    verbs[#verbs + 1] = { id = "power", label = d.lit and getText("ContextMenu_Turn_Off") or getText("ContextMenu_Turn_On"), primary = d.hasFuel, enabled = d.hasFuel, run = toggle }
+    verbs[#verbs + 1] = { id = "power", label = d.lit and getText("ContextMenu_Turn_Off") or getText("ContextMenu_Turn_On"), primary = d.hasFuel, enabled = d.hasFuel, run = toggle,
+        needs = ZeD.tr("UI_ZeD_Fire_NeedsGas"), hint = ZeD.tr("UI_ZeD_Fire_HintOn"),
+        help = ZeD.tr(d.lit and "UI_ZeD_Fire_HelpOff" or "UI_ZeD_Fire_HelpOn") }
+    -- a tank already in the cart: nothing to insert
     verbs[#verbs + 1] = { id = "insert", label = ZeD.tr("UI_ZeD_Fire_InsertTank"), enabled = d.spare ~= nil, primary = (not d.hasFuel) and d.spare ~= nil,
+        sensible = not d.tank, needs = ZeD.tr("UI_ZeD_Fire_NeedsSpareTank"), hint = ZeD.tr("UI_ZeD_Fire_HintTank"),
+        help = ZeD.tr("UI_ZeD_Fire_HelpInsert"),
         run = function(p, tt)
             local tank = ISBBQMenu.FindPropaneTank(p, tt.obj)
             if tank then ISBBQMenu.onInsertPropaneTank(nil, p:getPlayerNum(), tt.obj, tank) end
         end }
-    verbs[#verbs + 1] = { id = "remove", label = ZeD.tr("UI_ZeD_Fire_RemoveTank"), enabled = d.tank,
+    verbs[#verbs + 1] = { id = "remove", label = ZeD.tr("UI_ZeD_Fire_RemoveTank"), enabled = d.tank, sensible = d.tank,
+        help = ZeD.tr("UI_ZeD_Fire_HelpRemove"),
         run = function(p, tt) ISBBQMenu.onRemovePropaneTank(nil, p:getPlayerNum(), tt.obj) end }
-    if not d.hasFuel then needs[#needs + 1] = ZeD.tr("UI_ZeD_Fire_NeedGasTank") end
-    if not d.spare and not d.tank then needs[#needs + 1] = ZeD.tr("UI_ZeD_Fire_NeedTank") end
-    t.verbs, t.needs = verbs, needs
+    t.verbs = verbs
 end
 
 function def.refresh(t, player)
@@ -246,47 +251,49 @@ function def.refresh(t, player)
         end
     end
 
-    local verbs, needs = {}, {}
+    local verbs = {}
     local full = d.fuel >= d.max
     local anyFits = false
     for _, r in ipairs(d.fuelRows) do if r.fits then anyFits = true end end
     local canLight = false
     for _, r in ipairs(d.lightRows) do if r.enabled ~= false then canLight = true end end
     local fuelOK = (not full) and anyFits
-    verbs[#verbs + 1] = { id = "fuel", label = getText("ContextMenu_GeneratorAddFuel"), enabled = fuelOK, primary = fuelOK and (d.lit or not canLight), jump = "fire:fuel:1" }
-    verbs[#verbs + 1] = { id = "out", label = ZeD.tr("UI_ZeD_Fire_PutOut"), enabled = d.lit,
+    -- a full fire takes no more, a burning one is not lit again, a dead one is not put out:
+    -- those verbs are gone (sensible = false); the rest wait for what they need
+    verbs[#verbs + 1] = { id = "fuel", label = getText("ContextMenu_GeneratorAddFuel"), enabled = fuelOK, primary = fuelOK and (d.lit or not canLight), jump = "fire:fuel:1",
+        sensible = not full, needs = ZeD.tr("UI_ZeD_Fire_NeedsFuelItems"), hint = ZeD.tr("UI_ZeD_Fire_HintFuel"),
+        help = ZeD.tr("UI_ZeD_Fire_HelpFuel") }
+    verbs[#verbs + 1] = { id = "out", label = ZeD.tr("UI_ZeD_Fire_PutOut"), enabled = d.lit, sensible = d.lit,
+        help = ZeD.tr("UI_ZeD_Fire_HelpOut"),
         run = function(p, tt)
             if tt.kind == "campfire" then ISCampingMenu.onPutOutCampfire(nil, p, tt.obj)
             else ISBBQMenu.onExtinguish(nil, p:getPlayerNum(), tt.obj) end
         end }
-    verbs[#verbs + 1] = { id = "light", label = getText("ContextMenu_Light"), enabled = (not d.lit) and canLight, primary = (not d.lit) and canLight, jump = "fire:light:1" }
+    verbs[#verbs + 1] = { id = "light", label = getText("ContextMenu_Light"), enabled = (not d.lit) and canLight, primary = (not d.lit) and canLight, jump = "fire:light:1",
+        sensible = not d.lit, needs = ZeD.tr(d.fuel <= 0 and "UI_ZeD_Fire_NeedsFuelFirst" or "UI_ZeD_Fire_NeedsLighter"),
+        hint = ZeD.tr("UI_ZeD_Fire_HintLight"), help = ZeD.tr("UI_ZeD_Fire_HelpLight") }
     if t.kind == "campfire" then
         verbs[#verbs + 1] = { id = "take", label = ZeD.tr("UI_ZeD_Fire_TakeApart"), danger = true,
-            confirm = ZeD.tr("UI_ZeD_Fire_ConfirmTakeApart"),
+            confirm = ZeD.tr("UI_ZeD_Fire_QTakeApart"), help = ZeD.tr("UI_ZeD_Fire_HelpTake"),
             run = function(p, tt) ISCampingMenu.onRemoveCampfire(nil, p, tt.obj) end }
     end
-    if full then needs[#needs + 1] = ZeD.tr("UI_ZeD_Fire_FuelFull")
-    elseif #d.fuelRows == 0 then needs[#needs + 1] = ZeD.tr("UI_ZeD_Fire_NeedFuelItems") end
-    if not d.lit and not canLight then
-        if d.fuel <= 0 then needs[#needs + 1] = ZeD.tr("UI_ZeD_Fire_NeedFuelFirst")
-        else needs[#needs + 1] = ZeD.tr("UI_ZeD_Fire_NeedLighter") end
-    end
-    t.verbs, t.needs = verbs, needs
+    t.verbs = verbs
 end
 
 function def.title(t) return t.d and t.d.name or ZeD.tr("UI_ZeD_Fire_Fire") end
 function def.icon(t) return t.d and t.d.tex or nil end
+-- the state tag: its words, and the colour of the square mark before them (none for a plain tag)
 function def.pill(t)
     local T = ZeD.T
     local d = t.d
     if not d then return nil end
     if d.propane then
-        if d.lit then return ZeD.upper(ZeD.tr("IGUI_Fireplace_Burning")), T.positive end
-        if not d.tank then return ZeD.upper(ZeD.tr("Tooltip_NoTank")), T.textDim end
-        return ZeD.upper(ZeD.tr("UI_Off")), T.textDim
+        if d.lit then return OC.cap(ZeD.tr("IGUI_Fireplace_Burning")), T.positive end
+        if not d.tank then return ZeD.tr("Tooltip_NoTank"), T.textDim end
+        return ZeD.tr("UI_Off"), T.textDim
     end
-    if d.lit then return ZeD.upper(ZeD.tr("IGUI_Fireplace_Burning")), T.positive end
-    if d.smoulder then return ZeD.upper(ZeD.tr("IGUI_Fireplace_Smouldering")), T.warning end
+    if d.lit then return OC.cap(ZeD.tr("IGUI_Fireplace_Burning")), T.positive end
+    if d.smoulder then return OC.cap(ZeD.tr("IGUI_Fireplace_Smouldering")), T.warning end
     return ZeD.tr("UI_ZeD_Fire_PillOut"), T.textDim
 end
 
@@ -297,40 +304,29 @@ local function drawFuelStrip(card, x, y, w, d)
     local T, tm = ZeD.T, ZeD.TM
     local y0 = y
     local maxH = d.max / 60
-    -- big readout: time left + "OF FUEL | HOLDS 8 H"
+    -- big readout: time left + "of fuel | holds 8 h"
     local bigPx = 26
     local bw = UI.big(card, OC.hm(d.fuel), x, y, bigPx, T.text) or 0
     local bigH = math.floor(T.px(bigPx) * 1.0)
-    local small = ZeD.tr("UI_ZeD_Fire_OfFuelHolds", math.floor(maxH + 0.5))
+    local small = ZeD.textCase(ZeD.tr("UI_ZeD_Fire_OfFuelHolds", math.floor(maxH + 0.5)))
     local f1 = T.fontF1
     card:drawText(small, x + bw + T.px(8), y + bigH - tm:getFontHeight(f1), T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, f1)
     y = y + bigH + T.px(8)
-    -- hour cells to the sandbox maximum
-    local cells = math.max(4, math.min(12, math.ceil(maxH)))
-    local gap = T.px(3)
-    local cw = math.floor((w - gap * (cells - 1)) / cells)
-    local ch = T.px(12)
-    local perCell = d.max / cells
-    -- burning: amber; smouldering: half amber; out: fuel waiting, muted amber
+    -- the fuel as one framed strip to the sandbox maximum: burning amber; smouldering half
+    -- amber; out, the fuel waiting, muted amber
     local fillC = d.lit and T.warning or ZeD.colorBlend(T.warning, T.surf2, d.smoulder and 0.35 or 0.6)
-    for i = 0, cells - 1 do
-        local cx = x + i * (cw + gap)
-        local s1 = T.surf1
-        card:drawRect(cx, y, cw, ch, s1.a, s1.r, s1.g, s1.b)
-        local f = math.max(0, math.min(1, (d.fuel - i * perCell) / perCell))
-        if f > 0 then card:drawRect(cx, y, math.floor(cw * f), ch, 1, fillC.r, fillC.g, fillC.b) end
-        card:drawRectBorder(cx, y, cw, ch, T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
-    end
-    y = y + ch + T.px(4)
-    -- scale: NOW ... FULL with even hour marks between
+    local bh = T.fillBarH
+    ZeD.Atoms.drawFillBar(card, x, y, w, d.fuel / math.max(1, d.max), false, fillC, bh)
+    y = y + bh + T.px(4)
+    -- scale: Now ... Full with even hour marks between
     local f5 = T.fontF5
     local dc = T.textDim
-    card:drawText(ZeD.tr("UI_ZeD_Fire_ScaleNow"), x, y, dc.r, dc.g, dc.b, dc.a or 1, f5)
-    ZeD.Atoms.drawTextRight(card, ZeD.tr("UI_ZeD_Fire_ScaleFull"), x + w, y, f5, dc)
+    card:drawText(ZeD.textCase(ZeD.tr("UI_ZeD_Fire_ScaleNow")), x, y, dc.r, dc.g, dc.b, dc.a or 1, f5)
+    ZeD.Atoms.drawTextRight(card, ZeD.textCase(ZeD.tr("UI_ZeD_Fire_ScaleFull")), x + w, y, f5, dc)
     local marks = 3
     for k = 1, marks do
         local hrs = maxH * k / (marks + 1)
-        local lbl = ZeD.tr("UI_ZeD_Fire_ScaleHours", math.floor(hrs + 0.5))
+        local lbl = ZeD.textCase(ZeD.tr("UI_ZeD_Fire_ScaleHours", math.floor(hrs + 0.5)))
         local lw = tm:MeasureStringX(f5, lbl)
         card:drawText(lbl, x + math.floor(w * k / (marks + 1) - lw / 2), y, dc.r, dc.g, dc.b, dc.a or 1, f5)
     end
@@ -344,7 +340,6 @@ local function fireBody(card, x, y, w, t, player)
     local y0 = y
     local gap = T.px(8)
     y = y + drawFuelStrip(card, x, y, w, d) + gap
-    if t.needs and #t.needs > 0 then y = y + UI.needs(card, x, y, w, t.needs) + gap end
 
     if not d.lit and #d.lightRows > 0 then
         y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Fire_LightWith"), "")
@@ -353,8 +348,9 @@ local function fireBody(card, x, y, w, t, player)
             y = y + UI.pick(card, x, y, w, {
                 tex = r.tex, name = r.name,
                 gain = r.dur and ("+" .. OC.hm(r.dur)) or nil,
-                tag = r.need or (r.with and ZeD.upper(r.with)) or nil, tagC = T.textDim,
+                tag = r.need or r.with,
                 button = getText("ContextMenu_Light"), fid = "fire:light:" .. i, enabled = r.enabled ~= false,
+                help = ZeD.tr("UI_ZeD_Fire_HelpLightWith", r.name),
                 run = function(c, p) t.light(p, rr) end,
             })
         end
@@ -371,8 +367,9 @@ local function fireBody(card, x, y, w, t, player)
             y = y + UI.pick(card, x, y, w, {
                 tex = rows[1].tex, name = ZeD.tr("UI_ZeD_Fire_AllFuel", rows.totalN),
                 gain = "+" .. OC.hm(rows.totalDur),
-                tag = (not lotFits) and ZeD.tr("UI_ZeD_Fire_TagFull") or nil, tagC = T.textDim,
+                tag = (not lotFits) and ZeD.tr("UI_ZeD_Fire_TagFull") or nil,
                 button = ZeD.tr("ContextMenu_AddAll"), fid = "fire:fuelall", enabled = lotFits,
+                help = ZeD.tr("UI_ZeD_Fire_HelpAddEvery"),
                 run = function(c, p) t.addFuelAll(p) end,
             })
         end
@@ -381,8 +378,9 @@ local function fireBody(card, x, y, w, t, player)
             local gain = r.count > 1 and ZeD.tr("UI_ZeD_Fire_GainEach", OC.hm(r.dur)) or ("+" .. OC.hm(r.dur))
             y = y + UI.pick(card, x, y, w, {
                 tex = r.tex, name = r.name, where = r.where, gain = gain,
-                tag = (not r.fits) and ZeD.tr("UI_ZeD_Fire_TagFull") or nil, tagC = T.textDim,
+                tag = (not r.fits) and ZeD.tr("UI_ZeD_Fire_TagFull") or nil,
                 button = getText("UI_btn_add"), fid = "fire:fuel:" .. i, enabled = r.fits,
+                help = ZeD.tr("UI_ZeD_Fire_HelpAdd", r.baseName),
                 run = function(c, p) t.addFuel(p, rr) end,
             })
             -- several of this type: add all of them, or all that fit
@@ -392,6 +390,7 @@ local function fireBody(card, x, y, w, t, player)
                     name = ZeD.tr(r.allFits and "UI_ZeD_Fire_NameAll" or "UI_ZeD_Fire_NameAllThatFit", r.baseName, r.fitN),
                     gain = "+" .. OC.hm(r.dur * r.fitN),
                     button = ZeD.tr("ContextMenu_AddAll"), fid = "fire:fuelmany:" .. i, enabled = r.fits,
+                    help = ZeD.tr("UI_ZeD_Fire_HelpAddMany", r.baseName),
                     run = function(c, p) t.addFuelMany(p, rr) end,
                 })
             end
@@ -446,22 +445,31 @@ local function propaneBody(card, x, y, w, t, player)
             end
         end
         local function ignite(p, tt) if not tt.obj:isLit() and t.toggle then t.toggle(p, tt) end end
+        local helpKey = { burner = "UI_ZeD_Fire_HelpBurner", ignite = "UI_ZeD_Fire_HelpIgnite", tank = "UI_ZeD_Fire_HelpTankPart" }
         for _, c in ipairs(PL.controls(des, st)) do
             local fid = "bbq:" .. c.id
             local fn = nil
             if c.id == "burner" then fn = t.toggle
             elseif c.id == "ignite" then fn = (not d.lit and t.toggle) and ignite or nil
             elseif c.id == "tank" then fn = (d.tank or d.spare) and tankFn or nil end
-            if card._fid == fid then PL.cue(cv, c, T.accent, 0.55) end
+            -- a key (the igniter, the cart) takes the pointer's wash and the controller's mark; the
+            -- burner knob keeps its own lit ring
+            if c.kind == "turn" then
+                if card._fid == fid then PL.cue(cv, c, T.accent, 0.55) end
+            else
+                if UI.hovered(card, fid) then PL.hoverKey(cv, c) end
+                local fm = card:focusOf(fid)
+                if fm then PL.markKey(card, c, px0, y, k, fm) end
+            end
             card:zone({ fid = fid, x = px0 + c.x * k, y = y + c.y * k, w = c.w * k, h = c.h * k, body = true,
+                help = helpKey[c.id] and ZeD.tr(helpKey[c.id]) or nil,
                 run = fn and function(cc, p) fn(p, t) end or nil })
         end
         y = y + des.h * k + T.px(6)
     end
     local gm = math.floor(d.fuel % 60)
     local hrs = d.tank and (tostring(math.floor(d.fuel / 60)) .. ":" .. (gm < 10 and "0" or "") .. tostring(gm)) or "0:00"
-    y = y + UI.pair(card, x, y, w, ZeD.tr("UI_ZeD_Fire_GasLeft"), ZeD.tr("UI_ZeD_Fire_Hrs", hrs), ZeD.tr("UI_ZeD_Fire_Tank"), d.tank and ZeD.tr("UI_ZeD_Fire_TankIn") or ZeD.upper(ZeD.tr("IGUI_None"))) + gap
-    if t.needs and #t.needs > 0 then y = y + UI.needs(card, x, y, w, t.needs) + gap end
+    y = y + UI.pair(card, x, y, w, ZeD.tr("UI_ZeD_Fire_GasLeft"), ZeD.tr("UI_ZeD_Fire_Hrs", hrs), ZeD.tr("UI_ZeD_Fire_Tank"), d.tank and ZeD.tr("UI_ZeD_Fire_TankIn") or ZeD.tr("IGUI_None")) + gap
     local items = d.container and call(d.container, "getItems")
     local n = items and items:size() or 0
     if n > 0 then

@@ -17,6 +17,12 @@
 -- the hidden vanilla menu. Mouse: point and click, outside closes. Controller:
 -- D-pad up / down, right or A opens a submenu, left or B goes back, A runs.
 -- Keyboard: arrows, Return, Escape.
+--
+-- A pop-up over the game: solid surface 1, the 1u frame (drawn last on each
+-- level) and System 7's hard shadow. A row has one cue at a time: the hover wash
+-- under the pointer, the same wash for the keyboard's row, the controller's
+-- focus mark (ZeD.Focus.mark) for the pad's; a row whose submenu is open wears
+-- the selection wash.
 -- ============================================================================
 
 require "ISUI/ISPanel"
@@ -42,6 +48,8 @@ function ZeD_ContextList:new(player, anchorMode, anchorX, anchorY, target, actio
     o.background = false
     o._ctx = { open = false, target = target, actions = actionTree or {} }
     o._levels = {}   -- { items, sel, x, y, w, h, rows = { {y, h, def} } }
+    o._nav = "mouse" -- who moves the selection now: "mouse" | "key" | "pad"
+    o._hv = {}       -- the balloon's hover delay (ZeD.Atoms.hoverReady)
     return o
 end
 
@@ -120,6 +128,10 @@ function ZeD_ContextList:open()
     self:_place(top, x, y, nil)
     top.sel = self:_firstLive(top, 1, 1) or 1
     self._levels = { top }
+    -- opened by the pad, the first row is marked at once; with the mouse, only the row it is on
+    local D = ZeD.Input and ZeD.Input.Detector
+    self._nav = (D and D.getMode and D.getMode() == "gamepad") and "pad" or "mouse"
+    self._lastMx, self._lastMy = getMouseX(), getMouseY()   -- (the panel covers the screen: its mouse is the screen's)
     if JoypadState and JoypadState.players and JoypadState.players[self.player + 1] then
         self._joyfocus = true
         pcall(function() if setJoypadIgnoreAimUntilCentered then setJoypadIgnoreAimUntilCentered(self.player, true) end end)
@@ -213,21 +225,24 @@ end
 -- ----------------------------------------------------------------------------
 -- drawing
 -- ----------------------------------------------------------------------------
-local ICONS = {}
+local _focus, _dim = { focused = true, pad = true }, {}
 function ZeD_ContextList:prerender()
     if not self._ctx.open then return end
     self:clearHitZones()
+    local A = ZeD.Atoms
     local T, tm = ZeD.T, ZeD.TM
     local f1, f2 = T.fontF1, T.fontF2
     local rowH, padX, padY, sepH = T.px(ROW_H), T.px(PAD_X), T.px(PAD_Y), T.px(SEP_H)
-    local s1, bs, ac = T.surf1, T.borderS, T.accent
+    local s1, bs, ac, hv = T.surf1, T.borderS, T.accent, T.hover
+    local u = T.hair
     local mx, my = getMouseX(), getMouseY()
+    local nav = self._nav
     local balloon = nil
     for li, lv in ipairs(self._levels) do
         local x, y, w, h = lv.x, lv.y, lv.w, lv.h
-        ZeD.Atoms.drawSteppedShadow(self, x, y, w, h, { r = 0, g = 0, b = 0, a = 0.55 })
+        lv.inkRow = nil
+        A.drawHardShadow(self, x, y, w, h)
         self:drawRect(x, y, w, h, 1, s1.r, s1.g, s1.b)
-        self:drawRectBorder(x, y, w, h, bs.a, bs.r, bs.g, bs.b)
         local cy = y + padY
         -- the top level names what it acts on (the strip's target card, as a heading)
         if lv.head then
@@ -239,14 +254,15 @@ function ZeD_ContextList:prerender()
                 self:drawTextureScaledAspect(tex, tx, cy + math.floor((T.px(HEAD_H) - isz) / 2), isz, isz, 1, 1, 1, 1)
                 tx = tx + isz + T.px(6)
             end
-            self:drawText(ZeD.Atoms.truncateText(ZeD.upper(tostring(name or "")), f1, x + w - padX - tx),
+            -- (the name as the game writes it: an item's own name keeps its case)
+            self:drawText(A.truncateText(tostring(name or ""), f1, x + w - padX - tx),
                 tx, cy + math.floor((T.px(HEAD_H) - (T.fontF1H or tm:getFontHeight(f1))) / 2), d.r, d.g, d.b, d.a or 1, f1)
             cy = cy + T.px(HEAD_H)
-            self:drawRect(x, cy - T.px(1), w, T.px(1), bs.a, bs.r, bs.g, bs.b)
+            self:drawRect(x, cy - u, w, u, bs.a, bs.r, bs.g, bs.b)
         end
         for ri, r in ipairs(lv.rows) do
             if r.sep then
-                self:drawRect(x + T.px(1), cy + math.floor((sepH - T.px(1)) / 2), w - T.px(2), T.px(1), bs.a, bs.r, bs.g, bs.b)
+                self:drawRect(x + u, cy + math.floor((sepH - u) / 2), w - 2 * u, u, bs.a, bs.r, bs.g, bs.b)
                 cy = cy + sepH
             else
                 local def = r.def
@@ -255,41 +271,65 @@ function ZeD_ContextList:prerender()
                 local over = mx >= x and mx < x + w and my >= cy and my < cy + rowH
                 local isSel = (lv.sel == ri)
                 local openParent = self._levels[li + 1] and self._levels[li + 1].parentRow == ri
-                if isSel or openParent then
-                    -- System 7 selects a menu row whole: the accent fill (the controller's 0.55)
-                    self:drawRect(x + T.px(1), cy, w - 2 * T.px(1), rowH, (isSel and not off) and 0.55 or 0.3, ac.r, ac.g, ac.b)
+                -- the row whose submenu is open is selected: the one accent wash
+                if openParent then
+                    self:drawRect(x + u, cy, w - 2 * u, rowH, T.selectionA, ac.r, ac.g, ac.b)
                 end
-                local a = off and 0.38 or 1
-                -- on the controller's 0.55 fill the label is the focus ink (red or plain text would vanish into it)
-                local tc = (isSel and not off) and T.textOnFocus
-                    or ((def.stateKind and def.stateKind(self._ctx.target) == "bad") and T.dangerText or T.text)
+                -- the cue for the row the selection is on: the pad's mark, or the hover wash
+                local onFocus = false
+                if isSel then
+                    if nav == "pad" then
+                        _focus.win = self
+                        onFocus = ZeD.Focus.mark(self, x + u, cy, w - 2 * u, rowH, _focus)
+                        -- (the row whose words are on the focus ink, for a menu that draws more on its rows)
+                        if onFocus then lv.inkRow = ri end
+                    elseif nav == "key" or over then
+                        self:drawRect(x + u, cy, w - 2 * u, rowH, hv.a or 1, hv.r, hv.g, hv.b)
+                    end
+                end
+                local a = off and T.disabledAlpha or 1
+                -- on a wash of 0.5 or more the label is the focus ink
+                local tc = onFocus and T.textOnFocus or T.text
                 local ix = x + padX
                 local isz = T.px(ICON)
                 if def.iconTexture then
                     local tint = def.iconTintable and tc or { r = 1, g = 1, b = 1 }
-                    ZeD.Atoms.drawIcon(self, def.iconTexture, ix, cy + math.floor((rowH - isz) / 2), isz, a, tint)
+                    A.drawIcon(self, def.iconTexture, ix, cy + math.floor((rowH - isz) / 2), isz, a, tint)
                 end
                 local tx = ix + isz + T.px(8)
                 local hasKids = (def.children and #def.children > 0) or def.subOption
                 local right = x + w - padX - (hasKids and T.px(10) or 0)
-                self:drawText(ZeD.Atoms.truncateText(tostring(def.name or ""), f2, right - tx), tx,
+                -- a state that is bad (it cannot be done) is a red square, the words stay the default ink
+                if def.stateKind and def.stateKind(self._ctx.target) == "bad" then
+                    local sq = T.px(6)
+                    local dc = T.danger
+                    _dim.r, _dim.g, _dim.b, _dim.a = dc.r, dc.g, dc.b, (dc.a or 1) * a
+                    A.drawStatusDot(self, right - sq, cy + math.floor((rowH - sq) / 2), _dim, sq)
+                    right = right - sq - T.px(6)
+                end
+                self:drawText(A.truncateText(tostring(def.name or ""), f2, right - tx), tx,
                     cy + math.floor((rowH - (T.fontF2H or tm:getFontHeight(f2))) / 2), tc.r, tc.g, tc.b, (tc.a or 1) * a, f2)
                 if hasKids then
-                    ZeD.Atoms.drawTriangleRight(self, x + w - padX - T.px(6), cy + math.floor((rowH - T.px(8)) / 2), T.px(8), T.textDim)
+                    A.drawTriangleRight(self, x + w - padX - T.px(6), cy + math.floor((rowH - T.px(8)) / 2), T.px(8), onFocus and T.textOnFocus or T.textDim)
                 end
                 self:addHitZone("row:" .. li .. ":" .. ri, x, cy, w, rowH)
-                if isSel then
+                if isSel and (nav ~= "mouse" or over or openParent) then
                     local body = def.body or ""
                     local st = def.state and def.state(self._ctx.target) or ""
                     local txt = (st ~= "" and st ~= body) and ((body ~= "" and (body .. " ") or "") .. st) or body
-                    if txt ~= "" then balloon = { text = txt, x = x + w, y = cy, lvx = x } end
+                    if txt ~= "" then balloon = { text = txt, x = x + w, y = cy, lvx = x, key = li .. ":" .. ri } end
                 end
                 cy = cy + rowH
             end
         end
+        -- the level's frame, last: nothing of its own covers it
+        A.frame(self, x, y, w, h, bs)
     end
-    -- the pointed row's tooltip, in a balloon beside its menu (System 7's Balloon Help)
-    if balloon then self:_drawBalloon(balloon) end
+    -- the pointed row's tooltip, in a balloon beside its menu (System 7's Balloon Help): at
+    -- once for the pad and the keys, after the shared hover delay for the mouse
+    local ready = A.hoverReady(self._hv, balloon and balloon.key or nil)
+    if balloon and (nav ~= "mouse" or ready) then self:_drawBalloon(balloon) end
+    ZeD.Focus.drawOverlay(self, self)
 end
 
 function ZeD_ContextList:_drawBalloon(b)
@@ -306,10 +346,11 @@ function ZeD_ContextList:_drawBalloon(b)
     local x = b.x + T.px(6)
     if x + bw > sw - T.px(4) then x = b.lvx - bw - T.px(6) end
     local y = math.min(b.y, sh - bh - T.px(4))
-    local s2, bs, tc = T.surf2, T.borderS, T.text
-    self:drawRect(x + T.px(2), y + T.px(2), bw, bh, 0.5, 0, 0, 0)
-    self:drawRect(x, y, bw, bh, 1, s2.r, s2.g, s2.b)
-    self:drawRectBorder(x, y, bw, bh, bs.a, bs.r, bs.g, bs.b)
+    -- a hover box: solid surface 1, the 1u frame, the hard shadow
+    local s1, bs, tc = T.surf1, T.borderS, T.text
+    ZeD.Atoms.drawHardShadow(self, x, y, bw, bh)
+    self:drawRect(x, y, bw, bh, 1, s1.r, s1.g, s1.b)
+    ZeD.Atoms.frame(self, x, y, bw, bh, bs)
     for i, l in ipairs(lines) do
         self:drawText(l, x + pad, y + pad + (i - 1) * lh, tc.r, tc.g, tc.b, tc.a or 1, f2)
     end
@@ -329,8 +370,15 @@ function ZeD_ContextList:update()
     ZeD_Panel.update(self)
     if not self._ctx.open then return end
     local mx, my = self:getMouseX(), self:getMouseY()
+    if self._lastMx == nil then
+        -- (a list that did not come through :open, the window box's menu: who opened it)
+        local D = ZeD.Input and ZeD.Input.Detector
+        self._nav = (self._joyfocus and D and D.getMode and D.getMode() == "gamepad") and "pad" or "mouse"
+        self._lastMx, self._lastMy = mx, my
+    end
     if mx == self._lastMx and my == self._lastMy then return end   -- the controller keeps its row while the mouse rests
     self._lastMx, self._lastMy = mx, my
+    self._nav = "mouse"
     local li, ri = rowAt(self, mx, my)
     if not li then return end
     local lv = self._levels[li]
@@ -368,17 +416,19 @@ function ZeD_ContextList:onMouseWheel(del) self:move(del > 0 and 1 or -1); retur
 -- (directions only in onJoypadDir*: the engine fires onJoypadDown for the same
 -- D-pad press too, and handling both moves twice)
 function ZeD_ContextList:onJoypadDown(button)
+    self._nav = "pad"
     if button == Joypad.AButton then self:confirm()
     elseif button == Joypad.BButton then self:cancel() end
 end
-function ZeD_ContextList:onJoypadDirUp() self:move(-1) end
-function ZeD_ContextList:onJoypadDirDown() self:move(1) end
-function ZeD_ContextList:onJoypadDirRight() self:_openSub(#self._levels, true) end
-function ZeD_ContextList:onJoypadDirLeft() if #self._levels > 1 then self:cancel() end end
+function ZeD_ContextList:onJoypadDirUp() self._nav = "pad"; self:move(-1) end
+function ZeD_ContextList:onJoypadDirDown() self._nav = "pad"; self:move(1) end
+function ZeD_ContextList:onJoypadDirRight() self._nav = "pad"; self:_openSub(#self._levels, true) end
+function ZeD_ContextList:onJoypadDirLeft() self._nav = "pad"; if #self._levels > 1 then self:cancel() end end
 
 local NAV = {}
 function ZeD_ContextList:isKeyConsumed(key) return NAV[key] == true end
 function ZeD_ContextList:onKeyPress(key)
+    self._nav = "key"
     if key == Keyboard.KEY_UP then self:move(-1)
     elseif key == Keyboard.KEY_DOWN then self:move(1)
     elseif key == Keyboard.KEY_RIGHT then self:_openSub(#self._levels, true)

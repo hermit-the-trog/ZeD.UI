@@ -49,6 +49,7 @@ local AMMO_W = 100         -- the ammo pouch beside the main hand (mockup zed_be
                            -- redrawn Oct 26 2026 to the director's "needs segments for each round ... a bit more polish")
 local AMMO_ICON = 24       -- the ammo's picture in the pouch
 local AMMO_MS = 250        -- how often the rounds and magazines carried are counted again
+local AMMO_CARD_W = 280      -- the widest the gun's detail card gets
 local LIST_ROW_H, LIST_W = 26, 290
 
 local DOT = "|"   -- the separator: ZeD OS's pipe (director, Oct 16 2026: no middle dots)
@@ -326,16 +327,16 @@ local SHORT = {
     BedrollBottom = "UI_ZeD_Belt_SlotPack", BedrollBottomBig = "UI_ZeD_Belt_SlotPack", BedrollBottomALICE = "UI_ZeD_Belt_SlotPack",
 }
 ZeD.trDefaults({
-    UI_ZeD_Belt_SlotBeltL = "BELT L", UI_ZeD_Belt_SlotBeltR = "BELT R", UI_ZeD_Belt_SlotHolster = "HOLSTER",
-    UI_ZeD_Belt_SlotHolsterL = "HOLSTER L", UI_ZeD_Belt_SlotShoulder = "SHOULDER", UI_ZeD_Belt_SlotAnkle = "ANKLE",
-    UI_ZeD_Belt_SlotWebL = "WEB L", UI_ZeD_Belt_SlotWebR = "WEB R", UI_ZeD_Belt_SlotPack = "PACK",
-    UI_ZeD_Belt_Tag = "BELT %1", UI_ZeD_Belt_InHand = "IN HAND", UI_ZeD_Belt_Both = "BOTH",
-    UI_ZeD_Belt_SlotKey = "%1 | KEY %2", UI_ZeD_Belt_Watch = "WATCH", UI_ZeD_Belt_WatchSpeed = "SPEED | %1X",
-    UI_ZeD_Belt_WatchStart = "START", UI_ZeD_Belt_WatchLight = "LIGHT", UI_ZeD_Belt_WatchTuck = "%1 | TUCK AWAY",
-    UI_ZeD_Belt_WatchFull = "%1 | FULL WATCH", UI_ZeD_Belt_Replace = "REPLACE %1",
-    UI_ZeD_Belt_InBags = "IN YOUR BAGS", UI_ZeD_Belt_BestLight = "Best light: %1",
-    UI_ZeD_Belt_AmmoEmpty = "EMPTY", UI_ZeD_Belt_AmmoMags = "%1 MAG", UI_ZeD_Belt_AmmoRounds = "%1 RDS",
-    UI_ZeD_Belt_AmmoBoxes = "+%1 BOX", UI_ZeD_Belt_AmmoGunEmpty = "%1 | empty",
+    UI_ZeD_Belt_SlotBeltL = "Belt L", UI_ZeD_Belt_SlotBeltR = "Belt R", UI_ZeD_Belt_SlotHolster = "Holster",
+    UI_ZeD_Belt_SlotHolsterL = "Holster L", UI_ZeD_Belt_SlotShoulder = "Shoulder", UI_ZeD_Belt_SlotAnkle = "Ankle",
+    UI_ZeD_Belt_SlotWebL = "Web L", UI_ZeD_Belt_SlotWebR = "Web R", UI_ZeD_Belt_SlotPack = "Pack",
+    UI_ZeD_Belt_Tag = "Belt %1", UI_ZeD_Belt_InHand = "In hand", UI_ZeD_Belt_Both = "Both",
+    UI_ZeD_Belt_SlotKey = "%1 | key %2", UI_ZeD_Belt_Watch = "Watch", UI_ZeD_Belt_WatchSpeed = "Speed | %1x",
+    UI_ZeD_Belt_WatchStart = "Start", UI_ZeD_Belt_WatchLight = "Light", UI_ZeD_Belt_WatchTuck = "%1 | Tuck away",
+    UI_ZeD_Belt_WatchFull = "%1 | Full watch", UI_ZeD_Belt_Replace = "Replace %1",
+    UI_ZeD_Belt_InBags = "In your bags", UI_ZeD_Belt_BestLight = "Best light: %1",
+    UI_ZeD_Belt_AmmoEmpty = "Empty", UI_ZeD_Belt_AmmoMags = "%1 mag", UI_ZeD_Belt_AmmoRounds = "%1 rds",
+    UI_ZeD_Belt_AmmoBoxes = "+%1 box", UI_ZeD_Belt_AmmoGunEmpty = "%1 | empty",
     UI_ZeD_Belt_AmmoInMag = "%1 | %2 in the magazine", UI_ZeD_Belt_AmmoInCyl = "%1 | %2 in the cylinder",
     UI_ZeD_Belt_AmmoLoaded = "%1 | %2 loaded", UI_ZeD_Belt_AmmoChambered = "%1, 1 chambered",
     UI_ZeD_Belt_AmmoCarried = "Carried: %1", UI_ZeD_Belt_AmmoCarriedNone = "Carried: no %1",
@@ -357,21 +358,21 @@ function B.shortName(slotType)
     local k = slotType or ""
     local s = c[k]
     if s then return s end
-    if slotType == "Back" then s = ZeD.upper(getText("IGUI_HotbarAttachment_Back"))
+    if slotType == "Back" then s = getText("IGUI_HotbarAttachment_Back")
     else
         local key = SHORT[slotType]
-        if key then s = ZeD.tr(key) else s = string.upper(tostring(slotType or "")) end
+        if key then s = ZeD.tr(key) else s = tostring(slotType or "") end
     end
     c[k] = s
     return s
 end
--- "PRIMARY" / "SECONDARY" (vanilla's words for the two hands)
+-- "Primary" / "Secondary" (vanilla's words for the two hands)
 function B.handName(which)
     local c = names().hand
     local k = (which == "p") and "p" or "s"
     local s = c[k]
     if s then return s end
-    s = ZeD.upper(getText(k == "p" and "IGUI_PrimaryTooltip" or "IGUI_SecondaryTooltip"))
+    s = getText(k == "p" and "IGUI_PrimaryTooltip" or "IGUI_SecondaryTooltip")
     c[k] = s
     return s
 end
@@ -386,8 +387,8 @@ function B.slotName(slot)
     end
     return s or tostring(slot.name or slot.slotType)
 end
--- "BELT 3" in the inventory lists (the key that draws it)
-function B.tagFor(i) return ZeD.tr("UI_ZeD_Belt_Tag", tostring(B.keyLabel(i) or i)) end
+-- "Belt 3" in the inventory lists (the key that draws it); read in sentence case whatever case the string is in
+function B.tagFor(i) return ZeD.textCase(ZeD.tr("UI_ZeD_Belt_Tag", tostring(B.keyLabel(i) or i))) end
 
 -- The worn item that gives a slot (Back is always there)
 function B.provider(playerObj, slotType)
@@ -498,9 +499,9 @@ function B.ammoLines(a)
     return l1, l2
 end
 
--- the box's words: the count ("12+1", "EMPTY") and what is carried under it (two short lines)
+-- the box's words: the count ("12+1", "Empty") and what is carried under it (two short lines)
 function B.ammoWords(a)
-    local count = (a.n == 0) and ZeD.tr("UI_ZeD_Belt_AmmoEmpty") or (a.chambered and (tostring(a.inGun) .. "+1") or tostring(a.inGun))
+    local count = (a.n == 0) and ZeD.textCase(ZeD.tr("UI_ZeD_Belt_AmmoEmpty")) or (a.chambered and (tostring(a.inGun) .. "+1") or tostring(a.inGun))
     local s1, s2
     if a.loaded > 0 then
         s1, s2 = ZeD.tr("UI_ZeD_Belt_AmmoMags", a.loaded), ZeD.tr("UI_ZeD_Belt_AmmoRounds", a.loose)
@@ -508,7 +509,7 @@ function B.ammoWords(a)
         s1 = ZeD.tr("UI_ZeD_Belt_AmmoRounds", a.loose)
         s2 = a.boxes > 0 and ZeD.tr("UI_ZeD_Belt_AmmoBoxes", a.boxes) or nil
     else
-        s1 = ZeD.upper(getText("IGUI_None"))
+        s1 = getText("IGUI_None")
     end
     return count, s1, s2
 end
@@ -678,6 +679,10 @@ function ZeD_BeltHUD:new(playerNum)
     o.backgroundColor = { r = 0, g = 0, b = 0, a = 0 }
     o.borderColor = { r = 0, g = 0, b = 0, a = 0 }
     o._boxes = {}
+    -- the belt keeps its own focus model: it tells ZeD.Focus.mark which box has the controller (solid = no square
+    -- wash under a round hand; padMark)
+    o._mkOpts = { win = o, focused = true }
+    o._mkSolid = { win = o, focused = true, solid = true }
     return o
 end
 
@@ -1163,6 +1168,43 @@ local function wearColor(T, f)
     return T.danger
 end
 
+-- The pointer's wash (T.hover) on a pressable belt box; the hands' is a disc. Off while the controller's mark shows,
+-- so a pointer left resting on the belt never lights a second box beside the pad's.
+local function hoverWash(self, b, round)
+    local F = ZeD.Input and ZeD.Input.Focus
+    if F and F.cuesVisible and F.cuesVisible() then return end
+    local hv = ZeD.T.hover
+    if round then disc(self, b.x, b.y, b.w, hv.a or 0.2, hv)
+    else self:drawRect(b.x, b.y, b.w, b.h, hv.a or 0.2, hv.r, hv.g, hv.b) end
+end
+
+-- The controller's mark on a belt box (ZeD.Focus.mark; the belt keeps its own focus model, so it says the box is
+-- focused). The hands are circles: the one-wash look is a disc there (the same 0.55 ZeD_FocusPaint washes with), and
+-- the other looks put a disc of the hover wash under the box and leave the hand, corners or ants to the overlay pass,
+-- on the circle's bounding square. Returns true when the words must switch to T.textOnFocus.
+local WASH_A = 0.55
+local function padMark(self, b, round)
+    local F = ZeD.Focus
+    if not (F and F.mark) then return false end
+    if not round then return F.mark(self, b.x, b.y, b.w, b.h, self._mkOpts) end
+    if not F.isShowing(self, self._mkOpts) then return false end
+    local T = ZeD.T
+    if F.style() == "wash" then
+        disc(self, b.x, b.y, b.w, WASH_A, T.accent)
+        return true
+    end
+    local hv = T.hover
+    disc(self, b.x, b.y, b.w, hv.a or 0.2, hv)
+    F.mark(self, b.x, b.y, b.w, b.h, self._mkSolid)       -- solid: no square wash under the circle
+    return false
+end
+
+-- A slot's condition line is the library's framed strip (ZeD.Atoms.drawFillBar: 1u borderS frame, solid T.base well,
+-- a flat solid fill in the graduated status colours), 8u tall and 3u in from the box's sides and bottom; the picture
+-- stands above it.
+local STRIP_INSET = 3
+local SLOT_PIC = 28
+
 function ZeD_BeltHUD:_drawBox(b, o)
     local T, tm = ZeD.T, ZeD.TM
     local p1 = T.px(1)
@@ -1176,19 +1218,25 @@ function ZeD_BeltHUD:_drawBox(b, o)
     fill(0.95, bg)
     if o.state == "fit" then fill(0.14, T.accent) end
     if o.state == "fitHover" then fill(0.22, T.accent) end
+    -- the controller's mark, or the pointer's wash: under the picture and the words
+    local onFocus = false
+    if o.focus then onFocus = padMark(self, b, round)
+    elseif o.hover then hoverWash(self, b, round) end
+    local stripH = ZeD.Atoms.fillBarCompactH()
+    local stripTop = b.h - T.px(STRIP_INSET) - stripH         -- (the slots: where the condition strip begins)
     -- the item, or the slot's name when empty
     if o.item then
         local tex = call(o.item, "getTex")
-        -- (the hands' picture fits inside their condition ring, centred; the slots' sits above their bar)
-        local isz = T.px(34)
+        -- (the hands' picture fits inside their condition ring, centred; the slots' sits above their strip)
+        local isz = round and T.px(34) or T.px(SLOT_PIC)
         if tex then
-            self:drawTextureScaledAspect(tex, b.x + math.floor((b.w - isz) / 2), b.y + math.floor((b.h - isz) / 2) - (round and 0 or T.px(2)), isz, isz,
-                (o.ghost or o.inHand) and 0.25 or 1, 1, 1, 1)
+            local iy = round and (b.y + math.floor((b.h - isz) / 2)) or (b.y + math.floor((stripTop - isz) / 2))
+            self:drawTextureScaledAspect(tex, b.x + math.floor((b.w - isz) / 2), iy, isz, isz, (o.ghost or o.inHand) and 0.25 or 1, 1, 1, 1)
         end
     elseif o.label then
         local f5 = T.fontF5
         local lw = tm:MeasureStringX(f5, o.label)
-        local dc = T.textDim
+        local dc = onFocus and T.textOnFocus or T.textDim
         self:drawText(o.label, b.x + math.floor((b.w - lw) / 2), b.y + math.floor((b.h - tm:getFontHeight(f5)) / 2), dc.r, dc.g, dc.b, dc.a or 1, f5)
     end
     -- border: dashed accent while drawn, accent while a drop fits, else the line (round on the hands)
@@ -1207,30 +1255,28 @@ function ZeD_BeltHUD:_drawBox(b, o)
     else
         frameBox(self, b.x, b.y, b.w, b.h, T)
     end
-    -- the foot: IN HAND / BOTH, or the condition (a ring inside the hands' outline, a bar on the slots)
-    local f5 = T.fontF5
+    -- the foot: In hand / Both as a tag, or the condition (a ring inside the hands' outline, the framed strip on the slots)
     if round and o.item and not (o.inHand or o.ghost) then
         local f = B.cond(o.item)
         if f then
-            -- inset by the outline (two units) and a one-unit gap; three units thick, like the slots' bar
+            -- inset by the outline (two units) and a one-unit gap; three units thick
             local ins, t = p1 * 3, p1 * 3
             local s = b.w - ins * 2
             ring(self, b.x + ins, b.y + ins, s, t, 1, T.surf3)
             ringArc(self, b.x + ins, b.y + ins, s, t, f, 1, wearColor(T, f))
         end
     elseif o.inHand or o.ghost then
-        local tag = o.inHand and ZeD.tr("UI_ZeD_Belt_InHand") or ZeD.tr("UI_ZeD_Belt_Both")
-        local tw = tm:MeasureStringX(f5, tag)
-        local ac = T.accentText
-        local up = round and T.px(4) or 0                -- inside the circle's curve
-        self:drawText(tag, b.x + math.floor((b.w - tw) / 2), b.y + b.h - tm:getFontHeight(f5) - p1 - up, ac.r, ac.g, ac.b, 1, f5)
+        local text = o.inHand and ZeD.tr("UI_ZeD_Belt_InHand") or ZeD.tr("UI_ZeD_Belt_Both")
+        local f5, th = T.fontF5, T.px(14)
+        local tw = tm:MeasureStringX(f5, ZeD.textCase(text)) + T.px(10)
+        local up = round and T.px(6) or 0                -- inside the circle's curve
+        ZeD.Molecules.drawTag(self, b.x + math.max(0, math.floor((b.w - tw) / 2)), b.y + b.h - th - T.px(STRIP_INSET) - up, text, nil,
+            { font = f5, h = th, textColor = onFocus and T.textOnFocus or nil })
     elseif o.item then
         local f = B.cond(o.item)
         if f then
-            local bx, by, bw = b.x + T.px(3), b.y + b.h - T.px(5), b.w - T.px(6)
-            self:drawRect(bx, by, bw, T.px(3), 1, col(T.surf3))
-            local fw = math.floor(bw * f)
-            if fw > 0 then self:drawRect(bx, by, fw, T.px(3), 1, col(wearColor(T, f))) end
+            local ins = T.px(STRIP_INSET)
+            ZeD.Atoms.drawFillBar(self, b.x + ins, b.y + b.h - ins - stripH, b.w - 2 * ins, f, true, nil, stripH)
         end
     end
     -- the key that draws it
@@ -1252,15 +1298,11 @@ function ZeD_BeltHUD:_drawBox(b, o)
             local rad = b.w / 2
             lx = b.x + math.floor(rad + rad * 0.62 - d / 2) - T.px(2); ly = b.y + math.floor(rad - rad * 0.62 - d / 2) + T.px(2)
         end
-        ZeD.Atoms.drawStatusDot(self, lx, ly, T.warningText, d)
+        -- a lamp on a lit light: hardware, so it stays round (status marks are squares; a lamp is a lamp)
+        local wc = T.warningText
+        disc(self, lx, ly, d, wc.a or 1, wc)
     end
     if o.state == "no" then fill(0.6, T.base) end
-    if o.focus then
-        local ac = T.accent
-        local o3 = T.px(3)   -- the same 3 units on both sides (T.px(6) is not 2 x T.px(3) at 1.25 / 1.75)
-        if round then disc(self, b.x - o3, b.y - o3, b.w + 2 * o3, 0.55, ac)
-        else self:drawRect(b.x - o3, b.y - o3, b.w + 2 * o3, b.h + 2 * o3, 0.55, ac.r, ac.g, ac.b) end
-    end
 end
 
 -- the Messages note (MESSAGES_SPEC.md): a box with a paper note (the map flyer's, no pin) and the count of what is
@@ -1270,7 +1312,8 @@ function ZeD_BeltHUD:_drawLamp(b, focus, hover)
     local T = ZeD.T
     local s1, bd, ac = T.surf1, T.borderS, T.accent
     self:drawRect(b.x, b.y, b.w, b.h, 0.92, s1.r, s1.g, s1.b)
-    if hover then self:drawRect(b.x, b.y, b.w, b.h, 0.22, ac.r, ac.g, ac.b) end
+    if focus then padMark(self, b, false)
+    elseif hover then hoverWash(self, b, false) end
     self:drawRectBorder(b.x, b.y, b.w, b.h, 1, bd.r, bd.g, bd.b)
     -- the map's flyer note without its pin (director, Oct 25 2026), pixel art at a whole zoom
     if lampTex == nil then lampTex = getTexture("media/textures/ZeD/icons/msg_note.png") or false end
@@ -1291,10 +1334,6 @@ function ZeD_BeltHUD:_drawLamp(b, focus, hover)
         self:drawRect(bx, by, pw, ph, 1, c.r, c.g, c.b)
         self:drawText(t, bx + T.px(3), by + T.px(1), ink.r, ink.g, ink.b, 1, f)
     end
-    if focus then
-        local o3 = T.px(3)
-        self:drawRect(b.x - o3, b.y - o3, b.w + 2 * o3, b.h + 2 * o3, 0.55, ac.r, ac.g, ac.b)
-    end
 end
 
 -- the gun's state (B.ammo), counted again every AMMO_MS and at once when the main hand changes
@@ -1314,20 +1353,22 @@ function ZeD_BeltHUD:_ammoState(p)
     return a
 end
 
--- the pouch's width: AMMO_W, or more where this language's words need it: the picture, the count (F4) and what is
--- carried (two F5 lines) side by side
+-- the pouch's width: AMMO_W, or more where this language's words need it: the picture, the count (F3, with the
+-- 6u status square after it) and what is carried (two F5 lines) side by side
 function ZeD_BeltHUD:_ammoWidth(n, chamber)
     local T, tm = ZeD.T, ZeD.TM
-    local cw = math.max(tm:MeasureStringX(T.fontF4, "88+1"), tm:MeasureStringX(T.fontF1, ZeD.tr("UI_ZeD_Belt_AmmoEmpty")))
+    local cw = math.max(tm:MeasureStringX(T.fontF3, "88+1"), tm:MeasureStringX(T.fontF3, ZeD.textCase(ZeD.tr("UI_ZeD_Belt_AmmoEmpty")))) + T.px(4 + 6)
     local sw = math.max(tm:MeasureStringX(T.fontF5, ZeD.tr("UI_ZeD_Belt_AmmoMags", 8)), tm:MeasureStringX(T.fontF5, ZeD.tr("UI_ZeD_Belt_AmmoRounds", 888)),
-        tm:MeasureStringX(T.fontF5, ZeD.tr("UI_ZeD_Belt_AmmoBoxes", 8)), tm:MeasureStringX(T.fontF5, ZeD.upper(getText("IGUI_None"))))
-    -- (and for a big magazine, room for its rounds two art pixels wide each: B.segLayout's grouping at sw 2)
+        tm:MeasureStringX(T.fontF5, ZeD.tr("UI_ZeD_Belt_AmmoBoxes", 8)), tm:MeasureStringX(T.fontF5, getText("IGUI_None")))
+    -- (and for a big magazine, room for its rounds two art pixels wide each: B.segLayout's grouping at sw 2, inside the
+    -- strip's frame and a pixel clear of it on both sides)
     local k = math.max(1, T.art or 1)
     local segW = 0
     if n and n > 0 then
         local group = (n > 60 and 10) or (n > 15 and 5) or n
         local groups = math.ceil(n / group)
-        segW = ((chamber and 6 or 0) + n * 2 + (n - groups) + (groups - 1) * ((group < n) and 3 or 1)) * k + 2 * T.px(4)
+        segW = ((chamber and 6 or 0) + n * 2 + (n - groups) + (groups - 1) * ((group < n) and 3 or 1) + 2) * k
+            + 2 * T.px(4) + 2 * T.line(T.borderW)
     end
     return math.max(T.px(AMMO_W), T.px(4 + AMMO_ICON + 6) + cw + T.px(8) + sw + T.px(5), segW)
 end
@@ -1351,133 +1392,97 @@ function B.segLayout(n, chamber, room)
     return nil   -- (a drum of a hundred: no room for one pixel each)
 end
 
--- The pouch's inks, from the live theme tokens (Oct 26 2026, checked in Light and High contrast): the rounds' fill in
--- the belt's wear colours (normal over half full, amber over a quarter, red under); the count in the same colours as
--- text (the readable variants: 4.6:1 on the pouch); a spent round drawn hollow in the chrome grey (textDim, 4.6:1 on
--- the surfaces). The grey cannot also stand 3:1 off every fill colour in every theme (Light's mid-grey pouch leaves
--- no room between them), so the shape tells them apart: a solid round, an empty outline.
+-- The pouch's inks, from the live theme tokens: the rounds in the belt's wear colours (normal over half full, amber
+-- over a quarter, red under); the count in the default text with a 6u status square after it (red when empty or low,
+-- amber under half, none while the gun is full enough); a spent round is the strip's empty well (T.base), as the
+-- slots' condition strips show their empty part.
 function B.ammoInk(a)
     local T = ZeD.T
     local low = a.n == 0 or a.f <= 0.25
     return {
         fill = (low and T.danger) or (a.f > 0.5 and T.text) or T.warningText,
-        text = (low and (T.dangerText or T.danger)) or (a.f > 0.5 and T.text) or T.warningText,
-        spent = T.textDim, spentA = 1, hollow = true,
+        text = T.text,
+        mark = (low and T.danger) or (a.f <= 0.5 and T.warning) or nil,
+        spent = T.base, spentA = 1, hollow = false,
     }
 end
 
--- an empty round: its outline only (the top and bottom edges; the sides too where it is three art pixels wide)
-local function hollowRect(self, x, y, w, h, k, c)
-    self:drawRect(x, y, w, k, 1, c.r, c.g, c.b)
-    self:drawRect(x, y + h - k, w, k, 1, c.r, c.g, c.b)
-    if w >= 3 * k then
-        self:drawRect(x, y + k, k, h - 2 * k, 1, c.r, c.g, c.b)
-        self:drawRect(x + w - k, y + k, k, h - 2 * k, 1, c.r, c.g, c.b)
-    end
-end
-
--- the ammo pouch (style B): framed as the slots are (surf2, frameBox, the foot's segments where the slots
--- have their condition bar); the ammo's own picture (the magazine for a gun that takes one, else the round); the
--- rounds in the gun in large figures in the belt's wear colours (normal over half full, amber over a quarter, red
--- under, EMPTY at nothing; "+1" for a chambered round); what is carried, right-aligned; one segment per round
+-- the ammo pouch (style B): framed as the slots are (surf2, frameBox); the ammo's own picture (the magazine for a gun
+-- that takes one, else the round); the rounds in the gun as a count in F3 in the default text with its status square
+-- ("Empty" at nothing; "+1" for a chambered round); what is carried, right-aligned; and at the foot the same framed
+-- strip the slots' condition lines are (1u borderS frame, solid T.base well, flat solid fills, 8u tall) with one
+-- segment per round the gun holds: a round in it filled in the wear colour, a spent one the empty well, the chamber's
+-- round set apart at the front
 function ZeD_BeltHUD:_drawAmmo(b, a)
-    local T, tm = ZeD.T, ZeD.TM
-    local s2, s3 = T.surf2, T.surf3
+    local T, tm, A = ZeD.T, ZeD.TM, ZeD.Atoms
+    local s2 = T.surf2
     self:drawRect(b.x, b.y, b.w, b.h, 0.95, s2.r, s2.g, s2.b)
     local ink = B.ammoInk(a)
-    local c, ct = ink.fill, ink.text
+    local c = ink.fill
     local k = math.max(1, T.art or 1)
-    -- the foot: the segments' row, the slots' bar height (3 art pixels), its top 5 design units over the bottom
-    local segH = 4 * k
-    local footY = b.y + b.h - T.px(4) - segH
-    local topH = footY - b.y - k                        -- the area over the foot
-    -- the picture, centred in the area over the foot
+    -- the foot: the strip, 4u in from the pouch's edges and bottom
+    local stripH = A.fillBarCompactH()
+    local sx, sw = b.x + T.px(4), b.w - 2 * T.px(4)
+    local sy = b.y + b.h - T.px(4) - stripH
+    local topH = sy - b.y - T.px(2)                     -- the area over the strip
+    -- the picture, centred in the area over the strip
     local isz = T.px(AMMO_ICON)
     if a.icon then
         self:drawTextureScaledAspect(a.icon, b.x + T.px(4), b.y + math.floor((topH - isz) / 2), isz, isz, a.n == 0 and 0.45 or 1, 1, 1, 1)
     end
-    -- the count beside it, on the area's middle; what is carried at the right, two lines on the same middle
+    -- the count beside it, on the area's middle, and its status square; what is carried at the right, two lines on
+    -- the same middle
     local count, s1, s2w = B.ammoWords(a)
-    local cf = (a.n == 0) and T.fontF1 or T.fontF4
+    local cf = T.fontF3
     local ch = tm:getFontHeight(cf)
-    self:drawText(count, b.x + T.px(4 + AMMO_ICON + 6), b.y + math.floor((topH - ch) / 2), ct.r, ct.g, ct.b, 1, cf)
+    local cx, cy = b.x + T.px(4 + AMMO_ICON + 6), b.y + math.floor((topH - ch) / 2)
+    local tc = ink.text
+    self:drawText(count, cx, cy, tc.r, tc.g, tc.b, tc.a or 1, cf)
+    if ink.mark then
+        A.drawStatusDot(self, cx + tm:MeasureStringX(cf, count) + T.px(4), cy + math.floor((ch - T.px(6)) / 2), ink.mark, T.px(6))
+    end
     local f5, dc = T.fontF5, T.textDim
     local f5h = tm:getFontHeight(f5)
     local lines = s2w and 2 or 1
     local ly = b.y + math.floor((topH - f5h * lines) / 2)
     local rx = b.x + b.w - T.px(5)
-    ZeD.Atoms.drawTextRight(self, s1, rx, ly, f5, dc)
-    if s2w then ZeD.Atoms.drawTextRight(self, s2w, rx, ly + f5h, f5, dc) end
+    A.drawTextRight(self, s1, rx, ly, f5, dc)
+    if s2w then A.drawTextRight(self, s2w, rx, ly + f5h, f5, dc) end
     -- the frame, the slots' own
     frameBox(self, b.x, b.y, b.w, b.h, T)
-    -- the rounds
-    local inner = b.w - 2 * T.px(4)
-    local L = B.segLayout(a.max, a.chamber, math.floor(inner / k))
-    local sp = ink.spent                                -- a spent round: hollow, in the chrome grey
-    local x0 = b.x + T.px(4)
+    -- the rounds, inside the strip's frame and a pixel clear of it
+    local bw = T.line(T.borderW)
+    local ix, iy, iw, ih = sx + bw, sy + bw, sw - 2 * bw, stripH - 2 * bw
+    local L = B.segLayout(a.max, a.chamber, math.floor((iw - 2 * k) / k))
     if not L then
-        -- too many for one pixel each: the slots' bar, ticked every ten
-        self:drawRect(x0, footY, inner, segH, 1, s3.r, s3.g, s3.b)
-        local fw = math.floor(inner * a.f)
-        if fw > 0 then self:drawRect(x0, footY, fw, segH, 1, c.r, c.g, c.b) end
-        for t = 10, a.max - 1, 10 do self:drawRect(x0 + math.floor(inner * t / a.max), footY, k, segH, 1, s2.r, s2.g, s2.b) end
+        -- too many for one pixel each: the strip as a plain bar, ticked every ten
+        A.drawFillBar(self, sx, sy, sw, a.f, false, c, stripH)
+        local bg = T.base
+        for t = 10, a.max - 1, 10 do self:drawRect(ix + math.floor(iw * t / a.max), iy, k, ih, 1, bg.r, bg.g, bg.b) end
         return
     end
-    local x = x0 + math.floor((inner - L.w * k) / 2)
+    A.drawFillBar(self, sx, sy, sw, 0, false, nil, stripH)        -- the frame and the well
+    local x = ix + math.floor((iw - L.w * k) / 2)
     if a.chamber then
-        -- the chamber's round: a cartridge standing a pixel above the rest, its tip a pixel narrower
-        if a.chambered then
-            self:drawRect(x, footY - k, L.chW * k, segH + k, 1, c.r, c.g, c.b)
-            self:drawRect(x + k, footY - 2 * k, (L.chW - 2) * k, k, 1, c.r, c.g, c.b)
-        else
-            hollowRect(self, x, footY - k, L.chW * k, segH + k, k, sp)
-            self:drawRect(x + k, footY - 2 * k, (L.chW - 2) * k, k, 1, sp.r, sp.g, sp.b)
-        end
+        -- the chamber's round, set apart from the magazine's by a wider gap
+        if a.chambered then self:drawRect(x, iy, L.chW * k, ih, 1, c.r, c.g, c.b) end
         x = x + L.lead * k
     end
     for i = 1, a.max do
-        if i > a.inGun then hollowRect(self, x, footY, L.sw * k, segH, k, sp)
-        else self:drawRect(x, footY, L.sw * k, segH, 1, c.r, c.g, c.b) end
+        if i <= a.inGun then self:drawRect(x, iy, L.sw * k, ih, 1, c.r, c.g, c.b) end
         x = x + L.sw * k
         if i < a.max then x = x + ((i % L.group == 0) and L.gg or L.gap) * k end
     end
 end
 
--- a ZeD chip of two lines above a box: the first in the accent text colour, the second in the text colour (the
--- ammo's full count); kept on the screen at the belt's ends. Returns its height.
-function ZeD_BeltHUD:_chip2(b, l1, l2)
+-- the height of a detail card of a title and one line, for the vanilla item tooltip to stand clear of it
+function ZeD_BeltHUD:_cardH(title, line, maxW)
     local T, tm = ZeD.T, ZeD.TM
-    local f1, f3 = T.fontF1, T.fontF3
-    local w = math.max(tm:MeasureStringX(f1, l1), tm:MeasureStringX(f3, l2)) + T.px(12)
-    local lh1, lh2 = tm:getFontHeight(f1), tm:getFontHeight(f3)
-    local h = lh1 + lh2 + T.px(8)
-    local x = b.x + math.floor((b.w - w) / 2)
-    local ax = self:getAbsoluteX()
-    local sw = getCore():getScreenWidth()
-    if ax + x + w > sw - T.px(4) then x = sw - T.px(4) - w - ax end
-    if ax + x < T.px(4) then x = T.px(4) - ax end
-    local y = b.y - h - T.px(6)
-    local s1, bs = T.surf1, T.borderS
-    self:drawRect(x, y, w, h, 0.95, s1.r, s1.g, s1.b)
-    self:drawRectBorder(x, y, w, h, 1, bs.r, bs.g, bs.b)
-    local ac, tc = T.accentText, T.text
-    self:drawText(l1, x + T.px(6), y + T.px(3), ac.r, ac.g, ac.b, 1, f1)
-    self:drawText(l2, x + T.px(6), y + T.px(5) + lh1, tc.r, tc.g, tc.b, tc.a or 1, f3)
-    return h
-end
-
--- a small ZeD label chip above a box (the slot's name and key on hover)
-function ZeD_BeltHUD:_chip(b, text)
-    local T, tm = ZeD.T, ZeD.TM
-    local f1 = T.fontF1
-    local w = tm:MeasureStringX(f1, text) + T.px(12)
-    local h = tm:getFontHeight(f1) + T.px(6)
-    local x = b.x + math.floor((b.w - w) / 2)
-    local y = b.y - h - T.px(6)
-    self:drawRect(x, y, w, h, 0.95, col(T.surf1))
-    self:drawRectBorder(x, y, w, h, 1, col(T.borderS))
-    local ac = T.accentText
-    self:drawText(text, x + T.px(6), y + T.px(3), ac.r, ac.g, ac.b, 1, f1)
+    local f4, f2 = T.fontF4, T.fontF2
+    local innerW = T.px(maxW) - T.px(20)
+    local h = T.px(16) + tm:getFontHeight(f4) + T.px(4)
+    local rows = ZeD.Atoms.wrapText and #ZeD.Atoms.wrapText(line, f2, innerW) or 1
+    return h + math.max(1, rows) * (tm:getFontHeight(f2) + T.px(2))
 end
 
 -- The belt draws under the safe-mode guard (SafeMode.lua): a failing frame is
@@ -1529,7 +1534,7 @@ function ZeD_BeltHUD:_prerender()
             if b == over and not dragging then self._hover = { b = b } end
         elseif b.kind == "watch" then
             ZeD.WatchMini.draw(self, b.x, b.y, b.plate, ZeD.Watch.miniState(p, b.item))
-            if gpTarget == b then self:drawRect(b.x, b.y, b.w, b.h, 0.55, col(T.accent)) end
+            if gpTarget == b then ZeD.Focus.mark(self, b.x, b.y, b.w, b.h, self._mkOpts) end
             if b == over and not dragging then self._hover = { b = b } end
         elseif b.kind == "hand" then
             local item = b.which == "p" and pri or (not two and sec or nil)
@@ -1549,6 +1554,7 @@ function ZeD_BeltHUD:_prerender()
                 if st == "fit" then o.state = (b == over) and "fitHover" or "fit" else o.state = "no" end
             end
             o.focus = gpTarget == b
+            o.hover = b == over and not dragging
             self:_drawBox(b, o)
             if b == over and not dragging then self._hover = { b = b, item = o.item } end
         end
@@ -1559,39 +1565,45 @@ function ZeD_BeltHUD:_prerender()
     local ctx = getPlayerContextMenu(self.playerNum)
     if ctx and ctx:isAnyVisible() then self._hover = nil end
     local hv = self._hover
-    local tipUp = nil      -- the item tooltip stands above a two-line chip
+    -- the hover boxes are the library's, asked for each frame and drawn by the overlay pass at the end after the shared
+    -- delay: a hint (one line) for a box's name, a detail card for the gun's count
+    local A = ZeD.Atoms
+    local tipUp = nil      -- the item tooltip stands above the hover box
     -- (the pointer, or the controller's focus on the main hand: the ammo box is off the pad's path)
     local ahb = (hv and hv.b) or (gpTarget and gpTarget.kind == "hand" and gpTarget.which == "p" and gpTarget) or nil
     local am = (ahb and (ahb.kind == "ammo" or (ahb.kind == "hand" and ahb.which == "p"))) and self:_ammoState(p) or nil
     if am then
-        -- the gun's full count (the ammo box, or the main hand holding the gun), above the ammo box
+        -- the gun's full count (the ammo box, or the main hand holding the gun)
         local ab = ahb
         for _, bx in ipairs(self._boxes) do if bx.kind == "ammo" then ab = bx end end
         local l1, l2 = B.ammoLines(am)
-        tipUp = self:_chip2(ab, l1, l2)
+        local card = { title = l1, lines = { l2 }, maxW = AMMO_CARD_W }
+        tipUp = self:_cardH(l1, l2, AMMO_CARD_W)
+        if hv then A.requestDetailCard(self, "ammo", card, self)
+        else ZeD.Molecules.drawDetailCard(self, ab.x, ab.y, card) end   -- the controller has no pointer to rest: at once
     elseif hv and hv.b.kind == "slot" then
         local s = hv.b.s
-        self:_chip(hv.b, s.key and ZeD.tr("UI_ZeD_Belt_SlotKey", ZeD.upper(s.name), s.key) or ZeD.upper(s.name))
+        A.requestHint(self, "slot" .. hv.b.i, s.key and ZeD.tr("UI_ZeD_Belt_SlotKey", s.name, s.key) or s.name, self)
     elseif hv and hv.b.kind == "hand" then
-        self:_chip(hv.b, B.handName(hv.b.which))
+        A.requestHint(self, "hand" .. hv.b.which, B.handName(hv.b.which), self)
     elseif hv and hv.b.kind == "lamp" then
         local un = ZeD.Messages.unread()
-        self:_chip(hv.b, ZeD.upper(ZeD.tr(un > 0 and "UI_ZeD_Msg_LampNew" or "UI_ZeD_Msg_Title", un)))
+        A.requestHint(self, "lamp", ZeD.tr(un > 0 and "UI_ZeD_Msg_LampNew" or "UI_ZeD_Msg_Title", un), self)
     elseif hv and hv.b.kind == "watch" then
         local id = ZeD.WatchMini.hit(hv.b.plate, mx - hv.b.x, my - hv.b.y)
-        local name = ZeD.upper(call(hv.b.item, "getDisplayName") or ZeD.tr("UI_ZeD_Belt_Watch"))
+        local name = call(hv.b.item, "getDisplayName") or ZeD.tr("UI_ZeD_Belt_Watch")
         local sp = ZeD.Watch.miniState(p, hv.b.item).speed
         local lbl = (id == "speed" and ZeD.tr("UI_ZeD_Belt_WatchSpeed", math.max(sp, 1)))
-            or (id == "start" and (sp == 0 and ZeD.tr("UI_ZeD_Belt_WatchStart") or ZeD.upper(getText("UI_Pause"))))
+            or (id == "start" and (sp == 0 and ZeD.tr("UI_ZeD_Belt_WatchStart") or getText("UI_Pause")))
             or (id == "light" and ZeD.tr("UI_ZeD_Belt_WatchLight"))
             or (id == "face" and ZeD.tr((ZeD.Watch.getInstance() and ZeD.Watch.getInstance()._popped) and "UI_ZeD_Belt_WatchTuck" or "UI_ZeD_Belt_WatchFull", name))
             or name
-        self:_chip(hv.b, lbl)
+        A.requestHint(self, "watch" .. tostring(id), lbl, self)
     end
     if dragging and over and over.kind == "slot" then
         local st, it = self:_dropState(over, dragging)
         local cur = over.s.item
-        if st == "fit" and cur then self:_chip(over, ZeD.tr("UI_ZeD_Belt_Replace", ZeD.upper(cur:getDisplayName()))) end
+        if st == "fit" and cur then A.requestHint(self, "replace" .. over.i, ZeD.tr("UI_ZeD_Belt_Replace", cur:getDisplayName()), self) end
     end
     self:_tooltip(hv and hv.item or nil, hv and hv.b or nil, tipUp)
 
@@ -1604,12 +1616,14 @@ function ZeD_BeltHUD:_prerender()
         end
     end
     if self._gp then self:_drawPadList() end
+    -- the controller's mark (the hand, corners or ants) and the hover box, last, so nothing covers them
+    ZeD.Focus.drawOverlay(self, self)
 end
 
 function ZeD_BeltHUD:render() end
 
 -- the vanilla item tooltip (ISToolTipInv, the same one the hotbar used),
--- standing above the hovered box and its name chip rather than following
+-- standing above the hovered box and the room for its hover box rather than following
 -- the pointer over the belt
 function ZeD_BeltHUD:_tooltip(item, b, chipH)
     local ctx = getPlayerContextMenu(self.playerNum)
@@ -1630,7 +1644,7 @@ function ZeD_BeltHUD:_tooltip(item, b, chipH)
         end
         self._tipChr = self:player()
         local T = ZeD.T
-        chipH = chipH or (ZeD.TM:getFontHeight(T.fontF1) + T.px(6))
+        chipH = chipH or (ZeD.TM:getFontHeight(T.fontF2) + T.px(8))   -- (clear of a one-line hint box)
         self._tip.followMouse = false
         self._tip.anchorBottomLeft = { x = self:getAbsoluteX() + b.x, y = self:getAbsoluteY() + b.y - chipH - T.px(12) }
         self._tip:setVisible(true)
@@ -1927,31 +1941,33 @@ function ZeD_BeltHUD:_drawPadList()
     local total = hh + #rows * rh
     local x = math.floor((self:getWidth() - lw) / 2)
     local y = -total - T.px(10)
+    -- a pop-up over the game: its fill is the prop's own (solid), the 1u frame and System 7's hard shadow
+    ZeD.Atoms.drawHardShadow(self, x, y, lw, total)
     self:drawRect(x, y, lw, total, 0.96, col(T.surf1))
-    self:drawRectBorder(x, y, lw, total, 1, col(T.borderS))
     self:drawRect(x, y, lw, hh, 1, col(T.surf2))
     local f1, f2 = T.fontF1, T.fontF2
     local ac = T.accentText
-    self:drawText(ZeD.tr("UI_ZeD_Belt_InBags"), x + T.px(8), y + math.floor((hh - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
-    if #rows == 0 then return end
+    self:drawText(ZeD.textCase(ZeD.tr("UI_ZeD_Belt_InBags")), x + T.px(8), y + math.floor((hh - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
     for n, e in ipairs(rows) do
         local ry = y + hh + (n - 1) * rh
         local focused = g.inList and g.row == n
-        if focused then self:drawRect(x, ry, lw, rh, 0.55, col(T.accent)) end
+        local onFocus = focused and ZeD.Focus.mark(self, x, ry, lw, rh, self._mkOpts)
         local tex = call(e.item, "getTex")
         local isz = T.px(18)
         if tex then self:drawTextureScaledAspect(tex, x + T.px(8), ry + math.floor((rh - isz) / 2), isz, isz, 1, 1, 1, 1) end
         local name = e.kind == "light" and ZeD.tr("UI_ZeD_Belt_BestLight", e.item:getDisplayName()) or e.item:getDisplayName()
-        local tc = focused and T.textOnFocus or T.text
+        local tc = (focused and onFocus) and T.textOnFocus or T.text
         self:drawText(name, x + T.px(34), ry + math.floor((rh - tm:getFontHeight(f2)) / 2), tc.r, tc.g, tc.b, 1, f2)
-        local where = ZeD.upper(getText("IGUI_InventoryTooltip"))
+        local where = getText("IGUI_InventoryTooltip")
         local c = e.item:getContainer()
         local bag = c and c:getContainingItem()
-        if bag then where = ZeD.upper(bag:getName()) end
+        if bag then where = bag:getName() end
         if e.item:getAttachedSlot() > 0 then where = B.tagFor(e.item:getAttachedSlot()) end
-        ZeD.Atoms.drawTextRight(self, where, x + lw - T.px(8), ry + math.floor((rh - tm:getFontHeight(f1)) / 2), f1, focused and T.textOnFocus or T.textDim)
+        ZeD.Atoms.drawTextRight(self, where, x + lw - T.px(8), ry + math.floor((rh - tm:getFontHeight(f1)) / 2), f1, (focused and onFocus) and T.textOnFocus or T.textDim)
         self:drawRect(x, ry + rh - T.px(1), lw, T.px(1), 1, col(T.border))
     end
+    -- the frame last, over the rows' edges
+    ZeD.Atoms.frame(self, x, y, lw, total, T.borderS)
 end
 
 -- ----------------------------------------------------------------------------

@@ -43,16 +43,13 @@ ZeD.Curtain = ZeD.Curtain or {}
 local C = ZeD.Curtain
 
 local SPEED = 2080          -- design units per second (the drawers' speed)
-local TRI_W, TRI_H = 7, 4   -- the roll triangle, design units
+local TRI_W = 7             -- the roll triangle (the library's triangle atom), design units
 
--- A pixel triangle: up (roll up) or down (roll down), w x h design units
+-- The roll triangle: up (roll up) or down (roll down), the library's triangle atom
 function C.drawTri(panel, x, y, up, col)
-    local T = ZeD.T
-    for r = 0, TRI_H - 1 do
-        local rowW = (up and (r * 2 + 1) or ((TRI_H - 1 - r) * 2 + 1))
-        local rx = x + T.px((TRI_W - rowW) / 2)
-        panel:drawRect(rx, y + T.px(r), T.px(rowW), T.px(1), col.a or 1, col.r, col.g, col.b)
-    end
+    local A, T = ZeD.Atoms, ZeD.T
+    if up then A.drawTriangleUp(panel, x, y, T.px(TRI_W), col)
+    else A.drawTriangleDown(panel, x, y, T.px(TRI_W), col) end
 end
 
 local function anyDragActive()
@@ -113,8 +110,16 @@ function ZeD_CurtainRod:prerender()
     -- the fabric below the title bar while it rolls
     if h > tbH then ZeD.Molecules.drawBodyBg(self, 0, tbH, w, h - tbH, "surf1") end
     ZeD.Molecules.drawWindowTitleBar(self, 0, 0, w, nil, nil)
+    -- The frame: the window's own line weight on the rod's three open sides. The
+    -- side against the window is the window's frame line (drawn there): the rod
+    -- does not draw a second one beside it.
     local bs = T.borderS
-    self:drawRectBorder(0, 0, w, h, bs.a, bs.r, bs.g, bs.b)
+    local fw = T.line and T.line(T.borderW or 1) or T.px(1)
+    local right = win._curtain and win._curtain.side == "right"
+    self:drawRect(0, 0, w, fw, bs.a or 1, bs.r, bs.g, bs.b)
+    self:drawRect(0, h - fw, w, fw, bs.a or 1, bs.r, bs.g, bs.b)
+    if right then self:drawRect(w - fw, 0, fw, h, bs.a or 1, bs.r, bs.g, bs.b)
+    else self:drawRect(0, 0, fw, h, bs.a or 1, bs.r, bs.g, bs.b) end
     -- the close box closes the window (a left rod's: it is the window's left end)
     self._closeRect = nil
     if win._closeOnRod then
@@ -122,31 +127,42 @@ function ZeD_CurtainRod:prerender()
         self._closeRect = { x = T.sp.sm, y = math.floor((tbH - cb) / 2), w = cb, h = cb }
         ZeD.Atoms.drawCloseBox(self, self._closeRect.x, self._closeRect.y, cb, self._overClose)
     end
-    -- the tab: the title plate, bordered (pressable), with the roll-down triangle
+    -- the tab: the title plate, framed (pressable), with the roll-down triangle.
+    -- The pointer: the hover wash, and its help in the window's help line (the
+    -- rod has no footer of its own); the controller: the player's focus mark.
     if h > tbH then return end
     local r = self:chipRect()
     self._chip = r
     ZeD.Molecules.drawBodyBg(self, r.x, r.y, r.w, r.h, "surf2")
-    local ac = T.accent
-    local mx, my = self:getMouseX(), self:getMouseY()
-    local over = self:isMouseOver() and mx >= r.x and mx < r.x + r.w and my >= r.y and my < r.y + r.h
+    local over = self:isMouseOver() and ZeD.Atoms.mouseIn(self, r.x, r.y, r.w, r.h)
     local dragging = anyDragActive()
-    local Focus = ZeD.Input and ZeD.Input.Focus
-    local focused = false
-    if Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == win then
-        local el = Focus.getFocusedElement and Focus.getFocusedElement(win)
-        focused = el and el.id == "curtain:unroll" or false
+    if over then
+        local hv = T.hover
+        self:drawRect(r.x, r.y, r.w, r.h, hv.a, hv.r, hv.g, hv.b)
+        if ZeD.Help and ZeD.Help.set then ZeD.Help.set(win, C.tabHelp(win)) end
     end
-    if focused then self:drawRect(r.x, r.y, r.w, r.h, 0.55, ac.r, ac.g, ac.b)
-    elseif over then self:drawRect(r.x, r.y, r.w, r.h, 0.22, ac.r, ac.g, ac.b) end
-    local bc = (over and dragging) and ac or T.borderS
-    self:drawRectBorder(r.x, r.y, r.w, r.h, bc.a or 1, bc.r, bc.g, bc.b)
+    local Focus = ZeD.Input and ZeD.Input.Focus
+    local onFocus = false
+    if Focus and Focus.isFocused and Focus.isFocused(win, nil, "curtain:unroll") then
+        onFocus = ZeD.Focus.mark(self, r.x, r.y, r.w, r.h, { win = win }) and true or false
+    end
+    -- (a drop held over the tab: its frame in the accent, the drop target's cue)
+    local bc = (over and dragging) and T.accent or T.borderS
+    ZeD.Atoms.frame(self, r.x, r.y, r.w, r.h, bc)
+    local ink = onFocus and T.textOnFocus or T.textHead
     local tx = r.x + T.sp.titleBoxPad
-    C.drawTri(self, tx, r.y + math.floor((r.h - T.px(TRI_H)) / 2), false, T.textHead)
+    C.drawTri(self, tx, r.y + math.floor((r.h - T.px(TRI_W)) / 2), false, ink)
     tx = tx + T.px(TRI_W) + T.sp.sm
     local fh = ZeD.TM:getFontHeight(T.fontF3)
-    local th = T.textHead
-    self:drawText(self._label, tx, r.y + math.floor((r.h - fh) / 2), th.r, th.g, th.b, th.a, T.fontF3)
+    self:drawText(self._label, tx, r.y + math.floor((r.h - fh) / 2), ink.r, ink.g, ink.b, ink.a or 1, T.fontF3)
+end
+
+-- the rolled tab's plain words for the window's help line ("Inventory, 9 items:
+-- press to roll it down, or drop things on it")
+function C.tabHelp(win)
+    local name, count = win._curtain.chip()
+    local n = tonumber(count) or 0
+    return ZeD.tr(n == 1 and "UI_ZeD_Curtain_TabHelpOne" or "UI_ZeD_Curtain_TabHelp", tostring(name or ""), n)
 end
 
 local function inRect(r, x, y) return r and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h end
@@ -215,7 +231,9 @@ function C.attach(win, spec)
     end
 end
 
--- the ▴ after the title plate, while the side can roll
+-- the roll-up box after the title, while the side can roll: a title-bar box,
+-- the close box's size and look (surface 2, the hover wash, a 1u frame), with
+-- an up triangle in it
 function C.drawRollButton(win)
     win._rollBtn = nil
     if win._rolled or win.windowShaded or not (win._curtain and win._curtain.canRoll()) then return end
@@ -224,16 +242,16 @@ function C.drawRollButton(win)
     local tbp = T.sp.titleBoxPad
     local titleX = T.sp.sm + T.closeBoxSz + T.sp.md
     local titleW = ZeD.TM:MeasureStringX(T.fontF3, tostring(win.title or ""))
-    local s = tbH - T.px(6)
+    local s = T.closeBoxSz
     local r = { x = titleX + titleW + tbp + T.px(2), y = math.floor((tbH - s) / 2), w = s, h = s }
     win._rollBtn = r
-    ZeD.Molecules.drawBodyBg(win, r.x, r.y, r.w, r.h, "surf2")
-    local mx, my = win:getMouseX(), win:getMouseY()
-    if win:isMouseOver() and inRect(r, mx, my) then
-        local ac = T.accent
-        win:drawRect(r.x, r.y, r.w, r.h, 0.22, ac.r, ac.g, ac.b)
-    end
-    C.drawTri(win, r.x + math.floor((r.w - T.px(TRI_W)) / 2), r.y + math.floor((r.h - T.px(TRI_H)) / 2), true, T.textHead)
+    local over = win:isMouseOver() and ZeD.Atoms.mouseIn(win, r.x, r.y, r.w, r.h)
+    local bg = over and T.hover or T.surf2
+    win:drawRect(r.x, r.y, r.w, r.h, 1, bg.r, bg.g, bg.b)
+    ZeD.Atoms.frame(win, r.x, r.y, r.w, r.h, T.borderS)
+    local tri = math.max(T.px(5), math.min(T.px(TRI_W), s - T.px(6)))
+    ZeD.Atoms.drawTriangleUp(win, r.x + math.floor((r.w - tri) / 2), r.y + math.floor((r.h - tri) / 2), tri, T.textDim)
+    if over and ZeD.Help and ZeD.Help.set then ZeD.Help.set(win, ZeD.tr("UI_ZeD_Curtain_RollHelp")) end
 end
 
 function C.roll(win)

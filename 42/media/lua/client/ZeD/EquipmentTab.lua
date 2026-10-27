@@ -86,7 +86,38 @@ end
 -- LAYOUT CONSTANTS
 -- ============================================================================
 
-local GROUP_H    = 15  -- group header height (matches T.sp.catHdrH)
+local GROUP_H    = 15  -- group header height (the library's category row, matches T.sp.catHdrH)
+
+-- The controller is on this element of the tab: the window has the focus, the
+-- controller is in use (Focus.liveZone) and the focus is in the tab's zone.
+-- Returns the focus mark's opts when it is, else nil.
+local _eqFocus = {}
+local function eqFocus(win, id)
+    if not (win and id ~= nil and win._gpFocusedEquipSlot == id) then return nil end
+    local Focus = ZeD.Input and ZeD.Input.Focus
+    local z = Focus and Focus.liveZone and Focus.liveZone(win)
+    if not (z and z.zone == "charTabContent") then return nil end
+    _eqFocus.win, _eqFocus.zone = win, "charTabContent"
+    return _eqFocus
+end
+
+-- The pointer is on (x, y, w, h) of the list (inside its scroll view, which the
+-- tab stamps as win._equipRowClip), and the controller's mark is not showing
+local function eqHover(panel, win, x, y, w, h)
+    local c = win and win._equipRowClip
+    local my = panel:getMouseY()
+    if c and (my < c.y0 or my >= c.y1) then return false end
+    return ZeD.Atoms.mouseIn(panel, x, y, w, h)
+end
+
+-- A row's condition: the framed strip (ZeD.Atoms.drawFillBar) at the list rows'
+-- compact height, its middle at cy, in the condition's colours
+local function eqCondition(panel, x, cy, w, f)
+    if not f or w <= 0 then return end
+    local A = ZeD.Atoms
+    local ch = (A.fillBarCompactH and A.fillBarCompactH()) or ZeD.T.px(8)
+    A.drawFillBar(panel, x, cy - math.floor(ch / 2), w, f, true, nil, ch)
+end
 local COND_BAR_W = 80  -- condition bar width
 local PROT_COL_W = 32  -- protection stat column width
 
@@ -402,7 +433,7 @@ local function _drawStackedStatDot(panel, x, y, label, value, dotColor, dotSz, d
     local labelValueGap = T.sp.xs
     local afterGap      = T.sp.sm
 
-    panel:drawText(ZeD.upper(label), x, y, T.toneLo.r, T.toneLo.g, T.toneLo.b, T.toneLo.a, T.fontF1)
+    panel:drawText(ZeD.textCase(label), x, y, T.toneLo.r, T.toneLo.g, T.toneLo.b, T.toneLo.a, T.fontF1)
     local valY = y + secH + labelValueGap
     A.drawStatusDot(panel, x, valY + math.floor((bodyH - dotSz) / 2), dotColor, dotSz)
     A.drawBody(panel, value, x + dotSz + dotGap, valY)
@@ -459,8 +490,9 @@ local function _drawDefenseDashboard(panel, win, protData, x, y, w, bodyOnly)
         local boxX = rightX
         local boxY = statY
 
-        A.fillRounded(panel, boxX, boxY, boxW, boxH, gradeBoxColor.r, gradeBoxColor.g, gradeBoxColor.b, 0.15)
-        A.borderRounded(panel, boxX, boxY, boxW, boxH, gradeBoxColor.r, gradeBoxColor.g, gradeBoxColor.b, gradeBoxColor.a or 1)
+        -- the grade in an outlined box (no tinted fill); its colour is the square mark before the label
+        local bs = T.borderS
+        A.borderRounded(panel, boxX, boxY, boxW, boxH, bs.r, bs.g, bs.b, bs.a or 1)
 
         local gx = boxX + math.floor((boxW - gradeLetterW) / 2)
         local gy = boxY + math.floor((boxH - titleFH) / 2)  -- fontF5 centered in box (tune in-game if needed)
@@ -468,11 +500,12 @@ local function _drawDefenseDashboard(panel, win, protData, x, y, w, bodyOnly)
 
         local lblX = boxX + boxW + T.sp.sm
         local lblRoom = rightX + rightW - lblX
-        panel:drawText(A.truncateText(ZeD.tr("UI_ZeD_Equip_OverallGrade"), T.fontF1, lblRoom), lblX, boxY + T.px(4), T.toneLo.r, T.toneLo.g, T.toneLo.b, T.toneLo.a, T.fontF1)
-        local avgStr = ZeD.tr("UI_ZeD_Equip_AvgBite", protData.avgBiteDef .. "%")
-        local avgY = boxY + T.px(4) + secH + T.sp.xs
         local dotSz = T.px(6)
         local dotGap = T.px(4)
+        A.drawStatusDot(panel, lblX, boxY + T.px(4) + math.floor((secH - dotSz) / 2), gradeBoxColor, dotSz)
+        panel:drawText(A.truncateText(ZeD.textCase(ZeD.tr("UI_ZeD_Equip_OverallGrade")), T.fontF1, lblRoom - dotSz - dotGap), lblX + dotSz + dotGap, boxY + T.px(4), T.toneLo.r, T.toneLo.g, T.toneLo.b, T.toneLo.a, T.fontF1)
+        local avgStr = ZeD.tr("UI_ZeD_Equip_AvgBite", protData.avgBiteDef .. "%")
+        local avgY = boxY + T.px(4) + secH + T.sp.xs
         A.drawStatusDot(panel, lblX, avgY + math.floor((secH - dotSz) / 2), tierColor(protData.avgBiteDef), dotSz)
         -- the box has no room for a second line, so a long line ends in "..." at the column edge
         avgStr = A.truncateText(avgStr, T.fontF3, lblRoom - dotSz - dotGap)
@@ -515,15 +548,13 @@ end
 -- LIST MODE: draw group headers + slot rows
 -- ============================================================================
 
+-- A group's row ("v Hands (2)"): the library's category row, as the inventory's;
+-- the pointer's hover wash and the controller's focus mark under its words
+local _grpOpts = {}
 local function _drawGroupHeader(panel, win, group, expanded, x, y, w)
     local T = ZeD.T
-    local A = ZeD.Atoms
-    local tm = ZeD.TM
-    local mx, my = panel:getMouseX(), panel:getMouseY()
     local h = T.px(GROUP_H)
-    local hovered = mx >= x and mx < x + w and my >= y and my < y + h
-    local padX = T.sp.sm
-    local secFH = tm:getFontHeight(T.fontF1)
+    local hovered = eqHover(panel, win, x, y, w, h)
 
     -- Count equipped items
     local count = 0
@@ -531,32 +562,11 @@ local function _drawGroupHeader(panel, win, group, expanded, x, y, w)
         if s.item then count = count + 1 end
     end
 
-    -- Background (matches inventory catHdrH style)
-    local bg = hovered and T.hover or T.surf2
-    panel:drawRect(x, y, w, h, hovered and 0.06 or bg.a, bg.r, bg.g, bg.b)
-
-    -- Gamepad focus fill — 0.55 alpha accent over the header when this
-    -- group element is the focused ring element in charTabContent.
-    if win and win._gpFocusedEquipSlot == ("__group_" .. tostring(group.id)) then
-        local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
-        local focWin = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() or nil
-        if focWin == win and Focus.getFocusedZone then
-            local zone = Focus.getFocusedZone(win)
-            if zone and zone.zone == "charTabContent" then
-                local ac = T.accent
-                panel:drawRect(x, y, w, h, 0.55, ac.r, ac.g, ac.b)
-            end
-        end
-    end
-
-    -- Text: "v CATEGORY (count)" — single draw, inventory dialect
-    local labelY = y + math.floor((h - secFH) / 2)
-    local tri = expanded and "v " or "> "
-    local label = tri .. ZeD.EquipmentTab.wordsOf(group) .. " (" .. count .. ")"
-    panel:drawText(label, x + padX + T.px(2), labelY, T.toneLo.r, T.toneLo.g, T.toneLo.b, T.toneLo.a, T.fontF1)
-
-    -- Weak divider (not strong — matches inventory)
-    A.drawDividerH(panel, x, y + h - T.px(1), w, false)
+    local o = _grpOpts
+    o.hover, o.h, o.inset = hovered, h, T.sp.sm + T.px(2)
+    o.focus = eqFocus(win, "__group_" .. tostring(group.id))
+    ZeD.Molecules.drawCategoryRow(panel, x, y, w, ZeD.EquipmentTab.wordsOf(group), count, expanded, o)
+    if hovered then ZeD.Help.set(panel, ZeD.tr(expanded and "UI_ZeD_Inv_CatFoldHelp" or "UI_ZeD_Inv_CatOpenHelp")) end
 end
 
 local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win)
@@ -572,22 +582,17 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win)
         panel:drawRect(x, y, w, rowH, st.a, st.r, st.g, st.b)
     end
 
-    -- Gamepad focus on this row (the 0.55 accent fill below): gated on live ring focus
-    -- being on charTabContent so the cue clears the instant LB/RB bumpers away
-    local washed = false
-    if win and slot.type and win._gpFocusedEquipSlot == slot.type then
-        local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
-        local focWin = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() or nil
-        if focWin == win and Focus.getFocusedZone then
-            local zone = Focus.getFocusedZone(win)
-            washed = (zone and zone.zone == "charTabContent") and true or false
-        end
-    end
-
-    -- Selection highlight (mouse-clicked card-mode); the focus fill replaces it while focused
-    if selected and not washed then
+    -- The row's states under its words: selected (the T.selectionA wash, the
+    -- card is open on it), else the pointer's hover (a row with a thing in it:
+    -- a press opens its card); a dragged row dimmed; then the controller's focus
+    -- mark, which says when the words switch to T.textOnFocus.
+    if selected then
         local ac = T.accent
-        panel:drawRect(x, y, w, rowH, T.selectionA or 0.25, ac.r, ac.g, ac.b)
+        panel:drawRect(x, y, w, rowH, T.selectionA or 0.30, ac.r, ac.g, ac.b)
+    elseif slot.item and eqHover(panel, win, x, y, w, rowH) then
+        local hv = T.hover
+        panel:drawRect(x, y, w, rowH, hv.a, hv.r, hv.g, hv.b)
+        ZeD.Help.set(panel, ZeD.tr("UI_ZeD_Doll_SlotHelp", safeGet(slot.item, "getDisplayName") or "?"))
     end
 
     -- Being dragged: dimmed, as the inventory lists dim the rows they carry
@@ -596,14 +601,8 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win)
         panel:drawRect(x, y, w, rowH, 0.4, s1.r, s1.g, s1.b)
     end
 
-    -- Gamepad focus fill — 0.55 alpha accent across the row. Gated on live
-    -- ring focus being on charTabContent so the cue clears the instant LB/RB
-    -- bumpers away (per user design rule: only the currently-focused zone
-    -- shows its active item).
-    if washed then
-        local ac = T.accent
-        panel:drawRect(x, y, w, rowH, 0.55, ac.r, ac.g, ac.b)
-    end
+    local fo = eqFocus(win, slot.type)
+    local washed = fo and ZeD.Focus.mark(panel, x, y, w, rowH, fo) or false
 
     -- Column layout: NAME SLOT COND BITE SCR BUL WT
     local c = calcEquipColumns(w, win)
@@ -639,24 +638,11 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win)
     panel:drawText(typeStr, x + c.slotX + c.padX, secTextY,
         typeColor.r, typeColor.g, typeColor.b, typeColor.a or 0.9, T.fontF1)
 
-    -- Condition bar (thin 3px — matches inventory list style)
+    -- Condition: the framed strip, as the inventory lists'
     if slot.item then
         local condMax = safeGet(slot.item, "getConditionMax") or 0
         if condMax and condMax > 0 then
-            local barX = x + c.condX + T.px(2)
-            local barY = y + math.floor(rowH / 2) - T.px(1)
-            local barW = c.condColW - T.px(4)
-            local barH = T.px(3)
-            local bg = T.surf3
-            panel:drawRect(barX, barY, barW, barH, bg.a, bg.r, bg.g, bg.b)
-            local fillW = math.max(0, math.floor(barW * slot.cond))
-            if fillW > 0 then
-                local fc
-                if slot.cond > 0.6 then fc = T.positive
-                elseif slot.cond > 0.3 then fc = T.warning
-                else fc = T.danger end
-                panel:drawRect(barX, barY, fillW, barH, fc.a, fc.r, fc.g, fc.b)
-            end
+            eqCondition(panel, x + c.condX + T.px(2), y + math.floor(rowH / 2), c.condColW - T.px(4), slot.cond)
         end
     end
 
@@ -716,16 +702,16 @@ local function _beltRowH()
     return math.floor(math.max(T.rowH, tm:getFontHeight(T.fontF2) + tm:getFontHeight(T.fontF1) + T.px(8)))
 end
 
--- an accent outlined tag (IN HAND), as the inventory lists' BELT n
-local function _beltTag(panel, text, x, y)
-    local T, tm = ZeD.T, ZeD.TM
-    local tf = T.fontF1
-    local tw = tm:MeasureStringX(tf, text) + T.px(8)
-    local th = tm:getFontHeight(tf) + T.px(2)
-    local ac = T.accentText
-    panel:drawRectBorder(x, y, tw, th, ac.a or 1, ac.r, ac.g, ac.b)
-    panel:drawText(text, x + T.px(4), y + T.px(1), ac.r, ac.g, ac.b, ac.a or 1, tf)
-    return tw, th
+-- the In hand tag: the library's tag (16u, outlined, F1, sentence case), as the
+-- inventory lists' Belt n; its width first (it is laid out before it is drawn)
+local function _beltTagW(text)
+    local T = ZeD.T
+    return ZeD.TM:MeasureStringX(T.fontF1, ZeD.Atoms.textCase(text)) + T.px(10)
+end
+local _beltTagOpts = {}
+local function _beltTag(panel, text, x, y, ink)
+    _beltTagOpts.textColor = ink
+    return ZeD.Molecules.drawTag(panel, x, y, text, nil, _beltTagOpts)
 end
 
 local function _drawBeltRows(panel, win, slots, x, y, w, zones)
@@ -735,14 +721,13 @@ local function _drawBeltRows(panel, win, slots, x, y, w, zones)
     local DOT = " | "   -- the separator: ZeD OS's pipe (director, Oct 16 2026: no middle dots)
     local f1, f2 = T.fontF1, T.fontF2
     local f1h, f2h = tm:getFontHeight(f1), tm:getFontHeight(f2)
-    -- sub-header, in the group headers' strip and type
+    -- sub-header, in the category rows' height and type (sentence case), with no
+    -- fill of its own: the window body is under it, one layer
     local hh = T.px(GROUP_H)
-    local s2 = T.surf2
-    panel:drawRect(x, y, w, hh, s2.a or 1, s2.r, s2.g, s2.b)
     local lo = T.toneLo
     local hy = y + math.floor((hh - f1h) / 2)
-    panel:drawText(ZeD.tr("UI_ZeD_Equip_BeltHeadLeft"), x + c.padX + T.px(2), hy, lo.r, lo.g, lo.b, lo.a or 1, f1)
-    local cap = ZeD.tr("UI_ZeD_Equip_BeltHeadRight")
+    panel:drawText(ZeD.textCase(ZeD.tr("UI_ZeD_Equip_BeltHeadLeft")), x + c.padX + T.px(2), hy, lo.r, lo.g, lo.b, lo.a or 1, f1)
+    local cap = ZeD.textCase(ZeD.tr("UI_ZeD_Equip_BeltHeadRight"))
     panel:drawText(cap, x + w - c.padX - tm:MeasureStringX(f1, cap), hy, lo.r, lo.g, lo.b, lo.a or 1, f1)
     A.drawDividerH(panel, x, y + hh - T.px(1), w, false)
     y = y + hh
@@ -754,17 +739,14 @@ local function _drawBeltRows(panel, win, slots, x, y, w, zones)
     for ri, s in ipairs(slots) do
         if ri % 2 == 1 then local st = T.stripe; panel:drawRect(x, y, w, rowH, st.a, st.r, st.g, st.b) end
         local fid = "belt:" .. tostring(s.i)
-        local washB = false
-        if win._gpFocusedEquipSlot == fid then
-            local Focus = ZeD.Input and ZeD.Input.Focus
-            local focWin = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() or nil
-            local zone = focWin == win and Focus.getFocusedZone and Focus.getFocusedZone(win)
-            if zone and zone.zone == "charTabContent" then
-                local ac = T.accent
-                panel:drawRect(x, y, w, rowH, 0.55, ac.r, ac.g, ac.b)
-                washB = true
-            end
+        -- the pointer's hover wash, then the controller's focus mark (the row is one stop: A runs its verb)
+        local rowHover = eqHover(panel, win, x, y, w, rowH)
+        if rowHover then
+            local hv = T.hover
+            panel:drawRect(x, y, w, rowH, hv.a, hv.r, hv.g, hv.b)
         end
+        local foB = eqFocus(win, fid)
+        local washB = foB and ZeD.Focus.mark(panel, x, y, w, rowH, foB) or false
         -- the key (an outlined "-" past the eighth slot, which has none)
         local kx = x + c.padX
         local ky = y + math.floor((rowH - keyH) / 2)
@@ -791,14 +773,15 @@ local function _drawBeltRows(panel, win, slots, x, y, w, zones)
         local action, label
         if s.item and s.inHand then action, label = "putback", ZeD.tr("UI_ZeD_Equip_PutBack")
         elseif s.item then action, label = "detach", ZeD.tr("UI_ZeD_Equip_Detach")
-        else action, label = "attach", ZeD.upper(ZeD.tr("ContextMenu_Attach")) end
+        else action, label = "attach", ZeD.tr("ContextMenu_Attach") end
         local inHandTxt = ZeD.tr("UI_ZeD_Equip_InHand")
-        local bh = math.min(rowH - T.px(6), T.buttonH or T.px(20))
-        local bw = tm:MeasureStringX(T.fontF3, label) + T.px(16)
+        -- (a push button inside a list row: T.buttonH - 4u, the label measured as it draws)
+        local bh = math.min(rowH - T.px(6), T.buttonH - T.px(4))
+        local bw = ZeD.Molecules.buttonW(label)
         local bx = x + w - c.padX - bw
         local by = y + math.floor((rowH - bh) / 2)
         local rightEdge = bx
-        if s.inHand then rightEdge = bx - T.px(6) - (tm:MeasureStringX(f1, inHandTxt) + T.px(8)) end
+        if s.inHand then rightEdge = bx - T.px(6) - _beltTagW(inHandTxt) end
         -- the item over the slot and what gives it: the name stops at the
         -- COND column (its bar sits beside it), the slot line runs under both
         local tx = iconX + c.iconW + c.iconGap
@@ -813,26 +796,21 @@ local function _drawBeltRows(panel, win, slots, x, y, w, zones)
             panel:drawText(ZeD.tr("UI_ZeD_Equip_Empty"), tx, ty, dc.r, dc.g, dc.b, dc.a or 1, f2)
         end
         local prov = B.provider(player, s.slot.slotType)
-        local from = prov and ZeD.tr("UI_ZeD_Equip_BeltFrom", ZeD.upper(safeGet(prov, "getDisplayName") or "")) or ZeD.tr("UI_ZeD_Equip_BeltAlways")
-        local sub = ZeD.upper(B.slotName(s.slot)) .. DOT .. from
+        local from = prov and ZeD.tr("UI_ZeD_Equip_BeltFrom", safeGet(prov, "getDisplayName") or "") or ZeD.tr("UI_ZeD_Equip_BeltAlways")
+        local sub = ZeD.textCase(B.slotName(s.slot)) .. DOT .. from
         local th = washB and T.textOnFocus or T.toneHi
         panel:drawText(A.truncateText(sub, f1, subW), tx, ty + f2h + T.px(2), th.r, th.g, th.b, th.a or 0.9, f1)
-        -- condition, in the COND column level with the name
+        -- condition, in the COND column level with the name: the framed strip
         local f = s.item and B.cond(s.item)
-        if f then
-            local barX, barY, barW, barH = x + c.condX + T.px(2), ty + math.floor(f2h / 2) - T.px(1), c.condColW - T.px(4), T.px(3)
-            local bg = T.surf3
-            panel:drawRect(barX, barY, barW, barH, bg.a, bg.r, bg.g, bg.b)
-            local fw = math.floor(barW * f)
-            if fw > 0 then
-                local fc = (f > 0.6 and T.positive) or (f > 0.3 and T.warning) or T.danger
-                panel:drawRect(barX, barY, fw, barH, fc.a or 1, fc.r, fc.g, fc.b)
-            end
+        if f then eqCondition(panel, x + c.condX + T.px(2), ty + math.floor(f2h / 2), c.condColW - T.px(4), f) end
+        local btnHover = rowHover and A.mouseIn(panel, bx, by, bw, bh)
+        if rowHover then
+            ZeD.Help.set(panel, ZeD.tr("UI_ZeD_Equip_BeltRowHelp", s.item and (safeGet(s.item, "getDisplayName") or "?") or ZeD.tr("UI_ZeD_Equip_Empty"), ZeD.btnCase(label)))
         end
-        ZeD.Molecules.drawButton(panel, bx, by, bw, bh, label, action == "attach" and "primary" or "default")
+        ZeD.Molecules.drawButton(panel, bx, by, bw, bh, label, action == "attach" and "primary" or "default", false, nil,
+            { hover = btnHover, win = win })
         if s.inHand then
-            local tagW = tm:MeasureStringX(f1, inHandTxt) + T.px(8)
-            _beltTag(panel, inHandTxt, bx - T.px(6) - tagW, y + math.floor((rowH - f1h - T.px(2)) / 2))
+            _beltTag(panel, inHandTxt, bx - T.px(6) - _beltTagW(inHandTxt), y + math.floor((rowH - T.px(16)) / 2), washB and T.textOnFocus or nil)
         end
         zones[#zones + 1] = { x = x, y = y, w = w, h = rowH, i = s.i, item = s.item, action = action,
                               btn = { x = bx, y = by, w = bw, h = bh }, fid = fid }
@@ -864,9 +842,8 @@ local function _drawEquipHeader(panel, x, y, w, win)
     local A  = ZeD.Atoms
     local tm = ZeD.TM
 
-    -- Background
-    local surf2 = T.surf2
-    panel:drawRect(x, y, w, T.px(EQUIP_HDR_H), surf2.a, surf2.r, surf2.g, surf2.b)
+    -- Background: the column heads' surface, claimed over the body (one layer)
+    ZeD.Atoms.surfaceFill(panel, x, y, w, T.px(EQUIP_HDR_H), "surf2")
 
     -- Column layout (shared with _drawSlotRow)
     local cl = calcEquipColumns(w, win)
@@ -884,10 +861,10 @@ local function _drawEquipHeader(panel, x, y, w, win)
     end
 
     -- Column order: NAME SLOT COND BITE SCR BUL WT
-    panel:drawText(ZeD.upper(ZeD.tr("IGUI_Name")), x + cl.nameX, textY, c.r, c.g, c.b, c.a or 0.92, T.fontF5)
+    panel:drawText(ZeD.tr("IGUI_Name"), x + cl.nameX, textY, c.r, c.g, c.b, c.a or 0.92, T.fontF5)
     drawCentered(ZeD.tr("UI_ZeD_Equip_ColSlot"), cl.slotX, cl.slotColW)
     drawCentered(ZeD.tr("UI_ZeD_Equip_ColCond"), cl.condX, cl.condColW)
-    drawCentered(ZeD.upper(ZeD.tr("IGUI_health_Bite")), cl.biteX, cl.protColW)
+    drawCentered(ZeD.tr("IGUI_health_Bite"), cl.biteX, cl.protColW)
     drawCentered(ZeD.tr("UI_ZeD_Equip_ColScratch"), cl.scrX,  cl.protColW)
     drawCentered(ZeD.tr("UI_ZeD_Equip_ColBullet"), cl.bulX,  cl.protColW)
     A.drawTextRight(panel, ZeD.tr("UI_ZeD_Equip_ColWeight"), x + cl.wtX + cl.wtColW - cl.padX, textY, T.fontF5, c)
@@ -1310,6 +1287,9 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
 
     -- Scrollable content (stencil below pinned header)
     panel:setStencilRect(x, scrollY, contentW, scrollH)
+    -- (the rows' hover is tested inside this view only: eqHover)
+    win._equipRowClip = win._equipRowClip or {}
+    win._equipRowClip.y0, win._equipRowClip.y1 = scrollY, scrollY + scrollH
     local drawY = scrollY - scrollOff
 
     -- Zone arrays — reset indices
@@ -1395,23 +1375,16 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
 
     panel:clearStencilRect()
 
-    -- Gamepad focus fill — 0.55 alpha accent across the header. Gated on
-    -- live ring focus so the cue clears when LB/RB bumpers away.
-    if win._gpFocusedEquipSlot == "__disclosure" then
-        local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
-        local focWin = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() or nil
-        if focWin == win and Focus.getFocusedZone then
-            local zone = Focus.getFocusedZone(win)
-            if zone and zone.zone == "charTabContent" then
-                local ac = T.accent
-                panel:drawRect(x, y, w, headerH, 0.55, ac.r, ac.g, ac.b)
-            end
-        end
-    end
-
     -- Pinned header — labeled "Equipped" since it now toggles the inventory
     -- list visibility. Defense body is always shown at the bottom of the tab.
-    ZeD.Molecules.drawTabHeader(panel, x, y, w, ZeD.tr("UI_ZeD_Equip_Equipped"), listExpanded)
+    -- The pointer's hover wash and the controller's focus mark are the header's
+    -- own (drawTabHeader), under its words.
+    do
+        local hdrHover = ZeD.Atoms.mouseIn(panel, x, y, w, headerH)
+        ZeD.Molecules.drawTabHeader(panel, x, y, w, ZeD.tr("UI_ZeD_Equip_Equipped"), listExpanded, hdrHover, nil,
+            { focus = eqFocus(win, "__disclosure") })
+        if hdrHover then ZeD.Help.set(panel, ZeD.tr(listExpanded and "UI_ZeD_Inv_CatFoldHelp" or "UI_ZeD_Inv_CatOpenHelp")) end
+    end
     -- List | Doll, at the heading's right edge
     Doll.drawToggle(panel, win, x, y, w, headerH, panel:getMouseX(), panel:getMouseY())
     -- Zone field name kept (_equipDefenseZone) for backward compat with the

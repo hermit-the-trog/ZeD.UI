@@ -84,7 +84,7 @@ ZeD_Keyboard.Type = "ISOnScreenKeyboard"
 function ZeD_Keyboard:new()
     local o = ZeD_Window.new(self, 0, 0, 100, 100, "")
     o.resizable = false
-    o.themeFooter = false
+    o.noResetControl = true   -- (it docks itself under its prompt or at the screen's foot every frame)
     o.backgroundColor = { r = 0, g = 0, b = 0, a = 0.9 }
     o.borderColor = { r = 0.4, g = 0.4, b = 0.4, a = 1 }
     o.keepOnScreen = false
@@ -247,7 +247,7 @@ local function keyWidth(k)
     local T = ZeD.T
     if k.lo then return T.px(U.KEY_W) end
     local f = T.fontF3
-    local w = ZeD.TM:MeasureStringX(f, ZeD.upper(k.label or "")) + T.px(U.FN_PAD) * 2
+    local w = ZeD.TM:MeasureStringX(f, ZeD.btnCase(k.label or "")) + T.px(U.FN_PAD) * 2
     if k.glyph then w = w + glyphW(k) + T.px(5) end
     if k.wide then w = math.max(w, T.px(U.KEY_W) * 6) end
     return math.max(w, T.px(U.KEY_W))
@@ -284,7 +284,7 @@ function ZeD_Keyboard:layout()
         end
         y = y + kh + gap
     end
-    local h = y - gap + pad
+    local h = y - gap + pad + self:footerHeight()   -- (the help line under the keys)
     if self.width ~= w or self.height ~= h then self:setWidth(w); self:setHeight(h) end
     self._g = g
     -- where it sits: under the prompt (moving the prompt up if it must), else the screen's foot
@@ -324,6 +324,27 @@ end
 -- ---------------------------------------------------------------------------
 -- DRAWING
 -- ---------------------------------------------------------------------------
+-- The keyboard holds the controller itself (it is not under FocusManager), so its marks
+-- say what has the focus (focused) and that a controller holds it (pad).
+local _fo, _keyOpts = {}, {}
+local function focusOpts(self)
+    _fo.win, _fo.focused, _fo.pad = self, true, true
+    return _fo
+end
+
+-- what the help line says while the pointer is on a key
+local KEY_HELP = {
+    delete = "UI_ZeD_Keyboard_HelpDelete", caps = "UI_ZeD_Keyboard_HelpCaps", shift = "UI_ZeD_Keyboard_HelpShift",
+    space = "UI_ZeD_Keyboard_HelpSpace", left = "UI_ZeD_Keyboard_HelpLeft", right = "UI_ZeD_Keyboard_HelpRight",
+    cancel = "UI_ZeD_Keyboard_HelpCancel", show = "UI_ZeD_Keyboard_HelpShow",
+}
+local function keyHelp(self, k, up)
+    if k.lo then return ZeD.tr("UI_ZeD_Keyboard_HelpChar", up and k.up or k.lo) end
+    if k.id == "accept" then return ZeD.tr(self._multi and "UI_ZeD_Keyboard_HelpEnter" or "UI_ZeD_Keyboard_HelpAccept") end
+    local key = KEY_HELP[k.id]
+    return key and ZeD.tr(key) or nil
+end
+
 function ZeD_Keyboard:prerender()
     local T = ZeD.T
     local e = self.textEntryBox
@@ -338,8 +359,8 @@ function ZeD_Keyboard:prerender()
     local g = self._g
     if not g then return end
     local A, M = ZeD.Atoms, ZeD.Molecules
-    local tc, ac = T.text, T.accent
-    -- the field's text, for a field the keyboard may cover
+    local tc = T.text
+    -- the field's text, for a field the keyboard may cover (a typed line: solid, so the text reads)
     if g.line then
         local r = g.line
         local b, bs = T.base, T.borderS
@@ -368,9 +389,10 @@ function ZeD_Keyboard:prerender()
             self:drawRect(cx, ty, T.px(1), fhh, tc.a or 1, tc.r, tc.g, tc.b)
         end
     end
-    -- keys
+    -- keys: push buttons, the controller's mark on the focused one, the pointed one's help
     local focusOn = self.joyfocus ~= nil
     local up = self:upperOn()
+    local wash = focusOn and ZeD.Focus.style() == "wash"   -- (that style puts the words on the focus ink)
     for i, row in ipairs(g.keys) do
         for j, r in ipairs(row) do
             local k = r.k
@@ -379,27 +401,29 @@ function ZeD_Keyboard:prerender()
             local down = self._down == r and hover
             local on = (k.id == "caps" and self.capsLock) or (k.id == "shift" and self.shiftDown and not self.capsLock)
             local variant = (k.primary or on) and "primary" or "default"
-            local colors = nil
-            if focused then colors = { fill = { r = ac.r, g = ac.g, b = ac.b, a = 0.55 }, text = T.textOnFocus }
-            elseif hover then colors = { fill = { r = ac.r, g = ac.g, b = ac.b, a = 0.22 } } end
+            local o = _keyOpts
+            o.hover, o.focus, o.win = hover, focused and focusOpts(self) or nil, self
+            o.help = hover and keyHelp(self, k, up) or nil
             if k.lo then
-                M.drawButton(self, r.x, r.y, r.w, r.h, up and k.up or k.lo, variant, down, colors)
+                M.drawButton(self, r.x, r.y, r.w, r.h, up and k.up or k.lo, variant, down, nil, o)
             else
-                M.drawButton(self, r.x, r.y, r.w, r.h, "", variant, down, colors)
+                M.drawButton(self, r.x, r.y, r.w, r.h, "", variant, down, nil, o)
                 -- the button's glyph, then its name
                 local f3, f5 = T.fontF3, T.fontF5
-                local label = ZeD.upper(k.label or "")
+                local label = ZeD.btnCase(k.label or "")
                 local lw = ZeD.TM:MeasureStringX(f3, label)
                 local gw = k.glyph and glyphW(k) or 0
                 local total = lw + (k.glyph and (gw + T.px(5)) or 0)
                 local x = r.x + math.floor((r.w - total) / 2)
-                local lc = focused and tc or ((variant == "primary") and ac or tc)
+                local ry = r.y
+                if down then x = x + T.px(1); ry = ry + T.px(1) end
+                local lc = (focused and wash) and T.textOnFocus or ((variant == "primary") and T.accentText or tc)
                 if k.glyph then
                     local gh = T.px(12)
-                    local gy = r.y + math.floor((r.h - gh) / 2)
+                    local gy = ry + math.floor((r.h - gh) / 2)
                     local PG, roles = padRoles(k)
                     if roles then
-                        PG.draw(self, roles, x, r.y, r.h, PG.k(gh))
+                        PG.draw(self, roles, x, ry, r.h, PG.k(gh))
                     else
                         local bs = T.borderS
                         self:drawRectBorder(x, gy, gw, gh, bs.a or 1, bs.r, bs.g, bs.b)
@@ -408,7 +432,7 @@ function ZeD_Keyboard:prerender()
                     end
                     x = x + gw + T.px(5)
                 end
-                self:drawText(label, x, r.y + math.floor((r.h - ZeD.TM:getFontHeight(f3)) / 2), lc.r, lc.g, lc.b, lc.a or 1, f3)
+                self:drawText(label, x, ry + math.floor((r.h - ZeD.TM:getFontHeight(f3)) / 2), lc.r, lc.g, lc.b, lc.a or 1, f3)
             end
         end
     end
@@ -448,7 +472,7 @@ function ZeD_Keyboard:onMouseMove() end
 function ZeD_Keyboard:onMouseMoveOutside() end
 
 function ZeD_Keyboard:update()
-    ISPanel.update(self)
+    if ZeD.Prompt and ZeD.Prompt.updateChrome then ZeD.Prompt.updateChrome(self) else ISPanel.update(self) end   -- (the window box)
     self._hover = self:keyAt(self:getMouseX(), self:getMouseY())
     local jd = self.joyfocus or self.joypadData
     if not jd or (jd.id or -1) < 0 then return end
@@ -472,6 +496,17 @@ end
 -- ---------------------------------------------------------------------------
 -- CONTROLLER
 -- ---------------------------------------------------------------------------
+-- the help line's prompts while a controller holds the keyboard (the keys name the rest)
+function ZeD_Keyboard:getFooterPrompts()
+    if not self.joyfocus then return nil end
+    local P = ZeD.Prompt
+    local move = P and P.padNote and P.padNote(ZeD.tr("UI_ZeD_Prompt_DPadMove")) or ZeD.tr("UI_ZeD_Prompt_DPadMove")
+    return { move,
+        { glyph = "A", label = ZeD.tr("UI_ZeD_Prompt_Press") },
+        { glyph = "RT", label = ZeD.btnCase(getText(self._multi and "IGUI_Keyboard_Enter" or "IGUI_Keyboard_Accept")) },
+        { glyph = "B", label = ZeD.btnCase(getText("IGUI_Keyboard_Cancel")) } }
+end
+
 function ZeD_Keyboard:onGainJoypadFocus(joypadData) self.joyfocus = joypadData end
 function ZeD_Keyboard:onLoseJoypadFocus(joypadData) end
 

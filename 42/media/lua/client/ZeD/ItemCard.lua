@@ -265,6 +265,18 @@ end
 -- ---------------------------------------------------------------------------
 local VERB_DISPATCH = {}
 
+-- a word over the character's head when a verb can't run (vanilla's halo note)
+local function note(player, text) pcall(function() player:setHaloNote(text) end) end
+
+-- a care verb pressed without what it needs: the character says its NEEDS line
+local function noteNeeds(card, key)
+    local player = getSpecificPlayer(card.playerNum or 0)
+    local ab = card.verbAbility and card:verbAbility(key)
+    if player and ab and ab.needs and ZeD.Disclose then
+        note(player, ZeD.Disclose.needsLine({ label = ab.label, needs = ab.needs }))
+    end
+end
+
 VERB_DISPATCH.repair_all = function(card)
     local player = getSpecificPlayer(card.playerNum)
     if not player then return end
@@ -272,7 +284,7 @@ VERB_DISPATCH.repair_all = function(card)
     local parts = safeGet(item, "getCoveredParts")
     if not parts then return end
     local needle, thread, fabric = findClothingMaterials(player)
-    if not needle then return end
+    if not needle then noteNeeds(card, "repair_all"); return end
     for i = 0, parts:size() - 1 do
         local part   = parts:get(i)
         local visual = safeGet(item, "getVisual")
@@ -295,7 +307,7 @@ VERB_DISPATCH.pad_all = function(card)
     local parts = safeGet(item, "getCoveredParts")
     if not parts then return end
     local needle, thread, fabric = findClothingMaterials(player)
-    if not needle then return end
+    if not needle then noteNeeds(card, "pad_all"); return end
     for i = 0, parts:size() - 1 do
         local part   = parts:get(i)
         local visual = safeGet(item, "getVisual")
@@ -330,43 +342,15 @@ local function tryFixingManager(card)
             end
         end
     end
-    -- No available fixer found — try first fixing/fixer anyway (vanilla shows greyed option)
-    ISInventoryPaneContextMenu.onFix(item, card.playerNum, 0, 0)
+    -- No fixer in the bags: the character says what the repair needs (the
+    -- greyed verb still answers a press with its reason, cohesion spec 9)
+    noteNeeds(card, "repair")
 end
 
 VERB_DISPATCH.repair  = function(card) tryFixingManager(card) end
 
--- a word over the character's head when a verb can't run (vanilla's halo note)
-local function note(player, text) pcall(function() player:setHaloNote(text) end) end
-
--- SHARPEN: vanilla's own (ISFirearmRadialMenu.sharpenWeapon): the whetstone
--- recipe, else the poor one with a file; it ran a repair before (Oct 19 2026).
-VERB_DISPATCH.sharpen = function(card)
-    local player = getSpecificPlayer(card.playerNum)
-    if not (player and card.item) then return end
-    local SM = getScriptManager()
-    local containers = ISInventoryPaneContextMenu.getContainers(player)
-    for _, name in ipairs({ "SharpenBlade", "SharpenBladePoorlyWithFile" }) do
-        local recipe = SM:getCraftRecipe(name)
-        if recipe then
-            local logic = HandcraftLogic.new(player, nil, nil)
-            logic:setContainers(containers)
-            logic:setRecipeFromContextClick(recipe, card.item)
-            if logic:canPerformCurrentRecipe() then
-                ISInventoryPaneContextMenu.OnNewCraft(card.item, recipe, card.playerNum, false)
-                return
-            end
-        end
-    end
-    note(player, ZeD.tr("UI_ZeD_Card_NeedWhetstone"))
-end
-
--- WASH: vanilla's own wash (ISWorldObjectContextMenu.onWashClothing: walks to
--- the water, uses soap when you carry it) at the nearest water within two
--- tiles; none in reach says so (Oct 19 2026: the button did nothing).
-VERB_DISPATCH.wash = function(card)
-    local player = getSpecificPlayer(card.playerNum)
-    if not (player and card.item) then return end
+-- the nearest water within two tiles of the player (vanilla's wash reach), or nil
+local function waterInReach(player)
     local sq = player:getCurrentSquare()
     local best, bestD = nil, nil
     if sq then
@@ -384,9 +368,146 @@ VERB_DISPATCH.wash = function(card)
             end
         end
     end
+    return best
+end
+
+-- vanilla's sharpening recipes the player can run on the item now
+local SHARPEN_RECIPES = { "SharpenBlade", "SharpenBladePoorlyWithFile" }
+local function sharpenRecipe(player, item)
+    local SM = getScriptManager()
+    local containers = ISInventoryPaneContextMenu.getContainers(player)
+    for _, name in ipairs(SHARPEN_RECIPES) do
+        local recipe = SM:getCraftRecipe(name)
+        if recipe then
+            local logic = HandcraftLogic.new(player, nil, nil)
+            logic:setContainers(containers)
+            logic:setRecipeFromContextClick(recipe, item)
+            if logic:canPerformCurrentRecipe() then return recipe end
+        end
+    end
+    return nil
+end
+
+-- SHARPEN: vanilla's own (ISFirearmRadialMenu.sharpenWeapon): the whetstone
+-- recipe, else the poor one with a file; it ran a repair before (Oct 19 2026).
+VERB_DISPATCH.sharpen = function(card)
+    local player = getSpecificPlayer(card.playerNum)
+    if not (player and card.item) then return end
+    local recipe = sharpenRecipe(player, card.item)
+    if recipe then
+        ISInventoryPaneContextMenu.OnNewCraft(card.item, recipe, card.playerNum, false)
+        return
+    end
+    note(player, ZeD.tr("UI_ZeD_Card_NeedWhetstone"))
+end
+
+-- WASH: vanilla's own wash (ISWorldObjectContextMenu.onWashClothing: walks to
+-- the water, uses soap when you carry it) at the nearest water within two
+-- tiles; none in reach says so (Oct 19 2026: the button did nothing).
+VERB_DISPATCH.wash = function(card)
+    local player = getSpecificPlayer(card.playerNum)
+    if not (player and card.item) then return end
+    local best = waterInReach(player)
     if not best then note(player, ZeD.tr("UI_ZeD_Card_NoWaterInReach")); return end
     local soap = player:getInventory():getSoapList(nil, true)
     ISWorldObjectContextMenu.onWashClothing(player, best, soap, nil, card.item)
+end
+
+-- ---------------------------------------------------------------------------
+-- WHAT A CARE VERB NEEDS (conditional disclosure, cohesion spec 9a)
+-- For each care verb of the card (Wash, Repair, Pad, Sharpen): can it be done
+-- now (canDo), does it make sense now (sensible: Repair on a garment with no
+-- holes, or on a weapon in full condition, does not: the verb is gone), what it
+-- needs (needs: plain words for its NEEDS line and the folded row's hint) and
+-- the "you could ..." words (hint). The words name only what the game itself
+-- shows for the item (its sewing kit, water, a whetstone, its repair list).
+-- Worked out once a second per card: they walk the bags and the squares.
+-- ---------------------------------------------------------------------------
+local ABILITY_MS = 1000
+
+-- a garment's parts with a hole and no patch, and the parts that could take padding
+local function holesAndPads(item)
+    local parts = safeGet(item, "getCoveredParts")
+    if not parts then return 0, 0 end
+    local holes, pads = 0, 0
+    local visual = safeGet(item, "getVisual")
+    for i = 0, parts:size() - 1 do
+        local part = parts:get(i)
+        local hc = 0
+        if visual then
+            local ok, v = pcall(function() return visual:getHole(part) end)
+            if ok and v then hc = v end
+        end
+        if not safeGet(item, "getPatchType", part) then
+            if hc > 0 then holes = holes + 1 else pads = pads + 1 end
+        end
+    end
+    return holes, pads
+end
+
+-- the item's vanilla repairs (FixingManager): whether it has any, and whether a fixer is in the bags
+local function fixState(player, item)
+    local list = FixingManager and FixingManager.getFixes(item)
+    if not list or list:isEmpty() then return false, false end
+    for fi = 0, list:size() - 1 do
+        local fixing = list:get(fi)
+        for xi = 0, fixing:getFixers():size() - 1 do
+            if fixing:haveThisFixer(player, fixing:getFixers():get(xi), item) then return true, true end
+        end
+    end
+    return true, false
+end
+
+local function workOutAbility(card, key)
+    local player = getSpecificPlayer(card.playerNum or 0)
+    local item = card.item
+    local a = { canDo = true, sensible = true }
+    if not (player and item) then return a end
+    local VT = ZeD.ItemCard and ZeD.ItemCard.verbText
+    if key == "repair_all" or key == "pad_all" then
+        local holes, pads = holesAndPads(item)
+        a.sensible = (key == "repair_all") and holes > 0 or pads > 0
+        a.canDo = findClothingMaterials(player) ~= nil
+        a.needs = ZeD.tr("UI_ZeD_Card_NeedsSewing")
+        a.hint = ZeD.tr(key == "repair_all" and "UI_ZeD_Card_HintRepairHoles" or "UI_ZeD_Card_HintPad")
+        a.label = VT and VT(key == "repair_all" and "REPAIR" or "PAD")
+    elseif key == "wash" then
+        a.canDo = waterInReach(player) ~= nil
+        a.needs = ZeD.tr("UI_ZeD_Card_NeedsWater")
+        a.hint = ZeD.tr("UI_ZeD_Card_HintWash")
+        a.label = VT and VT("WASH")
+    elseif key == "repair" then
+        local has, can = fixState(player, item)
+        local condMax = safeGet(item, "getConditionMax") or 0
+        a.sensible = has and (safeGet(item, "getCondition") or condMax) < condMax
+        a.canDo = can
+        a.needs = ZeD.tr("UI_ZeD_Card_NeedsFixer")
+        a.hint = ZeD.tr("UI_ZeD_Card_HintRepair")
+        a.label = VT and VT("REPAIR")
+    elseif key == "sharpen" then
+        a.canDo = sharpenRecipe(player, item) ~= nil
+        a.needs = ZeD.tr("UI_ZeD_Card_NeedsWhetstone")
+        a.hint = ZeD.tr("UI_ZeD_Card_HintSharpen")
+        a.label = VT and VT("SHARPEN")
+    end
+    return a
+end
+
+--- The care verb's ability now ({ canDo, sensible, needs, hint, label }), kept a second.
+function ZeD_ItemCard:verbAbility(key)
+    local now = getTimestampMs()
+    local c = self._abil
+    if not c or c.item ~= self.item or now - (c.t or 0) > ABILITY_MS then
+        c = { item = self.item, t = now }
+        self._abil = c
+    end
+    local a = c[key]
+    if a == nil then
+        local ok, r = pcall(workOutAbility, self, key)
+        a = ok and r or { canDo = true, sensible = true }
+        c[key] = a
+    end
+    return a
 end
 
 -- ---------------------------------------------------------------------------
@@ -536,20 +657,22 @@ local function drawItemSoilRow(panel, x, y, w, soil)
     local btnSz = T.iconSm + T.px(4)
     local rx = x + w   -- right cursor, grows leftward
 
+    -- the item's soil as tags, right-aligned: the word (sentence case) after a
+    -- square mark in the soil's colour (no tinted fills, no coloured words)
+    local tagW = function(lbl)
+        return ZeD.TM:MeasureStringX(T.fontF1, ZeD.Atoms.textCase(lbl)) + T.px(10) + T.px(6) + T.px(4)
+    end
+    local ty = y + math.floor((btnSz - T.px(16)) / 2)
     if soil.wet then
-        local lbl    = soil.wet .. "%"
-        local sTextW = ZeD.TM:MeasureStringX(T.fontF1, lbl)
-        local flagW  = math.max(T.px(4), sTextW + T.px(8))
-        rx = rx - flagW
-        M.drawDock(panel, rx, y, nil, lbl, nil, T.soiledWet, nil, false, false)
+        local lbl = soil.wet .. "%"
+        rx = rx - tagW(lbl)
+        M.drawTag(panel, rx, ty, lbl, T.soiledWet or T.info)
         rx = rx - sp.xs
     end
     if soil.dirt then
-        local lbl    = ZeD.upper(ZeD.tr("Tooltip_clothing_dirty"))
-        local sTextW = ZeD.TM:MeasureStringX(T.fontF1, lbl)
-        local flagW  = math.max(T.px(4), sTextW + T.px(8))
-        rx = rx - flagW
-        M.drawDock(panel, rx, y, nil, lbl, nil, T.soiledDirt, nil, false, false)
+        local lbl = ZeD.tr("Tooltip_clothing_dirty")
+        rx = rx - tagW(lbl)
+        M.drawTag(panel, rx, ty, lbl, T.soiledDirt or T.warning)
     end
     return btnSz
 end
@@ -1156,7 +1279,30 @@ function ZeD_ItemCard:update()
 
     -- Fold toggle click detection (disclosure headers in scrollable body)
     local bodyTop = self:getAbsoluteY() + self._headH
-    local bodyBot = self:getAbsoluteY() + self:getHeight()
+    local bodyBot = self:getAbsoluteY() + self:getHeight() - (self._verbStripResvH or 0)
+
+    -- The folded row (opens / folds) and, while open, its greyed care verbs
+    -- (a press: the character says what the verb needs). Absolute rects.
+    do
+        local hitMore = nil
+        local mr = self._moreRowRect
+        if mr and my >= bodyTop and my < bodyBot and mx >= mr.x and mx < mr.x + mr.w and my >= mr.y and my < mr.y + mr.h then
+            hitMore = 0
+        end
+        for i, r in ipairs(self._moreVerbRects or {}) do
+            if my >= bodyTop and my < bodyBot and mx >= r.x and mx < r.x + r.w and my >= r.y and my < r.y + r.h then hitMore = i end
+        end
+        if self._moreWasDown and not down and hitMore ~= nil then
+            if hitMore == 0 then
+                self:_toggleMoreRow()
+            else
+                local hv = self._moreVerbs and self._moreVerbs[hitMore]
+                local handler = hv and VERB_DISPATCH[hv.key]
+                if handler then handler(self, hv) end
+            end
+        end
+        self._moreWasDown = down and (hitMore ~= nil)
+    end
     for _, rect in ipairs(self._foldHitRects) do
         local absRectY = rect.y
         -- Only clickable if visible in viewport
@@ -1266,18 +1412,23 @@ function ZeD_ItemCard:prerender()
 
     -- Card bg is transparent — the drawer surface provides the full-height background
     self.backgroundColor.a = 0
-    -- Suppress ISPanel's 4-sided border — we draw 3 sides manually (no top)
+    -- No border of its own: the lines around the card are the window's (the
+    -- waterfall's edge, the pane divider, the help line's line, the frame).
+    -- A card laid over a tab's content draws that one edge (drawOverlayEdge).
     self.borderColor.a = 0
     ISPanel.prerender(self)
+end
 
-    -- 3-sided border: left, right, bottom — top suppressed per edge flag rule
-    local bc = ZeD.T.border
-    local w = self:getWidth()
-    local h = self:getHeight()
-    self:drawRect(0, 0, T.px(1), h, bc.a or 1, bc.r, bc.g, bc.b)          -- left
-    self:drawRect(w - T.px(1), 0, T.px(1), h, bc.a or 1, bc.r, bc.g, bc.b)      -- right
-    self:drawRect(0, h - T.px(1), w, T.px(1), bc.a or 1, bc.r, bc.g, bc.b)      -- bottom
-
+--- The structure line on the edge where the card lies over other content: the
+--- host sets card.overlayEdge = "left" / "right" (nil: none; the window's own
+--- lines bound the card). Drawn last in the card's render, from top to bottom.
+function ZeD_ItemCard:drawOverlayEdge()
+    local edge = self.overlayEdge
+    if edge ~= "left" and edge ~= "right" then return end
+    local T = ZeD.T
+    local bs = T.borderS
+    local x = (edge == "left") and 0 or (self:getWidth() - T.px(1))
+    self:drawRect(x, 0, T.px(1), self:getHeight(), bs.a or 1, bs.r, bs.g, bs.b)
 end
 
 -- ---------------------------------------------------------------------------
@@ -1454,6 +1605,34 @@ function ZeD_ItemCard:getActionStripElements()
         }
     end
 
+    -- The folded row of care verbs the character can't do yet (A opens or
+    -- folds it), then, while open, each of them greyed (A: the character says
+    -- what it needs). Rects are absolute, stamped by renderBody.
+    local mr = self._moreRowRect
+    if mr and mr.x then
+        els[#els + 1] = {
+            x = mr.x, y = mr.y, w = mr.w, h = mr.h,
+            id = "more_row",
+            onFocus    = function() card._gpFocusedBtnId = "more_row" end,
+            onActivate = function() card:_toggleMoreRow() end,
+        }
+        for i, hv in ipairs(self._moreVerbs or {}) do
+            local r = self._moreVerbRects and self._moreVerbRects[i]
+            if r then
+                local eid, vkey = "more_" .. tostring(hv.key), hv.key
+                els[#els + 1] = {
+                    x = r.x, y = r.y, w = r.w, h = r.h,
+                    id = eid,
+                    onFocus    = function() card._gpFocusedBtnId = eid end,
+                    onActivate = function()
+                        local handler = VERB_DISPATCH[vkey]
+                        if handler then handler(card, hv) end
+                    end,
+                }
+            end
+        end
+    end
+
     local DEFS = ZeD.ActionStrip.TOGGLE_DEFS
     for i, def in ipairs(DEFS) do
         local r = self.toggleRects and self.toggleRects[i]
@@ -1544,24 +1723,39 @@ function ZeD_ItemCard:getZoneDockElements()
     return els
 end
 
--- Called by card:render() after action strips draw. Outlines the gp-focused
--- button with an accent border so the user sees which button will fire on A.
--- Looks up the button by id in toggleRects / verbRects (absolute coords → local).
+--- The focus mark's opts for the card's element `id` when the controller is on
+-- it: this card's window has the focus, the controller is in use
+-- (Focus.liveZone), the focus is in the card's zone and on that element.
+-- Both windows have a card (charItemCard / worldItemCard); the Equip tab's
+-- lives in charTabContent (self._gpZone). Else nil.
+local _cardFocus = {}
+function ZeD_ItemCard:focusFor(id)
+    if id == nil or self._gpFocusedBtnId ~= id then return nil end
+    local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
+    local w     = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow()
+    local zone  = (w and Focus.liveZone) and Focus.liveZone(w) or nil
+    if not zone then return nil end
+    if self._gpZone then
+        if zone.zone ~= self._gpZone then return nil end
+        if w._gpFocusedEquipSlot ~= "__card_" .. tostring(id) then return nil end
+    elseif zone.zone ~= "charItemCard" and zone.zone ~= "worldItemCard" then
+        return nil
+    end
+    if not ZeD.Atoms.isAncestor(w, self) then return nil end
+    _cardFocus.win, _cardFocus.zone = w, zone.zone
+    return _cardFocus
+end
+
+-- Called by renderBody after its parts draw: the focus mark on the two parts
+-- the library draws without a focus option (the flag strip's chips, the
+-- progress band's Cancel). Every other part takes its mark under its own
+-- words as it draws (header verbs, care verbs, the name row, the docks, the
+-- folded row).
 function ZeD_ItemCard:_drawGpFocusOutline()
     local id = self._gpFocusedBtnId
     if not id then return end
-    -- Only paint when the window says our card zone is currently focused.
-    -- Without this guard, the outline would persist after focus bumpers away.
-    -- Both Char + World use the same card instance under different zone names.
-    local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
-    local w     = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow()
-    local zone  = (w and Focus.getFocusedZone) and Focus.getFocusedZone(w) or nil
-    if self._gpZone then
-        -- a card living in another zone (the Equip tab's, in charTabContent)
-        if not zone or zone.zone ~= self._gpZone then return end
-        if w._gpFocusedEquipSlot ~= "__card_" .. tostring(self._gpFocusedBtnId) then return end
-    elseif not zone or (zone.zone ~= "charItemCard" and zone.zone ~= "worldItemCard") then return end
-
+    local fo = self:focusFor(id)
+    if not fo then return end
     local r = nil
     local DEFS = ZeD.ActionStrip.TOGGLE_DEFS
     for i, def in ipairs(DEFS) do
@@ -1569,54 +1763,15 @@ function ZeD_ItemCard:_drawGpFocusOutline()
             r = self.toggleRects and self.toggleRects[i]; break
         end
     end
-    if not r then
-        for i, vdef in ipairs(self._verbDefs or {}) do
-            if id == "verb_" .. vdef.key then
-                r = self.verbRects and self.verbRects[i]; break
-            end
-        end
-    end
-    -- Zone dock buttons (clothing detail zone) — id is "dock_<zoneIdx>"
-    if not r then
-        for _, rect in ipairs(self._zoneDockRects or {}) do
-            if id == (rect.id or ("dock_" .. rect.zoneIdx)) then
-                r = rect; break
-            end
-        end
-    end
-    -- Progress Band cancel (S122 B9) — id "cancel_band"
-    if not r and id == "cancel_band" and self._cancelRect then
-        r = self._cancelRect
-    end
-    -- Header verbs — id "hverb_<i>"; back-bar rects are card-local
-    if not r then
-        local hi = tonumber(id:match("^hverb_(%d+)$") or "")
-        local hr = hi and self._backBarRects and self._backBarRects.verbs
-                   and self._backBarRects.verbs[hi]
-        if hr and hr.x then
-            r = {x = self:getAbsoluteX() + hr.x, y = self:getAbsoluteY() + hr.y, w = hr.w, h = hr.h}
-        end
-    end
-    -- The name row — id "name_row"; card-local like the back bar
-    if not r and id == "name_row" and self._nameRowRect then
-        local nr = self._nameRowRect
-        r = {x = self:getAbsoluteX() + nr.x, y = self:getAbsoluteY() + nr.y, w = nr.w, h = nr.h}
-    end
+    if not r and id == "cancel_band" and self._cancelRect then r = self._cancelRect end
     if not r then return end
+    -- (the rects are absolute)
+    ZeD.Focus.mark(self, r.x - self:getAbsoluteX(), r.y - self:getAbsoluteY(), r.w, r.h, fo)
+end
 
-    local T  = ZeD.T
-    local ax = self:getAbsoluteX()
-    local ay = self:getAbsoluteY()
-    local lx = r.x - ax
-    local ly = r.y - ay
-    local c  = T.accent
-    -- a two-hairline outline just outside the button: each ring one hairline (T.hair) out from the one inside it,
-    -- the same on every side (T.px(2) is not 2 x T.px(1) at 1.25 / 1.5)
-    local u = T.hair
-    local ox, oy = lx - u, ly - u
-    local ow, oh = r.w + 2 * u, r.h + 2 * u
-    self:drawRectBorder(ox, oy, ow, oh, c.a or 1, c.r, c.g, c.b)
-    self:drawRectBorder(ox - u, oy - u, ow + 2 * u, oh + 2 * u, (c.a or 1) * 0.5, c.r, c.g, c.b)
+--- Open or fold the card's folded row (remembered per item type for the session)
+function ZeD_ItemCard:_toggleMoreRow()
+    if self._moreKey and ZeD.Disclose then ZeD.Disclose.toggle(self._moreKey) end
 end
 
 -- Return disclosure-header content-Y positions (section header top edges),

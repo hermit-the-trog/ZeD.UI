@@ -4,10 +4,10 @@
 -- Vanilla's "Extended 3D Placement" window (ISExtendedPlacementUI) becomes a
 -- placement card in the World window's card drawer. Right-click an item lying
 -- in the world that has a 3D model; vanilla walks next to it and the card
--- opens. MOVEMENT X / Y / Z (0..1 of the tile) and ROTATION X / Y / Z
--- (0..360 degrees), each a slider with a readout and nudge buttons; REVERT and
--- DONE. Vanilla's world gizmo stays: the move arrows while you work in
--- MOVEMENT, the turn rings in ROTATION, and dragging it updates the card.
+-- opens. Movement X / Y / Z (0..1 of the tile) and Rotation X / Y / Z
+-- (0..360 degrees), each a slider with a readout and nudge buttons; Revert and
+-- Done. Vanilla's world gizmo stays: the move arrows while you work in
+-- Movement, the turn rings in Rotation, and dragging it updates the card.
 -- Closes past vanilla's 3 tiles; closing saves the placement as vanilla does
 -- (syncExtendedPlacement).
 -- ============================================================================
@@ -22,6 +22,7 @@ local MOVE_NUDGE, TURN_NUDGE = 0.01, 15
 local MOVE_STEP, TURN_STEP = 0.05, 15   -- controller left / right on a slider
 
 local function col(c) return c.r, c.g, c.b end
+local AXIS_NAME = { x = "X", y = "Y", z = "Z" }   -- (the axes' letters)
 local function round(v, dp) local m = 10 ^ (dp or 3) return math.floor(v * m + 0.5) / m end
 
 local def = { id = "place3d", leash = 3 }
@@ -94,10 +95,11 @@ end
 function def.refresh(t, player)
     t.d = { name = t.item:getDisplayName(), tex = t.item:getTex() }
     t.verbs = {
-        { id = "done", label = getText("UI_mods_Done"), primary = true, run = function(p, tt, card) card:close() end },
-        { id = "revert", label = ZeD.upper(getText("IGUI_ExtendedPlacement_Revert")), run = function(p, tt) revert(tt) end },
+        { id = "done", label = getText("UI_mods_Done"), primary = true, help = ZeD.tr("UI_ZeD_Place_HelpDone"),
+          run = function(p, tt, card) card:close() end },
+        { id = "revert", label = getText("IGUI_ExtendedPlacement_Revert"), help = ZeD.tr("UI_ZeD_Place_HelpRevert"),
+          run = function(p, tt) revert(tt) end },
     }
-    t.needs = {}
 end
 
 -- a controller lands on the first slider, ready to move
@@ -130,56 +132,58 @@ end
 
 local function axisRow(card, x, y, w, t, section, ax)
     local T, tm = ZeD.T, ZeD.TM
-    local h = T.px(28)
+    local A = ZeD.Atoms
+    local h = math.max(T.px(28), T.buttonH + T.px(2))
     local f1, f3 = T.fontF1, T.fontF3
     local ac = T.accent
     local isMove = section == "move"
     local v = ax.get(t)
     local frac = isMove and v or (v / 360)
-    card:drawText(string.upper(ax.id), x, y + math.floor((h - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
+    card:drawText(AXIS_NAME[ax.id] or ax.id, x, y + math.floor((h - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
     -- nudges (right)
     local nud = isMove and MOVE_NUDGE or TURN_NUDGE
     local nl = isMove and "0.01" or "15"
     -- one button width for both groups, so the six sliders line up
-    local bw = math.max(T.px(38), UI.buttonW("+" .. MOVE_NUDGE), UI.buttonW("-" .. MOVE_NUDGE))
+    local bw = math.max(UI.buttonW("+" .. MOVE_NUDGE), UI.buttonW("-" .. MOVE_NUDGE))
+    local bh = T.buttonH - T.px(4)
     local plusX = x + w - bw
     local minusX = plusX - T.px(3) - bw
-    local by = y + math.floor((h - T.px(20)) / 2)
+    local by = y + math.floor((h - bh) / 2)
     local idm, idp = "p3:" .. section .. ":" .. ax.id .. ":-", "p3:" .. section .. ":" .. ax.id .. ":+"
-    UI.button(card, minusX, by, "-" .. nl, { h = T.px(20), w = bw, focused = card._fid == idm })
-    UI.button(card, plusX, by, "+" .. nl, { h = T.px(20), w = bw, focused = card._fid == idp })
-    card:zone({ fid = idm, x = minusX, y = by, w = bw, h = T.px(20), body = true, run = function() setAxis(t, section, ax, ax.get(t) - nud) end })
-    card:zone({ fid = idp, x = plusX, y = by, w = bw, h = T.px(20), body = true, run = function() setAxis(t, section, ax, ax.get(t) + nud) end })
+    UI.button(card, minusX, by, "-" .. nl, { w = bw, h = bh, fid = idm, body = true, focus = card:focusOf(idm),
+        help = ZeD.tr("UI_ZeD_Place_HelpNudgeDown", AXIS_NAME[ax.id] or ax.id),
+        run = function() setAxis(t, section, ax, ax.get(t) - nud) end })
+    UI.button(card, plusX, by, "+" .. nl, { w = bw, h = bh, fid = idp, body = true, focus = card:focusOf(idp),
+        help = ZeD.tr("UI_ZeD_Place_HelpNudgeUp", AXIS_NAME[ax.id] or ax.id),
+        run = function() setAxis(t, section, ax, ax.get(t) + nud) end })
     -- readout
     local val = isMove and string.format("%.2f", v) or (tostring(math.floor(v + 0.5) % 360) .. DEG)
     local vx = minusX - T.px(10)
-    ZeD.Atoms.drawTextRight(card, val, vx, y + math.floor((h - tm:getFontHeight(f3)) / 2), f3, T.text)
-    -- slider
+    A.drawTextRight(card, val, vx, y + math.floor((h - tm:getFontHeight(f3)) / 2), f3, T.text)
+    -- slider: the library's strip with a flat block on it; the controller's mark goes under the track
     local sx0 = x + T.px(26)
     local sw = vx - T.px(58) - sx0
-    local trY = y + math.floor(h / 2) - T.px(3)
-    card:drawRect(sx0, trY, sw, T.px(6), 1, col(T.surf1))
-    card:drawRect(sx0, trY, math.floor(sw * math.max(0, math.min(1, frac))), T.px(6), 1, col(ac))
-    card:drawRectBorder(sx0, trY, sw, T.px(6), T.borderS.a or 1, col(T.borderS))
-    for _, f in ipairs({ 0.25, 0.5, 0.75 }) do
-        card:drawRect(sx0 + math.floor(sw * f), trY + T.px(8), T.px(1), T.px(4), T.borderS.a or 1, col(T.borderS))
-    end
+    local trH = A.fillBarCompactH()
+    local trY = y + math.floor((h - trH) / 2)
     local sid = "p3:" .. section .. ":" .. ax.id
-    local focused = card._fid == sid
+    local fm = card:focusOf(sid)
+    if fm then ZeD.Focus.mark(card, sx0 - T.px(6), y, sw + T.px(12), h, fm) end
+    local f = math.max(0, math.min(1, frac))
+    A.drawFillBar(card, sx0, trY, sw, f, false, ac, trH)
+    local bs = T.borderS
+    for _, tf in ipairs({ 0.25, 0.5, 0.75 }) do
+        card:drawRect(sx0 + math.floor(sw * tf), trY + trH + T.px(1), T.px(1), T.px(3), bs.a or 1, col(bs))
+    end
     local thW, thH = T.px(12), T.px(18)
-    local thX = sx0 + math.floor(sw * math.max(0, math.min(1, frac))) - math.floor(thW / 2)
+    local thX = sx0 + math.floor(sw * f) - math.floor(thW / 2)
     local thY = y + math.floor((h - thH) / 2)
-    if focused then card:drawRect(thX - T.px(3), thY - T.px(3), thW + 2 * T.px(3), thH + 2 * T.px(3), 0.55, col(ac)) end
-    local tb = focused and T.accentBright or T.surf3
-    card:drawRect(thX, thY, thW, thH, tb.a or 1, col(tb))
-    card:drawRect(thX, thY, thW, T.px(1), T.surf4.a or 1, col(T.surf4))
-    card:drawRect(thX, thY, T.px(1), thH, T.surf4.a or 1, col(T.surf4))
-    card:drawRect(thX, thY + thH - T.px(1), thW, T.px(1), 1, 0, 0, 0)
-    card:drawRect(thX + thW - T.px(1), thY, T.px(1), thH, 1, 0, 0, 0)
+    card:drawRect(thX, thY, thW, thH, T.surf3.a or 1, col(T.surf3))
+    A.frame(card, thX, thY, thW, thH, T.borderS)
     card:zone({ fid = sid, x = sx0 - T.px(6), y = y, w = sw + T.px(12), h = h, body = true,
+        help = ZeD.tr("UI_ZeD_Place_HelpSlider"),
         drag = function(c, mx, my)
-            local f = math.max(0, math.min(1, (mx - sx0) / math.max(1, sw)))
-            setAxis(t, section, ax, isMove and f or math.floor(f * 360 + 0.5))
+            local fr = math.max(0, math.min(1, (mx - sx0) / math.max(1, sw)))
+            setAxis(t, section, ax, isMove and fr or math.floor(fr * 360 + 0.5))
         end,
         dpad = function(dir)
             local step = isMove and MOVE_STEP or TURN_STEP
@@ -204,7 +208,7 @@ function def.body(card, x, y, w, t, player)
     local mx = card:getMouseX()
     local inCard = mx >= 0 and mx < card:getWidth()
     local sec = T.px(20)
-    local rowH = T.px(28)
+    local rowH = math.max(T.px(28), T.buttonH + T.px(2))
     local moveTop, moveBot = y, y + sec + rowH * 3
     local turnTop = moveBot + T.px(8)
     local turnBot = turnTop + sec + rowH * 3
@@ -214,10 +218,10 @@ function def.body(card, x, y, w, t, player)
     end
     pcall(driveGizmo, t)
 
-    y = y + UI.section(card, x, y, w, ZeD.upper(getText("IGUI_ExtendedPlacement_ModeMovement")), ZeD.tr("UI_ZeD_Place_WithinTile"))
+    y = y + UI.section(card, x, y, w, getText("IGUI_ExtendedPlacement_ModeMovement"), ZeD.tr("UI_ZeD_Place_WithinTile"))
     for _, ax in ipairs(AXES.move) do y = y + axisRow(card, x, y, w, t, "move", ax) end
     y = y + T.px(8)
-    y = y + UI.section(card, x, y, w, ZeD.upper(getText("IGUI_ExtendedPlacement_ModeRotation")), ZeD.tr("UI_ZeD_Place_Degrees"))
+    y = y + UI.section(card, x, y, w, getText("IGUI_ExtendedPlacement_ModeRotation"), ZeD.tr("UI_ZeD_Place_Degrees"))
     for _, ax in ipairs(AXES.turn) do y = y + axisRow(card, x, y, w, t, "turn", ax) end
     return y - y0
 end

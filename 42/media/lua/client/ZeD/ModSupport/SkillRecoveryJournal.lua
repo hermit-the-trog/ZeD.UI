@@ -10,14 +10,15 @@
 -- red for XP not yet written (Untranscribed XP). ZeD's Skills tab draws its own
 -- rows, so this file puts the same strip under each ZeD row, through the tab's
 -- general hook (ZeD.SkillsTab.addExtras):
---   * a 3 px strip in its own lane under each row (the row grows by 4 px), its
---     length as in the mod (how far the skill has come, level / 10), split by the
---     mod's four numbers, the "not yet written" part solid red as the mod draws it;
---     no strip for a skill the mod does not record (its sandbox options) or at 0;
---   * a key line at the top of the tab: whether a Bound Journal is on the
---     character, who wrote it and where it is, the XP not yet written, and the four
---     words in the mod's colours;
---   * the numbers in the row's hover card.
+--   * a strip in its own lane under each row (the row grows by 10 units): the
+--     standard framed bar, 8 units tall (ZeD.Atoms.fillBarCompactH), its length as in
+--     the mod (how far the skill has come, level / 10), split by the mod's four
+--     numbers, the "not yet written" part solid red as the mod draws it; no strip for
+--     a skill the mod does not record (its sandbox options) or at 0;
+--   * a key block at the top of the tab: the section head, whether a Bound Journal
+--     is on the character, who wrote it and where it is, the XP not yet written, and
+--     the four words with the library's legend swatches in the mod's colours;
+--   * the numbers in the row's hover card (the shared detail card).
 -- The numbers are the mod's own sums (its SRJ_getProgressAmounts, read through the
 -- mod's own functions). ZeD stores nothing and keeps no copy. Pinned skills in the
 -- title bar stay text only; no Transcribe button (the mod keeps that on the item).
@@ -41,6 +42,7 @@ if not modOn() then return end
 require "ZeD/Tokens"
 require "ZeD/Atoms"
 require "ZeD/AtomExtensions"
+require "ZeD/Molecules"
 require "ZeD/Tr"
 require "ZeD/SkillsTab"
 
@@ -157,7 +159,7 @@ end
 -- ---------------------------------------------------------------------------
 -- THE ROW EXTRA
 -- ---------------------------------------------------------------------------
-local X = { laneH = 4 }
+local X = { laneH = 10 }
 
 -- the strip: as long as the skill has come (level and a bit, of ten), split by XP
 function X.lane(char, perk, level, progress)
@@ -175,10 +177,10 @@ function X.lane(char, perk, level, progress)
     return { span = span, segs = segs }
 end
 
--- the key line: three short rows and a gap
+-- the key block: the section head, then short rows and a gap
 local function lineH()
     local T = ZeD.T
-    return math.max(ZeD.TM:getFontHeight(T.fontF1), ZeD.TM:getFontHeight(T.fontF5)) + T.px(4)
+    return math.max(ZeD.TM:getFontHeight(T.fontF1), T.px(ZeD.Atoms.SWATCH_H)) + T.px(4)
 end
 
 -- the four words with their swatches, laid in rows that fit w: { { x, word, i }, ... } per row
@@ -187,7 +189,7 @@ local function wordRows(w)
     local rows, row, cx = {}, {}, 0
     for i = 1, 4 do
         local word = ZeD.tr(WORDS[i])
-        local need = T.px(14) + tm:MeasureStringX(T.fontF1, word)
+        local need = T.px(ZeD.Atoms.SWATCH_W) + T.px(6) + tm:MeasureStringX(T.fontF1, word)
         if cx > 0 and cx + need > w then rows[#rows + 1] = row; row, cx = {}, 0 end
         row[#row + 1] = { x = cx, word = word, i = i }
         cx = cx + need + T.px(12)
@@ -197,33 +199,31 @@ local function wordRows(w)
 end
 
 function X.headHeight(win, w)
-    return lineH() * (2 + #wordRows(w)) + ZeD.T.px(10)
+    return ZeD.T.px(20) + lineH() * (1 + #wordRows(w)) + ZeD.T.px(10)
 end
 
 function X.drawHead(panel, win, x, y, w)
-    local T, tm, A = ZeD.T, ZeD.TM, ZeD.Atoms
+    local T, tm, A, M = ZeD.T, ZeD.TM, ZeD.Atoms, ZeD.Molecules
     local char = win._playerObj
-    local f1, f5 = T.fontF1, T.fontF5
+    local f1 = T.fontF1
     local lh = lineH()
-    local ac, ts, tx = T.accent, T.textSec, T.text
-    -- row 1: the mod's name, and what is not yet written
-    panel:drawText(ZeD.upper(ZeD.tr("IGUI_CraftCategory_SkillJournal")), x, y + math.floor((lh - tm:getFontHeight(f5)) / 2), ac.r, ac.g, ac.b, 1, f5)
+    local ts, tx = T.textSec, T.text
+    -- the section head: the mod's name, and at the right what is not yet written
+    local hh = M.drawSectionHeader(panel, x, y, w, ZeD.tr("IGUI_CraftCategory_SkillJournal"), nil, true, false, nil, nil, nil, nil, true)
     local nw = notWrittenTotal(char)
     if nw > 0 then
-        A.drawTextRight(panel, ZeD.tr("UI_ZeD_SRJ_NotWrittenTotal", round(nw)), x + w, y + T.px(2), f1, ts)
+        A.drawTextRight(panel, ZeD.tr("UI_ZeD_SRJ_NotWrittenTotal", round(nw)), x + w - T.px(6), y + math.floor((hh - tm:getFontHeight(f1)) / 2), f1, ts)
     end
-    y = y + lh
-    -- row 2: the journal on the character, or none
+    y = y + hh
+    -- row 1: the journal on the character, or none (a status square, as everywhere)
     local j = S.journal(char)
-    local dot = T.px(7)
+    local dot = T.px(6)
     local dy = y + math.floor((lh - dot) / 2)
     local cx = x
     if j then
-        local p = T.positive
-        panel:drawRect(cx, dy, dot, dot, 1, p.r, p.g, p.b)
+        A.drawStatusDot(panel, cx, dy, T.positive, dot)
     else
-        local b = T.borderS
-        panel:drawRectBorder(cx, dy, dot, dot, b.a, b.r, b.g, b.b)
+        A.drawStatusHollow(panel, cx, dy, T.borderS, dot)
     end
     cx = cx + dot + T.px(6)
     local main, rest
@@ -234,21 +234,21 @@ function X.drawHead(panel, win, x, y, w)
         main = ZeD.tr("UI_ZeD_SRJ_JournalNone", journalName())
         rest = " | " .. ZeD.tr("UI_ZeD_SRJ_StaysRecorded")
     end
-    panel:drawText(main, cx, y + T.px(2), tx.r, tx.g, tx.b, tx.a or 1, f1)
+    local ty = y + math.floor((lh - tm:getFontHeight(f1)) / 2)
+    panel:drawText(main, cx, ty, tx.r, tx.g, tx.b, tx.a or 1, f1)
     cx = cx + tm:MeasureStringX(f1, main) + T.px(4)
-    panel:drawText(A.truncateText(rest, f1, x + w - cx), cx, y + T.px(2), ts.r, ts.g, ts.b, ts.a or 1, f1)
+    panel:drawText(A.truncateText(rest, f1, x + w - cx), cx, ty, ts.r, ts.g, ts.b, ts.a or 1, f1)
     y = y + lh
-    -- row 3 (and on): the four words in the mod's colours
+    -- the next rows: the four words with the library's legend swatches, in the mod's colours
     for _, row in ipairs(wordRows(w)) do
         for _, it in ipairs(row) do
-            local c = COL[it.i]
-            panel:drawRect(x + it.x, y + math.floor((lh - T.px(4)) / 2), T.px(10), T.px(4), 1, c.r, c.g, c.b)
-            panel:drawText(it.word, x + it.x + T.px(14), y + T.px(2), ts.r, ts.g, ts.b, ts.a or 1, f1)
+            A.drawLegendSwatch(panel, x + it.x, y + math.floor((lh - T.px(A.SWATCH_H)) / 2), COL[it.i])
+            panel:drawText(it.word, x + it.x + T.px(A.SWATCH_W) + T.px(6), y + math.floor((lh - tm:getFontHeight(f1)) / 2), ts.r, ts.g, ts.b, ts.a or 1, f1)
         end
         y = y + lh
     end
     y = y + T.px(4)
-    A.drawGroove(panel, x, y, w)
+    A.drawDividerH(panel, x, y, w)
 end
 
 -- the hover card's lines: Starting Level (and its level), the XP the mod

@@ -80,7 +80,6 @@ local MAIN_W, PAUSE_W = 660, 360
 local STACK_PAD, STACK_GAP = 12, 8
 local CARD_PAD, THUMB, CARD_GAP = 10, 128, 14
 local WIDE_H, BIG_PAD_X = 34, 22
-local STRIP_PAD_X, STRIP_PAD_Y, STRIP_BTN_H, STRIP_BTN_PAD, STRIP_GAP = 10, 8, 30, 16, 8
 local HEAD_H = 37
 local MOD_ROW_H = 28   -- (the pause window's Mods page)
 local WIN_TOP, WIN_TOP_FIRST = 20, 86   -- below the menu bar: with Continue / without
@@ -744,7 +743,7 @@ MM.act = {
         if ds:isVisible() then ds:setVisible(false)
         else m:removeChild(ds); m:addChild(ds); ds:setVisible(true) end   -- re-added last: above the desk
     end,
-    -- quitting asks in the window's action strip
+    -- quitting asks in the window's band
     askQuit   = function()   -- (from the desktop or another screen the main window comes up to ask)
         MM.ctx.open = nil
         local w = MM.root and MM.root.win
@@ -871,39 +870,200 @@ function MM.pointer(ctx, panels)
 end
 
 -- ---------------------------------------------------------------------------
--- BUTTON DRAWING (Molecules.drawButton; hover 0.22 / controller focus 0.55
--- accent fill under it; a disabled button is drawn faded)
+-- CONTROLS ON THE LIBRARY (cohesion pass). The menu has no FocusManager: a window of the
+-- menu says for itself which element holds the controller's focus, and that a controller is
+-- driving (MM.gamepad). Everything below hands the library those two facts.
 -- ---------------------------------------------------------------------------
+local _focusO = { focused = true }
+-- the ZeD.Focus.mark opts of the menu's focused element (win: the window, when the panel
+-- drawing is not itself inside it; solid: the element is already solid accent)
+function MM.focusOpts(win, solid)
+    _focusO.win, _focusO.pad, _focusO.solid = win, MM.gamepad(), solid
+    return _focusO
+end
+
+-- A row, card or cell's wash (spec 5): the selected one at T.selectionA, a hovered one at
+-- T.hover, never both. Drawn under the words.
+function MM.rowWash(p, x, y, w, h, selected, hot)
+    local T = ZeD.T
+    if selected then
+        local ac = T.accent
+        p:drawRect(x, y, w, h, T.selectionA, ac.r, ac.g, ac.b)
+    elseif hot then
+        local hv = T.hover
+        p:drawRect(x, y, w, h, hv.a or 1, hv.r, hv.g, hv.b)
+    end
+end
+
+-- A row's whole look: the wash, then the controller's mark when it has the focus. Returns
+-- true when the row's words must switch to T.textOnFocus (the "wash" style).
+function MM.rowLook(p, x, y, w, h, selected, hot, focused, win)
+    MM.rowWash(p, x, y, w, h, selected, hot)
+    if focused then return ZeD.Focus.mark(p, x, y, w, h, MM.focusOpts(win)) end
+    return false
+end
+
+-- The closed box of a pop-up menu, in the library dropdown's look (ZeD_Dropdown): surface 2,
+-- a 1u frame, the value in F2, the 5u triangle at the right. hot = the T.hover wash; focused =
+-- the controller's mark. Returns true when the words are T.textOnFocus.
+function MM.drawDropBox(p, x, y, w, h, text, hot, disabled, focused, win)
+    local T = ZeD.T
+    local A = ZeD.Atoms
+    local alpha = disabled and T.disabledAlpha or 1
+    local s2 = T.surf2
+    p:drawRect(x, y, w, h, (s2.a or 1) * alpha, s2.r, s2.g, s2.b)
+    if hot and not disabled then
+        local hv = T.hover
+        p:drawRect(x, y, w, h, hv.a or 1, hv.r, hv.g, hv.b)
+    end
+    local onFocus = false
+    if focused then onFocus = ZeD.Focus.mark(p, x, y, w, h, MM.focusOpts(win)) end
+    local bs = T.borderS
+    A.frame(p, x, y, w, h, bs, alpha)
+    local f2 = T.fontF2
+    local padX = T.sp.inputPadX
+    local tri = T.px(5)
+    local tc = onFocus and T.textOnFocus or T.text
+    p:drawText(A.truncateText(text or "", f2, w - padX * 2 - tri - T.px(4)), x + padX, y + math.floor((h - fontH(f2)) / 2),
+        tc.r, tc.g, tc.b, (tc.a or 1) * alpha, f2)
+    A.drawTriangleDown(p, x + w - padX - tri, y + math.floor((h - tri) / 2), tri, ZeD.colorAlpha(T.textDim, alpha))
+    return onFocus
+end
+
+-- a left / right triangle for an icon button (turn the figure, step a value)
+local function glyphTri(name)
+    return function(p, x, y, s, c)
+        local t = math.max(ZeD.T.px(6), math.floor(s * 0.6))
+        ZeD.Atoms[name](p, x + math.floor((s - t) / 2), y + math.floor((s - t) / 2), t, c)
+    end
+end
+MM.glyphLeft = glyphTri("drawTriangleLeft")
+MM.glyphRight = glyphTri("drawTriangleRight")
+
+-- ---------------------------------------------------------------------------
+-- BUTTON DRAWING: the library's push button and icon button (Molecules.drawButton /
+-- drawIconButton): hover is T.hover, the controller's mark is ZeD.Focus.mark, a disabled
+-- button is the whole control at T.disabledAlpha. b = { x, y, w, h, text | icon, variant,
+-- disabled, keepCase, on, hint, help }
+-- ---------------------------------------------------------------------------
+local _btnOpts, _keepCase = {}, { keepCase = true }
 local function drawBtn(p, b, hot, focus, pressed)
     local T = ZeD.T
-    if b.icon then   -- an icon button (its hover hint is the window's to draw)
-        local ac = T.accent
-        if not b.disabled then
-            if focus then ZeD.Atoms.fillRounded(p, b.x, b.y, b.w, b.h, ac.r, ac.g, ac.b, 0.55)
-            elseif hot or b.on then ZeD.Atoms.fillRounded(p, b.x, b.y, b.w, b.h, ac.r, ac.g, ac.b, 0.22) end
+    local M = ZeD.Molecules
+    local fo = focus and MM.focusOpts() or nil
+    if b.radio or b.check then   -- a radio button (one of a few) or a checkbox (on or off) with its words after it; b.on = chosen / ticked
+        local A = ZeD.Atoms
+        local sz = b.radio and A.radioSize() or T.checkboxSz
+        if hot and not b.disabled then
+            local hv = T.hover
+            p:drawRect(b.x, b.y, b.w, b.h, hv.a or 1, hv.r, hv.g, hv.b)
         end
-        local bs = T.borderS
-        p:drawRectBorder(b.x, b.y, b.w, b.h, (bs.a or 1) * (b.disabled and 0.38 or 1), bs.r, bs.g, bs.b)
-        local isz = math.min(b.w, b.h) - T.px(8)
-        ZeD.Atoms.drawIcon(p, tex(b.icon, true), b.x + math.floor((b.w - isz) / 2), b.y + math.floor((b.h - isz) / 2), isz, b.disabled and 0.38 or 1,
-            (b.variant == "danger") and T.danger or nil)
+        local onFocus = focus and ZeD.Focus.mark(p, b.x, b.y, b.w, b.h, MM.focusOpts()) or false
+        local sy = b.y + math.floor((b.h - sz) / 2)
+        if b.radio then A.drawRadio(p, b.x + T.px(3), sy, b.on, { hover = hot, disabled = b.disabled })
+        else A.drawCheckbox(p, b.x + T.px(3), sy, b.on, hot, b.disabled) end
+        local f3 = T.fontF3
+        local tc = onFocus and T.textOnFocus or T.text
+        p:drawText(b.text, b.x + T.px(3) + sz + T.px(6), b.y + math.floor((b.h - fontH(f3)) / 2), tc.r, tc.g, tc.b, (tc.a or 1) * (b.disabled and T.disabledAlpha or 1), f3)
+        if hot and b.help then ZeD.Help.set(p, b.help) end
         return
     end
-    if b.disabled then
-        local sb, st = T.borderS, T.text
-        T.borderS = ZeD.colorAlpha(sb, (sb.a or 1) * 0.38)
-        T.text    = ZeD.colorAlpha(st, (st.a or 1) * 0.38)
-        ZeD.Molecules.drawButton(p, b.x, b.y, b.w, b.h, b.text, "default", false, b.keepCase and { keepCase = true } or nil)
-        T.borderS, T.text = sb, st
+    if b.dropBox then   -- a pop-up menu: the dropdown's closed box with the value in it
+        MM.drawDropBox(p, b.x, b.y, b.w, b.h, b.text, hot, b.disabled, focus)
+        if hot and b.help then ZeD.Help.set(p, b.help) end
         return
     end
-    local ac = T.accent
-    if focus then ZeD.Atoms.fillRounded(p, b.x, b.y, b.w, b.h, ac.r, ac.g, ac.b, 0.55)
-    elseif hot then ZeD.Atoms.fillRounded(p, b.x, b.y, b.w, b.h, ac.r, ac.g, ac.b, 0.22) end
-    -- over the focus fill the label takes the text colour (a red or accent label sinks into it)
+    if b.icon or b.iconFn then   -- an icon button (its name shows as a hint after the shared delay)
+        M.drawIconButton(p, b.x, b.y, math.min(b.w, b.h), b.iconFn or tex(b.icon, true), { hover = hot, active = b.on, disabled = b.disabled,
+            pressed = pressed, focus = fo, hint = b.hint, id = b.id, help = b.help or b.hint, tint = (b.variant == "danger") and T.danger or nil })
+        return
+    end
+    local o = _btnOpts
+    o.hover, o.disabled, o.focus, o.help, o.win, o.compact = hot, b.disabled, fo, b.help, nil, b.compact
     -- (a spec with keepCase draws its text as given: a key's name)
-    local colors = (focus or b.keepCase) and { text = focus and T.text or nil, keepCase = b.keepCase } or nil
-    ZeD.Molecules.drawButton(p, b.x, b.y, b.w, b.h, b.text, b.variant, pressed, colors)
+    M.drawButton(p, b.x, b.y, b.w, b.h, b.text, b.variant, pressed, b.keepCase and _keepCase or nil, o)
+end
+
+-- ---------------------------------------------------------------------------
+-- THE BAND AT A WINDOW'S FOOT (spec 8): every screen's own actions, and the question that
+-- swaps them out. The library draws it (Molecules.drawBand); this sets it up for the menu:
+-- hover and press from the menu's pointer, the focus mark from the window's focusId, and the
+-- specs the controller walks (row, col left to right). It is drawn in the window's prerender,
+-- so a field standing in the band (a rename, a password) is a child that draws over it.
+-- buttons = { { id, text, fn, variant, disabled, help, minW }, ... } the main one last.
+-- ask: the left line; a question (red square) unless plain (a label or a status: a square only
+-- when a status colour is given).
+-- ---------------------------------------------------------------------------
+local _bandSpec = {}
+function MM.band(win, y, w, row, buttons, ask, plain, statusColor)
+    local M = ZeD.Molecules
+    local ctx = (win.pctx and win:pctx()) or MM.ctx
+    local gp = MM.gamepad()
+    local list = {}
+    for i, b in ipairs(buttons) do
+        local hid = win.kind .. ":" .. b.id
+        local hot = (not gp) and ctx.hot == hid
+        list[i] = { label = b.text, variant = b.variant, disabled = b.disabled, hover = hot and true or false,
+                    pressed = hot and ctx.press == hid, id = b.id, minW = b.minW, help = b.help,
+                    focus = (gp and win.focusId == b.id) and MM.focusOpts() or nil }
+    end
+    local sp = _bandSpec
+    sp.buttons, sp.win, sp.question, sp.status = list, win, nil, nil
+    if ask and ask ~= "" then
+        if plain then sp.status = { text = ask, color = statusColor } else sp.question = ask end
+    end
+    local H, out = M.drawBand(win, 0, y, w, sp)
+    for i, b in ipairs(buttons) do
+        local r = out.buttons[i]
+        win._specs[#win._specs + 1] = { id = b.id, text = b.text, fn = b.fn, variant = b.variant, disabled = b.disabled, help = b.help,
+                                        row = row, col = i, x = r.x, y = r.y, w = r.w, h = r.h, band = true }
+    end
+    win._bandY, win._bandH = y, H
+    return H
+end
+
+-- the band's height
+function MM.bandH() return ZeD.Molecules.bandH() end
+
+-- The footer line's plain words for the band's usual buttons, by id (a screen's own help, the sixth
+-- field of its spec, wins). What it is and what a press does; a translation key each.
+local BAND_HELP = {
+    back = "UI_ZeD_MMHelp_Back", close = "UI_ZeD_MMHelp_Close", ["confirm:no"] = "UI_ZeD_MMHelp_Cancel",
+    delete = "UI_ZeD_MMHelp_Delete", more = "UI_ZeD_MMHelp_More", play = "UI_ZeD_MMHelp_Play",
+    next = "UI_ZeD_MMHelp_Next", mods = "UI_ZeD_MMHelp_ChooseMods", apply = "UI_ZeD_MMHelp_Apply",
+    discard = "UI_ZeD_MMHelp_DiscardChanges", defaults = "UI_ZeD_MMHelp_Defaults", start = "UI_ZeD_MMHelp_Start",
+    abort = "UI_ZeD_MMHelp_Abort", connect = "UI_ZeD_MMHelp_Connect", refresh = "UI_ZeD_MMHelp_Refresh",
+    save = "UI_ZeD_MMHelp_Save", rename = "UI_ZeD_MMHelp_Rename", rewind = "UI_ZeD_MMHelp_Rewind",
+    fast = "UI_ZeD_MMHelp_Fast", play_pause = "UI_ZeD_MMHelp_PlayPause", empty = "UI_ZeD_MMHelp_EmptyTrash",
+}
+function MM.helpFor(id)
+    local k = BAND_HELP[id]
+    return k and ZeD.tr(k) or nil
+end
+
+-- The room a band leaves its left line (a question's text) beside these buttons, in px: the band's
+-- width less its edges, the buttons and their gaps, and the line's own mark.
+function MM.bandRoom(w, labels)
+    local T, M = ZeD.T, ZeD.Molecules
+    local used = T.px(8) * 2 + T.px(12)
+    for i, l in ipairs(labels) do used = used + M.buttonW(l) + T.px(8) end
+    return w - used
+end
+
+-- Where a field standing in the band starts: after the band's label (its status line) and a gap.
+function MM.bandFieldX(label)
+    local T = ZeD.T
+    return T.px(8) + textW(T.fontF2, label or "") + T.px(10)
+end
+
+-- a window's band buttons answer here: their hit boxes, the pointer's side
+function MM.bandHits(win)
+    local ax, ay = win:getAbsoluteX(), win:getAbsoluteY()
+    for _, b in ipairs(win._specs) do
+        if b.band then
+            win._hits[#win._hits + 1] = { id = win.kind .. ":" .. b.id, x = ax + b.x, y = ay + b.y, w = b.w, h = b.h, fn = b.fn, disabled = b.disabled, sound = true }
+        end
+    end
 end
 
 -- The ZeD mark: a square cut into a Z (top bar, bottom bar, the diagonal between).
@@ -1189,7 +1349,7 @@ function ZeD_MMDrop:prerender()
             h = h + rowH
         end
     end
-    local step = T.px(3)
+    local step = T.hair   -- (System 7's hard shadow: 1u right and down)
     local x, y
     if pos then
         x, y = bar.x + pos.x, bar.y + bar.height
@@ -1226,9 +1386,9 @@ function ZeD_MMDrop:prerender()
     if self.width ~= w + step or self.height ~= h + step then self:setWidth(w + step); self:setHeight(h + step) end
 
     local s1, bs = T.surf1, T.borderS
-    ZeD.Atoms.drawSteppedShadow(self, 0, 0, w, h, { r = 0, g = 0, b = 0, a = 0.55 })
+    ZeD.Atoms.drawHardShadow(self, 0, 0, w, h)
     self:drawRect(0, 0, w, h, 1, s1.r, s1.g, s1.b)
-    self:drawRectBorder(0, 0, w, h, bs.a, bs.r, bs.g, bs.b)
+    ZeD.Atoms.frame(self, 0, 0, w, h, bs)
 
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
     local gp = MM.gamepad()
@@ -1266,18 +1426,26 @@ function ZeD_MMDrop:prerender()
         else
             local id = "drop:" .. key .. ":" .. i
             if not it.disabled then live = live + 1 end
-            local lit = false   -- the pointer's row, or the controller's (MM.ctx.dropFocus counts live rows)
+            -- the pointer's row (T.hover) or the controller's (its mark; MM.ctx.dropFocus counts live rows)
+            local hov, foc = false, false
             if not it.disabled then
-                if gp then lit = (live == (MM.ctx.dropFocus or 1)) else lit = (MM.ctx.hot == id) end
+                if gp then foc = (live == (MM.ctx.dropFocus or 1)) else hov = (MM.ctx.hot == id) end
             end
-            if lit then self:drawRect(T.px(1), cy, w - T.px(2), rowH, 0.55, T.accent.r, T.accent.g, T.accent.b) end
+            local onFocus = false
+            if hov then MM.rowWash(self, 0, cy, w, rowH, false, true)
+            elseif foc then
+                -- (a pull-down is a panel of the desk, not a window: it draws its own mark pass below)
+                local fo = MM.focusOpts(self)
+                fo.win = self
+                onFocus = ZeD.Focus.mark(self, 0, cy, w, rowH, fo)
+            end
             -- the controller's row stays in view
-            if lit and gp and scrollMax > 0 then
+            if foc and scrollMax > 0 then
                 if cy < padY then MM.ctx.dropScroll = off - (padY - cy)
                 elseif cy + rowH > h - padY then MM.ctx.dropScroll = off + (cy + rowH - (h - padY)) end
             end
-            local c = T.text
-            local a = (c.a or 1) * (it.disabled and 0.38 or 1)
+            local c = onFocus and T.textOnFocus or T.text
+            local a = (c.a or 1) * (it.disabled and T.disabledAlpha or 1)
             self:drawText(it.text, padX, cy + math.floor((rowH - fontH(font)) / 2), c.r, c.g, c.b, a, font)
             if it.check then   -- (the chosen one of a set: a lit square in the margin, as System 7 ticks it)
                 local sq = T.px(6)
@@ -1298,6 +1466,8 @@ function ZeD_MMDrop:prerender()
         local ty = math.floor((h - th) * off / scrollMax)
         self:drawRect(w - sbW - T.px(2), ty, sbW, th, 0.6, T.textDim.r, T.textDim.g, T.textDim.b)
     end
+    -- the controller's mark over the rows (the hand, the corners, the ants), after the list
+    if gp then ZeD.Focus.drawOverlay(self, self) end
 end
 
 -- the wheel over an open pull-down scrolls it
@@ -1474,25 +1644,18 @@ function ZeD_MMGlass:prerender()
         local r = MM.root
         MM.drawHitOverlay(self, { r, r.bar, r.drop, MM.activeWindow() })
     end
-    if MM.ctx.hot == "power" then
-        local T = ZeD.T
-        local px, py, pw = nat(L, POWER)
-        local f = T.fontF3
-        local label = getText("IGUI_Exit")
-        local bw, bh = textW(f, label) + T.px(16), fontH(f) + T.px(8)
-        local bx, by = math.floor(px + pw / 2 - bw / 2), py - T.px(6) - bh
-        local s1, bs, c = T.surf1, T.borderS, T.text
-        ZeD.Atoms.drawSteppedShadow(self, bx, by, bw, bh, { r = 0, g = 0, b = 0, a = 0.55 })
-        self:drawRect(bx, by, bw, bh, 1, s1.r, s1.g, s1.b)
-        self:drawRectBorder(bx, by, bw, bh, bs.a, bs.r, bs.g, bs.b)
-        self:drawText(label, bx + T.px(8), by + T.px(4), c.r, c.g, c.b, c.a or 1, f)
+    -- the power button's name: the library hint, after the shared delay, at the pointer
+    local A = ZeD.Atoms
+    self._powerHint = self._powerHint or {}
+    if A.hoverReady(self._powerHint, MM.ctx.hot == "power" and "power" or nil) then
+        A.drawHintBox(self, getText("IGUI_Exit"), getMouseX() - self:getAbsoluteX(), getMouseY() - self:getAbsoluteY())
     end
 end
 
 -- ============================================================================
 -- THE WINDOWS: "main" (the Project Zomboid window on the monitor) and "pause"
--- (in game). A ZeD window frame (title bar, close box, the theme footer) that
--- does not move or resize; the body, the action strip and the confirmations
+-- (in game). A ZeD window frame (title bar, close box, window box, help line) that
+-- does not move or resize; the body, the band at the foot and the questions
 -- are drawn here.
 -- ============================================================================
 ZeD_MMWindow = ZeD_Window:derive("ZeD_MMWindow")
@@ -1501,9 +1664,7 @@ function ZeD_MMWindow:new(kind)
     local o = ZeD_Window.new(self, 0, 0, 400, 300, "Project Zomboid")
     o.kind = kind
     o.resizable = false
-    o.themeFooter = true
-    o.noResetControl = (kind == "main")   -- R resets the Character / World windows: in game only
-    o.globalAccentControl = true
+    o.noResetControl = (kind == "main")   -- "Reset this window" is for the pause window in game only
     o.confirm = false
     o.focusId = nil
     o._specs = {}
@@ -1544,6 +1705,13 @@ function ZeD_MMWindow:setConfirm(on)
     if on then self.focusId = "confirm:yes" else self.focusId = (self.kind == "main") and "quit" or "quitDesktop" end
 end
 
+-- The plain words the footer line shows for the menu's big buttons (a translation key each)
+local BIG_HELP = { continue = "UI_ZeD_MMHelp_Continue", newgame = "UI_ZeD_MMHelp_NewGame", load = "UI_ZeD_MMHelp_LoadGame",
+                   join = "UI_ZeD_MMHelp_JoinServer", host = "UI_ZeD_MMHelp_HostGame", tutorial = "UI_ZeD_MMHelp_Tutorial",
+                   resume = "UI_ZeD_MMHelp_Resume", options = "UI_ZeD_MMHelp_Options", mods = "UI_ZeD_MMHelp_PauseMods",
+                   sandbox = "UI_ZeD_MMHelp_SandboxIG", players = "UI_ZeD_MMHelp_Players", invite = "UI_ZeD_MMHelp_Invite" }
+local function bigHelp(id) return BIG_HELP[id] and ZeD.tr(BIG_HELP[id]) or nil end
+
 -- Builds this frame's buttons and the window's size. Each spec:
 -- { id, text, variant, x, y, w, h (window px), fn, row, col, disabled }
 function ZeD_MMWindow:build()
@@ -1574,7 +1742,7 @@ function ZeD_MMWindow:build()
             self._card = { x = pad, y = y, w = w - pad * 2, h = cardH, info = cont }
             local bw = textW(f3, getText("UI_mainscreen_continue")) + T.px(BIG_PAD_X) * 2
             row = row + 1
-            add({ id = "continue", text = getText("UI_mainscreen_continue"), variant = "primary", fn = A.continue, row = row, col = 1,
+            add({ id = "continue", text = getText("UI_mainscreen_continue"), variant = "primary", fn = A.continue, row = row, col = 1, help = bigHelp("continue"),
                   x = pad + T.px(CARD_PAD) + T.px(THUMB) + T.px(CARD_GAP), y = y + T.px(CARD_PAD) + T.px(THUMB) - T.px(WIDE_H),
                   w = bw, h = T.px(WIDE_H) })
             y = y + cardH + gap
@@ -1588,7 +1756,7 @@ function ZeD_MMWindow:build()
         }
         for i, r in ipairs(list) do
             row = row + 1
-            add({ id = r[1], text = r[2], variant = (not cont and i == 1) and "primary" or "default", fn = r[3], disabled = r[4],
+            add({ id = r[1], text = r[2], variant = (not cont and i == 1) and "primary" or "default", fn = r[3], disabled = r[4], help = bigHelp(r[1]),
                   row = row, col = 1, x = pad, y = y, w = w - pad * 2, h = T.px(WIDE_H) })
             y = y + T.px(WIDE_H) + gap
         end
@@ -1620,7 +1788,7 @@ function ZeD_MMWindow:build()
             if m and m.inviteOption then list[#list + 1] = { "invite", getText("UI_mainscreen_invite"), A.invite } end
             for _, r in ipairs(list) do
                 row = row + 1
-                add({ id = r[1], text = r[2], variant = r[4] or "default", fn = r[3], row = row, col = 1,
+                add({ id = r[1], text = r[2], variant = r[4] or "default", fn = r[3], row = row, col = 1, help = bigHelp(r[1]),
                       x = pad, y = y, w = w - pad * 2, h = T.px(WIDE_H) })
                 y = y + T.px(WIDE_H) + gap
             end
@@ -1628,54 +1796,33 @@ function ZeD_MMWindow:build()
         end
     end
 
-    -- the action strip
-    local stripH = T.px(STRIP_BTN_H) + T.px(STRIP_PAD_Y) * 2
-    self._strip = { y = y, h = stripH }
-    row = row + 1
-    local by = y + T.px(STRIP_PAD_Y)
-    local bh = T.px(STRIP_BTN_H)
-    local function bw(text) return textW(f3, text) + T.px(STRIP_BTN_PAD) * 2 end
-    local col = 0
-    local function left(id, text, fn, variant, disabled)
-        col = col + 1
-        local b = add({ id = id, text = text, fn = fn, variant = variant or "default", disabled = disabled, row = row, col = col,
-                        x = self._sx, y = by, w = bw(text), h = bh })
-        self._sx = self._sx + b.w + T.px(STRIP_GAP)
-        return b
-    end
-    self._sx = T.px(STRIP_PAD_X)
-    local rights = {}
+    -- the band at the foot (spec 8): this screen's own buttons, or the question in their place;
+    -- drawn in prerender (MM.band), the buttons' places are known once it has
+    self._strip = { y = y, h = MM.bandH() }
+    local cooling = isQuitCooldown and isQuitCooldown()
+    local btns
     if self.confirm then
         self._ask = ZeD.tr((self.kind == "main") and "UI_ZeD_MainMenu_AskQuitGame" or "IGUI_ConfirmQuitToDesktop")
-        rights = { { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end, "default" },
-                   { "confirm:yes", getText("UI_mainscreen_exit"), A.quit, "danger" } }
+        btns = { { id = "confirm:no", text = getText("UI_btn_cancel"), fn = function() self:setConfirm(false) end, help = ZeD.tr("UI_ZeD_MMHelp_Cancel") },
+                 { id = "confirm:yes", text = getText("UI_mainscreen_exit"), fn = A.quit, variant = "danger", help = ZeD.tr("UI_ZeD_MMHelp_QuitGame") } }
     else
         self._ask = nil
-        local cooling = isQuitCooldown and isQuitCooldown()
         if self.kind == "main" then
-            left("options", getText("UI_mainscreen_option"), A.options)
-            left("mods", ZeD.tr("UI_ZeD_MainMenu_ModsCount", MM.modCount()), A.mods)
-            if m and m.workshopOption then left("workshop", getText("UI_mainscreen_workshop"), A.workshop) end
-            left("credits", getText("UI_mainscreen_credits"), A.credits)
-            rights = { { "quit", getText("UI_mainscreen_exit"), A.askQuit, "default", cooling } }
+            btns = { { id = "options", text = getText("UI_mainscreen_option"), fn = A.options, help = ZeD.tr("UI_ZeD_MMHelp_Options") },
+                     { id = "mods", text = ZeD.tr("UI_ZeD_MainMenu_ModsCount", MM.modCount()), fn = A.mods, help = ZeD.tr("UI_ZeD_MMHelp_Mods") } }
+            if m and m.workshopOption then btns[#btns + 1] = { id = "workshop", text = getText("UI_mainscreen_workshop"), fn = A.workshop, help = ZeD.tr("UI_ZeD_MMHelp_Workshop") } end
+            btns[#btns + 1] = { id = "credits", text = getText("UI_mainscreen_credits"), fn = A.credits, help = ZeD.tr("UI_ZeD_MMHelp_Credits") }
+            btns[#btns + 1] = { id = "quit", text = getText("UI_mainscreen_exit"), fn = A.askQuit, disabled = cooling, help = ZeD.tr("UI_ZeD_MMHelp_Quit") }
         elseif self.page == "mods" then
-            left("back", getText("UI_btn_back"), function() self.page = nil; self.focusId = nil; clickSound() end)
+            btns = { { id = "back", text = getText("UI_btn_back"), fn = function() self.page = nil; self.focusId = nil; clickSound() end, help = ZeD.tr("UI_ZeD_MMHelp_BackPause") } }
         else
-            left("quitDesktop", getText("IGUI_PostDeath_Quit"), function() self:setConfirm(true) end, "default", cooling)
-            rights = { { "saveQuit", ZeD.tr("UI_ZeD_MainMenu_SaveAndQuit"), A.saveQuit, "default", cooling } }
+            btns = { { id = "quitDesktop", text = getText("IGUI_PostDeath_Quit"), fn = function() self:setConfirm(true) end, disabled = cooling, help = ZeD.tr("UI_ZeD_MMHelp_QuitDesktop") },
+                     { id = "saveQuit", text = ZeD.tr("UI_ZeD_MainMenu_SaveAndQuit"), fn = A.saveQuit, disabled = cooling, help = ZeD.tr("UI_ZeD_MMHelp_SaveQuit") } }
         end
     end
-    -- right-aligned buttons, in order
-    local total = 0
-    for i, r in ipairs(rights) do total = total + bw(r[2]) + (i > 1 and T.px(STRIP_GAP) or 0) end
-    local rx = w - T.px(STRIP_PAD_X) - total
-    for _, r in ipairs(rights) do
-        col = col + 1
-        local b = add({ id = r[1], text = r[2], fn = r[3], variant = r[4], disabled = r[5], row = row, col = col,
-                        x = rx, y = by, w = bw(r[2]), h = bh })
-        rx = rx + b.w + T.px(STRIP_GAP)
-    end
-    y = y + stripH
+    self._bandBtns = btns
+    self._bandRow = row + 1
+    y = y + self._strip.h
 
     local h = y + self:footerHeight()
     -- place
@@ -1801,7 +1948,7 @@ function ZeD_MMWindow:joyDir(dir)
     if dir == "up" or dir == "down" then
         local nr = ri + (dir == "up" and -1 or 1)
         if nr < 1 or nr > #rows then return end
-        -- landing in the strip from above starts at its first button; leaving it goes to the row's only button
+        -- landing in the band from above starts at its first button; leaving it goes to the row's only button
         local nc = math.min(ci, #rows[nr])
         self.focusId = rows[nr][nc].id
     else
@@ -1843,16 +1990,16 @@ function ZeD_MMWindow:prerender()
     local s2, bs = T.surf2, T.borderS
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
 
-    -- in game: the Paused header with the day and time
+    -- in game: the Paused header with the day and time (the tab head: surface 2 without stacking)
     if self._head then
         local hd = self._head
-        self:drawRect(T.px(1), hd.y, w - T.px(2), hd.h, 1, s2.r, s2.g, s2.b)
+        ZeD.Surface.fill(self, 0, hd.y, w, hd.h, "surf2")
         ZeD.Molecules.drawTabHeader(self, 0, hd.y, w, hd.label or getText("EC_CraftLogicTooltip_Paused"), true, false)
         local f3, d = T.fontF3, T.textDim
         self:drawText(hd.when, w - T.px(10) - textW(f3, hd.when), hd.y + math.floor((hd.h - fontH(f3)) / 2), d.r, d.g, d.b, d.a or 1, f3)
     end
 
-    -- the Mods page: each mod by name, its ID or vanilla's word on it (a red dot)
+    -- the Mods page: each mod by name, its ID or vanilla's word on it (a red status square)
     local md = self._mods
     if md then
         local pad = T.px(STACK_PAD)
@@ -1885,8 +2032,8 @@ function ZeD_MMWindow:prerender()
     local cd = self._card
     if cd then
         local c = cd.info
-        self:drawRect(cd.x, cd.y, cd.w, cd.h, 1, s2.r, s2.g, s2.b)
-        self:drawRectBorder(cd.x, cd.y, cd.w, cd.h, bs.a, bs.r, bs.g, bs.b)
+        ZeD.Surface.fill(self, cd.x, cd.y, cd.w, cd.h, "surf2")
+        ZeD.Atoms.frame(self, cd.x, cd.y, cd.w, cd.h, bs)
         local th = T.px(THUMB)
         local tx, ty = cd.x + T.px(CARD_PAD), cd.y + T.px(CARD_PAD)
         if c.thumb then
@@ -1895,14 +2042,14 @@ function ZeD_MMWindow:prerender()
             local s3 = T.surf3
             self:drawRect(tx, ty, th, th, 1, s3.r, s3.g, s3.b)
         end
-        self:drawRectBorder(tx, ty, th, th, bs.a, bs.r, bs.g, bs.b)
+        ZeD.Atoms.frame(self, tx, ty, th, th, bs)
         -- director, Oct 14 2026: the character leads, large; the save's name is a medium
         -- heading under it; then mode and map, and when it was played
         local ix = tx + th + T.px(CARD_GAP)
         local maxW = cd.x + cd.w - T.px(CARD_PAD) - ix
         local tc = T.textHead
         local y = ty + T.px(2)
-        -- large: the character (a red status dot before a dead one), or the save when it has none
+        -- large: the character (a red status square before a dead one), or the save when it has none
         local hf = ZeD.Font.sdf.head
         local z = 20 * (T.scale or 1) / (hf.face or 64)
         local bigH = math.floor(ZeD.Text.height(hf, z))
@@ -1939,26 +2086,22 @@ function ZeD_MMWindow:prerender()
         end
     end
 
-    -- the action strip
-    local st = self._strip
-    self:drawRect(T.px(1), st.y, w - T.px(2), st.h, 1, s2.r, s2.g, s2.b)
-    self:drawRect(T.px(1), st.y, w - T.px(2), T.px(1), bs.a, bs.r, bs.g, bs.b)
-    if self._ask then
-        local f2, c = T.fontF2, T.text
-        self:drawText(self._ask, T.px(STRIP_PAD_X) + T.px(4), st.y + math.floor((st.h - fontH(f2)) / 2), c.r, c.g, c.b, c.a or 1, f2)
-    end
-
-    -- the buttons
+    -- the band at the foot: the screen's buttons, or the question; then the big buttons and their answers
     local ctx = self:pctx()
     local gp = MM.gamepad()
-    if gp then self:focusPos() end
     self._hits = {}
+    MM.band(self, self._strip.y, w, self._bandRow, self._bandBtns, self._ask)
+    MM.bandHits(self)
+    if gp then self:focusPos() end
     for _, b in ipairs(self._specs) do
-        local hid = self.kind .. ":" .. b.id
-        local hot = not gp and ctx.hot == hid
-        local focus = gp and self.focusId == b.id
-        drawBtn(self, b, hot, focus, hot and ctx.press == hid)
-        self._hits[#self._hits + 1] = { id = hid, x = ax + b.x, y = ay + b.y, w = b.w, h = b.h, fn = b.fn, disabled = b.disabled, sound = true }
+        if not b.band then
+            local hid = self.kind .. ":" .. b.id
+            local hot = not gp and ctx.hot == hid
+            local focus = gp and self.focusId == b.id
+            -- (the Continue button is the card's own main action: solid accent when it has the focus)
+            drawBtn(self, b, hot, focus, hot and ctx.press == hid)
+            self._hits[#self._hits + 1] = { id = hid, x = ax + b.x, y = ay + b.y, w = b.w, h = b.h, fn = b.fn, disabled = b.disabled, sound = true }
+        end
     end
 end
 
@@ -2266,9 +2409,7 @@ MM.drawBtn, MM.drawMark = drawBtn, drawMark
 MM.hoverSound, MM.clickSound = hoverSound, clickSound
 MM.textW, MM.fontH, MM.blocked, MM.now, MM.tex = textW, fontH, blocked, now, tex
 MM.DOT, MM.MONTHS = DOT, MONTHS
-MM.U = { BAR_H = BAR_H, STACK_PAD = STACK_PAD, STACK_GAP = STACK_GAP, WIDE_H = WIDE_H,
-         STRIP_PAD_X = STRIP_PAD_X, STRIP_PAD_Y = STRIP_PAD_Y, STRIP_BTN_H = STRIP_BTN_H,
-         STRIP_BTN_PAD = STRIP_BTN_PAD, STRIP_GAP = STRIP_GAP }
+MM.U = { BAR_H = BAR_H, STACK_PAD = STACK_PAD, STACK_GAP = STACK_GAP, WIDE_H = WIDE_H }
 
 -- the wheel over an open pull-down scrolls it (the drop is its own panel)
 function ZeD_MMDrop:onMouseWheel(del) return MM.dropWheel(del) end

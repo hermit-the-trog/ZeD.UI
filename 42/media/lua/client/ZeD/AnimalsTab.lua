@@ -54,37 +54,64 @@ local function SI() return ZeD.AnimalsStressInference end
 local function AP() return ZeD.AnimalsAlertPoller end
 
 -- ============================================================================
--- S109 — GAMEPAD FOCUS CUE HELPERS
--- Paint gate reads live focused element from FocusManager (S101 pattern:
--- avoid persistent _gpFocused* fields for multi-element-type zones since they
--- mis-paint on first frame). Render paths pre-paint a 0.55α accent rect over
--- element bounds BEFORE the content draws so content renders on top of the
--- cue. Matcher closure discriminates between element types (isRoster / isZone
--- Card / isDisclosure / ...).
+-- CONTROLLER FOCUS
+-- A mark shows only in the focused window while the controller is in use and
+-- only for the element the World window's ring has focused (ZeD.Input.Focus:
+-- liveZone / isFocused). Elements are told apart by the ids the ring gives them
+-- (animals:<kind>:<key>); the rows carry their animal instead. Each element asks
+-- ZeD.Focus.mark for its mark after its own fill and before its words, and draws
+-- the words in T.textOnFocus when mark says so.
 -- ============================================================================
 
-local function _gpFocusMatches(win, matcherFn)
-    if not (ZeD and ZeD.Input and ZeD.Input.Focus) then return false end
-    local Focus = ZeD.Input.Focus
-    local zone = Focus.getFocusedZone and Focus.getFocusedZone(win)
-    if not zone or zone.zone ~= "worldTabContent" then return false end
-    local el = Focus.getFocusedElement and Focus.getFocusedElement(win)
-    if not el then return false end
-    return matcherFn(el)
+local TAB_ZONE = "worldTabContent"
+local _fo = { zone = TAB_ZONE }
+
+-- the mark opts for one element (one shared table: mark reads it at once)
+local function focusOpts(win, solid)
+    _fo.win, _fo.solid = win, solid
+    return _fo
 end
 
-local function _paintGpCue(panel, x, y, w, h)
-    local T = ZeD.T
-    if not T or not T.accent then return end
-    panel:drawRect(x, y, w, h, 0.55, T.accent.r, T.accent.g, T.accent.b)
+-- true when the ring has the element with this id focused and its mark shows
+local function isOn(win, id)
+    local F = ZeD.Input and ZeD.Input.Focus
+    return F ~= nil and F.isFocused ~= nil and F.isFocused(win, TAB_ZONE, id) or false
 end
+
+-- the focused element of the tab, or nil (another window, another zone, mouse in use)
+local function liveEl(win)
+    local F = ZeD.Input and ZeD.Input.Focus
+    if not (F and F.liveZone) then return nil end
+    local z = F.liveZone(win)
+    if not z or z.zone ~= TAB_ZONE then return nil end
+    return F.getFocusedElement(win)
+end
+
+-- the mark for an element by id; returns true when its words must use T.textOnFocus
+local function markId(panel, win, id, x, y, w, h)
+    if not isOn(win, id) then return false end
+    return ZeD.Focus.mark(panel, x, y, w, h, focusOpts(win)) and true or false
+end
+
+-- the focus opts to hand a library control, or nil when the ring is elsewhere
+local function focusFor(win, id)
+    if isOn(win, id) then return focusOpts(win) end
+    return nil
+end
+
+-- the plain-words line the window's footer shows while the pointer is over a part
+local function help(panel, key, ...)
+    if ZeD.Help and ZeD.Help.set then ZeD.Help.set(panel, ZeD.tr(key, ...)) end
+end
+
+-- sentence case for words that arrive in capitals
+local function tc(s) return ZeD.textCase(s) end
 
 -- ============================================================================
 -- CONSTANTS
 -- ============================================================================
 
-local BREADCRUMB_H     = 20      -- matches inventory column header height
-local EMPTY_PAD        = 40      -- padding for empty state text
+local BACK_PAD          = 4       -- space above and below the back key in its row
 
 -- Zone detail view
 local ZINF_PAD         = 6       -- zone info band internal padding
@@ -95,9 +122,6 @@ local AROW_DOT_GAP     = 6       -- gap between dots
 local AROW_PAD         = 6       -- row internal padding
 local SORT_MODES       = { "name", "species", "alerts" }
 local SORT_LABELS      = { name = "IGUI_Name", species = "UI_ZeD_Animals_SortSpecies", alerts = "UI_ZeD_Animals_SecAlerts" }   -- text keys, translated where drawn
-
--- Footer
-local FOOTER_H         = 32      -- footer strip height
 
 -- Animal detail view
 local AHEAD_ICON_SZ    = 48      -- header portrait size
@@ -379,59 +403,44 @@ local function getButcherState(win)
 end
 
 -- ============================================================================
--- DRAW BUTTON — reusable outline button with hover highlight.
--- Returns: { x, y, w, h } click zone table.
--- Variants: "accent" (primary), "positive", "danger", "neutral" (default).
+-- SHARED DRAWING HELPERS
+-- Buttons are the library's push buttons (M.drawButton / M.drawBand); a state
+-- word is a tag (M.drawTag) whose square mark carries the colour.
 -- ============================================================================
-
-local BTN_H = 22  -- standard ZeD button height (T.buttonH equiv)
-
-local function drawBtn(panel, x, y, label, variant, font)
-    local T = ZeD.T
-    local A = ZeD.Atoms
-    local tm = ZeD.TM
-    local btnFont = font or T.fontF4 or ZeD.T.fontF2
-    label = ZeD.btnCase(label)   -- sentence case, never all caps
-    local btnW = tm:MeasureStringX(btnFont, label) + T.px(16)
-    local btnH = T.px(BTN_H)
-
-    -- Pick border/text color by variant
-    local color
-    if variant == "accent" then
-        color = T.accent
-    elseif variant == "positive" then
-        color = T.positive
-    elseif variant == "danger" then
-        color = T.danger
-    else
-        color = T.borderS or T.border
-    end
-
-    -- Rounded border (System 7 style)
-    A.borderRounded(panel, x, y, btnW, btnH, color.r, color.g, color.b, color.a or 1)
-
-    -- Hover highlight (rounded fill)
-    local mx = panel:getMouseX()
-    local my = panel:getMouseY()
-    if mx >= x and mx < x + btnW and my >= y and my < y + btnH then
-        A.fillRounded(panel, x + T.px(1), y + T.px(1), btnW - T.px(2), btnH - T.px(2), color.r, color.g, color.b, 0.1)
-    end
-
-    -- Label centered
-    local lblW = tm:MeasureStringX(btnFont, label)
-    local lblY = y + math.floor((btnH - tm:getFontHeight(btnFont)) / 2)
-    local textColor = (variant == "neutral") and T.textDim or color
-    panel:drawText(label, x + math.floor((btnW - lblW) / 2), lblY,
-        textColor.r, textColor.g, textColor.b, (variant == "neutral") and 0.7 or 1.0, btnFont)
-
-    return { x = x, y = y, w = btnW, h = btnH }
-end
 
 -- Hit test helper for click zone tables
 local function hitZone(zone, x, y)
     if not zone then return false end
     return x >= zone.x and x < zone.x + zone.w
        and y >= zone.y and y < zone.y + zone.h
+end
+
+-- A severity word (the data layer's sev, or a disorder's) as the mark colour of a
+-- tag. Neutral ones carry no mark.
+local function sevColor(T, sev)
+    if sev == "danger" or sev == "severe" then return T.danger end
+    if sev == "warn" or sev == "warning" or sev == "minor" then return T.warning end
+    if sev == "good" or sev == "positive" then return T.positive end
+    if sev == "info" then return T.info end
+    return nil
+end
+
+-- A tag's width, as ZeD.Atoms.drawTag lays it out (5u side padding, a 6u mark and
+-- 4u before the word when it has a mark), for rows that right-align their tags.
+local function tagWidth(text, marked)
+    local T = ZeD.T
+    local w = ZeD.TM:MeasureStringX(T.fontF1, tc(text)) + T.px(10)
+    if marked then w = w + T.px(10) end
+    return w
+end
+
+local function drawTag(panel, x, y, text, sev)
+    return ZeD.Molecules.drawTag(panel, x, y, text, sevColor(ZeD.T, sev))
+end
+
+-- the vertical centre offset for a tag (16u) in a row of height h
+local function tagY(y, h)
+    return y + math.floor((h - ZeD.T.px(16)) / 2)
 end
 
 -- ============================================================================
@@ -655,7 +664,7 @@ end
 -- ============================================================================
 
 local function renameZone(win)
-    -- Set rename mode — footer will show SAVE/CANCEL, info band shows text entry
+    -- Set rename mode — the band shows Save / Cancel / Reset, the info band the text entry
     win._animalsRenaming = true
 
     local state = getState(win)
@@ -709,7 +718,7 @@ local function cancelRename(win)
 end
 
 local function removeZone(win)
-    -- Set confirm flag — footer will show YES/NO instead of normal buttons
+    -- Set confirm flag — the band asks the question (Cancel and Remove) instead of the usual buttons
     win._animalsRemoveConfirm = true
 end
 
@@ -826,34 +835,39 @@ local function updateZoneCreateMouse(win)
     end
 end
 
--- Render dimensions block (shared by drawing + confirm phases)
+-- Render dimensions block (shared by drawing + confirm phases): width, height and
+-- total in tiles. A side outside the allowed size carries a red square, the others
+-- a green one; the numbers stay in the default text colour.
 local function drawZoneDimensions(panel, x, y, w, zc)
     local T = ZeD.T
+    local A = ZeD.Atoms
     local tm = ZeD.TM
-    local lblFont = T.fontF1 or ZeD.T.fontF2
-    local dimFont = T.fontF3 or ZeD.T.fontF2
-    local lblColor = T.textSec or T.textDim
+    local lblFont = T.fontF2
+    local dimFont = T.fontF3
     local zw, zh, wOk, hOk = getZoneDimensions(zc)
+    local rowH = math.max(tm:getFontHeight(lblFont), tm:getFontHeight(dimFont)) + T.px(4)
+    local sq = T.px(6)
+    local valX = x + T.px(72)
     local curY = y
 
-    panel:drawText(ZeD.upper(getText("IGUI_DesignationZone_Type_Width")), x, curY, lblColor.r, lblColor.g, lblColor.b, 0.7, lblFont)
-    local wc = wOk and T.text or T.danger
-    panel:drawText(tostring(zw), x + T.px(60), curY, wc.r, wc.g, wc.b, 1.0, dimFont)
-    curY = curY + tm:getFontHeight(dimFont) + T.px(4)
-
-    panel:drawText(ZeD.upper(getText("IGUI_DesignationZone_Type_Height")), x, curY, lblColor.r, lblColor.g, lblColor.b, 0.7, lblFont)
-    local hc = hOk and T.text or T.danger
-    panel:drawText(tostring(zh), x + T.px(60), curY, hc.r, hc.g, hc.b, 1.0, dimFont)
-    curY = curY + tm:getFontHeight(dimFont) + T.px(4)
-
-    panel:drawText(ZeD.upper(getText("IGUI_Total")), x, curY, lblColor.r, lblColor.g, lblColor.b, 0.7, lblFont)
-    panel:drawText(tostring(zw * zh), x + T.px(60), curY, T.text.r, T.text.g, T.text.b, 1.0, dimFont)
-    curY = curY + tm:getFontHeight(dimFont)
-
+    local function row(label, value, ok)
+        local ld = T.textDim
+        panel:drawText(tc(label), x, curY + math.floor((rowH - tm:getFontHeight(lblFont)) / 2),
+            ld.r, ld.g, ld.b, ld.a or 1, lblFont)
+        if ok ~= nil then
+            A.drawStatusDot(panel, valX, curY + math.floor((rowH - sq) / 2), ok and T.positive or T.danger, sq)
+        end
+        panel:drawText(tostring(value), valX + sq + T.px(6), curY + math.floor((rowH - tm:getFontHeight(dimFont)) / 2),
+            T.text.r, T.text.g, T.text.b, T.text.a or 1, dimFont)
+        curY = curY + rowH
+    end
+    row(getText("IGUI_DesignationZone_Type_Width"), zw, wOk)
+    row(getText("IGUI_DesignationZone_Type_Height"), zh, hOk)
+    row(getText("IGUI_Total"), zw * zh, nil)
     return curY - y
 end
 
--- Zone creation view: content area (above footer)
+-- Zone creation view: content area (above the band)
 local function renderZoneCreateContent(panel, win, x, y, w, h)
     local T = ZeD.T
     local A = ZeD.Atoms
@@ -866,135 +880,91 @@ local function renderZoneCreateContent(panel, win, x, y, w, h)
     -- Update mouse tracking every frame
     updateZoneCreateMouse(win)
 
-    -- Breadcrumb-style header: "Create Livestock Zone" — 20px, F1, toneLo
-    local hdrH = T.sp.colHdrH or T.px(20)
-    local hdrFont = T.fontF1 or ZeD.T.fontF2
-    local hdrFH = tm:getFontHeight(hdrFont)
-    local s2 = T.surf2
-    panel:drawRect(x, curY, w, hdrH, s2.a, s2.r, s2.g, s2.b)
-    A.drawSecondary(panel, ZeD.tr("UI_ZeD_Animals_CreateZoneTitle"), x + T.px(6), curY + math.floor((hdrH - hdrFH) / 2), T.toneLo)
-    A.drawDividerH(panel, x, curY + hdrH - T.px(1), w, true)
-    curY = curY + hdrH + pad
+    -- What is being made: the section head
+    curY = curY + M.drawSectionHeader(panel, x + pad, curY, w - pad,
+        ZeD.tr("UI_ZeD_Animals_CreateZoneTitle"), nil, true, false, nil, nil, pad, nil, true) + pad
 
     -- Zone name
-    local valFont = T.fontF3 or ZeD.T.fontF2
-    local lblColor = T.textSec or T.textDim
-    local nameFont = T.fontF4 or ZeD.T.fontF2
-    local nc = T.toneNorm
-    A.drawSecondary(panel, ZeD.upper(getText("IGUI_Name")), x + pad, curY, lblColor)
-    panel:drawText(zc.name, x + pad + T.px(60), curY, nc.r, nc.g, nc.b, nc.a or 1, nameFont)
-    curY = curY + tm:getFontHeight(valFont) + T.px(12)
+    local f2 = T.fontF2
+    local fh = tm:getFontHeight(f2)
+    local ld = T.textDim
+    panel:drawText(tc(getText("IGUI_Name")), x + pad, curY, ld.r, ld.g, ld.b, ld.a or 1, f2)
+    panel:drawText(zc.name, x + pad + T.px(72), curY, T.text.r, T.text.g, T.text.b, T.text.a or 1, f2)
+    curY = curY + fh + T.px(12)
 
     if zc.phase == "idle" then
-        local hintFont = T.fontF4 or ZeD.T.fontF2
-        local tc = T.toneNorm
-        panel:drawText(ZeD.tr("UI_ZeD_Animals_ZoneDrawHint"), x + pad, curY,
-            tc.r, tc.g, tc.b, tc.a or 1, hintFont)
-        curY = curY + tm:getFontHeight(hintFont) + T.px(8)
-
-        local dataFont = T.fontF3 or ZeD.T.fontF2
-        local hi = T.toneHi or T.text
+        -- how to draw it, then the size limits
+        for _, ln in ipairs(A.wrapText(ZeD.tr("UI_ZeD_Animals_ZoneDrawHint"), f2, w - pad * 2)) do
+            panel:drawText(ln, x + pad, curY, T.text.r, T.text.g, T.text.b, T.text.a or 1, f2)
+            curY = curY + fh
+        end
+        curY = curY + T.px(8)
         panel:drawText(ZeD.tr("UI_ZeD_Animals_ZoneSizeLimits", ZONE_MIN_DIM, ZONE_MAX_DIM), x + pad, curY,
-            hi.r, hi.g, hi.b, hi.a or 1, dataFont)
-
-    elseif zc.phase == "drawing" then
-        curY = curY + drawZoneDimensions(panel, x + pad, curY, w, zc)
-        -- "Release to set zone" hint rendered in footer
-
-    elseif zc.phase == "confirm" then
-        curY = curY + drawZoneDimensions(panel, x + pad, curY, w, zc)
-        -- "Create this zone?" prompt rendered in footer
+            ld.r, ld.g, ld.b, ld.a or 1, f2)
+    else
+        -- drawing and confirming both show the size so far
+        drawZoneDimensions(panel, x + pad, curY, w, zc)
     end
 end
 
--- Zone creation footer strip: phase-dependent buttons
-local function drawZoneCreateFooter(panel, win, x, y, w)
-    local T = ZeD.T
-    local A = ZeD.Atoms
+-- The band while a zone is being made, by phase. Its buttons are mouse-only
+-- (the controller draws the zone with the D-pad and A / B); the click zones keep
+-- their old names for onClick:
+--   _zoneConfirmYes  Create (confirm phase)
+--   _zoneConfirmNo   Cancel in the confirm phase: back to drawing
+--   _zoneCancelBtn   Cancel while idle / drawing: leave zone creation
+local function drawZoneCreateBand(panel, win, x, y, w)
+    local M = ZeD.Molecules
     local zc = getZoneCreateState(win)
-    local pad = T.px(6)
-    local btnFont = T.fontF5 or ZeD.T.fontF2
-    local btnH = T.px(BTN_H)
-
-    A.drawDividerH(panel, x, y, w, false)
-    local btnY = y + math.floor((T.px(FOOTER_H) - btnH) / 2)
-    local bx = x + pad
 
     -- Clear previous zones
     win._zoneConfirmYes = nil
     win._zoneConfirmNo = nil
     win._zoneCancelBtn = nil
 
+    local H, out
     if zc.phase == "confirm" then
-        -- YES + NO + CANCEL + prompt
-        win._zoneConfirmYes = drawBtn(panel, bx, btnY, getText("UI_Yes"), "positive", btnFont)
-        bx = bx + win._zoneConfirmYes.w + T.px(6)
-        win._zoneConfirmNo = drawBtn(panel, bx, btnY, getText("UI_No"), "danger", btnFont)
-        bx = bx + win._zoneConfirmNo.w + T.px(6)
-        win._zoneCancelBtn = drawBtn(panel, bx, btnY, getText("UI_Cancel"), "neutral", btnFont)
-        bx = bx + win._zoneCancelBtn.w + T.px(8)
-        local promptFont = T.fontF3 or ZeD.T.fontF2
-        local nc = T.toneNorm
-        local promptY = btnY + math.floor((btnH - ZeD.TM:getFontHeight(promptFont)) / 2)
-        panel:drawText(getText("IGUI_DesignationZone_AddZone"), bx, promptY, nc.r, nc.g, nc.b, nc.a or 1, promptFont)
-    elseif zc.phase == "drawing" then
-        -- CANCEL + "Release to set zone" hint
-        win._zoneCancelBtn = drawBtn(panel, bx, btnY, getText("UI_Cancel"), "neutral", btnFont)
-        bx = bx + win._zoneCancelBtn.w + T.px(8)
-        local hintFont = T.fontF3 or ZeD.T.fontF2
-        local nc = T.toneNorm
-        local hintY = btnY + math.floor((btnH - ZeD.TM:getFontHeight(hintFont)) / 2)
-        panel:drawText(ZeD.tr("UI_ZeD_Animals_ZoneReleaseHint"), bx, hintY, nc.r, nc.g, nc.b, nc.a or 1, hintFont)
+        local zw, zh = getZoneDimensions(zc)
+        H, out = M.drawBand(panel, x, y, w, {
+            win = win,
+            status = { text = ZeD.tr("UI_ZeD_Animals_CreateZoneAsk", zw, zh) },
+            buttons = {
+                { label = ZeD.tr("UI_Cancel"), help = ZeD.tr("UI_ZeD_Animals_HelpZoneRedraw") },
+                { label = ZeD.tr("UI_ZeD_Animals_BtnCreate"), variant = "primary", help = ZeD.tr("UI_ZeD_Animals_HelpZoneCreate") },
+            },
+        })
+        win._zoneConfirmNo = out.buttons[1]
+        win._zoneConfirmYes = out.buttons[2]
     else
-        -- Just CANCEL (idle)
-        win._zoneCancelBtn = drawBtn(panel, bx, btnY, getText("UI_Cancel"), "neutral", btnFont)
+        H, out = M.drawBand(panel, x, y, w, {
+            win = win,
+            status = (zc.phase == "drawing") and { text = ZeD.tr("UI_ZeD_Animals_ZoneReleaseHint") } or nil,
+            buttons = { { label = ZeD.tr("UI_Cancel"), help = ZeD.tr("UI_ZeD_Animals_HelpZoneLeave") } },
+        })
+        win._zoneCancelBtn = out.buttons[1]
     end
-
-    return T.px(FOOTER_H)
+    return H
 end
 
 -- Combined render for zone create mode (called from main render)
 local function renderZoneCreateView(panel, win, x, y, w, h)
-    local T = ZeD.T
-    -- Footer at bottom
-    local footerY = y + h - T.px(FOOTER_H)
-    drawZoneCreateFooter(panel, win, x, footerY, w)
-
-    -- Content above footer
-    local contentH = h - T.px(FOOTER_H)
-    renderZoneCreateContent(panel, win, x, y, w, contentH)
+    local bandH = ZeD.Molecules.bandH()
+    drawZoneCreateBand(panel, win, x, y + h - bandH, w)
+    renderZoneCreateContent(panel, win, x, y, w, h - bandH)
 end
 
 -- ============================================================================
 -- EMPTY STATE
+-- One dim line under the list's head, a full sentence; the way out (Create zone)
+-- is a button in the band.
 -- ============================================================================
 
 local function drawEmptyState(panel, win, x, y, w, h)
     local T = ZeD.T
-    local tm = ZeD.TM
-
-    -- Measure content block to center it vertically
-    local iconSz = T.px(32)
-    local font = T.fontF2 or ZeD.T.fontF2
-    local title = ZeD.tr("UI_ZeD_Animals_NoZones")
-    local titleH = tm:getFontHeight(font)
-    local blockH = iconSz + T.px(10) + titleH
-    local contentH = h - T.px(FOOTER_H)  -- above footer
-    local cy = y + math.floor((contentH - blockH) / 2)
-
-    -- Icon (centered)
-    local iconTex = getTexture(AD().ZONE_ICON_OFF)
-    if iconTex then
-        local iconX = x + math.floor((w - iconSz) / 2)
-        panel:drawTextureScaledAspect(iconTex, iconX, cy, iconSz, iconSz, 0.4, 1, 1, 1)
-        cy = cy + iconSz + T.px(10)
-    end
-
-    -- Title (centered) — F2 lo
-    local tw = tm:MeasureStringX(font, title)
-    local lo = T.toneLo
-    panel:drawText(title, x + math.floor((w - tw) / 2), cy, lo.r, lo.g, lo.b, lo.a or 1, font)
-    -- Hint text rendered in footer by drawFooterStrip
+    local M = ZeD.Molecules
+    local pad = M.getTabPad()
+    local hdrH = M.drawCategoryRow(panel, x, y, w, ZeD.tr("UI_ZeD_Animals_SecZones"), 0, false, { noArrow = true })
+    M.drawEmptyLine(panel, x + pad, y + hdrH + T.px(8), w - pad * 2, ZeD.tr("UI_ZeD_Animals_NoZonesYet"))
 end
 
 -- ============================================================================
@@ -1002,68 +972,47 @@ end
 -- ============================================================================
 
 local SUBMODES = {
-    { id = "ranch",   label = "UI_ZeD_Animals_SubRanch" },   -- text keys: translated where drawn
-    { id = "butcher", label = "IGUI_Butcher" },
+    { id = "ranch",   label = "UI_ZeD_Animals_SubRanch",  help = "UI_ZeD_Animals_HelpRanch" },   -- text keys: translated where drawn
+    { id = "butcher", label = "IGUI_Butcher",             help = "UI_ZeD_Animals_HelpButcher" },
 }
 
---- Draw sub-tab strip — same System 6 pattern as JournalTab.
--- Active tab: surf1 fill, top+left+right border, open bottom.
--- Inactive: text only. Bottom border spans full width.
+--- Draw the sub-tab strip: the library's tab (ZeD.Molecules.drawTab), the same as
+-- the Journal's. The active tab is open at the bottom into its content; the strip's
+-- structure line runs under the others and stops short of the active one.
 -- @return tabStripH (T.tabH)
 local function drawSubmodeStrip(panel, win, x, y, w)
     local T    = ZeD.T
+    local A    = ZeD.Atoms
+    local M    = ZeD.Molecules
     local tH   = T.tabH
-    local padH = T.sp.md
     local gap  = T.sp.tabGap
-    local bc   = T.borderS
     local tm   = ZeD.TM
     local state = getState(win)
 
-    -- Bottom border (full width, separates strip from content)
-    panel:drawRect(x, y + tH - T.px(1), w, T.px(1), bc.a, bc.r, bc.g, bc.b)
-
     local tabX = x + T.sp.sm
     local zones = {}
+    local activeX, activeW
 
-    for i, sm in ipairs(SUBMODES) do
+    for _, sm in ipairs(SUBMODES) do
         local smLabel = ZeD.tr(sm.label)
-        local tw = tm:MeasureStringX(T.fontF1, smLabel) + padH * 2
+        local tw = tm:MeasureStringX(T.fontF2, A.textCase(smLabel)) + T.sp.tabPadX * 2
         local isActive = (state.submode == sm.id)
-
-        -- S109: gamepad focus cue — 0.55α accent over pill bounds. Paints
-        -- under active fill so the active border still reads. Gate on live
-        -- focused element's submodeId (avoids stale-state mispaint).
-        local isGpFocused = _gpFocusMatches(win, function(el)
-            return el.isSubmode and el.submodeId == sm.id
-        end)
-
-        if isActive then
-            -- Active: surf1 fill, top+left+right border, open bottom
-            panel:drawRect(tabX, y, tw, tH, T.surf1.a, T.surf1.r, T.surf1.g, T.surf1.b)
-            if isGpFocused then
-                _paintGpCue(panel, tabX, y, tw, tH)
-            end
-            panel:drawRect(tabX, y, tw, T.px(1), bc.a, bc.r, bc.g, bc.b)           -- top
-            panel:drawRect(tabX, y, T.px(1), tH, bc.a, bc.r, bc.g, bc.b)           -- left
-            panel:drawRect(tabX + tw - T.px(1), y, T.px(1), tH, bc.a, bc.r, bc.g, bc.b)  -- right
-            -- Erase bottom border behind active tab (open bottom)
-            panel:drawRect(tabX + T.px(1), y + tH - T.px(1), tw - T.px(2), T.px(1),
-                T.surf1.a, T.surf1.r, T.surf1.g, T.surf1.b)
-
-            local textY = y + math.floor((tH - tm:getFontHeight(T.fontF1)) / 2)
-            panel:drawText(smLabel, tabX + padH, textY,
-                T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a or 1, T.fontF1)
-        else
-            if isGpFocused then
-                _paintGpCue(panel, tabX, y, tw, tH)
-            end
-            local textY = y + math.floor((tH - tm:getFontHeight(T.fontF1)) / 2)
-            panel:drawText(smLabel, tabX + padH, textY,
-                T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a or 1, T.fontF1)
-        end
-
+        local hovered = A.mouseIn(panel, tabX, y, tw, tH)
+        if hovered then help(panel, sm.help) end
+        M.drawTab(panel, tabX, y, smLabel, isActive, hovered, false,
+            { focus = focusFor(win, "animals:submode:" .. sm.id) })
+        if isActive then activeX, activeW = tabX, tw end
         zones[#zones + 1] = { x = tabX, y = y, w = tw, h = tH, id = sm.id }
         tabX = tabX + tw + gap
+    end
+
+    -- the strip's line, around the active tab
+    local ly = y + tH - T.hair
+    if activeX then
+        A.drawDividerH(panel, x, ly, activeX - x, true)
+        A.drawDividerH(panel, activeX + activeW, ly, x + w - (activeX + activeW), true)
+    else
+        A.drawDividerH(panel, x, ly, w, true)
     end
 
     win._animalsSubmodeZones = zones
@@ -1071,106 +1020,60 @@ local function drawSubmodeStrip(panel, win, x, y, w)
 end
 
 -- ============================================================================
--- BREADCRUMB — back arrow + location
+-- BACK — the library's back key in a row of its own (zone and animal views)
 -- ============================================================================
 
-local function drawBreadcrumb(panel, win, x, y, w)
+local function drawBackBar(panel, win, x, y, w)
     local T = ZeD.T
     local A = ZeD.Atoms
+    local M = ZeD.Molecules
     local state = getState(win)
-    local font = T.fontF5 or ZeD.T.fontF2
-    local pad = T.px(6)
+    local sz = T.buttonH
+    local h = sz + T.px(BACK_PAD) * 2
 
-    -- S109: gamepad focus cue painted FIRST so text + triangle render on top.
-    if _gpFocusMatches(win, function(el) return el.isBreadcrumb end) then
-        _paintGpCue(panel, x, y, w, T.px(BREADCRUMB_H))
+    A.surfaceFill(panel, x, y, w, h, "surf2")
+    A.drawDividerH(panel, x, y + h - T.hair, w, true)
+
+    local bx, by = x + T.px(8), y + T.px(BACK_PAD)
+    local hover = A.mouseIn(panel, bx, by, sz, sz)
+    if hover then
+        if state.view == "zone" then help(panel, "UI_ZeD_Animals_HelpBackOverview")
+        elseif state.submode == "butcher" then help(panel, "UI_ZeD_Animals_HelpBackButcher")
+        else help(panel, "UI_ZeD_Animals_HelpBackZone", state.zoneName or "") end
     end
+    M.drawBackButton(panel, bx, by, sz, { hover = hover, win = win, focus = focusFor(win, "animals:back:" .. tostring(state.view)) })
 
-    -- Back triangle
-    local triSz = T.px(8)
-    local triY = y + math.floor((T.px(BREADCRUMB_H) - triSz) / 2)
-    A.drawTriangleLeft(panel, x + pad, triY, triSz, { r = T.accent.r, g = T.accent.g, b = T.accent.b, a = 0.9 })   -- colour table, not four numbers
+    -- Store click zone for back navigation (the key; the ring takes its rect too)
+    win._animalsBreadcrumbZone = { x = bx, y = by, w = sz, h = sz }
 
-    -- Label
-    local label = ""
-    if state.view == "animal" and state.zoneName then
-        label = state.zoneName
-    elseif state.view == "zone" then
-        label = ZeD.tr("UI_ZeD_Animals_Overview")
-    end
-
-    local tx = x + pad + triSz + T.px(6)
-    local fh = ZeD.TM:getFontHeight(font)
-    panel:drawText(label, tx, y + math.floor((T.px(BREADCRUMB_H) - fh) / 2),
-        T.accent.r, T.accent.g, T.accent.b, 0.9, font)
-
-    -- Bottom divider (matches column header)
-    A.drawDividerH(panel, x, y + T.px(BREADCRUMB_H) - T.px(1), w, true)
-
-    -- Store click zone for back navigation
-    win._animalsBreadcrumbZone = { x = x, y = y, w = w, h = T.px(BREADCRUMB_H) }
-
-    return T.px(BREADCRUMB_H)
+    return h
 end
 
 -- ============================================================================
--- ============================================================================
--- CATEGORY HEADER — matches inventory list category rows exactly.
--- surf2 bg, fontF1 mono, toneLo color, "v NAME (N)" format, soft divider.
--- Returns: catHdrH consumed.
+-- CATEGORY ROW — "v Weapons (4)": the library's row for a list's group
 -- ============================================================================
 
-local function drawCatHeader(panel, x, y, w, name, count, expanded, hovered, noArrow)
-    local T = ZeD.T
+local function catRow(panel, win, x, y, w, name, count, expanded, noArrow, focusId, helpKey)
     local A = ZeD.Atoms
-    local tm = ZeD.TM
-    local catH = T.sp.colHdrH or T.px(20)  -- matches inventory column header (20px)
-    local font = T.fontF1 or ZeD.T.fontF2
-    local fh = tm:getFontHeight(font)
-
-    -- Background (surf2, or subtle hover highlight)
-    if hovered and not noArrow then
-        panel:drawRect(x, y, w, catH, 0.06, T.text.r, T.text.g, T.text.b)
-    else
-        local s2 = T.surf2
-        panel:drawRect(x, y, w, catH, s2.a, s2.r, s2.g, s2.b)
-    end
-
-    -- Label: "v NAME (N)" or "> NAME (N)" — or no arrow
-    local label = ""
-    if not noArrow then
-        label = expanded and "v " or "> "
-    end
-    label = label .. ZeD.upper(name)
-    if count then label = label .. " (" .. tostring(count) .. ")" end
-
-    local textY = y + math.floor((catH - fh) / 2)
-    local col = T.toneLo
-    A.drawSecondary(panel, label, x + T.px(6), textY, col)
-
-    -- Soft divider at bottom
-    A.drawDividerH(panel, x, y + catH - T.px(1), w, false)
-
-    return catH
+    local M = ZeD.Molecules
+    local rowH = ZeD.T.px(15)
+    local hover = (not noArrow) and A.mouseIn(panel, x, y, w, rowH)
+    if hover and helpKey then help(panel, helpKey) end
+    return M.drawCategoryRow(panel, x, y, w, name, count, expanded, {
+        hover = hover, noArrow = noArrow, focus = focusId and focusFor(win, focusId) or nil })
 end
 
 -- ============================================================================
 -- M-ALERT — ALERT ROW
--- Portrait icon + animal name + species + severity badge.
--- Row height = 36px. Clickable (navigates to animal detail in future).
+-- Portrait icon + animal name + species + a tag for what is wrong.
+-- Row height = 36px. A readout: an alert is not pressed.
 -- ============================================================================
 
 local ALERT_ROW_H = 36
 local ALERT_ICON_SZ = 24
 local ALERT_PAD = 6
 
-local SEV_VARIANT = {
-    danger = "danger",
-    warn   = "warning",
-    info   = "info",
-}
-
--- text keys (vanilla's where it has the word), drawn in capitals
+-- text keys (vanilla's where it has the word), drawn in sentence case
 local ALERT_LABELS = {
     udder_urgent = "IGUI_Animal_Udder",
     ready_milk   = "ContextMenu_Milk",
@@ -1186,15 +1089,12 @@ local function drawAlertRow(panel, x, y, w, alert)
     local A = ZeD.Atoms
     local ad = AD()
     local animal = alert.animal
-
-    -- Row background (subtle hover surface)
-    local rowC = T.stripe
-    panel:drawRect(x, y, w, T.px(ALERT_ROW_H), rowC.a, rowC.r, rowC.g, rowC.b)
+    local rowH = T.px(ALERT_ROW_H)
 
     -- Portrait icon
     local portraitPath = ad.resolvePortrait(animal)
     local tex = getTexture(portraitPath)
-    local iconY = y + math.floor((T.px(ALERT_ROW_H) - T.px(ALERT_ICON_SZ)) / 2)
+    local iconY = y + math.floor((rowH - T.px(ALERT_ICON_SZ)) / 2)
     if tex then
         panel:drawTextureScaledAspect(tex, x + T.px(ALERT_PAD), iconY, T.px(ALERT_ICON_SZ), T.px(ALERT_ICON_SZ), 0.9, 1, 1, 1)
     end
@@ -1205,30 +1105,22 @@ local function drawAlertRow(panel, x, y, w, alert)
     local atype = ad.getAnimalType(animal)
     local species = getText("IGUI_AnimalType_" .. atype) or atype
 
-    local nameFont = T.fontF2 or ZeD.T.fontF2
-    local secFont = T.fontF4 or ZeD.T.fontF2
-    local nameH = ZeD.TM:getFontHeight(nameFont)
-    local secH = ZeD.TM:getFontHeight(secFont)
-    local textBlockH = nameH + secH
-    local textY = y + math.floor((T.px(ALERT_ROW_H) - textBlockH) / 2)
+    local f2 = T.fontF2
+    local fh = ZeD.TM:getFontHeight(f2)
+    local textY = y + math.floor((rowH - fh * 2) / 2)
 
-    panel:drawText(name, nameX, textY, T.text.r, T.text.g, T.text.b, 1.0, nameFont)
-    panel:drawText(species, nameX, textY + nameH, T.textDim.r, T.textDim.g, T.textDim.b, 0.6, secFont)
+    panel:drawText(name, nameX, textY, T.text.r, T.text.g, T.text.b, T.text.a or 1, f2)
+    panel:drawText(species, nameX, textY + fh, T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, f2)
 
-    -- Severity badge (right-aligned)
-    local badgeLabel = ZeD.upper(ZeD.tr(ALERT_LABELS[alert.alertType] or "UI_ZeD_Animals_AlertDefault"))
-    local variant = SEV_VARIANT[alert.severity] or "info"
-    local badgeFont = T.fontF4 or ZeD.T.fontF2
-    local badgeW = ZeD.TM:MeasureStringX(badgeFont, badgeLabel) + (T.sp.badgePadX or T.px(4)) * 2
-    local badgeH = ZeD.TM:getFontHeight(badgeFont) + (T.sp.badgePadY or T.px(2)) * 2
-    local badgeX = x + w - badgeW - T.px(ALERT_PAD)
-    local badgeY = y + math.floor((T.px(ALERT_ROW_H) - badgeH) / 2)
-    A.drawBadge(panel, badgeLabel, badgeX, badgeY, variant, false, badgeFont, true)
+    -- What is wrong: a tag with its status square (right-aligned)
+    local label = ZeD.tr(ALERT_LABELS[alert.alertType] or "UI_ZeD_Animals_AlertDefault")
+    local tw = tagWidth(label, sevColor(T, alert.severity) ~= nil)
+    drawTag(panel, x + w - tw - T.px(ALERT_PAD), tagY(y, rowH), label, alert.severity)
 
     -- Bottom divider
-    A.drawDividerH(panel, x, y + T.px(ALERT_ROW_H) - T.px(1), w, false)
+    A.drawDividerH(panel, x, y + rowH - T.px(1), w, false)
 
-    return T.px(ALERT_ROW_H)
+    return rowH
 end
 -- ============================================================================
 -- M-ZRSUM — ZONE SUMMARY CARD
@@ -1240,16 +1132,15 @@ end
 local ZCARD_PAD    = 6
 local ZCARD_MIN_H  = 52
 
--- S109a: measure cardH ahead of the draw pass so bg + gamepad focus cue can
--- cover the full card area (previously both were clamped to ZCARD_MIN_H,
--- leaving a strip of un-cued card below the bars — visible on focus).
+-- Measure cardH ahead of the draw pass so the hover wash and the controller's
+-- mark cover the full card area.
 local function measureZoneCardH(summary)
     local T = ZeD.T
     local tm = ZeD.TM
-    local nameH  = tm:getFontHeight(T.fontF2 or ZeD.T.fontF2)
-    local specH  = tm:getFontHeight(T.fontF4 or ZeD.T.fontF2)
-    local lblH   = tm:getFontHeight(T.fontF1 or ZeD.T.fontF2)
-    local fillBarH = T.fillBarH or T.px(8)
+    local nameH  = tm:getFontHeight(T.fontF2)
+    local specH  = tm:getFontHeight(T.fontF2)
+    local lblH   = tm:getFontHeight(T.fontF1)
+    local fillBarH = T.fillBarH
 
     local h = T.px(ZCARD_PAD) + nameH + T.px(4)
 
@@ -1272,33 +1163,32 @@ local function drawZoneSummary(panel, x, y, w, summary, win)
     local A = ZeD.Atoms
     local ad = AD()
 
-    -- S109a: pre-measured cardH so bg + focus cue cover the true card area.
+    -- pre-measured cardH so the wash and the mark cover the true card area
     local cardH = measureZoneCardH(summary)
 
-    -- Card background (draw first — PZ immediate mode, call order = paint order)
-    local cardBg = T.surf2 or T.surf1
-    panel:drawRect(x, y, w, cardH, 0.06, cardBg.r, cardBg.g, cardBg.b)
-
-    -- S109: gamepad focus cue painted over card bg (below content draws).
-    if _gpFocusMatches(win, function(el)
-            return el.isZoneCard and el.zoneName == summary.name
-        end) then
-        _paintGpCue(panel, x, y, w, cardH)
+    -- Hover wash under the words; then the controller's mark (draw order = paint order)
+    local hovered = A.mouseIn(panel, x, y, w, cardH)
+    if hovered then
+        local hv = T.hover
+        panel:drawRect(x, y, w, cardH, hv.a, hv.r, hv.g, hv.b)
+        help(panel, "UI_ZeD_Animals_HelpZoneCard")
     end
+    local onFocus = markId(panel, win, "animals:zonecard:" .. tostring(summary.name), x, y, w, cardH)
+    local ink = onFocus and T.textOnFocus or T.text
+    local inkDim = onFocus and T.textOnFocus or T.textDim
 
     local curY = y + T.px(ZCARD_PAD)
 
     -- Zone name (left) + count (right)
-    local nameFont = T.fontF2 or ZeD.T.fontF2
+    local nameFont = T.fontF2
     local nameH = ZeD.TM:getFontHeight(nameFont)
     local name = summary.name or ZeD.tr("UI_ZeD_Animals_UnnamedZone")
-    panel:drawText(name, x + T.px(ZCARD_PAD), curY, T.text.r, T.text.g, T.text.b, 1.0, nameFont)
+    panel:drawText(name, x + T.px(ZCARD_PAD), curY, ink.r, ink.g, ink.b, ink.a or 1, nameFont)
 
     local countStr = tostring(summary.count or 0)
-    local countFont = T.fontF3 or ZeD.T.fontF2
+    local countFont = T.fontF3
     local countW = ZeD.TM:MeasureStringX(countFont, countStr)
-    panel:drawText(countStr, x + w - T.px(ZCARD_PAD) - countW, curY,
-        T.accent.r, T.accent.g, T.accent.b, 1.0, countFont)
+    panel:drawText(countStr, x + w - T.px(ZCARD_PAD) - countW, curY, ink.r, ink.g, ink.b, ink.a or 1, countFont)
     curY = curY + nameH + T.px(4)
 
     -- Species breakdown line (e.g. "3 cow, 2 chicken")
@@ -1315,13 +1205,12 @@ local function drawZoneSummary(panel, x, y, w, summary, win)
     end
     if #specParts > 0 then
         local specLine = table.concat(specParts, ", ")
-        local specFont = T.fontF4 or ZeD.T.fontF2
-        panel:drawText(specLine, x + T.px(ZCARD_PAD), curY,
-            T.textDim.r, T.textDim.g, T.textDim.b, 0.6, specFont)
+        local specFont = T.fontF2
+        panel:drawText(specLine, x + T.px(ZCARD_PAD), curY, inkDim.r, inkDim.g, inkDim.b, inkDim.a or 1, specFont)
         curY = curY + ZeD.TM:getFontHeight(specFont) + T.px(4)
     end
 
-    -- Status bars — 3 across on one line: LABEL above, fill bar below, 8px gap between
+    -- Status bars — 3 across on one line: label above, framed bar below, 8u between
     local M = ZeD.Molecules
     local tm = ZeD.TM
     local barGap = T.px(8)
@@ -1329,28 +1218,23 @@ local function drawZoneSummary(panel, x, y, w, summary, win)
     local totalBarW = w - barPad * 2
     local barW = math.floor((totalBarW - barGap * 2) / 3)
     local fillBarH = T.fillBarH
-    local lblFont = T.fontF1 or ZeD.T.fontF2
+    local lblFont = T.fontF1
     local lblH = tm:getFontHeight(lblFont)
-    local lblColor = T.textSec or T.textDim
-
-    local foodRatio  = (summary.food or 0) / 100
-    local waterRatio = (summary.water or 0) / 100
-    local roofRatio  = (summary.roof or 0) / 100
 
     local bars = {
-        { label = ZeD.upper(getText("IGUI_ItemCat_Food")),         ratio = foodRatio },
-        { label = ZeD.upper(getText("IGUI_FeedingTroughUI_Water")), ratio = waterRatio },
-        { label = ZeD.upper(ZeD.tr("UI_ZeD_Animals_Roof")),         ratio = roofRatio },
+        { label = tc(getText("IGUI_ItemCat_Food")),          ratio = (summary.food or 0) / 100 },
+        { label = tc(getText("IGUI_FeedingTroughUI_Water")), ratio = (summary.water or 0) / 100 },
+        { label = tc(ZeD.tr("UI_ZeD_Animals_Roof")),         ratio = (summary.roof or 0) / 100 },
     }
 
     local bx = x + barPad
     for _, bar in ipairs(bars) do
         -- Label on top
-        A.drawSecondary(panel, bar.label, bx, curY, lblColor)
+        panel:drawText(bar.label, bx, curY, inkDim.r, inkDim.g, inkDim.b, inkDim.a or 1, lblFont)
         -- Percentage right-aligned on top
         local pct = math.floor(bar.ratio * 100) .. "%"
         local pctW = tm:MeasureStringX(lblFont, pct)
-        panel:drawText(pct, bx + barW - pctW, curY, T.text.r, T.text.g, T.text.b, 0.7, lblFont)
+        panel:drawText(pct, bx + barW - pctW, curY, ink.r, ink.g, ink.b, ink.a or 1, lblFont)
         -- Fill bar below label
         M.drawFillBar(panel, bx, curY + lblH + T.px(2), barW, bar.ratio)
         bx = bx + barW + barGap
@@ -1361,7 +1245,7 @@ local function drawZoneSummary(panel, x, y, w, summary, win)
     if #(summary.maleWarnings or {}) > 0 then
         for _, atype in ipairs(summary.maleWarnings) do
             local warnLabel = getText("IGUI_AnimalType_" .. atype) or atype
-            A.drawBadge(panel, ZeD.tr("UI_ZeD_Animals_MalesBadge", warnLabel), x + T.px(ZCARD_PAD), curY, "warning", false, T.fontF5 or ZeD.T.fontF2, true)
+            drawTag(panel, x + T.px(ZCARD_PAD), curY, ZeD.tr("UI_ZeD_Animals_MalesBadge", warnLabel), "warning")
             curY = curY + T.px(18)
         end
     end
@@ -1394,10 +1278,11 @@ local function drawTotals(panel, x, y, w, totals)
     local pad = T.px(ZCARD_PAD)
     local curY = y
 
-    local statFont = T.fontF3 or ZeD.T.fontF2
-    local lblFont = T.fontF4 or ZeD.T.fontF2
+    local statFont = T.fontF3
+    local lblFont = T.fontF2
     local rowH = ZeD.TM:getFontHeight(statFont) + T.px(4)
     local colW = math.floor((w - pad) / 2)
+    local tt, td = T.text, T.textDim
 
     -- Left column: species counts
     local leftX = x + pad
@@ -1413,9 +1298,9 @@ local function drawTotals(panel, x, y, w, totals)
         local label = getText("IGUI_AnimalType_" .. atype) or atype
         local valStr = tostring(cnt)
 
-        panel:drawText(valStr, leftX, leftY, T.accent.r, T.accent.g, T.accent.b, 1.0, statFont)
+        panel:drawText(valStr, leftX, leftY, tt.r, tt.g, tt.b, tt.a or 1, statFont)
         local valW = ZeD.TM:MeasureStringX(statFont, valStr)
-        panel:drawText(label, leftX + valW + T.px(6), leftY + T.px(1), T.textDim.r, T.textDim.g, T.textDim.b, 0.7, lblFont)
+        panel:drawText(label, leftX + valW + T.px(6), leftY, td.r, td.g, td.b, td.a or 1, lblFont)
         leftY = leftY + rowH
     end
 
@@ -1425,17 +1310,17 @@ local function drawTotals(panel, x, y, w, totals)
 
     if totals.eggsPerDay and totals.eggsPerDay > 0 then
         local eggStr = string.format("%.1f", totals.eggsPerDay)
-        panel:drawText(eggStr, rightX, rightY, T.accent.r, T.accent.g, T.accent.b, 1.0, statFont)
+        panel:drawText(eggStr, rightX, rightY, tt.r, tt.g, tt.b, tt.a or 1, statFont)
         local eW = ZeD.TM:MeasureStringX(statFont, eggStr)
-        panel:drawText(ZeD.tr("UI_ZeD_Animals_EggsPerDay"), rightX + eW + T.px(6), rightY + T.px(1), T.textDim.r, T.textDim.g, T.textDim.b, 0.7, lblFont)
+        panel:drawText(tc(ZeD.tr("UI_ZeD_Animals_EggsPerDay")), rightX + eW + T.px(6), rightY, td.r, td.g, td.b, td.a or 1, lblFont)
         rightY = rightY + rowH
     end
 
     if totals.milkPerDay and totals.milkPerDay > 0 then
         local milkStr = string.format("%.0f", totals.milkPerDay)
-        panel:drawText(milkStr, rightX, rightY, T.accent.r, T.accent.g, T.accent.b, 1.0, statFont)
+        panel:drawText(milkStr, rightX, rightY, tt.r, tt.g, tt.b, tt.a or 1, statFont)
         local mW = ZeD.TM:MeasureStringX(statFont, milkStr)
-        panel:drawText(ZeD.tr("UI_ZeD_Animals_MilkPerDay"), rightX + mW + T.px(6), rightY + T.px(1), T.textDim.r, T.textDim.g, T.textDim.b, 0.7, lblFont)
+        panel:drawText(tc(ZeD.tr("UI_ZeD_Animals_MilkPerDay")), rightX + mW + T.px(6), rightY, td.r, td.g, td.b, td.a or 1, lblFont)
         rightY = rightY + rowH
     end
 
@@ -1452,6 +1337,10 @@ end
 local function renderRanchOverview(panel, win, x, y, w, h)
     -- Force cache refresh on first render
     if not AP().isReady() then AP().refreshCache() end
+
+    -- Reset click zones (an empty overview must not keep last frame's)
+    win._animalsZoneCardZones = {}
+    win._animalsSectionZones = {}
 
     local zones = AP().getZoneList()
     if #zones == 0 then
@@ -1473,30 +1362,14 @@ local function renderRanchOverview(panel, win, x, y, w, h)
     end
     local ovState = win._animalsOverviewState
 
-    -- Reset click zones
-    win._animalsZoneCardZones = {}
-    win._animalsSectionZones = {}
-
     local curY = y  -- header sits flush against tab strip bottom
-
-    local catH = T.sp.colHdrH or T.px(20)  -- 20px, matches inventory column header
 
     -- ── ALERTS SECTION ──
     local alerts = AP().getAlerts()
     if #alerts > 0 then
         local secY = curY
-        local mx = panel:getMouseX()
-        local my = panel:getMouseY()
-        local hovered = mx >= x and mx < x + w and my >= curY and my < curY + catH
-        drawCatHeader(panel, x, curY, w, ZeD.tr("UI_ZeD_Animals_SecAlerts"), #alerts, ovState.alertsExpanded, hovered)
-        -- S109: gamepad focus cue painted AFTER header (surf2 bg is 0.92α,
-        -- would dim cue to invisibility if painted under). Text + chevron
-        -- render at ~45% visibility through the 0.55α overlay — legible.
-        if _gpFocusMatches(win, function(el)
-                return el.isDisclosure and el.sectionKey == "alertsExpanded"
-            end) then
-            _paintGpCue(panel, x, curY, w, catH)
-        end
+        local catH = catRow(panel, win, x, curY, w, ZeD.tr("UI_ZeD_Animals_SecAlerts"), #alerts,
+            ovState.alertsExpanded, false, "animals:disclosure:alertsExpanded", "UI_ZeD_Animals_HelpFold")
         table.insert(win._animalsSectionZones, {
             x = x, y = secY, w = w, h = catH, key = "alertsExpanded"
         })
@@ -1509,44 +1382,28 @@ local function renderRanchOverview(panel, win, x, y, w, h)
         end
     end
 
-    -- ── ZONES SECTION ──
-    local secY = curY
-    local mx = panel:getMouseX()
-    local my = panel:getMouseY()
-    local hovered = mx >= x and mx < x + w and my >= curY and my < curY + catH
-    drawCatHeader(panel, x, curY, w, ZeD.tr("UI_ZeD_Animals_SecZones"), #zones, true, false, true)
-    table.insert(win._animalsSectionZones, {
-        x = x, y = secY, w = w, h = catH, key = "zonesExpanded"
-    })
-    curY = curY + catH
+    -- ── ZONES SECTION ── (always open: its head has no triangle and is not pressed)
+    curY = curY + catRow(panel, win, x, curY, w, ZeD.tr("UI_ZeD_Animals_SecZones"), #zones, true, true, nil, nil)
 
-    if ovState.zonesExpanded then
-        for _, zone in ipairs(zones) do
-            -- Get zone name for name-based cache lookup
-            local zname = ""
-            if zone.getName then
-                local ok, val = pcall(zone.getName, zone)
-                if ok and val then zname = val end
-            end
-            local summary = AP().getZoneSummary(zname)
-            if summary then
-                curY = curY + drawZoneSummary(panel, x + pad, curY, w - pad * 2, summary, win)
-            end
+    for _, zone in ipairs(zones) do
+        -- Get zone name for name-based cache lookup
+        local zname = ""
+        if zone.getName then
+            local ok, val = pcall(zone.getName, zone)
+            if ok and val then zname = val end
+        end
+        local summary = AP().getZoneSummary(zname)
+        if summary then
+            curY = curY + drawZoneSummary(panel, x + pad, curY, w - pad * 2, summary, win)
         end
     end
 
     -- ── TOTALS SECTION ──
     local totals = AP().getTotals()
     if totals and (totals.totalAnimals or 0) > 0 then
-        secY = curY
-        hovered = mx >= x and mx < x + w and my >= curY and my < curY + catH
-        drawCatHeader(panel, x, curY, w, ZeD.tr("UI_ZeD_Animals_SecTotals"), totals.totalAnimals, ovState.totalsExpanded, hovered)
-        -- S109: gamepad focus cue painted AFTER (see alerts comment above).
-        if _gpFocusMatches(win, function(el)
-                return el.isDisclosure and el.sectionKey == "totalsExpanded"
-            end) then
-            _paintGpCue(panel, x, curY, w, catH)
-        end
+        local secY = curY
+        local catH = catRow(panel, win, x, curY, w, ZeD.tr("UI_ZeD_Animals_SecTotals"), totals.totalAnimals,
+            ovState.totalsExpanded, false, "animals:disclosure:totalsExpanded", "UI_ZeD_Animals_HelpFold")
         table.insert(win._animalsSectionZones, {
             x = x, y = secY, w = w, h = catH, key = "totalsExpanded"
         })
@@ -1577,11 +1434,13 @@ local function drawZoneInfoBand(panel, win, x, y, w, summary)
 
     -- Zone name (left) + count (right)
     -- During rename mode, position the text entry over the name
-    local nameFont = T.fontF2 or ZeD.T.fontF2
+    local nameFont = T.fontF2
     local nameH = tm:getFontHeight(nameFont)
     local name = summary.name or ZeD.tr("UI_ZeD_Animals_UnnamedZone")
+    local nameW = tm:MeasureStringX(nameFont, name)
+    local renaming = win._animalsRenaming and win._animalsRenameEntry
 
-    if win._animalsRenaming and win._animalsRenameEntry then
+    if renaming then
         -- Position text entry over the zone name
         -- Entry is a child of win, so convert panel coords to window coords
         local entry = win._animalsRenameEntry
@@ -1593,14 +1452,13 @@ local function drawZoneInfoBand(panel, win, x, y, w, summary)
         entry:setWidth(entryW)
         entry:setVisible(true)
     else
-        -- Draw name as clickable text (hover underline hint)
-        local mx = panel:getMouseX()
-        local my = panel:getMouseY()
-        local nameW = tm:MeasureStringX(nameFont, name)
-        local nameHovered = mx >= x + pad and mx < x + pad + nameW
-            and my >= curY and my < curY + nameH
-        local nameCol = nameHovered and T.accent or T.text
-        panel:drawText(name, x + pad, curY, nameCol.r, nameCol.g, nameCol.b, 1.0, nameFont)
+        -- The name is pressable (it starts a rename): the hover wash says so
+        if A.mouseIn(panel, x + pad, curY, nameW, nameH) then
+            local hv = T.hover
+            panel:drawRect(x + pad - T.px(2), curY - T.px(1), nameW + T.px(4), nameH + T.px(2), hv.a, hv.r, hv.g, hv.b)
+            help(panel, "UI_ZeD_Animals_HelpRename")
+        end
+        panel:drawText(name, x + pad, curY, T.text.r, T.text.g, T.text.b, T.text.a or 1, nameFont)
 
         -- Store name click zone for rename trigger
         win._animalsZoneNameZone = { x = x + pad, y = curY, w = nameW, h = nameH }
@@ -1612,20 +1470,20 @@ local function drawZoneInfoBand(panel, win, x, y, w, summary)
     end
 
     local countStr = ZeD.tr((summary.count or 0) == 1 and "UI_ZeD_Animals_AnimalCountOne" or "UI_ZeD_Animals_AnimalCountMany", summary.count or 0)
-    local countFont = T.fontF3 or ZeD.T.fontF2
+    local countFont = T.fontF3
     local countW = tm:MeasureStringX(countFont, countStr)
-    panel:drawText(countStr, x + w - pad - countW, curY,
-        T.accent.r, T.accent.g, T.accent.b, 0.9, countFont)
+    panel:drawText(countStr, x + w - pad - countW, curY, T.text.r, T.text.g, T.text.b, T.text.a or 1, countFont)
     -- Zone size (on same line as name, after count)
     local zoneObj = summary.zone
-    if zoneObj and zoneObj.getW and zoneObj.getH then
+    if not renaming and zoneObj and zoneObj.getW and zoneObj.getH then
         local ok1, zw = pcall(zoneObj.getW, zoneObj)
         local ok2, zh = pcall(zoneObj.getH, zoneObj)
         if ok1 and ok2 then
             local sizeStr = ZeD.tr("UI_ZeD_Animals_ZoneSquares", zw * zh)
-            local sizeFont = T.fontF5 or ZeD.T.fontF2
-            panel:drawText(sizeStr, x + pad + tm:MeasureStringX(nameFont, name) + T.px(8),
-                curY + T.px(2), T.textDim.r, T.textDim.g, T.textDim.b, 0.5, sizeFont)
+            local sizeX = x + pad + nameW + T.px(8)
+            if sizeX + tm:MeasureStringX(nameFont, sizeStr) < x + w - pad - countW - T.px(8) then
+                panel:drawText(sizeStr, sizeX, curY, T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, nameFont)
+            end
         end
     end
     curY = curY + nameH + T.px(4)
@@ -1644,38 +1502,32 @@ local function drawZoneInfoBand(panel, win, x, y, w, summary)
     end
     if #specParts > 0 then
         local specLine = table.concat(specParts, ", ")
-        local specFont = T.fontF5 or ZeD.T.fontF2
-        panel:drawText(specLine, x + pad, curY,
-            T.textDim.r, T.textDim.g, T.textDim.b, 0.6, specFont)
+        local specFont = T.fontF2
+        panel:drawText(specLine, x + pad, curY, T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, specFont)
         curY = curY + tm:getFontHeight(specFont) + T.px(6)
     end
 
-    -- Status bars — 3 across, label+% on top, fill bar below, 8px gap (same as overview card)
+    -- Status bars — 3 across, label+% on top, framed bar below, 8u gap (same as overview card)
     local M = ZeD.Molecules
     local barGap = T.px(8)
     local totalBarW = w - pad * 2
     local barW = math.floor((totalBarW - barGap * 2) / 3)
     local fillBarH = T.fillBarH
-    local lblFont = T.fontF1 or ZeD.T.fontF2
+    local lblFont = T.fontF1
     local lblH = tm:getFontHeight(lblFont)
-    local lblColor = T.textSec or T.textDim
-
-    local foodRatio  = (summary.food or 0) / 100
-    local waterRatio = (summary.water or 0) / 100
-    local roofRatio  = (summary.roof or 0) / 100
 
     local bars = {
-        { label = ZeD.upper(getText("IGUI_ItemCat_Food")),         ratio = foodRatio },
-        { label = ZeD.upper(getText("IGUI_FeedingTroughUI_Water")), ratio = waterRatio },
-        { label = ZeD.upper(ZeD.tr("UI_ZeD_Animals_Roof")),         ratio = roofRatio },
+        { label = tc(getText("IGUI_ItemCat_Food")),          ratio = (summary.food or 0) / 100 },
+        { label = tc(getText("IGUI_FeedingTroughUI_Water")), ratio = (summary.water or 0) / 100 },
+        { label = tc(ZeD.tr("UI_ZeD_Animals_Roof")),         ratio = (summary.roof or 0) / 100 },
     }
 
     local bx = x + pad
     for _, bar in ipairs(bars) do
-        A.drawSecondary(panel, bar.label, bx, curY, lblColor)
+        panel:drawText(bar.label, bx, curY, T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, lblFont)
         local pct = math.floor(bar.ratio * 100) .. "%"
         local pctW = tm:MeasureStringX(lblFont, pct)
-        panel:drawText(pct, bx + barW - pctW, curY, T.text.r, T.text.g, T.text.b, 0.7, lblFont)
+        panel:drawText(pct, bx + barW - pctW, curY, T.text.r, T.text.g, T.text.b, T.text.a or 1, lblFont)
         M.drawFillBar(panel, bx, curY + lblH + T.px(2), barW, bar.ratio)
         bx = bx + barW + barGap
     end
@@ -1685,14 +1537,14 @@ local function drawZoneInfoBand(panel, win, x, y, w, summary)
     if #(summary.maleWarnings or {}) > 0 then
         for _, atype in ipairs(summary.maleWarnings) do
             local warnLabel = ZeD.tr("UI_ZeD_Animals_MalesBadge", getText("IGUI_AnimalType_" .. atype) or atype)
-            A.drawBadge(panel, warnLabel, x + pad, curY, "warning", false, T.fontF5 or ZeD.T.fontF2, true)
+            drawTag(panel, x + pad, curY, warnLabel, "warning")
             curY = curY + T.px(18)
         end
     end
 
     local bandH = (curY - y) + pad
 
-    -- Bottom groove divider
+    -- The pane head's bottom: a structure line
     A.drawDividerH(panel, x, y + bandH - T.px(1), w, true)
 
     return bandH
@@ -1700,27 +1552,30 @@ end
 
 -- ============================================================================
 -- M-AROW — ANIMAL ROSTER ROW (48px)
--- Portrait (32px) + name + 3 stat dots + condition badges (top line)
+-- Portrait (32px) + name + 3 stat squares + condition tags (top line)
 -- Species + sex + age text (bottom line)
 -- Returns: AROW_H consumed.
 -- ============================================================================
 
-local function drawAnimalRow(panel, x, y, w, animal, player, hovered)
+local function drawAnimalRow(panel, x, y, w, animal, player, hovered, onFocus)
     local T = ZeD.T
     local A = ZeD.Atoms
     local ad = AD()
     local tm = ZeD.TM
+    local rowH = T.px(AROW_H)
+    local ink = onFocus and T.textOnFocus or T.text
+    local inkDim = onFocus and T.textOnFocus or T.textDim
 
     -- Hover highlight
     if hovered then
         local hc = T.hover
-        panel:drawRect(x, y, w, T.px(AROW_H), hc.a or 0.08, hc.r, hc.g, hc.b)
+        panel:drawRect(x, y, w, rowH, hc.a or 0.08, hc.r, hc.g, hc.b)
     end
 
     -- Portrait icon (32px, vertically centered)
     local portraitPath = ad.resolvePortrait(animal)
     local tex = getTexture(portraitPath)
-    local iconY = y + math.floor((T.px(AROW_H) - T.px(AROW_ICON_SZ)) / 2)
+    local iconY = y + math.floor((rowH - T.px(AROW_ICON_SZ)) / 2)
     if tex then
         panel:drawTextureScaledAspect(tex, x + T.px(AROW_PAD), iconY, T.px(AROW_ICON_SZ), T.px(AROW_ICON_SZ), 0.9, 1, 1, 1)
     end
@@ -1730,12 +1585,12 @@ local function drawAnimalRow(panel, x, y, w, animal, player, hovered)
     local textX = x + T.px(AROW_PAD) + T.px(AROW_ICON_SZ) + T.px(AROW_PAD)
 
     -- Name
-    local nameFont = T.fontF2 or ZeD.T.fontF2
+    local nameFont = T.fontF2
     local name = ad.getDisplayName(animal)
-    panel:drawText(name, textX, topY, T.text.r, T.text.g, T.text.b, 1.0, nameFont)
+    panel:drawText(name, textX, topY, ink.r, ink.g, ink.b, ink.a or 1, nameFont)
     local nameW = tm:MeasureStringX(nameFont, name)
 
-    -- 3 stat dots (Health / Hunger / Thirst) — after name with gap
+    -- 3 stat squares (Health / Hunger / Thirst) — after name with gap
     local dotX = textX + nameW + T.px(10)
     local dotY = topY + math.floor((tm:getFontHeight(nameFont) - T.px(AROW_DOT_SZ)) / 2)
 
@@ -1752,26 +1607,24 @@ local function drawAnimalRow(panel, x, y, w, animal, player, hovered)
     -- Thirst: INVERTED — high value means MORE thirsty (bad), low = hydrated (good)
     local thirst = ad.getThirst(animal)
     A.drawStatusDot(panel, dotX, dotY, dotColorForValue(T, 100 - thirst), T.px(AROW_DOT_SZ))
+    dotX = dotX + T.px(AROW_DOT_SZ)
 
-    -- Condition badges (right-aligned)
+    -- Condition tags (right-aligned), as many as fit beside the name and squares
     local tags = ad.getConditionTags(animal, player)
-    local badgeFont = T.fontF5 or ZeD.T.fontF2
-    local badgePadX = T.sp and T.sp.badgePadX or T.px(4)
-    local badgeX = x + w - T.px(AROW_PAD)
+    local tagX = x + w - T.px(AROW_PAD)
+    local tagRowY = tagY(topY, tm:getFontHeight(nameFont))
     for i = #tags, 1, -1 do
         local tag = tags[i]
-        local variant = tag.sev
-        if variant == "good" then variant = "positive" end
-        -- Measure badge width without drawing (text width + 2× padding)
-        local badgeText = ZeD.upper(tag.label)
-        local bw = tm:MeasureStringX(badgeFont, badgeText) + badgePadX * 2
-        badgeX = badgeX - bw - T.px(4)
-        A.drawBadge(panel, tag.label, badgeX, topY, variant, false, badgeFont, true)
+        local tw = tagWidth(tag.label, sevColor(T, tag.sev) ~= nil)
+        tagX = tagX - tw
+        if tagX < dotX + T.px(8) then break end
+        drawTag(panel, tagX, tagRowY, tag.label, tag.sev)
+        tagX = tagX - T.px(4)
     end
 
     -- === BOTTOM LINE (y + 28px) ===
     local botY = y + T.px(28)
-    local secFont = T.fontF5 or ZeD.T.fontF2
+    local secFont = T.fontF5
 
     -- Species + sex + age
     local atype = ad.getAnimalType(animal)
@@ -1782,18 +1635,18 @@ local function drawAnimalRow(panel, x, y, w, animal, player, hovered)
     local infoLine = species .. ", " .. sex
     if age and age ~= "" then infoLine = infoLine .. " | " .. age end
 
-    panel:drawText(infoLine, textX, botY, T.textDim.r, T.textDim.g, T.textDim.b, 0.6, secFont)
+    panel:drawText(infoLine, textX, botY, inkDim.r, inkDim.g, inkDim.b, inkDim.a or 1, secFont)
 
     -- Bottom divider
-    A.drawDividerH(panel, x, y + T.px(AROW_H) - T.px(1), w, false)
+    A.drawDividerH(panel, x, y + rowH - T.px(1), w, false)
 
-    return T.px(AROW_H)
+    return rowH
 end
 
 -- ============================================================================
 -- M-STRUCT — HUTCHES / FEEDING TROUGHS / HOOKS rows (HOOK_MAP 20-22)
--- One 34px row per structure: tile icon, name, a line of state, a badge and
--- OPEN (the object card; walks there first when it is out of reach).
+-- One 34px row per structure: tile icon, name, a line of state, a tag and
+-- Open (the object card; walks there first when it is out of reach).
 -- ============================================================================
 local STRUCT_H = 34
 
@@ -1810,6 +1663,7 @@ local function moveableName(o, fallback)
     return fallback
 end
 
+-- name, the line of state, the tag word and its severity, the bleed progress (hooks)
 local function structInfo(kind, o, player)
     local name, sub, badge, variant, prog
     if kind == "hutch" then
@@ -1823,7 +1677,7 @@ local function structInfo(kind, o, player)
         end
         sub = ZeD.tr("UI_ZeD_Animals_HutchLine", inside and inside:size() or 0, ocall(o, "getMaxAnimals") or 20,
             eggs, math.floor((ocall(o, "getHutchDirt") or 0) + 0.5) .. "%")
-        -- which door is open (the OPEN button beside it opens the card)
+        -- which door is open (the Open button beside it opens the card)
         if ocall(o, "isOpen") then badge, variant = ZeD.tr("UI_ZeD_Animals_BadgeDoorOpen"), "positive"
         elseif ocall(o, "isEggHatchDoorOpen") then badge, variant = ZeD.tr("UI_ZeD_Animals_BadgeHatchOpen"), "positive"
         else badge, variant = ZeD.tr("UI_ZeD_Animals_BadgeShut"), "neutral" end
@@ -1838,7 +1692,7 @@ local function structInfo(kind, o, player)
             sub = ZeD.tr("UI_ZeD_Animals_TroughWater", string.format("%.1f", wl), string.format("%.1f", ocall(o, "getMaxWater") or 0))
             badge, variant = getText("IGUI_FeedingTroughUI_Water"), "info"
         else
-            sub = ZeD.upper(ZeD.tr("Fluid_Empty")); badge, variant = getText("Fluid_Empty"), "neutral"
+            sub = ZeD.tr("Fluid_Empty"); badge, variant = getText("Fluid_Empty"), "neutral"
         end
         local linked = ocall(o, "getLinkedAnimals")
         local nLinked = linked and linked:size() or 0
@@ -1853,11 +1707,11 @@ local function structInfo(kind, o, player)
             local cn = ocall(a, "getCustomName")
             name = name .. " | " .. ((cn and cn ~= "") and cn or (ocall(a, "getFullName") or "?"))
             local parts = {}
-            if md["leather"] then parts[#parts + 1] = ZeD.upper(ZeD.trBare("IGUI_ButcherHook_Leather")) end
+            if md["leather"] then parts[#parts + 1] = ZeD.trBare("IGUI_ButcherHook_Leather") end
             local blood = tonumber(md["BloodQty"]) or 0
             if blood > 0 then parts[#parts + 1] = ZeD.tr("UI_ZeD_Animals_HookBlood", string.format("%.1f", blood)) end
-            if not md["headless"] then parts[#parts + 1] = ZeD.upper(ZeD.trBare("IGUI_ButcherHook_Head")) end
-            if md["parts"] then parts[#parts + 1] = ZeD.upper(ZeD.trBare("IGUI_ButcherHook_Meat")) end
+            if not md["headless"] then parts[#parts + 1] = ZeD.trBare("IGUI_ButcherHook_Head") end
+            if md["parts"] then parts[#parts + 1] = ZeD.trBare("IGUI_ButcherHook_Meat") end
             sub = (#parts > 0 and ZeD.tr("UI_ZeD_Animals_HookLeft", table.concat(parts, " | ")) or ZeD.tr("UI_ZeD_Animals_HookNothingLeft"))
                 .. " | " .. ZeD.tr(dist == 1 and "UI_ZeD_Animals_TilesOne" or "UI_ZeD_Animals_TilesMany", dist)
             if ocall(o, "isRemovingBlood") then
@@ -1883,15 +1737,26 @@ local function openStruct(kind, o)
     if not ok then print("[ZeD] AnimalsTab: open " .. kind .. " failed: " .. tostring(err)) end
 end
 
-local function drawStructRow(panel, win, x, y, w, kind, o, idx, player)
+-- focusId: the ring element for this row (default: animals:struct:<kind>:<idx>)
+local function drawStructRow(panel, win, x, y, w, kind, o, idx, player, focusId)
     local T = ZeD.T
     local A = ZeD.Atoms
+    local M = ZeD.Molecules
     local tm = ZeD.TM
     local h = T.px(STRUCT_H)
-    if _gpFocusMatches(win, function(el) return el.isStruct and el.structIdx == idx end) then
-        _paintGpCue(panel, x, y, w, h)
+
+    -- hover wash, then the controller's mark, both under the words
+    local hovered = A.mouseIn(panel, x, y, w, h)
+    if hovered then
+        local hv = T.hover
+        panel:drawRect(x, y, w, h, hv.a, hv.r, hv.g, hv.b)
+        help(panel, "UI_ZeD_Animals_HelpStruct")
     end
-    local name, sub, badge, variant, prog = structInfo(kind, o, player)
+    local onFocus = markId(panel, win, focusId or ("animals:struct:" .. kind .. ":" .. tostring(idx)), x, y, w, h)
+    local ink = onFocus and T.textOnFocus or T.text
+    local inkDim = onFocus and T.textOnFocus or T.textDim
+
+    local name, sub, badge, sev, prog = structInfo(kind, o, player)
     local pad = T.px(AROW_PAD)
     local isz = T.px(22)
     local tex
@@ -1901,35 +1766,35 @@ local function drawStructRow(panel, win, x, y, w, kind, o, idx, player)
         tex = ZeD.ObjectCards and ZeD.ObjectCards.spriteIcon(o)
     end
     if tex then panel:drawTextureScaledAspect(tex, x + pad, y + math.floor((h - isz) / 2), isz, isz, 1, 1, 1, 1) end
-    -- OPEN (right)
-    local bf = T.fontF5 or T.fontF2
-    local bw = tm:MeasureStringX(bf, getText("IGUI_Open")) + T.px(16)
+
+    -- Open (right): a compact push button; pressing anywhere on the row does the same
+    local openLabel = getText("IGUI_Open")
+    local bw = M.buttonW(openLabel)
     local bx = x + w - pad - bw
-    local by = y + math.floor((h - T.px(BTN_H)) / 2)
-    local rect = drawBtn(panel, bx, by, getText("IGUI_Open"), "neutral", bf)
-    -- badge (and the bleed bar for a hook)
+    local rbx, rby, rbw, rbh = M.drawButton(panel, bx, y, bw, h, openLabel, "default", false, nil,
+        { compact = true, hover = hovered })
+    local rect = { x = rbx, y = rby, w = rbw, h = rbh }
+
+    -- the tag, and the bleed bar for a hook
     local rx = bx - T.px(8)
-    local badgePadX = T.sp and T.sp.badgePadX or T.px(4)
     if prog then
         local pw = T.px(60)
         rx = rx - pw
-        local py = y + math.floor((h - T.px(6)) / 2)
-        panel:drawRect(rx, py, pw, T.px(6), 1, T.surf1.r, T.surf1.g, T.surf1.b)
-        panel:drawRect(rx, py, math.floor(pw * math.max(0, math.min(1, prog))), T.px(6), 1, T.accent.r, T.accent.g, T.accent.b)
+        local ph = A.fillBarCompactH()
+        A.drawFillBar(panel, rx, y + math.floor((h - ph) / 2), pw, math.max(0, math.min(1, prog)), false, nil, ph)
         rx = rx - T.px(6)
     end
     if badge then
-        local bwid = tm:MeasureStringX(bf, ZeD.upper(badge)) + badgePadX * 2
-        rx = rx - bwid
-        A.drawBadge(panel, badge, rx, y + math.floor((h - tm:getFontHeight(bf)) / 2) - T.px(2), variant, false, bf, true)
+        local tw = tagWidth(badge, sevColor(T, sev) ~= nil)
+        rx = rx - tw
+        drawTag(panel, rx, tagY(y, h), badge, sev)
         rx = rx - T.px(8)
     end
     local nx = x + pad + isz + T.px(8)
-    local f2 = T.fontF2
-    local ny = y + math.floor((h - tm:getFontHeight(f2) - tm:getFontHeight(bf)) / 2)
-    local trunc = ZeD.CraftingCore and ZeD.CraftingCore.truncText or function(s) return s end
-    panel:drawText(trunc(name, f2, rx - nx), nx, ny, T.text.r, T.text.g, T.text.b, 1, f2)
-    panel:drawText(trunc(sub, bf, rx - nx), nx, ny + tm:getFontHeight(f2), T.textDim.r, T.textDim.g, T.textDim.b, 0.7, bf)
+    local f2, f5 = T.fontF2, T.fontF5
+    local ny = y + math.floor((h - tm:getFontHeight(f2) - tm:getFontHeight(f5)) / 2)
+    panel:drawText(A.truncateText(name, f2, rx - nx), nx, ny, ink.r, ink.g, ink.b, ink.a or 1, f2)
+    panel:drawText(A.truncateText(tc(sub), f5, rx - nx), nx, ny + tm:getFontHeight(f2), inkDim.r, inkDim.g, inkDim.b, inkDim.a or 1, f5)
     A.drawDividerH(panel, x, y + h - T.px(1), w, false)
     win._animalsStructZones[#win._animalsStructZones + 1] = { x = x, y = y, w = w, h = h, kind = kind, obj = o, idx = idx, btn = rect }
     return h
@@ -1937,15 +1802,12 @@ end
 
 -- the zone's hutches and troughs, pinned under the info band
 local function drawZoneStructs(panel, win, x, y, w, summary, player)
-    local T = ZeD.T
     local y0 = y
-    local catH = T.sp.colHdrH or T.px(20)
     local idx = 0
     for _, g in ipairs({ { kind = "hutch", label = "UI_ZeD_Animals_SecHutches", list = summary.hutches or {} },
                          { kind = "trough", label = "UI_ZeD_Animals_SecTroughs", list = summary.troughs or {} } }) do
         if #g.list > 0 then
-            drawCatHeader(panel, x, y, w, ZeD.tr(g.label), #g.list, true, false, true)
-            y = y + catH
+            y = y + catRow(panel, win, x, y, w, ZeD.tr(g.label), #g.list, true, true, nil, nil)
             for _, o in ipairs(g.list) do
                 idx = idx + 1
                 y = y + drawStructRow(panel, win, x, y, w, g.kind, o, idx, player)
@@ -1988,12 +1850,10 @@ local function hooksNear(win, player)
 end
 
 local function drawHooks(panel, win, x, y, w, player)
-    local T = ZeD.T
     local hooks = hooksNear(win, player)
     if #hooks == 0 then return 0 end
     local y0 = y
-    drawCatHeader(panel, x, y, w, ZeD.tr("UI_ZeD_Animals_SecHooks"), #hooks, true, false, true)
-    y = y + (T.sp.colHdrH or T.px(20))
+    y = y + catRow(panel, win, x, y, w, ZeD.tr("UI_ZeD_Animals_SecHooks"), #hooks, true, true, nil, nil)
     for i, o in ipairs(hooks) do
         if i > 4 then break end   -- pinned: the four nearest in reading order
         y = y + drawStructRow(panel, win, x, y, w, "hook", o, i, player)
@@ -2005,21 +1865,25 @@ end
 local function drawInHutchRow(panel, win, x, y, w, animal, player)
     local hutch = ocall(animal, "getHutch")
     if not hutch then return 0 end
-    local T = ZeD.T
-    local h = T.px(STRUCT_H)
-    if _gpFocusMatches(win, function(el) return el.isHutchLink end) then _paintGpCue(panel, x, y, w, h) end
     win._animalsStructZones = {}
-    local hh = drawStructRow(panel, win, x, y, w, "hutch", hutch, 1, player)
+    local hh = drawStructRow(panel, win, x, y, w, "hutch", hutch, 1, player, "animals:hutchlink")
     win._animalsHutchLink = win._animalsStructZones[1]
     win._animalsStructZones = {}
     return hh
 end
 
+-- a section head across the detail's full width (its sections sit inside the tab pad)
+local function detailHead(panel, x, y, w, text)
+    local M = ZeD.Molecules
+    local pad = M.getTabPad()
+    return M.drawSectionHeader(panel, x, y, w + pad, text, nil, true, false, nil, nil, pad, nil, true)
+end
+
 -- ============================================================================
 -- GENOME (debug: animal cheats only, as vanilla's Modify Genome)
 -- Each gene's two alleles: value (and what passes to offspring), which one is
--- used, dominant, disorder. Pick an allele, then -/+ 0.05, DOMINANT, SWITCH
--- (which allele is used) or DISORDER (cycles vanilla's list).
+-- used, dominant, disorder. Pick an allele, then -/+ 0.05, Dominant, Switch
+-- (which allele is used) or Disorder (cycles vanilla's list).
 -- ============================================================================
 local GENE_H = 24
 
@@ -2051,45 +1915,48 @@ local function drawGenomeSection(panel, win, x, y, w, animal)
     if not list or list:size() == 0 then return 0 end
     local T = ZeD.T
     local A = ZeD.Atoms
+    local M = ZeD.Molecules
     local tm = ZeD.TM
     local y0 = y
     win._animalsGenomeZones = {}
     local sel = win._animalsGenomeSel
-    -- header
-    local hdrFont = T.fontF1
-    local info = T.info or T.accent
-    panel:drawText("GENOME", x, y, info.r, info.g, info.b, 1, hdrFont)
-    local tagX = x + tm:MeasureStringX(hdrFont, "GENOME") + T.px(8)
-    A.drawBadge(panel, "Animal cheats", tagX, y - T.px(2), "info", false, T.fontF5 or hdrFont, true)
-    A.drawDividerH(panel, x, y + T.px(20) - T.px(1), w, false)
-    y = y + T.px(22)
+    -- header: the section head, and a tag saying this is the cheat panel
+    local hdrH = detailHead(panel, x, y, w, ZeD.tr("UI_ZeD_Animals_Genome"))
+    local cheat = ZeD.tr("UI_ZeD_Animals_AnimalCheats")
+    drawTag(panel, x + w - tagWidth(cheat, true) - T.px(6), tagY(y, hdrH), cheat, "info")
+    y = y + hdrH + T.px(2)
     local colN = T.px(110)
     local colA = math.floor((w - colN - T.px(90)) / 2)
-    local f3, f5 = T.fontF3, T.fontF5 or T.fontF2
+    local f3 = T.fontF3
     for gi = 0, list:size() - 1 do
         local gene = list:get(gi)
         local h = T.px(GENE_H)
-        panel:drawText(geneLabel(ocall(gene, "getName")), x + T.px(2), y + math.floor((h - tm:getFontHeight(T.fontF2)) / 2), T.text.r, T.text.g, T.text.b, 1, T.fontF2)
+        panel:drawText(geneLabel(ocall(gene, "getName")), x + T.px(2), y + math.floor((h - tm:getFontHeight(T.fontF2)) / 2), T.text.r, T.text.g, T.text.b, T.text.a or 1, T.fontF2)
         local dis = nil
         for k = 1, 2 do
             local al = ocall(gene, k == 1 and "getAllele1" or "getAllele2")
             if al then
                 local ax = x + colN + (k - 1) * colA
+                local cw, cy, ch = colA - T.px(6), y + T.px(2), h - T.px(4)
                 local isSel = sel and sel.gene == gi and sel.allele == k
-                local gpSel = _gpFocusMatches(win, function(el) return el.isGenome and el.gene == gi and el.allele == k end)
-                if isSel or gpSel then _paintGpCue(panel, ax, y + T.px(2), colA - T.px(6), h - T.px(4)) end
+                -- the picked allele: the one accent wash; the controller's mark on top of it
+                if isSel then
+                    local ac = T.accent
+                    panel:drawRect(ax, cy, cw, ch, T.selectionA, ac.r, ac.g, ac.b)
+                end
+                local onFocus = markId(panel, win, "animals:genome:" .. gi .. ":" .. k, ax, cy, cw, ch)
                 local cur = ocall(al, "getCurrentValue") or 0
                 local tr = ocall(al, "getTrueRatioValue") or 0
                 local v = (tr > 0) and string.format("%.2f (%.2f)", tr, cur) or string.format("%.2f", cur)
                 local used = ocall(al, "isUsed") == true
                 local dy = y + math.floor((h - T.px(6)) / 2)
                 if used then A.drawStatusDot(panel, ax + T.px(4), dy, T.positive, T.px(6))
-                else A.drawStatusRing(panel, ax + T.px(4), dy, T.textDim, T.px(6)) end
-                local vc = used and T.text or T.textDim
-                panel:drawText(v, ax + T.px(14), y + math.floor((h - tm:getFontHeight(f3)) / 2), vc.r, vc.g, vc.b, 1, f3)
+                else A.drawStatusHollow(panel, ax + T.px(4), dy, T.textDim, T.px(6)) end
+                local vc = onFocus and T.textOnFocus or (used and T.text or T.textDim)
+                panel:drawText(v, ax + T.px(14), y + math.floor((h - tm:getFontHeight(f3)) / 2), vc.r, vc.g, vc.b, vc.a or 1, f3)
                 if ocall(al, "isDominant") then
                     local dx = ax + T.px(14) + tm:MeasureStringX(f3, v) + T.px(6)
-                    panel:drawText("D", dx, y + math.floor((h - tm:getFontHeight(f3)) / 2), T.accent.r, T.accent.g, T.accent.b, 1, f3)
+                    drawTag(panel, dx, tagY(y, h), "D", nil)
                 end
                 local d = ocall(al, "getGeneticDisorder")
                 if d and d ~= "" then dis = d end
@@ -2097,7 +1964,7 @@ local function drawGenomeSection(panel, win, x, y, w, animal)
             end
         end
         if dis then
-            A.drawBadge(panel, dis, x + w - T.px(88), y + math.floor((h - tm:getFontHeight(f5)) / 2) - T.px(2), "danger", false, f5, true)
+            drawTag(panel, x + w - tagWidth(dis, true) - T.px(6), tagY(y, h), dis, "danger")
         end
         A.drawDividerH(panel, x, y + h - T.px(1), w, false)
         y = y + h
@@ -2112,19 +1979,22 @@ local function drawGenomeSection(panel, win, x, y, w, animal)
             if z.gene == sel.gene and z.allele == sel.allele then selAl = z end
         end
     end
-    for _, b in ipairs({ { id = "minus", label = "-0.05" }, { id = "plus", label = "+0.05" }, { id = "dominant", label = "Dominant" },
-                         { id = "switch", label = "Switch" }, { id = "disorder", label = "Disorder" } }) do
-        if _gpFocusMatches(win, function(el) return el.isGenomeBtn and el.btnId == b.id end) then
-            local bw = tm:MeasureStringX(f5, b.label) + T.px(16)
-            _paintGpCue(panel, bx, y, bw, T.px(BTN_H))
-        end
-        local r = drawBtn(panel, bx, y, b.label, selAl and "neutral" or "neutral", f5)
-        r.id = b.id
-        win._animalsGenomeBtns[#win._animalsGenomeBtns + 1] = r
-        bx = bx + r.w + T.px(4)
+    local bh = T.buttonH
+    for _, b in ipairs({ { id = "minus", label = "-0.05" }, { id = "plus", label = "+0.05" },
+                         { id = "dominant", label = ZeD.tr("UI_ZeD_Animals_GeneDominant") },
+                         { id = "switch", label = ZeD.tr("UI_ZeD_Animals_GeneSwitch") },
+                         { id = "disorder", label = ZeD.tr("UI_ZeD_Animals_GeneDisorder") } }) do
+        local bw = M.buttonW(b.label)
+        if bx + bw > x + w and bx > x then bx = x; y = y + bh + T.px(4) end
+        -- no allele picked: the controls have nothing to act on
+        M.drawButton(panel, bx, y, bw, bh, b.label, "default", false, nil, {
+            hover = A.mouseIn(panel, bx, y, bw, bh), disabled = (selAl == nil), win = win,
+            focus = focusFor(win, "animals:genomebtn:" .. b.id) })
+        win._animalsGenomeBtns[#win._animalsGenomeBtns + 1] = { x = bx, y = y, w = bw, h = bh, id = b.id }
+        bx = bx + bw + T.px(8)
     end
     win._animalsGenomeSelAl = selAl
-    y = y + T.px(BTN_H) + T.px(4)
+    y = y + bh + T.px(4)
     return y - y0
 end
 
@@ -2170,8 +2040,7 @@ end
 -- ============================================================================
 -- O-ZNVW — RANCH ZONE DETAIL ORGANISM
 -- Composes: zone info band (pinned) + roster section header with sort
--- cycle + scrollable animal roster rows.
--- Replaces Session A stub.
+-- button + scrollable animal roster rows.
 -- ============================================================================
 
 local function renderRanchZone(panel, win, x, y, w, h)
@@ -2222,47 +2091,33 @@ local function renderRanchZone(panel, win, x, y, w, h)
     local rosterCount = #sortedAnimals
 
     local secY = y + bandH + structH
-    local catH = T.sp.colHdrH or T.px(20)
-    drawCatHeader(panel, x, secY, w, getText("IGUI_SearchMode_Categories_Animals"), rosterCount, true, false)
+    local hdrH = T.buttonH
+    M.drawCategoryRow(panel, x, secY, w, getText("IGUI_SearchMode_Categories_Animals"), rosterCount, true,
+        { noArrow = true, h = hdrH })
 
-    -- Sort label (right-aligned in category header)
-    local sortFont = T.fontF5 or ZeD.T.fontF2
+    -- Sort order: a compact push button at the head's right; pressing it cycles the order
     local sortLabel = ZeD.tr(SORT_LABELS[zs.sortMode] or "IGUI_Name")
     local sortText = ZeD.tr("UI_ZeD_Animals_SortBy", sortLabel)
-    local sortTextW = tm:MeasureStringX(sortFont, sortText)
-    local sortX = x + w - pad - sortTextW
-    local sortTY = secY + math.floor((catH - tm:getFontHeight(sortFont)) / 2)
-    local sortZoneX = sortX - T.px(4)
-    local sortZoneW = sortTextW + T.px(8)
-    -- S109: gamepad focus cue painted under sort text.
-    if _gpFocusMatches(win, function(el) return el.isSort end) then
-        _paintGpCue(panel, sortZoneX, secY, sortZoneW, catH)
-    end
-    panel:drawText(sortText, sortX, sortTY,
-        T.accent.r, T.accent.g, T.accent.b, 0.8, sortFont)
-    win._animalsSortZone = { x = sortZoneX, y = secY, w = sortZoneW, h = catH }
+    local sortW = M.buttonW(sortText)
+    local sortX = x + w - pad - sortW
+    local sbx, sby, sbw, sbh = M.drawButton(panel, sortX, secY, sortW, hdrH, sortText, "default", false, nil, {
+        compact = true, hover = A.mouseIn(panel, sortX, secY, sortW, hdrH), win = win,
+        focus = focusFor(win, "animals:sort"), help = ZeD.tr("UI_ZeD_Animals_HelpSort") })
+    win._animalsSortZone = { x = sbx, y = sby, w = sbw, h = sbh }
 
     -- ── SCROLLABLE ROSTER ──
-    local rosterTop = secY + catH
+    local rosterTop = secY + hdrH
     local rosterH = h - (rosterTop - y)
     if rosterH <= 0 then return end
 
     local totalContentH = rosterCount * T.px(AROW_H)
     local maxScroll = math.max(0, totalContentH - rosterH)
 
-    -- S109: gamepad scroll-follow — keep the focused roster row in viewport.
-    -- Resolve focused animal via live element (Q95: don't rely on persistent
-    -- _gpFocused* as sole source). One-frame lag; imperceptible.
+    -- The controller's row: keep it in the viewport (it is drawn marked below).
     local gpFocusAnimal = nil
     do
-        local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
-        if Focus and Focus.getFocusedZone then
-            local fz = Focus.getFocusedZone(win)
-            if fz and fz.zone == "worldTabContent" then
-                local fe = Focus.getFocusedElement and Focus.getFocusedElement(win)
-                if fe and fe.isRoster then gpFocusAnimal = fe.animal end
-            end
-        end
+        local fe = liveEl(win)
+        if fe and fe.isRoster then gpFocusAnimal = fe.animal end
     end
     if gpFocusAnimal then
         local idx = nil
@@ -2293,13 +2148,15 @@ local function renderRanchZone(panel, win, x, y, w, h)
 
     for _, animal in ipairs(sortedAnimals) do
         if rowY + T.px(AROW_H) > rosterTop and rowY < rosterTop + rosterH then
-            local isHovered = mx >= x and mx < x + contentW
-                and my >= rowY and my < rowY + T.px(AROW_H)
-            -- S109: gamepad focus cue painted before row content.
+            local isHovered = A.mouseIn(panel, x, rowY, contentW, T.px(AROW_H))
+                and my >= rosterTop and my < rosterTop + rosterH
+            if isHovered then help(panel, "UI_ZeD_Animals_HelpAnimalRow") end
+            -- the controller's mark goes under the row's words
+            local onFocus = false
             if animal == gpFocusAnimal then
-                _paintGpCue(panel, x + pad, rowY, contentW - pad * 2, T.px(AROW_H))
+                onFocus = ZeD.Focus.mark(panel, x + pad, rowY, contentW - pad * 2, T.px(AROW_H), focusOpts(win))
             end
-            drawAnimalRow(panel, x + pad, rowY, contentW - pad * 2, animal, player, isHovered)
+            drawAnimalRow(panel, x + pad, rowY, contentW - pad * 2, animal, player, isHovered, onFocus)
             table.insert(win._animalsRosterZones, {
                 x = x, y = rowY, w = contentW, h = T.px(AROW_H), animal = animal
             })
@@ -2326,7 +2183,7 @@ end
 
 -- ============================================================================
 -- M-AHEAD — ANIMAL HEADER
--- 48px portrait + name + breed/species/sex + age/weight + condition badges.
+-- 48px portrait + name + breed/species/sex + age/weight + condition tags.
 -- Returns: headerH consumed.
 -- ============================================================================
 
@@ -2348,14 +2205,14 @@ local function drawAnimalHeader(panel, x, y, w, animal, player)
     -- Text block right of portrait
     local textX = x + pad + T.px(AHEAD_ICON_SZ) + pad + T.px(2)
 
-    -- Name (F2, accent)
-    local nameFont = T.fontF2 or ZeD.T.fontF2
+    -- Name (F4, the heading)
+    local nameFont = T.fontF4
     local name = ad.getDisplayName(animal)
-    panel:drawText(name, textX, curY, T.accent.r, T.accent.g, T.accent.b, 1.0, nameFont)
+    panel:drawText(name, textX, curY, T.textHead.r, T.textHead.g, T.textHead.b, T.textHead.a or 1, nameFont)
     curY = curY + tm:getFontHeight(nameFont) + T.px(2)
 
-    -- Breed + Species + Sex (F4, textDim)
-    local secFont = T.fontF4 or ZeD.T.fontF2
+    -- Breed + Species + Sex (F2, textDim)
+    local secFont = T.fontF2
     local atype = ad.getAnimalType(animal)
     local species = getText("IGUI_AnimalType_" .. atype) or atype
     local breed = ad.getBreedName(animal)
@@ -2364,11 +2221,11 @@ local function drawAnimalHeader(panel, x, y, w, animal, player)
     local idLine = ""
     if breed and breed ~= "" then idLine = breed .. " " end
     idLine = idLine .. species .. ", " .. sex
-    panel:drawText(idLine, textX, curY, T.textDim.r, T.textDim.g, T.textDim.b, 0.7, secFont)
+    panel:drawText(idLine, textX, curY, T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, secFont)
     curY = curY + tm:getFontHeight(secFont) + T.px(2)
 
     -- Age + Weight (F5, textDim)
-    local microFont = T.fontF5 or ZeD.T.fontF2
+    local microFont = T.fontF5
     local age = ad.getAgeText(animal, player)
     local weight = ad.getWeight(animal)
     local infoLine = ""
@@ -2378,27 +2235,29 @@ local function drawAnimalHeader(panel, x, y, w, animal, player)
         infoLine = infoLine .. ZeD.tr("UI_ZeD_Animals_WeightKg", string.format("%.1f", weight))
     end
     if infoLine ~= "" then
-        panel:drawText(infoLine, textX, curY, T.textDim.r, T.textDim.g, T.textDim.b, 0.6, microFont)
+        panel:drawText(infoLine, textX, curY, T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, microFont)
         curY = curY + tm:getFontHeight(microFont) + T.px(4)
     end
 
-    -- Condition badges (horizontal row)
+    -- Condition tags (a row, wrapping at the right edge)
     local tags = ad.getConditionTags(animal, player)
     if #tags > 0 then
-        local badgeFont = T.fontF5 or ZeD.T.fontF2
         local bx = textX
         for _, tag in ipairs(tags) do
-            local variant = tag.sev
-            if variant == "good" then variant = "positive" end
-            local bw = A.drawBadge(panel, tag.label, bx, curY, variant, false, badgeFont, true)
-            bx = bx + bw + T.px(4)
+            local tw = tagWidth(tag.label, sevColor(T, tag.sev) ~= nil)
+            if bx > textX and bx + tw > x + w - pad then
+                bx = textX
+                curY = curY + T.px(16) + T.px(4)
+            end
+            drawTag(panel, bx, curY, tag.label, tag.sev)
+            bx = bx + tw + T.px(4)
         end
-        curY = curY + tm:getFontHeight(badgeFont) + (T.sp and T.sp.badgePadY or T.px(2)) * 2 + T.px(4)
+        curY = curY + T.px(16) + T.px(4)
     end
 
     local headerH = math.max(T.px(AHEAD_ICON_SZ) + pad * 2, (curY - y) + pad)
 
-    -- Groove divider
+    -- The pane head's bottom: a structure line
     A.drawDividerH(panel, x, y + headerH - T.px(1), w, true)
 
     return headerH
@@ -2406,41 +2265,30 @@ end
 
 -- ============================================================================
 -- M-AVIT — VITAL ROW
--- Label (left) + text/numeric value (middle) + fill bar (right).
--- Text descriptor at Lv0, numeric at Lv3+. Color by threshold.
+-- Label (left) + text/numeric value (middle) + framed fill bar (right).
+-- Text descriptor at Lv0, numeric at Lv3+. Bar colour by threshold.
 -- Returns: VITAL_ROW_H consumed.
 -- ============================================================================
 
 local function drawVitalRow(panel, x, y, w, label, value, textDesc, numericDesc, canSeeNum, fillRatio, fillColor)
     local T = ZeD.T
+    local A = ZeD.Atoms
     local tm = ZeD.TM
 
-    local lblFont = T.fontF1 or ZeD.T.fontF2
-    local valFont = T.fontF3 or ZeD.T.fontF2
-    local valY = y + math.floor((T.px(VITAL_ROW_H) - tm:getFontHeight(valFont)) / 2)
+    local lblFont = T.fontF1
+    local valFont = T.fontF3
+    local rowH = T.px(VITAL_ROW_H)
+    local valY = y + math.floor((rowH - tm:getFontHeight(valFont)) / 2)
 
-    -- Label (left, uppercase, textSec)
-    local tc = T.textSec or T.textDim
-    panel:drawText(ZeD.upper(label), x, valY, tc.r, tc.g, tc.b, tc.a or 0.7, lblFont)
+    -- Label (left, sentence case)
+    local tc2 = T.textSec
+    panel:drawText(tc(label), x, valY, tc2.r, tc2.g, tc2.b, tc2.a or 1, lblFont)
 
-    -- Fill bar (right-aligned)
-    local barX = x + w - T.px(VITAL_BAR_W)
-    local barY = y + math.floor((T.px(VITAL_ROW_H) - T.px(VITAL_BAR_H)) / 2)
-
-    -- Bar background
-    local bg = T.surf3 or T.surf1
-    panel:drawRect(barX, barY, T.px(VITAL_BAR_W), T.px(VITAL_BAR_H), bg.a or 0.3, bg.r, bg.g, bg.b)
-
-    -- Bar fill
-    fillRatio = math.max(0, math.min(1, fillRatio or 0))
-    if fillRatio > 0 then
-        local fillW = math.max(T.px(1), math.floor(T.px(VITAL_BAR_W) * fillRatio))
-        panel:drawRect(barX, barY, fillW, T.px(VITAL_BAR_H), (fillColor.a or 1) * 0.7, fillColor.r, fillColor.g, fillColor.b)
-    end
-
-    -- Bar border
-    local bc = T.border or T.borderS
-    panel:drawRectBorder(barX, barY, T.px(VITAL_BAR_W), T.px(VITAL_BAR_H), bc.a or 0.3, bc.r, bc.g, bc.b)
+    -- Fill bar (right-aligned): the framed strip, a flat fill
+    local barW = T.px(VITAL_BAR_W)
+    local barX = x + w - barW
+    local barH = T.fillBarH
+    A.drawFillBar(panel, barX, y + math.floor((rowH - barH) / 2), barW, fillRatio or 0, false, fillColor, barH)
 
     -- Value text (between label and bar)
     local displayText = canSeeNum and numericDesc or textDesc
@@ -2456,10 +2304,31 @@ local function drawVitalRow(panel, x, y, w, label, value, textDesc, numericDesc,
             displayText = displayText .. "..."
         end
         local valX = barX - valW - T.px(8)
-        panel:drawText(displayText, valX, valY, T.text.r, T.text.g, T.text.b, 0.8, valFont)
+        panel:drawText(displayText, valX, valY, T.text.r, T.text.g, T.text.b, T.text.a or 1, valFont)
     end
 
-    return T.px(VITAL_ROW_H)
+    return rowH
+end
+
+-- A label / value row with no bar: the value at 100u, with a status square before it
+-- when the value carries a status (the number stays in the default text colour).
+-- Returns the row height and the x the value ends at.
+local function drawTextRow(panel, x, y, label, value, mark)
+    local T = ZeD.T
+    local A = ZeD.Atoms
+    local tm = ZeD.TM
+    local rowH = T.px(VITAL_ROW_H)
+    local valFont = T.fontF3
+    local ty = y + math.floor((rowH - tm:getFontHeight(valFont)) / 2)
+    local lc = T.textSec
+    panel:drawText(tc(label), x, ty, lc.r, lc.g, lc.b, lc.a or 1, T.fontF1)
+    local vx = x + T.px(100)
+    if mark then
+        A.drawStatusDot(panel, vx, y + math.floor((rowH - T.px(6)) / 2), mark, T.px(6))
+        vx = vx + T.px(12)
+    end
+    panel:drawText(value, vx, ty, T.text.r, T.text.g, T.text.b, T.text.a or 1, valFont)
+    return rowH, vx + tm:MeasureStringX(valFont, value)
 end
 
 -- ============================================================================
@@ -2475,12 +2344,7 @@ local function drawVitalsSection(panel, x, y, w, animal, player)
     local curY = y
 
     -- Section header
-    local hdrFont = T.fontF1 or ZeD.T.fontF2
-    local hdrH = T.px(20)
-    local hdrColor = T.textHead or T.textSec
-    panel:drawText(ZeD.tr("UI_ZeD_Animals_HdrVitals"), x, curY, hdrColor.r, hdrColor.g, hdrColor.b, hdrColor.a or 0.8, hdrFont)
-    A.drawDividerH(panel, x, curY + hdrH - T.px(1), w, false)
-    curY = curY + hdrH + T.px(2)
+    curY = curY + detailHead(panel, x, curY, w, ZeD.tr("UI_ZeD_Animals_HdrVitals")) + T.px(2)
 
     local canSeeNum = ad.canSee(player, "health_num")
 
@@ -2522,10 +2386,10 @@ local function drawVitalsSection(panel, x, y, w, animal, player)
     if stress > 10 then
         local sources = si.inferSources(animal, player)
         if #sources > 0 then
-            local srcFont = T.fontF5 or ZeD.T.fontF2
+            local srcFont = T.fontF5
             local srcText = "\226\134\146 " .. table.concat(sources, ", ")
             panel:drawText(srcText, x + T.px(4), curY,
-                T.textDim.r, T.textDim.g, T.textDim.b, 0.5, srcFont)
+                T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, srcFont)
             curY = curY + tm:getFontHeight(srcFont) + T.px(2)
         end
     end
@@ -2560,12 +2424,7 @@ local function drawProductionSection(panel, x, y, w, animal, player)
     end
 
     -- Section header
-    local hdrFont = T.fontF1 or ZeD.T.fontF2
-    local hdrH = T.px(20)
-    local hdrColor = T.textHead or T.textSec
-    panel:drawText(ZeD.tr("UI_ZeD_Animals_HdrProduction"), x, curY, hdrColor.r, hdrColor.g, hdrColor.b, hdrColor.a or 0.8, hdrFont)
-    A.drawDividerH(panel, x, curY + hdrH - T.px(1), w, false)
-    curY = curY + hdrH + T.px(2)
+    curY = curY + detailHead(panel, x, curY, w, ZeD.tr("UI_ZeD_Animals_HdrProduction")) + T.px(2)
 
     -- Milk row
     if maxMilk > 0 then
@@ -2590,20 +2449,14 @@ local function drawProductionSection(panel, x, y, w, animal, player)
 
     -- Eggs row (text only, no bar)
     if eggsPerDay > 0 then
-        local valFont = T.fontF3 or ZeD.T.fontF2
-        local lblFont = T.fontF1 or ZeD.T.fontF2
-        local rowY = curY + math.floor((T.px(VITAL_ROW_H) - tm:getFontHeight(valFont)) / 2)
-        local lblColor = T.textSec or T.textDim
-        panel:drawText(ZeD.upper(ZeD.tr("UI_ZeD_Animals_Eggs")), x, rowY, lblColor.r, lblColor.g, lblColor.b, lblColor.a or 0.7, lblFont)
         local eggText = ZeD.tr("UI_ZeD_Animals_PerDay", string.format("%.1f", eggsPerDay))
-        panel:drawText(eggText, x + T.px(80), rowY, T.text.r, T.text.g, T.text.b, 0.8, valFont)
+        local rowH, endX = drawTextRow(panel, x, curY, ZeD.tr("UI_ZeD_Animals_Eggs"), eggText, nil)
 
-        -- Laying badge
+        -- Laying tag
         if isLayingNow then
-            A.drawBadge(panel, ZeD.upper(ZeD.tr("UI_ZeD_Animals_TagLaying")), x + T.px(80) + tm:MeasureStringX(valFont, eggText) + T.px(8),
-                curY + math.floor((T.px(VITAL_ROW_H) - T.px(14)) / 2), "positive", false, T.fontF5 or ZeD.T.fontF2, true)
+            drawTag(panel, endX + T.px(8), tagY(curY, rowH), ZeD.tr("UI_ZeD_Animals_TagLaying"), "positive")
         end
-        curY = curY + T.px(VITAL_ROW_H)
+        curY = curY + rowH
         hasContent = true
     end
 
@@ -2611,15 +2464,9 @@ local function drawProductionSection(panel, x, y, w, animal, player)
     if ad.canSee(player, "last_milked") then
         local lastMilked = ad.getLastMilkedHours(animal)
         if lastMilked then
-            local valFont = T.fontF3 or ZeD.T.fontF2
-            local lblFont = T.fontF1 or ZeD.T.fontF2
-            local rowY = curY + math.floor((T.px(VITAL_ROW_H) - tm:getFontHeight(valFont)) / 2)
-            local lblColor = T.textSec or T.textDim
-            panel:drawText(ZeD.tr("UI_ZeD_Animals_LastMilked"), x, rowY, lblColor.r, lblColor.g, lblColor.b, lblColor.a or 0.7, lblFont)
             local hoursAgo = math.floor(lastMilked)
-            local milkedText = ZeD.tr("UI_ZeD_Animals_HoursAgo", hoursAgo)
-            panel:drawText(milkedText, x + T.px(100), rowY, T.textDim.r, T.textDim.g, T.textDim.b, 0.6, valFont)
-            curY = curY + T.px(VITAL_ROW_H)
+            curY = curY + drawTextRow(panel, x, curY, ZeD.tr("UI_ZeD_Animals_LastMilked"),
+                ZeD.tr("UI_ZeD_Animals_HoursAgo", hoursAgo), nil)
         end
     end
 
@@ -2644,12 +2491,7 @@ local function drawBreedingSection(panel, x, y, w, animal, player)
     local hasContent = false
 
     -- Section header
-    local hdrFont = T.fontF1 or ZeD.T.fontF2
-    local hdrH = T.px(20)
-    local hdrColor = T.textHead or T.textSec
-    panel:drawText(ZeD.tr("UI_ZeD_Animals_HdrBreeding"), x, curY, hdrColor.r, hdrColor.g, hdrColor.b, hdrColor.a or 0.8, hdrFont)
-    A.drawDividerH(panel, x, curY + hdrH - T.px(1), w, false)
-    curY = curY + hdrH + T.px(2)
+    curY = curY + detailHead(panel, x, curY, w, ZeD.tr("UI_ZeD_Animals_HdrBreeding")) + T.px(2)
 
     -- Pregnancy
     local isPregnant = ad.isPregnant(animal)
@@ -2662,13 +2504,7 @@ local function drawBreedingSection(panel, x, y, w, animal, player)
             curY = curY + drawVitalRow(panel, x, curY, w, ZeD.tr("UI_ZeD_Animals_Pregnancy"), 0,
                 pregText, pregText, true, ratio, T.info)
         else
-            local valFont = T.fontF3 or ZeD.T.fontF2
-            local lblFont = T.fontF1 or ZeD.T.fontF2
-            local rowY = curY + math.floor((T.px(VITAL_ROW_H) - tm:getFontHeight(valFont)) / 2)
-            local lblColor = T.textSec or T.textDim
-            panel:drawText(ZeD.upper(ZeD.tr("UI_ZeD_Animals_Pregnancy")), x, rowY, lblColor.r, lblColor.g, lblColor.b, lblColor.a or 0.7, lblFont)
-            panel:drawText(getText("UI_Yes"), x + T.px(100), rowY, T.info.r, T.info.g, T.info.b, 0.9, valFont)
-            curY = curY + T.px(VITAL_ROW_H)
+            curY = curY + drawTextRow(panel, x, curY, ZeD.tr("UI_ZeD_Animals_Pregnancy"), getText("UI_Yes"), T.info)
         end
         hasContent = true
     end
@@ -2678,47 +2514,33 @@ local function drawBreedingSection(panel, x, y, w, animal, player)
         local hasSeason = ad.haveMatingSeason(animal)
         if hasSeason then
             local inSeason = ad.isInMatingSeason(animal)
-            local valFont = T.fontF3 or ZeD.T.fontF2
-            local lblFont = T.fontF1 or ZeD.T.fontF2
-            local rowY = curY + math.floor((T.px(VITAL_ROW_H) - tm:getFontHeight(valFont)) / 2)
-            local lblColor = T.textSec or T.textDim
-            panel:drawText(ZeD.upper(ZeD.tr("UI_ZeD_Animals_Mating")), x, rowY, lblColor.r, lblColor.g, lblColor.b, lblColor.a or 0.7, lblFont)
-            local seasonText = ZeD.tr(inSeason and "UI_ZeD_Animals_InSeason" or "UI_ZeD_Animals_OffSeason")
-            local seasonColor = inSeason and T.positive or T.textDim
-            panel:drawText(seasonText, x + T.px(100), rowY, seasonColor.r, seasonColor.g, seasonColor.b, 0.8, valFont)
-            curY = curY + T.px(VITAL_ROW_H)
+            curY = curY + drawTextRow(panel, x, curY, ZeD.tr("UI_ZeD_Animals_Mating"),
+                ZeD.tr(inSeason and "UI_ZeD_Animals_InSeason" or "UI_ZeD_Animals_OffSeason"), inSeason and T.positive or nil)
             hasContent = true
         end
     end
 
-    -- Player acceptance (Lv5)
+    -- Player acceptance (Lv5): the number in the default colour, a square for how far it goes
     if ad.canSee(player, "acceptance_num") then
         local acceptance = ad.getPlayerAcceptance(animal, player)
         local accText = tostring(math.floor(acceptance))
         local accColor = acceptance >= ad.ACCEPT_PETTING and T.positive
             or (acceptance >= ad.ACCEPT_CALL and T.warning or T.danger)
 
-        local valFont = T.fontF3 or ZeD.T.fontF2
-        local lblFont = T.fontF1 or ZeD.T.fontF2
-        local rowY = curY + math.floor((T.px(VITAL_ROW_H) - tm:getFontHeight(valFont)) / 2)
-        local lblColor = T.textSec or T.textDim
-        panel:drawText(ZeD.upper(ZeD.tr("UI_ZeD_Animals_Trust")), x, rowY, lblColor.r, lblColor.g, lblColor.b, lblColor.a or 0.7, lblFont)
-        panel:drawText(accText, x + T.px(100), rowY, accColor.r, accColor.g, accColor.b, 0.9, valFont)
+        local rowH, endX = drawTextRow(panel, x, curY, ZeD.tr("UI_ZeD_Animals_Trust"), accText, accColor)
 
         -- Context hint
-        local hintFont = T.fontF5 or ZeD.T.fontF2
         local hint = ZeD.tr(acceptance >= ad.ACCEPT_PETTING and "UI_ZeD_Animals_TrustPet"
             or (acceptance >= ad.ACCEPT_CALL and "UI_ZeD_Animals_TrustCall" or "UI_ZeD_Animals_TrustNone"))
-        local hintW = tm:MeasureStringX(valFont, accText)
-        panel:drawText(hint, x + T.px(100) + hintW + T.px(8), rowY + T.px(1),
-            T.textDim.r, T.textDim.g, T.textDim.b, 0.5, hintFont)
-        curY = curY + T.px(VITAL_ROW_H)
+        panel:drawText(hint, endX + T.px(8), curY + math.floor((rowH - tm:getFontHeight(T.fontF5)) / 2),
+            T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, T.fontF5)
+        curY = curY + rowH
         hasContent = true
     end
 
     -- Mother/baby relationships
     if ad.needsMother(animal) then
-        A.drawBadge(panel, ZeD.upper(ZeD.tr("UI_ZeD_Animals_AlertOrphan")), x, curY, "danger", false, T.fontF5 or ZeD.T.fontF2, true)
+        drawTag(panel, x, curY, ZeD.tr("UI_ZeD_Animals_AlertOrphan"), "danger")
         curY = curY + T.px(18)
         hasContent = true
     end
@@ -2728,7 +2550,7 @@ end
 
 -- ============================================================================
 -- M-AGEN — GENETICS SECTION (Lv7+/Lv9+)
--- Disorder badges with descriptions. Skill-gated by AD.getVisibleDisorders.
+-- Disorder tags with descriptions. Skill-gated by AD.getVisibleDisorders.
 -- ============================================================================
 
 local function drawGeneticsSection(panel, x, y, w, animal, player)
@@ -2743,32 +2565,19 @@ local function drawGeneticsSection(panel, x, y, w, animal, player)
     local curY = y
 
     -- Section header
-    local hdrFont = T.fontF1 or ZeD.T.fontF2
-    local hdrH = T.px(20)
-    local hdrColor = T.textHead or T.textSec
-    panel:drawText(ZeD.tr("UI_ZeD_Animals_HdrGenetics"), x, curY, hdrColor.r, hdrColor.g, hdrColor.b, hdrColor.a or 0.8, hdrFont)
-    A.drawDividerH(panel, x, curY + hdrH - T.px(1), w, false)
-    curY = curY + hdrH + T.px(2)
+    curY = curY + detailHead(panel, x, curY, w, ZeD.tr("UI_ZeD_Animals_HdrGenetics")) + T.px(2)
 
-    local badgeFont = T.fontF5 or ZeD.T.fontF2
-    local descFont = T.fontF5 or ZeD.T.fontF2
+    local descFont = T.fontF5
 
     for _, d in ipairs(disorders) do
-        -- Severity → badge variant
-        local variant = "info"
-        if d.sev == "positive" then variant = "positive"
-        elseif d.sev == "severe" then variant = "danger"
-        elseif d.sev == "minor" then variant = "warning"
-        end
+        -- Tag: the severity is its status square (a good trait green, a severe one red)
+        drawTag(panel, x, curY, d.label, d.sev)
+        curY = curY + T.px(16) + T.px(2)
 
-        -- Badge
-        A.drawBadge(panel, d.label, x, curY, variant, false, badgeFont, true)
-        curY = curY + tm:getFontHeight(badgeFont) + (T.sp and T.sp.badgePadY or T.px(2)) * 2 + T.px(2)
-
-        -- Description below badge
+        -- Description below the tag
         if d.desc and d.desc ~= "" then
             panel:drawText(d.desc, x + T.px(4), curY,
-                T.textDim.r, T.textDim.g, T.textDim.b, 0.5, descFont)
+                T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, descFont)
             curY = curY + tm:getFontHeight(descFont) + T.px(4)
         end
     end
@@ -2779,7 +2588,7 @@ end
 -- ============================================================================
 -- O-ANDTL — ANIMAL DETAIL ORGANISM
 -- Composes: header (pinned) + scrollable body (vitals + production +
--- breeding + genetics). Replaces Session A stub.
+-- breeding + genetics).
 -- ============================================================================
 
 local function getDetailViewState(win)
@@ -2802,7 +2611,8 @@ local function renderRanchAnimal(panel, win, x, y, w, h)
     local player = getSpecificPlayer(0)
 
     if not animal then
-        drawEmptyState(panel, win, x, y, w, h)
+        local pad0 = M.getTabPad()
+        M.drawEmptyLine(panel, x + pad0, y + T.px(8), w - pad0 * 2, ZeD.tr("UI_ZeD_Animals_AnimalGone"))
         return
     end
 
@@ -2853,9 +2663,7 @@ local function renderRanchAnimal(panel, win, x, y, w, h)
 
     -- gamepad: keep a focused genome element (or the hutch link) in view
     do
-        local Focus = ZeD.Input and ZeD.Input.Focus
-        local fz = Focus and Focus.getFocusedZone and Focus.getFocusedZone(win)
-        local fe = fz and fz.zone == "worldTabContent" and Focus.getFocusedElement and Focus.getFocusedElement(win)
+        local fe = liveEl(win)
         if fe and (fe.isGenome or fe.isGenomeBtn) then
             local ty, th
             for _, z in ipairs((fe.isGenome and win._animalsGenomeZones) or win._animalsGenomeBtns or {}) do
@@ -2912,18 +2720,19 @@ local function drawButcherSummary(panel, x, y, w, eligible)
     end
 
     -- Count line
-    local countFont = T.fontF2 or ZeD.T.fontF2
+    local countFont = T.fontF2
     local countStr = ZeD.tr("UI_ZeD_Animals_EligibleCount", #eligible)
-    panel:drawText(countStr, x + pad, curY, T.text.r, T.text.g, T.text.b, 1.0, countFont)
+    panel:drawText(countStr, x + pad, curY, T.text.r, T.text.g, T.text.b, T.text.a or 1, countFont)
     curY = curY + tm:getFontHeight(countFont) + T.px(4)
 
     -- Yield estimate line
-    local yieldFont = T.fontF3 or ZeD.T.fontF2
+    local yieldFont = T.fontF3
     local yieldStr = ZeD.tr("UI_ZeD_Animals_YieldSummary", string.format("%.1f", totalMeat), string.format("%.1f", totalWeight))
-    panel:drawText(yieldStr, x + pad, curY, T.accent.r, T.accent.g, T.accent.b, 0.8, yieldFont)
+    panel:drawText(yieldStr, x + pad, curY, T.text.r, T.text.g, T.text.b, T.text.a or 1, yieldFont)
     curY = curY + tm:getFontHeight(yieldFont) + pad
 
     local bandH = curY - y
+    -- The pane head's bottom: a structure line
     A.drawDividerH(panel, x, y + bandH - T.px(1), w, true)
 
     return bandH
@@ -2931,29 +2740,32 @@ end
 
 -- ============================================================================
 -- M-BROW — BUTCHER ROSTER ROW (40px)
--- Portrait + name + species + weight (bold) + est. meat + product badges.
+-- Portrait + name + species + weight + est. meat + product tags.
 -- Sorted by weight descending (heaviest first).
 -- Returns: BROW_H consumed.
 -- ============================================================================
 
-local function drawButcherRow(panel, x, y, w, entry, hovered)
+local function drawButcherRow(panel, x, y, w, entry, hovered, onFocus)
     local T = ZeD.T
     local A = ZeD.Atoms
     local ad = AD()
     local tm = ZeD.TM
     local animal = entry.animal
     local yield = entry.yield
+    local rowH = T.px(BROW_H)
+    local ink = onFocus and T.textOnFocus or T.text
+    local inkDim = onFocus and T.textOnFocus or T.textDim
 
     -- Hover highlight
     if hovered then
         local hc = T.hover
-        panel:drawRect(x, y, w, T.px(BROW_H), hc.a or 0.08, hc.r, hc.g, hc.b)
+        panel:drawRect(x, y, w, rowH, hc.a or 0.08, hc.r, hc.g, hc.b)
     end
 
     -- Portrait (28px, vertically centered)
     local portraitPath = ad.resolvePortrait(animal)
     local tex = getTexture(portraitPath)
-    local iconY = y + math.floor((T.px(BROW_H) - T.px(BROW_ICON_SZ)) / 2)
+    local iconY = y + math.floor((rowH - T.px(BROW_ICON_SZ)) / 2)
     if tex then
         panel:drawTextureScaledAspect(tex, x + T.px(BROW_PAD), iconY, T.px(BROW_ICON_SZ), T.px(BROW_ICON_SZ), 0.9, 1, 1, 1)
     end
@@ -2962,48 +2774,46 @@ local function drawButcherRow(panel, x, y, w, entry, hovered)
     local topY = y + T.px(4)
     local botY = y + T.px(22)
 
-    -- Top line: Name + Weight (right-aligned, bold)
-    local nameFont = T.fontF2 or ZeD.T.fontF2
+    -- Top line: Name + Weight (right-aligned)
+    local nameFont = T.fontF2
     local name = ad.getDisplayName(animal)
-    panel:drawText(name, textX, topY, T.text.r, T.text.g, T.text.b, 1.0, nameFont)
+    panel:drawText(name, textX, topY, ink.r, ink.g, ink.b, ink.a or 1, nameFont)
 
-    -- Weight (right-aligned, accent, data font)
-    local weightFont = T.fontF3 or ZeD.T.fontF2
+    -- Weight (right-aligned, data font)
+    local weightFont = T.fontF3
     local weightStr = ZeD.tr("UI_ZeD_Animals_WeightKg", string.format("%.1f", yield.weight))
     local weightW = tm:MeasureStringX(weightFont, weightStr)
     panel:drawText(weightStr, x + w - T.px(BROW_PAD) - weightW, topY,
-        T.accent.r, T.accent.g, T.accent.b, 1.0, weightFont)
+        ink.r, ink.g, ink.b, ink.a or 1, weightFont)
 
-    -- Bottom line: Species + est. meat + product badges
-    local secFont = T.fontF5 or ZeD.T.fontF2
+    -- Bottom line: Species + est. meat + product tags
+    local secFont = T.fontF5
     local atype = ad.getAnimalType(animal)
     local species = getText("IGUI_AnimalType_" .. atype) or atype
     local sex = ZeD.tr(ad.isFemale(animal) and "UI_ZeD_Animals_SexF" or "UI_ZeD_Animals_SexM")
     local specLine = species .. " (" .. sex .. ")"
-    panel:drawText(specLine, textX, botY, T.textDim.r, T.textDim.g, T.textDim.b, 0.6, secFont)
+    panel:drawText(specLine, textX, botY, inkDim.r, inkDim.g, inkDim.b, inkDim.a or 1, secFont)
 
     -- Estimated meat (after species)
     local specW = tm:MeasureStringX(secFont, specLine)
     local meatStr = ZeD.tr("UI_ZeD_Animals_EstMeat", string.format("%.1f", yield.estMeat))
     panel:drawText(meatStr, textX + specW + T.px(6), botY,
-        T.textDim.r, T.textDim.g, T.textDim.b, 0.5, secFont)
+        inkDim.r, inkDim.g, inkDim.b, inkDim.a or 1, secFont)
 
-    -- Product badges (right-aligned on bottom line)
-    local badgeFont = T.fontF5 or ZeD.T.fontF2
-    local badgePadX = T.sp and T.sp.badgePadX or T.px(4)
+    -- Product tags (right-aligned on the bottom line)
     local bx = x + w - T.px(BROW_PAD)
+    local ty = tagY(botY, tm:getFontHeight(secFont))
     for i = #yield.products, 1, -1 do
         local prod = ZeD.tr(AT.PROD_KEYS[yield.products[i]] or "UI_ZeD_Animals_ProdBone")
-        local badgeText = ZeD.upper(prod)
-        local bw = tm:MeasureStringX(badgeFont, badgeText) + badgePadX * 2
-        bx = bx - bw - T.px(3)
-        A.drawBadge(panel, prod, bx, botY, "neutral", false, badgeFont, true)
+        bx = bx - tagWidth(prod, false)
+        drawTag(panel, bx, ty, prod, nil)
+        bx = bx - T.px(3)
     end
 
     -- Divider
-    A.drawDividerH(panel, x, y + T.px(BROW_H) - T.px(1), w, false)
+    A.drawDividerH(panel, x, y + rowH - T.px(1), w, false)
 
-    return T.px(BROW_H)
+    return rowH
 end
 
 -- ============================================================================
@@ -3035,19 +2845,11 @@ local function renderButcherOverview(panel, win, x, y, w, h)
         end
     end
 
-    -- Empty state
+    -- Empty state: one dim sentence, under the roster's head
     if #eligible == 0 then
-        local font = T.fontF4 or ZeD.T.fontF2
-        local text = ZeD.tr("UI_ZeD_Animals_NoEligible")
-        local tw = ZeD.TM:MeasureStringX(font, text)
-        panel:drawText(text, x + math.floor((w - tw) / 2), y + T.px(EMPTY_PAD),
-            T.textDim.r, T.textDim.g, T.textDim.b, 0.6, font)
-
-        local hint = ZeD.tr("UI_ZeD_Animals_NoEligibleHint")
-        local hintFont = T.fontF5 or ZeD.T.fontF2
-        local hw = ZeD.TM:MeasureStringX(hintFont, hint)
-        panel:drawText(hint, x + math.floor((w - hw) / 2), y + T.px(EMPTY_PAD) + T.px(20),
-            T.textDim.r, T.textDim.g, T.textDim.b, 0.4, hintFont)
+        local pad0 = M.getTabPad()
+        local hh = M.drawCategoryRow(panel, x, y, w, ZeD.tr("UI_ZeD_Animals_Roster"), 0, false, { noArrow = true })
+        M.drawEmptyLine(panel, x + pad0, y + hh + T.px(8), w - pad0 * 2, ZeD.tr("UI_ZeD_Animals_NoEligibleYet"))
         return
     end
 
@@ -3070,11 +2872,9 @@ local function renderButcherOverview(panel, win, x, y, w, h)
     -- ── SUMMARY BAND (pinned) ──
     local summaryH = drawButcherSummary(panel, x, y, w, eligible)
 
-    -- ── SECTION HEADER ──
+    -- ── ROSTER HEAD ──
     local secY = y + summaryH
-    local secH = M.drawSectionHeader(panel, x + pad, secY, w - pad,
-        ZeD.tr("UI_ZeD_Animals_Roster"), #eligible, true, false,
-        T.fontF4, true, pad, nil, true)
+    local secH = M.drawCategoryRow(panel, x, secY, w, ZeD.tr("UI_ZeD_Animals_Roster"), #eligible, true, { noArrow = true })
 
     -- ── SCROLLABLE ROSTER ──
     local rosterTop = secY + secH
@@ -3084,17 +2884,11 @@ local function renderButcherOverview(panel, win, x, y, w, h)
     local totalContentH = #eligible * T.px(BROW_H)
     local maxScroll = math.max(0, totalContentH - rosterH)
 
-    -- S109: gamepad scroll-follow for butcher roster. Mirror of ranch zone.
+    -- The controller's row: keep it in the viewport. Mirror of the ranch zone.
     local gpFocusAnimal = nil
     do
-        local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
-        if Focus and Focus.getFocusedZone then
-            local fz = Focus.getFocusedZone(win)
-            if fz and fz.zone == "worldTabContent" then
-                local fe = Focus.getFocusedElement and Focus.getFocusedElement(win)
-                if fe and fe.isButcher then gpFocusAnimal = fe.animal end
-            end
-        end
+        local fe = liveEl(win)
+        if fe and fe.isButcher then gpFocusAnimal = fe.animal end
     end
     if gpFocusAnimal then
         local idx = nil
@@ -3118,19 +2912,20 @@ local function renderButcherOverview(panel, win, x, y, w, h)
 
     panel:setStencilRect(x, rosterTop, contentW, rosterH)
 
-    local mx = panel:getMouseX()
     local my = panel:getMouseY()
     local rowY = rosterTop - bs.scrollY
 
     for _, entry in ipairs(eligible) do
         if rowY + T.px(BROW_H) > rosterTop and rowY < rosterTop + rosterH then
-            local isHovered = mx >= x and mx < x + contentW
-                and my >= rowY and my < rowY + T.px(BROW_H)
-            -- S109: gamepad focus cue painted before row content.
+            local isHovered = A.mouseIn(panel, x, rowY, contentW, T.px(BROW_H))
+                and my >= rosterTop and my < rosterTop + rosterH
+            if isHovered then help(panel, "UI_ZeD_Animals_HelpAnimalRow") end
+            -- the controller's mark goes under the row's words
+            local onFocus = false
             if entry.animal == gpFocusAnimal then
-                _paintGpCue(panel, x + pad, rowY, contentW - pad * 2, T.px(BROW_H))
+                onFocus = ZeD.Focus.mark(panel, x + pad, rowY, contentW - pad * 2, T.px(BROW_H), focusOpts(win))
             end
-            drawButcherRow(panel, x + pad, rowY, contentW - pad * 2, entry, isHovered)
+            drawButcherRow(panel, x + pad, rowY, contentW - pad * 2, entry, isHovered, onFocus)
             table.insert(win._animalsButcherZones, {
                 x = x, y = rowY, w = contentW, h = T.px(BROW_H), animal = entry.animal
             })
@@ -3155,79 +2950,88 @@ local function renderButcherOverview(panel, win, x, y, w, h)
 end
 
 -- ============================================================================
--- FOOTER + MAIN RENDER
+-- THE BAND + MAIN RENDER
 -- ============================================================================
 
--- ============================================================================
--- FOOTER STRIP — "+ Create zone" and "Map view" buttons (matches mockup)
--- Rendered at bottom of overview/butcher views.
--- ============================================================================
-
-local function drawFooterStrip(panel, win, x, y, w, view)
-    local T = ZeD.T
-    local A = ZeD.Atoms
-    local btnFont = T.fontF5 or ZeD.T.fontF2
-    local btnH = T.px(BTN_H)
-
-    A.drawDividerH(panel, x, y, w, false)
-
-    local pad = T.px(6)
-    local btnY = y + math.floor((T.px(FOOTER_H) - btnH) / 2)
-    local bx = x + pad
-
-    -- Clear all footer button zones
+-- the band's click zones; a band not drawn leaves none (a stale one would answer
+-- clicks on whatever is drawn there next)
+local function clearBandZones(win)
     win._animalsAddZoneBtn = nil
     win._animalsZoneRenameBtn = nil
     win._animalsZoneRemoveBtn = nil
-
-    -- Also clear confirm/rename zones
     win._animalsRemoveYes = nil
     win._animalsRemoveNo = nil
     win._animalsRenameSaveBtn = nil
     win._animalsRenameCancelBtn = nil
+    win._animalsRenameResetBtn = nil
+end
+
+-- The zone view's own actions. canDo: nothing here needs the character's things, so
+-- every one can be done; sensible: a zone that is not there has nothing to rename
+-- or remove. ZeD.Disclose sorts them by the hidden-actions setting.
+local function zoneVerbs(state)
+    local has = state.zoneName ~= nil
+    return {
+        { id = "rename", label = getText("ContextMenu_RenameBag"), canDo = true, sensible = has,
+          help = ZeD.tr("UI_ZeD_Animals_HelpRenameBtn") },
+        { id = "remove", label = ZeD.tr("UI_ZeD_Animals_BtnRemoveZone"), canDo = true, sensible = has,
+          help = ZeD.tr("UI_ZeD_Animals_HelpRemoveBtn") },
+    }
+end
+
+-- The band at the foot of the overview and the zone view: the screen's own actions,
+-- and the answer to a question (Remove the zone?) or a rename in progress.
+-- Returns the band's height.
+local function drawTabBand(panel, win, x, y, w, view)
+    local M = ZeD.Molecules
+    local state = getState(win)
+    clearBandZones(win)
 
     if view == "zone" and win._animalsRenaming then
-        -- Rename mode: YES + NO + RESET + hint (matches ItemCard)
-        win._animalsRenameSaveBtn = drawBtn(panel, bx, btnY, getText("UI_Yes"), "positive", btnFont)
-        bx = bx + win._animalsRenameSaveBtn.w + T.px(6)
-        win._animalsRenameCancelBtn = drawBtn(panel, bx, btnY, getText("UI_No"), "neutral", btnFont)
-        bx = bx + win._animalsRenameCancelBtn.w + T.px(6)
-        win._animalsRenameResetBtn = drawBtn(panel, bx, btnY, getText("IGUI_WorldMapEditor_Reset"), "neutral", btnFont)
-        bx = bx + win._animalsRenameResetBtn.w + T.px(8)
-        local hintFont = T.fontF3 or ZeD.T.fontF2
-        local nc = T.toneNorm
-        local hintY = btnY + math.floor((btnH - ZeD.TM:getFontHeight(hintFont)) / 2)
-        panel:drawText(ZeD.tr("UI_ZeD_Animals_TypeNewName"), bx, hintY, nc.r, nc.g, nc.b, nc.a or 1, hintFont)
+        -- Rename: the text entry is over the name; answer with Save, Cancel or Reset
+        local H, out = M.drawBand(panel, x, y, w, {
+            win = win,
+            status = { text = ZeD.tr("UI_ZeD_Animals_TypeNewName") },
+            buttons = {
+                { label = getText("IGUI_WorldMapEditor_Reset"), help = ZeD.tr("UI_ZeD_Animals_HelpRenameReset") },
+                { label = ZeD.tr("UI_Cancel"), help = ZeD.tr("UI_ZeD_Animals_HelpRenameCancel") },
+                { label = getText("UI_btn_save"), variant = "primary", help = ZeD.tr("UI_ZeD_Animals_HelpRenameSave") },
+            },
+        })
+        win._animalsRenameResetBtn = out.buttons[1]
+        win._animalsRenameCancelBtn = out.buttons[2]
+        win._animalsRenameSaveBtn = out.buttons[3]
+        return H
     elseif view == "zone" and win._animalsRemoveConfirm then
-        -- Remove confirmation: YES + NO + prompt
-        win._animalsRemoveYes = drawBtn(panel, bx, btnY, getText("UI_Yes"), "positive", btnFont)
-        bx = bx + win._animalsRemoveYes.w + T.px(6)
-        win._animalsRemoveNo = drawBtn(panel, bx, btnY, getText("UI_No"), "danger", btnFont)
-        bx = bx + win._animalsRemoveNo.w + T.px(8)
-        local promptFont = T.fontF3 or ZeD.T.fontF2
-        local nc = T.toneNorm
-        local promptY = btnY + math.floor((btnH - ZeD.TM:getFontHeight(promptFont)) / 2)
-        panel:drawText(ZeD.tr("UI_ZeD_Animals_RemoveZonePrompt"), bx, promptY, nc.r, nc.g, nc.b, nc.a or 1, promptFont)
+        -- Remove: a question, then Cancel and the verb (it cannot be undone)
+        local H, cancelR, verbR = M.drawQuestionBand(panel, x, y, w, ZeD.tr("UI_ZeD_Animals_RemoveZoneAsk"),
+            getText("ContextMenu_Remove"), { win = win, danger = true,
+                cancelHelp = ZeD.tr("UI_ZeD_Animals_HelpRemoveCancel"), verbHelp = ZeD.tr("UI_ZeD_Animals_HelpRemoveDo") })
+        win._animalsRemoveNo = cancelR
+        win._animalsRemoveYes = verbR
+        return H
     elseif view == "zone" then
-        -- Zone detail footer: Remove only (rename via clicking zone name)
-        win._animalsZoneRemoveBtn = drawBtn(panel, bx, btnY, getText("ContextMenu_Remove"), "danger", btnFont)
-    else
-        -- Overview footer: Create Zone + hint
-        win._animalsAddZoneBtn = drawBtn(panel, bx, btnY, ZeD.tr("UI_ZeD_Animals_BtnCreateZone"), "accent", btnFont)
-        -- S109: gamepad focus cue overlays drawBtn's outlined-button output.
-        if _gpFocusMatches(win, function(el) return el.isCreateZone end) then
-            local z = win._animalsAddZoneBtn
-            _paintGpCue(panel, z.x, z.y, z.w, z.h)
+        -- Rename and Remove zone (the name also starts a rename)
+        local shown = ZeD.Disclose.split(zoneVerbs(state))
+        local buttons = {}
+        for i, v in ipairs(shown) do
+            buttons[i] = { label = v.label, help = v.help, id = v.id }
         end
-        bx = bx + win._animalsAddZoneBtn.w + T.px(8)
-        local hintFont = T.fontF3 or ZeD.T.fontF2
-        local nc = T.toneNorm
-        local hintY = btnY + math.floor((btnH - ZeD.TM:getFontHeight(hintFont)) / 2)
-        panel:drawText(ZeD.tr("UI_ZeD_Animals_CreateZoneHint"), bx, hintY,
-            nc.r, nc.g, nc.b, nc.a or 1, hintFont)
+        local H, out = M.drawBand(panel, x, y, w, { win = win, buttons = buttons })
+        for i, v in ipairs(shown) do
+            if v.id == "rename" then win._animalsZoneRenameBtn = out.buttons[i]
+            elseif v.id == "remove" then win._animalsZoneRemoveBtn = out.buttons[i] end
+        end
+        return H
     end
-
-    return T.px(FOOTER_H)
+    -- Overview: Create zone
+    local H, out = M.drawBand(panel, x, y, w, {
+        win = win,
+        buttons = { { label = ZeD.tr("UI_ZeD_Animals_CreateZoneBtn"), variant = "primary",
+                      focus = focusFor(win, "animals:createzone"), help = ZeD.tr("UI_ZeD_Animals_HelpCreateZone") } },
+    })
+    win._animalsAddZoneBtn = out.buttons[1]
+    return H
 end
 
 -- ============================================================================
@@ -3238,6 +3042,7 @@ local TAB_TOP_PAD = 13  -- aligns sub-tab strip bottom with inventory column hea
 
 function ZeD.AnimalsTab.render(panel, win, x, y, w, h)
     local T = ZeD.T
+    local M = ZeD.Molecules
     local state = getState(win)
     local zc = getZoneCreateState(win)
 
@@ -3245,36 +3050,44 @@ function ZeD.AnimalsTab.render(panel, win, x, y, w, h)
     y = y + T.px(TAB_TOP_PAD)
     h = h - T.px(TAB_TOP_PAD)
 
-    -- Zone create mode overrides everything
-    if zc.active then
-        local tabH = drawSubmodeStrip(panel, win, x, y, w)
-        renderZoneCreateView(panel, win, x, y + tabH, w, h - tabH)
-        return
-    end
-
-    -- Sub-tab strip (always visible)
-    local curY = y + drawSubmodeStrip(panel, win, x, y, w)
-
-    -- Breadcrumb (zone/animal views only)
-    if state.view == "zone" or state.view == "animal" then
-        curY = curY + drawBreadcrumb(panel, win, x, curY, w)
-    end
-
-    -- Footer strip (overview + zone detail — not animal drill-down)
-    local footerY = y + h - T.px(FOOTER_H)
-    local showFooter = (state.view == "overview" or state.view == "zone")
-    if showFooter then
-        drawFooterStrip(panel, win, x, footerY, w, state.view)
-    end
-
-    -- Remaining content area (between chrome and footer)
-    local contentH = (showFooter and footerY or (y + h)) - curY
-
     -- zones of the views not drawn this frame must not answer clicks or focus
     win._animalsStructZones = {}
     win._animalsHutchLink = nil
     win._animalsGenomeZones, win._animalsGenomeBtns = nil, nil
     win._animalsButcherZones = nil   -- the Butcher roster rebuilds it when drawn
+    win._animalsRosterZones, win._animalsSortZone, win._animalsZoneNameZone = nil, nil, nil
+    win._animalsZoneCardZones, win._animalsSectionZones = nil, nil
+    win._animalsBreadcrumbZone = nil
+
+    -- Zone create mode overrides everything
+    if zc.active then
+        clearBandZones(win)
+        local tabH = drawSubmodeStrip(panel, win, x, y, w)
+        renderZoneCreateView(panel, win, x, y + tabH, w, h - tabH)
+        return
+    end
+    win._zoneConfirmYes, win._zoneConfirmNo, win._zoneCancelBtn = nil, nil, nil
+
+    -- Sub-tab strip (always visible)
+    local curY = y + drawSubmodeStrip(panel, win, x, y, w)
+
+    -- Back (zone/animal views only)
+    if state.view == "zone" or state.view == "animal" then
+        curY = curY + drawBackBar(panel, win, x, curY, w)
+    end
+
+    -- The band (overview + zone detail — not animal drill-down)
+    local showBand = (state.view == "overview" or state.view == "zone")
+    local bandH = 0
+    if showBand then
+        bandH = M.bandH()
+        drawTabBand(panel, win, x, y + h - bandH, w, state.view)
+    else
+        clearBandZones(win)
+    end
+
+    -- Remaining content area (between chrome and band)
+    local contentH = (y + h) - bandH - curY
 
     -- Route to the right renderer
     if state.submode == "ranch" then
@@ -3302,7 +3115,7 @@ end
 -- ============================================================================
 
 function ZeD.AnimalsTab.onClick(win, x, y)
-    -- Zone creation mode clicks (footer buttons)
+    -- Zone creation mode clicks (the band's buttons)
     local zc = getZoneCreateState(win)
     if zc.active then
         if hitZone(win._zoneConfirmYes, x, y) then
@@ -3310,6 +3123,7 @@ function ZeD.AnimalsTab.onClick(win, x, y)
             return true
         end
         if hitZone(win._zoneConfirmNo, x, y) then
+            -- Cancel on the question: back to drawing, the corners cleared
             zc.phase = "idle"
             zc.startX = nil
             zc.endX = nil
@@ -3321,7 +3135,7 @@ function ZeD.AnimalsTab.onClick(win, x, y)
         end
     end
 
-    -- Footer: + Create Zone button
+    -- The band: Create zone
     if hitZone(win._animalsAddZoneBtn, x, y) then
         startZoneCreate(win)
         return true
@@ -3332,12 +3146,16 @@ function ZeD.AnimalsTab.onClick(win, x, y)
         renameZone(win)
         return true
     end
-    -- Zone detail: Remove button
+    -- Zone detail: Rename and Remove zone
+    if hitZone(win._animalsZoneRenameBtn, x, y) and not win._animalsRenaming then
+        renameZone(win)
+        return true
+    end
     if hitZone(win._animalsZoneRemoveBtn, x, y) then
         removeZone(win)
         return true
     end
-    -- Rename: YES (save) / NO (cancel) / RESET
+    -- Rename: Save / Cancel / Reset
     if hitZone(win._animalsRenameSaveBtn, x, y) then
         commitRename(win)
         return true
@@ -3364,7 +3182,7 @@ function ZeD.AnimalsTab.onClick(win, x, y)
         end
         return true
     end
-    -- Remove confirmation: YES / NO
+    -- Remove question: the verb / Cancel
     if hitZone(win._animalsRemoveYes, x, y) then
         confirmRemoveZone(win)
         return true

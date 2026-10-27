@@ -13,7 +13,7 @@
 --           vanilla's textures for the Moodle size option, the backing tinted
 --           grey -> the Good / Bad highlight colour by level / 4, the outline
 --           ring, vanilla's order, the wiggle when a level changes
--- Hover text: a ZeD chip (status dot, vanilla's name for the level, vanilla's
+-- Hover text: a ZeD note (status square, vanilla's name for the level, vanilla's
 -- description) in a thought bubble whose trail runs to its moodle; it also shows by itself for a few
 -- seconds when a moodle comes on or changes level. A ZeD layer lies exactly over vanilla's column; UIManager
 -- hands a mouse move to the topmost element under the pointer only, so the

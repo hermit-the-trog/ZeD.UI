@@ -16,6 +16,23 @@ require "ZeD/Tr"
 ZeD = ZeD or {}
 ZeD.SkillsTab = {}
 
+-- The controller's mark options for the element with this id: set only when the
+-- window is the focused one, the controller is in use and that element has the focus.
+local _focusOpts = {}
+local function focusOf(win, id)
+    local F = ZeD.Input and ZeD.Input.Focus
+    if F and F.isFocused and F.isFocused(win, nil, id) then
+        _focusOpts.win = win
+        return _focusOpts
+    end
+    return nil
+end
+
+-- the footer help line's words for what the pointer is over
+local function help(win, text)
+    if ZeD.Help and ZeD.Help.set then ZeD.Help.set(win, text) end
+end
+
 -- ============================================================================
 -- XP HELPERS (ported from vanilla ISSkillProgressBar)
 -- ============================================================================
@@ -96,27 +113,21 @@ local function drawLevelBadge(panel, x, y, h, level, font)
 end
 
 -- ============================================================================
--- BOOST PILL DRAW HELPER
--- Right-aligned green pill showing "+75% XP" etc.
+-- BOOST TAG DRAW HELPER
+-- Right-aligned tag showing "+75% XP" etc: the one tag look, with a positive square.
 -- ============================================================================
 
 local function drawBoostPill(panel, x, y, rowH, boost, font)
     local T = ZeD.T
-    local A = ZeD.Atoms
     local pctStr = "75%"
     if boost == 2 then pctStr = "100%"
     elseif boost >= 3 then pctStr = "125%"
     end
     local boostStr = ZeD.tr("UI_ZeD_Skills_Boost", pctStr)
-    -- Pre-measure badge width for right-alignment
-    local tm = ZeD.TM
-    local tw = tm:MeasureStringX(T.fontF5, ZeD.upper(boostStr))
-    local badgeW = tw + T.sp.badgePadX * 2
-    local badgeH = tm:getFontHeight(T.fontF5) + T.sp.badgePadY * 2
-    local pillX = x - badgeW - T.sp.xs
-    local pillY = y + math.floor((rowH - badgeH) / 2)
-
-    A.drawBadge(panel, boostStr, pillX, pillY, "positive", false, T.fontF5)
+    -- Pre-measure the tag's width for right-alignment (words, side padding, the square)
+    local tw = ZeD.TM:MeasureStringX(T.fontF1, ZeD.textCase(boostStr)) + T.px(10) + T.px(10)
+    local tagH = T.px(16)
+    ZeD.Molecules.drawTag(panel, x - tw - T.sp.xs, y + math.floor((rowH - tagH) / 2), boostStr, T.positive)
 end
 
 -- ============================================================================
@@ -177,7 +188,7 @@ function ZeD.SkillsTab.gatherData(playerObj)
             if not groupMap[parentType] then
                 local parentPerk = PerkFactory.getPerk(parentType)
                 groupMap[parentType] = {
-                    name     = ZeD.upper(parentPerk:getName()),
+                    name     = parentPerk:getName(),
                     isPassive = parentPerk:isPassiv(),
                     skills   = {},
                 }
@@ -379,7 +390,8 @@ end
 -- file again. Nothing here draws anything until an extra is added, so the tab
 -- is exactly as built without one. An extra is a table:
 --   laneH   design px each skill row grows by, for a strip in its own lane
---           under the row (the row's fill keeps its meaning above it)
+--           under the row (the row's fill keeps its meaning above it); the strip is
+--           the standard framed bar, ZeD.Atoms.fillBarCompactH (8u) tall, so ask for 10
 --   lane(playerObj, perk, level, xpProgress)
 --           -> nil, or { span = 0..1 of the row's width, segs = { { share = 0..1,
 --              color = {r,g,b} }, ... } }: drawn left to right in the lane
@@ -387,7 +399,7 @@ end
 --           a block at the top of the tab's scroll (above the grid; it goes
 --           with the grid when the header folds it away)
 --   card(playerObj, perk, skill)
---           -> nil, or { label = "HEADING", lines = { { color = {r,g,b} | nil,
+--           -> nil, or { label = "Heading", lines = { { color = {r,g,b} | nil,
 --              text = "...", value = "...", total = true | nil } }, note = "..." }:
 --              the row's hover card (mouse over a row, or the controller's
 --              focus on it) shows the skill's level and these lines
@@ -423,21 +435,26 @@ local function extrasHeadH(win, w)
     return h
 end
 
--- the strip in a row's lane (track first, then the extra's segments)
-local function drawLane(panel, x, y, w, h, playerObj, skill)
+-- The strip in a row's lane: the standard framed strip (a dark well, a 1u frame), the
+-- extra's segments inside it, flat and solid (the length the extra asks for, split by its shares)
+local function drawLane(panel, x, y, w, playerObj, skill)
+    local T, A = ZeD.T, ZeD.Atoms
     for _, e in ipairs(ZeD.SkillsTab.extras) do
         if e.lane and skill.perk then
             local ok, L = pcall(e.lane, playerObj, skill.perk, skill.level, skill.xpProgress)
             if ok and L and L.segs then
-                panel:drawRect(x, y, w, h, 0.04, 1, 1, 1)
-                local span = math.floor(w * math.max(0, math.min(1, L.span or 1)))
-                local sx = x
-                for i, s in ipairs(L.segs) do
-                    local sw = math.max(1, math.floor(span * (s.share or 0) + 0.5))
-                    if i == #L.segs then sw = math.max(1, x + span - sx) end
-                    if s.share and s.share > 0 then
-                        local c = s.color
-                        panel:drawRect(sx, y, sw, h, 1, c.r, c.g, c.b)
+                local h = A.fillBarCompactH()
+                A.drawFillBar(panel, x, y, w, 0, false, nil, h)   -- the well and the frame
+                local bw = T.hair
+                local innerW = w - bw * 2
+                local span = math.floor(innerW * math.max(0, math.min(1, L.span or 1)))
+                local sx = x + bw
+                for i, sg in ipairs(L.segs) do
+                    local sw = math.max(1, math.floor(span * (sg.share or 0) + 0.5))
+                    if i == #L.segs then sw = math.max(1, x + bw + span - sx) end
+                    if sg.share and sg.share > 0 then
+                        local c = sg.color
+                        panel:drawRect(sx, y + bw, sw, h - bw * 2, 1, c.r, c.g, c.b)
                         sx = sx + sw
                     end
                 end
@@ -447,12 +464,10 @@ local function drawLane(panel, x, y, w, h, playerObj, skill)
     end
 end
 
--- The row's hover card: the skill's name and level, then the first extra's
--- lines. Placed beside the row (right of it, or left when there is no room),
--- kept inside the tab.
-local function drawSkillCard(panel, win, zone, bx, by, bw, bh)
-    local skill = zone.skill
-    if not (skill and skill.perk) then return end
+-- The row's hover card (the shared detail card): the skill's name as its title, its
+-- level, then the first extra's lines. nil when no extra has a card for the skill.
+local function skillCard(win, skill)
+    if not (skill and skill.perk) then return nil end
     local card = nil
     for _, e in ipairs(ZeD.SkillsTab.extras) do
         if e.card then
@@ -460,14 +475,9 @@ local function drawSkillCard(panel, win, zone, bx, by, bw, bh)
             if ok and c then card = c; break end
         end
     end
-    if not card then return end
+    if not card then return nil end
     ZeD.SkillsTab._cardShown = skill.name   -- (QA reads which card is up)
-    local T, tm, A = ZeD.T, ZeD.TM, ZeD.Atoms
-    local f1, f2, f3, f5 = T.fontF1, T.fontF2, T.fontF3, T.fontF5
-    local pad, gap = T.px(10), T.px(5)
-    local w = T.px(250)
-    local innerW = w - pad * 2
-    local h1, h2, h3, h5 = tm:getFontHeight(f1), tm:getFontHeight(f2), tm:getFontHeight(f3), tm:getFontHeight(f5)
+    local T = ZeD.T
     local sub
     if skill.level >= 10 then
         sub = ZeD.tr("UI_ZeD_Skills_CardMax", skill.level)
@@ -475,51 +485,25 @@ local function drawSkillCard(panel, win, zone, bx, by, bw, bh)
         local pd = ZeD.SkillsTab.getPinData(win._playerObj, skill.name)
         sub = ZeD.tr("UI_ZeD_Skills_CardLevel", skill.level, pd and pd.xpInLevel or 0, pd and pd.xpForLevel or 0, skill.level + 1)
     end
-    local noteLines = card.note and A.wrapText(card.note, f1, innerW) or {}
-    local h = pad + h3 + gap + h1 + gap + T.grooveH + gap + h5 + gap
-        + #(card.lines or {}) * (h2 + T.px(3)) + T.px(4) + #noteLines * (h1 + T.px(2)) + pad
-    local x = zone.x + zone.w + T.px(6)
-    if x + w > bx + bw then x = zone.x - w - T.px(6) end
-    x = math.max(bx, math.min(x, bx + bw - w))
-    local y = math.max(by, math.min(zone.y, by + bh - h))
-    local s2, bs = T.surf2, T.borderS
-    panel:drawRect(x + T.px(2), y + T.px(2), w, h, 0.5, 0, 0, 0)
-    panel:drawRect(x, y, w, h, 0.98, s2.r, s2.g, s2.b)
-    panel:drawRectBorder(x, y, w, h, bs.a, bs.r, bs.g, bs.b)
-    local cx, cy = x + pad, y + pad
-    local th, tx, ts = T.textHead, T.text, T.textSec
-    panel:drawText(skill.name, cx, cy, th.r, th.g, th.b, th.a or 1, f3)
-    cy = cy + h3 + gap
-    panel:drawText(sub, cx, cy, ts.r, ts.g, ts.b, ts.a or 1, f1)
-    cy = cy + h1 + gap
-    A.drawGroove(panel, cx, cy, innerW)
-    cy = cy + T.grooveH + gap
-    local ac = T.accent
-    panel:drawText(ZeD.upper(card.label or ""), cx, cy, ac.r, ac.g, ac.b, 1, f5)
-    cy = cy + h5 + gap
+    local lines = { { text = sub, font = "F2", color = T.textDim } }
+    if card.label and card.label ~= "" then
+        lines[#lines + 1] = { text = ZeD.textCase(card.label), font = "F2", color = T.textDim }
+    end
     for _, ln in ipairs(card.lines or {}) do
-        if ln.total then
-            local bd = T.border
-            panel:drawRect(cx, cy - T.px(2), innerW, T.px(1), bd.a, bd.r, bd.g, bd.b)
-        end
-        if ln.color then
-            local c = ln.color
-            panel:drawRect(cx, cy + math.floor((h2 - T.px(4)) / 2), T.px(10), T.px(4), 1, c.r, c.g, c.b)
-        end
-        panel:drawText(ln.text or "", cx + T.px(17), cy, tx.r, tx.g, tx.b, tx.a or 1, f2)
-        if ln.value then A.drawTextRight(panel, ln.value, cx + innerW, cy, f1, tx) end
-        cy = cy + h2 + T.px(3)
+        local text = ln.text or ""
+        if ln.value then text = ZeD.tr("UI_ZeD_Skills_CardLine", text, ln.value) end
+        lines[#lines + 1] = { text = text, font = ln.total and "F3" or "F2" }
     end
-    cy = cy + T.px(4)
-    for _, l in ipairs(noteLines) do
-        panel:drawText(l, cx, cy, ts.r, ts.g, ts.b, ts.a or 1, f1)
-        cy = cy + h1 + T.px(2)
+    if card.note and card.note ~= "" then
+        lines[#lines + 1] = { text = card.note, font = "F2", color = T.textDim }
     end
+    return { title = skill.name, lines = lines, maxW = 260 }
 end
 
 -- The card layer: a click-through panel kept as the window's last child (as
--- ZeD.Atoms.newHintLayer), so the hover card is drawn above everything in the
--- window. The Skills tab stamps win._skillCardStamp each frame a card is up.
+-- ZeD.Atoms.newHintLayer), for the controller's focused row, whose card is drawn at
+-- once under the row (the mouse's card is asked of the window's overlay instead, after
+-- the shared pause). The Skills tab stamps win._skillCardStamp each frame a card is up.
 function ZeD.SkillsTab.cardLayer(win)
     local layer = win._skillCardLayer
     if not layer then
@@ -536,7 +520,7 @@ function ZeD.SkillsTab.cardLayer(win)
             local c = win._skillCardStamp
             win._skillCardStamp = nil
             if not c then return end
-            local ok, err = pcall(drawSkillCard, self, win, c.zone, c.bx, c.by, c.bw, c.bh)
+            local ok, err = pcall(ZeD.Molecules.drawDetailCard, self, c.ax, c.ay, c.card)
             if not ok then ZeD.logOnce("skills card", err) end
         end
         win:addChild(layer)
@@ -602,6 +586,13 @@ local function truncText(str, font, maxW)
     return string.sub(str, 1, lo) .. "..."
 end
 
+-- The training section's header: the gap above, the section head (20u, its content line
+-- under it), then the legend row
+local function trainingHeaderH(secH)
+    local T = ZeD.T
+    return T.px(12) + T.px(20) + T.sp.afterGroove + secH + T.px(4) + T.px(2)
+end
+
 -- Measure training section height for scroll content.
 -- Must match the draw layout: half-split into col1/col2 with prefixed expand keys.
 local function measureTrainingHeight(training, headH, secH, bodyH, rowH, rowGap, headerH, groupGap, expandedMap)
@@ -611,8 +602,8 @@ local function measureTrainingHeight(training, headH, secH, bodyH, rowH, rowGap,
     local collapsedRowH = math.max(secH + T.px(10), T.px(26))
     local detailRowH    = secH + T.px(12)
 
-    -- Header area: gap + heading + groove + legend row
-    local headerArea = T.px(12) + headH + T.px(ZeD.Spacing.headGap) + T.px(2) + T.px(2) + secH + T.px(4) + T.px(2)
+    -- Header area: gap + section head + legend row
+    local headerArea = trainingHeaderH(secH)
 
     -- Split groups same way as draw: first half col1, second half col2
     local half = math.ceil(#training / 2)
@@ -639,7 +630,7 @@ end
 -- Draw training section. Returns click zones array.
 local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colGap,
                                     training, expandedMap, secH, bodyH, rowH, rowGap,
-                                    headerH, groupGap, font)
+                                    headerH, groupGap, font, win, view)
     local T = ZeD.T
     local A = ZeD.Atoms
     local zones = {}
@@ -650,15 +641,10 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
     local detailRowH    = secH + T.px(12)
     local cy = startY + T.px(12)
 
-    -- ── Header: "TRAINING MATERIALS" ──
+    -- ── Header: the section head "Training materials" (not folding) ──
     local tm = ZeD.TM
-    local headingH = tm:getFontHeight(T.fontF4)
-    local hnc = T.toneNorm
-    panel:drawText(ZeD.tr("UI_ZeD_Skills_TrainingMaterials"), x, cy, hnc.r, hnc.g, hnc.b, hnc.a or 1, T.fontF4)
-    cy = cy + headingH + T.sp.headGap
-
-    A.drawGroove(panel, x, cy, w)
-    cy = cy + T.grooveH + T.sp.afterGroove
+    cy = cy + ZeD.Molecules.drawSectionHeader(panel, x, cy, w, ZeD.tr("UI_ZeD_Skills_TrainingMaterials"),
+        nil, true, false, nil, nil, nil, nil, true) + T.sp.afterGroove
 
     -- Legend row (left-aligned below heading)
     local legendDefs = {
@@ -676,7 +662,7 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
         A.drawLegendSwatch(panel, legX, legDotY, dotColor, def.ghost)
         legX = legX + T.px(A.SWATCH_W) + T.sp.xs
         local lc = T.toneLo
-        local defLabel = ZeD.tr(def.key)
+        local defLabel = ZeD.textCase(ZeD.tr(def.key))
         panel:drawText(defLabel, legX, cy + math.floor((legRowH - secH) / 2),
             lc.r, lc.g, lc.b, lc.a or 1, T.fontF1)
         legX = legX + tm:MeasureStringX(T.fontF1, defLabel) + T.px(TM_DOT_GAP) + T.sp.sm
@@ -705,22 +691,37 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
         for si, skillGroup in ipairs(dataList) do
             local expandKey = columnKey .. "_" .. skillGroup.label
             local isExpanded = expandedMap and expandedMap[expandKey]
+            local dispName = skillGroup.disp or skillGroup.label
+
+            -- the row's hover wash, then the controller's mark (under the words)
+            local hover = view and win and A.mouseIn(panel, startX, dy, colWidth, collapsedRowH)
+                and panel:getMouseX() >= view.x and panel:getMouseX() < view.x + view.w
+                and panel:getMouseY() >= view.y and panel:getMouseY() < view.y + view.h
+            if hover then
+                local hv = T.hover
+                panel:drawRect(startX, dy, colWidth, collapsedRowH, hv.a, hv.r, hv.g, hv.b)
+                help(win, ZeD.tr(isExpanded and "UI_ZeD_Skills_HelpBooksHide" or "UI_ZeD_Skills_HelpBooksShow", dispName))
+            end
+            local onFocus = false
+            local fo = win and focusOf(win, "training:" .. expandKey)
+            if fo then onFocus = ZeD.Focus.mark(panel, startX, dy, colWidth, collapsedRowH, fo) end
 
             -- Chevron icon (scaled smaller than font height for visual balance)
             local chevSz = math.max(T.px(8), math.floor(secH * 0.7))
             local chevX = startX + T.px(8)
             local chevY = dy + math.floor((collapsedRowH - chevSz) / 2)
+            local chevC = onFocus and T.textOnFocus or T.arrow
             if isExpanded then
-                A.drawTriangleDown(panel, chevX, chevY, chevSz, T.arrow)
+                A.drawTriangleDown(panel, chevX, chevY, chevSz, chevC)
             else
-                A.drawTriangleRight(panel, chevX, chevY, chevSz, T.arrow)
+                A.drawTriangleRight(panel, chevX, chevY, chevSz, chevC)
             end
 
             -- Skill label (truncated to ~35% of column width)
             local labelX = startX + T.px(8) + chevSz + T.px(8)
             local labelMaxW = math.floor(colWidth * 0.35)
-            local labelStr = truncText(skillGroup.disp or skillGroup.label, font, labelMaxW)
-            local labelC = T.toneNorm
+            local labelStr = truncText(dispName, font, labelMaxW)
+            local labelC = onFocus and T.textOnFocus or T.toneNorm
             panel:drawText(labelStr, labelX, dy + math.floor((collapsedRowH - secH) / 2),
                 labelC.r, labelC.g, labelC.b, labelC.a or 1, font)
 
@@ -800,6 +801,7 @@ end
 
 function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     local T    = ZeD.T
+    local A    = ZeD.Atoms
     local M    = ZeD.Molecules
     local pad    = M.getTabPad()      -- 8px outer pad
     local padTop = M.getTabPadTop()   -- 8px top pad below pinned header
@@ -819,12 +821,10 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     local lastSkillRowZones = win._skillRowZones or {}
     local lastTrainingZones = win._trainingGroupZones or {}
 
-    -- S103 — resolve the live focused element once per frame so paint cues
-    -- for skill rows and training chevrons gate on element identity, not on
-    -- persistent state fields (avoids cross-element leak inside charTabContent).
+    -- S103 — resolve the focused element once per frame for the scroll-follow
+    -- below (the marks themselves are asked of the library per element: focusOf).
     local focusedSkillName = nil
     local focusedTrainingId = nil
-    local focusedIsDisclosure = false
     do
         local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
         if Focus and Focus.getFocusedWindow and Focus.getFocusedElement
@@ -833,7 +833,6 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
             if el then
                 focusedSkillName   = el.skillName
                 focusedTrainingId  = el.trainingId
-                focusedIsDisclosure = el.isDisclosure == true
             end
         end
     end
@@ -849,7 +848,7 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     local laneH = extrasLaneH()
     local rowH = baseRowH + (laneH > 0 and T.px(laneH) or 0)
     local rowGap = T.sp.rowGap
-    local headerH = secH + T.px(14)      -- skill group header height (not tab header)
+    local headerH = T.px(20) + T.sp.afterGroove   -- skill group header: the section head (20u) and its gap
     local groupGap = T.sp.sm
 
     -- Pinned tab header (37px, not in scroll content)
@@ -903,6 +902,7 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     -- the extras' block at the top of the scroll (width: the scroll's, less its bar)
     local extraHeadH = (gridExpanded and #ZeD.SkillsTab.extras > 0) and extrasHeadH(win, w - scrollW - pad * 2) or 0
     local totalContentH = padTop + (gridExpanded and (xpGridH + extraHeadH) or 0) + trainingH
+    local view = { x = x, y = y + tabHeaderH, w = w, h = h - tabHeaderH }   -- (what the pointer may hover)
 
     -- Scroll area starts below pinned tab header
     local scrollY = y + tabHeaderH
@@ -1008,16 +1008,10 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
         local skillRowIdx = 0
 
         for _, group in ipairs(colGroups) do
-            -- Group header: category name
-            local hdrColor = T.toneLo
-            panel:drawText(group.name, startX, cy,
-                hdrColor.r, hdrColor.g, hdrColor.b, hdrColor.a or 1, font)
-            cy = cy + secH + T.px(4)
-
-            -- Rule line under header
-            local ruleC = T.border
-            panel:drawRect(startX, cy, colWidth, T.px(1), ruleC.a, ruleC.r, ruleC.g, ruleC.b)
-            cy = cy + T.px(1) + T.sp.afterGroove
+            -- Group header: the section head, the category's name in sentence case
+            -- (the molecule draws its content line)
+            cy = cy + ZeD.Molecules.drawSectionHeader(panel, startX, cy, colWidth, group.name,
+                nil, true, false, nil, nil, nil, nil, true) + T.sp.afterGroove
 
             for _, skill in ipairs(group.skills) do
                 local _, bgColor = getProgressColors(T, skill.level, skill.xpProgress)
@@ -1028,17 +1022,7 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
                     panel:drawRect(startX, cy, colWidth, rowH, st.a, st.r, st.g, st.b)
                 end
 
-                -- Pinned skill accent highlight
-                local isPinned = false
-                for _, p in ipairs(pins) do
-                    if p == skill.name then isPinned = true; break end
-                end
-                if isPinned then
-                    local ac = T.accent
-                    panel:drawRect(startX, cy, colWidth, rowH, 0.12, ac.r, ac.g, ac.b)
-                end
-
-                -- XP progress background fill
+                -- XP progress background fill (under the washes below)
                 if skill.level >= 10 then
                     panel:drawRect(startX, cy, colWidth, rowH,
                         bgColor.a, bgColor.r, bgColor.g, bgColor.b)
@@ -1050,13 +1034,36 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
                     end
                 end
 
+                -- Pinned skill: selected, the one accent wash
+                local isPinned = false
+                for _, p in ipairs(pins) do
+                    if p == skill.name then isPinned = true; break end
+                end
+                if isPinned then
+                    local ac = T.accent
+                    panel:drawRect(startX, cy, colWidth, rowH, T.selectionA or 0.30, ac.r, ac.g, ac.b)
+                end
+
+                -- Hover (the mouse in use, inside the scroll view) and the controller's mark,
+                -- both under the words
+                local hovered = A.mouseIn(panel, startX, cy, colWidth, rowH)
+                    and panel:getMouseY() >= view.y and panel:getMouseY() < view.y + view.h
+                if hovered then
+                    local hv = T.hover
+                    panel:drawRect(startX, cy, colWidth, rowH, hv.a, hv.r, hv.g, hv.b)
+                    help(win, ZeD.tr(isPinned and "UI_ZeD_Skills_HelpUnpin" or "UI_ZeD_Skills_HelpPin", skill.name))
+                end
+                local onFocus = false
+                local fo = focusOf(win, "skill:" .. tostring(skill.name))
+                if fo then onFocus = ZeD.Focus.mark(panel, startX, cy, colWidth, rowH, fo) end
+
                 -- Level badge
                 drawLevelBadge(panel, startX, cy, baseRowH, skill.level, font)
 
                 -- Skill name
                 local nameX = startX + T.px(BADGE_W) + T.px(6)
                 local nameY = cy + math.floor((baseRowH - ZeD.TM:getFontHeight(font)) / 2)
-                local nc = T.toneNorm
+                local nc = onFocus and T.textOnFocus or T.toneNorm
                 panel:drawText(skill.name, nameX, nameY, nc.r, nc.g, nc.b, nc.a or 1, font)
 
                 -- Boost pill (right-aligned)
@@ -1066,7 +1073,7 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
 
                 -- a row extra's strip in its own lane under the row
                 if laneH > 0 then
-                    drawLane(panel, startX, cy + rowH - T.px(laneH - 1), colWidth, T.px(laneH - 1), win._playerObj, skill)
+                    drawLane(panel, startX, cy + baseRowH + T.px(1), colWidth, win._playerObj, skill)
                 end
 
                 -- Register hit zone for click-to-pin
@@ -1075,17 +1082,6 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
                     name = skill.name,
                     skill = skill,
                 }
-
-                -- S103: paint-gate on LIVE focused element (not win._gpFocusedSkill).
-                -- charTabContent now hosts three element types (disclosure / skill
-                -- rows / training chevrons); persistent state fields would paint
-                -- stale cues when focus moves to a different element type inside
-                -- the zone. The state field is still written by onFocus for
-                -- scroll-follow keying, but paint reads the live element.
-                if focusedSkillName == skill.name
-                   and ZeD.Atoms and ZeD.Atoms.drawAccentRing then
-                    ZeD.Atoms.drawAccentRing(panel, startX, cy, colWidth, rowH, T.px(2), T.accent)
-                end
 
                 cy = cy + rowH + rowGap
                 skillRowIdx = skillRowIdx + 1
@@ -1112,32 +1108,16 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     local tmZones, tmActualH = drawTrainingSection(
         panel, trainingStartY, col1X, cw, col1X, col2X, colW, colGap,
         training, win._trainingExpanded, secH, bodyH, rowH, rowGap,
-        headerH, groupGap, font
+        headerH, groupGap, font, win, view
     )
     win._trainingGroupZones = tmZones
     -- (plus the gap under the last row, as the measure leaves)
     win._skillsTrainDrawnH = (tmActualH or 0) + pad
 
-    -- S103 gamepad focus cue for training chevron rows. Painted after the
-    -- section draw so it overlays the row background but under the stencil
-    -- clear. Gated on live focused element (focusedTrainingId), not a
-    -- persistent state field, so the cue clears when focus moves to a
-    -- skill row or the disclosure within charTabContent.
-    if focusedTrainingId and tmZones then
-        for i = 1, #tmZones do
-            local z = tmZones[i]
-            if z.id == focusedTrainingId then
-                local ac = T.accent
-                panel:drawRect(z.x, z.y, z.w, z.h, 0.55, ac.r, ac.g, ac.b)
-                break
-            end
-        end
-    end
-
     -- Training column separator
     if trainingH > 0 then
         local tmSepX = x + pad + colW + math.floor(colGap / 2)
-        local tmHeaderH = T.px(12) + T.sp.beforeHead + headH + T.sp.headGap + T.px(2) + T.px(2) + secH + T.px(4) + T.px(2)
+        local tmHeaderH = trainingHeaderH(secH)
         local tSepTop = trainingStartY + tmHeaderH
         local tSepBot = trainingStartY + trainingH
         if tSepBot > tSepTop then
@@ -1148,50 +1128,58 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
 
     panel:clearStencilRect()
 
-    -- S103 gamepad focus cue on the tab-header disclosure — 0.55α T.accent
-    -- over the header rect, drawn BEFORE drawTabHeader so the chevron + text
-    -- render on top. Mirrors ThermalTab.lua:284-294 exactly.
-    if focusedIsDisclosure then
-        local ac = T.accent
-        panel:drawRect(x, y, w, tabHeaderH, 0.55, ac.r, ac.g, ac.b)
-    end
-
-    -- Pinned tab header — drawn on top of scroll content
+    -- Pinned tab header, drawn on top of the scroll content: the hover wash and the
+    -- controller's mark on the disclosure come with the molecule
     -- (_skillsGridZone is stamped at the TOP of render now, not here)
-    M.drawTabHeader(panel, x, y, w, getText("IGUI_XP_Skills"), gridExpanded)
+    local hdrHover = A.mouseIn(panel, x, y, w, tabHeaderH)
+    if hdrHover then help(win, ZeD.tr("UI_ZeD_Skills_HelpHeader")) end
+    M.drawTabHeader(panel, x, y, w, getText("IGUI_XP_Skills"), gridExpanded, hdrHover, nil,
+        { focus = focusOf(win, "skills:__disclosure") })
 
     -- Draw scrollbar on top (outside stencil)
     if needsScroll then
         scroll:draw(panel)
     end
 
-    -- A row extra's hover card (ZeD.SkillsTab.addExtras): the row under the
-    -- pointer, or the controller's focused row; drawn last, over everything
+    -- A row extra's hover card (ZeD.SkillsTab.addExtras): the row under the pointer
+    -- (asked of the window's overlay: the shared detail card, after its pause), or the
+    -- controller's focused row (drawn at once, on the window's card layer)
     if gridExpanded and #ZeD.SkillsTab.extras > 0 then
+        local F = ZeD.Input and ZeD.Input.Focus
+        local live = F and F.liveElement and F.liveElement(win)
+        local liveName = live and live.skillName or nil
         local hz = nil
-        local mx, my = panel:getMouseX(), panel:getMouseY()
-        local over = mx >= x and mx < x + contentW and my >= scrollY and my < scrollY + scrollH
-            and (not panel.isMouseOver or panel:isMouseOver())
-        local Det = ZeD.Input and ZeD.Input.Detector
-        local padMode = focusedSkillName and Det and Det.getMode and Det.getMode() == "gamepad"
-        for _, z in ipairs(win._skillRowZones) do
-            if padMode then
-                if z.name == focusedSkillName then hz = z; break end
-            elseif over and mx >= z.x and mx < z.x + z.w and my >= z.y and my < z.y + z.h then
-                hz = z; break
+        local padMode = liveName ~= nil
+        if padMode then
+            for _, z in ipairs(win._skillRowZones) do
+                if z.name == liveName then hz = z; break end
+            end
+        else
+            local mx, my = panel:getMouseX(), panel:getMouseY()
+            local over = mx >= x and mx < x + contentW and my >= scrollY and my < scrollY + scrollH
+                and (not panel.isMouseOver or panel:isMouseOver())
+                and not (F and F.cuesVisible and F.cuesVisible())
+            if over then
+                for _, z in ipairs(win._skillRowZones) do
+                    if mx >= z.x and mx < z.x + z.w and my >= z.y and my < z.y + z.h then hz = z; break end
+                end
             end
         end
         if hz and hz.y + hz.h > scrollY and hz.y < scrollY + scrollH then
-            -- stamped for the window's card layer (drawn above the drawer's
-            -- siblings: a card drawn on the drawer itself stayed under them)
-            local ox = panel:getAbsoluteX() - win:getAbsoluteX()
-            local oy = panel:getAbsoluteY() - win:getAbsoluteY()
-            win._skillCardStamp = {
-                zone = { x = hz.x + ox, y = hz.y + oy, w = hz.w, h = hz.h, skill = hz.skill, name = hz.name },
-                -- beside the row, anywhere in the window (over the next column or the list beside)
-                bx = x + ox, by = scrollY + oy, bw = win:getWidth() - (x + ox), bh = scrollH,
-            }
-            ZeD.SkillsTab.cardLayer(win)
+            local card = skillCard(win, hz.skill)
+            if card then
+                if padMode then
+                    -- stamped for the window's card layer (drawn above the drawer's siblings: a
+                    -- card drawn on the drawer itself stayed under them); the anchor is the
+                    -- row's lower right, the card goes below-right of it and flips to stay on screen
+                    local ox = panel:getAbsoluteX() - win:getAbsoluteX()
+                    local oy = panel:getAbsoluteY() - win:getAbsoluteY()
+                    win._skillCardStamp = { ax = hz.x + hz.w + ox - T.px(24), ay = hz.y + hz.h + oy - T.px(18), card = card }
+                    ZeD.SkillsTab.cardLayer(win)
+                else
+                    ZeD.Atoms.requestDetailCard(win, "skill:" .. tostring(hz.name), card, panel)
+                end
+            end
         end
     end
 end

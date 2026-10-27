@@ -17,8 +17,8 @@
 --             are marked Free), then STARTING SKILLS: a ten-cell bar, the
 --             level, the XP boost
 --   band      what the occupation or trait under the pointer does
---   title     the points left (a red dot when overspent: NEXT waits)
---   strip     BACK | BUILDS..., RANDOM, CLEAR TRAITS | NEXT
+--   title     the points left (a red square when overspent: Next waits)
+--   band      Back | Builds..., Random, Clear traits | Next
 -- ============================================================================
 
 require "ZeD/ZeD_MainMenu"
@@ -180,7 +180,7 @@ function ZeD_MMTraits:loadBuild(i)
     self.scroll = { 0, 0, 0 }
 end
 
--- vanilla's saveBuildStep2 with the name from the strip's field (its name rules)
+-- vanilla's saveBuildStep2 with the name from the band's field (its name rules)
 function ZeD_MMTraits:saveBuild()
     local p = prof()
     local name = self.field:getText() or ""
@@ -279,13 +279,13 @@ function ZeD_MMTraits:prerender()
     self.titleStats = { { text = ZeD.tr(math.abs(pts) == 1 and "UI_ZeD_Traits_PointsOne" or "UI_ZeD_Traits_PointsMany", pts), color = (pts >= 0) and T.positive or T.danger } }
     if p and getSandboxOptions():getOptionByName("NegativeTraitsPenalty"):getValue() ~= 1 then
         local off = p:negativeTraitOffset()
-        if off > 0 then table.insert(self.titleStats, 1, { text = ZeD.tr("UI_ZeD_Traits_Penalty", off), color = { r = 0, g = 0, b = 0, a = 0 } }) end
+        if off > 0 then table.insert(self.titleStats, 1, { text = ZeD.tr("UI_ZeD_Traits_Penalty", off), noMark = true }) end
     end
     ZeD_Window.prerender(self)
 
     local tb = T.titleBarH
     local pad = T.px(U.STACK_PAD)
-    local stripH = T.px(U.STRIP_BTN_H) + T.px(U.STRIP_PAD_Y) * 2
+    local stripH = MM.bandH()
     local stripY = h - self:footerHeight() - stripH
     local helpH = T.px(HELP_H)
     local bodyY = tb + pad
@@ -311,8 +311,15 @@ function ZeD_MMTraits:prerender()
     self:buildStrip(stripY, stripH, w, pts)
 end
 
+-- the footer line when nothing is under the pointer: the points left
+function ZeD_MMTraits:getStatusLine()
+    local p = prof()
+    local pts = p and p:PointToSpend() or 0
+    return ZeD.tr(math.abs(pts) == 1 and "UI_ZeD_Traits_PointsOne" or "UI_ZeD_Traits_PointsMany", pts)
+end
+
 function ZeD_MMTraits:render()
-    UI.drawStripAndButtons(self, self._stripY, self._stripH, self._ask)
+    UI.drawStripAndButtons(self)
     ZeD_Window.render(self)
 end
 
@@ -331,7 +338,6 @@ function ZeD_MMTraits:drawColumn(c, x, y, w, h, rows)
     self._colBox = self._colBox or {}
     self._colBox[c] = { x = x, y = vy, w = w, h = vh }
     local gp = MM.gamepad()
-    local ac = T.accent
     local mx, my = getMouseX() - ax, getMouseY() - ay
     self:setStencilRect(x + T.px(1), vy, w - T.px(2), vh)
     local ry = vy - self.scroll[c]
@@ -342,7 +348,7 @@ function ZeD_MMTraits:drawColumn(c, x, y, w, h, rows)
         local rh = r.head and T.px(HEAD_H) or r.h
         local visible = ry + rh > vy and ry < vy + vh
         if r.head then
-            if visible then
+            if visible and ry >= vy and ry + rh <= vy + vh then   -- (wholly inside the column: the head claims its place in the body)
                 ZeD.Molecules.drawSectionHeader(self, x + T.px(1) + T.px(8), ry, rw - T.px(8), r.text or r.head, r.count, true, false, T.fontF1, false, T.px(8), rh, true)
             end
         else
@@ -356,11 +362,10 @@ function ZeD_MMTraits:drawColumn(c, x, y, w, h, rows)
             if visible then
                 local isFocus = gp and focusable and self.focusId == ("c" .. c .. ":" .. myIdx)
                 local hov = (not gp) and mx >= x and mx < x + rw and my >= math.max(ry, vy) and my < math.min(ry + rh, vy + vh)
-                if isFocus then self:drawRect(x + T.px(1), ry, rw, rh, 0.55, ac.r, ac.g, ac.b)
-                elseif r.sel then self:drawRect(x + T.px(1), ry, rw, rh, 0.22, ac.r, ac.g, ac.b)
-                elseif hov and r.fn then self:drawRect(x + T.px(1), ry, rw, rh, 0.10, ac.r, ac.g, ac.b) end
+                -- the chosen row: the accent wash; the pointer's: T.hover; the controller's: its mark
+                local onFocus = MM.rowLook(self, x + T.px(1), ry, rw, rh, r.sel, hov and r.fn and true or false, isFocus)
                 self:drawRect(x + T.px(1), ry + rh - T.px(1), rw, T.px(1), T.border.a, T.border.r, T.border.g, T.border.b)
-                self:drawRow(r, x + T.px(1), ry, rw, rh)
+                self:drawRow(r, x + T.px(1), ry, rw, rh, onFocus)
                 if isFocus or hov then self._hover = r end
                 if r.fn then
                     local cy, ch = math.max(ry, vy), math.min(ry + rh, vy + vh) - math.max(ry, vy)
@@ -384,10 +389,11 @@ function ZeD_MMTraits:drawColumn(c, x, y, w, h, rows)
 end
 
 -- a row's contents
-function ZeD_MMTraits:drawRow(r, x, y, w, h)
+function ZeD_MMTraits:drawRow(r, x, y, w, h, onFocus)
     local T = ZeD.T
     local f2, f3 = T.fontF2, T.fontF3
     local tc, d = T.text, T.textDim
+    if onFocus then tc, d = T.textOnFocus, T.textOnFocus end
     local midY = y + math.floor(h / 2)
     if r.kind == "prof" then
         local pr = r.item.item
@@ -398,7 +404,7 @@ function ZeD_MMTraits:drawRow(r, x, y, w, h)
         local cw = MM.textW(f2, cost)
         self:drawText(cost, x + w - T.px(10) - cw, midY - math.floor(MM.fontH(f2) / 2), d.r, d.g, d.b, d.a or 1, f2)
         local nx = x + T.px(8) + pw + T.px(10)
-        local c = r.sel and T.textHead or tc
+        local c = (r.sel and not onFocus) and T.textHead or tc
         self:drawText(ZeD.Atoms.truncateText(tostring(r.item.text), f2, x + w - T.px(20) - cw - nx), nx, midY - math.floor(MM.fontH(f2) / 2), c.r, c.g, c.b, c.a or 1, f2)
     elseif r.kind == "trait" or r.kind == "chosen" then
         local tr = r.trait
@@ -417,7 +423,7 @@ function ZeD_MMTraits:drawRow(r, x, y, w, h)
         local nx = x + T.px(8) + isz + T.px(8)
         self:drawText(ZeD.Atoms.truncateText(tostring(tr:getLabel()), f2, rx - T.px(20) - dsz - nx), nx, midY - math.floor(MM.fontH(f2) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
     elseif r.kind == "empty" then
-        self:drawText(ZeD.tr("UI_ZeD_Traits_NoneYet"), x + T.px(10), midY - math.floor(MM.fontH(f2) / 2), d.r, d.g, d.b, d.a or 1, f2)
+        ZeD.Molecules.drawEmptyLine(self, x + T.px(10), y + T.px(8), w - T.px(20), ZeD.tr("UI_ZeD_Traits_NoneYet"))
     elseif r.kind == "skill" then
         local name = tostring(r.name)
         local lvl = math.max(0, math.min(10, r.level or 0))
@@ -432,7 +438,9 @@ function ZeD_MMTraits:drawRow(r, x, y, w, h)
         local lvX = px - T.px(10) - MM.textW(f2, "10")
         self:drawText(tostring(lvl), lvX, midY - math.floor(MM.fontH(f2) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
         local bx = lvX - T.px(8) - barW
-        ZeD.Atoms.drawSegBar(self, bx, midY - T.px(4), barW, T.px(8), 10, lvl, T.accent, T.surf3, T.px(1))
+        -- the starting level as the System 7 bar: a framed strip, a flat solid fill (the compact height, in a list row)
+        local barH = ZeD.Atoms.fillBarCompactH()
+        ZeD.Atoms.drawFillBar(self, bx, midY - math.floor(barH / 2), barW, lvl / 10, false, nil, barH)
         self:drawText(ZeD.Atoms.truncateText(name, f2, bx - T.px(14) - x), x + T.px(10), midY - math.floor(MM.fontH(f2) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
     end
 end
@@ -440,9 +448,9 @@ end
 -- the band: what the row under the pointer (or the controller) does
 function ZeD_MMTraits:drawHelp(x, y, w, h, pts)
     local T = ZeD.T
-    local s2, bs = T.surf2, T.borderS
-    self:drawRect(x, y, w, h, 1, s2.r, s2.g, s2.b)
-    self:drawRectBorder(x, y, w, h, bs.a, bs.r, bs.g, bs.b)
+    local bs = T.borderS
+    ZeD.Surface.fill(self, x, y, w, h, "surf2")
+    ZeD.Atoms.frame(self, x, y, w, h, bs)
     local r = self._hover
     local text = r and r.help or nil
     if (not text or text == "") and pts < 0 then text = getText("UI_charactercreation_needpoints") end
@@ -465,26 +473,23 @@ end
 function ZeD_MMTraits:buildStrip(stripY, stripH, w, pts)
     local T = ZeD.T
     local row = 1000
-    local ask = nil
     if self.confirm == "save" then
-        ask = ZeD.tr("UI_ZeD_Traits_AskName")
+        local ask = ZeD.tr("UI_ZeD_Traits_AskName")
         local p = prof()
         local valid = p and p:saveBuildValidate(self.field:getText() or "") or false
-        UI.stripSpecs(self, stripY, w, row, {}, {
+        local fx = UI.stripSpecs(self, stripY, w, row, {}, {
             { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
-            { "confirm:yes", getText("UI_btn_save"), function() self:saveBuild() end, "primary", not valid } })
-        local f2 = T.fontF2
-        local fx = T.px(U.STRIP_PAD_X) + T.px(4) + MM.textW(f2, ask) + T.px(10)
+            { "confirm:yes", getText("UI_btn_save"), function() self:saveBuild() end, "primary", not valid } }, ask, true)
         local firstBtn = w
         for _, b in ipairs(self._specs) do if b.row == row then firstBtn = math.min(firstBtn, b.x) end end
         local fh = T.px(24)
         UI.styleEntry(self.field, fx, stripY + math.floor((stripH - fh) / 2), math.max(T.px(80), firstBtn - T.px(12) - fx), fh)
     elseif self.confirm == "delete" then
         local p = prof()
-        ask = ZeD.tr("UI_ZeD_Traits_AskDelete", tostring(p and p.savedBuilds.options[p.savedBuilds.selected] or ""))
         UI.stripSpecs(self, stripY, w, row, {}, {
             { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
-            { "confirm:yes", getText("UI_btn_delete"), function() self:deleteBuild() end, "danger" } })
+            { "confirm:yes", getText("UI_btn_delete"), function() self:deleteBuild() end, "danger" } },
+            ZeD.tr("UI_ZeD_Traits_AskDelete", tostring(p and p.savedBuilds.options[p.savedBuilds.selected] or "")))
     else
         UI.stripSpecs(self, stripY, w, row,
             { { "back", getText("UI_btn_back"), function() self:back() end } },
@@ -493,12 +498,11 @@ function ZeD_MMTraits:buildStrip(stripY, stripH, w, pts)
               { "clear", ZeD.tr("UI_ZeD_Traits_ClearTraits"), function() self:clearTraits() end },
               { "next", getText("UI_btn_next"), function() self:next() end, "primary", pts < 0 } })
     end
-    self._stripY, self._stripH, self._ask = stripY, stripH, ask
 end
 
 -- ============================================================================
 -- CONTROLLER + KEYS + WHEEL: up / down walk a column, left / right change column,
--- down past the end reaches the strip
+-- down past the end reaches the band
 -- ============================================================================
 function ZeD_MMTraits:inStrip()
     local f = self.focusId or ""

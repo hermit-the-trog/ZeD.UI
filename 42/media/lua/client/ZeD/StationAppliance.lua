@@ -429,19 +429,22 @@ function SA.plateState(st)
     return plateState(st, pid, read(st), padOf(st))
 end
 
--- the line under the plate: what it is doing, in words
+-- the line under the plate: what it is doing, in words (sentence case: it is the
+-- window's line, not print on the plate), and the colour of its status mark
 local function stateLine(st, r)
-    if not r.powered then return ZeD.tr("UI_ZeD_Appliance_NoPower") end
+    local T = ZeD.T
+    local tc = ZeD.textCase
+    if not r.powered then return tc(ZeD.tr("UI_ZeD_Appliance_NoPower")), T.warning end
     local dot = "  " .. ST.DOT .. "  "
     if st.kind == "micro" then
-        local pw = ZeD.tr(MW_POWER_TXT[nearestIdx(MW_POWERS, r.temp)])
-        if r.on then return ZeD.upper(ZeD.tr("IGUI_invpanel_Cooking")) .. dot .. pw .. ((r.timer > 0) and (dot .. ZeD.tr("UI_ZeD_Appliance_Left", mss(r.left))) or "") end
-        return ZeD.upper(ZeD.tr("UI_Off")) .. dot .. pw .. ((r.timer > 0) and (dot .. ZeD.tr("UI_ZeD_Appliance_Set", mss(r.left))) or "")
+        local pw = tc(ZeD.tr(MW_POWER_TXT[nearestIdx(MW_POWERS, r.temp)]))
+        if r.on then return tc(ZeD.tr("IGUI_invpanel_Cooking")) .. dot .. pw .. ((r.timer > 0) and (dot .. tc(ZeD.tr("UI_ZeD_Appliance_Left", mss(r.left)))) or ""), T.positive end
+        return tc(ZeD.tr("UI_Off")) .. dot .. pw .. ((r.timer > 0) and (dot .. tc(ZeD.tr("UI_ZeD_Appliance_Set", mss(r.left)))) or ""), T.textDim
     end
-    local heat = (r.temp > 0) and tempText(r.temp) or ZeD.upper(ZeD.tr("UI_Off"))
+    local heat = (r.temp > 0) and tempText(r.temp) or tc(ZeD.tr("UI_Off"))
     local mins = math.ceil(r.left / 60)
-    if r.on then return ZeD.upper(ZeD.tr("UI_On")) .. dot .. heat .. ((r.timer > 0) and (dot .. ZeD.tr("UI_ZeD_Appliance_MinLeft", mins)) or "") end
-    return ZeD.upper(ZeD.tr("UI_Off")) .. ((r.temp > 0) and (dot .. ZeD.tr("UI_ZeD_Appliance_SetHeat", heat)) or "") .. ((r.timer > 0) and (dot .. ZeD.tr("UI_ZeD_Appliance_TimerMin", mins)) or "")
+    if r.on then return tc(ZeD.tr("UI_On")) .. dot .. heat .. ((r.timer > 0) and (dot .. tc(ZeD.tr("UI_ZeD_Appliance_MinLeft", mins))) or ""), T.positive end
+    return tc(ZeD.tr("UI_Off")) .. ((r.temp > 0) and (dot .. tc(ZeD.tr("UI_ZeD_Appliance_SetHeat", heat))) or "") .. ((r.timer > 0) and (dot .. tc(ZeD.tr("UI_ZeD_Appliance_TimerMin", mins))) or ""), T.textDim
 end
 
 -- ----------------------------------------------------------------------------
@@ -519,11 +522,11 @@ function SA.render(panel, win, x, y, w, h, state, st, opts)
         local line = ZeD.tr("UI_ZeD_Appliance_PoppedOut")
         local ty = y + headH + T.px(16)
         panel:drawText(line, x + math.floor((w - tm:MeasureStringX(T.fontF2, line)) / 2), ty, T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, T.fontF2)
-        local bl = ZeD.btnCase(ZeD.tr("UI_ZeD_Appliance_PopIn"))
-        local bw, bh = tm:MeasureStringX(T.fontF2, bl) + T.px(24), T.px(24)
+        local bl = ZeD.tr("UI_ZeD_Appliance_PopIn")
+        local bw, bh = ZeD.Molecules.buttonW(bl), T.buttonH
         local bx, by = x + math.floor((w - bw) / 2), ty + tm:getFontHeight(T.fontF2) + T.px(10)
-        ZeD.Molecules.drawButton(panel, bx, by, bw, bh, bl, "default")
-        if fid == "craft:a:popin" then panel:drawRect(bx, by, bw, bh, 0.55, T.accent.r, T.accent.g, T.accent.b) end
+        ZeD.Molecules.drawButton(panel, bx, by, bw, bh, bl, "default", false, nil,
+            { hover = A.mouseIn(panel, bx, by, bw, bh), focus = (fid == "craft:a:popin") or nil })
         zones[#zones + 1] = { type = "popin", fid = "craft:a:popin", x = bx, y = by, w = bw, h = bh }
         ST.drawDropdownFor(panel, state, player, fid, "craft")
         return
@@ -536,9 +539,9 @@ function SA.render(panel, win, x, y, w, h, state, st, opts)
     local plH = des and des.h * k or 0
 
     -- Body: the plate, its line, the contents; one scrolling unit
-    local lineH = tm:getFontHeight(T.fontF1)
+    local lineH = tm:getFontHeight(T.fontF2)
     local rowH = T.px(30)
-    local secH = T.sp.catHdrH
+    local secH = T.px(20)   -- the library's section head
     local totalH = T.px(8) + plH + T.px(6) + lineH + T.px(10) + secH + math.max(1, #rows) * rowH + T.px(10)
     local viewY, viewH = y + headH, h - headH
     local scroll = state.scroll
@@ -565,58 +568,56 @@ function SA.render(panel, win, x, y, w, h, state, st, opts)
         local cv = P.canvas(panel, px0, cyy, k)
         local pst = plateState(st, pid, r, pad)
         PL.draw(cv, des, pst, { tex = plateTex, now = now() })
-        -- the controls: focus cue, a key's press, the click areas (panel px)
+        -- the controls: focus cue, a key's press, the click areas (panel px). A knob keeps its
+        -- own light as the focus cue (it is the hardware's); a key takes the controller's mark.
         local list = PL.controls(des, pst)
         local held = pad.pressId and (now() - (pad.pressT or 0) < PRESS_MS) and pad.pressId or nil
         for _, c in ipairs(list) do
             local cfid = "craft:a:" .. c.id
             if c.enabled then
+                local zx, zy, zw, zh = px0 + c.x * k, cyy + c.y * k, c.w * k, c.h * k
                 if held == c.id and c.kind ~= "turn" then PL.cue(cv, c, P.BLACK, 0.30) end
-                if fid == cfid then PL.cue(cv, c, T.accent, 0.55) end
+                -- the pointer over a key: the library's hover wash (a knob keeps its ring)
+                if c.kind ~= "turn" and ZeD.Atoms.mouseIn(panel, zx, zy, zw, zh) and not (state.stDropdownOpen) then
+                    PL.hoverKey(cv, c)
+                end
+                if fid == cfid then
+                    if c.kind == "turn" then PL.cue(cv, c, T.accent, 0.55)
+                    else PL.markKey(panel, c, px0, cyy, k, opts and opts.markOpts or nil) end
+                end
                 zones[#zones + 1] = { type = "plate", fid = cfid, id = c.id, kind = c.kind, pid = pid,
-                                      x = px0 + c.x * k, y = cyy + c.y * k, w = c.w * k, h = c.h * k }
+                                      x = zx, y = zy, w = zw, h = zh }
             end
         end
         cyy = cyy + plH + T.px(6)
-        -- in the tab: open it in its own window (an icon-only button at the plate's top right, its hint on hover)
+        -- in the tab: open it in its own window (an icon button at the plate's top right, its hint on hover)
         if not opts then
-            local bs = T.px(22)
+            local bs = T.buttonH
             local bx, by = x + cw - bs - T.px(6), viewY + T.px(8) - off
-            local hov = panel:getMouseX() >= bx and panel:getMouseX() < bx + bs and panel:getMouseY() >= by and panel:getMouseY() < by + bs
-            local s2 = T.surf2
-            panel:drawRect(bx, by, bs, bs, 0.92, s2.r, s2.g, s2.b)
-            if hov or fid == "craft:a:popout" then panel:drawRect(bx, by, bs, bs, hov and 0.22 or 0.55, T.accent.r, T.accent.g, T.accent.b) end
-            panel:drawRectBorder(bx, by, bs, bs, 1, T.borderS.r, T.borderS.g, T.borderS.b)
-            local tex = getTexture(POP_ICON)
-            if tex then
-                local isz = T.px(14)
-                panel:drawTextureScaledAspect(tex, bx + math.floor((bs - isz) / 2), by + math.floor((bs - isz) / 2), isz, isz, 1, T.text.r, T.text.g, T.text.b)
-            end
-            if hov then
-                local hint = ZeD.tr("UI_ZeD_Appliance_PopOut")
-                local hw = tm:MeasureStringX(T.fontF1, hint) + T.px(12)
-                local hh = tm:getFontHeight(T.fontF1) + T.px(6)
-                panel:drawRect(bx + bs - hw, by + bs + T.px(4), hw, hh, 0.95, T.surf1.r, T.surf1.g, T.surf1.b)
-                panel:drawRectBorder(bx + bs - hw, by + bs + T.px(4), hw, hh, 1, T.borderS.r, T.borderS.g, T.borderS.b)
-                panel:drawText(hint, bx + bs - hw + T.px(6), by + bs + T.px(7), T.text.r, T.text.g, T.text.b, 1, T.fontF1)
-            end
+            local hint = ZeD.tr("UI_ZeD_Appliance_PopOut")
+            ZeD.Molecules.drawIconButton(panel, bx, by, bs, getTexture(POP_ICON),
+                { hover = A.mouseIn(panel, bx, by, bs, bs), focus = (fid == "craft:a:popout") or nil,
+                  hint = hint, help = hint, id = "craft:a:popout" })
             zones[#zones + 1] = { type = "popout", fid = "craft:a:popout", x = bx, y = by, w = bs, h = bs }
         end
     end
-    -- the line under the plate
-    local line = stateLine(st, r)
-    local lw = tm:MeasureStringX(T.fontF1, line)
-    local lc = r.powered and T.text or T.warning
-    panel:drawText(line, x + math.floor((cw - lw) / 2), cyy, lc.r, lc.g, lc.b, lc.a or 1, T.fontF1)
+    -- the line under the plate: default words after a status mark
+    local line, mark = stateLine(st, r)
+    local lf = T.fontF2
+    local sq = T.px(6)
+    local lw = sq + T.px(6) + tm:MeasureStringX(lf, line)
+    local lx = x + math.floor((cw - lw) / 2)
+    A.drawStatusDot(panel, lx, cyy + math.floor((lineH - sq) / 2), mark, sq)
+    panel:drawText(line, lx + sq + T.px(6), cyy, T.text.r, T.text.g, T.text.b, T.text.a or 1, lf)
     cyy = cyy + lineH + T.px(10)
 
     -- Contents
     ZeD.Molecules.drawSectionHeader(panel, x + T.px(10), cyy, cw - 2 * T.px(10),
-        ZeD.tr(mw and "UI_ZeD_Appliance_InMicrowave" or "UI_ZeD_Appliance_InOven"), #rows, true, false, T.fontF1, true, T.px(6), secH, true)
+        ZeD.tr(mw and "UI_ZeD_Appliance_InMicrowave" or "UI_ZeD_Appliance_InOven"), #rows, true, false, nil, true, T.px(6), secH, true)
     cyy = cyy + secH
     if #rows == 0 then
-        panel:drawText(ZeD.tr("UI_ZeD_Appliance_Empty"), x + T.px(16), cyy + math.floor((rowH - tm:getFontHeight(T.fontF2)) / 2),
-            T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, T.fontF2)
+        ZeD.Molecules.drawEmptyLine(panel, x + T.px(16), cyy + T.px(8), cw - T.px(32),
+            ZeD.tr(mw and "UI_ZeD_Appliance_EmptyMicrowave" or "UI_ZeD_Appliance_EmptyOven"))
     end
     for _, rw in ipairs(rows) do
         local lx = x + T.px(16)
@@ -625,32 +626,27 @@ function SA.render(panel, win, x, y, w, h, state, st, opts)
         local barW, pctW = T.px(110), T.px(40)
         local rx = x + cw - T.px(16)
         local nameMax = rx - pctW - barW - T.px(16) - (lx + isz + T.px(6))
+        -- the state as a tag (the one tag look: its status square carries the colour)
         local tagW = 0
-        local tagTxt = rw.tag and ZeD.upper(ZeD.tr(rw.tag)) or nil
-        if tagTxt then tagW = tm:MeasureStringX(T.fontF1, tagTxt) + T.px(10) + T.px(6) end
+        local tagTxt = rw.tag and ZeD.textCase(ZeD.tr(rw.tag)) or nil
+        local tagMark = (rw.mode == "danger") and T.danger or ((rw.mode == "pos") and T.positive or ((rw.mode == "warn") and T.warning or nil))
+        if tagTxt then tagW = tm:MeasureStringX(T.fontF1, tagTxt) + T.px(10) + (tagMark and T.px(10) or 0) + T.px(6) end
         local nstr = ZeD.CraftingCore.truncText(rw.name, T.fontF2, math.max(T.px(30), nameMax - tagW))
         local nx = lx + isz + T.px(6)
         panel:drawText(nstr, nx, cyy + math.floor((rowH - tm:getFontHeight(T.fontF2)) / 2), T.text.r, T.text.g, T.text.b, T.text.a, T.fontF2)
-        if rw.tag then
-            local col = (rw.mode == "danger") and T.danger or ((rw.mode == "pos") and T.positive or ((rw.mode == "warn") and T.accent or T.textDim))
+        if tagTxt then
             local tgx = nx + tm:MeasureStringX(T.fontF2, nstr) + T.px(6)
-            local th = T.px(14)
-            local tgy = cyy + math.floor((rowH - th) / 2)
-            panel:drawRectBorder(tgx, tgy, tagW - T.px(6), th, col.a or 1, col.r, col.g, col.b)
-            panel:drawText(tagTxt, tgx + T.px(5), tgy + math.floor((th - tm:getFontHeight(T.fontF1)) / 2), col.r, col.g, col.b, col.a or 1, T.fontF1)
+            ZeD.Molecules.drawTag(panel, tgx, cyy + math.floor((rowH - T.px(16)) / 2), tagTxt, tagMark)
         end
         if rw.p then
+            -- the progress as the framed strip (list rows use its compact height)
             local bx = rx - pctW - barW
-            local bh = T.px(6)
+            local bh = A.fillBarCompactH()
             local byy = cyy + math.floor((rowH - bh) / 2)
-            local s2 = T.surf2
-            panel:drawRect(bx, byy, barW, bh, s2.a, s2.r, s2.g, s2.b)
-            panel:drawRectBorder(bx, byy, barW, bh, T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
             local fc = (rw.mode == "danger") and T.danger or ((rw.mode == "pos") and T.positive or T.accent)
-            panel:drawRect(bx + T.px(1), byy + T.px(1), math.floor((barW - 2 * T.px(1)) * rw.p), bh - 2 * T.px(1), 1, fc.r, fc.g, fc.b)
+            A.drawFillBar(panel, bx, byy, barW, rw.p, false, fc, bh)
             local ptxt = rw.left and (rw.mode == "danger" or rw.mode == "warn") and ZeD.tr("UI_ZeD_Appliance_MinShort", rw.left) or (tostring(math.floor(rw.p * 100 + 0.5)) .. "%")
-            A.drawTextRight(panel, ptxt, rx, cyy + math.floor((rowH - tm:getFontHeight(T.fontF3)) / 2), T.fontF3,
-                rw.mode == "danger" and T.danger or T.text)
+            A.drawTextRight(panel, ptxt, rx, cyy + math.floor((rowH - tm:getFontHeight(T.fontF3)) / 2), T.fontF3, T.text)
         end
         A.drawDividerH(panel, x + T.px(10), cyy + rowH - T.px(1), cw - T.px(20), false)
         cyy = cyy + rowH

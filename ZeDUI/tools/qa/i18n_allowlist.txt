@@ -14,9 +14,6 @@
 #   Developer-only text: "Tab content placeholder" in the character window, F9 overlays, QA labels.
 
 # Genome cheat buttons: drawn only while vanilla's AnimalContextMenu.cheat is on (debug only).
-AnimalsTab.lua|Dominant
-AnimalsTab.lua|Switch
-AnimalsTab.lua|Disorder
 
 # Category record: id "all" is matched by code; CC.categoryLabel("All") translates what is drawn.
 BuildingTab.lua|All

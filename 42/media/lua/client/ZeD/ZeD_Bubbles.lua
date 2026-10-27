@@ -238,7 +238,7 @@ local TAIL_FIX = {
     [157] = { { 51, 2, true } }, [169] = { { 130, -5, true } }, [235] = { { 70, 2, false } },
     [237] = { { 181, -5, true }, { 66, 2, true } }, [239] = { { 71, 2, true } }, [256] = { { 75, 2, false } },
 }
--- the tail's runs: its shadow (below the body's bottom line `by`, +2 +2), its ink (the cells on its edge) and
+-- the tail's runs: its shadow (below the body's bottom line `by`, +1 +1), its ink (the cells on its edge) and
 -- its fill (inside, so the tail opens into the body); mirrored (x -> -x) for a balloon on the left
 local function tailLists(cells, by, mirror)
     local xs, ys = {}, {}
@@ -259,7 +259,7 @@ local function tailLists(cells, by, mirror)
         for X = a, b, s do
             if has(X, Y) then
                 local XX = mirror and -X or X
-                if Y > by then addCell(T.sh, XX + 2, Y + 2) end
+                if Y > by then addCell(T.sh, XX + 1, Y + 1) end
                 if Y >= by then
                     if has(X - 1, Y) and has(X + 1, Y) and has(X, Y - 1) and has(X, Y + 1) then addCell(T.fill, XX, Y)
                     else addCell(T.ink, XX, Y) end
@@ -384,20 +384,24 @@ end
 -- ---------------------------------------------------------------------------
 -- drawing (T = ZeD.T, read by the caller this frame; B._shadow synced by B.syncColours)
 -- ---------------------------------------------------------------------------
--- The shadow is solid black: the handoff names 35-45% alpha, but the approved picture
--- (zed_bubbles_v4_final.png) shows it solid (the mockup's alpha was dropped when the sheet was
--- flattened to RGB), and the picture is what was approved. One number to change if that is revisited.
-B.SHADOW_A = 1
-B._shadow = B._shadow or { r = 0, g = 0, b = 0, a = 1 }
+-- The shadow is System 7's hard one (cohesion spec: 1 unit right and down, black at 0.5); only the part outside the
+-- bubble shows. The bubbles are HUD pieces, so their body stays solid whatever the See-through setting is: B.solid
+-- holds opaque copies of the surface tokens the bubbles and the action bar fill with, synced in place each frame.
+B.SHADOW_A = 0.5
+B._shadow = B._shadow or { r = 0, g = 0, b = 0, a = 0.5 }
+B.solid = B.solid or { base = { r = 0, g = 0, b = 0, a = 1 }, surf1 = { r = 0, g = 0, b = 0, a = 1 }, surf3 = { r = 0, g = 0, b = 0, a = 1 } }
+local function solidCopy(d, c) d.r, d.g, d.b, d.a = c.r, c.g, c.b, 1 end
 function B.syncColours(T)
     B._shadow.a = B.SHADOW_A
+    local s = B.solid
+    solidCopy(s.base, T.base); solidCopy(s.surf1, T.surf1); solidCopy(s.surf3, T.surf3)
 end
 
 -- A thought bubble anywhere, in three passes so the trail tucks under the cloud: the cloud's shadow,
 -- the trail (it may be on its own canvas, at another zoom), the cloud. x, y, w, h in units on cv;
 -- r the corner radius (10.5 when nil); the trail from (ox, oy) running dir ("down" | "right" | "left").
 function B.cloudShadow(cv, x, y, w, h, a, r)
-    rectsA(cv, cloudLists(w, h, r).all, B._shadow, a, x + 2, y + 2)
+    rectsA(cv, cloudLists(w, h, r).all, B._shadow, a, x + 1, y + 1)
 end
 function B.drawTrail(cv, T, dir, ox, oy, a)
     local sh = B._shadow
@@ -406,13 +410,13 @@ function B.drawTrail(cv, T, dir, ox, oy, a)
         local TL = trail[t]
         rectsA(cv, TL.sh, sh, a, ox, oy)
         rectsA(cv, TL.ink, T.borderS, a, ox, oy)
-        rectsA(cv, TL.fill, T.surf1, a, ox, oy)
+        rectsA(cv, TL.fill, B.solid.surf1, a, ox, oy)
     end
 end
 function B.cloudBody(cv, T, x, y, w, h, a, r)
     local cl = cloudLists(w, h, r)
     rectsA(cv, cl.ink, T.borderS, a, x, y)
-    rectsA(cv, cl.fill, T.surf1, a, x, y)
+    rectsA(cv, cl.fill, B.solid.surf1, a, x, y)
 end
 
 -- the thought bubble's frame and trail (the layout inside is ZeD.ActionBar's)
@@ -427,11 +431,11 @@ end
 function B.drawSpeech(cv, T, L, a)
     local x, y, w, h, tail = L.sx, L.sy, L.sw, L.sh, L.tail
     local sh = B._shadow
-    B.roundBox(cv, x + 2, y + 2, w, h, sh, sh, a)
+    B.roundBox(cv, x + 1, y + 1, w, h, sh, sh, a)
     rectsA(cv, tail.sh, sh, a, 0, 0)
-    B.roundBox(cv, x, y, w, h, T.surf1, T.borderS, a)
+    B.roundBox(cv, x, y, w, h, B.solid.surf1, T.borderS, a)
     rectsA(cv, tail.ink, T.borderS, a, 0, 0)
-    rectsA(cv, tail.fill, T.surf1, a, 0, 0)
+    rectsA(cv, tail.fill, B.solid.surf1, a, 0, 0)
     local lines = L.lines
     local el = cv.el
     el._zedAlpha = a * (T.text.a or 1)

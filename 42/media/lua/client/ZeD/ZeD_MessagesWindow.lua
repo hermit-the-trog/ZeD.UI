@@ -4,14 +4,15 @@
 -- ZeDUI/mockups/zed_messages_v1.html, director Oct 24 2026: "notification
 -- center works for me"). The store is ZeD_Messages.lua.
 --
--- A ZeD window on the player's screen: the sources on the left (FROM MODS,
--- ERRORS: a dot, the name, a count), the chosen source's messages on the right
--- as cards (kind, source, when, the text as the mod wrote it, the mod's own
--- buttons), a help line, the footer (Show this mod's notes as pop-ups, Copy for
--- a bug report, Clear, Mark all read) and the strip of the keys or buttons that
--- work. Mouse and controller (D-pad between the list, the cards' buttons and
--- the footer; A presses, B closes). Toasts (Visual Catalog O12) stand on the
--- right of the screen for six seconds; a click opens the window on that source.
+-- A ZeD window on the player's screen: the sources on the left (From mods,
+-- Errors: a square mark, the name, a count), the chosen source's messages on the
+-- right as cards (kind, source, when, the text as the mod wrote it, the mod's own
+-- buttons) with a scrollbar when they overflow, a band at the foot (Show this
+-- mod's notes as pop-ups, Clear, Mark all read) and the window's help line under
+-- it (the plain words for what the pointer is over, the controller's prompts).
+-- Mouse and controller (D-pad between the list, the cards' buttons and the band;
+-- A presses, B closes). Toasts (Visual Catalog O12) stand on the right of the
+-- screen for six seconds; a click opens the window on that source.
 -- ============================================================================
 
 require "ZeD/Tr"
@@ -29,9 +30,8 @@ W.windows = W.windows or {}
 
 -- design units (1 px at 1080p; T.px scales them)
 local U = {
-    W = 760, BODY_H = 400, LIST_W = 240, ROW_H = 30, HEAD_H = 26, PAD = 10,
-    CARD_GAP = 10, CARD_PAD = 10, CARD_HEAD_H = 24, HELP_H = 26, FOOT_H = 40, FOOT_PAD = 10,
-    BTN_H = 24, BTN_MIN = 70, BTN_PAD = 12, CHK_GAP = 8,
+    W = 760, BODY_H = 400, LIST_W = 240, HEAD_H = 20, PAD = 10,
+    CARD_GAP = 10, CARD_PAD = 10, CARD_HEAD_H = 24, BAND_EDGE = 8, BAND_GAP = 8, CHK_GAP = 8,
     TOAST_W = 340, TOAST_H = 30, TOAST_GAP = 4, TOAST_TOP = 150, TOAST_RIGHT = 70,
 }
 
@@ -41,6 +41,14 @@ local function inRect(r, x, y) return r and x >= r.x and x < r.x + r.w and y >= 
 local function sound(name) pcall(function() getSoundManager():playUISound(name or "UIActivateButton") end) end
 local function tr(k, ...) return ZeD.tr(k, ...) end
 local function btnLabel(s) return ZeD.btnCase and ZeD.btnCase(s) or s end
+
+-- The window keeps its own controller focus (it is not under FocusManager), so its marks say
+-- what has the focus (focused) and that a controller holds it (pad).
+local _fo = {}
+local function focusOpts(win)
+    _fo.win, _fo.focused, _fo.pad = win, true, true
+    return _fo
+end
 
 -- the text of a message as blocks: rich text read as the prompts read it, plain text as paragraphs
 local function blocksOf(it)
@@ -66,7 +74,6 @@ ZeD_MessagesWindow = ZeD_Window:derive("ZeD_MessagesWindow")
 function ZeD_MessagesWindow:new(playerNum)
     local o = ZeD_Window.new(self, 0, 0, 100, 100, "")
     o.resizable = false
-    o.themeFooter = false
     o.pin = true
     o.anchorLeft, o.anchorRight, o.anchorTop, o.anchorBottom = true, false, true, false
     o.moveWithMouse = false
@@ -120,40 +127,18 @@ end
 -- ---------------------------------------------------------------------------
 -- LAYOUT (every frame from the live tokens; local px)
 -- ---------------------------------------------------------------------------
-function ZeD_MessagesWindow:layout()
+-- The cards of the chosen source in an area areaW wide starting at areaX, scrolled: wrapped
+-- text, the mod's own buttons right-aligned (the primary last). Fills g.cards and g.btns;
+-- returns the height of all of them.
+function ZeD_MessagesWindow:buildCards(g, cur, areaX, areaW)
     local T = ZeD.T
+    local Mo = ZeD.Molecules
     local px = T.px
-    local g = { rows = {}, cards = {}, btns = {}, foot = {} }
-    local tbH = self:titleBarHeight()
-    local w = px(U.W)
-    local bodyY, bodyH = tbH, px(U.BODY_H)
-    local listW = px(U.LIST_W)
-    local helpY, helpH = bodyY + bodyH, px(U.HELP_H)
-    local footY, footH = helpY + helpH, px(U.FOOT_H)
-    local stripH = T.sp.scrollbarW
-    local h = footY + footH + stripH
-    g.body = { y = bodyY, h = bodyH }
-    g.list = { x = 0, y = bodyY, w = listW, h = bodyH }
-    g.cardsArea = { x = listW, y = bodyY, w = w - listW, h = bodyH }
-    g.help = { y = helpY, h = helpH }
-    g.footR = { y = footY, h = footH }
-    g.strip = { y = footY + footH, h = stripH }
-
-    -- the list
-    local rows, cur = self:rows()
-    self._cur = cur
-    local y = bodyY + px(4)
-    for _, r in ipairs(rows) do
-        local rh = r.head and px(U.HEAD_H) or px(U.ROW_H)
-        g.rows[#g.rows + 1] = { x = px(2), y = y, w = listW - px(4), h = rh, head = r.head, src = r.src }
-        y = y + rh
-    end
-
-    -- the cards (heights from the wrapped text; then scrolled)
-    local cx, cw = listW + px(U.PAD), w - listW - px(U.PAD) * 2
+    local cx, cw = areaX + px(U.PAD), areaW - px(U.PAD) * 2
     local inner = cw - px(U.CARD_PAD) * 2
-    local cy = bodyY + px(U.PAD) - self.scroll
-    local bh = px(U.BTN_H)
+    local cy = g.body.y + px(U.PAD) - self.scroll
+    local bh = T.buttonH
+    g.cards, g.btns = {}, {}
     for _, it in ipairs(cur and cur.items or {}) do
         local lines = {}
         local textH = 0
@@ -184,39 +169,91 @@ function ZeD_MessagesWindow:layout()
         end
         local ch = px(U.CARD_HEAD_H) + px(U.CARD_PAD) + textH + px(U.CARD_PAD) + (#btns > 0 and (bh + px(U.CARD_PAD)) or 0)
         local card = { x = cx, y = cy, w = cw, h = ch, it = it, lines = lines, btns = btns }
-        -- buttons right-aligned, the primary last
         local bx = cx + cw - px(U.CARD_PAD)
         for bi = #btns, 1, -1 do
             local b = btns[bi]
-            local bw = math.max(px(U.BTN_MIN), tw(T.fontF3, b.label) + px(U.BTN_PAD) * 2)
+            local bw = Mo.buttonW(b.label)
             bx = bx - bw
             b.x, b.y, b.w, b.h, b.card = bx, cy + ch - px(U.CARD_PAD) - bh, bw, bh, card
-            bx = bx - px(6)
+            bx = bx - px(U.BAND_GAP)
         end
         for _, b in ipairs(btns) do g.btns[#g.btns + 1] = b end
         g.cards[#g.cards + 1] = card
         cy = cy + ch + px(U.CARD_GAP)
     end
-    g.contentH = cy + self.scroll - bodyY
+    return cy + self.scroll - g.body.y
+end
 
-    -- the footer: the switch (a mod's), then the buttons right-aligned
-    local fy = footY + math.floor((footH - bh) / 2)
-    local fx = px(U.FOOT_PAD)
+function ZeD_MessagesWindow:layout()
+    local T = ZeD.T
+    local Mo = ZeD.Molecules
+    local px = T.px
+    local g = { rows = {}, cards = {}, btns = {}, foot = {} }
+    local tbH = self:titleBarHeight()
+    local w = px(U.W)
+    local bodyY, bodyH = tbH, px(U.BODY_H)
+    local listW = px(U.LIST_W)
+    local bandY, bandH = bodyY + bodyH, Mo.bandH()
+    local h = bandY + bandH + self:footerHeight()   -- (the band, then the window's help line)
+    local sbW = T.sp.scrollbarW
+    g.body = { y = bodyY, h = bodyH }
+    g.list = { x = 0, y = bodyY, w = listW, h = bodyH }
+    g.cardsArea = { x = listW, y = bodyY, w = w - listW, h = bodyH }
+    g.band = { y = bandY, h = bandH }
+
+    -- the list
+    local rows, cur = self:rows()
+    self._cur = cur
+    local y = bodyY
+    for _, r in ipairs(rows) do
+        local rh = r.head and px(U.HEAD_H) or T.rowH
+        g.rows[#g.rows + 1] = { x = 0, y = y, w = listW, h = rh, head = r.head, src = r.src }
+        y = y + rh
+    end
+
+    -- the cards; a scrollbar beside them when they overflow (the cards then wrap narrower)
+    local ca = g.cardsArea
+    local ch = self:buildCards(g, cur, ca.x, ca.w)
+    if ch > ca.h then
+        g.needsBar = true
+        ch = self:buildCards(g, cur, ca.x, ca.w - sbW)
+    end
+    g.contentH = ch
+    local maxS = math.max(0, ch - ca.h)
+    if self.scroll > maxS then self.scroll = maxS end
+    self._maxS = maxS
+    local sb = self._sb
+    if not sb then
+        sb = ZeD_ScrollbarState:new()
+        local win = self
+        sb.onScroll = function(pos) win.scroll = math.floor(pos * (win._maxS or 0) + 0.5) end
+        self._sb = sb
+    end
+    sb.visible = g.needsBar == true
+    sb.width, sb.arrowH = sbW, sbW
+    sb.x, sb.y, sb.height = w - sbW, ca.y, ca.h
+    sb:setBarSize(ca.h / math.max(1, ch))
+    if not sb.dragging then sb.scrollPos = maxS > 0 and math.min(1, self.scroll / maxS) or 0 end
+    g.sb = sb
+
+    -- the band: the switch (a mod's) at the left, the buttons right-aligned, 8u apart
+    local bh = T.buttonH
+    local fy = bandY + px(5)
     if cur and cur.kind ~= "err" then
         local label = tr("UI_ZeD_Msg_ShowPopups")
         local cb = T.checkboxSz
-        g.foot[#g.foot + 1] = { id = "popups", x = fx, y = footY + math.floor((footH - cb) / 2), w = cb + px(U.CHK_GAP) + tw(T.fontF2, label), h = cb, label = label, check = true }
+        g.foot[#g.foot + 1] = { id = "popups", x = px(U.BAND_EDGE), y = bandY + math.floor((bandH - cb) / 2), w = cb + px(U.CHK_GAP) + tw(T.fontF2, label), h = cb, label = label, check = true }
     end
     local right = {}
-    if cur then right[#right + 1] = { id = "clear", label = btnLabel(tr("UI_ZeD_Msg_Clear")) } end
-    right[#right + 1] = { id = "allread", label = btnLabel(tr("UI_ZeD_Msg_MarkAllRead")), primary = true }
-    local rx = w - px(U.FOOT_PAD)
+    if cur then right[#right + 1] = { id = "clear", label = btnLabel(tr("UI_ZeD_Msg_Clear")), help = tr("UI_ZeD_Msg_HelpClear") } end
+    right[#right + 1] = { id = "allread", label = btnLabel(tr("UI_ZeD_Msg_MarkAllRead")), primary = true, help = tr("UI_ZeD_Msg_HelpAllRead") }
+    local rx = w - px(U.BAND_EDGE)
     for i = #right, 1, -1 do
         local b = right[i]
-        local bw = math.max(px(U.BTN_MIN), tw(T.fontF3, b.label) + px(U.BTN_PAD) * 2)
+        local bw = Mo.buttonW(b.label)
         rx = rx - bw
         b.x, b.y, b.w, b.h = rx, fy, bw, bh
-        rx = rx - px(6)
+        rx = rx - px(U.BAND_GAP)
     end
     for _, b in ipairs(right) do g.foot[#g.foot + 1] = b end
 
@@ -234,13 +271,17 @@ end
 -- ---------------------------------------------------------------------------
 -- DRAW
 -- ---------------------------------------------------------------------------
+-- the band's buttons, kept between frames
+local _bandBtns, _cardBtn = {}, {}
+local _bandSpec = { buttons = _bandBtns }
+
 function ZeD_MessagesWindow:prerender()
     local T = ZeD.T
     if not T then return end
     self.minimumWidth, self.minimumHeight = 0, 0
     self.title = tr("UI_ZeD_Msg_Title")
     local n = MS.count()
-    self.titleStats = { { text = tr("UI_ZeD_Msg_CountStat", n) } }
+    self.titleStats = { { text = tr("UI_ZeD_Msg_CountStat", n), noMark = true } }
     local ok, err = pcall(self.layout, self)
     if not ok then ZeD.logOnce("messages window", err); self:close(); return end
     ZeD_Window.prerender(self)
@@ -249,39 +290,44 @@ function ZeD_MessagesWindow:prerender()
     local A, Mo = ZeD.Atoms, ZeD.Molecules
     local w = self.width
     local px = T.px
-    local tc, th = T.text, T.textHead
+    local tc, th, td = T.text, T.textHead, T.textDim
     local ac = T.accent
+    local hv = T.hover
     local joy = self.joyfocus ~= nil
 
-    -- the list
-    self:drawRect(px(1), g.list.y, g.list.w, g.list.h, 1, T.surf1.r, T.surf1.g, T.surf1.b)
-    self:drawRect(g.list.w, g.list.y, px(1), g.list.h, 1, T.borderS.r, T.borderS.g, T.borderS.b)
+    -- the list (the window's own surface shows through; a line at its edge)
+    local bs = T.borderS
+    self:drawRect(g.list.w, g.list.y, T.hair, g.list.h, bs.a or 1, bs.r, bs.g, bs.b)
     for _, r in ipairs(g.rows) do
         if r.head then
-            self:drawText(ZeD.upper(r.head), r.x + px(U.PAD), r.y + math.floor((r.h - fh(T.fontF1)) / 2), ac.r, ac.g, ac.b, 1, T.fontF1)
+            Mo.drawSectionHeader(self, r.x + px(U.PAD), r.y, r.w - px(U.PAD), r.head, nil, true, false, nil, nil, px(U.PAD), r.h, true)
         else
             local s = r.src
             local on = self.sel == s.name
             local focus = joy and self.zone == "list" and on
-            if on then self:drawRect(r.x, r.y, r.w, r.h, focus and 0.55 or 0.35, ac.r, ac.g, ac.b)
-            elseif self._hover and self._hover.row == s.name then self:drawRect(r.x, r.y, r.w, r.h, 0.18, ac.r, ac.g, ac.b) end
+            local hover = (not joy) and self._hover and self._hover.row == s.name
+            if on then self:drawRect(r.x, r.y, r.w, r.h, T.selectionA, ac.r, ac.g, ac.b)
+            elseif hover then self:drawRect(r.x, r.y, r.w, r.h, hv.a or 1, hv.r, hv.g, hv.b) end
+            if hover then ZeD.Help.set(self, tr("UI_ZeD_Msg_HelpRow", s.name)) end
+            local onFocus = focus and ZeD.Focus.mark(self, r.x, r.y, r.w, r.h, focusOpts(self), nil)
             local unread = 0
             for _, it in ipairs(s.items) do if not it.read then unread = unread + 1 end end
             local dsz = px(8)
             local dy = r.y + math.floor((r.h - dsz) / 2)
             local dc = (s.kind == "err" and T.danger) or (unread > 0 and ac) or nil
             if dc then A.drawStatusDot(self, r.x + px(U.PAD), dy, dc, dsz)
-            else self:drawRectBorder(r.x + px(U.PAD), dy, dsz, dsz, 0.6, tc.r, tc.g, tc.b) end
+            else A.drawStatusHollow(self, r.x + px(U.PAD), dy, td, dsz) end
             local cnt = tostring(s.kind == "err" and (s.items[1] and s.items[1].count or 0) or #s.items)
             local cw = tw(T.fontF1, cnt)
-            local col = on and (T.textOnAccent or th) or tc
+            local col = onFocus and T.textOnFocus or tc
+            local cc = onFocus and T.textOnFocus or td
             local nx = r.x + px(U.PAD) + dsz + px(8)
             self:drawText(A.truncateText(s.name, T.fontF2, r.w - (nx - r.x) - cw - px(U.PAD) * 2), nx, r.y + math.floor((r.h - fh(T.fontF2)) / 2), col.r, col.g, col.b, col.a or 1, T.fontF2)
-            self:drawText(cnt, r.x + r.w - px(U.PAD) - cw, r.y + math.floor((r.h - fh(T.fontF1)) / 2), col.r, col.g, col.b, 0.8, T.fontF1)
+            self:drawText(cnt, r.x + r.w - px(U.PAD) - cw, r.y + math.floor((r.h - fh(T.fontF1)) / 2), cc.r, cc.g, cc.b, cc.a or 1, T.fontF1)
         end
     end
     if #g.rows == 0 then
-        self:drawText(tr("UI_ZeD_Msg_None"), px(U.PAD), g.list.y + px(U.PAD), tc.r, tc.g, tc.b, 0.7, T.fontF2)
+        Mo.drawEmptyLine(self, px(U.PAD), g.list.y + px(8), g.list.w - px(U.PAD) * 2, tr("UI_ZeD_Msg_None"))
     end
 
     -- the cards (clipped to their area)
@@ -290,78 +336,85 @@ function ZeD_MessagesWindow:prerender()
     for _, c in ipairs(g.cards) do
         if c.y + c.h >= ca.y and c.y <= ca.y + ca.h then
             local it = c.it
-            self:drawRect(c.x, c.y, c.w, c.h, 1, T.surf1.r, T.surf1.g, T.surf1.b)
-            self:drawRectBorder(c.x, c.y, c.w, c.h, 1, T.borderS.r, T.borderS.g, T.borderS.b)
-            -- the head: kind, source, when
-            local hy = c.y + math.floor((px(U.CARD_HEAD_H) - fh(T.fontF1)) / 2)
+            A.frame(self, c.x, c.y, c.w, c.h, T.border)
+            -- the head: kind (a tag), source, when
+            local tagH = px(16)
+            local hy = c.y + math.floor((px(U.CARD_HEAD_H) - tagH) / 2)
             local kindKey = ({ note = "UI_ZeD_Msg_KindNote", ask = "UI_ZeD_Msg_KindAnswered", err = "UI_ZeD_Msg_KindError" })[it.k] or "UI_ZeD_Msg_KindNote"
             local kcol = (it.k == "err" and T.danger) or (it.k == "ask" and (T.warning or ac)) or (T.info or ac)
-            local kt = ZeD.upper(tr(kindKey))
-            local kw = tw(T.fontF1, kt) + px(8)
-            self:drawRectBorder(c.x + px(U.CARD_PAD), hy - px(1), kw, fh(T.fontF1) + px(2), 1, kcol.r, kcol.g, kcol.b)
-            self:drawText(kt, c.x + px(U.CARD_PAD) + px(4), hy, kcol.r, kcol.g, kcol.b, 1, T.fontF1)
+            local kw = Mo.drawTag(self, c.x + px(U.CARD_PAD), hy, tr(kindKey), kcol)
             local meta = self.sel .. " | " .. tostring(it.when or "") .. ((it.done and it.answer) and (" | " .. tr("UI_ZeD_Msg_Answered", it.answer)) or "")
-            self:drawText(A.truncateText(meta, T.fontF1, c.w - kw - px(U.CARD_PAD) * 3), c.x + px(U.CARD_PAD) * 2 + kw, hy, tc.r, tc.g, tc.b, 0.75, T.fontF1)
+            self:drawText(A.truncateText(meta, T.fontF1, c.w - kw - px(U.CARD_PAD) * 3), c.x + px(U.CARD_PAD) * 2 + kw, c.y + math.floor((px(U.CARD_HEAD_H) - fh(T.fontF1)) / 2), td.r, td.g, td.b, td.a or 1, T.fontF1)
             A.drawDividerH(self, c.x, c.y + px(U.CARD_HEAD_H), c.w, false)
             -- the text
             local ty = c.y + px(U.CARD_HEAD_H) + px(U.CARD_PAD)
             for _, l in ipairs(c.lines) do
                 if l.gap then ty = ty + px(6)
                 else
-                    local col = (l.font == T.fontF4) and th or tc
-                    self:drawText(l.text, c.x + px(U.CARD_PAD), ty, col.r, col.g, col.b, l.dim and 0.7 or (col.a or 1), l.font)
+                    local col = l.dim and td or ((l.font == T.fontF4) and th or tc)
+                    self:drawText(l.text, c.x + px(U.CARD_PAD), ty, col.r, col.g, col.b, col.a or 1, l.font)
                     ty = ty + fh(l.font) + px(3)
                 end
             end
-            -- the buttons
+            -- the mod's own buttons
             for bi, b in ipairs(c.btns) do
                 local focused = joy and self.zone == "cards" and self:cardButtons()[self.cardFocus] == b
-                local hov = self._hover and self._hover.btn == b
-                local colors = (hov or focused) and { fill = { r = ac.r, g = ac.g, b = ac.b, a = focused and 0.55 or 0.22 } } or nil
-                Mo.drawButton(self, b.x, b.y, b.w, b.h, b.label, b.primary and "primary" or "default", self._down == b, colors)
+                local hov = (not joy) and self._hover and self._hover.btn == b
+                local o = _cardBtn
+                o.hover, o.focus, o.win = hov, focused and focusOpts(self) or nil, self
+                o.help = b.copy and tr("UI_ZeD_Msg_HelpCopy") or tr("UI_ZeD_Msg_HelpCardButton", b.label)
+                Mo.drawButton(self, b.x, b.y, b.w, b.h, b.label, b.primary and "primary" or "default", self._down == b, nil, o)
             end
         end
     end
     self:clearStencilRect()
     if #g.cards == 0 and self._cur == nil then
-        self:drawText(tr("UI_ZeD_Msg_NoneHelp"), ca.x + px(U.PAD), ca.y + px(U.PAD), tc.r, tc.g, tc.b, 0.7, T.fontF2)
+        Mo.drawEmptyLine(self, ca.x + px(U.PAD), ca.y + px(8), ca.w - px(U.PAD) * 2, tr("UI_ZeD_Msg_NoneHelp"))
     end
+    if g.sb and g.sb.visible then g.sb:draw(self) end
 
-    -- the help line
-    local s2 = T.surf2
-    A.drawDividerH(self, px(1), g.help.y, w - px(2), false)
-    self:drawText(A.truncateText(tr("UI_ZeD_Msg_Help"), T.fontF1, w - px(U.PAD) * 2), px(U.PAD), g.help.y + math.floor((g.help.h - fh(T.fontF1)) / 2), tc.r, tc.g, tc.b, 0.75, T.fontF1)
-
-    -- the footer
-    local f = g.footR
-    self:drawRect(px(1), f.y, w - px(2), f.h, s2.a or 1, s2.r, s2.g, s2.b)
-    A.drawDividerH(self, px(1), f.y, w - px(2), false)
+    -- the band
+    local f = g.band
+    local nb = 0
     for fi, b in ipairs(g.foot) do
         local focused = joy and self.zone == "foot" and self.footFocus == fi
-        local hov = self._hover and self._hover.foot == b
-        if b.check then
-            local on = self._cur and MS.popupsFor(self._cur.name) or false
-            if focused then self:drawRect(b.x - px(4), b.y - px(4), b.w + px(8), b.h + px(8), 0.55, ac.r, ac.g, ac.b) end
-            A.drawCheckbox(self, b.x, b.y, on, hov, false)
-            self:drawText(b.label, b.x + T.checkboxSz + px(U.CHK_GAP), b.y + math.floor((b.h - fh(T.fontF2)) / 2), tc.r, tc.g, tc.b, 1, T.fontF2)
-        else
-            local colors = (hov or focused) and { fill = { r = ac.r, g = ac.g, b = ac.b, a = focused and 0.55 or 0.22 } } or nil
-            Mo.drawButton(self, b.x, b.y, b.w, b.h, b.label, b.primary and "primary" or "default", self._down == b, colors)
+        local hov = (not joy) and self._hover and self._hover.foot == b
+        if not b.check then
+            nb = nb + 1
+            local e = _bandBtns[nb]
+            if not e then e = {}; _bandBtns[nb] = e end
+            e.label, e.variant, e.id, e.help = b.label, b.primary and "primary" or "default", b.id, b.help
+            e.hover, e.pressed = hov and true or false, self._down == b
+            e.focus = focused and focusOpts(self) or nil
         end
     end
-    -- the strip
-    local st = g.strip
-    self:drawRect(px(1), st.y, w - px(2), st.h, s2.a or 1, s2.r, s2.g, s2.b)
-    A.drawDividerH(self, px(1), st.y, w - px(2), false)
-    Mo.drawGlyphPrompts(self, T.sp.sm, st.y, st.h, self:stripPrompts())
+    for i = #_bandBtns, nb + 1, -1 do _bandBtns[i] = nil end
+    _bandSpec.win = self
+    Mo.drawBand(self, 0, f.y, w, _bandSpec)
+    for fi, b in ipairs(g.foot) do
+        if b.check then
+            local focused = joy and self.zone == "foot" and self.footFocus == fi
+            local hov = (not joy) and self._hover and self._hover.foot == b
+            local on = self._cur and MS.popupsFor(self._cur.name) or false
+            local pad = px(4)
+            if hov then self:drawRect(b.x - pad, b.y - pad, b.w + 2 * pad, b.h + 2 * pad, hv.a or 1, hv.r, hv.g, hv.b) end
+            if hov then ZeD.Help.set(self, tr("UI_ZeD_Msg_HelpPopups")) end
+            local onFocus = focused and ZeD.Focus.mark(self, b.x - pad, b.y - pad, b.w + 2 * pad, b.h + 2 * pad, focusOpts(self), nil)
+            A.drawCheckbox(self, b.x, b.y, on, hov, false)
+            local lc = onFocus and T.textOnFocus or tc
+            self:drawText(b.label, b.x + T.checkboxSz + px(U.CHK_GAP), b.y + math.floor((b.h - fh(T.fontF2)) / 2), lc.r, lc.g, lc.b, lc.a or 1, T.fontF2)
+        end
+    end
 end
 
-function ZeD_MessagesWindow:stripPrompts()
-    if self.joyfocus then
-        return { tr("UI_ZeD_Msg_DpadMove"), { glyph = "A", label = tr("UI_ZeD_Msg_Choose") }, { glyph = "B", label = getText("UI_Close") } }
-    end
-    return { { glyph = "ESC", label = getText("UI_Close") } }
+-- the help line's prompts while a controller holds the window (the help words, with the mouse)
+function ZeD_MessagesWindow:getFooterPrompts()
+    if not self.joyfocus then return nil end
+    local P = ZeD.Prompt
+    local move = P and P.padNote and P.padNote(tr("UI_ZeD_Msg_DpadMove")) or tr("UI_ZeD_Msg_DpadMove")
+    return { move, { glyph = "A", label = tr("UI_ZeD_Msg_Choose") }, { glyph = "B", label = getText("UI_Close") } }
 end
+
 
 function ZeD_MessagesWindow:render() ZeD_Window.render(self) end
 
@@ -411,6 +464,14 @@ function ZeD_MessagesWindow:onMouseDown(x, y)
     if not self:getIsVisible() then return true end
     local cb = self:closeRect()
     if cb and inRect(cb, x, y) then self._down = "close"; return true end
+    -- the window box answers on release (ZeD.Prompt.updateChrome)
+    if inRect(self:windowBoxRect(), x, y) then return true end
+    -- the cards' scrollbar
+    local sb = self._sb
+    if sb and sb.visible and x >= sb.x and x < sb.x + sb.width and y >= sb.y and y < sb.y + sb.height then
+        sb:handleMouseDown(y - sb.y)
+        return true
+    end
     local h = self:hitAt(x, y)
     if h and h.row then self:choose(h.row); self.zone = "list"; sound("UISelectListItem") end
     if h and (h.btn or h.foot) then self._down = h.btn or h.foot end
@@ -420,6 +481,7 @@ end
 function ZeD_MessagesWindow:onMouseUp(x, y)
     local down = self._down
     self._down = nil
+    if self._sb then self._sb:handleMouseUp() end
     if down == "close" then
         local cb = self:closeRect()
         if cb and inRect(cb, x, y) then sound("UIActivateButton"); self:close() end
@@ -431,7 +493,17 @@ function ZeD_MessagesWindow:onMouseUp(x, y)
     return true
 end
 
-function ZeD_MessagesWindow:onMouseUpOutside(x, y) self._down = nil end
+function ZeD_MessagesWindow:onMouseUpOutside(x, y)
+    self._down = nil
+    if self._sb then self._sb:handleMouseUp() end
+end
+
+-- a drag on the scrollbar's thumb follows the pointer, in the window or outside it
+function ZeD_MessagesWindow:onMouseMove(dx, dy)
+    local sb = self._sb
+    if sb and sb.dragging then sb:handleMouseMove(self:getMouseY() - sb.y) end
+end
+function ZeD_MessagesWindow:onMouseMoveOutside(dx, dy) self:onMouseMove(dx, dy) end
 
 function ZeD_MessagesWindow:onMouseWheel(del)
     local g = self._g
@@ -442,7 +514,17 @@ function ZeD_MessagesWindow:onMouseWheel(del)
 end
 
 function ZeD_MessagesWindow:update()
-    ISPanel.update(self)
+    if ZeD.Prompt and ZeD.Prompt.updateChrome then ZeD.Prompt.updateChrome(self) else ISPanel.update(self) end   -- (the window box)
+    local cb = self:closeRect()
+    self._closeHover = cb and inRect(cb, self:getMouseX(), self:getMouseY()) or false
+    if self._closeHover then ZeD.Help.set(self, tr("UI_ZeD_WinMenu_CloseHelp")) end
+    -- the scrollbar's arrows and thumb light up under the pointer; a drag follows it
+    local sb = self._sb
+    if sb and sb.visible then
+        local mx, my = self:getMouseX(), self:getMouseY()
+        if sb.dragging or (mx >= sb.x and mx < sb.x + sb.width) then sb:handleMouseMove(my - sb.y) end
+        if sb.dragging and not isMouseButtonDown(0) then sb:handleMouseUp() end
+    end
     local jd = JoypadState and JoypadState.players and JoypadState.players[self.playerNum + 1]
     self.joyfocus = (jd and jd.focus == self) and jd or (W.qaJoy and self or nil)
     self._hover = self:hitAt(self:getMouseX(), self:getMouseY())
@@ -592,31 +674,41 @@ function ZeD_MessagesToasts:prerender()
     local y = getPlayerScreenTop(0) + px(U.TOAST_TOP)
     if self.x ~= x then self:setX(x) end
     if self.y ~= y then self:setY(y) end
-    if self.width ~= w then self:setWidth(w) end
-    if self.height ~= h then self:setHeight(h) end
+    -- (a hair more each way: the pop-up shadow falls 1u right and down of each box)
+    if self.width ~= w + T.hair then self:setWidth(w + T.hair) end
+    if self.height ~= h + T.hair then self:setHeight(h + T.hair) end
     self._boxes = {}
     local A = ZeD.Atoms
+    local s1, hv, tc = T.surf1, T.hover, T.text
+    local mx, my = self:getMouseX(), self:getMouseY()
     for i, t in ipairs(list) do
         local by = (i - 1) * (bh + gap)
         local c = (t.kind == "crit" and T.danger) or (T.warning or T.accent)
-        local b = T.base or { r = 0.05, g = 0.05, b = 0.05 }
-        self:drawRect(0, by, w, bh, 0.92, b.r, b.g, b.b)
-        self:drawRectBorder(0, by, w, bh, 1, c.r, c.g, c.b)
+        -- a pop-up over the game: solid surface 1, the 1u frame and System 7's hard shadow;
+        -- the status is a square mark, the words stay the default ink
+        A.drawHardShadow(self, 0, by, w, bh)
+        self:drawRect(0, by, w, bh, 1, s1.r, s1.g, s1.b)
+        if mx >= 0 and mx < w and my >= by and my < by + bh then
+            self:drawRect(0, by, w, bh, hv.a or 1, hv.r, hv.g, hv.b)
+        end
+        A.frame(self, 0, by, w, bh, T.borderS)
         local hx = px(10)
-        local head = ZeD.upper(tostring(t.head or ""))
+        local sq = px(6)
+        A.drawStatusDot(self, hx, by + math.floor((bh - sq) / 2), c, sq)
+        local head = ZeD.textCase(tostring(t.head or ""))
         local fy1 = by + math.floor((bh - fh(T.fontF1)) / 2)
-        self:drawText(head, hx, fy1, c.r, c.g, c.b, 1, T.fontF1)
-        local tx = hx + tw(T.fontF1, head) + px(8)
+        local headX = hx + sq + px(6)
+        self:drawText(head, headX, fy1, tc.r, tc.g, tc.b, tc.a or 1, T.fontF1)
+        local tx = headX + tw(T.fontF1, head) + px(8)
         local body = tostring(t.source or "") .. ((t.text and t.text ~= "") and (" | " .. t.text) or "")
-        local tc = T.text
-        self:drawText(A.truncateText(body, T.fontF2, w - tx - px(10)), tx, by + math.floor((bh - fh(T.fontF2)) / 2), tc.r, tc.g, tc.b, 1, T.fontF2)
+        self:drawText(A.truncateText(body, T.fontF2, w - tx - px(10)), tx, by + math.floor((bh - fh(T.fontF2)) / 2), tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
         self._boxes[#self._boxes + 1] = { y = by, h = bh, source = t.source }
     end
 end
 
 function ZeD_MessagesToasts:onMouseDown(x, y)
     for _, b in ipairs(self._boxes) do
-        if y >= b.y and y < b.y + b.h and x >= 0 and x < self.width then
+        if y >= b.y and y < b.y + b.h and x >= 0 and x < self.width - ZeD.T.hair then
             sound("UIActivateButton")
             MS.open(b.source)
             return true

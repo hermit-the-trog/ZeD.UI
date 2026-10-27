@@ -10,9 +10,9 @@
 -- picture, the description (written in the description editor,
 -- ZeD_MainMenuDescEdit), the change note, what goes up (vanilla's
 -- validateContents) and the item's Workshop number. SAVE writes the folder's
--- workshop.txt (vanilla's writeWorkshopTxt); UPLOAD asks in the strip, then
+-- workshop.txt (vanilla's writeWorkshopTxt); Upload asks in the band, then
 -- creates the item when it is new (create) and sends it (submitUpdate) with
--- the progress in the strip. Steam's answers come as vanilla's events.
+-- the progress in the band. Steam's answers come as vanilla's events.
 -- Vanilla's workshopSubmit:setVisible(true) is redirected here.
 -- The folder picked last, and each folder's change note until it goes up, are
 -- kept in Zomboid/Lua/ZeD_workshop.txt (workshop.txt has no change note, so
@@ -429,7 +429,7 @@ function ZeD_MMWorkshop:prerender()
     ZeD_Window.prerender(self)
     local tb = T.titleBarH
     local pad = T.px(U.STACK_PAD)
-    local stripH = T.px(U.STRIP_BTN_H) + T.px(U.STRIP_PAD_Y) * 2
+    local stripH = MM.bandH()
     local stripY = h - self:footerHeight() - stripH
     local bodyY, bodyH = tb + pad, stripY - tb - pad * 2
     local lw = math.floor((w - pad * 3) * LIST_SHARE)
@@ -439,10 +439,16 @@ function ZeD_MMWorkshop:prerender()
 end
 
 function ZeD_MMWorkshop:render()
-    UI.drawStripAndButtons(self, self._stripY, self._stripH, self._ask, self._askX)
+    UI.drawStripAndButtons(self)
     if self.busy then self:drawProgress() end
-    self:drawHint()
     ZeD_Window.render(self)
+end
+
+-- the footer line when nothing is under the pointer
+function ZeD_MMWorkshop:getStatusLine()
+    local n = #self.items
+    if n == 0 then return nil end
+    return ZeD.tr(n == 1 and "UI_ZeD_Workshop_StatusOne" or "UI_ZeD_Workshop_StatusMany", n)
 end
 
 -- the folders in Zomboid/Workshop
@@ -455,10 +461,9 @@ function ZeD_MMWorkshop:drawFolders(x, y, w, h)
     self:drawText(ZeD.tr("UI_ZeD_Workshop_YourMods"), x + T.px(10), y + T.px(8), la.r, la.g, la.b, la.a or 1, f1)
     local vy = y + T.px(8) + MM.fontH(f1) + T.px(8)
     local rh = T.px(ROW_H)
-    local ac = T.accent
     local gp = MM.gamepad()
     if #self.items == 0 then
-        self:paneText(ZeD.tr("UI_ZeD_Workshop_NoFolders"), x + T.px(10), vy, w - T.px(20), f2, dim)
+        ZeD.Molecules.drawEmptyLine(self, x + T.px(10), vy, w - T.px(20), ZeD.tr("UI_ZeD_Workshop_NoFolders"))
     end
     for i, it in ipairs(self.items) do
         local ry = vy + (i - 1) * rh
@@ -466,18 +471,19 @@ function ZeD_MMWorkshop:drawFolders(x, y, w, h)
         local rid = "frow:" .. i
         self._specs[#self._specs + 1] = { id = rid, listRow = true, row = i, col = 1, x = x + T.px(1), y = ry, w = w - T.px(2), h = rh,
                                           chosen = (i == self.sel), fn = function() self:pick(i) end }
-        if gp and self.focusId == rid then self:drawRect(x + T.px(1), ry, w - 2 * T.px(1), rh, 0.55, ac.r, ac.g, ac.b)
-        elseif i == self.sel then self:drawRect(x + T.px(1), ry, w - 2 * T.px(1), rh, 0.22, ac.r, ac.g, ac.b) end
+        local onFocus = MM.rowLook(self, x + T.px(1), ry, w - 2 * T.px(1), rh, i == self.sel, (not gp) and MM.ctx.hot == "ws:row:" .. i, gp and self.focusId == rid)
+        if (not gp) and MM.ctx.hot == "ws:row:" .. i then ZeD.Help.set(self, ZeD.tr("UI_ZeD_MMHelp_WsFolder")) end
         self:drawRect(x + T.px(1), ry + rh - T.px(1), w - T.px(2), T.px(1), T.border.a, T.border.r, T.border.g, T.border.b)
         local title = (i == self.sel) and BB.trim(self.titleE:getText()) or BB.trim(tostring(it:getTitle() or ""))
         if title == "" then title = tostring(it:getFolderName()) end
         local tx = x + T.px(10)
-        local tc = T.textHead
+        local tc = onFocus and T.textOnFocus or T.textHead
+        local dm = onFocus and T.textOnFocus or dim
         self:drawText(ZeD.Atoms.truncateText(title, f2, w - T.px(20)), tx, ry + T.px(6), tc.r, tc.g, tc.b, tc.a or 1, f2)
         local id = it:getID()
         local sub = id and ZeD.tr("UI_ZeD_Workshop_OnWorkshop", tostring(id)) or ZeD.tr("UI_ZeD_Workshop_NotOnWorkshop")
         if self.unsaved[it:getFolderName()] then sub = sub .. MM.DOT .. ZeD.tr("UI_ZeD_Workshop_NotSaved") end
-        self:drawText(ZeD.Atoms.truncateText(sub, f3, w - T.px(20)), tx, ry + rh - T.px(6) - MM.fontH(f3), dim.r, dim.g, dim.b, dim.a or 1, f3)
+        self:drawText(ZeD.Atoms.truncateText(sub, f3, w - T.px(20)), tx, ry + rh - T.px(6) - MM.fontH(f3), dm.r, dm.g, dm.b, dm.a or 1, f3)
         self._hits[#self._hits + 1] = { id = "ws:row:" .. i, x = ax + x, y = ay + ry, w = w, h = rh, fn = function() self:pick(i); self.focusId = rid end }
     end
 end
@@ -492,12 +498,18 @@ function ZeD_MMWorkshop:paneText(text, x, cy, w, font, color)
     return cy
 end
 
--- a spec button inside the form (clipped with it); returns its right edge
+-- a spec button inside the form (clipped with it); returns its right edge. extra.radio / extra.check
+-- make it a radio button or a checkbox with its words after it (one of a few / on or off)
 function ZeD_MMWorkshop:formBtn(id, text, fn, x, y, variant, row, col, disabled, extra)
     local T = ZeD.T
-    local bw = MM.textW(T.fontF3, ZeD.btnCase(text)) + T.px(U.STRIP_BTN_PAD) * 2
+    local keep = extra and extra.keepCase
+    local label = keep and text or ZeD.btnCase(text)
+    local bw = math.max(T.px(60), MM.textW(T.fontF3, label) + T.sp.buttonPadX * 2)
+    if extra and (extra.radio or extra.check) then
+        bw = (extra.radio and ZeD.Atoms.radioSize() or T.checkboxSz) + T.px(14) + MM.textW(T.fontF3, label)
+    end
     local b = { id = id, text = text, fn = fn, variant = variant or "default", row = row, col = col, disabled = disabled,
-                x = x, y = y, w = bw, h = T.px(U.STRIP_BTN_H), clipTop = self._fv.y, clipBot = self._fv.y + self._fv.h }
+                x = x, y = y, w = bw, h = T.buttonH, clipTop = self._fv.y, clipBot = self._fv.y + self._fv.h }
     if extra then for k, v in pairs(extra) do b[k] = v end end
     self._specs[#self._specs + 1] = b
     return x + bw
@@ -512,10 +524,7 @@ function ZeD_MMWorkshop:formEntry(e, id, x, y, w, h)
     if e:isVisible() ~= inView then e:setVisible(inView) end
     if inView then
         UI.styleEntry(e, x, y, w, eh)
-        if self.focusId == id and MM.gamepad() then
-            local ac = T.accent
-            self:drawRectBorder(x - T.px(2), y - T.px(2), w + 2 * T.px(2), eh + 2 * T.px(2), 1, ac.r, ac.g, ac.b)
-        end
+        if self.focusId == id and MM.gamepad() then ZeD.Focus.mark(self, x, y, w, eh, MM.focusOpts()) end
     end
     -- (the controller lands on the field as on a button: A types in it)
     self._specs[#self._specs + 1] = { id = id, listRow = true, x = x, y = y, w = w, h = eh, clipTop = fv.y, clipBot = fv.y + fv.h,
@@ -526,7 +535,7 @@ end
 function ZeD_MMWorkshop:drawForm(x, y, w, h)
     local T = ZeD.T
     local bs = T.borderS
-    self:drawRectBorder(x, y, w, h, bs.a, bs.r, bs.g, bs.b)
+    ZeD.Atoms.frame(self, x, y, w, h, bs)
     local pad = T.px(PAD)
     local ix, iw = x + pad, w - pad * 2
     local top = y
@@ -535,9 +544,8 @@ function ZeD_MMWorkshop:drawForm(x, y, w, h)
         local f2 = T.fontF2
         local lines = ZeD.Atoms.wrapText(self.note.text, f2, iw - T.px(14))
         local nh = #lines * (MM.fontH(f2) + T.px(2)) + T.px(12)
-        local s2 = T.surf2
-        self:drawRect(x + T.px(1), y + T.px(1), w - 2 * T.px(1), nh, 1, s2.r, s2.g, s2.b)
-        self:drawRect(x + T.px(1), y + nh, w - 2 * T.px(1), T.px(1), bs.a, bs.r, bs.g, bs.b)
+        ZeD.Surface.fill(self, x + T.px(1), y + T.px(1), w - 2 * T.px(1), nh, "surf2")
+        ZeD.Atoms.drawDividerH(self, x, y + nh, w, true)
         local dsz = T.px(7)
         ZeD.Atoms.drawStatusDot(self, ix, y + T.px(6) + math.floor((MM.fontH(f2) - dsz) / 2), self.note.bad and T.danger or T.accent, dsz)
         self:paneText(self.note.text, ix + dsz + T.px(7), y + T.px(6), iw - T.px(14), f2, T.text)
@@ -569,32 +577,32 @@ function ZeD_MMWorkshop:formTop(it, ix, iw, cy)
     local T = ZeD.T
     local vx = ix + T.px(LABEL_W)
     local vw = ix + iw - vx
-    local bh = T.px(U.STRIP_BTN_H)
+    local bh = T.buttonH
     local f2, f3, dim = T.fontF2, T.fontF3, T.textDim
-    -- TITLE
-    label(self, ZeD.upper(ZeD.trBare("UI_WorkshopSubmit_ItemTitle")), ix, cy, T.px(24))
+    -- the title
+    label(self, ZeD.textCase(ZeD.trBare("UI_WorkshopSubmit_ItemTitle")), ix, cy, T.px(24))
     cy = cy + self:formEntry(self.titleE, "f:title", vx, cy, vw) + T.px(10)
-    -- WHO CAN SEE IT
+    -- who can see it: one of a few, radio buttons
     label(self, ZeD.tr("UI_ZeD_Workshop_LabelWho"), ix, cy, bh)
     local bx = vx
     for i, v in ipairs(VIS) do
         bx = self:formBtn("vis:" .. v[1], ZeD.tr(v[2]), function() self.vis = v[1]; self:formChanged(); MM.clickSound() end, bx, cy,
-            (self.vis == v[1]) and "primary" or "default", 300, i) + T.px(6)
+            "default", 300, i, false, { radio = true, on = (self.vis == v[1]) }) + T.px(10)
     end
     cy = cy + bh + T.px(4)
     cy = self:paneText(ZeD.tr(VIS_SEEN[self.vis] or VIS_SEEN[0]), vx, cy, vw, f3, dim) + T.px(8)
-    -- TAGS
-    label(self, ZeD.upper(ZeD.trBare("UI_WorkshopSubmit_ItemTags")), ix, cy, bh)
+    -- the tags: each on or off, checkboxes
+    label(self, ZeD.textCase(ZeD.trBare("UI_WorkshopSubmit_ItemTags")), ix, cy, bh)
     bx = vx
     local tags = {}
     pcall(function() tags = jlist(SteamWorkshopItem.getAllowedTags()) end)
     local row = 310
     for i, t in ipairs(tags) do
         local name = tostring(t)
-        local tw = MM.textW(T.fontF3, name) + T.px(U.STRIP_BTN_PAD) * 2
+        local tw = T.checkboxSz + T.px(14) + MM.textW(T.fontF3, name)
         if bx + tw > vx + vw and bx > vx then bx = vx; cy = cy + bh + T.px(6); row = row + 1 end
         bx = self:formBtn("tag:" .. name, name, function() self.tags[name] = not self.tags[name] or nil; self:formChanged(); MM.clickSound() end,
-            bx, cy, self.tags[name] and "primary" or "default", row, i, false, { keepCase = true }) + T.px(6)
+            bx, cy, "default", row, i, false, { keepCase = true, check = true, on = self.tags[name] and true or false }) + T.px(10)
     end
     cy = cy + bh + T.px(12)
     -- PREVIEW PICTURE
@@ -604,7 +612,7 @@ function ZeD_MMWorkshop:formTop(it, ix, iw, cy)
     local tsz = T.px(THUMB)
     local bs = T.borderS
     if tex then self:drawTextureScaledAspect(tex, vx, cy, tsz, tsz, 1, 1, 1, 1) end
-    self:drawRectBorder(vx, cy, tsz, tsz, bs.a, bs.r, bs.g, bs.b)
+    ZeD.Atoms.frame(self, vx, cy, tsz, tsz, bs)
     local px = vx + tsz + T.px(10)
     local pw = ix + iw - px
     local name = path:match("([^/\\]+)$") or "preview.png"
@@ -629,10 +637,10 @@ function ZeD_MMWorkshop:formBottom(it, ix, iw, cy)
     local T = ZeD.T
     local vx = ix + T.px(LABEL_W)
     local vw = ix + iw - vx
-    local bh = T.px(U.STRIP_BTN_H)
+    local bh = T.buttonH
     local f2, f3, dim, txt = T.fontF2, T.fontF3, T.textDim, T.text
-    -- DESCRIPTION
-    label(self, ZeD.upper(ZeD.trBare("UI_WorkshopSubmit_ItemDescription")), ix, cy, T.px(20))
+    -- the description
+    label(self, ZeD.textCase(ZeD.trBare("UI_WorkshopSubmit_ItemDescription")), ix, cy, T.px(20))
     local plain = BB.plain(self.desc)
     if plain == "" then cy = self:paneText(ZeD.tr("UI_ZeD_Workshop_NoneYet"), vx, cy + T.px(2), vw, f2, dim)
     else
@@ -645,7 +653,10 @@ function ZeD_MMWorkshop:formBottom(it, ix, iw, cy)
         end
     end
     local n, room = #self.desc, self:descRoom()
-    cy = self:paneText(ZeD.tr("UI_ZeD_DescEdit_Count", BB.count(n), BB.count(room)), vx, cy + T.px(2), vw, f3, (n > room) and T.danger or dim) + T.px(6)
+    -- the count: the words in the default dim, a square mark that is red when it is over
+    local cdsz = T.px(6)
+    ZeD.Atoms.drawStatusDot(self, vx, cy + T.px(2) + math.floor((MM.fontH(f3) - cdsz) / 2), (n > room) and T.danger or T.positive, cdsz)
+    cy = self:paneText(ZeD.tr("UI_ZeD_DescEdit_Count", BB.count(n), BB.count(room)), vx + cdsz + T.px(6), cy + T.px(2), vw - cdsz - T.px(6), f3, dim) + T.px(6)
     local bx = self:formBtn("desc:edit", ZeD.tr("UI_WorkshopSubmit_EditDescription"), function() self:openEditor() end, vx, cy, "default", 400, 1) + T.px(6)
     self:formBtn("desc:copy", ZeD.tr("UI_ZeD_Workshop_CopyCodes"), function() Clipboard.setClipboard(self.desc); self:say(ZeD.tr("UI_ZeD_Workshop_CodesCopied")); MM.clickSound() end,
         bx, cy, "default", 400, 2, self.desc == "")
@@ -701,30 +712,30 @@ end
 function ZeD_MMWorkshop:buildStrip(stripY, stripH, w)
     local T = ZeD.T
     local row = 1000
-    local ask = nil
-    self._askX = nil
     local it = self:item()
     if self.busy then
+        -- the upload's progress takes the band's left (drawProgress); Back waits
         UI.stripSpecs(self, stripY, w, row, { { "back", getText("UI_btn_back"), function() end, "default", true } }, {})
-        self._stripY, self._stripH, self._ask = stripY, stripH, nil
         return
     end
     if self.confirm == "upload" then
-        ask = ZeD.tr(VIS_ASK[self.vis] or VIS_ASK[0], BB.trim(self.titleE:getText()))
         UI.stripSpecs(self, stripY, w, row, {}, {
             { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
-            { "confirm:yes", ZeD.tr("UI_ZeD_Workshop_Upload"), function() self:upload() end, "primary" } })
+            { "confirm:yes", ZeD.tr("UI_ZeD_Workshop_Upload"), function() self:upload() end, "primary" } },
+            ZeD.tr(VIS_ASK[self.vis] or VIS_ASK[0], BB.trim(self.titleE:getText())))
     elseif self.confirm == "leave" then
-        ask = ZeD.tr("UI_ZeD_Workshop_AskSave")
+        -- Cancel stays; Discard changes drops what was edited; Save keeps it
         UI.stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:no", ZeD.tr("UI_ZeD_DescEdit_Discard"), function()
+            { "confirm:cancel", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
+            { "confirm:no", ZeD.tr("UI_ZeD_MMWord_DiscardChanges"), function()
                 for _, x in ipairs(self.items) do pcall(function() x:readWorkshopTxt() end) end
-                self.unsaved = {}; self.confirm = false; MM.clickSound(); MM.showView("main") end },
+                self.unsaved = {}; self.confirm = false; MM.clickSound(); MM.showView("main") end, "danger" },
             { "confirm:yes", getText("UI_btn_save"), function()
                 self:apply()
                 for _, x in ipairs(self.items) do if self.unsaved[x:getFolderName()] or x == self:item() then writeItem(x) end end
                 keepSave()
-                self.unsaved = {}; self.confirm = false; MM.clickSound(); MM.showView("main") end, "primary" } })
+                self.unsaved = {}; self.confirm = false; MM.clickSound(); MM.showView("main") end, "primary" } },
+            ZeD.tr("UI_ZeD_Workshop_AskSave"))
     else
         -- (Oct 22 2026: was `it and self:blocker() or ...`, which read "Nothing to upload" whenever
         -- nothing blocked the folder, so Upload never lit)
@@ -734,15 +745,9 @@ function ZeD_MMWorkshop:buildStrip(stripY, stripH, w)
             { "save", getText("UI_btn_save"), function() self:save() end, "default", not self:isUnsaved() },
             { "upload", ZeD.tr((it and it:getID()) and "UI_ZeD_Workshop_UploadUpdate" or "UI_ZeD_Workshop_Upload"), function() if self:freshOk() then self:setConfirm("upload") end end, "primary", block ~= nil },
         }
-        local askX = UI.stripSpecs(self, stripY, w, row, { { "back", getText("UI_btn_back"), function() self:back() end } }, rights)
-        if block and it then
-            local firstBtn = w
-            for _, b in ipairs(self._specs) do if b.row == row and b.x > askX then firstBtn = math.min(firstBtn, b.x) end end
-            ask = ZeD.Atoms.truncateText(block, T.fontF2, firstBtn - T.px(12) - (askX + T.px(4)))
-            self._askX = askX + T.px(4)
-        end
+        -- what keeps Upload from going is the band's own line (a square mark, then the reason)
+        UI.stripSpecs(self, stripY, w, row, { { "back", getText("UI_btn_back"), function() self:back() end } }, rights, (block and it) and block or nil, true, T.warning)
     end
-    self._stripY, self._stripH, self._ask = stripY, stripH, ask
 end
 
 -- the upload's progress where the buttons were
@@ -750,8 +755,11 @@ function ZeD_MMWorkshop:drawProgress()
     local T = ZeD.T
     local it = self:item()
     local f2, txt = T.fontF2, T.text
-    local y, h = self._stripY, self._stripH
-    local x0 = T.px(U.STRIP_PAD_X) + MM.textW(T.fontF3, ZeD.btnCase(getText("UI_btn_back"))) + T.px(U.STRIP_BTN_PAD) * 2 + T.px(16)
+    local y, h = self._bandY or 0, self._bandH or MM.bandH()
+    -- the band's left, up to the Back button waiting at its right
+    local x0 = T.px(8)
+    local right = self.width - T.px(8)
+    for _, b in ipairs(self._specs) do if b.band then right = math.min(right, b.x - T.px(8)) end end
     local text, frac = ZeD.tr("UI_ZeD_Workshop_Asking"), nil
     if self.busy.stage == "send" then
         local pr = { processed = 0, total = 0 }
@@ -765,25 +773,31 @@ function ZeD_MMWorkshop:drawProgress()
     end
     self:drawText(text, x0, y + math.floor((h - MM.fontH(f2)) / 2), txt.r, txt.g, txt.b, txt.a or 1, f2)
     local bx = x0 + MM.textW(f2, text) + T.px(16)
-    local bw = self.width - T.px(U.STRIP_PAD_X) - bx
+    local bw = right - bx
     if bw > T.px(60) then
-        local bh = T.px(10)
+        -- the System 7 bar: a framed strip, a flat solid fill; with no total yet an empty strip with a block sweeping across it
+        local bh = T.fillBarH
         local by = y + math.floor((h - bh) / 2)
-        local bs, ac = T.borderS, T.accent
-        self:drawRectBorder(bx, by, bw, bh, bs.a, bs.r, bs.g, bs.b)
-        local k = frac or ((MM.now() - self.busy.t0) % 1600) / 1600   -- (no total yet: a sweep)
-        if frac then self:drawRect(bx + T.px(1), by + T.px(1), math.floor((bw - 2 * T.px(1)) * k), bh - 2 * T.px(1), 1, ac.r, ac.g, ac.b)
-        else self:drawRect(bx + T.px(1) + math.floor((bw - T.px(40)) * k), by + T.px(1), T.px(38), bh - 2 * T.px(1), 1, ac.r, ac.g, ac.b) end
+        ZeD.Atoms.drawFillBar(self, bx, by, bw, frac or 0, false, nil, bh)
+        if not frac then
+            local k = ((MM.now() - self.busy.t0) % 1600) / 1600
+            local ac, line = T.accent, T.line(T.borderW)
+            local chunk = T.px(40)
+            self:drawRect(bx + line + math.floor((bw - 2 * line - chunk) * k), by + line, chunk, bh - 2 * line, 1, ac.r, ac.g, ac.b)
+        end
     end
 end
-
--- an icon button's words, after the pointer rests on it (none here yet; the editor has them)
-function ZeD_MMWorkshop:drawHint() end
 
 -- ----------------------------------------------------------------------------
 -- KEYS, CONTROLLER, WHEEL
 -- ----------------------------------------------------------------------------
 function ZeD_MMWorkshop:joyB() self:back() end
+
+function ZeD_MMWorkshop:getFooterPrompts()
+    if not MM.gamepad() then return nil end
+    if self.busy then return nil end
+    return { { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }, { glyph = "B", label = self.confirm and getText("UI_Cancel") or ZeD.btnCase(getText("UI_btn_back")) } }
+end
 function ZeD_MMWorkshop:keyEscape()
     if self.titleE:isFocused() then self.titleE:unfocus(); return true end
     if self.noteE:isFocused() then self.noteE:unfocus(); return true end

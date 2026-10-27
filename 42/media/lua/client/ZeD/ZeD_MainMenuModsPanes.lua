@@ -15,7 +15,7 @@
 -- The picker (page "picks"): every Lua file two mods share, whose copy runs now,
 -- both copies of the chosen file side by side with the lines that differ marked,
 -- and a choice per file. Use these picks keeps them (ZeD_ModPicks writes the
--- copies into ZeD picks, turns it on and keeps it last) and the strip offers the
+-- copies into ZeD picks, turns it on and keeps it last) and the band offers the
 -- reload.
 -- ============================================================================
 require "ZeD/ZeD_MainMenuMods"
@@ -80,15 +80,21 @@ function ZeD_MMMods:drawDetailTabs(d, x, w, cy, vy, vh)
     local tx = x + pad
     local th = T.tabH
     local gp = MM.gamepad()
-    local ac, bs = T.accent, T.borderS
     self.dtab = self.dtab or "about"
     for i, t in ipairs(self:detailTabs(d)) do
         local text = t.count and ZeD.tr("UI_ZeD_Mods_DTabCount", t.label, t.count) or t.label
         local hid = "mods:dtab:" .. t.id
         local hot = MM.ctx.hot == hid
-        local tw = ZeD.Molecules.drawTab(self, tx, cy, text, self.dtab == t.id, hot, t.none and self.dtab ~= t.id)
         local sid = "dtab:" .. t.id
-        if gp and self.focusId == sid then self:drawRect(tx, cy, tw, th, 0.55, ac.r, ac.g, ac.b) end
+        -- (the library's tab claims its place in the window body: it draws only wholly inside the pane, so a
+        -- half-scrolled one never leaves a hole above it)
+        local tw
+        if cy >= vy and cy + th <= vy + vh then
+            tw = ZeD.Molecules.drawTab(self, tx, cy, text, self.dtab == t.id, hot, t.none and self.dtab ~= t.id,
+                (gp and self.focusId == sid) and { focus = MM.focusOpts() } or nil)
+        else
+            tw = MM.textW(T.fontF2, ZeD.textCase(text)) + T.sp.tabPadX * 2
+        end
         local pick = function()
             if self.dtab ~= t.id then self.dtab = t.id; self.dscroll = 0; MM.clickSound() end
         end
@@ -100,7 +106,7 @@ function ZeD_MMMods:drawDetailTabs(d, x, w, cy, vy, vh)
                                           clipTop = vy, clipBot = vy + vh, fn = pick }
         tx = tx + tw + T.sp.tabGap
     end
-    self:drawRect(x + T.px(1), cy + th - T.px(1), w - 2 * T.px(1), T.px(1), bs.a, bs.r, bs.g, bs.b)
+    ZeD.Atoms.drawDividerH(self, x + T.px(1), cy + th - T.px(1), w - 2 * T.px(1), true)
     return cy + th + T.px(TAB_GAP_Y)
 end
 
@@ -158,9 +164,9 @@ function ZeD_MMMods:drawPalette()
     local py = p.anchor.y - ay + p.anchor.h + T.px(4)
     if py + ph > self.height - T.px(8) then py = p.anchor.y - ay - ph - T.px(4) end
     local s1, bs = T.surf1, T.borderS
-    ZeD.Atoms.drawSteppedShadow(self, px, py, pw, ph, { r = 0, g = 0, b = 0, a = 0.55 })
+    ZeD.Atoms.drawHardShadow(self, px, py, pw, ph)
     self:drawRect(px, py, pw, ph, 1, s1.r, s1.g, s1.b)
-    self:drawRectBorder(px, py, pw, ph, bs.a, bs.r, bs.g, bs.b)
+    ZeD.Atoms.frame(self, px, py, pw, ph, bs)
     local cur = p.row.control.backgroundColor or {}
     self._hits[#self._hits + 1] = { id = "mods:pal", x = ax + px, y = ay + py, w = pw, h = ph }
     for i, code in ipairs(PALETTE) do
@@ -169,7 +175,7 @@ function ZeD_MMMods:drawPalette()
         local cy = py + T.px(4) + math.floor((i - 1) / cols) * cell
         self:drawRect(cx + T.px(1), cy + T.px(1), cell - 2 * T.px(1), cell - 2 * T.px(1), 1, col.r, col.g, col.b)
         local isCur = math.abs((cur.r or -1) - col.r) < 0.02 and math.abs((cur.g or -1) - col.g) < 0.02 and math.abs((cur.b or -1) - col.b) < 0.02
-        if isCur or MM.ctx.hot == "mods:pal:" .. i then self:drawRectBorder(cx, cy, cell, cell, 1, T.text.r, T.text.g, T.text.b) end
+        if isCur or MM.ctx.hot == "mods:pal:" .. i then ZeD.Atoms.frame(self, cx, cy, cell, cell, T.text) end
         self._hits[#self._hits + 1] = { id = "mods:pal:" .. i, x = ax + cx, y = ay + cy, w = cell, h = cell, fn = function() self:pickColor(col) end }
     end
     self._paletteRect = { x = ax + px, y = ay + py, w = pw, h = ph }
@@ -209,19 +215,20 @@ function ZeD_MMMods:drawOptionRow(e, i, ix, iw, cy, vy, vh)
     local rh = r and ZeD_MMOptions.rowHeight(self, r, cw) or T.px(OPT_ROW_H)
     local gp = MM.gamepad()
     local sid = "mopt:" .. i
-    local ac = T.accent
     local mx, my = getMouseX() - self:getAbsoluteX(), getMouseY() - self:getAbsoluteY()
     local visible = cy + rh > vy and cy < vy + vh
+    local onFocus = false
     if visible then
-        if gp and self.focusId == sid then self:drawRect(ix - T.px(4), cy, iw + T.px(8), rh, 0.55, ac.r, ac.g, ac.b) end
-        if mx >= ix and mx < ix + iw and my >= cy and my < cy + rh and my >= vy and my < vy + vh then self._helpEntry = e end
+        local isHov = mx >= ix and mx < ix + iw and my >= cy and my < cy + rh and my >= vy and my < vy + vh
+        onFocus = MM.rowLook(self, ix - T.px(4), cy, iw + T.px(8), rh, false, isHov and not gp and not MM.ctx.open, gp and self.focusId == sid)
+        if isHov then self._helpEntry = e end
         if gp and self.focusId == sid then self._helpEntry = e end
         local s = r and S.sig(r)
         if s and self._optSeen and self._optSeen[e.key] and self._optSeen[e.key] ~= s then
             local dsz = T.px(7)
             ZeD.Atoms.drawStatusDot(self, ix, cy + math.floor((T.px(OPT_ROW_H) - dsz) / 2), T.accent, dsz)
         end
-        local tc = (r and not (r.control and r.control.disabled)) and T.text or T.textDim
+        local tc = onFocus and T.textOnFocus or ((r and not (r.control and r.control.disabled)) and T.text or T.textDim)
         self:drawText(ZeD.Atoms.truncateText(e.label, f2, lw - T.px(18)), ix + T.px(14), cy + math.floor((T.px(OPT_ROW_H) - MM.fontH(f2)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
         if not r then
             local d = T.textDim
@@ -277,8 +284,8 @@ function ZeD_MMMods:drawOptionsTab(d, ix, iw, cy, vy, vh)
     end
     local idx = 0
     for _, sec in ipairs(data.sections) do
-        local head = ZeD.upper(ZeD.tr("UI_ZeD_Mods_OptHead"))
-        if #data.sections > 1 then head = ZeD.upper(sec.title) end
+        local head = ZeD.textCase(ZeD.tr("UI_ZeD_Mods_OptHead"))
+        if #data.sections > 1 then head = tostring(sec.title) end
         local la = T.accent
         self:drawText(head, ix, cy, la.r, la.g, la.b, la.a or 1, f1)
         local sub = ZeD.tr("UI_ZeD_Mods_OptHeadNote")
@@ -290,7 +297,7 @@ function ZeD_MMMods:drawOptionsTab(d, ix, iw, cy, vy, vh)
         for _, e in ipairs(sec.entries) do
             if e.kind == "header" then
                 cy = cy + T.px(6)
-                cy = self:paneText(ZeD.upper(e.text), ix + T.px(14), cy, iw - T.px(14), f1, T.textHead) + T.px(2)
+                cy = self:paneText(tostring(e.text), ix + T.px(14), cy, iw - T.px(14), f1, T.textHead) + T.px(2)
             elseif e.kind == "note" then
                 cy = self:paneText(e.text, ix + T.px(14), cy + T.px(4), iw - T.px(14), f2, dim) + T.px(4)
             else
@@ -325,7 +332,7 @@ function ZeD_MMMods:drawSettingsFiles(d, ix, iw, cy, vy, vh, withVerb)
         return cy
     end
     local la = T.accent
-    local head = ZeD.upper(ZeD.tr("UI_ZeD_Mods_FilesHead"))
+    local head = ZeD.textCase(ZeD.tr("UI_ZeD_Mods_FilesHead"))
     self:drawText(head, ix, cy, la.r, la.g, la.b, la.a or 1, f1)
     local sub = ZeD.tr("UI_ZeD_Mods_FilesHeadNote")
     local sw = MM.textW(f3, sub)
@@ -363,7 +370,7 @@ function ZeD_MMMods:fileRow(text, why, ix, iw, cy)
     return cy + rh
 end
 
--- Reset settings asks in the strip first (what it covers, where the copies go)
+-- Reset settings asks in the band first (what it covers, where the copies go)
 function ZeD_MMMods:askReset(d)
     local plan = RS.plan(d.modId)
     if not (plan and plan.any) then return end
@@ -373,23 +380,23 @@ function ZeD_MMMods:askReset(d)
     self:setConfirm("reset")
 end
 
--- the strip while it asks; returns the question
+-- the band while it asks (Cancel and Reset)
 function ZeD_MMMods:resetStrip(stripY, w, row)
     local T = ZeD.T
     local d = self._resetFor
     local plan = d and RS.plan(d.modId)
+    local cancel, verb = getText("UI_btn_cancel"), getText("IGUI_WorldMapEditor_Reset")
+    local ask
+    if plan then
+        -- the whole question with the files' names; when the band is too narrow, without them
+        -- (the pane lists them just above)
+        local room = math.max(T.px(60), MM.bandRoom(w, { cancel, verb }))
+        ask = self:resetAsk(d, plan, false)
+        if MM.textW(T.fontF2, ask) > room then ask = self:resetAsk(d, plan, true) end
+    end
     UI.stripSpecs(self, stripY, w, row, {}, {
-        { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
-        { "confirm:yes", getText("IGUI_WorldMapEditor_Reset"), function() self:doReset() end, "danger", not (plan and plan.any) } })
-    if not plan then return nil end
-    local firstBtn = w
-    for _, b in ipairs(self._specs) do if b.row == row and b.x then firstBtn = math.min(firstBtn, b.x) end end
-    local room = math.max(T.px(60), firstBtn - T.px(12) - (T.px(U.STRIP_PAD_X) + T.px(4)))
-    -- the whole question with the files' names; when the strip is too narrow, without them
-    -- (the pane lists them just above), then cut
-    local ask = self:resetAsk(d, plan, false)
-    if MM.textW(T.fontF2, ask) > room then ask = self:resetAsk(d, plan, true) end
-    return ZeD.Atoms.truncateText(ask, T.fontF2, room)
+        { "confirm:no", cancel, function() self:setConfirm(false) end },
+        { "confirm:yes", verb, function() self:doReset() end, "danger", not (plan and plan.any) } }, ask)
 end
 
 function ZeD_MMMods:resetAsk(d, plan, short)
@@ -447,7 +454,7 @@ function ZeD_MMMods:drawSandboxTab(d, ix, iw, cy, vy, vh)
     local s = S.sandbox(d.modId)
     if not s or #s.list == 0 then return self:paneNote(ZeD.tr("UI_ZeD_Mods_SbNone"), ix, iw, cy) end
     local la = T.accent
-    local head = ZeD.upper(ZeD.tr("UI_ZeD_Mods_SbHead"))
+    local head = ZeD.textCase(ZeD.tr("UI_ZeD_Mods_SbHead"))
     self:drawText(head, ix, cy, la.r, la.g, la.b, la.a or 1, f1)
     local sub = ZeD.tr(d.isActive and "UI_ZeD_Mods_SbHeadNote" or "UI_ZeD_Mods_SbHeadNoteOff")
     local sw = MM.textW(T.fontF3, sub)
@@ -463,14 +470,15 @@ function ZeD_MMMods:drawSandboxTab(d, ix, iw, cy, vy, vh)
     local rh = T.px(OPT_ROW_H) - T.px(4)
     local mx, my = getMouseX() - self:getAbsoluteX(), getMouseY() - self:getAbsoluteY()
     local gp = MM.gamepad()
-    local ac = T.accent
     for i, st in ipairs(s.list) do
         local sid = "msb:" .. i
         if cy + rh > vy and cy < vy + vh then
-            if gp and self.focusId == sid then self:drawRect(ix - T.px(4), cy, iw + T.px(8), rh, 0.55, ac.r, ac.g, ac.b); self._helpEntry = { sandbox = st } end
-            if mx >= ix and mx < ix + iw and my >= cy and my < cy + rh and my >= vy and my < vy + vh then self._helpEntry = { sandbox = st } end
+            local isHov = mx >= ix and mx < ix + iw and my >= cy and my < cy + rh and my >= vy and my < vy + vh
+            local onFocus = MM.rowLook(self, ix - T.px(4), cy, iw + T.px(8), rh, false, isHov and not gp and not MM.ctx.open, gp and self.focusId == sid)
+            if gp and self.focusId == sid then self._helpEntry = { sandbox = st } end
+            if isHov then self._helpEntry = { sandbox = st } end
             local ty = cy + math.floor((rh - MM.fontH(f2)) / 2)
-            local c = T.text
+            local c = onFocus and T.textOnFocus or T.text
             self:drawText(ZeD.Atoms.truncateText(st.label, f2, lw - T.px(18)), ix + T.px(14), ty, c.r, c.g, c.b, c.a or 1, f2)
             if st.type == "boolean" then
                 local cb = T.checkboxSz
@@ -490,9 +498,8 @@ end
 -- the band at the pane's foot: the row under the pointer, or the controller's
 function ZeD_MMMods:drawHelpBand(x, y, w, h)
     local T = ZeD.T
-    local s2, bs = T.surf2, T.borderS
-    self:drawRect(x + T.px(1), y, w - 2 * T.px(1), h - T.px(1), 1, s2.r, s2.g, s2.b)
-    self:drawRect(x + T.px(1), y, w - 2 * T.px(1), T.px(1), bs.a, bs.r, bs.g, bs.b)
+    ZeD.Surface.fill(self, x + T.px(1), y, w - 2 * T.px(1), h - T.px(1), "surf2")
+    ZeD.Atoms.drawDividerH(self, x, y, w, true)
     local e = (not MM.ctx.open and not self._palette) and self._helpEntry or nil
     if not e then return end
     local f2 = T.fontF2
@@ -677,20 +684,19 @@ function ZeD_MMMods:drawPickFiles(x, y, w, h)
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
     UI.insetBox(self, x, y, w, h)
     local f2, f3 = T.fontF2, T.fontF3
-    local s2 = T.surf2
     local headH = T.px(30)
-    self:drawRect(x + T.px(1), y + T.px(1), w - 2 * T.px(1), headH, 1, s2.r, s2.g, s2.b)
+    ZeD.Surface.fill(self, x + T.px(1), y + T.px(1), w - 2 * T.px(1), headH, "surf2")
     local nPicked = 0
     for _, p in ipairs(self.pickFiles) do if self.pickDraft[p] then nPicked = nPicked + 1 end end
     local la = T.accent
-    self:drawText(ZeD.upper(ZeD.tr("UI_ZeD_Mods_PickShared", #self.pickFiles, nPicked)), x + T.px(10), y + math.floor((headH - MM.fontH(T.fontF1)) / 2), la.r, la.g, la.b, la.a or 1, T.fontF1)
-    self:drawRect(x, y + headH, w, T.px(1), T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
+    self:drawText(ZeD.textCase(ZeD.tr("UI_ZeD_Mods_PickShared", #self.pickFiles, nPicked)), x + T.px(10), y + math.floor((headH - MM.fontH(T.fontF1)) / 2), la.r, la.g, la.b, la.a or 1, T.fontF1)
+    ZeD.Atoms.drawDividerH(self, x, y + headH, w, true)
     local vy, vh = y + headH + T.px(1), h - headH - T.px(2)
     local rh = T.px(38)
     local rowsH = #self.pickFiles * rh
     self.scroll = math.max(0, math.min(self.scroll, math.max(0, rowsH - vh)))
     self._list = { x = x, y = vy, w = w, h = vh }
-    local gp, ac = MM.gamepad(), T.accent
+    local gp = MM.gamepad()
     self:setStencilRect(x + T.px(1), vy, w - T.px(2), vh)
     for i, path in ipairs(self.pickFiles) do
         local ry = vy + (i - 1) * rh - self.scroll
@@ -698,21 +704,23 @@ function ZeD_MMMods:drawPickFiles(x, y, w, h)
         self._specs[#self._specs + 1] = { id = rid, listRow = true, pickRow = i, row = i, col = 1, ry = (i - 1) * rh, rh = rh, index = i,
                                           fn = function() self:flipPick(path) end }
         if ry + rh > vy and ry < vy + vh then
-            if gp and self.focusId == rid then self:drawRect(x + T.px(1), ry, w - T.px(2), rh, 0.55, ac.r, ac.g, ac.b)
-            elseif self.pickSel == i then self:drawRect(x + T.px(1), ry, w - T.px(2), rh, 0.22, ac.r, ac.g, ac.b) end
+            local onFocus = MM.rowLook(self, x + T.px(1), ry, w - T.px(2), rh, self.pickSel == i, (not gp) and MM.ctx.hot == "mods:pfile:" .. i, gp and self.focusId == rid)
             self:drawRect(x + T.px(1), ry + rh - T.px(1), w - T.px(2), T.px(1), T.border.a, T.border.r, T.border.g, T.border.b)
             local file = path:match("([^/]+)$") or path
             local dir = path:match("^media/lua/(.*)/[^/]+$") or ""
             local from = self.pickDraft[path]
+            -- the copy in use as a tag (spec 9): an outline, a green square when it was picked
             local chipText = from and ZeD.tr("UI_ZeD_Mods_PickChipPicked", MS.modName(from)) or MS.modName(e.winner)
-            local cwid = math.min(math.floor(w * 0.45), MM.textW(T.fontF1, chipText) + T.sp.badgePadX * 2)
-            chipText = ZeD.Atoms.truncateText(chipText, T.fontF1, cwid - T.sp.badgePadX * 2)
-            local chh = MM.fontH(T.fontF1) + T.sp.badgePadY * 2
+            local mark = from and T.positive or nil
+            local extra = T.px(10) + (mark and T.px(10) or 0)
+            chipText = ZeD.Atoms.truncateText(chipText, T.fontF1, math.floor(w * 0.45) - extra)
+            local cwid = MM.textW(T.fontF1, chipText) + extra
+            local chh = T.px(16)
             local chx = x + w - T.px(10) - cwid
             local b = T.base
             self:drawRect(chx, ry + math.floor((rh - chh) / 2), cwid, chh, 1, b.r, b.g, b.b)
-            ZeD.Atoms.drawBadge(self, chipText, chx, ry + math.floor((rh - chh) / 2), from and "positive" or "neutral", false, T.fontF1, true)
-            local tc, dim = T.textHead, T.textDim
+            ZeD.Molecules.drawTag(self, chx, ry + math.floor((rh - chh) / 2), chipText, mark, { font = T.fontF1, keepCase = true })
+            local tc, dim = onFocus and T.textOnFocus or T.textHead, onFocus and T.textOnFocus or T.textDim
             local room = chx - T.px(8) - (x + T.px(10))
             self:drawText(ZeD.Atoms.truncateText(file, f2, room), x + T.px(10), ry + T.px(4), tc.r, tc.g, tc.b, tc.a or 1, f2)
             self:drawText(ZeD.Atoms.truncateText(dir, f3, room), x + T.px(10), ry + rh - T.px(4) - MM.fontH(f3), dim.r, dim.g, dim.b, dim.a or 1, f3)
@@ -749,7 +757,7 @@ function ZeD_MMMods:drawPickCompare(x, y, w, h)
     if not path then return end
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
     local bs = T.borderS
-    self:drawRectBorder(x, y, w, h, bs.a, bs.r, bs.g, bs.b)
+    ZeD.Atoms.frame(self, x, y, w, h, bs)
     local pad = T.px(12)
     local ix, iw = x + pad, w - pad * 2
     local f1, f2, f3 = T.fontF1, T.fontF2, T.fontF3
@@ -758,7 +766,7 @@ function ZeD_MMMods:drawPickCompare(x, y, w, h)
     local la1, lb1 = P.lines(e.loser, path), P.lines(e.winner, path)
     local nDiff = P.diffCount(la1, lb1)
     local file = path:match("([^/]+)$") or path
-    self:drawText(ZeD.upper(file), ix, cy, la.r, la.g, la.b, la.a or 1, f1)
+    self:drawText(file, ix, cy, la.r, la.g, la.b, la.a or 1, f1)
     local dtext = ZeD.tr(nDiff == 1 and "UI_ZeD_Mods_PickDiffOne" or "UI_ZeD_Mods_PickDiffMany", nDiff)
     self:drawText(dtext, ix + iw - MM.textW(f3, dtext), cy, dim.r, dim.g, dim.b, dim.a or 1, f3)
     cy = cy + MM.fontH(f1) + T.px(3)
@@ -770,19 +778,16 @@ function ZeD_MMMods:drawPickCompare(x, y, w, h)
     local function card(cx, id, lines, now)
         local on = (self.pickDraft[path] or e.winner) == id
         local hid = "mods:pcard:" .. id
-        local hot = MM.ctx.hot == hid
-        local s = on and T.accent or T.surf2
+        local hot = MM.ctx.hot == hid and not MM.gamepad()
+        -- the chosen copy: the accent wash; the pointer's: T.hover; the controller's: its mark
         local s2 = T.surf2
         self:drawRect(cx, cy, cw, cardH, 1, s2.r, s2.g, s2.b)
-        if on then self:drawRect(cx, cy, cw, cardH, 0.22, s.r, s.g, s.b) end
-        local bc = (on or hot) and T.accent or T.borderS
-        self:drawRectBorder(cx, cy, cw, cardH, bc.a or 1, bc.r, bc.g, bc.b)
-        local rr = T.px(12)
+        local onFocus = MM.rowLook(self, cx, cy, cw, cardH, on, hot, MM.gamepad() and self.focusId == "pcard:" .. id)
+        ZeD.Atoms.frame(self, cx, cy, cw, cardH, T.borderS)
         local rx, ry = cx + T.px(10), cy + T.px(9)
-        -- a System 7 radio: a ring (border dot, then the fill), the accent dot when chosen
-        ZeD.Atoms.drawStatusRing(self, rx, ry, (on or hot) and T.accent or T.borderS, rr)
-        if on then ZeD.Atoms.drawStatusDot(self, rx + T.px(3), ry + T.px(3), T.accent, rr - 2 * T.px(3)) end
-        local tc = T.textHead
+        local rr = ZeD.Atoms.drawRadio(self, rx, ry, on, { hover = hot })   -- (a System 7 radio button)
+        local tc = onFocus and T.textOnFocus or T.textHead
+        local dim = onFocus and T.textOnFocus or dim
         local tx = rx + rr + T.px(8)
         self:drawText(ZeD.Atoms.truncateText(MS.modName(id), f2, cx + cw - T.px(10) - tx), tx, ry - T.px(2), tc.r, tc.g, tc.b, tc.a or 1, f2)
         local n = #(lines or {})
@@ -805,13 +810,12 @@ function ZeD_MMMods:drawPickCompare(x, y, w, h)
     -- as many lines as the boxes hold (their title row aside)
     local fit = math.floor((codeH - MM.fontH(T.fontF1) - T.px(14)) / (MM.fontH(T.fontF3) + T.px(2))) - 1
     local ea, eb = P.excerpt(la1, lb1, math.max(CODE_LINES, fit))
-    self:drawCode(ix, cy, cw, codeH, ZeD.upper(MS.modName(e.loser)), ea)
-    self:drawCode(ix + cw + T.px(8), cy, cw, codeH, ZeD.upper(MS.modName(e.winner)), eb)
+    self:drawCode(ix, cy, cw, codeH, MS.modName(e.loser), ea)
+    self:drawCode(ix + cw + T.px(8), cy, cw, codeH, MS.modName(e.winner), eb)
     cy = cy + codeH + T.px(8)
     -- the warning
-    local s2 = T.surf2
-    self:drawRect(ix, cy, iw, noteH, 1, s2.r, s2.g, s2.b)
-    self:drawRectBorder(ix, cy, iw, noteH, bs.a, bs.r, bs.g, bs.b)
+    ZeD.Surface.fill(self, ix, cy, iw, noteH, "surf2")
+    ZeD.Atoms.frame(self, ix, cy, iw, noteH, bs)
     local dsz = T.px(7)
     ZeD.Atoms.drawStatusDot(self, ix + T.px(10), cy + T.px(8) + math.floor((MM.fontH(f2) - dsz) / 2), T.warningText, dsz)
     local ly = cy + T.px(6)
@@ -852,23 +856,18 @@ function ZeD_MMMods:drawCode(x, y, w, h, title, lines)
     self:clearStencilRect()
 end
 
--- the picker's strip
+-- the picker's band: how many files are picked, Cancel and Use picks
 function ZeD_MMMods:pickStrip(stripY, w, row)
-    local T = ZeD.T
     local n = 0
     for _, p in ipairs(self.pickFiles or {}) do if self.pickDraft[p] then n = n + 1 end end
-    local askX = UI.stripSpecs(self, stripY, w, row,
-        { { "back", getText("UI_btn_cancel"), function() self:leavePicks() end } },
-        { { "usepicks", ZeD.tr("UI_ZeD_Mods_BtnUsePicks"), function() self:usePicks() end, "primary", not self:picksChanged() } })
     local e = self.pickFor
     local ask
     if n > 0 then ask = ZeD.tr(n == 1 and "UI_ZeD_Mods_PickStripOne" or "UI_ZeD_Mods_PickStripMany", n, MS.modName(e.loser), MS.modName(e.winner), #self.pickFiles - n)
     else ask = ZeD.tr("UI_ZeD_Mods_PickStripNone") end
-    local firstBtn = w
-    for _, b in ipairs(self._specs) do if b.row == row and b.x and b.x > askX then firstBtn = math.min(firstBtn, b.x) end end
-    local room = firstBtn - T.px(12) - (askX + T.px(4))
-    if room > T.px(60) then return ZeD.Atoms.truncateText(ask, T.fontF2, room), askX + T.px(4) end
-    return nil, nil
+    UI.stripSpecs(self, stripY, w, row,
+        { { "back", getText("UI_btn_cancel"), function() self:leavePicks() end } },
+        { { "usepicks", ZeD.tr("UI_ZeD_Mods_BtnUsePicks"), function() self:usePicks() end, "primary", not self:picksChanged() } },
+        ask, true)
 end
 
 -- ----------------------------------------------------------------------------
@@ -892,7 +891,7 @@ function ZeD_MMMods:drawTurnOff(d, ix, iw, cy, vy, vh)
     local f1, f2, f3 = T.fontF1, T.fontF2, T.fontF3
     local la, dim = T.accent, T.textDim
     cy = cy + T.px(8)
-    self:drawText(ZeD.upper(ZeD.tr("UI_ZeD_Mods_OffHead")), ix, cy, la.r, la.g, la.b, la.a or 1, f1)
+    self:drawText(ZeD.textCase(ZeD.tr("UI_ZeD_Mods_OffHead")), ix, cy, la.r, la.g, la.b, la.a or 1, f1)
     cy = cy + MM.fontH(f1) + T.px(3)
     self:drawRect(ix, cy, iw, T.px(1), T.border.a, T.border.r, T.border.g, T.border.b)
     cy = cy + T.px(5)
@@ -920,7 +919,7 @@ function ZeD_MMMods:drawTurnOff(d, ix, iw, cy, vy, vh)
     return cy + T.px(6)
 end
 
--- in a save's own list, turning off a mod that is not safe asks first (the strip)
+-- in a save's own list, turning off a mod that is not safe asks first (the band)
 function ZeD_MMMods:askTurnOff(d)
     local m = model()
     if not (m and m.loadGameFolder and d and d.isActive) then return false end
@@ -932,16 +931,12 @@ function ZeD_MMMods:askTurnOff(d)
     return true
 end
 
+-- Cancel (the controller lands here) and Turn off; the question names the mod and the save
 function ZeD_MMMods:turnOffStrip(stripY, w, row)
     local d = self._offFor
     local key = (self._offGrade == "unsafe") and "UI_ZeD_Mods_AskOffUnsafe" or ((self._offGrade == "unchecked") and "UI_ZeD_Mods_AskOffUnchecked" or "UI_ZeD_Mods_AskOffCareful")
     UI.stripSpecs(self, stripY, w, row, {}, {
-        { "confirm:keep", ZeD.tr("UI_ZeD_Mods_BtnKeepOn"), function() self:setConfirm(false) end, "primary" },
-        { "confirm:off", ZeD.tr("ContextMenu_Turn_Off"), function() self:setConfirm(false); self:toggle(d, true) end, "danger" } })
-    local T = ZeD.T
-    local ask = ZeD.tr(key, d and d.name or "", self:saveName() or "")
-    local firstBtn = w
-    for _, b in ipairs(self._specs) do if b.row == row and b.x then firstBtn = math.min(firstBtn, b.x) end end
-    local room = firstBtn - T.px(12) - (T.px(U.STRIP_PAD_X) + T.px(4))
-    return ZeD.Atoms.truncateText(ask, T.fontF2, math.max(T.px(60), room))
+        { "confirm:keep", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
+        { "confirm:off", ZeD.tr("ContextMenu_Turn_Off"), function() self:setConfirm(false); self:toggle(d, true) end, "danger" } },
+        ZeD.tr(key, d and d.name or "", self:saveName() or ""))
 end

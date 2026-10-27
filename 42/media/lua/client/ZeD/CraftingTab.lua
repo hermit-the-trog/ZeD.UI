@@ -260,8 +260,8 @@ function ZeD.CraftingTab.gatherData(playerObj, win)
 
         recipes[#recipes + 1] = {
             stationNeed = needs,
-            stationTag  = needs and needs.short or nil,
-            boundShort  = bench and (entry.stationInfo and entry.stationInfo.short or boundShort) or nil,
+            stationTag  = needs and ZeD.textCase(needs.short) or nil,   -- (a tag reads in sentence case)
+            boundShort  = bench and ZeD.textCase(entry.stationInfo and entry.stationInfo.short or boundShort) or nil,
             entry       = entry,
             status      = status,
             hasSkill    = hasSkill,

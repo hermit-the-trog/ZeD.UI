@@ -138,6 +138,42 @@ local function _zoneSegColor(zCfg)
     return ratioColor(ratio)
 end
 
+-- A zone's dock: an icon button (the push button's outline, the hover wash, the
+-- controller's mark) holding the zone's glyph: "+" repairs a hole (in the warning
+-- colour), "x" takes a patch off, a greyed "v" is a sound zone (nothing to do).
+-- zCfg.focus = the focus mark's opts when the controller is on it.
+-- @return the button's rect when it can be pressed, else nil
+local _dockOpts, _dockGlyph = {}, "v"
+local function _dockGlyphFn(p, ix, iy, s, c)
+    local f = ZeD.T.fontF1
+    local tw = ZeD.TM:MeasureStringX(f, _dockGlyph)
+    local th = ZeD.TM:getFontHeight(f)
+    p:drawText(_dockGlyph, ix + math.floor((s - tw) / 2), iy + math.floor((s - th) / 2), c.r, c.g, c.b, c.a or 1, f)
+end
+local function _drawDockCell(panel, x, y, size, zCfg)
+    local T = ZeD.T
+    local action = zCfg.action
+    _dockGlyph = (action == "repair" and "+") or (action == "remove-patch" and "x") or "v"
+    local o = _dockOpts
+    o.disabled = not action
+    o.hover = action and ZeD.Atoms.mouseIn(panel, x, y, size, size) or false
+    o.focus = action and zCfg.focus or nil
+    o.tint = (action == "repair") and T.warning or nil
+    o.help = action and ZeD.tr(action == "repair" and "UI_ZeD_Card_HelpDockRepair" or "UI_ZeD_Card_HelpDockPatch") or nil
+    o.iconSize = size - T.px(4)
+    ZeD.Molecules.drawIconButton(panel, x, y, size, _dockGlyphFn, o)
+    if action then return {x = x, y = y, w = size, h = size} end
+    return nil
+end
+
+-- A zone's condition: the framed strip (ZeD.Atoms.drawFillBar) in the zone's
+-- colour (its patch material, else its condition), at the list rows' height
+local function _drawZoneBar(panel, x, y, w, rowH, ratio, segC)
+    local A = ZeD.Atoms
+    local h = (A.fillBarCompactH and A.fillBarCompactH()) or ZeD.T.px(8)
+    A.drawFillBar(panel, x, y + math.floor((rowH - h) / 2), w, ratio, false, segC, h)
+end
+
 -- v15 220w single-row zone layout: NAME(measured) | gap | BAR(1fr) |
 -- PCT(measured) | gap | DOCK(square). Replaces S118 drawZoneRow at compact
 -- widths. Row height + column widths scale with font height so larger text-
@@ -168,11 +204,9 @@ local function _drawZoneRow220(panel, x, y, w, zCfg)
     local dockX = x + w - dockW
     local barW  = pctX - barX - gap
 
-    local barY   = y + math.floor((rowH - barH) / 2)
     local textY  = y + math.floor((rowH - fontH) / 2)
     local pct    = math.max(0, math.min(100, zCfg.pct or 100))
     local ratio  = pct / 100
-    local condC  = ratioColor(ratio)
     local segC   = _zoneSegColor(zCfg)
 
     -- Name (mono, T.text)
@@ -180,56 +214,18 @@ local function _drawZoneRow220(panel, x, y, w, zCfg)
     panel:drawText(nameStr, x + T.px(4), textY,
         T.text.r, T.text.g, T.text.b, T.text.a or 1, font)
 
-    -- Bar (surf2 bg, segC fill, borderS frame)
-    panel:drawRect(barX, barY, barW, barH,
-        T.surf2.a or 1, T.surf2.r, T.surf2.g, T.surf2.b)
-    local fillW = math.floor(barW * ratio)
-    if fillW > 0 then
-        panel:drawRect(barX, barY, fillW, barH,
-            segC.a or 1, segC.r, segC.g, segC.b)
-    end
-    panel:drawRectBorder(barX, barY, barW, barH,
-        T.borderS.a or 1, T.borderS.r, T.borderS.g, T.borderS.b)
+    -- Bar: the framed strip in the zone's colour (the colour says the state, the figure is plain text)
+    _drawZoneBar(panel, barX, y, barW, rowH, ratio, segC)
 
-    -- Pct (mono, condition-colored, right-aligned)
+    -- Pct (mono, right-aligned)
     local pctStr   = tostring(math.floor(pct + 0.5)) .. "%"
     local pctTextW = ZeD.TM:MeasureStringX(font, pctStr)
     panel:drawText(pctStr, pctX + pctW - pctTextW, textY,
-        condC.r, condC.g, condC.b, condC.a or 1, font)
+        T.text.r, T.text.g, T.text.b, T.text.a or 1, font)
 
-    -- Dock cell - always rendered per v15 spec (pristine = disabled checkmark,
-    -- torn = repair triangle in warning color, patched = remove-patch x in
-    -- textSec). outDockRect only set when actionable so the click router
-    -- skips disabled pristine docks. dockH defined above (font-scaled).
-    local outDockRect = nil
-    do
-        local dockY = y + math.floor((rowH - dockH) / 2)
-        local action  = zCfg.action  -- "repair" / "remove-patch" / nil = pristine
-        local bg      = T.surf2
-        local bd      = T.border
-        local glyph   = "v"  -- ASCII checkmark stand-in (Q15b - Fira lacks ✓)
-        local glyphC  = T.textDim
-        local alpha   = 0.3  -- disabled default
-
-        if action == "repair" then
-            bd, glyphC, glyph, alpha = T.warning, T.warning, "+", 1.0
-        elseif action == "remove-patch" then
-            bd, glyphC, glyph, alpha = T.textSec, T.textSec, "x", 1.0
-        end
-
-        panel:drawRect(dockX, dockY, dockW, dockH,
-            (bg.a or 1) * alpha, bg.r, bg.g, bg.b)
-        panel:drawRectBorder(dockX, dockY, dockW, dockH,
-            (bd.a or 1) * alpha, bd.r, bd.g, bd.b)
-        local glyphW = ZeD.TM:MeasureStringX(font, glyph)
-        panel:drawText(glyph, dockX + math.floor((dockW - glyphW) / 2),
-            dockY + math.floor((dockH - fontH) / 2),
-            glyphC.r, glyphC.g, glyphC.b, (glyphC.a or 1) * alpha, font)
-
-        if action then
-            outDockRect = {x = dockX, y = dockY, w = dockW, h = dockH}
-        end
-    end
+    -- Dock cell, always drawn: an icon button, greyed for a sound zone. outDockRect
+    -- only when it can be pressed, so the click router skips the greyed ones.
+    local outDockRect = _drawDockCell(panel, dockX + math.floor((dockW - dockH) / 2), y + math.floor((rowH - dockH) / 2), dockH, zCfg)
 
     return rowH, outDockRect
 end
@@ -267,37 +263,28 @@ local function _drawZoneRow480(panel, x, y, w, zCfg, flagWOverride)
     local nameY = y + math.floor((rowH - fontH) / 2)
     local pctY  = nameY
     local flagY = nameY
-    local barY  = y + math.floor((rowH - barH) / 2)
 
     local pct   = math.max(0, math.min(100, zCfg.pct or 100))
     local ratio = pct / 100
-    local condC = ratioColor(ratio)
     local segC  = _zoneSegColor(zCfg)
 
     -- Name (mono, T.text)
     panel:drawText(zCfg.name or "", x, nameY,
         T.text.r, T.text.g, T.text.b, T.text.a or 1, font)
 
-    -- Pct (right-aligned in pctW, condition-colored)
+    -- Pct (right-aligned in pctW, plain text: the bar carries the colour)
     local pctStr  = tostring(math.floor(pct + 0.5)) .. "%"
     local pctTW   = tm:MeasureStringX(font, pctStr)
     panel:drawText(pctStr, pctX + pctW - pctTW, pctY,
-        condC.r, condC.g, condC.b, condC.a or 1, font)
+        T.text.r, T.text.g, T.text.b, T.text.a or 1, font)
 
-    -- Bar (surf2 bg, segC fill, borderS frame)
-    panel:drawRect(barX, barY, barW, barH,
-        T.surf2.a or 1, T.surf2.r, T.surf2.g, T.surf2.b)
-    local fillW = math.floor(barW * ratio)
-    if fillW > 0 then
-        panel:drawRect(barX, barY, fillW, barH,
-            segC.a or 1, segC.r, segC.g, segC.b)
-    end
-    panel:drawRectBorder(barX, barY, barW, barH,
-        T.borderS.a or 1, T.borderS.r, T.borderS.g, T.borderS.b)
+    -- Bar: the framed strip in the zone's colour
+    _drawZoneBar(panel, barX, y, barW, rowH, ratio, segC)
 
-    -- Flag text (right-aligned in flagW, color = patch material / TORN / WORN)
+    -- Flag (right-aligned in flagW): the word in the text colour after a square
+    -- mark in the state's colour (torn, worn, the patch's material)
     local flagStr  = "-"
-    local flagC    = T.textDim
+    local flagC    = nil
     if zCfg.dock and zCfg.dock.flag then
         flagStr = zCfg.dock.flag
         if     flagStr == "TORN"          then flagStr, flagC = ZeD.tr("UI_ZeD_Card_FlagTorn"), T.danger
@@ -307,39 +294,19 @@ local function _drawZoneRow480(panel, x, y, w, zCfg, flagWOverride)
         elseif flagStr == "Fabric"
             or flagStr == "Ripped Sheets" then flagStr, flagC = ZeD.tr("UI_ZeD_Card_FlagFabric"),  T.matFabric  or T.text
         end
+        flagStr = ZeD.textCase(flagStr)
     end
     local flagTW = tm:MeasureStringX(font, flagStr)
+    local ftc = flagC and T.text or T.textDim
     panel:drawText(flagStr, flagX + flagW - flagTW, flagY,
-        flagC.r, flagC.g, flagC.b, flagC.a or 1, font)
-
-    -- Dock cell - same v15 spec as 220w (pristine = dim 'v', repair = '+'
-    -- in warning, remove-patch = 'x' in textSec). outDockRect only set when
-    -- actionable so click router skips disabled cells.
-    local outDockRect = nil
-    do
-        local dockY = y + math.floor((rowH - dockH) / 2)
-        local action = zCfg.action
-        local bg, bd = T.surf2, T.border
-        local glyph  = "v"
-        local glyphC = T.textDim
-        local alpha  = 0.3
-        if action == "repair" then
-            bd, glyphC, glyph, alpha = T.warning, T.warning, "+", 1.0
-        elseif action == "remove-patch" then
-            bd, glyphC, glyph, alpha = T.textSec, T.textSec, "x", 1.0
-        end
-        panel:drawRect(dockX, dockY, dockW, dockH,
-            (bg.a or 1) * alpha, bg.r, bg.g, bg.b)
-        panel:drawRectBorder(dockX, dockY, dockW, dockH,
-            (bd.a or 1) * alpha, bd.r, bd.g, bd.b)
-        local glyphW = tm:MeasureStringX(font, glyph)
-        panel:drawText(glyph, dockX + math.floor((dockW - glyphW) / 2),
-            dockY + math.floor((dockH - fontH) / 2),
-            glyphC.r, glyphC.g, glyphC.b, (glyphC.a or 1) * alpha, font)
-        if action then
-            outDockRect = {x = dockX, y = dockY, w = dockW, h = dockH}
-        end
+        ftc.r, ftc.g, ftc.b, ftc.a or 1, font)
+    if flagC then
+        local sq = T.px(6)
+        ZeD.Atoms.drawStatusDot(panel, flagX + flagW - flagTW - T.px(4) - sq, flagY + math.floor((fontH - sq) / 2), flagC, sq)
     end
+
+    -- Dock cell: the same icon button as 220w
+    local outDockRect = _drawDockCell(panel, dockX + math.floor((dockW - dockH) / 2), y + math.floor((rowH - dockH) / 2), dockH, zCfg)
 
     return rowH, outDockRect
 end
@@ -817,57 +784,65 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
         --       chips (right) all on one row per v15 spec; expanded body
         --       skips the duplicate seg-bar + soil row below.
         do
+            -- the disclosure: the pointer's hover wash and its help, then the triangle and the label
             local textY  = cy + math.floor((hdrH - fontH) / 2)
-            local chev   = expanded and "v" or ">"
-            local chevC  = T.textSec
-            local labelC = T.accent
-            card:drawText(chev, x, textY,
-                chevC.r, chevC.g, chevC.b, chevC.a or 1, font)
-            local zonesTxt = ZeD.tr("UI_ZeD_Card_Zones")
+            if ZeD.Atoms.mouseIn(card, x, cy, w, hdrH) then
+                local hv = T.hover
+                card:drawRect(x, cy, w, hdrH, hv.a, hv.r, hv.g, hv.b)
+                ZeD.Help.set(card, ZeD.tr(expanded and "UI_ZeD_Inv_CatFoldHelp" or "UI_ZeD_Inv_CatOpenHelp"))
+            end
+            local tri = math.min(T.px(8), hdrH - T.px(4))
+            local triC = T.textDim
+            if expanded then ZeD.Atoms.drawTriangleDown(card, x, cy + math.floor((hdrH - tri) / 2), tri, triC)
+            else ZeD.Atoms.drawTriangleRight(card, x, cy + math.floor((hdrH - tri) / 2), tri, triC) end
+            local labelC = T.textHead
+            local zonesTxt = ZeD.textCase(ZeD.tr("UI_ZeD_Card_Zones"))
             card:drawText(zonesTxt, x + T.px(14), textY,
                 labelC.r, labelC.g, labelC.b, labelC.a or 1, font)
             local labelEndX = x + T.px(14) + tm:MeasureStringX(font, zonesTxt) + T.px(8)
+            local sq = T.px(6)
 
             if compact then
-                -- Right-aligned overall % only
+                -- Right-aligned overall %: plain text after its status square
                 local sumW = tm:MeasureStringX(font, condPctStr)
-                card:drawText(condPctStr, x + w - sumW, textY,
-                    condColor.r, condColor.g, condColor.b, condColor.a or 1, font)
+                local tc = T.text
+                card:drawText(condPctStr, x + w - sumW, textY, tc.r, tc.g, tc.b, tc.a or 1, font)
+                ZeD.Atoms.drawStatusDot(card, x + w - sumW - T.px(4) - sq, textY + math.floor((fontH - sq) / 2), condColor, sq)
             else
-                -- Inline composition: [chevron+label][seg-bar fills][%][DIRTY][WET]
-                -- Reserve right side for chips first, then % left of chips,
-                -- seg-bar fills the rest. Chip widths derive from text content.
-                local chipPadX  = T.px(6)
+                -- Inline composition: [triangle+label][seg-bar fills][%][Dirty][Wet]
+                -- The soil as tags (the library's: outlined, a square mark in the
+                -- soil's colour), right side first, then % left of them, the
+                -- seg-bar fills the rest.
                 local chipGap   = T.px(6)
                 local chips = {}
                 if soil and soil.dirt then
-                    chips[#chips + 1] = {label = ZeD.upper(ZeD.tr("Tooltip_clothing_dirty")), color = T.soiledDirt or T.warning, text = T.soiledDirtText}
+                    chips[#chips + 1] = {label = ZeD.tr("Tooltip_clothing_dirty"), color = T.soiledDirt or T.warning}
                 end
                 if soil and soil.wet then
                     chips[#chips + 1] = {label = ZeD.tr("UI_ZeD_Card_WetPct", tostring(soil.wet) .. "%"),
-                                         color = T.soiledWet or T.info, text = T.soiledWetText}
+                                         color = T.soiledWet or T.info}
                 end
 
                 -- Compute right-anchored cursor walking left
-                local chipH = math.max(fontH + T.px(4), T.px(16))
+                local chipH = T.px(16)
                 local rightCursor = x + w
                 local chipRects = {}
                 for i = #chips, 1, -1 do
                     local c = chips[i]
-                    local labelW = tm:MeasureStringX(font, c.label)
-                    local cw = labelW + chipPadX * 2
+                    local cw = tm:MeasureStringX(T.fontF1, ZeD.Atoms.textCase(c.label)) + T.px(10) + sq + T.px(4)
                     rightCursor = rightCursor - cw
                     chipRects[i] = {x = rightCursor, w = cw, y = cy + math.floor((hdrH - chipH) / 2), h = chipH}
                     if i > 1 then rightCursor = rightCursor - chipGap end
                 end
                 if #chips > 0 then rightCursor = rightCursor - chipGap end
 
-                -- Overall % (right-aligned, left of chips)
+                -- Overall % (right-aligned, left of the tags): plain text after its status square
                 local sumW = tm:MeasureStringX(font, condPctStr)
                 local sumX = rightCursor - sumW
-                card:drawText(condPctStr, sumX, textY,
-                    condColor.r, condColor.g, condColor.b, condColor.a or 1, font)
-                local sumLeftEdge = sumX - T.px(8)
+                local tc = T.text
+                card:drawText(condPctStr, sumX, textY, tc.r, tc.g, tc.b, tc.a or 1, font)
+                ZeD.Atoms.drawStatusDot(card, sumX - T.px(4) - sq, textY + math.floor((fontH - sq) / 2), condColor, sq)
+                local sumLeftEdge = sumX - T.px(4) - sq - T.px(8)
 
                 -- Seg-bar fills middle (between label end and % left edge)
                 local barX = labelEndX
@@ -878,20 +853,10 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
                     _drawZoneSegBar(card, barX, barY, barW, barH, zones)
                 end
 
-                -- Draw chips (after seg-bar so they layer cleanly)
+                -- Draw the tags (after seg-bar so they layer cleanly)
                 for i, c in ipairs(chips) do
                     local r = chipRects[i]
-                    local col = c.color or T.text
-                    card:drawRect(r.x, r.y, r.w, r.h,
-                        T.surf2.a or 1, T.surf2.r, T.surf2.g, T.surf2.b)
-                    card:drawRectBorder(r.x, r.y, r.w, r.h,
-                        col.a or 1, col.r, col.g, col.b)
-                    local lw = tm:MeasureStringX(font, c.label)
-                    local lx = r.x + math.floor((r.w - lw) / 2)
-                    local ly = r.y + math.floor((r.h - fontH) / 2)
-                    local tcol = c.text or col
-                    card:drawText(c.label, lx, ly,
-                        tcol.r, tcol.g, tcol.b, tcol.a or 1, font)
+                    M.drawTag(card, r.x, r.y, c.label, c.color)
                 end
             end
         end
@@ -943,7 +908,9 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
                             or flagStr == "Ripped Sheets" then flagStr = ZeD.tr("UI_ZeD_Card_FlagFabric")
                         end
                     end
-                    local fW = tm:MeasureStringX(probeFont, flagStr) + T.px(4)
+                    -- (a flag's word is drawn in sentence case after its 6u mark and 4u gap)
+                    local fW = tm:MeasureStringX(probeFont, ZeD.textCase(flagStr)) + T.px(4)
+                        + ((flagStr ~= "-") and T.px(10) or 0)
                     if fW > maxFlagW then maxFlagW = fW end
                 end
                 maxFlagW = math.max(maxFlagW, minDashW)
@@ -956,9 +923,10 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
 
                 if groupName ~= prevGroup then
                     if prevGroup ~= nil then cy = cy + groupPadAbove end
+                    -- the group's word, as a category row's: F1, sentence case, toneLo
                     local hdrTY = cy + math.floor((groupHdrH - fontH) / 2)
-                    local hdrC  = T.accent
-                    card:drawText(ZeD.upper(ZeD.tr(groupName)), x, hdrTY,
+                    local hdrC  = T.toneLo or T.textDim
+                    card:drawText(ZeD.textCase(ZeD.tr(groupName)), x, hdrTY,
                         hdrC.r, hdrC.g, hdrC.b, hdrC.a or 1, font)
                     cy = cy + groupHdrH
                     prevGroup = groupName
@@ -971,6 +939,7 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
                     dock   = zCfg.dock,
                     soiled = zCfg.soiled,
                     action = zCfg.action,
+                    focus  = card.focusFor and card:focusFor("dock_" .. i) or nil,
                 }
                 local rowH, outDockRect
                 if compact then
@@ -1005,9 +974,15 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
             local hdrH = T.px(18)
             local font = T.fontF2
             local labelH = T.fontF2H or ZeD.TM:MeasureStringY(font, "X")
-            local chev = expanded and "v" or ">"
             local textY = cy + math.floor((hdrH - labelH) / 2)
-            card:drawText(chev, x, textY, T.textSec.r, T.textSec.g, T.textSec.b, T.textSec.a, T.fontF1)
+            if ZeD.Atoms.mouseIn(card, x, cy, w, hdrH) then
+                local hv = T.hover
+                card:drawRect(x, cy, w, hdrH, hv.a, hv.r, hv.g, hv.b)
+                ZeD.Help.set(card, ZeD.tr(expanded and "UI_ZeD_Inv_CatFoldHelp" or "UI_ZeD_Inv_CatOpenHelp"))
+            end
+            local tri = T.px(8)
+            if expanded then ZeD.Atoms.drawTriangleDown(card, x, cy + math.floor((hdrH - tri) / 2), tri, T.textDim)
+            else ZeD.Atoms.drawTriangleRight(card, x, cy + math.floor((hdrH - tri) / 2), tri, T.textDim) end
             card:drawText(panel.title or ZeD.tr("UI_ZeD_Card_Facts"), x + T.px(12), textY, T.text.r, T.text.g, T.text.b, T.text.a, font)
             -- Absolute coords for fold hit (update() compares vs absolute mouse)
             local ax, ay = card:getAbsoluteX(), card:getAbsoluteY()
@@ -1092,6 +1067,91 @@ local function renderGenericBody(card, item, x, y, w, compact, scrollOff, conten
 end
 
 -- ---------------------------------------------------------------------------
+-- The help line's words for a card verb (by its id; the label is its button word)
+-- ---------------------------------------------------------------------------
+local VERB_HELP = {
+    EQUIP = "UI_ZeD_Card_HelpEquip", UNEQUIP = "UI_ZeD_Card_HelpUnequip", DROP = "UI_ZeD_Card_HelpDrop",
+    TAKE = "UI_ZeD_Card_HelpTake", EAT = "UI_ZeD_Card_HelpEat", READ = "UI_ZeD_Card_HelpRead",
+    USE = "UI_ZeD_Card_HelpUse", DRINK = "UI_ZeD_Card_HelpDrink", WEAR = "UI_ZeD_Card_HelpWear",
+    ["OFF HAND"] = "UI_ZeD_Card_HelpOffHand", MORE = "UI_ZeD_Card_HelpMore",
+    wash = "UI_ZeD_Card_HelpWash", repair_all = "UI_ZeD_Card_HelpRepairHoles", pad_all = "UI_ZeD_Card_HelpPad",
+    repair = "UI_ZeD_Card_HelpRepair", sharpen = "UI_ZeD_Card_HelpSharpen",
+}
+local function verbHelp(id, label)
+    local k = VERB_HELP[id]
+    if not k then return nil end
+    return ZeD.tr(k, ZeD.btnCase(label or ""))
+end
+
+-- The care verbs (Wash, Repair, Pad, Sharpen) sorted by what the character can
+-- do now (cohesion spec 9a, ZeD.Disclose.split over the card's verbAbility):
+-- shown = in the band (in Show all, the ones it can't do yet greyed, each with
+-- its NEEDS line), hidden = behind the folded row. One that makes no sense now
+-- (Repair on a garment with no holes) is gone.
+local function careVerbs(card, item)
+    local list = maintenanceVerbsForItem(item)
+    if #list == 0 or not ZeD.Disclose then return list, {} end
+    for _, v in ipairs(list) do
+        local a = card.verbAbility and card:verbAbility(v.key) or nil
+        if a then v.canDo, v.sensible, v.needs, v.hint = a.canDo, a.sensible, a.needs, a.hint
+        else v.canDo = true end
+    end
+    return ZeD.Disclose.split(list)
+end
+
+-- The care verbs' band at the card's foot (the library's band: surface 2, its
+-- structure line on top, push buttons at the right); a verb the character
+-- can't do yet is greyed (Show all) and still says why when pressed.
+-- Returns the buttons' rects (card-local), in the verbs' order.
+local _careSpec = { buttons = {} }
+local function drawCareBand(card, y, w, verbs, progressActive)
+    local btns = _careSpec.buttons
+    for i = #btns, #verbs + 1, -1 do btns[i] = nil end
+    for i, v in ipairs(verbs) do
+        local b = btns[i] or {}
+        btns[i] = b
+        b.label, b.id = v.label, v.key
+        b.disabled = (progressActive or v.canDo == false) and true or false
+        b.focus = card.focusFor and card:focusFor("verb_" .. tostring(v.key)) or nil
+        b.help = verbHelp(v.key, v.label)
+    end
+    local _, out = ZeD.Molecules.drawBand(card, 0, y, w, _careSpec)
+    return out.buttons
+end
+
+-- After the card's body: the NEEDS line of each greyed care verb (Show all),
+-- then the folded row of the ones the character can't do yet (Folded), with
+-- its greyed verbs and their NEEDS lines while open (the library's
+-- drawMoreRow). Stamps the row's and the verbs' absolute rects for the clicks
+-- and the controller. Returns the height used.
+local function drawCareNeeds(card, x, y, w, shown, hidden)
+    local M, T, DS = ZeD.Molecules, ZeD.T, ZeD.Disclose
+    card._moreRowRect, card._moreVerbRects, card._moreVerbs = nil, nil, nil
+    if not DS then return 0 end
+    local h = 0
+    for _, v in ipairs(shown) do
+        if v.canDo == false then
+            h = h + M.drawNeedsLine(card, x, y + h, w, DS.needsLine(v)) + T.px(4)
+        end
+    end
+    if #hidden == 0 then return h end
+    if h > 0 then h = h + T.px(4) end
+    local key = "itemcard:" .. tostring(categoryOf(card.item))
+    card._moreKey = key
+    for _, v in ipairs(hidden) do
+        v.focus = card.focusFor and card:focusFor("more_" .. tostring(v.key)) or nil
+        v.help = DS.needsLine(v)
+    end
+    local rh, rowRect, verbRects = M.drawMoreRow(card, x, y + h, w, hidden, key,
+        { focus = card.focusFor and card:focusFor("more_row") or nil })
+    local ax, ay = card:getAbsoluteX(), card:getAbsoluteY()
+    if rowRect then card._moreRowRect = { x = ax + rowRect.x, y = ay + rowRect.y, w = rowRect.w, h = rowRect.h } end
+    card._moreVerbs, card._moreVerbRects = hidden, {}
+    for i, r in ipairs(verbRects or {}) do card._moreVerbRects[i] = { x = ax + r.x, y = ay + r.y, w = r.w, h = r.h } end
+    return h + rh
+end
+
+-- ---------------------------------------------------------------------------
 -- :renderBody(ctx) - the universal organism entry.
 -- ---------------------------------------------------------------------------
 function ZeD_ItemCard:renderBody(ctx)
@@ -1140,6 +1200,11 @@ function ZeD_ItemCard:renderBody(ctx)
         if moreV and headerVerbs[1] ~= moreV then headerVerbs[#headerVerbs + 1] = moreV end
     end
     local displayName = safeGet(item, "getDisplayName") or "???"
+    -- each verb's help line words and, on the one the controller is on, its focus mark
+    for i, v in ipairs(headerVerbs) do
+        v.help = verbHelp(v.id, v.label)
+        v.focus = self.focusFor and self:focusFor("hverb_" .. i) or nil
+    end
     local bbH = M.drawCardBackBar(self, 0, cy, w, "",
         headerVerbs, progressActive, compact, backBarRects)
     self._backBarRects   = backBarRects
@@ -1156,10 +1221,20 @@ function ZeD_ItemCard:renderBody(ctx)
         local nameVPad = math.max(T.px(8), math.floor((T.fontF1H or T.px(10)) * 0.8))
         local nameHPad = math.max(T.px(10), math.floor((T.fontF1H or T.px(10)) * 1.0))
         local rowH     = nameH + nameVPad * 2
-        local nbg      = T.surf1
-        self:drawRect(0, cy, w, rowH, nbg.a or 1, nbg.r, nbg.g, nbg.b)
+        -- (no fill of its own: the card's drawer surface is under it, one layer)
         local nsep = T.border
         self:drawRect(0, cy + rowH - T.px(1), w, T.px(1), nsep.a or 1, nsep.r, nsep.g, nsep.b)
+        -- A press renames: the pointer's hover wash and help, the controller's mark
+        local onName = false
+        if not self._renaming then
+            if ZeD.Atoms.mouseIn(self, 0, cy, w, rowH - T.px(1)) then
+                local hv = T.hover
+                self:drawRect(0, cy, w, rowH - T.px(1), hv.a, hv.r, hv.g, hv.b)
+                ZeD.Help.set(self, ZeD.tr("UI_ZeD_Card_HelpRename"))
+            end
+            local nf = self.focusFor and self:focusFor("name_row") or nil
+            if nf then onName = ZeD.Focus.mark(self, 0, cy, w, rowH - T.px(1), nf) and true or false end
+        end
         if self._renaming and self._renameInput then
             -- Position input across the name row (overlay)
             local inp = self._renameInput
@@ -1173,7 +1248,7 @@ function ZeD_ItemCard:renderBody(ctx)
             if ZeD.TM:MeasureStringX(nameFont, nameStr) > maxW then
                 nameStr = ZeD.Atoms.truncateText(nameStr, nameFont, maxW)
             end
-            local nc = T.text
+            local nc = onName and T.textOnFocus or T.text
             self:drawText(nameStr, nameHPad, cy + nameVPad,
                 nc.r, nc.g, nc.b, nc.a or 1, nameFont)
             if self._renameInput then self._renameInput:setVisible(false) end
@@ -1196,17 +1271,13 @@ function ZeD_ItemCard:renderBody(ctx)
     self._headH = cy   -- chrome height = sticky head
 
     -- 4) Body - stenciled below chrome.
-    -- Reserve bottom space for the maintenance verb strip when present so the
-    -- body doesn't render under it AND the scrollbar ends cleanly above it.
-    -- Reserve scales with font height so larger text-size presets get
-    -- proportional padding around the strip - without this, scroll content
-    -- clips into the strip's visual footprint at larger fonts.
-    local maintVerbs    = maintenanceVerbsForItem(item)
-    local f1H_strip     = T.fontF1H or ZeD.TM:getFontHeight(T.fontF1)
-    local vsBtnH        = T.px(22)                                          -- drawCardVerbStrip's hardcoded btn height
-    local vsTopPad      = math.max(T.px(8), math.floor(f1H_strip * 0.7))    -- breathe above buttons
-    local vsBotPad      = math.max(T.px(8), math.floor(f1H_strip * 0.7))    -- breathe below buttons (grow box room)
-    local verbStripResvH = (#maintVerbs > 0) and (vsBtnH + vsTopPad + vsBotPad) or 0
+    -- Reserve bottom space for the care verbs' band when present so the body
+    -- doesn't render under it AND the scrollbar ends cleanly above it.
+    -- The care verbs the character can do (or, in Show all, every sensible one)
+    -- sit in the band at the foot (the library's band, M.bandH() tall); none
+    -- left, no band. The rest wait behind the folded row after the body.
+    local maintVerbs, hiddenVerbs = careVerbs(self, item)
+    local verbStripResvH = (#maintVerbs > 0) and M.bandH() or 0
     self._verbStripResvH = verbStripResvH
     local sbW = (self._sb and self._sb.visible) and self._sb.width or 0
     local bodyW = w - sbW
@@ -1230,38 +1301,31 @@ function ZeD_ItemCard:renderBody(ctx)
                 bodyX, bodyY - scrollOff, innerW, compact, scrollOff,
                 self._headH + bodyH)
         end
+        -- what the character can't do yet: NEEDS lines / the folded row, after the content
+        contentH = (contentH or 0) + drawCareNeeds(self, bodyX, bodyY - scrollOff + (contentH or 0), innerW, maintVerbs, hiddenVerbs)
         self._contentH = (contentH or 0) + bodyPad * 2
         self:clearStencilRect()
+    else
+        self._moreRowRect, self._moreVerbRects, self._moreVerbs = nil, nil, nil
     end
 
-    -- 5) Maintenance verb strip - drawn AFTER body so it sits at the bottom
-    --    of the chrome above the scrollbar; not part of scrollable content.
-    --    Strip dimensions match the verbStripResvH computed above so the bg
-    --    band, button position, and scroll reserve all stay in sync at any
-    --    text size.
+    -- 5) The care verbs' band - drawn AFTER body so it sits at the foot, under
+    --    the scrollbar's end; not part of scrollable content. Its height is the
+    --    band's own (M.bandH()), the reserve above.
     if #maintVerbs > 0 then
-        local vsRightEdge = w - (compact and T.px(8) or T.px(12))
-        local vsBgY       = self:getHeight() - verbStripResvH
-        local vsY         = vsBgY + vsTopPad
-        local vsBg        = T.surf1
-        self:drawRect(0, vsBgY, w, verbStripResvH,
-            vsBg.a or 1, vsBg.r, vsBg.g, vsBg.b)
-        M.drawCardVerbStrip(self, vsRightEdge, vsY, maintVerbs,
-            progressActive, compact, verbStripRects)
+        local rects = drawCareBand(self, self:getHeight() - verbStripResvH, w, maintVerbs, progressActive)
+        for i, r in ipairs(rects or {}) do verbStripRects[i] = r end
     end
 
     -- 6) Stamp gamepad ring API fields
     stampGamepadFields(self, flagRects, verbStripRects, maintVerbs, cancelRect)
 
-    -- 7) Focus outline overlay (existing S99/S118 behavior)
+    -- 7) The focus mark on the parts the library draws without a focus option
     if self._drawGpFocusOutline then self:_drawGpFocusOutline() end
 
-    -- 8) 3-sided border (left / right / bottom) - preserved from prerender
-    local bc = T.border
-    local h  = self:getHeight()
-    self:drawRect(0, 0, T.px(1), h, bc.a or 1, bc.r, bc.g, bc.b)
-    self:drawRect(w - T.px(1), 0, T.px(1), h, bc.a or 1, bc.r, bc.g, bc.b)
-    self:drawRect(0, h - T.px(1), w, T.px(1), bc.a or 1, bc.r, bc.g, bc.b)
+    -- 8) The card has no border of its own (the window's lines bound it); only
+    --    the edge where it lies over a tab's content (its host sets overlayEdge)
+    if self.drawOverlayEdge then self:drawOverlayEdge() end
 end
 
 -- ---------------------------------------------------------------------------

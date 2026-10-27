@@ -19,8 +19,10 @@
 --     into rows here. Every row already shows the style on the character, so
 --     their picture window is not offered from here (director, Oct 26 2026:
 --     "use game avatars for each style").
--- Rows the game would not offer (too short, not from this style) sit folded
--- under Out of reach with the reason. One press does it (no confirm).
+-- What the character cannot do now (a row that needs a tool they lack, a style the
+-- hair is too short for) folds under one quiet row, by ZeD setup's Hidden actions
+-- (ZeD.Disclose); opened, those rows show greyed with the reason. One press does
+-- it (no confirm).
 -- Each row, and the Now and After heads, show the game's own 3D figure of the
 -- character wearing that style (AVATARS below).
 -- ============================================================================
@@ -37,9 +39,8 @@ ZeD.HairBeard = ZeD.HairBeard or {}
 local HB = ZeD.HairBeard
 
 -- design units
-local ROW_H, GH_H, PART_H, CUR_H, HEAD_W, HEAD_H, STRIP_H, CUR_K = 54, 22, 26, 28, 68, 76, 50, 56
-local THUMB, THUMB_PAD = 42, 6     -- a row's figure frame and its inset
-local HINT_MS = 450
+local GH_H, CUR_H, HEAD_W, HEAD_H, CUR_K = 15, 28, 68, 76, 56
+local THUMB, THUMB_PAD = 42, 6     -- a row's figure frame and its inset (the row is as tall as both)
 local REFRESH_FRAMES = 30
 
 local function tr(k, ...) return ZeD.tr(k, ...) end
@@ -428,7 +429,7 @@ end
 local function state(win)
     local st = win._hb
     if not st then
-        st = { part = "hair", sel = nil, outOpen = false, tick = 999, rows = {}, out = {}, pics = {},
+        st = { part = "hair", sel = nil, tick = 999, rows = {}, out = {}, pics = {},
                counts = { hair = 0, beard = 0 }, zones = {}, els = {} }
         win._hb = st
     end
@@ -471,7 +472,7 @@ function HB.setPart(win, part)
     local st = state(win)
     if st.female then part = "hair" end
     if st.part == part then return end
-    st.part, st.sel, st.outOpen = part, nil, false
+    st.part, st.sel = part, nil
     if st.byPart then
         st.rows, st.pics = st.byPart[part].rows, st.byPart[part].pics
         if st.player then st.out = outRows(st.player, part, st.rows) end
@@ -531,7 +532,7 @@ end
 -- are window children laid over the frames this section draws (a frame cut by
 -- the view's edge shows the part of its figure inside the view: the figure's
 -- own camera does the cut), from a small pool that grows to what shows. A layer
--- above them dims the greyed rows' figures and repeats the hover balloon. The
+-- above them dims the greyed rows' figures. The
 -- figures go (removed from the window) the first frame the section is not drawn.
 -- ---------------------------------------------------------------------------
 local AV_ZOOM, AV_YOFF = 17, -0.86            -- head and shoulders: hair rows, Now and After
@@ -545,7 +546,6 @@ local AV_DIR_BEARD = IsoDirections.S           -- beard: face on, so long hair d
 local AV_CAM, AV_S = 25, math.sqrt(2048)
 local AV_MIN_H = 6                             -- a sliver shorter than this shows no figure
 local AV_MAX, AV_DRESS_PER_FRAME = 40, 6       -- pool cap; new looks set per frame (each builds a model)
-local AV_DIM = 0.55                            -- the veil over a greyed row's figure
 
 local AV = { frame = 0, states = {} }          -- the UI frame count; every window state with figures
 HB.AV = AV
@@ -580,7 +580,7 @@ end
 local function avState(st)
     local av = st.av
     if not av then
-        av = { pool = {}, want = 0, drawFrame = -10, veils = {}, balloons = {} }
+        av = { pool = {}, want = 0, drawFrame = -10, veils = {} }
         st.av = av
     end
     return av
@@ -632,7 +632,7 @@ local function makeModel()
     return m
 end
 
--- the layer over the figures (click-through): the veils and the hover balloon
+-- the layer over the figures (click-through): the veils over the greyed rows
 local function makeLayer(win)
     local layer = ISPanel:new(0, 0, 10, 10)
     layer:initialise()
@@ -807,7 +807,7 @@ local function drawFrame(panel, x, y, w, h)
     panel:drawRectBorder(x, y, w, h, bs.a or 1, bs.r, bs.g, bs.b)
 end
 
--- the layer: veils over the greyed rows' figures, then the balloons drawn this frame on top
+-- the layer: veils over the greyed rows' figures (the disabled look: the figure at T.disabledAlpha)
 function HB.renderLayer(layer, win)
     local st = win._hb
     local av = st and st.av
@@ -816,13 +816,11 @@ function HB.renderLayer(layer, win)
     local clip = av.clip
     if clip then layer:setStencilRect(clip.x, clip.y, clip.w, clip.h) end
     local db = T.drawerBg
+    local veilA = 1 - T.disabledAlpha
     for _, w in ipairs(av.veils) do
-        layer:drawRect(w.x + 1, w.y + 1, w.w - 2, w.h - 2, AV_DIM, db.r, db.g, db.b)
+        layer:drawRect(w.x + 1, w.y + 1, w.w - 2, w.h - 2, veilA, db.r, db.g, db.b)
     end
     if clip then layer:clearStencilRect() end
-    if AV.balloonFrame == AV.frame then
-        for _, b in ipairs(AV.balloons or {}) do HB.balloon(layer, b[1], b[2], b[3], b[4], b[5], b[6], b[7], true) end
-    end
 end
 
 -- what a head looks like now, or after a row
@@ -848,6 +846,74 @@ end
 -- ---------------------------------------------------------------------------
 local function add(L, it) L.items[#L.items + 1] = it; return it end
 
+local DS = ZeD.Disclose
+
+-- the controller's mark options for the element with this id (the focused window, the
+-- controller in use, that element), or nil
+local _focusOpts = {}
+local function focusOf(win, id)
+    local Fo = ZeD.Input and ZeD.Input.Focus
+    if Fo and Fo.isFocused and Fo.isFocused(win, nil, id) then
+        _focusOpts.win = win
+        return _focusOpts
+    end
+    return nil
+end
+
+-- a row is as tall as its figure frame and the frame's inset (the list row height is
+-- the floor: a Large text size grows the token, not the figure)
+local function rowHeight()
+    local T = ZeD.T
+    return math.max(T.rowH, T.px(THUMB) + 2 * T.px(THUMB_PAD))
+end
+
+-- the Hair | Beard radio row's height
+local function partsHeight()
+    return math.max(ZeD.Atoms.radioSize(), F(2)) + ZeD.T.px(8)
+end
+
+-- the key the folded row remembers its open / closed state under (one per part)
+local function moreKey(st) return "hb:more:" .. tostring(st.part) end
+
+-- Which rows the list shows now and which the folded row keeps back, by ZeD setup's
+-- "Hidden actions": a row the character can do shows; one that needs a tool, and a
+-- style the hair is too short for, fold under one quiet row (or all show, greyed, or
+-- are left out).
+local function sortRows(st)
+    local verbs = {}
+    for _, r in ipairs(st.rows) do r.canDo = r.ok and true or false; verbs[#verbs + 1] = r end
+    for _, r in ipairs(st.out) do r.canDo = false; verbs[#verbs + 1] = r end
+    return DS.split(verbs)
+end
+
+-- The folded row's words: "With scissors you could cut your hair." for one hidden
+-- action, "3 more with the right things" for several. The actions are the verbs the
+-- character lacks a tool for (Cut, Style, Shave, Trim); styles the hair is too short
+-- for count as one more ("choose from more styles").
+local HINT_KEY = { Cut = "UI_ZeD_Hair_HintCut", Shave = "UI_ZeD_Hair_HintShave", Style = "UI_ZeD_Hair_HintStyle", Trim = "UI_ZeD_Hair_HintTrim" }
+local function moreText(st, hidden)
+    local groups, seen = {}, {}
+    local outCount = 0
+    for _, r in ipairs(hidden) do
+        if r.out then
+            outCount = outCount + 1
+        else
+            local k = r.grp .. "|" .. tostring(r.req)
+            if not seen[k] then
+                seen[k] = true
+                local hint = (r.grp == "Shave" and r.part == "beard") and tr("UI_ZeD_Hair_HintShaveBeard") or tr(HINT_KEY[r.grp] or "UI_ZeD_Hair_HintCut")
+                groups[#groups + 1] = { needs = string.lower(toolWords(r.req)), hint = hint }
+            end
+        end
+    end
+    if outCount > 0 then
+        groups[#groups + 1] = { needs = tr(st.part == "beard" and "UI_ZeD_Hair_NeedsLongerBeard" or "UI_ZeD_Hair_NeedsLongerHair"),
+                                hint = tr("UI_ZeD_Hair_HintMoreStyles") }
+    end
+    if #groups == 1 then return tr("UI_ZeD_Disclose_One", groups[1].needs, groups[1].hint) end
+    return tr("UI_ZeD_Disclose_Many", #groups)
+end
+
 function HB.layout(win, w)
     local T = ZeD.T
     local st = state(win)
@@ -859,50 +925,56 @@ function HB.layout(win, w)
     local pad = T.sp.sm
     local cw = w - pad * 2
     local x, y = pad, T.px(12)
-    add(L, { kind = "groove", x = x, y = y, w = cw })
-    y = y + T.grooveH + T.px(12)
-    add(L, { kind = "subh", text = ZeD.upper(tr("UI_ZeD_Hair_Section")), x = x, y = y })
-    y = y + F(1) + T.px(8)
+    -- the section head, as Identity's Traits has: 20u, sentence case, its content line under it
+    add(L, { kind = "subh", text = tr("UI_ZeD_Hair_Section"), x = x, y = y, w = cw, h = T.px(20) })
+    y = y + T.px(20) + T.sp.afterGroove
     local topH = math.max(T.px(HEAD_H) + T.px(3) + F(5), T.px(CUR_H) * (st.female and 2 or 3))
     add(L, { kind = "heads", x = x, y = y, w = cw, h = topH })
     y = y + topH + T.px(10)
-    add(L, { kind = "parts", x = x, y = y, w = cw, h = T.px(PART_H) })
-    y = y + T.px(PART_H) + T.px(8)
-    local listTop = y
-    if #st.rows == 0 then
+    local ph = partsHeight()
+    add(L, { kind = "parts", x = x, y = y, w = cw, h = ph })
+    y = y + ph + T.px(8)
+
+    local shown, hidden = sortRows(st)
+    local rh = rowHeight()
+    local gh = T.px(GH_H)
+    if #shown == 0 and #hidden == 0 then
         local text = st.part == "beard" and tr("UI_ZeD_Hair_EmptyBeard") or tr("UI_ZeD_Hair_EmptyHair")
         local lines = ZeD.Atoms.wrapText(text, T.fontF2, cw - T.px(16))
-        local eh = T.px(20) + #lines * F(2)
-        add(L, { kind = "empty", lines = lines, x = x, y = y, w = cw, h = eh })
+        local eh = #lines * (F(2) + T.px(2)) - T.px(2)
+        add(L, { kind = "empty", text = text, x = x + T.px(8), y = y, w = cw - T.px(16), h = eh })
         y = y + eh
     end
-    local lastGrp, odd = nil, false
-    for _, r in ipairs(st.rows) do
+    local lastGrp, odd = false, false
+    for _, r in ipairs(shown) do
         if r.grp ~= lastGrp then
             lastGrp = r.grp
-            local n = 0
-            for _, q in ipairs(st.rows) do if q.grp == r.grp then n = n + 1 end end
-            add(L, { kind = "gh", grp = r.grp, n = n, req = r.req, x = x, y = y, w = cw, h = T.px(GH_H) })
-            y = y + T.px(GH_H)
+            if r.grp then
+                local n = 0
+                for _, q in ipairs(shown) do if q.grp == r.grp then n = n + 1 end end
+                add(L, { kind = "gh", grp = r.grp, n = n, x = x, y = y, w = cw, h = gh })
+                y = y + gh
+            end
             odd = false
         end
         odd = not odd
-        add(L, { kind = "row", row = r, odd = not odd, x = x, y = y, w = cw, h = T.px(ROW_H) })
-        y = y + T.px(ROW_H)
+        add(L, { kind = "row", row = r, odd = not odd, x = x, y = y, w = cw, h = rh })
+        y = y + rh
     end
-    if #st.out > 0 then
-        add(L, { kind = "outh", n = #st.out, x = x, y = y, w = cw, h = T.px(GH_H) })
-        y = y + T.px(GH_H)
-        if st.outOpen then
+    if #hidden > 0 then
+        local key = moreKey(st)
+        local mh = math.max(T.px(20), F(2) + T.px(6))
+        add(L, { kind = "more", key = key, text = moreText(st, hidden), x = x, y = y, w = cw, h = mh })
+        y = y + mh
+        if DS.isOpen(key) then
             odd = false
-            for _, r in ipairs(st.out) do
+            for _, r in ipairs(hidden) do
                 odd = not odd
-                add(L, { kind = "row", row = r, odd = not odd, x = x, y = y, w = cw, h = T.px(ROW_H) })
-                y = y + T.px(ROW_H)
+                add(L, { kind = "row", row = r, odd = not odd, x = x, y = y, w = cw, h = rh })
+                y = y + rh
             end
         end
     end
-    add(L, { kind = "listbox", x = x, y = listTop, w = cw, h = y - listTop })
     -- the hair mods
     local note
     local pm = HB.picturesMod()
@@ -913,8 +985,8 @@ function HB.layout(win, w)
     end
     if note then
         y = y + T.px(8)
-        local lines = ZeD.Atoms.wrapText(note, T.fontF1, cw)
-        local nh = #lines * F(1)
+        local lines = ZeD.Atoms.wrapText(note, T.fontF2, cw)
+        local nh = #lines * (F(2) + T.px(2)) - T.px(2)
         add(L, { kind = "note", lines = lines, x = x, y = y, w = cw, h = nh })
         y = y + nh
     end
@@ -926,26 +998,20 @@ end
 -- ---------------------------------------------------------------------------
 -- DRAWING
 -- ---------------------------------------------------------------------------
-local function focusedEl(win)
-    local Fo = ZeD.Input and ZeD.Input.Focus
-    if not (Fo and Fo.getFocusedWindow and Fo.getFocusedWindow() == win and Fo.getFocusedElement) then return nil end
-    return Fo.getFocusedElement(win)
-end
-HB.focusedEl = focusedEl
-local function isFoc(win, id)
-    local el = focusedEl(win)
-    return el ~= nil and el.id == id
+
+-- a tag's width: its words in sentence case and the tag's side padding (as ZeD.Molecules.drawTag draws it)
+local function tagW(text)
+    local T = ZeD.T
+    return ZeD.TM:MeasureStringX(T.fontF1, ZeD.textCase(text)) + T.px(10)
 end
 
-local function lenBar(panel, x, y, level, col, dim)
-    local T = ZeD.T
-    local bw, bh, gap = T.px(7), T.px(9), T.px(2)
-    for i = 1, 3 do
-        local bx = x + (i - 1) * (bw + gap)
-        if i <= level then panel:drawRect(bx, y, bw, bh, col.a or 1, col.r, col.g, col.b)
-        else panel:drawRectBorder(bx, y, bw, bh, dim.a or 1, dim.r, dim.g, dim.b) end
-    end
-    return 3 * bw + 2 * gap
+-- the length meter: three cells (A.drawSegBar) in a 1u frame, 10u tall (8u inside)
+local function lenBar(panel, x, y, level)
+    local T, A = ZeD.T, ZeD.Atoms
+    local w, h, u = T.px(27), T.px(10), T.hair
+    A.drawSegBar(panel, x + u, y + u, w - 2 * u, h - 2 * u, 3, level, T.text, T.base, T.px(2))
+    A.frame(panel, x, y, w, h, T.borderS)
+    return w
 end
 
 -- a figure for this frame when any of its frame shows in the view (a frame cut by the view's
@@ -1010,7 +1076,7 @@ local function drawHeads(panel, win, st, it, y, wants, view)
         local meta, mw = nil, 0
         if d[3] == "len" then
             meta = tr("UI_ZeD_Hair_Len" .. math.max(0, math.min(3, d[4])))
-            mw = ZeD.TM:MeasureStringX(f1, meta) + T.px(6) + T.px(25)
+            mw = ZeD.TM:MeasureStringX(f1, meta) + T.px(6) + T.px(27)
         else
             meta = tr("UI_ZeD_Hair_GrowsBack")
             mw = ZeD.TM:MeasureStringX(f1, meta)
@@ -1028,7 +1094,7 @@ local function drawHeads(panel, win, st, it, y, wants, view)
         panel:drawText(ZeD.Atoms.truncateText(d[2], f2, vw), vx2, ty2, tc.r, tc.g, tc.b, tc.a or 1, f2)
         local mx = cx + cw - mw
         if d[3] == "len" then
-            local used = lenBar(panel, mx, ry + math.floor((rh - T.px(9)) / 2), d[4], T.text, dim)
+            local used = lenBar(panel, mx, ry + math.floor((rh - T.px(10)) / 2), d[4])
             panel:drawText(meta, mx + used + T.px(6), ty1, dim.r, dim.g, dim.b, dim.a or 1, f1)
         else
             panel:drawText(meta, mx, ty1, dim.r, dim.g, dim.b, dim.a or 1, f1)
@@ -1041,110 +1107,118 @@ local function drawHeads(panel, win, st, it, y, wants, view)
     end
 end
 
-local function drawParts(panel, win, st, it, y)
-    local T = ZeD.T
-    local bs, ac = T.borderS, T.accent
+-- Hair | Beard: two System 7 radio buttons (one of two), each half pressable
+local function drawParts(panel, win, st, it, y, mx, my)
+    local T, A = ZeD.T, ZeD.Atoms
     local halves = st.female and { "hair" } or { "hair", "beard" }
     local hw = math.floor(it.w / #halves)
-    local foc = isFoc(win, "hb:part")
+    local rs = A.radioSize()
+    local hv = T.hover
+    local fo = focusOf(win, "hb:part")
     for i, part in ipairs(halves) do
         local hx = it.x + (i - 1) * hw
         local ww = (i == #halves) and (it.x + it.w - hx) or hw
         local on = st.part == part
-        if on then panel:drawRect(hx, y, ww, it.h, 1, ac.r, ac.g, ac.b) end
+        local hover = mx ~= nil and mx >= hx and mx < hx + ww and my >= y and my < y + it.h
+        if hover then
+            panel:drawRect(hx, y, ww, it.h, hv.a, hv.r, hv.g, hv.b)
+            if ZeD.Help then ZeD.Help.set(win, tr("UI_ZeD_Hair_HelpPart", part == "hair" and getText("IGUI_char_HairStyle") or getText("IGUI_char_BeardStyle"))) end
+        end
+        local tc = T.text
+        if fo and on and ZeD.Focus.mark(panel, hx, y, ww, it.h, fo) then tc = T.textOnFocus end
+        A.drawRadio(panel, hx + T.px(8), y + math.floor((it.h - rs) / 2), on, { hover = hover })
         local word = (part == "hair") and getText("IGUI_char_HairStyle") or getText("IGUI_char_BeardStyle")
         local label = tr("UI_ZeD_Hair_PartCount", word, st.counts[part] or 0)
-        local tc = on and T.textOnAccent or T.text
-        local tw = ZeD.TM:MeasureStringX(T.fontF1, label)
-        panel:drawText(label, hx + math.floor((ww - tw) / 2), y + math.floor((it.h - F(1)) / 2), tc.r, tc.g, tc.b, tc.a or 1, T.fontF1)
-        if i > 1 then panel:drawRect(hx, y, T.px(1), it.h, bs.a or 1, bs.r, bs.g, bs.b) end
-        if foc and on then ZeD.Atoms.drawAccentRing(panel, hx, y, ww, it.h, T.px(2), T.accentBright) end
+        panel:drawText(A.truncateText(label, T.fontF2, ww - T.px(8) - rs - T.px(8) - T.px(6)),
+            hx + T.px(8) + rs + T.px(8), y + math.floor((it.h - F(2)) / 2), tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
     end
-    panel:drawRectBorder(it.x, y, it.w, it.h, bs.a or 1, bs.r, bs.g, bs.b)
 end
 
-local function drawGh(panel, win, st, it, y, mx, my)
-    local T = ZeD.T
-    local s1, bd = T.surf1, T.border
-    local foc = it.kind == "outh" and isFoc(win, "hb:out")
-    local hov = it.kind == "outh" and mx and mx >= it.x and mx < it.x + it.w and my >= y and my < y + it.h
-    panel:drawRect(it.x, y, it.w, it.h, 1, s1.r, s1.g, s1.b)
-    local ac = T.accent
-    if foc then panel:drawRect(it.x, y, it.w, it.h, 0.55, ac.r, ac.g, ac.b)
-    elseif hov then panel:drawRect(it.x, y, it.w, it.h, 0.22, ac.r, ac.g, ac.b) end
-    panel:drawRect(it.x, y + it.h - T.px(1), it.w, T.px(1), bd.a or 1, bd.r, bd.g, bd.b)
-    local c = foc and T.textOnFocus or (T.toneLo or T.textDim)
-    local ty = y + math.floor((it.h - F(5)) / 2)
-    local tx = it.x + T.px(8)
-    local left, right
-    if it.kind == "outh" then
-        local tri = T.px(5)
-        if st.outOpen then ZeD.Atoms.drawTriangleDown(panel, tx, y + math.floor((it.h - tri) / 2), tri, c)
-        else ZeD.Atoms.drawTriangleRight(panel, tx, y + math.floor((it.h - tri) / 2), tri, c) end
-        tx = tx + tri + T.px(6)
-        left, right = ZeD.upper(tr("UI_ZeD_Hair_OutOfReach")), tostring(it.n)
-    else
-        left = ZeD.upper(tr(GROUP_KEY[it.grp]))
-        local words = (it.grp == "Tie") and tr("UI_ZeD_Hair_NoTool") or toolWords(it.req)
-        right = (it.n > 1) and (words .. " | " .. it.n) or words
+-- a group's category row: "Cut (4)", not folding
+local function drawGh(panel, win, st, it, y)
+    ZeD.Molecules.drawCategoryRow(panel, it.x, y, it.w, tr(GROUP_KEY[it.grp]), it.n, true, { noArrow = true, inset = ZeD.T.px(8) })
+end
+
+-- the folded row: a closed (or open) System 7 triangle and one quiet line, as
+-- ZeD.Molecules.drawMoreRow draws it. The row is drawn here because opening it shows the
+-- styles themselves, as rows below, not the library's block of greyed buttons: the
+-- layout needs that height before the frame draws.
+local function drawMore(panel, win, st, it, y, mx, my)
+    local T, A = ZeD.T, ZeD.Atoms
+    local open = DS.isOpen(it.key)
+    local hover = mx ~= nil and mx >= it.x and mx < it.x + it.w and my >= y and my < y + it.h
+    if hover then
+        local hv = T.hover
+        panel:drawRect(it.x, y, it.w, it.h, hv.a, hv.r, hv.g, hv.b)
+        if ZeD.Help then ZeD.Help.set(win, tr(open and "UI_ZeD_Hair_HelpMoreOpen" or "UI_ZeD_Hair_HelpMore")) end
     end
-    panel:drawText(left, tx, ty, c.r, c.g, c.b, c.a or 1, T.fontF5)
-    local rw = ZeD.TM:MeasureStringX(T.fontF5, right)
-    panel:drawText(right, it.x + it.w - T.px(8) - rw, ty, c.r, c.g, c.b, c.a or 1, T.fontF5)
+    local onFocus = false
+    local fo = focusOf(win, "hb:more")
+    if fo then onFocus = ZeD.Focus.mark(panel, it.x, y, it.w, it.h, fo) end
+    local tc = onFocus and T.textOnFocus or T.textDim
+    local tri = T.px(8)
+    local cx = it.x + T.px(8)
+    local ty = y + math.floor((it.h - tri) / 2)
+    if open then A.drawTriangleDown(panel, cx, ty, tri, tc) else A.drawTriangleRight(panel, cx, ty, tri, tc) end
+    cx = cx + tri + T.px(6)
+    panel:drawText(A.truncateText(it.text, T.fontF2, it.x + it.w - cx), cx, y + math.floor((it.h - F(2)) / 2),
+        tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
 end
 
 local function drawRow(panel, win, st, it, y, mx, my, wants, view)
-    local T = ZeD.T
+    local T, A, M = ZeD.T, ZeD.Atoms, ZeD.Molecules
     local r = it.row
-    local ac, bd = T.accent, T.border
+    local bd = T.border
     local sel = st.sel == r.key
-    local foc = isFoc(win, "hb:row:" .. r.key)
-    local hov = mx and mx >= it.x and mx < it.x + it.w and my >= y and my < y + it.h
+    local hov = mx ~= nil and mx >= it.x and mx < it.x + it.w and my >= y and my < y + it.h
     if it.odd then local s = T.stripe; panel:drawRect(it.x, y, it.w, it.h, s.a or 1, s.r, s.g, s.b) end
-    if sel then panel:drawRect(it.x, y, it.w, it.h, 1, ac.r, ac.g, ac.b)
-    elseif foc then panel:drawRect(it.x, y, it.w, it.h, 0.55, ac.r, ac.g, ac.b)
-    elseif hov then panel:drawRect(it.x, y, it.w, it.h, 0.22, ac.r, ac.g, ac.b) end
-    if foc then ZeD.Atoms.drawAccentRing(panel, it.x, y, it.w, it.h, T.px(2), T.accentBright) end
+    -- selected: the one accent wash; hover: the hover wash over it
+    if sel then local ac = T.accent; panel:drawRect(it.x, y, it.w, it.h, T.selectionA or 0.30, ac.r, ac.g, ac.b) end
+    if hov then
+        local hv = T.hover
+        panel:drawRect(it.x, y, it.w, it.h, hv.a, hv.r, hv.g, hv.b)
+        if ZeD.Help then ZeD.Help.set(win, tr("UI_ZeD_Hair_HelpRow", r.label)) end
+    end
+    -- the controller's mark goes under the words; the words switch only when it is the wash
+    local ink, dimInk = T.text, T.toneLo or T.textDim
+    local swapped = false
+    local fo = focusOf(win, "hb:row:" .. r.key)
+    if fo and ZeD.Focus.mark(panel, it.x, y, it.w, it.h, fo) then ink, dimInk, swapped = T.textOnFocus, T.textOnFocus, true end
     panel:drawRect(it.x, y + it.h - T.px(1), it.w, T.px(1), bd.a or 1, bd.r, bd.g, bd.b)
-    local ink = sel and T.textOnAccent or (foc and T.textOnFocus or T.text)
-    local dimInk = sel and T.textOnAccent or (foc and T.textOnFocus or (T.toneLo or T.textDim))
-    local nameA = (r.out or not r.ok) and not sel and not foc and 0.45 or 1
-    -- right side: the tool and its dot, or the reason's tag
+    local greyed = r.out or not r.ok
+    local nameA = (greyed and not swapped) and T.disabledAlpha or 1
+    -- right side: the tool and its square, or the reason's tag
     local rx = it.x + it.w - T.px(8)
     local f1 = T.fontF1
     local ty1 = y + math.floor((it.h - F(1)) / 2)
     if r.out then
-        local tw = ZeD.TM:MeasureStringX(f1, r.tag)
+        local tw = tagW(r.tag)
         rx = rx - tw
-        panel:drawText(r.tag, rx, ty1, dimInk.r, dimInk.g, dimInk.b, dimInk.a or 1, f1)
+        M.drawTag(panel, rx, y + math.floor((it.h - T.px(16)) / 2), r.tag, nil, { alpha = nameA })
     elseif r.req ~= "none" then
         local words = toolWords(r.req)
         local tw = ZeD.TM:MeasureStringX(f1, words)
         rx = rx - tw
-        panel:drawText(words, rx, ty1, ink.r, ink.g, ink.b, ink.a or 1, f1)
-        local dsz = T.px(8)
-        rx = rx - T.px(5) - dsz
+        panel:drawText(words, rx, ty1, ink.r, ink.g, ink.b, (ink.a or 1) * nameA, f1)
+        local dsz = T.px(6)
+        rx = rx - T.px(6) - dsz
         local dy = y + math.floor((it.h - dsz) / 2)
-        if has(r.req, st.tools) then ZeD.Atoms.drawStatusDot(panel, rx, dy, sel and T.textOnAccent or T.positive, dsz)
-        else ZeD.Atoms.drawStatusRing(panel, rx, dy, dimInk, dsz) end
+        if has(r.req, st.tools) then A.drawStatusDot(panel, rx, dy, T.positive, dsz)
+        else A.drawStatusHollow(panel, rx, dy, dimInk, dsz) end
     end
-    -- the hair mod's tag
+    -- the hair mod's tag (its name's first word)
     if r.mod then
-        local tag = ZeD.upper(modName(r.mod):match("^(%a+)") or r.mod)
-        local tw = ZeD.TM:MeasureStringX(T.fontF5, tag) + T.px(8)
-        local th = T.px(14)
+        local tag = modName(r.mod):match("^(%a+)") or r.mod
+        local tw = tagW(tag)
         rx = rx - T.px(8) - tw
-        local tagY = y + math.floor((it.h - th) / 2)
-        local bc = sel and T.textOnAccent or T.borderS
-        panel:drawRectBorder(rx, tagY, tw, th, bc.a or 1, bc.r, bc.g, bc.b)
-        panel:drawText(tag, rx + T.px(4), tagY + math.floor((th - F(5)) / 2), dimInk.r, dimInk.g, dimInk.b, dimInk.a or 1, T.fontF5)
+        M.drawTag(panel, rx, y + math.floor((it.h - T.px(16)) / 2), tag, nil, { keepCase = true })
     end
     -- the figure wearing this row's style, in its frame
     local ts, tp = T.px(THUMB), T.px(THUMB_PAD)
     local fx, fy = it.x + tp, y + math.floor((it.h - ts) / 2)
     drawFrame(panel, fx, fy, ts, ts)
     local h2, b2 = headLook(st, win._playerObj, r)
-    want(wants, view, r.key, fx, fy, ts, ts, h2, b2, (r.out or not r.ok) and true or false, r.part == "beard", r.part == "beard")
+    want(wants, view, r.key, fx, fy, ts, ts, h2, b2, greyed and true or false, r.part == "beard", r.part == "beard")
     local nx = fx + ts + T.px(10)
     local nw = rx - T.px(8) - nx
     panel:drawText(ZeD.Atoms.truncateText(r.label, T.fontF2, nw), nx, y + math.floor((it.h - F(2)) / 2),
@@ -1158,7 +1232,9 @@ function HB.draw(panel, win, L, x, top, w, viewY, viewH)
     st.zones, st.top, st.x = {}, top, x
     local mx, my = panel:getMouseX(), panel:getMouseY()
     local inView = mx >= x and mx < x + w and my >= viewY and my < viewY + viewH
-    if not inView then mx, my = nil, nil end
+    local Fo = ZeD.Input and ZeD.Input.Focus
+    -- (the mouse's hover and cards go quiet while the controller's mark shows)
+    if not inView or (Fo and Fo.cuesVisible and Fo.cuesVisible()) then mx, my = nil, nil end
     st.hover = nil
     local wants, view = {}, { y0 = viewY, y1 = viewY + viewH }
     for _, it in ipairs(L.items) do
@@ -1173,31 +1249,24 @@ function HB.draw(panel, win, L, x, top, w, viewY, viewH)
         end
         local k = it.kind
         if vis then
-            if k == "groove" then ZeD.Atoms.drawGroove(panel, ix, y, it.w)
-            elseif k == "subh" then
-                local c = T.toneLo or T.textDim
-                panel:drawText(it.text, ix, y, c.r, c.g, c.b, c.a or 1, T.fontF1)
+            if k == "subh" then
+                ZeD.Molecules.drawSectionHeader(panel, ix, y, it.w, it.text, nil, true, false, nil, nil, nil, nil, true)
             elseif k == "heads" then drawHeads(panel, win, st, item, y, wants, view)
-            elseif k == "parts" then drawParts(panel, win, st, item, y)
-            elseif k == "gh" or k == "outh" then drawGh(panel, win, st, item, y, mx, my)
+            elseif k == "parts" then drawParts(panel, win, st, item, y, mx, my)
+            elseif k == "gh" then drawGh(panel, win, st, item, y)
+            elseif k == "more" then drawMore(panel, win, st, item, y, mx, my)
             elseif k == "row" then drawRow(panel, win, st, item, y, mx, my, wants, view)
             elseif k == "empty" then
-                local c = T.toneLo or T.textDim
-                for i, line in ipairs(it.lines) do
-                    panel:drawText(line, ix + T.px(8), y + T.px(10) + (i - 1) * F(2), c.r, c.g, c.b, c.a or 1, T.fontF2)
-                end
-            elseif k == "listbox" then
-                local bd = T.border
-                panel:drawRectBorder(ix, y, it.w, it.h, bd.a or 1, bd.r, bd.g, bd.b)
+                ZeD.Molecules.drawEmptyLine(panel, ix, y, it.w, it.text)
             elseif k == "note" then
-                local c = T.toneLo or T.textDim
+                local c = T.textDim
                 for i, line in ipairs(it.lines) do
-                    panel:drawText(line, ix, y + (i - 1) * F(1), c.r, c.g, c.b, c.a or 1, T.fontF1)
+                    panel:drawText(line, ix, y + (i - 1) * (F(2) + T.px(2)), c.r, c.g, c.b, c.a or 1, T.fontF2)
                 end
             end
         end
         -- click zones (only what shows) and the row under the mouse
-        if (k == "row" or k == "outh" or k == "parts") and vis then
+        if (k == "row" or k == "more" or k == "parts") and vis then
             local zy0, zy1 = math.max(viewY, y), math.min(viewY + viewH, y + it.h)
             if zy1 > zy0 then
                 st.zones[#st.zones + 1] = { x = ix, y = zy0, w = it.w, h = zy1 - zy0, item = it }
@@ -1210,15 +1279,13 @@ function HB.draw(panel, win, L, x, top, w, viewY, viewH)
     -- the figures over the frames drawn this frame; the layer's veils stay inside the view
     placeFigures(panel, win, st, wants)
     if st.av then st.av.clip = { x = x, y = viewY, w = w, h = viewH } end
-    -- balloons drawn on the drawer this frame are drawn again above the figures
-    AV.balloonFrame, AV.balloons = AV.frame, {}
 end
 
 -- ---------------------------------------------------------------------------
--- the action strip at the drawer's foot (what the picked row needs; the button)
+-- the foot of the drawer: what the picked row needs, and the button. A line above the
+-- band carries the busy bar, the row's NEEDS line or its notes; the band is the
+-- library's (the status words at the left, the verb at the right).
 -- ---------------------------------------------------------------------------
-function HB.stripH() return ZeD.T.px(STRIP_H) end
-
 local function itemName(it) return it and it:getDisplayName() or "" end
 
 local function notesFor(st, p, r)
@@ -1246,143 +1313,131 @@ local function notesFor(st, p, r)
     return notes
 end
 
-function HB.drawStrip(panel, win, x, y, w, h)
+-- what the foot says this frame: { text, color } for the band's status, info (the line
+-- above it) with needs = a NEEDS line (hollow square) or plain notes, pct = the busy
+-- bar, and the verb button's label and state
+local function stripState(win)
     local T = ZeD.T
     local st = state(win)
     local p = win._playerObj
-    st.btn = nil
-    if not p then return end
-    local s2, bs = T.surf2, T.borderS
-    panel:drawRect(x, y, w, h, 1, s2.r, s2.g, s2.b)
-    panel:drawRect(x, y, w, T.px(1), bs.a or 1, bs.r, bs.g, bs.b)
-    local pad = T.sp.sm
-    local dsz = T.px(8)
-    local tc, dim = T.text, T.toneLo or T.textDim
-    local l1, l2, dot, verb, canDo, extra = nil, nil, "ring", nil, false, nil
-    local pct = nil
+    local s = { label = "", canDo = false }
+    if not p then return s end
     if st.busy then
         local b = st.busy
         local key = (b.part == "beard") and "UI_ZeD_Hair_BusyTrim"
             or (b.verb == "Tie" and "UI_ZeD_Hair_BusyTie") or (b.verb == "Untie" and "UI_ZeD_Hair_BusyUntie") or "UI_ZeD_Hair_BusyCut"
-        l1, dot = tr(key), "busy"
+        s.text, s.color = tr(key), T.accent
         local q = ISTimedActionQueue.getTimedActionQueue(p)
         local a = q and q.queue and q.queue[1]
-        pct = 0
+        s.pct = 0
         if a and (a.Type == "ISCutHair" or a.Type == "ISTrimBeard") and a.getJobDelta then
             local ok, v = pcall(a.getJobDelta, a)
-            if ok and v then pct = v end
+            if ok and v then s.pct = v end
         end
-        verb, canDo = "stop", true
+        s.stop, s.canDo = true, true
+        s.label = tr("UI_ZeD_Hair_Stop")
+        s.help = tr("UI_ZeD_Hair_HelpStop")
+        return s
+    end
+    local r = findRow(st, st.sel)
+    local verb = (st.part == "beard") and "Trim" or "Cut"
+    if not r then
+        if st.done then s.text, s.color = st.done, T.positive else s.text = tr("UI_ZeD_Hair_Pick") end
+    elseif r.out then
+        s.text, s.info, s.needs = tr("UI_ZeD_Hair_OutTitleNA", r.label), r.why, true
     else
-        local r = findRow(st, st.sel)
-        if not r then
-            if st.done then l1, dot = st.done, "pos" else l1 = tr("UI_ZeD_Hair_Pick") end
-            local pad_ = ZeD.Input and ZeD.Input.Detector and ZeD.Input.Detector.getMode and ZeD.Input.Detector.getMode() == "gamepad"
-            l2 = pad_ and tr("UI_ZeD_Hair_HintPad") or tr("UI_ZeD_Hair_HintMouse")
-            verb = (st.part == "beard") and "Trim" or "Cut"
-        elseif r.out then
-            l1, l2 = tr("UI_ZeD_Hair_OutTitle", r.label), r.why
-            verb = (st.part == "beard") and "Trim" or "Cut"
+        s.text = r.label
+        if r.mod then s.text = s.text .. " " .. tr("UI_ZeD_Hair_FromMod", modName(r.mod)) end
+        verb, s.canDo = r.verb, r.ok
+        if r.ok then
+            s.color = T.positive
+            s.info = table.concat(notesFor(st, p, r), " | ")
         else
-            l1 = r.label
-            if r.mod then extra = tr("UI_ZeD_Hair_FromMod", modName(r.mod)) end
-            l2 = table.concat(notesFor(st, p, r), " | ")
-            dot = r.ok and "pos" or "ring"
-            verb, canDo = r.verb, r.ok
+            s.needs = true
+            if r.req ~= "none" then
+                s.info = DS.needsLine({ label = tr(VERB_KEY[r.verb] or "UI_ZeD_Hair_VerbCut"), needs = toolWords(r.req) })
+            else
+                s.info = r.reason or ""
+            end
         end
     end
-    -- the button
-    local label = (verb == "stop") and tr("UI_ZeD_Hair_Stop") or tr(VERB_KEY[verb] or "UI_ZeD_Hair_VerbCut")
-    local bw = math.max(T.px(64), ZeD.TM:MeasureStringX(T.fontF3, ZeD.btnCase(label)) + T.px(28))
-    local bh = T.px(26)
-    local bx, by = x + w - pad - bw, y + math.floor((h - bh) / 2)
-    local ac = T.accent
-    ZeD.Molecules.drawButton(panel, bx, by, bw, bh, label, (verb ~= "stop") and "primary" or "default", false,
-        { fill = isFoc(win, "hb:do") and { r = ac.r, g = ac.g, b = ac.b, a = 0.55 } or nil })
-    if not canDo then panel:drawRect(bx, by, bw, bh, 0.6, s2.r, s2.g, s2.b) end
-    st.btn = { x = bx, y = by, w = bw, h = bh, on = canDo, stop = verb == "stop" }
-    -- the lines
-    local tx = x + pad
-    local tw = bx - T.px(10) - tx
-    local twoLines = (l2 ~= nil and l2 ~= "") or pct ~= nil
-    local l1y = y + math.floor((h - F(2)) / 2)
-    if twoLines then l1y = y + math.floor((h - F(2) - T.px(3) - F(5)) / 2) end
-    local dy = l1y + math.floor((F(2) - dsz) / 2)
-    if dot == "pos" then ZeD.Atoms.drawStatusDot(panel, tx, dy, T.positive, dsz)
-    elseif dot == "busy" then ZeD.Atoms.drawStatusDot(panel, tx, dy, T.accent, dsz)
-    else ZeD.Atoms.drawStatusRing(panel, tx, dy, dim, dsz) end
-    local lx = tx + dsz + T.px(6)
-    local t1 = ZeD.Atoms.truncateText(l1 or "", T.fontF2, tw - (lx - tx))
-    panel:drawText(t1, lx, l1y, tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
-    if extra then
-        local ex = lx + ZeD.TM:MeasureStringX(T.fontF2, t1) + T.px(6)
-        if ex < tx + tw then panel:drawText(ZeD.Atoms.truncateText(extra, T.fontF5, tx + tw - ex), ex, l1y + F(2) - F(5), dim.r, dim.g, dim.b, dim.a or 1, T.fontF5) end
+    s.label = tr(VERB_KEY[verb] or "UI_ZeD_Hair_VerbCut")
+    s.help = s.canDo and s.info or nil
+    if s.info == "" then s.info = nil end
+    return s
+end
+
+-- the height of the foot: the band, and the line above it when there is one
+function HB.stripH(win)
+    local T, M = ZeD.T, ZeD.Molecules
+    local s = win and stripState(win) or {}
+    local extra = 0
+    if s.pct then extra = T.fillBarH + T.px(12)
+    elseif s.info then extra = F(2) + T.px(10) end
+    return M.bandH() + extra
+end
+
+function HB.drawStrip(panel, win, x, y, w, h)
+    local T, A, M = ZeD.T, ZeD.Atoms, ZeD.Molecules
+    local st = state(win)
+    local p = win._playerObj
+    st.btn = nil
+    if not p then return end
+    local s = stripState(win)
+    local pad = T.sp.sm
+    local infoH = h - M.bandH()
+    if infoH > 0 then
+        A.surfaceFill(panel, x, y, w, infoH, "surf2")
+        A.drawDividerH(panel, x, y, w, true)
+        if s.pct then
+            -- the busy bar: the standard framed strip
+            A.drawFillBar(panel, x + pad, y + math.floor((infoH - T.fillBarH) / 2), w - pad * 2, s.pct, false, T.accent)
+        elseif s.info then
+            local tx = x + pad
+            local ty = y + math.floor((infoH - F(2)) / 2)
+            local tc = s.needs and T.text or T.textDim
+            if s.needs then
+                local sq = T.px(6)
+                A.drawStatusHollow(panel, tx, ty + math.floor((F(2) - sq) / 2), T.textDim, sq)
+                tx = tx + sq + T.px(6)
+            end
+            panel:drawText(A.truncateText(s.info, T.fontF2, x + w - pad - tx), tx, ty, tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
+        end
     end
-    if pct then
-        local barW = math.min(T.px(200), tw)
-        local barY = l1y + F(2) + T.px(4)
-        local s4 = T.surf4 or T.surf3
-        panel:drawRect(tx, barY, barW, T.px(4), 1, s4.r, s4.g, s4.b)
-        panel:drawRect(tx, barY, math.floor(barW * math.max(0, math.min(1, pct))), T.px(4), 1, ac.r, ac.g, ac.b)
-    elseif l2 then
-        panel:drawText(ZeD.Atoms.truncateText(l2, T.fontF5, tw), tx, l1y + F(2) + T.px(3), dim.r, dim.g, dim.b, dim.a or 1, T.fontF5)
-    end
+    local hdr, out = M.drawBand(panel, x, y + infoH, w, {
+        status = { text = s.text or "", color = s.color },
+        buttons = { { label = s.label, variant = s.stop and "default" or "primary", disabled = not s.canDo,
+                      focus = s.stop and focusOf(win, "hb:do") or nil, help = s.help, id = "do" } },
+        win = win, noLine = infoH > 0,
+    })
+    local b = out.buttons[1]
+    if b then st.btn = { x = b.x, y = b.y, w = b.w, h = b.h, on = s.canDo, stop = s.stop and true or false } end
 end
 
 -- ---------------------------------------------------------------------------
--- the hover balloon (also the Identity traits' and the Traits tab's): a title and
--- wrapped lines in the ZeD hint style, below the anchor, kept inside the clip
+-- the hover card (also the Identity traits' and the Traits tab's): the shared detail
+-- card. The mouse asks the window's overlay for it (it appears after the shared pause);
+-- the controller's focus draws it at once, under the element (rect = its place on panel).
+-- body is a line of words, or a list of lines.
 -- ---------------------------------------------------------------------------
-function HB.balloon(panel, title, body, ax, ay, aw, ah, clip, again)
-    local T = ZeD.T
-    -- on the drawer while the section's figures show: drawn again on their layer, above them
-    if not again and AV.balloonFrame == AV.frame and AV.balloons then
-        AV.balloons[#AV.balloons + 1] = { title, body, ax, ay, aw, ah, clip }
-    end
-    local maxW = T.px(280)
-    local pad, padY = T.px(8), T.px(5)
-    local lines = {}
-    if body and body ~= "" then lines = ZeD.Atoms.wrapText(body, T.fontF2, maxW - pad * 2) end
-    local w = title and ZeD.TM:MeasureStringX(T.fontF2, title) or 0
-    for _, l in ipairs(lines) do w = math.max(w, ZeD.TM:MeasureStringX(T.fontF2, l)) end
-    w = math.min(maxW, w + pad * 2)
-    local nl = #lines + (title and 1 or 0)
-    local h = nl * F(2) + padY * 2
-    local cx, cy, cw, ch = 0, 0, panel:getWidth(), panel:getHeight()
-    if clip then cx, cy, cw, ch = clip.x, clip.y, clip.w, clip.h end
-    local x = math.max(cx + T.px(2), math.min(ax + T.px(14), cx + cw - w - T.px(2)))
-    local y = ay + ah + T.px(4)
-    if y + h > cy + ch then y = ay - h - T.px(4) end
-    if y < cy then y = cy + T.px(2) end
-    local s2, bs, tc = T.surf2, T.borderS, T.text
-    panel:drawRect(x + T.px(2), y + T.px(2), w, h, 0.5, 0, 0, 0)
-    panel:drawRect(x, y, w, h, 1, s2.r, s2.g, s2.b)
-    panel:drawRectBorder(x, y, w, h, bs.a or 1, bs.r, bs.g, bs.b)
-    local ly = y + padY
-    if title then
-        local hc = T.textHead or tc
-        panel:drawText(ZeD.Atoms.truncateText(title, T.fontF2, w - pad * 2), x + pad, ly, hc.r, hc.g, hc.b, hc.a or 1, T.fontF2)
-        ly = ly + F(2)
-    end
-    for _, l in ipairs(lines) do
-        panel:drawText(l, x + pad, ly, tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
-        ly = ly + F(2)
+function HB.hoverCard(panel, win, key, title, body, rect, focused)
+    local lines = nil
+    if type(body) == "table" then lines = body
+    elseif body and body ~= "" then lines = { body } end
+    local card = { title = title, lines = lines, maxW = 280 }
+    if focused then
+        local T = ZeD.T
+        ZeD.Molecules.drawDetailCard(panel, rect.x + T.px(8), rect.y + rect.h - T.px(14), card)
+    else
+        ZeD.Atoms.requestDetailCard(win, key, card, panel)
     end
 end
 
--- a hint after a short pause on the same thing (focus shows it at once)
-function HB.hintDue(st, key, now)
-    if not key then st.hintKey = nil; return false end
-    if st.hintKey ~= key then st.hintKey, st.hintSince = key, now; return false end
-    return now - (st.hintSince or now) >= HINT_MS
-end
-
--- the hover balloon for a row: the game's own hint
-function HB.drawHints(panel, win, clip)
+-- the hover card for a row: the game's own hint
+function HB.drawHints(panel, win)
     local st = state(win)
     local hv = st.hover
-    local now = getTimestampMs()
-    if not HB.hintDue(st, hv and hv.key, now) then return end
+    if not hv then return end
     local r = findRow(st, hv.key)
     if not r then return end
     local body
@@ -1395,7 +1450,7 @@ function HB.drawHints(panel, win, clip)
             or (r.req == "sp" and tl.spray) or (r.req == "g" and tl.gel) or tl.hairdo
         body = t and tr("UI_ZeD_Hair_YouHave", itemName(t)) or nil
     end
-    HB.balloon(panel, r.label, body, hv.x, hv.y, hv.w, hv.h, clip)
+    HB.hoverCard(panel, win, "hb:" .. hv.key, r.label, body, hv, false)
 end
 
 -- ---------------------------------------------------------------------------
@@ -1416,8 +1471,8 @@ function HB.onClick(win, x, y)
             if it.kind == "row" then
                 st.sel = (st.sel == it.row.key) and nil or it.row.key
                 st.done = nil
-            elseif it.kind == "outh" then
-                st.outOpen = not st.outOpen
+            elseif it.kind == "more" then
+                DS.toggle(it.key)
             elseif it.kind == "parts" then
                 local half = (not st.female) and (x >= it.x + st.x + it.w / 2) or false
                 HB.setPart(win, half and "beard" or "hair")
@@ -1429,7 +1484,7 @@ function HB.onClick(win, x, y)
     return false
 end
 
--- the controller's stops: the Hair | Beard switch, each row, Out of reach
+-- the controller's stops: the Hair | Beard switch, each row, the folded row
 -- (as laid out this frame; rows scrolled out of view keep their place for the cone)
 function HB.focusables(win)
     local st = win._hb
@@ -1454,8 +1509,9 @@ function HB.focusables(win)
             e = { id = "hb:row:" .. key,
                 onFocus = function() st.sel = key; st.done = nil end,
                 onActivate = function(w) st.sel = key; HB.run(w, key) end }
-        elseif it.kind == "outh" then
-            e = { id = "hb:out", onActivate = function() st.outOpen = not st.outOpen end }
+        elseif it.kind == "more" then
+            local key = it.key
+            e = { id = "hb:more", onActivate = function() DS.toggle(key) end }
         end
         if e then
             e.x, e.y, e.w, e.h, e.cy, e.hbStop = x, y, it.w, it.h, it.y, true
@@ -1463,7 +1519,7 @@ function HB.focusables(win)
             out[#out + 1] = e
         end
     end
-    -- the strip's Stop while a cut runs
+    -- the foot's Stop while a cut runs
     if st.busy and st.btn then
         out[#out + 1] = { id = "hb:do", x = st.btn.x, y = st.btn.y, w = st.btn.w, h = st.btn.h, onFocus = function() end,
                           onActivate = function(w) HB.stop(w) end }
@@ -1475,8 +1531,9 @@ end
 function HB.key(win)
     local st = win._hb
     if not st then return "" end
-    return tostring(st.part) .. ":" .. tostring(st.outOpen) .. ":" .. tostring(#(st.rows or {})) .. ":"
+    return tostring(st.part) .. ":" .. tostring(DS.isOpen(moreKey(st))) .. ":" .. tostring(#(st.rows or {})) .. ":"
         .. tostring(#(st.out or {})) .. ":" .. tostring(st.busy ~= nil) .. ":" .. tostring(st.rows and st.rows[1] and st.rows[1].key)
+        .. ":" .. DS.setting()
 end
 
 function HB.state(win) return state(win) end

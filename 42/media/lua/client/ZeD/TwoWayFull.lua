@@ -33,7 +33,7 @@ local TW = ZeD.TwoWay
 local P = ZeD.Px
 
 local REACH_EVERY = 10         -- frames between the out-of-reach checks
-local SHADOW_A = 0.35          -- the face's shadow on the world (its own shape, a little down and right)
+local SHADOW_A = 0.5           -- the face stands up over the world: System 7's hard shadow of its own shape, 1u right and down
 
 local function now() return getTimestampMs() end
 local function sound(name) pcall(function() getSoundManager():playUISound(name) end) end
@@ -125,32 +125,31 @@ function ZeD_TwoWayFull:prerender()
     self.pid, self.des = pid, des
     local k = zoom()
     self._k = k
-    local sh = 4 * k                                            -- room for the shadow
-    local stripH = self.joyfocus and T.sp.scrollbarW or 0
+    local sh = T.hair                                           -- room for the shadow
+    local PG = ZeD.PadGlyphs
+    local stripH = self.joyfocus and PG.stripH() or 0
     local w = des.w * k + sh
     local h = des.h * k + sh + (stripH > 0 and (T.px(4) + stripH) or 0)
     self:place(w, h)
     local tex = TW.plateTex(des.plate)
-    if tex then self:drawTextureScaled(tex, 3 * k, 4 * k, des.w * k, des.h * k, SHADOW_A, 0, 0, 0) end
+    if tex then self:drawTextureScaled(tex, sh, sh, des.w * k, des.h * k, SHADOW_A, 0, 0, 0) end
     local joy = self.joyfocus ~= nil
     local hits, st = TW.drawFace(self, 0, 0, k, { dev = self.dev, pid = pid, des = des, focusId = joy and self.focusId or nil,
-        hoverId = (not joy) and self._hover or nil, pressId = self._press and self._press.id or nil })
+        hoverId = (not joy) and self._hover or nil, pressId = self._press and self._press.id or nil, own = true })
     self._hits = hits
     self.st = st
     if joy and not self:focused() and hits[1] then self.focusId = TW.readingOrder(hits, k)[1].id end
     if stripH > 0 then
-        local y = self.height - stripH
-        local s2, bs = T.surf2, T.borderS
-        self:drawRect(0, y, des.w * k, stripH, 1, s2.r, s2.g, s2.b)
-        self:drawRectBorder(0, y, des.w * k, stripH, bs.a or 1, bs.r, bs.g, bs.b)
-        local items = { ZeD.tr("UI_ZeD_RadioPrompt_Dpad") }
+        local items = { { glyph = "D-PAD", label = ZeD.tr("UI_ZeD_RadioPrompt_Move") } }
         local la = TW.labelA(self.focusId)
         if la then items[#items + 1] = { glyph = "A", label = la } end
         local lx = TW.labelX(self.focusId)
         if lx then items[#items + 1] = { glyph = "X", label = lx } end
         items[#items + 1] = { glyph = "B", label = ZeD.tr("UI_ZeD_Close") }
-        ZeD.Molecules.drawGlyphPrompts(self, T.sp.sm, y, stripH, items)
+        PG.drawStrip(self, 0, self.height - stripH, des.w * k, items)
     end
+    -- the controller's mark on a key, drawn last so no neighbour covers it
+    ZeD.Focus.drawOverlay(self, self)
 end
 
 function ZeD_TwoWayFull:update()

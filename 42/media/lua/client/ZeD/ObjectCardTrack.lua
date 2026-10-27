@@ -67,15 +67,16 @@ function def.refresh(t, player)
     else d.species = txt("IGUI_MigrationGroup_" .. tostring(mg.trackSize), tostring(mg.trackSize)) end
     d.fresh = call(at, "getFreshnessString", d.level) or ""
     t.d = d
-    t.verbs, t.needs = {}, {}
+    t.verbs = {}
 end
 
 function def.title(t) return t.d and t.d.type or txt("IGUI_AnimalTracks_footstep", "Animal Tracks") end
 function def.icon(t) return t.tex end
+-- the state tag: its words, and the colour of its square mark
 function def.pill(t)
     local T = ZeD.T
     if not (t.d and t.d.fresh ~= "") then return nil end
-    return ZeD.upper(t.d.fresh), T.positive
+    return OC.cap(t.d.fresh), T.positive
 end
 
 -- a map compass: the eight points round a ring, the way it went lit
@@ -112,9 +113,9 @@ function def.body(card, x, y, w, t, player)
     local lw = T.px(140)
     -- the track itself
     local ih = T.px(96)
-    card:drawRect(x, y, lw, ih, 1, col(T.surf2))
+    UI.fill(card, x, y, lw, ih, "surf2")
     if t.tex then card:drawTextureScaledAspect(t.tex, x + T.px(4), y + T.px(4), lw - 2 * T.px(4), ih - 2 * T.px(4), 1, 1, 1, 1) end
-    card:drawRectBorder(x, y, lw, ih, T.borderS.a or 1, col(T.borderS))
+    ZeD.Atoms.frame(card, x, y, lw, ih, T.borderS)
     -- compass under it
     local r = T.px(60)
     compass(card, x + math.floor(lw / 2), y + ih + T.px(10) + r, r, d.dir)
@@ -130,8 +131,8 @@ function def.body(card, x, y, w, t, player)
         card:drawText(label, fx, fy + math.floor((h - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
         local vx = fx + T.px(96)
         if dot then
-            ZeD.Atoms.drawStatusDot(card, vx, fy + math.floor((h - T.px(7)) / 2), dot, T.px(7))
-            vx = vx + T.px(13)
+            ZeD.Atoms.drawStatusDot(card, vx, fy + math.floor((h - T.px(6)) / 2), dot, T.px(6))
+            vx = vx + T.px(12)
         end
         card:drawText(value, vx, fy + math.floor((h - tm:getFontHeight(f2)) / 2), T.text.r, T.text.g, T.text.b, T.text.a or 1, f2)
         if dim then
@@ -140,8 +141,8 @@ function def.body(card, x, y, w, t, player)
         end
         fy = fy + h
     end
-    -- (vanilla's labels end in a colon; capitals as the other card labels)
-    local function lab(k) return ZeD.upper((string.gsub(getText(k), ":%s*$", ""))) end
+    -- (vanilla's labels end in a colon: the bare word, as the other card labels)
+    local function lab(k) return (string.gsub(getText(k), ":%s*$", "")) end
     fact(lab("IGUI_AnimalTracks_Type"), d.type)
     fact(lab("IGUI_AnimalTracks_Animal"), d.species, nil, ZeD.tr("UI_ZeD_Track_TrackingLevel", d.level))
     fact(lab("IGUI_AnimalTracks_Freshness"), d.fresh)

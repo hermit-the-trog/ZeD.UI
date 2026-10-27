@@ -3,13 +3,15 @@
 -- OBJECT CARD: HUTCH (HOOK_MAP row 20; mockup zed_animal_cards_v1.html)
 -- Vanilla's two-tab Hutch window (egg laying boxes, coop roosting) becomes one
 -- card in the World window's card drawer:
---   * the two doors as lamps, with OPEN / CLOSE DOOR and OPEN / CLOSE HATCH;
---   * EGG LAYING BOXES: each box's eggs (vanilla's ten slots) or the hen
---     sitting in it, GRAB per box and GRAB EGGS for every free box;
---   * COOP ROOSTING: every bird with GRAB (a dead one is taken as a corpse)
---     and INFO (the bird in the Animals tab);
---   * FLOOR: dirtiness in vanilla's colours, CLEAN and what cleaning takes;
---   * PUT IN when you carry a bird the hutch takes (vanilla: world menu only).
+--   * the two doors as marks (full when open), with Open / Close door and
+--     Open / Close hatch;
+--   * Egg laying boxes: each box's eggs (vanilla's ten slots) or the hen
+--     sitting in it, Grab per box and Grab eggs for every free box;
+--   * Coop roosting: every bird with Grab (a dead one is taken as a corpse)
+--     and Info (the bird in the Animals tab);
+--   * Floor: dirtiness on a strip, Clean and what cleaning takes;
+--   * Put in when you carry a bird the hutch takes (vanilla: world menu only).
+-- Grab eggs, Clean and Put in show only when they make sense and can be done.
 -- Vanilla's rules stay: no eggs while a hen sits on them; the boxes are out of
 -- reach with both doors shut, the perches with the main door shut; the card
 -- closes past 5 tiles of the entry square. Every action is vanilla's own
@@ -162,7 +164,7 @@ local function birdSub(a)
     local species = txt("IGUI_AnimalType_" .. tostring(atype), tostring(atype))
     local key = "UI_ZeD_Hutch_SubAdult"
     if AD and AD.isBaby(a) then key = "UI_ZeD_Hutch_SubYoung" end
-    return ZeD.tr(key, ZeD.upper(species))
+    return ZeD.tr(key, species)
 end
 
 function def.refresh(t, player)
@@ -223,49 +225,60 @@ function def.refresh(t, player)
     t.d = d
 
     -- verbs
-    local verbs, needs = {}, {}
+    local verbs = {}
     local function doorVerb(primary)
-        verbs[#verbs + 1] = { id = "door", label = ZeD.upper(d.doorOpen and txt("ContextMenu_Close_door", "Close Door") or txt("ContextMenu_Open_door", "Open Door")),
-            primary = primary, run = function(p, tt) tt.eggChain = nil; ISHutchMenu.onToggleDoor(tt.obj, p) end }
+        verbs[#verbs + 1] = { id = "door", label = d.doorOpen and txt("ContextMenu_Close_door", "Close Door") or txt("ContextMenu_Open_door", "Open Door"),
+            primary = primary, help = ZeD.tr(d.doorOpen and "UI_ZeD_Hutch_HelpCloseDoor" or "UI_ZeD_Hutch_HelpOpenDoor"),
+            run = function(p, tt) tt.eggChain = nil; ISHutchMenu.onToggleDoor(tt.obj, p) end }
     end
     local function hatchVerb()
         verbs[#verbs + 1] = { id = "hatch", label = d.hatchOpen and ZeD.tr("UI_ZeD_Hutch_CloseHatch") or ZeD.tr("UI_ZeD_Hutch_OpenHatch"),
+            help = ZeD.tr(d.hatchOpen and "UI_ZeD_Hutch_HelpCloseHatch" or "UI_ZeD_Hutch_HelpOpenHatch"),
             run = function(p, tt) tt.eggChain = nil; ISHutchMenu.onToggleEggHatchDoor(tt.obj, p) end }
     end
+    -- cleaning needs water and something to scrub with; a clean floor is not cleaned (the verb is gone)
     local canClean = d.dirt > 0 and d.water ~= nil and d.mop ~= nil
+    local cleanNeeds
+    if not d.water and not d.mop then cleanNeeds = ZeD.tr("UI_ZeD_Hutch_NeedsBoth", ZeD.tr("UI_ZeD_Hutch_NeedsWater"), ZeD.tr("UI_ZeD_Hutch_NeedsMop"))
+    elseif not d.water then cleanNeeds = ZeD.tr("UI_ZeD_Hutch_NeedsWater")
+    else cleanNeeds = ZeD.tr("UI_ZeD_Hutch_NeedsMop") end
     if d.allClosed then
         doorVerb(true)
         hatchVerb()
     else
-        verbs[#verbs + 1] = { id = "eggs", label = ZeD.upper(txt("IGUI_Hutch_GrabEggs", "Grab Eggs")), primary = #d.free > 0,
-            enabled = #d.free > 0, run = function(p, tt) grabEggs(p, tt.obj, tt.d.free, tt) end }
+        -- no eggs to grab, no verb
+        verbs[#verbs + 1] = { id = "eggs", label = txt("IGUI_Hutch_GrabEggs", "Grab Eggs"), primary = #d.free > 0,
+            enabled = #d.free > 0, sensible = #d.free > 0, help = ZeD.tr("UI_ZeD_Hutch_HelpEggs"),
+            run = function(p, tt) grabEggs(p, tt.obj, tt.d.free, tt) end }
     end
-    verbs[#verbs + 1] = { id = "clean", label = ZeD.upper(txt("IGUI_Hutch_Clean", "Clean")), enabled = canClean,
+    verbs[#verbs + 1] = { id = "clean", label = txt("IGUI_Hutch_Clean", "Clean"), enabled = canClean, sensible = d.dirt > 0,
+        needs = cleanNeeds, hint = ZeD.tr("UI_ZeD_Hutch_HintClean"), help = ZeD.tr("UI_ZeD_Hutch_HelpClean"),
         run = function(p, tt) tt.eggChain = nil; clean(p, tt.obj) end }
     if not d.allClosed then
         doorVerb(false)
         hatchVerb()
     end
     if d.carry then
+        -- a full hutch takes no more (the verb is gone); with both doors shut it waits for one open
         local full = d.count >= d.max
-        verbs[#verbs + 1] = { id = "putin", label = ZeD.tr("UI_ZeD_Hutch_PutIn"), enabled = not d.allClosed and not full,
+        verbs[#verbs + 1] = { id = "putin", label = ZeD.tr("UI_ZeD_Hutch_PutIn"), enabled = not d.allClosed, sensible = not full,
+            needs = ZeD.tr("UI_ZeD_Hutch_NeedsOpen"), hint = ZeD.tr("UI_ZeD_Hutch_HintPutIn"), help = ZeD.tr("UI_ZeD_Hutch_HelpPutIn"),
             run = function(p, tt) tt.eggChain = nil; ISHutchMenu.onPutAnimalInsideHutch(tt.obj, p) end }
-        if d.allClosed then needs[#needs + 1] = ZeD.tr("UI_ZeD_Hutch_PutInNeeds", txt("IGUI_PutAnimalInHutch_DoorsClosed", "You need to have either door or eggs door open."))
-        elseif full then needs[#needs + 1] = ZeD.tr("UI_ZeD_Hutch_PutInNeeds", txt("IGUI_PutAnimalInHutch_HutchFull", "Hutch is full.")) end
     end
-    t.verbs, t.needs = verbs, needs
+    t.verbs = verbs
 end
 
 def.nameOf = hutchName   -- the Animals tab names hutch rows the same way
 
 function def.title(t) return t.d and t.d.name or txt("ContextMenu_Hutch", "Hutch") end
 function def.icon(t) return t.d and t.d.icon or nil end
+-- the state tag: its words, and the colour of its square mark (none for a plain tag)
 function def.pill(t)
     local T = ZeD.T
     local d = t.d
     if not d then return nil end
     if d.allClosed then return ZeD.tr("UI_ZeD_Hutch_PillShut"), T.textDim end
-    return ZeD.upper(ZeD.tr("IGUI_Open")), T.positive
+    return ZeD.tr("IGUI_Open"), T.positive
 end
 
 -- the controller lands on the first box with eggs to take, else the verbs
@@ -288,7 +301,7 @@ end
 local function closedPlate(card, x, y, w, label)
     local T, tm = ZeD.T, ZeD.TM
     local h = T.px(46)
-    card:drawRect(x, y, w, h, 1, col(T.surf2))
+    UI.fill(card, x, y, w, h, "surf2")
     -- light hatching (the fluid card's band language)
     local step = T.px(4)
     local hy = y + step
@@ -296,8 +309,9 @@ local function closedPlate(card, x, y, w, label)
         card:drawRect(x + T.px(1), hy, w - 2 * T.px(1), T.px(1), 0.5, col(T.surf1))
         hy = hy + step
     end
-    card:drawRectBorder(x, y, w, h, T.borderS.a or 1, col(T.borderS))
+    ZeD.Atoms.frame(card, x, y, w, h, T.borderS)
     local f1 = T.fontF1
+    label = ZeD.Atoms.textCase(label)
     local lw = tm:MeasureStringX(f1, label)
     card:drawRect(x + math.floor((w - lw) / 2) - T.px(8), y + math.floor((h - T.px(18)) / 2), lw + 2 * T.px(8), T.px(18), 1, col(T.surf1))
     card:drawText(label, x + math.floor((w - lw) / 2), y + math.floor((h - tm:getFontHeight(f1)) / 2), T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, f1)
@@ -306,14 +320,13 @@ end
 
 local function drawBox(card, x, y, w, t, b)
     local T, tm = ZeD.T, ZeD.TM
-    local h = T.px(BOX_H)
+    local h = math.max(T.px(BOX_H), T.buttonH + T.px(80))
     local fid = "hutch:box:" .. b.i
-    local focused = card._fid == fid
-    card:drawRect(x, y, w, h, 1, col(T.surf2))
-    card:drawRectBorder(x, y, w, h, T.borderS.a or 1, col(T.borderS))
+    UI.fill(card, x, y, w, h, "surf2")
+    ZeD.Atoms.frame(card, x, y, w, h, T.borderS)
     local f1 = T.fontF1
     local ac = T.accent
-    card:drawText(ZeD.tr("UI_ZeD_Hutch_Box", b.i + 1), x + T.px(6), y + T.px(5), ac.r, ac.g, ac.b, 1, f1)
+    card:drawText(ZeD.Atoms.textCase(ZeD.tr("UI_ZeD_Hutch_Box", b.i + 1)), x + T.px(6), y + T.px(5), ac.r, ac.g, ac.b, 1, f1)
     ZeD.Atoms.drawTextRight(card, tostring(b.eggs), x + w - T.px(6), y + T.px(5), f1, T.textDim)
     local cy = y + T.px(5) + tm:getFontHeight(f1) + T.px(5)
     if b.hen then
@@ -323,7 +336,7 @@ local function drawBox(card, x, y, w, t, b)
         local f2, f5 = T.fontF2, T.fontF5
         local nm = ZeD.CraftingCore.truncText(b.henName or "?", f2, w - T.px(8))
         card:drawText(nm, x + math.floor((w - tm:MeasureStringX(f2, nm)) / 2), cy + isz + T.px(2), T.text.r, T.text.g, T.text.b, T.text.a or 1, f2)
-        local sub = ZeD.tr("UI_ZeD_Hutch_Sitting", b.eggs)
+        local sub = ZeD.textCase(ZeD.tr("UI_ZeD_Hutch_Sitting", b.eggs))
         card:drawText(sub, x + math.floor((w - tm:MeasureStringX(f5, sub)) / 2), cy + isz + T.px(2) + tm:getFontHeight(f2),
             T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, f5)
     else
@@ -339,38 +352,41 @@ local function drawBox(card, x, y, w, t, b)
             else local eg = ZeD.T.textHead; ZeD.Atoms.drawStatusDot(card, ex, ey, { r = eg.r, g = eg.g, b = eg.b, a = a }, esz) end
         end
     end
-    -- GRAB (bottom)
-    local label = b.hen and ZeD.tr("UI_ZeD_Hutch_HenSitting") or ZeD.upper(ZeD.tr("IGUI_Hutch_Grab"))
+    -- Grab (bottom): only on a box with eggs to take (a hen sitting on them says so above)
+    local label = ZeD.tr("IGUI_Hutch_Grab")
     local enabled = (not b.hen) and b.eggs > 0 and b.nest ~= nil
-    local bw = math.min(w - T.px(12), UI.buttonW(label))
-    local by = y + h - T.px(6) - T.px(20)
-    UI.button(card, x + T.px(6), by, label, { h = T.px(20), w = bw, disabled = not enabled, focused = focused })
-    local bb = b
-    card:zone({ fid = fid, x = x + T.px(6), y = by, w = bw, h = T.px(20), body = true,
-        run = enabled and function(c, p) grabEggs(p, t.obj, { bb }, t) end or nil })
+    if enabled then
+        local bw = math.min(w - T.px(12), UI.buttonW(label))
+        local bh = T.buttonH - T.px(4)
+        local by = y + h - T.px(6) - bh
+        local bb = b
+        UI.button(card, x + T.px(6), by, label, { w = bw, h = bh, fid = fid, body = true, focus = card:focusOf(fid),
+            help = ZeD.tr("UI_ZeD_Hutch_HelpGrabBox", b.i + 1), run = function(c, p) grabEggs(p, t.obj, { bb }, t) end })
+    end
     return h
 end
 
 local function drawBird(card, x, y, w, t, b)
     local T, tm = ZeD.T, ZeD.TM
-    local h = T.px(BIRD_H)
+    local h = math.max(T.px(BIRD_H), T.buttonH + T.px(4))
     local isz = T.px(22)
     if b.tex then card:drawTextureScaledAspect(b.tex, x + T.px(2), y + math.floor((h - isz) / 2), isz, isz, 1, 1, 1, 1) end
-    local grabTxt, infoTxt = ZeD.upper(ZeD.tr("IGUI_Hutch_Grab")), ZeD.upper(ZeD.tr("IGUI_Animal_Info"))
+    local grabTxt, infoTxt = ZeD.tr("IGUI_Hutch_Grab"), ZeD.tr("IGUI_Animal_Info")
     local gw, iw = UI.buttonW(grabTxt), UI.buttonW(infoTxt)
     local ix = x + w - T.px(2) - iw
     local gx = ix - T.px(4) - gw
-    local by = y + math.floor((h - T.px(20)) / 2)
+    local bh = T.buttonH - T.px(4)
+    local by = y + math.floor((h - bh) / 2)
     local gf, inf = "hutch:bird:" .. b.i .. ":grab", "hutch:bird:" .. b.i .. ":info"
-    UI.button(card, gx, by, grabTxt, { h = T.px(20), w = gw, focused = card._fid == gf })
-    UI.button(card, ix, by, infoTxt, { h = T.px(20), w = iw, focused = card._fid == inf })
     local bb = b
-    card:zone({ fid = gf, x = gx, y = by, w = gw, h = T.px(20), body = true, run = function(c, p) t.eggChain = nil; grabBird(p, t.obj, bb) end })
-    card:zone({ fid = inf, x = ix, y = by, w = iw, h = T.px(20), body = true, run = function(c, p) showBird(p, bb.a) end })
+    UI.button(card, gx, by, grabTxt, { w = gw, h = bh, fid = gf, body = true, focus = card:focusOf(gf),
+        help = ZeD.tr("UI_ZeD_Hutch_HelpGrabBird", b.name), run = function(c, p) t.eggChain = nil; grabBird(p, t.obj, bb) end })
+    UI.button(card, ix, by, infoTxt, { w = iw, h = bh, fid = inf, body = true, focus = card:focusOf(inf),
+        help = ZeD.tr("UI_ZeD_Hutch_HelpInfo", b.name), run = function(c, p) showBird(p, bb.a) end })
     local rx = gx - T.px(8)
     if b.dead then
-        local deadTxt = ZeD.upper(ZeD.tr("IGUI_DesignationZone_Dead"))
-        local tw = UI.tagW(deadTxt)
+        local deadTxt = ZeD.tr("IGUI_DesignationZone_Dead")
+        local tw = UI.tagW(deadTxt, true)
         UI.tag(card, rx - tw, y + math.floor((h - T.px(16)) / 2), deadTxt, T.danger)
         rx = rx - tw - T.px(8)
     end
@@ -383,19 +399,19 @@ local function drawBird(card, x, y, w, t, b)
     return h
 end
 
--- a line of status dots: { ok = true/false/nil (nil = optional), text }
+-- a line of status marks: { ok = true/false/nil (nil = optional), text }
 local function checklist(card, x, y, w, items)
     local T, tm = ZeD.T, ZeD.TM
     local f1 = T.fontF1
     local lh = T.px(18)
     local cx, cy = x, y
     for _, it in ipairs(items) do
-        local tw = tm:MeasureStringX(f1, it.text) + T.px(13) + T.px(14)
+        local tw = tm:MeasureStringX(f1, it.text) + T.px(12) + T.px(14)
         if cx > x and cx + tw > x + w then cx = x; cy = cy + lh end
-        local dy = cy + math.floor((lh - T.px(7)) / 2)
-        if it.ok == nil then ZeD.Atoms.drawStatusRing(card, cx, dy, T.textDim, T.px(7))
-        else ZeD.Atoms.drawStatusDot(card, cx, dy, it.ok and T.positive or T.danger, T.px(7)) end
-        card:drawText(it.text, cx + T.px(13), cy + math.floor((lh - tm:getFontHeight(f1)) / 2), T.text.r, T.text.g, T.text.b, T.text.a or 1, f1)
+        local dy = cy + math.floor((lh - T.px(6)) / 2)
+        if it.ok == nil then ZeD.Atoms.drawStatusHollow(card, cx, dy, T.textDim, T.px(6))
+        else ZeD.Atoms.drawStatusDot(card, cx, dy, it.ok and T.positive or T.danger, T.px(6)) end
+        card:drawText(it.text, cx + T.px(12), cy + math.floor((lh - tm:getFontHeight(f1)) / 2), T.text.r, T.text.g, T.text.b, T.text.a or 1, f1)
         cx = cx + tw
     end
     return cy + lh - y
@@ -409,21 +425,23 @@ function def.body(card, x, y, w, t, player)
     local gap = T.px(8)
     local HW = UI.HW
 
-    -- doors: two lamps, labels in the card's text colour
+    -- the two doors: a full square when open, a hollow one when shut, then the words
     local tm = ZeD.TM
     local f1 = T.fontF1
     local lx = x + T.px(2)
     for _, door in ipairs({ { d.doorOpen, d.doorOpen and ZeD.tr("UI_ZeD_Hutch_DoorOpen") or ZeD.tr("UI_ZeD_Hutch_DoorShut") },
                             { d.hatchOpen, d.hatchOpen and ZeD.tr("UI_ZeD_Hutch_HatchOpen") or ZeD.tr("UI_ZeD_Hutch_HatchShut") } }) do
-        UI.led(card, lx, y + T.px(5), HW.green, door[1], nil)
-        card:drawText(door[2], lx + T.px(14), y + T.px(9) - math.floor(tm:getFontHeight(f1) / 2), T.text.r, T.text.g, T.text.b, T.text.a or 1, f1)
-        lx = lx + T.px(14) + tm:MeasureStringX(f1, door[2]) + T.px(22)
+        local word = ZeD.textCase(door[2])
+        local my = y + math.floor((T.px(18) - T.px(6)) / 2)
+        if door[1] then ZeD.Atoms.drawStatusDot(card, lx, my, T.positive, T.px(6))
+        else ZeD.Atoms.drawStatusHollow(card, lx, my, T.textDim, T.px(6)) end
+        card:drawText(word, lx + T.px(12), y + T.px(9) - math.floor(tm:getFontHeight(f1) / 2), T.text.r, T.text.g, T.text.b, T.text.a or 1, f1)
+        lx = lx + T.px(12) + tm:MeasureStringX(f1, word) + T.px(22)
     end
     y = y + T.px(18) + gap
-    if t.needs and #t.needs > 0 then y = y + UI.needs(card, x, y, w, t.needs) + gap end
 
     -- egg laying boxes
-    y = y + UI.section(card, x, y, w, ZeD.upper(txt("IGUI_Hutch_EggLayingBox", "Egg Laying Boxes")),
+    y = y + UI.section(card, x, y, w, txt("IGUI_Hutch_EggLayingBox", "Egg Laying Boxes"),
         d.boxesShown and ZeD.tr("UI_ZeD_Hutch_EggsBoxes", d.eggs, #d.boxes) or ZeD.tr("UI_ZeD_Hutch_Boxes", #d.boxes))
     y = y + T.px(6)
     if not d.boxesShown then
@@ -433,29 +451,29 @@ function def.body(card, x, y, w, t, player)
         local bgap = T.px(6)
         local bw = math.floor((w - bgap * (n - 1)) / n)
         for k, b in ipairs(d.boxes) do drawBox(card, x + (k - 1) * (bw + bgap), y, bw, t, b) end
-        y = y + T.px(BOX_H)
+        y = y + math.max(T.px(BOX_H), T.buttonH + T.px(80))
         if d.full then
             y = y + T.px(6)
-            y = y + UI.needs(card, x, y, w, { ZeD.tr("UI_ZeD_Hutch_BoxesFull") })
+            y = y + UI.note(card, x, y, w, ZeD.tr("UI_ZeD_Hutch_BoxesFull"), T.warning)
         end
     end
     y = y + gap
 
     -- coop roosting
-    y = y + UI.section(card, x, y, w, ZeD.upper(txt("IGUI_Hutch_CoopRoosting", "Coop Roosting")), tostring(d.count) .. " / " .. tostring(d.max))
+    y = y + UI.section(card, x, y, w, txt("IGUI_Hutch_CoopRoosting", "Coop Roosting"), tostring(d.count) .. " / " .. tostring(d.max))
     if not d.roostShown then
         y = y + T.px(6)
         y = y + closedPlate(card, x, y, w, ZeD.tr("UI_ZeD_Hutch_DoorShut"))
     elseif #d.birds == 0 then
-        y = y + T.px(4)
-        y = y + UI.para(card, x + T.px(2), y, w, ZeD.tr("UI_ZeD_Hutch_NoBirds"), T.textDim)
+        y = y + T.px(8)
+        y = y + ZeD.Molecules.drawEmptyLine(card, x + T.px(2), y, w - T.px(4), ZeD.tr("UI_ZeD_Hutch_NoBirds"))
     else
         for _, b in ipairs(d.birds) do y = y + drawBird(card, x, y, w, t, b) end
     end
     y = y + gap
 
     -- floor
-    y = y + UI.section(card, x, y, w, ZeD.upper(ZeD.tr("ContextMenu_Floor")), "")
+    y = y + UI.section(card, x, y, w, ZeD.tr("ContextMenu_Floor"), "")
     y = y + T.px(4)
     local dirt = math.max(0, math.min(100, d.dirt))
     local fc = (dirt > 70 and T.danger) or (dirt > 40 and T.warning) or T.positive

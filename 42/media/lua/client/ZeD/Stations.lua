@@ -299,7 +299,7 @@ function ST.recipeStation(recipe)
                     else
                         local last = nil
                         for word in string.gmatch(lbl, "[%a%-]+") do last = word end
-                        short = ZeD.upper(last or lbl)
+                        short = last or lbl   -- the game's own word, as it writes it
                     end
                 end
             end
@@ -459,41 +459,42 @@ end
 -- DRAWING — selector box, dropdown overlay, station band
 -- ----------------------------------------------------------------------------
 
--- A select box: "LABEL  Value  v". A bound station selector wears the accent.
-function ST.drawSelect(panel, x, y, w, h, label, value, accentOn, focused, hovered)
+-- A select box in the pop-up menu's look (ZeD_Dropdown): surface 2 with a 1u outline,
+-- the label in F1 textDim, the value in F2, the triangle at the right. Hover is the
+-- T.hover wash; the controller's mark goes under the words. (accentOn is no longer
+-- drawn: a bound station reads from its name and the band under it.) disabled: the
+-- whole control at T.disabledAlpha (a select that cannot be opened now).
+function ST.drawSelect(panel, x, y, w, h, label, value, accentOn, focused, hovered, disabled)
     local T  = ZeD.T
     local A  = ZeD.Atoms
     local tm = ZeD.TM
-    local ac = T.accent
-    if accentOn then
-        panel:drawRect(x, y, w, h, 0.22, ac.r, ac.g, ac.b)
-        panel:drawRectBorder(x, y, w, h, ac.a or 1, ac.r, ac.g, ac.b)
-    else
-        local bg = T.surf2
-        panel:drawRect(x, y, w, h, bg.a, bg.r, bg.g, bg.b)
-        panel:drawRectBorder(x, y, w, h, T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
-    end
-    if hovered and not focused then
+    local da = disabled and T.disabledAlpha or 1
+    A.surfaceFill(panel, x, y, w, h, "surf2")
+    if hovered and not focused and not disabled then
         local hv = T.hover
         panel:drawRect(x, y, w, h, hv.a, hv.r, hv.g, hv.b)
     end
-    local cx = x + T.px(6)
+    local onFocus = focused and ZeD.Focus.mark(panel, x, y, w, h) or false
+    A.frame(panel, x, y, w, h, T.borderS, da)
+    local cx = x + T.sp.inputPadX
     local lf = T.fontF1
     if label and label ~= "" then
+        local s = A.textCase(label)
+        local lc = onFocus and T.textOnFocus or T.textDim
         local ly = y + math.floor((h - tm:getFontHeight(lf)) / 2)
-        panel:drawText(label, cx, ly, ac.r, ac.g, ac.b, 1, lf)
-        cx = cx + tm:MeasureStringX(lf, label) + T.px(6)
+        panel:drawText(s, cx, ly, lc.r, lc.g, lc.b, (lc.a or 1) * da, lf)
+        cx = cx + tm:MeasureStringX(lf, s) + T.px(6)
     end
     local arrowSz = T.px(5)
-    local arrowX = x + w - arrowSz - T.px(8)
+    local arrowX = x + w - arrowSz - T.sp.inputPadX
     local vf = T.fontF2
     local v = ZeD.CraftingCore.truncText(value or "", vf, arrowX - cx - T.px(4))
     local vy = y + math.floor((h - tm:getFontHeight(vf)) / 2)
-    panel:drawText(v, cx, vy, T.text.r, T.text.g, T.text.b, T.text.a, vf)
-    A.drawTriangleDown(panel, arrowX, y + math.floor((h - arrowSz) / 2), arrowSz, T.textSec)
-    if focused then
-        panel:drawRect(x, y, w, h, 0.55, ac.r, ac.g, ac.b)
-    end
+    local tc = onFocus and T.textOnFocus or T.text
+    panel:drawText(v, cx, vy, tc.r, tc.g, tc.b, (tc.a or 1) * da, vf)
+    local ac = onFocus and T.textOnFocus or T.textDim
+    local arc = (da < 1) and { r = ac.r, g = ac.g, b = ac.b, a = (ac.a or 1) * da } or ac
+    A.drawTriangleDown(panel, arrowX, y + math.floor((h - arrowSz) / 2), arrowSz, arc)
 end
 
 -- Dropdown rows: Hand, a header, then each station in reach.
@@ -540,27 +541,34 @@ function ST.drawDropdown(panel, geo, rows, scrollOff, current, focusId, prefix)
     local A  = ZeD.Atoms
     local tm = ZeD.TM
     local lay, listH = ST.dropdownLayout(geo, rows, scrollOff)
+    -- a pop-up list: solid, System 7's hard shadow outside it
+    A.drawHardShadow(panel, geo.x, geo.y, geo.w, listH)
     panel:setStencilRect(geo.x, geo.y, geo.w, listH)
     local bg = T.surf2
     panel:drawRect(geo.x, geo.y, geo.w, listH, 1, bg.r, bg.g, bg.b)
-    local mx, my = panel:getMouseX(), panel:getMouseY()
     for _, L in ipairs(lay) do
         local r = L.row
         if r.kind == "hdr" then
             local s1 = T.surf1
             panel:drawRect(L.x, L.y, L.w, L.h, 1, s1.r, s1.g, s1.b)
             local f = T.fontF1
-            panel:drawText(r.label, L.x + T.px(8), L.y + math.floor((L.h - tm:getFontHeight(f)) / 2),
+            panel:drawText(A.textCase(r.label), L.x + T.px(8), L.y + math.floor((L.h - tm:getFontHeight(f)) / 2),
                 T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, f)
         else
             local isOn = (r.kind == "hand" and not current) or (r.kind == "station" and current ~= nil and current.key == r.st.key)
             local dim = r.kind == "station" and r.st.inUse
+            -- selected: the one accent wash; hover: T.hover over it
             if isOn then
                 local ac = T.accent
-                panel:drawRect(L.x, L.y, L.w, L.h, 0.22, ac.r, ac.g, ac.b)
-            elseif not dim and mx >= L.x and mx < L.x + L.w and my >= L.y and my < L.y + L.h then
+                panel:drawRect(L.x, L.y, L.w, L.h, T.selectionA, ac.r, ac.g, ac.b)
+            end
+            if not dim and A.mouseIn(panel, L.x, L.y, L.w, L.h) then
                 local hv = T.hover
                 panel:drawRect(L.x, L.y, L.w, L.h, hv.a, hv.r, hv.g, hv.b)
+            end
+            local onFocus = false
+            if focusId and focusId == ST.rowFocusId(prefix, r) then
+                onFocus = ZeD.Focus.mark(panel, L.x, L.y, L.w, L.h)
             end
             local isz = T.px(16)
             local ix = L.x + T.px(8)
@@ -574,19 +582,15 @@ function ST.drawDropdown(panel, geo, rows, scrollOff, current, focusId, prefix)
                 panel:drawRectBorder(ix, iy, isz, isz, T.border.a, T.border.r, T.border.g, T.border.b)
             end
             local name = (r.kind == "hand") and ZeD.tr("UI_ZeD_Station_Hand") or r.st.name
-            local meta = (r.kind == "hand") and ZeD.tr("UI_ZeD_Station_AnySurface") or (r.st.inUse and ZeD.tr("UI_ZeD_Station_InUse") or ST.tilesText(r.st.dist))
+            local meta = A.textCase((r.kind == "hand") and ZeD.tr("UI_ZeD_Station_AnySurface") or (r.st.inUse and ZeD.tr("UI_ZeD_Station_InUse") or ST.tilesText(r.st.dist)))
             local mf = T.fontF1
             local mw = tm:MeasureStringX(mf, meta)
             local nf = T.fontF2
             local nx = ix + isz + T.px(6)
-            local tc = dim and T.textDim or (isOn and T.accent or T.text)
+            local tc = onFocus and T.textOnFocus or (dim and T.textDim or T.text)
             local nstr = ZeD.CraftingCore.truncText(name, nf, L.x + L.w - T.px(16) - mw - nx)
             panel:drawText(nstr, nx, L.y + math.floor((L.h - tm:getFontHeight(nf)) / 2), tc.r, tc.g, tc.b, tc.a or 1, nf)
-            A.drawTextRight(panel, meta, L.x + L.w - T.px(8), L.y + math.floor((L.h - tm:getFontHeight(mf)) / 2), mf, T.textDim)
-            if focusId and focusId == ST.rowFocusId(prefix, r) then
-                local ac = T.accent
-                panel:drawRect(L.x, L.y, L.w, L.h, 0.55, ac.r, ac.g, ac.b)
-            end
+            A.drawTextRight(panel, meta, L.x + L.w - T.px(8), L.y + math.floor((L.h - tm:getFontHeight(mf)) / 2), mf, onFocus and T.textOnFocus or T.textDim)
         end
         A.drawDividerH(panel, L.x, L.y + L.h - T.px(1), L.w, false)
     end
@@ -629,8 +633,7 @@ function ST.drawBand(panel, x, y, w, st, player)
     local A  = ZeD.Atoms
     local tm = ZeD.TM
     local h = T.px(ST.BAND_H)
-    local s2 = T.surf2
-    panel:drawRect(x, y, w, h, s2.a, s2.r, s2.g, s2.b)
+    A.surfaceFill(panel, x, y, w, h, "surf2")
     A.drawDividerH(panel, x, y + h - T.px(1), w, true)
     local cx = x + T.px(10)
     local isz = T.px(18)
@@ -646,7 +649,7 @@ function ST.drawBand(panel, x, y, w, st, player)
     local stX = x + w - T.px(10) - stW
     panel:drawText(stTxt, stX, y + math.floor((h - tm:getFontHeight(sf)) / 2), T.text.r, T.text.g, T.text.b, T.text.a, sf)
     A.drawStatusDot(panel, stX - dotSz - T.px(5), y + math.floor((h - dotSz) / 2), stCol, dotSz)
-    local meta = ST.tilesText(st.dist) .. "  " .. ST.DOT .. "  " .. (KIND_LABEL[st.kind] and ZeD.tr(KIND_LABEL[st.kind]) or "")
+    local meta = A.textCase(ST.tilesText(st.dist)) .. "  " .. ST.DOT .. "  " .. (KIND_LABEL[st.kind] and A.textCase(ZeD.tr(KIND_LABEL[st.kind])) or "")
     local mf = T.fontF1
     local nf = T.fontF4
     local metaW = tm:MeasureStringX(mf, meta)
@@ -749,12 +752,14 @@ end
 
 -- The focused gamepad element id when focus is in the World window's tab
 -- content (same resolution CraftingCore.render does for the recipe view).
+-- Only while the mark may show (the window has the controller and the pad is
+-- in use): the views paint their focus cue from it.
 function ST.focusedId(win)
     local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
-    if not (Focus and Focus.getFocusedZone and Focus.getFocusedElement) then return nil end
-    local fz = Focus.getFocusedZone(win)
+    if not (Focus and Focus.liveZone and Focus.liveElement) then return nil end
+    local fz = Focus.liveZone(win)
     if fz and (fz.zone == "worldTabContent" or fz.zone == "charTabContent") then
-        local fe = Focus.getFocusedElement(win)
+        local fe = Focus.liveElement(win)
         return fe and fe.id or nil
     end
     return nil

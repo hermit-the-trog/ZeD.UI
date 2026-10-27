@@ -283,6 +283,80 @@ function G.draw(panel, roles, x, y, h, k, set)
 end
 
 -- ---------------------------------------------------------------------------
+-- The controller strip of a HUD prop (the car radio, the siren controller, the two-way radio's full
+-- view): the windows' help line without a window around it. Surface 2, solid (props never go
+-- see-through), a 1u structure line on top, then the prompts left-aligned from 10u: each button's
+-- picture 14u tall (its name in a box when the glyph setting is Keyboard/mouse or Off) and its label
+-- in F2, 8u between prompts. A plain string is a dim note. When the prompts do not fit the strip,
+-- the leftmost go first, as in the help line. The callers show it only while the pad has the prop.
+--   G.stripH()                                the strip's height (22u, the help line's)
+--   G.drawStrip(panel, x, y, w, prompts)      prompts = { "D-PAD Move", { glyph = "A", label = "Press" }, ... }
+-- ---------------------------------------------------------------------------
+local STRIP_H, PIC_H = 22, 14
+function G.stripH() return ZeD.T.px(STRIP_H) end
+
+local _sw, _sr, _sg = {}, {}, {}   -- the prompts' widths, roles and picture widths (reused each frame)
+function G.drawStrip(panel, x, y, w, prompts)
+    local T, tm = ZeD.T, ZeD.TM
+    local h = G.stripH()
+    local s2, bs = T.surf2, T.borderS
+    panel:drawRect(x, y, w, h, 1, s2.r, s2.g, s2.b)
+    panel:drawRect(x, y, w, T.hair, bs.a or 1, bs.r, bs.g, bs.b)
+    local f2, f5 = T.fontF2, T.fontF5
+    local pic, gap, between = T.px(PIC_H), T.px(4), T.px(8)
+    local set = G.set()
+    local k = G.k(pic)
+    local n = #prompts
+    local total = 0
+    for i = 1, n do
+        local pr = prompts[i]
+        local label, gw, roles = nil, 0, false
+        if type(pr) == "string" then
+            label = pr
+        else
+            label = tostring(pr.label or "")
+            roles = (set and (pr.pad or G.roles(pr.glyph))) or false
+            if roles then gw = G.width(roles, k, set)
+            else gw = math.max(pic, tm:MeasureStringX(f5, tostring(pr.glyph or "")) + T.px(4)) end
+        end
+        local wi = ((gw > 0) and (gw + gap) or 0) + ((label ~= "") and tm:MeasureStringX(f2, label) or 0)
+        _sw[i], _sr[i], _sg[i] = wi, roles, gw
+        total = total + wi + ((i > 1) and between or 0)
+    end
+    local x0, maxX = x + T.px(10), x + w - T.px(10)
+    local first = 1
+    while first < n and x0 + total > maxX do
+        total = total - _sw[first] - between
+        first = first + 1
+    end
+    if x0 + total > maxX then return end
+    local fh2 = T.fontF2H or tm:getFontHeight(f2)
+    local textY = y + math.floor((h - fh2) / 2)
+    local tc, td = T.text, T.textDim
+    local px = x0
+    for i = first, n do
+        local pr = prompts[i]
+        local gw = _sg[i]
+        if type(pr) == "string" then
+            panel:drawText(pr, px, textY, td.r, td.g, td.b, td.a or 1, f2)
+        else
+            if _sr[i] then
+                G.draw(panel, _sr[i], px, y, h, k, set)
+            else
+                local g = tostring(pr.glyph or "")
+                local gy = y + math.floor((h - pic) / 2)
+                local fh5 = T.fontF5H or tm:getFontHeight(f5)
+                ZeD.Atoms.frame(panel, px, gy, gw, pic, bs)
+                panel:drawText(g, px + math.floor((gw - tm:MeasureStringX(f5, g)) / 2), gy + math.floor((pic - fh5) / 2), tc.r, tc.g, tc.b, tc.a or 1, f5)
+            end
+            local label = tostring(pr.label or "")
+            if label ~= "" then panel:drawText(label, px + gw + ((gw > 0) and gap or 0), textY, tc.r, tc.g, tc.b, tc.a or 1, f2) end
+        end
+        px = px + _sw[i] + between
+    end
+end
+
+-- ---------------------------------------------------------------------------
 -- the small pictures, five pixels tall, for the HUD props' pixel lettering
 -- (the dash's top edge has room for its 3 x 5 letters and no more): the
 -- face buttons as their letter or shape in the pad's colour, the rest as

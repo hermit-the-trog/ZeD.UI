@@ -528,7 +528,7 @@ function radioMainDisplay(panel, x, y, w, h, brand, dd)
         local nameW = TM:MeasureStringX(channelFont, nameStr)
         local nameMaxW = maxX - cx
         if nameW > nameMaxW then
-            local ell = "…"
+            local ell = "..."
             local ellW = TM:MeasureStringX(channelFont, ell)
             local trimmed = nameStr
             while #trimmed > 1 and (TM:MeasureStringX(channelFont, trimmed) + ellW) > nameMaxW do
@@ -1067,15 +1067,14 @@ end
 -- win._radioTw = { dev, pid, des, k, hits, face rect, ... } while one is shown.
 -- ============================================================================
 local FULL_ICON, FOLD_ICON = "media/textures/ZeD/icons/expand.png", "media/textures/ZeD/icons/contract.png"
-local FULL_BTN = 20             -- the map's pop-out button's size (design units)
 
 local function _twFocusId(win)
     local Focus = ZeD.Input and ZeD.Input.Focus
-    if not (Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == win) then return nil end
-    local fz = Focus.getFocusedZone and Focus.getFocusedZone(win)
+    if not (Focus and Focus.liveZone and Focus.liveElement) then return nil end
+    local fz = Focus.liveZone(win)
     local zn = fz and fz.zone
     if zn ~= "charTabContent" and zn ~= "worldTabContent" then return nil end
-    local el = Focus.getFocusedElement and Focus.getFocusedElement(win)
+    local el = Focus.liveElement(win)
     return el and el.id or nil
 end
 
@@ -1098,27 +1097,21 @@ function ZeD.RadioTab.wantW(win, base, limit)
     return math.max(base or 0, wide)
 end
 
--- the full view button at the header's right end (the map's pop-out button's size and look); returns its rect
+-- the full view button at the header's right end: an icon button (square, the standard
+-- button height) that names itself after the shared pause; returns its rect
+local _fullOpts = {}
 local function _drawFullButton(panel, win, x, y, w, headerH, open, fid)
     local T = ZeD.T
-    local bs = T.px(FULL_BTN)
+    local bs = T.buttonH
     local bx, by = x + w - T.px(10) - bs, y + math.floor((headerH - bs) / 2)
-    local ac, bd, tc = T.accent, T.border, T.text
-    if fid == "radio:full" then panel:drawRect(bx, by, bs, bs, 0.55, ac.r, ac.g, ac.b) end
-    local mx, my = panel:getMouseX(), panel:getMouseY()
-    local hov = mx >= bx and mx < bx + bs and my >= by and my < by + bs
-    if hov then panel:drawRect(bx, by, bs, bs, 0.22, ac.r, ac.g, ac.b) end
-    panel:drawRectBorder(bx, by, bs, bs, bd.a * 0.3, bd.r, bd.g, bd.b)
-    local tex = getTexture(open and FOLD_ICON or FULL_ICON)
-    if tex then
-        panel:drawTextureScaledAspect(tex, bx + T.px(3), by + T.px(3), bs - 2 * T.px(3), bs - 2 * T.px(3), 0.75, tc.r, tc.g, tc.b)
-    end
-    if hov then                               -- an icon-only button: its hint on hover
-        local tm = ZeD.TM
-        local hint = ZeD.tr(open and "UI_ZeD_Radio_CloseFullView" or "UI_ZeD_Radio_FullView")
-        local hw, hh = tm:MeasureStringX(T.fontF1, hint) + T.px(12), tm:getFontHeight(T.fontF1) + T.px(6)
-        win._radioHint = { text = hint, x = bx + bs - hw, y = by + bs + T.px(4), w = hw, h = hh }
-    end
+    local o = _fullOpts
+    o.hover = ZeD.Atoms.mouseIn(panel, bx, by, bs, bs)
+    o.focus = (fid == "radio:full") and { win = win } or nil
+    o.win = win
+    o.hint = ZeD.tr(open and "UI_ZeD_Radio_CloseFullView" or "UI_ZeD_Radio_FullView")
+    o.id = "radio:fullbtn"
+    o.help = o.hint
+    ZeD.Molecules.drawIconButton(panel, bx, by, bs, getTexture(open and FOLD_ICON or FULL_ICON), o)
     return { x = bx, y = by, w = bs, h = bs }
 end
 
@@ -1256,14 +1249,8 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
         -- S117: drop any stale gamepad focus id so the seed gate fires fresh
         -- next time a radio is equipped (the gate only writes on nil).
         win._gpFocusedRadioCtl = nil
-        local font = T.fontF2 or T.fontF1
-        local txt = ZeD.tr("UI_ZeD_Radio_None")
-        local tw = ZeD.TM:MeasureStringX(font, txt)
-        local th = ZeD.TM:getFontHeight(font)
-        local cc = T.textSec or T.text or { r = 0.6, g = 0.6, b = 0.6, a = 1.0 }
-        panel:drawText(txt,
-            x + math.floor((w - tw) / 2), y + math.floor((h - th) / 2),
-            cc.r, cc.g, cc.b, cc.a or 1.0, font)
+        -- one dim F2 line at the list's text inset, a full sentence (no header here: 10u from the top)
+        ZeD.Molecules.drawEmptyLine(panel, x + T.px(10), y + T.px(10), w - T.px(20), ZeD.tr("UI_ZeD_Radio_None"))
         return
     end
 
@@ -1303,7 +1290,7 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
         local tm = ZeD.TM
         local loc = (current and ZeD.RadioTab.locationName(current.locationTag) or "-") .. " (" .. tostring(idx) .. ")"
         local used = T.px(10) + T.px(24) + T.px(6) + tm:MeasureStringX(T.fontF1, loc) + 2 * T.px(12) + T.px(6) + T.px(24) + T.px(10)
-        local room = w - used - T.px(10) - T.px(FULL_BTN) - T.px(8)
+        local room = w - used - T.px(10) - T.buttonH - T.px(8)
         if tm:MeasureStringX(T.fontF2, subtitle) > room then subtitle = "" end
     end
     -- 1. Drawer-internal header strip (browse + subtitle + location pill).
@@ -1311,75 +1298,50 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
     -- can hit-test them; stash on win like the other radio click zones.
     local prevZone, nextZone = ZeD.Molecules.drawDrawerInternalHeader(panel, x, y, w,
         { idx = idx, total = #radios }, subtitle, current and ZeD.RadioTab.locationName(current.locationTag) or "",
-        twDes and (T.px(FULL_BTN) + T.px(8)) or nil)
+        twDes and (T.buttonH + T.px(8)) or nil)
     win._radioBrowsePrevZone = prevZone
     win._radioBrowseNextZone = nextZone
 
     -- 2. Chassis below the header.
     if twDes then
-        win._radioHint = nil
         local pn = win._playerObj and win._playerObj:getPlayerNum() or 0
         local open = ZeD.TwoWayFull.showing(pn) == current.radioInstance
         win._radioFullZone = _drawFullButton(panel, win, x, y, w, headerH, open, _twFocusId(win))
         -- (its clip is set and cleared once, as every tab's: a clip set again here outlived the frame's drawer and cut
         -- off what drew after it, the full view among them)
         renderTwoWay(panel, win, x, y + headerH, w, h - headerH, current, twPid, twDes)
-        local hint = win._radioHint
-        if hint then
-            local tm = ZeD.TM
-            panel:drawRect(hint.x, hint.y, hint.w, hint.h, 0.95, T.surf1.r, T.surf1.g, T.surf1.b)
-            panel:drawRectBorder(hint.x, hint.y, hint.w, hint.h, 1, T.borderS.r, T.borderS.g, T.borderS.b)
-            panel:drawText(hint.text, hint.x + T.px(6), hint.y + T.px(3), T.text.r, T.text.g, T.text.b, 1, T.fontF1)
-        end
     else
         renderDrawer(panel, x, y + headerH, w, h - headerH, win, current)
     end
 
-    -- 3. Gamepad focus cue overlay (S117). Single 0.55α accent-fill rect on the
-    -- focused chassis control. Painted AFTER the chassis so it sits on top of
-    -- button bgs / borders. Gated on:
-    --   (a) gamepad input mode is active
-    --   (b) focused window is THIS window
-    --   (c) focused zone is charTabContent / worldTabContent (the radio uses
-    --       the host window's standard tab-content zone — no dedicated zone)
-    -- Per feedback_only_focused_zone_shows_active.md — the gate prevents the
-    -- cue from persisting after the user navigates out of the radio tab.
-    -- Per feedback_focus_paint_convention.md — 0.55α fill, no border.
-    local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
-    if Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == win then
-        local fz = Focus.getFocusedZone and Focus.getFocusedZone(win)
-        local fzName = fz and fz.zone or nil
-        if fzName == "charTabContent" or fzName == "worldTabContent" then
-            local fel = Focus.getFocusedElement and Focus.getFocusedElement(win)
-            local fid = fel and fel.id or nil
-            if fid and fid:sub(1, 6) == "radio:" then
-                -- Resolve the focused id to its stamped rect zone. Mirrors the
-                -- click router's zone lookup (RadioTab.lua:1282-1368) — same
-                -- rect, same paint surface.
-                local zr = nil
-                if     fid == "radio:browsePrev"  then zr = win._radioBrowsePrevZone
-                elseif fid == "radio:browseNext"  then zr = win._radioBrowseNextZone
-                elseif fid == "radio:power"       then zr = win._radioPwrZone
-                elseif fid == "radio:seek-"       then zr = win._radioSeekBtnZones and win._radioSeekBtnZones[1]
-                elseif fid == "radio:seek+"       then zr = win._radioSeekBtnZones and win._radioSeekBtnZones[2]
-                elseif fid == "radio:vol-"        then zr = win._radioVolBtnZones  and win._radioVolBtnZones[1]
-                elseif fid == "radio:vol+"        then zr = win._radioVolBtnZones  and win._radioVolBtnZones[2]
-                elseif fid == "radio:presetAdd"   then zr = win._radioPresetAddZone
-                else
-                    -- Indexed forms: radio:preset:N or radio:cd:N
-                    local kind, nStr = fid:match("^radio:([%a]+):(%d+)$")
-                    local n = tonumber(nStr or "")
-                    if n then
-                        if     kind == "preset" then zr = win._radioPresetZones and win._radioPresetZones[n]
-                        elseif kind == "cd"     then zr = win._radioCDZones     and win._radioCDZones[n]
-                        end
-                    end
-                end
-                if zr and (zr.w or 0) > 0 then
-                    local ac = (T and T.accent) or { r = 1, g = 0.55, b = 0.10 }
-                    panel:drawRect(zr.x, zr.y, zr.w, zr.h, 0.55, ac.r, ac.g, ac.b)
+    -- 3. The controller's mark (ZeD.Focus.mark) on the focused chassis control, painted after
+    -- the chassis: the keys' printing is the hardware's own. Only the focused window, the
+    -- controller in use, and the radio tab's controls ("radio:..." ids).
+    local fid = _twFocusId(win)
+    if fid and fid:sub(1, 6) == "radio:" then
+        -- Resolve the focused id to its stamped rect zone. Mirrors the click router's
+        -- zone lookup: same rect, same paint surface.
+        local zr = nil
+        if     fid == "radio:browsePrev"  then zr = win._radioBrowsePrevZone
+        elseif fid == "radio:browseNext"  then zr = win._radioBrowseNextZone
+        elseif fid == "radio:power"       then zr = win._radioPwrZone
+        elseif fid == "radio:seek-"       then zr = win._radioSeekBtnZones and win._radioSeekBtnZones[1]
+        elseif fid == "radio:seek+"       then zr = win._radioSeekBtnZones and win._radioSeekBtnZones[2]
+        elseif fid == "radio:vol-"        then zr = win._radioVolBtnZones  and win._radioVolBtnZones[1]
+        elseif fid == "radio:vol+"        then zr = win._radioVolBtnZones  and win._radioVolBtnZones[2]
+        elseif fid == "radio:presetAdd"   then zr = win._radioPresetAddZone
+        else
+            -- Indexed forms: radio:preset:N or radio:cd:N
+            local kind, nStr = fid:match("^radio:([%a]+):(%d+)$")
+            local n = tonumber(nStr or "")
+            if n then
+                if     kind == "preset" then zr = win._radioPresetZones and win._radioPresetZones[n]
+                elseif kind == "cd"     then zr = win._radioCDZones     and win._radioCDZones[n]
                 end
             end
+        end
+        if zr and (zr.w or 0) > 0 then
+            ZeD.Focus.mark(panel, zr.x, zr.y, zr.w, zr.h, { win = win })
         end
     end
 end

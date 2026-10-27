@@ -19,6 +19,48 @@ require "ZeD/ZeD_JournalReaders"
 ZeD = ZeD or {}
 ZeD.JournalTab = {}
 
+-- The controller's mark options for the element with this id: set only when the
+-- window is the focused one, the controller is in use and that element has the focus.
+local _focusOpts = {}
+local function focusOf(win, id)
+    local F = ZeD.Input and ZeD.Input.Focus
+    if F and F.isFocused and F.isFocused(win, nil, id) then
+        _focusOpts.win = win
+        return _focusOpts
+    end
+    return nil
+end
+
+-- the footer help line's words for what the pointer is over
+local function help(win, text)
+    if ZeD.Help and ZeD.Help.set then ZeD.Help.set(win, text) end
+end
+
+-- the pointer over (x, y, w, h) with the mouse in use, and inside the view (vy0 .. vy1)
+local function hoverIn(panel, x, y, w, h, vy0, vy1)
+    local my = panel:getMouseY()
+    if vy0 and (my < vy0 or my >= vy1) then return false end
+    return ZeD.Atoms.mouseIn(panel, x, y, w, h)
+end
+
+-- the cross of the delete icon button
+local function drawCross(p, x, y, s, c)
+    local u = ZeD.T.hair
+    local n = math.floor(s / u)
+    for i = 0, n - 1 do
+        -- both diagonals, two pixels wide (kept inside the n x n square)
+        p:drawRect(x + i * u, y + i * u, (i < n - 1) and u * 2 or u, u, c.a or 1, c.r, c.g, c.b)
+        local j = n - 1 - i
+        p:drawRect(x + j * u - ((j > 0) and u or 0), y + i * u, (j > 0) and u * 2 or u, u, c.a or 1, c.r, c.g, c.b)
+    end
+end
+
+-- an entry's head row: its date and the delete button
+local function entryHeadH()
+    local T = ZeD.T
+    return math.max(ZeD.TM:getFontHeight(T.fontF1), T.buttonH - T.px(4))
+end
+
 -- ============================================================================
 -- CONSTANTS
 -- ============================================================================
@@ -451,7 +493,7 @@ function ZeD.JournalTab._measureJournalContent(data, contentW, collapsedMap, gro
     local T = ZeD.T
     local bodyH = ZeD.TM:getFontHeight(T.fontF2)
     local secH  = ZeD.TM:getFontHeight(T.fontF1)
-    local groupHeaderH = math.max(secH + T.px(10), T.px(26))
+    local groupHeaderH = T.px(15)   -- the category row (its line is inside it)
 
     groups = groups or groupEntriesByMonth(data.journalEntries)
     local totalH = 0
@@ -460,11 +502,11 @@ function ZeD.JournalTab._measureJournalContent(data, contentW, collapsedMap, gro
         totalH = totalH + secH + T.sp.sm
     else
         for _, group in ipairs(groups) do
-            totalH = totalH + groupHeaderH + T.px(1)  -- header + separator
+            totalH = totalH + groupHeaderH
             if not (collapsedMap and collapsedMap[group.key]) then
                 for _, wrapped in ipairs(group.entries) do
                     local entry = wrapped.entry
-                    totalH = totalH + secH + T.sp.rowGap
+                    totalH = totalH + entryHeadH() + T.sp.rowGap
                     local lines = wrappedLines(entry, T.fontF2, contentW)
                     totalH = totalH + #lines * (bodyH + T.px(2))
                     totalH = totalH + T.sp.xs + T.px(1) + T.sp.afterGroove
@@ -502,7 +544,7 @@ function ZeD.JournalTab._measureRecipeContent(recipeData, expandedMap, contentW)
 end
 
 -- ============================================================================
--- SUB-TAB STRIP — System 6 style top tabs (matches ZeD_TabPanel visual)
+-- SUB-TAB STRIP — the library's one sub-tab strip (ZeD.Molecules.drawTab)
 -- ============================================================================
 
 --- Draw the sub-tab strip at the top of the journal drawer.
@@ -511,65 +553,28 @@ end
 -- @return tabStripH  Total height of the strip (T.tabH)
 local function drawSubTabStrip(panel, win, x, y, w)
     local T    = ZeD.T
+    local A    = ZeD.Atoms
+    local M    = ZeD.Molecules
     local tH   = T.tabH
-    local padH = T.sp.md
     local gap  = T.sp.tabGap
-    local bc   = T.borderS
     local tm   = ZeD.TM
     local activeIdx = win._journalSubTab or 1
+    local font = T.fontF2
 
-    -- Bottom border (separates strip from content below)
-    panel:drawRect(x, y + tH - T.px(1), w, T.px(1), bc.a, bc.r, bc.g, bc.b)
-
-    -- S105 gamepad: resolve currently-focused element for pill focus cue paint.
-    -- Cue paints only when charTabContent is the focused zone AND the live
-    -- focused element id matches this pill — persisted-state-free (S101 pattern).
-    local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
-    local focusedId = nil
-    if Focus and Focus.getFocusedZone and Focus.getFocusedElement then
-        local fz = Focus.getFocusedZone(win)
-        if fz and fz.zone == "charTabContent" then
-            local fe = Focus.getFocusedElement(win)
-            focusedId = fe and fe.id or nil
-        end
-    end
+    -- The structure line under the strip (separates it from the content below); an
+    -- active tab's fill runs over it, so that tab opens into the content
+    A.drawDividerH(panel, x, y + tH - T.hair, w, true)
 
     local tabX = x + T.sp.sm
     local zones = {}
 
     for i, tab in ipairs(SUB_TABS) do
         local tabLabel = ZeD.tr(tab.key)
-        local tw = tm:MeasureStringX(T.fontF1, tabLabel) + padH * 2
-        local isActive = (i == activeIdx)
-
-        if isActive then
-            -- Active tab: surf1 fill, top+left+right border, open bottom
-            panel:drawRect(tabX, y, tw, tH, T.surf1.a, T.surf1.r, T.surf1.g, T.surf1.b)
-            panel:drawRect(tabX, y, tw, T.px(1), bc.a, bc.r, bc.g, bc.b)           -- top
-            panel:drawRect(tabX, y, T.px(1), tH, bc.a, bc.r, bc.g, bc.b)           -- left
-            panel:drawRect(tabX + tw - T.px(1), y, T.px(1), tH, bc.a, bc.r, bc.g, bc.b)  -- right
-            -- Erase bottom border behind active tab (open bottom connects to content)
-            panel:drawRect(tabX + T.px(1), y + tH - T.px(1), tw - T.px(2), T.px(1),
-                T.surf1.a, T.surf1.r, T.surf1.g, T.surf1.b)
-
-            local textY = y + math.floor((tH - tm:getFontHeight(T.fontF1)) / 2)
-            panel:drawText(tabLabel, tabX + padH, textY,
-                T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a or 1, T.fontF1)
-        else
-            local textY = y + math.floor((tH - tm:getFontHeight(T.fontF1)) / 2)
-            panel:drawText(tabLabel, tabX + padH, textY,
-                T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a or 1, T.fontF1)
-        end
-
-        -- S105 gamepad: focus cue overlay — painted over both active and
-        -- inactive pills (covers both branches above). Sits above the pill's
-        -- fill but below the label since we've already drawn the label; the
-        -- 0.55α accent still reads against the text.
-        if focusedId == ("jsub:" .. tostring(i)) then
-            local ac = T.accent
-            panel:drawRect(tabX, y, tw, tH, 0.55, ac.r, ac.g, ac.b)
-        end
-
+        local tw = tm:MeasureStringX(font, A.textCase(tabLabel)) + T.sp.tabPadX * 2
+        local hovered = A.mouseIn(panel, tabX, y, tw, tH)
+        if hovered and i ~= activeIdx then help(win, ZeD.tr("UI_ZeD_Journal_HelpSubTab", tabLabel)) end
+        M.drawTab(panel, tabX, y, tabLabel, i == activeIdx, hovered, false,
+            { font = font, focus = focusOf(win, "jsub:" .. tostring(i)) })
         zones[#zones + 1] = { idx = i, x = tabX, y = y, w = tw, h = tH }
         tabX = tabX + tw + gap
     end
@@ -630,11 +635,12 @@ local function renderJournal(panel, win, x, y, w, h)
     -- (all element types on this sub-tab share charTabContent; live element
     -- check is the authoritative paint gate — S101 pattern).
     local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
+    -- (for the scroll-follow below; the marks are asked of the library per element: focusOf)
     local gpFocusedId = nil
-    if Focus and Focus.getFocusedZone and Focus.getFocusedElement then
-        local fz = Focus.getFocusedZone(win)
+    if Focus and Focus.liveZone and Focus.liveElement then
+        local fz = Focus.liveZone(win)
         if fz and fz.zone == "charTabContent" then
-            local fe = Focus.getFocusedElement(win)
+            local fe = Focus.liveElement(win)
             gpFocusedId = fe and fe.id or nil
         end
     end
@@ -664,13 +670,13 @@ local function renderJournal(panel, win, x, y, w, h)
 
     -- Measure Zone A (kills disclosure + entry box)
     local statRowEstH = math.max(secH, bodyH) + T.px(4)
-    local zoneAEstH = T.sp.sm + statRowEstH + T.sp.rowGap
+    local zoneAEstH = T.sp.sm + T.px(20) + T.sp.rowGap   -- the kills section head is 20u
     if win._killsExpanded then
         -- 3 fixed rows (fire, vehicle, explosion) + all weapon categories
         local killRows = 3 + #data.weaponCats
         zoneAEstH = zoneAEstH + killRows * (statRowEstH + T.sp.rowGap)
     end
-    zoneAEstH = zoneAEstH + T.sp.xs + T.grooveH + T.sp.afterGroove
+    zoneAEstH = zoneAEstH + T.sp.xs + T.px(1) + T.sp.afterGroove
         + T.px(ENTRY_INPUT_H) + T.sp.xs + T.buttonH + T.sp.sm + T.px(1) + T.sp.afterLine
 
     local entryGroups = journalGroups(win, data.journalEntries, win._journalSearchText or "")
@@ -747,34 +753,18 @@ local function renderJournal(panel, win, x, y, w, h)
 
     local curY = y - scrollOff + T.sp.sm
 
-    -- Kills stat (expandable disclosure)
-    local chevSz = math.max(T.px(6), math.floor(ZeD.TM:getFontHeight(T.fontF1) * 0.6))
-    local chevronW = chevSz + T.px(8)
+    -- Kills: a section head that folds (the total is its count); the controller's mark and
+    -- the hover wash come with the molecule
     win._killsRowY = curY
-    local killsRowTop = curY
-    -- S105 gamepad: focus cue painted UNDER the stat row so label/value read
-    -- on top. 0.55α T.accent rect over the full drawW — matches tab header
-    -- disclosure cue on Thermal/Health/Skills/Identity.
-    if gpFocusedId == "journal:__kills" then
-        local ac = T.accent
-        -- Use conservative est height (will be ~rowH); overdraw is clipped
-        -- by the content stencil so spilling by a pixel is harmless.
-        local estH = math.max(bodyH, secH) + T.px(4)
-        panel:drawRect(x, killsRowTop, drawW, estH, 0.55, ac.r, ac.g, ac.b)
+    local killsHover = hoverIn(panel, x, curY, drawW, T.px(20), y, y + h)
+    if killsHover then
+        help(win, ZeD.tr(win._killsExpanded and "UI_ZeD_Journal_HelpKillsHide" or "UI_ZeD_Journal_HelpKillsShow"))
     end
-    local rowH = M.drawStatRow(panel, x + chevronW, curY, drawW - chevronW, getText("IGUI_char_Zombies_Killed"), tostring(data.totalKills), T.toneHi, T.fontF2)
+    local rowH = M.drawSectionHeader(panel, x, curY, drawW, getText("IGUI_char_Zombies_Killed"), data.totalKills,
+        win._killsExpanded, killsHover, nil, nil, nil, nil, nil, { focus = focusOf(win, "journal:__kills") })
     win._killsRowH = rowH
-    -- S105 gamepad: stamp the kills-row hit zone for focusable builder.
-    -- Reads the real rowH returned by drawStatRow so the zone matches pixels.
-    win._journalKillsZone = { x = x, y = killsRowTop, w = drawW, h = rowH }
-
-    local chevX = x + T.px(2)
-    local chevY = curY + math.floor((rowH - chevSz) / 2)
-    if win._killsExpanded then
-        A.drawTriangleDown(panel, chevX, chevY, chevSz, T.arrow)
-    else
-        A.drawTriangleRight(panel, chevX, chevY, chevSz, T.arrow)
-    end
+    -- the kills head's hit zone for the focusable builder (the real height the molecule drew)
+    win._journalKillsZone = { x = x, y = curY, w = drawW, h = rowH }
     curY = curY + rowH + T.sp.rowGap
 
     if win._killsExpanded then
@@ -795,8 +785,8 @@ local function renderJournal(panel, win, x, y, w, h)
     end
 
     curY = curY + T.sp.xs
-    A.drawGroove(panel, x, curY, drawW)
-    curY = curY + T.grooveH + T.sp.afterGroove
+    A.drawDividerH(panel, x, curY, drawW)
+    curY = curY + T.px(1) + T.sp.afterGroove
 
     -- Text entry + save button (positioned on the drawer panel — they are drawer children)
     local entryBox = win._journalInput
@@ -815,16 +805,12 @@ local function renderJournal(panel, win, x, y, w, h)
         saveBtn:setY(curY)
         -- Into: the log only, or a carried notebook the character writes it in too
         ZeD.JournalReaders.drawLogInto(panel, win, x, curY, drawW - btnW - T.sp.sm, T.buttonH)
-        -- S105 gamepad: stamp save button hit zone + paint focus cue BEHIND
-        -- the button's own render (button is a drawer child, so its prerender
-        -- fires after this panel's prerender — cue ends up visually under it,
-        -- but the ISButton bg is transparent so accent bleeds through on the
-        -- edges as expected).
+        -- S105 gamepad: stamp the save button's hit zone and mark it BEHIND the button's
+        -- own render (the button is a drawer child, drawn after this panel, and
+        -- transparent, so the mark shows through).
         win._journalSaveBtnZone = { x = btnX, y = curY, w = btnW, h = T.buttonH }
-        if gpFocusedId == "journal:__save" then
-            local ac = T.accent
-            panel:drawRect(btnX, curY, btnW, T.buttonH, 0.55, ac.r, ac.g, ac.b)
-        end
+        local saveFocus = focusOf(win, "journal:__save")
+        if saveFocus then ZeD.Focus.mark(panel, btnX, curY, btnW, T.buttonH, saveFocus) end
         curY = curY + T.buttonH + T.sp.sm
     end
 
@@ -837,47 +823,25 @@ local function renderJournal(panel, win, x, y, w, h)
     local groups = journalGroups(win, data.journalEntries, win._journalSearchText or "")
 
     -- Journal entries — grouped by month, newest first
-    local groupHeaderH = math.max(secH + T.px(10), T.px(26))
     local groupZones = {}
     local deleteZones = {}
-    local chevSzG = math.max(T.px(6), math.floor(secH * 0.6))
-    local deleteBtnW = secH + T.px(8)  -- hit area for X button
+    local delSz = T.buttonH - T.px(4)   -- the delete icon button: a list row's button size
+    local headH = entryHeadH()
 
     if #groups == 0 then
-        A.drawSecondary(panel, ZeD.tr("UI_ZeD_Journal_NoEntries"), x, curY, T.textDim)
+        curY = curY + M.drawEmptyLine(panel, x, curY, drawW, ZeD.tr("UI_ZeD_Journal_NoEntries"))
     else
         for _, group in ipairs(groups) do
             local collapsed = win._journalGroupCollapsed[group.key]
 
-            -- Group header row
+            -- Group header: a category row ("v January, Year 0 (3)")
             local headerY = curY
-            -- S105 gamepad: focus cue behind the group header (chevron + label
-            -- + count all read on top). Paints only when this exact group key
-            -- is the focused element — discrimination by id suffix.
-            if gpFocusedId == ("journal:group:" .. tostring(group.key)) then
-                local ac = T.accent
-                panel:drawRect(x, headerY, drawW, groupHeaderH, 0.55, ac.r, ac.g, ac.b)
-            end
-            local chevX2 = x + T.px(2)
-            local chevY2 = curY + math.floor((groupHeaderH - chevSzG) / 2)
-            if collapsed then
-                A.drawTriangleRight(panel, chevX2, chevY2, chevSzG, T.arrow)
-            else
-                A.drawTriangleDown(panel, chevX2, chevY2, chevSzG, T.arrow)
-            end
-            local labelX = x + chevSzG + T.px(8)
-            local labelY = curY + math.floor((groupHeaderH - secH) / 2)
-            panel:drawText(group.label, labelX, labelY, T.toneLo.r, T.toneLo.g, T.toneLo.b, T.toneLo.a or 1, T.fontF1)
-            -- Entry count
-            local countStr = "(" .. group.count .. ")"
-            local countW = ZeD.TM:MeasureStringX(T.fontF3, countStr)
-            A.drawStat(panel, countStr, x + drawW - countW, labelY, T.textCat)
-
-            groupZones[#groupZones + 1] = { id = group.key, x = x, y = headerY, w = drawW, h = groupHeaderH }
-            curY = curY + groupHeaderH
-            -- Thin separator below header
-            A.drawDividerH(panel, x, curY, drawW)
-            curY = curY + T.px(1)
+            local gh = T.px(15)
+            local gHover = hoverIn(panel, x, headerY, drawW, gh, y, y + h)
+            if gHover then help(win, ZeD.tr(collapsed and "UI_ZeD_Journal_HelpGroupShow" or "UI_ZeD_Journal_HelpGroupHide", group.label)) end
+            curY = curY + M.drawCategoryRow(panel, x, curY, drawW, group.label, group.count, not collapsed,
+                { hover = gHover, focus = focusOf(win, "journal:group:" .. tostring(group.key)), inset = T.px(2) })
+            groupZones[#groupZones + 1] = { id = group.key, x = x, y = headerY, w = drawW, h = gh }
 
             -- Entries (if not collapsed)
             if not collapsed then
@@ -886,7 +850,7 @@ local function renderJournal(panel, win, x, y, w, h)
                     -- Alternating entry stripe
                     if entryIdx % 2 == 1 then
                         local st = T.stripe
-                        panel:drawRect(x, curY, drawW, bodyH + secH + T.sp.xs, st.a, st.r, st.g, st.b)
+                        panel:drawRect(x, curY, drawW, bodyH + headH + T.sp.xs, st.a, st.r, st.g, st.b)
                     end
                     entryIdx = entryIdx + 1
                     local entry = wrapped.entry
@@ -918,26 +882,25 @@ local function renderJournal(panel, win, x, y, w, h)
                         wrapped.stamp, wrapped.stampKey = dateStr, stampKey
                     end
 
-                    dateStr = truncText(dateStr, T.fontF3, drawW - deleteBtnW - T.px(4))
-                    panel:drawText(dateStr, x, curY, T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a or 1, T.fontF3)
+                    dateStr = truncText(dateStr, T.fontF3, drawW - delSz - T.px(8))
+                    panel:drawText(dateStr, x, curY + math.floor((headH - ZeD.TM:getFontHeight(T.fontF3)) / 2),
+                        T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a or 1, T.fontF3)
 
-                    -- Delete X button (right-aligned on date row)
-                    local delX = x + drawW - deleteBtnW
-                    local delY = curY
-                    -- S105 gamepad: focus cue behind the X glyph. Entry idx
-                    -- identifies the focusable uniquely — different entries
-                    -- get different cues as D-pad moves through.
-                    if gpFocusedId == ("journal:del:" .. tostring(wrapped.idx)) then
-                        local ac = T.accent
-                        panel:drawRect(delX, delY, deleteBtnW, secH, 0.55, ac.r, ac.g, ac.b)
-                    end
-                    A.drawSecondary(panel, "x", delX + math.floor((deleteBtnW - ZeD.TM:MeasureStringX(T.fontF1, "x")) / 2), delY, T.textDim)
+                    -- Delete: an icon button that asks first (the question band at the foot)
+                    local delX = x + drawW - delSz
+                    local delY = curY + math.floor((headH - delSz) / 2)
+                    local dHover = hoverIn(panel, delX, delY, delSz, delSz, y, y + h)
+                    M.drawIconButton(panel, delX, delY, delSz, drawCross, {
+                        hover = dHover, focus = focusOf(win, "journal:del:" .. tostring(wrapped.idx)), win = win,
+                        hint = ZeD.tr("UI_ZeD_Journal_Delete"), id = "jdel:" .. tostring(wrapped.idx),
+                        help = ZeD.tr("UI_ZeD_Journal_HelpDelete"), iconSize = T.px(8),
+                    })
                     deleteZones[#deleteZones + 1] = {
                         entryIdx = wrapped.idx,
-                        x = delX, y = delY, w = deleteBtnW, h = secH,
+                        x = delX, y = delY, w = delSz, h = delSz,
                     }
 
-                    curY = curY + secH + T.sp.rowGap
+                    curY = curY + headH + T.sp.rowGap
 
                     local lines = wrappedLines(entry, T.fontF2, drawW)
                     for _, line in ipairs(lines) do
@@ -960,6 +923,107 @@ local function renderJournal(panel, win, x, y, w, h)
     if needsScroll then
         scroll:draw(panel)
     end
+
+    -- The question before a delete: a band at the foot of the pane (Cancel and Delete).
+    -- What the band covers takes no clicks from the list under it.
+    local ask = win._journalAsk
+    win._journalAskRects = nil
+    if ask then
+        local by = y + h - M.bandH()
+        local _, cancel, verb = M.drawQuestionBand(panel, outerX, by, outerW, ZeD.tr("UI_ZeD_Journal_AskDelete"),
+            ZeD.tr("UI_ZeD_Journal_Delete"), { danger = true, win = win,
+                cancelFocus = focusOf(win, "journal:ask:cancel"), verbFocus = focusOf(win, "journal:ask:verb") })
+        win._journalAskRects = { cancel = cancel, verb = verb, band = { x = outerX, y = by, w = outerW, h = M.bandH() } }
+        local function clear(zs)
+            local out = {}
+            for _, z in ipairs(zs) do
+                if z.y + z.h <= by or z.y >= by + M.bandH() then out[#out + 1] = z end
+            end
+            return out
+        end
+        win._journalGroupZones  = clear(groupZones)
+        win._journalDeleteZones = clear(deleteZones)
+    end
+end
+
+-- ============================================================================
+-- DELETING AN ENTRY — asked first, as a band at the foot of the log
+-- ============================================================================
+
+-- the entries array on the player (nil when the character has none)
+local function journalEntries(win)
+    local md = win and win._playerObj and win._playerObj:getModData()
+    return md and md.ZeD_Journal and md.ZeD_Journal.entries or nil
+end
+
+--- Ask whether to delete a log entry: shows the question band ("Delete the entry? It
+-- can't be brought back." with Cancel and Delete) and deletes only on Delete.
+-- @param win    the Character window
+-- @param entry  the entry table (an element of the player's ZeD_Journal.entries); a number
+--               (an index into them) or a delete zone carrying entryIdx also works
+-- @param index  optional: the entry's index in the player's entries, when entry is nil
+function ZeD.JournalTab.askDelete(win, entry, index)
+    local entries = journalEntries(win)
+    if not entries then return end
+    local tbl = entry
+    if tbl == nil then tbl = index end
+    if type(tbl) == "number" then tbl = entries[tbl]
+    elseif type(tbl) == "table" and tbl.entryIdx then tbl = entries[tbl.entryIdx] end
+    if type(tbl) ~= "table" then return end
+    win._journalAsk = { entry = tbl }
+end
+
+--- Delete the entry the question is about (the Delete answer); does nothing without one.
+function ZeD.JournalTab.confirmDelete(win)
+    local ask = win and win._journalAsk
+    win._journalAsk, win._journalAskRects = nil, nil
+    local entries = journalEntries(win)
+    if not (ask and entries) then return end
+    for i, e in ipairs(entries) do
+        if e == ask.entry then
+            table.remove(entries, i)
+            break
+        end
+    end
+    win._journalCache = nil
+    win._journalGroupCache = nil
+end
+
+--- Drop the question (the Cancel answer).
+function ZeD.JournalTab.cancelDelete(win)
+    if win then win._journalAsk, win._journalAskRects = nil, nil end
+end
+
+--- A click on the question band's buttons (the Character window's click path reaches it
+-- through ZeD.JournalReaders.onClick); true when it took the click.
+function ZeD.JournalTab.onAskClick(win, x, y)
+    local r = win and win._journalAsk and win._journalAskRects
+    if not r then return false end
+    local function inside(b) return b and x >= b.x and x < b.x + b.w and y >= b.y and y < b.y + b.h end
+    if inside(r.verb) then ZeD.JournalTab.confirmDelete(win); return true end
+    if inside(r.cancel) then ZeD.JournalTab.cancelDelete(win); return true end
+    return inside(r.band)   -- (the band takes the click: nothing under it)
+end
+
+--- The controller's stops while a question is up: Cancel (first, where the focus lands)
+-- and Delete. The window's builder returns these alone while win._journalAsk is set.
+function ZeD.JournalTab.askFocusables(win)
+    local r = win and win._journalAsk and win._journalAskRects
+    if not r then return {} end
+    local out = {}
+    if r.cancel then
+        out[#out + 1] = { x = r.cancel.x, y = r.cancel.y, w = r.cancel.w, h = r.cancel.h, id = "journal:ask:cancel",
+            onFocus = function() end,
+            onActivate = function(w) ZeD.JournalTab.cancelDelete(w) end,
+            onCancel = function(w) ZeD.JournalTab.cancelDelete(w) end }
+    end
+    if r.verb then
+        out[#out + 1] = { x = r.verb.x, y = r.verb.y, w = r.verb.w, h = r.verb.h, id = "journal:ask:verb",
+            onFocus = function() end,
+            onActivate = function(w) ZeD.JournalTab.confirmDelete(w) end,
+            onCancel = function(w) ZeD.JournalTab.cancelDelete(w) end }
+    end
+    return out
 end
 
 -- ============================================================================
@@ -1050,6 +1114,8 @@ function ZeD.JournalTab.render(panel, win, x, y, w, h)
     if not win._journalSubTab then
         win._journalSubTab = 1
     end
+    -- a delete question belongs to the log: it goes when the player leaves it
+    if win._journalSubTab ~= 1 then win._journalAsk = nil; win._journalAskRects = nil end
 
     -- Top padding: intentional 13px override (aligns sub-tab strip bottom with inventory column header)
     -- TAB_TOP_PAD = 13 kept — M.getTabPadTop() = 8 is too small for this alignment

@@ -8,11 +8,13 @@
 --   * the padlock drawn as the dial: three number wheels with ▲ / ▼, the mouse
 --     wheel over a wheel, the number keys while the pointer is on the card,
 --     the D-pad (up / down turn the focused wheel);
---   * LOCK (vanilla's rules: a Combination Padlock in your inventory, a code
---     other than 000) and REMOVE PADLOCK, both vanilla's ISPadlockByCodeAction;
---   * a wrong code says so in the footer (vanilla's pop-up just closes); every
---     try is vanilla's own 20-tick action, right or wrong;
+--   * Lock (vanilla's rules: a Combination Padlock in your inventory, a code
+--     other than 000; the band at the foot warns the container shuts to
+--     everyone first) and Remove padlock, both vanilla's ISPadlockByCodeAction;
+--   * a wrong code says so in the band at the foot (vanilla's pop-up just
+--     closes); every try is vanilla's own 20-tick action, right or wrong;
 --   * key padlocks on the same card (vanilla's Use / Remove Padlock).
+-- A verb the character cannot do yet is hidden with what it needs (hidden actions).
 -- The code is never stored for the player (director, Oct 14 2026: vanilla
 -- keeps no record, and neither do we).
 -- ============================================================================
@@ -177,22 +179,36 @@ function def.refresh(t, player)
     d.busyText = label and LK.busyText(label, lact) or nil
     t.d = d
 
-    -- verbs
+    -- verbs. Lock asks first (the container shuts to you too), but a padlock comes off again, so
+    -- its answer is not a danger.
     local verbs = {}
     local busy = head ~= nil
     if d.mode == "set" then
+        local lockNeeds
+        if not d.combo and codeOf(t) == 0 then lockNeeds = ZeD.tr("UI_ZeD_Lock_NeedsBoth", ZeD.tr("UI_ZeD_Lock_NeedsCombo"), ZeD.tr("UI_ZeD_Lock_NeedsCode"))
+        elseif not d.combo then lockNeeds = ZeD.tr("UI_ZeD_Lock_NeedsCombo")
+        else lockNeeds = ZeD.tr("UI_ZeD_Lock_NeedsCode") end
         verbs[1] = { id = "lock", label = ZeD.tr("UI_ZeD_Lock_Lock"), primary = true, enabled = (not busy) and d.combo ~= nil and codeOf(t) ~= 0,
+            confirm = ZeD.tr("UI_ZeD_Lock_QLock"), needs = lockNeeds, hint = ZeD.tr("UI_ZeD_Lock_HintLock"),
+            help = ZeD.tr("UI_ZeD_Lock_HelpLock"),
             run = function(p, tt) LK.lock(p, tt) end }
     elseif d.mode == "enter" then
         verbs[1] = { id = "remove", label = getText("ContextMenu_RemovePadlock"), primary = true, enabled = not busy,
+            help = ZeD.tr("UI_ZeD_Lock_HelpTry"),
             run = function(p, tt) LK.try(p, tt) end }
     elseif d.mode == "key" then
         verbs[1] = { id = "remove", label = getText("ContextMenu_RemovePadlock"), primary = true, enabled = (not busy) and d.haveKey,
+            needs = ZeD.tr("UI_ZeD_Lock_NeedsKey"), hint = ZeD.tr("UI_ZeD_Lock_HintRemove"), help = ZeD.tr("UI_ZeD_Lock_HelpRemove"),
             run = function(p, tt) ISWorldObjectContextMenu.onRemovePadlock(nil, p:getPlayerNum(), tt.obj) end }
     else
+        -- a container that takes no padlock (or one that already has one) offers none
         verbs[1] = { id = "usecombo", label = getText("ContextMenu_PutCombinationPadlock"), enabled = (not busy) and d.free and d.combo ~= nil,
+            sensible = d.free, needs = ZeD.tr("UI_ZeD_Lock_NeedsCombo"), hint = ZeD.tr("UI_ZeD_Lock_HintUseCombo"),
+            help = ZeD.tr("UI_ZeD_Lock_HelpUseCombo"),
             run = function(p, tt) tt.setting = true; tt.digits = { 0, 0, 0 }; tt.cursor = 1; tt.wrong = nil; tt._refreshT = OC.REFRESH end }
         verbs[2] = { id = "usepad", label = getText("ContextMenu_PutPadlock"), enabled = (not busy) and d.free and d.keyPad ~= nil,
+            sensible = d.free, needs = ZeD.tr("UI_ZeD_Lock_NeedsKeyPad"), hint = ZeD.tr("UI_ZeD_Lock_HintUsePad"),
+            help = ZeD.tr("UI_ZeD_Lock_HelpUsePad"),
             run = function(p, tt)
                 local pad = keyPadlock(p)
                 if pad then ISWorldObjectContextMenu.onPutPadlock(nil, p:getPlayerNum(), tt.obj, pad) end
@@ -269,10 +285,11 @@ function def.onKey(t, key, card, act)
 end
 
 -- ----------------------------------------------------------------------------
--- Header, footer
+-- Header, band at the foot
 -- ----------------------------------------------------------------------------
 function def.title(t) return t.d and t.d.name or objName(t.obj) end
 function def.icon(t) return OC.spriteIcon(t.obj) end
+-- the state tag: its words, and the colour of its square mark (none for a plain tag)
 function def.pill(t)
     local T = ZeD.T
     local d = t.d
@@ -293,20 +310,20 @@ function def.status(t)
     local d = t.d
     if not d then return nil end
     if d.busy then return { text = d.busyLabel == "walking" and ZeD.tr("UI_ZeD_Lock_StatusWalking") or ZeD.tr("UI_ZeD_Lock_StatusWorking"), c = T.accent } end
+    -- (what is missing is the Lock verb's own NEEDS line, not a "Can't lock" line here)
     if d.mode == "set" then
-        if not d.combo then return { text = ZeD.tr("UI_ZeD_Lock_StatusNoCombo"), c = T.danger } end
-        if codeOf(t) == 0 then return { text = ZeD.tr("UI_ZeD_Lock_StatusZeroCode"), c = T.danger } end
+        if not d.combo or codeOf(t) == 0 then return nil end
         return { text = ZeD.tr("UI_ZeD_Lock_StatusReadyLock", codeText(t)), c = T.positive }
     end
     if d.mode == "enter" then
         if t.wrong then
-            return { text = ZeD.tr("UI_ZeD_Lock_StatusWrong", spaced(t.wrong)), c = T.danger, alarm = true }
+            return { text = ZeD.tr("UI_ZeD_Lock_StatusWrong", spaced(t.wrong)), c = T.danger }
         end
         return { text = ZeD.tr("UI_ZeD_Lock_StatusReadyTry", codeText(t)), c = T.positive }
     end
     if d.mode == "key" then
         if d.haveKey then return { text = ZeD.tr("UI_ZeD_Lock_StatusReadyKey"), c = T.positive } end
-        return { text = ZeD.tr("UI_ZeD_Lock_StatusNoKey"), c = T.danger }
+        return nil
     end
     if t.flash and now() < t.flash.untilMs then return { text = t.flash.text, c = T.positive } end
     return nil
@@ -502,33 +519,32 @@ end
 -- ----------------------------------------------------------------------------
 local function band(card, x, y, w, t, player)
     local T, tm = ZeD.T, ZeD.TM
+    local A = ZeD.Atoms
     local d = t.d
     local ac = T.accent
-    local h = T.px(32)
-    card:drawRect(x, y, w, h, 0.10, col(ac))
-    card:drawRectBorder(x, y, w, h, 1, col(ac))
+    local h = math.max(T.px(32), T.buttonH + T.px(8))
+    UI.fill(card, x, y, w, h, "surf2")
+    A.frame(card, x, y, w, h, T.borderS)
     local f1 = T.fontF1
-    card:drawText(d.busyText or "", x + T.px(8), y + math.floor((h - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
-    local bw = UI.buttonW(getText("IGUI_media_stop"))
+    local busyText = A.textCase(d.busyText or "")
+    card:drawText(busyText, x + T.px(8), y + math.floor((h - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
+    local stop = getText("IGUI_media_stop")
+    local bw = UI.buttonW(stop)
+    local bh = T.buttonH - T.px(4)
     local bx = x + w - T.px(6) - bw
-    local by = y + math.floor((h - T.px(22)) / 2)
-    UI.button(card, bx, by, getText("IGUI_media_stop"), { focused = card._fid == "lk:stop" })
-    card:zone({ fid = "lk:stop", x = bx, y = by, w = bw, h = T.px(22), body = true,
-        run = function() pcall(function() ISTimedActionQueue.clear(player) end) end })
+    UI.button(card, bx, y + math.floor((h - bh) / 2), stop, { w = bw, h = bh, fid = "lk:stop", body = true, focus = card:focusOf("lk:stop"),
+        help = ZeD.tr("UI_ZeD_Lock_HelpStop"), run = function() pcall(function() ISTimedActionQueue.clear(player) end) end })
     local pct = 0
     if d.busyLabel ~= "walking" then pcall(function() pct = d.busy:getJobDelta() end) end
     local s = tostring(math.floor(pct * 100 + 0.5)) .. "%"
     local f3 = T.fontF3
     local sw = tm:MeasureStringX(f3, s)
     card:drawText(s, bx - T.px(10) - sw, y + math.floor((h - tm:getFontHeight(f3)) / 2), T.text.r, T.text.g, T.text.b, 1, f3)
-    local barX = x + T.px(8) + tm:MeasureStringX(f1, d.busyText or "") + T.px(12)
+    local barX = x + T.px(8) + tm:MeasureStringX(f1, busyText) + T.px(12)
     local barW = bx - T.px(10) - sw - T.px(10) - barX
     if barW > T.px(20) then
-        local bh = T.px(8)
-        local yy = y + math.floor((h - bh) / 2)
-        card:drawRect(barX, yy, barW, bh, 1, col(T.surf2))
-        card:drawRect(barX, yy, math.floor(barW * math.max(0, math.min(1, pct))), bh, 1, col(ac))
-        card:drawRectBorder(barX, yy, barW, bh, T.borderS.a or 1, col(T.borderS))
+        local bar = A.fillBarCompactH()
+        A.drawFillBar(card, barX, y + math.floor((h - bar) / 2), barW, math.max(0, math.min(1, pct)), false, ac, bar)
     end
     return h
 end
@@ -537,24 +553,15 @@ local function fact(card, x, y, w, label, value, dotC)
     local T, tm = ZeD.T, ZeD.TM
     local h = T.px(20)
     local ac = T.accent
-    local f1, f3 = T.fontF1, T.fontF3
-    card:drawText(label, x, y + math.floor((h - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
+    local f1, f2 = T.fontF1, T.fontF2
+    card:drawText(ZeD.textCase(label), x, y + math.floor((h - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
     local vx = x + T.px(96)
     if dotC then
-        ZeD.Atoms.drawStatusDot(card, vx, y + math.floor((h - T.px(7)) / 2), dotC, T.px(7))
-        vx = vx + T.px(13)
+        ZeD.Atoms.drawStatusDot(card, vx, y + math.floor((h - T.px(6)) / 2), dotC, T.px(6))
+        vx = vx + T.px(12)
     end
-    local s = ZeD.CraftingCore.truncText(value, f3, x + w - vx)
-    card:drawText(s, vx, y + math.floor((h - tm:getFontHeight(f3)) / 2), T.text.r, T.text.g, T.text.b, T.text.a or 1, f3)
-    return h
-end
-
-local function needRow(card, x, y, w, ok, text)
-    local T, tm = ZeD.T, ZeD.TM
-    local h = T.px(20)
-    ZeD.Atoms.drawStatusDot(card, x + T.px(2), y + math.floor((h - T.px(7)) / 2), ok and T.positive or T.danger, T.px(7))
-    local f = T.fontF3
-    card:drawText(ZeD.CraftingCore.truncText(text, f, w - T.px(16)), x + T.px(15), y + math.floor((h - tm:getFontHeight(f)) / 2), T.text.r, T.text.g, T.text.b, T.text.a or 1, f)
+    local s = ZeD.CraftingCore.truncText(value, f2, x + w - vx)
+    card:drawText(s, vx, y + math.floor((h - tm:getFontHeight(f2)) / 2), T.text.r, T.text.g, T.text.b, T.text.a or 1, f2)
     return h
 end
 
@@ -570,8 +577,8 @@ function def.body(card, x, y, w, t, player)
     -- the padlock, or an empty plate when there is none
     if d.mode == "open" then
         local ph = T.px(64)
-        local s2, s1 = T.surf2, T.surf1
-        card:drawRect(x, y, w, ph, 1, col(s1))
+        local s2 = T.surf2
+        UI.fill(card, x, y, w, ph, "surf1")
         local stripe = T.px(6)
         local i = 0
         local sx = x - ph
@@ -580,8 +587,8 @@ function def.body(card, x, y, w, t, player)
             sx = sx + stripe
             i = i + 1
         end
-        card:drawRectBorder(x, y, w, ph, T.borderS.a or 1, col(T.borderS))
-        local lbl = ZeD.tr("UI_ZeD_Lock_NoPadlock")
+        ZeD.Atoms.frame(card, x, y, w, ph, T.borderS)
+        local lbl = ZeD.textCase(ZeD.tr("UI_ZeD_Lock_NoPadlock"))
         local f1 = T.fontF1
         local lw2 = tm:MeasureStringX(f1, lbl)
         local dc = T.textDim
@@ -591,14 +598,14 @@ function def.body(card, x, y, w, t, player)
         y = y + drawPadlock(card, x, y, t, d.mode == "key") + T.px(4)
     end
     if d.mode == "set" then
-        -- what vanilla never says: the lock shuts the crate to you too
+        -- what vanilla never says: the lock shuts the crate to you too (prose, in F2)
         local note = ZeD.tr("UI_ZeD_Lock_NoteSet")
-        local f1 = T.fontF1
+        local f2 = T.fontF2
         local dc = T.textDim
-        local lh = tm:getFontHeight(f1) + T.px(2)
-        for _, ln in ipairs(ZeD.Atoms.wrapText(note, f1, w) or { note }) do
-            local lw2 = tm:MeasureStringX(f1, ln)
-            card:drawText(ln, x + math.max(0, math.floor((w - lw2) / 2)), y, dc.r, dc.g, dc.b, dc.a or 1, f1)
+        local lh = tm:getFontHeight(f2) + T.px(2)
+        for _, ln in ipairs(ZeD.Atoms.wrapText(note, f2, w) or { note }) do
+            local lw2 = tm:MeasureStringX(f2, ln)
+            card:drawText(ln, x + math.max(0, math.floor((w - lw2) / 2)), y, dc.r, dc.g, dc.b, dc.a or 1, f2)
             y = y + lh
         end
         y = y + T.px(6)
@@ -624,20 +631,6 @@ function def.body(card, x, y, w, t, player)
         y = y + fact(card, x, y, w, ZeD.tr("UI_ZeD_Lock_FactPadlock"), getText("IGUI_None"), T.positive)
     end
     y = y + T.px(8)
-
-    -- needs
-    if d.mode == "set" then
-        y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Lock_NeedsLock")) + T.px(4)
-        y = y + needRow(card, x, y, w, d.combo ~= nil, ZeD.tr("UI_ZeD_Lock_NeedCombo"))
-        y = y + needRow(card, x, y, w, codeOf(t) ~= 0, ZeD.tr("UI_ZeD_Lock_NeedCode"))
-    elseif d.mode == "key" then
-        y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Lock_NeedsRemove")) + T.px(4)
-        y = y + needRow(card, x, y, w, d.haveKey, ZeD.tr("UI_ZeD_Lock_NeedKey"))
-    elseif d.mode == "open" and d.free then
-        y = y + UI.section(card, x, y, w, ZeD.upper(ZeD.tr("Tooltip_craft_Needs"))) + T.px(4)
-        y = y + needRow(card, x, y, w, d.combo ~= nil, ZeD.tr("UI_ZeD_Lock_NeedUseCombo"))
-        y = y + needRow(card, x, y, w, d.keyPad ~= nil, ZeD.tr("UI_ZeD_Lock_NeedUsePad"))
-    end
     return y - y0
 end
 

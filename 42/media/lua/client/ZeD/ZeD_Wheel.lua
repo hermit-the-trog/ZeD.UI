@@ -14,8 +14,10 @@
 --
 -- Drawn with the strip's own parts: ZeD.Molecules.drawContextCell (paper cell,
 -- ink icon, accent when pointed, stipple when off, corner triangle, back glyph)
--- at a larger size, the System 7 stepped shadow, and the strip's balloon
+-- at a larger size, System 7's hard shadow, and the strip's balloon
 -- (ZeD.Molecules.drawContextBalloon) above the ring naming the pointed slice.
+-- Under the ring, for the D-pad wheels: the breadcrumb as a tag and the
+-- controller's prompts in a pop-up box (solid, the 1u frame, the hard shadow).
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -216,7 +218,7 @@ end
 -- ---------------------------------------------------------------------------
 -- DRAWING
 -- ---------------------------------------------------------------------------
--- one cell: the stepped shadow, the strip's cell at the wheel's size, the ink edge
+-- one cell: the hard shadow, the strip's cell at the wheel's size, the ink edge (1u)
 local function drawCell(menu, x, y, cell, icon, slice, active)
     local T, A, M = ZeD.T, ZeD.Atoms, ZeD.Molecules
     if slice._zedTex == nil then
@@ -232,11 +234,14 @@ local function drawCell(menu, x, y, cell, icon, slice, active)
     local ok, err = pcall(M.drawContextCell, menu, x, y, def, flags, T)
     ctx.cellW, ctx.cellH, ctx.iconPx, ctx.submenuTriSz = cw, ch, ip, ts
     if not ok then ZeD.logOnce("Wheel: cell", err) end
-    if not active then menu:drawRectBorder(x, y, cell, cell, 1, INK.r, INK.g, INK.b) end
-    -- a colour to pick (the ZeD wheel's accents): its swatch in the cell
+    if not active then A.frame(menu, x, y, cell, cell, INK) end
+    -- a colour to pick (the ZeD wheel's accents): its swatch in the cell, a square with an ink edge
     if slice._zedSwatch then
         local sw = math.floor(icon * 0.75)
-        A.drawStatusDot(menu, x + math.floor((cell - sw) / 2), y + math.floor((cell - sw) / 2), slice._zedSwatch, sw)
+        local sx, sy = x + math.floor((cell - sw) / 2), y + math.floor((cell - sw) / 2)
+        local c = slice._zedSwatch
+        menu:drawRect(sx, sy, sw, sw, c.a or 1, c.r, c.g, c.b)
+        A.frame(menu, sx, sy, sw, sw, INK)
     end
 end
 
@@ -257,7 +262,7 @@ function W.draw(menu)
     end
     local hs = T.px(U.HUB)
     menu:drawRect(cx - math.floor(hs / 2), cy - math.floor(hs / 2), hs, hs, 1, PAPER.r, PAPER.g, PAPER.b)
-    menu:drawRectBorder(cx - math.floor(hs / 2), cy - math.floor(hs / 2), hs, hs, 1, INK.r, INK.g, INK.b)
+    ZeD.Atoms.frame(menu, cx - math.floor(hs / 2), cy - math.floor(hs / 2), hs, hs, INK)
     -- the cells, slice 1 at 12 o'clock and clockwise: at rest the strip's size, the
     -- pointed one grown and drawn last (over the ring line, never over a neighbour)
     local sstep = 360 / math.max(n, 2)
@@ -320,32 +325,34 @@ function W.draw(menu)
     end
 end
 
--- a strip on the theme's surface, centred on cx: the breadcrumb (which wheel,
--- and where in it), then the controller's prompts for this wheel
+-- under the ring, centred on cx: the breadcrumb (which wheel, and where in it) as a tag, then
+-- the controller's prompts for this wheel in a pop-up box. Both sit over the world, so both
+-- are solid whatever the see-through setting says.
 local NOP = { drawRectBorder = function() end, drawText = function() end, drawRect = function() end }
-local BACKING_A = 0.92   -- the strips sit over the world: the surface nearly opaque
 function W.drawUnder(menu, cx, y)
     local T, tm, A, M = ZeD.T, ZeD.TM, ZeD.Atoms, ZeD.Molecules
-    local font = T.fontF5
+    local s1 = T.surf1
     if menu._zedCrumb then
-        -- the breadcrumb: a neutral badge (its own words, upper case) on the surface
-        local s = ZeD.upper(menu._zedCrumb)
-        local w = tm:MeasureStringX(font, s) + T.sp.badgePadX * 2
-        local h = tm:MeasureStringY(font, s) + T.sp.badgePadY * 2
+        -- the breadcrumb: an outlined tag in its own words, on the solid surface
+        local font = T.fontF1
+        local s = A.textCase(menu._zedCrumb)
+        local h = T.px(16)
+        local w = tm:MeasureStringX(font, s) + T.px(5) * 2
         local x = math.floor(cx - w / 2)
-        M.drawBodyBg(menu, x, y, w, h, "surf1", BACKING_A)
-        A.drawBadge(menu, s, x, y, "neutral", false, font, true)
+        menu:drawRect(x, y, w, h, 1, s1.r, s1.g, s1.b)
+        M.drawTag(menu, x, y, s, nil, { font = font, h = h, keepCase = true })
         y = y + h + T.px(8)
     end
     if menu._zedPrompts then
-        -- the prompts: the footers' glyph legend on the surface, in a border
+        -- the prompts: the footers' glyph legend, a pop-up box of its own
         local padX = T.px(7)
         local h = T.px(24)
         local inner = M.drawGlyphPrompts(NOP, 0, 0, h, menu._zedPrompts) - T.sp.sm * 2
         local w = inner + padX * 2
         local x = math.floor(cx - w / 2)
-        M.drawBodyBg(menu, x, y, w, h, "surf1", BACKING_A)
-        A.drawBorder(menu, x, y, w, h)
+        A.drawHardShadow(menu, x, y, w, h)
+        menu:drawRect(x, y, w, h, 1, s1.r, s1.g, s1.b)
+        A.frame(menu, x, y, w, h, T.borderS)
         M.drawGlyphPrompts(menu, x + padX, y, h, menu._zedPrompts)
     end
 end

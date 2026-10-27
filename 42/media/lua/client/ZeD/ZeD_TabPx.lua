@@ -7,7 +7,8 @@
 --     of the theme's accent, with a one-pixel shadow under it
 --   * the active tab is a bevelled, lit accent panel (light top and left
 --     edges, shaded bottom and right) with its icon pressed into it
---   * hover and gamepad focus paint the same soft accent wash (S113c parity)
+--   * the pointer's hover is the T.hover wash; the controller's focus is the
+--     player's focus mark (ZeD.Focus.mark), on the active tab too
 -- Everything is coloured from ZeD.T every frame, so all 3 bases x 9 accents
 -- keep working; nothing is baked in colour.
 --
@@ -93,10 +94,17 @@ local _c = {}
 local function rect(el, x, y, w, h, c, a) if w > 0 and h > 0 then el:drawRect(x, y, w, h, a or 1, c.r, c.g, c.b) end end
 
 -- ---------------------------------------------------------------------------
--- one tab: its background (active panel, or the hover / focus wash) and its icon,
--- inside (x, y, w, h) of el; `line` = the strip's 1-pixel line width (T.px(1))
+-- one tab: its background (the active panel, or the hover wash), the controller's
+-- focus mark and its icon, inside (x, y, w, h) of el; `line` = the strip's 1-pixel
+-- line width (T.px(1)).
+-- isWashed: the pointer is over it (an older caller also passes the controller's
+-- focus here; it gets the hover wash until it moves to opts.focus).
+-- opts (optional): { focus = the ZeD.Focus.mark opts ({ win, zone }) when this tab
+-- has the controller's focus, help = the help line's words (pass them only while
+-- the pointer is over the tab) }
 -- ---------------------------------------------------------------------------
-function TP.drawTab(el, x, y, w, h, id, isActive, isWashed, line)
+local _markOpts = {}
+function TP.drawTab(el, x, y, w, h, id, isActive, isWashed, line, opts)
     local T = ZeD.T
     local acc, bright = T.accent, T.accentBright or T.accent
     local b = line or 1
@@ -107,9 +115,22 @@ function TP.drawTab(el, x, y, w, h, id, isActive, isWashed, line)
         rect(el, x, y, w, b, shade(_c, bright, 1.10))                    -- the top catches the light
         rect(el, x, y, b, h, shade(_c, bright, 1.05))                    -- and the left
     elseif isWashed then
-        rect(el, x, y, w, h, acc, 0.30)
+        local hv = T.hover
+        rect(el, x, y, w, h, hv, hv.a)
     end
-    TP.drawIcon(el, id, x + math.floor(w / 2), y + math.floor(h / 2), isActive)
+    local onWash = false
+    if opts then
+        local f = opts.focus
+        if f and ZeD.Focus and ZeD.Focus.mark then
+            -- the active tab is already solid accent: the mark leaves out its wash
+            local m = _markOpts
+            m.win, m.zone, m.focused, m.pad, m.solid = f.win, f.zone, f.focused, f.pad, isActive or f.solid
+            onWash = ZeD.Focus.mark(el, x, y, w, h, m)
+        end
+        if opts.help and ZeD.Help and ZeD.Help.set then ZeD.Help.set(el, opts.help) end
+    end
+    -- (on the one-wash mark the icon takes its pressed-in tones, which lean to the ink that reads on the accent)
+    TP.drawIcon(el, id, x + math.floor(w / 2), y + math.floor(h / 2), isActive or onWash)
 end
 
 -- an icon's six pictures (the shadow, then the five tones), looked up once

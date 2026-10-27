@@ -14,7 +14,9 @@ require "ISUI/ISPanel"
 
 ZeD_ZoneList = ISPanel:derive("ZeD_ZoneList")
 
--- the groove between zones is T.grooveH: a dark and a light hairline, as ZeD.Atoms.drawGroove draws it (Oct 21 2026)
+-- between zones: a content line (1u T.border, two hairlines in High contrast), the
+-- line between list rows; the groove is kept for a major break inside a card
+local function lineH() return ZeD.T.line(ZeD.T.borderW) end
 
 -- ---------------------------------------------------------------------------
 -- CONSTRUCTOR
@@ -84,7 +86,7 @@ function ZeD_ZoneList:_recalcHeights()
     local offsets = {}
     local cumY = 0
     for i, zone in ipairs(self.zones) do
-        if i > 1 then cumY = cumY + T.grooveH end
+        if i > 1 then cumY = cumY + lineH() end
         offsets[i] = cumY
 
         local hasDock = zone.dock ~= nil
@@ -158,9 +160,9 @@ function ZeD_ZoneList:render()
 
         -- Skip rows entirely off-screen
         if rowY + rowH > 0 and rowY < h then
-            -- Groove divider before row (skip first)
+            -- Content line before the row (skip first)
             if i > 1 then
-                A.drawGroove(self, 0, rowY - T.grooveH, contentW)
+                A.drawDividerH(self, 0, rowY - lineH(), contentW, false)
             end
 
             -- Draw zone row with hover state

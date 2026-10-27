@@ -63,12 +63,45 @@ local function getR()
     return R
 end
 
--- the title stats' icons, looked up once (they were looked up every frame; Oct 22 2026, the drawing-cost work)
-local _statIcons = {}
-local function statIcon(path)
-    local t = _statIcons[path]
-    if t == nil then t = getTexture(path) or false; _statIcons[path] = t end
-    return t or nil
+-- The title's name part: the character's first and last name
+local function charTitleName(p)
+    local d = p and p:getDescriptor()
+    if not d then return "" end
+    return tostring(d:getForename() or "") .. " " .. tostring(d:getSurname() or "")
+end
+
+-- An open item card lies over the tab drawer's right part (from coverX, drawer-
+-- local): while the tab draws, every clip it sets is cut at the card's left edge,
+-- and clearing one puts that cut back (PZ stencils do not nest). The counts
+-- ZeD_Panel keeps of its stencils stay as the tab's own calls make them.
+local function coverStencil(p, x, y, w, h)
+    local cx = p._coverX or (x + w)
+    return ZeD_Panel.setStencilRect(p, x, y, math.max(0, math.min(x + w, cx) - x), h)
+end
+local function coverClear(p)
+    local n = p._zedStencilN
+    if n and n > 0 then p._zedStencilN = n - 1 end
+    ISPanel.clearStencilRect(p)
+    return ISPanel.setStencilRect(p, 0, 0, p._coverX or p:getWidth(), p:getHeight())
+end
+local function setTabCover(p, coverX)
+    p._coverX = coverX
+    if coverX then p.setStencilRect, p.clearStencilRect = coverStencil, coverClear
+    else p.setStencilRect, p.clearStencilRect = nil, nil end
+end
+
+-- A Journal entry's "x": the Journal tab asks before the entry goes (its question
+-- band, ZeD.JournalTab.askDelete(win, entry, index)). True when it asked; false
+-- when the tab has no question to ask (the entry is deleted at once, as before).
+local function askJournalDelete(win, idx)
+    local JT = ZeD.JournalTab
+    if not (JT and JT.askDelete) then return false end
+    local md = win and win._playerObj and win._playerObj:getModData()
+    local entries = md and md.ZeD_Journal and md.ZeD_Journal.entries
+    local entry = entries and entries[idx]
+    if entry == nil then return false end
+    JT.askDelete(win, entry, idx)
+    return true
 end
 
 -- ============================================================================
@@ -2582,6 +2615,8 @@ local function _buildJournalDeleteFocusables(win)
             entryIdx = z.entryIdx,
             onFocus = function(w, el) end,
             onActivate = function(w, el)
+                -- the entry is asked about first (the Journal tab's question band), when the tab has one
+                if askJournalDelete(w, el.entryIdx) then return end
                 local md = w._playerObj and w._playerObj:getModData()
                 if md and md.ZeD_Journal and md.ZeD_Journal.entries then
                     table.remove(md.ZeD_Journal.entries, el.entryIdx)
@@ -2601,6 +2636,9 @@ end
 -- scope ruling. Delete deferred to future polish (spatial layout change).
 local function _buildJournalSubContent(win)
     if not win then return {} end
+    -- a question is up (delete an entry?): its two answers are the only stops (Cancel first; B cancels)
+    local JT = ZeD.JournalTab
+    if win._journalAsk and JT and JT.askFocusables then return JT.askFocusables(win) end
     local elements = _buildJournalKillsFocusable(win)
     local groups = _buildJournalGroupFocusables(win)
     for i = 1, #groups do elements[#elements + 1] = groups[i] end
@@ -2622,6 +2660,9 @@ end
 -- them matches visual left-to-right.
 local function _buildJournalFocusables(win)
     if not win then return {} end
+    -- while the Journal asks before deleting an entry, its answers alone hold the
+    -- controller (the sub-tab pills come back when it is answered)
+    if win._journalAsk and (win._journalSubTab or 1) == 1 then return _buildJournalSubContent(win) end
     local elements = _buildJournalSubTabFocusables(win)
     local sub = win._journalSubTab or 1
     local subEls = {}
@@ -2765,8 +2806,8 @@ local function drawTabStrip(self, win)
 
     -- Strip background provided by ZeD_Window body — no redundant fill
 
-    -- Right border
-    local bd = T.border
+    -- The waterfall's inner edge: a structure line
+    local bd = T.borderS
     self:drawRect(w - T.px(1), 0, T.px(1), h, bd.a, bd.r, bd.g, bd.b)
 
     -- Glyph metrics
@@ -2817,7 +2858,7 @@ local function drawTabStrip(self, win)
         -- Up button (left half)
         local hoverUp = canScrollUp and (mx >= 0 and mx < halfW and my >= rowY and my < h)
         if hoverUp then
-            local s2 = T.surf2
+            local s2 = T.hover   -- (the hover wash)
             self:drawRect(0, rowY + T.px(1), halfW, arrowRowH - T.px(1), s2.a, s2.r, s2.g, s2.b)
         end
         local upC = canScrollUp and (hoverUp and T.text or T.textDim) or T.border
@@ -2829,7 +2870,7 @@ local function drawTabStrip(self, win)
         -- Down button (right half)
         local hoverDn = canScrollDown and (mx >= halfW and mx < w and my >= rowY and my < h)
         if hoverDn then
-            local s2 = T.surf2
+            local s2 = T.hover   -- (the hover wash)
             self:drawRect(halfW, rowY + T.px(1), halfW, arrowRowH - T.px(1), s2.a, s2.r, s2.g, s2.b)
         end
         local dnC = canScrollDown and (hoverDn and T.text or T.textDim) or T.border
@@ -2845,22 +2886,23 @@ local function drawTabStrip(self, win)
     local tabAreaH = h - arrowRowH
     self:setStencilRect(0, 0, w, tabAreaH)
 
-    -- S113c: resolve gamepad focus once for the strip — paints a thin outline
-    -- around the focused-but-not-active tab so the user can see which tab is
-    -- queued for A-press without confusing it with the actual active tab.
-    -- Gated on this window being the focused window so the outline doesn't
-    -- linger when bumpers swap to the other window.
+    -- The controller's focus on the strip, resolved once: only while this window
+    -- has the focus and the controller is in use (Focus.liveZone), so the mark
+    -- never lingers in the other window or under the mouse. The active tab shows
+    -- it too (the mark on a solid element leaves out its wash).
     local gpFocusedTabId = nil
+    local cuesOn = false
     do
         local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
-        if Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == win then
-            local zone = Focus.getFocusedZone and Focus.getFocusedZone(win)
-            if zone and zone.zone == "charTabBar" then
-                local el = Focus.getFocusedElement and Focus.getFocusedElement(win)
-                if el then gpFocusedTabId = el.tabId end
-            end
+        local zone = Focus and Focus.liveZone and Focus.liveZone(win)
+        if zone and zone.zone == "charTabBar" then
+            local el = Focus.liveElement(win)
+            if el then gpFocusedTabId = el.tabId end
         end
+        cuesOn = Focus and Focus.cuesVisible and Focus.cuesVisible() or false
     end
+    local tabFocusOpts = { win = win, zone = "charTabBar" }
+    local tabDrawOpts = {}
 
     local curY      = -scrollOff
     local lastGroup = 1
@@ -2883,48 +2925,19 @@ local function drawTabStrip(self, win)
 
         local isActive = (tab.id == win._activeTab)
         local isHover  = (mx >= 0 and mx < w and my >= curY and my < curY + T.px(TAB_BTN_SZ))
-        local isGpFocused = (gpFocusedTabId == tab.id) and not isActive
 
         -- Oct 16 2026 (director): the tabs in lit pixel art (ZeD_TabPx): the
-        -- active tab a bevelled lit accent panel with its icon pressed in, hover
-        -- and gamepad focus the same soft wash (S113c parity kept), every icon a
-        -- small lit object in five tones of the accent. A tab without a lit
-        -- icon keeps the S113c look below.
+        -- active tab a bevelled lit accent panel with its icon pressed in, every
+        -- icon a small lit object in five tones of the accent. The pointer's
+        -- hover is the T.hover wash; the controller's focus is the player's
+        -- focus mark, on the active tab too. Every tab id has a lit icon.
         local TPX = ZeD.TabPx
         if TPX and TPX.has(tab.id) then
-            TPX.drawTab(self, 0, curY, w - T.px(1), T.px(TAB_BTN_SZ) - T.px(1), tab.id, isActive, isHover or isGpFocused, T.px(1))
-        else
-        -- S113c (KBM-parity): mouse hover and gamepad focus paint identically.
-        -- Active = 0.55α fill + 2px side strip. Hover/focus = 0.55α fill only.
-        -- Side strip is the sole differentiator between "active" and "queued."
-        local ac = T.accent
-        if isActive then
-            self:drawRect(0, curY, w - T.px(1), T.px(TAB_BTN_SZ), 0.55, ac.r, ac.g, ac.b)
-            self:drawRect(0, curY, T.px(2),     T.px(TAB_BTN_SZ), ac.a, ac.r, ac.g, ac.b)
-        elseif isHover or isGpFocused then
-            self:drawRect(0, curY, w - T.px(1), T.px(TAB_BTN_SZ), 0.55, ac.r, ac.g, ac.b)
+            tabDrawOpts.focus = (gpFocusedTabId == tab.id) and tabFocusOpts or nil
+            tabDrawOpts.help = isHover and ZeD.tr("UI_ZeD_CW_TabHelp", ZeD_CharacterWindow.tabLabel(tab)) or nil
+            TPX.drawTab(self, 0, curY, w - T.px(1), T.px(TAB_BTN_SZ) - T.px(1), tab.id, isActive,
+                isHover and not cuesOn and not isActive, T.px(1), tabDrawOpts)
         end
-
-        -- Icon tint: a tab on the 0.55 accent wash (active, hover, pad focus) takes textOnFocus so
-        -- the icon contrasts with it; inactive tabs keep the accent-tinted ghost look (toneLo),
-        -- which is already the faintest colour that reads, so it draws at full alpha.
-        local ic = (isActive or isHover or isGpFocused) and T.textOnFocus or T.toneLo
-        local iconAlpha = 1.0
-        local iconSz = T.px(16)  -- icon size: 16 design units (16px source textures at 1080p)
-        if tab.icon then
-            local ix = math.floor((w - iconSz) / 2)
-            local iy = curY + math.floor((T.px(TAB_BTN_SZ) - iconSz) / 2)
-            -- baked at the drawn size when available (crisp at every root scale)
-        local tex = (tab.iconName and ZeD.Atoms.sizedTexture("media/textures/ZeD/TabIcons/", tab.iconName, iconSz)) or tab.icon
-        self:drawTextureScaledAspect(tex, ix, iy, iconSz, iconSz, iconAlpha, ic.r, ic.g, ic.b)
-        else
-            local glyphW = ZeD.TM:MeasureStringX(font, tab.glyph)
-            local gx = math.floor((w - glyphW) / 2)
-            local gy = curY + math.floor((T.px(TAB_BTN_SZ) - fontH) / 2)
-            local color = isActive and T.textOnAccent or (isHover and T.text or T.textDim)
-            self:drawText(tab.glyph, gx, gy, color.r, color.g, color.b, color.a, font)
-        end
-        end -- close the lit-tab if/else (Oct 16 2026)
 
         -- Bottom border between tabs
         local bd = T.border
@@ -3085,22 +3098,23 @@ local function drawContainerStrip(self, win, content)
 
     self:clearHitZones()
 
-    -- S106: Resolve gamepad focus for per-button cue paint. Paints 0.55α
-    -- accent on whichever button the ring currently focuses within this zone.
-    -- Gated on the live focused zone + window to avoid stale paint when
-    -- LB/RB bumpers to a different ring zone (feedback_only_focused_zone).
+    -- The controller's focus on the strip: the button the ring focuses in this
+    -- zone, only while this window has the focus and the controller is in use
+    -- (Focus.liveZone), so nothing stays lit in the other window or under the
+    -- mouse. Its mark shows on a selected bag too (selected is a 0.30 wash).
     local gpFocusedCI = nil
+    local cuesOn = false
     do
         local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
-        local focWin = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() or nil
-        if focWin == win and Focus.getFocusedZone and Focus.getFocusedElement then
-            local zone = Focus.getFocusedZone(focWin)
-            if zone and zone.zone == "charContainerStrip" then
-                local el = Focus.getFocusedElement(focWin)
-                if el then gpFocusedCI = el.containerIdx end
-            end
+        local zone = Focus and Focus.liveZone and Focus.liveZone(win)
+        if zone and zone.zone == "charContainerStrip" then
+            local el = Focus.liveElement(win)
+            if el then gpFocusedCI = el.containerIdx end
         end
+        cuesOn = Focus and Focus.cuesVisible and Focus.cuesVisible() or false
     end
+    local stripFocus = { win = win, zone = "charContainerStrip" }
+    local selA = T.selectionA or 0.30
 
     -- Periodic container refresh (~every 30 frames). The active, viewed and
     -- multi-column bags follow their bag, not their place in the list.
@@ -3146,9 +3160,10 @@ local function drawContainerStrip(self, win, content)
     end
 
     -- Strip background provided by ZeD_Window body — no redundant fill
-    -- Left border
+    -- The strip's inner edge: a structure line; the lines between buttons are content lines
+    local bs = T.borderS
+    self:drawRect(0, 0, T.px(1), h, bs.a, bs.r, bs.g, bs.b)
     local bd = T.border
-    self:drawRect(0, 0, T.px(1), h, bd.a, bd.r, bd.g, bd.b)
 
     local mx, my = self:getMouseX(), self:getMouseY()
     local font   = T.fontF1
@@ -3166,7 +3181,7 @@ local function drawContainerStrip(self, win, content)
     local mainCnt = containers[1]  -- buildContainers guarantees main at index 1
     local curY = 0
     if mainCnt then
-        local isHover = (mx >= 0 and mx < w and my >= curY and my < curY + T.px(CONTAINER_BTN_SZ))
+        local isHover = (mx >= 0 and mx < w and my >= curY and my < curY + T.px(CONTAINER_BTN_SZ)) and not cuesOn
         -- Zone 1 is "on" when: main visible (loot MC), or inventory open showing main (non-loot)
         local mainVis
         if win._activeTab == "loot" then
@@ -3174,22 +3189,18 @@ local function drawContainerStrip(self, win, content)
         else
             mainVis = win._invDrawerOpen and (win._viewedContainer == nil)
         end
+        -- the one selected look (the shown bag), the hover wash, then the controller's mark
         if mainVis then
-            -- S95 v3: active container filled with accent at readable alpha.
-            -- Matches the tab-strip active highlight so gamepad users can
-            -- see where they are.
             local ac = T.accent
-            self:drawRect(T.px(1), curY, w - T.px(1), T.px(CONTAINER_BTN_SZ), 0.55, ac.r, ac.g, ac.b)
-            self:drawRect(w - T.px(2), curY, T.px(2), T.px(CONTAINER_BTN_SZ), ac.a, ac.r, ac.g, ac.b)
+            self:drawRect(T.px(1), curY, w - T.px(1), T.px(CONTAINER_BTN_SZ), selA, ac.r, ac.g, ac.b)
         elseif isHover then
-            self:drawRect(T.px(1), curY, w - T.px(1), T.px(CONTAINER_BTN_SZ), 0.04, T.text.r, T.text.g, T.text.b)
+            local hv = T.hover
+            self:drawRect(T.px(1), curY, w - T.px(1), T.px(CONTAINER_BTN_SZ), hv.a, hv.r, hv.g, hv.b)
         end
-        -- S106: gamepad focus cue on main (0.55α accent fill, stacks on top
-        -- of mainVis paint if both apply — visually identical but guarantees
-        -- the cue shows when mainVis is false but main is gp-focused).
+        if isHover then ZeD.Help.set(self, ZeD.tr("UI_ZeD_CW_MainHelp", mainCnt.name or "")) end
+        local onFocusM = false
         if gpFocusedCI == 1 then
-            local ac = T.accent
-            self:drawRect(T.px(1), curY, w - T.px(1), T.px(CONTAINER_BTN_SZ), 0.55, ac.r, ac.g, ac.b)
+            onFocusM = ZeD.Focus.mark(self, T.px(1), curY, w - T.px(1), T.px(CONTAINER_BTN_SZ), stripFocus)
         end
         local iconAlpha = mainVis and 1 or 0.5
         local tex = mainCnt.texture
@@ -3202,7 +3213,7 @@ local function drawContainerStrip(self, win, content)
             local gw = ZeD.TM:MeasureStringX(font, glyph)
             local gx = math.floor((w - gw) / 2)
             local gy = curY + math.floor((T.px(CONTAINER_BTN_SZ) - fontH) / 2)
-            local color = mainVis and T.accent or T.textDim
+            local color = onFocusM and T.textOnFocus or (mainVis and T.text or T.textDim)
             self:drawText(glyph, gx, gy, color.r, color.g, color.b, color.a, font)
         end
         -- S108 v2 QA: MC badge for main (player inv) when MC active. Main is
@@ -3213,8 +3224,8 @@ local function drawContainerStrip(self, win, content)
             local badge = tostring(mcCountM + 1)
             local bx = T.px(4)
             local by = curY + T.px(CONTAINER_BTN_SZ) - fontH - T.px(1)
-            local ac = T.accent
-            self:drawText(badge, bx, by, ac.r, ac.g, ac.b, ac.a, font)
+            local bc = onFocusM and T.textOnFocus or T.text
+            self:drawText(badge, bx, by, bc.r, bc.g, bc.b, bc.a, font)
         end
         -- Hit zone: clickable on all tabs
         self:addHitZone("main_toggle", 0, curY, w, T.px(CONTAINER_BTN_SZ))
@@ -3238,15 +3249,15 @@ local function drawContainerStrip(self, win, content)
     -- sortMode stays "dist" / "wt" / "type" (it is the saved choice and the cycle's key); the label is its word
     local sortLabel = ZeD.tr((sortMode == "wt" and "UI_ZeD_Char_SortWt") or (sortMode == "type" and "UI_ZeD_Char_SortType") or "UI_ZeD_Char_SortDist")
     local labelW    = ZeD.TM:MeasureStringX(f5Font, sortLabel)
-    local isSortHover = (mx >= 0 and mx < w and my >= sortRowY and my < sortRowY + sortRowH)
+    local isSortHover = (mx >= 0 and mx < w and my >= sortRowY and my < sortRowY + sortRowH) and not cuesOn
 
-    local surf2 = T.surf2
-    self:drawRect(0, sortRowY, w, sortRowH, surf2.a, surf2.r, surf2.g, surf2.b)
-    if isActive then
-        local ac = T.accent
-        self:drawRect(0, sortRowY, w, sortRowH, 0.15, ac.r, ac.g, ac.b)
-    elseif isSortHover then
-        self:drawRect(0, sortRowY, w, sortRowH, 0.04, T.text.r, T.text.g, T.text.b)
+    -- the header row's surface (one layer over the body); an order other than
+    -- distance shows as its underlined word, the pointer as the hover wash
+    ZeD.Surface.fill(self, T.px(1), sortRowY, w - T.px(1), sortRowH, "surf2")
+    if isSortHover then
+        local hv = T.hover
+        self:drawRect(T.px(1), sortRowY, w - T.px(1), sortRowH, hv.a, hv.r, hv.g, hv.b)
+        ZeD.Help.set(self, ZeD.tr("UI_ZeD_CW_SortHelp"))
     end
     local sortColor = isActive and T.toneNorm or T.toneLo
     local labelX = math.floor((w - labelW) / 2)
@@ -3322,33 +3333,24 @@ local function drawContainerStrip(self, win, content)
         local cnt = containers[ci]
         if cnt then
             local isHover = (mx >= 0 and mx < w and my >= btnY and my < btnY + T.px(CONTAINER_BTN_SZ))
-                            and my >= listStartY and my < listStartY + listAreaH
+                            and my >= listStartY and my < listStartY + listAreaH and not cuesOn
             local isMcSel = mcSelMap[ci]
             local isViewed = (ci == viewedCI)  -- S45
 
-            -- Button background: selected/viewed → accent, hover → surf2
-            -- Sole active (main hidden, this is the only visible) → full Zone 1 treatment
-            -- Full highlight: sole MC active (main hidden) OR viewed on tab drawers
-            local isSoleActive = isMcSel and not win._mainVisible and #mcSel == 1
-            if isSoleActive or isViewed then
-                local s2 = T.surf2
-                self:drawRect(T.px(1), btnY, w - T.px(1), T.px(CONTAINER_BTN_SZ), s2.a, s2.r, s2.g, s2.b)
+            -- One selected look for a shown bag (viewed, or one of the Loot
+            -- tab's columns): the T.selectionA wash; else the hover wash. The
+            -- controller's mark goes on after, so it shows on a selected bag.
+            if isMcSel or isViewed then
                 local ac = T.accent
-                self:drawRect(w - T.px(2), btnY, T.px(2), T.px(CONTAINER_BTN_SZ), ac.a, ac.r, ac.g, ac.b)
-            elseif isMcSel then
-                local ac = T.accent
-                self:drawRect(T.px(1), btnY, w - T.px(1), T.px(CONTAINER_BTN_SZ), 0.15, ac.r, ac.g, ac.b)
-                self:drawRect(w - T.px(2), btnY, T.px(2), T.px(CONTAINER_BTN_SZ), ac.a, ac.r, ac.g, ac.b)
+                self:drawRect(T.px(1), btnY, w - T.px(1), T.px(CONTAINER_BTN_SZ), selA, ac.r, ac.g, ac.b)
             elseif isHover then
-                local s2 = T.surf2
-                self:drawRect(T.px(1), btnY, w - T.px(1), T.px(CONTAINER_BTN_SZ), s2.a, s2.r, s2.g, s2.b)
+                local hv = T.hover
+                self:drawRect(T.px(1), btnY, w - T.px(1), T.px(CONTAINER_BTN_SZ), hv.a, hv.r, hv.g, hv.b)
             end
-            -- S106: gamepad focus cue on non-main button. Stacks on top of
-            -- selection/hover paint to guarantee visibility regardless of the
-            -- button's base state (mc-selected, viewed, or idle).
+            if isHover then ZeD.Help.set(self, ZeD.tr("UI_ZeD_CW_BagHelp", cnt.name or "")) end
+            local onFocusC = false
             if gpFocusedCI == ci then
-                local ac = T.accent
-                self:drawRect(T.px(1), btnY, w - T.px(1), T.px(CONTAINER_BTN_SZ), 0.55, ac.r, ac.g, ac.b)
+                onFocusC = ZeD.Focus.mark(self, T.px(1), btnY, w - T.px(1), T.px(CONTAINER_BTN_SZ), stripFocus)
             end
 
             -- Icon or first-letter glyph
@@ -3362,7 +3364,7 @@ local function drawContainerStrip(self, win, content)
                 local gw = ZeD.TM:MeasureStringX(font, glyph)
                 local gx = math.floor((w - gw) / 2)
                 local gy = btnY + math.floor((T.px(CONTAINER_BTN_SZ) - fontH) / 2)
-                local color = (isMcSel or isViewed) and T.accent or T.textDim
+                local color = onFocusC and T.textOnFocus or ((isMcSel or isViewed) and T.text or T.textDim)
                 self:drawText(glyph, gx, gy, color.r, color.g, color.b, color.a, font)
             end
 
@@ -3372,8 +3374,8 @@ local function drawContainerStrip(self, win, content)
                 local bw = ZeD.TM:MeasureStringX(font, badge)
                 local bx = w - T.px(4) - bw
                 local by = btnY + T.px(CONTAINER_BTN_SZ) - fontH - T.px(1)
-                local ac = T.accent
-                self:drawText(badge, bx, by, ac.r, ac.g, ac.b, ac.a, font)
+                local bc = onFocusC and T.textOnFocus or T.text
+                self:drawText(badge, bx, by, bc.r, bc.g, bc.b, bc.a, font)
             end
 
             -- Bottom border
@@ -3426,10 +3428,10 @@ local function drawContainerStrip(self, win, content)
         local canScrollDown = scrollOff < maxScroll
 
         -- Up button (left half)
-        local hoverUp = canScrollUp and (mx >= 0 and mx < halfW and my >= arrowY and my < h)
+        local hoverUp = canScrollUp and (mx >= 0 and mx < halfW and my >= arrowY and my < h) and not cuesOn
         if hoverUp then
-            local s2 = T.surf2
-            self:drawRect(T.px(1), arrowY + T.px(1), halfW - T.px(1), scrollArrowH - T.px(1), s2.a, s2.r, s2.g, s2.b)
+            local hv = T.hover
+            self:drawRect(T.px(1), arrowY + T.px(1), halfW - T.px(1), scrollArrowH - T.px(1), hv.a, hv.r, hv.g, hv.b)
         end
         local upC = canScrollUp and (hoverUp and T.text or T.textDim) or T.border
         A.drawTriangleUp(self, math.floor((halfW - T.px(ARROW_SZ)) / 2), arrowY + math.floor((scrollArrowH - T.px(ARROW_SZ)) / 2), T.px(ARROW_SZ), upC)
@@ -3438,10 +3440,10 @@ local function drawContainerStrip(self, win, content)
         end
 
         -- Down button (right half)
-        local hoverDn = canScrollDown and (mx >= halfW and mx < w and my >= arrowY and my < h)
+        local hoverDn = canScrollDown and (mx >= halfW and mx < w and my >= arrowY and my < h) and not cuesOn
         if hoverDn then
-            local s2 = T.surf2
-            self:drawRect(halfW, arrowY + T.px(1), halfW, scrollArrowH - T.px(1), s2.a, s2.r, s2.g, s2.b)
+            local hv = T.hover
+            self:drawRect(halfW, arrowY + T.px(1), halfW, scrollArrowH - T.px(1), hv.a, hv.r, hv.g, hv.b)
         end
         local dnC = canScrollDown and (hoverDn and T.text or T.textDim) or T.border
         A.drawTriangleDown(self, halfW + math.floor((halfW - T.px(ARROW_SZ)) / 2), arrowY + math.floor((scrollArrowH - T.px(ARROW_SZ)) / 2), T.px(ARROW_SZ), dnC)
@@ -4246,11 +4248,14 @@ function ZeD_CharacterWindow.toggle(playerNum)
             card:setX(0)
             card:setWidth(math.min(self:getWidth(), T.px(ITEM_CARD_W)))
             card:setHeight(bodyH)
+            -- over a tab's content the card draws its left edge (a structure line); alone in the
+            -- drawer the window's own lines bound it (the waterfall's edge, the divider, the help line)
+            card.overlayEdge = (win._drawerMode == "tab") and "left" or nil
 
-            -- Background fill (surf1, 0.98 alpha)
+            -- Background fill: surface 1 at the window's see-through, claimed so the
+            -- body is not drawn under it as well (one layer, ZeD.Surface)
             local dh = self:getHeight()
-            local wc = T.surf1
-            self:drawRect(0, 0, self:getWidth(), dh, 0.98, wc.r, wc.g, wc.b)
+            ZeD.Surface.fill(self, 0, 0, self:getWidth(), dh, "surf1")
         else
             self:setWidth(0)
         end
@@ -4453,6 +4458,15 @@ function ZeD_CharacterWindow.toggle(playerNum)
         -- other mods' tabs place or hide their own window-parented children
         ZeD_CharacterWindow.extFrame(win, effectiveW)
 
+        -- An open item card over the tab: the tab's own boxes it would lie over
+        -- hide (a child panel can't be cut by the drawer's clip; setTabCover)
+        if win._drawerItem ~= nil and win._drawerMode == "tab" then
+            local coverWX = T.px(TAB_STRIP_W) + getTargetDrawerW(win) - T.px(ITEM_CARD_W)
+            for _, c in ipairs({ win._journalInput, win._journalSaveBtn, win._journalSearch, win._jrecipeSearch, win._flyerSearch }) do
+                if c and c:isVisible() and c:getX() + c:getWidth() > coverWX then c:setVisible(false) end
+            end
+        end
+
         -- ── Identity avatar positioning (window-parented, Q52) ──────────
         do
             local model = win._identityModel
@@ -4572,9 +4586,21 @@ function ZeD_CharacterWindow.toggle(playerNum)
             if win._drawerMode == "tab" and win._activeTab then
                 local renderer = TAB_RENDERERS[win._activeTab]
                 if renderer then
+                    -- An open item card lies over the tab's right part: the tab draws
+                    -- only what the card leaves showing (setTabCover), so the see-through
+                    -- card is one surface over the world, not over a second layer of UI
+                    local coverX = (win._drawerItem ~= nil) and math.max(0, targetW - T.px(ITEM_CARD_W)) or nil
+                    if coverX and coverX < effectiveW then
+                        self:clearStencilRect()
+                        self:setStencilRect(0, 0, coverX, dh)
+                        setTabCover(self, coverX)
+                    else
+                        coverX = nil
+                    end
                     -- (a tab that throws must not repeat its error every frame or leave its own clip
                     -- set: log once, put the drawer's clip back, draw on; code audit Oct 17 2026)
                     local okR, errR = pcall(renderer, self, win, 0, 0, targetW, dh)
+                    if coverX then setTabCover(self, nil) end
                     if not okR then
                         self:clearStencilRect()
                         self:setStencilRect(0, 0, effectiveW, dh)
@@ -4852,6 +4878,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 for _, zone in ipairs(win._journalDeleteZones) do
                     if x >= zone.x and x <= zone.x + zone.w
                        and y >= zone.y and y <= zone.y + zone.h then
+                        -- asked about first (the Journal tab's question band), when the tab has one
+                        if askJournalDelete(win, zone.entryIdx) then return true end
                         local md = win._playerObj:getModData()
                         if md and md.ZeD_Journal and md.ZeD_Journal.entries then
                             table.remove(md.ZeD_Journal.entries, zone.entryIdx)
@@ -5566,16 +5594,10 @@ function ZeD_CharacterWindow.toggle(playerNum)
             end
         end
 
-        -- HP (middle)
-        win.titleStats[#win.titleStats + 1] = {
-            text = hp .. "%", color = hpColor,
-            icon = statIcon("media/textures/ZeD/icons/quit-smoking-036-heart.png"),
-        }
-        -- Weight (rightmost)
-        win.titleStats[#win.titleStats + 1] = {
-            text = weight .. " / " .. maxWt,
-            icon = statIcon("media/textures/ZeD/icons/removals-018-packing.png"),
-        }
+        -- HP (middle): its status square in the health colour
+        win.titleStats[#win.titleStats + 1] = { text = hp .. "%", color = hpColor }
+        -- Weight (rightmost): a figure, no status mark
+        win.titleStats[#win.titleStats + 1] = { text = weight .. " / " .. maxWt, noMark = true }
 
         local mcSel = win._mcSelected or {}
         -- Count visible MC columns
@@ -5597,7 +5619,10 @@ function ZeD_CharacterWindow.toggle(playerNum)
             self._barH = 0
             self._activeCol = math.min(self._activeCol or #colSel, #colSel)
 
-            win.title = (#colSel == 1) and ZeD.tr("UI_ZeD_Char_ContainersOne", #colSel) or ZeD.tr("UI_ZeD_Char_ContainersMany", #colSel)
+            -- the title keeps the character's name; what the inventory side shows follows it
+            win._titleSub = (#colSel == 1) and ZeD.tr("UI_ZeD_Char_ContainersOne", #colSel) or ZeD.tr("UI_ZeD_Char_ContainersMany", #colSel)
+            win.title = charTitleName(self._playerObj)
+            win._statusLine = win._titleSub
             self._ccEntry = nil
 
             r.renderMultiColumnContent(self)
@@ -5612,8 +5637,9 @@ function ZeD_CharacterWindow.toggle(playerNum)
             end
             local cnt = win._containers[viewIdx]
             if cnt then
-                local charName = self._playerObj:getDescriptor():getForename() .. " " .. self._playerObj:getDescriptor():getSurname()
-                win.title = cnt.isMain and charName or cnt.name
+                -- the title keeps the character's name; a bag being viewed follows it
+                win.title = charTitleName(self._playerObj)
+                win._titleSub = (not cnt.isMain) and cnt.name or nil
                 local cInv = cnt.inventory
                 local cWeight = cInv and round(cInv:getCapacityWeight(), 1) or 0
                 local cMax = cInv and round(cInv:getMaxWeight(), 1) or 0
@@ -5624,6 +5650,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     stats   = ZeD.tr("UI_ZeD_Char_WeightOfMax", string.format("%.1f", cWeight), string.format("%.0f", cMax)),
                     count   = (cItems == 1) and ZeD.tr("UI_ZeD_Char_ItemsOne", cItems) or ZeD.tr("UI_ZeD_Char_ItemsMany", cItems),
                 }
+                -- the help line's own words when the pointer is on nothing that has help
+                win._statusLine = self._containerInfo.count .. " | " .. self._containerInfo.stats
                 self._inventory = cInv
             end
             self._ccEntry = cnt
@@ -5905,15 +5933,20 @@ function ZeD_CharacterWindow.toggle(playerNum)
             Focus.setZoneFocusable   (win, "charItemCard", cardVisible and #cardEls > 0)
         end
 
-        -- Append active tab name to title when drawer is open
+        -- The title: the character's name, then what the window shows: the open
+        -- tab ("Angel Cross  +  Health"), else the bag being viewed ("Angel Cross
+        -- +  Fanny Pack") or the columns. Two parts at most, so it never reads
+        -- as a path.
+        local sub = win._titleSub
         if win._drawerOpen and win._drawerMode == "tab" and win._activeTab then
             for _, tab in ipairs(CHAR_TABS) do
                 if tab.id == win._activeTab then
-                    win.title = win.title .. "  +  " .. ZeD_CharacterWindow.tabLabel(tab)
+                    sub = ZeD_CharacterWindow.tabLabel(tab)
                     break
                 end
             end
         end
+        if sub and sub ~= "" then win.title = win.title .. "  +  " .. sub end
     end
 
     -- Draw drag ghost at window level so it renders on top of all panels
@@ -5927,17 +5960,23 @@ function ZeD_CharacterWindow.toggle(playerNum)
         if win._equipDrag and win._equipDrag:isActive() then
             win._equipDrag:drawGhost(self)
         end
-        -- 1px vertical divider between drawer and inventory (top Z, after
-        -- all children). S103: skip when windowshaded — the shaded state
-        -- only renders the title bar + its own 1px border, so the body-
-        -- height divider was bleeding through as a stray vertical line.
+        -- The structure line between the drawer and the inventory (after all
+        -- children, so the drawer's content never covers it). It runs from the
+        -- title bar's line to the help line's line only: never across the title
+        -- bar, the help line or the frame. None while windowshaded.
         if win._dividerX and not self.windowShaded then
             local T = ZeD.T
-            local brd = T.border
-            self:drawRect(win._dividerX, 0, T.px(1), self:getHeight(), 1, brd.r, brd.g, brd.b)
+            local brd = T.borderS
+            local y0 = self:titleBarHeight()
+            local y1 = self:getHeight() - self:footerHeight()
+            if y1 > y0 then self:drawRect(win._dividerX, y0, T.px(1), y1 - y0, brd.a or 1, brd.r, brd.g, brd.b) end
         end
         saveCharStateThrottled(self)  -- keep the remembered layout current (about once a second)
     end
+
+    -- The help line's words when the pointer rests on nothing with help of its
+    -- own: what the inventory side shows ("9 items | 6.3/20kg"; ZeD.Help.take)
+    win.getStatusLine = function(self) return self._statusLine end
 
     -- Curtain (WindowCurtain.lua): the inventory side (right of the drawer)
     -- rolls up under its title while a tab drawer stays open

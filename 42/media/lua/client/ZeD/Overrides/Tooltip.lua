@@ -3,6 +3,8 @@
 -- TOOLTIP OVERRIDE
 -- Replaces ISToolTip and ISToolTipInv rendering with ZeD design system
 -- styling. All positioning logic is preserved exactly from vanilla.
+-- A tooltip pops up over the game, so it is a pop-up box: solid whatever the
+-- see-through setting says, the 1u frame (T.borderS) and System 7's hard shadow.
 -- Deferred to OnGameBoot so vanilla files are fully loaded first.
 -- ============================================================================
 
@@ -139,6 +141,7 @@ local function applyTooltipOverrides()
     -- Tooltip skin. The engine draws the description (ISRichTextPanel) and the item
     -- tooltip (Java DoTooltip) in white, so on the light theme the tooltip is a dark
     -- plate (white on the light grey was 1.6 : 1); the other themes use their own base.
+    -- The plate is solid (alpha 1) on every theme: a tooltip is a pop-up over the game.
     -- Returns: fill colour, fill alpha, title colour, footnote colour, description wash.
     -- ========================================================================
     local TIP_DARK = { r = 0.09, g = 0.09, b = 0.09 }
@@ -147,9 +150,16 @@ local function applyTooltipOverrides()
         if ZeD.currentBase == "light" then
             local set = ZeD.AccentColors[ZeD.currentAccent]
             local title = set and set.dark and set.dark.bright or T.accentText
-            return TIP_DARK, 0.95, title, TIP_FOOT, TIP_DARK
+            return TIP_DARK, 1, title, TIP_FOOT, TIP_DARK
         end
-        return T.base, T.surf2.a, T.accentText, T.textSec, T.surf1
+        return T.base, 1, T.accentText, T.textSec, T.surf1
+    end
+
+    -- the box: System 7's hard shadow, the solid plate, the 1u frame
+    local function drawBox(panel, T, bg, bgA)
+        ZeD.Atoms.drawHardShadow(panel, 0, 0, panel.width, panel.height)
+        panel:drawRect(0, 0, panel.width, panel.height, bgA, bg.r, bg.g, bg.b)
+        ZeD.Atoms.frame(panel, 0, 0, panel.width, panel.height, T.borderS)
     end
 
     -- ========================================================================
@@ -203,8 +213,8 @@ local function applyTooltipOverrides()
 
         if self.contextMenu and self.contextMenu.joyfocus then
             local playerNum = self.contextMenu.player
-            self:setX(getPlayerScreenLeft(playerNum) + 60)
-            self:setY(getPlayerScreenTop(playerNum) + 60)
+            self:setX(getPlayerScreenLeft(playerNum) + T.px(60))
+            self:setY(getPlayerScreenTop(playerNum) + T.px(60))
         elseif self.contextMenu and self.contextMenu.currentOptionRect then
             if self.contextMenu.currentOptionRect.height > 32 then
                 self:setY(my + self.contextMenu.currentOptionRect.height)
@@ -218,11 +228,9 @@ local function applyTooltipOverrides()
             self:adjustPositionToAvoidOverlap(ownerRect)
         end
 
-        -- Background + border with ZeD tokens (the light theme's dark plate: tipSkin)
+        -- Background + frame + shadow with ZeD tokens (the light theme's dark plate: tipSkin)
         local bg, bgA, titleC, footC = tipSkin(T)
-        self:drawRect(0, 0, self.width, self.height, bgA, bg.r, bg.g, bg.b)
-        local bc = T.borderS
-        self:drawRectBorder(0, 0, self.width, self.height, bc.a, bc.r, bc.g, bc.b)
+        drawBox(self, T, bg, bgA)
 
         -- Texture (design units, matches doLayout above)
         if self.texture then
@@ -310,17 +318,19 @@ local function applyTooltipOverrides()
         local tw = self.tooltip:getWidth()
         local th = self.tooltip:getHeight()
 
-        self.tooltip:setX(math.max(0, math.min(mx + PADX, maxX - tw - 1)))
+        -- (one hairline short of the screen's edge, so the frame's last line and the shadow show)
+        local edge = T.hair
+        self.tooltip:setX(math.max(0, math.min(mx + PADX, maxX - tw - edge)))
         if not self.followMouse and self.anchorBottomLeft then
-            self.tooltip:setY(math.max(0, math.min(my - th, maxY - th - 1)))
+            self.tooltip:setY(math.max(0, math.min(my - th, maxY - th - edge)))
         else
-            self.tooltip:setY(math.max(0, math.min(my, maxY - th - 1)))
+            self.tooltip:setY(math.max(0, math.min(my, maxY - th - edge)))
         end
 
         if self.contextMenu and self.contextMenu.joyfocus then
             local playerNum = self.contextMenu.player
-            self.tooltip:setX(getPlayerScreenLeft(playerNum) + 60)
-            self.tooltip:setY(getPlayerScreenTop(playerNum) + 60)
+            self.tooltip:setX(getPlayerScreenLeft(playerNum) + T.px(60))
+            self.tooltip:setY(getPlayerScreenTop(playerNum) + T.px(60))
         elseif self.contextMenu and self.contextMenu.currentOptionRect then
             if self.contextMenu.currentOptionRect.height > 32 then
                 self:setY(my + self.contextMenu.currentOptionRect.height)
@@ -337,11 +347,9 @@ local function applyTooltipOverrides()
             self:adjustPositionToAvoidOverlap({ x = mx - 48, y = my - 48, width = 48, height = 48 })
         end
 
-        -- Background + border with ZeD tokens (the light theme's dark plate: tipSkin)
+        -- Background + frame + shadow with ZeD tokens (the light theme's dark plate: tipSkin)
         local bg, bgA = tipSkin(T)
-        self:drawRect(0, 0, self.width, self.height, bgA, bg.r, bg.g, bg.b)
-        local bc = T.borderS
-        self:drawRectBorder(0, 0, self.width, self.height, bc.a, bc.r, bc.g, bc.b)
+        drawBox(self, T, bg, bgA)
 
         if self.item then self.item:DoTooltip(self.tooltip) end
 
@@ -360,8 +368,9 @@ local function applyTooltipOverrides()
             o.backgroundColor = { r = sbg.r, g = sbg.g, b = sbg.b, a = sbgA }
             o.borderColor     = { r = T.borderS.r, g = T.borderS.g, b = T.borderS.b, a = T.borderS.a }
             if o.descriptionPanel then
+                -- the description sits on a wash of its own, without a second frame (two line weights only)
                 o.descriptionPanel.backgroundColor = { r = sdesc.r, g = sdesc.g, b = sdesc.b, a = 0.4 }
-                o.descriptionPanel.borderColor     = { r = T.borderS.r, g = T.borderS.g, b = T.borderS.b, a = 0.15 }
+                o.descriptionPanel.borderColor     = { r = T.borderS.r, g = T.borderS.g, b = T.borderS.b, a = 0 }
             end
         end
         return o

@@ -59,12 +59,12 @@ local function scriptItem(fullType)
     return sm and fullType and call(sm, "FindItem", fullType) or nil
 end
 
--- "Fridge (0.0800 L/h)" -> "Fridge", "0.0800 L/H"
+-- "Fridge (0.0800 L/h)" -> "Fridge", "0.0800 L/h" (the value as vanilla writes it)
 local function splitPowered(s)
     s = tostring(s or "")
     local name, val = string.match(s, "^(.-)%s*%(([^%(%)]*)%)%s*$")
     if not name then return s, nil end
-    return name, string.upper(val)
+    return name, val
 end
 
 local function petrolCans(player)
@@ -148,62 +148,52 @@ function def.refresh(t, player)
     d.scrap = player:getInventory():getFirstTypeRecurse("ElectronicsScrap") ~= nil
     t.d = d
 
-    -- verbs, with vanilla's rules
-    local verbs, needs = {}, {}
+    -- verbs, with vanilla's rules. Running, adding fuel, fixing, connecting and taking it all wait
+    -- for one thing the player can do right here: turn it off (the need "the generator turned off").
+    local verbs = {}
     local onOK = d.on or (d.conn and d.fuel > 0)
     local function toggle(p, tt)
         ISWorldObjectContextMenu.onActivateGenerator(nil, not tt.obj:isActivated(), tt.obj, p:getPlayerNum())
     end
     t.toggle = onOK and toggle or nil
     t.plug = nil                       -- the outlet: only while it is off (below)
-    if d.on then
-        verbs[#verbs + 1] = { id = "power", label = getText("ContextMenu_Turn_Off"), primary = true, run = toggle }
-        verbs[#verbs + 1] = { id = "fuel", label = getText("ContextMenu_GeneratorAddFuel"), enabled = false }
-        verbs[#verbs + 1] = { id = "fix", label = ZeD.tr("UI_ZeD_Power_Fix"), enabled = false }
-        verbs[#verbs + 1] = { id = "plug", label = d.conn and ZeD.tr("UI_ZeD_Power_Disconnect") or ZeD.tr("UI_ZeD_Power_Connect"), enabled = false }
-        verbs[#verbs + 1] = { id = "take", label = getText("ContextMenu_Take"), enabled = false }
-        needs[#needs + 1] = ZeD.tr(d.conn and "UI_ZeD_Power_NeedOffDisconnect" or "UI_ZeD_Power_NeedOffConnect")
-    else
-        local fuelOK = d.pct < 100 and #d.cans > 0
-        local fixOK = d.cond < 100 and d.elec and d.scrap
-        local plugOK = d.elec
-        local takeOK = not d.conn
-        local primary = (d.fuel <= 0 and fuelOK and "fuel") or (onOK and "power") or (not d.conn and plugOK and "plug") or nil
-        verbs[#verbs + 1] = { id = "fuel", label = getText("ContextMenu_GeneratorAddFuel"), enabled = fuelOK, primary = primary == "fuel", jump = "gen:can:1" }
-        verbs[#verbs + 1] = { id = "power", label = getText("ContextMenu_Turn_On"), enabled = onOK, primary = primary == "power", run = toggle }
-        verbs[#verbs + 1] = { id = "fix", label = ZeD.tr("UI_ZeD_Power_Fix"), enabled = fixOK,
-            run = function(p, tt) ISWorldObjectContextMenu.onFixGenerator(nil, tt.obj, p:getPlayerNum()) end }
-        local plug = function(p, tt) ISWorldObjectContextMenu.onPlugGenerator(nil, tt.obj, p:getPlayerNum(), not tt.obj:isConnected()) end
-        t.plug = plugOK and plug or nil
-        verbs[#verbs + 1] = { id = "plug", label = d.conn and ZeD.tr("UI_ZeD_Power_Disconnect") or ZeD.tr("UI_ZeD_Power_Connect"), enabled = plugOK, primary = primary == "plug",
-            run = plug }
-        verbs[#verbs + 1] = { id = "take", label = getText("ContextMenu_Take"), enabled = takeOK,
-            run = function(p, tt) ISWorldObjectContextMenu.onTakeGenerator(nil, tt.obj, p:getPlayerNum()) end }
-        if not onOK then
-            if d.fuel <= 0 then needs[#needs + 1] = ZeD.tr("UI_ZeD_Power_NeedFuel")
-            elseif not d.conn then needs[#needs + 1] = ZeD.tr("UI_ZeD_Power_NeedConnected") end
-        end
-        if d.pct < 100 and #d.cans == 0 then needs[#needs + 1] = ZeD.tr("UI_ZeD_Power_NeedCan") end
-        if not d.elec then
-            local nk
-            if d.conn then nk = d.cond < 100 and "UI_ZeD_Power_NeedElecUnplugFix" or "UI_ZeD_Power_NeedElecUnplug"
-            else nk = d.cond < 100 and "UI_ZeD_Power_NeedElecPlugFix" or "UI_ZeD_Power_NeedElecPlug" end
-            needs[#needs + 1] = ZeD.tr(nk)
-        elseif d.cond < 100 and not d.scrap then
-            needs[#needs + 1] = ZeD.tr("UI_ZeD_Power_NeedScrap")
-        end
-        if d.conn then needs[#needs + 1] = ZeD.tr("UI_ZeD_Power_NeedDisconnected") end
-    end
+    local off = not d.on
+    local fuelOK = off and d.pct < 100 and #d.cans > 0
+    local fixOK = off and d.cond < 100 and d.elec and d.scrap
+    local plugOK = off and d.elec
+    local takeOK = off and not d.conn
+    local primary = (d.on and "power") or (d.fuel <= 0 and fuelOK and "fuel") or (onOK and "power") or (not d.conn and plugOK and "plug") or nil
+    -- what each waits for: the engine stopped first, then what it needs of its own
+    local NEED_OFF = ZeD.tr("UI_ZeD_Power_NeedsOff")
+    verbs[#verbs + 1] = { id = "fuel", label = getText("ContextMenu_GeneratorAddFuel"), enabled = fuelOK, primary = primary == "fuel", jump = "gen:can:1",
+        sensible = d.pct < 100, needs = off and ZeD.tr("UI_ZeD_Power_NeedsCan") or NEED_OFF, hint = ZeD.tr("UI_ZeD_Power_HintFuel"),
+        help = ZeD.tr("UI_ZeD_Power_HelpFuel") }
+    verbs[#verbs + 1] = { id = "power", label = getText(d.on and "ContextMenu_Turn_Off" or "ContextMenu_Turn_On"), enabled = onOK, primary = primary == "power", run = toggle,
+        needs = ZeD.tr(d.fuel <= 0 and "UI_ZeD_Power_NeedsFuel" or "UI_ZeD_Power_NeedsConnected"), hint = ZeD.tr("UI_ZeD_Power_HintOn"),
+        help = ZeD.tr(d.on and "UI_ZeD_Power_HelpOff" or "UI_ZeD_Power_HelpOn") }
+    verbs[#verbs + 1] = { id = "fix", label = ZeD.tr("UI_ZeD_Power_Fix"), enabled = fixOK, sensible = d.cond < 100,
+        needs = off and ZeD.tr(d.elec and "UI_ZeD_Power_NeedsScrap" or "UI_ZeD_Power_NeedsElec") or NEED_OFF, hint = ZeD.tr("UI_ZeD_Power_HintFix"),
+        help = ZeD.tr("UI_ZeD_Power_HelpFix"),
+        run = function(p, tt) ISWorldObjectContextMenu.onFixGenerator(nil, tt.obj, p:getPlayerNum()) end }
+    local plug = function(p, tt) ISWorldObjectContextMenu.onPlugGenerator(nil, tt.obj, p:getPlayerNum(), not tt.obj:isConnected()) end
+    t.plug = plugOK and plug or nil
+    verbs[#verbs + 1] = { id = "plug", label = d.conn and ZeD.tr("UI_ZeD_Power_Disconnect") or ZeD.tr("UI_ZeD_Power_Connect"), enabled = plugOK, primary = primary == "plug",
+        needs = off and ZeD.tr("UI_ZeD_Power_NeedsElec") or NEED_OFF, hint = ZeD.tr(d.conn and "UI_ZeD_Power_HintDisconnect" or "UI_ZeD_Power_HintConnect"),
+        help = ZeD.tr(d.conn and "UI_ZeD_Power_HelpDisconnect" or "UI_ZeD_Power_HelpConnect"), run = plug }
+    verbs[#verbs + 1] = { id = "take", label = getText("ContextMenu_Take"), enabled = takeOK,
+        needs = off and ZeD.tr("UI_ZeD_Power_NeedsDisconnected") or NEED_OFF, hint = ZeD.tr("UI_ZeD_Power_HintTake"),
+        help = ZeD.tr("UI_ZeD_Power_HelpTake"),
+        run = function(p, tt) ISWorldObjectContextMenu.onTakeGenerator(nil, tt.obj, p:getPlayerNum()) end }
     t.verbs = verbs
-    t.needs = needs
 end
 
 function def.title(t) return t.d and t.d.name or getText("ContextMenu_Generator") end
 function def.icon(t) return t.d and t.d.tex or nil end
+-- the state tag: its words, and the colour of its square mark (none for a plain tag)
 function def.pill(t)
     local T = ZeD.T
     if t.d and t.d.on then return ZeD.tr("UI_ZeD_Power_PillRunning"), T.positive end
-    return ZeD.upper(ZeD.tr("UI_Off")), T.textDim
+    return ZeD.tr("UI_Off"), T.textDim
 end
 
 -- "33:20" from hours
@@ -259,8 +249,17 @@ local function drawPlate(card, x, y, w, t)
     for _, c in ipairs(PL.controls(des, st)) do
         local fid = "gen:" .. c.id
         local fn = (c.id == "engine" and t.toggle) or (c.id == "outlet" and t.plug) or nil
-        if card._fid == fid then PL.cue(cv, c, T.accent, 0.55) end
+        -- a key (the outlet) takes the pointer's wash and the controller's mark; a knob or
+        -- rocker keeps its own lit cue
+        if c.kind == "turn" then
+            if card._fid == fid then PL.cue(cv, c, T.accent, 0.55) end
+        else
+            if UI.hovered(card, fid) then PL.hoverKey(cv, c) end
+            local fm = card:focusOf(fid)
+            if fm then PL.markKey(card, c, px0, y, k, fm) end
+        end
         card:zone({ fid = fid, x = px0 + c.x * k, y = y + c.y * k, w = c.w * k, h = c.h * k, body = true,
+            help = (c.id == "engine" and ZeD.tr("UI_ZeD_Power_HelpEngine")) or (c.id == "outlet" and ZeD.tr("UI_ZeD_Power_HelpOutlet")) or nil,
             run = fn and function(cc, p) fn(p, t) end or nil })
     end
     local h = des.h * k + T.px(6)
@@ -301,26 +300,22 @@ function def.body(card, x, y, w, t, player)
     local condC = d.cond > 50 and T.positive or T.warning
     local condTxt = tostring(d.cond) .. "%"
     if d.cond <= 50 then condTxt = ZeD.tr("UI_ZeD_Power_MayFail", condTxt) end
-    y = y + UI.meter(card, x, y, w, ZeD.upper(ZeD.tr("IGUI_invpanel_Condition")), condTxt, d.cond <= 50 and T.warning or nil, d.cond, condC) + gap
-
-    if t.needs and #t.needs > 0 then
-        y = y + UI.needs(card, x, y, w, t.needs) + gap
-    end
+    y = y + UI.meter(card, x, y, w, ZeD.tr("IGUI_invpanel_Condition"), condTxt, d.cond <= 50 and T.warning or nil, d.cond, condC) + gap
 
     if d.on then
         y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Power_Powering"), tostring(#d.items))
         for _, it in ipairs(d.items) do
             y = y + UI.row(card, x, y, w, nil, it.name, it.val)
         end
-        y = y + UI.row(card, x, y, w, nil, d.name, d.baseStr and string.upper(d.baseStr) or nil)
+        y = y + UI.row(card, x, y, w, nil, d.name, d.baseStr)
         local tf = T.fontF3
         local th = T.px(24)
         local tc = T.text
-        ZeD.Atoms.drawTextRight(card, (d.totalStr and string.upper(d.totalStr)) or string.format("%.4f L/H", d.total or 0),
-            x + w - T.px(2), y + math.floor((th - ZeD.TM:getFontHeight(tf)) / 2), tf, tc)
-        local totalTxt = ZeD.upper(ZeD.tr("IGUI_Total"))
+        local totalStr = d.totalStr or string.format("%.4f L/h", d.total or 0)
+        ZeD.Atoms.drawTextRight(card, totalStr, x + w - T.px(2), y + math.floor((th - ZeD.TM:getFontHeight(tf)) / 2), tf, tc)
+        local totalTxt = ZeD.tr("IGUI_Total")
         local lw = ZeD.TM:MeasureStringX(tf, totalTxt)
-        local vw = ZeD.TM:MeasureStringX(tf, (d.totalStr and string.upper(d.totalStr)) or "0.0000 L/H")
+        local vw = ZeD.TM:MeasureStringX(tf, totalStr)
         card:drawText(totalTxt, x + w - T.px(2) - vw - T.px(12) - lw, y + math.floor((th - ZeD.TM:getFontHeight(tf)) / 2), tc.r, tc.g, tc.b, tc.a or 1, tf)
         y = y + th
     elseif #d.cans > 0 then
@@ -337,6 +332,7 @@ function def.body(card, x, y, w, t, player)
                 button = getText("UI_btn_add"),
                 fid = "gen:can:" .. i,
                 enabled = room > 0,
+                help = ZeD.tr("UI_ZeD_Power_HelpAddCan", c.name),
                 run = function(card2, p)
                     ISWorldObjectContextMenu.doAddFuelGenerator(nil, t.obj, {}, cc.item, p:getPlayerNum())
                 end,
