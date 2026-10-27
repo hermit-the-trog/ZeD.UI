@@ -1,4 +1,5 @@
 -- ZeDUI/tools/qa/zedqa_belt_hands.lua  (Oct 25 2026)
+-- RETIRED Oct 27 2026: the hands sit together at the left end now; zedqa_hands_together.lua replaces it in regression.txt.
 -- The belt as seen from behind (director, Oct 25 2026: "Swap the hands: left hand at the left
 -- end, right hand at the right end, belt slots stay"): the off hand at the left end, the main
 -- hand at the right end, the slots between in key order; a left-wrist watch left of the off hand,
