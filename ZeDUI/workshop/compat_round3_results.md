@@ -23,11 +23,11 @@ Lists, as in the Compatibility thread (`steam_threads/compat_v3/README.md`): **S
 |---|---|
 | Supported | 0 |
 | Works well | 8 |
-| Compatible | 225 |
-| Not needed | 23 |
-| Does not work | 5 |
-| Tested in all | 261 |
-| Not tested | 2 |
+| Compatible | 261 |
+| Not needed | 27 |
+| Does not work | 6 |
+| Tested in all | 302 |
+| Not tested | 3 |
 
 
 ## Results by group
@@ -342,12 +342,61 @@ Reports: qa/regression/2026-10-26_2121_mods_fullscreen4k.md (9/11 pass: the surv
 | Long Term Preservation [42.20] | [3774789651](https://steamcommunity.com/sharedfiles/filedetails/?id=3774789651) | 3 | Compatible | Loads, no errors. |
 | Brita Weapon and Armor B42 Unified Compatibility Port | [3777433827](https://steamcommunity.com/sharedfiles/filedetails/?id=3777433827) | 3 | Compatible | Its two belt slots show on ZeD's belt (slots 5 and 6), named by their raw ids, which run out of the box (ZeD bug 5, G_belt_mod_slot_names_overflow.png). |
 
+### Group H
+
+Reports: qa/regression/2026-10-26_2225_mods_fullscreen4k.md (without Horde Night: 8/11 pass; Messages and one moodle-note check fail because of Neat Rocco's UI); the first run 2026-10-26_2130 closed the game (Horde Night); ZeD off: qa/modload/2026-10-26_2133_r3off_console.txt and the *_idle_console.txt bisect runs; Messages with Neat Rocco's UI alone: 2026-10-26_2245
+
+| Mod | Workshop id | Tier | List | Evidence |
+|---|---|---|---|---|
+| Mutie's Context Menu Icons | [3101668503](https://steamcommunity.com/sharedfiles/filedetails/?id=3101668503) | 1 | Not needed | ZeD's item menu draws its own icon set; a mod's icon shows only on rows ZeD has none for. |
+| Neat Rocco's UI [B42] | [3723726293](https://steamcommunity.com/sharedfiles/filedetails/?id=3723726293) | 1 | Not needed | Both restyle the whole interface: use one. With both on, the game's character window toggle still lands on ZeD's tabs (seen), but its dialogs take the place of ZeD's: other mods' notes are no longer kept in ZeD's Messages and stay on screen (seen, H_mod_notes_on_screen_with_neat_rocco.jpg; ZeD's Messages test fails 12 checks with this mod alone). It swaps ISModalDialog.new and ISModalRichText.new for its own after ZeD has set its hooks (NR_Patch.lua, NR_MakePatch). |
+| Inventory Tetris - Grid Based Items and Equipment Overhaul | [3775513231](https://steamcommunity.com/sharedfiles/filedetails/?id=3775513231) | 1 | Not needed | A whole-inventory overhaul on the game's inventory and loot windows, which ZeD replaces: its grid never shows (expected; as Inventory Tetris, round 1). Tested as a local copy with the id R3_INVENTORY_TETRIS (same id as the tested Inventory Tetris). Its grid errors every frame when the game's inventory comes back for a moment (ZeD's safe mode switched on and off in the test), not in normal play. |
+| Equipment UI - Paper Doll Equipment Interface SP/MP [B42.20+] | [3780682550](https://steamcommunity.com/sharedfiles/filedetails/?id=3780682550) | 1 | Not needed | ZeD's Equip tab has a paper doll (as Equipment UI, round 2). |
+| Second Back Slot [B42.20] | [3751668602](https://steamcommunity.com/sharedfiles/filedetails/?id=3751668602) | 1 | Compatible | Loads, no errors. |
+| N3WO Map Overhaul [B42] | [3785033563](https://steamcommunity.com/sharedfiles/filedetails/?id=3785033563) | 1 | Compatible | Part of it does not show: it changes the game's map; the map key opens ZeD's map pop-out (seen). |
+| Horde Night | [2714850307](https://steamcommunity.com/sharedfiles/filedetails/?id=2714850307) | 2 | Does not work | Closes the game on 42.21 as the save loads (StackOverflowError in KahluaTableImpl.save, saving its own data), also with ZeD off and with it alone (seen, bisect runs). |
+| Video Game Consoles | [2831786301](https://steamcommunity.com/sharedfiles/filedetails/?id=2831786301) | 2 | Compatible | Loads, no errors. |
+| Pillow's Random Spawns [B42] | [1911132112](https://steamcommunity.com/sharedfiles/filedetails/?id=1911132112) | 2 | Compatible | Loads, no errors (spawn choices not checked on ZeD's New Game screen). ManySpawns sub-mod. |
+| [B42MP/B41]Surviving Through Seasons | [2753086629](https://steamcommunity.com/sharedfiles/filedetails/?id=2753086629) | 2 | Compatible | Loads, no errors. |
+| Ladders?! B42.20 SP/MP (Unofficial) | [3629835761](https://steamcommunity.com/sharedfiles/filedetails/?id=3629835761) | 2 | Compatible | Loads, no errors. Ladders4220 sub-mod. |
+| [KYR] Real Weather Mod | [3051276857](https://steamcommunity.com/sharedfiles/filedetails/?id=3051276857) | 2 | Compatible | Loads, no errors. |
+| [B41/B42] Cryogenic Winter +Easy/Hard Modes (SP/MP) | [2210760610](https://steamcommunity.com/sharedfiles/filedetails/?id=2210760610) | 2 | Compatible | Loads, no errors. Normal mode sub-mod. |
+| [B42] Survival | [3402516345](https://steamcommunity.com/sharedfiles/filedetails/?id=3402516345) | 2 | Compatible | Loads, no errors. |
+| [B42] Bandits Creator | [3469292499](https://steamcommunity.com/sharedfiles/filedetails/?id=3469292499) | 2 | Compatible | Its Bandit Creator and Spawn Bandit Clan rows are in ZeD's world menu (seen). |
+| Plysken Solar Revolution | [3725311427](https://steamcommunity.com/sharedfiles/filedetails/?id=3725311427) | 2 | Compatible | Loads, no errors; part of it draws on the game's inventory list (by reading its code: ISInventoryPane.drawItemDetails). |
+| Immersive Blackouts [B42MP] | [3607686447](https://steamcommunity.com/sharedfiles/filedetails/?id=3607686447) | 2 | Compatible | Loads, no errors. |
+| SaucedCarts - Pushable Carts | [3651954650](https://steamcommunity.com/sharedfiles/filedetails/?id=3651954650) | 2 | Compatible | Loads, no errors. Part of it does not show: its cart handling patches the game's inventory and loot windows (by reading its code). |
+| LG Extended Electricity | [3779562002](https://steamcommunity.com/sharedfiles/filedetails/?id=3779562002) | 2 | Compatible | Loads, no errors. |
+| ImmersiveSolarArrays [42.16+] | [3647117173](https://steamcommunity.com/sharedfiles/filedetails/?id=3647117173) | 2 | Compatible | Loads, no errors; part of it draws on the game's inventory list (by reading its code). |
+| Playable Minigames (Previously Playable Pool) | [3716934959](https://steamcommunity.com/sharedfiles/filedetails/?id=3716934959) | 2 | Compatible | Its Debug Minigames row is in ZeD's world menu (seen). |
+| Over the Shoulder | [3808805481](https://steamcommunity.com/sharedfiles/filedetails/?id=3808805481) | 2 | Compatible | Loads, no errors. Main mod only (its patch sub-mods are for mods not on). |
+| Stay With Me [B42 - NPC Companion] | [3800989007](https://steamcommunity.com/sharedfiles/filedetails/?id=3800989007) | 2 | Compatible | Loads, no errors; its first-start note (zombie spawning off in this world) is one of the notes ZeD's Messages keeps. |
+| Roaming Survivors | [3797874733](https://steamcommunity.com/sharedfiles/filedetails/?id=3797874733) | 2 | Compatible | Its rows (Survivors, Reputation, Quest journal, Roaming Survivors) are in ZeD's world menu (seen); it seeded 120 survivors with no errors. |
+| Sleep with Friends v2.1 | [2686624983](https://steamcommunity.com/sharedfiles/filedetails/?id=2686624983) | 3 | Compatible | Loads, no errors. |
+| [B42] Drag Bodies Faster | [3393821407](https://steamcommunity.com/sharedfiles/filedetails/?id=3393821407) | 3 | Compatible | Loads, no errors. 50% sub-mod. |
+| Long Term Preservation [B42.13] | [3406392630](https://steamcommunity.com/sharedfiles/filedetails/?id=3406392630) | 3 | Compatible | Loads, no errors. |
+| Slower Sprinters \ B42 | [2716710487](https://steamcommunity.com/sharedfiles/filedetails/?id=2716710487) | 3 | Compatible | Loads, no errors. 35% sub-mod. |
+| Everything Has a Name | [2867163008](https://steamcommunity.com/sharedfiles/filedetails/?id=2867163008) | 3 | Compatible | Its Rename Stack row is in ZeD's item menu (seen). |
+| Trees Have Loot [B41 &  B42] | [2951270166](https://steamcommunity.com/sharedfiles/filedetails/?id=2951270166) | 3 | Compatible | Loads, no errors. |
+| Skully's Zombie Collision [B42.20+] | [3778511497](https://steamcommunity.com/sharedfiles/filedetails/?id=3778511497) | 3 | Compatible | Loads, no errors. |
+| ModernFirearmsSystem 42.21 (SP/MP) | [3633421539](https://steamcommunity.com/sharedfiles/filedetails/?id=3633421539) | 3 | Compatible | Loads, no errors (its UniqueSounds patched 54 guns). Base sub-mod. |
+| CDDA Zombies | [2749928925](https://steamcommunity.com/sharedfiles/filedetails/?id=2749928925) | 3 | Compatible | Loads, no errors. Base sub-mod. |
+| [B42] Madax Weapons Pack - Fixed 42.21 | [3747202678](https://steamcommunity.com/sharedfiles/filedetails/?id=3747202678) | 3 | Compatible | Loads, no errors. |
+| [B42.20+ MP] Skateboard! | [3456675747](https://steamcommunity.com/sharedfiles/filedetails/?id=3456675747) | 3 | Compatible | Loads, no errors. |
+| CD: Rottweiler | [3762296152](https://steamcommunity.com/sharedfiles/filedetails/?id=3762296152) | 3 | Compatible | Loads with Companion Dogs, no errors. |
+| Brita's Armor Pack B42.20+ / Standalone Armor Port & Multilingual Fixes | [3780298456](https://steamcommunity.com/sharedfiles/filedetails/?id=3780298456) | 3 | Compatible | Loads, no errors. Part of it does not show: its armour tooltip lines wrap ISToolTipInv.render at load (ZeD bug 1, by reading its code). |
+| Zombie Dismemberment | [3811483602](https://steamcommunity.com/sharedfiles/filedetails/?id=3811483602) | 3 | Compatible | Loads, no errors. |
+| Blood Pools & Footprints [B42.20+] | [3784951301](https://steamcommunity.com/sharedfiles/filedetails/?id=3784951301) | 3 | Compatible | Loads, no errors. |
+| Proper Ragdolls | [3821280085](https://steamcommunity.com/sharedfiles/filedetails/?id=3821280085) | 3 | Compatible | Loads, no errors. |
+| Wash Or Rot [B42 SP/MP] | [3674907249](https://steamcommunity.com/sharedfiles/filedetails/?id=3674907249) | 3 | Compatible | Loads with Moodle Framework, no errors. |
+
 ## Not tested, and why
 
 | Group | Mod | Workshop id | Why |
 |---|---|---|---|
 | A | Viperel's Vehicle Spare Parts | [2712632417](https://steamcommunity.com/sharedfiles/filedetails/?id=2712632417) | Its folder on disk has the Build 41 layout only (no 42 or common folder): the game does not list it (getModInfoByID nil at the main menu). |
 | D | Better Car Physics | [2909035179](https://steamcommunity.com/sharedfiles/filedetails/?id=2909035179) | Ships Java class files (CarController*.class): left out by rule. |
+| H | Bandits Extra Options | [3412682512](https://steamcommunity.com/sharedfiles/filedetails/?id=3412682512) | Its mod.info requires the mod id Bandits; the B42 Bandits NPC is Bandits2, and no Bandits id is on disk (missing requirement). |
 
 ## ZeD bugs found
 
@@ -390,3 +439,10 @@ Reports: qa/regression/2026-10-26_2121_mods_fullscreen4k.md (9/11 pass: the surv
 - **Steps:** group G's run (`zedqa_mods_run.ps1 -ModList tools/qa/compat_r3_G_mods.txt -Mode fullscreen4k -Manifest tools/qa/compat_r3_G.txt`), picture `zqa_r3G_12_belt.png`; report `qa/regression/2026-10-26_2121_mods_fullscreen4k.md`.
 - **Evidence:** `ZeDUI/qa/compat_round3/G_belt_mod_slot_names_overflow.png`.
 - **Fix idea (not done):** fall back to the slot's own name (`slot.name`, through getText), and fit or clip the label to the box.
+
+### 6. (Clash, for a decision) A mod that swaps a dialog's constructor after ZeD bypasses ZeD's prompts and Messages
+
+- **What:** ZeD's prompt override (`Overrides/Prompts.lua`) and Messages catch other mods' notes through the game's dialog classes (`ISModalDialog`, `ISModalRichText`, ...). Neat Rocco's UI (3723726293) keeps the constructor it found when its files loaded (before ZeD's) and, from its options callback, sets `ISModalDialog.new` / `ISModalRichText.new` to its own (`NR_Patch.lua`, `NR_MakePatch`), so ZeD's hook is skipped: mods' notes stay on screen (Stay With Me's and Bandits' first-start notes over the game, seen), are not kept in Messages, and ZeD's dialog styling is not used.
+- **Steps:** `zedqa_mods_run.ps1 -ModList <NeatUI_Framework, Neat_Rocco> -Manifest <zedqa_prelude.lua, zedqa_messages.lua>`: 12 Messages checks fail (`qa/regression/2026-10-26_2245_mods_fullscreen4k.md`); they pass with ZeD alone and in groups B, C, E.
+- **Evidence:** `ZeDUI/qa/compat_round3/H_mod_notes_on_screen_with_neat_rocco.jpg`.
+- **Note:** two whole-UI mods meeting; listed as Not needed (use one). A fix on ZeD's side would be to wrap whatever `new` is current when a dialog is shown, or re-check its hook after the game starts.
