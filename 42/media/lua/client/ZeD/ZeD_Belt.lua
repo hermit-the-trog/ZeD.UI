@@ -1427,7 +1427,8 @@ function ZeD_BeltHUD:_ammoWidth(n, chamber)
         segW = ((chamber and 6 or 0) + n * 2 + (n - groups) + (groups - 1) * ((group < n) and 3 or 1) + 2) * k
             + 2 * T.px(4) + 2 * T.line(T.borderW)
     end
-    return math.max(T.px(AMMO_W), T.px(4 + AMMO_ICON + 6) + cw + T.px(8) + sw + T.px(5), segW)
+    -- (whole pixels: the text widths come back fractional, and the strap and the slots follow the pouch)
+    return math.ceil(math.max(T.px(AMMO_W), T.px(4 + AMMO_ICON + 6) + cw + T.px(8) + sw + T.px(5), segW))
 end
 
 -- The rounds as segments (art pixels, a whole multiple k, like the strap and the buckle): one per round the gun

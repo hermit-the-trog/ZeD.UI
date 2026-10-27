@@ -264,6 +264,17 @@ square marks (full, half = left half filled, hollow), the hover card. ZeD setup 
 `ZeD_MainMenuOptions.lua`): checkboxes, one wording pattern for option names. Skill Recovery Journal strip: the hover
 card, the library legend swatch. Messages, Sandbox in game: tokens not alpha for dim text, one tag look, one revert word.
 
+**Belt hands together (director, Oct 27 2026; mockup `zed_belt_hands_together_v1`, v3).** "I think the hands should move
+together on the belt" (replaces the Oct 25 hands-at-both-ends layout). "Can primary be a little bigger than secondary, the
+way the vanilla game does it?": the main hand 56 units, the off hand 44 (a slot's size, a 28-unit picture; vanilla's off
+hand is three quarters of the main), 6 apart, the belt 4 units taller. "I think keeping the primary the circle, and having
+the secondary peeking from behind when an item is in both hands": the main hand keeps its circle, picture and condition
+ring; the off hand slides in under it and shows 14 units, empty (no picture, no ring, no words); clicks on the crescent
+reach the off hand. "Put the hands together at the left end": `[left-wrist watch][off][MAIN][ammo pouch][right-wrist
+watch] ==strap with the slots and buckle== [Messages note]`. The belt is placed by its buckle, so the slots never move;
+the hands move left when the ammo pouch or a right-wrist watch appears between them and the strap. The controller starts
+on slot 1; Left reaches the main hand, then the off hand. QA `ZeDUI/tools/qa/hands_together.txt`.
+
 ## 13. Under the hood
 
 Delete dead paths in live files (the `footerToggles` footer, `cardOwnsActionStrip`, `Atoms.drawFocusRing`,
