@@ -3268,7 +3268,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Settings_BaseTheme` | `Base theme` | Options > Mods > ZeD-GUI: name of the base theme setting | - |
 | `UI_ZeD_Settings_BaseThemeTip` | `Controls surface colors, text contrast, and border weight.` | Options > Mods > ZeD-GUI: hover help of the base theme setting | - |
 | `UI_ZeD_Settings_CharAccent` | `Character window accent` | Options > Mods > ZeD-GUI: name of the Character window accent setting | - |
-| `UI_ZeD_Settings_CharAccentTip` | `An accent of its own for the Character window, or the same as Accent color. Cycled via footer button.` | Options > Mods > ZeD-GUI: hover help | - |
+| `UI_ZeD_Settings_CharAccentTip` | `An accent of its own for the Character window, or the same as Accent color. The window menu's Accent sets it too.` | Options > Mods > ZeD-GUI: hover help | - |
 | `UI_ZeD_Settings_ContextMenu` | `Context menu` | Options > Mods > ZeD-GUI: name of the right-click menu style setting | - |
 | `UI_ZeD_Settings_ContextMenuTip` | `The right-click menu: a strip of icons with the target and what the action needs, or a list, one action to a row, as the game's own.` | Options > Mods > ZeD-GUI: hover help | - |
 | `UI_ZeD_Settings_ContextStrip` | `Icon strip` | Options > Mods > ZeD-GUI: choice of the Context menu setting | - |
@@ -3315,7 +3315,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Settings_WatchCorner` | `Corner` | Options > Mods > ZeD-GUI: choice of the Watch setting | - |
 | `UI_ZeD_Settings_WatchTip` | `Where the watch you wear shows: small on the belt beside the hand of its wrist (press its face for the full watch, which you can drag anywhere), or the full watch in the top right corner.` | Options > Mods > ZeD-GUI: hover help | - |
 | `UI_ZeD_Settings_WorldAccent` | `World window accent` | Options > Mods > ZeD-GUI: name of the World window accent setting | - |
-| `UI_ZeD_Settings_WorldAccentTip` | `An accent of its own for the World window, or the same as Accent color. Cycled via footer button.` | Options > Mods > ZeD-GUI: hover help | - |
+| `UI_ZeD_Settings_WorldAccentTip` | `An accent of its own for the World window, or the same as Accent color. The window menu's Accent sets it too.` | Options > Mods > ZeD-GUI: hover help | - |
 | `UI_ZeD_Settings_SandboxIG` | `Sandbox options in game` | Options, ZeD setup, Sandbox: the switch's name | - |
 | `UI_ZeD_Settings_SandboxIGTip` | `Adds a Sandbox options line to the pause window, for changing this save's sandbox settings without starting a new game. Single player only.` | Options, ZeD setup: help band for the switch | - |
 | `UI_ZeD_Settings_DimRead` | `Dim read items` | Options, ZeD setup, ZeD windows: the switch's name | - |
