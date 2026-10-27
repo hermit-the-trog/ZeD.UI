@@ -14,3 +14,5 @@ ZeDUI/qa/bubbles/zqa_*.png
 ZeDUI/tools/dashpx/out/
 # Python caches
 __pycache__/
+# local backup copies (fonts, a settings snapshot, a dump of the game's item list): kept out of the repo
+zed_backups/
