@@ -31,6 +31,15 @@ The Mac OS vocabulary ZeD-UI is built on.
 | **Striped title bar** | Horizontal pinstripes filling the title bar background. Classic System 7 look. Active windows get stripes; inactive windows go blank. |
 | **Close box** | The small square in the top-left corner of the title bar. Click to close the window. Our version of the ✕ button. |
 | **Grow box** | The ridged triangle/square in the bottom-right corner of a resizable window. Drag to resize. System 7 uses diagonal ridges. |
+| **Window box** | The square at the right end of the title bar, the close box's size, three lines inside. A click pulls down the window menu: Theme, Accent, Text size, See-through, Controller highlight, Reset, ZeD setup (`ZeD_WindowMenu.lua`). Replaced the footer's theme, accent and text squares (Oct 26 2026). |
+| **Help line** | The window's footer: one line of plain words for whatever the pointer or the controller is on ("Equip: put it in your hands"), set with `ZeD.Help.set`. With a controller it also shows the button prompts. |
+| **Resize edges** | The bottom edge (height only), the left and right edges (width only) and the bottom corners resize a window. The handle shows after the pointer rests on an edge about 350 ms, so passing over an edge does nothing. |
+| **Band** | The strip at the foot of a card or tab with its answers: status or question on the left, push buttons on the right, the main one last (`M.drawBand`). Verbs live under the item's name; answers live in the band. |
+| **Question band** | The band asking before something that can't be undone: "<Verb> the <thing>? <What is lost>.", Cancel and the verb (danger) (`M.drawQuestionBand`). |
+| **Hidden actions** | Verbs whose tools or ingredients are missing fold into one hint row ("With scissors you could cut your hair."). Setting: Folded (default), Show all, Hide. (`ZeD.Disclose`, `M.drawMoreRow`.) |
+| **See-through** | One alpha for every window surface, 100 to 60 (default 90), with Solid while in use as an option. Fills go through `ZeD.Surface.fill` so layers never stack. |
+| **Controller highlight** | How the controller's focused element is marked: Pointing hand (default), Corner marks, One wash, Marching ants (`ZeD.Focus.mark`; GAMEPAD_SPEC focus rule 4). |
+| **Status bar** | The chunky System 7 strip (About This Macintosh's memory bar): a 1u frame, a solid well, a flat fill, no gloss (`A.drawFillBar`, `drawSegBar{framed}`). Belt slots and the ammo pouch use it too. |
 | **WindowShade** | Double-click the title bar to collapse the window to just the title bar (like rolling up a window shade). Double-click again to expand. |
 | **Groove** | A 1px recessed divider line. Used to separate sections (like between zone blocks in the detail zone). Not a border — a visual pause. |
 | **Disclosure triangle** | A small triangle that rotates to show/hide content. ▶ = collapsed, ▼ = expanded. Progressive disclosure control. |
@@ -134,7 +143,7 @@ The M15 drawDock molecule and its variants.
 | **XFER strip** | A 32px vertical strip between accordion columns. Contains destination buttons (arrow + icon + badge number). Clicking transfers selected items from the active column to the target container. |
 | **Container info header** | The 37px header at the top of each inventory column. Shows container icon + truncated name (left), weight/capacity stats (right), divider line, then sort column strip below. Same layout in single-column and accordion modes. |
 | **MC mode** | Multi-container mode. Active when `#win._mcSelected > 0`. Container waterfall toggles containers (click-to-toggle, no modifier). Drawer expands for column space. Content panel spans drawer+content area. Exits when all extras deselected or tab clicked. Works in both Character and World windows. |
-| **Per-window accent** | Each ZeD_Window can have its own `_accentKey`. ZeD_Window:prerender() swaps 5 ZeD.T accent fields for the render cycle; render() restores. Footer accent dot button cycles per-window. Persisted in ZeD_WinState modData. |
+| **Per-window accent** | Each ZeD_Window can have its own `_accentKey`. ZeD_Window:prerender() swaps 5 ZeD.T accent fields for the render cycle; render() restores. Set from the window box menu's Accent submenu (the footer squares are gone). Persisted in ZeD_WinState modData. |
 | **Placeholder card** | Stub content rendered by `renderPlaceholder()` when a WORLD_TAB_RENDERERS entry is nil. Shows tab heading + groove + "Coming soon". Replaced when real tab content registers (S49+). |
 | **Snap-back** | Drawer mode restoration via `_tabUnder`. When a non-loot tab is active and user clicks an item, drawer swaps to ItemCard and saves the tab id. When item is deselected, drawer snaps back to tab content. |
 | **Tab visibility predicate** | S72 system. A generic function per tab that returns true/false for whether the tab should appear in the strip. Used for contextual World Window tabs (Foraging only visible when conditions met). |
@@ -206,7 +215,8 @@ Terms from Project Zomboid's Lua UI framework that come up in our work.
 | **"No half-baked"** | Every feature ships 100% working or doesn't ship at all. No placeholder UI, no "we'll fix it later." |
 | **"Fresh every frame"** | Components read theme tokens every frame in prerender(). Theme changes are instant, no manual refresh needed. |
 | **"Two voices"** | Monospace for chrome (labels, categories, structure). Sans-serif for content (values, names, descriptions). Never mix them in the same role. |
-| **"Hierarchy through caps and color"** | We don't make headings bigger. We make them UPPERCASE and accent-colored. Same font size throughout. |
+| **"Hierarchy through weight and place"** | We don't make headings bigger or capitalised: sentence case in the heading ink, a structure line under them, same size throughout. No all caps in the windows (director, Oct 26 2026); caps stay only on the hardware props and the HUD pixel faces. `ZeD.textCase` / `ZeD.btnCase` convert caps that arrive at draw time. |
+| **"1993, not the web"** | No pills, segmented pairs, sliding switches, tinted chips, round status dots, left accent bars, breadcrumbs or soft shadows. System 7 controls only: checkbox, radio buttons, pop-up menu, push buttons. Status marks are 6u squares. The one shadow is System 7's hard 1u shadow, on things that pop up over the game (menus, hover boxes, balloons, lists). (`COHESION_SPEC.md` section 1.) |
 
 ---
 
