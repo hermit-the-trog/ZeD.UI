@@ -419,15 +419,31 @@ local function tabPhase(who, get, other, base, tabs)
         S, O = geo(get()), geo(other())
         say(who .. " tabs: on " .. base .. " " .. gstr(S) .. " (other " .. gstr(O) .. ")")
     end)
-    local function rolledGeo(w)
+    -- R: the unrolled geometry the rolled window stands for (the base tab's, or the tab's own)
+    local function rolledGeo(w, R)
+        R = R or S
         local rw = w._rollW or 0
-        return { x = (w._curtain.side == "right") and S.x or (S.x + rw), y = S.y, w = S.w - rw, h = S.h }
+        return { x = (w._curtain.side == "right") and R.x or (R.x + rw), y = R.y, w = R.w - rw, h = R.h }
     end
     for _, id in ipairs(tabs) do
-        local shown
+        local shown, T
+        -- (Oct 26 2026) each tab's drawer has its own width (the Maps toolbar made Maps 65 px wider
+        -- than the rest at 4K): the tab's own unrolled geometry is taken first and is what the
+        -- rolled and unrolled window on that tab must match
         after(2, function()
             shown = hasTab(get(), id)
             if not shown then say("tab " .. id .. " " .. who .. ": not shown here, skipped"); return end
+            clickTabNow(get(), id)
+        end)
+        after(90, function()
+            if not shown then return end
+            T = geo(get())
+            if T.w ~= S.w then say("tab " .. id .. " " .. who .. ": its own width, " .. gstr(T) .. " (" .. base .. " " .. gstr(S) .. ")") end
+            clickTab(get(), base)
+        end)
+        after(90, function()
+            if not shown then return end
+            cmp("tab " .. id .. " reference, back on " .. base, who, geo(get()), S)
             if not rollNow(get()) then check("tab " .. id .. " " .. who .. " roll button", false, "none") end
         end)
         after(40, function()
@@ -440,14 +456,14 @@ local function tabPhase(who, get, other, base, tabs)
             if not shown then return end
             local w = get()
             check("tab " .. id .. " " .. who .. " still rolled on the tab", w._rolled == true and w._activeTab == id, "tab " .. tostring(w._activeTab))
-            cmp("tab " .. id .. " rolled", who, geo(w), rolledGeo(w))
+            cmp("tab " .. id .. " rolled", who, geo(w), rolledGeo(w, T))
             unrollNow(w)
         end)
         after(90, function()
             if not shown then return end
             local w = get()
             check("tab " .. id .. " " .. who .. " unrolled", not w._rolled and rodsInUI() == 0, "rods in UI " .. rodsInUI())
-            cmp("tab " .. id .. " unrolled", who, geo(w), S)
+            cmp("tab " .. id .. " unrolled", who, geo(w), T)
             cmp("tab " .. id .. " unrolled: other", oname, geo(other()), O)
             clickTab(w, base)
         end)

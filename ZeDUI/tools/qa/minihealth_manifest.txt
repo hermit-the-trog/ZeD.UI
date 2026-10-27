@@ -1,0 +1,5 @@
+# ZeDUI/tools/qa/minihealth_manifest.txt  (Oct 26 2026)
+# The game's Character window pages routed to ZeD's (Overrides/CharacterInfo.lua), with Mini Health Panel on:
+# zedqa_mods_run.ps1 -ModList minihealth_mods.txt -Mode fullscreen4k -Manifest .../minihealth_manifest.txt
+zedqa_prelude.lua | pre | timeout=120
+zedqa_charinfo.lua | ci | timeout=180           # the game's keys and Mini Health Panel's click land on ZeD's Character window tabs

@@ -11,10 +11,14 @@
 --      walks the rows (the strip follows focus), A on a greyed row does nothing, A trims
 --   6. Out of reach folds open; the Identity traits' descriptions on focus and hover
 --   7. Large text, Light; the hair mods (Spongie's tag; the picture mods' styles as rows) when on
---   A. the figures (Oct 26 2026, "use game avatars for each style"): every row wholly in view,
---      and Now / After, show the game's 3D figure (no drawn heads left); the figures are a
---      stand-in, the real character never changes; frame time with the list open; the
---      figures leave the window when the tab changes and when the window closes
+--   A. the figures (Oct 26 2026, "use game avatars for each style"): every row in view (also
+--      one the view's edge cuts), and Now / After, show the game's 3D figure (no drawn heads
+--      left); the figures are a stand-in, the real character never changes; frame time with
+--      the list open; the figures leave the window when the tab changes and when the window closes
+--   B. (Oct 26 2026, second pass) the beard list keeps the character's own hair on every figure
+--      and each row's figure wears that row's beard; Now shows in both lists, also with its
+--      frame half scrolled out of the view, and After shows the picked row's result; a woman's
+--      hair list (the QA character made a woman for a few seconds, then put back)
 -- Captures: Zomboid/Screenshots/zqa_hb_<name>.png (each with "rect" lines for crops). grep "ZEDQA hb".
 local TAG = "hb"
 local function say(s) print("ZEDQA " .. TAG .. " " .. tostring(s)) end
@@ -47,6 +51,8 @@ local female = p:isFemale()
 local A_before
 local orig = { hair = hv:getHairModel(), beard = hv:getBeardModel(), na = hv:getNonAttachedHair() }
 local LONG = female and "Long2" or "Fabian"
+-- the character's own hair (the beard part runs with it, not with the long test hair)
+local REAL = (orig.hair and orig.hair ~= "" and orig.hair ~= LONG) and orig.hair or (female and "Bob" or "Short")
 local size, base, accent = ZeD.currentSize, ZeD.currentBase, ZeD.currentAccent
 local given, taken = {}, {}
 local function give(ft) local it = p:getInventory():AddItem(ft); if it then given[#given + 1] = it end; return it end
@@ -94,6 +100,22 @@ local function scrollToRows()
     local maxOff = math.max(1, total - view.h)
     local off = math.floor(sc.scrollPos * maxOff)
     local want = off + (s.top + first.y - view.y)
+    sc:setScrollPos(math.max(0, math.min(1, want / maxOff)))
+end
+-- scroll the tab so a point of the section (dy below the heads' top) sits at the view's top
+local function scrollToHeads(dy)
+    local w, s = win(), st()
+    local sc = w and w._identityScroll
+    if not (sc and sc.visible and s and s.top and s.L) then return end
+    local view = w._identityGridScrollZone
+    if not view then return end
+    local hy
+    for _, it in ipairs(s.L.items) do if it.kind == "heads" then hy = it.y end end
+    if not hy then return end
+    local total = view.h / math.max(0.01, sc.barSizeRatio)
+    local maxOff = math.max(1, total - view.h)
+    local off = math.floor(sc.scrollPos * maxOff)
+    local want = off + (s.top + hy + dy - view.y)
     sc:setScrollPos(math.max(0, math.min(1, want / maxOff)))
 end
 -- scroll the tab so a row (its stop) shows in the middle of the view
@@ -164,19 +186,36 @@ local function figIds()
     for _, f in ipairs(HB.figures(win())) do ids[f.id] = f; n = n + 1 end
     return ids, n
 end
-local function T_HEAD(it) return math.floor(it.h * 0.75) end
--- the Now / After heads wholly in view?
+local HEAD_H = 76   -- the heads' frame (design units, ZeD_HairBeard.lua)
+-- the Now / After frames in the view (any of them past a sliver), and whole?
 local function headsInView()
     local s = st()
-    if not (s and s.L and s.top and s.av and s.av.clip) then return false end
+    if not (s and s.L and s.top and s.av and s.av.clip) then return false, false end
     local c = s.av.clip
+    local fh = ZeD.T.px(HEAD_H)
     for _, it in ipairs(s.L.items) do
         if it.kind == "heads" then
             local y = s.top + it.y
-            return y >= c.y and y + T_HEAD(it) <= c.y + c.h
+            local shown = math.min(y + fh, c.y + c.h) - math.max(y, c.y)
+            return shown >= 12, (y >= c.y and y + fh <= c.y + c.h)
         end
     end
-    return false
+    return false, false
+end
+-- rows the view's edge cuts (12 px or more showing): they show the part of their figure inside
+local function rowsCut()
+    local s, out = st(), {}
+    if not (s and s.L and s.top and s.av and s.av.clip) then return out end
+    local c = s.av.clip
+    for _, it in ipairs(s.L.items) do
+        if it.kind == "row" then
+            local y = s.top + it.y
+            local whole = y >= c.y and y + it.h <= c.y + c.h
+            local shown = math.min(y + it.h, c.y + c.h) - math.max(y, c.y)
+            if not whole and shown >= it.h * 0.6 then out[#out + 1] = it.row end
+        end
+    end
+    return out
 end
 -- every row in view has its figure (and Now, and After when a row that can be done is
 -- picked, when the heads show whole)
@@ -185,6 +224,7 @@ local function figuresAll(what)
     local ids, n = figIds()
     local missing = 0
     for _, r in ipairs(rs) do if not ids[r.key] then missing = missing + 1 end end
+    for _, r in ipairs(rowsCut()) do if not ids[r.key] then missing = missing + 1 end end
     local s = st()
     local headsOk = true
     if headsInView() then
@@ -419,6 +459,20 @@ step(10, function()
     check(ids.now ~= nil and ids.now.look:find("#" .. tostring(hv:getHairModel()) .. "/", 1, true) ~= nil, "the Now head wears the hair now: " .. tostring(ids.now and ids.now.look))
     check(p:getClothingItem_Head() ~= nil, "the cap is still on the real character (only the figures go without it)")
 end)
+-- the heads half scrolled out of the view: Now and After still show, cut by the view's edge
+local function halfHeads() scrollToHeads(math.floor(ZeD.T.px(HEAD_H) / 2)) end
+step(5, function() halfHeads() end)
+until_(10, 60, function()
+    halfHeads()
+    local ids = figIds()
+    return ids.now ~= nil and ids.after ~= nil and (ids.now.cut or 0) > 0
+end, "the heads half out of the view: Now and After show the part inside it")
+step(20, function()
+    local ids = figIds()
+    check(ids.now and ids.now.cut > 0 and ids.after and ids.after.cut > 0, "hair: Now and After cut by the view's edge, not left empty (cut " .. tostring(ids.now and ids.now.cut) .. " px)")
+    shot("heads_cut"); rects("heads_cut")
+end)
+step(10, function() scrollToHair() end)
 step(30, function()
     shot("ready"); rects("ready")
     scrollToRows()
@@ -476,7 +530,8 @@ step(20, function()
     check(hv:getHairModel() == LONG and hv:getNonAttachedHair() == nil, "untied: back to " .. LONG .. " (" .. tostring(hv:getHairModel()) .. ")")
 end)
 
--- 5. the controller path
+-- 5. the controller path (the beard part on the character's own hair)
+step(10, function() setLook(REAL, "Full") end)
 step(20, function()
     local w = win()
     w._identityScroll:setScrollPos(0)
@@ -529,13 +584,76 @@ step(40, function()
     beardKey = r and r.key
     if r then focusId("hb:row:" .. r.key) end
 end)
-until_(10, 60, function() return female or figuresAll("beard") end, "every beard row in view with its figure")
+until_(10, 60, function()
+    if female then return true end
+    scrollToHair()
+    return figuresAll("beard") and headsInView()
+end, "every beard row in view with its figure, and the Now / After heads")
+local function tail(look) return look and look:match("#.*$") end
+-- every beard row in view: the character's own hair, that row's beard
+local function beardRows(what)
+    local ids = figIds()
+    local hair = hv:getHairModel()
+    local n, badH, badB = 0, 0, 0
+    for _, r in ipairs(rowsInView()) do
+        local fr = ids[r.key]
+        if r.part == "beard" and fr then
+            n = n + 1
+            if not fr.look:find("#" .. hair .. "/", 1, true) then badH = badH + 1; say("ERR hair off on " .. r.key .. ": " .. tail(fr.look)) end
+            if not fr.look:find("/" .. tostring(r.style) .. "@S", 1, true) then badB = badB + 1; say("ERR beard off on " .. r.key .. ": " .. tail(fr.look)) end
+        end
+    end
+    check(n > 0 and badH == 0, what .. ": every beard row's figure keeps the character's hair (" .. tostring(hair) .. ", " .. n .. " rows)")
+    check(n > 0 and badB == 0, what .. ": every beard row's figure wears that row's beard (" .. n .. " rows)")
+end
 step(10, function()
     if female then return end
     local ids = figIds()
-    local f = beardKey and ids[beardKey]
-    check(f ~= nil and f.look:find("/" .. tostring(target) .. "@S", 1, true) ~= nil, "the beard row's figure wears that beard: " .. tostring(f and f.look))
+    local hair, curB = hv:getHairModel(), hv:getBeardModel() or ""
+    check(hair == REAL, "the beard list runs on the character's own hair: " .. tostring(hair))
+    beardRows("beard, under the heads")
+    check(ids.now ~= nil and ids.now.look:find("#" .. hair .. "/" .. curB .. "@S", 1, true) ~= nil, "beard: Now shows the character as they are: " .. tostring(ids.now and tail(ids.now.look)))
+    local sel = st().sel
+    check(sel == beardKey, "the focused row is the picked one (" .. tostring(sel) .. ")")
+    check(ids.after ~= nil and ids.after.look:find("#" .. hair .. "/" .. tostring(target) .. "@S", 1, true) ~= nil, "beard: After shows the picked row's result: " .. tostring(ids.after and tail(ids.after.look)))
     shot("pad_beard"); rects("pad_beard")
+end)
+step(5, function() if not female then halfHeads() end end)
+until_(10, 60, function()
+    if female then return true end
+    halfHeads()
+    local ids = figIds()
+    return ids.now ~= nil and ids.after ~= nil and (ids.now.cut or 0) > 0
+end, "beard: the heads half out of the view, Now and After show the part inside it")
+step(20, function()
+    if female then return end
+    local ids = figIds()
+    check(ids.now and ids.now.cut > 0 and ids.after and ids.after.cut > 0, "beard: Now and After cut by the view's edge, not left empty")
+    shot("beard_cut"); rects("beard_cut")
+    for _, f in pairs(ids) do
+        say(string.format("fig %s y %d h %d cut %d zoom %.3f yoff %.4f", tostring(f.id), f.y, f.h, f.cut or 0, f.zoom or -1, f.yoff or -1))
+    end
+    scrollToRows()
+end)
+until_(10, 60, function() if female then return true end; scrollToRows(); return figuresAll("beard rows") end, "beard: the list scrolled, every row in view with its figure")
+step(20, function()
+    if female then return end
+    beardRows("beard, the list")
+    local f = beardKey and figIds()[beardKey]
+    if not f then showRow(beardKey) end
+end)
+step(20, function()
+    if female then return end
+    local f = beardKey and figIds()[beardKey]
+    check(f ~= nil and f.look:find("/" .. tostring(target) .. "@S", 1, true) ~= nil, "the picked beard row's figure wears that beard: " .. tostring(f and tail(f.look)))
+    shot("beard_list"); rects("beard_list")
+    for _, g in pairs(figIds()) do
+        say(string.format("fig %s y %d h %d cut %d zoom %.3f yoff %.4f", tostring(g.id), g.y, g.h, g.cut or 0, g.zoom or -1, g.yoff or -1))
+    end
+    scrollToHair()
+end)
+step(20, function()
+    if female then return end
     local e = beardKey and el("hb:row:" .. beardKey)
     if e then e.onActivate(win(), e) end
 end)
@@ -616,6 +734,17 @@ step(40, function()
 end)
 until_(10, 60, function() scrollToRows(); return figuresAll("after Large and Light") end, "every row in view with its figure")
 step(30, function() if MODS.SpnHairAPI or MODS.improvedhairmenubuild42 or MODS.NeatUI_Hairstyler then shot("mod_rows"); rects("mod_rows") end end)
+-- Spongie's tagged rows in view, for the crop
+local function spongieRow() return MODS.SpnHairAPI and rowWhere(function(r) return r.mod == "SpnHairAPI" end) or nil end
+step(10, function() local t = spongieRow(); if t then showRow(t.key) end end)
+until_(10, 60, function()
+    local t = spongieRow()
+    if not t then return true end
+    showRow(t.key)
+    local ids = figIds()
+    return ids[t.key] ~= nil
+end, "Spongie's tagged row in view with its figure")
+step(30, function() if spongieRow() then shot("spongie_tag"); rects("spongie_tag") end end)
 -- the window closes: the figures go with it; it opens again with them back
 step(10, function() CW.toggleBothPaired(0) end)
 step(30, function()
@@ -630,8 +759,87 @@ until_(10, 90, function()
     return figuresAll("reopened")
 end, "reopened: the figures come back")
 
+-- B. a woman's hair list: the QA character is made a woman for a few seconds (the game's own
+-- flag, body texture and a woman's long hair), the list, Now and After are checked, then she is
+-- put back as she was
+local femSave
+step(10, function()
+    if female then say("the QA character is a woman already: the hair list above was hers"); return end
+    femSave = { f = p:isFemale(), df = p:getDescriptor():isFemale(), skin = hv:getSkinTexture(),
+                hair = hv:getHairModel(), beard = hv:getBeardModel(), na = hv:getNonAttachedHair() }
+    p:setFemale(true)
+    p:getDescriptor():setFemale(true)
+    local sk = tostring(femSave.skin or ""):gsub("^Male", "Female")
+    if sk ~= "" then hv:setSkinTextureName(sk) end
+    hv:setNonAttachedHair(nil)
+    hv:setHairModel("Long2")
+    hv:setBeardModel("")
+    p:resetModel()
+    local w = win(); if w then w._identityCache = nil end
+    refresh()
+    HB.setPart(w, "hair")
+    say("made a woman for the check: " .. tostring(p:isFemale()) .. ", skin " .. tostring(hv:getSkinTexture()))
+end)
+until_(10, 90, function()
+    if not femSave then return true end
+    scrollToHair()
+    local s = st()
+    return s.female == true and s.part == "hair" and #(s.rows or {}) > 0 and figuresAll("a woman") and headsInView()
+end, "a woman: her hair rows and Now show")
+step(10, function()
+    if not femSave then return end
+    local s, ids = st(), figIds()
+    check(s.female == true and (s.counts.beard or 0) == 0, "a woman: no beard half (" .. tostring(s.counts.beard) .. " beard rows)")
+    check(s.av and s.av.desc and s.av.desc:isFemale(), "a woman: the figures' stand-in is a woman")
+    local bad = 0
+    for _, r in ipairs(s.rows) do
+        if r.style and r.style ~= "" and getHairStylesInstance():FindFemaleStyle(r.style) == nil then bad = bad + 1; say("ERR not a woman's style: " .. tostring(r.style)) end
+    end
+    check(bad == 0, "a woman: every row is one of the game's women's styles (" .. #s.rows .. " rows)")
+    check(ids.now ~= nil and ids.now.look:find("#Long2/", 1, true) ~= nil, "a woman: Now wears her hair: " .. tostring(ids.now and ids.now.look:match("#.*$")))
+    local cut = rowWhere(function(r) return r.grp == "Cut" end)
+    s.sel = cut and cut.key
+    target = cut and cut.style
+end)
+until_(10, 60, function()
+    if not femSave then return true end
+    scrollToHair()
+    local ids = figIds()
+    return ids.after ~= nil
+end, "a woman: After shows the picked cut")
+step(10, function()
+    if not femSave then return end
+    local ids = figIds()
+    check(ids.after ~= nil and ids.after.look:find("#" .. tostring(target) .. "/", 1, true) ~= nil, "a woman: After wears the picked cut: " .. tostring(ids.after and ids.after.look:match("#.*$")))
+    shot("female_heads"); rects("female_heads")
+    st().sel = nil
+    scrollToRows()
+end)
+until_(10, 60, function() if not femSave then return true end; scrollToRows(); return figuresAll("a woman's list") end, "a woman's list: every row in view with its figure")
+step(30, function() if femSave then shot("female_list"); rects("female_list") end end)
+local function unWoman()
+    if not femSave then return end
+    p:setFemale(femSave.f)
+    p:getDescriptor():setFemale(femSave.df)
+    if femSave.skin then hv:setSkinTextureName(femSave.skin) end
+    hv:setHairModel(femSave.hair)
+    hv:setBeardModel(femSave.beard)
+    hv:setNonAttachedHair(femSave.na)
+    p:resetModel()
+    femSave = nil
+end
+step(10, function()
+    if not femSave then return end
+    unWoman()
+    refresh()
+end)
+step(30, function()
+    check(p:isFemale() == female and p:getDescriptor():isFemale() == female, "the QA character is put back: female " .. tostring(p:isFemale()) .. ", skin " .. tostring(hv:getSkinTexture()))
+end)
+
 -- put everything back
 step(20, function()
+    pcall(unWoman)
     park()
     pcall(F.releaseFocus)
     pcall(pointAt, nil)

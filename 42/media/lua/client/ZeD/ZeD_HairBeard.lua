@@ -528,14 +528,22 @@ end
 -- covers the head) copied into a stand-in SurvivorDesc with the row's hair or
 -- beard on it; the real character is never touched (the model copies the desc
 -- when it is set). A 3D figure cannot sit in a stencilled panel, so the figures
--- are window children laid over the frames this section draws, only for frames
--- wholly inside the view, from a small pool that grows to what shows. A layer
+-- are window children laid over the frames this section draws (a frame cut by
+-- the view's edge shows the part of its figure inside the view: the figure's
+-- own camera does the cut), from a small pool that grows to what shows. A layer
 -- above them dims the greyed rows' figures and repeats the hover balloon. The
 -- figures go (removed from the window) the first frame the section is not drawn.
 -- ---------------------------------------------------------------------------
-local AV_ZOOM, AV_YOFF = 17, -0.86            -- head and shoulders, the same for every figure
+local AV_ZOOM, AV_YOFF = 17, -0.86            -- head and shoulders: hair rows, Now and After
+local AV_ZOOM_BEARD, AV_YOFF_BEARD = 18.5, -0.83   -- beard rows: closer on the lower face, so the beard reads
 local AV_DIR = IsoDirections.SE                -- hair: a slight turn, so ties and tails read and the face shows
 local AV_DIR_BEARD = IsoDirections.S           -- beard: face on, so long hair does not hide it
+-- The game's figure camera (UI3DModel, not isometric): an orthographic view 2 * (25 - zoom) / sqrt(2048)
+-- world units tall, centred in the element, the figure moved by the y offset. A frame cut by the
+-- view's edge gets a figure element only as tall as the part that shows, with the zoom and the
+-- offset scaled so the figure stays where the whole frame would draw it: the cut is the camera's.
+local AV_CAM, AV_S = 25, math.sqrt(2048)
+local AV_MIN_H = 6                             -- a sliver shorter than this shows no figure
 local AV_MAX, AV_DRESS_PER_FRAME = 40, 6       -- pool cap; new looks set per frame (each builds a model)
 local AV_DIM = 0.55                            -- the veil over a greyed row's figure
 
@@ -694,7 +702,29 @@ end
 Events.OnPreUIDraw.Add(preUI)
 
 
--- this frame's figures: wants = { { id, x, y, w, h, hair, beard, dim } } in the panel's coordinates
+-- a figure over its frame: the whole frame, or the part of it inside the view (ct / cb: the
+-- pixels cut at the top / bottom), framed by the camera as the whole frame would be
+local function fitFigure(m, w, ox, oy)
+    local z0 = w.close and AV_ZOOM_BEARD or AV_ZOOM
+    local yo = w.close and AV_YOFF_BEARD or AV_YOFF
+    local ct, cb = w.ct or 0, w.cb or 0
+    local h = w.h - ct - cb
+    local z = z0
+    if ct > 0 or cb > 0 then
+        local size = AV_CAM - z0
+        z = AV_CAM - size * h / w.h
+        yo = yo + (ct - cb) * size / (w.h * AV_S)
+        if yo == 0 then yo = 0.0001 end   -- (0 means the game's own default offset)
+    end
+    if m._z ~= z then m:setZoom(z); m._z = z end
+    if m._yo ~= yo then m:setYOffset(yo); m._yo = yo end
+    m:setX(ox + w.x); m:setY(oy + w.y + ct)
+    if m:getWidth() ~= w.w then m:setWidth(w.w) end
+    if m:getHeight() ~= h then m:setHeight(h) end
+    m._cut = ct + cb
+end
+
+-- this frame's figures: wants = { { id, x, y, w, h, hair, beard, dim, face, close, ct, cb } } in the panel's coordinates
 local function placeFigures(panel, win, st, wants)
     local av = avState(st)
     local p = win._playerObj
@@ -736,9 +766,7 @@ local function placeFigures(panel, win, st, wants)
         local m = w.m
         if m then
             m._id = w.id
-            m:setX(ox + w.x); m:setY(oy + w.y)
-            if m:getWidth() ~= w.w then m:setWidth(w.w) end
-            if m:getHeight() ~= w.h then m:setHeight(w.h) end
+            fitFigure(m, w, ox, oy)
             setShown(m, true)
             if w.dim then av.veils[#av.veils + 1] = w end
         end
@@ -761,7 +789,7 @@ function HB.figures(win)
     if not av then return out end
     for _, m in ipairs(av.pool) do
         if m._id and m:isVisible() and m.javaObject:isVisible() then
-            out[#out + 1] = { id = m._id, model = m, x = m:getX(), y = m:getY(), w = m:getWidth(), h = m:getHeight(), look = m._look }
+            out[#out + 1] = { id = m._id, model = m, x = m:getX(), y = m:getY(), w = m:getWidth(), h = m:getHeight(), look = m._look, cut = m._cut or 0, zoom = m._z, yoff = m._yo }
         end
     end
     return out
@@ -920,11 +948,14 @@ local function lenBar(panel, x, y, level, col, dim)
     return 3 * bw + 2 * gap
 end
 
--- a figure for this frame when its frame shows whole in the view
-local function want(wants, view, id, x, y, w, h, hair, beard, dim, face)
-    if y < view.y0 or y + h > view.y1 then return end
-    wants[#wants + 1] = { id = id, x = x + 1, y = y + 1, w = w - 2, h = h - 2, hair = hair or "", beard = beard or "",
-                          dim = dim, face = face }
+-- a figure for this frame when any of its frame shows in the view (a frame cut by the view's
+-- edge gets the part of the figure inside it: fitFigure)
+local function want(wants, view, id, x, y, w, h, hair, beard, dim, face, close)
+    local fy0, fy1 = y + 1, y + h - 1
+    local ct, cb = math.max(0, view.y0 - fy0), math.max(0, fy1 - view.y1)
+    if (fy1 - fy0) - ct - cb < AV_MIN_H then return end
+    wants[#wants + 1] = { id = id, x = x + 1, y = fy0, w = w - 2, h = h - 2, hair = hair or "", beard = beard or "",
+                          dim = dim, face = face, close = close, ct = ct, cb = cb }
 end
 
 local function drawHeads(panel, win, st, it, y, wants, view)
@@ -1113,7 +1144,7 @@ local function drawRow(panel, win, st, it, y, mx, my, wants, view)
     local fx, fy = it.x + tp, y + math.floor((it.h - ts) / 2)
     drawFrame(panel, fx, fy, ts, ts)
     local h2, b2 = headLook(st, win._playerObj, r)
-    want(wants, view, r.key, fx, fy, ts, ts, h2, b2, (r.out or not r.ok) and true or false, r.part == "beard")
+    want(wants, view, r.key, fx, fy, ts, ts, h2, b2, (r.out or not r.ok) and true or false, r.part == "beard", r.part == "beard")
     local nx = fx + ts + T.px(10)
     local nw = rx - T.px(8) - nx
     panel:drawText(ZeD.Atoms.truncateText(r.label, T.fontF2, nw), nx, y + math.floor((it.h - F(2)) / 2),
