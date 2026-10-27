@@ -823,6 +823,7 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp, ammo, two)
     end
     x = x + px(END_GAP)
     local strapX = x
+    x = x + px(PAD)                       -- the slots sit PAD in from the strap's end (the buckle's place counts it)
     -- the buckle's place is its art at the whole zoom (58 x 40 texels at T.art; Oct 21 2026)
     local buckW, buckH = BUCKLE_W * T.art, BUCKLE_H * T.art
     for i = 1, n do
