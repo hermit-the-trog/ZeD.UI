@@ -69,7 +69,7 @@ step(120, function()
 end)
 step(30, function()
     local W = vwin("traits")
-    if W then W.scroll = 100000; pcall(function() W._traitScroll = 100000 end) end
+    if W and type(W.scroll) == "table" then for c = 1, 3 do W.scroll[c] = 100000 end end   -- (each column's scroll; ZeD clamps it)
 end)
 step(40, function() shot("7_traits_scrolled") end)
 step(30, function() vwin("traits"):next() end)

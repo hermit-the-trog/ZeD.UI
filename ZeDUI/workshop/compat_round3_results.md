@@ -23,10 +23,10 @@ Lists, as in the Compatibility thread (`steam_threads/compat_v3/README.md`): **S
 |---|---|
 | Supported | 0 |
 | Works well | 2 |
-| Compatible | 49 |
-| Not needed | 11 |
+| Compatible | 83 |
+| Not needed | 12 |
 | Does not work | 1 |
-| Tested in all | 63 |
+| Tested in all | 98 |
 | Not tested | 1 |
 
 
@@ -108,6 +108,48 @@ Reports: qa/regression/2026-10-26_1939_mods_fullscreen4k.md (13/13 pass); main m
 | Pixel Strike Indicator & Health Bar | [3793657917](https://steamcommunity.com/sharedfiles/filedetails/?id=3793657917) | 2 | Compatible | Loads, no errors. |
 | Mattnetic's Heart Health Meter [B42] | [3805849470](https://steamcommunity.com/sharedfiles/filedetails/?id=3805849470) | 2 | Compatible | Loads (its log: compatibility renderer installed), no errors. |
 | Wound Expansion | [3819438691](https://steamcommunity.com/sharedfiles/filedetails/?id=3819438691) | 2 | Compatible | Base mod only (its ZombieBuddy add-on left out). Part of it does not show: its wound details are on the game's health panel, which ZeD's Health tab replaces (by reading its code). |
+
+### Group C
+
+Reports: qa/regression/2026-10-26_2009_mods_fullscreen4k.md (8/8 pass; an earlier run at 19:54 stalled when the game was minimized by another program and is not graded); main menu: zedqa_r3_menu.lua 20:18
+
+| Mod | Workshop id | Tier | List | Evidence |
+|---|---|---|---|---|
+| Evolving Traits World (ETW) + More Traits continuation | [2914075159](https://steamcommunity.com/sharedfiles/filedetails/?id=2914075159) | 1 | Compatible | Loads, no errors. Part of it does not show: its trait progress page is added to the game's character window, which ZeD replaces (by reading its code: xpUpdate.characterInfo). Its traits are in ZeD's trait list. |
+| Efficiency Skill Mod 2 | [3374408921](https://steamcommunity.com/sharedfiles/filedetails/?id=3374408921) | 1 | Compatible | Its Efficiency skill is in ZeD's starting skills on the occupation screen (seen). Efficiency Skill Mod 2 sub-mod (Legacy left out). |
+| [B41/B42] Toughness Skill | [3545533939](https://steamcommunity.com/sharedfiles/filedetails/?id=3545533939) | 1 | Compatible | Loads, no errors (skill). |
+| RPGSkillTree[42.13][SP] | [3621388762](https://steamcommunity.com/sharedfiles/filedetails/?id=3621388762) | 1 | Compatible | Its full-screen skill tree opens through its own open (pauses the game, as it does without ZeD) and closes back to ZeD's windows (seen, C_rpg_skill_tree.jpg). Some of its labels show as text keys (UI_RPG_Status): its own. |
+| Yaki's Hair Salon | [2761200458](https://steamcommunity.com/sharedfiles/filedetails/?id=2761200458) | 2 | Compatible | Loads, no errors (with Fluffy Hair). |
+| First Aid VHS Tapes | [3153010942](https://steamcommunity.com/sharedfiles/filedetails/?id=3153010942) | 2 | Compatible | Loads, no errors. |
+| Ellie's Tattoo Parlor V4 b41/b42 | [2735059209](https://steamcommunity.com/sharedfiles/filedetails/?id=2735059209) | 2 | Compatible | Loads, no errors. |
+| +300 Points Trait | [899287010](https://steamcommunity.com/sharedfiles/filedetails/?id=899287010) | 2 | Compatible | Its points show in ZeD's occupation screen title (seen). |
+| RYG Progress Indicator | [3220040578](https://steamcommunity.com/sharedfiles/filedetails/?id=3220040578) | 2 | Not needed | Textures for the game's action progress bar; ZeD's action bar shows progress (expected). |
+| Defecation v3.59 (Build 42.20mp+) | [1436878551](https://steamcommunity.com/sharedfiles/filedetails/?id=1436878551) | 2 | Compatible | Loads, no errors (its windows not opened). |
+| True Smoking [B42MP] | [3423984426](https://steamcommunity.com/sharedfiles/filedetails/?id=3423984426) | 2 | Compatible | Loads, no errors; its moodles go through Moodle Framework (game's old place at the right edge, expected). |
+| SixthSense | [2863908612](https://steamcommunity.com/sharedfiles/filedetails/?id=2863908612) | 2 | Compatible | Loads, no errors. |
+| Somewhat Traits | [3498347699](https://steamcommunity.com/sharedfiles/filedetails/?id=3498347699) | 2 | Compatible | Its traits are in ZeD's trait list (seen). Core + Traits sub-mods. |
+| [B42] OSRS Exp Drops | [3391145494](https://steamcommunity.com/sharedfiles/filedetails/?id=3391145494) | 2 | Compatible | Its XP bar shows at the top right below ZeD's watch (census ISExpBar 3440,200). |
+| [B42] OSRS XP Drops Retextured | [3413529369](https://steamcommunity.com/sharedfiles/filedetails/?id=3413529369) | 2 | Compatible | Loads with OSRS Exp Drops, no errors. |
+| Neon moodle levels | [3392116408](https://steamcommunity.com/sharedfiles/filedetails/?id=3392116408) | 2 | Compatible | Part of it does not show: its level colours are for Moodles in lua's drawing (expected). |
+|  Hephas Occupations and Traits | [3256482412](https://steamcommunity.com/sharedfiles/filedetails/?id=3256482412) | 2 | Compatible | Loads on 42.21 without the B41 Profession Framework (its mod.info does not ask for it), no errors. Its 20 occupations replace the game's in ZeD's occupation list (seen; its WithVanillaProfessions sub-mod keeps the game's). |
+| Combat Traits | [3427091746](https://steamcommunity.com/sharedfiles/filedetails/?id=3427091746) | 2 | Compatible | Its traits are in ZeD's trait list. Core + Traits sub-mods. |
+| Become Desensitized [B42.20 Stable Unofficial SP/MP] | [3738669352](https://steamcommunity.com/sharedfiles/filedetails/?id=3738669352) | 2 | Compatible | Loads, no errors. |
+| Adaptive Traits | [3622328997](https://steamcommunity.com/sharedfiles/filedetails/?id=3622328997) | 2 | Compatible | Loads, no errors. |
+| Skill Book Expansion | [3557111695](https://steamcommunity.com/sharedfiles/filedetails/?id=3557111695) | 2 | Compatible | Loads, no errors. |
+| Exp Recovery for Skill Books | [2923554542](https://steamcommunity.com/sharedfiles/filedetails/?id=2923554542) | 2 | Compatible | Part of it does not show: its marks are for the game's skill page (by reading its code: ISSkillProgressBar). |
+| Working Knowledge - Lootable Skill Documents | [3717099183](https://steamcommunity.com/sharedfiles/filedetails/?id=3717099183) | 2 | Compatible | Loads, no errors. |
+| Practice Crafting Skills | [3765795716](https://steamcommunity.com/sharedfiles/filedetails/?id=3765795716) | 2 | Compatible | Loads, no errors. Base sub-mod. |
+| Eat Smart | [3456212729](https://steamcommunity.com/sharedfiles/filedetails/?id=3456212729) | 2 | Compatible | Loads, no errors; its food rows come through the game's item menu. |
+| Challenge Traits - Headshots, CDDA, and More [42.21 Stable] | [3634630898](https://steamcommunity.com/sharedfiles/filedetails/?id=3634630898) | 2 | Compatible | Loads, no errors. |
+| This Is Me - More Character Traits | [3806020504](https://steamcommunity.com/sharedfiles/filedetails/?id=3806020504) | 2 | Compatible | Its traits are in ZeD's Traits tab (zedqa_traits.lua passed with it). Part of it does not show: its read-tooltip lines wrap ISToolTipInv.render at load (ZeD bug 1). |
+| The Psychopath Trait [B42.20+ SP/MP] | [3736555309](https://steamcommunity.com/sharedfiles/filedetails/?id=3736555309) | 2 | Compatible | One error of its own at load on 42.21: a recipe input LabItems.LabSmallRandomHumanBones not found (a script line, before any UI). Otherwise loads. |
+| [B42] Mastered Traits | [3423601261](https://steamcommunity.com/sharedfiles/filedetails/?id=3423601261) | 2 | Compatible | Loads, no errors. MasteredT-20 sub-mod. |
+| Become Brave [B42.20 Stable Unofficial SP/MP] | [3738660077](https://steamcommunity.com/sharedfiles/filedetails/?id=3738660077) | 2 | Compatible | Loads, no errors. |
+| Gyde's Trait Magazines Extended+ | [3776852122](https://steamcommunity.com/sharedfiles/filedetails/?id=3776852122) | 2 | Compatible | Loads with Gyde's Trait Magazines, no errors. |
+| Football & Shoving [SP & MP] | [3750861914](https://steamcommunity.com/sharedfiles/filedetails/?id=3750861914) | 2 | Compatible | Its NFL Player occupation is in ZeD's occupation list (seen). Football sub-mod. |
+| Martial Arts - Version 2 | [3812456765](https://steamcommunity.com/sharedfiles/filedetails/?id=3812456765) | 2 | Compatible | Its Martial Arts skill is in ZeD's Skills tab (seen, C_skills_martial_arts.jpg); its style window button is on the game's left side bar (by reading its code). |
+| Instinctive Hearing [B42] | [3789584579](https://steamcommunity.com/sharedfiles/filedetails/?id=3789584579) | 2 | Compatible | Base mod only (its outline add-on needs ZombieBuddy). Loads, no errors. |
+| [B41/B42] /bin/'s Profession and Skill Based Starting Items | [2974652138](https://steamcommunity.com/sharedfiles/filedetails/?id=2974652138) | 3 | Compatible | Loads, no errors. |
 
 ## Not tested, and why
 
