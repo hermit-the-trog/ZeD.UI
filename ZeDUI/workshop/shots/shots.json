@@ -1,5 +1,5 @@
 {
- "note": "Workshop gallery v4 (Oct 21 2026): the Fossoil story, from Screenshots/gallery_v3 (INVENTORY.md, STORY and Desk sections) and the batch-2 captures in Screenshots (zed_6x-8x). Older sets: out/_v1_oct20, out/_v2_oct21, out/_v3_oct21 (with shots_v3.json). Build: py -I ZeDUI/tools/release/make_shots.py ZeDUI/workshop/shots/shots.json (--debug shows anchors). Oct 22: shots.json is edited directly now (build_spec_v4.py is retired: it rebuilt the list from an Oct 21 scratch file and dropped later cards). Oct 25: seven cards for 0.2.0-t4 (dashboards, bubbles, messages, sandbox_ingame, mod_settings, file_picks, turn_off) from Screenshots/workshop_src/g4_*; the t3 set is in out/_v5_oct24_t3.",
+ "note": "Workshop gallery v4 (Oct 21 2026): the Fossoil story, from Screenshots/gallery_v3 (INVENTORY.md, STORY and Desk sections) and the batch-2 captures in Screenshots (zed_6x-8x). Older sets: out/_v1_oct20, out/_v2_oct21, out/_v3_oct21 (with shots_v3.json). Build: py -I ZeDUI/tools/release/make_shots.py ZeDUI/workshop/shots/shots.json (--debug shows anchors). Oct 22: shots.json is edited directly now (build_spec_v4.py is retired: it rebuilt the list from an Oct 21 scratch file and dropped later cards). Oct 25: seven cards for 0.2.0-t4 (dashboards, bubbles, messages, sandbox_ingame, mod_settings, file_picks, turn_off) from Screenshots/workshop_src/g4_*; the t3 set is in out/_v5_oct24_t3. Oct 26: 0.2.0-t6 reshoot (old_job with Hair and beard, the route with the map key, open for business and inventory compare with read marks, options with the five switches); the t5 set is in out/_v7_oct26_t6, the old raws in gallery_v3/_before_oct26_t6.",
  "screens": "C:/Users/danie/Zomboid/Screenshots/gallery_v3",
  "out": "out",
  "patches": [
@@ -67,114 +67,141 @@
    "title": "Old job",
    "caption": "Angel pumped gas at the Fossoil. Six days in, Mechanics is at 7 and Welding at 6; Cooking is still 2.",
    "layout": {
-    "fill": 0.96,
-    "gap": 56
+    "center": false
    },
    "crops": [
     {
      "box": [
-      716,
+      902,
       0,
-      1618,
-      1280
+      1800,
+      1050
      ],
-     "tag": "IDENTITY"
+     "tag": "IDENTITY",
+     "place": [
+      470,
+      180,
+      449
+     ]
+    },
+    {
+     "src": "story_00c_identity_traits.png",
+     "box": [
+      902,
+      1222,
+      1800,
+      1732
+     ],
+     "place": [
+      470,
+      725,
+      449
+     ]
     },
     {
      "src": "story_00b_skills_tall.png",
      "box": [
-      716,
+      902,
       0,
-      1618,
-      1280
+      1800,
+      1250
      ],
-     "tag": "SKILLS"
+     "tag": "SKILLS",
+     "place": [
+      990,
+      180,
+      449
+     ]
     }
    ],
    "balloons": [
     {
      "text": "A mechanic, six days in, 23 zombies killed.",
      "anchor": [
-      1072,
+      1258,
       554
      ],
      "side": "left",
      "crop": 0,
-     "at": [
-      24,
-      430
-     ],
      "maxw": 290
+    },
+    {
+     "text": "Hair and beard: every cut, style and shave the game offers, on your own character.",
+     "anchor": [
+      984,
+      880
+     ],
+     "side": "left",
+     "crop": 0,
+     "maxw": 290,
+     "target": [
+      982,
+      822,
+      1762,
+      1048
+     ]
     },
     {
      "text": "Good traits in green.",
      "anchor": [
-      798,
-      895
+      990,
+      1376
      ],
      "side": "left",
-     "crop": 0,
-     "at": [
-      24,
-      650
-     ],
+     "crop": 1,
      "maxw": 290
     },
     {
      "text": "Bad ones in red.",
      "anchor": [
-      798,
-      1109
+      990,
+      1590
      ],
      "side": "left",
-     "crop": 0,
-     "at": [
-      24,
-      800
-     ],
+     "crop": 1,
      "maxw": 290
     },
     {
      "text": "Mechanics up to 7, Welding to 6.",
      "anchor": [
-      1186,
-      742
+      1200,
+      754
      ],
      "side": "right",
-     "crop": 1,
+     "crop": 2,
+     "maxw": 290,
      "at": [
-      1556,
-      572
-     ],
-     "maxw": 290
+      1490,
+      470
+     ]
     },
     {
      "text": "Others still at 1 to 3.",
      "anchor": [
-      1571,
-      872
+      1760,
+      870
      ],
      "side": "right",
-     "crop": 1,
+     "crop": 2,
+     "maxw": 290,
      "at": [
-      1556,
-      705
-     ],
-     "maxw": 290
+      1490,
+      610
+     ]
     },
     {
      "text": "XP boosts beside the level.",
      "anchor": [
-      1586,
-      1072
+      1712,
+      1070
      ],
      "side": "right",
-     "crop": 1,
+     "crop": 2,
+     "maxw": 290,
      "at": [
-      1556,
-      845
-     ],
-     "maxw": 290
+      1490,
+      750
+     ]
     }
    ]
   },
@@ -257,9 +284,9 @@
    "crops": [
     {
      "box": [
-      2620,
+      2630,
       0,
-      3560,
+      3612,
       735
      ]
     }
@@ -268,15 +295,15 @@
     {
      "text": "Flyers you have read put a pin on the map at the place they name.",
      "anchor": [
-      3061,
-      424
+      3096,
+      428
      ],
      "side": "left"
     },
     {
      "text": "Hover a pin to see the flyer. Click it to read the flyer again.",
      "anchor": [
-      3436,
+      3470,
       480
      ],
      "side": "right"
@@ -284,10 +311,23 @@
     {
      "text": "These buttons pick the map style: survey, color or paper.",
      "anchor": [
-      3300,
-      74
+      3363,
+      97
      ],
      "side": "top"
+    },
+    {
+     "text": "The key button shows the game's map key over the map.",
+     "anchor": [
+      3201,
+      97
+     ],
+     "side": "top",
+     "at": [
+      560,
+      104
+     ],
+     "maxw": 600
     }
    ]
   },
@@ -1155,7 +1195,8 @@
       3320,
       735
      ],
-     "tag": "ZeD-GUI"
+     "tag": "ZeD-GUI",
+     "src": "zed_01_hero_mid_t6.png"
     }
    ],
    "balloons": [
@@ -2552,8 +2593,8 @@
     {
      "text": "Theme, accent, text size and scale.",
      "anchor": [
-      1440,
-      456
+      1446,
+      454
      ],
      "crop": 0,
      "side": "left",
@@ -2561,6 +2602,20 @@
      "at": [
       40,
       280
+     ]
+    },
+    {
+     "text": "On / off switches for what the game does not do by itself.",
+     "anchor": [
+      1446,
+      1050
+     ],
+     "crop": 0,
+     "side": "left",
+     "maxw": 210,
+     "at": [
+      40,
+      500
      ]
     },
     {
