@@ -1,0 +1,53 @@
+[h2]Compatible: vehicle packs[/h2]
+Sorted by make, then model. Each pack's cars were spawned and driven one by one: ZeD's dashboard shows on each (a generic design, as for any car ZeD has no drawing of) and its Vehicle tab lists every part. The '85 Chevrolet Step-Van and the '93 Elgin Street Sweeper were on in the Oct 24 test and not driven. U.S. M113 APC: its Vehicle tab works; its dashboard was not checked (the test could not seat a driver in it).
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2897390033]'97 ADI Bushmaster[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2799152995]'78 AM General M35 Series Trucks[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2811383142]'83 AM General M923[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2642541073]'92 AM General M998 + M101A3 Cargo trailer[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3402812859]Autotsar Bus B42[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3404737883]Autotsar Motor Club B42[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3402493701]Autotsar Trailers B42[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3110913021]'90 BMW 3 Series (E30)[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2478247379]'67 Cadillac Gage Commando[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2772575623]'59 Cadillac Miller-Meteor + ECTO-1[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3670064951]Campers![/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2991201484]'69 Chevrolet Camaro[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2886832936]'88 Chevrolet S10[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3614034284]'85 Chevrolet Step-Van[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3152529790]'93 Chevrolet Suburban / Silverado[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3775809123]Dash Roamer [B42][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2873290424]'70 Dodge Challenger[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2900580391]'49 Dodge Power Wagon Crew Cab[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3683878228][B42.19] Filibuster Rhymes' Certified Used Cars[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3110911330]'87 Ford B700/F700 Trucks[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2886833398]'89 Ford Bronco[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2969343830]'93 Ford CF8000 Elgin Street Sweeper[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2962175696]'92 Ford Crown Victoria[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2870394916]'86 Ford Econoline E-150 + Pop Culture vans[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3073430075]'93 Ford F-Series[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2952802178]'90 Ford F350 Ambulance[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3001592312]'93 Ford Mustang[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2932549988]'89 Isuzu Trooper[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2886832257]'82 Jeep J10[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2932547723]'93 Lincoln Town Car + Limo[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2805630347]'84 Mercedes Benz W460[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2843855721]'90 Mercedes-Benz Unimog U1550L[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2937786633]'69 Mini Mk2[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2846036306]'92 NISSAN Skyline GT-R (R32)[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2618213077]'82 Oshkosh M911 + Military Semi-Trailers[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2566953935]'86 Oshkosh P19A + Military Trailers[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2942793445]'90 Pierce Arrow Pumper and Ladder Trucks[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2913633066]'70 Plymouth Barracuda[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3379334330]'82 Porsche 911[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2409333430]'91 RANGE ROVER Classic[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3026723485]'67 Shelby GT500 + Eleanor[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2791656602][B42/B41] The Motorious Zone Vehicle Pack[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3330403100]Trailers![/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2705655822]U.S. M113 APC[/url] by Papa_Chad
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3554424111]U.S. M998 Humvee by Papa_Chad[/url]: Needs Military Tool Kit, which the mod does not list: without it the Humvee spawns with errors and cannot be driven. Not ZeD.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3409723807][B42] UH-1B Helicopter (Beta)[/url]: Needs Aviation Core.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3005903549]'63 Volkswagen 1300 Beetle[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3041122351]'63 Volkswagen Type 2 Van[/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3409472393]W900 Semi-Truck [B42][/url]
+[/list]

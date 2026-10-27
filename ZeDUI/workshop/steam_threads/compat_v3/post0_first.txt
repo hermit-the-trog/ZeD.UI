@@ -1,0 +1,31 @@
+TITLE: Compatibility with other mods
+
+This thread lists the mods tested with ZeD-GUI, sorted into five lists. Each list is in alphabetical order. Last updated Oct 26 2026.
+
+[h2]Where each list is[/h2]
+Steam cannot link to a reply, so count the replies from the top of the thread.
+[list]
+[*][b]Reply 1: Supported, and Works well with ZeD.[/b] Supported: ZeD-GUI has its own support for the mod, so its features show in ZeD's windows (11 mods). Works well: the mod fills a gap or shows well in ZeD's windows; worth having (5).
+[*][b]Replies 2, 3 and 4: Compatible[/b], in three parts: 0-9 and A to H, I to Q, R to Z. Loads and works with ZeD-GUI, nothing special (132).
+[*][b]Reply 5: Compatible, vehicle packs[/b] (39).
+[*][b]Reply 6: Not needed with ZeD, then Does not work.[/b] Not needed: ZeD-GUI already does the job, so use one of the two; the makers are credited there (17). Does not work: no mod tested so far clashes with ZeD-GUI; these are broken on 42.21 by themselves (6).
+[/list]
+
+[h2]How the mods were tested[/h2]
+[list]
+[*]Project Zomboid 42.21, single player, ZeD-GUI loaded after the other mods. Every error in the game's log was checked for the mod that made it.
+[*]Oct 24 2026, ZeD-GUI 0.2.0-t3 and t4, a 1920x1080 window: 124 Workshop items (128 mods) on at once. A save loaded with all of them, then ZeD-GUI's own tests ran (66 of 73 before the game ran out of memory); 62 of the 66 passed as they do without other mods.
+[*]Oct 25 2026, ZeD-GUI 0.2.0-t5, 3840x2160 at UI scale 1.75: 48 more mods on at once with ZeD-GUI's whole test run (80 tests, passing as they do without other mods), and 37 vehicle packs, 76 of their cars spawned and driven one by one.
+[*]Oct 26 2026: each mod ZeD-GUI 0.2.0-t6 supports, on by itself, with ZeD-GUI's tests for that support.
+[*]Each mod's own features were [b]not[/b] tried one by one. A note marked [i](expected)[/i] comes from how the mod works, and one marked [i](by reading its code)[/i] from its code, not from a test.
+[/list]
+
+[h2]Help in ZeD-GUI for long mod lists[/h2]
+[list]
+[*]Notes and errors other mods show at game start go into ZeD-GUI's Messages window instead of covering the game, and a mod that pauses the game for its note no longer leaves it paused.
+[*]In Mods, a mod's About tab says what turning it off does to a save (safe, careful or not safe, and why). In a save's own mod list, turning off a mod that is not safe asks first.
+[*]When two mods ship the same code file, the Conflicts tab can pick whose copy the game runs, file by file (single player). For example, GaelGunStore-Firearms and Modern Firearms System share 13 files.
+[/list]
+
+[h2]To add a mod to the list[/h2]
+Reply with the mod's name, its Workshop link, the ZeD-GUI version, and what happened: it works, part of it does not show (say which), or it does not work. For an error, the Bug reports thread says what to include.

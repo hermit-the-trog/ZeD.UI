@@ -1,0 +1,18 @@
+VERSION = 1,
+
+mods
+{
+    mod = ChuckleberryFinnAlertSystem,
+    mod = errorMagnifier,
+    mod = SkillRecoveryJournal,
+    mod = DRAW_ON_MAP,
+    mod = MapSymbolSizeSlider,
+    mod = POM,
+    mod = BLTAnnotations,
+    mod = BB_WhereAmI,
+    mod = ZeD_UI,
+}
+
+maps
+{
+}

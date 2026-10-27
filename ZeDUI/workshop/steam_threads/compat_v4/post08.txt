@@ -1,0 +1,52 @@
+[h2]Compatible, Si to To (part 7 of 8)[/h2]
+Loaded with ZeD-GUI, no errors of their own, and ZeD-GUI's tests passed with them on. Nothing special to say unless a note says so. A note that starts "Part of it does not show" means the mod adds to a game screen that ZeD-GUI replaces. The first post says which reply holds each part; vehicle packs are in reply 10.
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2867431511]Simple Status[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3399432867][B42.13+] SimpleStatus-Fixed[/url]: Its status bars show at the left.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2863908612]SixthSense[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3456675747][B42.20+ MP] Skateboard![/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3557111695]Skill Book Expansion[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3778511497]Skully's Zombie Collision [B42.20+][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3698401476]Skullys Lowerback Dufflebags, Chest Rigs + Fannypack, Container Rebalance [42.20][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2686624983]Sleep with Friends v2.1[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2716710487]Slower Sprinters \ B42[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3494108029]Smart Radial Menu [B42 Stable][/url]: From ZeD-GUI 0.2.0-t7 its own wheel opens with ZeD-GUI on (the game's wheels stay ZeD's). In 0.2.0-t6 it errors and no wheel draws.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3290232938]Smarter Storage[/url] by Broadbent: Part of it does not show: its names, pictures and colours go on the game's container buttons, which ZeD replaces. [i](expected)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3587884762]Smarter Storage - Extra Presets[/url]: Part of it does not show: Smarter Storage's names and colours go on the game's container buttons, which ZeD replaces. [i](expected)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2857762294][B42.21+/B41]Smoking Sounds Overhaul[/url] by frits191
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3498347699]Somewhat Traits[/url]: Its traits are in ZeD's trait list.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2840805724]SOTO[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3772052709]Spawn Selector [B42 Stable][/url]: It is a spawn place in ZeD's New Game list, with its picture and text.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3457132019]Specific Loot (KI5)[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2684285534]Spongie's Clothing[/url] by Spongie
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2463184726]Spongie's Hair[/url] by Spongie
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2812326159]Spongie's Open Jackets[/url] by Spongie
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3579640010]ST Additions[/url] by StarkTruffle
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2629074154]Stack All[/url] by star and Nativel: Its Stack All row comes through the game's item menu. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3044807092]Stairs Alert[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3403490889]Standardized Vehicle Upgrades 3 - Core - B42[/url]: Its upgrades go through the game's part menu, which ZeD's Vehicle tab shows. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3304582091]Standardized Vehicle Upgrades 3 - Vanilla Addon[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3378285185]Starlit Library[/url] by albion: Lines that mods add to the item tooltip through it show on ZeD's item tooltip from ZeD-GUI 0.2.0-t7; in 0.2.0-t6 ZeD's tooltip leaves them out.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3800989007]Stay With Me [B42 - NPC Companion][/url]: Its note at game start goes into ZeD's Messages.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3402516345][B42] Survival[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3495906499][B42] Survival HUD[/url]: Its display shows at the bottom corners, clear of ZeD's belt. Its hotbar dragging is for the game's hotbar, which ZeD's belt replaces. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2753086629][B42MP/B41]Surviving Through Seasons[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3808944882]Survivor Briefing[/url] by El-Soplya
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2366717227]Swap It[/url] by Chuckleberry Finn and Nurver
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3677017550]Tactical Hold[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3693258802]Tactical Hold Complete[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3680633169]Tactical Pistol Hold[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2324223029][HOTFIX for B42.13] Tactical Weapons[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3592172476]Take A Bath And Shower[/url] by si-cafe
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3389115640][B42MP] Take Any Amount[/url] by Bananaut: Its rows come through the game's item menu, which ZeD's menu shows. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3171167894]that DAMN Library[/url] by KI5/bikinihorst
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3440867775]The Best Lockpicking [B42.21] [MP Ready][/url]: Part of it does not show: its hotwire panel hangs on the game's dashboard, which ZeD replaces. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3796669056]The Mutants[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3736555309]The Psychopath Trait [B42.20+ SP/MP][/url]: One error of its own at load on 42.21 (a recipe asks for an item that does not exist). Not ZeD.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3397635749]There Goes My Hero[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3387110070]They Knew [B42][/url]: One error of its own at load on 42.21 (a body location given as text). Not ZeD.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3806020504]This Is Me - More Character Traits[/url]: Its traits are in ZeD's Traits tab. It adds lines to the item tooltip: from ZeD-GUI 0.2.0-t7 they show on ZeD's item tooltip; in 0.2.0-t6 ZeD's tooltip leaves them out. [i](expected)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3429790870]Tomb's Player Body Overhaul[/url] by Tomb
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3431734923]Tomb's Player Body Overhaul - Compatibility[/url] by Tomb
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3694097672]Tooltiplib - Tooltip Framework for Modders[/url]
+[/list]

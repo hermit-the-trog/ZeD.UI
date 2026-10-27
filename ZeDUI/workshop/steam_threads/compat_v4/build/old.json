@@ -1,0 +1,2882 @@
+{
+ "2894296454": {
+  "id": "2894296454",
+  "name": "Change Sandbox Options",
+  "src": [
+   {
+    "file": "2_compatibility.txt",
+    "grade": null,
+    "rest": "by star: Two errors of its own on 42.21: a key binding with no key (it stopped the game's options screen), and a main-screen step that looks for a quit button the game no longer makes (it stopped ZeD's pause window). ZeD-GUI 0.2.0-t4 works around both. ZeD-GUI 0.2.0-t4 also has its own Sandbox options in the pause window (Options, ZeD setup, Sandbox; off by default): use one."
+   },
+   {
+    "file": "6_credits.txt",
+    "grade": null,
+    "rest": "by [url=https://steamcommunity.com/id/strelka]star[/url]"
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "2875848298": {
+  "id": "2875848298",
+  "name": "Common Sense",
+  "src": [
+   {
+    "file": "2_compatibility.txt",
+    "grade": null,
+    "rest": "by Braven: Stops the world from loading on 42.21: its recipes ask for a fluid, Alcohol, that the game no longer has. Not ZeD."
+   }
+  ],
+  "modinfo_authors": [
+   "BitBraven"
+  ]
+ },
+ "2737665235": {
+  "id": "2737665235",
+  "name": "Ladders!?",
+  "src": [
+   {
+    "file": "2_compatibility.txt",
+    "grade": null,
+    "rest": "by co`: Its ladder code errors as the world loads (setLadderClimbingFlags). Not ZeD."
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "3403180543": {
+  "id": "3403180543",
+  "name": "Week One NPC",
+  "src": [
+   {
+    "file": "2_compatibility.txt",
+    "grade": null,
+    "rest": "by Slayer: Its scheduler errors once a game minute in an existing save (generateSchedule). ZeD is not in the error."
+   }
+  ],
+  "modinfo_authors": [
+   "Slayer"
+  ]
+ },
+ "3461263912": {
+  "id": "3461263912",
+  "name": "Clean HotBar",
+  "src": [
+   {
+    "file": "2_compatibility_b_notes.txt",
+    "grade": "C",
+    "rest": "by Rocco: ZeD's belt shows the hands and hotbar with condition and key numbers. ZeD's belt replaces its drawing. Use one. [i](expected)[/i]"
+   },
+   {
+    "file": "6_credits.txt",
+    "grade": null,
+    "rest": "by [url=https://steamcommunity.com/profiles/76561199485575276]Rocco[/url]"
+   }
+  ],
+  "modinfo_authors": [
+   "Rocco, Afyrmo"
+  ]
+ },
+ "3437629766": {
+  "id": "3437629766",
+  "name": "CleanUI",
+  "src": [
+   {
+    "file": "2_compatibility_b_notes.txt",
+    "grade": "C",
+    "rest": "by Rocco: Restyles the game's inventory and loot windows, the ones ZeD replaces. Use one. [i](expected)[/i]"
+   },
+   {
+    "file": "6_credits.txt",
+    "grade": null,
+    "rest": "by [url=https://steamcommunity.com/profiles/76561199485575276]Rocco[/url]"
+   }
+  ],
+  "modinfo_authors": [
+   "Rocco, Afyrmo"
+  ]
+ },
+ "2950902979": {
+  "id": "2950902979",
+  "name": "Equipment UI - Paper Doll Equipment Interface",
+  "src": [
+   {
+    "file": "2_compatibility_b_notes.txt",
+    "grade": "C",
+    "rest": "by Notloc: ZeD's Equipment tab has a paper doll. Its \"hide equipped items\" button shows in ZeD's container buttons but does nothing in ZeD's lists. Use one."
+   },
+   {
+    "file": "6_credits.txt",
+    "grade": null,
+    "rest": "by [url=https://steamcommunity.com/id/NotNotloc]Notloc[/url] | support: [url=https://ko-fi.com/notloc]ko-fi.com/notloc[/url]"
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "2852309899": {
+  "id": "2852309899",
+  "name": "Item Condition",
+  "src": [
+   {
+    "file": "2_compatibility_b_notes.txt",
+    "grade": "C",
+    "rest": "by Qudix: ZeD shows condition on the belt and in every list. Its bars are drawn on the game's hotbar, which the belt replaces. [i](expected)[/i]"
+   },
+   {
+    "file": "6_credits.txt",
+    "grade": null,
+    "rest": "by [url=https://steamcommunity.com/id/qudix]Qudix[/url]"
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "3641048285": {
+  "id": "3641048285",
+  "name": "Item Condition Overlay",
+  "src": [
+   {
+    "file": "2_compatibility_b_notes.txt",
+    "grade": "C",
+    "rest": "by King EJ: ZeD shows condition in every list. Its bars are drawn on the game's inventory list, which ZeD replaces. [i](expected)[/i]"
+   },
+   {
+    "file": "6_credits.txt",
+    "grade": null,
+    "rest": "by [url=https://steamcommunity.com/profiles/76561197991569575]King EJ[/url]"
+   }
+  ],
+  "modinfo_authors": [
+   "KingEJ"
+  ]
+ },
+ "2553809727": {
+  "id": "2553809727",
+  "name": "KillCount",
+  "src": [
+   {
+    "file": "2_compatibility_b_notes.txt",
+    "grade": "C",
+    "rest": "by Tchernobill: ZeD's Journal tab counts kills by weapon type. Its tab is in the game's character window, which ZeD replaces. [i](expected)[/i]"
+   },
+   {
+    "file": "6_credits.txt",
+    "grade": null,
+    "rest": "by [url=https://steamcommunity.com/profiles/76561198329871201]Tchernobill[/url]"
+   }
+  ],
+  "modinfo_authors": [
+   "Tchernobill"
+  ]
+ },
+ "3642084851": {
+  "id": "3642084851",
+  "name": "Minimal Sidebar",
+  "src": [
+   {
+    "file": "2_compatibility_b_notes.txt",
+    "grade": "C",
+    "rest": "by devilzcore: ZeD already hides the game's sidebar. [i](expected)[/i]"
+   },
+   {
+    "file": "6_credits.txt",
+    "grade": null,
+    "rest": "by [url=https://steamcommunity.com/id/devilzcore]devilzcore[/url]"
+   }
+  ],
+  "modinfo_authors": [
+   "Devilzcore"
+  ]
+ },
+ "3536052310": {
+  "id": "3536052310",
+  "name": "Neat Building",
+  "src": [
+   {
+    "file": "2_compatibility_b_notes.txt",
+    "grade": "C",
+    "rest": "by Rocco: ZeD's World window has building. Use one. [i](expected)[/i]"
+   },
+   {
+    "file": "6_credits.txt",
+    "grade": null,
+    "rest": "by [url=https://steamcommunity.com/profiles/76561199485575276]Rocco[/url]"
+   }
+  ],
+  "modinfo_authors": [
+   "Rocco, Afyrmo"
+  ]
+ },
+ "3502080466": {
+  "id": "3502080466",
+  "name": "Neat Crafting",
+  "src": [
+   {
+    "file": "2_compatibility_b_notes.txt",
+    "grade": "C",
+    "rest": "by Rocco: ZeD's World window has crafting at a bench or station near you. Use one. [i](expected)[/i]"
+   },
+   {
+    "file": "6_credits.txt",
+    "grade": null,
+    "rest": "by [url=https://steamcommunity.com/profiles/76561199485575276]Rocco[/url]"
+   }
+  ],
+  "modinfo_authors": [
+   "Rocco, Afyrmo"
+  ]
+ },
+ "3635591071": {
+  "id": "3635591071",
+  "name": "Realistic Dashboard & Gauges",
+  "src": [
+   {
+    "file": "2_compatibility_b_notes.txt",
+    "grade": "C",
+    "rest": "by LonelyDesperate: ZeD draws its own dashboard. Use one. [i](expected)[/i]"
+   },
+   {
+    "file": "6_credits.txt",
+    "grade": null,
+    "rest": "by [url=https://steamcommunity.com/profiles/76561198816356470]LonelyDesperate[/url]"
+   }
+  ],
+  "modinfo_authors": [
+   "LonelyDesperate"
+  ]
+ },
+ "2903771337": {
+  "id": "2903771337",
+  "name": "Reorder The Hotbar",
+  "src": [
+   {
+    "file": "2_compatibility_b_notes.txt",
+    "grade": "C",
+    "rest": "by Notloc: Swaps its hotbar drawing in late, on purpose; the game's hotbar stays hidden under ZeD's belt, and ZeD-GUI 0.2.0-t4 takes the drawing back. Its reordering does not show on ZeD's belt, which does this job: use one."
+   },
+   {
+    "file": "6_credits.txt",
+    "grade": null,
+    "rest": "by [url=https://steamcommunity.com/id/NotNotloc]Notloc[/url] | support: [url=https://ko-fi.com/notloc]ko-fi.com/notloc[/url]"
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "2769706949": {
+  "id": "2769706949",
+  "name": "Tidy Up Meister",
+  "src": [
+   {
+    "file": "2_compatibility_b_notes.txt",
+    "grade": "C",
+    "rest": "by PePePePePeil: Same job as ZeD's Put things back (off by default). With both on, Tidy Up Meister also puts things back after an interrupted action, which ZeD does not. Use one."
+   },
+   {
+    "file": "6_credits.txt",
+    "grade": null,
+    "rest": "by [url=https://steamcommunity.com/profiles/76561199151439614]PePePePePeil[/url] | support: [url=https://ko-fi.com/pepepepepeil]ko-fi.com/pepepepepeil[/url]"
+   }
+  ],
+  "modinfo_authors": [
+   "PePePePePeil"
+  ]
+ },
+ "3306168142": {
+  "id": "3306168142",
+  "name": "Condition On Dash",
+  "src": [
+   {
+    "file": "2_compatibility_b_notes.txt",
+    "grade": "B",
+    "rest": "by Broadbent: Adds to the game's dashboard, which ZeD replaces with its own. [i](expected)[/i]"
+   }
+  ],
+  "modinfo_authors": [
+   "Broadbent"
+  ]
+ },
+ "2544353492": {
+  "id": "2544353492",
+  "name": "Has Been Read",
+  "src": [
+   {
+    "file": "2_compatibility_b_notes.txt",
+    "grade": "B",
+    "rest": "by PePePePePeil: Its marks are drawn on the game's inventory list, which ZeD replaces. ZeD's item card shows the pages read. [i](expected)[/i]"
+   }
+  ],
+  "modinfo_authors": [
+   "PePePePePeil"
+  ]
+ },
+ "3423660713": {
+  "id": "3423660713",
+  "name": "Mod Load Order Sorter",
+  "src": [
+   {
+    "file": "2_compatibility_b_notes.txt",
+    "grade": "B",
+    "rest": "by REfRigERatoR: Its Sort button is on the game's Mods screen; ZeD's Mods screen has its own Auto sort. [i](expected)[/i]"
+   }
+  ],
+  "modinfo_authors": [
+   "REfRigERatoR"
+  ]
+ },
+ "2847184718": {
+  "id": "2847184718",
+  "name": "Proximity Inventory",
+  "src": [
+   {
+    "file": "2_compatibility_b_notes.txt",
+    "grade": "B",
+    "rest": "by Mxswat FRV Enthusiast: Adds one container of everything nearby to the game's loot window; ZeD's World window shows each container in reach as its own column. Whether its container shows in ZeD: not checked. [i](expected)[/i]"
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "2901962885": {
+  "id": "2901962885",
+  "name": "Reorder Containers - Backpack Orders",
+  "src": [
+   {
+    "file": "2_compatibility_b_notes.txt",
+    "grade": "B",
+    "rest": "by Notloc: Reorders the game's container buttons; ZeD's container strip keeps its own order. [i](expected)[/i]"
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "3290232938": {
+  "id": "3290232938",
+  "name": "Smarter Storage",
+  "src": [
+   {
+    "file": "2_compatibility_b_notes.txt",
+    "grade": "B",
+    "rest": "by Broadbent: Its names, icons and colours go on the game's container buttons, which ZeD replaces. [i](expected)[/i]"
+   }
+  ],
+  "modinfo_authors": [
+   "Broadbent"
+  ]
+ },
+ "3420581050": {
+  "id": "3420581050",
+  "name": "TV & Radio ReInvented",
+  "src": [
+   {
+    "file": "2_compatibility_b_notes.txt",
+    "grade": "B",
+    "rest": "by tealera: ZeD's radio tabs and car radio cover its radio screens; its TV channels, ads and VHS are its own. Not checked one by one. [i](expected)[/i]"
+   }
+  ],
+  "modinfo_authors": [
+   "draxo & tealera"
+  ]
+ },
+ "2335368829": {
+  "id": "2335368829",
+  "name": "Authentic Z",
+  "src": [
+   {
+    "file": "2_compatibility_b_notes.txt",
+    "grade": "A",
+    "rest": "by Authentic Peach: With its Backpacks+ add-on on as well, the two register the same clothing slots (their own error at load)."
+   }
+  ],
+  "modinfo_authors": [
+   "AuthenticPeach"
+  ]
+ },
+ "3268487204": {
+  "id": "3268487204",
+  "name": "Bandits NPC",
+  "src": [
+   {
+    "file": "2_compatibility_b_notes.txt",
+    "grade": "A",
+    "rest": "by Slayer: Its note at game start goes into ZeD's Messages with ZeD-GUI 0.2.0-t4."
+   }
+  ],
+  "modinfo_authors": [
+   "Slayer"
+  ]
+ },
+ "3740052292": {
+  "id": "3740052292",
+  "name": "Companion Dogs",
+  "src": [
+   {
+    "file": "2_compatibility_b_notes.txt",
+    "grade": "A",
+    "rest": "by Björn: Its note at game start goes into ZeD's Messages with ZeD-GUI 0.2.0-t4."
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "2896041179": {
+  "id": "2896041179",
+  "name": "errorMagnifier",
+  "src": [
+   {
+    "file": "2_compatibility_b_notes.txt",
+    "grade": "A",
+    "rest": "by Chuckleberry Finn: Keeps a copy of every error it shows. With Bandits Week One erroring every minute, the game ran out of memory after about 35 minutes with 128 mods."
+   }
+  ],
+  "modinfo_authors": [
+   "Chuckleberry Finn"
+  ]
+ },
+ "3661336777": {
+  "id": "3661336777",
+  "name": "Horse Mod",
+  "src": [
+   {
+    "file": "2_compatibility_b_notes.txt",
+    "grade": "A",
+    "rest": "by albion: Wants to be on in the main menu's mod list too, or it warns at game start that it was not loaded properly, and pauses the game (its own check). With ZeD-GUI 0.2.0-t4 the warning goes into Messages and the game runs on."
+   }
+  ],
+  "modinfo_authors": [
+   "Horse team"
+  ]
+ },
+ "3508537032": {
+  "id": "3508537032",
+  "name": "NeatUI Framework",
+  "src": [
+   {
+    "file": "2_compatibility_b_notes.txt",
+    "grade": "A",
+    "rest": "by Rocco: A library: needed only by CleanUI and the Neat mods. [i](expected)[/i]"
+   }
+  ],
+  "modinfo_authors": [
+   "Rocco, Afyrmo"
+  ]
+ },
+ "3056481712": {
+  "id": "3056481712",
+  "name": "On the Door",
+  "src": [
+   {
+    "file": "2_compatibility_b_notes.txt",
+    "grade": "A",
+    "rest": "by PePePePePeil: Its alert at game start shows raw text keys on 42.21: its translations are in the old .txt format. Not ZeD."
+   }
+  ],
+  "modinfo_authors": [
+   "PePePePePeil"
+  ]
+ },
+ "3540903327": {
+  "id": "3540903327",
+  "name": "Pack Mule",
+  "src": [
+   {
+    "file": "2_compatibility_b_notes.txt",
+    "grade": "A",
+    "rest": "by Balance: Moves watches to its own watch slot, which hid the watch from ZeD's belt. ZeD-GUI 0.2.0-t4 finds it there."
+   }
+  ],
+  "modinfo_authors": [
+   "Balance"
+  ]
+ },
+ "3414634809": {
+  "id": "3414634809",
+  "name": "Spongie's Character Customisation",
+  "src": [
+   {
+    "file": "2_compatibility_b_notes.txt",
+    "grade": "A",
+    "rest": "by spongie: Works with ZeD from ZeD-GUI 0.2.0-t5: its faces and details are the Character window's Appearance tab (after Identity) and rows on the Looks screen for a new character, and its window at game start (an existing save) opens that tab, paused, as the mod does. The mod's rules and saving are its own."
+   }
+  ],
+  "modinfo_authors": [
+   "Spongie"
+  ]
+ },
+ "3470659758": {
+  "id": "3470659758",
+  "name": "The Shortcut",
+  "src": [
+   {
+    "file": "2_compatibility_b_notes.txt",
+    "grade": "A",
+    "rest": "by Rocco: Its shortcut bar sits just above ZeD's belt."
+   }
+  ],
+  "modinfo_authors": [
+   "Rocco",
+   "Rocco, Afyrmo"
+  ]
+ },
+ "3614034284": {
+  "id": "3614034284",
+  "name": "'85 Chevrolet Step-Van",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "2969343830": {
+  "id": "2969343830",
+  "name": "'93 Ford CF8000 Elgin Street Sweeper",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "3020323164": {
+  "id": "3020323164",
+  "name": "Add More Map Symbols",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "Golem"
+  ]
+ },
+ "3409527910": {
+  "id": "3409527910",
+  "name": "Alarm Syndrome",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "PePePePePeil"
+  ]
+ },
+ "3610005735": {
+  "id": "3610005735",
+  "name": "ALICE Gear",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "2959854619": {
+  "id": "2959854619",
+  "name": "Alice's DuffelBag Tweak",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "Alice"
+  ]
+ },
+ "3775549570": {
+  "id": "3775549570",
+  "name": "Alice's Weapon Sling",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "Akyet, Noir, Hx, Royadin, Alice",
+   "Alice"
+  ]
+ },
+ "3387539308": {
+  "id": "3387539308",
+  "name": "Auto Mechanics",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "Tchernobill"
+  ]
+ },
+ "3238830225": {
+  "id": "3238830225",
+  "name": "B42 Real Firearms WIP",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "3461415167": {
+  "id": "3461415167",
+  "name": "Bicycle!",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "RedChili"
+  ]
+ },
+ "3725497089": {
+  "id": "3725497089",
+  "name": "Computer Mod",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "Kumeji"
+  ]
+ },
+ "3780683663": {
+  "id": "3780683663",
+  "name": "Cye's Push Doors!",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "Cye's"
+  ]
+ },
+ "3452711271": {
+  "id": "3452711271",
+  "name": "darlak's H.E.C.U.",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "darlak97"
+  ]
+ },
+ "3197857648": {
+  "id": "3197857648",
+  "name": "Decoholic",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "PePePePePeil"
+  ]
+ },
+ "3387957272": {
+  "id": "3387957272",
+  "name": "Detailed Descriptions for Occupations and Traits",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "Jetmax937"
+  ]
+ },
+ "2804531012": {
+  "id": "2804531012",
+  "name": "Draw On The Map - Free Hand Drawing",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "3671176591": {
+  "id": "3671176591",
+  "name": "dustinguished bolt cutters",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "dustinguished"
+  ]
+ },
+ "2996978365": {
+  "id": "2996978365",
+  "name": "Dynamic Backpack Upgrades",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "Dr. Lalaoz",
+   "Dr. Lalaoz/Harrod200",
+   "Dr. Lalaoz/Harrod200/Lenniitsch"
+  ]
+ },
+ "3392001801": {
+  "id": "3392001801",
+  "name": "Excavation",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "albion"
+  ]
+ },
+ "3120702374": {
+  "id": "3120702374",
+  "name": "Extra Gun Slot",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "BitBraven"
+  ]
+ },
+ "2584112711": {
+  "id": "2584112711",
+  "name": "Faster Hood Opening",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "3785740658": {
+  "id": "3785740658",
+  "name": "Fence Sheets",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "ragone"
+  ]
+ },
+ "2940354599": {
+  "id": "2940354599",
+  "name": "Fitness & Workout Overhaul",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "Codename280"
+  ]
+ },
+ "3795414660": {
+  "id": "3795414660",
+  "name": "Fitted Barricades",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "ragone"
+  ]
+ },
+ "3042138819": {
+  "id": "3042138819",
+  "name": "Functional Appliances 2",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "Norby007"
+  ]
+ },
+ "3755993986": {
+  "id": "3755993986",
+  "name": "Gas Pump Indicator",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "movinow"
+  ]
+ },
+ "2714198296": {
+  "id": "2714198296",
+  "name": "I Don't Need A Lighter",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "Fingbel"
+  ]
+ },
+ "3810071828": {
+  "id": "3810071828",
+  "name": "Immersive Snow",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "kurmetov"
+  ]
+ },
+ "3426448380": {
+  "id": "3426448380",
+  "name": "Immersive Suicide",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "kStank"
+  ]
+ },
+ "2948824747": {
+  "id": "2948824747",
+  "name": "Inspect Weapon",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "3796373365": {
+  "id": "3796373365",
+  "name": "It is of interest to me!",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "3767639280": {
+  "id": "3767639280",
+  "name": "Item Arrange",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "Slayer"
+  ]
+ },
+ "3717902500": {
+  "id": "3717902500",
+  "name": "JB's Bugs In Lights",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "jimbeamdiablo"
+  ]
+ },
+ "3470422050": {
+  "id": "3470422050",
+  "name": "KATTAJ1 Clothes Core",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "3779561845": {
+  "id": "3779561845",
+  "name": "LG Extended Plumbing",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "3403870858": {
+  "id": "3403870858",
+  "name": "Lifestyle: Hobbies",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "Angry"
+  ]
+ },
+ "2920899878": {
+  "id": "2920899878",
+  "name": "Load All Magazines",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "2710167561": {
+  "id": "2710167561",
+  "name": "Map Legend UI",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "NikGamer"
+  ]
+ },
+ "3360392628": {
+  "id": "3360392628",
+  "name": "Map Mod Manager",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "2734705913": {
+  "id": "2734705913",
+  "name": "Map Symbol Size Slider",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "2705406713": {
+  "id": "2705406713",
+  "name": "Military Tool Kit",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "Papa_Chad"
+  ]
+ },
+ "2866258937": {
+  "id": "2866258937",
+  "name": "Mini Health Panel",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "Speedy Von Gofast"
+  ]
+ },
+ "3077900375": {
+  "id": "3077900375",
+  "name": "Mod Update and Alert System",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "Chuckleberry Finn"
+  ]
+ },
+ "3451167732": {
+  "id": "3451167732",
+  "name": "Modern Status",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "Rocco, Afyrmo"
+  ]
+ },
+ "3520758551": {
+  "id": "3520758551",
+  "name": "More Car Features + Spawn Zones Expansion",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "GamestaMechanic"
+  ]
+ },
+ "3413150945": {
+  "id": "3413150945",
+  "name": "More Damaged Objects",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "carlesturo"
+  ]
+ },
+ "3457064550": {
+  "id": "3457064550",
+  "name": "More on the Floor",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "3438126404": {
+  "id": "3438126404",
+  "name": "Nepenthe's High Beams",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "3739256725": {
+  "id": "3739256725",
+  "name": "New Music",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "talismon"
+  ]
+ },
+ "3465040406": {
+  "id": "3465040406",
+  "name": "Open All Containers",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "carlesturo"
+  ]
+ },
+ "3422220305": {
+  "id": "3422220305",
+  "name": "Picking Meister",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "PePePePePeil"
+  ]
+ },
+ "3803984183": {
+  "id": "3803984183",
+  "name": "Project A-Life",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "Vice"
+  ]
+ },
+ "3645980077": {
+  "id": "3645980077",
+  "name": "Project Arcade",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "Bass"
+  ]
+ },
+ "3490188370": {
+  "id": "3490188370",
+  "name": "Project Cook",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "Rocco",
+   "Rocco, Afyrmo"
+  ]
+ },
+ "3412105017": {
+  "id": "3412105017",
+  "name": "Project Seasons",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "Drago1212"
+  ]
+ },
+ "3770149036": {
+  "id": "3770149036",
+  "name": "PZ Map",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "qwerto"
+  ]
+ },
+ "3753700423": {
+  "id": "3753700423",
+  "name": "PZ Pulse",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "qwerto"
+  ]
+ },
+ "3656190498": {
+  "id": "3656190498",
+  "name": "Reactive Sound Events",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "JulianFVM"
+  ]
+ },
+ "2699828474": {
+  "id": "2699828474",
+  "name": "Rebalanced Prop Moving",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "3378304610": {
+  "id": "3378304610",
+  "name": "Repairable Windows",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "albion"
+  ]
+ },
+ "2944344655": {
+  "id": "2944344655",
+  "name": "Replace Bandage",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "Sioyth"
+  ]
+ },
+ "3386906181": {
+  "id": "3386906181",
+  "name": "Sandbox Options",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "Zky"
+  ]
+ },
+ "3409143790": {
+  "id": "3409143790",
+  "name": "Sapph's Cooking",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "sapph"
+  ]
+ },
+ "3596827035": {
+  "id": "3596827035",
+  "name": "ShelterHold: Beehive",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "Rocco, Afyrmo"
+  ]
+ },
+ "3394588830": {
+  "id": "3394588830",
+  "name": "Simple Flashlight on Belt!",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "Kameron!"
+  ]
+ },
+ "2991923398": {
+  "id": "2991923398",
+  "name": "Simple Lockpicking",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "2867431511": {
+  "id": "2867431511",
+  "name": "Simple Status",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "2503622437": {
+  "id": "2503622437",
+  "name": "Skill Recovery Journal",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "Chuckleberry Finn"
+  ]
+ },
+ "2840805724": {
+  "id": "2840805724",
+  "name": "SOTO",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "3041733782": {
+  "id": "3041733782",
+  "name": "Spongie's Hairstyle Unlocker",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "Spongie"
+  ]
+ },
+ "3579640010": {
+  "id": "3579640010",
+  "name": "ST Additions",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "StarkTruffle"
+  ]
+ },
+ "3378285185": {
+  "id": "3378285185",
+  "name": "Starlit Library",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "albion"
+  ]
+ },
+ "3808944882": {
+  "id": "3808944882",
+  "name": "Survivor Briefing",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "El-Soplya"
+  ]
+ },
+ "2366717227": {
+  "id": "2366717227",
+  "name": "Swap It",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_1.txt",
+    "grade": null,
+    "rest": ""
+   }
+  ],
+  "modinfo_authors": [
+   "Chuckleberry Finn & Nurver"
+  ]
+ },
+ "3677017550": {
+  "id": "3677017550",
+  "name": "Tactical Hold",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_2.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "3693258802": {
+  "id": "3693258802",
+  "name": "Tactical Hold Complete",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_2.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "3680633169": {
+  "id": "3680633169",
+  "name": "Tactical Pistol Hold",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_2.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "3592172476": {
+  "id": "3592172476",
+  "name": "Take A Bath And Shower",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_2.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "si-cafe"
+  ]
+ },
+ "3171167894": {
+  "id": "3171167894",
+  "name": "that DAMN Library",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_2.txt",
+    "grade": null,
+    "rest": ","
+   },
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": "by KI5/bikinihorst"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5/bikinihorst"
+  ]
+ },
+ "3796669056": {
+  "id": "3796669056",
+  "name": "The Mutants",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_2.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "3397635749": {
+  "id": "3397635749",
+  "name": "There Goes My Hero",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_2.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "3784847437": {
+  "id": "3784847437",
+  "name": "Traits As Skills",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_2.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "GersonRess"
+  ]
+ },
+ "3402491515": {
+  "id": "3402491515",
+  "name": "Tsar's Common Library",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_2.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "3675741487": {
+  "id": "3675741487",
+  "name": "Umbrella Corp Uniform",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_2.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "3436537035": {
+  "id": "3436537035",
+  "name": "Useful Barrels",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_2.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "GigaWatte"
+  ]
+ },
+ "3577903007": {
+  "id": "3577903007",
+  "name": "Vanilla Foods Expanded",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_2.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "JiizzJacuzzii, Aatheom and Tenhats"
+  ]
+ },
+ "3281755175": {
+  "id": "3281755175",
+  "name": "Vanilla vehicles animated",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_2.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "2757712197": {
+  "id": "2757712197",
+  "name": "Vehicle Repair Overhaul",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_2.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "hehehemann",
+   "hehehemann, SP4RTAN"
+  ]
+ },
+ "3546314080": {
+  "id": "3546314080",
+  "name": "Water Pipes",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_2.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "Slayer"
+  ]
+ },
+ "3097650043": {
+  "id": "3097650043",
+  "name": "Where Am I?",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_2.txt",
+    "grade": null,
+    "rest": ","
+   }
+  ],
+  "modinfo_authors": [
+   "BitBraven"
+  ]
+ },
+ "3814073243": {
+  "id": "3814073243",
+  "name": "Zombie Visibility Fix + Stair-O-Vision",
+  "src": [
+   {
+    "file": "2_compatibility_c_grade_a_2.txt",
+    "grade": null,
+    "rest": ""
+   }
+  ],
+  "modinfo_authors": [
+   "wget"
+  ]
+ },
+ "2845952197": {
+  "id": "2845952197",
+  "name": "Read While Walking",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "X",
+    "rest": ": Errors every frame while you read on 42.21: it asks the game for fatigue in a way 42.21 removed (getFatigue). Not ZeD."
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "2696986935": {
+  "id": "2696986935",
+  "name": "Barricaded World - Extended Erosion [b41/b42]",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "X",
+    "rest": ": Errors as new parts of the map load on 42.21 (the same removed PropertyContainer.Is). Not ZeD."
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "2835852387": {
+  "id": "2835852387",
+  "name": "Disassemble Container With Items",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "X",
+    "rest": ": Replaces the game's whole furniture-moving code with an older copy that calls functions 42.21 removed (PropertyContainer.Is), so picking up, placing and taking apart furniture error, with or without ZeD."
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "3396446795": {
+  "id": "3396446795",
+  "name": "Moodle Framework",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "B",
+    "rest": "by Tchernobill: Its extra moodles keep to the game's old place at the right edge instead of following ZeD's Moodles setting (right, left or above the belt). [i](by reading its code)[/i]"
+   }
+  ],
+  "modinfo_authors": [
+   "Tchernobill"
+  ]
+ },
+ "2879960936": {
+  "id": "2879960936",
+  "name": "Players On Map",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "B",
+    "rest": ": Its player dots are drawn on the game's own map; ZeD's Maps tab is its own map, so they do not show there. Multiplayer only. [i](by reading its code)[/i]"
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "2313387159": {
+  "id": "2313387159",
+  "name": "Better Sorting",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": "by ChthonicKnight: One error of its own at load on 42.21 (a drink with no item, BSdynamicCats). Not ZeD."
+   }
+  ],
+  "modinfo_authors": [
+   "ChthonicKnight"
+  ]
+ },
+ "2447729538": {
+  "id": "2447729538",
+  "name": "Fluffy Hair [B41/B42]",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": ""
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "2463184726": {
+  "id": "2463184726",
+  "name": "Spongie's Hair",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": "by Spongie"
+   }
+  ],
+  "modinfo_authors": [
+   "Spongie"
+  ]
+ },
+ "1299328280": {
+  "id": "1299328280",
+  "name": "More Traits [Legacy, read description]",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": ""
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "2625625421": {
+  "id": "2625625421",
+  "name": "Containers!",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "2142622992": {
+  "id": "2142622992",
+  "name": "Repair Any Clothes",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": ""
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "2956146279": {
+  "id": "2956146279",
+  "name": "Rain Cleans Blood [B42.20 + MP]",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": "by Akamir"
+   }
+  ],
+  "modinfo_authors": [
+   "Akamir"
+  ]
+ },
+ "2684285534": {
+  "id": "2684285534",
+  "name": "Spongie's Clothing",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": "by Spongie"
+   }
+  ],
+  "modinfo_authors": [
+   "Spongie"
+  ]
+ },
+ "2837923608": {
+  "id": "2837923608",
+  "name": "PertsPartyTiles",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": ""
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "2256623447": {
+  "id": "2256623447",
+  "name": "Firearms",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": "by Hyzo"
+   }
+  ],
+  "modinfo_authors": [
+   "Hyzo"
+  ]
+ },
+ "2879745353": {
+  "id": "2879745353",
+  "name": "Melos Tiles for Miles Tilepack",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": "by melos_tiles"
+   }
+  ],
+  "modinfo_authors": [
+   "melos_tiles"
+  ]
+ },
+ "2650547917": {
+  "id": "2650547917",
+  "name": "Manage Containers",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": "by Jeff: Its container rules run from the container buttons in ZeD's windows."
+   }
+  ],
+  "modinfo_authors": [
+   "Jeff"
+  ]
+ },
+ "2850135071": {
+  "id": "2850135071",
+  "name": "Braven's Utilities",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": ""
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "2812326159": {
+  "id": "2812326159",
+  "name": "Spongie's Open Jackets",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": "by Spongie"
+   }
+  ],
+  "modinfo_authors": [
+   "Spongie"
+  ]
+ },
+ "2852704777": {
+  "id": "2852704777",
+  "name": "Simon MDs Tiles [B41/B42]",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": ""
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "3401134276": {
+  "id": "3401134276",
+  "name": "Vanilla Gear Expanded",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": "by Tango"
+   }
+  ],
+  "modinfo_authors": [
+   "Tango"
+  ]
+ },
+ "1962761540": {
+  "id": "1962761540",
+  "name": "Armored Vests (41/B42)",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": ""
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "2725360009": {
+  "id": "2725360009",
+  "name": "Boredom Tweaks",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": ""
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "2972289937": {
+  "id": "2972289937",
+  "name": "Visible Generator Range",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": ""
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "2818577583": {
+  "id": "2818577583",
+  "name": "Random Zombies",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": "by belette"
+   }
+  ],
+  "modinfo_authors": [
+   "belette"
+  ]
+ },
+ "3119788162": {
+  "id": "3119788162",
+  "name": "42.21 | Every Texture Optimized",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": "by maceleet"
+   }
+  ],
+  "modinfo_authors": [
+   "maceleet"
+  ]
+ },
+ "3543229299": {
+  "id": "3543229299",
+  "name": "[B42]Project RV Interior",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": "by Mickey Knox"
+   }
+  ],
+  "modinfo_authors": [
+   "Mickey Knox"
+  ]
+ },
+ "3429790870": {
+  "id": "3429790870",
+  "name": "Tomb's Player Body Overhaul",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": "by Tomb"
+   }
+  ],
+  "modinfo_authors": [
+   "Tomb"
+  ]
+ },
+ "3619862853": {
+  "id": "3619862853",
+  "name": "ZombieBuddy",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": "by Zed: A loader for Java mods: its options expect its Java part, installed separately, and error once at the main menu without it. Not ZeD."
+   }
+  ],
+  "modinfo_authors": [
+   "Zed"
+  ]
+ },
+ "2423266708": {
+  "id": "2423266708",
+  "name": "Hats and Glasses Don't Fall",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": ""
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "3431734923": {
+  "id": "3431734923",
+  "name": "Tomb's Player Body Overhaul - Compatibility",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": "by Tomb"
+   }
+  ],
+  "modinfo_authors": [
+   "Tomb"
+  ]
+ },
+ "2207282444": {
+  "id": "2207282444",
+  "name": "Authentic Animations",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": ""
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "2732294885": {
+  "id": "2732294885",
+  "name": "Named skill VHS tapes",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": ""
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "2850935956": {
+  "id": "2850935956",
+  "name": "Boots Expanded 11 for B41 and B42",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": "by SergeantMarkIV"
+   }
+  ],
+  "modinfo_authors": [
+   "SergeantMarkIV"
+  ]
+ },
+ "2829657632": {
+  "id": "2829657632",
+  "name": "[41&42]50% metal weight",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": ""
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "3610677934": {
+  "id": "3610677934",
+  "name": "[41/42.20.4MP] Visible Casing Ejection Framework - Hot Brass",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": "by Marz"
+   }
+  ],
+  "modinfo_authors": [
+   "Marz"
+  ]
+ },
+ "3722064198": {
+  "id": "3722064198",
+  "name": "[42.20.4MP] Gunworks Framework",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": "by Marz, Chuck, Shark, Alex, Nik"
+   }
+  ],
+  "modinfo_authors": [
+   "Marz, Chuck, Shark, Alex, Nik"
+  ]
+ },
+ "2707905930": {
+  "id": "2707905930",
+  "name": "Cosplay商店(B42/B41)",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": "by 烟雨陌兮: One error of its own at load on 42.21 (a clothing slot named by text, which 42.21 no longer takes). Not ZeD."
+   }
+  ],
+  "modinfo_authors": [
+   "烟雨陌兮"
+  ]
+ },
+ "2674541310": {
+  "id": "2674541310",
+  "name": "Energy Drinks [B42]",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": "by Anton Yagoda"
+   }
+  ],
+  "modinfo_authors": [
+   "Anton Yagoda"
+  ]
+ },
+ "3342191739": {
+  "id": "3342191739",
+  "name": "Gyde's Trait Magazines [B42.20]",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": "by Gyde"
+   }
+  ],
+  "modinfo_authors": [
+   "Gyde"
+  ]
+ },
+ "2645975408": {
+  "id": "2645975408",
+  "name": "Improved Fire & Smoke Effects",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": ""
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "3006882690": {
+  "id": "3006882690",
+  "name": "[B41&B42] Repair Wall",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": "by Kamer"
+   }
+  ],
+  "modinfo_authors": [
+   "Kamer"
+  ]
+ },
+ "2648152698": {
+  "id": "2648152698",
+  "name": "Improved Blood Effects",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": ""
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "2857762294": {
+  "id": "2857762294",
+  "name": "[B42.21+/B41]Smoking Sounds Overhaul",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": "by frits191"
+   }
+  ],
+  "modinfo_authors": [
+   "frits191"
+  ]
+ },
+ "3618557184": {
+  "id": "3618557184",
+  "name": "Here Goes the Sun [B42MP]",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": "by Bass"
+   }
+  ],
+  "modinfo_authors": [
+   "Bass"
+  ]
+ },
+ "2874678809": {
+  "id": "2874678809",
+  "name": "Lingering Whispers...",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": ""
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "3682045254": {
+  "id": "3682045254",
+  "name": "Unified Carry Weight Framework (UCWF)",
+  "src": [
+   {
+    "file": "2_compatibility_round2.txt",
+    "grade": "A",
+    "rest": ""
+   }
+  ],
+  "modinfo_authors": []
+ },
+ "2642541073": {
+  "id": "2642541073",
+  "name": "'92 AM General M998 + M101A3 Cargo trailer",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "2566953935": {
+  "id": "2566953935",
+  "name": "'86 Oshkosh P19A + Military Trailers",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "2618213077": {
+  "id": "2618213077",
+  "name": "'82 Oshkosh M911 + Military Semi-Trailers",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "2409333430": {
+  "id": "2409333430",
+  "name": "'91 RANGE ROVER Classic",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "2799152995": {
+  "id": "2799152995",
+  "name": "'78 AM General M35 Series Trucks",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "2478247379": {
+  "id": "2478247379",
+  "name": "'67 Cadillac Gage Commando",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "2846036306": {
+  "id": "2846036306",
+  "name": "'92 NISSAN Skyline GT-R (R32)",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "2873290424": {
+  "id": "2873290424",
+  "name": "'70 Dodge Challenger",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "2811383142": {
+  "id": "2811383142",
+  "name": "'83 AM General M923",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "2805630347": {
+  "id": "2805630347",
+  "name": "'84 Mercedes Benz W460",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "2897390033": {
+  "id": "2897390033",
+  "name": "'97 ADI Bushmaster",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "2886832257": {
+  "id": "2886832257",
+  "name": "'82 Jeep J10",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "2886832936": {
+  "id": "2886832936",
+  "name": "'88 Chevrolet S10",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "2870394916": {
+  "id": "2870394916",
+  "name": "'86 Ford Econoline E-150 + Pop Culture vans",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "3330403100": {
+  "id": "3330403100",
+  "name": "Trailers!",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "2962175696": {
+  "id": "2962175696",
+  "name": "'92 Ford Crown Victoria",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "2942793445": {
+  "id": "2942793445",
+  "name": "'90 Pierce Arrow Pumper and Ladder Trucks",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "2952802178": {
+  "id": "2952802178",
+  "name": "'90 Ford F350 Ambulance",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "2886833398": {
+  "id": "2886833398",
+  "name": "'89 Ford Bronco",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "3026723485": {
+  "id": "3026723485",
+  "name": "'67 Shelby GT500 + Eleanor",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "3110911330": {
+  "id": "3110911330",
+  "name": "'87 Ford B700/F700 Trucks",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "2991201484": {
+  "id": "2991201484",
+  "name": "'69 Chevrolet Camaro",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "2932549988": {
+  "id": "2932549988",
+  "name": "'89 Isuzu Trooper",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "2900580391": {
+  "id": "2900580391",
+  "name": "'49 Dodge Power Wagon Crew Cab",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "3073430075": {
+  "id": "3073430075",
+  "name": "'93 Ford F-Series",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "2913633066": {
+  "id": "2913633066",
+  "name": "'70 Plymouth Barracuda",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "3005903549": {
+  "id": "3005903549",
+  "name": "'63 Volkswagen 1300 Beetle",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "2937786633": {
+  "id": "2937786633",
+  "name": "'69 Mini Mk2",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "2772575623": {
+  "id": "2772575623",
+  "name": "'59 Cadillac Miller-Meteor + ECTO-1",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "3001592312": {
+  "id": "3001592312",
+  "name": "'93 Ford Mustang",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "3152529790": {
+  "id": "3152529790",
+  "name": "'93 Chevrolet Suburban / Silverado",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "3110913021": {
+  "id": "3110913021",
+  "name": "'90 BMW 3 Series (E30)",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "2932547723": {
+  "id": "2932547723",
+  "name": "'93 Lincoln Town Car + Limo",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "3379334330": {
+  "id": "3379334330",
+  "name": "'82 Porsche 911",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "3041122351": {
+  "id": "3041122351",
+  "name": "'63 Volkswagen Type 2 Van",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "3670064951": {
+  "id": "3670064951",
+  "name": "Campers!",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by KI5"
+   }
+  ],
+  "modinfo_authors": [
+   "KI5"
+  ]
+ },
+ "2705655822": {
+  "id": "2705655822",
+  "name": "U.S. M113 APC by Papa_Chad",
+  "src": [
+   {
+    "file": "2_compatibility_round2_vehicles.txt",
+    "grade": null,
+    "rest": "by Papa_Chad"
+   }
+  ],
+  "modinfo_authors": [
+   "Papa_Chad"
+  ]
+ }
+}

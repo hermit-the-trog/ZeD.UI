@@ -1,0 +1,32 @@
+VERSION = 1,
+
+mods
+{
+    mod = OverTheShoulder,
+    mod = Bridge,
+    mod = RoamingSurvivors,
+    mod = SleepWithFriends,
+    mod = DBFaster50,
+    mod = SKITTLE_LongTermPreservation,
+    mod = A_SlowerSprinters_35,
+    mod = EverythingHasAName,
+    mod = TreesHaveLoot,
+    mod = SkullysZombieCollision,
+    mod = ModernFirearmsSystem,
+    mod = CDDA_Zombie,
+    mod = MWPWeaponsB42,
+    mod = SkateboardMod,
+    mod = CompanionDogs,
+    mod = CompanionDogsRottweiler,
+    mod = BritasArmorPackB42,
+    mod = ZombieDismembermentB42,
+    mod = J93RunningBloodPools,
+    mod = ProperRagdolls,
+    mod = MoodleFramework,
+    mod = WashOrRot_MP,
+    mod = ZeD_UI,
+}
+
+maps
+{
+}

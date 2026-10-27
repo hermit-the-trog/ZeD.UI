@@ -1,0 +1,12 @@
+VERSION = 1,
+
+mods
+{
+    mod = traitsAsSkills,
+    mod = SpnHairAPI,
+    mod = ZeD_UI,
+}
+
+maps
+{
+}

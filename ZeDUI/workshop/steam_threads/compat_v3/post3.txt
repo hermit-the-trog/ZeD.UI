@@ -1,0 +1,46 @@
+[h2]Compatible, I to Q (part 2 of 3)[/h2]
+Loaded with ZeD-GUI, no errors of their own, and ZeD-GUI's tests passed with them on. Nothing special to say unless a note says so. A note that starts "Part of it does not show" means the mod adds to a game screen that ZeD-GUI replaces. 0-9 and A to H is in reply 2, R to Z is in reply 4; vehicle packs are in reply 5.
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2714198296]I Don't Need A Lighter[/url] by Fingbel
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3810071828]Immersive Snow[/url] by kurmetov
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3426448380]Immersive Suicide[/url] by kStank
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2648152698]Improved Blood Effects[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2645975408]Improved Fire & Smoke Effects[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2948824747]Inspect Weapon[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3796373365]It is of interest to me![/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3767639280]Item Arrange[/url] by Slayer
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3717902500]JB's Bugs In Lights[/url] by jimbeamdiablo
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3470422050]KATTAJ1 Clothes Core[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3779561845]LG Extended Plumbing[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3403870858]Lifestyle: Hobbies[/url] by Angry
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2874678809]Lingering Whispers...[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2920899878]Load All Magazines[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3360392628]Map Mod Manager[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2879745353]Melos Tiles for Miles Tilepack[/url] by melos_tiles
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2705406713]Military Tool Kit[/url] by Papa_Chad
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2866258937]Mini Health Panel[/url] by Speedy Von Gofast: A click on it opens the game's own character window over ZeD's. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3077900375]Mod Update and Alert System[/url] by Chuckleberry Finn
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3451167732]Modern Status[/url] by Rocco: Its bars work; its layout menu opens from the game's Health button, which ZeD hides. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3396446795]Moodle Framework[/url] by Tchernobill: Part of it does not show where you set it: its extra moodles stay at the game's old place at the right edge, not where ZeD's Moodles setting puts them. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3520758551]More Car Features + Spawn Zones Expansion[/url] by GamestaMechanic
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3413150945]More Damaged Objects[/url] by carlesturo
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3457064550]More on the Floor[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=1299328280]More Traits [Legacy, read description][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2732294885]Named skill VHS tapes[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3508537032]NeatUI Framework[/url] by Rocco: A library for Rocco's mods. [i](expected)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3438126404]Nepenthe's High Beams[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3739256725]New Music[/url] by talismon
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3056481712]On the Door[/url] by PePePePePeil: Its alert at game start shows raw text keys on 42.21: its translations are in the old .txt format. Not ZeD.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3465040406]Open All Containers[/url] by carlesturo
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3540903327]Pack Mule[/url] by Balance: Moves watches to its own watch slot; ZeD's belt finds the watch there.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2837923608]PertsPartyTiles[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3422220305]Picking Meister[/url] by PePePePePeil
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3803984183]Project A-Life[/url] by Vice
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3645980077]Project Arcade[/url] by Bass
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3490188370]Project Cook[/url] by Rocco: Its button beside the game's Crafting button does not show; its window opens from the item menu. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3543229299][B42]Project RV Interior[/url] by Mickey Knox
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3412105017]Project Seasons[/url] by Drago1212
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2847184718]Proximity Inventory[/url] by Mxswat FRV Enthusiast: Part of it does not show: its one container of everything nearby is added to the game's loot window. ZeD's World window shows each container in reach as its own column. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3770149036]PZ Map[/url] by qwerto
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3753700423]PZ Pulse[/url] by qwerto
+[/list]

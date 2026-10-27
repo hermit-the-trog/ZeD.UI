@@ -1,0 +1,18 @@
+VERSION = 1,
+
+mods
+{
+    mod = StarlitLibrary,
+    mod = ShowSowingSeasonInTooltip,
+    mod = MoreItemInformation,
+    mod = SmartRadialMenu,
+    mod = BritaCombinedB42,
+    mod = TrueMusicJukebox,
+    mod = NeatUI_Framework,
+    mod = Neat_Rocco,
+    mod = ZeD_UI,
+}
+
+maps
+{
+}

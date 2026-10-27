@@ -1,0 +1,1697 @@
+LOG  : General      f:0> 26-10-2026 21:36:49
+LOG  : General      f:0> SLF4J(I): Attempting to load provider "zombie.core.logger.Slf4jBridge" specified via "slf4j.provider" system property
+LOG  : General      f:0> ===== System specs =====
+LOG  : General      f:0> CPU: 11th Gen Intel(R) Core(TM) i9-11900K @ 3.50GHz, vendor: GenuineIntel, cores: 8, threads: 16
+LOG  : General      f:0> RAM: 65424 Mb
+LOG  : General      f:0> Base board: MPG Z490 GAMING EDGE WIFI (MS-7C79), vendor: Micro-Star International Co., Ltd.
+LOG  : General      f:0> GPU: NVIDIA GeForce RTX 4090, vendor: NVIDIA, video memory: 24564 Mb, driver: 32.0.16.1742
+LOG  : General      f:0> Disk info: 930.41 Gb, free space: 444.03 Gb, usable space: 444.03 Gb
+LOG  : General      f:0> OS: Windows 11, version: 10.0, arch: amd64, build: 26300
+LOG  : General      f:0> JVM (free: 906 Mb, max: 3072 Mb, total available: 1024 Mb)
+LOG  : General      f:0> ========================
+LOG  : General      f:0> java.specification.version=25
+LOG  : General      f:0> sun.cpu.isalist=amd64
+LOG  : General      f:0> sun.jnu.encoding=Cp1252
+LOG  : General      f:0> java.vm.vendor=Azul Systems, Inc.
+LOG  : General      f:0> sun.arch.data.model=64
+LOG  : General      f:0> java.vendor.url=http://www.azul.com/
+LOG  : General      f:0> zomboid.steam=1
+LOG  : General      f:0> java.vm.specification.version=25
+LOG  : General      f:0> os.name=Windows 11
+LOG  : General      f:0> zomboid.znetlog=1
+LOG  : General      f:0> slf4j.provider=zombie.core.logger.Slf4jBridge
+LOG  : General      f:0> jdk.debug=release
+LOG  : General      f:0> sun.cpu.endian=little
+LOG  : General      f:0> java.specification.vendor=Oracle Corporation
+LOG  : General      f:0> java.version.date=2025-10-21
+LOG  : General      f:0> java.home=E:\Project Zomboid\SteamApps\common\P...
+LOG  : General      f:0> file.separator=\
+LOG  : General      f:0> line.separator=
+
+LOG  : General      f:0> java.vm.specification.vendor=Oracle Corporation
+LOG  : General      f:0> java.specification.name=Java Platform API Specification
+LOG  : General      f:0> java.awt.headless=true
+LOG  : General      f:0> sun.management.compiler=HotSpot 64-Bit Tiered Compilers
+LOG  : General      f:0> java.runtime.version=25.0.1+8-LTS
+LOG  : General      f:0> stdout.encoding=Cp1252
+LOG  : General      f:0> os.version=10.0
+LOG  : General      f:0> jna.nosys=false
+LOG  : General      f:0> java.runtime.name=OpenJDK Runtime Environment
+LOG  : General      f:0> file.encoding=UTF-8
+LOG  : General      f:0> java.vm.name=OpenJDK 64-Bit Server VM
+LOG  : General      f:0> java.vendor.version=Zulu25.30+17-CA
+LOG  : General      f:0> jna.loaded=true
+LOG  : General      f:0> java.vendor.url.bug=http://www.azul.com/support/
+LOG  : General      f:0> java.version=25.0.1
+LOG  : General      f:0> os.arch=amd64
+LOG  : General      f:0> java.vm.specification.name=Java Virtual Machine Specification
+LOG  : General      f:0> sun.os.patch.level=
+LOG  : General      f:0> native.encoding=Cp1252
+LOG  : General      f:0> java.vm.info=mixed mode, sharing
+LOG  : General      f:0> stderr.encoding=Cp1252
+LOG  : General      f:0> java.vendor=Azul Systems, Inc.
+LOG  : General      f:0> java.vm.version=25.0.1+8-LTS
+LOG  : General      f:0> stdin.encoding=Cp1252
+LOG  : General      f:0> sun.io.unicode.encoding=UnicodeLittle
+LOG  : General      f:0> java.class.version=69.0
+LOG  : General      f:0> -----
+LOG  : General      f:0> version=42.21.0 4a0e9546ec demo=false
+LOG  : General      f:0> revision=4a0e9546ec pzbullet=1.0.0.28
+LOG  : General      f:0> You can setup the log levels in the debuglog.cfg file
+LOG  : General      f:0> Logs configuration:
+LOG  : General      f:0>      General: General
+LOG  : General      f:0>      Network: General
+LOG  : General      f:0>          Lua: General
+LOG  : General      f:0>          Mod: General
+LOG  : General      f:0>  Multiplayer: General
+LOG  : General      f:0> ClientCommand: General
+LOG  : General      f:0>      Default: General
+LOG  : General      f:0> LightingFPS set to 60
+LOG  : General      f:0> closest width=640 freq=23
+LOG  : General      f:0> closest width=640 freq=24
+LOG  : General      f:0> closest width=640 freq=25
+LOG  : General      f:0> closest width=640 freq=29
+LOG  : General      f:0> closest width=640 freq=30
+LOG  : General      f:0> closest width=640 freq=50
+LOG  : General      f:0> closest width=640 freq=59
+LOG  : General      f:0> closest width=640 freq=60
+LOG  : General      f:0> closest width=640 freq=100
+LOG  : General      f:0> closest width=640 freq=119
+LOG  : General      f:0> closest width=640 freq=120
+LOG  : General      f:0> closest width=640 freq=144
+LOG  : General      f:0> closest width=720 freq=23
+LOG  : General      f:0> closest width=720 freq=24
+LOG  : General      f:0> closest width=720 freq=25
+LOG  : General      f:0> closest width=720 freq=29
+LOG  : General      f:0> closest width=720 freq=30
+LOG  : General      f:0> closest width=720 freq=50
+LOG  : General      f:0> closest width=720 freq=59
+LOG  : General      f:0> closest width=720 freq=60
+LOG  : General      f:0> closest width=720 freq=100
+LOG  : General      f:0> closest width=720 freq=119
+LOG  : General      f:0> closest width=720 freq=120
+LOG  : General      f:0> closest width=720 freq=144
+LOG  : General      f:0> closest width=800 freq=23
+LOG  : General      f:0> closest width=800 freq=24
+LOG  : General      f:0> closest width=800 freq=25
+LOG  : General      f:0> closest width=800 freq=29
+LOG  : General      f:0> closest width=800 freq=30
+LOG  : General      f:0> closest width=800 freq=50
+LOG  : General      f:0> closest width=800 freq=59
+LOG  : General      f:0> closest width=800 freq=60
+LOG  : General      f:0> closest width=800 freq=100
+LOG  : General      f:0> closest width=800 freq=119
+LOG  : General      f:0> closest width=800 freq=120
+LOG  : General      f:0> closest width=800 freq=144
+LOG  : General      f:0> closest width=1176 freq=23
+LOG  : General      f:0> closest width=1176 freq=24
+LOG  : General      f:0> closest width=1176 freq=25
+LOG  : General      f:0> closest width=1176 freq=29
+LOG  : General      f:0> closest width=1176 freq=30
+LOG  : General      f:0> closest width=1176 freq=50
+LOG  : General      f:0> closest width=1176 freq=59
+LOG  : General      f:0> closest width=1176 freq=60
+LOG  : General      f:0> closest width=1176 freq=100
+LOG  : General      f:0> closest width=1176 freq=119
+LOG  : General      f:0> closest width=1176 freq=120
+LOG  : General      f:0> closest width=1176 freq=144
+LOG  : General      f:0> closest width=1280 freq=23
+LOG  : General      f:0> closest width=1280 freq=24
+LOG  : General      f:0> closest width=1280 freq=25
+LOG  : General      f:0> closest width=1280 freq=29
+LOG  : General      f:0> closest width=1280 freq=30
+LOG  : General      f:0> closest width=1280 freq=50
+LOG  : General      f:0> closest width=1280 freq=59
+LOG  : General      f:0> closest width=1280 freq=60
+LOG  : General      f:0> closest width=1280 freq=100
+LOG  : General      f:0> closest width=1280 freq=119
+LOG  : General      f:0> closest width=1280 freq=120
+LOG  : General      f:0> closest width=1280 freq=144
+LOG  : General      f:0> closest width=1360 freq=23
+LOG  : General      f:0> closest width=1360 freq=24
+LOG  : General      f:0> closest width=1360 freq=25
+LOG  : General      f:0> closest width=1360 freq=29
+LOG  : General      f:0> closest width=1360 freq=30
+LOG  : General      f:0> closest width=1360 freq=50
+LOG  : General      f:0> closest width=1360 freq=59
+LOG  : General      f:0> closest width=1360 freq=60
+LOG  : General      f:0> closest width=1360 freq=100
+LOG  : General      f:0> closest width=1360 freq=119
+LOG  : General      f:0> closest width=1360 freq=120
+LOG  : General      f:0> closest width=1360 freq=144
+LOG  : General      f:0> closest width=1366 freq=23
+LOG  : General      f:0> closest width=1366 freq=24
+LOG  : General      f:0> closest width=1366 freq=25
+LOG  : General      f:0> closest width=1366 freq=29
+LOG  : General      f:0> closest width=1366 freq=30
+LOG  : General      f:0> closest width=1366 freq=50
+LOG  : General      f:0> closest width=1366 freq=59
+LOG  : General      f:0> closest width=1366 freq=60
+LOG  : General      f:0> closest width=1366 freq=100
+LOG  : General      f:0> closest width=1366 freq=119
+LOG  : General      f:0> closest width=1366 freq=120
+LOG  : General      f:0> closest width=1366 freq=144
+LOG  : General      f:0> closest width=1600 freq=23
+LOG  : General      f:0> closest width=1600 freq=24
+LOG  : General      f:0> closest width=1600 freq=25
+LOG  : General      f:0> closest width=1600 freq=29
+LOG  : General      f:0> closest width=1600 freq=30
+LOG  : General      f:0> closest width=1600 freq=50
+LOG  : General      f:0> closest width=1600 freq=59
+LOG  : General      f:0> closest width=1600 freq=60
+LOG  : General      f:0> closest width=1600 freq=100
+LOG  : General      f:0> closest width=1600 freq=119
+LOG  : General      f:0> closest width=1600 freq=120
+LOG  : General      f:0> closest width=1600 freq=144
+LOG  : General      f:0> closest width=1680 freq=23
+LOG  : General      f:0> closest width=1680 freq=24
+LOG  : General      f:0> closest width=1680 freq=25
+LOG  : General      f:0> closest width=1680 freq=29
+LOG  : General      f:0> closest width=1680 freq=30
+LOG  : General      f:0> closest width=1680 freq=50
+LOG  : General      f:0> closest width=1680 freq=59
+LOG  : General      f:0> closest width=1680 freq=60
+LOG  : General      f:0> closest width=1680 freq=100
+LOG  : General      f:0> closest width=1680 freq=119
+LOG  : General      f:0> closest width=1680 freq=120
+LOG  : General      f:0> closest width=1680 freq=144
+LOG  : General      f:0> closest width=1920 freq=23
+LOG  : General      f:0> closest width=1920 freq=24
+LOG  : General      f:0> closest width=1920 freq=25
+LOG  : General      f:0> closest width=1920 freq=29
+LOG  : General      f:0> closest width=1920 freq=30
+LOG  : General      f:0> closest width=1920 freq=50
+LOG  : General      f:0> closest width=1920 freq=59
+LOG  : General      f:0> closest width=1920 freq=60
+LOG  : General      f:0> closest width=1920 freq=100
+LOG  : General      f:0> closest width=1920 freq=119
+LOG  : General      f:0> closest width=1920 freq=120
+LOG  : General      f:0> closest width=1920 freq=144
+LOG  : General      f:0> closest width=2048 freq=23
+LOG  : General      f:0> closest width=2048 freq=24
+LOG  : General      f:0> closest width=2048 freq=25
+LOG  : General      f:0> closest width=2048 freq=29
+LOG  : General      f:0> closest width=2048 freq=30
+LOG  : General      f:0> closest width=2048 freq=50
+LOG  : General      f:0> closest width=2048 freq=59
+LOG  : General      f:0> closest width=2048 freq=60
+LOG  : General      f:0> closest width=2048 freq=100
+LOG  : General      f:0> closest width=2048 freq=119
+LOG  : General      f:0> closest width=2048 freq=120
+LOG  : General      f:0> closest width=2048 freq=144
+LOG  : General      f:0> closest width=2560 freq=23
+LOG  : General      f:0> closest width=2560 freq=24
+LOG  : General      f:0> closest width=2560 freq=25
+LOG  : General      f:0> closest width=2560 freq=29
+LOG  : General      f:0> closest width=2560 freq=30
+LOG  : General      f:0> closest width=2560 freq=50
+LOG  : General      f:0> closest width=2560 freq=59
+LOG  : General      f:0> closest width=2560 freq=60
+LOG  : General      f:0> closest width=2560 freq=100
+LOG  : General      f:0> closest width=2560 freq=119
+LOG  : General      f:0> closest width=2560 freq=120
+LOG  : General      f:0> closest width=2560 freq=144
+LOG  : General      f:0> closest width=3840 freq=23
+LOG  : General      f:0> closest width=3840 freq=24
+LOG  : General      f:0> closest width=3840 freq=25
+LOG  : General      f:0> closest width=3840 freq=29
+LOG  : General      f:0> closest width=3840 freq=30
+LOG  : General      f:0> closest width=3840 freq=50
+LOG  : General      f:0> closest width=3840 freq=59
+LOG  : General      f:0> closest width=3840 freq=60
+LOG  : General      f:0> closest width=3840 freq=100
+LOG  : General      f:0> closest width=3840 freq=119
+LOG  : General      f:0> Display mode changed to 3840x2160 freq=120 fullScreen=true
+LOG  : General      f:0> GraphicsCard: NVIDIA Corporation NVIDIA GeForce RTX 4090/PCIe/SSE2
+LOG  : General      f:0> OpenGL version: 4.6.0 NVIDIA 617.42
+LOG  : General      f:0> Desktop resolution 3840x2160
+LOG  : General      f:0> Initial resolution 3840x2160 fullScreen=true
+LOG  : General      f:0> OpenGL 1.5 buffer objects supported
+LOG  : General      f:0> VSync: ON
+LOG  : General      f:0> 1793075810872 fmod: Java loging: OK
+LOG  : General      f:0> 1793075810875 fmod: FMOD::Studio::System::create() result: No errors.
+LOG  : General      f:0> 1793075810875 fmod: FMOD::Studio::System::getCoreSystem() result: No errors.
+LOG  : General      f:0> 1793075810875 fmod: FMOD_System_GetVersion() result: No errors.
+LOG  : General      f:0> 1793075810875 fmod: fmodintegration built with version 20309, fmod shared library version 20309
+LOG  : General      f:0> 1793075810875 fmod: System Create: OK
+LOG  : General      f:0> 1793075810877 fmod: FMOD_System_SetSoftwareFormat() result: No errors.
+LOG  : General      f:0> 1793075810908 fmod: FMOD::Studio::System::Initialize() result: No errors.
+LOG  : General      f:0> 1793075810909 fmod: Creating DSP for capture sound
+LOG  : General      f:0> 1793075810909 fmod: FMOD_System_CreateDSP() result: No errors.
+LOG  : General      f:0> 1793075810909 fmod: FMOD_DSP_SetBypass() result: No errors.
+LOG  : General      f:0> 1793075810909 fmod: FMOD_System_GetMasterChannelGroup() result: No errors.
+LOG  : General      f:0> 1793075810909 fmod: FMOD_ChannelGroup_AddDSP() result: No errors.
+LOG  : General      f:0> 1793075810910 fmod: FMOD_System_Set3DSettings() result: No errors.
+LOG  : Mod          f:0> refusing to list examplemod
+ERROR: General      f:0 at AngelCodeFont.parseFnt              > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont_0.png
+ERROR: General      f:0 at AngelCodeFont.parseFnt              > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont2_0.png
+ERROR: General      f:0 at AngelCodeFont.parseFnt              > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/fonts/zomboidDialogue.bmfc_0.png
+LOG  : General      f:0> Loading networking libraries...
+LOG  : General      f:0> Loading steam_api64...
+LOG  : General      f:0> Loading RakNet64...
+LOG  : General      f:0> Loading ZNetJNI64...
+LOG  : General      f:0> SteamUtils initialised successfully
+LOG  : General      f:0> Loading Mods
+LOG  : Mod          f:0> refusing to list examplemod
+ERROR: Mod          f:0 at ChooseGameInfo.readModInfoAux       > tiledef=SupportCorps 8900 file number must be from 100 to 8189
+LOG  : Mod          f:0> loading ZeDQA_Probe
+LOG  : General      f:0> Loading Translations
+ERROR: General      f:0 at AngelCodeFont.parseFnt              > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont_0.png
+ERROR: General      f:0 at AngelCodeFont.parseFnt              > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont2_0.png
+ERROR: General      f:0 at AngelCodeFont.parseFnt              > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/fonts/zomboidDialogue.bmfc_0.png
+LOG  : General      f:0> texturepack: loading UI
+LOG  : General      f:0> Loading UI texture pack
+LOG  : General      f:0> texturepack: loading UI2
+LOG  : General      f:0> Loading UI2 texture pack
+LOG  : General      f:0> texturepack: loading IconsMoveables
+LOG  : General      f:0> Loading IconsMoveables texture pack
+LOG  : General      f:0> texturepack: loading RadioIcons
+LOG  : General      f:0> Loading RadioIcons texture pack
+LOG  : General      f:0> texturepack: loading ApComUI
+LOG  : General      f:0> Loading ApComUI texture pack
+LOG  : General      f:0> texturepack: loading Mechanics
+LOG  : General      f:0> Loading Mechanics texture pack
+LOG  : General      f:0> texturepack: loading WeatherFx
+LOG  : General      f:0> Loading WeatherFx texture pack
+LOG  : General      f:0> Loading Scripts
+ERROR: General      f:0 at FluidContainerScript.load           > Sanitizing container name 'Large Bucket', name may not contain whitespaces.
+ERROR: General      f:0 at FluidContainerScript.load           > Sanitizing container name 'Fuel Pump', name may not contain whitespaces.
+WARN : General      f:0 at XuiSkin$EntityUiStyle.Load          > Could not find icon: Build_AnvilStone, script = Stone Anvil
+WARN : General      f:0 at XuiSkin$EntityUiStyle.LoadComponentInfo> Could not find icon: Build_AnvilStone
+WARN : General      f:0 at XuiSkin$EntityUiStyle.Load          > Could not find icon: Build_AnvilStone, script = Stone Anvil
+WARN : General      f:0 at XuiSkin$EntityUiStyle.LoadComponentInfo> Could not find icon: Build_AnvilStone
+WARN : General      f:0 at XuiSkin$EntityUiStyle.Load          > Could not find icon: Build_AnvilStone, script = Stone Anvil
+WARN : General      f:0 at XuiSkin$EntityUiStyle.LoadComponentInfo> Could not find icon: Build_AnvilStone
+WARN : General      f:0 at XuiSkin$EntityUiStyle.Load          > Could not find icon: Build_AnvilStone, script = Stone Anvil
+WARN : General      f:0 at XuiSkin$EntityUiStyle.LoadComponentInfo> Could not find icon: Build_AnvilStone
+WARN : General      f:0 at TaggedObjectManager.createTagBits   > manager-> new tag discovered that was not preprocessed, tag: keyduplicator
+WARN : General      f:0 at TaggedObjectManager.createTagBits   > manager-> new tag discovered that was not preprocessed, tag: choppingblock
+WARN : General      f:0 at SoundManager.debugScriptSound       > no such sound "CorpseDrop" in item Base.CorpseFemale
+WARN : General      f:0 at SoundManager.debugScriptSound       > no such sound "CorpseDrop" in item Base.CorpseMale
+LOG  : General      f:0> Loading Clothing
+LOG  : General      f:0> 
+LOG  : General      f:0> Loading Lua
+WARN : Lua          f:0 at Lua(Vanilla).corpseStorageCheck     > require("ISUI/ISInventoryPaneContextMenu") failed
+WARN : Lua          f:0 at Lua(Vanilla).corpseStorageCheck     > require("ISUI/ISVehicleMenu") failed
+WARN : Lua          f:0 at Lua(Vanilla).corpseStorageCheck     > require("ISUI/ISContextMenu") failed
+WARN : Lua          f:0 at Lua(Vanilla).ISCampingMenu          > require("Camping/CCampfireSystem") failed
+WARN : Lua          f:0 at Lua(Vanilla).ISInventoryTransferUtil> require("TimedActions/ISInventoryTransferAction") failed
+WARN : Lua          f:0 at Lua(Vanilla).ISInventoryTransferUtil> require("ISUI/PlayerData/ISPlayerData") failed
+WARN : Lua          f:0 at Lua(Vanilla).ISAnimalContextMenu    > require("BuildingObjects/ISAnimalPickMateCursor") failed
+WARN : Lua          f:0 at Lua(Vanilla).TakeSameType           > require("ISUI/InventoryWindow/ISLootWindowControlHandler") failed
+WARN : Lua          f:0 at Lua(Vanilla).FloorTakeSameType      > require("ISUI/InventoryWindow/ISLootWindowControlHandler") failed
+WARN : Lua          f:0 at Lua(Vanilla).testUI                 > require("pzapi/ui/ui") failed
+LOG  : Lua          f:0> OnLoadSoundbanks
+LOG  : General      f:0> texturepack: loading Tiles2x
+LOG  : General      f:0> Loading Tiles2x texture pack
+LOG  : General      f:0> texturepack: loading Overlays2x
+LOG  : General      f:0> Loading Overlays2x texture pack
+LOG  : General      f:0> texturepack: loading JumboTrees2x
+LOG  : General      f:0> Loading JumboTrees2x texture pack
+LOG  : General      f:0> texturepack: loading JumboTreesBigs2x
+LOG  : General      f:0> Loading JumboTreesBigs2x texture pack
+LOG  : General      f:0> texturepack: loading Tiles2x.floor
+LOG  : General      f:0> Loading Tiles2x.floor texture pack
+LOG  : General      f:0> texturepack: loading B42ChunkCaching2x
+LOG  : General      f:0> Loading B42ChunkCaching2x texture pack
+LOG  : General      f:0> texturepack: loading B42ChunkCaching2x.floor
+LOG  : General      f:0> Loading B42ChunkCaching2x.floor texture pack
+LOG  : General      f:0> texturepack: loading Clock2x
+LOG  : General      f:0> Loading Clock2x texture pack
+LOG  : General      f:0> Loading models and animations
+LOG  : General      f:0> 1793075842776 fmod: globalSystem = 0x2A7BFD28
+LOG  : General      f:0> 1793075842777 fmod: FMOD_System_GetRecordDriverInfo: nativeRate = 48000, nativeChannels = 8
+LOG  : General      f:0> 1793075842777 fmod: System create record sound: OK
+LOG  : General      f:0> 1793075842777 fmod: Create resampler: OK
+LOG  : General      f:0> 1793075842777 fmod: Create acoustic echo canceller: OK
+LOG  : General      f:0> 1793075842782 fmod: GetRecordNumDrivers id = 0, sound = 0x611d8cd8 loop=1
+LOG  : General      f:0> Game booting
+LOG  : General      f:0> STATE: exit zombie.gameStates.TermsOfServiceState
+WARN : Lua          f:0 at Lua(Vanilla).namedColorToTable      > env.lua-> namedColorToTable color not found: ProgressYellow
+LOG  : Lua          f:0> [ZeDQA.Probe] bridge armed (main menu)
+LOG  : Lua          f:0> [ZeDQA.Probe] autoload: continuing the latest save
+LOG  : General      f:0> MapGroup 1/8
+LOG  : General      f:0>   Brandenburg, KY
+LOG  : General      f:0>   Echo Creek, KY
+LOG  : General      f:0>   Ekron, KY
+LOG  : General      f:0>   Fallas Lake, KY
+LOG  : General      f:0>   Irvington, KY
+LOG  : General      f:0>   March Ridge, KY
+LOG  : General      f:0>   Riverside, KY
+LOG  : General      f:0>   Rosewood, KY
+LOG  : General      f:0>   Valley Station, KY
+LOG  : General      f:0>   West Point, KY
+LOG  : General      f:0>   Muldraugh, KY
+LOG  : General      f:0> MapGroup 2/8
+LOG  : General      f:0>   challengemaps/Challenge1
+LOG  : General      f:0> MapGroup 3/8
+LOG  : General      f:0>   challengemaps/Challenge2
+LOG  : General      f:0> MapGroup 4/8
+LOG  : General      f:0>   challengemaps/Kingsmouth
+LOG  : General      f:0> MapGroup 5/8
+LOG  : General      f:0>   challengemaps/KnoxCounty
+LOG  : General      f:0> MapGroup 6/8
+LOG  : General      f:0>   challengemaps/Studio
+LOG  : General      f:0> MapGroup 7/8
+LOG  : General      f:0>   challengemaps/The Forest
+LOG  : General      f:0> MapGroup 8/8
+LOG  : General      f:0>   challengemaps/Tutorial
+LOG  : General      f:0> -----
+LOG  : Mod          f:0> refusing to list examplemod
+ERROR: Mod          f:0 at ChooseGameInfo.readModInfoAux       > tiledef=SupportCorps 8900 file number must be from 100 to 8189
+LOG  : Mod          f:0> loading RoamingSurvivors
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/turnalerted/default.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/shared/translate/en/ig_ui.json
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/shared/translate/en/sandbox.json
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides install.txt
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/actiongroups/.keep
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/actiongroups/readme.txt
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/.keep
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_aimpistol.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_aimpistollow.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_aimrifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_aimriflelow.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_attack1h1.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_attack1h2.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_attack1h3.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_attack1h4.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_attack1h5.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_attack2h1.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_attack2h2.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_attack2h3.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_attack2h4.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_attackbarehands1.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_attackbarehands2.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_attackbarehands3.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_attackbarehands4.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_frontkick.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_highkick.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_idletoaimpistol.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_idletoaimrifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactcough_barehand.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactcough_handgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactcough_onehanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactcough_rifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactcough_twohanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactdrink.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcacteat.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactforage.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcacthammer.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactloot.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactloothigh.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactlootlow.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactpatch.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactshift.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactshiver_barehand.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactshiver_handgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactshiver_onehanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactshiver_rifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactshiver_twohanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactshrug_barehand.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactshrug_handgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactshrug_onehanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactshrug_rifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactshrug_twohanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactsit.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactsitfidget.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactsitin.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactsitout.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactsitoutquick.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactsitrub.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactsitshiver.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactsitsneeze.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactsitwipe.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactsleep.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactsleepin.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactsleepout.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactsmoke.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactstretch_barehand.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactstretch_handgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactstretch_onehanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactstretch_rifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactstretch_twohanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactwarm.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactwipe.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactyawn_barehand.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactyawn_handgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactyawn_onehanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactyawn_rifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcactyawn_twohanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcaimrackbolt.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcaimracklever.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcaimrackshotgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcdrawpistol.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcdrawrifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcloaddb.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcloadhandgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcloadrevolver.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcloadrifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcloadshell.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpclowerpistol.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpclowerrifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcrackbolt.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcrackdb.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcrackhandgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcracklever.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcrackrevolver.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcrackrifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcrackshotgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcspawn.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcstowpistol.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_clip_rnpcstowrifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped/rnpc_walker_bite.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_aimpistol.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_aimpistollow.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_aimrifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_aimriflelow.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_attack1h1.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_attack1h2.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_attack1h3.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_attack1h4.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_attack1h5.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_attack2h1.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_attack2h2.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_attack2h3.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_attack2h4.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_attackbarehands1.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_attackbarehands2.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_attackbarehands3.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_attackbarehands4.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_frontkick.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_highkick.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_idletoaimpistol.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_idletoaimrifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactcough_barehand.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactcough_handgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactcough_onehanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactcough_rifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactcough_twohanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactdrink.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcacteat.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactforage.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcacthammer.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactloot.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactloothigh.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactlootlow.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactpatch.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactshift.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactshiver_barehand.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactshiver_handgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactshiver_onehanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactshiver_rifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactshiver_twohanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactshrug_barehand.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactshrug_handgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactshrug_onehanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactshrug_rifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactshrug_twohanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactsit.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactsitfidget.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactsitin.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactsitout.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactsitoutquick.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactsitrub.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactsitshiver.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactsitsneeze.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactsitwipe.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactsleep.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactsleepin.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactsleepout.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactsmoke.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactstretch_barehand.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactstretch_handgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactstretch_onehanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactstretch_rifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactstretch_twohanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactwarm.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactwipe.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactyawn_barehand.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactyawn_handgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactyawn_onehanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactyawn_rifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcactyawn_twohanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcaimrackbolt.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcaimracklever.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcaimrackshotgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcdrawpistol.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcdrawrifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcloaddb.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcloadhandgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcloadrevolver.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcloadrifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcloadshell.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpclowerpistol.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpclowerrifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcrackbolt.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcrackdb.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcrackhandgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcracklever.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcrackrevolver.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcrackrifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcrackshotgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcspawn.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcstowpistol.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/bumped-network/rnpc_clip_rnpcstowrifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/climbfence/rnpc_vault_end_lunge.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/climbfence/rnpc_vault_end_success.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/climbfence/rnpc_vault_obstacle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/climbfence/rnpc_vault_start.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/climbwindow/rnpc_window_end_lunge.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/climbwindow/rnpc_window_end_success.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/climbwindow/rnpc_window_obstacle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/climbwindow/rnpc_window_start.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/getup-fromonback/rnpc_getup.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/getup-fromonfront/rnpc_getup.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/hitreaction/rnpc_hit_barehand.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/hitreaction/rnpc_hit_barehand_behind.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/hitreaction/rnpc_hit_handgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/hitreaction/rnpc_hit_handgun_behind.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/hitreaction/rnpc_hit_onehanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/hitreaction/rnpc_hit_onehanded_behind.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/hitreaction/rnpc_hit_rifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/hitreaction/rnpc_hit_rifle_behind.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/hitreaction/rnpc_hit_twohanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/hitreaction/rnpc_hit_twohanded_behind.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/hitreaction/rnpc_react_quick.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/idle/rnpc_idle_barehand.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/idle/rnpc_idle_handgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/idle/rnpc_idle_onehanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/idle/rnpc_idle_rifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/idle/rnpc_idle_twohanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/idle-network/rnpc_idle_barehand.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/idle-network/rnpc_idle_handgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/idle-network/rnpc_idle_onehanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/idle-network/rnpc_idle_rifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/idle-network/rnpc_idle_twohanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gaitw_limp_barehand.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gaitw_limp_barehand_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gaitw_limp_handgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gaitw_limp_handgun_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gaitw_limp_onehanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gaitw_limp_onehanded_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gaitw_limp_rifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gaitw_limp_rifle_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gaitw_limp_twohanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gaitw_limp_twohanded_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gaitw_limp_unset.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gaitw_run_barehand.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gaitw_run_handgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gaitw_run_onehanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gaitw_run_rifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gaitw_run_twohanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gaitw_run_unset.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gaitw_walk_barehand.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gaitw_walk_barehand_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gaitw_walk_handgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gaitw_walk_handgun_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gaitw_walk_onehanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gaitw_walk_onehanded_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gaitw_walk_rifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gaitw_walk_rifle_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gaitw_walk_twohanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gaitw_walk_twohanded_aim.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gaitw_walk_twohanded_aim_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gaitw_walk_twohanded_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gaitw_walk_unset.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gait_limp_barehand.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gait_limp_barehand_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gait_limp_handgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gait_limp_handgun_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gait_limp_onehanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gait_limp_onehanded_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gait_limp_rifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gait_limp_rifle_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gait_limp_twohanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gait_limp_twohanded_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gait_limp_unset.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gait_run_barehand.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gait_run_handgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gait_run_onehanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gait_run_rifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gait_run_twohanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gait_run_unset.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gait_walk_barehand.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gait_walk_barehand_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gait_walk_handgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gait_walk_handgun_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gait_walk_onehanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gait_walk_onehanded_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gait_walk_rifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gait_walk_rifle_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gait_walk_twohanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gait_walk_twohanded_aim.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gait_walk_twohanded_aim_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gait_walk_twohanded_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_gait_walk_unset.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_wait_barehand.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_wait_handgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_wait_onehanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_wait_rifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_wait_twohanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind/rnpc_wait_unset.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind-network/rnpc_gait_limp_barehand.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind-network/rnpc_gait_limp_barehand_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind-network/rnpc_gait_limp_handgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind-network/rnpc_gait_limp_handgun_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind-network/rnpc_gait_limp_onehanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind-network/rnpc_gait_limp_onehanded_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind-network/rnpc_gait_limp_rifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind-network/rnpc_gait_limp_rifle_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind-network/rnpc_gait_limp_twohanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind-network/rnpc_gait_limp_twohanded_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind-network/rnpc_gait_limp_unset.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind-network/rnpc_gait_run_barehand.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind-network/rnpc_gait_run_handgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind-network/rnpc_gait_run_onehanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind-network/rnpc_gait_run_rifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind-network/rnpc_gait_run_twohanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind-network/rnpc_gait_run_unset.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind-network/rnpc_gait_walk_barehand.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind-network/rnpc_gait_walk_barehand_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind-network/rnpc_gait_walk_handgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind-network/rnpc_gait_walk_handgun_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind-network/rnpc_gait_walk_onehanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind-network/rnpc_gait_walk_onehanded_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind-network/rnpc_gait_walk_rifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind-network/rnpc_gait_walk_rifle_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind-network/rnpc_gait_walk_twohanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind-network/rnpc_gait_walk_twohanded_aim.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind-network/rnpc_gait_walk_twohanded_aim_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind-network/rnpc_gait_walk_twohanded_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/pathfind-network/rnpc_gait_walk_unset.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/staggerback/rnpc_stagger_behind.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/staggerback/rnpc_stagger_front.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/staggerback/rnpc_stagger_left.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/staggerback/rnpc_stagger_quick.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/staggerback/rnpc_stagger_right.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/turnalerted/default.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/turnalerted/rnpc_turn_any.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/turnalerted/rnpc_turn_barehand.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/turnalerted/rnpc_turn_handgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/turnalerted/rnpc_turn_onehanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/turnalerted/rnpc_turn_rifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/turnalerted/rnpc_turn_twohanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/turnalerted-network/rnpc_turn_any.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/turnalerted-network/rnpc_turn_barehand.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/turnalerted-network/rnpc_turn_handgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/turnalerted-network/rnpc_turn_onehanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/turnalerted-network/rnpc_turn_rifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/turnalerted-network/rnpc_turn_twohanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/turnalerted-network/rnpc_turn_zombie.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/turning180/rnpc_turn_any.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/turning180/rnpc_turn_barehand.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/turning180/rnpc_turn_handgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/turning180/rnpc_turn_onehanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/turning180/rnpc_turn_rifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/turning180/rnpc_turn_twohanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/turning180/rnpc_turn_zombie.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/turning180-network/rnpc_turn_any.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/turning180-network/rnpc_turn_barehand.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/turning180-network/rnpc_turn_handgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/turning180-network/rnpc_turn_onehanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/turning180-network/rnpc_turn_rifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/turning180-network/rnpc_turn_twohanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/turning180-network/rnpc_turn_zombie.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward/rnpc_gait_limp_barehand.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward/rnpc_gait_limp_barehand_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward/rnpc_gait_limp_handgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward/rnpc_gait_limp_handgun_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward/rnpc_gait_limp_onehanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward/rnpc_gait_limp_onehanded_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward/rnpc_gait_limp_rifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward/rnpc_gait_limp_rifle_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward/rnpc_gait_limp_twohanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward/rnpc_gait_limp_twohanded_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward/rnpc_gait_limp_unset.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward/rnpc_gait_run_barehand.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward/rnpc_gait_run_handgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward/rnpc_gait_run_onehanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward/rnpc_gait_run_rifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward/rnpc_gait_run_twohanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward/rnpc_gait_run_unset.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward/rnpc_gait_walk_barehand.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward/rnpc_gait_walk_barehand_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward/rnpc_gait_walk_handgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward/rnpc_gait_walk_handgun_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward/rnpc_gait_walk_onehanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward/rnpc_gait_walk_onehanded_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward/rnpc_gait_walk_rifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward/rnpc_gait_walk_rifle_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward/rnpc_gait_walk_twohanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward/rnpc_gait_walk_twohanded_aim.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward/rnpc_gait_walk_twohanded_aim_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward/rnpc_gait_walk_twohanded_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward/rnpc_gait_walk_unset.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward-network/rnpc_gait_limp_barehand.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward-network/rnpc_gait_limp_barehand_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward-network/rnpc_gait_limp_handgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward-network/rnpc_gait_limp_handgun_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward-network/rnpc_gait_limp_onehanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward-network/rnpc_gait_limp_onehanded_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward-network/rnpc_gait_limp_rifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward-network/rnpc_gait_limp_rifle_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward-network/rnpc_gait_limp_twohanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward-network/rnpc_gait_limp_twohanded_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward-network/rnpc_gait_limp_unset.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward-network/rnpc_gait_run_barehand.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward-network/rnpc_gait_run_handgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward-network/rnpc_gait_run_onehanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward-network/rnpc_gait_run_rifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward-network/rnpc_gait_run_twohanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward-network/rnpc_gait_run_unset.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward-network/rnpc_gait_walk_barehand.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward-network/rnpc_gait_walk_barehand_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward-network/rnpc_gait_walk_handgun.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward-network/rnpc_gait_walk_handgun_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward-network/rnpc_gait_walk_onehanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward-network/rnpc_gait_walk_onehanded_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward-network/rnpc_gait_walk_rifle.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward-network/rnpc_gait_walk_rifle_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward-network/rnpc_gait_walk_twohanded.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward-network/rnpc_gait_walk_twohanded_aim.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward-network/rnpc_gait_walk_twohanded_aim_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward-network/rnpc_gait_walk_twohanded_b.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/animsets/zombie/walktoward-network/rnpc_gait_walk_unset.xml
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/client/rnpc_20_client.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/client/rnpc_21_map.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/client/rnpc_22_trade.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/client/rnpc_23_standing.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/client/rnpc_24_repadmin.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/client/rnpc_25_faceditor.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/client/rnpc_26_journal.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/client/rnpc_27_talkpanel.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/client/rnpc_28b_jobs.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/client/rnpc_28c_ride.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/client/rnpc_28_roster.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/client/rnpc_29b_lights.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/client/rnpc_29c_aid.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/client/rnpc_29d_around.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/client/rnpc_29e_food.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/client/rnpc_29_calm.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_10_spawn.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_11_bodies.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_12_sim.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_13_main.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_14_admin.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_15_brain.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_16_offline.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_17_roaddata.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_17_roads.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_18_claims.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_19_aftermath.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_29_fac.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_30_factions.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_31_store.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_32_trade.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_33_survival.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_34_baseraid.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_35_tasks.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_36_editor.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_37_members.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_38_quests.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_39_memory.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_41_infection.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_42_orders.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_43_people.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_44_jobs.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_45_calmserver.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_46_ride.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_47_debris.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_48_threats.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_49b_around.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_49e_notes.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_49f_food.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_49h_grouphit.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/server/rnpc_49_aid.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/shared/rnpc_00_core.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/shared/rnpc_01b_facedit.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/shared/rnpc_01_factions.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/shared/rnpc_02_places.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/shared/rnpc_03_guns.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/shared/rnpc_04b_move.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/shared/rnpc_04c_body.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/shared/rnpc_04d_hits.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/shared/rnpc_04e_weapons.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/shared/rnpc_04f_world.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/shared/rnpc_04g_combat.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/shared/rnpc_04h_fight.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/shared/rnpc_04i_activities.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/shared/rnpc_04j_update.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/shared/rnpc_04_anim.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/shared/rnpc_05_compat.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/shared/rnpc_06_world.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/shared/rnpc_07_social.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/shared/rnpc_08_plan.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/shared/rnpc_09_cover.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/shared/rnpc_40_trade.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/shared/rnpc_49c_haul.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/shared/rnpc_49d_chatter.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/shared/rnpc_49g_standoff.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/shared/rnpc_49_help.lua
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/shared/translate/en/ig_ui.json
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/shared/translate/en/sandbox.json
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/lua/shared/translate/en/sandbox_en.txt
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides media/sandbox-options.txt
+LOG  : Mod          f:0> mod "RoamingSurvivors" overrides version.txt
+LOG  : Mod          f:0> loading ZeDQA_Probe
+ERROR: General      f:0 at FluidContainerScript.load           > Sanitizing container name 'Large Bucket', name may not contain whitespaces.
+ERROR: General      f:0 at FluidContainerScript.load           > Sanitizing container name 'Fuel Pump', name may not contain whitespaces.
+WARN : General      f:0 at XuiSkin$EntityUiStyle.Load          > Could not find icon: Build_AnvilStone, script = Stone Anvil
+WARN : General      f:0 at XuiSkin$EntityUiStyle.LoadComponentInfo> Could not find icon: Build_AnvilStone
+WARN : General      f:0 at XuiSkin$EntityUiStyle.Load          > Could not find icon: Build_AnvilStone, script = Stone Anvil
+WARN : General      f:0 at XuiSkin$EntityUiStyle.LoadComponentInfo> Could not find icon: Build_AnvilStone
+WARN : General      f:0 at XuiSkin$EntityUiStyle.Load          > Could not find icon: Build_AnvilStone, script = Stone Anvil
+WARN : General      f:0 at XuiSkin$EntityUiStyle.LoadComponentInfo> Could not find icon: Build_AnvilStone
+WARN : General      f:0 at XuiSkin$EntityUiStyle.Load          > Could not find icon: Build_AnvilStone, script = Stone Anvil
+WARN : General      f:0 at XuiSkin$EntityUiStyle.LoadComponentInfo> Could not find icon: Build_AnvilStone
+WARN : General      f:0 at TaggedObjectManager.createTagBits   > manager-> new tag discovered that was not preprocessed, tag: keyduplicator
+WARN : General      f:0 at TaggedObjectManager.createTagBits   > manager-> new tag discovered that was not preprocessed, tag: choppingblock
+WARN : General      f:0 at SoundManager.debugScriptSound       > no such sound "CorpseDrop" in item Base.CorpseFemale
+WARN : General      f:0 at SoundManager.debugScriptSound       > no such sound "CorpseDrop" in item Base.CorpseMale
+ERROR: General      f:0 at AngelCodeFont.parseFnt              > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/fonts/zomboidDialogue.bmfc_0.png
+WARN : Lua          f:0 at Lua(Vanilla).corpseStorageCheck     > require("ISUI/ISInventoryPaneContextMenu") failed
+WARN : Lua          f:0 at Lua(Vanilla).corpseStorageCheck     > require("ISUI/ISVehicleMenu") failed
+WARN : Lua          f:0 at Lua(Vanilla).corpseStorageCheck     > require("ISUI/ISContextMenu") failed
+WARN : Lua          f:0 at Lua(Vanilla).ISCampingMenu          > require("Camping/CCampfireSystem") failed
+WARN : Lua          f:0 at Lua(Vanilla).ISInventoryTransferUtil> require("TimedActions/ISInventoryTransferAction") failed
+WARN : Lua          f:0 at Lua(Vanilla).ISInventoryTransferUtil> require("ISUI/PlayerData/ISPlayerData") failed
+WARN : Lua          f:0 at Lua(Vanilla).ISAnimalContextMenu    > require("BuildingObjects/ISAnimalPickMateCursor") failed
+WARN : Lua          f:0 at Lua(Vanilla).TakeSameType           > require("ISUI/InventoryWindow/ISLootWindowControlHandler") failed
+WARN : Lua          f:0 at Lua(Vanilla).FloorTakeSameType      > require("ISUI/InventoryWindow/ISLootWindowControlHandler") failed
+WARN : Lua          f:0 at Lua(Vanilla).testUI                 > require("pzapi/ui/ui") failed
+WARN : Lua          f:0 at Lua(Vanilla).namedColorToTable      > env.lua-> namedColorToTable color not found: ProgressYellow
+LOG  : Lua          f:0> [ZeDQA.Probe] bridge armed (main menu)
+LOG  : General      f:0> MapGroup 1/8
+LOG  : General      f:0>   Brandenburg, KY
+LOG  : General      f:0>   Echo Creek, KY
+LOG  : General      f:0>   Ekron, KY
+LOG  : General      f:0>   Fallas Lake, KY
+LOG  : General      f:0>   Irvington, KY
+LOG  : General      f:0>   March Ridge, KY
+LOG  : General      f:0>   Riverside, KY
+LOG  : General      f:0>   Rosewood, KY
+LOG  : General      f:0>   Valley Station, KY
+LOG  : General      f:0>   West Point, KY
+LOG  : General      f:0>   Muldraugh, KY
+LOG  : General      f:0> MapGroup 2/8
+LOG  : General      f:0>   challengemaps/Challenge1
+LOG  : General      f:0> MapGroup 3/8
+LOG  : General      f:0>   challengemaps/Challenge2
+LOG  : General      f:0> MapGroup 4/8
+LOG  : General      f:0>   challengemaps/Kingsmouth
+LOG  : General      f:0> MapGroup 5/8
+LOG  : General      f:0>   challengemaps/KnoxCounty
+LOG  : General      f:0> MapGroup 6/8
+LOG  : General      f:0>   challengemaps/Studio
+LOG  : General      f:0> MapGroup 7/8
+LOG  : General      f:0>   challengemaps/The Forest
+LOG  : General      f:0> MapGroup 8/8
+LOG  : General      f:0>   challengemaps/Tutorial
+LOG  : General      f:0> -----
+LOG  : General      f:0> STATE: exit zombie.gameStates.MainScreenState
+LOG  : General      f:0> LOADED UP A TOTAL OF 478 TEXTURES
+LOG  : General      f:0> STATE: exit zombie.gameStates.LoadingQueueState
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: appliances_01_30
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_32
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_33
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_34
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_35
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_36
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_37
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_38
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_39
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_40
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_41
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_42
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_43
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_44
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_45
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_46
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_47
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_40
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_41
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_42
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_43
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_44
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_45
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_46
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_47
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_40
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_41
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_42
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_43
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_44
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_45
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_46
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_47
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_0
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_1
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_2
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_3
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_4
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_5
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_6
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_7
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_8
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_9
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_10
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_11
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_12
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_13
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_14
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_15
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_16
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_17
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_18
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_19
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_20
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_21
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_22
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_23
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_8
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_9
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_10
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_11
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_12
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_13
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_14
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_15
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_40
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_41
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_42
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_43
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_44
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_45
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_46
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_47
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_48
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_49
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_50
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_51
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_52
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_53
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_54
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_55
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_8
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_9
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_10
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_11
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_12
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_13
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_14
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_15
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_40
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_41
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_42
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_43
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_44
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_45
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_46
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_47
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_24
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_25
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_26
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_27
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_28
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_29
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_30
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_31
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_32
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_33
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_34
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_35
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_36
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_37
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_38
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_39
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_24
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_25
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_26
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_27
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_28
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_29
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_30
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_31
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_32
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_33
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_34
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_35
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_36
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_37
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_38
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_39
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_0
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_1
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_2
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_3
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_4
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_5
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_6
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_7
+LOG  : Lua          f:0> Initializing Randomized World Tabletop Clutter Tables
+WARN : Lua          f:0 at Lua(Vanilla).Features               > recursive require(): E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/lua/server/WorldGen/WorldGen.lua
+WARN : Lua          f:0 at Lua(Vanilla).Biomes                 > recursive require(): E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/lua/server/WorldGen/WorldGen.lua
+WARN : Lua          f:0 at Lua(Vanilla).Selection              > recursive require(): E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/lua/server/WorldGen/WorldGen.lua
+WARN : Lua          f:0 at Lua(Vanilla).Veins                  > recursive require(): E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/lua/server/WorldGen/WorldGen.lua
+WARN : Lua          f:0 at Lua(Vanilla).Roads                  > recursive require(): E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/lua/server/WorldGen/WorldGen.lua
+WARN : Lua          f:0 at Lua(Vanilla).WorldGen               > recursive require(): E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/lua/server/WorldGen/attachments/Priorities.lua
+ERROR: General      f:0 at CraftRecipeComponentScript.getIconTexture> CraftRecipeComponentScript: Recipe Piano missing UiConfigScript - falling back to SpriteConfigScript first world object face for recipe icon.
+LOG  : General      f:0> SafeMode is off
+LOG  : General      f:0> Loading worldgen params
+LOG  : General      f:0> IsoMetaGrid.Create: begin scanning directories
+LOG  : General      f:0> Looking in these map folders:
+LOG  : General      f:0> <End of map-folders list>
+LOG  : General      f:0> IsoMetaGrid.Create: X: [ -250 250 ], Y: [ -250 250 ]
+LOG  : General      f:0> World seed:  0
+LOG  : General      f:0> IsoMetaGrid.Create: finished scanning directories in 0.245 seconds
+LOG  : General      f:0> IsoMetaGrid.Create: begin loading
+LOG  : General      f:0> VehiclesDB2.init() start
+LOG  : General      f:0> VehiclesDB2.init() end
+LOG  : General      f:0> triggerEvent OnInitWorld
+LOG  : General      f:0> SandboxOptions.load() start
+LOG  : General      f:0> ERROR unknown SandboxOption "ZeD.TaxiFlagDrop"
+LOG  : General      f:0> ERROR unknown SandboxOption "ZeD.TaxiPerFifthMile"
+LOG  : General      f:0> ERROR unknown SandboxOption "ZeD.TaxiPerMinuteWaiting"
+LOG  : General      f:0> ERROR unknown SandboxOption "ZeD.TaxiPerExtraPassenger"
+LOG  : General      f:0> SandboxOptions.load() end
+LOG  : General      f:0> ItemPickerJava.Parse() start
+LOG  : General      f:0> ItemPickerJava.Parse() end
+LOG  : General      f:0> LoadTileDefinitions start
+LOG  : General      f:0> LoadTileDefinitions end
+LOG  : General      f:0> triggerEvent OnLoadedTileDefinitions
+LOG  : General      f:0> loadAnimalDefinitions start
+LOG  : General      f:0> loadAnimalDefinitions end
+LOG  : General      f:0> GameTime.init() and load() start
+LOG  : General      f:0> GameTime.init() and load() end
+LOG  : General      f:0> ZomboidRadio.Init() start
+LOG  : Lua          f:0> scriptmanager = zombie.radio.scripting.RadioScriptManager@167e5a86, isNewGame = false
+LOG  : Lua          f:0> name = Automated Emergency Broadcast System, freq = 98400, cat = Emergency, uuid = EMRG-711984
+LOG  : Lua          f:0> Found radio channel: Automated Emergency Broadcast System, freq = EMRG-711984, freqcheck = 98400, multi = 1
+LOG  : General      f:0> Radio Loading channels...
+LOG  : General      f:0> ZomboidRadio.Init() end
+LOG  : General      f:0> GlobalModData.init() start
+LOG  : General      f:0> GlobalModData.init() end
+LOG  : General      f:0> InstanceTracker.load() start
+LOG  : General      f:0> InstanceTracker.load() end
+LOG  : General      f:0> ErosionGlobals.Boot() start
+LOG  : General      f:0> ErosionGlobals.Boot() end
+LOG  : General      f:0> WorldDictionary.init() start
+LOG  : General      f:0> WorldDictionary: Checking dictionary...
+LOG  : General      f:0> Loading WorldDictionary:C:\Users\danie\Zomboid\Saves\Sandbox\ZeD-QA\WorldDictionary.bin
+LOG  : General      f:0> WorldDictionary.init() end
+LOG  : General      f:0> GameEntityManager.Init() start
+LOG  : General      f:0> GameEntityManager.Init() end
+LOG  : General      f:0> PersistentOutfits.init() start
+LOG  : General      f:0> PersistentOutfits.init() end
+LOG  : General      f:0> IsoMetaGrid.Create: finished loading in 3.558 seconds
+ERROR: Lua          f:0 at Lua(Vanilla).handleMannequinZone    > ERROR: Mannequin zone missing properties in media/maps/Muldraugh, KY/objects.lua coords: 13583, 1299, 0
+LOG  : General      f:0> 111ERROR: not adding suspicious zone "" "Nav" 8343,12316,0 2244x18
+ERROR: General      f:0 at Basements.mergeRoomsOntoMetaCell    > duplicate RoomDef.metaID for room at 10707,9484,0
+ERROR: General      f:0 at IsoMetaGrid.load                    > invalid room metaID #231 in cell 25,33 while reading map_meta.bin
+ERROR: General      f:0 at IsoMetaGrid.load                    > invalid room metaID #327914 in cell 25,33 while reading map_meta.bin
+ERROR: General      f:0 at IsoMetaGrid.load                    > invalid room metaID #327911 in cell 25,33 while reading map_meta.bin
+ERROR: General      f:0 at IsoMetaGrid.load                    > invalid room metaID #655594 in cell 25,33 while reading map_meta.bin
+LOG  : General      f:0> loading 6540 zones from map_zone.bin
+LOG  : General      f:0> loading 163 zones from map_animals.bin
+LOG  : General      f:0> Max #ZONES on one chunk is 27
+LOG  : General      f:0> triggerEvent OnLoadedMapZones
+LOG  : General      f:0> ItemConfigurator.Preprocess() start
+LOG  : General      f:0> ItemConfigurator.Preprocess() end
+LOG  : General      f:0> MapCollisionData.init() start
+LOG  : General      f:0> MapCollisionData.init() end
+LOG  : General      f:0> AnimalPopulationManager.init() start
+LOG  : General      f:0> AnimalPopulationManager.init() end
+LOG  : General      f:0> ZombiePopulationManager.init() start
+LOG  : General      f:0> ZombiePopulationManager.init() end
+LOG  : General      f:0> Pathfind init() start
+LOG  : General      f:0> Pathfind init() end
+LOG  : General      f:0> WorldStreamer.create() start
+LOG  : General      f:0> WorldStreamer.create() end
+LOG  : General      f:0> CellLoader.LoadCellBinaryChunk start
+LOG  : General      f:0> CellLoader.LoadCellBinaryChunk start
+LOG  : General      f:0> MapItem.LoadWorldMap() start
+LOG  : General      f:0> MapItem.LoadWorldMap() start
+LOG  : General      f:0> WorldStreamer.isBusy() loop start
+LOG  : General      f:0> WorldStreamer.isBusy() loop end
+LOG  : General      f:0> Verifying that all Craft Recipes are Learnable
+LOG  : General      f:0> CraftRecipe MakeTarpTankTop only learnable by: Research. Profession(base:tailor;)
+LOG  : General      f:0> CraftRecipe MakeTarpChestRig only learnable by: Research. Profession(base:veteran;base:tailor;)
+LOG  : General      f:0> CraftRecipe SewShellsBandolier only learnable by: Research. Profession(base:tailor;)
+LOG  : General      f:0> CraftRecipe SewHidePants2 only learnable by: Research.
+LOG  : General      f:0> CraftRecipe MakeBodyMagazineArmor only learnable by: Research. Profession(base:burglar;)
+LOG  : General      f:0> CraftRecipe AssembleLargeTarpFramepack only learnable by: Research.
+LOG  : General      f:0> CraftRecipe SewTarpFannyBag only learnable by: Research.
+LOG  : General      f:0> Craft Recipe Learning possible issues detected; this may be a false positive on account of intentional design however.
+LOG  : General      f:0> MetaTracker.load() start
+LOG  : General      f:0> MetaTracker.load() end
+LOG  : General      f:0> triggerEvent OnGameTimeLoaded
+LOG  : General      f:0> GlobalObjects.initSystems() start
+LOG  : General      f:0> SGlobalObjects: newSystem campfire
+LOG  : Lua          f:0> campfire: added luaObject 10606,11148,0
+LOG  : General      f:0> SGlobalObjects: newSystem farming
+LOG  : Lua          f:0> farming: added luaObject 10607,11148,0
+LOG  : Lua          f:0> farming: added luaObject 10608,11148,0
+LOG  : Lua          f:0> farming: added luaObject 10609,11148,0
+LOG  : Lua          f:0> farming: added luaObject 10610,11148,0
+LOG  : Lua          f:0> farming: added luaObject 12003,7096,0
+LOG  : Lua          f:0> farming: added luaObject 12003,7098,0
+LOG  : Lua          f:0> farming: added luaObject 12003,7099,0
+LOG  : Lua          f:0> farming: added luaObject 12003,7101,0
+LOG  : Lua          f:0> farming: added luaObject 12003,7102,0
+LOG  : Lua          f:0> farming: added luaObject 12003,7089,0
+LOG  : Lua          f:0> farming: added luaObject 12003,7090,0
+LOG  : Lua          f:0> farming: added luaObject 12003,7092,0
+LOG  : Lua          f:0> farming: added luaObject 12003,7093,0
+LOG  : Lua          f:0> farming: added luaObject 12003,7095,0
+LOG  : Lua          f:0> farming: added luaObject 12032,7056,0
+LOG  : Lua          f:0> farming: added luaObject 12032,7057,0
+LOG  : Lua          f:0> farming: added luaObject 12032,7058,0
+LOG  : Lua          f:0> farming: added luaObject 12033,7056,0
+LOG  : Lua          f:0> farming: added luaObject 12033,7057,0
+LOG  : Lua          f:0> farming: added luaObject 12033,7058,0
+LOG  : Lua          f:0> farming: added luaObject 12034,7056,0
+LOG  : Lua          f:0> farming: added luaObject 12034,7057,0
+LOG  : Lua          f:0> farming: added luaObject 12034,7058,0
+LOG  : Lua          f:0> farming: added luaObject 12035,7056,0
+LOG  : Lua          f:0> farming: added luaObject 12035,7057,0
+LOG  : Lua          f:0> farming: added luaObject 12035,7058,0
+LOG  : Lua          f:0> farming: added luaObject 12036,7056,0
+LOG  : Lua          f:0> farming: added luaObject 12036,7057,0
+LOG  : Lua          f:0> farming: added luaObject 12036,7058,0
+LOG  : Lua          f:0> farming: added luaObject 12037,7056,0
+LOG  : Lua          f:0> farming: added luaObject 12037,7057,0
+LOG  : Lua          f:0> farming: added luaObject 12037,7058,0
+LOG  : Lua          f:0> farming: added luaObject 12029,7056,0
+LOG  : Lua          f:0> farming: added luaObject 12029,7057,0
+LOG  : Lua          f:0> farming: added luaObject 12029,7058,0
+LOG  : Lua          f:0> farming: added luaObject 12030,7056,0
+LOG  : Lua          f:0> farming: added luaObject 12030,7057,0
+LOG  : Lua          f:0> farming: added luaObject 12030,7058,0
+LOG  : Lua          f:0> farming: added luaObject 12031,7056,0
+LOG  : Lua          f:0> farming: added luaObject 12031,7057,0
+LOG  : Lua          f:0> farming: added luaObject 12031,7058,0
+LOG  : Lua          f:0> farming: added luaObject 11986,7072,0
+LOG  : Lua          f:0> farming: added luaObject 11986,7073,0
+LOG  : Lua          f:0> farming: added luaObject 11986,7074,0
+LOG  : Lua          f:0> farming: added luaObject 11986,7075,0
+LOG  : Lua          f:0> farming: added luaObject 11984,7068,0
+LOG  : Lua          f:0> farming: added luaObject 11985,7068,0
+LOG  : Lua          f:0> farming: added luaObject 11986,7068,0
+LOG  : Lua          f:0> farming: added luaObject 11986,7069,0
+LOG  : Lua          f:0> farming: added luaObject 11986,7070,0
+LOG  : Lua          f:0> farming: added luaObject 11986,7071,0
+LOG  : Lua          f:0> farming: added luaObject 11977,7068,0
+LOG  : Lua          f:0> farming: added luaObject 11978,7068,0
+LOG  : Lua          f:0> farming: added luaObject 11979,7068,0
+LOG  : Lua          f:0> farming: added luaObject 11980,7068,0
+LOG  : Lua          f:0> farming: added luaObject 11981,7068,0
+LOG  : Lua          f:0> farming: added luaObject 11982,7068,0
+LOG  : Lua          f:0> farming: added luaObject 11983,7068,0
+LOG  : General      f:0> SGlobalObjects: newSystem feedingTrough
+LOG  : Lua          f:0> feedingTrough: added luaObject 10605,11149,0
+LOG  : Lua          f:0> feedingTrough: added luaObject 10605,11150,0
+LOG  : General      f:0> SGlobalObjects: newSystem trap
+LOG  : General      f:0> SGlobalObjects: newSystem rainbarrel
+LOG  : General      f:0> CGlobalObjects: newSystem campfire
+LOG  : Lua          f:0> C campfire: added luaObject 10606,11148,0
+LOG  : General      f:0> CGlobalObjects: newSystem farming
+LOG  : Lua          f:0> C farming: added luaObject 10607,11148,0
+LOG  : Lua          f:0> C farming: added luaObject 10608,11148,0
+LOG  : Lua          f:0> C farming: added luaObject 10609,11148,0
+LOG  : Lua          f:0> C farming: added luaObject 10610,11148,0
+LOG  : Lua          f:0> C farming: added luaObject 12003,7096,0
+LOG  : Lua          f:0> C farming: added luaObject 12003,7098,0
+LOG  : Lua          f:0> C farming: added luaObject 12003,7099,0
+LOG  : Lua          f:0> C farming: added luaObject 12003,7101,0
+LOG  : Lua          f:0> C farming: added luaObject 12003,7102,0
+LOG  : Lua          f:0> C farming: added luaObject 12003,7089,0
+LOG  : Lua          f:0> C farming: added luaObject 12003,7090,0
+LOG  : Lua          f:0> C farming: added luaObject 12003,7092,0
+LOG  : Lua          f:0> C farming: added luaObject 12003,7093,0
+LOG  : Lua          f:0> C farming: added luaObject 12003,7095,0
+LOG  : Lua          f:0> C farming: added luaObject 12032,7056,0
+LOG  : Lua          f:0> C farming: added luaObject 12032,7057,0
+LOG  : Lua          f:0> C farming: added luaObject 12032,7058,0
+LOG  : Lua          f:0> C farming: added luaObject 12033,7056,0
+LOG  : Lua          f:0> C farming: added luaObject 12033,7057,0
+LOG  : Lua          f:0> C farming: added luaObject 12033,7058,0
+LOG  : Lua          f:0> C farming: added luaObject 12034,7056,0
+LOG  : Lua          f:0> C farming: added luaObject 12034,7057,0
+LOG  : Lua          f:0> C farming: added luaObject 12034,7058,0
+LOG  : Lua          f:0> C farming: added luaObject 12035,7056,0
+LOG  : Lua          f:0> C farming: added luaObject 12035,7057,0
+LOG  : Lua          f:0> C farming: added luaObject 12035,7058,0
+LOG  : Lua          f:0> C farming: added luaObject 12036,7056,0
+LOG  : Lua          f:0> C farming: added luaObject 12036,7057,0
+LOG  : Lua          f:0> C farming: added luaObject 12036,7058,0
+LOG  : Lua          f:0> C farming: added luaObject 12037,7056,0
+LOG  : Lua          f:0> C farming: added luaObject 12037,7057,0
+LOG  : Lua          f:0> C farming: added luaObject 12037,7058,0
+LOG  : Lua          f:0> C farming: added luaObject 12029,7056,0
+LOG  : Lua          f:0> C farming: added luaObject 12029,7057,0
+LOG  : Lua          f:0> C farming: added luaObject 12029,7058,0
+LOG  : Lua          f:0> C farming: added luaObject 12030,7056,0
+LOG  : Lua          f:0> C farming: added luaObject 12030,7057,0
+LOG  : Lua          f:0> C farming: added luaObject 12030,7058,0
+LOG  : Lua          f:0> C farming: added luaObject 12031,7056,0
+LOG  : Lua          f:0> C farming: added luaObject 12031,7057,0
+LOG  : Lua          f:0> C farming: added luaObject 12031,7058,0
+LOG  : Lua          f:0> C farming: added luaObject 11986,7072,0
+LOG  : Lua          f:0> C farming: added luaObject 11986,7073,0
+LOG  : Lua          f:0> C farming: added luaObject 11986,7074,0
+LOG  : Lua          f:0> C farming: added luaObject 11986,7075,0
+LOG  : Lua          f:0> C farming: added luaObject 11984,7068,0
+LOG  : Lua          f:0> C farming: added luaObject 11985,7068,0
+LOG  : Lua          f:0> C farming: added luaObject 11986,7068,0
+LOG  : Lua          f:0> C farming: added luaObject 11986,7069,0
+LOG  : Lua          f:0> C farming: added luaObject 11986,7070,0
+LOG  : Lua          f:0> C farming: added luaObject 11986,7071,0
+LOG  : Lua          f:0> C farming: added luaObject 11977,7068,0
+LOG  : Lua          f:0> C farming: added luaObject 11978,7068,0
+LOG  : Lua          f:0> C farming: added luaObject 11979,7068,0
+LOG  : Lua          f:0> C farming: added luaObject 11980,7068,0
+LOG  : Lua          f:0> C farming: added luaObject 11981,7068,0
+LOG  : Lua          f:0> C farming: added luaObject 11982,7068,0
+LOG  : Lua          f:0> C farming: added luaObject 11983,7068,0
+LOG  : General      f:0> CGlobalObjects: newSystem feedingTrough
+LOG  : Lua          f:0> C feedingTrough: added luaObject 10605,11149,0
+LOG  : Lua          f:0> C feedingTrough: added luaObject 10605,11150,0
+LOG  : General      f:0> CGlobalObjects: newSystem rainbarrel
+LOG  : General      f:0> CGlobalObjects: newSystem trap
+LOG  : General      f:0> GlobalObjects.initSystems() end
+LOG  : General      f:0> [26-10-26 21:37:57.081][info] Init chat system....
+LOG  : General      f:0> [26-10-26 21:37:57.082][info] Mode: single player.
+LOG  : General      f:0> bWaitForAssetLoadingToFinish2 start
+LOG  : General      f:0> bWaitForAssetLoadingToFinish2 end
+LOG  : General      f:0> FBORenderChunkManager.gameLoaded() start
+LOG  : General      f:0> FBORenderChunkManager.gameLoaded() end
+LOG  : General      f:0> Bullet.initPhysicsMeshes() start
+LOG  : General      f:0> Bullet.initPhysicsMeshes() end
+LOG  : General      f:0> game loading took 23 seconds
+LOG  : General      f:0> STATE: exit zombie.gameStates.GameLoadingState
+LOG  : Lua          f:0> 1 players found
+LOG  : Lua          f:0> player 0 is mouse
+LOG  : General      f:0> Game Mode: Sandbox
+LOG  : General      f:0> Sandbox Options:
+LOG  : General      f:0> Zombies 6
+LOG  : General      f:0> Distribution 1
+LOG  : General      f:0> ZombieVoronoiNoise true
+LOG  : General      f:0> ZombieRespawn 4
+LOG  : General      f:0> ZombieMigrate true
+LOG  : General      f:0> DayLength 4
+LOG  : General      f:0> StartYear 1
+LOG  : General      f:0> StartMonth 7
+LOG  : General      f:0> StartDay 9
+LOG  : General      f:0> StartTime 2
+LOG  : General      f:0> DayNightCycle 1
+LOG  : General      f:0> ClimateCycle 1
+LOG  : General      f:0> FogCycle 1
+LOG  : General      f:0> WaterShut 2
+LOG  : General      f:0> ElecShut 2
+LOG  : General      f:0> AlarmDecay 2
+LOG  : General      f:0> WaterShutModifier 14
+LOG  : General      f:0> ElecShutModifier 14
+LOG  : General      f:0> AlarmDecayModifier 14
+LOG  : General      f:0> FoodLootNew 0.8
+LOG  : General      f:0> LiteratureLootNew 0.6
+LOG  : General      f:0> SkillBookLoot 0.6
+LOG  : General      f:0> RecipeResourceLoot 0.6
+LOG  : General      f:0> MedicalLootNew 0.6
+LOG  : General      f:0> SurvivalGearsLootNew 0.6
+LOG  : General      f:0> CannedFoodLootNew 0.6
+LOG  : General      f:0> WeaponLootNew 0.6
+LOG  : General      f:0> RangedWeaponLootNew 1.2
+LOG  : General      f:0> AmmoLootNew 0.6
+LOG  : General      f:0> MechanicsLootNew 0.6
+LOG  : General      f:0> OtherLootNew 0.8
+LOG  : General      f:0> ClothingLootNew 0.6
+LOG  : General      f:0> ContainerLootNew 0.6
+LOG  : General      f:0> KeyLootNew 0.4
+LOG  : General      f:0> MediaLootNew 0.6
+LOG  : General      f:0> MementoLootNew 0.6
+LOG  : General      f:0> CookwareLootNew 0.6
+LOG  : General      f:0> MaterialLootNew 0.6
+LOG  : General      f:0> FarmingLootNew 0.6
+LOG  : General      f:0> ToolLootNew 0.6
+LOG  : General      f:0> RollsMultiplier 1.0
+LOG  : General      f:0> LootItemRemovalList 
+LOG  : General      f:0> RemoveStoryLoot false
+LOG  : General      f:0> RemoveZombieLoot false
+LOG  : General      f:0> ZombiePopLootEffect 0
+LOG  : General      f:0> InsaneLootFactor 0.05
+LOG  : General      f:0> ExtremeLootFactor 0.2
+LOG  : General      f:0> RareLootFactor 0.6
+LOG  : General      f:0> NormalLootFactor 1.0
+LOG  : General      f:0> CommonLootFactor 2.0
+LOG  : General      f:0> AbundantLootFactor 3.0
+LOG  : General      f:0> Temperature 3
+LOG  : General      f:0> Rain 3
+LOG  : General      f:0> ErosionSpeed 4
+LOG  : General      f:0> ErosionDays 0
+LOG  : General      f:0> Farming 3
+LOG  : General      f:0> CompostTime 2
+LOG  : General      f:0> StatsDecrease 3
+LOG  : General      f:0> NatureAbundance 3
+LOG  : General      f:0> Alarm 4
+LOG  : General      f:0> LockedHouses 6
+LOG  : General      f:0> StarterKit false
+LOG  : General      f:0> Nutrition true
+LOG  : General      f:0> FoodRotSpeed 3
+LOG  : General      f:0> FridgeFactor 3
+LOG  : General      f:0> SeenHoursPreventLootRespawn 0
+LOG  : General      f:0> HoursForLootRespawn 0
+LOG  : General      f:0> MaxItemsForLootRespawn 5
+LOG  : General      f:0> ConstructionPreventsLootRespawn true
+LOG  : General      f:0> WorldItemRemovalList Base.Hat, Base.Glasses, Base.Maggots, Base.Slug, Base.Slug2, Base.Snail, Base.Worm, Base.Dung_Mouse, Base.Dung_Rat
+LOG  : General      f:0> HoursForWorldItemRemoval 24.0
+LOG  : General      f:0> ItemRemovalListBlacklistToggle false
+LOG  : General      f:0> TimeSinceApo 1
+LOG  : General      f:0> PlantResilience 3
+LOG  : General      f:0> PlantAbundance 3
+LOG  : General      f:0> EndRegen 3
+LOG  : General      f:0> Helicopter 2
+LOG  : General      f:0> MetaEvent 2
+LOG  : General      f:0> SleepingEvent 1
+LOG  : General      f:0> GeneratorFuelConsumption 0.1
+LOG  : General      f:0> GeneratorSpawning 4
+LOG  : General      f:0> AnnotatedMapChance 4
+LOG  : General      f:0> CharacterFreePoints 0
+LOG  : General      f:0> ConstructionBonusPoints 3
+LOG  : General      f:0> NightDarkness 3
+LOG  : General      f:0> NightLength 3
+LOG  : General      f:0> BoneFracture true
+LOG  : General      f:0> InjurySeverity 2
+LOG  : General      f:0> HoursForCorpseRemoval 216.0
+LOG  : General      f:0> DecayingCorpseHealthImpact 3
+LOG  : General      f:0> ZombieHealthImpact false
+LOG  : General      f:0> BloodLevel 3
+LOG  : General      f:0> ClothingDegradation 3
+LOG  : General      f:0> FireSpread true
+LOG  : General      f:0> DaysForRottenFoodRemoval -1
+LOG  : General      f:0> AllowExteriorGenerator true
+LOG  : General      f:0> MaxFogIntensity 1
+LOG  : General      f:0> MaxRainFxIntensity 1
+LOG  : General      f:0> EnableSnowOnGround true
+LOG  : General      f:0> AttackBlockMovements true
+LOG  : General      f:0> SurvivorHouseChance 3
+LOG  : General      f:0> VehicleStoryChance 3
+LOG  : General      f:0> ZoneStoryChance 3
+LOG  : General      f:0> AllClothesUnlocked false
+LOG  : General      f:0> EnableTaintedWaterText true
+LOG  : General      f:0> EnableVehicles true
+LOG  : General      f:0> CarSpawnRate 3
+LOG  : General      f:0> ZombieAttractionMultiplier 1.0
+LOG  : General      f:0> VehicleEasyUse false
+LOG  : General      f:0> InitialGas 2
+LOG  : General      f:0> FuelStationGasInfinite false
+LOG  : General      f:0> FuelStationGasMin 0.0
+LOG  : General      f:0> FuelStationGasMax 0.8
+LOG  : General      f:0> FuelStationGasEmptyChance 20
+LOG  : General      f:0> LockedCar 4
+LOG  : General      f:0> CarGasConsumption 1.0
+LOG  : General      f:0> CarGeneralCondition 3
+LOG  : General      f:0> CarDamageOnImpact 3
+LOG  : General      f:0> DamageToPlayerFromHitByACar 1
+LOG  : General      f:0> TrafficJam true
+LOG  : General      f:0> CarAlarm 3
+LOG  : General      f:0> PlayerDamageFromCrash true
+LOG  : General      f:0> SirenShutoffHours 0.0
+LOG  : General      f:0> ChanceHasGas 2
+LOG  : General      f:0> RecentlySurvivorVehicles 2
+LOG  : General      f:0> MultiHitZombies false
+LOG  : General      f:0> RearVulnerability 3
+LOG  : General      f:0> SirenEffectsZombies true
+LOG  : General      f:0> AnimalStatsModifier 4
+LOG  : General      f:0> AnimalMetaStatsModifier 4
+LOG  : General      f:0> AnimalPregnancyTime 4
+LOG  : General      f:0> AnimalAgeModifier 4
+LOG  : General      f:0> AnimalMilkIncModifier 4
+LOG  : General      f:0> AnimalWoolIncModifier 4
+LOG  : General      f:0> AnimalRanchChance 5
+LOG  : General      f:0> AnimalGrassRegrowTime 240
+LOG  : General      f:0> AnimalMetaPredator false
+LOG  : General      f:0> AnimalMatingSeason true
+LOG  : General      f:0> AnimalEggHatch 4
+LOG  : General      f:0> AnimalSoundAttractZombies true
+LOG  : General      f:0> AnimalTrackChance 4
+LOG  : General      f:0> AnimalPathChance 4
+LOG  : General      f:0> MaximumRatIndex 25
+LOG  : General      f:0> DaysUntilMaximumRatIndex 90
+LOG  : General      f:0> MetaKnowledge 3
+LOG  : General      f:0> SeeNotLearntRecipe true
+LOG  : General      f:0> MaximumLootedBuildingRooms 50
+LOG  : General      f:0> EnablePoisoning 1
+LOG  : General      f:0> MaggotSpawn 1
+LOG  : General      f:0> LightBulbLifespan 2.0
+LOG  : General      f:0> FishAbundance 2
+LOG  : General      f:0> LevelForMediaXPCutoff 3
+LOG  : General      f:0> LevelForDismantleXPCutoff 0
+LOG  : General      f:0> BloodSplatLifespanDays 0
+LOG  : General      f:0> LiteratureCooldown 45
+LOG  : General      f:0> NegativeTraitsPenalty 1
+LOG  : General      f:0> MinutesPerPage 2.0
+LOG  : General      f:0> KillInsideCrops true
+LOG  : General      f:0> PlantGrowingSeasons true
+LOG  : General      f:0> PlaceDirtAboveground false
+LOG  : General      f:0> FarmingSpeedNew 1.0
+LOG  : General      f:0> FarmingAmountNew 1.0
+LOG  : General      f:0> MaximumLooted 25
+LOG  : General      f:0> DaysUntilMaximumLooted 90
+LOG  : General      f:0> RuralLooted 0.5
+LOG  : General      f:0> MaximumDiminishedLoot 20
+LOG  : General      f:0> DaysUntilMaximumDiminishedLoot 3650
+LOG  : General      f:0> MuscleStrainFactor 0.7
+LOG  : General      f:0> DiscomfortFactor 0.8
+LOG  : General      f:0> WoundInfectionFactor 1.0
+LOG  : General      f:0> NoBlackClothes true
+LOG  : General      f:0> EasyClimbing false
+LOG  : General      f:0> MaximumFireFuelHours 8
+LOG  : General      f:0> FirearmUseDamageChance 2
+LOG  : General      f:0> FirearmNoiseMultiplier 1.0
+LOG  : General      f:0> FirearmJamMultiplier 1.0
+LOG  : General      f:0> FirearmMoodleMultiplier 1.0
+LOG  : General      f:0> FirearmWeatherMultiplier 1.0
+LOG  : General      f:0> FirearmHeadGearEffect true
+LOG  : General      f:0> ClayLakeChance 0.05
+LOG  : General      f:0> ClayRiverChance 0.05
+LOG  : General      f:0> GeneratorTileRange 20
+LOG  : General      f:0> GeneratorVerticalPowerRange 3
+LOG  : General      f:0> SpawnFrequency 4
+LOG  : General      f:0> AllowMiniMap false
+LOG  : General      f:0> AllowWorldMap true
+LOG  : General      f:0> MapAllKnown false
+LOG  : General      f:0> MapNeedsLight true
+LOG  : General      f:0> Speed 4
+LOG  : General      f:0> SprinterPercentage 0
+LOG  : General      f:0> Strength 2
+LOG  : General      f:0> Toughness 4
+LOG  : General      f:0> Transmission 1
+LOG  : General      f:0> Mortality 5
+LOG  : General      f:0> Reanimate 3
+LOG  : General      f:0> Cognition 3
+LOG  : General      f:0> DoorOpeningPercentage 0
+LOG  : General      f:0> CrawlUnderVehicle 5
+LOG  : General      f:0> Memory 2
+LOG  : General      f:0> Sight 5
+LOG  : General      f:0> Hearing 5
+LOG  : General      f:0> SpottedLogic true
+LOG  : General      f:0> ThumpNoChasing false
+LOG  : General      f:0> ThumpOnConstruction true
+LOG  : General      f:0> ActiveOnly 1
+LOG  : General      f:0> TriggerHouseAlarm true
+LOG  : General      f:0> ZombiesDragDown true
+LOG  : General      f:0> ZombiesCrawlersDragDown false
+LOG  : General      f:0> ZombiesFenceLunge true
+LOG  : General      f:0> ZombiesArmorFactor 2.0
+LOG  : General      f:0> ZombiesMaxDefense 85
+LOG  : General      f:0> ChanceOfAttachedWeapon 6
+LOG  : General      f:0> ZombiesFallDamage 1.0
+LOG  : General      f:0> DisableFakeDead 1
+LOG  : General      f:0> PlayerSpawnZombieRemoval 1
+LOG  : General      f:0> FenceThumpersRequired 25
+LOG  : General      f:0> FenceDamageMultiplier 1.0
+LOG  : General      f:0> PopulationMultiplier 0.0
+LOG  : General      f:0> PopulationStartMultiplier 0.0
+LOG  : General      f:0> PopulationPeakMultiplier 0.0
+LOG  : General      f:0> PopulationPeakDay 28
+LOG  : General      f:0> RespawnHours 0.0
+LOG  : General      f:0> RespawnUnseenHours 0.0
+LOG  : General      f:0> RespawnMultiplier 0.0
+LOG  : General      f:0> RedistributeHours 12.0
+LOG  : General      f:0> FollowSoundDistance 100
+LOG  : General      f:0> RallyGroupSize 20
+LOG  : General      f:0> RallyGroupSizeVariance 50
+LOG  : General      f:0> RallyTravelDistance 20
+LOG  : General      f:0> RallyGroupSeparation 15
+LOG  : General      f:0> RallyGroupRadius 3
+LOG  : General      f:0> ZombiesCountBeforeDelete 300
+LOG  : General      f:0> Global 1.0
+LOG  : General      f:0> GlobalToggle true
+LOG  : General      f:0> Fitness 1.0
+LOG  : General      f:0> Strength 1.0
+LOG  : General      f:0> Sprinting 1.0
+LOG  : General      f:0> Lightfoot 1.0
+LOG  : General      f:0> Nimble 1.0
+LOG  : General      f:0> Sneak 1.0
+LOG  : General      f:0> Axe 1.0
+LOG  : General      f:0> Blunt 1.0
+LOG  : General      f:0> SmallBlunt 1.0
+LOG  : General      f:0> LongBlade 1.0
+LOG  : General      f:0> SmallBlade 1.0
+LOG  : General      f:0> Spear 1.0
+LOG  : General      f:0> Maintenance 1.0
+LOG  : General      f:0> Woodwork 1.0
+LOG  : General      f:0> Cooking 1.0
+LOG  : General      f:0> Farming 1.0
+LOG  : General      f:0> Doctor 1.0
+LOG  : General      f:0> Electricity 1.0
+LOG  : General      f:0> MetalWelding 1.0
+LOG  : General      f:0> Mechanics 1.0
+LOG  : General      f:0> Tailoring 1.0
+LOG  : General      f:0> Aiming 1.0
+LOG  : General      f:0> Reloading 1.0
+LOG  : General      f:0> Fishing 1.0
+LOG  : General      f:0> Trapping 1.0
+LOG  : General      f:0> PlantScavenging 1.0
+LOG  : General      f:0> FlintKnapping 1.0
+LOG  : General      f:0> Masonry 1.0
+LOG  : General      f:0> Pottery 1.0
+LOG  : General      f:0> Carving 1.0
+LOG  : General      f:0> Husbandry 1.0
+LOG  : General      f:0> Tracking 1.0
+LOG  : General      f:0> Blacksmith 1.0
+LOG  : General      f:0> Butchering 1.0
+LOG  : General      f:0> Glassmaking 1.0
+LOG  : General      f:0> EnableNPCs true
+LOG  : General      f:0> MaxNPCs 120
+LOG  : General      f:0> MinNPCs 60
+LOG  : General      f:0> MaxOnline 40
+LOG  : General      f:0> MaxNearPlayer 14
+LOG  : General      f:0> LoadRadius 55
+LOG  : General      f:0> UseModGuns true
+LOG  : General      f:0> RespawnHours 48
+LOG  : General      f:0> OfflineAftermath true
+LOG  : General      f:0> AftermathLoot true
+LOG  : General      f:0> ManualClaims false
+LOG  : General      f:0> TradePrices 100
+LOG  : General      f:0> AdminMenu 2
+LOG  : General      f:0> NPCMap 2
+LOG  : General      f:0> NameTags true
+LOG  : General      f:0> BodyDiscovery true
+LOG  : General      f:0> Garrisons true
+LOG  : General      f:0> Raids 2
+LOG  : General      f:0> Wipeouts 3
+LOG  : General      f:0> WipeoutDays 30
+LOG  : General      f:0> BaseRaids false
+LOG  : General      f:0> Stops 3
+LOG  : General      f:0> SeatFires true
+LOG  : General      f:0> JoinFactions true
+LOG  : General      f:0> FactionMemory true
+LOG  : General      f:0> TensionPace 2
+LOG  : General      f:0> Revenge true
+LOG  : General      f:0> DesperateRob true
+LOG  : General      f:0> DebrisFade 7
+LOG  : General      f:0> DebrisRoadCamps false
+LOG  : General      f:0> NPCFirstAid true
+LOG  : General      f:0> NPCLights true
+LOG  : General      f:0> NPCShareFood true
+LOG  : General      f:0> NPCStandoff true
+LOG  : General      f:0> SeatAsk true
+LOG  : General      f:0> FactionsRelocate true
+LOG  : General      f:0> SeatGap 60
+LOG  : General      f:0> HostileShare 16
+LOG  : General      f:0> FactionQuests 3
+LOG  : General      f:0> NPCInfection 3
+LOG  : General      f:0> RecruitOrders true
+LOG  : General      f:0> RecruitMeals true
+LOG  : General      f:0> StandingWindow true
+LOG  : General      f:0> StandingFade 100
+LOG  : General      f:0> AimPlayers 100
+LOG  : General      f:0> AimOthers 100
+LOG  : General      f:0> WalkerDamage 100
+LOG  : General      f:0> ScreenText 3
+LOG  : General      f:0> TopTextSize 1
+LOG  : General      f:0> TopTextColor 1
+LOG  : General      f:0> TopTextOpacity 100
+LOG  : General      f:0> DebugLog false
+LOG  : Lua          f:0> [RNPC] weapon catalog 20 firearms / 358 melee
+LOG  : Lua          f:0> [RNPC] 2.23.0 client ready
+LOG  : Lua          f:0> [RNPC] Roaming Survivors 2.23.0. Right-click the ground near a survivor to Recruit
+LOG  : Lua          f:0> [ZeDQA.Probe] bridge armed (in game)
+LOG  : Lua          f:0> [RNPC] name-reroll x1 -> Tess Costa
+LOG  : Lua          f:0> [RNPC] name-reroll x1 -> Nate Boone
+LOG  : Lua          f:0> [RNPC] name-reroll x1 -> Wade Hwang
+LOG  : Lua          f:0> [RNPC] name-reroll x1 -> Sam Tate
+LOG  : Lua          f:0> [RNPC] name-reroll x2 -> Abe Tate
+LOG  : Lua          f:0> [RNPC] name-reroll x1 -> Ruth Lang
+LOG  : Lua          f:0> [RNPC] name-reroll x1 -> Earl Sloan
+LOG  : Lua          f:0> [RNPC] name-reroll x1 -> Ruth Dunn
+LOG  : Lua          f:0> [RNPC] name-reroll x1 -> Suki Tate
+LOG  : Lua          f:0> [RNPC] name-reroll x1 -> Tess Mercer
+LOG  : Lua          f:0> [RNPC] seeded 120 survivors across 10 towns
+LOG  : Lua          f:1> [RNPC] 2.23.0 sp main
+LOG  : Lua          f:1> [RNPC] solo-tick: the heartbeat runs at most every 90 ms in a solo game, as on a server
+LOG  : Lua          f:9> [RNPC] roads ready: 3713 road points
+LOG  : Lua          f:119> [RNPC] stream living=120 online=0 incoming=0 nearest=1839m
+LOG  : Lua          f:214> [RNPC] sweep zombies=0 checked=0 ours=0 removed=0 noted=0
+LOG  : Lua          f:929> ZEDQA r3off start
+LOG  : Lua          f:929> [ZeDQA.Probe] run #1 ok=true
+LOG  : Lua          f:1109> ZEDQA r3off ui hud: SpeedControls@3641,10,189x28 ; UIDebugConsole@20,1820,1280x320 ; MoodlesUI@3782,120,48x2160 ; ISButtonPrompt@0,0,1x1 ; ISEquippedItem@10,10,53x621 ; ISHotbar@1774,2078,292x82 ; WaterMarkUI@3604,2125,226x24
+LOG  : Lua          f:1109> ZEDQA r3off shot zqa_r3off_1_hud.png
+LOG  : Lua          f:1110> [RNPC] marks: 0
+LOG  : Lua          f:1154> [RNPC] road-zones: road searches read the map's zones (one lookup a search)
+LOG  : Lua          f:1164> [RNPC] base military seat: a food near Louisville at 12928,1922 (no player base anywhere)
+LOG  : Lua          f:1164> [RNPC] seat-stand the seat near Louisville keeps its people in its hall at 12928,1910 (the middle of the building is 12928,1922) #1
+LOG  : Lua          f:1164> [RNPC] perf slow offline: 59 ms (Joel Abbott military travel on a trip)
+LOG  : Lua          f:1164> [RNPC] town-count: the towns' people counted afresh for the hour #1
+LOG  : Lua          f:1198> [RNPC] base militia seat: a office near Doe Valley cabins at 6383,7564 (no player base anywhere)
+LOG  : Lua          f:1198> [RNPC] seat-stand the seat near Doe Valley cabins keeps its people in its basement at 6380,7564 (the middle of the building is 6383,7564) #2
+LOG  : Lua          f:1199> ZEDQA r3off ui inventory: SpeedControls@3641,10,189x28 ; UIDebugConsole@20,1820,1280x320 ; MoodlesUI@3782,120,48x2160 ; ISInventoryPage@640,0,1280x720 ; ISInventoryPage@1920,0,1280x720 ; ISButtonPrompt@0,0,1x1 ; ISEquippedItem@10,10,53x621 ; ISHotbar@1774,2078,292x82 ; WaterMarkUI@3604,2125,226x24
+LOG  : Lua          f:1199> ZEDQA r3off shot zqa_r3off_2_inventory.png
+LOG  : Lua          f:1248> [RNPC] base firefighters seat: a fire near West Point at 12275,7035 (no player base anywhere)
+LOG  : Lua          f:1248> [RNPC] seat-stand the seat near West Point keeps its people in its firegarage at 12276,7032 (the middle of the building is 12275,7035) #3
+LOG  : Lua          f:1249> ZEDQA r3off tip seed 202x87
+LOG  : Lua          f:1249> ZEDQA r3off shot zqa_r3off_3_tip_seed.png
+LOG  : Lua          f:1259> [RNPC] patrol-pool military: a new pool of road points near Louisville #1
+LOG  : Lua          f:1289> [RNPC] base farmers seat: a farm near Muldraugh at 10938,9759 (no player base anywhere)
+LOG  : Lua          f:1289> [RNPC] seat-stand the seat near Muldraugh keeps its people in its livingroom at 10937,9761 (the middle of the building is 10938,9759) #4
+LOG  : Lua          f:1289> [RNPC] group(off) Otis Kline joins Tess Vargas
+LOG  : Lua          f:1299> ZEDQA r3off tip shirt 240x106
+LOG  : Lua          f:1299> ZEDQA r3off shot zqa_r3off_4_tip_shirt.png
+LOG  : Lua          f:1300> [RNPC] patrol-pool firefighters: a new pool of road points near West Point #2
+LOG  : Lua          f:1320> [RNPC] group(off) Priya Brooks joins Nate Ibarra
+LOG  : Lua          f:1330> [RNPC] base medics seat: a medical near Riverside at 6673,5423 (no player base anywhere)
+LOG  : Lua          f:1330> [RNPC] seat-stand the seat near Riverside keeps its people in its garagestorage at 6667,5426 (the middle of the building is 6673,5423) #5
+LOG  : Lua          f:1330> [RNPC] base bandits seat: a house near March Ridge at 10292,12638 (no player base anywhere)
+LOG  : Lua          f:1330> [RNPC] seat-stand the seat near March Ridge keeps its people in its livingroom at 10294,12636 (the middle of the building is 10292,12638) #6
+LOG  : Lua          f:1333> [RNPC] patrol-pool farmers: a new pool of road points near Muldraugh #3
+LOG  : Lua          f:1342> [RNPC] group(off) Dina Ibarra joins Sam Pryor
+LOG  : Lua          f:1369> ZEDQA r3off ui health: SpeedControls@3641,10,189x28 ; UIDebugConsole@20,1820,1280x320 ; MoodlesUI@3782,120,48x2160 ; ISInventoryPage@640,0,1280x720 ; ISInventoryPage@1920,0,1280x720 ; ISButtonPrompt@0,0,1x1 ; ISEquippedItem@10,10,53x621 ; ISHotbar@1774,2078,292x82 ; WaterMarkUI@3604,2125,226x24 ; ISCharacterInfoWindow@2415,794,383x576
+LOG  : Lua          f:1369> ZEDQA r3off shot zqa_r3off_5_health.png
+LOG  : Lua          f:1377> [RNPC] base scavengers seat: a medical near Rosewood at 8165,11558 (no player base anywhere)
+LOG  : Lua          f:1377> [RNPC] seat-stand the seat near Rosewood keeps its people in its mechanic at 8168,11555 (the middle of the building is 8165,11558) #7
+LOG  : Lua          f:1395> [RNPC] caravan Moss Patel (medics) to farmers near Muldraugh
+LOG  : Lua          f:1395> [RNPC] trader military: Vera Perez keeps the trading post near Louisville
+LOG  : Lua          f:1395> [RNPC] name-reroll x1 -> Maya Hwang
+LOG  : Lua          f:1395> [RNPC] garrison-arrive bandits: Maya Hwang (1/3) near March Ridge
+LOG  : Lua          f:1395> [RNPC] garrison-arrive military: Joel Ibarra (1/3) near Louisville
+LOG  : Lua          f:1395> [RNPC] garrison-arrive firefighters: Nate Keene (1/3) near West Point
+LOG  : Lua          f:1395> [RNPC] garrison-arrive scavengers: Tess Keene (1/4) near Rosewood
+LOG  : Lua          f:1395> [RNPC] garrison-arrive farmers: Gabe Shaw (1/3) near Muldraugh
+LOG  : Lua          f:1395> [RNPC] garrison-arrive medics: Ray Perez (1/3) near Riverside
+LOG  : Lua          f:1395> [RNPC] garrison-arrive militia: Gus Nguyen (1/3) near Doe Valley cabins
+LOG  : Lua          f:1395> [RNPC] survival day 5: civilians 25/0.0/209, loners 12/0.0/209, bandits 11/0.0/209, police 12/0.0/209, military 10/0.0/209, firefighters 7/0.0/209, scavengers 15/0.0/209, farmers 6/0.0/209, medics 7/0.0/209, militia 10/0.0/209, raiders 3/0.0/209, cultists 2/0.0/209
+LOG  : Lua          f:1395> [RNPC] fac-snap: 7 seats out to clients
+LOG  : Lua          f:1439> ZEDQA r3off shot zqa_r3off_6_skills.png
+LOG  : Lua          f:1440> [RNPC] group(off) Cal Holt joins Ava Reid
+LOG  : Lua          f:1449> ZEDQA r3off DONE
+LOG  : Lua          f:1466> [RNPC] group(off) Lena Vargas joins Rosa Kline
+LOG  : Lua          f:1505> [RNPC] group(off) Tess Patel joins Iris Oakes
+LOG  : Lua          f:1514> [RNPC] group(off) Elena Holt joins Priya Ibarra
+LOG  : Lua          f:1544> [RNPC] group(off) Suki Cruz joins Abe Mercer
+LOG  : Lua          f:1586> [RNPC] group(off) Wade Abbott joins June Tate
+LOG  : Lua          f:1586> [RNPC] group(off) Maya Frost joins Lena Ibarra
+LOG  : Lua          f:1598> [RNPC] group(off) Tess Wolfe joins Ruth Reid
+LOG  : Lua          f:1598> [RNPC] base police seat: a police near Rosewood at 8069,11738 (no player base anywhere)
+LOG  : Lua          f:1598> [RNPC] seat-stand the seat near Rosewood keeps its people in its hall at 8070,11742 (the middle of the building is 8069,11738) #8
+LOG  : Lua          f:1613> [RNPC] group(off) Nate Nguyen joins Clara Reid
