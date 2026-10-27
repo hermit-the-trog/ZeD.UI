@@ -48,7 +48,7 @@ Loaded with ZeD-GUI, no errors of their own, and ZeD-GUI's tests passed with the
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2928660831]Military Grid Reference System For Map Callouts Cause You And Your Friends Get Lost Easily[/url]: Part of it does not show: its grid is drawn on the game's map, which ZeD's map replaces. [i](expected)[/i]
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2629286881]Military Ponchos [B42][/url]
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2705406713]Military Tool Kit[/url] by Papa_Chad
-[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2866258937]Mini Health Panel[/url] by Speedy Von Gofast: A click on it opens the game's own character window over ZeD's. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2866258937]Mini Health Panel[/url] by Speedy Von Gofast: A click on it opens ZeD's Character window on the Health tab. From ZeD-GUI 0.2.0-t6.
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3710913197]Mini Health Plus[/url]: Its body figure panel shows on screen. Its click to the Health page was not tried.
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3388844542]Minimal Display Bars + Nutritions + Discomfort [B41/B42.20][/url]: Its bars show at the top left.
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3019672735]Mod Comparer[/url]

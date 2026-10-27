@@ -14,6 +14,7 @@ LIMIT = 7800
 HAIR = "Its cuts, ties and trims are rows in the Identity tab's Hair and Beard section. From ZeD-GUI 0.2.0-t6."
 mods["3589548354"]["note"] = HAIR
 mods["3760534563"]["note"] = HAIR
+mods["2866258937"]["note"] = "A click on it opens ZeD's Character window on the Health tab. From ZeD-GUI 0.2.0-t6."
 mods["3378285185"]["note"] = f"Lines that mods add to the item tooltip through it show on ZeD's item tooltip from ZeD-GUI {T7}; in 0.2.0-t6 ZeD's tooltip leaves them out."
 
 # round 3
