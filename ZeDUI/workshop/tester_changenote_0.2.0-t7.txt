@@ -1,0 +1,37 @@
+0.2.0-t7: changes since 0.2.0-t6.
+
+Every window
+- The whole interface now draws from one set of parts, so windows, cards, menus and the HUD look and behave the same everywhere.
+- A box at the right of each title bar opens the window menu: Theme, Accent, Text size, See-through, Controller highlight, Reset and ZeD setup. It replaces the small squares in the footer.
+- The footer is a help line: plain words for what the pointer or the controller is on, and the controller's buttons.
+- Resize a window from its bottom edge, its bottom corners, or its sides (hold still for a moment on a side).
+- One push button style everywhere. An action's verbs sit under the item's name; questions and answers appear in the band at the foot.
+- Anything that can't be undone asks first (Cancel, or the action's own word).
+- Radio buttons, checkboxes and pop-up menus in the 1993 style replace switches and pill buttons. Tags are outlined, with square status marks.
+- Pop-ups cast a hard one-unit shadow. Window text is in sentence case; hardware and pixel faces keep their capitals.
+- Status bars are framed strips with a flat fill: belt slots, the hands' condition ring, the ammo tab and the action bar.
+
+Options
+- See-through: how much of the world shows through a window, 100 to 60 (90 by default), with Solid while in use.
+- Controller highlight: a pointing hand (the default), corner marks, a wash, or marching ants.
+- Hidden actions: Folded (the default) gathers actions you can't do yet into one row that says what they need; Show all lists them greyed; Hide leaves them out.
+
+Belt
+- The hands sit side by side at the left end of the belt. The main hand is bigger than the off hand, as in the game.
+- With one item in both hands, the main hand keeps the circle and the off hand peeks out from behind it.
+- With a gun in the main hand, its rounds show on a tab that comes out from under the hand, instead of a pouch on the belt.
+- The buckle splits the slots evenly, half on each side in key order (an odd one goes on the right).
+- A mod's own belt slot shows the game's name for it.
+
+Maps
+- The Maps tab uses the same parts as the rest. Flyer pins are never drawn past the map's edge.
+
+Working with other mods
+- Tooltip lines other mods add to items show in ZeD's tooltip.
+- Smart Radial Menu and other mods with their own wheels keep their wheel.
+- Option pages other mods add appear after the Mods page, under their own title.
+- Dialogs another mod sets up after ZeD-GUI loads get ZeD's look.
+- Project Writing: its notebook pauses the game. That is the mod's behaviour, not a ZeD-GUI fault.
+
+Translations
+- The translators' guide has a note for every one of ZeD-GUI's 3,434 strings.
