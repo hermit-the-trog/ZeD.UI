@@ -1,4 +1,31 @@
-# Tester recruitment (0.2.0-t1)
+# Tester recruitment
+
+## Current: the Discord post with the link (Oct 27 2026, 0.2.0-t7)
+
+The director's decision, Oct 27 2026: no applications; the unlisted Workshop link goes in the one Discord post
+(PZ Modding Community, #mod-projects forum), so anyone reading it can test. One place only, easier to manage;
+no Reddit. The sections below this one (applications, links by direct message) are retired.
+
+> ZeD-GUI replaces the inventory, the character and loot windows, the HUD and the menus for Build 42. It works with a controller and with a mouse and keyboard. A private test build (0.2.0-t7, Oct 27) is on the Workshop, and I am still looking for testers before the public release.
+>
+> What testers do
+> Play Build 42 (42.21) with ZeD-GUI on, in a new game or a copy of a save.
+> Report problems in the pinned Bug reports discussion on the Workshop page, with console.txt.
+> Keep the link, the files and videos private until the public release.
+>
+> I am looking for a mix of
+> Controller players and mouse and keyboard players.
+> Screens at 1080p, 1440p and 4K.
+> Players who run other mods, and players who play without mods.
+> A few people who can try it on a multiplayer server.
+>
+> This is an unlisted Steam Workshop page. Please do not share the link outside of this post. If you want to show someone please invite them to this post, not the Steam Workshop page. Thank you, this work means a lot to me, it is the largest project I have done by myself in my near 50 years on this planet and I don't want to release to the mass public until I can prove it is working bug free. Quality matters. Made with love for a game I have over 3,000 hours in.
+>
+> https://steamcommunity.com/sharedfiles/filedetails/?id=3824968485
+>
+> Translators: ZeD-GUI's own text is in one file, and where the game already has a phrase, ZeD-GUI uses the game's translation. Translations are welcome in the Translations discussion on the Workshop page.
+
+## Retired: the application post (0.2.0-t1, Oct 20 2026)
 
 ## Post (Discord, Reddit, forums)
 
