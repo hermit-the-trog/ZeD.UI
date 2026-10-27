@@ -57,24 +57,29 @@ local function safe(fn, ...) local ok, v = pcall(fn, ...); if ok then return v e
 function D.safe(fn, ...) return safe(fn, ...) end
 
 -- ---------------------------------------------------------------------------
--- pictures: ZeD icons by name, the tab icons, or a texture as given
+-- pictures: a wheel icon by its id (icon =, ZeD_Wheel draws it by the cell's
+-- box), a tab by its icon's name (tab =, the wheel icon for it, else the tab's
+-- own), or a texture as given (tex =: items, the controller's glyphs)
 -- ---------------------------------------------------------------------------
 local _tex = {}
 local function texOf(path)
     if _tex[path] == nil then _tex[path] = getTexture(path) or false end
     return _tex[path] or nil
 end
-function D.icon(name) return texOf("media/textures/ZeD/icons/" .. name .. ".png") end
 function D.tabIcon(name) return texOf("media/textures/ZeD/TabIcons/" .. name .. ".png") end
 
--- an entry's picture: { texture, tintable }
+-- an entry's picture: texture, tintable, wheel icon id
 local function pictureOf(e)
-    if e.icon then local t = D.icon(e.icon); if t then return t, true end end
-    if e.tab then local t = D.tabIcon(e.tab); if t then return t, true end end
+    if e.icon then return (W.iconTex(e.icon, 16)), true, e.icon end
+    if e.tab then
+        local id = W.TAB_ICONS[e.tab]
+        if id then return (W.iconTex(id, 16)), true, id end
+        local t = D.tabIcon(e.tab); if t then return t, true end
+    end
     if e.tex then return e.tex, e.tint == true end
-    if e.vanilla then return texOf(e.vanilla), false end
     return nil, false
 end
+D.pictureOf = pictureOf   -- (QA: zedqa_wheel_icons.lua)
 
 -- ---------------------------------------------------------------------------
 -- showing a level on the shared wheel
@@ -188,7 +193,7 @@ function D.assign(pn, menu, chord)
 end
 
 local function addEntry(menu, pn, e, st, n)
-    local tex, tint = pictureOf(e)
+    local tex, tint, id = pictureOf(e)
     local text = e.name or "?"
     if e.off then
         menu:addSlice(text .. "\n" .. tostring(e.off), tex, nil)
@@ -202,7 +207,8 @@ local function addEntry(menu, pn, e, st, n)
     end
     local s = menu.slices and menu.slices[#menu.slices]
     if s then
-        if tex then s._zedTex, s._zedTint = tex, tint end   -- (the wheel's own picture lookup is skipped)
+        if id then s._zedTex, s._zedTint, s._zedIcon = false, true, id   -- (the wheel's own picture lookup is skipped)
+        elseif tex then s._zedTex, s._zedTint = tex, tint end
         if e.swatch then s._zedSwatch = e.swatch; if not tex then s._zedTex = false end end
         if (e.sub or e.fill) and not e.off then s._zedSub = true end
         local Qc = ZeD.QuickChords
@@ -472,7 +478,7 @@ local function labelAt(list, i) return list and list[i] and tr(list[i]) or "?" e
 function Z.themeWheel()
     local S, out = ZeD.Settings, {}
     for i, k in ipairs(S.baseKeys) do
-        out[#out + 1] = { name = labelAt(S.baseLabels, i), icon = "settings", detail = inUse(ZeD.currentBase == k),
+        out[#out + 1] = { name = labelAt(S.baseLabels, i), icon = "theme", detail = inUse(ZeD.currentBase == k),
             run = function() Z.theme(k, nil, nil) end }
     end
     return out
@@ -492,7 +498,7 @@ end
 function Z.sizeWheel()
     local S, out = ZeD.Settings, {}
     for i, k in ipairs(S.sizeKeys) do
-        out[#out + 1] = { name = labelAt(S.sizeLabels, i), icon = "text-box-dots", detail = inUse(ZeD.currentSize == k),
+        out[#out + 1] = { name = labelAt(S.sizeLabels, i), icon = "textsize", detail = inUse(ZeD.currentSize == k),
             run = function() Z.theme(nil, nil, k) end }
     end
     return out
@@ -503,7 +509,7 @@ function Z.scaleWheel()
     local cur = S.uiScaleOption and S.uiScaleOption:getValue() or 1
     for i = 1, #S.scaleKeys do
         local name = (i == 1) and tr(S.scaleLabels[1]) or S.scaleLabels[i]   -- (the steps are numbers, as the options show them)
-        out[#out + 1] = { name = name, icon = "magnifying-glass-eye", detail = inUse(cur == i),
+        out[#out + 1] = { name = name, icon = "scale", detail = inUse(cur == i),
             run = function() Z.option(S.uiScaleOption, i, S.applyScale) end }
     end
     return out
@@ -520,16 +526,16 @@ end
 
 function Z.moodleWheel()
     local S = ZeD.Settings
-    return comboWheel(S.moodlePlaceOption, S.moodleLabels or { "UI_ZeD_Settings_MoodlesRight", "UI_ZeD_Settings_MoodlesLeft", "UI_ZeD_Settings_MoodlesBottom" }, "smile")
+    return comboWheel(S.moodlePlaceOption, S.moodleLabels or { "UI_ZeD_Settings_MoodlesRight", "UI_ZeD_Settings_MoodlesLeft", "UI_ZeD_Settings_MoodlesBottom" }, "smiley")
 end
 
 function Z.actionBarWheel()
-    return comboWheel(ZeD.Settings.actionBarOption, { "UI_ZeD_Settings_ActionBarVerbose", "UI_ZeD_Settings_ActionBarSimple" }, "clock")
+    return comboWheel(ZeD.Settings.actionBarOption, { "UI_ZeD_Settings_ActionBarVerbose", "UI_ZeD_Settings_ActionBarSimple" }, "progress")
 end
 
 -- see-through: 100% to 60%, then solid while in use (ZeD.Settings saves the pick and re-applies
 -- the theme, as the window box's menu does)
-local SEE_ICON, FOCUS_ICON = "architectural-windows-017-window-16", "fi-br-hand-back-point-right"
+local SEE_ICON, FOCUS_ICON = "seethrough", "focus"
 function Z.seeThroughWheel()
     local S, out = ZeD.Settings, {}
     local cur = S.seeThroughIndex and S.seeThroughIndex()
@@ -581,29 +587,29 @@ D.B.zed = function(p, pn)
     local ac = ZeD.AccentColors and ZeD.AccentColors[ZeD.currentAccent]
     local function at(keys, labels, k) for i, x in ipairs(keys) do if x == k then return tr(labels[i]) end end return nil end
     return {
-        { name = tr("UI_ZeD_Settings_BaseTheme"), icon = "settings", detail = at(S.baseKeys, S.baseLabels, ZeD.currentBase), sub = Z.themeWheel },
+        { name = tr("UI_ZeD_Settings_BaseTheme"), icon = "theme", detail = at(S.baseKeys, S.baseLabels, ZeD.currentBase), sub = Z.themeWheel },
         { name = tr("UI_ZeD_Settings_AccentColor"), swatch = ac and ac[tone] and ac[tone].accent or nil,
           detail = at(S.accentKeys, S.accentLabels, ZeD.currentAccent), sub = Z.accentWheel },
-        { name = tr("UI_ZeD_Settings_TextSize"), icon = "text-box-dots", detail = at(S.sizeKeys, S.sizeLabels, ZeD.currentSize), sub = Z.sizeWheel },
+        { name = tr("UI_ZeD_Settings_TextSize"), icon = "textsize", detail = at(S.sizeKeys, S.sizeLabels, ZeD.currentSize), sub = Z.sizeWheel },
         { name = tr("UI_ZeD_Settings_SeeThrough"), icon = SEE_ICON,
           detail = tr("UI_ZeD_Settings_SeeThroughPct", S.seeThrough and S.seeThrough() or 90), sub = Z.seeThroughWheel },
         { name = tr("UI_ZeD_Settings_FocusStyle"), icon = FOCUS_ICON,
           detail = current(S.focusStyleOption, S.focusStyleLabels or {}), sub = Z.focusWheel },
-        { name = tr("UI_ZeD_Settings_UiScale"), icon = "magnifying-glass-eye", sub = Z.scaleWheel },
-        { name = tr("UI_ZeD_Settings_Moodles"), icon = "smile", detail = current(S.moodlePlaceOption, S.moodleLabels or {}), sub = Z.moodleWheel },
-        { name = tr("UI_ZeD_Settings_ActionBar"), icon = "clock",
+        { name = tr("UI_ZeD_Settings_UiScale"), icon = "scale", sub = Z.scaleWheel },
+        { name = tr("UI_ZeD_Settings_Moodles"), icon = "smiley", detail = current(S.moodlePlaceOption, S.moodleLabels or {}), sub = Z.moodleWheel },
+        { name = tr("UI_ZeD_Settings_ActionBar"), icon = "progress",
           detail = current(S.actionBarOption, { "UI_ZeD_Settings_ActionBarVerbose", "UI_ZeD_Settings_ActionBarSimple" }), sub = Z.actionBarWheel },
         -- Messages (MESSAGES_SPEC.md): other mods' notes and errors; off while nothing is kept
         (function()
             local MS = ZeD.Messages
             local n, un = MS and MS.count() or 0, MS and MS.unread() or 0
-            return { name = tr("UI_ZeD_Msg_Title"), icon = "inbox-in",
+            return { name = tr("UI_ZeD_Msg_Title"), icon = "inbox",
                      detail = (n > 0) and tr(un > 0 and "UI_ZeD_Msg_New" or "UI_ZeD_Msg_CountStat", un > 0 and un or n) or nil,
                      run = (n > 0) and function(pl, pn2) MS.open() end or nil, off = (n == 0) and tr("UI_ZeD_Msg_None") or nil }
         end)(),
-        { name = tr("UI_ZeD_Wheel_ResetWindows"), icon = "rotate-left", detail = tr("UI_ZeD_Wheel_ResetWindowsDetail"), run = Z.resetWindows },
+        { name = tr("UI_ZeD_Wheel_ResetWindows"), icon = "rotate", detail = tr("UI_ZeD_Wheel_ResetWindowsDetail"), run = Z.resetWindows },
         { name = tr("UI_ZeD_Options_GroupZed"), icon = "gears", detail = tr("UI_ZeD_Wheel_ZeDSetupDetail"), run = function(pl, n) D.H.openSetup(pl, n) end },
-        { name = tr("UI_ZeD_Settings_SafeMode"), icon = "bolt-slash", detail = tr("UI_ZeD_Wheel_SafeModeDetail"), run = Z.safeMode },
+        { name = tr("UI_ZeD_Settings_SafeMode"), icon = "safemode", detail = tr("UI_ZeD_Wheel_SafeModeDetail"), run = Z.safeMode },
     }
 end
 
@@ -831,7 +837,7 @@ end
 function C.weapons(p, pn)
     local out = H.weapons(p)
     while #out > 10 do out[#out] = nil end   -- (Hands free and Back after them)
-    out[#out + 1] = { name = tr("UI_ZeD_Wheel_HandsFree"), icon = "backpack", detail = tr("UI_ZeD_Wheel_HandsFreeDetail"), key = "handsfree", run = H.handsFree,
+    out[#out + 1] = { name = tr("UI_ZeD_Wheel_HandsFree"), icon = "hand", detail = tr("UI_ZeD_Wheel_HandsFreeDetail"), key = "handsfree", run = H.handsFree,
         off = (not p:getPrimaryHandItem() and not p:getSecondaryHandItem()) and tr("UI_ZeD_Wheel_HandsAlreadyFree") or nil }
     return out
 end
@@ -869,12 +875,12 @@ function C.use(p, pn)
         readOff = safe(function() return p:tooDarkToRead() end) and getText("ContextMenu_TooDark") or tr("UI_ZeD_Wheel_NothingToRead")
     end
     return {
-        { name = getText("ContextMenu_Smoke"), icon = "smoking", best = true, sub = function() return H.quick(p, "smoke") end,
+        { name = getText("ContextMenu_Smoke"), icon = "cigarette", best = true, sub = function() return H.quick(p, "smoke") end,
           off = (#smoke == 0) and tr("UI_ZeD_Wheel_NothingToSmoke") or nil },
-        { name = getText("ContextMenu_Read"), icon = "book-open-reader", best = true, sub = function() return H.quick(p, "read") end, off = readOff },
-        { name = tr("UI_ZeD_Wheel_Watch"), icon = "clock", sub = function() return ask("watch", p, pn) or {} end,
+        { name = getText("ContextMenu_Read"), icon = "book", best = true, sub = function() return H.quick(p, "read") end, off = readOff },
+        { name = tr("UI_ZeD_Wheel_Watch"), icon = "watch", sub = function() return ask("watch", p, pn) or {} end,
           off = not (watch and #watch > 0) and tr("UI_ZeD_Wheel_NoWatch") or nil },
-        { name = getText("IGUI_ItemType_Radio"), icon = "survival-077-radio", sub = function() return ask("radio", p, pn) or {} end,
+        { name = getText("IGUI_ItemType_Radio"), icon = "walkie", sub = function() return ask("radio", p, pn) or {} end,
           off = not (radio and #radio > 0) and tr("UI_ZeD_Wheel_NoRadioOnYou") or nil },
     }
 end
@@ -889,15 +895,15 @@ D.B.character = function(p, pn)
     return {
         { name = tr("UI_ZeD_Wheel_Tabs"), tab = "loot-tab-white", detail = tr("UI_ZeD_Wheel_CharacterWindow"), sub = C.tabs },
         { name = tr("UI_ZeD_Wheel_Weapons"), icon = "knife", best = true, sub = C.weapons, off = (#weapons == 0) and tr("UI_ZeD_Wheel_NoWeapon") or nil },
-        { name = getText("ContextMenu_Eat"), icon = "apple-whole", best = true, sub = function() return H.quick(p, "eat") end,
+        { name = getText("ContextMenu_Eat"), icon = "apple", best = true, sub = function() return H.quick(p, "eat") end,
           off = (#eat == 0) and ((ZeD.QuickWheel.tooFull and ZeD.QuickWheel.tooFull(p)) and getText("Tooltip_CantEatMore")
               or tr("UI_ZeD_Wheel_NothingToEat")) or nil },
-        { name = getText("ContextMenu_Drink"), icon = "water-045-drink", best = true, sub = function() return H.quick(p, "drink") end,
+        { name = getText("ContextMenu_Drink"), icon = "glass", best = true, sub = function() return H.quick(p, "drink") end,
           off = (#drink == 0) and tr("UI_ZeD_Wheel_NothingToDrink") or nil },
-        { name = tr("UI_ZeD_Wheel_Medicine"), icon = "bandage-wound", sub = C.medicine, pick = C.medicinePick,
+        { name = tr("UI_ZeD_Wheel_Medicine"), icon = "medkit", sub = C.medicine, pick = C.medicinePick,
           off = (#pills == 0 and #treat == 0 and not hurt) and tr("UI_ZeD_Wheel_NothingToTreat") or nil },
         { name = getText("ContextMenu_Sleep"), icon = "bed", detail = sleep.detail, off = sleep.off, run = sleep.run },
-        { name = tr("UI_ZeD_Wheel_Clothing"), icon = "fi-br-shirt-long-sleeve", sub = C.clothing,
+        { name = tr("UI_ZeD_Wheel_Clothing"), icon = "shirt", sub = C.clothing,
           off = (#clothing == 0) and tr("UI_ZeD_Wheel_NothingToChange") or nil },
         { name = tr("UI_ZeD_Wheel_Use"), icon = "backpack", detail = tr("UI_ZeD_Wheel_UseDetail"), sub = C.use },
     }
@@ -934,10 +940,10 @@ function Wd.map(p, pn)
     local noMini = (not mini) and tr("UI_ZeD_Wheel_NoMiniMap") or nil
     local noMap = not (ISWorldMap and ISWorldMap.IsAllowed and ISWorldMap.IsAllowed())
     return {
-        { name = getText("IGUI_WorldMap_Toggle"), icon = "crafting-game-037-map", run = function(pl, n) ISWorldMap.ToggleWorldMap(n) end,
+        { name = getText("IGUI_WorldMap_Toggle"), icon = "map", run = function(pl, n) ISWorldMap.ToggleWorldMap(n) end,
           off = noMap and tr("UI_ZeD_Wheel_NoWorldMap") or nil },
-        { name = getText("IGUI_MiniMap_Toggle"), icon = "fi-br-map-point", run = function(pl, n) ISMiniMap.ToggleMiniMap(n) end, off = noMini },
-        { name = getText("IGUI_MiniMap_Focus"), icon = "map-marker", run = function(pl, n) ISMiniMap.FocusMiniMap(n) end, off = noMini },
+        { name = getText("IGUI_MiniMap_Toggle"), icon = "minimap", run = function(pl, n) ISMiniMap.ToggleMiniMap(n) end, off = noMini },
+        { name = getText("IGUI_MiniMap_Focus"), icon = "pin", run = function(pl, n) ISMiniMap.FocusMiniMap(n) end, off = noMini },
     }
 end
 
@@ -968,11 +974,11 @@ function Wd.search(p, pn)
     if m and m.closeIcons then for _, icon in pairs(m.closeIcons) do found = icon; break end end
     local foundName = found and found.itemObj and safe(function() return found.itemObj:getDisplayName() end) or nil
     return {
-        { name = getText(on and "UI_disable_search_mode" or "UI_enable_search_mode"), icon = "eye",
+        { name = getText(on and "UI_disable_search_mode" or "UI_enable_search_mode"), icon = on and "eye_off" or "eye",
           run = function(pl) local mm = ISSearchManager.getManager(pl); if mm then mm:toggleSearchMode() end end,
           off = (not m) and tr("UI_ZeD_Wheel_NotNow") or nil },
         { name = getText("UI_investigate_area_window_show"), tab = "forage-tab-white", run = function(pl, n) H.worldTab(pl, n, "forage") end },
-        { name = getText("IGUI_Pickup"), icon = "fi-br-picking-box", detail = foundName,
+        { name = getText("IGUI_Pickup"), icon = "box_up", detail = foundName,
           run = function(pl)
               local mm = ISSearchManager.getManager(pl)
               if mm then for _, icon in pairs(mm.closeIcons) do icon:doForage(); break end end
@@ -989,17 +995,17 @@ D.B.world = function(p, pn)
     for _, e in ipairs(lights) do if not e.off then anyLight = true end end
     return {
         { name = tr("UI_ZeD_Wheel_Tabs"), tab = "craft-tab-white", detail = tr("UI_ZeD_Wheel_WorldWindow"), sub = Wd.tabs },
-        { name = tr("UI_ZeD_Wheel_Map"), icon = "crafting-game-037-map", sub = Wd.map },
-        { name = tr("UI_ZeD_Wheel_Vehicle"), icon = "car-mechanic", fill = function(pl, n) ISVehicleMenu.showRadialMenu(pl); H.dashSlice(pl, n) end,
+        { name = tr("UI_ZeD_Wheel_Map"), icon = "map", sub = Wd.map },
+        { name = tr("UI_ZeD_Wheel_Vehicle"), icon = "car", fill = function(pl, n) ISVehicleMenu.showRadialMenu(pl); H.dashSlice(pl, n) end,
           off = (not vehicle) and tr("UI_ZeD_Wheel_NoVehicle") or nil },
         { name = tr("UI_ZeD_Wheel_Animal"), icon = "cow", fill = function(pl) AnimalContextMenu.showRadialMenu(pl) end,
           off = (not animal) and tr("UI_ZeD_Wheel_NoAnimal") or nil },
-        { name = tr("UI_ZeD_Wheel_CraftBuild"), icon = "carpentry-015-toolbox", sub = Wd.craft },
-        { name = tr("UI_ZeD_Wheel_Search"), icon = "fi-br-magnifying-glass-wave", sub = Wd.search },
-        { name = tr("UI_ZeD_Wheel_LightsPower"), icon = "lightbulb-on", sub = function() return ask("lights", p, pn) or {} end,
+        { name = tr("UI_ZeD_Wheel_CraftBuild"), icon = "toolbox", sub = Wd.craft },
+        { name = tr("UI_ZeD_Wheel_Search"), icon = "magnifier", sub = Wd.search },
+        { name = tr("UI_ZeD_Wheel_LightsPower"), icon = "bulb_on", sub = function() return ask("lights", p, pn) or {} end,
           off = (not anyLight) and tr("UI_ZeD_Wheel_NoLights") or nil },
         -- (the spec's Zones and rooms: the rooms editor has no way in on 42.21, so the place is Designated zones itself)
-        { name = getText("IGUI_Zone_Name"), icon = "map-marker", detail = tr("UI_ZeD_World_TabAnimals"),
+        { name = getText("IGUI_Zone_Name"), icon = "fence", detail = tr("UI_ZeD_World_TabAnimals"),
           run = function(pl, n) ISDPadWheels.showAnimalZoneUI(n) end },
     }
 end
@@ -1008,10 +1014,10 @@ end
 -- UP: SOCIAL
 -- ============================================================================
 local EMOTE_GROUPS = {
-    { id = "friendly", key = "IGUI_Emote_Friendly", tex = "media/ui/emotes/thumbsup.png" },
-    { id = "hostile",  key = "IGUI_Emote_Hostile",  tex = "media/ui/emotes/thumbsdown.png" },
-    { id = "group",    key = "IGUI_Emote_Group",    tex = "media/ui/emotes/followme.png" },
-    { id = "signal",   key = "IGUI_Emote_Signal",   tex = "media/ui/emotes/moveout.png" },
+    { id = "friendly", key = "IGUI_Emote_Friendly", icon = "thumbs_up" },
+    { id = "hostile",  key = "IGUI_Emote_Hostile",  icon = "thumbs_down" },
+    { id = "group",    key = "IGUI_Emote_Group",    icon = "group" },
+    { id = "signal",   key = "IGUI_Emote_Signal",   icon = "move_out" },
 }
 
 -- a server-only slice: off in single player, else the helper's run / reason
@@ -1025,16 +1031,16 @@ end
 D.B.social = function(p, pn)
     local out = {}
     for _, g in ipairs(EMOTE_GROUPS) do
-        out[#out + 1] = { name = getText(g.key), vanilla = g.tex, fill = function(pl)
+        out[#out + 1] = { name = getText(g.key), icon = g.icon, fill = function(pl)
             if not ISEmoteRadialMenu.menu then ISEmoteRadialMenu:init() end
             local erm = ISEmoteRadialMenu:new(pl)
             erm:fillMenu(g.id)
         end }
     end
     out[#out + 1] = { name = getText("IGUI_Emote_Shout"), icon = "bullhorn", run = function(pl) ISDPadWheels.onShout(pl) end }
-    out[#out + 1] = serverSlice(tr("UI_ZeD_Wheel_Chat"), "text-box-dots", ask("chat", p, pn))
-    out[#out + 1] = serverSlice(tr("UI_ZeD_Wheel_Safety"), "fi-br-lock", ask("safety", p, pn))
-    out[#out + 1] = serverSlice(tr("UI_ZeD_Wheel_Players"), "handshake", ask("players", p, pn))
+    out[#out + 1] = serverSlice(tr("UI_ZeD_Wheel_Chat"), "chat", ask("chat", p, pn))
+    out[#out + 1] = serverSlice(tr("UI_ZeD_Wheel_Safety"), "padlock", ask("safety", p, pn))
+    out[#out + 1] = serverSlice(tr("UI_ZeD_Wheel_Players"), "group", ask("players", p, pn))
     return out
 end
 
@@ -1051,18 +1057,18 @@ function N.speed(p, pn)
     local playing = cur ~= 0 and mult <= 1
     return {
         { name = getText(cur == 0 and "IGUI_BackButton_Play" or "UI_optionscreen_binding_Pause"),
-          vanilla = (cur == 0) and "media/ui/speedControls/Play_Off.png" or "media/ui/speedControls/Pause_Off.png",
+          icon = (cur == 0) and "play" or "pause",
           detail = inUse(playing),
           run = function()
               local s = UIManager.getSpeedControls()
               if not s then return end
               if s:getCurrentGameSpeed() == 0 or getGameTime():getTrueMultiplier() > 1 then H.speed("Play") else H.speed("Pause") end
           end },
-        { name = getText("IGUI_BackButton_FF1"), vanilla = "media/ui/speedControls/FFwd1_Off.png", detail = inUse(cur ~= 0 and mult == 5),
+        { name = getText("IGUI_BackButton_FF1"), icon = "ff1", detail = inUse(cur ~= 0 and mult == 5),
           run = function() H.speed("Fast Forward x 1") end },
-        { name = getText("IGUI_BackButton_FF2"), vanilla = "media/ui/speedControls/FFwd2_Off.png", detail = inUse(cur ~= 0 and mult == 20),
+        { name = getText("IGUI_BackButton_FF2"), icon = "ff2", detail = inUse(cur ~= 0 and mult == 20),
           run = function() H.speed("Fast Forward x 2") end },
-        { name = getText("IGUI_BackButton_FF3"), vanilla = "media/ui/speedControls/Wait_Off.png", detail = inUse(cur ~= 0 and mult == 40),
+        { name = getText("IGUI_BackButton_FF3"), icon = "wait", detail = inUse(cur ~= 0 and mult == 40),
           run = function() H.speed("Wait") end },
     }
 end
@@ -1071,20 +1077,21 @@ function N.zoom(p, pn)
     local core = getCore()
     local off = core:getAutoZoom(pn) and tr("UI_ZeD_Wheel_AutoZoom") or nil
     return {
-        { name = getText("IGUI_BackButton_Zoom", math.floor(core:getNextZoom(pn, -1) * 100)), vanilla = "media/ui/ZoomIn.png",
+        { name = getText("IGUI_BackButton_Zoom", math.floor(core:getNextZoom(pn, -1) * 100)), icon = "zoom_in",
           run = function(pl, n) getCore():doZoomScroll(n, -1) end, off = off },
-        { name = getText("IGUI_BackButton_Zoom", math.floor(core:getNextZoom(pn, 1) * 100)), vanilla = "media/ui/ZoomOut.png",
+        { name = getText("IGUI_BackButton_Zoom", math.floor(core:getNextZoom(pn, 1) * 100)), icon = "zoom_out",
           run = function(pl, n) getCore():doZoomScroll(n, 1) end, off = off },
     }
 end
 
 function N.view(p, pn)
+    local hidden = ISUIHandler and ISUIHandler.allUIVisible == false
     return {
-        { name = tr((ISUIHandler and ISUIHandler.allUIVisible == false) and "UI_ZeD_Wheel_ShowInterface" or "UI_ZeD_Wheel_HideInterface"),
-          icon = "eye", detail = tr("UI_ZeD_Wheel_HideInterfaceDetail"),
+        { name = tr(hidden and "UI_ZeD_Wheel_ShowInterface" or "UI_ZeD_Wheel_HideInterface"),
+          icon = hidden and "eye" or "eye_off", detail = tr("UI_ZeD_Wheel_HideInterfaceDetail"),
           run = function(pl, n) ask("hideInterface", pl, n) end },
-        { name = tr("UI_ZeD_Wheel_ResetWindows"), icon = "rotate-left", detail = tr("UI_ZeD_Wheel_ResetWindowsDetail"), run = Z.resetWindows },
-        { name = tr("UI_ZeD_Settings_TextSize"), icon = "text-box-dots", sub = Z.sizeWheel },
+        { name = tr("UI_ZeD_Wheel_ResetWindows"), icon = "rotate", detail = tr("UI_ZeD_Wheel_ResetWindowsDetail"), run = Z.resetWindows },
+        { name = tr("UI_ZeD_Settings_TextSize"), icon = "textsize", sub = Z.sizeWheel },
         { name = getText("UI_mainscreen_option"), icon = "gears", detail = tr("UI_ZeD_Wheel_ZeDSetupDetail"),
           run = function(pl, n) ask("openSetup", pl, n) end },
     }
@@ -1092,9 +1099,9 @@ end
 
 function N.help(p, pn)
     return {
-        { name = getText("UI_optionscreen_binding_Toggle Survival Guide"), icon = "info-guide", run = function(pl, n) ISDPadWheels.showSurvGuide(n) end },
+        { name = getText("UI_optionscreen_binding_Toggle Survival Guide"), icon = "guide", run = function(pl, n) ISDPadWheels.showSurvGuide(n) end },
         -- (v1: no screen for the controller map yet, DPAD_WHEELS_SPEC section 6)
-        { name = tr("UI_ZeD_Wheel_ControllerMap"), icon = "question", off = tr("UI_ZeD_Wheel_ComingLater") },
+        { name = tr("UI_ZeD_Wheel_ControllerMap"), icon = "gamepad", off = tr("UI_ZeD_Wheel_ComingLater") },
     }
 end
 
@@ -1102,11 +1109,11 @@ function N.sit(p, pn)
     return ask("sitWheel", p, pn) or {}
 end
 
--- a slice from a helper that returns { run, detail, tex, off }, off in a vehicle
-local function stanceSlice(name, h, carOff)
+-- a slice from a helper that returns { run, detail, icon, off }, off in a vehicle
+local function stanceSlice(name, icon, h, carOff)
     h = h or {}
     local e = { name = name, detail = h.detail, run = h.run }
-    if h.tex then e.tex = h.tex else e.icon = "fi-br-person-walking-arrow-right" end
+    e.icon = h.icon or icon
     if carOff then e.off = carOff elseif not e.run then e.off = h.off or tr("UI_ZeD_Wheel_NotNow") end
     return e
 end
@@ -1118,15 +1125,15 @@ D.B.now = function(p, pn)
     if light then lightDetail = getText(light:isActivated() and "ContextMenu_Turn_Off" or "ContextMenu_Turn_On") end
     local speedOff = (isClient() or not UIManager.getSpeedControls()) and tr("UI_ZeD_Wheel_ServerTime") or nil
     local out = {
-        { name = tr("UI_ZeD_Wheel_Sit"), icon = "sitting-ground", sub = N.sit, off = carOff },
-        stanceSlice(tr("UI_ZeD_Wheel_Crouch"), ask("crouch", p, pn), carOff),
-        stanceSlice(tr("UI_ZeD_Wheel_AutoWalk"), ask("autoWalk", p, pn), carOff),
-        { name = tr("UI_ZeD_Wheel_GameSpeed"), vanilla = "media/ui/speedControls/Pause_Off.png", sub = N.speed, off = speedOff },
-        { name = tr("UI_ZeD_Wheel_Zoom"), vanilla = "media/ui/ZoomIn.png", sub = N.zoom,
+        { name = tr("UI_ZeD_Wheel_Sit"), icon = "sit_ground", sub = N.sit, off = carOff },
+        stanceSlice(tr("UI_ZeD_Wheel_Crouch"), "sneak", ask("crouch", p, pn), carOff),
+        stanceSlice(tr("UI_ZeD_Wheel_AutoWalk"), "autowalk", ask("autoWalk", p, pn), carOff),
+        { name = tr("UI_ZeD_Wheel_GameSpeed"), icon = "ff1", sub = N.speed, off = speedOff },
+        { name = tr("UI_ZeD_Wheel_Zoom"), icon = "zoom_in", sub = N.zoom,
           off = (not getCore():isZoomEnabled()) and tr("UI_ZeD_Wheel_NotNow") or nil },
         { name = tr("UI_ZeD_Wheel_View"), icon = "eye", detail = tr("UI_ZeD_Wheel_ViewDetail"), sub = N.view },
-        { name = tr("UI_ZeD_Wheel_Help"), icon = "info-guide", sub = N.help },
-        { name = light and light:getDisplayName() or tr("UI_ZeD_Wheel_Light"), icon = "lightbulb-on", detail = lightDetail,
+        { name = tr("UI_ZeD_Wheel_Help"), icon = "help", sub = N.help },
+        { name = light and light:getDisplayName() or tr("UI_ZeD_Wheel_Light"), icon = "bulb_on", detail = lightDetail,
           run = function(pl) local l = H.bestLight(pl); if l then H.lightOn(pl, l) end end,
           off = (not light) and tr("UI_ZeD_Wheel_NoLight") or nil },
     }
@@ -1188,7 +1195,7 @@ function H.treatments(p, pn)
                 for _, o in ipairs(opts) do
                     if o.sub then leaves(o.sub.options, o.name)
                     elseif o.onSelect and not o.notAvailable then
-                        out[#out + 1] = { name = parent and (parent .. ": " .. tostring(o.name)) or tostring(o.name), detail = part, icon = "bandage-wound",
+                        out[#out + 1] = { name = parent and (parent .. ": " .. tostring(o.name)) or tostring(o.name), detail = part, icon = "bandage",
                             run = function() o.onSelect(o.target, unpack(o.args, 1, o.n)) end }
                     end
                 end
@@ -1266,11 +1273,11 @@ function H.watch(p, pn)
     local belt = Wt.beltMode and Wt.beltMode()
     local alarm = safe(function() return string.format("%d:00 | %s", item:getHour(), getText(item:isAlarmSet() and "UI_On" or "UI_Off")) end)
     return {
-        { name = tr("UI_ZeD_Wheel_OpenWatch"), icon = "clock", detail = item:getDisplayName(), run = function() Wt.togglePop(true) end,
+        { name = tr("UI_ZeD_Wheel_OpenWatch"), icon = "watch", detail = item:getDisplayName(), run = function() Wt.togglePop(true) end,
           off = (not belt) and tr("UI_ZeD_Wheel_WatchAlwaysOpen") or nil },
-        { name = tr("UI_ZeD_Wheel_WatchLight"), icon = "lightbulb-on", run = function() Wt.act("light") end,
+        { name = tr("UI_ZeD_Wheel_WatchLight"), icon = "bulb_on", run = function() Wt.act("light") end,
           off = not (Wt.hasLight and Wt.hasLight(inst._def)) and tr("UI_ZeD_Wheel_WatchNoLight") or nil },
-        { name = tr("UI_ZeD_Wheel_WatchAlarm"), icon = "essential-collection-213-alarm", detail = alarm, run = function() Wt.act("alarm") end },
+        { name = tr("UI_ZeD_Wheel_WatchAlarm"), icon = "alarm", detail = alarm, run = function() Wt.act("alarm") end },
     }
 end
 
@@ -1287,7 +1294,7 @@ function H.radio(p, pn)
     return {
         { name = getText(on and "ContextMenu_Turn_Off" or "ContextMenu_Turn_On"), detail = item:getDisplayName(), tex = item:getTex(),
           run = function(pl) ZeD.RadioOps.power(pl, item) end },
-        { name = tr("UI_ZeD_Wheel_NextStation"), icon = "fm-radio", detail = mhz, run = function(pl) ZeD.RadioOps.seek(pl, item, 1) end,
+        { name = tr("UI_ZeD_Wheel_NextStation"), icon = "seek", detail = mhz, run = function(pl) ZeD.RadioOps.seek(pl, item, 1) end,
           off = (not on) and tr("UI_ZeD_Wheel_RadioIsOff") or nil },
         { name = ZeD_CharacterWindow.tabLabel(ZeD_CharacterWindow.TABS[8]), tab = "radio-tab-white", detail = tr("UI_ZeD_Wheel_EveryRadio"),
           run = function(pl, n) H.charTab(pl, n, "radio") end },
@@ -1355,7 +1362,7 @@ end
 function H.lights(p, pn)
     local out = {}
     local sw = H.switchInReach(p)
-    out[#out + 1] = { name = tr("UI_ZeD_Wheel_RoomLights"), icon = "lightbulb-on",
+    out[#out + 1] = { name = tr("UI_ZeD_Wheel_RoomLights"), icon = "bulb_on",
         detail = sw and getText(sw:isActivated() and "ContextMenu_Turn_Off" or "ContextMenu_Turn_On") or nil,
         run = sw and function(pl) ISTimedActionQueue.add(ISToggleLightAction:new(pl, sw)) end or nil,
         off = (not sw) and tr("UI_ZeD_Wheel_NoSwitch") or nil }
@@ -1368,7 +1375,7 @@ function H.lights(p, pn)
     local gOff = nil
     if not g then gOff = tr("UI_ZeD_Wheel_NoGenerator")
     elseif not gCan then gOff = tr(safe(function() return g:getFuel() <= 0 end) and "UI_ZeD_Power_NeedFuel" or "UI_ZeD_Power_NeedConnected") end
-    out[#out + 1] = { name = getText("ContextMenu_Generator"), icon = "doomsday-007-generator",
+    out[#out + 1] = { name = getText("ContextMenu_Generator"), icon = "generator",
         detail = g and getText(gOn and "ContextMenu_Turn_Off" or "ContextMenu_Turn_On") or nil,
         run = gCan and function(pl, n) ISWorldObjectContextMenu.onActivateGenerator(nil, not gOn, g, n) end or nil, off = gOff }
     local fk = OC and OC.kinds and OC.kinds.fire
@@ -1416,27 +1423,27 @@ function H.sitWheel(p, pn)
     local seatName = seat and safe(getMoveableDisplayName, seat)
     return {
         { name = sitting and tr("UI_ZeD_Wheel_GetUp") or getText("ContextMenu_SitGround"),
-          vanilla = sitting and "media/ui/emotes/sit_off.png" or "media/ui/emotes/sit_on.png",
+          icon = sitting and "sit_ground_off" or "sit_ground",
           run = function(pl)
               if pl:isSitOnGround() or pl:isSittingOnFurniture() then pl:StopAllActionQueue(); pl:setVariable("forceGetUp", true)
               else pl:setAutoWalk(false); pl:reportEvent("EventSitOnGround") end
           end },
-        { name = seatName and tr("UI_ZeD_Wheel_SitOn", seatName) or tr("UI_ZeD_Wheel_SitOnSeat"), icon = "chair",
+        { name = seatName and tr("UI_ZeD_Wheel_SitOn", seatName) or tr("UI_ZeD_Wheel_SitOnSeat"), icon = "sit_seat",
           detail = d and ZeD.Stations and ZeD.Stations.tilesText and ZeD.Stations.tilesText(d) or nil,
           run = seat and function(pl, n) ISWorldObjectContextMenu.onRest(seat, n) end or nil,
           off = (not seat) and tr("UI_ZeD_Wheel_NoSeat") or nil },
     }
 end
 
--- Crouch and auto-walk (the stick-click wheel's two toggles, its pictures)
+-- Crouch and auto-walk (the stick-click wheel's two toggles; the icon says what the slice does)
 function H.crouch(p)
     local on = p:isSneaking()
-    return { tex = getTexture(on and "media/ui/emotes/crouch_off.png" or "media/ui/emotes/crouch_on.png"), detail = getText(on and "UI_On" or "UI_Off"),
+    return { icon = on and "sneak_off" or "sneak", detail = getText(on and "UI_On" or "UI_Off"),
              run = function(pl) pl:setSneaking(not pl:isSneaking()) end }
 end
 function H.autoWalk(p)
     local on = safe(function() return p:isAutoWalk() end)
-    return { tex = getTexture(on and "media/ui/emotes/autowalk_off.png" or "media/ui/emotes/autowalk_on.png"), detail = getText(on and "UI_On" or "UI_Off"),
+    return { icon = on and "autowalk_off" or "autowalk", detail = getText(on and "UI_On" or "UI_Off"),
              run = function(pl) pl:setAutoWalk(not pl:isAutoWalk()) end }
 end
 
@@ -1462,7 +1469,7 @@ function H.dashSlice(p, pn)
     local Dash = ZeD.Dashboard
     if not (Dash and Dash.canTakePad and Dash.canTakePad(p)) then return end
     addEntry(getPlayerRadialMenu(pn), pn, {
-        name = getText("IGUI_VehiclePartCatdashboard"), icon = "fuel-gauge", detail = tr("UI_ZeD_Wheel_DashboardDetail"),
+        name = getText("IGUI_VehiclePartCatdashboard"), icon = "gauge", detail = tr("UI_ZeD_Wheel_DashboardDetail"),
         run = function(pl) nextFrame(function() Dash.takePad(pl) end) end })
 end
 

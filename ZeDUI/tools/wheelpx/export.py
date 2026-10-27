@@ -1,9 +1,11 @@
 """Export the wheel icons: white on clear, pixel for pixel.
-  out/export/wheel/16/<id>.png   the 16 drawing                 (the cell at rest at 1x)
-  out/export/wheel/24/<id>.png   the 24 drawing                 (the pointed cell at 1x)
-  out/export/wheel/32/<id>.png   the 16 drawing, each pixel 2x2 (the cell at rest at 2x)
-  out/export/wheel/48/<id>.png   the 24 drawing, each pixel 2x2 (the pointed cell at 2x)
-and out/export/wheel_icons_map.json: every icon (its group, what it means) and the rules that say where it goes."""
+  out/export/wheel/16/zw_<id>.png   the 16 drawing                 (the cell at rest at 1x)
+  out/export/wheel/24/zw_<id>.png   the 24 drawing                 (the pointed cell at 1x)
+  out/export/wheel/32/zw_<id>.png   the 16 drawing, each pixel 2x2 (the cell at rest at 2x)
+  out/export/wheel/48/zw_<id>.png   the 24 drawing, each pixel 2x2 (the pointed cell at 2x)
+and out/export/wheel_icons_map.json: every icon (its group, what it means) and the rules that say where it goes.
+The zw_ prefix keeps a file's name off the game's packed pictures: getTexture("media/textures/.../map.png")
+loads the game's own "map" (map, engine, sneak and heart did; PZAPI-KNOWLEDGE-BANK Q143)."""
 import json
 import os
 import sys
@@ -24,7 +26,7 @@ def main():
     for id_ in kit.ICONS:
         a, b = kit.render(id_, 16), kit.render(id_, 24)
         for im, sz in ((a, 16), (b, 24), (a.resize((32, 32), Image.NEAREST), 32), (b.resize((48, 48), Image.NEAREST), 48)):
-            im.save(os.path.join(OUT, "wheel", str(sz), id_ + ".png"), optimize=True)
+            im.save(os.path.join(OUT, "wheel", str(sz), "zw_" + id_ + ".png"), optimize=True)
     used = M.used()
     data = {
         "icons": {k: {"group": v["cat"], "means": v["means"], "mapped": k in used} for k, v in kit.ICONS.items()},

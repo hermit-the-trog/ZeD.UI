@@ -1,0 +1,10 @@
+# ZeDUI/tools/qa/wheel_icons.txt  (Oct 27 2026)
+# The wheels' new icons (HANDOFF_wheel_icons_20261027.md) and the wheel regressions:
+# zedqa_run.ps1 -Mode fullscreen4k -Manifest .../wheel_icons.txt
+zedqa_prelude.lua | pre                                  # opens both windows, unpauses, god mode
+gallery_daylight.lua | day                               # 11:00 on the QA save, so the captures are readable
+zedqa_wheel_icons.lua | wi | timeout=600                 # every icon, the box rule, vanilla's words and pictures, ZeD's wheels, the live radials; captures at the scale in use and at 1x
+zedqa_wheel_sizes.lua | ws                               # the ZeD wheel at 3 to 11 slices
+zedqa_wheels.lua | wh                                    # vanilla's wheels through vanilla's functions, routed slices
+zedqa_dpad_wheels.lua | dw | timeout=600                 # the D-pad wheels and the Select ZeD wheel
+zedqa_quick_chords.lua | qc | timeout=300                # quick action chords, assigning from a wheel

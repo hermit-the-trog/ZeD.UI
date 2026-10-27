@@ -15,8 +15,9 @@ pointed), the figures on a template ("follow a template or doll"). Signed off Oc
   placed on it; `i_fig.py` registers them.
 - `map.py`: which icon goes where (vanilla's words, vanilla's pictures, ZeD's own slices, the tabs). This decides;
   the `slices` noted on each `@icon` were first guesses while drawing.
-- `export.py`: writes `out/export/wheel/{16,24,32,48}/<id>.png` (32 and 48 are the 16 and 24 doubled, pixel for
-  pixel) and `out/export/wheel_icons_map.json`.
+- `export.py`: writes `out/export/wheel/{16,24,32,48}/zw_<id>.png` (32 and 48 are the 16 and 24 doubled, pixel for
+  pixel) and `out/export/wheel_icons_map.json`. The `zw_` prefix keeps the names off the game's packed pictures (a
+  plain `map.png` loads the game's own "map").
 - `review.py`: review sheets (an icon's cells at 4-5x and 1x, wheels as rings, the whole set at true size).
 - `_repl.py`: swaps one `@icon` block in a module (for redrawing an icon in place).
 

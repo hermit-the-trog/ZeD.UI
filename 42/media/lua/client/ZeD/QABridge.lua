@@ -121,6 +121,13 @@ local function autoload()
     if not (item and item.internal == "LATESTSAVE") then print("[ZeD.QA] autoload: no Continue on the main menu") return end
     print("[ZeD.QA] autoload: continuing the latest save")
     MainScreen.onMenuItemMouseDownMainMenu(item, 0, 0)
+    -- a game update that raises the world version asks first whether to convert the save
+    -- (42.22, Oct 27 2026); the QA runner has checked the latest save is the QA save
+    local m = ms.checkSavefileModal
+    if m then
+        print("[ZeD.QA] autoload: the game asks to convert the save for this version; yes")
+        if m.pressPrimary then m:pressPrimary() elseif m.yes and m.onClick then m:onClick(m.yes) end
+    end
 end
 Events.OnMainMenuEnter.Add(function()
     if not (isDebugEnabled and isDebugEnabled()) then return end
