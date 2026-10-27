@@ -398,6 +398,28 @@ Reports: qa/regression/2026-10-26_2225_mods_fullscreen4k.md (without Horde Night
 | D | Better Car Physics | [2909035179](https://steamcommunity.com/sharedfiles/filedetails/?id=2909035179) | Ships Java class files (CarController*.class): left out by rule. |
 | H | Bandits Extra Options | [3412682512](https://steamcommunity.com/sharedfiles/filedetails/?id=3412682512) | Its mod.info requires the mod id Bandits; the B42 Bandits NPC is Bandits2, and no Bandits id is on disk (missing requirement). |
 
+## Maps (load-and-look, not graded)
+
+All 15 map mods (with their tile packs: Simon MDs, Unofficial Mappers Community, Melos, Perts Party, Newburbs, Tikitown, Erika's, Rocco's tiles) on at once with ZeD at the main menu (`zedqa_r3_menu.lua`, `tools/qa/compat_r3_maps_mods.txt`, a maps section from `compat_r3_maps_maps.txt` through the menu runner's new -Maps): the main menu, Mods, Options and the occupation screen came up with no errors of theirs. ZeD's spawn list showed only the game's towns, with and without the maps section, so whether their towns reach the spawn list needs a look with ZeD off (vanilla's New Game screen) before it is put on ZeD or on the test. Not loaded in game (the QA save's map list is fixed).
+
+| Map | Workshop id |
+|---|---|
+| Grapeseed [B42 Unstable Remake] | [2463499011](https://steamcommunity.com/sharedfiles/filedetails/?id=2463499011) |
+| TryHonesty's Tiles B41 & B42 | [2844685624](https://steamcommunity.com/sharedfiles/filedetails/?id=2844685624) |
+| [B42] Chestown | [2840889213](https://steamcommunity.com/sharedfiles/filedetails/?id=2840889213) |
+| Rabbit Hash, KY [B42+ Update] | [2815966702](https://steamcommunity.com/sharedfiles/filedetails/?id=2815966702) |
+| LV International Airport [B41/B42] | [3045726312](https://steamcommunity.com/sharedfiles/filedetails/?id=3045726312) |
+| Petroville [B41/B42 LITE] | [2886261613](https://steamcommunity.com/sharedfiles/filedetails/?id=2886261613) |
+| Louisville Quarantine Zone [B41/B42] | [2934132344](https://steamcommunity.com/sharedfiles/filedetails/?id=2934132344) |
+| Tikitown & Powerplant | [3037854728](https://steamcommunity.com/sharedfiles/filedetails/?id=3037854728) |
+| Cedar Hill B41 & B42 Alpha | [2915656059](https://steamcommunity.com/sharedfiles/filedetails/?id=2915656059) |
+| Constown (B42) | [3480990544](https://steamcommunity.com/sharedfiles/filedetails/?id=3480990544) |
+| Taylorsville [B41/B42] | [3134394569](https://steamcommunity.com/sharedfiles/filedetails/?id=3134394569) |
+| RaccoonCityB42 | [3388468313](https://steamcommunity.com/sharedfiles/filedetails/?id=3388468313) |
+| Raven Creek B42 | [3484263516](https://steamcommunity.com/sharedfiles/filedetails/?id=3484263516) |
+| Dawn Town | [3666180085](https://steamcommunity.com/sharedfiles/filedetails/?id=3666180085) |
+| Maplewood [B42] | [3644794945](https://steamcommunity.com/sharedfiles/filedetails/?id=3644794945) |
+
 ## ZeD bugs found
 
 ### 1. ZeD's item tooltip drops the lines other mods add to the game's tooltip
@@ -446,3 +468,12 @@ Reports: qa/regression/2026-10-26_2225_mods_fullscreen4k.md (without Horde Night
 - **Steps:** `zedqa_mods_run.ps1 -ModList <NeatUI_Framework, Neat_Rocco> -Manifest <zedqa_prelude.lua, zedqa_messages.lua>`: 12 Messages checks fail (`qa/regression/2026-10-26_2245_mods_fullscreen4k.md`); they pass with ZeD alone and in groups B, C, E.
 - **Evidence:** `ZeDUI/qa/compat_round3/H_mod_notes_on_screen_with_neat_rocco.jpg`.
 - **Note:** two whole-UI mods meeting; listed as Not needed (use one). A fix on ZeD's side would be to wrap whatever `new` is current when a dialog is shown, or re-check its hook after the game starts.
+
+## Test notes
+
+- **Mod ids shared by two Workshop items:** the game loads one folder per mod id. Proximity Inventory (2847184718, 3669550831, 3740165370), Simple Belt Flashlight (3625933422, 3778709615), Inventory Tetris (3397561666, 3775513231) and Equipment UI (2950902979, 3397561666, 3682936016) share ids. Where the round's item lost (3740165370, 3778709615, 3775513231), it was tested as a copy in `Zomboid/mods/R3_*` with the id renamed (R3_ProximityInventory, R3_FixedLightOnBeltAF, R3_INVENTORY_TETRIS; its files unchanged, none of them checks its own id). The copies were removed after the round.
+- **Variants:** for an item with alternative sub-mods (strengths, sizes, patches for other mods) only one was on; the rows say which.
+- **The survey's safe-mode switch** brings the game's own inventory windows back for a moment; Inventory Tetris's grid errors then (128 errors in group H's survey), which is the test's doing, not normal play.
+- **Messages' first check** ("nothing kept: no envelope on the belt") fails in every run where a mod has already left a note at game start; it is the test's starting point, not a fault.
+- **Stalls:** group C's first run stalled at 8:05 pm when another program took the focus and the fullscreen game minimized (the coordinator's heads-up); it was rerun and only the rerun is graded. No browser or other program blocked the game after that.
+- **Subscriptions:** none added; every candidate and dependency was already on disk. Viperel's Vehicle Spare Parts is on disk in the Build 41 layout only.
