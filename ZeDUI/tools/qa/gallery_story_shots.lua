@@ -563,7 +563,15 @@ if want("04b") then
         pcall(function() Vehicles.UninstallComplete.Tire(v, best, item) end)
         pcall(function() v:transmitPartItem(best) end)
         pcall(function() item:setCondition(item:getConditionMax()) end)
-        ST.inv:AddItem(item)
+        -- the spare in the bag is always an Old tire (Oct 28 2026): the car's own tires are random, and
+        -- a long name like Tire - Performance is cut to "TIRE - PERFORMA.." on the action bar plate
+        local size = tostring(item:getFullType()):match("Tire(%d)$")   -- Base.ModernTire2: the car's wheel size
+        if size and item:getFullType() ~= "Base.OldTire" .. size then
+            item = ST.inv:AddItem("Base.OldTire" .. size)
+            pcall(function() item:setCondition(item:getConditionMax()) end)
+        else
+            ST.inv:AddItem(item)
+        end
         T4.part, T4.id = best, best:getId()
         say("tire off: " .. tostring(T4.id) .. " (" .. item:getFullType() .. " in the inventory)")
         Z.closePair()
