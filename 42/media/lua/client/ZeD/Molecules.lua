@@ -2032,7 +2032,7 @@ function ZeD.Molecules.drawActionStrip(panel, x, y, defs, item, hoverIdx)
         local o = _stripOpts
         o.active, o.hover, o.id = isOn, (hoverIdx == i), def.key
         o.hint = ZeD.tr(isOn and def.tip_on or def.tip_off)
-        ZeD.Molecules.drawIconButton(panel, bx, y, btnSz, AS.getTex(def.tex), o)
+        ZeD.Molecules.drawIconButton(panel, bx, y, btnSz, def.tex, o)
 
         rects[i] = {x = absX + bx, y = absY + y, w = btnSz, h = btnSz}
     end

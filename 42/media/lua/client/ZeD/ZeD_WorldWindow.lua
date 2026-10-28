@@ -82,27 +82,27 @@ end
 local WORLD_TABS = {
     -- key = ZeD's word for the tab, vkey = vanilla's own where it has the same word; the
     -- tab's name is read where it is shown (ZeD_WorldWindow.tabLabel), so the language applies
-    { id = "loot",   key = "UI_ZeD_World_TabLoot", group = 1, glyph = "L", iconName = "loot-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/loot-tab-white.png") },
-    { id = "craft",  vkey = "IGUI_CraftingWindow_Title", group = 1, glyph = "C", iconName = "craft-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/craft-tab-white.png") },
-    { id = "build",  key = "UI_ZeD_World_TabBuilding", group = 1, glyph = "B", iconName = "build-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/build-tab-white.png") },
+    { id = "loot",   key = "UI_ZeD_World_TabLoot", group = 1, glyph = "L", iconName = "loot-tab-white" },
+    { id = "craft",  vkey = "IGUI_CraftingWindow_Title", group = 1, glyph = "C", iconName = "craft-tab-white" },
+    { id = "build",  key = "UI_ZeD_World_TabBuilding", group = 1, glyph = "B", iconName = "build-tab-white" },
     -- S124: Furniture — vanilla's moveables mode (pick up, place, rotate,
     -- disassemble, repair); opening the tab starts the furniture cursor (ZeD.FurnitureTab)
-    { id = "furniture", vkey = "IGUI_CraftingCategories_Furniture", group = 1, glyph = "U", iconName = "move-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/move-tab-white.png") },
-    { id = "maps",   key = "UI_ZeD_World_TabMaps", group = 2, glyph = "M", iconName = "map-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/map-tab-white.png") },
-    { id = "forage", vkey = "IGUI_ScavengeUI_Title", group = 2, glyph = "F", iconName = "forage-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/forage-tab-white.png"),
+    { id = "furniture", vkey = "IGUI_CraftingCategories_Furniture", group = 1, glyph = "U", iconName = "move-tab-white" },
+    { id = "maps",   key = "UI_ZeD_World_TabMaps", group = 2, glyph = "M", iconName = "map-tab-white" },
+    { id = "forage", vkey = "IGUI_ScavengeUI_Title", group = 2, glyph = "F", iconName = "forage-tab-white",
       visible = function(win) return true end },  -- always visible (informational surface)
-    { id = "animals", key = "UI_ZeD_World_TabAnimals", group = 2, glyph = "A", iconName = "farm-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/farm-tab-white.png") },
+    { id = "animals", key = "UI_ZeD_World_TabAnimals", group = 2, glyph = "A", iconName = "farm-tab-white" },
     -- S115: Radio (contextual) — visible when at least one IsoWaveSignal radio
     -- is reachable in the player's 3x3 grid. Same predicate model as Foraging.
     { id = "radio",  vkey = "IGUI_ItemType_Radio", group = 2, glyph = "R",
-      iconName = "radio-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/radio-tab-white.png"),
+      iconName = "radio-tab-white",
       visible = function(win)
           return win and win._radios and #win._radios > 0
       end },
     -- S124: Vehicle (contextual) — vehicle mechanics. Visible while a vehicle is
     -- within reach or an inspected one is within six tiles (ZeD.MechanicsTab).
     { id = "vehicle", key = "UI_ZeD_World_TabVehicle", group = 2, glyph = "V",
-      iconName = "vehicle-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/vehicle-tab-white.png"),
+      iconName = "vehicle-tab-white",
       visible = function(win)
           return ZeD.MechanicsTab and ZeD.MechanicsTab.isVisible(win)
       end },

@@ -591,17 +591,17 @@ end
 local CHAR_TABS = {
     -- key = ZeD's word for the tab, vkey = vanilla's own where it has the same word;
     -- the tab's name is read where it is shown (CHAR_TABS.labelOf), so the language applies.
-    { id = "loot",     key = "UI_ZeD_Char_TabLoot",      group = 1, glyph = "L", iconName = "loot-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/loot-tab-white.png") },
-    { id = "equip",    key = "UI_ZeD_Char_TabEquipment", group = 1, glyph = "E", iconName = "equipment-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/equipment-tab-white.png") },
-    { id = "health",   vkey = "IGUI_XP_Health",          group = 1, glyph = "H", iconName = "health-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/health-tab-white.png") },
-    { id = "thermal",  key = "UI_ZeD_Char_TabThermal",   group = 1, glyph = "T", iconName = "thermal-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/thermal-tab-white.png") },
-    { id = "identity", key = "UI_ZeD_Char_TabIdentity",  group = 2, glyph = "I", iconName = "identy-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/identy-tab-white.png") },
-    { id = "journal",  key = "UI_ZeD_Char_TabJournal",   group = 2, glyph = "J", iconName = "journal-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/journal-tab-white.png") },
-    { id = "skills",   vkey = "IGUI_XP_Skills",          group = 2, glyph = "S", iconName = "skills-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/skills-tab-white.png") },
+    { id = "loot",     key = "UI_ZeD_Char_TabLoot",      group = 1, glyph = "L", iconName = "loot-tab-white" },
+    { id = "equip",    key = "UI_ZeD_Char_TabEquipment", group = 1, glyph = "E", iconName = "equipment-tab-white" },
+    { id = "health",   vkey = "IGUI_XP_Health",          group = 1, glyph = "H", iconName = "health-tab-white" },
+    { id = "thermal",  key = "UI_ZeD_Char_TabThermal",   group = 1, glyph = "T", iconName = "thermal-tab-white" },
+    { id = "identity", key = "UI_ZeD_Char_TabIdentity",  group = 2, glyph = "I", iconName = "identy-tab-white" },
+    { id = "journal",  key = "UI_ZeD_Char_TabJournal",   group = 2, glyph = "J", iconName = "journal-tab-white" },
+    { id = "skills",   vkey = "IGUI_XP_Skills",          group = 2, glyph = "S", iconName = "skills-tab-white" },
     -- S115: Radio (contextual). Visible only when an equipped/portable radio
     -- is present on the player. Mirrors World's contextual-tab predicate model.
     { id = "radio",    key = "UI_ZeD_Char_TabRadio",     group = 2, glyph = "R",
-      iconName = "radio-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/radio-tab-white.png"),
+      iconName = "radio-tab-white",
       visible = function(win)
           return win and win._radios and #win._radios > 0
       end },
@@ -615,7 +615,7 @@ function ZeD_CharacterWindow.tabLabel(tab)
 end
 
 -- A tab that ZeD's support for another mod adds (ZeD/ModSupport/<mod id>.lua, loaded only
--- when that mod is on). def: id, label(), group, iconName, icon, after (a tab id), visible(win),
+-- when that mod is on). def: id, label(), group, iconName, after (a tab id), visible(win),
 -- render(panel, win, x, y, w, h) as the other tabs, and optionally scroll(win) (its
 -- ZeD_ScrollbarState), onClick(win, x, y), buildFocusables(win), onWindowFrame(win, drawerW)
 -- (every frame, any tab: place or hide window-parented children such as 3D figures).

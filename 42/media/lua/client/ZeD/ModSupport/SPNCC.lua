@@ -1118,7 +1118,7 @@ if ZeD.TabPx and ZeD.TabPx.ICONS then ZeD.TabPx.ICONS[TAB_ID] = true end
 
 ZeD_CharacterWindow.addTab({
     id = TAB_ID, after = "identity", group = 2, glyph = "A",
-    iconName = "appearance-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/appearance-tab-white.png"),
+    iconName = "appearance-tab-white",
     label = function() return getText("UI_characreation_appearance") end,
     visible = function(win)
         local p = win and win._playerObj

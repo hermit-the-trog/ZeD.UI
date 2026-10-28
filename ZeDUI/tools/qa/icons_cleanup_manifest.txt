@@ -1,0 +1,14 @@
+# ZeDUI/tools/qa/icons_cleanup_manifest.txt  (Oct 28 2026)
+# The licensed pictures left the mod (media/textures/ZeD/icons/ but msg_note, the flat TabIcons): the places that
+# loaded them. Every tab of both windows, the right-click menu, the windows' pixel icons and the item card's marks,
+# UI scale steps, a garment's card, the wheels and the D-pad wheels, the grid; then grep the console for missing
+# textures.
+zedqa_prelude.lua | pre
+suite_tabs.lua | tabs
+zedqa_ctx_icons.lua | cx | timeout=300
+zedqa_px_icons.lua | px | timeout=240
+zedqa_uiscale.lua | scale
+zedqa_button_case_game.lua | bg
+zedqa_grid.lua | grid
+zedqa_wheel_icons.lua | wi | timeout=600
+zedqa_dpad_wheels.lua | dw | timeout=600

@@ -259,27 +259,6 @@ end
 -- @param x, y     Top-left of the container box
 -- @param size     Container size (use ZeD.T.iconSm/iconMd/iconLg/iconXl)
 -- @param alpha    Optional alpha (defaults to 1.0, use disabledAlpha for disabled)
--- Sized textures (Oct 13 2026): icons baked at 8..64 px
--- (ZeDUI/tools/icons/bake_tab_icons.py) as <dir><name>_<size>.png. Returns the
--- smallest baked size at or above `px`, so a 2x screen draws a true 32 px icon
--- instead of stretching a 16 px one, and every UI scale step (0.5x..2x) lands
--- on a baked size. Cached; nil when the file is missing.
-local SIZED_STEPS = { 8, 12, 16, 20, 24, 28, 32, 36, 40, 48, 56, 64 }
-local _sizedCache = {}
-function ZeD.Atoms.sizedTexture(dir, name, px)
-    local pick = SIZED_STEPS[#SIZED_STEPS]
-    for _, step in ipairs(SIZED_STEPS) do
-        if step >= px then pick = step; break end
-    end
-    local key = dir .. name .. "_" .. pick
-    local t = _sizedCache[key]
-    if t == nil then
-        t = getTexture(key .. ".png") or false
-        _sizedCache[key] = t
-    end
-    return t or nil
-end
-
 -- ----------------------------------------------------------------------------
 -- PIXEL ICONS (Oct 27 2026): ZeD's own one-colour icons (ZeDUI/tools/wheelpx: the
 -- wheels', the container row's, the item card's marks, the windows' small
@@ -1367,23 +1346,13 @@ end
 
 ZeD.ActionStrip = {}
 
--- Texture cache (lazy-loaded)
-local _toggleTexCache = {}
-function ZeD.ActionStrip.getTex(name)
-    if not name then return nil end
-    if _toggleTexCache[name] == nil then
-        _toggleTexCache[name] = getTexture("media/textures/ZeD/icons/" .. name .. ".png") or false
-    end
-    return _toggleTexCache[name]
-end
-
--- Toggle definitions: key, texture name, theme color key, tooltip text
+-- Toggle definitions: key, ZeD pixel icon id (ZeD.PxIcon, as the item card's marks), theme color key, tooltip text
 -- Item toggle definitions (favorite, protect, unwanted)
 ZeD.ActionStrip.TOGGLE_DEFS = {
     -- (tip_on / tip_off are vanilla translation keys: read them through ZeD.tr when a tooltip is drawn)
-    {key="fav",      tex="essential-collection-128-like", colorKey="accent", tip_on="ContextMenu_Unfavorite",     tip_off="IGUI_CraftUI_Favorite"},
-    {key="protect",  tex="text-editor-052-save",          colorKey="info",   tip_on="ContextMenu_UnsetNoRecipes", tip_off="ContextMenu_SetNoRecipes"},
-    {key="unwanted", tex="alerts-050-bin",                colorKey="danger", tip_on="ContextMenu_Wanted",         tip_off="ContextMenu_Unwanted"},
+    {key="fav",      tex="star",      colorKey="accent", tip_on="ContextMenu_Unfavorite",     tip_off="IGUI_CraftUI_Favorite"},
+    {key="protect",  tex="craft_off", colorKey="info",   tip_on="ContextMenu_UnsetNoRecipes", tip_off="ContextMenu_SetNoRecipes"},
+    {key="unwanted", tex="trash",     colorKey="danger", tip_on="ContextMenu_Wanted",         tip_off="ContextMenu_Unwanted"},
 }
 
 local _safeGet = ZeD.Atoms.safeGet  -- reuse public helper (line 18)
