@@ -68,25 +68,10 @@ end
 -- a wheel icon by its id, for an icon box of `box` screen px: the largest of
 -- its four drawings that fits, drawn at its own size (pixel for pixel, never
 -- stretched); a box under 16 scales the 16 down. Returns texture, size.
--- The files carry the zw_ prefix: a plain name such as map.png loads the game's
--- packed picture of that name instead (KB Q143). Nearest filtering (KB Q205).
-local WHEEL_DIR = "media/textures/ZeD/wheel/"
-local WHEEL_SIZES = { 48, 32, 24, 16 }
-local _wheel = {}
-local function wheelTex(size, id)
-    local path = WHEEL_DIR .. size .. "/zw_" .. id .. ".png"
-    if _wheel[path] == nil then _wheel[path] = Texture.getSharedTexture(path, 3) or false end   -- 3 = nearest filtering
-    return _wheel[path] or nil
-end
+-- (The lookup is the library's, ZeD.PxIcon in Atoms.lua, shared with the
+-- container row, the item card's marks and the windows' small controls.)
 function W.iconTex(id, box)
-    if not id then return nil, box end
-    for _, s in ipairs(WHEEL_SIZES) do
-        if s <= box then
-            local t = wheelTex(s, id)
-            if t then return t, s end
-        end
-    end
-    return wheelTex(16, id), box
+    return ZeD.PxIcon.tex(id, box)
 end
 
 -- the tab a slice opens names it by the tab's icon (C.tabs, Wd.tabs: ZeD_DpadWheels)

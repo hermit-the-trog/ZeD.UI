@@ -20,10 +20,17 @@ pointed), the figures on a template ("follow a template or doll"). Signed off Oc
   plain `map.png` loads the game's own "map").
 - `review.py`: review sheets (an icon's cells at 4-5x and 1x, wheels as rings, the whole set at true size).
 - `_repl.py`: swaps one `@icon` block in a module (for redrawing an icon in place).
+- `i_row.py` (Oct 27 2026): the container row's icons (tray_in / tray_out, same_type, same_nearby, to_floor, trash,
+  power, match, extinguisher) and the item card's marks (star, craft_off; Dispose takes the bin). `i_ui.py`: the
+  windows' small controls (view_list, view_grid, expand, contract, pop_out, move_up, move_down, pencil, stop).
+  Both replace licensed pictures; the game draws them through `ZeD.PxIcon` (`Atoms.lua`), the wheels' lookup.
+- `review_row.py`: their review sheets in `ZeDUI/mockups/zed_strip_icons_v1/` (today against new, the rows in both
+  windows and themes, the card's marks, true size at each UI scale).
 
 ## Run
 ```
-python export.py            # the textures and the map
+python export.py            # the textures and the map, into out/export/
+python export.py --game     # straight into 42/media/textures/ZeD/wheel/ and the handoff's map (unchanged pixels keep their files)
 python -c "import allicons, review as R; R.true_size(list(R.ICONS), 'true.png')"
 ```
 Pillow is the only need.

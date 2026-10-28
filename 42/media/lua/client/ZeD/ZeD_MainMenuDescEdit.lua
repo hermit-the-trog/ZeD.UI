@@ -30,7 +30,6 @@ local BB = ZeD.BB
 -- design units
 local PAL_SHARE, PREVIEW_SHARE = 0.2, 0.36
 local CARD_PAD, CARD_GAP, HEAD_H = 8, 8, 24
-local ICON = "media/textures/ZeD/icons/"
 
 local function copyBlocks(bs)
     local out = {}
@@ -352,9 +351,9 @@ function ZeD_MMDescEdit:drawCanvas(x, y, w, h)
         self:drawText(lab, cx + pad, hy + math.floor((T.buttonH - T.px(4) - MM.fontH(f1)) / 2), ac.r, ac.g, ac.b, ac.a or 1, f1)
         local bx = cx + cw - pad
         local row = 1000 + i * 2
-        bx = self:headBtn("del:" .. i, bx, hy, { icon = ICON .. "cross-small.png", hint = ZeD.tr("UI_ZeD_DescEdit_HintRemove"), fn = function() self:remove(i) end, row = row, col = 9, variant = "danger" })
-        bx = self:headBtn("dn:" .. i, bx, hy, { icon = ICON .. "arrow-down.png", hint = ZeD.tr("UI_ServerSettings_ButtonMoveDown"), fn = function() self:move(i, 1) end, row = row, col = 8, disabled = i == #self.blocks })
-        bx = self:headBtn("up:" .. i, bx, hy, { icon = ICON .. "arrow-up.png", hint = ZeD.tr("UI_ServerSettings_ButtonMoveUp"), fn = function() self:move(i, -1) end, row = row, col = 7, disabled = i == 1 })
+        bx = self:headBtn("del:" .. i, bx, hy, { icon = "no", hint = ZeD.tr("UI_ZeD_DescEdit_HintRemove"), fn = function() self:remove(i) end, row = row, col = 9, variant = "danger" })
+        bx = self:headBtn("dn:" .. i, bx, hy, { icon = "move_down", hint = ZeD.tr("UI_ServerSettings_ButtonMoveDown"), fn = function() self:move(i, 1) end, row = row, col = 8, disabled = i == #self.blocks })
+        bx = self:headBtn("up:" .. i, bx, hy, { icon = "move_up", hint = ZeD.tr("UI_ServerSettings_ButtonMoveUp"), fn = function() self:move(i, -1) end, row = row, col = 7, disabled = i == 1 })
         if isSel and (b.kind == "h1" or b.kind == "h2" or b.kind == "h3") then
             bx = bx - T.px(6)
             for lv = 3, 1, -1 do

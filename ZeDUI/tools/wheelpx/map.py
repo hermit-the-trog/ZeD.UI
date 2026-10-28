@@ -1,7 +1,7 @@
 """Which wheel icon goes where: the one source the handoff's tables and wheel_icons_map.json are made from.
 (The `slices` noted on each icon in the i_*.py modules were first guesses while drawing; this file decides.)
 
-Four kinds of rule, in the order the wheel should try them:
+Four kinds of rule for the wheels (and ROW, the container row's buttons, at the end), in the order the wheel should try them:
   TEXT   a vanilla slice's words (a translation key): several vanilla slices share one picture, the words tell them apart
   KEEP   vanilla pictures that stay (items, traits, the controller's button glyphs)
   TEX    a vanilla picture, by a piece of its file name (lower case, forward slashes)
@@ -188,11 +188,33 @@ TABS = [   # the window tabs' slices (C.tabs, Wd.tabs and the rest name a tab by
 ]
 
 
+ROW = [   # the container row (ContainerControls.lua): the button, what names it there, the id
+    ("Character window", "Transfer all (IGUI_invpage_Transfer_all)", "tray_out"),
+    ("Character window", "Same type (UI_ZeD_Controls_SameType)", "same_type"),
+    ("Character window", "Same type, all nearby (UI_ZeD_Controls_SameTypeNearby)", "same_nearby"),
+    ("World window", "Take all (IGUI_invpage_Loot_all)", "tray_in"),
+    ("World window", "Same type (UI_ZeD_Controls_SameType)", "same_type"),
+    ("World window", "To floor (UI_ZeD_Controls_ToFloor)", "to_floor"),
+    ("World window", "Delete all, a trash can (IGUI_invpage_RemoveAll)", "trash"),
+    ("World window", "ISLootWindowObjectControlHandler_StoveToggle", "power"),
+    ("World window", "ISLootWindowObjectControlHandler_ClothingWasherToggle", "power"),
+    ("World window", "ISLootWindowObjectControlHandler_ClothingDryerToggle", "power"),
+    ("World window", "ISLootWindowObjectControlHandler_CombinationWasherDryerToggle", "power"),
+    ("World window", "ISLootWindowObjectControlHandler_PropaneBarbecueToggle", "power"),
+    ("World window", "ISLootWindowObjectControlHandler_StoveSettings", "gears"),
+    ("World window", "ISLootWindowObjectControlHandler_LightFireOption", "match"),
+    ("World window", "ISLootWindowObjectControlHandler_AddFuelOption", "campfire"),
+    ("World window", "ISLootWindowObjectControlHandler_PutOut", "extinguisher"),
+    ("World window", "ISLootWindowObjectControlHandler_VehicleLockTrunk", "padlock"),
+]
+
+
 def used():
     ids = set()
     for r in TEXT: ids.add(r[2])
     for r in TEX: ids.add(r[2])
     for r in TABS: ids.add(r[1])
+    for r in ROW: ids.add(r[2])
     for r in ZED:
         for t in r[3].split("/"): ids.add(t.strip())
     return ids

@@ -139,23 +139,27 @@ function ZeD.Atoms.drawAccentRing(panel, x, y, w, h, thickness, color)
 end
 
 -- ---------------------------------------------------------------------------
--- ARROW TEXTURES — 16x16 PNGs in ZeD/icons, drawn scaled + tinted.
--- Lazy-loaded once, then cached.
+-- CHEVRONS (Oct 27 2026: drawn here, a row of whole pixels at a time, so they
+-- stay sharp at every size and UI scale; until then four 16 px pictures in
+-- ZeD/icons, of unknown origin, drawn scaled). In a size x size box: the
+-- stroke size / 6 thick (at least 1 px), its point at the box's middle.
 -- ---------------------------------------------------------------------------
-local _arrowTex = {}
-local function _getArrowTex(name)
-    if _arrowTex[name] == nil then
-        _arrowTex[name] = getTexture("media/textures/ZeD/icons/" .. name .. ".png") or false
-    end
-    return _arrowTex[name]
-end
-
--- Shared draw helper: draws the arrow texture scaled to `size` with color tint
 local function _drawArrow(panel, name, x, y, size, color)
     local c = color or ZeD.T.textDim
-    local tex = _getArrowTex(name)
-    if tex then
-        panel:drawTextureScaledAspect(tex, x, y, size, size, c.a or 1, c.r, c.g, c.b)
+    local s = math.floor(size)
+    if s < 2 then return end
+    local t = math.max(1, math.floor(s / 6 + 0.5))
+    local half = math.floor(s / 2)
+    local w = half + t                                     -- the chevron's depth
+    local ox = math.floor((s - w) / 2)
+    local a, r, g, b = c.a or 1, c.r, c.g, c.b
+    for row = 0, s - 1 do
+        local e = math.floor(math.abs(row - (s - 1) / 2))  -- rows away from the point
+        local p = math.max(0, half - e)                    -- the stroke's place along the depth
+        if name == "rt" then panel:drawRect(x + ox + p, y + row, t, 1, a, r, g, b)
+        elseif name == "lf" then panel:drawRect(x + ox + (w - t - p), y + row, t, 1, a, r, g, b)
+        elseif name == "dn" then panel:drawRect(x + row, y + ox + p, 1, t, a, r, g, b)
+        else panel:drawRect(x + row, y + ox + (w - t - p), 1, t, a, r, g, b) end
     end
 end
 

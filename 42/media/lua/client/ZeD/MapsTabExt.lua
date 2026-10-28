@@ -169,8 +169,7 @@ function E.drawButtons(panel, win, x, y, h, focId)
     end
     if narrow and E.hasSide(win) then
         if win._mapSideOpen == nil then win._mapSideOpen = true end
-        if not E._listTex then E._listTex = getTexture("media/textures/ZeD/icons/list.png") end
-        btns[#btns + 1] = { id = "list", icon = E._listTex, text = ZeD.tr("UI_ZeD_Map_SideList"),
+        btns[#btns + 1] = { id = "list", icon = "view_list", text = ZeD.tr("UI_ZeD_Map_SideList"),
             help = ZeD.tr("UI_ZeD_Map_HelpSideList"),
             on = win._mapSideOpen, activate = function(w2) w2._mapSideOpen = not w2._mapSideOpen end }
     end
@@ -371,20 +370,10 @@ local SECTION_H = 20   -- design units: M.drawSectionHeader's height
 local NO_LINES  = {}
 local _delOpts, _askOpts, _askSpec = {}, {}, {}
 local _askBtns = { {}, {} }
-local _delTex = nil
 
--- the delete button's picture: the small cross (drawn when the picture is missing)
-local function crossGlyph(p, x, y, s, c)
-    local u = ZeD.T.hair
-    local m = math.floor(s * 0.2)
-    for i = 0, s - m * 2 - u, u do
-        p:drawRect(x + m + i, y + m + i, u, u, c.a or 1, c.r, c.g, c.b)
-        p:drawRect(x + m + i, y + s - m - u - i, u, u, c.a or 1, c.r, c.g, c.b)
-    end
-end
+-- the delete button's picture
 local function deletePic()
-    if _delTex == nil then _delTex = getTexture("media/textures/ZeD/icons/cross-small.png") or false end
-    return _delTex or crossGlyph
+    return "no"   -- (the wheels' cross, a ZeD pixel icon)
 end
 
 -- the room a row's words have, in a list w wide (sbW: the scrollbar's width, or 0)

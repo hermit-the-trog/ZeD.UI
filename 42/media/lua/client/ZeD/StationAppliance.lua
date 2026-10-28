@@ -501,7 +501,7 @@ function SA.isPopped(player, st)
     local cur = player and SA.popped[player:getPlayerNum()]
     return cur ~= nil and st ~= nil and cur.obj == st.obj
 end
-local POP_ICON = "media/textures/ZeD/icons/arrow-up-right-from-square.png"
+local POP_ICON = "pop_out"   -- a ZeD pixel icon
 
 -- opts: the pop-out window's draw { noHeader = true, k = whole zoom, fid = focused id }; nil in the tab
 function SA.render(panel, win, x, y, w, h, state, st, opts)
@@ -595,7 +595,7 @@ function SA.render(panel, win, x, y, w, h, state, st, opts)
             local bs = T.buttonH
             local bx, by = x + cw - bs - T.px(6), viewY + T.px(8) - off
             local hint = ZeD.tr("UI_ZeD_Appliance_PopOut")
-            ZeD.Molecules.drawIconButton(panel, bx, by, bs, getTexture(POP_ICON),
+            ZeD.Molecules.drawIconButton(panel, bx, by, bs, POP_ICON,
                 { hover = A.mouseIn(panel, bx, by, bs, bs), focus = (fid == "craft:a:popout") or nil,
                   hint = hint, help = hint, id = "craft:a:popout" })
             zones[#zones + 1] = { type = "popout", fid = "craft:a:popout", x = bx, y = by, w = bs, h = bs }

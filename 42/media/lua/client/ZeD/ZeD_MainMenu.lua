@@ -974,7 +974,9 @@ local function drawBtn(p, b, hot, focus, pressed)
         return
     end
     if b.icon or b.iconFn then   -- an icon button (its name shows as a hint after the shared delay)
-        M.drawIconButton(p, b.x, b.y, math.min(b.w, b.h), b.iconFn or tex(b.icon, true), { hover = hot, active = b.on, disabled = b.disabled,
+        -- (an icon without a folder is a ZeD pixel icon's id, drawn pixel for pixel)
+        local pic = b.iconFn or (type(b.icon) == "string" and not b.icon:find("/") and b.icon) or tex(b.icon, true)
+        M.drawIconButton(p, b.x, b.y, math.min(b.w, b.h), pic, { hover = hot, active = b.on, disabled = b.disabled,
             pressed = pressed, focus = fo, hint = b.hint, id = b.id, help = b.help or b.hint, tint = (b.variant == "danger") and T.danger or nil })
         return
     end

@@ -280,6 +280,55 @@ function ZeD.Atoms.sizedTexture(dir, name, px)
     return t or nil
 end
 
+-- ----------------------------------------------------------------------------
+-- PIXEL ICONS (Oct 27 2026): ZeD's own one-colour icons (ZeDUI/tools/wheelpx: the
+-- wheels', the container row's, the item card's marks, the windows' small
+-- controls), each drawn at 16 and 24 and doubled to 32 and 48, white on clear,
+-- in media/textures/ZeD/wheel/<size>/zw_<id>.png. For an icon box of `box`
+-- screen px the largest drawing that fits is drawn at its own size, centred,
+-- never stretched; a box under 16 scales the 16 down. The zw_ prefix keeps a
+-- name off the game's packed pictures (a plain map.png loads the game's own
+-- "map", KB Q143); nearest filtering (KB Q205). ZeD_Wheel's W.iconTex is this.
+-- ----------------------------------------------------------------------------
+ZeD.PxIcon = ZeD.PxIcon or {}
+local PXI = ZeD.PxIcon
+PXI.DIR = "media/textures/ZeD/wheel/"
+PXI.SIZES = { 48, 32, 24, 16 }
+local _pxTex = {}
+local function pxTex(size, id)
+    local path = PXI.DIR .. size .. "/zw_" .. id .. ".png"
+    local t = _pxTex[path]
+    if t == nil then
+        t = Texture.getSharedTexture(path, 3) or false   -- 3 = nearest filtering
+        _pxTex[path] = t
+    end
+    return t or nil
+end
+
+--- The drawing of icon `id` for a box of `box` px: texture, the size to draw it at.
+function PXI.tex(id, box)
+    if not id then return nil, box end
+    for _, s in ipairs(PXI.SIZES) do
+        if s <= box then
+            local t = pxTex(s, id)
+            if t then return t, s end
+        end
+    end
+    return pxTex(16, id), box
+end
+
+--- True when ZeD has a pixel icon of this id.
+function PXI.has(id) return id ~= nil and pxTex(16, id) ~= nil end
+
+--- Draw pixel icon `id` centred in the box (x, y, box), tinted (default T.text).
+function ZeD.Atoms.drawPxIcon(panel, id, x, y, box, alpha, tint)
+    local tex, s = PXI.tex(id, box)
+    if not tex then return end
+    local c = tint or ZeD.T.text
+    local o = math.floor((box - s) / 2)
+    panel:drawTextureScaledAspect(tex, x + o, y + o, s, s, alpha or 1, c.r, c.g, c.b)
+end
+
 function ZeD.Atoms.drawIcon(panel, texture, x, y, size, alpha, tint)
     if not texture then return end
     local a = alpha or 1.0
@@ -1235,30 +1284,40 @@ function ZeD.Atoms.drawProgressBand(panel, x, y, w, mode, label, percent, timeSt
 end
 
 -- ============================================================================
--- 13. FLAG CHIP (S120; the tag look since the cohesion pass)
--- A small toggle in the FlagStrip molecule above the item card body, drawn as a
--- tag (A.drawTag): the 1u outline, the words, and a 6u square mark that carries
--- the state, filled in the kind's colour when on, hollow and dim when off:
---   "fav"     accent
---   "nocraft" warning
---   "dispose" danger
--- No tinted fill, no coloured words.
+-- 13. FLAG CHIP (S120; the tag look since the cohesion pass; the icon since Oct 27
+-- 2026, director: "option A, the icon takes the square's place and the words stay")
+-- A small toggle in the FlagStrip molecule above the item card body: the 1u
+-- outline, ZeD's pixel icon for the mark (ZeD.PxIcon) and its words; the icon
+-- carries the state, in the kind's colour when on, dim when off:
+--   "fav"     accent   (a star)
+--   "nocraft" warning  (the craft tools, struck through)
+--   "dispose" danger   (the bin)
+-- The narrow card's chip is the icon alone. No tinted fill, no coloured words.
 -- ============================================================================
+ZeD.Atoms.FLAG_ICON = { fav = "star", nocraft = "craft_off", dispose = "trash" }
+ZeD.Atoms.FLAG_CHIP_H = 22   -- design units: the chip's height (the 16u icon box and 3u each side)
+
+--- A flag chip's width (compact: the icon alone).
+function ZeD.Atoms.flagChipW(label, compact)
+    local T = ZeD.T
+    if compact then return T.px(22) end
+    local tw = ZeD.TM:MeasureStringX(T.fontF1, textCase(tostring(label or "")))
+    return math.max(T.px(22), T.px(16) + T.px(4) + tw + T.px(5) * 2)
+end
 
 --- Draw a flag chip.
 --- @param panel    Parent ISPanel
 --- @param x, y     Top-left position
 --- @param kind     "fav" | "nocraft" | "dispose"
 --- @param on       True = on, false = off
---- @param glyph    Short mark string: drawn only in the compact chip, after the square
+--- @param glyph    (unused since the icons: kept for older callers)
 --- @param label    The chip's word (any case: it reads in sentence case) - ignored when compact
 --- @param outRect  Optional table; on return holds {x,y,w,h} of the chip's hit rect
---- @param compact  If true, a fixed 22x18 chip (square + glyph); else square + label
+--- @param compact  If true, a 22u square chip, the icon alone; else the icon and the label
 --- @param opts     Optional { hover = bool (the T.hover wash; nil: none), focus = the
 ---                 ZeD.Focus.mark opts when the chip has the controller's focus (the mark
----                 goes under the words, which switch to the focus ink when it asks) }
+---                 goes under the icon and words, which switch to the focus ink when it asks) }
 --- @return width   Total horizontal pixels consumed (so the caller can advance its cursor)
-local _chipTag = {}
 function ZeD.Atoms.drawFlagChip(panel, x, y, kind, on, glyph, label, outRect, compact, opts)
     local T = ZeD.T
     opts = opts or NO_OPTS
@@ -1266,38 +1325,31 @@ function ZeD.Atoms.drawFlagChip(panel, x, y, kind, on, glyph, label, outRect, co
     if     kind == "nocraft" then onC = T.warning
     elseif kind == "dispose" then onC = T.danger
     else                          onC = T.accent end
-    local h = T.px(18)
-    local mark = on and onC or T.textDim
+    local h = T.px(ZeD.Atoms.FLAG_CHIP_H)
+    local ic = on and onC or T.textDim
     local tc = on and T.text or T.textDim
-    -- the chip's width first, so its hover wash and focus mark go under the words
-    local tg = _chipTag
-    tg.h, tg.minW, tg.hollow = h, T.px(22), not on
-    local w = compact and T.px(22) or ZeD.Atoms.tagW(label or "", true, tg)
+    local w = ZeD.Atoms.flagChipW(label, compact)
     if opts.hover then
         local hv = T.hover
         panel:drawRect(x, y, w, h, hv.a or 1, hv.r, hv.g, hv.b)
     end
     if opts.focus and ZeD.Focus and ZeD.Focus.mark then
-        if ZeD.Focus.mark(panel, x, y, w, h, opts.focus) then tc = T.textOnFocus end
+        if ZeD.Focus.mark(panel, x, y, w, h, opts.focus) then tc = T.textOnFocus; ic = T.textOnFocus end
     end
+    ZeD.Atoms.frame(panel, x, y, w, h, T.borderS)
+    local box = T.px(16)
+    local iy = y + math.floor((h - box) / 2)
+    local icon = ZeD.Atoms.FLAG_ICON[kind] or "star"
     if compact then
-        ZeD.Atoms.frame(panel, x, y, w, h, T.borderS)
-        local font = T.fontF1
-        local sq, gap = T.px(6), T.px(3)
-        local gw = (glyph and glyph ~= "") and ZeD.TM:MeasureStringX(font, glyph) or 0
-        local cw = sq + ((gw > 0) and (gap + gw) or 0)
-        local cx = x + math.floor((w - cw) / 2)
-        local sy = y + math.floor((h - sq) / 2)
-        if on then panel:drawRect(cx, sy, sq, sq, mark.a or 1, mark.r, mark.g, mark.b)
-        else ZeD.Atoms.frame(panel, cx, sy, sq, sq, mark) end
-        if gw > 0 then
-            local fh = T.fontF1H or ZeD.TM:getFontHeight(font)
-            panel:drawText(glyph, cx + sq + gap, y + math.floor((h - fh) / 2), tc.r, tc.g, tc.b, tc.a or 1, font)
-        end
+        ZeD.Atoms.drawPxIcon(panel, icon, x + math.floor((w - box) / 2), iy, box, ic.a or 1, ic)
     else
-        tg.textColor = tc
-        w = ZeD.Atoms.drawTag(panel, x, y, label or "", mark, tg)
-        tg.textColor = nil
+        local font = T.fontF1
+        local s = textCase(tostring(label or ""))
+        local cw = box + T.px(4) + ZeD.TM:MeasureStringX(font, s)
+        local cx = x + math.floor((w - cw) / 2)
+        ZeD.Atoms.drawPxIcon(panel, icon, cx, iy, box, ic.a or 1, ic)
+        local fh = T.fontF1H or ZeD.TM:getFontHeight(font)
+        panel:drawText(s, cx + box + T.px(4), y + math.floor((h - fh) / 2), tc.r, tc.g, tc.b, tc.a or 1, font)
     end
     if outRect then
         outRect.x, outRect.y, outRect.w, outRect.h = x, y, w, h

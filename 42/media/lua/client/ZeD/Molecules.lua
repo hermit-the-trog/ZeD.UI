@@ -228,8 +228,9 @@ end
 
 --- Draw an icon button.
 -- @param size  side in px (default T.buttonH)
--- @param icon  a Texture, or a function(panel, x, y, size, color) drawing the
---              picture in (x, y, size) in `color` (alpha already applied)
+-- @param icon  a Texture, a ZeD pixel icon's id (a string: ZeD.PxIcon, drawn
+--              pixel for pixel), or a function(panel, x, y, size, color)
+--              drawing the picture in (x, y, size) in `color` (alpha applied)
 -- @param opts  optional { hover, active, disabled, pressed, focus (mark opts or
 --              true), hint = its name (shown after the delay), id = a key for the
 --              hint, help, win, iconSize (default 16u), tint }
@@ -269,6 +270,9 @@ function ZeD.Molecules.drawIconButton(panel, x, y, size, icon, opts)
     if opts.pressed then ix = ix + T.px(1); iy = iy + T.px(1) end
     if type(icon) == "function" then
         icon(panel, ix, iy, isz, withAlpha(_icC, ic, alpha))
+    elseif type(icon) == "string" then
+        -- a ZeD pixel icon by its id: its drawing for this box, pixel for pixel
+        A.drawPxIcon(panel, icon, ix, iy, isz, (ic.a or 1) * alpha, ic)
     elseif icon then
         A.drawIcon(panel, icon, ix, iy, isz, (ic.a or 1) * alpha, ic)
     end
@@ -2406,7 +2410,9 @@ function ZeD.Molecules.drawCardBackBar(panel, x, y, w, name, verbs, progressActi
 end
 
 -- T2.2 CARD FLAG STRIP -------------------------------------------------------
---- Draw the "Marked" label + three flag chips (fav, nocraft, dispose).
+--- Draw the "Marked" label + three flag chips (fav, nocraft, dispose): each its
+--- pixel icon (star, the craft tools struck through, the bin) and its word; the
+--- narrow card's chips the icon alone.
 --- Per-chip on/off read from marks. No fill of its own (the card's surface is
 --- under it, one layer); a content line closes it.
 --- @param panel    ISPanel
@@ -2425,7 +2431,7 @@ local FLAG_CHIPS = {
     { kind = "nocraft", glyph = "o", key = "UI_ZeD_Card_ChipNoCraft" },
     { kind = "dispose", glyph = "x", key = "UI_ZeD_Card_ChipDispose" },
 }
-local _chipOpts, _chipW = {}, {}
+local _chipOpts = {}
 function ZeD.Molecules.drawCardFlagStrip(panel, x, y, w, marks, compact, outRects, opts)
     local T = ZeD.T
     local A = ZeD.Atoms
@@ -2444,7 +2450,8 @@ function ZeD.Molecules.drawCardFlagStrip(panel, x, y, w, marks, compact, outRect
 
     local font   = T.fontF1
     local labelH = T.fontF1H or ZeD.TM:MeasureStringY(font, "M")
-    local rowY   = y + math.floor((h - T.px(18)) / 2)  -- chip atom is 18 tall
+    local chipH  = T.px(A.FLAG_CHIP_H)
+    local rowY   = y + math.floor((h - chipH) / 2)
 
     -- "Marked" label (left, dim)
     local lblText  = A.textCase(ZeD.tr("UI_ZeD_Card_Marked"))
@@ -2457,14 +2464,13 @@ function ZeD.Molecules.drawCardFlagStrip(panel, x, y, w, marks, compact, outRect
     -- Three chips — composes Atoms.drawFlagChip ×3, each with its hover and focus
     local cursorX = x + padX + lblW + lblPadR
     local hov = opts.hover
-    _chipW.minW = T.px(22)
     for _, c in ipairs(FLAG_CHIPS) do
         local k = c.kind
         local label = ZeD.tr(c.key)
-        local cw = compact and T.px(22) or A.tagW(label, true, _chipW)
+        local cw = A.flagChipW(label, compact)
         local o = _chipOpts
         if hov and hov[k] ~= nil then o.hover = hov[k]
-        else o.hover = A.mouseIn(panel, cursorX, rowY, cw, T.px(18)) end
+        else o.hover = A.mouseIn(panel, cursorX, rowY, cw, chipH) end
         o.focus = partFocus(opts, k)
         if outRects then outRects[k] = outRects[k] or {} end
         cw = A.drawFlagChip(panel, cursorX, rowY, k, marks and marks[k] or false, c.glyph, label,

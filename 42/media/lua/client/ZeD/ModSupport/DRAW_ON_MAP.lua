@@ -198,12 +198,10 @@ end
 -- THE EXTENSION
 -- ---------------------------------------------------------------------------
 local X = { order = 20 }
-local _pencil = nil
 
 function X.button(win)
-    if not _pencil then _pencil = getTexture("media/textures/ZeD/icons/edit.png") end
     local s = st(win)
-    return { id = "draw", text = word("UI_DrawOnMap_Draw"), icon = _pencil, on = s.open,
+    return { id = "draw", text = word("UI_DrawOnMap_Draw"), icon = "pencil", on = s.open,
         help = ZeD.tr("UI_ZeD_Map_HelpDraw"),
         activate = function(w)
             local s2 = st(w)

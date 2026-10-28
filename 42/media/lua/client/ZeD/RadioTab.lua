@@ -1066,7 +1066,7 @@ end
 -- footer) scrolls as one unit when the window is shorter than the face.
 -- win._radioTw = { dev, pid, des, k, hits, face rect, ... } while one is shown.
 -- ============================================================================
-local FULL_ICON, FOLD_ICON = "media/textures/ZeD/icons/expand.png", "media/textures/ZeD/icons/contract.png"
+local FULL_ICON, FOLD_ICON = "expand", "contract"   -- ZeD pixel icons
 
 local function _twFocusId(win)
     local Focus = ZeD.Input and ZeD.Input.Focus
@@ -1114,7 +1114,7 @@ local function _drawFullButton(panel, win, x, y, w, headerH, open, fid)
     o.hint = ZeD.tr(open and "UI_ZeD_Radio_CloseFullView" or "UI_ZeD_Radio_FullView")
     o.id = "radio:fullbtn"
     o.help = o.hint
-    ZeD.Molecules.drawIconButton(panel, bx, by, bs, getTexture(open and FOLD_ICON or FULL_ICON), o)
+    ZeD.Molecules.drawIconButton(panel, bx, by, bs, open and FOLD_ICON or FULL_ICON, o)
     return { x = bx, y = by, w = bs, h = bs }
 end
 

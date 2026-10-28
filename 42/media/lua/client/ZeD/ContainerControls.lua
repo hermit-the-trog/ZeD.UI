@@ -83,20 +83,21 @@ local VANILLA = {
     ISLootWindowObjectControlHandler_RemoveCampfire                = "UI_ZeD_Controls_TakeApart",
     ISLootWindowObjectControlHandler_AddCorpseToCampfire           = "ContextMenu_AddCorpse",
 }
--- vanilla's object controls many objects share draw as icons (the ZeD icon
--- library); the rest stay words (director, Oct 16 2026: "can common actions
--- be an icon, and unique actions be text?" ... "hover hints where it matters")
+-- vanilla's object controls many objects share draw as icons (ZeD's pixel
+-- icons, ZeD.PxIcon: the wheels' style, Oct 27 2026); the rest stay words
+-- (director, Oct 16 2026: "can common actions be an icon, and unique actions be
+-- text?" ... "hover hints where it matters")
 local VANILLA_ICON = {
     ISLootWindowObjectControlHandler_StoveToggle                  = "power",
     ISLootWindowObjectControlHandler_ClothingWasherToggle         = "power",
     ISLootWindowObjectControlHandler_ClothingDryerToggle          = "power",
     ISLootWindowObjectControlHandler_CombinationWasherDryerToggle = "power",
     ISLootWindowObjectControlHandler_PropaneBarbecueToggle        = "power",
-    ISLootWindowObjectControlHandler_StoveSettings                = "settings",
-    ISLootWindowObjectControlHandler_LightFireOption              = "fi-br-match-fire",
-    ISLootWindowObjectControlHandler_AddFuelOption                = "fi-br-campfire",
-    ISLootWindowObjectControlHandler_PutOut                       = "fi-br-fire-extinguisher",
-    ISLootWindowObjectControlHandler_VehicleLockTrunk             = "lock",
+    ISLootWindowObjectControlHandler_StoveSettings                = "gears",
+    ISLootWindowObjectControlHandler_LightFireOption              = "match",
+    ISLootWindowObjectControlHandler_AddFuelOption                = "campfire",
+    ISLootWindowObjectControlHandler_PutOut                       = "extinguisher",
+    ISLootWindowObjectControlHandler_VehicleLockTrunk             = "padlock",
 }
 -- these open the fire card on one of its lists (its own Light / Add fuel)
 local FIRE_JUMP = {
@@ -487,7 +488,7 @@ local function buildChar(content)
     local moves = {}
     local xfer = transferAllItems(playerObj, inv, dest)
     moves[#moves + 1] = { id = "xfer", label = sentence(getText("IGUI_invpage_Transfer_all")), enabled = dest ~= nil and #xfer > 0,
-        icon = "inbox-out", hint = sentence(getText("IGUI_invpage_Transfer_all")),
+        icon = "tray_out", hint = sentence(getText("IGUI_invpage_Transfer_all")),
         run = function(ct)
             local d = otherInventory(ct)
             CT.moveItems(playerObj, transferAllItems(playerObj, ct._inventory, d), d)
@@ -495,14 +496,14 @@ local function buildChar(content)
     local keep = function(item) return not item:isFavorite() and not item:isEquipped() end
     local same, sameSet = sameTypeItems(inv, dest, keep)
     moves[#moves + 1] = { id = "same", label = ZeD.tr("UI_ZeD_Controls_SameType"), enabled = #same > 0, marks = sameSet,
-        icon = "copy", hint = ZeD.tr("UI_ZeD_Controls_HintPutInKinds"),
+        icon = "same_type", hint = ZeD.tr("UI_ZeD_Controls_HintPutInKinds"),
         run = function(ct)
             local d = otherInventory(ct)
             CT.moveItems(playerObj, (sameTypeItems(ct._inventory, d, keep)), d)
         end }
     local _, nearSet = nearbyPlan(playerObj, inv, nearbyContainers())
     moves[#moves + 1] = { id = "near", label = ZeD.tr("UI_ZeD_Controls_SameTypeNearby"), enabled = hasAny(nearSet), marks = nearSet,
-        icon = "arrows-from-dotted-line", hint = ZeD.tr("UI_ZeD_Controls_HintNearby"),
+        icon = "same_nearby", hint = ZeD.tr("UI_ZeD_Controls_HintNearby"),
         run = function(ct)
             for _, step in ipairs((nearbyPlan(playerObj, ct._inventory, nearbyContainers()))) do
                 CT.moveItems(playerObj, step.items, step.dest)
@@ -519,7 +520,7 @@ local function buildWorld(content)
     local onFloor = isFloor(inv)
     local moves = {}
     moves[#moves + 1] = { id = "take", label = sentence(getText("IGUI_invpage_Loot_all")), enabled = not inv:isEmptyOrUnwanted(playerObj),
-        icon = "inbox-in", hint = sentence(getText("IGUI_invpage_Loot_all")),
+        icon = "tray_in", hint = sentence(getText("IGUI_invpage_Loot_all")),
         run = function(ct)
             local src, d = ct._inventory, otherInventory(ct)
             if not isFloor(src) and not luautils.walkToContainer(src, pn) then return end
@@ -533,7 +534,7 @@ local function buildWorld(content)
     local keep = function(item) return not item:isFavorite() and not item:isUnwanted(playerObj) end
     local same, sameSet = sameTypeItems(inv, dest, keep)
     moves[#moves + 1] = { id = "same", label = ZeD.tr("UI_ZeD_Controls_SameType"), enabled = #same > 0, marks = sameSet,
-        icon = "copy", hint = ZeD.tr("UI_ZeD_Controls_HintTakeKinds"),
+        icon = "same_type", hint = ZeD.tr("UI_ZeD_Controls_HintTakeKinds"),
         run = function(ct)
             local src, d = ct._inventory, otherInventory(ct)
             if not isFloor(src) and not luautils.walkToContainer(src, pn) then return end
@@ -541,7 +542,7 @@ local function buildWorld(content)
         end }
     if not onFloor then
         moves[#moves + 1] = { id = "floor", label = ZeD.tr("UI_ZeD_Controls_ToFloor"), enabled = not inv:isEmpty(),
-            icon = "fi-br-arrow-down-to-dotted-line", hint = ZeD.tr("UI_ZeD_Controls_HintToFloor"),
+            icon = "to_floor", hint = ZeD.tr("UI_ZeD_Controls_HintToFloor"),
             run = function(ct)
                 local src = ct._inventory
                 local items = {}
@@ -616,16 +617,12 @@ end
 -- a word button's width: the push button's (its label as it draws, sentence case)
 local function btnW(label) return ZeD.Molecules.buttonW(label) end
 
-CT.ICON_SZ   = 16    -- design units: the icon inside an icon button (the button is T.buttonH square)
+CT.ICON_SZ   = 16    -- design units: the icon box inside an icon button (the button is T.buttonH square);
+                     -- the pixel icon's drawing that fits it is drawn at its own size (ZeD.PxIcon)
 CT.HINT_MS   = ZeD.HINT_DELAY_MS or 450   -- (the one hover delay; kept for older readers of this field)
 
-local ICON_TEX = {}
-local function iconTex(name)
-    if ICON_TEX[name] == nil then ICON_TEX[name] = getTexture("media/textures/ZeD/icons/" .. name .. ".png") or false end
-    return ICON_TEX[name] or nil
-end
-
-local function isIcon(s) return s ~= nil and s.icon ~= nil and iconTex(s.icon) ~= nil end
+-- (an icon button names a ZeD pixel icon by its id; one whose drawing is missing stays a word button)
+local function isIcon(s) return s ~= nil and s.icon ~= nil and ZeD.PxIcon.has(s.icon) end
 
 -- a button's width: an icon button is a T.buttonH square, a word button fits its word
 local function rectW(s)
@@ -775,7 +772,7 @@ local function drawStrip(content, strip, name, top, h, xOff)
                 -- (Delete all's bin keeps the warning colour; the rest the text colour)
                 o.tint = danger and T.danger or nil
                 o.iconSize = isz
-                M.drawIconButton(content, x, y, bh, iconTex(r.icon), o)
+                M.drawIconButton(content, x, y, bh, r.icon, o)
             else
                 local o = _ccBtn
                 o.hover, o.disabled, o.help, o.win = hover, not enabled, help, win

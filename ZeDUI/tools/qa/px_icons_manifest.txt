@@ -1,0 +1,13 @@
+# ZeDUI/tools/qa/px_icons_manifest.txt  (Oct 27 2026)
+# The pixel icons that replaced the licensed pictures outside the right-click menu: the new script, then the
+# scripts that show the places they draw (the container row, the wheels' shared lookup, the List | Grid and
+# List | Doll toggles, the Maps tab's fold button, the prompts' marks).
+zedqa_prelude.lua | pre
+zedqa_px_icons.lua | px | timeout=240
+zedqa_container_controls.lua | ct
+zedqa_container_bottom.lua | cb
+zedqa_wheel_icons.lua | wi | timeout=600
+zedqa_grid.lua | grid
+zedqa_doll.lua | doll
+zedqa_mapshot.lua | ms
+zedqa_prompts.lua | pr
