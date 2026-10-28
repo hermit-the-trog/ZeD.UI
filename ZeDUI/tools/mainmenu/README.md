@@ -1,6 +1,6 @@
 # Main menu desk, v3
 
-The lit night room behind the main menu, approved by the director on Oct 15 2026.
+The lit night room behind the main menu, approved by the director on Oct 15 2026. On Oct 28 2026 the orange soda can replaced the cola (see Decisions).
 
 The previews:
 - `previews/main_menu_4x.png`: the desk at 4x, with the screen's contents pasted in from the S125 capture.
@@ -71,6 +71,8 @@ python gen_desk.py --to ../../art/main_menu/v3      # the textures and desk_info
 python preview.py ../../art/main_menu/v3/desk.png ../../qa/S125_mainmenu/01_main_menu.png previews/main_menu_4x.png
 ```
 
+The textures the mod loads are graded from these by `../menugrade/grade.py` at strength 1.0 (see its header). Its frames folder only feeds the statistics it prints.
+
 - **`gen_desk.py`:** the room.
   - `PAL` holds the materials.
   - The wall, desk, corkboard and posters are drawn at the top level. The objects are in `build_objects()`.
@@ -80,6 +82,12 @@ python preview.py ../../art/main_menu/v3/desk.png ../../qa/S125_mainmenu/01_main
   - Light is computed afterwards.
   - The lit and dipped frames are then fitted to one shared 256-colour palette, with ordered dithering.
   - The lit lights and the needle are pinned in the palette, so they keep their exact colours.
+- **`palette_v3.json`:** the palette is locked.
+  - It is the exact palette the approved room was fitted to.
+  - Refitting it shifts colours across the whole picture: about one pixel in five, and the margin colours with them. So `gen_desk.py` quantises to the locked palette.
+  - Materials drawn since the lock are listed in `FRESH`. They get their own entries (`FRESH_SLOTS`).
+  - Redrawing an object therefore changes only that object's own pixels.
+  - `--refit` fits a fresh palette instead and writes it to the output folder as `palette.json`. Adopt it by copying it over `palette_v3.json`, and only when the whole room is being redrawn.
 
 ## Decisions
 
@@ -90,5 +98,10 @@ python preview.py ../../art/main_menu/v3/desk.png ../../qa/S125_mainmenu/01_main
 - **Corkboard:** the Princess Quest 3 cover stays.
 - Both pieces are original parody art. Nothing is copied from a real cover.
 - **Maker's mark:** reads KI on the monitor and on the case.
-- **Cola can:** the label wraps the can. The letters are drawn already wrapped.
+- **Orange soda can** (director, Oct 28 2026; it was a cola):
+  - Corn and an orange, ORANGE SODA on the cream label, and the claim 25% HIGHER FRUCTOSE CORN! The claim was the director's.
+  - The claim sits on a burnt orange band, the director's pick over navy. Cream type straight on the orange all but vanished under the night grade.
+  - The can grew from 34 x 54 to 40 x 78 so the claim reads at 1080p.
+  - Everything printed on it is drawn already wrapped: a line of type rides the can's curve, its end letters 1 px higher.
+  - The review is in `ZeDUI/mockups/zed_orange_soda_can_v1/`.
 - **Drawing:** whole multiples and nearest filtering only, as before.

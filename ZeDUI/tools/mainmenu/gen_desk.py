@@ -7,6 +7,10 @@ Writes desk.png (480 x 270), desk_lampdim.png (the same room with the lamp dippe
 (the 42 x 36 lamp box cut from it, for the old contract), dial_clean.png (the boombox dial without its needle) and
 desk_info.json (the colours the code paints: lights off, the needle, the margins), and prints those as Lua.
 
+The palette is locked (palette_v3.json): the one the approved room was fitted to. Materials drawn since (FRESH) get
+their own entries, so a redrawn object changes only its own pixels. --refit fits a fresh palette instead and writes
+it to the output folder as palette.json; adopt it by copying it over palette_v3.json.
+
 Contract with ZeD_MainMenu.lua (native pixels of desk.png):
   tube 120,30 240x180 · hard disk light 146,246 3x2 · floppy light 300,262 3x2 · dial 416,120 7x10 · needle 419,121 1x8
   lamp box 60,92 42x36 · power button 126,243 10x10 · desk edge row 184
@@ -29,6 +33,10 @@ PAL = {
     "lamp_metal": "#7c8288", "lamp_dark": "#34373b", "lamp_in": "#f2dfb2", "bulb": "#fff4d6",
     # can, floppy case, boxes
     "red": "#b5301d", "red_d": "#6e1a10", "label": "#efe9dc",
+    "orange": "#f07818", "orange_d": "#8a3a10", "orange_ink": "#c04a10", "claim": "#f6efdc",   # the orange soda can
+    "promo": "#6e2a0c", "claim_hi": "#ffd84a",
+    "fruit": "#ffa526", "fruit_d": "#e2700e", "fruit_k": "#6a2208", "fruit_h": "#fff2b8",       # (Oct 28, was the cola)
+    "corn": "#f2c230", "corn_l": "#ffe98a", "corn_d": "#b8860f", "leaf": "#4caa3c", "leaf_d": "#1f5c26", "sugar": "#fffaf0",
     "smoke": "#3a3b42", "disk": "#2c3f7d", "disk_l": "#d9d2bd",
     "box_blue": "#24408f", "box_purple": "#5c3c7d", "box_teal": "#2f7f7a",
     # paper, cork, posters
@@ -53,6 +61,10 @@ PAL = {
 
 S = Scene(PAL)
 DESK_Y, EDGE_Y = 184, 270
+LOCK = os.path.join(os.path.dirname(os.path.abspath(__file__)), "palette_v3.json")
+FRESH = ("orange", "orange_d", "orange_ink", "claim", "promo", "claim_hi", "fruit", "fruit_d", "fruit_k", "fruit_h",
+         "corn", "corn_l", "corn_d", "leaf", "leaf_d", "sugar")    # materials drawn since the palette was locked
+FRESH_SLOTS = 32                                    # the palette entries they share
 
 
 def zdesk(x, y): return np.maximum(0.0, (y - DESK_Y) * 1.15)
@@ -491,10 +503,13 @@ def build_objects():
     with S.surf(z=93, d=False, g=1.0):
         for i in range(10): S.px(fbx + 10 + i, fby + 3 + i // 2, "mgray")
 
-    # ============================================================ COLA CAN: the label wraps around it
-    cx, cy, cw, ch = 20, 214, 34, 54
-    S.shade(0.6 * np.clip(1 - (((XX - cx - cw / 2 - 2) / 22.0) ** 2 + ((YY - cy - ch - 1) / 5.0) ** 2), 0, 1), "desk")
-    ccx = cx + cw / 2.0; r = cw / 2.0; bow = 4.0                       # a ring around the can drops by bow*cos(theta) toward us
+    # ============================================================ ORANGE SODA CAN (Oct 28 2026, was the cola)
+    # Corn and an orange over ORANGE SODA, then the claim: 25% HIGHER FRUCTOSE CORN! Bigger than the cola (40 x 78, was
+    # 34 x 54) so the claim reads at 1080p. Everything printed on it is drawn already wrapped: a line of type rides the
+    # can's curve, its end letters 1 px higher where the can turns away.
+    cx, cy, cw, ch = 17, 192, 40, 78
+    S.shade(0.6 * np.clip(1 - (((XX - cx - cw / 2 - 2) / 26.0) ** 2 + ((YY - cy - ch - 1) / 5.0) ** 2), 0, 1), "desk")
+    ccx = cx + cw / 2.0; r = cw / 2.0; bow = 4.7; lid_ry = 5.9         # a ring around the can drops by bow*cos(theta) toward us
     def can_n(xs, ys):
         t = np.clip((xs - ccx) / r, -1, 1)
         return np.stack([t, np.zeros_like(xs), np.sqrt(np.clip(1 - t ** 2, 0.02, 1))], 1)
@@ -505,28 +520,97 @@ def build_objects():
             m[int(round(y0 + d_)):int(round(y0 + d_ + h)), x_] = True
         with S.surf(nf=can_n, z=98, g=g_): S.paint(m, mat)
         return m
-    band(cy - 1, ch + 1, "red")
-    with S.surf(nf=can_n, z=98, g=0.75): S.ellipse(ccx - 0.5, cy + ch, cw / 2.0, 5, "red", half="bottom")
+    band(cy - 1, ch + 1, "orange")
+    with S.surf(nf=can_n, z=98, g=0.75): S.ellipse(ccx - 0.5, cy + ch, cw / 2.0, lid_ry, "orange", half="bottom")
     band(cy, 2, "chrome", 0.9)                                            # the neck
-    band(cy + 16, 2, "red_d", 0.6)
-    lab = band(cy + 18, 20, "label")
-    band(cy + 38, 2, "red_d", 0.6)
-    band(cy + ch - 3, 2, "red_d", 0.6)
-    # COLA, drawn already wrapped: C and A sit where the can turns away, so they are narrower and ride 1 px higher on the label's curve
-    CAN_TYPE = {"C": [".####", "#####", "##...", "##...", "##...", "##...", "##...", "##...", "#####", ".####"],
-                "O": [".####.", "######", "##..##", "##..##", "##..##", "##..##", "##..##", "##..##", "######", ".####."],
-                "L": ["##...", "##...", "##...", "##...", "##...", "##...", "##...", "##...", "#####", "#####"],
-                "A": [".###.", "#####", "##.##", "##.##", "##.##", "#####", "#####", "##.##", "##.##", "##.##"]}
-    letters = np.zeros((H, W), bool)
-    for ch_, lx, ly in (("C", 25, cy + 26), ("O", 31, cy + 27), ("L", 39, cy + 27), ("A", 45, cy + 26)):
-        for ry, row in enumerate(CAN_TYPE[ch_]):
-            for rx, bit in enumerate(row):
-                if bit == "#": letters[ly + ry, lx + rx] = True
-    with S.surf(nf=can_n, z=98.5, g=0.75, d=False): S.paint(letters, "red")
+    band(cy + 17, 2, "orange_d", 0.6)
+    band(cy + 19, 20, "label")
+    band(cy + 39, ch - 39, "promo", 0.6)                                 # the claim's band, dark so its type reads
+
+    art = {}                                                              # material -> pixels; a later piece covers an earlier one
+    def put(piece):
+        taken = {p for v in piece.values() for p in v}
+        for k in art: art[k] = [p for p in art[k] if p not in taken]
+        for k, v in piece.items(): art.setdefault(k, []).extend(v)
+    def grid(rows, x0, y0, legend):
+        out = {}
+        for ry, row in enumerate(rows):
+            for rx, c in enumerate(row):
+                if c in legend: out.setdefault(legend[c], []).append((x0 + rx, y0 + ry))
+        return out
+    def orange_fruit(x0, y0, d):
+        """a d x d orange: dark rind edge, lit upper left, shaded lower right, a glint"""
+        out, c = {}, (d - 1) / 2.0
+        inside = lambda i, j: (i - c) ** 2 + (j - c) ** 2 <= (d / 2.0) ** 2 - 0.3
+        for j in range(d):
+            for i in range(d):
+                if not inside(i, j): continue
+                rim = not all(inside(i + a, j + b) for a, b in ((1, 0), (-1, 0), (0, 1), (0, -1)))
+                m = "fruit_k" if rim else ("fruit_d" if (i - c) / c * 0.6 + (j - c) / c * 0.8 > 0.40 else "fruit")
+                out.setdefault(m, []).append((x0 + i, y0 + j))
+        glint = [(x0 + int(round(c)) + a, y0 + int(round(c)) + b) for a, b in ((-3, -4), (-2, -4), (-4, -3), (-4, -2))]
+        out["fruit"] = [p for p in out["fruit"] if p not in glint]; out["fruit_h"] = glint
+        return out
+    def corn_ear(x0, y0, x1, y1, w):
+        """an ear of corn from its base to its tip: kernels in a checker, lit along its upper left, a dark edge below,
+        the tip rounded off"""
+        out = {}
+        L = math.hypot(x1 - x0, y1 - y0); ux, uy = (x1 - x0) / L, (y1 - y0) / L; nx, ny = -uy, ux
+        if nx + ny > 0: nx, ny = -nx, -ny                                 # n: across the ear, toward the upper left
+        for y in range(int(min(y0, y1) - w - 2), int(max(y0, y1) + w + 3)):
+            for x in range(int(min(x0, x1) - w - 2), int(max(x0, x1) + w + 3)):
+                px_, py_ = x + 0.5 - x0, y + 0.5 - y0
+                t = px_ * ux + py_ * uy; s_ = px_ * nx + py_ * ny
+                if t < -0.5 or t > L + 0.5: continue
+                ww = w if t < L - 4 else w * max(0.0, 1 - ((t - (L - 4)) / 4.6) ** 2) ** 0.5
+                if abs(s_) > ww: continue
+                if abs(s_) > ww - 1.0: m = "corn_d" if s_ < 0 or t > L - 2 else "corn_l"
+                elif s_ < -1.2: m = "corn_d" if (x + y) % 2 else "corn_l"
+                else: m = "corn_l" if (x + y) % 2 == 0 else ("corn" if s_ < 1.2 else "corn_l")
+                out.setdefault(m, []).append((x, y))
+        return out
+    LEAF = {"g": "leaf", "G": "leaf_d"}
+    put(grid(["...G.", "..gG.", ".ggG.", "gggG.", "ggG..", "gG..."], cx + 18, cy + 6, LEAF))        # the husk, above
+    put(grid(["gg.......", "gggg.....", ".gggGG...", "..GgggGG.", "....GGggG"], cx + 18, cy + 16, LEAF))   # and below
+    put(corn_ear(cx + 12, cy + 19, cx + 30, cy + 8, 3.3))
+    put(orange_fruit(cx + 6, cy + 8, 13))
+    put(grid([".gg...", "gggG..", ".ggGG.", "....G."], cx + 10, cy + 4, LEAF))                      # the orange's leaf
+    drawn = {p for v in art.values() for p in v}                          # a dusting of sugar around them
+    put({"sugar": [(cx + a, cy + b) for a, b in ((5, 7), (23, 6), (32, 13), (35, 10), (33, 19), (36, 16), (28, 20),
+                                                     (31, 8), (2, 15), (3, 20)) if (cx + a, cy + b) not in drawn]})
+
+    SMALL = dict(FONT, N=["1001", "1101", "1011", "1001", "1001"], O=["111", "101", "101", "101", "111"], I=["1"] * 5,
+                 **{"!": ["1", "1", "1", "0", "1"]})                       # the room's type: a full N, a square O, a thin I
+    BIG = {"S": [".####", "#####", "##...", "##...", "####.", ".####", "...##", "...##", "#####", "####."],
+           "O": [".####.", "######", "##..##", "##..##", "##..##", "##..##", "##..##", "##..##", "######", ".####."],
+           "D": ["####.", "#####", "##.##", "##.##", "##.##", "##.##", "##.##", "##.##", "#####", "####."],
+           "A": [".###.", "#####", "##.##", "##.##", "##.##", "#####", "#####", "##.##", "##.##", "##.##"],
+           "2": [".###.", "#####", "##.##", "...##", "..###", ".###.", "###..", "##...", "#####", "#####"],
+           "5": ["#####", "#####", "##...", "####.", "#####", "...##", "...##", "##.##", "#####", ".###."],
+           "%": ["##..##", "##..##", "...##.", "...##.", "..##..", "..##..", ".##...", ".##...", "##..##", "##..##"]}
+    def line(s_, y_front, font):
+        """a line of type centred on the can, each letter riding the curve"""
+        ws = [len(font[c][0]) for c in s_]
+        x = int(round(ccx - (sum(ws) + len(ws) - 1) / 2.0)); out = []
+        for c, gw in zip(s_, ws):
+            dy = int(round(bow * math.cos(math.asin(np.clip((x + gw / 2.0 - ccx) / r, -1, 1))) - bow))
+            for ry, row in enumerate(font[c]):
+                for rx, b in enumerate(row):
+                    if b in "1#": out.append((x + rx, y_front + dy + ry))
+            x += gw + 1
+        return out
+    put({"orange_ink": line("ORANGE", cy + 26, SMALL) + line("SODA", cy + 32, BIG)})
+    put({"claim_hi": line("25%", cy + 48, BIG)})
+    put({"claim": line("HIGHER", cy + 59, SMALL) + line("FRUCTOSE", cy + 65, SMALL) + line("CORN!", cy + 71, SMALL)})
+    for mat, pts in art.items():
+        m = np.zeros((H, W), bool)
+        for x, y in pts:
+            if 0 <= x < W and 0 <= y < H: m[y, x] = True
+        with S.surf(nf=can_n, z=98.5, g=0.75, d=False): S.paint(m, mat)
     with S.surf(n=(0, -1, 0.15), z=96, g=0.9):
-        S.ellipse(ccx - 0.5, cy, cw / 2.0, 5, "chrome"); S.ellipse(ccx - 0.5, cy, cw / 2.0 - 2, 4, "lgray")
+        S.ellipse(ccx - 0.5, cy, cw / 2.0, lid_ry, "chrome"); S.ellipse(ccx - 0.5, cy, cw / 2.0 - 2, lid_ry - 1, "lgray")
     with S.surf(n=(0, -1, 0.3), z=96, g=0.5):
-        S.rect(cx + 13, cy - 2, 9, 3, "mgray"); S.rect(cx + 15, cy - 2, 3, 1, "chrome")
+        S.rect(cx + 16, cy - 2, 9, 3, "mgray"); S.rect(cx + 18, cy - 2, 3, 1, "chrome")
 
     # ============================================================ BOOMBOX (back right)
     bbx, bby, bbw, bbh = 366, 110, 110, 80
@@ -698,7 +782,8 @@ if __name__ == "__main__":
     import argparse, json
     ap = argparse.ArgumentParser(description="ZeD-UI main menu desk: the picture and its overlay pieces")
     ap.add_argument("--to", default=".", help="folder to write the textures into")
-    out = ap.parse_args().to
+    ap.add_argument("--refit", action="store_true", help="fit a fresh palette instead of the locked one")
+    args = ap.parse_args(); out = args.to
     os.makedirs(out, exist_ok=True)
     build_objects(); vignette()
     lit = S.light(RIG)
@@ -712,13 +797,27 @@ if __name__ == "__main__":
     # the lit lights and the needle keep their exact colours: one pinned palette entry each, its mean
     PINS = [(146, 246, 3, 2), (300, 262, 3, 2), (140, 246, 3, 2), (356, 224, 3, 2), (419, 121, 1, 8)]
     pins = [srgb(lit[y0:y0 + h0, x0:x0 + w0].reshape(-1, 3).mean(0)) for x0, y0, w0, h0 in PINS]
-    pal = S.palette_for([lit, dim], pins=pins)
-    img, _ = S.quantize(lit, palette=pal)
-    img_dim, _ = S.quantize(dim, palette=pal)
+    fresh = np.zeros((H, W), bool)
+    if args.refit or not os.path.exists(LOCK):
+        pal = pal_fresh = S.palette_for([lit, dim], pins=pins)
+        json.dump({"palette": [[float(v) for v in c] for c in pal]}, open(os.path.join(out, "palette.json"), "w"))
+    else:
+        # the approved room's palette for every pixel; the fresh materials' pixels may also use their own entries
+        pal = np.asarray(json.load(open(LOCK))["palette"], np.float32)
+        fresh = np.isin(S.C, [S.idx[n] for n in FRESH])
+        X = np.vstack([srgb(f)[fresh] for f in (lit, dim)])
+        X = np.unique(np.round(X * 255).astype(int), axis=0).astype(np.float32) / 255
+        pal_fresh = np.vstack([pal, S.kmeans(X, FRESH_SLOTS, iters=20) if len(X) > FRESH_SLOTS else X])
+
+    def quantize(frame):
+        img_, _ = S.quantize(frame, palette=pal)
+        if fresh.any(): img_ = np.where(fresh[..., None], S.quantize(frame, palette=pal_fresh)[0], img_)
+        return img_
+    img, img_dim = quantize(lit), quantize(dim)
     # the dial without its needle: paint the tuner face where the needle was, light it, cut the 7 x 10 box
     C0, T0, E0 = S.C.copy(), S.T.copy(), S.E.copy()
     S.C[121:129, 419] = S.idx["tuner"]; S.E[121:129, 419] = S.E[121:129, 418]; S.T[121:129, 419] = S.T[121:129, 418]
-    img_noneedle, _ = S.quantize(S.light(RIG), palette=pal)
+    img_noneedle = quantize(S.light(RIG))
     S.C[...], S.T[...], S.E[...] = C0, T0, E0
     Image.fromarray(img).save(os.path.join(out, "desk.png"))
     Image.fromarray(img_dim).save(os.path.join(out, "desk_lampdim.png"))
