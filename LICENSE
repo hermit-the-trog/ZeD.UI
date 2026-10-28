@@ -1,0 +1,145 @@
+ZeD-GUI source-available licence
+Version 1, October 28, 2026
+
+Copyright (c) 2026 Hermit the Trog. All rights reserved except as granted below.
+
+ZeD-GUI (also written ZeD.UI and ZeD-UI) is a mod for Project Zomboid. This
+licence covers everything in this repository that is Hermit the Trog's own
+work: the Lua code, the pixel art, the baked font textures, the item scripts,
+the documents and the tools. "The mod" means the files the game loads, in
+any version. "You" means anyone who gets a copy.
+
+This is not an open-source licence. The code is public so that people can
+read it, learn from it, build on it and help with it. Distributing the mod
+itself stays with the maintainer, so that there is one place to get it, one
+place to report problems, and one version to support.
+
+
+1. What you may do
+
+  a. Read, study and run the code, and keep private copies and private
+     forks for that purpose.
+
+  b. Make add-ons. An add-on is a separate mod that requires ZeD-GUI, calls
+     what ZeD-GUI exposes, and does not include ZeD-GUI's files. You may
+     publish add-ons anywhere, under any licence you like, and say that
+     they are "for ZeD-GUI".
+
+  c. Send changes back. Pull requests, patches, translations, bug reports
+     and test scripts are welcome; section 4 says what happens to them.
+
+  d. Run the mod on servers, including dedicated ones, and let the game
+     hand it to players the way the game does that.
+
+  e. Quote short parts of the code in reviews, guides, bug reports, videos
+     and other commentary, with credit.
+
+
+2. What you may not do
+
+  a. Re-upload, mirror or repost the mod, or any version of it changed or
+     unchanged, to the Steam Workshop, to any other mod site, or anywhere
+     else. This includes renamed copies, "fixed" copies, translated copies
+     and copies bundled into mod packs or server packs.
+
+  b. Sell the mod, or put it behind a paywall, a subscription or a
+     donation gate.
+
+  c. Publish a mod that includes ZeD-GUI's files in part or in whole. Build
+     an add-on instead (section 1b).
+
+  d. Call your own work ZeD-GUI, ZeD.UI or ZeD-UI, or present it as the
+     official mod. The name belongs to the maintainer. "For ZeD-GUI" is
+     fine for add-ons.
+
+  e. Remove or change the credits, this licence, or the third-party
+     notices (section 6).
+
+If you want to do something this section does not allow, ask. Permission
+given in writing by the maintainer is good for the thing it names.
+
+
+3. The mod is actively maintained
+
+The place to get the mod is its Steam Workshop page. The place to report
+problems is the pinned Bug reports discussion there. The place to read and
+discuss the code is the GitHub repository. Changes land through those
+places, not through copies elsewhere. That is the whole reason for
+section 2.
+
+
+4. Contributions
+
+If you send a change and it is merged, you keep the copyright on what you
+wrote, and you licence it to the project under these same terms. You also
+agree that the maintainer may re-licence your contribution together with
+the rest of the project, as section 5 may require. If you cannot agree to
+that, say so when you send it and it will not be merged.
+
+
+5. Adoption, if the project is abandoned
+
+The project is meant to outlive any one maintainer.
+
+  a. The project counts as abandoned when, for twelve months in a row,
+     there has been no release and no reply from the maintainer at any of
+     the contact points in section 3, after a reasonable attempt to reach
+     them there.
+
+  b. If the maintainer has named a successor in the SUCCESSORS file in
+     this repository, the successor becomes the maintainer, with every
+     right this licence gives the maintainer, and the project continues
+     under this licence.
+
+  c. If no successor is named, or the named successor does not take it up
+     within three months of the project becoming abandoned, this licence
+     ends and the project passes to everyone under the GNU General Public
+     License, version 3 or later. From then on anyone may carry it on,
+     publish it and fork it under that licence, keeping the credits.
+
+  d. A maintainer who comes back after section 5c has taken effect does
+     not get the old terms back; the project stays under the GPL.
+
+
+6. Third-party work
+
+These are not Hermit the Trog's and have their own terms, which travel
+with the files:
+
+  - Fira Sans Condensed and Fira Mono (the baked font textures under
+    42/media/fonts): copyright 2012-2015 The Mozilla Foundation and
+    Telefonica S.A., licensed under the SIL Open Font License 1.1.
+    https://openfontlicense.org
+
+  - Project Zomboid, its Lua, its scripts and its art: copyright The Indie
+    Stone. Parts of this mod follow the game's own Lua as every mod does,
+    under The Indie Stone's terms for mods. Nothing in this licence covers
+    the game's own content.
+
+  - The makers of the mods ZeD-GUI does the job of are credited on the
+    Workshop page. ZeD-GUI takes no donations; if you want to give
+    something back, give it to them.
+
+ZeD-GUI is a fan-made mod. It is not affiliated with The Indie Stone or
+with Apple.
+
+
+7. No warranty
+
+The mod and the code are provided as is, without warranty of any kind,
+stated or implied, including fitness for any purpose. The maintainer and
+the contributors are not liable for any loss or damage of any kind that
+comes from using them, including lost saves, lost time and anything that
+happens on a server. You use them at your own risk, and you are
+responsible for complying with the terms of Steam and of the game.
+
+
+8. Housekeeping
+
+  - If a part of this licence turns out not to hold where you live, the
+    rest still does.
+  - Breaking section 2 ends your rights under section 1 until you put it
+    right.
+  - The maintainer may publish a later version of this licence. The
+    version that ships with a copy of the mod is the one that applies to
+    that copy.
