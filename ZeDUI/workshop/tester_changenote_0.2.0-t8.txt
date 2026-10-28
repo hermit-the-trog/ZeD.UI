@@ -1,0 +1,12 @@
+0.2.0-t8: changes since 0.2.0-t7.
+
+Icons
+- Every icon ZeD-GUI draws is now its own pixel art, in one style: the wheels and radial menus, the right-click menu, the container buttons under the lists, the item card's marks, the List / Grid / Doll switches, folds and small controls. Each icon is drawn at two sizes and shown pixel for pixel at every UI scale.
+- The licensed icon set that drew those pictures before is gone from the mod, so the download is smaller.
+
+Mods screen
+- The first time the Mods screen opens each run, the game's About Mods warning shows as a ZeD-GUI note instead of the game's own panel over the window.
+- The list no longer lags with a large library installed (checked with 1,360 mods).
+
+Game version
+- Tested on 42.21 and on the 42.22 pre-release. On 42.22 the game's new rows (forcing a door with a crowbar, climbing a ladder, opening a box of rounds) show in ZeD-GUI's menus, and the belt's rounds tab follows an opened box.

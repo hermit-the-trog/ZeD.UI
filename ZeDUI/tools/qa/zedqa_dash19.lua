@@ -15,34 +15,90 @@ local function say(s) print("ZEDQA dash " .. tostring(s)) end
 if getGameSpeed() == 0 then setGameSpeed(1) end
 local steps = {}; local function at(n, f) steps[#steps + 1] = { n = n, f = f } end
 local cur, curKey = nil, nil
+-- (42.22: removing the car in the same tick as the exit leaves the engine updating a seated player in
+-- a car with no physics, a NullPointerException that drops the game to the main menu; the car is
+-- removed by the tick loop once the player is out of it)
+local pending = nil
+local function clean()
+    if pending and p:getVehicle() ~= pending then pcall(function() pending:permanentlyRemove() end); pending = nil end
+end
 local function leave()
     local v = p:getVehicle(); if v then v:exit(p); triggerEvent("OnExitVehicle", p) end
-    if cur then pcall(function() cur:permanentlyRemove() end) end
+    if cur then
+        if p:getVehicle() == cur then pending = cur else pcall(function() cur:permanentlyRemove() end) end
+    end
     if curKey then pcall(function() p:getInventory():Remove(curKey) end) end
     cur, curKey = nil, nil
+end
+-- (42.22, Oct 28 2026: the character is seated only once the car has a square, a chunk and live physics;
+-- entering in the spawn's own tick leaves the engine updating a seated player in a car with no physics,
+-- a NullPointerException that drops the game to the main menu, as zedqa_dashnight.lua found on Oct 22)
+-- (a square a car was just removed from gives the next car no physics: the next free square is tried, as
+-- zedqa_dashnight.lua does)
+local OFFS = { { 5, 2 }, { 5, -3 }, { -5, 2 }, { 2, 5 }, { -4, -4 }, { 6, 6 }, { -6, 0 } }
+local function carReady(v)
+    local sq, chunk, phys = nil, nil, false
+    pcall(function() sq = v:getSquare() end)
+    local okC = pcall(function() chunk = v:getChunk() end)
+    if not okC and sq then pcall(function() chunk = sq:getChunk() end) end
+    pcall(function() phys = v:isPhysicsActive() end)
+    return sq ~= nil and chunk ~= nil and phys == true
 end
 local t = 10
 at(t, leave)
 t = t + 20
 for _, e in ipairs(LIST) do
     local tag, script = e[1], e[2]
+    local entered = false
+    local tries, since = 0, 0
+    local function attempt()
+        since = 0
+        while tries < #OFFS do
+            tries = tries + 1
+            local o = OFFS[tries]
+            local sq = getCell():getGridSquare(math.floor(p:getX()) + o[1], math.floor(p:getY()) + o[2], math.floor(p:getZ()))
+            local free = false
+            if sq then pcall(function() free = sq:isFree(false) and not sq:HasTree() and not sq:getVehicleContainer() end) end
+            if sq and free then
+                local v = addVehicleDebug(script, IsoDirections.N, nil, sq)
+                if v then cur = v; return true end
+            end
+        end
+        return false
+    end
     at(t, function()
-        local sq = getCell():getGridSquare(math.floor(p:getX()) + 5, math.floor(p:getY()) + 2, math.floor(p:getZ()))
-        local v = sq and addVehicleDebug(script, IsoDirections.N, nil, sq) or nil
-        if not v then say(tag .. " spawn failed " .. script); return end
-        cur = v
-        pcall(function() v:repair() end)
-        pcall(function() local g = v:getPartById("GasTank"); g:setContainerContentAmount(g:getContainerCapacity()) end)
-        pcall(function()
-            local b = v:getPartById("Battery"); local it = b and b:getInventoryItem()
-            if it then pcall(function() it:setCurrentUsesFloat(1.0) end); pcall(function() it:setUsedDelta(1.0) end) end
-        end)
-        pcall(function() curKey = p:getInventory():AddItem(v:createVehicleKey()) end)
-        v:enter(0, p); triggerEvent("OnEnterVehicle", p)
+        entered, tries = false, 0
+        clean()
+        if not attempt() then say("ERR " .. tag .. " spawn failed " .. script .. " (no loaded free square beside the character)") end
     end)
-    at(t + 20, function() if cur then pcall(function() cur:setKeysInIgnition(true) end) end end)
-    at(t + 35, function()
-        if not cur then return end
+    for pt = t + 3, t + 90, 3 do
+        at(pt, function()
+            if entered or not cur then return end
+            since = since + 3
+            if not carReady(cur) then
+                if since >= 36 then
+                    say(tag .. " car not ready in 36 ticks; removed, next square")
+                    pcall(function() cur:permanentlyRemove() end); cur = nil
+                    if not attempt() then say("ERR " .. tag .. " spawn failed " .. script .. " (no ready car on any square beside the character)") end
+                end
+                return
+            end
+            local v = cur
+            pcall(function() v:repair() end)
+            pcall(function() local g = v:getPartById("GasTank"); g:setContainerContentAmount(g:getContainerCapacity()) end)
+            pcall(function()
+                local b = v:getPartById("Battery"); local it = b and b:getInventoryItem()
+                if it then pcall(function() it:setCurrentUsesFloat(1.0) end); pcall(function() it:setUsedDelta(1.0) end) end
+            end)
+            pcall(function() curKey = p:getInventory():AddItem(v:createVehicleKey()) end)
+            v:enter(0, p); triggerEvent("OnEnterVehicle", p)
+            entered = p:getVehicle() ~= nil
+        end)
+    end
+    at(t + 93, function() if cur and not entered then say("ERR " .. tag .. " car not ready in 90 ticks (not entered)") end end)
+    at(t + 100, function() if cur and entered then pcall(function() cur:setKeysInIgnition(true) end) end end)
+    at(t + 115, function()
+        if not cur or not entered then return end
         pcall(function() ISVehicleMenu.onStartEngine(p) end)
         local d = D.getInstance(); if not (d and d._st) then say(tag .. " no dashboard"); return end
         if not d._st.radioOn then d:_fire("pwr", false) end
@@ -65,10 +121,11 @@ for _, e in ipairs(LIST) do
     at(t + 285, leave)
     t = t + 305
 end
-at(t, function() say("DONE") end)
+at(t, function() clean(); say("DONE") end)
 local n, i = 0, 1
 local function tick()
     n = n + 1
+    clean()
     while steps[i] and steps[i].n <= n do
         local ok, err = pcall(steps[i].f); if not ok then say("step error: " .. tostring(err)) end
         i = i + 1

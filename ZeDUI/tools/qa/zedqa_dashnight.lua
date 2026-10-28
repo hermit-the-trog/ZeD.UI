@@ -17,9 +17,18 @@ local gt = getGameTime()
 local hour0 = gt:getTimeOfDay()
 local steps = {}; local function at(n, f) steps[#steps + 1] = { n = n, f = f } end
 local cur, curKey = nil, nil
+-- (42.22: removing the car in the same tick as the exit leaves the engine updating a seated player in
+-- a car with no physics, a NullPointerException that drops the game to the main menu; the car is
+-- removed by the tick loop once the player is out of it)
+local pending = nil
+local function clean()
+    if pending and p:getVehicle() ~= pending then pcall(function() pending:permanentlyRemove() end); pending = nil end
+end
 local function leave()
     local v = p:getVehicle(); if v then v:exit(p); triggerEvent("OnExitVehicle", p) end
-    if cur then pcall(function() cur:permanentlyRemove() end) end
+    if cur then
+        if p:getVehicle() == cur then pending = cur else pcall(function() cur:permanentlyRemove() end) end
+    end
     if curKey then pcall(function() p:getInventory():Remove(curKey) end) end
     cur, curKey = nil, nil
 end
@@ -138,10 +147,11 @@ for _, e in ipairs(LIST) do
     at(tt + 20, leave)
     t = tt + 40
 end
-at(t, function() D.qaNight = nil; D.qaLit = nil; pcall(function() gt:setTimeOfDay(hour0) end); say("DONE") end)
+at(t, function() D.qaNight = nil; D.qaLit = nil; pcall(function() gt:setTimeOfDay(hour0) end); clean(); say("DONE") end)
 local nT, i = 0, 1
 local function tick()
     nT = nT + 1
+    clean()
     while steps[i] and steps[i].n <= nT do
         local ok, err = pcall(steps[i].f); if not ok then say("step error: " .. tostring(err)) end
         i = i + 1
