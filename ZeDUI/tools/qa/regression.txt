@@ -104,7 +104,7 @@ zedqa_twoway.lua | tw | timeout=600             # the ten two-way radio faces in
 zedqa_appliances.lua | ap | timeout=240         # oven and microwave faces at whole zoom in the Craft tab, and in their own window (at the West Point Fossoil: power indoors)
 
 # ---- vehicles (spawned beside the character and removed; the QA save's own cars are put back)
-zedqa_seat_lightbar_vanilla.lua | sl             # seat chooser and lightbar from vanilla's entry points
+zedqa_seat_lightbar_vanilla.lua | sl | expect=FBORenderLevels.getNLevels   # seat chooser and lightbar from vanilla's entry points (the game's own render error late in a long run; not with ZeD alone or off, Oct 27 2026)
 zedqa_car_radio_build.lua | rb                   # the car radio up close with each radio fitted; radios put back
 zedqa_car_radio_cd.lua | cd                      # CD deck: list, insert, play, eject; the ValuTech's tape
 zedqa_dash_props_smoke.lua | sm                  # v6 dash, radio up close, siren controller still draw

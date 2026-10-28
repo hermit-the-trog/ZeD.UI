@@ -311,11 +311,28 @@ local function cardPrimaryCheck(w, zoneName, tag)
         tag .. ": focus is on the card's primary action (" .. tostring(v and v.id) .. ")")
     return v and v.id
 end
-step(5, function()
+step(20, function()   -- (the card draws before its buttons exist: about 8 ticks at 4K)
     local w = ww()
     local row = rowOf(w, "worldMainInv", "Base.Tweezers")
     Focus.focusWhere(w, "worldMainInv", function(x) return x == row end)
     A()
+    -- (diagnostic, Oct 27 2026: ticks and drawn frames from A until the card's zone has its
+    -- buttons and until focus is in it; the check below looks 20 ticks after A)
+    local t, f, zoneAt, focusAt, lastSig = 0, 0, nil, nil, nil
+    local function onFrame() f = f + 1 end
+    local function watch()
+        t = t + 1
+        local z = nil
+        for _, zz in ipairs(w._focusRing or {}) do if zz.zone == "worldItemCard" then z = zz end end
+        if not zoneAt and z and z.focusable and z.elements and #z.elements > 0 then zoneAt = t .. " ticks, " .. f .. " frames" end
+        local fz = Focus.getFocusedZone(w)
+        if not focusAt and fz and fz.zone == "worldItemCard" then focusAt = t .. " ticks, " .. f .. " frames" end
+        if t >= 60 or (zoneAt and focusAt) then
+            Events.OnTick.Remove(watch); Events.OnRenderTick.Remove(onFrame)
+            say("3 timing: card buttons ready after " .. tostring(zoneAt) .. "; focus in the card after " .. tostring(focusAt) .. " (watched " .. t .. " ticks, " .. f .. " frames)")
+        end
+    end
+    Events.OnTick.Add(watch); Events.OnRenderTick.Add(onFrame)
 end)
 step(20, function()
     local w = ww()
@@ -336,7 +353,7 @@ step(10, function()
 end)
 
 -- ---------------------------------------------------------------- 4. Take
-step(5, function()
+step(20, function()
     local w = ww()
     local row = rowOf(w, "worldMainInv", "Base.Eraser")
     takenNails = row and row.item
@@ -418,7 +435,7 @@ step(10, function()
     btn(Joypad.RBumper)
 end)
 step(5, function() btn(Joypad.LBumper) end)
-step(10, function()
+step(20, function()
     local w = fw(); where("6 LB")
     check(w == cw() and lit(w), "LB lands in the Character window on a lit element")
     local row = rowOf(w, "charMainInv", "Base.Eraser")
@@ -456,7 +473,7 @@ step(10, function()
     local cnt = w._mainContent
     if cnt and w._drawerItem then cnt._selectedItems = {}; cnt._lastClickedItem = nil; w._updateDrawer(cnt) end
 end)
-step(10, function()
+step(20, function()
     local w = cw()
     -- a single thing, not a stack (A on a stack opens the stack, not a card)
     local row = elIn(w, "charMainInv", function(e)

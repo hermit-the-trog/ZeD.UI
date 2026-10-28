@@ -1,0 +1,2 @@
+zedqa_prelude.lua | pre
+zedqa_carspawn_off.lua | cso | timeout=200

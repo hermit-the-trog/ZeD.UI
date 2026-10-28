@@ -90,13 +90,18 @@ end
 -- followed at once by the engine's ISUIElement:onResize (it enforces the
 -- window's minimum width). A press from OnTick ran before the window's layout
 -- and never met that check, so the roll bug of Oct 21 hid from this script.
+-- (el._qaPressDone: false until the update has run the press. This script counts game
+-- ticks, and at 4K a window's update can come more than 10 ticks after the press was
+-- queued; a check waits for the press, not for a tick count. Oct 27 2026)
 local function viaUpdate(el, fn)
     local own = rawget(el, "update")
+    el._qaPressDone = false
     el.update = function(self)
         self.update = own
         self:update()
         fn(self)
         self:onResize()
+        self._qaPressDone = true
     end
 end
 local function rollNow(w)
@@ -503,13 +508,19 @@ local function tabPhase(who, get, other, base, tabs)
         check("Loot " .. who .. " rolled before the press", w._rolled == true)
         clickTabNow(w, "loot")
     end)
-    after(10, function()
+    local function sideDown()
         local w = get()
         check("Loot " .. who .. " side down with the press", not w._rolled and w._activeTab == "loot" and not (rod and rod:isVisible()) and rodsInUI() == 0,
             "rolled " .. tostring(w._rolled) .. " tab " .. tostring(w._activeTab) .. " rods in UI " .. rodsInUI())
+    end
+    local deferred = false
+    after(10, function()
+        if get()._qaPressDone == false then deferred = true; say(who .. " Loot press not delivered by the window's update after 10 ticks; checked 30 ticks later")
+        else sideDown() end
     end)
     after(30, function()
         local w = get()
+        if deferred then sideDown() end
         cmp("Loot while rolled", who, geo(w), GL)
         cmp("Loot while rolled: other", oname, geo(other()), O)
         clickTab(w, base)

@@ -8,9 +8,23 @@
 -- grep "ZEDQA pre".
 local function say(s) print("ZEDQA pre " .. tostring(s)) end
 local p = getPlayer()
+-- (Oct 27 2026, the director: the QA character stood in thick woods, with no open ground to
+-- spawn things and the view often blocked, and runs drifted into night) every run starts on
+-- Irvington Speedway's drag strip, open asphalt, in daylight. The save keeps the move.
+local HOME = { x = 925.5, y = 13040.5, z = 0 }
+local moved = false
 local ok, e = pcall(function()
     if getGameSpeed and getGameSpeed() == 0 and setGameSpeed then setGameSpeed(1) end
     if p then p:setGodMod(true) end
+    if p and p:getVehicle() then p:getVehicle():exit(p) end
+    if p and (math.abs(p:getX() - HOME.x) > 3 or math.abs(p:getY() - HOME.y) > 3 or math.floor(p:getZ()) ~= HOME.z) then
+        say(string.format("moved from %d,%d,%d to the drag strip", math.floor(p:getX()), math.floor(p:getY()), math.floor(p:getZ())))
+        p:setX(HOME.x); p:setY(HOME.y); p:setZ(HOME.z); p:setLastX(HOME.x); p:setLastY(HOME.y); p:setLastZ(HOME.z)
+        moved = true
+    end
+    local gt = getGameTime()
+    local hour = gt:getTimeOfDay()
+    if hour < 8 or hour > 17 then gt:setTimeOfDay(11.0); say(string.format("clock %.2f -> 11.00 (daylight)", hour)) end
     local cw = ZeD_CharacterWindow.getWindow()
     if not (cw and cw:isVisible()) then ZeD_CharacterWindow.toggleBothPaired(0) end
 end)
@@ -21,7 +35,7 @@ local frames, ticks = 0, 0
 local function onTick() ticks = ticks + 1 end
 local function onFrame()
     frames = frames + 1
-    if frames < 60 then return end
+    if frames < (moved and 300 or 60) then return end   -- (after the move: the strip's cells load)
     if ticks < 60 and frames < 600 then return end
     Events.OnRenderTick.Remove(onFrame)
     Events.OnTick.Remove(onTick)
