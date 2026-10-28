@@ -754,6 +754,106 @@
    "group": "tab",
    "means": "a level slider, its marker: the traits tab",
    "mapped": true
+  },
+  "tray_in": {
+   "group": "row",
+   "means": "an arrow down into an open tray: take all",
+   "mapped": true
+  },
+  "tray_out": {
+   "group": "row",
+   "means": "an arrow up out of the open tray: transfer all",
+   "mapped": true
+  },
+  "same_type": {
+   "group": "row",
+   "means": "two sheets, one over the other: the same type",
+   "mapped": true
+  },
+  "same_nearby": {
+   "group": "row",
+   "means": "arrows out both ways from a dotted line: the same type, to every container nearby",
+   "mapped": true
+  },
+  "to_floor": {
+   "group": "row",
+   "means": "an arrow down onto a dotted line: put it all on the floor",
+   "mapped": true
+  },
+  "trash": {
+   "group": "row",
+   "means": "a bin, its lid and handle: delete all (a trash can)",
+   "mapped": true
+  },
+  "power": {
+   "group": "row",
+   "means": "the power sign: switch a stove, washer, dryer or barbecue on or off",
+   "mapped": true
+  },
+  "match": {
+   "group": "row",
+   "means": "a struck match, its flame: light a fire",
+   "mapped": true
+  },
+  "extinguisher": {
+   "group": "row",
+   "means": "a fire extinguisher, its hose and horn: put a fire out",
+   "mapped": true
+  },
+  "star": {
+   "group": "row",
+   "means": "a five-point star: a favourite",
+   "mapped": false
+  },
+  "craft_off": {
+   "group": "row",
+   "means": "the hammer and wrench, struck through: not to be used in crafting",
+   "mapped": false
+  },
+  "view_list": {
+   "group": "ui",
+   "means": "three lines with their bullets: list view",
+   "mapped": false
+  },
+  "view_grid": {
+   "group": "ui",
+   "means": "four tiles: grid view, pictures",
+   "mapped": false
+  },
+  "expand": {
+   "group": "ui",
+   "means": "four corners pointing out: unfold to a window",
+   "mapped": false
+  },
+  "contract": {
+   "group": "ui",
+   "means": "four corners pointing in: fold back",
+   "mapped": false
+  },
+  "pop_out": {
+   "group": "ui",
+   "means": "an arrow out of a frame's corner: pop out",
+   "mapped": false
+  },
+  "move_up": {
+   "group": "ui",
+   "means": "an arrow up: move it up",
+   "mapped": false
+  },
+  "move_down": {
+   "group": "ui",
+   "means": "an arrow down: move it down",
+   "mapped": false
+  },
+  "pencil": {
+   "group": "ui",
+   "means": "a pencil, its point down left: draw, edit",
+   "mapped": false
+  },
+  "stop": {
+   "group": "ui",
+   "means": "an octagon with a bar cut out: stop, a costly step",
+   "mapped": false
   }
  },
  "order": "TEXT, then KEEP, then TEX; ZeD's own wheels name ids directly (ZED, TABS)",
@@ -1943,6 +2043,93 @@
   {
    "tab": "traits-tab-white",
    "id": "traits"
+  }
+ ],
+ "ROW": [
+  {
+   "window": "Character window",
+   "button": "Transfer all (IGUI_invpage_Transfer_all)",
+   "id": "tray_out"
+  },
+  {
+   "window": "Character window",
+   "button": "Same type (UI_ZeD_Controls_SameType)",
+   "id": "same_type"
+  },
+  {
+   "window": "Character window",
+   "button": "Same type, all nearby (UI_ZeD_Controls_SameTypeNearby)",
+   "id": "same_nearby"
+  },
+  {
+   "window": "World window",
+   "button": "Take all (IGUI_invpage_Loot_all)",
+   "id": "tray_in"
+  },
+  {
+   "window": "World window",
+   "button": "Same type (UI_ZeD_Controls_SameType)",
+   "id": "same_type"
+  },
+  {
+   "window": "World window",
+   "button": "To floor (UI_ZeD_Controls_ToFloor)",
+   "id": "to_floor"
+  },
+  {
+   "window": "World window",
+   "button": "Delete all, a trash can (IGUI_invpage_RemoveAll)",
+   "id": "trash"
+  },
+  {
+   "window": "World window",
+   "button": "ISLootWindowObjectControlHandler_StoveToggle",
+   "id": "power"
+  },
+  {
+   "window": "World window",
+   "button": "ISLootWindowObjectControlHandler_ClothingWasherToggle",
+   "id": "power"
+  },
+  {
+   "window": "World window",
+   "button": "ISLootWindowObjectControlHandler_ClothingDryerToggle",
+   "id": "power"
+  },
+  {
+   "window": "World window",
+   "button": "ISLootWindowObjectControlHandler_CombinationWasherDryerToggle",
+   "id": "power"
+  },
+  {
+   "window": "World window",
+   "button": "ISLootWindowObjectControlHandler_PropaneBarbecueToggle",
+   "id": "power"
+  },
+  {
+   "window": "World window",
+   "button": "ISLootWindowObjectControlHandler_StoveSettings",
+   "id": "gears"
+  },
+  {
+   "window": "World window",
+   "button": "ISLootWindowObjectControlHandler_LightFireOption",
+   "id": "match"
+  },
+  {
+   "window": "World window",
+   "button": "ISLootWindowObjectControlHandler_AddFuelOption",
+   "id": "campfire"
+  },
+  {
+   "window": "World window",
+   "button": "ISLootWindowObjectControlHandler_PutOut",
+   "id": "extinguisher"
+  },
+  {
+   "window": "World window",
+   "button": "ISLootWindowObjectControlHandler_VehicleLockTrunk",
+   "id": "padlock"
   }
  ]
 }

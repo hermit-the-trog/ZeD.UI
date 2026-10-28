@@ -465,11 +465,6 @@ function ZeD.InventoryRenderer.toggleElements(rects)
     return els
 end
 
-local GRID_ICONS = {}
-local function gridIcon(name)
-    if GRID_ICONS[name] == nil then GRID_ICONS[name] = getTexture("media/textures/ZeD/icons/" .. name .. ".png") or false end
-    return GRID_ICONS[name] or nil
-end
 
 -- is this item the controller's focused element in an inventory zone? (the
 -- rows' own test, shared with the grid's cells). Only in the focused window
@@ -578,7 +573,7 @@ local function drawViewToggle(self, GV, xOff, right, barH, areaH, padX)
         o.focus, o.hint, o.id = gpFocusedToggle(id), name, id
         o.help = ZeD.tr(v == "list" and "UI_ZeD_Inv_ListHelp" or "UI_ZeD_Inv_GridHelp")
         o.iconSize = math.min(T.px(16), bw - T.px(6))
-        M.drawIconButton(self, zx, ty, bw, gridIcon(v == "list" and "list" or "apps"), o)
+        M.drawIconButton(self, zx, ty, bw, v == "list" and "view_list" or "view_grid", o)   -- (ZeD pixel icons)
         GV.toggles[#GV.toggles + 1] = { x = zx, y = ty, w = bw, h = bw, view = v, key = GV.key, id = id }
     end
     return tW + padX

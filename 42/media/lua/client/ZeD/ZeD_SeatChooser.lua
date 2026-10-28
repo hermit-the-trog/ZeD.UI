@@ -386,10 +386,12 @@ function ZeD_SeatChooser:drawDoor(r, shift, glyph)
     local T, A, M = ZeD.T, ZeD.Atoms, ZeD.Molecules
     local on = r.on
     A.drawSteppedShadow(self, r.x, r.y, r.w, r.w, INK)
-    local def = { iconTexture = (not shift) and tex("media/textures/ZeD/icons/exit.png") or nil, iconTintable = true, name = shift and tostring(r.d.n) or "" }
+    -- (the wheels' car_exit, a ZeD pixel icon: its drawing for the box, at its own size)
+    local pic, px = ZeD.PxIcon.tex("car_exit", T.px(on and U.DOOR_ICON_ON or U.DOOR_ICON))
+    local def = { iconTexture = (not shift) and pic or nil, iconTintable = true, name = shift and tostring(r.d.n) or "" }
     local ctx = T.ctx
     local cw, ch, ip = ctx.cellW, ctx.cellH, ctx.iconPx
-    ctx.cellW, ctx.cellH, ctx.iconPx = r.w, r.w, T.px(on and U.DOOR_ICON_ON or U.DOOR_ICON)
+    ctx.cellW, ctx.cellH, ctx.iconPx = r.w, r.w, px
     pcall(M.drawContextCell, self, r.x, r.y, def, { isActive = on }, T)
     ctx.cellW, ctx.cellH, ctx.iconPx = cw, ch, ip
     if not on then A.frame(self, r.x, r.y, r.w, r.w, INK) end

@@ -85,6 +85,7 @@ zedqa_watches2.lua | watches                     # the nine watch plates by day 
 zedqa_container_bottom.lua | cb                  # container buttons row at the bottom, campfire ribbon
 zedqa_container_controls.lua | ct                # Same type / Take all / Transfer all / To floor, campfire buttons
 zedqa_container_controls_captures.lua | cc       # ZeD and vanilla windows on the truck bed (mockup backdrops)
+zedqa_px_icons.lua | px | timeout=240           # ZeD's pixel icons outside the wheels: every id's drawings and the box rule, a test panel (each icon in every button state, the card's marks, the chevrons), the item card's marks and both rows live
 zedqa_button_case_game.lua | bg                  # sentence-case buttons across the windows; shirt taken back
 
 # ---- wheels (the pickup within 20 tiles: after the container scripts)

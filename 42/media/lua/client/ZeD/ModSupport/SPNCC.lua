@@ -867,11 +867,6 @@ local function drawItem(panel, win, st, it, y, contentW)
 end
 
 -- the header's List and Pictures: two separate icon buttons 4u apart, the shown one solid accent
-local GRID_ICONS = {}
-local function icon(name)
-    if GRID_ICONS[name] == nil then GRID_ICONS[name] = getTexture("media/textures/ZeD/icons/" .. name .. ".png") or false end
-    return GRID_ICONS[name] or nil
-end
 local _tgOpts = {}
 local function drawViewToggle(panel, win, st, x, y, w, headH)
     local T = ZeD.T
@@ -889,7 +884,7 @@ local function drawViewToggle(panel, win, st, x, y, w, headH)
         o.win = win
         o.hint = ZeD.tr(v == "list" and "UI_ZeD_SPNCC_ViewList" or "UI_ZeD_SPNCC_ViewPictures")
         o.id = "spnview:" .. v
-        ZeD.Molecules.drawIconButton(panel, zx, ty, bs, icon(v == "list" and "list" or "apps"), o)
+        ZeD.Molecules.drawIconButton(panel, zx, ty, bs, v == "list" and "view_list" or "view_grid", o)   -- (ZeD pixel icons)
         st.toggles[#st.toggles + 1] = { x = zx, y = ty, w = bs, h = bs, view = v }
     end
 end

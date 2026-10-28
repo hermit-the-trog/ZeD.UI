@@ -19,14 +19,28 @@ import map as M
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "out", "export")
+ROOT = os.path.normpath(os.path.join(HERE, "..", "..", ".."))
+GAME = os.path.join(ROOT, "42", "media", "textures", "ZeD")           # --game: the mod's own folder
+GAME_MAP = os.path.join(ROOT, "ZeDUI", "mockups", "zed_wheel_icons_v1")  # (where the handoff keeps the map)
 
 
-def main():
-    for sz in (16, 24, 32, 48): os.makedirs(os.path.join(OUT, "wheel", str(sz)), exist_ok=True)
+def same_pixels(path, im):
+    if not os.path.exists(path): return False
+    old = Image.open(path).convert("RGBA")
+    return old.size == im.size and old.getchannel("A").tobytes() == im.getchannel("A").tobytes()
+
+
+def main(game=False):
+    """game: write straight into the mod (42/media/textures/ZeD/wheel/<size>/ and the handoff's map) instead of out/"""
+    out, map_dir = (GAME, GAME_MAP) if game else (OUT, OUT)
+    for sz in (16, 24, 32, 48): os.makedirs(os.path.join(out, "wheel", str(sz)), exist_ok=True)
+    written = 0
     for id_ in kit.ICONS:
         a, b = kit.render(id_, 16), kit.render(id_, 24)
         for im, sz in ((a, 16), (b, 24), (a.resize((32, 32), Image.NEAREST), 32), (b.resize((48, 48), Image.NEAREST), 48)):
-            im.save(os.path.join(OUT, "wheel", str(sz), "zw_" + id_ + ".png"), optimize=True)
+            path = os.path.join(out, "wheel", str(sz), "zw_" + id_ + ".png")
+            if game and same_pixels(path, im): continue      # (unchanged drawings keep their files: no churn in git)
+            im.save(path, optimize=True); written += 1
     used = M.used()
     data = {
         "icons": {k: {"group": v["cat"], "means": v["means"], "mapped": k in used} for k, v in kit.ICONS.items()},
@@ -36,10 +50,12 @@ def main():
         "TEX": [{"group": g, "texture": t, "id": i} for g, t, i in M.TEX],
         "ZED": [{"wheel": w, "slice": s, "now": n, "id": i} for w, s, n, i in M.ZED],
         "TABS": [{"tab": t, "id": i} for t, i in M.TABS],
+        "ROW": [{"window": w, "button": b, "id": i} for w, b, i in M.ROW],
     }
-    with open(os.path.join(OUT, "wheel_icons_map.json"), "w", encoding="utf-8") as f: json.dump(data, f, indent=1)
-    print(len(kit.ICONS), "icons,", 4 * len(kit.ICONS), "files")
+    os.makedirs(map_dir, exist_ok=True)
+    with open(os.path.join(map_dir, "wheel_icons_map.json"), "w", encoding="utf-8") as f: json.dump(data, f, indent=1)
+    print(len(kit.ICONS), "icons,", 4 * len(kit.ICONS), "files,", written, "written")
 
 
 if __name__ == "__main__":
-    main()
+    main(game="--game" in sys.argv)

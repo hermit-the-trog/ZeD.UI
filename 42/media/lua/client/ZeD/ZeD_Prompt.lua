@@ -120,14 +120,8 @@ function P.isCostly(fn)
 end
 
 -- System 7's alert marks (white glyphs, tinted when drawn)
-local MARKS = { question = "question", note = "info", stop = "octagon-minus" }
-local _markTex = {}
-local function markTex(kind)
-    local name = MARKS[kind]
-    if not name then return nil end
-    if _markTex[name] == nil then _markTex[name] = getTexture("media/textures/ZeD/icons/" .. name .. ".png") or false end
-    return _markTex[name] or nil
-end
+-- (ZeD pixel icons: the wheels' help and info, and the stop sign)
+local MARKS = { question = "help", note = "info", stop = "stop" }
 
 -- ---------------------------------------------------------------------------
 -- RICH TEXT — vanilla's tags (<LINE>, <SIZE:medium>, <IMAGE:...>, colours...)
@@ -1053,9 +1047,9 @@ function ZeD_Prompt:prerender()
     for _, r in ipairs(g.boxes or {}) do insetBox(self, r) end
     -- mark + words
     if g.mark then
-        local tex = markTex(g.mark.kind)
+        local id = MARKS[g.mark.kind]
         local tint = g.mark.kind == "stop" and T.danger or tc
-        if tex then A.drawIcon(self, tex, g.mark.x, g.mark.y, g.mark.sz, 1, tint) end
+        if id then A.drawPxIcon(self, id, g.mark.x, g.mark.y, g.mark.sz, 1, tint) end
     end
     if g.msg then
         for i, line in ipairs(g.msg.lines) do

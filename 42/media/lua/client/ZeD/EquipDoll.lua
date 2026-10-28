@@ -554,11 +554,6 @@ end
 -- ----------------------------------------------------------------------------
 -- The List | Doll toggle in the Equipped heading, and the card's layer strip
 -- ----------------------------------------------------------------------------
-local ICONS = {}
-local function icon(name)
-    if ICONS[name] == nil then ICONS[name] = getTexture("media/textures/ZeD/icons/" .. name .. ".png") or false end
-    return ICONS[name] or nil
-end
 
 -- List | Doll: two separate icon buttons 4u apart at the heading's right edge,
 -- the active one solid accent; each names itself in the library's hint after the
@@ -582,7 +577,7 @@ function D.drawToggle(panel, win, x, y, w, headerH, mx, my)
         o.focus, o.hint, o.id, o.win = gpFocused(win, key) or nil, text, key, win
         o.help = ZeD.tr(v == "list" and "UI_ZeD_Doll_ListHelp" or "UI_ZeD_Doll_DollHelp")
         o.iconSize = math.min(T.px(16), bw - T.px(6))
-        ZeD.Molecules.drawIconButton(panel, zx, by, bw, icon(v == "list" and "list" or "equip-doll"), o)
+        ZeD.Molecules.drawIconButton(panel, zx, by, bw, v == "list" and "view_list" or "stand", o)   -- (ZeD pixel icons)
         zones[#zones + 1] = { x = zx, y = by, w = bw, h = bw, view = v, key = key, hint = text }
     end
     win._equipViewZones = zones

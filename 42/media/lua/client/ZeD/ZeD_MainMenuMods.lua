@@ -51,7 +51,7 @@ local KV_LABEL_W, KV_ROW_H = 96, 20
 local NOTE_MS = 6000
 
 local CATEGORY_ICON = { map = "Item_Map", vehicle = "Item_CarTire", features = "Item_ElectronicsScrap", modpack = "Item_SewingBox" }
-local STAR = "media/textures/ZeD/icons/icon-star.png"
+local STAR = "star"   -- a ZeD pixel icon (the item card's Fav)
 
 local function ms() return MainScreen and MainScreen.instance end
 local function model() return ModSelector and ModSelector.instance and ModSelector.instance.model end
@@ -1207,7 +1207,7 @@ function ZeD_MMMods:drawList(x, y, w, h)
     self._list = { x = x, y = vy, w = w, h = vh }
     local gp = MM.gamepad()
     local cb = T.checkboxSz
-    local star = MM.tex and MM.tex(STAR, true) or getTexture(STAR)
+    local star = ZeD.PxIcon.has(STAR)
     if #rows == 0 then
         local msg = (self.filter == "favs") and ZeD.tr("UI_ZeD_Mods_EmptyFavs") or ((self.filter == "problems") and ZeD.tr("UI_ZeD_Mods_EmptyProblems")
             or ((self.filter == "conflicts") and ZeD.tr(MS.res.done and "UI_ZeD_Mods_EmptyConflicts" or "UI_ZeD_Mods_EmptyChecking") or ZeD.tr("UI_ZeD_Mods_EmptyNone")))
@@ -1274,7 +1274,7 @@ function ZeD_MMMods:drawList(x, y, w, h)
             local sy = ry + math.floor((rh - starW) / 2)
             local sHot = MM.ctx.hot == "mods:star:" .. d.modId
             if star and (d.favorite or sHot) then
-                ZeD.Atoms.drawIcon(self, star, sx, sy, starW, d.favorite and 1 or 0.5, d.favorite and T.accent or T.textDim)
+                ZeD.Atoms.drawPxIcon(self, STAR, sx, sy, starW, d.favorite and 1 or 0.5, d.favorite and T.accent or T.textDim)
             end
             local cy0, ch = math.max(ry, vy), math.min(ry + rh, vy + vh) - math.max(ry, vy)
             self._hits[#self._hits + 1] = { id = "mods:row:" .. d.modId, x = ax + x, y = ay + cy0, w = rw, h = ch, fn = function() self:clickRow(d) end }

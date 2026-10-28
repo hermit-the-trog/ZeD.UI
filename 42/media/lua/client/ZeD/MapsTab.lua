@@ -1148,7 +1148,7 @@ end
 -- lacks the pen for takes the library's disabled look: the help line gives
 -- vanilla's reason, and a press still says it over the character's head.
 
-local UNFOLD_ICON, FOLD_ICON = "media/textures/ZeD/icons/expand.png", "media/textures/ZeD/icons/contract.png"
+local UNFOLD_ICON, FOLD_ICON = "expand", "contract"   -- ZeD pixel icons
 local RADIO_GAP, CHOICE_GAP = 4, 10   -- design units: a radio to its words, between choices (the sort strip's)
 local _btnOpts, _radioOpts = {}, {}
 local _textGlyphs, _markTex = {}, {}
@@ -1264,12 +1264,7 @@ local function _unfoldButton(panel, win, bx, by, bs, focId, hov)
     o.id, o.iconSize, o.tint, o.win = "map:popout", nil, nil, nil
     o.hint = o.hover and ZeD.tr(open and "UI_ZeD_Map_PadFold" or "UI_ZeD_Map_Unfold") or nil
     o.help = o.hover and ZeD.tr(open and "UI_ZeD_Map_HelpFold" or "UI_ZeD_Map_HelpUnfold") or nil
-    if not win._mapPopoutTex then
-        win._mapPopoutTex = getTexture(UNFOLD_ICON)
-        win._mapFoldTex   = getTexture(FOLD_ICON)
-    end
-    local tex = open and win._mapFoldTex or win._mapPopoutTex
-    ZeD.Molecules.drawIconButton(panel, bx, by, bs, tex or _textGlyph(open and "x" or "+"), o)
+    ZeD.Molecules.drawIconButton(panel, bx, by, bs, open and FOLD_ICON or UNFOLD_ICON, o)
     win._mapPopoutZone = { x = bx, y = by, w = bs, h = bs }
 end
 
