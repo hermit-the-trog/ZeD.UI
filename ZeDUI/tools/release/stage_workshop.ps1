@@ -283,6 +283,15 @@ if (-not $DryRun) {
         }
     }
 
+    # the licence travels with the mod: the repo's LICENSE goes in as 42/media/LICENSE.txt
+    # (a loose file beside media/ would be dropped above; the game ignores unknown files under media/)
+    $lic = Join-Path $ModRoot 'LICENSE'
+    if (Test-Path -LiteralPath $lic) {
+        $licDest = Join-Path $Stage '42/media/LICENSE.txt'
+        [void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($licDest))
+        [IO.File]::Copy($lic, $licDest, $true)
+    } else { Warn "LICENSE not found at the mod root; the upload goes up without it" }
+
     # ZeD picks, the helper mod for file picks: its two files as they are
     if (Test-Path -LiteralPath (Join-Path $PicksSrc '42/mod.info')) {
         foreach ($f in Get-ChildItem -LiteralPath $PicksSrc -Recurse -File -Force) {
