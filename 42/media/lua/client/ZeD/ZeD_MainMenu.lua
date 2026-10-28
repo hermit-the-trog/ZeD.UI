@@ -56,11 +56,16 @@ local NEEDLE   = { 419, 121, 1, 8 }    -- the red tuning needle
 local NEEDLE_C = { r = 0x3c / 255, g = 0x0e / 255, b = 0x0f / 255 }   -- equals the baked needle (it must not change colour when it drifts)
 local POWER    = { 126, 243, 10, 10 }  -- the case's power button: Quit
 
--- The wallpaper: vanilla's old title painting and its lightning frame, cropped to the
--- screen's 4:3 around the figures (1440 x 1080 from x 470 of the 1920 x 1080 picture).
--- Own copies: the mod blanks vanilla's media/ui/Title*.png so the engine draws no
--- painting behind vanilla's screens.
-local WALLPAPER, WALLPAPER_ZAP = TEX .. "wallpaper.png", TEX .. "wallpaper_lightning.png"
+-- The wallpaper: vanilla's old title painting and its lightning frame, drawn from the
+-- game's own files (Oct 28 2026; before, the mod shipped cropped copies and blanked the
+-- game's files so the engine drew nothing behind vanilla's screens). The game keeps each
+-- picture as four tiles, media/ui/Title*.png, 1024 + 896 wide by 1024 + 56 tall, that fit
+-- together into 1920 x 1080; here they are scaled to the tube's height and cut to its 4:3
+-- around the figures (1440 wide from x 470). The engine draws the same picture itself only
+-- when the title video is off, and then under the desk, where it does not show.
+local WALL_TILES = { "media/ui/Title.png", "media/ui/Title2.png", "media/ui/Title3.png", "media/ui/Title4.png" }
+local WALL_ZAP_TILES = { "media/ui/Title_lightning.png", "media/ui/Title_lightning2.png", "media/ui/Title_lightning3.png", "media/ui/Title_lightning4.png" }
+local WALL_W, WALL_H, WALL_SPLIT_X, WALL_SPLIT_Y, WALL_CROP_X = 1920, 1080, 1024, 1024, 470
 local WALL_DIM = 0.55        -- the wallpaper sits back behind the windows
 
 -- The wallpaper choice (director, Oct 16 2026: "an option to change the desktop wallpaper on
@@ -122,8 +127,7 @@ end
 -- here and not cached, so a texture system not yet ready cannot leave a "missing" behind.
 pcall(function()
     for _, n in ipairs({ "desk.png", "desk_lampdim.png", "dial_clean.png" }) do Texture.getSharedTexture(TEX .. n, NEAREST) end
-    getTexture(WALLPAPER)
-    getTexture(WALLPAPER_ZAP)
+    for i = 1, 4 do getTexture(WALL_TILES[i]); getTexture(WALL_ZAP_TILES[i]) end
 end)
 
 local function rnd(a, b) return a + (b - a) * ZombRand(10000) / 10000 end
@@ -341,7 +345,25 @@ local function wallVideo()
     return MM._wallVid or nil
 end
 
--- The painting fills the tube (both are 4:3), lightning over it, then dimmed.
+-- The four tiles of a 1920 x 1080 picture, scaled to the tube's height and cut to its 4:3
+-- (the tile edges land on the same whole pixels, so no seam shows between them).
+local function drawTiles(p, tiles, tx, ty, tw, th, alpha)
+    local a, b, c, d = tex(tiles[1], true), tex(tiles[2], true), tex(tiles[3], true), tex(tiles[4], true)
+    if not (a and b and c and d) then return false end
+    local k = th / WALL_H
+    local x0 = tx - math.floor(WALL_CROP_X * k)
+    local x1, x2 = x0 + math.floor(WALL_SPLIT_X * k), x0 + math.floor(WALL_W * k)
+    local y1, y2 = ty + math.floor(WALL_SPLIT_Y * k), ty + th
+    p:setStencilRect(tx, ty, tw, th)
+    p:drawTextureScaled(a, x0, ty, x1 - x0, y1 - ty, alpha, 1, 1, 1)
+    p:drawTextureScaled(b, x1, ty, x2 - x1, y1 - ty, alpha, 1, 1, 1)
+    p:drawTextureScaled(c, x0, y1, x1 - x0, y2 - y1, alpha, 1, 1, 1)
+    p:drawTextureScaled(d, x1, y1, x2 - x1, y2 - y1, alpha, 1, 1, 1)
+    p:clearStencilRect()
+    return true
+end
+
+-- The painting fills the tube (cut to its 4:3), lightning over it, then dimmed.
 function MM.drawWallpaper(p, L, t)
     local tx, ty, tw, th = L.tx, L.ty, L.tw, L.th
     -- the new one: Build 42's title video, cut to the tube's 4:3 (its middle, where the room is)
@@ -358,13 +380,9 @@ function MM.drawWallpaper(p, L, t)
             return
         end
     end
-    local a = tex(WALLPAPER, true)
-    if a then p:drawTextureScaledAspect(a, tx, ty, tw, th, 1, 1, 1, 1) end
+    drawTiles(p, WALL_TILES, tx, ty, tw, th, 1)
     local zap = zapLevel(t)
-    if zap > 0 then
-        local b = tex(WALLPAPER_ZAP, true)
-        if b then p:drawTextureScaledAspect(b, tx, ty, tw, th, zap, 1, 1, 1) end
-    end
+    if zap > 0 then drawTiles(p, WALL_ZAP_TILES, tx, ty, tw, th, zap) end
     p:drawRect(tx, ty, tw, th, WALL_DIM, 0, 0, 0)
 end
 
@@ -1503,8 +1521,10 @@ end
 -- (other files add pictures to wait for: MM.readyChecks, functions that return false while not in)
 MM.readyChecks = MM.readyChecks or {}
 function MM.assetsReady()
-    if not (texReady(TEX .. "desk.png") and texReady(TEX .. "desk_lampdim.png") and texReady(TEX .. "dial_clean.png")
-        and texReady(WALLPAPER, true) and texReady(WALLPAPER_ZAP, true)) then return false end
+    if not (texReady(TEX .. "desk.png") and texReady(TEX .. "desk_lampdim.png") and texReady(TEX .. "dial_clean.png")) then return false end
+    for i = 1, 4 do
+        if not (texReady(WALL_TILES[i], true) and texReady(WALL_ZAP_TILES[i], true)) then return false end
+    end
     for _, fn in pairs(MM.readyChecks) do
         local ok, r = pcall(fn)
         if ok and r == false then return false end

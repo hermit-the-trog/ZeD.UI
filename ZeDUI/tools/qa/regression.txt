@@ -162,7 +162,7 @@ zedqa_soak.lua | soak | timeout=2700             # every tab for 12 rounds at th
 #
 # ---- never unattended (director; zedqa_run.ps1 refuses these names)
 # zedqa_new_qa_save.lua (makes a save), zedqa_mod_workshop.lua, zedqa_mods_open.lua,
-# zedqa_mods_profiles.lua, zedqa_mods_nag.lua, zedqa_workshop_upload.lua (Workshop: never upload without sign-off),
+# zedqa_mods_profiles.lua, zedqa_mods_nag.lua, zedqa_wallpaper.lua, zedqa_workshop_upload.lua (Workshop: never upload without sign-off),
 # zedqa_overnight_game.lua, zedqa_overnight_verify.lua, zedqa_menu_audit.lua, zedqa_menu_case.lua,
 # zedqa_menu_nav.lua, zedqa_desktop.lua, zedqa_desk_v3.lua, zedqa_menushot.lua, zedqa_titlevideo.lua,
 # zedqa_death_sleep.lua (kills the character), zedqa_modapi_probe.lua, zedqa_modapi_probe2.lua,
