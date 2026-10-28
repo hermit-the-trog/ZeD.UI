@@ -34,7 +34,11 @@ end
 local function enter(v, seat)
     if not v then return end
     say("enter " .. v:getScriptName() .. " dist=" .. string.format("%.1f", v:DistTo(p)) .. " physics=" .. tostring(v:isPhysicsActive()))
-    if v:DistTo(p) > 12 then say("too far, skipped"); return end
+    -- (Oct 27 2026: a car can land just past reach; the character goes to it instead of skipping)
+    if v:DistTo(p) > 12 then
+        p:setX(v:getX() - 2); p:setY(v:getY()); p:setLastX(p:getX()); p:setLastY(p:getY())
+        say("moved beside it, dist=" .. string.format("%.1f", v:DistTo(p)))
+    end
     v:enter(seat, p); triggerEvent("OnEnterVehicle", p)
 end
 local function leave()
@@ -86,6 +90,7 @@ at(270, function() point(4) end)
 at(280, function() shot("v05_police_point") end)
 at(285, function() closeSeats() end)
 at(295, function()
+    if not p:getVehicle() then say("ERR not seated in the police car: the lightbar is not opened"); return end
     lbUI = ISLightbarUI:new(0, 0, 430, 280, p); lbUI:initialise(); lbUI:addToUIManager()
     say(string.format("lightbar x=%d y=%d w=%d h=%d", lbUI:getX(), lbUI:getY(), lbUI:getWidth(), lbUI:getHeight()))
 end)
