@@ -1,0 +1,2 @@
+zedqa_prelude.lua | pre
+zedqa_world_pad_take.lua | wpt | timeout=900     # pad: into the World window lit, containers by Down, card on its primary, Take, B, object card, Char parity, focus back after menu / transfer, belt in and out, every tab's bottom (both sizes); crate and wounds taken away

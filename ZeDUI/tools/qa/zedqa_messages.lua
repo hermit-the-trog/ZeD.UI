@@ -39,6 +39,10 @@ step(10, function()
     pcall(function() ZeD.Settings.messagesCatchOption:setValue(2); ZeD.Settings.messagesToastOption:setValue(2) end)
     MS.setPopups(SRC, false)
     MS.qaSource = SRC
+end)
+-- (checked a few ticks after the clear: the belt drops the envelope on its next layout, and an
+-- earlier script in the run may have left one; Oct 27 2026)
+step(10, function()
     check(lampBox() == nil, "nothing kept: no envelope on the belt")
 end)
 

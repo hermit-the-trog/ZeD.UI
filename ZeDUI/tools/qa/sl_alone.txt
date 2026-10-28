@@ -1,0 +1,2 @@
+zedqa_prelude.lua | pre
+zedqa_seat_lightbar_vanilla.lua | sl             # seat chooser and lightbar from vanilla's entry points
