@@ -8,7 +8,7 @@
  "WALL_R": "#1e140c",
  "DESK_L": "#1f0d07",
  "DESK_R": "#0d0503",
- "colours": 203,
+ "colours": 233,
  "lua": [
   "local HDD_OFF    = { r = 0x1f / 255, g = 0x14 / 255, b = 0x04 / 255 }",
   "local FLOPPY_OFF = { r = 0x0e / 255, g = 0x18 / 255, b = 0x11 / 255 }",
