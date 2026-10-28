@@ -974,7 +974,7 @@ if ZeD.TabPx and ZeD.TabPx.ICONS then ZeD.TabPx.ICONS[TAB_ID] = true end
 
 ZeD_CharacterWindow.addTab({
     id = TAB_ID, after = "skills", group = 2, glyph = "T",
-    iconName = "traits-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/traits-tab-white.png"),
+    iconName = "traits-tab-white",
     label = function() return getText("UI_TAS_Tab") end,
     render = S.render,
     -- (the wheel scrolls the details when the pointer is over them, the list otherwise)

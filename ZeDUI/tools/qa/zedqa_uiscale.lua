@@ -1,10 +1,11 @@
--- ZeD QA: UI scale option (Auto / fixed steps) + sized tab icons
+-- ZeD QA: UI scale option (Auto / fixed steps) + the pixel icon drawn for a 16-unit box (ZeD.PxIcon, Oct 28 2026;
+-- the baked tab picture sizes it read before are gone)
 local function W() return ZeD_WorldWindow.getWindow() end
 local function C() return ZeD_CharacterWindow.getWindow() end
 local function report(tag)
   local T = ZeD.T
   local sz = T.px(16)
-  local tex = ZeD.Atoms.sizedTexture("media/textures/ZeD/TabIcons/", "loot-tab-white", sz)
+  local tex = ZeD.PxIcon.tex("crate", sz)
   local w, c = W(), C()
   print("ZEDQA scale " .. tag .. " option=" .. tostring(ZeD.Settings.uiScaleOption:getValue()) .. " userScale=" .. tostring(ZeD.Scale.userScale)
     .. " root=" .. tostring(ZeD.Scale.root()) .. " iconDrawn=" .. sz .. " iconTex=" .. tostring(tex and (tex:getWidth() .. "x" .. tex:getHeight()))

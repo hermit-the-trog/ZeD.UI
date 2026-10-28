@@ -58,15 +58,14 @@ function D.safe(fn, ...) return safe(fn, ...) end
 
 -- ---------------------------------------------------------------------------
 -- pictures: a wheel icon by its id (icon =, ZeD_Wheel draws it by the cell's
--- box), a tab by its icon's name (tab =, the wheel icon for it, else the tab's
--- own), or a texture as given (tex =: items, the controller's glyphs)
+-- box), a tab by its icon's name (tab =, the wheel icon for it: W.TAB_ICONS),
+-- or a texture as given (tex =: items, the controller's glyphs)
 -- ---------------------------------------------------------------------------
 local _tex = {}
 local function texOf(path)
     if _tex[path] == nil then _tex[path] = getTexture(path) or false end
     return _tex[path] or nil
 end
-function D.tabIcon(name) return texOf("media/textures/ZeD/TabIcons/" .. name .. ".png") end
 
 -- an entry's picture: texture, tintable, wheel icon id
 local function pictureOf(e)
@@ -74,7 +73,6 @@ local function pictureOf(e)
     if e.tab then
         local id = W.TAB_ICONS[e.tab]
         if id then return (W.iconTex(id, 16)), true, id end
-        local t = D.tabIcon(e.tab); if t then return t, true end
     end
     if e.tex then return e.tex, e.tint == true end
     return nil, false

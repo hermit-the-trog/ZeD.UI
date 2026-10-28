@@ -1436,8 +1436,6 @@ end
 -- ---------------------------------------------------------------------------
 local function buildZoneConfigs(item)
     local T    = ZeD.T
-    local AS   = ZeD.ActionStrip
-    local texPad = AS.getTex("housekeeping-057-pillow")
     local zones  = getClothingZones(item)
     local cfgs   = {}
     for _, zone in ipairs(zones) do
@@ -1451,9 +1449,9 @@ local function buildZoneConfigs(item)
             if zone.flagText == "Leather" then dockColor = T.matLeather
             elseif zone.flagText == "Denim" then dockColor = T.matDenim
             elseif zone.flagText == "Fabric" then dockColor = T.matFabric end
-            local dockIcon  = zone.condIconKey and AS.getTex(zone.condIconKey) or texPad
+            -- (the dock's mark is drawn by ItemCardOrganism._drawDockCell from the zone's action)
             local dockState = (not zone.condIconKey) and "grey" or "active"
-            dock = { flag = dockFlag, color = dockColor, icon = dockIcon, state = dockState }
+            dock = { flag = dockFlag, color = dockColor, state = dockState }
         end
         -- Per-zone soiled flags: BLOOD ONLY. Dirt + wet are item-level (vanilla
         -- exposes only getBloodlevelForPart per zone); they render as a single
