@@ -50,7 +50,7 @@ Fixed in S123 (20 commits): five dead verb names; stale verb cluster; translator
 ## Known broken / unverified / design items
 
 1. **Nothing was exercised with a physical controller.** A/X/Y hold timers, LB/RB chords, hold-X drag, the S122 context-menu anchor report, and the real feel of the prompt strip + sounds need one.
-2. **No female skeleton asset** — `fig-bg-*.png` is male; the female figure shows a dim `f-body.png` silhouette instead (design asset needed).
+2. ~~No female skeleton asset~~ - done Oct 17 2026: `fig-bg-f-dark.png` / `fig-bg-f-light.png` (lit pixel-art skeletons), picked by sex in `ZeD_BodyFigure.lua`; the old `f-body.png` silhouette is in `body/originals/`.
 3. **Resolution scaling: done (S124).** A **UI scale** mod option (Auto, or a fixed 0.5x-2x; Auto = 1x at 1080p, 2x at 4K) overrides the automatic size, and the tab icons are baked at every drawn size (8-64 px, `ZeDUI/tools/icons/bake_tab_icons.py`) so they stay crisp. Root scale = screen height / 1080 x a mild font-option multiplier; tokens, text (distance-field Fira), borders, the HUD props, both windows, the tooltip frame and the embedded map labels draw in design units through `T.px`; a root change closes and reopens the pair. The global `getTextManager` is the `ZeD.TM` proxy (role fonts measure zoomed; explicit-zoom paths use `ZeD.Text.realTM()`). Left: the Java-drawn item tooltip (`ObjectTooltip`) keeps the engine size.
 4. On a fresh world load before the first ZeD open, the vanilla collapsed inventory strips show at the top.
 5. Container strip lists only equipped bags + key rings (design question).
