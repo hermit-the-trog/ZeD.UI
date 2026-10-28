@@ -26,11 +26,18 @@ pointed), the figures on a template ("follow a template or doll"). Signed off Oc
   Both replace licensed pictures; the game draws them through `ZeD.PxIcon` (`Atoms.lua`), the wheels' lookup.
 - `review_row.py`: their review sheets in `ZeDUI/mockups/zed_strip_icons_v1/` (today against new, the rows in both
   windows and themes, the card's marks, true size at each UI scale).
+- `i_ctx1.py`..`i_ctx6.py` (Oct 27-28 2026): the right-click menu's icons, a module per review group (everyday
+  actions; food and cooking; drinks and fluids; crafting and building; combat and medical; vehicles, power, farming,
+  animals, the safehouse and the rest), 199 new; signed off by the director group by group. `map.py` CTX gives each
+  of the menu's 389 picture names (`shared/ZeD/ContextIcons.lua`) its icon; `export.py --game` writes that table as
+  `42/media/lua/shared/ZeD/ContextPxIcons.lua`, which `ContextMenuRegistry` reads.
+- `review_ctx.py <group>`: their review sheets in `ZeDUI/mockups/zed_menu_icons_v1/` (real menus today against new at
+  1x and 1.75x, then the group's catalogue).
 
 ## Run
 ```
 python export.py            # the textures and the map, into out/export/
-python export.py --game     # straight into 42/media/textures/ZeD/wheel/ and the handoff's map (unchanged pixels keep their files)
+python export.py --game     # straight into 42/media/textures/ZeD/wheel/, the handoff's map and ContextPxIcons.lua (unchanged pixels keep their files)
 python -c "import allicons, review as R; R.true_size(list(R.ICONS), 'true.png')"
 ```
 Pillow is the only need.

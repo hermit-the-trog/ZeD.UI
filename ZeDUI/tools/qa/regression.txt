@@ -32,6 +32,7 @@ suite_perf.lua | perf                            # ms per tick on every tab + re
 zedqa_audit_fixes.lua | af | expect=QA: a tab that throws   # throwing tab logs once, equip card hides, card outlives item, weight
 zedqa_card_pad.lua | cp                          # pad into the item card and back, Health tab drawer reach
 zedqa_ctxlist.lua | cl                           # context menu as a list, submenu, back to the strip
+zedqa_ctx_icons.lua | cx | timeout=300           # the right-click menu's pixel icons: every picture name has one, the lookup in the game's words, every icon in strip cells, the strip and the list on four things and the floor
 zedqa_onepath.lua | op                           # single-path fixes: Move To, Rename, double-click, Take all, card verbs
 zedqa_grid.lua | grid                            # inventory grid, cell card, pad walk, List | Grid toggle
 zedqa_sort_groups.lua | sg | timeout=420         # category headers only under Sort by Category; name A-Z / Z-A, cond, wt flat; list + grid, single + multi, both windows

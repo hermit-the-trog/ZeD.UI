@@ -3668,7 +3668,12 @@ function ZeD.Molecules.drawContextCell(panel, x, y, def, flags, T)
         else
             tint = T.iconWhite
         end
-        A.drawIcon(panel, def.iconTexture, iconX, iconY, ctx.iconPx, alpha, tint)
+        -- def.pxIcon (ZeD's pixel icon's id): its drawing that fits the box, at its own size
+        if def.pxIcon then
+            A.drawPxIcon(panel, def.pxIcon, iconX, iconY, ctx.iconPx, alpha, tint)
+        else
+            A.drawIcon(panel, def.iconTexture, iconX, iconY, ctx.iconPx, alpha, tint)
+        end
     else
         -- S99: no-icon fallback — draw first letter(s) in a box. Uses the
         -- first two letters of def.name (stripping non-letters) in F1 (mono).

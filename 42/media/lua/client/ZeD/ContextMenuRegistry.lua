@@ -11,6 +11,7 @@
 -- ============================================================================
 
 require "ZeD/ContextIcons"   -- provides ZeD.ContextIcons
+require "ZeD/ContextPxIcons" -- provides ZeD.ContextPxIcons (the pixel icon for each picture)
 require "ZeD/Tr"              -- ZeD.tr
 
 ZeD = ZeD or {}
@@ -298,9 +299,14 @@ end
 -- resolved to display names so localized builds still match.
 -- ============================================================================
 
+-- A picture name drawn by ZeD's pixel icon (ZeD.ContextPxIcons, Oct 28 2026) gives its
+-- 16 drawing and its id: the cell draws the id's drawing that fits its icon box, at its
+-- own size (ZeD.Atoms.drawPxIcon). A name a mod adds keeps its picture from icons/.
 local _iconCache = {}
 local function getIconTexture(codepoint)
     if not codepoint then return nil end
+    local id = ZeD.ContextPxIcons and ZeD.ContextPxIcons[codepoint]
+    if id and ZeD.PxIcon and ZeD.PxIcon.has(id) then return ZeD.PxIcon.tex(id, 16), id end
     if _iconCache[codepoint] == nil then
         _iconCache[codepoint] = getTexture("media/textures/ZeD/icons/" .. codepoint .. ".png") or false
     end
@@ -585,7 +591,7 @@ local function makeActionDef(option, index, vanillaMenu, target)
     -- (iconTintable=true). Vanilla iconTexture / itemForTexture textures are
     -- already colored and must NOT be tinted ? collapsing an item sprite to
     -- a single color would destroy it.
-    def.iconTexture = resolveIconForName(option.name)
+    def.iconTexture, def.pxIcon = resolveIconForName(option.name)
     if def.iconTexture then
         def.iconTintable = true
     else

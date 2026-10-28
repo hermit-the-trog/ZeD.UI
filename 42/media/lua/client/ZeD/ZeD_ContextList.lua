@@ -34,7 +34,8 @@ ZeD_ContextList = ZeD_Panel:derive("ZeD_ContextList")
 
 -- design units (1 unit = 1 px at 1080p), the main menu's pull-down sizes
 local ROW_H, PAD_X, PAD_Y, SEP_H, MIN_W, MAX_W = 24, 12, 4, 9, 200, 420
-local ICON, HEAD_H, BALLOON_W = 14, 26, 280
+-- (ICON 16: the pixel icons' smallest drawing, drawn at its own size at 1x)
+local ICON, HEAD_H, BALLOON_W = 16, 26, 280
 
 function ZeD_ContextList:new(player, anchorMode, anchorX, anchorY, target, actionTree, vanillaMenu)
     local sw, sh = getCore():getScreenWidth(), getCore():getScreenHeight()
@@ -292,7 +293,9 @@ function ZeD_ContextList:prerender()
                 local tc = onFocus and T.textOnFocus or T.text
                 local ix = x + padX
                 local isz = T.px(ICON)
-                if def.iconTexture then
+                if def.pxIcon then
+                    A.drawPxIcon(self, def.pxIcon, ix, cy + math.floor((rowH - isz) / 2), isz, a, tc)
+                elseif def.iconTexture then
                     local tint = def.iconTintable and tc or { r = 1, g = 1, b = 1 }
                     A.drawIcon(self, def.iconTexture, ix, cy + math.floor((rowH - isz) / 2), isz, a, tint)
                 end
