@@ -1,0 +1,21 @@
+ZEDQA wp start
+ZEDQA wp wallpaper was original, video effects false
+ZEDQA wp PASS the game's own media/ui/Title.png loads at its size (1024x1024)
+ZEDQA wp PASS the game's own media/ui/Title2.png loads at its size (896x1024)
+ZEDQA wp PASS the game's own media/ui/Title3.png loads at its size (1024x56)
+ZEDQA wp PASS the game's own media/ui/Title4.png loads at its size (896x56)
+ZEDQA wp PASS the game's own media/ui/Title_lightning.png loads at its size (1024x1024)
+ZEDQA wp PASS the game's own media/ui/Title_lightning2.png loads at its size (896x1024)
+ZEDQA wp PASS the game's own media/ui/Title_lightning3.png loads at its size (1024x56)
+ZEDQA wp PASS the game's own media/ui/Title_lightning4.png loads at its size (896x56)
+ZEDQA wp PASS no copy of the painting in the mod
+ZEDQA wp PASS the desk's pictures are ready
+ZEDQA wp shot zqa_wp_01_original.png
+ZEDQA wp lightning asked for
+ZEDQA wp shot zqa_wp_02_lightning.png
+ZEDQA wp PASS New wallpaper set (new)
+ZEDQA wp shot zqa_wp_03_new_video.png
+ZEDQA wp PASS Original wallpaper back (original)
+ZEDQA wp shot zqa_wp_04_original_again.png
+ZEDQA wp 12 pass, 0 fail
+ZEDQA wp DONE
