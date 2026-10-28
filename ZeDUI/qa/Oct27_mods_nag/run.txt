@@ -1,0 +1,21 @@
+ZEDQA mn start
+ZEDQA mn flag cleared: isModsPopupDone=false welcomeOff was true
+ZEDQA mn hooked=true
+ZEDQA mn PASS a ZeD prompt is on top (ZeD_Prompt)
+ZEDQA mn PASS it is the rich note (rich)
+ZEDQA mn PASS one OK, no Yes / No
+ZEDQA mn PASS vanilla's title in the heading (<H1>About mods<BR>Mods are created by me)
+ZEDQA mn PASS vanilla's words in the body
+ZEDQA mn PASS vanilla's panel not shown
+ZEDQA mn PASS once-per-run flag set
+ZEDQA mn PASS the Mods screen is up behind it (mods)
+ZEDQA mn PASS centred on the screen (1920,1079 of 3840x2160)
+ZEDQA mn shot zqa_mn_01_note.png
+ZEDQA mn PASS OK closes the note
+ZEDQA mn PASS the Mods screen stays up (mods)
+ZEDQA mn shot zqa_mn_02_after_ok.png
+ZEDQA mn PASS second open: no note (once per run)
+ZEDQA mn PASS second open: no vanilla panel
+ZEDQA mn 13 pass, 0 fail
+ZEDQA mn DONE
+default.txt, ModOptions.ini and autoload put back
