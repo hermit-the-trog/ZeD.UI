@@ -393,7 +393,7 @@
   "stand": {
    "group": "fig",
    "means": "a person standing: you, the character",
-   "mapped": false
+   "mapped": true
   },
   "wave": {
    "group": "fig",
@@ -423,7 +423,7 @@
   "walk": {
    "group": "fig",
    "means": "a person walking: walk",
-   "mapped": false
+   "mapped": true
   },
   "run": {
    "group": "fig",
@@ -443,7 +443,7 @@
   "climb": {
    "group": "fig",
    "means": "a person climbing a ladder: climb",
-   "mapped": false
+   "mapped": true
   },
   "carry": {
    "group": "fig",
@@ -803,22 +803,22 @@
   "star": {
    "group": "row",
    "means": "a five-point star: a favourite",
-   "mapped": false
+   "mapped": true
   },
   "craft_off": {
    "group": "row",
    "means": "the hammer and wrench, struck through: not to be used in crafting",
-   "mapped": false
+   "mapped": true
   },
   "view_list": {
    "group": "ui",
    "means": "three lines with their bullets: list view",
-   "mapped": false
+   "mapped": true
   },
   "view_grid": {
    "group": "ui",
    "means": "four tiles: grid view, pictures",
-   "mapped": false
+   "mapped": true
   },
   "expand": {
    "group": "ui",
@@ -838,22 +838,1017 @@
   "move_up": {
    "group": "ui",
    "means": "an arrow up: move it up",
-   "mapped": false
+   "mapped": true
   },
   "move_down": {
    "group": "ui",
    "means": "an arrow down: move it down",
-   "mapped": false
+   "mapped": true
   },
   "pencil": {
    "group": "ui",
    "means": "a pencil, its point down left: draw, edit",
-   "mapped": false
+   "mapped": true
   },
   "stop": {
    "group": "ui",
    "means": "an octagon with a bar cut out: stop, a costly step",
    "mapped": false
+  },
+  "sleeping_bag": {
+   "group": "ctx1",
+   "means": "a head out of a sleeping bag on the ground: sleep on the ground",
+   "mapped": true
+  },
+  "pillow": {
+   "group": "ctx1",
+   "means": "a plump pillow: sleep on the ground with a pillow",
+   "mapped": true
+  },
+  "tent": {
+   "group": "ctx1",
+   "means": "a tent, its door open: sleep in the tent, put it up",
+   "mapped": true
+  },
+  "tent_down": {
+   "group": "ctx1",
+   "means": "the tent, an arrow down: take it down",
+   "mapped": true
+  },
+  "climb_window": {
+   "group": "ctx1",
+   "means": "an arrow into a window: climb through",
+   "mapped": true
+  },
+  "rope_climb": {
+   "group": "ctx1",
+   "means": "a rope of knotted sheets: climb the sheet rope, tie it",
+   "mapped": true
+  },
+  "dumbbell": {
+   "group": "ctx1",
+   "means": "a barbell with its plates: exercise",
+   "mapped": true
+  },
+  "star_off": {
+   "group": "ctx1",
+   "means": "the star, struck through: no longer a favourite",
+   "mapped": true
+  },
+  "box_open": {
+   "group": "ctx1",
+   "means": "a cardboard box, its flaps open: open it, put it in a container",
+   "mapped": true
+  },
+  "combine": {
+   "group": "ctx1",
+   "means": "two arrows into one block: combine, merge",
+   "mapped": true
+  },
+  "tooth": {
+   "group": "ctx1",
+   "means": "a molar: chew",
+   "mapped": true
+  },
+  "nose": {
+   "group": "ctx1",
+   "means": "a nose: the bridge widening to a rounded base, the crease of the wing, the nostril: sniff",
+   "mapped": true
+  },
+  "wash_hands": {
+   "group": "ctx1",
+   "means": "the open hand, soap bubbles: wash your hands",
+   "mapped": true
+  },
+  "washer": {
+   "group": "ctx1",
+   "means": "a washing machine: wash clothes",
+   "mapped": true
+  },
+  "sparkle": {
+   "group": "ctx1",
+   "means": "sparkles: clean, bleach",
+   "mapped": true
+  },
+  "broom": {
+   "group": "ctx1",
+   "means": "a broom, upright: the handle, the binding, a full fan of bristles: mop, sweep, clear the ashes",
+   "mapped": true
+  },
+  "towel": {
+   "group": "ctx1",
+   "means": "a towel over its rail: dry yourself, wring clothes out",
+   "mapped": true
+  },
+  "razor": {
+   "group": "ctx1",
+   "means": "a safety razor: trim the beard, shave",
+   "mapped": true
+  },
+  "comb": {
+   "group": "ctx1",
+   "means": "a comb: untie or brush the hair",
+   "mapped": true
+  },
+  "lipstick": {
+   "group": "ctx1",
+   "means": "a lipstick: make up",
+   "mapped": true
+  },
+  "hanger": {
+   "group": "ctx1",
+   "means": "a coat hanger: take clothes off, switch or store an outfit",
+   "mapped": true
+  },
+  "needle": {
+   "group": "ctx1",
+   "means": "a needle and its thread: sew, suture, mend clothes",
+   "mapped": true
+  },
+  "patch": {
+   "group": "ctx1",
+   "means": "a patch, stitched on: add or take off a patch",
+   "mapped": true
+  },
+  "rip": {
+   "group": "ctx1",
+   "means": "a cloth torn in two: rip into strips, tear clothing",
+   "mapped": true
+  },
+  "equip": {
+   "group": "ctx1",
+   "means": "the open hand, a plus: equip, take in hand",
+   "mapped": true
+  },
+  "unequip": {
+   "group": "ctx1",
+   "means": "the open hand, a minus: unequip, put away",
+   "mapped": true
+  },
+  "cap": {
+   "group": "ctx1",
+   "means": "a baseball cap, its brim: turn the cap forward or back",
+   "mapped": true
+  },
+  "mask": {
+   "group": "ctx1",
+   "means": "a face mask, its ear loops: cover the face or the head",
+   "mapped": true
+  },
+  "scarf": {
+   "group": "ctx1",
+   "means": "a scarf, knotted, its ends hanging: wear the scarf, over the face",
+   "mapped": true
+  },
+  "tap": {
+   "group": "ctx1",
+   "means": "a tap, a drop falling: wash a thing, wash up",
+   "mapped": true
+  },
+  "pan": {
+   "group": "ctx2",
+   "means": "a frying pan, its handle, something frying: omelette, roast, stir-fry, poached eggs",
+   "mapped": true
+  },
+  "soup": {
+   "group": "ctx2",
+   "means": "a bowl of soup, full to the brim, steaming: soup, stew, chili, ramen",
+   "mapped": true
+  },
+  "pot": {
+   "group": "ctx2",
+   "means": "a cooking pot, its lid and handles: a pot of stew, boil water, stock",
+   "mapped": true
+  },
+  "pie": {
+   "group": "ctx2",
+   "means": "a pie in its dish, the crust slit: pie",
+   "mapped": true
+  },
+  "cake": {
+   "group": "ctx2",
+   "means": "a slice of layer cake, a cherry on top: cake, cheesecake",
+   "mapped": true
+  },
+  "sandwich": {
+   "group": "ctx2",
+   "means": "a sandwich cut corner to corner, its filling: sandwich",
+   "mapped": true
+  },
+  "burger": {
+   "group": "ctx2",
+   "means": "a burger: bun, lettuce, patty, bun: burger, pulled pork",
+   "mapped": true
+  },
+  "salad": {
+   "group": "ctx2",
+   "means": "a bowl of leaves, the bowl's lip in front of them: salad",
+   "mapped": true
+  },
+  "pasta": {
+   "group": "ctx2",
+   "means": "a plate of spaghetti, a fork stuck in the nest: pasta, lasagna, macaroni",
+   "mapped": true
+  },
+  "bowl": {
+   "group": "ctx2",
+   "means": "a bowl heaped with rice, the bowl's lip in front of the heap: rice, risotto, porridge, dumplings, meatballs",
+   "mapped": true
+  },
+  "hotdog": {
+   "group": "ctx2",
+   "means": "a hot dog: the sausage on its bun, sticking out past both ends, mustard on top: hot dog, sausage",
+   "mapped": true
+  },
+  "taco": {
+   "group": "ctx2",
+   "means": "a taco from the side: the half-moon shell and its fold, a frill of lettuce along the top: taco",
+   "mapped": true
+  },
+  "wrap": {
+   "group": "ctx2",
+   "means": "a burrito rolled in its tortilla, the open end showing the filling, the tortilla's seam: burrito, wrap, spring rolls",
+   "mapped": true
+  },
+  "waffle": {
+   "group": "ctx2",
+   "means": "a waffle: waffles",
+   "mapped": true
+  },
+  "pancakes": {
+   "group": "ctx2",
+   "means": "a stack of pancakes, butter melting on top: pancakes",
+   "mapped": true
+  },
+  "bread": {
+   "group": "ctx2",
+   "means": "a loaf, slashed: bread, meatloaf, bagels, knead",
+   "mapped": true
+  },
+  "toast": {
+   "group": "ctx2",
+   "means": "a slice of bread, its crust: toast, French toast",
+   "mapped": true
+  },
+  "pizza": {
+   "group": "ctx2",
+   "means": "a slice of pizza, its crust and pepperoni: pizza, nachos",
+   "mapped": true
+  },
+  "citrus": {
+   "group": "ctx2",
+   "means": "a slice of lemon, its segments: citrus, lemonade",
+   "mapped": true
+  },
+  "potato": {
+   "group": "ctx2",
+   "means": "a potato, its eyes: baked potato",
+   "mapped": true
+  },
+  "pepper": {
+   "group": "ctx2",
+   "means": "a bell pepper, its stem: peppers, stuffed pepper, hot peppers",
+   "mapped": true
+  },
+  "egg": {
+   "group": "ctx2",
+   "means": "an egg: eggs, boiled, scrambled, collect eggs",
+   "mapped": true
+  },
+  "egg_fried": {
+   "group": "ctx2",
+   "means": "a fried egg: the white's soft edge, the yolk solid in it: fried eggs",
+   "mapped": true
+  },
+  "kebab": {
+   "group": "ctx2",
+   "means": "a kebab: chunks on a skewer: kebab",
+   "mapped": true
+  },
+  "fish": {
+   "group": "ctx2",
+   "means": "a fish: fish, seafood, fish and chips, sushi",
+   "mapped": true
+  },
+  "bacon": {
+   "group": "ctx2",
+   "means": "a rasher of bacon, a streak of fat: bacon",
+   "mapped": true
+  },
+  "meat": {
+   "group": "ctx2",
+   "means": "a ham on the bone: meat, ham, game, rabbit, ribs",
+   "mapped": true
+  },
+  "steak": {
+   "group": "ctx2",
+   "means": "a steak: a kidney-shaped cut, its rim of fat, a small round bone: steak, pork chop, beef, venison",
+   "mapped": true
+  },
+  "drumstick": {
+   "group": "ctx2",
+   "means": "a chicken drumstick: chicken, fried chicken, turkey, poultry",
+   "mapped": true
+  },
+  "cookie": {
+   "group": "ctx2",
+   "means": "a cookie, its chips, a bite out of it: cookies",
+   "mapped": true
+  },
+  "icecream": {
+   "group": "ctx2",
+   "means": "an ice cream cone: a full scoop, its scalloped rim on the cone's criss-cross: ice cream",
+   "mapped": true
+  },
+  "candy": {
+   "group": "ctx2",
+   "means": "a wrapped sweet: candy",
+   "mapped": true
+  },
+  "chocolate": {
+   "group": "ctx2",
+   "means": "a bar of chocolate, its squares: chocolate, cocoa",
+   "mapped": true
+  },
+  "can": {
+   "group": "ctx2",
+   "means": "a tin can, its lid and ridges: open a can, open and eat, a can",
+   "mapped": true
+  },
+  "grater": {
+   "group": "ctx2",
+   "means": "a box grater: grate",
+   "mapped": true
+  },
+  "mortar": {
+   "group": "ctx2",
+   "means": "a mortar and pestle: grind",
+   "mapped": true
+  },
+  "whisk": {
+   "group": "ctx2",
+   "means": "a whisk: mix",
+   "mapped": true
+  },
+  "spoon": {
+   "group": "ctx2",
+   "means": "a wooden spoon: stir",
+   "mapped": true
+  },
+  "shaker": {
+   "group": "ctx2",
+   "means": "a salt shaker: add salt or pepper, season, spice",
+   "mapped": true
+  },
+  "sack": {
+   "group": "ctx2",
+   "means": "a sack tied at the neck: flour, sugar, thickener",
+   "mapped": true
+  },
+  "oil": {
+   "group": "ctx2",
+   "means": "a bottle of oil, a drop on its label: oil, vinegar",
+   "mapped": true
+  },
+  "butter": {
+   "group": "ctx2",
+   "means": "a block of butter: butter, spread, fat",
+   "mapped": true
+  },
+  "cheese": {
+   "group": "ctx2",
+   "means": "a wedge of cheese, its holes: cheese",
+   "mapped": true
+  },
+  "sauce": {
+   "group": "ctx2",
+   "means": "a squeeze bottle: sauce, dressing",
+   "mapped": true
+  },
+  "honey": {
+   "group": "ctx2",
+   "means": "a honey pot, honey running down: honey, mead, syrup",
+   "mapped": true
+  },
+  "berries": {
+   "group": "ctx2",
+   "means": "three berries and a leaf: berries",
+   "mapped": true
+  },
+  "carrot": {
+   "group": "ctx2",
+   "means": "a carrot, its leaves: vegetables",
+   "mapped": true
+  },
+  "nut": {
+   "group": "ctx2",
+   "means": "a peanut in its shell: nuts",
+   "mapped": true
+  },
+  "mushroom": {
+   "group": "ctx2",
+   "means": "a mushroom, its spotted cap: mushrooms",
+   "mapped": true
+  },
+  "peapod": {
+   "group": "ctx2",
+   "means": "an open pea pod, corner to corner, its three peas inside, the stalk: beans, peas",
+   "mapped": true
+  },
+  "pet_bowl": {
+   "group": "ctx2",
+   "means": "a pet's bowl, food heaped in it: pet food, animal feed",
+   "mapped": true
+  },
+  "leaf": {
+   "group": "ctx2",
+   "means": "a leaf, its vein: herbs, a poultice",
+   "mapped": true
+  },
+  "garlic": {
+   "group": "ctx2",
+   "means": "a bulb of garlic: garlic",
+   "mapped": true
+  },
+  "mug": {
+   "group": "ctx3",
+   "means": "a steaming mug: tea, herbal tea, a kettle",
+   "mapped": true
+  },
+  "coffee_pot": {
+   "group": "ctx3",
+   "means": "a coffee pot: coffee, brew coffee, liqueur",
+   "mapped": true
+  },
+  "juice": {
+   "group": "ctx3",
+   "means": "a juice carton with its straw: juice, cider",
+   "mapped": true
+  },
+  "cocktail": {
+   "group": "ctx3",
+   "means": "a cocktail glass, a slice on its rim: a cocktail, mix a drink",
+   "mapped": true
+  },
+  "blender": {
+   "group": "ctx3",
+   "means": "a blender: blend, a mixture",
+   "mapped": true
+  },
+  "beer": {
+   "group": "ctx3",
+   "means": "a mug of beer, its head of foam: beer, brew beer",
+   "mapped": true
+  },
+  "wine": {
+   "group": "ctx3",
+   "means": "a wine bottle, its label: wine, liquor, make wine, a glass bottle",
+   "mapped": true
+  },
+  "wine_glass": {
+   "group": "ctx3",
+   "means": "a wine glass, wine in its bowl: wine in a glass, champagne, a goblet",
+   "mapped": true
+  },
+  "cup": {
+   "group": "ctx3",
+   "means": "a takeaway cup, its lid and straw: a cup, a fountain cup",
+   "mapped": true
+  },
+  "jar": {
+   "group": "ctx3",
+   "means": "a jar, bubbles rising in it: ferment",
+   "mapped": true
+  },
+  "drop": {
+   "group": "ctx3",
+   "means": "a drop of water: water, pour, drain, a fluid",
+   "mapped": true
+  },
+  "bottle": {
+   "group": "ctx3",
+   "means": "a water bottle, its cap: a bottle, a canteen, fill the water bottle",
+   "mapped": true
+  },
+  "rain": {
+   "group": "ctx3",
+   "means": "a cloud, rain falling from it: collect rain, distil, a rain barrel",
+   "mapped": true
+  },
+  "bucket": {
+   "group": "ctx3",
+   "means": "a bucket, its handle: a bucket, a drum, a trough",
+   "mapped": true
+  },
+  "fill": {
+   "group": "ctx3",
+   "means": "the bucket, an arrow down into it: fill",
+   "mapped": true
+  },
+  "empty": {
+   "group": "ctx3",
+   "means": "the bucket, an arrow up out of it: empty",
+   "mapped": true
+  },
+  "pour": {
+   "group": "ctx3",
+   "means": "a jug tipped, pouring into a glass: transfer, pour from one to another",
+   "mapped": true
+  },
+  "filter": {
+   "group": "ctx3",
+   "means": "a funnel, a drop below it: filter water",
+   "mapped": true
+  },
+  "watering_can": {
+   "group": "ctx3",
+   "means": "a watering can, its spout and rose: water a plant, pour water",
+   "mapped": true
+  },
+  "well": {
+   "group": "ctx3",
+   "means": "a well, its roof and bucket: a well",
+   "mapped": true
+  },
+  "toilet": {
+   "group": "ctx3",
+   "means": "a toilet, its tank and bowl: a toilet",
+   "mapped": true
+  },
+  "bath": {
+   "group": "ctx3",
+   "means": "a bathtub, its tap: a bathtub",
+   "mapped": true
+  },
+  "flask": {
+   "group": "ctx3",
+   "means": "a laboratory flask: a flask, a crucible, an effect",
+   "mapped": true
+  },
+  "poison": {
+   "group": "ctx3",
+   "means": "a bottle with a cross on it: poison, acid",
+   "mapped": true
+  },
+  "glass_empty": {
+   "group": "ctx3",
+   "means": "an empty glass: empty, free, holding nothing, thirst",
+   "mapped": true
+  },
+  "glass_half": {
+   "group": "ctx3",
+   "means": "a glass half full: holding one or two fluids",
+   "mapped": true
+  },
+  "swap": {
+   "group": "ctx3",
+   "means": "two arrows, one each way: swap",
+   "mapped": true
+  },
+  "skull": {
+   "group": "ctx3",
+   "means": "a skull: tainted, deadly poison, a skull sign",
+   "mapped": true
+  },
+  "brain": {
+   "group": "ctx3",
+   "means": "a brain from the side, its folds, the small lobe at the back: stress",
+   "mapped": true
+  },
+  "sad": {
+   "group": "ctx3",
+   "means": "a sad face: unhappiness",
+   "mapped": true
+  },
+  "flame": {
+   "group": "ctx3",
+   "means": "a flame: fire, use a lighter, burn, calories",
+   "mapped": true
+  },
+  "blood": {
+   "group": "ctx3",
+   "means": "a drop of blood, a spatter beside it: blood, clean a weapon of it",
+   "mapped": true
+  },
+  "barricade": {
+   "group": "ctx4",
+   "means": "four boards nailed across a window, the way the game stacks them: barricade, unbarricade",
+   "mapped": true
+  },
+  "upgrade": {
+   "group": "ctx4",
+   "means": "layers stacked into a step, an arrow up: upgrade",
+   "mapped": true
+  },
+  "reinforce": {
+   "group": "ctx4",
+   "means": "a shield, a plus: reinforce, fortify, claim a safehouse",
+   "mapped": true
+  },
+  "saw": {
+   "group": "ctx4",
+   "means": "a handsaw by its shape: the long blade tapering to its tip, the closed handle: saw",
+   "mapped": true
+  },
+  "hammer": {
+   "group": "ctx4",
+   "means": "a claw hammer on the slant: the handle, the square face, the split claw: nail, hammer, masonry",
+   "mapped": true
+  },
+  "welder": {
+   "group": "ctx4",
+   "means": "a welding helmet, its visor slot, a spark: weld, metalwork",
+   "mapped": true
+  },
+  "sledge": {
+   "group": "ctx4",
+   "means": "a sledgehammer: crush, smash, destroy, take down a floor",
+   "mapped": true
+  },
+  "paintbrush": {
+   "group": "ctx4",
+   "means": "a paintbrush: apply, varnish",
+   "mapped": true
+  },
+  "paint": {
+   "group": "ctx4",
+   "means": "a paint can, paint running down over its label: paint, dye, colours, wall coverings",
+   "mapped": true
+  },
+  "roller": {
+   "group": "ctx4",
+   "means": "a paint roller: plaster, paint a sign",
+   "mapped": true
+  },
+  "yarn": {
+   "group": "ctx4",
+   "means": "a ball of yarn, its strands, two needles through it: knit",
+   "mapped": true
+  },
+  "fabric": {
+   "group": "ctx4",
+   "means": "a bolt of cloth: the roll, its end showing, the sheet hanging from it to a pinked edge: fabric, weave, a pattern",
+   "mapped": true
+  },
+  "grill": {
+   "group": "ctx4",
+   "means": "a kettle grill: its domed lid, the grate, the bowl and legs: the barbecue, add fuel",
+   "mapped": true
+  },
+  "fireplace": {
+   "group": "ctx4",
+   "means": "a fireplace, a fire in it: the fireplace, a stone furnace",
+   "mapped": true
+  },
+  "ladder": {
+   "group": "ctx4",
+   "means": "a ladder: climb up, a way across",
+   "mapped": true
+  },
+  "stairs": {
+   "group": "ctx4",
+   "means": "a flight of stairs: stairs",
+   "mapped": true
+  },
+  "curtains": {
+   "group": "ctx4",
+   "means": "curtains drawn back from a window: open, close or take down curtains",
+   "mapped": true
+  },
+  "door": {
+   "group": "ctx4",
+   "means": "a door, its two panels and handle: a door, a door frame",
+   "mapped": true
+  },
+  "window": {
+   "group": "ctx4",
+   "means": "a house window, its frame and bars: a window frame",
+   "mapped": true
+  },
+  "floor": {
+   "group": "ctx4",
+   "means": "floor tiles in perspective, flat and wide: a floor, a roof, tiles",
+   "mapped": true
+  },
+  "planks": {
+   "group": "ctx4",
+   "means": "planks of wood, their grain: wooden, wood",
+   "mapped": true
+  },
+  "table": {
+   "group": "ctx4",
+   "means": "a table: tables",
+   "mapped": true
+  },
+  "bookcase": {
+   "group": "ctx4",
+   "means": "a bookcase full of books: a bookcase",
+   "mapped": true
+  },
+  "shelves": {
+   "group": "ctx4",
+   "means": "open shelves, things on them: shelves, a counter",
+   "mapped": true
+  },
+  "locker": {
+   "group": "ctx4",
+   "means": "a metal locker, its vents and handle: a locker, a metal crate",
+   "mapped": true
+  },
+  "tombstone": {
+   "group": "ctx4",
+   "means": "a gravestone, a cross on it: a tombstone, a grave",
+   "mapped": true
+  },
+  "arrow_right": {
+   "group": "ctx4",
+   "means": "an arrow pointing right: a sign's right arrow",
+   "mapped": true
+  },
+  "arrow_left": {
+   "group": "ctx4",
+   "means": "an arrow pointing left: a sign's left arrow",
+   "mapped": true
+  },
+  "gun": {
+   "group": "ctx5",
+   "means": "the firearm wheel's pistol: a gun, clean the gun, its type",
+   "mapped": true
+  },
+  "gun_fire": {
+   "group": "ctx5",
+   "means": "a pistol firing, a flash bursting from its muzzle: attack, fire, fire mode",
+   "mapped": true
+  },
+  "push": {
+   "group": "ctx5",
+   "means": "an arrow driving into a bar: shove, push, insert",
+   "mapped": true
+  },
+  "boot": {
+   "group": "ctx5",
+   "means": "a boot: stomp, the shins and thighs",
+   "mapped": true
+  },
+  "fist": {
+   "group": "ctx5",
+   "means": "a clenched fist: smash, grab",
+   "mapped": true
+  },
+  "hand_main": {
+   "group": "ctx5",
+   "means": "the open hand, an arrow right: equip in the main hand",
+   "mapped": true
+  },
+  "hand_off": {
+   "group": "ctx5",
+   "means": "the open hand mirrored, an arrow left: equip in the off hand",
+   "mapped": true
+  },
+  "holster": {
+   "group": "ctx5",
+   "means": "the firearm wheel's pistol, an arrow down: holster it",
+   "mapped": true
+  },
+  "scope": {
+   "group": "ctx5",
+   "means": "a rifle scope: the eyepiece, the tube, the turret, the objective, its mounts: attach a scope",
+   "mapped": true
+  },
+  "suppressor": {
+   "group": "ctx5",
+   "means": "a suppressor, its rings: attach a suppressor",
+   "mapped": true
+  },
+  "bayonet": {
+   "group": "ctx5",
+   "means": "a bayonet, its ring and blade: attach a bayonet",
+   "mapped": true
+  },
+  "ammo": {
+   "group": "ctx5",
+   "means": "three rounds standing: ammunition, check or combine it, its type",
+   "mapped": true
+  },
+  "ammo_off": {
+   "group": "ctx5",
+   "means": "the rounds, struck through: no bullets",
+   "mapped": true
+  },
+  "magazine": {
+   "group": "ctx5",
+   "means": "a pistol magazine, a round at its lips: the magazine",
+   "mapped": true
+  },
+  "bandage_off": {
+   "group": "ctx5",
+   "means": "the bandage, a minus: take a bandage off",
+   "mapped": true
+  },
+  "splint": {
+   "group": "ctx5",
+   "means": "a limb in outline, a board either side, two wraps binding them: apply a splint",
+   "mapped": true
+  },
+  "tourniquet": {
+   "group": "ctx5",
+   "means": "a limb in outline, a strap pulled tight round it, the rod across, the strap's tail: apply a tourniquet",
+   "mapped": true
+  },
+  "ointment": {
+   "group": "ctx5",
+   "means": "an ointment tube: the crimped end, the body with a cross on it tapering to its shoulder, the cap: ointment, burn salve, treat",
+   "mapped": true
+  },
+  "pulse": {
+   "group": "ctx5",
+   "means": "a heart beat's line: take the pulse, health",
+   "mapped": true
+  },
+  "pliers": {
+   "group": "ctx5",
+   "means": "tweezers on the slant: two arms joined at one end, their tips meeting: take a bullet out",
+   "mapped": true
+  },
+  "pills": {
+   "group": "ctx5",
+   "means": "a capsule and a tablet: take medicine",
+   "mapped": true
+  },
+  "eyedrop": {
+   "group": "ctx5",
+   "means": "a dropper over an eye, a drop falling between them: eye drops",
+   "mapped": true
+  },
+  "stethoscope": {
+   "group": "ctx5",
+   "means": "a stethoscope: a medical check",
+   "mapped": true
+  },
+  "spray": {
+   "group": "ctx5",
+   "means": "a spray bottle, its mist: disinfect, antiseptic, bleach",
+   "mapped": true
+  },
+  "coffin": {
+   "group": "ctx5",
+   "means": "a coffin: the dead, throw a corpse over or through",
+   "mapped": true
+  },
+  "holster_left": {
+   "group": "ctx5",
+   "means": "the pistol, an arrow left: wear it on the belt, left",
+   "mapped": true
+  },
+  "holster_right": {
+   "group": "ctx5",
+   "means": "the pistol, an arrow right: wear it on the belt, right",
+   "mapped": true
+  },
+  "tire": {
+   "group": "ctx6",
+   "means": "a tyre, its tread and hub: change a tyre, let it down",
+   "mapped": true
+  },
+  "car_x": {
+   "group": "ctx6",
+   "means": "the car, a cross: take a burnt-out car away",
+   "mapped": true
+  },
+  "car_battery": {
+   "group": "ctx6",
+   "means": "a car battery, its two terminals, plus and minus: the battery charger",
+   "mapped": true
+  },
+  "plug": {
+   "group": "ctx6",
+   "means": "a plug, its prongs and cable: plug in, wire a generator, charge",
+   "mapped": true
+  },
+  "unplug": {
+   "group": "ctx6",
+   "means": "the plug, a minus: unplug",
+   "mapped": true
+  },
+  "wires": {
+   "group": "ctx6",
+   "means": "two wires, their bared ends, a spark jumping between: fix the wiring",
+   "mapped": true
+  },
+  "bulb_remove": {
+   "group": "ctx6",
+   "means": "the lit bulb, a minus: take a light out",
+   "mapped": true
+  },
+  "pipe": {
+   "group": "ctx6",
+   "means": "a pipe, its elbow, a flange at each end: connect a pipe",
+   "mapped": true
+  },
+  "alarm_off": {
+   "group": "ctx6",
+   "means": "the alarm clock, struck through: stop the alarm",
+   "mapped": true
+  },
+  "plant": {
+   "group": "ctx6",
+   "means": "a sprout in a mound of soil: plant, farming, gardening, a planter",
+   "mapped": true
+  },
+  "crop": {
+   "group": "ctx6",
+   "means": "a ripe ear of wheat, its grains paired up the stalk: harvest, the crops",
+   "mapped": true
+  },
+  "shovel": {
+   "group": "ctx6",
+   "means": "a shovel: dig, till the soil, dig a grave, bury",
+   "mapped": true
+  },
+  "compost": {
+   "group": "ctx6",
+   "means": "a steaming heap: fertilise, the composter, take compost",
+   "mapped": true
+  },
+  "seed": {
+   "group": "ctx6",
+   "means": "three seeds, upright, apart, each with its seam: sow a seed, the seeds",
+   "mapped": true
+  },
+  "scythe": {
+   "group": "ctx6",
+   "means": "a scythe: the long handle, the blade sweeping out along the top: cut the grass",
+   "mapped": true
+  },
+  "feather": {
+   "group": "ctx6",
+   "means": "a feather: its wide vane, the shaft, the quill: collect feathers",
+   "mapped": true
+  },
+  "trap": {
+   "group": "ctx6",
+   "means": "a cage trap, its door up: set a trap, check it, a trap",
+   "mapped": true
+  },
+  "rod": {
+   "group": "ctx6",
+   "means": "a fishing rod, its line and reel: fish, a fishing net",
+   "mapped": true
+  },
+  "hook": {
+   "group": "ctx6",
+   "means": "a fish hook, a worm on it: bait, a lure, add bait",
+   "mapped": true
+  },
+  "hutch": {
+   "group": "ctx6",
+   "means": "a hutch, its roof, door and ramp: the hutch, its animals",
+   "mapped": true
+  },
+  "dna": {
+   "group": "ctx6",
+   "means": "a strand of DNA, its two threads twisting, rungs between: an animal's genome, change it",
+   "mapped": true
+  },
+  "bug": {
+   "group": "ctx6",
+   "means": "a beetle: insects, debug",
+   "mapped": true
+  },
+  "flag": {
+   "group": "ctx6",
+   "means": "a flag on its pole: claim the place",
+   "mapped": true
+  },
+  "shield_plain": {
+   "group": "ctx6",
+   "means": "a shield: see the safehouse",
+   "mapped": true
+  },
+  "shield_minus": {
+   "group": "ctx6",
+   "means": "the shield, a minus: give up the safehouse",
+   "mapped": true
+  },
+  "warning": {
+   "group": "ctx6",
+   "means": "a warning sign: a triangle, an exclamation mark: a warning, can't do it now",
+   "mapped": true
+  },
+  "more": {
+   "group": "ctx6",
+   "means": "three dots: more, misc, or",
+   "mapped": true
+  },
+  "one": {
+   "group": "ctx6",
+   "means": "a figure one: one",
+   "mapped": true
+  },
+  "tally": {
+   "group": "ctx6",
+   "means": "tally marks, four and a stroke through: uses, a count",
+   "mapped": true
   }
  },
  "order": "TEXT, then KEEP, then TEX; ZeD's own wheels name ids directly (ZED, TABS)",
@@ -2130,6 +3125,1953 @@
    "window": "World window",
    "button": "ISLootWindowObjectControlHandler_VehicleLockTrunk",
    "id": "padlock"
+  }
+ ],
+ "CTX": [
+  {
+   "group": 1,
+   "picture": "person-walking-arrow-right",
+   "id": "walk"
+  },
+  {
+   "group": 1,
+   "picture": "sitting-ground",
+   "id": "sit_ground"
+  },
+  {
+   "group": 1,
+   "picture": "face-sleeping",
+   "id": "bed"
+  },
+  {
+   "group": 1,
+   "picture": "sleeping-bag",
+   "id": "sleeping_bag"
+  },
+  {
+   "group": 1,
+   "picture": "mattress-pillow",
+   "id": "pillow"
+  },
+  {
+   "group": 1,
+   "picture": "tent-arrow-down-to-line",
+   "id": "tent"
+  },
+  {
+   "group": 1,
+   "picture": "tent-arrow-turn-left",
+   "id": "tent_down"
+  },
+  {
+   "group": 1,
+   "picture": "chair",
+   "id": "sit_seat"
+  },
+  {
+   "group": 1,
+   "picture": "person-climbing",
+   "id": "climb"
+  },
+  {
+   "group": 1,
+   "picture": "person-through-window",
+   "id": "climb_window"
+  },
+  {
+   "group": 1,
+   "picture": "climbrope",
+   "id": "rope_climb"
+  },
+  {
+   "group": 1,
+   "picture": "sheetrope",
+   "id": "rope_climb"
+  },
+  {
+   "group": 1,
+   "picture": "dumbbell-weightlifting",
+   "id": "dumbbell"
+  },
+  {
+   "group": 1,
+   "picture": "hand-holding-box",
+   "id": "tray_in"
+  },
+  {
+   "group": 1,
+   "picture": "inbox-out",
+   "id": "tray_in"
+  },
+  {
+   "group": 1,
+   "picture": "inbox-in",
+   "id": "tray_out"
+  },
+  {
+   "group": 1,
+   "picture": "truck-arrow-right",
+   "id": "tray_out"
+  },
+  {
+   "group": 1,
+   "picture": "arrow-square-right",
+   "id": "tray_out"
+  },
+  {
+   "group": 1,
+   "picture": "arrow-alt-down",
+   "id": "to_floor"
+  },
+  {
+   "group": 1,
+   "picture": "contact-lens-eyes",
+   "id": "magnifier"
+  },
+  {
+   "group": 1,
+   "picture": "magnifying-glass-eye",
+   "id": "magnifier"
+  },
+  {
+   "group": 1,
+   "picture": "star",
+   "id": "star"
+  },
+  {
+   "group": 1,
+   "picture": "icon-star",
+   "id": "star"
+  },
+  {
+   "group": 1,
+   "picture": "star-sharp-half-stroke",
+   "id": "star_off"
+  },
+  {
+   "group": 1,
+   "picture": "shield-xmark",
+   "id": "craft_off"
+  },
+  {
+   "group": 1,
+   "picture": "trash-can-check",
+   "id": "trash"
+  },
+  {
+   "group": 1,
+   "picture": "text-box-dots",
+   "id": "pencil"
+  },
+  {
+   "group": 1,
+   "picture": "edit",
+   "id": "pencil"
+  },
+  {
+   "group": 1,
+   "picture": "box-open",
+   "id": "box_open"
+  },
+  {
+   "group": 1,
+   "picture": "cross-circle",
+   "id": "no"
+  },
+  {
+   "group": 1,
+   "picture": "cross-small",
+   "id": "no"
+  },
+  {
+   "group": 1,
+   "picture": "lock",
+   "id": "padlock"
+  },
+  {
+   "group": 1,
+   "picture": "lock-open-alt",
+   "id": "padlock_open"
+  },
+  {
+   "group": 1,
+   "picture": "insert-arrows",
+   "id": "combine"
+  },
+  {
+   "group": 1,
+   "picture": "compress",
+   "id": "combine"
+  },
+  {
+   "group": 1,
+   "picture": "copy",
+   "id": "same_type"
+  },
+  {
+   "group": 1,
+   "picture": "settings",
+   "id": "gears"
+  },
+  {
+   "group": 1,
+   "picture": "list",
+   "id": "view_list"
+  },
+  {
+   "group": 1,
+   "picture": "list-check",
+   "id": "view_list"
+  },
+  {
+   "group": 1,
+   "picture": "list-dropdown",
+   "id": "view_list"
+  },
+  {
+   "group": 1,
+   "picture": "check-circle",
+   "id": "yes"
+  },
+  {
+   "group": 1,
+   "picture": "graduation-cap",
+   "id": "skills"
+  },
+  {
+   "group": 1,
+   "picture": "book-brain",
+   "id": "skills"
+  },
+  {
+   "group": 1,
+   "picture": "open-notebook",
+   "id": "book"
+  },
+  {
+   "group": 1,
+   "picture": "book-open-cover",
+   "id": "book"
+  },
+  {
+   "group": 1,
+   "picture": "book-open-reader",
+   "id": "book"
+  },
+  {
+   "group": 1,
+   "picture": "open-book-apple",
+   "id": "book"
+  },
+  {
+   "group": 1,
+   "picture": "recipe-book",
+   "id": "book"
+  },
+  {
+   "group": 1,
+   "picture": "map-marker",
+   "id": "map"
+  },
+  {
+   "group": 1,
+   "picture": "book-user",
+   "id": "notebook"
+  },
+  {
+   "group": 1,
+   "picture": "employee-handbook",
+   "id": "notebook"
+  },
+  {
+   "group": 1,
+   "picture": "smoking",
+   "id": "cigarette"
+  },
+  {
+   "group": 1,
+   "picture": "tooth",
+   "id": "tooth"
+  },
+  {
+   "group": 1,
+   "picture": "nose",
+   "id": "nose"
+  },
+  {
+   "group": 1,
+   "picture": "washing-dishes",
+   "id": "tap"
+  },
+  {
+   "group": 1,
+   "picture": "hands-bubbles",
+   "id": "wash_hands"
+  },
+  {
+   "group": 1,
+   "picture": "washer",
+   "id": "washer"
+  },
+  {
+   "group": 1,
+   "picture": "hand-sparkles",
+   "id": "sparkle"
+  },
+  {
+   "group": 1,
+   "picture": "sparkles",
+   "id": "sparkle"
+  },
+  {
+   "group": 1,
+   "picture": "sweep",
+   "id": "broom"
+  },
+  {
+   "group": 1,
+   "picture": "towel",
+   "id": "towel"
+  },
+  {
+   "group": 1,
+   "picture": "razor-barber",
+   "id": "razor"
+  },
+  {
+   "group": 1,
+   "picture": "hair-clipper",
+   "id": "razor"
+  },
+  {
+   "group": 1,
+   "picture": "hairbrush",
+   "id": "comb"
+  },
+  {
+   "group": 1,
+   "picture": "scissors",
+   "id": "scissors"
+  },
+  {
+   "group": 1,
+   "picture": "makeup-brush",
+   "id": "lipstick"
+  },
+  {
+   "group": 1,
+   "picture": "person-circle-question",
+   "id": "stand"
+  },
+  {
+   "group": 1,
+   "picture": "vest-patches",
+   "id": "shirt"
+  },
+  {
+   "group": 1,
+   "picture": "clothes-hanger",
+   "id": "hanger"
+  },
+  {
+   "group": 1,
+   "picture": "patch",
+   "id": "patch"
+  },
+  {
+   "group": 1,
+   "picture": "needle",
+   "id": "needle"
+  },
+  {
+   "group": 1,
+   "picture": "arrows-from-dotted-line",
+   "id": "rip"
+  },
+  {
+   "group": 1,
+   "picture": "benefit-hand",
+   "id": "equip"
+  },
+  {
+   "group": 1,
+   "picture": "person-circle-minus",
+   "id": "unequip"
+  },
+  {
+   "group": 1,
+   "picture": "hood-cloak",
+   "id": "jacket"
+  },
+  {
+   "group": 1,
+   "picture": "hat-cowboy",
+   "id": "cap"
+  },
+  {
+   "group": 1,
+   "picture": "face-mask",
+   "id": "mask"
+  },
+  {
+   "group": 1,
+   "picture": "smile",
+   "id": "smiley"
+  },
+  {
+   "group": 1,
+   "picture": "scarf",
+   "id": "scarf"
+  },
+  {
+   "group": 2,
+   "picture": "user-eating",
+   "id": "apple"
+  },
+  {
+   "group": 2,
+   "picture": "canned-food",
+   "id": "can"
+  },
+  {
+   "group": 2,
+   "picture": "can-food",
+   "id": "can"
+  },
+  {
+   "group": 2,
+   "picture": "pan-food",
+   "id": "pan"
+  },
+  {
+   "group": 2,
+   "picture": "pan-frying",
+   "id": "pan"
+  },
+  {
+   "group": 2,
+   "picture": "poke-bowl",
+   "id": "pan"
+  },
+  {
+   "group": 2,
+   "picture": "miso-soup",
+   "id": "soup"
+  },
+  {
+   "group": 2,
+   "picture": "bowl-chopsticks-noodles",
+   "id": "soup"
+  },
+  {
+   "group": 2,
+   "picture": "pot",
+   "id": "pot"
+  },
+  {
+   "group": 2,
+   "picture": "pie",
+   "id": "pie"
+  },
+  {
+   "group": 2,
+   "picture": "cake-slice",
+   "id": "cake"
+  },
+  {
+   "group": 2,
+   "picture": "cheese-cake",
+   "id": "cake"
+  },
+  {
+   "group": 2,
+   "picture": "sandwich",
+   "id": "sandwich"
+  },
+  {
+   "group": 2,
+   "picture": "hamburger",
+   "id": "burger"
+  },
+  {
+   "group": 2,
+   "picture": "burger-alt",
+   "id": "burger"
+  },
+  {
+   "group": 2,
+   "picture": "salad",
+   "id": "salad"
+  },
+  {
+   "group": 2,
+   "picture": "fork-spaghetti",
+   "id": "pasta"
+  },
+  {
+   "group": 2,
+   "picture": "lasagna",
+   "id": "pasta"
+  },
+  {
+   "group": 2,
+   "picture": "mac-cheese",
+   "id": "pasta"
+  },
+  {
+   "group": 2,
+   "picture": "bowl-rice",
+   "id": "bowl"
+  },
+  {
+   "group": 2,
+   "picture": "bowl-spoon",
+   "id": "bowl"
+  },
+  {
+   "group": 2,
+   "picture": "dumpling",
+   "id": "bowl"
+  },
+  {
+   "group": 2,
+   "picture": "cloud-meatball",
+   "id": "bowl"
+  },
+  {
+   "group": 2,
+   "picture": "hotdog",
+   "id": "hotdog"
+  },
+  {
+   "group": 2,
+   "picture": "sausage",
+   "id": "hotdog"
+  },
+  {
+   "group": 2,
+   "picture": "taco",
+   "id": "taco"
+  },
+  {
+   "group": 2,
+   "picture": "burrito",
+   "id": "wrap"
+  },
+  {
+   "group": 2,
+   "picture": "waffle",
+   "id": "waffle"
+  },
+  {
+   "group": 2,
+   "picture": "pancakes",
+   "id": "pancakes"
+  },
+  {
+   "group": 2,
+   "picture": "bread-loaf",
+   "id": "bread"
+  },
+  {
+   "group": 2,
+   "picture": "bread",
+   "id": "bread"
+  },
+  {
+   "group": 2,
+   "picture": "naan-bread",
+   "id": "bread"
+  },
+  {
+   "group": 2,
+   "picture": "avocado-toast",
+   "id": "toast"
+  },
+  {
+   "group": 2,
+   "picture": "bread-slice-butter",
+   "id": "toast"
+  },
+  {
+   "group": 2,
+   "picture": "pizza-box",
+   "id": "pizza"
+  },
+  {
+   "group": 2,
+   "picture": "pizza-slice",
+   "id": "pizza"
+  },
+  {
+   "group": 2,
+   "picture": "sushi",
+   "id": "fish"
+  },
+  {
+   "group": 2,
+   "picture": "citrus-slice",
+   "id": "citrus"
+  },
+  {
+   "group": 2,
+   "picture": "lemon",
+   "id": "citrus"
+  },
+  {
+   "group": 2,
+   "picture": "potato",
+   "id": "potato"
+  },
+  {
+   "group": 2,
+   "picture": "pepper-alt",
+   "id": "pepper"
+  },
+  {
+   "group": 2,
+   "picture": "pepper",
+   "id": "pepper"
+  },
+  {
+   "group": 2,
+   "picture": "pepper-hot",
+   "id": "pepper"
+  },
+  {
+   "group": 2,
+   "picture": "egg",
+   "id": "egg"
+  },
+  {
+   "group": 2,
+   "picture": "egg-fried",
+   "id": "egg_fried"
+  },
+  {
+   "group": 2,
+   "picture": "shish-kebab",
+   "id": "kebab"
+  },
+  {
+   "group": 2,
+   "picture": "fish-cooked",
+   "id": "fish"
+  },
+  {
+   "group": 2,
+   "picture": "bacon",
+   "id": "bacon"
+  },
+  {
+   "group": 2,
+   "picture": "meat",
+   "id": "meat"
+  },
+  {
+   "group": 2,
+   "picture": "rabbit-fast",
+   "id": "meat"
+  },
+  {
+   "group": 2,
+   "picture": "skeleton-ribs",
+   "id": "meat"
+  },
+  {
+   "group": 2,
+   "picture": "steak",
+   "id": "steak"
+  },
+  {
+   "group": 2,
+   "picture": "chicken-bucket",
+   "id": "drumstick"
+  },
+  {
+   "group": 2,
+   "picture": "turkey",
+   "id": "drumstick"
+  },
+  {
+   "group": 2,
+   "picture": "cookie",
+   "id": "cookie"
+  },
+  {
+   "group": 2,
+   "picture": "bowl-scoops",
+   "id": "icecream"
+  },
+  {
+   "group": 2,
+   "picture": "candy",
+   "id": "candy"
+  },
+  {
+   "group": 2,
+   "picture": "chocolate",
+   "id": "chocolate"
+  },
+  {
+   "group": 2,
+   "picture": "knife-kitchen",
+   "id": "knife"
+  },
+  {
+   "group": 2,
+   "picture": "grid-dividers",
+   "id": "grater"
+  },
+  {
+   "group": 2,
+   "picture": "ball-pile",
+   "id": "mortar"
+  },
+  {
+   "group": 2,
+   "picture": "mixer",
+   "id": "whisk"
+  },
+  {
+   "group": 2,
+   "picture": "mix",
+   "id": "spoon"
+  },
+  {
+   "group": 2,
+   "picture": "add-basket",
+   "id": "plus"
+  },
+  {
+   "group": 2,
+   "picture": "salt-pepper",
+   "id": "shaker"
+  },
+  {
+   "group": 2,
+   "picture": "salt-shaker",
+   "id": "shaker"
+  },
+  {
+   "group": 2,
+   "picture": "bag-seedling",
+   "id": "sack"
+  },
+  {
+   "group": 2,
+   "picture": "cube",
+   "id": "sack"
+  },
+  {
+   "group": 2,
+   "picture": "olive-oil",
+   "id": "oil"
+  },
+  {
+   "group": 2,
+   "picture": "polish-bottle",
+   "id": "oil"
+  },
+  {
+   "group": 2,
+   "picture": "Butter",
+   "id": "butter"
+  },
+  {
+   "group": 2,
+   "picture": "milk",
+   "id": "milk"
+  },
+  {
+   "group": 2,
+   "picture": "cheese",
+   "id": "cheese"
+  },
+  {
+   "group": 2,
+   "picture": "sauce",
+   "id": "sauce"
+  },
+  {
+   "group": 2,
+   "picture": "honey-pot",
+   "id": "honey"
+  },
+  {
+   "group": 2,
+   "picture": "blueberries",
+   "id": "berries"
+  },
+  {
+   "group": 2,
+   "picture": "carrot",
+   "id": "carrot"
+  },
+  {
+   "group": 2,
+   "picture": "apple-whole",
+   "id": "apple"
+  },
+  {
+   "group": 2,
+   "picture": "peanuts",
+   "id": "nut"
+  },
+  {
+   "group": 2,
+   "picture": "mushroom",
+   "id": "mushroom"
+  },
+  {
+   "group": 2,
+   "picture": "peapod",
+   "id": "peapod"
+  },
+  {
+   "group": 2,
+   "picture": "cat",
+   "id": "pet_bowl"
+  },
+  {
+   "group": 2,
+   "picture": "dog-bowl-empty",
+   "id": "pet_bowl"
+  },
+  {
+   "group": 2,
+   "picture": "leaf",
+   "id": "leaf"
+  },
+  {
+   "group": 2,
+   "picture": "garlic",
+   "id": "garlic"
+  },
+  {
+   "group": 3,
+   "picture": "drink-alt",
+   "id": "glass"
+  },
+  {
+   "group": 3,
+   "picture": "mug-tea-alt",
+   "id": "mug"
+  },
+  {
+   "group": 3,
+   "picture": "peppermint-tea",
+   "id": "mug"
+  },
+  {
+   "group": 3,
+   "picture": "coffee-pot",
+   "id": "coffee_pot"
+  },
+  {
+   "group": 3,
+   "picture": "orange-juice",
+   "id": "juice"
+  },
+  {
+   "group": 3,
+   "picture": "apple-juice",
+   "id": "juice"
+  },
+  {
+   "group": 3,
+   "picture": "coconut-water",
+   "id": "cocktail"
+  },
+  {
+   "group": 3,
+   "picture": "glass-citrus",
+   "id": "cocktail"
+  },
+  {
+   "group": 3,
+   "picture": "glass-water-droplet",
+   "id": "glass"
+  },
+  {
+   "group": 3,
+   "picture": "glass",
+   "id": "glass"
+  },
+  {
+   "group": 3,
+   "picture": "blender-phone",
+   "id": "blender"
+  },
+  {
+   "group": 3,
+   "picture": "blender",
+   "id": "blender"
+  },
+  {
+   "group": 3,
+   "picture": "beer",
+   "id": "beer"
+  },
+  {
+   "group": 3,
+   "picture": "wine-bottle",
+   "id": "wine"
+  },
+  {
+   "group": 3,
+   "picture": "glass-champagne",
+   "id": "wine_glass"
+  },
+  {
+   "group": 3,
+   "picture": "wine-glass-empty",
+   "id": "wine_glass"
+  },
+  {
+   "group": 3,
+   "picture": "glass-cheers",
+   "id": "wine_glass"
+  },
+  {
+   "group": 3,
+   "picture": "trophy",
+   "id": "wine_glass"
+  },
+  {
+   "group": 3,
+   "picture": "cup-togo",
+   "id": "cup"
+  },
+  {
+   "group": 3,
+   "picture": "cup-straw",
+   "id": "cup"
+  },
+  {
+   "group": 3,
+   "picture": "bubble-tea",
+   "id": "jar"
+  },
+  {
+   "group": 3,
+   "picture": "water-drop",
+   "id": "drop"
+  },
+  {
+   "group": 3,
+   "picture": "water",
+   "id": "drop"
+  },
+  {
+   "group": 3,
+   "picture": "bottle-droplet",
+   "id": "bottle"
+  },
+  {
+   "group": 3,
+   "picture": "water-bottle",
+   "id": "bottle"
+  },
+  {
+   "group": 3,
+   "picture": "bottle",
+   "id": "bottle"
+  },
+  {
+   "group": 3,
+   "picture": "bottle-baby",
+   "id": "bottle"
+  },
+  {
+   "group": 3,
+   "picture": "raindrops",
+   "id": "rain"
+  },
+  {
+   "group": 3,
+   "picture": "cloud-rain",
+   "id": "rain"
+  },
+  {
+   "group": 3,
+   "picture": "bucket",
+   "id": "bucket"
+  },
+  {
+   "group": 3,
+   "picture": "water-lower",
+   "id": "fill"
+  },
+  {
+   "group": 3,
+   "picture": "water-rise",
+   "id": "empty"
+  },
+  {
+   "group": 3,
+   "picture": "tank-water",
+   "id": "pour"
+  },
+  {
+   "group": 3,
+   "picture": "arrow-up-from-ground-water",
+   "id": "gas_siphon"
+  },
+  {
+   "group": 3,
+   "picture": "filter",
+   "id": "filter"
+  },
+  {
+   "group": 3,
+   "picture": "watering-can-drop",
+   "id": "watering_can"
+  },
+  {
+   "group": 3,
+   "picture": "watering-can-plant",
+   "id": "watering_can"
+  },
+  {
+   "group": 3,
+   "picture": "water-ladder",
+   "id": "well"
+  },
+  {
+   "group": 3,
+   "picture": "toilet",
+   "id": "toilet"
+  },
+  {
+   "group": 3,
+   "picture": "bath",
+   "id": "bath"
+  },
+  {
+   "group": 3,
+   "picture": "backpack",
+   "id": "backpack"
+  },
+  {
+   "group": 3,
+   "picture": "gas-pump",
+   "id": "gas_pump"
+  },
+  {
+   "group": 3,
+   "picture": "flask",
+   "id": "flask"
+  },
+  {
+   "group": 3,
+   "picture": "flask-poison",
+   "id": "poison"
+  },
+  {
+   "group": 3,
+   "picture": "glass-empty",
+   "id": "glass_empty"
+  },
+  {
+   "group": 3,
+   "picture": "glass-half",
+   "id": "glass_half"
+  },
+  {
+   "group": 3,
+   "picture": "bars-progress",
+   "id": "progress"
+  },
+  {
+   "group": 3,
+   "picture": "arrows-repeat",
+   "id": "swap"
+  },
+  {
+   "group": 3,
+   "picture": "question",
+   "id": "help"
+  },
+  {
+   "group": 3,
+   "picture": "skull",
+   "id": "skull"
+  },
+  {
+   "group": 3,
+   "picture": "brain-stress",
+   "id": "brain"
+  },
+  {
+   "group": 3,
+   "picture": "face-disappointed",
+   "id": "sad"
+  },
+  {
+   "group": 3,
+   "picture": "fire-flame-curved",
+   "id": "flame"
+  },
+  {
+   "group": 3,
+   "picture": "flame",
+   "id": "flame"
+  },
+  {
+   "group": 3,
+   "picture": "blood",
+   "id": "blood"
+  },
+  {
+   "group": 4,
+   "picture": "build",
+   "id": "bricks"
+  },
+  {
+   "group": 4,
+   "picture": "house-blank",
+   "id": "bricks"
+  },
+  {
+   "group": 4,
+   "picture": "barrier-cone",
+   "id": "barricade"
+  },
+  {
+   "group": 4,
+   "picture": "build-alt",
+   "id": "screwdriver"
+  },
+  {
+   "group": 4,
+   "picture": "screwdriver",
+   "id": "screwdriver"
+  },
+  {
+   "group": 4,
+   "picture": "hammer-brush",
+   "id": "craft"
+  },
+  {
+   "group": 4,
+   "picture": "wrench-alt",
+   "id": "wrench"
+  },
+  {
+   "group": 4,
+   "picture": "layer-plus",
+   "id": "upgrade"
+  },
+  {
+   "group": 4,
+   "picture": "shield-plus",
+   "id": "reinforce"
+  },
+  {
+   "group": 4,
+   "picture": "arrow-up-from-square",
+   "id": "box_up"
+  },
+  {
+   "group": 4,
+   "picture": "arrow-up-right-from-square",
+   "id": "box_up"
+  },
+  {
+   "group": 4,
+   "picture": "arrow-down-to-square",
+   "id": "box_down"
+  },
+  {
+   "group": 4,
+   "picture": "rotate-reverse",
+   "id": "rotate"
+  },
+  {
+   "group": 4,
+   "picture": "rotate-left",
+   "id": "rotate"
+  },
+  {
+   "group": 4,
+   "picture": "saw",
+   "id": "saw"
+  },
+  {
+   "group": 4,
+   "picture": "hammer",
+   "id": "hammer"
+  },
+  {
+   "group": 4,
+   "picture": "welding",
+   "id": "welder"
+  },
+  {
+   "group": 4,
+   "picture": "cutter",
+   "id": "knife"
+  },
+  {
+   "group": 4,
+   "picture": "hammer-crash",
+   "id": "sledge"
+  },
+  {
+   "group": 4,
+   "picture": "arrow-up-left-from-circle",
+   "id": "minus"
+  },
+  {
+   "group": 4,
+   "picture": "sewing-machine-alt",
+   "id": "needle"
+  },
+  {
+   "group": 4,
+   "picture": "story-book",
+   "id": "paintbrush"
+  },
+  {
+   "group": 4,
+   "picture": "paint-bucket",
+   "id": "paint"
+  },
+  {
+   "group": 4,
+   "picture": "paint-roller",
+   "id": "roller"
+  },
+  {
+   "group": 4,
+   "picture": "knitting",
+   "id": "yarn"
+  },
+  {
+   "group": 4,
+   "picture": "fabric",
+   "id": "fabric"
+  },
+  {
+   "group": 4,
+   "picture": "grill-fire",
+   "id": "grill"
+  },
+  {
+   "group": 4,
+   "picture": "campfire",
+   "id": "campfire"
+  },
+  {
+   "group": 4,
+   "picture": "match-fire",
+   "id": "match"
+  },
+  {
+   "group": 4,
+   "picture": "fire-extinguisher",
+   "id": "extinguisher"
+  },
+  {
+   "group": 4,
+   "picture": "fireplace",
+   "id": "fireplace"
+  },
+  {
+   "group": 4,
+   "picture": "grill-hot-alt",
+   "id": "fireplace"
+  },
+  {
+   "group": 4,
+   "picture": "smoke",
+   "id": "broom"
+  },
+  {
+   "group": 4,
+   "picture": "ladder",
+   "id": "ladder"
+  },
+  {
+   "group": 4,
+   "picture": "stairs",
+   "id": "stairs"
+  },
+  {
+   "group": 4,
+   "picture": "curtains-open",
+   "id": "curtains"
+  },
+  {
+   "group": 4,
+   "picture": "door-closed",
+   "id": "door"
+  },
+  {
+   "group": 4,
+   "picture": "window-alt",
+   "id": "window"
+  },
+  {
+   "group": 4,
+   "picture": "fence",
+   "id": "fence"
+  },
+  {
+   "group": 4,
+   "picture": "floor",
+   "id": "floor"
+  },
+  {
+   "group": 4,
+   "picture": "sawmill-070-wood",
+   "id": "planks"
+  },
+  {
+   "group": 4,
+   "picture": "sofa",
+   "id": "chair"
+  },
+  {
+   "group": 4,
+   "picture": "bed",
+   "id": "bed"
+  },
+  {
+   "group": 4,
+   "picture": "table",
+   "id": "table"
+  },
+  {
+   "group": 4,
+   "picture": "books",
+   "id": "bookcase"
+  },
+  {
+   "group": 4,
+   "picture": "shelves",
+   "id": "shelves"
+  },
+  {
+   "group": 4,
+   "picture": "box-alt",
+   "id": "locker"
+  },
+  {
+   "group": 4,
+   "picture": "tombstone",
+   "id": "tombstone"
+  },
+  {
+   "group": 4,
+   "picture": "arrow-right",
+   "id": "arrow_right"
+  },
+  {
+   "group": 4,
+   "picture": "arrow-left",
+   "id": "arrow_left"
+  },
+  {
+   "group": 4,
+   "picture": "arrow-up",
+   "id": "move_up"
+  },
+  {
+   "group": 4,
+   "picture": "arrow-down",
+   "id": "move_down"
+  },
+  {
+   "group": 5,
+   "picture": "gun-shooting",
+   "id": "gun_fire"
+  },
+  {
+   "group": 5,
+   "picture": "burst",
+   "id": "gun_fire"
+  },
+  {
+   "group": 5,
+   "picture": "target",
+   "id": "target"
+  },
+  {
+   "group": 5,
+   "picture": "person-rifle",
+   "id": "target"
+  },
+  {
+   "group": 5,
+   "picture": "angle-double-small-up",
+   "id": "mag_in"
+  },
+  {
+   "group": 5,
+   "picture": "unload-bullet",
+   "id": "rounds_out"
+  },
+  {
+   "group": 5,
+   "picture": "arrows-alt-h",
+   "id": "rack"
+  },
+  {
+   "group": 5,
+   "picture": "arrow-right-to-bracket",
+   "id": "push"
+  },
+  {
+   "group": 5,
+   "picture": "hiking-boot",
+   "id": "boot"
+  },
+  {
+   "group": 5,
+   "picture": "fist-move",
+   "id": "fist"
+  },
+  {
+   "group": 5,
+   "picture": "primary-hand",
+   "id": "hand_main"
+  },
+  {
+   "group": 5,
+   "picture": "secondary-hand",
+   "id": "hand_off"
+  },
+  {
+   "group": 5,
+   "picture": "on-back",
+   "id": "backpack"
+  },
+  {
+   "group": 5,
+   "picture": "holster-gun-left",
+   "id": "holster_left"
+  },
+  {
+   "group": 5,
+   "picture": "holster-gun-right",
+   "id": "holster_right"
+  },
+  {
+   "group": 5,
+   "picture": "arrow-alt-to-bottom",
+   "id": "holster"
+  },
+  {
+   "group": 5,
+   "picture": "square-dashed-circle-plus",
+   "id": "link"
+  },
+  {
+   "group": 5,
+   "picture": "octagon-minus",
+   "id": "unlink"
+  },
+  {
+   "group": 5,
+   "picture": "rifle_scope",
+   "id": "scope"
+  },
+  {
+   "group": 5,
+   "picture": "pistol_silence",
+   "id": "suppressor"
+  },
+  {
+   "group": 5,
+   "picture": "bayonet",
+   "id": "bayonet"
+  },
+  {
+   "group": 5,
+   "picture": "gun",
+   "id": "gun"
+  },
+  {
+   "group": 5,
+   "picture": "ammo-check",
+   "id": "ammo"
+  },
+  {
+   "group": 5,
+   "picture": "bullet-combine",
+   "id": "ammo"
+  },
+  {
+   "group": 5,
+   "picture": "bullet1",
+   "id": "ammo"
+  },
+  {
+   "group": 5,
+   "picture": "magazine_r",
+   "id": "magazine"
+  },
+  {
+   "group": 5,
+   "picture": "eject",
+   "id": "mag_out"
+  },
+  {
+   "group": 5,
+   "picture": "no-bullets",
+   "id": "ammo_off"
+  },
+  {
+   "group": 5,
+   "picture": "knife",
+   "id": "knife"
+  },
+  {
+   "group": 5,
+   "picture": "gauze-bandage",
+   "id": "bandage"
+  },
+  {
+   "group": 5,
+   "picture": "hand-bandage-wound",
+   "id": "bandage"
+  },
+  {
+   "group": 5,
+   "picture": "bandage-wound",
+   "id": "bandage_off"
+  },
+  {
+   "group": 5,
+   "picture": "band-aid-alt",
+   "id": "splint"
+  },
+  {
+   "group": 5,
+   "picture": "resistance-band",
+   "id": "tourniquet"
+  },
+  {
+   "group": 5,
+   "picture": "pump-medical",
+   "id": "ointment"
+  },
+  {
+   "group": 5,
+   "picture": "heart-rate",
+   "id": "pulse"
+  },
+  {
+   "group": 5,
+   "picture": "temperature-list",
+   "id": "thermometer"
+  },
+  {
+   "group": 5,
+   "picture": "hands-together-heart",
+   "id": "heart"
+  },
+  {
+   "group": 5,
+   "picture": "flame-alert",
+   "id": "flame"
+  },
+  {
+   "group": 5,
+   "picture": "pliers",
+   "id": "pliers"
+  },
+  {
+   "group": 5,
+   "picture": "medication",
+   "id": "pills"
+  },
+  {
+   "group": 5,
+   "picture": "eye-drop",
+   "id": "eyedrop"
+  },
+  {
+   "group": 5,
+   "picture": "stethoscope",
+   "id": "stethoscope"
+  },
+  {
+   "group": 5,
+   "picture": "spray-can",
+   "id": "spray"
+  },
+  {
+   "group": 5,
+   "picture": "coffin",
+   "id": "coffin"
+  },
+  {
+   "group": 5,
+   "picture": "eye",
+   "id": "eye"
+  },
+  {
+   "group": 5,
+   "picture": "hand",
+   "id": "hand"
+  },
+  {
+   "group": 6,
+   "picture": "caret-square-right",
+   "id": "car_enter"
+  },
+  {
+   "group": 6,
+   "picture": "enter",
+   "id": "car_enter"
+  },
+  {
+   "group": 6,
+   "picture": "caret-square-left_1",
+   "id": "car_exit"
+  },
+  {
+   "group": 6,
+   "picture": "exit",
+   "id": "car_exit"
+  },
+  {
+   "group": 6,
+   "picture": "car-bolt",
+   "id": "hotwire"
+  },
+  {
+   "group": 6,
+   "picture": "car-mechanic",
+   "id": "engine"
+  },
+  {
+   "group": 6,
+   "picture": "engine",
+   "id": "engine"
+  },
+  {
+   "group": 6,
+   "picture": "holding-hand-gear",
+   "id": "engine"
+  },
+  {
+   "group": 6,
+   "picture": "car-oil",
+   "id": "gas_can"
+  },
+  {
+   "group": 6,
+   "picture": "tire-flat",
+   "id": "tire"
+  },
+  {
+   "group": 6,
+   "picture": "car-rear",
+   "id": "car_door"
+  },
+  {
+   "group": 6,
+   "picture": "car-alt",
+   "id": "car_door"
+  },
+  {
+   "group": 6,
+   "picture": "address-card",
+   "id": "screwdriver"
+  },
+  {
+   "group": 6,
+   "picture": "gears",
+   "id": "gears"
+  },
+  {
+   "group": 6,
+   "picture": "car-crash",
+   "id": "car_x"
+  },
+  {
+   "group": 6,
+   "picture": "bolt-slash",
+   "id": "key_off"
+  },
+  {
+   "group": 6,
+   "picture": "bullhorn",
+   "id": "horn"
+  },
+  {
+   "group": 6,
+   "picture": "siren-on",
+   "id": "lightbar"
+  },
+  {
+   "group": 6,
+   "picture": "car-battery",
+   "id": "car_battery"
+  },
+  {
+   "group": 6,
+   "picture": "fuel-gauge",
+   "id": "gauge"
+  },
+  {
+   "group": 6,
+   "picture": "battery-bolt",
+   "id": "generator"
+  },
+  {
+   "group": 6,
+   "picture": "power",
+   "id": "generator"
+  },
+  {
+   "group": 6,
+   "picture": "plug-circle-bolt",
+   "id": "plug"
+  },
+  {
+   "group": 6,
+   "picture": "plug-circle-minus",
+   "id": "unplug"
+  },
+  {
+   "group": 6,
+   "picture": "plug-circle-exclamation",
+   "id": "wires"
+  },
+  {
+   "group": 6,
+   "picture": "lightbulb-on",
+   "id": "bulb_on"
+  },
+  {
+   "group": 6,
+   "picture": "lightbulb-exclamation",
+   "id": "bulb_remove"
+  },
+  {
+   "group": 6,
+   "picture": "lightbulb-slash",
+   "id": "bulb_off"
+  },
+  {
+   "group": 6,
+   "picture": "pipeline",
+   "id": "pipe"
+  },
+  {
+   "group": 6,
+   "picture": "fm-radio",
+   "id": "seek"
+  },
+  {
+   "group": 6,
+   "picture": "alarm-plus",
+   "id": "alarm"
+  },
+  {
+   "group": 6,
+   "picture": "alarm-off",
+   "id": "alarm_off"
+  },
+  {
+   "group": 6,
+   "picture": "plant-care",
+   "id": "plant"
+  },
+  {
+   "group": 6,
+   "picture": "plant-growth",
+   "id": "crop"
+  },
+  {
+   "group": 6,
+   "picture": "shovel",
+   "id": "shovel"
+  },
+  {
+   "group": 6,
+   "picture": "poo",
+   "id": "compost"
+  },
+  {
+   "group": 6,
+   "picture": "hand-scissors",
+   "id": "scissors"
+  },
+  {
+   "group": 6,
+   "picture": "seedling",
+   "id": "seed"
+  },
+  {
+   "group": 6,
+   "picture": "scythe",
+   "id": "scythe"
+  },
+  {
+   "group": 6,
+   "picture": "feather",
+   "id": "feather"
+  },
+  {
+   "group": 6,
+   "picture": "box-target",
+   "id": "trap"
+  },
+  {
+   "group": 6,
+   "picture": "V_BearTrap",
+   "id": "trap"
+  },
+  {
+   "group": 6,
+   "picture": "fishing-rod",
+   "id": "rod"
+  },
+  {
+   "group": 6,
+   "picture": "fish-hook",
+   "id": "hook"
+  },
+  {
+   "group": 6,
+   "picture": "fish-bones",
+   "id": "fish"
+  },
+  {
+   "group": 6,
+   "picture": "paw",
+   "id": "rope"
+  },
+  {
+   "group": 6,
+   "picture": "person-pregnant",
+   "id": "heart"
+  },
+  {
+   "group": 6,
+   "picture": "dog",
+   "id": "hutch"
+  },
+  {
+   "group": 6,
+   "picture": "dna",
+   "id": "dna"
+  },
+  {
+   "group": 6,
+   "picture": "cow",
+   "id": "cow"
+  },
+  {
+   "group": 6,
+   "picture": "pets",
+   "id": "pet"
+  },
+  {
+   "group": 6,
+   "picture": "bug",
+   "id": "bug"
+  },
+  {
+   "group": 6,
+   "picture": "handshake",
+   "id": "group"
+  },
+  {
+   "group": 6,
+   "picture": "follow",
+   "id": "follow_me"
+  },
+  {
+   "group": 6,
+   "picture": "flag",
+   "id": "flag"
+  },
+  {
+   "group": 6,
+   "picture": "shield-minus",
+   "id": "shield_minus"
+  },
+  {
+   "group": 6,
+   "picture": "shield",
+   "id": "shield_plain"
+  },
+  {
+   "group": 6,
+   "picture": "info",
+   "id": "info"
+  },
+  {
+   "group": 6,
+   "picture": "info-guide",
+   "id": "guide"
+  },
+  {
+   "group": 6,
+   "picture": "exclamation",
+   "id": "warning"
+  },
+  {
+   "group": 6,
+   "picture": "triangle-warning",
+   "id": "warning"
+  },
+  {
+   "group": 6,
+   "picture": "bars-filter",
+   "id": "more"
+  },
+  {
+   "group": 6,
+   "picture": "apps",
+   "id": "view_grid"
+  },
+  {
+   "group": 6,
+   "picture": "square-1",
+   "id": "one"
+  },
+  {
+   "group": 6,
+   "picture": "plus",
+   "id": "plus"
+  },
+  {
+   "group": 6,
+   "picture": "tally",
+   "id": "tally"
+  },
+  {
+   "group": 6,
+   "picture": "trash",
+   "id": "trash"
+  },
+  {
+   "group": 6,
+   "picture": "trash-check",
+   "id": "trash"
+  },
+  {
+   "group": 6,
+   "picture": "clock",
+   "id": "watch"
+  },
+  {
+   "group": 6,
+   "picture": "portal-enter",
+   "id": "pin"
+  },
+  {
+   "group": 6,
+   "picture": "muffin",
+   "id": "cake"
   }
  ]
 }

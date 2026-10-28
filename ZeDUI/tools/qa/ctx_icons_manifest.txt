@@ -1,0 +1,9 @@
+# ZeDUI/tools/qa/ctx_icons_manifest.txt  (Oct 28 2026)
+# The right-click menu's pixel icons (ZeD.ContextPxIcons replaced its licensed pictures): the new script, then
+# the scripts that show the places they draw (the menu as a list, the wheels' fallback through the registry,
+# the seat chooser's cells).
+zedqa_prelude.lua | pre
+zedqa_ctx_icons.lua | cx | timeout=300
+zedqa_ctxlist.lua | cl
+zedqa_wheel_icons.lua | wi | timeout=600
+zedqa_wheels.lua | wh

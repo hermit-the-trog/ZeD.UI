@@ -52,9 +52,34 @@ def main(game=False):
         "TABS": [{"tab": t, "id": i} for t, i in M.TABS],
         "ROW": [{"window": w, "button": b, "id": i} for w, b, i in M.ROW],
     }
+    data["CTX"] = [{"group": g, "picture": t, "id": i} for g, t, i in M.CTX]
     os.makedirs(map_dir, exist_ok=True)
     with open(os.path.join(map_dir, "wheel_icons_map.json"), "w", encoding="utf-8") as f: json.dump(data, f, indent=1)
+    if game: write_ctx_lua()
     print(len(kit.ICONS), "icons,", 4 * len(kit.ICONS), "files,", written, "written")
+
+
+CTX_LUA = os.path.join(ROOT, "42", "media", "lua", "shared", "ZeD", "ContextPxIcons.lua")
+
+
+def write_ctx_lua():
+    """the right-click menu's table: each picture name ZeD.ContextIcons gives, the pixel icon drawn for it"""
+    lines = ["-- ZeD-UI/42/media/lua/shared/ZeD/ContextPxIcons.lua",
+             "-- Written by ZeDUI/tools/wheelpx/export.py --game from map.py CTX: do not edit by hand.",
+             "--",
+             "-- ZeD.ContextPxIcons: a picture name from ZeD.ContextIcons -> the id of ZeD's pixel icon",
+             "-- drawn for it (ZeD.PxIcon, media/textures/ZeD/wheel/). A name not here (one a mod adds)",
+             "-- keeps its picture from media/textures/ZeD/icons/.",
+             "ZeD = ZeD or {}",
+             "ZeD.ContextPxIcons = {"]
+    group = None
+    for g, t, i in sorted(M.CTX, key=lambda r: (r[0], r[1])):
+        if g != group:
+            lines.append("    -- group %d" % g); group = g
+        lines.append('    ["%s"] = "%s",' % (t, i))
+    lines.append("}")
+    with open(CTX_LUA, "w", encoding="utf-8", newline="\n") as f: f.write("\n".join(lines) + "\n")
+    print(CTX_LUA, len(M.CTX), "pictures")
 
 
 if __name__ == "__main__":

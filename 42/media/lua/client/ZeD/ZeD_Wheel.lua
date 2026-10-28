@@ -200,10 +200,13 @@ function W.picture(slice)
     -- by the registry, so the name in the player's language finds its icon (not only the English text)
     local R = ZeD.ContextMenu and ZeD.ContextMenu.Registry
     if R and R.resolveIconForName and first and first ~= "" then
-        local ok, t = pcall(R.resolveIconForName, first)
+        local ok, t, id = pcall(R.resolveIconForName, first)
+        if ok and id then return nil, true, id end
         if ok and t then return t, true end
     end
     local ci = ZeD.ContextIcons and first and ZeD.ContextIcons[first]
+    local cid = ci and ZeD.ContextPxIcons and ZeD.ContextPxIcons[ci]
+    if cid and ZeD.PxIcon.has(cid) then return nil, true, cid end
     if ci then local t = zicon(ci); if t then return t, true end end
     return slice.texture, false
 end
