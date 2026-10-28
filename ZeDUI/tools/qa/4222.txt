@@ -1,0 +1,2 @@
+zedqa_prelude.lua | pre
+zedqa_4222.lua | 4222 | timeout=300
