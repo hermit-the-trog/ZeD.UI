@@ -164,8 +164,53 @@ local function hookKeys()
     Events.OnKeyPressed.Add(ToggleEscapeMenu)
 end
 
+-- VANILLA'S ABOUT MODS WARNING — HOOK_MAP row 31 (director, Oct 27 2026: "missed a window")
+-- ModSelector.showNagPanel: once per game run, the first time the Mods screen (or Load
+-- Game's mods) opens, vanilla's ISModsNagPanel (a black 650x400 panel, Spiffo with his
+-- stop sign) drew over ZeD's Mods window; ZeD's own MM.openMods asks for it as vanilla's
+-- screen does. Now a ZeD note: vanilla's title as the heading, vanilla's words, one OK,
+-- centred as vanilla's, vanilla's once-per-run flag kept, and the main menu's controller
+-- holds it (and gets the menu back) as it held vanilla's. Safe mode, the welcome-message
+-- debug option, or a prompt that cannot be built: vanilla's own panel.
+local function hookNag()
+    if not (ModSelector and type(ModSelector.showNagPanel) == "function") or ModSelector._zedNagHooked then return end
+    ModSelector._zedNagHooked = true
+    local orig = ModSelector.showNagPanel
+    ModSelector.showNagPanel = function()
+        if not ready() then return orig() end
+        local core = getCore()
+        if core:isModsPopupDone() then return end
+        local offOk, off = pcall(function() return getDebug() and getDebugOptions():getBoolean("UI.DisableWelcomeMessage") end)
+        if offOk and off then return end
+        local ok, err = pcall(function()
+            local w, h = 650, 400
+            local sw, sh = core:getScreenWidth(), core:getScreenHeight()
+            local title = (ZeD.Atoms and ZeD.Atoms.textCase or tostring)(getText("UI_ModsNagPanel_Title"))
+            local body = "<H1>" .. title .. "<BR>" .. getText("UI_ModsNagPanel_Text")
+            -- through the hook above: a ZeD prompt (vanilla's class comes back without a kind)
+            local o = ISModalRichText:new((sw - w) / 2, (sh - h) / 2, w, h, body, false, nil, nil, nil)
+            if not (o and o.kind == "rich") then error("not a ZeD prompt") end
+            o._zedModsNag = true
+            o:initialise()
+            o:addToUIManager()
+            core:setModsPopupDone(true)
+            local jd = JoypadState and JoypadState.getMainMenuJoypad and JoypadState.getMainMenuJoypad()
+            if jd then
+                o.prevFocus = jd.focus
+                jd.focus = o
+                updateJoypadFocus(jd)
+            end
+        end)
+        if not ok then
+            print("[ZeD] Prompts: About Mods kept vanilla's: " .. tostring(err))
+            return orig()
+        end
+    end
+end
+
 local function apply()
     if not ZeD_Prompt then return end
+    hookNag()
     local P = ZeD.Prompt
     hookNew(ISModalDialog, "question", P.question)
     hookNew(ISModalRichText, "rich text", P.rich)
