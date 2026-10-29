@@ -1,6 +1,6 @@
 # ZeD-GUI
 
-ZeD-GUI is a mod for Project Zomboid Build 42. It replaces the inventory, the character and loot windows, the HUD and the menus. The style follows a 1993 Mac. It works with a controller and with a mouse and keyboard.
+ZeD-GUI, the Zero Day Graphic User Interface, is a mod for Project Zomboid Build 42. It replaces the inventory, the character and loot windows, the HUD and the menus. In the fiction it runs on ZNIX, a made-up platform: a custom kernel built by a paranoid do-it-yourself doomsday prepper. The look is inspired by the popular operating systems of the period, Macintosh System 6 and System 7 most of all; it is not an endorsement of Apple, Microsoft or any other brand. It works with a controller and with a mouse and keyboard.
 
 ## Where to get it
 
@@ -30,4 +30,4 @@ Source-available, not open source. Read the code, learn from it, build add-ons f
 
 ## Credits
 
-Made by Hermit the Trog. The fonts are Fira Sans Condensed and Fira Mono, under the SIL Open Font License. The pixel art is the mod's own. Project Zomboid is made by The Indie Stone; ZeD-GUI is a fan-made mod and is not affiliated with The Indie Stone or Apple.
+Made by Hermit the Trog. The fonts are Fira Sans Condensed and Fira Mono, under the SIL Open Font License. The pixel art is the mod's own. Project Zomboid is made by The Indie Stone; ZeD-GUI is a fan-made mod and is not affiliated with The Indie Stone, Apple or Microsoft.
