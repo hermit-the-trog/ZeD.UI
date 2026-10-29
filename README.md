@@ -1,5 +1,5 @@
 # ZeD.UI
-A full interface redesign for Project Zomboid Build 42. Retro Mac aesthetic, gamepad-friendly, every menu rebuilt from scratch. Made for players who want the game to look and feel as good as it plays.
+A full interface redesign for Project Zomboid Build 42. Retro Mac aesthetic, gamepad-friendly, every menu rebuilt from scratch.
 
 ## Where to get it
 The mod is on the [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3824968485). Problems go in the pinned Bug reports discussion there. That page is the only place the mod is published.
