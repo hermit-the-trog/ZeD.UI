@@ -1,15 +1,27 @@
--- ZeDUI/tools/qa/zedqa_hairbeard.lua  (Oct 26 2026)
+-- ZeDUI/tools/qa/zedqa_hairbeard.lua  (Oct 26 2026; Hidden actions Oct 29 2026)
 -- Hair and beard in the Identity tab (ZeD_HairBeard.lua, mockup zed_hair_beard_v1),
 -- on the ZeD-QA save. Runs with no hair mod (zedqa_run.ps1) and with them on
 -- (zedqa_mods_run.ps1 with hairbeard_mods_*.txt): the mod checks run only when that mod is on.
+-- ZeD setup's Hidden actions (Folded by default, Show all, Hide; ZeD.Settings.hiddenActionsOption):
+-- a cut, style, shave or trim the character lacks the tool for, and a style the hair is too short
+-- for, are not greyed rows at Folded: they sit under one hint row (hb:more:<part>) that opens. The
+-- script starts at Folded, sets Show all (2) only for the checks that need the greyed rows in the
+-- list, and puts the player's pick (and each hint row's open / shut state) back at the end.
 --   1. long hair and a full beard, no tools: rows from the game's own menu, greyed with its reasons
---   2. the mouse: pick a row (the strip says why), hover (the game's hint), the button greyed
+--      (the rows' data). Folded: only the rows that can be done show, the hint row is there, no
+--      greyed row, no click zone or controller stop for the cut. Hide: no hint row. Show all: every
+--      row shows greyed (Out of reach too), no hint row. The figures lists run at Show all
+--   2. the mouse. Folded: a click on the hint row opens it (the greyed rows come), a second shuts it.
+--      Show all: pick a greyed row (the strip says why), hover (the game's hint), the button greyed
 --   3. scissors and a cap: the strip names the cap and the tool; Cut runs the game's action;
---      the license follows
+--      the license follows (Folded)
 --   4. tie and untie by controller (A on the row), the rows follow
---   5. controller: down from the disclosure lands on the switch, right flips to Beard, down
---      walks the rows (the strip follows focus), A on a greyed row does nothing, A trims
---   6. Out of reach folds open; the Identity traits' descriptions on focus and hover
+--   5. controller, no tools in the beard list. Folded: down from the Hair | Beard switch lands on
+--      the hint row, A opens it, down walks the greyed rows (the strip follows focus), A on a greyed
+--      row does nothing, A on the hint row shuts it. Show all: down lands on the first greyed row at
+--      once, same checks. Then scissors: A trims
+--   6. the hint row holds Out of reach (it is a stop, A opens it, an out-of-reach row can be focused);
+--      the Identity traits' descriptions on focus and hover
 --   7. Large text, Light; the hair mods (Spongie's tag; the picture mods' styles as rows) when on
 --   A. the figures (Oct 26 2026, "use game avatars for each style"): every row in view (also
 --      one the view's edge cuts), and Now / After, show the game's 3D figure (no drawn heads
@@ -26,6 +38,8 @@ local p = getPlayer()
 if not p then say("ERR no player"); return end
 local HB = ZeD.HairBeard
 if not HB then say("ERR ZeD.HairBeard is not loaded"); return end
+local DS = ZeD.Disclose
+if not DS then say("ERR ZeD.Disclose is not loaded"); return end
 local CW = ZeD_CharacterWindow
 local F = ZeD.Input and ZeD.Input.Focus
 local core = getCore()
@@ -73,6 +87,67 @@ local function el(id) for _, e in ipairs(els()) do if e.id == id then return e e
 local function focusId(id) local w = win(); return F.focusWhere(w, "charTabContent", function(x) return x.id == id end) end
 local function focused() local w = win(); local e = F.getFocusedElement(w); return e and e.id end
 local function queueLen() local q = ISTimedActionQueue.getTimedActionQueue(p); return q and q.queue and #q.queue or 0 end
+
+-- Hidden actions: ZeD setup's pick (1 Folded, 2 Show all, 3 Hide) is the player's, so it is read here
+-- before anything moves and put back at the end; so is whether each hint row was open. The layout
+-- follows the pick within a few frames (HB.key carries it), so a step that changes it waits on lay().
+local HO = ZeD.Settings and ZeD.Settings.hiddenActionsOption
+local SET0 = HO and HO:getValue() or nil
+local OPEN0 = { hair = DS.isOpen("hb:more:hair"), beard = DS.isOpen("hb:more:beard") }
+local function setHidden(i)
+    if HO then HO:setValue(i) end
+    refresh()
+end
+-- the list as laid out now: the hint row (an item of kind "more"), the rows and how many are greyed
+local function lay()
+    local o = { rows = 0, canDo = 0, greyed = 0, keys = {} }
+    local s = st()
+    for _, it in ipairs(s and s.L and s.L.items or {}) do
+        if it.kind == "more" then
+            o.more = it
+        elseif it.kind == "row" then
+            o.rows = o.rows + 1
+            o.keys[it.row.key] = true
+            if it.row.ok then o.canDo = o.canDo + 1 else o.greyed = o.greyed + 1 end
+        end
+    end
+    return o
+end
+local function okRows() local n = 0; for _, r in ipairs(rows()) do if r.ok then n = n + 1 end end; return n end
+local function moreZone() local s = st(); for _, z in ipairs(s and s.zones or {}) do if z.item.kind == "more" then return z end end; return nil end
+-- the controller's marks put away for a mouse check (they hide the mouse's hover and cards while they show)
+local cuesOrig
+local function cuesAway(on)
+    if on and not cuesOrig and F and F.cuesVisible then
+        cuesOrig = F.cuesVisible
+        F.cuesVisible = function() return false end
+    elseif not on and cuesOrig then
+        F.cuesVisible = cuesOrig
+        cuesOrig = nil
+    end
+end
+-- a trait's card: the mouse's goes through ZeD.Atoms.requestDetailCard (drawn after the shared pause), the
+-- controller's focus draws ZeD.Molecules.drawDetailCard at once; both are listened to while this is on
+local cardSeen, cardOrig = { req = {}, drawn = {} }, nil
+local function cardListen(on)
+    local A, M = ZeD.Atoms, ZeD.Molecules
+    if on and not cardOrig then
+        cardOrig = { req = A.requestDetailCard, draw = M.drawDetailCard }
+        A.requestDetailCard = function(owner, key, card, panel)
+            if type(key) == "string" and key:sub(1, 15) == "identity:trait:" then
+                cardSeen.req[key] = { title = card and card.title, lines = card and card.lines }
+            end
+            return cardOrig.req(owner, key, card, panel)
+        end
+        M.drawDetailCard = function(panel, ax, ay, card)
+            if card and card.title then cardSeen.drawn[card.title] = true end
+            return cardOrig.draw(panel, ax, ay, card)
+        end
+    elseif not on and cardOrig then
+        A.requestDetailCard, M.drawDetailCard = cardOrig.req, cardOrig.draw
+        cardOrig = nil
+    end
+end
 -- the tab's scroll so the section shows (its top at the view's top)
 local function scrollToHair()
     local w, s = win(), st()
@@ -119,10 +194,10 @@ local function scrollToHeads(dy)
     sc:setScrollPos(math.max(0, math.min(1, want / maxOff)))
 end
 -- scroll the tab so a row (its stop) shows in the middle of the view
-local function showRow(key)
+local function showEl(id)
     local w = win()
     local sc, view = w._identityScroll, w._identityGridScrollZone
-    local e = el("hb:row:" .. key)
+    local e = el(id)
     if not (sc and view and e and sc.visible) then return end
     local total = view.h / math.max(0.01, sc.barSizeRatio)
     local maxOff = math.max(1, total - view.h)
@@ -130,6 +205,7 @@ local function showRow(key)
     local want = off + (e.y - view.y) - view.h / 3
     sc:setScrollPos(math.max(0, math.min(1, want / maxOff)))
 end
+local function showRow(key) showEl("hb:row:" .. key) end
 -- the pointer over the drawer: the drawer's own getMouseX/Y answer a test position (Mouse.setXY
 -- moved the OS cursor but the game did not see it in the 4K runs); nil puts the real one back
 local function pointAt(x, y)
@@ -316,6 +392,12 @@ step(30, function()
         if c then c:Remove(it); taken[#taken + 1] = { it = it, c = c } end
     end
     say("tools taken away for the test: " .. #taken .. " | female " .. tostring(female) .. " | was " .. tostring(orig.hair) .. " / " .. tostring(orig.beard))
+    -- Hidden actions: the no-tool checks run at Folded (the default), whatever the player had; both hint rows start shut
+    say("Hidden actions was " .. tostring(SET0) .. " (" .. DS.setting() .. "); hint rows open: hair " .. tostring(OPEN0.hair) .. ", beard " .. tostring(OPEN0.beard))
+    check(HO ~= nil, "Hidden actions is a ZeD setting (ZeD.Settings.hiddenActionsOption)")
+    DS.setOpen("hb:more:hair", false)
+    DS.setOpen("hb:more:beard", false)
+    setHidden(1)
     setLook(LONG, "Full")
     HB.setPart(w, "hair")
 end)
@@ -328,6 +410,7 @@ step(60, function()
     for _, r in ipairs(rs) do grp[r.grp] = (grp[r.grp] or 0) + 1 end
     say("groups: tie " .. tostring(grp.Tie) .. " shave " .. tostring(grp.Shave) .. " cut " .. tostring(grp.Cut) .. " style " .. tostring(grp.Style))
     check((grp.Tie or 0) > 0 and (grp.Cut or 0) > 0, "Tie and Cut groups")
+    -- (the rows' own data: whether they show greyed or sit under the hint row is the layout's, checked below)
     local cut = rowWhere(function(r) return r.grp == "Cut" end)
     check(cut and not cut.ok and cut.reason == getText("Tooltip_RequireScissors"), "a cut with no scissors is greyed with the game's reason: " .. tostring(cut and cut.reason))
     local tie = rowWhere(function(r) return r.grp == "Tie" end)
@@ -343,6 +426,42 @@ step(60, function()
 end)
 until_(1, 900, still, "the windows are still")
 until_(10, 60, function() scrollToHair(); return figuresAll("no tools") end, "every hair row in view shows its figure, and Now")
+-- Hidden actions at Folded (the default): what the character cannot do is not a row; one hint row keeps it
+step(5, function()
+    local o = lay()
+    local cut = rowWhere(function(r) return r.grp == "Cut" end)
+    local sty = rowWhere(function(r) return r.grp == "Style" end)
+    check(DS.setting() == "folded", "Hidden actions is at Folded (" .. DS.setting() .. ")")
+    check(o.more ~= nil and o.more.key == "hb:more:hair", "folded: the hint row is there: " .. tostring(o.more and o.more.key))
+    local ok, text = pcall(DS.rowText, o.more and o.more.groups or {})
+    check(o.more ~= nil and #o.more.groups > 0 and ok and text ~= "", "folded: the hint row speaks for the hidden verbs (" .. #(o.more and o.more.groups or {}) .. " kinds): " .. tostring(text))
+    check(o.greyed == 0, "folded: no greyed row in the list (" .. o.greyed .. ")")
+    check(o.rows == okRows(), "folded: only the rows the character can do show (" .. o.rows .. " of " .. #rows() .. ", " .. okRows() .. " can be done)")
+    check(cut ~= nil and not o.keys[cut.key] and zoneOf(cut.key) == nil, "folded: the cut row is not in the list and has no click zone")
+    check(cut ~= nil and el("hb:row:" .. cut.key) == nil and (not sty or el("hb:row:" .. sty.key) == nil), "folded: the cut and style rows are no controller stops")
+    check(el("hb:more") ~= nil, "folded: the hint row is a controller stop (hb:more)")
+    check(not DS.isOpen("hb:more:hair"), "folded: the hint row is shut")
+end)
+-- Hide: no hint row at all
+step(5, function() setHidden(3) end)
+until_(5, 60, function() return lay().more == nil end, "Hide: the hint row is gone")
+step(5, function()
+    local o = lay()
+    check(DS.setting() == "hide" and o.greyed == 0 and el("hb:more") == nil, "hide: no hint row, no greyed row, no stop for them (" .. DS.setting() .. ")")
+    check(o.rows == okRows(), "hide: only the rows the character can do show (" .. o.rows .. ")")
+    setHidden(2)
+end)
+-- Show all: every row shows, greyed, Out of reach with them; no hint row. The figures lists below run here
+until_(5, 60, function() return lay().greyed > 0 end, "Show all: the greyed rows show")
+step(5, function()
+    local o = lay()
+    local cut = rowWhere(function(r) return r.grp == "Cut" end)
+    check(DS.setting() == "all", "Hidden actions is at Show all (" .. DS.setting() .. ")")
+    check(o.more == nil and el("hb:more") == nil, "show all: no hint row")
+    check(o.rows == #rows() + #(st().out or {}), "show all: every row shows, Out of reach too (" .. o.rows .. " of " .. #rows() .. " + " .. #(st().out or {}) .. ")")
+    check(o.greyed == o.rows - okRows(), "show all: the rows that cannot be done show greyed (" .. o.greyed .. ")")
+    check(cut ~= nil and o.keys[cut.key] and el("hb:row:" .. cut.key) ~= nil, "show all: the greyed cut row is in the list and a controller stop")
+end)
 step(5, function() scrollToRows() end)
 until_(10, 60, function() scrollToRows(); return figuresAll("the list") end, "the list scrolled: every row in view shows its figure")
 step(30, function() shot("list_no_tools"); rects("list_no_tools") end)
@@ -362,9 +481,9 @@ step(5, function()
 end)
 step(30, function() scrollToHair() end)
 step(30, function() shot("no_tools"); rects("no_tools") end)
--- the list at its longest (Out of reach open, scrolled to fill the view), the frame time with it, then another tab
-step(5, function() st().outOpen = true; scrollToRows() end)
-until_(10, 60, function() scrollToRows(); return figuresAll("Out of reach open") end, "figures with Out of reach open")
+-- the list at its longest (Show all: every row and Out of reach too, scrolled to fill the view), the frame time with it, then another tab
+step(5, function() scrollToRows() end)
+until_(10, 60, function() scrollToRows(); return figuresAll("Show all, Out of reach with it") end, "figures with Out of reach shown")
 step(10, function() sample("list", 240) end)
 until_(30, 120, function() return perf.list ~= nil end, "frame time sampled with the list open")
 -- the window as tall as the screen: the most rows (figures) at once
@@ -386,7 +505,7 @@ end)
 until_(1, 900, still, "the window back to its height")
 step(5, function()
     check(lookNow() == A_before, "the real character is unchanged while the figures show (" .. lookNow() .. ")")
-    st().outOpen = false
+    setHidden(1)   -- back to Folded (the default) for the rest
     local o = otherTab()
     say("tab for the release check: " .. tostring(o))
     switchTab(o)
@@ -405,7 +524,40 @@ step(5, function()
 end)
 until_(10, 60, function() scrollToHair(); return figuresAll("back on Identity") end, "back on Identity, the figures come back")
 
--- 2. the mouse: pick a greyed cut, hover it, the button stays greyed
+-- 2. the mouse. Folded: the hint row opens with a click and shuts with another
+step(10, function() park(); showEl("hb:more") end)
+step(20, function()
+    local w = win()
+    local mz = moreZone()
+    local cut = rowWhere(function(r) return r.grp == "Cut" end)
+    check(mz ~= nil, "folded: the hint row has a click zone")
+    check(cut ~= nil and zoneOf(cut.key) == nil, "folded: the cut row has no click zone (it is under the hint row)")
+    if mz then
+        HB.onClick(w, mz.x + 6, mz.y + 4)
+        check(DS.isOpen("hb:more:hair"), "a click on the hint row opens it")
+    end
+end)
+until_(5, 60, function() return lay().greyed > 0 end, "opened: the greyed rows show under the hint row")
+step(10, function()
+    local o, s = lay(), st()
+    local cut = rowWhere(function(r) return r.grp == "Cut" end)
+    check(o.more ~= nil and o.rows == #rows() + #(s.out or {}), "opened: the hint row keeps its place and every hidden row follows it (" .. o.rows .. " of " .. #rows() .. " + " .. #(s.out or {}) .. ")")
+    check(cut ~= nil and o.keys[cut.key] == true and el("hb:row:" .. cut.key) ~= nil, "opened: the greyed cut row is there, a controller stop")
+end)
+-- the open list is longer, so the tab's scroll (a fraction of its length) moved the hint row: bring it into view
+-- first, wait for a frame to draw its click zone there, then click the same zone the first click used
+step(10, function() showEl("hb:more") end)
+step(20, function()
+    local mz = moreZone()
+    check(mz ~= nil and mz.h >= ZeD.T.px(10), "opened: the hint row is in view with its click zone (the fold stays open until shut: HB.onClick -> DS.toggle)")
+    if mz then HB.onClick(win(), mz.x + 6, mz.y + 4) end
+    check(not DS.isOpen("hb:more:hair"), "a second click shuts the hint row")
+    if DS.isOpen("hb:more:hair") then DS.setOpen("hb:more:hair", false) end   -- (the rest of the run starts shut either way)
+end)
+until_(5, 60, function() return lay().greyed == 0 end, "shut: the greyed rows go again")
+-- Show all: pick a greyed cut, hover it, the button stays greyed
+step(5, function() setHidden(2) end)
+until_(5, 60, function() return lay().greyed > 0 end, "Show all: the greyed rows show again")
 step(10, function()
     local cut = rowWhere(function(r) return r.grp == "Cut" end)
     if cut then showRow(cut.key) end
@@ -414,10 +566,11 @@ step(20, function()
     local w, s = win(), st()
     local cut = rowWhere(function(r) return r.grp == "Cut" end)
     local z = cut and zoneOf(cut.key)
-    check(z ~= nil, "the cut row has a click zone")
+    check(z ~= nil, "show all: the cut row has a click zone")
     if z then
         HB.onClick(w, z.x + 6, z.y + 4)
         check(s.sel == cut.key, "a click picks the row")
+        cuesAway(true)
         pointAt(z.x + 40, z.y + 6)
     end
 end)
@@ -430,7 +583,11 @@ step(50, function()
     check(s.hover ~= nil, "the mouse is over a row (its hint shows)")
     shot("greyed_hover")
     pointAt(nil)
+    cuesAway(false)
+    s.sel = nil
+    setHidden(1)   -- back to Folded (the default) for the rest
 end)
+until_(5, 60, function() return lay().greyed == 0 end, "Folded again: the greyed rows are gone")
 
 -- 3. scissors and a cap: Cut runs the game's action, the license follows
 local target, capGiven
@@ -559,21 +716,72 @@ step(30, function()
     end
     refresh()
 end)
-step(30, function()
-    if female then return end
-    F.dispatchJoypadDir(win(), "down")
+-- on a greyed beard row (focus walked onto it): the strip follows focus with no press, says why; A does nothing
+local function greyedRowFocus(what)
     local id = focused() or ""
-    check(id:sub(1, 7) == "hb:row:", "down walks into the beard rows (" .. id .. ")")
+    check(id:sub(1, 7) == "hb:row:", what .. ": down walks into the beard rows (" .. id .. ")")
     local s = st()
-    check(s.sel ~= nil and ("hb:row:" .. s.sel) == id, "the strip follows focus with no press")
+    check(s.sel ~= nil and ("hb:row:" .. s.sel) == id, what .. ": the strip follows focus with no press")
     local r = rowWhere(function(x) return x.key == s.sel end)
-    check(r and not r.ok and r.reason == getText("Tooltip_requireRazorOrScissors"), "greyed with the game's reason: " .. tostring(r and r.reason))
+    check(r and not r.ok and r.reason == getText("Tooltip_requireRazorOrScissors"), what .. ": greyed with the game's reason: " .. tostring(r and r.reason))
     local before = queueLen()
     local e = F.getFocusedElement(win())
     if e then e.onActivate(win(), e) end
-    check(queueLen() == before and s.busy == nil, "A on a greyed row does nothing")
+    check(queueLen() == before and s.busy == nil, what .. ": A on a greyed row does nothing")
+end
+-- Folded (the default): nothing in the beard list can be done, so down from the switch lands on the hint row and picks nothing
+step(30, function()
+    if female then return end
+    local s = st()
+    s.sel = nil
+    F.dispatchJoypadDir(win(), "down")
+    check(focused() == "hb:more", "folded: down from the switch lands on the hint row (" .. tostring(focused()) .. ")")
+    check(s.sel == nil, "folded: focus on the hint row picks nothing (" .. tostring(s.sel) .. ")")
+    local o = lay()
+    check(o.rows == 0 and o.more ~= nil and o.more.key == "hb:more:beard", "folded: no beard row can be done, only the hint row shows (" .. o.rows .. " rows)")
+    shot("pad_beard_folded")
+end)
+-- A on the hint row opens it; down walks the greyed rows
+step(20, function()
+    if female then return end
+    local e = F.getFocusedElement(win())
+    if e then e.onActivate(win(), e) end
+    check(DS.isOpen("hb:more:beard"), "folded: A on the hint row opens it")
+end)
+until_(5, 60, function() if female then return true end; return lay().greyed > 0 end, "opened: the greyed beard rows show under the hint row")
+step(30, function()
+    if female then return end
+    F.dispatchJoypadDir(win(), "down")
+    greyedRowFocus("opened")
     shot("pad_beard_greyed")
 end)
+-- A on the hint row again shuts it
+step(20, function()
+    if female then return end
+    local e = focusId("hb:more")
+    check(e ~= nil, "opened: the hint row is a stop")
+    if e then e.onActivate(win(), e) end
+    check(not DS.isOpen("hb:more:beard"), "A on the hint row shuts it")
+end)
+until_(5, 60, function() if female then return true end; return lay().greyed == 0 end, "shut: the greyed beard rows go again")
+-- Show all: the greyed rows are in the list already, down from the switch lands on the first of them
+step(10, function() if not female then setHidden(2) end end)
+until_(5, 60, function() if female then return true end; return lay().greyed > 0 end, "Show all: the greyed beard rows show")
+step(20, function()
+    if female then return end
+    check(el("hb:more") == nil, "show all: no hint row to walk through")
+    st().sel = nil
+    focusId("hb:part")
+end)
+step(20, function()
+    if female then return end
+    F.dispatchJoypadDir(win(), "down")
+    greyedRowFocus("show all")
+    shot("pad_beard_show_all")
+end)
+-- back to Folded (the default) for the trim
+step(10, function() if not female then setHidden(1) end end)
+until_(5, 60, function() if female then return true end; return lay().greyed == 0 end, "Folded again: the greyed beard rows are gone")
 local beardKey
 step(10, function() if not female then give("Base.Scissors"); refresh() end end)
 step(40, function()
@@ -663,27 +871,48 @@ step(20, function()
     check(hv:getBeardModel() == target, "the beard is now " .. tostring(target) .. ": " .. tostring(hv:getBeardModel()))
 end)
 
--- 6. Out of reach; the Identity traits
+-- 6. Out of reach (in the hint row since the cohesion pass: what the hair or beard cannot become, with the
+-- verbs that need a tool); the Identity traits
 step(20, function()
-    local e = focusId("hb:out")
-    check(e ~= nil, "Out of reach is a stop")
+    DS.setOpen("hb:more:" .. tostring(st().part), false)   -- start from the hint row shut
+    refresh()
+end)
+until_(5, 60, function() if female then return true end; local o = lay(); return o.more ~= nil and o.greyed == 0 end, "the hint row alone, shut")
+step(10, function()
+    if female then return end
+    local o = lay()
+    local g = o.more and o.more.groups
+    local last = g and g[#g]
+    check(last ~= nil and last.hint == ZeD.tr("UI_ZeD_Hair_HintMoreStyles"), "the hint row names the styles out of reach: " .. tostring(last and last.hint))
+    local e = focusId("hb:more")
+    check(e ~= nil, "Out of reach is a stop (the hint row, hb:more)")
     if e then e.onActivate(win(), e) end
 end)
 step(30, function()
-    check(st().outOpen == true, "A folds Out of reach open")
+    if female then return end
+    check(DS.isOpen("hb:more:" .. tostring(st().part)), "A folds Out of reach open (the hint row opens)")
     local r = st().out[1]
     local e = r and focusId("hb:row:" .. r.key)
     check(e ~= nil and st().sel == r.key, "an out-of-reach row can be focused and says why")
     shot("out_of_reach")
+    DS.setOpen("hb:more:" .. tostring(st().part), false)
 end)
+-- the trait cards (the mouse's through requestDetailCard after the shared pause, the focus's drawn at once)
+local traitFocus, traitHover
 step(20, function()
     local w = win()
+    cardListen(true)
+    cardSeen.req, cardSeen.drawn = {}, {}
+    pcall(F.claimFocus, w)
+    pcall(F.dispatchJoypadDir, w, "down")   -- a pad press: the controller's marks show
     local e = F.focusWhere(w, "charTabContent", function(x) return x.id and x.id:sub(1, 15) == "identity:trait:" end)
+    traitFocus = e
     check(e ~= nil, "a trait is a controller stop: " .. tostring(e and e.id))
 end)
 step(40, function()
-    local w = win()
-    check(w._idTraitHint and w._idTraitHint.hintKey == nil, "focus shows the description at once (no hover timer)")
+    local e = traitFocus
+    local name = e and e.id and e.id:sub(16)
+    check(name ~= nil and cardSeen.drawn[name] == true and cardSeen.req[e.id] == nil, "focus shows the description at once (no hover timer): " .. tostring(name))
     shot("trait_focus")
     pcall(F.releaseFocus)
 end)
@@ -694,14 +923,21 @@ step(20, function()
     for _, t in ipairs(w._idTraitZones or {}) do
         if not z and view and t.y >= view.y and t.y + t.h <= view.y + view.h then z = t end
     end
-    if z then pointAt(z.x + 30, z.y + 6) end
+    traitHover = z
+    cardSeen.req, cardSeen.drawn = {}, {}
+    if z then cuesAway(true); pointAt(z.x + 30, z.y + 6) end
     check(z ~= nil, "trait zones are kept for hover")
 end)
-step(50, function()
-    local w = win()
-    check(w._idTraitHint and w._idTraitHint.hintKey ~= nil, "hover on a trait shows its description")
+step(70, function()
+    local z = traitHover
+    local r = z and cardSeen.req[z.id]
+    check(r ~= nil and r.title == z.name and (z.desc == nil or z.desc == "" or (r.lines ~= nil and r.lines[1] == z.desc)),
+        "hover on a trait shows its description: " .. tostring(z and z.name))
+    check(z ~= nil and cardSeen.drawn[z.name] == true, "the trait's card is drawn after the shared pause")
     shot("trait_hover")
     pointAt(nil)
+    cuesAway(false)
+    cardListen(false)
     park()
 end)
 
@@ -843,6 +1079,11 @@ step(20, function()
     park()
     pcall(F.releaseFocus)
     pcall(pointAt, nil)
+    -- Hidden actions and each hint row as they were found; the script's listeners off
+    pcall(cuesAway, false)
+    pcall(cardListen, false)
+    pcall(function() if HO and SET0 ~= nil then HO:setValue(SET0) end end)
+    pcall(function() DS.setOpen("hb:more:hair", OPEN0.hair); DS.setOpen("hb:more:beard", OPEN0.beard) end)
     ZeD.applyTheme(base, accent, size)
     pcall(ZeD.Settings.reapplyFromOptions)
     pcall(ISTimedActionQueue.clear, p)
@@ -861,6 +1102,7 @@ step(20, function()
     HB.setPart(w, "hair")
     refresh()
     say("put back: " .. tostring(hv:getHairModel()) .. " / " .. tostring(hv:getBeardModel()) .. ", " .. #taken .. " tools returned")
+    check(not HO or SET0 == nil or HO:getValue() == SET0, "Hidden actions is back as it was found: " .. tostring(HO and HO:getValue()) .. " (was " .. tostring(SET0) .. ")")
     say(fails == 0 and "all checks passed" or (fails .. " failed"))
     say("DONE")
 end)
