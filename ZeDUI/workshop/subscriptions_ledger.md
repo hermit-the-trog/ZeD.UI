@@ -128,6 +128,22 @@ Method: each Workshop page was opened in the signed-in browser, the title checke
 | 118 | 2915656059 | Cedar Hill B41 & B42 Alpha | map | Oct 26 2026 |
 | 119 | 3134394569 | Taylorsville [B41/B42] | map | Oct 26 2026 |
 | 120 | 3644794945 | Maplewood [B42] | map | Oct 26 2026 |
+| 123 | 3819012597 | Xen's Enhanced GUI | round 4: parallel UI overhaul, expect a clash | Oct 29 2026 |
+| 124 | 3794379457 | Better World Map | round 4 | Oct 29 2026 |
+| 125 | 3809995878 | Mod Load Order Sorter Extension | round 4 (needs Mod Load Order Sorter, on disk) | Oct 29 2026 |
+| 126 | 3797292945 | Locksmith | round 4 | Oct 29 2026 |
+| 127 | 3826426915 | Survivor PDA | round 4 | Oct 29 2026 |
+| 128 | 3796139100 | This Is Your Life - Character Creator Overhaul | round 4 | Oct 29 2026 |
+| 129 | 3823828778 | Loot Tracker | round 4 | Oct 29 2026 |
+| 130 | 3826157418 | Viewpoint Clean UI | round 4: replaces inventory and more | Oct 29 2026 |
+| 131 | 3819507580 | Vital Signs | round 4: removes moodles | Oct 29 2026 |
+| 132 | 3826420021 | Item Details Panel | round 4 | Oct 29 2026 |
+| 133 | 1924146603 | Disable Welcome Message | round 4 | Oct 29 2026 |
+| 134 | 3718883428 | RC's Structures Framework [B42.17+ MP] | round 4: required by Better Building Plus | Oct 29 2026 |
+| 135 | 3812970899 | Better Building Plus [B42 MP] | round 4 | Oct 29 2026 |
+| 136 | 3796440093 | SideWinder's Placement+ | round 4 | Oct 29 2026 |
+| 137 | 3773911887 | This Is Your Life [B42 Stable] WIP | round 4: the character creator itself (3796139100 is only its clothing fix) | Oct 29 2026 |
+| 138 | 3823338627 | Modded Clothing Dataset Compatibility [B42] | round 4: required by the fix above | Oct 29 2026 |
 
 ## Not subscribed, and why
 

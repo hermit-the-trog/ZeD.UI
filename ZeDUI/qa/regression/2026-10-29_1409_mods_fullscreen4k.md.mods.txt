@@ -1,0 +1,20 @@
+VERSION = 1,
+
+mods
+{
+    mod = RCStructureFramework,
+    mod = BetterBuildingPlus,
+    mod = BetterWorldMap,
+    mod = Locksmith,
+    mod = ProjectRPGExpanded,
+    mod = LootTrackerB42,
+    mod = VitalSigns1993,
+    mod = ItemDetailsPanel,
+    mod = PlacementPlus,
+    mod = disablewelcome,
+    mod = ZeD_UI,
+}
+
+maps
+{
+}
