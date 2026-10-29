@@ -1,6 +1,6 @@
 name=ZeD-GUI
 id=ZeD_UI
-description=Inspired by Apple System 7, Unix and Windows operating systems from the era. Built for controller and keyboard and mouse as equals.
+description=The Zero Day Graphic User Interface: a custom kernel on the fictional ZNIX platform, built by a paranoid DIY doomsday prepper. The look follows the operating systems of the period, Macintosh System 6 and 7 most of all; no endorsement of Apple, Microsoft or any brand. Controller and keyboard and mouse as equals.
 modversion=0.1.1242300k
 versionMin=42.17.0
 author=Hermit the Trog
