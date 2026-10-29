@@ -11,7 +11,7 @@ Speed
 - The Skills tab draws only the rows in view: 4.8 ms a frame to under 1 ms at 4K on a full character (about 1,570 draw calls a frame to about 430).
 
 Lists
-- A stack's total weight in brackets after the item's own, in the list and the grid ("0.2 (1.0)"); the bracket gives way before the name does.
+- A stack's row shows the stack's total weight in brackets, "(1.0)", in the list and the grid; open the stack for each one's own.
 
 Other mods
 - Easy Drop'n'Loot: its Transfer category and Loot category buttons are in ZeD's container buttons row.
