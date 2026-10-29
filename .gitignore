@@ -16,3 +16,9 @@ ZeDUI/tools/dashpx/out/
 __pycache__/
 # local backup copies (fonts, a settings snapshot, a dump of the game's item list): kept out of the repo
 zed_backups/
+# the icon matcher's packs (Flaticon / Smashicons / UIcons sources, third-party pixel packs, the game's own icons):
+# licensed, never in the repository (removed from the whole history Oct 28 2026); only the matcher's own scripts are tracked
+ZeDUI/tools/icon_matcher/*/
+ZeDUI/tools/icon_matcher/*.pdf
+ZeDUI/tools/icon_matcher/*.html
+ZeDUI/tools/icon_matcher/*.json

@@ -1,0 +1,1259 @@
+# Context Menu Coverage Gap
+# Generated: 2026-04-20 16:54:15
+# Source: media/lua/shared/Translate/EN/ContextMenu.json (PZ vanilla)
+# Compared against: ContextIcons.lua
+#
+# Grouped by first word. Totals per group shown.
+# Adding a single-word Lua entry for a group's first-word closes
+# ALL its entries at once via the resolver first-word fallback.
+
+## 'Add' -- 30 entries
+    Add %1 %2
+    Add All
+    Add Animal
+    Add Baby
+    Add Bait
+    Add Battery
+    Add Bottle
+    Add Bucket of Milk
+    Add chum
+    Add Compost
+    Add Corpse
+    Add Egg
+    Add Escape Rope
+    Add Feed
+    Add Fertilizer
+    Add Fluid
+    Add Gasoline
+    Add Light Bulb
+    Add Liquid from Item
+    Add Logs
+    Add One
+    Add Padding
+    Add Padding to all using
+    Add Player to Safehouse
+    Add Random %1
+    Add Sheet
+    Add Sheet Rope
+    Add to
+
+## 'on' -- 24 entries
+    on Back
+    on Front
+    on Left Elbow
+    on Left Eye
+    on Left Forearm
+    on Left Knee
+    on Left Middle Finger
+    on Left Ring Finger
+    on Left Shin
+    on Left Shoulder
+    on Left Thigh
+    on Left Upper Arm
+    on Left Wrist
+    on Right Elbow
+    on Right Eye
+    on Right Forearm
+    on Right Knee
+    on Right Middle Finger
+    on Right Ring Finger
+    on Right Shin
+    on Right Shoulder
+    on Right Thigh
+    on Right Upper Arm
+    on Right Wrist
+
+## 'Wooden' -- 16 entries
+    Wooden Chair
+    Wooden Corner Counter
+    Wooden Counter
+    Wooden Crate
+    Wooden Cross
+    Wooden Door
+    Wooden Fence
+    Wooden Fence Door
+    Wooden Flashlight Pillar
+    Wooden Floor
+    Wooden Picket
+    Wooden Pillar
+    Wooden Sign
+    Wooden Stake
+    Wooden Wall
+    Wooden Wall Frame
+
+## 'Beverage' -- 15 entries
+    Beverage
+
+## 'Set' -- 14 entries
+    Set Age
+    Set all instances of this item as Unwanted
+    Set Fertilized
+    Set Fertilized Time
+    Set Milk Quantity
+    Set Mode: Dryer
+    Set Mode: Washer
+    Set Pregnancy Period
+    Set Time before Activation
+    Set Time before Explosion
+    Set to be Unusable in Recipes
+    Set to be Usable in Recipes
+    Set Unwanted
+    Set Wool Quantity
+
+## 'Put' -- 11 entries
+    Put %1 in Hutch
+    Put Animal in Trailer
+    Put in Container
+    Put in Container (%1)
+    Put on Earlobes
+    Put on Face
+    Put on Top of the Ears
+    Put out Fire
+    Put Tied on Head
+    Put Untied on Head
+    Put up Tent
+
+## 'No' -- 10 entries
+    No %1 found, or is empty.
+    No Container for Fuel
+    No Fuel Available
+    No items available.
+    No key. You need<br>Electrical level 1 and<br>Mechanics level 2<br>to hotwire.
+    No Lighting Method Available
+    No more fuel will fit in.
+    No Room for Fuel
+    No Rounds Found
+    No Water found.
+
+## 'Wear' -- 8 entries
+    Wear
+    Wear All
+    Wear Down
+    Wear Outfit
+    Wear Over
+    Wear Over Jersey
+    Wear Under Jersey
+    Wear Up
+
+## 'All' -- 8 entries
+    All
+    All (%1)
+    All Bandages
+    All Clothing
+    All Containers
+    All That Can Fit (%1)
+    All Weapons
+
+## '%1' -- 7 entries
+    %1
+    %1 %2
+    %1 %2 %3
+    %1 %2 with %3
+    %1 (add %2%)
+    %1 (take %2%)
+    %1 needs to be closer.
+
+## 'Metal' -- 7 entries
+    Metal Counter
+    Metal Counter Corner
+    Metal Crate
+    Metal Drum
+    Metal Floor
+    Metal Shelves
+    Metal Wall Frame
+
+## 'Can't' -- 7 entries
+    Can't add frozen food.
+    Can't do this action while sleeping.
+    Can't get back to sleep.<br>Try again later.
+    Can't remove a Player who's near the Safehouse.
+    Can't rip favourited clothing.
+    Can't sleep while the<br>engine is running.
+    Can't take while in a vehicle.
+
+## 'Light' -- 7 entries
+    Light
+    Light Blue
+    Light Brown
+    Light Brown Wooden Stairs
+    Light Fire with Kindling
+    Light Metal Drum
+    Light Stone Furnace
+
+## 'Attach' -- 6 entries
+    Attach
+    Attach animal to %1
+    Attach Animal to Rope
+    Attach Animal To Tree
+    Attach Trailer
+
+## 'Change' -- 6 entries
+    Change Container Name
+    Change Fire Mode
+    Change hook
+    Change Item Name
+    Change line
+    Change Radius
+
+## 'Insert' -- 5 entries
+    Insert %1 %2 in %3
+    Insert %1 Rounds in Magazine
+    Insert Fuel
+    Insert Magazine
+    Insert Propane Tank
+
+## 'Grab' -- 5 entries
+    Grab
+    Grab all
+    Grab Corpse
+    Grab half
+    Grab one
+
+## 'Is' -- 5 entries
+    Is Breakable Fence
+    Is Moved Thumpable
+    Is Not Player Thumpable
+    Is Not Zombie Thumpable
+    Is Thumpable
+
+## 'Too' -- 5 entries
+    Too dark to inspect.
+    Too dark to read.
+    Too dark to see.
+    Too panicked to sleep.
+    Too soon to be pet again.
+
+## 'Big' -- 5 entries
+    Big Double Pole Gate
+    Big Locker
+    Big Pole Fence
+    Big Pole Fence Gate
+    Big Wired Fence
+
+## 'Pick' -- 4 entries
+    Pick up %1
+    Pick up Broken Glass
+    Pick Up Dung
+    Pick up Skeleton
+
+## 'Show' -- 4 entries
+    Show Build Recipes Used In
+    Show Known Recipes
+    Show Recipes
+    Show Recipes Used In (%1)
+
+## 'Animal' -- 4 entries
+    Animal Behavior
+    Animal Feed
+    Animal Genome
+    Animal Info
+
+## 'Double' -- 4 entries
+    Double
+    Double Shelves
+    Double Wired Fence Gate
+    Double Wooden Door
+
+## 'Turn' -- 4 entries
+    Turn AC/Heater off
+    Turn AC/Heater on
+    Turn Headlights off
+    Turn Headlights on
+
+## 'Can' -- 4 entries
+    Can be foraged
+    Can be produced by a craft recipe
+    Can only be done on ground level.
+    Can spawn as loot
+
+## 'in' -- 4 entries
+    in a Cup
+    in a Glass
+    in a Tumbler
+
+## 'Detach' -- 4 entries
+    Detach
+    Detach Animal
+    Detach animal from %1
+    Detach Animal From Tree
+
+## 'Water' -- 4 entries
+    Water
+    Water Dispenser
+    Water source
+
+## 'Small' -- 3 entries
+    Small Bookcase
+    Small Locker
+    Small Table
+
+## 'Stop' -- 3 entries
+    Stop Alarm
+    Stop Pregnancy
+    Stop the car to access the Mechanics window.
+
+## 'Need' -- 3 entries
+    Need a hose.
+    Need both Plaster and a Plaster Trowel to plaster walls.
+    Need Soap
+
+## 'Dig' -- 3 entries
+    Dig Furrow
+    Dig Furrow with Hands
+    Dig Graves
+
+## 'Fuel' -- 3 entries
+    Fuel Pump Amount Remaining
+    Fuel Pump has No Power
+    Fuel Pump is Empty
+
+## 'Cover' -- 3 entries
+    Cover Face
+    Cover Head
+    Cover Head Fully
+
+## 'Prepare' -- 3 entries
+    Prepare Bagel
+    Prepare Poppy Bagel
+    Prepare Sesame Bagel
+
+## 'Get' -- 3 entries
+    Get Bones from %1's skeleton
+    Get Compost
+    Get Eggs
+
+## 'Pink' -- 3 entries
+    Pink
+    Pink Chevron
+    Pink Floral
+
+## 'Tie' -- 3 entries
+    Tie Escape Rope
+    Tie Escape Rope (Fabric)
+    Tie Hair into %1
+
+## 'Green' -- 3 entries
+    Green
+    Green Diamond
+    Green Floral
+
+## 'Destroy' -- 3 entries
+    Destroy
+    Destroy Floor
+    Destroy for Fuel
+
+## 'Not' -- 3 entries
+    Not enough dirt to take.
+    Not enough Room
+    Not enough soil to plant here.
+
+## 'You' -- 3 entries
+    You do not have permission to interact with objects in this safehouse.
+    You need a brush to apply this.
+    You need to get closer to %1 to trade with them.
+
+## 'Use' -- 3 entries
+    Use Bellows
+    Use Combination Padlock
+    Use Padlock
+
+## 'Cannot' -- 3 entries
+    Cannot be foraged
+    Cannot be produced by a craft recipe
+    Cannot spawn as loot
+
+## 'Black' -- 2 entries
+    Black
+    Black Floral
+
+## 'Enable' -- 2 entries
+    Enable Autodrink
+    Enable Autodrink (Warning)
+
+## 'Research' -- 2 entries
+    Research
+    Research Craft
+
+## 'Fireplace' -- 2 entries
+    Fireplace
+    Fireplace Info
+
+## 'Burn' -- 2 entries
+    Burn
+    Burn Corpse
+
+## 'Check' -- 2 entries
+    Check Animal(s) in Trailer
+    Check Zone %1
+
+## 'Blue' -- 2 entries
+    Blue
+    Blue Stripe
+
+## 'Claim' -- 2 entries
+    Claim Safehouse
+    Claim war
+
+## 'Generator' -- 2 entries
+    Generator
+    Generator Info
+
+## 'as' -- 2 entries
+    as Poison
+    as Seasoning
+
+## 'Patch' -- 2 entries
+    Patch all Holes using
+    Patch Hole
+
+## 'Scarf' -- 2 entries
+    Scarf
+    Scarf Over Face
+
+## 'Skill' -- 2 entries
+    Skill level too high to benefit from reading.
+    Skill level too low to read.
+
+## 'Milk' -- 2 entries
+    Milk
+
+## 'Visor' -- 2 entries
+    Visor Backward
+    Visor Forward
+
+## 'Feeding' -- 2 entries
+    Feeding Trough
+    Feeding Trough Info
+
+## 'Look' -- 2 entries
+    Look at Picture
+    Look at Pictures
+
+## 'Recently' -- 2 entries
+    Recently read.
+    Recently seen.
+
+## 'Shave' -- 2 entries
+    Shave Beard
+    Shave Hair
+
+## 'Hutch' -- 2 entries
+    Hutch
+    Hutch Info
+
+## 'Item' -- 2 entries
+    Item fuel capacity:
+    Item Water Capacity
+
+## 'Inventory' -- 2 entries
+    Inventory
+    Inventory is full
+
+## 'Throw' -- 2 entries
+    Throw Corpse Over Fence
+    Throw Corpse Through Window
+
+## 'Campfire' -- 2 entries
+    Campfire Info
+    Campfire Kits no longer exist. Campfires are now made with 3 Stones using the Build Menu. <BR>Tents are now Moveables, placed and picked up with the Moveables options.
+
+## 'Already' -- 2 entries
+    Already heard.
+    Already watched.
+
+## 'Pole' -- 2 entries
+    Pole Fence
+    Pole Fence Gate
+
+## 'Move' -- 2 entries
+    Move to
+    Move To Floor
+
+## 'From' -- 2 entries
+    From %1 %2
+    From Random %1
+
+## 'BBQs,' -- 2 entries
+    BBQs, Campfires, Fireplaces and Wood Stoves
+    BBQs, Campfires, Fireplaces and Wood Stoves are now interacted with via their inventory window.
+
+## 'Make' -- 2 entries
+    Make Animal Hungry
+    Make chum
+
+## 'Re-look' -- 2 entries
+    Re-look at Picture
+    Re-look at Pictures
+
+## 'Brick' -- 2 entries
+    Brick Fence
+    Brick Wall
+
+## 'Window' -- 2 entries
+    Window Frame
+    Window or door must be open.
+
+## 'Vegetable' -- 2 entries
+    Vegetable
+
+## 'Container' -- 2 entries
+    Container
+    Container is not empty.
+
+## 'Unset' -- 2 entries
+    Unset all instances of this item as Unwanted
+    Unset Unwanted
+
+## 'Dismantle' -- 2 entries
+    Dismantle
+    Dismantle Car Wreck
+
+## 'Brown' -- 2 entries
+    Brown
+    Brown Wooden Stairs
+
+## 'Disable' -- 2 entries
+    Disable Autodrink
+    Disable Autodrink (Warning)
+
+## 'Full' -- 2 entries
+    Full (%1)
+    Full Auto
+
+## 'Should' -- 2 entries
+    Should be Player Thumpable
+    Should be Zombie Thumpable
+
+## 'Fishing' -- 2 entries
+    Fishing
+    Fishing Net
+
+## 'Connect' -- 2 entries
+    Connect Car Battery
+    Connect Generator
+
+## 'Edit' -- 2 entries
+    Edit
+    Edit Item
+
+## 'This' -- 2 entries
+    This specific item will be ignored for Craft Recipes, Building Recipes and Food Recipes.
+    This specific item will no longer be ignored for Craft Recipes, Building Recipes and Food Recipes.
+
+## 'Paint' -- 2 entries
+    Paint
+    Paint Sign
+
+## 'Hood' -- 2 entries
+    Hood Down
+    Hood Up
+
+## 'Containers' -- 1 entries
+    Containers
+
+## 'Splint' -- 1 entries
+    Splint
+
+## 'Log' -- 1 entries
+    Log Wall
+
+## 'Reset' -- 1 entries
+    Reset Remote Frequency
+
+## 'Composter' -- 1 entries
+    Composter
+
+## 'Untie' -- 1 entries
+    Untie Hair
+
+## 'Scrap' -- 1 entries
+    Scrap Electronics required for repairs.
+
+## 'Stone' -- 1 entries
+    Stone Furnace
+
+## 'Durability' -- 1 entries
+    Durability
+
+## 'Stow' -- 1 entries
+    Stow
+
+## 'Gardening' -- 1 entries
+    Gardening
+
+## 'Clear' -- 1 entries
+    Clear Ashes
+
+## 'Give' -- 1 entries
+    Give Water
+
+## 'Cyan' -- 1 entries
+    Cyan
+
+## 'Clone' -- 1 entries
+    Clone Item
+
+## 'Up' -- 1 entries
+    Up Arrow
+
+## 'Hot' -- 1 entries
+    Hot Peppers
+
+## 'Sleeping' -- 1 entries
+    Sleeping
+
+## 'Fruit' -- 1 entries
+    Fruit
+
+## 'Turkeyhouse' -- 1 entries
+    Turkeyhouse
+
+## 'Follow' -- 1 entries
+    Follow me
+
+## 'Walls/Fencing' -- 1 entries
+    Walls/Fencing
+
+## 'Contains' -- 1 entries
+    Contains nothing of interest.
+
+## 'Wake' -- 1 entries
+    Wake up %1
+
+## 'Smoke' -- 1 entries
+    Smoke
+
+## 'with' -- 1 entries
+    with
+
+## 'Rain' -- 1 entries
+    Rain Collector Barrel
+
+## 'Citrus' -- 1 entries
+    Citrus
+
+## 'Extended' -- 1 entries
+    Extended 3D Placement
+
+## 'Stitch' -- 1 entries
+    Stitch
+
+## 'Trigger' -- 1 entries
+    Trigger
+
+## 'Candy' -- 1 entries
+    Candy
+
+## '1/2' -- 1 entries
+    1/2
+
+## 'Part' -- 1 entries
+    Part Info
+
+## 'Modify' -- 1 entries
+    Modify Genome
+
+## 'Liquor' -- 1 entries
+    Liquor
+
+## 'Barbed' -- 1 entries
+    Barbed Fence
+
+## 'Rake' -- 1 entries
+    Rake
+
+## 'Wring' -- 1 entries
+    Wring Out Wet Clothes
+
+## 'Gravel' -- 1 entries
+    Gravel Bag Wall
+
+## 'Large' -- 1 entries
+    Large Table
+
+## 'Single' -- 1 entries
+    Single
+
+## 'Hand' -- 1 entries
+    Hand
+
+## '(Replace' -- 1 entries
+    (Replace %1)
+
+## 'Horn' -- 1 entries
+    Horn
+
+## 'Shovel' -- 1 entries
+    Shovel
+
+## 'Plantain' -- 1 entries
+    Plantain Poultice
+
+## 'Treat' -- 1 entries
+    Treat Problem
+
+## 'Electrician' -- 1 entries
+    Electrician profession, learnt knowledge, or Electrical skill level of 3 or higher required for operation.
+
+## 'Natural' -- 1 entries
+    Natural Water Source
+
+## 'Furnace' -- 1 entries
+    Furnace Info
+
+## 'Tents' -- 1 entries
+    Tents and Campfire Kits
+
+## 'Cat' -- 1 entries
+    Cat Food
+
+## 'Down' -- 1 entries
+    Down Arrow
+
+## 'Simple' -- 1 entries
+    Simple
+
+## 'Mushroom' -- 1 entries
+    Mushroom
+
+## 'Eject' -- 1 entries
+    Eject Magazine
+
+## 'Savory' -- 1 entries
+    Savory Pie
+
+## 'One' -- 1 entries
+    One
+
+## 'Dark' -- 1 entries
+    Dark Wooden Stairs
+
+## 'Gun' -- 1 entries
+    Gun Type
+
+## 'Butchering' -- 1 entries
+    Butchering Hook
+
+## 'Discard' -- 1 entries
+    Discard Bait
+
+## 'If' -- 1 entries
+    If Autodrink is enabled, tainted water may be consumed.
+
+## 'Farming' -- 1 entries
+    Farming
+
+## 'Cheese' -- 1 entries
+    Cheese
+
+## 'Unstow' -- 1 entries
+    Unstow
+
+## 'Painting,' -- 1 entries
+    Painting, Plastering, Signs and Wallpapering have now been moved to the Build Menu.
+
+## 'Car' -- 1 entries
+    Car Battery Charger
+
+## 'Oil' -- 1 entries
+    Oil
+
+## 'Chocolate' -- 1 entries
+    Chocolate
+
+## 'Doors' -- 1 entries
+    Doors
+
+## 'Ice' -- 1 entries
+    Ice Cream Cone
+
+## 'Condiment' -- 1 entries
+    Condiment
+
+## 'Poultry' -- 1 entries
+    Poultry
+
+## 'Thickener' -- 1 entries
+    Thickener
+
+## 'Wine' -- 1 entries
+    Wine
+
+## 'More' -- 1 entries
+    More
+
+## 'Tailoring' -- 1 entries
+    Tailoring
+
+## 'Soft' -- 1 entries
+    Soft Drink
+
+## 'Sugar' -- 1 entries
+    Sugar
+
+## 'Wired' -- 1 entries
+    Wired Fence
+
+## 'Fabric,' -- 1 entries
+    Fabric, needle and thread required for clothing repair.
+
+## 'Has' -- 1 entries
+    Has Durability
+
+## 'Herbs' -- 1 entries
+    Herbs
+
+## 'Chew' -- 1 entries
+    Chew
+
+## 'Insect' -- 1 entries
+    Insect
+
+## 'Coffee' -- 1 entries
+    Coffee
+
+## 'Create' -- 1 entries
+    Create %1
+
+## 'Pet' -- 1 entries
+    Pet
+
+## 'Dog' -- 1 entries
+    Dog Food
+
+## 'Garnish' -- 1 entries
+    Garnish
+
+## 'Disconnect' -- 1 entries
+    Disconnect Generator
+
+## 'Medical' -- 1 entries
+    Medical Check
+
+## '(Can' -- 1 entries
+    (Can Learn)
+
+## 'Plaster' -- 1 entries
+    Plaster
+
+## ',' -- 1 entries
+    ,
+
+## 'Seed' -- 1 entries
+    Seed
+
+## 'Release' -- 1 entries
+    Release Safehouse
+
+## 'Needs' -- 1 entries
+    Needs to be cooked.
+
+## 'Fix' -- 1 entries
+    Fix Generator
+
+## 'Shut' -- 1 entries
+    Shut off
+
+## '%1%' -- 1 entries
+    %1% full (%2% or more required).
+
+## 'Consolidate' -- 1 entries
+    Consolidate all
+
+## 'Inseminate' -- 1 entries
+    Inseminate
+
+## 'Reread' -- 1 entries
+    Reread
+
+## 'Magazine' -- 1 entries
+    Magazine
+
+## 'Gray' -- 1 entries
+    Gray
+
+## 'Don't' -- 1 entries
+    Don't know how to read.
+
+## 'Link' -- 1 entries
+    Link to %1
+
+## 'Planter' -- 1 entries
+    Planter
+
+## 'Purple' -- 1 entries
+    Purple
+
+## 'Paint,' -- 1 entries
+    Paint, Plaster, Signs and Wallpaper
+
+## 'Unpack' -- 1 entries
+    Unpack
+
+## '%' -- 1 entries
+    % full
+
+## 'BBQ' -- 1 entries
+    BBQ Info
+
+## 'Needle' -- 1 entries
+    Needle required.
+
+## 'Unbarricade' -- 1 entries
+    Unbarricade
+
+## 'Bed' -- 1 entries
+    Bed
+
+## 'Spread' -- 1 entries
+    Spread
+
+## 'Henhouse' -- 1 entries
+    Henhouse
+
+## 'Floor' -- 1 entries
+    Floor
+
+## 'and' -- 1 entries
+    and
+
+## 'Orders' -- 1 entries
+    Orders
+
+## 'Shelves' -- 1 entries
+    Shelves
+
+## 'Welding' -- 1 entries
+    Welding
+
+## 'Stairs' -- 1 entries
+    Stairs
+
+## 'Keep' -- 1 entries
+    Keep
+
+## 'Masonry' -- 1 entries
+    Masonry
+
+## 'Start' -- 1 entries
+    Start Engine
+
+## 'Left' -- 1 entries
+    Left Arrow
+
+## 'Fencing' -- 1 entries
+    Fencing
+
+## 'Items' -- 1 entries
+    Items must be removed from container to add water.
+
+## 'May' -- 1 entries
+    May injure your hands.
+
+## 'Red' -- 1 entries
+    Red
+
+## 'Store' -- 1 entries
+    Store Worn Outfit
+
+## 'Barricades' -- 1 entries
+    Barricades
+
+## 'Sauce' -- 1 entries
+    Sauce
+
+## 'Pepper' -- 1 entries
+    Pepper
+
+## 'Meat' -- 1 entries
+    Meat
+
+## 'Traversable' -- 1 entries
+    Traversable
+
+## 'Reveal' -- 1 entries
+    Reveal Face
+
+## '1/4' -- 1 entries
+    1/4
+
+## 'Tables' -- 1 entries
+    Tables
+
+## 'Require' -- 1 entries
+    Require : %1
+
+## 'Shear' -- 1 entries
+    Shear
+
+## 'Trim' -- 1 entries
+    Trim Beard into %1
+
+## 'Escape' -- 1 entries
+    Escape Rope
+
+## 'Bait' -- 1 entries
+    Bait chum
+
+## 'Egg' -- 1 entries
+    Egg
+
+## 'Crops' -- 1 entries
+    Crops
+
+## 'Lamp' -- 1 entries
+    Lamp on Pillar
+
+## 'Remove<br>%1' -- 1 entries
+    Remove<br>%1
+
+## 'Attach<br>%1<br>to<br>%2' -- 1 entries
+    Attach<br>%1<br>to<br>%2
+
+## 'Switch' -- 1 entries
+    Switch Outfits
+
+## 'Yellow' -- 1 entries
+    Yellow
+
+## 'Detach<br>%1' -- 1 entries
+    Detach<br>%1
+
+## 'Researchable' -- 1 entries
+    Researchable Recipe
+
+## 'Beige' -- 1 entries
+    Beige Stripe
+
+## 'Scythe' -- 1 entries
+    Scythe Grass
+
+## 'Delete' -- 1 entries
+    Delete
+
+## 'Wild' -- 1 entries
+    Wild Garlic Poultice
+
+## 'Turquoise' -- 1 entries
+    Turquoise
+
+## 'Table' -- 1 entries
+    Table with Drawer
+
+## 'Fence' -- 1 entries
+    Fence
+
+## 'Missing' -- 1 entries
+    Missing Tools:
+
+## 'Write' -- 1 entries
+    Write Note on %1
+
+## 'Beer' -- 1 entries
+    Beer
+
+## 'Plumb' -- 1 entries
+    Plumb %1
+
+## '1' -- 1 entries
+    1 Item
+
+## 'Info' -- 1 entries
+    Info
+
+## 'or' -- 1 entries
+    or
+
+## 'White' -- 1 entries
+    White
+
+## 'Unjam' -- 1 entries
+    Unjam %1
+
+## 'Kill' -- 1 entries
+    Kill Animal
+
+## 'Lure' -- 1 entries
+    Lure
+
+## 'Yourself' -- 1 entries
+    Yourself
+
+## 'Orange' -- 1 entries
+    Orange
+
+## 'Plug' -- 1 entries
+    Plug Generator to Vehicle
+
+## 'Barbecue' -- 1 entries
+    Barbecue
+
+## 'Bowl' -- 1 entries
+    Bowl of Oatmeal
+
+## '(Known)' -- 1 entries
+    (Known)
+
+## 'Cocoa' -- 1 entries
+    Cocoa
+
+## 'Fluid' -- 1 entries
+    Fluid
+
+## 'Right' -- 1 entries
+    Right Arrow
+
+## 'Anvil' -- 1 entries
+    Anvil
+
+## 'Herbal' -- 1 entries
+    Herbal
+
+## 'Seafood' -- 1 entries
+    Seafood
+
+## 'Tea' -- 1 entries
+    Tea
+
+## 'Bookcase' -- 1 entries
+    Bookcase
+
+## 'Champagne' -- 1 entries
+    Champagne
+
+## 'Berry' -- 1 entries
+    Berry
+
+## 'Lightbar' -- 1 entries
+    Lightbar
+
+## 'Concrete' -- 1 entries
+    Concrete Floor
+
+## 'Vehicle' -- 1 entries
+    Vehicle Mechanics
+
+## 'Tombstone' -- 1 entries
+    Tombstone
+
+## 'Sow' -- 1 entries
+    Sow
+
+## 'Sweet' -- 1 entries
+    Sweet Pie
+
+## 'Comfrey' -- 1 entries
+    Comfrey Poultice
+
+## 'Greens' -- 1 entries
+    Greens
+
+## 'Ammo' -- 1 entries
+    Ammo Type
+
+## 'Blacksmithing' -- 1 entries
+    Blacksmithing
+
+## 'Juice' -- 1 entries
+    Juice
+
+## 'Furniture' -- 1 entries
+    Furniture
+
+## 'Dressing' -- 1 entries
+    Dressing
+
+## 'Sandbag' -- 1 entries
+    Sandbag Wall
+
+## 'Roe' -- 1 entries
+    Roe
+
+## 'Selection' -- 1 entries
+    Selection
+
+## 'Team' -- 1 entries
+    Team up
+
+## 'Door' -- 1 entries
+    Door Frame
+
+## 'View' -- 1 entries
+    View Safehouse
+
+## 'Sniff' -- 1 entries
+    Sniff
+
+## 'Clay' -- 1 entries
+    Clay Tile Floor
+
+## 'Seeds' -- 1 entries
+    Seeds
+
+## 'Nut' -- 1 entries
+    Nut
+
+## 'Misc' -- 1 entries
+    Misc
+
+## 'Game' -- 1 entries
+    Game
+
+## 'Replace' -- 1 entries
+    Replace %1 with %2
+
+## 'Burst' -- 1 entries
+    Burst
+
+## 'Trade' -- 1 entries
+    Trade with %1
+
+## 'Dry' -- 1 entries
+    Dry Self
+
+## 'Settings' -- 1 entries
+    Settings
+
+## '(uses)' -- 1 entries
+    (uses)
+
+## 'Your' -- 1 entries
+    Your hands are too damaged.
+
+## 'Walls' -- 1 entries
+    Walls
+
+## 'Disarm' -- 1 entries
+    Disarm and take %1
+
+## 'Beef' -- 1 entries
+    Beef
+
+## 'Arm' -- 1 entries
+    Arm and set %1
+
+## 'Stock' -- 1 entries
+    Stock
+
+## 'Cairn' -- 1 entries
+    Cairn
+
+## 'Skull' -- 1 entries
+    Skull
+
+## 'Debug' -- 1 entries
+    Debug
+
+## 'Beans' -- 1 entries
+    Beans
+
+## 'Outdoors' -- 1 entries
+    Outdoors
+
+## 'Experiencing' -- 1 entries
+    Experiencing too much pain to sleep.
+
+## 'Teleport' -- 1 entries
+    Teleport To Origin
+
+# Total uncovered: 615 entries across 328 first-word groups.
