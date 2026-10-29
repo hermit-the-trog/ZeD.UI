@@ -30,6 +30,7 @@ require "ZeD/JournalTab"
 require "ZeD/IdentityTab"
 require "ZeD/EquipmentTab"
 require "ZeD/RadioTab"
+require "ZeD/ExtraContainers"
 require "ZeD/ZeD_WorldWindow"
 
 ZeD = ZeD or {}
@@ -2965,6 +2966,14 @@ end
 -- CONTAINER ENUMERATION
 -- ============================================================================
 
+-- A general hook for other mods (ExtraContainers.lua): fn(playerObj, list)
+-- returns more containers for the strip ({ container = ItemContainer, item,
+-- parentItem, name, texture }); each gets a button and a column like a worn
+-- bag. A second call with the same id replaces the first.
+function ZeD_CharacterWindow.addContainerProvider(id, fn)
+    ZeD.ExtraContainers.add("char", id, fn)
+end
+
 local function buildContainers(playerObj)
     local containers = {}
     local mainInv = playerObj:getInventory()
@@ -2988,7 +2997,9 @@ local function buildContainers(playerObj)
             }
         end
     end
-    return containers
+    -- other mods' containers (ExtraContainers.lua): each one placed after the
+    -- bag it is carried in; the main inventory stays first
+    return ZeD.ExtraContainers.merge("char", playerObj, containers)
 end
 
 

@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/nested_manifest.txt  (Oct 29 2026)
+# [B42] Nested Containers support: zedqa_mods_run.ps1 -ModList nested_mods.txt -Mode fullscreen4k -Manifest .../nested_manifest.txt
+zedqa_prelude.lua | pre                          # opens both windows, unpauses, god mode
+zedqa_nested.lua | nc | timeout=90               # a satchel inside the worn bag: its strip button and column, one item moved out, all taken back

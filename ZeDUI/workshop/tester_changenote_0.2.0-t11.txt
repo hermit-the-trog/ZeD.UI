@@ -17,4 +17,6 @@ Other mods
 - Easy Drop'n'Loot: its Transfer category and Loot category buttons are in ZeD's container buttons row.
 - Moodle Quarters: its moodles draw in ZeD's places (right, left, above the belt), with ZeD's hover note.
 - Exp Recovery for Skill Books: the saved XP as a strip under each skill in the Skills tab, the numbers in the hover card.
+- Nested Containers: a bag inside a bag gets its own column on the container strip, in both windows.
+- Wound Expansion: its wounds and conditions in the Health tab (the part's detail and the injury list), its treatments in the part's menu.
 - Tested compatible: Building Craft, Neat Crafting and Neat Building XP, The Only Cure, The Only Cure+, Kilometers Per Hour, Knox Packs.

@@ -21,9 +21,9 @@ Lists, as in the Compatibility thread (`steam_threads/compat_v3/README.md`): **S
 
 | List | Mods |
 |---|---|
-| Supported | 3 (Oct 29 2026) |
+| Supported | 5 (Oct 29 2026) |
 | Works well | 8 |
-| Compatible | 257 |
+| Compatible | 255 |
 | Not needed | 27 |
 | Does not work | 7 |
 | Tested in all | 302 |
@@ -55,7 +55,7 @@ Reports: qa/regression/2026-10-26_1919_mods_fullscreen4k.md; 2026-10-26_1932 (su
 | Nick's Inventory Selection Fix | [3782920935](https://steamcommunity.com/sharedfiles/filedetails/?id=3782920935) | 1 | Not needed | It fixes selection in the game's inventory list, which ZeD replaces; ZeD's lists have their own selection (expected). |
 | [B42/41] Improved Farming Info Window | [3470852353](https://steamcommunity.com/sharedfiles/filedetails/?id=3470852353) | 1 | Not needed | ZeD shows farm plot info in its object card (Overrides/InfoCards); the mod's window is the game's farming info window it replaces (expected). |
 | Auto Loot | [3392699932](https://steamcommunity.com/sharedfiles/filedetails/?id=3392699932) | 1 | Works well | Its Auto Loot OFF switch and Store All are buttons in the footer of ZeD's Inventory window, and its Auto Loot Item Type / Container Auto Loot rows are in ZeD's item and container menus (seen, zqa_r3A_1_loot, cl and op tests). |
-| [B42] Nested Containers | [3410947298](https://steamcommunity.com/sharedfiles/filedetails/?id=3410947298) | 1 | Compatible | Part of it does not show: the bags inside bags it adds to the game's container buttons are not added to ZeD's columns (by reading its code). |
+| [B42] Nested Containers | [3410947298](https://steamcommunity.com/sharedfiles/filedetails/?id=3410947298) | 1 | Supported | Part of it does not show: the bags inside bags it adds to the game's container buttons are not added to ZeD's columns (by reading its code).  **Supported since Oct 29 2026:** a bag carried inside a bag gets its own column on the strip of the Character window (and a bag inside a container in reach on the World window's), placed after the bag that holds it, opened and moved from like a worn bag; the mod's own depth and filter options and its blacklist are honoured, locked containers are not looked into (`ModSupport/nm_nested_containers.lua` through the new `ExtraContainers.lua` provider hook, `ZeD_CharacterWindow.addContainerProvider` / `ZeD_WorldWindow.addContainerProvider`; QA `zedqa_nested.lua`). The mod's parent-bag badge is not drawn. |
 | O.C.D. Inventory | [3773985930](https://steamcommunity.com/sharedfiles/filedetails/?id=3773985930) | 1 | Compatible | Loads, no errors; it sorts the game's inventory list (ZeD's lists sort themselves) (by reading its code). |
 | [B42, READ DESC] Mutie's Context Menu Icons Expanded & Redrawn | [3422112160](https://steamcommunity.com/sharedfiles/filedetails/?id=3422112160) | 1 | Not needed | ZeD's item menu draws its own icon set; a mod's icon shows only on rows ZeD has no icon for (ZeD ContextMenuRegistry: its icon first, the option's iconTexture after). Storage + Redrawn sub-mods tested. |
 | Icons Inventory | [3718412967](https://steamcommunity.com/sharedfiles/filedetails/?id=3718412967) | 1 | Compatible | Part of it does not show: its icon grid is on the game's inventory window (by reading its code). Its first-start window (Smart Inventory Gestures) opens over the game at the left, not over ZeD's windows (seen). |
@@ -113,7 +113,7 @@ Reports: qa/regression/2026-10-26_1939_mods_fullscreen4k.md (13/13 pass); main m
 | Cone Vision Outline [42.21.0] [SP&MP] | [3659137034](https://steamcommunity.com/sharedfiles/filedetails/?id=3659137034) | 2 | Compatible | Loads, no errors. |
 | Pixel Strike Indicator & Health Bar | [3793657917](https://steamcommunity.com/sharedfiles/filedetails/?id=3793657917) | 2 | Compatible | Loads, no errors. |
 | Mattnetic's Heart Health Meter [B42] | [3805849470](https://steamcommunity.com/sharedfiles/filedetails/?id=3805849470) | 2 | Compatible | Loads (its log: compatibility renderer installed), no errors. |
-| Wound Expansion | [3819438691](https://steamcommunity.com/sharedfiles/filedetails/?id=3819438691) | 2 | Compatible | Base mod only (its ZombieBuddy add-on left out). Part of it does not show: its wound details are on the game's health panel, which ZeD's Health tab replaces (by reading its code). |
+| Wound Expansion | [3819438691](https://steamcommunity.com/sharedfiles/filedetails/?id=3819438691) | 2 | Supported | Base mod only (its ZombieBuddy add-on left out). Part of it does not show: its wound details are on the game's health panel, which ZeD's Health tab replaces (by reading its code).  **Supported since Oct 29 2026:** its wound and condition lines (the mod's own words and colours, from its `buildHealthPanelLines`) in the Health tab's part detail and as tags in the injury list, its treatments in the part's menu (`ModSupport/WoundExpansion.lua` through the new `ZeD.HealthTab.addExtras`; the menu stand-in gained `getPatient`, which the mod's wrapper calls; QA `zedqa_woundexp.lua`). |
 
 ### Group C
 

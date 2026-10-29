@@ -33,6 +33,7 @@ require "ZeD/AnimalsTab"
 require "ZeD/RadioTab"
 require "ZeD/MechanicsTab"
 require "ZeD/FurnitureTab"
+require "ZeD/ExtraContainers"
 
 ZeD = ZeD or {}
 ZeD_WorldWindow = {}
@@ -2335,6 +2336,15 @@ end
 -- 3x3 grid around player, wall check, safehouse check, all container types.
 -- ============================================================================
 
+-- A general hook for other mods (ExtraContainers.lua): fn(playerObj, list)
+-- returns more containers for the strip ({ container = ItemContainer, item,
+-- parentItem, name, texture }); each gets a button and a column like a
+-- container in reach. `list` carries the window's own fields (isFloor, locked,
+-- sourceType). A second call with the same id replaces the first.
+function ZeD_WorldWindow.addContainerProvider(id, fn)
+    ZeD.ExtraContainers.add("world", id, fn)
+end
+
 local function buildWorldContainers(playerObj)
     local containers = {}
 
@@ -2551,7 +2561,9 @@ local function buildWorldContainers(playerObj)
         sourceType = "floor",
     }
 
-    return containers
+    -- other mods' containers (ExtraContainers.lua): each one placed after the
+    -- container it is carried in; the floor stays last
+    return ZeD.ExtraContainers.merge("world", playerObj, containers)
 end
 
 
