@@ -1,4 +1,4 @@
-Round 4 (Oct 29 2026, build 0.2.0-t11): new support, and six more mods tested.
+Round 4 (Oct 29 2026, build 0.2.0-t11): new support for seven mods, and seventeen more mods tested.
 
 Supported (ZeD has code for the mod):
 - Easy Drop'n'Loot: its Transfer category and Loot category buttons are in ZeD's container buttons row, in the Character and World windows. They move the same items the mod's own buttons would.
