@@ -72,7 +72,9 @@ at(120, function()
     say("read look zones " .. table.concat(ids, ","))
     shot("03_read_look")
 end)
-at(125, function() local x = w(); x._jr.paperOpen = nil; x._journalSubTab = 2 end)
+-- (Oct 28 2026: the quick note goes into the notebook the tab has current, which is the first one carried unless one
+-- was picked; with another notebook in the QA character's bags the note landed there, so the test picks its own)
+at(125, function() local x = w(); x._jr.paperOpen = nil; x._journalSubTab = 2; x._jr.nbId = book:getID() end)
 at(160, function()
     say("note field " .. tostring(w()._jrNote and w()._jrNote:isVisible()) .. " page " .. tostring(w()._jr.nbPage[book:getID()]))
     w()._jrNote:setText(NOTE)
@@ -86,7 +88,16 @@ after(0, function()
 end)
 after(260, function()
     local pg = pageWith(book, NOTE)
-    if pg then say("ok written line on page " .. tostring(pg)) else say("FAIL written line missing") end
+    if pg then say("ok written line on page " .. tostring(pg))
+    else
+        local s = w()._jr
+        local others = {}
+        for _, b in ipairs((s and s.carried and s.carried.books) or {}) do
+            if b ~= book and pageWith(b, NOTE) then others[#others + 1] = b:getName() end
+        end
+        say("FAIL written line missing (current " .. tostring(s and s.nbId) .. " book " .. tostring(book:getID()) .. " msg " .. tostring(s and s.msg)
+            .. " pending " .. tostring(s and s.pending ~= nil) .. (#others > 0 and (" | found in: " .. table.concat(others, ", ")) or "") .. ")")
+    end
     shot("05_written")
     local x = w(); x._journalSubTab = 1
     x._jr.logInto = book:getID()
