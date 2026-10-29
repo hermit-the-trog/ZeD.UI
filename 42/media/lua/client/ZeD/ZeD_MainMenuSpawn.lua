@@ -216,7 +216,9 @@ function ZeD_MMSpawn:nameProblem()
         return ZeD.tr("UI_ZeD_Spawn_ErrCharacters")
     end
     if luautils.stringStarts(name, ".") or luautils.stringEnds(name, ".") then return ZeD.tr("UI_ZeD_Spawn_ErrDot") end
-    local key = getWorld():getGameMode() .. getFileSeparator() .. name
+    -- (tostring: on 42.22 getGameMode() is a Java object, not a Lua string; a bare `..` threw
+    -- "__concat not defined" every frame the Spawn window drew, and the exists check never ran)
+    local key = tostring(getWorld():getGameMode()) .. getFileSeparator() .. name
     if key ~= self._existsKey then
         self._existsKey = key
         self._exists = checkSaveFolderExists(key)
@@ -383,7 +385,7 @@ function ZeD_MMSpawn:prerender()
     if self.sel > #items then self.sel = math.max(1, #items) end
     local it = items[self.sel]
     self.title = ZeD.tr("UI_ZeD_Spawn_Title")
-    self.titleStats = { { text = MM.modeName(getWorld():getGameMode()), noMark = true } }
+    self.titleStats = { { text = MM.modeName(tostring(getWorld():getGameMode())), noMark = true } }
     ZeD_Window.prerender(self)
     if not isMouseButtonDown(0) then self._drag = nil end
 

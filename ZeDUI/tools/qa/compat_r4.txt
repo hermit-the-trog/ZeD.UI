@@ -1,0 +1,10 @@
+# compat round 4, the on-disk candidates (Oct 29 2026): census, tabs, menus, card, pad, the dash, the Health tab
+zedqa_prelude.lua | pre
+zedqa_small_probe.lua | sp | timeout=60
+suite_tabs.lua | tabs
+zedqa_grid.lua | grid
+zedqa_ctxlist.lua | cl
+zedqa_card_pad.lua | cp
+zedqa_navmap.lua | nav
+zedqa_exinfo.lua | ex
+zedqa_dash_props_smoke.lua | sm

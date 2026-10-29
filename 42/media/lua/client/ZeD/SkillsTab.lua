@@ -568,7 +568,7 @@ local TM_DOT_GAP   = 4
 local TM_DETAIL_PAD = 26
 
 -- Truncate text to fit within maxW, appending "..." if clipped.
-local function truncText(str, font, maxW)
+local function truncTextRaw(str, font, maxW)
     local tm = ZeD.TM
     if tm:MeasureStringX(font, str) <= maxW then return str end
     local ellW = tm:MeasureStringX(font, "...")
@@ -584,6 +584,23 @@ local function truncText(str, font, maxW)
         end
     end
     return string.sub(str, 1, lo) .. "..."
+end
+
+-- (Oct 29 2026, the drawing-cost pass) the answer is kept per font, room and string:
+-- the binary search above asked the measurer up to eight times per row per frame
+-- (about 140 measures a frame on the stocked character). Dropped with the token
+-- table or the root scale, as ZeD.TM drops its own; the strings come translated, so a
+-- language change brings new keys by itself.
+local _trunc = { T = false, root = false, byFont = {} }
+local function truncText(str, font, maxW)
+    local T, root = ZeD.T, ZeD.Scale and ZeD.Scale._root
+    if _trunc.T ~= T or _trunc.root ~= root then _trunc.T, _trunc.root, _trunc.byFont = T, root, {} end
+    local m = _trunc.byFont[font]
+    if not m then m = {}; _trunc.byFont[font] = m end
+    local key = maxW .. "|" .. str
+    local r = m[key]
+    if r == nil then r = truncTextRaw(str, font, maxW); m[key] = r end
+    return r
 end
 
 -- The training section's header: the gap above, the section head (20u, its content line
@@ -692,6 +709,8 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
             local expandKey = columnKey .. "_" .. skillGroup.label
             local isExpanded = expandedMap and expandedMap[expandKey]
             local dispName = skillGroup.disp or skillGroup.label
+            -- (Oct 29 2026) a row wholly outside the scroll view is laid out, not drawn
+            local vis = (not view) or ((dy + collapsedRowH > view.y) and (dy < view.y + view.h))
 
             -- the row's hover wash, then the controller's mark (under the words)
             local hover = view and win and A.mouseIn(panel, startX, dy, colWidth, collapsedRowH, view)
@@ -704,6 +723,7 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
             local fo = win and focusOf(win, "training:" .. expandKey)
             if fo then onFocus = ZeD.Focus.mark(panel, startX, dy, colWidth, collapsedRowH, fo) end
 
+            if vis then
             -- Chevron icon (scaled smaller than font height for visual balance)
             local chevSz = math.max(T.px(8), math.floor(secH * 0.7))
             local chevX = startX + T.px(8)
@@ -737,6 +757,7 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
             -- Row separator
             local bd = T.border
             panel:drawRect(startX, dy + collapsedRowH, colWidth, T.px(1), bd.a * 0.15, bd.r, bd.g, bd.b)
+            end -- vis
 
             -- Click zone
             zones[#zones + 1] = {
@@ -755,7 +776,8 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
 
                 for _, bookItem in ipairs(skillGroup.items) do
                     local def = TM_STATUS_MAP[bookItem.status] or TM_STATUS_MAP.missing
-
+                    local dvis = (not view) or ((dy + detailRowH > view.y) and (dy < view.y + view.h))
+                    if dvis then
                     -- Color chip (same dot as collapsed row)
                     local chipX = detailPad
                     local chipY = dy + math.floor((detailRowH - T.px(A.SWATCH_H)) / 2)
@@ -777,6 +799,7 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
                     -- Detail row separator
                     local bd = T.border
                     panel:drawRect(startX, dy + detailRowH, colWidth, T.px(1), bd.a * 0.1, bd.r, bd.g, bd.b)
+                    end -- dvis
                     dy = dy + detailRowH + T.px(1)
                 end
             end
@@ -1001,6 +1024,10 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
 
     if gridExpanded then
 
+    -- (Oct 29 2026, the drawing-cost pass) rows wholly above or below the scroll view
+    -- are laid out but not drawn: the stencil clipped them before, at the full cost of
+    -- their draws (the Skills tab was 4.8 ms a frame at 4K on the stocked character)
+    local bandTop, bandBot = scrollY, scrollY + scrollH
     local function drawColumn(startX, colWidth, colGroups)
         local cy = zoneABottom
         local skillRowIdx = 0
@@ -1012,16 +1039,19 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
                 nil, true, false, nil, nil, nil, nil, true) + T.sp.afterGroove
 
             for _, skill in ipairs(group.skills) do
+                local vis = (cy + rowH > bandTop) and (cy < bandBot)   -- the row reaches the view
                 local _, bgColor = getProgressColors(T, skill.level, skill.xpProgress)
 
                 -- Alternating row stripe
-                if skillRowIdx % 2 == 1 then
+                if vis and skillRowIdx % 2 == 1 then
                     local st = T.stripe
                     panel:drawRect(startX, cy, colWidth, rowH, st.a, st.r, st.g, st.b)
                 end
 
                 -- XP progress background fill (under the washes below)
-                if skill.level >= 10 then
+                if not vis then
+                    -- (nothing to draw: the stencil would clip it all)
+                elseif skill.level >= 10 then
                     panel:drawRect(startX, cy, colWidth, rowH,
                         bgColor.a, bgColor.r, bgColor.g, bgColor.b)
                 elseif skill.level > 0 and skill.xpProgress > 0 then
@@ -1037,7 +1067,7 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
                 for _, p in ipairs(pins) do
                     if p == skill.name then isPinned = true; break end
                 end
-                if isPinned then
+                if isPinned and vis then
                     local ac = T.accent
                     panel:drawRect(startX, cy, colWidth, rowH, T.selectionA or 0.30, ac.r, ac.g, ac.b)
                 end
@@ -1055,23 +1085,25 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
                 local fo = focusOf(win, "skill:" .. tostring(skill.name))
                 if fo then onFocus = ZeD.Focus.mark(panel, startX, cy, colWidth, rowH, fo) end
 
-                -- Level badge
-                drawLevelBadge(panel, startX, cy, baseRowH, skill.level, font)
+                if vis then
+                    -- Level badge
+                    drawLevelBadge(panel, startX, cy, baseRowH, skill.level, font)
 
-                -- Skill name
-                local nameX = startX + T.px(BADGE_W) + T.px(6)
-                local nameY = cy + math.floor((baseRowH - ZeD.TM:getFontHeight(font)) / 2)
-                local nc = onFocus and T.textOnFocus or T.toneNorm
-                panel:drawText(skill.name, nameX, nameY, nc.r, nc.g, nc.b, nc.a or 1, font)
+                    -- Skill name (bodyH: the row font's height, measured once above)
+                    local nameX = startX + T.px(BADGE_W) + T.px(6)
+                    local nameY = cy + math.floor((baseRowH - bodyH) / 2)
+                    local nc = onFocus and T.textOnFocus or T.toneNorm
+                    panel:drawText(skill.name, nameX, nameY, nc.r, nc.g, nc.b, nc.a or 1, font)
 
-                -- Boost pill (right-aligned)
-                if skill.boost and skill.boost > 0 then
-                    drawBoostPill(panel, startX + colWidth, cy, baseRowH, skill.boost, font)
-                end
+                    -- Boost pill (right-aligned)
+                    if skill.boost and skill.boost > 0 then
+                        drawBoostPill(panel, startX + colWidth, cy, baseRowH, skill.boost, font)
+                    end
 
-                -- a row extra's strip in its own lane under the row
-                if laneH > 0 then
-                    drawLane(panel, startX, cy + baseRowH + T.px(1), colWidth, win._playerObj, skill)
+                    -- a row extra's strip in its own lane under the row
+                    if laneH > 0 then
+                        drawLane(panel, startX, cy + baseRowH + T.px(1), colWidth, win._playerObj, skill)
+                    end
                 end
 
                 -- Register hit zone for click-to-pin

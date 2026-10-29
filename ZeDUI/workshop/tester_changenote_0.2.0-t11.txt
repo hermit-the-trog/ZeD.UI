@@ -1,0 +1,14 @@
+0.2.0-t11: changes since 0.2.0-t10.
+
+Smaller screens
+- Tested in game in 1280x800 (Steam Deck) and 1280x720 windows: both windows, the cards, the maps, the wheels, the moodles, the belt, Sandbox options and Messages fit at Small and Large text. The main menu does not fit yet at 1280x800 (its Options, Spawn and Occupation windows run past the frame); that is the next piece of work.
+- The game's own Character Info window (Info, Skills, Health, the figure) no longer shows under ZeD's windows at a game's start. The game brings it up on any screen size you have not used before, and when your last game without ZeD left it open.
+
+Main menu
+- On 42.22 the Spawn location window logged an error every frame (the game mode is no longer a plain string there) and skipped its "a save of that name exists" check. Fixed.
+
+Speed
+- The Skills tab draws only the rows in view: 4.8 ms a frame to under 1 ms at 4K on a full character (about 1,570 draw calls a frame to about 430).
+
+Lists
+- A stack's total weight in brackets after the item's own, in the list and the grid ("0.2 (1.0)"); the bracket gives way before the name does.

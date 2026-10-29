@@ -1,3 +1,21 @@
+# Next session handoff (written Oct 29 2026)
+
+Read this first. `STATE.md` has the feature detail; its header is stale (Oct 27). Memory notes in the project folder hold the release and QA habits.
+
+## Where things stand (Oct 29 2026, midday)
+
+- **Live:** tester build 0.2.0-t10 (Workshop item 3824968485, title "ZeD-GUI [TEST BUILD]"), PUBLIC for a window since Oct 28 10:40 pm; the director closes the door (back to Unlisted) on the evening of Oct 29. Repo public, tags v0.2.0-t1..t10.
+- **0.2.0-t11 staged** (see the closeout line below for the regression): Workshop/ZeD-UI/workshop.txt carries the t11 description (7,935 + 58 chars), Lua/ZeD_workshop.txt the change note (`ZeDUI/workshop/tester_changenote_0.2.0-t11.txt`). The director presses Upload twice, removes Contents, tags `v0.2.0-t11` at the staging commit, refreshes `D:\ZeD-UI backup\<date>\`.
+- **Done Oct 29:**
+  - Performance pass 2 (`ZeDUI/qa/perf/PERF_2026-10-29.md`, script `perf_now.lua`): the Skills tab 4.8 ms a frame to 0.95 at 4K (rows outside the scroll view not drawn, truncation cached); everything else at the cap. Next: the inventory list rows (1.6 ms), the item card (1.5), the Equip tab (1.5), the dash's pixel text.
+  - Small screens (`ZeDUI/qa/Oct29_small_screens.md`): in game 1280x800 and 1280x720 pass (runner `-Width`/`-Height`). One real fault fixed: the game's own Character Info window showed at start on any screen size `layout.ini` has no block for (Q271, `Overrides/CharacterInfo.lua`). **The main menu does not fit at 1280x800** (Options, Spawn, Occupation overflow their frames; shots `ZeDUI/qa/Oct29_menu_1280x800/`): a small-tube layout is the next design piece before the Deck can be called supported.
+  - 42.22: `getWorld():getGameMode()` is a Java object now; the Spawn window threw every frame (Q272, fixed with `tostring`).
+  - Compatibility round 4 (`ZeDUI/workshop/compat_round4_candidates.md`): 34 new popular mods surveyed; the six on disk tested (Building Craft, Neat Crafting/Building XP, The Only Cure, The Only Cure+, Kilometers Per Hour, Knox Packs): all Compatible, 9/9. Xen's Enhanced GUI and the rest need a Steam sign-in in the browser pane (lapsed) before they can be subscribed.
+  - The stack's total weight in brackets (`InventoryRenderer.lua`, `zedqa_wt_bracket.lua`) was built in a parallel session the same day; check it is committed before staging anything after t11.
+- **Open:** the main-menu small-tube layout; subscribe and test XEG; the Compatibility thread post for round 4; triage the Bug reports thread after the public window; the controller map screen ("Coming later.").
+
+---
+
 # Next session handoff (written Oct 23 2026)
 
 Read this first. Read `STATE.md` only for feature detail. Its header and "Next session" line are stale: they stop at Oct 16. The sections below cover what happened since.
