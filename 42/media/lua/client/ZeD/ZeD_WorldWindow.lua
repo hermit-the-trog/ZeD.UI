@@ -3627,11 +3627,44 @@ function ZeD_WorldWindow.toggle(playerNum)
             -- (shrink inv area + FIFO evict oldest MC col when MC + item)
             -- caused MC to silently collapse on item-select — bad UX after
             -- the new ItemCard rolled. Always resize per drawerDelta now.
-            local newW = math.min(win:getWidth() + drawerDelta, maxW)
+            -- (Oct 28 2026) The cap swallows part of an opening drawer's width (at 1080p the Maps drawer
+            -- runs the window into the half-screen cap); that loss is remembered and given back while
+            -- the drawer closes, so the window comes back to the width it had, instead of 7 px short
+            -- (which the rest-state check below then kept as if the player had resized it).
+            -- (a rolled side's width is the full width less the rolled-off part: the cap in those terms)
+            local cap = maxW - (win._rolled and (win._rollW or 0) or 0)
+            local want = win:getWidth() + drawerDelta
+            local lost = win._drawerCapLost or 0
+            local newW
+            if drawerDelta > 0 then
+                newW = math.min(want, cap)
+                lost = lost + (want - newW)
+            else
+                local back = math.min(lost, -drawerDelta)
+                lost = lost - back
+                newW = math.min(want + back, cap)
+            end
+            win._drawerCapLost = lost
+            -- The engine keeps a top-level panel on screen when it widens (setWidth moves it left);
+            -- that push is remembered and undone as the drawer closes, so the window comes back to
+            -- its place as well as its width (a drag by the player is not a push: it is kept).
+            local xBefore = win:getX()
             win:setWidth(newW)
+            local pushed = win._drawerCapPush or 0
+            if drawerDelta > 0 then
+                pushed = pushed + math.max(0, xBefore - win:getX())
+            elseif pushed > 0 then
+                local room = getCore():getScreenWidth() - (win:getX() + win:getWidth())
+                local back = math.max(0, math.min(pushed, room))
+                if back > 0 then win:setX(win:getX() + back) end
+                pushed = pushed - back
+            end
+            win._drawerCapPush = pushed
         else
             -- At rest: accept user resize
             if win:getWidth() > maxW then win:setWidth(maxW) end
+            -- (a window the player made narrower than the cap has nothing to give back)
+            if (win._drawerCapLost or 0) > 0 and win:getWidth() + (win._rolled and (win._rollW or 0) or 0) < maxW - 1 then win._drawerCapLost = 0 end
         end
 
         -- invW is ALWAYS the residual. A rolled-up side (WindowCurtain) has

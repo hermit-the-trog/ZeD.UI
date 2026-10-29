@@ -4332,7 +4332,22 @@ function ZeD_CharacterWindow.toggle(playerNum)
             -- (shrink inv area + FIFO evict oldest MC col when MC + item)
             -- caused MC to silently collapse on item-select — bad UX after
             -- the new ItemCard rolled. Always resize per drawerDelta now.
-            local newW = math.min(win:getWidth() + drawerDelta, maxW)
+            -- (Oct 28 2026) the width the cap swallows while the drawer opens is given back while it
+            -- closes, so the window returns to its width (the World window does the same)
+            -- (a rolled side's width is the full width less the rolled-off part: the cap in those terms)
+            local cap = maxW - (win._rolled and (win._rollW or 0) or 0)
+            local want = win:getWidth() + drawerDelta
+            local lost = win._drawerCapLost or 0
+            local newW
+            if drawerDelta > 0 then
+                newW = math.min(want, cap)
+                lost = lost + (want - newW)
+            else
+                local back = math.min(lost, -drawerDelta)
+                lost = lost - back
+                newW = math.min(want + back, cap)
+            end
+            win._drawerCapLost = lost
             win:setWidth(newW)
             local newX = win._anchorRightEdge - newW
             win:setX(newX)
@@ -4340,6 +4355,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
         else
             -- At rest: accept user resize
             if win:getWidth() > maxW then win:setWidth(maxW) end
+            -- (a window the player made narrower than the cap has nothing to give back)
+            if (win._drawerCapLost or 0) > 0 and win:getWidth() + (win._rolled and (win._rollW or 0) or 0) < maxW - 1 then win._drawerCapLost = 0 end
             win._lastSetX = win:getX()
             win._anchorRightEdge = win:getX() + win:getWidth()
         end
