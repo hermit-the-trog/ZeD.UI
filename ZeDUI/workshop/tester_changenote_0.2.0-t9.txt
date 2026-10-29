@@ -1,0 +1,8 @@
+0.2.0-t9: changes since 0.2.0-t8.
+
+Licence
+- The mod now carries its licence (42/media/LICENSE.txt), and the Workshop page has a Licence section: the code is public on GitHub to read, learn from and build add-ons for; please do not re-upload or repost the mod. If the project is ever abandoned, the licence hands it on.
+
+Main menu
+- The monitor's Original wallpaper is drawn from the game's own title pictures instead of copies in the mod. It looks the same; the download is about 2 MB smaller, and in safe mode the game's own menu gets its painting back.
+- The can on the desk is orange soda now.

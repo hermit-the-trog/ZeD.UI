@@ -605,8 +605,10 @@ step(5, function()
     check(s.range == ZeD.tr("UI_ZeD_Radio_Range", "7.5"), "civilian ham: RANGE matches its transmit range (" .. tostring(s.range) .. ")")
     for _ = 1, 10 do TW.turn(p, hams.ham_civilian, "tune", 1, 25) end
 end)
-step(5, function()
-    check(ps(hams.ham_civilian, "ham_civilian").bandF > bandWas, "civilian ham: the band marker follows the frequency up")
+-- (the ten turns land over a few frames; at 1080p five were not enough, so wait for the marker)
+waitFor(5, 150, function() return ps(hams.ham_civilian, "ham_civilian").bandF > bandWas end, function()
+    local now = ps(hams.ham_civilian, "ham_civilian").bandF
+    check(now > bandWas, "civilian ham: the band marker follows the frequency up (" .. tostring(bandWas) .. " -> " .. tostring(now) .. ")")
     local z = WW()._radioFullZone
     RT.onClick(WW(), z.x + 2, z.y + 2)
 end)
@@ -618,13 +620,14 @@ step(5, function() F.close(pn) end)
 
 -- ===================================================================== 5b. a small screen: the narrow ham faces
 -- (mockup zed_ham_narrow_v1, approved Oct 25 2026) The World window held in as on a small screen: the drawer may
--- be no wider than 600 px beside the inventory, too narrow for a 400 set at 2x, so each set shows its narrow face in
--- a tab as narrow as a walkie's, every control still on it.
+-- be no wider than 300 plate px at the plates' whole zoom (600 px at 2x, 300 at 1x), too narrow for a 400 set, so
+-- each set shows its narrow face in a tab as narrow as a walkie's, every control still on it. (Oct 28 2026: the
+-- limit follows the zoom; a fixed 600 let the wide set fit at 1080p, where the zoom is 1x, and the test failed there.)
 local maxWas, maxSet, liveWasN = nil, false, nil
 step(5, function()
     local T = ZeD.T
     maxWas, maxSet = WW()._maxWinW, true
-    WW()._maxWinW = T.px(36) * 2 + T.px(200) + 600
+    WW()._maxWinW = T.px(36) * 2 + T.px(200) + math.floor(300 * K) + T.sp.scrollbarW
 end)
 local function narrowHam(pid)
     local npid = pid .. "_n"
