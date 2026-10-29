@@ -55,8 +55,10 @@
     fullscreen4k (default since Oct 22 2026, "test it at real play scale"):
     pzrestorewin.ps1 first, then the director's own options (3840x2160
     fullscreen), the start click at the screen centre.
-    windowed: pzlaunchwin.ps1, a 1920x1080 window; the fullscreen options are
-    put back with pzrestorewin.ps1 once the game has closed.
+    windowed: pzlaunchwin.ps1, a 1920x1080 window (or -Width / -Height, Oct 29 2026:
+    1280x800 for the Steam Deck, 1280x720 for an old laptop; the report's name then
+    carries the size); the fullscreen options are put back with pzrestorewin.ps1 once
+    the game has closed.
 
 .PARAMETER TimeoutSec
     Seconds per script (default 180); a manifest line's timeout= wins.
@@ -82,6 +84,8 @@
 param(
     [string]$Manifest = "C:/Users/danie/Zomboid/mods/ZeD-UI/ZeDUI/tools/qa/regression.txt",
     [ValidateSet("windowed", "fullscreen4k")][string]$Mode = "fullscreen4k",   # (director, Oct 22 2026: test at real play scale)
+    [ValidateRange(640, 7680)][int]$Width = 1920,     # windowed only: the window's client size (Oct 29 2026, small screens:
+    [ValidateRange(480, 4320)][int]$Height = 1080,    #   1280x800 is the Steam Deck, 1280x720 an old laptop)
     [ValidateRange(5, 86400)][int]$TimeoutSec = 180,
     [string]$Report = "",
     [switch]$KeepOpen,
@@ -180,7 +184,7 @@ function Reset-ZeDSettings([string]$RunMode, [string]$Keep) {
     Write-Text $Keep $t
     # only the UI scale is set: 1.75x at 4K, ZeD's default (Auto) in the 1080p window; the rest stay the director's
     $lines = @(($t -split "\r?\n") | Where-Object { $_ -ne "" -and $_ -notmatch '\|ZeD_UI\|uiScale\|' })
-    $set = "UI scale Auto (1080p window)"
+    $set = "UI scale Auto (${Width}x${Height} window)"
     if ($RunMode -eq "fullscreen4k") { $lines += "combobox|ZeD_UI|uiScale|7"; $set = "UI scale 1.75x (4K)" }
     Write-Text $ModOptions (($lines -join "`r`n") + "`r`n")
     Add-Note "ZeD settings: $set (the director's ModOptions.ini kept aside)"
@@ -449,7 +453,7 @@ function Invoke-StartClick {
 function Start-GameWindowed {
     $global:LASTEXITCODE = 0
     $script:Launched = $true   # (pzlaunchwin.ps1 changes options.ini first thing)
-    $out = (& $LaunchWin 2>&1 | Out-String).Trim()
+    $out = (& $LaunchWin -Width $Width -Height $Height 2>&1 | Out-String).Trim()
     $code = $LASTEXITCODE
     Add-Note "pzlaunchwin.ps1: $($out -replace '\s*\r?\n\s*', ' / ')"
     if ($code -ne 0 -or $out -match 'never reached') { throw "the game did not finish loading (pzlaunchwin.ps1 exit $code)" }
@@ -949,11 +953,14 @@ if ($lsLines.Count -lt 1 -or $lsLines[0] -ne "ZeD-QA" -or ($lsLines.Count -ge 2 
 if (-not (Test-Path -LiteralPath $GameExe)) { Write-Output "zedqa_run: not starting: $GameExe not found"; exit 2 }
 
 $started = Get-Date
-if (-not $Report) { $Report = Join-Path $ReportDir ("{0}_{1}.md" -f $started.ToString("yyyy-MM-dd_HHmm"), $Mode) }
+# the report's name carries the window size when it is not the 1080p window (windowed1280x800)
+$ModeTag = $Mode
+if ($Mode -eq "windowed" -and ($Width -ne 1920 -or $Height -ne 1080)) { $ModeTag = "windowed${Width}x${Height}" }
+if (-not $Report) { $Report = Join-Path $ReportDir ("{0}_{1}.md" -f $started.ToString("yyyy-MM-dd_HHmm"), $ModeTag) }
 $Report = [System.IO.Path]::GetFullPath($Report)
 $info = [pscustomobject]@{
     Started = $started; Finished = $null; Manifest = $Manifest
-    ModeText = $(if ($Mode -eq "windowed") { "windowed (1920x1080 window)" } else { "fullscreen4k (3840x2160 fullscreen)" })
+    ModeText = $(if ($Mode -eq "windowed") { "windowed (${Width}x${Height} window)" } else { "fullscreen4k (3840x2160 fullscreen)" })
     Display = "not launched"
 }
 $results = New-Object System.Collections.Generic.List[psobject]

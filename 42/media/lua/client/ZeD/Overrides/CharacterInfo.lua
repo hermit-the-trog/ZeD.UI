@@ -112,4 +112,20 @@ function ISCharacterInfoWindow:toggleView(viewName)
     return _origToggleView(self, viewName)
 end
 
+-- The game's window never shows at a game's start while ZeD is on (Oct 29 2026, the
+-- small-screen pass). The game decides its start visibility from layout.ini, which is
+-- kept per screen size: on a screen size the player has not used before there is no
+-- entry, and the window keeps its default, visible (the game's own first-run look); on
+-- one they have, it comes back the way their last game without ZeD left it. Either way
+-- ISPlayerDataObject.createUI shows it when `visibleOnStartup` is true after initialise
+-- (where the game sets it from the restored state). So the flag is cleared after the
+-- game's initialise while ZeD is on; in safe mode the game's rule stands. Seen in the
+-- 1280x800 pass: the game's Info page sat under ZeD's windows the whole run.
+ISCharacterInfoWindow._zedOrigInitialise = ISCharacterInfoWindow._zedOrigInitialise or ISCharacterInfoWindow.initialise
+local _origInitialise = ISCharacterInfoWindow._zedOrigInitialise
+function ISCharacterInfoWindow:initialise(...)
+    _origInitialise(self, ...)
+    if not ZeD.Safe.on() then self.visibleOnStartup = false end
+end
+
 print("[ZeD] Overrides/CharacterInfo: the game's Character window pages routed to ZeD's Character window tabs")

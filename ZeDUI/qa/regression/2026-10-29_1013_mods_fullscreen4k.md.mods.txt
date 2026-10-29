@@ -1,0 +1,20 @@
+VERSION = 1,
+
+mods
+{
+    mod = NeatUI_Framework,
+    mod = Neat_Crafting,
+    mod = Neat_Building,
+    mod = Neat_Crafting_AddonXP,
+    mod = Neat_Building_AddonXP,
+    mod = BuildingCraft,
+    mod = TheOnlyCure,
+    mod = TheOnlyCurePlus,
+    mod = BB_KilometersPerHour,
+    mod = KnoxPacks,
+    mod = ZeD_UI,
+}
+
+maps
+{
+}

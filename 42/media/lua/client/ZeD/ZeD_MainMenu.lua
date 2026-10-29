@@ -698,7 +698,7 @@ function MM.pauseInfo()
         local ok, s = pcall(getServerName)
         save = ok and tostring(s or "") or ""
     else
-        local ok, s = pcall(function() return MM.saveTitle(getWorld():getWorld(), getWorld():getGameMode()) end)
+        local ok, s = pcall(function() return MM.saveTitle(getWorld():getWorld(), tostring(getWorld():getGameMode())) end)
         save = ok and s or ""
     end
     local gt = getGameTime()

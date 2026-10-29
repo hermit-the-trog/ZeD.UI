@@ -1,10 +1,11 @@
-# Launch PZ in a 1920x1080 WINDOW for QA (director, Oct 14 2026) and load the
+# Launch PZ in a WINDOW for QA (1920x1080 by default; -Width / -Height for
+# smaller screens, Oct 29 2026) (director, Oct 14 2026) and load the
 # latest save (the QA save) through the bridge's autoload flag, then click the
 # window's centre to pass "click to start". Restore the fullscreen options
 # with pzrestorewin.ps1 after the game has closed.
 # -MainMenu: stop at the main menu instead (no autoload, no click); returns
 # once the QA bridge has armed there.
-param([switch]$MainMenu)
+param([switch]$MainMenu, [int]$Width = 1920, [int]$Height = 1080)   # (Oct 29 2026: -Width / -Height for the small-screen passes: 1280x800 Deck, 1280x720)
 $S = $PSScriptRoot
 # refuse to launch while a Workshop staging copy of ZeD-UI exists: the game scans
 # Workshop\*\Contents\mods before Zomboid\mods and the first folder with the mod id wins
@@ -19,7 +20,7 @@ $opt = "C:\Users\danie\Zomboid\options.ini"
 $bak = Join-Path $S "options.ini.fullscreen.bak"
 if (-not (Test-Path $bak)) { Copy-Item $opt $bak }
 $t = Get-Content $opt
-$t = $t -replace '^fullScreen=.*', 'fullScreen=false' -replace '^width=.*', 'width=1920' -replace '^height=.*', 'height=1080'
+$t = $t -replace '^fullScreen=.*', 'fullScreen=false' -replace '^width=.*', "width=$Width" -replace '^height=.*', "height=$Height"
 Set-Content -Path $opt -Value $t
 Set-Content -Path "C:\Users\danie\Zomboid\Lua\zedqa.autoload" -Value ($(if ($MainMenu) { "0" } else { "1" })) -NoNewline
 $dir = "E:\Project Zomboid\SteamApps\common\ProjectZomboid"
