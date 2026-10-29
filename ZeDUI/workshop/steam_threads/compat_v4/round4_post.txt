@@ -4,6 +4,8 @@ Supported (ZeD has code for the mod):
 - Easy Drop'n'Loot: its Transfer category and Loot category buttons are in ZeD's container buttons row, in the Character and World windows. They move the same items the mod's own buttons would.
 - Moodle Quarters: the mod draws the moodles in whichever place ZeD puts them (right edge, left edge, or the row above the belt), with its own plates and order. ZeD's hover note follows the mod's order.
 - Exp Recovery for Skill Books: the saved XP shows as a strip under each skill in ZeD's Skills tab (grey for where the skill is, blue for what the saved XP would add), and the numbers per book stage are in the row's hover card.
+- Nested Containers: a bag carried inside a bag gets its own column on ZeD's container strip, in the Character window and the World window, following the mod's depth and filter options.
+- Wound Expansion: its wounds and conditions show in ZeD's Health tab, in the part's detail and in the injury list, in the mod's own words and colours; its treatments are in the part's menu.
 
 Compatible (loads and works):
 - Building Craft

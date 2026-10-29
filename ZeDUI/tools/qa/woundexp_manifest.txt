@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/woundexp_manifest.txt  (Oct 29 2026)
+# Wound Expansion in ZeD's Health tab: zedqa_mods_run.ps1 -ModList woundexp_mods.txt -Mode fullscreen4k -Manifest .../woundexp_manifest.txt
+zedqa_prelude.lua | pre                          # opens both windows, unpauses, god mode
+zedqa_woundexp.lua | wx | timeout=120            # Health: a Sprain + Bruised on an arm part (through the mod's own functions), the mod's words in the detail view and list, its Splint entry in the part's menu, all healed back

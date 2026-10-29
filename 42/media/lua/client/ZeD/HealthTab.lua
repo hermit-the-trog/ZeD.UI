@@ -322,6 +322,69 @@ local function getHealthColor(health)
 end
 
 -- ============================================================================
+-- EXTRAS (Oct 29 2026) -- the general way for another mod's support file
+-- (ModSupport/<mod id>.lua) to add its own wound details to a body part without
+-- touching this file again. Nothing is added until an extra is registered, so the
+-- tab is exactly as built without one. An extra is a table:
+--   partLines(playerObj, bodyPart)
+--       -> nil, or a list of { text = "...", color = {r,g,b}, severity = "danger" |
+--          "warning" | "positive" | nil }: the mod's own words for what is wrong with
+--          that part. They show in the part's detail view (a status square in the
+--          mod's colour, the words in the default ink) and as tags on the part's row
+--          in the injury list (the square follows the severity; "warning" when none
+--          is given). A part with such a line counts as injured and is listed.
+-- Every call goes through pcall; ZeD keeps no copy of the mod's data (the lines are
+-- read again each time the tab re-reads the body). First used by
+-- ModSupport/WoundExpansion.lua.
+-- ============================================================================
+ZeD.HealthTab.extras = ZeD.HealthTab.extras or {}
+
+function ZeD.HealthTab.addExtras(id, def)
+    for i, e in ipairs(ZeD.HealthTab.extras) do
+        if e.id == id then ZeD.HealthTab.extras[i] = def; def.id = id; return end
+    end
+    def.id = id
+    ZeD.HealthTab.extras[#ZeD.HealthTab.extras + 1] = def
+end
+
+-- Every extra's lines for one body part, in one list (nil when there are none).
+-- A mod that errors, or answers with something odd, is skipped; the tab goes on.
+local function extraLines(playerObj, bp)
+    local out = nil
+    for _, e in ipairs(ZeD.HealthTab.extras) do
+        if e.partLines then
+            local ok, lines = pcall(e.partLines, playerObj, bp)
+            if ok and type(lines) == "table" then
+                for _, ln in ipairs(lines) do
+                    if type(ln) == "table" and type(ln.text) == "string" and ln.text ~= "" then
+                        out = out or {}
+                        out[#out + 1] = ln
+                    end
+                end
+            end
+        end
+    end
+    return out
+end
+
+-- A copy of a part's conditions with the extras' lines added as tags, each placed
+-- after the conditions of equal or higher severity (so vanilla's order is kept).
+local function withExtraTags(conds, extra)
+    local out = {}
+    for _, c in ipairs(conds) do out[#out + 1] = c end
+    for _, ln in ipairs(extra) do
+        local tag = { label = ln.text, severity = ln.severity or "warning" }
+        local rank = SEV_ORDER[tag.severity] or 99
+        local at = #out + 1
+        for i, c in ipairs(out) do
+            if (SEV_ORDER[c.severity] or 99) > rank then at = i; break end
+        end
+        table.insert(out, at, tag)
+    end
+    return out
+end
+
+-- ============================================================================
 -- DATA AGGREGATION
 -- Extended for body figure: partHealth + condsByFigureName.
 -- ============================================================================
@@ -337,6 +400,7 @@ function ZeD.HealthTab.gatherData(playerObj)
     local entries = {}
     local partHealth = {}        -- figureName → health%
     local condsByFigureName = {} -- figureName → conditions array
+    local extraByFigureName = {} -- figureName → other mods' lines (see EXTRAS above)
 
     -- Build a lookup: BodyPartType → figure name
     local typeToFigure = {}
@@ -351,6 +415,10 @@ function ZeD.HealthTab.gatherData(playerObj)
         local bp = parts:get(i - 1)
         local health = bp:getHealth()
         local conds = classifyConditions(bp, doctorLevel)
+        -- other mods' wound details for this part (nil without any); the injury list
+        -- carries them as tags too, the detail view draws them as lines
+        local extra = extraLines(playerObj, bp)
+        local listConds = extra and withExtraTags(conds, extra) or conds
         local bpType = bp:getType()
         local figureName = typeToFigure[bpType]
 
@@ -360,20 +428,23 @@ function ZeD.HealthTab.gatherData(playerObj)
             if #conds > 0 then
                 condsByFigureName[figureName] = conds
             end
+            if extra then
+                extraByFigureName[figureName] = extra
+            end
         end
 
         -- Injury list: parts with conditions, reduced health, stiffness, or pain
         local stiffness = bp:getStiffness()
         local pain = bp:getAdditionalPain()
-        if #conds > 0 or health < 95 or stiffness >= 5 or pain > 10 then
+        if #listConds > 0 or health < 95 or stiffness >= 5 or pain > 10 then
             local worstSev = "ok"
-            if #conds > 0 then
-                worstSev = conds[1].severity
+            if #listConds > 0 then
+                worstSev = listConds[1].severity
             end
             entries[#entries + 1] = {
                 name       = getPartName(bp),
                 health     = health,
-                conditions = conds,
+                conditions = listConds,
                 worstSev   = worstSev,
             }
         end
@@ -396,7 +467,8 @@ function ZeD.HealthTab.gatherData(playerObj)
         woundedCount      = (function() local c = 0; for _, e in ipairs(entries) do if #e.conditions > 0 then c = c + 1 end end; return c end)(),
         partHealth        = partHealth,
         condsByFigureName = condsByFigureName,
-        isFemale          = playerObj:isFemale(),
+        extraByFigureName = extraByFigureName,
+        isFemale         = playerObj:isFemale(),
     }
 end
 
@@ -481,6 +553,8 @@ function ZeD.HealthTab._onPartClicked(win, figureName, drawerPanel, relX, relY)
         actions         = {},
     }
     function adapter:getDoctor() return self.otherPlayer or self.character end
+    -- (vanilla's ISHealthPanel:getPatient; a mod's treatment entries ask for it, e.g. Wound Expansion's)
+    function adapter:getPatient() return self.character end
     function adapter:getAbsoluteX() return anchor:getAbsoluteX() end
     function adapter:getAbsoluteY() return anchor:getAbsoluteY() end
     adapter.checkItems          = ISHealthPanel.checkItems
@@ -563,15 +637,37 @@ function ZeD.HealthTab._renderDetailView(panel, win, data, figureName, rx, ry, r
     local barH = M.drawFillBar(panel, rx, curY, rw, health / 100)
     curY = curY + barH + T.sp.sm
 
+    -- Other mods' wound details for this part (HealthTab.addExtras)
+    local extra = data.extraByFigureName and data.extraByFigureName[figureName]
+    win._healthExtraShown = extra and #extra or 0   -- (what the QA scripts read)
+
     -- Condition tags (or "Healthy")
     if conds and #conds > 0 then
         curY = curY + condTags(panel, conds, rx, curY, rw) + T.sp.xs
-    else
+    elseif not extra then
         local dotSz = T.px(6)
         local dotGap = T.px(4)
         A.drawStatusDot(panel, rx, curY + math.floor((secH - dotSz) / 2), T.positive, dotSz)
         A.drawSecondary(panel, ZeD.tr("UI_ZeD_Health_Healthy"), rx + dotSz + dotGap, curY)
         curY = curY + secH + T.sp.xs
+    end
+
+    -- The extras' lines, one status square each in the mod's own colour, the mod's
+    -- own words beside it in the default ink (wrapped to the column)
+    if extra then
+        local f2 = T.fontF2
+        local fh = ZeD.TM:getFontHeight(f2)
+        local dotSz, dotGap = T.px(6), T.px(4)
+        local textW = math.max(T.px(20), rw - dotSz - dotGap)
+        for _, ln in ipairs(extra) do
+            local wrapped = A.wrapText(ln.text, f2, textW)
+            A.drawStatusDot(panel, rx, curY + math.floor((fh - dotSz) / 2), ln.color or T.warning, dotSz)
+            for _, piece in ipairs(wrapped) do
+                A.drawBody(panel, piece, rx + dotSz + dotGap, curY)
+                curY = curY + fh + T.px(2)
+            end
+        end
+        curY = curY + T.sp.xs
     end
 
     return curY
