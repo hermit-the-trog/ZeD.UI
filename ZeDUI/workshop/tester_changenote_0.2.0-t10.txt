@@ -1,0 +1,8 @@
+0.2.0-t10: changes since 0.2.0-t9.
+
+This page
+- The item is marked as the test build: the title, the first paragraph and the cover say so. The full release will be a separate Workshop item once the tests confirm it works well and meets the project's goals and quality standards.
+- The description says what ZeD-GUI is: the Zero Day Graphic User Interface, on the fictional ZNIX platform. Its look is inspired by the operating systems of the period and is not an endorsement of any brand.
+
+Windows
+- At 1080p, opening a wide tab such as Maps could leave the window a few pixels narrower and further left after the tab closed. The window now comes back to its place and width.
