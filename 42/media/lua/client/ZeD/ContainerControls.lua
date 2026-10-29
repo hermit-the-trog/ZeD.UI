@@ -26,6 +26,9 @@
 -- (ISLootWindowContainerControls_HandlerList) run with a small stand-in for
 -- vanilla's loot window, so their visibility rules stay vanilla's. Light and
 -- Add fuel open the fire card on its own lists instead of a context menu.
+-- A mod that puts buttons straight onto the game's inventory page (not in the
+-- handler lists) gets them here through CT.addProvider, called from its
+-- ModSupport file (Easy Drop'n'Loot: ModSupport/KADropnLoot.lua).
 -- The row is one line, a ribbon that scrolls sideways when its buttons are
 -- wider than the list (the wheel, its arrows, the controller's focus).
 -- Pointing at (or focusing) a Same type button marks the rows it would move.
@@ -481,6 +484,42 @@ local function inventorySpecs(content, inv)
     return specs
 end
 
+-- ----------------------------------------------------------------------------
+-- BUTTONS A MOD'S SUPPORT FILE ADDS (ZeD/ModSupport/<mod id>.lua)
+-- A mod that puts ISButtons on the game's inventory page itself (not in the
+-- handler lists above) cannot be collected from here, so its support file
+-- registers a provider: CT.addProvider("<mod id>", function(side, content, inv, other) ... end).
+--   side    "char" (your side's row) or "world" (the World window's row)
+--   inv     the container this row is for, other the container on the other
+--           side (nil when that window shows none)
+--   returns a list of specs, or nil: { id, label, enabled, help, run(content, hit) }
+--           (help is the footer's line while the pointer rests on the button).
+-- Specs become words after the divider, with the container's own buttons.
+-- Called when the row is rebuilt (every REFRESH frames, sooner when items change),
+-- inside pcall, so a provider that fails costs its buttons, never the row.
+-- ----------------------------------------------------------------------------
+CT.providers = CT.providers or {}
+
+function CT.addProvider(id, fn)
+    for _, p in ipairs(CT.providers) do
+        if p.id == id then p.fn = fn; return end   -- registered again (a reload): replace
+    end
+    CT.providers[#CT.providers + 1] = { id = id, fn = fn }
+end
+
+-- adds every provider's specs for this row onto the end of list
+local function addProviderSpecs(list, side, content, inv, other)
+    for _, p in ipairs(CT.providers) do
+        local ok, got = pcall(p.fn, side, content, inv, other)
+        if ok and type(got) == "table" then
+            for _, spec in ipairs(got) do list[#list + 1] = spec end
+        elseif not ok then
+            print("[ZeD] ContainerControls: provider " .. tostring(p.id) .. " failed: " .. tostring(got))
+        end
+    end
+    return list
+end
+
 local function buildChar(content)
     local playerObj = content._playerObj
     local inv = content._inventory
@@ -509,7 +548,7 @@ local function buildChar(content)
                 CT.moveItems(playerObj, step.items, step.dest)
             end
         end }
-    return moves, inventorySpecs(content, inv)
+    return moves, addProviderSpecs(inventorySpecs(content, inv), "char", content, inv, dest)
 end
 
 local function buildWorld(content)
@@ -567,6 +606,8 @@ local function buildWorld(content)
                 sendClientCommand(playerObj, "object", "emptyTrash", args)
             end }
     end
+    -- (buttons a mod's support file registered, CT.addProvider; words, so they sit with the words)
+    addProviderSpecs(objs, "world", content, inv, dest)
     -- the container's own: the words first, then the icons
     local words, icons = {}, {}
     for _, o in ipairs(objs) do if o.icon then icons[#icons + 1] = o else words[#words + 1] = o end end

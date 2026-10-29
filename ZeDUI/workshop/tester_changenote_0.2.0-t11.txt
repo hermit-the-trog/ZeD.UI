@@ -12,3 +12,9 @@ Speed
 
 Lists
 - A stack's total weight in brackets after the item's own, in the list and the grid ("0.2 (1.0)"); the bracket gives way before the name does.
+
+Other mods
+- Easy Drop'n'Loot: its Transfer category and Loot category buttons are in ZeD's container buttons row.
+- Moodle Quarters: its moodles draw in ZeD's places (right, left, above the belt), with ZeD's hover note.
+- Exp Recovery for Skill Books: the saved XP as a strip under each skill in the Skills tab, the numbers in the hover card.
+- Tested compatible: Building Craft, Neat Crafting and Neat Building XP, The Only Cure, The Only Cure+, Kilometers Per Hour, Knox Packs.

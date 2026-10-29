@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/exprecovery_manifest.txt  (Oct 29 2026)
+# Exp Recovery for Skill Books in ZeD's Skills tab: zedqa_mods_run.ps1 -ModList exprecovery_mods.txt -Mode fullscreen4k -Manifest .../exprecovery_manifest.txt
+zedqa_prelude.lua | pre                          # opens both windows, unpauses, god mode
+zedqa_exprecovery.lua | xr | timeout=120         # Skills: saved XP written to modData for two skills, strip, hover card on the pad; all taken back

@@ -21,9 +21,9 @@ Lists, as in the Compatibility thread (`steam_threads/compat_v3/README.md`): **S
 
 | List | Mods |
 |---|---|
-| Supported | 0 |
+| Supported | 3 (Oct 29 2026) |
 | Works well | 8 |
-| Compatible | 260 |
+| Compatible | 257 |
 | Not needed | 27 |
 | Does not work | 7 |
 | Tested in all | 302 |
@@ -48,7 +48,7 @@ Reports: qa/regression/2026-10-26_1919_mods_fullscreen4k.md; 2026-10-26_1932 (su
 | [42.20] Customizable Containers | [2719850086](https://steamcommunity.com/sharedfiles/filedetails/?id=2719850086) | 1 | Compatible | Lua mod only (its Capacity Limit Bypass sub-mod is a Java jar, left out). Loads, no errors of its own. |
 | [FIXED] Proximity Inventory B42.20 COMPATIBLE [SP/MP] | [3669550831](https://steamcommunity.com/sharedfiles/filedetails/?id=3669550831) | 1 | Compatible | Part of it does not show: its one container of everything nearby goes on the game's loot window; ZeD's World window shows each container in reach as its own column (by reading its code: ISInventoryPage.localContainer). |
 | Container Tags [B42 + MP] | [3066276504](https://steamcommunity.com/sharedfiles/filedetails/?id=3066276504) | 1 | Compatible | Loads; its tag panel is up (census CTagsPanel). Tag window itself not opened. |
-| Easy Drop'n'Loot | [2871469707](https://steamcommunity.com/sharedfiles/filedetails/?id=2871469707) | 1 | Compatible | Its Drop all (Category) and Drop all on the floor (Category) rows are in ZeD's item menu (seen); its Loot / Transfer Category buttons for the game's loot window were not seen in ZeD's footer. |
+| Easy Drop'n'Loot | [2871469707](https://steamcommunity.com/sharedfiles/filedetails/?id=2871469707) | 1 | Supported | Its Drop all (Category) and Drop all on the floor (Category) rows are in ZeD's item menu (seen); its Loot / Transfer Category buttons for the game's loot window were not seen in ZeD's footer.  **Supported since Oct 29 2026:** its Transfer category / Loot category buttons are in ZeD's container buttons row (Character and World windows), live when something would move, through a general provider hook in `ContainerControls.lua` (`ModSupport/KADropnLoot.lua`; QA `zedqa_dropnloot.lua` 6/6). |
 | [B42MP] Take Any Amount | [3389115640](https://steamcommunity.com/sharedfiles/filedetails/?id=3389115640) | 1 | Compatible | Loads, no errors; its rows come through the game's item menu, which ZeD's menu shows (by reading its code). |
 | Extended categories - Better Hoarding! (B42 SP/MP) | [3650035249](https://steamcommunity.com/sharedfiles/filedetails/?id=3650035249) | 1 | Compatible | Part of it does not show: its categories and colours are drawn on the game's inventory list, which ZeD replaces (by reading its code: ISInventoryPane drawText). One error of its own at the main menu on 42.21 (option text IGUI_CAEC_Options_categoryColorsTintStrength has a stray %), also with ZeD off. |
 | NeatUI Equipment [42.21] | [3790656296](https://steamcommunity.com/sharedfiles/filedetails/?id=3790656296) | 1 | Not needed | ZeD's Equip tab has a paper doll. Its panel hangs on the game's inventory window, which ZeD replaces: its toggle is there with no size (census NEQ_ToggleButton 0x16). |
@@ -90,7 +90,7 @@ Reports: qa/regression/2026-10-26_1939_mods_fullscreen4k.md (13/13 pass); main m
 |---|---|---|---|---|
 | Combat Text (B40+B41+B42) | [2286124931](https://steamcommunity.com/sharedfiles/filedetails/?id=2286124931) | 1 | Compatible | Loads, no errors of its own; its floating text manager is up (census ISHealthBarManager). Its options page, added the old way, empties ZeD setup of ZeD's own options (ZeD bug 4, seen in the full run). |
 | Dynamic Traits and Expanded Moodles [B41 & B42] | [2459400130](https://steamcommunity.com/sharedfiles/filedetails/?id=2459400130) | 1 | Compatible | Loads, no errors. Its own moodles go through Moodle Framework, which keeps them at the game's old place at the right edge (as Moodle Framework, round 2) (expected). |
-| Moodle Quarters [B42] | [2854030563](https://steamcommunity.com/sharedfiles/filedetails/?id=2854030563) | 1 | Compatible | Part of it does not show: its quarter marks are for the game's moodle column; its layer is up with no height (census MoodleQuartersUI 48x0). |
+| Moodle Quarters [B42] | [2854030563](https://steamcommunity.com/sharedfiles/filedetails/?id=2854030563) | 1 | Supported | Part of it does not show: its quarter marks are for the game's moodle column; its layer is up with no height (census MoodleQuartersUI 48x0).  **Supported since Oct 29 2026:** the mod draws the moodles in every ZeD place (right, left, centred above the belt), its plates and order, with ZeD's hover note (`ModSupport/moodle_quarters.lua`; a stand-in hook in `ZeD_Moodles.lua`; QA `zedqa_moodle_quarters.lua`). |
 | [B42] Mod Manager | [3567084868](https://steamcommunity.com/sharedfiles/filedetails/?id=3567084868) | 1 | Not needed | ZeD's mod manager does the job; with the mod on, ZeD's Mods window lists and switches mods as usual (29 of 1361 on, seen) and the mod's own screens do not show (they patch the game's mod screen). |
 | Moodles in lua [B42.20] | [3395171770](https://steamcommunity.com/sharedfiles/filedetails/?id=3395171770) | 1 | Not needed | ZeD draws and places the moodles itself (its Moodles setting: right, left or above the belt) and puts the game's column back where it set it. With this mod on, it also draws some moodles a second time at the game's old place, the right edge 120 down (two seen, whatever ZeD's setting), so use one (seen, B_moodles_bottom_plus_two_at_old_place.png). |
 | [B42] Bigger Character Avatar | [3387640099](https://steamcommunity.com/sharedfiles/filedetails/?id=3387640099) | 1 | Compatible | Part of it does not show: it enlarges the figure on the game's character screen; ZeD's Character window has its own figure (by reading its code: ISCharacterScreen). Large size sub-mod tested. |
@@ -142,7 +142,7 @@ Reports: qa/regression/2026-10-26_2009_mods_fullscreen4k.md (8/8 pass; an earlie
 | Become Desensitized [B42.20 Stable Unofficial SP/MP] | [3738669352](https://steamcommunity.com/sharedfiles/filedetails/?id=3738669352) | 2 | Compatible | Loads, no errors. |
 | Adaptive Traits | [3622328997](https://steamcommunity.com/sharedfiles/filedetails/?id=3622328997) | 2 | Compatible | Loads, no errors. |
 | Skill Book Expansion | [3557111695](https://steamcommunity.com/sharedfiles/filedetails/?id=3557111695) | 2 | Compatible | Loads, no errors. |
-| Exp Recovery for Skill Books | [2923554542](https://steamcommunity.com/sharedfiles/filedetails/?id=2923554542) | 2 | Compatible | Part of it does not show: its marks are for the game's skill page (by reading its code: ISSkillProgressBar). |
+| Exp Recovery for Skill Books | [2923554542](https://steamcommunity.com/sharedfiles/filedetails/?id=2923554542) | 2 | Supported | Part of it does not show: its marks are for the game's skill page (by reading its code: ISSkillProgressBar).  **Supported since Oct 29 2026:** a strip under each skill row in the Skills tab (grey: where the skill is, blue: what the saved XP adds) and the saved XP per book stage in the row's hover card (`ModSupport/ExpRecovery.lua` through `ZeD.SkillsTab.addExtras`; QA `zedqa_exprecovery.lua`). |
 | Working Knowledge - Lootable Skill Documents | [3717099183](https://steamcommunity.com/sharedfiles/filedetails/?id=3717099183) | 2 | Compatible | Loads, no errors. |
 | Practice Crafting Skills | [3765795716](https://steamcommunity.com/sharedfiles/filedetails/?id=3765795716) | 2 | Compatible | Loads, no errors. Base sub-mod. |
 | Eat Smart | [3456212729](https://steamcommunity.com/sharedfiles/filedetails/?id=3456212729) | 2 | Compatible | Loads, no errors; its food rows come through the game's item menu. |

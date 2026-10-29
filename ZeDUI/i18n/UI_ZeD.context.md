@@ -110,6 +110,7 @@ Total keys: 3434.
 - [WinMenu](#winmenu) (7)
 - [Workshop](#workshop) (51)
 - [World](#world) (19)
+- [XR](#xr) (3)
 - [General](#general) (5)
 
 ## Accent
@@ -4032,6 +4033,14 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_World_LockedHelp` | `%1 is locked: press for its lock` | World window: help line over a locked container in the container strip; %1 = its name | - |
 | `UI_ZeD_World_SortHelp` | `Order of the containers: press for the next (distance, weight, type)` | World window: help line over the button that changes the order of the containers in the strip | - |
 | `UI_ZeD_World_WeightOf` | `%1 of %2 kg` | World window: the weight part of the footer line for the open container, after the item count; %1 = weight inside (kg, one decimal), %2 = most it holds (kg) | - |
+
+## XR
+
+| Key | English | Where it shows | Max |
+|---|---|---|---|
+| `UI_ZeD_XR_Stage` | `Levels %1 to %2` | Skills tab with Exp Recovery for Skill Books: a skill's hover card, one line per skill book stage that holds saved XP, in front of the XP. %1 and %2 the first and last level that book trains (1 to 2, 3 to 4, ...) | - |
+| `UI_ZeD_XR_SavedXP` | `Saved XP` | Skills tab with Exp Recovery for Skill Books: a skill's hover card, the bold total line, in front of the saved XP of all the skill's book stages | - |
+| `UI_ZeD_XR_Note` | `Reading the skill book for those levels pays the saved XP out.` | Skills tab with Exp Recovery for Skill Books: a skill's hover card, last line | - |
 
 ## General
 

@@ -1,0 +1,17 @@
+Round 4 (Oct 29 2026, build 0.2.0-t11): new support, and six more mods tested.
+
+Supported (ZeD has code for the mod):
+- Easy Drop'n'Loot: its Transfer category and Loot category buttons are in ZeD's container buttons row, in the Character and World windows. They move the same items the mod's own buttons would.
+- Moodle Quarters: the mod draws the moodles in whichever place ZeD puts them (right edge, left edge, or the row above the belt), with its own plates and order. ZeD's hover note follows the mod's order.
+- Exp Recovery for Skill Books: the saved XP shows as a strip under each skill in ZeD's Skills tab (grey for where the skill is, blue for what the saved XP would add), and the numbers per book stage are in the row's hover card.
+
+Compatible (loads and works):
+- Building Craft
+- Neat Crafting XP and Neat Building XP (with Neat Crafting, Neat Building and the NeatUI Framework)
+- The Only Cure, and The Only Cure+ (Field Surgery). The Only Cure+ logs its own "duplicate object" errors at load when both are on; the game carries on.
+- Kilometers Per Hour: loads; ZeD's dashboard draws its own speed, so its reading is not used.
+- Knox Packs: Upgradable Backpacks
+
+Still to test: Xen's Enhanced GUI (both replace the inventory and the HUD, so expect a clash), Better World Map, Locksmith, Survivor PDA, This Is Your Life, Loot Tracker, Viewpoint Clean UI, Vital Signs, Item Details Panel.
+
+How this was tested: each mod on a copy of the test save at 4K, ZeD loaded last, through ZeD's QA scripts (a census of the visible UI, the tab walk, the grid, the item menu, the card on the controller, the dashboard, the Health tab), plus a script per supported mod that checks its feature in ZeD's windows.
