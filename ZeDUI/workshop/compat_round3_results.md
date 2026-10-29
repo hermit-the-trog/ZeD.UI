@@ -21,9 +21,9 @@ Lists, as in the Compatibility thread (`steam_threads/compat_v3/README.md`): **S
 
 | List | Mods |
 |---|---|
-| Supported | 5 (Oct 29 2026) |
+| Supported | 6 (Oct 29 2026) |
 | Works well | 8 |
-| Compatible | 255 |
+| Compatible | 254 |
 | Not needed | 27 |
 | Does not work | 7 |
 | Tested in all | 302 |
@@ -77,7 +77,7 @@ Reports: qa/regression/2026-10-26_1919_mods_fullscreen4k.md; 2026-10-26_1932 (su
 | Immersive Hotwire | [3653092321](https://steamcommunity.com/sharedfiles/filedetails/?id=3653092321) | 2 | Compatible | Loads, no errors (hotwire mini-game not tried). |
 | [B42/41] Better Clothing Info Comparison | [3036830549](https://steamcommunity.com/sharedfiles/filedetails/?id=3036830549) | 2 | Does not work | Its clothing tooltip errors every frame on 42.21 in the game's own tooltip (DoTooltipClothing, bcic_TooltipClothing.lua:65, a nil call), seen in ZeD's safe mode; under ZeD's tooltip its comparison is left out (ZeD bug 1). |
 | Try Before You Wear | [3797492691](https://steamcommunity.com/sharedfiles/filedetails/?id=3797492691) | 2 | Compatible | Its Try Before You Wear window opens (its own open) centred over the game, clear of ZeD's windows (seen, 9_tbyw). |
-| Container Capacity Indicator [B42] | [3789660055](https://steamcommunity.com/sharedfiles/filedetails/?id=3789660055) | 2 | Compatible | Part of it does not show: its capacity marks are drawn on the game's container buttons (by reading its code). |
+| Container Capacity Indicator [B42] | [3789660055](https://steamcommunity.com/sharedfiles/filedetails/?id=3789660055) | 2 | Supported | Part of it does not show: its capacity marks are drawn on the game's container buttons (by reading its code).  **Supported since Oct 29 2026:** each container button on ZeD's strips (both windows, the main inventory and the floor too) carries the library's compact fill bar along its bottom, the fullness from the mod's own sums and bands (green, amber from 75%, red from 95% as the theme's status tokens), through the new `StripDecorators.lua` hook (`addStripDecorator` on both windows; `ModSupport/ContainerCapacityIndicator.lua`; QA `zedqa_capacity.lua`). Its bars on bag items inside item lists are not drawn. |
 | Equip Clothing While Moving [B42.20/B42.19/B41] | [3446510982](https://steamcommunity.com/sharedfiles/filedetails/?id=3446510982) | 3 | Compatible | Loads, no errors (timed actions only). |
 | Craft Engine Parts | [2744114761](https://steamcommunity.com/sharedfiles/filedetails/?id=2744114761) | 3 | Compatible | Loads, no errors (recipes). CraftEngineParts sub-mod (its price variants are alternatives). |
 | Hoarder's Delight - Box & Carton Bulk Packing [42.21 Stable] | [3626823538](https://steamcommunity.com/sharedfiles/filedetails/?id=3626823538) | 3 | Compatible | Loads, no errors (packing recipes). |
