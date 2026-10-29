@@ -36,6 +36,7 @@ zedqa_ctx_icons.lua | cx | timeout=300           # the right-click menu's pixel 
 zedqa_onepath.lua | op                           # single-path fixes: Move To, Rename, double-click, Take all, card verbs
 zedqa_grid.lua | grid                            # inventory grid, cell card, pad walk, List | Grid toggle
 zedqa_sort_groups.lua | sg | timeout=420         # category headers only under Sort by Category; name A-Z / Z-A, cond, wt flat; list + grid, single + multi, both windows
+zedqa_wt_bracket.lua | wtb | timeout=240         # a stack's total in brackets, its open rows and a single their own; list + grid, Large, two columns, narrow WT; wt sort by total
 zedqa_doll.lua | doll                            # Equip tab doll, layers through the pad
 zedqa_large.lua | lg                             # Large text size: Loot and Equip lists, column widths
 zedqa_curtain.lua | cu | timeout=400             # curtain roll / unroll, close while rolled, tabs while rolled

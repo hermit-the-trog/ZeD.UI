@@ -593,6 +593,50 @@ local function drawCellCondition(self, item, ax, cy, cell)
     return by
 end
 
+-- A stack's total weight, summed as vanilla's inventory sums a stack
+-- (ISInventoryPane: getUnequippedWeight of each).
+local function stackWeight(stackInfo)
+    local total = 0
+    for _, si in ipairs(stackInfo.items) do total = total + (si:getUnequippedWeight() or 0) end
+    return total
+end
+
+-- A row's or a cell's weight: an item's own ("0.5"), a stack's total in
+-- brackets ("(2.5)": five at 0.5; open the stack and each row shows its own;
+-- Oct 29 2026, the director). A total wider than room in font drops its
+-- decimal ("(120)"), then gives way to the item's own.
+local function weightText(item, stackInfo, font, room)
+    local unit = string.format("%.1f", item:getUnequippedWeight() or 0)
+    if not (stackInfo and stackInfo.count > 1 and stackInfo.items) then return unit end
+    local total = stackWeight(stackInfo)
+    local s = "(" .. string.format("%.1f", total) .. ")"
+    if room and ZeD.TM:MeasureStringX(font, s) > room then
+        s = "(" .. string.format("%.0f", total) .. ")"
+        if ZeD.TM:MeasureStringX(font, s) > room then return unit end
+    end
+    return s
+end
+ZeD.InventoryRenderer.weightText = weightText
+
+-- The bracket's share of a weight column set px wide: what it holds past the
+-- unit's width. COND and CAT drop on the column less this share, so the bracket
+-- never drops a column; it takes its room from the name instead.
+local function wtShare(cw, set)
+    return math.max(0, math.min(cw.wtB - cw.wtU, set - cw.wtU))
+end
+
+-- The list's weight column for room px (the row less the icon, the paddings and
+-- the other columns): its set width while the name keeps minName less the
+-- bracket's share; past that the bracket gives way (a stack's row draws what
+-- fits, see weightText), so it only gives way where the name, with the unit
+-- alone, is already under minName. A column set under the unit's width (a drag)
+-- is left as set.
+local function wtFit(cw, set, room, minName)
+    local share = wtShare(cw, set)
+    local give = math.min(share, (minName - share) - (room - set))
+    return set - math.max(0, give)
+end
+
 -- One cell: the icon, the stack's weight top right, its count bottom right, the
 -- condition strip along the bottom, a BELT n key square; hover T.hover, selected
 -- the T.selectionA wash, the controller's focus mark under the icon. Its hit zone
@@ -634,13 +678,15 @@ local function drawGridCell(self, GV, item, cx, cy)
     -- condition, the framed strip along the bottom (the list's colours); a readable
     -- item shows its read mark instead, as the list's COND column does
     local condTop = rs and (cy + cell) or drawCellCondition(self, item, ax, cy, cell)
-    -- the weight of the cell (the whole stack), top right
-    local wt = 0
-    if stackInfo and stackInfo.items then
-        for _, si in ipairs(stackInfo.items) do wt = wt + (si:getUnequippedWeight() or 0) end
-    else wt = item:getUnequippedWeight() or 0 end
-    local wtStr = string.format("%.1f", wt)
+    -- on the belt: its key, top left (the list's BELT n tag), drawn below; measured here for the weight's room
     local f5 = T.fontF5
+    local okAS, aslot = pcall(function() return item:getAttachedSlot() end)
+    local k = okAS and aslot and aslot > 0 and ZeD.Belt and ZeD.Belt.keyLabel and tostring(ZeD.Belt.keyLabel(aslot) or aslot)
+    local kw = k and math.max(ZeD.TM:MeasureStringX(f5, k) + T.px(6), GV.f5FH) or 0
+    -- the weight, top right: the item's own, a stack's total in brackets (the grid opens no
+    -- stacks: the card has each one's own); short of the key or the next level's arrow (ReadMarks.drawUp, 5 x 4)
+    local leftW = (kw > 0 and kw + T.px(2) or 0) + ((rs and rs.next and ZeD.ReadMarks.nextOn()) and T.px(9) or 0)
+    local wtStr = weightText(item, stackInfo, f5, cell - T.px(6) - leftW)
     local wtw = ZeD.TM:MeasureStringX(f5, wtStr)
     -- (the chips fill from the window's surface token, at the see-through value like the rest of
     -- the window: no literal alpha; they are small and sit over the cell, so they are not claimed)
@@ -658,11 +704,8 @@ local function drawGridCell(self, GV, item, cx, cy)
         local tc = T.text
         self:drawText(cs, ax + cell - cw2 - T.px(3), cy2, tc.r, tc.g, tc.b, tc.a or 1, f1)
     end
-    -- on the belt: its key, top left (the list's BELT n tag)
-    local okAS, aslot = pcall(function() return item:getAttachedSlot() end)
-    if okAS and aslot and aslot > 0 and ZeD.Belt and ZeD.Belt.keyLabel then
-        local k = tostring(ZeD.Belt.keyLabel(aslot) or aslot)
-        local kw = math.max(ZeD.TM:MeasureStringX(f5, k) + T.px(6), GV.f5FH)
+    -- the belt key (measured above)
+    if k then
         self:drawRect(ax, cy, kw, GV.f5FH, ac.a or 1, ac.r, ac.g, ac.b)
         local tc = T.textOnAccent
         self:drawText(k, ax + math.floor((kw - ZeD.TM:MeasureStringX(f5, k)) / 2), cy, tc.r, tc.g, tc.b, 1, f5)
@@ -939,6 +982,14 @@ local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, col
                 s.count = s.count + 1
             end
         end
+        -- sorted by weight, a stack goes by its total, the number its row shows (as vanilla's inventory sorts)
+        if sortCol == "wt" then
+            for _, s in ipairs(ordered) do s.wt = stackWeight(s) end
+            table.sort(ordered, function(a, b)
+                if a.wt ~= b.wt then if sortAsc then return a.wt < b.wt end return a.wt > b.wt end
+                return (a.rep:getName() or "") < (b.rep:getName() or "")
+            end)
+        end
         for _, s in ipairs(ordered) do
             flatItems[#flatItems + 1] = s.rep
             stacks[s.rep] = s
@@ -1142,7 +1193,7 @@ local function renderItemList(self)
     -- Reset to defaults when text scale changes
     local colWData = self._colWidths
     local readOn = ZeD.ReadMarks.on()   -- (the read marks' room in COND only while they are on)
-    if not colWData or self._colWidthsScale ~= scale or (colWData.readOn ~= nil and colWData.readOn ~= readOn) then
+    if not colWData or self._colWidthsScale ~= scale or (colWData.readOn ~= nil and colWData.readOn ~= readOn) or not colWData.wtB then
         -- measured, not guessed (Oct 19 2026, Large text audit): the longest
         -- common category ("Literature") and a weight in the columns' own
         -- fonts, so Large shows "Literature" whole, not "Liter..."
@@ -1152,15 +1203,21 @@ local function renderItemList(self)
             -- for the one-word statuses, so the column still shows in the default window; longer ones shorten)
             cond = readOn and math.max(math.floor(50 * scale), ZeD.ReadMarks.wordRoom() + padX) or math.floor(50 * scale),
             readOn = readOn,
-            wt   = math.ceil(ZeD.TM:MeasureStringX(T.fontF3, "88.8") + padX * 2),
+            -- (Oct 29 2026: a stack's row shows its total in brackets, "(2.5)"; wtU is an item's
+            -- own, the width the bracket gives way to, see wtFit)
+            wtB  = math.ceil(ZeD.TM:MeasureStringX(T.fontF3, "(88.8)") + padX * 2),
+            wtU  = math.ceil(ZeD.TM:MeasureStringX(T.fontF3, "88.8") + padX * 2),
         }
-        colWData.wtC = colWData.wt   -- the compact (side-by-side) weight column, never resized
+        colWData.wt  = colWData.wtB
+        colWData.wtC = colWData.wtB   -- the compact (side-by-side) weight column, never resized
         self._colWidths = colWData
         self._colWidthsScale = scale
     end
 
     -- Responsive columns: drop one at a time as panel narrows
-    -- Order: cond first, then cat. Name + WT always stay.
+    -- Order: cond first, then cat. Name + WT always stay; the weight's bracket
+    -- takes its room from the name (Oct 29 2026, the director: names shorten
+    -- before a column drops for it).
     local nameX    = padX + iconW + iconGap
     local MIN_NAME = T.px(100)   -- (Large text audit: names before categories; at Large the category drops before names crush)
     local catColW  = colWData.cat
@@ -1175,16 +1232,18 @@ local function renderItemList(self)
         condColW = 0
         showCat  = false
         catColW  = 0
-        wtColW   = colWData.wtC or math.ceil(ZeD.TM:MeasureStringX(T.fontF3, "88.8") + padX * 2)
+        wtColW   = wtFit(colWData, colWData.wtC, colW - nameX - padX - scrollW, MIN_NAME)
     else
-        if (colW - nameX - catColW - condColW - wtColW - padX - scrollW) < MIN_NAME then
+        local wtD = colWData.wt - wtShare(colWData, colWData.wt)   -- (the unit's width: the bracket drops no column)
+        if (colW - nameX - catColW - condColW - wtD - padX - scrollW) < MIN_NAME then
             showCond = false
             condColW = 0
-            if (colW - nameX - catColW - wtColW - padX - scrollW) < MIN_NAME then
+            if (colW - nameX - catColW - wtD - padX - scrollW) < MIN_NAME then
                 showCat = false
                 catColW = 0
             end
         end
+        wtColW = wtFit(colWData, colWData.wt, colW - nameX - catColW - condColW - padX - scrollW, MIN_NAME)
     end
 
     -- Column X positions (all column-local, 0-based)
@@ -1605,9 +1664,8 @@ local function renderItemList(self)
             rowCondition(self, item, xOff + condX + T.px(2), y, condColW - T.px(4), rowH)
         end
 
-        -- Weight (K22 Xanthus — stat voice)
-        local wt    = item:getUnequippedWeight()
-        local wtStr = string.format("%.1f", wt)
+        -- Weight (K22 Xanthus — stat voice); a stack's head shows its total in brackets
+        local wtStr = weightText(item, stackInfo, T.fontF3, wtColW - padX * 2)
         local wtTextY = y + math.floor((rowH - statFH) / 2)
         A.drawTextRight(self, wtStr, xOff + wtX + wtColW - padX, wtTextY, T.fontF3, focusTxt or T.toneHi)
 

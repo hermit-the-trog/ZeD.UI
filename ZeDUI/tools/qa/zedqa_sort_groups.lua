@@ -162,10 +162,10 @@ local function cols(c)
     local out = {}
     if c._colStates and #c._colStates > 0 then
         for _, cs in ipairs(c._colStates) do
-            out[#out + 1] = { items = cs.flatItems or {}, child = cs.childParent or {}, inv = cs.inventory, cs = cs }
+            out[#out + 1] = { items = cs.flatItems or {}, child = cs.childParent or {}, inv = cs.inventory, cs = cs, stacks = cs.stacks or {} }
         end
     else
-        out[1] = { items = c._flatItems or {}, child = c._childParent or {}, inv = c._inventory }
+        out[1] = { items = c._flatItems or {}, child = c._childParent or {}, inv = c._inventory, stacks = c._stacks or {} }
     end
     return out
 end
@@ -188,6 +188,14 @@ local function condPct(it)
     if not mx or mx <= 0 then return -1 end
     return it:getCondition() / mx
 end
+-- a row's weight as the list sorts it: a stack's total (the number its row shows), else the item's own
+local function wtOf(col, it)
+    local s = col.stacks and col.stacks[it]
+    if not (s and s.count > 1 and s.items) then return it:getUnequippedWeight() end
+    local t = 0
+    for _, si in ipairs(s.items) do t = t + si:getUnequippedWeight() end
+    return t
+end
 -- true when the rows (stack children skipped) are in the key's order; else false + where
 local function inOrder(col, key, asc)
     local prev
@@ -200,7 +208,7 @@ local function inOrder(col, key, asc)
                 elseif key == "cond" then
                     bad = condPct(prev) > condPct(it)
                 elseif key == "wt" then
-                    bad = prev:getUnequippedWeight() > it:getUnequippedWeight()
+                    bad = wtOf(col, prev) > wtOf(col, it)
                 else
                     local a, b = IR.catKey(prev), IR.catKey(it)
                     bad = (a > b) or (a == b and nm(prev) > nm(it))
