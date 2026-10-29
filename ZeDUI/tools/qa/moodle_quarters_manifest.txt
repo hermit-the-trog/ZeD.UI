@@ -1,0 +1,2 @@
+zedqa_prelude.lua | pre
+zedqa_moodle_quarters.lua | mq | timeout=240

@@ -26,6 +26,13 @@
 -- stack size + 10 apart in the order of
 -- its HashMap (see M.order); Well Fed shows from level 3; the hover text is
 -- drawn to the LEFT of the column; no chevrons and no pulse are drawn.
+--
+-- Another mod that draws the moodles itself in place of the game's column (it
+-- takes MoodlesUI off the screen and puts a panel of its own there; first used
+-- by ModSupport/moodle_quarters.lua) says so with M.setStandIn. ZeD keeps
+-- placing; it lists the moodles in that mod's order (so the note is for the
+-- moodle under the pointer), draws no copy of its own in the row, and tells the
+-- mod where the moodles go through M.rect.
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -113,13 +120,28 @@ function M.order()
 end
 Events.OnGameStart.Add(function() orderCache = nil end)
 
--- The moodles that are on, in vanilla's slot order:
+-- A stand-in: another mod that draws the moodles in place of the game's column.
+-- spec = { id = "<mod id>",
+--          order = { { "ENDURANCE", "<art>" }, ... }   -- its draw order, ORDER's shape
+--          drawing = function(playerNum) ... end }      -- true while it draws for that player
+-- One at a time (the last to call wins); nil takes it away.
+local standIn = nil
+function M.setStandIn(spec) standIn = spec end
+-- The stand-in drawing for this player now, or nil (then ZeD works as above)
+function M.standIn(playerNum)
+    if not standIn or not standIn.drawing then return nil end
+    if safe(standIn.drawing, playerNum or 0) then return standIn end
+    return nil
+end
+
+-- The moodles that are on, in vanilla's slot order (the stand-in's, when one draws):
 -- { key, type, art, level, gbn (0 neutral, 1 good, 2 bad) }
 function M.active(player)
     local out = {}
     local md = player and player:getMoodles()
     if not md or not MoodleType then return out end
-    for _, e in ipairs(M.order()) do
+    local si = M.standIn(safe(player.getPlayerNum, player))
+    for _, e in ipairs(si and si.order or M.order()) do
         local t = MoodleType[e[1]]
         local lvl = t and safe(md.getMoodleLevel, md, t) or 0
         -- vanilla shows Well Fed and up only from Stuffed (level 3)
@@ -218,6 +240,7 @@ function ZeD_MoodleLayer:_place()
     local p = self:player()
     local place = M.place()
     self._mode = place
+    self._rect = nil
     if not (p and mui) then self._show = false; return end
     local pn = self.playerNum
     local shown = (ISUIHandler == nil or ISUIHandler.allUIVisible ~= false) and mui:isVisible()
@@ -236,13 +259,15 @@ function ZeD_MoodleLayer:_place()
         if self:getY() ~= y then self:setY(y) end
         if self:getWidth() ~= w then self:setWidth(w) end
         if self:getHeight() ~= size then self:setHeight(size) end
+        self._rect = { place = place, x = x, y = y, w = w, h = size, size = size, n = n }
         return
     end
     -- right / left: move vanilla's own column, then lie exactly over it.
     -- The stack is centred on the screen's middle (director), so it grows up
     -- and down as moodles come and go; it stays under the watch (right) and
     -- above the belt.
-    local size = mui:getWidth()
+    -- (a stand-in keeps the game's column off UIManager, so its width can be stale: the option's size)
+    local size = M.standIn(pn) and M.size() or mui:getWidth()
     self._size = size
     self._list = M.active(p)
     local n = #self._list
@@ -266,6 +291,17 @@ function ZeD_MoodleLayer:_place()
     if self:getY() ~= y then self:setY(y) end
     if self:getWidth() ~= size then self:setWidth(size) end
     if self:getHeight() ~= h then self:setHeight(h) end
+    self._rect = { place = place, x = x, y = y, w = size, h = stackH, size = size, n = n }
+end
+
+-- Where ZeD put the moodles for this player this frame, in screen pixels:
+-- { place, x, y, w, h, size, n } (n moodles, size + 10 apart; a column for right /
+-- left, a row for bottom), or nil while they are not shown or ZeD is in safe mode
+function M.rect(playerNum)
+    local L = M._layers and M._layers[playerNum or 0]
+    if not (L and L._show and L._rect) then return nil end
+    if ZeD.Safe and ZeD.Safe.on() then return nil end
+    return L._rect
 end
 
 -- The moodle under the pointer (index into self._list), or nil
@@ -431,7 +467,8 @@ function ZeD_MoodleLayer:prerender()
     self:_noticeTick()
     self._chip = nil
     if not self._show then return end
-    if self._mode == "bottom" then self:_drawRow() end
+    -- (a stand-in draws the row itself, at M.rect)
+    if self._mode == "bottom" and not M.standIn(self.playerNum) then self:_drawRow() end
     local i = self:_hoverIndex()
     -- (ZeD setup's "Moodle notices", on by default: off, a chip shows only under the pointer)
     local S = ZeD.Settings

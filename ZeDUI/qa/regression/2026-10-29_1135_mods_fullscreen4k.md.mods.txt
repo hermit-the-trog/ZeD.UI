@@ -1,0 +1,11 @@
+VERSION = 1,
+
+mods
+{
+    mod = KADropnLoot,
+    mod = ZeD_UI,
+}
+
+maps
+{
+}

@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/dropnloot_manifest.txt  (Oct 29 2026)
+# Easy Drop'n'Loot support: zedqa_mods_run.ps1 -ModList dropnloot_mods.txt -Mode fullscreen4k -Manifest .../dropnloot_manifest.txt
+zedqa_prelude.lua | pre                          # opens both windows, unpauses, god mode
+zedqa_dropnloot.lua | dnl | timeout=120          # its Transfer / Loot Category buttons in ZeD's container row: names, clicks, floor path, all taken back
