@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/etw_manifest.txt  (Oct 29 2026)
+# Evolving Traits World support: zedqa_mods_run.ps1 -ModList etw_mods.txt -Mode fullscreen4k -Manifest .../etw_manifest.txt
+zedqa_prelude.lua | pre | timeout=120
+zedqa_etw.lua | etw | timeout=240                  # the tab, rows in the mod's words, progress = the mod's numbers, pad focus on rows, the mod's words at the foot

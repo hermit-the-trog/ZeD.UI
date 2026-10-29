@@ -18,6 +18,7 @@ Other mods
 - Moodle Quarters: its moodles draw in ZeD's places (right, left, above the belt), with ZeD's hover note.
 - Exp Recovery for Skill Books: the saved XP as a strip under each skill in the Skills tab, the numbers in the hover card.
 - Nested Containers: a bag inside a bag gets its own column on the container strip, in both windows.
+- Evolving Traits World: its trait progress page as rows in the Traits tab (its bars, marks and numbers), sharing the tab with Traits As Skills when both are on.
 - Container Capacity Indicator: a fullness bar along the bottom of each container button on the strips.
 - Wound Expansion: its wounds and conditions in the Health tab (the part's detail and the injury list), its treatments in the part's menu.
 - Tested compatible: Building Craft, Neat Crafting and Neat Building XP, The Only Cure, The Only Cure+, Kilometers Per Hour, Knox Packs.
