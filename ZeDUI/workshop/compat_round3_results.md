@@ -21,9 +21,9 @@ Lists, as in the Compatibility thread (`steam_threads/compat_v3/README.md`): **S
 
 | List | Mods |
 |---|---|
-| Supported | 6 (Oct 29 2026) |
+| Supported | 7 (Oct 29 2026) |
 | Works well | 8 |
-| Compatible | 254 |
+| Compatible | 253 |
 | Not needed | 27 |
 | Does not work | 7 |
 | Tested in all | 302 |
@@ -121,7 +121,7 @@ Reports: qa/regression/2026-10-26_2009_mods_fullscreen4k.md (8/8 pass; an earlie
 
 | Mod | Workshop id | Tier | List | Evidence |
 |---|---|---|---|---|
-| Evolving Traits World (ETW) + More Traits continuation | [2914075159](https://steamcommunity.com/sharedfiles/filedetails/?id=2914075159) | 1 | Compatible | Loads, no errors. Part of it does not show: its trait progress page is added to the game's character window, which ZeD replaces (by reading its code: xpUpdate.characterInfo). Its traits are in ZeD's trait list. |
+| Evolving Traits World (ETW) + More Traits continuation | [2914075159](https://steamcommunity.com/sharedfiles/filedetails/?id=2914075159) | 1 | Supported | Loads, no errors. Part of it does not show: its trait progress page is added to the game's character window, which ZeD replaces (by reading its code: xpUpdate.characterInfo). Its traits are in ZeD's trait list.  **Supported since Oct 29 2026:** its progress page's lines as rows in ZeD's Traits tab (Vitals, Combat, Non-combat, Physical, Mental, the Delayed Traits System), each row like a Traits As Skills row: the mod's bar with its + / - marks, the trait you have now, the mod's own numbers and "what moves it" words at the foot; the mod's sandbox and page options honoured. With Traits As Skills on, ETW's rows sit in the same tab under the mod's name; without it, the tab is ETW's (`ModSupport/EvolvingTraitsWorld.lua`, the shared `ModSupport/TraitsTab.lua` registry; QA `zedqa_etw.lua` alone and inside the TAS tab). |
 | Efficiency Skill Mod 2 | [3374408921](https://steamcommunity.com/sharedfiles/filedetails/?id=3374408921) | 1 | Compatible | Its Efficiency skill is in ZeD's starting skills on the occupation screen (seen). Efficiency Skill Mod 2 sub-mod (Legacy left out). |
 | [B41/B42] Toughness Skill | [3545533939](https://steamcommunity.com/sharedfiles/filedetails/?id=3545533939) | 1 | Compatible | Loads, no errors (skill). |
 | RPGSkillTree[42.13][SP] | [3621388762](https://steamcommunity.com/sharedfiles/filedetails/?id=3621388762) | 1 | Compatible | Its full-screen skill tree opens through its own open (pauses the game, as it does without ZeD) and closes back to ZeD's windows (seen, C_rpg_skill_tree.jpg). Some of its labels show as text keys (UI_RPG_Status): its own. |

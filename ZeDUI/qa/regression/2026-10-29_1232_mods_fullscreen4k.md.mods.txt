@@ -1,0 +1,15 @@
+VERSION = 1,
+
+mods
+{
+    mod = traitsAsSkills,
+    mod = MoodleFramework,
+    mod = KillCount,
+    mod = UnifiedCarryWeightFramework,
+    mod = EvolvingTraitsWorld,
+    mod = ZeD_UI,
+}
+
+maps
+{
+}

@@ -8,7 +8,7 @@ Generated from the sweep. One row per key in `Translate/EN/UI.json`: the English
 - Only the pixel-face words are capitals: the action bar labels (READING, CHEWING) and the marks on the dash, watch and radio. They stay capitals in your language. Everything else in English is sentence case, one capital at the start and the rest in lower case (Next level, Show survey), for headings, column heads, tags, buttons and status words alike; write yours the way your language writes a heading or a button, not in capitals.
 - Where the game already has a phrase (body parts, exercise names, thermal views, Steam item states, farming states, short tags and column heads), ZeD uses the key of the game itself, so it arrives translated from the game files and is not listed here. A tag or column head arrives in whatever case the game text has, and ZeD sets it in sentence case.
 
-Total keys: 3434.
+Total keys: 3441.
 
 ## Areas
 
@@ -34,6 +34,7 @@ Total keys: 3434.
 - [Doll](#doll) (23)
 - [Drawer](#drawer) (2)
 - [Equip](#equip) (40)
+- [ETW](#etw) (7)
 - [Farm](#farm) (50)
 - [Fire](#fire) (60)
 - [Fluid](#fluid) (31)
@@ -1136,6 +1137,18 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Equip_ZonePct` | `%1 (%2)` | Equipment tab (Character window), list view, Defense body (figure + stats, bottom of the tab): value under Worst/Best Zone; %1 is a body part name, %2 its bite protection as a percentage | 36 |
 | `UI_ZeD_Equip_ZoneUncovered` | `%1 (uncovered)` | Equipment tab (Character window), list view, Defense body (figure + stats, bottom of the tab): value under Worst Zone when that part has no protection; %1 is a body part name | 36 |
 | `UI_ZeD_Equip_BeltRowHelp` | `%1 on the belt: %2 is the button at the right` | Equipment tab, list view: help line over a belt slot row; %1 = the item's name (or Empty), %2 = the label of the row's button | - |
+
+## ETW
+
+| Key | English | Where it shows | Max |
+|---|---|---|---|
+| `UI_ZeD_ETW_Broken` | `The mod's progress could not be read.` | Traits tab (Character window, with the Evolving Traits World mod): in place of its rows when its data cannot be read | - |
+| `UI_ZeD_ETW_HelpCatHide` | `Fold %1.` | Traits tab: help line over a section head or group of Evolving Traits World whose rows are showing; %1 = the group's or the mod's name | - |
+| `UI_ZeD_ETW_HelpCatShow` | `Show %1.` | Traits tab: help line over a section head or group of Evolving Traits World whose rows are folded away; %1 = the group's or the mod's name | - |
+| `UI_ZeD_ETW_Hidden` | `The sandbox settings hide this mod's progress page.` | Traits tab: in place of the Evolving Traits World rows when its sandbox option turns its progress page off | - |
+| `UI_ZeD_ETW_KChanges` | `Changes` | Traits tab, details of an Evolving Traits World row: label of the line listing where along the bar each trait is gained (+) or lost (-) | 10 |
+| `UI_ZeD_ETW_KWhat` | `What moves it` | Traits tab, details of an Evolving Traits World row: label of the line with the mod's own description of what raises or lowers the progress | 14 |
+| `UI_ZeD_ETW_Pick` | `Choose a row to see its progress, where it gains or loses a trait, and what moves it.` | Traits tab with Evolving Traits World (no Traits As Skills): the details panel at the foot before a row is picked | - |
 
 ## Farm
 

@@ -45,6 +45,8 @@ require "ZeD/ZeD_CharacterWindow"
 require "ZeD/ZeD_HairBeard"
 require "TAS/TASSpectrum"
 require "TAS/TASClientState"
+-- the other mods' rows on this tab (Evolving Traits World): ZeD.TraitsTab
+require "ZeD/ModSupport/TraitsTab"
 
 ZeD = ZeD or {}
 ZeD.ModSupport = ZeD.ModSupport or {}
@@ -218,7 +220,7 @@ end
 -- ---------------------------------------------------------------------------
 local function add(L, it) L.items[#L.items + 1] = it; return it end
 
-local function layout(st, w)
+local function layout(st, w, win)
     local T = ZeD.T
     local L = { items = {} }
     local x, y = T.px(PAD), T.px(8)
@@ -232,7 +234,9 @@ local function layout(st, w)
     for _, r in ipairs(st.rows) do
         if (not S.only or #r.now > 0) and matches(r, q) then vis[#vis + 1] = r end
     end
-    if #vis == 0 then
+    -- (the other mods' rows count too: Nothing matches only when no row at all is left)
+    local _, _, extShown = ZeD.TraitsTab.counts(win, q, S.only)
+    if #vis == 0 and extShown == 0 then
         local lines = ZeD.Atoms.wrapText(tr("UI_ZeD_TAS_Nothing", S.find), ZeD.T.fontF2, cw)
         local eh = #lines * (F(2) + T.px(2)) - T.px(2)
         add(L, { kind = "empty", x = x, y = y + T.px(8), w = cw, h = eh })
@@ -259,6 +263,8 @@ local function layout(st, w)
             end
         end
     end
+    -- the other mods' rows (ZeD.TraitsTab), each mod under a section head with its name
+    y = ZeD.TraitsTab.layout(win, L, x, y, cw, q, S.only)
     L.h = y + T.px(12)
     return L
 end
@@ -316,7 +322,9 @@ local function drawCredit(panel, win, st, it, y)
     -- All | With a trait: one of two, System 7 radio buttons (each half pressable)
     local withT = 0
     for _, r in ipairs(st.rows) do if #r.now > 0 then withT = withT + 1 end end
-    local labels = { tr("UI_ZeD_TAS_All", #st.rows), tr("UI_ZeD_TAS_WithTrait", withT) }
+    -- (the other mods' rows on this tab count in both halves)
+    local extAll, extWith = ZeD.TraitsTab.counts(win, "", false)
+    local labels = { tr("UI_ZeD_TAS_All", #st.rows + extAll), tr("UI_ZeD_TAS_WithTrait", withT + extWith) }
     local f = T.fontF2
     local rs = A.radioSize()
     local ws = {}
@@ -623,6 +631,9 @@ local function drawDetail(panel, win, st, x, y, w, h)
     local sc = st.detScroll
     sc.visible = false
     local p = win._playerObj
+    -- another mod's row (ZeD.TraitsTab): its own support draws its details
+    local extId = st.hover or st.sel
+    if extId and not st.byId[extId] and ZeD.TraitsTab.drawDetail(panel, win, extId, x, y, w, h, sc) then return end
     local r = st.byId[st.hover or st.sel or ""]
     local pad = T.px(PAD)
     local ix, iw = x + pad, w - pad * 2
@@ -750,7 +761,7 @@ function S.render(panel, win, x, y, w, h)
     local detH = math.min(T.px(DET_H), math.floor((h - headH) / 2))
     local sy, sh = y + headH, h - headH - detH
     local scroll = st.scroll
-    local L = layout(st, w - T.sp.scrollbarW)
+    local L = layout(st, w - T.sp.scrollbarW, win)
     st.L = L
     local needs = L.h > sh
     scroll.visible = needs
@@ -783,6 +794,10 @@ function S.render(panel, win, x, y, w, h)
             elseif k == "empty" then
                 ZeD.Molecules.drawEmptyLine(panel, it.x, dy, it.w, tr("UI_ZeD_TAS_Nothing", S.find))
             elseif k == "cat" then drawCat(panel, win, it, dy, mx, my)
+            elseif k == "ext" then
+                -- another mod's item (ZeD.TraitsTab); a hovered row of it feeds the details
+                local hid = ZeD.TraitsTab.drawItem(panel, win, it, dy, mx, my, st.sel)
+                if hid then st.hover = hid end
             elseif k == "row" then
                 drawRow(panel, win, st, it, dy, mx, my)
                 if mx and mx >= it.x and mx < it.x + it.w and my >= dy and my < dy + it.h then
@@ -794,7 +809,7 @@ function S.render(panel, win, x, y, w, h)
                     end
                 end
             end
-            if (k == "cat" or k == "row") then
+            if (k == "cat" or k == "row" or k == "ext") then
                 local zy0, zy1 = math.max(sy, dy), math.min(sy + sh, dy + it.h)
                 if zy1 > zy0 then st.zones[#st.zones + 1] = { x = it.x, y = zy0, w = it.w, h = zy1 - zy0, item = it } end
             end
@@ -865,7 +880,12 @@ function S.onClick(win, x, y)
         if inRect(z, x, y) then
             local it = z.item
             if it.kind == "cat" then S.closed[it.cat] = not S.closed[it.cat]
-            elseif it.kind == "row" then st.sel = it.row.id end
+            elseif it.kind == "row" then st.sel = it.row.id
+            elseif it.kind == "ext" then
+                -- another mod's item: it folds its own heads; a row comes back to be picked
+                local id = ZeD.TraitsTab.click(win, it)
+                if id then st.sel = id end
+            end
             getSoundManager():playUISound("UIActivateButton")
             return
         end
@@ -920,6 +940,10 @@ function S.buildFocusables(win)
             local id = it.row.id
             out[#out + 1] = { x = it.x, y = dy, w = it.w, h = it.h, cy = it.y, id = "tas:row:" .. id, tas = true, rowId = id,
                 onFocus = function() st.sel = id end, onActivate = function() end }
+        elseif it.kind == "ext" then
+            -- another mod's head or row (ZeD.TraitsTab); its stop carries tas = true and rowId
+            local el = ZeD.TraitsTab.focusable(win, it, dy)
+            if el then out[#out + 1] = el end
         end
     end
     return out
