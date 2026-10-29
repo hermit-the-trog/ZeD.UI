@@ -16,6 +16,10 @@ Compatible (loads and works):
 - Kilometers Per Hour: loads; ZeD's dashboard draws its own speed, so its reading is not used.
 - Knox Packs: Upgradable Backpacks
 
-Still to test: Xen's Enhanced GUI (both replace the inventory and the HUD, so expect a clash), Better World Map, Locksmith, Survivor PDA, This Is Your Life, Loot Tracker, Viewpoint Clean UI, Vital Signs, Item Details Panel.
+Also compatible (loads and works, tested the same day): Viewpoint Clean UI (only its update notice showed), Better World Map, Locksmith, Survivor PDA, Loot Tracker, Vital Signs, Item Details Panel (one error of its own at load), Disable Welcome Message, Better Building Plus with RC's Structures Framework, SideWinder's Placement+, Mod Load Order Sorter Extension.
+
+Does not work with ZeD-GUI: Xen's Enhanced GUI. Both are whole-interface overhauls; with both on, its HUD draws over ZeD's and its inventory opens beside ZeD's windows. Run one or the other.
+
+Still to test: This Is Your Life (the character creator).
 
 How this was tested: each mod on a copy of the test save at 4K, ZeD loaded last, through ZeD's QA scripts (a census of the visible UI, the tab walk, the grid, the item menu, the card on the controller, the dashboard, the Health tab), plus a script per supported mod that checks its feature in ZeD's windows.

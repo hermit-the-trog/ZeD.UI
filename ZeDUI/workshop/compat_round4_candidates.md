@@ -385,3 +385,27 @@ The six candidates already on disk, tested at once with their requirements (`too
 Also seen: `no such function "Vehicles.Init.Radio"` twice at load, the game's own (seen in ZeD-alone runs too).
 
 Not yet tested: Xen's Enhanced GUI (3819012597) and the rest of the table: not on disk, and the Steam sign-in in the browser pane lapsed, so nothing could be subscribed. Next: the director signs in (or subscribes), then the compat kit as above, XEG on its own first.
+
+Note (Oct 29 2026, afternoon): 3796139100 "This Is Your Life - Character Creator Overhaul" is the clothing-UI fix add-on; the creator itself is 3773911887 "This Is Your Life [B42 Stable] WIP" (with 3823338627). Both subscribed Oct 29 for the next menu run.
+
+## Results, second group (Oct 29 2026, afternoon): the subscribed candidates
+
+Subscribed the same afternoon (Steam signed in; `subscriptions_ledger.md`), tested at 4K on a copy of the ZeD-QA save with `zedqa_mods_run.ps1` and `tools/qa/compat_r4b.txt` (the round-4 set plus the map, the moodles and Messages), ZeD last; the main-menu mods through `zedqa_menu_mods_run.ps1` with `zedqa_r3_menu.lua`. Reports `qa/regression/2026-10-29_1401_mods_fullscreen4k.md` (XEG), `_1405_` (Viewpoint Clean UI), `_1409_` (the group).
+
+| Mod | Workshop id | List | Evidence |
+|---|---|---|---|
+| Xen's Enhanced GUI | 3819012597 | Does not work (with ZeD) | Both are whole-interface overhauls. With both on, XEG's HUD (mini health, moodle bar, compass, HUD panel, quick access) draws over ZeD's belt and moodles at once (the census lists them all on screen), and its inventory opens beside ZeD's windows. ZeD's own tests still pass (11/12; the one failure is the game counting XEG's own missing-argument warning for its key `IGUI_XEG_fbb6ca3a`), and XEG logs one `hollow` nil call of its own at load. Run one or the other. |
+| Viewpoint Clean UI | 3826157418 | Compatible, with a note | 12/12. On this run only its update notice window showed (centred, 660x600); its own inventory replacement did not take over ZeD's windows. Whether its parts switch on with its options was not tried. |
+| Better World Map | 3794379457 | Compatible | Loads, no errors; ZeD's Maps tab and pop-out draw (`zedqa_mapshot.lua`). Its labels are for the game's map; not seen on ZeD's (by the mod's description). |
+| Locksmith | 3797292945 | Compatible | Loads, no errors; its rows come through the game's context menu, which ZeD's menu shows (the item menu as a list passed). |
+| Survivor PDA (mod id ProjectRPGExpanded) | 3826426915 | Compatible | Loads, no errors; its own window opens on its key beside ZeD's. Not opened in the run. |
+| Loot Tracker | 3823828778 | Compatible | Loads, no errors; its overlays are for the game's map. |
+| Vital Signs | 3819507580 | Compatible | Loads, no errors; ZeD's moodle test passed with it on (every place, the hover note). What it removes is the game's moodle look; ZeD still places the game's column. |
+| Item Details Panel | 3826420021 | Compatible, with its own error | Loads; one `updateDisplayActivation` nil call of its own at load. Its panels sit beside the game's item tooltip, which ZeD's tooltip now runs through (the Oct 27 chaining), so they may show; not seen in the run. |
+| Disable Welcome Message | 1924146603 | Compatible | Loads, no errors (in game and at the main menu). |
+| Better Building Plus + RC's Structures Framework | 3812970899, 3718883428 | Compatible | Load, no errors; its building pieces come through the game's build data, which ZeD's Build tab reads. |
+| SideWinder's Placement+ | 3796440093 | Compatible | Loads, no errors; placement only. |
+| Mod Load Order Sorter Extension (with Mod Load Order Sorter) | 3809995878 | Compatible | The main-menu walk (Mods, Options, New Game to Looks) ran with no errors; its extension is for the game's load-order screen, which ZeD replaces (Not needed in practice). |
+| This Is Your Life (character creator) | 3773911887 | Not yet tested | 3796139100 turned out to be its clothing-UI fix; the creator itself and its dataset were subscribed at the end of the day for the next menu run. |
+
+Also in the group's log: eight `Index 200 out of bounds ... LexState.new_localvar` refusals, which is the game's debug-build Lua compiler refusing a file with more than 200 locals (knowledge bank Q260). Not ZeD's (ZeD-alone runs show none); one of the ten has such a file. Everything still passed, so it is a mod-own matter under `-debug` only.
