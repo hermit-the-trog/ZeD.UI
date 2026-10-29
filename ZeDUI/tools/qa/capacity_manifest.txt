@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/capacity_manifest.txt  (Oct 29 2026)
+# Container Capacity Indicator support: zedqa_mods_run.ps1 -ModList capacity_mods.txt -Mode fullscreen4k -Manifest .../capacity_manifest.txt
+zedqa_prelude.lua | pre                          # opens both windows, unpauses, god mode
+zedqa_capacity.lua | cci | timeout=120           # its fill bar on the strips' buttons: worn bag ~80%, truck bed ~20%, decorator stamps, bar widths, bands, bag to ~97%; all taken back

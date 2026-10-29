@@ -31,6 +31,7 @@ require "ZeD/IdentityTab"
 require "ZeD/EquipmentTab"
 require "ZeD/RadioTab"
 require "ZeD/ExtraContainers"
+require "ZeD/StripDecorators"
 require "ZeD/ZeD_WorldWindow"
 
 ZeD = ZeD or {}
@@ -2974,6 +2975,15 @@ function ZeD_CharacterWindow.addContainerProvider(id, fn)
     ZeD.ExtraContainers.add("char", id, fn)
 end
 
+-- A general hook for other mods (StripDecorators.lua): fn(panel, entry, x, y,
+-- w, h, win) is called after each strip button's icon is drawn (the main
+-- inventory's too), with the window's entry (entry.inventory) and the button's
+-- rectangle, to mark it (a fill bar, a badge). A second call with the same id
+-- replaces the first.
+function ZeD_CharacterWindow.addStripDecorator(id, fn)
+    ZeD.StripDecorators.add("char", id, fn)
+end
+
 local function buildContainers(playerObj)
     local containers = {}
     local mainInv = playerObj:getInventory()
@@ -3227,6 +3237,8 @@ local function drawContainerStrip(self, win, content)
             local color = onFocusM and T.textOnFocus or (mainVis and T.text or T.textDim)
             self:drawText(glyph, gx, gy, color.r, color.g, color.b, color.a, font)
         end
+        -- other mods' marks on the button (StripDecorators.lua); before the badge below so the badge stays on top
+        ZeD.StripDecorators.run(self, win, "char", mainCnt, T.px(1), curY, w - T.px(1), T.px(CONTAINER_BTN_SZ))
         -- S108 v2 QA: MC badge for main (player inv) when MC active. Main is
         -- always at the last colSel position when mainVisible=true, so its
         -- badge = #_mcSelected + 1.
@@ -3378,6 +3390,9 @@ local function drawContainerStrip(self, win, content)
                 local color = onFocusC and T.textOnFocus or ((isMcSel or isViewed) and T.text or T.textDim)
                 self:drawText(glyph, gx, gy, color.r, color.g, color.b, color.a, font)
             end
+
+            -- other mods' marks on the button (StripDecorators.lua); before the badge below so the badge stays on top
+            ZeD.StripDecorators.run(self, win, "char", cnt, T.px(1), btnY, w - T.px(1), T.px(CONTAINER_BTN_SZ))
 
             -- Column number badge (bottom-right corner)
             if isMcSel then

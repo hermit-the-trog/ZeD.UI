@@ -34,6 +34,7 @@ require "ZeD/RadioTab"
 require "ZeD/MechanicsTab"
 require "ZeD/FurnitureTab"
 require "ZeD/ExtraContainers"
+require "ZeD/StripDecorators"
 
 ZeD = ZeD or {}
 ZeD_WorldWindow = {}
@@ -2345,6 +2346,15 @@ function ZeD_WorldWindow.addContainerProvider(id, fn)
     ZeD.ExtraContainers.add("world", id, fn)
 end
 
+-- A general hook for other mods (StripDecorators.lua): fn(panel, entry, x, y,
+-- w, h, win) is called after each strip button's icon is drawn (the floor's
+-- too), with the window's entry (entry.inventory) and the button's rectangle,
+-- to mark it (a fill bar, a badge). A second call with the same id replaces
+-- the first.
+function ZeD_WorldWindow.addStripDecorator(id, fn)
+    ZeD.StripDecorators.add("world", id, fn)
+end
+
 local function buildWorldContainers(playerObj)
     local containers = {}
 
@@ -2725,6 +2735,8 @@ local function drawWorldContainerStrip(self, win, content)
             self:drawText(glyph, gx, gy, color.r, color.g, color.b, color.a, font)
         end
 
+        -- other mods' marks on the button (StripDecorators.lua); before the badge below so the badge stays on top
+        ZeD.StripDecorators.run(self, win, "world", floorCnt, 0, curY, w - T.px(1), T.px(CONTAINER_BTN_SZ))
         -- S108 v2 QA: MC badge for floor when shown as a column in MC mode.
         -- Floor is at the LAST colSel position when mainVisible=true, so its
         -- badge = #_mcSelected + 1. Doesn't appear in _mcSelected itself
@@ -2873,6 +2885,8 @@ local function drawWorldContainerStrip(self, win, content)
                 local color = onFocusC and T.textOnFocus or (isOn and T.text or (cnt.locked and T.textDim or T.textSec))
                 self:drawText(glyph, gx, gy, color.r, color.g, color.b, color.a, font)
             end
+            -- other mods' marks on the button (StripDecorators.lua); before the padlock and badge so they stay on top
+            ZeD.StripDecorators.run(self, win, "world", cnt, 0, drawY, w - T.px(1), T.px(CONTAINER_BTN_SZ))
             -- a small padlock in the corner says why the button is dim
             if cnt.locked then
                 local dg = T.danger
