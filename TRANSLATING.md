@@ -1,6 +1,6 @@
-# Translating ZeD-UI
+# Translating ZeD-GUI
 
-ZeD-UI ships its words in text files, so you can translate it without touching any code or fonts. This page is the short version.
+ZeD-GUI ships its words in text files, so you can translate it without touching any code or fonts. This page is the short version.
 
 ## What you translate
 
@@ -49,7 +49,7 @@ Only the pixel-face words are capitals: the action bar labels and the marks on t
 
 Two ways, both welcome:
 
-- **Your own mod.** Make a mod that holds only `Translate/<LANG>/UI.json` (under `42/media/lua/shared/`), with `require=ZeD_UI` in its `mod.info`, and list ZeD-UI as a required item on its Workshop page. The game merges your file with ZeD's. This is the way if you want to keep control of it.
-- **Send it to us.** Send the finished `UI.json` and we include it in ZeD-UI itself, with your name in the credits, so players get the language automatically and it ships in step with updates. When we change a phrase, we will tell you which keys are new.
+- **Your own mod.** Make a mod that holds only `Translate/<LANG>/UI.json` (under `42/media/lua/shared/`), with `require=ZeD_UI` in its `mod.info`, and list ZeD-GUI as a required item on its Workshop page. The game merges your file with ZeD's. This is the way if you want to keep control of it.
+- **Send it to us.** Send the finished `UI.json` and we include it in ZeD-GUI itself, with your name in the credits, so players get the language automatically and it ships in step with updates. When we change a phrase, we will tell you which keys are new.
 
-Either way, say which version of ZeD-UI you translated against. New releases add phrases; a missing phrase shows in English until it is translated.
+Either way, say which version of ZeD-GUI you translated against. New releases add phrases; a missing phrase shows in English until it is translated.

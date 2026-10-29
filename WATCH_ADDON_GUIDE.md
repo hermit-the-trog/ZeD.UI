@@ -1,24 +1,24 @@
-# ZeD-UI watch addon guide
+# ZeD-GUI watch add-on guide
 
-*Written Oct 16 2026, when the watches moved onto plates and the steel Timez became ZeD-UI's own item.*
+*Written Oct 16 2026, when the watches moved onto plates and the steel Timez became the mod's own item.*
 
 ## What the addon is
 
-A separate mod that requires ZeD-UI and adds more watches. Director's scope (Oct 16 2026): more watches on the same controls. There are no new features and no new buttons. ZeD-UI keeps covering vanilla's eight watches and its own steel Timez. The addon only adds watches on top of those.
+A separate mod that requires ZeD-GUI and adds more watches. The scope is more watches on the same controls. There are no new features and no new buttons. ZeD-GUI keeps covering vanilla's eight watches and its own steel Timez. The addon only adds watches on top of those.
 
-Every watch, ZeD-UI's own included, goes through the same registration. The steel Timez was built the way an addon watch will be, so the route has already been proven in game.
+Every watch, ZeD-GUI's own included, goes through the same registration. The steel Timez was built the way an addon watch will be, so the route has already been proven in game.
 
 ## What one addon watch needs
 
 | Piece | Where it lives in the addon | Made from |
 |---|---|---|
-| The item, left and right wrist | `media/scripts/<Addon>_Watches.txt` | Copy the Timez block in ZeD-UI's `media/scripts/ZeD_Watches.txt`. `ItemType = base:alarmclockclothing`; `ClothingItemExtra` points at the other wrist. |
+| The item, left and right wrist | `media/scripts/<Addon>_Watches.txt` | Copy the Timez block in ZeD-GUI's `media/scripts/ZeD_Watches.txt`. `ItemType = base:alarmclockclothing`; `ClothingItemExtra` points at the other wrist. |
 | The wrist look | `media/clothing/clothingItems/WristWatch_<Side>_<Name>.xml` and a texture in `media/textures/` | Vanilla's square or round wrist model with your own texture. Each XML needs its own GUID, which must never change. |
 | The GUID list | `media/fileGuidTable.xml` | One `<files>` entry per clothing XML. |
 | The ground model | A `model` block in the script and a texture in `media/textures/WorldItems/` | Vanilla's `WorldItems/DigitalWatch` mesh, or the classic one, recoloured. |
 | The inventory icon | `media/textures/Item_<Icon>.png`, 32 × 32 | Vanilla's icons are pixel art. Recolour the nearest vanilla icon. |
 | The name | `media/lua/shared/Translate/EN/ItemName.json` | `"Base.WristWatch_Left_<Name>": "..."` (it merges with vanilla's file, it doesn't replace it). |
-| Where it turns up | `media/lua/server/Items/<Addon>_WatchLoot.lua` | Copy ZeD-UI's `ZeD_WatchLoot.lua` and change its `PAIRS`, e.g. join wherever the Expensive watch appears. |
+| Where it turns up | `media/lua/server/Items/<Addon>_WatchLoot.lua` | Copy ZeD-GUI's `ZeD_WatchLoot.lua` and change its `PAIRS`, e.g. join wherever the Expensive watch appears. |
 | The face on screen (the plate) | The picture and its state pictures in `media/textures/<Addon>/watch/`, plus a data table | Draw it with ZeDUI/tools/physpx (`d_watches.py` / `d_timez.py` are the patterns), register it in `plates.py`, export. |
 | The registration | One call in a client Lua file | Shown below. |
 
@@ -34,7 +34,7 @@ ZeD.Watch.register {
 }
 ```
 
-Leaving out `design` and `texdir` means "the plate is in ZeD-UI's own PhysPx". Only ZeD-UI's built-in watches do that.
+Leaving out `design` and `texdir` means "the plate is in ZeD-GUI's own PhysPx". Only ZeD-GUI's built-in watches do that.
 
 ## What the face can do
 
@@ -78,9 +78,9 @@ Any other id does nothing.
 - `platesame.py <plate>` proves the game's Lua draws the plate exactly as the preview does.
 - In game: `ZeDUI/tools/qa/zedqa_watches2.lua` wears each watch in turn and screenshots it.
 
-## Where the pieces are in ZeD-UI
+## Where the pieces are in ZeD-GUI
 
 - `42/media/lua/client/ZeD/ZeD_Watch.lua`: the registry, the readout, the controls.
 - `42/media/lua/client/ZeD/ZeD_Plate.lua`: the shared plate template, including the night and lit colours.
-- `42/media/lua/client/ZeD/PhysPx.lua`: ZeD-UI's plates (generated).
+- `42/media/lua/client/ZeD/PhysPx.lua`: ZeD-GUI's plates (generated).
 - `42/media/scripts/ZeD_Watches.txt`, `clothing/`, `fileGuidTable.xml`, `lua/server/Items/ZeD_WatchLoot.lua`: the steel Timez, the working example of an added watch.
