@@ -1,0 +1,9 @@
+# ZeDUI/tools/qa/wt_bracket.txt  (Oct 29 2026)
+# A stack's total weight in brackets on its row, an open stack's rows and a single their own; list and grid, and the scripts covering the list, grid and sort:
+# zedqa_run.ps1 -Mode fullscreen4k -Manifest .../wt_bracket.txt
+zedqa_prelude.lua | pre                                  # opens both windows, unpauses, god mode
+zedqa_wt_bracket.lua | wtb | timeout=240                 # "(1.0)" on a stack, its open rows and a single their own; list, grid, Large, two columns, a narrow WT column
+zedqa_grid.lua | grid                                    # inventory grid, cell card, pad walk, List | Grid toggle
+zedqa_sort_groups.lua | sg | timeout=420                 # category headers only under Sort by Category; list + grid, single + multi, both windows
+zedqa_large.lua | lg                                     # Large text size: Loot and Equip lists, column widths
+suite_tabs.lua | tabs                                    # every tab of both windows via the strip clicks; focusable census
