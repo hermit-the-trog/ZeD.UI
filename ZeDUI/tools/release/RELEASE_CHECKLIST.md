@@ -17,7 +17,7 @@ Run the commands below from `Zomboid/mods/ZeD-UI`.
    Check the summary: about 3,000 files and 37.3 MB (0.2.0-t6: 2,998 files, Oct 26 2026; the fonts carry extended Latin, Greek and Cyrillic since Oct 20 2026), the version, the preview passing, and the Workshop item id once there is one.
    
    Never delete `Zomboid/Workshop/ZeD-UI/workshop.txt`. After the first upload it holds the item's id. Without it, the next Upload creates a second item.
-6. **The preview picture** is the ZNIX USER cover (Oct 21 2026), already in place as `ZeDUI/tools/release/preview.png`. To change it, edit and run `py -I ZeDUI/workshop/thumbnail/pixel_znix.py`, copy its `znix_256.png` over `ZeDUI/tools/release/preview.png`, then stage again. Don't run `make_preview.py`: it draws the old desk-crop picture and would overwrite the cover.
+6. **The preview picture** is the ZNIX USER cover (Oct 21 2026), in place as `ZeDUI/tools/release/preview.png`. For the test item it carries the red TEST BUILD band (Oct 28 2026: `pixel_znix.py --test` writes `znix_256_test.png`); the release item gets the plain cover (`pixel_znix.py` without the flag writes `znix_256.png`). To change it, edit and run `py -I ZeDUI/workshop/thumbnail/pixel_znix.py` (with `--test` for the test item), copy the result over `ZeDUI/tools/release/preview.png`, then stage again. Don't run `make_preview.py`: it draws the old desk-crop picture and would overwrite the cover.
 
 ## The upload
 
@@ -34,6 +34,16 @@ Run the commands below from `Zomboid/mods/ZeD-UI`.
 
 17. **Pin a discussion** on the item page called "Bug reports" (Discussions > Start a new discussion, then Pin), and link it at the top of the description.
 18. **Add the gallery images.** The game uploads only preview.png. On the item page in Steam (the browser or the Steam client), choose Add/edit images & videos and add the JPGs from ZeDUI/workshop/shots/out in their numbered order (each is under 1 MB). Do this once per build that changes the screenshots.
+
+## Opening the test item to the public for a window (director, Oct 28 2026)
+
+The test item keeps its id; the full release will be a separate item, so nothing rated or posted on the test item reaches the release. Before the visibility changes, on the item page (owner controls, right side):
+
+1. **The item says it is a test.** The title reads `ZeD-GUI [TEST BUILD]`, the first paragraph says it is the test build and not the release (the full release comes as a separate item once the tests confirm it works well and meets the project's goals and quality standards), and the cover carries the red TEST BUILD band (the upload's preview.png, `pixel_znix.py --test`). An upload puts the title and description back from `workshop.txt`, so check them after the upload, not before.
+2. **Untick Allow Comments.** Steam's own note: it hides existing comments and the option to leave new ones. Discussions are separate and stay open, so every report has to go to the pinned Bug reports thread. Leave Allow Comments off for the life of the test item.
+3. **Bug reports is pinned** at the top of Discussions; Compatibility and Add-on makers sit beside it.
+4. **Change Visibility** to Public. Note the time: the door is meant to stay open about a day. Anyone who subscribes keeps access after it closes (unlisted only hides the item from search), and the item shows in Steam's recent lists while it is public.
+5. **Close the door:** Change Visibility back to Unlisted. The title, the paragraph, the band and the comments setting stay as they are; they are true of the test item for good.
 
 ## What to send testers
 
