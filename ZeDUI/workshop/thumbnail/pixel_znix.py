@@ -187,6 +187,16 @@ for i in range(9):
     if gx + 3 >= wx1 or gy + 3 >= wy1: continue
     R(gx, gy, gx + 3, gy + 3, 'wht'); d.rectangle([gx, gy, gx + 3, gy + 3], outline=C['winD']); R(gx + 1, gy + 1, gx + 2, gy + 2, gc[i])
 
-im.resize((256, 256), Image.NEAREST).save(HERE + 'znix_256.png', optimize=True)
-im.resize((1024, 1024), Image.NEAREST).save(HERE + 'znix_1024.png')
+# --- the test build's band (run with --test): red across the foot, TEST BUILD in white -----------
+# (Oct 28 2026: the test item's cover while its door is open; the release item gets the plain cover)
+if '--test' in sys.argv:
+    by0, by1 = G - 14, G - 1
+    R(0, by0, G - 1, by1, 'red'); H(0, G - 1, by0, 'redL'); H(0, G - 1, by1, 'redD')
+    tb = 'TEST BUILD'
+    text(tb, (G - tw(tb, F57)) // 2, by0 + 4, 'wht', F57)
+    im.resize((256, 256), Image.NEAREST).save(HERE + 'znix_256_test.png', optimize=True)
+    im.resize((1024, 1024), Image.NEAREST).save(HERE + 'znix_1024_test.png')
+else:
+    im.resize((256, 256), Image.NEAREST).save(HERE + 'znix_256.png', optimize=True)
+    im.resize((1024, 1024), Image.NEAREST).save(HERE + 'znix_1024.png')
 print('mast', mb, 'band', by, 'zed bottom', zbottom, 'lines end', y, 'monitor', my0, my1, 'case', cy0)
