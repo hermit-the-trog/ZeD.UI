@@ -513,6 +513,8 @@ end
 function ZeD_MMOptions:onShow()
     self._cache = nil
     self._groupCache = nil
+    -- the additions' preset set to what the stored values make, before the controls take them (Settings.lua)
+    if ZeD.Settings and ZeD.Settings.reconcileAdditions then pcall(ZeD.Settings.reconcileAdditions) end
     local o = mo()
     if o then pcall(function() o:toUI() end) end
     self.confirm = false
@@ -775,6 +777,8 @@ end
 function ZeD_MMOptions:prerender()
     local T = ZeD.T
     self._specs, self._hits = {}, {}
+    -- the additions' preset shows the preset the live picks make, or Custom (Settings.lua; director, Oct 30 2026)
+    if ZeD.Settings and ZeD.Settings.syncAdditionsPreset then pcall(ZeD.Settings.syncAdditionsPreset) end
     local w, h = self:place()
     local pages = self:pages()
     if self.pageIdx > #pages then self.pageIdx = 1 end

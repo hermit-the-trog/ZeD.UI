@@ -57,6 +57,15 @@ L.ICON = { outfit = "hanger", loadout = "view_list" }
 -- bumped on every change: surfaces that keep something per frame check it
 L.gen = L.gen or 0
 
+-- The Loadouts and outfits switch (Settings.lua "loadouts"; director, Oct 30 2026: off for a new player).
+-- Every surface asks it as it draws: off, the fold, the to-do, the Journal page, the Lists mark, the
+-- right-click menu, the Loadouts ring and Restock are hidden and inert. The lists themselves are never
+-- touched: on again, they all come back.
+function L.on()
+    local S = ZeD.Settings
+    return S and S.loadoutsOn and S.loadoutsOn() or false
+end
+
 local function call(o, m, ...)
     if not o then return nil end
     local f = o[m]

@@ -150,6 +150,7 @@ end
 
 local function onFillInventory(pn, context, rawItems)
     if ZeD.Safe and ZeD.Safe.on() then return end
+    if not L.on() then return end   -- (Loadouts and outfits off: no Save to outfit / Save to loadout)
     local p = getSpecificPlayer(pn)
     if not (p and context and rawItems) then return end
     local ok, items = pcall(ISInventoryPane.getActualItems, rawItems)
@@ -199,7 +200,7 @@ end
 --- Open the pop-up under (ax, ay) (screen px) for the item.
 function LU.openPopup(pn, item, ax, ay)
     local p = getSpecificPlayer(pn or 0)
-    if not (p and item) then return nil end
+    if not (p and item) or not L.on() then return nil end
     if LU.popup and LU.popup._ctx and LU.popup._ctx.open then LU.popup:close() end
     local m = ZeD_ContextList:new(pn or 0, "cursor", ax, ay, { item }, LU.popupTree(p, item), nil)
     m.headText = ZeD.tr("UI_ZeD_Lists_ItemInLists", item:getDisplayName())

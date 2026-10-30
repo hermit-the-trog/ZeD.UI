@@ -165,16 +165,18 @@ G.ZED_GROUPS = {
     -- in use a checkbox under it; Controller highlight leads Controls as a pop-up menu with a live sample beside it; Hidden
     -- actions closes Windows as a pop-up menu. The windows' theme squares are gone with their setting.)
     { "UI_ZeD_Options_ZedLook", { { "baseTheme", "radio" }, { "accentColor", "swatch" }, { "textSize", "radio" }, { "seeThrough", "scale" }, { "solidInUse", "onoff" }, { "uiScale", "scale", short = { "UI_ZeD_Settings_Auto" } } } },
-    { "UI_ZeD_Options_ZedWindows", { { "inventoryView", "radio" }, { "equipView", "radio" }, { "restock", "radio" }, { "charAccent", "swatch" }, { "worldAccent", "swatch" }, { "readMarks", "onoff" }, { "readNext", "onoff" }, { "dimRead", "onoff" }, { "hiddenActions" } } },
-    { "UI_ZeD_Options_ZedHud", { { "moodlePlace", "radio", short = { "UI_ZeD_Options_MoodlesRight", "UI_ZeD_Options_MoodlesLeft", "UI_ZeD_Options_MoodlesBottom" } }, { "watchPlace", "radio" }, { "actionBar", "radio" }, { "moodleNotices", "onoff" }, { "ammoBox", "onoff" }, { "dashLamps", "onoff" } } },
+    -- (director, Oct 30 2026: every thing vanilla does not do in one group after the look, the preset first;
+    -- Settings.lua setUpAdditions. Put back, Messages and Sandbox in game had groups of their own until then,
+    -- Ammo on the belt, Moodle notices and Dashboard lamps were in HUD, Restock and the read marks in Windows.)
+    { "UI_ZeD_Options_ZedAdditions", { { "additionsPreset", "radio", short = { "UI_ZeD_Settings_PresetVanilla", "UI_ZeD_Options_PresetPlus", "UI_ZeD_Options_PresetAccessible", "Sandbox_Custom" } },
+        { "ammoBox", "onoff" }, { "readMarks", "onoff" }, { "readNext", "onoff" }, { "dimRead", "onoff" }, { "dashLamps", "onoff" },
+        { "moodleNotices", "onoff" }, { "messagesCatch", "onoff" }, { "messagesToast", "onoff" }, { "putBack", "onoff" },
+        { "sandboxInGame", "onoff", under = "UI_ZeD_Options_UnderSandboxIG" }, { "loadouts", "onoff" }, { "restock", "radio" } } },
+    { "UI_ZeD_Options_ZedWindows", { { "inventoryView", "radio" }, { "equipView", "radio" }, { "charAccent", "swatch" }, { "worldAccent", "swatch" }, { "hiddenActions" } } },
+    { "UI_ZeD_Options_ZedHud", { { "moodlePlace", "radio", short = { "UI_ZeD_Options_MoodlesRight", "UI_ZeD_Options_MoodlesLeft", "UI_ZeD_Options_MoodlesBottom" } }, { "watchPlace", "radio" }, { "actionBar", "radio" } } },
     { "UI_ZeD_Options_ZedControls", { { "focusStyle" }, { "contextStyle", "radio" }, { "glyphDisplay" }, { "inputModeLock" } } },
     -- (Oct 24 2026, mockup zed_quick_chords_v1: the twelve chords, ZeD_QuickChords; not ModOptions: rows of their own)
     { "UI_ZeD_Options_ZedChords", {}, chords = true },
-    { "UI_ZeD_Options_ZedPutBack", { { "putBack", "onoff" } } },
-    -- (Oct 24 2026, mockup zed_messages_v1: other mods' notes kept in Messages, ZeD_Messages)
-    { "UI_ZeD_Options_ZedMessages", { { "messagesCatch", "onoff" }, { "messagesToast", "onoff" } } },
-    -- (Oct 24 2026, mockup zed_sandbox_ingame_v1: this save's sandbox settings from the pause window, ZeD_SandboxInGame)
-    { "UI_ZeD_Options_ZedSandbox", { { "sandboxInGame", "onoff", under = "UI_ZeD_Options_UnderSandboxIG" } } },
     { "UI_ZeD_Options_ZedTrouble", { { "safeMode", "onoff", under = "UI_ZeD_Options_UnderSafeMode" },
                                      { "testLanguage", "onoff" } } },
 }

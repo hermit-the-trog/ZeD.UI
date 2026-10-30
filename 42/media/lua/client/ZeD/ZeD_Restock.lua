@@ -27,6 +27,9 @@
 --   * home (the building where you last restocked), what you left with, and
 --     Unpack: loot where its kind lives, leftovers packed, gear and outfit on you.
 -- Never moves a thing by itself: every take is vanilla's transfer action.
+-- Restock follows Loadouts (director, Oct 30 2026): with Loadouts and outfits
+-- off (Settings.lua, L.on()) nothing starts, a run going is stopped, and there
+-- are no scans and no trip kept on stepping out of home.
 -- ============================================================================
 
 require "TimedActions/ISTimedActionQueue"
@@ -256,6 +259,7 @@ end
 --           building, bkey, reachSig }
 local _scan = {}
 function R.scan(p, force)
+    if not L.on() then return { sources = {}, waters = {}, reachSig = "", ms = getTimestampMs(), here = "" } end   -- (no scan while off)
     local pn = p:getPlayerNum()
     local now = getTimestampMs()
     local c = _scan[pn]
@@ -890,7 +894,7 @@ end
 
 --- Start restocking (kind "restock") or unpacking ("unpack") the way the setting says.
 function R.start(p, kind)
-    if not p then return nil end
+    if not p or not L.on() then return nil end
     kind = kind or "restock"
     local pn = p:getPlayerNum()
     local old = R.runs[pn]
@@ -1191,6 +1195,14 @@ local _tick, _inHome = 0, {}
 local function onTick()
     _tick = _tick + 1
     if _tick % 10 ~= 0 then return end
+    -- Loadouts and outfits off: a run going stops (its queue cancelled), and nothing else is watched
+    if not L.on() then
+        for pn, run in pairs(R.runs) do
+            local p = getSpecificPlayer(pn)
+            if p and not run.done then pcall(R.stop, p, "user") end
+        end
+        return
+    end
     for pn, run in pairs(R.runs) do
         local p = getSpecificPlayer(pn)
         if p and not run.done then

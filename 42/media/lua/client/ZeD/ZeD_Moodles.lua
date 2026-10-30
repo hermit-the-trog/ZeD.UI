@@ -470,9 +470,9 @@ function ZeD_MoodleLayer:prerender()
     -- (a stand-in draws the row itself, at M.rect)
     if self._mode == "bottom" and not M.standIn(self.playerNum) then self:_drawRow() end
     local i = self:_hoverIndex()
-    -- (ZeD setup's "Moodle notices", on by default: off, a chip shows only under the pointer)
+    -- (ZeD setup's "Moodle notices", off for a new player since Oct 30 2026: off, a chip shows only under the pointer)
     local S = ZeD.Settings
-    local notices = not (S and S.moodleNoticesOn) or S.moodleNoticesOn()
+    local notices = S and S.moodleNoticesOn and S.moodleNoticesOn() or false
     if not i and notices and self._notices[1] then
         for k, m in ipairs(self._list or {}) do if m.key == self._notices[1] then i = k end end
     end

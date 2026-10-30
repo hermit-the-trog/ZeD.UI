@@ -277,7 +277,7 @@ function D.chargeTone(c)
 end
 function D.lampsOn()
     local S = ZeD.Settings
-    return not (S and S.dashLampsOn) or S.dashLampsOn()
+    return S and S.dashLampsOn and S.dashLampsOn() or false
 end
 function D.worse(a, b)
     if a == nil then return b end
@@ -327,7 +327,7 @@ function D.derive(st, mem, dtMs)
     st.battTone   = D.worse(D.tone(st.battCond and st.battCond / 100 or nil), D.chargeTone(st.power and batt or nil))
     st.engTone    = D.tone(st.engineCond and st.engineCond / 100 or nil)
     st.heaterTone = D.tone(st.heaterCond and st.heaterCond / 100 or nil)
-    -- (ZeD setup's "Dashboard warning lamps", on by default: off, the lamps as before: the battery under 20% charge,
+    -- (ZeD setup's "Dashboard warning lamps", off for a new player since Oct 30 2026: off, the lamps as before: the battery under 20% charge,
     -- the engine under 40%, the heater's light plain)
     local lampsOn = D.lampsOn()
     st.lampsOn    = lampsOn

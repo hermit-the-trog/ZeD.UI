@@ -1393,12 +1393,12 @@ function ZeD_BeltHUD:_ammoState(p)
     local now = getTimestampMs and getTimestampMs() or 0
     local c = self._ammo
     local S0 = ZeD.Settings
-    local on0 = not (S0 and S0.ammoBoxOn) or S0.ammoBoxOn()
+    local on0 = S0 and S0.ammoBoxOn and S0.ammoBoxOn() or false
     if c and c.gun == gun and c.p == p and c.on == on0 and now - c.t < AMMO_MS then return c.a end
     local a = nil
-    -- (ZeD setup's "Ammo on the belt", on by default: off, the belt is as it was)
+    -- (ZeD setup's "Ammo on the belt", off for a new player since Oct 30 2026: off, the belt is as it was)
     local S = ZeD.Settings
-    local on = not (S and S.ammoBoxOn) or S.ammoBoxOn()
+    local on = S and S.ammoBoxOn and S.ammoBoxOn() or false
     if on and gun and instanceof(gun, "HandWeapon") then a = B.ammo(p) end
     self._ammo = { gun = gun, p = p, t = now, a = a, on = on0 }
     return a

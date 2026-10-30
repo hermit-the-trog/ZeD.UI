@@ -157,6 +157,13 @@ function P.hide(pn)
 end
 
 function P.update()
+    -- Loadouts and outfits off (Settings.lua; director, Oct 30 2026): no pin drawn
+    if not (ZeD.Lists and ZeD.Lists.on()) then
+        local shown = {}
+        for pn in pairs(P.panels) do shown[#shown + 1] = pn end
+        for _, pn in ipairs(shown) do P.hide(pn) end
+        return
+    end
     for pn, run in pairs(R.runs) do
         local want = (run.mode == "casual" or run.mode == "accessible")
             and ((not run.done) or (getTimestampMs() - (run.doneMs or 0) < LINGER_MS))

@@ -182,10 +182,23 @@ function Reset-ZeDSettings([string]$RunMode, [string]$Keep) {
     if ($null -eq $t) { $t = "" }
     $script:ModOptionsSaved = $t
     Write-Text $Keep $t
-    # only the UI scale is set: 1.75x at 4K, ZeD's default (Auto) in the 1080p window; the rest stay the director's
-    $lines = @(($t -split "\r?\n") | Where-Object { $_ -ne "" -and $_ -notmatch '\|ZeD_UI\|uiScale\|' })
+    # the UI scale: 1.75x at 4K, ZeD's default (Auto) in the 1080p window; the look stays the director's
+    # The additions (ammo on the belt, read marks, loadouts, restock ...) start off for a new player since Oct 30 2026
+    # (the Vanilla preset), and the test scripts were written with them on: every run sets the Vanilla Plus preset and
+    # each addition's on value (restock 2: Casual), so the regression keeps its meaning. Ids as in Settings.lua.
+    $additions = @("ammoBox", "readMarks", "readNext", "dimRead", "dashLamps", "moodleNotices",
+                   "messagesCatch", "messagesToast", "putBack", "sandboxInGame", "loadouts")
+    $ids = @("uiScale", "additionsPreset", "restock") + $additions
+    $lines = @(($t -split "\r?\n") | Where-Object {
+        $line = $_
+        $line -ne "" -and -not ($ids | Where-Object { $line -match ('\|ZeD_UI\|' + $_ + '\|') })
+    })
     $set = "UI scale Auto (${Width}x${Height} window)"
     if ($RunMode -eq "fullscreen4k") { $lines += "combobox|ZeD_UI|uiScale|7"; $set = "UI scale 1.75x (4K)" }
+    $lines += "combobox|ZeD_UI|additionsPreset|2"
+    $lines += "combobox|ZeD_UI|restock|2"
+    foreach ($id in $additions) { $lines += "combobox|ZeD_UI|$id|2" }
+    $set += ", additions Vanilla Plus (all on, Restock Casual)"
     Write-Text $ModOptions (($lines -join "`r`n") + "`r`n")
     Add-Note "ZeD settings: $set (the director's ModOptions.ini kept aside)"
 }
