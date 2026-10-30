@@ -58,7 +58,7 @@ local HANDS_X  = { 5, 65 }    -- the main and off hand
 local LANES_L  = { 63, 70, 77, 84, 91 }
 local LANES_R  = { 258, 251, 244, 237 }
 local MIN_FIT  = 0.7
-local BANDS_FIT = 0.9         -- the bands show while the wide doll fits at this much of full size or more (small slots of 18 units)
+local BANDS_FIT = 0.9         -- the bands show while the wide doll fits this wide at this much of full size or more
 -- the small slots: 20 units, a step of 23, three columns a band; a group's name sits at its row's y, its
 -- slots 13 below (a row with no name continues the group above, its slots at the y given)
 local SM_SIZE, SM_STEP, SM_NAME_DY = 20, 23, 13
@@ -308,14 +308,15 @@ end
 
 -- The doll's scale for a drawer w wide with viewH to show it in (never wider than it, at least
 -- MIN_FIT of full size tall, then the tab scrolls), and whether the bands show: they do while the
--- 466-unit doll fits at BANDS_FIT or more (the full card does; the half card and narrower don't),
--- and then the doll is no smaller than that either, so a small slot stays 18 units or more.
+-- 466-unit doll fits across at BANDS_FIT or more (the full card does; the half card and narrower don't).
+-- On a short screen the doll shrinks to the height, bands or not, down to MIN_FIT (a small slot of 14
+-- units) before the tab scrolls (director, Oct 30 2026: shrink the slots rather than scroll).
 local function fit(w, viewH, nBelt)
     local U = ZeD.T.px(1000) / 1000
     local bands = w >= WIDE_W * BANDS_FIT * U
     local byW = w / ((bands and WIDE_W or BASE_W) * U)
     local byH = viewH / (baseH(nBelt) * U)
-    return math.min(1, byW, math.max(bands and BANDS_FIT or MIN_FIT, byH)), bands
+    return math.min(1, byW, math.max(MIN_FIT, byH)), bands
 end
 
 function D.measure(win, w, viewH)
@@ -610,8 +611,11 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
         local ss = P(SM_SIZE)
         local f5 = T.fontF5
         local dc = T.textDim
+        local f5h = T.fontF5H or getTextManager():getFontHeight(f5)
         for _, g in ipairs(D.GROUPS) do
-            panel:drawText(ZeD.Atoms.truncateText(groupName(g), f5, P(BAND_W - 4)), ox + P(g.x), y + P(g.y), dc.r, dc.g, dc.b, dc.a or 1, f5)
+            -- the name sits on its row's y; on a shrunk doll it rises just enough to clear its slots
+            local ny = math.min(y + P(g.y), y + P(g.y + SM_NAME_DY) - f5h - 1)
+            panel:drawText(ZeD.Atoms.truncateText(groupName(g), f5, P(BAND_W - 4)), ox + P(g.x), ny, dc.r, dc.g, dc.b, dc.a or 1, f5)
         end
         for _, sm in ipairs(D.SMALL) do
             local items = data.small[sm.id].items
