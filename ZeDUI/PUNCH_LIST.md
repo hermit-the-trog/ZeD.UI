@@ -61,7 +61,7 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     see-through, hidden actions):
     - **Vanilla** (a new player's start): every addition off.
     - **Vanilla Plus:** every addition on, Restock Casual, faces.
-    - **Vanilla Accessible:** every addition on, Restock Accessible, simple cards (item 17, when built).
+    - **Vanilla Access** (was Accessible; director, Oct 30: "everyone needs access controls"): every addition on, Restock Access, simple cards (item 17, when built).
     - The additions: ammo on the belt, read marks, next level on skill books, dim read items,
       dashboard lamps, moodle notices, Messages (keep notes, toast), put things back, sandbox options
       in game, Loadouts and outfits with Journal lists (new switch). Restock follows Loadouts.
