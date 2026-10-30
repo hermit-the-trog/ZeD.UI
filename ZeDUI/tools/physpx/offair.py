@@ -346,16 +346,28 @@ def signoff(cid, w, h):
         text(a, "SPORTS AROUND THE CLOCK", cx, y0 + wide.shape[0] + 4 * s + 10, 1, (200, 60, 60), font="35" if w < 330 else "57")
     elif cid == "bmc":
         a = card_frame(w, h, (30, 20, 10), (0, 0, 0))
-        for side in (-1, 1):                                                                # two searchlights crossing
-            bx0 = cx - side * int(w * 0.42); by0 = h
-            for t in np.linspace(0, 1, 400):
-                x = bx0 + (cx + side * 18 * s - bx0) * t * 1.3; y = by0 + (-by0 * 0.95) * t
-                half = 1 + int(t * 6 * s)
-                for dx in range(-half, half + 1):
-                    xi, yi = int(x + dx), int(y)
-                    if 0 <= xi < w and 0 <= yi < h:
-                        k = (1 - abs(dx) / (half + 1)) * 0.35
-                        a[yi, xi] = np.maximum(a[yi, xi], np.array((255, 230, 170), np.float32) / 255 * k)
+        # an old film camera behind the name (director, Oct 30 2026: "an old film camera not an X"): two reels on top,
+        # the box, the lens to the right, the tripod's head and legs, in a dim gold silhouette
+        cam = Image.new("L", (w, h), 0); dc = ImageDraw.Draw(cam)
+        u = h / 100.0
+        bx0, by0, bx1, by1 = cx - 22 * u, 34 * u, cx + 14 * u, 62 * u                      # the box
+        dc.rounded_rectangle([bx0, by0, bx1, by1], radius=2 * u, fill=255)
+        for (rx, rr) in ((cx - 14 * u, 11 * u), (cx + 6 * u, 11 * u)):                        # the two reels
+            dc.ellipse([rx - rr, by0 - 2 * rr + 2 * u, rx + rr, by0 + 2 * u], fill=255)
+        dc.polygon([(bx1, by0 + 7 * u), (bx1 + 10 * u, by0 + 3 * u), (bx1 + 10 * u, by1 - 3 * u), (bx1, by1 - 7 * u)], fill=255)   # the lens hood
+        dc.rectangle([cx - 6 * u, by1, cx + 2 * u, by1 + 6 * u], fill=255)                     # the tripod head
+        for dxl in (-16, -2, 12):                                                              # the legs
+            dc.line([(cx - 2 * u, by1 + 6 * u), (cx + dxl * u, 100 * u)], fill=255, width=max(2, int(2.2 * u)))
+        holes = Image.new("L", (w, h), 0); dh_ = ImageDraw.Draw(holes)
+        for (rx, rr) in ((cx - 14 * u, 11 * u), (cx + 6 * u, 11 * u)):                        # the reels' spokes, cut out
+            for k in range(3):
+                ang = math.radians(90 + k * 120)
+                hx_, hy_ = rx + math.cos(ang) * rr * 0.5, by0 - rr + 2 * u + math.sin(ang) * rr * 0.5
+                dh_.ellipse([hx_ - rr * 0.28, hy_ - rr * 0.28, hx_ + rr * 0.28, hy_ + rr * 0.28], fill=255)
+        cm = (np.asarray(cam) > 127) & ~(np.asarray(holes) > 127)
+        a[cm] = np.array((62, 46, 20), np.float32) / 255
+        edge = grow(cm, 1) & ~cm
+        a[edge] = np.array((110, 84, 36), np.float32) / 255
         rect(a, cx - 20 * s, cy - 2 * s, 40 * s, 12 * s, (20, 20, 20))                      # a film strip under the name
         for k in range(-9, 10):
             rect(a, cx + k * 2 * s, cy - s, s, s, (200, 190, 160)); rect(a, cx + k * 2 * s, cy + 8 * s, s, s, (200, 190, 160))
