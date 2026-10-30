@@ -1,0 +1,3 @@
+zedqa_prelude.lua | pre                          # opens both windows, unpauses, god mode, ~60 ticks
+zedqa_dash_keys_edge.lua | dke | timeout=1500 | expect=FBORenderCell   # 19 designs: the key at OFF, START, ON, the fob whole, the dash flush on the screen's edge (dash_keys_edge.txt)
+zedqa_dash_brands.lua | dbr | timeout=900 | expect=FBORenderCell   # the makers' marks: 13 civilian cars, the Step Van on the Valuline's dash, a modded name's plaque, two at night (dash_brands.txt)
