@@ -29,6 +29,11 @@ CHANNELS = [("triple_n", "Triple-N", 2), ("wbln", "WBLN News", 3), ("life", "Lif
             ("paws", "PawsTV", 6), ("kpa", "KPATV", 7), ("mvc", "Music Video Channel", 8), ("nst", "National Sports TV", 9),
             ("bmc", "Brennan Movie Channel", 10), ("gbc", "GBC", 11)]
 COUNTY = "KNOX COUNTRY, KENTUCKY"
+# who each channel reaches (director, Oct 30 2026: "not all are knox county. some would be kentucky wide"): the
+# county's own stations, the statewide public network, the national networks and cable channels. The card's last line.
+REACH = {"local": "KNOX COUNTRY  KENTUCKY", "state": "SERVING ALL OF KENTUCKY", "national": "COAST TO COAST"}
+SCOPE = {"wbln": "local", "kpa": "local", "gbc": "state", "triple_n": "national", "life": "national",
+         "turbo": "national", "paws": "national", "mvc": "national", "nst": "national", "bmc": "national"}
 
 # the channels the game already has a logo for (director, Oct 30 2026: "There should be real logos for some of tv and
 # radio in the game art"): the card draws the game's own picture, at runtime, from the game's files (nothing copied
@@ -232,10 +237,10 @@ def card_frame(w, h, top, bottom):
     return a
 
 
-def footer(a, w, h, ch, s, col=(240, 240, 230)):
+def footer(a, w, h, ch, s, col=(240, 240, 230), line=None):
     ss = max(1, s // 2)
     text(a, f"CHANNEL {ch}", w // 2, int(h * 0.78), ss, col, outline=(0, 0, 0))
-    text(a, COUNTY, w // 2, int(h * 0.78) + 8 * ss + 3, 1, col, font="57", outline=(0, 0, 0))
+    text(a, line or COUNTY, w // 2, int(h * 0.78) + 8 * ss + 3, 1, col, font="57", outline=(0, 0, 0))
 
 
 def chopper(a, hx0, hy0, L, s, stripe=(200, 30, 36), body=(225, 230, 240, 255)):
@@ -662,7 +667,7 @@ def signoff(cid, w, h):
         text(a, "GBC", gx, cy - 7 * s // 2 - 2 * s, s + 1, (255, 255, 255), align="l", shadow=(6, 16, 50))
         text(a, "PUBLIC", gx + s, cy + 5 * s, max(1, s // 2), (200, 220, 255), align="l")
         text(a, "TELEVISION", gx + s, cy + 5 * s + 9 * max(1, s // 2), max(1, s // 2), (200, 220, 255), align="l")
-    footer(a, w, h, ch, s)
+    footer(a, w, h, ch, s, line=REACH[SCOPE[cid]])
     return a
 
 
