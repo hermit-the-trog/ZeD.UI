@@ -114,8 +114,9 @@ local function spriteName(obj)
     local spr = call(obj, "getSprite")
     return spr and call(spr, "getName") or nil
 end
--- a narrow face ("oven_grey_n") is its main plate's: it routes and counts as the main plate does
-local function baseOf(pid) return (pid:gsub("_n$", "")) end
+-- a narrow face ("oven_grey_n") or a width ("oven_grey@392", Oct 30 2026) is its main plate's: it routes and
+-- counts as the main plate does
+local function baseOf(pid) return P.baseId(pid) end
 local function isMwPlate(id) return id:sub(1, 3) == "mw_" end
 local function isOvenPlate(id) return id:sub(1, 5) == "oven_" or baseOf(id) == "fryer" end
 function SA.plateFor(st)
@@ -525,7 +526,8 @@ function SA.render(panel, win, x, y, w, h, state, st, opts)
     local des, pid = SA.plateFor(st)
     local Sc = ZeD.Scale
     -- whole zoom, inside the column even with the scrollbar showing (so k never flips with the scrollbar)
-    -- the narrow face where the main face at the whole zoom does not fit the column (not in its own window: opts.k)
+    -- the width that fills the column, else the narrow face where the main face at the whole zoom does not fit
+    -- it (not in its own window: opts.k)
     if des and not (opts and opts.k) then des, pid = P.pick(pid, w - T.sp.scrollbarW) end
     local k = (opts and opts.k) or (des and P.kFit((Sc and Sc.root and Sc.root()) or 1, des.w, w - T.sp.scrollbarW)) or 1
     local plH = des and des.h * k or 0

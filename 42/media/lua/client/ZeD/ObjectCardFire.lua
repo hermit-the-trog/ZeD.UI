@@ -428,10 +428,13 @@ local function propaneBody(card, x, y, w, t, player)
     local y0 = y
     local gap = T.px(8)
     local X = ZeD.PhysPx
-    local des = X and P.pick(X.fallback.propane, w)   -- the narrow face where the main face at the whole zoom does not fit the card
+    -- the width that fills the card, else the narrow face where the main face at the whole zoom does not fit it
+    -- (the card's plate room, the same with or without its scrollbar)
+    local room = card._plateRoom or w
+    local des = X and P.pick(X.fallback.propane, room)
     if des then
         local Sc = ZeD.Scale
-        local k = P.kFit((Sc and Sc.root and Sc.root()) or 1, des.w, w)   -- whole zoom, inside the card
+        local k = P.kFit((Sc and Sc.root and Sc.root()) or 1, des.w, room)   -- whole zoom, inside the card
         local px0 = x + PL.centre(w, des.w, k)
         local cv = P.canvas(card, px0, y, k)
         local st = grillState(t, d)

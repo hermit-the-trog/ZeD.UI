@@ -40,6 +40,7 @@ local P = ZeD.Px
 local PL = ZeD.Plate
 
 TW.PANEL_W = 220          -- a walkie's panel: the item card's compact width (plate px); the face sits in it, 10 either side
+TW.HALF_W = 220           -- the half card (units): a walkie's tab (director, Oct 25 2026; two card widths, Oct 29)
 TW.PAD = 10               -- the space round a face (plate px)
 TW.PRESS_SHADE = 0.35     -- a held key's shade
 
@@ -141,17 +142,32 @@ function TW.narrowOf(pid)
     if id and X.plates[id] then return id, X.plates[id] end
     return nil, nil
 end
--- the wide set a face belongs to (a narrow face's own set; any other face is its own)
+-- the wide set a face belongs to (a narrow face's own set, a width's own face; any other face is its own)
 function TW.basePid(pid)
     local X = ZeD.PhysPx
+    if type(pid) == "string" then pid = pid:gsub("@%d+$", "") end   -- "walkie_toy@180" (Oct 30 2026)
     for wide, narrow in pairs((X and X.twoway and X.twoway.narrow) or {}) do if narrow == pid then return wide end end
     return pid
 end
 function TW.info(pid) return TW.INFO[TW.basePid(pid)] end
 
 function TW.isBase(pid) local i = TW.info(pid); return i and i.base == true end
--- the space a face takes in the tab (plate px): a walkie's 220 panel, a ham set's own width
-function TW.slotW(des) return math.max(des.w, TW.PANEL_W) end
+-- the space a face takes in the tab (plate px): a walkie's panel (a width's own, `fill`; else the 220 one), a
+-- ham set's own width
+function TW.slotW(des)
+    if des.fill and des.fill >= des.w then return des.fill end
+    return math.max(des.w, TW.PANEL_W)
+end
+-- a walkie's face for the half card (Oct 30 2026, HANDOFF_plates_fill_20261030.md; punch list item 2: the tab was
+-- designed half width): the widest of its widths whose PANEL at zoom k fits the half card's room (220 units less
+-- the scrollbar). Returns its id, its plate and the panel's width (plate px); nil when none fits (the tab is then
+-- the full card with today's face).
+function TW.halfFace(pid, k)
+    local T = ZeD.T
+    local id, pw = P.pickWidth(pid, T.px(TW.HALF_W) - T.sp.scrollbarW, k)
+    if not pw then return nil, nil, nil end
+    return id, ZeD.PhysPx.plates[id], pw
+end
 
 -- ---------------------------------------------------------------------------
 -- READ: what the face shows (nil when the radio has no device data)

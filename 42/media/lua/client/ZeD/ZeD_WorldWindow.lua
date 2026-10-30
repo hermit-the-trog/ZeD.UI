@@ -1835,8 +1835,9 @@ local function getWorldTargetDrawerW(win)
                 local maxW = win._maxWinW or math.floor(getCore():getScreenWidth() * 0.5)
                 heldIn = maxW - T.px(CONTAINER_STRIP_W) - T.px(ACTION_TAB_STRIP_W) - T.px(200) < full
             end
-            -- a two-way radio: a walkie's tab is the card its face's panel fits; a ham set's is the full card,
-            -- or the card a walkie's width fits with the set's narrow face where the drawer is held in
+            -- a two-way radio: a walkie's tab is the half card wherever one of its widths fits it (Oct 30 2026,
+            -- punch list item 2), else the full card; a ham set's is the full card, or the card a walkie's width
+            -- fits with the set's narrow face where the drawer is held in. Never a width between the two.
             if win._activeTab == "radio" and ZeD.RadioTab and ZeD.RadioTab.wantW then
                 local want = ZeD.RadioTab.wantW(win, base, heldIn and half or full)
                 if want then base = want end

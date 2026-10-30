@@ -134,18 +134,21 @@ end
 -- the checks on a face in the tab
 local function faceChecks(w, pid, tag)
     local t = tw(w)
-    check(t ~= nil and t.pid == pid, tag .. ": its own face, " .. pid .. " (got " .. tostring(t and t.pid) .. ")")
+    -- (Oct 30 2026) the face is one of the set's widths ("walkie_valutech@180"): the set's own all the same
+    check(t ~= nil and TW.basePid(t.pid) == pid, tag .. ": its own face, " .. pid .. " (got " .. tostring(t and t.pid) .. ")")
     if not t then return end
     local des = t.des
     check(t.k == K, tag .. ": drawn at the plates' whole zoom " .. K .. " (got " .. tostring(t.k) .. ")")
-    if des.w < 220 then
+    if not TW.isBase(pid) then
         local x0 = math.floor((t.view.w - des.w * t.k) / 2)
         check(math.abs(t.face.x - x0) <= 1, tag .. ": centred in its panel (x " .. t.face.x .. ", want " .. x0 .. ")")
         local dw = math.floor(w._drawerEffW or 0)
-        local pw = 220 * t.k + ZeD.T.sp.scrollbarW
-        -- (Oct 29 2026) a card is the half card or the full card: the smaller one that holds the panel at its zoom
-        local want = (pw <= ZeD.T.px(220)) and ZeD.T.px(220) or ZeD.T.px(480)
-        check(math.abs(dw - want) <= 1, tag .. ": the tab is the card the face's 220 panel fits (" .. dw .. " px; panel and scrollbar " .. pw .. ", card " .. want .. ")")
+        -- (Oct 30 2026, HANDOFF_plates_fill_20261030.md; punch list item 2) the half card wherever one of the set's
+        -- widths fits it, drawn at that width; the full card with today's face only where none does
+        local hid, _, hpw = TW.halfFace(pid, t.k)
+        local want = hid and ZeD.T.px(220) or ZeD.T.px(480)
+        check(t.pid == (hid or pid), tag .. ": the width that fills the half card (want " .. tostring(hid or pid) .. ", got " .. tostring(t.pid) .. ")")
+        check(math.abs(dw - want) <= 1, tag .. ": the tab is the half card where a width fits (" .. dw .. " px; panel " .. tostring(hpw) .. ", card " .. want .. ")")
     else
         local x0 = math.floor((t.view.w - des.w * t.k) / 2)
         check(math.abs(t.face.x - x0) <= 1, tag .. ": centred across the drawer (x " .. t.face.x .. ", want " .. x0 .. ")")
@@ -674,8 +677,8 @@ step(5, function()
     WW()._maxWinW, maxSet = maxWas, false
     for i, r in ipairs(WW()._radios or {}) do if r.radioInstance == hams.ham_civilian then WW()._radioIdx = i end end
 end)
-waitFor(5, 150, function() local t = tw(WW()); return t ~= nil and t.pid == "ham_civilian" and settled(WW()) end, function()
-    check(tw(WW()).pid == "ham_civilian", "with room again the wide set is back")
+waitFor(5, 150, function() local t = tw(WW()); return t ~= nil and TW.basePid(t.pid) == "ham_civilian" and settled(WW()) end, function()
+    check(TW.basePid(tw(WW()).pid) == "ham_civilian" and tw(WW()).pid:sub(-2) ~= "_n", "with room again the wide set is back")
 end)
 showHam("ham_army")
 local fa
