@@ -1800,6 +1800,7 @@
     "UI_ZeD_Options_MootCraftingXP": "ZeD's Craft tab replaces the game's crafting window.",
     "UI_ZeD_Options_MootCycleContainer": "ZeD's container column doesn't cycle containers by key and wheel.",
     "UI_ZeD_Options_MootHelp": "Does nothing with ZeD active. %1",
+    "UI_ZeD_Options_NeedsLoadouts": "Turn on Loadouts and outfits to use Restock.",
     "UI_ZeD_Options_MootInventoryFont": "ZeD's lists draw in ZeD's text: use Text size in ZeD setup.",
     "UI_ZeD_Options_MootShoulderButtons": "LB and RB open ZeD's Character and World windows.",
     "UI_ZeD_Options_MootUnder": "Does nothing with ZeD active",
