@@ -176,6 +176,22 @@ PhysPx.lua|Yellow contractor's generator (Premium Technologies) (narrow)
 PhysPx.lua|Blue compact generator (ValuTech), 1991 (narrow)
 PhysPx.lua|Old military generator, 1960s (narrow)
 PhysPx.lua|Propane grill (Hector Lopez), 1993 (narrow)
+PhysPx.lua|Antique Television
+PhysPx.lua|Antique Television (narrow)
+PhysPx.lua|CD Player
+PhysPx.lua|Makeshift Radio (hand-wired)
+PhysPx.lua|Premium Technologies Radio
+PhysPx.lua|Premium Technologies Television
+PhysPx.lua|Premium Technologies Television (narrow)
+PhysPx.lua|Premium Technologies dryer
+PhysPx.lua|Premium Technologies dryer (narrow)
+PhysPx.lua|Premium Technologies washer
+PhysPx.lua|Premium Technologies washer (narrow)
+PhysPx.lua|ValuTech Radio
+PhysPx.lua|ValuTech Television
+PhysPx.lua|ValuTech Television (narrow)
+PhysPx.lua|ValuTech washer-dryer
+PhysPx.lua|ValuTech washer-dryer (narrow)
 
 # Debug menu, only when getDebug() is on.
 ZeD_MainMenu.lua|Debug

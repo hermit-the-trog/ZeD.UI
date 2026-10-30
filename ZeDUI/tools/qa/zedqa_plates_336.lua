@@ -189,11 +189,21 @@ local function faceChecks(tag, obj)
         tostring(drawn), eff, half, full, table.concat(ids, " ")))
     check(math.abs(eff - half) <= 1 or math.abs(eff - full) <= 1, tag .. ": the tab is the half card or the full card")
     check(#ids > 0, tag .. ": the face has its controls (" .. #ids .. ")")
-    -- the face must sit inside the card: the main face at its zoom, or the narrow face when that does not fit
-    local mainDes = ZeD.PhysPx.plates[pid]
-    local fits = mainDes and (mainDes.w * k0 <= eff - T.sp.scrollbarW)
-    check(drawn ~= nil and ((drawn == pid) == (fits and true or false)), tag .. ": " .. (fits and "the main face fits at the whole zoom, and is drawn" or "the main face does not fit, the narrow face is drawn") .. " (" .. tostring(drawn) .. ")")
-    check(FORCED or (not narrowWant), tag .. ": at the run's own scale the main face is drawn")
+    -- the face must fill the card (Oct 30 2026, HANDOFF_plates_fill_20261030.md): the widest of the plate's widths
+    -- that fits at the whole zoom, or the narrow face when even the 336 one does not fit
+    local room = eff - T.sp.scrollbarW
+    local wantId, wantW = ZeD.Px.pickWidth(pid, room, k0)
+    local wantDes = ZeD.PhysPx.plates[wantId]
+    if not wantW then
+        local mainDes = ZeD.PhysPx.plates[pid]
+        if mainDes and mainDes.w * k0 > room and ZeD.PhysPx.narrow[pid] then wantId = ZeD.PhysPx.narrow[pid] end
+        wantDes = ZeD.PhysPx.plates[wantId]
+    end
+    check(drawn ~= nil and drawn == wantId, tag .. ": the face that fills the card is drawn (want " .. tostring(wantId)
+        .. ", drawn " .. tostring(drawn) .. ")")
+    check(wantDes and wantDes.w * k0 <= room, tag .. ": it sits inside the card at the whole zoom ("
+        .. tostring(wantDes and wantDes.w * k0) .. " of " .. room .. " px)")
+    check(FORCED or (not narrowWant), tag .. ": at the run's own scale a full face is drawn, not the narrow one")
     return des
 end
 
@@ -308,6 +318,10 @@ local function cardFace(tag)
     for _, z in ipairs(zs) do if z.fid and (z.fid:sub(1, 4) == "gen:" or z.fid:sub(1, 4) == "bbq:") then fids[#fids + 1] = z.fid end end
     say(string.format("%s [%s, root %.2f]: card %d px wide; controls %s", tag, PH, root(), c and c:getWidth() or -1, table.concat(fids, " ")))
     check(c and math.abs(c:getWidth() - T.px(480)) <= 1, tag .. ": the card is the full card")
+    -- the face that fills it (Oct 30 2026): the widest width that fits the card's plate room at the whole zoom
+    local pid = (tag == "generator") and "gen_red" or "grill_propane"
+    local _, wantId = ZeD.Px.pick(pid, c and c._plateRoom or 0)
+    say(string.format("%s: plate room %d px, the face for it %s", tag, c and c._plateRoom or -1, tostring(wantId)))
     check(#fids > 0, tag .. ": the face has its controls")
 end
 

@@ -1143,6 +1143,10 @@ function ZeD_ObjectCard:prerender()
     end
     self:setStencilRect(0, viewY, bw, viewH)
     local pad = T.px(10)
+    -- a machine plate's room: the body's width without the scrollbar, so the face picked and its zoom never flip
+    -- with it (Oct 30 2026: the plates that fill the card; a face up to it overhangs the body by at most half the
+    -- scrollbar's width each side, inside the margins)
+    self._plateRoom = w - pad * 2
     local ok, bodyH = pcall(def.body, self, pad, viewY + T.px(8) - off, bw - pad * 2, t, player)
     if not ok then
         ZeD.logOnce("ObjectCards body " .. tostring(def.id), bodyH)

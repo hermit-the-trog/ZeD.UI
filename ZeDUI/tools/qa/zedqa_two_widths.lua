@@ -366,7 +366,11 @@ step(5, function()
         walkie = it
     end
 end)
-extra[#extra + 1] = { name = "Character Radio (a walkie)", acted = "c", shot = "walkie",
+-- a walkie's tab is the half card wherever one of its widths fits it (Oct 30 2026, HANDOFF_plates_fill_20261030.md;
+-- punch list item 2), the full card only where none does (Auto on a 720 or 800 screen with the 16 px font)
+local walkieWant = ZeD.TwoWay and ZeD.TwoWay.halfFace
+    and (ZeD.TwoWay.halfFace("walkie_valutech", ZeD.Px.k(ZeD.Scale.root())) and "half" or "full") or nil
+extra[#extra + 1] = { name = "Character Radio (a walkie)", acted = "c", want = walkieWant, shot = "walkie",
     open = function() return charTab("radio") end, close = function() charTab("loot") end }
 
 local ham

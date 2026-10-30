@@ -87,9 +87,12 @@ local function tabChecks(tag, obj)
     local st = ST.current(p)
     check(st and st.obj == obj, tag .. ": the station is the one opened")
     check(w and w._activeTab == "craft", tag .. ": the World window is on its Craft tab")
-    local des = st and SA.plateFor(st)
+    local des, pid = nil, nil
+    if st then des, pid = SA.plateFor(st) end
     local k0 = ZeD.Px.k(root())
     local effW = w and math.floor(w._drawerEffW or 0) or 0
+    -- (Oct 30 2026) the face drawn is the width that fills the card (HANDOFF_plates_fill_20261030.md)
+    if des then des = ZeD.Px.pick(pid, effW - ZeD.T.sp.scrollbarW) or des end
     local kTab = des and ZeD.Px.kFit(root(), des.w, effW - ZeD.T.sp.scrollbarW) or 0
     say(string.format("%s: plate %s %dx%d, tab %d px, zoom in the tab %d (the screen's %d)", tag, tostring(des and des.plate),
         des and des.w or 0, des and des.h or 0, effW, kTab, k0))

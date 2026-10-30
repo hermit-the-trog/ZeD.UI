@@ -70,15 +70,41 @@ function P.k(scale)
     if Sc and Sc.artZoom then return Sc.artZoom(scale or 1) end
     return math.max(1, math.floor((scale or 1) + 0.5 + 1e-6))
 end
--- the face to draw for a machine plate in `availW` screen px: its narrow face (PhysPx.narrow) when the main
--- face at the plates' whole zoom is wider than the room, else the main face (the rule the radio tab uses for
--- a ham set). Returns the plate and its id; (nil, pid) when there is no such plate.
+-- the face that fills the card (Oct 30 2026, HANDOFF_plates_fill_20261030.md): a plate is laid out at a few
+-- widths (PhysPx.widths[pid], keyed by the plate's own width, or by the half card's panel width for a walkie,
+-- whose face is 20 px narrower) and the widest whose key at `zoom` fits `roomPx` is drawn. Returns its id and
+-- the key; (pid, nil) when the plate has no widths or none fits (the narrow rule then takes it from there).
+-- Ids are "<pid>@<W>" (the entry's `base` names its plate): anything matching ids strips the suffix.
+function P.pickWidth(pid, roomPx, zoom)
+    local X = ZeD.PhysPx
+    local t = X and X.widths and X.widths[pid]
+    if not t then return pid, nil end
+    local best, bestW = nil, -1
+    for w, key in pairs(t) do
+        if w * zoom <= roomPx and w > bestW and X.plates[key] then best, bestW = key, w end
+    end
+    if not best then return pid, nil end
+    return best, bestW
+end
+-- a plate id without its width or narrow suffix ("oven_grey@392", "oven_grey_n" -> "oven_grey")
+function P.baseId(pid)
+    if type(pid) ~= "string" then return pid end
+    local b = pid:gsub("@%d+$", "")
+    return (b:gsub("_n$", ""))
+end
+-- the face to draw for a machine plate in `availW` screen px (the card's plate room, the same with or without
+-- its scrollbar): the widest of its widths that fits at the plates' whole zoom; where none does, its narrow
+-- face (PhysPx.narrow) when the main face is wider than the room (the rule the radio tab uses for a ham set),
+-- else the main face. Returns the plate and its id; (nil, pid) when there is no such plate.
 function P.pick(pid, availW)
     local X = ZeD.PhysPx
     local des = X and X.plates[pid]
     if not des then return nil, pid end
+    local k0 = P.k((ZeD.Scale and ZeD.Scale.root and ZeD.Scale.root()) or 1)
+    local wid, ww = P.pickWidth(pid, availW, k0)
+    if ww then return X.plates[wid], wid end
     local nid = X.narrow and X.narrow[pid]
-    if nid and X.plates[nid] and des.w * P.k((ZeD.Scale and ZeD.Scale.root and ZeD.Scale.root()) or 1) > availW then
+    if nid and X.plates[nid] and des.w * k0 > availW then
         return X.plates[nid], nid
     end
     return des, pid
