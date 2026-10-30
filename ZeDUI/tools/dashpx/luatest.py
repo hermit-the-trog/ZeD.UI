@@ -1,7 +1,10 @@
 """Runs the real Lua (PixelFonts, ZeD_PixelParts, DashPx, ZeD_RadioOps, ZeD_Plate, ZeD_Dashboard) under LuaJIT with the game's API
 mocked, records every drawRect / drawTextureScaled, and paints them into an image: what the game would draw, frame for
 frame, for each design in a given state. Also checks the hit areas against the parts.
-usage: python luatest.py [k] [state]"""
+usage: python luatest.py [k] [state]
+       python luatest.py night [k] [design ...] [--needles own|lit]   the dash at night, lights on and off
+                                (out/luatest/<design>_night_on_<k>x.png, _night_off_): the game's night light
+                                (ZeD_Plate.lua), with the tinted textures drawn in their tint"""
 import os
 import sys
 import numpy as np
@@ -94,6 +97,10 @@ ISVehiclePartMenu = setmetatable({}, { __index = function(t, k) return function(
 require = function() end
 ZeD = { Scale = { root = function() return py_scale() end }, T = { accent = { r = 0.95, g = 0.62, b = 0.2 }, sp = { scrollbarW = 8 }, px = function(v) return v end } }
 ZeD.Safe = { register = function() end, on = function() return false end }
+-- the library pieces the dash calls on focus and hover (ZeD_Focus, ZeD_Atoms, the theme's hover wash)
+ZeD.Focus = { mark = function() end, drawOverlay = function() end }
+ZeD.Atoms = { mouseIn = function() return false end, requestDetailCard = function() end }
+ZeD.T.hover = { r = 1, g = 1, b = 1, a = 0.12 }
 ZeD.logOnce = function(what, err) print("logOnce", what, err) end
 ZeD_Panel = {}
 ZeD_Panel.__index = ZeD_Panel
@@ -113,9 +120,10 @@ function ZeD_Panel:initialise() end
 function ZeD_Panel:addToUIManager() end
 function ZeD_Panel:getMouseX() return 0 end
 function ZeD_Panel:getMouseY() return 0 end
+function ZeD_Panel:isMouseOver() return false end
 function ZeD_Panel:drawRect(x, y, w, h, a, r, g, b) py_rect(x, y, w, h, a, r, g, b) end
-function ZeD_Panel:drawTextureScaled(t, x, y, w, h, a, r, g, b) py_tex(t.path, x, y, w, h, a) end
-function ZeD_Panel:drawTextureScaledAspect(t, x, y, w, h, a, r, g, b) py_tex(t.path, x, y, w, h, a) end
+function ZeD_Panel:drawTextureScaled(t, x, y, w, h, a, r, g, b) py_tex(t.path, x, y, w, h, a, r or 1, g or 1, b or 1) end
+function ZeD_Panel:drawTextureScaledAspect(t, x, y, w, h, a, r, g, b) py_tex(t.path, x, y, w, h, a, r or 1, g or 1, b or 1) end
 '''
 
 VEHICLE = r'''
@@ -185,7 +193,7 @@ class Recorder:
         reg[..., :3] = reg[..., :3] * (1 - a) + col * a
         reg[..., 3] = np.maximum(reg[..., 3], 255 * a + reg[..., 3] * (1 - a))
 
-    def tex(s, path, x, y, w, h, a):
+    def tex(s, path, x, y, w, h, a, r=1.0, g=1.0, b=1.0):
         s.calls += 1
         if path not in s.cache:
             fp = os.path.join(MOD, path) if not path.startswith("media/textures/shirtdecals") else os.path.join(GAME_MEDIA, path)
@@ -200,6 +208,8 @@ class Recorder:
         x0, y0, x1, y1 = max(0, x), max(0, y), min(W, x + src.shape[1]), min(H, y + src.shape[0])
         if x1 <= x0 or y1 <= y0: return
         sub = src[y0 - y:y1 - y, x0 - x:x1 - x]
+        if (r, g, b) != (1.0, 1.0, 1.0):                    # a tinted texture (the night light's multiplier)
+            sub = sub.copy(); sub[..., :3] *= np.array([r, g, b], np.float32)
         al = sub[..., 3:4] / 255.0 * a
         reg = s.a[y0:y1, x0:x1]
         reg[..., :3] = reg[..., :3] * (1 - al) + sub[..., :3] * al
@@ -347,6 +357,17 @@ def hint_check(hint_w):
     return worst, bad
 
 
+def night_after(lit, needles=None):
+    """Lua run after the files load: the dash at full night (ZeD.Dashboard.qaNight, the QA stand-in for the light at
+    the car) with its lights on or off; needles: force the light-piped needle on ("own") or off ("lit") on every dash
+    lit in two colours, as the export would with designs.NEEDLES_UNDER_TINT"""
+    s = f"ZeD.Dashboard.qaNight = 1; ZeD.Dashboard.qaLit = {'true' if lit else 'false'}\n"
+    if needles in ("own", "lit"):
+        s += ("for _, des in pairs(ZeD.DashPx.designs) do local nd = des.night; if nd and nd.tmap then "
+              f"nd.needleOwn = {'true' if needles == 'own' else 'nil'} end end\n")
+    return s
+
+
 if __name__ == "__main__":
     if lj is None:
         import luacli
@@ -358,6 +379,24 @@ if __name__ == "__main__":
         bad = badge_check()
         for b_ in bad: print("  WRONG:", b_)
         sys.exit(1 if bad else 0)
+    if len(sys.argv) > 1 and sys.argv[1] == "night":
+        args = sys.argv[2:]
+        nd = None
+        if "--needles" in args:
+            i = args.index("--needles"); nd = args[i + 1]; del args[i:i + 2]
+        k = int(args[0]) if args and args[0].isdigit() else 2
+        ids = [a for a in args if not a.isdigit()] or DZ.ORDER
+        out = os.path.join(HERE, "out", "luatest"); os.makedirs(out, exist_ok=True)
+        for did in ids:
+            for lit in (True, False):
+                st = dict(STATE_DRIVE); st["radio"] = DZ.DESIGNS[did][6]; st["lights"] = lit
+                st["hasLightbar"] = did in ("police", "fire", "ranger", "ambulance")
+                after = night_after(lit, nd)
+                if lj is None: rec = luacli.run(did, st, k=k, lua_after=after)[0]
+                else: rec = run(did, st, k=k, lua_after=after)[0]
+                rec.image().save(os.path.join(out, f"{did}_night_{'on' if lit else 'off'}_{k}x.png"))
+            print(f"{did:10s} night k={k} missing={sorted(rec.missing)}")
+        sys.exit(0)
     if len(sys.argv) > 1 and sys.argv[1] == "hints":
         import dashlib
         worst, bad = hint_check(dashlib.HINT_W)

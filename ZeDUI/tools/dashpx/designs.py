@@ -116,13 +116,15 @@ def cl_nyala(b, bz="chrome", nd="#f07a28"):
 
 
 def cl_d6(b, bz="chrome", nd="#ff6a1a"):
-    """the D6 truck (and the fire pickup): a fan speedometer over a hidden pivot, square gauges either side"""
+    """the D6 truck (and the fire pickup): a fan speedometer over a hidden pivot, square gauges either side. The pivot
+    sits under the shroud and the sweep stops short of the window's floor, so the needle's root never leaves the shroud
+    (director, Oct 29 2026: it rose out of the bottom bezel at the ends of its travel)"""
     d = b.d
     sx, sy, sw, sh = 128, 22, 224, 66
     b.check_flat(sx - 1, sy - 1, sw + 2, sh + 2, "fan speedometer")
     face = window(d, sx, sy, sw, sh, 2.5, bezel=bz, r=3, bezel_t=2, on=Z_CL)
-    pcx, pcy, R = 240, 100, 66
-    a0, a1 = 205, 335
+    pcx, pcy, R = 240, 96, 62
+    a0, a1 = 210, 330
     for i, v in enumerate(range(0, 101, 5)):
         a = a0 + (a1 - a0) * v / 100.0
         ca, sa = math.cos(math.radians(a)), math.sin(math.radians(a))
@@ -131,11 +133,12 @@ def cl_d6(b, bz="chrome", nd="#ff6a1a"):
         d.paint(m, "paint_r" if v == 55 else "paint_w")
         if v % 20 == 0:
             d.text(str(v), int(round(pcx + ca * (R - 14))), int(round(pcy + sa * (R - 14))) - 2, "paint_w", align="c")
-    d.text("MPH", pcx, pcy - 37, "paint_c", align="c")
     cap = np.hypot(d.XX + 0.5 - pcx, d.YY + 0.5 - pcy) <= 26
     capm = cap & face
     d.h[capm] = Z_CL - 1.0 + 1.6 * np.sqrt(np.clip(1 - (np.hypot(d.XX[capm] + 0.5 - pcx, d.YY[capm] + 0.5 - pcy) / 26.0) ** 2, 0, 1))
     d.mat[capm] = d.mid("blackp"); d.polish[capm] = 0.6; d.tex[capm] = 0
+    b.hub(pcx, pcy, capm)
+    d.text("MPH", pcx, pcy - 20, "paint_c", align="c", flatlight=True)      # on the shroud, out of the needle's path
     glare(d, face, slope=-0.4, width=8, offset=0.12, amount=0.05)
     b.part("needle", src="speed_mph", max=100, cx=pcx, cy=pcy, r0=27, r1=R - 2, a0=a0, a1=a1, color=nd, w=2, hub=0)
     sq_dial(b, 58, 22, "fuel", "E", "F", "fuel", w=64, h=40, needle=nd, red_left=True, low_src="fuelLamp", bezel=bz)
@@ -703,16 +706,26 @@ ORDER = list(DESIGNS)
 #          a little off it (jitter) and its own strength (an old bulb, a dusty lens); power scales them all.
 #          The openings are found from the gauges' own parts (a needle's pivot, the clock, the ribbon's window);
 #          a VFD cluster lights itself and gets none.
-#   lamps: (x0, x1, y, z, power[, reach])     a row of points under a hood, aimed down
+#   lamps: (x0, x1, y, z, power[, reach][, tint])     a row of points under a hood, aimed down
+#   tint:  the bulb's colour, by name (night.TINTS): wash=dict(..., tint="green"), a lamp row's last item. None named
+#          is amber, the 2700 K bulb. Director, Oct 29 2026: the late models (the Dash Elite, the Primani, the SUV,
+#          the Lang 4000's clock) light their gauges blue-green, the early-90s GM way, and keep amber lamps over the
+#          controls; the Cossette's pod lights itself, so its lamps are the green ones. Everything else stays amber.
 CONSOLE_LAMP = (512, 776, 24, Z_FACE + 12.0, 1.0)        # under the console's top lip, over the radio and the climate
 LOWER_LAMP = (34, 466, 115, Z_FACE + 10.0, 0.5)         # under the cluster's sill, over the lower row of switches
 CURVY_LAMPS = lambda top: [(514, 774, top, Z_FACE + 12.0, 1.0), (34, 470, 120, Z_FACE + 8.0, 0.5)]
+GREEN = "green"
+tinted = lambda lamp, tint: tuple(lamp) + (tint,)
+# a needle on a gauge lit green: "own" keeps its orange and takes only the light's level, as if light-piped (how GM
+# did it: orange under a green multiply goes olive); "lit" takes the green like everything else. The director picks
+# from the two night sheets; until then "own".
+NEEDLES_UNDER_TINT = "own"
 LEFT, UPPER_LEFT, TOP, UPPER_RIGHT = 180.0, 215.0, 270.0, 320.0
 
 NIGHT = {
     # wood and chrome: the bulbs sit behind the walnut fascia on the gauges' left
     "wagon":      dict(wash=dict(side=LEFT, power=1.0), lamps=[CONSOLE_LAMP, LOWER_LAMP]),
-    "luxury":     dict(wash=dict(side=LEFT, power=1.0), lamps=[CONSOLE_LAMP, LOWER_LAMP]),    # the clock (the VFD lights itself)
+    "luxury":     dict(wash=dict(side=LEFT, power=1.0, tint=GREEN), lamps=[CONSOLE_LAMP, LOWER_LAMP]),    # the clock (the VFD lights itself)
     "horizon":    dict(wash=dict(side=UPPER_LEFT, power=1.0), lamps=[(512, 776, 22, Z_FACE + 12.0, 1.0), LOWER_LAMP]),
     # vinyl and chrome: the same bulbs behind a black (steel, aluminium, painted) fascia, from the top edge
     "nyala":      dict(wash=dict(side=TOP, power=1.0), lamps=[CONSOLE_LAMP, LOWER_LAMP]),
@@ -728,11 +741,11 @@ NIGHT = {
     "fire":       dict(wash=dict(side=TOP, power=1.0), lamps=[CONSOLE_LAMP, LOWER_LAMP]),
     "ranger":     dict(wash=dict(side=TOP, power=0.95), lamps=[CONSOLE_LAMP, LOWER_LAMP]),
     # early 90s curves: from under the arched brow
-    "dashelite":  dict(wash=dict(side=UPPER_LEFT, power=1.0), lamps=CURVY_LAMPS(30)),
-    "primani":    dict(wash=dict(side=UPPER_RIGHT, power=1.0), lamps=CURVY_LAMPS(34)),
-    "suv":        dict(wash=dict(side=TOP, power=1.0), lamps=CURVY_LAMPS(28)),
+    "dashelite":  dict(wash=dict(side=UPPER_LEFT, power=1.0, tint=GREEN), lamps=CURVY_LAMPS(30)),
+    "primani":    dict(wash=dict(side=UPPER_RIGHT, power=1.0, tint=GREEN), lamps=CURVY_LAMPS(34)),
+    "suv":        dict(wash=dict(side=TOP, power=1.0, tint=GREEN), lamps=CURVY_LAMPS(28)),
     # RPM first: the Cossette's digital pod lights itself (no gauge bulbs); the race car's dials are lit from the left,
     # the switch panel by a lamp under the cage bar
-    "cossette":   dict(lamps=[CONSOLE_LAMP, LOWER_LAMP]),
+    "cossette":   dict(lamps=[tinted(CONSOLE_LAMP, GREEN), tinted(LOWER_LAMP, GREEN)]),     # its lamps green: the one exception
     "race":       dict(wash=dict(side=LEFT, power=1.05), lamps=[(512, 772, 32, Z_FACE + 10.0, 0.9)]),
 }

@@ -335,11 +335,12 @@ end
 local function litColours(s, c, ec, L)
     local lc = s.lit
     if lc and lc.c == c and lc.dim == L.dim and lc.map == L.map and lc.n8 == L.n8 and lc.lit == L.lit and lc.amb == L.amb
-       and lc.levels == L.levels and lc.tint == L.tint and lc.cell == L.cell and lc.cols == L.cols and lc.rows == L.rows then
+       and lc.levels == L.levels and lc.tint == L.tint and lc.tmap == L.tmap and lc.cell == L.cell and lc.cols == L.cols
+       and lc.rows == L.rows then
         return lc
     end
-    lc = { c = c, dim = L.dim, map = L.map, n8 = L.n8, lit = L.lit, amb = L.amb, levels = L.levels, tint = L.tint, cell = L.cell,
-           cols = L.cols, rows = L.rows, e = {}, b = {} }
+    lc = { c = c, dim = L.dim, map = L.map, n8 = L.n8, lit = L.lit, amb = L.amb, levels = L.levels, tint = L.tint, tmap = L.tmap,
+           cell = L.cell, cols = L.cols, rows = L.rows, e = {}, b = {} }
     for i, r in ipairs(s[2]) do lc.e[i] = L.dim(L, ec, r[1] + r[3] * 0.5, r[2]) end
     for i, r in ipairs(s[1]) do lc.b[i] = L.dim(L, c, r[1] + r[3] * 0.5, r[2]) end
     s.lit = lc

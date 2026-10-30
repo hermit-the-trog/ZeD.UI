@@ -3,7 +3,9 @@
 The live parts are drawn by live.py's copy of the game's rule (ZeD_Plate.lua): the plate's night picture over the day
 one by the nightness, the parts that make no light dimmed by the light map under them, the lamps and displays as they are.
 
-usage: python nightsheet.py <out.png> [k] [design ...]"""
+usage: python nightsheet.py <out.png> [k] [design ...] [--needles own|lit]
+  --needles: the needles on gauges lit in another colour than amber (the late models' green), light-piped in their own
+             colour ("own") or lit like everything else ("lit"); default designs.NEEDLES_UNDER_TINT"""
 import os
 import sys
 import numpy as np
@@ -38,27 +40,27 @@ def heads_for_preview():
     return out
 
 
-def tiles(did, heads, k=2):
+def tiles(did, heads, k=2, needles=None):
     b, base, sprites, doc, dt = build.build_one(did)
     blank = Image.open(os.path.join(radios.OUT, "hu_blank.png"))
     sprites["hu_blank"] = blank
-    night, dark, data, lv = NT.bake(did, b, base, DZ.NIGHT[did], seed=DZ.DESIGNS[did][2])
+    night, dark, data, lv = NT.bake(did, b, base, DZ.NIGHT[did], seed=DZ.DESIGNS[did][2], needles=needles or DZ.NEEDLES_UNDER_TINT)
     out = []
     for label, n, lit in COLS:
-        nt = Night(n, lit, lv, night, dark, data["glass"], data["cell"]) if n > 0 else None
+        nt = Night(n, lit, lv, night, dark, data["glass"], data["cell"], data=data) if n > 0 else None
         extra = {"lights": lit}
         out.append((label, build.preview(did, base, sprites, doc, heads=heads, state="drive", k=k, extra=extra, night=nt)))
     return out
 
 
-def main(path, k=2, ids=None):
+def main(path, k=2, ids=None, needles=None):
     ids = ids or DZ.ORDER
     heads = heads_for_preview()
     pad, head = 16, 34
     f1, f2 = font(22), font(16)
     rows = []
     for did in ids:
-        rows.append((did, tiles(did, heads, k)))
+        rows.append((did, tiles(did, heads, k, needles)))
         print(did, flush=True)
     tw, th = rows[0][1][0][1].size
     W = len(COLS) * (tw + pad) + pad
@@ -79,6 +81,10 @@ def main(path, k=2, ids=None):
 
 
 if __name__ == "__main__":
-    p = sys.argv[1] if len(sys.argv) > 1 else os.path.join(build.OUT, "night_contact.png")
-    k = int(sys.argv[2]) if len(sys.argv) > 2 else 2
-    print(main(p, k, sys.argv[3:] or None))
+    args = sys.argv[1:]
+    nd = None
+    if "--needles" in args:
+        i = args.index("--needles"); nd = args[i + 1]; del args[i:i + 2]
+    p = args[0] if args else os.path.join(build.OUT, "night_contact.png")
+    k = int(args[1]) if len(args) > 1 else 2
+    print(main(p, k, args[2:] or None, nd))
