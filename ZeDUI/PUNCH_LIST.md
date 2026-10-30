@@ -129,6 +129,11 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     only), Animals, Vehicle and the inventory lists. Next: a clean capture of every tab for the
     review (QA: tall windows, English, the stocked character, the card cropped; about 20 minutes on
     the second screen, the director's yes first), then go through the tabs one by one, Maps first.
+    Clean capture done (QA, ZeDUI/qa/Oct30_tab_strips_clean/, measurements.md): the standard header is
+    65 px at 1.75, the window's help line 39 px, a card's band 64 px above it.
+    - **Maps (director, Oct 30):** header strip: the fold arrow, the six stamps, Aa, the inks, full view
+      at the far right; nothing else at the top. Footer band: Survey | Color | Paper on the left, the
+      marks list on the right. The second toolbar row goes; the map runs from header to band.
 
 ## Test process
 
