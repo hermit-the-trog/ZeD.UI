@@ -1198,6 +1198,7 @@ end
 -- The drawer's edge toward the inventory, over everything: a structure line meeting the title bar
 -- above and the help line below.
 function ZeD_ObjectCard:render()
+    self:_pointer()   -- (every frame drawn: update() runs only every 100 ms)
     if not self.entry then return end
     A.drawDividerV(self, 0, 0, self:getHeight(), true)
 end
@@ -1214,9 +1215,14 @@ end
 
 -- Mouse: nested drawer children don't get reliable mouse events, so clicks
 -- are hit-tested here from the raw mouse state and fire on release over the
--- zone that was pressed (the item card's pattern).
+-- zone that was pressed (the item card's pattern). Polled on every frame drawn
+-- (render): the engine runs update() only every 100 ms (42.22), and a click
+-- between two updates was missed (Oct 30 2026).
 function ZeD_ObjectCard:update()
     ISPanel.update(self)
+end
+
+function ZeD_ObjectCard:_pointer()
     local down = isMouseButtonDown(0)
     if not (self.entry and self:getIsVisible()) then
         self._wasDown, self._pressFid, self._sbDrag = down, nil, false

@@ -12,7 +12,9 @@
         a window under the pointer takes);
       * the pointer resting on the window box keeps its words on the help line on every
         frame drawn (update() runs every 100 ms; the line strobed);
-      * three quick clicks (60 ms) on the window box open its menu three times.
+      * three quick clicks (60 ms) on the window box open its menu three times;
+      * a row clicked opens its item card, and a quick click (70 ms) on the card's back key
+        shuts it (the card polled the mouse in update(), which runs every 100 ms).
     Then in the Equip tab with the Loadouts fold open: a quick click (70 ms) on the
     loadout picker opens its list and the list stays (it closed on the click's own
     release), and a click away closes it.
@@ -171,6 +173,13 @@ later(40, function()
     say("LOADOUT " .. at)
 end)
 '@
+    # the item card in the drawer: shown, its item, its back key on the screen
+    card = @'
+local card = c._itemCard
+local r = card and card._backBarRects and card._backBarRects.back
+say("CARD vis " .. tostring(card ~= nil and card:isVisible()) .. " item " .. tostring(c._drawerItem ~= nil)
+    .. " back " .. (r and pt(card:getAbsoluteX() + r.x + r.w / 2, card:getAbsoluteY() + r.y + r.h / 2) or "none"))
+'@
     shot = @'
 getCore():TakeFullScreenshot("__NAME__")
 say("SHOT __NAME__")
@@ -269,7 +278,24 @@ try {
     $w1 = Run-Job "wmcount" @{}; $n1 = if ($w1 -match 'WM (\d+)') { [int]$Matches[1] } else { -1 }
     Check ($n0 -ge 0 -and $n1 - $n0 -eq 3) "three quick clicks (60 ms) on the window box open its menu three times ($($n1 - $n0))"
 
-    # 5. the Equip tab's Loadouts fold: a quick click on the loadout picker opens its list, which stays
+    # 5. the item card's back key: a row clicked opens its card, a quick click (70 ms) on back shuts it
+    #    (the card polled the mouse in update(), every 100 ms: the click did nothing)
+    $s = Run-Job "setup" @{} 20
+    if ($s -match 'row (\d+,\d+)') { $row = $Matches[1] }
+    [void](Click $row 80)
+    Start-Sleep -Milliseconds 900
+    $cs = Run-Job "card" @{}
+    $back = if ($cs -match 'back (\d+,\d+)') { $Matches[1] } else { $null }
+    Check ($cs -match 'item true' -and $back -ne $null) "a click on a row opens its card ($cs)"
+    if ($back) {
+        [void](Run-Job "shot" @{ NAME = "zqa_ms_5_card.png" })
+        [void](Click $back 70)
+        Start-Sleep -Milliseconds 800
+        $cs2 = Run-Job "card" @{}
+        Check ($cs2 -match 'item false') "a quick click (70 ms) on the card's back key shuts the card ($cs2)"
+    }
+
+    # 6. the Equip tab's Loadouts fold: a quick click on the loadout picker opens its list, which stays
     $e = Run-Job "equip" @{} 20
     $lo = if ($e -match 'LOADOUT (\d+,\d+)') { $Matches[1] } else { $null }
     Check ($lo -ne $null) "the Loadouts fold opens with its loadout picker ($e)"
@@ -278,7 +304,7 @@ try {
         Start-Sleep -Milliseconds 1000
         $n = Menus
         Check ($ok -and $n -ge 1) "a quick click (70 ms) on the loadout picker opens its list and it stays ($n open)"
-        [void](Run-Job "shot" @{ NAME = "zqa_ms_5_loadout_list.png" })
+        [void](Run-Job "shot" @{ NAME = "zqa_ms_6_loadout_list.png" })
         [void](Click $park 70)
         Start-Sleep -Milliseconds 700
         $n = Menus

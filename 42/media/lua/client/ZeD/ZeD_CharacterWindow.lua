@@ -4267,6 +4267,18 @@ function ZeD_CharacterWindow.toggle(playerNum)
     card:setVisible(false)
     itemDrawer:addChild(card)
     win._itemCard = card
+    -- the card's back key shuts the card, as B does (_buildCardActionFocusables' onCancel). It had
+    -- no action here, so a click on it did nothing (Oct 30 2026, the director's mouse pass).
+    card.onBackClick = function()
+        local content = win._mainContent
+        if content and win._updateDrawer then
+            local sel = content._selectedItems or {}
+            for k in pairs(sel) do sel[k] = nil end
+            content._selectedItems   = sel
+            content._lastClickedItem = nil
+            win._updateDrawer(content)
+        end
+    end
 
     itemDrawer._onPrerender = function(self)
         local T = ZeD.T

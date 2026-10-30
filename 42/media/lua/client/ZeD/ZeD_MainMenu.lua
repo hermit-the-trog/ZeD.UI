@@ -26,6 +26,7 @@
 require "ISUI/ISPanel"
 require "ZeD/Organisms"
 require "ZeD/Input/SpatialNav"
+require "ZeD/ZeD_MouseTick"
 
 ZeD = ZeD or {}
 ZeD.MainMenu = ZeD.MainMenu or {}
@@ -852,7 +853,8 @@ local function hitAt(panels, mx, my)
 end
 
 function MM.pointer(ctx, panels)
-    local down = isMouseButtonDown(0)
+    -- (called from update(), which runs every 100 ms: a click between two updates still counts)
+    local down = ZeD.MouseTick.down()
     if blocked() then ctx.hot = nil; ctx.press = nil; ctx.dragHit = nil; ctx.wasDown = down; return end
     local h = hitAt(panels, getMouseX(), getMouseY())
     if h and h.disabled then h = nil end
