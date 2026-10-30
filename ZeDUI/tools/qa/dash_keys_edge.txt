@@ -1,0 +1,8 @@
+# ZeDUI/tools/qa/dash_keys_edge.txt  (Oct 29 2026)
+# The key, the fob, the dash down to the screen's edge and the column's shroud (HANDOFF_dash_keys_edge_20261029.md), run with:
+#   zedqa_run.ps1 -Mode fullscreen4k -Manifest .../dash_keys_edge.txt
+# The prelude takes the character to the Irvington drag strip in daylight; the script spawns each car beside it.
+# expect=: the engine's world drawing (FBORenderCell) sometimes throws while cars are spawned and removed beside the
+# character; it is not the dash (zedqa_dashnight.lua's runs show it too).
+zedqa_prelude.lua | pre
+zedqa_dash_keys_edge.lua | dke | timeout=1500 | expect=FBORenderCell     # 19 designs: the key at OFF, START, ON; the fob whole; the dash flush on the screen's edge

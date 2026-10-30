@@ -13,7 +13,7 @@ ZeDUI/HANDOFF_dashboards_r6_20261024.md.
 """
 import math
 import numpy as np
-from engine import RAMPS, hx, add_ramp, text_w, edt, FONTS
+from engine import RAMPS, hx, add_ramp, text_w, edt, plane, FONTS
 from widgets import window, chrome_frame, knob, button, icon_mask, line_mask, rivet
 import dashlib as DL
 from dashlib import W, H, Z_FACE, box
@@ -89,34 +89,103 @@ def vent_eyeball(b, cx, cy, r, bezel="chrome", on=Z_FACE, check=True):
 
 
 # ====================================================================== the key
-def _rot(cx, cy, ang, pts):
-    a = math.radians(ang); ca, sa = math.cos(a), math.sin(a)
-    return [(cx + 0.5 + x * ca - y * sa - 0.5, cy + 0.5 + x * sa + y * ca - 0.5) for x, y in pts]
+# ---- the key (director, Oct 29 2026; HANDOFF_dash_keys_edge_20261029.md): one-point perspective from an eye over
+# the column, level with the cluster. The key points straight at the driver, so only its edge shows: a bar along the
+# slot that turns with it (OFF 0, ON 40, START 80 degrees), its near edge slid KEY_DEPTH_PX away from the eye, the
+# head swept from the lock face to that edge (the face toward the eye a dark sliver, the near edge the brightest line).
+# A 10 px chrome ring hangs from the hole in the middle of the near edge, and from it a teardrop leather fob, face on.
+# Bare nickel on the wood-and-chrome cars, glossy black on the rest (their lock face turns aluminium behind it).
+KEY_VP = (250.0, 60.0)
+KEY_DEPTH_PX = 2.5
+KEY_HALF_L, KEY_HALF_T = 8.5, 1.2       # 17 x about 3 px. At START it clears the START label (and the curved dashes'
+                                        # ST) by about a pixel: not longer without moving the labels out
+KEY_RING_R0, KEY_RING_R1 = 3.6, 4.6
+KEY_NICKEL = {"wagon", "luxury", "horizon"}
+LIGHT_CABINS = {"v_tan", "v_beige", "v_khaki"}     # the fob is cocoa leather on these, tan on the rest
+FOB_W, FOB_BODY = 15, 20                # the fob: 15 px wide, its body 20 long under a 6 x 6 tab; shorter where the
+                                        # plate's edge comes first (the Cossette's ignition sits 2 px lower: 18 there)
 
 
-KEY_HEAD = [(-3, -12), (3, -12), (5.5, -9.5), (5.5, 1), (3, 3.5), (-3, 3.5), (-5.5, 1), (-5.5, -9.5)]
+def _key_bar(d, cx, cy, ang, half_l, half_t):
+    a = math.radians(ang - 90); ux, uy = math.cos(a), math.sin(a)
+    X = d.XX + 0.5 - cx; Y = d.YY + 0.5 - cy
+    return (np.abs(X * ux + Y * uy) <= half_l) & (np.abs(-X * uy + Y * ux) <= half_t)
 
 
-def key_turn_variants(b, cx, cy, style="chrome", angles=(("off", 0), ("on", 40), ("start", 80))):
-    """three key sprites: the key at OFF, ON and START (src keyPos). The head turns about the barrel; the ring hangs
-    from the head's hole and its tag hangs under it, both always straight down."""
+def key_hang_point(cx, cy):
+    """the middle of the key's near edge (where the ring hangs): the lock's centre slid KEY_DEPTH_PX away from the eye"""
+    c0x, c0y = cx + 0.5, cy + 0.5
+    vx, vy = c0x - KEY_VP[0], c0y - KEY_VP[1]; n = math.hypot(vx, vy)
+    return c0x + vx / n * KEY_DEPTH_PX, c0y + vy / n * KEY_DEPTH_PX
+
+
+def fob_place(cx, cy):
+    """-> (ox, oy, body): the fob's box on the plate (its left and top) and its body's length. Its tab folds over the
+    ring's wire, its top 1.5 px above the ring's bottom; the body is FOB_BODY long unless the plate's edge comes first"""
+    hx_, hy_ = key_hang_point(cx, cy)
+    fy = hy_ + KEY_RING_R0 + 0.4 + KEY_RING_R1 - 1.5
+    ox, oy = int(hx_ - (FOB_W + 4) / 2.0), int(fy)
+    body = min(FOB_BODY, H - 3 - 7 - oy)       # the round bottom's last row is oy + body + 7, two rows above the edge
+    return ox, oy, body
+
+
+def fob(d, ox, oy, body, leather, on=Z_FACE):
+    """a teardrop fob, face on, its box at (ox, oy) on the plate: a narrow tab folded over the ring and held by a snap,
+    the body widening to a round bottom, stitched a pixel and a half inside its edge. Drawn on the plate (in the key's
+    sprites), so the engine casts its shadow. -> its mask"""
+    w_, h_ = FOB_W + 4, body + 10
+    cx = ox + w_ / 2.0
+    tab_w, tab_h = max(4, round(FOB_W * 0.4)), 6
+    r = FOB_W / 2.0
+    bcy = h_ - 2 - r                                     # the round bottom's centre (down from the fob's top)
+    top = 3                                              # where the body starts, under the tab
+    X = d.XX + 0.5 - cx; Y = d.YY + 0.5 - oy
+    t = np.clip((Y - top) / max(1.0, bcy - top), 0, 1)
+    half = tab_w / 2.0 + (r - tab_w / 2.0) * t ** 0.4  # the flanks flare from the tab's width to the full width
+    drop = ((Y >= top) & (Y <= bcy) & (np.abs(X) <= half)) | (np.hypot(X, Y - bcy) <= r)
+    d.slab(drop, 3.0, leather, bevel=1.4, polish=0.35, on=on)
+    ins = ((Y >= top + 1.5) & (Y <= bcy) & (np.abs(X) <= half - 1.6)) | (np.hypot(X, Y - bcy) <= r - 1.6)
+    ins2 = ((Y >= top + 2.5) & (Y <= bcy) & (np.abs(X) <= half - 2.6)) | (np.hypot(X, Y - bcy) <= r - 2.6)
+    stitch = ins & ~ins2 & (Y >= top + tab_h) & (((d.XX - ox + d.YY - oy) % 2) == 0)
+    d.tex[stitch] += 0.5
+    tab = (np.abs(X) <= tab_w / 2.0) & (Y >= 0) & (Y <= top + tab_h)
+    tab_round = tab & ~((Y > top + tab_h - 1.5) & (np.abs(X) > tab_w / 2.0 - 1.0))
+    d.slab(tab_round, 4.5, leather, bevel=1.0, polish=0.35, on=on)
+    d.dark[tab_round & (Y <= 1.5)] = 0.4              # the fold over the ring's wire
+    snap = np.hypot(X, Y - (top + tab_h - 3.0)) <= 1.3
+    d.h[snap] = on + 6.0; d.mat[snap] = d.mid("chrome"); d.polish[snap] = 1.0; d.tex[snap] = 0; d.solid |= snap
+    return drop | tab_round | snap
+
+
+def key_turn_variants(b, cx, cy, style=None, angles=(("off", 0), ("on", 40), ("start", 80))):
+    """three key sprites: the key at OFF, ON and START (src keyPos), its ring and fob hanging straight down in each.
+    Each records what moves in b.movers (the key, its ring, its fob): the build's travel check keeps print out from
+    under them. style is no longer used (the key's material follows the car: KEY_NICKEL)"""
+    nickel = b.id in KEY_NICKEL
+    leather = "v_cocoa" if b.cabin in LIGHT_CABINS else "v_tan"
+    c0x, c0y = cx + 0.5, cy + 0.5
+    hx_, hy_ = key_hang_point(cx, cy); ox_, oy_ = hx_ - c0x, hy_ - c0y
+    fx, fy, body = fob_place(cx, cy)
     for pos, ang in angles:
         def fn(d, ang=ang):
-            head = d.M().poly(_rot(cx, cy, ang, KEY_HEAD)).get()
-            d.slab(head, 6.0, "alu", bevel=1.4, polish=0.9, on=Z_FACE + 1)
-            blade = d.M().poly(_rot(cx, cy, ang, [(-1.5, -3.5), (1.5, -3.5), (1.5, 2.5), (-1.5, 2.5)])).get()
-            d.seam(blade, 0.25)
-            (hx_, hy_), = _rot(cx, cy, ang, [(0, -8.5)])
-            hx_ += 0.5; hy_ += 0.5
-            hole = np.hypot(d.XX + 0.5 - hx_, d.YY + 0.5 - hy_) < 1.3
-            d.h[hole] -= 3; d.dark[hole] = 0.5
-            rcx, rcy = hx_, hy_ + 3.0
+            body_m = np.zeros_like(d.solid); hh = np.zeros(d.h.shape, np.float32)
+            for i in range(13):
+                t = i / 12
+                m = _key_bar(d, c0x + ox_ * t, c0y + oy_ * t, ang, KEY_HALF_L, KEY_HALF_T)
+                body_m |= m; hh[m] = np.maximum(hh[m], Z_FACE + 1.0 + 7.0 * t)
+            d.h[body_m] = hh[body_m]; d.mat[body_m] = d.mid("alu" if nickel else "blackp"); d.solid |= body_m
+            d.polish[body_m] = 1.0 if nickel else 0.85; d.tex[body_m] = 0
+            edge = _key_bar(d, hx_, hy_, ang, KEY_HALF_L, KEY_HALF_T)
+            d.tex[edge] += 0.35 if nickel else 0.45
+            d.dark[body_m & ~edge] = np.maximum(d.dark[body_m & ~edge], 0.25)
+            rcx, rcy = hx_, hy_ + KEY_RING_R0 + 0.4
             rr = np.hypot(d.XX + 0.5 - rcx, d.YY + 0.5 - rcy)
-            ring = (rr >= 2.4) & (rr <= 3.6) & ~(np.hypot(d.XX + 0.5 - hx_, d.YY + 0.5 - hy_) < 1.0)
-            d.h[ring] = Z_FACE + 9.0; d.mat[ring] = d.mid("chrome"); d.solid |= ring; d.polish[ring] = 1.0; d.tex[ring] = 0
-            tag = d.M().rrect(int(round(rcx - 3)), int(round(rcy + 3.0)), 6, 6, 1).get()
-            d.slab(tag, 5.0, "paint_r" if style == "chrome" else "paint_y", bevel=1.0, polish=0.5, on=Z_FACE + 0.5)
-        b.variant(f"key_{pos}_{b.id}", "keyPos", fn, pos)
+            ring = (rr >= KEY_RING_R0) & (rr <= KEY_RING_R1) & ~(edge & (d.YY + 0.5 < hy_ + 0.5))
+            d.h[ring] = Z_FACE + 9.5; d.mat[ring] = d.mid("chrome"); d.solid |= ring; d.polish[ring] = 1.0; d.tex[ring] = 0
+            return body_m | ring | fob(d, fx, fy, body, leather)
+        name = f"key_{pos}_{b.id}"
+        b.variant(name, "keyPos", fn, pos)
+        b.movers.append((name, fn(DL.Dash(W, H, seed=0))))     # what moves (geometry only, on a scratch canvas)
 
 
 def ignition(b, cx, cy, met="chrome", labels=("OFF", "ON", "START"), style=None):
@@ -127,16 +196,45 @@ def ignition(b, cx, cy, met="chrome", labels=("OFF", "ON", "START"), style=None)
     ig = np.hypot(d.XX + 0.5 - cx, d.YY + 0.5 - cy) < 7
     d.h[ig] = Z_FACE + 0.5; d.mat[ig] = d.mid("blackp"); d.polish[ig] = 0.5; d.tex[ig] = 0
     d.seam(box(cx - 1, cy - 4, 2, 9), 0.8)
+    if b.id not in KEY_NICKEL:      # the black key needs something to stand against: the cylinder's face turns aluminium
+        cyl = (np.hypot(d.XX + 0.5 - (cx + 0.5), d.YY + 0.5 - (cy + 0.5)) < 6.5) & (d.mat == d.mid("blackp"))
+        d.mat[cyl] = d.mid("alu"); d.polish[cyl] = 0.8
     for t, a in zip(labels, (270, 320, 0)):
         if not t: continue
         DL.ring_label(b, cx + 0.5, cy + 0.5, 11, a, t, gap=2)
-    key_turn_variants(b, cx, cy, style or ("chrome" if met == "chrome" else "black"))
+    key_turn_variants(b, cx, cy)
     b.hit("ignition", cx - 12, cy - 12, 25, 25)
 
 
 # ====================================================================== lower rows
-LEFT_SPAN = (14, COLUMN_X - 28)       # the lower row left of the column, and right of it, each spread with equal
-RIGHT_SPAN = (COLUMN_X + 28, 486)     #   gaps; the column's 56 px kept clear (balance pass, Oct 24)
+LEFT_SPAN = (14, COLUMN_X - 52)       # the lower row left of the column, and right of it, each spread with equal
+RIGHT_SPAN = (COLUMN_X + 52, 486)     #   gaps; the column's shroud kept clear, 104 px (Oct 29; 56 px before)
+MIN_GAP = 6                           # the least gap spread may leave between two controls
+
+# ---- the steering column, suggested (director, Oct 29 2026: "more of a half squircle", "kinda chunky irl", 100 x 46):
+# only the top of its shroud shows, coming up at the driver from below the frame and cut by the screen's edge. No
+# wheel, no stalks, no centre line. Plate art in every shell with a lower row, drawn after the row so it sits in front.
+SHROUD_A, SHROUD_B, SHROUD_N = 50, 46, 3.5     # |x/a|^n + |y/b|^n <= 1, y up from the plate's last row
+
+
+def column_shroud(b):
+    """the column's shroud in the design's own cabin vinyl, a shade under the dash: moulded plastic whose height
+    crowns toward the middle (the engine shades it round and it casts its shadow), a step darker where it turns away.
+    Records its mask (b.shroud) for the build's checks; -> the mask"""
+    d = b.d
+    b.check_flat(COLUMN_X - SHROUD_A, H - SHROUD_B - 1, 2 * SHROUD_A, SHROUD_B + 1, "column shroud")
+    X = (d.XX + 0.5 - COLUMN_X) / SHROUD_A
+    Y = ((H - 0.5) - (d.YY + 0.5)) / SHROUD_B
+    r = np.abs(X) ** SHROUD_N + np.clip(Y, 0, None) ** SHROUD_N
+    m = (r <= 1.0) & (Y >= 0)
+    crown = np.clip(1 - r, 0, 1) ** (1 / SHROUD_N)
+    z = Z_FACE + 3.0 + 13.0 * crown
+    d.h[m] = z[m]; d.mat[m] = d.mid(b.cabin); d.solid |= m; d.polish[m] = 0.3; d.tex[m] = 0
+    d.dark[m] = np.maximum(d.dark[m], 0.12)
+    rim = m & (r > 0.80)
+    d.dark[rim] = np.maximum(d.dark[rim], 0.32)
+    b.shroud = m
+    return m
 
 
 def spread(x0, x1, widths):
@@ -171,12 +269,20 @@ def lower_boxy6(b, y0=118, chrome=True, trunk_label="TRUNK", trunk_sub=None, cru
                 right_panel=None, vent=None):
     """director, Oct 24: left of the column the lights, the lock and the trunk; right of it the wiper, cruise (or a
     right_panel width the caller fills: the ambulance's switches) and the key, the key right-most. No vent down here.
-    Each side spread with equal gaps. Returns the right panel's x when one is asked for."""
+    Each side spread with equal gaps. Returns the right panel's x when one is asked for. Where the right side has no
+    room for the wiper (Oct 29: the ambulance's switch panel, once the column's shroud took its 104 px), the wiper goes
+    to the left side, next to the column."""
     d = b.d
     met = "chrome" if chrome else "blackp"
     fr = "chrome" if chrome else None
     tw = max(30, text_w(trunk_label) + 8)
     left = [("lights", 24)] + ([("lock", 18)] if lock else []) + [("trunk", max(tw, text_w(trunk_sub) if trunk_sub else 0))]
+    right = [("wiper", 22)]
+    if right_panel: right.append(("panel", right_panel))
+    elif cruise: right.append(("cruise", 34))
+    right.append(("key", 44))
+    if sum(w for _, w in right) + MIN_GAP * (len(right) + 1) > RIGHT_SPAN[1] - RIGHT_SPAN[0]:
+        left.append(right.pop(0))
     for (kind, bw), x in zip(left, spread(*LEFT_SPAN, [w for _, w in left])):
         if kind == "lights":
             _lights_boxy(b, x + 12, y0, met, chrome)
@@ -187,16 +293,14 @@ def lower_boxy6(b, y0=118, chrome=True, trunk_label="TRUNK", trunk_sub=None, cru
             b.label("LOCK", x + 9, y0 + 31, align="c")
             b.led(x + 13, y0 + 16, 3, 2, "anyLocked", "#44ee44")
             b.hit("lock", x, y0 + 14, 18, 13)
+        elif kind == "wiper":
+            _rocker_lab(b, x + 3, y0 + 9, "wiper", "WIPER", up=False)
         else:
             bx = x + (bw - tw) // 2
             b.check_flat(bx - 2, y0 + 12, tw + 4, 17, "trunk button")
             button(d, bx, y0 + 14, tw, 13, trunk_label, mat="blackp", on=Z_FACE, frame=fr)
             if trunk_sub: b.label(trunk_sub, bx + tw // 2, y0 + 31, align="c")
             b.hit("trunk", bx, y0 + 14, tw, 13, needs="hasTrunk")
-    right = [("wiper", 22)]
-    if right_panel: right.append(("panel", right_panel))
-    elif cruise: right.append(("cruise", 34))
-    right.append(("key", 44))
     panel_x = None
     for (kind, bw), x in zip(right, spread(*RIGHT_SPAN, [w for _, w in right])):
         if kind == "wiper":
@@ -211,6 +315,7 @@ def lower_boxy6(b, y0=118, chrome=True, trunk_label="TRUNK", trunk_sub=None, cru
             b.hit("cruise", x, y0 + 14, 34, 13, needs="running")
         else:
             ignition(b, x + 12, y0 + 22, met=met, style=key_style)
+    column_shroud(b)
     return panel_x
 
 
@@ -251,8 +356,9 @@ def lower_curvy6(b, y0=122):
     d.seam(box(kx - 1, y0 + 14, 2, 9), 0.8)
     for t, a in (("LOCK", 270), ("ON", 320), ("ST", 0)):
         DL.ring_label(b, kx + 0.5, y0 + 18.5, 10.5, a, t, gap=2)
-    key_turn_variants(b, kx, y0 + 18, "black")
+    key_turn_variants(b, kx, y0 + 18)
     b.hit("ignition", kx - 10, y0 + 8, 21, 21)
+    column_shroud(b)
 
 
 def hazard_under_ash(b):
@@ -321,7 +427,7 @@ def _ash_open(d2, x, y, dw, cabin, level, chrome=True, seed=3):
     d2.dark[inner] = np.maximum(d2.dark[inner], 0.25)
     # the ash: a few lumpy drifts, more of it the fuller the tray, grey with white paper flecks
     Y, X = d2.YY, d2.XX
-    n1 = rng.random((H, W)); n2 = rng.random((H, W))
+    n1 = plane(rng, (H, W)); n2 = plane(rng, (H, W))
     lump = np.zeros((H, W), np.float32)
     for _ in range(3 + 2 * level):
         cx_, cy_ = x + 3 + rng.random() * (dw - 6), y + 6 + rng.random() * (bowl_h - 10)

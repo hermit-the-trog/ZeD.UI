@@ -245,7 +245,7 @@ def main(root):
             "-- The pixel-art dashboards (director, Oct 16 2026): per design the plate, its state sprites, the live parts\n"
             "-- the game draws (needles, ribbons, lamps, LEDs, gear letters, digits, bars, knob pointers, lever tabs,\n"
             "-- badges, the clock, the fare meter, the climate readout, the radio slot) and the click areas, all in plate\n"
-            "-- pixels (800 x 172; one plate pixel = one screen pixel at 1080p, whole multiples above). Rect lists are\n"
+            f"-- pixels ({dashlib.W} x {dashlib.H}; one plate pixel = one screen pixel at 1080p, whole multiples above). Rect lists are\n"
             "-- flat {x, y, w, h, ...}. Angles are screen degrees: 0 = right, 90 = down. Read by ZeD_Dashboard.lua.\n"
             "ZeD = ZeD or {}\n")
     with open(os.path.join(lua_dir, "DashPx.lua"), "w", newline="\n") as f:

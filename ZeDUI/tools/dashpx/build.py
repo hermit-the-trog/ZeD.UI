@@ -118,6 +118,31 @@ def needle_check(b):
             if s_ & t_: b.warn(f"needles {n['src']} and {m['src']} cross ({len(s_ & t_)} px)")
 
 
+def _rect_hits(mask, x, y, w, h):
+    H_, W_ = mask.shape
+    x0, y0, x1, y1 = max(0, int(x)), max(0, int(y)), min(W_, int(x + w)), min(H_, int(y + h))
+    return x1 > x0 and y1 > y0 and bool(mask[y0:y1, x0:x1].any())
+
+
+def mover_check(b):
+    """Oct 29 2026: the key in each position, its ring and its fob (b.movers) sit over no printed legend or mark; and
+    the column's shroud (b.shroud) is clear of every printed mark, live part, click area and the key"""
+    for name, m in b.movers:
+        for (ix, iy, iw, ih, what) in b.inks:
+            if _rect_hits(m, ix, iy, iw, ih): b.warn(f"{what} at {ix},{iy} lies under {name}")
+        if b.shroud is not None and (m & b.shroud).any(): b.warn(f"{name} reaches into the column's shroud")
+    if b.shroud is None: return
+    s = b.shroud
+    for (ix, iy, iw, ih, what) in b.inks:
+        if _rect_hits(s, ix, iy, iw, ih): b.warn(f"{what} at {ix},{iy} lies under the column's shroud")
+    for h in b.hits:
+        if _rect_hits(s, h["x"], h["y"], h["w"], h["h"]): b.warn(f"the {h['id']} click area reaches into the column's shroud")
+    for p in b.parts:
+        if p["t"] in ("needle", "sprite"): continue
+        if any(0 <= y < s.shape[0] and 0 <= x < s.shape[1] and s[y, x] for (x, y) in _part_pixels(p)):
+            b.warn(f"the {p['t']} {p.get('src', '?')} lies on the column's shroud")
+
+
 def build_one(did, verbose=True):
     title, cabin, seed, fn, sub, unit, radio = DZ.DESIGNS[did]
     t0 = time.time()
@@ -145,6 +170,7 @@ def build_one(did, verbose=True):
         for (ix, iy, iw, ih, what) in b.inks:
             if ix < rx1 and ix + iw > rx0 and iy < ry1 and iy + ih > ry0:
                 b.warn(f"{what} at {ix},{iy} lies under the {p['src']} tab's travel ({rx0},{ry0} to {rx1},{ry1})")
+    mover_check(b)
     needle_check(b)
     ddir = os.path.join(OUT, did); os.makedirs(ddir, exist_ok=True)
     base.save(os.path.join(ddir, f"dash_{did}.png"))

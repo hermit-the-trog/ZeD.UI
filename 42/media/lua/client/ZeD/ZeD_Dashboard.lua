@@ -643,7 +643,7 @@ function ZeD_Dashboard:_layout()
     local w, h = BASE_W * k, BASE_H * k
     local pn = self.playerNum
     local x = getPlayerScreenLeft(pn) + math.floor((getPlayerScreenWidth(pn) - w) / 2)
-    local y = getPlayerScreenTop(pn) + getPlayerScreenHeight(pn) - h - 6 * k
+    local y = getPlayerScreenTop(pn) + getPlayerScreenHeight(pn) - h      -- flush on the screen's edge (Oct 29 2026)
     if self:getWidth() ~= w then self:setWidth(w) end
     if self:getHeight() ~= h then self:setHeight(h) end
     if self:getX() ~= x then self:setX(x) end

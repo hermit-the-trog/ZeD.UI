@@ -26,7 +26,7 @@ colours; everything else the game draws follows the map.
 import math
 import numpy as np
 from PIL import Image
-from engine import RAMPS, OUTLINE, hx
+from engine import RAMPS, OUTLINE, hx, LEGACY_H
 
 TINT = (1.0, 0.80, 0.56)        # what a 2700 K bulb does to a colour: warm, amber-cream (the default bulb, and the
                                 # game's fallback for a dash with no tint map)
@@ -301,10 +301,14 @@ def light_field(d, spec, seed=0, parts=(), by_tint=None):
         E += e_; S += s_; Ef += ef_
         add_t(wtn, e_, s_, ef_)
     # bulbs and lamps never do an even job: a slow, lumpy variation over the panel (a dusty lens, a bent reflector)
+    # (drawn at the plate's old height, LEGACY_H, so the lumps did not move when the plate grew; the new rows at the
+    # bottom carry the last row's lumps on down)
     r = np.random.default_rng(seed)
-    lump = r.random((H // 16 + 2, W // 16 + 2)).astype(np.float32)
-    lump = np.array(Image.fromarray((lump * 255).astype(np.uint8)).resize((W + 32, H + 32), Image.BICUBIC),
-                    np.float32)[8:8 + H, 8:8 + W] / 255.0
+    lh = min(H, LEGACY_H)
+    lump = r.random((lh // 16 + 2, W // 16 + 2)).astype(np.float32)
+    lump = np.array(Image.fromarray((lump * 255).astype(np.uint8)).resize((W + 32, lh + 32), Image.BICUBIC),
+                    np.float32)[8:8 + lh, 8:8 + W] / 255.0
+    if H > lh: lump = np.concatenate([lump, np.repeat(lump[-1:], H - lh, axis=0)], axis=0)
     uneven = 0.78 + 0.44 * lump
     if by_tint is not None:
         for tn, (e_, s_, ef_) in parts_t.items(): by_tint[tn] = (e_ * uneven, s_ * uneven, ef_ * uneven)
@@ -404,13 +408,21 @@ def relight(d, day_img, spec, seed=0, lights_on=True, parts=()):
     return Image.fromarray(out, "RGBA"), Ef
 
 
+def _cell_mean(a, rows, cols):
+    """the mean of each CELL x CELL cell, over the plate pixels it holds (a cell the plate's edge cuts, as the last row
+    of cells on the 178-row plate, is the mean of its own rows, not darkened by the rows past the edge)"""
+    H, W = a.shape
+    pad = np.zeros((rows * CELL, cols * CELL), np.float64); pad[:H, :W] = a
+    cnt = np.zeros((rows * CELL, cols * CELL), np.float64); cnt[:H, :W] = 1
+    return pad.reshape(rows, CELL, cols, CELL).sum(axis=(1, 3)) / cnt.reshape(rows, CELL, cols, CELL).sum(axis=(1, 3))
+
+
 def light_map(Ef, lights_on=True):
     """the light a flat live part gets, as a share of the day's (0..1), in CELL x CELL cells, LEVELS + 1 steps"""
     H, W = Ef.shape
     r = np.clip(AMB + (Ef * K_LIT / DAY_FLAT if lights_on else 0), 0, 1)
-    rows, cols = (H + CELL - 1) // CELL, (W + CELL - 1) // CELL
-    pad = np.zeros((rows * CELL, cols * CELL), np.float32); pad[:H, :W] = r
-    cell = pad.reshape(rows, CELL, cols, CELL).mean(axis=(1, 3))
+    rows, cols = (H + CELL - 1) // CELL, (W + CELL - 1) // CELL      # rounded up: 178 rows make 45 cell rows
+    cell = _cell_mean(r, rows, cols)
     lv = np.clip(np.floor(cell * LEVELS + 0.5), 0, LEVELS).astype(int)
     return lv, rows, cols
 
@@ -422,9 +434,7 @@ def tint_map(by_tint, shape, names):
     H, W = shape
     rows, cols = (H + CELL - 1) // CELL, (W + CELL - 1) // CELL
 
-    def cells(a):
-        pad = np.zeros((rows * CELL, cols * CELL), np.float64); pad[:H, :W] = a
-        return pad.reshape(rows, CELL, cols, CELL).mean(axis=(1, 3))
+    def cells(a): return _cell_mean(a, rows, cols)
     share = []
     for tn in names:
         e = cells(np.clip(by_tint[tn][2], 0, None)) if tn in by_tint else np.zeros((rows, cols))

@@ -11,7 +11,7 @@ A fleet car keeps its base model's cluster, made plain, and gets a fleet console
 import math
 import numpy as np
 from dashlib import *
-from engine import text_w
+from engine import text_w, plane
 import v6
 from v6 import (hazard_under_ash, lower_boxy6, lower_curvy6, console_vents, ash_tray, no_smoking, taxi_meter6, meter_flag_variants,
                 vent_louvered, vent_eyeball, ASH_W, ASH_H)
@@ -38,7 +38,7 @@ def inset(b, x, y, w, h, mat="walnut", frame="chrome", z=Z_FACE, seed=7, t=2):
     d.flat(m, z, mat, polish=0.55 if mat == "walnut" else 0.3)
     if mat == "walnut": d.grain_wood(m, seed=seed)
     elif mat == "alu": d.grain_brushed(m, 0.06, seed=seed)
-    elif mat in ("blackp", "steel"): d.tex[m & (d.rng.random((H, W)) > 0.6)] += 0.05
+    elif mat in ("blackp", "steel"): d.tex[m & (plane(d.rng, (H, W)) > 0.6)] += 0.05
     if frame == "chrome": chrome_frame(d, x - t, y - t, w + 2 * t, h + 2 * t, z, t=t, r=1, z=2.0 if t > 1 else 1.4)
     elif frame == "seam": d.seam(box(x - 1, y - 1, w + 2, h + 2) & ~m, 0.6)
     return m
@@ -567,7 +567,7 @@ def race(b):
     nd = "#ff3a1a"
     sp = M().rrect(500, 28, 284, 128, 3).get()
     d.flat(sp, Z_FACE + 0.8, "blackp", polish=0.1)
-    d.tex[sp & (d.rng.random((H, W)) > 0.55)] += 0.07
+    d.tex[sp & (plane(d.rng, (H, W)) > 0.55)] += 0.07
     for (x, y) in ((506, 34), (778, 34), (506, 150), (778, 150)):
         d.dome(x, y, 1.8, 1.8, 1.0, "chrome", polish=1.0, on=Z_FACE + 0.8)
     dial(b, 250, 92, 58, 150, 390, list(range(0, 10)), [str(i) for i in range(10)], "rpm", 9000, minor=1, bezel="chrome", bezel_w=3,

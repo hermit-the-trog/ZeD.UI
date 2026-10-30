@@ -139,7 +139,7 @@ def run(did, state, k=1, frames=40, dt=120, paint=True, hints=False, lua_after=N
     with open(path, "w", encoding="utf-8") as f: f.write(src)
     p = subprocess.run([luajit(), path], capture_output=True, text=True, encoding="utf-8", errors="replace")
     if p.returncode != 0: raise RuntimeError(f"{did}: LuaJIT failed\n{p.stderr[-3000:]}")
-    rec = LT.Recorder(800 * k, 172 * k)
+    rec = LT.Recorder(LT.dashlib.W * k, LT.dashlib.H * k)
     hits, badge, hint_lines, probes = [], None, [], {}
     for ln in p.stdout.splitlines():
         if ln.startswith("R "):

@@ -19,6 +19,20 @@ except ImportError:          # no scipy here: the same calls in plain numpy (ndi
 from PIL import Image, ImageDraw
 
 SS = 4
+LEGACY_H = 172      # the plate's height before Oct 29 2026 (it is 178 since: the dash runs to the screen's edge)
+
+
+def plane(r, shape):
+    """r.random(shape) for a field the plate's height (rows first), drawn so that a plate taller than LEGACY_H keeps
+    every value it had at LEGACY_H: the first LEGACY_H rows take the same draws as before and the stream moves on by
+    the same amount; the rows below come from a stream of their own (seeded from the last draw). So the dashes did not
+    reshuffle their grain, speckle and ash when the plate grew; only the new rows are new."""
+    shape = tuple(shape)
+    if shape[0] <= LEGACY_H: return r.random(shape)
+    top = r.random((LEGACY_H,) + shape[1:])
+    seed = int(top.reshape(-1)[-1] * 2 ** 31)
+    low = np.random.default_rng(seed).random((shape[0] - LEGACY_H,) + shape[1:])
+    return np.concatenate([top, low], axis=0)
 
 
 def hx(h):
@@ -322,8 +336,8 @@ class Dash:
         und = 1.3 * np.sin(x * 0.012 + seed) + 0.7 * np.sin(x * 0.037 + y * 0.015 + 1.1) + 0.35 * np.sin(x * 0.09)
         yy = (y + und) / scale
         fine = np.sin(yy * 2.05) * 0.5 + 0.5                       # ~3 px line period
-        streak = ndi.gaussian_filter(r.random(s.YY.shape).astype(np.float32), (0.45, 14.0)) - 0.5
-        slow = ndi.gaussian_filter(r.random(s.YY.shape).astype(np.float32), (4.0, 40.0)) - 0.5
+        streak = ndi.gaussian_filter(plane(r, s.YY.shape).astype(np.float32), (0.45, 14.0)) - 0.5
+        slow = ndi.gaussian_filter(plane(r, s.YY.shape).astype(np.float32), (4.0, 40.0)) - 0.5
         lines = (fine < 0.12) & (streak < 0.02)
         t = 1.6 * streak + 2.4 * slow - 0.09 * lines + 0.03 * fine
         s.tex[m] = t[m]
@@ -332,7 +346,7 @@ class Dash:
     def grain_pebble(s, mask, amount=0.05, seed=5):
         m = s._m(mask)
         r = np.random.default_rng(seed)
-        n = r.random(s.YY.shape).astype(np.float32)
+        n = plane(r, s.YY.shape).astype(np.float32)
         t = np.where(n > 0.86, -amount, np.where(n < 0.06, amount, 0.0))
         s.tex[m] = t[m]
         return m
@@ -340,8 +354,8 @@ class Dash:
     def grain_brushed(s, mask, amount=0.07, seed=9):
         m = s._m(mask)
         r = np.random.default_rng(seed)
-        rows = ndi.gaussian_filter1d(r.random(s.H).astype(np.float32), 0.7) - 0.5
-        streak = ndi.gaussian_filter(r.random(s.YY.shape).astype(np.float32), (0.3, 8.0)) - 0.5
+        rows = ndi.gaussian_filter1d(plane(r, (s.H,)).astype(np.float32), 0.7) - 0.5
+        streak = ndi.gaussian_filter(plane(r, s.YY.shape).astype(np.float32), (0.3, 8.0)) - 0.5
         t = amount * (rows[:, None] * 1.6 + streak * 3.0)
         s.tex[m] = t[m]
         return m
