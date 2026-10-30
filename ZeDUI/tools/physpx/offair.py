@@ -36,7 +36,7 @@ COUNTY = "KNOX COUNTRY, KENTUCKY"
 # inside, keeping its shape. Triple-N's is its "3N News Now Network" (also on its van and its billboard).
 GAME_LOGOS = {"triple_n": "media/textures/printMedia/logos/ENewsNowNetwork.png",
               "turbo": "media/textures/printMedia/logos/TurboTV.png"}
-LOGO_BOX = {"triple_n": (0.10, 0.16, 0.80, 0.44), "turbo": (0.08, 0.25, 0.84, 0.32)}
+LOGO_BOX = {"triple_n": (0.12, 0.24, 0.76, 0.32), "turbo": (0.08, 0.25, 0.84, 0.32)}
 # a tint multiplied into the game's picture (the texture drawn with this colour): TURBO's orange taken to the card's red
 LOGO_TINT = {"turbo": (1.0, 0.42, 0.40)}
 GAME_ROOT = None          # where the game's media/ lives, to draw the logo into review pictures (None: leave the box empty)
@@ -232,8 +232,36 @@ def signoff(cid, w, h):
     name, ch = {c[0]: (c[1], c[2]) for c in CHANNELS}[cid]
     cx, cy = w // 2, int(h * 0.42)
     if cid == "triple_n":
-        a = card_frame(w, h, (196, 200, 210), (120, 126, 140))       # a light studio grey: the logo is drawn for paper
+        # more America (director, Oct 30 2026: "3N needs more MERICA"): the flag waving full-screen behind, the game's
+        # logo on a white band across it, fireworks glints, AMERICA'S NEWS NOW under it
+        a = blank(w, h)
+        RED, WHITE, BLUE = np.array((190, 30, 40)), np.array((240, 240, 236)), np.array((30, 50, 120))
+        yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
+        wave = np.sin(xx / w * 2 * math.pi * 1.2 + yy / h * 1.5) * h * 0.025       # the cloth's ripple
+        sh = 0.82 + 0.18 * np.cos(xx / w * 2 * math.pi * 1.2 + yy / h * 1.5)          # its light and shade
+        stripe = (((yy + wave) / (h / 13.0)).astype(int) % 2 == 0)
+        a[:] = np.where(stripe[..., None], RED, WHITE) / 255.0
+        canton = (xx < w * 0.42) & (yy + wave < h * 7 / 13.0)
+        a[canton] = BLUE / 255.0
+        a *= sh[..., None]
+        sp = max(6, int(w * 0.42 / 8))
+        for r in range(6):                                             # the stars, staggered
+            for c in range(8):
+                x = int(sp * 0.6 + c * sp + (sp // 2 if r % 2 else 0)); y = int(sp * 0.6 + r * sp * 0.85)
+                if x < w * 0.40 and y < h * 7 / 13.0 - 3:
+                    glint(a, x, int(y + np.sin(x / w * 2 * math.pi * 1.2 + y / h * 1.5) * h * 0.025), n=max(1, s // 2 + 1), rgb=(255, 255, 255))
+        fx, fy, fw, fh = LOGO_BOX[cid]                                  # the white band the logo sits on
+        by0, by1 = int(fy * h) - 2 * s, int((fy + fh) * h) + 2 * s
+        rect(a, 0, by0 - 2, w, 2, (30, 50, 120)); rect(a, 0, by1, w, 2, (30, 50, 120))
+        rect(a, 0, by0, w, by1 - by0, (246, 246, 242))
         game_logo(a, cid)
+        rng = np.random.default_rng(1776)                              # fireworks over the flag
+        for _ in range(5):
+            gx_, gy_ = int(rng.integers(w // 2, w - 8)), int(rng.integers(6, by0 - 6))
+            glint(a, gx_, gy_, n=2 + s, rgb=(255, 240, 200))
+        text(a, "AMERICA'S NEWS NOW", w // 2, by1 + 2 * s + 1, max(1, s // 2), (255, 255, 255), outline=(20, 30, 80), shadow=(10, 10, 40))
+        ss_ = max(1, s // 2)                                            # a navy bar under the footer's lines
+        rect(a, 0, int(h * 0.78) - 3, w, 8 * ss_ + 14, (24, 36, 96))
     elif cid == "wbln":
         a = card_frame(w, h, (30, 10, 10), (6, 2, 2))
         r = int(10 * s)
