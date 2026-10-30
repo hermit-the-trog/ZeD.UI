@@ -522,11 +522,14 @@ for i = 2, #PORTABLE do
     end
 end
 
--- ===================================================================== 6. an AM/FM radio keeps the chassis
-step(5, function() hold(newRadio("Base.RadioRed", 0.6)) end)
+-- ===================================================================== 6. an AM/FM radio with faces off keeps the chassis
+-- (Oct 30 2026: the AM/FM radios have faces of their own now, zedqa_rtv.lua; the chassis is the simple card, shown
+-- when ZeD.RadioTab.useFaces is off)
+step(5, function() RT.useFaces = false; hold(newRadio("Base.RadioRed", 0.6)) end)
 waitFor(5, 150, function() local r = CW()._radios and CW()._radios[1]; return r and r.radioInstance == p:getPrimaryHandItem() end, function() end)
 step(10, function()
-    check(tw(CW()) == nil and CW()._radioPwrZone ~= nil, "an AM/FM radio still shows the chassis")
+    check(tw(CW()) == nil and CW()._radioPwrZone ~= nil, "an AM/FM radio with faces off shows the chassis (the simple card)")
+    RT.useFaces = true
     hold(nil)
 end)
 
@@ -736,6 +739,7 @@ step(10, function()
     F.close(pn)
     F.qaJoy = nil
     TW.nameChannel = nameWas
+    RT.useFaces = true
     closeBox()
     for _, obj in ipairs(placed) do
         local sq = obj:getSquare()
