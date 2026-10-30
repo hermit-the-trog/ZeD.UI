@@ -305,6 +305,22 @@ function ZeD.Molecules.drawBackButton(panel, x, y, size, opts)
     return ZeD.Molecules.drawIconButton(panel, x, y, size, drawBackGlyph, b)
 end
 
+--- The close key of a card that shuts (the item card, the object card): an icon button with
+-- the X of the progress band's Cancel (director, Oct 30 2026: "Make it an X"). The back key's
+-- triangle stays where a press steps back inside a tab (a vehicle part, the Equip to-do, the
+-- readers). opts as drawIconButton; its hint defaults to the game's "Close".
+local _closeOpts = {}
+function ZeD.Molecules.drawCloseKey(panel, x, y, size, opts)
+    opts = opts or NO_OPTS
+    local b = _closeOpts
+    b.hover, b.active, b.disabled, b.pressed = opts.hover, opts.active, opts.disabled, opts.pressed
+    b.focus, b.help, b.win, b.tint = opts.focus, opts.help, opts.win, opts.tint
+    b.hint = opts.hint or getText("UI_Close")
+    b.id = opts.id or "close"
+    b.iconSize = math.max(ZeD.T.px(6), math.floor(size * 0.4))
+    return ZeD.Molecules.drawIconButton(panel, x, y, size, ZeD.Atoms.drawCrossGlyph, b)
+end
+
 -- ============================================================================
 -- ZeD_Button — ISPanel-based button (no ISButton dependency)
 -- Delegates all rendering to Molecules.drawButton() draw helper.
@@ -2359,9 +2375,11 @@ function ZeD.Molecules.drawCardBackBar(panel, x, y, w, name, verbs, progressActi
     if opts.backHover ~= nil then _bbBack.hover = opts.backHover
     else _bbBack.hover = A.mouseIn(panel, backX, btnY, btnH, btnH) end
     _bbBack.focus = partFocus(opts, "back")
-    _bbBack.help = opts.backHelp or ZeD.tr("UI_ZeD_Card_HelpBack")
+    _bbBack.help = opts.backHelp or ZeD.tr(opts.close and "UI_ZeD_Card_HelpClose" or "UI_ZeD_Card_HelpBack")
     _bbBack.win = opts.win
-    M.drawBackButton(panel, backX, btnY, btnH, _bbBack)
+    -- (opts.close: a card that shuts shows the close key's X in the back key's place)
+    if opts.close then M.drawCloseKey(panel, backX, btnY, btnH, _bbBack)
+    else M.drawBackButton(panel, backX, btnY, btnH, _bbBack) end
 
     if outRects then
         outRects.back  = {x = backX, y = btnY, w = btnH, h = btnH}

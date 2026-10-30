@@ -5,7 +5,8 @@
 -- rings, a watch, knee / elbow / shin pads, a fanny pack, a shoulder holster, necklaces ...) and checks:
 --   * the 38 small slots exist, with their words, and no slot (big or small) overlaps another
 --   * every worn thing lands in its small slot (layers where two share one) and, folded, in its big slot
---   * Arms sits above Belt, no leader line crosses another
+--   * no leader lines (Oct 30 2026); the full card's split: Back at the top right, Arms on the left;
+--     the narrow doll: Back, Arms, Belt down the right
 --   * a small slot's card opens (the pad's A) and steps its layers
 --   * the D-pad walks into and out of both bands, reaches all 49 slots and leaves at the outer edges
 --   * a dropped item that fits wears there (the drop handler's hook), one that doesn't is refused
@@ -240,14 +241,17 @@ local function layoutChecks(label, expectBands)
         check(label .. ": a small slot is 14 units or more on screen", small and small.w / U >= 13.9, small and string.format("%.1f units", small.w / U))
     end
     local lines = w._equipDollLines or {}
-    check(label .. ": 11 leader lines, none crossing another", #lines == 11 and lineCrossings(lines) == 0, #lines .. " lines, " .. lineCrossings(lines) .. " crossings")
-    local arms, belt, back = rectOf("arms"), rectOf("belt"), rectOf("back")
-    check(label .. ": Back, Arms, Belt in that order down the right", arms and belt and back and back.y < arms.y and arms.y < belt.y,
-        back and arms and belt and (back.y .. "," .. arms.y .. "," .. belt.y))
-    local armsLine, beltLine
-    for i, def in ipairs(Doll.SLOTS) do if def.id == "arms" then armsLine = lines[i] elseif def.id == "belt" then beltLine = lines[i] end end
-    check(label .. ": arms' line is one straight run, belt's turns up", armsLine and #armsLine == 4 and armsLine[2] == armsLine[4] and beltLine and #beltLine == 8,
-        (armsLine and #armsLine or "nil") .. "/" .. (beltLine and #beltLine or "nil"))
+    check(label .. ": no leader lines", #lines == 0, #lines .. " lines")
+    local arms, belt, back, head = rectOf("arms"), rectOf("belt"), rectOf("back"), rectOf("head")
+    if expectBands then
+        -- the split (director, Oct 30 2026): the upper body on the left, Back and the belt and below on the right
+        check(label .. ": Back at the top right above Belt, Arms on the left with Head", arms and belt and back and head
+            and back.x > arms.x and back.y < belt.y and back.x == belt.x and arms.x < belt.x and head.x < belt.x,
+            back and arms and belt and (back.x .. "," .. back.y .. " " .. arms.x .. " " .. belt.x .. "," .. belt.y))
+    else
+        check(label .. ": Back, Arms, Belt in that order down the right", arms and belt and back and back.y < arms.y and arms.y < belt.y,
+            back and arms and belt and (back.y .. "," .. arms.y .. "," .. belt.y))
+    end
 end
 
 local function isBig(id)

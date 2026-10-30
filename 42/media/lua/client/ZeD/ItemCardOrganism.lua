@@ -1243,7 +1243,8 @@ function ZeD_ItemCard:renderBody(ctx)
     local bbo = self._backBarOpts
     if not bbo then bbo = {}; self._backBarOpts = bbo end
     bbo.focusId, bbo.focus = bf and "back" or nil, bf
-    bbo.backHelp = ZeD.tr("UI_ZeD_Card_HelpBack")
+    bbo.backHelp = ZeD.tr("UI_ZeD_Card_HelpClose")
+    bbo.close = true   -- the card's key is an X: it shuts the card (director, Oct 30 2026)
     local bbH = M.drawCardBackBar(self, 0, cy, w, "",
         headerVerbs, progressActive, compact, backBarRects, bbo)
     self._backBarRects   = backBarRects
