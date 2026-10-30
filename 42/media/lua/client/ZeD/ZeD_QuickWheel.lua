@@ -62,6 +62,11 @@ local DRINK = nil
 local function drinkWord() DRINK = DRINK or getText("ContextMenu_Drink"); return DRINK end
 
 local function isSmokable(it) return _safe(function() return it:hasTag(ItemTag.SMOKABLE) end, false) end
+-- what the Smoke action can take: a smokable that is food, as the game's own Smoke row is
+-- (another smokable thing went to the game's eat action and broke its duration; Oct 29 2026)
+local function isSmoke(it)
+    return isSmokable(it) and _safe(function() return instanceof(it, "Food") end, false)
+end
 
 local function isFood(it)
     if _safe(function() return it:getCategory() end, "") ~= "Food" then return false end
@@ -232,7 +237,7 @@ local GROUPS = {
       off = function(p) return Q.tooFull(p) end },
     { id = "drink", label = "ContextMenu_Drink", test = function(it) return isWater(it) or isBeverage(it) or isFoodDrink(it) end, act = drink,
       order = function(x, y) return (isWater(x.item) and 0 or 1) < (isWater(y.item) and 0 or 1) end },
-    { id = "smoke", label = "ContextMenu_Smoke", test = isSmokable, act = smoke, usable = canLight },
+    { id = "smoke", label = "ContextMenu_Smoke", test = isSmoke, act = smoke, usable = canLight },
     { id = "pills", label = "ContextMenu_Take_pills", test = isPills, act = pills },
     { id = "read", label = "ContextMenu_Read", test = isReadable, act = read,
       off = function(p) return _safe(function() return p:tooDarkToRead() end, false) end },

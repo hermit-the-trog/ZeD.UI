@@ -28,7 +28,7 @@ if not (W and W.iconTex and D and D.pictureOf) then say("ERR the wheel icons are
 
 -- every icon id (151)
 local IDS = {
-    "knife", "apple", "glass", "medkit", "bandage", "bed", "shirt", "backpack", "hand", "cigarette", "book", "watch",
+    "knife", "apple", "glass", "medkit", "bandage", "bed", "shirt", "backpack", "view_list", "hanger", "hand", "cigarette", "book", "watch",
     "walkie", "map", "minimap", "pin", "car", "cow", "toolbox", "magnifier", "magnifier_off", "bulb_on", "bulb_off",
     "fence", "eye", "eye_off", "box_up", "box_down", "rotate", "screwdriver", "wrench", "generator", "campfire",
     "chair", "gauge", "bullhorn", "rooms", "seat", "car_door", "car_enter", "car_exit", "key", "key_off", "hotwire",
@@ -138,6 +138,7 @@ local ZED = {
     { "character", "ContextMenu_Sleep", "bed" },
     { "character", "UI_ZeD_Wheel_Clothing", "shirt" },
     { "character", "UI_ZeD_Wheel_Use", "backpack" },
+    { "character", "UI_ZeD_Wheel_Loadouts (Oct 29 2026)", "view_list" },
     { "character > Weapons", "UI_ZeD_Wheel_HandsFree", "hand" },
     { "character > Medicine", "the wounds (H.treatments' entries)", "bandage" },
     { "character > Medicine, Clothing, Radio", "the tab slices (Health, Equipment, Radio)", "heart / jacket / walkie" },

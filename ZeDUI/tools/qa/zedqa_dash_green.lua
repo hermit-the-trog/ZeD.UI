@@ -65,7 +65,11 @@ local function carReady(v)
     local okC = pcall(function() chunk = v:getChunk() end)
     if not okC and sq then pcall(function() chunk = sq:getChunk() end) end
     pcall(function() dist = v:DistTo(p) end)
-    return sq ~= nil and chunk ~= nil and dist <= MAXD
+    -- (42.22: seated before its physics is up, the engine's BaseVehicle.updatePhysics NPE drops the game to the
+    -- main menu, as zedqa_dash19.lua and zedqa_dashnight.lua found; Oct 29 2026 it did so here)
+    local phys = false
+    pcall(function() phys = v:isPhysicsActive() end)
+    return sq ~= nil and chunk ~= nil and dist <= MAXD and phys == true
 end
 local READY_HOLD_MS = 1500
 local readySince = nil

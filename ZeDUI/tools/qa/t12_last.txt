@@ -1,0 +1,7 @@
+zedqa_prelude.lua | pre                          # opens both windows, unpauses, god mode, ~60 ticks
+zedqa_dash_green.lua | dgr | timeout=600 | expect=FBORenderCell   # D6 fan needle parked by day, fire pickup at speed, the green-lit late models at night (zedqa_dash_green_only.lua only sets a flag for dash_green_night.txt)
+zedqa_dash_keys_edge.lua | dke | timeout=1500 | expect=FBORenderCell   # 19 designs: the key at OFF, START, ON, the fob whole, the dash flush on the screen's edge (dash_keys_edge.txt)
+zedqa_dash_brands.lua | dbr | timeout=900 | expect=FBORenderCell   # the makers' marks: 13 civilian cars, the Step Van on the Valuline's dash, a modded name's plaque, two at night (dash_brands.txt)
+zedqa_testlang.lua | tlang | timeout=600      # every screen with the stretched test language (screenshots zqa_tl_*)
+zedqa_safemode.lua | safe | timeout=240         # safe mode trips, turns ZeD off, and recovers
+zedqa_soak.lua | soak | timeout=2700             # every tab for 12 rounds at the fastest speed (7 to 15 minutes)
