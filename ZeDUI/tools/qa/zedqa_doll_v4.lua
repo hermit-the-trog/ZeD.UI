@@ -472,12 +472,12 @@ step(300, function()
     cw()._equipDollTimer = 99
 end)
 
--- ---- F. the half card (260 units): the bands fold away
+-- ---- F. the half card (220 units): the bands fold away
 step(20, function()
     local w = cw()
     origMax = w._maxWinW
     -- the window's cap on its width is what leaves the drawer its room (ZeD_CharacterWindow.getTargetDrawerW)
-    w._maxWinW = T.px(36 + 36 + 200 + 260)   -- the half card (260 units)
+    w._maxWinW = T.px(36 + 36 + 200 + 260)   -- room for less than the full card: the drawer steps down to the half card (220 units)
 end)
 step(20, function() whenStill(function()
     local w = cw()

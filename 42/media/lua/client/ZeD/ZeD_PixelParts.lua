@@ -70,6 +70,19 @@ function P.k(scale)
     if Sc and Sc.artZoom then return Sc.artZoom(scale or 1) end
     return math.max(1, math.floor((scale or 1) + 0.5 + 1e-6))
 end
+-- the face to draw for a machine plate in `availW` screen px: its narrow face (PhysPx.narrow) when the main
+-- face at the plates' whole zoom is wider than the room, else the main face (the rule the radio tab uses for
+-- a ham set). Returns the plate and its id; (nil, pid) when there is no such plate.
+function P.pick(pid, availW)
+    local X = ZeD.PhysPx
+    local des = X and X.plates[pid]
+    if not des then return nil, pid end
+    local nid = X.narrow and X.narrow[pid]
+    if nid and X.plates[nid] and des.w * P.k((ZeD.Scale and ZeD.Scale.root and ZeD.Scale.root()) or 1) > availW then
+        return X.plates[nid], nid
+    end
+    return des, pid
+end
 -- the same, for art `artW` texels wide inside a column `availW` screen px wide (a plate in a card): a whole
 -- step smaller while it would not fit, never below 1. The caller lays out with the k it gets.
 function P.kFit(scale, artW, availW)

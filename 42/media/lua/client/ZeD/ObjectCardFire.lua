@@ -428,7 +428,7 @@ local function propaneBody(card, x, y, w, t, player)
     local y0 = y
     local gap = T.px(8)
     local X = ZeD.PhysPx
-    local des = X and X.plates[X.fallback.propane]
+    local des = X and P.pick(X.fallback.propane, w)   -- the narrow face where the main face at the whole zoom does not fit the card
     if des then
         local Sc = ZeD.Scale
         local k = P.kFit((Sc and Sc.root and Sc.root()) or 1, des.w, w)   -- whole zoom, inside the card

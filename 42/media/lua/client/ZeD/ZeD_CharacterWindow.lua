@@ -119,11 +119,15 @@ local TAB_BTN_SZ   = 36
 -- layout, hit zones and drawing in step.
 local TAB_SEP_H    = 0
 local TAB_SEP_MAR  = 0
-local DRAWER_W          = 260
+-- The drawer is one of two widths and no other (director, Oct 29 2026: "a full card and a half card"; a
+-- third width bumps the cards into each other). ITEM_CARD_W is the half card: the item card is drawn at it,
+-- and DRAWER_W (what a tab gets when it asks for less than the full card, and the width a small window steps
+-- down to) is the same number. SKILLS_DRAWER_W is the full card.
 local ITEM_CARD_W       = 220
+local DRAWER_W          = ITEM_CARD_W
 local SKILLS_DRAWER_W   = 480
 local DRAWER_SPEED      = 8    -- units/sec, matches CharacterDrawer pattern
-local DRAWER_PX_SPEED   = DRAWER_W * DRAWER_SPEED  -- ~2080 design units/sec; scaled at use (T.px(DRAWER_PX_SPEED) * dt)
+local DRAWER_PX_SPEED   = 260 * DRAWER_SPEED  -- ~2080 design units/sec; scaled at use (T.px(DRAWER_PX_SPEED) * dt)
 local CONTAINER_STRIP_W = 36
 local CONTAINER_BTN_SZ  = 36
 local ARROW_SZ          = 5   -- scroll arrow / chevron size (used in scroll indicators)
@@ -245,32 +249,29 @@ local function getTargetDrawerW(win)
         if win._drawerMode == "item" then return T.px(ITEM_CARD_W) end
         if win._drawerMode == "tab" then
             local want = T.px(getTabDrawerW(win._activeTab))
-            -- a two-way radio: a walkie's tab is only as wide as its face's panel; a ham set's is wide enough for it,
-            -- or a walkie's width with the set's narrow face where the window holds the drawer in (the cap below)
-            if win._activeTab == "radio" and ZeD.RadioTab and ZeD.RadioTab.wantW then
-                local limit = nil
-                if win._invDrawerOpen and #(win._mcSelected or {}) == 0 then
-                    local maxW = win._maxWinW or math.floor(getCore():getScreenWidth() * 0.5)
-                    limit = math.max(T.px(DRAWER_W), maxW - T.px(TAB_STRIP_W) - T.px(CONTAINER_STRIP_W) - T.px(200))
-                end
-                local rw = ZeD.RadioTab.wantW(win, want, limit)
-                if rw then want = rw end
-            end
+            local half, full = T.px(DRAWER_W), T.px(SKILLS_DRAWER_W)
             -- The window is capped at half the screen, so on a small screen or a
-            -- large text size a wide tab would squeeze the inventory beside it
-            -- below its 200-unit minimum. Give the tab only the room left after
-            -- the inventory's minimum (it scrolls), never less than the standard
-            -- drawer. Multi-column Loot lifts the cap, so it is left alone there.
+            -- large text size a full card would squeeze the inventory beside it
+            -- below its 200-unit minimum. Where the full card does not fit with the
+            -- inventory's minimum (it scrolls), the tab gets the half card, never a
+            -- width in between. Multi-column Loot lifts the cap, so it is left alone there.
             -- (A rolled side (WindowCurtain) keeps the cap: the drawer stays as wide as it
             -- was, so a roll and an unroll only take the side away and give it back. Lifting
             -- the cap while rolled widened the drawer, shoved the window against the screen
             -- edge and left it elsewhere and at another size after the unroll.)
+            local heldIn = false
             if win._invDrawerOpen and #(win._mcSelected or {}) == 0 then
                 local maxW = win._maxWinW or math.floor(getCore():getScreenWidth() * 0.5)
-                local room = maxW - T.px(TAB_STRIP_W) - T.px(CONTAINER_STRIP_W) - T.px(200)
-                want = math.max(math.min(want, T.px(DRAWER_W)), math.min(want, room))
+                heldIn = maxW - T.px(TAB_STRIP_W) - T.px(CONTAINER_STRIP_W) - T.px(200) < full
             end
-            return want
+            -- a two-way radio: a walkie's tab is the card its face's panel fits; a ham set's is the full card,
+            -- or the card a walkie's width fits with the set's narrow face where the drawer is held in
+            if win._activeTab == "radio" and ZeD.RadioTab and ZeD.RadioTab.wantW then
+                local rw = ZeD.RadioTab.wantW(win, want, heldIn and half or full)
+                if rw then want = rw end
+            end
+            if heldIn or want <= half then return half end
+            return full
         end
         return 0
     end

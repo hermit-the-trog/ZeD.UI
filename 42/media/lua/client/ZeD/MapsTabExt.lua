@@ -159,7 +159,8 @@ end
 
 -- The extensions' buttons from x on, row one; returns the x after them. The
 -- list button (drawer only) comes last, while the side list has something in it.
-function E.drawButtons(panel, win, x, y, h, focId)
+-- noLead: no line before them (they start a row of their own).
+function E.drawButtons(panel, win, x, y, h, focId, noLead)
     local T = ZeD.T
     local narrow = not E.isPopout(win, panel)
     local btns = {}
@@ -175,31 +176,28 @@ function E.drawButtons(panel, win, x, y, h, focId)
     end
     if #btns == 0 then return x end
     -- a content line between the inks and these (1u T.border)
-    ZeD.Atoms.drawDividerV(panel, x, y + T.px(4), h - T.px(8), false)
-    x = x + T.hair + T.px(8)
+    if not noLead then
+        ZeD.Atoms.drawDividerV(panel, x, y + T.px(4), h - T.px(8), false)
+        x = x + T.hair + T.px(8)
+    end
     for _, b in ipairs(btns) do
         x = x + drawBtn(panel, win, b, x, y, h, true, focId) + T.px(4)
     end
     return x
 end
 
--- design units the World window's Maps drawer grows by for these buttons (icon
--- buttons, the standard button height and 4 apart, the line before them, and the
--- list button when any extension fills the side list), so the toolbar's row
--- still holds the Survey / Color / Paper choice (ZeD_WorldWindow's
--- getWorldTabDrawerW). The button height is in screen px: back to units here.
-function E.drawerExtraW()
-    local n, side = 0, false
+-- screen px the buttons drawButtons draws take (0 when there are none): the line before them, then each
+-- button (an icon button, the standard height) and the 4 after it, the list button among them when any
+-- extension fills the side list. MapsTab.lua puts them on a row of their own when row one has not the room.
+function E.buttonsW(win, panel)
+    local n = 0
     for _, d in ipairs(E.list) do
-        if d.button then n = n + 1 end
-        if d.side then side = true end
+        if call(d, "button", win) then n = n + 1 end
     end
-    if side then n = n + 1 end
+    if not E.isPopout(win, panel) and E.hasSide(win) then n = n + 1 end
     if n == 0 then return 0 end
     local T = ZeD.T
-    local bu = 26
-    if T and T.buttonH and T.scale and T.scale > 0 then bu = math.ceil(T.buttonH / T.scale) end
-    return 13 + (bu + 4) * n
+    return T.hair + T.px(8) + n * (T.buttonH + T.px(4))
 end
 
 -- ---------------------------------------------------------------------------

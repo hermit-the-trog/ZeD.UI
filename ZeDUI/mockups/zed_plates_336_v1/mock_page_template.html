@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZeD-GUI: machine plates at 336 px (mockup v1)</title>
+<style>
+@font-face { font-family: "ZFS"; src: local("Fira Sans Condensed"), local("FiraSansCondensed-Regular"); }
+@font-face { font-family: "ZFS"; font-weight: 700; src: local("Fira Sans Condensed Bold"), local("FiraSansCondensed-Bold"); }
+@font-face { font-family: "ZFM"; src: local("Fira Mono"), local("FiraMono-Regular"); }
+:root { --bg:#1a1a1a; --chrome:#2a2a2a; --well:#151515; --edge:#000; --hi:#4a4a4a; --text:#e0e0e0; --dim:#999;
+        --accent:#d97a1f; --ok:#5fbf5f; --bad:#e0533a; --warn:#d9a21f; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: "ZFS", "Fira Sans Condensed", "Arial Narrow", sans-serif;
+       font-size: 15px; line-height: 1.35; padding: 12px; max-width: 1100px; margin: 0 auto; }
+.mono { font-family: "ZFM", "Fira Mono", ui-monospace, monospace; }
+h1 { font-size: 20px; font-weight: 700; }
+.sub { color: var(--dim); font-size: 13px; margin-top: 2px; }
+.win { background: var(--chrome); border-top: 1px solid var(--hi); border-left: 1px solid var(--hi);
+       border-right: 1px solid var(--edge); border-bottom: 1px solid var(--edge); margin-top: 12px; }
+.win > .bar { padding: 6px 10px; border-bottom: 1px solid var(--edge); display: flex; align-items: center; gap: 8px;
+              font-weight: 700; font-size: 14px; }
+.win > .bar .dot { width: 8px; height: 8px; background: var(--accent); }
+.win > .body { padding: 10px; }
+.chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+.chip { flex: none; background: var(--chrome); color: var(--text); font: inherit; font-size: 14px; padding: 7px 11px;
+        border-top: 1px solid var(--hi); border-left: 1px solid var(--hi); border-right: 1px solid var(--edge);
+        border-bottom: 1px solid var(--edge); cursor: pointer; white-space: nowrap; }
+.chip.on { background: var(--accent); color: #1a0500; border-color: #000; font-weight: 700; }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
+.lbl { color: var(--dim); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; min-width: 52px; }
+.stage { background: var(--well); border: 1px solid var(--edge); margin-top: 10px; padding: 12px; overflow-x: auto; }
+.stage img { margin: 0 auto; }
+.stage img { image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+.dims { font-size: 13px; color: var(--dim); margin-top: 6px; text-align: center; }
+.note { margin-top: 10px; font-size: 15px; }
+.fit { margin-top: 4px; }
+.bars { margin-top: 10px; }
+.barrow { margin-top: 8px; }
+.barrow .cap { font-size: 13px; display: flex; justify-content: space-between; gap: 8px; }
+.track { position: relative; height: 14px; background: #0c0c0c; border: 1px solid #000; margin-top: 3px; }
+.room { position: absolute; left: 0; top: 0; bottom: 0; border-right: 2px dashed var(--dim); }
+.fill { position: absolute; left: 0; top: 2px; bottom: 2px; }
+table { border-collapse: collapse; width: 100%; margin-top: 12px; font-size: 13px; }
+th, td { padding: 5px 4px; text-align: center; border-bottom: 1px solid #000; }
+th { color: var(--dim); font-weight: 400; text-transform: uppercase; letter-spacing: 1px; font-size: 11px; }
+td.l { text-align: left; color: var(--dim); }
+td.sel { outline: 1px solid var(--accent); outline-offset: -1px; }
+.ok { color: var(--ok); } .bad { color: var(--bad); } .warn { color: var(--warn); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; margin-top: 10px; }
+.grid.narrow { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+.cell { background: var(--well); border: 1px solid #000; padding: 6px; cursor: pointer; }
+.cell.on { outline: 2px solid var(--accent); }
+.cell img { width: 100%; image-rendering: pixelated; display: block; }
+.cell .t { font-size: 13px; margin-top: 4px; display: flex; justify-content: space-between; color: var(--dim); }
+.cell .t b { color: var(--text); font-weight: 400; }
+.key { font-size: 13px; color: var(--dim); margin-top: 8px; }
+@media (max-width: 600px) {
+  body { padding: 8px; } .win > .body { padding: 8px; } .stage { padding: 3px; }
+  .grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<h1>Machine plates at 336 px</h1>
+<div class="sub">Mockup v1, Oct 29 2026. Main faces at 336, narrow faces at 200 for the smallest settings. Drawn by the real physpx code in a scratch copy, nothing exported. Spec: PLATE_SIZES_SPEC.md</div>
+
+<div class="win">
+  <div class="bar"><span class="dot"></span><span id="ttl">Plate</span></div>
+  <div class="body">
+    <div class="chips" id="fams"></div>
+    <div class="chips" id="pids" style="margin-top:6px"></div>
+    <div class="row">
+      <span class="lbl">Version</span>
+      <button class="chip" data-ver="new">336 main face</button>
+      <button class="chip" data-ver="narrow">200 narrow</button>
+      <button class="chip" data-ver="today">Today</button>
+      <span class="lbl" style="margin-left:6px">State</span>
+      <button class="chip" data-st="0">Off</button>
+      <button class="chip" data-st="1">On</button>
+    </div>
+    <div class="row">
+      <span class="lbl">Zoom</span>
+      <button class="chip" data-z="1">1x</button>
+      <button class="chip" data-z="2">2x</button>
+      <button class="chip" data-z="3">3x</button>
+    </div>
+    <div class="stage"><img id="img" alt=""></div>
+    <div class="dims mono" id="dims"></div>
+    <div class="note" id="note"></div>
+  </div>
+</div>
+
+<div class="win">
+  <div class="bar"><span class="dot"></span>Fit in the full card</div>
+  <div class="body">
+    <div class="row" style="margin-top:0"><span class="lbl">UI scale</span></div>
+    <div class="chips" id="scales" style="margin-top:6px"></div>
+    <div class="bars" id="bars"></div>
+    <table id="tbl"></table>
+    <div class="key">Room = 450 units × UI scale. Plates draw at whole zooms (1x below 1.5, 2x to 2.49, 3x to 3.49, 4x above).
+      <span class="ok">Fits</span> = full zoom. <span class="warn">Smaller</span> = drops a zoom step.
+      <span class="bad">Overflows</span> = no smaller zoom, so the drawer widens.</div>
+  </div>
+</div>
+
+<div class="win">
+  <div class="bar"><span class="dot"></span>All 17 at 336 (1x)</div>
+  <div class="body"><div class="grid" id="grid"></div></div>
+</div>
+
+<div class="win">
+  <div class="bar"><span class="dot"></span>All 17 narrow, 200 (1x): the smallest settings only</div>
+  <div class="body"><div class="grid narrow" id="gridn"></div></div>
+</div>
+
+<script>
+const DATA = __DATA__;
+const SCALES = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4];
+const S = { fam: DATA.order[0][0], pid: DATA.order[0][1][0], ver: "new", st: 1, z: window.innerWidth >= 760 ? 2 : 1, scale: 1.75 };
+
+const zoomFor = s => s < 1.5 ? 1 : s < 2.5 ? 2 : s < 3.5 ? 3 : 4;
+function fit(w, scale) {
+  const room = Math.floor(450 * scale), z = zoomFor(scale);
+  for (let k = z; k >= 1; k--) if (w * k <= room) return { room, z, k, drawn: w * k, state: k === z ? "ok" : "warn" };
+  return { room, z, k: 1, drawn: w, state: "bad" };
+}
+const word = f => f.state === "ok" ? `Fits at ${f.k}x` : f.state === "warn" ? `Smaller: ${f.k}x, not ${f.z}x` : "Overflows";
+
+function chip(label, on, fn) { const b = document.createElement("button"); b.className = "chip" + (on ? " on" : ""); b.textContent = label; b.onclick = fn; return b; }
+
+function render() {
+  const P = DATA.plates[S.pid], V = P[S.ver];
+  document.getElementById("ttl").textContent = P.title;
+  const fams = document.getElementById("fams"); fams.innerHTML = "";
+  DATA.order.forEach(([f, ids]) => fams.appendChild(chip(f, f === S.fam, () => { S.fam = f; S.pid = ids[0]; render(); })));
+  const pids = document.getElementById("pids"); pids.innerHTML = "";
+  DATA.order.find(o => o[0] === S.fam)[1].forEach(id => pids.appendChild(chip(DATA.plates[id].title, id === S.pid, () => { S.pid = id; render(); })));
+  document.querySelectorAll("[data-ver]").forEach(b => { b.classList.toggle("on", b.dataset.ver === S.ver); b.onclick = () => { S.ver = b.dataset.ver; render(); }; });
+  document.querySelectorAll("[data-st]").forEach(b => { b.classList.toggle("on", +b.dataset.st === S.st); b.onclick = () => { S.st = +b.dataset.st; render(); }; });
+  document.querySelectorAll("[data-z]").forEach(b => { b.classList.toggle("on", +b.dataset.z === S.z); b.onclick = () => { S.z = +b.dataset.z; render(); }; });
+  const img = document.getElementById("img");
+  img.src = "data:image/png;base64," + V.img[Math.min(S.st, V.img.length - 1)];
+  img.width = V.w * S.z; img.height = V.h * S.z;
+  document.getElementById("dims").textContent =
+    `today ${P.today.w} × ${P.today.h}   →   336 face ${P.new.w} × ${P.new.h}   ·   narrow ${P.narrow.w} × ${P.narrow.h}   (shown at ${S.z}x)`;
+  document.getElementById("note").textContent = P.note;
+
+  const sc = document.getElementById("scales"); sc.innerHTML = "";
+  SCALES.forEach(s => sc.appendChild(chip((s === 1.75 ? "1.75 (yours)" : String(s)), s === S.scale, () => { S.scale = s; render(); })));
+  const bars = document.getElementById("bars"); bars.innerHTML = "";
+  const maxw = Math.max(450 * S.scale, P.today.w * zoomFor(S.scale), P.new.w * zoomFor(S.scale));
+  [["Today", P.today.w], ["336 face", P.new.w], ["200 narrow", P.narrow.w]].forEach(([name, w]) => {
+    const f = fit(w, S.scale);
+    const r = document.createElement("div"); r.className = "barrow";
+    r.innerHTML = `<div class="cap"><span>${name}: ${w} px × ${f.k} = ${f.drawn} of ${f.room}</span><span class="${f.state}">${word(f)}</span></div>
+      <div class="track"><div class="fill" style="width:${(Math.max(f.drawn, f.state === "bad" ? w : 0) / maxw * 100).toFixed(1)}%;
+        background:${f.state === "ok" ? "var(--ok)" : f.state === "warn" ? "var(--warn)" : "var(--bad)"}"></div>
+      <div class="room" style="width:${(f.room / maxw * 100).toFixed(1)}%"></div></div>`;
+    bars.appendChild(r);
+  });
+  const t = document.getElementById("tbl");
+  let h = "<tr><th></th>" + SCALES.map(s => `<th>${s}</th>`).join("") + "</tr>";
+  [["Today", P.today.w], ["336", P.new.w], ["200", P.narrow.w]].forEach(([name, w]) => {
+    h += `<tr><td class="l">${name}</td>` + SCALES.map(s => { const f = fit(w, s);
+      const sym = f.state === "ok" ? f.k + "x" : f.state === "warn" ? f.k + "x↓" : "✕";
+      return `<td class="${f.state}${s === S.scale ? " sel" : ""}">${sym}</td>`; }).join("") + "</tr>";
+  });
+  t.innerHTML = h;
+
+  [["grid", "new"], ["gridn", "narrow"]].forEach(([gid, ver]) => {
+    const g = document.getElementById(gid); g.innerHTML = "";
+    DATA.order.forEach(([f, ids]) => ids.forEach(id => {
+      const Q = DATA.plates[id], V2 = Q[ver], c = document.createElement("div");
+      c.className = "cell" + (id === S.pid && S.ver === ver ? " on" : "");
+      c.innerHTML = `<img src="data:image/png;base64,${V2.img[V2.img.length - 1]}" alt="${Q.title}">
+        <div class="t"><b>${Q.title}</b><span class="mono">${V2.w}×${V2.h}</span></div>`;
+      c.onclick = () => { S.fam = f; S.pid = id; S.ver = ver; render(); window.scrollTo({ top: 0, behavior: "smooth" }); };
+      g.appendChild(c);
+    }));
+  });
+}
+render();
+</script>
+</body>
+</html>

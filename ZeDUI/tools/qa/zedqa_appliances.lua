@@ -91,9 +91,12 @@ local function tabChecks(tag, obj)
     local k0 = ZeD.Px.k(root())
     local effW = w and math.floor(w._drawerEffW or 0) or 0
     local kTab = des and ZeD.Px.kFit(root(), des.w, effW - ZeD.T.sp.scrollbarW) or 0
-    say(string.format("%s: plate %s %dx%d, tab %d px, want %s, zoom in the tab %d (the screen's %d)", tag, tostring(des and des.plate),
-        des and des.w or 0, des and des.h or 0, effW, tostring(SA.wantW(p)), kTab, k0))
-    check(kTab == k0, tag .. ": the plate draws at the screen's whole zoom in the tab")
+    say(string.format("%s: plate %s %dx%d, tab %d px, zoom in the tab %d (the screen's %d)", tag, tostring(des and des.plate),
+        des and des.w or 0, des and des.h or 0, effW, kTab, k0))
+    -- the tab is the full card and no wider (Oct 29 2026); the plate draws at the largest whole zoom that fits it
+    -- (the screen's own once Design's 336 px plates are in: ZeDUI/PLATE_SIZES_SPEC.md)
+    check(effW == ZeD.T.px(480), tag .. ": the tab is the full card")
+    check(kTab >= 1 and kTab <= k0, tag .. ": the plate draws at a whole zoom that fits the card")
     local hasBtn = false
     for _, z in ipairs((w and w._craftState and w._craftState.zones) or {}) do if z.type == "popout" then hasBtn = true end end
     check(hasBtn, tag .. ": the tab has the pop-out button")

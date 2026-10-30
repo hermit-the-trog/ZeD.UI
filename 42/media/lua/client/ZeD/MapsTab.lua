@@ -1290,6 +1290,16 @@ local function _styleBox(panel, win, bx, by, bw, bh, label, focId, hov)
     win._mapStyleMenuGeo = { x = bx, y = by + bh, w = bw }
 end
 
+-- the pop-up menu box's width (screen px): the widest of the three words in the box
+local function _styleBoxW()
+    local T, tm = ZeD.T, ZeD.TM
+    local widest = 0
+    for _, id in ipairs(STYLE_ORDER) do
+        widest = math.max(widest, tm:MeasureStringX(T.fontF1, ZeD.tr(STYLE_WORD[id])))
+    end
+    return widest + T.px(6) * 2 + T.px(5) + T.px(4)
+end
+
 -- Survey / Color / Paper, right-aligned so it ends at rightX and starts no
 -- earlier than minX: the radio buttons when they fit, else the pop-up menu's
 -- box, else nothing. Only when the base map carries its illustration.
@@ -1328,7 +1338,7 @@ local function _styleChoice(panel, win, minX, rightX, by, bs, focId, hov)
         end
         return
     end
-    local bw = widest + T.px(6) * 2 + T.px(5) + T.px(4)
+    local bw = _styleBoxW()
     if rightX - bw < minX then win._mapStyleMenuOpen = nil; return end
     _styleBox(panel, win, rightX - bw, by, bw, bs, ZeD.tr(STYLE_WORD[cur] or STYLE_WORD.survey), focId, hov)
 end
@@ -1400,17 +1410,32 @@ local function renderMapToolbar(panel, win, x, y, w)
         curX = curX + colSz + btnGap
     end
 
-    -- the extensions' buttons (the map key; mods' tools), then the list button
-    curX = Ext.drawButtons(panel, win, curX + btnGap, by, bs, focId)
-
     -- right end: the unfold button, and Survey / Color / Paper before it
     local ux = x + w - T.px(4) - bs
     _unfoldButton(panel, win, ux, by, bs, focId, hov)
-    _styleChoice(panel, win, curX + btnGap, ux - btnGap * 3, by, bs, focId, hov)
 
+    -- the extensions' buttons (the map key; mods' tools), then the list button. The drawer is the full card
+    -- and no wider (director, Oct 29 2026): where they and Survey / Color / Paper do not fit beside the
+    -- inks, they take a row of their own under them, with the choice at its right end
+    local extW = Ext.buttonsW(win, panel)
+    local styleW = ZeD.MapsTab.hasPaper() and _styleBoxW() or 0
+    local ownRow = extW > 0 and curX + btnGap + extW + styleW + btnGap * 3 > ux
     local totalH = rowH
+    if ownRow then
+        local y2 = y + rowH
+        ZeD.Atoms.surfaceFill(panel, x, y2, w, rowH, "surf2")
+        ZeD.Atoms.drawDividerH(panel, x, y2, w, false)
+        local by2 = y2 + math.floor((rowH - bs) / 2)
+        local ex = Ext.drawButtons(panel, win, x + T.px(4), by2, bs, focId, true)
+        _styleChoice(panel, win, ex + btnGap, x + w - T.px(4), by2, bs, focId, hov)
+        totalH = totalH + rowH
+    else
+        curX = Ext.drawButtons(panel, win, curX + btnGap, by, bs, focId)
+        _styleChoice(panel, win, curX + btnGap, ux - btnGap * 3, by, bs, focId, hov)
+    end
+
     if win._mapToolsExpanded then
-        totalH = totalH + _markGrid(panel, win, x, y + rowH, w, pins, markWhy, focId, hov)
+        totalH = totalH + _markGrid(panel, win, x, y + totalH, w, pins, markWhy, focId, hov)
         -- an extension's row under the mark grid (Map Symbol Size Slider)
         totalH = totalH + Ext.drawRows(panel, win, x, y + totalH, w, "gridRow", focId)
     end

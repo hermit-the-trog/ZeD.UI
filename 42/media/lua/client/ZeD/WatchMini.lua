@@ -33,12 +33,11 @@ end
 -- bulb: a CaZio's bulb (Oct 21 2026; its _bulb / _bulb_night pictures); bulbInk: on a negative display the
 -- figures carry the light, { texel x edge, colour } steps from the left, by day and at night
 M.SPEC = {
-    digital_black = { kind = "digital", fg = rgb("#e8e8e8"), off = rgb("#161616"), nightFg = rgb("#8c8c8c"), bulb = true,
-                      bulbInk = { day = { { 14, rgb("#ebe4cc") } },
-                                  night = { { 15, rgb("#878068") }, { 21, rgb("#767264") }, { 27, rgb("#67675f") } } } },
-    digital_gold  = { kind = "digital", fg = rgb("#1e2416"), off = rgb("#b4b89c"), nightFg = rgb("#1a1e14"), bulb = true },
-    timez_red     = { kind = "digital", fg = rgb("#1e2416"), off = rgb("#b8c0a0"), nightFg = rgb("#1a1e14"), light = true },
-    timez_steel   = { kind = "digital", fg = rgb("#1e2416"), off = rgb("#b8c0a0"), nightFg = rgb("#1a1e14"), light = true },
+    -- every digital's screen is the same grey (director, Oct 29 2026): dark figures, faint unlit segments
+    digital_black = { kind = "digital", fg = rgb("#1e2416"), off = rgb("#a9aca4"), nightFg = rgb("#1a1e14"), bulb = true },
+    digital_gold  = { kind = "digital", fg = rgb("#1e2416"), off = rgb("#a9aca4"), nightFg = rgb("#1a1e14"), bulb = true },
+    timez_red     = { kind = "digital", fg = rgb("#1e2416"), off = rgb("#a9aca4"), nightFg = rgb("#1a1e14"), light = true },
+    timez_steel   = { kind = "digital", fg = rgb("#1e2416"), off = rgb("#a9aca4"), nightFg = rgb("#1a1e14"), light = true },
     classic_black = { kind = "analog", ink = rgb("#e8e8e8"), nightInk = rgb("#7a7a7a"), bulb = true },
     classic_gold  = { kind = "analog", ink = rgb("#1e2022"), nightInk = rgb("#0e1011"), bulb = true },
     timez_easy    = { kind = "analog", ink = rgb("#1e2022"), nightInk = rgb("#0e1011"), light = true },

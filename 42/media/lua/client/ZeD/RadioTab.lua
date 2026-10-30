@@ -1081,12 +1081,11 @@ end
 -- the drawer header's browse keys take the controller's mark themselves: its opts and the mark's (reused each frame)
 local _browseOpts, _browseMark = {}, {}
 
--- the drawer's width (screen px) for a two-way face, nil when the tab is not on one (base: the standard width; limit:
--- the widest the window lets the drawer be, nil when it is not held in).
--- A walkie's tab is only as wide as its panel, the face and its margins (director, Oct 25 2026: "a panel the size
--- of the info card, not full width"; "only as wide as the graphic"); a ham set's is the standard drawer, widened when
--- that is narrower than the set at the plates' whole zoom (as the Craft tab does for an oven). Where even that is
--- more than the window allows, the set's narrow face is drawn (render below) and the tab is a walkie's width.
+-- the width (screen px) a two-way face needs, nil when the tab is not on one; the window gives it the half card
+-- or the full card, whichever holds that (limit: the widest card the window lets the drawer be). A walkie needs
+-- its panel, the face and its margins at the plates' whole zoom (director, Oct 25 2026: "only as wide as the
+-- graphic"; Oct 29: a card is the half card or the full card); a ham set needs its own width. Where that is more
+-- than limit, the set's narrow face is drawn (render below), which needs a walkie's panel.
 function ZeD.RadioTab.wantW(win, base, limit)
     local r = win and win._radios and win._radios[win._radioIdx or 1]
     local pid, des = ZeD.TwoWay.plateFor(r)
@@ -1095,9 +1094,9 @@ function ZeD.RadioTab.wantW(win, base, limit)
     local k = ZeD.Px.k((Sc and Sc.root and Sc.root()) or 1)
     local panel = ZeD.TwoWay.PANEL_W * k + T.sp.scrollbarW
     if des.w < ZeD.TwoWay.PANEL_W then return panel end
-    local wide = des.w * k + T.sp.scrollbarW + T.px(2)
+    local wide = des.w * k + T.sp.scrollbarW
     if limit and wide > limit and ZeD.TwoWay.narrowOf(pid) then return panel end
-    return math.max(base or 0, wide)
+    return wide
 end
 
 -- the full view button at the header's right end: an icon button (square, the standard
