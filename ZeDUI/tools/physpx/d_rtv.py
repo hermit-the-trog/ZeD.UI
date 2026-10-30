@@ -617,9 +617,9 @@ def tv_antique(W=392, worn_=True):
     d.dome(px0 + 30, fy + 8, 7, 7, -1.0, "blackp", polish=0.5, on=zp)
     level_bars(p, "bars", px0 + 24, fy + 4, 4, 3, 0, 3, 2, "#62ff7a")
     PR.radio_key(p, "mute", px0 + 42, fy + 2, 26, 12, "MUTE", mat="blackp", lab_mat="paint_w", z=1.4)
-    jack(p, px0 + cw_ - 12, fy + 8, label=None)
+    jack(p, px0 + cw_ - 15, fy + 8, label=None)
     p.label("SIGNAL", px0 + 30, fy + 17, "paint_k", align="c", auto_ink=False)
-    p.label("PHONES", px0 + cw_ - 12, fy + 17, "paint_k", align="c", auto_ink=False)
+    p.label("PHONES", px0 + cw_ - 15, fy + 17, "paint_k", align="c", auto_ink=False)
     # the base rail: three drawer fronts, each with its brass pull
     ry = H - 6 - rail + 4
     dwn = 3; dg = 6; dw_ = (W - 20 - (dwn - 1) * dg) // dwn
