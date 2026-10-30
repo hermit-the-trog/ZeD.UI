@@ -326,9 +326,10 @@ def classic(name="classic_black", worn=True, night=False, bulb_on=False):
     cx, cy = 75, 88
     strap(p, 48, 54, 0, 46, strap_m, kind=strap_k)
     strap(p, 48, 54, 130, H, strap_m, kind=strap_k)
-    # lugs, then the case: a round body
+    # lugs, then the case: a round body. The top lug mirrors the bottom one (y 40 against 120), so the strap
+    # runs into the case the same way at both ends (director, Oct 29 2026: "match the bottom")
     for ly in (34, 126):
-        cover(d, d.slab(Mask(W, H).rrect(46, ly - 8 if ly < 88 else ly - 6, 58, 16, 3).get(), Z_FACE + 0.6, case_m, bevel=2.0, polish=0.5))
+        cover(d, d.slab(Mask(W, H).rrect(46, ly + 6 if ly < 88 else ly - 6, 58, 16, 3).get(), Z_FACE + 0.6, case_m, bevel=2.0, polish=0.5))
     # pushers and crown first (the case covers their inner ends)
     for pid, (x, y, w, h) in (("set", (21, 54, 14, 15)), ("alarm", (115, 54, 14, 15)), ("speed", (21, 107, 14, 15)),
                               ("start", (115, 107, 14, 15))):
@@ -385,7 +386,7 @@ def expensive(worn=True, night=False):
     strap(p, 46, 58, 0, 46, "gold", kind="links")
     strap(p, 46, 58, 130, H, "gold", kind="links")
     for ly in (34, 126):
-        cover(d, d.slab(Mask(W, H).rrect(44, ly - 8 if ly < 88 else ly - 6, 62, 16, 3).get(), Z_FACE + 0.6, "gold", bevel=2.0, polish=0.8))
+        cover(d, d.slab(Mask(W, H).rrect(44, ly + 6 if ly < 88 else ly - 6, 62, 16, 3).get(), Z_FACE + 0.6, "gold", bevel=2.0, polish=0.8))
     for pid, (x, y, w, h) in (("start", (115, 55, 14, 14)), ("speed", (115, 108, 14, 14))):
         d.slab(Mask(W, H).rrect(x - 2, y + 4, 12, 7, 2).get(), Z_FACE - 0.2, "gold", bevel=1.0, polish=0.9)
         p.hit(pid, x, y, w, h)
