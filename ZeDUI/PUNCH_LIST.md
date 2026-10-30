@@ -138,6 +138,14 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
       Category, Search). Footer band, full width: Sort as a pop-up menu ("Sort: Craftable") and Show:
       Ready on the left; the amount (- 1 +) and Craft / Build, last, on the right, shown greyed until a
       recipe is picked so the band never changes shape. The search and sort rows go.
+    - **Furniture (director, Oct 30):** the five modes (Pick up, Place, Rotate, Disassemble, Repair) become
+      sub-tabs in the header strip, as Animals' Ranch | Butcher; the title line goes. No band (the
+      actions are on each piece in the list).
+    - **Forage (director, Oct 30):** header strip: the place name left, the category drop-down right.
+      The day arc and its readings stay at the top of the body. Footer band: Crouch and Aim on the left
+      (read-only status), Searching on the right as the main action (a button: Search / Stop searching).
+    - **Radio (director, Oct 30):** header as it is (browse arrows, where, name); the brand strip at the
+      bottom goes with the new faces (the brand is on the face). No band.
 
 ## Test process
 
