@@ -156,8 +156,8 @@ def radio_red(W=180, worn_=True):
     port_key(p, "voldn", cx0 + 33, ky, 17, 11, icon="down")
     port_key(p, "volup", cx0 + 33, ky + 13, 17, 11, icon="up")
     p.label("VOL", cx0 + 33, ky + 26, "paint_k", auto_ink=False)
-    kr = 11
-    kcx, kcy = F - 12 - kr - 1, ky + 12
+    kr = 11 if F >= 150 else 9                  # the narrowest panel takes a smaller knob, clear of VOL
+    kcx, kcy = F - 12 - kr - 1 + (0 if F >= 150 else 3), ky + 12
     fluted_knob(p, kcx, kcy, kr, on=zf, z=5.0, mat="rr_knob", skirt=None, ridges=24, dome=1.2)
     p.part("ptr", src="tuneF", cx=kcx, cy=kcy, r0=kr * 0.3, r1=kr * 0.8, a0=-90, a1=270, color="#f4e9e0", w=1)
     p.hit("tune", kcx - kr, kcy - kr, 2 * kr, 2 * kr, kind="turn")
@@ -191,9 +191,12 @@ def tv_strip(p, W, sy, keymat="tv_bezel", ink="paint_k", vhs=True):
     mute, power (lamp: green on, red no power) and the headphone jack at the right"""
     d = p.d; H = p.H
     key = lambda pid, x, y, w, lab=None, ic=None: PR.radio_key(p, pid, x, y, w, 12, lab, mat=keymat, lab_mat="paint_w", icon=ic, z=1.4)
+    if W < 300:
+        return tv_strip_n(p, W, sy, key, keymat, ink, vhs)
     if vhs:
         # the VHS deck, left: a cassette-wide mouth with its hinged flap, eject and play under it
-        tw = 112
+        gx_ = W - 16 - 40 - 12 - 82                  # where the channel group starts (its signal light 12 px left of it)
+        tw = max(72, min(112, gx_ - 16 - 6 - 52 - 22))
         mouth = Mask(W, H).rrect(16, sy, tw, 13, 2).get()
         d.slab(mouth, 0.6, keymat, bevel=0.8, polish=0.6, on=Z_FACE)
         flap = Mask(W, H).rect(20, sy + 3, tw - 8, 7).get()
@@ -231,6 +234,48 @@ def tv_strip(p, W, sy, keymat="tv_bezel", ink="paint_k", vhs=True):
     key("mute", gx - 8, sy + 16, 30, "MUTE")
 
 
+STRIP_H = 44              # the strip's height under the bezel; the narrow strip is one row taller
+STRIP_H_N = 60
+
+
+def tv_strip_n(p, W, sy, key, keymat, ink, vhs):
+    """the narrow faces' strip (200 px): the same controls in three rows. The tape and its counter; eject, play, mute
+    and power; the signal light and channel, volume and the headphone jack"""
+    d = p.d; H = p.H
+    if vhs:
+        tw = W - 32 - 6 - 52
+        d.slab(Mask(W, H).rrect(16, sy, tw, 13, 2).get(), 0.6, keymat, bevel=0.8, polish=0.6, on=Z_FACE)
+        d.well(Mask(W, H).rect(20, sy + 3, tw - 8, 7).get(), 1.2, "tv_bezel", bevel=0.5)
+        d.seam(Mask(W, H).rect(20, sy + 3, tw - 8, 1).get(), 0.5)
+        p.part("slotTape", x=22, y=sy + 9, w=tw - 12, color="#3a3a3a")
+        p.hit("slot", 16, sy, tw, 13)
+        window_glass(p, 16 + tw + 6 - 1, sy - 1, 52 + 2, 15, face="vfd", bezel="tv_bezel", depth=1.2, on=Z_FACE, r=1, bezel_t=1, lens=True)
+        p.part("radioDisplay", kind="vhs", style="vfd", x=16 + tw + 6, y=sy, w=52, h=13)
+        key("eject", 16, sy + 17, 26, ic="eject")
+        key("play", 46, sy + 17, 34, ic="play")
+        p.label("VHS", 84, sy + 20, ink, auto_ink=False)
+    y2 = sy + 17
+    rx = W - 16
+    key("power", rx - 40, y2, 40, "POWER")
+    d.dome(rx - 47, y2 + 6, 2.2, 2.2, 1.0, "jewel_red_off", polish=0.9, on=Z_FACE)
+    p.lamp(disc(d, rx - 47, y2 + 6, 2.0), "radioOn", "#5dff7a")
+    p.lamp(disc(d, rx - 47, y2 + 6, 2.0), "noPower", "#ff3a2e")
+    key("mute", rx - 40 - 12 - 32, y2, 30, "MUTE")
+    y3 = sy + 34
+    signal_lamp(p, 21, y3 + 6)
+    lw = 22; gx = 28
+    window_glass(p, gx - 1, y3 - 1, lw + 2, 14, face="lens", bezel="tv_bezel", depth=1.2, on=Z_FACE, r=1, bezel_t=1, lens=True)
+    p.part("radioDisplay", kind="tvch", style="led", x=gx, y=y3, w=lw, h=12)
+    key("chdn", gx + lw + 4, y3, 18, ic="down")
+    key("chup", gx + lw + 25, y3, 18, ic="up")
+    p.label("CH", gx + lw + 47, y3 + 3, ink, auto_ink=False)
+    vx = gx + lw + 60
+    key("voldn", vx, y3, 18, ic="down")
+    key("volup", vx + 21, y3, 18, ic="up")
+    p.label("VOL", vx + 43, y3 + 3, ink, auto_ink=False)
+    jack(p, rx - 5, y3 + 6, label=None)
+
+
 # =================================================================================== the Premium Technologies Television
 def tv_wide(W=392, worn_=True):
     """Premium Technologies Television (Base.TvWideScreen): mains power, plays video tapes. The silver set and its tube
@@ -238,7 +283,7 @@ def tv_wide(W=392, worn_=True):
     volume, phones and power at the right in two rows"""
     sw = W - 36
     sh = int(round(sw * 9 / 16))
-    H = 8 + sh + 20 + 44
+    H = 8 + sh + 20 + (STRIP_H if W >= 300 else STRIP_H_N)
     p = Plate("tv_wide", W, H, seed=311, title="Premium Technologies Television")
     d = p.d
     case = Mask(W, H).rrect(0, 0, W, H, 5).get()
@@ -362,8 +407,8 @@ def radio_black(W=180, worn_=True):
     key("voldn", cx0 + 33, ky, 17, ic="down")
     key("volup", cx0 + 33, ky + 13, 17, ic="up")
     p.label("VOL", cx0 + 33, ky + 26, "paint_k", auto_ink=False)
-    kr = 11
-    kcx, kcy = F - 12 - kr - 1, ky + 12
+    kr = 11 if F >= 150 else 9                  # the narrowest panel takes a smaller knob, clear of VOL
+    kcx, kcy = F - 12 - kr - 1 + (0 if F >= 150 else 3), ky + 12
     fluted_knob(p, kcx, kcy, kr, on=zf, z=5.0, mat="blackp", skirt=None, ridges=24, dome=1.2)
     p.part("ptr", src="tuneF", cx=kcx, cy=kcy, r0=kr * 0.3, r1=kr * 0.8, a0=-90, a1=270, color="#e8e8e8", w=1)
     p.hit("tune", kcx - kr, kcy - kr, 2 * kr, 2 * kr, kind="turn")
@@ -463,7 +508,9 @@ def cd_player(W=180, worn_=True):
     d.seam(lid ^ (lid & np.roll(lid, -1, 0) & np.roll(lid, 1, 0) & np.roll(lid, -1, 1) & np.roll(lid, 1, 1)), 0.6)
     d.slab(lid, 1.8, "cd_lid", bevel=2.4, polish=0.75, on=Z_FACE)
     ys_l, xs_l = np.nonzero(lid)
-    p.hit("slot", int(xs_l.min()), int(ys_l.min()), int(xs_l.max() - xs_l.min() + 1), int(ys_l.max() - ys_l.min() + 1))
+    # the lid's click area stops above the OPEN lip and the keys up the strip's ends (they are clicks of their own)
+    lid_bottom = int(min(sq_y(x, ysL, aL, bL) for x in (int(F * 0.14), F - int(F * 0.14)))) - 18
+    p.hit("slot", int(xs_l.min()), int(ys_l.min()), int(xs_l.max() - xs_l.min() + 1), lid_bottom - int(ys_l.min()))
     p.label("DISC PLAYER", int(bcx), int(H * 0.30), "paint_c", align="c", auto_ink=False, check=False)
     edge = lambda x: sq_y(x, ysL, aL, bL)         # the lid's front edge at column x
     bottom = lambda x: sq_y(x, ys, aB, bB)        # the body's front edge at column x
@@ -573,20 +620,20 @@ def radio_make(W=180, worn_=True):
 def tv_black(W=392, worn_=True):
     """ValuTech Television (Base.TvBlack): mains power, plays video tapes. The dark set of its tiles: a 4:3 tube in a
     dark bezel, the same strip as the Premium set (VHS deck and counter, channel, volume, power, phones)"""
-    gw = 26                                      # a speaker grille each side of the tube
-    sw = W - 36 - 2 * (gw + 6)
+    gw = 26 if W >= 300 else 0                   # a speaker grille each side of the tube (none on the narrow face)
+    sw = W - 36 - 2 * (gw + 6) if gw else W - 36
     sh = int(round(sw * 3 / 4))
-    H = 8 + sh + 20 + 44
+    H = 8 + sh + 20 + (STRIP_H if W >= 300 else STRIP_H_N)
     p = Plate("tv_black", W, H, seed=351, title="ValuTech Television")
     d = p.d
     case = Mask(W, H).rrect(0, 0, W, H, 4).get()
     d.slab(case, Z_FACE, "tvb_case", bevel=2.4, polish=0.45)
     d.grain_pebble(case, 0.03, seed=352)
-    for gx in (10, W - 10 - gw):
+    for gx in ((10, W - 10 - gw) if gw else ()):
         d.well(Mask(W, H).rrect(gx, 8, gw, sh + 20, 3).get(), 1.0, "tvb_case", bevel=0.6)
         for xx in range(gx + 4, gx + gw - 3, 4):
             d.well(Mask(W, H).rrect(xx, 14, 2, sh + 8, 1).get(), 2.0, "mesh", bevel=0.4)
-    tx0 = 10 + gw + 6
+    tx0 = 10 + gw + 6 if gw else 10
     bz = Mask(W, H).rrect(tx0, 8, sw + 16, sh + 20, 3).get()
     d.slab(bz, 0.8, "tv_bezel", bevel=1.2, polish=0.5, on=Z_FACE)
     glass_panel(p, tx0 + 8, 14, sw, sh, on=Z_FACE + 0.8, r=10, mat="blackglass")
@@ -606,6 +653,8 @@ def tv_antique(W=392, worn_=True):
     """Antique Television (Base.TvAntique): mains power, no tape. Its tiles' walnut cabinet, the round-cornered tube
     in a brushed mask, the controls in a column at the right: the channel selector (a detented dial, 2-13), the volume
     knob (pull for on), the signal eye, the headphone jack"""
+    if W < 300:
+        return tv_antique_n(W, worn_)
     cw_ = 92                                     # the control column
     sw = W - 28 - cw_ - 8
     sh = int(round(sw * 3 / 4))
@@ -673,6 +722,77 @@ def tv_antique(W=392, worn_=True):
         x = 10 + i * (dw_ + dg)
         d.well(Mask(W, H).rrect(x, ry, dw_, rail - 6, 2).get(), 1.0, "walnut", bevel=0.8)
         d.dome(x + dw_ // 2, ry + (rail - 6) // 2, 2.6, 2.6, 1.6, "brass", polish=0.9, on=Z_FACE - 1.0)
+    if worn_:
+        WR.grime(d, d.solid, amount=0.22, seed=363)
+        WR.scuffs(d, WR.mat_mask(d, "walnut"), 0.0010, seed=364, amount=0.08)
+    return p
+
+
+def tv_antique_n(W=200, worn_=True):
+    """the antique set's narrow face (200 px): the tube across the top, the controls in a row on the brushed plate under
+    it (the channel selector, the volume knob, the power lamp, the signal eye, mute, the headphone jack), the rail"""
+    sw = W - 36
+    sh = int(round(sw * 3 / 4))
+    rail = 16
+    row = 58                                     # the control row's height
+    H = 8 + sh + 12 + row + 6 + rail
+    p = Plate("tv_antique", W, H, seed=361, title="Antique Television")
+    d = p.d
+    cab = Mask(W, H).rrect(0, 0, W, H, 6).get()
+    d.slab(cab, Z_FACE, "walnut", bevel=3.0, polish=0.55)
+    d.grain_brushed(cab, 0.06, seed=362)
+    for yy in range(3, H, 5): d.dark[yy, 3:W - 3] += 0.025
+    mk = Mask(W, H).rrect(10, 8, sw + 16, sh + 12, 8).get()
+    d.slab(mk, 1.0, "tv_mask", bevel=1.2, polish=0.8, on=Z_FACE)
+    d.grain_brushed(mk, 0.04, seed=365)
+    glass_panel(p, 18, 14, sw, sh, on=Z_FACE + 1.0, r=12, mat="blackglass")
+    p.part("tvScreen", x=18, y=14, w=sw, h=sh, r=12, tint="#a8c0a0")
+    # the control plate under the tube
+    py0 = 8 + sh + 12 + 2
+    pl = Mask(W, H).rrect(10, py0, W - 20, row, 4).get()
+    d.slab(pl, 1.0, "tv_mask", bevel=1.2, polish=0.6, on=Z_FACE)
+    zp = Z_FACE + 1.0
+    # the channel selector at the left on its black plate, its twelve stops printed round it
+    r1 = 11
+    ccx, cy1 = 10 + 6 + r1 + 13, py0 + row // 2 - 3
+    d.slab(Mask(W, H).rrect(ccx - r1 - 13, py0 + 3, 2 * (r1 + 13), row - 6, 3).get(), 0.6, "blackp", bevel=0.6, polish=0.6, on=zp)
+    zk = zp + 0.6
+    angs = [-225 + i * (270 / (TV_CHANNELS - 1)) for i in range(TV_CHANNELS)]
+    for i, a_ in enumerate(angs):
+        tx = ccx + math.cos(math.radians(a_)) * (r1 + 8); ty = cy1 + math.sin(math.radians(a_)) * (r1 + 8)
+        d.text(str(i + 2), int(round(tx)), int(round(ty)) - 2, "paint_w", align="c", flatlight=True)
+    fluted_knob(p, ccx, cy1, r1, on=zk, z=5.0, mat="tv_mask", skirt=1.2, skirt_mat="chrome", ridges=12, dome=0.8)
+    p.part("ptr", src="chIdx", cx=ccx, cy=cy1, r0=r1 * 0.25, r1=r1 * 0.85, angles=angs, color="#2a2a2a", w=2)
+    p.hit("channel", ccx - r1, cy1 - r1, 2 * r1, 2 * r1, kind="turn")
+    p.label("CHANNEL", ccx, py0 + row - 10, "paint_w", align="c", auto_ink=False)
+    # the volume knob (pull for on)
+    r2 = 10
+    vcx, vcy = ccx + r1 + 13 + 8 + r2 + 4, cy1
+    fluted_knob(p, vcx, vcy, r2, on=zp, z=5.0, mat="blackp", skirt=1.2, skirt_mat="chrome", ridges=12, dome=0.8)
+    p.part("ptr", src="volF", cx=vcx, cy=vcy, r0=r2 * 0.3, r1=r2 * 0.8, a0=-225, a1=45, color="#efe6cf", w=1)
+    p.hit("vol", vcx - r2, vcy - r2, 2 * r2, 2 * r2, kind="turn")
+    p.hit("power", vcx - r2, vcy - r2, 2 * r2, 2 * r2)
+    p.label("VOLUME", vcx, vcy + r2 + 4, "paint_k", align="c", auto_ink=False)
+    p.label("PULL ON", vcx, vcy + r2 + 11, "paint_k", align="c", auto_ink=False)
+    # the small things at the right: the power lamp and the signal eye over mute and the jack
+    x0 = vcx + r2 + 12 + max(0, (W - 10 - 6 - (vcx + r2 + 12) - 74) // 2)   # the cluster centred in what is left
+    fy = py0 + 10
+    d.dome(x0 + 4, fy + 6, 2.4, 2.4, 1.0, "jewel_red_off", polish=0.9, on=zp)
+    p.lamp(disc(d, x0 + 4, fy + 6, 2.2), "radioOn", "#ffb040")
+    d.dome(x0 + 22, fy + 6, 7, 7, -1.0, "blackp", polish=0.5, on=zp)
+    signal_lamp(p, x0 + 22, fy + 6, r=3.6, on=zp - 1.0)
+    p.label("SIGNAL", x0 + 22, fy + 15, "paint_k", align="c", auto_ink=False)
+    fy2 = fy + 24
+    PR.radio_key(p, "mute", x0, fy2, 26, 12, "MUTE", mat="blackp", lab_mat="paint_w", z=1.4)
+    jack(p, x0 + 36, fy2 + 6, label=None)
+    p.label("PHONES", x0 + 44, fy2 + 4, "paint_k", auto_ink=False)
+    # the base rail: two drawer fronts with their brass pulls
+    ry = H - 4 - rail
+    dwn = 2; dg = 6; dw_ = (W - 20 - (dwn - 1) * dg) // dwn
+    for i in range(dwn):
+        x = 10 + i * (dw_ + dg)
+        d.well(Mask(W, H).rrect(x, ry, dw_, rail - 4, 2).get(), 1.0, "walnut", bevel=0.8)
+        d.dome(x + dw_ // 2, ry + (rail - 4) // 2, 2.4, 2.4, 1.6, "brass", polish=0.9, on=Z_FACE - 1.0)
     if worn_:
         WR.grime(d, d.solid, amount=0.22, seed=363)
         WR.scuffs(d, WR.mat_mask(d, "walnut"), 0.0010, seed=364, amount=0.08)
