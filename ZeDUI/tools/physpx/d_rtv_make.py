@@ -149,10 +149,19 @@ def radio_make(W=180, worn_=True, switch_on=True, soft=False):
     Hh = OY + 6 * (rows - 1) + 6
     p = Plate("radio_make", F, Hh, seed=341, title="Makeshift Radio")
     d = p.d
-    cols = (F - OX - 2) // 6 + 1
-    B = H.Board(p, OX, OY, cols, rows)
+    # wider panels: the circuit moves right by whole columns so it sits in the middle of the board, the board's spare
+    # holes either side of it (the layout itself is the 180 one, unchanged)
+    dc = max(0, (F - 160) // 12)
+    X = 6 * dc                                   # the same move in pixels, for the parts placed by pixel
+    cols = (F - OX - X - 2) // 6 + 1
+    B = H.Board(p, OX + X, OY, cols, rows)
     B.soft = soft
     B.paint_board(0, 0, F, Hh)
+    for i in range(-dc, 0):                      # the spare holes left of the circuit's lattice
+        for j in range(rows):
+            hx_, hy = B.px((i, j))
+            if 0 <= hx_ < F and B.board_mask[hy, hx_]:
+                d.seam(rbox(d, hx_, hy, 1, 1), 0.55); B.hole_px.append((hx_, hy))
     # the display board stands on four spacers screwed through the perforated board: keep wire off them
     for (sx, sy) in ((10, 9), (F - 11, 9), (10, 44), (F - 11, 44)):
         B.keep_box(sx - 3, sy - 3, sx + 3, sy + 3, margin=0)
@@ -176,18 +185,21 @@ def radio_make(W=180, worn_=True, switch_on=True, soft=False):
     H.two_lead(B, "L1", R(58, 11), R(61, 11), "coil", "56nH")
     H.two_lead(B, "CP", R(58, 13), R(61, 13), "disc", "33p")
     H.two_lead(B, "CS", R(61, 17), R(61, 15), "disc", "100p")
-    H.polyvaricon(B, "CV", 134, 140, 30, {"1": R(62, 11), "2": R(61, 17)}, [R(66, 11)], 12, "tune")
+    H.polyvaricon(B, "CV", 134 + X, 140, 30, {"1": R(62, 11), "2": R(61, 17)}, [R(66, 11)], 12, "tune")
 
     # ---------------- the amplifier, left: the power rocker, the volume control, the LM386 and its output parts
-    rx, ry = 6, 58
+    rx, ry = 6 + X, 58
     bez = Mask(d.W, d.H).rrect(rx, ry, 22, 14, 2).get()
     rocker_switch(p, rx + 2, ry + 2, 18, 10, switch_on, on=Z_FACE, mat="paint_r", bezel_mat="blackp", lift=1.8)
+    # its printed marks, the ON stroke on the top half and the OFF ring on the bottom: the half pressed in is the state
+    d.paint(rbox(d, rx + 6, ry + 3, 1, 3), "paint_w", flatlight=True)
+    d.paint(ring(d, rx + 6.5, ry + 9.5, 0.9, 1.9) & rbox(d, rx + 4, ry + 7, 6, 5), "paint_w", flatlight=True)
     p.hit("power", rx, ry, 22, 14)
     H.tabs(B, "SW1", [((rx + 5.5, ry + 13.5), (1, 12)), ((rx + 16.5, ry + 13.5), (3, 12))], w=2.0)
     B._body("SW1", bez); B.keep_mask(bez, 2)
     B.add_part("SW1", "switch", {"1": (1, 12), "2": (3, 12)})
     # the volume control at the left, its three lugs toward the chip: ground, wiper, the hot end
-    H.pot(B, "VR1", 18.5, 104.5, 10, [(5, 19), (5, 18), (5, 17)], 8, "vol")
+    H.pot(B, "VR1", 18.5 + X, 104.5, 10, [(5, 19), (5, 18), (5, 17)], 8, "vol")
     H.dip(B, "U2", (5, 15), 8, along=(1, 0), across=(0, -1), label="LM386")
     H.can(B, "C20", (10, 11), (10, 15), D=13.0)
     H.two_lead(B, "C21", (10, 11), (12, 11), "green", "0.05u", body_len=8)
@@ -197,9 +209,9 @@ def radio_make(W=180, worn_=True, switch_on=True, soft=False):
     H.resistor(B, "RL", (9, 21), (9, 24), "22k")
     H.two_lead(B, "C2", (11, 21), (11, 24), "disc", "1n8", pins=("1", "2"))
     # ---------------- along the bottom: the battery holder, the headphone jack, the speaker
-    battery_holder(B, 6, 156, 40, 22, (0, 25), (5, 25))
-    jack(B, 50, 160, {"S": (8, 25), "TN": (10, 25), "T": (10, 29)})
-    speaker(B, 97.5, 166.5, 10, {"1": (15, 25), "2": (17, 25)})
+    battery_holder(B, 6 + X, 156, 40, 22, (0, 25), (5, 25))
+    jack(B, 50 + X, 160, {"S": (8, 25), "TN": (10, 25), "T": (10, 29)})
+    speaker(B, 97.5 + X, 166.5, 10, {"1": (15, 25), "2": (17, 25)})
     # ---------------- the display board's ribbon lands on the supply and ground, 10n across them
     # the ribbon comes straight down over the 10n: its outer two conductors land in the 10n's own holes
     B.add_part("J1", "ribbon", {"VP": (23, 8), "GND": (21, 8)})
@@ -259,8 +271,8 @@ def radio_make(W=180, worn_=True, switch_on=True, soft=False):
     body, hdr = display_board(p, F)
     cx_ = (B.px((21, 8))[0] + B.px((23, 8))[0]) / 2 + 0.5
     H.ribbon_paint(B, "J1", (cx_, hdr[1]), (cx_, 47.5), 5, {"GND": (0, (21, 8)), "VP": (4, (23, 8))})
-    H.tape(p, 7, 84, 20, 8, "VOL")
-    H.tape(p, 31, 59, 22, 8, "PWR")
+    H.tape(p, 7 + X, 84, 20, 8, "VOL")
+    H.tape(p, 31 + X, 59, 22, 8, "PWR")
     B.cover_holes()
     if worn_:
         WR.grime(d, d.solid, amount=0.22, seed=343)
