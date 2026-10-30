@@ -57,10 +57,17 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     radio tab today; the machines' simple cards are new. Build to write the plain rules and the
     simple cards' layout for the director before building.
 18. **Every added feature can be turned off; off by default for a vanilla run (director, Oct 30).**
-    open. Loadouts and the rest included; a quick switch turns them all on ("vanilla plus"). Build to
-    list every addition with its switch and default, and the quick switch's rules, for the
-    director's pick. Note: the Oct 26 switches (ammo on the belt, read marks, next level on skill
-    books, dashboard lamps, moodle notices) were on by default; this would turn them off.
+    chosen. Three presets touch only the additions (never the look: theme, accent, text, scale,
+    see-through, hidden actions):
+    - **Vanilla** (a new player's start): every addition off.
+    - **Vanilla Plus:** every addition on, Restock Casual, faces.
+    - **Vanilla Accessible:** every addition on, Restock Accessible, simple cards (item 17, when built).
+    - The additions: ammo on the belt, read marks, next level on skill books, dim read items,
+      dashboard lamps, moodle notices, Messages (keep notes, toast), put things back, sandbox options
+      in game, Loadouts and outfits with Journal lists (new switch). Restock follows Loadouts.
+    - Rules: picking a preset sets every addition; changing one by hand makes it Custom; Custom keeps
+      the hand picks, so it can be gone back to; Loadouts off hides saved loadouts and outfits,
+      never deletes them. Existing players keep their saved settings.
 
 ## Test process
 
