@@ -189,15 +189,26 @@ def bars(w, h):
 
 
 def standby(w, h):
-    a = blank(w, h, (12, 20, 70))
-    for y in range(h):                                   # a deep blue field, lighter toward the middle
-        k = 1 - abs(y / h - 0.5) * 1.2
-        a[y] = np.array((12 + 30 * k, 20 + 40 * k, 70 + 70 * k), np.float32) / 255
+    """PLEASE STAND BY, made to read (director, Oct 30 2026: "please stand by is hard to read"): a plain slate, flat
+    colour and solid letters, no chrome or glow: a white frame, a royal-blue panel, the words in white with a fat dark
+    outline and shadow, the difficulties line in yellow on a black band"""
     s = big_scale(w, h)
-    text(a, "PLEASE", w // 2, int(h * 0.26), s, chrome(), outline=(10, 10, 40), shadow=(0, 0, 20), glow=(120, 160, 255))
-    text(a, "STAND BY", w // 2, int(h * 0.26) + 7 * s + 2 * s, s, chrome(), outline=(10, 10, 40), shadow=(0, 0, 20), glow=(120, 160, 255))
-    text(a, "WE ARE EXPERIENCING", w // 2, int(h * 0.70), max(1, s // 2), (230, 230, 240), font="57")
-    text(a, "TECHNICAL DIFFICULTIES", w // 2, int(h * 0.70) + 9 * max(1, s // 2), max(1, s // 2), (230, 230, 240), font="57")
+    a = blank(w, h, (16, 16, 20))
+    m = max(4, int(min(w, h) * 0.05))
+    rect(a, m, m, w - 2 * m, h - 2 * m, (235, 235, 230))                  # the frame
+    rect(a, m + max(2, s), m + max(2, s), w - 2 * m - 2 * max(2, s), h - 2 * m - 2 * max(2, s), (24, 64, 170))
+    for i, word in enumerate(("PLEASE", "STAND BY")):
+        gm = glyph_mask(word, "57", s, gap=1)
+        gm = grow(pad_to(gm, 1), max(1, s // 3))                              # heavier strokes
+        x = w // 2 - gm.shape[1] // 2; y = int(h * 0.20) + i * (gm.shape[0] + 2 * s)
+        put(a, grow(pad_to(gm, 2), 2), x - 2 + s // 2 + 1, y - 2 + s // 2 + 1, (0, 0, 0))
+        put(a, grow(pad_to(gm, 2), 2), x - 2, y - 2, (8, 16, 50))
+        put(a, gm, x, y, (255, 255, 255))
+    ss = max(1, s // 2)
+    by = int(h * 0.66)
+    rect(a, m + max(2, s), by, w - 2 * m - 2 * max(2, s), 2 * (7 * ss) + 4 * ss + 4, (0, 0, 0))
+    text(a, "WE ARE EXPERIENCING", w // 2, by + 2 * ss + 1, ss, (255, 220, 60))
+    text(a, "TECHNICAL DIFFICULTIES", w // 2, by + 2 * ss + 1 + 7 * ss + 2 * ss, ss, (255, 220, 60))
     return a
 
 
