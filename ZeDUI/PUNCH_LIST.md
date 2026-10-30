@@ -75,6 +75,18 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
       off; Loadouts off hides the Equip fold, pickers, Journal tab, item card's Lists mark and menu,
       the wheel's Loadouts ring, restock and its pin, and on brings them back unchanged; the game's
       Mods page stays consistent after Apply. The runner now sets Vanilla Plus for every run.
+    - **QA, Oct 30 (in game, 4K, the director's yes):** passed. The four presets fit in one row
+      (Vanilla | Plus | Accessible | Custom); Vanilla turns every addition off, Plus every one on with
+      Restock Casual, Accessible with Restock Accessible; a hand change (read marks off) reads Custom;
+      Vanilla then Custom brings the hand picks back; Apply stores Custom and writes the set to
+      ZeD_custom_additions.txt; after a restart the main menu still reads Custom with the same values,
+      and Custom comes back from the file with nothing held; a fresh ModOptions.ini starts on Vanilla,
+      all off. Loadouts off: the Equip fold, the Loadouts ring and Save to loadout are gone, Restock
+      doesn't start and a running one is stopped; on again, all three are back. The settings file and
+      the screen agree after every Apply (the game's own Mods page itself was not opened).
+      Two notes for the director, not failures: the preset buttons read "Plus" and "Accessible", not
+      "Vanilla Plus" / "Vanilla Accessible"; with Loadouts off the Restock row still shows its choice
+      (Casual) as if it applied. Screenshot: ZeDUI/qa/Oct30_mouse_pass/qa18_additions_group.jpg.
 
 ## Test process
 
