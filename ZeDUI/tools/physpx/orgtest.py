@@ -12,7 +12,10 @@ from PIL import Image, ImageDraw, ImageFont
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import lupa.luajit21 as lj          # noqa: E402
+try:
+    import lupa.luajit21 as lj      # noqa: E402
+except ImportError:                     # no lupa here: luashim.py runs the same through a LuaJIT executable
+    import luashim as lj                # noqa: E402
 
 # In the repo (ZeDUI/tools/physpx) the organisms, the generated data and the textures are the mod's own; in a
 # scratch copy they are the working copies (lua/) and the last export (out/mod/ZeD-UI).
@@ -25,10 +28,30 @@ else:
     GEN = os.path.join(ROOT, "42", "media", "lua", "client", "ZeD")
     SRC = os.path.join(HERE, "lua")
     STAGED = "/mnt/user-data/uploads/ZeD-UI/42/media/lua/client/ZeD"
+# the translation helper (ZeD.tr, ZeD.trDefaults...) comes first: the template calls ZeD.trDefaults as it loads
+TR_LUA = next((p for p in (os.path.join(ROOT, "42", "media", "lua", "shared", "ZeD", "Tr.lua"), os.path.join(HERE, "lua", "Tr.lua"))
+               if os.path.exists(p)), os.path.join(ROOT, "42", "media", "lua", "shared", "ZeD", "Tr.lua"))
 FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 FONT_PX = {"F1": 11, "F2": 13, "F3": 11, "F4": 15, "F5": 9, "Handwritten": 18}
 
 PRELUDE = r'''
+-- Kahlua's strings are Java's (16-bit characters): string.char takes a code above 255 there, LuaJIT's does not, so
+-- those go over as UTF-8 (the faces' accented and Cyrillic capitals in ZeD_PixelParts; platesame.py does the same)
+local char0 = string.char
+string.char = function(...)
+    local n = select("#", ...)
+    local big = false
+    for i = 1, n do if select(i, ...) > 255 then big = true end end
+    if not big then return char0(...) end
+    local out = {}
+    for i = 1, n do
+        local c = select(i, ...)
+        if c < 128 then out[#out + 1] = char0(c)
+        elseif c < 2048 then out[#out + 1] = char0(192 + math.floor(c / 64), 128 + c % 64)
+        else out[#out + 1] = char0(224 + math.floor(c / 4096), 128 + math.floor(c / 64) % 64, 128 + c % 64) end
+    end
+    return table.concat(out)
+end
 require = function() end
 print = function(...) py_print(...) end
 Texture = { getSharedTexture = function(path, flags) return { path = path, flags = flags } end }
@@ -223,7 +246,7 @@ class Org:
         g.SCALE = scale
         s.L.execute(PRELUDE)
         s.L.execute(STOVE)
-        for f in [os.path.join(GEN, "PixelFonts.lua"), os.path.join(SRC, "ZeD_PixelParts.lua"), os.path.join(SRC, "ZeD_RadioOps.lua"),
+        for f in [TR_LUA, os.path.join(GEN, "PixelFonts.lua"), os.path.join(SRC, "ZeD_PixelParts.lua"), os.path.join(SRC, "ZeD_RadioOps.lua"),
                   os.path.join(SRC, "ZeD_Plate.lua"), os.path.join(GEN, "PhysPx.lua")] + files:
             s.L.execute(open(f, "rb").read())
 

@@ -28,12 +28,18 @@ function ZeD_Panel:setY(v) self.y = v end
 function ZeD_Panel:initialise() end
 function ZeD_Panel:addToUIManager() end
 function ZeD_Panel:setVisible() end
+-- ZeD_Watch registers itself with the safe-mode helper (SafeMode.lua, not loaded here): never in safe mode
+ZeD.Safe = { on = function() return false end, register = function() end }
 SPEED = 1
 UIManager = { getClock = function() return nil end,
               getSpeedControls = function() return {
                   getCurrentGameSpeed = function() return SPEED end,
                   SetCurrentGameSpeed = function(_, n) SPEED = n end,
-                  ButtonClicked = function(_, b) if b == "Pause" then SPEED = 0 elseif b == "Play" then SPEED = 1 end end,
+                  ButtonClicked = function(_, b)      -- the clock's own buttons: the fast speeds go through them
+                      if b == "Pause" then SPEED = 0 elseif b == "Play" then SPEED = 1
+                      elseif b == "Fast Forward x 1" then SPEED = 2 elseif b == "Fast Forward x 2" then SPEED = 3
+                      elseif b == "Wait" then SPEED = 4 end
+                  end,
                   getY = function() return -4000 end, isVisible = function() return false end } end }
 getPlayerScreenLeft = function() return 0 end
 getPlayerScreenTop = function() return 0 end
@@ -93,6 +99,7 @@ if __name__ == "__main__":
     for i in rows[1]: sheet.alpha_composite(i, (x, 8)); x += i.width + 8
     x = 8
     for i in rows[0]: sheet.alpha_composite(i, (x, rows[1][0].height + 16)); x += i.width + 8
+    os.makedirs(os.path.join(HERE, "out", "nowatch"), exist_ok=True)
     sheet.save(os.path.join(HERE, "out", "nowatch", "keys_live.png"))
     print(f"{len(FAILS)} failed", FAILS)
     sys.exit(1 if FAILS else 0)

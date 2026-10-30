@@ -1,0 +1,5 @@
+# ZeDUI/tools/qa/watch_grey.txt  (Oct 29 2026)
+# The watches' one grey screen, every kind in game (4K, ZeD scale 1.75): zedqa_run.ps1 -Mode fullscreen4k -Manifest .../watch_grey.txt
+# then crop_watch_grey.py writes the JPG crops to ZeDUI/qa/Oct29_watch_grey/.
+zedqa_prelude.lua | pre                                  # opens both windows, unpauses, god mode
+zedqa_watch_grey.lua | wgrey | timeout=600               # day, night, CaZio bulb, Timez glow, alarm setting, belt minis

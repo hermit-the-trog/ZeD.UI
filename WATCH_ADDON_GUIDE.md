@@ -70,6 +70,7 @@ Any other id does nothing.
 - **Sizes:** digital plates are 124 × 176 and analog ones 150 × 176. The watch sits where the vanilla clock sat, drawn at whole multiples (1×, 2×).
 - **Brand perks stay distinct:** CaZio has the thermometer, Timez has the light. A new brand should have its own reason to exist, not a copy of both.
 - **Control positions match across a family:** SET top left, ALARM top right, SPEED bottom left, START bottom right.
+- **One screen colour:** every watch screen is the same grey. Add-on watches use the `lcdwatch` glass (`d_watches.py`; the day screen `#b3b7ab`, the dark figures `#1a1c16`, the unlit segments `#a6aa9f`, its night ramp `lcdwatch_n`) so they match the built-ins. The only other screen is the Timez glow (`lcdglow`), and only a watch with a light has one. No negative (light on black) displays.
 - **Pixel fonts:** they have no lowercase, so brand names print in capitals unless the logo is drawn into the art.
 
 ## Checking an addon watch
