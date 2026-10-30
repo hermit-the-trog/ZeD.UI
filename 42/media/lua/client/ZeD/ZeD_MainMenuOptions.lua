@@ -1717,12 +1717,13 @@ end
 -- POINTER (in game the window has its own; at the menu the desk's) ---------------------
 function ZeD_MMOptions:update()
     -- a click outside the open palette closes it
-    if self._palette and isMouseButtonDown(0) and not self._palDown then
+    local down = ZeD.MouseTick.down()   -- (update() runs every 100 ms: ZeD_MouseTick.lua)
+    if self._palette and down and not self._palDown then
         local r = self._paletteRect
         local mx, my = getMouseX(), getMouseY()
         if r and not (mx >= r.x and mx < r.x + r.w and my >= r.y and my < r.y + r.h) then self._palette = nil end
     end
-    self._palDown = isMouseButtonDown(0)
+    self._palDown = down
     ZeD_MMWindow.update(self)
     if self.inGame then
         local drop = MM.igDrop

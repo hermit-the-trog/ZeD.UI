@@ -3537,6 +3537,18 @@ function ZeD_WorldWindow.toggle(playerNum)
     card:setVisible(false)
     itemDrawer:addChild(card)
     win._itemCard = card
+    -- the card's back key shuts the card, as B does (_wireWorldCardButtonNav's onCancel). It had
+    -- no action here, so a click on it did nothing (Oct 30 2026, the director's mouse pass).
+    card.onBackClick = function()
+        local content = win._mainContent
+        if content and win._updateDrawer then
+            local sel = content._selectedItems or {}
+            for k in pairs(sel) do sel[k] = nil end
+            content._selectedItems   = sel
+            content._lastClickedItem = nil
+            win._updateDrawer()
+        end
+    end
 
     -- S124 object card (generator, fires, farm plots): same overlay, full width
     local objCard = ZeD_ObjectCard:new(0, 0, T.px(OBJECT_CARD_W), bodyH, playerNum)

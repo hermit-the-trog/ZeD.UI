@@ -1178,10 +1178,17 @@ function ZeD_ItemCard:_calcBodyH()
 end
 
 -- ---------------------------------------------------------------------------
--- UPDATE: action strip interaction (toggle buttons + verb buttons, both modes)
+-- THE POINTER: action strip interaction (toggle buttons + verb buttons, both modes)
+-- These controls poll the raw mouse. The engine runs update() only every 100 ms
+-- (42.22), so a click that fell between two updates did nothing (Oct 30 2026, the
+-- director: "clicking back on an item card does nothing"): they are polled at the
+-- end of every frame drawn (render), against the rects that frame stamped.
 -- ---------------------------------------------------------------------------
 function ZeD_ItemCard:update()
     ISPanel.update(self)
+end
+
+function ZeD_ItemCard:_pointer()
     if not self.item then return end
 
     -- S121 (Phase B8): back-bar click dispatch. _backBarRects is stamped by
@@ -1495,6 +1502,7 @@ function ZeD_ItemCard:render()
     -- v13/v15/v16 spec. Scrollbar paint stays here so it overlays.
     self:renderBody({sourceContext = self:_effectiveContext()})
     if self._sb and self._sb.visible then self._sb:draw(self) end
+    self:_pointer()   -- (every frame drawn: update() runs only every 100 ms)
 end
 
 

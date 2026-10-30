@@ -541,18 +541,30 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
     local s = fit(w, viewH, nBelt)
     local k = s * ZeD.T.px(1000) / 1000
     local off = bands and BAND_W or 0          -- every x of the 520-unit doll moves right by this
-    local ox = x + math.max(0, math.floor((w - (bands and WIDE_W or BASE_W) * k) / 2))
+    local ox = x
     local function P(v) return math.floor(v * k + 0.5) end
     local b = P(BOX)
+    -- The width the doll leaves spare (shrunk to a short window's height, it is narrower than the card)
+    -- goes between its parts, each the size it is: the bands to the card's edges, the figure in the
+    -- middle, the big slots' columns half way between (director, Oct 30 2026: "fill the width of the
+    -- space for the equipment doll"). S(v): how far right a doll x (units) moves, its part's share.
+    local spare = math.max(0, w - (bands and WIDE_W or BASE_W) * k)
+    local function S(v)
+        local q
+        if bands then q = (v < 73 and 0) or (v < 131 and 0.25) or (v < 333 and 0.5) or (v < 394 and 0.75) or 1
+        else q = (v < 60 and 0) or (v < 262 and 0.5) or 1 end
+        return math.floor(spare * q + 0.5)
+    end
+    local belowS = bands and math.floor(spare * 0.25 + 0.5) or 0   -- the hands and the belt keep under the left column
 
     -- no frame behind the figure: the model stands on the panel (CharacterWindow draws it into this rectangle)
-    local fx, fy, fw, fh = ox + P(PHOTO.x + off), y + P(PHOTO.y), P(PHOTO.w), P(PHOTO.h)
+    local fx, fy, fw, fh = ox + P(PHOTO.x + off) + S(PHOTO.x + off), y + P(PHOTO.y), P(PHOTO.w), P(PHOTO.h)
     win._equipDollPhoto = { x = fx + T.px(1), y = fy + T.px(1), w = fw - T.px(2), h = fh - T.px(2) }
     if bands then
-        -- faint rules between the bands and the doll
+        -- faint rules between the bands and the doll (half way across the gap the spare width opens)
         local rw = T.px(1)
-        panel:drawRect(ox + P(RULE_L), fy, rw, fh, 0.05, 1, 1, 1)
-        panel:drawRect(ox + P(RULE_R), fy, rw, fh, 0.05, 1, 1, 1)
+        panel:drawRect(ox + P(RULE_L) + math.floor(spare * 0.125 + 0.5), fy, rw, fh, 0.05, 1, 1, 1)
+        panel:drawRect(ox + P(RULE_R) + math.floor(spare * 0.875 + 0.5), fy, rw, fh, 0.05, 1, 1, 1)
     end
 
     local zones, beltZones, lines, empties, rects = {}, {}, {}, {}, {}
@@ -565,7 +577,7 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
     for _, def in ipairs(D.SLOTS) do
         local sx0 = ((def.side == "L") and COL_L or COL_R) + off
         local sy0 = ROW0 + def.row * ROW_STEP
-        local bx, by = ox + P(sx0 + BOX_IN), y + P(sy0)
+        local bx, by = ox + P(sx0 + BOX_IN) + S(sx0 + BOX_IN), y + P(sy0)
         local items = data.slots[def.id].items
         local item = items[1]
         local key = "doll:" .. def.id
@@ -602,7 +614,7 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
             lane = lane + off
             pts = { lsx, lsy, lane, lsy, lane, ay, ax, ay }
         end
-        for i = 1, #pts, 2 do pts[i] = ox + P(pts[i]); pts[i + 1] = y + P(pts[i + 1]) end
+        for i = 1, #pts, 2 do pts[i] = ox + P(pts[i]) + S(pts[i]); pts[i + 1] = y + P(pts[i + 1]) end
         lines[#lines + 1] = pts
     end
 
@@ -615,13 +627,13 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
         for _, g in ipairs(D.GROUPS) do
             -- the name sits on its row's y; on a shrunk doll it rises just enough to clear its slots
             local ny = math.min(y + P(g.y), y + P(g.y + SM_NAME_DY) - f5h - 1)
-            panel:drawText(ZeD.Atoms.truncateText(groupName(g), f5, P(BAND_W - 4)), ox + P(g.x), ny, dc.r, dc.g, dc.b, dc.a or 1, f5)
+            panel:drawText(ZeD.Atoms.truncateText(groupName(g), f5, P(BAND_W - 4)), ox + P(g.x) + S(g.x), ny, dc.r, dc.g, dc.b, dc.a or 1, f5)
         end
         for _, sm in ipairs(D.SMALL) do
             local items = data.small[sm.id].items
             local item = items[1]
             local key = "doll:" .. sm.id
-            local sbx, sby = ox + P(sm.x), y + P(sm.y)
+            local sbx, sby = ox + P(sm.x) + S(sm.x), y + P(sm.y)
             local place = ZeD.tr(sm.place)
             local over = drawSmall(panel, win, sbx, sby, ss, item, #items, key, sm.letter, place, mx, my, k)
             if not item and ghosts and ghosts[sm.id] then EL.drawGhost(panel, sbx, sby, ss, ghosts[sm.id]) end
@@ -644,7 +656,7 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
 
     -- the row below: the hands, then the belt's slots (three to a row)
     local function below(key, label, item, bx0, by0, beltKey, beltSlot)
-        local bx, by = ox + P(bx0 + off + BOX_IN), y + P(by0)
+        local bx, by = ox + P(bx0 + off + BOX_IN) + belowS, y + P(by0)
         local over = drawBox(panel, win, bx, by, b, item, 1, key, beltKey, label, mx, my)
         local gid = beltSlot and ("belt" .. tostring(beltSlot.i)) or (key and key:sub(6))
         if not item and ghosts and gid and ghosts[gid] then EL.drawGhost(panel, bx, by, b, ghosts[gid]) end

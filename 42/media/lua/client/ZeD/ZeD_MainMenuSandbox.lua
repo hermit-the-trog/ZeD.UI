@@ -642,13 +642,14 @@ end
 
 -- a press anywhere but the number field keeps the number
 function ZeD_MMSandbox:update()
-    if self._cellRow and isMouseButtonDown(0) and not self._cellDown then
+    local down = ZeD.MouseTick.down()   -- (update() runs every 100 ms: ZeD_MouseTick.lua)
+    if self._cellRow and down and not self._cellDown then
         local e = self.cell
         local mx, my = getMouseX(), getMouseY()
         local ex, ey = e:getAbsoluteX(), e:getAbsoluteY()
         if not (mx >= ex and mx < ex + e.width and my >= ey and my < ey + e.height) then self:commitCell() end
     end
-    self._cellDown = isMouseButtonDown(0)
+    self._cellDown = down
     -- the field let go some other way: the number stays as it was
     if self._cellRow and not self.cell:isFocused() and MM.now() - (self._cellAt or 0) > 150 then self:endCell() end
     ZeD_MMOptions.update(self)
