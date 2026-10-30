@@ -3540,6 +3540,7 @@
     "UI_ZeD_Lists_HelpMarkIn": "On: %1",
     "UI_ZeD_EqBar_NoOutfit": "No outfit",
     "UI_ZeD_EqBar_NoLoadout": "No loadout",
+    "UI_ZeD_EqBar_Title": "Loadouts",
     "UI_ZeD_EqBar_EmptyLine": "lists from the Journal, to restock before you head out",
     "UI_ZeD_EqBar_DayOne": "%1 day",
     "UI_ZeD_EqBar_DayMany": "%1 days",

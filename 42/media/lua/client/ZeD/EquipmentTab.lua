@@ -1211,8 +1211,11 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     -- Column headers (20px) always in scroll area
     local headerH = T.sp.tabHeaderH or T.px(37)
     local listExpanded = win._equipListExpanded
-    -- the loadouts' bar, pinned under the heading in both views (ZeD_EquipLoadout.lua)
-    local barH = EL and EL.barH(win, w) or 0
+    -- the loadouts: a fold under the doll and the lists, shut until opened, in both views
+    -- (ZeD_EquipLoadout.lua; pinned here under the heading until Oct 30 2026). It is measured
+    -- and drawn at the doll's width, so its rows do not change with the scrollbar.
+    local loW = w - T.sp.scrollbarW
+    local loH = EL and EL.sectionH(win, loW) or 0
 
     -- Measure scrollable content
     local defDashH = _measureDefenseDashboard(win, protData, w)
@@ -1235,7 +1238,7 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     local dollH = 0
     if dollView then
         if not win._equipDollData then win._equipDollData = Doll.gather(win._playerObj, win.playerNum or 0) end
-        dollH = Doll.measure(win, w - T.sp.scrollbarW, h - headerH - barH)
+        dollH = Doll.measure(win, w - T.sp.scrollbarW, h - headerH)
         totalH = totalH + dollH
     elseif listExpanded then
         totalH = totalH + T.px(EQUIP_HDR_H)
@@ -1251,14 +1254,15 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
             end
         end
     end
+    totalH = totalH + loH
     if hasDefBody then
         if listExpanded then totalH = totalH + figureGap end
         totalH = totalH + defBodyH
     end
 
     -- Scroll setup — scrollbar starts below pinned header
-    local scrollY = y + headerH + barH
-    local scrollH = h - headerH - barH
+    local scrollY = y + headerH
+    local scrollH = h - headerH
     local needsScroll = totalH > scrollH
     scroll.visible = needsScroll
     local scrollW = T.sp.scrollbarW
@@ -1317,7 +1321,7 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
         -- the doll in place of the list (EquipDoll.lua); it stamps the slot,
         -- belt and photo zones itself
         win._equipGroupZones = {}
-        local dh = Doll.draw(panel, win, x, drawY, w - T.sp.scrollbarW, h - headerH - barH, panel:getMouseX(), panel:getMouseY())
+        local dh = Doll.draw(panel, win, x, drawY, w - T.sp.scrollbarW, h - headerH, panel:getMouseX(), panel:getMouseY())
         szi = #win._equipSlotZones
         beltZones = win._equipBeltZones or {}
         win._equipDollShown = true
@@ -1366,6 +1370,11 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     end
     win._equipBeltZones = beltZones
 
+    -- the loadouts' fold, under the doll and the lists
+    if EL and loH > 0 then
+        drawY = drawY + EL.drawSection(panel, win, x, drawY, loW, { x = x, y = scrollY, w = contentW, h = scrollH })
+    end
+
     -- Defense body (figure + stats) — always shown at the bottom of the tab,
     -- regardless of inventory list expansion. figureGap (T.sp.figurePadTop,
     -- the canonical figure-top padding) sits between the list and the body.
@@ -1403,7 +1412,6 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     end
     -- List | Doll, at the heading's right edge
     Doll.drawToggle(panel, win, x, y, w, headerH, panel:getMouseX(), panel:getMouseY())
-    if EL and barH > 0 then EL.drawBar(panel, win, x, y + headerH, w) end
     -- Zone field name kept (_equipDefenseZone) for backward compat with the
     -- existing CharacterWindow click + gamepad routing; the field now points
     -- at the "Equipped" disclosure but the zone semantics are unchanged.

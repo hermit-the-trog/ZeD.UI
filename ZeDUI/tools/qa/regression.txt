@@ -164,6 +164,11 @@ zedqa_soak.lua | soak | timeout=2700             # every tab for 12 rounds at th
 # zedqa_padmap.lua                  the pad map: ~45 full screenshots + stop dumps; run by hand ("zedqa_prelude.lua | pre",
 #                                   "zedqa_deep_run.lua | deep | timeout=180", then "zedqa_padmap.lua | pm | timeout=900"),
 #                                   then py padmap.py -> ZeDUI/qa/padmap/
+# zedqa_window_edges_run.ps1        the real mouse on the window edges; after a -KeepOpen run of mouse_keep.txt
+# zedqa_mouse_run.ps1               the real mouse (Oct 30 2026, the director's mouse pass): a right-click on the
+#                                   inventory with the drawer shut, a press closes the menu, the window box's help
+#                                   line and quick clicks, the loadout picker's list stays; after a -KeepOpen run
+#                                   of mouse_keep.txt, then -Quit -ModOptionsKeep <the run's .modoptions.ini>
 #
 # ---- left out: main menu (need a -MainMenu launch)
 # zedqa_button_case_menu.lua, zedqa_header_fit.lua, zedqa_mod_conflicts.lua, zedqa_power_on.lua,

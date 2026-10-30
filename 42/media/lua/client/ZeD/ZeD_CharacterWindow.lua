@@ -1955,9 +1955,6 @@ local function _buildEquipmentFocusables(win)
             end,
         }
     end
-    -- the loadouts' bar under the heading (ZeD_EquipLoadout), and where the focus lands after its to-do
-    if win and ZeD.EquipLoadout then ZeD.EquipLoadout.barFocusables(win, elements) end
-
     -- S105 — Inject body-figure parts between disclosure and groups. When
     -- the defense disclosure is expanded, the body figure sits in the
     -- dashboard area immediately below the header, so spatial cone-nav
@@ -2100,6 +2097,8 @@ local function _buildEquipmentFocusables(win)
         }
     end
 
+    -- the loadouts' fold under the doll and the lists (ZeD_EquipLoadout), and where the focus lands after its to-do
+    if win and ZeD.EquipLoadout then ZeD.EquipLoadout.barFocusables(win, elements) end
     if win and ZeD.EquipLoadout then ZeD.EquipLoadout.land(win, elements) end
     -- Back from a card: focus returns to the slot or row that opened it
     if win and win._equipCardSeed and not win._equipSelected then

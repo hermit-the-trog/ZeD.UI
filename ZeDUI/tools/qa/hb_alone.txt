@@ -1,0 +1,3 @@
+# Oct 30 2026: hair and beard alone after the prelude (it failed to reach Identity when it ran after zedqa_two_widths)
+zedqa_prelude.lua | pre
+zedqa_hairbeard.lua | hb | timeout=420            # rows from the game's menu, greyed reasons, cut / tie / untie / trim, pad path, Out of reach, Identity traits, Large, the hair mods

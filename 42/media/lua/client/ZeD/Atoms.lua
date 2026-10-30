@@ -1033,6 +1033,11 @@ function ZeD.Atoms.newHintLayer(win, field)
     layer.onMouseDown = function() return false end
     layer.onMouseUp = function() return false end
     layer.onMouseWheel = function() return false end
+    -- (the right button too: ISUIElement's own handlers return nothing, and on 42.22 that takes
+    -- the click; the layer ate every right-click over the Character window's inventory while
+    -- the drawer was shut, Oct 30 2026)
+    layer.onRightMouseDown = function() return false end
+    layer.onRightMouseUp = function() return false end
     layer.render = function(self)
         ZeD.Atoms.drawPendingHover(self, win)
         local c = win[field]

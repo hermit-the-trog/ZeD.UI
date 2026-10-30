@@ -516,6 +516,8 @@ function ZeD.SkillsTab.cardLayer(win)
         layer.onMouseDown = function() return false end
         layer.onMouseUp = function() return false end
         layer.onMouseWheel = function() return false end
+        layer.onRightMouseDown = function() return false end   -- (42.22: a handler that returns nothing takes the click)
+        layer.onRightMouseUp = function() return false end
         layer.render = function(self)
             local c = win._skillCardStamp
             win._skillCardStamp = nil

@@ -626,6 +626,7 @@ local function makeModel()
     m.javaObject:setConsumeMouseEvents(false)
     m.onMouseDown, m.onMouseUp, m.onMouseMove, m.onMouseWheel = noMouse, noMouse, noMouse, noMouse
     m.onMouseUpOutside, m.onMouseMoveOutside = noMouse, noMouse
+    m.onRightMouseDown, m.onRightMouseUp = noMouse, noMouse   -- (42.22: a handler that returns nothing takes the click)
     m._hbModel = true
     m:setVisible(false)
     m.javaObject:setVisible(false)
@@ -641,6 +642,7 @@ local function makeLayer(win)
     layer.javaObject:setConsumeMouseEvents(false)
     layer.prerender = function() end
     layer.onMouseDown, layer.onMouseUp, layer.onMouseWheel, layer.onMouseMove = noMouse, noMouse, noMouse, noMouse
+    layer.onRightMouseDown, layer.onRightMouseUp = noMouse, noMouse
     layer.render = function(self) HB.renderLayer(self, win) end
     layer._hbLayer = true
     layer:setVisible(false)

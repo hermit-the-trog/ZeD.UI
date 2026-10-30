@@ -59,6 +59,7 @@ function ZeD_WindowMenu:open()
     self:_measure(top, false)
     self:_place(top, self._anchorX - top.w, self._anchorY, nil)
     self._levels = { top }
+    self:_notePress()
     if JoypadState and JoypadState.players and JoypadState.players[self.player + 1] then
         top.sel = self:_firstLive(top, 1, 1) or 1
         self._joyfocus = true
