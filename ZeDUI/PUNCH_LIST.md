@@ -134,6 +134,10 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     - **Maps (director, Oct 30):** header strip: the fold arrow, the six stamps, Aa, the inks, full view
       at the far right; nothing else at the top. Footer band: Survey | Color | Paper on the left, the
       marks list on the right. The second toolbar row goes; the map runs from header to band.
+    - **Craft and Build (director, Oct 30):** header strip, one row: Station, Category, Search (Build:
+      Category, Search). Footer band, full width: Sort as a pop-up menu ("Sort: Craftable") and Show:
+      Ready on the left; the amount (- 1 +) and Craft / Build, last, on the right, shown greyed until a
+      recipe is picked so the band never changes shape. The search and sort rows go.
 
 ## Test process
 
