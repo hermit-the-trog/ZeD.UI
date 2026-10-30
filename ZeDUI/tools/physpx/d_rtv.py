@@ -88,6 +88,25 @@ def level_bars(p, src, x, y, n, bw, gap, h0, dh, color, base="ledoff"):
     p.part("bars", src=src, max=n, bars=bars, color=color)
 
 
+# the signal light (director, Oct 30 2026: "(none), red (bad), yellow, green (good)", "radio light"): one jewel lamp
+# that shows the reception by its colour; dark when there is nothing (or the set is off). Code lights one of the three
+# from the signal level: 0 none, 1 sigBad, 2 sigFair, 3 and up sigGood (signal_lamp_state below).
+SIGNAL_COLORS = (("sigBad", "#ff3a2e"), ("sigFair", "#ffd23a"), ("sigGood", "#5dff7a"))
+
+
+def signal_lamp(p, cx, cy, r=2.2, on=Z_FACE):
+    d = p.d
+    d.dome(cx, cy, r + 0.2, r + 0.2, 1.0, "jewel_off", polish=0.9, on=on)
+    for src, col in SIGNAL_COLORS:
+        p.lamp(disc(d, cx, cy, r), src, col)
+
+
+def signal_lamp_state(level, live=True):
+    """the three lamp keys for a signal level (0..4)"""
+    lv = int(level) if live else 0
+    return {"sigBad": lv == 1, "sigFair": lv == 2, "sigGood": lv >= 3}
+
+
 def power_lamp(p, cx, cy, on=Z_FACE):
     d = p.d
     d.dome(cx, cy, 2.2, 2.2, 1.0, "jewel_red_off", polish=0.9, on=on)
@@ -205,7 +224,7 @@ def tv_strip(p, W, sy, keymat="tv_bezel", ink="paint_k", vhs=True):
     key("chdn", gx + lw + 4, sy, 18, ic="down")
     key("chup", gx + lw + 25, sy, 18, ic="up")
     p.label("CH", gx + lw + 47, sy + 3, ink, auto_ink=False)
-    level_bars(p, "bars", gx - 16, sy + 2, 4, 2, 1, 2, 2, "#2f8f3e")
+    signal_lamp(p, gx - 9, sy + 6)
     key("voldn", gx + lw + 4, sy + 16, 18, ic="down")
     key("volup", gx + lw + 25, sy + 16, 18, ic="up")
     p.label("VOL", gx + lw + 47, sy + 19, ink, auto_ink=False)
@@ -642,7 +661,7 @@ def tv_antique(W=392, worn_=True):
     d.dome(px0 + 14, fy + 8, 2.4, 2.4, 1.0, "jewel_red_off", polish=0.9, on=zp)
     p.lamp(disc(d, px0 + 14, fy + 8, 2.2), "radioOn", "#ffb040")
     d.dome(px0 + 30, fy + 8, 7, 7, -1.0, "blackp", polish=0.5, on=zp)
-    level_bars(p, "bars", px0 + 24, fy + 4, 4, 3, 0, 3, 2, "#62ff7a")
+    signal_lamp(p, px0 + 30, fy + 8, r=3.6, on=zp - 1.0)
     PR.radio_key(p, "mute", px0 + 42, fy + 2, 26, 12, "MUTE", mat="blackp", lab_mat="paint_w", z=1.4)
     jack(p, px0 + cw_ - 15, fy + 8, label=None)
     p.label("SIGNAL", px0 + 30, fy + 17, "paint_k", align="c", auto_ink=False)
@@ -691,5 +710,5 @@ def state_tv(on=True, ch=12, signal=4, tape=False, phones=False, power=True, cou
     disp = {"ch": f"{ch:02d}"} if live else {}
     if live and tape: disp.update(counter=counter, playing=playing)
     s = dict(radioOn=live, power=live, noPower=not power, display=disp, bars=signal if live else 0,
-             hasMedia=tape, phonesIn=phones, kind="tvch")
+             hasMedia=tape, phonesIn=phones, kind="tvch", **signal_lamp_state(signal, live))
     return s
