@@ -1,0 +1,17 @@
+0.2.0-t12: changes since 0.2.0-t11.
+
+Equip tab
+- A new paper doll: no frame behind the figure, Arms above Belt, and 38 small slots in two bands beside the big ones (the game's own words for each place). The belly button, air tank, tail and sport pads now show. A small slot opens the item's card, takes drops and is a controller stop.
+- Loadouts and outfits: save what you wear or carry as a named list (Save to loadout / Save to outfit in the right-click menu, or a Lists button on the item card). The Journal has a Loadouts page.
+- The Equip bar shows the outfit and loadout, how many days it covers, how many pieces are ready, and Restock with its time (Unpack when you are home). Missing pieces show faintly on the doll.
+- Restock gathers the missing pieces from the building you are in, only from containers you have already looked into, never locked ones or someone else's safehouse, through the game's own actions. It asks before taking the last of a supply and stops for a key, a zombie in view or getting hurt. ZeD setup sets how much it does for you: Hardcore, Casual (default) or Accessible.
+- Unpack puts loot back where its kind lives in your base (it asks once per kind per building); food about to spoil goes back too.
+- Controller: a Loadouts ring on the Character D-pad wheel.
+
+Windows
+- Cards come in two widths only, half and full, so a window no longer grows, bumps or overlaps as you change tabs. The Maps toolbar wraps to a second row when it runs out of room; the oven's Craft tab and the Radio tab keep the card width.
+
+Machines, watches, dashboards
+- Machine plates (microwave, stove, washer and the rest) are redrawn to fit the full card at every scale, with a narrow face when the window is small, and carry the game's own brands.
+- Every CaZio and Timez watch has one grey screen (the Indiglo glow stays); the strap joins the case the same way top and bottom.
+- Dashboards reach the bottom of the screen, with a one-point ignition key on a ring and leather fob and a suggested steering column. Late-model gauges have a blue-green light from three bulbs; the needles stay orange.
