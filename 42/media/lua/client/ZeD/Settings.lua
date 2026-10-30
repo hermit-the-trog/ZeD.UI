@@ -202,6 +202,17 @@ equipView:addItem(ZeD.tr("UI_ZeD_Settings_ViewList"), true)  -- default: the lis
 equipView:addItem(ZeD.tr("UI_ZeD_Settings_ViewDoll"), false)
 ZeD.Settings.equipViewOption = equipView
 
+-- ----- RESTOCK (Oct 29 2026, handoff equip_doll_v4_loadouts part B5; director: "1, 2 and 3.
+-- 3 being the accessible option, 1 being hardcore, and 2 being casual") -----
+-- How the Equip tab's Restock and Unpack go (ZeD_Restock.lua reads it each time): Hardcore takes
+-- from what is in reach now, Casual (the default) as containers come into reach, Accessible walks
+-- the building for you. The choice lives here, never in a first-run question.
+local restock = opts:addComboBox("restock", ZeD.tr("UI_ZeD_Settings_Restock"), ZeD.tr("UI_ZeD_Settings_RestockTip"))
+restock:addItem(ZeD.tr("UI_ZeD_Settings_RestockHardcore"), false)
+restock:addItem(ZeD.tr("UI_ZeD_Settings_RestockCasual"), true)   -- default
+restock:addItem(ZeD.tr("UI_ZeD_Settings_RestockAccessible"), false)
+ZeD.Settings.restockOption = restock
+
 -- ----- THE OTHER VIEW CHOICES (Oct 19 2026, director: "people can have all lists
 -- or all grids options for the most used menus") -----
 -- The inventory's view for every container that hasn't one of its own (each

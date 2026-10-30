@@ -184,6 +184,14 @@ for _, row in ipairs(SMALL_ROWS) do
     end
 end
 
+--- The doll slot a worn location shows in: a small slot's id while the bands show, else its big slot's
+-- (the loadouts' missing things are drawn there: ZeD_EquipLoadout.ghosts).
+function D.slotForLoc(loc, bands)
+    if not loc then return nil end
+    if bands then return LOC_TO_SMALL[loc] or LOC_TO_BIG[loc] end
+    return LOC_FOLD[loc]
+end
+
 local function call(o, m, ...)
     if not o then return nil end
     local f = o[m]
@@ -549,6 +557,10 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
     local zones, beltZones, lines, empties, rects = {}, {}, {}, {}, {}
     local hint = nil
     local li, ri = 0, 0
+    -- what the loadout and outfit applied are missing, where it goes (ZeD_EquipLoadout)
+    local EL = ZeD.EquipLoadout
+    local ghosts = EL and EL.ghosts and EL.ghosts(win, bands) or nil
+    win._equipDollGhosts = ghosts
     for _, def in ipairs(D.SLOTS) do
         local sx0 = ((def.side == "L") and COL_L or COL_R) + off
         local sy0 = ROW0 + def.row * ROW_STEP
@@ -557,6 +569,7 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
         local item = items[1]
         local key = "doll:" .. def.id
         local over = drawBox(panel, win, bx, by, b, item, #items, key, nil, ZeD.textCase(ZeD.tr(def.key)), mx, my)
+        if not item and ghosts and ghosts[def.id] then EL.drawGhost(panel, bx, by, b, ghosts[def.id]) end
         rects[#rects + 1] = { x = bx, y = by, w = b, h = b, id = def.id }
         if item then
             zones[#zones + 1] = { x = bx, y = by, w = b, h = b, type = key, item = item }
@@ -607,6 +620,7 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
             local sbx, sby = ox + P(sm.x), y + P(sm.y)
             local place = ZeD.tr(sm.place)
             local over = drawSmall(panel, win, sbx, sby, ss, item, #items, key, sm.letter, place, mx, my, k)
+            if not item and ghosts and ghosts[sm.id] then EL.drawGhost(panel, sbx, sby, ss, ghosts[sm.id]) end
             rects[#rects + 1] = { x = sbx, y = sby, w = ss, h = ss, id = sm.id }
             local ptext = ZeD.textCase(place)
             if item then
@@ -628,6 +642,8 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
     local function below(key, label, item, bx0, by0, beltKey, beltSlot)
         local bx, by = ox + P(bx0 + off + BOX_IN), y + P(by0)
         local over = drawBox(panel, win, bx, by, b, item, 1, key, beltKey, label, mx, my)
+        local gid = beltSlot and ("belt" .. tostring(beltSlot.i)) or (key and key:sub(6))
+        if not item and ghosts and gid and ghosts[gid] then EL.drawGhost(panel, bx, by, b, ghosts[gid]) end
         win._equipSlotYMap[key] = by
         if item then
             zones[#zones + 1] = { x = bx, y = by, w = b, h = b, type = key, item = item }
