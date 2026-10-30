@@ -227,12 +227,33 @@ local function clockState(t, d, st)
     st.drumF = f
 end
 
+-- The water meter is a powered display; the water in the drum is not (director, Oct 30 2026: "the meter goes dark
+-- without power, the water in the drum still shows"). Both are `bars` parts reading `water` in the export, and the
+-- template lights bars only while st.power, so once per session each laundry face's meter (the bars part whose
+-- bars are single rects; the drum's are stacks of lines) is pointed at `waterMeter`, which reads 0 without power.
+local metersMarked = false
+local function markMeters()
+    if metersMarked then return end
+    metersMarked = true
+    local X = ZeD.PhysPx
+    local bases = { washer = true, dryer = true, washer_dryer = true }
+    for pid, des in pairs(X and X.plates or {}) do
+        if bases[P.baseId(pid)] then
+            for _, part in ipairs(des.parts or {}) do
+                if part.t == "bars" and part.src == "water" and part.bars and part.bars[1] and #part.bars[1] == 4 then
+                    part.src = "waterMeter"
+                end
+            end
+        end
+    end
+end
+
 -- what the face's live parts read
 local function plateState(t, d)
     local st = {}
     for _, k in ipairs(ALL_PHASES) do st[k] = false end
     st.power = true                          -- (the plate's bars draw only "while st.power": the drum holds its water
-                                             -- with the power off too, and the meter reads the same figure)
+                                             -- with the power off too; the meter reads waterMeter, below)
     st.powered = d.powered                   -- the hits' needs = "powered"
     st.running = d.on
     st.noPower = not d.powered
@@ -242,6 +263,8 @@ local function plateState(t, d)
         if w < 1 then w = 1 end              -- any water lights a bar
     end
     st.water = w
+    markMeters()
+    st.waterMeter = d.powered and w or 0     -- (the meter: dark without power; the drum keeps `water`)
     st.noWater = d.washMode and not d.hasWater
     st.hasItems = d.n > 0
     st.modeWash = d.combo and d.washMode

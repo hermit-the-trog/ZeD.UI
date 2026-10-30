@@ -64,9 +64,8 @@ end)
 ZeD.Safe.register("radio window", { leave = restoreVanillaRadioAutoOpen, enter = suppressVanillaRadioAutoOpen })
 
 -- S115b: replace vanilla's auto-open behavior with our own — when the player
--- equips a radio, if the ZeD Character Window is open, flip its active tab to
--- the radio tab so the drawer is showing the just-equipped device. Doesn't
--- force-open the window; if the user has it closed, equipping doesn't pop it.
+-- equips a radio, if the ZeD Character Window is open, refresh its radio list so
+-- the Radio tab shows at once. It doesn't switch to the tab or open the window.
 local function onEquipRadioAutoSwitch(player, item)
     if ZeD.Safe.on() then return end
     if player == nil or player ~= getPlayer() then return end
@@ -80,10 +79,9 @@ local function onEquipRadioAutoSwitch(player, item)
     if ZeD.RadioTab and ZeD.RadioTab.buildEquippedRadios then
         charWin._radios = ZeD.RadioTab.buildEquippedRadios(player)
     end
-    if charWin._radios and #charWin._radios > 0 then
-        charWin._activeTab = "radio"
-        charWin._radioIdx = 1
-    end
+    -- (Until Oct 30 2026 this also made Radio the active tab and picked the first radio, but never opened the drawer,
+    -- so from Loot or an item card the tab lit with no card. Director, Oct 30 2026: equipping a radio does nothing to
+    -- the tab; the player opens the Radio tab when they want it. The list refresh above still shows the tab at once.)
 end
 
 Events.OnEquipPrimary.Add(onEquipRadioAutoSwitch)
