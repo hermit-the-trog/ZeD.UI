@@ -1,0 +1,23 @@
+zedqa_prelude.lua | pre                          # opens both windows, unpauses, god mode, ~60 ticks
+zedqa_curtain.lua | cu | timeout=400             # curtain roll / unroll, close while rolled, tabs while rolled
+zedqa_px_icons.lua | px | timeout=240           # ZeD's pixel icons outside the wheels: every id's drawings and the box rule, a test panel (each icon in every button state, the card's marks, the chevrons), the item card's marks and both rows live
+zedqa_wheel_icons.lua | wi | timeout=600       # the wheels' icons: every icon, the box rule, vanilla's words and pictures, ZeD's wheels, the live radials; captures at the scale in use and at 1x
+zedqa_quick_chords.lua | qc | timeout=300       # quick action chords: the defaults resolve, LB + X torch from a bag on and off, eat / drink / smoke queued, a gone thing's reason, the press swallowed, assigning from a wheel, ZeD setup's rows and list
+zedqa_two_widths.lua | tww | timeout=900          # the two widths (Oct 29 2026): every tab, card and the Maps pop-out in both windows is the half card or the full card, the other window never moves or resizes, no overlap, a held-in window gets the half card
+zedqa_plates_336.lua | p336 | timeout=900          # the 336 px machine plates and 200 px narrow faces (Oct 29 2026): oven, both microwaves, generator, grill at the run scale and at 0.5, which face is drawn, presses that act
+zedqa_dash_props_smoke.lua | sm                  # v6 dash, radio up close, siren controller still draw
+zedqa_tm.lua | tm                                # tooltip frame, map labels, dash text after the measure fix
+zedqa_tour3.lua | t3                             # seven dash designs on spawned cars
+zedqa_dash19.lua | dash | timeout=480            # every dashboard design on a spawned car (19 cars)
+zedqa_dashpx.lua | dpx | timeout=720             # the pixel-art v6 dashboards (24 cars)
+zedqa_exinfo.lua | ex                            # Health tab exercise info: vanilla's description, stiffness, regularity, warnings
+zedqa_charinfo.lua | ci | timeout=180           # the game's Character window keys (Health, Skills, Info, Protection) land on ZeD's tabs; Mini Health Panel's click too when that mod is on
+zedqa_equipdrag.lua | eqd | timeout=240          # Equip rows and doll slots as drag sources: click, drag, cancel, bag, floor, same place (fake mouse; all put back)
+zedqa_cazio_light.lua | czl | timeout=240      # the CaZio LIGHT: bulb by day and at night, mini watch
+zedqa_dashnight.lua | dnt | timeout=480        # dash night lighting: hidden gauge bulbs, lamps, light level
+zedqa_dash_green.lua | dgr | timeout=600 | expect=FBORenderCell   # D6 fan needle parked by day, fire pickup at speed, the green-lit late models at night (zedqa_dash_green_only.lua only sets a flag for dash_green_night.txt)
+zedqa_dash_keys_edge.lua | dke | timeout=1500 | expect=FBORenderCell   # 19 designs: the key at OFF, START, ON, the fob whole, the dash flush on the screen's edge (dash_keys_edge.txt)
+zedqa_dash_brands.lua | dbr | timeout=900 | expect=FBORenderCell   # the makers' marks: 13 civilian cars, the Step Van on the Valuline's dash, a modded name's plaque, two at night (dash_brands.txt)
+zedqa_testlang.lua | tlang | timeout=600      # every screen with the stretched test language (screenshots zqa_tl_*)
+zedqa_safemode.lua | safe | timeout=240         # safe mode trips, turns ZeD off, and recovers
+zedqa_soak.lua | soak | timeout=2700             # every tab for 12 rounds at the fastest speed (7 to 15 minutes)

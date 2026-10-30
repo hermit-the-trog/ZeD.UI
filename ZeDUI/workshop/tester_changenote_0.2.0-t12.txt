@@ -15,3 +15,6 @@ Machines, watches, dashboards
 - Machine plates (microwave, stove, washer and the rest) are redrawn to fit the full card at every scale, with a narrow face at the smallest sizes, and carry the game's own brands. The chrome microwave has a glass touch keypad; the ham radios' tuning knobs show where they point.
 - Every CaZio and Timez watch has one grey screen (the Indiglo glow stays); the strap joins the case the same way top and bottom.
 - Dashboards reach the bottom of the screen, with an ignition key on a ring and leather fob and a steering column. The 13 civilian dashboards carry the car maker's mark (a modded car of an unknown maker gets a plain plaque). Late-model gauges have a blue-green light; the needles stay orange. The fire pickup's speedometer needle stays on its face.
+
+Fixes
+- The Smoke quick action (and the wheel's Smoke) takes only what the game itself lets you smoke; another smokable thing in the bag no longer stops the action with an error.
