@@ -87,6 +87,13 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
       Two notes for the director, not failures: the preset buttons read "Plus" and "Accessible", not
       "Vanilla Plus" / "Vanilla Accessible"; with Loadouts off the Restock row still shows its choice
       (Casual) as if it applied. Screenshot: ZeDUI/qa/Oct30_mouse_pass/qa18_additions_group.jpg.
+19. **The Restock row dims while Loadouts is off (director, Oct 30: "Yes, dim it").** chosen.
+    Found by QA in item 18's check: with Loadouts and outfits off, ZeD setup's Restock row still shows
+    its choice (Casual) as if it applied, though Restock does nothing then. Choice: dim the row while
+    Loadouts is off (live, as the Loadouts switch is ticked on the screen); its choice is kept and
+    comes back when Loadouts is on. Build to write the plain rule (when it dims, whether it can still
+    be changed while dim) before building. Still open: the preset buttons read "Plus" and
+    "Accessible" rather than the full names (no choice yet).
 
 ## Test process
 
