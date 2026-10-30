@@ -227,6 +227,30 @@ def footer(a, w, h, ch, s, col=(240, 240, 230)):
     text(a, COUNTY, w // 2, int(h * 0.78) + 8 * ss + 3, 1, col, font="57", outline=(0, 0, 0))
 
 
+def chopper(a, hx0, hy0, L, s, stripe=(200, 30, 36), body=(225, 230, 240, 255)):
+    """a news helicopter flying left, nose down: cabin, windscreen, a stripe down the side, tail boom, fin, the tail
+    rotor's blur, the main rotor as a blurred line, skids"""
+    h, w = a.shape[:2]
+    ch_ = Image.new("RGBA", (w, h), (0, 0, 0, 0)); dc = ImageDraw.Draw(ch_)
+    tilt = 0.10
+    def T(x, y): return (hx0 + x * L, hy0 + (y + (x - 0.35) * tilt) * L)
+    dc.ellipse([*T(0.02, 0.18), *T(0.42, 0.40)], fill=body)
+    dc.polygon([T(0.38, 0.24), T(0.95, 0.27), T(0.95, 0.30), T(0.38, 0.34)], fill=body)
+    dc.polygon([T(0.90, 0.16), T(0.97, 0.16), T(0.97, 0.30), T(0.92, 0.30)], fill=body)
+    dc.ellipse([*T(0.88, 0.10), *T(1.02, 0.24)], outline=(200, 210, 230, 160), width=1)
+    dc.ellipse([*T(0.04, 0.21), *T(0.17, 0.33)], fill=(60, 120, 190, 255))
+    dc.polygon([T(0.10, 0.33), T(0.40, 0.31), T(0.40, 0.34), T(0.10, 0.36)], fill=tuple(stripe) + (255,))
+    dc.rectangle([*T(0.18, 0.14), *T(0.26, 0.19)], fill=body)
+    for k, al in ((0.0, 230), (0.02, 120), (-0.02, 120)):
+        dc.line([T(-0.25, 0.14 + k), T(0.70, 0.14 + k)], fill=(235, 240, 250, al), width=1)
+    for xx in (0.08, 0.32):
+        dc.line([T(xx, 0.40), T(xx, 0.45)], fill=(200, 205, 215, 255), width=1)
+    dc.line([T(0.0, 0.46), T(0.40, 0.44)], fill=(200, 205, 215, 255), width=max(1, s // 2))
+    chp = np.asarray(ch_, np.float32) / 255
+    al_ = chp[..., 3:4]
+    a[:] = a * (1 - al_) + chp[..., :3] * al_
+
+
 def signoff(cid, w, h):
     s = big_scale(w, h)
     name, ch = {c[0]: (c[1], c[2]) for c in CHANNELS}[cid]
@@ -263,18 +287,40 @@ def signoff(cid, w, h):
         ss_ = max(1, s // 2)                                            # a navy bar under the footer's lines
         rect(a, 0, int(h * 0.78) - 3, w, 8 * ss_ + 14, (24, 36, 96))
     elif cid == "wbln":
-        a = card_frame(w, h, (30, 10, 10), (6, 2, 2))
-        r = int(10 * s)
-        put(a, ring_mask(r, max(2, s)), cx - r, cy - r, (220, 220, 230))                 # a globe: its ring and meridians
-        for k in (-0.5, 0, 0.5):
-            m = np.zeros((2 * r + 1, 2 * r + 1), bool)
-            yy, xx = np.mgrid[-r:r + 1, -r:r + 1]
-            m |= (np.abs(xx - k * np.sqrt(np.clip(r * r - yy * yy, 0, None))) < 0.8) & (xx * xx + yy * yy <= r * r)
-            put(a, m, cx - r, cy - r, (140, 150, 170))
-        rect(a, cx - r, cy - 1, 2 * r, 2, (140, 150, 170))
-        text(a, "WBLN", cx, cy - 4 * s, s, chrome(), outline=(40, 0, 0), shadow=(0, 0, 0))
-        rect(a, cx - 14 * s, cy + r + s, 28 * s, 8 * max(1, s // 2) + 4, (200, 30, 30))
-        text(a, "NEWS", cx, cy + r + s + 2, max(1, s // 2), (255, 255, 255))
+        # the local news station, readable (director, Oct 30 2026: "WBLN is hard to read"): a newsroom-blue field with
+        # a faint map grid, the globe beside the call letters (not under them), big white letters with a navy outline
+        # and shadow, NEWS in a red bar under them, YOUR NEWS LEADER
+        a = card_frame(w, h, (24, 52, 110), (6, 14, 40))
+        for x in range(0, w, max(6, 3 * s)): a[:int(h * 0.74), x] *= 1.12      # the faint grid
+        for y in range(0, int(h * 0.74), max(6, 3 * s)): a[y, :] *= 1.12
+        np.clip(a, 0, 1, out=a)
+        sc = s + 1
+        m = glyph_mask("WBLN", "57", sc)
+        r = int(5.5 * sc)                                                  # the globe's radius
+        total = 2 * r + 3 * s + m.shape[1]
+        gx_ = cx - total // 2 + r; gy_ = cy - s
+        disc_ = disc_mask(r)
+        put(a, grow(pad_to(disc_, 1), 1), gx_ - r - 1, gy_ - r - 1, (230, 236, 255))
+        put(a, disc_, gx_ - r, gy_ - r, (40, 110, 210))
+        yy_, xx_ = np.mgrid[-r:r + 1, -r:r + 1]
+        inside = xx_ * xx_ + yy_ * yy_ <= r * r
+        lines = np.zeros_like(inside)
+        for k in (-0.55, 0.0, 0.55):                                      # meridians
+            lines |= np.abs(xx_ - k * np.sqrt(np.clip(r * r - yy_ * yy_, 0, None))) < 0.7
+        for k in (-0.5, 0.0, 0.5):                                        # parallels
+            lines |= np.abs(yy_ - k * r) < 0.6
+        put(a, lines & inside, gx_ - r, gy_ - r, (200, 225, 255))
+        lx = gx_ + r + 3 * s; ly = gy_ - m.shape[0] // 2 - 2 * s
+        put(a, grow(pad_to(m, 2), 2), lx - 2 + s // 2 + 1, ly - 2 + s // 2 + 1, (0, 0, 20))
+        put(a, grow(pad_to(m, 2), 2), lx - 2, ly - 2, (10, 30, 90))
+        put(a, m, lx, ly, (255, 255, 255))
+        nb_y = ly + m.shape[0] + 2 * s                                     # NEWS in its red bar
+        nm = glyph_mask("NEWS", "57", max(1, s // 2 + 1), gap=2)
+        rect(a, lx - 2, nb_y, m.shape[1] + 4, nm.shape[0] + 2 * s, (200, 30, 36))
+        put(a, nm, lx + (m.shape[1] - nm.shape[1]) // 2, nb_y + s, (255, 255, 255))
+        text(a, "YOUR NEWS LEADER", cx, nb_y + nm.shape[0] + 3 * s + 2, 1, (200, 220, 255))
+        # the news chopper in the shot (director, Oct 30 2026: "WBLN can have a chopper in shot flying")
+        chopper(a, w * 0.62, h * 0.06, w * 0.26, s, (200, 30, 36))
     elif cid == "life":
         # the learning channels before reality TV (director, Oct 30 2026: "kinda like the TLC or Discover channel in
         # their old format"): the earth's rim seen from space, the sun cresting it, the name over the dark, a tagline
@@ -385,13 +431,31 @@ def signoff(cid, w, h):
         text(a, "CARTOONS ALL DAY", cx, int(h * 0.08), max(1, s // 2), (255, 255, 255), outline=(20, 60, 140))
         a[int(h * 0.78) - 3:int(h * 0.78) - 3 + 8 * max(1, s // 2) + 14] *= 0.45
     elif cid == "kpa":
-        a = card_frame(w, h, (6, 6, 10), (0, 0, 0))
-        r = int(11 * s)                                                                     # the big ring numeral
-        rx = cx + 12 * s
-        put(a, ring_mask(r, 2 * s), rx - r, cy - r, (230, 50, 40))
-        text(a, str(ch), rx, cy - 7 * s, 2 * s, (230, 50, 40))
-        text(a, "KPA", cx - 10 * s, cy - 5 * s, s + 1, vgrad((120, 255, 200), (40, 160, 120)), outline=(0, 30, 20), glow=(80, 255, 180))
-        text(a, "TV", cx - 10 * s, cy + 4 * s, max(1, s - 1), (255, 230, 80), outline=(40, 30, 0))
+        # the call letters and the big ring numeral of the station IDs the director sent: KPA in white with a blue
+        # outline and a soft blue glow, TV in red under it, the red ring with the 7 standing in it
+        a = card_frame(w, h, (10, 12, 22), (0, 0, 0))
+        sc = s + 1
+        m = glyph_mask("KPA", "57", sc)
+        r = int(6.5 * sc)
+        total = m.shape[1] + 4 * s + 2 * r
+        lx = cx - total // 2; ly = cy - m.shape[0] // 2 - 3 * s
+        add_glow(a, m, lx, ly, (60, 140, 255), radius=2 * s, amount=0.8)
+        put(a, grow(pad_to(m, 2), 2), lx - 2, ly - 2, (20, 50, 140))
+        put(a, m, lx, ly, (255, 255, 255))
+        tv = glyph_mask("TV", "57", max(1, s - 1))
+        put(a, grow(pad_to(tv, 1), 1), lx + m.shape[1] - tv.shape[1] - 1, ly + m.shape[0] + 2 * s - 1, (40, 0, 0))
+        put(a, tv, lx + m.shape[1] - tv.shape[1], ly + m.shape[0] + 2 * s, (230, 40, 36))
+        rcx, rcy = lx + m.shape[1] + 4 * s + r, cy - s
+        ring = ring_mask(r, max(3, int(1.6 * s)))
+        add_glow(a, ring, rcx - r, rcy - r, (255, 60, 40), radius=2 * s, amount=0.5)
+        put(a, ring, rcx - r, rcy - r, (230, 40, 36))
+        sev = grow(pad_to(glyph_mask(str(ch), "57", sc), 1), 1)          # the numeral standing clear inside the ring
+        put(a, sev, rcx - sev.shape[1] // 2, rcy - sev.shape[0] // 2, (230, 40, 36))
+        # two choppers, and they know it (director, Oct 30 2026: "KPA has two choppers and they know it"): one in
+        # front, its wingman behind and above, and the line that says so
+        chopper(a, w * 0.16, h * 0.06, w * 0.28, s, (230, 40, 36))                        # the lead
+        chopper(a, w * 0.58, h * 0.03, w * 0.22, s, (60, 140, 255), body=(200, 206, 220, 255))  # the wingman, behind
+        text(a, "THE TWO-CHOPPER STATION", cx, ly + m.shape[0] + 9 * s, 1, (255, 220, 120), outline=(40, 20, 0))
     elif cid == "mvc":
         # the rap-video shows and sitcom openers of the day (director, Oct 30 2026: "more fresh prince, yo mtv raps
         # vibes"): a loud purple-to-teal field thrown with confetti shapes (triangles, squiggles, zigzags, dots), chunky
