@@ -428,21 +428,68 @@ def signoff(cid, w, h):
         conf = np.asarray(im, np.float32) / 255
         on = conf.sum(axis=2) > 0
         a[on] = conf[on]
-        sc = s + 2                                                         # the letters
-        lx = cx - int(1.5 * 6 * sc) - sc
-        for i, (ch_, col) in enumerate(zip("MVC", ((255, 230, 40), (255, 60, 170), (60, 240, 240)))):
-            gw_ = max(1, s // 2)
-            m = grow(pad_to(glyph_mask(ch_, "57", sc), gw_), gw_)                          # chunky: the strokes fattened
-            x = lx + i * (6 * sc + 2 * s); y = cy - 5 * sc + (-s if i % 2 else s)          # bouncing
-            put(a, grow(pad_to(m, 2), 2), x - 2 + s, y - 2 + s, (0, 0, 0))                   # the hard shadow
-            put(a, grow(pad_to(m, 2), 2), x - 2, y - 2, (0, 0, 0))                           # the fat outline
-            put(a, m, x, y, col)
-            for d in range(2):                                             # paint drips off the letter's foot
-                dx_ = x + int(rng.integers(sc, m.shape[1] - sc)); dl = int(rng.integers(2, 5)) * s
-                rect(a, dx_, y + m.shape[0] - 1, max(2, s // 2 + 1), dl, col)
-                put(a, disc_mask(max(1, s // 2 + 1)), dx_ - 1, y + m.shape[0] - 1 + dl - 1, col)
+        # the mark (director, Oct 30 2026: "Make the V the rabbit ears of a TV. M and C on each side of the TV"):
+        # a little TV set in the middle, its rabbit-ear antenna the V, M to its left and C to its right
+        sc = s + 2
+        gw_ = max(1, s // 2)
+
+        def chunky(mask, x, y, col, drips=True):
+            put(a, grow(pad_to(mask, 2), 2), x - 2 + s, y - 2 + s, (0, 0, 0))                # the hard shadow
+            put(a, grow(pad_to(mask, 2), 2), x - 2, y - 2, (0, 0, 0))                        # the fat outline
+            put(a, mask, x, y, col)
+            if drips:
+                for d in range(2):                                         # paint drips off the foot
+                    dx_ = x + int(rng.integers(sc, mask.shape[1] - sc)); dl = int(rng.integers(2, 5)) * s
+                    rect(a, dx_, y + mask.shape[0] - 1, max(2, s // 2 + 1), dl, col)
+                    put(a, disc_mask(max(1, s // 2 + 1)), dx_ - 1, y + mask.shape[0] - 1 + dl - 1, col)
+
+        mM = grow(pad_to(glyph_mask("M", "57", sc), gw_), gw_)
+        mC = grow(pad_to(glyph_mask("C", "57", sc), gw_), gw_)
+        tvw, tvh = int(8.5 * sc), int(6.5 * sc)                             # the set: body, screen, knobs, feet
+        gap = 2 * s
+        total = mM.shape[1] + gap + tvw + gap + mC.shape[1]
+        x0 = cx - total // 2
+        base = cy + 2 * sc                                                   # the letters' and the set's foot line
+        chunky(mM, x0, base - mM.shape[0] + s, (255, 230, 40))
+        chunky(mC, x0 + mM.shape[1] + gap + tvw + gap, base - mC.shape[0] - s, (60, 240, 240))
+        tx0 = x0 + mM.shape[1] + gap; ty0 = base - tvh
+        body = np.zeros((tvh, tvw), bool)
+        bim = Image.new("L", (tvw, tvh), 0); ImageDraw.Draw(bim).rounded_rectangle([0, 0, tvw - 1, tvh - 1], radius=max(2, sc), fill=255)
+        body = np.asarray(bim) > 127
+        # the antenna first (behind the set): two rods from the top middle out to balls, the V
+        ax, ay = tx0 + tvw // 2, ty0 + 2
+        ah = int(6.5 * sc); spread = int(4.2 * sc)
+        rods = Image.new("L", (a.shape[1], a.shape[0]), 0); dr2 = ImageDraw.Draw(rods)
+        for side in (-1, 1):
+            dr2.line([(ax, ay), (ax + side * spread, ay - ah)], fill=255, width=max(2, sc // 2 + 1))
+            rb = max(2, sc // 2 + 1)
+            dr2.ellipse([ax + side * spread - rb, ay - ah - rb, ax + side * spread + rb, ay - ah + rb], fill=255)
+        rm = np.asarray(rods) > 127
+        a[grow(rm, 2)] = 0.0
+        a[rm] = np.array((255, 60, 170), np.float32) / 255
+        dome = disc_mask(max(2, sc // 2 + 2))
+        put(a, grow(pad_to(dome, 2), 2), ax - dome.shape[1] // 2 - 2, ay - dome.shape[0] // 2 - 2, (0, 0, 0))
+        put(a, dome, ax - dome.shape[1] // 2, ay - dome.shape[0] // 2, (255, 60, 170))
+        chunky(body, tx0, ty0, (255, 60, 170), drips=False)
+        sw_, sh_ = int(tvw * 0.62), int(tvh * 0.66)                          # the screen, its bars
+        sx_, sy_ = tx0 + max(2, sc // 2), ty0 + (tvh - sh_) // 2
+        sim = Image.new("L", (sw_, sh_), 0); ImageDraw.Draw(sim).rounded_rectangle([0, 0, sw_ - 1, sh_ - 1], radius=max(2, sc // 2), fill=255)
+        sm = np.asarray(sim) > 127
+        put(a, grow(pad_to(sm, 1), 1), sx_ - 1, sy_ - 1, (0, 0, 0))
+        bars_ = [(255, 230, 40), (60, 240, 240), (160, 255, 60), (255, 255, 255), (170, 60, 230)]
+        for i, c in enumerate(bars_):
+            col_ = np.zeros_like(sm); x0b = int(i * sw_ / len(bars_)); x1b = int((i + 1) * sw_ / len(bars_))
+            col_[:, x0b:x1b] = True
+            put(a, sm & col_, sx_, sy_, c)
+        kx = sx_ + sw_ + max(2, (tvw - sw_ - max(2, sc // 2)) // 2)          # the two knobs
+        for k in range(2):
+            kd = disc_mask(max(1, sc // 3 + 1))
+            put(a, grow(pad_to(kd, 1), 1), kx - kd.shape[1] // 2 - 1, sy_ + sh_ // 4 + k * sh_ // 2 - kd.shape[0] // 2 - 1, (0, 0, 0))
+            put(a, kd, kx - kd.shape[1] // 2, sy_ + sh_ // 4 + k * sh_ // 2 - kd.shape[0] // 2, (255, 230, 40))
+        for fx_ in (tx0 + sc, tx0 + tvw - 2 * sc):                           # the feet
+            rect(a, fx_, base, sc, s, (0, 0, 0))
         # the slanted black tag
-        ty = cy + 3 * sc + 2 * s
+        ty = base + 2 * s + 2
         tm = glyph_mask("MUSIC VIDEO CHANNEL", "57", max(1, s // 2))
         tw_, th_ = tm.shape[1] + 6 * s, tm.shape[0] + 3 * s
         tx = cx - tw_ // 2
