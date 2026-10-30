@@ -15,6 +15,7 @@ except ImportError:          # no lupa here: luacli.py runs the same through a L
     lj = None
 
 import designs as DZ
+import dashlib
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 # In the repo (ZeDUI/tools/dashpx) the Lua and the textures are the mod's own; in a scratch copy, lua/ and out/mod.
@@ -225,7 +226,7 @@ def run(did, state, k=1, frames=40, dt=120, log=None, lua_after=None):
     L = lj.LuaRuntime(unpack_returned_tuples=True)
     LAST['L'] = L
     g = L.globals()
-    rec = Recorder(800 * k, 172 * k)
+    rec = Recorder(dashlib.W * k, dashlib.H * k)
     clock = {"t": 1_000_000}
     g.py_now = lambda: clock["t"]
     titles = {SCRIPTS[d].replace("Base.", ""): DZ.DESIGNS[d][0] for d in DZ.ORDER}

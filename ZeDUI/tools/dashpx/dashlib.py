@@ -15,11 +15,11 @@ try:
     from scipy import ndimage as ndi
 except ImportError:          # no scipy here: the same calls in plain numpy (ndi_np.py)
     import ndi_np as ndi
-from engine import Dash, Mask, RAMPS, hx, text_w, edt, add_ramp, F35, F57, FONTS
+from engine import Dash, Mask, RAMPS, hx, text_w, edt, add_ramp, plane, F35, F57, FONTS
 from widgets import (gauge, window, glare, chrome_frame, knob, button, rocker, toggle, vent_rect, vent_round,
                      nameplate, dymo, rivet, icon_mask, icon_size, line_mask, ICONS)
 
-W, H = 800, 172
+W, H = 800, 178   # the dash runs to the screen's bottom edge (director, Oct 29 2026): the shells end on the last row
 Z_TOP, Z_BROW, Z_FACE, Z_CL, Z_DIAL = 0.0, 11.0, 5.0, -6.0, -8.5
 # the room the game keeps at the right end of the dash's top edge for the gamepad hint (right-aligned at HINT_X1,
 # 3 x 5 letters, 124 px for the longest line, "A SHUT OFF  X REMOVE KEY  B DRIVE"); the art leaves it plain
@@ -72,6 +72,8 @@ class Build:
         s.parts = []; s.hits = []; s.variants = []; s.warnings = []; s.meta = {}
         s.inks = []   # printed legends and marks (x, y, w, h, what): nothing that moves may travel over them
         s.hubs = []   # a needle's own hub or shroud (cx, cy, mask) where it is more than the dome at its pivot
+        s.movers = [] # what a state sprite moves over the plate (sprite name, mask): the key, its ring and fob in each position
+        s.shroud = None   # the steering column's shroud (mask), where the design has one
 
     # ---- records
     def part(s, t, **kw):
@@ -180,10 +182,10 @@ def shell_boxy(b, open_rect=(14, 16, 472, 98), face_mat="face", face_wood=False,
     if pod:
         px0, px1 = pod
         hood = M().poly([(6, 30), (14, 24), (px0 - 6, 24), (px0, 18), (px0 + 6, top_y), (px1 - 6, top_y), (px1, 18), (px1 + 6, 24),
-                         (486, 24), (494, 30), (494, 168), (6, 168)]).get()
+                         (486, 24), (494, 30), (494, H), (6, H)]).get()
     else:
-        hood = M().poly([(14, top_y), (486, top_y), (494, top_y + 8), (494, 168), (6, 168), (6, top_y + 8)]).get()
-    cons = M().poly([(494, console_top), (786, console_top), (794, console_top + 8), (794, 168), (494, 168)]).get()
+        hood = M().poly([(14, top_y), (486, top_y), (494, top_y + 8), (494, H), (6, H), (6, top_y + 8)]).get()
+    cons = M().poly([(494, console_top), (786, console_top), (794, console_top + 8), (794, H), (494, H)]).get()
     d.flat(hood | cons, Z_FACE, cab, polish=0.15); _pebble(d, hood | cons)
     ox, oy, ow, oh = open_rect
     if pod:
@@ -229,7 +231,7 @@ def shell_boxy(b, open_rect=(14, 16, 472, 98), face_mat="face", face_wood=False,
     elif trim == "rubber":
         lip = box(ox - 2, oy - 2, ow + 4, 3)
         d.cyl(ox - 2, oy - 2, ow + 4, 3, 1.0, "rubber", axis="h", polish=0.2, on=Z_BROW - 0.4, mask=lip)
-    d.seam(box(494, console_top + 1, 1, 168 - console_top), 0.5)
+    d.seam(box(494, console_top + 1, 1, H - 1 - console_top), 0.5)
     ct = cons & (d.YY < console_top + 7)
     d.ramp_h(ct, Z_TOP + 1.5, Z_FACE, axis="y", a0=console_top, a1=console_top + 7)
     if console_mat:
@@ -237,7 +239,7 @@ def shell_boxy(b, open_rect=(14, 16, 472, 98), face_mat="face", face_wood=False,
         d.flat(cm, Z_FACE, console_mat, polish=0.2)
         if console_mat == "walnut": d.grain_wood(cm, seed=wood_seed + 4)
     fx, fy, fw, fh = ox + wall, oy, ow - 2 * wall, oh - sill
-    b.meta.update(face=(fx, fy + 1, fw, fh - 1), lower_y=oy + oh, console=(494, console_top, 300, 168 - console_top))
+    b.meta.update(face=(fx, fy + 1, fw, fh - 1), lower_y=oy + oh, console=(494, console_top, 300, H - console_top))
     return b.meta
 
 
@@ -251,7 +253,7 @@ def shell_curvy(b, pill=(28, 26, 444, 88, 34), top_y=2, end_y=30, console_top=24
         u = np.clip((x - cx) / rx, -1, 1)
         return end_y - ry * np.sqrt(1 - u ** 2)
     arch = [(float(x), float(arch_y(x))) for x in np.linspace(x0, x1, 120)]
-    outline = [(6, 168)] + arch + [(x1, end_y), (x1 + 16, console_top), (782, console_top), (794, console_top + 12), (794, 168)]
+    outline = [(6, H)] + arch + [(x1, end_y), (x1 + 16, console_top), (782, console_top), (794, console_top + 12), (794, H)]
     body = M().poly(outline).get()
     d.flat(body, Z_FACE, b.cabin, polish=0.12); _pebble(d, body, 0.04)
     yt = arch_y(d.XX.astype(np.float32))
@@ -280,17 +282,20 @@ def shell_curvy(b, pill=(28, 26, 444, 88, 34), top_y=2, end_y=30, console_top=24
     d.h[roll] = Z_BROW + 0.8
     cpad = body & (d.XX >= x1) & (d.YY < console_top + 8)
     d.ramp_h(cpad, Z_TOP + 2, Z_FACE, axis="y", a0=console_top, a1=console_top + 8)
-    b.meta.update(face=(px, py, pw, ph), face_mask=face, lower_y=py + ph, console=(x1, console_top, 794 - x1, 168 - console_top))
+    b.meta.update(face=(px, py, pw, ph), face_mask=face, lower_y=py + ph, console=(x1, console_top, 794 - x1, H - console_top))
     return b.meta
 
 
 def shell_panel(b):
     """race: a riveted aluminium panel under a padded cage bar"""
     d = b.d; M = d.M
-    panel = M().rrect(6, 12, 788, 156, 6).get()
+    # the panel runs on past the plate's last row (Oct 29 2026: the dash meets the screen's edge), so its bottom has
+    # no rounded corners, no rolled edge and no edge shading: the screen cuts it
+    panel = M().rrect(6, 12, 788, H, 6).get()
     d.flat(panel, Z_FACE, "alu", polish=0.55); d.grain_brushed(panel, 0.11, seed=4)
-    e = panel & (edt(panel) <= 2); d.h[e] = Z_FACE - 1
-    dist = edt(panel); d.dark[panel] = np.maximum(d.dark[panel], 0.10 * np.clip(1 - dist[panel] / 10.0, 0, 1))
+    dist = edt(np.vstack([panel, np.repeat(panel[-1:], 12, axis=0)]))[:H]
+    e = panel & (dist <= 2); d.h[e] = Z_FACE - 1
+    d.dark[panel] = np.maximum(d.dark[panel], 0.10 * np.clip(1 - dist[panel] / 10.0, 0, 1))
     for x in range(16, 790, 26):
         rivet(d, x, 18, on=Z_FACE); rivet(d, x, 162, on=Z_FACE)
     for y in (44, 80, 116, 140):
@@ -859,7 +864,7 @@ def siren_box(b, x, y, w=150, on=Z_FACE, label="SIREN CONTROLLER"):
     b.check_flat(x - 1, y - 1, w + 2, 40, "siren controller")
     bx = M().rrect(x, y, w, 38, 2).get()
     d.slab(bx, 2.6, "blackp", bevel=1.2, polish=0.3, on=on)
-    d.tex[bx & (d.rng.random((H, W)) > 0.6)] += 0.05
+    d.tex[bx & (plane(d.rng, (H, W)) > 0.6)] += 0.05
     zt = on + 2.6
     d.text(label, x + w // 2, y + 3, "paint_c", align="c")
     for (lab, src, hid, kx, lamp_src, lamp_col) in (("LIGHTS", "lightbar", "lbar", x + 34, "lbarLamp", "#3a8aff"),

@@ -52,7 +52,7 @@ The game (`ZeD_Dashboard.lua`, `ZeD_Plate.lua`): how dark the dash is follows `I
 
 Badges never print a livery on a maker's plate. The game names a car "livery, maker, model" ("Fossoil Chevalier D6"); the dash finds the maker (Chevalier, Dash, Franklin, Masterson, Mercia) and splits there. A name with no maker in it uses the design's own `make` and `model` (from its title, or `BASE_CAR` in `export_lua.py`) when the car is one of the game's own families; a modded car keeps its own first word (after a model year) as the maker.
 
-Per design, `DashPx.lua` lists parts by type: `needle`, `ribbon`, `lamp` (rect lists, with a halo), `led`, `gear`, `bars`, `digits`, `ptr` (knob pointers), `tab` (lever tabs and sliders), `sprite` (the key, the pulled headlamp knob, toggles and rockers: cut from a render of the plate in that state), `badge` (roles `full`, `make`, `model`, `sub`, `unit`), `clock`, `sticker`, `headunit`, `climate`, `meter`. Hits name the vanilla verb (`ACT` in `ZeD_Dashboard.lua`) and what it needs (`hasTrunk`, `running`, `hasHeater`, `hasLightbar`). Coordinates are plate pixels (800 × 172); angles are screen degrees (0 = right, 90 = down).
+Per design, `DashPx.lua` lists parts by type: `needle`, `ribbon`, `lamp` (rect lists, with a halo), `led`, `gear`, `bars`, `digits`, `ptr` (knob pointers), `tab` (lever tabs and sliders), `sprite` (the key, the pulled headlamp knob, toggles and rockers: cut from a render of the plate in that state), `badge` (roles `full`, `make`, `model`, `sub`, `unit`), `clock`, `sticker`, `headunit`, `climate`, `meter`. Hits name the vanilla verb (`ACT` in `ZeD_Dashboard.lua`) and what it needs (`hasTrunk`, `running`, `hasHeater`, `hasLightbar`). Coordinates are plate pixels (800 × 178; 172 before Oct 29 2026, when the dash was taken down to the screen's edge); angles are screen degrees (0 = right, 90 = down).
 
 `ZeD_PixelParts.lua` (`ZeD.Px`) is the shelf atom that draws them: nearest-filtered textures at a whole multiple k, rect lists, needles rasterised on the art grid, seven-segment figures, the two pixel fonts.
 
@@ -75,3 +75,21 @@ tray (`ZeD_Dashboard.lua`, `_vanRight`).
 - **The taxi's meter:** the fares are ZeD sandbox options (`SandboxVars.ZeD.TaxiFlagDrop`, `TaxiPerFifthMile`,
   `TaxiPerMinuteWaiting`, `TaxiPerExtraPassenger`; `42/media/sandbox-options.txt`). The `meter` parts fill `digits` cells.
 - **The hula girl** sits at y = -9: the dash draws her above its own top edge.
+
+## The key, the column and the screen's edge (Oct 29 2026)
+
+- **The plate is 800 × 178** and the dash runs to its last row: the game sets it flush on the bottom of the player's
+  screen (`_layout`, no gap). The race car's panel runs on past the edge, its bottom cut square. The light map rounds
+  its rows up (45); the last row of cells is the mean of the plate rows it holds. Random fields (grain, speckle, ash,
+  the night's lumps) are drawn through `engine.plane`, which keeps every value a 172-row plate had: growing the plate
+  changed only its bottom rows.
+- **The key** (`v6.key_turn_variants`) is seen edge-on from an eye over the column (one-point perspective): a bar
+  along the slot, bare nickel on the wagon, the Lang 4000 and the Horizon, glossy black elsewhere (their lock face
+  aluminium). A 10 px chrome ring hangs from the middle of its near edge, and from the ring a teardrop leather fob
+  (tan, or cocoa on the light cabins), drawn on the plate in each key sprite so the engine casts its shadow.
+- **The column's shroud** (`v6.column_shroud`): a 100 × 46 half squircle in the cabin's vinyl standing on the last
+  row at `COLUMN_X`, after the lower row; the lower rows keep 104 px clear for it (`LEFT_SPAN`, `RIGHT_SPAN`). Where
+  the right side has no room left for the wiper (the ambulance's switch panel) the wiper moves left of the column.
+  The race car has none (its tach sits where the shroud would).
+- **One more check** (`build.mover_check`): no printed legend or mark under the key, its ring or its fob in any
+  position; nothing printed, no live part, no click area and no key on the shroud.
