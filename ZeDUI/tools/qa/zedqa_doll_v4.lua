@@ -236,7 +236,8 @@ local function layoutChecks(label, expectBands)
     check(label .. ": the drawer is no wider than the full card (480 units)", dUnits <= 480.5, string.format("%.1f units", dUnits))
     if expectBands then
         local small = rectOf("ears")
-        check(label .. ": a small slot is 18 units or more on screen", small and small.w / U >= 17.9, small and string.format("%.1f units", small.w / U))
+        -- 14 units at the floor: a short window shrinks the doll that far before the tab scrolls (Oct 30 2026)
+        check(label .. ": a small slot is 14 units or more on screen", small and small.w / U >= 13.9, small and string.format("%.1f units", small.w / U))
     end
     local lines = w._equipDollLines or {}
     check(label .. ": 11 leader lines, none crossing another", #lines == 11 and lineCrossings(lines) == 0, #lines .. " lines, " .. lineCrossings(lines) .. " crossings")
