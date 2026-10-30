@@ -2478,6 +2478,31 @@ function ZeD.Molecules.drawCardFlagStrip(panel, x, y, w, marks, compact, outRect
         cursorX = cursorX + cw + gap
     end
 
+    -- The fourth mark (Oct 29 2026, loadouts B3): Lists, lit in the accent when the item
+    -- is on any loadout or outfit (marks.lists; nil: no button), its words after it
+    -- (marks.listsText, "in 1 loadout", in T.textDim while there is room: the lit icon is the status)
+    if marks and marks.lists ~= nil then
+        local label = ZeD.tr("UI_ZeD_Lists_Lists")
+        local cw = A.flagChipW(label, compact)
+        local o = _chipOpts
+        if hov and hov.lists ~= nil then o.hover = hov.lists
+        else o.hover = A.mouseIn(panel, cursorX, rowY, cw, chipH) end
+        o.focus = partFocus(opts, "lists")
+        if outRects then outRects.lists = outRects.lists or {} end
+        cw = A.drawFlagChip(panel, cursorX, rowY, "lists", marks.lists and true or false, nil, label,
+            outRects and outRects.lists or nil, compact, o)
+        if o.hover and marks.listsHint and ZeD.Help and ZeD.Help.set then ZeD.Help.set(opts.win or panel, marks.listsHint) end
+        cursorX = cursorX + cw + gap
+        local s = marks.listsText
+        if s and s ~= "" then
+            local room = x + w - padX - cursorX
+            if ZeD.TM:MeasureStringX(font, s) <= room then
+                local dc = T.textDim
+                panel:drawText(s, cursorX, labelTY, dc.r, dc.g, dc.b, dc.a or 1, font)
+            end
+        end
+    end
+
     return h
 end
 
@@ -3652,6 +3677,12 @@ function ZeD.Molecules.drawContextCell(panel, x, y, def, flags, T)
     -- Icon / back glyph / letter fallback
     if flags.isBack then
         A.drawBackGlyph(panel, x, y, ctx.cellW, ctx.cellH, flags.isActive, T)
+    elseif def.check ~= nil then
+        -- a choice that is on or off (a list the item is in): its checkbox, centred
+        local cs = T.checkboxSz
+        local on = def.check
+        if type(on) == "function" then local ok, v = pcall(on); on = ok and v end
+        A.drawCheckbox(panel, x + math.floor((ctx.cellW - cs) / 2), y + math.floor((ctx.cellH - cs) / 2), on and true or false, false, flags.isDisabled)
     elseif def.iconTexture then
         -- Centered 16×16 icon
         local iconX = x + math.floor((ctx.cellW - ctx.iconPx) / 2)

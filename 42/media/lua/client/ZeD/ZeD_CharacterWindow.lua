@@ -583,6 +583,9 @@ local function getActiveScroll(win)
             return ZeD.JournalReaders and ZeD.JournalReaders.scroll(win) or nil
         end
         if subIdx == 4 then return nil end    -- Recipes: scroll handled by CraftingCore
+        if subIdx == 5 then                   -- Loadouts (ZeD_JournalLists)
+            return ZeD.JournalLists and ZeD.JournalLists.scroll(win) or nil
+        end
         return win._journalScroll
     end
     if win._activeTab == "identity" then return win._identityScroll end
@@ -2675,8 +2678,14 @@ local function _buildJournalFocusables(win)
         subEls = ZeD.JournalReaders and ZeD.JournalReaders.focusables(win) or {}
     elseif sub == 4 then
         subEls = _buildJournalRecipesFocusables(win)
+    elseif sub == 5 then
+        -- Loadouts (ZeD_JournalLists stamps its own zones); its question band holds the pad alone
+        subEls = ZeD.JournalLists and ZeD.JournalLists.focusables(win) or {}
+        if ZeD.JournalLists and ZeD.JournalLists.state(win).ask then return subEls end
     end
     for i = 1, #subEls do elements[#elements + 1] = subEls[i] end
+    -- where the page asks the focus to land (an element of the page's, after the pills)
+    if subEls._focusIdx then elements._focusIdx = #elements - #subEls + subEls._focusIdx end
     return elements
 end
 
@@ -4493,6 +4502,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
         local JR = ZeD.JournalReaders
         win._flyerSearch:setVisible(showJournal and JR ~= nil and JR.searchVisible(win, subIdx))
         if JR then JR.syncChildren(win, showJournal and subIdx == 2) end
+        if ZeD.JournalLists then ZeD.JournalLists.syncChildren(win, showJournal and subIdx == 5) end
         -- S67: Journal Maps sub-tab moved to World Window MapsTab.
         -- Map panel visibility block commented out.
         -- if win._worldMapPanel then ... end
@@ -4944,6 +4954,11 @@ function ZeD_CharacterWindow.toggle(playerNum)
             if win._activeTab == "journal" and ZeD.JournalReaders and ZeD.JournalReaders.onClick(win, x, y) then
                 return true
             end
+            -- Loadouts (ZeD_JournalLists stamps the zones)
+            if win._activeTab == "journal" and (win._journalSubTab or 1) == 5 and ZeD.JournalLists
+               and ZeD.JournalLists.onClick(win, x, y) then
+                return true
+            end
             -- Journal Recipes sub-tab: delegate to CraftingCore via JournalTab
             if win._activeTab == "journal" and (win._journalSubTab or 1) == 4 then
                 if ZeD.JournalTab.onRecipeClick(win, x, y) then
@@ -5107,6 +5122,11 @@ function ZeD_CharacterWindow.toggle(playerNum)
     -- inventory rows use — gives Drop / Wear / Read / Repair / etc. on the
     -- equipped item.
     drawer.onRightMouseUp = function(self, x, y)
+        -- the Journal's Loadouts page: a line's Remove, a list's Rename / Delete
+        if win._activeTab == "journal" and win._drawerMode == "tab" and (win._journalSubTab or 1) == 5
+           and ZeD.JournalLists and ZeD.JournalLists.onRightClick(win, x, y) then
+            return true
+        end
         -- Health: the body figure or an injury row opens vanilla's treatment menu
         if win._activeTab == "health" and win._drawerMode == "tab" then
             _healthTreatAt(win, self, x, y)
@@ -5889,6 +5909,11 @@ function ZeD_CharacterWindow.toggle(playerNum)
             local jsub = win._journalSubTab or 1
             if win._activeTab == "journal" and (jsub == 2 or jsub == 3) and ZeD.JournalReaders then
                 scrollKey = ZeD.JournalReaders.scrollKey(win)
+                if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
+            end
+            -- Loadouts: its scroll, the list chosen, the filter, the question, the lines
+            if win._activeTab == "journal" and jsub == 5 and ZeD.JournalLists then
+                scrollKey = ZeD.JournalLists.scrollKey(win)
                 if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
             end
             if win._activeTab == "journal" and jsub == 4 then

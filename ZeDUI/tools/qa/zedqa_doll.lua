@@ -81,7 +81,7 @@ at(210, function() focusId("equipslot:doll:head"); Focus.dispatchJoypadDir(cw(),
 at(220, function() Focus.dispatchJoypadDir(cw(), "right"); where("then right (expect back)") end)
 at(230, function() Focus.dispatchJoypadDir(cw(), "down"); where("then down (expect belt)") end)
 at(235, function() Focus.dispatchJoypadDir(cw(), "left"); where("then left (expect neck)") end)
-at(240, function() Focus.dispatchJoypadDir(cw(), "left"); where("then left (leaves the doll)") end)
+at(240, function() Focus.dispatchJoypadDir(cw(), "left"); where("then left (into the left band when the bands show, else leaves the doll)") end)
 at(250, function()
     for _, it in ipairs(added) do p:removeWornItem(it); p:getInventory():Remove(it) end
     triggerEvent("OnClothingUpdated", p)

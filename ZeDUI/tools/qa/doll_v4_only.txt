@@ -1,0 +1,3 @@
+# ZeDUI/tools/qa/doll_v4_only.txt: the prelude and the small-slot script alone (zedqa_run.ps1 -Manifest this file)
+zedqa_prelude.lua | pre
+zedqa_doll_v4.lua | dollv4 | timeout=600

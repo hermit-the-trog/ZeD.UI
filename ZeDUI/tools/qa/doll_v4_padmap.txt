@@ -1,0 +1,5 @@
+# ZeDUI/tools/qa/doll_v4_padmap.txt  (Oct 29 2026): the pad map with the Equip tab in its Doll view
+zedqa_prelude.lua | pre
+zedqa_doll_view_on.lua | dvon
+zedqa_deep_run.lua | deep | timeout=180
+zedqa_padmap.lua | pm | timeout=900

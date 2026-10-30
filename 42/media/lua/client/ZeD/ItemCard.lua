@@ -1277,6 +1277,14 @@ function ZeD_ItemCard:update()
     self.verbHover    = newVerbHover
     self.verbWasDown  = down and (newVerbHover ~= nil)
 
+    -- The mark strip's Lists button (loadouts B3): released on it, the lists' pop-up
+    do
+        local r = self._listsRect
+        local inL = r and mx >= r.x and mx < r.x + r.w and my >= r.y and my < r.y + r.h or false
+        if self._listsWasDown and not down and inL then self:openListsPopup() end
+        self._listsWasDown = down and inL
+    end
+
     -- Fold toggle click detection (disclosure headers in scrollable body)
     local bodyTop = self:getAbsoluteY() + self._headH
     local bodyBot = self:getAbsoluteY() + self:getHeight() - (self._verbStripResvH or 0)
@@ -1649,6 +1657,17 @@ function ZeD_ItemCard:getActionStripElements()
         end
     end
 
+    -- the Lists mark: A opens the lists' pop-up (it takes the pad; B closes it, back here)
+    if self._listsRect then
+        local r = self._listsRect
+        els[#els + 1] = {
+            x = r.x, y = r.y, w = r.w, h = r.h,
+            id = "toggle_lists",
+            onFocus = function() card._gpFocusedBtnId = "toggle_lists" end,
+            onActivate = function() card:openListsPopup() end,
+        }
+    end
+
     for i, vdef in ipairs(self._verbDefs or {}) do
         local r = self.verbRects and self.verbRects[i]
         if r then
@@ -1746,6 +1765,16 @@ function ZeD_ItemCard:focusFor(id)
     if not ZeD.Atoms.isAncestor(w, self) then return nil end
     _cardFocus.win, _cardFocus.zone = w, zone.zone
     return _cardFocus
+end
+
+--- The mark strip's Lists button: the loadouts and outfits by name, with checkboxes
+-- (ZeD_ListsMenu.lua), dropped from the button's lower left
+function ZeD_ItemCard:openListsPopup()
+    local r = self._listsRect
+    local LU = ZeD.ListsUI
+    if not (r and LU and self.item) then return end
+    pcall(function() getSoundManager():playUISound("UIActivateButton") end)
+    LU.openPopup(self.playerNum or 0, self.item, r.x - ZeD.T.px(4), r.y + r.h + ZeD.T.px(4))
 end
 
 --- Open or fold the card's folded row (remembered per item type for the session)
