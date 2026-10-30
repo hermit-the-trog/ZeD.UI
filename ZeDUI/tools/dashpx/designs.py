@@ -13,6 +13,7 @@ import numpy as np
 from dashlib import *
 from engine import text_w, plane
 import v6
+from brands import plaque
 from v6 import (hazard_under_ash, lower_boxy6, lower_curvy6, console_vents, ash_tray, no_smoking, taxi_meter6, meter_flag_variants,
                 vent_louvered, vent_eyeball, ASH_W, ASH_H)
 from widgets import (gauge, window, glare, chrome_frame, knob, button, rocker, toggle, vent_rect, vent_round, nameplate, dymo,
@@ -261,7 +262,7 @@ def con_sedan(b, chrome=True, vents="rect", climate="levers", inset_mat=None, ba
     if inset_mat: inset(b, 504, 26, 282, 136, inset_mat, "chrome" if chrome and inset_mat == "walnut" else "seam", seed=17)
     if vents == "rect": console_vents(b, 26, chrome=chrome, w=88, h=30)
     elif vents == "round": console_vents(b, 26, chrome=chrome, h=28, round_=True)
-    if badge_spec: badge(b, **badge_spec)
+    if badge_spec: plaque(b, **badge_spec)
     hy = hu[1]                     # balance pass: 7 px over the radio and 7 under it, for every vent
     headunit_slot(b, hu[0], hy, frame="chrome" if chrome else "bezel")
     if ash: ash_tray(b, ASH6[0], hy, chrome=chrome)
@@ -303,7 +304,7 @@ def wagon(b):
     lower_boxy6(b, y0=118, chrome=True, trunk_label="GATE", trunk_sub="TAILGATE")
     inset(b, 504, 26, 282, 136, "walnut", "chrome", seed=7)
     console_vents(b, 28, chrome=True, w=88, h=30)
-    badge(b, 602, 39, 86, 9, style="chrome", role="make", font="35", shadow="#140904")
+    plaque(b, 602, 39, 86, 9, style="chrome", role="make", font="35", shadow="#140904")
     headunit_slot(b, *HU6, frame="chrome")
     ash_tray(b, *ASH6, chrome=True)
     climate_levers(b, 548, 128, chrome=True, fan_knob=(752, 140))
@@ -336,7 +337,7 @@ def luxury(b):
     lower_boxy6(b, y0=118, chrome=True, trunk_label="TRUNK", trunk_sub="RELEASE")
     inset(b, 504, 26, 282, 136, "walnut", "chrome", seed=13)
     console_vents(b, 28, chrome=True, w=88, h=30)
-    badge(b, 602, 37, 86, 12, style="chrome", role="model", font="57", shadow="#140904")
+    plaque(b, 602, 37, 86, 12, style="chrome", role="model", font="57", shadow="#140904")
     headunit_slot(b, *HU6, frame="chrome")
     ash_tray(b, *ASH6, chrome=True)
     climate_vfd(b, 516, 124)
@@ -359,7 +360,7 @@ def horizon(b):
     lower_boxy6(b, y0=118, chrome=True, cruise=False)
     inset(b, 504, 122, 282, 40, "walnut", "chrome", seed=23)
     console_vents(b, 27, chrome=True, h=28, round_=True)
-    badge(b, 602, 38, 86, 9, style="chrome", role="make", font="35", shadow="#140904")
+    plaque(b, 602, 38, 86, 9, style="chrome", role="make", font="35", shadow="#140904")
     headunit_slot(b, *HU6, frame="chrome")
     ash_tray(b, *ASH6, chrome=True)
     climate_levers(b, 548, 128, chrome=True, fan_knob=(752, 141))
@@ -391,7 +392,7 @@ def d6(b):
     lower_boxy6(b, y0=118, chrome=True, trunk_label="BED", trunk_sub="LOCK")
     con_sedan(b, chrome=True, vents="round", climate="levers", tab="tab_black", fan_mat="chrome",
               badge_spec=dict(x=599, y=30, w=92, h=22, style="emboss", role="make", font="57", color="#2a2c30", plate="stamped"))
-    badge(b, 603, 44, 84, 7, style="emboss", role="sub", font="35", color="#2a2c30", check=False)
+    plaque(b, 603, 44, 84, 7, style="emboss", role="sub", font="35", color="#2a2c30", check=False)
 
 
 def van(b):
@@ -400,8 +401,8 @@ def van(b):
     cl_van(b, bz="blackp", nd="#ff7a2a")
     lower_boxy6(b, y0=118, chrome=False, cruise=False, trunk_label="REAR", trunk_sub="DOORS")
     console_vents(b, 24, chrome=False, w=88, h=28)
-    badge(b, 602, 26, 86, 22, style="emboss", role="make", font="57", color="#2a2c30", plate="stamped")
-    badge(b, 604, 40, 82, 7, style="emboss", role="model", font="35", color="#2a2c30", check=False)
+    plaque(b, 602, 26, 86, 22, style="emboss", role="make", font="57", color="#2a2c30", plate="stamped")
+    plaque(b, 604, 40, 82, 7, style="emboss", role="model", font="35", color="#2a2c30", check=False)
     headunit_slot(b, *HU6, frame="bezel")
     v6.van_right(b, 704, 67)          # switched sides (Oct 24): the radio went left; logo sticker, NO SMOKING or ash tray
     climate_levers(b, 548, 134, chrome=False, fan_knob=(752, 144))
@@ -414,7 +415,7 @@ def bulldriver(b):
     lower_boxy6(b, y0=118, chrome=True, trunk_label="BED", trunk_sub="LOCK")
     con_sedan(b, chrome=True, vents="round", climate="levers",
               badge_spec=dict(x=599, y=30, w=92, h=22, style="emboss", role="make", font="57", color="#2a2c30", plate="stamped"))
-    badge(b, 603, 44, 84, 7, style="emboss", role="model", font="35", color="#2a2c30", check=False)
+    plaque(b, 603, 44, 84, 7, style="emboss", role="model", font="35", color="#2a2c30", check=False)
 
 
 def rancher(b):
@@ -425,8 +426,8 @@ def rancher(b):
     inset(b, 504, 26, 282, 136, "steel", "seam")
     for (x, y) in ((508, 30), (781, 30), (508, 157), (781, 157)): screw(b, x, y)
     console_vents(b, 29, chrome=False, h=24, round_=True, x0=516, xr=778)
-    badge(b, 602, 30, 86, 22, style="emboss", role="make", font="57", color="#2a2c30", plate="stamped")
-    badge(b, 604, 44, 82, 7, style="emboss", role="model", font="35", color="#2a2c30", check=False)
+    plaque(b, 602, 30, 86, 22, style="emboss", role="make", font="57", color="#2a2c30", plate="stamped")
+    plaque(b, 604, 44, 82, 7, style="emboss", role="model", font="35", color="#2a2c30", check=False)
     headunit_slot(b, 516, 64, frame="bezel")
     ash_tray(b, 704, 64, chrome=False)
     climate_knobs(b, 540, 136, pitch=46, r=11, mat="blackp")
@@ -465,7 +466,7 @@ def dashelite(b):
     hazard_under_ash(b)
     climate_buttons(b, 576, 124, lcd=True)
     b.label("AUTOMATIC CLIMATE CONTROL", 646, 154, "paint_c", align="c")
-    badge(b, 560, 25, 172, 7, style="flat", role="full", font="35", color="#d8d6cc", check=False)
+    plaque(b, 560, 25, 172, 7, style="flat", role="full", font="35", color="#d8d6cc", check=False)
 
 
 def primani(b):
@@ -509,13 +510,13 @@ def primani(b):
     prndl(b, 410, 100, pitch=7, color="#ff8a3a")
     lower_curvy6(b, y0=122)
     inset(b, 512, 40, 272, 122, "blackp", "seam")
-    vent_louvered(b, 516, 42, 100, 20, bezel="blackp", on=Z_FACE, wheel="left")
-    vent_louvered(b, 680, 42, 100, 20, bezel="blackp", on=Z_FACE, wheel="right")
+    vent_louvered(b, 516, 42, 88, 20, bezel="blackp", on=Z_FACE, wheel="left")       # 88 px, the boxy consoles' (Oct 29 2026:
+    vent_louvered(b, 692, 42, 88, 20, bezel="blackp", on=Z_FACE, wheel="right")      # the maker's mark gets an 88 px slot)
     headunit_slot(b, 520, 68, frame="bezel")
     ash_tray(b, 705, 68, chrome=False)
     hazard_under_ash(b)
     climate_sliders(b, 532, 130, w=126)
-    badge(b, 560, 31, 172, 7, style="flat", role="full", font="35", color="#3a3226", check=False)
+    plaque(b, 560, 31, 172, 7, style="flat", role="full", font="35", color="#3a3226", check=False)
 
 
 def suv(b):
@@ -541,7 +542,7 @@ def suv(b):
     ash_tray(b, 705, 64, chrome=False)
     hazard_under_ash(b)
     climate_knobs(b, 556, 136, pitch=50, r=10, mat="rubber")
-    badge(b, 622, 41, 48, 9, style="flat", role="sub", font="57", color="#d84a2a", check=True)
+    plaque(b, 622, 41, 48, 9, style="flat", role="sub", font="57", color="#d84a2a", check=True)
 
 
 # =================================================================================== RPM first
@@ -552,8 +553,8 @@ def cossette(b):
     lower_boxy6(b, y0=120, chrome=False)
     inset(b, 504, 26, 282, 136, "blackp", "seam")
     console_vents(b, 28, chrome=False, w=88, h=28)
-    badge(b, 602, 31, 86, 10, style="script", role="model", font="57", color="#e8e8e8", shadow="#3a0a08")
-    badge(b, 602, 44, 86, 7, style="flat", role="sub", font="35", color="#ff3a20", check=False)
+    plaque(b, 602, 31, 86, 10, style="script", role="model", font="57", color="#e8e8e8", shadow="#3a0a08")
+    plaque(b, 602, 44, 86, 7, style="flat", role="sub", font="35", color="#ff3a20", check=False)
     headunit_slot(b, 516, 64, frame="bezel")
     ash_tray(b, 704, 64, chrome=False)
     climate_sliders(b, 532, 130, w=126)
@@ -695,6 +696,28 @@ DESIGNS = {
     "race":       ("Race car", "v_race", 31, race, None, None, None),
 }
 ORDER = list(DESIGNS)
+
+# The console's maker mark (brands.py; director, Oct 29 2026: "The whole idea is to replace the generic plaques with
+# branding"). Per civilian dash: its own maker, whether the console carries the model line (the Cerise Wagon and the
+# Horizon wear the model on the driver's side already), and whether it is a curved console (the mark between the vents;
+# the rim's name line is gone). The model line is the title's model and the design's sub line as its performance tag,
+# the tag left out where it repeats the model (the D6). The game picks the mark by the car's own maker, not by the dash.
+# The fleet dashes keep their unit stencils and the race car has no badge: none here.
+BRANDS = {
+    "luxury":     dict(maker="mercia"),
+    "nyala":      dict(maker="chevalier"),
+    "cossette":   dict(maker="chevalier"),
+    "d6":         dict(maker="chevalier"),
+    "dashelite":  dict(maker="dash", curvy=True),
+    "primani":    dict(maker="chevalier", curvy=True),
+    "dart":       dict(maker="chevalier"),
+    "horizon":    dict(maker="masterson", model_line=False),
+    "wagon":      dict(maker="chevalier", model_line=False),
+    "suv":        dict(maker="franklin"),
+    "van":        dict(maker="franklin"),
+    "bulldriver": dict(maker="dash"),
+    "rancher":    dict(maker="dash"),
+}
 
 
 # =================================================================================== at night (night.py, director Oct 21 2026)

@@ -223,6 +223,22 @@ def fit_text(t, font, scale, w):
     return t2, font, scale
 
 
+def badge_fit(p, label, tag):
+    """a model line with its tag after it: the model fitted to the room the tag leaves (no room: the tag goes), the two
+    centred together for align "c". -> (the model's x off p.x, the model, font, scale, the tag's x off p.x or None)"""
+    font, scale = p.get("font", "35"), p.get("scale", 1)
+    gap = text_width("A ", font, scale) - text_width("A", font, scale)
+    room = p["w"] - gap - text_width(tag, font, scale)
+    if room <= 0:
+        s_, font, scale = fit_text(label, font, scale, p["w"]); tag = None
+    else:
+        s_, font, scale = fit_text(label, font, scale, room)
+    mw = text_width(s_, font, scale)
+    total = mw + (gap + text_width(tag, font, scale) if tag else 0)
+    lx = (p["w"] // 2 - total // 2) if p.get("align", "c") == "c" else 0
+    return lx, s_, font, scale, (lx + mw + gap if tag else None)
+
+
 def fmt_value(p, st):
     src = p["src"]; v = st.get(src, 0)
     if p.get("fmt") == "int": return str(int(round(v)))
@@ -382,13 +398,24 @@ def render_live(plate, design, st, k=1, sprites=None, heads=None, night=None):
                 im = sprites[p["sprite"]]
                 cv.sprite(nt.tint_img(im, p["x"], p["y"]) if nt else im, p["x"], p["y"])
         elif t == "badge":
+            # (src / when: a maker's model line shows with its mark, the plaque's name only for a maker we don't know)
+            if p.get("src") and st.get(p["src"]) != p.get("when"): continue
             label = st.get("badge_" + p.get("role", "label"), "")
             if not label: continue
+            tag = st.get("badge_tag", "") if p.get("tag") else ""
+            col = p.get("color", "#d8dade")
+            bx_, by_ = p["x"] + p["w"] / 2.0, p["y"] + p["h"] / 2.0
+            if tag:      # the model, then the performance tag in its own colour (ZeD_Plate.lua's badgeFit)
+                lx, s_, font, scale, tx = badge_fit(p, label, tag)
+                y = p["y"] + (p["h"] - len(FONTS[font]["A"]) * scale) // 2
+                draw_text(cv, s_, p["x"] + lx, y, D(col, bx_, by_), font, scale, "l", "flat", D(p["shadow"], bx_, by_) if p.get("shadow") else None)
+                if tx is not None:
+                    draw_text(cv, tag, p["x"] + tx, y, D(p["tag"], bx_, by_), font, scale, "l", "flat",
+                              D(p["tagShadow"], bx_, by_) if p.get("tagShadow") else None)
+                continue
             label, font, scale = fit_text(label, p.get("font", "35"), p.get("scale", 1), p["w"])
             x = p["x"] + (p["w"] // 2 if p.get("align", "c") == "c" else 0)
             y = p["y"] + (p["h"] - len(FONTS[font]["A"]) * scale) // 2
-            col = p.get("color", "#d8dade")
-            bx_, by_ = p["x"] + p["w"] / 2.0, p["y"] + p["h"] / 2.0
             if p.get("style") == "emboss":
                 draw_text(cv, label, x + 1, y + 1, D("#f0f0ec", bx_, by_), font, scale, p.get("align", "c"))
             draw_text(cv, label, x, y, D(col, bx_, by_), font, scale, p.get("align", "c"), p.get("style", "flat"),

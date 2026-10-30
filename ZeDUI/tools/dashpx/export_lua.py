@@ -195,6 +195,8 @@ def main(root):
             "parts": [convert_part(p) for p in doc["parts"]],
             "hits": [{k: v for k, v in h.items() if v is not None} for h in doc["hits"]],
         }
+        if b.brand:     # the makers whose marks are cut for this console (brands.py): the game picks by the car's maker
+            des["brands"] = list(b.brand["marks"])
         if "headunit" in meta:
             x, y, w, h = meta["headunit"]; des["headunit"] = {"x": x, "y": y, "w": w, "h": h}
         # the two words the game prints along the top edge (PASSENGER at the left, the gamepad hint at the right)

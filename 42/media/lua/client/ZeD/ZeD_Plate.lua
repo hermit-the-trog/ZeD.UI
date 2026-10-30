@@ -33,7 +33,10 @@
 --   gear         the automatic's selector letter (st.gearSel)
 --   tab          a lever's tab sprite sliding along x0 .. x1
 --   clock        an analog clock's hands (st.hour, st.minute)
---   badge        a maker's badge line: ctx.badge[p.role], fitted to p.w
+--   badge        a maker's badge line: ctx.badge[p.role], fitted to p.w; with
+--                p.src, only while st[p.src] reads p.when (a maker's model
+--                line shows with its mark, the plaque's name for a maker we
+--                don't know); p.tag: ctx.badge.tag follows in that colour
 --   sticker      a business van's logo, the game's own decal on a die-cut
 --                backing (ctx.logo, the one the organism picked; none: blank)
 --   headunit     the radio fitted in a dash's slot (st.radio, ctx.heads)
@@ -537,6 +540,30 @@ local function ribbonLit(cv, p, xx, L)
     end
 end
 
+-- a badge's line fitted to its part, kept on the part until the line changes (a frame allocates nothing): the label,
+-- or a model line with its performance tag after it (p.tag), the model fitted to the room the tag leaves (no room: the
+-- tag goes) and the two centred together for align "c". -> the model, its face, scale, its x off p.x (nil: the part's
+-- own alignment), the tag's x off p.x (nil: no tag)
+local function badgeFit(p, label, tag)
+    if p._fitL == label and p._fitT == tag then return p._fitS, p._fitF, p._fitSc, p._fitX, p._fitTx end
+    local font, scale = p.font or "35", p.scale or 1
+    local s, lx, tx = nil, nil, nil
+    if tag ~= "" then
+        local gap = P.textWidth("A ", font, scale) - P.textWidth("A", font, scale)
+        local room = p.w - gap - P.textWidth(tag, font, scale)
+        if room > 0 then
+            s, font, scale = P.fit(label, font, scale, room)
+            local mw = P.textWidth(s, font, scale)
+            local total = mw + gap + P.textWidth(tag, font, scale)
+            lx = ((p.align or "c") == "c") and (math.floor(p.w / 2) - math.floor(total / 2)) or 0
+            tx = lx + mw + gap
+        end
+    end
+    if not s then s, font, scale = P.fit(label, font, scale, p.w) end
+    p._fitL, p._fitT, p._fitS, p._fitF, p._fitSc, p._fitX, p._fitTx = label, tag, s, font, scale, lx, tx
+    return s, font, scale, lx, tx
+end
+
 function PL.drawParts(cv, parts, st, ctx)
     ctx = ctx or {}
     local L = ctx.light
@@ -637,14 +664,22 @@ function PL.drawParts(cv, parts, st, ctx)
             end
         elseif t == "badge" then
             local label = ctx.badge and ctx.badge[p.role] or ""
+            if p.src and st[p.src] ~= p.when then label = "" end
             if label ~= "" then
-                local s, font, scale = P.fit(label, p.font or "35", p.scale or 1, p.w)
-                local x = p.x + ((p.align or "c") == "c" and math.floor(p.w / 2) or 0)
+                local tag = (p.tag and ctx.badge.tag) or ""
+                local s, font, scale, lx, tx = badgeFit(p, label, tag)
+                local align = p.align or "c"
+                local x = p.x + (align == "c" and math.floor(p.w / 2) or 0)
+                if lx then x, align = p.x + lx, "l" end
                 local y = p.y + math.floor((p.h - P.fontHeight(font) * scale) / 2)
                 local m = L and lightMul(L, p.x + p.w / 2, p.y + p.h / 2) or nil
-                if p.style == "emboss" then P.text(cv, s, x + 1, y + 1, P.mulColor(P.color("#f0f0ec"), m), font, scale, p.align or "c") end
-                P.text(cv, s, x, y, P.mulColor(P.color(p.color or "#d8dade"), m), font, scale, p.align or "c", p.style,
+                if p.style == "emboss" then P.text(cv, s, x + 1, y + 1, P.mulColor(P.color("#f0f0ec"), m), font, scale, align) end
+                P.text(cv, s, x, y, P.mulColor(P.color(p.color or "#d8dade"), m), font, scale, align, p.style,
                     (m and p.shadow) and P.mulColor(P.color(p.shadow), m) or p.shadow, m)
+                if tx then
+                    P.text(cv, tag, p.x + tx, y, P.mulColor(P.color(p.tag), m), font, scale, "l", "flat",
+                        (m and p.tagShadow) and P.mulColor(P.color(p.tagShadow), m) or p.tagShadow, m)
+                end
             end
         elseif t == "clock" then
             local h, m = st.hour or 10, st.minute or 0

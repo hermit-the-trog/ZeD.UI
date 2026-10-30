@@ -1,0 +1,8 @@
+# ZeDUI/tools/qa/dash_brands.txt  (Oct 29 2026)
+# The maker's mark on the console (HANDOFF_dash_brands_20261029.md), run with:
+#   zedqa_run.ps1 -Mode fullscreen4k -Manifest .../dash_brands.txt
+# The prelude takes the character to the Irvington drag strip in daylight; the script spawns each car beside it.
+# expect=: the engine's world drawing (FBORenderCell) sometimes throws while cars are spawned and removed beside the
+# character; it is not the dash (zedqa_dashnight.lua's runs show it too).
+zedqa_prelude.lua | pre
+zedqa_dash_brands.lua | dbr | timeout=900 | expect=FBORenderCell     # the 13 civilian cars' marks, the Step Van on the Valuline's dash, a modded name's plaque, two at night

@@ -126,12 +126,12 @@ PhysPx.lua|Industrial range, 1980
 PhysPx.lua|Large modern oven
 PhysPx.lua|Fryers Club fryer
 PhysPx.lua|White touchpad microwave, 1990
-PhysPx.lua|Chrome microwave, 1979
-PhysPx.lua|Red generator, 1988
-PhysPx.lua|Yellow contractor's generator
-PhysPx.lua|Blue compact generator, 1991
+PhysPx.lua|Chrome microwave, 1988
+PhysPx.lua|Red generator (Lectromax), 1988
+PhysPx.lua|Yellow contractor's generator (Premium Technologies)
+PhysPx.lua|Blue compact generator (ValuTech), 1991
 PhysPx.lua|Old military generator, 1960s
-PhysPx.lua|Propane grill (Jorge Foreguy), 1993
+PhysPx.lua|Propane grill (Hector Lopez), 1993
 PhysPx.lua|Premium Technologies CD receiver
 PhysPx.lua|ValuTech radio
 PhysPx.lua|makeshift radio
@@ -162,6 +162,20 @@ PhysPx.lua|Makeshift Ham Radio
 PhysPx.lua|Premium Technologies Ham Radio (narrow)
 PhysPx.lua|US ARMY COMM. Ham Radio (narrow)
 PhysPx.lua|Makeshift Ham Radio (narrow)
+PhysPx.lua|Green range, 1956 (narrow)
+PhysPx.lua|Red range, 1962 (narrow)
+PhysPx.lua|Grey range, 1985 (narrow)
+PhysPx.lua|Modern range, 1992 (narrow)
+PhysPx.lua|Industrial range, 1980 (narrow)
+PhysPx.lua|Large modern oven (narrow)
+PhysPx.lua|Fryers Club fryer (narrow)
+PhysPx.lua|White touchpad microwave, 1990 (narrow)
+PhysPx.lua|Chrome microwave, 1988 (narrow)
+PhysPx.lua|Red generator (Lectromax), 1988 (narrow)
+PhysPx.lua|Yellow contractor's generator (Premium Technologies) (narrow)
+PhysPx.lua|Blue compact generator (ValuTech), 1991 (narrow)
+PhysPx.lua|Old military generator, 1960s (narrow)
+PhysPx.lua|Propane grill (Hector Lopez), 1993 (narrow)
 
 # Debug menu, only when getDebug() is on.
 ZeD_MainMenu.lua|Debug

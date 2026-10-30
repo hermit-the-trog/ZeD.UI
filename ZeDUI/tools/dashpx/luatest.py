@@ -294,45 +294,57 @@ end
 '''
 
 
-BADGE_CASES = [  # script, the game's name, design, make, model, unit plate lead
-    ("Base.VanSpiffo", "Spiffo Van", "van", "FRANKLIN", "VALULINE", None),
-    ("Base.Van_KnoxDisti", "Knox Distillery Franklin Valuline", "van", "FRANKLIN", "VALULINE", None),
-    ("Base.VanSeats_Creature", "Creature Cruiser", "van", "FRANKLIN", "VALULINE", None),
-    ("Base.StepVan_Citr8", "Citr8 Chevalier Step Van", "van", "CHEVALIER", "STEP VAN", None),
-    ("Base.PickUpTruckLightsFossoil", "Fossoil Chevalier D6", "d6", "CHEVALIER", "D6", None),
-    ("Base.PickUpVanLightsKentuckyLumber", "Kentucky Lumber Dash Bulldriver", "bulldriver", "DASH", "BULLDRIVER", None),
-    ("Base.CarNormalSmashedFront", "Wrecked Chevalier Nyala", "nyala", "CHEVALIER", "NYALA", None),
-    ("Base.OffRoadSmashedLeft", "Wrecked Dash Rancher", "rancher", "DASH", "RANCHER", None),
-    ("Base.CarLuxury", "Mercia Lang 4000", "luxury", "MERCIA", "LANG 4000", None),
-    ("Base.ModernCar", "Dash Elite", "dashelite", "DASH", "ELITE", None),
-    ("Base.CarLightsPolice", "Muldraugh Police Chevalier Nyala", "police", "CHEVALIER", "NYALA", "POLICE"),
-    ("Base.ModernCarLightsMeadeSheriff", "Meade Sheriff Dash Elite", "police", "DASH", "ELITE", "SHERIFF"),
-    ("Base.CarLightsKST", "State Trooper Chevalier Nyala", "police", "CHEVALIER", "NYALA", "TROOPER"),
-    ("Base.CarLightsLouisvilleCounty", "LCPD Chevalier Nyala", "police", "CHEVALIER", "NYALA", "LCPD"),
-    ("Base.ModernCarLightsWestPoint", "West Point Police Dash Elite", "police", "DASH", "ELITE", "POLICE"),
-    ("Base.StepVan_LouisvilleSWAT", "Louisville SWAT Chevalier Step Van", "police", "CHEVALIER", "STEP VAN", "SWAT"),
-    ("Base.PickUpTruckLightsFire", "Fire Department Chevalier D6", "fire", "CHEVALIER", "D6", "FIRE"),
-    ("Base.CarLightsRanger", "Ranger Chevalier Nyala", "ranger", "CHEVALIER", "NYALA", "RANGER"),
-    ("Base.CarTaxi", "Taxi", "taxi", "CHEVALIER", "NYALA", "TAXI"),
-    ("Base.VanAmbulance", "Ambulance", "ambulance", "FRANKLIN", "VALULINE", "AMBULANCE"),
-    # modded cars (not the game's own families) keep their own maker; a leading model year is skipped
-    ("Base.92fordCVPI", "1992 Ford Crown Victoria", "nyala", "FORD", "CROWN VICTORIA", None),
-    ("Base.MyBronco", "Ford Bronco", "nyala", "FORD", "BRONCO", None),
-    ("Base.MyHearse", "Hearse", "nyala", "HEARSE", "HEARSE", None),
+BADGE_CASES = [  # script, the game's name, design, make, model, unit plate lead, the console's mark (None: none), its tag
+    ("Base.VanSpiffo", "Spiffo Van", "van", "FRANKLIN", "VALULINE", None, "franklin", ""),
+    ("Base.Van_KnoxDisti", "Knox Distillery Franklin Valuline", "van", "FRANKLIN", "VALULINE", None, "franklin", ""),
+    ("Base.VanSeats_Creature", "Creature Cruiser", "van", "FRANKLIN", "VALULINE", None, "franklin", ""),
+    ("Base.StepVan", "Chevalier Step Van", "van", "CHEVALIER", "STEP VAN", None, "chevalier", ""),
+    ("Base.StepVan_Citr8", "Citr8 Chevalier Step Van", "van", "CHEVALIER", "STEP VAN", None, "chevalier", ""),
+    # a language that writes the maker in its own script: the Step Van still gets the Chevalier mark (FAMILY_CAR)
+    ("Base.StepVan_Zippee", "Zippee Step Van", "van", "CHEVALIER", "STEP VAN", None, "chevalier", ""),
+    ("Base.PickUpTruckLightsFossoil", "Fossoil Chevalier D6", "d6", "CHEVALIER", "D6", None, "chevalier", ""),
+    ("Base.PickUpVanLightsKentuckyLumber", "Kentucky Lumber Dash Bulldriver", "bulldriver", "DASH", "BULLDRIVER", None, "dash", "V8"),
+    ("Base.PickUpVanYingsWood", "Van Yings Wood Dash Bulldriver", "bulldriver", "DASH", "BULLDRIVER", None, "dash", "V8"),
+    ("Base.CarNormalSmashedFront", "Wrecked Chevalier Nyala", "nyala", "CHEVALIER", "NYALA", None, "chevalier", ""),
+    ("Base.OffRoadSmashedLeft", "Wrecked Dash Rancher", "rancher", "DASH", "RANCHER", None, "dash", "4X4"),
+    ("Base.CarLuxury", "Mercia Lang 4000", "luxury", "MERCIA", "LANG 4000", None, "mercia", ""),
+    ("Base.ModernCar", "Dash Elite", "dashelite", "DASH", "ELITE", None, "dash", "EFI"),
+    ("Base.ModernCar02", "Chevalier Primani", "primani", "CHEVALIER", "PRIMANI", None, "chevalier", "EFI"),
+    ("Base.SportsCar", "Chevalier Cossette", "cossette", "CHEVALIER", "COSSETTE", None, "chevalier", "5.0"),
+    ("Base.SmallCar", "Chevalier Dart", "dart", "CHEVALIER", "DART", None, "chevalier", ""),
+    ("Base.SmallCar02", "Masterson Horizon", "horizon", "MASTERSON", "HORIZON", None, "masterson", ""),
+    ("Base.CarStationWagon2", "Chevalier Cerise Wagon", "wagon", "CHEVALIER", "CERISE WAGON", None, "chevalier", ""),
+    ("Base.SUV", "Franklin All-Terrain", "suv", "FRANKLIN", "ALL-TERRAIN", None, "franklin", "4X4"),
+    ("Base.CarLightsPolice", "Muldraugh Police Chevalier Nyala", "police", "CHEVALIER", "NYALA", "POLICE", None, ""),
+    ("Base.ModernCarLightsMeadeSheriff", "Meade Sheriff Dash Elite", "police", "DASH", "ELITE", "SHERIFF", None, ""),
+    ("Base.CarLightsKST", "State Trooper Chevalier Nyala", "police", "CHEVALIER", "NYALA", "TROOPER", None, ""),
+    ("Base.CarLightsLouisvilleCounty", "LCPD Chevalier Nyala", "police", "CHEVALIER", "NYALA", "LCPD", None, ""),
+    ("Base.ModernCarLightsWestPoint", "West Point Police Dash Elite", "police", "DASH", "ELITE", "POLICE", None, ""),
+    ("Base.StepVan_LouisvilleSWAT", "Louisville SWAT Chevalier Step Van", "police", "CHEVALIER", "STEP VAN", "SWAT", None, ""),
+    ("Base.PickUpTruckLightsFire", "Fire Department Chevalier D6", "fire", "CHEVALIER", "D6", "FIRE", None, ""),
+    ("Base.CarLightsRanger", "Ranger Chevalier Nyala", "ranger", "CHEVALIER", "NYALA", "RANGER", None, ""),
+    ("Base.CarTaxi", "Taxi", "taxi", "CHEVALIER", "NYALA", "TAXI", None, ""),
+    ("Base.VanAmbulance", "Ambulance", "ambulance", "FRANKLIN", "VALULINE", "AMBULANCE", None, ""),
+    # modded cars (not the game's own families) keep their own maker, a leading model year skipped, and get the plaque
+    ("Base.92fordCVPI", "1992 Ford Crown Victoria", "nyala", "FORD", "CROWN VICTORIA", None, "plaque", ""),
+    ("Base.MyBronco", "Ford Bronco", "nyala", "FORD", "BRONCO", None, "plaque", ""),
+    ("Base.MyHearse", "Hearse", "nyala", "HEARSE", "HEARSE", None, "plaque", ""),
+    # a modded car by one of the game's makers gets that maker's mark on the Nyala's dash
+    ("Base.MyChevalierImpala", "Chevalier Impala", "nyala", "CHEVALIER", "IMPALA", None, "chevalier", ""),
 ]
 
 
 def badge_check():
     bad = []
-    for script, name, did, make, model, lead in BADGE_CASES:
+    for script, name, did, make, model, lead, mark, tag in BADGE_CASES:
         st = dict(STATE_DRIVE); st.update(script=script, vname=name, radio=None)
         rec, hits, dash = run(did, st, k=1, frames=2)
         b = dash._badge
         # the unit line carries the middle dot as the single byte 183 (a Java char in Kahlua): read it with that swapped out
         unit = LAST['L'].eval('function(b) return (b.unit:gsub(string.char(183), "*")) end')(b)
-        got = (str(dash._designId), str(b.make), str(b.model), unit.split(" ")[0])
-        want = (did, make, model, lead or got[3])
-        print(f"  {name:36s} -> {got[0]:10s} {got[1]:9s} {got[2]:10s} {unit}")
+        got = (str(dash._designId), str(b.make), str(b.model), unit.split(" ")[0], str(b.brand), str(b.tag))
+        want = (did, make, model, lead or got[3], str(mark), tag)
+        print(f"  {name:36s} -> {got[0]:10s} {got[1]:9s} {got[2]:14s} {got[4]:9s} {got[5]:4s} {unit}")
         if got != want: bad.append((name, got, want))
     return bad
 
