@@ -1,0 +1,2 @@
+zedqa_prelude.lua | pre                          # opens both windows, unpauses, god mode, ~60 ticks
+zedqa_dash_green.lua | dgr | timeout=600 | expect=FBORenderCell   # D6 fan needle parked by day, fire pickup at speed, the green-lit late models at night (zedqa_dash_green_only.lua only sets a flag for dash_green_night.txt)

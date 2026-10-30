@@ -59,6 +59,8 @@ local function resetWindows() pcall(function() ZeD_Window.resetLayout() end) end
 local OFFS = { { 5, 2 }, { 5, -3 }, { -5, 2 }, { 2, 5 }, { -4, -4 }, { 6, 6 }, { -6, 0 } }
 local MAXD = 12
 local cur, curKey, tries, rot = nil, nil, 0, 0
+local lastReady = ""
+local physSeen = {}
 local function carReady(v)
     local sq, chunk, dist = nil, nil, 999
     pcall(function() sq = v:getSquare() end)
@@ -67,8 +69,11 @@ local function carReady(v)
     pcall(function() dist = v:DistTo(p) end)
     -- (42.22: seated before its physics is up, the engine's BaseVehicle.updatePhysics NPE drops the game to the
     -- main menu, as zedqa_dash19.lua and zedqa_dashnight.lua found; Oct 29 2026 it did so here)
-    local phys = false
-    pcall(function() phys = v:isPhysicsActive() end)
+    -- (isPhysicsActive is the physics being awake: on while a new car settles, off once it rests; seen once, the
+    -- car has its physics)
+    local phys = physSeen[v] == true
+    if not phys then pcall(function() phys = v:isPhysicsActive() end); if phys then physSeen[v] = true end end
+    lastReady = string.format("square %s, chunk %s, %.1f away, physics %s", tostring(sq ~= nil), tostring(chunk ~= nil), dist, tostring(phys))
     return sq ~= nil and chunk ~= nil and dist <= MAXD and phys == true
 end
 local READY_HOLD_MS = 1500
@@ -121,22 +126,20 @@ local function stage(n, script)
         if cur then pcall(function() cur:permanentlyRemove() end); cur = nil end
         if not spawn(script) then failed = true; err(n .. " no ready car " .. script) end
     end)
+    act(function() readySince = nil end)
+    waitFor(function() return failed or not cur or carSettled(cur) end, 8000)   -- (the second car, after a timeout)
+    -- (as zedqa_dash19.lua: repaired, fuelled and seated in the same tick, once it has a square, a chunk and its
+    -- physics; a wait after the repair left the physics down for good, Oct 29 2026)
     act(function()
         if failed or not cur then return end
         local v = cur
+        if not carSettled(v) then err(n .. " car not settled at the seat step; not entered (" .. lastReady .. ")"); failed = true; return end
         pcall(function() v:repair() end)
         pcall(function() local g = v:getPartById("GasTank"); g:setContainerContentAmount(g:getContainerCapacity()) end)
         pcall(function()
             local b = v:getPartById("Battery"); local it = b and b:getInventoryItem()
             if it then pcall(function() it:setCurrentUsesFloat(1.0) end); pcall(function() it:setUsedDelta(1.0) end) end
         end)
-        readySince = nil
-    end)
-    waitFor(function() return failed or (cur and carSettled(cur)) end, 8000)
-    act(function()
-        if failed or not cur then return end
-        local v = cur
-        if not carSettled(v) then err(n .. " car not settled at the seat step; not entered"); failed = true; return end
         pcall(function() if v:isKeysInIgnition() then v:setKeysInIgnition(false) end end)
         pcall(function() curKey = p:getInventory():AddItem(v:createVehicleKey()) end)
         pcall(function() v:enter(0, p) end)
