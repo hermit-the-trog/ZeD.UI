@@ -502,10 +502,44 @@ step(40, function()
     w._equipSelected = nil; w._equipLayer = 1; w._equipCache = nil; w._gpFocusedEquipSlot = nil
 end)
 
+-- ---- G. a short window (director, Oct 30 2026: shrink the slots rather than scroll): with the full card back,
+-- the window is cut so the doll's view is 80% of its full height; the doll, bands and all, shrinks to fit it
+local realMeasure, lastView, origH = Doll.measure, nil, nil
+step(20, function()
+    local w = cw()
+    if origMax then w._maxWinW = origMax end
+    Doll.measure = function(win, mw, viewH) lastView = { w = mw, h = viewH }; return realMeasure(win, mw, viewH) end
+end)
+step(20, function() whenStill(function()
+    local w = cw()
+    if not lastView then check("short: the doll was measured", false); return end
+    local fullH = realMeasure(w, lastView.w, 1e9)
+    origH = w:getHeight()
+    local target = math.floor(origH - lastView.h + fullH * 0.8)
+    say(string.format("short: window %d -> %d px (view %d, doll at full size %d)", origH, target, lastView.h, fullH))
+    w:setHeight(target)
+end) end)
+step(20, function() whenStill(function()
+    local w = cw()
+    local U = T.px(1000) / 1000
+    local small = rectOf("ears")
+    local su = small and small.w / U or 0
+    check("short: the bands still show", w._equipDollBands == true)
+    check("short: the small slots shrank (under 18 units, 14 or more)", su < 17.9 and su >= 13.9, string.format("%.1f units", su))
+    local dollH = realMeasure(w, lastView.w, lastView.h)
+    check("short: the doll fits its view, no scrolling to reach it", dollH <= lastView.h + 1, dollH .. " in " .. lastView.h)
+    local nov, oa, ob = overlaps(w._equipDollAll or {})
+    check("short: no slot overlaps another", nov == 0, nov > 0 and (tostring(oa) .. " x " .. tostring(ob)) or nil)
+    check("short: 49 slot boxes", #(w._equipDollAll or {}) == 49, #(w._equipDollAll or {}))
+    shot("short")
+end) end)
+
 -- ---- put everything back
 step(20, function()
     local w = cw()
     if origMax then w._maxWinW = origMax end
+    Doll.measure = realMeasure
+    if origH then w:setHeight(origH) end
     Doll.gather = realGather
     for _, it in ipairs(added) do
         pcall(function() p:removeWornItem(it) end)
