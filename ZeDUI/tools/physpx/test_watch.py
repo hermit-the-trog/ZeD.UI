@@ -37,12 +37,18 @@ function ZeD_Panel:setY(v) self.y = v end
 function ZeD_Panel:initialise() end
 function ZeD_Panel:addToUIManager() end
 function ZeD_Panel:setVisible() end
+-- ZeD_Watch registers itself with the safe-mode helper (SafeMode.lua, not loaded here): never in safe mode
+ZeD.Safe = { on = function() return false end, register = function() end }
 SPEED = 1
 UIManager = { getClock = function() return nil end,
               getSpeedControls = function() return {
                   getCurrentGameSpeed = function() return SPEED end,
                   SetCurrentGameSpeed = function(_, n) SPEED = n end,
-                  ButtonClicked = function(_, b) if b == "Pause" then SPEED = 0 elseif b == "Play" then SPEED = 1 end end,
+                  ButtonClicked = function(_, b)      -- the clock's own buttons: the fast speeds go through them
+                      if b == "Pause" then SPEED = 0 elseif b == "Play" then SPEED = 1
+                      elseif b == "Fast Forward x 1" then SPEED = 2 elseif b == "Fast Forward x 2" then SPEED = 3
+                      elseif b == "Wait" then SPEED = 4 end
+                  end,
                   getY = function() return -4000 end, isVisible = function() return false end } end }
 getPlayerScreenLeft = function() return 0 end
 getPlayerScreenTop = function() return 0 end
@@ -236,7 +242,9 @@ def run(scale):
     click(o, w, "alarm"); check(f"{scale}x ALARM closes the setting", not w._setOpen)
     frame(o, w)
     o.g.SPEED = 1; click(o, w, "speed"); check(f"{scale}x SPEED steps to 2", o.g.SPEED == 2)
-    click(o, w, "speed"); click(o, w, "speed"); check(f"{scale}x SPEED wraps to 1", o.g.SPEED == 1)
+    click(o, w, "speed"); check(f"{scale}x SPEED steps to 3", o.g.SPEED == 3)
+    click(o, w, "speed"); check(f"{scale}x SPEED steps to 4", o.g.SPEED == 4)
+    click(o, w, "speed"); check(f"{scale}x SPEED wraps to 1", o.g.SPEED == 1)
     click(o, w, "start"); check(f"{scale}x START pauses", o.g.SPEED == 0)
     compare(f"{scale}x paused readout", frame(o, w), expected("digital_black", k, armed=True, alarm_hour=1, speed=0))
     click(o, w, "start"); check(f"{scale}x START runs again at the last speed", o.g.SPEED == 1)

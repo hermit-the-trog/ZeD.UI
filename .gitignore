@@ -22,3 +22,5 @@ ZeDUI/tools/icon_matcher/*/
 ZeDUI/tools/icon_matcher/*.pdf
 ZeDUI/tools/icon_matcher/*.html
 ZeDUI/tools/icon_matcher/*.json
+# physpx scratch export (platesame.py / export_phys.py default output)
+ZeDUI/tools/physpx/out/
