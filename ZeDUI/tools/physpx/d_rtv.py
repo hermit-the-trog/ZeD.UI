@@ -374,8 +374,8 @@ def lay_disc(w):
     """the disc player's little LCD (w x 16): the track and the time, the battery at the right; the title marching"""
     return [
         {"t": "text", "src": "track", "x": 3, "y": 2, "font": "35"},
-        {"t": "text", "src": "time", "x": 22, "y": 2, "font": "35"},
-        {"t": "bars", "src": "batt", "x": w - 15, "y": 7, "n": 3, "bw": 3, "gap": 1, "h0": 5, "dh": 0},
+        {"t": "text", "src": "time", "x": 15, "y": 2, "font": "35"},
+        {"t": "bars", "src": "batt", "x": w - 13, "y": 7, "n": 3, "bw": 3, "gap": 1, "h0": 5, "dh": 0},
         {"t": "text", "src": "line", "x": 3, "y": 9, "font": "35", "w": w - 6, "marquee": True},
     ]
 
@@ -393,70 +393,97 @@ def round_key(p, pid, cx, cy, r, icon=None, mat="chrome", ink="paint_k", on=Z_FA
     elif icon == "stop": d.paint(rbox(d, int(cx - 1), int(cy - 1), 3, 3), ink, flatlight=True)
     elif icon == "play":
         for i in range(4): d.paint(rbox(d, int(cx - 1 + i), int(cy - 3 + i), 1, 7 - 2 * i), ink, flatlight=True)
+    elif icon == "power":                        # the power mark: a broken ring and its stroke
+        ring_ = ring(d, cx, cy, 2.2, 3.3) & ~((d.YY < cy - 1) & (abs(d.XX + 0.5 - cx) < 1.6))
+        d.paint(ring_, ink, flatlight=True); d.paint(rbox(d, int(cx), int(cy - 4), 1, 4), ink, flatlight=True)
+    elif icon == "mute":                         # a small speaker and a cross
+        d.paint(rbox(d, int(cx - 4), int(cy - 1), 2, 3), ink, flatlight=True)
+        d.paint(rbox(d, int(cx - 2), int(cy - 2), 1, 5), ink, flatlight=True)
+        for i in range(3):
+            d.paint(rbox(d, int(cx + 1 + i), int(cy - 1 + i), 1, 1), ink, flatlight=True)
+            d.paint(rbox(d, int(cx + 3 - i), int(cy - 1 + i), 1, 1), ink, flatlight=True)
     p.hit(pid, cx - r - 1, cy - r - 1, 2 * r + 2, 2 * r + 2)
 
 
 def cd_player(W=180, worn_=True):
-    """CD Player (Base.CDplayer): a portable disc player, batteries, no tuner. Drawn on the player the game's is based
-    on (the director's photo, Oct 30 2026: a 2000s portable): a round body, the big round lid, the controls on the rim
-    round it, the little LCD in the flat strip at the front. No maker's marks.
-    Controls: the lid (slot: open it to put a disc in or take it out), OPEN (eject) on the rim, VOL - and + at the lower
-    left, stop-and-play at the lower right, POWER and MUTE either side of the LCD, the headphone jack and the battery
-    door on the rim."""
+    """CD Player (Base.CDplayer): a portable disc player, batteries, no tuner. Drawn on the players the game's is based
+    on (the director's photos, Oct 30 2026: the 1990s and 2000s portables). Round 3 (director: "buttons on the bottom,
+    the top and middle are the CD lid. usually minimal buttons on the lid"; the photos): the lid is the whole top of the
+    player, about four fifths of the face, its edge the body's own; along the front under it, one row of controls.
+    The lid carries nothing but its name and OPEN.
+    Controls: the lid (slot: open it to put a disc in or take it out) and OPEN, a ribbed lip on its front edge; along the
+    front, VOL - and +, POWER, the LCD, MUTE, play; the
+    headphone jack in the right side wall (director: "phones would be on the side"). No battery door (director: "for the
+    battery, lose the button, clicking the meter on the screen or right click in the inventory can change the battery"):
+    the battery hit is the LCD's meter. No maker's marks."""
+    import numpy as np
     F = W - 20
-    H = int(round(F * 0.92))
+    H = int(round(F * 0.94))
     p = Plate("cd_player", F, H, seed=331, title="CD Player")
     d = p.d
-    # the body: a circle with its front flattened, big round corners (the player seen from above)
-    bcx, bcy, br = F / 2, H * 0.47, F / 2 - 2
-    body = disc(d, bcx, bcy, br) | Mask(F, H).rrect(4, int(H * 0.47), F - 8, H - int(H * 0.47) - 2, 22).get()
-    d.slab(body, Z_FACE, "cd_grey", bevel=3.0, polish=0.6)
+    # the body (the D-223, director's photo, Oct 30 2026): square shoulders at the top and a squircle front
+    # (director: "more squircle bottom, give the buttons more room")
+    bcx, n_ = F / 2, 4.0
+    yb, ys = H - 2, int(H * 0.55)                 # the front's lowest point; where the squircle front starts
+    def sq(cy, a, b):                             # the lower half of a squircle centred at (bcx, cy)
+        return ((np.abs(d.XX + 0.5 - bcx) / a) ** n_ + (np.abs(d.YY + 0.5 - cy) / b) ** n_ <= 1) & (d.YY >= cy)
+    def sq_y(x, cy, a, b):
+        t = min(1.0, abs(x - bcx) / a)
+        return cy + b * (1 - t ** n_) ** (1 / n_)
+    aB, bB = bcx - 2, yb - ys
+    body = Mask(F, H).rrect(2, 0, F - 4, ys + 10, 14).get() | sq(ys, aB, bB)
+    d.slab(body, Z_FACE, "blackp", bevel=3.0, polish=0.6)
     d.grain_pebble(body, 0.02, seed=332)
-    # the lid: a raised disc with its seam; the whole lid opens (slot)
-    lr = int(round(F * 0.30))
-    lcx, lcy = F / 2, H * 0.42
-    d.seam(ring(d, lcx, lcy, lr, lr + 1), 0.8)
-    d.dome(lcx, lcy, lr, lr, 1.6, "cd_lid", polish=0.75, on=Z_FACE)
-    p.hit("slot", lcx - lr, lcy - lr, 2 * lr, 2 * lr)
-    p.label("DISC PLAYER", int(lcx), int(lcy + lr * 0.45), "paint_c", align="c", auto_ink=False, check=False)
-    # the front strip: a dark crescent under the lid, the LCD in it, POWER and MUTE at its ends
-    sy0 = int(lcy + lr + 3)
-    strip = Mask(F, H).ellipse(F / 2, sy0 + 260, F * 1.4, 260).get() & body       # a band whose top bows up a little
-    d.slab(strip, 0.5, "blackp", bevel=0.8, polish=0.6, on=Z_FACE)
-    zs = Z_FACE + 0.5
-    lw, lh = int(F * 0.40), 16
-    lx, ly = int(F / 2 - lw / 2), sy0 + 6
+    inner = Mask(F, H).rrect(4, 2, F - 8, ys + 8, 12).get() | sq(ys, aB - 2, bB - 2)
+    # the lid: the whole top; its front edge a second squircle above the body's, leaving an even band of front for the
+    # controls, a little deeper at the middle for the LCD
+    band = 24                                     # the band's depth at the middle
+    ysL = ys - 8                                  # where the lid's front starts curving at the sides
+    aL, bL = aB, (yb - band) - ysL
+    lid = inner & ((d.YY < ysL) | sq(ysL, aL, bL))
+    d.seam(lid ^ (lid & np.roll(lid, -1, 0) & np.roll(lid, 1, 0) & np.roll(lid, -1, 1) & np.roll(lid, 1, 1)), 0.6)
+    d.slab(lid, 1.8, "cd_lid", bevel=2.4, polish=0.75, on=Z_FACE)
+    ys_l, xs_l = np.nonzero(lid)
+    p.hit("slot", int(xs_l.min()), int(ys_l.min()), int(xs_l.max() - xs_l.min() + 1), int(ys_l.max() - ys_l.min() + 1))
+    p.label("DISC PLAYER", int(bcx), int(H * 0.30), "paint_c", align="c", auto_ink=False, check=False)
+    edge = lambda x: sq_y(x, ysL, aL, bL)         # the lid's front edge at column x
+    bottom = lambda x: sq_y(x, ys, aB, bB)        # the body's front edge at column x
+    mid = lambda x: int(round((edge(x) + bottom(x)) / 2))
+    # OPEN (director: "the open is like a lip, you pull up on"): the lid keeps its outline; at the left of its front
+    # the edge is a lip, ribbed for the thumb, its name above the ribs
+    tx0, tx1 = int(F * 0.14), int(F * 0.30)
+    span = (d.XX >= tx0) & (d.XX < tx1)
+    for k in (2, 4, 6):
+        d.seam(lid & ~sq(ysL, aL, bL - k) & sq(ysL, aL, bL - k + 1) & span, 0.5)
+    tcx = (tx0 + tx1) // 2
+    p.label("OPEN", tcx + 2, int(edge(tcx)) - 15, "paint_c", align="c", auto_ink=False, check=False)
+    lip = lid & ~sq(ysL, aL, bL - 17) & (d.YY >= ysL) & span
+    ys_, xs_ = np.nonzero(lip)
+    p.hit("eject", int(xs_.min()), int(ys_.min()), int(xs_.max() - xs_.min() + 1), int(ys_.max() - ys_.min() + 1))
+    zs = Z_FACE
+    # the LCD at the bottom of the crescent, where it is widest
+    lw, lh = int(F * 0.31), 16
+    lx = int(bcx - lw / 2)
+    ly = int(round(edge(bcx))) + 3
     window_glass(p, lx - 1, ly - 1, lw + 2, lh + 2, face="lcdgrey", bezel="blackp", depth=1.2, on=zs, r=1, bezel_t=1, lens=False)
     p.part("radioDisplay", kind="disc", style="lcd", x=lx, y=ly, w=lw, h=lh)
-    pk = lambda pid, x, lab: PR.radio_key(p, pid, x, ly + 6, 22, 9, lab, mat="chrome", lab_mat="paint_k", z=1.0)
-    pk("power", lx - 26, "PWR")
-    pk("mute", lx + lw + 4, "MUTE")
-    # the rim's controls: VOL - + at the lower left, stop and play at the lower right
-    a = math.radians
-    def rim(angle, rr):
-        return bcx + math.cos(a(angle)) * rr, bcy + math.sin(a(angle)) * rr
-    rr_ = (lr + br) / 2 + 2
-    x1, y1 = rim(172, rr_); x2, y2 = rim(152, rr_)
-    round_key(p, "voldn", int(x1), int(y1), 5, icon="minus")
-    round_key(p, "volup", int(x2), int(y2), 5, icon="plus")
-    p.label("VOL", int((x1 + x2) / 2) + 8, int((y1 + y2) / 2) - 8, "paint_w", align="c", auto_ink=False, check=False)
-    x4, y4 = rim(28, rr_)
-    round_key(p, "play", int(x4), int(y4), 6, icon="play")
-    # the rim's top: OPEN at the left, the headphone jack and the battery door at the right
-    x5, y5 = rim(205, rr_)
-    PR.radio_key(p, "eject", int(x5) - 8, int(y5) - 6, 20, 11, "OPEN", mat="blackp", lab_mat="paint_w", z=1.0)
-    x6, y6 = rim(-38, rr_)
-    jack(p, int(x6), int(y6), label=None)
-    p.label("PHONES", int(x6) - 4, int(y6) - 13, "paint_w", align="c", auto_ink=False, check=False)
-    x7, y7 = rim(2, rr_)
-    door = Mask(F, H).rrect(int(x7) - 7, int(y7) - 6, 14, 12, 2).get()
-    d.slab(door, 0.6, "cd_lid", bevel=0.6, polish=0.4, on=Z_FACE)
-    for xx in range(int(x7) - 4, int(x7) + 5, 3): d.well(Mask(F, H).rect(xx, int(y7) - 3, 1, 6).get(), 0.5, None, bevel=0.3)
-    p.label("BATT", int(x7), int(y7) + 8, "paint_w", align="c", auto_ink=False, check=False)
-    p.hit("battery", int(x7) - 7, int(y7) - 6, 14, 12)
+    p.hit("battery", lx + lw - 14, ly + 5, 13, 9)   # no door: clicking the meter (or the item's right-click) changes it
+    # the round keys up the crescent either side: VOL - and +, POWER at the left; MUTE and play at the right
+    for pid, ic, x, r in (("voldn", "minus", 0.085, 5), ("volup", "plus", 0.175, 5), ("power", "power", 0.27, 5),
+                          ("mute", "mute", 0.73, 5), ("play", "play", 0.835, 6)):
+        cx = int(round(F * x))
+        round_key(p, pid, cx, mid(cx), r, icon=ic, on=zs)
+    # the headphone jack in the right side wall, just under the lid (director: "phones would be on the side")
+    jy = mid(F - 10)
+    sock = Mask(F, H).rect(F - 8, jy - 5, 6, 11).get() & body
+    d.slab(sock, 0.8, "chrome", bevel=0.6, polish=1.0, on=Z_FACE)
+    hole = Mask(F, H).rect(F - 5, jy - 2, 3, 5).get()
+    d.well(hole, 1.0, "hole", bevel=0.3)
+    p.lamp(hole, "phonesIn", "#cfd3d6", halo=False)
+    p.hit("phones", F - 9, jy - 6, 9, 13)
     if worn_:
         WR.grime(d, d.solid, amount=0.18, seed=333)
-        WR.scuffs(d, WR.mat_mask(d, "cd_grey"), 0.0012, seed=334, amount=0.10)
+        WR.scuffs(d, WR.mat_mask(d, "cd_lid"), 0.0012, seed=334, amount=0.10)
     return p
 
 
