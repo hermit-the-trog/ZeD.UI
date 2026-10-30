@@ -1,0 +1,6 @@
+# ZeDUI/tools/qa/dash_green_night.txt  (Oct 29 2026)
+# The green-lit late models at night alone (the dash bulbs pass), run with:
+#   zedqa_run.ps1 -Mode fullscreen4k -Manifest .../dash_green_night.txt
+zedqa_prelude.lua | pre
+zedqa_dash_green_only.lua | dgo                                    # sets the green-only flag for the next script
+zedqa_dash_green.lua | dgr | timeout=600 | expect=FBORenderCell     # the five late models at night, headlights on and off

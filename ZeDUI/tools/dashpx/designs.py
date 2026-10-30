@@ -706,6 +706,7 @@ ORDER = list(DESIGNS)
 #          a little off it (jitter) and its own strength (an old bulb, a dusty lens); power scales them all.
 #          The openings are found from the gauges' own parts (a needle's pivot, the clock, the ribbon's window);
 #          a VFD cluster lights itself and gets none.
+#          bulbs=n (spread, each): n bulbs behind each face, spread round that side (the late models: GREEN_WASH)
 #   lamps: (x0, x1, y, z, power[, reach][, tint])     a row of points under a hood, aimed down
 #   tint:  the bulb's colour, by name (night.TINTS): wash=dict(..., tint="green"), a lamp row's last item. None named
 #          is amber, the 2700 K bulb. Director, Oct 29 2026: the late models (the Dash Elite, the Primani, the SUV,
@@ -716,16 +717,23 @@ LOWER_LAMP = (34, 466, 115, Z_FACE + 10.0, 0.5)         # under the cluster's si
 CURVY_LAMPS = lambda top: [(514, 774, top, Z_FACE + 12.0, 1.0), (34, 470, 120, Z_FACE + 8.0, 0.5)]
 GREEN = "green"
 tinted = lambda lamp, tint: tuple(lamp) + (tint,)
-# a needle on a gauge lit green: "own" keeps its orange and takes only the light's level, as if light-piped (how GM
-# did it: orange under a green multiply goes olive); "lit" takes the green like everything else. The director picks
-# from the two night sheets; until then "own".
+# a needle on a gauge lit green keeps its own orange and takes only the light's level, as if light-piped (how GM did
+# it: orange under a green multiply goes olive). Director's pick, Oct 29 2026: "b, keep the orange needles". ("lit",
+# the needles taking the green like everything else, stays in the code: the night sheets' --needles lit.)
 NEEDLES_UNDER_TINT = "own"
+# the late models' green clusters: three bulbs behind each face, spread over 140 degrees round the wash's side, each
+# at 0.45 of the one bulb (director, Oct 29 2026: "add a couple more backlight bulbs to the moderns ... not as bright
+# as today, but brighter than the amber"). Measured: the faces' mean light 1.33 to 1.47 times the amber dashes', no
+# face lit to the top more than the amber ones are
+GREEN_WASH = dict(tint=GREEN, bulbs=3, spread=140.0, each=0.45)
+# the Cossette's green lamps (its pod lights itself): each lamp's hood holds more bulbs, 1.9 times the power
+GREEN_LAMP = lambda lamp: tinted(tuple(lamp[:4]) + (lamp[4] * 1.9,) + tuple(lamp[5:]), GREEN)
 LEFT, UPPER_LEFT, TOP, UPPER_RIGHT = 180.0, 215.0, 270.0, 320.0
 
 NIGHT = {
     # wood and chrome: the bulbs sit behind the walnut fascia on the gauges' left
     "wagon":      dict(wash=dict(side=LEFT, power=1.0), lamps=[CONSOLE_LAMP, LOWER_LAMP]),
-    "luxury":     dict(wash=dict(side=LEFT, power=1.0, tint=GREEN), lamps=[CONSOLE_LAMP, LOWER_LAMP]),    # the clock (the VFD lights itself)
+    "luxury":     dict(wash=dict(side=LEFT, power=1.0, **GREEN_WASH), lamps=[CONSOLE_LAMP, LOWER_LAMP]),    # the clock (the VFD lights itself)
     "horizon":    dict(wash=dict(side=UPPER_LEFT, power=1.0), lamps=[(512, 776, 22, Z_FACE + 12.0, 1.0), LOWER_LAMP]),
     # vinyl and chrome: the same bulbs behind a black (steel, aluminium, painted) fascia, from the top edge
     "nyala":      dict(wash=dict(side=TOP, power=1.0), lamps=[CONSOLE_LAMP, LOWER_LAMP]),
@@ -741,11 +749,11 @@ NIGHT = {
     "fire":       dict(wash=dict(side=TOP, power=1.0), lamps=[CONSOLE_LAMP, LOWER_LAMP]),
     "ranger":     dict(wash=dict(side=TOP, power=0.95), lamps=[CONSOLE_LAMP, LOWER_LAMP]),
     # early 90s curves: from under the arched brow
-    "dashelite":  dict(wash=dict(side=UPPER_LEFT, power=1.0, tint=GREEN), lamps=CURVY_LAMPS(30)),
-    "primani":    dict(wash=dict(side=UPPER_RIGHT, power=1.0, tint=GREEN), lamps=CURVY_LAMPS(34)),
-    "suv":        dict(wash=dict(side=TOP, power=1.0, tint=GREEN), lamps=CURVY_LAMPS(28)),
+    "dashelite":  dict(wash=dict(side=UPPER_LEFT, power=1.0, **GREEN_WASH), lamps=CURVY_LAMPS(30)),
+    "primani":    dict(wash=dict(side=UPPER_RIGHT, power=1.0, **GREEN_WASH), lamps=CURVY_LAMPS(34)),
+    "suv":        dict(wash=dict(side=TOP, power=1.0, **GREEN_WASH), lamps=CURVY_LAMPS(28)),
     # RPM first: the Cossette's digital pod lights itself (no gauge bulbs); the race car's dials are lit from the left,
     # the switch panel by a lamp under the cage bar
-    "cossette":   dict(lamps=[tinted(CONSOLE_LAMP, GREEN), tinted(LOWER_LAMP, GREEN)]),     # its lamps green: the one exception
+    "cossette":   dict(lamps=[GREEN_LAMP(CONSOLE_LAMP), GREEN_LAMP(LOWER_LAMP)]),     # its lamps green: the one exception
     "race":       dict(wash=dict(side=LEFT, power=1.05), lamps=[(512, 772, 32, Z_FACE + 10.0, 0.9)]),
 }

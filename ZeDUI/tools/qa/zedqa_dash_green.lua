@@ -2,8 +2,9 @@
 --   d6       a parked Chevalier D6 by day: the fan speedometer's needle at rest, its root inside the shroud
 --   fire     the fire pickup at speed (pushed along its heading, no keys pressed): the needle in mid-sweep
 --   green    each late model at night, its headlights on and then off: the Dash Elite, the Primani, the SUV, the
---            Lang 4000 (the clock's wash green) and the Cossette (its lamps green). With the lights on, a second
---            shot with the needles lit green (the director's option a); the export ships option b (needleOwn)
+--            Lang 4000 (the clock's wash green) and the Cossette (its lamps green). The needles keep their orange
+--            (needleOwn, the director's pick, Oct 29 2026)
+-- Run zedqa_dash_green_only.lua first (dash_green_night.txt) for the green cars alone.
 -- The windows' layout is reset (ZeD_Window.resetLayout) before each car. Night is D.qaNight = 1 (the QA stand-in for
 -- the light at the car); the dash lights follow the car's real headlight switch. Puts back D.qaNight, the needle
 -- option, the car and its key. Screenshots: Zomboid/Screenshots/zqa_dgr_<case>.png; each shot logs the dash's screen
@@ -161,6 +162,10 @@ local function expectDesign(n, want)
     act(function() if design() ~= want then err(n .. " design " .. tostring(design()) .. ", want " .. want) end end)
 end
 
+local GREEN_ONLY = ZeD_QA_DGR_GREEN_ONLY == true
+ZeD_QA_DGR_GREEN_ONLY = nil
+if GREEN_ONLY then act(function() say("green cars only (zedqa_dash_green_only.lua)") end) end
+if not GREEN_ONLY then
 -- ===================================================================== the D6, parked, by day
 act(function() D.qaNight = 0; D.qaLit = nil end)
 local okD6 = stage("d6", "Base.PickUpTruck")
@@ -222,13 +227,13 @@ during(10000, function()
     if okA then local F = drive.F; pcall(function() v:addImpulse(Vector3f.new(-fx * F, -fy * F, -fz * F), zero) end) end
 end)
 act(function() D.qaNight = nil end)
+end
 
 -- ===================================================================== the late models, at night
 local GREEN = {
     { "dashelite", "Base.ModernCar" }, { "primani", "Base.ModernCar02" }, { "suv", "Base.SUV" },
     { "luxury", "Base.CarLuxury" }, { "cossette", "Base.SportsCar" },
 }
-local savedOwn = {}
 for _, e in ipairs(GREEN) do
     local tag, script = e[1], e[2]
     local okC = stage(tag, script)
@@ -250,17 +255,14 @@ for _, e in ipairs(GREEN) do
         local d = dash(); local L = d and d._light
         if not (L and L.tmap and L.tints) then err(tag .. " has no tint map at night (DashPx " .. tostring(ZeD.DashPx.designs[tag].night.tmap ~= nil) .. ")") end
         if not (L and L.lit) then err(tag .. " dash lights not on with the headlights on") end
+        local hasNeedle = false
+        for _, p_ in ipairs(ZeD.DashPx.designs[tag].parts) do if p_.t == "needle" then hasNeedle = true end end
+        if hasNeedle and not (L and L.needleOwn) then err(tag .. " needles not light-piped (needleOwn)") end
+        -- (a spawned car can drop through the ground under the character, the engine's FBORenderLevels at a level
+        -- below 0: its speedometer then reads the fall; Oct 29 2026, the Dash Elite)
+        if (tonumber(d and d._st and d._st.speed) or 0) > 3 then err(tag .. " car moving at " .. tostring(d._st.speed) .. " km/h while parked (fell through the ground?)") end
         shot(tag .. "_night_on")
     end)
-    -- the director's option a: needles lit green like everything else (the data's switch, put back after)
-    act(function()
-        local nd = ZeD.DashPx.designs[tag].night
-        savedOwn[tag] = nd.needleOwn
-        nd.needleOwn = nil
-    end)
-    waitMs(800)
-    act(function() if okC() then shot(tag .. "_night_on_needles_a") end end)
-    act(function() ZeD.DashPx.designs[tag].night.needleOwn = savedOwn[tag] end)
     act(function() if okC() then local d = dash(); if d and d._st and d._st.lights then d:_fire("lights", false) end end end)
     waitMs(2000)
     act(function()
@@ -275,7 +277,6 @@ end
 act(function()
     leave()
     D.qaNight = nil; D.qaLit = nil
-    for k, v in pairs(savedOwn) do ZeD.DashPx.designs[k].night.needleOwn = v end
     resetWindows()
 end)
 waitMs(1000)

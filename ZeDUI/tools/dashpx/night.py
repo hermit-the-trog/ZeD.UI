@@ -207,7 +207,10 @@ def gauge_faces(d, parts):
 
 
 def wash_lights(d, parts, spec, seed=0):
-    """one hidden bulb per gauge face: (face mask, rim mask, bx, by, bz, power, reach)"""
+    """the hidden bulbs per gauge face: (face mask, rim mask, bx, by, bz, power, reach) each. One bulb on the wash's
+    side; wash bulbs=n puts n behind the edge, spread over `spread` degrees round that side, each at `each` of the
+    one bulb's power (director, Oct 29 2026: a couple more bulbs on the late models' green clusters, brighter and
+    more even, the way the period clusters spread theirs behind the face)"""
     w = spec.get("wash")
     if not w: return []
     rng = np.random.default_rng(seed + 101)
@@ -227,7 +230,17 @@ def wash_lights(d, parts, spec, seed=0):
             g = grow.copy(); g[1:, :] |= grow[:-1, :]; g[:-1, :] |= grow[1:, :]; g[:, 1:] |= grow[:, :-1]; g[:, :-1] |= grow[:, 1:]
             grow = g
         rim = grow & ~m & d.solid
-        out.append((m, rim, bx, by, h0 + 3.0, pw, reach))
+        n = int(w.get("bulbs", 1))
+        if n <= 1:
+            out.append((m, rim, bx, by, h0 + 3.0, pw, reach))
+            continue
+        spread, each = float(w.get("spread", 80.0)), float(w.get("each", 0.5))
+        for j in range(n):
+            a = math.radians(side + spread * (j / (n - 1.0) - 0.5))
+            vx, vy = math.cos(a), math.sin(a)
+            nj = float(((xs + 0.5 - cx) * vx + (ys + 0.5 - cy) * vy).max())
+            fj = float(-((xs + 0.5 - cx) * vx + (ys + 0.5 - cy) * vy).min())
+            out.append((m, rim, cx + vx * (nj + 2.0), cy + vy * (nj + 2.0), h0 + 3.0, pw * each, 0.42 * (nj + fj)))
     return out
 
 
