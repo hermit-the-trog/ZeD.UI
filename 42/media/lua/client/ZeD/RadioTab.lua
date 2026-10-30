@@ -27,6 +27,15 @@
 -- All controls paint as visually clickable but no-op until S115b. Browse
 -- buttons in the drawer-internal header similarly paint but don't mutate
 -- win._radioIdx this session.
+--
+-- FACES (Oct 30 2026, handoff ZeDUI/HANDOFF_radio_tv_laundry_20261030.md): a
+-- radio with a face of its own is drawn as that face: the two-way sets
+-- (TwoWayFace.lua), the ordinary radios, the CD player and the TVs
+-- (RtvFace.lua). The drawn chassis above is the SIMPLE CARD, reached through
+-- one function, ZeD.RadioTab.drawSimple: the card for a radio with no face,
+-- and (punch list item 17, to come) the card ZeD setup's "faces or simple
+-- cards" switch shows (ZeD.RadioTab.useFaces). The brand strip at the
+-- chassis' foot stays with the simple card; a face carries its own brand.
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -35,6 +44,7 @@ require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
 require "ZeD/TwoWayFace"
 require "ZeD/TwoWayFull"
+require "ZeD/RtvFace"
 
 ZeD = ZeD or {}
 ZeD.RadioTab = ZeD.RadioTab or {}
@@ -1055,6 +1065,27 @@ function renderDrawer(panel, x, y, w, h, win, radioEntry)
     end
 end
 
+-- THE SIMPLE CARD (Oct 30 2026): the drawn chassis, the one way in to it. Its clicks and controller stops are the
+-- chassis' own (onClick and buildFocusables below, by the rects it stamps on the window).
+function ZeD.RadioTab.drawSimple(panel, x, y, w, h, win, radioEntry)
+    renderDrawer(panel, x, y, w, h, win, radioEntry)
+end
+
+-- faces or simple cards (punch list item 17: ZeD setup's switch will set this; faces by default). The two-way sets
+-- keep their faces either way until the switch is built.
+ZeD.RadioTab.useFaces = true
+
+-- the face a radio tab entry is drawn as: its driver (ZeD.TwoWay or ZeD.Rtv), plate id and plate; nil for the
+-- simple card
+function ZeD.RadioTab.faceFor(entry)
+    local pid, des = ZeD.TwoWay.plateFor(entry)
+    if des then return ZeD.TwoWay, pid, des end
+    if ZeD.RadioTab.useFaces == false then return nil, nil, nil end
+    pid, des = ZeD.Rtv.plateFor(entry)
+    if des then return ZeD.Rtv, pid, des end
+    return nil, nil, nil
+end
+
 -- ============================================================================
 -- THE TWO-WAY RADIOS (director, Oct 25 2026; handoff ZeDUI/HANDOFF_twoway_20261025.md)
 -- A radio whose device data is two-way is drawn as its own face (TwoWayFace.lua)
@@ -1087,12 +1118,15 @@ local _browseOpts, _browseMark = {}, {}
 -- graphic"; Oct 29: a card is the half card or the full card): the half card wherever one of its widths fits it
 -- (Oct 30 2026, punch list item 2), else today's 220 panel (the full card). A ham set needs its own width. Where
 -- that is more than limit, the set's narrow face is drawn (render below), which needs a walkie's panel.
+-- (Oct 30 2026) The ordinary radios and the CD player: the half card wherever one of their widths fits it, else the
+-- full card (the hand-built radio at 0.75 and 1.5); the TVs: the full card (RtvFace.wantW).
 function ZeD.RadioTab.wantW(win, base, limit)
     local r = win and win._radios and win._radios[win._radioIdx or 1]
-    local pid, des = ZeD.TwoWay.plateFor(r)
+    local drv, pid, des = ZeD.RadioTab.faceFor(r)
     if not des then return nil end
     local T, Sc = ZeD.T, ZeD.Scale
     local k = ZeD.Px.k((Sc and Sc.root and Sc.root()) or 1)
+    if drv == ZeD.Rtv then return ZeD.Rtv.wantW(pid, des, k, limit) end
     local panel = ZeD.TwoWay.PANEL_W * k + T.sp.scrollbarW
     if des.w < ZeD.TwoWay.PANEL_W then
         local _, _, pw = ZeD.TwoWay.halfFace(pid, k)
@@ -1122,16 +1156,29 @@ local function _drawFullButton(panel, win, x, y, w, headerH, open, fid)
     return { x = bx, y = by, w = bs, h = bs }
 end
 
--- the face, its footer and the scrollbar under the header (y, h: the body)
-local function renderTwoWay(panel, win, x, y, w, h, current, pid, des)
+-- where a control's list opens (screen px): under the control
+local function _menuAt(tw, h)
+    local p = tw and tw.panel
+    if not (p and h) then return nil end
+    return { x = p:getAbsoluteX() + h.x, y = p:getAbsoluteY() + h.y + h.h }
+end
+local function _hitById(tw, id)
+    for _, hh in ipairs((tw and tw.hits) or {}) do if hh.id == id then return hh end end
+    return nil
+end
+ZeD.RadioTab._menuAt, ZeD.RadioTab._hitById = _menuAt, _hitById
+
+-- the face, its footer and the scrollbar under the header (y, h: the body). drv: the face's driver, ZeD.TwoWay or
+-- ZeD.Rtv (Oct 30 2026: the ordinary radios and the TVs, which have no footer: the brand is on the face)
+local function renderTwoWay(panel, win, x, y, w, h, current, pid, des, drv)
     local T = ZeD.T
-    local TW = ZeD.TwoWay
+    local TW = drv or ZeD.TwoWay
     local Sc = ZeD.Scale
     local sbW = T.sp.scrollbarW
     -- the plates' whole zoom (a whole step down only when the drawer cannot hold the face; it never flips with the scrollbar)
     local k = ZeD.Px.kFit((Sc and Sc.root and Sc.root()) or 1, TW.slotW(des), w - sbW)
     local pad = TW.PAD * k
-    local footH = T.px(22)
+    local footH = TW.footer and T.px(22) or 0
     local contentH = pad + des.h * k + pad + footH
     local scroll = win._radioScroll
     if not scroll then scroll = ZeD_ScrollbarState:new(); win._radioScroll = scroll end
@@ -1155,6 +1202,7 @@ local function renderTwoWay(panel, win, x, y, w, h, current, pid, des)
     local tw = win._radioTw
     local dev = current.radioInstance
     if not (tw and tw.dev == dev) then tw = { dev = dev }; win._radioTw = tw end
+    tw.drv, tw.panel = TW, panel
     -- the controller: the focused control kept in view
     local fid = _twFocusId(win)
     local fctl = fid and fid:match("^radio:tw:(.+)$")
@@ -1179,7 +1227,7 @@ local function renderTwoWay(panel, win, x, y, w, h, current, pid, des)
         if isMouseButtonDown(0) then TW.holdTick(press, chr, dev, nil)
         else
             press.fired = true
-            TW.press(chr, dev, press.id)
+            TW.press(chr, dev, press.id, nil, _menuAt(tw, _hitById(tw, press.id)))
         end
     end
     if press and press.fired and not isMouseButtonDown(0) then tw.press = nil end
@@ -1187,8 +1235,10 @@ local function renderTwoWay(panel, win, x, y, w, h, current, pid, des)
     local hits = TW.drawFace(panel, fx, fy, k, { dev = dev, pid = pid, des = des, focusId = fctl,
         hoverId = (not fctl) and hov and hov.id or nil, pressId = tw.press and tw.press.id or nil })
     -- the footer: at the drawer's foot, or under the face when the body scrolls
-    local footY = math.max(fy + des.h * k + pad, y + h - footH)
-    TW.footer(panel, x, footY, cw, footH, pid, _safeGet(current.deviceData, "getIsHighTier", false))
+    if TW.footer then
+        local footY = math.max(fy + des.h * k + pad, y + h - footH)
+        TW.footer(panel, x, footY, cw, footH, pid, _safeGet(current.deviceData, "getIsHighTier", false))
+    end
     panel:clearStencilRect()
     if needs then scroll:draw(panel) end
     tw.pid, tw.des, tw.k, tw.hits, tw.fy = pid, des, k, hits, fy
@@ -1281,17 +1331,21 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
 
     -- Standard ZeD drawer-header strip height — sourced from the spacing token.
     local headerH = (T.sp and T.sp.tabHeaderH) or T.px(37)
-    -- a two-way radio: its own face (renderTwoWay above), the full view button in the header
-    local twPid, twDes = ZeD.TwoWay.plateFor(current)
+    -- a radio with a face: its own face (renderTwoWay above); a two-way set's full view button in the header
+    local fDrv, twPid, twDes = ZeD.RadioTab.faceFor(current)
+    local isTw = fDrv == ZeD.TwoWay
     if not twDes then win._radioTw, win._radioFullZone = nil, nil end
+    if not isTw then win._radioFullZone = nil end
     -- the width that fills the card (Oct 30 2026, HANDOFF_plates_fill_20261030.md): a walkie's for the half card
     -- (the drawer is that card wherever one fits; centred in the drawer, its margins its own); a ham set's for
     -- the drawer as a machine plate's. A ham set the tab cannot hold at the plates' whole zoom: its narrow face
-    -- (the drawer is then a walkie's width)
+    -- (the drawer is then a walkie's width). The ordinary radios and the TVs the same way (RtvFace.pickFace).
     if twDes then
         local Sc = ZeD.Scale
         local k0 = ZeD.Px.k((Sc and Sc.root and Sc.root()) or 1)
-        if twDes.w < ZeD.TwoWay.PANEL_W then
+        if not isTw then
+            twPid, twDes = ZeD.Rtv.pickFace(twPid, w - T.sp.scrollbarW, k0)
+        elseif twDes.w < ZeD.TwoWay.PANEL_W then
             local hPid, hDes = ZeD.TwoWay.halfFace(twPid, k0)
             if hDes then twPid, twDes = hPid, hDes end
         else
@@ -1303,12 +1357,15 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
     end
     -- a walkie's tab is only as wide as its face: its name shows when it fits whole (the face and the footer carry the
     -- brand), never cut to a few letters (the header molecule's own measures)
-    -- (a walkie's wider faces, 237 px at 1.25, are still a walkie's tab)
-    if twDes and (twDes.w < ZeD.TwoWay.PANEL_W or not ZeD.TwoWay.isBase(twPid)) then
+    -- (a walkie's wider faces, 237 px at 1.25, are still a walkie's tab; so is an ordinary radio's, which has no
+    -- full view button)
+    local fullW = isTw and (T.buttonH + T.px(8)) or 0
+    if twDes and ((isTw and (twDes.w < ZeD.TwoWay.PANEL_W or not ZeD.TwoWay.isBase(twPid)))
+            or (not isTw and not ZeD.Rtv.isTv(twPid))) then
         local tm = ZeD.TM
         local loc = (current and ZeD.RadioTab.locationName(current.locationTag) or "-") .. " (" .. tostring(idx) .. ")"
         local used = T.px(10) + T.px(24) + T.px(6) + tm:MeasureStringX(T.fontF1, loc) + 2 * T.px(12) + T.px(6) + T.px(24) + T.px(10)
-        local room = w - used - T.px(10) - T.buttonH - T.px(8)
+        local room = w - used - T.px(10) - fullW
         if tm:MeasureStringX(T.fontF2, subtitle) > room then subtitle = "" end
     end
     -- 1. Drawer-internal header strip (browse + subtitle + location pill).
@@ -1321,20 +1378,22 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
     _browseMark.win = win
     local prevZone, nextZone = ZeD.Molecules.drawDrawerInternalHeader(panel, x, y, w,
         { idx = idx, total = #radios }, subtitle, current and ZeD.RadioTab.locationName(current.locationTag) or "",
-        twDes and (T.buttonH + T.px(8)) or nil, _browseOpts)
+        (twDes and isTw) and fullW or nil, _browseOpts)
     win._radioBrowsePrevZone = prevZone
     win._radioBrowseNextZone = nextZone
 
-    -- 2. Chassis below the header.
+    -- 2. Chassis below the header: the face, or the simple card.
     if twDes then
-        local pn = win._playerObj and win._playerObj:getPlayerNum() or 0
-        local open = ZeD.TwoWayFull.showing(pn) == current.radioInstance
-        win._radioFullZone = _drawFullButton(panel, win, x, y, w, headerH, open, _twFocusId(win))
+        if isTw then
+            local pn = win._playerObj and win._playerObj:getPlayerNum() or 0
+            local open = ZeD.TwoWayFull.showing(pn) == current.radioInstance
+            win._radioFullZone = _drawFullButton(panel, win, x, y, w, headerH, open, _twFocusId(win))
+        end
         -- (its clip is set and cleared once, as every tab's: a clip set again here outlived the frame's drawer and cut
         -- off what drew after it, the full view among them)
-        renderTwoWay(panel, win, x, y + headerH, w, h - headerH, current, twPid, twDes)
+        renderTwoWay(panel, win, x, y + headerH, w, h - headerH, current, twPid, twDes, fDrv)
     else
-        renderDrawer(panel, x, y + headerH, w, h - headerH, win, current)
+        ZeD.RadioTab.drawSimple(panel, x, y + headerH, w, h - headerH, win, current)
     end
 
     -- 3. The controller's mark (ZeD.Focus.mark) on the focused chassis control, painted after
@@ -1518,13 +1577,14 @@ function ZeD.RadioTab.onClick(win, x, y)
         _browseNext(win); return true
     end
 
-    -- a two-way face: the full view button, the scrollbar, the face's controls; a click on the face away from them
-    -- opens full view
+    -- a face: the full view button (two-way sets), the scrollbar, the face's controls; a click on a two-way face away
+    -- from them opens full view
     local tw = win._radioTw
     local cur = win._radios and win._radios[win._radioIdx or 1]
     if tw and cur and cur.radioInstance == tw.dev then
-        local TW, chr = ZeD.TwoWay, win._playerObj
-        if _hitZone(win._radioFullZone, x, y) then ZeD.TwoWayFull.toggle(chr, tw.dev, win); return true end
+        local TW, chr = tw.drv or ZeD.TwoWay, win._playerObj
+        local isTw = TW == ZeD.TwoWay
+        if isTw and _hitZone(win._radioFullZone, x, y) then ZeD.TwoWayFull.toggle(chr, tw.dev, win); return true end
         local sc = win._radioScroll
         if sc and sc.visible and x >= sc.x and x < sc.x + sc.width and y >= sc.y and y < sc.y + sc.height then
             sc:handleMouseDown(y - sc.y); return true
@@ -1532,15 +1592,16 @@ function ZeD.RadioTab.onClick(win, x, y)
         if not _hitZone(tw.view, x, y) then return true end
         local h = TW.hitAt(tw.hits, x, y)
         if h then
-            if TW.holdable(h.id) then tw.press = { id = h.id, t0 = getTimestampMs(), fired = false }
-            elseif h.knob then TW.press(chr, tw.dev, h.id, x - (h.x + h.w / 2))
+            -- (a key that opens a list, as a held one, acts on the release: RtvFace.onRelease)
+            if (TW.onRelease or TW.holdable)(h.id) then tw.press = { id = h.id, t0 = getTimestampMs(), fired = false }
+            elseif h.knob then TW.press(chr, tw.dev, h.id, x - (h.x + h.w / 2), _menuAt(tw, h))
             else
                 tw.press = { id = h.id, t0 = getTimestampMs(), fired = true }    -- shaded while held; it acts on the press
-                TW.press(chr, tw.dev, h.id)
+                TW.press(chr, tw.dev, h.id, nil, _menuAt(tw, h))
             end
             return true
         end
-        if _hitZone(tw.face, x, y) then ZeD.TwoWayFull.open(chr, tw.dev, win) end
+        if isTw and _hitZone(tw.face, x, y) then ZeD.TwoWayFull.open(chr, tw.dev, win) end
         return true
     end
 
@@ -1636,12 +1697,13 @@ end
 function ZeD.RadioTab.onWheel(win, del, x, y)
     local tw = win and win._radioTw
     if not tw then return false end
-    local h = _hitZone(tw.view, x, y) and ZeD.TwoWay.hitAt(tw.hits, x, y) or nil
+    local TW = tw.drv or ZeD.TwoWay
+    local h = _hitZone(tw.view, x, y) and TW.hitAt(tw.hits, x, y) or nil
     if h and h.knob then
         win._radioWheel = win._radioWheel or { t = 0, streak = 0 }
         local n = _turnStreak(win._radioWheel, 110)
-        local mult = (h.id == "tune") and ZeD.TwoWay.turnMult(tw.pid, n) or 1
-        ZeD.TwoWay.turn(win._playerObj, tw.dev, h.id, del > 0 and -1 or 1, mult)
+        local mult = (h.id == "tune") and TW.turnMult(tw.pid, n) or 1
+        TW.turn(win._playerObj, tw.dev, h.id, del > 0 and -1 or 1, mult)
         return true
     end
     local sc = win._radioScroll
@@ -1654,8 +1716,9 @@ end
 function ZeD.RadioTab.onRightClick(win, x, y)
     local tw = win and win._radioTw
     if not tw then return false end
-    local h = _hitZone(tw.view, x, y) and ZeD.TwoWay.hitAt(tw.hits, x, y) or nil
-    if h then ZeD.TwoWay.secondary(win._playerObj, tw.dev, h.id, nil) end
+    local TW = tw.drv or ZeD.TwoWay
+    local h = _hitZone(tw.view, x, y) and TW.hitAt(tw.hits, x, y) or nil
+    if h then TW.secondary(win._playerObj, tw.dev, h.id, nil) end
     return h ~= nil
 end
 
@@ -1678,8 +1741,56 @@ end
 -- _radioSeekBtnZones, _radioPresetZones, etc.) populated by the chassis
 -- molecules each render — builder + render stay in lock-step.
 
+-- An ordinary radio's or a TV's face (Oct 30 2026): its controls first, power first (where the controller lands on
+-- the tab: the director's pad rules, land on the primary control), then the rest in reading order, then the header's
+-- browse keys. A presses (a list opens under the key, and the focus comes back to the key when it closes), held (or
+-- X) a preset stores; up / down on a knob turns it, left / right walk on. The focus stays on the key it pressed.
+local function _rtvFocusables(win, tw)
+    local R = ZeD.Rtv
+    local dev = tw.dev
+    local elements = {}
+    local onFocus = function(w, e) w._gpFocusedRadioCtl = e.id end
+    for _, h in ipairs(R.focusOrder(tw.hits, tw.k)) do
+        local id = h.id
+        local el = { x = h.x, y = h.y, w = h.w, h = h.h, id = "radio:tw:" .. id, onFocus = onFocus }
+        if h.knob then
+            if id == "volpwr" then el.onActivate = function(w) R.press(w._playerObj, dev, "volpwr") end end
+            el.onDpadDir = function(w, e, dir)
+                if dir ~= "up" and dir ~= "down" then return false end
+                w._radioPadTurn = w._radioPadTurn or { t = 0, streak = 0 }
+                local n = _turnStreak(w._radioPadTurn, 260)
+                R.turn(w._playerObj, dev, id, dir == "up" and 1 or -1, (id == "tune") and R.turnMult(tw.pid, n) or 1)
+                return true
+            end
+        else
+            el.onActivate = function(w)
+                local t = w._radioTw
+                R.press(w._playerObj, dev, id, nil, _menuAt(t, _hitById(t, id)))
+            end
+            if R.holdable(id) then
+                el.onHoldActivate = function(w) R.secondary(w._playerObj, dev, id) end
+                el.onContextMenu = function(w) R.secondary(w._playerObj, dev, id) end
+            end
+        end
+        elements[#elements + 1] = el
+    end
+    local function addHeader(z, id, fn)
+        if z and (z.w or 0) > 0 then elements[#elements + 1] = { x = z.x, y = z.y, w = z.w, h = z.h, id = id, onFocus = onFocus, onActivate = fn } end
+    end
+    addHeader(win._radioBrowsePrevZone, "radio:browsePrev", function(w) _browsePrev(w); w._gpFocusedRadioCtl = nil end)
+    addHeader(win._radioBrowseNextZone, "radio:browseNext", function(w) _browseNext(w); w._gpFocusedRadioCtl = nil end)
+    if elements[1] and win._gpFocusedRadioCtl == nil then win._gpFocusedRadioCtl = elements[1].id end
+    return elements
+end
+
 function ZeD.RadioTab.buildFocusables(win)
     if not win then return {} end
+    -- an ordinary radio's or a TV's face (above)
+    local rtw = win._radioTw
+    local rcur = win._radios and win._radios[win._radioIdx or 1]
+    if rtw and rtw.drv == ZeD.Rtv and rcur and rcur.radioInstance == rtw.dev and rtw.hits then
+        return _rtvFocusables(win, rtw)
+    end
     local elements = {}
 
     -- Append helper. Per-zone nil guard skips controls whose rect wasn't
