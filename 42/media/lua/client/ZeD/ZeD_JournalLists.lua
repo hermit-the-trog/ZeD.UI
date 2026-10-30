@@ -25,6 +25,9 @@
 -- Hit zones are stamped each frame into win._jlZones (drawer coordinates); the
 -- Character window routes clicks (JL.onClick, JL.onRightClick), the wheel
 -- (JL.scroll) and the controller (JL.focusables, ids "jl:...") here.
+-- With Loadouts and outfits off (Settings.lua; director, Oct 30 2026) the page
+-- is not in the Journal's strip (JournalTab), and these find nothing to draw,
+-- press or stop on (L.on() at each way in).
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -712,6 +715,7 @@ end
 -- RENDER
 -- ---------------------------------------------------------------------------
 function JL.render(panel, win, x, y, w, h)
+    if not L.on() then win._jlZones = {}; return end
     local T, M = ZeD.T, ZeD.Molecules
     local s = st(win)
     s.frame = s.frame + 1
@@ -757,6 +761,7 @@ end
 
 -- the drawer's children follow the page (called every frame by the Character window)
 function JL.syncChildren(win, onPage)
+    onPage = onPage and L.on()
     local f = win._jlSearch
     if not f then return end
     local s = st(win)
@@ -769,6 +774,7 @@ end
 -- INPUT (routed by the Character window's drawer)
 -- ---------------------------------------------------------------------------
 function JL.onClick(win, x, y)
+    if not L.on() then return false end
     local s = st(win)
     if s.ask then
         local r = s.askRects
@@ -800,6 +806,7 @@ function JL.onClick(win, x, y)
 end
 
 function JL.onRightClick(win, x, y)
+    if not L.on() then return false end
     local s = st(win)
     if s.ask then return true end
     for i = #(win._jlZones or {}), 1, -1 do
@@ -817,6 +824,7 @@ end
 function JL.focusables(win)
     local s = st(win)
     local out = {}
+    if not L.on() then return out end
     if s.ask then
         local r = s.askRects
         if not r then return out end

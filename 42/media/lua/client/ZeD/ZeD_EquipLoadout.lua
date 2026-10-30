@@ -28,6 +28,9 @@
 -- The columns of the wider mockup stack at 480. One scroll for the to-do.
 -- Hit zones stamped each frame into win._elZones (drawer coords); the Character
 -- window routes clicks, the wheel and the controller (ids "el:...") here.
+-- With Loadouts and outfits off (Settings.lua; director, Oct 30 2026) the fold
+-- measures 0, nothing is drawn or stamped, no ghost shows on the doll, the to-do
+-- does not open and a press finds nothing (L.on() at each way in).
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -250,6 +253,7 @@ end
 
 --- Open the to-do (focus lands on Restock); close it (focus back on "ready n of m").
 function EL.openTodo(win)
+    if not L.on() then return end
     local s = st(win)
     s.todo, s.ask, s.step = true, nil, nil
     s.land = "v1"
@@ -266,7 +270,7 @@ function EL.closeTodo(win)
     -- back to "ready n of m" in the fold, opened if the to-do came from the wheel's ring
     if EL.openFor then EL.openFor[pnum(win)] = true end
 end
-function EL.todoOpen(win) return win ~= nil and win._el ~= nil and win._el.todo == true end
+function EL.todoOpen(win) return win ~= nil and win._el ~= nil and win._el.todo == true and L.on() end
 
 local function restock(win, kind)
     local p = player(win)
@@ -278,6 +282,7 @@ end
 
 --- Open in Journal: the Loadouts page, that list chosen.
 function EL.openJournal(win, listId)
+    if not L.on() then return end
     local strip = win._tabStripPanel
     if win._activeTab ~= "journal" and strip and strip._hitZones then
         for _, z in ipairs(strip._hitZones) do
@@ -512,7 +517,7 @@ local function foldOpen(win) return EL.openFor[pnum(win)] == true end
 local function headH() return ZeD.T.sp.tabHeaderH or ZeD.T.px(37) end
 
 function EL.sectionH(win, w)
-    if not player(win) then return 0 end
+    if not player(win) or not L.on() then return 0 end
     return headH() + (foldOpen(win) and EL.barH(win, w) or 0)
 end
 
@@ -531,7 +536,7 @@ end
 --- the panel's coords: what is scrolled out of it takes no press and no hover. Returns its height.
 function EL.drawSection(panel, win, x, y, w, view)
     local T = ZeD.T
-    if not player(win) then return 0 end
+    if not player(win) or not L.on() then return 0 end
     local s = st(win)
     local first = #(win._elZones or {})
     s.barView = view
@@ -568,6 +573,7 @@ end
 -- ---------------------------------------------------------------------------
 --- { [doll slot id] = { tex, name } } for the unmet lines with a place on the doll.
 function EL.ghosts(win, bands)
+    if not L.on() then return nil end
     local s = st(win)
     local plan = EL.plan(win)
     if not plan then return nil end
@@ -1179,6 +1185,8 @@ function EL.beginFrame(win)
     local s = st(win)
     s.lastZones = win._elZones
     win._elZones = {}
+    -- switched off with the to-do open: it shuts, so switching back on shows the tab as usual
+    if s.todo and not L.on() then s.todo, s.ask, s.step = false, nil, nil end
 end
 
 function EL.renderTodo(panel, win, x, y, w, h)
@@ -1267,6 +1275,7 @@ local function answer(win, yes)
 end
 
 function EL.onClick(win, x, y)
+    if not L.on() then return false end
     local s = st(win)
     if s.todo and s.ask then
         local r = s.askRects
@@ -1304,7 +1313,7 @@ end
 
 --- The bar's stops (list mode), appended to the Equip tab's elements after its heading's.
 function EL.barFocusables(win, elements)
-    if EL.todoOpen(win) then return end
+    if EL.todoOpen(win) or not L.on() then return end
     for _, z in ipairs(win._elZones or {}) do
         if (z.fn or z.dpad) and not z.mouseOnly then elements[#elements + 1] = element(win, z) end
     end
@@ -1373,6 +1382,7 @@ end
 -- THE WHEEL: a loadout picked sets it in the bar and opens the to-do
 -- ---------------------------------------------------------------------------
 function EL.fromWheel(p, pn, listId)
+    if not L.on() then return end
     R.setLoadout(p, listId)
     EL.pending[pn] = true
     local H = ZeD.DpadWheels and ZeD.DpadWheels.H

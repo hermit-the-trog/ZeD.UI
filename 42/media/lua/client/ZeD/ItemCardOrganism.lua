@@ -381,9 +381,10 @@ local function readMarks(item, playerNum)
         if ok2 then nc = v2 and true or false end
     end
     local m = {fav = fav, nocraft = nc, dispose = dis}
-    -- the fourth mark (Oct 29 2026, loadouts B3): on any loadout or outfit (ZeD_Lists.lua)
+    -- the fourth mark (Oct 29 2026, loadouts B3): on any loadout or outfit (ZeD_Lists.lua); none while
+    -- Loadouts and outfits is off (Settings.lua; director, Oct 30 2026): no button, no stop
     local L, LU = ZeD.Lists, ZeD.ListsUI
-    local p = L and getSpecificPlayer(playerNum or 0)
+    local p = L and L.on() and getSpecificPlayer(playerNum or 0)
     if p then
         local ok3, hits = pcall(L.listsWith, p, item)
         hits = ok3 and hits or {}
@@ -1165,10 +1166,10 @@ local function drawCareNeeds(card, x, y, w, shown, hidden)
 end
 
 -- The "In lists" section (loadouts B3, mockup r2_10): each loadout or outfit the item
--- is on, with the line's place and rule. Nothing when it is on none. Returns the height.
+-- is on, with the line's place and rule. Nothing when it is on none, or Loadouts and outfits is off. Returns the height.
 local function drawInLists(card, item, x, y, w, compact)
     local L = ZeD.Lists
-    local p = L and getSpecificPlayer(card.playerNum or 0)
+    local p = L and L.on() and getSpecificPlayer(card.playerNum or 0)
     if not p then return 0 end
     local ok, hits = pcall(L.listsWith, p, item)
     if not ok or #hits == 0 then return 0 end

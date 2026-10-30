@@ -323,17 +323,19 @@ ZeD.Settings.putBackOn = function() return (putBack:getValue() or 1) == 2 end
 
 -- ----- MESSAGES (director, Oct 24 2026; MESSAGES_SPEC.md; ZeD_Messages.lua) -----
 -- Another mod's note (one OK) is kept in the Messages window instead of covering the game,
--- and a toast says it came. Both on for a new player (the approved mockup's defaults).
+-- and a toast says it came. Both off for a new player (director, Oct 30 2026: every addition
+-- starts off, the Vanilla preset below; they were on until then).
+-- (item 1 Off, item 2 On: ZeD setup's on/off switch and the saved values read them so)
 local msgCatch = opts:addComboBox("messagesCatch", ZeD.tr("UI_ZeD_Settings_MsgCatch"), ZeD.tr("UI_ZeD_Settings_MsgCatchTip"))
-msgCatch:addItem(getText("UI_Off"), false)
-msgCatch:addItem(getText("UI_On"), true)   -- default (item 2: ZeD setup's on/off switch reads item 1 Off, item 2 On)
+msgCatch:addItem(getText("UI_Off"), true)   -- default
+msgCatch:addItem(getText("UI_On"), false)
 ZeD.Settings.messagesCatchOption = msgCatch
-ZeD.Settings.messagesCatchOn = function() return (msgCatch:getValue() or 2) == 2 end
+ZeD.Settings.messagesCatchOn = function() return (msgCatch:getValue() or 1) == 2 end
 local msgToast = opts:addComboBox("messagesToast", ZeD.tr("UI_ZeD_Settings_MsgToast"), ZeD.tr("UI_ZeD_Settings_MsgToastTip"))
-msgToast:addItem(getText("UI_Off"), false)
-msgToast:addItem(getText("UI_On"), true)   -- default (item 2: ZeD setup's on/off switch reads item 1 Off, item 2 On)
+msgToast:addItem(getText("UI_Off"), true)   -- default
+msgToast:addItem(getText("UI_On"), false)
 ZeD.Settings.messagesToastOption = msgToast
-ZeD.Settings.messagesToastOn = function() return (msgToast:getValue() or 2) == 2 end
+ZeD.Settings.messagesToastOn = function() return (msgToast:getValue() or 1) == 2 end
 
 -- ----- SANDBOX OPTIONS IN GAME (director, Oct 24 2026; mockup zed_sandbox_ingame_v1;
 -- ZeD_SandboxInGame.lua) -----
@@ -355,29 +357,30 @@ ZeD.Settings.dimReadOption = dimRead
 ZeD.Settings.dimReadOn = function() return (dimRead:getValue() or 1) == 2 end
 
 -- ----- WHAT VANILLA DOES NOT DO (director, Oct 26 2026: "Things the vanilla game doesn't do by default should be
--- an option to turn on/off"). Each on for a new player; off puts that part back as it was. Read every frame by
+-- an option to turn on/off"). Each off for a new player (director, Oct 30 2026: every addition starts off, the
+-- Vanilla preset below; they were on until then); off puts that part back as it was. Read every frame by
 -- ZeD_Belt, ReadMarks / InventoryRenderer, ZeD_Dashboard and ZeD_Moodles, so a change applies at once.
 local function onSwitch(id, nameKey, tipKey)
     local o = opts:addComboBox(id, ZeD.tr(nameKey), ZeD.tr(tipKey))
-    o:addItem(getText("UI_Off"), false)
-    o:addItem(getText("UI_On"), true)   -- default (item 2: ZeD setup's on/off switch)
+    o:addItem(getText("UI_Off"), true)   -- default
+    o:addItem(getText("UI_On"), false)   -- (item 1 Off, item 2 On: ZeD setup's on/off switch and the saved values read them so)
     return o
 end
 local ammoBox = onSwitch("ammoBox", "UI_ZeD_Settings_AmmoBox", "UI_ZeD_Settings_AmmoBoxTip")
 ZeD.Settings.ammoBoxOption = ammoBox
-ZeD.Settings.ammoBoxOn = function() return (ammoBox:getValue() or 2) == 2 end
+ZeD.Settings.ammoBoxOn = function() return (ammoBox:getValue() or 1) == 2 end
 local readMarks = onSwitch("readMarks", "UI_ZeD_Settings_ReadMarks", "UI_ZeD_Settings_ReadMarksTip")
 ZeD.Settings.readMarksOption = readMarks
-ZeD.Settings.readMarksOn = function() return (readMarks:getValue() or 2) == 2 end
+ZeD.Settings.readMarksOn = function() return (readMarks:getValue() or 1) == 2 end
 local readNext = onSwitch("readNext", "UI_ZeD_Settings_ReadNext", "UI_ZeD_Settings_ReadNextTip")
 ZeD.Settings.readNextOption = readNext
-ZeD.Settings.readNextOn = function() return (readNext:getValue() or 2) == 2 end
+ZeD.Settings.readNextOn = function() return (readNext:getValue() or 1) == 2 end
 local dashLamps = onSwitch("dashLamps", "UI_ZeD_Settings_DashLamps", "UI_ZeD_Settings_DashLampsTip")
 ZeD.Settings.dashLampsOption = dashLamps
-ZeD.Settings.dashLampsOn = function() return (dashLamps:getValue() or 2) == 2 end
+ZeD.Settings.dashLampsOn = function() return (dashLamps:getValue() or 1) == 2 end
 local moodleNotices = onSwitch("moodleNotices", "UI_ZeD_Settings_MoodleNotices", "UI_ZeD_Settings_MoodleNoticesTip")
 ZeD.Settings.moodleNoticesOption = moodleNotices
-ZeD.Settings.moodleNoticesOn = function() return (moodleNotices:getValue() or 2) == 2 end
+ZeD.Settings.moodleNoticesOn = function() return (moodleNotices:getValue() or 1) == 2 end
 
 -- ----- THE WINDOWS: SEE-THROUGH, SOLID WHILE IN USE, CONTROLLER HIGHLIGHT (director, Oct 26 2026,
 -- the cohesion picks; COHESION_SPEC.md sections 4 and 10). Also in every window's window box menu
@@ -434,6 +437,29 @@ ZeD.Settings.hiddenActions = function()
     return (ok and hiddenKeys[tonumber(i) or 1]) or "folded"
 end
 
+-- ----- LOADOUTS AND OUTFITS (director, Oct 30 2026: "Loadouts and outfits with Journal lists (new switch).
+-- Restock follows Loadouts") -----
+-- The Equip tab's Loadouts fold and its to-do, the Journal's Loadouts page, the item card's Lists mark, the
+-- right-click Save to outfit / Save to loadout, the controller's Loadouts ring, and Restock with its pinned
+-- list. Off hides them all and Restock does nothing; the saved loadouts and outfits stay with the character,
+-- so turning it back on brings every one back. Each place asks ZeD.Lists.on() as it draws, so a change applies
+-- at once. Off for a new player; a player who had ZeD before this switch keeps it on (see the additions, below).
+local loadouts = opts:addComboBox("loadouts", ZeD.tr("UI_ZeD_Settings_Loadouts"), ZeD.tr("UI_ZeD_Settings_LoadoutsTip"))
+loadouts:addItem(getText("UI_Off"), true)   -- default
+loadouts:addItem(getText("UI_On"), false)   -- (item 1 Off, item 2 On: ZeD setup's on/off switch)
+ZeD.Settings.loadoutsOption = loadouts
+ZeD.Settings.loadoutsOn = function() return (loadouts:getValue() or 1) == 2 end
+
+-- ----- THE ADDITIONS' PRESET (director, Oct 30 2026) -----
+-- Vanilla (a new player's start), Vanilla Plus, Vanilla Accessible, or Custom: what the switches for the things
+-- vanilla does not do are set to (the table in setUpAdditions, below). Never the look.
+local additionsPreset = opts:addComboBox("additionsPreset", ZeD.tr("UI_ZeD_Settings_Preset"), ZeD.tr("UI_ZeD_Settings_PresetTip"))
+additionsPreset:addItem(ZeD.tr("UI_ZeD_Settings_PresetVanilla"), true)   -- default
+additionsPreset:addItem(ZeD.tr("UI_ZeD_Settings_PresetPlus"), false)
+additionsPreset:addItem(ZeD.tr("UI_ZeD_Settings_PresetAccessible"), false)
+additionsPreset:addItem(getText("Sandbox_Custom"), false)   -- (the game's own "Custom")
+ZeD.Settings.additionsPresetOption = additionsPreset
+
 -- ----- THE KEYS OF THE OPTION NAMES -----
 -- ModOptions keeps each name as the text the option was made with, which is read once, here at
 -- file load, so the test language could never stretch it. Each option also keeps the key of its
@@ -457,6 +483,7 @@ do
         sandboxInGame = "UI_ZeD_Settings_SandboxIG", dimRead = "UI_ZeD_Settings_DimRead",
         ammoBox = "UI_ZeD_Settings_AmmoBox", readMarks = "UI_ZeD_Settings_ReadMarks", readNext = "UI_ZeD_Settings_ReadNext",
         dashLamps = "UI_ZeD_Settings_DashLamps", moodleNotices = "UI_ZeD_Settings_MoodleNotices",
+        loadouts = "UI_ZeD_Settings_Loadouts", additionsPreset = "UI_ZeD_Settings_Preset",
     }
     for id, key in pairs(nameKeys) do
         local o = opts.dict and opts.dict[id]
@@ -469,6 +496,178 @@ do
         end
     end
 end
+
+-- ----- THE ADDITIONS: THREE PRESETS AND CUSTOM (director, Oct 30 2026: "Every added feature can be turned off;
+-- off by default for a vanilla run") -----
+-- The rules: picking a preset sets every addition at once; changing any addition by hand makes the preset read
+-- Custom; Custom keeps the hand picks, so picking it again goes back to them; existing players keep what they have
+-- saved (the preset reads the one their values match, else Custom). So the preset is never stored on its own
+-- word: wherever it is read or applied it is set to what the additions' values make.
+--   * ZeD setup (ZeD_MainMenuOptions) and the game's Mods page: a preset picked sets the addition controls live,
+--     as a click on each would (pending until Apply, like every option); ZeD setup calls
+--     ZeD.Settings.syncAdditionsPreset() every frame, and each addition's own onChange calls it too, so the preset
+--     control shows the preset the live values make, or Custom.
+--   * Apply (either screen): vanilla calls opts:apply() once every pick is stored, before ModOptions.ini is
+--     written; the preset is set from the values there and, reading Custom, the set is kept in CUSTOM_FILE.
+--   * The main menu and a game start: ZeD.Settings.reconcileAdditions() does the same with the stored values.
+local function setUpAdditions()
+    local OFF, ON = 1, 2
+    local CUSTOM = 4
+    local CUSTOM_FILE = "ZeD_custom_additions.txt"   -- (Zomboid/Lua: <option id>=<item>, a line each)
+    -- every addition a preset sets, by option id (restock: 1 Hardcore, 2 Casual, 3 Accessible)
+    local IDS = { "ammoBox", "readMarks", "readNext", "dimRead", "dashLamps", "moodleNotices",
+                  "messagesCatch", "messagesToast", "putBack", "sandboxInGame", "loadouts", "restock" }
+    -- THE PRESETS, by the preset's item: the item each addition is set to. An id a preset leaves out is left as
+    -- it is and does not count when the values are matched to a preset (Vanilla leaves Restock: it does nothing
+    -- while Loadouts is off). When the "faces or simple cards" switch is built (punch list 17), its id goes in
+    -- IDS and a row here: faces for Vanilla Plus, simple cards for Vanilla Accessible.
+    local PRESETS = {
+        -- 1 Vanilla: every addition off
+        { ammoBox = OFF, readMarks = OFF, readNext = OFF, dimRead = OFF, dashLamps = OFF, moodleNotices = OFF,
+          messagesCatch = OFF, messagesToast = OFF, putBack = OFF, sandboxInGame = OFF, loadouts = OFF },
+        -- 2 Vanilla Plus: every addition on, Restock Casual
+        { ammoBox = ON, readMarks = ON, readNext = ON, dimRead = ON, dashLamps = ON, moodleNotices = ON,
+          messagesCatch = ON, messagesToast = ON, putBack = ON, sandboxInGame = ON, loadouts = ON, restock = 2 },
+        -- 3 Vanilla Accessible: every addition on, Restock Accessible
+        { ammoBox = ON, readMarks = ON, readNext = ON, dimRead = ON, dashLamps = ON, moodleNotices = ON,
+          messagesCatch = ON, messagesToast = ON, putBack = ON, sandboxInGame = ON, loadouts = ON, restock = 3 },
+    }
+    ZeD.Settings.ADDITION_IDS = IDS
+    ZeD.Settings.ADDITION_PRESETS = PRESETS
+
+    local function opt(id) return opts.dict and opts.dict[id] end
+    local function live(id) local o = opt(id); return o and liveIdx(o) end      -- the pick on the screen
+    local function stored(id) local o = opt(id); return o and o:getValue() end  -- the value applied
+    -- the preset the values make (read(id): an addition's item), else Custom
+    local function presetOf(read)
+        for i, set in ipairs(PRESETS) do
+            local same = true
+            for id, v in pairs(set) do
+                if read(id) ~= v then same = false; break end
+            end
+            if same then return i end
+        end
+        return CUSTOM
+    end
+
+    -- the Custom set: kept in the file at Apply; held for the screen while a preset is tried over it
+    local held = nil
+    local function saveCustom(read)
+        local ok, w = pcall(function() return getFileWriter(CUSTOM_FILE, true, false) end)
+        if not (ok and w) then return end
+        w:write("ZeD-UI: the additions' Custom set (ZeD setup, Preset); <option id>=<item>\n")
+        for _, id in ipairs(IDS) do
+            local v = read(id)
+            if v then w:write(id .. "=" .. tostring(v) .. "\n") end
+        end
+        w:close()
+    end
+    -- nil when there is no file or it cannot be read (Custom then keeps the values as they are)
+    local function loadCustom()
+        local ok, r = pcall(function() return getFileReader(CUSTOM_FILE, false) end)
+        if not (ok and r) then return nil end
+        local out = {}
+        local ok2 = pcall(function()
+            local l = r:readLine()
+            while l do
+                local id, v = l:match("^(%w+)=(%d+)")
+                if id then out[id] = tonumber(v) end
+                l = r:readLine()
+            end
+        end)
+        pcall(function() r:close() end)
+        return ok2 and out or nil
+    end
+
+    -- a control changed as a click on it would: the options screen counts the change, the option's onChange runs
+    -- (no screen built yet: the option itself)
+    local function setLive(o, i)
+        local el = o.element
+        if not el then o:setValue(i); return end
+        if el.disabled or el.selected == i then return end
+        el.selected = i
+        if el.onChange then el.onChange(el.target, el) end
+    end
+
+    local busy = false   -- (a preset being set: the additions' onChange leave the preset alone)
+    function ZeD.Settings.syncAdditionsPreset()
+        if busy then return end
+        local el = additionsPreset.element
+        if not el then return end
+        local want = presetOf(live)
+        if el.selected ~= want then el.selected = want end
+    end
+    for _, id in ipairs(IDS) do
+        local o = opt(id)
+        if o then o.onChange = function() ZeD.Settings.syncAdditionsPreset() end end
+    end
+
+    -- a preset picked: every addition it names set live; Custom: the held hand picks, else the saved set
+    additionsPreset.onChange = function(_, sel)
+        sel = tonumber(sel)
+        if presetOf(live) == CUSTOM then
+            held = {}
+            for _, id in ipairs(IDS) do held[id] = live(id) end
+        end
+        local set = PRESETS[sel]
+        if sel == CUSTOM then set = held or loadCustom() end
+        if set then
+            busy = true
+            for _, id in ipairs(IDS) do
+                local o, v = opt(id), set[id]
+                if o and v and o.values and o.values[v] then pcall(setLive, o, v) end
+            end
+            busy = false
+        end
+        ZeD.Settings.syncAdditionsPreset()
+    end
+
+    -- Apply, on ZeD setup or the game's Mods page (MainOptions:apply calls each mod's options:apply())
+    opts.apply = function(self)
+        held = nil
+        local want = presetOf(stored)
+        if additionsPreset:getValue() ~= want then additionsPreset:setValue(want) end
+        if want == CUSTOM then saveCustom(stored) end
+    end
+
+    -- the stored values read (the main menu, a game start): the preset set to what they make, and saved
+    function ZeD.Settings.reconcileAdditions()
+        held = nil
+        local want = presetOf(stored)
+        if additionsPreset:getValue() == want then return end
+        additionsPreset:setValue(want)
+        if want == CUSTOM then saveCustom(stored) end
+        saveModOptions()
+    end
+    -- the options window's discard: the hand picks held for Custom go with the rest
+    function ZeD.Settings.forgetHeldCustom() held = nil end
+
+    -- A player who had ZeD before Oct 30 2026 has ZeD's lines in ModOptions.ini. An addition that was on for them
+    -- with no line of its own (Loadouts had no switch; a switch newer than their last save) starts on, as they
+    -- had it: "Existing players keep their saved settings". Read here, at file load, before the game reads the
+    -- file into the options (a saved line still wins) and after the defaults above were noted.
+    local WAS_ON = { "ammoBox", "readMarks", "readNext", "dashLamps", "moodleNotices", "messagesCatch", "messagesToast", "loadouts" }
+    local ok, r = pcall(function() return getFileReader("ModOptions.ini", false) end)
+    if ok and r then
+        local had, has = false, {}
+        pcall(function()
+            local l = r:readLine()
+            while l do
+                local id = l:match("|ZeD_UI|([%w_]+)|")
+                if id then had = true; has[id] = true end
+                l = r:readLine()
+            end
+        end)
+        pcall(function() r:close() end)
+        if had then
+            for _, id in ipairs(WAS_ON) do
+                local o = opt(id)
+                if o and not has[id] then o:setValue(ON) end
+            end
+        end
+    end
+end
+setUpAdditions()
 
 -- ----- APPLY FUNCTION -----
 -- The index the player has picked in a combo. While the options screen is open
@@ -674,6 +873,7 @@ function ZeD.Settings.reapplyFromOptions()
     if charWin then charWin._accentKey = ZeD._pendingCharAccent end
     if worldWin then worldWin._accentKey = ZeD._pendingWorldAccent end
     applyInputLock(true)
+    ZeD.Settings.forgetHeldCustom()   -- (the additions' hand picks held for Custom go with the discard)
 end
 
 -- The options window's DISCARD (and the footer's discard-and-stay, which goes through
@@ -706,6 +906,7 @@ Events.OnGameStart.Add(function()
     applyFromOptions()
     applyWindowAccentsFromOptions()   -- read by restoreCharState / restoreWorldState
     applyInputLock(false)
+    ZeD.Settings.reconcileAdditions()   -- the additions' preset set to what the saved values make
 end)
 
 -- The main menu (Oct 14 2026) draws ZeD windows before any save loads: apply
@@ -715,6 +916,7 @@ Events.OnMainMenuEnter.Add(function()
     hookOptionsDiscard()
     applyScale()
     applyFromOptions()
+    ZeD.Settings.reconcileAdditions()
 end)
 
 -- ---------------------------------------------------------------------------

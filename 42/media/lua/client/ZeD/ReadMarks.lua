@@ -205,14 +205,15 @@ function R.state(p, item)
 end
 function R.clear() _cache, _cacheAt = {}, 0 end
 
--- ZeD setup's switches: "Read marks in item lists" (on), "Next level on skill books" (on); off, the lists are as before
+-- ZeD setup's switches: "Read marks in item lists", "Next level on skill books" (both off for a new player since
+-- Oct 30 2026, the Vanilla preset); off, the lists are as before
 function R.on()
     local S = ZeD.Settings
-    return not (S and S.readMarksOn) or S.readMarksOn()
+    return S and S.readMarksOn and S.readMarksOn() or false
 end
 function R.nextOn()
     local S = ZeD.Settings
-    return not (S and S.readNextOn) or S.readNextOn()
+    return S and S.readNextOn and S.readNextOn() or false
 end
 
 -- "Dim read items" (ZeD setup, off by default)

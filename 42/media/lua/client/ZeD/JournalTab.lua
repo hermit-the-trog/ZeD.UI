@@ -115,6 +115,10 @@ local SUB_TABS = {
     -- Oct 29 2026 (loadouts B2): on the end, so 1 to 4 keep their numbers
     { id = "loadouts",  key = "UI_ZeD_Journal_TabLoadouts" },
 }
+-- Loadouts is in the strip only while Loadouts and outfits is on (Settings.lua; director, Oct 30 2026)
+local function subTabShown(tab)
+    return tab.id ~= "loadouts" or (ZeD.Lists ~= nil and ZeD.Lists.on())
+end
 
 -- ============================================================================
 -- JOURNAL ENTRY GROUPING — group entries by month_year, newest month first
@@ -573,14 +577,16 @@ local function drawSubTabStrip(panel, win, x, y, w)
     local zones = {}
 
     for i, tab in ipairs(SUB_TABS) do
-        local tabLabel = ZeD.tr(tab.key)
-        local tw = tm:MeasureStringX(font, A.textCase(tabLabel)) + T.sp.tabPadX * 2
-        local hovered = A.mouseIn(panel, tabX, y, tw, tH)
-        if hovered and i ~= activeIdx then help(win, ZeD.tr("UI_ZeD_Journal_HelpSubTab", tabLabel)) end
-        M.drawTab(panel, tabX, y, tabLabel, i == activeIdx, hovered, false,
-            { font = font, focus = focusOf(win, "jsub:" .. tostring(i)) })
-        zones[#zones + 1] = { idx = i, x = tabX, y = y, w = tw, h = tH }
-        tabX = tabX + tw + gap
+        if subTabShown(tab) then
+            local tabLabel = ZeD.tr(tab.key)
+            local tw = tm:MeasureStringX(font, A.textCase(tabLabel)) + T.sp.tabPadX * 2
+            local hovered = A.mouseIn(panel, tabX, y, tw, tH)
+            if hovered and i ~= activeIdx then help(win, ZeD.tr("UI_ZeD_Journal_HelpSubTab", tabLabel)) end
+            M.drawTab(panel, tabX, y, tabLabel, i == activeIdx, hovered, false,
+                { font = font, focus = focusOf(win, "jsub:" .. tostring(i)) })
+            zones[#zones + 1] = { idx = i, x = tabX, y = y, w = tw, h = tH }
+            tabX = tabX + tw + gap
+        end
     end
 
     -- Position active search field to the right of the tabs
@@ -1116,6 +1122,10 @@ function ZeD.JournalTab.render(panel, win, x, y, w, h)
     local T = ZeD.T
     -- Initialize sub-tab state if needed
     if not win._journalSubTab then
+        win._journalSubTab = 1
+    end
+    -- a page switched off while it was open (Loadouts): back to the log
+    if SUB_TABS[win._journalSubTab] and not subTabShown(SUB_TABS[win._journalSubTab]) then
         win._journalSubTab = 1
     end
     -- a delete question belongs to the log: it goes when the player leaves it

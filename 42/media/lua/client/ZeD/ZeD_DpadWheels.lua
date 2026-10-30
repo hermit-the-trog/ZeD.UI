@@ -888,7 +888,8 @@ end
 function C.loadouts(p, pn)
     local out = {}
     local L = ZeD.Lists
-    for _, l in ipairs(L and L.all(p, "loadout") or {}) do
+    if not (L and L.on()) then return out end   -- (Loadouts and outfits off: Settings.lua)
+    for _, l in ipairs(L.all(p, "loadout")) do
         local id = l.id
         out[#out + 1] = { name = l.name, icon = L.icon("loadout"), detail = L.countText(l), key = "loadout" .. tostring(id),
             run = function(pl, n) if ZeD.EquipLoadout then ZeD.EquipLoadout.fromWheel(pl, n, id) end end }
@@ -904,7 +905,7 @@ D.B.character = function(p, pn)
     local sleep = ask("sleep", p, pn) or { off = tr("UI_ZeD_Wheel_NotNow") }
     local clothing = ask("clothing", p, pn) or {}
     local hurt = ZeD.QuickWheel and ZeD.QuickWheel.hurt and ZeD.QuickWheel.hurt(p)
-    return {
+    local ring = {
         { name = tr("UI_ZeD_Wheel_Tabs"), tab = "loot-tab-white", detail = tr("UI_ZeD_Wheel_CharacterWindow"), sub = C.tabs },
         { name = tr("UI_ZeD_Wheel_Weapons"), icon = "knife", best = true, sub = C.weapons, off = (#weapons == 0) and tr("UI_ZeD_Wheel_NoWeapon") or nil },
         { name = getText("ContextMenu_Eat"), icon = "apple", best = true, sub = function() return H.quick(p, "eat") end,
@@ -918,9 +919,13 @@ D.B.character = function(p, pn)
         { name = tr("UI_ZeD_Wheel_Clothing"), icon = "shirt", sub = C.clothing,
           off = (#clothing == 0) and tr("UI_ZeD_Wheel_NothingToChange") or nil },
         { name = tr("UI_ZeD_Wheel_Use"), icon = "backpack", detail = tr("UI_ZeD_Wheel_UseDetail"), sub = C.use },
-        { name = tr("UI_ZeD_Wheel_Loadouts"), icon = ZeD.Lists and ZeD.Lists.icon("loadout") or "view_list", detail = tr("UI_ZeD_Wheel_LoadoutsDetail"),
-          sub = C.loadouts, off = (#(ZeD.Lists and ZeD.Lists.all(p, "loadout") or {}) == 0) and tr("UI_ZeD_Wheel_NoLoadouts") or nil },
     }
+    -- the Loadouts ring only while Loadouts and outfits is on (Settings.lua; director, Oct 30 2026)
+    if ZeD.Lists and ZeD.Lists.on() then
+        ring[#ring + 1] = { name = tr("UI_ZeD_Wheel_Loadouts"), icon = ZeD.Lists.icon("loadout"), detail = tr("UI_ZeD_Wheel_LoadoutsDetail"),
+          sub = C.loadouts, off = (#ZeD.Lists.all(p, "loadout") == 0) and tr("UI_ZeD_Wheel_NoLoadouts") or nil }
+    end
+    return ring
 end
 
 -- ============================================================================

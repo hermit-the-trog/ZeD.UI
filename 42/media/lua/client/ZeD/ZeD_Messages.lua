@@ -42,11 +42,11 @@ local function safe(fn, ...) local ok, r = pcall(fn, ...); if ok then return r e
 local function catchOn()
     local S = ZeD.Settings
     if ZeD.Safe and ZeD.Safe.on() then return false end
-    return not (S and S.messagesCatchOn) or S.messagesCatchOn()
+    return S and S.messagesCatchOn and S.messagesCatchOn() or false
 end
 local function toastOn()
     local S = ZeD.Settings
-    return not (S and S.messagesToastOn) or S.messagesToastOn()
+    return S and S.messagesToastOn and S.messagesToastOn() or false
 end
 
 local function loadPopups()
