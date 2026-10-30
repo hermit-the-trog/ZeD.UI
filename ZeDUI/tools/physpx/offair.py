@@ -329,19 +329,21 @@ def signoff(cid, w, h):
         text(a, "MUSIC VIDEO CHANNEL", cx, cy + 5 * s, max(1, s // 2), (120, 230, 255), outline=(0, 0, 30))
         glint(a, cx + 9 * s, cy - 6 * s, n=2 + s); glint(a, cx - 10 * s, cy + s, n=1 + s)
     elif cid == "nst":
-        a = card_frame(w, h, (14, 30, 90), (4, 10, 40))
-        for k in range(5):                                                                  # the stripes behind
-            rect(a, 0, int(h * 0.30) + k * 3 * s, w, s, (200, 30, 40) if k % 2 == 0 else (240, 240, 240))
-        star = np.zeros((9 * s, 9 * s), bool)
-        pts = []
-        for k in range(10):
-            ang = -math.pi / 2 + k * math.pi / 5; rr = (4.4 if k % 2 == 0 else 1.8) * s
-            pts.append((4.5 * s + math.cos(ang) * rr, 4.5 * s + math.sin(ang) * rr))
-        im = Image.new("L", (9 * s, 9 * s), 0); ImageDraw.Draw(im).polygon(pts, fill=255); star = np.asarray(im) > 127
-        put(a, grow(pad_to(star, 1), 1), cx - 22 * s - 1, cy - 6 * s - 1, (10, 20, 80))
-        put(a, star, cx - 22 * s, cy - 6 * s, (255, 255, 255))
-        text(a, "NST", cx + 4 * s, cy - 5 * s, s + 1, chrome(), outline=(0, 0, 40), shadow=(0, 0, 0))
-        text(a, "NATIONAL SPORTS TV", cx, cy + 6 * s, max(1, s // 2), (255, 255, 255), outline=(0, 0, 40))
+        # the all-sports network of the day (director, Oct 30 2026: "national sports tv is ESPN pretty much"): wide,
+        # heavy red letters on black, cut through with fine horizontal lines, a red rule, the round-the-clock line
+        a = card_frame(w, h, (14, 14, 16), (0, 0, 0))
+        RED = (214, 24, 30)
+        sc = s + 2
+        m = glyph_mask("NST", "57", sc, gap=1)
+        wide = grow(pad_to(np.repeat(m, 2, axis=1), s), max(1, s // 2 + 1))     # twice as wide and heavier: the broad face
+        for yy in range(wide.shape[0]):                                     # the fine lines cut through
+            if yy % sc == sc - 1 and 0.15 < yy / wide.shape[0] < 0.9: wide[yy] = False
+        x0 = cx - wide.shape[1] // 2; y0 = cy - wide.shape[0] // 2 - 2 * s
+        put(a, grow(pad_to(wide, 1), 1), x0 - 1, y0 - 1, (60, 0, 0))
+        put(a, wide, x0, y0, RED)
+        rect(a, x0, y0 + wide.shape[0] + 2 * s, wide.shape[1], max(1, s // 2), RED)
+        text(a, "NATIONAL SPORTS TELEVISION", cx, y0 + wide.shape[0] + 4 * s, 1 if w < 330 else max(1, s // 2), (240, 240, 240))
+        text(a, "SPORTS AROUND THE CLOCK", cx, y0 + wide.shape[0] + 4 * s + 10, 1, (200, 60, 60), font="35" if w < 330 else "57")
     elif cid == "bmc":
         a = card_frame(w, h, (30, 20, 10), (0, 0, 0))
         for side in (-1, 1):                                                                # two searchlights crossing
