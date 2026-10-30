@@ -114,6 +114,21 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     help line still says why when the pointer rests on it). Build to say whether the same goes for the
     other dimmed rows (settings that do nothing with ZeD active). Still open: Restock's "Access" cut
     short at some window widths; the preset buttons' short names (no choice yet).
+    Build's note (Oct 30): "Access" is the director's rename (it replaced "Accessible", which was cut
+    short), not a cut; the short names were read as kept (Vanilla | Plus | Access | Custom). Waiting:
+    the director's pick on whether every dimmed row (the greyed game settings too) loses its highlight.
+21. **One header strip and one footer band for every tab card (director, Oct 30).** open, design
+    first. Goal: the same strip sizes and layouts on every tab, actions in a consistent place.
+    Draft rule (build): a header strip of one fixed height on every card (left: what the card is, its
+    name, browse arrows or sub-tabs; right: tools for its content, search, filters, view switches);
+    a footer band of the same height at the card's foot (left: view and mode choices; right: actions,
+    the main one last). Decided: a tab with nothing to show or do there has no footer band ("nothing
+    to show or do, nothing there"). Today (sheets in ZeDUI/qa/Oct30_tab_strips/, from the short-window
+    walk): tops range from none to three rows (Craft: two drop-downs, search, sort strip; Maps: two
+    toolbar rows; Furniture: title and five mode buttons); bands only on Craft and Build (recipe pane
+    only), Animals, Vehicle and the inventory lists. Next: a clean capture of every tab for the
+    review (QA: tall windows, English, the stocked character, the card cropped; about 20 minutes on
+    the second screen, the director's yes first), then go through the tabs one by one, Maps first.
 
 ## Test process
 
