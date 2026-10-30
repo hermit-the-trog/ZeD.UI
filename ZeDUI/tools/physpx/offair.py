@@ -248,17 +248,35 @@ def signoff(cid, w, h):
         rect(a, cx - 14 * s, cy + r + s, 28 * s, 8 * max(1, s // 2) + 4, (200, 30, 30))
         text(a, "NEWS", cx, cy + r + s + 2, max(1, s // 2), (255, 255, 255))
     elif cid == "life":
-        a = card_frame(w, h, (250, 200, 170), (200, 120, 150))
-        r = int(7 * s)
-        put(a, disc_mask(r), cx - r, cy - 3 * s - r, (255, 210, 80))                      # a rising sun with its rays
-        for k in range(9):
-            ang = math.pi + k * math.pi / 8
-            for t in range(r + s, r + 4 * s):
-                x = int(cx + math.cos(ang) * t); y = int(cy - 3 * s + math.sin(ang) * t)
-                if 0 <= x < w and 0 <= y < h: a[y, x] = np.array((255, 230, 120), np.float32) / 255
-        rect(a, cx - 18 * s, cy - 3 * s, 36 * s, 3 * s, (250, 200, 170))
-        text(a, "LIFE & LIVING", cx, cy + s, max(1, s - 1), (120, 30, 70), outline=(255, 240, 230))
-        text(a, "TV", cx, cy + s + 9 * max(1, s - 1), max(1, s - 1), (120, 30, 70), outline=(255, 240, 230))
+        # the learning channels before reality TV (director, Oct 30 2026: "kinda like the TLC or Discover channel in
+        # their old format"): the earth's rim seen from space, the sun cresting it, the name over the dark, a tagline
+        a = card_frame(w, h, (4, 10, 30), (0, 2, 10))
+        rng = np.random.default_rng(11)
+        for _ in range(int(w * h / 500)):                                  # the stars
+            x, y = int(rng.integers(0, w)), int(rng.integers(0, int(h * 0.6)))
+            a[y, x] = np.array((1, 1, 1), np.float32) * float(rng.uniform(0.3, 0.9))
+        R = int(w * 1.1)                                                   # the planet: a huge disc, only its top shows
+        pcx, pcy = cx, int(h * 0.66) + R
+        yy, xx = np.mgrid[0:h, 0:w]
+        d = np.sqrt((xx - pcx) ** 2 + (yy - pcy) ** 2)
+        body = d <= R
+        k = np.clip((R - d) / (h * 0.35), 0, 1)
+        sea = np.stack([0.05 + 0.10 * (1 - k), 0.20 + 0.25 * (1 - k), 0.45 + 0.30 * (1 - k)], -1)
+        land = (np.sin(xx / (7.0 * s) + 1.3) + np.sin(yy / (4.0 * s) + xx / (13.0 * s)) > 1.0) & body
+        a[body] = sea[body]
+        a[land] = (np.array((0.18, 0.42, 0.20)) * (0.6 + 0.4 * (1 - k[..., None])))[land]
+        rim = (d > R - 2) & (d <= R + 2)                                   # the atmosphere's thin bright edge
+        a[rim] = np.maximum(a[rim], np.array((0.45, 0.80, 1.0), np.float32))
+        add_glow(a, rim, 0, 0, (90, 170, 255), radius=3, amount=0.5)
+        sx, sy = cx - int(w * 0.18), int(h * 0.66) + 1                     # the sun just over the rim, its flare
+        add_glow(a, disc_mask(3 * s), sx - 3 * s, sy - 3 * s, (255, 220, 140), radius=4 * s, amount=1.0)
+        put(a, disc_mask(2 * s), sx - 2 * s, sy - 2 * s, (255, 250, 230))
+        glint(a, sx, sy, n=10 * s, rgb=(255, 240, 200))
+        rect(a, sx - 30 * s, sy, 60 * s, 1, (255, 230, 180))
+        ts = s if glyph_mask("LIFE & LIVING", "57", s).shape[1] <= w * 0.86 else s - 1      # the title keeps a margin
+        text(a, "LIFE & LIVING", cx, int(h * 0.20), ts, (255, 255, 255), shadow=(0, 0, 0))
+        text(a, "TELEVISION", cx, int(h * 0.20) + 8 * s + 2, max(1, s // 2), (255, 205, 110))
+        text(a, "EXPLORE YOUR WORLD", cx, int(h * 0.20) + 8 * s + 4 + 9 * max(1, s // 2), 1, (160, 200, 255))
     elif cid == "turbo":
         # the car shows' look of the day (director, Oct 30 2026: "like motor trend from the day. black and red"): a black
         # set, a slanted red racing band above and below the name with a white pinstripe, the band's end cut in speed
@@ -342,14 +360,29 @@ def signoff(cid, w, h):
         text(a, "BMC", cx, cy, s + 1, chrome((255, 245, 200), (220, 170, 60), (90, 50, 10), (255, 230, 150)), outline=(30, 15, 0))
         text(a, "BRENNAN MOVIE CHANNEL", cx, cy + 12 * s, max(1, s // 2), (240, 210, 140), outline=(0, 0, 0))
     elif cid == "gbc":
-        a = card_frame(w, h, (60, 60, 64), (20, 20, 24))
-        bw, bh = 30 * s, 14 * s
-        m = np.zeros((bh, bw), bool); m[:] = True
-        m[0, 0] = m[0, -1] = m[-1, 0] = m[-1, -1] = False
-        put(a, grow(pad_to(m, 1), 1), cx - bw // 2 - 1, cy - bh // 2 - 1, (240, 240, 240))
-        put(a, m, cx - bw // 2, cy - bh // 2, (30, 90, 170))
-        text(a, "GBC", cx, cy - 7 * s // 2 - 1, s, (255, 255, 255))
-        text(a, "PUBLIC TELEVISION", cx, cy + bh // 2 + 2 * s, max(1, s // 2), (230, 230, 230))
+        # public television (director, Oct 30 2026: "a head profile that hints at the old PBS logo"): a face in profile,
+        # looking right, with two echoes of it stepping back behind it, beside the name
+        a = card_frame(w, h, (20, 50, 120), (6, 16, 50))
+        HEAD = [(0.30, 0.04), (0.56, 0.00), (0.76, 0.14), (0.82, 0.32), (0.80, 0.40), (0.98, 0.52), (0.84, 0.57),
+                (0.88, 0.63), (0.83, 0.67), (0.87, 0.73), (0.80, 0.86), (0.64, 0.91), (0.64, 1.00), (0.30, 1.00),
+                (0.28, 0.82), (0.12, 0.60), (0.10, 0.34), (0.16, 0.16)]
+        hh = int(h * 0.40); hw = int(hh * 0.80)
+        hx = cx - int(hw * 1.55); hy = cy - hh // 2 - s
+        for k, col in ((2, (60, 110, 190)), (1, (130, 170, 230)), (0, (250, 250, 250))):
+            im = Image.new("L", (hw + 2, hh + 2), 0)
+            ImageDraw.Draw(im).polygon([(x * hw, y * hh) for x, y in HEAD], fill=255)
+            m = np.asarray(im) > 127
+            ox = hx - k * int(hw * 0.30)
+            if k:                                                          # an echo: an outline behind
+                put(a, grow(pad_to(m, 1), 1), ox - 1, hy - 1, col)
+                put(a, m, ox, hy, (20, 50, 120) if k == 1 else (14, 36, 90))
+            else:
+                put(a, grow(pad_to(m, 1), 1), ox - 1, hy - 1, (6, 16, 50))
+                put(a, m, ox, hy, col)
+        gx = hx + hw + 4 * s
+        text(a, "GBC", gx, cy - 7 * s // 2 - 2 * s, s + 1, (255, 255, 255), align="l", shadow=(6, 16, 50))
+        text(a, "PUBLIC", gx + s, cy + 5 * s, max(1, s // 2), (200, 220, 255), align="l")
+        text(a, "TELEVISION", gx + s, cy + 5 * s + 9 * max(1, s // 2), max(1, s // 2), (200, 220, 255), align="l")
     footer(a, w, h, ch, s)
     return a
 
