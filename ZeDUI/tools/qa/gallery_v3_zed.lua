@@ -213,7 +213,7 @@ S.step(2, function()
     G.cleanLook()
     G.day()
     pcall(ZeD.Settings.reapplyFromOptions)
-    if ZeD.currentBase ~= "hicon" or ZeD.currentAccent ~= "teal" then Z.theme("hicon", "teal") end
+    if not GAL_KEEP_THEME and (ZeD.currentBase ~= "hicon" or ZeD.currentAccent ~= "teal") then Z.theme("hicon", "teal") end
     say("theme " .. tostring(ZeD.currentBase) .. " " .. tostring(ZeD.currentAccent) .. " size " .. tostring(ZeD.currentSize)
         .. " | scale " .. tostring(ZeD.Scale and ZeD.Scale.current and ZeD.Scale.current()))
     Opt.watchPlaceOption:setValue(1)
@@ -341,6 +341,144 @@ if want("more") then
         IR.setGridKey("player", true)
     end)
     S.step(2, function() local IR = ZeD.InventoryRenderer; if IR and IR.setGridKey then IR.setGridKey("player", Z.was.grid == true) end end)
+    S.step(15, function() end)
+end
+
+-- ---- strips (Oct 30 2026, punch list 21: one header strip and footer band for every tab card) ----
+--   every tab of both windows, the windows as tall as the screen allows; strip_c_* / strip_w_*
+--   and one strip_c_window / strip_w_window. Each shot logs "rect <name> ..." (the drawer card
+--   and the window, screen px) for cropping, with the tab header and footer heights.
+if want("strips") or want("radios") then
+    local full = want("strips")   -- "radios" alone: only the two Radio tabs (a retake)
+    local core = getCore()
+    local tmp = {}
+    function Z.tall()
+        local c, w = Z.CW(), Z.WW()
+        if not (c and w) then return end
+        local m = ZeD.T.px(12)
+        local h = core:getScreenHeight() - 2 * m
+        Z.lock = nil
+        for _, win in ipairs({ c, w }) do
+            win:setY(m); win:setHeight(h)
+            pcall(function() win:onResize() end)
+        end
+        Z.place()
+    end
+    function Z.rect(name, which)
+        local win = (which == "c") and Z.CW() or Z.WW()
+        local dp = win and win._drawerPanel
+        if not dp then say("rect " .. name .. " none"); return end
+        local fh = 0
+        pcall(function() fh = win:footerHeight() end)
+        say(string.format("rect %s drawer %d %d %d %d window %d %d %d %d header %d footer %d tab %s",
+            name, dp:getAbsoluteX(), dp:getAbsoluteY(), dp:getWidth(), dp:getHeight(),
+            win:getAbsoluteX(), win:getAbsoluteY(), win:getWidth(), win:getHeight(),
+            ZeD.Molecules.getTabHeaderH(), fh, tostring(win._activeTab)))
+    end
+    local function ST(name, which, tab, settle, fn)
+        Z.T(name, which, tab, settle, fn)
+        S.step(1, function() Z.rect(name, which) end)
+    end
+    S.step(2, function()
+        Z.tall()
+        -- a walkie in the off hand (the Character Radio tab lists held radios), a radio set placed
+        -- on the character's square (the World one lists placed sets), a pen with a hen around them
+        pcall(function()
+            tmp.walkie = p:getInventory():AddItem("Base.WalkieTalkie2")
+            tmp.offWas = p:getSecondaryHandItem()
+            p:setSecondaryHandItem(tmp.walkie)
+        end)
+        pcall(function()
+            local sq = p:getSquare()
+            local o = IsoRadio.new(getCell(), sq, getSprite("appliances_radio_01_0"))
+            sq:AddTileObject(o)
+            tmp.set = o
+        end)
+        local px, py = math.floor(p:getX()), math.floor(p:getY())
+        if full then
+            pcall(function() DesignationZoneAnimal.new("QA Pen", px - 4, py - 4, 0, px + 4, py + 4, true) end)
+            pcall(function() tmp.zone = DesignationZoneAnimal.getZoneByName("QA Pen") end)
+            pcall(function()
+                local breed = AnimalDefinitions.getDef("hen"):getBreeds():get(0)
+                tmp.hen = addAnimal(getCell(), px + 2, py - 2, 0, "hen", breed)
+                tmp.hen:addToWorld()
+            end)
+        end
+        tmp.radio = tmp.set
+        say("strips staged: walkie " .. tostring(tmp.walkie ~= nil) .. " radio " .. tostring(tmp.radio ~= nil)
+            .. " zone " .. tostring(tmp.zone ~= nil) .. " hen " .. tostring(tmp.hen ~= nil))
+    end)
+    S.step(60, function() Z.tall() end)
+    -- Character
+    if full then
+    ST("strip_c_inventory", "c", "loot", 40)
+    ST("strip_c_equip_list", "c", "equip", 50, function()
+        ZeD.EquipDoll.setView("list")
+        if ZeD.EquipLoadout.openFor then ZeD.EquipLoadout.openFor[pn] = true end
+    end)
+    ST("strip_c_equip_doll", "c", "equip", 50, function() ZeD.EquipDoll.setView("doll") end)
+    S.step(2, function() ZeD.EquipDoll.setView(Z.was.equip) end)
+    ST("strip_c_health", "c", "health", 45, function() local w = Z.CW(); w._healthFigureExpanded = true end)
+    ST("strip_c_thermal", "c", "thermal", 45)
+    ST("strip_c_identity", "c", "identity", 45)
+    for i, sub in ipairs({ "journal", "notebooks", "papers", "recipes", "loadouts" }) do
+        ST("strip_c_journal_" .. sub, "c", "journal", 45, function() Z.CW()._journalSubTab = i end)
+    end
+    S.step(2, function() Z.CW()._journalSubTab = 1 end)
+    ST("strip_c_skills", "c", "skills", 45)
+    end
+    ST("strip_c_radio", "c", "radio", 45)
+    S.step(2, function() Z.charTab("loot") end)
+    -- World
+    if full then
+    ST("strip_w_ground", "w", "loot", 40)
+    ST("strip_w_craft_list", "w", "craft", 60)
+    ST("strip_w_craft_recipe", "w", "craft", 60, function() return Z.recipe("craft", true) end)
+    S.step(2, function() Z.recipe("craft", false) end)
+    ST("strip_w_build_recipe", "w", "build", 60, function() return Z.recipe("build", true) end)
+    S.step(2, function() Z.recipe("build", false) end)
+    ST("strip_w_furniture", "w", "furniture", 60)
+    ST("strip_w_maps", "w", "maps", 90, function()
+        pcall(function() Z.mp().mapAPI:centerOn(p:getX(), p:getY()) end)
+        pcall(function() Z.mp():_zoomTo(15) end)
+    end)
+    ST("strip_w_forage", "w", "forage", 60)
+    ST("strip_w_animals_ranch", "w", "animals", 60, function()
+        local st = Z.WW()._animalsState
+        if st then st.submode = "ranch"; st.view = "overview"; st.zoneName = nil end
+    end)
+    ST("strip_w_animals_zone", "w", "animals", 60, function()
+        local w = Z.WW()
+        w._animalsState = w._animalsState or { submode = "ranch" }
+        local st = w._animalsState
+        st.submode = "ranch"; st.prevView = "overview"; st.view = "zone"; st.zoneName = "QA Pen"
+    end)
+    S.step(2, function() local st = Z.WW()._animalsState; if st then st.view = "overview"; st.zoneName = nil end end)
+    ST("strip_w_vehicle", "w", "vehicle", 60)
+    end
+    ST("strip_w_radio", "w", "radio", 60)
+    -- the whole windows, each on its Loot tab (one screenshot: strip_c_window)
+    S.step(2, function() Z.charTab("loot"); Z.worldTab("loot") end)
+    if full then
+        Z.Sc("strip_c_window", 40)
+        S.step(1, function() Z.rect("strip_c_window", "c"); Z.rect("strip_w_window", "w") end)
+    end
+    S.step(2, function()
+        pcall(function()
+            if tmp.walkie then
+                p:setSecondaryHandItem(tmp.offWas)
+                p:getInventory():Remove(tmp.walkie)
+            end
+        end)
+        pcall(function()
+            local o = tmp.set
+            if o then o:getSquare():transmitRemoveItemFromSquare(o) end
+        end)
+        GAL_KEEP_THEME = nil
+        pcall(function() if tmp.hen then tmp.hen:removeFromWorld(); tmp.hen:removeFromSquare() end end)
+        pcall(function() if tmp.zone then DesignationZoneAnimal.removeZone(tmp.zone, true) end end)
+        say("strips put back")
+    end)
     S.step(15, function() end)
 end
 
