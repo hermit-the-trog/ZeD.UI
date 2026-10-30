@@ -3,8 +3,8 @@
 Design → Code. Answers `REQUEST_design_radio_tv_faces_20261030.md`, and adds the washer, the dryer and the
 washer-dryer (director, Oct 30: "Washer and dryer I trust you. Do those so we can ship that too.").
 
-> **Status: waiting on the director's sign-off.** The spec sheets below are what he signs. Build from this once he
-> hands it over; if he changes a face, Design re-exports and this note says so.
+> **Status: approved, ready to build.** The director signed off all ten spec sheets on Oct 30 2026 ("Looks good. No
+> changes. Get it ready for code").
 
 ## What's in this commit
 
