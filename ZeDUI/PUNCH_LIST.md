@@ -51,6 +51,16 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
 14. **Errors:** no new console errors after a run. open.
 15. **Performance:** no stutter opening big containers. open.
 16. **Other mods:** a short run with a few popular mods on. open.
+17. **Faces or simple cards (director, Oct 30).** chosen. One switch in ZeD setup, faces by default,
+    for the devices shown in cards: radios, TVs, walkie-talkies, ham sets, ovens, microwaves, fryer,
+    grill, generators (not the car radio, siren, dashboard or watch). Simple cards exist only for the
+    radio tab today; the machines' simple cards are new. Build to write the plain rules and the
+    simple cards' layout for the director before building.
+18. **Every added feature can be turned off; off by default for a vanilla run (director, Oct 30).**
+    open. Loadouts and the rest included; a quick switch turns them all on ("vanilla plus"). Build to
+    list every addition with its switch and default, and the quick switch's rules, for the
+    director's pick. Note: the Oct 26 switches (ammo on the belt, read marks, next level on skill
+    books, dashboard lamps, moodle notices) were on by default; this would turn them off.
 
 ## Test process
 
