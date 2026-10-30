@@ -110,6 +110,7 @@ zedqa_twoway.lua | tw | timeout=600             # the ten two-way radio faces in
 zedqa_appliances.lua | ap | timeout=240         # oven and microwave faces at whole zoom in the Craft tab, and in their own window (at the West Point Fossoil: power indoors)
 zedqa_two_widths.lua | tww | timeout=900          # the two widths (Oct 29 2026): every tab, card and the Maps pop-out in both windows is the half card or the full card, the other window never moves or resizes, no overlap, a held-in window gets the half card
 zedqa_plates_336.lua | p336 | timeout=900          # the 336 px machine plates and 200 px narrow faces (Oct 29 2026): oven, both microwaves, generator, grill at the run scale and at 0.5, which face is drawn, presses that act
+zedqa_laundry.lua | ldy | timeout=600            # the washer, dryer and washer-dryer face cards (Oct 30 2026): the container row's gears button opens the card, the face that fills it, door / power / WASH / DRY through vanilla's actions, the clock's phase lamps, the plain buttons back through LD.useFace; machines and shirt taken away (indoors for power)
 
 # ---- vehicles (spawned beside the character and removed; the QA save's own cars are put back)
 zedqa_seat_lightbar_vanilla.lua | sl | expect=FBORenderLevels.getNLevels   # seat chooser and lightbar from vanilla's entry points (the game's own render error late in a long run; not with ZeD alone or off, Oct 27 2026)
