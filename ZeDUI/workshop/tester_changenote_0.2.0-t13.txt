@@ -1,0 +1,18 @@
+0.2.0-t13: changes since 0.2.0-t12.
+
+Hotfix: right-click
+- Right-click works in the inventory again. On 42.22 a see-through layer over the Character window took every right-click while its drawer was shut, so no menu opened. The same fix covers the doll, the Skills tab and Hair and beard.
+- The right-click menu closes when you click anywhere else, another window included (it stayed open over the inventory).
+
+Mouse
+- Pickers stay open after a normal click: the loadout, outfit and Journal pickers, the item card's Lists and the window menu closed again as the button came up.
+- Clicks no longer go missing. The item card's buttons (its close key, the actions, the strip, rename, Lists, the folds), the object cards, the window box and the close box now read the mouse on every frame; the main menu catches a quick click too. The window box's words on the help line no longer flicker.
+
+Equip tab
+- Loadouts: the outfit and loadout bar moved from the top of the tab into a Loadouts fold under the doll and the lists, shut until you open it. Shut, its heading names the loadout and how ready it is.
+- The doll has no leader lines. On the full card the upper body is on the left (head to hands in two columns, and the small slots from the ears to the rings), the back with its bags and the belt and below on the right. On a short screen the doll shrinks to fit before the tab scrolls, and the spare width goes between its parts.
+
+Cards
+- The item card and the object card close with an X. It was a back arrow, and on the inventory and World cards a click on it did nothing.
+
+Loadouts need testers: save an outfit or a loadout, restock it before a trip, unpack when you are home, and tell us in the Bug reports discussion what works, what doesn't and what you would change.

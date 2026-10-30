@@ -1,0 +1,6 @@
+# Oct 30 2026: the t13 full run's four warnings again, each after a clean start
+zedqa_prelude.lua | pre                          # opens both windows, unpauses, god mode, ~60 ticks
+zedqa_world_pad_take.lua | wpt | timeout=900     # pad: into the World window lit, containers by Down, card on its primary, Take, B, object card, Char parity, focus back after menu / transfer, belt in and out, every tab's bottom (both sizes); crate and wounds taken away
+zedqa_px_icons.lua | px | timeout=240           # ZeD's pixel icons outside the wheels: every id's drawings and the box rule, a test panel (each icon in every button state, the card's marks, the chevrons), the item card's marks and both rows live
+zedqa_two_widths.lua | tww | timeout=900          # the two widths (Oct 29 2026): every tab, card and the Maps pop-out in both windows is the half card or the full card, the other window never moves or resizes, no overlap, a held-in window gets the half card
+zedqa_dash_green.lua | dgr | timeout=600 | expect=FBORenderCell   # D6 fan needle parked by day, fire pickup at speed, the green-lit late models at night (zedqa_dash_green_only.lua only sets a flag for dash_green_night.txt)
