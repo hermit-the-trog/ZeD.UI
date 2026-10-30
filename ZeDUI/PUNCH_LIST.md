@@ -94,6 +94,12 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     comes back when Loadouts is on. Build to write the plain rule (when it dims, whether it can still
     be changed while dim) before building. Still open: the preset buttons read "Plus" and
     "Accessible" rather than the full names (no choice yet).
+    Rule (director, Oct 30: "a"): while the Loadouts switch's pick on the screen is Off (before
+    Apply too), the Restock row is dimmed and inert: clicks and presses do nothing, the controller
+    passes over it, and the help line reads "Turn on Loadouts and outfits to use Restock." Its pick
+    is kept; Loadouts on brightens it with that pick. Presets follow the same rule.
+    **fixed (build, Oct 30)** - QA to confirm: untick Loadouts, the row dims at once, clicks and
+    the controller skip it, the help line shows; tick it, the row comes back with its pick.
 
 ## Test process
 

@@ -171,7 +171,9 @@ G.ZED_GROUPS = {
     { "UI_ZeD_Options_ZedAdditions", { { "additionsPreset", "radio", short = { "UI_ZeD_Settings_PresetVanilla", "UI_ZeD_Options_PresetPlus", "UI_ZeD_Options_PresetAccessible", "Sandbox_Custom" } },
         { "ammoBox", "onoff" }, { "readMarks", "onoff" }, { "readNext", "onoff" }, { "dimRead", "onoff" }, { "dashLamps", "onoff" },
         { "moodleNotices", "onoff" }, { "messagesCatch", "onoff" }, { "messagesToast", "onoff" }, { "putBack", "onoff" },
-        { "sandboxInGame", "onoff", under = "UI_ZeD_Options_UnderSandboxIG" }, { "loadouts", "onoff" }, { "restock", "radio" } } },
+        { "sandboxInGame", "onoff", under = "UI_ZeD_Options_UnderSandboxIG" }, { "loadouts", "onoff" },
+        -- (director, Oct 30 2026: Restock works only with a loadout, so its row dims and goes inert while Loadouts is off)
+        { "restock", "radio", needs = "loadouts", needsWhy = "UI_ZeD_Options_NeedsLoadouts" } } },
     { "UI_ZeD_Options_ZedWindows", { { "inventoryView", "radio" }, { "equipView", "radio" }, { "charAccent", "swatch" }, { "worldAccent", "swatch" }, { "hiddenActions" } } },
     { "UI_ZeD_Options_ZedHud", { { "moodlePlace", "radio", short = { "UI_ZeD_Options_MoodlesRight", "UI_ZeD_Options_MoodlesLeft", "UI_ZeD_Options_MoodlesBottom" } }, { "watchPlace", "radio" }, { "actionBar", "radio" } } },
     { "UI_ZeD_Options_ZedControls", { { "focusStyle" }, { "contextStyle", "radio" }, { "glyphDisplay" }, { "inputModeLock" } } },
@@ -310,6 +312,7 @@ function G.build(pages, rowsOf)
             local c = zrow[e[1]]
             if c and not placed[e[1]] then
                 c.zedStyle, c.under, c.zedShort = e[2], e.under, e.short
+                c.zedNeeds, c.zedNeedsWhy = e.needs, e.needsWhy
                 list[#list + 1] = c
                 placed[e[1]] = true
             end

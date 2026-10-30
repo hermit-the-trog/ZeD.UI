@@ -284,6 +284,18 @@ local function rowKey(r)
     return nil
 end
 
+-- a ZeD setup row that works only while another of ZeD's switches is on (ZeD_MainMenuOptionGroups' needs; director,
+-- Oct 30 2026: Restock needs Loadouts and outfits): true while that switch's live pick, Apply or not, is Off. Such a row
+-- dims, takes no click or press, and the controller passes over it; its pick is kept for when the switch comes on.
+local function needsOff(r)
+    if not r.zedNeeds then return false end
+    local zo = PZAPI and PZAPI.ModOptions and PZAPI.ModOptions:getOptions("ZeD_UI")
+    local o = zo and zo:getOption(r.zedNeeds)
+    if not o then return false end
+    local el = o.element
+    return ((el and el.selected) or o:getValue() or 2) ~= 2
+end
+
 -- the option's help: vanilla's tooltip for it, plain
 local function help(r)
     local c = r.control
@@ -316,6 +328,7 @@ local function help(r)
     -- the groups' marks (ZeD_MainMenuOptionGroups): why it does nothing, where it works, where it lives
     -- (r.moot, r.only[2] and r.why are translation keys or plain words: G.text turns them into the player's language)
     if r.moot then return ZeD.tr("UI_ZeD_Options_MootHelp", MM.optionGroups.text(r.moot)) end
+    if needsOff(r) then return ZeD.tr(r.zedNeedsWhy) end
     -- vanilla's tooltips often end without a full stop: add one before ZeD's words
     local function join(a, b)
         if not a or a == "" then return b end
@@ -1364,8 +1377,11 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
             idx = idx + 1
             local rowId = "r" .. i
             local fid = "orow:" .. idx
-            self._specs[#self._specs + 1] = { id = fid, listRow = true, row = idx, col = 1, rowRef = r, ry = ry + self.scroll - vy, rh = rh,
-                fn = function() self:activateRow(r) end }
+            local off = needsOff(r)
+            if not off then   -- (a row waiting on another switch is no stop for the controller)
+                self._specs[#self._specs + 1] = { id = fid, listRow = true, row = idx, col = 1, rowRef = r, ry = ry + self.scroll - vy, rh = rh,
+                    fn = function() self:activateRow(r) end }
+            end
             local isFoc = gp and self.focusId == fid
             if isFoc then focusRow = r end
             if visible then
@@ -1382,7 +1398,7 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
                 lx = lx + T.px(14)
                 local tc = T.text
                 if self.rowDisabled and self:rowDisabled(r) then tc = T.textDim end   -- (Sandbox: an option that does nothing now)
-                if r.moot then tc = T.textDim end
+                if r.moot or off then tc = T.textDim end
                 if onFocus then tc = T.textOnFocus end
                 local label = rowLabel(r)   -- ZeD's own options: read at draw time (test language)
                 local PG = ZeD.PadGlyphs
@@ -1421,11 +1437,11 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
                 -- (the control keeps to the name's first line when the name takes two)
                 local crh = (r.kind == "tick" and #(r.control.options or {}) > 1) and T.px(ROW_H) or (ul and T.px(ROW_H) or (rh - r._labX))
                 -- a setting that does nothing with ZeD active: its control drawn, dimmed, and inert
-                self._inert = r.moot and true or false
+                self._inert = (r.moot or off) and true or false
                 self:drawControl(r, cx0, ry, cw, crh, rowId, clip)
                 self._inert = false
                 if self.drawRowTags then self:drawRowTags(r, x + inner - T.px(10), ry, crh) end
-                if r.moot then
+                if r.moot or off then
                     -- dim just the control (a drop-down's box, a bar and its number, else the row's control area)
                     local dw = cw
                     if r.kind == "combo" then dw = math.min(T.px(COMBO_W), cw)
@@ -1585,7 +1601,7 @@ end
 
 -- ACTIVATING A ROW (A on a controller, Space / Return on the keyboard) ---------------
 function ZeD_MMOptions:activateRow(r)
-    if r.moot then return end   -- does nothing with ZeD active: inert here too
+    if r.moot or needsOff(r) then return end   -- does nothing with ZeD active, or waits on another switch: inert here too
     local c = r.control
     if r.kind == "combo" and r.zedStyle then
         -- ZeD setup's switches, swatches and slider: the next choice (an on/off flips)
@@ -1609,7 +1625,7 @@ end
 
 -- left / right change a value in place (combo: previous / next; volume / slider: a step)
 function ZeD_MMOptions:nudge(r, dir)
-    if r.moot then return true end
+    if r.moot or needsOff(r) then return true end
     local c = r.control
     if r.kind == "combo" then
         local n = #(c.options or {})
