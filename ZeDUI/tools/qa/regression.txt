@@ -65,6 +65,7 @@ zedqa_mapnotes.lua | mnote                       # notes and marks in vanilla's 
 zedqa_journal_refs.lua | jr                      # Journal tab diary and Flyers gallery
 zedqa_journal_readers.lua | jrd                  # Notebooks, Papers, Into; items and log entry taken back
 zedqa_lists.lua | ls | timeout=240               # loadouts and outfits: the data, the Journal's Loadouts page in the full card (top and lines), delete asked first, right-click both looks, the mark strip's Lists and pop-up; the character's lists put back
+zedqa_restock.lua | rs | timeout=900            # loadouts in the Equip tab: the bar, ready n of m, the ghosts on the doll, the to-do's five states, asked first before the last bandage, the time on Restock = the queued actions, never a locked locker, stops (key, zombie, hurt), Hardcore / Casual (pinned, notice) / Accessible (walk and back), the long trip over the limit and Make it N days, Unpack (loot home, a kind asked once, leftovers), the Loadouts ring, A / B in the to-do; all put back (the grandstand by the drag strip)
 zedqa_reader.lua | rd                            # the reader through vanilla's Read: paper, words, zoom, flyer, map
 zedqa_reader_refs.lua | rr                       # reader reference captures; items taken back
 zedqa_notebook.lua | nb                          # writing in a notebook through vanilla's Write; locked notebook
@@ -124,7 +125,7 @@ zedqa_charinfo.lua | ci | timeout=180           # the game's Character window ke
 zedqa_equipdrag.lua | eqd | timeout=240          # Equip rows and doll slots as drag sources: click, drag, cancel, bag, floor, same place (fake mouse; all put back)
 zedqa_cazio_light.lua | czl | timeout=240      # the CaZio LIGHT: bulb by day and at night, mini watch
 zedqa_dashnight.lua | dnt | timeout=480        # dash night lighting: hidden gauge bulbs, lamps, light level
-zedqa_dash_green.lua | dgr | timeout=600 | expect=FBORenderCell   # D6 fan needle parked by day, fire pickup at speed, the green-lit late models at night
+zedqa_dash_green.lua | dgr | timeout=600 | expect=FBORenderCell   # D6 fan needle parked by day, fire pickup at speed, the green-lit late models at night (zedqa_dash_green_only.lua only sets a flag for dash_green_night.txt)
 zedqa_testlang.lua | tlang | timeout=600      # every screen with the stretched test language (screenshots zqa_tl_*)
 zedqa_safemode.lua | safe | timeout=240         # safe mode trips, turns ZeD off, and recovers
 zedqa_soak.lua | soak | timeout=2700             # every tab for 12 rounds at the fastest speed (7 to 15 minutes)

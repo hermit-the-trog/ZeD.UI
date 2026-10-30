@@ -1,0 +1,16 @@
+# ZeDUI/tools/qa/restock_cover.txt  (Oct 29 2026)
+# The loadouts' restock run (handoff equip_doll_v4_loadouts B4-B7) with the scripts that cover what it
+# touched: the doll, the lists, the Equip tab's drag and Large text, the pad suite, the card, the nav
+# audits and the D-pad wheels. zedqa_run.ps1 -Manifest this file.
+zedqa_prelude.lua | pre
+zedqa_restock.lua | rs | timeout=900
+zedqa_doll_v4.lua | dollv4 | timeout=600
+zedqa_doll.lua | doll
+zedqa_lists.lua | ls | timeout=240
+zedqa_equipdrag.lua | eqd | timeout=240
+zedqa_large.lua | lg
+suite_gamepad.lua | gp
+zedqa_card_pad.lua | cp
+zedqa_navmap.lua | nav
+zedqa_navevents.lua | ev
+zedqa_dpad_wheels.lua | dw | timeout=600

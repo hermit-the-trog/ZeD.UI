@@ -165,7 +165,7 @@ G.ZED_GROUPS = {
     -- in use a checkbox under it; Controller highlight leads Controls as a pop-up menu with a live sample beside it; Hidden
     -- actions closes Windows as a pop-up menu. The windows' theme squares are gone with their setting.)
     { "UI_ZeD_Options_ZedLook", { { "baseTheme", "radio" }, { "accentColor", "swatch" }, { "textSize", "radio" }, { "seeThrough", "scale" }, { "solidInUse", "onoff" }, { "uiScale", "scale", short = { "UI_ZeD_Settings_Auto" } } } },
-    { "UI_ZeD_Options_ZedWindows", { { "inventoryView", "radio" }, { "equipView", "radio" }, { "charAccent", "swatch" }, { "worldAccent", "swatch" }, { "readMarks", "onoff" }, { "readNext", "onoff" }, { "dimRead", "onoff" }, { "hiddenActions" } } },
+    { "UI_ZeD_Options_ZedWindows", { { "inventoryView", "radio" }, { "equipView", "radio" }, { "restock", "radio" }, { "charAccent", "swatch" }, { "worldAccent", "swatch" }, { "readMarks", "onoff" }, { "readNext", "onoff" }, { "dimRead", "onoff" }, { "hiddenActions" } } },
     { "UI_ZeD_Options_ZedHud", { { "moodlePlace", "radio", short = { "UI_ZeD_Options_MoodlesRight", "UI_ZeD_Options_MoodlesLeft", "UI_ZeD_Options_MoodlesBottom" } }, { "watchPlace", "radio" }, { "actionBar", "radio" }, { "moodleNotices", "onoff" }, { "ammoBox", "onoff" }, { "dashLamps", "onoff" } } },
     { "UI_ZeD_Options_ZedControls", { { "focusStyle" }, { "contextStyle", "radio" }, { "glyphDisplay" }, { "inputModeLock" } } },
     -- (Oct 24 2026, mockup zed_quick_chords_v1: the twelve chords, ZeD_QuickChords; not ModOptions: rows of their own)

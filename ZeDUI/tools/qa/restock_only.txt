@@ -1,0 +1,3 @@
+# ZeDUI/tools/qa/restock_only.txt (Oct 29 2026): the prelude and the restock script alone
+zedqa_prelude.lua | pre
+zedqa_restock.lua | rs | timeout=900

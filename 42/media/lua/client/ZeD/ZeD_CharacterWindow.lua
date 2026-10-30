@@ -589,7 +589,10 @@ local function getActiveScroll(win)
         return win._journalScroll
     end
     if win._activeTab == "identity" then return win._identityScroll end
-    if win._activeTab == "equip"    then return win._equipScroll end
+    if win._activeTab == "equip"    then
+        -- the loadouts' to-do scrolls on its own (ZeD_EquipLoadout)
+        return (ZeD.EquipLoadout and ZeD.EquipLoadout.scrollFor(win)) or win._equipScroll
+    end
     return ZeD_CharacterWindow.extScroll(win)
 end
 
@@ -1759,6 +1762,8 @@ end
 -- nils _gpFocusedEquipSlot so the seed path picks the first element of the
 -- new element set.
 local function _buildEquipmentFocusables(win)
+    -- the loadouts' to-do holds the drawer (ZeD_EquipLoadout): its stops alone
+    if win and ZeD.EquipLoadout and ZeD.EquipLoadout.todoOpen(win) then return ZeD.EquipLoadout.focusables(win) end
     local elements = {}
 
     -- CARD MODE branch: the Equip tab's own item card (a ZeD_ItemCard in the
@@ -1949,6 +1954,8 @@ local function _buildEquipmentFocusables(win)
             end,
         }
     end
+    -- the loadouts' bar under the heading (ZeD_EquipLoadout), and where the focus lands after its to-do
+    if win and ZeD.EquipLoadout then ZeD.EquipLoadout.barFocusables(win, elements) end
 
     -- S105 — Inject body-figure parts between disclosure and groups. When
     -- the defense disclosure is expanded, the body figure sits in the
@@ -2092,6 +2099,7 @@ local function _buildEquipmentFocusables(win)
         }
     end
 
+    if win and ZeD.EquipLoadout then ZeD.EquipLoadout.land(win, elements) end
     -- Back from a card: focus returns to the slot or row that opened it
     if win and win._equipCardSeed and not win._equipSelected then
         local want = "equipslot:" .. tostring(win._equipCardSeed)
@@ -4786,6 +4794,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
             if win._activeTab == "identity" and ZeD.IdentityTab.onClick and ZeD.IdentityTab.onClick(win, x, y) then return true end
             -- Equipment tab click routing
             if win._activeTab == "equip" then
+                -- the loadouts' bar and to-do (ZeD_EquipLoadout); the to-do takes every press
+                if ZeD.EquipLoadout and ZeD.EquipLoadout.onClick(win, x, y) then return true end
                 -- The List | Doll toggle, and a doll card's layer strip (EquipDoll.lua)
                 if ZeD.EquipDoll and ZeD.EquipDoll.onClick(win, x, y) then return true end
                 -- Card mode: back button
@@ -5934,6 +5944,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 scrollKey = tostring(sc and sc.scrollPos or 0) .. ":" .. tostring(ZeD.EquipDoll and ZeD.EquipDoll.view())
                     .. ":" .. tostring(dp and dp:getWidth()) .. ":" .. tostring(dp and dp:getHeight())
                     .. ":" .. tostring(win._equipSelected) .. ":" .. tostring(win._equipLayer)
+                    .. ":" .. (ZeD.EquipLoadout and ZeD.EquipLoadout.scrollKey(win) or "")
                 if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
             end
             -- Identity: its scroll and the Hair and beard rows (part, Out of reach open)

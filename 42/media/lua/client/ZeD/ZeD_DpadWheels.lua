@@ -883,6 +883,20 @@ function C.use(p, pn)
     }
 end
 
+-- the Loadouts ring (handoff equip_doll_v4_loadouts B7): one slice per saved loadout; a pick sets it in the
+-- Equip tab's bar and opens its to-do (ZeD_EquipLoadout.fromWheel)
+function C.loadouts(p, pn)
+    local out = {}
+    local L = ZeD.Lists
+    for _, l in ipairs(L and L.all(p, "loadout") or {}) do
+        local id = l.id
+        out[#out + 1] = { name = l.name, icon = L.icon("loadout"), detail = L.countText(l), key = "loadout" .. tostring(id),
+            run = function(pl, n) if ZeD.EquipLoadout then ZeD.EquipLoadout.fromWheel(pl, n, id) end end }
+        if #out >= MAX_INNER then break end
+    end
+    return out
+end
+
 D.B.character = function(p, pn)
     local weapons, eat, drink = H.weapons(p), H.quick(p, "eat"), H.quick(p, "drink")
     local pills = H.quick(p, "pills")
@@ -904,6 +918,8 @@ D.B.character = function(p, pn)
         { name = tr("UI_ZeD_Wheel_Clothing"), icon = "shirt", sub = C.clothing,
           off = (#clothing == 0) and tr("UI_ZeD_Wheel_NothingToChange") or nil },
         { name = tr("UI_ZeD_Wheel_Use"), icon = "backpack", detail = tr("UI_ZeD_Wheel_UseDetail"), sub = C.use },
+        { name = tr("UI_ZeD_Wheel_Loadouts"), icon = ZeD.Lists and ZeD.Lists.icon("loadout") or "view_list", detail = tr("UI_ZeD_Wheel_LoadoutsDetail"),
+          sub = C.loadouts, off = (#(ZeD.Lists and ZeD.Lists.all(p, "loadout") or {}) == 0) and tr("UI_ZeD_Wheel_NoLoadouts") or nil },
     }
 end
 

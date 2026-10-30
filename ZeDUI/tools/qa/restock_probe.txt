@@ -1,0 +1,3 @@
+# ZeDUI/tools/qa/restock_probe.txt (Oct 29 2026): the prelude and the restock look-round
+zedqa_prelude.lua | pre
+zedqa_restock_probe.lua | rp | timeout=120
