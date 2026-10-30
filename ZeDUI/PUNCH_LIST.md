@@ -100,6 +100,14 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     is kept; Loadouts on brightens it with that pick. Presets follow the same rule.
     **fixed (build, Oct 30)** - QA to confirm: untick Loadouts, the row dims at once, clicks and
     the controller skip it, the help line shows; tick it, the row comes back with its pick.
+    **QA, Oct 30 (main menu Options, ZeD setup, real mouse clicks at 4K, the director's yes):** passed.
+    Unticking Loadouts dims the Restock row at once; a click on its Hardcore while dim leaves it on
+    Casual; with the pointer on the row the help line reads "Turn on Loadouts and outfits to use
+    Restock."; ticking Loadouts brings the row back bright, still Casual. The controller passing over
+    it was checked in the code (the pad's row handlers return early for it), not with a pad in game.
+    Notes for the director: the dimmed row still lights up under the pointer although it takes no
+    click; Restock's third button reads "Access" at this window width (it read "Accessible" in item
+    18's shot). Screenshot: ZeDUI/qa/Oct30_mouse_pass/qa19_restock_dim.jpg.
 
 ## Test process
 
