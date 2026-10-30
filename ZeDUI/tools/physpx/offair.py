@@ -622,14 +622,18 @@ def signoff(cid, w, h):
         # public television (director, Oct 30 2026: "a head profile that hints at the old PBS logo"): a face in profile,
         # looking right, with two echoes of it stepping back behind it, beside the name
         a = card_frame(w, h, (20, 50, 120), (6, 16, 50))
-        HEAD = [(0.30, 0.04), (0.56, 0.00), (0.76, 0.14), (0.82, 0.32), (0.80, 0.40), (0.98, 0.52), (0.84, 0.57),
-                (0.88, 0.63), (0.83, 0.67), (0.87, 0.73), (0.80, 0.86), (0.64, 0.91), (0.64, 1.00), (0.30, 1.00),
-                (0.28, 0.82), (0.12, 0.60), (0.10, 0.34), (0.16, 0.16)]
+        # ... with a mullet (director, Oct 30 2026: "Give GBC head a mullet"): short and tidy over the brow, long at the
+        # back, the hair flowing down past the nape and out over the shoulder in ragged points
+        HEAD = [(0.30, 0.04), (0.42, -0.02), (0.50, 0.03), (0.58, -0.01), (0.66, 0.06), (0.76, 0.14), (0.82, 0.32),
+                (0.80, 0.40), (0.98, 0.52), (0.84, 0.57), (0.88, 0.63), (0.83, 0.67), (0.87, 0.73), (0.80, 0.86),
+                (0.64, 0.91), (0.64, 1.00), (0.30, 1.00),
+                (0.24, 1.06), (0.18, 0.98), (0.12, 1.08), (0.08, 0.96), (0.00, 1.04), (0.02, 0.88), (-0.06, 0.86),
+                (0.00, 0.72), (0.02, 0.52), (0.04, 0.32), (0.12, 0.14), (0.20, 0.06)]
         hh = int(h * 0.40); hw = int(hh * 0.80)
         hx = cx - int(hw * 1.55); hy = cy - hh // 2 - s
         for k, col in ((2, (60, 110, 190)), (1, (130, 170, 230)), (0, (250, 250, 250))):
-            im = Image.new("L", (hw + 2, hh + 2), 0)
-            ImageDraw.Draw(im).polygon([(x * hw, y * hh) for x, y in HEAD], fill=255)
+            im = Image.new("L", (int(hw * 1.12) + 2, int(hh * 1.12) + 2), 0)
+            ImageDraw.Draw(im).polygon([((x + 0.08) * hw, (y + 0.03) * hh) for x, y in HEAD], fill=255)
             m = np.asarray(im) > 127
             ox = hx - k * int(hw * 0.30)
             if k:                                                          # an echo: an outline behind
@@ -638,6 +642,22 @@ def signoff(cid, w, h):
             else:
                 put(a, grow(pad_to(m, 1), 1), ox - 1, hy - 1, (6, 16, 50))
                 put(a, m, ox, hy, col)
+                # the hair its own tone, so the mullet reads: the short cap over the crown and the long fall at the
+                # back, against the white face and neck; the ear, and three strands in the long part
+                def Q(x, y): return ((x + 0.08) * hw, (y + 0.03) * hh)
+                HAIR = [(0.30, 0.04), (0.42, -0.02), (0.50, 0.03), (0.58, -0.01), (0.66, 0.06), (0.72, 0.12),
+                        (0.62, 0.15), (0.50, 0.24), (0.44, 0.38), (0.38, 0.60), (0.36, 0.82), (0.36, 1.00), (0.30, 1.00),
+                        (0.24, 1.06), (0.18, 0.98), (0.12, 1.08), (0.08, 0.96), (0.00, 1.04), (0.02, 0.88), (-0.06, 0.86),
+                        (0.00, 0.72), (0.02, 0.52), (0.04, 0.32), (0.12, 0.14), (0.20, 0.06)]
+                hair = Image.new("L", im.size, 0); dh2 = ImageDraw.Draw(hair)
+                dh2.polygon([Q(x, y) for x, y in HAIR], fill=255)
+                hm = (np.asarray(hair) > 127) & m
+                put(a, hm, ox, hy, (150, 176, 220))
+                det = Image.new("L", im.size, 0); dd = ImageDraw.Draw(det)
+                dd.ellipse([*Q(0.42, 0.44), *Q(0.52, 0.58)], outline=255, width=1)              # the ear
+                for (x0_, y0_, x1_, y1_) in ((0.20, 0.50, 0.10, 0.90), (0.28, 0.62, 0.22, 0.98), (0.12, 0.40, 0.02, 0.80)):
+                    dd.line([Q(x0_, y0_), Q(x1_, y1_)], fill=255, width=1)
+                put(a, (np.asarray(det) > 127) & m, ox, hy, (80, 110, 170))
         gx = hx + hw + 4 * s
         text(a, "GBC", gx, cy - 7 * s // 2 - 2 * s, s + 1, (255, 255, 255), align="l", shadow=(6, 16, 50))
         text(a, "PUBLIC", gx + s, cy + 5 * s, max(1, s // 2), (200, 220, 255), align="l")
