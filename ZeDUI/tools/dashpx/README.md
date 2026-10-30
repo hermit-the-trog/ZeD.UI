@@ -52,7 +52,7 @@ The game (`ZeD_Dashboard.lua`, `ZeD_Plate.lua`): how dark the dash is follows `I
 
 Badges never print a livery on a maker's plate. The game names a car "livery, maker, model" ("Fossoil Chevalier D6"); the dash finds the maker (Chevalier, Dash, Franklin, Masterson, Mercia) and splits there. A name with no maker in it uses the design's own `make` and `model` (from its title, or `BASE_CAR` in `export_lua.py`) when the car is one of the game's own families; a modded car keeps its own first word (after a model year) as the maker.
 
-Per design, `DashPx.lua` lists parts by type: `needle`, `ribbon`, `lamp` (rect lists, with a halo), `led`, `gear`, `bars`, `digits`, `ptr` (knob pointers), `tab` (lever tabs and sliders), `sprite` (the key, the pulled headlamp knob, toggles and rockers: cut from a render of the plate in that state), `badge` (roles `full`, `make`, `model`, `sub`, `unit`), `clock`, `sticker`, `headunit`, `climate`, `meter`. Hits name the vanilla verb (`ACT` in `ZeD_Dashboard.lua`) and what it needs (`hasTrunk`, `running`, `hasHeater`, `hasLightbar`). Coordinates are plate pixels (800 × 178; 172 before Oct 29 2026, when the dash was taken down to the screen's edge); angles are screen degrees (0 = right, 90 = down).
+Per design, `DashPx.lua` lists parts by type: `needle`, `ribbon`, `lamp` (rect lists, with a halo), `led`, `gear`, `bars`, `digits`, `ptr` (knob pointers), `tab` (lever tabs and sliders), `sprite` (the key, the pulled headlamp knob, toggles and rockers, the console's maker marks: cut from a render of the plate in that state), `badge` (roles `full`, `make`, `model`, `sub`, `unit`; with `src`/`when` shown only in that state, with `tag` the performance tag after it), `clock`, `sticker`, `headunit`, `climate`, `meter`. Hits name the vanilla verb (`ACT` in `ZeD_Dashboard.lua`) and what it needs (`hasTrunk`, `running`, `hasHeater`, `hasLightbar`). Coordinates are plate pixels (800 × 178; 172 before Oct 29 2026, when the dash was taken down to the screen's edge); angles are screen degrees (0 = right, 90 = down).
 
 `ZeD_PixelParts.lua` (`ZeD.Px`) is the shelf atom that draws them: nearest-filtered textures at a whole multiple k, rect lists, needles rasterised on the art grid, seven-segment figures, the two pixel fonts.
 
@@ -93,3 +93,27 @@ tray (`ZeD_Dashboard.lua`, `_vanRight`).
   The race car has none (its tach sits where the shroud would).
 - **One more check** (`build.mover_check`): no printed legend or mark under the key, its ring or its fob in any
   position; nothing printed, no live part, no click area and no key on the shroud.
+
+## The makers' marks (Oct 29 2026)
+
+Director: "The whole idea is to replace the generic plaques with branding." The consoles' grey stamped plates, chrome
+ovals and bare name lines are gone from the 13 civilian dashes; each of the game's five makers has its own mark:
+emblem, wordmark in the brand's own hand, the model's name under it (`brands.py`, ported from the approved proof in
+`ZeDUI/mockups/dash_fixes_20261029/emblems/brand.py`). `designs.BRANDS` names each dash's maker and model line.
+
+- The old plaques are recorded (`brands.plaque`, `dashlib.badge`'s arguments), not drawn. `build.build_one` calls
+  `brands.finish` once the design is built: the field is the clear flat rectangle round the old plaque's centre (round
+  646, 46 on the curved consoles, whose rim name line is gone; the Primani's vents are 88 px, the right one at x 692).
+- Each maker's mark is a state sprite, `brand_<maker>_<design>`, `src` `brand`, `when` the maker: shaded on that dash,
+  with its shadows, lit at night like the key. All five are cut where they fit (2 px clear each side, the model line's
+  shadow inside); the Dash Elite holds only the Dash mark, the All-Terrain no Chevalier or Masterson, the Primani no
+  Franklin. `DashPx` lists them per design (`brands`).
+- The model line is live text (role `model`, gated the same way): the brand's model colour, the design's sub line after
+  it in red (`tag`, left out where it repeats the model). Its colours are read off a render of the proof's lettering at
+  that spot. Every check (`check_flat`) runs on each mark's box and each model line.
+- The game picks by the car's maker (`ZeD_Dashboard.lua`, `_brandOf`): the maker word of the game's name for the car,
+  or for one of the game's own families with none (a language that writes the makers in its own script) the design's
+  car, the Step Van's own (`FAMILY_CAR`). A maker whose mark this dash lacks, or one we don't know (a modded car), gets
+  `plaque`: today's plaque, its plate art the sprite `brand_plaque_<design>` and its name live, as before. The fleet
+  dashes keep their unit stencils and the race car has no badge.
+- `luatest.py badges` checks each case's mark and tag; `ZeDUI/tools/qa/zedqa_dash_brands.lua` (`dash_brands.txt`) in game.

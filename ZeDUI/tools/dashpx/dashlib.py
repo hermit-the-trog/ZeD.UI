@@ -74,6 +74,9 @@ class Build:
         s.hubs = []   # a needle's own hub or shroud (cx, cy, mask) where it is more than the dome at its pivot
         s.movers = [] # what a state sprite moves over the plate (sprite name, mask): the key, its ring and fob in each position
         s.shroud = None   # the steering column's shroud (mask), where the design has one
+        s.plaques = []    # today's console plaques, kept only for a maker we don't know (brands.plaque, Oct 29 2026)
+        s.brand = None    # the console's maker marks (brands.finish): the field and the marks cut for it
+        s.late_parts = [] # live parts that draw over the state sprites (the marks' model lines, the plaque's name)
 
     # ---- records
     def part(s, t, **kw):
@@ -917,13 +920,9 @@ def vents_pair(b, y, round_=False, chrome=True, x0=510, x1=696, w=88, h=20, on=Z
             vent_rect(d, vx, y, w, h, on=on, bezel="chrome" if chrome else "blackp")
 
 
-def badge(b, x, y, w, h, style="flat", role="label", font="35", scale=1, color="#d8dade", plate=None, align="c", shadow=None,
-          check=True):
-    """the vehicle's name, drawn live by the game (a fleet car's unit number changes per car)"""
-    d = b.d; M = d.M
-    if check: b.check_flat(x - 2, y - 2, w + 4, h + 4, f"badge {role}")
-    th = len(FONTS[font]["A"]) * scale
-    ty = y + (h - th) // 2
+def badge_plate(d, x, y, w, h, plate):
+    """a badge's plate (none: the name stands on the dash itself)"""
+    M = d.M
     base = float(d.h[y + h // 2, x + w // 2])
     if plate == "chrome":
         m = M().rrect(x, y, w, h, 2).get(); d.slab(m, 1.4, "chrome", bevel=1.0, polish=1.0, on=base)
@@ -942,7 +941,22 @@ def badge(b, x, y, w, h, style="flat", role="label", font="35", scale=1, color="
     elif plate == "stamped":
         m = M().rrect(x, y, w, h, 1).get(); d.slab(m, 1.0, "alu", bevel=0.8, polish=0.6, on=base)
         for rx_ in (x + 3, x + w - 4): rivet(d, rx_, y + h // 2, on=base + 1.0)
-    b.part("badge", role=role, x=x, y=ty, w=w, h=th, style=style, font=font, scale=scale, color=color, align=align, shadow=shadow)
+
+
+def badge_part(x, y, w, h, style="flat", role="label", font="35", scale=1, color="#d8dade", align="c", shadow=None, **when):
+    """the live part of a badge: the line the game prints, centred in the box (when: src / when, shown only then)"""
+    th = len(FONTS[font]["A"]) * scale
+    ty = y + (h - th) // 2
+    return {"t": "badge", "role": role, "x": x, "y": ty, "w": w, "h": th, "style": style, "font": font, "scale": scale,
+            "color": color, "align": align, "shadow": shadow, **when}
+
+
+def badge(b, x, y, w, h, style="flat", role="label", font="35", scale=1, color="#d8dade", plate=None, align="c", shadow=None,
+          check=True):
+    """the vehicle's name, drawn live by the game (a fleet car's unit number changes per car)"""
+    if check: b.check_flat(x - 2, y - 2, w + 4, h + 4, f"badge {role}")
+    badge_plate(b.d, x, y, w, h, plate)
+    b.parts.append(badge_part(x, y, w, h, style, role, font, scale, color, align, shadow))
 
 
 def sticker_slot(b, x, y, w, h, match="spiffo"):

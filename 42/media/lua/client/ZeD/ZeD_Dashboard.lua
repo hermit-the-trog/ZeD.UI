@@ -97,8 +97,12 @@ local function _brandName(vehicle, scriptName)
 end
 
 -- The game names a car "<livery> <maker> <model>": "Fossoil Chevalier D6", "Knox Distillery Franklin Valuline",
--- "Wrecked Dash Rancher", "Muldraugh Police Chevalier Nyala". The maker is one of these five.
-local MAKERS = { CHEVALIER = true, DASH = true, FRANKLIN = true, MASTERSON = true, MERCIA = true }
+-- "Wrecked Dash Rancher", "Muldraugh Police Chevalier Nyala". The maker is one of these five (each names its mark on the
+-- console, DashPx des.brands).
+local MAKERS = { CHEVALIER = "chevalier", DASH = "dash", FRANKLIN = "franklin", MASTERSON = "masterson", MERCIA = "mercia" }
+-- the game's own families whose car is not the dash's own, by script: the maker and model when the car's name carries
+-- no maker word (a language that writes the makers in its own script). The Chevalier Step Van wears the Valuline's dash.
+local FAMILY_CAR = { { "StepVan", "CHEVALIER", "STEP VAN" } }
 -- the service a fleet livery names leads its unit plate ("Meade Sheriff" -> SHERIFF, "State Trooper" -> TROOPER)
 local SERVICES = { "POLICE", "SHERIFF", "TROOPER", "SWAT", "RANGER", "FIRE", "AMBULANCE", "TAXI" }
 
@@ -108,9 +112,23 @@ local function _join(words, i, j)
     return s
 end
 
+-- The console's mark (director, Oct 29 2026): picked by the car's own maker, never by the dash. The maker's own when the
+-- dash has it cut (des.brands); a maker we don't know (a modded car's) gets the plaque. nil: a dash with no marks (the
+-- fleet keeps its unit stencils, the race car has no badge).
+local function _brandOf(design, make)
+    local list = design.brands
+    if not list then return nil end
+    local want = MAKERS[make]
+    if want then
+        for i = 1, #list do if list[i] == want then return want end end
+    end
+    return "plaque"
+end
+
 -- The badge roles a design's badge parts ask for: the maker and model as one line (full), the make, the
--- model, the design's sub line ("5.0", "D6", "4X4"), and a fleet car's unit line ("TAXI - CAB 26").
--- The livery never reaches a maker's badge: a Fossoil D6 still says CHEVALIER. A name with no maker in
+-- model, the design's sub line ("5.0", "D6", "4X4"), the performance tag after a mark's model line (the sub line
+-- unless the model already says it: not the D6's), and a fleet car's unit line ("TAXI - CAB 26"); and brand, the
+-- console's mark. The livery never reaches a maker's badge: a Fossoil D6 still says CHEVALIER. A name with no maker in
 -- it is all livery when the car is one of the game's own ("Spiffo Van", "Creature Cruiser", "Taxi"), and the
 -- badge shows the design's own car; a modded car's name ("Ford Bronco") is its own maker and model.
 local function _badges(design, vehicle, scriptName, ownFamily)
@@ -124,6 +142,10 @@ local function _badges(design, vehicle, scriptName, ownFamily)
         livery, make, model = _join(words, 1, mi - 1), words[mi], _join(words, mi + 1, #words)
     elseif ownFamily then
         livery, make, model = name, design.make or name, design.model or name
+        local base = tostring(scriptName or ""):gsub("^Base%.", "")
+        for _, fc in ipairs(FAMILY_CAR) do
+            if base:sub(1, #fc[1]) == fc[1] then make, model = fc[2], fc[3]; break end
+        end
     else
         local fi = 1                                     -- a model year leads many modded names ("1992 Ford ...")
         while fi < #words and words[fi]:match("^%d+$") do fi = fi + 1 end
@@ -137,8 +159,12 @@ local function _badges(design, vehicle, scriptName, ownFamily)
     local wordKey = (fleet == "TAXI") and "UI_ZeD_Dash_UnitCab" or ((fleet == "FIRE") and "UI_ZeD_Dash_UnitEngine" or "UI_ZeD_Dash_UnitUnit")
     -- painted on the car: a plain hyphen (no middle dots, director Oct 16 2026)
     local unit = ZeD.tr(wordKey, fleet, string.format("%02d", 10 + (id % 90)))
-    return { full = make .. " " .. model, make = make, model = model, sub = design.sub or "", unit = unit, livery = livery, name = name }
+    local sub = design.sub or ""
+    local tag = (sub ~= "" and not model:find(sub, 1, true)) and sub or ""
+    return { full = make .. " " .. model, make = make, model = model, sub = sub, tag = tag, unit = unit, livery = livery, name = name,
+             brand = _brandOf(design, make) }
 end
+D._badges = _badges   -- exposed for QA probes (a modded car's name on a game car: the plaque)
 
 -- ---------------------------------------------------------------------------
 -- Vehicle state (per frame, every read guarded)
@@ -1007,6 +1033,7 @@ function ZeD_Dashboard:prerender()
         self._badgeKey = { v = vehicle, s = scriptName, gen = ZeD._trGen, on = trOn, des = des, id = designId, own = ownFamily }
     end
     self._designId = designId
+    st.brand = self._badge and self._badge.brand      -- the console's mark: the sprite and its model line show by it
     st.keyPos = self:_keyPos(st, now)
     self:_tray(vehicle, des, designId, st, scriptName)
     if designId == "taxi" then self:_hula(vehicle, st, now, dt) else st.hula = 0 end

@@ -90,7 +90,7 @@ for i = 1, CFG.frames do
 end
 for _, h in ipairs(dash._hit) do emit(string.format("H %s %d %d %d %d %s", h.id, h.x, h.y, h.w, h.h, tostring(h.enabled))) end
 local b = dash._badge or {}
-emit("B " .. tostring(dash._designId) .. "|" .. tostring(b.make) .. "|" .. tostring(b.model) .. "|" .. tostring(b.unit))
+emit("B " .. tostring(dash._designId) .. "|" .. tostring(b.make) .. "|" .. tostring(b.model) .. "|" .. tostring(b.unit) .. "|" .. tostring(b.brand) .. "|" .. tostring(b.tag))
 if CFG.hints then
     FOCUS_WIN = dash
     local els = {}
@@ -179,12 +179,12 @@ def hint_check(hint_w):
 
 def badge_check():
     bad = []
-    for script_, name, did, make, model, lead in LT.BADGE_CASES:
+    for script_, name, did, make, model, lead, mark, tag in LT.BADGE_CASES:
         st = dict(LT.STATE_DRIVE); st.update(script=script_, vname=name, radio=None)
         _, _, b, _, _ = run(did, st, k=1, frames=2, paint=False)
         unit = b[3]
-        got = (b[0], b[1], b[2], unit.split(" ")[0])
-        want = (did, make, model, lead or got[3])
-        print(f"  {name:36s} -> {got[0]:10s} {got[1]:9s} {got[2]:10s} {unit}")
+        got = (b[0], b[1], b[2], unit.split(" ")[0], b[4], b[5])
+        want = (did, make, model, lead or got[3], str(mark) if mark else "nil", tag)
+        print(f"  {name:36s} -> {got[0]:10s} {got[1]:9s} {got[2]:14s} {got[4]:9s} {got[5]:4s} {unit}")
         if got != want: bad.append((name, got, want))
     return bad

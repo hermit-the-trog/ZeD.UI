@@ -17,6 +17,7 @@ from dashlib import Build, tab_sprite, TAB_SPRITES
 from live import render_live, needle_pixels
 import designs as DZ
 import radios
+import brands
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "out")
 os.makedirs(OUT, exist_ok=True)
@@ -33,11 +34,23 @@ STATES = {
 
 
 def badge_names(did):
+    """the badge lines the previews print for a design's own car, and its maker's mark (brand) with the tag after the
+    model (badge_tag: the sub line, left out where it repeats the model, as the game does)"""
     title, cabin, seed, fn, sub, unit, radio = DZ.DESIGNS[did]
     words = title.upper().split()
     make, model = (words[0], " ".join(words[1:])) if len(words) > 1 else (words[0], words[0])
+    tag = sub if sub and sub not in model else ""
+    bs = DZ.BRANDS.get(did)
     return {"badge_full": title.upper(), "badge_make": make, "badge_model": model, "badge_sub": sub or "", "badge_unit": unit or "",
-            "radio": radio}
+            "badge_tag": tag, "brand": bs["maker"] if bs else None, "radio": radio}
+
+
+def brand_line(did):
+    """the model line a design's console mark is centred on: (model, tag); ("", "") where the dash wears it elsewhere"""
+    bs = DZ.BRANDS[did]
+    if not bs.get("model_line", True): return "", ""
+    n = badge_names(did)
+    return n["badge_model"], n["badge_tag"]
 
 
 def cut_variant(base, img):
@@ -148,6 +161,9 @@ def build_one(did, verbose=True):
     t0 = time.time()
     b = Build(did, cabin, seed=seed, title=title)
     fn(b)
+    if did in DZ.BRANDS:            # the console's maker marks, in the field the plaque left (brands.py, Oct 29 2026)
+        model, tag = brand_line(did)
+        brands.finish(b, DZ.BRANDS[did]["maker"], model, tag, curvy=DZ.BRANDS[did].get("curvy", False))
     base = b.d.render()
     sprites = {}
     for name, src, vfn, when in b.variants:
@@ -160,6 +176,7 @@ def build_one(did, verbose=True):
         b.part("sprite", src=src, when=when, sprite=name, x=at[0], y=at[1], w=spr.width, h=spr.height)
     for name, im in getattr(b, "extra", {}).items():     # hand-set sprites (round 6: the taxi's hula girl)
         sprites[name] = im
+    b.parts.extend(b.late_parts)     # the marks' model lines and the plaque's name, over the sprites
     for k in TAB_SPRITES:
         if any(p.get("sprite") == k for p in b.parts): sprites[k] = tab_sprite(k)
     # a lever tab or slider knob sweeps its whole travel: no printed legend or mark may lie under it anywhere
