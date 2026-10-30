@@ -1,0 +1,5 @@
+# ZeDUI/tools/qa/p336_only.txt  (Oct 29 2026)
+# The 336 px machine plates and their 200 px narrow faces, by themselves, run with:
+#   zedqa_run.ps1 -Manifest .../p336_only.txt -Mode fullscreen4k     (or -Mode windowed)
+zedqa_prelude.lua | pre                                  # opens both windows, unpauses, god mode
+zedqa_plates_336.lua | p336 | timeout=900                # oven, both microwaves, generator, grill at the run scale and at 0.5

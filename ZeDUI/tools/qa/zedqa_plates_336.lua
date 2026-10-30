@@ -86,10 +86,15 @@ local elecWas = elec and elec:getValue()
 local hydroWas = getWorld():isHydroPowerOn()
 local winsWere = ZeD_CharacterWindow.isOpen()
 local stove, micro, chrome, gen, bbq
+-- (the vanilla actions behind the generator and the grill: the cheat makes them instant, so a slow frame rate at 4K does not
+-- decide whether a press has finished; put back at the end)
+local instantWas = false
+pcall(function() instantWas = p:isTimedActionInstantCheat() end)
 
 step(10, function()
     if elec then elec:setValue(99999); pcall(function() so:toLua() end) end
     getWorld():setHydroPowerOn(true)
+    pcall(function() p:setTimedActionInstantCheat(true) end)
     if ZeD_CharacterWindow.isOpen() then ZeD_CharacterWindow.toggleBothPaired(pn) end
     if not spot then
         travelled, t0 = true, getTimestampMs()
@@ -133,8 +138,19 @@ step(30, function()
 end)
 
 -- ---- what one phase does, at the scale in force
-local PH = "x"
+-- the phase's name carries the real root scale (scale175, scale100, scale050); FORCED: the 0.5 phase
+local PH, FORCED = "x", false
 local function root() return (Sc and Sc.root and Sc.root()) or 1 end
+local function scaleName() return string.format("scale%03d", math.floor(root() * 100 + 0.5)) end
+local function actionBusy()
+    local ok, busy = pcall(function() return ISTimedActionQueue.isPlayerDoingAction(p) end)
+    return ok and busy and true or false
+end
+-- (the generator's, the tank's and the burner's vanilla actions can still be walking the character when a phase
+-- ends: a character pulled away from the oven drops its station, as it should. Clear them before the next face.)
+local function stopActions()
+    pcall(function() ISTimedActionQueue.clear(p) end)
+end
 local function craftZones() local w = WW(); return (w and w._craftState and w._craftState.zones) or {} end
 local function zoneById(id)
     for _, z in ipairs(craftZones()) do if z.type == "plate" and z.id == id then return z end end
@@ -142,7 +158,12 @@ end
 -- a press on the plate's control through the tab's own click path
 local function press(id, tag)
     local z = zoneById(id)
-    if not z then say("FAIL " .. tag .. ": no control " .. id .. " on the face"); fails = fails + 1; return false end
+    if not z then
+        local cur = ST.current(p)
+        say(string.format("FAIL %s: no control %s on the face (station bound %s, character at %.1f,%.1f, an action running %s, plate zones %d)", tag, id,
+            tostring(cur ~= nil), p:getX(), p:getY(), tostring(actionBusy()), #craftZones()))
+        fails = fails + 1; return false
+    end
     SA.onClick(WW(), WW()._craftState, ST.current(p), z.x + math.floor(z.w / 2), z.y + math.floor(z.h / 2))
     return true
 end
@@ -172,7 +193,7 @@ local function faceChecks(tag, obj)
     local mainDes = ZeD.PhysPx.plates[pid]
     local fits = mainDes and (mainDes.w * k0 <= eff - T.sp.scrollbarW)
     check(drawn ~= nil and ((drawn == pid) == (fits and true or false)), tag .. ": " .. (fits and "the main face fits at the whole zoom, and is drawn" or "the main face does not fit, the narrow face is drawn") .. " (" .. tostring(drawn) .. ")")
-    check(PH ~= "scale175" or (not narrowWant), tag .. ": at the director's scale the main face is drawn")
+    check(FORCED or (not narrowWant), tag .. ": at the run's own scale the main face is drawn")
     return des
 end
 
@@ -186,11 +207,21 @@ local function after(f) step(40, f) end
 -- (the generator's and the grill's actions walk the character up to them: back to the spot before the stations, which
 -- Stations.lua lets go of once the character is out of reach)
 local function backAtSpot()
+    step(5, function() stopActions() end)
     step(5, function() if spot then moveTo(spot.x, spot.y, spot.z) end end)
     step(20, function() end)
 end
+-- the World window's action tab: the tab strip's own click
+local function showTab(id)
+    local w = WW()
+    if not w then return end
+    for _, z in ipairs(w._actionTabStrip and w._actionTabStrip._hitZones or {}) do
+        if z.id == "tab:" .. id and w._activeTab ~= id then w._actionTabStrip:onMouseDown(z.x + 2, z.y + 2) end
+    end
+end
 local function stationPhase(label)
     backAtSpot()
+    step(30, function() showTab("craft") end)
     -- the oven: BAKE 1 7 5 START, then TIMER 0 3 0 START, then CANCEL
     openStation("oven", function() return stove end)
     after(function() faceChecks("oven", stove); shot(PH .. "_oven") end)
@@ -229,11 +260,24 @@ local function cardZone(fid)
     for _, z in ipairs((c and (c._lastZones or c._zones)) or {}) do if z.fid == fid then return z, c end end
 end
 -- (the engine switch, the burner and the tank are vanilla timed actions: the character walks up and does them, which takes
--- a while; a press has acted once the thing changed or the action is queued / running)
+-- a while; a press has acted once the thing changed: confirmed by the state itself, not by the action being queued)
 local actionSeen = false
-local function actionBusy()
-    local ok, busy = pcall(function() return ISTimedActionQueue.isPlayerDoingAction(p) end)
-    return ok and busy and true or false
+-- what the character's action queue holds, for a press whose action did not finish
+local function queueDump()
+    local out = {}
+    pcall(function()
+        local q = ISTimedActionQueue.getTimedActionQueue(p)
+        for i, a in ipairs(q.queue or {}) do
+            local valid, jd, started = nil, nil, nil
+            pcall(function() valid = a:isValid() end)
+            pcall(function() jd = a.action and a.action:getJobDelta() end)
+            pcall(function() started = a.action ~= nil end)
+            out[#out + 1] = string.format("%s(valid %s, started %s, delta %s, maxTime %s)", tostring(a.Type), tostring(valid), tostring(started), tostring(jd), tostring(a.maxTime))
+        end
+    end)
+    local st = ""
+    pcall(function() st = string.format(" anim %s, turning %s, speed %s", tostring(p:getActionStateName()), tostring(p:shouldBeTurning()), tostring(getGameTime():getMultiplier())) end)
+    return "[" .. table.concat(out, "; ") .. "]" .. st
 end
 local function cardRun(fid, tag)
     local z, c = cardZone(fid)
@@ -246,7 +290,7 @@ end
 -- the condition for a press that starts a timed action: the state, or the action seen queued
 local function acted(stateFn)
     if actionBusy() then actionSeen = true end
-    return stateFn() or actionSeen
+    return stateFn() and true or false
 end
 local function openCard(kindId, obj)
     local def = OC.kinds[kindId]
@@ -269,43 +313,63 @@ end
 
 local function objectPhase()
     backAtSpot()
+    step(30, function() showTab("loot") end)   -- (the card opens over the Loot view, as a player meets it; over the Craft tab it hides behind the tab)
     step(5, function() openCard("generator", gen) end)
-    step(60, function() cardFace("generator"); shot(PH .. "_generator") end)
+    step(60, function() cardFace("generator") end)
+    step(200, function() shot(PH .. "_generator") end)
     step(5, function() cardRun("gen:engine", "generator") end)
-    waitFor(10, 900, function() return acted(function() return gen:isActivated() end) end, function()
-        check(gen:isActivated() or actionSeen, "generator: the engine switch starts it (" .. (gen:isActivated() and "it runs" or "the start is queued") .. ")")
+    waitFor(10, 3000, function() return acted(function() return gen:isActivated() end) end, function()
+        check(gen:isActivated(), "generator: the engine switch starts it (" .. (gen:isActivated() and "it runs" or "the start was queued and never finished") .. ")")
     end)
     step(40, function() cardRun("gen:engine", "generator") end)
-    waitFor(10, 900, function() return acted(function() return not gen:isActivated() end) end, function()
-        check(not gen:isActivated() or actionSeen, "generator: the engine switch stops it")
+    waitFor(10, 3000, function() return acted(function() return not gen:isActivated() end) end, function()
+        check(not gen:isActivated(), "generator: the engine switch stops it")
         if ZeD_WorldWindow.closeObjectCard then ZeD_WorldWindow.closeObjectCard() end
     end)
+    -- the grill from a known start: nothing queued, not lit, no tank in the cart, one tank in the bag (the vanilla actions
+    -- of the other phase's presses must not decide this phase)
+    step(5, function()
+        stopActions()
+        pcall(function() bbq:setLit(false) end)
+        pcall(function() if bbq:hasPropaneTank() then bbq:removePropaneTank() end end)
+        pcall(function() bbq:setFuelAmount(0) end)
+        local inv = p:getInventory()
+        if not inv:containsType("PropaneTank") then local tank = inv:AddItem("Base.PropaneTank"); if tank then added[#added + 1] = tank end end
+    end)
     step(20, function() openCard("fire", bbq) end)
-    step(60, function() cardFace("grill"); shot(PH .. "_grill") end)
+    step(60, function() cardFace("grill") end)
+    step(200, function() shot(PH .. "_grill") end)
     step(5, function() cardRun("bbq:tank", "grill") end)
-    waitFor(10, 900, function() return acted(function() return bbq:hasPropaneTank() end) end, function()
-        check(bbq:hasPropaneTank() or actionSeen, "grill: the tank part puts a tank in")
+    waitFor(10, 3000, function() return acted(function() return bbq:hasPropaneTank() end) end, function()
+        if not bbq:hasPropaneTank() then say("grill: tank not in: queue " .. queueDump()) end
+        check(bbq:hasPropaneTank(), "grill: the tank part puts a tank in")
     end)
     -- (a new tank holds no gas in this save's items: give the cart some, so the knob has something to light)
     step(60, function() pcall(function() bbq:setFuelAmount(20) end) end)
-    step(30, function() cardRun("bbq:burner", "grill") end)
-    waitFor(10, 900, function() return acted(function() return bbq:isLit() end) end, function()
-        check(bbq:isLit() or actionSeen, "grill: the burner knob lights it (" .. (bbq:isLit() and "lit" or "the light is queued") .. ")")
+    step(60, function()
+        say(string.format("grill: before the burner knob: fuel %s, hasFuel %s, tank %s, lit %s, an action running %s, character at %.1f,%.1f (grill %d,%d)",
+            tostring(bbq:getFuelAmount()), tostring(bbq:hasFuel()), tostring(bbq:hasPropaneTank()), tostring(bbq:isLit()), tostring(actionBusy()),
+            p:getX(), p:getY(), bbq:getSquare():getX(), bbq:getSquare():getY()))
+        cardRun("bbq:burner", "grill")
+    end)
+    waitFor(10, 3000, function() return acted(function() return bbq:isLit() end) end, function()
+        if not bbq:isLit() then say(string.format("grill: not lit: fuel %s, hasFuel %s, tank %s, an action running %s, character at %.1f,%.1f", tostring(bbq:getFuelAmount()), tostring(bbq:hasFuel()), tostring(bbq:hasPropaneTank()), tostring(actionBusy()), p:getX(), p:getY())) end
+        check(bbq:isLit(), "grill: the burner knob lights it (" .. (bbq:isLit() and "lit" or "the light was queued and never finished") .. ")")
         if bbq:isLit() then pcall(function() bbq:setLit(false) end) end
         if ZeD_WorldWindow.closeObjectCard then ZeD_WorldWindow.closeObjectCard() end
     end)
 end
 
 -- ---- phase A: the run's own scale; phase B: 0.5
-step(5, function() PH = "scale175"; say(string.format("phase A: root %.2f (the run's own scale)", root())) end)
+step(5, function() FORCED = false; PH = scaleName(); say(string.format("phase A: root %.2f (the run's own scale)", root())) end)
 step(5, function() pcall(ZeD_Window.resetLayout) end)
-step(40, function() local w = WW(); if w then for _, z in ipairs(w._actionTabStrip and w._actionTabStrip._hitZones or {}) do
-    if z.id == "tab:craft" and w._activeTab ~= "craft" then w._actionTabStrip:onMouseDown(z.x + 2, z.y + 2) end end end end)
 stationPhase("A")
 objectPhase()
 step(10, function()
-    PH = "scale050"
+    stopActions()
+    FORCED = true
     Sc.override = 0.5; Sc.refresh(); ZeD.applyTheme()
+    PH = scaleName()
     say(string.format("phase B: forced root %.2f", root()))
 end)
 step(60, function() pcall(ZeD_Window.resetLayout) end)
@@ -319,6 +383,7 @@ step(20, function()
     pcall(function() if ZeD_WorldWindow.closeObjectCard then ZeD_WorldWindow.closeObjectCard() end end)
     if elec and elecWas ~= nil then elec:setValue(elecWas); pcall(function() so:toLua() end) end
     getWorld():setHydroPowerOn(hydroWas)
+    pcall(function() p:setTimedActionInstantCheat(instantWas) end)
     for _, obj in ipairs(placed) do
         local sq = obj:getSquare()
         if sq then pcall(function() sq:transmitRemoveItemFromSquare(obj) end) end
