@@ -68,6 +68,13 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     - Rules: picking a preset sets every addition; changing one by hand makes it Custom; Custom keeps
       the hand picks, so it can be gone back to; Loadouts off hides saved loadouts and outfits,
       never deletes them. Existing players keep their saved settings.
+    - **fixed (build, Oct 30, 872b207)** - QA to confirm in game (with the director's yes). Check: the
+      four preset words fit as radio buttons in ZeD setup's new Additions group; each preset moves the
+      switches, a hand change flips to Custom; Custom brings the hand picks back after Apply and a
+      restart (`Zomboid/Lua/ZeD_custom_additions.txt`); a fresh ModOptions.ini starts on Vanilla, all
+      off; Loadouts off hides the Equip fold, pickers, Journal tab, item card's Lists mark and menu,
+      the wheel's Loadouts ring, restock and its pin, and on brings them back unchanged; the game's
+      Mods page stays consistent after Apply. The runner now sets Vanilla Plus for every run.
 
 ## Test process
 
