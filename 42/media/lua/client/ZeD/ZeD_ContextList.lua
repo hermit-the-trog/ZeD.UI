@@ -152,6 +152,7 @@ function ZeD_ContextList:open()
     local D = ZeD.Input and ZeD.Input.Detector
     self._nav = (D and D.getMode and D.getMode() == "gamepad") and "pad" or "mouse"
     self._lastMx, self._lastMy = getMouseX(), getMouseY()   -- (the panel covers the screen: its mouse is the screen's)
+    self:_notePress()
     if JoypadState and JoypadState.players and JoypadState.players[self.player + 1] then
         self._joyfocus = true
         pcall(function() if setJoypadIgnoreAimUntilCentered then setJoypadIgnoreAimUntilCentered(self.player, true) end end)
@@ -449,10 +450,25 @@ function ZeD_ContextList:update()
     end
 end
 
-function ZeD_ContextList:onMouseDown(x, y) return true end
+-- A list opened by a press (a picker's zone answers on the button going down) gets
+-- that click's release too: it must not close the list or choose under it (Oct 30
+-- 2026, the director's mouse pass: the loadout and Journal pickers stayed open only
+-- while the button was held). Dragged onto a row, the release still chooses it, as
+-- a System 7 pull-down does.
+function ZeD_ContextList:_notePress()
+    self._openPress = isMouseButtonDown and isMouseButtonDown(0) and true or false
+    self._openPx, self._openPy = getMouseX(), getMouseY()
+end
+
+function ZeD_ContextList:onMouseDown(x, y) self._openPress = false; return true end
 
 function ZeD_ContextList:onMouseUp(x, y)
     local li, ri = rowAt(self, x, y)
+    if self._openPress then
+        self._openPress = false
+        local moved = math.abs(getMouseX() - (self._openPx or 0)) + math.abs(getMouseY() - (self._openPy or 0)) > ZeD.T.px(4)
+        if not (li and moved) then return true end
+    end
     if not li then self:close(); return true end
     local lv = self._levels[li]
     if not live(lv.rows[ri] and lv.rows[ri].def) then return true end

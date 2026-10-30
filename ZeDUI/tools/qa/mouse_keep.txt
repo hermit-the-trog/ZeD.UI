@@ -1,0 +1,2 @@
+# Oct 30 2026: the prelude only, for real-mouse checks with -KeepOpen (zedqa_mouse_run.ps1)
+zedqa_prelude.lua | pre

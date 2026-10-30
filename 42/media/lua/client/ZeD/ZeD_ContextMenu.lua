@@ -755,6 +755,13 @@ function ZeD_ContextMenu:onMouseUpOutside(x, y)
     self:close()
 end
 
+-- The press outside closes it too, as vanilla's ISContextMenu does: the release outside
+-- reaches the menu only when nothing under the pointer takes it, so a click on a window
+-- left the menu open over the inventory (Oct 30 2026, the director's mouse pass)
+function ZeD_ContextMenu:onMouseDownOutside(x, y)
+    self:close()
+end
+
 -- Scroll wheel inside the menu advances the selection (bonus mouse affordance)
 function ZeD_ContextMenu:onMouseWheel(del)
     -- del > 0 scrolls down in PZ — we remap to next/prev

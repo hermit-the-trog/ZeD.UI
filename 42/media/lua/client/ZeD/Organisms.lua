@@ -779,6 +779,15 @@ end
 -- The help line: surface 2 with the structure line on top, then the controller's prompts
 -- (gamepad) or the help words in F2 textDim (mouse), and the grow box at the right end
 function ZeD_Window:_drawHelpLine(p, w, h, lit)
+    -- The engine runs update() only every 100 ms, apart from drawing: a stamp made there was gone
+    -- by the next frame drawn, and the line blinked between the window box's words and the status
+    -- line (Oct 30 2026, the director's mouse pass). The boxes' hover (watched each frame,
+    -- _watchBoxes) and what update() found (_updHelp, the Reader's) are stamped here instead.
+    if not self._helpText then
+        local uh = (self._wboxHover and ZeD.tr("UI_ZeD_WinMenu_Help"))
+            or (self._closeHover and ZeD.tr("UI_ZeD_WinMenu_CloseHelp")) or self._updHelp
+        if uh then ZeD.Help.set(self, uh) end
+    end
     local text = ZeD.Help.take(self)   -- (taken every frame, so a stamp never outlives its frame)
     local T = ZeD.T
     local fH = self:footerHeight()
@@ -868,6 +877,7 @@ function ZeD_Window._drawTop(win)
     local w, h = win:getWidth(), win:getHeight()
     local shaded = win.isCollapsed or win.windowShaded
     local lit = (not shaded) and win._rzLit or nil
+    win:_watchBoxes()   -- (every frame drawn: update() runs only every 100 ms)
     if not shaded then
         win:_drawHelpLine(p, w, h, lit)
         if lit then drawHandle(win, p, w, h, lit) end
@@ -1242,18 +1252,19 @@ end
 -- (The main menu's windows answer for themselves: the desk's glass lies over them, ZeD_MMWindow)
 function ZeD_Window:pointerOn() return self:isMouseOver() end
 
-function ZeD_Window:update()
-    ISPanel.update(self)
-
-    -- These controls poll the raw mouse, so each one has to tell a press that began on
-    -- it from a button that was already down when the pointer arrived (a drag released
-    -- over the close box, a held button crossing the grow box) and from a press that
-    -- landed on another window drawn above this one. `fresh` is the frame the button
-    -- went down; the boxes and edges arm on that frame only, while pointerOn says
-    -- no window above holds the pointer.
+-- The close box and the window box. These controls poll the raw mouse, so each one has to
+-- tell a press that began on it from a button that was already down when the pointer
+-- arrived (a drag released over the close box) and from a press that landed on another
+-- window drawn above this one: they arm on the frame the button went down only, while
+-- pointerOn says no window above holds the pointer. The engine runs update() only every
+-- 100 ms (its UI tick, 42.22), so a quick click could fall between two updates and the box
+-- missed it (Oct 30 2026, the director's mouse pass): the boxes are watched on every frame
+-- drawn too (_drawTop), and what a release on them asks for waits in _boxDo for update(),
+-- so a window never closes and a menu never opens in the middle of a draw.
+function ZeD_Window:_watchBoxes()
     local down = isMouseButtonDown(0)
-    local fresh = down and not self._uiPrevDown
-    self._uiPrevDown = down
+    local fresh = down and not self._boxPrevDown
+    self._boxPrevDown = down
     local mx = getMouseX() - self:getAbsoluteX()
     local my = getMouseY() - self:getAbsoluteY()
 
@@ -1263,18 +1274,11 @@ function ZeD_Window:update()
         local inside = mx >= cb.x and mx <= cb.x + cb.w and my >= cb.y and my <= cb.y + cb.h
         if inside and not self:pointerOn() then inside = false end
         self._closeHover = inside
-        if inside then ZeD.Help.set(self, ZeD.tr("UI_ZeD_WinMenu_CloseHelp")) end
-
         if down then
             if fresh and inside then self._closeWasDown = true end
         elseif self._closeWasDown then
             self._closeWasDown = false
-            if inside then
-                -- a window whose close means something of its own (a prompt's close is its No)
-                -- says so in closeAction; any other window just closes
-                if self.closeAction then self:closeAction() else self:close() end
-                return
-            end
+            if inside then self._boxDo = "close" end
         end
     end
 
@@ -1284,16 +1288,40 @@ function ZeD_Window:update()
         local inside = mx >= box.x and mx < box.x + box.w and my >= box.y and my < box.y + box.h
         if inside and not self:pointerOn() then inside = false end
         self._wboxHover = inside
-        if inside then ZeD.Help.set(self, ZeD.tr("UI_ZeD_WinMenu_Help")) end
         if down then
             if fresh and inside then self._wboxWasDown = true end
         elseif self._wboxWasDown then
             self._wboxWasDown = false
-            if inside then self:openWindowMenu() end
+            if inside then self._boxDo = "menu" end
         end
+    else
+        self._wboxHover = false
+    end
+end
+
+function ZeD_Window:update()
+    ISPanel.update(self)
+    self._updHelp = nil   -- (the help line stamps it on each frame drawn: _drawHelpLine)
+
+    self:_watchBoxes()
+    local act = self._boxDo
+    self._boxDo = nil
+    if act == "close" then
+        -- a window whose close means something of its own (a prompt's close is its No)
+        -- says so in closeAction; any other window just closes
+        if self.closeAction then self:closeAction() else self:close() end
+        return
+    elseif act == "menu" then
+        self:openWindowMenu()
     end
 
-    -- The resize edges and corners (resizable windows only)
+    -- The resize edges and corners (resizable windows only): `fresh` is the update the
+    -- button went down, as for the boxes
+    local down = isMouseButtonDown(0)
+    local fresh = down and not self._uiPrevDown
+    self._uiPrevDown = down
+    local mx = getMouseX() - self:getAbsoluteX()
+    local my = getMouseY() - self:getAbsoluteY()
     self:_updateResize(down, fresh, mx, my)
 end
 

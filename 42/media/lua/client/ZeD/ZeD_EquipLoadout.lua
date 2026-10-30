@@ -5,7 +5,8 @@
 -- r2_07; the director: "Loadout lists should live in the journal tab. They can
 -- be applied/stocked in the equipment tab")
 --
---   * The bar under Equipped (both views, rows of 38 units on surface 2): the
+--   * The bar in a Loadouts fold under the doll and the lists, shut until opened
+--     (Oct 30 2026; it was pinned under Equipped; both views, rows of 38 units on surface 2): the
 --     outfit (a check when every piece is worn), the loadout, the days (1 to 30),
 --     "ready 4 of 9" (it opens the to-do), Restock with its total time (Unpack
 --     when you are home from a trip), Save (what I wear as an outfit, what I
@@ -96,6 +97,8 @@ local function help(win, text) if ZeD.Help and ZeD.Help.set then ZeD.Help.set(wi
 local function hoverRect(panel, win, x, y, w, h)
     local s = st(win)
     if s.todo and s.clip and s.inView and not inRect(s.clip, panel:getMouseX(), panel:getMouseY()) then return false end
+    -- (the fold inside the Equip tab's scroll: nothing scrolled out of view is hovered)
+    if s.barView and not inRect(s.barView, panel:getMouseX(), panel:getMouseY()) then return false end
     if s.ask and s.inView then return false end
     return ZeD.Atoms.mouseIn(panel, x, y, w, h)
 end
@@ -260,6 +263,8 @@ function EL.closeTodo(win)
     s.todo, s.ask, s.step = false, nil, nil
     s.land = "ready"
     win._gpFocusedEquipSlot = nil
+    -- back to "ready n of m" in the fold, opened if the to-do came from the wheel's ring
+    if EL.openFor then EL.openFor[pnum(win)] = true end
 end
 function EL.todoOpen(win) return win ~= nil and win._el ~= nil and win._el.todo == true end
 
@@ -491,6 +496,67 @@ function EL.drawBar(panel, win, x, y, w)
                 cx = cx + pt.w + gap
             end
         end
+    end
+    return h
+end
+
+-- ---------------------------------------------------------------------------
+-- THE FOLD: the bar under the doll and the lists, shut until opened (Oct 30 2026,
+-- the director: "It's a highly requested feature but also not used a lot. This will
+-- be used at a base then out in the world the other stuff is most useful"). Shut, the
+-- heading names the loadout picked and how ready it is; open, the bar sits under it.
+-- Shut is the default; the choice is kept per player for the session.
+-- ---------------------------------------------------------------------------
+EL.openFor = EL.openFor or {}
+local function foldOpen(win) return EL.openFor[pnum(win)] == true end
+local function headH() return ZeD.T.sp.tabHeaderH or ZeD.T.px(37) end
+
+function EL.sectionH(win, w)
+    if not player(win) then return 0 end
+    return headH() + (foldOpen(win) and EL.barH(win, w) or 0)
+end
+
+-- the heading's words on its right while shut: the loadout and how ready it is, else the outfit
+local function foldSummary(win)
+    local o, lo = R.current(player(win))
+    local s = st(win)
+    if lo then
+        EL.plan(win)   -- (kept a second: the ready count, as the bar's)
+        return lo.name .. " | " .. ZeD.tr("UI_ZeD_EqBar_Ready", s.readyN or 0, s.readyM or 0)
+    end
+    return o and o.name or nil
+end
+
+--- The fold at (x, y), w wide, inside the Equip tab's scroll. view = the scroll's rect in
+--- the panel's coords: what is scrolled out of it takes no press and no hover. Returns its height.
+function EL.drawSection(panel, win, x, y, w, view)
+    local T = ZeD.T
+    if not player(win) then return 0 end
+    local s = st(win)
+    local first = #(win._elZones or {})
+    s.barView = view
+    local open = foldOpen(win)
+    local hh = headH()
+    local title = ZeD.tr("UI_ZeD_EqBar_Title")
+    local hover = hoverRect(panel, win, x, y, w, hh)
+    ZeD.Molecules.drawTabHeader(panel, x, y, w, title, open, hover, nil, { focus = focusOf(win, "fold") })
+    if hover then help(win, ZeD.tr(open and "UI_ZeD_Inv_CatFoldHelp" or "UI_ZeD_Inv_CatOpenHelp")) end
+    local sm = (not open) and foldSummary(win)
+    if sm then
+        local f1, d = T.fontF1, T.textDim
+        local left = x + T.px(40) + tw(T.fontF4, ZeD.Atoms.textCase(title))
+        local right = x + w - T.px(10)
+        local txt = trunc(sm, f1, right - left)
+        panel:drawText(txt, right - tw(f1, txt), y + math.floor((hh - fh(f1)) / 2), d.r, d.g, d.b, d.a or 1, f1)
+    end
+    zone(win, { id = "fold", x = x, y = y, w = w, h = hh, fn = function() EL.openFor[pnum(win)] = not open; sound() end })
+    local h = hh
+    if open then h = h + EL.drawBar(panel, win, x, y + hh, w) end
+    s.barView = nil
+    for i = first + 1, #(win._elZones or {}) do
+        local z = win._elZones[i]
+        z.view = view
+        if win._equipSlotYMap then win._equipSlotYMap["el:" .. z.id] = z.y end   -- (the pad's scroll-follow)
     end
     -- the wheel's pick: open the to-do once the tab draws
     if EL.pending[pnum(win)] then EL.pending[pnum(win)] = nil; EL.openTodo(win) end
@@ -1211,7 +1277,7 @@ function EL.onClick(win, x, y)
     local zs = win._elZones
     for i = #(zs or {}), 1, -1 do
         local z = zs[i]
-        if inRect(z, x, y) and (not z.scrolls or inRect(s.clip, x, y)) then
+        if inRect(z, x, y) and (not z.scrolls or inRect(s.clip, x, y)) and (not z.view or inRect(z.view, x, y)) then
             if z.fn then
                 if s.step and z.id ~= "days" and z.id ~= "days:dec" and z.id ~= "days:inc" then s.step = nil end
                 z.fn()

@@ -633,7 +633,8 @@ function ZeD_Reader:update()
     local F = ZeD.Input and ZeD.Input.Focus
     local quiet = F and F.cuesVisible and F.cuesVisible()
     self._hot = (not quiet) and h and h.fn and h.id or nil
-    if h and h.help and not quiet then ZeD.Help.set(self, h.help) end
+    -- (kept as state: the help line stamps it on each frame drawn, ZeD_Window:_drawHelpLine)
+    if h and h.help and not quiet and not self._updHelp then self._updHelp = h.help end
     if self._jump and self._storyY then
         self.wscroll = math.max(0, (self._storyY[self._jump] or 0) - ZeD.T.px(10))
         self._jump = nil

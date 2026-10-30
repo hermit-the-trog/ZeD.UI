@@ -23,6 +23,7 @@
 -- things, the character home). Screenshots/zqa_rst_*.png. grep "ZEDQA rst".
 local p = getPlayer()
 local pn = p:getPlayerNum()
+local foldWas = nil   -- (the Loadouts fold, put back at the end)
 local L, R, EL = ZeD.Lists, ZeD.Restock, ZeD.EquipLoadout
 local function say(s) print("ZEDQA rst " .. tostring(s)) end
 local function shot(n) pcall(function() getCore():TakeFullScreenshot("zqa_rst_" .. n .. ".png") end) end
@@ -258,8 +259,10 @@ step(20, function()
     L.addLine(p, ofId, lineFor({ sec = "worn", place = "worn:" .. hatLoc, type = hat:getFullType(), name = hat:getDisplayName() }))
     R.setOutfit(p, ofId); R.setLoadout(p, loId); R.setDays(p, 1)
     say("bandages in the building: " .. nBand)
-    -- the Equip tab, the doll view
+    -- the Equip tab, the doll view, the Loadouts fold open (shut by default since Oct 30 2026)
     ZeD.EquipDoll.setView("doll")
+    foldWas = EL.openFor[pn]
+    EL.openFor[pn] = true
     local w = cw()
     local strip = w._tabStripPanel
     if w._activeTab ~= "equip" then
@@ -275,7 +278,7 @@ step(90, function()
     local ids = {}
     for _, z in ipairs(w._elZones or {}) do ids[#ids + 1] = z.id end
     say("bar zones: " .. table.concat(ids, ","))
-    check(w._activeTab == "equip" and #ids >= 6, "the bar draws under Equipped")
+    check(w._activeTab == "equip" and #ids >= 6, "the bar draws in the Loadouts fold (opened above)")
     check(s.readyN == 1 and s.readyM == 6, "ready " .. tostring(s.readyN) .. " of " .. tostring(s.readyM) .. " (the screwdriver on you, of 6 lines)")
     check(s.wornN == 0 and s.wornM == 1, "outfit worn " .. tostring(s.wornN) .. " of " .. tostring(s.wornM))
     local g = w._equipDollGhosts or {}
@@ -673,6 +676,7 @@ step(10, function()
     ZeD.RestockPin.hide(pn)
     ZeD.Settings.restockOption:setValue(restockWas)
     ZeD.EquipDoll.setView(viewWas)
+    EL.openFor[pn] = foldWas
     local w = cw()
     if w then
         EL.closeTodo(w)
