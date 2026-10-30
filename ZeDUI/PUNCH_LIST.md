@@ -17,7 +17,8 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
 1. **Right-click broken in t12.** fixed (t13, staged Oct 30) - QA to confirm on the uploaded build.
    How it got through: no script ever right-clicked an inventory row; 19 build the menu by calling
    the game's menu code directly, so the path from the mouse to the row was never used.
-2. **The radio drawer is full width; it was designed half width.** chosen (Oct 30): with item 3.
+2. **The radio drawer is full width; it was designed half width.** fixed (build, Oct 30, 8abb840): a
+   walkie tab is the half card at every scale from 0.75 to 2.0 (full only at about 0.64); QA to confirm.
    Write every panel's designed width (half or full) where the tests can measure it in game.
    Cause (build, Oct 30): a walkie's 220 px panel, at a whole zoom plus the scrollbar, is wider
    than the half card at every scale (about 265 units at 1.75 against 220). Since the two-widths
@@ -28,7 +29,8 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
    Design, radios and the CD player in the half card, TVs in the full card, house radios and TVs on
    the same faces. Request: `ZeDUI/REQUEST_design_radio_tv_faces_20261030.md`. Washers and dryers
    next; then the pocket watch, alarm clock, timer, remote and pager (ideas, not yet asked for).
-3. **Plates at every scale (design first).** chosen (Oct 30), with Design. At 4K on 1.75 the 336
+3. **Plates at every scale (design first).** fixed (build, Oct 30, 8abb840; Design's
+   HANDOFF_plates_fill_20261030.md); QA to confirm, the `@` textures loading first. At 4K on 1.75 the 336
    pixel plates sit small in their cards. Rule: scale scales everything. Choice: each plate re-laid
    at four widths that fill the full card, 336 (0.75, 1.5), 392 (1.75), 450 (1.0, 2.0 and up), 562
    (1.25); the game draws the widest that fits (85-100% between the listed scales); 0.5 dropped;
@@ -162,8 +164,14 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
       Journal: Save on the right (the write box stays in the body); Papers: Show (All, News, Flyers,
       On map) as a pop-up on the left; Recipes: Category, Sort and Show on the left, as Craft;
       Loadouts: its buttons on the right.
-    - **Skills (director, Oct 30):** no header or band change. Open: segmented bars instead of the
-      row's background fill ("keeping it 93; the segments help info at a glance"); rule to confirm.
+    - **Skills (director, Oct 30):** no header or band change; its bars follow item 22.
+22. **Segmented bars everywhere (director, Oct 30: "keeping it 93; the segments help info at a
+    glance").** chosen. Every fill bar (the shared fill bar: list condition, Health, Protection, animal
+    food and water, fuel, item cards, Skills ...) becomes a row of 10 separate segments, lit or dark,
+    never part-lit. Skills: one segment per level. Rounding is strict: a segment lights only when its
+    whole tenth is reached (4% shows none). Pointing at a bar puts the exact value in the help line
+    ("Condition 64%", "Fitness 5, 40% to level 6"). Not changed: Thermal's temperature scale with its
+    needle, the dash gauges, and progress bands (the action bar, crafting, uploads) stay smooth.
 
 ## Test process
 
