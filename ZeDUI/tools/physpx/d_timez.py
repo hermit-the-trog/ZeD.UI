@@ -20,7 +20,7 @@ import numpy as np
 from physlib import *            # noqa: F401,F403
 from engine import add_ramp
 import d_watches as DW
-from d_watches import soft_poly, octagon, strap, nt, lcd_night
+from d_watches import soft_poly, octagon, strap, cover, nt, lcd_night
 
 add_ramp("lcdglow", "#5ad8c8", light=1.25)        # the INDIGLOW glass: blue-green, lit from behind
 add_ramp("dialglow", "#52d0c2", light=1.25)
@@ -70,7 +70,7 @@ def timez_digital(name="timez_red", worn=True, night=False, lit=False):
         hx, hy = int(round(mx + sx * 1 - 8)), int(round(my + sy * 1 - 8))
         p.hit(pid, max(0, min(W - 16, hx)), max(0, min(H - 16, hy)), 16, 16)
     case = soft_poly(W, H, octagon(*CASE), 5.0)
-    d.slab(case, Z_FACE + 1.0, case_m, bevel=3.2, polish=0.6)
+    cover(d, d.slab(case, Z_FACE + 1.0, case_m, bevel=3.2, polish=0.6))
     d.grain_pebble(case, 0.02, seed=6)
     # the face: a smaller octagon sunk into it, longer at the bottom for the INDIGLOW key and the model name
     face = soft_poly(W, H, octagon(15, 33, 109, 140, 16), 3.0)
@@ -80,10 +80,10 @@ def timez_digital(name="timez_red", worn=True, night=False, lit=False):
     d.text("ALARM", 98, 47, ink, align="r", flatlight=True)
     # the display
     x, y, w, h = TLCD
-    glass = "lcdglow" if lit else nt("lcdpos", night)
+    glass = "lcdglow" if lit else nt("lcdwatch", night)          # the day glass is the CaZios' grey (Oct 29 2026)
     DW.window(d, x - 1, y - 1, w + 2, h + 2, 1.0, face=glass, bezel="blackp", r=1, bezel_t=1, on=Z_FACE + 0.4, lens=False)
-    p.part("radioDisplay", kind="watch", style="lcd", x=x, y=y, w=w, h=h, color="#1a1c16", ghost="#b2b796", fields=TIMEZ_FIELDS,
-           night=lcd_night("lcdpos"), lit={"color": GLOW_INK, "ghost": False})
+    p.part("radioDisplay", kind="watch", style="lcd", x=x, y=y, w=w, h=h, color="#1a1c16", ghost="#a6aa9f", fields=TIMEZ_FIELDS,
+           night=lcd_night("lcdwatch"), lit={"color": GLOW_INK, "ghost": False})
     DW.set_areas(p, x, y, w, h)
     # the INDIGLOW key under the screen, wide and round-ended, in the accent colour; SPEED and START under its ends
     key = soft_poly(W, H, octagon(38, 99, 86, 110, 3), 1.6)
@@ -138,7 +138,7 @@ def timez_analog(name="timez_easy", worn=True, night=False, lit=False):
     # straight lugs
     for ly in (30, 132):
         for lx in (48, 94):
-            d.slab(Mask(W, H).rrect(lx, ly - 8, 8, 20, 2).get(), Z_FACE + 0.6, case_m, bevel=1.6, polish=0.6)
+            cover(d, d.slab(Mask(W, H).rrect(lx, ly - 8, 8, 20, 2).get(), Z_FACE + 0.6, case_m, bevel=1.6, polish=0.6))
     # the pushers and crowns first (the case covers their roots)
     for pid, (x, y) in (("speed", (21, 107)), ("start", (115, 107))):
         px = x + 2 if x < cx else x - 2
@@ -158,7 +158,7 @@ def timez_analog(name="timez_easy", worn=True, night=False, lit=False):
     for (x, y, t) in ((122, 41, "ALARM"), (28, 125, "SPEED"), (122, 125, "START"), (137, 72, "LIGHT")):
         nameplate(d, t, x, y, on=Z_FACE - 1.0, mat="paint_w", font="35", z=0.4, align="c")
     body = disc(d, cx, cy, 48)
-    d.slab(body, Z_FACE + 1.2, case_m, bevel=3.0, polish=0.7 if case_m == "steel" else 0.4)
+    cover(d, d.slab(body, Z_FACE + 1.2, case_m, bevel=3.0, polish=0.7 if case_m == "steel" else 0.4))
     # a thin smooth bezel, then the dial
     ring = disc(d, cx, cy, 43) & ~disc(d, cx, cy, 40)
     d.slab(ring, Z_FACE + 2.2, case_m, bevel=1.0, polish=0.9 if case_m == "steel" else 0.5)
@@ -224,8 +224,7 @@ def timez_analog(name="timez_easy", worn=True, night=False, lit=False):
 def variants(name):
     """the dark picture (when the plate changes in the dark) and, on a Timez, the lit one"""
     v = []
-    if name != "digital_black":                     # the black's glass is already dark: only its figures dim
-        v.append(("night", "dark", True, {"night": True}))
+    v.append(("night", "dark", True, {"night": True}))   # every glass darkens now (the black went grey, Oct 29 2026)
     if name.startswith("timez_"):
         v.append(("lit", "lit", True, {"lit": True}))
     if name.startswith("digital_") or name.startswith("classic_"):

@@ -55,11 +55,15 @@ end
 local CONTAINER_STRIP_W    = 36
 local CONTAINER_BTN_SZ     = 36
 local STRIP_SCROLL_ROW_H   = 16
-local DRAWER_W             = 260
+-- The drawer is one of two widths and no other (director, Oct 29 2026: "a full card and a half card"; a
+-- third width bumps the cards into each other). ITEM_CARD_W is the half card: the item card is drawn at it,
+-- and DRAWER_W (the width a small window steps down to) is the same number. TAB_DRAWER_W and
+-- OBJECT_CARD_W are the full card.
 local ITEM_CARD_W          = 220
+local DRAWER_W             = ITEM_CARD_W
 local TAB_DRAWER_W         = 480
 local OBJECT_CARD_W        = 480   -- S124 object cards (generator, fires, farm plots)
-local DRAWER_PX_SPEED      = DRAWER_W * 8   -- ~2080 design units/sec, matches char window; scaled at use (T.px(DRAWER_PX_SPEED) * dt)
+local DRAWER_PX_SPEED      = 260 * 8   -- ~2080 design units/sec, matches char window; scaled at use (T.px(DRAWER_PX_SPEED) * dt)
 local ACTION_TAB_STRIP_W   = 36
 local ACTION_TAB_BTN_SZ    = 36
 -- Tab strip separator (matches CharacterWindow). Moved up from line ~207 in
@@ -1547,13 +1551,7 @@ local WORLD_TAB_DRAWER_WIDTHS = {
 }
 
 local function getWorldTabDrawerW(tab)
-    local w = WORLD_TAB_DRAWER_WIDTHS[tab] or DRAWER_W
-    -- the Maps tab grows by its extensions' toolbar buttons (the map key, map
-    -- mods' tools: MapsTabExt.lua), so the Survey / Color / Paper switch still fits
-    if tab == "maps" and ZeD.MapsTabExt and ZeD.MapsTabExt.drawerExtraW then
-        w = w + ZeD.MapsTabExt.drawerExtraW()
-    end
-    return w
+    return WORLD_TAB_DRAWER_WIDTHS[tab] or DRAWER_W
 end
 
 -- Tab content renderers
@@ -1818,44 +1816,36 @@ local function getWorldTargetDrawerW(win)
     local T = ZeD.T
     -- S124 scale: returns SCREEN px (compared against the animated _drawerEffW).
     if win._drawerOpen then
+        local half, full = T.px(DRAWER_W), T.px(TAB_DRAWER_W)
         local base = 0
-        if win._drawerMode == "item" then base = T.px(ITEM_CARD_W)
+        if win._drawerMode == "item" then base = half
         elseif win._drawerMode == "tab" then
             base = T.px(getWorldTabDrawerW(win._activeTab))
-            -- an oven or a microwave: wide enough for its control panel at the screen's whole zoom
-            if win._activeTab == "craft" and ZeD.StationAppliance and ZeD.StationAppliance.wantW then
-                local want = ZeD.StationAppliance.wantW(win._playerObj)
-                if want and want > base then base = want end
-            end
-            -- a two-way radio: a walkie's tab is only as wide as its face's panel; a ham set's is wide enough for it,
-            -- or a walkie's width with the set's narrow face where the window holds the drawer in (the cap below)
-            if win._activeTab == "radio" and ZeD.RadioTab and ZeD.RadioTab.wantW then
-                local limit = nil
-                if win._invDrawerOpen and #(win._mcSelected or {}) == 0 then
-                    local maxW = win._maxWinW or math.floor(getCore():getScreenWidth() * 0.5)
-                    limit = math.max(T.px(DRAWER_W), maxW - T.px(CONTAINER_STRIP_W) - T.px(ACTION_TAB_STRIP_W) - T.px(200))
-                end
-                local want = ZeD.RadioTab.wantW(win, base, limit)
-                if want then base = want end
-            end
             -- The window is capped at half the screen, so on a small screen or a
-            -- large text size a wide tab would squeeze the inventory beside it
-            -- below its 200-unit minimum. Give the tab only the room left after
-            -- the inventory's minimum (it scrolls), never less than the standard
-            -- drawer. Multi-column Loot lifts the cap, so it is left alone there.
+            -- large text size a full card would squeeze the inventory beside it
+            -- below its 200-unit minimum. Where the full card does not fit with the
+            -- inventory's minimum (it scrolls), the tab gets the half card, never a
+            -- width in between. Multi-column Loot lifts the cap, so it is left alone there.
             -- (A rolled side (WindowCurtain) keeps the cap: the drawer stays as wide as it
             -- was, so a roll and an unroll only take the side away and give it back. Lifting
             -- the cap while rolled widened the drawer, shoved the window against the screen
             -- edge and left it elsewhere and at another size after the unroll.)
+            local heldIn = false
             if win._invDrawerOpen and #(win._mcSelected or {}) == 0 then
                 local maxW = win._maxWinW or math.floor(getCore():getScreenWidth() * 0.5)
-                local room = maxW - T.px(CONTAINER_STRIP_W) - T.px(ACTION_TAB_STRIP_W) - T.px(200)
-                base = math.max(math.min(base, T.px(DRAWER_W)), math.min(base, room))
+                heldIn = maxW - T.px(CONTAINER_STRIP_W) - T.px(ACTION_TAB_STRIP_W) - T.px(200) < full
             end
+            -- a two-way radio: a walkie's tab is the card its face's panel fits; a ham set's is the full card,
+            -- or the card a walkie's width fits with the set's narrow face where the drawer is held in
+            if win._activeTab == "radio" and ZeD.RadioTab and ZeD.RadioTab.wantW then
+                local want = ZeD.RadioTab.wantW(win, base, heldIn and half or full)
+                if want then base = want end
+            end
+            base = (heldIn or base <= half) and half or full
         end
-        -- S124: the object card needs its full width, over a tab or on its own
+        -- S124: the object card needs the full card, over a tab or on its own
         if win._drawerObject and win._drawerItem == nil then
-            return math.max(base, T.px(OBJECT_CARD_W))
+            return T.px(OBJECT_CARD_W)
         end
         return base
     end

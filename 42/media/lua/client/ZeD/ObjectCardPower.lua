@@ -209,7 +209,7 @@ end
 local function plateFor(d)
     local X = ZeD.PhysPx
     local id = X and (X.items[d.itemType or ""] or X.fallback.generator) or nil
-    return X and X.plates[id] or nil
+    return X and X.plates[id] or nil, id
 end
 local function plateTex(name) return P.tex(ZeD.PhysPx.texdir .. name .. ".png") end
 
@@ -237,8 +237,9 @@ ZeD.ObjectCardPower.plateState = plateState
 local function drawPlate(card, x, y, w, t)
     local T = ZeD.T
     local d = t.d
-    local des = plateFor(d)
+    local des, pid = plateFor(d)
     if not des then return 0 end
+    des = P.pick(pid, w) or des   -- the narrow face where the main face at the whole zoom does not fit the card
     local Sc = ZeD.Scale
     local k = P.kFit((Sc and Sc.root and Sc.root()) or 1, des.w, w)   -- whole zoom, inside the card
     local px0 = x + PL.centre(w, des.w, k)

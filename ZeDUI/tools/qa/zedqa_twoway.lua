@@ -143,7 +143,9 @@ local function faceChecks(w, pid, tag)
         check(math.abs(t.face.x - x0) <= 1, tag .. ": centred in its panel (x " .. t.face.x .. ", want " .. x0 .. ")")
         local dw = math.floor(w._drawerEffW or 0)
         local pw = 220 * t.k + ZeD.T.sp.scrollbarW
-        check(math.abs(dw - pw) <= 1, tag .. ": the tab is only as wide as the face's 220 panel (" .. dw .. " px; panel and scrollbar " .. pw .. ")")
+        -- (Oct 29 2026) a card is the half card or the full card: the smaller one that holds the panel at its zoom
+        local want = (pw <= ZeD.T.px(220)) and ZeD.T.px(220) or ZeD.T.px(480)
+        check(math.abs(dw - want) <= 1, tag .. ": the tab is the card the face's 220 panel fits (" .. dw .. " px; panel and scrollbar " .. pw .. ", card " .. want .. ")")
     else
         local x0 = math.floor((t.view.w - des.w * t.k) / 2)
         check(math.abs(t.face.x - x0) <= 1, tag .. ": centred across the drawer (x " .. t.face.x .. ", want " .. x0 .. ")")
@@ -621,7 +623,7 @@ step(5, function() F.close(pn) end)
 -- ===================================================================== 5b. a small screen: the narrow ham faces
 -- (mockup zed_ham_narrow_v1, approved Oct 25 2026) The World window held in as on a small screen: the drawer may
 -- be no wider than 300 plate px at the plates' whole zoom (600 px at 2x, 300 at 1x), too narrow for a 400 set, so
--- each set shows its narrow face in a tab as narrow as a walkie's, every control still on it. (Oct 28 2026: the
+-- each set shows its narrow face in the half card, every control still on it. (Oct 28 2026: the
 -- limit follows the zoom; a fixed 600 let the wide set fit at 1080p, where the zoom is 1x, and the test failed there.)
 local maxWas, maxSet, liveWasN = nil, false, nil
 step(5, function()
@@ -639,9 +641,10 @@ local function narrowHam(pid)
         check(t and t.pid == npid, pid .. " on a small screen: its narrow face (" .. tostring(t and t.pid) .. ")")
         if not t then return end
         local dw = math.floor(WW()._drawerEffW or 0)
-        local pw = 220 * K + ZeD.T.sp.scrollbarW
-        check(math.abs(dw - pw) <= 1, pid .. ": the tab is a walkie's width (" .. dw .. " px, want " .. pw .. ")")
-        check(t.k == K, pid .. ": the narrow face at the plates' whole zoom " .. K .. " (got " .. tostring(t.k) .. ")")
+        -- the window holds the drawer in: the half card (a card is the half card or the full card, none between)
+        check(math.abs(dw - ZeD.T.px(220)) <= 1, pid .. ": the tab is the half card (" .. dw .. " px, want " .. ZeD.T.px(220) .. ")")
+        -- (the half card holds a 220 panel at the screen's zoom only below 1.5; above it the face steps down whole zooms)
+        check(t.k >= 1 and t.k <= K, pid .. ": the narrow face at a whole zoom that fits the half card (" .. tostring(t.k) .. " of the screen's " .. K .. ")")
         local want = {}
         for _, h in ipairs(ZeD.PhysPx.plates[pid].hits) do want[h.id] = true end
         local n, same = 0, true

@@ -38,7 +38,7 @@ zedqa_grid.lua | grid                            # inventory grid, cell card, pa
 zedqa_sort_groups.lua | sg | timeout=420         # category headers only under Sort by Category; name A-Z / Z-A, cond, wt flat; list + grid, single + multi, both windows
 zedqa_wt_bracket.lua | wtb | timeout=240         # a stack's total in brackets, its open rows and a single their own; list + grid, Large, two columns, narrow WT; wt sort by total
 zedqa_doll.lua | doll                            # Equip tab doll, layers through the pad
-zedqa_doll_v4.lua | dollv4 | timeout=420        # the doll's 38 small slots: all there, no overlap, no crossing lines, worn things land, the pad into / out of both bands, a drop wears, the half card (260 units) folds the bands into layers; the full card (480) shows both bands; all taken off
+zedqa_doll_v4.lua | dollv4 | timeout=420        # the doll's 38 small slots: all there, no overlap, no crossing lines, worn things land, the pad into / out of both bands, a drop wears, the half card (220 units) folds the bands into layers; the full card (480) shows both bands; all taken off
 zedqa_large.lua | lg                             # Large text size: Loot and Equip lists, column widths
 zedqa_curtain.lua | cu | timeout=400             # curtain roll / unroll, close while rolled, tabs while rolled
 zedqa_curtain2.lua | cv                          # Character window curtain, tab switches while rolled
@@ -108,6 +108,8 @@ zedqa_ring_squares.lua | rs | timeout=200       # the hands' condition ring at f
 zedqa_sandbox_ig.lua | sbx | timeout=240         # Sandbox options in game: the pause line only with the switch on, pages and tags, a fixed setting locked, Zombie Count's link, Undo, Apply asks then sets the options / SandboxVars / day length / History, Put back; puts everything back
 zedqa_twoway.lua | tw | timeout=600             # the ten two-way radio faces in the radio tab, their controls, full view, the controller
 zedqa_appliances.lua | ap | timeout=240         # oven and microwave faces at whole zoom in the Craft tab, and in their own window (at the West Point Fossoil: power indoors)
+zedqa_two_widths.lua | tww | timeout=900          # the two widths (Oct 29 2026): every tab, card and the Maps pop-out in both windows is the half card or the full card, the other window never moves or resizes, no overlap, a held-in window gets the half card
+zedqa_plates_336.lua | p336 | timeout=900          # the 336 px machine plates and 200 px narrow faces (Oct 29 2026): oven, both microwaves, generator, grill at the run scale and at 0.5, which face is drawn, presses that act
 
 # ---- vehicles (spawned beside the character and removed; the QA save's own cars are put back)
 zedqa_seat_lightbar_vanilla.lua | sl | expect=FBORenderLevels.getNLevels   # seat chooser and lightbar from vanilla's entry points (the game's own render error late in a long run; not with ZeD alone or off, Oct 27 2026)

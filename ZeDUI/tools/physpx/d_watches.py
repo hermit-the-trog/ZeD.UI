@@ -26,6 +26,7 @@ add_ramp("red_resin", "#7c2222")                   # the red digital's case and 
 add_ramp("face_gold", "#a8893a", light=1.05)       # the gold digital's face
 add_ramp("lcdpos", "#c3c8a6", light=1.05)          # a positive display (dark figures on a light glass)
 add_ramp("lcdblue", "#b4c0cc", light=1.05)         # the dress watch's blue-grey glass
+add_ramp("lcdwatch", "#b3b7ab", light=1.05)        # every CaZio screen (director, Oct 29 2026): one period grey, dark figures
 add_ramp("key_violet", "#6c54cc"); add_ramp("key_teal", "#2ec0b4", light=1.05)
 add_ramp("key_salmon", "#e29c7a", light=1.05); add_ramp("key_orange", "#d8662e")
 add_ramp("key_blue", "#3a62c8")
@@ -34,11 +35,11 @@ add_ramp("dial_green", "#26301f")
 add_ramp("leather", "#5a3a1e")
 add_ramp("nylon_green", "#4b5a36")
 # the dark (director, Oct 16 2026): every watch's screen and dial go faint at night; Timez lights its own
-add_ramp("lcdpos_n", "#4b4f3f"); add_ramp("lcdblue_n", "#454c56"); add_ramp("lcdgrey_n", "#4a4c46")
+add_ramp("lcdpos_n", "#4b4f3f"); add_ramp("lcdblue_n", "#454c56"); add_ramp("lcdgrey_n", "#4a4c46"); add_ramp("lcdwatch_n", "#4a4c46")
 add_ramp("dial_cream_n", "#58544a"); add_ramp("dial_green_n", "#151a12"); add_ramp("paint_dim", "#5e5f62")
 add_ramp("enamel_white_n", "#5a5a56"); add_ramp("paint_r_n", "#5a2420")
 add_ramp("lume", "#eeeadc", light=1.05); add_ramp("lume_glow", "#a6e6b0", light=1.25)
-NIGHT = {"lcdpos": "lcdpos_n", "lcdblue": "lcdblue_n", "lcdgrey": "lcdgrey_n", "dial_cream": "dial_cream_n",
+NIGHT = {"lcdwatch": "lcdwatch_n", "lcdpos": "lcdpos_n", "lcdblue": "lcdblue_n", "lcdgrey": "lcdgrey_n", "dial_cream": "dial_cream_n",
          "dial_green": "dial_green_n", "paint_w": "paint_dim", "paint_c": "paint_dim", "enamel_white": "enamel_white_n",
          "print_gold": "paint_dim", "lume": "lume_glow", "paint_r": "paint_r_n"}
 def nt(mat, night):
@@ -58,6 +59,12 @@ def soft_poly(W, H, pts, r=2.5):
 def octagon(x0, y0, x1, y1, c):
     """a rectangle with its corners cut on the angle, c px back from each corner"""
     return [(x0 + c, y0), (x1 - c, y0), (x1, y0 + c), (x1, y1 - c), (x1 - c, y1), (x0 + c, y1), (x0, y1 - c), (x0, y0 + c)]
+
+
+def cover(d, mask):
+    """a part laid over the straps hides their ridges and links: a seam is darkening, which a later slab keeps, so it
+    showed through the case as a line where the strap tucks under it (director, Oct 29 2026: the bottom connection)"""
+    d.dark[mask] = 0.0
 
 
 def strap(p, x, w, y0, y1, mat="strap", ridge=4, kind="resin"):
@@ -99,6 +106,7 @@ BULB_STEPS = {                                        # per glass: (day mix towa
     "lcdneg": ((0.02, 0.04, 0.06), (0.03, 0.05, 0.08)),
     "lcdpos": ((0.04, 0.07, 0.11), (0.06, 0.11, 0.17)),
     "lcdgrey": ((0.04, 0.07, 0.11), (0.06, 0.11, 0.17)),
+    "lcdwatch": ((0.04, 0.07, 0.11), (0.06, 0.11, 0.17)),
 }
 BULB_DAY_TINT = (236, 214, 130)
 BAYER4 = ((0, 8, 2, 10), (12, 4, 14, 6), (3, 11, 1, 9), (15, 7, 13, 5))
@@ -171,10 +179,10 @@ def flat_key(p, pid, x, y, w, h, mat, label=None, lab_mat="paint_k", z=1.4, r=2)
 # ------------------------------------------------------------------ the digital family
 DIGITAL = {
     #                case         face         ring        key L         key R         metal        print       lcd glass  ink        ghost      strap (mat, kind)        brand ink   metal key ink
-    "digital_black": ("resin",     "face_ink",  "paint_c", "paint_r",    "paint_y",    "key_metal", "paint_c", "lcdneg",  "#e6e6e2", "#1e2022", ("strap", "resin"),      "paint_w", "paint_k"),
-    "digital_red":   ("red_resin", "face_ink",  "paint_c", "paint_y",    "key_blue",   "red_resin", "paint_c", "lcdpos",  "#1a1c16", "#b2b796", ("red_resin", "resin"),  "paint_w", "paint_w"),
-    "digital_dress": ("steel",     "face_ink",  "paint_c", "key_violet", "key_teal",   "key_metal", "paint_c", "lcdblue", "#161a20", "#a2aebb", ("steel", "links"),      "paint_w", "paint_k"),
-    "digital_gold":  ("gold",      "face_gold", "paint_k", "key_salmon", "key_orange", "gold",      "paint_k", "lcdpos",  "#1a1c16", "#b2b796", ("gold", "links"),       "paint_k", "paint_k"),
+    "digital_black": ("resin",     "face_ink",  "paint_c", "paint_r",    "paint_y",    "key_metal", "paint_c", "lcdwatch", "#1a1c16", "#a6aa9f", ("strap", "resin"),      "paint_w", "paint_k"),
+    "digital_red":   ("red_resin", "face_ink",  "paint_c", "paint_y",    "key_blue",   "red_resin", "paint_c", "lcdwatch", "#1a1c16", "#a6aa9f", ("red_resin", "resin"),  "paint_w", "paint_w"),
+    "digital_dress": ("steel",     "face_ink",  "paint_c", "key_violet", "key_teal",   "key_metal", "paint_c", "lcdwatch", "#1a1c16", "#a6aa9f", ("steel", "links"),      "paint_w", "paint_k"),
+    "digital_gold":  ("gold",      "face_gold", "paint_k", "key_salmon", "key_orange", "gold",      "paint_k", "lcdwatch", "#1a1c16", "#a6aa9f", ("gold", "links"),       "paint_k", "paint_k"),
 }
 LCD = (20, 49, 84, 38)
 ARROW_INK = {"face_gold": "paint_k"}                     # the printed tab beside LIGHT: gold ink, dark on a gold face
@@ -194,9 +202,10 @@ def digital(name="digital_black", worn=True, night=False, bulb_on=False):
     # the case: an octagon with dulled corners, its rim bevelled down to the strap
     case = soft_poly(W, H, octagon(8, 24, 116, 152, 17), 3.0)
     d.slab(case, Z_FACE + 1.0, case_m, bevel=3.0, polish=0.6)
+    cover(d, case)
     d.grain_pebble(case, 0.02, seed=5)
     # the face in its own cut-corner frame, a hair down from the case's top
-    face = soft_poly(W, H, octagon(15, 31, 109, 118, 11), 2.0)
+    face = soft_poly(W, H, face_pts(), 2.0)
     d.well(face, 0.6, face_m, bevel=0.8)
     ring = face & ~ndi.binary_erosion(face, iterations=2)
     d.paint(ring & ~ndi.binary_erosion(face, iterations=1), ring_m, flatlight=True)
@@ -254,6 +263,21 @@ def lcd_night(glass):
     return {"color": "#55585a" if glass == "lcdneg" else "#25271f", "ghost": False}   # False, not None: it must override
 
 
+def face_pts(gap=2, dgap=3):
+    """the digital's face: the case's cut corners at the top; at the bottom it follows the metal keys, its edge gap px
+    off their top edge and dgap px (measured up) off their swept corners, so the dark between reads the same on both (director, Oct 29 2026: close the gap)"""
+    l = metal_key_pts(-1)
+    ky = l[0][1]                                   # the keys' top edge
+    (cx0, cy0), (cx1, cy1) = l[4], l[5]            # a key's swept corner, outer end up to inner end
+    yb = ky - gap                                  # the face's bottom edge
+    x0, x1, y0, c = 15, 109, 31, 11
+    # the swept corner's line moved up by gap: where it meets the face's side and its bottom edge
+    k = (cx1 - cx0) / (cy1 - cy0)
+    xb = cx0 + (yb - (cy0 - dgap)) * k             # on the bottom edge
+    ys = (cy0 - dgap) + (x0 - cx0) / k             # on the side
+    return [(x0 + c, y0), (x1 - c, y0), (x1, y0 + c), (x1, ys), (124 - xb, yb), (xb, yb), (x0, ys), (x0, y0 + c)]
+
+
 def metal_key_pts(side):
     """a bottom metal key's outline (side -1 left, +1 right), mirrored about the watch's centre line x = 62"""
     left = [(60, 121), (60, 141), (21, 141), (12, 132), (12, 114), (19, 121)]
@@ -287,10 +311,10 @@ DIGITAL_FIELDS = [
 # ------------------------------------------------------------------ the classic family (round ana-digi)
 CLASSIC = {
     #                   case     bezel    dial          index      strap (mat, kind)          print      brand      hands      lcd glass
-    "classic_black":    ("resin", "steel", "face_ink",   "paint_w", ("strap", "resin"),         "paint_c", "paint_w", "#e6e3dc", "lcdgrey"),
-    "classic_brown":    ("steel", "steel", "dial_cream", "paint_k", ("leather", "leather"),     "paint_k", "paint_k", "#26241f", "lcdgrey"),
-    "classic_gold":     ("gold",  "gold",  "dial_cream", "paint_k", ("gold", "links"),          "paint_k", "paint_k", "#26241f", "lcdgrey"),
-    "classic_military": ("resin", "resin", "dial_green", "paint_w", ("nylon_green", "nylon"),   "paint_c", "paint_w", "#e6e3dc", "lcdgrey"),
+    "classic_black":    ("resin", "steel", "face_ink",   "paint_w", ("strap", "resin"),         "paint_c", "paint_w", "#e6e3dc", "lcdwatch"),
+    "classic_brown":    ("steel", "steel", "dial_cream", "paint_k", ("leather", "leather"),     "paint_k", "paint_k", "#26241f", "lcdwatch"),
+    "classic_gold":     ("gold",  "gold",  "dial_cream", "paint_k", ("gold", "links"),          "paint_k", "paint_k", "#26241f", "lcdwatch"),
+    "classic_military": ("resin", "resin", "dial_green", "paint_w", ("nylon_green", "nylon"),   "paint_c", "paint_w", "#e6e3dc", "lcdwatch"),
 }
 
 
@@ -304,7 +328,7 @@ def classic(name="classic_black", worn=True, night=False, bulb_on=False):
     strap(p, 48, 54, 130, H, strap_m, kind=strap_k)
     # lugs, then the case: a round body
     for ly in (34, 126):
-        d.slab(Mask(W, H).rrect(46, ly - 8 if ly < 88 else ly - 6, 58, 16, 3).get(), Z_FACE + 0.6, case_m, bevel=2.0, polish=0.5)
+        cover(d, d.slab(Mask(W, H).rrect(46, ly - 8 if ly < 88 else ly - 6, 58, 16, 3).get(), Z_FACE + 0.6, case_m, bevel=2.0, polish=0.5))
     # pushers and crown first (the case covers their inner ends)
     for pid, (x, y, w, h) in (("set", (21, 54, 14, 15)), ("alarm", (115, 54, 14, 15)), ("speed", (21, 107, 14, 15)),
                               ("start", (115, 107, 14, 15))):
@@ -319,7 +343,7 @@ def classic(name="classic_black", worn=True, night=False, bulb_on=False):
     d.slab(Mask(W, H).rrect(18, 84, 10, 8, 2).get(), Z_FACE - 0.2, "gold" if case_m == "gold" else "steel", bevel=1.0, polish=0.9)
     p.hit("light", 12, 80, 14, 16)
     body = disc(d, cx, cy, 50)
-    d.slab(body, Z_FACE + 1.2, case_m, bevel=3.0, polish=0.55)
+    cover(d, d.slab(body, Z_FACE + 1.2, case_m, bevel=3.0, polish=0.55))
     # the bezel ring and the dial under the glass
     ring = disc(d, cx, cy, 44) & ~disc(d, cx, cy, 39)
     d.slab(ring, Z_FACE + 2.4, bezel_m, bevel=1.2, polish=0.9)
@@ -339,8 +363,8 @@ def classic(name="classic_black", worn=True, night=False, bulb_on=False):
     x, y, w, h = 53, 98, 44, 14
     gl = window(d, x - 1, y - 1, w + 2, h + 2, 0.6, face=nt(glass, night), bezel=bezel_m, r=0, bezel_t=1, on=Z_FACE + 1.0, lens=False)
     bulb(p, gl, x, y + 6, glass, night=night, lit=bulb_on, reach=36.0, seed=1.1)
-    p.part("radioDisplay", kind="watch", style="lcd", x=x, y=y, w=w, h=h, color="#1a1a1a", ghost="#a8ad90", fields=CLASSIC_FIELDS,
-           night=lcd_night("lcdgrey"))
+    p.part("radioDisplay", kind="watch", style="lcd", x=x, y=y, w=w, h=h, color="#1a1c16", ghost="#a6aa9f", fields=CLASSIC_FIELDS,
+           night=lcd_night("lcdwatch"))
     set_areas(p, 41, 94, 68, 24)
     d.dome(89, 84, 1.4, 1.4, 0.4, "jewel_red_off", polish=0.9, on=Z_FACE + 1.0)
     p.lamp(disc(d, 89, 84, 1.3), "alarmOn", "#ff3a2e", halo=False)
@@ -361,7 +385,7 @@ def expensive(worn=True, night=False):
     strap(p, 46, 58, 0, 46, "gold", kind="links")
     strap(p, 46, 58, 130, H, "gold", kind="links")
     for ly in (34, 126):
-        d.slab(Mask(W, H).rrect(44, ly - 8 if ly < 88 else ly - 6, 62, 16, 3).get(), Z_FACE + 0.6, "gold", bevel=2.0, polish=0.8)
+        cover(d, d.slab(Mask(W, H).rrect(44, ly - 8 if ly < 88 else ly - 6, 62, 16, 3).get(), Z_FACE + 0.6, "gold", bevel=2.0, polish=0.8))
     for pid, (x, y, w, h) in (("start", (115, 55, 14, 14)), ("speed", (115, 108, 14, 14))):
         d.slab(Mask(W, H).rrect(x - 2, y + 4, 12, 7, 2).get(), Z_FACE - 0.2, "gold", bevel=1.0, polish=0.9)
         p.hit(pid, x, y, w, h)
@@ -372,7 +396,7 @@ def expensive(worn=True, night=False):
     for (x, y, t) in ((122, 47, "START"), (122, 126, "SPEED"), (135, 76, "ALARM")):
         nameplate(d, t, x, y, on=Z_FACE - 1.0, mat="paint_w", font="35", z=0.4, align="c")
     body = disc(d, cx, cy, 50)
-    d.slab(body, Z_FACE + 1.2, "gold", bevel=3.0, polish=0.85)
+    cover(d, d.slab(body, Z_FACE + 1.2, "gold", bevel=3.0, polish=0.85))
     # the fluted bezel: ridges all round
     ring = disc(d, cx, cy, 46) & ~disc(d, cx, cy, 39)
     d.slab(ring, Z_FACE + 2.8, "gold", bevel=1.0, polish=1.0)

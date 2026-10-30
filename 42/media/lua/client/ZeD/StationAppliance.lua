@@ -114,8 +114,10 @@ local function spriteName(obj)
     local spr = call(obj, "getSprite")
     return spr and call(spr, "getName") or nil
 end
+-- a narrow face ("oven_grey_n") is its main plate's: it routes and counts as the main plate does
+local function baseOf(pid) return (pid:gsub("_n$", "")) end
 local function isMwPlate(id) return id:sub(1, 3) == "mw_" end
-local function isOvenPlate(id) return id:sub(1, 5) == "oven_" or id == "fryer" end
+local function isOvenPlate(id) return id:sub(1, 5) == "oven_" or baseOf(id) == "fryer" end
 function SA.plateFor(st)
     local X = PX()
     if not X then return nil, nil end
@@ -123,20 +125,6 @@ function SA.plateFor(st)
     if id and not ((st.kind == "micro" and isMwPlate(id)) or (st.kind ~= "micro" and isOvenPlate(id))) then id = nil end
     id = id or X.fallback[st.kind] or "oven_modern"
     return X.plates[id], id
-end
-
--- The Craft tab's width (screen px) that shows this appliance's plate at the screen's own whole
--- zoom, or nil when the tab is not on an appliance. The tab's standard width fits a 456 px
--- plate at 2x only at a 2.0 scale; at 1.75 it fell back to 1x, half size (director, Oct 25 2026:
--- "check that various appliance faces ... are the correct scale in the window").
-function SA.wantW(player)
-    local st = player and ST.current(player)
-    if not (st and (st.kind == "oven" or st.kind == "micro")) then return nil end
-    local des = SA.plateFor(st)
-    if not des then return nil end
-    local Sc = ZeD.Scale
-    local k = P.k((Sc and Sc.root and Sc.root()) or 1)
-    return des.w * k + ZeD.T.sp.scrollbarW + ZeD.T.px(2)
 end
 
 -- ----------------------------------------------------------------------------
@@ -362,9 +350,11 @@ function SA.press(player, st, pid, id, dir)
     if not r.powered then return end
     local p = padOf(st)
     touch(p, id)
-    if pid == "oven_grey" then return greyPress(player, st, r, p, id) end
-    if pid == "oven_modern" then return modernPress(player, st, r, p, id) end
-    if pid == "mw_white" then return mwWhitePress(player, st, r, p, id) end
+    local b = baseOf(pid)
+    if b == "oven_grey" then return greyPress(player, st, r, p, id) end
+    if b == "oven_modern" then return modernPress(player, st, r, p, id) end
+    -- (the chrome microwave has the white one's keypad)
+    if b == "mw_white" or b == "mw_chrome" then return mwWhitePress(player, st, r, p, id) end
     if id == "on" then switch(player, st, true)
     elseif id == "off" then switch(player, st, false)
     elseif id == "onoff" or id == "start" then SA.toggle(player, st)
@@ -535,6 +525,8 @@ function SA.render(panel, win, x, y, w, h, state, st, opts)
     local des, pid = SA.plateFor(st)
     local Sc = ZeD.Scale
     -- whole zoom, inside the column even with the scrollbar showing (so k never flips with the scrollbar)
+    -- the narrow face where the main face at the whole zoom does not fit the column (not in its own window: opts.k)
+    if des and not (opts and opts.k) then des, pid = P.pick(pid, w - T.sp.scrollbarW) end
     local k = (opts and opts.k) or (des and P.kFit((Sc and Sc.root and Sc.root()) or 1, des.w, w - T.sp.scrollbarW)) or 1
     local plH = des and des.h * k or 0
 
