@@ -26,6 +26,10 @@
 -- (ISLootWindowContainerControls_HandlerList) run with a small stand-in for
 -- vanilla's loot window, so their visibility rules stay vanilla's. Light and
 -- Add fuel open the fire card on its own lists instead of a context menu.
+-- A washer, a dryer or a washer-dryer gets one button, the gears, that opens
+-- its face card (ObjectCardLaundry, Oct 30 2026) in place of vanilla's
+-- laundry buttons; ZeD.ObjectCardLaundry.useFace is the one switch back to
+-- the plain ones (punch list 17).
 -- A mod that puts buttons straight onto the game's inventory page (not in the
 -- handler lists) gets them here through CT.addProvider, called from its
 -- ModSupport file (Easy Drop'n'Loot: ModSupport/KADropnLoot.lua).
@@ -41,6 +45,7 @@
 
 require "ZeD/Tr"
 require "ZeD/ObjectCards"
+require "ZeD/ObjectCardLaundry"
 
 ZeD = ZeD or {}
 ZeD.ContainerControls = ZeD.ContainerControls or {}
@@ -106,6 +111,13 @@ local VANILLA_ICON = {
 local FIRE_JUMP = {
     ISLootWindowObjectControlHandler_LightFireOption = "fire:light:1",
     ISLootWindowObjectControlHandler_AddFuelOption   = "fire:fuel:1",
+}
+-- the laundry machines' buttons: the face card's one button takes their place while it shows
+local LAUNDRY = {
+    ISLootWindowObjectControlHandler_ClothingWasherToggle          = true,
+    ISLootWindowObjectControlHandler_ClothingDryerToggle           = true,
+    ISLootWindowObjectControlHandler_CombinationWasherDryerSetMode = true,
+    ISLootWindowObjectControlHandler_CombinationWasherDryerToggle  = true,
 }
 
 local function isFloor(inv) return inv ~= nil and inv:getType() == "floor" end
@@ -383,9 +395,12 @@ local function objectSpecs(content, inv, object)
     cc.handlers = cc.handlers or {}
     local playerObj = content._playerObj
     local stand = standIn(content, inv)
+    -- a laundry machine: its face card (one button, below), else vanilla's plain buttons as they always were
+    local LD = ZeD.ObjectCardLaundry
+    local face = LD ~= nil and LD.useFace(object)
     for _, cls in ipairs(list) do
         local typ = cls.Type
-        if not OURS[typ] then
+        if not OURS[typ] and not (face and LAUNDRY[typ]) then
             local h = cc.handlers[cls]
             if not h then
                 local ok, made = pcall(cls.new, cls)
@@ -441,6 +456,7 @@ local function objectSpecs(content, inv, object)
             end
         end
     end
+    if face then specs[#specs + 1] = LD.rowSpec(playerObj, object) end
     return specs
 end
 
