@@ -2,7 +2,7 @@
 -- Retakes of some gallery v3 sections: run before gallery_v3_zed.lua in a manifest so it
 -- takes only these (its GAL_ONLY). Edit the list for the sections wanted;
 -- gallery_v3_teardown.lua clears it at its end. grep "ZEDQA g3o".
-GAL_ONLY = { hero = true }   -- Oct 25 2026: the belt's hands swapped ends
+GAL_ONLY = { tabs = true }   -- Oct 30 2026 (t13): the Equip doll split, the item card's X
 local keys = {}
 for k in pairs(GAL_ONLY) do keys[#keys + 1] = k end
 table.sort(keys)

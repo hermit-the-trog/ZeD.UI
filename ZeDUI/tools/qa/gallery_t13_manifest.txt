@@ -1,0 +1,10 @@
+# Oct 30 2026: gallery retake for 0.2.0-t13: card 22 (the Equip doll split), card 21 (the item
+# card's X) and the new Loadouts card. zedqa_run.ps1 -Manifest this -Mode fullscreen4k
+zedqa_prelude.lua | pre | timeout=120
+gallery_daylight.lua | day | timeout=120
+gallery_v3_core.lua | g3c | timeout=600
+gallery_v3_stage.lua | g3s | timeout=600
+gallery_v3_only.lua | g3o | timeout=60
+gallery_v3_zed.lua | g3z | timeout=900
+gallery_loadouts.lua | glo | timeout=240
+gallery_v3_teardown.lua | g3t | timeout=600

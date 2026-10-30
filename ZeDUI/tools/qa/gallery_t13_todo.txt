@@ -1,0 +1,7 @@
+# Oct 30 2026: the Loadouts card's to-do again, scrolled to its lines
+zedqa_prelude.lua | pre | timeout=120
+gallery_daylight.lua | day | timeout=120
+gallery_v3_core.lua | g3c | timeout=600
+gallery_v3_stage.lua | g3s | timeout=600
+gallery_loadouts.lua | glo | timeout=240
+gallery_v3_teardown.lua | g3t | timeout=600
