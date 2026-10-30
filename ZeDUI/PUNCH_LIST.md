@@ -155,6 +155,15 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
       right (pick, then act, as Craft); the seven exercise buttons go.
     - **Thermal (director, Oct 30):** the seven view radio buttons become a pop-up menu in the footer
       band, left ("View: Skin temperature"); the Core / Air / Wind readings move up beside the figure.
+    - **Identity (director, Oct 30):** Cut moves into the Hair and beard fold beside Hair | Beard (the
+      fold keeps its own controls). No band.
+    - **Journal (director, Oct 30):** the five pages become a pop-up menu on the header's left ("Page:
+      Journal"), Search on the right: one row, as Craft. Each page's own controls go to the band:
+      Journal: Save on the right (the write box stays in the body); Papers: Show (All, News, Flyers,
+      On map) as a pop-up on the left; Recipes: Category, Sort and Show on the left, as Craft;
+      Loadouts: its buttons on the right.
+    - **Skills (director, Oct 30):** no header or band change. Open: segmented bars instead of the
+      row's background fill ("keeping it 93; the segments help info at a glance"); rule to confirm.
 
 ## Test process
 
