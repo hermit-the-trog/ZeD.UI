@@ -146,6 +146,15 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
       (read-only status), Searching on the right as the main action (a button: Search / Stop searching).
     - **Radio (director, Oct 30):** header as it is (browse arrows, where, name); the brand strip at the
       bottom goes with the new faces (the brand is on the face). No band.
+    - **Rule added (director, Oct 30):** a fold inside a card keeps its own controls; the card's band is
+      for actions on the whole card.
+    - **Equip (director, Oct 30):** header as it is (Equipped, List | Doll on the right). The Loadouts
+      fold keeps its controls inside it. No band.
+    - **Health (director, Oct 30):** the body keeps the figure, the injuries and the picked exercise's
+      description. Footer band: the exercise as a pop-up menu and Time (- 10 +) on the left, Start on the
+      right (pick, then act, as Craft); the seven exercise buttons go.
+    - **Thermal (director, Oct 30):** the seven view radio buttons become a pop-up menu in the footer
+      band, left ("View: Skin temperature"); the Core / Air / Wind readings move up beside the figure.
 
 ## Test process
 
