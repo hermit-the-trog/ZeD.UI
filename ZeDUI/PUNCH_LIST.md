@@ -108,6 +108,12 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     Notes for the director: the dimmed row still lights up under the pointer although it takes no
     click; Restock's third button reads "Access" at this window width (it read "Accessible" in item
     18's shot). Screenshot: ZeDUI/qa/Oct30_mouse_pass/qa19_restock_dim.jpg.
+20. **A dimmed row takes no hover highlight (director, Oct 30: "Yes, no highlight").** chosen.
+    Found by QA in item 19's check: with Loadouts off, the dimmed Restock row still lights up under
+    the pointer although it takes no click. Choice: no hover highlight on a dimmed, inert row (the
+    help line still says why when the pointer rests on it). Build to say whether the same goes for the
+    other dimmed rows (settings that do nothing with ZeD active). Still open: Restock's "Access" cut
+    short at some window widths; the preset buttons' short names (no choice yet).
 
 ## Test process
 
