@@ -20,12 +20,12 @@
 --     leftovers packed, food about to spoil goes back;
 --   * the pad: the Loadouts ring, A restocks in the to-do, B back to the bar.
 -- Puts everything back (lists, setting, items, built things, the set-aside
--- things, the character home). Screenshots/zqa_rs_*.png. grep "ZEDQA rs".
+-- things, the character home). Screenshots/zqa_rst_*.png. grep "ZEDQA rst".
 local p = getPlayer()
 local pn = p:getPlayerNum()
 local L, R, EL = ZeD.Lists, ZeD.Restock, ZeD.EquipLoadout
-local function say(s) print("ZEDQA rs " .. tostring(s)) end
-local function shot(n) pcall(function() getCore():TakeFullScreenshot("zqa_rs_" .. n .. ".png") end) end
+local function say(s) print("ZEDQA rst " .. tostring(s)) end
+local function shot(n) pcall(function() getCore():TakeFullScreenshot("zqa_rst_" .. n .. ".png") end) end
 local function cw() return ZeD_CharacterWindow.getWindow() end
 local fails = 0
 local function check(ok, what) if ok then say("ok   " .. what) else fails = fails + 1; say("FAIL " .. what) end end

@@ -12,6 +12,6 @@ Windows
 - Cards come in two widths only, half and full, so a window no longer grows, bumps or overlaps as you change tabs. The Maps toolbar wraps to a second row when it runs out of room; the oven's Craft tab and the Radio tab keep the card width.
 
 Machines, watches, dashboards
-- Machine plates (microwave, stove, washer and the rest) are redrawn to fit the full card at every scale, with a narrow face when the window is small, and carry the game's own brands.
+- Machine plates (microwave, stove, washer and the rest) are redrawn to fit the full card at every scale, with a narrow face at the smallest sizes, and carry the game's own brands. The chrome microwave has a glass touch keypad; the ham radios' tuning knobs show where they point.
 - Every CaZio and Timez watch has one grey screen (the Indiglo glow stays); the strap joins the case the same way top and bottom.
-- Dashboards reach the bottom of the screen, with a one-point ignition key on a ring and leather fob and a suggested steering column. Late-model gauges have a blue-green light from three bulbs; the needles stay orange.
+- Dashboards reach the bottom of the screen, with an ignition key on a ring and leather fob and a steering column. The 13 civilian dashboards carry the car maker's mark (a modded car of an unknown maker gets a plain plaque). Late-model gauges have a blue-green light; the needles stay orange. The fire pickup's speedometer needle stays on its face.
