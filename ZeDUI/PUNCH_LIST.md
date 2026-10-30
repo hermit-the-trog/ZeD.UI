@@ -24,8 +24,10 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
    rule (Oct 29) a drawer is exactly half or full, so it rounds up to the full card; before, it
    opened at the walkie's own width, a third width. Choice: the walkie goes to Design with item 3,
    drawn to fill the half card at every scale (panels 154 / 180 / 206 / 257 px); it stays full
-   width until then. Still to answer: ordinary radios (not walkies or ham sets) have opened at the
-   full card since mid-October on purpose; stay full, or half?
+   width until then. Ordinary radios, the CD player and TVs (chosen Oct 30): their own faces from
+   Design, radios and the CD player in the half card, TVs in the full card, house radios and TVs on
+   the same faces. Request: `ZeDUI/REQUEST_design_radio_tv_faces_20261030.md`. Washers and dryers
+   next; then the pocket watch, alarm clock, timer, remote and pager (ideas, not yet asked for).
 3. **Plates at every scale (design first).** chosen (Oct 30), with Design. At 4K on 1.75 the 336
    pixel plates sit small in their cards. Rule: scale scales everything. Choice: each plate re-laid
    at four widths that fill the full card, 336 (0.75, 1.5), 392 (1.75), 450 (1.0, 2.0 and up), 562
