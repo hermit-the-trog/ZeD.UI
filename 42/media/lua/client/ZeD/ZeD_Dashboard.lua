@@ -392,9 +392,11 @@ local function _nightLight(self, vehicle, chr, st, des, dt)
     local G = DP.night
     if nd then
         L.map, L.cols, L.rows, L.cell, L.glass = nd.map, nd.cols, nd.rows, nd.cell, nd.glass
+        L.tmap, L.tints, L.needleOwn = nd.tmap, nd.tints, nd.needleOwn   -- a dash lit in two colours (else nil: one tint)
         L.over = lit and nd.plate or nd.dark
     else
         L.map, L.over, L.glass, L.n8 = nil, nil, nil, 0
+        L.tmap, L.tints, L.needleOwn = nil, nil, nil
     end
     L.amb = G and G.amb or 1
     L.levels = G and G.levels or 15

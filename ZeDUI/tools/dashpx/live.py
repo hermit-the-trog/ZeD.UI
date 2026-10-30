@@ -232,39 +232,61 @@ def fmt_value(p, st):
 
 class Night:
     """the game's night rule (ZeD_Plate.lua, PL.light*): nightness n in eighths, the light map's level under a part,
-    the colour multiplier for that level (warm where the bulbs reach); n = 0 is the day, untouched"""
-    def __init__(s, n, lit, levels, night_img=None, dark_img=None, glass=None, cell=4):
+    the colour multiplier for that level in the colour of the light there (the tint map's, else the one bulb's);
+    n = 0 is the day, untouched. data: the bake's night data (its tint map, needleOwn), when the dash has one"""
+    def __init__(s, n, lit, levels, night_img=None, dark_img=None, glass=None, cell=4, data=None):
         import night as NT
         s.NT = NT
         s.n8 = int(math.floor(n * 8 + 0.5)); s.n = s.n8 / 8.0
         s.lit = lit; s.lv = levels; s.cell = cell
         s.night_img, s.dark_img, s.glass = night_img, dark_img, glass or []
         s.amb = NT.amb_level()
+        data = data or {}
+        s.tidx = data.get("_tidx")
+        s.tints = [tuple(t) for t in data.get("tints", ())]
+        s.needle_own = bool(data.get("needleOwn"))
+
+    def _cell(s, x, y):
+        r = int(min(s.lv.shape[0] - 1, max(0, math.floor(y / s.cell))))
+        c = int(min(s.lv.shape[1] - 1, max(0, math.floor(x / s.cell))))
+        return r, c
 
     def level(s, x, y):
         if not s.lit: return s.amb
-        r = int(min(s.lv.shape[0] - 1, max(0, math.floor(y / s.cell))))
-        c = int(min(s.lv.shape[1] - 1, max(0, math.floor(x / s.cell))))
-        return int(s.lv[r, c])
+        return int(s.lv[s._cell(x, y)])
 
-    def mul(s, level): return s.NT.level_mul(level, s.n, s.lit)
+    def tint(s, x, y):
+        """the colour of the light at a plate point, bulbs on (the Lua's tintRaw)"""
+        if s.tidx is None: return None
+        return s.tints[int(s.tidx[s._cell(x, y)])]
+
+    def mul(s, level, tint=None): return s.NT.level_mul(level, s.n, s.lit, tint)
+
+    def mul_at(s, x, y): return s.mul(s.level(x, y), s.tint(x, y))
 
     def dim(s, color, x, y):
         c = hx(color) if isinstance(color, str) else color
-        m = s.mul(s.level(x, y))
+        m = s.mul_at(x, y)
+        return tuple(max(0, min(255, int(v * f))) for v, f in zip(c, m))
+
+    def dim_level(s, color, x, y):
+        """a light-piped needle: its own colour at the level of the light it sits in (the Lua's dimLevel)"""
+        c = hx(color) if isinstance(color, str) else color
+        m = s.mul(s.level(x, y), (1.0, 1.0, 1.0))
         return tuple(max(0, min(255, int(v * f))) for v, f in zip(c, m))
 
     def tint_img(s, im, x, y):
-        m = s.mul(s.level(x + im.width / 2.0, y + im.height / 2.0))
+        m = s.mul_at(x + im.width / 2.0, y + im.height / 2.0)
         a = np.array(im.convert("RGBA")).astype(np.float32)
         a[..., :3] *= np.array(m, np.float32)
         return Image.fromarray(np.clip(a, 0, 255).astype(np.uint8), "RGBA")
 
 
-def _dimruns(cv, runs, color, nt, dx=0, dy=0, alpha=1.0):
-    """runs in a colour that follows the light: each run takes the level at its own middle"""
+def _dimruns(cv, runs, color, nt, dx=0, dy=0, alpha=1.0, piped=False):
+    """runs in a colour that follows the light: each run takes the level at its own middle (piped: the level only)"""
     if nt is None or nt.n8 == 0: cv.runs(runs, color, alpha, dx, dy); return
-    for x, y, w in runs: cv.rect(x + dx, y + dy, w, 1, nt.dim(color, x + dx + w / 2.0, y + dy), alpha)
+    f = nt.dim_level if piped else nt.dim
+    for x, y, w in runs: cv.rect(x + dx, y + dy, w, 1, f(color, x + dx + w / 2.0, y + dy), alpha)
 
 
 def render_live(plate, design, st, k=1, sprites=None, heads=None, night=None):
@@ -291,8 +313,9 @@ def render_live(plate, design, st, k=1, sprites=None, heads=None, night=None):
             allp = body | edge
             sh = [(x + 1, y + 2) for (x, y) in allp]
             cv.runs(pixels_to_runs(sh), (0, 0, 0), 0.45)
-            _dimruns(cv, pixels_to_runs(edge), shade(col, 0.55), nt)
-            _dimruns(cv, pixels_to_runs(body), col, nt)
+            piped = nt is not None and nt.needle_own
+            _dimruns(cv, pixels_to_runs(edge), shade(col, 0.55), nt, piped=piped)
+            _dimruns(cv, pixels_to_runs(body), col, nt, piped=piped)
         elif t == "ribbon":
             v = max(0.0, min(1.0, st.get(p["src"], 0) / float(p["max"])))
             xx = int(round(p["x0"] + (p["x1"] - p["x0"]) * v))
@@ -369,7 +392,7 @@ def render_live(plate, design, st, k=1, sprites=None, heads=None, night=None):
             if p.get("style") == "emboss":
                 draw_text(cv, label, x + 1, y + 1, D("#f0f0ec", bx_, by_), font, scale, p.get("align", "c"))
             draw_text(cv, label, x, y, D(col, bx_, by_), font, scale, p.get("align", "c"), p.get("style", "flat"),
-                      D(p["shadow"], bx_, by_) if p.get("shadow") else None, mul=(nt.mul(nt.level(bx_, by_)) if nt else None))
+                      D(p["shadow"], bx_, by_) if p.get("shadow") else None, mul=(nt.mul_at(bx_, by_) if nt else None))
         elif t == "clock":
             hr, mn = st.get("hour", 10), st.get("minute", 8)
             am = mn * 6 - 90; ah = (hr % 12) * 30 + mn * 0.5 - 90
@@ -431,17 +454,19 @@ def head_face(cv, img, x, y, nt):
     that darkened to its own (the lamp above lights the top of the radio, its lower edge falls away)"""
     if nt is None: cv.sprite(img, x, y); return
     rows = head_rows(nt, x, y, img.width, img.height)
-    top = max(lv for _, _, lv in rows)
-    m = nt.mul(top)
+    top = max(lv for _, _, lv, _ in rows)
+    tt = next(t for _, _, lv, t in rows if lv == top)        # the light of the brightest row (the first of them)
+    m = nt.mul(top, tt)
     a = np.array(img.convert("RGBA")).astype(np.float32); a[..., :3] *= np.array(m, np.float32)
     cv.sprite(Image.fromarray(np.clip(a, 0, 255).astype(np.uint8), "RGBA"), x, y)
-    for (ry, rh, lv) in rows:
-        al = head_shade(nt, lv, top)
+    for (ry, rh, lv, _) in rows:
+        al = head_shade(nt, lv, top, tt)
         if al > 0: cv.rect(x, ry, img.width, rh, (0, 0, 0), al)
 
 
 def head_rows(nt, x, y, w, h):
-    """(y, height, level) per light-map cell row across a rect: the row's level is its cells' mean, rounded"""
+    """(y, height, level, tint) per light-map cell row across a rect: the row's level is its cells' mean, rounded;
+    its tint the light's colour at its middle cell"""
     out = []
     c = nt.cell
     r0, r1 = int(math.floor(y / c)), int(math.floor((y + h - 1) / c))
@@ -454,13 +479,13 @@ def head_rows(nt, x, y, w, h):
         else:
             lv = nt.amb
         yy0 = max(y, r * c); yy1 = min(y + h, (r + 1) * c)
-        out.append((yy0, yy1 - yy0, lv))
+        out.append((yy0, yy1 - yy0, lv, nt.tint(((c0 + c1) // 2) * c, r * c)))
     return out
 
 
-def head_shade(nt, lv, top):
+def head_shade(nt, lv, top, tt=None):
     """the black over a row: what its light lacks against the face's tint (in eighths, like the game)"""
-    m, mt = nt.mul(lv), nt.mul(top)
+    m, mt = nt.mul(lv, tt), nt.mul(top, tt)
     lum = 0.3 * m[0] + 0.59 * m[1] + 0.11 * m[2]
     lt = 0.3 * mt[0] + 0.59 * mt[1] + 0.11 * mt[2]
     if lt <= 0: return 0.0

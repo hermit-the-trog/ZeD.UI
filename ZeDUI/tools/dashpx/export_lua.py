@@ -206,8 +206,10 @@ def main(root):
                 px = a[solid]
                 lum = float((0.2126 * px[:, 0] + 0.7152 * px[:, 1] + 0.0722 * px[:, 2]).mean() / 255.0)
                 if lum > 0.5: des[key] = "#1c1c1a"
-        # at night (night.py): the plate with its bulbs on, the plate in the dark, the light map, the backlit glass
-        nimg, dimg, nd, _lv = NT.bake(did, b, base, DZ.NIGHT[did], seed=seed)
+        # at night (night.py): the plate with its bulbs on, the plate in the dark, the light map, the backlit glass;
+        # a dash lit in two colours (the late models' green gauges) also its tint map (tints, tmap) and needleOwn
+        nimg, dimg, nd, _lv = NT.bake(did, b, base, DZ.NIGHT[did], seed=seed, needles=DZ.NEEDLES_UNDER_TINT)
+        nd.pop("_tidx", None)
         save_png(nimg, os.path.join(tex_dir, nd["plate"] + ".png"))
         save_png(dimg, os.path.join(tex_dir, nd["dark"] + ".png"))
         nd["glass"] = [{"color": g["color"], "r": rects_of_runs(g["runs"])} for g in nd["glass"]]

@@ -28,7 +28,14 @@ import numpy as np
 from PIL import Image
 from engine import RAMPS, OUTLINE, hx
 
-TINT = (1.0, 0.80, 0.56)        # what a 2700 K bulb does to a colour: warm, amber-cream
+TINT = (1.0, 0.80, 0.56)        # what a 2700 K bulb does to a colour: warm, amber-cream (the default bulb, and the
+                                # game's fallback for a dash with no tint map)
+TINT_GREEN = (0.42, 1.00, 0.74)  # a blue-green filtered bulb, the early-90s GM gauge light (director, Oct 29 2026: a
+                                # starting value, approved on the night sheet)
+TINTS = {"amber": TINT, "green": TINT_GREEN}
+DEFAULT_TINT = "amber"          # a light source names its tint in designs.NIGHT; none named is amber
+TINT_EPS = 0.01                 # light below this leans back to the default tint (no edge where a pool of light ends)
+TINT_STEPS = 8                  # a light-map cell's mix of tints, in eighths
 AMB = 0.07                      # the night ambient, a share of the day's shade (the cabin by starlight and street glow)
 BULB_GAIN = 2.5                 # a bulb's power 1 in light units
 LAMP_GAIN = 1.2                 # a lamp's power 1, per point of its row
@@ -44,8 +51,25 @@ DARK_STEPS = (0.3, 0.6)         # the night's two steps under a ramp's darkest
 BACKLIT = ("lcd",)              # glass a car lights from behind while it has power (the 90s odometer and climate LCDs)
 
 
-def warm(c, f=1.0):
-    return tuple(int(max(0, min(255, round(v * t * f)))) for v, t in zip(c, TINT))
+def warm(c, f=1.0, tint=TINT):
+    return tuple(int(max(0, min(255, round(v * t * f)))) for v, t in zip(c, tint))
+
+
+def _lamp_tint(lamp):
+    """a lamp row (x0, x1, y, z, power[, reach][, tint]): its tint, the default unless it names one"""
+    return next((v for v in lamp[5:] if isinstance(v, str)), DEFAULT_TINT)
+
+
+def spec_tints(spec):
+    """the tints a designs.NIGHT entry's lights carry, the default first: ['amber'] for a one-colour dash"""
+    names = [DEFAULT_TINT]
+    w = spec.get("wash")
+    if w and w.get("tint", DEFAULT_TINT) not in names: names.append(w["tint"])
+    for t in [_lamp_tint(lamp) for lamp in spec.get("lamps", ())] +              [next((v for v in bulb[4:] if isinstance(v, str)), DEFAULT_TINT) for bulb in spec.get("bulbs", ())]:
+        if t not in names: names.append(t)
+    for t in names:
+        if t not in TINTS: raise SystemExit(f"night: unknown tint {t!r} (night.TINTS)")
+    return names
 
 
 def hexc(c): return "#%02x%02x%02x" % tuple(int(v) for v in c[:3])
@@ -84,18 +108,24 @@ def _shadow(hh, solid, px, py, pz, bx, by, bz, reach, sel):
 
 
 def _lights(spec):
-    """designs.NIGHT entry -> point lights: (x, y, z, power, radius, spot dir or None, spot power)"""
+    """designs.NIGHT entry -> point lights: (x, y, z, power, radius, spot dir or None, spot power, tint name).
+    A bulb (x, y, z, power[, reach][, tint]) or a lamp row (x0, x1, y, z, power[, reach][, tint]) may name its tint"""
     pts = []
     for (x, y, z, pw, *rest) in spec.get("bulbs", ()):
-        r = rest[0] if rest else 26.0
-        pts.append((float(x), float(y), float(z), float(pw) * BULB_GAIN, float(r), None, 0.0))
-    for (x0, x1, y, z, pw, *rest) in spec.get("lamps", ()):
-        r = rest[0] if rest else 100.0
+        nums = [v for v in rest if not isinstance(v, str)]
+        r = nums[0] if nums else 26.0
+        tn = next((v for v in rest if isinstance(v, str)), DEFAULT_TINT)
+        pts.append((float(x), float(y), float(z), float(pw) * BULB_GAIN, float(r), None, 0.0, tn))
+    for lamp in spec.get("lamps", ()):
+        x0, x1, y, z, pw = lamp[:5]
+        nums = [v for v in lamp[5:] if not isinstance(v, str)]
+        r = nums[0] if nums else 100.0
+        tn = _lamp_tint(lamp)
         n = max(2, int(round((x1 - x0) / 8.0)) + 1)          # a long tube: points close enough to leave no scallops
         for i in range(n):
             x = x0 + (x1 - x0) * i / (n - 1)
             # the hood aims it down at the controls, into the dash
-            pts.append((float(x), float(y), float(z), float(pw) * LAMP_GAIN * 8.0 / 22.0, float(r), (0.0, 1.0, -0.5), 2.0))
+            pts.append((float(x), float(y), float(z), float(pw) * LAMP_GAIN * 8.0 / 22.0, float(r), (0.0, 1.0, -0.5), 2.0, tn))
     return pts
 
 
@@ -201,16 +231,24 @@ def wash_lights(d, parts, spec, seed=0):
     return out
 
 
-def light_field(d, spec, seed=0, parts=()):
+def light_field(d, spec, seed=0, parts=(), by_tint=None):
     """per pixel: E (diffuse light on the real surface), S (the bulbs' glints), Ef (the light on a flat part at the
-    surface, shadows included: the light map)"""
+    surface, shadows included: the light map). With by_tint (a dict), each tint's own share of the light goes in it
+    as {tint name: (E, S, Ef)}: the wash's light and the lamps' kept apart, so a pixel can take the colour of the mix
+    (the totals are summed as before, light by light, so a one-colour dash comes out exactly as it did)"""
     terms = d.lit_terms
     hh = terms["hh"]
     n = _normals(d, terms)
     H, W = hh.shape
     X = d.XX + 0.5; Y = d.YY + 0.5
     E = np.zeros((H, W), np.float32); S = np.zeros((H, W), np.float32); Ef = np.zeros((H, W), np.float32)
-    for (bx, by, bz, pw, R, spot, sp) in _lights(spec):
+    parts_t = {}
+
+    def add_t(tn, e, s_, ef):
+        if by_tint is None: return
+        if tn not in parts_t: parts_t[tn] = [np.zeros((H, W), np.float32) for _ in range(3)]
+        q = parts_t[tn]; q[0] += e; q[1] += s_; q[2] += ef
+    for (bx, by, bz, pw, R, spot, sp, tn) in _lights(spec):
         vx = bx - X; vy = by - Y; vz = bz - hh
         dist = np.sqrt(vx * vx + vy * vy + vz * vz) + 1e-3
         lx, ly, lz = vx / dist, vy / dist, vz / dist
@@ -227,10 +265,13 @@ def light_field(d, spec, seed=0, parts=()):
         hx_, hy_, hz_ = lx, ly, lz + 1.0
         hn = np.sqrt(hx_ * hx_ + hy_ * hy_ + hz_ * hz_)
         ndh = np.clip((n[..., 0] * hx_ + n[..., 1] * hy_ + n[..., 2] * hz_) / hn, 0, 1)
-        E += (ndl * att * vis).astype(np.float32)
-        S += ((ndh ** 30) * att * vis).astype(np.float32)
-        Ef += (np.clip(lz, 0, 1) * att * vis).astype(np.float32)
+        e_ = (ndl * att * vis).astype(np.float32)
+        s_ = ((ndh ** 30) * att * vis).astype(np.float32)
+        ef_ = (np.clip(lz, 0, 1) * att * vis).astype(np.float32)
+        E += e_; S += s_; Ef += ef_
+        add_t(tn, e_, s_, ef_)
     # the gauges: each face washed from its hidden bulb's side, the rim of its opening catching a little
+    wtn = (spec.get("wash") or {}).get("tint", DEFAULT_TINT)
     for (m, rim, bx, by, bz, pw, R) in wash_lights(d, parts, spec, seed):
         vx = bx - X; vy = by - Y; vz = bz - hh
         dist = np.sqrt(vx * vx + vy * vy + vz * vz) + 1e-3
@@ -241,24 +282,43 @@ def light_field(d, spec, seed=0, parts=()):
         hn = np.sqrt(hx_ * hx_ + hy_ * hy_ + hz_ * hz_)
         ndh = np.clip((n[..., 0] * hx_ + n[..., 1] * hy_ + n[..., 2] * hz_) / hn, 0, 1)
         face = m.astype(np.float32); rimf = rim.astype(np.float32) * SPILL
-        E += (att * (face * (0.6 + 0.4 * np.clip(ndl * 2.5, 0, 1)) + rimf)).astype(np.float32)
-        S += ((ndh ** 30) * att * (face * 0.5 + rimf * 2.0)).astype(np.float32)
-        Ef += (att * (face + rimf)).astype(np.float32)
+        e_ = (att * (face * (0.6 + 0.4 * np.clip(ndl * 2.5, 0, 1)) + rimf)).astype(np.float32)
+        s_ = ((ndh ** 30) * att * (face * 0.5 + rimf * 2.0)).astype(np.float32)
+        ef_ = (att * (face + rimf)).astype(np.float32)
+        E += e_; S += s_; Ef += ef_
+        add_t(wtn, e_, s_, ef_)
     # bulbs and lamps never do an even job: a slow, lumpy variation over the panel (a dusty lens, a bent reflector)
     r = np.random.default_rng(seed)
     lump = r.random((H // 16 + 2, W // 16 + 2)).astype(np.float32)
     lump = np.array(Image.fromarray((lump * 255).astype(np.uint8)).resize((W + 32, H + 32), Image.BICUBIC),
                     np.float32)[8:8 + H, 8:8 + W] / 255.0
     uneven = 0.78 + 0.44 * lump
+    if by_tint is not None:
+        for tn, (e_, s_, ef_) in parts_t.items(): by_tint[tn] = (e_ * uneven, s_ * uneven, ef_ * uneven)
     return E * uneven, S * uneven, Ef * uneven
+
+
+def tint_field(by_tint, shape):
+    """per pixel the colour of the light that reaches it: each tint weighted by its own light (E + S), leaning to the
+    default tint where there is next to none -> H x W x 3"""
+    num = np.zeros(shape + (3,), np.float64)
+    den = np.full(shape, TINT_EPS, np.float64)
+    num += TINT_EPS * np.array(TINTS[DEFAULT_TINT], np.float64)
+    for tn, q in by_tint.items():
+        e = np.clip((q[0] + q[1]).astype(np.float64), 0, None)
+        num += e[..., None] * np.array(TINTS[tn], np.float64)
+        den += e
+    return num / den[..., None]
 
 
 # ---------------------------------------------------------------------------------------------------- the plates
 def night_ramp(name, warm_=True):
     """a material's ramp for the night: two darker steps under its darkest (the day's ramps bottom out at a shadow in
-    daylight; a cabin at night goes lower), and with the bulbs on every step warmed to the bulb"""
+    daylight; a cabin at night goes lower), and with the bulbs on every step warmed to the bulb (warm_: True for the
+    default bulb, or a tint (r, g, b))"""
     r = [tuple(int(v * f) for v in RAMPS[name][0]) for f in DARK_STEPS] + list(RAMPS[name])
-    return np.array([warm(c) if warm_ else c for c in r], np.int32)
+    if warm_ is True: warm_ = TINT
+    return np.array([warm(c, tint=warm_) if warm_ else c for c in r], np.int32)
 
 
 def _steps(v, thr):
@@ -274,10 +334,14 @@ def relight(d, day_img, spec, seed=0, lights_on=True, parts=()):
     terms = d.lit_terms
     shade_day = terms["shade"]
     H, W = shade_day.shape
+    by_tint = {}
     if lights_on:
-        E, S, Ef = light_field(d, spec, seed, parts)
+        E, S, Ef = light_field(d, spec, seed, parts, by_tint=by_tint)
     else:
         E = np.zeros((H, W), np.float32); S = E.copy(); Ef = E.copy()
+    # two colours of bulb on one plate (the late models' green gauges under amber lamps): each pixel warmed to the
+    # mix of the light that reaches it; a one-colour dash keeps its one tint, exactly as before
+    tpx = tint_field(by_tint, (H, W)) if (lights_on and len(spec_tints(spec)) > 1) else None
     cav = terms["cav"]
     tex = d.tex; dark = d.dark
     form = tex - dark - 0.30 * np.clip(cav, 0, None) + 0.10 * np.clip(-cav, 0, None)
@@ -301,20 +365,29 @@ def relight(d, day_img, spec, seed=0, lights_on=True, parts=()):
     for mi, name in enumerate(d.names):
         sel = d.solid & (d.mat == mi)
         if not sel.any(): continue
-        ramp = night_ramp(name, warm_=lights_on)
-        out[sel, :3] = ramp[idx][sel]; out[sel, 3] = 255
+        if tpx is None:
+            ramp = night_ramp(name, warm_=lights_on)
+            out[sel, :3] = ramp[idx][sel]
+        else:
+            ramp = night_ramp(name, warm_=False)
+            out[sel, :3] = np.clip(np.round(ramp[idx][sel].astype(np.float64) * tpx[sel]), 0, 255).astype(np.uint8)
+        out[sel, 3] = 255
     # the plate's printed gradients (the temperature scale): paint, lit like the paint around it
     e = d.emit[..., 3] > 0
     if e.any():
         f = np.clip(AMB + Ef * K_LIT / DAY_FLAT, 0, 1)
         src = d.emit[..., :3].astype(np.float32)
-        tint = np.array(TINT if lights_on else (1.0, 1.0, 1.0), np.float32)
-        out[e, :3] = np.clip(src * f[..., None] * tint, 0, 255).astype(np.uint8)[e]
+        if tpx is None:
+            tint = np.array(TINT if lights_on else (1.0, 1.0, 1.0), np.float32)
+            out[e, :3] = np.clip(src * f[..., None] * tint, 0, 255).astype(np.uint8)[e]
+        else:
+            out[e, :3] = np.clip(src[e] * f[e][..., None] * tpx[e].astype(np.float32), 0, 255).astype(np.uint8)
         out[e, 3] = 255
     # the outline ring round the dash, as the day plate draws it
     day = np.asarray(day_img.convert("RGBA"))
     ring = (day[..., 3] > 0) & ~d.solid & ~e
     out[ring] = day[ring]
+    relight.by_tint = by_tint            # (bake reads each tint's share of the light map from here)
     return Image.fromarray(out, "RGBA"), Ef
 
 
@@ -329,14 +402,50 @@ def light_map(Ef, lights_on=True):
     return lv, rows, cols
 
 
+def tint_map(by_tint, shape, names):
+    """the light map's companion: per cell the colour of its light, as an index into a small palette of tints (each
+    tint's share of the cell's flat light Ef, in TINT_STEPS steps, leaning to the default where there is next to none)
+    -> (index array rows x cols, palette [(r, g, b)])"""
+    H, W = shape
+    rows, cols = (H + CELL - 1) // CELL, (W + CELL - 1) // CELL
+
+    def cells(a):
+        pad = np.zeros((rows * CELL, cols * CELL), np.float64); pad[:H, :W] = a
+        return pad.reshape(rows, CELL, cols, CELL).mean(axis=(1, 3))
+    share = []
+    for tn in names:
+        e = cells(np.clip(by_tint[tn][2], 0, None)) if tn in by_tint else np.zeros((rows, cols))
+        if tn == DEFAULT_TINT: e = e + TINT_EPS
+        share.append(e)
+    share = np.stack(share, -1)
+    share /= share.sum(-1, keepdims=True)
+    # the other tints' shares in whole steps; the default takes what they leave
+    q = np.floor(share[..., 1:] * TINT_STEPS + 0.5).astype(int)
+    over = np.maximum(q.sum(-1) - TINT_STEPS, 0)
+    q[..., -1] -= over
+    keys, pal = {}, []
+    idx = np.zeros((rows, cols), int)
+    for r in range(rows):
+        for c in range(cols):
+            k = tuple(int(v) for v in q[r, c])
+            if k not in keys:
+                keys[k] = len(pal)
+                w = [(TINT_STEPS - sum(k)) / TINT_STEPS] + [v / TINT_STEPS for v in k]
+                pal.append(tuple(round(sum(wi * TINTS[tn][j] for wi, tn in zip(w, names)), 3) for j in range(3)))
+            idx[r, c] = keys[k]
+    if len(pal) > 16: raise SystemExit(f"night: {len(pal)} tints in one light map (16 at most, one hex digit)")
+    return idx, pal
+
+
 def amb_level():
     return int(np.clip(np.floor(AMB * LEVELS + 0.5), 0, LEVELS))
 
 
-def level_mul(level, n=1.0, lit=True):
-    """the colour multiplier a live part gets at a light-map level, at nightness n (the Lua's arithmetic)"""
+def level_mul(level, n=1.0, lit=True, tint=None):
+    """the colour multiplier a live part gets at a light-map level, at nightness n (the Lua's arithmetic); tint: the
+    colour of the light there (the tint map's), else the default bulb's"""
     f = level / float(LEVELS)
-    t = TINT if lit else (1.0, 1.0, 1.0)
+    t = (tint or TINT) if lit else (1.0, 1.0, 1.0)
     return tuple((1 - n) + n * f * tc for tc in t)
 
 
@@ -399,13 +508,28 @@ def encode_map(lv):
     return "".join("0123456789abcdef"[v] for v in lv.reshape(-1).tolist())
 
 
-def bake(did, b, day_img, spec, seed=0):
-    """-> night image, dark image, the game's data for the design"""
+def bake(did, b, day_img, spec, seed=0, needles="own"):
+    """-> night image, dark image, the game's data for the design, the light map's levels. A dash lit in more than
+    one colour also gets its tint map (tints: the palette, tmap: a hex digit per cell into it, beside the light map);
+    a dash lit in amber alone has none and the game uses the one bulb colour (DashPx.night.tint), as before.
+    needles: what a needle does on gauges lit in another colour than amber (designs.NEEDLES_UNDER_TINT): "own" keeps
+    its own colour and takes only the light's level, as if light-piped (data.needleOwn); "lit" takes the light's
+    colour like everything else"""
+    if needles not in ("own", "lit"): raise SystemExit(f"night: needles {needles!r} (own or lit)")
     night, Ef = relight(b.d, day_img, spec, seed=seed, lights_on=True, parts=b.parts)
+    by_tint = relight.by_tint
     dark, _ = relight(b.d, day_img, spec, seed=seed, lights_on=False, parts=b.parts)
     lv, rows, cols = light_map(Ef, True)
     data = {"plate": f"dash_{did}_night", "dark": f"dash_{did}_dark", "cell": CELL, "cols": cols, "rows": rows,
             "map": encode_map(lv), "glass": glass_runs(b.d, day_img)}
+    names = spec_tints(spec)
+    if len(names) > 1:
+        ti, pal = tint_map(by_tint, Ef.shape, names)
+        data["tints"] = [list(t) for t in pal]
+        data["tmap"] = encode_map(ti)
+        data["_tidx"] = ti                       # (the previews' copy; the export leaves it out)
+        if needles == "own" and (spec.get("wash") or {}).get("tint", DEFAULT_TINT) != DEFAULT_TINT:
+            data["needleOwn"] = True
     return night, dark, data, lv
 
 

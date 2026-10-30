@@ -71,6 +71,7 @@ class Build:
         s.d = Dash(W, H, seed=seed)
         s.parts = []; s.hits = []; s.variants = []; s.warnings = []; s.meta = {}
         s.inks = []   # printed legends and marks (x, y, w, h, what): nothing that moves may travel over them
+        s.hubs = []   # a needle's own hub or shroud (cx, cy, mask) where it is more than the dome at its pivot
 
     # ---- records
     def part(s, t, **kw):
@@ -94,6 +95,10 @@ class Build:
         s.variants.append((name, src, fn, when))
 
     def warn(s, msg): s.warnings.append(msg)
+
+    def hub(s, cx, cy, mask):
+        """the shroud a needle rises from (the D6's fan speedometer): the needle check lets it cross this"""
+        s.hubs.append((float(cx), float(cy), mask.copy()))
 
     def ink_rect(s, x, y, w, h, what):
         """a printed legend or mark that has to stay readable: a lever tab or slider knob may not ride over it"""

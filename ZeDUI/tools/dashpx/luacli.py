@@ -58,8 +58,8 @@ py_scale = function() return CFG.k end
 py_rect = function(x, y, w, h, a, r, g, b)
     if REC then emit(string.format("R %.3f %.3f %.3f %.3f %.5f %.5f %.5f %.5f", x, y, w, h, a, r, g, b)) end
 end
-py_tex = function(path, x, y, w, h, a)
-    if REC then emit(string.format("T %s %.3f %.3f %.3f %.3f %.5f", path, x, y, w, h, a or 1)) end
+py_tex = function(path, x, y, w, h, a, r, g, b)
+    if REC then emit(string.format("T %s %.3f %.3f %.3f %.3f %.5f %.5f %.5f %.5f", path, x, y, w, h, a or 1, r or 1, g or 1, b or 1)) end
 end
 py_log = function() end
 local function run_file(path, from, to)
@@ -146,8 +146,8 @@ def run(did, state, k=1, frames=40, dt=120, paint=True, hints=False, lua_after=N
             x, y, w, h, a, r, g, b = (float(v) for v in ln[2:].split())
             rec.rect(x, y, w, h, a, r, g, b)
         elif ln.startswith("T "):
-            path_, x, y, w, h, a = ln[2:].rsplit(" ", 5)
-            rec.tex(path_, float(x), float(y), float(w), float(h), float(a))
+            path_, x, y, w, h, a, r, g, b = ln[2:].rsplit(" ", 8)
+            rec.tex(path_, float(x), float(y), float(w), float(h), float(a), float(r), float(g), float(b))
         elif ln.startswith("H "):
             id_, x, y, w, h, en = ln[2:].split()
             hits.append((id_, int(x), int(y), int(w), int(h), en == "true"))

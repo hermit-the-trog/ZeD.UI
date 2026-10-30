@@ -95,55 +95,89 @@ PL.frac = frac
 --   map     the light map, one hex digit (0..levels) per cell x cell plate
 --           pixels, cols a row; amb the level everywhere when the bulbs are
 --           off; tint the bulb's colour { r, g, b } (a list)
+--   tmap    (a dash lit in two colours: the late models' green gauges under
+--           amber lamps) the tint map beside the light map, one hex digit a
+--           cell into tints, a palette of { r, g, b } lists: the colour of the
+--           light in that cell. Without it every cell takes tint.
+--   needleOwn  a needle keeps its own colour and takes only the level (as if
+--           light-piped): the director's pick for needles on green gauges
 --   glass   the backlit LCD glass: { color, r = rects } redrawn while st.power
 -- A part that makes no light (needles, pointers, tabs, the key, badges, the
 -- clock's hands, the radio's face) takes its colour times the multiplier of
--- the map's level under it; lamps, LEDs and displays keep their own.
+-- the map's level under it, in the colour of the light there; lamps, LEDs and
+-- displays keep their own.
 -- ---------------------------------------------------------------------------
-local _mul = {}          -- [0 or 1][n8][level] -> { r, g, b }, made once
-local function mulFor(L, level)
-    local li = L.lit and 1 or 0
-    local byLit = _mul[li]
-    if not byLit then byLit = {}; _mul[li] = byLit end
-    local byN = byLit[L.n8]
-    if not byN then byN = {}; byLit[L.n8] = byN end
+local WHITE = { 1, 1, 1 }   -- the light of no bulb (the dark, and a light-piped needle)
+local _mul = {}          -- [tint][n8][level] -> { r, g, b }, made once (tints are long-lived tables)
+local function mulFor(L, level, t)
+    if not L.lit then t = WHITE elseif not t then t = L.tint or WHITE end
+    local byT = _mul[t]
+    if not byT then byT = {}; _mul[t] = byT end
+    local byN = byT[L.n8]
+    if not byN then byN = {}; byT[L.n8] = byN end
     local m = byN[level]
     if not m then
         local n = L.n8 / 8
         local f = level / (L.levels or 15)
-        local t = L.lit and L.tint or nil
-        m = { r = (1 - n) + n * f * (t and t[1] or 1), g = (1 - n) + n * f * (t and t[2] or 1), b = (1 - n) + n * f * (t and t[3] or 1) }
+        m = { r = (1 - n) + n * f * t[1], g = (1 - n) + n * f * t[2], b = (1 - n) + n * f * t[3] }
         byN[level] = m
     end
     return m
 end
 
--- the map's level at a plate point, bulbs on
-local function levelRaw(L, x, y)
-    if not L.map then return L.amb or 1 end
+-- the cell under a plate point: its place in the map strings (1-based)
+local function cellAt(L, x, y)
     local cell = L.cell or 4
     local c = math.floor(x / cell)
     local r = math.floor(y / cell)
     if c < 0 then c = 0 elseif c >= L.cols then c = L.cols - 1 end
     if r < 0 then r = 0 elseif r >= L.rows then r = L.rows - 1 end
-    local b = string.byte(L.map, r * L.cols + c + 1) or 48
+    return r * L.cols + c + 1
+end
+local function hexAt(s, i)
+    local b = string.byte(s, i) or 48
     if b >= 97 then return b - 87 end
     return b - 48
+end
+-- the map's level at a plate point, bulbs on
+local function levelRaw(L, x, y)
+    if not L.map then return L.amb or 1 end
+    return hexAt(L.map, cellAt(L, x, y))
+end
+-- the colour of the light at a plate point, bulbs on: the tint map's, else the one bulb colour
+local function tintRaw(L, x, y)
+    local tm = L.tmap
+    if tm and L.map then
+        local t = L.tints[hexAt(tm, cellAt(L, x, y)) + 1]
+        if t then return t end
+    end
+    return L.tint or WHITE
 end
 -- the level a part gets: the map's while the bulbs are on, the ambient level while they are off
 local function levelAt(L, x, y)
     if not L.lit then return L.amb or 1 end
     return levelRaw(L, x, y)
 end
-local function lightMul(L, x, y) return mulFor(L, levelAt(L, x, y)) end
-local function dim(L, c, x, y) return P.mulColor(c, mulFor(L, levelAt(L, x, y))) end
-PL.lightLevel, PL.lightMul, PL.dim = levelAt, lightMul, dim
+-- the multiplier at a plate point: one cell lookup for the level and the tint
+local function lightMul(L, x, y)
+    if not L.lit then return mulFor(L, L.amb or 1, WHITE) end
+    if not L.map then return mulFor(L, L.amb or 1, L.tint) end
+    local i = cellAt(L, x, y)
+    local tm = L.tmap
+    local t = tm and L.tints[hexAt(tm, i) + 1] or L.tint
+    return mulFor(L, hexAt(L.map, i), t)
+end
+local function dim(L, c, x, y) return P.mulColor(c, lightMul(L, x, y)) end
+-- a light-piped needle: the level of the light it sits in, not its colour
+local function dimLevel(L, c, x, y) return P.mulColor(c, mulFor(L, levelAt(L, x, y), WHITE)) end
+PL.lightLevel, PL.lightMul, PL.dim, PL.lightTint = levelAt, lightMul, dim, tintRaw
 
 -- the radio's face in the dark: tinted to the light of its brightest cell row, every row below that darkened to
--- its own (the lamp above lights the top of the set, the lower edge falls away); the rows are worked out once
+-- its own (the lamp above lights the top of the set, the lower edge falls away); the rows are worked out once,
+-- each with the colour of the light at its middle ({ y, h, level, tint })
 local function headRows(L, hu, w, h)
     local rows = hu._lightRows
-    if rows and hu._lightMap == L.map then return rows end
+    if rows and hu._lightMap == L.map and hu._lightTmap == L.tmap then return rows end
     rows = {}
     local cell = L.cell or 4
     local r0, r1 = math.floor(hu.y / cell), math.floor((hu.y + h - 1) / cell)
@@ -153,28 +187,28 @@ local function headRows(L, hu, w, h)
         for c = c0, c1 do sum = sum + levelRaw(L, c * cell, r * cell); n = n + 1 end
         local y0 = math.max(hu.y, r * cell)
         local y1 = math.min(hu.y + h, (r + 1) * cell)
-        rows[#rows + 1] = { y0, y1 - y0, math.floor(sum / math.max(1, n) + 0.5) }
+        rows[#rows + 1] = { y0, y1 - y0, math.floor(sum / math.max(1, n) + 0.5), tintRaw(L, math.floor((c0 + c1) / 2) * cell, r * cell) }
     end
-    hu._lightRows, hu._lightMap = rows, L.map
+    hu._lightRows, hu._lightMap, hu._lightTmap = rows, L.map, L.tmap
     return rows
 end
 local function lum(m) return 0.3 * m.r + 0.59 * m.g + 0.11 * m.b end
 local function headFace(cv, tex, hu, w, h, L)
     if not tex then return end
     local rows = headRows(L, hu, w, h)
-    local top = 0
+    local top, tt = 0, nil
     for i = 1, #rows do
         local lv = L.lit and rows[i][3] or (L.amb or 1)
-        if lv > top then top = lv end
+        if lv > top or not tt then top, tt = math.max(top, lv), rows[i][4] end
     end
-    local mt = mulFor(L, top)
+    local mt = mulFor(L, top, tt)
     P.imageTint(cv, tex, hu.x, hu.y, w, h, mt)
     local lt = lum(mt)
     if lt <= 0 then return end
     for i = 1, #rows do
         local lv = L.lit and rows[i][3] or (L.amb or 1)
         if lv < top then
-            local a = math.floor((1 - lum(mulFor(L, lv)) / lt) * 8 + 0.5) / 8
+            local a = math.floor((1 - lum(mulFor(L, lv, tt)) / lt) * 8 + 0.5) / 8
             if a > 0 then P.rect(cv, hu.x, rows[i][1], w, rows[i][2], P.BLACK, a) end
         end
     end
@@ -515,7 +549,9 @@ function PL.drawParts(cv, parts, st, ctx)
             local f = math.max(0, math.min(p.peg and 1.02 or 1, frac(st, p)))
             local a = p.a0 + (p.a1 - p.a0) * f
             local c = P.color((p.low_src and st[p.low_src]) and LOW or p.color)
+            if L and L.needleOwn then L.dim = dimLevel end          -- light-piped: its own colour, the light's level
             P.needle(cv, p.cx, p.cy, a, p.r0, p.r1, p.w or 2, p.hub or 0, c, nil, L)
+            if L then L.dim = dim end
         elseif t == "ribbon" then
             local f = clamp01(frac(st, p))
             local xx = math.floor(p.x0 + (p.x1 - p.x0) * f + 0.5)
