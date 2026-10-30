@@ -8,6 +8,7 @@ from physlib import build
 import preview as PV
 import d_rtv as R
 import offair as O
+O.GAME_ROOT = '/mnt/user-data/uploads/Project Zomboid/SteamApps/common/ProjectZomboid'
 
 FD = "/usr/share/fonts/truetype/dejavu/"
 
@@ -32,9 +33,9 @@ def main(out, k=2):
     rows = [(R.tv_wide, "bars", "Premium Technologies Television: colour bars"),
             (R.tv_black, "signoff_kpa", "ValuTech Television: KPATV signs off"),
             (R.tv_antique, "signoff_life", "Antique Television: Life and Living TV, in black and white"),
-            (R.tv_wide, "standby", "Please stand by"),
+            (R.tv_wide, "signoff_triple_n", "Triple-N signs off (the game's logo)"),
             (R.tv_black, "snow_0", "No signal"),
-            (R.tv_antique, "signoff_turbo", "Antique Television: TURBO")]
+            (R.tv_antique, "signoff_turbo", "Antique Television: TURBO (the game's logo)")]
     st = R.state_tv(True, ch=7, signal=4)
     ims = [(on_set(fn, 392, st, sc).resize((392 * k, 0 or 1), Image.NEAREST) if False else on_set(fn, 392, st, sc), t) for fn, sc, t in rows]
     ims = [(i.resize((i.width * k, i.height * k), Image.NEAREST), t) for i, t in ims]

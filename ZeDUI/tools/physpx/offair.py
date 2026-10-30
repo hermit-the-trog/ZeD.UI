@@ -30,6 +30,15 @@ CHANNELS = [("triple_n", "Triple-N", 2), ("wbln", "WBLN News", 3), ("life", "Lif
             ("bmc", "Brennan Movie Channel", 10), ("gbc", "GBC", 11)]
 COUNTY = "KNOX COUNTRY, KENTUCKY"
 
+# the channels the game already has a logo for (director, Oct 30 2026: "There should be real logos for some of tv and
+# radio in the game art"): the card draws the game's own picture, at runtime, from the game's files (nothing copied
+# into the mod). LOGO_BOX is where it goes on the card, as fractions of the screen (x, y, w, h); the picture is fitted
+# inside, keeping its shape. Triple-N's is its "3N News Now Network" (also on its van and its billboard).
+GAME_LOGOS = {"triple_n": "media/textures/printMedia/logos/ENewsNowNetwork.png",
+              "turbo": "media/textures/printMedia/logos/TurboTV.png"}
+LOGO_BOX = {"triple_n": (0.10, 0.16, 0.80, 0.44), "turbo": (0.10, 0.20, 0.80, 0.34)}
+GAME_ROOT = None          # where the game's media/ lives, to draw the logo into review pictures (None: leave the box empty)
+
 
 # ------------------------------------------------------------------ drawing helpers (on numpy RGB float arrays 0..1)
 def blank(w, h, rgb=(0, 0, 0)):
@@ -221,11 +230,8 @@ def signoff(cid, w, h):
     name, ch = {c[0]: (c[1], c[2]) for c in CHANNELS}[cid]
     cx, cy = w // 2, int(h * 0.42)
     if cid == "triple_n":
-        a = card_frame(w, h, (10, 14, 40), (2, 4, 14))
-        for i, col in enumerate(((220, 40, 40), (240, 240, 240), (40, 90, 220))):      # three Ns stepped, red white blue
-            text(a, "N", cx - 6 * s + i * 6 * s, cy - 6 * s + i * s, s + 1, col, outline=(0, 0, 0), shadow=(0, 0, 0))
-        text(a, "TRIPLE-N", cx, cy + 6 * s, max(1, s - 1), chrome(), outline=(0, 0, 30))
-        text(a, "NATIONAL NEWS NETWORK", cx, cy + 6 * s + 9 * max(1, s - 1), 1, (200, 210, 240), font="35")
+        a = card_frame(w, h, (196, 200, 210), (120, 126, 140))       # a light studio grey: the logo is drawn for paper
+        game_logo(a, cid)
     elif cid == "wbln":
         a = card_frame(w, h, (30, 10, 10), (6, 2, 2))
         r = int(10 * s)
@@ -264,11 +270,7 @@ def signoff(cid, w, h):
                 x = int(cx + (x0 - cx) * (0.2 + 0.8 * t))
                 if 0 <= x < w: a[y, x] = np.array((255, 40, 200), np.float32) / 255
         rect(a, 0, hy, w, 1, (120, 220, 255))
-        x, tw, th = text(a, "TURBO", cx, cy - 5 * s, s + 1, chrome((255, 255, 255), (120, 200, 255), (30, 20, 80), (255, 120, 220)),
-                         outline=(20, 0, 40), glow=(255, 60, 220))
-        for k in range(3):                                                                 # speed lines off its left
-            rect(a, x - 6 * s - k * 4 * s, cy - 3 * s + k * 2 * s, 4 * s, max(1, s // 2), (120, 220, 255))
-        glint(a, x + tw - s, cy - 5 * s, n=3 + s)
+        game_logo(a, cid)
     elif cid == "paws":
         a = card_frame(w, h, (40, 120, 70), (10, 50, 30))
         r = int(5 * s)
@@ -335,6 +337,23 @@ def signoff(cid, w, h):
         text(a, "PUBLIC TELEVISION", cx, cy + bh // 2 + 2 * s, max(1, s // 2), (230, 230, 230))
     footer(a, w, h, ch, s)
     return a
+
+
+def game_logo(a, cid):
+    """the game's own logo fitted in its box (review pictures only; in the game Code draws the texture there)"""
+    if not GAME_ROOT: return
+    from PIL import Image as _I
+    h, w = a.shape[:2]
+    fx, fy, fw, fh = LOGO_BOX[cid]
+    bx, by, bw, bh = int(fx * w), int(fy * h), int(fw * w), int(fh * h)
+    lg = _I.open(os.path.join(GAME_ROOT, GAME_LOGOS[cid])).convert("RGBA")
+    k = min(bw / lg.width, bh / lg.height)
+    lg = lg.resize((max(1, int(lg.width * k)), max(1, int(lg.height * k))), _I.LANCZOS)
+    x0, y0 = bx + (bw - lg.width) // 2, by + (bh - lg.height) // 2
+    rgb = np.asarray(lg, np.float32) / 255
+    al = rgb[..., 3:4]
+    reg = a[y0:y0 + lg.height, x0:x0 + lg.width]
+    reg[:] = reg * (1 - al) + rgb[..., :3] * al
 
 
 def screens():
