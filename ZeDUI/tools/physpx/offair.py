@@ -333,13 +333,57 @@ def signoff(cid, w, h):
                 if (k + r) % 2 == 0: rect(a, k * cs, cy0 + r * cs, cs, cs, WHITE)
         game_logo(a, cid)
     elif cid == "paws":
-        a = card_frame(w, h, (40, 120, 70), (10, 50, 30))
-        r = int(5 * s)
-        put(a, disc_mask(r), cx - r, cy - r + s, (250, 240, 220))                          # the pad and four toes
-        for (dx, dy) in ((-1.2, -1.1), (-0.4, -1.6), (0.4, -1.6), (1.2, -1.1)):
-            rr = max(2, int(r * 0.42))
-            put(a, disc_mask(rr), int(cx + dx * r) - rr, int(cy + dy * r) - rr + s, (250, 240, 220))
-        text(a, "PAWS TV", cx, cy + r + 3 * s, max(1, s - 1), (255, 220, 90), outline=(20, 40, 20), shadow=(0, 20, 0))
+        # the cartoon and kids networks of the day (director, Oct 30 2026: "Paws is like a cartoon/kids network"): a
+        # sunny field, a big orange paint splat behind bouncy balloon letters each its own colour, a paw print for the
+        # A's place in the TV bug, a black-and-white chequer strip, CARTOONS ALL DAY
+        a = card_frame(w, h, (90, 200, 255), (40, 120, 230))
+        rng = np.random.default_rng(42)
+        im = Image.new("L", (w, h), 0); dr = ImageDraw.Draw(im)              # the splat: a lumpy blob, its drips
+        R0 = h * 0.26
+        pts = []
+        for k in range(28):
+            ang = k * 2 * math.pi / 28
+            rr = R0 * (1.0 + 0.18 * math.sin(k * 2.3) + float(rng.uniform(-0.08, 0.10)))
+            pts.append((cx + math.cos(ang) * rr * 1.45, cy - 2 * s + math.sin(ang) * rr))
+        dr.polygon(pts, fill=255)
+        for k in range(5):                                                    # drips and flung drops
+            dx_ = cx + int(rng.uniform(-R0, R0)); dl = int(rng.uniform(0.15, 0.35) * h)
+            dr.rectangle([dx_ - 2 * s, cy, dx_ + 2 * s, cy + dl], fill=255)
+            dr.ellipse([dx_ - 3 * s, cy + dl - 3 * s, dx_ + 3 * s, cy + dl + 3 * s], fill=255)
+        for k in range(7):
+            ang = rng.uniform(0, 2 * math.pi); rr = R0 * 1.7
+            x, y = cx + math.cos(ang) * rr * 1.4, cy + math.sin(ang) * rr * 0.9
+            r_ = float(rng.uniform(1.5, 3.5)) * s; dr.ellipse([x - r_, y - r_, x + r_, y + r_], fill=255)
+        splat = np.asarray(im) > 127
+        a[grow(splat, 2) & ~splat] = np.array((180, 60, 0), np.float32) / 255
+        a[splat] = np.array((255, 120, 20), np.float32) / 255
+        sc = s + 1                                                             # the balloon letters
+        word = "PAWS"
+        colors = ((170, 60, 230), (60, 200, 70), (255, 230, 40), (230, 40, 60))
+        widths = [glyph_mask(c, "57", sc).shape[1] + 2 * (s // 2 + 1) for c in word]
+        x = cx - (sum(widths) + 3 * s) // 2
+        for i, (c, col) in enumerate(zip(word, colors)):
+            gw_ = s // 2 + 1
+            m = grow(pad_to(glyph_mask(c, "57", sc), gw_), gw_)
+            y = cy - 6 * sc + int(math.sin(i * 1.7) * 2 * s)
+            put(a, grow(pad_to(m, 2), 2), x - 2 + s // 2 + 1, y - 2 + s // 2 + 1, (40, 20, 0))   # shadow
+            put(a, grow(pad_to(m, 2), 2), x - 2, y - 2, (255, 255, 255))                         # white outline
+            put(a, m, x, y, col)
+            x += widths[i] + s
+        # the TV bug: a paw print in a white disc, with TV beside it
+        pr = int(3 * s); bx, by = cx - 5 * s, cy + 9 * s                   # under the letters
+        put(a, disc_mask(pr + s), bx - pr - s, by - pr - s, (255, 255, 255))
+        put(a, disc_mask(int(pr * 0.5)), bx - int(pr * 0.5), by - int(pr * 0.5) + s, (60, 40, 30))
+        for (dx, dy) in ((-0.55, -0.45), (-0.2, -0.75), (0.2, -0.75), (0.55, -0.45)):
+            rr = max(1, int(pr * 0.22)); put(a, disc_mask(rr), int(bx + dx * pr) - rr, int(by + dy * pr) - rr + s, (60, 40, 30))
+        text(a, "TV", bx + pr + 3 * s, by - 7 * max(1, s - 1) // 2, max(1, s - 1), (255, 255, 255), align="l", outline=(40, 20, 0))
+        cs = max(3, s)                                                         # the chequer strip
+        cy0 = int(h * 0.70)
+        for k in range(0, w // cs + 1):
+            for r in range(2):
+                rect(a, k * cs, cy0 + r * cs, cs, cs, (255, 255, 255) if (k + r) % 2 == 0 else (10, 10, 10))
+        text(a, "CARTOONS ALL DAY", cx, int(h * 0.08), max(1, s // 2), (255, 255, 255), outline=(20, 60, 140))
+        a[int(h * 0.78) - 3:int(h * 0.78) - 3 + 8 * max(1, s // 2) + 14] *= 0.45
     elif cid == "kpa":
         a = card_frame(w, h, (6, 6, 10), (0, 0, 0))
         r = int(11 * s)                                                                     # the big ring numeral
