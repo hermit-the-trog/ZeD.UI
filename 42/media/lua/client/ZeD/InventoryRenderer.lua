@@ -2231,6 +2231,12 @@ local function handleDrop(content, items, srcInventory)
     local playerNum = playerObj:getPlayerNum()
     local srcContainer = srcInventory or content._inventory
 
+    -- Over a slot of the Equip tab's doll: an item that fits it is worn there
+    if ZeD.EquipDoll and ZeD.EquipDoll.takeDrop then
+        local ok, took = pcall(ZeD.EquipDoll.takeDrop, playerNum, items)
+        if ok and took then return end
+    end
+
     -- Over the belt (HUD): attach to a slot or equip into a hand. The belt
     -- answers first, or a release over it would drop the items on the floor.
     if ZeD.Belt and ZeD.Belt.takeDrop then

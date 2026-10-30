@@ -61,6 +61,20 @@ function ZeD_ContextList:initialise() ZeD_Panel.initialise(self) end
 -- ----------------------------------------------------------------------------
 local function disabled(def, target) return def.disabled and def.disabled(target) or false end
 
+-- Rows a list of choices needs (Oct 29 2026, the loadouts' menus): def.check (a
+-- function or a bool: a checkbox in the icon's place, live), def.heading (a small
+-- dim label over a group: no selection, no press), def.note (dim words at the
+-- row's right), def.keepOpen (the menu stays after the press: ticking boxes).
+local function checked(def)
+    local c = def.check
+    if type(c) == "function" then
+        local ok, v = pcall(c)
+        return ok and v and true or false
+    end
+    return c and true or false
+end
+local function live(def) return def and not def.heading end
+
 -- a level's rows: the actions with a rule between groups (the strip's categories)
 local function rowsOf(items)
     local rows, last = {}, nil
@@ -79,6 +93,11 @@ function ZeD_ContextList:_measure(lv, withHead)
     for _, r in ipairs(lv.rows) do
         if r.def then
             local tw = tm:MeasureStringX(f2, tostring(r.def.name or "")) + T.px(PAD_X) * 2 + T.px(ICON) + T.px(8) + T.px(16)
+            -- (a note that changes while the menu is open is measured at its longest: a place's words)
+            if r.def.note then
+                local ns = (type(r.def.note) == "function") and string.rep("n", 16) or tostring(r.def.note)
+                tw = tw + tm:MeasureStringX(T.fontF1, ns) + T.px(12)
+            end
             if tw > w then w = tw end
         end
     end
@@ -105,7 +124,7 @@ function ZeD_ContextList:_firstLive(lv, from, dir)
     local i = from
     for _ = 1, n do
         local r = lv.rows[i]
-        if r and r.def then return i end
+        if r and live(r.def) then return i end
         i = i + dir
         if i < 1 then i = n elseif i > n then i = 1 end
     end
@@ -114,9 +133,9 @@ end
 
 function ZeD_ContextList:open()
     self._ctx.open = true
-    local top = { items = self._ctx.actions, head = true }
+    local top = { items = self._ctx.actions, head = not self.noHead }
     top.rows = rowsOf(top.items)
-    self:_measure(top, true)
+    self:_measure(top, top.head)
     local x, y = self._anchorX, self._anchorY
     if self.anchorMode == "dock" then
         local psL = getPlayerScreenLeft and getPlayerScreenLeft(self.player) or 0
@@ -203,10 +222,11 @@ function ZeD_ContextList:confirm(li)
     li = li or #self._levels
     local lv = self._levels[li]
     local r = lv and lv.sel and lv.rows[lv.sel]
-    if not (r and r.def) then return end
+    if not (r and live(r.def)) then return end
     if disabled(r.def, self._ctx.target) then return end
     if self:_openSub(li, true) then return end
     if r.def.onFire then pcall(r.def.onFire, self._ctx.target) end
+    if r.def.keepOpen and self._ctx.open then return end
     self:close()
 end
 
@@ -248,9 +268,15 @@ function ZeD_ContextList:prerender()
         -- the top level names what it acts on (the strip's target card, as a heading)
         if lv.head then
             local name, tex = ZeD.ContextMenu.Registry.getTargetDisplay(self._ctx.target)
+            -- a menu of its own may name itself (the mark strip's "Crowbar in lists", its icon)
+            if self.headText then name, tex = self.headText, nil end
             local d = T.textDim
             local tx = x + padX
-            if tex and tex.getWidth then
+            if self.headPx then
+                local isz = T.px(ICON)
+                A.drawPxIcon(self, self.headPx, tx, cy + math.floor((T.px(HEAD_H) - isz) / 2), isz, 1, d)
+                tx = tx + isz + T.px(6)
+            elseif tex and tex.getWidth then
                 local isz = T.px(ICON)
                 self:drawTextureScaledAspect(tex, tx, cy + math.floor((T.px(HEAD_H) - isz) / 2), isz, isz, 1, 1, 1, 1)
                 tx = tx + isz + T.px(6)
@@ -265,6 +291,14 @@ function ZeD_ContextList:prerender()
             if r.sep then
                 self:drawRect(x + u, cy + math.floor((sepH - u) / 2), w - 2 * u, u, bs.a, bs.r, bs.g, bs.b)
                 cy = cy + sepH
+            elseif r.def.heading then
+                -- a group's small label (F1, dim, sentence case): not a choice
+                r.y = cy - y
+                local d = T.textDim
+                self:drawText(A.truncateText(A.textCase(tostring(r.def.name or "")), f1, w - padX * 2), x + padX,
+                    cy + math.floor((rowH - (T.fontF1H or tm:getFontHeight(f1))) / 2), d.r, d.g, d.b, d.a or 1, f1)
+                self:addHitZone("row:" .. li .. ":" .. ri, x, cy, w, rowH)
+                cy = cy + rowH
             else
                 local def = r.def
                 r.y = cy - y
@@ -293,7 +327,11 @@ function ZeD_ContextList:prerender()
                 local tc = onFocus and T.textOnFocus or T.text
                 local ix = x + padX
                 local isz = T.px(ICON)
-                if def.pxIcon then
+                if def.check ~= nil then
+                    -- a choice that is on or off: the checkbox in the icon's place
+                    local cs = T.checkboxSz
+                    A.drawCheckbox(self, ix + math.floor((isz - cs) / 2), cy + math.floor((rowH - cs) / 2), checked(def), false, off)
+                elseif def.pxIcon then
                     A.drawPxIcon(self, def.pxIcon, ix, cy + math.floor((rowH - isz) / 2), isz, a, tc)
                 elseif def.iconTexture then
                     local tint = def.iconTintable and tc or { r = 1, g = 1, b = 1 }
@@ -309,6 +347,19 @@ function ZeD_ContextList:prerender()
                     _dim.r, _dim.g, _dim.b, _dim.a = dc.r, dc.g, dc.b, (dc.a or 1) * a
                     A.drawStatusDot(self, right - sq, cy + math.floor((rowH - sq) / 2), _dim, sq)
                     right = right - sq - T.px(6)
+                end
+                local ns = def.note
+                if type(ns) == "function" then
+                    local okN, v = pcall(ns)
+                    ns = okN and v or nil
+                end
+                if ns then
+                    ns = tostring(ns)
+                    local nw = tm:MeasureStringX(f1, ns)
+                    local nc = onFocus and T.textOnFocus or T.textDim
+                    self:drawText(ns, right - nw, cy + math.floor((rowH - (T.fontF1H or tm:getFontHeight(f1))) / 2),
+                        nc.r, nc.g, nc.b, (nc.a or 1) * a, f1)
+                    right = right - nw - T.px(8)
                 end
                 self:drawText(A.truncateText(tostring(def.name or ""), f2, right - tx), tx,
                     cy + math.floor((rowH - (T.fontF2H or tm:getFontHeight(f2))) / 2), tc.r, tc.g, tc.b, (tc.a or 1) * a, f2)
@@ -386,6 +437,7 @@ function ZeD_ContextList:update()
     if not li then return end
     local lv = self._levels[li]
     if not lv then return end
+    if not live(lv.rows[ri] and lv.rows[ri].def) then return end   -- (a heading is not a choice)
     if lv.sel ~= ri then
         lv.sel = ri
         for k = #self._levels, li + 1, -1 do self._levels[k] = nil end
@@ -403,6 +455,7 @@ function ZeD_ContextList:onMouseUp(x, y)
     local li, ri = rowAt(self, x, y)
     if not li then self:close(); return true end
     local lv = self._levels[li]
+    if not live(lv.rows[ri] and lv.rows[ri].def) then return true end
     lv.sel = ri
     for k = #self._levels, li + 1, -1 do self._levels[k] = nil end
     self:confirm(li)

@@ -602,6 +602,16 @@ local function makeActionDef(option, index, vanillaMenu, target)
         end
     end
 
+    -- An option ZeD adds may say more than vanilla's fields (Oct 29 2026, the
+    -- loadouts' Save to outfit / Save to loadout): zedPx = its pixel icon's id,
+    -- zedCategory = its group (a rule between groups in the list look), zedCheck =
+    -- a checkbox (true / false) in the icon's place in both looks.
+    if option.zedPx and ZeD.PxIcon and ZeD.PxIcon.has(option.zedPx) then
+        def.iconTexture, def.pxIcon, def.iconTintable = ZeD.PxIcon.tex(option.zedPx, 16), option.zedPx, true
+    end
+    if option.zedCategory then def.category = option.zedCategory end
+    if option.zedCheck ~= nil then def.check = option.zedCheck and true or false end
+
     -- Live state functions ? captured-by-closure refs to option so flags can
     -- mutate after menu construction (vanilla mods sometimes do this in
     -- update-style callbacks)

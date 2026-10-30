@@ -380,7 +380,18 @@ local function readMarks(item, playerNum)
         local ok2, v2 = pcall(ZeD.ActionStrip.getState, item, "protect", playerNum)
         if ok2 then nc = v2 and true or false end
     end
-    return {fav = fav, nocraft = nc, dispose = dis}
+    local m = {fav = fav, nocraft = nc, dispose = dis}
+    -- the fourth mark (Oct 29 2026, loadouts B3): on any loadout or outfit (ZeD_Lists.lua)
+    local L, LU = ZeD.Lists, ZeD.ListsUI
+    local p = L and getSpecificPlayer(playerNum or 0)
+    if p then
+        local ok3, hits = pcall(L.listsWith, p, item)
+        hits = ok3 and hits or {}
+        m.lists = #hits > 0
+        m.listsText = LU and LU.inText(p, item) or nil
+        m.listsHint = (#hits > 0) and ZeD.tr("UI_ZeD_Lists_HelpMarkIn", L.namesFor(p, item)) or ZeD.tr("UI_ZeD_Lists_HelpMark")
+    end
+    return m
 end
 
 -- ---------------------------------------------------------------------------
@@ -689,6 +700,8 @@ local function stampGamepadFields(card, markRects, verbStripRects, verbList, can
     card.toggleRects[1] = markRects and abs(markRects.fav)
     card.toggleRects[2] = markRects and abs(markRects.nocraft)
     card.toggleRects[3] = markRects and abs(markRects.dispose)
+    -- the Lists mark (not a toggle: it opens the lists' pop-up; ItemCard.lua)
+    card._listsRect = markRects and markRects.lists and markRects.lists.x and abs(markRects.lists) or nil
 
     -- Maintenance verb strip → verbRects + _verbDefs (gamepad: A activates).
     card.verbRects = {}
@@ -1151,6 +1164,26 @@ local function drawCareNeeds(card, x, y, w, shown, hidden)
     return h + rh
 end
 
+-- The "In lists" section (loadouts B3, mockup r2_10): each loadout or outfit the item
+-- is on, with the line's place and rule. Nothing when it is on none. Returns the height.
+local function drawInLists(card, item, x, y, w, compact)
+    local L = ZeD.Lists
+    local p = L and getSpecificPlayer(card.playerNum or 0)
+    if not p then return 0 end
+    local ok, hits = pcall(L.listsWith, p, item)
+    if not ok or #hits == 0 then return 0 end
+    local M, T = ZeD.Molecules, ZeD.T
+    local gap = math.max(compact and T.px(14) or T.px(16), math.floor((T.fontF4H or ZeD.TM:getFontHeight(T.fontF4)) * 1.0))
+    local cy = y + gap
+    cy = cy + M.drawFactsTitle(card, x, cy, w, ZeD.tr("UI_ZeD_Lists_InListsTitle"), compact)
+    cy = cy + M.drawFactsRuleThick(card, x, cy, w) + T.px(2)
+    for _, h in ipairs(hits) do
+        local ln = h.line
+        cy = cy + M.drawFactsRow(card, x, cy, w, h.list.name, L.placeText(ln.place) .. ", " .. L.ruleText(ln), nil, true)
+    end
+    return cy - y
+end
+
 -- ---------------------------------------------------------------------------
 -- :renderBody(ctx) - the universal organism entry.
 -- ---------------------------------------------------------------------------
@@ -1175,7 +1208,7 @@ function ZeD_ItemCard:renderBody(ctx)
     self._foldHitRects  = {}
     self._zoneDockRects = {}
     local backBarRects  = {back = nil, verbs = {}}
-    local flagRects     = {fav = {}, nocraft = {}, dispose = {}}
+    local flagRects     = {fav = {}, nocraft = {}, dispose = {}, lists = {}}
     local verbStripRects = {}
     local cancelRect    = nil
 
@@ -1270,9 +1303,11 @@ function ZeD_ItemCard:renderBody(ctx)
     if self.focusFor then
         fp.fav, fp.nocraft, fp.dispose =
             self:focusFor("toggle_fav"), self:focusFor("toggle_protect"), self:focusFor("toggle_unwanted")
+        fp.lists = self:focusFor("toggle_lists")
     else
-        fp.fav, fp.nocraft, fp.dispose = nil, nil, nil
+        fp.fav, fp.nocraft, fp.dispose, fp.lists = nil, nil, nil, nil
     end
+    fo.win = self
     local fsH = M.drawCardFlagStrip(self, 0, cy, w, marks, compact, flagRects, fo)
     self._flagRects = flagRects
     cy = cy + (fsH or 0)
@@ -1319,6 +1354,8 @@ function ZeD_ItemCard:renderBody(ctx)
                 bodyX, bodyY - scrollOff, innerW, compact, scrollOff,
                 self._headH + bodyH)
         end
+        -- the loadouts and outfits it is on (Oct 29 2026, loadouts B3)
+        contentH = (contentH or 0) + drawInLists(self, item, bodyX, bodyY - scrollOff + (contentH or 0), innerW, compact)
         -- what the character can't do yet: NEEDS lines / the folded row, after the content
         contentH = (contentH or 0) + drawCareNeeds(self, bodyX, bodyY - scrollOff + (contentH or 0), innerW, maintVerbs, hiddenVerbs)
         self._contentH = (contentH or 0) + bodyPad * 2

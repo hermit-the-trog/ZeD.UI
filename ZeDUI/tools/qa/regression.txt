@@ -38,6 +38,7 @@ zedqa_grid.lua | grid                            # inventory grid, cell card, pa
 zedqa_sort_groups.lua | sg | timeout=420         # category headers only under Sort by Category; name A-Z / Z-A, cond, wt flat; list + grid, single + multi, both windows
 zedqa_wt_bracket.lua | wtb | timeout=240         # a stack's total in brackets, its open rows and a single their own; list + grid, Large, two columns, narrow WT; wt sort by total
 zedqa_doll.lua | doll                            # Equip tab doll, layers through the pad
+zedqa_doll_v4.lua | dollv4 | timeout=420        # the doll's 38 small slots: all there, no overlap, no crossing lines, worn things land, the pad into / out of both bands, a drop wears, the half card (260 units) folds the bands into layers; the full card (480) shows both bands; all taken off
 zedqa_large.lua | lg                             # Large text size: Loot and Equip lists, column widths
 zedqa_curtain.lua | cu | timeout=400             # curtain roll / unroll, close while rolled, tabs while rolled
 zedqa_curtain2.lua | cv                          # Character window curtain, tab switches while rolled
@@ -63,6 +64,7 @@ zedqa_flyermap.lua | fm                          # flyer pins, hover card, reade
 zedqa_mapnotes.lua | mnote                       # notes and marks in vanilla's store, one-time migration, Delete; all taken back
 zedqa_journal_refs.lua | jr                      # Journal tab diary and Flyers gallery
 zedqa_journal_readers.lua | jrd                  # Notebooks, Papers, Into; items and log entry taken back
+zedqa_lists.lua | ls | timeout=240               # loadouts and outfits: the data, the Journal's Loadouts page in the full card (top and lines), delete asked first, right-click both looks, the mark strip's Lists and pop-up; the character's lists put back
 zedqa_reader.lua | rd                            # the reader through vanilla's Read: paper, words, zoom, flyer, map
 zedqa_reader_refs.lua | rr                       # reader reference captures; items taken back
 zedqa_notebook.lua | nb                          # writing in a notebook through vanilla's Write; locked notebook

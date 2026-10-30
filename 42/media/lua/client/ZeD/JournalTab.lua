@@ -7,6 +7,7 @@
 --   Notebooks: carried notebooks, the page small, a quick note (ZeD_JournalReaders)
 --   Papers:    carried newspapers, flyers, brochures; quick look (ZeD_JournalReaders)
 --   Recipes:   all learnable recipes grouped by skill, status dots, expandable
+--   Loadouts:  the saved loadouts and outfits and their lines (ZeD_JournalLists)
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -15,6 +16,7 @@ require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
 require "ZeD/CraftingCore"
 require "ZeD/ZeD_JournalReaders"
+require "ZeD/ZeD_JournalLists"
 
 ZeD = ZeD or {}
 ZeD.JournalTab = {}
@@ -110,6 +112,8 @@ local SUB_TABS = {
     { id = "notebooks", key = "UI_ZeD_Journal_TabNotebooks" },
     { id = "papers",    key = "UI_ZeD_Journal_TabPapers" },
     { id = "recipes",   key = "IGUI_LiteratureUI_Recipes" },   -- (the game's own "Recipes")
+    -- Oct 29 2026 (loadouts B2): on the end, so 1 to 4 keep their numbers
+    { id = "loadouts",  key = "UI_ZeD_Journal_TabLoadouts" },
 }
 
 -- ============================================================================
@@ -1142,6 +1146,8 @@ function ZeD.JournalTab.render(panel, win, x, y, w, h)
         ZeD.JournalReaders.renderPapers(panel, win, x, contentY, w, contentH)
     elseif activeIdx == 4 then
         renderRecipes(panel, win, x, contentY, w, contentH)
+    elseif activeIdx == 5 and ZeD.JournalLists then
+        ZeD.JournalLists.render(panel, win, x, contentY, w, contentH)
     end
 end
 

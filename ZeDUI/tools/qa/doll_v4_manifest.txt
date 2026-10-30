@@ -1,0 +1,12 @@
+# ZeDUI/tools/qa/doll_v4_manifest.txt  (Oct 29 2026)
+# The Equip doll's v4 run: the prelude, the small-slot script, the older doll and drag scripts,
+# the pad suite and the Equip tab's other covering scripts. zedqa_run.ps1 -Manifest this file.
+zedqa_prelude.lua | pre
+zedqa_doll_v4.lua | dollv4 | timeout=600
+zedqa_doll.lua | doll
+zedqa_equipdrag.lua | eqd | timeout=240
+suite_gamepad.lua | gp
+zedqa_card_pad.lua | cp
+zedqa_navmap.lua | nav
+zedqa_navevents.lua | ev
+zedqa_large.lua | lg

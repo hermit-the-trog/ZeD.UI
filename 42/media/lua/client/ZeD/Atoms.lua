@@ -1273,7 +1273,8 @@ end
 --   "dispose" danger   (the bin)
 -- The narrow card's chip is the icon alone. No tinted fill, no coloured words.
 -- ============================================================================
-ZeD.Atoms.FLAG_ICON = { fav = "star", nocraft = "craft_off", dispose = "trash" }
+ZeD.Atoms.FLAG_ICON = { fav = "star", nocraft = "craft_off", dispose = "trash", lists = "view_list" }
+-- (lists: the loadouts' list icon; ZeD_Lists.lua's L.ICON.loadout sets it once loaded, so a swap there follows)
 ZeD.Atoms.FLAG_CHIP_H = 22   -- design units: the chip's height (the 16u icon box and 3u each side)
 
 --- A flag chip's width (compact: the icon alone).
