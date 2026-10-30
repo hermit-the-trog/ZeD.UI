@@ -1170,6 +1170,7 @@ local function drawCrossGlyph(p, x, y, s, c)
         p:drawRect(x + i, y + s - t - i, t, t, a, c.r, c.g, c.b)
     end
 end
+ZeD.Atoms.drawCrossGlyph = drawCrossGlyph   -- (the cards' close key draws the same X: Molecules.drawCloseKey)
 
 --- Draw a progress band.
 --- Left, two rows: [mark] label ... time ... percent / the fill bar.

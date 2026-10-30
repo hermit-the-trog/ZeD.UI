@@ -945,9 +945,10 @@ function ZeD_ObjectCard:drawHeader(e, hh, win)
     local bsz = T.buttonH
     local by = math.floor((hh - bsz) / 2)
     local bx = T.px(8)
-    M.drawBackButton(self, bx, by, bsz, { hover = hv == "oc:back", focus = self:focusOf("oc:back"), win = win })
+    -- the close key's X, as the item card's (director, Oct 30 2026)
+    M.drawCloseKey(self, bx, by, bsz, { hover = hv == "oc:back", focus = self:focusOf("oc:back"), win = win })
     self:zone({ fid = "oc:back", x = bx, y = by, w = bsz, h = bsz, run = function() self:close() end,
-        help = ZeD.tr("UI_ZeD_ObjCard_HelpBack") })
+        help = ZeD.tr("UI_ZeD_Card_HelpClose") })
     local cx = bx + bsz + T.px(6)
     local isz = T.px(22)
     local iy = math.floor((hh - isz) / 2)

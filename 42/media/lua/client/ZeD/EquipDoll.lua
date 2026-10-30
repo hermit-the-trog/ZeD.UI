@@ -15,6 +15,9 @@
 -- stretch ("if it doesnt need a bend dont make one"), otherwise one turn in its
 -- own lane, lanes 16 apart, lower slots nearer the body, so no two lines run
 -- side by side or cross.
+-- Oct 30 2026 (the director's mouse pass): no leader lines any more, and on the full card the
+-- split: the upper body's slots on the left, the back's and the belt and below on the right
+-- (SPLIT_BIG and SMALL_ROWS); the spare width of a shrunk doll goes between its parts.
 --
 -- Selecting a slot opens the same item card a list row opens (the outermost
 -- layer; the card's layer strip steps inward). The list stays the other view;
@@ -50,13 +53,10 @@ local ROW0     = 16
 local ROW_STEP = 82
 local COL_L, COL_R = 5, 266
 local PHOTO    = { x = 97, y = 6, w = 140, h = 528 }
-local AV_DX    = -93          -- the body stretches below were drawn for a photo centred on x 260; it is now on x 167
 local BELOW_Y  = 540
 local BELOW_STEP = 62
 local BELT_X0  = 133
 local HANDS_X  = { 5, 65 }    -- the main and off hand
-local LANES_L  = { 63, 70, 77, 84, 91 }
-local LANES_R  = { 258, 251, 244, 237 }
 local MIN_FIT  = 0.7
 local BANDS_FIT = 0.9         -- the bands show while the wide doll fits this wide at this much of full size or more
 -- the small slots: 20 units, a step of 23, three columns a band; a group's name sits at its row's y, its
@@ -108,42 +108,46 @@ D.SLOTS = {
 -- and the empty help), its locations, the letter of a pair }. The names are the game's own words for a
 -- body location (UI_ClothingType_*) where it has one. 38 slots.
 local SMALL_ROWS = {
+    -- the left band: the upper body, top to bottom (Oct 30 2026, the director's split: "the top of the
+    -- body on the left and the boxes for the lower body (belt and below) on the right"; then "move back
+    -- and bag slots to the right side")
     { side = "L", y = 16,  name = { "UI_ClothingType_Ears", "UI_ClothingType_Nose" }, slots = {
         { "ears",   "head", "UI_ClothingType_Ears",   { "ears" } },
         { "eartop", "head", "UI_ClothingType_EarTop", { "eartop" } },
         { "nose",   "head", "UI_ClothingType_Nose",   { "nose" } } } },
-    { side = "L", y = 180, name = { "UI_ClothingType_Neck" }, slots = {
+    { side = "L", y = 66,  name = { "UI_ClothingType_Neck" }, slots = {
         { "necklace",     "neck", "UI_ClothingType_Necklace",      { "necklace" } },
         { "necklacelong", "neck", "UI_ClothingType_Necklace_Long", { "necklacelong" } },
         { "gorget",       "neck", "UI_ClothingType_Gorget",        { "gorget" } } } },
-    { side = "L", y = 262, name = { "UI_ClothingType_BellyButton" }, slots = {
+    { side = "L", y = 116, name = { "UI_ZeD_Doll_Shoulders" }, slots = {
+        { "padl",   "arms", "UI_ClothingType_ShoulderpadLeft",  { "shoulderpadleft" },  "L" },
+        { "padr",   "arms", "UI_ClothingType_ShoulderpadRight", { "shoulderpadright" }, "R" },
+        { "padsport", "arms", "UI_ClothingType_SportShoulderpad", { "sportshoulderpad", "sportshoulderpadontop" } } } },
+    { side = "L", y = 166, name = { "UI_ZeD_Doll_Elbows" }, slots = {
+        { "elbowl", "arms", "UI_ClothingType_Elbow_Left",  { "elbowleft" },  "L" },
+        { "elbowr", "arms", "UI_ClothingType_Elbow_Right", { "elbowright" }, "R" } } },
+    { side = "L", y = 216, name = { "UI_ZeD_Doll_Wrists" }, slots = {
+        { "wristl", "arms", "UI_ClothingType_LeftWrist",  { "leftwrist" },  "L" },
+        { "wristr", "arms", "UI_ClothingType_RightWrist", { "rightwrist" }, "R" } } },
+    { side = "L", y = 266, name = { "UI_ZeD_Doll_Forearms" }, slots = {
+        { "forearml", "arms", "UI_ClothingType_ForeArm_Left",  { "forearmleft" },  "L" },
+        { "forearmr", "arms", "UI_ClothingType_ForeArm_Right", { "forearmright" }, "R" } } },
+    { side = "L", y = 316, name = { "UI_ClothingType_BellyButton" }, slots = {
         { "belly", "torso", "UI_ClothingType_BellyButton", { "bellybutton" } } } },
-    { side = "L", y = 344, name = { "UI_ZeD_Doll_Holster" }, slots = {
+    { side = "L", y = 366, name = { "UI_ZeD_Doll_Holster" }, slots = {
         { "holster", "outer", "UI_ClothingType_ShoulderHolster", { "shoulderholster" } } } },
-    { side = "L", y = 426, name = { "UI_ZeD_Doll_RingsLeft" }, slots = {
+    { side = "L", y = 416, name = { "UI_ZeD_Doll_RingsLeft" }, slots = {
         { "lmiddle", "hands", "UI_ClothingType_Left_MiddleFinger", { "leftmiddlefinger" } },
         { "lring",   "hands", "UI_ClothingType_Left_RingFinger",   { "leftringfinger" } } } },
-    { side = "L", y = 467, name = { "UI_ZeD_Doll_RingsRight" }, slots = {
+    { side = "L", y = 466, name = { "UI_ZeD_Doll_RingsRight" }, slots = {
         { "rmiddle", "hands", "UI_ClothingType_Right_MiddleFinger", { "rightmiddlefinger" } },
         { "rring",   "hands", "UI_ClothingType_Right_RingFinger",   { "rightringfinger" } } } },
+    -- the right band: the back's bags at the top, by Back; the belt and below by Belt, Legs and Feet
     { side = "R", y = 16,  name = { "UI_ClothingType_Satchel" }, slots = {
         { "satchel", "back", "UI_ClothingType_Satchel", { "satchel" } } } },
     { side = "R", y = 57,  name = { "UI_ZeD_Doll_AirTank", "UI_ClothingType_Tail" }, slots = {
         { "airtank", "back", "UI_ZeD_Doll_AirTank",  { "scba", "scbanotank" } },
         { "tail",    "back", "UI_ClothingType_Tail", { "tail" } } } },
-    { side = "R", y = 98,  name = { "UI_ZeD_Doll_Shoulders" }, slots = {
-        { "padl",   "arms", "UI_ClothingType_ShoulderpadLeft",  { "shoulderpadleft" },  "L" },
-        { "padr",   "arms", "UI_ClothingType_ShoulderpadRight", { "shoulderpadright" }, "R" },
-        { "padsport", "arms", "UI_ClothingType_SportShoulderpad", { "sportshoulderpad", "sportshoulderpadontop" } } } },
-    { side = "R", y = 139, name = { "UI_ZeD_Doll_Elbows" }, slots = {
-        { "elbowl", "arms", "UI_ClothingType_Elbow_Left",  { "elbowleft" },  "L" },
-        { "elbowr", "arms", "UI_ClothingType_Elbow_Right", { "elbowright" }, "R" } } },
-    { side = "R", y = 180, name = { "UI_ZeD_Doll_Wrists" }, slots = {
-        { "wristl", "arms", "UI_ClothingType_LeftWrist",  { "leftwrist" },  "L" },
-        { "wristr", "arms", "UI_ClothingType_RightWrist", { "rightwrist" }, "R" } } },
-    { side = "R", y = 221, name = { "UI_ZeD_Doll_Forearms" }, slots = {
-        { "forearml", "arms", "UI_ClothingType_ForeArm_Left",  { "forearmleft" },  "L" },
-        { "forearmr", "arms", "UI_ClothingType_ForeArm_Right", { "forearmright" }, "R" } } },
     { side = "R", y = 262, name = { "UI_ClothingType_Belt" }, slots = {
         { "fpfront", "belt", "UI_ClothingType_FannyPackFront", { "fannypackfront" } },
         { "fpback",  "belt", "UI_ClothingType_FannyPackBack",  { "fannypackback" } },
@@ -178,10 +182,26 @@ for _, row in ipairs(SMALL_ROWS) do
     if row.name then D.GROUPS[#D.GROUPS + 1] = { side = row.side, x = x0, y = row.y, name = row.name } end
     for c, t in ipairs(row.slots) do
         local sm = { id = t[1], big = t[2], place = t[3], locs = set(t[4]), letter = t[5], side = row.side,
-                     x = x0 + (c - 1) * SM_STEP, y = y0 }
+                     x = x0 + (c - 1) * SM_STEP, y = y0, col = c }
         D.SMALL[#D.SMALL + 1] = sm
         for loc in pairs(sm.locs) do LOC_TO_SMALL[loc] = sm.id; LOC_FOLD[loc] = sm.big end
     end
+end
+
+-- THE SPLIT (the bands showing, the full card): the upper body's big slots in two columns on the left,
+-- Back at the top on the right with its bags, then Belt, Legs and Feet; no leader lines (director, Oct 30
+-- 2026). The narrow doll (the bands folded) keeps a column each side (COL_L / COL_R, D.SLOTS' rows).
+-- Units are the wide doll's.
+local SPLIT_BIG = { head = { 75, 16 }, eyes = { 133, 16 }, neck = { 75, 136 }, arms = { 133, 136 },
+                    torso = { 75, 256 }, outer = { 133, 256 }, hands = { 75, 376 },
+                    back = { 337, 16 }, belt = { 337, 262 }, legs = { 337, 344 }, feet = { 337, 426 } }
+local SPLIT_PHOTO_X = 191
+-- a big slot's side and column in the split: "L" 1 (by the band), "L" 2 (by the figure), "R" 1
+local function splitCol(id)
+    local q = SPLIT_BIG[id]
+    if not q then return nil end
+    if q[1] < 100 then return "L", 1 elseif q[1] < 200 then return "L", 2 end
+    return "R", 1
 end
 
 --- The doll slot a worn location shows in: a small slot's id while the bands show, else its big slot's
@@ -548,35 +568,43 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
     -- goes between its parts, each the size it is: the bands to the card's edges, the figure in the
     -- middle, the big slots' columns half way between (director, Oct 30 2026: "fill the width of the
     -- space for the equipment doll"). S(v): how far right a doll x (units) moves, its part's share.
+    -- Each band takes a share first (director, the same day: "balance the boxes out better, some
+    -- things still seem crammed"): bandX wider, its small slots half that further apart, its group
+    -- names that much more room. The rest goes into the gaps: five in the split (two left columns),
+    -- two in the narrow doll.
     local spare = math.max(0, w - (bands and WIDE_W or BASE_W) * k)
+    local bandX = bands and math.min(math.floor(spare * 0.2), P(28)) or 0
+    local rest = spare - 2 * bandX
+    local stepX = math.floor(bandX / 2)          -- (three small slots to a row: two gaps)
     local function S(v)
-        local q
-        if bands then q = (v < 73 and 0) or (v < 131 and 0.25) or (v < 333 and 0.5) or (v < 394 and 0.75) or 1
-        else q = (v < 60 and 0) or (v < 262 and 0.5) or 1 end
-        return math.floor(spare * q + 0.5)
+        if not bands then return math.floor(spare * ((v < 60 and 0) or (v < 262 and 0.5) or 1) + 0.5) end
+        if v < 73 then return 0 end
+        if v >= 394 then return spare - bandX end   -- (the right band's left edge: it ends at the card's)
+        return bandX + math.floor(rest * ((v < 131 and 0.2) or (v < 189 and 0.4) or (v < 335 and 0.6) or 0.8) + 0.5)
     end
-    local belowS = bands and math.floor(spare * 0.25 + 0.5) or 0   -- the hands and the belt keep under the left column
+    local belowS = bands and (bandX + math.floor(rest * 0.2 + 0.5)) or 0   -- the hands and the belt keep under the left column
 
     -- no frame behind the figure: the model stands on the panel (CharacterWindow draws it into this rectangle)
-    local fx, fy, fw, fh = ox + P(PHOTO.x + off) + S(PHOTO.x + off), y + P(PHOTO.y), P(PHOTO.w), P(PHOTO.h)
+    local phx = bands and SPLIT_PHOTO_X or PHOTO.x
+    local fx, fy, fw, fh = ox + P(phx) + S(phx), y + P(PHOTO.y), P(PHOTO.w), P(PHOTO.h)
     win._equipDollPhoto = { x = fx + T.px(1), y = fy + T.px(1), w = fw - T.px(2), h = fh - T.px(2) }
     if bands then
         -- faint rules between the bands and the doll (half way across the gap the spare width opens)
         local rw = T.px(1)
-        panel:drawRect(ox + P(RULE_L) + math.floor(spare * 0.125 + 0.5), fy, rw, fh, 0.05, 1, 1, 1)
-        panel:drawRect(ox + P(RULE_R) + math.floor(spare * 0.875 + 0.5), fy, rw, fh, 0.05, 1, 1, 1)
+        panel:drawRect(ox + P(RULE_L) + bandX + math.floor(rest * 0.1 + 0.5), fy, rw, fh, 0.05, 1, 1, 1)
+        panel:drawRect(ox + P(RULE_R) + bandX + math.floor(rest * 0.9 + 0.5), fy, rw, fh, 0.05, 1, 1, 1)
     end
 
-    local zones, beltZones, lines, empties, rects = {}, {}, {}, {}, {}
+    local zones, beltZones, empties, rects = {}, {}, {}, {}
     local hint = nil
-    local li, ri = 0, 0
     -- what the loadout and outfit applied are missing, where it goes (ZeD_EquipLoadout)
     local EL = ZeD.EquipLoadout
     local ghosts = EL and EL.ghosts and EL.ghosts(win, bands) or nil
     win._equipDollGhosts = ghosts
     for _, def in ipairs(D.SLOTS) do
-        local sx0 = ((def.side == "L") and COL_L or COL_R) + off
-        local sy0 = ROW0 + def.row * ROW_STEP
+        local sx0, sy0
+        if bands then sx0, sy0 = SPLIT_BIG[def.id][1], SPLIT_BIG[def.id][2]
+        else sx0, sy0 = (def.side == "L") and COL_L or COL_R, ROW0 + def.row * ROW_STEP end
         local bx, by = ox + P(sx0 + BOX_IN) + S(sx0 + BOX_IN), y + P(sy0)
         local items = data.slots[def.id].items
         local item = items[1]
@@ -597,25 +625,6 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
             empties[#empties + 1] = { x = bx, y = by, w = b, h = b, type = key }
         end
         win._equipSlotYMap[key] = by
-        -- the leader line, in the doll's units first: level out of the box,
-        -- one turn in a lane when the slot isn't level with its stretch
-        local left = def.side == "L"
-        local lsx = left and (sx0 + BOX_IN + BOX) or (sx0 + BOX_IN)
-        local lsy = sy0 + 30
-        local ax = def.av[1] + AV_DX + off
-        local ay = math.max(def.av[2], math.min(def.av[3], lsy))
-        local pts
-        if math.abs(ay - lsy) < 1 then
-            pts = { lsx, lsy, ax, ay }
-        else
-            local lane
-            if left then li = li + 1; lane = LANES_L[li] or LANES_L[#LANES_L]
-            else ri = ri + 1; lane = LANES_R[ri] or LANES_R[#LANES_R] end
-            lane = lane + off
-            pts = { lsx, lsy, lane, lsy, lane, ay, ax, ay }
-        end
-        for i = 1, #pts, 2 do pts[i] = ox + P(pts[i]) + S(pts[i]); pts[i + 1] = y + P(pts[i + 1]) end
-        lines[#lines + 1] = pts
     end
 
     -- the bands: the small slots, each group under its name
@@ -627,13 +636,13 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
         for _, g in ipairs(D.GROUPS) do
             -- the name sits on its row's y; on a shrunk doll it rises just enough to clear its slots
             local ny = math.min(y + P(g.y), y + P(g.y + SM_NAME_DY) - f5h - 1)
-            panel:drawText(ZeD.Atoms.truncateText(groupName(g), f5, P(BAND_W - 4)), ox + P(g.x) + S(g.x), ny, dc.r, dc.g, dc.b, dc.a or 1, f5)
+            panel:drawText(ZeD.Atoms.truncateText(groupName(g), f5, P(BAND_W - 4) + bandX), ox + P(g.x) + S(g.x), ny, dc.r, dc.g, dc.b, dc.a or 1, f5)
         end
         for _, sm in ipairs(D.SMALL) do
             local items = data.small[sm.id].items
             local item = items[1]
             local key = "doll:" .. sm.id
-            local sbx, sby = ox + P(sm.x) + S(sm.x), y + P(sm.y)
+            local sbx, sby = ox + P(sm.x) + S(sm.x) + (sm.col - 1) * stepX, y + P(sm.y)
             local place = ZeD.tr(sm.place)
             local over = drawSmall(panel, win, sbx, sby, ss, item, #items, key, sm.letter, place, mx, my, k)
             if not item and ghosts and ghosts[sm.id] then EL.drawGhost(panel, sbx, sby, ss, ghosts[sm.id]) end
@@ -688,7 +697,7 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
     win._equipSlotZones = zones
     win._equipBeltZones = beltZones
     win._equipDollEmpty = empties
-    win._equipDollLines = lines
+    win._equipDollLines = {}   -- (no leader lines since Oct 30 2026: the line layer draws only the hint)
     win._equipDollAll = rects
     win._equipDollDot = math.max(2, P(2.5))
     win._equipDollHintCand = hint
@@ -789,11 +798,41 @@ local function dpadSmall(w, zi, zone, el, sm, dir)
     end
     if best then return focusAt(w, zi, zone, best) end
     if dir == ((sm.side == "L") and "right" or "left") then
-        -- toward the figure from the band's edge: the nearest big slot beside it
-        local j = nearestByHeight(zone, el, function(e) local d = slotOf(e.slotType); return d and d.side == sm.side end)
+        -- toward the figure from the band's edge: the nearest big slot of the column beside it (the split)
+        local j = nearestByHeight(zone, el, function(e)
+            local d = slotOf(e.slotType)
+            if not d then return false end
+            local sd, c = splitCol(d.id)
+            return sd == sm.side and c == 1
+        end)
         if j then return focusAt(w, zi, zone, j) end
     end
     return false    -- the outer edge: leaves the doll
+end
+
+-- Left / Right from a big slot in the split: the left columns step to each other (the outer one
+-- into the left band), the inner one and the right column cross the figure to each other by
+-- height, the right column steps into the right band. Up / Down are the cone's, down a column.
+local function dpadSplit(w, zi, zone, el, def, dir)
+    if dir ~= "left" and dir ~= "right" then return false end
+    local side, col = splitCol(def.id)
+    local function big(want, wantCol)
+        return nearestByHeight(zone, el, function(e)
+            local d = slotOf(e.slotType)
+            if not d then return false end
+            local sd, c = splitCol(d.id)
+            return sd == want and (wantCol == nil or c == wantCol)
+        end)
+    end
+    local function band(want)
+        return nearestByHeight(zone, el, function(e) local s2 = smallOf(e.slotType); return s2 and s2.side == want end)
+    end
+    local j
+    if side == "L" and col == 1 then j = (dir == "left") and band("L") or big("L", 2)
+    elseif side == "L" then j = (dir == "left") and big("L", 1) or big("R")
+    else j = (dir == "right") and band("R") or big("L", 2) end
+    if j then return focusAt(w, zi, zone, j) end
+    return false
 end
 
 function D.dpad(w, el, dir)
@@ -804,6 +843,7 @@ function D.dpad(w, el, dir)
     if sm then return dpadSmall(w, zi, zone, el, sm, dir) end
     local def = slotOf(key)
     if not def then return false end
+    if w._equipDollBands then return dpadSplit(w, zi, zone, el, def, dir) end
     if (def.side == "L" and dir == "left") or (def.side == "R" and dir == "right") then
         -- toward its band (when it shows): the nearest small slot there, by height
         local j = nearestByHeight(zone, el, function(e) local s2 = smallOf(e.slotType); return s2 and s2.side == def.side end)
