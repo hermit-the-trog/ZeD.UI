@@ -349,13 +349,64 @@ def signoff(cid, w, h):
         text(a, "KPA", cx - 10 * s, cy - 5 * s, s + 1, vgrad((120, 255, 200), (40, 160, 120)), outline=(0, 30, 20), glow=(80, 255, 180))
         text(a, "TV", cx - 10 * s, cy + 4 * s, max(1, s - 1), (255, 230, 80), outline=(40, 30, 0))
     elif cid == "mvc":
-        a = card_frame(w, h, (20, 0, 50), (0, 0, 20))
-        rng = np.random.default_rng(7)
-        for _ in range(int(w * h / 900)):
-            glint(a, int(rng.integers(0, w)), int(rng.integers(0, int(h * 0.7))), n=int(rng.integers(1, 3)), rgb=(200, 200, 255))
-        text(a, "MVC", cx, cy - 5 * s, s + 1, vgrad((255, 240, 120), (255, 80, 200)), outline=(30, 0, 40), glow=(255, 80, 220))
-        text(a, "MUSIC VIDEO CHANNEL", cx, cy + 5 * s, max(1, s // 2), (120, 230, 255), outline=(0, 0, 30))
-        glint(a, cx + 9 * s, cy - 6 * s, n=2 + s); glint(a, cx - 10 * s, cy + s, n=1 + s)
+        # the rap-video shows and sitcom openers of the day (director, Oct 30 2026: "more fresh prince, yo mtv raps
+        # vibes"): a loud purple-to-teal field thrown with confetti shapes (triangles, squiggles, zigzags, dots), chunky
+        # bouncing letters each its own colour with a fat black outline and a hard drop shadow, paint drips, the name on
+        # a slanted black tag
+        a = blank(w, h)
+        for y in range(h):
+            k = y / max(1, h - 1)
+            a[y] = np.array((110 * (1 - k) + 0 * k, 20 * (1 - k) + 170 * k, 160 * (1 - k) + 170 * k), np.float32) / 255
+        rng = np.random.default_rng(1990)
+        cols = [(255, 230, 40), (255, 60, 170), (60, 240, 240), (255, 255, 255), (160, 255, 60)]
+        im = Image.new("RGB", (w, h)); dr = ImageDraw.Draw(im)
+        shapes = []
+        for i in range(int(w * h / 1400)):
+            kind = i % 4
+            x, y = int(rng.integers(0, w)), int(rng.integers(0, h))
+            c = cols[int(rng.integers(0, len(cols)))]
+            r = int(rng.integers(3, 6)) * max(1, s // 2 + 1)
+            shapes.append((kind, x, y, r, c, float(rng.uniform(0, math.pi))))
+        for (kind, x, y, r, c, ang) in shapes:
+            for (dx, dy, col) in ((max(1, s // 2), max(1, s // 2), (0, 0, 0)), (0, 0, c)):         # a black offset, then the colour
+                X, Y = x + dx, y + dy
+                if kind == 0:                                              # a triangle, outlined
+                    pts = [(X + math.cos(ang + k * 2.094) * r, Y + math.sin(ang + k * 2.094) * r) for k in range(3)]
+                    dr.polygon(pts, outline=col)
+                elif kind == 1:                                            # a squiggle
+                    pts = [(X + t - 2 * r, Y + math.sin(t / r * 3.1) * r * 0.4) for t in range(0, 4 * r + 1, 2)]
+                    dr.line(pts, fill=col, width=max(1, s // 2))
+                elif kind == 2:                                            # a zigzag
+                    pts = [(X + k * r * 0.5 - r, Y + (r * 0.35 if k % 2 else -r * 0.35)) for k in range(5)]
+                    dr.line(pts, fill=col, width=max(1, s // 2))
+                else:                                                      # a dot
+                    rr = max(1, r // 3); dr.ellipse([X - rr, Y - rr, X + rr, Y + rr], fill=col)
+        conf = np.asarray(im, np.float32) / 255
+        on = conf.sum(axis=2) > 0
+        a[on] = conf[on]
+        sc = s + 2                                                         # the letters
+        lx = cx - int(1.5 * 6 * sc) - sc
+        for i, (ch_, col) in enumerate(zip("MVC", ((255, 230, 40), (255, 60, 170), (60, 240, 240)))):
+            gw_ = max(1, s // 2)
+            m = grow(pad_to(glyph_mask(ch_, "57", sc), gw_), gw_)                          # chunky: the strokes fattened
+            x = lx + i * (6 * sc + 2 * s); y = cy - 5 * sc + (-s if i % 2 else s)          # bouncing
+            put(a, grow(pad_to(m, 2), 2), x - 2 + s, y - 2 + s, (0, 0, 0))                   # the hard shadow
+            put(a, grow(pad_to(m, 2), 2), x - 2, y - 2, (0, 0, 0))                           # the fat outline
+            put(a, m, x, y, col)
+            for d in range(2):                                             # paint drips off the letter's foot
+                dx_ = x + int(rng.integers(sc, m.shape[1] - sc)); dl = int(rng.integers(2, 5)) * s
+                rect(a, dx_, y + m.shape[0] - 1, max(2, s // 2 + 1), dl, col)
+                put(a, disc_mask(max(1, s // 2 + 1)), dx_ - 1, y + m.shape[0] - 1 + dl - 1, col)
+        # the slanted black tag
+        ty = cy + 3 * sc + 2 * s
+        tm = glyph_mask("MUSIC VIDEO CHANNEL", "57", max(1, s // 2))
+        tw_, th_ = tm.shape[1] + 6 * s, tm.shape[0] + 3 * s
+        tx = cx - tw_ // 2
+        for yy in range(th_):
+            rect(a, tx + (th_ - yy) // 2, ty + yy, tw_, 1, (10, 10, 10))
+        put(a, tm, tx + 3 * s + th_ // 4, ty + (th_ - tm.shape[0]) // 2, (255, 255, 255))
+        f0 = int(h * 0.78) - 3                                             # the confetti dimmed under the footer
+        a[f0:f0 + 8 * max(1, s // 2) + 14] *= 0.3
     elif cid == "nst":
         # the all-sports network of the day (director, Oct 30 2026: "national sports tv is ESPN pretty much"): wide,
         # heavy red letters on black, cut through with fine horizontal lines, a red rule, the round-the-clock line
