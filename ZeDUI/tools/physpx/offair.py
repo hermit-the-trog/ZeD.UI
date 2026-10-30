@@ -36,7 +36,9 @@ COUNTY = "KNOX COUNTRY, KENTUCKY"
 # inside, keeping its shape. Triple-N's is its "3N News Now Network" (also on its van and its billboard).
 GAME_LOGOS = {"triple_n": "media/textures/printMedia/logos/ENewsNowNetwork.png",
               "turbo": "media/textures/printMedia/logos/TurboTV.png"}
-LOGO_BOX = {"triple_n": (0.10, 0.16, 0.80, 0.44), "turbo": (0.10, 0.20, 0.80, 0.34)}
+LOGO_BOX = {"triple_n": (0.10, 0.16, 0.80, 0.44), "turbo": (0.08, 0.25, 0.84, 0.32)}
+# a tint multiplied into the game's picture (the texture drawn with this colour): TURBO's orange taken to the card's red
+LOGO_TINT = {"turbo": (1.0, 0.42, 0.40)}
 GAME_ROOT = None          # where the game's media/ lives, to draw the logo into review pictures (None: leave the box empty)
 
 
@@ -258,18 +260,31 @@ def signoff(cid, w, h):
         text(a, "LIFE & LIVING", cx, cy + s, max(1, s - 1), (120, 30, 70), outline=(255, 240, 230))
         text(a, "TV", cx, cy + s + 9 * max(1, s - 1), max(1, s - 1), (120, 30, 70), outline=(255, 240, 230))
     elif cid == "turbo":
-        a = card_frame(w, h, (10, 0, 30), (60, 0, 80))
-        hy = int(h * 0.62)                                                                 # the neon grid to the horizon
-        for k in range(1, 9):
-            y = hy + int((h - hy) * (k / 8) ** 1.8)
-            rect(a, 0, y, w, 1, (255, 40, 200))
-        for k in range(-10, 11):
-            x0 = cx + k * (w // 10)
-            for y in range(hy, h):
-                t = (y - hy) / max(1, h - hy)
-                x = int(cx + (x0 - cx) * (0.2 + 0.8 * t))
-                if 0 <= x < w: a[y, x] = np.array((255, 40, 200), np.float32) / 255
-        rect(a, 0, hy, w, 1, (120, 220, 255))
+        # the car shows' look of the day (director, Oct 30 2026: "like motor trend from the day. black and red"): a black
+        # set, a slanted red racing band above and below the name with a white pinstripe, the band's end cut in speed
+        # slashes, a chequered strip under it all
+        a = card_frame(w, h, (24, 22, 22), (0, 0, 0))
+        RED, WHITE = (200, 22, 26), (235, 235, 230)
+
+        def band(y0, th, slant, end_cut):
+            for yy in range(th):
+                off = int((th - yy) * slant)
+                x1 = w - end_cut + off
+                rect(a, 0, y0 + yy, max(0, x1), 1, RED)
+                for k in range(3):                                         # the band's end in three slashes
+                    sx = x1 + 4 * s + k * 5 * s
+                    rect(a, sx, y0 + yy, 2 * s, 1, RED)
+
+        th = max(4, int(h * 0.075))
+        band(int(h * 0.12), th, 0.6, int(w * 0.30))
+        rect(a, 0, int(h * 0.12) + th + 2, int(w * 0.62), 1, WHITE)
+        band(int(h * 0.60), th, 0.6, int(w * 0.30))
+        rect(a, 0, int(h * 0.60) - 3, int(w * 0.62), 1, WHITE)
+        cs = max(3, s)                                                     # the chequered strip
+        cy0 = int(h * 0.60) + th + 3
+        for k in range(0, w // cs + 1):
+            for r in range(2):
+                if (k + r) % 2 == 0: rect(a, k * cs, cy0 + r * cs, cs, cs, WHITE)
         game_logo(a, cid)
     elif cid == "paws":
         a = card_frame(w, h, (40, 120, 70), (10, 50, 30))
@@ -351,6 +366,7 @@ def game_logo(a, cid):
     lg = lg.resize((max(1, int(lg.width * k)), max(1, int(lg.height * k))), _I.LANCZOS)
     x0, y0 = bx + (bw - lg.width) // 2, by + (bh - lg.height) // 2
     rgb = np.asarray(lg, np.float32) / 255
+    if cid in LOGO_TINT: rgb[..., :3] *= np.array(LOGO_TINT[cid], np.float32)
     al = rgb[..., 3:4]
     reg = a[y0:y0 + lg.height, x0:x0 + lg.width]
     reg[:] = reg * (1 - al) + rgb[..., :3] * al
