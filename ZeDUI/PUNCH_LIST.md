@@ -119,8 +119,8 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     Build's note (Oct 30): "Access" is the director's rename (it replaced "Accessible", which was cut
     short), not a cut; the short names were read as kept (Vanilla | Plus | Access | Custom). Waiting:
     the director's pick on whether every dimmed row (the greyed game settings too) loses its highlight.
-21. **One header strip and one footer band for every tab card (director, Oct 30).** open, design
-    first. Goal: the same strip sizes and layouts on every tab, actions in a consistent place.
+21. **One header strip and one footer band for every tab card (director, Oct 30).** chosen (every
+    tab decided, below). Goal: the same strip sizes and layouts on every tab, actions in a consistent place.
     Draft rule (build): a header strip of one fixed height on every card (left: what the card is, its
     name, browse arrows or sub-tabs; right: tools for its content, search, filters, view switches);
     a footer band of the same height at the card's foot (left: view and mode choices; right: actions,
@@ -165,6 +165,9 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
       On map) as a pop-up on the left; Recipes: Category, Sort and Show on the left, as Craft;
       Loadouts: its buttons on the right.
     - **Skills (director, Oct 30):** no header or band change; its bars follow item 22.
+    - **Inventory and Ground (director, Oct 30):** done as they are (container name and List | Grid in the
+      header, the container buttons in the band). Animals and Vehicle already follow the rule.
+    - **All tabs decided (Oct 30): chosen, ready to build** after the face jobs (they share files).
 22. **Segmented bars everywhere (director, Oct 30: "keeping it 93; the segments help info at a
     glance").** chosen. Every fill bar (the shared fill bar: list condition, Health, Protection, animal
     food and water, fuel, item cards, Skills ...) becomes a row of 10 separate segments, lit or dark,
