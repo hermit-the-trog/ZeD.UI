@@ -4720,25 +4720,28 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     -- Convert drawer-relative photo rect to window coords
                     local bY = win:getBodyY()
                     local avatarX = T.px(TAB_STRIP_W) + pr.x
-                    local avatarY = bY + pr.y
 
-                    -- Show avatar unconditionally — window clips children naturally.
-                    -- Only clamp top to stay below the pinned tab header (37px).
-                    local tabHeaderH = ZeD.Molecules.getTabHeaderH()
-                    local minY = bY + tabHeaderH
-                    if avatarY < minY then
-                        -- Shift model down + shrink height so it doesn't overlap header
-                        local clip = minY - avatarY
-                        avatarY = minY
-                        pr.h = math.max(0, pr.h - clip)
+                    -- A model can't be clipped (its own UI element; stencils don't
+                    -- reach it), so clamp it to the card's scroll view: top below the
+                    -- pinned tab header, bottom above the view's end (else it draws
+                    -- over the status line at small sizes). _idView is the view
+                    -- IdentityTab.render publishes, in the same frame as pr.
+                    local view = win._idView
+                    local top, bot = pr.y, pr.y + pr.h
+                    if view then
+                        top = math.max(top, view.y)
+                        bot = math.min(bot, view.y + view.h)
+                    else
+                        top = math.max(top, ZeD.Molecules.getTabHeaderH())
                     end
+                    local avH = bot - top
 
-                    showAvatar = pr.h > T.px(20)  -- hide only if clipped to nothing
+                    showAvatar = avH > T.px(20)  -- hide only if clipped to nothing
                     if showAvatar then
                         model:setX(avatarX)
-                        model:setY(avatarY)
+                        model:setY(bY + top)
                         model:setWidth(pr.w)
-                        model:setHeight(pr.h)
+                        model:setHeight(avH)
 
                         -- Switch camera between bust crop and full-body
                         if pr.expanded then
