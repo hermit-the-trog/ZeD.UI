@@ -1,0 +1,12 @@
+# Oct 30 2026: QA's re-check of punch list 21 a-f at ae4b30d and what the first check left out, before t14.
+# zedqa_run.ps1 -Manifest this -Mode fullscreen4k, then -Mode windowed -Width 1280 -Height 800
+zedqa_prelude.lua | pre | timeout=120
+suite_tabs.lua | tabs | timeout=180 | end=ZEDQA tabs done
+suite_gamepad.lua | gp | timeout=120 | end=ZEDQA gp done
+zedqa_loot_tabs.lua | lt | timeout=60
+zedqa_bands_probe.lua | band | timeout=600
+zedqa_exinfo.lua | ex | timeout=300
+zedqa_health_padprobe.lua | hp | timeout=180
+zedqa_hairbeard.lua | hb | timeout=600
+zedqa_charinfo.lua | ci | timeout=300
+zedqa_uncovered21.lua | u21 | timeout=600
