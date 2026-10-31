@@ -1,0 +1,5 @@
+# Oct 30 2026: the QA save's grid switched off (director). zedqa_run.ps1 -Manifest this -Mode fullscreen4k
+zedqa_prelude.lua | pre | timeout=120
+zedqa_power_probe.lua | pw0 | timeout=60 | end=ZEDQA pw DONE
+zedqa_grid_off.lua | grid | timeout=60
+zedqa_power_probe.lua | pw1 | timeout=60 | end=ZEDQA pw DONE
