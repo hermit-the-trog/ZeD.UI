@@ -191,6 +191,19 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     - **Inventory and Ground (director, Oct 30):** done as they are (container name and List | Grid in the
       header, the container buttons in the band). Animals and Vehicle already follow the rule.
     - **All tabs decided (Oct 30): chosen, ready to build** after the face jobs (they share files).
+    - **fixed (build, Oct 30, 656d9f5, merged 5bf1e90)** - QA to confirm, mouse and pad, 4K and 1280x800:
+      every pop-up opens (in a band, upward), picks and returns focus to its box; Craft/Build band with
+      and without a recipe, alternatives mode, focus stays on Craft after crafting; Maps header row,
+      the delete question in the band, down from the map reaches the band; Forage Search toggles, Crouch
+      and Aim follow the character, the pad enters on Search; Health Start, greyed with a reason when
+      blocked; Identity Cut right after Hair | Beard; Journal pages, Loadouts off while on that page,
+      the Delete question; Furniture's five sub-tabs; no dead stops, nothing wider than the card, the
+      help line under every band. A new shared control: the pop-up menu (Molecules drawPopupMenu).
+      Build's calls, for the director: Craft's Show is a pop-up (Ready / Known / All) rather than the
+      old checkbox; the Loadouts band reads "Save loadout" / "Save outfit"; the max beside Craft's
+      amount is gone; an exercise you can't do stays in the list and Start greys with the reason;
+      Maps' band holds both the Key and the players-and-notes list on the right. Open: the walkie and
+      ham faces keep their printed foot (brand, "2-WAY PORTABLE"), part of the face art.
     - **built (Oct 30), not yet seen in game.** Maps, Craft and Build, Furniture, Forage, Health, Thermal,
       Identity and Journal as decided; Radio's drawn chassis lost its brand strip. Not exactly as decided:
       Craft's Show is a pop-up (Ready / Known / All) rather than the old cycling box; the Loadouts band
