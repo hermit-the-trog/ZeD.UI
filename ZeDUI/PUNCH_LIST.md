@@ -258,8 +258,11 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     machine's body (the white case, the blue panel, the door). A few seconds later (_2_running) the whole
     face is there. Cause not checked: perhaps the face's picture loads a little after the card first
     draws. Not yet known how long it lasts to the eye.
+    Chosen (director, Oct 30): (b), the face waits for its picture and then appears whole.
+    **fixed (build, Oct 30, 80094e3):** every plate face (machines, laundry, radios, TVs, walkies, car radio,
+    siren) asks the game whether its picture has finished loading and draws nothing until it has. QA to
+    confirm on a first opening, and to see how long the wait is to the eye.
 
-## Test process
 ## Test process
 
 - The release check (before every upload, about 5 minutes, pass or fail): right-click opens the
