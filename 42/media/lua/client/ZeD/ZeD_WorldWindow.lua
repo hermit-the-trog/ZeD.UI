@@ -1660,6 +1660,35 @@ local function measureWorldTabStripH(win)
     return totalH
 end
 
+-- The strip, when it scrolls, brings the tab that matters into view: the controller's focused
+-- tab, else the active one. Only when that tab changes (a new focus, a new active tab, the
+-- strip just starting to scroll), so the wheel and the arrows can still look elsewhere.
+-- (Oct 31 2026, break-it B1: at 1280x720, UI scale 2.0, Large text a controller moving down
+-- past Maps focused Forage, Animals, Radio, Vehicle out of sight.)
+local function worldTabStripFollow(win, viewH, scrollOff, maxScroll, focusedId)
+    local tgt = focusedId or win._activeTab
+    local isPad = focusedId ~= nil
+    if tgt == win._tabFollowId and isPad == win._tabFollowPad then return scrollOff end
+    win._tabFollowId, win._tabFollowPad = tgt, isPad
+    local T = ZeD.T
+    local y, lastGroup, btn = 0, 1, T.px(ACTION_TAB_BTN_SZ)
+    for _, tab in ipairs(WORLD_TABS) do
+        if isTabVisible(tab, win) then
+            if tab.group ~= lastGroup then
+                y = y + T.px(TAB_SEP_MAR) + T.px(TAB_SEP_H) + T.px(TAB_SEP_MAR)
+                lastGroup = tab.group
+            end
+            if tab.id == tgt then
+                if y < scrollOff then scrollOff = y
+                elseif y + btn > scrollOff + viewH then scrollOff = y + btn - viewH end
+                return math.max(0, math.min(scrollOff, maxScroll))
+            end
+            y = y + btn
+        end
+    end
+    return scrollOff
+end
+
 local function drawWorldTabStrip(self, win)
     local T  = ZeD.T
     local A  = ZeD.Atoms  -- S95: was missing; drawTriangleUp/Down calls below crashed
@@ -1682,6 +1711,20 @@ local function drawWorldTabStrip(self, win)
     local Focus = ZeD.Input and ZeD.Input.Focus
     local cuesOn = Focus and Focus.cuesVisible and Focus.cuesVisible() or false
 
+    -- The controller's focus on the strip, resolved once: only while this window
+    -- has the focus and the controller is in use (Focus.liveZone), so the mark
+    -- never lingers in the other window or under the mouse. The active tab shows
+    -- it too (the mark on a solid element leaves out its wash). (Resolved before
+    -- the scroll: a focused tab out of sight scrolls into view, break-it B1.)
+    local gpFocusedTabId = nil
+    do
+        local zone = Focus and Focus.liveZone and Focus.liveZone(win)
+        if zone and zone.zone == "worldTabBar" then
+            local el = Focus.liveElement(win)
+            if el then gpFocusedTabId = el.tabId end
+        end
+    end
+
     -- Check if tabs overflow
     local totalTabH = measureWorldTabStripH(win)
     local scrollOff = win._actionTabScrollOffset or 0
@@ -1693,6 +1736,7 @@ local function drawWorldTabStrip(self, win)
         local maxScroll = totalTabH - (h - arrowRowH)
         if maxScroll < 0 then maxScroll = 0 end
         scrollOff = math.max(0, math.min(scrollOff, maxScroll))
+        scrollOff = worldTabStripFollow(win, h - arrowRowH, scrollOff, maxScroll, gpFocusedTabId)
         win._actionTabScrollOffset = scrollOff
 
         local canScrollUp   = scrollOff > 0
@@ -1731,24 +1775,13 @@ local function drawWorldTabStrip(self, win)
         end
     else
         win._actionTabScrollOffset = 0
+        win._tabFollowId = nil   -- the next time the strip scrolls, it brings the active tab into view
     end
 
     -- Stencil for tab content area (above arrow row)
     local tabAreaH = h - arrowRowH
     self:setStencilRect(0, 0, w, tabAreaH)
 
-    -- The controller's focus on the strip, resolved once: only while this window
-    -- has the focus and the controller is in use (Focus.liveZone), so the mark
-    -- never lingers in the other window or under the mouse. The active tab shows
-    -- it too (the mark on a solid element leaves out its wash).
-    local gpFocusedTabId = nil
-    do
-        local zone = Focus and Focus.liveZone and Focus.liveZone(win)
-        if zone and zone.zone == "worldTabBar" then
-            local el = Focus.liveElement(win)
-            if el then gpFocusedTabId = el.tabId end
-        end
-    end
     local tabFocusOpts = { win = win, zone = "worldTabBar" }
     local tabDrawOpts = {}
 
