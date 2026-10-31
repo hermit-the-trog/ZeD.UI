@@ -776,8 +776,9 @@ local function drawPageBand(panel, win, x, y, w)
     local cues = F and F.cuesVisible and F.cuesVisible() or false
     local hov = (not open) and (not cues) and A.mouseIn(panel, fx, by, fw, bh)
     if hov then help(win, ZeD.tr("UI_ZeD_Lists_HelpFilter")) end
-    M.drawPopupMenu(panel, fx, by, fw, bh, ZeD.tr("UI_ZeD_Craft_ShowToggle", filterLabel(s.filter)), hov or open,
-        focusOf(win, "filter"), false)
+    local showName = filterLabel(s.filter)
+    M.drawPopupMenu(panel, fx, by, fw, bh, ZeD.tr("UI_ZeD_Craft_ShowToggle", showName), hov or open,
+        focusOf(win, "filter"), false, showName)   -- (the choice alone when both do not fit, break-it B2)
     zone(win, { id = "filter", x = fx, y = by, w = fw, h = bh, fn = function() s.filterOpen = true; s.step = nil end })
     for i, d in ipairs(BAND_BTNS) do
         local id = d[1]

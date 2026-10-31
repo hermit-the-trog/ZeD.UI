@@ -2977,8 +2977,20 @@ local function markPart(panel, x, y, w, h, f)
     return ZeD.Focus.mark(panel, x, y, w, h, f) and true or false
 end
 
+-- The words a closed pop-up box shows in its room: "Exercise: Squats" whole when it fits, else the
+-- choice alone ("Squats", the value wins over its label, as the header drops its subtitle), cut
+-- short only when even that does not fit. (Oct 31 2026, break-it B2: at UI scale 2.0 with Large
+-- text Health's box read "E...", the choice lost.)
+local function popupWords(label, short, font, room)
+    local A = ZeD.Atoms
+    label = label or ""
+    if short and short ~= "" and ZeD.TM:MeasureStringX(font, label) > room then label = short end
+    return A.truncateText(label, font, room)
+end
+
 -- the closed pop-up menu: the hover wash, a 1u frame, the choice's words and a down triangle
-local function drawPopupBox(panel, x, y, w, h, label, hover, focus)
+-- (short: the choice alone, shown when the label and the choice do not fit together)
+local function drawPopupBox(panel, x, y, w, h, label, hover, focus, short)
     local T, A, tm = ZeD.T, ZeD.Atoms, ZeD.TM
     if hover then
         local hv = T.hover
@@ -2988,7 +3000,7 @@ local function drawPopupBox(panel, x, y, w, h, label, hover, focus)
     local font = T.fontF1
     local pad, tri = T.px(6), T.px(5)
     local tc = onFocus and T.textOnFocus or T.text
-    local s = A.truncateText(label or "", font, math.max(0, w - pad * 2 - tri - T.px(4)))
+    local s = popupWords(label, short, font, math.max(0, w - pad * 2 - tri - T.px(4)))
     panel:drawText(s, x + pad, y + math.floor((h - tm:getFontHeight(font)) / 2), tc.r, tc.g, tc.b, tc.a or 1, font)
     A.drawTriangleDown(panel, x + w - pad - tri, y + math.floor((h - tri) / 2), tri, onFocus and T.textOnFocus or T.textDim)
     A.frame(panel, x, y, w, h, T.borderS)
@@ -3004,15 +3016,18 @@ end
 -- @param h      the box's height (in a band: T.buttonH; in a 20u strip: h - 4u)
 -- @param focus  the ZeD.Focus.mark opts when it has the controller's focus, else nil
 -- @param disabled  greyed, not pressable
+-- @param short  the choice alone ("Squats" for "Exercise: Squats"): shown instead of the
+--               label when the two do not fit together, cut short only if even it does not
+--               (Oct 31 2026, break-it B2)
 -- @return w, h
 local _popupDim = {}
-function ZeD.Molecules.drawPopupMenu(panel, x, y, w, h, label, hover, focus, disabled)
+function ZeD.Molecules.drawPopupMenu(panel, x, y, w, h, label, hover, focus, disabled, short)
     if disabled then
         local T, A, tm = ZeD.T, ZeD.Atoms, ZeD.TM
         local font = T.fontF1
         local pad, tri = T.px(6), T.px(5)
         local tc, da = T.text, T.disabledAlpha
-        local s = A.truncateText(label or "", font, math.max(0, w - pad * 2 - tri - T.px(4)))
+        local s = popupWords(label, short, font, math.max(0, w - pad * 2 - tri - T.px(4)))
         panel:drawText(s, x + pad, y + math.floor((h - tm:getFontHeight(font)) / 2), tc.r, tc.g, tc.b, (tc.a or 1) * da, font)
         local td, dc = T.textDim, _popupDim
         dc.r, dc.g, dc.b, dc.a = td.r, td.g, td.b, (td.a or 1) * da
@@ -3020,7 +3035,7 @@ function ZeD.Molecules.drawPopupMenu(panel, x, y, w, h, label, hover, focus, dis
         A.frame(panel, x, y, w, h, T.borderS, da)
         return w, h
     end
-    drawPopupBox(panel, x, y, w, h, label, hover, focus)
+    drawPopupBox(panel, x, y, w, h, label, hover, focus, short)
     return w, h
 end
 

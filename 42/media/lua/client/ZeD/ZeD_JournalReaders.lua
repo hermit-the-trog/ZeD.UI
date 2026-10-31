@@ -583,7 +583,7 @@ local function drawPapersBand(panel, win, x, y, w, frozen)
     local cur = ""
     for _, m in ipairs(modes) do if m.id == s.filter then cur = m.label end end
     M.drawPopupMenu(panel, bx, by, bw, bh, ZeD.tr("UI_ZeD_Craft_ShowToggle", cur), hov or open,
-        (not frozen) and focusOf(win, "jr:show") or nil, frozen)
+        (not frozen) and focusOf(win, "jr:show") or nil, frozen, cur)   -- (the choice alone when both do not fit, break-it B2)
     if frozen then return end
     zone(win, { id = "show", x = bx, y = by, w = bw, h = bh, fixed = true, fn = function() s.showOpen = true end })
     if not open then return end

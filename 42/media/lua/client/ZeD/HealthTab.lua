@@ -1127,9 +1127,10 @@ function ZeD.HealthTab._renderBand(panel, win, x, y, w)
     -- the exercise pop-up: the box ("Exercise: Squats"); its list opens upward (_renderMenu)
     local hov = (not open) and A.mouseIn(panel, boxX, by, boxW, bh)
     if hov and ZeD.Help then ZeD.Help.set(win, ZeD.tr("UI_ZeD_Health_HelpPick")) end
+    local exName = ZeD.HealthTab.exerciseLabel(sel)
     M.drawPopupMenu(panel, boxX, by, boxW, bh,
-        ZeD.tr("UI_ZeD_Health_ExercisePick", ZeD.HealthTab.exerciseLabel(sel)),
-        hov or open, focusOf(win, "health:exercise"), false)
+        ZeD.tr("UI_ZeD_Health_ExercisePick", exName),
+        hov or open, focusOf(win, "health:exercise"), false, exName)   -- (the name alone when both do not fit, break-it B2)
     setRect(bz.box, boxX, by, boxW, bh)
 end
 
