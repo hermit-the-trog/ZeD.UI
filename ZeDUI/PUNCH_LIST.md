@@ -459,6 +459,16 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     radio's preset readout from blinking. **fixed (build, Oct 31, 3f1be87):** the frame is worked out
     without that remainder. QA to confirm: zedqa_rtv's tv_black states (snow now moves, three frames),
     and retake slide 58 (g14_tv_black should show snow, not a flat screen).
+35. **Skills and Vehicle text run into each other at 1280x720, UI scale 2.0, Large text.** Found by QA,
+    Oct 31 (the break-it run, zqa_brk_scale200_large_c_skills / _w_vehicle shots).
+    **fixed (build, Oct 31, fa77922, e322052, 5fbb1ba):** a section heading is cut to its own column
+    (Skills read "Combat - FirearCombat - Melee"); a label's value is cut to the room after its label,
+    never drawn over it (Vehicle read "4Distance"); a header's cut name ends "..." (Vehicle read "Che&":
+    the one-character ellipsis drew as "&"); "Not inspected" is cut to the card's edge. QA to confirm.
+    **Question for the director:** the Skills rows still cut each skill's name to one letter ("A...") at
+    that setting: the level bar and the level number take the room. Which gives way? (a) the bar shrinks
+    to its smallest before the name is cut; (b) below a width the bar hides and the level number alone
+    shows; (c) at that width the grid goes to one column. Today's look stays until you choose.
 
 ## Test process
 
