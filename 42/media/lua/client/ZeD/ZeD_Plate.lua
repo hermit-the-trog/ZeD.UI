@@ -75,6 +75,13 @@ ZeD.trDefaults({
 local PL = ZeD.Plate
 local P = ZeD.Px
 
+-- (a clock in ms over a step: which of m steps it is on, 0 .. m-1. Not `math.floor(t / ms) % m`: the game's Lua gets
+-- % wrong once the left side passes 2^31, and a clock in ms divided by a few hundred is far past it; Oct 31 2026)
+local function clockStep(t, ms, m)
+    local n = math.floor(t / ms)
+    return n - math.floor(n / m) * m
+end
+
 local function clamp01(v) if v == nil then return 0 end; if v < 0 then return 0 end; if v > 1 then return 1 end; return v end
 PL.clamp01 = clamp01
 
@@ -219,7 +226,7 @@ end
 
 local LOW = "#ff4a3a"                                -- a needle's colour while its warning reads
 local MISSING = { r = 0.1, g = 0.1, b = 0.1 }       -- the plate's stand-in when its picture is missing
-local function blinkOn(ms) return math.floor(getTimestampMs() / (ms or 250)) % 2 == 0 end
+local function blinkOn(ms) return clockStep(getTimestampMs(), ms or 250, 2) == 0 end
 
 -- a line that marches left a character at a time when it is too long (1993 displays did)
 local function marquee(str, n, now)

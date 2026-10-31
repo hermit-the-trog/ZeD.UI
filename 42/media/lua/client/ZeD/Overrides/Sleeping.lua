@@ -37,6 +37,13 @@ local LIT = { r = 1.0, g = 0.2, b = 0.133 }
 local GLOW = { r = 0.353, g = 0.071, b = 0.047 }
 local SEG = { [0] = "abcdef", "bc", "abdeg", "abcdg", "bcfg", "acdfg", "acdefg", "abc", "abcdefg", "abcdfg" }
 
+-- (a clock in ms over a step: which of m steps it is on, 0 .. m-1. Not `math.floor(t / ms) % m`: the game's Lua gets
+-- % wrong once the left side passes 2^31, and a clock in ms divided by a few hundred is far past it; Oct 31 2026)
+local function clockStep(t, ms, m)
+    local n = math.floor(t / ms)
+    return n - math.floor(n / m) * m
+end
+
 -- an alarm set on anything the character carries or wears (vanilla's alarm clocks and watches)
 local function alarmSet(playerObj)
     local found = false
@@ -90,7 +97,7 @@ function S.draw(self, ox, oy, k, hourOfDay, alarm)
     digit(self, ox, oy, k, h12 % 10, DX + DIGIT_X[2], DY)
     digit(self, ox, oy, k, math.floor(mm / 10), DX + DIGIT_X[3], DY)
     digit(self, ox, oy, k, mm % 10, DX + DIGIT_X[4], DY)
-    if (getTimestampMs() % 1000) < 500 then
+    if clockStep(getTimestampMs(), 500, 2) == 0 then
         for _, c in ipairs(COLON) do seg(self, ox, oy, k, DX + c[1], DY + c[2], 3, 3) end
     end
     local d = pm and AMPM.pm or AMPM.am

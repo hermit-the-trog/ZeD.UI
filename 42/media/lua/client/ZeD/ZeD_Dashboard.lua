@@ -50,6 +50,13 @@ local BASE_W, BASE_H = DP.w, DP.h
 local TEXDIR = "media/textures/ZeD/dashpx/"
 D.scale = D.scale or 1.0   -- organism multiplier on top of the root scale
 
+-- (a clock in ms over a step: which of m steps it is on, 0 .. m-1. Not `math.floor(t / ms) % m`: the game's Lua gets
+-- % wrong once the left side passes 2^31, and a clock in ms divided by a few hundred is far past it; Oct 31 2026)
+local function clockStep(t, ms, m)
+    local n = math.floor(t / ms)
+    return n - math.floor(n / m) * m
+end
+
 local function clamp01(v) if v == nil then return 0 end; if v < 0 then return 0 end; if v > 1 then return 1 end; return v end
 local function tex(name) return P.tex(TEXDIR .. name .. ".png") end
 
@@ -287,7 +294,7 @@ end
 -- the lamp for a tone: false (dark: fine, or the blink's dark half under 10%) or its colour
 function D.lampColor(t)
     if t == nil or t == "good" then return false end
-    if t == "dead" and math.floor(getTimestampMs() / D.BLINK_MS) % 2 == 1 then return false end
+    if t == "dead" and clockStep(getTimestampMs(), D.BLINK_MS, 2) == 1 then return false end
     return D.LAMP_COLOR[t]
 end
 

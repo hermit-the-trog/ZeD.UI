@@ -24,6 +24,13 @@ local UI = MM.ui
 -- design units
 local LABEL_W, ROW_H, BOX_W = 170, 40, 300
 
+-- (a clock in ms over a step: which of m steps it is on, 0 .. m-1. Not `math.floor(t / ms) % m`: the game's Lua gets
+-- % wrong once the left side passes 2^31, and a clock in ms divided by a few hundred is far past it; Oct 31 2026)
+local function clockStep(t, ms, m)
+    local n = math.floor(t / ms)
+    return n - math.floor(n / m) * m
+end
+
 local function ms() return MainScreen and MainScreen.instance end
 local function coop() local m = ms(); return m and m.onlineCoopScreen end
 local function s(v) if v == nil then return "" end; return tostring(v) end
@@ -274,7 +281,7 @@ function ZeD_MMHost:prerender()
         ZeD.Text.draw(self, hf, s(CoopConnection.servername), ix, cy, z, tc.r, tc.g, tc.b, tc.a or 1, "l")
         cy = cy + math.floor(ZeD.Text.height(hf, z)) + T.px(16)
         local dsz = T.px(9)
-        local blink = math.floor(MM.now() / 450) % 2 == 0
+        local blink = clockStep(MM.now(), 450, 2) == 0
         if blink then ZeD.Atoms.drawStatusDot(self, ix, cy + math.floor((MM.fontH(f2) - dsz) / 2), T.accent, dsz) end
         local t2 = T.text
         for _, l in ipairs(ZeD.Atoms.wrapText(UI.plain(s(c.serverStatus)), f2, bw - T.px(60))) do
