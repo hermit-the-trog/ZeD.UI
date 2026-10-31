@@ -237,7 +237,7 @@ function Ctx:button(id, text, o)
 end
 
 -- A slider in the look of ZeD setup's sliders (the library has no slider of its
--- own): the System 7 bar for the track (A.drawFillBar at the list rows' height),
+-- own): the System 7 bar for the track (A.drawSmoothBar at the list rows' height),
 -- a flat 12 x 18 thumb with a 1u frame, lit while pointed at or held, a tick at the
 -- default, the value in words after it. Hover and the controller's mark are the
 -- library's. Click or drag to set; the controller's D-pad left / right steps it
@@ -264,7 +264,7 @@ function Ctx:slider(id, o)
     local v = o.get()
     local frac = (math.max(o.min, math.min(o.max, v)) - o.min) / span
     local bh = A.fillBarCompactH()
-    A.drawFillBar(panel, x, cy - math.floor(bh / 2), w, frac, false, nil, bh)
+    A.drawSmoothBar(panel, x, cy - math.floor(bh / 2), w, frac, false, nil, bh)   -- (a track stays smooth: the thumb sits anywhere)
     if o.tick then
         local tx = x + math.floor((o.tick - o.min) / span * w)
         local ts = T.textSec

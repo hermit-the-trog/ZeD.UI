@@ -166,12 +166,13 @@ local function _drawDockCell(panel, x, y, size, zCfg)
     return nil
 end
 
--- A zone's condition: the framed strip (ZeD.Atoms.drawFillBar) in the zone's
--- colour (its patch material, else its condition), at the list rows' height
-local function _drawZoneBar(panel, x, y, w, rowH, ratio, segC)
+-- A zone's condition: the framed strip (ZeD.Atoms.drawFillBar, ten segments) in the zone's
+-- colour (its patch material, else its condition), at the list rows' height; label: the zone's
+-- name, for the help line ("Front 64%")
+local function _drawZoneBar(panel, x, y, w, rowH, ratio, segC, label)
     local A = ZeD.Atoms
     local h = (A.fillBarCompactH and A.fillBarCompactH()) or ZeD.T.px(8)
-    A.drawFillBar(panel, x, y + math.floor((rowH - h) / 2), w, ratio, false, segC, h)
+    A.drawFillBar(panel, x, y + math.floor((rowH - h) / 2), w, ratio, false, segC, h, label)
 end
 
 -- v15 220w single-row zone layout: NAME(measured) | gap | BAR(1fr) |
@@ -215,7 +216,7 @@ local function _drawZoneRow220(panel, x, y, w, zCfg)
         T.text.r, T.text.g, T.text.b, T.text.a or 1, font)
 
     -- Bar: the framed strip in the zone's colour (the colour says the state, the figure is plain text)
-    _drawZoneBar(panel, barX, y, barW, rowH, ratio, segC)
+    _drawZoneBar(panel, barX, y, barW, rowH, ratio, segC, zCfg.name)
 
     -- Pct (mono, right-aligned)
     local pctStr   = tostring(math.floor(pct + 0.5)) .. "%"
@@ -279,7 +280,7 @@ local function _drawZoneRow480(panel, x, y, w, zCfg, flagWOverride)
         T.text.r, T.text.g, T.text.b, T.text.a or 1, font)
 
     -- Bar: the framed strip in the zone's colour
-    _drawZoneBar(panel, barX, y, barW, rowH, ratio, segC)
+    _drawZoneBar(panel, barX, y, barW, rowH, ratio, segC, zCfg.name)
 
     -- Flag (right-aligned in flagW): the word in the text colour after a square
     -- mark in the state's colour (torn, worn, the patch's material)

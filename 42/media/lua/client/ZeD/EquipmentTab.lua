@@ -112,13 +112,14 @@ local function eqHover(panel, win, x, y, w, h)
     return ZeD.Atoms.mouseIn(panel, x, y, w, h)
 end
 
--- A row's condition: the framed strip (ZeD.Atoms.drawFillBar) at the list rows'
--- compact height, its middle at cy, in the condition's colours
+-- A row's condition: the framed strip (ZeD.Atoms.drawFillBar, ten segments) at the list
+-- rows' compact height, its middle at cy, in the condition's colours. True while the
+-- pointer is on it (its help line: "Condition 64%")
 local function eqCondition(panel, x, cy, w, f)
-    if not f or w <= 0 then return end
+    if not f or w <= 0 then return false end
     local A = ZeD.Atoms
     local ch = (A.fillBarCompactH and A.fillBarCompactH()) or ZeD.T.px(8)
-    A.drawFillBar(panel, x, cy - math.floor(ch / 2), w, f, true, nil, ch)
+    return A.drawFillBar(panel, x, cy - math.floor(ch / 2), w, f, true, nil, ch, ZeD.tr("IGUI_invpanel_Condition"))
 end
 local COND_BAR_W = 80  -- condition bar width
 local PROT_COL_W = 32  -- protection stat column width
@@ -804,9 +805,9 @@ local function _drawBeltRows(panel, win, slots, x, y, w, zones)
         panel:drawText(A.truncateText(sub, f1, subW), tx, ty + f2h + T.px(2), th.r, th.g, th.b, th.a or 0.9, f1)
         -- condition, in the COND column level with the name: the framed strip
         local f = s.item and B.cond(s.item)
-        if f then eqCondition(panel, x + c.condX + T.px(2), ty + math.floor(f2h / 2), c.condColW - T.px(4), f) end
+        local condHov = f and eqCondition(panel, x + c.condX + T.px(2), ty + math.floor(f2h / 2), c.condColW - T.px(4), f)
         local btnHover = rowHover and A.mouseIn(panel, bx, by, bw, bh)
-        if rowHover then
+        if rowHover and not condHov then   -- (on the strip the help line keeps its condition)
             ZeD.Help.set(panel, ZeD.tr("UI_ZeD_Equip_BeltRowHelp", s.item and (safeGet(s.item, "getDisplayName") or "?") or ZeD.tr("UI_ZeD_Equip_Empty"), ZeD.btnCase(label)))
         end
         ZeD.Molecules.drawButton(panel, bx, by, bw, bh, label, action == "attach" and "primary" or "default", false, nil,

@@ -20,7 +20,7 @@
 -- This file registers a decorator with both container strips (the general hook,
 -- StripDecorators.lua: ZeD_CharacterWindow.addStripDecorator and
 -- ZeD_WorldWindow.addStripDecorator) which draws the same number as ZeD's
--- compact fill bar (ZeD.Atoms.drawFillBar, the library's one fill) along the
+-- compact fill bar (ZeD.Atoms.drawFillBar, the library's one fill: ten segments) along the
 -- bottom of each button, inside the button, in the mod's own bands mapped to
 -- the theme's status colours: T.positive, T.warning (from 75 percent) and
 -- T.danger (from 95 percent). The numbers are the mod's own, read from the
@@ -94,11 +94,11 @@ function S.decorate(panel, entry, x, y, w, h, win)
     local barH = A.fillBarCompactH()
     local inset = T.px(3)
     local barW = w - inset * 2
-    if barW < T.px(8) then return end            -- a button too narrow for a bar draws none
+    if barW < A.fillBarMinW() then return end    -- a button too narrow for ten segments draws none
     local by = y + h - T.px(1) - T.px(1) - barH  -- over the line under the button, one unit clear of it
     local color, band = bandOf(ratio, T)
     -- the library's bar: a fixed colour (the band's), not its own graduated one
-    A.drawFillBar(panel, x + inset, by, barW, ratio, false, color, barH)
+    A.drawFillBar(panel, x + inset, by, barW, ratio, false, color, barH, ZeD.tr("Tooltip_container_Capacity"))   -- ("Capacity 80%")
     local rec = S.last[inv]
     if not rec then rec = {}; S.last[inv] = rec end
     rec.ratio, rec.barW, rec.band, rec.at = ratio, barW, band, getTimestampMs()

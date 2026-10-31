@@ -11,8 +11,9 @@
 --      inventory and the floor too;
 --   3. the support's own stamp (S.last) agrees with an independent
 --      getCapacityWeight / getEffectiveCapacity, the bands are the mod's (amber
---      from 75 percent, green below), and the bars' filled widths follow the
---      fullness (bag about four times the bed's); captured as zqa_cci_strip.png;
+--      from 75 percent, green below), and the bars' lit segments follow the
+--      fullness (Oct 30 2026: ten, whole tenths only; the bag seven or eight, the
+--      bed one or two); captured as zqa_cci_strip.png;
 --   4. the bag goes to about 97 percent: the red band (zqa_cci_strip_full.png);
 --   5. everything is put back: what was added removed, a borrowed bag taken off,
 --      a spawned pickup removed, the window pair as found.
@@ -102,12 +103,13 @@ local function fillTo(inv, target)
     return ratioOf(inv)
 end
 
--- the filled width the library's bar draws for a bar `w` wide at `ratio` (Atoms.drawFillBar's rule)
-local function fillWidth(w, ratio)
-    local T = ZeD.T
-    local f = math.floor((w - T.line(T.borderW) * 2) * ratio)
-    if f > 0 then f = math.max(T.px(2), f) end
-    return f
+-- the segments the library's bar lights at `ratio` (Oct 30 2026: ten, one per whole tenth; worked
+-- out here, not through ZeD.Atoms.fillSegsLit); `w` must hold ten distinct ones
+local function litSegs(w, ratio)
+    check(w >= ZeD.Atoms.fillBarMinW(), "a bar " .. tostring(w) .. " px wide is too short for ten segments")
+    if ratio <= 0 then return 0 end
+    if ratio >= 1 then return 10 end
+    return math.floor(ratio * 10 + 1e-6)
 end
 
 local back, borrowed, pickup, bed, openedPair = nil, nil, nil, nil, false
@@ -188,16 +190,17 @@ steps = {
         check(now - lb.at < 1000 and now - ld.at < 1000, "a bar record is stale (the strip stopped drawing it)")
         check(lb.band == bandFor(nb), "bag band " .. lb.band .. " at " .. fmt(nb))
         check(ld.band == bandFor(nd), "bed band " .. ld.band .. " at " .. fmt(nd))
-        local gBag, gBed = fillWidth(lb.barW, lb.ratio), fillWidth(ld.barW, ld.ratio)
-        say(string.format("bag %s band %s bar %d filled %d | bed %s band %s bar %d filled %d",
+        local gBag, gBed = litSegs(lb.barW, lb.ratio), litSegs(ld.barW, ld.ratio)
+        say(string.format("bag %s band %s bar %d lit %d | bed %s band %s bar %d lit %d",
             fmt(lb.ratio), lb.band, lb.barW, gBag, fmt(ld.ratio), ld.band, ld.barW, gBed))
         check(lb.band == "warning", "the 80 percent bag should be in the amber band, is " .. lb.band)
         check(ld.band == "positive", "the 20 percent bed should be in the green band, is " .. ld.band)
-        check(gBag > gBed, "the fuller bar is not wider")
-        if gBed > 0 and ld.ratio > 0 then
-            local rr = (gBag / gBed) / (lb.ratio / ld.ratio)
-            check(rr > 0.85 and rr < 1.15, string.format("bar widths do not follow the fullness (filled %d vs %d)", gBag, gBed))
-        end
+        check(gBag > gBed, "the fuller bar does not light more segments")
+        check(gBag == ZeD.Atoms.fillSegsLit(lb.ratio) and gBed == ZeD.Atoms.fillSegsLit(ld.ratio),
+            string.format("the library lights %d and %d, not %d and %d", ZeD.Atoms.fillSegsLit(lb.ratio), ZeD.Atoms.fillSegsLit(ld.ratio), gBag, gBed))
+        -- (the bag about 80 percent, the bed about 20: seven or eight segments, one or two)
+        check(gBag >= 7 and gBag <= 8 and gBed >= 1 and gBed <= 2,
+            string.format("segments do not follow the fullness (lit %d vs %d)", gBag, gBed))
         shot("strip")
     end },
     -- the bag to nearly full: the red band

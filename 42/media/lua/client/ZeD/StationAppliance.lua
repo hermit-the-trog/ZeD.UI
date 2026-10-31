@@ -638,7 +638,7 @@ function SA.render(panel, win, x, y, w, h, state, st, opts)
             local bh = A.fillBarCompactH()
             local byy = cyy + math.floor((rowH - bh) / 2)
             local fc = (rw.mode == "danger") and T.danger or ((rw.mode == "pos") and T.positive or T.accent)
-            A.drawFillBar(panel, bx, byy, barW, rw.p, false, fc, bh)
+            A.drawFillBar(panel, bx, byy, barW, rw.p, false, fc, bh, rw.name)   -- (ten segments; "Steak 64%")
             local ptxt = rw.left and (rw.mode == "danger" or rw.mode == "warn") and ZeD.tr("UI_ZeD_Appliance_MinShort", rw.left) or (tostring(math.floor(rw.p * 100 + 0.5)) .. "%")
             A.drawTextRight(panel, ptxt, rx, cyy + math.floor((rowH - tm:getFontHeight(T.fontF3)) / 2), T.fontF3, T.text)
         end
