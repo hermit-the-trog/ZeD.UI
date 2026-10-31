@@ -268,9 +268,16 @@ local function unstash()
     for _, it in ipairs(stash) do p:getInventory():AddItem(it) end
     stash = {}
 end
+-- (Oct 30 2026, punch list 21 h/i: these take the window's getter, CW or WW, and ask it when the step runs. They
+-- took the window itself, read when the script loaded: in the full pass the windows are shut then (zedqa_sandbox_ig
+-- shuts them; this script opens them in its own steps), so win was nil, the first step threw "_focusEntryZone of
+-- non-table", the pad never entered the tab, and every pad check after it failed. Short manifests passed because the
+-- script before left the windows open.)
 -- the pad enters the tab: focus lands on power (the director's rule: land on the primary control)
-local function landOnPower(win, zoneName, tag)
+local function landOnPower(getWin, zoneName, tag)
     step(5, function()
+        local win = getWin()
+        if not win then check(false, tag .. ": the window is open for the pad"); return end
         local wasZone, wasPend = win._focusEntryZone, win._focusPendingEntry
         Focus.claimFocus(win)
         win._focusEntryZone, win._focusPendingEntry = zoneName, true
@@ -283,8 +290,9 @@ local function landOnPower(win, zoneName, tag)
     end)
 end
 -- A on a key that opens a list: the list is up, and when it closes the pad is back on that key in that window
-local function padKey(win, zoneName, id, tag, shotName)
+local function padKey(getWin, zoneName, id, tag, shotName)
     step(5, function()
+        local win = getWin()
         local e = Focus.focusWhere(win, zoneName, function(x) return x.id == "radio:tw:" .. id end)
         lastCtx = nil
         if not e then check(false, tag .. ": " .. id .. " is a controller stop"); return end
@@ -296,7 +304,8 @@ local function padKey(win, zoneName, id, tag, shotName)
         menuClose()
     end)
     step(6, function()
-        local f = Focus.getFocusedElement(win)
+        local win = getWin()
+        local f = win and Focus.getFocusedElement(win)
         check(Focus.getFocusedWindow() == win and f ~= nil and f.id == "radio:tw:" .. id,
             tag .. ": the list closed: the pad is back on " .. id .. " (" .. tostring(f and f.id) .. ")")
     end)
@@ -315,10 +324,10 @@ step(5, function()
     stashCarried({ "Base.Battery", "Base.Headphones", "Base.Earbuds" })
     pcall(function() dd(cur.it):setHasBattery(false) end)
 end)
-landOnPower(CW(), "charTabContent", "cd_player")
-padKey(CW(), "charTabContent", "battery", "cd_player", "2_pad_cd_player_battery_list")
-padKey(CW(), "charTabContent", "phones", "cd_player", "2_pad_cd_player_phones_list")
-padKey(CW(), "charTabContent", "slot", "cd_player", "2_pad_cd_player_disc_list")
+landOnPower(CW, "charTabContent", "cd_player")
+padKey(CW, "charTabContent", "battery", "cd_player", "2_pad_cd_player_battery_list")
+padKey(CW, "charTabContent", "phones", "cd_player", "2_pad_cd_player_phones_list")
+padKey(CW, "charTabContent", "slot", "cd_player", "2_pad_cd_player_disc_list")
 step(5, function() pcall(function() dd(cur.it):setHasBattery(true) end) end)
 padEnd()
 
@@ -710,10 +719,10 @@ local function tvPad(pid)
         Det.setLockedMode(Det.MODE_GAMEPAD)
         stashCarried({ "Base.Headphones", "Base.Earbuds" })
     end)
-    landOnPower(WW(), "worldTabContent", pid)
+    landOnPower(WW, "worldTabContent", pid)
     if pid ~= "tv_antique" then
-        padKey(WW(), "worldTabContent", "slot", pid, "2_pad_" .. pid .. "_tape_list")
-        padKey(WW(), "worldTabContent", "phones", pid, "2_pad_" .. pid .. "_phones_list")
+        padKey(WW, "worldTabContent", "slot", pid, "2_pad_" .. pid .. "_tape_list")
+        padKey(WW, "worldTabContent", "phones", pid, "2_pad_" .. pid .. "_phones_list")
     else
         step(5, function()
             local e = Focus.getFocusedElement(WW())
