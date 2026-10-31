@@ -1,0 +1,3 @@
+# Oct 31 2026: break-it C1/C2 re-check. zedqa_run.ps1 -Manifest this -Mode fullscreen4k
+zedqa_prelude.lua | pre | timeout=120
+zedqa_break_c1c2.lua | bc12 | timeout=300

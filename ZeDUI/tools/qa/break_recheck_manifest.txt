@@ -1,0 +1,5 @@
+# Oct 31 2026: break-it B1-B3 re-check. zedqa_run.ps1 -Manifest this -Mode windowed -Width 1280 -Height 720
+zedqa_prelude.lua | pre | timeout=120
+zedqa_break_sizes.lua | brk | timeout=900
+zedqa_break_reschange.lua | brc | timeout=60
+zedqa_bands_probe.lua | band | timeout=600

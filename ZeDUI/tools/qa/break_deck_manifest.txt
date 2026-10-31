@@ -1,0 +1,3 @@
+# Oct 31 2026: break-it on the Steam Deck size. zedqa_run.ps1 -Manifest this -Mode windowed -Width 1280 -Height 800
+zedqa_prelude.lua | pre | timeout=120
+zedqa_break_sizes.lua | brk | timeout=900
