@@ -498,7 +498,7 @@ try {
     Start-Sleep -Seconds 15
     if (-not (Wait-Log 'bridge armed \(main menu' 600)) { "never reached the main menu"; $fails++; return }
     Start-Sleep -Seconds 10
-    Push-File "gallery_t14_look.lua" "g14l"
+    Push-File "gallery_t14_look_menu.lua" "g14l"
 
     $l = Run-Job "open" $null 90
     Check ($l -match 'view=mods') "the Mods screen opens"
@@ -642,7 +642,7 @@ try {
     $l = Run-Job "keepOn"
     Check ($l -match 'offNow=true') "Turn off turns it off after the question"
     [void](Run-Job "back")
-    Push-File "gallery_t14_end.lua" "g14e"
+    Push-File "gallery_t14_end_menu.lua" "g14e"
 } finally {
     if ($p -and -not $p.HasExited) {
         $g = Next-Go

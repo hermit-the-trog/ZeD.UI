@@ -104,7 +104,7 @@ try {
     Start-Sleep -Seconds 12
     # (Oct 30 2026, the t14 retake) the desk's Debug menu left out and the default look (Dark, Orange) for the pictures;
     # gallery_t14_end.lua puts both back before the quit
-    if (-not (Push "gallery_t14_look.lua" "g14l" 60)) { $fails++ }
+    if (-not (Push "gallery_t14_look_menu.lua" "g14l" 60)) { $fails++ }
     Start-Sleep -Seconds 2
     if (-not (Push "gallery_desk_pass.lua" "dsk" 120)) { $fails++ }
     Start-Sleep -Seconds 3
@@ -112,7 +112,7 @@ try {
     Start-Sleep -Seconds 3
     if (-not (Push "gallery_v4_upload.lua" "g4u" 180)) { $fails++ }
     Start-Sleep -Seconds 2
-    if (-not (Push "gallery_t14_end.lua" "g14e" 60)) { $fails++ }
+    if (-not (Push "gallery_t14_end_menu.lua" "g14e" 60)) { $fails++ }
 } finally {
     if ($p -and -not $p.HasExited) {
         $g = Next-Go
