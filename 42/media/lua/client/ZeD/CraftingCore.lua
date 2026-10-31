@@ -1244,20 +1244,35 @@ function CC.renderStaticHeader(panel, x, y, w, state, config, win)
     local ddX, ddW, searchX, searchW
 
     if ST then
-        -- Crafting: STATION, CATEGORY and the search in thirds
+        -- Crafting: STATION, CATEGORY and the search in thirds; a select is never narrower
+        -- than its value and its arrow ("-- All --" v): the search gives it the room, down
+        -- to half its own third (Oct 31 2026, break-it B2: at 1280x720, UI scale 2.0, Large
+        -- text the Category read "-- A...")
         local selW = math.floor((w - pad * 2 - gap * 2) / 3)
-        local stX = x + pad
-        ddX, ddW = stX + selW + gap, selW
-        searchX = ddX + ddW + gap
-        searchW = x + w - pad - searchX
         local player = win and win._playerObj
         local cur = player and ST.current(player) or nil
+        local stVal = cur and cur.name or ZeD.tr("UI_ZeD_Station_Hand")
+        local chrome = T.sp.inputPadX * 2 + T.px(5) + T.px(4) + T.px(1)   -- (ST.drawSelect's pads and arrow)
+        local stW = math.max(selW, ZeD.TM:MeasureStringX(T.fontF2, stVal) + chrome)
+        local cW = math.max(selW, ZeD.TM:MeasureStringX(T.fontF2, CC.activeCategoryLabel(state)) + chrome)
+        local grow = (stW - selW) + (cW - selW)
+        local spare = (w - pad * 2 - gap * 2) - stW - cW - math.floor(selW / 2)
+        if spare < 0 and grow > 0 then
+            -- the search at its least: the two give back what they grew, by their growth
+            local back = math.min(-spare, grow)
+            local sb = math.floor(back * (stW - selW) / grow)
+            stW, cW = stW - sb, cW - (back - sb)
+        end
+        local stX = x + pad
+        ddX, ddW = stX + stW + gap, cW
+        searchX = ddX + ddW + gap
+        searchW = x + w - pad - searchX
         local mx, my = panel:getMouseX(), panel:getMouseY()
-        local hov = (not anyOpen(state)) and mx >= stX and mx < stX + selW and my >= rowY and my < rowY + ddH
-        ST.drawSelect(panel, stX, rowY, selW, ddH, ZeD.tr("UI_ZeD_Station_SelectLabel"), cur and cur.name or ZeD.tr("UI_ZeD_Station_Hand"),
+        local hov = (not anyOpen(state)) and mx >= stX and mx < stX + stW and my >= rowY and my < rowY + ddH
+        ST.drawSelect(panel, stX, rowY, stW, ddH, ZeD.tr("UI_ZeD_Station_SelectLabel"), stVal,
             cur ~= nil, state._gpFocusedId == (pfx .. ":stDrop"), hov)
-        zones[#zones + 1] = { type = "stationDropdown", x = stX, y = rowY, w = selW, h = ddH }
-        state._stGeo = { x = stX, y = rowY + ddH, w = selW }
+        zones[#zones + 1] = { type = "stationDropdown", x = stX, y = rowY, w = stW, h = ddH }
+        state._stGeo = { x = stX, y = rowY + ddH, w = stW }
     else
         -- Building: the Category select LEFT (~45%), the search RIGHT
         ddW = math.floor((w - pad * 2 - gap) * 0.45)
@@ -1382,8 +1397,11 @@ local function drawPopBox(panel, state, kind, x, y, w, h, label, modes, frozen, 
     g.x, g.y, g.w, g.modes = x, y - M.popupListH(#modes), w, modes
 end
 
--- The amount and Craft / Build at the band's right; returns the x the left part ends at.
-local function drawBandActions(panel, x, y, w, state, config, rd, pfx, fid, mx)
+-- The amount and Craft / Build at the band's right; returns the x the left part ends at,
+-- and true when the band is short of room. leftNeed: the room the left part's boxes need
+-- from x at the usual spacing; short of it, the amount closes up (its gap to Craft / Build,
+-- its readout only as wide as its digits) (Oct 31 2026, break-it B2).
+local function drawBandActions(panel, x, y, w, state, config, rd, pfx, fid, mx, leftNeed)
     local T = ZeD.T
     local zones = state.zones
     local bh = T.buttonH
@@ -1409,11 +1427,20 @@ local function drawBandActions(panel, x, y, w, state, config, rd, pfx, fid, mx)
     local _, out = M.drawBand(panel, x, y, w, _bandSpec)
     local r = out.buttons[1]
     -- the amount (- n +) left of it; the readout is as wide as the stepper makes it
-    local qtyW = math.max(bh, ZeD.TM:MeasureStringX(T.fontF3, tostring(qty)) + T.px(8))
+    local qtyTW = ZeD.TM:MeasureStringX(T.fontF3, tostring(qty))
+    local qtyW = math.max(bh, qtyTW + T.px(8))
     local stepW = bh * 2 + qtyW + 2 * T.px(4)
-    local sx = (r and r.x or (x + w - T.px(8))) - gap - stepW
+    local rx = r and r.x or (x + w - T.px(8))
+    local sx = rx - gap - stepW
+    local narrow = (sx - gap - x) < (leftNeed or 0)
+    if narrow then
+        gap = T.px(4)
+        stepW = bh * 2 + qtyTW + T.px(8) + 2 * T.px(4)
+        sx = rx - gap - stepW
+    end
     local so = _bandStep
     so.focusId = nil
+    so.narrow = narrow
     if rd and fid then
         if fid == pfx .. ":actDec" then so.focusId = "dec"
         elseif fid == pfx .. ":actInc" then so.focusId = "inc" end
@@ -1426,7 +1453,7 @@ local function drawBandActions(panel, x, y, w, state, config, rd, pfx, fid, mx)
         end
         if r then zones[#zones + 1] = { type = "action_build", x = r.x, y = r.y, w = r.w, h = r.h } end
     end
-    return sx - gap
+    return sx - gap, narrow
 end
 
 function CC.renderBand(panel, x, y, w, state, config, rd)
@@ -1441,38 +1468,71 @@ function CC.renderBand(panel, x, y, w, state, config, rd)
     local by = y + T.px(5)
     local edge, gap = T.px(8), T.px(8)
 
+    -- the left's boxes: at most the longest words each can carry, at least the current
+    -- choice and its arrow ("Craftable" v), and at worst its first letter and the arrow
+    -- (Oct 31 2026, break-it B2: narrowed by one share, Sort and Show came out too
+    -- narrow for any words at 1280x720, UI scale 2.0, Large text)
+    local sortModes = CC.popModes("sort", config)
+    local showModes = CC.popModes("show", config)
+    local sortName = modeLabel(sortModes, state.sort or "craftable")
+    local showName = modeLabel(showModes, CC.showMode(state, config))
+    local sortW, showW = popWidths(state, config, sortModes, showModes)
+    local catName = ro and CC.activeCategoryLabel(state) or nil
+    local catW = ro and T.px(CAT_BAND_W) or 0
+    local sortMin, showMin = math.min(sortW, M.popupMenuW(sortName)), math.min(showW, M.popupMenuW(showName))
+    local catMin = ro and math.min(catW, M.popupMenuW(catName)) or 0
+    local nGaps = ro and 2 or 1
+
     -- the right: the amount and Craft / Build (the read-only list has none)
-    local leftEnd
+    local leftEnd, narrow
     if ro then
         _bandSpecRO.win = state._focusWin
         M.drawBand(panel, x, y, w, _bandSpecRO)
         leftEnd = x + w - edge
+        narrow = (leftEnd - x - edge - gap * nGaps) < catMin + sortMin + showMin
     else
-        leftEnd = drawBandActions(panel, x, y, w, state, config, rd, pfx, fid, mx)
+        leftEnd, narrow = drawBandActions(panel, x, y, w, state, config, rd, pfx, fid, mx,
+            edge + gap * nGaps + catMin + sortMin + showMin)
     end
+    -- short of room the spaces close up first
+    if narrow then edge, gap = T.px(4), T.px(4) end
 
-    -- the left: (the read-only list's Category,) Sort, Show; narrowed together when the
-    -- room is short (the words end in "...")
-    local sortModes = CC.popModes("sort", config)
-    local showModes = CC.popModes("show", config)
-    local sortW, showW = popWidths(state, config, sortModes, showModes)
-    local catW = ro and T.px(CAT_BAND_W) or 0
     local lx = x + edge
-    local avail = leftEnd - lx - gap * (ro and 2 or 1)
+    local avail = math.max(0, leftEnd - lx - gap * nGaps)
     local need = catW + sortW + showW
     if need > avail and need > 0 then
-        local k = math.max(0, avail) / need
-        catW, sortW, showW = math.floor(catW * k), math.floor(sortW * k), math.floor(showW * k)
+        local minSum = catMin + sortMin + showMin
+        if avail >= minSum then
+            -- each keeps its choice; the room over that is shared by what each could use
+            local k = (need > minSum) and (avail - minSum) / (need - minSum) or 0
+            catW = catMin + math.floor((catW - catMin) * k)
+            sortW = sortMin + math.floor((sortW - sortMin) * k)
+            showW = showMin + math.floor((showW - showMin) * k)
+        else
+            -- even the choices do not fit: each keeps its first letter and its arrow, and
+            -- the rest is shared by what each choice needs over that (a punch list question)
+            local catF = ro and math.min(catMin, M.popupMenuW(string.sub(catName or "", 1, 1))) or 0
+            local sortF = math.min(sortMin, M.popupMenuW(string.sub(sortName, 1, 1)))
+            local showF = math.min(showMin, M.popupMenuW(string.sub(showName, 1, 1)))
+            local fSum = catF + sortF + showF
+            if avail >= fSum then
+                local k = (minSum > fSum) and (avail - fSum) / (minSum - fSum) or 0
+                catW = catF + math.floor((catMin - catF) * k)
+                sortW = sortF + math.floor((sortMin - sortF) * k)
+                showW = showF + math.floor((showMin - showF) * k)
+            else
+                local k = (fSum > 0) and avail / fSum or 0
+                catW, sortW, showW = math.floor(catF * k), math.floor(sortF * k), math.floor(showF * k)
+            end
+        end
     end
     if ro then
         drawCatSelect(panel, state, pfx, lx, by, catW, bh, ZeD.tr("IGUI_invpanel_Category"), true)
         lx = lx + catW + gap
     end
-    local sortName = modeLabel(sortModes, state.sort or "craftable")
     drawPopBox(panel, state, "sort", lx, by, sortW, bh, ZeD.tr("UI_ZeD_Craft_SortPick", sortName),
         sortModes, frozen, fid == pfx .. ":sortMenu", mx, my, sortName)
     lx = lx + sortW + gap
-    local showName = modeLabel(showModes, CC.showMode(state, config))
     drawPopBox(panel, state, "show", lx, by, showW, bh, ZeD.tr("UI_ZeD_Craft_ShowToggle", showName),
         showModes, frozen, fid == pfx .. ":showMenu", mx, my, showName)
 end

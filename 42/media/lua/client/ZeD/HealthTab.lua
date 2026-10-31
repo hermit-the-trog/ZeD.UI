@@ -1109,10 +1109,21 @@ function ZeD.HealthTab._renderBand(panel, win, x, y, w)
     local lblW = TM:MeasureStringX(f1, timeLbl) + T.px(6)
     local readW = TM:MeasureStringX(T.fontF3, "60") + T.px(16)
     local blockW = lblW + bh + readW + bh
-    if startX - gap - blockW - gap - boxX < math.min(nat, T.px(130)) then
+    -- the box is never narrower than its choice and its arrow ("Squats" v): short of that,
+    -- the time's label goes first, then the spaces close up (the edge, the gaps, the
+    -- readout's margin) (Oct 31 2026, break-it B2: at 1280x720, UI scale 2.0, Large text
+    -- the box read "S...")
+    local exName = ZeD.HealthTab.exerciseLabel(sel)
+    local need = M.popupMenuW(exName)
+    if startX - gap - blockW - gap - boxX < math.max(need, math.min(nat, T.px(130))) then
         -- narrow: the time's label goes, the keys stay
         lblW = 0
         blockW = bh + readW + bh
+    end
+    if startX - gap - blockW - gap - boxX < need then
+        boxX, gap = x + T.px(4), T.px(2)
+        readW = TM:MeasureStringX(T.fontF3, "60") + T.px(8)
+        blockW = lblW + bh + readW + bh
     end
     local blockX = startX - gap - blockW
     local boxW = math.max(T.px(40), math.min(nat, blockX - gap - boxX))
@@ -1127,7 +1138,6 @@ function ZeD.HealthTab._renderBand(panel, win, x, y, w)
     -- the exercise pop-up: the box ("Exercise: Squats"); its list opens upward (_renderMenu)
     local hov = (not open) and A.mouseIn(panel, boxX, by, boxW, bh)
     if hov and ZeD.Help then ZeD.Help.set(win, ZeD.tr("UI_ZeD_Health_HelpPick")) end
-    local exName = ZeD.HealthTab.exerciseLabel(sel)
     M.drawPopupMenu(panel, boxX, by, boxW, bh,
         ZeD.tr("UI_ZeD_Health_ExercisePick", exName),
         hov or open, focusOf(win, "health:exercise"), false, exName)   -- (the name alone when both do not fit, break-it B2)

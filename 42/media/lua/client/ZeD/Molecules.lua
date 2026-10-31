@@ -2981,11 +2981,33 @@ end
 -- choice alone ("Squats", the value wins over its label, as the header drops its subtitle), cut
 -- short only when even that does not fit. (Oct 31 2026, break-it B2: at UI scale 2.0 with Large
 -- text Health's box read "E...", the choice lost.)
+-- When even "S..." is wider than the room, the first letters that fit, without the dots
+-- ("Cr" for "Craftable"): a box too narrow for its words still says which choice it
+-- holds (Oct 31 2026, break-it B2: Craft's Sort and Show read nothing, the dots alone
+-- did not fit). Kept per font, room and words (drawn every frame).
+local _letters = {}
+local function firstLetters(text, font, room)
+    local byF = _letters[font]
+    if not byF then byF = {}; _letters[font] = byF end
+    local byR = byF[room]
+    if not byR then byR = {}; byF[room] = byR end
+    local s = byR[text]
+    if s == nil then
+        local tm, n = ZeD.TM, 0
+        while n < #text and tm:MeasureStringX(font, string.sub(text, 1, n + 1)) <= room do n = n + 1 end
+        s = string.sub(text, 1, n)
+        byR[text] = s
+    end
+    return s
+end
+
 local function popupWords(label, short, font, room)
     local A = ZeD.Atoms
     label = label or ""
     if short and short ~= "" and ZeD.TM:MeasureStringX(font, label) > room then label = short end
-    return A.truncateText(label, font, room)
+    local s = A.truncateText(label, font, room)
+    if s ~= label and ZeD.TM:MeasureStringX(font, s) > room then s = firstLetters(label, font, room) end
+    return s
 end
 
 -- the closed pop-up menu: the hover wash, a 1u frame, the choice's words and a down triangle
@@ -3601,7 +3623,9 @@ local STEPPER_GAP = 4   -- design units between the keys and the readout
 --- @param h         button height in px (default T.buttonH - T.px(4), the list-row height)
 --- @param hoverZone "dec" / "inc" / nil (nil: the pointer is tested here)
 --- @param opts      optional { focusId = "dec" / "inc" (with focus = its mark opts) or
----                  focusParts, win }: the key with the controller's focus
+---                  focusParts, win }: the key with the controller's focus; narrow = true:
+---                  the readout only as wide as its digits, not a key's width (a band short
+---                  of room; Oct 31 2026, break-it B2)
 local _stepOpts = {}
 function ZeD.Molecules.drawQtyStepper(panel, x, y, qty, maxQty, h, hoverZone, opts)
     local T  = ZeD.T
@@ -3627,7 +3651,7 @@ function ZeD.Molecules.drawQtyStepper(panel, x, y, qty, maxQty, h, hoverZone, op
     -- the readout
     local qtyStr = tostring(qty)
     local qtyTW = tm:MeasureStringX(font, qtyStr)
-    local qtyW = math.max(bw, qtyTW + T.px(8))
+    local qtyW = math.max(opts.narrow and 0 or bw, qtyTW + T.px(8))
     local qtyX = x + bw + gap
     local tc = T.text
     panel:drawText(qtyStr, qtyX + math.floor((qtyW - qtyTW) / 2), y + math.floor((h - tm:getFontHeight(font)) / 2),
