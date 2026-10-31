@@ -464,7 +464,11 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     **fixed (build, Oct 31, fa77922, e322052, 5fbb1ba):** a section heading is cut to its own column
     (Skills read "Combat - FirearCombat - Melee"); a label's value is cut to the room after its label,
     never drawn over it (Vehicle read "4Distance"); a header's cut name ends "..." (Vehicle read "Che&":
-    the one-character ellipsis drew as "&"); "Not inspected" is cut to the card's edge. QA to confirm.
+    the one-character ellipsis drew as "&"); "Not inspected" is cut to the card's edge. Seen the same at the
+    Steam Deck's setting (1280x800, UI scale Auto 0.75, Large text, zqa_brk_auto_large_*); the cuts follow
+    the room, not the scale, so both settings take them. QA to confirm at both. Note: at both, the Vehicle
+    summary column beside the figure is so narrow that Type / Distance / Key keep only their labels (the
+    values have no room left and are not drawn); a layout question if it matters.
     **Question for the director:** the Skills rows still cut each skill's name to one letter ("A...") at
     that setting: the level bar and the level number take the room. Which gives way? (a) the bar shrinks
     to its smallest before the name is cut; (b) below a width the bar hides and the level number alone
