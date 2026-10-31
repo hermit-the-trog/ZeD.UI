@@ -2387,7 +2387,7 @@ local function _buildThermalBodyPartFocusables(win)
     -- (Oct 30 2026, punch list 21 a-f: only the parts the body shows, clipped to it, as
     -- Health's: _inBodyView; Down from the lowest one shown reaches the grid or the band)
     local elements = {}
-    local view = win._thermalView
+    local view = win._thermalBodyRect
     for i = 1, #rects do
         local r = rects[i]
         local vy, vh = _inBodyView(view, r.y, r.h)
@@ -6034,7 +6034,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
             if win._activeTab == "thermal" then
                 local sc = win._thermalScroll
                 scrollKey = tostring(sc and sc.scrollPos or 0) .. ":" .. tostring(win._thermalFigureExpanded)
-                    .. ":" .. tostring(win._thermalMenuOpen) .. ":" .. tostring(win._thermalView and win._thermalView.h)
+                    .. ":" .. tostring(win._thermalMenuOpen) .. ":" .. tostring(win._thermalBodyRect and win._thermalBodyRect.h)
                 if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
             end
             -- Identity: its scroll and the Hair and beard rows (part, Out of reach open)
