@@ -478,16 +478,21 @@ function ST.drawSelect(panel, x, y, w, h, label, value, accentOn, focused, hover
     A.frame(panel, x, y, w, h, T.borderS, da)
     local cx = x + T.sp.inputPadX
     local lf = T.fontF1
-    if label and label ~= "" then
-        local s = A.textCase(label)
-        local lc = onFocus and T.textOnFocus or T.textDim
-        local ly = y + math.floor((h - tm:getFontHeight(lf)) / 2)
-        panel:drawText(s, cx, ly, lc.r, lc.g, lc.b, (lc.a or 1) * da, lf)
-        cx = cx + tm:MeasureStringX(lf, s) + T.px(6)
-    end
     local arrowSz = T.px(5)
     local arrowX = x + w - arrowSz - T.sp.inputPadX
     local vf = T.fontF2
+    -- the label goes when the label and the value do not fit together: the value wins (Oct 31
+    -- 2026, break-it B2: at UI scale 2.0 with Large text Craft's box read "Station ..")
+    if label and label ~= "" then
+        local s = A.textCase(label)
+        local lw = tm:MeasureStringX(lf, s) + T.px(6)
+        if cx + lw + tm:MeasureStringX(vf, value or "") <= arrowX - T.px(4) then
+            local lc = onFocus and T.textOnFocus or T.textDim
+            local ly = y + math.floor((h - tm:getFontHeight(lf)) / 2)
+            panel:drawText(s, cx, ly, lc.r, lc.g, lc.b, (lc.a or 1) * da, lf)
+            cx = cx + lw
+        end
+    end
     local v = ZeD.CraftingCore.truncText(value or "", vf, arrowX - cx - T.px(4))
     local vy = y + math.floor((h - tm:getFontHeight(vf)) / 2)
     local tc = onFocus and T.textOnFocus or T.text
