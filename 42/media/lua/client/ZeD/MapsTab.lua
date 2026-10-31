@@ -1369,6 +1369,14 @@ local function _markGrid(panel, win, x, gy, w, pins, why, focId, hov)
     return h
 end
 
+-- the header row's width after the fold arrow: np stamps spaced g, the note and its
+-- line (note), ni inks (Oct 31 2026, break-it E6)
+local function _toolRowW(bs, btnGap, inkW, g, np, ni, note)
+    local v = np * (bs + g) + g
+    if note then v = v + bs + btnGap * 4 + ZeD.T.hair end
+    return v + ni * inkW
+end
+
 local function renderMapToolbar(panel, win, x, y, w)
     local T  = ZeD.T
     local bs     = T.buttonH
@@ -1390,25 +1398,44 @@ local function renderMapToolbar(panel, win, x, y, w)
     local markWhy = (not ink.write) and "Tooltip_Map_CantWrite" or nil
     local by = y + math.floor((rowH - bs) / 2)
 
+    -- What fits left of full view (Oct 31 2026, break-it E6: at 1280x720, UI scale 2.0,
+    -- Large text the row ran under full view). The stamps close up their spaces first;
+    -- then pinned stamps fold away from the end (each is still in the full set under
+    -- the fold arrow); then inks from the end, then the note. Nothing is half drawn.
+    local nPins, nInk = 0, #MAP_COLORS
+    for _, pid in ipairs(pins) do if MAP_ICON_BY_ID[pid] then nPins = nPins + 1 end end
+    local chevW = math.max(T.px(8), math.floor(ZeD.TM:getFontHeight(T.fontF1) * 0.7)) + T.px(6)
+    local room = (x + w - T.px(4) - bs - btnGap) - (x + T.px(4) + chevW)
+    local inkW = colSz + btnGap
+    local sGap, showNote = btnGap, true
+    if _toolRowW(bs, btnGap, inkW, sGap, nPins, nInk, true) > room then sGap = T.px(1) end
+    while nPins > 0 and _toolRowW(bs, btnGap, inkW, sGap, nPins, nInk, true) > room do nPins = nPins - 1 end
+    while nInk > 0 and _toolRowW(bs, btnGap, inkW, sGap, 0, nInk, true) > room do nInk = nInk - 1 end
+    if nInk == 0 and _toolRowW(bs, btnGap, inkW, sGap, 0, 0, true) > room then showNote = false end
+
     -- Row one: the disclosure, the pinned marks, the note, a line, the inks
     local curX = x + T.px(4)
     curX = curX + _disclosure(panel, win, curX, y, rowH, focId, hov) + T.px(6)
+    local shown = 0
     for _, pid in ipairs(pins) do
         local icon = MAP_ICON_BY_ID[pid]
-        if icon then
+        if icon and shown < nPins then
+            shown = shown + 1
             _toolButton(panel, win, icon.id, _markPic(icon), icon.key, curX, by, bs, icon.toolFid, focId, markWhy, false, false, hov)
-            curX = curX + bs + btnGap
+            curX = curX + bs + sGap
         end
     end
-    curX = curX + btnGap
-    local _, textWhy = _toolAllowed("text", ink)
-    _toolButton(panel, win, "text", _textGlyph("Aa"), "UI_ZeD_Map_NoteDefault", curX, by, bs, "map:tool:text", focId, textWhy, false, false, hov)
-    curX = curX + bs + btnGap * 2
-    -- a content line between the tools and the inks
-    ZeD.Atoms.drawDividerV(panel, curX, by, bs, false)
-    curX = curX + T.hair + btnGap * 2
+    curX = curX + sGap
+    if showNote then
+        local _, textWhy = _toolAllowed("text", ink)
+        _toolButton(panel, win, "text", _textGlyph("Aa"), "UI_ZeD_Map_NoteDefault", curX, by, bs, "map:tool:text", focId, textWhy, false, false, hov)
+        curX = curX + bs + btnGap * 2
+        -- a content line between the tools and the inks
+        ZeD.Atoms.drawDividerV(panel, curX, by, bs, false)
+        curX = curX + T.hair + btnGap * 2
+    end
     local colY = y + math.floor((rowH - colSz) / 2)
-    for ci = 1, #MAP_COLORS do
+    for ci = 1, nInk do
         _swatch(panel, win, ci, curX, colY, colSz, ink, focId, hov)
         curX = curX + colSz + btnGap
     end
