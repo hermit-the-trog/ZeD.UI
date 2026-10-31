@@ -898,8 +898,12 @@ end
 local function drawLabelValue(panel, x, y, w, label, value)
     local T = ZeD.T
     local lc, tc = T.textSec, T.text
-    panel:drawText(cased(label), x, y, lc.r, lc.g, lc.b, lc.a or 1, T.fontF1)
-    ZeD.Atoms.drawTextRight(panel, value, x + w, y, T.fontF3, tc)
+    local A = ZeD.Atoms
+    local lt = A.truncateText(cased(label), T.fontF1, w)
+    panel:drawText(lt, x, y, lc.r, lc.g, lc.b, lc.a or 1, T.fontF1)
+    -- the value is cut to the room after its label, never drawn over it (Oct 31 2026, break-it E2)
+    local room = w - ZeD.TM:MeasureStringX(T.fontF1, lt) - T.px(8)
+    if room > 0 then A.drawTextRight(panel, A.truncateText(value, T.fontF3, room), x + w, y, T.fontF3, tc) end
     return math.max(T.fontF1H, T.fontF3H)
 end
 
