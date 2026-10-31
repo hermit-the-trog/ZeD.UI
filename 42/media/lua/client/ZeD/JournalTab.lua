@@ -1301,6 +1301,8 @@ function ZeD.JournalTab.headerFocusables(win)
             }
             if z.id == (win._journalSubTab or 1) then out._focusIdx = i end
         end
+        -- (Oct 30 2026, punch list 21 a-f: modal; Down from Loadouts, the last row, stays on it)
+        out._menuRows = true
         return out
     end
     local b = win._journalPageBox
@@ -1318,6 +1320,24 @@ function ZeD.JournalTab.headerFocusables(win)
         end
     end
     return out
+end
+
+--- Shut the Page list and every page's own list (Oct 30 2026, punch list 21 a-f: the window
+-- calls it when the tab is left, its drawer folds or an item card opens over it).
+function ZeD.JournalTab.shutLists(win)
+    if not win then return end
+    if win._journalPageOpen then closePageMenu(win) end
+    shutPageLists(win)
+end
+
+--- Any of the Journal's pop-up lists open (the Page list, or a page's own).
+function ZeD.JournalTab.listsOpen(win)
+    if not win then return false end
+    if win._journalPageOpen then return true end
+    local s = win._jrecipeState
+    if s and (s.catDropdownOpen or s.sortMenuOpen or s.showMenuOpen) then return true end
+    local sub = win._journalSubTab or 1
+    return (sub == 3 or sub == 5) and ZeD.JournalTab.pageListOpen(win) or false
 end
 
 --- The Page list open (its rows alone hold the controller).

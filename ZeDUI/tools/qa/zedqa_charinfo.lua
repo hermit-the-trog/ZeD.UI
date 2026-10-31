@@ -60,7 +60,18 @@ local Q, qi, wait = {}, 1, nil
 local function step(n, fn) Q[#Q + 1] = { n = n, fn = fn } end
 local function until_(n, tries, fn, what) Q[#Q + 1] = { n = n, fn = fn, tries = tries, what = what } end
 
--- 0. the pair open on Loot
+-- 0. (Oct 30 2026, punch list 21 a-f) the game's window hidden since the game started, whatever the
+-- player's layout.ini says for this screen size ("[1280x800] charinfowindow ... visible=true"), and
+-- its saved layout written hidden while ZeD is on; then the pair open on Loot
+step(5, function()
+    local sw, sh = core:getScreenWidth(), core:getScreenHeight()
+    check(not vanillaShown(), "the game's Character Info window is hidden at " .. sw .. "x" .. sh .. " (as the game started)")
+    local v = getPlayerInfoPanel(0)
+    local lay = {}
+    if v and v.SaveLayout then pcall(function() v:SaveLayout("charinfowindow", lay) end) end
+    check(v ~= nil and lay.visible == "false", "its saved layout says hidden while ZeD is on (visible=" .. tostring(lay.visible) .. ")")
+    check(v ~= nil and v.visibleOnStartup ~= true, "its start-up flag is off (" .. tostring(v and v.visibleOnStartup) .. ")")
+end)
 step(20, function()
     if getGameSpeed() <= 0 then setGameSpeed(1) end
     if not CW.isOpen() then CW.toggleBothPaired(0) end

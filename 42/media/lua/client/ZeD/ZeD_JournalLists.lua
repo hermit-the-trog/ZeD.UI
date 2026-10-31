@@ -966,6 +966,8 @@ function JL.focusables(win)
         end
         if out._focusIdx or #out > 0 then s.land = nil end
     end
+    -- (Oct 30 2026, punch list 21 a-f: the open filter list is modal: Up / Down stop at its ends)
+    if rowsOnly and #out > 0 then out._menuRows = true end
     return out
 end
 

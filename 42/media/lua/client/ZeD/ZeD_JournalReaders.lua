@@ -1030,6 +1030,8 @@ function J.focusables(win)
         end
         if not rowsOnly and #out > 0 then s.land = nil end
     end
+    -- (Oct 30 2026, punch list 21 a-f: the open Show list is modal: Up / Down stop at its ends)
+    if rowsOnly and #out > 0 then out._menuRows = true end
     return out
 end
 

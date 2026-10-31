@@ -3029,6 +3029,7 @@ local function popRowFocusables(state, prefix, kind)
         }
         if z.id == cur then elements._focusIdx = i end
     end
+    elements._menuRows = true   -- (Oct 30 2026, punch list 21 a-f: modal, FocusManager's _menuNav)
     return elements
 end
 

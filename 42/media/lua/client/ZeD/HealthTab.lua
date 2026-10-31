@@ -1260,10 +1260,9 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
     local M    = ZeD.Molecules
     local pad  = M.getTabPad()
 
-    -- An exercise list left open while another tab was showing is shut on coming back
-    local now = getTimestampMs()
-    if win._healthLastDraw and now - win._healthLastDraw > 300 then win._healthMenuOpen = false end
-    win._healthLastDraw = now
+    -- (Oct 30 2026, punch list 21 a-f: the exercise list no longer shuts when a draw comes
+    -- 300 ms late, as a hitch or a screenshot made it; the window shuts it through closeMenu
+    -- when the tab is left, the drawer folds or an item card opens over it)
 
     -- Throttled data refresh
     win._healthTimer = (win._healthTimer or 0) + 1
@@ -1385,25 +1384,40 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
         if focKey and focKey ~= win._lastPinnedInjuryKey then
             local span    = math.max(1, totalContentH - scrollH)
             local oldOff  = math.floor(scroll.scrollPos * span)
-            local elY, elH = el.y, el.h
+            -- (Oct 30 2026, punch list 21 a-f: the stops are clipped to the view, fullY / fullH
+            -- keep the whole rect; the lowest stop SHOWN scrolls the body on so the ones under
+            -- it come into view, and Up onto the highest one shown scrolls back the same way)
+            local elY, elH = el.fullY or el.y, el.fullH or el.h
             if el.injuryKey and lastInjuryYMap[el.injuryKey] then elY = lastInjuryYMap[el.injuryKey] end
             local target = oldOff
             if el.isDisclosure then
                 target = 0
             elseif type(elY) == "number" and type(elH) == "number" then
                 local logicalY = elY - scrollY + oldOff
-                local lowest = true
+                local up = win._navLast and win._navLast.dir == "up"
+                local lowest, highest = true, true
                 local z = Focus.getFocusedZone(win)
                 for _, o in ipairs(z and z.elements or {}) do
-                    if o ~= el and not o.bandStop and type(o.y) == "number" and o.y + (o.h or 0) > elY + elH + 1 then lowest = false; break end
+                    if o ~= el and not o.bandStop and not o.isDisclosure and type(o.y) == "number" then
+                        if o.y + (o.h or 0) > el.y + el.h + 1 then lowest = false end
+                        if o.y < el.y - 1 then highest = false end
+                    end
                 end
-                if lowest then
-                    target = math.min(span, logicalY)
+                -- (the stop goes a third of the view from the edge it came from: the next
+                -- ones that way show, the ones it came past stay in view)
+                local third = math.floor(scrollH / 3)
+                if up and highest and oldOff > 0 then
+                    target = math.min(oldOff, math.max(0, logicalY + elH - (scrollH - third)))
+                elseif lowest and not up then
+                    target = math.max(oldOff, math.min(span, logicalY - third))
                 elseif logicalY < oldOff then
                     target = logicalY
                 elseif logicalY + elH > oldOff + scrollH then
                     target = logicalY + elH - scrollH
                 end
+                -- whatever the rule, the focused stop ends whole in view (rule 3: never under the band)
+                if logicalY + elH > target + scrollH then target = logicalY + elH - scrollH end
+                if logicalY < target then target = logicalY end
             end
             target = math.max(0, math.min(span, target))
             if target ~= oldOff then scroll:setScrollPos(target / span) end

@@ -4611,6 +4611,14 @@ function ZeD_WorldWindow.toggle(playerNum)
                     if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
                 end
             end
+            -- Forage (Oct 30 2026, punch list 21 a-f): its last stop (the body's scroll surface) and
+            -- the band's Search never move, so the body's scroll and the fold key the rebuild (More
+            -- detail's disclosure scrolls with the body)
+            if win._activeTab == "forage" then
+                local sc = win._forageScroll
+                scrollKey = tostring(sc and sc.scrollPos or 0) .. ":" .. tostring(win._moreDetailOpen)
+                if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
+            end
             if win._activeTab == "vehicle" and ZeD.MechanicsTab and ZeD.MechanicsTab.focusKey then
                 scrollKey = ZeD.MechanicsTab.focusKey(win)
                 if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end

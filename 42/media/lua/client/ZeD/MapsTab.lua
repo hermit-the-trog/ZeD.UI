@@ -1863,6 +1863,8 @@ function ZeD.MapsTab.buildFocusables(win)
                 onCancel = function(w, _el) _closeStyleMenu(w, true); return true end,
             }
         end
+        -- (Oct 30 2026, punch list 21 a-f: modal: Up / Down stop at its ends, Left / Right do nothing)
+        elements._menuRows = true
         return elements
     end
 
@@ -2238,6 +2240,7 @@ function ZeD.MapsTab._renderPopout(content, win, pop)
         end
         wrapped[#wrapped + 1] = e
     end
+    wrapped._menuRows = src._menuRows   -- (the open style list stays modal in the pop-out)
 
     -- Identity-preserve focus by id across the per-frame rebuild.
     local preserveIdx = nil

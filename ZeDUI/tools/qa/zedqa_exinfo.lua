@@ -9,6 +9,9 @@
 --   (Oct 30 2026: the seven buttons became that pop-up) and keeps one reserved height
 --   whichever exercise it shows; the pop-up lists all seven, a pick shuts it and
 --   changes the choice; the band's keys step the time and start nothing.
+--   (Oct 30 2026, punch list 21 a-f) the list opens on the chosen row, outlives a 4K
+--   screenshot, Up / Down stop at its ends (it stays open), Left / Right do nothing, B shuts
+--   it unchanged with the focus back on the box.
 -- Screenshots zqa_ex_*.png. grep "ZEDQA ex".
 local p = getPlayer()
 local pn = p:getPlayerNum()
@@ -112,6 +115,8 @@ at(120, function()
     ok("no exercise-button stops left", stopById("exercise:squats") == nil and stopById("exercise:time:inc") == nil)
     -- the pop-up: A on the box opens it, the stops become the seven rows
     local _, z, zi, ei, el = stopById("health:exercise")
+    -- (on the box first, as the pad is when A opens it)
+    Focus.focusWhere(w, "charTabContent", function(e) return e.id == "health:exercise" end)
     if el then el.onActivate(w, el) end
 end)
 at(135, function()
@@ -120,10 +125,53 @@ at(135, function()
     ok("pop-up lists the seven exercises", w._healthMenuZones ~= nil and #w._healthMenuZones == 7)
     local _, z, zi, ei, row = stopById("health:menuRow:burpees")
     ok("rows are the stops while open", row ~= nil and stopById("health:start") == nil)
-    shot("menu")
-    if row then row.onActivate(w, row) end   -- a pick shuts the list
+    -- (Oct 30 2026, punch list 21 a-f) the list opens on the exercise chosen now
+    local fe = Focus.getFocusedElement(w)
+    ok("the list opens on the chosen row (barbell curl; on " .. tostring(fe and fe.id) .. ")", fe ~= nil and fe.id == "health:menuRow:barbellcurl")
+    shot("menu")   -- (a 4K shot is a hitch of more than 300 ms: the list must outlive it)
+end)
+-- the list's ends: the rows top to bottom (by place), the focused one
+local function rowsByY()
+    local w = cw()
+    local z = Focus.getFocusedZone(w)
+    local list = {}
+    for _, e in ipairs(z and z.elements or {}) do list[#list + 1] = e end
+    table.sort(list, function(a, b) return a.y < b.y end)
+    return list, z
+end
+local function focusedId() local e = Focus.getFocusedElement(cw()); return e and e.id or "nil" end
+at(140, function()
+    local w = cw()
+    ok("the list outlives the screenshot", w._healthMenuOpen == true and stopById("health:menuRow:burpees") ~= nil)
+    local list, z = rowsByY()
+    ok("the open list is modal (its rows alone, marked)", z ~= nil and z.elements._menuRows == true and #list == 7)
+    for _ = 1, 9 do Focus.dispatchJoypadDir(w, "up") end
+    ok("Up stops on the first row (" .. focusedId() .. ")", list[1] ~= nil and focusedId() == list[1].id and w._healthMenuOpen == true)
+    for _ = 1, 9 do Focus.dispatchJoypadDir(w, "down") end
+    ok("Down stops on the last row, the list still open (" .. focusedId() .. ")", list[7] ~= nil and focusedId() == list[7].id and w._healthMenuOpen == true)
+    local before = focusedId()
+    Focus.dispatchJoypadDir(w, "left"); Focus.dispatchJoypadDir(w, "right")
+    ok("Left and Right do nothing in the list", focusedId() == before and w._healthMenuOpen == true)
+    local r = Focus.previewMove(w, "down")
+    ok("nothing below the last row (the preview stays in the list)", r and r.zone == nil)
+    -- B: the row's onCancel (what B fires): shut, the choice unchanged
+    local fe = Focus.getFocusedElement(w)
+    if fe and fe.onCancel then fe.onCancel(w, fe) end
+end)
+at(146, function()
+    local w = cw()
+    local _, z, zi, ei, el = stopById("health:exercise")
+    ok("B shuts the list, the choice unchanged", w._healthMenuOpen == false and w._healthExerciseSel == "barbellcurl")
+    ok("B: the focus is back on the box (" .. focusedId() .. ")", el ~= nil and focusedId() == "health:exercise")
+    if el then el.onActivate(w, el) end   -- open it again for the pick
 end)
 at(150, function()
+    local w = cw()
+    local _, z, zi, ei, row = stopById("health:menuRow:burpees")
+    ok("open again", w._healthMenuOpen == true and row ~= nil)
+    if row then row.onActivate(w, row) end   -- a pick shuts the list
+end)
+at(165, function()
     local w = cw()
     ok("pick shut the list and changed the choice", w._healthMenuOpen == false and w._healthExerciseSel == "burpees")
     local _, z, zi, ei, el = stopById("health:exercise")

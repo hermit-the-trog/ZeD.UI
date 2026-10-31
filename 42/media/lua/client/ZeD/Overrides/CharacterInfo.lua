@@ -121,11 +121,79 @@ end
 -- (where the game sets it from the restored state). So the flag is cleared after the
 -- game's initialise while ZeD is on; in safe mode the game's rule stands. Seen in the
 -- 1280x800 pass: the game's Info page sat under ZeD's windows the whole run.
+-- Oct 30 2026, punch list 21 a-f (director: the game's Character Info panel stays hidden
+-- while ZeD is on, whatever opened it): clearing the flag in initialise was too early.
+-- The game sets it in createChildren (run by addToUIManager, after initialise), where it
+-- restores the saved layout first; layout.ini's "[1280x800] charinfowindow ... visible=true"
+-- shows the window there (ISLayoutManager.DefaultRestoreWindow) and the flag follows
+-- (`self.visibleOnStartup = self:getIsVisible()`), so ISPlayerDataObject.createUI showed it.
+-- Now, while ZeD is on: the window is hidden and the flag cleared after createChildren;
+-- a watch over the first ticks of a game hides it again if anything shows it; and its
+-- SaveLayout writes visible=false, so the next game does not restore it shown. The
+-- player's layout.ini is never edited; in safe mode all three stand aside (the game's
+-- own rules), and ZeD coming back hides a window the game left open.
 ISCharacterInfoWindow._zedOrigInitialise = ISCharacterInfoWindow._zedOrigInitialise or ISCharacterInfoWindow.initialise
 local _origInitialise = ISCharacterInfoWindow._zedOrigInitialise
 function ISCharacterInfoWindow:initialise(...)
     _origInitialise(self, ...)
     if not ZeD.Safe.on() then self.visibleOnStartup = false end
+end
+
+-- the game's window out of sight (left in the UI manager, as the game keeps it)
+local function hideGameWindow(w)
+    if w and w.getIsVisible and w:getIsVisible() then w:setVisible(false) end
+end
+
+ISCharacterInfoWindow._zedOrigCreateChildren = ISCharacterInfoWindow._zedOrigCreateChildren or ISCharacterInfoWindow.createChildren
+local _origCreateChildren = ISCharacterInfoWindow._zedOrigCreateChildren
+function ISCharacterInfoWindow:createChildren(...)
+    _origCreateChildren(self, ...)
+    if ZeD.Safe.on() then return end
+    self.visibleOnStartup = false
+    hideGameWindow(self)
+end
+
+ISCharacterInfoWindow._zedOrigSaveLayout = ISCharacterInfoWindow._zedOrigSaveLayout or ISCharacterInfoWindow.SaveLayout
+local _origSaveLayout = ISCharacterInfoWindow._zedOrigSaveLayout
+function ISCharacterInfoWindow:SaveLayout(name, layout)
+    _origSaveLayout(self, name, layout)
+    if not ZeD.Safe.on() and layout and layout.visible ~= nil then layout.visible = "false" end
+end
+
+-- the first ticks of a game: whatever shows the game's window as the game starts (its own
+-- start-up rule, a saved layout, another mod's start-up) is answered by hiding it again
+local WATCH_TICKS = 120
+local watchLeft = 0
+local function watchTick()
+    watchLeft = watchLeft - 1
+    if not ZeD.Safe.on() then
+        for n = 0, 3 do
+            local ok, w = pcall(getPlayerInfoPanel, n)
+            if ok and w then hideGameWindow(w) end
+        end
+    end
+    if watchLeft <= 0 then Events.OnTick.Remove(watchTick) end
+end
+local function startWatch()
+    if watchLeft <= 0 then Events.OnTick.Add(watchTick) end
+    watchLeft = WATCH_TICKS
+end
+if Events then
+    if Events.OnCreatePlayer then Events.OnCreatePlayer.Add(function() startWatch() end) end
+    if Events.OnGameStart then Events.OnGameStart.Add(startWatch) end
+end
+
+-- ZeD coming back from safe mode: the game's window, if the game left it showing, goes
+-- (leave: nothing to hand back, the wrappers above ask ZeD.Safe.on() at each call)
+if ZeD.Safe.register then
+    ZeD.Safe.register("charinfo", {
+        enter = function()
+            for n = 0, 3 do
+                local ok, w = pcall(getPlayerInfoPanel, n)
+                if ok and w then hideGameWindow(w) end
+            end
+        end,
+    })
 end
 
 print("[ZeD] Overrides/CharacterInfo: the game's Character window pages routed to ZeD's Character window tabs")
