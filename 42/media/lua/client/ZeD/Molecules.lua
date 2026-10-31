@@ -1505,11 +1505,16 @@ function ZeD.Molecules.drawSectionHeader(panel, x, y, w, text, count, expanded, 
     -- Section title
     local titleX = noArrow and discX or (discX + discSz + T.px(6))
     local tc = onFocus and T.textOnFocus or T.textHead
+    -- the title is cut to its own strip (and the count's room), never drawn into the next
+    -- column's head (Oct 31 2026, break-it E1: "Combat - FirearCombat - Melee")
+    local countStr = count and ("(" .. tostring(count) .. ")") or nil
+    local room = x + w - sp.sm - titleX
+    if countStr then room = room - tm:MeasureStringX(T.fontF1, countStr) - sp.xs end
+    text = ZeD.Atoms.truncateText(text, font, math.max(0, room))
     panel:drawText(text, titleX, textY, tc.r, tc.g, tc.b, tc.a, font)
 
     -- Count
     if count then
-        local countStr = "(" .. tostring(count) .. ")"
         local dc = onFocus and T.textOnFocus or T.textDim
         if countInline then
             local titleW = tm:MeasureStringX(font, text)
