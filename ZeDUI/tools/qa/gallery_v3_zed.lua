@@ -213,7 +213,8 @@ S.step(2, function()
     G.cleanLook()
     G.day()
     pcall(ZeD.Settings.reapplyFromOptions)
-    if not GAL_KEEP_THEME and (ZeD.currentBase ~= "hicon" or ZeD.currentAccent ~= "teal") then Z.theme("hicon", "teal") end
+    -- GAL_LOOK (gallery_t14_look.lua, Oct 30 2026): the t14 retake in the default Dark + Orange; high contrast + teal before
+    if not GAL_KEEP_THEME and (ZeD.currentBase ~= ((GAL_LOOK and GAL_LOOK[1]) or "hicon") or ZeD.currentAccent ~= ((GAL_LOOK and GAL_LOOK[2]) or "teal")) then Z.theme(((GAL_LOOK and GAL_LOOK[1]) or "hicon"), ((GAL_LOOK and GAL_LOOK[2]) or "teal")) end
     say("theme " .. tostring(ZeD.currentBase) .. " " .. tostring(ZeD.currentAccent) .. " size " .. tostring(ZeD.currentSize)
         .. " | scale " .. tostring(ZeD.Scale and ZeD.Scale.current and ZeD.Scale.current()))
     Opt.watchPlaceOption:setValue(1)

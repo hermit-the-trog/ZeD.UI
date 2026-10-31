@@ -1,5 +1,5 @@
 {
- "note": "Workshop gallery v4 (Oct 21 2026): the Fossoil story, from Screenshots/gallery_v3 (INVENTORY.md, STORY and Desk sections) and the batch-2 captures in Screenshots (zed_6x-8x). Older sets: out/_v1_oct20, out/_v2_oct21, out/_v3_oct21 (with shots_v3.json). Build: py -I ZeDUI/tools/release/make_shots.py ZeDUI/workshop/shots/shots.json (--debug shows anchors). Oct 22: shots.json is edited directly now (build_spec_v4.py is retired: it rebuilt the list from an Oct 21 scratch file and dropped later cards). Oct 25: seven cards for 0.2.0-t4 (dashboards, bubbles, messages, sandbox_ingame, mod_settings, file_picks, turn_off) from Screenshots/workshop_src/g4_*; the t3 set is in out/_v5_oct24_t3. Oct 26: 0.2.0-t6 reshoot (old_job with Hair and beard, the route with the map key, open for business and inventory compare with read marks, options with the five switches); the t5 set is in out/_v7_oct26_t6, the old raws in gallery_v3/_before_oct26_t6. Oct 27 2026 (0.2.0-t7): every card retaken on this build and laid out again (balloons kept off what they explain: \"avoid\" boxes and the overlap report in make_shots.py); new cards: Every window, See-through, Controller highlight, Hidden actions, List or grid, Crafting, Building, Foraging and furniture, The belt, Moodles, Ovens and microwaves, Reading and writing, Fishing, Questions; renumbered 1-55. The t6 set is in out/_v8_oct27_t6_final. Oct 28 2026 (0.2.0-t8): every card with a ZeD icon in frame retaken on this build (the pixel icons: wheels, right-click menu, container buttons, card marks, List / Grid / Doll, folds, pop-out, prompt marks, the Mods star, code-drawn chevrons); sources in Screenshots/gallery_t8 + workshop_src_t8. Cards with no icon in frame keep their t7 pictures, copied into the t8 folders: 11 customers, 12 smoke break, 26 action bar, 30 belt, 31 bubbles, 32 moodles, 33 watches, 34 messages, 35 car radio, 36 dashboards, 39 reading and writing, 40 fishing, 42 controller map, 46 wallpapers, 47 desk, 48 options, 50 mods, 51 a mod's settings, 52 picking files, 53 turning a mod off, 54 profiles and load order (the main-menu screens draw no changed icon). The t7 set is in out/_v9_oct27_t7 (with shots_t7.json). Oct 30 2026 (0.2.0-t13): screens gallery_t13 (gallery_t8 plus the retakes); cards 21 (the card's X) and 22 (the doll split, no leader lines) retaken, card 56 Loadouts new (gallery_loadouts.lua).",
+ "note": "Workshop gallery v4 (Oct 21 2026): the Fossoil story, from Screenshots/gallery_v3 (INVENTORY.md, STORY and Desk sections) and the batch-2 captures in Screenshots (zed_6x-8x). Older sets: out/_v1_oct20, out/_v2_oct21, out/_v3_oct21 (with shots_v3.json). Build: py -I ZeDUI/tools/release/make_shots.py ZeDUI/workshop/shots/shots.json (--debug shows anchors). Oct 22: shots.json is edited directly now (build_spec_v4.py is retired: it rebuilt the list from an Oct 21 scratch file and dropped later cards). Oct 25: seven cards for 0.2.0-t4 (dashboards, bubbles, messages, sandbox_ingame, mod_settings, file_picks, turn_off) from Screenshots/workshop_src/g4_*; the t3 set is in out/_v5_oct24_t3. Oct 26: 0.2.0-t6 reshoot (old_job with Hair and beard, the route with the map key, open for business and inventory compare with read marks, options with the five switches); the t5 set is in out/_v7_oct26_t6, the old raws in gallery_v3/_before_oct26_t6. Oct 27 2026 (0.2.0-t7): every card retaken on this build and laid out again (balloons kept off what they explain: \"avoid\" boxes and the overlap report in make_shots.py); new cards: Every window, See-through, Controller highlight, Hidden actions, List or grid, Crafting, Building, Foraging and furniture, The belt, Moodles, Ovens and microwaves, Reading and writing, Fishing, Questions; renumbered 1-55. The t6 set is in out/_v8_oct27_t6_final. Oct 28 2026 (0.2.0-t8): every card with a ZeD icon in frame retaken on this build (the pixel icons: wheels, right-click menu, container buttons, card marks, List / Grid / Doll, folds, pop-out, prompt marks, the Mods star, code-drawn chevrons); sources in Screenshots/gallery_t8 + workshop_src_t8. Cards with no icon in frame keep their t7 pictures, copied into the t8 folders: 11 customers, 12 smoke break, 26 action bar, 30 belt, 31 bubbles, 32 moodles, 33 watches, 34 messages, 35 car radio, 36 dashboards, 39 reading and writing, 40 fishing, 42 controller map, 46 wallpapers, 47 desk, 48 options, 50 mods, 51 a mod's settings, 52 picking files, 53 turning a mod off, 54 profiles and load order (the main-menu screens draw no changed icon). The t7 set is in out/_v9_oct27_t7 (with shots_t7.json). Oct 30 2026 (0.2.0-t13): screens gallery_t13 (gallery_t8 plus the retakes); cards 21 (the card's X) and 22 (the doll split, no leader lines) retaken, card 56 Loadouts new (gallery_loadouts.lua). Oct 30 2026 (0.2.0-t14): every picture retaken (gallery_t14_manifest.txt, gallery_menus_run.ps1, zedqa_mods_panes_run.ps1, then gallery_t14_collect.ps1 -Switch: screens gallery_t14) in the default Dark + Orange with no debug artifacts; cards 57 Radios and the CD player, 58 Television sets, 59 Washer and dryer, 60 Machine plates new (gallery_t14_radios.lua, gallery_t14_indoor.lua; their boxes and anchors are estimates until the retake).",
  "screens": "C:/Users/danie/Zomboid/Screenshots/gallery_t13",
  "out": "out",
  "patches": [
@@ -6707,6 +6707,457 @@
      "maxw": 760
     }
    ]
+  },
+  {
+   "id": "radios",
+   "n": 57,
+   "kind": "feature",
+   "src": "g14_radio_black.png",
+   "title": "Radios and the CD player",
+   "caption": "The two radios, the hand-built radio and the CD player each have their own face in the radio tab.",
+   "crops": [
+    {
+     "src": "g14_radio_black.png",
+     "box": [
+      830,
+      110,
+      1180,
+      400
+     ],
+     "tag": "VALUTECH",
+     "place": [
+      60,
+      330,
+      420
+     ],
+     "box_todo": true
+    },
+    {
+     "src": "g14_radio_red.png",
+     "box": [
+      830,
+      110,
+      1180,
+      400
+     ],
+     "tag": "PREMIUM",
+     "place": [
+      520,
+      330,
+      420
+     ],
+     "box_todo": true
+    },
+    {
+     "src": "g14_radio_handbuilt.png",
+     "box": [
+      830,
+      110,
+      1180,
+      400
+     ],
+     "tag": "HAND-BUILT",
+     "place": [
+      980,
+      330,
+      420
+     ],
+     "box_todo": true
+    },
+    {
+     "src": "g14_radio_cd.png",
+     "box": [
+      830,
+      110,
+      1180,
+      400
+     ],
+     "tag": "CD PLAYER",
+     "place": [
+      1440,
+      330,
+      420
+     ],
+     "box_todo": true
+    }
+   ],
+   "avoid": [],
+   "balloons": [
+    {
+     "text": "POWER, VOL and TUNE work as on the set. A preset key held stores the station; pressed, it tunes back to it.",
+     "anchor": [
+      1000,
+      250
+     ],
+     "side": "bottom",
+     "crop": 0,
+     "maxw": 420,
+     "anchor_todo": true
+    },
+    {
+     "text": "The Premium radio takes a disc you carry in its slot. EJECT gives it back.",
+     "anchor": [
+      1100,
+      300
+     ],
+     "side": "bottom",
+     "crop": 1,
+     "maxw": 420,
+     "anchor_todo": true
+    },
+    {
+     "text": "The hand-built radio is the board you wired. The rocker turns it on.",
+     "anchor": [
+      1000,
+      250
+     ],
+     "side": "bottom",
+     "crop": 2,
+     "maxw": 420,
+     "anchor_todo": true
+    },
+    {
+     "text": "Click the battery meter on the screen to change the battery.",
+     "anchor": [
+      1000,
+      200
+     ],
+     "side": "bottom",
+     "crop": 3,
+     "maxw": 420,
+     "anchor_todo": true
+    }
+   ],
+   "todo": "Crop boxes, anchors and places are estimates from the Oct 30 QA captures (zqa_rtv_1_*, zqa_rtv_4c_*, zqa_ldy_*, zqa_pfill_scale175_*): set them on the t14 retake with make_shots.py --debug, then drop box_todo / anchor_todo."
+  },
+  {
+   "id": "tvs",
+   "n": 58,
+   "kind": "feature",
+   "src": "g14_tv_widescreen.png",
+   "title": "Television sets",
+   "caption": "The three television sets each have their own face. The screen shows the picture, snow or the off-air cards.",
+   "crops": [
+    {
+     "src": "g14_tv_widescreen.png",
+     "box": [
+      2650,
+      60,
+      3500,
+      700
+     ],
+     "tag": "WIDE SCREEN",
+     "place": [
+      40,
+      330,
+      590
+     ],
+     "box_todo": true
+    },
+    {
+     "src": "g14_tv_black.png",
+     "box": [
+      2650,
+      60,
+      3500,
+      700
+     ],
+     "tag": "BLACK",
+     "place": [
+      665,
+      330,
+      590
+     ],
+     "box_todo": true
+    },
+    {
+     "src": "g14_tv_antique.png",
+     "box": [
+      2650,
+      60,
+      3500,
+      700
+     ],
+     "tag": "ANTIQUE",
+     "place": [
+      1290,
+      330,
+      590
+     ],
+     "box_todo": true
+    }
+   ],
+   "avoid": [],
+   "balloons": [
+    {
+     "text": "A tape plays on the screen: its title, then the lines it has shown.",
+     "anchor": [
+      2950,
+      350
+     ],
+     "side": "bottom",
+     "crop": 0,
+     "maxw": 420,
+     "anchor_todo": true
+    },
+    {
+     "text": "Off the dial, or just after a channel change, the screen shows snow.",
+     "anchor": [
+      2950,
+      350
+     ],
+     "side": "bottom",
+     "crop": 1,
+     "maxw": 420,
+     "anchor_todo": true
+    },
+    {
+     "text": "A station that is off the air shows its sign-off card, or the standby card once it has stopped for good.",
+     "anchor": [
+      2950,
+      350
+     ],
+     "side": "bottom",
+     "crop": 2,
+     "maxw": 420,
+     "anchor_todo": true
+    },
+    {
+     "text": "The knob pulls on and pushes off, and turns for the volume. The dial has twelve stops.",
+     "anchor": [
+      3300,
+      250
+     ],
+     "side": "top",
+     "crop": 2,
+     "maxw": 420,
+     "anchor_todo": true
+    }
+   ],
+   "todo": "Crop boxes, anchors and places are estimates from the Oct 30 QA captures (zqa_rtv_1_*, zqa_rtv_4c_*, zqa_ldy_*, zqa_pfill_scale175_*): set them on the t14 retake with make_shots.py --debug, then drop box_todo / anchor_todo."
+  },
+  {
+   "id": "laundry",
+   "n": 59,
+   "kind": "feature",
+   "src": "g14_ldy_washer.png",
+   "title": "Washer and dryer",
+   "caption": "The washer, the dryer and the washer-dryer each have their own face. The game's own actions run them.",
+   "crops": [
+    {
+     "src": "g14_ldy_washer.png",
+     "box": [
+      2640,
+      100,
+      3460,
+      700
+     ],
+     "tag": "WASHER",
+     "place": [
+      40,
+      330,
+      590
+     ],
+     "box_todo": true
+    },
+    {
+     "src": "g14_ldy_dryer.png",
+     "box": [
+      2640,
+      100,
+      3460,
+      700
+     ],
+     "tag": "DRYER",
+     "place": [
+      665,
+      330,
+      590
+     ],
+     "box_todo": true
+    },
+    {
+     "src": "g14_ldy_combo.png",
+     "box": [
+      2640,
+      100,
+      3460,
+      700
+     ],
+     "tag": "WASHER-DRYER",
+     "place": [
+      1290,
+      330,
+      590
+     ],
+     "box_todo": true
+    }
+   ],
+   "avoid": [],
+   "balloons": [
+    {
+     "text": "While it runs, the phase lamps step through wash, rinse and spin, and the drum turns.",
+     "anchor": [
+      3050,
+      450
+     ],
+     "side": "bottom",
+     "crop": 0,
+     "maxw": 420,
+     "anchor_todo": true
+    },
+    {
+     "text": "The meter reads the water in the machine. FILL lights when a washer has none.",
+     "anchor": [
+      2900,
+      180
+     ],
+     "side": "top",
+     "crop": 0,
+     "maxw": 420,
+     "anchor_todo": true
+    },
+    {
+     "text": "Power starts and stops it. It needs grid or generator power.",
+     "anchor": [
+      3400,
+      180
+     ],
+     "side": "top",
+     "crop": 1,
+     "maxw": 420,
+     "anchor_todo": true
+    },
+    {
+     "text": "The door shows what is inside in the Loot pane.",
+     "anchor": [
+      3050,
+      450
+     ],
+     "side": "bottom",
+     "crop": 1,
+     "maxw": 420,
+     "anchor_todo": true
+    },
+    {
+     "text": "WASH and DRY set the washer-dryer's mode.",
+     "anchor": [
+      3300,
+      200
+     ],
+     "side": "top",
+     "crop": 2,
+     "maxw": 420,
+     "anchor_todo": true
+    }
+   ],
+   "todo": "Crop boxes, anchors and places are estimates from the Oct 30 QA captures (zqa_rtv_1_*, zqa_rtv_4c_*, zqa_ldy_*, zqa_pfill_scale175_*): set them on the t14 retake with make_shots.py --debug, then drop box_todo / anchor_todo."
+  },
+  {
+   "id": "machine_plates",
+   "n": 60,
+   "kind": "feature",
+   "src": "g14_plate_oven.png",
+   "title": "Machine plates",
+   "caption": "Ovens, microwaves and generators show their own controls, sized to fill the card at every UI scale.",
+   "crops": [
+    {
+     "src": "g14_plate_oven.png",
+     "box": [
+      2640,
+      100,
+      3500,
+      560
+     ],
+     "tag": "OVEN",
+     "place": [
+      40,
+      330,
+      590
+     ],
+     "box_todo": true
+    },
+    {
+     "src": "g14_plate_microwave.png",
+     "box": [
+      2640,
+      80,
+      3500,
+      650
+     ],
+     "tag": "MICROWAVE",
+     "place": [
+      665,
+      330,
+      590
+     ],
+     "box_todo": true
+    },
+    {
+     "src": "g14_plate_generator.png",
+     "box": [
+      2640,
+      40,
+      3460,
+      700
+     ],
+     "tag": "GENERATOR",
+     "place": [
+      1290,
+      330,
+      590
+     ],
+     "box_todo": true
+    }
+   ],
+   "avoid": [],
+   "balloons": [
+    {
+     "text": "BAKE, the number keys and START set and run the oven. The display shows the heat.",
+     "anchor": [
+      3050,
+      300
+     ],
+     "side": "bottom",
+     "crop": 0,
+     "maxw": 420,
+     "anchor_todo": true
+    },
+    {
+     "text": "The microwave: power level, time cook, the number keys and start.",
+     "anchor": [
+      3300,
+      350
+     ],
+     "side": "bottom",
+     "crop": 1,
+     "maxw": 420,
+     "anchor_todo": true
+    },
+    {
+     "text": "The engine switch starts and stops the generator. The gauge reads its fuel.",
+     "anchor": [
+      3050,
+      450
+     ],
+     "side": "bottom",
+     "crop": 2,
+     "maxw": 420,
+     "anchor_todo": true
+    },
+    {
+     "text": "A warning shows when the generator stands indoors.",
+     "anchor": [
+      2900,
+      150
+     ],
+     "side": "top",
+     "crop": 2,
+     "maxw": 420,
+     "anchor_todo": true
+    }
+   ],
+   "todo": "Crop boxes, anchors and places are estimates from the Oct 30 QA captures (zqa_rtv_1_*, zqa_rtv_4c_*, zqa_ldy_*, zqa_pfill_scale175_*): set them on the t14 retake with make_shots.py --debug, then drop box_todo / anchor_todo."
   }
  ]
 }

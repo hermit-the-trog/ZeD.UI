@@ -216,7 +216,7 @@ step(2, function()
     if WWm.isOpen() then WWm.close() end
     cleanLook()
     seed()
-    theme("hicon", "teal", sizeWas)
+    theme(((GAL_LOOK and GAL_LOOK[1]) or "hicon"), ((GAL_LOOK and GAL_LOOK[2]) or "teal"), sizeWas)   -- GAL_LOOK: gallery_t14_look.lua
     say(string.format("theme %s %s size %s", tostring(ZeD.currentBase), tostring(ZeD.currentAccent), tostring(ZeD.currentSize)))
 end)
 step(30, function()

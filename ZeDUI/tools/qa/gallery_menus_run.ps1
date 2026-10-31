@@ -102,11 +102,17 @@ try {
     Start-Sleep -Seconds 15
     if (-not (Wait-Log 'bridge armed \(main menu' 600 0)) { "never reached the main menu"; $fails++; return }
     Start-Sleep -Seconds 12
+    # (Oct 30 2026, the t14 retake) the desk's Debug menu left out and the default look (Dark, Orange) for the pictures;
+    # gallery_t14_end.lua puts both back before the quit
+    if (-not (Push "gallery_t14_look.lua" "g14l" 60)) { $fails++ }
+    Start-Sleep -Seconds 2
     if (-not (Push "gallery_desk_pass.lua" "dsk" 120)) { $fails++ }
     Start-Sleep -Seconds 3
     if (-not (Push "gallery_v4_menus.lua" "g4m" 300)) { $fails++ }
     Start-Sleep -Seconds 3
     if (-not (Push "gallery_v4_upload.lua" "g4u" 180)) { $fails++ }
+    Start-Sleep -Seconds 2
+    if (-not (Push "gallery_t14_end.lua" "g14e" 60)) { $fails++ }
 } finally {
     if ($p -and -not $p.HasExited) {
         $g = Next-Go
@@ -122,6 +128,6 @@ try {
     foreach ($a in $added) { Remove-Item $a -Recurse -Force -ErrorAction SilentlyContinue }
     "put back: default.txt, pz_modlist_settings.cfg, ZeD_modprofiles.txt, ZeD_wallpaper.txt, ZeD_workshop.txt, ModOptions.ini, zedqa.autoload, options.ini; removed $($added.Count) sample folders"
     if (-not ($p -and -not $p.HasExited)) { Set-Content -Path $lock -Value "free" -NoNewline }
-    if ($fails -eq 0) { "all three scripts reached DONE" } else { "$fails script(s) did not reach DONE" }
+    if ($fails -eq 0) { "every script reached DONE" } else { "$fails script(s) did not reach DONE" }
 }
 if ($fails -eq 0) { exit 0 } else { exit 1 }

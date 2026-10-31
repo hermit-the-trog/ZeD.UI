@@ -109,8 +109,29 @@ function Z.theme(base, accent)
     if c then c._accentKey = nil end
     if w then w._accentKey = nil end
 end
--- beats 9-11 on their own (a retake): Light + Blue as beat 8 left it
+-- beats 1-7's look: GAL_LOOK (gallery_t14_look.lua, the t14 retake: Dark + Orange), else high contrast + teal
+Z.lookB = (GAL_LOOK and GAL_LOOK[1]) or "hicon"
+Z.lookA = (GAL_LOOK and GAL_LOOK[2]) or "teal"
+-- With GAL_LOOK (Design, Oct 30 2026: every slide in the default look but the theme slides, 9 Open for business and 14
+-- Night shift) beats 9-11 go back to it after beat 8, and beat 12 puts the blue accent back for Night shift (its
+-- caption: "Dark theme with the blue accent"). STORY_KEEP_LIGHT = true keeps Light + Blue through 9-11 as before.
+Z.backToLook = GAL_LOOK ~= nil and not STORY_KEEP_LIGHT
+function Z.nightBlue()
+    if not Z.backToLook then return end
+    ZeD.applyTheme(nil, "blue", nil)
+    local c, w = Z.CW(), Z.WW()
+    if c then c._accentKey = "blue" end
+    if w then w._accentKey = "blue" end
+end
+-- beats 9-11 on their own (a retake): Light + Blue as beat 8 left it (or the gallery look, above)
 function Z.lightBlue()
+    if Z.backToLook then
+        ZeD.applyTheme(Z.lookB, Z.lookA, nil)
+        local c0, w0 = Z.CW(), Z.WW()
+        if c0 then c0._accentKey = nil end
+        if w0 then w0._accentKey = nil end
+        return
+    end
     ZeD.applyTheme("light", (STORY_GLOBAL_BLUE ~= false) and "blue" or nil, nil)
     local c, w = Z.CW(), Z.WW()
     if c then c._accentKey = "blue" end
@@ -395,7 +416,7 @@ S.step(2, function()
     O.watchPlaceOption:setValue(1)
     O.contextStyleOption:setValue(1)
     O.actionBarOption:setValue(1)
-    Z.theme("hicon", "teal")
+    Z.theme(Z.lookB, Z.lookA)
     say("theme " .. tostring(ZeD.currentBase) .. " " .. tostring(ZeD.currentAccent) .. " | profession " .. tostring(p:getDescriptor():getCharacterProfession()))
     Z.closePair()
 end)
@@ -545,7 +566,7 @@ if want("04b") then
     local T4 = {}
     S.step(30, function()
         ST.gt:setTimeOfDay(11.5)
-        Z.theme("hicon", "teal")
+        Z.theme(Z.lookB, Z.lookA)
         local v = ST.car
         -- the tire nearest the camera (largest x + y of its area) comes off: the spare goes in the inventory
         local best, bs = nil, -1e9
@@ -616,7 +637,7 @@ if want("05") then
     local B5 = {}
     S.step(10, function()
         ST.gt:setTimeOfDay(12.0)
-        Z.theme("hicon", "teal")
+        Z.theme(Z.lookB, Z.lookA)
         Z.closePair()
         if not P.win then S.err("story_05", "no window"); return end
         ST.tpSq(P.win.out)
@@ -926,6 +947,7 @@ if want("12") then
         -- the window menu's Theme choice, Dark (or High contrast). The windows are shut at this
         -- point (and closed again just below), so there is no box to pull the menu from: the
         -- choice the menu builds is fired directly.
+        Z.nightBlue()
         local target = STORY_NIGHT_BASE or "dark"
         local how = (ZeD.currentBase ~= target) and Z.fireTheme(target) or "nothing to do"
         say("night theme " .. tostring(ZeD.currentBase) .. " (" .. how .. ")")
@@ -969,7 +991,8 @@ if want("12") then
     S.step(2, function() pcall(function() ZeD.Watch.togglePop(false) end) end)
     S.zoomTo(1.0)
     S.step(10, function() ST.tpSq(P.stock); Z.openPair(); Z.charTab("loot"); Z.worldTab("loot") end)
-    S.step(40, function() Z.place(); Z.shot("story_12d_windows_night") end)
+    S.step(40, function() Z.nightBlue(); Z.place() end)
+    S.step(10, function() Z.shot("story_12d_windows_night") end)
 end
 
 -- ---- end: the windows shut, the queue gone, the mouse parked (the teardown puts the rest back) ----
