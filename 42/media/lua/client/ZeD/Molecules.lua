@@ -4481,16 +4481,10 @@ function ZeD.Molecules.drawDrawerInternalHeader(panel, x, y, w, browseState, sub
     local subColor = T.text or { r = 1, g = 1, b = 1, a = 1 }
     local subMaxW = (x + w - pad - (rightReserve or 0)) - cursor
     if subMaxW > 0 and subStr ~= "" then
-        local subW = TM:MeasureStringX(fontHead, subStr)
-        if subW > subMaxW then
-            local ell = "…"
-            local ellW = TM:MeasureStringX(fontHead, ell)
-            local trimmed = subStr
-            while #trimmed > 1 and (TM:MeasureStringX(fontHead, trimmed) + ellW) > subMaxW do
-                trimmed = trimmed:sub(1, #trimmed - 1)
-            end
-            subStr = trimmed .. ell
-        end
+        -- cut with the shared "..." (Oct 31 2026, break-it E3: a local cut here used the
+        -- one-character ellipsis U+2026, which the game drew as its low byte 0x26, "&":
+        -- the Vehicle tab's "Che&". ZeD's fonts list the glyph; the draw does not reach it)
+        subStr = A.truncateText(subStr, fontHead, subMaxW)
         panel:drawText(subStr, cursor, subY,
             subColor.r, subColor.g, subColor.b, subColor.a or 1.0, fontHead)
     end
