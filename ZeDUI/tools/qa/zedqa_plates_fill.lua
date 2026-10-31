@@ -5,7 +5,9 @@
 -- white and the chrome microwave, a generator and the grill (the plate test's checks and presses: the face drawn
 -- is the widest that fits, inside the card, keypads / switch / tank / burner act), a civilian ham set placed
 -- beside the character (World Radio tab: the face for the drawer, VOL powers it, TUNE moves the frequency) and a
--- walkie in the hand (Character Radio tab: the half card, VOL powers it). Indoors with grid power, as the plate
+-- walkie in the hand (Character Radio tab: the half card, VOL powers it); the generator and the grill cards with and without
+-- their scrollbar pick the same face. The Radio tab is waited for by its real state (tab active, drawer at a card width and
+-- still; the tab clicked again until it is), not a fixed count. Indoors with grid power, as the plate
 -- test; everything made is taken away. Screenshots/zqa_pfill_<scale>_<what>.png; grep "ZEDQA pfill".
 local p = getPlayer()
 local pn = p:getPlayerNum()
@@ -322,12 +324,54 @@ local function cardFace(tag)
     check(#fids > 0, tag .. ": the face has its controls")
 end
 
+-- The card with and without its scrollbar picks the same face (ObjectCards' card._plateRoom is the body's width less the
+-- margins, whether or not the scrollbar takes its strip). The body height the card reads at the start of each frame is held
+-- by a tick handler: first taller than the view (the scrollbar shows), then empty (it does not); the face's control zone
+-- (the face's width times the zoom) is read each time and must match the natural one, and so must the plate room.
+local forceBody = nil
+local function forceTick()
+    local c = WW() and WW()._objectCard
+    if c and forceBody then c._bodyH = forceBody end
+end
+local function liveZoneSize(fid)
+    local c = WW() and WW()._objectCard
+    for _, z in ipairs((c and c._zones) or {}) do
+        if z.fid == fid then return z.w, z.h, c.scroll and c.scroll.visible, c._plateRoom end
+    end
+    return nil
+end
+local function scrollbarFace(tag, fid)
+    local base = {}
+    step(10, function()
+        base.w, base.h, base.vis, base.room = liveZoneSize(fid)
+        say(string.format("%s: natural card: control %s x %s, scrollbar %s, plate room %s", tag, tostring(base.w), tostring(base.h), tostring(base.vis), tostring(base.room)))
+        forceBody = 1000000
+        Events.OnTick.Add(forceTick)
+    end)
+    step(6, function()
+        local w, h, vis, room = liveZoneSize(fid)
+        check(vis == true, tag .. ": with the body taller than the view the scrollbar shows")
+        check(w ~= nil and w == base.w and h == base.h, tag .. ": with the scrollbar the same face (control " .. tostring(w) .. " x " .. tostring(h) .. ", natural " .. tostring(base.w) .. " x " .. tostring(base.h) .. ")")
+        check(room ~= nil and room == base.room, tag .. ": with the scrollbar the same plate room (" .. tostring(room) .. ", natural " .. tostring(base.room) .. ")")
+        forceBody = 0
+    end)
+    step(6, function()
+        local w, h, vis, room = liveZoneSize(fid)
+        check(vis == false, tag .. ": with an empty body no scrollbar")
+        check(w ~= nil and w == base.w and h == base.h, tag .. ": without the scrollbar the same face (control " .. tostring(w) .. " x " .. tostring(h) .. ")")
+        check(room ~= nil and room == base.room, tag .. ": without the scrollbar the same plate room (" .. tostring(room) .. ")")
+        forceBody = nil
+        Events.OnTick.Remove(forceTick)
+    end)
+end
+
 local function objectPhase()
     backAtSpot()
     step(30, function() showTab("loot") end)   -- (the card opens over the Loot view, as a player meets it; over the Craft tab it hides behind the tab)
     step(5, function() openCard("generator", gen) end)
     step(60, function() cardFace("generator") end)
     step(200, function() shot(PH .. "_generator") end)
+    scrollbarFace("generator", "gen:engine")
     step(5, function() cardRun("gen:engine", "generator") end)
     waitFor(10, 3000, function() return acted(function() return gen:isActivated() end) end, function()
         check(gen:isActivated(), "generator: the engine switch starts it (" .. (gen:isActivated() and "it runs" or "the start was queued and never finished") .. ")")
@@ -350,6 +394,7 @@ local function objectPhase()
     step(20, function() openCard("fire", bbq) end)
     step(60, function() cardFace("grill") end)
     step(200, function() shot(PH .. "_grill") end)
+    scrollbarFace("grill", "bbq:tank")
     step(5, function() cardRun("bbq:tank", "grill") end)
     waitFor(10, 3000, function() return acted(function() return bbq:hasPropaneTank() end) end, function()
         if not bbq:hasPropaneTank() then say("grill: tank not in: queue " .. queueDump()) end
@@ -435,14 +480,52 @@ local function charTab(id)
         if z.id == "tab:" .. id and w._activeTab ~= id then w._tabStripPanel:onMouseDown(z.x + 2, z.y + 2) end
     end
 end
+-- The Radio tab "ready", polled for the real state with a generous cap (the first run waited a fixed 20 + 5 + 200
+-- frames, and at 1.5 the drawer was still at 0 px: the tab strip had not built its hit zones yet, so the one click
+-- found nothing). Every ~15 polls the tab is clicked again while it is not the active one or its drawer is shut;
+-- the set is picked; ready = the tab active, the drawer open at a card width (the half or the full card) and still for
+-- three polls, the face up for that set.
+local POLL_CAP = 1800
+local pokeN = 0
+local function cardWidthNow(w)
+    local e = math.floor(w._drawerEffW or 0)
+    local half, full = ZeD.T.px(220), ZeD.T.px(480)
+    return e, (math.abs(e - half) <= 1 or math.abs(e - full) <= 1)
+end
+local function worldRadioReady(dev)
+    local w = WW()
+    if not w then return false end
+    pokeN = pokeN + 1
+    if (w._activeTab ~= "radio" or not w._drawerOpen) and pokeN % 15 == 1 then
+        for _, z in ipairs(w._actionTabStrip and w._actionTabStrip._hitZones or {}) do
+            if z.id == "tab:radio" then w._actionTabStrip:onMouseDown(z.x + 2, z.y + 2) end
+        end
+    end
+    for i, r in ipairs(w._radios or {}) do if r.radioInstance == dev then w._radioIdx = i end end
+    if w._activeTab ~= "radio" or not w._drawerOpen then return false end
+    local t = twOf(w)
+    if not (t and t.dev == dev) then return false end
+    local _, atCard = cardWidthNow(w)
+    return atCard and settled(w)
+end
+local function charRadioReady(dev)
+    local w = CW()
+    if not w then return false end
+    pokeN = pokeN + 1
+    if (w._activeTab ~= "radio" or not w._drawerOpen) and pokeN % 15 == 1 then charTab("radio") end
+    if w._activeTab ~= "radio" or not w._drawerOpen then return false end
+    local t = twOf(w)
+    if not (t and t.dev == dev) then return false end
+    local _, atCard = cardWidthNow(w)
+    return atCard and settled(w)
+end
 local Z_f0
 local function hamPhase()
     backAtSpot()
-    step(5, function() if not (WW() and WW():isVisible()) then ZeD_CharacterWindow.toggleBothPaired(pn) end end)
-    step(20, function() showTab("radio") end)
-    step(5, function() for i, r in ipairs(WW()._radios or {}) do if r.radioInstance == ham then WW()._radioIdx = i end end end)
-    waitFor(5, 200, function() local t = twOf(WW()); return t ~= nil and t.dev == ham and settled(WW()) end, function()
+    step(5, function() if not (WW() and WW():isVisible()) then ZeD_CharacterWindow.toggleBothPaired(pn) end; pokeN = 0 end)
+    waitFor(5, POLL_CAP, function() return worldRadioReady(ham) end, function()
         local w, t = WW(), twOf(WW())
+        check(w._activeTab == "radio" and w._drawerOpen == true, "ham: the Radio tab is open on the set (tab " .. tostring(w._activeTab) .. ", drawer " .. tostring(w._drawerEffW) .. " px)")
         local dw = math.floor(w._drawerEffW or 0)
         local k0 = ZeD.Px.k(root())
         local room = dw - ZeD.T.sp.scrollbarW
@@ -486,9 +569,9 @@ local function walkiePhase()
         local shown = false
         for _, z in ipairs(CW()._tabStripPanel and CW()._tabStripPanel._hitZones or {}) do if z.id == "tab:radio" then shown = true end end
         check(CW()._activeTab ~= "radio" and shown, "a radio in the hand: the Radio tab appears, the window stays on " .. tostring(CW()._activeTab))
-        charTab("radio")
+        pokeN = 0
     end)
-    waitFor(5, 200, function() local t = twOf(CW()); return t ~= nil and t.dev == walkie and settled(CW()) end, function()
+    waitFor(5, POLL_CAP, function() return charRadioReady(walkie) end, function()
         local w, t = CW(), twOf(CW())
         local dw = math.floor(w._drawerEffW or 0)
         say(string.format("walkie [%s, root %.2f]: tab %d px (half %d), drawn %s (zoom %s)", PH, root(), dw, ZeD.T.px(220), tostring(t and t.pid), tostring(t and t.k)))
