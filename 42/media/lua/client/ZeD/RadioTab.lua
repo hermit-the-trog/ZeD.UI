@@ -19,7 +19,7 @@
 --   - Data discovery: buildEquippedRadios, buildWorldRadios
 --   - Wave cache helper (cosmetic 64-column harmonic, seeded per radio)
 --   - Chassis molecules: radioMainDisplay, radioControlStrip, radioPresetBank,
---     radioSignalWave, cdPlayerModule, brandBar
+--     radioSignalWave, cdPlayerModule
 --   - Organisms: renderPremium, renderValutech, renderDrawer
 --   - Top-level: render (with browse header), register
 --
@@ -34,8 +34,8 @@
 -- (RtvFace.lua). The drawn chassis above is the SIMPLE CARD, reached through
 -- one function, ZeD.RadioTab.drawSimple: the card for a radio with no face,
 -- and (punch list item 17, to come) the card ZeD setup's "faces or simple
--- cards" switch shows (ZeD.RadioTab.useFaces). The brand strip at the
--- chassis' foot stays with the simple card; a face carries its own brand.
+-- cards" switch shows (ZeD.RadioTab.useFaces). The simple card has no brand strip at
+-- its foot (director, Oct 30 2026, punch list 21): a face carries its own brand.
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -60,7 +60,6 @@ local radioControlStrip
 local radioPresetBank
 local radioSignalWave
 local cdPlayerModule
-local brandBar
 -- S115b: render() drives the SEEK hold-to-repeat advance, so it needs
 -- visibility into _channelStep before that local's definition further down.
 local _channelStep
@@ -902,45 +901,6 @@ function cdPlayerModule(panel, x, y, w, h, dd, win)
     end
 end
 
-----------------------------------------------------------------------
--- M: brandBar
--- Chassis-bottom strip. Premium = silver pill with "PREMIUM TECHNOLOGIES"
--- + model number on the right. ValuTech = plain black with light grey text.
-----------------------------------------------------------------------
-function brandBar(panel, x, y, w, h, brand, dd)
-    local T = ZeD.T
-    local TM = ZeD.TM
-    local font = T.fontF1
-    local th   = TM:getFontHeight(font)
-    local ty   = y + math.floor((h - th) / 2)
-
-    if brand == "premium" then
-        local pt = T.radio.pt
-        -- Silver bar background
-        panel:drawRect(x, y, w, h, pt.brandBarBg.a or 1.0,
-            pt.brandBarBg.r, pt.brandBarBg.g, pt.brandBarBg.b)
-        -- 1px dark groove top edge
-        panel:drawRect(x, y, w, T.px(1), 0.55, 0, 0, 0)
-        panel:drawText("PREMIUM TECHNOLOGIES", x + T.px(10), ty,
-            pt.btnText.r, pt.btnText.g, pt.btnText.b, pt.btnText.a or 1.0, font)
-        local rightText = ZeD.tr("UI_ZeD_Radio_TagPremium")
-        local rw = TM:MeasureStringX(font, rightText)
-        panel:drawText(rightText, x + w - T.px(10) - rw, ty,
-            pt.btnText.r, pt.btnText.g, pt.btnText.b, 0.78, font)
-    else
-        local vt = T.radio.vt
-        panel:drawRect(x, y, w, h, vt.chassisBg.a or 1.0,
-            vt.chassisBg.r, vt.chassisBg.g, vt.chassisBg.b)
-        panel:drawRect(x, y, w, T.px(1), 0.55, 0, 0, 0)
-        panel:drawText("VALUTECH", x + T.px(10), ty,
-            vt.btnText.r, vt.btnText.g, vt.btnText.b, vt.btnText.a or 1.0, font)
-        local rightText = ZeD.tr("UI_ZeD_Radio_TagValu")
-        local rw = TM:MeasureStringX(font, rightText)
-        panel:drawText(rightText, x + w - T.px(10) - rw, ty,
-            vt.silkScreen.r, vt.silkScreen.g, vt.silkScreen.b, vt.silkScreen.a or 1.0, font)
-    end
-end
-
 -- ============================================================================
 -- ORGANISMS — chassis assembly per tier
 -- ============================================================================
@@ -990,17 +950,13 @@ function renderPremium(panel, x, y, w, h, win, radioEntry)
         cy = cy + displayH + T.px(8)
     end
 
-    -- 4. CD player module — recessed.
+    -- 4. CD player module — recessed. (Oct 30 2026: no brand strip at the foot; the CD module has
+    -- the room it took)
     local cdH = T.px(64)
-    if cy + cdH <= y + h - pad - T.px(22) then
+    if cy + cdH <= y + h - pad then
         cdPlayerModule(panel, cx, cy, innerW, cdH, dd, win)
         cy = cy + cdH + T.px(8)
     end
-
-    -- 5. Brand bar at bottom.
-    local brandH = T.px(22)
-    local brandY = y + h - brandH
-    brandBar(panel, x, brandY, w, brandH, "premium", dd)
 end
 
 ----------------------------------------------------------------------
@@ -1041,12 +997,7 @@ function renderValutech(panel, x, y, w, h, win, radioEntry)
         cy = cy + displayH + T.px(8)
     end
 
-    -- 4. (no CD module on ValuTech)
-
-    -- 5. Brand bar
-    local brandH = T.px(22)
-    local brandY = y + h - brandH
-    brandBar(panel, x, brandY, w, brandH, "valutech", dd)
+    -- 4. (no CD module on ValuTech, and no brand strip at the foot since Oct 30 2026)
 end
 
 ----------------------------------------------------------------------

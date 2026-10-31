@@ -605,12 +605,11 @@ local PROMPT_LABELS = {
     ["craft:row"]       = { a = "UI_ZeD_Prompt_Recipe" },
     ["jrecipe:row"]     = { a = "UI_ZeD_Prompt_Recipe" },
     ["build:row"]       = { a = "UI_ZeD_Prompt_Recipe" },
-    ["exercise"]        = { a = "UI_ZeD_Prompt_Start" },
+    ["health:start"]    = { a = "UI_ZeD_Prompt_Start" },   -- Oct 30 2026: the Health band's Start (the exercise buttons went)
     ["skill:"]          = { a = "UI_ZeD_Prompt_Pin" },
     ["equipslot"]       = { a = "UI_ZeD_Prompt_Card" },
     ["equippart"]       = { a = "UI_ZeD_Prompt_Card" },
     ["cancel_band"]     = { a = "UI_Cancel" },
-    ["forage:stance"]   = { a = "UI_ZeD_Prompt_Search" },
 }
 
 -- L3 / R3 (Oct 23 2026) lead the prompts while the pad is on an item list: the

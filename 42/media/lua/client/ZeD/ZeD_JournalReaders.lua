@@ -110,6 +110,7 @@ end
 -- the pointer over (x, y, w, h) with the mouse in use, inside the tab's view
 local function hoverRect(panel, win, x, y, w, h)
     local clip = st(win).clip
+    if st(win).showOpen then return false end   -- (the band's Show list is open over the page)
     if clip and not inRect(clip, panel:getMouseX(), panel:getMouseY()) then return false end
     return ZeD.Atoms.mouseIn(panel, x, y, w, h)
 end
@@ -323,28 +324,8 @@ local function renderPaperList(panel, win, x, y, w, h, carried)
         local dc = T.textDim
         panel:drawText(count, lx, cy, dc.r, dc.g, dc.b, dc.a or 1, f3)
         cy = cy + fh(f3) + T.sp.sm
-        -- the filters: one of four, System 7 radio buttons (the chosen one's dot in accent)
-        local rs = A.radioSize()
-        local ph = math.max(rs, fh(f2)) + T.px(8)
-        local fx = lx
+        -- (the filters, four radio buttons here until Oct 30 2026, are the band's Show pop-up)
         local hv = T.hover
-        for _, f in ipairs(FILTERS) do
-            local flabel = ZeD.textCase(ZeD.tr(f.key))
-            local pw = T.px(8) + rs + T.px(8) + tw(f2, flabel) + T.px(8)
-            local zid = "filter:" .. f.id
-            local hover = hoverRect(panel, win, fx, cy, pw, ph)
-            if hover then
-                panel:drawRect(fx, cy, pw, ph, hv.a, hv.r, hv.g, hv.b)
-                help(win, ZeD.tr("UI_ZeD_Papers_HelpFilter", flabel))
-            end
-            local swapped = markFocus(panel, win, "jr:" .. zid, fx, cy, pw, ph)
-            A.drawRadio(panel, fx + T.px(8), cy + math.floor((ph - rs) / 2), s.filter == f.id, { hover = hover })
-            local tc = swapped and T.textOnFocus or T.text
-            panel:drawText(flabel, fx + T.px(8) + rs + T.px(8), cy + math.floor((ph - fh(f2)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
-            zone(win, { id = zid, x = fx, y = cy, w = pw, h = ph, fn = function() s.filter = f.id; s.scroll:setScrollPos(0) end })
-            fx = fx + pw + T.sp.xs
-        end
-        cy = cy + ph + T.sp.sm
         A.drawDividerH(panel, x, cy, dw)
         cy = cy + T.px(1)
         local list = filtered(win, carried.papers)
@@ -547,17 +528,115 @@ local function renderPaperLook(panel, win, x, y, w, h, e)
     end)
 end
 
+-- ---------------------------------------------------------------------------
+-- PAPERS: the band (Oct 30 2026, punch list 21): Show (All, News, Flyers, On map)
+-- as a System 7 pop-up menu at the left; its list opens upward over the page.
+-- In a quick look the box is greyed (the list is not shown).
+-- ---------------------------------------------------------------------------
+local SHOW_MODES = {}   -- the Show list's choices {id, label}: made once, labels refreshed
+local _papersBand = {}
+local _showListOpts = {}
+
+local function showModes()
+    for i, f in ipairs(FILTERS) do
+        local m = SHOW_MODES[i] or {}
+        SHOW_MODES[i] = m
+        m.id, m.label = f.id, ZeD.textCase(ZeD.tr(f.key))
+    end
+    return SHOW_MODES
+end
+
+-- the Show box's width: the longest choice it can carry (the band keeps its shape); kept
+-- per scale, font and language
+local function showBoxW(s, modes)
+    local T = ZeD.T
+    local c = s.showW
+    local lang = ZeD.trTestOn() and 1 or 0
+    if c and c.scale == T.scale and c.font == T.fontF1 and c.lang == lang then return c.w end
+    local w = 0
+    for _, m in ipairs(modes) do w = math.max(w, ZeD.Molecules.popupMenuW(ZeD.tr("UI_ZeD_Craft_ShowToggle", m.label))) end
+    s.showW = { scale = T.scale, font = T.fontF1, lang = lang, w = w }
+    return w
+end
+
+-- shut the Show list; the controller goes back to its box
+local function closeShow(s)
+    s.showOpen, s.showZones = nil, nil
+    s.land = "jr:show"
+end
+
+local function drawPapersBand(panel, win, x, y, w, frozen)
+    local T, M, A = ZeD.T, ZeD.Molecules, ZeD.Atoms
+    local s = st(win)
+    _papersBand.win = win
+    M.drawBand(panel, x, y, w, _papersBand)
+    local modes = showModes()
+    local bh = T.buttonH
+    local bx, by = x + T.px(8), y + T.px(5)
+    local bw = math.min(showBoxW(s, modes), w - T.px(16))
+    if frozen then s.showOpen, s.showZones = nil, nil end
+    local open = s.showOpen == true
+    local F = ZeD.Input and ZeD.Input.Focus
+    local cues = F and F.cuesVisible and F.cuesVisible() or false
+    local hov = (not frozen) and (not open) and (not cues) and A.mouseIn(panel, bx, by, bw, bh)
+    if hov then help(win, ZeD.tr("UI_ZeD_Papers_HelpShow")) end
+    local cur = ""
+    for _, m in ipairs(modes) do if m.id == s.filter then cur = m.label end end
+    M.drawPopupMenu(panel, bx, by, bw, bh, ZeD.tr("UI_ZeD_Craft_ShowToggle", cur), hov or open,
+        (not frozen) and focusOf(win, "jr:show") or nil, frozen)
+    if frozen then return end
+    zone(win, { id = "show", x = bx, y = by, w = bw, h = bh, fixed = true, fn = function() s.showOpen = true end })
+    if not open then return end
+    -- the list, open: last, upward from the box (the page's band is at its foot)
+    local hoverId = nil
+    if not cues then
+        local mx, my = panel:getMouseX(), panel:getMouseY()
+        for _, z in ipairs(s.showZones or {}) do
+            if mx >= z.x and mx < z.x + z.w and my >= z.y and my < z.y + z.h then hoverId = z.id; break end
+        end
+    end
+    local mo = _showListOpts
+    mo.minW, mo.focusId, mo.focus = bw, nil, nil
+    for _, m in ipairs(modes) do
+        local f = focusOf(win, "jr:showRow:" .. m.id)
+        if f then mo.focusId, mo.focus = m.id, f; break end
+    end
+    local _, _, zs = M.drawSortMenuList(panel, bx, by - M.popupListH(#modes), modes, s.filter, hoverId, mo)
+    s.showZones = zs
+    for _, z in ipairs(zs) do
+        local fid = z.id
+        zone(win, { id = "showRow:" .. fid, x = z.x, y = z.y, w = z.w, h = z.h, fixed = true, row = true,
+            fn = function() s.filter = fid; s.scroll:setScrollPos(0); closeShow(s) end,
+            cancel = function() closeShow(s) end })
+    end
+end
+
 function J.renderPapers(panel, win, x, y, w, h)
     J._fid = focusedId(win)
     local s = st(win)
     local carried = gather(win)
+    -- the page above its band
+    local bodyH = h - ZeD.Molecules.bandH()
+    local look = nil
     if s.paperOpen then
         for _, e in ipairs(carried.papers) do
-            if e.id == s.paperOpen then return renderPaperLook(panel, win, x, y, w, h, e) end
+            if e.id == s.paperOpen then look = e; break end
         end
-        s.paperOpen = nil   -- (put down or dropped: back to the list)
+        if not look then s.paperOpen = nil end   -- (put down or dropped: back to the list)
     end
-    renderPaperList(panel, win, x, y, w, h, carried)
+    if look then renderPaperLook(panel, win, x, y, w, bodyH, look)
+    else renderPaperList(panel, win, x, y, w, bodyH, carried) end
+    drawPapersBand(panel, win, x, y + bodyH, w, look ~= nil)
+end
+
+-- the band's Show list is open (its rows alone hold the controller) / shut it
+function J.listOpen(win)
+    local s = st(win)
+    return s.showOpen == true and s.showZones ~= nil
+end
+function J.shutList(win)
+    local s = st(win)
+    s.showOpen, s.showZones = nil, nil
 end
 
 -- ---------------------------------------------------------------------------
@@ -900,9 +979,19 @@ function J.onClick(win, x, y)
     local zs = win._jrZones
     if not zs then return false end
     local s = st(win)
+    -- the band's Show list open (Papers): it takes every click (a choice, or shut)
+    if s.showOpen and (win._journalSubTab or 1) == 3 then
+        for i = #zs, 1, -1 do
+            local z = zs[i]
+            if z.row and z.fn and inRect(z, x, y) then z.fn(); return true end
+        end
+        closeShow(s)
+        return true
+    end
     for i = #zs, 1, -1 do
         local z = zs[i]
-        if z.fn and inRect(z, x, y) and (not s.clip or inRect(s.clip, x, y) or z.id == "into") then
+        -- (the band's and Into's zones are outside the page's scrolling view)
+        if z.fn and inRect(z, x, y) and (not s.clip or inRect(s.clip, x, y) or z.id == "into" or z.fixed) then
             z.fn()
             return true
         end
@@ -910,11 +999,15 @@ function J.onClick(win, x, y)
     return false
 end
 
--- the controller's elements (ids "jr:..."): every live zone; B goes back in a quick look
+-- the controller's elements (ids "jr:..."): every live zone; B goes back in a quick look.
+-- The band's Show list open: its rows alone (the current choice first); shut, the focus
+-- lands back on its box.
 function J.focusables(win)
     local out = {}
+    local s = st(win)
+    local rowsOnly = J.listOpen(win)
     for _, z in ipairs(win._jrZones or {}) do
-        if z.fn or z.dpad then
+        if (z.fn or z.dpad) and ((z.row == true) == rowsOnly) then
             local el = {
                 x = z.x, y = z.y, w = z.w, h = z.h,
                 id = "jr:" .. z.id,
@@ -929,6 +1022,14 @@ function J.focusables(win)
             out[#out + 1] = el
         end
     end
+    -- where the focus lands: the current choice in the open list; back on the box after it
+    local land = rowsOnly and ("jr:showRow:" .. tostring(s.filter)) or s.land
+    if land then
+        for i, e in ipairs(out) do
+            if e.id == land then out._focusIdx = i; break end
+        end
+        if not rowsOnly and #out > 0 then s.land = nil end
+    end
     return out
 end
 
@@ -936,6 +1037,12 @@ end
 function J.scrollKey(win)
     local s = st(win)
     return tostring(s.key) .. ":" .. tostring(s.scroll.scrollPos) .. ":" .. tostring(s.nbId) .. ":" .. tostring(s.filter)
+        .. ":" .. tostring(s.showOpen) .. ":" .. tostring(s.paperOpen)
+end
+
+-- the log box's Into shows (a notebook is carried to write in)
+function J.intoShown(win)
+    return #gather(win).books > 0
 end
 
 -- each frame: zones start empty (the renderers stamp them); last frame's kept for the scroll-follow

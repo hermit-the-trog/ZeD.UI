@@ -2842,8 +2842,6 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Radio_SigWeak` | `WEAK` | Character / World window, Radio tab: display readout value, no signal | 6 |
 | `UI_ZeD_Radio_Stereo` | `STEREO` | Character / World window, Radio tab: chassis display chip (decorative, always off) | 8 |
 | `UI_ZeD_Radio_Store` | `STORE %1` | Radio display flash after holding a preset button; %1 = the preset number (1 to 6). Small faces show P%1 instead | 16 |
-| `UI_ZeD_Radio_TagPremium` | `* AM/FM TUNER + CD` | Character / World window, Radio tab: right end of the Premium Technologies brand bar (the brand name and model number stay English) | 24 |
-| `UI_ZeD_Radio_TagValu` | `* AM/FM PORTABLE` | Character / World window, Radio tab: right end of the ValuTech brand bar (the brand name stays English) | 24 |
 | `UI_ZeD_Radio_TwoWayBase` | `* 2-WAY BASE SET` | Character / World window, Radio tab: right end of a ham radio's brand bar (the brand name stays English) | 24 |
 | `UI_ZeD_Radio_TwoWayPortable` | `* 2-WAY PORTABLE` | Character / World window, Radio tab: right end of a walkie talkie's (or the Manpack's) brand bar (the brand name stays English) | 24 |
 | `UI_ZeD_Radio_TxOk` | `TX OK` | Two-way radio display: transmitting is possible | 6 |

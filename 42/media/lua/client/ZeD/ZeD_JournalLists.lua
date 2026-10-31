@@ -95,7 +95,7 @@ end
 local function hoverRect(panel, win, x, y, w, h)
     local clip = st(win).clip
     if clip and not inRect(clip, panel:getMouseX(), panel:getMouseY()) then return false end
-    if st(win).ask then return false end
+    if st(win).ask or st(win).filterOpen then return false end
     return ZeD.Atoms.mouseIn(panel, x, y, w, h)
 end
 
@@ -116,7 +116,12 @@ local function button(panel, win, id, x, y, text, fn, variant, opts)
     opts = opts or {}
     local bw = opts.w or ZeD.Molecules.buttonW(text)
     local o = _btnOpts
-    o.hover = hoverRect(panel, win, x, y, bw, T.buttonH)
+    if opts.fixed then   -- (a band's button: outside the page's scrolling view)
+        local s = st(win)
+        o.hover = not (s.ask or s.filterOpen) and ZeD.Atoms.mouseIn(panel, x, y, bw, T.buttonH)
+    else
+        o.hover = hoverRect(panel, win, x, y, bw, T.buttonH)
+    end
     o.disabled = opts.disabled and true or false
     o.focus = focusOf(win, id)
     o.win = win
@@ -259,15 +264,22 @@ local function filterLabel(id)
     for _, f in ipairs(FILTERS) do if f.id == id then return ZeD.tr(f.key) end end
     return ZeD.tr("UI_All")
 end
-local function openFilter(win, sx, sy)
-    local s = st(win)
-    local rows = {}
-    for _, f in ipairs(FILTERS) do
-        local fid = f.id
-        rows[#rows + 1] = { name = ZeD.tr(f.key), category = "f", check = function() return s.filter == fid end,
-            onFire = function() s.filter = fid; s.scroll:setScrollPos(0) end }
+-- the filter's choices as the band's pop-up list rows {id, label}: made once, labels refreshed
+local FILTER_MODES = {}
+local function filterModes()
+    for i, f in ipairs(FILTERS) do
+        local m = FILTER_MODES[i] or {}
+        FILTER_MODES[i] = m
+        m.id, m.label = f.id, ZeD.tr(f.key)
     end
-    menuAt(win, sx, sy, rows)
+    return FILTER_MODES
+end
+
+-- shut the filter's list; the controller goes back to its box
+local function closeFilter(win)
+    local s = st(win)
+    s.filterOpen, s.filterZones = nil, nil
+    s.land = "jl:filter"
 end
 
 -- ---------------------------------------------------------------------------
@@ -652,7 +664,10 @@ local function drawDetail(panel, win, x, y, w)
 end
 
 -- ---------------------------------------------------------------------------
--- THE TOP: the filter, the search, the three buttons
+-- THE SEARCH (in the Journal's header strip: JournalTab places it) AND THE BAND
+-- (Oct 30 2026, punch list 21): the filter (All, Loadouts, Outfits) as a System 7
+-- pop-up menu at the left, its list opening upward over the page; Save loadout,
+-- Save outfit and New list at the right (the long words are their help lines).
 -- ---------------------------------------------------------------------------
 local function searchField(win)
     if win._jlSearch then return win._jlSearch end
@@ -670,45 +685,106 @@ local function searchField(win)
     return f
 end
 
-local function drawTop(panel, win, x, y, w)
-    local T = ZeD.T
+--- Place the page's search field (the Journal's header strip, right of the Page pop-up).
+function JL.placeSearch(win, x, y, w, h)
+    if not L.on() then return end
     local s = st(win)
-    local pad = T.sp.sm
-    local cy = y + pad
-    local ih = T.inputH
-    -- the filter (the pop-up menu's look) and the search
-    local fw = math.min(T.px(170), math.floor((w - pad * 3) * 0.4))
-    local fx = x + pad
-    local hover = hoverRect(panel, win, fx, cy, fw, ih)
-    if hover then help(win, ZeD.tr("UI_ZeD_Lists_HelpFilter")) end
-    local select = ZeD.Stations and ZeD.Stations.drawSelect
-    if select then select(panel, fx, cy, fw, ih, nil, filterLabel(s.filter), false, focusOf(win, "filter") ~= nil, hover) end
-    local fy = cy
-    zone(win, { id = "filter", x = fx, y = cy, w = fw, h = ih, fn = function()
-        openFilter(win, panel:getAbsoluteX() + fx, panel:getAbsoluteY() + fy + ih + T.px(1))
-    end })
     local sf = searchField(win)
-    local sx, sw = fx + fw + pad, x + w - pad - (fx + fw + pad)
-    if sf:getX() ~= sx or sf:getY() ~= cy then sf:setX(sx); sf:setY(cy) end
-    if sf:getWidth() ~= sw or sf:getHeight() ~= ih then sf:setWidth(sw); sf:setHeight(ih) end
-    s.searchShown = sw > T.px(40)
-    cy = cy + ih + pad
-    -- Save what I carry as a loadout, Save what I wear as an outfit, New list
-    local bx = x + pad
-    local gap = T.px(6)
-    local defs = {
-        { "carry", ZeD.tr("UI_ZeD_Lists_SaveCarry"), function() saveCarry(win) end, ZeD.tr("UI_ZeD_Lists_HelpSaveCarry") },
-        { "wear", ZeD.tr("UI_ZeD_Lists_SaveWear"), function() saveWear(win) end, ZeD.tr("UI_ZeD_Lists_HelpSaveWear") },
-        { "new", ZeD.tr("UI_ZeD_Lists_NewList"), function() newList(win) end, ZeD.tr("UI_ZeD_Lists_HelpNew") },
-    }
-    for _, d in ipairs(defs) do
-        local bw = ZeD.Molecules.buttonW(d[2])
-        if bx + bw > x + w - pad and bx > x + pad then bx = x + pad; cy = cy + T.buttonH + gap end
-        bx = bx + button(panel, win, d[1], bx, cy, d[2], d[3], nil, { help = d[4], w = math.min(bw, w - pad * 2) }) + gap
+    if sf:getX() ~= x or sf:getY() ~= y then sf:setX(x); sf:setY(y) end
+    if sf:getWidth() ~= w or sf:getHeight() ~= h then sf:setWidth(w); sf:setHeight(h) end
+    s.searchShown = w > ZeD.T.px(40)
+end
+
+-- the band's buttons, left to right: { id, label key, help key }
+local BAND_BTNS = {
+    { "carry", "UI_ZeD_Lists_SaveCarryShort", "UI_ZeD_Lists_HelpSaveCarry" },
+    { "wear",  "UI_ZeD_Lists_SaveWearShort",  "UI_ZeD_Lists_HelpSaveWear" },
+    { "new",   "UI_ZeD_Lists_NewList",        "UI_ZeD_Lists_HelpNew" },
+}
+local BAND_FN = {
+    carry = function(win) saveCarry(win) end,
+    wear  = function(win) saveWear(win) end,
+    new   = function(win) newList(win) end,
+}
+local _bandSpec = {}
+local _bandX, _bandW = {}, {}
+local _filterListOpts = {}
+
+-- the filter box's width: its longest words (the band keeps its shape); kept per scale,
+-- font and language
+local function filterBoxW(s, modes)
+    local T = ZeD.T
+    local c = s.filterW
+    local lang = ZeD.trTestOn() and 1 or 0
+    if c and c.scale == T.scale and c.font == T.fontF1 and c.lang == lang then return c.w end
+    local w = 0
+    for _, m in ipairs(modes) do w = math.max(w, ZeD.Molecules.popupMenuW(ZeD.tr("UI_ZeD_Craft_ShowToggle", m.label))) end
+    s.filterW = { scale = T.scale, font = T.fontF1, lang = lang, w = w }
+    return w
+end
+
+-- the filter's list, open: last, upward from its box
+local function drawFilterList(panel, win, bx, by, bw, modes)
+    local M = ZeD.Molecules
+    local s = st(win)
+    local F = ZeD.Input and ZeD.Input.Focus
+    local hoverId = nil
+    if not (F and F.cuesVisible and F.cuesVisible()) then
+        local mx, my = panel:getMouseX(), panel:getMouseY()
+        for _, z in ipairs(s.filterZones or {}) do
+            if mx >= z.x and mx < z.x + z.w and my >= z.y and my < z.y + z.h then hoverId = z.id; break end
+        end
     end
-    cy = cy + T.buttonH + pad
-    ZeD.Atoms.drawDividerH(panel, x, cy, w, true)
-    return cy + T.px(1)
+    local mo = _filterListOpts
+    mo.minW, mo.focusId, mo.focus = bw, nil, nil
+    for _, m in ipairs(modes) do
+        local f = focusOf(win, "filterRow:" .. m.id)
+        if f then mo.focusId, mo.focus = m.id, f; break end
+    end
+    local _, _, zs = M.drawSortMenuList(panel, bx, by - M.popupListH(#modes), modes, s.filter, hoverId, mo)
+    s.filterZones = zs
+    for _, z in ipairs(zs) do
+        local fid = z.id
+        zone(win, { id = "filterRow:" .. fid, x = z.x, y = z.y, w = z.w, h = z.h, row = true,
+            fn = function() s.filter = fid; s.scroll:setScrollPos(0); closeFilter(win) end,
+            cancel = function() closeFilter(win) end })
+    end
+end
+
+local function drawPageBand(panel, win, x, y, w)
+    local T, M, A = ZeD.T, ZeD.Molecules, ZeD.Atoms
+    local s = st(win)
+    _bandSpec.win = win
+    M.drawBand(panel, x, y, w, _bandSpec)
+    local bh = T.buttonH
+    local by = y + T.px(5)
+    local gap = T.px(8)
+    -- the buttons' places first (right-aligned), so the filter takes the room left
+    local right = x + w - T.px(8)
+    for i = #BAND_BTNS, 1, -1 do
+        local bw = M.buttonW(ZeD.tr(BAND_BTNS[i][2]))
+        right = right - bw
+        _bandX[i], _bandW[i] = right, bw
+        right = right - gap
+    end
+    -- the filter, left (stamped first: the controller's order runs left to right)
+    local modes = filterModes()
+    local fx = x + T.px(8)
+    local fw = math.max(T.px(40), math.min(filterBoxW(s, modes), right - fx))
+    local open = s.filterOpen == true
+    local F = ZeD.Input and ZeD.Input.Focus
+    local cues = F and F.cuesVisible and F.cuesVisible() or false
+    local hov = (not open) and (not cues) and A.mouseIn(panel, fx, by, fw, bh)
+    if hov then help(win, ZeD.tr("UI_ZeD_Lists_HelpFilter")) end
+    M.drawPopupMenu(panel, fx, by, fw, bh, ZeD.tr("UI_ZeD_Craft_ShowToggle", filterLabel(s.filter)), hov or open,
+        focusOf(win, "filter"), false)
+    zone(win, { id = "filter", x = fx, y = by, w = fw, h = bh, fn = function() s.filterOpen = true; s.step = nil end })
+    for i, d in ipairs(BAND_BTNS) do
+        local id = d[1]
+        button(panel, win, id, _bandX[i], by, ZeD.tr(d[2]), function() BAND_FN[id](win) end, nil,
+            { help = ZeD.tr(d[3]), w = _bandW[i], fixed = true })
+    end
+    if open then drawFilterList(panel, win, fx, by, fw, modes) end
 end
 
 -- ---------------------------------------------------------------------------
@@ -723,8 +799,9 @@ function JL.render(panel, win, x, y, w, h)
     win._jlZones = {}
     JL._fid = focusedId(win)
     if s.msg and s.msg.id ~= s.sel then s.msg = nil end
-    local top = drawTop(panel, win, x, y, w)
-    local bandH = s.ask and M.bandH() or 0
+    -- the panes from the header strip down to the band (the search is in the header)
+    local top = y
+    local bandH = M.bandH()
     local ph = y + h - top - bandH
     local stacked = w < T.px(STACK_W)
     s.stacked = stacked
@@ -743,13 +820,14 @@ function JL.render(panel, win, x, y, w, h)
     if not stacked then
         ZeD.Atoms.drawDividerV(panel, x + T.px(LIST_W), top, ph)
     end
-    -- the question before a delete: a band at the foot (Cancel and Delete)
+    -- the band at the foot; the question before a delete takes its place (Cancel and Delete)
+    local by = y + h - bandH
     s.askRects = nil
     if s.ask then
         local l = L.get(player(win), s.ask)
         if not l then s.ask = nil
         else
-            local by = y + h - bandH
+            s.filterOpen, s.filterZones = nil, nil
             local _, cancel, verb = M.drawQuestionBand(panel, x, by, w,
                 ZeD.tr(l.kind == "outfit" and "UI_ZeD_Lists_AskDeleteOutfit" or "UI_ZeD_Lists_AskDeleteLoadout", l.name),
                 ZeD.tr("UI_ZeD_Journal_Delete"), { danger = true, win = win,
@@ -757,6 +835,17 @@ function JL.render(panel, win, x, y, w, h)
             s.askRects = { cancel = cancel, verb = verb, band = { x = x, y = by, w = w, h = bandH } }
         end
     end
+    if not s.ask then drawPageBand(panel, win, x, by, w) end
+end
+
+-- the band's filter list is open (its rows alone hold the controller) / shut it
+function JL.listOpen(win)
+    local s = st(win)
+    return s.filterOpen == true and s.filterZones ~= nil
+end
+function JL.shutList(win)
+    local s = st(win)
+    s.filterOpen, s.filterZones = nil, nil
 end
 
 -- the drawer's children follow the page (called every frame by the Character window)
@@ -784,6 +873,15 @@ function JL.onClick(win, x, y)
     end
     local zs = win._jlZones
     if not zs then return false end
+    -- the band's filter list open: it takes every click (a choice, or shut)
+    if s.filterOpen then
+        for i = #zs, 1, -1 do
+            local z = zs[i]
+            if z.row and z.fn and inRect(z, x, y) then z.fn(); sound("UISelectListItem"); return true end
+        end
+        closeFilter(win)
+        return true
+    end
     for i = #zs, 1, -1 do
         local z = zs[i]
         if (z.fn or z.click) and inRect(z, x, y) and (not z.scrolls or inRect(s.clip, x, y)) then
@@ -841,9 +939,12 @@ function JL.focusables(win)
         return out
     end
     local dp = win._drawerPanel
+    -- the band's filter list open: its rows alone (the current choice first)
+    local rowsOnly = JL.listOpen(win)
+    if rowsOnly then s.land = "jl:filterRow:" .. tostring(s.filter) end
     for _, z in ipairs(win._jlZones or {}) do
         local inView = not z.scrolls or (s.clip and z.y + z.h > s.clip.y and z.y < s.clip.y + s.clip.h)
-        if (z.fn or z.menu or z.dpad) and not z.mouseOnly and inView then
+        if (z.fn or z.menu or z.dpad) and not z.mouseOnly and inView and ((z.row == true) == rowsOnly) then
             local el = { x = z.x, y = z.y, w = z.w, h = z.h, id = "jl:" .. z.id, onFocus = function() end }
             if z.fn then el.onActivate = function() z.fn() end end
             if z.cancel then el.onCancel = function() z.cancel(); return true end end
@@ -873,4 +974,5 @@ function JL.scrollKey(win)
     local s = st(win)
     return tostring(s.scroll.scrollPos) .. ":" .. tostring(s.sel) .. ":" .. tostring(s.filter) .. ":" .. tostring(s.ask)
         .. ":" .. tostring(s.step) .. ":" .. tostring(L.gen) .. ":" .. tostring(s.search) .. ":" .. tostring(s.stacked)
+        .. ":" .. tostring(s.filterOpen)
 end

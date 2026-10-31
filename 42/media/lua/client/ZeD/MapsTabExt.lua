@@ -14,7 +14,7 @@
 --     order          lower first (the built-in key is 10)
 --     button(win)    -> nil or { id, text, hint, help, icon = texture | glyph = fn(panel, x, y, s, c),
 --                       on = bool, dim = bool, activate = fn(win) }
---                       one toolbar button after the inks: an icon button (a button with no
+--                       one button on the card's band, at its right: an icon button (a button with no
 --                       picture is a push button with its words); hint = its name after the
 --                       pointer rests (default text), help = the help line's words while it is
 --                       pointed at (default hint); on = the active look, dim = the disabled look
@@ -28,10 +28,10 @@
 --                       the side list. row = { key, dot = color, check = bool, onCheck = fn(win),
 --                       title, sub, warn, help, activate = fn(win), del = { ask, onYes = fn(win) } }.
 --                       del.ask is the question before the delete, worded "<Verb> the <thing>?
---                       <What is lost>." (asked at the list's foot, with Cancel and Delete).
---                       The list shows only while it has something in it: docked at the right
---                       of the unfolded map, a panel over the map's right edge in the drawer
---                       (a list button on the toolbar shows / hides it there)
+--                       <What is lost>." (asked in the card's band, in place of its controls,
+--                       with Cancel and Delete). The list shows only while it has something in
+--                       it: docked at the right of the unfolded map, a panel over the map's
+--                       right edge in the drawer (a list button on the band shows / hides it there)
 --     banner(win)    -> nil or text: drawn over the top of the map
 --     overlay(mp, win, ox, oy) -> a panel over the map (map-local drawing; ox / oy turn its
 --                       zones into the tab's coordinates); returns a list of zones
@@ -102,9 +102,9 @@ function E.putDownAll(win)
 end
 
 -- ---------------------------------------------------------------------------
--- TOOLBAR BUTTONS (row one, after the inks)
+-- THE BAND'S BUTTONS (the card's band, at its right; on the toolbar until Oct 30 2026)
 -- ---------------------------------------------------------------------------
--- The controls are the library's: a toolbar button is an icon button (its name
+-- The controls are the library's: a band button is an icon button (its name
 -- in the hint, what it does in the help line), a row's button a push button with
 -- its words. on = the active look (solid accent), dim = the disabled look; the
 -- controller's mark is ZeD.Focus.mark's, in the window the control is drawn in.
@@ -157,47 +157,62 @@ local function drawBtn(panel, win, b, x, y, h, iconOnly, focId)
     return w
 end
 
--- The extensions' buttons from x on, row one; returns the x after them. The
--- list button (drawer only) comes last, while the side list has something in it.
--- noLead: no line before them (they start a row of their own).
-function E.drawButtons(panel, win, x, y, h, focId, noLead)
-    local T = ZeD.T
-    local narrow = not E.isPopout(win, panel)
+-- The extensions' buttons, in order: each extension's, then the list button
+-- (drawer only) while the side list has something in it.
+local function bandButtons(win, panel)
     local btns = {}
     for _, d in ipairs(E.list) do
         local b = call(d, "button", win)
         if b then btns[#btns + 1] = b end
     end
-    if narrow and E.hasSide(win) then
+    if not E.isPopout(win, panel) and E.hasSide(win) then
         if win._mapSideOpen == nil then win._mapSideOpen = true end
         btns[#btns + 1] = { id = "list", icon = "view_list", text = ZeD.tr("UI_ZeD_Map_SideList"),
             help = ZeD.tr("UI_ZeD_Map_HelpSideList"),
             on = win._mapSideOpen, activate = function(w2) w2._mapSideOpen = not w2._mapSideOpen end }
     end
+    return btns
+end
+
+-- a button's width at h tall, as drawBtn draws it on the band (an icon button
+-- when it has a picture, else a push button with its words)
+local function btnW(b, h)
+    if b.glyph or b.icon then return h end
+    return ZeD.Molecules.buttonW(b.text or "")
+end
+
+-- The extensions' buttons from x on, 4u apart, on the card's band at its right
+-- (director, Oct 30 2026: the map key and the list there, the band's actions);
+-- returns the x after the last. Their zones carry band = true (the controller
+-- reaches them after the map). noLead: no line before them.
+function E.drawButtons(panel, win, x, y, h, focId, noLead)
+    local T = ZeD.T
+    local btns = bandButtons(win, panel)
     if #btns == 0 then return x end
-    -- a content line between the inks and these (1u T.border)
+    -- a content line before them (1u T.border)
     if not noLead then
         ZeD.Atoms.drawDividerV(panel, x, y + T.px(4), h - T.px(8), false)
         x = x + T.hair + T.px(8)
     end
-    for _, b in ipairs(btns) do
-        x = x + drawBtn(panel, win, b, x, y, h, true, focId) + T.px(4)
+    for i, b in ipairs(btns) do
+        x = x + drawBtn(panel, win, b, x, y, h, true, focId)
+        win._mapExtZones[#win._mapExtZones].band = true
+        if i < #btns then x = x + T.px(4) end
     end
     return x
 end
 
--- screen px the buttons drawButtons draws take (0 when there are none): the line before them, then each
--- button (an icon button, the standard height) and the 4 after it, the list button among them when any
--- extension fills the side list. MapsTab.lua puts them on a row of their own when row one has not the room.
-function E.buttonsW(win, panel)
-    local n = 0
-    for _, d in ipairs(E.list) do
-        if call(d, "button", win) then n = n + 1 end
-    end
-    if not E.isPopout(win, panel) and E.hasSide(win) then n = n + 1 end
-    if n == 0 then return 0 end
+-- screen px the buttons drawButtons draws take at h tall (0 when there are none):
+-- each button, 4u between them (and the line before them unless noLead)
+function E.buttonsW(win, panel, h, noLead)
+    local btns = bandButtons(win, panel)
+    if #btns == 0 then return 0 end
     local T = ZeD.T
-    return T.hair + T.px(8) + n * (T.buttonH + T.px(4))
+    local w = noLead and 0 or (T.hair + T.px(8))
+    for i, b in ipairs(btns) do
+        w = w + btnW(b, h) + ((i < #btns) and T.px(4) or 0)
+    end
+    return w
 end
 
 -- ---------------------------------------------------------------------------
@@ -360,8 +375,9 @@ end
 -- The list is built from the library: section heads (M.drawSectionHeader), rows
 -- with the hover wash, the selected wash and the controller's mark, a System 7
 -- checkbox or a square status mark, prose in F2, an icon button to delete, a
--- scrollbar when it runs long, and the question before a delete as the band at
--- its foot (Cancel and Delete).
+-- scrollbar when it runs long. The question before a delete (Cancel and Delete)
+-- is the card's band while it is asked (E.drawAsk, from MapsTab.lua; Oct 30 2026,
+-- it was the list's own foot).
 local ROW_PAD   = 8    -- design units: the text inset, and the gap after a row's mark
 local ROW_TOP   = 6    -- design units: above the first line of a row (and below its last)
 local SECTION_H = 20   -- design units: M.drawSectionHeader's height
@@ -417,8 +433,8 @@ local function measureSide(secs, w, sbW)
     return total
 end
 
--- The question's footer: the band alone when the question fits its line, else
--- the question wrapped over the band's two answers (the list is narrow).
+-- The question's band: the band alone when the question fits its line, else
+-- the question wrapped over the band's two answers (a narrow card).
 -- Returns its height and the wrapped lines (nil: one line in the band).
 local function askLayout(ask, w)
     local T, tm, M = ZeD.T, ZeD.TM, ZeD.Molecules
@@ -539,8 +555,9 @@ local function drawSideScroll(target, win, sx, y, sw, h, contentH, maxOff, ox, o
     table.insert(win._mapExtZones, 1, z)
 end
 
--- The question before a delete, at the list's foot (fy): "<Verb> the <thing>?
--- <What is lost>." with its red square, then Cancel and Delete (danger).
+-- The question before a delete, at the card's foot (fy): "<Verb> the <thing>?
+-- <What is lost>." with its red square, then Cancel and Delete (danger). Its
+-- zones carry band = true (the controller reaches them after the map).
 local function drawSideAsk(target, win, x, fy, w, footH, ask, lines, ox, oy, focId)
     local T, A, M = ZeD.T, ZeD.Atoms, ZeD.Molecules
     local verb = ZeD.tr("ContextMenu_Delete")
@@ -574,9 +591,9 @@ local function drawSideAsk(target, win, x, fy, w, footH, ask, lines, ox, oy, foc
         local _, out = M.drawBand(target, x, fy + qH, w, _askSpec)
         cRect, vRect = out.buttons[1], out.buttons[2]
     end
-    local yz = { id = "map:side:yes", x = vRect.x + ox, y = vRect.y + oy, w = vRect.w, h = vRect.h,
+    local yz = { id = "map:side:yes", x = vRect.x + ox, y = vRect.y + oy, w = vRect.w, h = vRect.h, band = true,
         activate = function(w2) local a = w2._mapSideAsk; w2._mapSideAsk = nil; if a and a.onYes then a.onYes(w2) end end }
-    local nz = { id = "map:side:no", x = cRect.x + ox, y = cRect.y + oy, w = cRect.w, h = cRect.h,
+    local nz = { id = "map:side:no", x = cRect.x + ox, y = cRect.y + oy, w = cRect.w, h = cRect.h, band = true,
         activate = function(w2) w2._mapSideAsk = nil end }
     table.insert(win._mapExtZones, 1, yz)
     table.insert(win._mapExtZones, 1, nz)
@@ -592,11 +609,10 @@ function E.drawSide(target, win, x, y, w, h, ox, oy, focId, overMap)
     local T, A = ZeD.T, ZeD.Atoms
     if overMap then A.surfaceFill(target, x, y, w, h, "surf1") end
     win._mapSideZone = { x = x + ox, y = y + oy, w = w, h = h }
-    -- the footer question (Delete ... ?), when one is asked
+    -- the question (Delete ... ?), when one is asked, is the card's band (E.drawAsk);
+    -- here only its row's selected wash
     local ask = win._mapSideAsk
-    local footH, askLines = 0, nil
-    if ask then footH, askLines = askLayout(ask, w) end
-    local listH = h - footH
+    local listH = h
     -- content height (rows measured once a frame; again with the scrollbar's room when it runs long)
     local sbW = 0
     local contentH = measureSide(secs, w, 0)
@@ -613,9 +629,28 @@ function E.drawSide(target, win, x, y, w, h, ox, oy, focId, overMap)
     end
     target:clearStencilRect()
     if sbW > 0 then drawSideScroll(target, win, x + w - sbW, y, sbW, listH, contentH, maxOff, ox, oy) end
-    if ask then drawSideAsk(target, win, x, y + listH, w, footH, ask, askLines, ox, oy, focId) end
     -- the list's edge by the map (the line between the two panes), over all of it
     A.drawDividerV(target, x, y, h, true)
+end
+
+-- The height the question before a delete takes at the card's foot, w wide: 0
+-- while none is asked (the card's own band is drawn then).
+function E.askH(win, w)
+    local ask = win._mapSideAsk
+    if not ask then return 0 end
+    local h = askLayout(ask, w)
+    return h
+end
+
+-- The question before a delete in place of the card's band (Oct 30 2026, punch
+-- list 21: as every question elsewhere), from y (the card's bottom - E.askH) on
+-- `panel`, the tab's own coordinates. False while none is asked.
+function E.drawAsk(panel, win, x, y, w, focId)
+    local ask = win._mapSideAsk
+    if not ask then return false end
+    local footH, lines = askLayout(ask, w)
+    drawSideAsk(panel, win, x, y, w, footH, ask, lines, 0, 0, focId)
+    return true
 end
 
 -- ---------------------------------------------------------------------------
@@ -769,26 +804,33 @@ function E.padTick(win, mp, cid)
     end
 end
 
--- the extensions' controls as controller stops (before the map's cursor)
-function E.addFocusables(win, elements)
+-- the extensions' controls as controller stops: band = false, those above the
+-- band (the rows, the key, the side list; before the map's cursor); band = true,
+-- the band's (its buttons, or the question's answers; after the map's cursor)
+local function addFocusable(z, elements)
+    local el = { x = z.x, y = z.y, w = z.w, h = z.h, id = z.id }
+    if z.slider then
+        local zz = z
+        el.onDpadDir = function(_, _, dir)
+            if dir == "left" then stepSlider(zz, -1); return true end
+            if dir == "right" then stepSlider(zz, 1); return true end
+            return false
+        end
+    elseif z.activate then
+        local zz = z
+        el.onActivate = function(w2) zz.activate(w2) end
+    end
+    if z.row and z.row.del then
+        local r = z.row
+        el.onContextMenu = function(w2) w2._mapSideAsk = { row = r.key, text = r.del.ask, onYes = r.del.onYes } end
+    end
+    if not z.inert and not (z.row and z.row.del and z.id:sub(-2) == ":x") then elements[#elements + 1] = el end
+end
+
+function E.addFocusables(win, elements, band)
+    local want = band == true
     for _, z in ipairs(win._mapExtZones or {}) do
-        local el = { x = z.x, y = z.y, w = z.w, h = z.h, id = z.id }
-        if z.slider then
-            local zz = z
-            el.onDpadDir = function(_, _, dir)
-                if dir == "left" then stepSlider(zz, -1); return true end
-                if dir == "right" then stepSlider(zz, 1); return true end
-                return false
-            end
-        elseif z.activate then
-            local zz = z
-            el.onActivate = function(w2) zz.activate(w2) end
-        end
-        if z.row and z.row.del then
-            local r = z.row
-            el.onContextMenu = function(w2) w2._mapSideAsk = { row = r.key, text = r.del.ask, onYes = r.del.onYes } end
-        end
-        if not z.inert and not (z.row and z.row.del and z.id:sub(-2) == ":x") then elements[#elements + 1] = el end
+        if (z.band == true) == want then addFocusable(z, elements) end
     end
 end
 
