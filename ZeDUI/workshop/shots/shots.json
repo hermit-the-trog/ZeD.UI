@@ -1,17 +1,7 @@
 {
- "note": "Workshop gallery v4 (Oct 21 2026): the Fossoil story, from Screenshots/gallery_v3 (INVENTORY.md, STORY and Desk sections) and the batch-2 captures in Screenshots (zed_6x-8x). Older sets: out/_v1_oct20, out/_v2_oct21, out/_v3_oct21 (with shots_v3.json). Build: py -I ZeDUI/tools/release/make_shots.py ZeDUI/workshop/shots/shots.json (--debug shows anchors). Oct 22: shots.json is edited directly now (build_spec_v4.py is retired: it rebuilt the list from an Oct 21 scratch file and dropped later cards). Oct 25: seven cards for 0.2.0-t4 (dashboards, bubbles, messages, sandbox_ingame, mod_settings, file_picks, turn_off) from Screenshots/workshop_src/g4_*; the t3 set is in out/_v5_oct24_t3. Oct 26: 0.2.0-t6 reshoot (old_job with Hair and beard, the route with the map key, open for business and inventory compare with read marks, options with the five switches); the t5 set is in out/_v7_oct26_t6, the old raws in gallery_v3/_before_oct26_t6. Oct 27 2026 (0.2.0-t7): every card retaken on this build and laid out again (balloons kept off what they explain: \"avoid\" boxes and the overlap report in make_shots.py); new cards: Every window, See-through, Controller highlight, Hidden actions, List or grid, Crafting, Building, Foraging and furniture, The belt, Moodles, Ovens and microwaves, Reading and writing, Fishing, Questions; renumbered 1-55. The t6 set is in out/_v8_oct27_t6_final. Oct 28 2026 (0.2.0-t8): every card with a ZeD icon in frame retaken on this build (the pixel icons: wheels, right-click menu, container buttons, card marks, List / Grid / Doll, folds, pop-out, prompt marks, the Mods star, code-drawn chevrons); sources in Screenshots/gallery_t8 + workshop_src_t8. Cards with no icon in frame keep their t7 pictures, copied into the t8 folders: 11 customers, 12 smoke break, 26 action bar, 30 belt, 31 bubbles, 32 moodles, 33 watches, 34 messages, 35 car radio, 36 dashboards, 39 reading and writing, 40 fishing, 42 controller map, 46 wallpapers, 47 desk, 48 options, 50 mods, 51 a mod's settings, 52 picking files, 53 turning a mod off, 54 profiles and load order (the main-menu screens draw no changed icon). The t7 set is in out/_v9_oct27_t7 (with shots_t7.json). Oct 30 2026 (0.2.0-t13): screens gallery_t13 (gallery_t8 plus the retakes); cards 21 (the card's X) and 22 (the doll split, no leader lines) retaken, card 56 Loadouts new (gallery_loadouts.lua). Oct 30 2026 (0.2.0-t14): every picture retaken (gallery_t14_manifest.txt, gallery_menus_run.ps1, zedqa_mods_panes_run.ps1, then gallery_t14_collect.ps1 -Switch: screens gallery_t14) in the default Dark + Orange with no debug artifacts; cards 57 Radios and the CD player, 58 Television sets, 59 Washer and dryer, 60 Machine plates new (gallery_t14_radios.lua, gallery_t14_indoor.lua; their boxes and anchors are estimates until the retake).",
+ "note": "Workshop gallery v4 (Oct 21 2026): the Fossoil story, from Screenshots/gallery_v3 (INVENTORY.md, STORY and Desk sections) and the batch-2 captures in Screenshots (zed_6x-8x). Older sets: out/_v1_oct20, out/_v2_oct21, out/_v3_oct21 (with shots_v3.json). Build: py -I ZeDUI/tools/release/make_shots.py ZeDUI/workshop/shots/shots.json (--debug shows anchors). Oct 22: shots.json is edited directly now (build_spec_v4.py is retired: it rebuilt the list from an Oct 21 scratch file and dropped later cards). Oct 25: seven cards for 0.2.0-t4 (dashboards, bubbles, messages, sandbox_ingame, mod_settings, file_picks, turn_off) from Screenshots/workshop_src/g4_*; the t3 set is in out/_v5_oct24_t3. Oct 26: 0.2.0-t6 reshoot (old_job with Hair and beard, the route with the map key, open for business and inventory compare with read marks, options with the five switches); the t5 set is in out/_v7_oct26_t6, the old raws in gallery_v3/_before_oct26_t6. Oct 27 2026 (0.2.0-t7): every card retaken on this build and laid out again (balloons kept off what they explain: \"avoid\" boxes and the overlap report in make_shots.py); new cards: Every window, See-through, Controller highlight, Hidden actions, List or grid, Crafting, Building, Foraging and furniture, The belt, Moodles, Ovens and microwaves, Reading and writing, Fishing, Questions; renumbered 1-55. The t6 set is in out/_v8_oct27_t6_final. Oct 28 2026 (0.2.0-t8): every card with a ZeD icon in frame retaken on this build (the pixel icons: wheels, right-click menu, container buttons, card marks, List / Grid / Doll, folds, pop-out, prompt marks, the Mods star, code-drawn chevrons); sources in Screenshots/gallery_t8 + workshop_src_t8. Cards with no icon in frame keep their t7 pictures, copied into the t8 folders: 11 customers, 12 smoke break, 26 action bar, 30 belt, 31 bubbles, 32 moodles, 33 watches, 34 messages, 35 car radio, 36 dashboards, 39 reading and writing, 40 fishing, 42 controller map, 46 wallpapers, 47 desk, 48 options, 50 mods, 51 a mod's settings, 52 picking files, 53 turning a mod off, 54 profiles and load order (the main-menu screens draw no changed icon). The t7 set is in out/_v9_oct27_t7 (with shots_t7.json). Oct 30 2026 (0.2.0-t13): screens gallery_t13 (gallery_t8 plus the retakes); cards 21 (the card's X) and 22 (the doll split, no leader lines) retaken, card 56 Loadouts new (gallery_loadouts.lua). Oct 30 2026 (0.2.0-t14): every picture retaken (gallery_t14_manifest.txt, gallery_menus_run.ps1, zedqa_mods_panes_run.ps1, then gallery_t14_collect.ps1 -Switch: screens gallery_t14) in the default Dark + Orange with no debug artifacts; cards 57 Radios and the CD player, 58 Television sets, 59 Washer and dryer, 60 Machine plates new (gallery_t14_radios.lua, gallery_t14_indoor.lua; their boxes and anchors are estimates until the retake). Oct 31 2026: boxes and anchors set on the t14 captures for 57-60 (todo flags dropped); the debug-corner patches removed (t14 captures are clean); 60's oven is g14_plate_oven_clean.png (the -debug error toast replaced with the same plate's pixels from zqa_ap_1_tab_stove) and its microwave zqa_ap_3_tab_microwave.png; 2, 4, 6, 38, 50 refitted to the t14 window layout; 4's zoomed pin comes from the t13 capture (the t14 map shows no note). Retakes needed: 20 (the LIST crop shows the grid), 51-53 (the mod panes were not open), 58 (no tape, no snow). The upload set keeps the t13 JPEGs for 20 and 51-53 until then.",
  "screens": "C:/Users/danie/Zomboid/Screenshots/gallery_t14",
  "out": "out",
- "patches": [
-  [
-   3320,
-   2030,
-   3840,
-   2160,
-   0,
-   -130
-  ]
- ],
  "shots": [
   {
    "id": "hero",
@@ -118,9 +108,9 @@
     {
      "src": "story_00b_skills_tall.png",
      "box": [
-      934,
+      718,
       0,
-      1838,
+      1622,
       1262
      ],
      "tag": "SKILLS",
@@ -135,7 +125,7 @@
       902,
       0,
       1804,
-      1600
+      1650
      ],
      "tag": "IDENTITY",
      "place": [
@@ -149,7 +139,7 @@
     {
      "text": "Mechanics at 7, with a +125% XP boost.",
      "anchor": [
-      996,
+      806,
       757
      ],
      "side": "left",
@@ -159,7 +149,7 @@
     {
      "text": "Welding at 6, with +75% XP.",
      "anchor": [
-      996,
+      806,
       907
      ],
      "side": "left",
@@ -169,7 +159,7 @@
     {
      "text": "Cooking is still at 2.",
      "anchor": [
-      996,
+      806,
       507
      ],
      "side": "left",
@@ -350,15 +340,15 @@
    "crops": [
     {
      "box": [
-      2643,
+      2635,
       0,
-      3625,
+      3550,
       735
      ],
      "place": [
-      1000,
-      292,
-      864
+      1040,
+      270,
+      780
      ]
     },
     {
@@ -374,51 +364,52 @@
       56,
       440,
       480
-     ]
+     ],
+     "src": "C:/Users/danie/Zomboid/Screenshots/gallery_t13/story_03_route_map.png"
     }
    ],
    "balloons": [
     {
      "text": "Pick a mark up, then click the map to put it down. Aa writes a note.",
      "anchor": [
-      2857,
-      56
+      2859,
+      78
      ],
      "side": "top",
      "crop": 0,
      "at": [
-      900,
-      116
+      1180,
+      140
      ],
-     "maxw": 300
+     "maxw": 440
     },
     {
      "text": "The key shows what the colors on the Survey map mean.",
      "anchor": [
-      3283,
-      56
+      3446,
+      661
      ],
-     "side": "top",
+     "side": "bottom",
      "crop": 0,
      "at": [
-      1255,
-      116
+      1440,
+      915
      ],
-     "maxw": 300
+     "maxw": 380
     },
     {
-     "text": "This pop-up picks the map style: Survey, Color or Paper.",
+     "text": "Survey, Color or Paper picks the map style.",
      "anchor": [
-      3428,
-      56
+      2700,
+      661
      ],
-     "side": "top",
+     "side": "bottom",
      "crop": 0,
      "at": [
-      1578,
-      116
+      1000,
+      915
      ],
-     "maxw": 280
+     "maxw": 380
     },
     {
      "text": "The red words are a note on the map.",
@@ -555,9 +546,9 @@
    "crops": [
     {
      "box": [
-      2220,
+      2636,
       0,
-      3128,
+      3550,
       735
      ],
      "tag": "VEHICLE TAB",
@@ -570,10 +561,10 @@
     {
      "src": "story_04b_tire_install_bar.png",
      "box": [
-      2220,
+      2636,
       40,
-      3060,
-      192
+      3550,
+      195
      ],
      "tag": "WHILE IT RUNS",
      "place": [
@@ -603,8 +594,8 @@
     {
      "text": "The part card: this tire is missing.",
      "anchor": [
-      2226,
-      181
+      2662,
+      187
      ],
      "side": "left",
      "crop": 0,
@@ -617,8 +608,8 @@
     {
      "text": "Parts you can fit, from your bags and nearby.",
      "anchor": [
-      2223,
-      261
+      2662,
+      308
      ],
      "side": "left",
      "crop": 0,
@@ -631,8 +622,8 @@
     {
      "text": "About says what the part does.",
      "anchor": [
-      2223,
-      458
+      2662,
+      457
      ],
      "side": "left",
      "crop": 0,
@@ -645,8 +636,8 @@
     {
      "text": "The Vehicle tab opens when you are next to a car.",
      "anchor": [
-      3093,
-      546
+      3512,
+      520
      ],
      "side": "bottom",
      "crop": 0,
@@ -659,8 +650,8 @@
     {
      "text": "Install fits the part picked below.",
      "anchor": [
-      2955,
-      50
+      3411,
+      62
      ],
      "side": "top",
      "crop": 0,
@@ -673,8 +664,8 @@
     {
      "text": "While the job runs, a band shows the part and the percent.",
      "anchor": [
-      2730,
-      108
+      2780,
+      140
      ],
      "side": "top",
      "crop": 1,
@@ -868,7 +859,7 @@
      ],
      "side": "bottom",
      "crop": 0,
-     "maxw": 250,
+     "maxw": 230,
      "at": [
       1295,
       812
@@ -882,9 +873,9 @@
      ],
      "side": "bottom",
      "crop": 0,
-     "maxw": 250,
+     "maxw": 240,
      "at": [
-      1590,
+      1620,
       812
      ]
     }
@@ -1172,16 +1163,6 @@
    "kind": "ingame",
    "n": 11,
    "src": "story_10_customers_queue.png",
-   "patches": [
-    [
-     3490,
-     2040,
-     3840,
-     2150,
-     0,
-     -110
-    ]
-   ],
    "avoid": [
     [
      1325,
@@ -2075,8 +2056,8 @@
     {
      "text": "Press the list button for one row per item, with its category, condition and weight.",
      "anchor": [
-      1644,
-      46
+      1659,
+      78
      ],
      "side": "top",
      "crop": 0,
@@ -2085,8 +2066,8 @@
     {
      "text": "Press the grid button for a picture of each item, with its weight and condition.",
      "anchor": [
-      1697,
-      46
+      1708,
+      78
      ],
      "crop": 1,
      "maxw": 400,
@@ -4251,24 +4232,6 @@
    "src": "zqa_ap_1_tab_stove.png",
    "title": "Ovens and microwaves",
    "caption": "An oven or microwave shows its own controls in the Craft tab, and they can pop out into a window.",
-   "patches": [
-    [
-     3320,
-     2030,
-     3840,
-     2160,
-     0,
-     -130
-    ],
-    [
-     1935,
-     698,
-     2345,
-     732,
-     -540,
-     0
-    ]
-   ],
    "crops": [
     {
      "box": [
@@ -4287,10 +4250,10 @@
     {
      "src": "zqa_ap_2b_popout_stove_on.png",
      "box": [
-      1200,
-      748,
-      2640,
-      1412
+      1050,
+      600,
+      2790,
+      1395
      ],
      "place": [
       1120,
@@ -4302,10 +4265,10 @@
     {
      "src": "zqa_ap_4_popout_microwave.png",
      "box": [
-      1200,
-      690,
-      2640,
-      1470
+      1050,
+      520,
+      2790,
+      1465
      ],
      "place": [
       1120,
@@ -4317,30 +4280,30 @@
    ],
    "avoid": [
     [
-     2655,
-     170,
-     3575,
-     440
+     2672,
+     178,
+     3453,
+     446
     ],
     [
-     1215,
-     760,
-     2630,
-     1380
+     1150,
+     666,
+     2757,
+     1344
     ],
     [
-     1215,
-     700,
-     2630,
-     1460
+     1150,
+     590,
+     2757,
+     1426
     ]
    ],
    "balloons": [
     {
      "text": "A button in the plate's corner pops the controls out into their own window.",
      "anchor": [
-      3548,
-      201
+      3448,
+      200
      ],
      "side": "right",
      "crop": 0,
@@ -4353,8 +4316,8 @@
     {
      "text": "The same controls work in the window. The line below shows on or off, and the heat.",
      "anchor": [
-      1238,
-      1060
+      1135,
+      630
      ],
      "side": "left",
      "crop": 1,
@@ -4367,8 +4330,8 @@
     {
      "text": "The microwave has its own face: power level, time cook, number keys and start.",
      "anchor": [
-      2119,
-      1010
+      1095,
+      1000
      ],
      "side": "left",
      "crop": 2,
@@ -5765,9 +5728,9 @@
     {
      "src": "mm4_03_mods_conflict.png",
      "box": [
-      1990,
+      1888,
       624,
-      2830,
+      2840,
       1170
      ],
      "tag": "CONFLICTS TAB",
@@ -5780,9 +5743,9 @@
     {
      "src": "mm4_06_mods_problem_missing.png",
      "box": [
-      1970,
+      1888,
       370,
-      2830,
+      2840,
       970
      ],
      "tag": "MISSING MOD",
@@ -5795,9 +5758,9 @@
     {
      "src": "mm4_07_mods_problem_version.png",
      "box": [
-      1970,
+      1888,
       370,
-      2830,
+      2840,
       900
      ],
      "tag": "WRONG VERSION",
@@ -6719,66 +6682,62 @@
     {
      "src": "g14_radio_black.png",
      "box": [
-      830,
-      110,
-      1180,
-      400
+      832,
+      120,
+      1176,
+      402
      ],
      "tag": "VALUTECH",
      "place": [
       60,
       330,
       420
-     ],
-     "box_todo": true
+     ]
     },
     {
      "src": "g14_radio_red.png",
      "box": [
-      830,
-      110,
-      1180,
-      400
+      832,
+      120,
+      1176,
+      402
      ],
      "tag": "PREMIUM",
      "place": [
       520,
       330,
       420
-     ],
-     "box_todo": true
+     ]
     },
     {
      "src": "g14_radio_handbuilt.png",
      "box": [
-      830,
-      110,
-      1180,
-      400
+      832,
+      118,
+      1176,
+      522
      ],
      "tag": "HAND-BUILT",
      "place": [
       980,
       330,
       420
-     ],
-     "box_todo": true
+     ]
     },
     {
      "src": "g14_radio_cd.png",
      "box": [
-      830,
-      110,
-      1180,
-      400
+      836,
+      118,
+      1172,
+      440
      ],
      "tag": "CD PLAYER",
      "place": [
       1440,
       330,
       420
-     ],
-     "box_todo": true
+     ]
     }
    ],
    "avoid": [],
@@ -6786,49 +6745,44 @@
     {
      "text": "POWER, VOL and TUNE work as on the set. A preset key held stores the station; pressed, it tunes back to it.",
      "anchor": [
-      1000,
-      250
+      873,
+      313
      ],
      "side": "bottom",
      "crop": 0,
-     "maxw": 420,
-     "anchor_todo": true
+     "maxw": 420
     },
     {
      "text": "The Premium radio takes a disc you carry in its slot. EJECT gives it back.",
      "anchor": [
-      1100,
-      300
+      1125,
+      148
      ],
-     "side": "bottom",
+     "side": "top",
      "crop": 1,
-     "maxw": 420,
-     "anchor_todo": true
+     "maxw": 420
     },
     {
      "text": "The hand-built radio is the board you wired. The rocker turns it on.",
      "anchor": [
-      1000,
-      250
+      876,
+      262
      ],
      "side": "bottom",
      "crop": 2,
-     "maxw": 420,
-     "anchor_todo": true
+     "maxw": 420
     },
     {
      "text": "Click the battery meter on the screen to change the battery.",
      "anchor": [
-      1000,
-      200
+      1033,
+      393
      ],
      "side": "bottom",
      "crop": 3,
-     "maxw": 420,
-     "anchor_todo": true
+     "maxw": 420
     }
-   ],
-   "todo": "Crop boxes, anchors and places are estimates from the Oct 30 QA captures (zqa_rtv_1_*, zqa_rtv_4c_*, zqa_ldy_*, zqa_pfill_scale175_*): set them on the t14 retake with make_shots.py --debug, then drop box_todo / anchor_todo."
+   ]
   },
   {
    "id": "tvs",
@@ -6841,50 +6795,47 @@
     {
      "src": "g14_tv_widescreen.png",
      "box": [
-      2650,
-      60,
-      3500,
-      700
+      2658,
+      118,
+      3467,
+      684
      ],
      "tag": "WIDE SCREEN",
      "place": [
       40,
       330,
       590
-     ],
-     "box_todo": true
+     ]
     },
     {
      "src": "g14_tv_black.png",
      "box": [
-      2650,
-      60,
-      3500,
-      700
+      2645,
+      118,
+      3437,
+      698
      ],
      "tag": "BLACK",
      "place": [
       665,
       330,
       590
-     ],
-     "box_todo": true
+     ]
     },
     {
      "src": "g14_tv_antique.png",
      "box": [
-      2650,
-      60,
-      3500,
-      700
+      2658,
+      118,
+      3467,
+      634
      ],
      "tag": "ANTIQUE",
      "place": [
       1290,
       330,
       590
-     ],
-     "box_todo": true
+     ]
     }
    ],
    "avoid": [],
@@ -6892,49 +6843,44 @@
     {
      "text": "A tape plays on the screen: its title, then the lines it has shown.",
      "anchor": [
-      2950,
-      350
+      2790,
+      643
      ],
      "side": "bottom",
      "crop": 0,
-     "maxw": 420,
-     "anchor_todo": true
+     "maxw": 420
     },
     {
      "text": "Off the dial, or just after a channel change, the screen shows snow.",
      "anchor": [
-      2950,
-      350
+      3040,
+      380
      ],
      "side": "bottom",
      "crop": 1,
-     "maxw": 420,
-     "anchor_todo": true
+     "maxw": 420
     },
     {
      "text": "A station that is off the air shows its sign-off card, or the standby card once it has stopped for good.",
      "anchor": [
       2950,
-      350
+      330
      ],
      "side": "bottom",
      "crop": 2,
-     "maxw": 420,
-     "anchor_todo": true
+     "maxw": 420
     },
     {
      "text": "The knob pulls on and pushes off, and turns for the volume. The dial has twelve stops.",
      "anchor": [
-      3300,
-      250
+      3340,
+      335
      ],
      "side": "top",
      "crop": 2,
-     "maxw": 420,
-     "anchor_todo": true
+     "maxw": 420
     }
-   ],
-   "todo": "Crop boxes, anchors and places are estimates from the Oct 30 QA captures (zqa_rtv_1_*, zqa_rtv_4c_*, zqa_ldy_*, zqa_pfill_scale175_*): set them on the t14 retake with make_shots.py --debug, then drop box_todo / anchor_todo."
+   ]
   },
   {
    "id": "laundry",
@@ -6947,50 +6893,47 @@
     {
      "src": "g14_ldy_washer.png",
      "box": [
-      2640,
-      100,
-      3460,
-      700
+      2648,
+      114,
+      3452,
+      682
      ],
      "tag": "WASHER",
      "place": [
       40,
       330,
       590
-     ],
-     "box_todo": true
+     ]
     },
     {
      "src": "g14_ldy_dryer.png",
      "box": [
-      2640,
-      100,
-      3460,
-      700
+      2648,
+      114,
+      3452,
+      682
      ],
      "tag": "DRYER",
      "place": [
       665,
       330,
       590
-     ],
-     "box_todo": true
+     ]
     },
     {
      "src": "g14_ldy_combo.png",
      "box": [
-      2640,
-      100,
-      3460,
-      700
+      2648,
+      114,
+      3452,
+      682
      ],
      "tag": "WASHER-DRYER",
      "place": [
       1290,
       330,
       590
-     ],
-     "box_todo": true
+     ]
     }
    ],
    "avoid": [],
@@ -6998,116 +6941,123 @@
     {
      "text": "While it runs, the phase lamps step through wash, rinse and spin, and the drum turns.",
      "anchor": [
-      3050,
-      450
+      2930,
+      168
      ],
-     "side": "bottom",
+     "side": "top",
      "crop": 0,
-     "maxw": 420,
-     "anchor_todo": true
+     "maxw": 400,
+     "at": [
+      35,
+      110
+     ]
     },
     {
      "text": "The meter reads the water in the machine. FILL lights when a washer has none.",
      "anchor": [
-      2900,
-      180
+      2925,
+      197
      ],
-     "side": "top",
-     "crop": 0,
-     "maxw": 420,
-     "anchor_todo": true
+     "side": "bottom",
+     "crop": 2,
+     "maxw": 400,
+     "at": [
+      1460,
+      110
+     ]
     },
     {
      "text": "Power starts and stops it. It needs grid or generator power.",
      "anchor": [
-      3400,
-      180
+      3388,
+      172
      ],
      "side": "top",
      "crop": 1,
-     "maxw": 420,
-     "anchor_todo": true
+     "maxw": 400,
+     "at": [
+      640,
+      110
+     ]
     },
     {
      "text": "The door shows what is inside in the Loot pane.",
      "anchor": [
       3050,
-      450
+      430
      ],
      "side": "bottom",
      "crop": 1,
-     "maxw": 420,
-     "anchor_todo": true
+     "maxw": 420
     },
     {
      "text": "WASH and DRY set the washer-dryer's mode.",
      "anchor": [
-      3300,
-      200
+      2760,
+      195
      ],
      "side": "top",
      "crop": 2,
-     "maxw": 420,
-     "anchor_todo": true
+     "maxw": 300,
+     "at": [
+      1110,
+      110
+     ]
     }
-   ],
-   "todo": "Crop boxes, anchors and places are estimates from the Oct 30 QA captures (zqa_rtv_1_*, zqa_rtv_4c_*, zqa_ldy_*, zqa_pfill_scale175_*): set them on the t14 retake with make_shots.py --debug, then drop box_todo / anchor_todo."
+   ]
   },
   {
    "id": "machine_plates",
    "n": 60,
    "kind": "feature",
-   "src": "g14_plate_oven.png",
+   "src": "g14_plate_oven_clean.png",
    "title": "Machine plates",
    "caption": "Ovens, microwaves and generators show their own controls, sized to fill the card at every UI scale.",
    "crops": [
     {
-     "src": "g14_plate_oven.png",
+     "src": "g14_plate_oven_clean.png",
      "box": [
-      2640,
-      100,
-      3500,
-      560
+      2662,
+      166,
+      3478,
+      458
      ],
      "tag": "OVEN",
      "place": [
       40,
       330,
       590
-     ],
-     "box_todo": true
+     ]
     },
     {
-     "src": "g14_plate_microwave.png",
+     "src": "zqa_ap_3_tab_microwave.png",
      "box": [
-      2640,
-      80,
-      3500,
-      650
+      2662,
+      167,
+      3478,
+      522
      ],
      "tag": "MICROWAVE",
      "place": [
       665,
       330,
       590
-     ],
-     "box_todo": true
+     ]
     },
     {
      "src": "g14_plate_generator.png",
      "box": [
-      2640,
-      40,
-      3460,
-      700
+      2650,
+      238,
+      3452,
+      648
      ],
      "tag": "GENERATOR",
      "place": [
       1290,
       330,
       590
-     ],
-     "box_todo": true
+     ]
     }
    ],
    "avoid": [],
@@ -7115,49 +7065,44 @@
     {
      "text": "BAKE, the number keys and START set and run the oven. The display shows the heat.",
      "anchor": [
-      3050,
-      300
+      2903,
+      318
      ],
      "side": "bottom",
      "crop": 0,
-     "maxw": 420,
-     "anchor_todo": true
+     "maxw": 420
     },
     {
      "text": "The microwave: power level, time cook, the number keys and start.",
      "anchor": [
-      3300,
-      350
+      3215,
+      335
      ],
      "side": "bottom",
      "crop": 1,
-     "maxw": 420,
-     "anchor_todo": true
+     "maxw": 420
     },
     {
      "text": "The engine switch starts and stops the generator. The gauge reads its fuel.",
      "anchor": [
-      3050,
-      450
+      2727,
+      465
      ],
      "side": "bottom",
      "crop": 2,
-     "maxw": 420,
-     "anchor_todo": true
+     "maxw": 420
     },
     {
      "text": "A warning shows when the generator stands indoors.",
      "anchor": [
-      2900,
-      150
+      3060,
+      275
      ],
      "side": "top",
      "crop": 2,
-     "maxw": 420,
-     "anchor_todo": true
+     "maxw": 420
     }
-   ],
-   "todo": "Crop boxes, anchors and places are estimates from the Oct 30 QA captures (zqa_rtv_1_*, zqa_rtv_4c_*, zqa_ldy_*, zqa_pfill_scale175_*): set them on the t14 retake with make_shots.py --debug, then drop box_todo / anchor_todo."
+   ]
   }
  ]
 }
