@@ -252,6 +252,13 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
       hidden after that, kept hidden over a game's first seconds, and its saved layout says hidden
       while ZeD is on (layout.ini itself not touched). Scripts updated: zedqa_bands_probe,
       zedqa_exinfo, zedqa_health_padprobe, zedqa_hairbeard, zedqa_charinfo.
+      **QA re-check, Oct 30 at ae4b30d (4K, the director's yes): stopped, a blocker. g. Opening the Thermal
+      tab throws an error every frame and ZeD's safe mode steps aside ("ZeD-GUI stepped aside (tab
+      thermal)"; the game's own interface comes back). Cause: ae4b30d keeps the Thermal body's scroll area
+      in win._thermalView (ThermalTab.lua 271), the name that already holds the chosen view (1 to 7), so
+      the figure then looks up a view by a table (ThermalTab.lua 549, "attempted index: id of non-table").
+      Options: the scroll area under a name of its own (the view keeps its number). Not run after it: the
+      1280x800 pass, hairbeard, charinfo, the uncovered parts (zedqa_uncovered21.lua); t14 not staged.**
       Test-side: zedqa_two_widths sees both windows 4 px off after closing a card at 1280x800 (the
       known order flake); zedqa_laundry's dryer dial check failed once at 1280x800; the band probe opened the
       Maps pop-out (not a list) and left it open. Shots: Screenshots/zqa_band_*.png (the 1280x800 run's).
