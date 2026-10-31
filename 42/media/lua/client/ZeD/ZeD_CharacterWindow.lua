@@ -654,6 +654,33 @@ function ZeD_CharacterWindow.tabLabel(tab)
     return ZeD.tr(tab.key)
 end
 
+-- The title: the character's name, then what the window shows: the open tab ("Angel
+-- Cross  +  Health"), else the bag being viewed ("Angel Cross  +  Fanny Pack") or the
+-- columns (win._titleSub, set by the inventory side). Two parts at most, so it never
+-- reads as a path. Built every frame from the window's own prerender (Oct 31 2026,
+-- break-it D1: it was built in the inventory side's prerender, which does not run while
+-- the tab drawer takes the whole window (1280x720 at UI scale 2.0, Large text), so the
+-- title kept the tab open when the side last showed, "Equipment" on every tab). The
+-- words are kept until a part changes (no new string a frame).
+local function composeCharTitle(win)
+    local p = win._playerObj
+    if win._ttP ~= p then win._ttP, win._ttName = p, charTitleName(p) end
+    local sub = win._titleSub
+    if win._drawerOpen and win._drawerMode == "tab" and win._activeTab then
+        for _, tab in ipairs(CHAR_TABS) do
+            if tab.id == win._activeTab then
+                sub = ZeD_CharacterWindow.tabLabel(tab)
+                break
+            end
+        end
+    end
+    if win._ttOut == nil or sub ~= win._ttSub or win._ttName ~= win._ttOutName then
+        win._ttSub, win._ttOutName = sub, win._ttName
+        win._ttOut = (sub and sub ~= "") and (win._ttName .. "  +  " .. sub) or win._ttName
+    end
+    win.title = win._ttOut
+end
+
 -- A tab that ZeD's support for another mod adds (ZeD/ModSupport/<mod id>.lua, loaded only
 -- when that mod is on). def: id, label(), group, iconName, after (a tab id), visible(win),
 -- render(panel, win, x, y, w, h) as the other tabs, and optionally scroll(win) (its
@@ -5814,7 +5841,6 @@ function ZeD_CharacterWindow.toggle(playerNum)
 
             -- the title keeps the character's name; what the inventory side shows follows it
             win._titleSub = (#colSel == 1) and ZeD.tr("UI_ZeD_Char_ContainersOne", #colSel) or ZeD.tr("UI_ZeD_Char_ContainersMany", #colSel)
-            win.title = charTitleName(self._playerObj)
             win._statusLine = win._titleSub
             self._ccEntry = nil
 
@@ -5831,7 +5857,6 @@ function ZeD_CharacterWindow.toggle(playerNum)
             local cnt = win._containers[viewIdx]
             if cnt then
                 -- the title keeps the character's name; a bag being viewed follows it
-                win.title = charTitleName(self._playerObj)
                 win._titleSub = (not cnt.isMain) and cnt.name or nil
                 local cInv = cnt.inventory
                 local cWeight = cInv and round(cInv:getCapacityWeight(), 1) or 0
@@ -6165,23 +6190,19 @@ function ZeD_CharacterWindow.toggle(playerNum)
             Focus.setZoneFocusable   (win, "charItemCard", cardVisible and #cardEls > 0)
         end
 
-        -- The title: the character's name, then what the window shows: the open
-        -- tab ("Angel Cross  +  Health"), else the bag being viewed ("Angel Cross
-        -- +  Fanny Pack") or the columns. Two parts at most, so it never reads
-        -- as a path.
-        local sub = win._titleSub
-        if win._drawerOpen and win._drawerMode == "tab" and win._activeTab then
-            for _, tab in ipairs(CHAR_TABS) do
-                if tab.id == win._activeTab then
-                    sub = ZeD_CharacterWindow.tabLabel(tab)
-                    break
-                end
-            end
-        end
-        if sub and sub ~= "" then win.title = win.title .. "  +  " .. sub end
+        -- (the title is built in the window's prerender, composeCharTitle: this side
+        -- does not draw while the tab drawer takes the whole window; break-it D1)
     end
 
     -- Draw drag ghost at window level so it renders on top of all panels
+    -- The title, every frame, from the window itself: every way the tab changes (a click on
+    -- the strip, LB / RB, the D-pad, a script) shows in it (Oct 31 2026, break-it D1)
+    local _baseWinPrerender = win.prerender
+    win.prerender = function(self)
+        composeCharTitle(self)
+        _baseWinPrerender(self)
+    end
+
     local _baseWinRender = win.render
     win.render = function(self)
         _baseWinRender(self)
