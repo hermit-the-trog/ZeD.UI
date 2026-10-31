@@ -25,7 +25,8 @@ $Shots = Join-Path $PSScriptRoot "..\..\workshop\shots\shots.json"
 $Shots = [System.IO.Path]::GetFullPath($Shots)
 $Scr = "C:\Users\danie\Zomboid\Screenshots"
 $Out = Join-Path $Scr "gallery_t14"
-$Kept = @('^van_\d+_', '^zqa_r6p_taxi_extras\.png$')
+# (the list is $KeepNames, not $Kept: PowerShell names ignore case, and $kept below is the count)
+$KeepNames = @('^van_\d+_', '^zqa_r6p_taxi_extras\.png$')
 New-Item -ItemType Directory -Force $Out | Out-Null
 $j = Get-Content $Shots -Raw | ConvertFrom-Json
 $screens = $j.screens -replace '/', '\'
@@ -45,7 +46,7 @@ foreach ($p in $src) {
         Copy-Item $new (Join-Path $Out $name) -Force; $fresh++; continue
     }
     $keep = $false
-    foreach ($k in $Kept) { if ($name -match $k) { $keep = $true } }
+    foreach ($k in $KeepNames) { if ($name -match $k) { $keep = $true } }
     if ($keep -and (Test-Path $path)) { Copy-Item $path (Join-Path $Out $name) -Force; $kept++; "KEPT    $name (from $path)"; continue }
     $missing += $name
     "MISSING $name"
