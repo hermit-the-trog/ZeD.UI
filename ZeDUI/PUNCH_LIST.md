@@ -216,6 +216,8 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     exist. Options: (a) wrap round, as the test and the design expect (CH down on 1 goes to 12, CH up on
     12 goes to 1); (b) stop at the ends without an error, as the antique's dial does.
     **fixed (build, Oct 30):** the step adds the stop count before the remainder, so it wraps both ways.
+    **confirmed (QA, Oct 30, c5090f6, in game):** on the black and the widescreen TV, CH down on 1 goes to
+    12 and CH up on 12 goes to 1, no error (zedqa_rtv: 212 passed, 0 failed).
 24. **The laundry card opens at half width with the small face.** chosen (director, Oct 30: "Yes, first options"): the card opens full width
     (the face that fills it follows) and the water amount goes after its label. Found by QA, Oct 30
     (zedqa_laundry at 1355c3f): the gears button opens the card, but at the half card (about 430 px at
@@ -235,6 +237,9 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     card), and the laundry card puts Water and Inside on a row each. The power switch is fine: the test
     read the card's buttons from the frame before (just after a power change it saw the old state),
     and it expected DRY to act while already in dryer mode; both fixed in the test.
+    **confirmed (QA, Oct 30, c5090f6, in game):** zedqa_laundry passes whole: the full card on the washer,
+    the dryer and the washer-dryer, the switch acts with power (and water), not without, WASH / DRY, the
+    lamps, the dial, the drum. One new thing, item 26.
 25. **The Character window shows a "Tab content - placeholder" drawer.** chosen (director, Oct 30: "Yes, first options"): when the Radio tab goes
     away, the window goes back to Loot with the drawer shut. Found by QA, Oct 30 (a
     zedqa_rtv shot, zqa_rtv_4d_tv_black_triple_n_standby.png): after the radio left the hand while
@@ -245,7 +250,16 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     **fixed (build, Oct 30). Cause:** when the active tab vanished, the window set the tab to Loot but
     left the drawer open in tab mode, and the drawer drew Loot's missing tab card as the placeholder.
     Now it goes back to Loot exactly as pressing Loot does (drawer shut); an item card stays.
+    **confirmed (QA, Oct 30, c5090f6, in game):** the same moment in zedqa_rtv (the radio leaves the hand on
+    its Radio tab) now leaves the Character window on Loot with the drawer shut; no placeholder.
+26. **On first opening, a laundry card shows only its moving parts for a moment.** open. Found by QA, Oct
+    30 (zqa_ldy_washer_1_open.png at c5090f6, taken once the drawer had finished opening): the full card
+    shows the water in the drum, the water meter, the drum's mark and the cycle needle, but not the
+    machine's body (the white case, the blue panel, the door). A few seconds later (_2_running) the whole
+    face is there. Cause not checked: perhaps the face's picture loads a little after the card first
+    draws. Not yet known how long it lasts to the eye.
 
+## Test process
 ## Test process
 
 - The release check (before every upload, about 5 minutes, pass or fail): right-click opens the
@@ -272,6 +286,13 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
   broadcasts at that hour: standby on 2 to 11, bars on 12 and 13). Its 19 Java NullPointers are still
   vanilla's (a set given its device data before it is on a square). zedqa_segbars finishes before the
   bridge logs its run line, so the runner never sees its DONE and stops (a TIMEOUT that is not one).
+  Fixed (c5090f6): it now passes.
+- The third pass at c5090f6: the segmented bars with 400 different things on the ground (400 rows):
+  11.2 ms a tick still, 11.9 ms scrolling, against 8.4 ms empty; one 45 ms frame, no stutter. The
+  pen registered this time: its food and water bars are in zqa_bars_animals_zone.png (the pen's
+  overview). The 400 included things the game itself cannot draw on the ground (551 of the game's own
+  errors while they lay there; zedqa_bars_look should pick tools and weapons only). The grid still reads
+  raised at the start and end (ElecShutModifier 99999, power on).
 
 ## Confirmed
 

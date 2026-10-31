@@ -1,0 +1,9 @@
+# Oct 30 2026: QA's check of punch list 23-25 at c5090f6 (TV channels wrap, the laundry card and its labels,
+# a vanished tab back to Loot) and the bars with hundreds of rows and the pen. zedqa_run.ps1 -Manifest this -Mode fullscreen4k
+zedqa_prelude.lua | pre | timeout=120
+zedqa_power_probe.lua | pw0 | timeout=60 | end=ZEDQA pw DONE
+zedqa_laundry.lua | ldy | timeout=600
+zedqa_rtv.lua | rtv | timeout=600
+zedqa_segbars.lua | segb | timeout=120
+zedqa_bars_look.lua | bars | timeout=600
+zedqa_power_probe.lua | pw1 | timeout=60 | end=ZEDQA pw DONE

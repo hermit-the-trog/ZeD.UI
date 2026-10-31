@@ -20,6 +20,8 @@ local function charTab(id) local w = CW(); if w then goTab(w, w._tabStripPanel, 
 local function worldTab(id) local w = WW(); if w then goTab(w, w._actionTabStrip, id) end end
 local Q = {}
 local function step(n, fn) Q[#Q + 1] = { n = n, fn = fn } end
+-- after n frames, every frame until cond() holds (at most max frames), then fn
+local function waitFor(n, max, cond, fn) Q[#Q + 1] = { n = n, fn = fn, cond = cond, max = max } end
 local viewWas = ZeD.EquipDoll.view()
 local tmp = { items = {} }
 
@@ -42,15 +44,22 @@ step(5, function()
     charTab("loot")
     local px, py = math.floor(p:getX()), math.floor(p:getY())
     pcall(function() DesignationZoneAnimal.new("QA Bars Pen", px - 4, py - 4, 0, px + 4, py + 4, true) end)
-    pcall(function() tmp.zone = DesignationZoneAnimal.getZoneByName("QA Bars Pen") end)
     pcall(function()
         local breed = AnimalDefinitions.getDef("hen"):getBreeds():get(0)
         tmp.hen = addAnimal(getCell(), px + 2, py - 2, 0, "hen", breed)
         tmp.hen:addToWorld()
     end)
+end)
+-- (the pen registers a few frames later: wait for it, and for the hen inside it)
+waitFor(10, 600, function()
+    pcall(function() tmp.zone = DesignationZoneAnimal.getZoneByName("QA Bars Pen") end)
+    local inside = false
+    pcall(function() inside = tmp.zone and tmp.hen and tmp.zone:getAnimalsConnected():contains(tmp.hen) end)
+    return tmp.zone ~= nil and tmp.hen ~= nil and (inside or (tmp.zone.isStillStreamed and tmp.zone:isStillStreamed()))
+end, function()
     say("pen " .. tostring(tmp.zone ~= nil) .. ", hen " .. tostring(tmp.hen ~= nil))
 end)
-step(60, function()
+step(30, function()
     worldTab("animals")
     local w = WW()
     w._animalsState = w._animalsState or { submode = "ranch" }
@@ -84,18 +93,28 @@ local function measure(label, each)
 end
 step(30, function() worldTab("loot") end)
 measure("ground, empty")
-local KINDS = { "Base.Hammer", "Base.Saw", "Base.Crowbar", "Base.KitchenKnife", "Base.Axe", "Base.BaseballBat",
-    "Base.Shovel", "Base.Pan", "Base.Screwdriver", "Base.Wrench" }
+-- (400 different kinds, each with a condition bar, so the list has 400 rows: one kind stacks into one row)
+local KINDS = {}
+pcall(function()
+    local all = getScriptManager():getAllItems()
+    for i = 0, all:size() - 1 do
+        local si = all:get(i)
+        local ok, cm = pcall(function() return si:getConditionMax() end)
+        if ok and cm and cm > 1 and not si:isHidden() then KINDS[#KINDS + 1] = si:getFullName() end
+        if #KINDS >= 400 then break end
+    end
+end)
 step(5, function()
     local sq = p:getCurrentSquare()
+    say("kinds with a condition: " .. #KINDS)
     for i = 1, 400 do
-        local ok, it = pcall(function() return sq:AddWorldInventoryItem(KINDS[(i % #KINDS) + 1], ZombRandFloat(0.1, 0.9), ZombRandFloat(0.1, 0.9), 0) end)
+        local ok, it = pcall(function() return sq:AddWorldInventoryItem(KINDS[((i - 1) % #KINDS) + 1], ZombRandFloat(0.1, 0.9), ZombRandFloat(0.1, 0.9), 0) end)
         if ok and it then
             pcall(function() it:setCondition(ZombRand(1, it:getConditionMax() + 1)) end)
             tmp.items[#tmp.items + 1] = it
         end
     end
-    say("on the ground: " .. #tmp.items .. " tools")
+    say("on the ground: " .. #tmp.items .. " things, rows in the Ground list " .. tostring(#((WW()._mainContent or {})._rows or {})))
 end)
 step(120, function() shot("ground_400") end)
 measure("ground, 400 tools, still")
@@ -125,6 +144,12 @@ local function tick()
     if not s then Events.OnTick.Remove(tick); return end
     wait = (wait or s.n) - 1
     if wait > 0 then return end
+    if s.cond then
+        s.left = (s.left or s.max) - 1
+        local ok, done = pcall(s.cond)
+        if not (ok and done) and s.left > 0 then wait = 1; return end
+        if not (ok and done) then say("WARN step " .. qi .. ": waited " .. s.max .. " frames, the condition never held") end
+    end
     wait = nil
     qi = qi + 1
     local ok, err = pcall(s.fn)
