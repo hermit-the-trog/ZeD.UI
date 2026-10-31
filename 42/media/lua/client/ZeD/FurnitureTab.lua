@@ -564,6 +564,149 @@ local function drawYield(panel, x, y, w, r)
 end
 
 -- ---------------------------------------------------------------------------
+-- The mode strip (the header): the five modes as sub-tabs. Where they do not fit
+-- the card (1280x720, UI scale 2.0, Large text; Oct 31 2026, break-it E7) the tabs
+-- close up their side room, then take the small words (F5); if even that is too
+-- wide the strip scrolls by whole tabs between a scrollbar's left and right arrows
+-- (live while there is more that way). A tab out of view has no zone; the
+-- controller's newly focused tab, else the newly active one, is brought into view,
+-- and an arrow pressed to its end hands the focus to the tab it revealed.
+-- ---------------------------------------------------------------------------
+local _modeTws, _modeTabOpts = {}, {}
+local function modeStripFit(s, idx, nM)
+    -- the first tab such that tabs first..idx fit (idx kept in view)
+    local first = s.stripFirst or 1
+    if idx < first then first = idx end
+    local T = ZeD.T
+    while first < idx do
+        local used = 0
+        for i = first, idx do used = used + _modeTws[i] + (i > first and T.sp.tabGap or 0) end
+        if used <= s.stripView then break end
+        first = first + 1
+    end
+    return first
+end
+
+local function arrowFn(s, win, dir)
+    local key = (dir < 0) and "_stripLeftFn" or "_stripRightFn"
+    local fn = s[key]
+    if fn then return fn end
+    fn = function()
+        local id = (dir < 0) and "fur:strip:left" or "fur:strip:right"
+        local wasFocused = (s.gpId == id)
+        local f = (s.stripFirst or 1) + dir
+        f = math.max(1, math.min(s.stripMaxFirst or 1, f))
+        s.stripFirst = f
+        local edge = (dir < 0 and f <= 1) or (dir > 0 and f >= (s.stripMaxFirst or 1))
+        local Focus = ZeD.Input and ZeD.Input.Focus
+        if wasFocused and edge and Focus and Focus.focusByIdSoon then
+            local m = (dir < 0) and MODES[1] or MODES[#MODES]
+            Focus.focusByIdSoon(win, "worldTabContent", "fur:mode:" .. m.id)
+        end
+    end
+    s[key] = fn
+    return fn
+end
+
+local function drawModeStrip(panel, win, s, x, tabY, w, mode, pn)
+    local T, tm = ZeD.T, ZeD.TM
+    local M, A = ZeD.Molecules, ZeD.Atoms
+    local tH, gap, nM = T.tabH, T.sp.tabGap, #MODES
+    local avail = w - T.sp.sm * 2
+    local font, padX = T.fontF2, T.sp.tabPadX
+    local textSum = 0
+    for i = 1, nM do
+        _modeTws[i] = tm:MeasureStringX(font, A.textCase(txt(MODES[i].key, MODES[i].fb)))
+        textSum = textSum + _modeTws[i]
+    end
+    local fixed = gap * (nM - 1)
+    if textSum + padX * 2 * nM + fixed > avail then
+        padX = math.max(T.px(4), math.floor((avail - textSum - fixed) / (2 * nM)))
+        if textSum + padX * 2 * nM + fixed > avail then
+            font, textSum = T.fontF5, 0
+            for i = 1, nM do
+                _modeTws[i] = tm:MeasureStringX(font, A.textCase(txt(MODES[i].key, MODES[i].fb)))
+                textSum = textSum + _modeTws[i]
+            end
+            padX = math.max(T.px(4), math.floor((avail - textSum - fixed) / (2 * nM)))
+        end
+    end
+    for i = 1, nM do _modeTws[i] = _modeTws[i] + padX * 2 end
+    local scrolls = textSum + padX * 2 * nM + fixed > avail
+    local tabL = x + T.sp.sm
+    local aw = tH
+    local activeIdx, focusIdx
+    for i = 1, nM do
+        if MODES[i].id == mode then activeIdx = i end
+        if s.gpId == "fur:mode:" .. MODES[i].id then focusIdx = i end
+    end
+    local first, last = 1, nM
+    if scrolls then
+        tabL = x + T.sp.sm + aw + gap
+        s.stripView = avail - (aw + gap) * 2
+        -- the last first tab that still fills the view to the end
+        local maxFirst, used = nM, _modeTws[nM]
+        while maxFirst > 1 and used + gap + _modeTws[maxFirst - 1] <= s.stripView do
+            maxFirst = maxFirst - 1
+            used = used + gap + _modeTws[maxFirst]
+        end
+        s.stripMaxFirst = maxFirst
+        if focusIdx and s.stripFocusSeen ~= focusIdx then s.stripFirst = modeStripFit(s, focusIdx, nM)
+        elseif activeIdx and s.stripModeSeen ~= mode then s.stripFirst = modeStripFit(s, activeIdx, nM) end
+        first = math.max(1, math.min(maxFirst, s.stripFirst or 1))
+        s.stripFirst = first
+        last, used = first, _modeTws[first]
+        while last < nM and used + gap + _modeTws[last + 1] <= s.stripView do
+            last = last + 1
+            used = used + gap + _modeTws[last]
+        end
+    else
+        s.stripFirst, s.stripMaxFirst = 1, 1
+    end
+    s.stripFocusSeen, s.stripModeSeen = focusIdx, mode
+
+    local o = _modeTabOpts
+    o.font, o.padX = font, padX
+    local tabX = tabL
+    local activeX, activeW
+    for i = first, last do
+        local m = MODES[i]
+        local id = "fur:mode:" .. m.id
+        local mid = m.id
+        local tw = _modeTws[i]
+        local on = (mode == mid)
+        o.focus = (s.gpId == id) or nil
+        M.drawTab(panel, tabX, tabY, txt(m.key, m.fb), on, A.mouseIn(panel, tabX, tabY, tw, tH), false, o)
+        stamp(s, id, tabX, tabY, tw, tH, function() FT.setMode(pn, mid) end)
+        if on then activeX, activeW = tabX, tw end
+        tabX = tabX + tw + gap
+    end
+    local ly = tabY + tH - T.hair
+    if activeX then
+        A.drawDividerH(panel, x, ly, activeX - x, true)
+        A.drawDividerH(panel, activeX + activeW, ly, x + w - (activeX + activeW), true)
+    else
+        A.drawDividerH(panel, x, ly, w, true)
+    end
+    if not scrolls then return end
+    for k = 1, 2 do
+        local dir = (k == 1) and -1 or 1
+        local can = (k == 1 and first > 1) or (k == 2 and first < s.stripMaxFirst)
+        local axk = (k == 1) and (x + T.sp.sm) or (x + w - T.sp.sm - aw)
+        if can then
+            local id = (k == 1) and "fur:strip:left" or "fur:strip:right"
+            local hov = A.mouseIn(panel, axk, tabY, aw, tH)
+            A.drawScrollArrow(panel, axk, tabY, aw, (k == 1) and "left" or "right", hov and "hover" or "default")
+            if s.gpId == id and ZeD.Focus and ZeD.Focus.mark then ZeD.Focus.mark(panel, axk, tabY, aw, tH) end
+            stamp(s, id, axk, tabY, aw, tH, arrowFn(s, win, dir))
+        else
+            local bs = T.borderS
+            panel:drawRectBorder(axk, tabY, aw, tH, (bs.a or 1) * T.disabledAlpha, bs.r, bs.g, bs.b)
+        end
+    end
+end
+
+-- ---------------------------------------------------------------------------
 -- RENDER
 -- ---------------------------------------------------------------------------
 function FT.render(panel, win, x, y, w, h)
@@ -598,31 +741,9 @@ function FT.render(panel, win, x, y, w, h)
     -- header strip (the standard height): the five modes as sub-tabs, drawn as Animals' Ranch | Butcher
     -- (13u top pad + the tab, the strip's line around the active one); no title line, no band
     local M = ZeD.Molecules
-    local A = ZeD.Atoms
-    local tH = T.tabH
     local tabY = y + T.px(TAB_TOP_PAD)
-    local sy = tabY + tH
-    local tabX = x + T.sp.sm
-    local activeX, activeW
-    for _, m in ipairs(MODES) do
-        local id = "fur:mode:" .. m.id
-        local mid = m.id
-        local label = txt(m.key, m.fb)
-        local tw = tm:MeasureStringX(T.fontF2, A.textCase(label)) + T.sp.tabPadX * 2
-        local on = (mode == mid)
-        M.drawTab(panel, tabX, tabY, label, on, A.mouseIn(panel, tabX, tabY, tw, tH), false,
-            { focus = (s.gpId == id) or nil })
-        stamp(s, id, tabX, tabY, tw, tH, function() FT.setMode(pn, mid) end)
-        if on then activeX, activeW = tabX, tw end
-        tabX = tabX + tw + T.sp.tabGap
-    end
-    local ly = sy - T.hair
-    if activeX then
-        A.drawDividerH(panel, x, ly, activeX - x, true)
-        A.drawDividerH(panel, activeX + activeW, ly, x + w - (activeX + activeW), true)
-    else
-        A.drawDividerH(panel, x, ly, w, true)
-    end
+    local sy = tabY + T.tabH
+    drawModeStrip(panel, win, s, x, tabY, w, mode, pn)
 
     -- body (scrolls as one unit; rows outside the view are skipped)
     local top = sy + T.px(8)
@@ -806,6 +927,7 @@ function FT.focusKey(win)
     if not s then return "none" end
     local c = FT.cap[0]
     return tostring(FT.state.mode) .. ":" .. tostring(#s.zones) .. ":" .. tostring(math.floor(s.scrollY or 0)) .. ":"
+        .. tostring(s.stripFirst or 1) .. ":"   -- (the mode strip scrolled: other tabs in view)
         .. tostring(c and c.sq and (c.sq:getX() .. "," .. c.sq:getY()) or "-")
 end
 

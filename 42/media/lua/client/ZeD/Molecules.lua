@@ -477,7 +477,8 @@ end
 -- @param active   Is this the active tab?
 -- @param hovered  Is this tab hovered?
 -- @param disabled Is this tab disabled?
--- @param opts     Optional { font (default F2), focus (the ZeD.Focus.mark opts) }
+-- @param opts     Optional { font (default F2), focus (the ZeD.Focus.mark opts), padX (the words'
+--                  side room, default T.sp.tabPadX: a strip short of room closes it up) }
 -- @return width   Total width of the drawn tab (for laying out the next one)
 -- The one sub-tab strip (cohesion spec 9; Journal and Animals move onto it): the
 -- active tab is surface 2 open at the bottom into its content, its words bright;
@@ -495,7 +496,8 @@ function ZeD.Molecules.drawTab(panel, x, y, text, active, hovered, disabled, opt
 
     -- Measure text to determine tab width
     local tw = ZeD.TM:MeasureStringX(font, text)
-    local w = tw + sp.tabPadX * 2
+    local padX = opts.padX or sp.tabPadX
+    local w = tw + padX * 2
 
     -- Background (a window surface: no stacking over the body)
     A.surfaceFill(panel, x, y, w, h, active and "surf2" or "surf1")
@@ -534,7 +536,7 @@ function ZeD.Molecules.drawTab(panel, x, y, text, active, hovered, disabled, opt
         textColor = ZeD.colorAlpha(T.textDim, alpha)
     end
     local textY = y + math.floor((h - ZeD.TM:getFontHeight(font)) / 2)
-    panel:drawText(text, x + sp.tabPadX, textY,
+    panel:drawText(text, x + padX, textY,
         textColor.r, textColor.g, textColor.b, textColor.a, font)
 
     return w
