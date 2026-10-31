@@ -191,6 +191,13 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     - **Inventory and Ground (director, Oct 30):** done as they are (container name and List | Grid in the
       header, the container buttons in the band). Animals and Vehicle already follow the rule.
     - **All tabs decided (Oct 30): chosen, ready to build** after the face jobs (they share files).
+    - **built (Oct 30), not yet seen in game.** Maps, Craft and Build, Furniture, Forage, Health, Thermal,
+      Identity and Journal as decided; Radio's drawn chassis lost its brand strip. Not exactly as decided:
+      Craft's Show is a pop-up (Ready / Known / All) rather than the old cycling box; the Loadouts band
+      uses short words ("Save loadout", "Save outfit": the long ones do not fit the full card); the
+      number beside Craft's amount is gone; an exercise you cannot do stays in the list, Start greyed
+      with the reason. Open question: the walkies' and ham sets' faces still have their 22u foot with
+      the brand and "2-WAY PORTABLE".
 22. **Segmented bars everywhere (director, Oct 30: "keeping it 93; the segments help info at a
     glance").** chosen. Every fill bar (the shared fill bar: list condition, Health, Protection, animal
     food and water, fuel, item cards, Skills ...) becomes a row of 10 separate segments, lit or dark,

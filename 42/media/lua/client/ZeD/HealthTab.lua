@@ -4,6 +4,8 @@
 -- Zone A (fixed): body figure (left) + health summary or hover detail (right).
 -- Zone B (scrollable): severity-sorted injury list with condition badges.
 -- Adds BodyFigure, replaces flat list with figure+dashboard.
+-- Footer band (Oct 30 2026, punch list 21): the exercise pop-up, the session time
+-- and Start; the body's right column carries the picked exercise's description.
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -603,8 +605,9 @@ function ZeD.HealthTab._renderHeader(panel, win, data, rx, ry, rw)
     end
     curY = curY + secH + T.sp.sm
 
-    -- Exercise buttons
-    curY = ZeD.HealthTab._renderExerciseButtons(panel, win, rx, curY, rw)
+    -- What vanilla's fitness window says about the picked exercise: description,
+    -- stiffness, regularity, warnings (the exercise itself is picked in the band)
+    curY = ZeD.HealthTab._renderExerciseInfo(panel, win, rx, curY, rw)
 
     return curY
 end
@@ -677,13 +680,11 @@ end
 -- EXERCISE SYSTEM
 -- ============================================================================
 
--- Bodyweight exercises (two-column grid)
-local EXERCISE_BODYWEIGHT = {
+-- The exercises, in the order the footer band's pop-up lists them: the bodyweight
+-- ones, then the ones that need equipment (Oct 30 2026: the seven buttons became
+-- that pop-up)
+local EXERCISES = {
     "squats", "pushups", "situp", "burpees",
-}
-
--- Equipment exercises (full-width rows below bodyweight)
-local EXERCISE_EQUIPMENT = {
     "barbellcurl", "dumbbellpress", "bicepscurl",
 }
 
@@ -882,23 +883,10 @@ local function drawExerciseInfo(panel, x, y, w, lay, info)
     end
 end
 
--- Which exercise the info describes: the pad's focused pill or the mouse's
--- hovered pill (the pad leads unless the mouse is the active device), else the
--- last one started, else vanilla's preselected squats.
-local function pickInfoExercise(win, hoverId)
-    local focusId = nil
-    local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
-    if Focus and Focus.getFocusedWindow and Focus.getFocusedElement
-       and Focus.getFocusedWindow() == win then
-        local el = Focus.getFocusedElement(win)
-        local id = el and el.exerciseId
-        if id and not string.find(tostring(id), "^time:") then focusId = id end
-    end
-    local det = ZeD and ZeD.Input and ZeD.Input.Detector
-    local kbm = det and det.getMode and det.getMode() == "kbm"
-    local id
-    if kbm then id = hoverId or focusId else id = focusId or hoverId end
-    return id or win._healthExerciseSel or "squats"
+-- The exercise the footer band's pop-up has picked (what the info describes and
+-- Start does), per window; vanilla's preselected squats until one is picked.
+function ZeD.HealthTab.selectedExercise(win)
+    return win and win._healthExerciseSel or "squats"
 end
 
 -- Start exercise (replicates vanilla ISFitnessUI:equipItems + onClick OK)
@@ -945,168 +933,246 @@ function ZeD.HealthTab._startExercise(playerObj, exerciseId, minutes)
     ISTimedActionQueue.addGetUpAndThen(playerObj, action)
 end
 
--- Runs one zone of the exercise area, for the mouse and the pad alike: a pill
--- starts its exercise for the chosen time; the - and + buttons step the time.
--- Returns true when the zone did something.
-function ZeD.HealthTab.activateExerciseZone(win, zone)
-    if not win or not zone or not zone.enabled then return false end
-    if zone.timeStep then
-        local m = ZeD.HealthTab.getExerciseMinutes(win) + zone.timeStep
-        win._healthExerciseMinutes = math.max(MIN_EXERCISE_TIME, math.min(MAX_EXERCISE_TIME, m))
-        return true
-    end
-    win._healthExerciseSel = zone.id   -- the info below keeps describing the exercise just started
-    ZeD.HealthTab._startExercise(win._playerObj, zone.id, ZeD.HealthTab.getExerciseMinutes(win))
+-- ----------------------------------------------------------------------------
+-- THE FOOTER BAND (Oct 30 2026, punch list 21): the exercise as a pop-up menu and
+-- the session time (- 10 +) at the left, Start at the right (pick, then act, as
+-- Craft). The seven exercise buttons are gone. Start does what the buttons did:
+-- the same guards (canStart), the same vanilla fitness action (_startExercise).
+-- ----------------------------------------------------------------------------
+
+-- true while the character is in the middle of a fitness session
+local function isExercising(playerObj)
+    local q = ISTimedActionQueue.getTimedActionQueue(playerObj)
+    return (q ~= nil and q.queue ~= nil and q.queue[1] ~= nil and q.queue[1].Type == "ISFitnessAction")
+end
+
+-- Start's guards, as the exercise buttons had them: the global rules (vanilla
+-- ISFitnessUI:updateButtons), no session already running, the picked exercise's item
+function ZeD.HealthTab.canStart(win)
+    local p = win and win._playerObj
+    if not p then return false end
+    return canExercise(p) and not isExercising(p)
+        and isExerciseAvailable(p, ZeD.HealthTab.selectedExercise(win))
+end
+
+-- Start: the picked exercise for the chosen time, through vanilla's fitness action.
+-- Returns true when it started one.
+function ZeD.HealthTab.startSelected(win)
+    if not ZeD.HealthTab.canStart(win) then return false end
+    ZeD.HealthTab._startExercise(win._playerObj, ZeD.HealthTab.selectedExercise(win),
+        ZeD.HealthTab.getExerciseMinutes(win))
     return true
 end
 
--- Render exercise buttons:
--- Bodyweight = two-column grid, Equipment = full-width rows below. Each is a push
--- button (the hover wash, the controller's mark and the footer's help come with it).
-function ZeD.HealthTab._renderExerciseButtons(panel, win, rx, ry, rw)
-    local T    = ZeD.T
-    local A    = ZeD.Atoms
-    local M    = ZeD.Molecules
-    local font = T.fontF3
-    local secH = ZeD.TM:getFontHeight(font)
-    local btnH = T.buttonH
-    local gap  = T.sp.xs
-    local colGap = T.sp.sm
-    local colW = math.floor((rw - colGap) / 2)
-
-    local playerObj = win._playerObj
-    local globalEnabled = canExercise(playerObj)
-
-    -- Check if already exercising
-    local isExercising = false
-    local actionQueue = ISTimedActionQueue.getTimedActionQueue(playerObj)
-    if actionQueue and actionQueue.queue and actionQueue.queue[1] then
-        isExercising = actionQueue.queue[1].Type == "ISFitnessAction"
-    end
-
-    local curY = ry
-
-    win._healthExerciseZones = {}
-    local zoneIdx = 0
-
-    -- Bodyweight exercises: two-column grid
-    local leftY  = curY
-    local rightY = curY
-
-    -- The pointer over a button picks which exercise the info below describes (a
-    -- disabled one too); the hover wash itself comes from the push button.
-    local hoverId = nil
-    local mouseX, mouseY = panel:getMouseX(), panel:getMouseY()
-    local view = win._healthView
-    local mouseIn = mouseX >= 0 and mouseY >= 0
-        and mouseX < panel:getWidth() and mouseY < panel:getHeight()
-        and (not view or (mouseX >= view.x and mouseX < view.x + view.w and mouseY >= view.y and mouseY < view.y + view.h))
-    local function overBtn(exeId, bx, by, bw, bh)
-        if not mouseIn then return false end
-        if mouseX < bx or mouseX >= bx + bw or mouseY < by or mouseY >= by + bh then return false end
-        if not string.find(tostring(exeId), "^time:") then hoverId = exeId end
-        return true
-    end
-
-    local mins = ZeD.HealthTab.getExerciseMinutes(win)
-    local btnOpts = {}
-    local function exerciseBtn(exeId, label, bx, by, bw, enabled)
-        local hover = overBtn(exeId, bx, by, bw, btnH) and A.mouseIn(panel, bx, by, bw, btnH)
-        btnOpts.hover, btnOpts.disabled = hover, not enabled
-        btnOpts.focus = focusOf(win, "exercise:" .. exeId)
-        btnOpts.win = win
-        btnOpts.help = ZeD.tr("UI_ZeD_Health_HelpExercise", label, mins)
-        M.drawButton(panel, bx, by, bw, btnH, A.truncateText(label, font, bw - T.px(12)), "default", false, nil, btnOpts)
-    end
-
-    for idx, exeId in ipairs(EXERCISE_BODYWEIGHT) do
-        local label = ZeD.HealthTab.exerciseLabel(exeId)
-        local enabled = globalEnabled and not isExercising and isExerciseAvailable(playerObj, exeId)
-
-        local isLeft = ((idx - 1) % 2 == 0)
-        local bx = isLeft and rx or (rx + colW + colGap)
-        local by = isLeft and leftY or rightY
-
-        exerciseBtn(exeId, label, bx, by, colW, enabled)
-
-        zoneIdx = zoneIdx + 1
-        win._healthExerciseZones[zoneIdx] = {
-            id = exeId,
-            x = bx, y = by, w = colW, h = btnH,
-            enabled = enabled,
-        }
-
-        if isLeft then leftY = by + btnH + gap
-        else rightY = by + btnH + gap end
-    end
-
-    curY = math.max(leftY, rightY)
-
-    -- Equipment exercises: full-width rows
-    for _, exeId in ipairs(EXERCISE_EQUIPMENT) do
-        local label = ZeD.HealthTab.exerciseLabel(exeId)
-        local enabled = globalEnabled and not isExercising and isExerciseAvailable(playerObj, exeId)
-
-        exerciseBtn(exeId, label, rx, curY, rw, enabled)
-
-        zoneIdx = zoneIdx + 1
-        win._healthExerciseZones[zoneIdx] = {
-            id = exeId,
-            x = rx, y = curY, w = rw, h = btnH,
-            enabled = enabled,
-        }
-
-        curY = curY + btnH + gap
-    end
-
-    -- Session time: label on the left, [-] minutes [+] on the right: two push
-    -- buttons around a readout. The time can be changed while exercising; it
-    -- applies to the next start.
-    local f3H    = ZeD.TM:getFontHeight(font)
-    local readW  = ZeD.TM:MeasureStringX(font, "60") + T.px(16)
-    local incX   = rx + rw - btnH
-    local readX  = incX - readW
-    local decX   = readX - btnH
-    local canDec = mins > MIN_EXERCISE_TIME
-    local canInc = mins < MAX_EXERCISE_TIME
-    A.drawSecondary(panel, A.truncateText(getText("IGUI_FitnessTime"), T.fontF1, math.max(0, decX - rx - T.sp.sm)),
-        rx, curY + math.floor((btnH - ZeD.TM:getFontHeight(T.fontF1)) / 2))
-    btnOpts.win = win
-    btnOpts.hover, btnOpts.disabled = overBtn("time:dec", decX, curY, btnH, btnH) and A.mouseIn(panel, decX, curY, btnH, btnH), not canDec
-    btnOpts.focus = focusOf(win, "exercise:time:dec")
-    btnOpts.help = ZeD.tr("UI_ZeD_Health_HelpTimeLess")
-    M.drawButton(panel, decX, curY, btnH, btnH, "-", "default", false, nil, btnOpts)
-    local minStr = tostring(mins)
-    local tc = T.text
-    panel:drawText(minStr, readX + math.floor((readW - ZeD.TM:MeasureStringX(font, minStr)) / 2),
-        curY + math.floor((btnH - f3H) / 2), tc.r, tc.g, tc.b, tc.a or 1, font)
-    btnOpts.hover, btnOpts.disabled = overBtn("time:inc", incX, curY, btnH, btnH) and A.mouseIn(panel, incX, curY, btnH, btnH), not canInc
-    btnOpts.focus = focusOf(win, "exercise:time:inc")
-    btnOpts.help = ZeD.tr("UI_ZeD_Health_HelpTimeMore")
-    M.drawButton(panel, incX, curY, btnH, btnH, "+", "default", false, nil, btnOpts)
-    win._healthExerciseZones[zoneIdx + 1] = {
-        id = "time:dec", timeStep = -EXERCISE_TIME_STEP,
-        x = decX, y = curY, w = btnH, h = btnH, enabled = canDec,
-    }
-    win._healthExerciseZones[zoneIdx + 2] = {
-        id = "time:inc", timeStep = EXERCISE_TIME_STEP,
-        x = incX, y = curY, w = btnH, h = btnH, enabled = canInc,
-    }
-    curY = curY + btnH + gap
-
-    -- What vanilla's fitness window says about the exercise: description,
-    -- stiffness, regularity, warnings
-    curY = ZeD.HealthTab._renderExerciseInfo(panel, win, rx, curY, rw, hoverId)
-
-    return curY
+-- The session time's - and +: one step (a multiple of 10 minutes), kept inside 10 to 60.
+-- Returns true when the time changed.
+function ZeD.HealthTab.stepMinutes(win, step)
+    if not win then return false end
+    local was = ZeD.HealthTab.getExerciseMinutes(win)
+    local m = math.max(MIN_EXERCISE_TIME, math.min(MAX_EXERCISE_TIME, was + step))
+    win._healthExerciseMinutes = m
+    return m ~= was
 end
 
--- Divider, then the info block for the chosen exercise (see pickInfoExercise).
+-- the exercise pop-up list: opened by the box, shut by a pick, a click anywhere else or B;
+-- the pad returns to the box it came from (_healthReturnToMenu, read by the tab's focusables)
+function ZeD.HealthTab.openMenu(win)
+    win._healthMenuOpen = true
+    win._healthMenuZones = nil
+end
+
+function ZeD.HealthTab.closeMenu(win, pickId)
+    if pickId then win._healthExerciseSel = pickId end
+    win._healthMenuOpen = false
+    win._healthMenuZones = nil
+    win._healthReturnToMenu = true
+end
+
+local function inRect(r, x, y)
+    return r ~= nil and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h
+end
+
+-- The mouse path through the band: an open list takes every press (a pick or shut it);
+-- else the box opens it, - and + step the time, Start starts. Returns true when the press
+-- was the band's (the whole band swallows it).
+function ZeD.HealthTab.onClick(win, x, y)
+    if win._healthMenuOpen then
+        for _, z in ipairs(win._healthMenuZones or {}) do
+            if inRect(z, x, y) then
+                ZeD.HealthTab.closeMenu(win, z.id)
+                return true
+            end
+        end
+        ZeD.HealthTab.closeMenu(win)
+        return true
+    end
+    local bz = win._healthBand
+    if not bz or y < bz.y or y >= bz.y + bz.h then return false end
+    if inRect(bz.box, x, y) then ZeD.HealthTab.openMenu(win)
+    elseif inRect(bz.dec, x, y) then ZeD.HealthTab.stepMinutes(win, -EXERCISE_TIME_STEP)
+    elseif inRect(bz.inc, x, y) then ZeD.HealthTab.stepMinutes(win, EXERCISE_TIME_STEP)
+    elseif inRect(bz.start, x, y) then ZeD.HealthTab.startSelected(win) end
+    return true
+end
+
+-- Start's help line: why it is greyed (vanilla's own reasons) or what it will do
+local function startHelp(playerObj, sel, mins, enabled)
+    if not enabled then
+        local key = exerciseBlockKey(playerObj)
+        if key then return getText(key) end
+        local d = FitnessExercises and FitnessExercises.exercisesType and FitnessExercises.exercisesType[sel]
+        if d and d.item and not isExerciseAvailable(playerObj, sel) then
+            return getText("IGUI_FitnessNeedItem", getItemDisplayName and getItemDisplayName(d.item) or d.item)
+        end
+    end
+    return ZeD.tr("UI_ZeD_Health_HelpExercise", ZeD.HealthTab.exerciseLabel(sel), mins)
+end
+
+local _bandBtns = { {} }
+local _bandSpec = { buttons = _bandBtns }
+local _stepOpts = {}
+
+-- the band's rects for the click and the pad; one table per window, filled each frame
+local function bandZones(win)
+    local bz = win._healthBand
+    if not bz then
+        bz = { box = {}, dec = {}, inc = {}, start = {} }
+        win._healthBand = bz
+    end
+    return bz
+end
+
+local function setRect(r, x, y, w, h)
+    r.x, r.y, r.w, r.h = x, y, w, h
+end
+
+-- the - readout + keys of the session time, from x (the rects are stamped)
+local function drawTimeStep(panel, win, bz, x, by, readW, mins, open)
+    local T, A, M, TM = ZeD.T, ZeD.Atoms, ZeD.Molecules, ZeD.TM
+    local bh, f3 = T.buttonH, T.fontF3
+    local o = _stepOpts
+    o.win = win
+    o.disabled = mins <= MIN_EXERCISE_TIME
+    o.hover = (not open) and A.mouseIn(panel, x, by, bh, bh)
+    o.focus = focusOf(win, "health:time:dec")
+    o.help = ZeD.tr("UI_ZeD_Health_HelpTimeLess")
+    M.drawButton(panel, x, by, bh, bh, "-", "default", false, nil, o)
+    setRect(bz.dec, x, by, bh, bh)
+    local minStr = tostring(mins)
+    local tc = T.text
+    panel:drawText(minStr, x + bh + math.floor((readW - TM:MeasureStringX(f3, minStr)) / 2),
+        by + math.floor((bh - TM:getFontHeight(f3)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f3)
+    local incX = x + bh + readW
+    o.disabled = mins >= MAX_EXERCISE_TIME
+    o.hover = (not open) and A.mouseIn(panel, incX, by, bh, bh)
+    o.focus = focusOf(win, "health:time:inc")
+    o.help = ZeD.tr("UI_ZeD_Health_HelpTimeMore")
+    M.drawButton(panel, incX, by, bh, bh, "+", "default", false, nil, o)
+    setRect(bz.inc, incX, by, bh, bh)
+end
+
+-- The band at the card's foot, top-left (x, y): [Exercise: Squats v]  Time (minutes) - 10 +   [Start]
+function ZeD.HealthTab._renderBand(panel, win, x, y, w)
+    local T, A, M, TM = ZeD.T, ZeD.Atoms, ZeD.Molecules, ZeD.TM
+    local bh, edge, gap = T.buttonH, T.px(8), T.px(8)
+    local by = y + T.px(5)
+    local sel = ZeD.HealthTab.selectedExercise(win)
+    local mins = ZeD.HealthTab.getExerciseMinutes(win)
+    local enabled = ZeD.HealthTab.canStart(win)
+    local open = win._healthMenuOpen == true
+    local bz = bandZones(win)
+    bz.y, bz.h = y, M.bandH()
+
+    -- Start, primary at the right (the band draws it)
+    local startLbl = ZeD.tr("UI_ZeD_Health_Start")
+    local startW = M.buttonW(startLbl)
+    local startX = x + w - edge - startW
+    local sb = _bandBtns[1]
+    sb.label, sb.variant, sb.disabled, sb.id, sb.w = startLbl, "primary", not enabled, "start", startW
+    sb.hover = (not open) and A.mouseIn(panel, startX, by, startW, bh)
+    sb.focus = focusOf(win, "health:start")
+    sb.help = sb.hover and startHelp(win._playerObj, sel, mins, enabled) or nil
+    _bandSpec.win = win
+    M.drawBand(panel, x, y, w, _bandSpec)
+    setRect(bz.start, startX, by, startW, bh)
+
+    -- the pop-up box's room: what the time block and Start leave. Its width is the widest
+    -- exercise's, so picking another never moves the time keys.
+    local boxX = x + edge
+    local nat = 0
+    for _, id in ipairs(EXERCISES) do
+        local nw = M.popupMenuW(ZeD.tr("UI_ZeD_Health_ExercisePick", ZeD.HealthTab.exerciseLabel(id)))
+        if nw > nat then nat = nw end
+    end
+    local f1 = T.fontF1
+    local timeLbl = getText("IGUI_FitnessTime")
+    local lblW = TM:MeasureStringX(f1, timeLbl) + T.px(6)
+    local readW = TM:MeasureStringX(T.fontF3, "60") + T.px(16)
+    local blockW = lblW + bh + readW + bh
+    if startX - gap - blockW - gap - boxX < math.min(nat, T.px(130)) then
+        -- narrow: the time's label goes, the keys stay
+        lblW = 0
+        blockW = bh + readW + bh
+    end
+    local blockX = startX - gap - blockW
+    local boxW = math.max(T.px(40), math.min(nat, blockX - gap - boxX))
+
+    -- the time: its label (vanilla's word), - minutes +
+    if lblW > 0 then
+        local sc = T.textSec
+        panel:drawText(timeLbl, blockX, by + math.floor((bh - TM:getFontHeight(f1)) / 2), sc.r, sc.g, sc.b, sc.a or 1, f1)
+    end
+    drawTimeStep(panel, win, bz, blockX + lblW, by, readW, mins, open)
+
+    -- the exercise pop-up: the box ("Exercise: Squats"); its list opens upward (_renderMenu)
+    local hov = (not open) and A.mouseIn(panel, boxX, by, boxW, bh)
+    if hov and ZeD.Help then ZeD.Help.set(win, ZeD.tr("UI_ZeD_Health_HelpPick")) end
+    M.drawPopupMenu(panel, boxX, by, boxW, bh,
+        ZeD.tr("UI_ZeD_Health_ExercisePick", ZeD.HealthTab.exerciseLabel(sel)),
+        hov or open, focusOf(win, "health:exercise"), false)
+    setRect(bz.box, boxX, by, boxW, bh)
+end
+
+local _menuModes = {}
+local _menuOpts = {}
+
+-- The open exercise list, drawn LAST (over the body and the band), hanging up from the
+-- box. Its row rects are kept for the click and the pad; the row with the controller's
+-- focus carries the mark.
+function ZeD.HealthTab._renderMenu(panel, win)
+    local bz = win._healthBand
+    if not (win._healthMenuOpen and bz) then return end
+    local M, A = ZeD.Molecules, ZeD.Atoms
+    local n = #EXERCISES
+    for i = 1, n do
+        local m = _menuModes[i]
+        if not m then m = {}; _menuModes[i] = m end
+        m.id, m.label = EXERCISES[i], ZeD.HealthTab.exerciseLabel(EXERCISES[i])
+    end
+    local hoverId = nil
+    for _, z in ipairs(win._healthMenuZones or {}) do
+        if A.mouseIn(panel, z.x, z.y, z.w, z.h) then hoverId = z.id; break end
+    end
+    local o = _menuOpts
+    o.win, o.minW, o.focusId = win, bz.box.w, nil
+    local F = ZeD.Input and ZeD.Input.Focus
+    local el = F and F.liveElement and F.liveElement(win)
+    if el and el.menuRowId then o.focusId = el.menuRowId end
+    local gy = math.max(0, bz.box.y - M.popupListH(n))
+    local _, _, zs = M.drawSortMenuList(panel, bz.box.x, gy, _menuModes, ZeD.HealthTab.selectedExercise(win), hoverId, o)
+    win._healthMenuZones = zs
+    if hoverId and ZeD.Help then
+        ZeD.Help.set(win, ZeD.tr("UI_ZeD_Health_HelpExercise", ZeD.HealthTab.exerciseLabel(hoverId),
+            ZeD.HealthTab.getExerciseMinutes(win)))
+    end
+end
+
+-- Divider, then the info block for the picked exercise (selectedExercise).
 -- The block's room is reserved for the tallest exercise (_measureExerciseInfo),
--- so hovering from one pill to the next never moves what is below.
-function ZeD.HealthTab._renderExerciseInfo(panel, win, rx, ry, rw, hoverId)
+-- so picking another exercise never moves what is below.
+function ZeD.HealthTab._renderExerciseInfo(panel, win, rx, ry, rw)
     local T, A = ZeD.T, ZeD.Atoms
-    local info = ZeD.HealthTab.exerciseInfo(win._playerObj, pickInfoExercise(win, hoverId))
+    local info = ZeD.HealthTab.exerciseInfo(win._playerObj, ZeD.HealthTab.selectedExercise(win))
     if not info then return ry end
     local w = math.min(rw, win._healthInfoW or rw)
     A.drawDividerH(panel, rx, ry, rw)
@@ -1142,7 +1208,7 @@ function ZeD.HealthTab._measureExerciseInfo(win, w)
     local wrapW = math.max(T.px(60), ZeD.Molecules.layoutZoneA(0, 0, w - T.sp.scrollbarW, 0, 0).rightW)
     local sig = { wrapW, tostring(T.scale), TM:getFontHeight(T.fontF1), TM:getFontHeight(T.fontF2),
                   exerciseBlockKey(playerObj) or "-" }
-    for _, exeId in ipairs(EXERCISE_EQUIPMENT) do
+    for _, exeId in ipairs(EXERCISES) do
         sig[#sig + 1] = isExerciseAvailable(playerObj, exeId) and "1" or "0"
     end
     local key = table.concat(sig, "|")
@@ -1153,8 +1219,7 @@ function ZeD.HealthTab._measureExerciseInfo(win, w)
             local info = ZeD.HealthTab.exerciseInfo(playerObj, exeId, true)
             if info then maxH = math.max(maxH, layoutExerciseInfo(info, wrapW).h) end
         end
-        for _, exeId in ipairs(EXERCISE_BODYWEIGHT) do consider(exeId) end
-        for _, exeId in ipairs(EXERCISE_EQUIPMENT) do consider(exeId) end
+        for _, exeId in ipairs(EXERCISES) do consider(exeId) end
         cache = { key = key, h = maxH }
         win._healthInfoCache = cache
     end
@@ -1172,8 +1237,6 @@ end
 function ZeD.HealthTab._measureZoneA(data, rw, win)
     local T     = ZeD.T
     local secH  = ZeD.TM:getFontHeight(T.fontF1)
-    local btnH  = T.buttonH
-    local gap   = T.sp.xs
 
     -- Right column: summary section (heading moved to disclosure header)
     local rightH = 0
@@ -1181,12 +1244,8 @@ function ZeD.HealthTab._measureZoneA(data, rw, win)
     rightH = rightH + statRowH + T.sp.rowGap
     rightH = rightH + T.fillBarH + T.sp.xs + secH + T.sp.sm
 
-    -- Right column: exercise section (bodyweight 2-col + equipment full-width)
-    local bwRows = math.ceil(#EXERCISE_BODYWEIGHT / 2)
-    rightH = rightH + bwRows * (btnH + gap)
-    rightH = rightH + #EXERCISE_EQUIPMENT * (btnH + gap)
-    rightH = rightH + btnH + gap  -- session time row
-    rightH = rightH + ZeD.HealthTab._measureExerciseInfo(win, rw)  -- exercise info block
+    -- Right column: the picked exercise's info block (its buttons are the footer band's now)
+    rightH = rightH + ZeD.HealthTab._measureExerciseInfo(win, rw)
 
     return math.max(T.sp.figureH, rightH)   -- the figure at the whole zoom it draws at (Oct 21 2026)
 end
@@ -1200,6 +1259,11 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
     local A    = ZeD.Atoms
     local M    = ZeD.Molecules
     local pad  = M.getTabPad()
+
+    -- An exercise list left open while another tab was showing is shut on coming back
+    local now = getTimestampMs()
+    if win._healthLastDraw and now - win._healthLastDraw > 300 then win._healthMenuOpen = false end
+    win._healthLastDraw = now
 
     -- Throttled data refresh
     win._healthTimer = (win._healthTimer or 0) + 1
@@ -1278,7 +1342,10 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
     -- column's detail view and wrapped badge rows can run past the measure)
     local totalContentH = math.max(padTop + zoneABodyH + zoneBH, win._healthDrawnH or 0)
     local scrollY = y + headerH
-    local scrollH = h - headerH
+    -- the footer band is pinned at the card's foot (Oct 30 2026): the body scrolls between it and the header
+    local bandH = M.bandH()
+    local bandY = y + h - bandH
+    local scrollH = h - headerH - bandH
     local needsScroll = totalContentH > scrollH
     scroll.visible = needsScroll
     local contentW = w
@@ -1303,17 +1370,18 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
     -- so a KBM mousewheel past the focused row could snap back on any
     -- frame that briefly reported "gamepad". Delta gate fires exactly once
     -- per focus change regardless of mode.
-    -- Oct 23 2026: the same for every stop in the tab (exercise pills, the
-    -- time buttons, body parts, injuries), keyed on the element's id. The
-    -- lowest stop scrolls as far down as it can while staying in view, so the
-    -- text under it (the exercise info, the last injury) can be read on the
-    -- pad; the header's disclosure scrolls back to the top.
+    -- Oct 23 2026: the same for every stop in the body (body parts, injuries),
+    -- keyed on the element's id. The lowest stop scrolls as far down as it can
+    -- while staying in view, so the text under it (the last injury) can be read
+    -- on the pad; the header's disclosure scrolls back to the top. The band's
+    -- stops are pinned (bandStop): they never scroll the body and are not
+    -- counted as "below" a body stop.
     if needsScroll then
         local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
         local el = Focus and Focus.getFocusedWindow and Focus.getFocusedElement
                    and Focus.getFocusedWindow() == win
                    and Focus.getFocusedElement(win) or nil
-        local focKey = el and (el.injuryKey or el.exerciseId or el.partName or el.isDisclosure) and el.id or nil
+        local focKey = el and (el.injuryKey or el.partName or el.isDisclosure) and el.id or nil
         if focKey and focKey ~= win._lastPinnedInjuryKey then
             local span    = math.max(1, totalContentH - scrollH)
             local oldOff  = math.floor(scroll.scrollPos * span)
@@ -1327,7 +1395,7 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
                 local lowest = true
                 local z = Focus.getFocusedZone(win)
                 for _, o in ipairs(z and z.elements or {}) do
-                    if o ~= el and type(o.y) == "number" and o.y + (o.h or 0) > elY + elH + 1 then lowest = false; break end
+                    if o ~= el and not o.bandStop and type(o.y) == "number" and o.y + (o.h or 0) > elY + elH + 1 then lowest = false; break end
                 end
                 if lowest then
                     target = math.min(span, logicalY)
@@ -1454,6 +1522,11 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
     if needsScroll then
         scroll:draw(panel)
     end
+
+    -- The footer band, pinned at the card's foot; the exercise list (when open) over everything
+    win._healthBandY = bandY   -- (a right-click there is not on an injury row scrolled under the band)
+    ZeD.HealthTab._renderBand(panel, win, x, bandY, w)
+    ZeD.HealthTab._renderMenu(panel, win)
 end
 
 -- ============================================================================

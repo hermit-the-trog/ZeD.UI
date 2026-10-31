@@ -1,7 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ThermalTab.lua
 -- ============================================================================
 -- THERMAL TAB — per-body-part thermoregulation data with 7 switchable views.
--- Layout: body figure (top-left) + header/pills (top-right) + grid (below).
+-- Layout: body figure (top-left) + Core / Air / Wind readings (top-right) + grid
+-- (below); the View pop-up is the footer band (Oct 30 2026, punch list 21).
 -- Uses vanilla thermoregulator node iterator + *UI getters.
 -- ============================================================================
 
@@ -24,22 +25,6 @@ local function focusOf(win, id)
         return _focusOpts
     end
     return nil
-end
-
--- the pointer over (x, y, w, h) and inside the tab's scroll view, with the mouse in use
-local function hoverIn(panel, win, x, y, w, h)
-    local v = win._thermalScrollRect
-    if v then
-        local mx, my = panel:getMouseX(), panel:getMouseY()
-        if mx < v.x or mx >= v.x + v.w or my < v.y or my >= v.y + v.h then return false end
-    end
-    return ZeD.Atoms.mouseIn(panel, x, y, w, h)
-end
-
--- one view's row in the radio list: the radio button and its name
-local function viewRowH()
-    local T = ZeD.T
-    return math.max(ZeD.Atoms.radioSize(), ZeD.TM:getFontHeight(T.fontF2)) + T.px(8)
 end
 
 -- ============================================================================
@@ -215,6 +200,11 @@ function ZeD.ThermalTab.render(panel, win, x, y, w, h)
     -- Init view state
     if not win._thermalView then win._thermalView = 1 end
 
+    -- A View list left open while another tab was showing is shut on coming back
+    local now = getTimestampMs()
+    if win._thermalLastDraw and now - win._thermalLastDraw > 300 then win._thermalMenuOpen = false end
+    win._thermalLastDraw = now
+
     -- Throttled data refresh
     win._thermalTimer = (win._thermalTimer or 0) + 1
     if win._thermalTimer >= 15 or not win._thermalCache then
@@ -240,9 +230,8 @@ function ZeD.ThermalTab.render(panel, win, x, y, w, h)
     local figW = T.sp.figureW
     local figH = T.sp.figureH
 
-    -- Right column height (for zone A height measurement): one radio row per view
-    local btnGap = T.sp.xs
-    local rightColH = #VIEWS * (viewRowH() + btnGap)
+    -- Right column height (for zone A height measurement): the Core / Air / Wind readings and the gauge
+    local rightColH = ZeD.ThermalTab._measureReadings()
 
     -- Pinned header height (not in scroll content)
     local headerH = M.getTabHeaderH()
@@ -250,7 +239,8 @@ function ZeD.ThermalTab.render(panel, win, x, y, w, h)
 
     -- Zone A scrollable body height (figure + padding, no section header — it's pinned)
     local figureContentH = math.max(figH, rightColH) + pad
-    local zoneAH = figureExpanded and figureContentH or 0
+    -- (with the figure folded away the readings stay, full width, above the grid)
+    local zoneAH = figureExpanded and figureContentH or (rightColH + pad)
 
     -- Measure total scrollable content: zone A body + zone B grid
     local scroll  = win._thermalScroll
@@ -258,9 +248,11 @@ function ZeD.ThermalTab.render(panel, win, x, y, w, h)
     local gridContentH = ZeD.ThermalTab._measureGridContent(data, w - pad * 2, scrollW)
     local totalContentH = padTop + zoneAH + T.sp.afterLine + gridContentH
 
-    -- Scroll area starts below the pinned header
+    -- Scroll area runs from the pinned header to the footer band (Oct 30 2026: the View pop-up's band)
     local scrollY = y + headerH
-    local scrollH = h - headerH
+    local bandH = M.bandH()
+    local bandY = y + h - bandH
+    local scrollH = h - headerH - bandH
     local needsScroll = totalContentH > scrollH
     scroll.visible = needsScroll
     local contentW = w
@@ -275,7 +267,6 @@ function ZeD.ThermalTab.render(panel, win, x, y, w, h)
     end
 
     panel:setStencilRect(x, scrollY, contentW, scrollH)
-    win._thermalScrollRect = { x = x, y = scrollY, w = contentW, h = scrollH }   -- (what the pointer may hover)
 
     local scrollOff = 0
     if needsScroll then
@@ -300,8 +291,10 @@ function ZeD.ThermalTab.render(panel, win, x, y, w, h)
                 layout.rightX, layout.rightY, layout.rightW)
         end
 
-        curY = drawY + zoneAH
+    else
+        ZeD.ThermalTab._renderHeader(panel, win, data, x + pad, curY, contentW - pad * 2)
     end
+    curY = drawY + zoneAH
 
     -- ── Zone B: Body part grid ──
     local gridY = curY + T.sp.afterLine
@@ -359,54 +352,152 @@ function ZeD.ThermalTab.render(panel, win, x, y, w, h)
     if needsScroll then
         scroll:draw(panel)
     end
+
+    -- The footer band, pinned at the card's foot; the View list (when open) over everything
+    ZeD.ThermalTab._renderBand(panel, win, x, bandY, w)
+    ZeD.ThermalTab._renderMenu(panel, win)
 end
 
 -- ============================================================================
--- HEADER (Zone A right side — default, no hover)
--- THERMAL heading + 2-column view button grid filling available space
+-- READINGS (Zone A right side — default, no hover)
+-- Core / Air / Wind and the core gauge, beside the figure (Oct 30 2026: they
+-- moved up from the top of the grid when the view buttons became the footer
+-- band's pop-up). A part under the pointer or the pad swaps them for its details.
 -- ============================================================================
+
+-- one reading row's height (what ZeD.Molecules.drawStatRow takes)
+local function readingRowH()
+    local T, TM = ZeD.T, ZeD.TM
+    local m = math.max(TM:getFontHeight(T.fontF1), TM:getFontHeight(T.fontF3))
+    return m + math.max(T.px(2), math.floor(m * 0.15))
+end
+
+-- the readings' height: three rows and the gauge
+function ZeD.ThermalTab._measureReadings()
+    local T = ZeD.T
+    return 3 * (readingRowH() + T.sp.rowGap) + T.fillBarH
+end
 
 function ZeD.ThermalTab._renderHeader(panel, win, data, rx, ry, rw)
-    -- View button grid (fills remaining space)
-    ZeD.ThermalTab._renderViewGrid(panel, win, rx, ry, rw)
+    local T = ZeD.T
+    local M = ZeD.Molecules
+    local curY = ry
+    -- the readings are degrees C from the thermoregulator; shown in the player's unit
+    curY = curY + M.drawStatRow(panel, rx, curY, rw, ZeD.tr("UI_ZeD_Thermal_Core"),
+        ZeD.ThermalTab.tempText(data.coreTemp), T.toneNorm) + T.sp.rowGap
+    curY = curY + M.drawStatRow(panel, rx, curY, rw, ZeD.tr("UI_ZeD_Thermal_Air"),
+        ZeD.ThermalTab.tempText(data.airTemp), T.toneNorm) + T.sp.rowGap
+    curY = curY + M.drawStatRow(panel, rx, curY, rw, ZeD.tr("IGUI_Fishing_Wind"),
+        ZeD.ThermalTab.tempText(data.windTemp), T.toneNorm) + T.sp.rowGap
+    -- Core temperature gauge: the chunky framed strip (the standard bar height), not a thin line
+    ZeD.Atoms.drawGradientBar(panel, rx, curY, rw, T.fillBarH, (data.coreTemp - 30) / 12)
 end
 
 -- ============================================================================
--- VIEW BUTTONS (vertical stack, fills Zone A right column)
+-- FOOTER BAND: the View pop-up (Oct 30 2026, punch list 21)
+-- "View: Skin temperature" at the left, nothing at the right. The seven views were
+-- radio buttons; the list opens upward from the box. The same pattern as Craft's
+-- sort pop-up: the open list takes every press; the pad's stops become its rows.
 -- ============================================================================
 
-function ZeD.ThermalTab._renderViewGrid(panel, win, rx, ry, rw)
-    local T    = ZeD.T
-    local A    = ZeD.Atoms
-    local font = T.fontF2
-    local rowH = viewRowH()
-    local gap  = T.sp.xs
-    local activeIdx = win._thermalView or 1
-    local rs = A.radioSize()
-    local hv = T.hover
+local function inRect(r, x, y)
+    return r ~= nil and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h
+end
 
-    win._thermalPillZones = {}
+-- the pop-up list: opened by the box, shut by a pick, a click anywhere else or B; the pad
+-- returns to the box it came from (_thermalReturnToMenu, read by the tab's focusables)
+function ZeD.ThermalTab.openMenu(win)
+    win._thermalMenuOpen = true
+    win._thermalMenuZones = nil
+end
 
-    -- One of seven views: System 7 radio buttons, each row pressable whole
-    for i, view in ipairs(VIEWS) do
-        local by = ry + (i - 1) * (rowH + gap)
-        local hover = hoverIn(panel, win, rx, by, rw, rowH)
+function ZeD.ThermalTab.closeMenu(win, pickIdx)
+    if pickIdx then win._thermalView = pickIdx end
+    win._thermalMenuOpen = false
+    win._thermalMenuZones = nil
+    win._thermalReturnToMenu = true
+end
 
-        if hover then
-            panel:drawRect(rx, by, rw, rowH, hv.a, hv.r, hv.g, hv.b)
-            if ZeD.Help then ZeD.Help.set(win, ZeD.tr("UI_ZeD_Thermal_HelpView", ZeD.ThermalTab.labelOf(view))) end
+-- The mouse path through the band: an open list takes every press (a pick or shut it);
+-- else the box opens it. Returns true when the press was the band's.
+function ZeD.ThermalTab.onClick(win, x, y)
+    if win._thermalMenuOpen then
+        for _, z in ipairs(win._thermalMenuZones or {}) do
+            if inRect(z, x, y) then
+                ZeD.ThermalTab.closeMenu(win, z.id)
+                return true
+            end
         end
-        local onFocus = false
-        local fo = focusOf(win, "thermal:" .. i)
-        if fo then onFocus = ZeD.Focus.mark(panel, rx, by, rw, rowH, fo) end
+        ZeD.ThermalTab.closeMenu(win)
+        return true
+    end
+    local bz = win._thermalBand
+    if not bz or y < bz.y or y >= bz.y + bz.h then return false end
+    if inRect(bz.box, x, y) then ZeD.ThermalTab.openMenu(win) end
+    return true
+end
 
-        local rxx = rx + T.px(6)
-        A.drawRadio(panel, rxx, by + math.floor((rowH - rs) / 2), i == activeIdx, { hover = hover })
-        local tc = onFocus and T.textOnFocus or T.text
-        panel:drawText(A.truncateText(ZeD.ThermalTab.labelOf(view), font, rw - T.px(6) - rs - T.px(8) - T.px(6)),
-            rxx + rs + T.px(8), by + math.floor((rowH - ZeD.TM:getFontHeight(font)) / 2), tc.r, tc.g, tc.b, tc.a or 1, font)
+local _bandSpec = {}
 
-        win._thermalPillZones[i] = { x = rx, y = by, w = rw, h = rowH }
+-- The band at the card's foot, top-left (x, y): [View: Skin temperature v]
+function ZeD.ThermalTab._renderBand(panel, win, x, y, w)
+    local T, A, M = ZeD.T, ZeD.Atoms, ZeD.Molecules
+    local bh, edge = T.buttonH, T.px(8)
+    local by = y + T.px(5)
+    local open = win._thermalMenuOpen == true
+    local bz = win._thermalBand
+    if not bz then bz = { box = {} }; win._thermalBand = bz end
+    bz.y, bz.h = y, M.bandH()
+
+    _bandSpec.win = win
+    M.drawBand(panel, x, y, w, _bandSpec)
+
+    -- the box is as wide as the longest view's words, so picking another never changes it
+    local nat = 0
+    for _, view in ipairs(VIEWS) do
+        local nw = M.popupMenuW(ZeD.tr("UI_ZeD_Thermal_ViewPick", ZeD.ThermalTab.labelOf(view)))
+        if nw > nat then nat = nw end
+    end
+    local boxX = x + edge
+    local boxW = math.max(T.px(40), math.min(nat, w - edge * 2))
+    local hov = (not open) and A.mouseIn(panel, boxX, by, boxW, bh)
+    if hov and ZeD.Help then ZeD.Help.set(win, ZeD.tr("UI_ZeD_Thermal_HelpViewMenu")) end
+    local view = VIEWS[win._thermalView or 1] or VIEWS[1]
+    M.drawPopupMenu(panel, boxX, by, boxW, bh, ZeD.tr("UI_ZeD_Thermal_ViewPick", ZeD.ThermalTab.labelOf(view)),
+        hov or open, focusOf(win, "thermal:view"), false)
+    bz.box.x, bz.box.y, bz.box.w, bz.box.h = boxX, by, boxW, bh
+end
+
+local _menuModes = {}
+local _menuOpts = {}
+
+-- The open View list, drawn LAST (over the body and the band), hanging up from the box.
+-- Its row rects are kept for the click and the pad; the row with the controller's focus
+-- carries the mark. The rows' ids are the view numbers.
+function ZeD.ThermalTab._renderMenu(panel, win)
+    local bz = win._thermalBand
+    if not (win._thermalMenuOpen and bz) then return end
+    local M, A = ZeD.Molecules, ZeD.Atoms
+    local n = #VIEWS
+    for i = 1, n do
+        local m = _menuModes[i]
+        if not m then m = {}; _menuModes[i] = m end
+        m.id, m.label = i, ZeD.ThermalTab.labelOf(VIEWS[i])
+    end
+    local hoverId = nil
+    for _, z in ipairs(win._thermalMenuZones or {}) do
+        if A.mouseIn(panel, z.x, z.y, z.w, z.h) then hoverId = z.id; break end
+    end
+    local o = _menuOpts
+    o.win, o.minW, o.focusId = win, bz.box.w, nil
+    local F = ZeD.Input and ZeD.Input.Focus
+    local el = F and F.liveElement and F.liveElement(win)
+    if el and el.menuRowId then o.focusId = el.menuRowId end
+    local gy = math.max(0, bz.box.y - M.popupListH(n))
+    local _, _, zs = M.drawSortMenuList(panel, bz.box.x, gy, _menuModes, win._thermalView or 1, hoverId, o)
+    win._thermalMenuZones = zs
+    if hoverId and ZeD.Help then
+        ZeD.Help.set(win, ZeD.tr("UI_ZeD_Thermal_HelpView", _menuModes[hoverId].label))
     end
 end
 
@@ -477,8 +568,6 @@ function ZeD.ThermalTab._renderCardGrid(panel, win, data, rx, ry, rw, rh)
     local listX   = rx
     local listW   = rw
 
-    local secH  = ZeD.TM:getFontHeight(T.fontF1)
-
     -- Active view
     local viewIdx = win._thermalView or 1
     local view = VIEWS[viewIdx]
@@ -487,35 +576,7 @@ function ZeD.ThermalTab._renderCardGrid(panel, win, data, rx, ry, rw, rh)
 
     local drawY = ry
 
-    -- CORE / AIR / WIND on one line
-    local curX = listX
-    -- the readings are degrees C from the thermoregulator; shown in the player's unit
-    local coreStr = ZeD.ThermalTab.tempText(data.coreTemp)
-    local airStr  = ZeD.ThermalTab.tempText(data.airTemp)
-    local windStr = ZeD.ThermalTab.tempText(data.windTemp)
-    local coreLbl = ZeD.tr("UI_ZeD_Thermal_Core")
-    local airLbl  = ZeD.tr("UI_ZeD_Thermal_Air")
-    local windLbl = ZeD.textCase(ZeD.tr("IGUI_Fishing_Wind"))
-
-    A.drawSecondary(panel, coreLbl, curX, drawY)
-    curX = curX + ZeD.TM:MeasureStringX(T.fontF1, coreLbl) + T.sp.sm
-    panel:drawText(coreStr, curX, drawY, T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a, T.fontF3)
-    curX = curX + ZeD.TM:MeasureStringX(T.fontF3, coreStr) + T.sp.lg
-
-    A.drawSecondary(panel, airLbl, curX, drawY)
-    curX = curX + ZeD.TM:MeasureStringX(T.fontF1, airLbl) + T.sp.sm
-    panel:drawText(airStr, curX, drawY, T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a, T.fontF3)
-    curX = curX + ZeD.TM:MeasureStringX(T.fontF3, airStr) + T.sp.lg
-
-    A.drawSecondary(panel, windLbl, curX, drawY)
-    curX = curX + ZeD.TM:MeasureStringX(T.fontF1, windLbl) + T.sp.sm
-    panel:drawText(windStr, curX, drawY, T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a, T.fontF3)
-
-    drawY = drawY + secH + T.sp.sm
-
-    -- Core temperature gauge: the chunky framed strip (the standard bar height), not a thin line
-    A.drawGradientBar(panel, listX, drawY, listW, T.fillBarH, (data.coreTemp - 30) / 12)
-    drawY = drawY + T.fillBarH + T.sp.md
+    -- (the Core / Air / Wind readings and the core gauge sit beside the figure now: _renderHeader)
 
     -- Section head (the content line under it comes with the molecule)
     drawY = drawY + M.drawSectionHeader(panel, listX, drawY, listW,
@@ -604,13 +665,10 @@ end
 
 function ZeD.ThermalTab._measureGridContent(data, listW, scrollW)
     local T    = ZeD.T
-    local secH = ZeD.TM:getFontHeight(T.fontF1)
 
     local total = 0
 
-    -- Grid header: core / air / wind line + gauge + section head
-    total = total + secH + T.sp.sm          -- core / air / wind line
-    total = total + T.fillBarH + T.sp.md    -- gauge
+    -- Grid header: the section head (the readings and the gauge are beside the figure)
     total = total + T.px(20) + T.sp.xs      -- section head (20u)
 
     -- Body part rows (2 columns). rowH must match Molecules.drawStatBarRow:

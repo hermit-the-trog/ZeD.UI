@@ -2994,6 +2994,47 @@ local function drawPopupBox(panel, x, y, w, h, label, hover, focus)
     A.frame(panel, x, y, w, h, T.borderS)
 end
 
+--- The closed pop-up menu as a control of its own (Oct 30 2026, punch list 21: the
+-- header strips' and the bands' "Sort: Craftable", "View: Skin temperature",
+-- "Page: Journal"): the same box the sort strip folds into. The caller builds the
+-- words ("Sort: Craftable", through a key with %1), keeps the open state, and on a
+-- press draws the list with ZeD.Molecules.drawSortMenuList (last, over the rest)
+-- from the box's bottom-left (or its top-left minus the list's height, in a band at
+-- the card's foot: ZeD.Molecules.popupListH gives the height first).
+-- @param h      the box's height (in a band: T.buttonH; in a 20u strip: h - 4u)
+-- @param focus  the ZeD.Focus.mark opts when it has the controller's focus, else nil
+-- @param disabled  greyed, not pressable
+-- @return w, h
+local _popupDim = {}
+function ZeD.Molecules.drawPopupMenu(panel, x, y, w, h, label, hover, focus, disabled)
+    if disabled then
+        local T, A, tm = ZeD.T, ZeD.Atoms, ZeD.TM
+        local font = T.fontF1
+        local pad, tri = T.px(6), T.px(5)
+        local tc, da = T.text, T.disabledAlpha
+        local s = A.truncateText(label or "", font, math.max(0, w - pad * 2 - tri - T.px(4)))
+        panel:drawText(s, x + pad, y + math.floor((h - tm:getFontHeight(font)) / 2), tc.r, tc.g, tc.b, (tc.a or 1) * da, font)
+        local td, dc = T.textDim, _popupDim
+        dc.r, dc.g, dc.b, dc.a = td.r, td.g, td.b, (td.a or 1) * da
+        A.drawTriangleDown(panel, x + w - pad - tri, y + math.floor((h - tri) / 2), tri, dc)
+        A.frame(panel, x, y, w, h, T.borderS, da)
+        return w, h
+    end
+    drawPopupBox(panel, x, y, w, h, label, hover, focus)
+    return w, h
+end
+
+--- The closed pop-up menu's natural width for its words (F1, the pads, the triangle).
+function ZeD.Molecules.popupMenuW(label)
+    local T = ZeD.T
+    return ZeD.TM:MeasureStringX(T.fontF1, label or "") + T.px(6) * 2 + T.px(5) + T.px(4)
+end
+
+--- The open pop-up list's height for a number of choices (drawSortMenuList's rows).
+function ZeD.Molecules.popupListH(count)
+    return ZeD.T.px(STRIP_H) * (count or 0)
+end
+
 local _sortRadio = {}
 function ZeD.Molecules.drawSortStrip(panel, x, y, w, modes, activeMode, rightToggle, hoverZone, opts)
     local T  = ZeD.T
