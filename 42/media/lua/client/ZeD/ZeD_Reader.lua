@@ -626,8 +626,41 @@ function ZeD_Reader:onMouseWheel(del)
     return true
 end
 
+-- The reader stays over the Character and World windows while it is open. It came up on
+-- top, but the next press on either window raised that window over it: a flyer opened by
+-- a double click in the Loot grid (the Read action ends a moment later, under the pointer
+-- still clicking) sat half hidden under both windows until the
+-- run quit (Oct 31 2026, break-it C2). What a window opened above itself in the meantime
+-- (a menu, a prompt) is raised again after the reader, in its own order.
+local function raise(ui) pcall(function() ui:bringToTop() end) end
+local function keepAbove(self)
+    local me = self.javaObject
+    if not me then return end
+    local cw = ZeD_CharacterWindow and ZeD_CharacterWindow.getInstance and ZeD_CharacterWindow.getInstance()
+    local ww = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
+    local cj, wj = cw and cw.javaObject, ww and ww.javaObject
+    if not (cj or wj) then return end
+    local uis = UIManager.getUI()
+    local n = uis:size()
+    local mine, low = nil, nil
+    for i = 0, n - 1 do
+        local ui = uis:get(i)
+        if ui == me then mine = i
+        elseif mine and (ui == cj or ui == wj) then low = i; break end
+    end
+    if not (mine and low) then return end
+    local over = {}
+    for i = low + 1, n - 1 do
+        local ui = uis:get(i)
+        if ui ~= cj and ui ~= wj and ui ~= me then over[#over + 1] = ui end
+    end
+    self:bringToTop()
+    for i = 1, #over do raise(over[i]) end
+end
+
 function ZeD_Reader:update()
     ZeD_Window.update(self)   -- the window box, the resize edges and the close box (closeAction)
+    keepAbove(self)
     local h = self:hitAt(self:getMouseX(), self:getMouseY())
     -- the pointer's hover waits while the controller's mark shows (one cue at a time)
     local F = ZeD.Input and ZeD.Input.Focus
