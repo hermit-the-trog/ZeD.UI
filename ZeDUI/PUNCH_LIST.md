@@ -473,6 +473,31 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     that setting: the level bar and the level number take the room. Which gives way? (a) the bar shrinks
     to its smallest before the name is cut; (b) below a width the bar hides and the level number alone
     shows; (c) at that width the grid goes to one column. Today's look stays until you choose.
+36. **Inventory, ID card, Maps and Furniture overlap at 1280x720, UI scale 2.0, Large text (and the
+    Deck's 1280x800, Auto, Large).** Found by QA, Oct 31 (break-it E4-E7).
+    - Inventory: the heading's "20.4/8kg" sat on the title bar's "20.39 / 8". Cause: the heading's weight
+      and item count did not fit its row at that text size, and, centred, ran up over the title bar.
+      **fixed (build, Oct 31, 0d8dfa6):** the count goes when both lines do not fit, then the weight; the
+      window's foot line still says both.
+    - ID card: "Sex" sat on "Male", "Profession" on "Mechanic", the name cut to "Cro". Cause: the rows were
+      spaced for smaller text, and nothing kept a field to its column. **fixed (build, Oct 31, 54b9701):**
+      every label and value is cut with "..." to its own box, the rows follow the text size, the name ends
+      in "...", the weight pill steps aside for the name.
+      **Question for the director:** at this setting the photo column leaves the text about 20 units, so
+      the fields now read "..." or nothing. Which? (a) the photo shrinks with the card; (b) at narrow
+      widths the fields move under the photo, full width; (c) the photo hides at narrow widths.
+    - Maps: the header's last stamps, "Aa" and the inks ran under full view. **fixed (build, Oct 31,
+      122c060):** nothing passes full view: the stamps close up first, then pinned stamps fold away from
+      the end (each is still in the full set under the fold arrow), then inks from the end, then "Aa".
+      **Question for the director:** is that the order? At this setting the inks and the note may go
+      too, and the ink in use is then not shown on the header. Other choices: (a) the inks become one
+      swatch that opens a pop-up of inks; (b) the header keeps only the fold arrow, the note and the
+      inks, the stamps all in the fold; (c) a second header row at narrow widths.
+    - Furniture: Disassemble and Repair were past the card's edge, out of reach. **fixed (build, Oct 31,
+      4603c1f):** the tabs close up, then take the small words; if still too wide the strip scrolls with
+      left and right arrows (mouse and pad), the pad's focus and a mode change bring their tab into view.
+    QA to re-check all four at both settings, and Furniture's strip with the pad (right past Rotate to
+    the arrow, A until the strip ends, focus lands on Repair).
 
 ## Test process
 
