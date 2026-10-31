@@ -291,16 +291,31 @@ end
 -- ZONE A HEIGHT — license card (header + body)
 -- ============================================================================
 
+-- A field's two lines: the label (F1) and the value (F4), each at least the body
+-- line, so a larger text never draws a value over its label (Oct 31 2026, break-it E5)
+local function fieldLineHs()
+    local T, tm = ZeD.T, ZeD.TM
+    local bodyFH = tm:getFontHeight(T.fontF2)
+    return math.max(bodyFH, tm:getFontHeight(T.fontF1)), math.max(bodyFH, tm:getFontHeight(T.fontF4))
+end
+
+-- the name's line (the card measured it in F1 and drew it in F2: the taller of the two)
+local function nameRowH()
+    local T = ZeD.T
+    return math.max(ZeD.TM:getFontHeight(T.fontF1), ZeD.TM:getFontHeight(T.fontF2))
+end
+
 local function measureZoneAH()
     local T = ZeD.T
     local secFH  = ZeD.TM:getFontHeight(T.fontF1)
     local bodyFH = ZeD.TM:getFontHeight(T.fontF2)
+    local lblH, valH = fieldLineHs()
     local headerH = secFH + bodyFH + T.px(20)
     local bodyH  = T.px(FIELD_PAD)                          -- top padding
-    bodyH = bodyH + secFH + T.px(12)                        -- name row + gap
-    bodyH = bodyH + (bodyFH * 2 + T.px(10)) * 3             -- 3 field rows
-    bodyH = bodyH + T.px(4) + bodyFH + T.px(1) + bodyFH + T.px(10)      -- time survived
-    bodyH = bodyH + T.px(4) + bodyFH + T.px(1) + bodyFH           -- weapon + kills
+    bodyH = bodyH + nameRowH() + T.px(12)                   -- name row + gap
+    bodyH = bodyH + (lblH + valH + T.px(10)) * 3            -- 3 field rows
+    bodyH = bodyH + T.px(4) + lblH + T.px(1) + valH + T.px(10)      -- time survived
+    bodyH = bodyH + T.px(4) + lblH + T.px(1) + valH               -- weapon + kills
     bodyH = bodyH + T.px(FIELD_PAD)                          -- bottom padding
     return T.px(CARD_PAD) + T.px(LAMINATE_W) + headerH + bodyH + T.px(LAMINATE_W) + T.px(CARD_PAD)
 end
@@ -398,75 +413,108 @@ end
 -- RENDERER — ZONE A: License card text overlay
 -- ============================================================================
 
+-- the name cut to its room with "..." on the distance-field face; kept per name,
+-- room and zoom (no measuring every frame)
+local _nameFit = {}
+local function fitName(sur, fore, room, zoom)
+    local c = _nameFit
+    local X = ZeD.Text
+    local ep = X.measureEpoch and X.measureEpoch() or nil
+    if c.sur == sur and c.fore == fore and c.room == room and c.zoom == zoom and c.ep == ep then return c.out end
+    local f = ZeD.Font.sdf.head
+    local s = tostring(sur) .. ", " .. tostring(fore)
+    if room <= 0 then
+        s = ""
+    elseif X.width(f, s, zoom) > room then
+        local n = #s
+        while n > 0 and X.width(f, string.sub(s, 1, n) .. "...", zoom) > room do n = n - 1 end
+        s = (n > 0) and (string.sub(s, 1, n) .. "...") or ""
+    end
+    c.sur, c.fore, c.room, c.zoom, c.ep, c.out = sur, fore, room, zoom, ep, s
+    return s
+end
+
+-- one field in its own box: the label and the value each cut to the box's width
+-- (nothing when not even "..." fits), never drawn over the next box
+local function drawField(panel, label, value, fx, fy, fw, lblH)
+    local T, A = ZeD.T, ZeD.Atoms
+    if fw <= ZeD.TM:MeasureStringX(T.fontF1, "...") then return end
+    panel:drawText(A.truncateText(tostring(label or ""), T.fontF1, fw), fx, fy,
+        KY.inkDim.r, KY.inkDim.g, KY.inkDim.b, KY.inkDim.a, T.fontF1)
+    if fw <= ZeD.TM:MeasureStringX(T.fontF4, "...") then return end
+    panel:drawText(A.truncateText(tostring(value or ""), T.fontF4, fw), fx, fy + lblH + T.px(1),
+        0.1, 0.1, 0.1, 1.0, T.fontF4)
+end
+
 local function renderLicenseText(panel, win, data, x, drawY, w)
     local T    = ZeD.T
     local pad  = T.px(CARD_PAD)
     local lam  = T.px(LAMINATE_W)
     local secFH  = ZeD.TM:getFontHeight(T.fontF1)
     local bodyFH = ZeD.TM:getFontHeight(T.fontF2)
+    local lblH, valH = fieldLineHs()
     local headerH = secFH + bodyFH + T.px(20)
 
     local cardY = drawY + pad + lam + headerH
     local dataX = x + pad + lam + T.px(PHOTO_W) + T.px(FIELD_PAD)
     local dataW = w - pad * 2 - lam * 2 - T.px(PHOTO_W) - T.px(FIELD_PAD) * 2
     local rowY  = cardY + T.px(FIELD_PAD)
-
-    -- Name row
-    local displayName = data.surname .. ", " .. data.forename
     local tm = ZeD.TM
-    ZeD.Text.draw(panel, ZeD.Font.sdf.head, displayName, dataX, rowY, ZeD.Text.zoomPx(17), 0.07, 0.07, 0.07, 1.0, "l")   -- S124: 17 px design heading on the distance-field face
 
-    -- Weight pill
+    -- Weight pill, at the name row's right; it gives way when it would leave the name
+    -- less than a few letters (the name is the card's)
     local wtW = tm:MeasureStringX(T.fontF2, data.weightStr)
     local pillX = dataX + dataW - wtW - T.px(12)
-    local pillY = rowY + T.px(2)
-    panel:drawRect(pillX, pillY, wtW + T.px(10), bodyFH + T.px(4),
-        0.1, KY.blue.r, KY.blue.g, KY.blue.b)
-    panel:drawText(data.weightStr, pillX + T.px(5), pillY + T.px(2),
-        KY.ink.r, KY.ink.g, KY.ink.b, 0.85, T.fontF2)
-    rowY = rowY + bodyFH + T.px(12)
+    local nameRoom = pillX - T.px(6) - dataX
+    if nameRoom < T.px(48) then
+        nameRoom = dataW
+    else
+        local pillY = rowY + T.px(2)
+        panel:drawRect(pillX, pillY, wtW + T.px(10), bodyFH + T.px(4),
+            0.1, KY.blue.r, KY.blue.g, KY.blue.b)
+        panel:drawText(data.weightStr, pillX + T.px(5), pillY + T.px(2),
+            KY.ink.r, KY.ink.g, KY.ink.b, 0.85, T.fontF2)
+    end
+    -- Name row: cut with "..." to its room (Oct 31 2026, break-it E5)
+    local zoom = ZeD.Text.zoomPx(17)
+    local displayName = fitName(data.surname, data.forename, nameRoom, zoom)
+    if displayName ~= "" then
+        ZeD.Text.draw(panel, ZeD.Font.sdf.head, displayName, dataX, rowY, zoom, 0.07, 0.07, 0.07, 1.0, "l")   -- S124: 17 px design heading on the distance-field face
+    end
+    rowY = rowY + nameRowH() + T.px(12)
 
-    -- Two-column data grid
+    -- Two-column data grid: each field in its own box (a small gap between the boxes)
     local colW = math.floor(dataW / 2)
-    local fields = {
-        { getText("IGUI_char_Sex"),                data.sexStr,     ZeD.tr("UI_ZeD_Identity_Profession"), data.profession },
-        { ZeD.tr("UI_ZeD_Identity_HairStyle"),     data.hairStyle,  ZeD.tr("UI_ZeD_Identity_BodyHair"),   data.bodyHair   },
-        { ZeD.tr("UI_ZeD_Identity_HairColor"),     data.hairColor,  ZeD.tr("UI_ZeD_Identity_FacialHair"), data.facialHair },
-    }
-    for _, row in ipairs(fields) do
-        panel:drawText(row[1], dataX, rowY,
-            KY.inkDim.r, KY.inkDim.g, KY.inkDim.b, KY.inkDim.a, T.fontF1)
-        panel:drawText(row[2], dataX, rowY + bodyFH + T.px(1),
-            0.1, 0.1, 0.1, 1.0, T.fontF4)
-        panel:drawText(row[3], dataX + colW, rowY,
-            KY.inkDim.r, KY.inkDim.g, KY.inkDim.b, KY.inkDim.a, T.fontF1)
-        panel:drawText(row[4], dataX + colW, rowY + bodyFH + T.px(1),
-            0.1, 0.1, 0.1, 1.0, T.fontF4)
-        rowY = rowY + bodyFH * 2 + T.px(10)
+    local cellW = colW - T.px(6)
+    local fields = win._idFields
+    if not fields then
+        fields = { {}, {}, {} }
+        win._idFields = fields
+    end
+    local f1, f2, f3 = fields[1], fields[2], fields[3]
+    f1[1], f1[2], f1[3], f1[4] = getText("IGUI_char_Sex"),            data.sexStr,    ZeD.tr("UI_ZeD_Identity_Profession"), data.profession
+    f2[1], f2[2], f2[3], f2[4] = ZeD.tr("UI_ZeD_Identity_HairStyle"), data.hairStyle, ZeD.tr("UI_ZeD_Identity_BodyHair"),   data.bodyHair
+    f3[1], f3[2], f3[3], f3[4] = ZeD.tr("UI_ZeD_Identity_HairColor"), data.hairColor, ZeD.tr("UI_ZeD_Identity_FacialHair"), data.facialHair
+    for i = 1, 3 do
+        local row = fields[i]
+        drawField(panel, row[1], row[2], dataX, rowY, cellW, lblH)
+        drawField(panel, row[3], row[4], dataX + colW, rowY, cellW, lblH)
+        rowY = rowY + lblH + valH + T.px(10)
         panel:drawRect(dataX, rowY - T.px(4), dataW, T.px(1),
             0.08, KY.blue.r, KY.blue.g, KY.blue.b)
     end
 
     -- Time Survived
     rowY = rowY + T.px(4)
-    panel:drawText(ZeD.tr("IGUI_char_Survived_For"), dataX, rowY,
-        KY.inkDim.r, KY.inkDim.g, KY.inkDim.b, KY.inkDim.a, T.fontF1)
-    rowY = rowY + bodyFH + T.px(1)
-    panel:drawText(data.timeSurv, dataX, rowY, 0.1, 0.1, 0.1, 1.0, T.fontF4)
-    rowY = rowY + bodyFH + T.px(10)
+    drawField(panel, ZeD.tr("IGUI_char_Survived_For"), data.timeSurv, dataX, rowY, dataW, lblH)
+    rowY = rowY + lblH + T.px(1) + valH + T.px(10)
     panel:drawRect(dataX, rowY - T.px(4), dataW, T.px(1),
         0.08, KY.blue.r, KY.blue.g, KY.blue.b)
 
     -- Favorite Weapon | Zombies Killed
     rowY = rowY + T.px(4)
-    panel:drawText(getText("IGUI_char_Favourite_Weapon"), dataX, rowY,
-        KY.inkDim.r, KY.inkDim.g, KY.inkDim.b, KY.inkDim.a, T.fontF1)
-    panel:drawText(data.favWeapon, dataX, rowY + bodyFH + T.px(1),
-        0.1, 0.1, 0.1, 1.0, T.fontF4)
-    panel:drawText(getText("IGUI_char_Zombies_Killed"), dataX + colW, rowY,
-        KY.inkDim.r, KY.inkDim.g, KY.inkDim.b, KY.inkDim.a, T.fontF1)
-    panel:drawText(data.zKills, dataX + colW, rowY + bodyFH + T.px(1),
-        0.1, 0.1, 0.1, 1.0, T.fontF4)
+    drawField(panel, getText("IGUI_char_Favourite_Weapon"), data.favWeapon, dataX, rowY, cellW, lblH)
+    drawField(panel, getText("IGUI_char_Zombies_Killed"), data.zKills, dataX + colW, rowY, cellW, lblH)
 end
 
 -- ============================================================================
