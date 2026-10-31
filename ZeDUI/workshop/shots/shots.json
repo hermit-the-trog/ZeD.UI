@@ -1,5 +1,5 @@
 {
- "note": "Workshop gallery v4 (Oct 21 2026): the Fossoil story, from Screenshots/gallery_v3 (INVENTORY.md, STORY and Desk sections) and the batch-2 captures in Screenshots (zed_6x-8x). Older sets: out/_v1_oct20, out/_v2_oct21, out/_v3_oct21 (with shots_v3.json). Build: py -I ZeDUI/tools/release/make_shots.py ZeDUI/workshop/shots/shots.json (--debug shows anchors). Oct 22: shots.json is edited directly now (build_spec_v4.py is retired: it rebuilt the list from an Oct 21 scratch file and dropped later cards). Oct 25: seven cards for 0.2.0-t4 (dashboards, bubbles, messages, sandbox_ingame, mod_settings, file_picks, turn_off) from Screenshots/workshop_src/g4_*; the t3 set is in out/_v5_oct24_t3. Oct 26: 0.2.0-t6 reshoot (old_job with Hair and beard, the route with the map key, open for business and inventory compare with read marks, options with the five switches); the t5 set is in out/_v7_oct26_t6, the old raws in gallery_v3/_before_oct26_t6. Oct 27 2026 (0.2.0-t7): every card retaken on this build and laid out again (balloons kept off what they explain: \"avoid\" boxes and the overlap report in make_shots.py); new cards: Every window, See-through, Controller highlight, Hidden actions, List or grid, Crafting, Building, Foraging and furniture, The belt, Moodles, Ovens and microwaves, Reading and writing, Fishing, Questions; renumbered 1-55. The t6 set is in out/_v8_oct27_t6_final. Oct 28 2026 (0.2.0-t8): every card with a ZeD icon in frame retaken on this build (the pixel icons: wheels, right-click menu, container buttons, card marks, List / Grid / Doll, folds, pop-out, prompt marks, the Mods star, code-drawn chevrons); sources in Screenshots/gallery_t8 + workshop_src_t8. Cards with no icon in frame keep their t7 pictures, copied into the t8 folders: 11 customers, 12 smoke break, 26 action bar, 30 belt, 31 bubbles, 32 moodles, 33 watches, 34 messages, 35 car radio, 36 dashboards, 39 reading and writing, 40 fishing, 42 controller map, 46 wallpapers, 47 desk, 48 options, 50 mods, 51 a mod's settings, 52 picking files, 53 turning a mod off, 54 profiles and load order (the main-menu screens draw no changed icon). The t7 set is in out/_v9_oct27_t7 (with shots_t7.json). Oct 30 2026 (0.2.0-t13): screens gallery_t13 (gallery_t8 plus the retakes); cards 21 (the card's X) and 22 (the doll split, no leader lines) retaken, card 56 Loadouts new (gallery_loadouts.lua). Oct 30 2026 (0.2.0-t14): every picture retaken (gallery_t14_manifest.txt, gallery_menus_run.ps1, zedqa_mods_panes_run.ps1, then gallery_t14_collect.ps1 -Switch: screens gallery_t14) in the default Dark + Orange with no debug artifacts; cards 57 Radios and the CD player, 58 Television sets, 59 Washer and dryer, 60 Machine plates new (gallery_t14_radios.lua, gallery_t14_indoor.lua; their boxes and anchors are estimates until the retake). Oct 31 2026: boxes and anchors set on the t14 captures for 57-60 (todo flags dropped); the debug-corner patches removed (t14 captures are clean); 60's oven is g14_plate_oven_clean.png (the -debug error toast replaced with the same plate's pixels from zqa_ap_1_tab_stove) and its microwave zqa_ap_3_tab_microwave.png; 2, 4, 6, 38, 50 refitted to the t14 window layout; 4's zoomed pin comes from the t13 capture (the t14 map shows no note). Retakes needed: 20 (the LIST crop shows the grid), 51-53 (the mod panes were not open), 58 (no tape, no snow). The upload set keeps the t13 JPEGs for 20 and 51-53 until then.",
+ "note": "Workshop gallery v4 (Oct 21 2026): the Fossoil story, from Screenshots/gallery_v3 (INVENTORY.md, STORY and Desk sections) and the batch-2 captures in Screenshots (zed_6x-8x). Older sets: out/_v1_oct20, out/_v2_oct21, out/_v3_oct21 (with shots_v3.json). Build: py -I ZeDUI/tools/release/make_shots.py ZeDUI/workshop/shots/shots.json (--debug shows anchors). Oct 22: shots.json is edited directly now (build_spec_v4.py is retired: it rebuilt the list from an Oct 21 scratch file and dropped later cards). Oct 25: seven cards for 0.2.0-t4 (dashboards, bubbles, messages, sandbox_ingame, mod_settings, file_picks, turn_off) from Screenshots/workshop_src/g4_*; the t3 set is in out/_v5_oct24_t3. Oct 26: 0.2.0-t6 reshoot (old_job with Hair and beard, the route with the map key, open for business and inventory compare with read marks, options with the five switches); the t5 set is in out/_v7_oct26_t6, the old raws in gallery_v3/_before_oct26_t6. Oct 27 2026 (0.2.0-t7): every card retaken on this build and laid out again (balloons kept off what they explain: \"avoid\" boxes and the overlap report in make_shots.py); new cards: Every window, See-through, Controller highlight, Hidden actions, List or grid, Crafting, Building, Foraging and furniture, The belt, Moodles, Ovens and microwaves, Reading and writing, Fishing, Questions; renumbered 1-55. The t6 set is in out/_v8_oct27_t6_final. Oct 28 2026 (0.2.0-t8): every card with a ZeD icon in frame retaken on this build (the pixel icons: wheels, right-click menu, container buttons, card marks, List / Grid / Doll, folds, pop-out, prompt marks, the Mods star, code-drawn chevrons); sources in Screenshots/gallery_t8 + workshop_src_t8. Cards with no icon in frame keep their t7 pictures, copied into the t8 folders: 11 customers, 12 smoke break, 26 action bar, 30 belt, 31 bubbles, 32 moodles, 33 watches, 34 messages, 35 car radio, 36 dashboards, 39 reading and writing, 40 fishing, 42 controller map, 46 wallpapers, 47 desk, 48 options, 50 mods, 51 a mod's settings, 52 picking files, 53 turning a mod off, 54 profiles and load order (the main-menu screens draw no changed icon). The t7 set is in out/_v9_oct27_t7 (with shots_t7.json). Oct 30 2026 (0.2.0-t13): screens gallery_t13 (gallery_t8 plus the retakes); cards 21 (the card's X) and 22 (the doll split, no leader lines) retaken, card 56 Loadouts new (gallery_loadouts.lua). Oct 30 2026 (0.2.0-t14): every picture retaken (gallery_t14_manifest.txt, gallery_menus_run.ps1, zedqa_mods_panes_run.ps1, then gallery_t14_collect.ps1 -Switch: screens gallery_t14) in the default Dark + Orange with no debug artifacts; cards 57 Radios and the CD player, 58 Television sets, 59 Washer and dryer, 60 Machine plates new (gallery_t14_radios.lua, gallery_t14_indoor.lua; their boxes and anchors are estimates until the retake). Oct 31 2026: boxes and anchors set on the t14 captures for 57-60 (todo flags dropped); the debug-corner patches removed (t14 captures are clean); 60's oven is g14_plate_oven_clean.png (the -debug error toast replaced with the same plate's pixels from zqa_ap_1_tab_stove) and its microwave zqa_ap_3_tab_microwave.png; 2, 4, 6, 38, 50 refitted to the t14 window layout; 4's zoomed pin comes from the t13 capture (the t14 map shows no note). Retakes needed: 20 (the LIST crop shows the grid), 51-53 (the mod panes were not open),. The upload set keeps the t13 JPEGs for 20 and 51-53 until then. Oct 31 2026 (later): 58 retaken (gallery_t14_retake_manifest.txt): the wide screen plays a tape, the black set shows snow, the antique the standby card.",
  "screens": "C:/Users/danie/Zomboid/Screenshots/gallery_t14",
  "out": "out",
  "shots": [
@@ -6795,10 +6795,10 @@
     {
      "src": "g14_tv_widescreen.png",
      "box": [
-      2658,
-      118,
-      3467,
-      684
+      2664,
+      122,
+      3462,
+      686
      ],
      "tag": "WIDE SCREEN",
      "place": [
@@ -6811,9 +6811,9 @@
      "src": "g14_tv_black.png",
      "box": [
       2645,
-      118,
-      3437,
-      698
+      122,
+      3452,
+      706
      ],
      "tag": "BLACK",
      "place": [
@@ -6826,9 +6826,9 @@
      "src": "g14_tv_antique.png",
      "box": [
       2658,
-      118,
-      3467,
-      634
+      104,
+      3452,
+      636
      ],
      "tag": "ANTIQUE",
      "place": [
@@ -6843,8 +6843,8 @@
     {
      "text": "A tape plays on the screen: its title, then the lines it has shown.",
      "anchor": [
-      2790,
-      643
+      2800,
+      505
      ],
      "side": "bottom",
      "crop": 0,
@@ -6853,8 +6853,8 @@
     {
      "text": "Off the dial, or just after a channel change, the screen shows snow.",
      "anchor": [
-      3040,
-      380
+      3050,
+      400
      ],
      "side": "bottom",
      "crop": 1,
@@ -6863,7 +6863,7 @@
     {
      "text": "A station that is off the air shows its sign-off card, or the standby card once it has stopped for good.",
      "anchor": [
-      2950,
+      2960,
       330
      ],
      "side": "bottom",
@@ -6873,8 +6873,8 @@
     {
      "text": "The knob pulls on and pushes off, and turns for the volume. The dial has twelve stops.",
      "anchor": [
-      3340,
-      335
+      3342,
+      382
      ],
      "side": "top",
      "crop": 2,
