@@ -293,6 +293,10 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
   overview). The 400 included things the game itself cannot draw on the ground (551 of the game's own
   errors while they lay there; zedqa_bars_look should pick tools and weapons only). The grid still reads
   raised at the start and end (ElecShutModifier 99999, power on).
+- The QA save's grid switched off (director, Oct 30: "switch it off"; zedqa_grid_off.lua): every backup
+  since Oct 28 had ElecShutModifier 99999 (power never shut). Now 0 and the world's power flag off; read
+  back after a restart (0, off). Tests that need power raise both for their run and put back "off". The
+  D: backup of Oct 30 refreshed with it.
 
 ## Confirmed
 
