@@ -907,14 +907,18 @@ local function drawLabelValue(panel, x, y, w, label, value)
     return math.max(T.fontF1H, T.fontF3H)
 end
 
-local function dotLine(panel, x, y, color, text, font)
+-- w: the line's width; the words are cut with "..." to the room after the dot (Oct 31 2026,
+-- break-it E3: "Not inspect" ran off the card's right edge)
+local function dotLine(panel, x, y, w, color, text, font)
     local T = ZeD.T
     font = font or T.fontF2
     local fh = ZeD.TM:getFontHeight(font)
     local d = T.px(7)
     ZeD.Atoms.drawStatusDot(panel, x, y + math.floor((fh - d) / 2), color, d)
     local tc = T.text
-    panel:drawText(text, x + d + T.px(6), y, tc.r, tc.g, tc.b, tc.a or 1, font)
+    local tx = x + d + T.px(6)
+    text = ZeD.Atoms.truncateText(text, font, math.max(0, x + w - tx))
+    panel:drawText(text, tx, y, tc.r, tc.g, tc.b, tc.a or 1, font)
     return fh
 end
 
@@ -1029,7 +1033,7 @@ local function drawSummary(panel, s, sx, sy, sw, v, chr, parts, hl)
     local dc = (miss > 0 and T.danger) or (worn > 0 and T.warning) or T.positive
     local line = (miss == 0 and worn == 0) and ZeD.tr("UI_ZeD_Veh_NothingNeedsWork")
                  or ZeD.tr("UI_ZeD_Veh_MissingWorn", miss, worn)
-    yy = yy + dotLine(panel, sx, yy, dc, line) + T.px(8)
+    yy = yy + dotLine(panel, sx, yy, sw, dc, line) + T.px(8)
     A.drawDividerH(panel, sx, yy, sw, false)
     yy = yy + T.px(6)
     local eng = v:getPartById("Engine")
@@ -1194,7 +1198,7 @@ local function renderOverview(panel, win, s, x, y, w, h, v, chr, inspected)
         A.drawSegFill(panel, sx, yy, sw, T.fillBarH, A.FILL_SEGS, 0)   -- (not known yet: no reading in the help line)
         yy = yy + T.fillBarH + T.px(8)
         local dc = T.textDim
-        yy = yy + dotLine(panel, sx, yy, { r = dc.r, g = dc.g, b = dc.b, a = 0.6 }, ZeD.tr("UI_ZeD_Veh_NotInspected")) + T.px(8)
+        yy = yy + dotLine(panel, sx, yy, sw, { r = dc.r, g = dc.g, b = dc.b, a = 0.6 }, ZeD.tr("UI_ZeD_Veh_NotInspected")) + T.px(8)
         A.drawDividerH(panel, sx, yy, sw, false)
         yy = yy + T.px(6)
         yy = yy + M.drawStatRow(panel, sx, yy, sw, getText("IGUI_PlayerStats_Type"), mechType(v))
