@@ -734,7 +734,10 @@ function R.chStep(chr, dev, st, dir, wrap)
     local s = R.stopOf(st.channel)
     local i
     if wrap then
-        i = s and (((s.i - 1 + dir) % #stops) + 1) or (dir > 0 and 1 or #stops)
+        -- (wrap: down on the first stop goes to the last, up on the last to the first; director, Oct 30 2026, punch
+        -- list 23. Kahlua's % keeps a negative dividend's sign, so -1 % n is -1 here: add n before taking it)
+        local n = #stops
+        i = s and (((s.i - 1 + dir + n) % n) + 1) or (dir > 0 and 1 or n)
     else
         i = math.max(1, math.min(#stops, (s and s.i or 1) + dir))
         if s and i == s.i then return false end

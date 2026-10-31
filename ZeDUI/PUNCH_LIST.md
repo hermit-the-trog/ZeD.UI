@@ -215,6 +215,7 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     (other Lua gives a positive one), so "one below the first" comes out as channel 0, which does not
     exist. Options: (a) wrap round, as the test and the design expect (CH down on 1 goes to 12, CH up on
     12 goes to 1); (b) stop at the ends without an error, as the antique's dial does.
+    **fixed (build, Oct 30):** the step adds the stop count before the remainder, so it wraps both ways.
 24. **The laundry card opens at half width with the small face.** chosen (director, Oct 30: "Yes, first options"): the card opens full width
     (the face that fills it follows) and the water amount goes after its label. Found by QA, Oct 30
     (zedqa_laundry at 1355c3f): the gears button opens the card, but at the half card (about 430 px at
@@ -225,6 +226,15 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     seen running afterwards: not yet clear whether that is the test or the switch. Shots:
     zqa_ldy_*_1_open.png. Options: the card opened full width, as the handoff says (the face that fills
     it follows); the value placed after its label.
+    **fixed (build, Oct 30). Cause of the "half card": the test.** The card opens at the full card; the
+    test measured it, and took the _1_open shots, while the drawer was still sliding open (each frame
+    picks the face that fits the room it has then; the later _2_running shots show the full card and
+    the 392 face). The test now waits for the drawer to finish. The overlap was real: a card's
+    label-and-value pair right-aligned the value with no regard for its label, and a piped machine's
+    "10000.0 of 10000 L" ran over "Water". Now a value is cut short before its label (every object
+    card), and the laundry card puts Water and Inside on a row each. The power switch is fine: the test
+    read the card's buttons from the frame before (just after a power change it saw the old state),
+    and it expected DRY to act while already in dryer mode; both fixed in the test.
 25. **The Character window shows a "Tab content - placeholder" drawer.** chosen (director, Oct 30: "Yes, first options"): when the Radio tab goes
     away, the window goes back to Loot with the drawer shut. Found by QA, Oct 30 (a
     zedqa_rtv shot, zqa_rtv_4d_tv_black_triple_n_standby.png): after the radio left the hand while
@@ -232,6 +242,9 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     placeholder" in it. Cause not checked. Options: the window goes back to Loot with the drawer shut
     when the Radio tab goes away (the rule when a tab's thing leaves); or it stays on an empty Radio tab
     until the player moves.
+    **fixed (build, Oct 30). Cause:** when the active tab vanished, the window set the tab to Loot but
+    left the drawer open in tab mode, and the drawer drew Loot's missing tab card as the placeholder.
+    Now it goes back to Loot exactly as pressing Loot does (drawer shut); an item card stays.
 
 ## Test process
 

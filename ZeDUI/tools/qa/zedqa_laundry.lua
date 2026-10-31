@@ -191,7 +191,10 @@ local function card() local w = WW(); return w and w._objectCard end
 local function entry() local c = card(); return c and c.entry end
 local function zone(fid)
     local c = card()
-    for _, z in ipairs((c and (c._lastZones or c._zones)) or {}) do if z.fid == fid then return z end end
+    -- (the card's zones of the frame last drawn: _zones between frames; _lastZones is a frame older and lagged the
+    -- readings by one frame, so a switch just after power changed read the old state; Oct 30 2026)
+    local zs = c and ((c._zones and #c._zones > 0) and c._zones or c._lastZones) or nil
+    for _, z in ipairs(zs or {}) do if z.fid == fid then return z end end
     return nil
 end
 local function press(fid, tag)
@@ -294,8 +297,10 @@ local function stateCase(tag, getObj, o, powered, watered, shotName)
         local canRun = powered and (watered or not (o.hasWater and o.washMode))
         check(z ~= nil and ((z.run ~= nil) == canRun), label .. ": the switch " .. (canRun and "acts" or "does nothing"))
         if o.combo then
+            -- (DRY acts with power while the machine is in washer mode; in dryer mode it is already set and does nothing)
             local zm = zone("ldy:mode_dry")
-            check(zm ~= nil and ((zm.run ~= nil) == powered), label .. ": the DRY key " .. (powered and "acts" or "does nothing"))
+            local dryActs = powered and obj:isModeWasher()
+            check(zm ~= nil and ((zm.run ~= nil) == dryActs), label .. ": the DRY key " .. (dryActs and "acts" or "does nothing"))
         end
         local e = entry()
         local s = e and e.def.status(e.t)
@@ -339,7 +344,12 @@ local function machine(tag, getObj, pidWant, opts)
         for i, h in ipairs((c and c._cc and c._cc.hits) or {}) do if h.key == "obj:ZeDLaundry" then idx = i end end
         if idx then CT.press(c, idx) end
     end)
-    waitFor(10, 600, function() local e = entry(); return obj == nil or (e and e.t and e.t._face ~= nil and e.t._st ~= nil) end, function()
+    -- (waits for the drawer to finish opening: a card measured while it slides open is narrower and picks a narrower
+    -- face for those frames; Oct 30 2026, the second check's false "half card")
+    waitFor(10, 900, function()
+        local e, c = entry(), card()
+        return obj == nil or (e and e.t and e.t._face ~= nil and e.t._st ~= nil and c and math.abs(c:getWidth() - ZeD.T.px(480)) <= 1)
+    end, function()
         if not obj then return end
         local e, c = entry(), card()
         check(e and e.def.id == "laundry" and e.t.obj == obj, tag .. ": the gears button opens the laundry card on it")
