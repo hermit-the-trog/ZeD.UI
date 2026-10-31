@@ -791,14 +791,19 @@ local function drawColumnHeading(self, GV, xOff, colW, barH, hdrY, padX, secFH, 
         end
         return
     end
-    -- Right: 2-row stack — weight (F1 hi) over count (F5 norm)
-    local stackW = math.max(wtW, cntW)
+    -- Right: 2-row stack — weight (F1 hi) over count (F5 norm). The stack stays inside the
+    -- heading's own row: where both lines do not fit (large text) the count goes, then the
+    -- weight (the window's foot line says both); centred, it ran up over the title bar's
+    -- own weight (Oct 31 2026, break-it E4)
     local stackH = secFH + gap + f5FH
-    local stackY = barH + math.floor((infoAreaH - stackH) / 2)
+    if stackH > infoAreaH then cntStr, cntW, stackH = nil, 0, secFH end
+    if stackH > infoAreaH then wtStr, wtW, stackH = nil, 0, 0 end
+    local stackW = math.max(wtW, cntW)
+    local stackY = barH + math.max(0, math.floor((infoAreaH - stackH) / 2))
     local htc    = T.toneHi
     local ntc    = T.toneNorm
-    self:drawText(wtStr,  xOff + colW - wtW  - padX, stackY,               htc.r, htc.g, htc.b, htc.a, T.fontF1)
-    self:drawText(cntStr, xOff + colW - cntW - padX, stackY + secFH + gap, ntc.r, ntc.g, ntc.b, ntc.a, T.fontF5)
+    if wtStr then self:drawText(wtStr, xOff + colW - wtW - padX, stackY, htc.r, htc.g, htc.b, htc.a, T.fontF1) end
+    if cntStr then self:drawText(cntStr, xOff + colW - cntW - padX, stackY + secFH + gap, ntc.r, ntc.g, ntc.b, ntc.a, T.fontF5) end
     -- List | Grid, left of the weight (the zones go in after the hit zones are cleared)
     stackW = stackW + drawViewToggle(self, GV, xOff, colW - stackW - padX * 2, barH, infoAreaH, padX)
     -- Left: icon + name (F4 norm), vertically centred in info area
