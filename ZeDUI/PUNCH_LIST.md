@@ -408,6 +408,22 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     on a resolution change, both windows are kept on the screen (no taller than it, no wider, wholly on
     it; the saved width capped at half the screen). A size set by a script mid-game is still taken as
     given. QA to confirm with a resolution change in game.
+31. **The item card's "Name this item" box outlived its card.** Found by QA, Oct 31 (the break-it run,
+    zqa_bclk_w_vehicle.png): a double click on the card's name opened the box, and it stayed top-left
+    through every later tab of both windows, shut cards and a layout reset. Cause: nothing tied the box
+    to the card; it went only on OK or Cancel, and a second click opened a second box.
+    **fixed (build, Oct 31, b0e9df1):** one rename box at a time (a new one cancels the old), and a box
+    opened from a card goes, as Cancel, when that card shuts, shows another item, or its drawer or
+    window folds. The item menu's Rename (no card) still waits for OK or Cancel. QA to confirm.
+32. **The flyer's full-page reader sat behind both windows.** Found by QA, Oct 31 (zqa_bclk_c_health.png
+    onward): a double click in the Loot grid read the Fossoil flyer; the reader opened, then stayed half
+    hidden under the Character and World windows until the run quit. Cause: the reader came up on top,
+    but each later press on a window raised that window over it.
+    **fixed (build, Oct 31, f096c43):** while open, the reader stays over both windows (a menu or prompt
+    a window opens still shows over the reader); it already takes the controller, and B or Escape close
+    it. QA to confirm, with the mouse and the pad.
+    **Question for the director:** should the reader also close when the card (or the Papers page) it was
+    opened from closes, or stay open until B, Escape or its close box?
 
 ## Test process
 
