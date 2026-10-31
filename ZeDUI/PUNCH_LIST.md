@@ -486,6 +486,10 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
       **Question for the director:** at this setting the photo column leaves the text about 20 units, so
       the fields now read "..." or nothing. Which? (a) the photo shrinks with the card; (b) at narrow
       widths the fields move under the photo, full width; (c) the photo hides at narrow widths.
+    - ID card photo: the figure drew below the card, over the window's status line, when the card was
+      scrolled or taller than the view. Cause: the figure draws on its own and only its top was kept
+      under the tab header. **fixed (build, Oct 31, 93bb7ad):** its top and bottom both stay inside the
+      card's view (as the Equip doll's do); it hides when scrolled out.
     - Maps: the header's last stamps, "Aa" and the inks ran under full view. **fixed (build, Oct 31,
       122c060):** nothing passes full view: the stamps close up first, then pinned stamps fold away from
       the end (each is still in the full set under the fold arrow), then inks from the end, then "Aa".
