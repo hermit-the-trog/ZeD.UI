@@ -261,6 +261,9 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
       1280x800 pass, hairbeard, charinfo, the uncovered parts (zedqa_uncovered21.lua); t14 not staged.**
       **g chosen (director, Oct 30: "Yes, fix it"): the scroll area under a name of its own.** Then QA's
       re-check (asking for the screen), and t14 staged if it passes.
+      **g fixed (build, Oct 30):** the scroll area is win._thermalBodyRect; win._thermalView is the view
+      number again. Every field ae4b30d sets was checked against its earlier use: the others
+      (_focusIdx, _focusPendingEntry, _navLast) keep their meaning; _thermalPinned is new. QA to confirm.
       Test-side: zedqa_two_widths sees both windows 4 px off after closing a card at 1280x800 (the
       known order flake); zedqa_laundry's dryer dial check failed once at 1280x800; the band probe opened the
       Maps pop-out (not a list) and left it open. Shots: Screenshots/zqa_band_*.png (the 1280x800 run's).

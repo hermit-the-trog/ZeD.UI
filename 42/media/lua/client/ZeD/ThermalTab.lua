@@ -268,7 +268,7 @@ function ZeD.ThermalTab.render(panel, win, x, y, w, h)
     -- Oct 30 2026, punch list 21 a-f: what the body shows between the header and the band (the
     -- figure's parts outside it are no stops: the window's _inBodyView), and a part the
     -- controller focuses kept whole in view, by the least scroll (once per focus change)
-    win._thermalView = { x = x, y = scrollY, w = contentW, h = scrollH }
+    win._thermalBodyRect = { x = x, y = scrollY, w = contentW, h = scrollH }   -- (its own name: _thermalView is the chosen view, 1..7; punch list 21 g)
     if needsScroll then
         local Focus = ZeD.Input and ZeD.Input.Focus
         local el = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == win
