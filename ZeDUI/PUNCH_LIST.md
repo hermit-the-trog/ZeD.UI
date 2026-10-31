@@ -261,6 +261,24 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
       1280x800 pass, hairbeard, charinfo, the uncovered parts (zedqa_uncovered21.lua); t14 not staged.**
       **g chosen (director, Oct 30: "Yes, fix it"): the scroll area under a name of its own.** Then QA's
       re-check (asking for the screen), and t14 staged if it passes.
+      **QA re-check at fcf5854 (Oct 30, 4K and 1280x800): passed.** a to g hold: the pop-ups hold the
+      controller and give the focus back (Health, Thermal, Journal on every page, Craft, Build); Down from the
+      Health figure reaches the band at 1280x800 with Large text; Cut's stop on its button; the exercise list
+      stays open; the game's Character Info window stays hidden at 1280x800; Thermal draws. And what the
+      first check left out: the mouse on the pop-ups (Health, Thermal, Journal, Craft) opens, picks, shuts;
+      the Maps delete question is in the band with Cancel and Delete; Forage's Search turns search mode on
+      and off; Start sitting down is greyed with "Stand up before exercising."; the Journal's Delete asks in
+      the band and Cancel puts it away; the focus stays on the craft key after a craft.
+      **The full pass before t14 (fcf5854, 4K; 2026-10-30_t14_fullscreen4k.md): t14 not staged.** Two new
+      failures since t13:
+      h. Radios and TVs by controller (zedqa_rtv, 19 of 214 fail; all passed at c5090f6): the faces'
+         battery, headphone and disc / tape keys are no longer controller stops (the CD player, the black
+         TV), and on the antique TV A on the knob and Up on the knob or the dial do nothing. Likely from
+         ae4b30d's controller changes; cause not yet checked.
+      i. A bag inside a bag (zedqa_wt_bracket): "the pack's column did not open beside the bag" (passed at
+         t13). Cause not checked.
+      The rest as at t13 (world_pad_take, px_icons, dash_green: the known flakes; restock's lines are the
+      game's own "Vehicles.Init.Radio" messages).
       **g fixed (build, Oct 30):** the scroll area is win._thermalBodyRect; win._thermalView is the view
       number again. Every field ae4b30d sets was checked against its earlier use: the others
       (_focusIdx, _focusPendingEntry, _navLast) keep their meaning; _thermalPinned is new. QA to confirm.
