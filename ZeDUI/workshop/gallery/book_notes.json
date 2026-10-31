@@ -1,0 +1,37 @@
+{
+  "note": "The kernel guy's own notes in the gallery book, over the shot list's callouts. Each entry swaps one callout's words (matched by its text in shots.json) and says which of the four-colour pen's inks it is written in: blu, red, blk or grn. shots.json itself stays as it is, for make_shots.py's cards. Optional \"at\" (the note's top-left, in the 1920 x 1080 layout) and \"maxw\" move a note whose new words need room.",
+  "customers": [
+    {
+      "match": "Customers queue at the counter.",
+      "text": "At least someone knows how to queue in this country.",
+      "pen": "grn"
+    },
+    {
+      "match": "The watch you wear, at the left end of the belt.",
+      "text": "Watch on the left wrist is the watch on the left side of the belt. Watch worn on the right wrist ... you guessed it, on the right of the belt.",
+      "pen": "blu",
+      "at": [
+        20,
+        748
+      ],
+      "maxw": 246
+    }
+  ],
+  "loadouts": [
+    {
+      "title": "Loadouts"
+    }
+  ],
+  "building": [
+    {
+      "match": "Show: Ready is on, so the list holds only what you can build now. Nothing is ready yet.",
+      "text": "Show: Ready is on, so the list holds only what you can build now. Nothing is ready yet.",
+      "pen": "blu",
+      "at": [
+        1500,
+        190
+      ],
+      "maxw": 320
+    }
+  ]
+}
