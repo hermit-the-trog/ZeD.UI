@@ -198,6 +198,38 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     whole tenth is reached (4% shows none). Pointing at a bar puts the exact value in the help line
     ("Condition 64%", "Fitness 5, 40% to level 6"). Not changed: Thermal's temperature scale with its
     needle, the dash gauges, and progress bands (the action bar, crafting, uploads) stay smooth.
+    **QA, Oct 30 (in game, 4K, 1355c3f, the director's yes):** the lit counts pass (64% lights 6, 4% 0,
+    100% 10, 0 0, 70% 7, 30% 3, 99.9% 9), ten distinct cells at the narrowest bar (42 px), a skill at 5
+    lights 5, the Skills help words ("Fitness 5, 40% to level 6"). The help line under the pointer was
+    skipped (the controller's cues were showing). Shots: Skills, the Equip list and doll, Health,
+    Thermal (zqa_bars_*.png). Speed: no stutter. Every tab costs what it did at t13 (8.3 to 11.5 ms a
+    tick; Thermal 11.5 against 9.7, Equip 10.5 against 12.4); 400 tools on the ground 10.6 ms still and
+    10.9 ms scrolling against 8.5 ms empty. The tools stacked into 10 rows of 40, so a list of hundreds
+    of separate rows is still to try. The animal pen's bars were not shown (the pen did not register in
+    time).
+23. **A TV's channel buttons stop at the ends: CH down on channel 1 and CH up on 12 throw an error.**
+    open. Found by QA, Oct 30 (zedqa_rtv at 1355c3f): on the black and the widescreen TV, CH down from the
+    first channel and CH up from the twelfth do nothing, and the game logs an error in the mod
+    (RtvFace.lua, the channel step: "attempted index: freq of non-table"). Cause: the step works out the
+    next channel with a remainder, and the game's Lua gives a negative remainder for a negative number
+    (other Lua gives a positive one), so "one below the first" comes out as channel 0, which does not
+    exist. Options: (a) wrap round, as the test and the design expect (CH down on 1 goes to 12, CH up on
+    12 goes to 1); (b) stop at the ends without an error, as the antique's dial does.
+24. **The laundry card opens at half width with the small face.** open. Found by QA, Oct 30
+    (zedqa_laundry at 1355c3f): the gears button opens the card, but at the half card (about 430 px at
+    4K, 1.75) with the washer's, dryer's and washer-dryer's narrow faces, not the full card with the
+    392 face; the header's name is cut to "Whi..."; under the face the water amount ("10000.0 of 10000
+    L") is written over its own "Water" label. With no power the meter is dark and the drum still shows
+    its water, as asked. The test's power-switch checks fail on all three machines though each is
+    seen running afterwards: not yet clear whether that is the test or the switch. Shots:
+    zqa_ldy_*_1_open.png. Options: the card opened full width, as the handoff says (the face that fills
+    it follows); the value placed after its label.
+25. **The Character window shows a "Tab content - placeholder" drawer.** open. Found by QA, Oct 30 (a
+    zedqa_rtv shot, zqa_rtv_4d_tv_black_triple_n_standby.png): after the radio left the hand while
+    its Radio tab was open, the Character window's drawer stayed open with "Loot" and "Tab content -
+    placeholder" in it. Cause not checked. Options: the window goes back to Loot with the drawer shut
+    when the Radio tab goes away (the rule when a tab's thing leaves); or it stays on an empty Radio tab
+    until the player moves.
 
 ## Test process
 
@@ -214,6 +246,17 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
   the machines within one square. The game's own messages also show Java errors when a set is placed
   before it has a square (zedqa_rtv; test order, not the mod).
 - The QA character has lost its deep-run state (Skills mostly 0, 11 days survived, light bags).
+- The QA save's grid (Oct 30 at 1355c3f): ElecShutModifier reads 99999 and the world's power flag reads on
+  both before the first script and after the last (zedqa_power_probe.lua, pw0 / pw1). The scripts put back
+  what they found, but what they found was already raised: an earlier run left it so, or the save was made
+  that way. The save is not at no grid. Restore it from the D: backup's QA save, or set it back once by hand.
+- The second pass at 1355c3f: zedqa_laundry and zedqa_rtv now reach their machines and sets (indoors, on
+  the grid). rtv: the antique's dial, knob push / pull and the controller pass; the house radio and TV
+  resolve to their faces; the battery, headphone and disc / tape lists by controller open and return
+  focus. Still not seen: a picture, a sign-off and the station logos (every station was between
+  broadcasts at that hour: standby on 2 to 11, bars on 12 and 13). Its 19 Java NullPointers are still
+  vanilla's (a set given its device data before it is on a square). zedqa_segbars finishes before the
+  bridge logs its run line, so the runner never sees its DONE and stops (a TIMEOUT that is not one).
 
 ## Confirmed
 

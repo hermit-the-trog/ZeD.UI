@@ -1,0 +1,6 @@
+# Oct 30 2026: the rest of QA's second pass at 1355c3f (the 1735 run stopped at zedqa_segbars, which finished
+# but was not seen): the bars' looks and cost, the per-tab cost, the grid. zedqa_run.ps1 -Manifest this -Mode fullscreen4k
+zedqa_prelude.lua | pre | timeout=120
+zedqa_bars_look.lua | bars | timeout=600
+suite_perf.lua | perf | timeout=300
+zedqa_power_probe.lua | pw1 | timeout=60 | end=ZEDQA pw DONE
