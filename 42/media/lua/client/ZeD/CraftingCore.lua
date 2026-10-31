@@ -1364,10 +1364,11 @@ end
 
 -- One of the band's pop-up boxes: its zone, and the open list's geometry (it opens
 -- upward from the box: the band is at the card's foot). frozen: greyed, no press.
-local function drawPopBox(panel, state, kind, x, y, w, h, label, modes, frozen, focused, mx, my)
+-- (short: the choice alone, shown when "Sort: Craftable" does not fit, break-it B2)
+local function drawPopBox(panel, state, kind, x, y, w, h, label, modes, frozen, focused, mx, my, short)
     local P = POP[kind]
     local hov = (not frozen) and mx >= x and mx < x + w and my >= y and my < y + h
-    M.drawPopupMenu(panel, x, y, w, h, label, hov or state[P.open] == true, (focused and not frozen) and NO_FOCUS_OPTS or nil, frozen)
+    M.drawPopupMenu(panel, x, y, w, h, label, hov or state[P.open] == true, (focused and not frozen) and NO_FOCUS_OPTS or nil, frozen, short)
     if frozen then
         state[P.open] = false
         state[P.zones] = nil
@@ -1467,13 +1468,13 @@ function CC.renderBand(panel, x, y, w, state, config, rd)
         drawCatSelect(panel, state, pfx, lx, by, catW, bh, ZeD.tr("IGUI_invpanel_Category"), true)
         lx = lx + catW + gap
     end
-    drawPopBox(panel, state, "sort", lx, by, sortW, bh,
-        ZeD.tr("UI_ZeD_Craft_SortPick", modeLabel(sortModes, state.sort or "craftable")),
-        sortModes, frozen, fid == pfx .. ":sortMenu", mx, my)
+    local sortName = modeLabel(sortModes, state.sort or "craftable")
+    drawPopBox(panel, state, "sort", lx, by, sortW, bh, ZeD.tr("UI_ZeD_Craft_SortPick", sortName),
+        sortModes, frozen, fid == pfx .. ":sortMenu", mx, my, sortName)
     lx = lx + sortW + gap
-    drawPopBox(panel, state, "show", lx, by, showW, bh,
-        ZeD.tr("UI_ZeD_Craft_ShowToggle", modeLabel(showModes, CC.showMode(state, config))),
-        showModes, frozen, fid == pfx .. ":showMenu", mx, my)
+    local showName = modeLabel(showModes, CC.showMode(state, config))
+    drawPopBox(panel, state, "show", lx, by, showW, bh, ZeD.tr("UI_ZeD_Craft_ShowToggle", showName),
+        showModes, frozen, fid == pfx .. ":showMenu", mx, my, showName)
 end
 
 -- A band pop-up's list, open: drawn last (over the rows) above its box. Its row zones are

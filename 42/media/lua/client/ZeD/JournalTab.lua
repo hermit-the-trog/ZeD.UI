@@ -1188,8 +1188,9 @@ local function drawHeader(panel, win, x, y, w)
     local bx = x + pad
     local hov = (not open) and (not cuesOn()) and A.mouseIn(panel, bx, rowY, bw, ih)
     if hov then help(win, ZeD.tr("UI_ZeD_Journal_HelpPage")) end
-    M.drawPopupMenu(panel, bx, rowY, bw, ih, ZeD.tr("UI_ZeD_Journal_PagePick", ZeD.tr(SUB_TABS[cur].key)),
-        hov or open, focusOf(win, "jpage"), false)
+    local pageName = ZeD.tr(SUB_TABS[cur].key)
+    M.drawPopupMenu(panel, bx, rowY, bw, ih, ZeD.tr("UI_ZeD_Journal_PagePick", pageName),
+        hov or open, focusOf(win, "jpage"), false, pageName)   -- (the page alone when both do not fit, break-it B2)
     local box = win._journalPageBox or {}
     win._journalPageBox = box
     box.x, box.y, box.w, box.h = bx, rowY, bw, ih

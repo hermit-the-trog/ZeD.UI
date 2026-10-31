@@ -483,8 +483,9 @@ function ZeD.ThermalTab._renderBand(panel, win, x, y, w)
     local hov = (not open) and A.mouseIn(panel, boxX, by, boxW, bh)
     if hov and ZeD.Help then ZeD.Help.set(win, ZeD.tr("UI_ZeD_Thermal_HelpViewMenu")) end
     local view = VIEWS[win._thermalView or 1] or VIEWS[1]
-    M.drawPopupMenu(panel, boxX, by, boxW, bh, ZeD.tr("UI_ZeD_Thermal_ViewPick", ZeD.ThermalTab.labelOf(view)),
-        hov or open, focusOf(win, "thermal:view"), false)
+    local viewName = ZeD.ThermalTab.labelOf(view)
+    M.drawPopupMenu(panel, boxX, by, boxW, bh, ZeD.tr("UI_ZeD_Thermal_ViewPick", viewName),
+        hov or open, focusOf(win, "thermal:view"), false, viewName)   -- (the view alone when both do not fit, break-it B2)
     bz.box.x, bz.box.y, bz.box.w, bz.box.h = boxX, by, boxW, bh
 end
 
