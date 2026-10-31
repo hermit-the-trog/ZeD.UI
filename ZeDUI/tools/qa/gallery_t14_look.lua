@@ -95,14 +95,13 @@ end
 say("look " .. tostring(ZeD and ZeD.currentBase) .. " " .. tostring(ZeD and ZeD.currentAccent) .. " " .. tostring(ZeD and ZeD.currentSize)
     .. " | GAL_LOOK dark orange, GAL_STILL " .. GAL_STILL)
 
--- DONE a few ticks later (the runner looks for it after the bridge's own "run #n" line); at the main menu OnFETick runs
+-- DONE a few ticks later (the runner looks for it after the bridge's own "run #n" line). In game only: zedqa_run
+-- refuses OnFETick; the main-menu runners push gallery_t14_look_menu.lua, the same with OnFETick
 local n = 0
 local function later()
     n = n + 1
     if n < 10 then return end
     Events.OnTick.Remove(later)
-    Events.OnFETick.Remove(later)
     say("DONE")
 end
 Events.OnTick.Add(later)
-Events.OnFETick.Add(later)

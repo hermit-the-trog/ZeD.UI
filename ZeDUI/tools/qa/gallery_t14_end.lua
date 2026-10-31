@@ -26,8 +26,6 @@ local function later()
     n = n + 1
     if n < 10 then return end
     Events.OnTick.Remove(later)
-    Events.OnFETick.Remove(later)
     say("DONE")
 end
 Events.OnTick.Add(later)
-Events.OnFETick.Add(later)
