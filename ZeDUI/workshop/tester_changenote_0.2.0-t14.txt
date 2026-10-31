@@ -21,4 +21,15 @@ Fixes
 - Equipping a radio no longer switches the Character window to its Radio tab; the tab appears. A tab that goes away (its radio put down) goes back to Inventory.
 - The game's own Character Info window stays hidden while ZeD is on.
 
+Small screens and large text (Steam Deck, 720p, 2x)
+- Tabs below the window's edge scroll into view (wheel, arrows, controller); Furniture's five tabs fit or scroll.
+- A pop-up box keeps its choice when its label does not fit; headings, labels and values are cut to their own room instead of running over each other (Skills, Vehicle, the ID card, the Inventory heading, the Maps toolbar).
+- The windows come back onto the screen after a resolution change or a layout saved on a bigger screen.
+- The window titles name the tab that is showing.
+
+More fixes
+- The "Name this item" box closes with its card.
+- A reader (a flyer, a newspaper) stays above both windows.
+- TV snow, blinking lamps and radio displays draw again after a long session.
+
 Testers wanted: try the Vanilla preset on a new character and turn things on one by one, and tell us in the Bug reports discussion what you would keep on.
