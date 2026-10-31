@@ -371,9 +371,11 @@ local function drawPlantTag(card, x, y, w, d, title, sub)
     return ps
 end
 
--- The stages as one framed strip (Seedling to Rotten, six equal steps) filled up to the current
+-- The stages as one framed strip (Seedling to Rotten, six equal steps) lit up to the current
 -- stage, with the stage names under it, the current one in the full text colour. Rotten fills
--- the whole strip red.
+-- the whole strip red. Oct 30 2026 (punch list 22, the segmented bars): one segment per stage,
+-- under its name (as Skills give one per level), not ten; pointing at it puts the stage's name
+-- in the help line.
 local function drawPhaseStrip(card, x, y, w, d)
     local T, tm = ZeD.T, ZeD.TM
     local A = ZeD.Atoms
@@ -381,12 +383,14 @@ local function drawPhaseStrip(card, x, y, w, d)
     local bh = T.fillBarH
     local f5 = T.fontF5
     local locked = d.skill < 2
-    local pct, fillC = 0, T.accent
+    local lit, fillC = 0, T.accent
     if not locked and d.phase ~= nil then
-        pct = (d.phase + 1) / n
+        lit = d.phase + 1
         if d.phase == 5 then fillC = T.danger end
     end
-    A.drawFillBar(card, x, y, w, pct, false, fillC, bh)
+    if A.drawSegFill(card, x, y, w, bh, n, lit, fillC) and lit > 0 and PHASES[lit] then
+        ZeD.Help.set(card, A.textCase(ZeD.tr(PHASES[lit])))
+    end
     local cw = w / n
     local ly = y + bh + T.px(3)
     for i = 1, n do

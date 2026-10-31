@@ -285,13 +285,13 @@ function ZeD_MMHost:prerender()
         -- the progress: the System 7 bar (a framed strip, a flat solid fill)
         local barW = bw - T.px(48)
         local prog = math.max(0, math.min(1, tonumber(c.progress) or 0))
-        ZeD.Atoms.drawFillBar(self, ix, cy, barW, prog)
+        ZeD.Atoms.drawSmoothBar(self, ix, cy, barW, prog)   -- (progress: smooth)
         cy = cy + T.fillBarH + T.px(14)
         if c.softresetProgress then
             local la = T.accent
             self:drawText(ZeD.tr("UI_ZeD_Host_Resetting"), ix, cy, la.r, la.g, la.b, la.a or 1, f1)
             cy = cy + T.px(18)
-            ZeD.Atoms.drawFillBar(self, ix, cy, barW, math.max(0, math.min(1, tonumber(c.softresetProgress) or 0)))
+            ZeD.Atoms.drawSmoothBar(self, ix, cy, barW, math.max(0, math.min(1, tonumber(c.softresetProgress) or 0)))
         end
     end
     self:buildStrip(stripY, stripH, w)

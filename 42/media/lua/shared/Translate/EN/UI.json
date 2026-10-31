@@ -3136,6 +3136,8 @@
     "UI_ZeD_Skills_HelpHeader": "Show or hide the skills.",
     "UI_ZeD_Skills_HelpPin": "Pin %1 to the title bar.",
     "UI_ZeD_Skills_HelpUnpin": "Unpin %1 from the title bar.",
+    "UI_ZeD_Skills_BarHelp": "%1 %2, %3 to level %4",
+    "UI_ZeD_Bar_Help": "%1 %2",
     "UI_ZeD_TAS_HelpCatHide": "Fold the %1 ladders.",
     "UI_ZeD_TAS_HelpCatShow": "Show the %1 ladders.",
     "UI_ZeD_TAS_HelpOnly": "Show: %1.",

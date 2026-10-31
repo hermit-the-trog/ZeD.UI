@@ -1045,7 +1045,7 @@ function ZeD_MMOptions:drawZedControl(r, cx, ry, cw, rowId, hit)
         local bh = A.fillBarCompactH()
         local barY = midY - math.floor(bh / 2)
         local function stepX(i) return cx + math.floor((i - 1) / math.max(1, n - 1) * tw) end
-        A.drawFillBar(self, cx, barY, tw, (stepX(sel) - cx) / math.max(1, tw), false, nil, bh)
+        A.drawSmoothBar(self, cx, barY, tw, (stepX(sel) - cx) / math.max(1, tw), false, nil, bh)   -- (a slider's track stays smooth)
         local f1 = T.fontF1
         local d = T.textDim
         -- a tick under every step; a step's name where it does not run into another: the two ends
@@ -1198,7 +1198,7 @@ function ZeD_MMOptions:drawControl(r, cx, ry, cw, rh, rowId, clip)
         local by = midY - math.floor(bh / 2)
         local seg = bw / n
         -- the System 7 bar: a framed strip, a flat solid fill up to the volume
-        ZeD.Atoms.drawFillBar(self, cx, by, bw, (c.volume or 0) / n, false, nil, bh)
+        ZeD.Atoms.drawSmoothBar(self, cx, by, bw, (c.volume or 0) / n, false, nil, bh)   -- (a slider's track stays smooth)
         local tc = T.text
         self:drawText(tostring(c.volume or 0), cx + bw + T.px(10), midY - math.floor(MM.fontH(f2) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
         hit(rowId .. ":vol", cx, by - T.px(6), bw, bh + T.px(12), nil, { drag = function(mx)
@@ -1212,7 +1212,7 @@ function ZeD_MMOptions:drawControl(r, cx, ry, cw, rh, rowId, clip)
         local minV, maxV = c.minValue or 0, c.maxValue or 1
         local frac = (maxV > minV) and ((c.currentValue or minV) - minV) / (maxV - minV) or 0
         -- the track is the System 7 bar; the thumb a flat box with a 1u frame
-        ZeD.Atoms.drawFillBar(self, cx, trY, bw, frac, false, nil, trH)
+        ZeD.Atoms.drawSmoothBar(self, cx, trY, bw, frac, false, nil, trH)   -- (a slider's track stays smooth)
         local thW, thH = T.px(12), T.px(18)
         local thX = cx + math.floor(bw * frac) - math.floor(thW / 2)
         local thY = midY - math.floor(thH / 2)

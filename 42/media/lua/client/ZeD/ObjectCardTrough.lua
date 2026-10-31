@@ -247,7 +247,7 @@ end
 local function gauge(card, x, y, w, frac, c, label)
     local T, tm = ZeD.T, ZeD.TM
     local h = T.fillBarH
-    ZeD.Atoms.drawFillBar(card, x, y, w, math.max(0, math.min(1, frac)), false, c, h)
+    ZeD.Atoms.drawFillBar(card, x, y, w, math.max(0, math.min(1, frac)), false, c, h, label)   -- ("Water 64%")
     local f3 = T.fontF3
     local ly = y + h + T.px(3)
     if label then ZeD.Atoms.drawTextRight(card, label, x + w, ly, f3, T.text) end

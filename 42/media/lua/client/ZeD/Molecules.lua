@@ -1797,13 +1797,15 @@ end
 -- @param x, y    Top-left position
 -- @param w       Available width for the bar
 -- @param ratio   Fill ratio 0.0 to 1.0
+-- @param h       Optional height (default T.fillBarH)
+-- @param label   Optional: what the bar reads, for the help line ("Health" gives "Health 64%")
 -- @return height Bar height consumed (for stacking alignment with stat rows)
-function ZeD.Molecules.drawFillBar(panel, x, y, w, ratio, h)
+function ZeD.Molecules.drawFillBar(panel, x, y, w, ratio, h, label)
     local T = ZeD.T
     local barH = h or T.fillBarH
 
-    -- Graduated color: green > 60%, amber 30-60%, red < 30%
-    ZeD.Atoms.drawFillBar(panel, x, y, w, ratio, true, nil, barH)
+    -- Graduated color: green > 60%, amber 30-60%, red < 30% (ten segments: ZeD.Atoms.drawFillBar)
+    ZeD.Atoms.drawFillBar(panel, x, y, w, ratio, true, nil, barH, label)
 
     return barH
 end
@@ -1811,18 +1813,22 @@ end
 
 -- ============================================================================
 -- 12b. STAT BAR ROW (draw helper)
--- Matches the SkillsTab row pattern exactly: fixed-width value badge on the
--- left, label text after, fill bar as background layer. Same font (fontF1),
--- same row height (secH + 8), no border, no surface fill.
+-- Matches the SkillsTab row pattern: fixed-width value badge on the left,
+-- label text after, the ten-segment bar at the right (ZeD.Atoms.rowBarW wide,
+-- the compact strip). Same row height (the larger of F3 / F2 + 8), the dark
+-- inset background, no border.
+-- Oct 30 2026 (director, punch list 22): the fill under the row became the
+-- segmented bar at its right, as the Skills rows did; pointing at the bar puts
+-- "<label> <value>" in the help line.
 --
--- fillRatio:  0.0 to 1.0 — controls the width of the colored background fill.
--- fillColor:  {r, g, b, a} — the color of the fill bar. Alpha is dimmed
---             automatically (×0.6) so text remains legible.
--- valueColor: optional override for the value text color. Defaults to fillColor.
+-- fillRatio:  0.0 to 1.0 — the share the bar lights (whole tenths).
+-- fillColor:  {r, g, b, a} — the lit segments' color (default the accent).
+-- valueColor: optional override for the value text color (default T.toneNorm).
 -- ============================================================================
 
 function ZeD.Molecules.drawStatBarRow(panel, x, y, w, value, label, fillRatio, fillColor, valueColor)
     local T = ZeD.T
+    local A = ZeD.Atoms
     local valFont = T.fontF3
     local lblFont = T.fontF2
     local valH = ZeD.TM:getFontHeight(valFont)
@@ -1835,14 +1841,14 @@ function ZeD.Molecules.drawStatBarRow(panel, x, y, w, value, label, fillRatio, f
     local base = T.base
     panel:drawRect(x, y, w, rowH, base.a, base.r, base.g, base.b)
 
-    -- 1. Fill bar (colored overlay on dark base — dimmed to keep white text legible)
-    if fillRatio > 0 and fillColor then
-        local fillW = math.floor(w * fillRatio)
-        if fillW > 0 then
-            panel:drawRect(x, y, fillW, rowH,
-                (fillColor.a or 1.0) * 0.5, fillColor.r, fillColor.g, fillColor.b)
-        end
-    end
+    -- 1. The bar at the right: ten segments, a row's width (narrower in a narrow column, never under
+    -- the ten-segment minimum), centred on the row
+    local barW = math.max(A.fillBarMinW(), math.min(A.rowBarW(), math.floor(w * 0.4)))
+    local barH = A.fillBarCompactH()
+    local barX = x + w - T.px(4) - barW
+    local hov = A.drawSegFill(panel, barX, y + math.floor((rowH - barH) / 2), barW, barH, A.FILL_SEGS,
+        A.fillSegsLit(fillRatio), fillColor or T.accent)
+    if hov and ZeD.Help then ZeD.Help.set(panel, ZeD.tr("UI_ZeD_Bar_Help", label, value)) end
 
     -- 2. Value badge (K22 Xanthus — data readout)
     local vc = valueColor or T.toneNorm
@@ -1855,12 +1861,15 @@ function ZeD.Molecules.drawStatBarRow(panel, x, y, w, value, label, fillRatio, f
     panel:drawText(value, valX, textY,
         vc.r, vc.g, vc.b, vc.a, valFont)
 
-    -- 3. Label text (after badge — Lekton, metadata voice)
+    -- 3. Label text (after badge — Lekton, metadata voice), shortened clear of the bar
     local labelX = x + badgeW + T.px(6)
     local tc = T.text
     local lblY = y + math.floor((rowH - lblH) / 2)
-    panel:drawText(label, labelX, lblY,
-        tc.r, tc.g, tc.b, tc.a, lblFont)
+    local room = barX - T.px(6) - labelX
+    if room > 0 then
+        panel:drawText(A.truncateText(label or "", lblFont, room), labelX, lblY,
+            tc.r, tc.g, tc.b, tc.a, lblFont)
+    end
 
     return rowH
 end
@@ -2237,7 +2246,7 @@ function ZeD.Molecules.drawZoneRow(panel, x, y, w, zone, hovered, outDockRect)
     if zone.bar then
         local barY  = y + math.floor((topH - barH) / 2)
         local ratio = math.max(0, math.min(1, (zone.pct or 0) / 100))
-        A.drawFillBar(panel, rightX, barY, colW, ratio, true)
+        A.drawFillBar(panel, rightX, barY, colW, ratio, true, nil, nil, nameStr)   -- (help line: "Torso 64%")
     end
 
     local totalH = topH
@@ -2899,7 +2908,7 @@ function ZeD.Molecules.drawProtZonePair(panel, x, y, w, zoneL, zoneR)
     local function drawZoneBar(zx, zone)
         if not zone then return end
         local pct = (zone.pct or 0) / 100
-        A.drawFillBar(panel, zx, y, colW, pct, true)
+        A.drawFillBar(panel, zx, y, colW, pct, true, nil, nil, zone.name)
     end
 
     drawZoneBar(x, zoneL)

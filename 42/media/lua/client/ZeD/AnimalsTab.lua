@@ -1236,7 +1236,7 @@ local function drawZoneSummary(panel, x, y, w, summary, win)
         local pctW = tm:MeasureStringX(lblFont, pct)
         panel:drawText(pct, bx + barW - pctW, curY, ink.r, ink.g, ink.b, ink.a or 1, lblFont)
         -- Fill bar below label
-        M.drawFillBar(panel, bx, curY + lblH + T.px(2), barW, bar.ratio)
+        M.drawFillBar(panel, bx, curY + lblH + T.px(2), barW, bar.ratio, nil, bar.label)
         bx = bx + barW + barGap
     end
     curY = curY + lblH + T.px(2) + fillBarH + T.px(4)
@@ -1528,7 +1528,7 @@ local function drawZoneInfoBand(panel, win, x, y, w, summary)
         local pct = math.floor(bar.ratio * 100) .. "%"
         local pctW = tm:MeasureStringX(lblFont, pct)
         panel:drawText(pct, bx + barW - pctW, curY, T.text.r, T.text.g, T.text.b, T.text.a or 1, lblFont)
-        M.drawFillBar(panel, bx, curY + lblH + T.px(2), barW, bar.ratio)
+        M.drawFillBar(panel, bx, curY + lblH + T.px(2), barW, bar.ratio, nil, bar.label)
         bx = bx + barW + barGap
     end
     curY = curY + lblH + T.px(2) + fillBarH + T.px(4)
@@ -1781,7 +1781,8 @@ local function drawStructRow(panel, win, x, y, w, kind, o, idx, player, focusId)
         local pw = T.px(60)
         rx = rx - pw
         local ph = A.fillBarCompactH()
-        A.drawFillBar(panel, rx, y + math.floor((h - ph) / 2), pw, math.max(0, math.min(1, prog)), false, nil, ph)
+        -- (the bleed is a timed action's progress: smooth, as the hook's card draws it)
+        A.drawSmoothBar(panel, rx, y + math.floor((h - ph) / 2), pw, math.max(0, math.min(1, prog)), false, nil, ph)
         rx = rx - T.px(6)
     end
     if badge then
@@ -2284,14 +2285,18 @@ local function drawVitalRow(panel, x, y, w, label, value, textDesc, numericDesc,
     local tc2 = T.textSec
     panel:drawText(tc(label), x, valY, tc2.r, tc2.g, tc2.b, tc2.a or 1, lblFont)
 
-    -- Fill bar (right-aligned): the framed strip, a flat fill
+    -- Fill bar (right-aligned): the framed strip, ten segments. Its help line is the row's own reading
+    -- ("Hunger Peckish" until the skill shows the number): no figure the game keeps back (Oct 30 2026)
     local barW = T.px(VITAL_BAR_W)
     local barX = x + w - barW
     local barH = T.fillBarH
-    A.drawFillBar(panel, barX, y + math.floor((rowH - barH) / 2), barW, fillRatio or 0, false, fillColor, barH)
+    local displayText = canSeeNum and numericDesc or textDesc
+    if A.drawSegFill(panel, barX, y + math.floor((rowH - barH) / 2), barW, barH, A.FILL_SEGS,
+            A.fillSegsLit(fillRatio or 0), fillColor or T.accent) and displayText and displayText ~= "" then
+        ZeD.Help.set(panel, ZeD.tr("UI_ZeD_Bar_Help", tc(label), displayText))
+    end
 
     -- Value text (between label and bar)
-    local displayText = canSeeNum and numericDesc or textDesc
     if displayText and displayText ~= "" then
         local maxValW = barX - x - T.px(80) - T.px(8)  -- space between label end and bar
         local valW = tm:MeasureStringX(valFont, displayText)
