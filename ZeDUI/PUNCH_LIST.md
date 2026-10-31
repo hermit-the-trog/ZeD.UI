@@ -449,6 +449,16 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     inventory side gives only its part: the bag, the columns, the container), so a click on the
     strip, LB / RB, the D-pad and a script all show. QA to confirm at 1280x720, 2.0, Large text, both
     windows, every tab.
+34. **The black TV's screen stayed a plain dark colour (no picture).** Found by QA, Oct 31 (gallery slide
+    58, g14_tv_black, and the zedqa_rtv shots). Not the black set itself: its screens, its table entries
+    and its pictures on disk are all in order (it drew "Please stand by" in zqa_rtv_4d_tv_black_turbo).
+    Cause: the snow between channels, and off the dial, never drew on any TV. The snow picks one of three
+    frames from the clock, and the game's Lua gets the remainder wrong on numbers that large, so it asked
+    for "snow_7652706499" and found nothing. Every black-set shot happened to land on snow (the gallery
+    tunes it off the dial on purpose; the rtv shots caught the next channel change). The same slip kept a
+    radio's preset readout from blinking. **fixed (build, Oct 31, HASH):** the frame is worked out
+    without that remainder. QA to confirm: zedqa_rtv's tv_black states (snow now moves, three frames),
+    and retake slide 58 (g14_tv_black should show snow, not a flat screen).
 
 ## Test process
 

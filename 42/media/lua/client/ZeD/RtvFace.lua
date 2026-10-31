@@ -94,6 +94,13 @@ R.INFO = {
 }
 
 local function now() return getTimestampMs() end
+-- which of m steps a clock reading (ms) is on, each step ms long: 0 .. m-1. Not `math.floor(t / ms) % m`: the
+-- game's Lua gets % wrong once the left side passes 2^31 (it clamps the quotient to an int), and a clock in ms
+-- over 125 or 250 is far past that (the TV's snow asked for "snow_7652706499", a picture that is not there).
+local function stepOf(t, ms, m)
+    local n = math.floor(t / ms)
+    return n - math.floor(n / m) * m
+end
 local function clamp01(v) if v < 0 then return 0 elseif v > 1 then return 1 end; return v end
 
 function R.basePid(pid) return P.baseId(pid) end
@@ -424,7 +431,7 @@ function R.reading(st, layout, des)
     if not (st and st.on) then return nil end
     local t = now()
     local freq = O.freqText(st.channel, false)
-    local blinkOff = st.flash and math.floor(t / 250) % 2 == 1
+    local blinkOff = st.flash and stepOf(t, 250, 2) == 1
     local preset = (st.flash and (blinkOff and "" or (st.flashShort or ""))) or ((st.presetIdx and st.presetIdx <= 4) and ("P" .. st.presetIdx)) or ""
     local line = st.flash or (st.scanning and O.word("scan")) or (st.muted and O.word("mute")) or (st.name and ZeD.upper(st.name)) or ""
     if layout == "makeshift2" then
@@ -576,7 +583,7 @@ local function drawScreen(cv, des, sp, st)
     local air = st.air
     if st.playing or air == "picture" then drawPicture(cv, sp, st, tube); return end
     local name, id = air, nil
-    if air == "snow" then name = "snow_" .. tostring(math.floor(now() / R.SNOW_MS) % 3)
+    if air == "snow" then name = "snow_" .. tostring(stepOf(now(), R.SNOW_MS, 3))
     elseif air == "signoff" then
         local stop = R.stopOf(st.channel)
         id = stop and stop.id
