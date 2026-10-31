@@ -5,10 +5,12 @@
 -- with free room squares round it (the Fossoil at West Point when no room is in reach of the QA home). The things are
 -- set down on those squares, shot one section at a time, and taken away before the next. Full 4K screenshots in
 -- Zomboid/Screenshots, each once both windows have stopped moving:
---   tvs      58  g14_tv_widescreen  the wide-screen set playing a tape (the picture: the tape's title and its lines)
+--   tvs      58  g14_tv_widescreen  the wide-screen set playing a retail tape (the picture: the tape's title and its lines)
+--               g14_tv_widescreen_snow  the same set, the tape stopped, off the dial: snow (Oct 31 2026, a spare)
 --               g14_tv_black       the black set tuned off the dial: snow
 --               g14_tv_antique     the antique set on the first station of its dial (sign-off or standby, as the
 --                                  game's broadcast clock has it; the QA world is past the broadcasts: standby)
+--               g14_tv_antique_bars the antique set on channel 12, no station: the bars (a spare)
 --   laundry  59  g14_ldy_washer     the washer with water and a shirt in, running (vanilla's toggle, instant)
 --               g14_ldy_dryer      the dryer with a shirt in, stopped
 --               g14_ldy_combo      the washer-dryer, stopped, washer mode
@@ -174,7 +176,8 @@ function Z.putTv(spr, sq)
     Z.placed[#Z.placed + 1] = obj
     return obj
 end
-function Z.showTv(key, name, prep)
+-- ready(st, air): the state the shot waits for (at most `max` frames; the run prints WARN if it never comes)
+function Z.showTv(key, name, prep, ready, max)
     Z.step(5, function()
         for i, r in ipairs(WW()._radios or {}) do if r.radioInstance == Z.objs[key] then WW()._radioIdx = i end end
         Z.tab("radio")
@@ -185,54 +188,90 @@ function Z.showTv(key, name, prep)
         if prep then prep(o, o:getDeviceData()) end
     end)
     Z.step(30, function() end)
-    Z.waitFor(5, 1200, function()
+    Z.waitFor(5, max or 1200, function()
         local o = Z.objs[key]
         if not o then return true end
         local st = R.read(o)
         if not st then return true end
-        local air = R.air(st)
-        if key == "tv_widescreen" then return st.playing == true and (R._heard[st.key] and #R._heard[st.key].lines >= 3) end
-        return air ~= "snow" or key == "tv_black"
+        return ready(st, R.air(st))
     end, function()
         local o = Z.objs[key]
         local st = o and R.read(o)
-        if st then say(string.format("%s: on %s, channel %s, air %s, playing %s", key, tostring(st.on), tostring(st.channel), tostring(R.air(st)), tostring(st.playing))) end
+        if st then
+            local h = R._heard[st.key]
+            say(string.format("%s: on %s, channel %s, air %s, media %s, playing %s, title %s, lines %d", key, tostring(st.on), tostring(st.channel),
+                tostring(R.air(st)), tostring(st.hasMedia), tostring(st.playing), tostring(st.mediaTitle), h and h.lines and #h.lines or 0))
+        end
     end)
     Z.whenStill(10, function() Z.shot(name) end)
 end
+-- a retail tape with its recording set (Oct 31 2026: an item made by AddItem has no recorded media until it is
+-- given one, as loot is; the t14 take put a blank tape in, addMediaItem refused it, and nothing played). The tape
+-- goes in from the character's inventory, as ISDeviceMediaAction does it.
+function Z.tape(dd)
+    local it = p:getInventory():AddItem("Base.VHS_Retail")
+    if not it then say("ERR no VHS_Retail"); return false end
+    Z.added[#Z.added + 1] = it
+    local md = nil
+    pcall(function()
+        local list = getZomboidRadio():getRecordedMedia():getAllMediaForCategory("Retail-VHS")
+        if list and list:size() > 0 then md = list:get(0) end
+    end)
+    if not md then say("ERR no Retail-VHS recording to put on the tape"); return false end
+    it:setRecordedMediaData(md)
+    local ok, e = pcall(function() dd:addMediaItem(it) end)
+    say("tape: " .. tostring(md:getTitleEN()) .. (ok and "" or (" | ERR addMediaItem: " .. tostring(e))) .. " | has media " .. tostring(dd:hasMedia()))
+    return ok
+end
+local function offDial(dd) local s = R.stops(); dd:setChannel(s[#s].freq + 4) end
 if want("tvs") then
     Z.step(10, function()
         local ring = Z.spot and Z.spot.all or {}
         local SETS = { { "tv_widescreen", "appliances_television_01_1" }, { "tv_black", "appliances_television_01_5" }, { "tv_antique", "appliances_television_01_9" } }
         for i, s in ipairs(SETS) do if ring[i] then Z.objs[s[1]] = Z.putTv(s[2], ring[i]) end end
-        say("TVs placed " .. #Z.placed)
+        local sq = ring[1]
+        local g = false
+        pcall(function() g = sq:hasGridPower() end)
+        say("TVs placed " .. #Z.placed .. " | grid power on their squares " .. tostring(g))
     end)
     Z.waitFor(10, 600, function()
         local n = 0
         for _, r in ipairs(WW()._radios or {}) do for _, o in pairs(Z.objs) do if r.radioInstance == o then n = n + 1 end end end
         return n >= #Z.placed
     end, function() say("the World window lists the sets") end)
-    -- the wide screen: a retail tape in, on, playing (the picture is the tape's title and the lines it has shown)
+    -- the wide screen: on, a retail tape in, playing; the shot once the picture has shown three of the tape's lines
+    -- (the t14 take's step 9 "went on": the tape never played)
     Z.showTv("tv_widescreen", "g14_tv_widescreen", function(o, dd)
         dd:setDeviceVolume(0.3)
-        pcall(function() dd:addMediaItem(instanceItem("Base.VHS_Retail")) end)
         dd:setIsTurnedOn(true)
-        pcall(function() dd:StartPlayMedia() end)
-    end)
+        if Z.tape(dd) then pcall(function() dd:StartPlayMedia() end) end
+    end, function(st) return st.playing == true and (R._heard[st.key] and #R._heard[st.key].lines >= 3) end, 3600)
+    -- the same set, the tape stopped and the dial off its last stop: snow (the spare for slide 58's snow: the black
+    -- set's face drew no screen in any state on Oct 30, its bars and standby included; see the report)
+    Z.showTv("tv_widescreen", "g14_tv_widescreen_snow", function(o, dd)
+        pcall(function() dd:StopPlayMedia() end)
+        pcall(function() offDial(dd) end)
+    end, function(st, air) return air == "snow" and not st.playing end, 600)
     -- the black set: on, a frequency off the dial (the stops' last one plus 4 kHz): snow
     Z.showTv("tv_black", "g14_tv_black", function(o, dd)
         dd:setDeviceVolume(0.3)
         dd:setIsTurnedOn(true)
-        pcall(function() local s = R.stops(); dd:setChannel(s[#s].freq + 4) end)
-    end)
-    -- the antique set: on, the first stop of its dial with a station
+        pcall(function() offDial(dd) end)
+    end, function(st, air) return st.on and air == "snow" end, 600)
+    -- the antique set: on, the first stop of its dial with a station. The QA world is past the broadcasts, so every
+    -- station shows its standby card (zedqa_rtv.lua's dial sweep: standby on 1-11, bars on 12 and 13); a sign-off card
+    -- needs a world still on the air.
     Z.showTv("tv_antique", "g14_tv_antique", function(o, dd)
         dd:setDeviceVolume(0.3)
         dd:setIsTurnedOn(true)
         local stop = nil
         for _, s in ipairs(R.stops()) do if s.id and not stop then stop = s end end
         pcall(function() ZeD.RadioOps.setChannel(p, o, (stop or R.stops()[1]).freq) end)
-    end)
+    end, function(st, air) return st.on and air ~= "snow" end, 1200)
+    -- and on channel 12, where no station is: the bars (a spare)
+    Z.showTv("tv_antique", "g14_tv_antique_bars", function(o, dd)
+        pcall(function() ZeD.RadioOps.setChannel(p, o, R.stops()[12].freq) end)
+    end, function(st, air) return air == "bars" end, 600)
     Z.step(10, function() Z.tab("loot"); Z.clearAll() end)
 end
 
@@ -402,6 +441,7 @@ Z.waitFor(5, 3000, function()
     return Z.sqAt(math.floor(Z.home.x), math.floor(Z.home.y), math.floor(Z.home.z)) ~= nil and getTimestampMs() - Z.t0 > 3000
 end, function()
     say(string.format("back at %d,%d", math.floor(p:getX()), math.floor(p:getY())))
+    GAL14_ONLY = nil   -- (gallery_t14_retake_tvs.lua's section list, for a later full run)
     say("DONE")
 end)
 
