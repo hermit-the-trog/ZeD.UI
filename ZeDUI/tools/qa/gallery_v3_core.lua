@@ -71,6 +71,11 @@ function G.newSeq(tag, maxMs)
         local fin = #S.queue
         local function onFrame()
             S.tick = S.tick + 1
+            -- GAL_STILL (gallery_t14_look.lua): the windows' shape the same for that many frames before a step starts
+            if GAL_STILL and GAL_SHAPE then
+                local sh = GAL_SHAPE()
+                if sh == S.shape then S.same = (S.same or 0) + 1 else S.same, S.shape = 0, sh end
+            end
             local s = S.queue[S.qi]
             if not s then Events.OnRenderTick.Remove(onFrame); return end
             if S.qi < fin and getTimestampMs() - startMs > limit then
@@ -80,6 +85,12 @@ function G.newSeq(tag, maxMs)
             end
             if not s.startTick then
                 if S.tick - S.lastDone < s.after then return end
+                if GAL_STILL and GAL_SHAPE and (S.same or 0) < GAL_STILL then
+                    S.held = (S.held or 0) + 1
+                    if S.held < 900 then return end
+                    S.say("note: the windows were still moving before step " .. S.qi .. " after 900 frames: went on")
+                end
+                S.held = 0
                 s.startTick = S.tick
             end
             local done = true

@@ -29,7 +29,7 @@ end
 S.step(2, function()
     p:setZombieKills(23)
     p:getModData()["Fav:Crowbar"] = 23
-    ZeD.applyTheme("hicon", "teal", ZeD.currentSize)
+    ZeD.applyTheme(((GAL_LOOK and GAL_LOOK[1]) or "hicon"), ((GAL_LOOK and GAL_LOOK[2]) or "teal"), ZeD.currentSize)   -- GAL_LOOK: gallery_t14_look.lua
     if not (CWm.isOpen() and WWm.isOpen()) then
         if WWm.isOpen() then WWm.close() end
         if CWm.isOpen() then CWm.toggle(pn) end

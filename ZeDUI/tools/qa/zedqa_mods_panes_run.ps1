@@ -474,6 +474,14 @@ function Run-Job($job, $subs, $wait = 60) {
     return $line
 }
 function Shot($name) { Run-Job "shot" @{ NAME = "zqa_mp_$name.png" } 30 | Out-Null }
+# a whole script through the bridge (Oct 30 2026: gallery_t14_look.lua / gallery_t14_end.lua, the gallery retake's
+# Debug menu left out and the default look for the pictures, put back before the quit)
+function Push-File($file, $tag, $wait = 60) {
+    $g = Next-Go
+    Copy-Item (Join-Path $QA $file) (Join-Path $Lua "zedqa.lua") -Force
+    Set-Content -Path (Join-Path $Lua "zedqa.go") -Value "$g`n" -NoNewline
+    if (-not (Wait-Log "ZEDQA $tag DONE" $wait)) { $script:fails++; Write-Host "FAIL ${file}: no DONE" } else { Write-Host "  $file -> DONE" }
+}
 
 $p = $null
 $out = New-Object System.Collections.Generic.List[string]
@@ -490,6 +498,7 @@ try {
     Start-Sleep -Seconds 15
     if (-not (Wait-Log 'bridge armed \(main menu' 600)) { "never reached the main menu"; $fails++; return }
     Start-Sleep -Seconds 10
+    Push-File "gallery_t14_look.lua" "g14l"
 
     $l = Run-Job "open" $null 90
     Check ($l -match 'view=mods') "the Mods screen opens"
@@ -633,6 +642,7 @@ try {
     $l = Run-Job "keepOn"
     Check ($l -match 'offNow=true') "Turn off turns it off after the question"
     [void](Run-Job "back")
+    Push-File "gallery_t14_end.lua" "g14e"
 } finally {
     if ($p -and -not $p.HasExited) {
         $g = Next-Go
