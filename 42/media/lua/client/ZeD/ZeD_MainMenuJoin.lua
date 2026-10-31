@@ -42,6 +42,13 @@ local TABS_H, FIND_H, FILTER_H, COLS_H, ROW_H, SUB_H = 30, 34, 30, 20, 46, 42
 local KV_LABEL_W, KV_ROW_H = 96, 20
 local NOTE_H = 20
 
+-- (a clock in ms over a step: which of m steps it is on, 0 .. m-1. Not `math.floor(t / ms) % m`: the game's Lua gets
+-- % wrong once the left side passes 2^31, and a clock in ms divided by a few hundred is far past it; Oct 31 2026)
+local function clockStep(t, ms, m)
+    local n = math.floor(t / ms)
+    return n - math.floor(n / m) * m
+end
+
 local function ms() return MainScreen and MainScreen.instance end
 local function mp() local m = ms(); return m and m.multiplayer end
 local function cts() local m = ms(); return m and m.connectToServer end
@@ -1088,7 +1095,7 @@ function ZeD_MMConnect:prerender()
     local dsz = T.px(9)
     local failed = (not c.connecting) and (c.backBtn:getTitle() == getText("UI_btn_back"))
     local dc = failed and T.danger or T.accent
-    local blink = c.connecting and (math.floor(MM.now() / 450) % 2 == 0)
+    local blink = c.connecting and (clockStep(MM.now(), 450, 2) == 0)
     if not c.connecting or blink then ZeD.Atoms.drawStatusDot(self, ix, cy + math.floor((MM.fontH(f2) - dsz) / 2), dc, dsz) end
     local status = s(c.connectLabel.name)
     local tcol = T.text

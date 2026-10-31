@@ -34,6 +34,13 @@ ZeD.trDefaults({
     UI_ZeD_Radio_Store = "STORE %1", UI_ZeD_Radio_ChStored = "CH %1 STORED", UI_ZeD_Radio_MemFull = "MEMORY FULL",
     UI_ZeD_Radio_ChCleared = "CH %1 CLEARED", UI_ZeD_Radio_Range = "RANGE %1 KM",
 })
+-- (a clock in ms over a step: which of m steps it is on, 0 .. m-1. Not `math.floor(t / ms) % m`: the game's Lua gets
+-- % wrong once the left side passes 2^31, and a clock in ms divided by a few hundred is far past it; Oct 31 2026)
+local function clockStep(t, ms, m)
+    local n = math.floor(t / ms)
+    return n - math.floor(n / m) * m
+end
+
 -- the word for a glass: O.word("scan"), "mute", "micOff", "txOk", "disc", "mic"
 function O.word(w) return ZeD.tr(WORDS[w]) end
 
@@ -521,13 +528,13 @@ local function marquee(str, n)
     str = tostring(str or "")
     if #str <= n then return str end
     local loop = str .. "   "
-    local k = math.floor(now() / 320) % #loop
+    local k = clockStep(now(), 320, #loop)
     local s = (loop .. loop):sub(k + 1, k + n)
     return s
 end
 O.marquee = marquee
 
-local function blinkOn(period) return math.floor(now() / (period or 500)) % 2 == 0 end
+local function blinkOn(period) return clockStep(now(), period or 500, 2) == 0 end
 
 local function triangle(p, x, y, size, c, a)
     for i = 0, size - 1 do
@@ -690,7 +697,7 @@ end
 function O.displayReading(st, t)
     if not (st and st.on) then return nil end
     t = t or now()
-    local function blink(period) return math.floor(t / period) % 2 == 0 end
+    local function blink(period) return clockStep(t, period, 2) == 0 end
     local kind = st.kind
     if O.HAM[kind] then
         local freq = O.freqText(st.channel, true)

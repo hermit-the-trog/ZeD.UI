@@ -31,6 +31,13 @@ local KB = ZeD.Keyboard
 -- design units
 local U = { KEY_W = 30, KEY_H = 28, GAP = 6, PAD = 10, LINE_H = 30, GAP_TO_PROMPT = 8, BOTTOM = 16, MARGIN = 8, FN_PAD = 8 }
 
+-- (a clock in ms over a step: which of m steps it is on, 0 .. m-1. Not `math.floor(t / ms) % m`: the game's Lua gets
+-- % wrong once the left side passes 2^31, and a clock in ms divided by a few hundred is far past it; Oct 31 2026)
+local function clockStep(t, ms, m)
+    local n = math.floor(t / ms)
+    return n - math.floor(n / m) * m
+end
+
 local function clamp(v, lo, hi) if v < lo then return lo end if v > hi then return hi end return v end
 local function inRect(r, x, y) return r and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h end
 local function sound(name) pcall(function() getSoundManager():playUISound(name or "UISelectListItem") end) end
@@ -385,7 +392,7 @@ function ZeD_Keyboard:prerender()
         shown = A.truncateText(shown, f, maxW)
         self:drawText(shown, tx, ty, tc.r, tc.g, tc.b, tc.a or 1, f)
         local cx = tx + ZeD.TM:MeasureStringX(f, text:sub(offset + 1, cur))
-        if math.floor((getTimestampMs() or 0) / 500) % 2 == 0 then
+        if clockStep(getTimestampMs() or 0, 500, 2) == 0 then
             self:drawRect(cx, ty, T.px(1), fhh, tc.a or 1, tc.r, tc.g, tc.b)
         end
     end
