@@ -456,7 +456,7 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     frames from the clock, and the game's Lua gets the remainder wrong on numbers that large, so it asked
     for "snow_7652706499" and found nothing. Every black-set shot happened to land on snow (the gallery
     tunes it off the dial on purpose; the rtv shots caught the next channel change). The same slip kept a
-    radio's preset readout from blinking. **fixed (build, Oct 31, HASH):** the frame is worked out
+    radio's preset readout from blinking. **fixed (build, Oct 31, 3f1be87):** the frame is worked out
     without that remainder. QA to confirm: zedqa_rtv's tv_black states (snow now moves, three frames),
     and retake slide 58 (g14_tv_black should show snow, not a flat screen).
 
