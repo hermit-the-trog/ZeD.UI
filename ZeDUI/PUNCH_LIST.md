@@ -395,6 +395,22 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     fit, the box shows "Squats" (cut short only if even that does not fit), on every pop-up box (Health,
     Thermal's view, Journal's page, Craft and Build's Sort and Show, the lists, the papers); the station
     box leaves out "Station" before the station's name. QA to confirm.
+    **Re-run (QA, Oct 31):** Health's box still read "S...", Craft's band Sort and Show were empty (the
+    arrow alone) and Craft's Category read "-- A...". Cause: the boxes were narrower than their choice.
+    The band shrank Sort and Show by one share of their longest words until neither had room for any
+    word; Health's box got only what the time keys left; the header split its row in equal thirds.
+    **fixed (build, Oct 31, 3fcdcf7):** a box keeps at least its choice and its arrow ("Squats" v):
+    Health drops the time's label, then closes up its spaces; Craft and Build's band closes up its
+    spaces and the amount's readout; the header's Station and Category are at least their value
+    wide, the search giving the room. Where even that is not enough (Craft's band at this setting),
+    each box keeps its first letters and its arrow ("Cr" v, "R" v): nothing empty, nothing
+    overlapping. QA to confirm at 1280x720, 2.0, Large text.
+    **Question for the director:** at 1280x720, UI scale 2.0, Large text Craft's band cannot hold
+    Sort, Show, the amount and Craft in one row with whole words (Sort and Show get about 150 px
+    between them; their choices want about 300). Which? (a) at that setting the band wraps to a
+    second row (Sort and Show above, the amount and Craft below); (b) Sort and Show become one pop-up
+    ("Craftable | Ready", the list holding both choices); (c) the amount's - / + shrink to one
+    stepper (a single box with the number, up / down inside it).
 29. **The Equip list's names cut short at the same setting ("T-shi... Inner", "Leat... Gloves").** open,
     a design question. Found by QA, Oct 31. Cause: at the half card the list's columns do not fit: the
     name gets its 40-unit minimum, the slot column is as wide as the longest slot name of all, the
@@ -424,6 +440,15 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     it. QA to confirm, with the mouse and the pad.
     **Question for the director:** should the reader also close when the card (or the Papers page) it was
     opened from closes, or stay open until B, Escape or its close box?
+33. **The Character window's title named the wrong tab.** Found by QA, Oct 31 (the break-it run at
+    1280x720, UI scale 2.0, Large text): the title read "Angel Cross  +  Equipment" on every tab after
+    Equip, Health and Skills included; right at 4K. Cause: the title was written by the inventory side
+    of the window, and that side is hidden while a tab card takes the whole window, so the title kept
+    the tab open when the side last showed. The World window was built the same way.
+    **fixed (build, Oct 31, d59a72e):** both windows write their title themselves every frame (the
+    inventory side gives only its part: the bag, the columns, the container), so a click on the
+    strip, LB / RB, the D-pad and a script all show. QA to confirm at 1280x720, 2.0, Large text, both
+    windows, every tab.
 
 ## Test process
 
