@@ -29,6 +29,15 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
    Design, radios and the CD player in the half card, TVs in the full card, house radios and TVs on
    the same faces. Request: `ZeDUI/REQUEST_design_radio_tv_faces_20261030.md`. Washers and dryers
    next; then the pocket watch, alarm clock, timer, remote and pager (ideas, not yet asked for).
+   **QA, Oct 30 (in game, 4K, 3ed5369, the director's yes):** passed. A ValuTech walkie in the hand: the
+   Radio tab is the half card at 0.75, 1.0, 1.25, 1.5, 1.75 and 2.0 (its 154 / 206 / 257 / 154 / 180 / 206
+   face), VOL powers it at each. Equipping it leaves the window on Loot; the Radio tab appears (3ed5369's
+   rule). The two-way test (all walkies, ham sets, full view, the controller) passed at 1.75. Ordinary
+   radios and the CD player (zedqa_rtv, 90 checks): own face, the half card, power, volume, tuning,
+   presets, battery, headphones and the disc list by mouse, POWER the controller's first stop, the simple
+   card with faces off; placed sets picked by their tiles, TVs in the full card. Not covered yet: the TVs'
+   power, channels, the antique's dial and knob and the screen states (the test set them down outdoors,
+   no grid, so it skipped them); a house radio and TV found in the world; the lists with the controller.
 3. **Plates at every scale (design first).** fixed (build, Oct 30, 8abb840; Design's
    HANDOFF_plates_fill_20261030.md); QA to confirm, the `@` textures loading first. At 4K on 1.75 the 336
    pixel plates sit small in their cards. Rule: scale scales everything. Choice: each plate re-laid
@@ -37,6 +46,16 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
    the 200 pixel narrow faces stay for Auto on 720 or 800 high screens with the smallest font.
    Request: `ZeDUI/REQUEST_design_plates_fill_20261030.md`. The test checks the right width loads
    and fills its card, crisp, at every scale.
+   **QA, Oct 30 (in game, 4K, 3ed5369, the director's yes; zedqa_plates_fill.lua):** passed but for one
+   check. All 142 `<pid>@<W>` textures load. At 0.75, 1.0, 1.25, 1.5, 1.75 and 2.0 the range, both
+   microwaves, the generator and the grill draw the face that fills the card (336 at 0.75 and 1.5, 450 at
+   1.0 and 2.0, 562 at 1.25, 392 at 1.75) and every press acts: the oven's BAKE 175 START, TIMER 0:30,
+   CANCEL; both microwaves' TIMECOOK 1:00 START and STOP; the generator's switch on and off; the grill's
+   tank and burner. At 0.64 the narrow faces are drawn and the same presses act. The ham set draws the
+   width that fills the drawer at 0.75, 1.0, 1.25, 1.75 and 2.0 and its narrow face at 0.64; at 1.5 the
+   World window's Radio tab did not open within the test's wait, so 1.5 is not confirmed for the ham (a
+   test timing question, re-run). Not covered: an object card with and without its scrollbar; ham tuning
+   and memories at scales other than 1.75. Shots: Screenshots/zqa_pfill_scale<NNN>_<what>.png.
 4. **Disclosures:** every one opens and closes properly. open.
 5. **Screenshots show everything open:** disclosures expanded (Foraging especially). open.
 6. **Buttons:** every button clicked, its result checked; a list of every button and its expected
@@ -110,6 +129,10 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     Notes for the director: the dimmed row still lights up under the pointer although it takes no
     click; Restock's third button reads "Access" at this window width (it read "Accessible" in item
     18's shot). Screenshot: ZeDUI/qa/Oct30_mouse_pass/qa19_restock_dim.jpg.
+    **QA recheck, Oct 30 at 3ed5369 (in game, items 18 and 19):** the presets, Custom, Apply and Loadouts off /
+    on passed again (20 checks); the words now read Vanilla | Vanilla Plus | Vanilla Access and Restock
+    Hardcore | Casual | Access. The dimmed row was not in this run's shots (it scrolled past); unchanged
+    since item 19's check.
 20. **A dimmed row takes no hover highlight (director, Oct 30: "Yes, no highlight").** chosen.
     Found by QA in item 19's check: with Loadouts off, the dimmed Restock row still lights up under
     the pointer although it takes no click. Choice: no hover highlight on a dimmed, inert row (the
@@ -185,6 +208,12 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
   the Eraser sits in the QA character's bag; two_widths depends on the test before it leaving a
   card open; dash_green's fire truck won't pass 2 km/h at the drag strip; px_icons has a first-run
   fluke. The dashboards take 15 of the pass's 57 minutes. The QA save drifts between runs.
+- Washers and dryers (zedqa_laundry, Oct 30 at 3ed5369): not checked. The test sets the machines down two
+  squares from the character, outside the World window's reach, so they never appear in its container
+  list (the shot shows only Ground) and every check after the first few fails on that. The test needs
+  the machines within one square. The game's own messages also show Java errors when a set is placed
+  before it has a square (zedqa_rtv; test order, not the mod).
+- The QA character has lost its deep-run state (Skills mostly 0, 11 days survived, light bags).
 
 ## Confirmed
 
