@@ -1,0 +1,8 @@
+# Oct 30 2026: QA's combined pass for the build at 3ed5369 (punch list 2, 3, 18, 19; radios, CD player, TVs,
+# laundry; the Radio tab no longer switched to). zedqa_run.ps1 -Manifest this -Mode fullscreen4k
+zedqa_prelude.lua | pre | timeout=120
+zedqa_laundry.lua | ldy | timeout=600
+zedqa_rtv.lua | rtv | timeout=600
+zedqa_twoway.lua | tw | timeout=600
+zedqa_recheck_1819.lua | r1819 | timeout=300
+zedqa_plates_fill.lua | pfill | timeout=2400
