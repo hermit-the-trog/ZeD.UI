@@ -263,8 +263,29 @@ if want("tabs") then
     S.step(2, function() local w = Z.CW(); if w then w._healthExerciseSel = Z.was.exSel end end)
     Z.T("zed_12_skills", "c", "skills", 40)
     S.step(2, function() Z.charTab("loot") end)
-    Z.T("zed_13_crafting", "w", "craft", 60, function() return Z.recipe("craft", true) end)
-    S.step(2, function() Z.recipe("craft", false) end)
+    -- zed_13 is slide 20's LIST picture (the Character window's inventory beside Crafting). The List | Grid choice
+    -- is kept per character (modData ZeD_GridViews, else the Inventory option); other QA scripts leave the QA
+    -- character's "player" key on Grid, so the t14 take showed a grid. Oct 31 2026: List set here, a step before
+    -- the tab change so the 60-frame settle covers the redraw; the character's own choice put back after.
+    S.step(2, function()
+        local IR = ZeD.InventoryRenderer
+        if IR and IR.setGridKey then
+            local s = p:getModData().ZeD_GridViews
+            Z.was.grid13 = s and s.player
+            IR.setGridKey("player", false)
+            say("zed_13: the inventory as a list (grid " .. tostring(IR.isGridKey("player")) .. ", was " .. tostring(Z.was.grid13) .. ")")
+        end
+    end)
+    Z.T("zed_13_crafting", "w", "craft", 60, function()
+        local IR = ZeD.InventoryRenderer
+        if IR and IR.isGridKey and IR.isGridKey("player") then IR.setGridKey("player", false) end
+        return Z.recipe("craft", true)
+    end)
+    S.step(2, function()
+        Z.recipe("craft", false)
+        local s = p:getModData().ZeD_GridViews
+        if s then s.player = Z.was.grid13 end
+    end)
     local function mapStyle(style)
         return function()
             local w, m = Z.WW(), Z.mp()
