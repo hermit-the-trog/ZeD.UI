@@ -792,7 +792,7 @@ end
 function ZeD_ItemCard:_startRename()
     if not self.item then return end
     local ren = ZeD.ItemMenu and ZeD.ItemMenu.rename
-    if ren then ren(self.item, self.playerNum or 0) end
+    if ren then ren(self.item, self.playerNum or 0, self) end
 end
 
 function ZeD_ItemCard:_commitRename(text)
@@ -1615,7 +1615,7 @@ function ZeD_ItemCard:getActionStripElements()
             x = ax + nr.x, y = ay + nr.y, w = nr.w, h = nr.h,
             id = "name_row",
             onFocus    = function() card._gpFocusedBtnId = "name_row" end,
-            onActivate = function() ZeD.ItemMenu.rename(item, card.playerNum or 0) end,
+            onActivate = function() ZeD.ItemMenu.rename(item, card.playerNum or 0, card) end,
         }
     end
 

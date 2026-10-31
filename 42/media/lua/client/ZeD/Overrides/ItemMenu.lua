@@ -125,11 +125,56 @@ local function onRenameClick(_, button, playerObj, item)
     pcall(function() item:syncItemFields() end)
 end
 
-local function onRename(item, pn)
+-- One rename prompt at a time, and a prompt opened from an item card goes (as
+-- Cancel) when that card shuts, shows another item, or its drawer or window
+-- folds. Before, a prompt from a double click stayed on screen through every
+-- later tab, both windows and a layout reset, and a second click stacked a
+-- second one (Oct 31 2026, break-it C1).
+local live = nil   -- { box, item, card, misses }
+
+local function boxOpen(box)
+    if not box or box._dead then return false end
+    local ok, vis = pcall(box.isVisible, box)
+    return ok and vis and true or false
+end
+
+local function cancelBox(box)
+    if not boxOpen(box) then return end
+    if box.answerCancel then pcall(box.answerCancel, box) else pcall(box.close, box) end
+end
+
+local function closeRename()
+    local l = live
+    live = nil
+    if l then cancelBox(l.box) end
+end
+
+-- the card still shows this item, on screen (its drawer and window open)
+local function cardHolds(card, item)
+    if not card or card.item ~= item then return false end
+    local ok, vis = pcall(card.isReallyVisible, card)
+    return ok and vis and true or false
+end
+
+-- (each tick; two misses in a row, as the Equip tab's card is hidden and shown
+-- again within one frame's draw)
+local function watchRename()
+    local l = live
+    if not l then return end
+    if not boxOpen(l.box) then live = nil; return end
+    if not l.card then return end
+    if cardHolds(l.card, l.item) then l.misses = 0; return end
+    l.misses = l.misses + 1
+    if l.misses >= 2 then closeRename() end
+end
+
+local function onRename(item, pn, card)
+    closeRename()
     local box = ISTextBox:new(0, 0, 280, 180, ZeD.tr("UI_ZeD_ItemMenu_NameThis"), item:getName(), nil, onRenameClick, pn, getSpecificPlayer(pn), item)
     box:initialise()
     box:addToUIManager()
     if JoypadState.players[pn + 1] then setJoypadFocus(pn, box) end
+    live = { box = box, item = item, card = card, misses = 0 }
 end
 
 local function onFillInventory(pn, context, rawItems)
@@ -205,8 +250,12 @@ if not _G._zedItemMenuHooked then
     _G._zedItemMenuHooked = true
     Events.OnFillInventoryObjectContextMenu.Add(onFillInventory)
     Events.OnFillWorldObjectContextMenu.Add(onFillWorld)
+    Events.OnTick.Add(function() if ZeD.ItemMenu and ZeD.ItemMenu._watch then ZeD.ItemMenu._watch() end end)
 end
 
 -- the card's name row asks through the same prompt with a controller
+-- (rename(item, pn, card): the card ties the prompt to it)
 ZeD.ItemMenu = ZeD.ItemMenu or {}
 ZeD.ItemMenu.rename = onRename
+ZeD.ItemMenu.closeRename = closeRename
+ZeD.ItemMenu._watch = watchRename
