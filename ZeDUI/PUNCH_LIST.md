@@ -208,14 +208,15 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     of separate rows is still to try. The animal pen's bars were not shown (the pen did not register in
     time).
 23. **A TV's channel buttons stop at the ends: CH down on channel 1 and CH up on 12 throw an error.**
-    open. Found by QA, Oct 30 (zedqa_rtv at 1355c3f): on the black and the widescreen TV, CH down from the
+    chosen (director, Oct 30: "Yes, first options"): (a), wrap round. Found by QA, Oct 30 (zedqa_rtv at 1355c3f): on the black and the widescreen TV, CH down from the
     first channel and CH up from the twelfth do nothing, and the game logs an error in the mod
     (RtvFace.lua, the channel step: "attempted index: freq of non-table"). Cause: the step works out the
     next channel with a remainder, and the game's Lua gives a negative remainder for a negative number
     (other Lua gives a positive one), so "one below the first" comes out as channel 0, which does not
     exist. Options: (a) wrap round, as the test and the design expect (CH down on 1 goes to 12, CH up on
     12 goes to 1); (b) stop at the ends without an error, as the antique's dial does.
-24. **The laundry card opens at half width with the small face.** open. Found by QA, Oct 30
+24. **The laundry card opens at half width with the small face.** chosen (director, Oct 30: "Yes, first options"): the card opens full width
+    (the face that fills it follows) and the water amount goes after its label. Found by QA, Oct 30
     (zedqa_laundry at 1355c3f): the gears button opens the card, but at the half card (about 430 px at
     4K, 1.75) with the washer's, dryer's and washer-dryer's narrow faces, not the full card with the
     392 face; the header's name is cut to "Whi..."; under the face the water amount ("10000.0 of 10000
@@ -224,7 +225,8 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     seen running afterwards: not yet clear whether that is the test or the switch. Shots:
     zqa_ldy_*_1_open.png. Options: the card opened full width, as the handoff says (the face that fills
     it follows); the value placed after its label.
-25. **The Character window shows a "Tab content - placeholder" drawer.** open. Found by QA, Oct 30 (a
+25. **The Character window shows a "Tab content - placeholder" drawer.** chosen (director, Oct 30: "Yes, first options"): when the Radio tab goes
+    away, the window goes back to Loot with the drawer shut. Found by QA, Oct 30 (a
     zedqa_rtv shot, zqa_rtv_4d_tv_black_triple_n_standby.png): after the radio left the hand while
     its Radio tab was open, the Character window's drawer stayed open with "Loot" and "Tab content -
     placeholder" in it. Cause not checked. Options: the window goes back to Loot with the drawer shut
