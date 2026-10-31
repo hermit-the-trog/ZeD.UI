@@ -2850,7 +2850,14 @@ local function drawTabStrip(self, win)
             end
         end
         if not activeStillVisible then
-            win._activeTab = "loot"
+            -- (director, Oct 30 2026, punch list 25: back to Loot with the drawer shut, as pressing Loot does. Setting
+            -- only the tab left the drawer open in tab mode, and it drew the "placeholder" card for "loot". An item card
+            -- over the vanished tab stays: only a tab drawer is shut.)
+            if win._drawerMode == "tab" and win._mainContent then
+                _switchTabForNav(win, win._mainContent, "loot")
+            else
+                win._activeTab = "loot"
+            end
         end
     end
     local needsScroll = totalTabH > h

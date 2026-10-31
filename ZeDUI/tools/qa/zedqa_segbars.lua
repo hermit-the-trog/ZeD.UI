@@ -125,5 +125,14 @@ end
 
 local ok, err = pcall(run)
 if not ok then check(false, "error: " .. tostring(err)) end
-say(fails == 0 and "PASS" or ("FAILS " .. fails))
-say("DONE")
+-- (the result a few ticks later: printed at once, DONE came before the bridge logged this run's line and the runner
+-- timed out waiting for it; Oct 30 2026, the second check)
+local ticks = 0
+local function finish()
+    ticks = ticks + 1
+    if ticks < 30 then return end
+    Events.OnTick.Remove(finish)
+    say(fails == 0 and "PASS" or ("FAILS " .. fails))
+    say("DONE")
+end
+Events.OnTick.Add(finish)

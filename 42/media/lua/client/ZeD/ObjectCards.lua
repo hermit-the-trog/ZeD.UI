@@ -382,22 +382,35 @@ function UI.meter(card, x, y, w, label, value, dotC, pct, fillC, zone, lockText)
 end
 
 -- Two-column "Label value" row (pass nil to leave a side empty).
-function UI.pair(card, x, y, w, l1, v1, l2, v2)
+-- one label and its value in a column cw wide: the label at the left, the value right-aligned after it; a value too
+-- long for the room after its label is cut short, never drawn over the label (director, Oct 30 2026, punch list 24)
+local function pairOne(card, px, y, h, cw, l, v)
+    if not l then return end
     local T, tm = ZeD.T, ZeD.TM
+    local ac = T.accent
+    local lt = A.textCase(l)
+    card:drawText(lt, px, y + math.floor((h - tm:getFontHeight(T.fontF1)) / 2), ac.r, ac.g, ac.b, 1, T.fontF1)
+    if type(v) == "function" then
+        v(px + cw, y, h)
+    elseif v then
+        local room = cw - tm:MeasureStringX(T.fontF1, lt) - T.px(8)
+        A.drawTextRight(card, A.truncateText(v, T.fontF2, math.max(0, room)), px + cw, y + math.floor((h - tm:getFontHeight(T.fontF2)) / 2), T.fontF2, T.text)
+    end
+end
+
+function UI.pair(card, x, y, w, l1, v1, l2, v2)
+    local T = ZeD.T
     local h = T.px(20)
     local half = math.floor((w - T.px(16)) / 2)
-    local function one(px, l, v)
-        if not l then return end
-        local ac = T.accent
-        card:drawText(A.textCase(l), px, y + math.floor((h - tm:getFontHeight(T.fontF1)) / 2), ac.r, ac.g, ac.b, 1, T.fontF1)
-        if type(v) == "function" then
-            v(px + half, y, h)
-        elseif v then
-            A.drawTextRight(card, v, px + half, y + math.floor((h - tm:getFontHeight(T.fontF2)) / 2), T.fontF2, T.text)
-        end
-    end
-    one(x, l1, v1)
-    one(x + half + T.px(16), l2, v2)
+    pairOne(card, x, y, h, half, l1, v1)
+    pairOne(card, x + half + T.px(16), y, h, half, l2, v2)
+    return h
+end
+
+-- one label and value across the whole width (a value too long to share a row with a second pair)
+function UI.pairWide(card, x, y, w, l, v)
+    local h = ZeD.T.px(20)
+    pairOne(card, x, y, h, w, l, v)
     return h
 end
 

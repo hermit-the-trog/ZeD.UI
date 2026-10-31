@@ -329,7 +329,9 @@ local function drawFace(card, x, y, w, t)
     local water = (d.cap > 0) and ZeD.tr("UI_ZeD_Laundry_WaterOf", string.format("%.1f", d.fluid), math.floor(d.cap + 0.5))
         or ZeD.tr("UI_ZeD_Laundry_WaterL", string.format("%.1f", d.fluid))
     local inside = (d.n == 0) and ZeD.tr("IGUI_None") or ZeD.tr(d.n == 1 and "UI_ZeD_Laundry_ItemsOne" or "UI_ZeD_Laundry_ItemsMany", d.n)
-    h = h + UI.pair(card, x, y + h, w, ZeD.tr("UI_ZeD_Laundry_Water"), water, ZeD.tr("UI_ZeD_Laundry_Inside"), inside)
+    -- (a row each: a machine on a water pipe reads "10000.0 of 10000 L", too long to share a row; punch list 24)
+    h = h + UI.pairWide(card, x, y + h, w, ZeD.tr("UI_ZeD_Laundry_Water"), water)
+    h = h + UI.pairWide(card, x, y + h, w, ZeD.tr("UI_ZeD_Laundry_Inside"), inside)
     return h
 end
 
