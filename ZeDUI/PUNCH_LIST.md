@@ -503,6 +503,19 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     QA to re-check all four at both settings, and Furniture's strip with the pad (right past Rotate to
     the arrow, A until the strip ends, focus lands on Repair).
 
+**The break-it pass and t14 (QA, Oct 31 2026, overnight; the director: "Before t14 uploads lets find and fix
+the errors. Try to break things ... Unless it involves design input please fix it.")** Found and fixed by build,
+each confirmed in game by QA: 27 (tabs out of reach), 28 (pop-up boxes cut; one design question), 30 (window sizes),
+31 (the rename box), 32 (the reader behind the windows; one design question), 33 (the title), 34 (TV snow and every
+clock-driven blink), 35 and 36 (overlaps at small sizes; design questions). Clean, no errors: windows at 1x1 and
+twice the screen; UI scale 0.5 and 2.0, both text sizes; the windows, the tabs and an item card switched every tick;
+a real-mouse double-click storm over every tab; 150 random controller presses on every tab; 400 game keys; typing
+in the Journal entry, Journal search and Craft search (no game key fires: item 9 for those fields); 300 different
+items, a 200-letter name, broken / rotten / full / empty cards, things removed under their open card or column, an
+empty inventory. Full pass at 99d3372: 93/97, the rest known (rtv's vanilla NullPointers, px, restock's vanilla
+lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game code as 99d3372)**: 4,253 files,
+42.8 MB; description 7,929 + 58; change note with tonight's fixes; zedqa.lock busy until the upload.
+
 ## Test process
 
 - The release check (before every upload, about 5 minutes, pass or fail): right-click opens the
