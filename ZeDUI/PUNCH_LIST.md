@@ -279,6 +279,9 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
          t13). Cause not checked.
       The rest as at t13 (world_pad_take, px_icons, dash_green: the known flakes; restock's lines are the
       game's own "Vehicles.Init.Radio" messages).
+      **h and i chosen (director, Oct 30: "Yes, fix both"):** the radio and TV faces' controls are controller
+      stops again (A opens their lists, the antique's knob and dial answer), and a bag's pack opens its column
+      beside the bag. Then QA re-runs zedqa_rtv and zedqa_wt_bracket and the full pass, and stages t14.
       **g fixed (build, Oct 30):** the scroll area is win._thermalBodyRect; win._thermalView is the view
       number again. Every field ae4b30d sets was checked against its earlier use: the others
       (_focusIdx, _focusPendingEntry, _navLast) keep their meaning; _thermalPinned is new. QA to confirm.
