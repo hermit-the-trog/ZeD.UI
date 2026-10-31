@@ -282,6 +282,18 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
       **h and i chosen (director, Oct 30: "Yes, fix both"):** the radio and TV faces' controls are controller
       stops again (A opens their lists, the antique's knob and dial answer), and a bag's pack opens its column
       beside the bag. Then QA re-runs zedqa_rtv and zedqa_wt_bracket and the full pass, and stages t14.
+      **h fixed (build, Oct 30): cause in the test, not the game.** zedqa_rtv handed its pad steps the window as
+      it stood when the script loaded (zedqa_rtv.lua 318-321, 713-716). In the full pass zedqa_sandbox_ig shuts
+      both windows before it and the script opens them in its own steps, so the window was nothing: the step that
+      enters the tab threw ("_focusEntryZone of non-table", step 51/131/276), the pad never reached the face, and
+      the slot / phones / battery and antique knob checks failed after it. The short runs that passed had the
+      windows open already. The pad steps now ask for the window when they run. Nothing in the game changed:
+      the stops were there (the same run's "every control is a stop (9)" passed).
+      **i fixed (build, Oct 30): cause in the test, not the game.** The Character window reads its bags again
+      every 30 of its own frames (ZeD_CharacterWindow.lua 3226, drawn at the UI's rate, uiRenderFPS=60), and the
+      test asked for the pack's column a fixed 30 game ticks (up to 120 a second) after putting the pack on: about
+      half the wait, so it passed or failed by luck (the run's own capture a moment later shows the pack in the
+      strip). zedqa_wt_bracket now waits until the window lists the pack (up to 3 seconds). QA to confirm both.
       **g fixed (build, Oct 30):** the scroll area is win._thermalBodyRect; win._thermalView is the view
       number again. Every field ae4b30d sets was checked against its earlier use: the others
       (_focusIdx, _focusPendingEntry, _navLast) keep their meaning; _thermalPinned is new. QA to confirm.

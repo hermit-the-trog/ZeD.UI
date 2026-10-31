@@ -389,9 +389,20 @@ step(40, function()
     pcall(function() local ce = pack:canBeEquipped(); if ce and ce ~= "" then loc = ce else loc = pack:getBodyLocation() end end)
     pcall(function() p:setWornItem(loc, pack) end)
 end)
-step(30, function()
+-- (Oct 30 2026, punch list 21 h/i: wait for the window to list the pack before asking for its column. The
+-- Character window reads its bags again every 30 of its own frames (drawContainerStrip), and its frames are the
+-- UI's (options.ini uiRenderFPS=60, drawn offscreen) while this script counts the game's ticks (up to 120 a
+-- second): a fixed 30 ticks after wearing the pack was about half the wait, so the column opened or not by luck,
+-- passing at t13 and failing in the full pass before t14. The step runs again every 10 ticks, up to 3 seconds.)
+local packTries = 0
+step(10, function()
     local w = cwin()
-    if pack and not colOn(w, pack:getInventory()) then say("pack column on: " .. tostring(ZeD_CharacterWindow.toggleColumn(pack:getInventory()))) end
+    if not (pack and w) then return end
+    local listed = false
+    for _, c in ipairs(w._containers or {}) do if c.inventory == pack:getInventory() then listed = true end end
+    if not listed and packTries < 30 then packTries = packTries + 1; si = si - 1; return end
+    if not listed then say("the pack is not in the window's bag list after " .. (packTries * 10) .. " ticks") end
+    if not colOn(w, pack:getInventory()) then say("pack column on: " .. tostring(ZeD_CharacterWindow.toggleColumn(pack:getInventory()))) end
 end)
 step(40, function()
     sortName()
