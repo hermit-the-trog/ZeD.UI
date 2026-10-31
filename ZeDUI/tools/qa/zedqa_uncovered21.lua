@@ -73,7 +73,7 @@ step(60, function()
     ww._mapSideAsk = { row = "qa", text = "Delete QA test note?", onYes = function() say("map: the Delete answer ran (a test question: nothing behind it)") end }
 end)
 step(30, function()
-    local ask = stopsMatching(ww, "worldTabContent", "ask")
+    local ask = stopsMatching(ww, "worldTabContent", "side:[yn]")
     say("map: question stops " .. table.concat(ask, " "))
     check(#ask >= 2, "map: the delete question is in the band with Cancel and Delete stops")
     shot("map_ask")

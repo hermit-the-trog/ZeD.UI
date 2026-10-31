@@ -1,0 +1,95 @@
+[h1]ZeD-GUI [B42] | tester build 0.2.0-t14[/h1]
+[b]This is the test build, not the release.[/b] The full release will be a separate Workshop item, once the tests confirm it works and meets the project's goals. Report problems in the pinned [b]Bug reports[/b] discussion, one post per problem.
+
+[b]Testers wanted: presets.[/b] A new character starts on Vanilla, with every addition off. Turn them on in ZeD setup, or pick Vanilla Plus or Vanilla Access, and tell us in Bug reports what you keep.
+
+[h2]From the Hermit[/h2]
+Hello, Hermit the Trog here. Thanks for checking out my mod ZeD-GUI. I started making this in 2022. That try died, and so did the second one in 2024. This is the third, after hundreds of hours of development and art that grew out of the 600-plus images I drew from scratch, no stock art, to fit the game and the time period, before I ever brought AI in, and I am proud to share this passion project with you. 1993 I was a teenager, watching Beavis and Butthead and skateboarding with my homies, and this is my way of sharing some of the nostalgia I have for that special time. It feels like my first computer did. This is the single most in-depth project I have ever done in a long career in design and UI/UX. This is my magnum opus.
+
+Hermit is an artist, not a coder. AI (Claude) coded this. All the logic, systems, workflows and art are the ideas and thoughts of one human. Most of those ideas came from being outside, not in front of a screen. You know... the real world. Don't take my word for it, the code is linked at the bottom of this page.
+[h2]What it is[/h2]
+ZeD-GUI, the Zero Day Graphic User Interface, replaces the inventory, the character and loot windows, the HUD and the menus for Build 42. In the fiction it runs on ZNIX, a made-up kernel built by a paranoid doomsday prepper. The look is inspired by the operating systems of the period, Macintosh System 6 and 7 most of all; it is not an endorsement of Apple, Microsoft or any other brand. Controller, or mouse and keyboard.
+
+[h2]Before you subscribe[/h2]
+[list]
+[*][b]Build 42 only.[/b] Tested on 42.21 and 42.22, at 4K, 1080p, 1280x800 and 1280x720 in game (the main menu does not fit the two small sizes yet). Not Build 41.
+[*][b]Use a new game or a copy of a save.[/b]
+[*][b]Tested in single player only.[/b] If you try it on a server, report what happened.
+[*][b]It replaces the game's inventory and character windows.[/b] Buttons that other mods add to those windows do not show while ZeD-GUI is on. Mods that use the game's own systems (context menu options, container buttons, items, recipes) work.
+[*][b]It adds one item:[/b] a steel digital watch in the loot. If you remove ZeD-GUI from a save, those watches go too. Everything else is interface and can be added or removed at any time.
+[*][b]It comes with a helper mod, ZeD picks,[/b] which stays empty until you pick files in Mods.
+[*][b]Text is in English.[/b] Where the game has a word, ZeD-GUI uses the game's translation.
+[/list]
+
+[h2]Windows[/h2]
+[b]Character window.[/b] Tabs for loot, equipment (a paper doll, and loadouts you can restock), health, temperature, ID, journal, skills and the radio you carry. The game's Health, Skills, Info and Protection keys open these tabs.
+
+[b]World window.[/b] Tabs for loot, crafting, building, furniture, maps, foraging, animals, radios nearby and the vehicle you are next to.
+
+[b]Cards.[/b] Click an item, a generator, a washer, a farm plot or a liquid for its card: what it is, what you can do, and why an action is not available.
+
+[h2]HUD[/h2]
+[list]
+[*][b]Belt:[/b] your hands side by side, the main hand bigger, with a ring for the condition of what they hold. One item in both hands: the off hand peeks from behind. A gun's rounds show on a tab under the hand. Then your gear's slots, on a strap in its material.
+[*][b]Watch:[/b] a worn watch shows on the belt. Click it for the full watch: time, date, temperature, alarm and stopwatch.
+[*][b]Dashboard:[/b] shows when you drive: warning lamps by condition, the key, the ash trays, the taxi's meter, and the radio up close.
+[*][b]Moodles:[/b] placed right, left or above the belt; each explains itself in a thought bubble.
+[*][b]Action bar:[/b] shows the current action and the queue in words, or as ten segments.
+[*][b]Messages:[/b] notes from other mods go into one window, not over the game; errors are counted per mod.
+[/list]
+
+[h2]Maps[/h2]
+Survey, color and paper road map styles, and the game's map key. Flyers you have read are pinned on the map.
+
+[h2]Menus[/h2]
+The main menu is a desk with a monitor. Load, new game, mods, options, sandbox, character creation and server settings open as windows on the monitor.
+
+[b]Mods.[/b] The list flags missing requirements, the wrong game version and conflicts between mods. A mod's pane has About, Options (changed in place), Sandbox and Conflicts tabs; when two mods share a code file, you pick whose copy runs. Profiles save a mod list with its load order.
+
+[h2]Controller[/h2]
+[list]
+[*]The D-pad moves between controls. A is left click, X is right click (the context menu), B backs out. Y opens and hides both windows; LB and RB pick one.
+[*]With no window open, hold a D-pad direction for a wheel: Left is Character, Right is World, Up is Social, Down is Here and now. Point with the right stick and let go of the D-pad to take. A slice with more opens in place: A takes, B goes back.
+[*]Hold Select for the ZeD wheel: the look, the HUD, Messages, reset windows, ZeD setup and safe mode.
+[*]Quick actions: in the world, hold LB or RB and press A, B, X, Y, L3 or R3 for one of twelve actions, set in ZeD setup or from a wheel.
+[*]The buttons are drawn for your controller: Xbox, PlayStation, Steam Deck or Nintendo.
+[/list]
+
+[h2]Options[/h2]
+ZeD setup is the first page: presets that turn the additions on or off, a dark, light or high contrast theme, nine accent colors, two text sizes, a UI scale, see-through windows, the controller highlight, and folding away actions you can't do yet. The game's own pages follow, and mark the settings ZeD-GUI replaces.
+
+[b]Sandbox options in game[/b] (ZeD setup, Sandbox; off until you turn it on): change this save's sandbox settings from the pause window. Single player only.
+
+[h2]Getting started[/h2]
+[olist]
+[*]Subscribe.
+[*]Main menu, Mods: turn on [b]ZeD-GUI[/b]. Put it after other interface mods in the load order.
+[*]Quit and start the game again (ZeD-GUI loads its fonts at start).
+[*]Start a new game, or load a copy of a save.
+[*]Options, ZeD setup: set the look and the HUD.
+[*]The inventory key opens the Character window, the loot key the World window.
+[/olist]
+
+[h2]Reporting a problem[/h2]
+Post in the pinned [b]Bug reports[/b] discussion. Include:
+[list]
+[*]The version: 0.2.0-t14. It is shown in Mods, and in the desk's ZeD menu under About.
+[*]Your game version and your mod list.
+[*]What you did, what you expected, and what happened. Add a screenshot if you can.
+[*]Your console.txt ([i]C:\Users\(you)\Zomboid\console.txt[/i]; copy it before you restart), on a paste site.
+[/list]
+[b]Safe mode:[/b] if ZeD-GUI stops you from playing, turn on Options, ZeD setup, Safe mode. The game's own screens return. Mention it in your report.
+
+[h2]Server admins[/h2]
+Mod ID: ZeD_UI
+Every player needs it, because it adds an item.
+
+[h2]Credits[/h2]
+Designed and directed by Hermit the Trog, built with Claude.
+
+Fonts: Fira Sans and Fira Mono (SIL Open Font License). Icons: ZeD-GUI's own pixel art.
+
+Project Zomboid is made by The Indie Stone. ZeD-GUI is a fan-made mod, not affiliated with The Indie Stone, Apple or Microsoft.
+
+[h2]Licence[/h2]
+The code is on [url=https://github.com/hermit-the-trog/ZeD.UI]GitHub[/url]: read it, learn from it, build add-ons for it, send changes back. Source-available, not open source: please do not re-upload or repost the mod anywhere. This page is the only place it is published. If it is ever abandoned, the LICENSE file hands it on.
