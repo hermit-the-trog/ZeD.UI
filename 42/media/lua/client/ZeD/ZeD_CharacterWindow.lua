@@ -173,6 +173,32 @@ local function saveCharStateThrottled(win)
     saveCharState(win)
 end
 
+-- The window kept on the current screen: no taller than the screen (less 20 units), no wider,
+-- wholly on it, the half-screen width cap measured again. Run after a restore and on a
+-- resolution change (Oct 31 2026, break-it B3: a layout saved on a bigger screen, or a screen
+-- made smaller, left the window hanging off the bottom; a drag was clamped, these were not).
+local function fitCharToScreen(win)
+    if not win then return end
+    local T = ZeD.T
+    local sw, sh = getCore():getScreenWidth(), getCore():getScreenHeight()
+    win._maxWinW = math.floor(sw * 0.5)
+    local w, h = win:getWidth(), win:getHeight()
+    local maxH = math.max(win.minimumHeight or T.px(220), sh - T.px(20))
+    if h > maxH then h = maxH; win:setHeight(h) end
+    if w > sw then w = math.max(win.minimumWidth or 0, sw); win:setWidth(w) end
+    local x0 = win:getX()
+    local x = math.max(0, math.min(x0, sw - w))
+    local y = math.max(0, math.min(win:getY(), sh - h))
+    if x ~= x0 then
+        -- the right-edge anchor moves with it (a drawer's slide places the window from it)
+        win._anchorRightEdge = (win._anchorRightEdge or (x0 + w)) + (x - x0)
+        win:setX(x)
+        win._lastSetX = x
+    end
+    if y ~= win:getY() then win:setY(y) end
+end
+ZeD_CharacterWindow.fitToScreen = fitCharToScreen
+
 local function restoreCharState(win, playerObj)
     local md = playerObj:getModData()
     local cs = md.ZeD_WinState and md.ZeD_WinState.char
@@ -185,7 +211,10 @@ local function restoreCharState(win, playerObj)
     local minW = TAB_STRIP_W + 200 + CONTAINER_STRIP_W           -- design units
     local xU = cs.x or 0
     local yU = math.max(0, cs.y or 60)
-    local wU = math.max(minW, cs.w or 436)
+    -- no wider than this screen's cap either (half the screen): a layout saved on a bigger
+    -- screen kept its inventory width (break-it B3)
+    local capU = math.floor((win._maxWinW or math.floor(screenW * 0.5)) / ((T and T.scale) or 1))
+    local wU = math.max(minW, math.min(cs.w or 436, capU))
     local x = T.px(xU)
     local y = T.px(yU)
     local w = T.px(wU)
@@ -208,6 +237,7 @@ local function restoreCharState(win, playerObj)
     win._invDrawerTargetW = T.px(restoredInvW)
     win._baseInvW         = restoredInvW                        -- design units
     win._prevDesiredW     = nil  -- let first frame compute fresh
+    fitCharToScreen(win)         -- (and the window's own minimums against the screen, break-it B3)
     -- Restore active tab
     if cs.activeTab then
         win._activeTab = cs.activeTab
@@ -6806,6 +6836,11 @@ local function _closeForSafeMode()
     if vl then vl:setVisible(true) end
 end
 ZeD.Safe.register("windows", { leave = _closeForSafeMode, enter = _hideVanilla })
+
+-- A resolution change keeps the open window on the new screen (Oct 31 2026, break-it B3)
+if Events.OnResolutionChange then
+    Events.OnResolutionChange.Add(function() if _charWin then fitCharToScreen(_charWin) end end)
+end
 
 -- Save state on game save
 Events.OnPostSave.Add(function()
