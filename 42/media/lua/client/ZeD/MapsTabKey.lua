@@ -7,7 +7,8 @@
 -- replaced the game's map. Built into ZeD, mod or no mod (Map Legend UI shows
 -- the same eight, so with it on ZeD shows nothing more).
 --
--- A Key button on the Maps toolbar opens it as a small panel over the map's
+-- A Key button on the Maps card's band (its right; the toolbar until Oct 30
+-- 2026) opens it as a small panel over the map's
 -- bottom-left corner. The key belongs to the Survey map, whose buildings are
 -- coloured by use; on Color and Paper the panel says those maps show the ground
 -- as it looks, and offers Survey. Through the Maps tab's general hook

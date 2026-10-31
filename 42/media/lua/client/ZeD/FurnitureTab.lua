@@ -45,7 +45,8 @@ local MODES = {
 local MODE_BY_ID = {}
 for _, m in ipairs(MODES) do MODE_BY_ID[m.id] = m end
 
-local PAD, STRIP_H = 10, 38
+local PAD = 10
+local TAB_TOP_PAD = 13   -- the sub-tab strip's top pad, as Animals' (header = pad + T.tabH = 37u; Oct 30 2026)
 local PREV_W, PREV_H = 84, 104
 local ROW_H, FACT_H, SEC_H = 28, 18, 20
 local SCROLL_STEP = 40
@@ -594,39 +595,37 @@ function FT.render(panel, win, x, y, w, h)
     local c = FT.cap[pn]
     if c and c.mode ~= mode then c = nil end
 
-    -- header: the library tab head (no fold), the mode as a tag beside the title
+    -- header strip (the standard height): the five modes as sub-tabs, drawn as Animals' Ranch | Butcher
+    -- (13u top pad + the tab, the strip's line around the active one); no title line, no band
     local M = ZeD.Molecules
-    local hh = M.drawTabHeader(panel, x, y, w, getText("IGUI_CraftingCategories_Furniture"), true, false, true)
-    local f4 = T.fontF4
-    local title = ZeD.textCase(getText("IGUI_CraftingCategories_Furniture"))
-    local pillC = (c and c.mp) and (c.canCreate and T.positive or T.danger) or nil
-    M.drawTag(panel, x + T.px(PAD) + tm:MeasureStringX(f4, title) + T.px(8), y + math.floor((hh - T.px(16)) / 2), modeLabel(mode), pillC)
-
-    -- mode strip: the current mode is the active one (solid accent), the others push buttons
-    local sy = y + hh
-    local sh = T.px(STRIP_H)
-    panel:drawRect(x, sy + sh - T.px(1), w, T.px(1), T.borderS.a or 1, col(T.borderS))
-    local gap = T.px(4)
-    local bw = math.floor((w - T.px(16) - gap * (#MODES - 1)) / #MODES)
-    local bx = x + T.px(8)
-    local bh = T.buttonH
-    local by = sy + math.floor((sh - bh) / 2)
-    local activeColors = s._activeColors or {}
-    s._activeColors = activeColors
-    activeColors.fill, activeColors.text = T.accent, T.textOnAccent
+    local A = ZeD.Atoms
+    local tH = T.tabH
+    local tabY = y + T.px(TAB_TOP_PAD)
+    local sy = tabY + tH
+    local tabX = x + T.sp.sm
+    local activeX, activeW
     for _, m in ipairs(MODES) do
         local id = "fur:mode:" .. m.id
         local mid = m.id
+        local label = txt(m.key, m.fb)
+        local tw = tm:MeasureStringX(T.fontF2, A.textCase(label)) + T.sp.tabPadX * 2
         local on = (mode == mid)
-        local foc = (s.gpId == id) and (on and { solid = true } or true) or nil
-        M.drawButton(panel, bx, by, bw, bh, txt(m.key, m.fb), on and "primary" or "default", false, on and activeColors or nil,
-            { hover = not on and ZeD.Atoms.mouseIn(panel, bx, by, bw, bh), focus = foc })
-        stamp(s, id, bx, by, bw, bh, function() FT.setMode(pn, mid) end)
-        bx = bx + bw + gap
+        M.drawTab(panel, tabX, tabY, label, on, A.mouseIn(panel, tabX, tabY, tw, tH), false,
+            { focus = (s.gpId == id) or nil })
+        stamp(s, id, tabX, tabY, tw, tH, function() FT.setMode(pn, mid) end)
+        if on then activeX, activeW = tabX, tw end
+        tabX = tabX + tw + T.sp.tabGap
+    end
+    local ly = sy - T.hair
+    if activeX then
+        A.drawDividerH(panel, x, ly, activeX - x, true)
+        A.drawDividerH(panel, activeX + activeW, ly, x + w - (activeX + activeW), true)
+    else
+        A.drawDividerH(panel, x, ly, w, true)
     end
 
     -- body (scrolls as one unit; rows outside the view are skipped)
-    local top = sy + sh + T.px(8)
+    local top = sy + T.px(8)
     local bottom = y + h - T.px(6)
     s.bodyTop, s.bodyBottom = top, bottom
     -- the library scrollbar at the drawer's right edge when the body overflowed last frame

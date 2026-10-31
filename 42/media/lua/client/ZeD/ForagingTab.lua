@@ -24,10 +24,7 @@ local HERO_RADIUS_W    = 88      -- radius/net cell width
 local HERO_PAD         = 12      -- padding inside hero info cell
 local HERO_MIN_H       = 112     -- minimum hero band height
 
-local STANCE_ROW_H     = 26
-local FOCUS_ROW_H      = 38
-local FOCUS_PAD_X      = 8
-local FOCUS_GAP        = 8
+local DROPDOWN_W        = 190     -- the category drop-down in the header strip (at most half the card)
 
 local DISCLOSURE_H     = 20      -- the library section head
 local SUB_HEADER_H     = 15      -- the library category row
@@ -107,7 +104,7 @@ local COMPASS = {
 -- ============================================================================
 -- S109b — GAMEPAD FOCUS CUE HELPERS (mirror of AnimalsTab pattern).
 -- Paint gate reads live focused element from FocusManager; matcher closure
--- discriminates between element types (isStance / isDropdown / isDisclosure).
+-- discriminates between element types (isSearch / isDropdown / isDisclosure).
 -- ============================================================================
 
 -- (only while the mark may show: this window has the controller and the pad is in use)
@@ -663,20 +660,15 @@ local function drawHero(panel, win, x, y, w)
     -- Cell B — info (middle, between scene and radius)
     local infoX = x + sceneW + T.px(1) + T.px(HERO_PAD)
 
-    -- Zone name (Chicago heading font)
-    local zoneName = win._frameZone or ZeD.tr("UI_ZeD_Forage_Unknown")
-    local zoneY = y + T.px(HERO_PAD)
-    local zoneColor = T.textHead
+    -- (the place name is the card's header, drawn by drawHeader; Oct 30 2026)
     -- The info cell ends before the radius cell; nothing is drawn past this edge
     local infoRight = radX - T.px(HERO_PAD)
     local infoRoom = infoRight - infoX
-    panel:drawText(A.truncateText(zoneName, T.fontF4, infoRoom), infoX, zoneY, zoneColor.r, zoneColor.g, zoneColor.b, zoneColor.a or 1, T.fontF4)
 
-    -- Chip rows — bottom of info cell. Chips that do not fit beside the others wrap to a
-    -- row above (as many rows as fit under the zone name); chips past the last row drop
-    -- and a "+N" chip says how many.
+    -- Chip rows — the block centred in the info cell. Chips that do not fit beside the
+    -- others wrap to a row below (as many rows as fit in the cell); chips past the last
+    -- row drop and a "+N" chip says how many.
     local chipH = T.px(16)   -- the tag's height
-    local chipY = y + h - T.px(HERO_PAD) - chipH
     local chipGap = T.px(4)
     -- Dynamic chip styles based on live data (good and fair conditions read as good)
     local cond = win._frameCondition or "Fair"
@@ -689,8 +681,7 @@ local function drawHero(panel, win, x, y, w)
         { text = win._frameSeason or ZeD.tr("UI_ZeD_Forage_Unknown"), style = "neutral" },
         { text = ZeD.ForagingTab.word(wx), style = wxStyle },
     }
-    local zoneBottom = zoneY + tm:getFontHeight(T.fontF4)
-    local maxRows = math.floor((chipY + chipH - zoneBottom - T.px(4)) / (chipH + chipGap))
+    local maxRows = math.floor((h - T.px(HERO_PAD) * 2 + chipGap) / (chipH + chipGap))
     if maxRows < 1 then maxRows = 1 end
 
     -- lay the chips out in rows (row index, x offset, width)
@@ -719,7 +710,8 @@ local function drawHero(panel, win, x, y, w)
         moreText = "+" .. tostring(#chips - shown)
     end
     local usedRows = rowOf[shown] or 1
-    local firstRowY = chipY - (usedRows - 1) * (chipH + chipGap)
+    local blockH = usedRows * chipH + (usedRows - 1) * chipGap
+    local firstRowY = y + math.floor((h - blockH) / 2)
     for i = 1, shown do
         drawChip(panel, infoX + xOf[i], firstRowY + (rowOf[i] - 1) * (chipH + chipGap), chips[i].text, chips[i].style, T, wOf[i])
     end
@@ -735,106 +727,40 @@ local function drawHero(panel, win, x, y, w)
 end
 
 -- ============================================================================
--- DRAW: STANCE ROW
+-- DRAW: HEADER STRIP AND BAND (Oct 30 2026)
+-- The header strip (the standard height): the place name on the left, the
+-- category drop-down on the right (with its chance readout before it). The band
+-- at the card's foot: Crouch and Aim on the left as read-only status, Search
+-- (Stop searching while it is on) on the right as the one main action.
 -- ============================================================================
 
-local STANCES = {
-    { id = "searching", key = "UI_ZeD_Forage_StanceSearching" },
-    { id = "crouch",    key = "UI_ZeD_Forage_StanceCrouch"    },
-    { id = "aim",       key = "UI_ZeD_Forage_StanceAim"       },
-}
+-- the matchers for the controller's focus (module level: nothing allocated per frame)
+local function _isDropdownEl(el) return el.isDropdown end
+local function _isSearchEl(el) return el.isSearch end
 
-local function drawStanceRow(panel, win, x, y, w)
+local function drawHeader(panel, win, x, y, w)
     local T = ZeD.T
-    local A = ZeD.Atoms
+    local M = ZeD.Molecules
     local tm = ZeD.TM
-    local h = T.px(STANCE_ROW_H)
-    local btnW = math.floor(w / #STANCES)
+    local h = M.getTabHeaderH()
+    local pad = M.getTabPad()
 
-    -- Read live player state
-    local player = win._playerObj
-    local active = {}
-    local mgr = player and ISSearchManager.getManager(player) or nil
-    active.searching = mgr and mgr.isSearchMode or false
-    active.crouch    = player and player:isSneaking() or false
-    active.aim       = player and player:isAiming() or false
-
-    -- Only Searching can be pressed (a System 7 checkbox: search mode on or off);
-    -- crouch and aim are read-only status, each a square mark (filled when on)
-    win._forageStanceZones = {}
-    local f2 = T.fontF2
-    local th = tm:getFontHeight(f2)
-    local ty = y + math.floor((h - th) / 2)
-
-    for i, stance in ipairs(STANCES) do
-        local bx = x + (i - 1) * btnW
-        local bw = (i == #STANCES) and (w - (i - 1) * btnW) or btnW
-        local isActive = active[stance.id]
-        local stanceLabel = ZeD.tr(stance.key)
-        local tw = tm:MeasureStringX(f2, stanceLabel)
-
-        if stance.id == "searching" then
-            local hovered = not win._ddBlocksHover and A.mouseIn(panel, bx, y, bw, h - T.px(1))
-            if hovered then
-                local hv = T.hover
-                panel:drawRect(bx, y, bw, h - T.px(1), hv.a, hv.r, hv.g, hv.b)
-                ZeD.Help.set(panel, ZeD.tr("UI_ZeD_Forage_SearchHelp"))
-            end
-            local onFocus = false
-            if _gpFocusMatches(win, function(el) return el.isStance and el.stanceId == "searching" end) then
-                onFocus = _paintGpCue(panel, bx, y, bw, h - T.px(1))
-            end
-            local sz = T.checkboxSz
-            local gx = bx + math.floor((bw - (sz + T.px(6) + tw)) / 2)
-            A.drawCheckbox(panel, gx, y + math.floor((h - sz) / 2), isActive, hovered, false)
-            local tc = onFocus and T.textOnFocus or T.text
-            panel:drawText(stanceLabel, gx + sz + T.px(6), ty, tc.r, tc.g, tc.b, tc.a or 1, f2)
-            win._forageStanceZones[#win._forageStanceZones + 1] = {
-                x = bx, y = y, w = bw, h = h, id = stance.id
-            }
-        else
-            local sq = T.px(6)
-            local gx = bx + math.floor((bw - (sq + T.px(6) + tw)) / 2)
-            local sy = y + math.floor((h - sq) / 2)
-            if isActive then A.drawStatusDot(panel, gx, sy, T.positive, sq)
-            else A.drawStatusHollow(panel, gx, sy, T.textDim, sq) end
-            local tc = isActive and T.text or T.textDim
-            panel:drawText(stanceLabel, gx + sq + T.px(6), ty, tc.r, tc.g, tc.b, tc.a or 1, f2)
-        end
-    end
-
-    -- Bottom divider
-    A.drawDividerH(panel, x, y + h - T.px(1), w, false)
-
-    return h
-end
-
--- ============================================================================
--- DRAW: FOCUS ROW
--- ============================================================================
-
-local function drawFocusRow(panel, win, x, y, w)
-    local T = ZeD.T
-    local tm = ZeD.TM
-    local h = T.px(FOCUS_ROW_H)
-
-    -- Lazy-create dropdown (with live options)
+    -- the focus drop-down, lazily made (with live options), then placed each frame
     local liveOpts = win._frameFocusOptions or { { id = "none", label = ZeD.tr("UI_ZeD_Forage_FocusAll") } }
+    local ddW = math.min(T.px(DROPDOWN_W), math.floor(w * 0.5))
+    local ddX = x + w - pad - ddW
+    local ddY = y + math.floor((h - T.inputH) / 2)
     if not win._forageDropdown then
-        local ddW = w - T.px(FOCUS_PAD_X) * 2 - T.px(FINDS_WT_W) - T.px(FOCUS_GAP)
-        local dd = ZeD_Dropdown:new(x + T.px(FOCUS_PAD_X), y + math.floor((h - T.inputH) / 2), ddW, liveOpts, "none")
+        local dd = ZeD_Dropdown:new(ddX, ddY, ddW, liveOpts, "none")
         dd.onChange = function(self, selectedId)
             applyForagingFocus(win, selectedId)
         end
         panel:addChild(dd)
         win._forageDropdown = dd
     end
-
-    -- Reposition dropdown each frame + sync options when they change
     local dd = win._forageDropdown
-    local ddW = w - T.px(FOCUS_PAD_X) * 2 - T.px(FINDS_WT_W) - T.px(FOCUS_GAP)
-    dd:setX(x + T.px(FOCUS_PAD_X))
-    dd:setY(y + math.floor((h - T.inputH) / 2))
+    dd:setX(ddX)
+    dd:setY(ddY)
     dd:setWidth(ddW)
     dd:setVisible(true)
     if #liveOpts ~= #dd.options then dd.options = liveOpts end
@@ -842,26 +768,81 @@ local function drawFocusRow(panel, win, x, y, w)
     -- The controller's mark around the dropdown box, on the parent panel BEFORE
     -- the dropdown child renders: the dropdown paints its own box over the inner
     -- area, so the mark's rect reaches 3u past it on each side.
-    if _gpFocusMatches(win, function(el) return el.isDropdown end) then
-        local cx = x + T.px(FOCUS_PAD_X)
-        local cy = y + math.floor((h - T.inputH) / 2)
-        local pad = T.px(3)
-        _paintGpCue(panel, cx - pad, cy - pad, ddW + pad * 2, T.inputH + pad * 2)
+    if _gpFocusMatches(win, _isDropdownEl) then
+        local pd = T.px(3)
+        _paintGpCue(panel, ddX - pd, ddY - pd, ddW + pd * 2, T.inputH + pd * 2)
     end
 
-    -- Chance readout (right-aligned)
+    -- the chance readout before the drop-down (only while a category is chosen)
+    local right = ddX - T.px(8)
     local chanceStr = getFocusChance(win)
-    local chanceColor = T.toneNorm
-    local chanceFont = T.fontF3
-    local chanceW = tm:MeasureStringX(chanceFont, chanceStr)
-    local chanceX = x + w - T.px(FOCUS_PAD_X) - chanceW
-    local chanceY = y + math.floor((h - tm:getFontHeight(chanceFont)) / 2)
-    panel:drawText(chanceStr, chanceX, chanceY, chanceColor.r, chanceColor.g, chanceColor.b, chanceColor.a or 1, chanceFont)
+    if chanceStr ~= "---" then
+        local cf = T.fontF3
+        local cc = T.toneNorm
+        local chanceW = tm:MeasureStringX(cf, chanceStr)
+        panel:drawText(chanceStr, right - chanceW, y + math.floor((h - tm:getFontHeight(cf)) / 2), cc.r, cc.g, cc.b, cc.a or 1, cf)
+        right = right - chanceW - T.px(8)
+    end
 
-    -- Bottom divider
-    ZeD.Atoms.drawDividerH(panel, x, y + h - T.px(1), w, false)
-
+    -- the place name (the library's tab head, no fold), cut to the room left of the readout
+    local name = ZeD.Atoms.textCase(win._frameZone or ZeD.tr("UI_ZeD_Forage_Unknown"))
+    name = ZeD.Atoms.truncateText(name, T.fontF4, right - (x + pad))
+    M.drawTabHeader(panel, x, y, w, name, true, false, true)
     return h
+end
+
+-- one read-only status: a filled square and bright words while on, a hollow one and
+-- dim words while off; returns the x after it (nothing to press, no focus stop)
+local function drawStatusWord(panel, x, y, bandH, label, on)
+    local T = ZeD.T
+    local A = ZeD.Atoms
+    local f2 = T.fontF2
+    local sq = T.px(6)
+    local sy = y + math.floor((bandH - sq) / 2)
+    if on then A.drawStatusDot(panel, x, sy, T.positive, sq)
+    else A.drawStatusHollow(panel, x, sy, T.textDim, sq) end
+    local tc = on and T.text or T.textDim
+    panel:drawText(label, x + sq + T.px(6), y + math.floor((bandH - ZeD.TM:getFontHeight(f2)) / 2),
+        tc.r, tc.g, tc.b, tc.a or 1, f2)
+    return x + sq + T.px(6) + ZeD.TM:MeasureStringX(f2, label)
+end
+
+local _bandBtn = {}
+local _bandSpec = { buttons = { _bandBtn } }
+
+local function drawBandRow(panel, win, x, y, w)
+    local T = ZeD.T
+    local M = ZeD.Molecules
+    local H = M.bandH()
+    local player = win._playerObj
+    local mgr = player and ISSearchManager.getManager(player) or nil
+    local searching = mgr and mgr.isSearchMode or false
+
+    -- Search / Stop searching: the main action (the same toggle the search row had);
+    -- it is as wide as the longer word, so the band does not change shape
+    local b = _bandBtn
+    b.label = ZeD.tr(searching and "UI_ZeD_Forage_BtnStopSearch" or "UI_ZeD_Forage_BtnSearch")
+    b.minW = M.buttonW(ZeD.tr("UI_ZeD_Forage_BtnStopSearch"))
+    b.variant = "primary"
+    b.focus = _gpFocusMatches(win, _isSearchEl) and true or nil
+    b.help = ZeD.tr("UI_ZeD_Forage_SearchHelp")
+    b.hover = win._ddBlocksHover and false or nil
+    _bandSpec.win = win
+    local _, out = M.drawBand(panel, x, y, w, _bandSpec)
+    win._forageSearchBtn = out.buttons[1]
+
+    -- Crouch and Aim, read-only status at the left
+    local limit = (out.buttons[1] and out.buttons[1].x or (x + w)) - T.px(8)
+    local sx = x + T.px(8)
+    local crouch = player and player:isSneaking() or false
+    local aim = player and player:isAiming() or false
+    local cl = ZeD.tr("UI_ZeD_Forage_StanceCrouch")
+    local al = ZeD.tr("UI_ZeD_Forage_StanceAim")
+    sx = drawStatusWord(panel, sx, y, H, cl, crouch) + T.px(14)
+    if sx + T.px(12) + ZeD.TM:MeasureStringX(T.fontF2, al) <= limit then
+        drawStatusWord(panel, sx, y, H, al, aim)
+    end
+    return H
 end
 
 -- ============================================================================
@@ -1156,8 +1137,20 @@ function ZeD.ForagingTab.render(panel, win, x, y, w, h)
     win._ddBlocksHover = win._forageDropdown and win._forageDropdown.isOpen or false
 
     -- Reset click zones each frame
-    win._forageStanceZones  = {}
+    win._forageSearchBtn = nil
     win._forageDisclosureZone = nil
+
+    -- The pinned parts: the header strip on top and the band at the foot; the body
+    -- between them scrolls as one unit (Oct 30 2026)
+    local M = ZeD.Molecules
+    local hdrH = drawHeader(panel, win, x, y, w)
+    local bandH = M.bandH()
+    drawBandRow(panel, win, x, y + h - bandH, w)
+    local bodyTop = y + hdrH
+    local bodyH = h - hdrH - bandH
+    win._forageBodyTop, win._forageBodyBottom = bodyTop, bodyTop + bodyH
+    h = bodyH
+    curY = bodyTop
 
     -- Scroll state
     local scroll = win._forageScroll
@@ -1165,7 +1158,7 @@ function ZeD.ForagingTab.render(panel, win, x, y, w, h)
 
     -- First pass: measure total content height for scroll
     -- (We draw directly with scroll offset applied)
-    local totalContentH = T.px(HERO_MIN_H) + T.px(STANCE_ROW_H) + T.px(FOCUS_ROW_H) + T.px(DISCLOSURE_H)
+    local totalContentH = T.px(HERO_MIN_H) + T.px(DISCLOSURE_H)
     if win._moreDetailOpen then
         local catRows = math.ceil(#win._frameCategories / 2)
         local modRows = math.ceil(#win._frameModifiers / 2)
@@ -1199,21 +1192,21 @@ function ZeD.ForagingTab.render(panel, win, x, y, w, h)
     -- Apply scroll offset
     curY = curY - scrollOff
 
-    -- Draw bands (use cw for content, not full w)
+    -- Draw the body (use cw for content, not full w), clipped between header and band
+    panel:setStencilRect(x, bodyTop, w, bodyH)
     curY = curY + drawHero(panel, win, x, curY, cw)
-    curY = curY + drawStanceRow(panel, win, x, curY, cw)
-    curY = curY + drawFocusRow(panel, win, x, curY, cw)
     curY = curY + drawDisclosure(panel, win, x, curY, cw)
     curY = curY + drawMoreBody(panel, win, x, curY, cw)
     curY = curY + drawFindsHeader(panel, x, curY, cw)
     curY = curY + drawFindsRows(panel, win, x, curY, cw, h)
+    panel:clearStencilRect()
 
-    -- Draw scrollbar (on right edge)
+    -- Draw scrollbar (on right edge, beside the body)
     if scroll and scroll.visible then
         local sp = T.sp
         scroll.x = x + w - sp.scrollbarW
-        scroll.y = y
-        scroll.height = h
+        scroll.y = bodyTop
+        scroll.height = bodyH
         scroll:draw(panel)
     end
 end
@@ -1222,6 +1215,13 @@ end
 -- CLICK HANDLERS
 -- ============================================================================
 
+-- Search mode on or off: vanilla's own toggle (the button and the controller's A)
+function ZeD.ForagingTab.toggleSearch(win)
+    local player = win and win._playerObj
+    local mgr = player and ISSearchManager.getManager(player) or nil
+    if mgr and mgr.toggleSearchMode then mgr:toggleSearchMode() end
+end
+
 function ZeD.ForagingTab.onClick(win, x, y)
     local scroll = win._forageScroll
 
@@ -1229,7 +1229,7 @@ function ZeD.ForagingTab.onClick(win, x, y)
     if scroll and scroll.visible then
         local sp = ZeD.T.sp
         local sbX = scroll.x
-        if x >= sbX and x < sbX + sp.scrollbarW then
+        if x >= sbX and x < sbX + sp.scrollbarW and y >= scroll.y and y < scroll.y + scroll.height then
             scroll:handleMouseDown(y - scroll.y)
             return true
         end
@@ -1238,21 +1238,15 @@ function ZeD.ForagingTab.onClick(win, x, y)
     -- Zones are stored at screen coordinates (scroll already baked in during render),
     -- so compare against raw click y directly.
 
-    -- SEARCHING toggle — calls vanilla ISSearchManager
-    if win._forageStanceZones then
-        local player = win._playerObj
-        for _, zone in ipairs(win._forageStanceZones) do
-            if x >= zone.x and x <= zone.x + zone.w
-               and y >= zone.y and y <= zone.y + zone.h then
-                local mgr = player and ISSearchManager.getManager(player) or nil
-                if mgr then mgr:toggleSearchMode() end
-                return true
-            end
-        end
+    -- Search / Stop searching (the band's button) — calls vanilla ISSearchManager
+    local sb = win._forageSearchBtn
+    if sb and x >= sb.x and x <= sb.x + sb.w and y >= sb.y and y <= sb.y + sb.h then
+        ZeD.ForagingTab.toggleSearch(win)
+        return true
     end
 
-    -- More Detail disclosure
-    if win._forageDisclosureZone then
+    -- More Detail disclosure (only where the body shows it: not under the header or the band)
+    if win._forageDisclosureZone and y >= (win._forageBodyTop or 0) and y < (win._forageBodyBottom or 0) then
         local z = win._forageDisclosureZone
         if x >= z.x and x <= z.x + z.w
            and y >= z.y and y <= z.y + z.h then

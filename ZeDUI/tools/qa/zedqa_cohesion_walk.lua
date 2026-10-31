@@ -850,7 +850,8 @@ function B.buildCraftSort()
         if not B.worldTab("craft") then S.err("craft sort: the World window has no Craft tab") end
     end)
     S.still(30)
-    -- the pop-up box replaces the radio buttons only when they do not all fit the strip
+    -- the Sort pop-up box sits in the card's band (Oct 30 2026, punch list 21: the sort strip's
+    -- radio buttons went); the Large-text retry below stays as a fallback
     S.poll(2, 120, function() return menuZone() ~= nil end, function() end)
     S.step(2, function()
         if menuZone() == nil then
@@ -1131,11 +1132,13 @@ function B.buildMaps()
         return w ~= nil and w._worldMapPanel ~= nil and w._mapStyleZones ~= nil
     end, function() S.err("maps: the map panel did not come up") end)
     S.still(40)
-    -- the pop-up box replaces the radio buttons only when they do not all fit the toolbar
+    -- the pop-up box replaces the radio buttons only when they do not all fit the band
+    -- (Oct 30 2026: Survey / Color / Paper are on the card's band, at its left; the
+    -- pop-up's list opens upward over the map)
     S.step(2, function()
         local w = B.WW()
         if w and not w._mapStyleMenuZone then
-            say("note: the Maps toolbar shows its radio buttons at this size; trying Large text")
+            say("note: the Maps band shows its radio buttons at this size; trying Large text")
             B.mapLarge = true
             ZeD.applyTheme(nil, nil, "large")
         end
@@ -1148,7 +1151,13 @@ function B.buildMaps()
         B.mapMenu = false
         if not w then return end
         if not w._mapStyleMenuZone then
-            S.err("maps: no Survey / Color / Paper pop-up box (the radio buttons fit, or the base map has no paper style)")
+            -- (the band has more room than the old toolbar row: the radio buttons may fit even at Large text)
+            if w._mapStyleZones and #w._mapStyleZones > 0 then
+                say("note: the Maps band shows its radio buttons even at Large text; no pop-up to open")
+                B.focusOn(w, function(x) return x.id == "map:style:survey" end)
+            else
+                S.err("maps: no Survey / Color / Paper on the band (the base map has no paper style?)")
+            end
             return
         end
         local e = B.focusOn(w, function(x) return x.id == "map:style:menu" end)
@@ -1164,7 +1173,7 @@ function B.buildMaps()
     S.frames(10)
     B.snap("maps_style_popup_pad", function()
         local w = B.WW()
-        return string.format("World window, Maps tab: toolbar with the Survey / Color / Paper pop-up open in the drawer (list open %s) | %s",
+        return string.format("World window, Maps tab: the band with Survey / Color / Paper (pop-up list open %s) | %s",
             tostring(w and w._mapStyleMenuOpen), B.focusDesc(w))
     end)
     S.step(2, function()

@@ -1,7 +1,8 @@
 -- ZeDUI/tools/qa/zedqa_health_padprobe.lua  (Oct 27 2026)
 -- Where Down goes on the Character window's Health tab at Large text: the world
 -- pad test found Down stopping on the figure's Left Foot instead of reaching the
--- exercise time buttons. Wounds as that test sets them; every Health stop listed
+-- exercise time buttons (Oct 30 2026: those are in the footer band now, with the
+-- exercise pop-up and Start: ids health:exercise, health:time:dec / inc, health:start). Wounds as that test sets them; every Health stop listed
 -- with its rect, then a Down walk from the first stop with each landing printed.
 -- Puts the text size, the wounds and the tab back. grep "ZEDQA hp".
 local p = getPlayer()

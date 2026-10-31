@@ -614,11 +614,10 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
     local scroll  = win._identityScroll
     local scrollW = T.sp.scrollbarW
 
-    -- Hair and beard (ZeD_HairBeard.lua): a section under the license and its
-    -- action strip at the drawer's foot (mockup zed_hair_beard_v1)
+    -- Hair and beard (ZeD_HairBeard.lua): a fold under the license; Cut sits in it, beside its
+    -- Hair | Beard switch. The card has no footer band (nothing on the whole card to do; Oct 30 2026).
     local HB = ZeD.HairBeard
     local hbL = HB and HB.layout(win, w - T.sp.scrollbarW) or nil
-    local stripH = HB and HB.stripH(win) or 0   -- (after the layout: it refreshes what the foot reads)
     local zoneHH = hbL and hbL.h or 0
 
     local zoneAH = measureZoneAH()
@@ -626,7 +625,7 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
     local totalContentH = zoneAH + zoneHH + zoneBH
 
     local scrollY = y + tabHeaderH
-    local scrollH = h - tabHeaderH - stripH
+    local scrollH = h - tabHeaderH
     local needsScroll = totalContentH > scrollH
     scroll.visible = needsScroll
     local contentW = w
@@ -701,8 +700,6 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
     renderZoneB(panel, win, data, x, drawY + zoneAH + zoneHH, contentW)
 
     panel:clearStencilRect()
-
-    if HB then HB.drawStrip(panel, win, x, y + h - stripH, w, stripH) end
 
     -- Pinned tab header: the disclosure arrow turns with _identityPhotoExpanded
     -- (collapsed = bust, right-pointing; expanded = full body, down). L/R tree-nav
@@ -782,7 +779,7 @@ function ZeD.IdentityTab.focusables(win)
     return out
 end
 
--- a click in the tab's content (the hair rows, the switch, Out of reach, the strip's button)
+-- a click in the tab's content (the hair rows, the switch, Out of reach, Cut)
 function ZeD.IdentityTab.onClick(win, x, y)
     return ZeD.HairBeard ~= nil and ZeD.HairBeard.onClick(win, x, y)
 end
