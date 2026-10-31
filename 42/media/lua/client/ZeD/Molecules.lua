@@ -1726,40 +1726,26 @@ function ZeD.Molecules.drawStatRow(panel, x, y, w, label, value, valueColor, lab
 
     -- Label: sentence case (a caps string from upstream reads in sentence case), secondary color
     local lc = T.textSec
-    local caseLabel = ZeD.textCase(label or "")
+    local A = ZeD.Atoms
+    local caseLabel = A.truncateText(ZeD.textCase(label or ""), lblFont, w)
     local labelW = ZeD.TM:MeasureStringX(lblFont, caseLabel)
     panel:drawText(caseLabel, x, labelY,
         lc.r, lc.g, lc.b, lc.a or 1, lblFont)
 
-    -- Value: K22 Xanthus, right-aligned, truncated with "..." if too wide
+    -- Value: right-aligned, cut with "..." to the room after its label: a value never
+    -- runs over its label; with no room left it is not drawn (Oct 31 2026, break-it E2:
+    -- the Vehicle tab's "4Distance"; the room left out the right pad, and a label wider
+    -- than the row skipped the cut altogether)
     local vc = valueColor or T.text
     local gap = T.px(8) -- minimum gap between label and value
-    local maxValueW = w - labelW - gap
-    local displayValue = value
-    local valueW = ZeD.TM:MeasureStringX(T.fontF3, displayValue)
-
-    if valueW > maxValueW and maxValueW > 0 then
-        -- Truncate with ellipsis
-        local ellipsis = "..."
-        local ellipsisW = ZeD.TM:MeasureStringX(T.fontF3, ellipsis)
-        local targetW = maxValueW - ellipsisW
-        if targetW > 0 then
-            -- Binary search for the right character count
-            local len = #displayValue
-            while len > 0 and ZeD.TM:MeasureStringX(T.fontF3, string.sub(displayValue, 1, len)) > targetW do
-                len = len - 1
-            end
-            displayValue = string.sub(displayValue, 1, len) .. ellipsis
-            valueW = ZeD.TM:MeasureStringX(T.fontF3, displayValue)
-        else
-            displayValue = ellipsis
-            valueW = ellipsisW
-        end
-    end
-
     local rightPad = T.sp.sm
-    panel:drawText(displayValue, x + w - valueW - rightPad, valueY,
-        vc.r, vc.g, vc.b, vc.a or 1, T.fontF3)
+    local room = w - labelW - gap - rightPad
+    local displayValue = (room > 0) and A.truncateText(tostring(value or ""), T.fontF3, room) or ""
+    local valueW = ZeD.TM:MeasureStringX(T.fontF3, displayValue)
+    if displayValue ~= "" and valueW <= room then
+        panel:drawText(displayValue, x + w - valueW - rightPad, valueY,
+            vc.r, vc.g, vc.b, vc.a or 1, T.fontF3)
+    end
 
     return rowH
 end
