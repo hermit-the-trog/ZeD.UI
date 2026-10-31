@@ -2874,6 +2874,35 @@ end
 
 local TAB_ARROW_ROW_H = 16  -- height of the bottom [^ v] scroll row
 
+-- The strip, when it scrolls, brings the tab that matters into view: the controller's focused
+-- tab, else the active one. Only when that tab changes (a new focus, a new active tab, the
+-- strip just starting to scroll), so the wheel and the arrows can still look elsewhere.
+-- (Oct 31 2026, break-it B1: at 1280x720, UI scale 2.0, Large text the strip scrolled, but a
+-- controller moving down past Identity focused Journal, Skills, Radio out of sight.)
+local function tabStripFollow(win, viewH, scrollOff, maxScroll, focusedId)
+    local tgt = focusedId or win._activeTab
+    local isPad = focusedId ~= nil
+    if tgt == win._tabFollowId and isPad == win._tabFollowPad then return scrollOff end
+    win._tabFollowId, win._tabFollowPad = tgt, isPad
+    local T = ZeD.T
+    local y, lastGroup, btn = 0, 1, T.px(TAB_BTN_SZ)
+    for _, tab in ipairs(CHAR_TABS) do
+        if isTabVisible(tab, win) then
+            if tab.group ~= lastGroup then
+                y = y + T.px(TAB_SEP_MAR) + T.px(TAB_SEP_H) + T.px(TAB_SEP_MAR)
+                lastGroup = tab.group
+            end
+            if tab.id == tgt then
+                if y < scrollOff then scrollOff = y
+                elseif y + btn > scrollOff + viewH then scrollOff = y + btn - viewH end
+                return math.max(0, math.min(scrollOff, maxScroll))
+            end
+            y = y + btn
+        end
+    end
+    return scrollOff
+end
+
 local function drawTabStrip(self, win)
     local T  = ZeD.T
     local A  = ZeD.Atoms
@@ -2918,6 +2947,23 @@ local function drawTabStrip(self, win)
             end
         end
     end
+    -- The controller's focus on the strip, resolved once: only while this window
+    -- has the focus and the controller is in use (Focus.liveZone), so the mark
+    -- never lingers in the other window or under the mouse. The active tab shows
+    -- it too (the mark on a solid element leaves out its wash). (Resolved before
+    -- the scroll: a focused tab out of sight scrolls into view, break-it B1.)
+    local gpFocusedTabId = nil
+    local cuesOn = false
+    do
+        local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
+        local zone = Focus and Focus.liveZone and Focus.liveZone(win)
+        if zone and zone.zone == "charTabBar" then
+            local el = Focus.liveElement(win)
+            if el then gpFocusedTabId = el.tabId end
+        end
+        cuesOn = Focus and Focus.cuesVisible and Focus.cuesVisible() or false
+    end
+
     local needsScroll = totalTabH > h
     local arrowRowH = 0
 
@@ -2927,6 +2973,7 @@ local function drawTabStrip(self, win)
         local maxScroll = totalTabH - (h - arrowRowH)
         if maxScroll < 0 then maxScroll = 0 end
         scrollOff = math.max(0, math.min(scrollOff, maxScroll))
+        scrollOff = tabStripFollow(win, h - arrowRowH, scrollOff, maxScroll, gpFocusedTabId)
         win._tabScrollOffset = scrollOff
 
         local canScrollUp   = scrollOff > 0
@@ -2965,27 +3012,13 @@ local function drawTabStrip(self, win)
         end
     else
         win._tabScrollOffset = 0
+        win._tabFollowId = nil   -- the next time the strip scrolls, it brings the active tab into view
     end
 
     -- Stencil for tab content area (above arrow row)
     local tabAreaH = h - arrowRowH
     self:setStencilRect(0, 0, w, tabAreaH)
 
-    -- The controller's focus on the strip, resolved once: only while this window
-    -- has the focus and the controller is in use (Focus.liveZone), so the mark
-    -- never lingers in the other window or under the mouse. The active tab shows
-    -- it too (the mark on a solid element leaves out its wash).
-    local gpFocusedTabId = nil
-    local cuesOn = false
-    do
-        local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
-        local zone = Focus and Focus.liveZone and Focus.liveZone(win)
-        if zone and zone.zone == "charTabBar" then
-            local el = Focus.liveElement(win)
-            if el then gpFocusedTabId = el.tabId end
-        end
-        cuesOn = Focus and Focus.cuesVisible and Focus.cuesVisible() or false
-    end
     local tabFocusOpts = { win = win, zone = "charTabBar" }
     local tabDrawOpts = {}
 
@@ -4154,7 +4187,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
 
     strip.onMouseWheel = function(self, del)
         local T = ZeD.T
-        local totalTabH = measureTabStripH()
+        local totalTabH = measureTabStripH(win)   -- (win: a tab shown only sometimes is counted right, break-it B1)
         if totalTabH > self:getHeight() then
             win._tabScrollOffset = (win._tabScrollOffset or 0) + del * T.px(TAB_BTN_SZ)
             return true
