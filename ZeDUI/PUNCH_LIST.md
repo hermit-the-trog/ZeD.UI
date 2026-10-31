@@ -232,7 +232,13 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
       Not covered: the pop-ups with the mouse; the Maps delete question; Forage's Search toggle and Crouch /
       Aim following the character; Start greyed with a reason; the Journal's Delete question and Loadouts
       turned off while on its page; the focus after a craft; alternatives mode; the help line's words under
-      each band. Test-side: zedqa_two_widths sees both windows 4 px off after closing a card at 1280x800 (the
+      each band.
+      **Chosen (director, Oct 30: "Fix first"): a to f fixed before t14 goes up.** Build to write the plain
+      rules first (an open list keeps the controller inside it until a pick or B; Down from the figure
+      reaches the band at every size; Cut's stop on its button; an open list shuts only on a pick, B, a
+      click elsewhere or leaving the tab; f: find what opens the game's Character Info panel). Then QA
+      checks a to f and the parts not covered, and t14 is staged.
+      Test-side: zedqa_two_widths sees both windows 4 px off after closing a card at 1280x800 (the
       known order flake); zedqa_laundry's dryer dial check failed once at 1280x800; the band probe opened the
       Maps pop-out (not a list) and left it open. Shots: Screenshots/zqa_band_*.png (the 1280x800 run's).
 22. **Segmented bars everywhere (director, Oct 30: "keeping it 93; the segments help info at a
