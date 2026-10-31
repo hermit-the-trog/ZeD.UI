@@ -2176,17 +2176,35 @@ local function _buildHealthBandFocusables(win)
     return elements
 end
 
+-- Oct 30 2026, punch list 21 a-f (director: Down from the body figure always reaches
+-- the band, at every size and text size): a stop in a scrolling body counts only
+-- where the body shows it, between the pinned header and the footer band (view =
+-- the tab's { x, y, w, h }, stamped each frame). One part hidden is clipped to the
+-- view; one wholly out of view is no stop, so nothing under the band is "below" the
+-- lowest stop shown, and Down from it reaches the band. Focusing the lowest one
+-- shown scrolls the body on (HealthTab's scroll-follow), and the stops under it come
+-- into view. Returns y, h, or nil when the rect is out of view.
+local function _inBodyView(view, y, h)
+    if not view then return y, h end
+    local top, bot = math.max(y, view.y), math.min(y + h, view.y + view.h)
+    if bot - top < 2 then return nil end
+    return top, bot - top
+end
+
 -- S101 — Health tab focusables: injury list rows. A opens the vanilla
 -- treatment context menu for the entry's body part (same routing as clicking
 -- the body figure). Flat list per design; no per-entry disclosure.
+-- (Oct 30 2026: only the rows the body shows; fullY / fullH keep the row's whole rect)
 local function _buildHealthInjuryFocusables(win)
     local zones = win and win._healthInjuryZones
     if not zones or #zones == 0 then return {} end
     local elements = {}
+    local view = win._healthView
     for i = 1, #zones do
         local z = zones[i]
-        elements[#elements + 1] = {
-            x = z.x, y = z.y, w = z.w, h = z.h,
+        local vy, vh = _inBodyView(view, z.y, z.h)
+        if vy then elements[#elements + 1] = {
+            x = z.x, y = vy, w = z.w, h = vh, fullY = z.y, fullH = z.h,
             id = "injury:" .. tostring(z.bodyPartName),
             injuryKey = z.bodyPartName,
             onFocus = function(w, el)
@@ -2199,7 +2217,7 @@ local function _buildHealthInjuryFocusables(win)
                     ZeD.HealthTab._onPartClicked(w, el.injuryKey, nil, nil, nil)
                 end
             end,
-        }
+        } end
     end
     if elements[1] and win._gpFocusedInjury == nil then
         win._gpFocusedInjury = elements[1].injuryKey
@@ -2221,11 +2239,14 @@ local function _buildHealthBodyPartFocusables(win)
     -- coords; the figure panel itself is never attached as a child (the
     -- figure uses :drawAt). getPartRects returns panel-local rects relative
     -- to the content panel, same coord space as exercises + injuries.
+    -- (Oct 30 2026: only the parts the body shows, clipped to it: _inBodyView)
     local elements = {}
+    local view = win._healthView
     for i = 1, #rects do
         local r = rects[i]
-        elements[#elements + 1] = {
-            x = r.x, y = r.y, w = r.w, h = r.h,
+        local vy, vh = _inBodyView(view, r.y, r.h)
+        if vy then elements[#elements + 1] = {
+            x = r.x, y = vy, w = r.w, h = vh, fullY = r.y, fullH = r.h,
             id = "bodypart:" .. tostring(r.name),
             partName = r.name,
             onFocus = function(w, el)
@@ -2236,7 +2257,7 @@ local function _buildHealthBodyPartFocusables(win)
                     ZeD.HealthTab._onPartClicked(w, el.partName, nil, nil, nil)
                 end
             end,
-        }
+        } end
     end
     if elements[1] and win._gpFocusedBodyPart == nil then
         win._gpFocusedBodyPart = elements[1].partName
@@ -2363,11 +2384,15 @@ local function _buildThermalBodyPartFocusables(win)
     if not fig or not fig.getPartRects then return {} end
     local rects = fig:getPartRects()
     if not rects or #rects == 0 then return {} end
+    -- (Oct 30 2026, punch list 21 a-f: only the parts the body shows, clipped to it, as
+    -- Health's: _inBodyView; Down from the lowest one shown reaches the grid or the band)
     local elements = {}
+    local view = win._thermalView
     for i = 1, #rects do
         local r = rects[i]
-        elements[#elements + 1] = {
-            x = r.x, y = r.y, w = r.w, h = r.h,
+        local vy, vh = _inBodyView(view, r.y, r.h)
+        if vy then elements[#elements + 1] = {
+            x = r.x, y = vy, w = r.w, h = vh, fullY = r.y, fullH = r.h,
             id = "thermalpart:" .. tostring(r.name),
             partName = r.name,
             onFocus = function(w, el)
@@ -2375,7 +2400,7 @@ local function _buildThermalBodyPartFocusables(win)
             end,
             -- onActivate intentionally omitted — thermal parts are readout
             -- only; focus drives the detail-view swap, A does nothing.
-        }
+        } end
     end
     if elements[1] and win._gpFocusedThermalPart == nil then
         win._gpFocusedThermalPart = elements[1].partName
@@ -2707,6 +2732,8 @@ local function _buildJournalFocusables(win)
         if ZeD.JournalLists and ZeD.JournalLists.state(win).ask then return subEls end
     end
     for i = 1, #subEls do elements[#elements + 1] = subEls[i] end
+    -- a page's own pop-up list open: its rows alone, modal (Oct 30 2026, punch list 21 a-f)
+    if listOpen and subEls._menuRows then elements._menuRows = true end
     -- where the page asks the focus to land (an element of the page's, after the Page box;
     -- back from the Page list the box keeps it)
     if subEls._focusIdx and not elements._focusIdx then elements._focusIdx = #elements - #subEls + subEls._focusIdx end
@@ -2751,6 +2778,19 @@ local function _findActiveTabIdx(tabEls, tabId)
     return 1
 end
 
+-- Oct 30 2026, punch list 21 a-f (director: an open list shuts only on a pick, B, a
+-- click outside it, or leaving the tab; never on a hitch or time passing): every
+-- pop-up list of the window's tabs but keepTab's (nil: all), shut through its owner,
+-- so its rows and zones go with it and the focus lands on its box. Called on a tab
+-- change (_clearGpFocusState) and each frame (the drawer folded, an item card over
+-- it, the tab gone: keepTab nil).
+local function _shutTabLists(w, keepTab)
+    if w._healthMenuOpen and keepTab ~= "health" and ZeD.HealthTab then ZeD.HealthTab.closeMenu(w) end
+    if w._thermalMenuOpen and keepTab ~= "thermal" and ZeD.ThermalTab then ZeD.ThermalTab.closeMenu(w) end
+    local JT = ZeD.JournalTab
+    if keepTab ~= "journal" and JT and JT.listsOpen and JT.listsOpen(w) then JT.shutLists(w) end
+end
+
 -- S98 — Clear all _gpFocused* chrome state fields on the window + content.
 -- Called from _switchTabForNav (Task 2) so a new tab paints with a clean
 -- focus cursor. Replaces the S96 _popStaleInvRows helper which combined
@@ -2762,10 +2802,10 @@ _clearGpFocusState = function(w)
     w._gpFocusedInjury       = nil
     w._gpFocusedBodyPart     = nil
     w._gpFocusedThermalPart  = nil
-    -- Oct 30 2026: the footer bands' pop-up lists are shut with the tab
-    w._healthMenuOpen        = false
+    -- Oct 30 2026: the pop-up lists are shut with the tab, through their owners
+    -- (punch list 21 a-f); the focus goes to the new tab, not back to a list's box
+    _shutTabLists(w, nil)
     w._healthReturnToMenu    = nil
-    w._thermalMenuOpen       = false
     w._thermalReturnToMenu   = nil
     w._gpFocusedEquipSlot    = nil
     w._gpFocusedRadioCtl     = nil  -- S117: radio drawer chassis control id
@@ -5883,6 +5923,14 @@ function ZeD_CharacterWindow.toggle(playerNum)
             _refreshCharMCZones(win, Focus)
         end
 
+        -- Oct 30 2026, punch list 21 a-f: an open pop-up list lives while its tab's
+        -- card shows; the drawer folding, an item card opening over it or the tab
+        -- going away shuts it (as leaving the tab does), never a hitch in drawing
+        do
+            local shown = win._drawerOpen and win._drawerMode == "tab" and win._drawerItem == nil
+            _shutTabLists(win, shown and win._activeTab or nil)
+        end
+
         if Focus and win._focusRing and (
                  win._activeTab == "equip"  or
                  win._activeTab == "health" or
@@ -5972,6 +6020,21 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     .. ":" .. tostring(dp and dp:getWidth()) .. ":" .. tostring(dp and dp:getHeight())
                     .. ":" .. tostring(win._equipSelected) .. ":" .. tostring(win._equipLayer)
                     .. ":" .. (ZeD.EquipLoadout and ZeD.EquipLoadout.scrollKey(win) or "")
+                if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
+            end
+            -- Health and Thermal (Oct 30 2026, punch list 21 a-f): the last stop is in the pinned
+            -- band and never moves, so the body's scroll and the fold key the rebuild (the
+            -- figure's parts and the injury rows move with the scroll)
+            if win._activeTab == "health" then
+                local sc = win._healthScroll
+                scrollKey = tostring(sc and sc.scrollPos or 0) .. ":" .. tostring(win._healthFigureExpanded)
+                    .. ":" .. tostring(win._healthMenuOpen) .. ":" .. tostring(win._healthView and win._healthView.h)
+                if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
+            end
+            if win._activeTab == "thermal" then
+                local sc = win._thermalScroll
+                scrollKey = tostring(sc and sc.scrollPos or 0) .. ":" .. tostring(win._thermalFigureExpanded)
+                    .. ":" .. tostring(win._thermalMenuOpen) .. ":" .. tostring(win._thermalView and win._thermalView.h)
                 if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
             end
             -- Identity: its scroll and the Hair and beard rows (part, Out of reach open)

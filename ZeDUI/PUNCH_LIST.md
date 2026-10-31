@@ -238,6 +238,20 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
       reaches the band at every size; Cut's stop on its button; an open list shuts only on a pick, B, a
       click elsewhere or leaving the tab; f: find what opens the game's Character Info panel). Then QA
       checks a to f and the parts not covered, and t14 is staged.
+      **fixed (build, Oct 30), a to f, QA to confirm.** The rules built: an open pop-up list holds the
+      controller (Up / Down stop at its ends, Left / Right do nothing; A picks, B shuts it; either way
+      back on its box), on every pop-up list (Craft and Build's Sort and Show, the Journal's Page list
+      and its pages' lists, Health's exercises, Thermal's views, the map's Survey / Color / Paper); a
+      list opens on the row chosen now; a list shuts only on a pick, B, a click outside it or leaving
+      its tab (the drawer folding or an item card over it counts as leaving), never because a draw
+      came late. a, e: the late-draw rule was what shut Health's and Thermal's lists; it is gone. c:
+      the body's stops now follow its scroll (Health, Thermal, and Forage's fold too), a stop hidden
+      under the band is no stop, and the lowest one shown scrolls the body on, so Down always ends in
+      the band. d: Cut's stop is its button, where it is laid out, scrolled or not. f: the game set
+      its window showing from the saved layout after ZeD had cleared the start-up flag; now it is
+      hidden after that, kept hidden over a game's first seconds, and its saved layout says hidden
+      while ZeD is on (layout.ini itself not touched). Scripts updated: zedqa_bands_probe,
+      zedqa_exinfo, zedqa_health_padprobe, zedqa_hairbeard, zedqa_charinfo.
       Test-side: zedqa_two_widths sees both windows 4 px off after closing a card at 1280x800 (the
       known order flake); zedqa_laundry's dryer dial check failed once at 1280x800; the band probe opened the
       Maps pop-out (not a list) and left it open. Shots: Screenshots/zqa_band_*.png (the 1280x800 run's).

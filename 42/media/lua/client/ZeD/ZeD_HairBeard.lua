@@ -1160,14 +1160,19 @@ end
 -- what Cut says this frame (defined with the doing, below)
 local stripState
 
+-- Cut's button top and height in its row (row top y): the draw and the controller's stop share it
+-- (Oct 30 2026, punch list 21 a-f: the stop was the whole row, and missing while Cut was out of view)
+local function cutBtnY(it, y)
+    local bh = ZeD.T.buttonH
+    return y + math.floor((it.h - bh) / 2), bh
+end
+
 -- Cut: the push button at the right of the Hair | Beard row. The verb of the picked row (Cut, Trim,
 -- Style, Shave, Tie, Untie), greyed until a row can be done; Stop while the cut runs. st.btn keeps
--- the part of its rect inside the view (the click zone).
+-- the part of its rect inside the view (the click zone); st.cutRect its whole laid-out rect.
 local _cutOpts = {}
 local function drawCut(panel, win, st, it, y, mx, my, s, viewY, viewH)
-    local T = ZeD.T
-    local bh = T.buttonH
-    local by = y + math.floor((it.h - bh) / 2)
+    local by, bh = cutBtnY(it, y)
     local o = _cutOpts
     o.hover = mx ~= nil and mx >= it.x and mx < it.x + it.w and my >= by and my < by + bh
     o.disabled, o.focus, o.help, o.win = not s.canDo, focusOf(win, "hb:do"), s.help, win
@@ -1319,6 +1324,13 @@ function HB.draw(panel, win, L, x, top, w, viewY, viewH)
             item.x = ix
         end
         local k = it.kind
+        -- Cut's laid-out rect, in view or not (the controller's stop is this rect: HB.focusables)
+        if k == "cut" then
+            local by, bh = cutBtnY(it, y)
+            local r = st.cutRect
+            if not r then r = {}; st.cutRect = r end
+            r.x, r.y, r.w, r.h = ix, by, it.w, bh
+        end
         if vis then
             if k == "subh" then
                 ZeD.Molecules.drawSectionHeader(panel, ix, y, it.w, it.text, nil, true, false, nil, nil, nil, nil, true)
@@ -1555,6 +1567,9 @@ function HB.focusables(win)
         end
         if e then
             e.x, e.y, e.w, e.h, e.cy, e.hbStop = x, y, it.w, it.h, it.y, true
+            -- Cut's stop is its button (the row is taller), where it is laid out even scrolled out
+            -- of view; focusing it scrolls it into view (IdentityTab.followFocus)
+            if it.kind == "cut" then e.y, e.h = cutBtnY(it, y) end
             e.onFocus = e.onFocus or function() end
             out[#out + 1] = e
         end

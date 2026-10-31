@@ -1082,6 +1082,68 @@ local function _windowThatWay(w, dir)
     return best
 end
 
+-- The open pop-up list (Oct 30 2026, punch list 21 a-f). Every pop-up list built
+-- on Molecules.drawPopupMenu (Craft and Build's Sort and Show, the Journal's Page
+-- and its pages' lists, Health's exercises, Thermal's views, the map's Survey /
+-- Color / Paper) hands the window its rows alone while it is open, the elements
+-- table marked _menuRows. Up / Down step to the next row that way and stop at the
+-- ends (no wrap); Left / Right do nothing; nothing outside the list is reached. A
+-- focus left outside the open list (the pointer opened it) goes to its current
+-- row on any press. A picks and B shuts, through the rows' own handlers; the
+-- list's owner lands the focus back on its box. Returns true when a list is open
+-- (the press was its, moving or not).
+local function _menuNav(w, dir)
+    local ring = w._focusRing
+    local zi = nil
+    for i = 1, #ring do
+        local z = ring[i]
+        local els = z.elements
+        if z.focusable and els and els._menuRows and #els > 0 and not (z.covered and z.covered(w)) then
+            zi = i
+            break
+        end
+    end
+    if not zi then return false end
+    local z = ring[zi]
+    local els = z.elements
+    local cur = _clampIdx(z.focusedElementIdx, els)
+    local pick = nil
+    if w._focusIdx ~= zi then
+        pick = cur                                   -- (into the list, on its current row)
+    elseif dir == "up" or dir == "down" then
+        local from = els[cur]
+        local fy = from and type(from.y) == "number" and (from.y + (from.h or 0) * 0.5) or nil
+        local best = nil
+        for i = 1, #els do
+            local e = els[i]
+            if fy and i ~= cur and type(e.y) == "number" then
+                local d = e.y + (e.h or 0) * 0.5 - fy
+                if dir == "up" then d = -d end
+                if d > 0.5 and (best == nil or d < best) then best, pick = d, i end
+            end
+        end
+    end
+    if _preview then
+        _preview.pass = "list"
+        if pick then _preview.zone, _preview.id = z.zone, els[pick].id end
+        return true
+    end
+    if not pick then return true end                 -- (an end of the list, or Left / Right)
+    local oldZoneIdx = w._focusIdx
+    z.focusedElementIdx = pick
+    w._focusIdx = zi
+    w._focusPendingEntry = nil
+    w._navLast = nil
+    local el = els[pick]
+    if el and el.onFocus then _fireCb("element.onFocus", el.onFocus, w, el) end
+    pcall(function() getSoundManager():playUISound("UISelectListItem") end)
+    if zi ~= oldZoneIdx and w.onFocusZoneChanged then
+        _fireCb("window.onFocusZoneChanged", w.onFocusZoneChanged, w, { new = z, old = ring[oldZoneIdx] })
+    end
+    print("[ZeD.Input] Focus: list " .. dir .. " -> " .. tostring(el and el.id) .. " [" .. _label(w) .. "]")
+    return true
+end
+
 -- D-pad: pseudo-focusable onDpadDir intercept first (cursor movement, grid
 -- scroll), else flat cone-nav across all focusable zones.
 local function _handleSpatialNav(w, dir)
@@ -1100,6 +1162,11 @@ local function _handleSpatialNav(w, dir)
             _xWindow or w, _xElement)
         return
     end
+
+    -- Oct 30 2026, punch list 21 a-f (director: an open list keeps the
+    -- controller inside it): an open pop-up list is modal. Its rows alone
+    -- are the stops while it is open; the rest of the window is out of reach.
+    if _menuNav(w, dir) then return end
 
     -- Pseudo-focusable intercept (unified contract). Element may consume by
     -- returning anything other than false; returning false falls through to

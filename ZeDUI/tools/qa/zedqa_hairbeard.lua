@@ -696,8 +696,17 @@ step(20, function()
     w._identityScroll:setScrollPos(0)
     check(focusId("identity:__disclosure") ~= nil, "focus on the tab's disclosure")
 end)
-step(20, function()
-    F.dispatchJoypadDir(win(), "down")
+step(20, function() F.dispatchJoypadDir(win(), "down") end)
+-- (Oct 30 2026, punch list 21 a-f: the checks wait a few frames after Down, for the scroll and
+-- the ring's rebuild; Cut's stop is its button's rect exactly, scrolled or not: st().cutRect,
+-- the rect the draw lays it out at, in view or not)
+local function cutMatches(what)
+    local r, ce = st().cutRect, el("hb:do")
+    check(r ~= nil and ce ~= nil and ce.x == r.x and ce.y == r.y and ce.w == r.w and ce.h == r.h,
+        "Cut's stop sits exactly on its button, " .. what .. " (stop " .. (ce and (ce.x .. "," .. ce.y .. " " .. ce.w .. "x" .. ce.h) or "nil")
+        .. ", button " .. (r and (r.x .. "," .. r.y .. " " .. r.w .. "x" .. r.h) or "nil") .. ")")
+end
+step(6, function()
     check(focused() == "hb:part", "down from the disclosure lands on the Hair | Beard switch (" .. tostring(focused()) .. ")")
     -- Cut (Oct 30 2026: beside the switch, no footer band) is the next stop in the order, and always a stop
     local at, cutAt
@@ -705,9 +714,29 @@ step(20, function()
         if e.id == "hb:part" then at = i elseif e.id == "hb:do" then cutAt = i end
     end
     check(at ~= nil and cutAt == at + 1, "Cut is a stop right after the Hair | Beard switch (" .. tostring(at) .. ", " .. tostring(cutAt) .. ")")
-    local sb = st().btn
-    local ce = el("hb:do")
-    check(sb ~= nil and ce ~= nil and ce.x == sb.x, "Cut's stop sits where its button draws")
+    cutMatches("at the top")
+    -- scrolled: the list run down, Cut out of view; its stop is still where it is laid out
+    local sc = win()._identityScroll
+    if sc and sc.visible then sc:setScrollPos(1) end
+end)
+step(6, function()
+    local sc = win()._identityScroll
+    if not (sc and sc.visible) then say("the tab does not scroll here: the scrolled check skipped"); return end
+    check(el("hb:do") ~= nil, "Cut is a stop with the list scrolled down")
+    cutMatches("scrolled down")
+    -- focusing it scrolls it into view (IdentityTab.followFocus)
+    focusId("hb:do")
+end)
+step(8, function()
+    local w = win()
+    local sc = w._identityScroll
+    if not (sc and sc.visible) then return end
+    local ce, view = el("hb:do"), w._identityGridScrollZone
+    check(focused() == "hb:do" and ce ~= nil and view ~= nil and ce.y >= view.y - 1 and ce.y + ce.h <= view.y + view.h + 1,
+        "focusing Cut scrolls it into view")
+    cutMatches("after the scroll to it")
+    sc:setScrollPos(0)
+    focusId("hb:part")
 end)
 step(20, function()
     if female then say("no beard half for a woman: skipped"); return end

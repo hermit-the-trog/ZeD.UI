@@ -200,10 +200,9 @@ function ZeD.ThermalTab.render(panel, win, x, y, w, h)
     -- Init view state
     if not win._thermalView then win._thermalView = 1 end
 
-    -- A View list left open while another tab was showing is shut on coming back
-    local now = getTimestampMs()
-    if win._thermalLastDraw and now - win._thermalLastDraw > 300 then win._thermalMenuOpen = false end
-    win._thermalLastDraw = now
+    -- (Oct 30 2026, punch list 21 a-f: the View list no longer shuts when a draw comes 300 ms
+    -- late, as a hitch or a screenshot made it; the window shuts it through closeMenu when the
+    -- tab is left, the drawer folds or an item card opens over it)
 
     -- Throttled data refresh
     win._thermalTimer = (win._thermalTimer or 0) + 1
@@ -264,6 +263,27 @@ function ZeD.ThermalTab.render(panel, win, x, y, w, h)
         contentW = w - scrollW
     else
         scroll:setScrollPos(0)
+    end
+
+    -- Oct 30 2026, punch list 21 a-f: what the body shows between the header and the band (the
+    -- figure's parts outside it are no stops: the window's _inBodyView), and a part the
+    -- controller focuses kept whole in view, by the least scroll (once per focus change)
+    win._thermalView = { x = x, y = scrollY, w = contentW, h = scrollH }
+    if needsScroll then
+        local Focus = ZeD.Input and ZeD.Input.Focus
+        local el = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == win
+                   and Focus.getFocusedElement(win) or nil
+        local key = el and el.partName and el.id or nil
+        if key and key ~= win._thermalPinned and type(el.y) == "number" then
+            local span = math.max(1, totalContentH - scrollH)
+            local oldOff = math.floor(scroll.scrollPos * span)
+            local ly, lh = (el.fullY or el.y) - scrollY + oldOff, el.fullH or el.h or 0
+            local target = oldOff
+            if ly < oldOff then target = ly elseif ly + lh > oldOff + scrollH then target = ly + lh - scrollH end
+            target = math.max(0, math.min(span, target))
+            if target ~= oldOff then scroll:setScrollPos(target / span) end
+        end
+        win._thermalPinned = key
     end
 
     panel:setStencilRect(x, scrollY, contentW, scrollH)
