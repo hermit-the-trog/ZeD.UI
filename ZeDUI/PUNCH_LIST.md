@@ -381,6 +381,33 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     **fixed (build, Oct 30, 80094e3):** every plate face (machines, laundry, radios, TVs, walkies, car radio,
     siren) asks the game whether its picture has finished loading and draws nothing until it has. QA to
     confirm on a first opening, and to see how long the wait is to the eye.
+27. **Tabs out of reach at 1280x720, UI scale 2.0, Large text.** Found by QA, Oct 31 (the break-it run):
+    both tab columns are taller than the window; Journal, Skills, Radio (Character) and Forage, Animals,
+    Radio, Vehicle (World) never came up. Cause: the columns did scroll (the arrow row at their foot, the
+    wheel), but nothing brought a tab out of sight into view, so a controller moving down focused tabs
+    hidden under the arrow row; the test clicked tabs by position and never scrolled.
+    **fixed (build, Oct 31, 37b7af0):** a scrolling column brings the controller's focused tab (else the
+    active tab) into view whenever it changes; the arrows and the wheel still look anywhere. The test
+    now wheels a hidden tab into view first. QA to confirm with the pad and the mouse.
+28. **Pop-up boxes cut to nothing at the same setting.** Found by QA, Oct 31: Health's exercise box read
+    "E...", Craft's station box "Station ..". Cause: the words were cut from the end, so the label stayed
+    and the choice went. **fixed (build, Oct 31, abd84b2 and 2769824):** when "Exercise: Squats" does not
+    fit, the box shows "Squats" (cut short only if even that does not fit), on every pop-up box (Health,
+    Thermal's view, Journal's page, Craft and Build's Sort and Show, the lists, the papers); the station
+    box leaves out "Station" before the station's name. QA to confirm.
+29. **The Equip list's names cut short at the same setting ("T-shi... Inner", "Leat... Gloves").** open,
+    a design question. Found by QA, Oct 31. Cause: at the half card the list's columns do not fit: the
+    name gets its 40-unit minimum, the slot column is as wide as the longest slot name of all, the
+    condition bar is half cut and the protection and weight columns are past the card's edge. Which
+    gives way at narrow widths? (a) the slot column first (its words cut, "Inn..."); (b) the protection
+    and weight columns drop and the name takes their room; (c) the slot column drops (the group heading
+    already says where), the name takes its room.
+30. **Windows accept any size from code.** Found by QA, Oct 31: a window set to 1920x4320 on a 2160
+    screen hung off the bottom; a drag is clamped. A layout saved on a bigger screen, or a screen made
+    smaller, could do the same. **fixed (build, Oct 31, 7bf30e1):** after a saved layout is restored and
+    on a resolution change, both windows are kept on the screen (no taller than it, no wider, wholly on
+    it; the saved width capped at half the screen). A size set by a script mid-game is still taken as
+    given. QA to confirm with a resolution change in game.
 
 ## Test process
 
