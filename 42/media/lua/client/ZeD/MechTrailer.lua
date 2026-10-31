@@ -629,10 +629,14 @@ local function containerRow(panel, s, sx, yy, sw, v, chr, partId, label, open, e
     local bw = rowButton(panel, s, sx + sw, yy, srh, getText("IGUI_Open"), "default", "mech:open:" .. partId,
         function() openContainer(chr, v, part) end, open, { clip = s.bodyClip, help = ZeD.tr("UI_ZeD_Veh_HelpOpenBox") })
     local r = sx + sw - bw - T.px(8)
-    r = rText(panel, r, yy, srh, string.format("%.1f / %d", info.weight, math.floor(info.cap + 0.5)), T.fontF3) - T.px(6)
+    local wt = string.format("%.1f / %d", info.weight, math.floor(info.cap + 0.5))
+    r = rText(panel, r, yy, srh, wt, T.fontF3) - T.px(6)
     local barW = T.px(36)
     local bh = A.fillBarCompactH()
-    A.drawFillBar(panel, r - barW, yy + math.floor((srh - bh) / 2), barW, info.cap > 0 and info.weight / info.cap or 0, false, nil, bh)
+    -- ten segments; the help line the box's name and its weight ("Trunk 12.5 / 40")
+    if A.drawFillBar(panel, r - barW, yy + math.floor((srh - bh) / 2), barW, info.cap > 0 and info.weight / info.cap or 0, false, nil, bh) then
+        ZeD.Help.set(panel, ZeD.tr("UI_ZeD_Bar_Help", label, wt))
+    end
     r = r - barW - T.px(8)
     local what
     if info.n == 0 then what = getText("Fluid_Empty")
@@ -1048,7 +1052,11 @@ local function vital(panel, x, y, w, label, value, pct, dotColor)
     if pct then
         local bw = T.px(VBAR_W)
         local bh = A.fillBarCompactH()
-        A.drawFillBar(panel, right - bw, y + math.floor((rh - bh) / 2), bw, math.max(0, math.min(1, pct / 100)), true, nil, bh)
+        -- ten segments; the help line the row's own reading ("Hunger Peckish": the word, as the Animals
+        -- tab gives it, no figure the game keeps back)
+        if A.drawFillBar(panel, right - bw, y + math.floor((rh - bh) / 2), bw, math.max(0, math.min(1, pct / 100)), true, nil, bh) then
+            ZeD.Help.set(panel, ZeD.tr("UI_ZeD_Bar_Help", label, value))
+        end
         right = right - bw - T.px(8)
     end
     local l = rText(panel, right, y, rh, value, T.fontF3)

@@ -420,6 +420,7 @@ local function drawBox(panel, win, bx, by, b, item, nLayers, key, beltKey, label
     local ac = T.accent
     local over = mx >= bx and mx < bx + b and my >= by and my < by + b
     local hover = over and not cuesOn()
+    local condHov = nil   -- (the condition while the pointer is on its strip)
     if item then
         local st = T.stripe
         panel:drawRect(bx, by, b, b, st.a, st.r, st.g, st.b)
@@ -445,8 +446,10 @@ local function drawBox(panel, win, bx, by, b, item, nLayers, key, beltKey, label
         end
         local f = condOf(item)
         if f then
+            -- (ten segments: 52 units less 8 is 21 px at the smallest doll at 0.75, a pixel a segment)
             local ch = T.px(5)
-            ZeD.Atoms.drawFillBar(panel, bx + T.px(4), by + b - T.px(3) - ch, b - T.px(8), f, false, condColor(T, f), ch)
+            condHov = ZeD.Atoms.drawFillBar(panel, bx + T.px(4), by + b - T.px(3) - ch, b - T.px(8), f, false, condColor(T, f), ch)
+                and f or nil
         end
     else
         local dc = T.textDim
@@ -462,7 +465,10 @@ local function drawBox(panel, win, bx, by, b, item, nLayers, key, beltKey, label
         panel:drawRect(bx, by, tw, f1h, bgc.a or 1, bgc.r, bgc.g, bgc.b)
         panel:drawText(beltKey, bx + math.floor((tw - tm:MeasureStringX(f1, beltKey)) / 2), by, tc.r, tc.g, tc.b, tc.a or 1, f1)
     end
-    if hover then
+    if condHov then
+        -- on the condition strip: its reading ("Condition 64%")
+        ZeD.Help.set(panel, ZeD.Atoms.fillBarHelp(condHov, ZeD.tr("IGUI_invpanel_Condition")))
+    elseif hover then
         ZeD.Help.set(panel, item and ZeD.tr("UI_ZeD_Doll_SlotHelp", call(item, "getDisplayName") or label)
             or ZeD.tr("UI_ZeD_Doll_EmptyHelp", label))
     end

@@ -1380,7 +1380,7 @@ function HB.drawStrip(panel, win, x, y, w, h)
         A.drawDividerH(panel, x, y, w, true)
         if s.pct then
             -- the busy bar: the standard framed strip
-            A.drawFillBar(panel, x + pad, y + math.floor((infoH - T.fillBarH) / 2), w - pad * 2, s.pct, false, T.accent)
+            A.drawSmoothBar(panel, x + pad, y + math.floor((infoH - T.fillBarH) / 2), w - pad * 2, s.pct, false, T.accent)   -- (a timed action: smooth)
         elseif s.info then
             local tx = x + pad
             local ty = y + math.floor((infoH - F(2)) / 2)

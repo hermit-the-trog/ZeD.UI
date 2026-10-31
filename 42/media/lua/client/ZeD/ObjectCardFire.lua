@@ -316,7 +316,10 @@ local function drawFuelStrip(card, x, y, w, d)
     -- amber; out, the fuel waiting, muted amber
     local fillC = d.lit and T.warning or ZeD.colorBlend(T.warning, T.surf2, d.smoulder and 0.35 or 0.6)
     local bh = T.fillBarH
-    ZeD.Atoms.drawFillBar(card, x, y, w, d.fuel / math.max(1, d.max), false, fillC, bh)
+    -- (ten segments; the help line the time left, as the readout says it: "Fuel 2h 30m")
+    if ZeD.Atoms.drawFillBar(card, x, y, w, d.fuel / math.max(1, d.max), false, fillC, bh) then
+        ZeD.Help.set(card, ZeD.tr("UI_ZeD_Bar_Help", ZeD.tr("IGUI_GlobalObject_Fuel"), OC.hm(d.fuel)))
+    end
     y = y + bh + T.px(4)
     -- scale: Now ... Full with even hour marks between
     local f5 = T.fontF5

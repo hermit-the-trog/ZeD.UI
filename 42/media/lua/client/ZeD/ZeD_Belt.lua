@@ -1249,7 +1249,7 @@ local function padMark(self, b, round)
 end
 
 -- A slot's condition line is the library's framed strip (ZeD.Atoms.drawFillBar: 1u borderS frame, solid T.base well,
--- a flat solid fill in the graduated status colours), 8u tall and 3u in from the box's sides and bottom; the picture
+-- ten segments in the graduated status colours, Oct 30 2026), 8u tall and 3u in from the box's sides and bottom; the picture
 -- stands above it.
 local STRIP_INSET = 3
 local SLOT_PIC = 28
@@ -1328,7 +1328,7 @@ function ZeD_BeltHUD:_drawBox(b, o)
         local f = B.cond(o.item)
         if f then
             local ins = T.px(STRIP_INSET)
-            ZeD.Atoms.drawFillBar(self, b.x + ins, b.y + b.h - ins - stripH, b.w - 2 * ins, f, true, nil, stripH)
+            ZeD.Atoms.drawFillBar(self, b.x + ins, b.y + b.h - ins - stripH, b.w - 2 * ins, f, true, nil, stripH)   -- (ten segments)
         end
     end
     -- the key that draws it
@@ -1513,12 +1513,12 @@ function ZeD_BeltHUD:_drawAmmo(t, a)
     local L = B.segLayout(a.max, a.chamber, math.floor((iw - 2 * k) / k))
     if not L then
         -- too many for one pixel each: the strip as a plain bar, ticked every ten
-        A.drawFillBar(self, sx, sy, sw, a.f, false, c, stripH)
+        A.drawSmoothBar(self, sx, sy, sw, a.f, false, c, stripH)   -- (its own ticks of ten: smooth under them)
         local bg = T.base
         for t = 10, a.max - 1, 10 do self:drawRect(ix + math.floor(iw * t / a.max), iy, k, ih, 1, bg.r, bg.g, bg.b) end
         return
     end
-    A.drawFillBar(self, sx, sy, sw, 0, false, nil, stripH)        -- the frame and the well
+    A.drawSmoothBar(self, sx, sy, sw, 0, false, nil, stripH)      -- the frame and the well
     local x = ix + math.floor((iw - L.w * k) / 2)
     if a.chamber then
         -- the chamber's round, set apart from the magazine's by a wider gap

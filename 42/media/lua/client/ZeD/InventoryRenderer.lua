@@ -579,18 +579,19 @@ local function drawViewToggle(self, GV, xOff, right, barH, areaH, padX)
     return tW + padX
 end
 
--- A grid cell's condition: the framed strip (ZeD.Atoms.drawFillBar) along the
--- cell's bottom, compact to fit under the icon. Returns its top (or the cell's
--- bottom when there is none).
+-- A grid cell's condition: the framed strip (ZeD.Atoms.drawFillBar, ten segments) along
+-- the cell's bottom, compact to fit under the icon. Returns its top (or the cell's
+-- bottom when there is none) and true while the pointer is on it (its help line:
+-- "Condition 64%"). 52 units less 6: 34 px at 0.75, two or three a segment.
 local function drawCellCondition(self, item, ax, cy, cell)
     local T = ZeD.T
     local condMax = item:getConditionMax()
-    if not (condMax and condMax > 0) then return cy + cell end
+    if not (condMax and condMax > 0) then return cy + cell, false end
     local f = math.max(0, math.min(1, item:getCondition() / condMax))
     local bh = T.px(5)
     local by = cy + cell - T.px(3) - bh
-    ZeD.Atoms.drawFillBar(self, ax + T.px(3), by, cell - T.px(6), f, true, nil, bh)
-    return by
+    local hov = ZeD.Atoms.drawFillBar(self, ax + T.px(3), by, cell - T.px(6), f, true, nil, bh, ZeD.tr("IGUI_invpanel_Condition"))
+    return by, hov
 end
 
 -- A stack's total weight, summed as vanilla's inventory sums a stack
@@ -677,7 +678,8 @@ local function drawGridCell(self, GV, item, cx, cy)
     end
     -- condition, the framed strip along the bottom (the list's colours); a readable
     -- item shows its read mark instead, as the list's COND column does
-    local condTop = rs and (cy + cell) or drawCellCondition(self, item, ax, cy, cell)
+    local condTop, condHov = cy + cell, false
+    if not rs then condTop, condHov = drawCellCondition(self, item, ax, cy, cell) end
     -- on the belt: its key, top left (the list's BELT n tag), drawn below; measured here for the weight's room
     local f5 = T.fontF5
     local okAS, aslot = pcall(function() return item:getAttachedSlot() end)
@@ -724,7 +726,7 @@ local function drawGridCell(self, GV, item, cx, cy)
         local nm = item:getName() or "?"
         if count > 1 then nm = nm .. " x" .. count end
         self._gridHintCand = { key = item, text = nm, read = rs }
-        ZeD.Help.set(self, ZeD.tr("UI_ZeD_Inv_RowHelp", nm))
+        if not condHov then ZeD.Help.set(self, ZeD.tr("UI_ZeD_Inv_RowHelp", nm)) end   -- (on the strip: its condition)
     end
     self:addHitZone(item, ax, cy, cell, cell)
 end
@@ -1130,15 +1132,16 @@ local function rowTag(self, x, y, rowH, text, focusTxt)
     ZeD.Molecules.drawTag(self, x, y + math.floor((rowH - T.px(16)) / 2), text, nil, _rowTagOpts)
 end
 
--- A row's condition in the COND column: the framed strip (ZeD.Atoms.drawFillBar)
--- at the list rows' compact height, centred in the row, in the condition's colours
+-- A row's condition in the COND column: the framed strip (ZeD.Atoms.drawFillBar, ten segments;
+-- the column less 4 units is 34 px at 0.75) at the list rows' compact height, centred in the row, in
+-- the condition's colours
 local function rowCondition(self, item, x, y, w, rowH)
     local condMax = item:getConditionMax()
     if not (condMax and condMax > 0) or w <= 0 then return end
     local A = ZeD.Atoms
     local pct = math.max(0, math.min(1, item:getCondition() / condMax))
     local ch = (A.fillBarCompactH and A.fillBarCompactH()) or ZeD.T.px(8)
-    A.drawFillBar(self, x, y + math.floor((rowH - ch) / 2), w, pct, true, nil, ch)
+    A.drawFillBar(self, x, y + math.floor((rowH - ch) / 2), w, pct, true, nil, ch, ZeD.tr("IGUI_invpanel_Condition"))
 end
 
 local function renderItemList(self)

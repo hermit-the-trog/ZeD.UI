@@ -213,6 +213,17 @@ looks odd in the circle) drawn as the strip bent round, 1u in from the outline a
 6-unit framed strip in its pixel grid with the queue's steps as frame-coloured dividers (its thought bubble 4 units
 taller). The Simple mode's ten segments stay as they are.
 
+Oct 30 2026 (director, punch list 22: "keeping it 93; the segments help info at a glance"): every fill bar is ten
+separate segments in the framed strip, lit or dark, never part-lit (`A.drawFillBar` through `A.drawSegFill`: lit cells
+flat in the bar's colour, dark cells `T.surf3`, a hairline of well between them). Rounding is strict: a segment lights
+only when its whole tenth is reached (4% none, 100% all ten). Skills give one segment per level at each row's right
+(`A.rowBarW`, 41u), the farm plot's stage strip one per stage. Pointing at a bar puts the exact value in the help line
+("Condition 64%", "Fitness 5, 40% to level 6"); where the game words a value instead of a number (an animal's vitals
+below the skill, a skill-locked meter, a hidden fluid amount) the help line gives those words. Smooth
+(`A.drawSmoothBar`): the progress band and every timed action's busy bar, crafting, uploads, a slider's track, Thermal's
+scale and other scales with a pointer, the dash gauges. A fill bar is at least `A.fillBarMinW()` wide (21 px at 1x and
+below) so ten segments stay distinct.
+
 ## 9a. Conditional disclosure (director, Oct 26 2026)
 
 Fewer things on screen: an action shows only when it can be done.

@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/SkillsTab.lua
 -- ============================================================================
--- SKILLS TAB — 2-column skill grid with XP progress bars.
--- Category-grouped skills, color-coded XP rows, boost pills.
+-- SKILLS TAB — 2-column skill grid, a ten-segment level bar on each row.
+-- Category-grouped skills, the level bars (one segment per level), boost tags.
 --
 -- Design reference: CharInfoOverhaul XP screen (CharInfoPanel.lua 1060-1257).
 -- Drawer widens to 480px via per-tab drawer width system.
@@ -54,35 +54,25 @@ local function getPreviousXpLvl(perk, level)
 end
 
 -- ============================================================================
--- PROGRESS BAR COLORS (matches CharInfoOverhaul color progression)
--- ghost → green → yellow → red → gold
--- Uses ZeD.T tokens where possible, with alpha-scaled bg variants.
+-- THE LEVEL BAR (Oct 30 2026, director, punch list 22: "keeping it 93; the
+-- segments help info at a glance")
+-- Each row's XP fill under its words became ten segments at its right, one per
+-- level, the levels reached lit (ZeD.Atoms.drawSegFill): green, yellow for the
+-- skill pinned to the title bar and for a maxed one (the old gold). The XP
+-- toward the next level is in the help line while the pointer is on the bar
+-- ("Fitness 5, 40% to level 6") and in the title bar for a pinned skill.
 -- ============================================================================
 
-local function getProgressColors(T, level, xpPct)
-    if level <= 0 then
-        -- Ghost: faint positive for unskilled
-        return ZeD.colorAlpha(T.positive, 0.5),
-               ZeD.colorAlpha(T.positive, 0.0)
-    end
-    if level >= 10 then
-        -- Gold: maxed skill
-        return ZeD.colorAlpha(T.warning, 1.0),
-               ZeD.colorAlpha(T.warning, 0.55)
-    end
-    if xpPct >= 0.75 then
-        -- Red: approaching level-up
-        return T.danger,
-               { r = T.danger.r, g = T.danger.g, b = T.danger.b, a = 0.45 }
-    end
-    if xpPct >= 0.40 then
-        -- Yellow: mid-level
-        return T.warning,
-               { r = T.warning.r, g = T.warning.g, b = T.warning.b, a = 0.45 }
-    end
-    -- Green: early in level
-    return T.positive,
-           { r = T.positive.r, g = T.positive.g, b = T.positive.b, a = 0.45 }
+local function levelBarColor(T, level, pinned)
+    if pinned or level >= 10 then return T.warning end
+    return T.positive
+end
+
+--- The help line's words for a skill's level bar: "Fitness 5, 40% to level 6"; "Fitness 10" at the top
+function ZeD.SkillsTab.barHelp(skill)
+    if skill.level >= 10 then return ZeD.tr("UI_ZeD_Bar_Help", skill.name, skill.level) end
+    return ZeD.tr("UI_ZeD_Skills_BarHelp", skill.name, skill.level,
+        ZeD.Atoms.pctText(skill.xpProgress or 0), skill.level + 1)
 end
 
 -- ============================================================================
@@ -127,7 +117,9 @@ local function drawBoostPill(panel, x, y, rowH, boost, font)
     -- Pre-measure the tag's width for right-alignment (words, side padding, the square)
     local tw = ZeD.TM:MeasureStringX(T.fontF1, ZeD.textCase(boostStr)) + T.px(10) + T.px(10)
     local tagH = T.px(16)
-    ZeD.Molecules.drawTag(panel, x - tw - T.sp.xs, y + math.floor((rowH - tagH) / 2), boostStr, T.positive)
+    local tx = x - tw - T.sp.xs
+    ZeD.Molecules.drawTag(panel, tx, y + math.floor((rowH - tagH) / 2), boostStr, T.positive)
+    return tx   -- (the tag's left edge: the name stops short of it)
 end
 
 -- ============================================================================
@@ -390,7 +382,7 @@ end
 -- file again. Nothing here draws anything until an extra is added, so the tab
 -- is exactly as built without one. An extra is a table:
 --   laneH   design px each skill row grows by, for a strip in its own lane
---           under the row (the row's fill keeps its meaning above it); the strip is
+--           under the row (the row keeps its level bar above it); the strip is
 --           the standard framed bar, ZeD.Atoms.fillBarCompactH (8u) tall, so ask for 10
 --   lane(playerObj, perk, level, xpProgress)
 --           -> nil, or { span = 0..1 of the row's width, segs = { { share = 0..1,
@@ -444,7 +436,7 @@ local function drawLane(panel, x, y, w, playerObj, skill)
             local ok, L = pcall(e.lane, playerObj, skill.perk, skill.level, skill.xpProgress)
             if ok and L and L.segs then
                 local h = A.fillBarCompactH()
-                A.drawFillBar(panel, x, y, w, 0, false, nil, h)   -- the well and the frame
+                A.drawSmoothBar(panel, x, y, w, 0, false, nil, h)   -- the well and the frame
                 local bw = T.hair
                 local innerW = w - bw * 2
                 local span = math.floor(innerW * math.max(0, math.min(1, L.span or 1)))
@@ -1017,6 +1009,7 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     local zoneABottom = curY
 
     local font = T.fontF2
+    local barW, barH = A.rowBarW(), A.fillBarCompactH()   -- (each row's level bar)
     local col1X = x + pad
     local col2X = x + pad + colW + colGap
 
@@ -1042,26 +1035,11 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
 
             for _, skill in ipairs(group.skills) do
                 local vis = (cy + rowH > bandTop) and (cy < bandBot)   -- the row reaches the view
-                local _, bgColor = getProgressColors(T, skill.level, skill.xpProgress)
 
                 -- Alternating row stripe
                 if vis and skillRowIdx % 2 == 1 then
                     local st = T.stripe
                     panel:drawRect(startX, cy, colWidth, rowH, st.a, st.r, st.g, st.b)
-                end
-
-                -- XP progress background fill (under the washes below)
-                if not vis then
-                    -- (nothing to draw: the stencil would clip it all)
-                elseif skill.level >= 10 then
-                    panel:drawRect(startX, cy, colWidth, rowH,
-                        bgColor.a, bgColor.r, bgColor.g, bgColor.b)
-                elseif skill.level > 0 and skill.xpProgress > 0 then
-                    local fillW = math.floor(colWidth * skill.xpProgress)
-                    if fillW > 0 then
-                        panel:drawRect(startX, cy, fillW, rowH,
-                            bgColor.a, bgColor.r, bgColor.g, bgColor.b)
-                    end
                 end
 
                 -- Pinned skill: selected, the one accent wash
@@ -1091,16 +1069,24 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
                     -- Level badge
                     drawLevelBadge(panel, startX, cy, baseRowH, skill.level, font)
 
-                    -- Skill name (bodyH: the row font's height, measured once above)
+                    -- The level bar at the right: ten segments, one per level (its help line: the XP to the next)
+                    local barX = startX + colWidth - T.px(4) - barW
+                    if A.drawSegFill(panel, barX, cy + math.floor((baseRowH - barH) / 2), barW, barH, 10,
+                            skill.level, levelBarColor(T, skill.level, isPinned)) then
+                        help(win, ZeD.SkillsTab.barHelp(skill))
+                    end
+
+                    -- Boost pill (right-aligned, before the bar)
+                    local nameR = barX
+                    if skill.boost and skill.boost > 0 then
+                        nameR = drawBoostPill(panel, barX - T.px(2), cy, baseRowH, skill.boost, font)
+                    end
+
+                    -- Skill name (bodyH: the row font's height, measured once above), shortened clear of the tag and bar
                     local nameX = startX + T.px(BADGE_W) + T.px(6)
                     local nameY = cy + math.floor((baseRowH - bodyH) / 2)
                     local nc = onFocus and T.textOnFocus or T.toneNorm
-                    panel:drawText(skill.name, nameX, nameY, nc.r, nc.g, nc.b, nc.a or 1, font)
-
-                    -- Boost pill (right-aligned)
-                    if skill.boost and skill.boost > 0 then
-                        drawBoostPill(panel, startX + colWidth, cy, baseRowH, skill.boost, font)
-                    end
+                    panel:drawText(A.truncateText(skill.name, font, nameR - T.px(6) - nameX), nameX, nameY, nc.r, nc.g, nc.b, nc.a or 1, font)
 
                     -- a row extra's strip in its own lane under the row
                     if laneH > 0 then

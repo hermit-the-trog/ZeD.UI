@@ -915,11 +915,13 @@ local function dotLine(panel, x, y, color, text, font)
 end
 
 -- A condition bar for a list row: the framed strip at the compact height, centred
--- on cy, its fill graduated (green over 60, amber over 30, red below).
+-- on cy, ten segments graduated (green over 60, amber over 30, red below); its help
+-- line "Condition 64%"
 local function miniBar(panel, x, cy, w, pct)
     local A = ZeD.Atoms
     local h = A.fillBarCompactH()
-    A.drawFillBar(panel, x, cy - math.floor(h / 2), w, math.max(0, math.min(1, pct / 100)), true, nil, h)
+    A.drawFillBar(panel, x, cy - math.floor(h / 2), w, math.max(0, math.min(1, pct / 100)), true, nil, h,
+        ZeD.tr("IGUI_invpanel_Condition"))
 end
 
 -- The timed action now running on this vehicle (nil when idle)
@@ -988,7 +990,11 @@ local function drawSummary(panel, s, sx, sy, sw, v, chr, parts, hl)
         panel:drawText(catLabel(p.cat), sx, yy, dc.r, dc.g, dc.b, dc.a or 1, T.fontF1)
         yy = yy + T.fontF1H + T.px(10)
         yy = yy + drawLabelValue(panel, sx, yy, sw, getText("IGUI_invpanel_Condition"), (p.missing or p.smashed) and "-" or (tostring(p.cond) .. "%")) + T.px(4)
-        A.drawFillBar(panel, sx, yy, sw, (p.missing or p.smashed) and 0 or p.cond / 100, true)
+        if p.missing or p.smashed then
+            A.drawSegFill(panel, sx, yy, sw, T.fillBarH, A.FILL_SEGS, 0)   -- (no reading: "-" above it)
+        else
+            A.drawFillBar(panel, sx, yy, sw, p.cond / 100, true, nil, nil, ZeD.tr("IGUI_invpanel_Condition"))
+        end
         yy = yy + T.fillBarH + T.px(10)
         local item = p.part:getInventoryItem()
         if p.missing then
@@ -1010,7 +1016,7 @@ local function drawSummary(panel, s, sx, sy, sw, v, chr, parts, hl)
     end
     local ov = overallCond(v)
     yy = yy + drawLabelValue(panel, sx, yy, sw, ZeD.tr("UI_ZeD_Veh_Overall"), tostring(ov) .. "%") + T.px(4)
-    A.drawFillBar(panel, sx, yy, sw, ov / 100, true)
+    A.drawFillBar(panel, sx, yy, sw, ov / 100, true, nil, nil, ZeD.tr("UI_ZeD_Veh_Overall"))
     yy = yy + T.fillBarH + T.px(8)
     local miss, worn = 0, 0
     for _, q in ipairs(parts) do
@@ -1181,7 +1187,7 @@ local function renderOverview(panel, win, s, x, y, w, h, v, chr, inspected)
     else
         local yy = cy + pad
         yy = yy + drawLabelValue(panel, sx, yy, sw, ZeD.tr("UI_ZeD_Veh_Overall"), "?") + T.px(4)
-        A.drawFillBar(panel, sx, yy, sw, 0, true)
+        A.drawSegFill(panel, sx, yy, sw, T.fillBarH, A.FILL_SEGS, 0)   -- (not known yet: no reading in the help line)
         yy = yy + T.fillBarH + T.px(8)
         local dc = T.textDim
         yy = yy + dotLine(panel, sx, yy, { r = dc.r, g = dc.g, b = dc.b, a = 0.6 }, ZeD.tr("UI_ZeD_Veh_NotInspected")) + T.px(8)
@@ -1540,7 +1546,7 @@ local function renderCard(panel, win, s, x, y, w, h, v, chr)
     cy = cy + M.drawTopStatsGrid(panel, x + pad, cy, cw - pad * 2, icon, cardStats(p, v, chr), ghost)
     cy = cy + T.px(8)
     if not p.missing and not p.smashed then
-        A.drawFillBar(panel, x + pad, cy, cw - pad * 2, p.cond / 100, true)
+        A.drawFillBar(panel, x + pad, cy, cw - pad * 2, p.cond / 100, true, nil, nil, ZeD.tr("IGUI_invpanel_Condition"))
         cy = cy + T.fillBarH + T.px(10)
     end
 
@@ -1636,10 +1642,12 @@ local function renderCard(panel, win, s, x, y, w, h, v, chr)
         local sc, fc = n.chance[1], n.chance[2]
         if fc and fc > 0 then
             local bw = cw - pad * 2
-            A.drawFillBar(panel, x + pad, cy, bw, sc / 100, false, T.positive)
+            local succ = cased(ZeD.tr("UI_ZeD_Veh_SuccessPct", tostring(sc) .. "%"))
+            -- (ten segments; its help line the words under it, "Success 64%")
+            if A.drawFillBar(panel, x + pad, cy, bw, sc / 100, false, T.positive) then ZeD.Help.set(panel, succ) end
             cy = cy + T.fillBarH + T.px(3)
             local tt = T.text
-            panel:drawText(cased(ZeD.tr("UI_ZeD_Veh_SuccessPct", tostring(sc) .. "%")), x + pad, cy, tt.r, tt.g, tt.b, tt.a or 1, T.fontF1)
+            panel:drawText(succ, x + pad, cy, tt.r, tt.g, tt.b, tt.a or 1, T.fontF1)
             A.drawTextRight(panel, cased(ZeD.tr("UI_ZeD_Veh_FailurePct", tostring(fc) .. "%")), x + pad + bw, cy, T.fontF1, tt)
             cy = cy + T.fontF1H + T.px(10)
         end
