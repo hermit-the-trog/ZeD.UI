@@ -259,6 +259,8 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
       the figure then looks up a view by a table (ThermalTab.lua 549, "attempted index: id of non-table").
       Options: the scroll area under a name of its own (the view keeps its number). Not run after it: the
       1280x800 pass, hairbeard, charinfo, the uncovered parts (zedqa_uncovered21.lua); t14 not staged.**
+      **g chosen (director, Oct 30: "Yes, fix it"): the scroll area under a name of its own.** Then QA's
+      re-check (asking for the screen), and t14 staged if it passes.
       Test-side: zedqa_two_widths sees both windows 4 px off after closing a card at 1280x800 (the
       known order flake); zedqa_laundry's dryer dial check failed once at 1280x800; the band probe opened the
       Maps pop-out (not a list) and left it open. Shots: Screenshots/zqa_band_*.png (the 1280x800 run's).
