@@ -62,8 +62,8 @@ local function later(n, fn) local k = 0; local function f() k = k + 1; if k >= n
 -- the field for __FIELD__
 local function field()
     if "__FIELD__" == "journal" then return c and c._journalInput end
-    if "__FIELD__" == "jsearch" then return c and (c._journalSearch or c._journalSearchEntry) end
-    if "__FIELD__" == "craft" then local st = w and w._craftState; return st and (st.searchEntry or st._searchEntry or st.search) end
+    if "__FIELD__" == "jsearch" then return c and c._journalSearch and c._journalSearch.input end
+    if "__FIELD__" == "craft" then return w and w._craftSearch and w._craftSearch.input end
 end
 '@
 function Run-Lua($body, $field, $wait = 20) {

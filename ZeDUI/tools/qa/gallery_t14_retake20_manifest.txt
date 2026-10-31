@@ -1,0 +1,12 @@
+# Oct 31 2026: slide 20's retake (zed_13_crafting, LIST): gallery_v3_zed.lua's tabs section, where zed_13 lives (the
+# hero retake did not reach it). Keep only zed_13_crafting from this run. zedqa_run.ps1 -Manifest this -Mode fullscreen4k
+zedqa_prelude.lua | pre | timeout=120
+gallery_t14_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=120
+gallery_v3_core.lua | g3c | timeout=600
+gallery_v3_reveal.lua | g3r | timeout=300
+gallery_v3_stage.lua | g3s | timeout=600
+gallery_t14_retake_tabs.lua | g3tb | timeout=60
+gallery_v3_zed.lua | g3z | timeout=900
+gallery_v3_teardown.lua | g3t | timeout=600
+gallery_t14_end.lua | g14e | timeout=60
