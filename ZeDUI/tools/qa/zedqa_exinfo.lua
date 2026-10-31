@@ -5,8 +5,10 @@
 --   data: exerciseInfo for every exercise against vanilla's keys; chest has no
 --   stiffness line; a missing barbell warns, a barbell added clears it; a stand-up
 --   reason shows while sitonground is set and is put back;
---   screen: the info block follows the pad's focused pill and keeps one
---   reserved height whichever exercise it shows.
+--   screen: the info block follows the exercise picked in the footer band's pop-up
+--   (Oct 30 2026: the seven buttons became that pop-up) and keeps one reserved height
+--   whichever exercise it shows; the pop-up lists all seven, a pick shuts it and
+--   changes the choice; the band's keys step the time and start nothing.
 -- Screenshots zqa_ex_*.png. grep "ZEDQA ex".
 local p = getPlayer()
 local pn = p:getPlayerNum()
@@ -31,15 +33,16 @@ local function has(list, text)
     for _, s in ipairs(list) do if s == text then return true end end
     return false
 end
-local function focusExercise(id)
+-- pick an exercise as the pop-up's list does (the choice the info follows)
+local function pickExercise(id)
+    cw()._healthExerciseSel = id
+end
+-- the pad stop with this id (the footer band's box, - / +, Start; a list row)
+local function stopById(id)
     local w = cw()
     for zi, z in ipairs(w._focusRing or {}) do
         for ei, el in ipairs(z.elements or {}) do
-            if el.exerciseId == id then
-                w._focusIdx = zi; z.focusedElementIdx = ei
-                if el.onFocus then el.onFocus(w, el) end
-                return true
-            end
+            if el.id == id then return w, z, zi, ei, el end
         end
     end
 end
@@ -85,39 +88,62 @@ at(50, function()
     ok("reason gone after standing", sq and not has(sq.warn, getText("Tooltip_StandStillFitness")))
 end)
 -- on screen
-at(60, function() focusExercise("squats") end)
-local hSquats
 local selWas = nil
+at(60, function() selWas = cw()._healthExerciseSel; pickExercise("squats") end)
+local hSquats
 at(90, function()
     local w = cw()
     say("tab health " .. tostring(w._activeTab == "health") .. " | shown " .. tostring(w._healthInfoShown) .. " | reserved " .. tostring(w._healthInfoH) .. " used " .. tostring(w._healthInfoUsedH) .. " w " .. tostring(w._healthInfoW))
-    ok("block follows the focused pill (squats)", w._healthInfoShown == "squats")
+    ok("block describes the picked exercise (squats)", w._healthInfoShown == "squats")
     ok("room reserved", (w._healthInfoH or 0) > 0 and (w._healthInfoUsedH or 0) <= w._healthInfoH)
     hSquats = w._healthInfoH
     shot("squats")
-    focusExercise("barbellcurl")
+    pickExercise("barbellcurl")
 end)
 at(120, function()
     local w = cw()
-    ok("block follows the focused pill (barbell curl)", w._healthInfoShown == "barbellcurl")
+    ok("block follows the pick (barbell curl)", w._healthInfoShown == "barbellcurl")
     ok("same reserved height for another exercise", w._healthInfoH == hSquats)
     shot("barbellcurl")
-    -- (the feature: pad-focused pill, else hovered, else the last exercise STARTED, else squats;
-    -- merely focusing a pill is not starting it, so stand in for a started one)
-    selWas = cw()._healthExerciseSel
-    cw()._healthExerciseSel = "situp"
-    focusExercise("time:inc")
+    -- the band's stops: the box, - and +, Start last
+    ok("band stops: exercise box", stopById("health:exercise") ~= nil)
+    ok("band stops: - and +", stopById("health:time:dec") ~= nil and stopById("health:time:inc") ~= nil)
+    ok("band stops: Start", stopById("health:start") ~= nil)
+    ok("no exercise-button stops left", stopById("exercise:squats") == nil and stopById("exercise:time:inc") == nil)
+    -- the pop-up: A on the box opens it, the stops become the seven rows
+    local _, z, zi, ei, el = stopById("health:exercise")
+    if el then el.onActivate(w, el) end
+end)
+at(135, function()
+    local w = cw()
+    ok("pop-up open", w._healthMenuOpen == true)
+    ok("pop-up lists the seven exercises", w._healthMenuZones ~= nil and #w._healthMenuZones == 7)
+    local _, z, zi, ei, row = stopById("health:menuRow:burpees")
+    ok("rows are the stops while open", row ~= nil and stopById("health:start") == nil)
+    shot("menu")
+    if row then row.onActivate(w, row) end   -- a pick shuts the list
 end)
 at(150, function()
     local w = cw()
-    ok("time buttons keep the last started exercise", w._healthInfoShown == "situp")
-    ok("time buttons start nothing and change no choice", w._healthExerciseSel == "situp")
-    focusExercise("burpees")
+    ok("pick shut the list and changed the choice", w._healthMenuOpen == false and w._healthExerciseSel == "burpees")
+    local _, z, zi, ei, el = stopById("health:exercise")
+    ok("focus is back on the box", el ~= nil and z ~= nil and z.elements[z.focusedElementIdx or 1] == el)
+    ok("block follows the pick (burpees)", w._healthInfoShown == "burpees")
+    -- the time keys step it and start nothing, change no choice
+    local mins = H.getExerciseMinutes(w)
+    local _, _, _, _, inc = stopById("health:time:inc")
+    if inc then inc.onActivate(w, inc) end
+    ok("+ steps the time by 10", H.getExerciseMinutes(w) == math.min(60, mins + 10))
+    local _, _, _, _, dec = stopById("health:time:dec")
+    if dec then dec.onActivate(w, dec) end
+    ok("- steps it back", H.getExerciseMinutes(w) == mins)
+    ok("time keys change no choice", w._healthExerciseSel == "burpees")
+    pickExercise("situp")
 end)
 at(180, function()
     local w = cw()
-    ok("block follows the focused pill (burpees)", w._healthInfoShown == "burpees")
-    shot("burpees")
+    ok("block follows the pick (situp)", w._healthInfoShown == "situp")
+    shot("situp")
 end)
 at(190, function()
     if bar then inv:Remove(bar) end

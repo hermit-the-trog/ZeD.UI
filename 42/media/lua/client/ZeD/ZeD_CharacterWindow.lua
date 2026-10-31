@@ -2122,41 +2122,57 @@ local function _buildEquipmentFocusables(win)
     return elements
 end
 
--- S96 — Health tab focusables: exercise button zones.
--- S98 ring model: onActivate starts the exercise (same as mouse click).
--- S103: guard on _healthFigureExpanded (exercises live inside the
--- figure-collapse block in HealthTab.render, so _healthExerciseZones is
--- stale when the figure is collapsed — without this guard the ring would
--- hold phantom exercise focusables at last-expanded-frame coords).
-local function _buildHealthExerciseFocusables(win)
-    if not win or not win._healthFigureExpanded then return {} end
-    local zones = win._healthExerciseZones
-    if not zones or #zones == 0 then return {} end
+-- Health tab focusables: the footer band (Oct 30 2026, punch list 21). In order: the
+-- exercise pop-up box, the session time's - and +, Start (primary, last). With the
+-- exercise list open the stops are its rows instead (the current exercise first; A
+-- picks, B shuts it); shutting it returns the pad to the box. The band is pinned, so
+-- its stops are bandStop (the body's scroll-follow ignores them). Start keeps the
+-- focus after it is pressed (same id, nothing rebuilt).
+local function _buildHealthBandFocusables(win)
+    local bz = win and win._healthBand
+    if not bz or not bz.box.w then return {} end
+    local H = ZeD.HealthTab
     local elements = {}
-    for i = 1, #zones do
-        local z = zones[i]
-        elements[#elements + 1] = {
-            x = z.x, y = z.y, w = z.w, h = z.h,
-            id = "exercise:" .. tostring(z.id or i),
-            exerciseId = z.id,
-            enabled = z.enabled,
-            zone = z,
-            onFocus = function(w, el)
-                w._gpFocusedExercise = el.exerciseId
-            end,
-            -- A pill starts its exercise for the chosen time; the time row's
-            -- - and + step it (HealthTab.activateExerciseZone, shared with the mouse)
-            onActivate = function(w, el)
-                if ZeD.HealthTab and ZeD.HealthTab.activateExerciseZone then
-                    ZeD.HealthTab.activateExerciseZone(w, el.zone)
-                end
-            end,
-        }
+    if win._healthMenuOpen and win._healthMenuZones then
+        local sel = H.selectedExercise(win)
+        for i, z in ipairs(win._healthMenuZones) do
+            elements[#elements + 1] = {
+                x = z.x, y = z.y, w = z.w, h = z.h,
+                id = "health:menuRow:" .. tostring(z.id),
+                menuRowId = z.id,
+                onFocus = function(w, el) end,
+                onActivate = function(w, el) H.closeMenu(w, el.menuRowId) end,
+                onCancel = function(w, el) H.closeMenu(w) end,
+            }
+            if z.id == sel then elements._focusIdx = i end
+        end
+        elements._menuRows = true
+        return elements
     end
-    -- Seed only when unset (Q95: per-frame builder nil-guard).
-    if elements[1] and win._gpFocusedExercise == nil then
-        win._gpFocusedExercise = elements[1].exerciseId
-    end
+    elements[1] = {
+        x = bz.box.x, y = bz.box.y, w = bz.box.w, h = bz.box.h,
+        id = "health:exercise", bandStop = true,
+        onFocus = function(w, el) end,
+        onActivate = function(w, el) H.openMenu(w) end,
+    }
+    elements[2] = {
+        x = bz.dec.x, y = bz.dec.y, w = bz.dec.w, h = bz.dec.h,
+        id = "health:time:dec", bandStop = true,
+        onFocus = function(w, el) end,
+        onActivate = function(w, el) H.stepMinutes(w, -10) end,
+    }
+    elements[3] = {
+        x = bz.inc.x, y = bz.inc.y, w = bz.inc.w, h = bz.inc.h,
+        id = "health:time:inc", bandStop = true,
+        onFocus = function(w, el) end,
+        onActivate = function(w, el) H.stepMinutes(w, 10) end,
+    }
+    elements[4] = {
+        x = bz.start.x, y = bz.start.y, w = bz.start.w, h = bz.start.h,
+        id = "health:start", bandStop = true,
+        onFocus = function(w, el) end,
+        onActivate = function(w, el) H.startSelected(w) end,
+    }
     return elements
 end
 
@@ -2231,10 +2247,13 @@ end
 -- Mouse path to the same treatment menu: right-click on the body figure or an
 -- injury row opens vanilla's body-part menu (bandage, stitch, splint, remove
 -- glass or bullet, disinfect, poultice, clean burn), the gesture vanilla's
--- health panel uses. Rows scrolled under the pinned header and the scrollbar
--- do not count. Returns true when a part was hit.
+-- health panel uses. Rows scrolled under the pinned header, the footer band and
+-- the scrollbar do not count; an open exercise list is shut by the press instead.
+-- Returns true when a part was hit.
 local function _healthTreatAt(win, panel, x, y)
     if not (ZeD.HealthTab and ZeD.HealthTab._onPartClicked) then return false end
+    if win._healthMenuOpen then ZeD.HealthTab.closeMenu(win); return false end
+    if win._healthBandY and y >= win._healthBandY then return false end
     local fz = win._healthFigureZone
     if fz and y < fz.y + fz.h then return false end
     local sc = win._healthScroll
@@ -2276,52 +2295,61 @@ local function _buildHealthDisclosureFocusable(win)
     }
 end
 
--- S101 — Health tab main builder: concatenates disclosure (S103), exercises,
--- body parts, and injuries into one flat ring element list. Element order
--- matters only for the initial seed (cone-nav uses spatial bounds, not
--- order). Disclosure first per S102 rule; exercises second preserves S96
--- muscle memory when the disclosure is already anchored above exercise pills.
+-- S101 — Health tab main builder: concatenates disclosure (S103), body parts,
+-- injuries and the footer band (exercise pop-up, - and +, Start last) into one
+-- flat ring element list. Element order matters only for the initial seed
+-- (cone-nav uses spatial bounds, not order). Disclosure first per S102 rule.
+-- The open exercise list locks the stops to its rows; shutting it lands on the box.
 local function _buildHealthFocusables(win)
     if not win then return {} end
+    local band = _buildHealthBandFocusables(win)
+    if band._menuRows then return band end
     local elements = _buildHealthDisclosureFocusable(win)
-    local exs      = _buildHealthExerciseFocusables(win)
-    for i = 1, #exs do elements[#elements + 1] = exs[i] end
     local parts    = _buildHealthBodyPartFocusables(win)
     for i = 1, #parts do elements[#elements + 1] = parts[i] end
     local injuries = _buildHealthInjuryFocusables(win)
     for i = 1, #injuries do elements[#elements + 1] = injuries[i] end
+    for i = 1, #band do
+        elements[#elements + 1] = band[i]
+        if win._healthReturnToMenu and band[i].id == "health:exercise" then
+            elements._focusIdx = #elements
+            win._healthReturnToMenu = nil
+        end
+    end
     return elements
 end
 
--- S96 — Thermal tab focusables: view-mode pill buttons.
--- S102: no-chain rule — view switches live on focus, A is a no-op. Focusing
--- a pill IS the action (no separate confirm step) because there's no chain
--- of further actions attached. Mirrors the tab-strip onFocus behavior.
-local function _buildThermalPillFocusables(win)
-    -- Guard on figureExpanded — pills live inside Zone A which is skipped
-    -- when collapsed. Without this guard, stale _thermalPillZones from a
-    -- previous expanded render would keep pills focusable at phantom coords.
-    if not win or not win._thermalFigureExpanded then return {} end
-    local zones = win._thermalPillZones
-    if not zones or #zones == 0 then return {} end
+-- Thermal tab focusables: the footer band's View pop-up box (Oct 30 2026, punch
+-- list 21). A opens the list. With it open the stops are its rows instead (the current
+-- view first; A picks, B shuts it); shutting it returns the pad to the box. The band
+-- is pinned, so the box is bandStop.
+local function _buildThermalBandFocusables(win)
+    local bz = win and win._thermalBand
+    if not bz or not bz.box.w then return {} end
+    local T = ZeD.ThermalTab
     local elements = {}
-    for i = 1, #zones do
-        local z = zones[i]
-        elements[#elements + 1] = {
-            x = z.x, y = z.y, w = z.w, h = z.h,
-            id = "thermal:" .. tostring(i),
-            viewIndex = i,
-            onFocus = function(w, el)
-                w._gpFocusedThermalPill = el.viewIndex
-                w._thermalView = el.viewIndex  -- live switch, no A needed
-            end,
-            -- onActivate intentionally omitted.
-        }
+    if win._thermalMenuOpen and win._thermalMenuZones then
+        local sel = win._thermalView or 1
+        for i, z in ipairs(win._thermalMenuZones) do
+            elements[#elements + 1] = {
+                x = z.x, y = z.y, w = z.w, h = z.h,
+                id = "thermal:viewRow:" .. tostring(z.id),
+                menuRowId = z.id,
+                onFocus = function(w, el) end,
+                onActivate = function(w, el) T.closeMenu(w, el.menuRowId) end,
+                onCancel = function(w, el) T.closeMenu(w) end,
+            }
+            if z.id == sel then elements._focusIdx = i end
+        end
+        elements._menuRows = true
+        return elements
     end
-    -- Seed only when unset (see _buildSkillsFocusables for rationale).
-    if elements[1] and win._gpFocusedThermalPill == nil then
-        win._gpFocusedThermalPill = elements[1].viewIndex
-    end
+    elements[1] = {
+        x = bz.box.x, y = bz.box.y, w = bz.box.w, h = bz.box.h,
+        id = "thermal:view", bandStop = true,
+        onFocus = function(w, el) end,
+        onActivate = function(w, el) T.openMenu(w) end,
+    }
     return elements
 end
 
@@ -2389,11 +2417,14 @@ end
 
 -- S102 — Thermal tab aggregator. Disclosure FIRST so entering charTabContent
 -- via LB/RB lands on the tab-header disclosure (tree-nav semantics — matches
--- Equipment's Defense disclosure being first in list mode). Then pills, then
--- body parts, then the grid scroll pseudo-zone. Cone-nav uses spatial bounds,
--- not order, so interleaving is safe for in-zone D-pad movement.
+-- Equipment's Defense disclosure being first in list mode). Then body parts, the
+-- grid scroll pseudo-zone and the footer band's View pop-up. Cone-nav uses
+-- spatial bounds, not order, so interleaving is safe for in-zone D-pad movement.
+-- The open View list locks the stops to its rows; shutting it lands on the box.
 local function _buildThermalFocusables(win)
     if not win then return {} end
+    local band = _buildThermalBandFocusables(win)
+    if band._menuRows then return band end
     local elements = {}
     -- Tab-header disclosure (toggles _thermalFigureExpanded via L/R tree-nav).
     local fz = win._thermalFigureZone
@@ -2411,12 +2442,18 @@ local function _buildThermalFocusables(win)
             end,
         }
     end
-    local pills = _buildThermalPillFocusables(win)
-    for i = 1, #pills do elements[#elements + 1] = pills[i] end
     local parts = _buildThermalBodyPartFocusables(win)
     for i = 1, #parts do elements[#elements + 1] = parts[i] end
     local gridScroll = _buildThermalGridScrollFocusable(win)
     for i = 1, #gridScroll do elements[#elements + 1] = gridScroll[i] end
+    -- the footer band's View pop-up last
+    for i = 1, #band do
+        elements[#elements + 1] = band[i]
+        if win._thermalReturnToMenu and band[i].id == "thermal:view" then
+            elements._focusIdx = #elements
+            win._thermalReturnToMenu = nil
+        end
+    end
     return elements
 end
 
@@ -2498,49 +2535,19 @@ end
 -- ============================================================================
 -- S105 — JOURNAL TAB FOCUSABLES
 --
--- The Journal tab hosts THREE sub-tabs (Journal / Recipes / Flyers) sharing
--- one charTabContent zone. LB/RB lands on charTabContent; D-pad handles
--- everything inside including sub-tab switching. The sub-tab pills sit at
--- element[1..3]; sub-tab-specific content follows. Main-tabBar parity:
--- D-pad L/R between pills live-switches via onFocus, no A activation
--- (no-chain rule, S102).
+-- The Journal tab's five pages share one charTabContent zone. LB/RB lands on
+-- charTabContent; D-pad handles everything inside. Oct 30 2026 (punch list 21):
+-- the page is the header's Page pop-up (the box first, "jpage"; A opens its list,
+-- whose rows alone hold the pad, "jpage:<n>"), then the page's body, then its band.
+-- A page's own open list (Recipes' Category / Sort / Show, Papers' Show, Loadouts'
+-- filter) holds the pad alone too.
 -- ============================================================================
 
--- S105 — Sub-tab pill focusables. Pills are elements[1..3] of charTabContent
--- on the Journal tab. D-pad L/R between them live-switches the active sub-
--- tab via onFocus (mirrors main tabBar F2 behavior). No onActivate — focus
--- alone is the action.
+-- The header's stops: the Page box, or the Page list's rows (JournalTab owns them).
 local function _buildJournalSubTabFocusables(win)
-    local zones = win and win._journalSubTabZones
-    if not zones or #zones == 0 then return {} end
-    local elements = {}
-    for i = 1, #zones do
-        local z = zones[i]
-        elements[#elements + 1] = {
-            x = z.x, y = z.y, w = z.w, h = z.h,
-            id = "jsub:" .. tostring(z.idx or i),
-            subTabIdx = z.idx or i,
-            -- S123: GAMEPAD_SPEC "tabs switch on A, never on focus" now applies
-            -- to sub-tab pills too. Focus only paints the cue; A switches.
-            onFocus = function(w, el) end,
-            onActivate = function(w, el)
-                if w._journalSubTab == el.subTabIdx then return end
-                w._journalSubTab = el.subTabIdx
-                -- Mirror the mouse handler (L3055) — clear search state on
-                -- sub-tab switch so stale filters don't persist across sub-tabs.
-                if w._journalSearch then w._journalSearch:clear() end
-                if w._jrecipeSearch then w._jrecipeSearch:clear() end
-                if w._flyerSearch   then w._flyerSearch:clear() end
-                w._journalSearchText = ""
-                w._flyerSearchText   = ""
-                if w._jrecipeState then
-                    w._jrecipeState.search = ""
-                    w._jrecipeState.filterDirty = true
-                end
-            end,
-        }
-    end
-    return elements
+    local JT = ZeD.JournalTab
+    if not (JT and JT.headerFocusables) then return {} end
+    return JT.headerFocusables(win)
 end
 
 -- S105 — Journal sub-tab: kills disclosure element. Tab-row-like disclosure
@@ -2656,6 +2663,9 @@ local function _buildJournalSubContent(win)
     local elements = _buildJournalKillsFocusable(win)
     local groups = _buildJournalGroupFocusables(win)
     for i = 1, #groups do elements[#elements + 1] = groups[i] end
+    -- Save, in the page's band (Oct 30 2026)
+    local save = _buildJournalSaveFocusable(win)
+    if save[1] then elements[#elements + 1] = save[1] end
     return elements
 end
 
@@ -2677,7 +2687,11 @@ local function _buildJournalFocusables(win)
     -- while the Journal asks before deleting an entry, its answers alone hold the
     -- controller (the sub-tab pills come back when it is answered)
     if win._journalAsk and (win._journalSubTab or 1) == 1 then return _buildJournalSubContent(win) end
-    local elements = _buildJournalSubTabFocusables(win)
+    -- the Page list open: its rows alone
+    local JT = ZeD.JournalTab
+    if JT and JT.pageMenuOpen and JT.pageMenuOpen(win) then return _buildJournalSubTabFocusables(win) end
+    local listOpen = JT and JT.pageListOpen and JT.pageListOpen(win)
+    local elements = listOpen and {} or _buildJournalSubTabFocusables(win)
     local sub = win._journalSubTab or 1
     local subEls = {}
     if sub == 1 then
@@ -2693,8 +2707,9 @@ local function _buildJournalFocusables(win)
         if ZeD.JournalLists and ZeD.JournalLists.state(win).ask then return subEls end
     end
     for i = 1, #subEls do elements[#elements + 1] = subEls[i] end
-    -- where the page asks the focus to land (an element of the page's, after the pills)
-    if subEls._focusIdx then elements._focusIdx = #elements - #subEls + subEls._focusIdx end
+    -- where the page asks the focus to land (an element of the page's, after the Page box;
+    -- back from the Page list the box keeps it)
+    if subEls._focusIdx and not elements._focusIdx then elements._focusIdx = #elements - #subEls + subEls._focusIdx end
     return elements
 end
 
@@ -2744,11 +2759,14 @@ _clearGpFocusState = function(w)
     if not w then return end
     w._gpFocusedRowItem      = nil
     w._gpFocusedSkill        = nil
-    w._gpFocusedExercise     = nil
     w._gpFocusedInjury       = nil
     w._gpFocusedBodyPart     = nil
-    w._gpFocusedThermalPill  = nil
     w._gpFocusedThermalPart  = nil
+    -- Oct 30 2026: the footer bands' pop-up lists are shut with the tab
+    w._healthMenuOpen        = false
+    w._healthReturnToMenu    = nil
+    w._thermalMenuOpen       = false
+    w._thermalReturnToMenu   = nil
     w._gpFocusedEquipSlot    = nil
     w._gpFocusedRadioCtl     = nil  -- S117: radio drawer chassis control id
     w._healthActivePart      = nil  -- S103: mirror Thermal's _thermalActivePart clear
@@ -3842,8 +3860,9 @@ function ZeD_CharacterWindow.toggle(playerNum)
     win._healthBodyFigure    = nil
     win._healthHoveredPart   = nil
     win._healthActivePart    = nil  -- S103 gamepad: resolved part (gp focus overrides mouse hover), mirrors Thermal
-    win._healthExerciseZones = nil
-    win._healthInjuryZones   = nil  -- S101 gamepad: stamped each frame by injury draw loop
+    win._healthBand          = nil  -- the footer band's rects (HealthTab._renderBand): exercise box, - / +, Start
+    win._healthMenuOpen      = false  -- the exercise pop-up list
+    win._healthInjuryZones   = nil -- S101 gamepad: stamped each frame by injury draw loop
     win._healthInjuryYMap    = nil  -- S101 gamepad: scroll-follow Y-stamps keyed by body part name
     win._healthContentPanel  = nil  -- S101 gamepad: panel ref for _onPartClicked anchor fallback
     win._healthFigureExpanded = true
@@ -3888,7 +3907,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
     win._thermalHoveredPart = nil
     win._thermalActivePart  = nil  -- S102 gamepad: resolved part (gp focus overrides mouse hover)
     win._thermalView        = 1
-    win._thermalPillZones   = nil
+    win._thermalBand        = nil  -- the footer band's View box (ThermalTab._renderBand)
+    win._thermalMenuOpen    = false  -- the View pop-up list
     win._thermalFigureExpanded = true
     win._thermalFigureZone     = nil
 
@@ -4784,6 +4804,10 @@ function ZeD_CharacterWindow.toggle(playerNum)
     -- Uses getActiveScroll() to dispatch to the correct tab's scroll state
     drawer.onMouseWheel = function(self, del)
         if win._drawerMode == "tab" then
+            -- an open pop-up list (Health's exercises, Thermal's views) holds the wheel
+            if (win._activeTab == "health" and win._healthMenuOpen) or (win._activeTab == "thermal" and win._thermalMenuOpen) then
+                return true
+            end
             -- a two-way radio's face: the wheel turns the knob under it (else its body scrolls)
             if win._activeTab == "radio" and ZeD.RadioTab.onWheel(win, del, self:getMouseX(), self:getMouseY()) then return true end
             -- Journal Recipes sub-tab: delegate to CraftingCore scroll
@@ -4920,28 +4944,11 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 -- (EquipmentTab.pressSlot and its siblings below).
                 if ZeD.EquipmentTab.pressSlot(win, self, x, y) then return true end
             end
-            -- Journal sub-tab strip click detection
-            if win._activeTab == "journal" and win._journalSubTabZones then
-                for _, zone in ipairs(win._journalSubTabZones) do
-                    if x >= zone.x and x <= zone.x + zone.w
-                       and y >= zone.y and y <= zone.y + zone.h then
-                        win._journalSubTab = zone.idx
-                        -- Clear all search fields on sub-tab switch
-                        if win._journalSearch then win._journalSearch:clear() end
-                        if win._jrecipeSearch then win._jrecipeSearch:clear() end
-                        if win._flyerSearch   then win._flyerSearch:clear() end
-                        win._journalSearchText = ""
-                        win._flyerSearchText   = ""
-                        if win._jrecipeState then
-                            win._jrecipeState.search = ""
-                            win._jrecipeState.filterDirty = true
-                        end
-                        -- Deactivate map tool + collapse disclosure when leaving Maps sub-tab
-                        win._mapActiveTool = nil
-                        win._mapToolsExpanded = false
-                        return true
-                    end
-                end
+            -- Journal header: the Page box opens its list; the open list takes every click
+            -- (Oct 30 2026: the pages were a sub-tab strip)
+            if win._activeTab == "journal" and ZeD.JournalTab and ZeD.JournalTab.onHeaderClick
+               and ZeD.JournalTab.onHeaderClick(win, x, y) then
+                return true
             end
             -- S67: Maps sub-tab moved to World Window — all map click handlers removed
             -- (disclosure chevron, icon tools, color swatches, map pan/drag forward)
@@ -4995,6 +5002,11 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     return true
                 end
             end
+            -- Health footer band: the exercise pop-up (an open list takes every press, so this
+            -- comes before the rest), the session time's - / + and Start (HealthTab.onClick)
+            if win._activeTab == "health" and ZeD.HealthTab.onClick(win, x, y) then
+                return true
+            end
             -- Health figure disclosure toggle
             if win._activeTab == "health" and win._healthFigureZone then
                 local fz = win._healthFigureZone
@@ -5004,15 +5016,10 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     return true
                 end
             end
-            -- Health exercise pills and the session time's - / + buttons
-            if win._activeTab == "health" and win._healthExerciseZones then
-                for _, zone in ipairs(win._healthExerciseZones) do
-                    if zone.enabled and x >= zone.x and x <= zone.x + zone.w
-                       and y >= zone.y and y <= zone.y + zone.h then
-                        ZeD.HealthTab.activateExerciseZone(win, zone)
-                        return true
-                    end
-                end
+            -- Thermal footer band: the View pop-up (an open list takes every press, so this
+            -- comes before the rest) (ThermalTab.onClick)
+            if win._activeTab == "thermal" and ZeD.ThermalTab.onClick(win, x, y) then
+                return true
             end
             -- Thermal figure disclosure toggle
             if win._activeTab == "thermal" and win._thermalFigureZone then
@@ -5021,16 +5028,6 @@ function ZeD_CharacterWindow.toggle(playerNum)
                    and y >= fz.y and y <= fz.y + fz.h then
                     win._thermalFigureExpanded = not win._thermalFigureExpanded
                     return true
-                end
-            end
-            -- Thermal view pill click detection
-            if win._activeTab == "thermal" and win._thermalPillZones then
-                for i, zone in ipairs(win._thermalPillZones) do
-                    if x >= zone.x and x <= zone.x + zone.w
-                       and y >= zone.y and y <= zone.y + zone.h then
-                        win._thermalView = i
-                        return true
-                    end
                 end
             end
             -- Skills grid disclosure toggle
@@ -5901,14 +5898,14 @@ function ZeD_CharacterWindow.toggle(playerNum)
                                             -- them up on the next frame.
                ) then
             -- S98 per-frame refresh for NON-Loot tabs. The per-tab zone tables
-            -- (_equipSlotZones, _healthExerciseZones, _thermalPillZones,
+            -- (_equipSlotZones, _healthBand, _thermalBand,
             -- _skillRowZones) are populated by the respective tab renderers
             -- each frame. _syncRingZonesToActiveTab fires on tab switch BEFORE
             -- the new tab's renderer has run, so it reads empty tables. This
             -- catch-up refresh runs AFTER the renderer populates the tables,
             -- syncing the ring zone to the live data. No identity preservation
             -- is needed — these are UI chrome elements keyed by static ID
-            -- (slotType, exerciseId, viewIndex, skillName). A dirty check via
+            -- (slotType, band stop ids, skillName). A dirty check via
             -- element count keeps the rebuild cheap; setRingZoneElements
             -- without preserveIdx clamps the existing focusedElementIdx to the
             -- new array length so the gp cursor stays on the same visual row.
@@ -5946,6 +5943,12 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 scrollKey = ZeD.JournalLists.scrollKey(win)
                 if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
             end
+            -- Journal (Oct 30 2026): its last stop, Save, sits in the band and never moves, so the
+            -- log's scroll and the Page list key the rebuild
+            if win._activeTab == "journal" and jsub == 1 then
+                scrollKey = tostring(win._journalScroll and win._journalScroll.scrollPos or 0) .. ":" .. tostring(win._journalPageOpen)
+                if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
+            end
             if win._activeTab == "journal" and jsub == 4 then
                 local stk = win._jrecipeState
                 if stk then
@@ -5953,6 +5956,10 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     local lg = stk._listGeo
                     scrollKey = tostring(sp) .. ":" .. tostring(lg and lg.y or 0) .. ":" .. tostring(lg and lg.h or 0)
                         .. ":" .. tostring(stk.catDropdownOpen) .. ":" .. tostring(stk.catDropdownScroll or 0)
+                        -- (Oct 30 2026: the band's stops are last and fixed: the card's scroll and its lists)
+                        .. ":" .. tostring(stk.cardScroll and stk.cardScroll.scrollPos or 0)
+                        .. ":" .. tostring(stk.altScroll and stk.altScroll.scrollPos or 0)
+                        .. ":" .. tostring(stk.sortMenuOpen) .. ":" .. tostring(stk.showMenuOpen)
                     if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
                 end
             end

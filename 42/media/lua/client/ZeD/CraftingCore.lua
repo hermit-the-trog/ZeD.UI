@@ -43,6 +43,16 @@ CC.ANIM_DURATION   = 0.28  -- pane split animation in seconds
 -- Throttle intervals (frames)
 local CONTAINER_INTERVAL = 90
 
+-- The category pop-up list (CC.renderCatDropdownOverlay): a row's height and the
+-- rows shown before it scrolls (hoisted: the header and the band place it too)
+local DD_ROW_H   = 20
+local DD_MAX_VIS = 14
+
+-- A pop-up list or a select open over the card (the pointer's hover washes stay off)
+local function anyOpen(state)
+    return state.catDropdownOpen or state.stDropdownOpen or state.sortMenuOpen or state.showMenuOpen or false
+end
+
 -- Sort rank
 local STATUS_RANK = { craftable = 0, unlocked = 1, missing = 2, station = 2, locked = 3 }
 
@@ -678,6 +688,50 @@ function CC.cycleShow(state, config)
     state.filterDirty = true
 end
 
+-- Show one of the choices (the band's Show pop-up; Oct 30 2026, punch list 21: the
+-- choices CC.cycleShow steps through, picked from a list)
+function CC.setShow(state, id)
+    state.show = id
+    state.showAll = (id == "all")
+    state.filterDirty = true
+end
+
+-- The band's pop-up choices, {id, key, label}: made once, the labels refreshed where
+-- they are drawn (CC.popModes). The read-only list (the Journal) has no craft counts
+-- (no Freq / Recent) and no Ready.
+local SORT_FULL = {
+    { id = "craftable", key = "UI_ZeD_Craft_SortCraftable" },
+    { id = "known",     key = "UI_ZeD_Craft_Known" },
+    { id = "name",      key = "UI_ZeD_Craft_SortName" },
+    { id = "freq",      key = "UI_ZeD_Craft_SortFreq" },
+    { id = "recent",    key = "UI_ZeD_Craft_SortRecent" },
+}
+local SORT_RO = { SORT_FULL[1], SORT_FULL[2], SORT_FULL[3] }
+local SHOW_FULL = {
+    { id = "ready", key = SHOW_LABEL.ready },
+    { id = "known", key = SHOW_LABEL.known },
+    { id = "all",   key = SHOW_LABEL.all },
+}
+local SHOW_RO = { SHOW_FULL[2], SHOW_FULL[3] }
+
+-- The choices of the band's "sort" or "show" pop-up for this config, labels current.
+function CC.popModes(kind, config)
+    local ro = config and config.readOnly
+    local modes
+    if kind == "show" then modes = ro and SHOW_RO or SHOW_FULL
+    else modes = ro and SORT_RO or SORT_FULL end
+    for i = 1, #modes do modes[i].label = ZeD.tr(modes[i].key) end
+    return modes
+end
+
+-- The label of a choice in a mode list (the box names the current one)
+local function modeLabel(modes, id)
+    for i = 1, #modes do
+        if modes[i].id == id then return modes[i].label end
+    end
+    return modes[1] and modes[1].label or ""
+end
+
 function CC.filterAndSort(data, state, config)
     local recipes   = data.recipes
     local category  = state.activeCat or "all"
@@ -1013,7 +1067,8 @@ function CC.createState()
         outCollapsed     = false,      -- OUTPUTS section collapsed
         catDropdownOpen  = false,      -- category dropdown expanded
         catDropdownScroll = 0,        -- dropdown scroll offset (rows)
-        sortMenuOpen     = false,      -- sort pop-up list open (the strip's choices fold into it when narrow)
+        sortMenuOpen     = false,      -- the band's Sort pop-up list open
+        showMenuOpen     = false,      -- the band's Show pop-up list open
         splitFrac        = 0,          -- 0→1 animation progress for pane split
         splitTarget      = 0,          -- 0 = closed, 1 = open
         zones            = {},         -- click zones for current frame
@@ -1127,244 +1182,359 @@ function CC.updateSplitAnimation(state)
 end
 
 -- ============================================================================
--- RENDERING — Static Header (category dropdown + search)
+-- RENDERING — Header strip (Oct 30 2026, punch list 21: one row, the standard
+-- height). Craft: the STATION and CATEGORY selects and the search side by side;
+-- Build: CATEGORY and the search. The read-only list (the Journal's Recipes page)
+-- draws no header of its own: the Journal's header holds its search, the band
+-- its Category select.
 -- ============================================================================
+
+-- The Category select (the pop-up menu's look, ZeD_Dropdown, drawn in place:
+-- Stations.drawSelect). Its list is the overlay drawn last, from the box's foot or,
+-- up = true (in the band at the card's foot), above the box. In alt mode it is
+-- frozen on "Compatible", greyed: it cannot be opened there.
+local function drawCatSelect(panel, state, pfx, x, y, w, h, label, up)
+    local select = ZeD.Stations and ZeD.Stations.drawSelect
+    if state.altSlotName then
+        if select then select(panel, x, y, w, h, label, ZeD.tr("UI_ZeD_Craft_Compatible"), false, false, false, true) end
+        return
+    end
+    local mx, my = panel:getMouseX(), panel:getMouseY()
+    local hov = (not anyOpen(state)) and mx >= x and mx < x + w and my >= y and my < y + h
+    if select then
+        select(panel, x, y, w, h, label, CC.activeCategoryLabel(state), false,
+            state._gpFocusedId == (pfx .. ":catDrop"), hov)
+    end
+    if hov then ZeD.Help.set(panel, ZeD.tr("UI_ZeD_Craft_CategoryHelp")) end
+    local zones = state.zones
+    zones[#zones + 1] = { type = "catDropdown", x = x, y = y, w = w, h = h }
+    -- the overlay's geometry: its list's top-left and width
+    local g = state._ddGeo or {}
+    state._ddGeo = g
+    g.x, g.w = x, w
+    if up then
+        g.y = y - math.min(#(state.categoryList or {}), DD_MAX_VIS) * ZeD.T.px(DD_ROW_H)
+    else
+        g.y = y + h
+    end
+end
+
+-- The tab's search field (a ZeD_SearchField, a child panel of the drawer, made by the
+-- window): placed where the caller says; in alt mode it filters the alternatives.
+function CC.placeSearch(win, config, state, x, y, w, h)
+    local f = win and config and win["_" .. tostring(config.prefix) .. "Search"]
+    if not f then return end
+    if f:getX() ~= x or f:getY() ~= y then f:setX(x); f:setY(y) end
+    if f:getWidth() ~= w or f:getHeight() ~= h then f:setWidth(w); f:setHeight(h) end
+    if f._zedBaseHint == nil then f._zedBaseHint = f.placeholder or false end   -- (the field's own words: Build's names structures)
+    if state.altSlotName then f.placeholder = ZeD.tr("UI_ZeD_Craft_FilterAlts")
+    else f.placeholder = f._zedBaseHint or getText("IGUI_CraftingWindow_SearchRecipes") end
+end
 
 function CC.renderStaticHeader(panel, x, y, w, state, config, win)
     local T  = ZeD.T
     local A  = ZeD.Atoms
-    local tm = ZeD.TM
     local zones = state.zones
     local pfx = (config and config.prefix) or "jrecipe"
     local ST = config and config.stations and ZeD.Stations or nil
-    local headerH = T.px(CC.HEADER_H)  -- 37px single row
-
-    local pad = T.px(6)
-    local gap = T.px(6)
-    local ddH = T.inputH  -- match search field height
-    local ddX, ddY, ddW, searchX, searchY, searchW
+    local headerH = T.px(CC.HEADER_H)  -- the standard 37u strip
+    local pad, gap = T.px(6), T.px(6)
+    local ddH = T.inputH  -- the selects match the search field
+    local rowY = y + math.floor((headerH - ddH) / 2)
+    local ddX, ddW, searchX, searchW
 
     if ST then
-        -- Crafting: two rows. STATION and CATEGORY selects side by side, the
-        -- search field full width under them.
-        local selW = math.floor((w - pad * 2 - gap) / 2)
-        local stX, rowY = x + pad, y + pad
-        ddX, ddY = stX + selW + gap, rowY
-        ddW = w - pad * 2 - gap - selW
-        searchX, searchY, searchW = x + pad, rowY + ddH + gap, w - pad * 2
-        headerH = pad + ddH + gap + ddH + pad
-
+        -- Crafting: STATION, CATEGORY and the search in thirds
+        local selW = math.floor((w - pad * 2 - gap * 2) / 3)
+        local stX = x + pad
+        ddX, ddW = stX + selW + gap, selW
+        searchX = ddX + ddW + gap
+        searchW = x + w - pad - searchX
         local player = win and win._playerObj
         local cur = player and ST.current(player) or nil
         local mx, my = panel:getMouseX(), panel:getMouseY()
-        local hov = (not state.catDropdownOpen) and (not state.stDropdownOpen)
-            and mx >= stX and mx < stX + selW and my >= rowY and my < rowY + ddH
+        local hov = (not anyOpen(state)) and mx >= stX and mx < stX + selW and my >= rowY and my < rowY + ddH
         ST.drawSelect(panel, stX, rowY, selW, ddH, ZeD.tr("UI_ZeD_Station_SelectLabel"), cur and cur.name or ZeD.tr("UI_ZeD_Station_Hand"),
             cur ~= nil, state._gpFocusedId == (pfx .. ":stDrop"), hov)
         zones[#zones + 1] = { type = "stationDropdown", x = stX, y = rowY, w = selW, h = ddH }
         state._stGeo = { x = stX, y = rowY + ddH, w = selW }
     else
-        -- Row 1: 37px — Dropdown LEFT (~45%), Search RIGHT, 6px gap between
+        -- Building: the Category select LEFT (~45%), the search RIGHT
         ddW = math.floor((w - pad * 2 - gap) * 0.45)
         ddX = x + pad
-        ddY = y + math.floor((headerH - ddH) / 2)      -- vertically centered in 37px
-        searchX, searchY = ddX + ddW + gap, ddY
+        searchX = ddX + ddW + gap
         searchW = w - pad * 2 - gap - ddW
     end
 
-    -- Position the actual ZeD_SearchField ISPanel child
-    local searchKey = "_" .. config.prefix .. "Search"
-    local searchField = win[searchKey]
-    if searchField then
-        searchField:setX(searchX)
-        searchField:setY(searchY)
-        searchField:setWidth(searchW)
-        searchField:setHeight(ddH)
-        -- Update placeholder based on mode
-        searchField.placeholder = state.altSlotName and ZeD.tr("UI_ZeD_Craft_FilterAlts") or getText("IGUI_CraftingWindow_SearchRecipes")
-        -- The field is a child panel and paints after the tab: with a dropdown
-        -- open over the search row, hide it for the frame (the window's
-        -- prerender shows it again).
-        if ST and (state.catDropdownOpen or state.stDropdownOpen) then
-            searchField:setVisible(false)
-        end
-    end
-
-    -- Category select: the pop-up menu's look (ZeD_Dropdown), drawn in place
-    -- (Stations.drawSelect); its list is the overlay drawn last
-    local select = ZeD.Stations and ZeD.Stations.drawSelect
-    if state.altSlotName then
-        -- Alt mode: the select frozen on "Compatible" (greyed: it cannot be opened here)
-        local frozenLabel = ZeD.tr("UI_ZeD_Craft_Compatible")
-        if select then
-            select(panel, ddX, ddY, ddW, ddH, ST and ZeD.tr("IGUI_invpanel_Category") or nil, frozenLabel, false, false, false, true)
-        end
-    else
-        local activeCatLabel = CC.activeCategoryLabel(state)
-        local mx, my = panel:getMouseX(), panel:getMouseY()
-        local hov = (not state.catDropdownOpen) and (not state.stDropdownOpen)
-            and mx >= ddX and mx < ddX + ddW and my >= ddY and my < ddY + ddH
-        if select then
-            select(panel, ddX, ddY, ddW, ddH, ST and ZeD.tr("IGUI_invpanel_Category") or nil, activeCatLabel, false,
-                state._gpFocusedId == (pfx .. ":catDrop"), hov)
-        end
-        if hov then ZeD.Help.set(panel, ZeD.tr("UI_ZeD_Craft_CategoryHelp")) end
-
-        zones[#zones + 1] = { type = "catDropdown", x = ddX, y = ddY, w = ddW, h = ddH }
-
-        -- Store geometry for deferred dropdown overlay render
-        state._ddGeo = { x = ddX, y = ddY + ddH, w = ddW }
-    end
+    CC.placeSearch(win, config, state, searchX, rowY, searchW, ddH)
+    drawCatSelect(panel, state, pfx, ddX, rowY, ddW, ddH, ST and ZeD.tr("IGUI_invpanel_Category") or nil, false)
 
     -- Bottom rule on header row
     A.drawDividerH(panel, x, y + headerH - T.px(1), w, true)
 
-    return headerH  -- 37px (62px with the station row); sort strip renders below
+    return headerH
 end
 
 -- ============================================================================
--- RENDERING — Contextual Strip (sort vs alt-back, 24px)
+-- RENDERING — Alternatives strip (alt mode, 20u): the alternatives list's own
+-- strip (back, the owned count, Owned only), a fold of the card. The sort strip
+-- that sat here went to the band's Sort and Show (Oct 30 2026); out of alt mode
+-- there is nothing here.
 -- ============================================================================
 
-function CC.renderStrip(panel, x, y, w, state, config)
-    local T = ZeD.T
-    local zones = state.zones
-    local mx, my = panel:getMouseX(), panel:getMouseY()
-    if state.catDropdownOpen or state.stDropdownOpen or state.sortMenuOpen or cuesOn() then mx, my = -1, -1 end  -- suppress hover when a dropdown is open or the pad is in use
+local EMPTY_ALT = { totalOwned = 0, totalAll = 0 }
 
-    -- Detect hover zone from previous frame's zones (strip zones persist between frames)
-    local stripH = T.px(CC.STRIP_H)
+function CC.renderStrip(panel, x, y, w, state, config)
+    if not state.altSlotName then
+        state._altStripLast = nil
+        return 0
+    end
+    local zones = state.zones
+    -- the part under the pointer, from last frame's strip
     local hoverZone = nil
-    if my >= y and my < y + stripH and mx >= x and mx < x + w then
-        for _, z in ipairs(zones) do
-            if z.y == y and mx >= z.x and mx < z.x + z.w then
-                -- Extract the zone id (strip zones are prefixed)
-                if z.type and z.type:find("altStrip_") then
-                    hoverZone = z.type:sub(10)  -- strip "altStrip_" prefix
-                elseif z.type == "sortMode" then
-                    hoverZone = z.id
-                elseif z.type == "sortMenu" then
-                    hoverZone = "menu"
-                elseif z.type == "showAllToggle" then
-                    hoverZone = "toggle"
-                end
-                break
-            end
+    local last = state._altStripLast
+    if last and not (anyOpen(state) or cuesOn()) then
+        local mx, my = panel:getMouseX(), panel:getMouseY()
+        for _, z in ipairs(last) do
+            if mx >= z.x and mx < z.x + z.w and my >= z.y and my < z.y + z.h then hoverZone = z.id; break end
         end
     end
-
-    -- The strip's focus: the zone id (one the strip hands back) of the part that has the
-    -- controller's focus, from the focused element's id. The strip draws the mark itself.
+    -- the part with the controller's focus; the strip draws the mark itself
     local pfx = (config and config.prefix) or "jrecipe"
     local fid = state._gpFocusedId
     local so = state._stripOpts or {}
     state._stripOpts = so
-    so.focusId, so.menuOpen = nil, nil
-
-    if state.altSlotName then
-        -- Alt mode strip
-        state.sortMenuOpen = false
-        state._sortMenuGeo = nil
-        if fid then
-            if fid == pfx .. ":altBack" then so.focusId = "back"
-            elseif fid == pfx .. ":altOwned" then so.focusId = "ownedOnly" end
-        end
-        local altData = state.altItems or { totalOwned = 0, totalAll = 0 }
-        local h, stripZones = M.drawAltBackStrip(panel, x, y, w,
-            state.altSlotName, altData.totalOwned, altData.totalAll,
-            state.ownedOnly, hoverZone, so)
-        for _, z in ipairs(stripZones) do
-            z.type = "altStrip_" .. z.id
-            zones[#zones + 1] = z
-        end
-        return h
-    else
-        -- Sort strip (readOnly hides freq/recent — no craft counts)
-        local modes
-        if config.readOnly then
-            modes = {
-                { id = "craftable", label = ZeD.tr("UI_ZeD_Craft_SortCraftable") },
-                { id = "known",     label = ZeD.tr("UI_ZeD_Craft_Known") },
-                { id = "name",      label = ZeD.tr("UI_ZeD_Craft_SortName") },
-            }
-        else
-            modes = {
-                { id = "craftable", label = ZeD.tr("UI_ZeD_Craft_SortCraftable") },
-                { id = "known",     label = ZeD.tr("UI_ZeD_Craft_Known") },
-                { id = "name",      label = ZeD.tr("UI_ZeD_Craft_SortName") },
-                { id = "freq",      label = ZeD.tr("UI_ZeD_Craft_SortFreq") },
-                { id = "recent",    label = ZeD.tr("UI_ZeD_Craft_SortRecent") },
-            }
-        end
-        local show = CC.showMode(state, config)
-        local toggle = { label = ZeD.tr("UI_ZeD_Craft_ShowToggle", ZeD.tr(SHOW_LABEL[show])), active = show ~= "known" }
-        if fid then
-            local sp = pfx .. ":sort:"
-            if fid == pfx .. ":showAll" then so.focusId = "toggle"
-            elseif fid == pfx .. ":sortMenu" then so.focusId = "menu"
-            elseif string.sub(fid, 1, #sp) == sp then so.focusId = string.sub(fid, #sp + 1) end
-        end
-        -- the choices fold into a pop-up menu when they do not all fit; the caller opens it
-        so.menuOpen = state.sortMenuOpen == true
-        local h, stripZones = M.drawSortStrip(panel, x, y, w,
-            modes, state.sort, toggle, hoverZone, so)
-        local menuZone = nil
-        for _, z in ipairs(stripZones) do
-            if z.type == "sort" then
-                z.type = "sortMode"
-            elseif z.type == "toggle" then
-                z.type = "showAllToggle"
-            elseif z.type == "sortMenu" then
-                menuZone = z
-            end
-            zones[#zones + 1] = z
-        end
-        -- The open list hangs from the menu box (CC.renderSortMenu draws it last); it shuts
-        -- by itself when the choices fit again and the box is gone.
-        if menuZone and state.sortMenuOpen then
-            state._sortMenuGeo = { x = menuZone.x, y = menuZone.y + menuZone.h, w = menuZone.w, modes = modes }
-        else
-            state._sortMenuGeo = nil
-            state.sortMenuOpen = false
-        end
-        return h
+    so.focusId = nil
+    if fid then
+        if fid == pfx .. ":altBack" then so.focusId = "back"
+        elseif fid == pfx .. ":altOwned" then so.focusId = "ownedOnly" end
     end
+    local altData = state.altItems or EMPTY_ALT
+    local h, stripZones = M.drawAltBackStrip(panel, x, y, w,
+        state.altSlotName, altData.totalOwned, altData.totalAll,
+        state.ownedOnly, hoverZone, so)
+    state._altStripLast = stripZones
+    for _, z in ipairs(stripZones) do
+        z.type = "altStrip_" .. z.id
+        zones[#zones + 1] = z
+    end
+    return h
 end
 
--- The sort pop-up list, open: drawn last (over the rows) at the menu box's bottom-left. Its row
--- zones are kept for the click and the controller; the choice that has the controller's focus
--- carries the mark.
-function CC.renderSortMenu(panel, state, config)
-    local geo = state._sortMenuGeo
-    if not (state.sortMenuOpen and geo) then return end
+-- ============================================================================
+-- RENDERING — The band (Oct 30 2026, punch list 21): at the card's foot, the full
+-- card's width (the split pane's list and card both sit above it), just above the
+-- window's help line. Left: Sort and Show as System 7 pop-up menus (the read-only
+-- list: its Category select first). Right: the amount (- 1 +) and Craft / Build,
+-- last. Until a recipe is picked the amount and Craft / Build are drawn greyed and
+-- take no press, so the band never changes shape; in alt mode the pop-ups are
+-- greyed, as the Category select is frozen.
+-- ============================================================================
+
+-- The band's two pop-up lists: the state fields each keeps, its box's zone type and
+-- focus id ("<prefix>:sortMenu"), its rows' ids ("<prefix>:sortRow:<choice>")
+local POP = {
+    sort = { open = "sortMenuOpen", geo = "_sortMenuGeo", zones = "_sortMenuZones", opts = "_sortMenuOpts",
+             box = "sortMenu", row = ":sortRow:", help = "UI_ZeD_Craft_SortHelp" },
+    show = { open = "showMenuOpen", geo = "_showMenuGeo", zones = "_showMenuZones", opts = "_showMenuOpts",
+             box = "showMenu", row = ":showRow:", help = "UI_ZeD_Craft_ShowHelp" },
+}
+CC.POP = POP
+
+local CAT_BAND_W = 170   -- design units: the read-only list's Category select in the band
+local _bandBtns = { {} }
+local _bandSpec = { buttons = _bandBtns }
+local _bandSpecRO = {}
+local _bandStep = {}
+
+-- The pop-up boxes' widths: the longest words each can carry ("Sort: Craftable"), so the
+-- band keeps its shape whichever choice is current; kept per scale, font and language.
+local function popWidths(state, config, sortModes, showModes)
+    local T = ZeD.T
+    local c = state._popW
+    local lang = (ZeD.trTestOn and ZeD.trTestOn()) and 1 or 0
+    local ro = config.readOnly and true or false
+    if c and c.scale == T.scale and c.font == T.fontF1 and c.lang == lang and c.ro == ro then return c.sort, c.show end
+    local sw, hw = 0, 0
+    for _, m in ipairs(sortModes) do sw = math.max(sw, M.popupMenuW(ZeD.tr("UI_ZeD_Craft_SortPick", m.label))) end
+    for _, m in ipairs(showModes) do hw = math.max(hw, M.popupMenuW(ZeD.tr("UI_ZeD_Craft_ShowToggle", m.label))) end
+    state._popW = { scale = T.scale, font = T.fontF1, lang = lang, ro = ro, sort = sw, show = hw }
+    return sw, hw
+end
+
+-- One of the band's pop-up boxes: its zone, and the open list's geometry (it opens
+-- upward from the box: the band is at the card's foot). frozen: greyed, no press.
+local function drawPopBox(panel, state, kind, x, y, w, h, label, modes, frozen, focused, mx, my)
+    local P = POP[kind]
+    local hov = (not frozen) and mx >= x and mx < x + w and my >= y and my < y + h
+    M.drawPopupMenu(panel, x, y, w, h, label, hov or state[P.open] == true, (focused and not frozen) and NO_FOCUS_OPTS or nil, frozen)
+    if frozen then
+        state[P.open] = false
+        state[P.zones] = nil
+        return
+    end
+    if hov then ZeD.Help.set(panel, ZeD.tr(P.help)) end
+    local zones = state.zones
+    zones[#zones + 1] = { type = P.box, x = x, y = y, w = w, h = h }
+    local g = state[P.geo] or {}
+    state[P.geo] = g
+    g.x, g.y, g.w, g.modes = x, y - M.popupListH(#modes), w, modes
+end
+
+-- The amount and Craft / Build at the band's right; returns the x the left part ends at.
+local function drawBandActions(panel, x, y, w, state, config, rd, pfx, fid, mx)
+    local T = ZeD.T
+    local zones = state.zones
+    local bh = T.buttonH
+    local gap = T.px(8)
+    local qty, maxQty, canCraft = 1, 1, false
+    if rd then
+        maxQty = rd.maxBatchQty or 1
+        if maxQty < 0 then maxQty = 0 end
+        state._maxQty = maxQty  -- the click handler's cap
+        -- Clamp qty to maxQty (may have changed since last frame)
+        if state.qty > maxQty and maxQty > 0 then state.qty = maxQty end
+        if state.qty < 1 then state.qty = 1 end
+        qty = state.qty
+        canCraft = rd.status == "craftable" and rd.learned ~= false and maxQty > 0
+    end
+    -- the band: surface 2, the structure line, Craft / Build (primary) at the right
+    local b = _bandBtns[1]
+    b.label = ZeD.tr(config.buildLabel or "IGUI_CraftingWindow_Craft")
+    b.variant, b.disabled, b.id = "primary", not canCraft, "build"
+    if mx < 0 then b.hover = false else b.hover = nil end
+    b.focus = (rd and fid == pfx .. ":actBuild") and NO_FOCUS_OPTS or nil
+    _bandSpec.win = state._focusWin
+    local _, out = M.drawBand(panel, x, y, w, _bandSpec)
+    local r = out.buttons[1]
+    -- the amount (- n +) left of it; the readout is as wide as the stepper makes it
+    local qtyW = math.max(bh, ZeD.TM:MeasureStringX(T.fontF3, tostring(qty)) + T.px(8))
+    local stepW = bh * 2 + qtyW + 2 * T.px(4)
+    local sx = (r and r.x or (x + w - T.px(8))) - gap - stepW
+    local so = _bandStep
+    so.focusId = nil
+    if rd and fid then
+        if fid == pfx .. ":actDec" then so.focusId = "dec"
+        elseif fid == pfx .. ":actInc" then so.focusId = "inc" end
+    end
+    local _, stepZones = M.drawQtyStepper(panel, sx, y + T.px(5), qty, maxQty, bh, (mx < 0) and "" or nil, so)
+    if rd then
+        for _, z in ipairs(stepZones) do
+            z.type = "action_" .. z.id
+            zones[#zones + 1] = z
+        end
+        if r then zones[#zones + 1] = { type = "action_build", x = r.x, y = r.y, w = r.w, h = r.h } end
+    end
+    return sx - gap
+end
+
+function CC.renderBand(panel, x, y, w, state, config, rd)
+    local T = ZeD.T
     local pfx = (config and config.prefix) or "jrecipe"
+    local fid = state._gpFocusedId
+    local ro = config.readOnly
+    local frozen = state.altSlotName ~= nil
     local mx, my = panel:getMouseX(), panel:getMouseY()
+    if anyOpen(state) or cuesOn() then mx, my = -1, -1 end
+    local bh = T.buttonH
+    local by = y + T.px(5)
+    local edge, gap = T.px(8), T.px(8)
+
+    -- the right: the amount and Craft / Build (the read-only list has none)
+    local leftEnd
+    if ro then
+        _bandSpecRO.win = state._focusWin
+        M.drawBand(panel, x, y, w, _bandSpecRO)
+        leftEnd = x + w - edge
+    else
+        leftEnd = drawBandActions(panel, x, y, w, state, config, rd, pfx, fid, mx)
+    end
+
+    -- the left: (the read-only list's Category,) Sort, Show; narrowed together when the
+    -- room is short (the words end in "...")
+    local sortModes = CC.popModes("sort", config)
+    local showModes = CC.popModes("show", config)
+    local sortW, showW = popWidths(state, config, sortModes, showModes)
+    local catW = ro and T.px(CAT_BAND_W) or 0
+    local lx = x + edge
+    local avail = leftEnd - lx - gap * (ro and 2 or 1)
+    local need = catW + sortW + showW
+    if need > avail and need > 0 then
+        local k = math.max(0, avail) / need
+        catW, sortW, showW = math.floor(catW * k), math.floor(sortW * k), math.floor(showW * k)
+    end
+    if ro then
+        drawCatSelect(panel, state, pfx, lx, by, catW, bh, ZeD.tr("IGUI_invpanel_Category"), true)
+        lx = lx + catW + gap
+    end
+    drawPopBox(panel, state, "sort", lx, by, sortW, bh,
+        ZeD.tr("UI_ZeD_Craft_SortPick", modeLabel(sortModes, state.sort or "craftable")),
+        sortModes, frozen, fid == pfx .. ":sortMenu", mx, my)
+    lx = lx + sortW + gap
+    drawPopBox(panel, state, "show", lx, by, showW, bh,
+        ZeD.tr("UI_ZeD_Craft_ShowToggle", modeLabel(showModes, CC.showMode(state, config))),
+        showModes, frozen, fid == pfx .. ":showMenu", mx, my)
+end
+
+-- A band pop-up's list, open: drawn last (over the rows) above its box. Its row zones are
+-- kept for the click and the controller; the choice that has the controller's focus
+-- carries the mark.
+function CC.renderPopMenu(panel, state, config, kind)
+    local P = POP[kind]
+    local geo = state[P.geo]
+    if not (state[P.open] and geo and geo.modes) then return end
+    local pfx = (config and config.prefix) or "jrecipe"
     local hoverId = nil
     if not cuesOn() then
-        local zs = state._sortMenuZones
+        local mx, my = panel:getMouseX(), panel:getMouseY()
+        local zs = state[P.zones]
         if zs then
             for _, z in ipairs(zs) do
                 if mx >= z.x and mx < z.x + z.w and my >= z.y and my < z.y + z.h then hoverId = z.id; break end
             end
         end
     end
-    local mo = state._sortMenuOpts or {}
-    state._sortMenuOpts = mo
+    local mo = state[P.opts] or {}
+    state[P.opts] = mo
     mo.focusId, mo.minW = nil, geo.w
     local fid = state._gpFocusedId
     if fid then
-        local rp = pfx .. ":sortRow:"
+        local rp = pfx .. P.row
         if string.sub(fid, 1, #rp) == rp then mo.focusId = string.sub(fid, #rp + 1) end
     end
-    local _, _, zs = M.drawSortMenuList(panel, geo.x, geo.y, geo.modes, state.sort, hoverId, mo)
-    state._sortMenuZones = zs
+    local active = (kind == "show") and CC.showMode(state, config) or state.sort
+    local _, _, zs = M.drawSortMenuList(panel, geo.x, geo.y, geo.modes, active, hoverId, mo)
+    state[P.zones] = zs
 end
 
--- Shut the sort pop-up list. The controller returns to the menu box it came from.
-function CC.closeSortMenu(state)
-    state.sortMenuOpen = false
-    state._sortMenuZones = nil
-    state._gpReturnToSortMenu = true
+function CC.renderSortMenu(panel, state, config) CC.renderPopMenu(panel, state, config, "sort") end
+
+-- Open one of the band's pop-up lists (the other lists and the selects shut).
+function CC.openPopMenu(state, kind)
+    state.sortMenuOpen = (kind == "sort")
+    state.showMenuOpen = (kind == "show")
+    state.catDropdownOpen = false
+    state.stDropdownOpen = false
+end
+
+-- Shut a pop-up list. The controller returns to the box it came from.
+function CC.closePopMenu(state, kind)
+    local P = POP[kind]
+    state[P.open] = false
+    state[P.zones] = nil
+    state._gpReturnTo = P.box
+end
+function CC.closeSortMenu(state) CC.closePopMenu(state, "sort") end
+function CC.closeShowMenu(state) CC.closePopMenu(state, "show") end
+
+-- A choice picked in one of the band's lists: applied, the list shut.
+function CC.pickPop(state, config, kind, id)
+    if kind == "show" then CC.setShow(state, id)
+    else
+        state.sort = id
+        state.filterDirty = true
+    end
+    CC.closePopMenu(state, kind)
 end
 
 -- ============================================================================
@@ -1499,7 +1669,7 @@ function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
     local curY = y - scrollOff
     local mx, my = panel:getMouseX(), panel:getMouseY()
     -- Suppress hover when a dropdown overlay is open
-    if state.catDropdownOpen or state.stDropdownOpen or state.sortMenuOpen or cuesOn() then mx, my = -1, -1 end
+    if anyOpen(state) or cuesOn() then mx, my = -1, -1 end
     local rowIdx = 0
 
     -- Reusable row data table (zero alloc per row per frame)
@@ -1692,7 +1862,7 @@ function CC.stampAltPick(panel, state, alt, x, y, w, rowH, viewY, viewH)
         panel:drawRect(x, y, w, rowH, T.selectionA, ac.r, ac.g, ac.b)
     end
     local pmy = panel:getMouseY()
-    if not (state.catDropdownOpen or state.stDropdownOpen) and pmy >= viewY and pmy < viewY + viewH
+    if not anyOpen(state) and pmy >= viewY and pmy < viewY + viewH
         and ZeD.Atoms.mouseIn(panel, x, y, w, rowH) then
         local hv = T.hover
         panel:drawRect(x, y, w, rowH, hv.a, hv.r, hv.g, hv.b)
@@ -1993,7 +2163,7 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     local chipH = T.px(22)
     local inputsH = ROW_H + #(rd.ingredients or {}) * ROW_H  -- header + rows
     local outputsH = ROW_H + #(entry.outputDefs or {}) * ROW_H
-    local actionH = config.readOnly and 0 or M.craftActionStripH()
+    local actionH = 0   -- (Oct 30 2026: the amount and Craft / Build moved to the card's band, CC.renderBand)
     -- Learn info section height (readOnly + not accessible)
     local showLearnSection = config.readOnly and (not rd.learned or rd.hasSkill == false)
     local learnH = 0
@@ -2270,36 +2440,6 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
         scroll:draw(panel)
     end
 
-    -- Action strip (pinned to bottom, hidden in readOnly)
-    if not config.readOnly then
-        local actionY = y + h - actionH
-        local maxQty = rd.maxBatchQty or 1
-        if maxQty < 0 then maxQty = 0 end
-        state._maxQty = maxQty  -- cache for click handler
-        -- Clamp qty to maxQty (may have changed since last frame)
-        if state.qty > maxQty and maxQty > 0 then state.qty = maxQty end
-        if state.qty < 1 then state.qty = 1 end
-        local canCraft = rd.status == "craftable" and rd.learned ~= false and maxQty > 0
-        local label = ZeD.tr(config.buildLabel or "IGUI_CraftingWindow_Craft")
-        -- the band takes the controller's focus itself: the id of the stepper key or the
-        -- Craft / Build button that has it (the mark goes under its words)
-        local ao = state._actionOpts or {}
-        state._actionOpts = ao
-        ao.h, ao.focusId = actionH, nil
-        local fid = state._gpFocusedId
-        if fid then
-            if fid == pfx .. ":actDec" then ao.focusId = "dec"
-            elseif fid == pfx .. ":actInc" then ao.focusId = "inc"
-            elseif fid == pfx .. ":actBuild" then ao.focusId = "build" end
-        end
-        local _, actionZones = M.drawCraftActionStrip(panel, x, actionY, w,
-            state.qty, maxQty, canCraft, nil, label, ao)
-        for _, z in ipairs(actionZones) do
-            z.type = "action_" .. z.id
-            zones[#zones + 1] = z
-        end
-    end
-
     return h
 end
 
@@ -2382,9 +2522,12 @@ function CC.render(panel, win, x, y, w, h, state, config, data)
 
     local curY = y
 
-    -- Static header (cat dropdown + search; crafting adds the station select)
-    local headerH = CC.renderStaticHeader(panel, x, curY, w, state, config, win)
-    curY = curY + headerH
+    -- The header strip (Category and the search; crafting adds the station select).
+    -- The read-only list (the Journal's Recipes page) sits under the Journal's own
+    -- header, which holds its search; its Category select is in the band.
+    if not config.readOnly then
+        curY = curY + CC.renderStaticHeader(panel, x, curY, w, state, config, win)
+    end
 
     -- Station band (Craft tab bound to a bench)
     if config.stations and ZeD.Stations and win._playerObj then
@@ -2394,12 +2537,25 @@ function CC.render(panel, win, x, y, w, h, state, config, data)
         end
     end
 
-    -- Contextual strip
-    local stripH = CC.renderStrip(panel, x, curY, w, state, config)
-    curY = curY + stripH
+    -- The alternatives list's strip (alt mode only)
+    curY = curY + CC.renderStrip(panel, x, curY, w, state, config)
 
-    -- Remaining height for panes
-    local panesH = h - (curY - y)
+    -- The band at the card's foot (Oct 30 2026, punch list 21); the panes take the
+    -- height between
+    local bandH = M.bandH()
+    local panesH = h - (curY - y) - bandH
+
+    -- The picked recipe: the card shows it, the band's amount and Craft / Build act on it
+    local selRd = nil
+    if state.selected then
+        for _, rd in ipairs(data.recipes) do
+            if rd.entry.name == state.selected then
+                selRd = rd
+                break
+            end
+        end
+    end
+    state._selEntry = selRd and selRd.entry or nil
 
     -- Pane split based on animation fraction
     local splitFrac = state.splitFrac
@@ -2424,33 +2580,24 @@ function CC.render(panel, win, x, y, w, h, state, config, data)
     end
 
     -- Right pane: craft card (only when split > 0)
-    if cardW > 0 and state.selected then
+    if cardW > 0 and selRd then
         local cardX = x + listW
-        -- Find selected recipe data
-        local selRd = nil
-        for _, rd in ipairs(data.recipes) do
-            if rd.entry.name == state.selected then
-                selRd = rd
-                break
-            end
-        end
-        state._selEntry = selRd and selRd.entry or nil
-        if selRd then
-            -- Vertical divider between panes
-            panel:drawRect(cardX, curY, T.px(1), panesH, T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
-            CC.renderCraftCard(panel, cardX + T.px(1), curY, cardW - T.px(1), panesH, state, config, selRd, win._playerObj)
-        end
+        -- Vertical divider between panes
+        panel:drawRect(cardX, curY, T.px(1), panesH, T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
+        CC.renderCraftCard(panel, cardX + T.px(1), curY, cardW - T.px(1), panesH, state, config, selRd, win._playerObj)
     end
+
+    -- The band, full card width under both panes
+    CC.renderBand(panel, x, y + h - bandH, w, state, config, selRd)
 
     -- Category dropdown overlay (drawn LAST — on top of everything)
     if state.catDropdownOpen and state._ddGeo then
         CC.renderCatDropdownOverlay(panel, state, data)
     end
 
-    -- Sort pop-up list (the strip folds its choices into it when they do not fit)
-    if state.sortMenuOpen then
-        CC.renderSortMenu(panel, state, config)
-    end
+    -- The band's Sort and Show pop-up lists (they open upward from their boxes)
+    if state.sortMenuOpen then CC.renderPopMenu(panel, state, config, "sort") end
+    if state.showMenuOpen then CC.renderPopMenu(panel, state, config, "show") end
 
     -- Station dropdown overlay (crafting)
     if config.stations and ZeD.Stations then
@@ -2518,9 +2665,7 @@ end
 -- RENDERING — Category Dropdown Overlay (absolute positioned, on top)
 -- ============================================================================
 
-local DD_ROW_H   = 20
-local DD_MAX_VIS = 14  -- max visible rows before scroll kicks in
-
+-- (DD_ROW_H / DD_MAX_VIS: the constants at the top of the file)
 function CC.renderCatDropdownOverlay(panel, state, data)
     local T  = ZeD.T
     local A  = ZeD.Atoms
@@ -2639,6 +2784,7 @@ function CC.onClick(state, config, win, x, y, playerObj)
                 state.catDropdownScroll = 0
                 state.filterDirty = true
                 state.scroll:setScrollPos(0)
+                state._gpReturnTo = "catDrop"
                 return true
             end
         end
@@ -2649,16 +2795,16 @@ function CC.onClick(state, config, win, x, y, playerObj)
         return true
     end
 
-    -- Sort pop-up list open: it takes every click (pick a choice or shut it)
-    if state.sortMenuOpen then
-        for _, z in ipairs(state._sortMenuZones or {}) do
+    -- A band pop-up list open (Sort or Show): it takes every click (pick a choice or shut it)
+    if state.sortMenuOpen or state.showMenuOpen then
+        local kind = state.sortMenuOpen and "sort" or "show"
+        for _, z in ipairs(state[POP[kind].zones] or {}) do
             if x >= z.x and x < z.x + z.w and y >= z.y and y < z.y + z.h then
-                state.sort = z.id
-                state.filterDirty = true
-                break
+                CC.pickPop(state, config, kind, z.id)
+                return true
             end
         end
-        CC.closeSortMenu(state)
+        CC.closePopMenu(state, kind)
         return true
     end
 
@@ -2690,30 +2836,25 @@ function CC.onClick(state, config, win, x, y, playerObj)
                 state._sectionsStale = true  -- collapse changes totalH
                 return true
 
-            elseif zone.type == "sortMode" then
-                state.sort = zone.id
-                state.filterDirty = true
-                return true
-
-            elseif zone.type == "showAllToggle" then
-                CC.cycleShow(state, config)
-                return true
-
             elseif zone.type == "sortMenu" then
-                state.sortMenuOpen = true
-                state.catDropdownOpen = false
-                state.stDropdownOpen = false
+                CC.openPopMenu(state, "sort")
+                return true
+
+            elseif zone.type == "showMenu" then
+                CC.openPopMenu(state, "show")
                 return true
 
             elseif zone.type == "catDropdown" then
                 state.catDropdownOpen = not state.catDropdownOpen
                 state.stDropdownOpen = false
+                state.sortMenuOpen, state.showMenuOpen = false, false
                 return true
 
             elseif zone.type == "stationDropdown" then
                 state.stDropdownOpen = not state.stDropdownOpen
                 state.stDropdownScroll = 0
                 state.catDropdownOpen = false
+                state.sortMenuOpen, state.showMenuOpen = false, false
                 return true
 
             elseif zone.type == "stationUse" then
@@ -2800,7 +2941,7 @@ function CC.onMouseWheel(state, del, x, y, panelX, panelW)
         ZeD.Stations.dropdownWheel(state, del)
         return true
     end
-    if state.sortMenuOpen then return true end
+    if state.sortMenuOpen or state.showMenuOpen then return true end
     -- Dropdown scroll takes priority when open
     if state.catDropdownOpen then
         local totalRows = #(state.categoryList or {})
@@ -2824,6 +2965,73 @@ function CC.onMouseWheel(state, del, x, y, panelX, panelW)
     return true
 end
 
+-- The config buildFocusables passes on (it has none: the read-only list is the Journal's)
+local RO_CFG, FULL_CFG = { readOnly = true }, {}
+
+-- The open category list's rows as the controller's stops. B shuts the list; a choice or
+-- B brings the focus back to the select (Oct 30 2026).
+local function catRowFocusables(state, prefix)
+    local T = ZeD.T
+    local geo = state._ddGeo
+    local cats = state.categoryList or {}
+    local rowH = T.px(DD_ROW_H)
+    local scrollOff = state.catDropdownScroll or 0
+    local elements = {}
+    local visCount = math.min(#cats - scrollOff, DD_MAX_VIS)
+    local function shut()
+        state.catDropdownOpen = false
+        state.catDropdownScroll = 0
+        state._gpReturnTo = "catDrop"
+    end
+    for vi = 1, visCount do
+        local catIdx = scrollOff + vi
+        local cat = cats[catIdx]
+        if cat then
+            elements[#elements + 1] = {
+                x = geo.x, y = geo.y + (vi - 1) * rowH, w = geo.w, h = rowH,
+                id = prefix .. ":cat:" .. tostring(cat.id),
+                craftKind = "catRow",
+                journalKind = (prefix == "jrecipe") and "jrecipeCat" or nil,
+                catId = cat.id,
+                onFocus = function(w, el) end,
+                onActivate = function(w, el)
+                    state.activeCat = el.catId
+                    state.filterDirty = true
+                    if state.scroll and state.scroll.setScrollPos then
+                        state.scroll:setScrollPos(0)
+                    end
+                    shut()
+                end,
+                onCancel = function(w, el) shut() end,
+            }
+        end
+    end
+    return elements
+end
+
+-- A band pop-up list's rows (kind "sort" / "show") as the controller's stops: the current
+-- choice has the focus first; A picks, B shuts; either way back to the box.
+local function popRowFocusables(state, prefix, kind)
+    local P = POP[kind]
+    local cfg = (prefix == "jrecipe") and RO_CFG or FULL_CFG
+    local cur = (kind == "show") and CC.showMode(state, cfg) or state.sort
+    local rowKind = (kind == "show") and "showRow" or "sortRow"
+    local elements = {}
+    for i, z in ipairs(state[P.zones]) do
+        elements[#elements + 1] = {
+            x = z.x, y = z.y, w = z.w, h = z.h,
+            id = prefix .. P.row .. tostring(z.id),
+            craftKind = rowKind,
+            sortId = z.id,
+            onFocus = function(w, el) end,
+            onActivate = function(w, el) CC.pickPop(state, cfg, kind, el.sortId) end,
+            onCancel = function(w, el) CC.closePopMenu(state, kind) end,
+        }
+        if z.id == cur then elements._focusIdx = i end
+    end
+    return elements
+end
+
 -- ============================================================================
 -- GAMEPAD FOCUSABLES BUILDER (S107)
 -- ============================================================================
@@ -2834,11 +3042,12 @@ end
 --
 -- Synthesized from `state.zones`, the hit-zone list stamped each render by
 -- the CC drawing pipeline. One focusable per interactive zone type. Mode
--- branching is implicit: alt mode emits altStrip_* in place of sortMode/
--- showAllToggle/catDropdown; readOnly mode (Journal) omits recipeStar/
--- slotAlt/altStrip_*/action_* zones entirely so those branches never fire.
--- Dropdown-open is the one explicit focus-lock case (matches CC.onClick
--- which consumes ALL clicks while the dropdown overlay is up).
+-- branching is implicit: alt mode adds altStrip_* and drops the band's
+-- sortMenu / showMenu and the catDropdown (greyed there); readOnly mode
+-- (Journal) has no recipeStar / action_* zones, so those branches never fire.
+-- An open list (category, station, the band's Sort / Show) is the explicit
+-- focus-lock case (matches CC.onClick, which hands it every click). Order:
+-- the header strip, the body (list, card), the band (Oct 30 2026).
 --
 -- Args:
 --   win        — the parent window (Char or World)
@@ -2864,63 +3073,19 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
         return ZeD.Stations.dropdownFocusables(state, win._playerObj, prefix)
     end
 
-    -- Dropdown open: focus locked to dropdown rows. DD_ROW_H = 20 / DD_MAX_VIS
-    -- = 14 mirror the constants at the top of this file (kept literal here so
-    -- the function can be moved or extracted without an internal-constant dep).
+    -- Category list open: focus locked to its rows; B shuts it, and a choice or B
+    -- brings the focus back to the select
     if state.catDropdownOpen and state._ddGeo then
-        local geo = state._ddGeo
-        local cats = state.categoryList or {}
-        local rowH = T.px(20)
-        local scrollOff = state.catDropdownScroll or 0
-        local elements = {}
-        local visCount = math.min(#cats - scrollOff, 14)
-        for vi = 1, visCount do
-            local catIdx = scrollOff + vi
-            local cat = cats[catIdx]
-            if cat then
-                elements[#elements + 1] = {
-                    x = geo.x, y = geo.y + (vi - 1) * rowH, w = geo.w, h = rowH,
-                    id = prefix .. ":cat:" .. tostring(cat.id),
-                    craftKind = "catRow",
-                    journalKind = (prefix == "jrecipe") and "jrecipeCat" or nil,
-                    catId = cat.id,
-                    onFocus = function(w, el) end,
-                    onActivate = function(w, el)
-                        state.activeCat = el.catId
-                        state.catDropdownOpen = false
-                        state.catDropdownScroll = 0
-                        state.filterDirty = true
-                        if state.scroll and state.scroll.setScrollPos then
-                            state.scroll:setScrollPos(0)
-                        end
-                    end,
-                }
-            end
-        end
-        return elements
+        return catRowFocusables(state, prefix)
     end
 
-    -- Sort pop-up list open: focus is locked to its rows (the current choice has it first;
-    -- B shuts the list)
+    -- A band pop-up list open (Sort or Show): focus locked to its rows (the current choice
+    -- has it first; B shuts the list; the focus goes back to the box)
     if state.sortMenuOpen and state._sortMenuZones then
-        local elements = {}
-        for i, z in ipairs(state._sortMenuZones) do
-            elements[#elements + 1] = {
-                x = z.x, y = z.y, w = z.w, h = z.h,
-                id = prefix .. ":sortRow:" .. tostring(z.id),
-                craftKind = "sortRow",
-                sortId = z.id,
-                onFocus = function(w, el) end,
-                onActivate = function(w, el)
-                    state.sort = el.sortId
-                    state.filterDirty = true
-                    CC.closeSortMenu(state)
-                end,
-                onCancel = function(w, el) CC.closeSortMenu(state) end,
-            }
-            if z.id == state.sort then elements._focusIdx = i end
-        end
-        return elements
+        return popRowFocusables(state, prefix, "sort")
+    end
+    if state.showMenuOpen and state._showMenuZones then
+        return popRowFocusables(state, prefix, "show")
     end
 
     local zones = state.zones or {}
@@ -3021,47 +3186,16 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
             if not slst then slst = {}; fc.sections[z.id] = slst end
             slst[n] = sel
             fc.made = fc.made + 1
-        elseif z.type == "sortMode" then
+        elseif z.type == "sortMenu" or z.type == "showMenu" then
+            -- the band's Sort / Show pop-up boxes (Oct 30 2026): A opens the list
+            local kind = (z.type == "showMenu") and "show" or "sort"
             elements[#elements + 1] = {
                 x = z.x, y = z.y, w = z.w, h = z.h,
-                id = prefix .. ":sort:" .. tostring(z.id),
-                craftKind = "sort",
-                journalKind = (prefix == "jrecipe") and "jrecipeSort" or nil,
-                sortId = z.id,
-                onFocus = function(w, el) end,
-                onActivate = function(w, el)
-                    state.sort = el.sortId
-                    state.filterDirty = true
-                end,
-            }
-        elseif z.type == "sortMenu" then
-            elements[#elements + 1] = {
-                x = z.x, y = z.y, w = z.w, h = z.h,
-                id = prefix .. ":sortMenu",
-                craftKind = "sortMenu",
+                id = prefix .. ":" .. z.type,
+                craftKind = z.type,
                 journalKind = (prefix == "jrecipe") and "jrecipeSort" or nil,
                 onFocus = function(w, el) end,
-                onActivate = function(w, el)
-                    state.sortMenuOpen = true
-                    state.catDropdownOpen = false
-                    state.stDropdownOpen = false
-                end,
-            }
-            -- the list has just shut: the controller comes back to the box that opened it
-            if state._gpReturnToSortMenu then
-                elements._focusIdx = #elements
-                state._gpReturnToSortMenu = nil
-            end
-        elseif z.type == "showAllToggle" then
-            elements[#elements + 1] = {
-                x = z.x, y = z.y, w = z.w, h = z.h,
-                id = prefix .. ":showAll",
-                craftKind = "showAll",
-                journalKind = (prefix == "jrecipe") and "jrecipeShowAll" or nil,
-                onFocus = function(w, el) end,
-                onActivate = function(w, el)
-                    CC.cycleShow(state, { readOnly = (prefix == "jrecipe") })  -- (the Journal list is read-only: Known and All; there is no config here; code audit Oct 17 2026)
-                end,
+                onActivate = function(w, el) CC.openPopMenu(state, kind) end,
             }
         elseif z.type == "stationDropdown" then
             elements[#elements + 1] = {
@@ -3073,7 +3207,7 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
                     state.stDropdownOpen = not state.stDropdownOpen
                     state.stDropdownScroll = 0
                     state.catDropdownOpen = false
-                    state.sortMenuOpen = false
+                    state.sortMenuOpen, state.showMenuOpen = false, false
                 end,
             }
         elseif z.type == "stationUse" then
@@ -3098,7 +3232,7 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
                 onFocus = function(w, el) end,
                 onActivate = function(w, el)
                     state.catDropdownOpen = not state.catDropdownOpen
-                    state.sortMenuOpen = false
+                    state.sortMenuOpen, state.showMenuOpen = false, false
                 end,
             }
         elseif z.type == "cardSection" then
@@ -3200,6 +3334,14 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
                 end,
             }
         end
+    end
+    -- a list or a select has just shut: the controller comes back to the box that opened it
+    if state._gpReturnTo then
+        local want = prefix .. ":" .. state._gpReturnTo
+        for i, e in ipairs(elements) do
+            if e.id == want then elements._focusIdx = i; break end
+        end
+        state._gpReturnTo = nil
     end
     if ZeD.Stations then ZeD.Stations.addLeaveCancel(elements, win, prefix) end
     return elements

@@ -538,45 +538,24 @@ local function _invListLandOn(w, z, dir)
 end
 
 -- S109b — Foraging tab focusables.
--- Composition (top to bottom in the tab):
---   1. SEARCH stance button    — A toggles ISSearchManager search mode
---   2. Focus dropdown          — A opens/commits, D-pad nav inside, B closes
---   3. MORE DETAIL disclosure  — A + L/R tree-nav toggles _moreDetailOpen
+-- Composition (header, body, band; Oct 30 2026):
+--   1. Focus dropdown          — in the header strip; A opens/commits, D-pad
+--                                nav inside, B closes
+--   2. MORE DETAIL disclosure  — A + L/R tree-nav toggles _moreDetailOpen
+--   3. SEARCH button           — the band's main action (isPrimary); A toggles
+--                                ISSearchManager search mode, and the stop is
+--                                the same id, so focus stays on the button
 --   4. Grid-scroll pseudo      — D-pad U/D scrolls win._forageScroll; at
 --                                bounds falls through to cone nav so user
 --                                escapes back upward
--- Crouch/Aim stance tiles stay non-focusable per feedback_stance_status_only.
+-- Crouch/Aim are read-only status in the band: no stops
+-- (feedback_stance_status_only).
 local function _buildForageFocusables(win)
     if not win then return {} end
     local elements = {}
     local T = ZeD.T
 
-    -- 1. SEARCH stance button.
-    local stanceZones = win._forageStanceZones
-    if stanceZones then
-        for _, z in ipairs(stanceZones) do
-            elements[#elements + 1] = {
-                x = z.x, y = z.y, w = z.w, h = z.h,
-                id = "forage:stance:" .. tostring(z.id),
-                isStance = true,
-                stanceId = z.id,
-                onFocus = function(w, el)
-                    w._gpFocusedForageStance = el.stanceId
-                end,
-                onActivate = function(w, el)
-                    local player = w._playerObj
-                    local mgr = player and ISSearchManager
-                                 and ISSearchManager.getManager
-                                 and ISSearchManager.getManager(player)
-                    if mgr and mgr.toggleSearchMode then
-                        mgr:toggleSearchMode()
-                    end
-                end,
-            }
-        end
-    end
-
-    -- 2. FOCUS DROPDOWN. A toggles open/commit; while open, D-pad U/D is
+    -- 1. FOCUS DROPDOWN. A toggles open/commit; while open, D-pad U/D is
     -- intercepted at win-level to shift dd.hoveredIndex + scrollOffset.
     -- B closes without committing — only when open (else B should fall
     -- through to shade-all per ring model).
@@ -627,7 +606,7 @@ local function _buildForageFocusables(win)
         elements[#elements + 1] = el
     end
 
-    -- 3. MORE DETAIL disclosure.
+    -- 2. MORE DETAIL disclosure.
     local dz = win._forageDisclosureZone
     if dz then
         elements[#elements + 1] = {
@@ -637,6 +616,22 @@ local function _buildForageFocusables(win)
             sectionKey = "moreDetail",  -- used by L/R tree-nav branch
             onActivate = function(w, el)
                 w._moreDetailOpen = not (w._moreDetailOpen or false)
+            end,
+        }
+    end
+
+    -- 3. SEARCH / STOP SEARCHING: the band's button, the tab's primary action.
+    local sb = win._forageSearchBtn
+    if sb then
+        local mgr = win._playerObj and ISSearchManager.getManager(win._playerObj) or nil
+        elements[#elements + 1] = {
+            x = sb.x, y = sb.y, w = sb.w, h = sb.h,
+            id = "forage:search",
+            isSearch = true,
+            isPrimary = true,
+            promptA = ZeD.tr((mgr and mgr.isSearchMode) and "UI_ZeD_Forage_BtnStopSearch" or "UI_ZeD_Forage_BtnSearch"),
+            onActivate = function(w, el)
+                ZeD.ForagingTab.toggleSearch(w)
             end,
         }
     end
@@ -672,10 +667,6 @@ local function _buildForageFocusables(win)
         }
     end
 
-    -- Legacy seed kept for any mouse-path reader; harmless otherwise.
-    if elements[1] and elements[1].stanceId then
-        win._gpFocusedForageStance = elements[1].stanceId
-    end
     return elements
 end
 
@@ -1153,7 +1144,6 @@ end
 _clearGpFocusState = function(w)
     if not w then return end
     w._gpFocusedRowItem        = nil
-    w._gpFocusedForageStance   = nil
     w._gpFocusedAnimalSubmode  = nil  -- legacy (S96); no longer written
     w._gpFocusedAnimalRow      = nil  -- S109: roster/butcher row focus
     w._gpFocusedRadioCtl       = nil  -- S117: radio drawer chassis control id
@@ -1327,7 +1317,14 @@ _syncWorldRingZones = function(win, content)
     -- Containers reachable on ALL tabs per user spec (Apr 16). MC is Loot-only.
     local newContainerEls = _buildWorldLootFocusables(win) or {}
 
-    Focus.setRingZoneElements(win, "worldTabContent",     newContentEls, 1)
+    -- Oct 30 2026: Forage lands on its main action, Search in the band (punch list 21)
+    local contentIdx = 1
+    if tabId == "forage" then
+        for i, el in ipairs(newContentEls) do
+            if el.id == "forage:search" then contentIdx = i; break end
+        end
+    end
+    Focus.setRingZoneElements(win, "worldTabContent",     newContentEls, contentIdx)
     Focus.setZoneFocusable   (win, "worldTabContent",     #newContentEls > 0)
     -- S108: containerEls are now in [floor, non-floor display-order] layout
     -- (not container-index order), so seed idx by scanning for containerIdx
@@ -3151,7 +3148,7 @@ function ZeD_WorldWindow.toggle(playerNum)
     win._recentFinds         = {}
     win._forageScroll        = ZeD_ScrollbarState:new()
     win._animalsScroll       = ZeD_ScrollbarState:new()
-    win._forageStanceZones   = {}
+    win._forageSearchBtn     = nil
     win._forageDisclosureZone = nil
     win._forageDropdown      = nil
     win._mapTextEntry       = nil
@@ -4602,6 +4599,11 @@ function ZeD_WorldWindow.toggle(playerNum)
                     local lg = stk._listGeo
                     scrollKey = tostring(sp) .. ":" .. tostring(lg and lg.y or 0) .. ":" .. tostring(lg and lg.h or 0)
                         .. ":" .. tostring(stk.catDropdownOpen) .. ":" .. tostring(stk.catDropdownScroll or 0)
+                        -- (Oct 30 2026: the band's stops are last and never move, so the card's and the
+                        -- alternatives' scroll and the band's pop-up lists key the rebuild too)
+                        .. ":" .. tostring(stk.cardScroll and stk.cardScroll.scrollPos or 0)
+                        .. ":" .. tostring(stk.altScroll and stk.altScroll.scrollPos or 0)
+                        .. ":" .. tostring(stk.sortMenuOpen) .. ":" .. tostring(stk.showMenuOpen)
                     -- S124 stations: binding, station dropdown and station-view controls
                     if win._activeTab == "craft" and ZeD.CraftingTab and ZeD.CraftingTab.focusKey then
                         scrollKey = scrollKey .. ":" .. tostring(ZeD.CraftingTab.focusKey(win))
@@ -4638,6 +4640,11 @@ function ZeD_WorldWindow.toggle(playerNum)
                         if e.id == oldId then preserveIdx = i; break end
                     end
                 end
+            end
+            -- Oct 30 2026: Craft / Build name where the focus lands as a pop-up list opens (its
+            -- current choice) or shuts (back on its box), as the Character window honours it
+            if (win._activeTab == "craft" or win._activeTab == "build") and newEls._focusIdx then
+                preserveIdx = newEls._focusIdx
             end
             -- S109a: post-create-zone focus hint. gpConfirm seeds
             -- win._animalsFocusAfterCreate with the zone name; we resolve

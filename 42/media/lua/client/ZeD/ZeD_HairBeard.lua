@@ -869,9 +869,25 @@ local function rowHeight()
     return math.max(T.rowH, T.px(THUMB) + 2 * T.px(THUMB_PAD))
 end
 
--- the Hair | Beard radio row's height
+-- the Hair | Beard radio row's height (Cut sits at its right, so the row is as tall as a button)
 local function partsHeight()
-    return math.max(ZeD.Atoms.radioSize(), F(2)) + ZeD.T.px(8)
+    return math.max(math.max(ZeD.Atoms.radioSize(), F(2)) + ZeD.T.px(8), ZeD.T.buttonH)
+end
+
+-- Cut's width (Oct 30 2026): the widest of its words (Cut, Trim, Style, Shave, Tie, Untie, Stop), so
+-- the button keeps its size as the pick changes
+local CUT_WORDS = { "Cut", "Trim", "Style", "Shave", "Tie", "Untie" }
+local function cutW()
+    local M = ZeD.Molecules
+    local w = M.buttonW(tr("UI_ZeD_Hair_Stop"))
+    for _, v in ipairs(CUT_WORDS) do w = math.max(w, M.buttonW(tr(VERB_KEY[v]))) end
+    return w
+end
+
+-- what the line under the switch reserves: the status words and, under them, the row's NEEDS
+-- line or the busy bar (a fixed height, so a pick does not move the rows under the pointer)
+local function cutLineHeight()
+    return F(2) + ZeD.T.px(3) + math.max(F(2), ZeD.T.fillBarH)
 end
 
 -- the key the folded row remembers its open / closed state under (one per part)
@@ -933,9 +949,16 @@ function HB.layout(win, w)
     local topH = math.max(T.px(HEAD_H) + T.px(3) + F(5), T.px(CUR_H) * (st.female and 2 or 3))
     add(L, { kind = "heads", x = x, y = y, w = cw, h = topH })
     y = y + topH + T.px(10)
+    -- Hair | Beard at the left, Cut at the right of the same row (Oct 30 2026: Cut moved up from the
+    -- card's foot band into the fold), and under them the line Cut speaks through
     local ph = partsHeight()
-    add(L, { kind = "parts", x = x, y = y, w = cw, h = ph })
-    y = y + ph + T.px(8)
+    local cutw = cutW()
+    add(L, { kind = "parts", x = x, y = y, w = cw - cutw - T.px(8), h = ph })
+    add(L, { kind = "cut", x = x + cw - cutw, y = y, w = cutw, h = ph })
+    y = y + ph + T.px(4)
+    local clh = cutLineHeight()
+    add(L, { kind = "cutline", x = x + T.px(8), y = y, w = cw - T.px(16), h = clh })
+    y = y + clh + T.px(8)
 
     local shown, hidden = sortRows(st)
     local rh = rowHeight()
@@ -1134,6 +1157,63 @@ local function drawParts(panel, win, st, it, y, mx, my)
     end
 end
 
+-- what Cut says this frame (defined with the doing, below)
+local stripState
+
+-- Cut: the push button at the right of the Hair | Beard row. The verb of the picked row (Cut, Trim,
+-- Style, Shave, Tie, Untie), greyed until a row can be done; Stop while the cut runs. st.btn keeps
+-- the part of its rect inside the view (the click zone).
+local _cutOpts = {}
+local function drawCut(panel, win, st, it, y, mx, my, s, viewY, viewH)
+    local T = ZeD.T
+    local bh = T.buttonH
+    local by = y + math.floor((it.h - bh) / 2)
+    local o = _cutOpts
+    o.hover = mx ~= nil and mx >= it.x and mx < it.x + it.w and my >= by and my < by + bh
+    o.disabled, o.focus, o.help, o.win = not s.canDo, focusOf(win, "hb:do"), s.help, win
+    ZeD.Molecules.drawButton(panel, it.x, by, it.w, bh, s.label, s.stop and "default" or "primary", false, nil, o)
+    local y0, y1 = math.max(viewY, by), math.min(viewY + viewH, by + bh)
+    if y1 > y0 then
+        local b = st.btnRect
+        if not b then b = {}; st.btnRect = b end
+        b.x, b.y, b.w, b.h, b.on, b.stop = it.x, y0, it.w, y1 - y0, s.canDo, s.stop and true or false
+        st.btn = b
+    end
+end
+
+-- the line under the switch: what the pick is (a square mark and the words), and under it what
+-- it needs (a hollow square: the NEEDS line) or its notes, or the busy bar while the cut runs
+local function drawCutLine(panel, it, y, s)
+    local T, A = ZeD.T, ZeD.Atoms
+    local sq = T.px(6)
+    local x, w = it.x, it.w
+    local f2h = F(2)
+    if s.text and s.text ~= "" then
+        local tx = x
+        if s.color then
+            A.drawStatusDot(panel, x, y + math.floor((f2h - sq) / 2), s.color, sq)
+            tx = x + sq + T.px(6)
+        end
+        local tc = T.text
+        panel:drawText(A.truncateText(s.text, T.fontF2, x + w - tx), tx, y, tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
+    end
+    local y2 = y + f2h + T.px(3)
+    local h2 = math.max(f2h, T.fillBarH)
+    if s.pct then
+        -- the busy bar: the standard framed strip (a timed action: smooth)
+        A.drawSmoothBar(panel, x, y2 + math.floor((h2 - T.fillBarH) / 2), w, s.pct, false, T.accent)
+    elseif s.info then
+        local tx = x
+        local ty = y2 + math.floor((h2 - f2h) / 2)
+        local tc = s.needs and T.text or T.textDim
+        if s.needs then
+            A.drawStatusHollow(panel, tx, ty + math.floor((f2h - sq) / 2), T.textDim, sq)
+            tx = tx + sq + T.px(6)
+        end
+        panel:drawText(A.truncateText(s.info, T.fontF2, x + w - tx), tx, ty, tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
+    end
+end
+
 -- a group's category row: "Cut (4)", not folding
 local function drawGh(panel, win, st, it, y)
     ZeD.Molecules.drawCategoryRow(panel, it.x, y, it.w, tr(GROUP_KEY[it.grp]), it.n, true, { noArrow = true, inset = ZeD.T.px(8) })
@@ -1219,6 +1299,8 @@ function HB.draw(panel, win, L, x, top, w, viewY, viewH)
     local st = state(win)
     if not L or not win._playerObj then return end
     st.zones, st.top, st.x = {}, top, x
+    st.btn = nil
+    local cs = stripState(win)
     local mx, my = panel:getMouseX(), panel:getMouseY()
     local inView = mx >= x and mx < x + w and my >= viewY and my < viewY + viewH
     local Fo = ZeD.Input and ZeD.Input.Focus
@@ -1242,6 +1324,8 @@ function HB.draw(panel, win, L, x, top, w, viewY, viewH)
                 ZeD.Molecules.drawSectionHeader(panel, ix, y, it.w, it.text, nil, true, false, nil, nil, nil, nil, true)
             elseif k == "heads" then drawHeads(panel, win, st, item, y, wants, view)
             elseif k == "parts" then drawParts(panel, win, st, item, y, mx, my)
+            elseif k == "cut" then drawCut(panel, win, st, item, y, mx, my, cs, viewY, viewH)
+            elseif k == "cutline" then drawCutLine(panel, item, y, cs)
             elseif k == "gh" then drawGh(panel, win, st, item, y)
             elseif k == "more" then drawMore(panel, win, st, item, y, mx, my)
             elseif k == "row" then drawRow(panel, win, st, item, y, mx, my, wants, view)
@@ -1271,9 +1355,9 @@ function HB.draw(panel, win, L, x, top, w, viewY, viewH)
 end
 
 -- ---------------------------------------------------------------------------
--- the foot of the drawer: what the picked row needs, and the button. A line above the
--- band carries the busy bar, the row's NEEDS line or its notes; the band is the
--- library's (the status words at the left, the verb at the right).
+-- Cut: what the picked row needs, and the button beside Hair | Beard (Oct 30 2026: it was the
+-- card's foot band; the fold keeps its own controls). The line under the switch carries the
+-- status words, the busy bar, the row's NEEDS line or its notes.
 -- ---------------------------------------------------------------------------
 local function itemName(it) return it and it:getDisplayName() or "" end
 
@@ -1302,10 +1386,10 @@ local function notesFor(st, p, r)
     return notes
 end
 
--- what the foot says this frame: { text, color } for the band's status, info (the line
--- above it) with needs = a NEEDS line (hollow square) or plain notes, pct = the busy
+-- what Cut says this frame: { text, color } for the status words, info (the line under
+-- them) with needs = a NEEDS line (hollow square) or plain notes, pct = the busy
 -- bar, and the verb button's label and state
-local function stripState(win)
+function stripState(win)
     local T = ZeD.T
     local st = state(win)
     local p = win._playerObj
@@ -1354,53 +1438,6 @@ local function stripState(win)
     s.help = s.canDo and s.info or nil
     if s.info == "" then s.info = nil end
     return s
-end
-
--- the height of the foot: the band, and the line above it when there is one
-function HB.stripH(win)
-    local T, M = ZeD.T, ZeD.Molecules
-    local s = win and stripState(win) or {}
-    local extra = 0
-    if s.pct then extra = T.fillBarH + T.px(12)
-    elseif s.info then extra = F(2) + T.px(10) end
-    return M.bandH() + extra
-end
-
-function HB.drawStrip(panel, win, x, y, w, h)
-    local T, A, M = ZeD.T, ZeD.Atoms, ZeD.Molecules
-    local st = state(win)
-    local p = win._playerObj
-    st.btn = nil
-    if not p then return end
-    local s = stripState(win)
-    local pad = T.sp.sm
-    local infoH = h - M.bandH()
-    if infoH > 0 then
-        A.surfaceFill(panel, x, y, w, infoH, "surf2")
-        A.drawDividerH(panel, x, y, w, true)
-        if s.pct then
-            -- the busy bar: the standard framed strip
-            A.drawSmoothBar(panel, x + pad, y + math.floor((infoH - T.fillBarH) / 2), w - pad * 2, s.pct, false, T.accent)   -- (a timed action: smooth)
-        elseif s.info then
-            local tx = x + pad
-            local ty = y + math.floor((infoH - F(2)) / 2)
-            local tc = s.needs and T.text or T.textDim
-            if s.needs then
-                local sq = T.px(6)
-                A.drawStatusHollow(panel, tx, ty + math.floor((F(2) - sq) / 2), T.textDim, sq)
-                tx = tx + sq + T.px(6)
-            end
-            panel:drawText(A.truncateText(s.info, T.fontF2, x + w - pad - tx), tx, ty, tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
-        end
-    end
-    local hdr, out = M.drawBand(panel, x, y + infoH, w, {
-        status = { text = s.text or "", color = s.color },
-        buttons = { { label = s.label, variant = s.stop and "default" or "primary", disabled = not s.canDo,
-                      focus = s.stop and focusOf(win, "hb:do") or nil, help = s.help, id = "do" } },
-        win = win, noLine = infoH > 0,
-    })
-    local b = out.buttons[1]
-    if b then st.btn = { x = b.x, y = b.y, w = b.w, h = b.h, on = s.canDo, stop = s.stop and true or false } end
 end
 
 -- ---------------------------------------------------------------------------
@@ -1473,7 +1510,7 @@ function HB.onClick(win, x, y)
     return false
 end
 
--- the controller's stops: the Hair | Beard switch, each row, the folded row
+-- the controller's stops: the Hair | Beard switch, Cut (Stop while it runs), each row, the folded row
 -- (as laid out this frame; rows scrolled out of view keep their place for the cone)
 function HB.focusables(win)
     local st = win._hb
@@ -1493,11 +1530,25 @@ function HB.focusables(win)
                     return false
                 end,
                 onActivate = function(w) if not st.female then HB.setPart(w, st.part == "hair" and "beard" or "hair") end end }
+        elseif it.kind == "cut" then
+            -- Cut / Stop: A does what the button does (the picked row; Stop while the cut runs)
+            e = { id = "hb:do",
+                onActivate = function(w)
+                    local s = stripState(w)
+                    if s.stop then HB.stop(w) elseif s.canDo then HB.run(w) end
+                end }
         elseif it.kind == "row" then
             local key = it.row.key
             e = { id = "hb:row:" .. key,
                 onFocus = function() st.sel = key; st.done = nil end,
-                onActivate = function(w) st.sel = key; HB.run(w, key) end }
+                onActivate = function(w)
+                    st.sel = key
+                    -- a cut begun from a row: focus goes to Cut (Stop while it runs), where it stays after
+                    if HB.run(w, key) then
+                        local Fo = ZeD.Input and ZeD.Input.Focus
+                        if Fo and Fo.focusByIdSoon then Fo.focusByIdSoon(w, "charTabContent", "hb:do") end
+                    end
+                end }
         elseif it.kind == "more" then
             local key = it.key
             e = { id = "hb:more", onActivate = function() DS.toggle(key) end }
@@ -1507,11 +1558,6 @@ function HB.focusables(win)
             e.onFocus = e.onFocus or function() end
             out[#out + 1] = e
         end
-    end
-    -- the foot's Stop while a cut runs
-    if st.busy and st.btn then
-        out[#out + 1] = { id = "hb:do", x = st.btn.x, y = st.btn.y, w = st.btn.w, h = st.btn.h, onFocus = function() end,
-                          onActivate = function(w) HB.stop(w) end }
     end
     return out
 end

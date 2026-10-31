@@ -1,9 +1,10 @@
 -- ZeD-UI/42/media/lua/client/ZeD/JournalTab.lua
 -- ============================================================================
--- JOURNAL TAB — 4 sub-tabs inside the drawer.
---   [Journal | Notebooks | Papers | Recipes]
---   Journal:   survival logbook + BBS-style diary (full width); Save can also
---              write the entry into a carried notebook (Into)
+-- JOURNAL TAB — five pages inside the drawer, picked from the header's Page
+-- pop-up ("Page: Journal"; the search at its right). Each page's own controls
+-- sit in a band at its foot (Oct 30 2026, punch list 21); Notebooks has none.
+--   Journal:   survival logbook + BBS-style diary (full width); Save (the band)
+--              can also write the entry into a carried notebook (Into)
 --   Notebooks: carried notebooks, the page small, a quick note (ZeD_JournalReaders)
 --   Papers:    carried newspapers, flyers, brochures; quick look (ZeD_JournalReaders)
 --   Recipes:   all learnable recipes grouped by skill, status dots, expandable
@@ -94,7 +95,7 @@ local WEAPON_CAT_ORDER = {
 }
 
 local ENTRY_INPUT_H = 48  -- 3-line text entry height
-local TAB_TOP_PAD   = 13  -- aligns tab strip bottom with inventory column header
+local _saveBandSpec = {}  -- the Journal page's band (its Save is the window's button, placed over it)
 
 local wrapText = ZeD.Atoms.wrapText
 
@@ -104,9 +105,9 @@ local RCELL_GAP  = 3
 
 local truncText = ZeD.Atoms.truncateText
 
--- Sub-tab definitions
+-- The pages (sub-tabs until Oct 30 2026; now the header's Page pop-up)
 -- (Oct 16 2026, mockup zed_reader_v2: Flyers became Papers, Notebooks added; the
--- Character window reads these by index: 1 Journal, 2 Notebooks, 3 Papers, 4 Recipes)
+-- Character window reads these by index (win._journalSubTab): 1 Journal, 2 Notebooks, 3 Papers, 4 Recipes)
 local SUB_TABS = {
     { id = "journal",   key = "UI_ZeD_Journal_TabJournal" },
     { id = "notebooks", key = "UI_ZeD_Journal_TabNotebooks" },
@@ -115,7 +116,7 @@ local SUB_TABS = {
     -- Oct 29 2026 (loadouts B2): on the end, so 1 to 4 keep their numbers
     { id = "loadouts",  key = "UI_ZeD_Journal_TabLoadouts" },
 }
--- Loadouts is in the strip only while Loadouts and outfits is on (Settings.lua; director, Oct 30 2026)
+-- Loadouts is in the Page list only while Loadouts and outfits is on (Settings.lua; director, Oct 30 2026)
 local function subTabShown(tab)
     return tab.id ~= "loadouts" or (ZeD.Lists ~= nil and ZeD.Lists.on())
 end
@@ -552,85 +553,6 @@ function ZeD.JournalTab._measureRecipeContent(recipeData, expandedMap, contentW)
 end
 
 -- ============================================================================
--- SUB-TAB STRIP — the library's one sub-tab strip (ZeD.Molecules.drawTab)
--- ============================================================================
-
---- Draw the sub-tab strip at the top of the journal drawer.
--- Stores hit zones on win._journalSubTabZones for click detection.
--- Positions the active search field (if any) to the right of the tabs.
--- @return tabStripH  Total height of the strip (T.tabH)
-local function drawSubTabStrip(panel, win, x, y, w)
-    local T    = ZeD.T
-    local A    = ZeD.Atoms
-    local M    = ZeD.Molecules
-    local tH   = T.tabH
-    local gap  = T.sp.tabGap
-    local tm   = ZeD.TM
-    local activeIdx = win._journalSubTab or 1
-    local font = T.fontF2
-
-    -- The structure line under the strip (separates it from the content below); an
-    -- active tab's fill runs over it, so that tab opens into the content
-    A.drawDividerH(panel, x, y + tH - T.hair, w, true)
-
-    local tabX = x + T.sp.sm
-    local zones = {}
-
-    for i, tab in ipairs(SUB_TABS) do
-        if subTabShown(tab) then
-            local tabLabel = ZeD.tr(tab.key)
-            local tw = tm:MeasureStringX(font, A.textCase(tabLabel)) + T.sp.tabPadX * 2
-            local hovered = A.mouseIn(panel, tabX, y, tw, tH)
-            if hovered and i ~= activeIdx then help(win, ZeD.tr("UI_ZeD_Journal_HelpSubTab", tabLabel)) end
-            M.drawTab(panel, tabX, y, tabLabel, i == activeIdx, hovered, false,
-                { font = font, focus = focusOf(win, "jsub:" .. tostring(i)) })
-            zones[#zones + 1] = { idx = i, x = tabX, y = y, w = tw, h = tH }
-            tabX = tabX + tw + gap
-        end
-    end
-
-    -- Position active search field to the right of the tabs
-    local searchField = nil
-    if activeIdx == 1 then searchField = win._journalSearch
-    elseif activeIdx == 2 or activeIdx == 3 then
-        -- Notebooks and Papers share one search box (cleared on a sub-tab switch)
-        if ZeD.JournalReaders.searchVisible(win, activeIdx) and win._flyerSearch then
-            searchField = win._flyerSearch
-            searchField.placeholder = ZeD.JournalReaders.searchHint(activeIdx)
-        end
-    end
-    if searchField and searchField:isVisible() then
-        local searchGap = T.sp.sm
-        local searchX = tabX + searchGap
-        local searchW = x + w - searchX - T.sp.sm
-        local searchH = T.inputH  -- matches crafting tab search height
-        if searchW > T.px(60) then
-            -- Center in the full 37px header (TAB_TOP_PAD + tH), not just tH
-            local fullHeaderH = T.px(TAB_TOP_PAD) + tH
-            local headerTopY = y - T.px(TAB_TOP_PAD)
-            searchField:setX(searchX)
-            searchField:setY(headerTopY + math.floor((fullHeaderH - searchH) / 2))
-            searchField:setWidth(searchW)
-            searchField:setHeight(searchH)
-        else
-            -- The tabs leave no room (long words): the search gets its own row under
-            -- the strip, full width, and the content below moves down by that row.
-            local rowPad = T.sp.sm
-            local rowW = w - rowPad * 2
-            if rowW < T.px(60) then rowW = T.px(60) end
-            searchField:setX(x + rowPad)
-            searchField:setY(y + tH + rowPad)
-            searchField:setWidth(rowW)
-            searchField:setHeight(searchH)
-            tH = tH + searchH + rowPad * 2
-        end
-    end
-
-    win._journalSubTabZones = zones
-    return tH
-end
-
--- ============================================================================
 -- RENDERER — JOURNAL SUB-TAB (full-width diary)
 -- ============================================================================
 
@@ -639,7 +561,11 @@ local function renderJournal(panel, win, x, y, w, h)
     local A    = ZeD.Atoms
     local M    = ZeD.Molecules
 
-    -- Search field positioned by drawSubTabStrip (in header, right of tabs)
+    -- Search field positioned by the Journal's header (drawHeader, right of the Page pop-up).
+    -- The page's band at its foot (Save; the delete question takes its place, Oct 30 2026):
+    -- the log scrolls above it.
+    local bandH = M.bandH()
+    h = h - bandH
 
     -- S105 gamepad: resolve the currently-focused element id for cue paints
     -- (all element types on this sub-tab share charTabContent; live element
@@ -686,8 +612,10 @@ local function renderJournal(panel, win, x, y, w, h)
         local killRows = 3 + #data.weaponCats
         zoneAEstH = zoneAEstH + killRows * (statRowEstH + T.sp.rowGap)
     end
+    -- the write box, then Into (a carried notebook) on its own row when there is one
+    local intoShown = ZeD.JournalReaders.intoShown(win)
     zoneAEstH = zoneAEstH + T.sp.xs + T.px(1) + T.sp.afterGroove
-        + T.px(ENTRY_INPUT_H) + T.sp.xs + T.buttonH + T.sp.sm + T.px(1) + T.sp.afterLine
+        + T.px(ENTRY_INPUT_H) + T.sp.xs + (intoShown and (T.buttonH + T.sp.sm) or 0) + T.px(1) + T.sp.afterLine
 
     local entryGroups = journalGroups(win, data.journalEntries, win._journalSearchText or "")
     local entryContentH = ZeD.JournalTab._measureJournalContent(data, contentW - scrollW - T.px(2), win._journalGroupCollapsed, entryGroups)
@@ -712,10 +640,9 @@ local function renderJournal(panel, win, x, y, w, h)
     -- this frame's zones aren't stamped yet. One-frame lag: imperceptible.
     if needsScroll and gpFocusedId and gpFocusedId ~= win._lastPinnedJournalId then
         local ty, th = nil, nil
+        -- (Save is in the band, which does not scroll)
         if gpFocusedId == "journal:__kills" and win._journalKillsZone then
             ty, th = win._journalKillsZone.y, win._journalKillsZone.h
-        elseif gpFocusedId == "journal:__save" and win._journalSaveBtnZone then
-            ty, th = win._journalSaveBtnZone.y, win._journalSaveBtnZone.h
         elseif win._journalGroupZones then
             for _, z in ipairs(win._journalGroupZones) do
                 if ("journal:group:" .. tostring(z.id)) == gpFocusedId then
@@ -798,9 +725,8 @@ local function renderJournal(panel, win, x, y, w, h)
     A.drawDividerH(panel, x, curY, drawW)
     curY = curY + T.px(1) + T.sp.afterGroove
 
-    -- Text entry + save button (positioned on the drawer panel — they are drawer children)
+    -- Text entry (positioned on the drawer panel — a drawer child); Save is in the band
     local entryBox = win._journalInput
-    local saveBtn  = win._journalSaveBtn
     if entryBox then
         entryBox:setX(x)
         entryBox:setY(curY)
@@ -808,19 +734,10 @@ local function renderJournal(panel, win, x, y, w, h)
         entryBox:setHeight(T.px(ENTRY_INPUT_H))
         curY = curY + T.px(ENTRY_INPUT_H) + T.sp.xs
     end
-    if saveBtn then
-        local btnW = saveBtn:getWidth()
-        local btnX = x + drawW - btnW
-        saveBtn:setX(btnX)
-        saveBtn:setY(curY)
-        -- Into: the log only, or a carried notebook the character writes it in too
-        ZeD.JournalReaders.drawLogInto(panel, win, x, curY, drawW - btnW - T.sp.sm, T.buttonH)
-        -- S105 gamepad: stamp the save button's hit zone and mark it BEHIND the button's
-        -- own render (the button is a drawer child, drawn after this panel, and
-        -- transparent, so the mark shows through).
-        win._journalSaveBtnZone = { x = btnX, y = curY, w = btnW, h = T.buttonH }
-        local saveFocus = focusOf(win, "journal:__save")
-        if saveFocus then ZeD.Focus.mark(panel, btnX, curY, btnW, T.buttonH, saveFocus) end
+    if intoShown then
+        -- Into: the log only, or a carried notebook the character writes it in too (it stays
+        -- with the write box)
+        ZeD.JournalReaders.drawLogInto(panel, win, x, curY, drawW, T.buttonH)
         curY = curY + T.buttonH + T.sp.sm
     end
 
@@ -934,25 +851,37 @@ local function renderJournal(panel, win, x, y, w, h)
         scroll:draw(panel)
     end
 
-    -- The question before a delete: a band at the foot of the pane (Cancel and Delete).
-    -- What the band covers takes no clicks from the list under it.
+    -- The band at the page's foot, under the log: Save at the right (the window's button, a
+    -- drawer child, placed here). The question before a delete takes its place (Cancel and
+    -- Delete) and Save hides while it asks.
     local ask = win._journalAsk
+    local by = y + h
+    local saveBtn = win._journalSaveBtn
     win._journalAskRects = nil
+    win._journalSaveBtnZone = nil
+    local br = win._journalBandRect or {}
+    win._journalBandRect = br
+    br.x, br.y, br.w, br.h = outerX, by, outerW, bandH
     if ask then
-        local by = y + h - M.bandH()
+        if saveBtn then saveBtn:setVisible(false) end
         local _, cancel, verb = M.drawQuestionBand(panel, outerX, by, outerW, ZeD.tr("UI_ZeD_Journal_AskDelete"),
             ZeD.tr("UI_ZeD_Journal_Delete"), { danger = true, win = win,
                 cancelFocus = focusOf(win, "journal:ask:cancel"), verbFocus = focusOf(win, "journal:ask:verb") })
-        win._journalAskRects = { cancel = cancel, verb = verb, band = { x = outerX, y = by, w = outerW, h = M.bandH() } }
-        local function clear(zs)
-            local out = {}
-            for _, z in ipairs(zs) do
-                if z.y + z.h <= by or z.y >= by + M.bandH() then out[#out + 1] = z end
-            end
-            return out
+        win._journalAskRects = { cancel = cancel, verb = verb, band = { x = outerX, y = by, w = outerW, h = bandH } }
+    else
+        _saveBandSpec.win = win
+        M.drawBand(panel, outerX, by, outerW, _saveBandSpec)
+        if saveBtn then
+            local btnW, btnH = saveBtn:getWidth(), T.buttonH
+            local btnX, btnY = outerX + outerW - T.px(8) - btnW, by + T.px(5)
+            if saveBtn:getX() ~= btnX or saveBtn:getY() ~= btnY then saveBtn:setX(btnX); saveBtn:setY(btnY) end
+            -- S105 gamepad: stamp the save button's hit zone and mark it BEHIND the button's
+            -- own render (the button is a drawer child, drawn after this panel, and
+            -- transparent, so the mark shows through).
+            win._journalSaveBtnZone = { x = btnX, y = btnY, w = btnW, h = btnH }
+            local saveFocus = focusOf(win, "journal:__save")
+            if saveFocus then ZeD.Focus.mark(panel, btnX, btnY, btnW, btnH, saveFocus) end
         end
-        win._journalGroupZones  = clear(groupZones)
-        win._journalDeleteZones = clear(deleteZones)
     end
 end
 
@@ -1115,38 +1044,312 @@ function ZeD.JournalTab.onRecipeMouseWheel(win, del, x, y)
 end
 
 -- ============================================================================
--- MAIN RENDERER — sub-tab dispatch
+-- THE HEADER STRIP (Oct 30 2026, punch list 21: one row, the standard height):
+-- the page as a System 7 pop-up menu at the left ("Page: Journal"), the page's
+-- search at the right. The pages were sub-tabs in a strip; the Page list opens
+-- under the box, drawn last over the page.
+-- ============================================================================
+
+local PAGE_MODES = {}   -- the Page list's choices {id = page index, label}: reused, labels refreshed
+local _pageMenuOpts = {}
+
+-- the pages the list offers (Loadouts only while Loadouts and outfits is on)
+local function pageModes()
+    local n = 0
+    for i, tab in ipairs(SUB_TABS) do
+        if subTabShown(tab) then
+            n = n + 1
+            local m = PAGE_MODES[n] or {}
+            PAGE_MODES[n] = m
+            m.id, m.label = i, ZeD.tr(tab.key)
+        end
+    end
+    for i = #PAGE_MODES, n + 1, -1 do PAGE_MODES[i] = nil end
+    return PAGE_MODES
+end
+
+-- the Page box's width: the longest page name it can carry (the header keeps its shape
+-- whichever page is open); kept per scale, font and language
+local function pageBoxW(win)
+    local T = ZeD.T
+    local c = win._journalPageW
+    local lang = ZeD.trTestOn() and 1 or 0
+    if c and c.scale == T.scale and c.font == T.fontF1 and c.lang == lang then return c.w end
+    local w = 0
+    for _, tab in ipairs(SUB_TABS) do
+        w = math.max(w, ZeD.Molecules.popupMenuW(ZeD.tr("UI_ZeD_Journal_PagePick", ZeD.tr(tab.key))))
+    end
+    win._journalPageW = { scale = T.scale, font = T.fontF1, lang = lang, w = w }
+    return w
+end
+
+-- the controller's cues on: the pointer's hover washes stay off
+local function cuesOn()
+    local F = ZeD.Input and ZeD.Input.Focus
+    return F and F.cuesVisible and F.cuesVisible() or false
+end
+
+-- A page's own list open (Recipes: Category, Sort, Show; Papers: Show; Loadouts: the
+-- filter): its rows alone are the controller's stops.
+function ZeD.JournalTab.pageListOpen(win)
+    local sub = win and win._journalSubTab or 1
+    if sub == 4 then
+        -- (as CraftingCore's builder: a list once it has drawn its rows)
+        local s = win._jrecipeState
+        return s and ((s.catDropdownOpen and s._ddGeo) or (s.sortMenuOpen and s._sortMenuZones)
+            or (s.showMenuOpen and s._showMenuZones)) and true or false
+    elseif sub == 3 then
+        return ZeD.JournalReaders.listOpen(win)
+    elseif sub == 5 and ZeD.JournalLists then
+        return ZeD.JournalLists.listOpen(win)
+    end
+    return false
+end
+
+-- shut every page's own list (the Page list opening over them)
+local function shutPageLists(win)
+    local s = win._jrecipeState
+    if s then s.catDropdownOpen, s.sortMenuOpen, s.showMenuOpen = false, false, false end
+    ZeD.JournalReaders.shutList(win)
+    if ZeD.JournalLists then ZeD.JournalLists.shutList(win) end
+end
+
+--- Open a page of the Journal (1 Journal, 2 Notebooks, 3 Papers, 4 Recipes, 5 Loadouts):
+-- the search fields clear, so a stale filter does not follow to another page.
+function ZeD.JournalTab.setPage(win, idx)
+    if not (win and SUB_TABS[idx]) or win._journalSubTab == idx then return end
+    win._journalSubTab = idx
+    if win._journalSearch then win._journalSearch:clear() end
+    if win._jrecipeSearch then win._jrecipeSearch:clear() end
+    if win._flyerSearch   then win._flyerSearch:clear() end
+    win._journalSearchText = ""
+    win._flyerSearchText   = ""
+    if win._jrecipeState then
+        win._jrecipeState.search = ""
+        win._jrecipeState.filterDirty = true
+    end
+end
+
+local function openPageMenu(win)
+    shutPageLists(win)
+    win._journalPageOpen = true
+end
+
+-- shut the Page list; the controller goes back to the box
+local function closePageMenu(win)
+    win._journalPageOpen = nil
+    win._journalPageZones = nil
+    win._journalPageReturn = true
+end
+
+-- The page's search field at (x, y, w, h); a page whose list has no search right now
+-- (a paper's quick look) shows the box greyed.
+local function placeSearch(panel, win, page, x, y, w, h)
+    local f = nil
+    if page == 1 then f = win._journalSearch
+    elseif page == 2 or page == 3 then
+        if ZeD.JournalReaders.searchVisible(win, page) then
+            f = win._flyerSearch
+            if f then f.placeholder = ZeD.JournalReaders.searchHint(page) end
+        end
+    elseif page == 4 then
+        ZeD.CraftingCore.placeSearch(win, _jrecipeConfig, getJRecipeState(win), x, y, w, h)
+        return
+    elseif page == 5 and ZeD.JournalLists then
+        ZeD.JournalLists.placeSearch(win, x, y, w, h)
+        return
+    end
+    if f then
+        if f:getX() ~= x or f:getY() ~= y then f:setX(x); f:setY(y) end
+        if f:getWidth() ~= w or f:getHeight() ~= h then f:setWidth(w); f:setHeight(h) end
+        return
+    end
+    -- greyed: the frame and the page's search words, dim
+    local T, A = ZeD.T, ZeD.Atoms
+    local da = T.disabledAlpha
+    A.frame(panel, x, y, w, h, T.borderS, da)
+    local font = T.fontF2
+    local tc = T.textDim
+    local s = truncText(ZeD.JournalReaders.searchHint(page), font, math.max(0, w - T.sp.inputPadX * 2))
+    panel:drawText(s, x + T.sp.inputPadX, y + math.floor((h - ZeD.TM:getFontHeight(font)) / 2), tc.r, tc.g, tc.b, (tc.a or 1) * da, font)
+end
+
+-- The header strip; returns its height.
+local function drawHeader(panel, win, x, y, w)
+    local T, A, M = ZeD.T, ZeD.Atoms, ZeD.Molecules
+    local headerH = M.getTabHeaderH()
+    local pad, gap = T.px(6), T.px(6)
+    local ih = T.inputH
+    local rowY = y + math.floor((headerH - ih) / 2)
+    local cur = win._journalSubTab or 1
+    local open = win._journalPageOpen == true
+    -- Page: the pop-up box at the left
+    local bw = math.min(pageBoxW(win), math.floor((w - pad * 2 - gap) * 0.5))
+    local bx = x + pad
+    local hov = (not open) and (not cuesOn()) and A.mouseIn(panel, bx, rowY, bw, ih)
+    if hov then help(win, ZeD.tr("UI_ZeD_Journal_HelpPage")) end
+    M.drawPopupMenu(panel, bx, rowY, bw, ih, ZeD.tr("UI_ZeD_Journal_PagePick", ZeD.tr(SUB_TABS[cur].key)),
+        hov or open, focusOf(win, "jpage"), false)
+    local box = win._journalPageBox or {}
+    win._journalPageBox = box
+    box.x, box.y, box.w, box.h = bx, rowY, bw, ih
+    local hr = win._journalHeaderRect or {}
+    win._journalHeaderRect = hr
+    hr.x, hr.y, hr.w, hr.h = x, y, w, headerH
+    -- the page's search at the right
+    local sx = bx + bw + gap
+    placeSearch(panel, win, cur, sx, rowY, x + w - pad - sx, ih)
+    -- Bottom rule on header row
+    A.drawDividerH(panel, x, y + headerH - T.px(1), w, true)
+    return headerH
+end
+
+-- the drawer's children a rect covers (the Page list over the page) hide for the frame:
+-- a child panel paints after the drawer, over the list
+local function hideUnder(win, rx, ry, rw, rh)
+    for _, c in ipairs({ win._journalInput, win._jrNote, win._journalSaveBtn }) do
+        if c and c:isVisible() and c:getX() < rx + rw and c:getX() + c:getWidth() > rx
+           and c:getY() < ry + rh and c:getY() + c:getHeight() > ry then
+            c:setVisible(false)
+        end
+    end
+end
+
+-- The Page list, open: drawn last, under its box. The page the controller is on carries the
+-- mark; its row zones take the click and make the controller's stops.
+local function drawPageMenu(panel, win)
+    local box = win._journalPageBox
+    if not (win._journalPageOpen and box) then return end
+    local M = ZeD.Molecules
+    local modes = pageModes()
+    local hoverId = nil
+    if not cuesOn() then
+        local mx, my = panel:getMouseX(), panel:getMouseY()
+        for _, z in ipairs(win._journalPageZones or {}) do
+            if mx >= z.x and mx < z.x + z.w and my >= z.y and my < z.y + z.h then hoverId = z.id; break end
+        end
+    end
+    local mo = _pageMenuOpts
+    mo.minW, mo.focusId, mo.focus = box.w, nil, nil
+    for _, m in ipairs(modes) do
+        local f = focusOf(win, "jpage:" .. tostring(m.id))
+        if f then mo.focusId, mo.focus = m.id, f; break end
+    end
+    local lw, lh, zs = M.drawSortMenuList(panel, box.x, box.y + box.h, modes, win._journalSubTab or 1, hoverId, mo)
+    win._journalPageZones = zs
+    hideUnder(win, box.x, box.y + box.h, lw, lh)
+end
+
+local function inside(r, x, y) return r and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h end
+
+--- A click on the header: the Page box opens its list; the open list takes every click
+-- (a page, or shut). The rest of the strip takes its clicks too (nothing under it), and
+-- so does the Journal page's band: its question's answers, else nothing (Save is the
+-- window's own button; the log's rows scrolled out of view lie under the band).
+-- True when it took the click.
+function ZeD.JournalTab.onHeaderClick(win, x, y)
+    if not win then return false end
+    if win._journalPageOpen then
+        for _, z in ipairs(win._journalPageZones or {}) do
+            if inside(z, x, y) then
+                ZeD.JournalTab.setPage(win, z.id)
+                break
+            end
+        end
+        closePageMenu(win)
+        return true
+    end
+    -- a page's own list open (it may hang over the header): the page takes the click
+    local s = win._jrecipeState
+    local sub = win._journalSubTab or 1
+    if (sub == 4 and s and (s.catDropdownOpen or s.sortMenuOpen or s.showMenuOpen))
+       or (sub ~= 4 and ZeD.JournalTab.pageListOpen(win)) then
+        return false
+    end
+    if inside(win._journalPageBox, x, y) then
+        openPageMenu(win)
+        return true
+    end
+    if inside(win._journalHeaderRect, x, y) then return true end
+    if (win._journalSubTab or 1) == 1 and inside(win._journalBandRect, x, y) then
+        ZeD.JournalTab.onAskClick(win, x, y)
+        return true
+    end
+    return false
+end
+
+--- The header's controller stops: the Page box (id "jpage"); while its list is open, the
+-- list's rows alone ("jpage:<index>", the open page first; B shuts it). Back from the
+-- list, the focus lands on the box (_focusIdx).
+function ZeD.JournalTab.headerFocusables(win)
+    local out = {}
+    if not win then return out end
+    -- (the list's rows once it has drawn them; the box until then)
+    if win._journalPageOpen and win._journalPageZones then
+        for i, z in ipairs(win._journalPageZones) do
+            out[#out + 1] = {
+                x = z.x, y = z.y, w = z.w, h = z.h,
+                id = "jpage:" .. tostring(z.id),
+                journalKind = "pageRow",
+                page = z.id,
+                onFocus = function(w, el) end,
+                onActivate = function(w, el)
+                    ZeD.JournalTab.setPage(w, el.page)
+                    closePageMenu(w)
+                end,
+                onCancel = function(w, el) closePageMenu(w) end,
+            }
+            if z.id == (win._journalSubTab or 1) then out._focusIdx = i end
+        end
+        return out
+    end
+    local b = win._journalPageBox
+    if b then
+        out[1] = {
+            x = b.x, y = b.y, w = b.w, h = b.h,
+            id = "jpage",
+            journalKind = "page",
+            onFocus = function(w, el) end,
+            onActivate = function(w, el) openPageMenu(w) end,
+        }
+        if win._journalPageReturn then
+            out._focusIdx = 1
+            win._journalPageReturn = nil
+        end
+    end
+    return out
+end
+
+--- The Page list open (its rows alone hold the controller).
+function ZeD.JournalTab.pageMenuOpen(win)
+    return (win and win._journalPageOpen == true and win._journalPageZones ~= nil) or false
+end
+-- ============================================================================
+-- MAIN RENDERER — the header strip, then the open page
 -- ============================================================================
 
 function ZeD.JournalTab.render(panel, win, x, y, w, h)
-    local T = ZeD.T
-    -- Initialize sub-tab state if needed
-    if not win._journalSubTab then
+    -- Initialize the page if needed
+    if not (win._journalSubTab and SUB_TABS[win._journalSubTab]) then
         win._journalSubTab = 1
     end
     -- a page switched off while it was open (Loadouts): back to the log
-    if SUB_TABS[win._journalSubTab] and not subTabShown(SUB_TABS[win._journalSubTab]) then
+    if not subTabShown(SUB_TABS[win._journalSubTab]) then
         win._journalSubTab = 1
     end
     -- a delete question belongs to the log: it goes when the player leaves it
     if win._journalSubTab ~= 1 then win._journalAsk = nil; win._journalAskRects = nil end
 
-    -- Top padding: intentional 13px override (aligns sub-tab strip bottom with inventory column header)
-    -- TAB_TOP_PAD = 13 kept — M.getTabPadTop() = 8 is too small for this alignment
-    y = y + T.px(TAB_TOP_PAD)
-    h = h - T.px(TAB_TOP_PAD)
-
     -- the Papers / Notebooks / Into hit zones start empty each frame
     ZeD.JournalReaders.beginFrame(win)
+    if win._journalSubTab ~= 1 then win._journalBandRect = nil end
 
-    -- Draw sub-tab strip at top
-    local tabStripH = drawSubTabStrip(panel, win, x, y, w)
+    -- The header strip (Page, the search); the page under it, its band at its foot
+    local headerH = drawHeader(panel, win, x, y, w)
+    local contentY = y + headerH
+    local contentH = h - headerH
 
-    -- Content area below the strip
-    local contentY = y + tabStripH
-    local contentH = h - tabStripH
-
-    -- Route to active sub-tab renderer (1 Journal, 2 Notebooks, 3 Papers, 4 Recipes)
+    -- Route to the open page (1 Journal, 2 Notebooks, 3 Papers, 4 Recipes, 5 Loadouts)
     local activeIdx = win._journalSubTab
     if activeIdx == 1 then
         renderJournal(panel, win, x, contentY, w, contentH)
@@ -1159,6 +1362,9 @@ function ZeD.JournalTab.render(panel, win, x, y, w, h)
     elseif activeIdx == 5 and ZeD.JournalLists then
         ZeD.JournalLists.render(panel, win, x, contentY, w, contentH)
     end
+
+    -- the Page list, open: last, over the page
+    drawPageMenu(panel, win)
 end
 
 -- ============================================================================

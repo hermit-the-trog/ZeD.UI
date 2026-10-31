@@ -283,10 +283,10 @@ local function _togglePin(pins, id)
 end
 
 -- ============================================================================
--- SURVEY / COLOR / PAPER — System 7 radio buttons on the toolbar where they
--- fit; else a pop-up menu (the World window's drawer), whose list opens under
--- its box over the map. These open and shut that list, and take a click while
--- it is open.
+-- SURVEY / COLOR / PAPER — System 7 radio buttons on the card's band (its
+-- left; Oct 30 2026) where they fit; else a pop-up menu, whose list opens up
+-- from its box over the map. These open and shut that list, and take a click
+-- while it is open.
 -- ============================================================================
 
 local STYLE_ORDER = { "survey", "color", "paper" }
@@ -1012,7 +1012,7 @@ local FOCUS = {}
 
 -- Survey / Color / Paper's open list: the library's pop-up list (the sort menu's,
 -- Molecules.drawSortMenuList: solid, framed, the hard shadow, the current choice
--- selected), hung from the box the toolbar drew (win._mapStyleMenuGeo, tab
+-- selected), standing on the box the band drew (win._mapStyleMenuGeo, tab
 -- coordinates). Drawn on `target`, whose top-left is at (ox, oy) in the tab: the
 -- map, after everything on it, so the list lies over the map and its pieces.
 -- Its rows are kept, in the tab's coordinates, for the press and the controller.
@@ -1143,8 +1143,10 @@ end
 -- Built from the library: icon buttons for the marks, the note and the unfold
 -- (the hover wash, a hint with the name, help words, the solid active look for
 -- the tool in hand), the inks as swatches with the same hover and controller
--- mark, and Survey / Color / Paper as System 7 radio buttons, or a pop-up menu
--- where they do not fit (the World window's drawer). A mark or ink the character
+-- mark. Since Oct 30 2026 (director, punch list 21) the toolbar is the card's
+-- header strip, one standard row: the fold arrow, the six stamps, Aa, the inks,
+-- full view at the far right; Survey / Color / Paper (System 7 radio buttons, or
+-- a pop-up menu where they do not fit) are the band's (THE BAND). A mark or ink the character
 -- lacks the pen for takes the library's disabled look: the help line gives
 -- vanilla's reason, and a press still says it over the character's head.
 
@@ -1287,7 +1289,8 @@ local function _styleBox(panel, win, bx, by, bw, bh, label, focId, hov)
     A.drawTriangleDown(panel, bx + bw - pad - tri, by + math.floor((bh - tri) / 2), tri, onFocus and T.textOnFocus or T.textDim)
     A.frame(panel, bx, by, bw, bh, T.borderS)
     win._mapStyleMenuZone = { x = bx, y = by, w = bw, h = bh }
-    win._mapStyleMenuGeo = { x = bx, y = by + bh, w = bw }
+    -- the box sits in the band at the card's foot: its list opens upward, over the map
+    win._mapStyleMenuGeo = { x = bx, y = by - ZeD.Molecules.popupListH(#STYLE_ORDER), w = bw }
 end
 
 -- the pop-up menu box's width (screen px): the widest of the three words in the box
@@ -1300,10 +1303,11 @@ local function _styleBoxW()
     return widest + T.px(6) * 2 + T.px(5) + T.px(4)
 end
 
--- Survey / Color / Paper, right-aligned so it ends at rightX and starts no
--- earlier than minX: the radio buttons when they fit, else the pop-up menu's
--- box, else nothing. Only when the base map carries its illustration.
-local function _styleChoice(panel, win, minX, rightX, by, bs, focId, hov)
+-- Survey / Color / Paper on the band's left (director, Oct 30 2026), from
+-- leftX and ending no later than maxX: the radio buttons when they fit, else
+-- the pop-up menu's box, else nothing. Only when the base map carries its
+-- illustration.
+local function _styleChoice(panel, win, leftX, maxX, by, bs, focId, hov)
     win._mapStyleZones = {}
     win._mapStyleMenuZone, win._mapStyleMenuGeo = nil, nil
     if not ZeD.MapsTab.hasPaper() then win._mapStyleMenuOpen = nil; return end
@@ -1312,15 +1316,14 @@ local function _styleChoice(panel, win, minX, rightX, by, bs, focId, hov)
     local mp = win._worldMapPanel
     local cur = mp and mp.style or "survey"
     local rs = A.radioSize()
-    local total, widest = 0, 0
+    local total = 0
     for i, id in ipairs(STYLE_ORDER) do
         local tw = tm:MeasureStringX(f1, ZeD.tr(STYLE_WORD[id]))
-        widest = math.max(widest, tw)
         total = total + rs + T.px(RADIO_GAP) + tw + ((i > 1) and T.px(CHOICE_GAP) or 0)
     end
-    if rightX - total >= minX then
+    if leftX + total <= maxX then
         win._mapStyleMenuOpen = nil
-        local cx = rightX - total
+        local cx = leftX
         local ty = by + math.floor((bs - tm:getFontHeight(f1)) / 2)
         for _, id in ipairs(STYLE_ORDER) do
             local word = ZeD.tr(STYLE_WORD[id])
@@ -1339,8 +1342,8 @@ local function _styleChoice(panel, win, minX, rightX, by, bs, focId, hov)
         return
     end
     local bw = _styleBoxW()
-    if rightX - bw < minX then win._mapStyleMenuOpen = nil; return end
-    _styleBox(panel, win, rightX - bw, by, bw, bs, ZeD.tr(STYLE_WORD[cur] or STYLE_WORD.survey), focId, hov)
+    if leftX + bw > maxX then win._mapStyleMenuOpen = nil; return end
+    _styleBox(panel, win, leftX, by, bw, bs, ZeD.tr(STYLE_WORD[cur] or STYLE_WORD.survey), focId, hov)
 end
 
 -- The full set of marks under row one (the disclosure open), on surface 1 with
@@ -1410,29 +1413,12 @@ local function renderMapToolbar(panel, win, x, y, w)
         curX = curX + colSz + btnGap
     end
 
-    -- right end: the unfold button, and Survey / Color / Paper before it
+    -- right end: the unfold button (full view). Nothing else on the header strip
+    -- (director, Oct 30 2026): Survey / Color / Paper, the key and the list are
+    -- the band's (renderMapBand); the second toolbar row they took is gone.
     local ux = x + w - T.px(4) - bs
     _unfoldButton(panel, win, ux, by, bs, focId, hov)
-
-    -- the extensions' buttons (the map key; mods' tools), then the list button. The drawer is the full card
-    -- and no wider (director, Oct 29 2026): where they and Survey / Color / Paper do not fit beside the
-    -- inks, they take a row of their own under them, with the choice at its right end
-    local extW = Ext.buttonsW(win, panel)
-    local styleW = ZeD.MapsTab.hasPaper() and _styleBoxW() or 0
-    local ownRow = extW > 0 and curX + btnGap + extW + styleW + btnGap * 3 > ux
     local totalH = rowH
-    if ownRow then
-        local y2 = y + rowH
-        ZeD.Atoms.surfaceFill(panel, x, y2, w, rowH, "surf2")
-        ZeD.Atoms.drawDividerH(panel, x, y2, w, false)
-        local by2 = y2 + math.floor((rowH - bs) / 2)
-        local ex = Ext.drawButtons(panel, win, x + T.px(4), by2, bs, focId, true)
-        _styleChoice(panel, win, ex + btnGap, x + w - T.px(4), by2, bs, focId, hov)
-        totalH = totalH + rowH
-    else
-        curX = Ext.drawButtons(panel, win, curX + btnGap, by, bs, focId)
-        _styleChoice(panel, win, curX + btnGap, ux - btnGap * 3, by, bs, focId, hov)
-    end
 
     if win._mapToolsExpanded then
         totalH = totalH + _markGrid(panel, win, x, y + totalH, w, pins, markWhy, focId, hov)
@@ -1464,6 +1450,48 @@ local function renderMapToolbar(panel, win, x, y, w)
     end
 
     return totalH
+end
+
+-- ============================================================================
+-- THE BAND (director, Oct 30 2026; punch list 21)
+-- ============================================================================
+-- The card's one band at its foot (ZeD.Molecules.drawBand): Survey / Color /
+-- Paper on the left, the extensions' buttons on the right (the map key, mods'
+-- tools, the list of players and notes last). While the side list asks its
+-- question before a delete, the question takes the band's place (as every
+-- question elsewhere). No band when there is nothing to show or do there.
+
+local _bandSpec = {}
+
+-- the height at the card's foot, w wide: the question's, the band's, or 0
+local function _bandH(panel, win, w)
+    local askH = Ext.askH(win, w)
+    if askH > 0 then return askH end
+    if ZeD.MapsTab.hasPaper() or Ext.buttonsW(win, panel, ZeD.T.buttonH, true) > 0 then
+        return ZeD.Molecules.bandH()
+    end
+    return 0
+end
+
+-- Draws the band (or the question) from y, footH tall (_bandH). The style
+-- choice's zones are this frame's (none while the question stands).
+local function renderMapBand(panel, win, x, y, w, footH, focId)
+    win._mapStyleZones = {}
+    win._mapStyleMenuZone, win._mapStyleMenuGeo = nil, nil
+    if footH <= 0 then win._mapStyleMenuOpen = nil; return end
+    if Ext.drawAsk(panel, win, x, y, w, focId) then win._mapStyleMenuOpen = nil; return end
+    local T = ZeD.T
+    ZeD.Molecules.drawBand(panel, x, y, w, _bandSpec)   -- (the band's surface and line; its controls are drawn here)
+    local bh, edge, gap = T.buttonH, T.px(8), T.px(8)
+    local by = y + T.px(5)
+    local right = x + w - edge
+    local extW = Ext.buttonsW(win, panel, bh, true)
+    if extW > 0 then
+        right = right - extW
+        Ext.drawButtons(panel, win, right, by, bh, focId, true)
+        right = right - gap
+    end
+    _styleChoice(panel, win, x + edge, right, by, bh, focId, not win._mapStyleMenuOpen)
 end
 
 -- ============================================================================
@@ -1535,9 +1563,8 @@ function ZeD.MapsTab.render(panel, win, x, y, w, h)
     if not win._mapPopout then win._mapFoldZone = nil end
 
     if _mapBlocked(panel, win, x, y, w, h) then return end
-
-    -- the toolbar's surface: one layer over the window (ZeD.Surface)
-    ZeD.Atoms.surfaceFill(panel, x, y, w, T.px(MAP_TOOLBAR_ROW_H), "surf1")
+    -- (the header strip inherits the drawer's background, as every tab's header
+    -- strip; Oct 30 2026, it was a surface of its own)
 
     -- Lazy-create inline text entry for map annotations
     if not win._mapTextEntry then
@@ -1555,9 +1582,13 @@ function ZeD.MapsTab.render(panel, win, x, y, w, h)
     -- the structure line under the toolbar, edge to edge (it meets the frame)
     ZeD.Atoms.drawDividerH(panel, x, y + toolbarH - T.line(T.borderW), w, true)
 
-    -- Map area below toolbar
+    -- the band at the card's foot (or the question in its place), the full width
+    local footH = _bandH(panel, win, w)
+    renderMapBand(panel, win, x, y + h - footH, w, footH, _liveFocusId(win))
+
+    -- Map area from the toolbar to the band
     local mapY = y + toolbarH
-    local mapH = h - toolbarH
+    local mapH = h - toolbarH - footH
     -- the side list docks at the right of the unfolded map (MapsTabExt.lua)
     local sideW = Ext.dockedSideW(win, panel)
     if sideW > 0 then
@@ -1719,11 +1750,67 @@ end
 -- FOCUSABLE BUILDER — ring elements for the World window's worldTabContent
 -- ============================================================================
 -- Called each frame from ZeD_WorldWindow's per-frame refresh when the Maps
--- tab is active. Returns elements for LB/RB/D-pad navigation across:
---   [disclosure → pinned tool icons → text tool → colors →
---    (if expanded) grid tool icons → canvas cursor]
+-- tab is active. Returns elements for LB/RB/D-pad navigation across (Oct 30
+-- 2026: header, map, band):
+--   [disclosure → pinned tool icons → text tool → colors → unfold →
+--    (if expanded) grid tool icons → the extensions' rows, key, side list →
+--    canvas cursor → Survey / Color / Paper → the band's buttons (key, list)
+--    (or, while the side list asks, Cancel and Delete)]
 -- Panel-local coordinates (content-panel-relative) — the same frame used by
 -- the mouse hit-zone tables that the render fills each frame.
+
+-- The tool buttons as stops: the header's (grid false) or the full set's
+-- (grid true). _mapToolZones is in draw order: the pinned row, the note, then
+-- (expanded) the full set; grid entries carry isGrid. Distinct ids per place
+-- keep the ring free of duplicates (a pinned mark is in both).
+local function _addToolEls(win, elements, grid)
+    for _, tz in ipairs(win._mapToolZones or {}) do
+        local isGrid = tz.isGrid == true
+        if isGrid == grid then
+            local el = {
+                x = tz.x, y = tz.y, w = tz.w, h = tz.h,
+                id = (isGrid and "map:gridtool:" or "map:tool:") .. tostring(tz.id),
+                isMapTool = true,
+                isMapGridTool = isGrid,
+                toolId = tz.id,
+                onActivate = function(w, el2)
+                    -- Re-selecting the active tool deselects; otherwise arm
+                    -- the tool. Matches mouse onClick behavior.
+                    _armTool(w, el2.toolId)
+                end,
+            }
+            if isGrid then
+                -- X = pin/unpin parity with mouse right-click on grid icons.
+                el.onContextMenu = function(w, el2)
+                    local pins = _getMapPins(w._playerObj)
+                    _togglePin(pins, el2.toolId)
+                end
+            end
+            elements[#elements + 1] = el
+        end
+    end
+end
+
+-- Survey / Color / Paper on the band: radio buttons (A takes one), or the
+-- pop-up menu's box where they do not fit (A opens its list)
+local function _addStyleEls(win, elements)
+    for _, sz in ipairs(win._mapStyleZones or {}) do
+        elements[#elements + 1] = {
+            x = sz.x, y = sz.y, w = sz.w, h = sz.h,
+            id = "map:style:" .. sz.id,
+            styleId = sz.id,
+            onActivate = function(w, el2) ZeD.MapsTab.setStyle(w, el2.styleId) end,
+        }
+    end
+    if win._mapStyleMenuZone then
+        local mz = win._mapStyleMenuZone
+        elements[#elements + 1] = {
+            x = mz.x, y = mz.y, w = mz.w, h = mz.h,
+            id = "map:style:menu",
+            onActivate = function(w, _el) _openStyleMenu(w, true) end,
+        }
+    end
+end
 
 function ZeD.MapsTab.buildFocusables(win)
     if not win then return {} end
@@ -1793,37 +1880,8 @@ function ZeD.MapsTab.buildFocusables(win)
         }
     end
 
-    -- 2. Tool icons (pinned row + grid when expanded) + text tool.
-    -- _mapToolZones is appended in draw order: pinned row, then text tool,
-    -- then (if expanded) the full grid. Grid entries carry isGrid=true so
-    -- we can wire X → pin-toggle on grid items only. Distinct IDs per
-    -- position keep the ring free of duplicates (same icon can appear in
-    -- both row and grid when pinned).
-    if win._mapToolZones then
-        for _, tz in ipairs(win._mapToolZones) do
-            local isGrid = tz.isGrid == true
-            local el = {
-                x = tz.x, y = tz.y, w = tz.w, h = tz.h,
-                id = (isGrid and "map:gridtool:" or "map:tool:") .. tostring(tz.id),
-                isMapTool = true,
-                isMapGridTool = isGrid,
-                toolId = tz.id,
-                onActivate = function(w, el2)
-                    -- Re-selecting the active tool deselects; otherwise arm
-                    -- the tool. Matches mouse onClick behavior.
-                    _armTool(w, el2.toolId)
-                end,
-            }
-            if isGrid then
-                -- X = pin/unpin parity with mouse right-click on grid icons.
-                el.onContextMenu = function(w, el2)
-                    local pins = _getMapPins(w._playerObj)
-                    _togglePin(pins, el2.toolId)
-                end
-            end
-            elements[#elements + 1] = el
-        end
-    end
+    -- 2. The header's tool icons: the pinned row, then the note (Aa).
+    _addToolEls(win, elements, false)
 
     -- 3. Color swatches.
     if win._mapColorZones then
@@ -1840,26 +1898,7 @@ function ZeD.MapsTab.buildFocusables(win)
         end
     end
 
-    -- 3a. SURVEY / COLOR / PAPER radio buttons (A takes one), or the pop-up
-    -- menu's box where they do not fit (A opens its list)
-    for _, sz in ipairs(win._mapStyleZones or {}) do
-        elements[#elements + 1] = {
-            x = sz.x, y = sz.y, w = sz.w, h = sz.h,
-            id = "map:style:" .. sz.id,
-            styleId = sz.id,
-            onActivate = function(w, el2) ZeD.MapsTab.setStyle(w, el2.styleId) end,
-        }
-    end
-    if win._mapStyleMenuZone then
-        local mz = win._mapStyleMenuZone
-        elements[#elements + 1] = {
-            x = mz.x, y = mz.y, w = mz.w, h = mz.h,
-            id = "map:style:menu",
-            onActivate = function(w, _el) _openStyleMenu(w, true) end,
-        }
-    end
-
-    -- 3b. S123: unfold / fold button.
+    -- 3b. S123: unfold / fold button (full view, the header's far right).
     if win._mapPopoutZone then
         local pz = win._mapPopoutZone
         elements[#elements + 1] = {
@@ -1872,11 +1911,14 @@ function ZeD.MapsTab.buildFocusables(win)
         }
     end
 
-    -- 3c. The extensions' controls (MapsTabExt.lua): their toolbar buttons and
-    -- rows, the key's controls, the side list's rows and its question.
-    Ext.addFocusables(win, elements)
+    -- 3c. Under the header (the fold open): the full set of marks.
+    _addToolEls(win, elements, true)
 
-    -- 4. Canvas cursor pseudo-focusable (always last). Bounds = the map
+    -- 3d. The extensions' controls above the band (MapsTabExt.lua): their rows,
+    -- the key's controls, the side list's rows.
+    Ext.addFocusables(win, elements, false)
+
+    -- 4. Canvas cursor pseudo-focusable (between the header and the band). Bounds = the map
     -- panel's bbox inside the content panel, so cone-nav from toolbar
     -- elements naturally drops onto the canvas when the user D-pads down.
     -- D-pad WHILE this element is focused is intercepted at win-level and
@@ -1945,6 +1987,11 @@ function ZeD.MapsTab.buildFocusables(win)
             end,
         }
     end
+
+    -- 5. The band, last: Survey / Color / Paper, then its buttons (the key, the
+    -- list), or the question's Cancel and Delete in their place.
+    _addStyleEls(win, elements)
+    Ext.addFocusables(win, elements, true)
 
     return elements
 end
