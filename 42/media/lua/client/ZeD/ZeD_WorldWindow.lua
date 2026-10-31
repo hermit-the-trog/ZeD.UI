@@ -120,6 +120,30 @@ function ZeD_WorldWindow.tabLabel(tab)
     return ZeD.tr(tab.key)
 end
 
+-- The title: the container's name (win._titleBase, set by the inventory side), then the
+-- open tab ("Crate  +  Craft"), as the character window does. Built every frame from the
+-- window's own prerender (Oct 31 2026, break-it D1: built in the inventory side's
+-- prerender, it went stale while the tab drawer took the whole window). A rolled side's
+-- title is the curtain's (WindowCurtain: the tab alone). Kept until a part changes.
+local function composeWorldTitle(win)
+    if win._rolled then return end
+    local base = win._titleBase or ZeD.tr("UI_ZeD_World_Title")
+    local sub = nil
+    if win._drawerOpen and win._drawerMode == "tab" and win._activeTab then
+        for _, tab in ipairs(WORLD_TABS) do
+            if tab.id == win._activeTab then
+                sub = ZeD_WorldWindow.tabLabel(tab)
+                break
+            end
+        end
+    end
+    if win._ttOut == nil or sub ~= win._ttSub or base ~= win._ttBase then
+        win._ttSub, win._ttBase = sub, base
+        win._ttOut = sub and (base .. "  +  " .. sub) or base
+    end
+    win.title = win._ttOut
+end
+
 -- Check if a tab is visible (tabs without a visible predicate are always shown)
 local function isTabVisible(tab, win)
     if not tab.visible then return true end
@@ -4344,7 +4368,7 @@ function ZeD_WorldWindow.toggle(playerNum)
             self._containers = win._containers
             self._barH = 0
             self._activeCol = math.min(self._activeCol or #colSel, #colSel)
-            win.title = ZeD.tr(#colSel == 1 and "UI_ZeD_World_ContainersOne" or "UI_ZeD_World_ContainersMany", #colSel)
+            win._titleBase = ZeD.tr(#colSel == 1 and "UI_ZeD_World_ContainersOne" or "UI_ZeD_World_ContainersMany", #colSel)
             win._titleCount, win._statusLine = nil, nil
             self._ccEntry = nil
             r.renderMultiColumnContent(self)
@@ -4357,8 +4381,8 @@ function ZeD_WorldWindow.toggle(playerNum)
                 viewIdx = win._viewedContainer or win._activeContainer
             end
             local cnt = win._containers[viewIdx]
-            -- (set every frame: the open tab's name is added to it further down)
-            win.title = ZeD.tr("UI_ZeD_World_Title")
+            -- (set every frame: the title adds the open tab to it, composeWorldTitle)
+            win._titleBase = ZeD.tr("UI_ZeD_World_Title")
             win._titleCount, win._statusLine = nil, nil
             if cnt then
                 local cInv = cnt.inventory
@@ -4375,7 +4399,7 @@ function ZeD_WorldWindow.toggle(playerNum)
 
                 -- the title is the container's name (the open tab follows it, below); its
                 -- count is a title stat, and the help line's own status says count and weight
-                win.title = cnt.name
+                win._titleBase = cnt.name
                 win._titleCount = self._containerInfo.count
                 win._statusLine = cnt.isFloor and self._containerInfo.count
                     or (self._containerInfo.count .. "  |  " .. ZeD.tr("UI_ZeD_World_WeightOf", string.format("%.1f", cWeight), string.format("%.0f", cMax)))
@@ -4829,16 +4853,9 @@ function ZeD_WorldWindow.toggle(playerNum)
             end
         end
 
-        -- The title: the container's name, then the open tab ("Crate  +  Craft"),
-        -- as the character window does. The stats are status only: the item count.
-        if win._drawerOpen and win._drawerMode == "tab" and win._activeTab then
-            for _, tab in ipairs(WORLD_TABS) do
-                if tab.id == win._activeTab then
-                    win.title = (win.title or "") .. "  +  " .. ZeD_WorldWindow.tabLabel(tab)
-                    break
-                end
-            end
-        end
+        -- The title is built in the window's prerender (composeWorldTitle: this side does
+        -- not draw while the tab drawer takes the whole window; break-it D1). The stats
+        -- are status only: the item count.
         local stats = win._titleStatsT or {}
         win._titleStatsT = stats
         local st1 = stats[1] or {}
@@ -5394,9 +5411,11 @@ function ZeD_WorldWindow.toggle(playerNum)
         return true
     end
 
-    -- Base prerender (shaded guard only — drawer._onPrerender handles all layout)
+    -- Base prerender (shaded guard only — drawer._onPrerender handles all layout); the
+    -- title, every frame, from the window itself, whichever way the tab changed (break-it D1)
     local origPrerender = win.prerender
     win.prerender = function(self)
+        composeWorldTitle(self)
         origPrerender(self)
     end
 end
