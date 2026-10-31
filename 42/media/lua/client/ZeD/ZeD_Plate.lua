@@ -733,9 +733,21 @@ function PL.drawParts(cv, parts, st, ctx)
 end
 
 -- the plate's picture, then its live parts; w, h = the plate's size (des.w, des.h unless given)
+-- A plate's picture loads in the background the first time it is asked for; until then a face would show its lit
+-- parts over nothing. The whole face waits for its picture and then appears at once (director, Oct 30 2026, punch
+-- list 26). A picture once ready is remembered, so the check costs nothing after the first frames.
+local _ready = {}
+local function texReady(t)
+    if _ready[t] then return true end
+    local ok, r = pcall(function() return t:isReady() end)
+    if not ok or r then _ready[t] = true; return true end    -- (no isReady on this build: draw as before)
+    return false
+end
+
 function PL.draw(cv, des, st, ctx, w, h)
     w, h = w or des.w, h or des.h
     local plate = ctx.tex(des.plate)
+    if plate and not texReady(plate) then return false end
     if plate then P.image(cv, plate, 0, 0, w, h)
     else P.rect(cv, 0, 0, w, h, MISSING) end         -- the art missing: never let the machine vanish
     -- at night: the plate in the dark (its bulbs on or off) over the day one, then the LCD glass lit from behind
@@ -750,6 +762,7 @@ function PL.draw(cv, des, st, ctx, w, h)
         end
     end
     PL.drawParts(cv, des.parts, st, ctx)
+    return true
 end
 
 -- ---------------------------------------------------------------------------
