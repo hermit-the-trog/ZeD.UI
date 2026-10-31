@@ -1,0 +1,24 @@
+0.2.0-t14: changes since 0.2.0-t13.
+
+Additions and presets
+- Every addition ZeD makes to the game can be turned off, in ZeD setup's new Additions group. A new player starts on Vanilla (all off). Vanilla Plus turns them all on; Vanilla Access turns them all on with Restock at Access; changing one by hand makes it Custom, and Custom keeps your picks. Players who had ZeD before keep their settings.
+- Loadouts and outfits have their own switch. Off hides them everywhere and Restock does nothing; your saved loadouts and outfits are kept and come back when it is on. The Restock row dims while Loadouts is off. Restock's third level is now called Access.
+
+Faces
+- The machine plates fill their card at every UI scale from 0.75 to 2.0 (they sat small at some scales). Walkie-talkies are back in the half card.
+- New faces: the black, red and hand-built radios, the CD player, and three TVs with channels, screens and station sign-offs. Radios and TVs found in houses use the same faces. TV channels wrap round from 12 to 1.
+- New faces for the washer, the dryer and the washer-dryer, in a full card opened from the gears button in the container row. A face appears whole the first time it opens.
+
+Bars
+- Every fill bar is 10 segments, lit or dark. Point at one and the help line shows the exact value.
+
+Tabs
+- One header row and one footer band on every tab: Maps, Craft and Build, Furniture, Forage, Health (the exercise menu and Start), Thermal (a View menu), Identity (Cut in the hair fold) and Journal (a Page menu and Search).
+- With a controller, an open menu keeps the focus until you pick or press B, and the focus goes back to its box. Down from the Health figure reaches the band at every screen size.
+
+Fixes
+- A card's value no longer runs over its label.
+- Equipping a radio no longer switches the Character window to its Radio tab; the tab appears. A tab that goes away (its radio put down) goes back to Inventory.
+- The game's own Character Info window stays hidden while ZeD is on.
+
+Testers wanted: try the Vanilla preset on a new character and turn things on one by one, and tell us in the Bug reports discussion what you would keep on.
