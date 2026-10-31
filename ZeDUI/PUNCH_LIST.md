@@ -211,6 +211,30 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
       number beside Craft's amount is gone; an exercise you cannot do stays in the list, Start greyed
       with the reason. Open question: the walkies' and ham sets' faces still have their 22u foot with
       the brand and "2-WAY PORTABLE".
+    - **QA, Oct 30 (in game at 4c8d951, 4K at 1.75 and 1280x800, the controller simulated; the director's
+      yes; zedqa_bands_probe.lua):** passed: every tab's card is the half or the full card at both sizes;
+      Craft's and Build's Sort and Show pop-ups (with and without a recipe) open on A, a row picks, the
+      list shuts and the focus is back on the box; the Journal's page pop-up the same on its first pages;
+      Furniture's five sub-tabs are stops; Identity's Cut comes right after Hair | Beard; the tab and
+      controller suites pass. Found (not yet chosen):
+      a. Health's exercise list and Thermal's View list (4K): Down from the open list's first row leaves the
+         list for the body figure (bodypart:Head / thermalpart:Head), and the list stays open. At 1280x800
+         they were right.
+      b. The Journal's page list on the Loadouts page (both sizes): the focus starts on the last row; Down
+         leaves the open list for the tab strip (tab:journal), and the list stays open.
+      c. Health at 1280x800 with Large text: Down from the figure stops on Right Foot; the band (Exercise,
+         time, Start) is not reached by Down (at 4K it is: the foot, then the Exercise box).
+      d. Identity: Cut's controller stop is not where its button draws (zedqa_hairbeard, both sizes).
+      e. The exercise list shuts itself when the tab has not drawn for 300 ms (a hitch, or a screenshot):
+         zedqa_exinfo's pop-up checks fail at 4K for that reason and pass at 1280x800.
+      f. At 1280x800 the game's own Character Info panel ("Discovered Recipes and Media", "Zombies Killed")
+         shows under the ZeD windows in every shot of the run; cause not checked (a script may open it).
+      Not covered: the pop-ups with the mouse; the Maps delete question; Forage's Search toggle and Crouch /
+      Aim following the character; Start greyed with a reason; the Journal's Delete question and Loadouts
+      turned off while on its page; the focus after a craft; alternatives mode; the help line's words under
+      each band. Test-side: zedqa_two_widths sees both windows 4 px off after closing a card at 1280x800 (the
+      known order flake); zedqa_laundry's dryer dial check failed once at 1280x800; the band probe opened the
+      Maps pop-out (not a list) and left it open. Shots: Screenshots/zqa_band_*.png (the 1280x800 run's).
 22. **Segmented bars everywhere (director, Oct 30: "keeping it 93; the segments help info at a
     glance").** chosen. Every fill bar (the shared fill bar: list condition, Health, Protection, animal
     food and water, fuel, item cards, Skills ...) becomes a row of 10 separate segments, lit or dark,
@@ -278,6 +302,9 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
     machine's body (the white case, the blue panel, the door). A few seconds later (_2_running) the whole
     face is there. Cause not checked: perhaps the face's picture loads a little after the card first
     draws. Not yet known how long it lasts to the eye.
+    **QA, Oct 30 (at 4c8d951, 4K):** as chosen: on the first opening the card shows nothing until the face's
+    picture is there, then the whole face (zqa_ldy_washer_1_open.png: an empty card, no lit parts alone);
+    the next shot, a few seconds on, has the whole face. The wait to the eye was not timed.
     Chosen (director, Oct 30): (b), the face waits for its picture and then appears whole.
     **fixed (build, Oct 30, 80094e3):** every plate face (machines, laundry, radios, TVs, walkies, car radio,
     siren) asks the game whether its picture has finished loading and draws nothing until it has. QA to

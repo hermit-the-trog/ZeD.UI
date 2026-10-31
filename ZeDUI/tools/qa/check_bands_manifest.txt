@@ -1,0 +1,4 @@
+# Oct 30 2026: the band probe re-run (A through onActivate) with the exercise test. zedqa_run.ps1 -Manifest this -Mode fullscreen4k
+zedqa_prelude.lua | pre | timeout=120
+zedqa_bands_probe.lua | band | timeout=600
+zedqa_exinfo.lua | ex | timeout=300
