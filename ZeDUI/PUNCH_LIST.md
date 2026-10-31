@@ -282,6 +282,13 @@ States: **open** (found, no choice yet), **chosen** (the director picked a fix: 
       **h and i chosen (director, Oct 30: "Yes, fix both"):** the radio and TV faces' controls are controller
       stops again (A opens their lists, the antique's knob and dial answer), and a bag's pack opens its column
       beside the bag. Then QA re-runs zedqa_rtv and zedqa_wt_bracket and the full pass, and stages t14.
+      **QA, Oct 30 at c10d755:** both were the tests (build's notes above); the full pass
+      (2026-10-30_t14b_fullscreen4k.md): zedqa_rtv 192 passed, 0 failed (its FAIL mark is the game's own
+      NullPointers when a set is placed); zedqa_wt_bracket "char columns 2", held. Two warnings new since t13
+      (plates_336's generator start, dash_keys_edge's Cossette key) passed on a re-run alone
+      (2026-10-30_2240_fullscreen4k.md). **t14 staged from 75a2e64** (4,277 files, 42.83 MB; 24 untracked
+      wheel icons another session made at 23:01, used by nothing yet, taken out of the staged copy);
+      description 7,929 + 58; change note in ZeD_workshop.txt; zedqa.lock busy until the upload.
       **h fixed (build, Oct 30): cause in the test, not the game.** zedqa_rtv handed its pad steps the window as
       it stood when the script loaded (zedqa_rtv.lua 318-321, 713-716). In the full pass zedqa_sandbox_ig shuts
       both windows before it and the script opens them in its own steps, so the window was nothing: the step that
