@@ -1,0 +1,5 @@
+**ZeD-GUI 0.2.0-t14 is up on the Workshop test item.**
+- Presets: a new player now starts on Vanilla, with every addition off. Turn them on one by one in ZeD setup, or pick Vanilla Plus or Vanilla Access (Custom keeps your own picks).
+- New faces: radios, the CD player, three TVs, the washer and dryer; machine faces fill their card at every UI scale; bars are 10 segments.
+- Small screens: a night of trying to break it on the Steam Deck size and 720p with Large text. Tabs past the window's edge scroll into view, and labels no longer run over each other.
+Testers wanted: try Vanilla on a new character, turn things on, and tell us in the Workshop's Bug reports what you keep on. Full change note attached.
