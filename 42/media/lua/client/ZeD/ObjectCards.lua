@@ -364,7 +364,12 @@ function UI.meter(card, x, y, w, label, value, dotC, pct, fillC, zone, lockText)
     if dotC then A.drawStatusDot(card, vx - T.px(10), y + math.floor((lineH - T.px(6)) / 2), dotC, T.px(6)) end
     local by = y + lineH + T.px(4)
     local bh = T.fillBarH
-    A.drawFillBar(card, x, by, w, lockText and 0 or math.max(0, math.min(100, pct or 0)) / 100, false, fillC, bh)
+    -- ten segments (Oct 30 2026); the help line the meter's own reading ("Water 64%", or the word a low
+    -- skill reads), none while the skill locks it
+    if A.drawSegFill(card, x, by, w, bh, A.FILL_SEGS, lockText and 0 or A.fillSegsLit(math.max(0, math.min(100, pct or 0)) / 100),
+            fillC or ac) and not lockText and value and value ~= "" then
+        ZeD.Help.set(card, ZeD.tr("UI_ZeD_Bar_Help", A.textCase(label), value))
+    end
     if lockText then
         local tw = UI.tagW(lockText)
         UI.tag(card, x + w - tw - T.px(6), by + math.floor((bh - T.px(16)) / 2), lockText)
@@ -569,7 +574,7 @@ function UI.cookRows(card, x, y, w, container, on)
             if p then
                 local bx = rx - pctW - barW
                 local bh = A.fillBarCompactH()
-                A.drawFillBar(card, bx, y + math.floor((rowH - bh) / 2), barW, p, false, mc or T.textDim, bh)
+                A.drawFillBar(card, bx, y + math.floor((rowH - bh) / 2), barW, p, false, mc or T.textDim, bh, name)   -- ("Steak 64%")
                 local ptxt = left and ZeD.tr("UI_ZeD_ObjCard_MinLeft", left) or (mode == "pos" and ZeD.tr("UI_ZeD_ObjCard_Done") or (tostring(math.floor(p * 100 + 0.5)) .. "%"))
                 A.drawTextRight(card, ptxt, rx, y + math.floor((rowH - tm:getFontHeight(T.fontF3)) / 2), T.fontF3, T.text)
             end

@@ -396,7 +396,7 @@ local function drawBand(card, x, y, w, t)
     local bw0 = rx - pw - T.px(10) - bx0
     if bw0 > T.px(20) then
         local bh = A.fillBarCompactH()
-        A.drawFillBar(card, bx0, y + math.floor((h - bh) / 2), bw0, p, false, ac, bh)
+        A.drawSmoothBar(card, bx0, y + math.floor((h - bh) / 2), bw0, p, false, ac, bh)   -- (a timed action's progress: smooth)
     end
     return h
 end

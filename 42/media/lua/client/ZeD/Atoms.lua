@@ -325,27 +325,113 @@ end
 
 -- ============================================================================
 -- 04. FILL BAR (draw helper)
--- A horizontal bar showing a value as a proportion of a maximum.
--- Supports graduated color (green → yellow → red based on percentage).
+-- A horizontal bar showing a value as a proportion of a maximum: ten separate
+-- segments in the framed strip. Supports graduated color (green → yellow → red
+-- based on percentage).
 -- ============================================================================
 
 --- Draw a fill bar
 -- @param panel     The parent ISPanel
 -- @param x, y      Top-left position
--- @param w         Total width of the bar
+-- @param w         Total width of the bar (at least ZeD.Atoms.fillBarMinW() for ten distinct segments)
 -- @param percent   Fill amount, 0.0 to 1.0
 -- @param graduated If true, color shifts based on percentage thresholds
 -- @param fillColor Optional fixed fill color (overrides graduated logic)
 -- @param h         Optional height; default T.fillBarH (13 / 15 Large). List rows use ZeD.Atoms.fillBarCompactH()
+-- @param label     Optional: what the bar reads, for the help line ("Condition" gives "Condition 64%");
+--                  nil gives the value alone ("64%")
+-- @return hovered  true while the pointer is on the bar (its value is in the help line)
 --
 -- The System 7 "About This Macintosh" bar (director, Oct 26 2026: "a more chunky strip than a glowing line"):
--- a framed strip with a dark well and a flat, solid fill. Every condition, progress and amount bar draws
--- through here; no 1-5 unit lines, no glow, no gradient.
+-- a framed strip with a dark well; no 1-5 unit lines, no glow, no gradient. Every condition and amount bar
+-- draws through here.
+-- Oct 30 2026 (director, punch list 22: "keeping it 93; the segments help info at a glance"): the fill is ten
+-- separate segments (ZeD.Atoms.drawSegFill), lit or dark, never part-lit, one per tenth. Rounding is strict: a
+-- segment lights only when its whole tenth is reached (4% lights none, 64% six, 100% all ten). Pointing at the
+-- bar puts the exact value in the window's help line. What moves on its own stays smooth (ZeD.Atoms.drawSmoothBar:
+-- the progress band, uploads, crafting, a timed action's busy bar), as does a slider's track (its thumb sits
+-- anywhere along it).
 function ZeD.Atoms.fillBarCompactH()
     return ZeD.T.px(8)
 end
 
-function ZeD.Atoms.drawFillBar(panel, x, y, w, percent, graduated, fillColor, h)
+local FILL_SEGS = 10
+ZeD.Atoms.FILL_SEGS = FILL_SEGS
+local SEG_FILL = { framed = true, exactH = true }   -- (the segment atom's framed look at the caller's height)
+
+--- How many of n segments a share lights: whole steps only (n default 10)
+function ZeD.Atoms.fillSegsLit(percent, n)
+    n = n or FILL_SEGS
+    local p = percent or 0
+    if p <= 0 then return 0 end
+    if p >= 1 then return n end
+    return math.floor(p * n + 1e-6)   -- (the 1e-6: 0.7 * 10 is 6.999... in floating point)
+end
+
+--- The narrowest fill bar that still shows n (default 10) distinct segments: a hairline each, a hairline gap
+-- between, the frame both sides (21 px at 1x and below, 42 at 2x)
+function ZeD.Atoms.fillBarMinW(n)
+    local T = ZeD.T
+    n = n or FILL_SEGS
+    return 2 * T.line(T.borderW) + (2 * n - 1) * T.hair
+end
+
+--- The bar at the right of a list row (Skills, ZeD.Molecules.drawStatBarRow): 41 units, ten 3-unit segments
+function ZeD.Atoms.rowBarW()
+    return ZeD.T.px(41)
+end
+
+-- "64%": a share as the help line words it (whole percent, rounded down as the segments are); kept per value
+local _pctText = {}
+function ZeD.Atoms.pctText(percent)
+    local v = math.floor(math.max(0, math.min(1, percent or 0)) * 100 + 1e-6)
+    local s = _pctText[v]
+    if not s then s = tostring(v) .. "%"; _pctText[v] = s end
+    return s
+end
+
+--- The help line's words for a fill bar: "Condition 64%", or "64%" with no label
+function ZeD.Atoms.fillBarHelp(percent, label)
+    local s = ZeD.Atoms.pctText(percent)
+    if label and label ~= "" then return ZeD.tr("UI_ZeD_Bar_Help", label, s) end
+    return s
+end
+
+--- Draw n separate segments in the framed strip, k of them lit: the one look of every fill bar (Oct 30 2026).
+-- 1u frame (2u High contrast) round the T.base well, the cells inside sharing its width evenly with a hairline
+-- of well between them; lit cells flat in the bar's colour, dark ones T.surf3. Skills give one segment per level
+-- (n = 10), a farm plot's stages one per stage (n = 6); every other bar asks ZeD.Atoms.drawFillBar (n = 10).
+-- @return hovered  true while the pointer is on the strip (the caller words the help line)
+function ZeD.Atoms.drawSegFill(panel, x, y, w, h, n, k, color)
+    local T = ZeD.T
+    ZeD.Atoms.drawSegBar(panel, x, y, w, h, n, k, color or T.accent, T.surf3, T.hair, SEG_FILL)
+    return ZeD.Atoms.mouseIn(panel, x, y, w, h)
+end
+
+function ZeD.Atoms.drawFillBar(panel, x, y, w, percent, graduated, fillColor, h, label)
+    local T = ZeD.T
+    h = h or T.fillBarH
+    percent = math.max(0.0, math.min(1.0, percent or 0))
+    local fc = fillColor
+    if not fc then
+        if graduated then
+            if percent > 0.6 then fc = T.positive
+            elseif percent > 0.3 then fc = T.warning
+            else fc = T.danger end
+        else
+            fc = T.accent
+        end
+    end
+    local hov = ZeD.Atoms.drawSegFill(panel, x, y, w, h, FILL_SEGS, ZeD.Atoms.fillSegsLit(percent), fc)
+    if hov and ZeD.Help then ZeD.Help.set(panel, ZeD.Atoms.fillBarHelp(percent, label)) end
+    return hov
+end
+
+--- The smooth strip (the fill bar's look before Oct 30 2026): a flat fill to the exact share. For what moves on
+-- its own (the progress band, uploads, crafting, a timed action's busy bar), a slider's track, and the bare frame
+-- and well other atoms draw their own marks in (percent 0: the ammo pouch's rounds, a Skills row extra's lane).
+-- Same arguments as ZeD.Atoms.drawFillBar, less the label.
+function ZeD.Atoms.drawSmoothBar(panel, x, y, w, percent, graduated, fillColor, h)
     local T = ZeD.T
     h = h or T.fillBarH
     local bw = T.line(T.borderW)  -- T.borderW is design units (1, HC 2): that many hairlines; the HC test below reads the raw token
@@ -460,7 +546,8 @@ end
 -- Different from drawBarSegs above: this draws N independent segment cells
 -- left-to-right with a 1px gap between each. The first K are painted in
 -- onColor, the remaining (N-K) in offColor. Used by the radio chassis for
--- BATT (4 segs) and VOL (8 segs) readouts on both Premium VFD and ValuTech LCD.
+-- BATT (4 segs) and VOL (8 segs) readouts on both Premium VFD and ValuTech LCD,
+-- and (framed) every fill bar: ZeD.Atoms.drawSegFill (Oct 30 2026).
 -- ============================================================================
 
 --- Draw N discrete segment cells with K of them lit.
@@ -476,22 +563,39 @@ end
 --                 fill bar's look: a 1u borderS frame (2u High contrast) round a solid dark
 --                 well (T.base), the cells inside it, at least 8u tall whatever h says.
 --                 Without it the bare cells, as the radio's printed LCD draws them.
--- @return height  the height drawn (framed: at least 8u)
+--                 { framed = true, exactH = true }: framed at h exactly (the fill bars:
+--                 ZeD.Atoms.drawSegFill, whose grid-cell and slot strips are under 8u).
+-- @return height  the height drawn (framed: at least 8u, or h with exactH)
 function ZeD.Atoms.drawSegBar(panel, x, y, w, h, n, k, onColor, offColor, gap, opts)
     local T = ZeD.T
     if n <= 0 then return 0 end
     gap = gap or T.px(1)
     if k < 0 then k = 0 end
     if k > n then k = n end
-    local framed = opts and opts.framed
-    local fx, fy, fw, fh, bw = x, y, w, h, 0
-    if framed then
-        fh = math.max(h, T.px(8))
-        bw = T.line(T.borderW)
-        local bg = T.base
-        panel:drawRect(fx, fy, fw, fh, 1, bg.r, bg.g, bg.b)
-        x, y, w, h = fx + bw, fy + bw, fw - 2 * bw, fh - 2 * bw
+    if opts and opts.framed then
+        local fh = opts.exactH and h or math.max(h, T.px(8))
+        local bw = T.line(T.borderW)
+        -- the frame as the strip in its colour with the well over its inside: two rects, not five (every fill
+        -- bar draws here each frame, a list of them at once; Oct 30 2026)
+        local bs, bg = T.borderS, T.base
+        panel:drawRect(x, y, w, fh, bs.a or 1, bs.r, bs.g, bs.b)
+        x, y, w, h = x + bw, y + bw, w - 2 * bw, fh - 2 * bw
+        panel:drawRect(x, y, w, h, 1, bg.r, bg.g, bg.b)
         onColor = onColor or T.accent
+        -- (Oct 30 2026) the cells share the inside evenly in whole pixels (none more than one wider than
+        -- another), the last meeting the frame, so a full meter has no strip of well at its end; an inside
+        -- too short for a pixel per cell and every gap closes the gaps rather than drop a cell
+        if w < n + (n - 1) * gap then gap = 0 end
+        local span = w + gap
+        for i = 1, n do
+            local c = (i <= k) and onColor or offColor
+            if c then
+                local sx = x + math.floor((i - 1) * span / n)
+                local ex = x + math.floor(i * span / n) - gap
+                if ex > sx then panel:drawRect(sx, y, ex - sx, h, 1, c.r, c.g, c.b) end
+            end
+        end
+        return fh
     end
     -- Width per segment after subtracting (n-1) gaps. Floor so we never overrun.
     local segW = math.floor((w - gap * (n - 1)) / n)
@@ -500,14 +604,8 @@ function ZeD.Atoms.drawSegBar(panel, x, y, w, h, n, k, onColor, offColor, gap, o
         local sx = x + (i - 1) * (segW + gap)
         local c  = (i <= k) and onColor or offColor
         if c then
-            -- framed: the last cell runs to the frame, so a full meter has no strip of well at its end
-            local cw = (framed and i == n) and (x + w - sx) or segW
-            panel:drawRect(sx, y, cw, h, framed and 1 or (c.a or 1.0), c.r, c.g, c.b)
+            panel:drawRect(sx, y, segW, h, c.a or 1.0, c.r, c.g, c.b)
         end
-    end
-    if framed then
-        ZeD.Atoms.frame(panel, fx, fy, fw, fh, T.borderS, 1, bw)
-        return fh
     end
     return h
 end
@@ -1156,7 +1254,7 @@ end
 --   "active" — the accent: the status mark and the bar's fill
 --   "danger" — the same in danger red (burning)
 -- The words are default text after a 6u status square (no coloured words); the
--- bar is the framed fill bar (ZeD.Atoms.drawFillBar); Cancel is an icon button
+-- bar is the smooth framed strip (ZeD.Atoms.drawSmoothBar: progress stays smooth); Cancel is an icon button
 -- with an X at the right, centred on both rows. A content line closes it.
 -- ============================================================================
 
@@ -1245,7 +1343,7 @@ function ZeD.Atoms.drawProgressBand(panel, x, y, w, mode, label, percent, timeSt
     end
 
     -- Row 2: the framed fill bar in the mode's colour
-    A.drawFillBar(panel, colX, rowY + labelH + gapV, math.max(T.px(8), colR - colX), percent or 0, false, markC, barH)
+    A.drawSmoothBar(panel, colX, rowY + labelH + gapV, math.max(T.px(8), colR - colX), percent or 0, false, markC, barH)
 
     -- Cancel: the icon button with an X (its hint names it; its help says what a press does)
     local o = _pbCancel

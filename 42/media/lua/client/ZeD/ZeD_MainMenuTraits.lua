@@ -438,9 +438,12 @@ function ZeD_MMTraits:drawRow(r, x, y, w, h, onFocus)
         local lvX = px - T.px(10) - MM.textW(f2, "10")
         self:drawText(tostring(lvl), lvX, midY - math.floor(MM.fontH(f2) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
         local bx = lvX - T.px(8) - barW
-        -- the starting level as the System 7 bar: a framed strip, a flat solid fill (the compact height, in a list row)
+        -- the starting level as the System 7 bar: a framed strip (the compact height, in a list row), one segment per
+        -- level as the Skills tab's (Oct 30 2026); its help line "Fitness 5"
         local barH = ZeD.Atoms.fillBarCompactH()
-        ZeD.Atoms.drawFillBar(self, bx, midY - math.floor(barH / 2), barW, lvl / 10, false, nil, barH)
+        if ZeD.Atoms.drawSegFill(self, bx, midY - math.floor(barH / 2), barW, barH, 10, lvl, T.accent) then
+            ZeD.Help.set(self, ZeD.tr("UI_ZeD_Bar_Help", name, lvl))
+        end
         self:drawText(ZeD.Atoms.truncateText(name, f2, bx - T.px(14) - x), x + T.px(10), midY - math.floor(MM.fontH(f2) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
     end
 end

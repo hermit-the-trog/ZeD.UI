@@ -584,7 +584,7 @@ function ZeD.HealthTab._renderHeader(panel, win, data, rx, ry, rw)
     curY = curY + rowH + T.sp.rowGap
 
     -- Fill bar
-    local barH = M.drawFillBar(panel, rx, curY, rw, data.overall / 100)
+    local barH = M.drawFillBar(panel, rx, curY, rw, data.overall / 100, nil, ZeD.tr("UI_ZeD_Health_Overall"))
     curY = curY + barH + T.sp.xs
 
     -- Summary line
@@ -634,7 +634,7 @@ function ZeD.HealthTab._renderDetailView(panel, win, data, figureName, rx, ry, r
     curY = curY + rowH + T.sp.rowGap
 
     -- Health fill bar
-    local barH = M.drawFillBar(panel, rx, curY, rw, health / 100)
+    local barH = M.drawFillBar(panel, rx, curY, rw, health / 100, nil, ZeD.tr("IGUI_XP_Health"))
     curY = curY + barH + T.sp.sm
 
     -- Other mods' wound details for this part (HealthTab.addExtras)
@@ -870,7 +870,7 @@ local function drawExerciseInfo(panel, x, y, w, lay, info)
         elseif it.kind == "bar" then
             if info.regularity then
                 A.drawSecondary(panel, it.text, x, iy)
-                A.drawFillBar(panel, x, iy + it.fh + it.lg, w, info.regularity, false, T.positive)
+                A.drawFillBar(panel, x, iy + it.fh + it.lg, w, info.regularity, false, T.positive, nil, it.text)
             end
         elseif it.kind == "warn" then
             -- status dot + default text (warning colour lives on the dot only)

@@ -169,7 +169,7 @@ local function axisRow(card, x, y, w, t, section, ax)
     local fm = card:focusOf(sid)
     if fm then ZeD.Focus.mark(card, sx0 - T.px(6), y, sw + T.px(12), h, fm) end
     local f = math.max(0, math.min(1, frac))
-    A.drawFillBar(card, sx0, trY, sw, f, false, ac, trH)
+    A.drawSmoothBar(card, sx0, trY, sw, f, false, ac, trH)   -- (a slider's track stays smooth)
     local bs = T.borderS
     for _, tf in ipairs({ 0.25, 0.5, 0.75 }) do
         card:drawRect(sx0 + math.floor(sw * tf), trY + trH + T.px(1), T.px(1), T.px(3), bs.a or 1, col(bs))

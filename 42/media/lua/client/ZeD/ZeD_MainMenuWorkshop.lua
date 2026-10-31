@@ -778,7 +778,7 @@ function ZeD_MMWorkshop:drawProgress()
         -- the System 7 bar: a framed strip, a flat solid fill; with no total yet an empty strip with a block sweeping across it
         local bh = T.fillBarH
         local by = y + math.floor((h - bh) / 2)
-        ZeD.Atoms.drawFillBar(self, bx, by, bw, frac or 0, false, nil, bh)
+        ZeD.Atoms.drawSmoothBar(self, bx, by, bw, frac or 0, false, nil, bh)   -- (an upload's progress: smooth)
         if not frac then
             local k = ((MM.now() - self.busy.t0) % 1600) / 1600
             local ac, line = T.accent, T.line(T.borderW)

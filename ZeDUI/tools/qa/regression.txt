@@ -40,6 +40,7 @@ zedqa_wt_bracket.lua | wtb | timeout=240         # a stack's total in brackets, 
 zedqa_doll.lua | doll                            # Equip tab doll, layers through the pad
 zedqa_doll_v4.lua | dollv4 | timeout=420        # the doll's 38 small slots: all there, no overlap, no crossing lines, worn things land, the pad into / out of both bands, a drop wears, the half card (220 units) folds the bands into layers; the full card (480) shows both bands; all taken off
 zedqa_large.lua | lg                             # Large text size: Loot and Equip lists, column widths
+zedqa_segbars.lua | segb | timeout=60            # the segmented fill bars (Oct 30 2026): lit counts at 64 / 4 / 100 / 0 / 70 / 30 %, ten distinct at the narrowest, a skill at level 5, the help line's words under the pointer (a stand-in panel: nothing to put back)
 zedqa_curtain.lua | cu | timeout=400             # curtain roll / unroll, close while rolled, tabs while rolled
 zedqa_curtain2.lua | cv                          # Character window curtain, tab switches while rolled
 zedqa_navevents.lua | ev                         # where pad focus lands after cards, strips, tabs, LB / RB, the map

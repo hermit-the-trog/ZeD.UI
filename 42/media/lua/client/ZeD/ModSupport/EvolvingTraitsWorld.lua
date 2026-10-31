@@ -1147,7 +1147,7 @@ local function drawBigBar(panel, r, ix, iw, cy)
     local T = ZeD.T
     local A = ZeD.Atoms
     local segH = T.px(14)
-    A.drawFillBar(panel, ix, cy, iw, r.value, false, T.accent, segH)
+    A.drawSmoothBar(panel, ix, cy, iw, r.value, false, T.accent, segH)   -- (a scale with its pointer: smooth, as Thermal's)
     local tw = T.px(2)
     local sorted = {}
     for _, m in ipairs(r.marks) do sorted[#sorted + 1] = m end
@@ -1242,8 +1242,8 @@ function SRC.drawDetail(panel, win, id, x, y, w, h, sc)
                 -- the framed strip beside the first line (the standard amount bar)
                 local bx = vx + ZeD.TM:MeasureStringX(T.fontF2, l) + T.px(8)
                 local bw2 = math.min(T.px(160), ix + iw - bx)
-                if bw2 > T.px(20) then
-                    A.drawFillBar(panel, bx, cy + math.floor((F(2) - T.fillBarH) / 2), bw2, it.bar, false, T.accent)
+                if bw2 >= A.fillBarMinW() then   -- (room for ten segments)
+                    A.drawFillBar(panel, bx, cy + math.floor((F(2) - T.fillBarH) / 2), bw2, it.bar, false, T.accent, nil, ZeD.textCase(it.k))
                 end
             end
             cy = cy + F(2)

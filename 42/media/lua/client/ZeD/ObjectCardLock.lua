@@ -544,7 +544,7 @@ local function band(card, x, y, w, t, player)
     local barW = bx - T.px(10) - sw - T.px(10) - barX
     if barW > T.px(20) then
         local bar = A.fillBarCompactH()
-        A.drawFillBar(card, barX, y + math.floor((h - bar) / 2), barW, math.max(0, math.min(1, pct)), false, ac, bar)
+        A.drawSmoothBar(card, barX, y + math.floor((h - bar) / 2), barW, math.max(0, math.min(1, pct)), false, ac, bar)   -- (a timed action's progress: smooth)
     end
     return h
 end

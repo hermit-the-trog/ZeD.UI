@@ -59,7 +59,7 @@ The three strata of ZeD_ItemCard (O08) and their parts.
 | **Detail Zone** | Bottom section. Only appears on items with body-part zones (clothing, armor). Per-zone inspection and repair interface. |
 | **Zone block** | One body part's section inside the detail zone. Two lines: top line (stat + structural dock), bottom line (soiled flags). Separated by groove dividers. |
 | **Stat row** | A single label→value line in the info zone. Drawn by `drawStatRow`. Label on the left (mono, caps, dim), value on the right (sans-serif, bright). |
-| **Fill bar** | A horizontal bar showing a percentage. Used for condition, food values, etc. Drawn by `drawFillBar`. Can have segmented fills (multiple colors stacked). |
+| **Fill bar** | A horizontal bar showing a percentage: ten separate segments, lit or dark, one per whole tenth (Oct 30 2026). Used for condition, food values, etc. Drawn by `drawFillBar` (through `drawSegFill`); progress and slider tracks use `drawSmoothBar`. |
 | **Condition bar** | The fill bar showing item condition (0–100%). Color graduates: green (>60%), amber (30–60%), red (<30%). |
 
 ---

@@ -305,7 +305,7 @@ local function drawCell(panel, x, y, w, h, kind, item, p, focused, hovered)
     end
     if kind == "dry" then
         local bh = A.fillBarCompactH()
-        A.drawFillBar(panel, x + T.px(3), y + h - T.px(3) - bh, w - T.px(6), math.max(0, math.min(1, p or 0)), false, T.accent, bh)
+        A.drawSmoothBar(panel, x + T.px(3), y + h - T.px(3) - bh, w - T.px(6), math.max(0, math.min(1, p or 0)), false, T.accent, bh)   -- (crafting: smooth)
     end
 end
 
@@ -425,7 +425,7 @@ function SM.render(panel, win, x, y, w, h, state, st)
     local px0 = lx + bw + T.px(8)
     local pbw = math.max(T.px(30), rx - px0 - (ptw > 0 and (ptw + T.px(8)) or 0))
     local pbh = T.fillBarH
-    A.drawFillBar(panel, px0, cy + math.floor((rowH - pbh) / 2), pbw, d.running and d.progress or 0, false, T.accent, pbh)
+    A.drawSmoothBar(panel, px0, cy + math.floor((rowH - pbh) / 2), pbw, d.running and d.progress or 0, false, T.accent, pbh)   -- (crafting: smooth)
     if ptw > 0 then
         A.drawTextRight(panel, ptxt, rx, cy + math.floor((rowH - tm:getFontHeight(T.fontF3)) / 2), T.fontF3, T.text)
     end

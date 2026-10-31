@@ -567,7 +567,7 @@ local function drawAmount(card, x, y, w, t)
     -- the controller's mark goes under the track; the track is the library's strip, the thumb a flat block on it
     local fm = card:focusOf("fl:slider")
     if fm then ZeD.Focus.mark(card, sx0 - T.px(6), y, sw + T.px(12), h, fm) end
-    A.drawFillBar(card, sx0, trY, sw, frac, false, ac, trH)
+    A.drawSmoothBar(card, sx0, trY, sw, frac, false, ac, trH)   -- (a slider's track stays smooth)
     local bs = T.borderS
     for _, f in ipairs({ 0.25, 0.5, 0.75 }) do
         card:drawRect(sx0 + math.floor(sw * f), trY + trH + T.px(1), T.px(1), T.px(3), bs.a or 1, col(bs))
@@ -624,7 +624,7 @@ local function drawPouring(card, x, y, w, t)
     local px0 = x + T.px(8) + tm:MeasureStringX(f1, lbl) + T.px(10)
     local pw = vx - T.px(10) - px0
     local ph = A.fillBarCompactH()
-    if pw > T.px(20) then A.drawFillBar(card, px0, y + math.floor((h - ph) / 2), pw, delta, false, ac, ph) end
+    if pw > T.px(20) then A.drawSmoothBar(card, px0, y + math.floor((h - ph) / 2), pw, delta, false, ac, ph) end   -- (the pour's progress: smooth)
     return h
 end
 
@@ -652,11 +652,16 @@ local function drawLiquids(card, x, y, w, d, fc)
         local rx = x + w - T.px(2)
         local pct = total > 0 and math.floor(100 * l.amt / total + 0.5) or 0
         ZeD.Atoms.drawTextRight(card, tostring(pct) .. "%", rx, y + math.floor((rh - tm:getFontHeight(f3)) / 2), f3, T.textDim)
-        local lv = fc:isHiddenAmount() and "?" or L(l.amt)
+        local hidden = fc:isHiddenAmount()
+        local lv = hidden and "?" or L(l.amt)
         ZeD.Atoms.drawTextRight(card, lv, rx - pctW, y + math.floor((rh - tm:getFontHeight(f3)) / 2), f3, T.text)
         local bx = rx - pctW - valW - barW
         local bh = ZeD.Atoms.fillBarCompactH()
-        ZeD.Atoms.drawFillBar(card, bx, y + math.floor((rh - bh) / 2), barW, math.min(1, l.amt / math.max(0.0001, cap)), false, c, bh)
+        -- ten segments; the help line the layer's amount ("Water 1.2 L"), "?" while the game hides it
+        if ZeD.Atoms.drawSegFill(card, bx, y + math.floor((rh - bh) / 2), barW, bh, 10,
+                ZeD.Atoms.fillSegsLit(math.min(1, l.amt / math.max(0.0001, cap))), c) then
+            ZeD.Help.set(card, ZeD.tr("UI_ZeD_Bar_Help", l.name, lv))
+        end
         card:drawRect(x, y + rh - T.px(1), w, T.px(1), T.border.a or 1, col(T.border))
         y = y + rh
     end
@@ -720,8 +725,12 @@ local function drawRows(card, x, y, w, t, d)
         local gx = rx - gw
         local gh = A.fillBarCompactH()
         local gy = y + T.px(4)
-        A.drawFillBar(card, gx, gy, gw, (r.color and r.cap > 0) and math.min(1, r.amt / r.cap) or 0, false, r.color or T.info, gh)
         local at = r.hidden and txt("Fluid_Unknown", "Unknown") or (L(r.amt) .. " / " .. L(r.cap))
+        -- ten segments; the help line the words under it ("1.2 L / 4.0 L", "Unknown")
+        if A.drawSegFill(card, gx, gy, gw, gh, 10,
+                A.fillSegsLit((r.color and r.cap > 0) and math.min(1, r.amt / r.cap) or 0), r.color or T.info) then
+            ZeD.Help.set(card, at)
+        end
         ZeD.Atoms.drawTextRight(card, at, gx + gw, gy + gh + T.px(2), f5, T.textDim)
         -- name + where
         local nx = x + T.px(2) + isz + T.px(8)
