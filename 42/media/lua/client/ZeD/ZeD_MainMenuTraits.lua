@@ -305,7 +305,7 @@ function ZeD_MMTraits:prerender()
     end
     -- a taken / given-back trait shortens its column: the controller's focus stays in range
     local f = self.focusId or ""
-    if f:sub(1, 1) == "c" then
+    if f:find("^c%d+:") then   -- (a column stop exactly: "confirm:yes" and "clear" start with c too)
         local n = #(self._colFocus[self.jcol] or {})
         if n == 0 then self.focusId = "next"
         elseif self.jidx > n then self.jidx = n; self.focusId = "c" .. self.jcol .. ":" .. n end
@@ -512,7 +512,7 @@ end
 -- ============================================================================
 function ZeD_MMTraits:inStrip()
     local f = self.focusId or ""
-    return f ~= "" and f:sub(1, 1) ~= "c"
+    return f ~= "" and not f:find("^c%d+:")   -- (column stops are c<col>:<i>; "confirm:yes", "clear" are the strip's)
 end
 
 function ZeD_MMTraits:setJoy(c, i)
