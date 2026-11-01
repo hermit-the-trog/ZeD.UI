@@ -1,0 +1,4 @@
+# Oct 31 2026: the director's layout picks at the small settings with Large text. zedqa_run.ps1 -Manifest this -Mode windowed -Width 1280 -Height 720 (2x set by zedqa_scale2.lua) and -Height 800 (Auto)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_picks_large.lua | pkl | timeout=30
+zedqa_picks_recheck.lua | prc | timeout=300
