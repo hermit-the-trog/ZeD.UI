@@ -575,7 +575,7 @@ end
 function ZeD_MMOptions:finish()
     self.firstRun = nil
     if self.find:isFocused() then self.find:unfocus() end
-    self.confirm = false
+    self:setConfirm(false)   -- (every answer through setConfirm: _backFocus never left stale)
     self:stopCapture()
     JoypadState.controllerTest = nil
     if self.inGame then MM.pauseView = "pause" else MM.showView("main") end
@@ -617,7 +617,7 @@ function ZeD_MMOptions:discardStay()
     self.finish = function() end
     self:discard()
     self.finish = fin
-    self.confirm = false
+    self:setConfirm(false)
     self._groupCache = nil
     self._cache = nil
     self:snapshot()
@@ -627,7 +627,7 @@ function ZeD_MMOptions:apply(closeAfter)
     local o = mo()
     if not o then return end
     MM.clickSound()
-    self.confirm = false
+    self:setConfirm(false)
     self._closeAfter = closeAfter
     o:apply(closeAfter)          -- vanilla: keys, options, mod options, save, then the dialogs (ours, below)
     if not closeAfter and self:isVisible() then self:snapshot() end
@@ -641,7 +641,7 @@ function ZeD_MMOptions:askMonitor(closeAfter)
 end
 function ZeD_MMOptions:answerMonitor(keep)
     local o = mo()
-    self.confirm = false
+    self:setConfirm(false)
     if o then o:onConfirmMonitorSettingsClick({ internal = keep and "YES" or "NO" }, self._closeAfter) end
     if self:isVisible() then self:snapshot() end
 end
@@ -651,7 +651,7 @@ function ZeD_MMOptions:askRestart(closeAfter)
 end
 function ZeD_MMOptions:answerRestart()
     local o = mo()
-    self.confirm = false
+    self:setConfirm(false)
     if o then o:onRestartRequiredClick({ internal = "OK" }, self._closeAfter) end
 end
 

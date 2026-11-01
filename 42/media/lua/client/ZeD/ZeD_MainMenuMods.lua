@@ -886,6 +886,7 @@ function ZeD_MMMods:enterProfiles()
     MM.clickSound()
     MM.ctx.open = nil
     self.confirm = false
+    self._backFocus = nil   -- (a page change names its own stop: no question's stop left for the next one)
     self.field:setVisible(false)
     self.page = "profiles"
     local inUse = self:profileInUse()
@@ -900,6 +901,7 @@ end
 function ZeD_MMMods:leaveProfiles()
     self.page = "list"
     self.confirm = false
+    self._backFocus = nil
     self.field:setVisible(false)
     self.scroll, self.dscroll = 0, 0
     self.focusId = nil
