@@ -402,15 +402,17 @@ function ZeD_MMMods:folderBox(fid)
     local before = activeSet(m)
     local cannot, keptOn, inFolder = {}, {}, {}
     local SF = ZeD.ModSafety
+    -- (on: one batch, the Mods screen's own; a mod that cannot run stays off, the first of two that
+    -- conflict wins, the template mod asks on its own row. QA Nov 1 2026, mhd: one at a time lost one)
+    if turnOn then
+        local ids = {}
+        for _, d in ipairs(ds) do ids[#ids + 1] = d.modId end
+        local _, off = self:modsOnBatch(ids)
+        for _, n in ipairs(off) do cannot[#cannot + 1] = n end
+    end
     for _, d in ipairs(ds) do
         inFolder[d.modId] = true
-        if turnOn then
-            if not d.isActive then
-                -- (a mod that cannot run stays off; the template mod asks on its own row)
-                if d.modId == "ModTemplate" or self:problemNow(d) then cannot[#cannot + 1] = tostring(d.name)
-                else m:forceActivateMods(d.modInfo, true) end
-            end
-        elseif d.isActive then
+        if not turnOn and d.isActive then
             -- a save's own list: a mod its world may hold stays on (its own row asks first)
             local grade = "safe"
             if m.loadGameFolder and SF and SF.forTurnOff then pcall(function() grade = SF.forTurnOff(m, d).grade end) end

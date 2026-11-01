@@ -304,7 +304,9 @@ function ZeD_MMMods:problem(d)
     return v or nil
 end
 
-function ZeD_MMMods:problemNow(d)
+-- what stops a mod running at all (its game version, a requirement missing): problemNow without
+-- the conflicts (the batch below weighs those itself)
+function ZeD_MMMods:problemRun(d)
     local m = model()
     local ok, self_ = pcall(function() return d.modInfo:isAvailableSelf() end)
     if ok and self_ == false then
@@ -324,6 +326,13 @@ function ZeD_MMMods:problemNow(d)
         if #missing > 0 then return ZeD.tr("UI_ZeD_Mods_ProbNeeds", table.concat(missing, ", ")) end
         return ZeD.tr("UI_ZeD_Mods_ProbCannot")
     end
+    return nil
+end
+
+function ZeD_MMMods:problemNow(d)
+    local m = model()
+    local run = self:problemRun(d)
+    if run then return run end
     if d.isIncompatible and not d.isActive then
         local by = {}
         for id in pairs(d.incompatibleWith or {}) do
@@ -333,6 +342,77 @@ function ZeD_MMMods:problemNow(d)
         return ZeD.tr("UI_ZeD_Mods_ProbConflicts", table.concat(by, ", "))
     end
     return nil
+end
+
+-- MODS ON AND OFF AS ONE BATCH ------------------------------------------------
+-- Every path that sets several mods goes through here (QA Nov 1 2026: msp 3d, then mhd). One at
+-- a time, the first of two mods that declare each other incompatible went on and the game then
+-- refused the second, though the player had them on together: The Only Cure+ was lost turning
+-- a separator back on, and again on Undo. Here every mod that can run is set on, the
+-- requirements follow and the game's lists are worked out once.
+
+-- ids on, in that order. opts.together: ids the player had on together (their own earlier
+-- state): two of them that conflict go on together; otherwise the first wins, and a mod on
+-- already counts as first. opts.exact: the template mod too (else it asks on its own row).
+-- opts.why: id -> the reason a mod stayed off. Returns the mods set on and the names left off.
+function ZeD_MMMods:modsOnBatch(ids, opts)
+    local m = model()
+    local go, goSet, cannot, seen = {}, {}, {}, {}
+    if not m then return go, cannot end
+    opts = opts or {}
+    local together, why = opts.together, opts.why
+    for _, id in ipairs(ids or {}) do
+        local d = m.mods[id]
+        if d and not d.isActive and not seen[id] then
+            seen[id] = true
+            local mine = together ~= nil and together[id] == true
+            local reason = (d.modId == "ModTemplate" and not opts.exact) and ZeD.tr("UI_ZeD_Seps_WhyOff") or self:problemRun(d)
+            if not reason then
+                for x in pairs(d.incompatibleWith or {}) do
+                    local xd = m.mods[x]
+                    if (goSet[x] or (xd and xd.isActive)) and not (mine and together[x]) then
+                        reason = ZeD.tr("UI_ZeD_Mods_ProbConflicts", tostring(xd and xd.name or x))
+                        break
+                    end
+                end
+            end
+            if reason then
+                cannot[#cannot + 1] = tostring(d.name)
+                if why then why[id] = reason end
+            else
+                go[#go + 1] = d
+                goSet[id] = true
+            end
+        end
+    end
+    for _, d in ipairs(go) do m:setModActive(d.modId, true); d.isActive = true end
+    for _, d in ipairs(go) do
+        for _, r in ipairs(jlist(d.modInfo:getRequire())) do
+            local rd = m.mods[r]
+            if rd and not rd.isActive then m:forceActivateMods(rd.modInfo, true) end
+        end
+    end
+    if #go > 0 then m:refreshMods() end
+    return go, cannot
+end
+
+-- the mods on made want (id -> true): the rest off, want's on in one batch, in order (else the
+-- list's). exact: want is the player's own earlier state (Undo, Back, a profile, the set the
+-- screen opened with): it comes back exactly, two mods that conflict included. Otherwise the
+-- rule above. Returns the mods set on, the names left off, and whether any went off.
+function ZeD_MMMods:applyOnSet(want, exact, order, why)
+    local m = model()
+    if not (m and want) then return {}, {}, false end
+    local off = false
+    for _, d in pairs(m.mods or {}) do
+        if d.isActive and not want[d.modId] then m:setModActive(d.modId, false); d.isActive = false; off = true end
+    end
+    if off then m:refreshMods() end
+    local ids = {}
+    for _, id in ipairs(order or {}) do if want[id] then ids[#ids + 1] = id end end
+    for _, d in ipairs(m.sortedMods or {}) do if want[d.modId] then ids[#ids + 1] = d.modId end end
+    local go, cannot = self:modsOnBatch(ids, { together = exact and want or nil, exact = exact, why = why })
+    return go, cannot, off
 end
 
 -- ACTIONS ---------------------------------------------------------------------
@@ -423,12 +503,19 @@ function ZeD_MMMods:accept()
     if MM.view == "mods" and ms() and ms().bottomPanel:isVisible() then MM.showView("main") end
 end
 
+-- the mods on when the screen opened (the player's own set: Discard and Undo changes restore it)
+function ZeD_MMMods:defaultOnSet()
+    local want = {}
+    for id, d in pairs((model() and model().mods) or {}) do if d.defaultActive then want[id] = true end end
+    return want
+end
+
 -- vanilla's NO answer: every changed mod back to how it was, favourites too, then accept
 function ZeD_MMMods:discard()
     local m = model()
     if not m then return end
+    self:applyOnSet(self:defaultOnSet(), true)
     for _, d in pairs(m.mods or {}) do
-        if d.isActive ~= d.defaultActive then m:forceActivateMods(d.modInfo, d.defaultActive) end
         m.favs[d.modId] = d.defaultFav
         d.favorite = d.defaultFav
     end
@@ -448,9 +535,7 @@ end
 function ZeD_MMMods:revert()
     local m = model()
     if not m then return end
-    for _, d in pairs(m.mods or {}) do
-        if d.isActive ~= d.defaultActive then m:forceActivateMods(d.modInfo, d.defaultActive) end
-    end
+    self:applyOnSet(self:defaultOnSet(), true)
     local order, seen = {}, {}
     for _, id in ipairs(jlist(getActivatedMods())) do
         if m.mods[id] and m.mods[id].isActive then order[#order + 1] = id; seen[id] = true end
@@ -570,12 +655,13 @@ end
 function ZeD_MMMods:setAll(on)
     local m = model()
     if not m then return end
-    for _, d in ipairs(m.sortedMods or {}) do
-        if on then
-            if not d.isActive and d.isAvailable and d.modId ~= "ModTemplate" then m:forceActivateMods(d.modInfo, true) end
-        elseif d.isActive then
-            m:forceActivateMods(d.modInfo, false)
-        end
+    -- (one batch: on, the first in the list wins a conflict; the template mod asks on its own row)
+    if on then
+        local ids = {}
+        for _, d in ipairs(m.sortedMods or {}) do ids[#ids + 1] = d.modId end
+        self:modsOnBatch(ids)
+    else
+        self:applyOnSet({}, true)
     end
     if on and self.relayoutList then self:relayoutList() end
     self.preset = nil
@@ -595,12 +681,9 @@ function ZeD_MMMods:loadProfile(p)
         return
     end
     local _, want = presetIds(m.presets[p.name])
-    for _, d in ipairs(m.sortedMods or {}) do
-        if d.isActive and not want[d.modId] then m:forceActivateMods(d.modInfo, false) end
-    end
-    for _, d in ipairs(m.sortedMods or {}) do
-        if want[d.modId] and not d.isActive and d.isAvailable then m:forceActivateMods(d.modInfo, true) end
-    end
+    -- (the player's own saved set: exactly, as one batch, in its saved order)
+    local e0 = extra(p.name)
+    self:applyOnSet(want, true, e0 and e0.order or nil)
     -- the saved order first, then anything else now on (requirements pulled in); a profile saved
     -- before ZeD kept orders is sorted by the mods' own rules
     local active = jlist(m:getActiveMods():getMods())
