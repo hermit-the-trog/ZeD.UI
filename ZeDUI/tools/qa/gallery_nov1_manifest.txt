@@ -1,0 +1,51 @@
+# Nov 1 2026: the Workshop gallery retake from workshop/gallery/REVIEW_20261101.md ("Retakes"), on the t14 build, every
+# tab at full height (both windows as tall as the screen allows), the default look (Dark, Orange) but the theme page 9,
+# no debug artifacts. Same screenshot names as the t14 run, so shots.json keeps working.
+#   zedqa_run.ps1 -Manifest gallery_nov1_manifest.txt -Mode fullscreen4k     (QA only; about 30-40 min at 4K)
+# Then the one main-menu picture (page 48), with the game closed: gallery_nov1_menus_run.ps1 (about 2 min; it pushes
+# gallery_t14_look_menu.lua, gallery_nov1_menu.lua and gallery_t14_end_menu.lua itself).
+# Then gallery_t14_collect.ps1 -Since <start of the run> -Switch, keeping only the names listed below.
+# Pages and pictures:
+#   21 zed_18_card_food, zed_19_card_weapon | 22 zed_10_equip_doll | 23 zed_11_health_exercise, zed_11b_health_hover
+#   29 zed_51_forage, zed_52_furniture                                                   (gallery_nov1_lot.lua)
+#   15 zqa_cw_01_dark_small_card, zqa_cw_01b_help_line, zqa_cw_02_dark_small_window_menu_theme
+#   16 zqa_cw_08_seethrough_100, zqa_cw_12_seethrough_60, zqa_cw_12b_solid_in_use
+#   17 zqa_cw_14/16/18/20_focus_<hand|corners|wash|ants>_inventory_row                   (gallery_nov1_cohesion.lua)
+#   35 g5_car_radio (the Premium Technologies CD receiver)                                 (gallery_nov1_radio.lua)
+#    2 story_00a_identity_tall (optional, a hair pick) | 3 story_02a_journal_entry | 4 story_03_route_map,
+#      story_03b_route_note | 9 story_08b_footer_light, story_08c_footer_blue, story_08d_open_light_blue
+#                                                                                         (gallery_nov1_story.lua)
+#   43 zqa_g3_wheel_use_smoke | 44 zqa_g3_setup_chords, zqa_g3_setup_list, zqa_g3_setup_putback (gallery_nov1_t3.lua)
+#   49 zqa_sbx_world_help                                                                  (gallery_nov1_sandbox.lua)
+#   48 mm4_01_options_zed                                         (gallery_nov1_menu.lua, gallery_nov1_menus_run.ps1)
+# Order: the cohesion walk's and the car radio's retakes run inside the mall lot block, as they did on t14 (the walk's
+# see-through pictures over the lot; the radio needs the lot's station wagon, GAL.car, which the lot's teardown takes
+# away). The t3 and sandbox ones run at the QA home after the story.
+#
+# -- the look first: Debug menu, position readout and left-edge column off; Dark + Orange in the options; still-waits on
+zedqa_prelude.lua | pre | timeout=120
+gallery_t14_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=120
+#
+# -- the mall lot (gallery v3 staging, unchanged): pages 15-17, 21-23, 29, 35                        about 12-15 min
+gallery_v3_core.lua | g3c | timeout=600
+gallery_v3_reveal.lua | g3r | timeout=300
+gallery_v3_stage.lua | g3s | timeout=600
+gallery_nov1_lot.lua | n1l | timeout=900                 # zed_18/19 cards, zed_10 doll, zed_11/11b health, zed_51/52
+gallery_nov1_cohesion.lua | n1c | timeout=660            # zqa_cw_01/01b/02/08/12/12b/14/16/18/20 (about 2-3 min)
+gallery_nov1_radio.lua | n1r | timeout=480               # g5_car_radio (about 1-2 min)
+gallery_v3_teardown.lua | g3t | timeout=600
+#
+# -- the Fossoil story (story staging, unchanged): pages 2-4 and 9                                   about 10-12 min
+gallery_t14_look.lua | g14l2 | timeout=60                # the lot's teardown put its options back: the look again
+gallery_story_stage.lua | sts | timeout=600
+gallery_nov1_story.lua | n1s | timeout=1080              # story_00a (optional), 02a, 03, 03b, 08b/c/d (about 4-6 min)
+gallery_story_teardown.lua | stt | timeout=600
+gallery_t14_look.lua | g14l3 | timeout=60                # the story's teardown put its options back: the look again
+#
+# -- the QA captures: pages 43, 44, 49                                                               about 1-2 min
+gallery_nov1_t3.lua | n1t | timeout=300                  # zqa_g3_wheel_use_smoke, zqa_g3_setup_chords/list/putback
+gallery_nov1_sandbox.lua | n1x | timeout=240             # zqa_sbx_world_help
+#
+# -- put back what the look changed
+gallery_t14_end.lua | g14e | timeout=60
