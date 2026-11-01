@@ -1009,6 +1009,24 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
         and `deck_followup_large_manifest.txt` (prelude, Large, tww, cu). The 4K pair (tww, cu) and the 720 passes as
         QA planned.
 
+      - **QA, Nov 1 2026, 2:00 pm (round two on d118520; reports qa/regression/2026-11-01_deck_followup_800N.md 6 / 6,
+        _800L.md 4 / 4, 2026-11-01_pair4k_after_deck.md 3 / 3):**
+        e. **confirmed, Character side, both text sizes.** tww: the pair ends where it started (303,0 / 644,0 at
+           Normal; 253,0 / 644,0 at Large); cu "tab closed while rolled World 644,0" at both. **dke confirmed:** dko
+           passes (1 s), race and primani read off, start, then on with the engine running (6 shots).
+        f. **confirmed.** cu: "Loot World side down with the press" and the Character side both "rods in UI 0" at
+           Normal and at Large.
+        c. **Probe print (Normal pass) in deck_followup_800N.md, section 6:** at Normal text (view 278, row h 20)
+           Down walks all 11 col1 rows to Foraging (y 258.98, 0.98 px under the edge); the next Down leaves the
+           Skills content: "nil: focus in Char zone charMainInv on invrow:11 (x 0 y 227 w 150 h 23)", then invrow:12,
+           13 on the Downs after. At Large (pass 2, view 273, drawer 414) Down past Foraging stays on Foraging. So the
+           fault is the Down past the last row at Normal text crossing into the main inventory list, not a row out of
+           reach.
+        4K unchanged: tww's 47 case lines (every width and both windows' positions) are identical to the last 4K run
+        with it (2026-10-31_t14c); cu passes (222 ok). Pskd print at Large unchanged from 1:10 pm.
+        Left for QA: the 720 passes at Normal and Large (about an hour each, on request); the Skills fix's re-check
+        when Build has it (pskd + wpt on the Deck at Normal).
+
 ## Test process
 
 - The release check (before every upload, about 5 minutes, pass or fail): right-click opens the
