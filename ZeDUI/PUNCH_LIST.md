@@ -665,6 +665,17 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     one a progress bar runs in the band while items appear in the list as the mod reveals them (heaviest first);
     "Search all" (every container in reach) is a button in the container band, reachable by the pad. Support lives in
     ZeD's own code (the mod's page asks that it not be altered).
+    **Built (1c8806e, e31ae4c), QA to confirm.** ModSupport/ImmersiveSearching.lua through a new general hook, ContainerGates.lua
+    (a mod's rule on what a container lists, its band and what goes into it; a "container picked" hook). The "?" chip
+    on unsearched buttons in both strips; the list shows exactly what the mod has revealed (its Items[container]
+    .Searched), "Not searched." before, the weight line "Not searched" / "Searching..." / "Waiting to search"; the band
+    leaves the moves out (Take all, Same type, To floor; Transfer all on your side), as the mod hides the game's, and
+    shows the bar and Search (main); moves and drops into a container never searched are refused (its hasRoomFor rule).
+    A container a ZeD list starts showing starts the search through the game's own page (selectContainer with its
+    button, which the mod wraps); a window opening, or a list coming back from under a tab, does not. Search all is in
+    the World band for any container on show while one in reach is unsearched, but only when the mod's sandbox
+    "Search all" allows it (off by default: no button), corpses only when set so. QA zedqa_immersive_searching.lua
+    (tag iss; in regression.txt it checks the mod-off case; with the mod: isearch_manifest.txt + isearch_mods.txt).
 41. **Load order tools for big mod lists (a Workshop comment by Kable, ~1,500 mods; director, Oct 31 2026: "I want
     the mod manager to really shine, so let's try and accommodate their request").** chosen. Rules
     ZeDUI/MODS_LOAD_ORDER_SPEC.md, mockup ZeDUI/mockups/zed_mod_folders_v2.html (7ee6ef4), together with item 37's
