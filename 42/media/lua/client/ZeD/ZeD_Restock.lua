@@ -808,11 +808,17 @@ end
 -- ---------------------------------------------------------------------------
 -- run = { pn, mode, kind = "restock" | "unpack", list (its name), acts (queued, in order),
 --         stops, stopAt, start = { x, y, z }, z0, hp0, pads, notice, stopped, done, doneMs, ms }
+-- (ZeD's own moves: Put things back never notes them as a run. Noted, a run's wear or belt step
+-- was its "main action", and once it finished Put things back took the hat off and back to the crate.)
 local function queueActs(run, p, acts)
+    local PB = ZeD.PutBack
+    local was = PB and PB.queuing
+    if PB then PB.queuing = true end
     for _, a in ipairs(acts) do
         ISTimedActionQueue.add(a)
         run.acts[#run.acts + 1] = a
     end
+    if PB then PB.queuing = was end
 end
 
 -- the run's actions still in the character's queue
@@ -939,6 +945,7 @@ function R.start(p, kind)
 end
 
 --- Stop the run: the queue cancelled; why = "key" | "zombie" | "hurt" | "user" (pressed again)
+-- (Casual also ends by itself: "full", over what you can carry; "stuck", what is left in reach was refused)
 function R.stop(p, why)
     local run = R.runs[p:getPlayerNum()]
     if not run or run.done then return end
@@ -976,15 +983,28 @@ local function tickCasual(p, run)
     if run.held and run.held == sig then return end
     run.held = nil
     run.reachSig = sig
-    local now = {}
+    -- over what you can carry: no more takes (what is on you still goes in place)
+    local over = p:getInventoryWeight() >= p:getMaxWeight()
+    local now, full, far = {}, false, false
     for _, j in ipairs(jobs) do
         local k = tostring(j.item and j.item:getID()) .. "|" .. j.kind
-        if ((not j.sq) or R.inReach(p, j.sq)) and run.tried[k] ~= sig then
-            run.tried[k] = sig
-            now[#now + 1] = j
+        local here = (not j.sq) or R.inReach(p, j.sq)
+        if not here then far = true end
+        if here and run.tried[k] ~= sig then
+            if over and j.src then full = true
+            else
+                run.tried[k] = sig
+                now[#now + 1] = j
+            end
         end
     end
-    if #now == 0 then return end
+    -- never waits on nothing: over the limit, or all that is left in reach was tried here and is
+    -- still left (the game refused it), the run ends and says why. Out of reach: it waits for you.
+    if #now == 0 then
+        if full then finish(p, run, "full")
+        elseif not far then finish(p, run, "stuck") end
+        return
+    end
     run.acts = {}
     for _, j in ipairs(now) do queueActs(run, p, R.actionsFor(p, j, true)) end
     noticeFor(p, run, now)

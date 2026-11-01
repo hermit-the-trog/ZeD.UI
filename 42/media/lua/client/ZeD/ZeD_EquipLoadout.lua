@@ -886,7 +886,8 @@ end
 -- the restock way in words, and why a run stopped
 local WAY_KEY = { hardcore = "UI_ZeD_Todo_WayHardcore", casual = "UI_ZeD_Todo_WayCasual", accessible = "UI_ZeD_Todo_WayAccessible" }
 local STOP_KEY = { zombie = "UI_ZeD_Restock_StoppedZombie", hurt = "UI_ZeD_Restock_StoppedHurt", key = "UI_ZeD_Restock_StoppedKey",
-                   user = "UI_ZeD_Restock_StoppedUser", error = "UI_ZeD_Restock_StoppedError" }
+                   user = "UI_ZeD_Restock_StoppedUser", error = "UI_ZeD_Restock_StoppedError",
+                   full = "UI_ZeD_Restock_StoppedFull", stuck = "UI_ZeD_Restock_StoppedStuck" }
 
 -- Load after restock: a bar of worn and gear, supplies and the room for loot against what you can carry
 local function drawLoad(panel, win, x, y, w, plan)
