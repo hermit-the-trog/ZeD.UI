@@ -1883,13 +1883,20 @@ function ZeD_MMWindow:focusRows()
     local rows, byRow = {}, {}
     for _, s in ipairs(self._specs) do
         if not s.disabled then
-            local r = byRow[s.row]
-            if not r then r = {}; byRow[s.row] = r; rows[#rows + 1] = r; r.n = s.row end
+            local k = s.row or "none"
+            local r = byRow[k]
+            if not r then r = {}; byRow[k] = r; rows[#rows + 1] = r; r.n = s.row end
             r[#r + 1] = s
         end
     end
-    table.sort(rows, function(a, b) return a.n < b.n end)
-    for _, r in ipairs(rows) do table.sort(r, function(a, b) return a.col < b.col end) end
+    -- (a stop with no row or column sorts last, never throws: one bad spec must not leave A dead)
+    local function lt(x, y)
+        if type(x) ~= "number" then return false end
+        if type(y) ~= "number" then return true end
+        return x < y
+    end
+    table.sort(rows, function(a, b) return lt(a.n, b.n) end)
+    for _, r in ipairs(rows) do table.sort(r, function(a, b) return lt(a.col, b.col) end) end
     return rows
 end
 

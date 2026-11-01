@@ -386,7 +386,7 @@ function ZeD_MMDescEdit:drawCanvas(x, y, w, h)
         -- puts the keys in its field, so typing goes straight into the block that was picked
         local cid = "card:" .. i
         self._specs[#self._specs + 1] = { id = cid, listRow = true, x = cx, y = cy, w = cw, h = T.px(HEAD_H) + pad, clipTop = self._cv.y, clipBot = self._cv.y + self._cv.h,
-                                          fn = function() self:select(i); self.edit:focus() end, chosen = isSel }
+                                          fn = function() self:select(i); self.edit:focus() end, chosen = isSel, row = 1001 + i * 2, col = 1 }
         local vy0, vy1 = math.max(cy, y), math.min(cy + hh, y + h)
         if vy1 > vy0 and not (isSel and editShown) then
             self._hits[#self._hits + 1] = { id = "wsd:card:" .. i, x = ax + cx, y = ay + vy0, w = cw, h = vy1 - vy0, fn = function() self:select(i); self.focusId = cid; self.edit:focus() end }
@@ -416,7 +416,7 @@ function ZeD_MMDescEdit:drawPreview(x, y, w, h)
         self._hits[#self._hits + 1] = { id = hid, x = ax + tx, y = ay + y + tH - T.tabH, w = tw, h = T.tabH, fn = function()
             if self.view ~= t[1] then self.view = t[1]; self.pscroll = 0; MM.clickSound() end end }
         self._specs[#self._specs + 1] = { id = "view:" .. t[1], listRow = true, x = tx, y = y + tH - T.tabH, w = tw, h = T.tabH,
-                                          fn = function() self.view = t[1]; self.pscroll = 0 end }
+                                          fn = function() self.view = t[1]; self.pscroll = 0 end, row = 900, col = (t[1] == "steam") and 1 or 2 }
         tx = tx + tw + T.sp.tabGap
     end
     local py, ph = y + tH, h - tH
