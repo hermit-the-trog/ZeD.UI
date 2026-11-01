@@ -124,9 +124,13 @@ local function _paintGpCue(panel, x, y, w, h)
 end
 
 local function angleToBearing(rad)
-    -- rad: 0 = east, pi/2 = north (PZ Y- is north)
+    -- rad: the maths angle, 0 = east, pi/2 = north (PZ Y- is north). The COMPASS table starts at
+    -- N and runs clockwise, so the angle is turned into a heading first: north 0, east 90, south
+    -- 180, west 270 (punch list 43, Nov 1 2026: a find due east read N and the ring ran backwards).
+    -- (+ 360 before the modulo: Kahlua's % keeps the sign of a negative number)
     local deg = math.deg(rad) % 360
-    local idx = math.floor((deg + 22.5) / 45) % 8 + 1
+    local heading = (90 - deg + 360) % 360
+    local idx = math.floor((heading + 22.5) / 45) % 8 + 1
     return COMPASS[idx]
 end
 

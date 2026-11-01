@@ -1059,6 +1059,22 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     in a capture. A find's "12 tiles NE" in the list would send the player the wrong way. Ways: (1) map the maths angle
     to the compass index (north = 0 at the top, clockwise: index = floor(((90 - deg) mod 360 + 22.5) / 45) + 1); (2)
     drop the letter and keep the distance. Build's call; a QA check can stage a find at a known square after.
+    **fixed (build, Nov 1 2026, the director: "fix the letter").** The angle is turned into a heading (north 0, east
+    90, clockwise) before the table is read; the eight headings checked by hand (east E, north N, north-east NE,
+    south S), the modulo kept positive for Kahlua. QA to confirm: a find staged at a known square (east of the
+    character reads E, north reads N).
+
+44. **Controller multi-select in the inventory (the director, Nov 1 2026; for build 16).** open, an idea in his
+    words: "I'm thinking about multi-select for inventory with a gamepad. X opens the context menu. What if we hold
+    down X and that selects an item, and then you can hold down X on the next item. So holding down the X is what
+    allows you to select multiple items. Because if I remember right, holding down A uses the item. But if A selects
+    the item, then holding down A should be multi-select. And if X opens the context menu, then holding X should
+    use the item. That makes more sense to me." Today (GAMEPAD_SPEC): tap A opens the row's card (focus on Take),
+    hold A does what a double-click does (quick use), tap X opens the context menu, hold X is drag mode (the D-pad
+    moves the held thing; the container strip uses it). Questions for the design pass: what tap A means on a row
+    once "select" exists (open the card, or select with the card on another press); what hold X's drag mode moves
+    to; how a multi-selection shows (the list's selection wash) and what acts on it (the context menu, Take, drop);
+    how it clears (B, or a tap elsewhere). Not for t15.
 
 ## Test process
 
