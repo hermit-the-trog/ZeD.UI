@@ -1,0 +1,3 @@
+# Nov 1 2026: the simplified Chinese font (Noto Sans SC on Cred1)
+zedqa_prelude.lua | pre
+zedqa_sc_font.lua | scf | timeout=120
