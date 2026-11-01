@@ -1451,7 +1451,10 @@ local function drawBandActions(panel, x, y, w, state, config, rd, pfx, fid, mx, 
     else
         b.w, _bandSpec.edge = nil, nil
     end
-    state._bandSingle = narrow   -- (the World window's pad stops rebuild when the band changes shape)
+    -- (the World window's pad stops rebuild when the band changes shape or recipe: stamped here,
+    -- the frame its zones are made, not when the recipe is picked; Oct 31 2026, punch list 28)
+    state._bandSingle = narrow
+    state._bandSel = rd and rd.entry and rd.entry.name or nil
     local _, out = M.drawBand(panel, x, y, w, _bandSpec)
     local r = out.buttons[1]
     local rx = r and r.x or (x + w - edge)
@@ -3418,7 +3421,13 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
                 x = z.bx, y = z.y, w = z.bw, h = z.h,
                 id = prefix .. ":actQty",
                 craftKind = "actQty",
-                onFocus = function(w, el) end,
+                -- the most is 1: the help line says so as the focus lands (the band's draw
+                -- keeps it there while the focus stays)
+                onFocus = function(w, el)
+                    if (state._maxQty or 99) <= 1 and ZeD.Help and ZeD.Help.set then
+                        ZeD.Help.set(w, ZeD.tr("UI_ZeD_Craft_QtyOne"))
+                    end
+                end,
                 onActivate = function(w, el)
                     -- (the most is 1: nothing to step, the help line says so; punch list 28)
                     local maxQ = state._maxQty or 99
