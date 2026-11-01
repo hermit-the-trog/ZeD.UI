@@ -158,3 +158,9 @@ Method: each Workshop page was opened in the signed-in browser, the title checke
 | 2879745353, 2852704777, 3628736763, 2837923608, 3346506593 | Melos Tiles, Simon MDs Tiles, Community Tile Pack, PertsPartyTiles, Erika's tiles | Map tile requirements; already on disk |
 
 No subscribed page listed ZombieBuddy or a Java mod under "Required items", so nothing was skipped for that reason. Two candidates mention an optional ZombieBuddy add-on in their description (Instinctive Hearing 3789584579, Wound Expansion 3819438691); both say the base mod works on its own. They were subscribed; when testing, enable only the base mod.
+
+## Oct 31 2026
+
+| Workshop id | Mod | Why |
+|---|---|---|
+| 3779201168 | [B42]Mod Folders (FieClaussell; mod id ModFolders) | Subscribed by QA for punch list 37: the build session reads its code for the ModFolders.cfg format |
