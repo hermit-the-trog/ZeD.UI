@@ -1091,6 +1091,19 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     to; how a multi-selection shows (the list's selection wash) and what acts on it (the context menu, Take, drop);
     how it clears (B, or a tap elsewhere). Not for t15.
 
+45. **Reset windows leaves the old tab's pad stops behind (QA, Nov 1 2026, the 720 short run; build's cause).**
+    open. wpt at 1280x720 Normal, right after cu: with the Character window on Loot, Right from the container
+    strip landed on a Health tab stop ("health:start", the exercise Start button) instead of crossing to the World
+    window, and the 22 lines after it fell with it. Cause (build): the runner resets both windows before each
+    script (Reset windows, the same as the Select wheel's and the window menu's), and the reset sets the tab to
+    Loot and the drawer shut without rebuilding the controller's stops; the stops of the tab that was showing
+    (Health, where cu ended) stay registered in the content zone until the next tab change. Latent since the
+    reset exists; this morning's 720 run passed because another script ran between cu and wpt and left Loot
+    showing; 800 passed today because the script before wpt ended on Loot. A player with a pad meets it after
+    Reset windows from a tab other than Loot: a Right from the strip lands on a stop that is not drawn. Fix: the
+    reset rebuilds each window's stops for Loot (both windows expose their ring sync; ZeD_Window.resetLayout
+    calls it after the geometry). A few lines, no design call. Build asks the director whether it goes in t15.
+
 ## Test process
 
 - The release check (before every upload, about 5 minutes, pass or fail): right-click opens the
