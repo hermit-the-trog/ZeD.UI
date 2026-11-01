@@ -20,7 +20,16 @@ if getGameSpeed() == 0 then pcall(setGameSpeed, 1) end
 local fails = 0
 local function check(ok, what) if ok then say("PASS " .. what) else fails = fails + 1; say("FAIL " .. what) end end
 local function shot(n) pcall(function() getCore():TakeFullScreenshot("zqa_band_" .. n .. ".png") end) end
-local function tabClick(strip, id) for _, z in ipairs(strip._hitZones or {}) do if z.id == "tab:" .. id then strip:onMouseDown(z.x + 2, z.y + 2); return true end end; return false end
+-- a tab by its strip button; a button scrolled out of the strip has no zone, so the tab is set (Oct 31 2026)
+local function tabClick(strip, id)
+    for _, z in ipairs(strip._hitZones or {}) do if z.id == "tab:" .. id then strip:onMouseDown(z.x + 2, z.y + 2); return true end end
+    local win = strip and strip.parent
+    for _, w in ipairs({ ZeD_CharacterWindow.getWindow(), ZeD_WorldWindow.getWindow() }) do
+        if w and (w._tabStripPanel == strip or w._actionTabStrip == strip) then win = w end
+    end
+    if win then win._activeTab = id; win._drawerMode = "tab"; win._drawerOpen = true; print("ZEDQA band (tab " .. id .. " set: its strip button is out of reach)"); return true end
+    return false
+end
 local function zone(w, name) for _, z in ipairs(w._focusRing or {}) do if z.zone == name then return z end end end
 local POPS = { "sortMenu", "showMenu", "health:exercise", "thermal:view", "^jpage$", "Menu$", "style:menu", ":pop", "Pick$" }
 local function isPop(id)
