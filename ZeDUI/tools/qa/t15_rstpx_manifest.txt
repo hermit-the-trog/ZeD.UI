@@ -1,0 +1,3 @@
+zedqa_prelude.lua | pre
+zedqa_restock.lua | rst | timeout=900
+zedqa_px_icons.lua | px | timeout=240
