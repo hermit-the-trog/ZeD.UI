@@ -518,12 +518,12 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
 
 
     **Director's picks (Oct 31 2026, answered in the build session):**
-    - **28 (Craft band, smallest screens):** the amount's - / + collapse into one amount control to free room.
-    - **29 (Equip list, half card):** the slot column's words shorten first (e.g. "Gloves" to "Glv"); names stay readable.
+    - **28 (Craft band, smallest screens):** the amount's - / + collapse into one amount control to free room. **built (674ef9f), QA to confirm** (Oct 31 2026, punch list 28/29/35/36): short of room the amount is one box, "< 3 >" (a press on a half, the wheel, or the pad's Left / Right steps it; A steps up, from the most back to 1); normal widths keep - 1 +.
+    - **29 (Equip list, half card):** the slot column's words shorten first (e.g. "Gloves" to "Glv"); names stay readable. **built (31441dc), QA to confirm:** Hat, Eyes, Mask, Ears, Scrf, Out, Inr, Vest, Und, Neck, Glv, Wrst, Ring, Arms, Shld, Pnts, Sock, Shoe, Knee, Pri, Sec, Bag, Belt, when the worn names lack room; a width the player dragged stays theirs.
     - **32 (the reader):** it stays open when its card or Papers page closes; it closes only on B, Escape or its close box (as built, no change).
-    - **35 (Skills, narrow):** the level bar shrinks to its minimum before the name is cut; the level number stays.
-    - **36 (ID card):** "make a vertical version of the ID": below a width the card switches to a portrait layout (photo on top, fields below). Build shows the director a screenshot before it ships.
-    - **36 (Maps):** the stamps fold first; the inks stay so the ink in use always shows.
+    - **35 (Skills, narrow):** the level bar shrinks to its minimum before the name is cut; the level number stays. **built (e56bc67), QA to confirm.**
+    - **36 (ID card):** "make a vertical version of the ID": below a width the card switches to a portrait layout (photo on top, fields below). Build shows the director a screenshot before it ships. **built (4c58d89), QA to confirm and capture for the director:** the portrait card when the side-by-side card's field boxes are narrower than the widest label (content width under about 424 units, about 460 with Large text); ZeD.IdentityTab.qaLayout = "tall" / "wide" forces one.
+    - **36 (Maps):** the stamps fold first; the inks stay so the ink in use always shows. **built (5d972bb), QA to confirm:** stamps close up, pinned stamps fold, then Aa (it then leads the full set under the fold arrow), the inks last from the end; the ink in use never folds while one ink fits.
 37. **A player asks for Mod Folders support (the first Workshop comment, Oct 31 2026).** open. The comment asks
     for "[B42]模组文件夹" ([B42]Mod Folders by FieClaussell, Workshop 3779201168, about 78,000 subscribers): it adds
     folders to the game's own mod list (up to 99 named folders, collapse, drag to reorder, enable or disable a whole
