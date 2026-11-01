@@ -461,6 +461,9 @@ end
 
 function ZeD_MMLooks:commitText() if self.confirm == "save" then self:saveOutfit() end end
 
+-- The answer the controller lands on when a question opens (the director, Nov 1 2026): a question that
+-- can lose or write work lands on the answer that stays; Discard, Save, Delete need a deliberate move.
+local SAFE_ANSWER = { delete = "confirm:no" }
 function ZeD_MMLooks:setConfirm(mode)
     if self.confirm == mode then return end
     -- (B on a question goes back to the stop it was asked from, the director's rule; t15 pre-upload)
@@ -479,7 +482,7 @@ function ZeD_MMLooks:setConfirm(mode)
         self.field:setVisible(false)
         if self.field:isFocused() then self.field:unfocus() end
     end
-    self.focusId = mode and "confirm:yes" or self._backFocus
+    self.focusId = mode and (SAFE_ANSWER[mode] or "confirm:yes") or self._backFocus
     if not mode then self._backFocus = nil end
 end
 

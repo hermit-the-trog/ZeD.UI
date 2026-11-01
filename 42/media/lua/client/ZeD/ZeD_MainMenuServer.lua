@@ -1051,7 +1051,7 @@ function ZeD_MMServer:act(what)
             if what == "edit" then p1:onButtonEdit()
             elseif what == "duplicate" then p1:onButtonDuplicate()
             elseif what == "rename" then p1:onButtonRename()
-            elseif what == "delete" then p1:onButtonDelete() end
+            elseif what == "delete" then p1:onButtonDelete(); self.focusId = "confirm:no" end   -- (the delete question lands on Cancel)
         end
     elseif m == "new" then
         if what == "back" then S.pageNew:onButtonBack() elseif not self:nameProblem(m) then S.pageNew:onButtonNext() end
@@ -1084,6 +1084,9 @@ end
 function ZeD_MMServer:back() self:act("back") end
 function ZeD_MMServer:next() end
 
+-- The answer the controller lands on when a question opens (the director, Nov 1 2026): a question that
+-- can lose or write work lands on the answer that stays; Discard, Save, Delete need a deliberate move.
+local SAFE_ANSWER = { discard = "confirm:no" }
 function ZeD_MMServer:setConfirm(mode)
     if self.confirm == mode then return end
     -- (B on a question goes back to the stop it was asked from, the director's rule; t15 pre-upload)
@@ -1091,7 +1094,7 @@ function ZeD_MMServer:setConfirm(mode)
     self:commitCell()
     self.confirm = mode
     MM.ctx.open = nil
-    self.focusId = mode and "confirm:yes" or self._backFocus
+    self.focusId = mode and (SAFE_ANSWER[mode] or "confirm:yes") or self._backFocus
     if not mode then self._backFocus = nil end
 end
 
@@ -1106,7 +1109,7 @@ function ZeD_MMServer:buildStrip(stripY, stripH, w)
         -- (spec 11: Cancel stays and edits on; Discard changes is the danger answer)
         ask = ZeD.tr("UI_ZeD_Server_AskLeave")
         lefts = {}
-        rights = { { "confirm:no", cancel, function() self:setConfirm(false) end },
+        rights = { { "confirm:no", ZeD.tr("UI_ZeD_MMWord_KeepEditing"), function() self:setConfirm(false) end, "default", false, ZeD.tr("UI_ZeD_MMHelp_KeepEditing") },
                    { "confirm:yes", ZeD.tr("UI_ZeD_MMWord_DiscardChanges"), function() self:act("back") end, "danger", false, ZeD.tr("UI_ZeD_MMHelp_DiscardChanges") } }
     elseif m == "list" then
         local none = not (S and S.pageStart.listbox.items[S.pageStart.listbox.selected])

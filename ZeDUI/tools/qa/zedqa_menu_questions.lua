@@ -2,7 +2,8 @@
 -- Main menu QA: B on a question goes back to the stop that asked (commit 7bca987, the director's
 -- rule; t15 pre-upload). Each page's question is opened from a known pad stop, through the
 -- screen's own pad handlers (MM.joyDown / the window's joyA, joyB, joyY; no real pad), then:
---   a  the question is up and the focus is on its default answer (confirm:yes)
+--   a  the question is up and the focus is on its default answer: the safe one that stays (Keep editing /
+--      Cancel) where the question can lose or write work (the director, Nov 1 2026), else confirm:yes
 --   b  B again cancels it: the focus is back on the stop it came from, the page still open
 -- Pages and their questions:
 --   Options    a setting changed (a Gameplay tick), B asks before leaving ("back")
@@ -75,9 +76,14 @@ local function dropPick(pred)
 end
 
 -- the two checks every page makes
+-- the answer each question lands on: the one that stays where it can lose or write work; a name to type: its OK
+local SAFE = { Options = { back = "confirm:no" }, Workshop = { leave = "confirm:cancel" }, Server = { discard = "confirm:no" },
+               Host = { reset = "confirm:no", deleteWorld = "confirm:no", deletePlayer = "confirm:no" },
+               Sandbox = { load = "confirm:no" } }
 local function askCheck(tag, page, w, mode, how)
-    local ok = w.confirm == mode and w.focusId == "confirm:yes"
-    check(ok, tag .. "a " .. page .. ": " .. how .. " (" .. tostring(mode) .. "), the focus on its default answer")
+    local want = (SAFE[page] and SAFE[page][mode]) or "confirm:yes"
+    local ok = w.confirm == mode and w.focusId == want
+    check(ok, tag .. "a " .. page .. ": " .. how .. " (" .. tostring(mode) .. "), the focus on its default answer " .. want)
     if not ok then say("   " .. page .. " confirm " .. tostring(w.confirm) .. ", focus " .. tostring(w.focusId)) end
     return ok
 end
