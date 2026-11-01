@@ -1052,20 +1052,57 @@ function ZeD_MMMods:drawList(x, y, w, h)
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
     UI.insetBox(self, x, y, w, h)
     -- the filter tabs (System 7 folder tabs), then Find
-    local tabs = self:tabList()
+    local tabs, need = self:tabList()
     self._tabOrder = {}
     for _, t in ipairs(tabs) do self._tabOrder[#self._tabOrder + 1] = t[1] end
     local tH = T.px(TABS_H)
     ZeD.Surface.fill(self, x + T.px(1), y + T.px(1), w - 2 * T.px(1), tH, "surf2")
-    local tx = x + T.px(8)
     local tY = y + tH - T.tabH
+    -- the tabs fit the list's width (QA Nov 1 2026, 1280x720 Large: Workshop ran under the pane):
+    -- tighter first (padding, then gaps), and if they still do not fit the row slides so the
+    -- open tab is in view, clipped to the list, never cut by the pane
+    local avail = w - T.px(16)
+    local padX, gap = T.sp.tabPadX, T.sp.tabGap
+    local n = #tabs
+    if need > avail and n > 0 then
+        local over = need - avail
+        local cutPad = math.min(padX - T.px(4), math.ceil(over / (2 * n)))
+        if cutPad > 0 then padX = padX - cutPad; over = over - cutPad * 2 * n end
+        if over > 0 then
+            local cutGap = math.min(gap, math.ceil(over / n))
+            gap = gap - cutGap; over = over - cutGap * n
+        end
+        need = avail + math.max(0, over)
+    end
+    local tabOpts = self._tabOpts
+    if not tabOpts then tabOpts = {}; self._tabOpts = tabOpts end
+    tabOpts.padX = padX
+    local shift = 0
+    if need > avail then
+        -- (the open tab's place: the row slides just enough to show it whole)
+        local ox, aL, aR = 0, 0, 0
+        for _, t in ipairs(tabs) do
+            local tw = MM.textW(T.fontF2, t[2]) + padX * 2
+            if self.filter == t[1] then aL, aR = ox, ox + tw end
+            ox = ox + tw + gap
+        end
+        shift = math.max(0, aR - avail)
+        if aL < shift then shift = aL end
+        self:setStencilRect(x + T.px(1), y + T.px(1), w - 2 * T.px(1), tH)
+    end
+    local tx = x + T.px(8) - shift
+    local clipL, clipR = x + T.px(1), x + w - T.px(1)
     for _, t in ipairs(tabs) do
         local hid = "mods:tab:" .. t[1]
-        local tw = ZeD.Molecules.drawTab(self, tx, tY, t[2], self.filter == t[1], MM.ctx.hot == hid, false)
-        self._hits[#self._hits + 1] = { id = hid, x = ax + tx, y = ay + tY, w = tw, h = T.tabH, fn = function()
-            if self.filter ~= t[1] then self.filter = t[1]; self.scroll = 0; MM.clickSound() end end }
-        tx = tx + tw + T.sp.tabGap
+        local tw = ZeD.Molecules.drawTab(self, tx, tY, t[2], self.filter == t[1], MM.ctx.hot == hid, false, tabOpts)
+        local hx0, hx1 = math.max(tx, clipL), math.min(tx + tw, clipR)
+        if hx1 > hx0 then
+            self._hits[#self._hits + 1] = { id = hid, x = ax + hx0, y = ay + tY, w = hx1 - hx0, h = T.tabH, fn = function()
+                if self.filter ~= t[1] then self.filter = t[1]; self.scroll = 0; MM.clickSound() end end }
+        end
+        tx = tx + tw + gap
     end
+    if need > avail then self:clearStencilRect() end
     ZeD.Atoms.drawDividerH(self, x, y + tH, w, true)
     local fY = y + tH + T.px(1)
     local fH = T.px(FIND_H)
