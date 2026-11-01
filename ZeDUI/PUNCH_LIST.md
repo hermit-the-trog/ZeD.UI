@@ -605,6 +605,19 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     Audit: Find is on the Mods page only and the pad can't reach it; moves are one place at a time; load-after
     only as a one-time Conflicts fix; ZeD picks is a hidden pin last; the order check runs over the whole list twice
     a frame (fix first for 1,500 mods); the profile writer drops lines it doesn't know.
+    **Stage 1 built (d8277fe, 8961de3, 9e587b4), QA to confirm.** Speed: the order check, place numbers and rows
+    are worked out once per change and kept; every list draws and makes controller stops only for the rows in sight
+    (the Workshop tab also walked every mod for every item every frame: fixed). Find on the Load order page (place
+    numbers, gaps, Show in the full list; a controller stop on both pages, Ctrl+F); Load first / Load last with
+    carried mods, ZeD picks shown as kept last by ZeD; Load after... / Load before... picker (greyed choices with
+    reasons), rules kept through Auto and profile loads, shown on the row, removable; Move to top / bottom, drag,
+    keyboard moves, Undo. Pins and rules are kept with the list being edited ([@list ...] sections in
+    ZeD_modprofiles.txt), go into a profile with New... / Update... and come back with a load; the profile writer
+    keeps lines it does not know. QA: zedqa_mods_order.lua (tag mlo, compat_r4_mods.txt). Calls made where the spec
+    was silent: Move up / Move down at a block's edge unpins a pinned mod (spec 2.8) and refuses an unpinned or
+    carried one; Move to top / bottom work inside the block until sections exist; LB / RB and Page Up / Down move
+    a page; a choice that needs a pin is greyed ("pin it first too") instead of offering Pin first and load
+    before; New game's Choose mods keeps its own list ([@list new game]).
 
 ## Test process
 
