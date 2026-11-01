@@ -516,6 +516,14 @@ empty inventory. Full pass at 99d3372: 93/97, the rest known (rtv's vanilla Null
 lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game code as 99d3372)**: 4,253 files,
 42.8 MB; description 7,929 + 58; change note with tonight's fixes; zedqa.lock busy until the upload.
 
+
+    **Director's picks (Oct 31 2026, answered in the build session):**
+    - **28 (Craft band, smallest screens):** the amount's - / + collapse into one amount control to free room.
+    - **29 (Equip list, half card):** the slot column's words shorten first (e.g. "Gloves" to "Glv"); names stay readable.
+    - **32 (the reader):** it stays open when its card or Papers page closes; it closes only on B, Escape or its close box (as built, no change).
+    - **35 (Skills, narrow):** the level bar shrinks to its minimum before the name is cut; the level number stays.
+    - **36 (ID card):** "make a vertical version of the ID": below a width the card switches to a portrait layout (photo on top, fields below). Build shows the director a screenshot before it ships.
+    - **36 (Maps):** the stamps fold first; the inks stay so the ink in use always shows.
 37. **A player asks for Mod Folders support (the first Workshop comment, Oct 31 2026).** open. The comment asks
     for "[B42]模组文件夹" ([B42]Mod Folders by FieClaussell, Workshop 3779201168, about 78,000 subscribers): it adds
     folders to the game's own mod list (up to 99 named folders, collapse, drag to reorder, enable or disable a whole
