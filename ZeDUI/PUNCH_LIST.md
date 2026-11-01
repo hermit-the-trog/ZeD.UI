@@ -556,6 +556,18 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     run with ZeD off to see how a non-English folder name is written (done: QA ran the mod's own save code in game,
     c8a237b, ZeDUI/ModFolders_sample.cfg; one hex code per UTF-16 unit, 地图 = "5730,56FE", Café = "43,61,66,E9",
     round trips hold; MOD_FOLDERS_SPEC.md section 9 updated). Next: build, after the director's OK.
+38. **Pad stops not refreshed while the drawer fills the window.** Found by QA, Oct 31 2026 (1280x720, UI scale
+    2.0, Large text; zedqa_picks_recheck.lua and zedqa_bands_probe.lua, 2026-10-31_2040 / _2049): the World
+    window's open recipe had no card, amount box or Craft stops; the Character window's Health, Thermal, Identity,
+    Skills and every Journal page had 0 stops (Equip had 33). Cause: each window refreshed its controller stops in
+    the inventory list's prerender, and at that size the tab drawer takes the whole window, the list is hidden
+    (setVisible(invW > 0)) and its prerender never runs; the stops stayed as the tab-switch sync left them (Equip's
+    zone tables were left over from earlier frames, the others were empty). **fixed:** the refresh is a function of
+    its own (content._focusRefresh) that the list's prerender runs as before and the drawer's prerender runs while
+    the list is hidden, every frame, whatever changed the drawer: World 13d56ca, Character f1ad35e. The probe's
+    w_forage reading Maps' 14 stops was not this fault: its shot's title reads "Ground + Maps", so the Forage tab
+    never opened (its strip button scrolled out of reach at 720, item 27; the probe clicks the button only). QA to
+    re-run the probe at 720 2x Large, opening a tab by setting it when its button is out of reach.
 ## Test process
 
 - The release check (before every upload, about 5 minutes, pass or fail): right-click opens the
