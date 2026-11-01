@@ -4648,6 +4648,10 @@ function ZeD_CharacterWindow.toggle(playerNum)
         content:setX(T.px(TAB_STRIP_W) + effectiveW)
         content:setWidth(math.max(invW, 0))
         content:setVisible(invW > 0)
+        -- the content's prerender (the controller's stops) does not run while it is hidden: the
+        -- drawer runs the refresh instead (punch list 38, Oct 31 2026: at 1280x720, UI scale 2.0
+        -- every tab but Equip had no stops)
+        if invW <= 0 and content._focusRefresh then content._focusRefresh(content) end
 
         -- Container strip stays right of inventory
         containerStrip:setX(T.px(TAB_STRIP_W) + effectiveW + invW)
@@ -5889,6 +5893,20 @@ function ZeD_CharacterWindow.toggle(playerNum)
             if not okF then ZeD.logOnce("ContainerControls focus", eF) end
         end
 
+        -- the controller's stops (a function of its own: the drawer runs it too while this
+        -- side does not draw, the tab drawer taking the whole window; punch list 38)
+        content._focusRefresh(self)
+
+        -- (the title is built in the window's prerender, composeCharTitle: this side
+        -- does not draw while the tab drawer takes the whole window; break-it D1)
+    end
+
+    -- The Character window's per-frame stop refresh (the container strip, the main list, the MC
+    -- columns, the tab's stops, the item card). Oct 31 2026 (punch list 38): moved out of the
+    -- content's prerender, which does not run while the content is hidden (the tab drawer takes
+    -- the whole window at 1280x720, UI scale 2.0): Health, Thermal, Identity, Skills and the
+    -- Journal had no stops. The drawer's prerender runs it then.
+    content._focusRefresh = function(self)
         -- --------------------------------------------------------
         -- S98 RING MODEL: PER-FRAME MAIN-INV REFRESH
         -- Runs AFTER the renderer finishes so _invRowItems is fresh.
@@ -6198,9 +6216,6 @@ function ZeD_CharacterWindow.toggle(playerNum)
             Focus.setRingZoneElementsKeepId(win, "charItemCard", cardEls)
             Focus.setZoneFocusable   (win, "charItemCard", cardVisible and #cardEls > 0)
         end
-
-        -- (the title is built in the window's prerender, composeCharTitle: this side
-        -- does not draw while the tab drawer takes the whole window; break-it D1)
     end
 
     -- Draw drag ghost at window level so it renders on top of all panels
