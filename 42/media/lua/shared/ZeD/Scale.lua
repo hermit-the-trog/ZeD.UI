@@ -49,10 +49,98 @@ function S.userMul()
     return 1.0
 end
 
+-- ---------------------------------------------------------------------------
+-- THE UI SCALE CAP (Oct 31 2026, punch list 39). The director: "NO ONE IS EVER
+-- GOING TO PLAY AT 2X on 720p. It's way too big to fit more than 5 words." His
+-- pick: cap the UI scale to what fits. On a small screen ZeD setup's UI scale
+-- slider stops at the largest step whose windows still fit; Auto stays the default.
+--  1. A fixed step FITS when, at that step times the text size's multiplier
+--     (Large: 1.15 on every T.px), one window at its narrowest useful width fits in
+--     half the screen's width (both windows are capped there): the tab strip 36 +
+--     the inventory's minimum 200 + the full card 480 + the container strip 36 =
+--     752 units. And the screen's height holds the windows' minimum useful height:
+--     the title bar (26 units, Large 30, root scale only, as Tokens' SP() sizes it)
+--     + a tab strip of 6 tabs (6 x 36) + the help line (22). The engine font-size
+--     multiplier (USER_MUL) does not apply to a fixed step (S.compute hands
+--     userScale back as is), so it is left out of the step test; it is in Auto's
+--     scale, which sets the floor below.
+--  2. The cap is the largest step that fits, never below the largest step at or
+--     under what Auto picks on this screen (at 1280 wide with Large text Auto's 0.86
+--     is 9 px over the half screen; the drawer's half card already takes that case)
+--     and never below the smallest step. ZeD setup's slider, the Mods page's
+--     drop-down and the controller's ZeD wheel offer the steps up to the cap; the
+--     ones above it are dimmed and inert, the help line saying "Too big for this
+--     screen". A saved step above the cap (picked on a bigger monitor) draws AT the
+--     cap; the saved value is untouched, so the big monitor gets it back. Auto is
+--     never capped. Nor is ZeD.Scale.override (QA): a stress probe still reaches
+--     2.0 at 1280x720.
+--  3. Live: worked out from the screen size and the text size each time it is
+--     asked. S.compute runs every 30 ticks and after a resolution change, so a new
+--     resolution or text size moves the cap within half a second.
+-- ---------------------------------------------------------------------------
+S.FIT_W_UNITS = 36 + 200 + 480 + 36   -- tab strip + inventory minimum + full card + container strip
+S.FIT_TABS    = 6
+S.FIT_TAB_U   = 36
+S.FIT_HELP_U  = 22
+S.FIT_STEPS   = { 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0 }   -- (Settings.lua's fixed steps)
+
+function S.screenSize()
+    local w, h = 1920, S.BASE_H
+    pcall(function() w = getCore():getScreenWidth(); h = getCore():getScreenHeight() end)
+    if type(w) ~= "number" or w <= 0 then w = 1920 end
+    if type(h) ~= "number" or h <= 0 then h = S.BASE_H end
+    return w, h
+end
+
+-- What Auto picks for a screen this tall: the height over the base, clamped, times the font-size knob.
+function S.autoScale(h)
+    local r = (h or S.BASE_H) / S.BASE_H
+    if r < S.MIN then r = S.MIN elseif r > S.MAX then r = S.MAX end
+    return r * S.userMul()
+end
+
+-- The text size's multiplier on T.px and its title bar height (units), read live.
+local function textSizeFit()
+    local TS = ZeD.TextSizes
+    local sz = TS and TS[ZeD.currentSize or "small"]
+    return (sz and sz.scale) or 1, (sz and sz.titleBarH) or 26
+end
+
+-- Does fixed step v fit a w x h screen (rule 1)?
+function S.stepFits(v, w, h)
+    if not (w and h) then w, h = S.screenSize() end
+    local k, titleU = textSizeFit()
+    local sc = v * k
+    if S.FIT_W_UNITS * sc > math.floor(w * 0.5) then return false end
+    return titleU * v + (S.FIT_TABS * S.FIT_TAB_U + S.FIT_HELP_U) * sc <= h
+end
+
+-- The largest fixed step offered on this screen (rule 2).
+function S.fitCap(w, h)
+    if not (w and h) then w, h = S.screenSize() end
+    local auto = S.autoScale(h)
+    local cap = nil
+    for _, v in ipairs(S.FIT_STEPS) do
+        if cap == nil then cap = v end
+        if v > cap and (v <= auto + 1e-6 or S.stepFits(v, w, h)) then cap = v end
+    end
+    return cap or S.MAX
+end
+
+-- true when fixed step v is above this screen's cap (dimmed and inert in the menus).
+function S.stepTooBig(v)
+    return type(v) == "number" and v > S.fitCap() + 1e-6
+end
+
 -- Raw computation: screen height over the base, clamped, times the user knob.
+-- A fixed step above the cap draws at the cap (S.userScale itself is left as saved).
 function S.compute()
     if S.override then return S.override end
-    if S.userScale then return S.userScale end
+    if S.userScale then
+        local cap = S.fitCap()
+        if S.userScale > cap then return cap end
+        return S.userScale
+    end
     local h = S.BASE_H
     pcall(function() h = getCore():getScreenHeight() end)
     if type(h) ~= "number" or h <= 0 then h = S.BASE_H end

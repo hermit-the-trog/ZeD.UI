@@ -507,8 +507,13 @@ function Z.scaleWheel()
     local cur = S.uiScaleOption and S.uiScaleOption:getValue() or 1
     for i = 1, #S.scaleKeys do
         local name = (i == 1) and tr(S.scaleLabels[1]) or S.scaleLabels[i]   -- (the steps are numbers, as the options show them)
-        out[#out + 1] = { name = name, icon = "scale", detail = inUse(cur == i),
-            run = function() Z.option(S.uiScaleOption, i, S.applyScale) end }
+        if S.scaleStepOff and S.scaleStepOff(S.uiScaleOption, i) then
+            -- above what fits this screen (punch list 39): dimmed, with the reason, and no pick
+            out[#out + 1] = { name = name, icon = "scale", detail = inUse(cur == i), off = tr("UI_ZeD_Settings_ScaleTooBig") }
+        else
+            out[#out + 1] = { name = name, icon = "scale", detail = inUse(cur == i),
+                run = function() Z.option(S.uiScaleOption, i, S.applyScale) end }
+        end
     end
     return out
 end

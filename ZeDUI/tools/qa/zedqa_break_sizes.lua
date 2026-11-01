@@ -1,7 +1,8 @@
 -- ZeDUI/tools/qa/zedqa_break_sizes.lua  (Oct 31 2026, QA; the director: "Try to break things. Click
 -- repeatedly, make things too small and too big.")
 -- Every tab of both windows drawn with the windows far too small (1 x 1: the window's own minimum must
--- hold) and far too big (twice the screen), at UI scale 0.5 and 2.0 (the menu's range), with Large text; then the windows
+-- hold) and far too big (twice the screen), at UI scale 0.5 and 2.0 (the menu's range on a big screen; at 1280x720 the
+-- menu stops at 0.75 since punch list 39, so 2.0 there is a stress probe only, through the override), with Large text; then the windows
 -- opened and shut every tick, the tabs switched every tick, an item card opened and shut every tick.
 -- After each part: the window sizes it ended at, and whether ZeD's safe mode stepped aside (the runner
 -- counts the game's own errors per script). Shots zqa_brk_<part>.png. Puts back the scale, the text size,
