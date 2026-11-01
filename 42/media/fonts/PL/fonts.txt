@@ -62,8 +62,7 @@ font CodeLarge
 
 font Cred1
 {
-    fnt = rsv1.fnt,
-    img = rsv1_0.png,
+    fnt = zomboidMediumChinese.fnt,
 }
 
 font MainMenu1
@@ -106,4 +105,9 @@ font Intro
 {
     fnt = entry26.fnt,
     img = entry26_0.png,
+}
+
+font DebugConsole
+{
+    fnt = zomboidMediumJapanese.fnt,
 }

@@ -21,6 +21,18 @@ require "ZeD/Scale"
 
 local X = ZeD.Text
 
+-- A role font's text with letters ZeD's fonts lack (Chinese, Japanese) draws in the game's face
+-- for them (ZeD.Text.scriptSwap, shared/ZeD/Scale.lua): the face, its zoom and the y shift.
+local function faceOf(font)
+    local T = ZeD.T
+    return (T and T.fontFace and T.fontFace[font]) or 64
+end
+local function roleDraw(jo, font, str, x, y, z, r, g, b, a)
+    local sf, zz, dy = X.scriptSwap(str, z, faceOf(font))
+    if sf then jo:DrawText(sf, str, x, y + dy, zz, r, g, b, a)
+    else jo:DrawText(font, str, x, y, z, r, g, b, a) end
+end
+
 if not ISUIElement._zedTextScalePatched then
     ISUIElement._zedTextScalePatched = true
 
@@ -33,7 +45,7 @@ if not ISUIElement._zedTextScalePatched then
         local z = X.zoomOf(font)
         if z == 1 then return origDrawText(self, str, x, y, r, g, b, a, font) end
         if self.javaObject ~= nil then
-            self.javaObject:DrawText(font, tostring(str), x, y, z, r, g, b, a)
+            roleDraw(self.javaObject, font, tostring(str), x, y, z, r, g, b, a)
         end
     end
 
@@ -43,8 +55,8 @@ if not ISUIElement._zedTextScalePatched then
         if z == 1 then return origDrawTextRight(self, str, x, y, r, g, b, a, font) end
         if self.javaObject ~= nil then
             str = tostring(str)
-            local w = X.realTM():MeasureStringX(font, str) * z
-            self.javaObject:DrawText(font, str, x - w, y, z, r, g, b, a)
+            local w = X.roleWidth(font, str, z)
+            roleDraw(self.javaObject, font, str, x - w, y, z, r, g, b, a)
         end
     end
 
@@ -54,8 +66,8 @@ if not ISUIElement._zedTextScalePatched then
         if z == 1 then return origDrawTextCentre(self, str, x, y, r, g, b, a, font) end
         if self.javaObject ~= nil then
             str = tostring(str)
-            local w = X.realTM():MeasureStringX(font, str) * z
-            self.javaObject:DrawText(font, str, x - w / 2, y, z, r, g, b, a)
+            local w = X.roleWidth(font, str, z)
+            roleDraw(self.javaObject, font, str, x - w / 2, y, z, r, g, b, a)
         end
     end
 
@@ -154,7 +166,7 @@ function LEAN.drawText(self, str, x, y, r, g, b, a, font)
         end
         return
     end
-    if jo ~= nil then jo:DrawText(font, tostring(str), x, y, z, r, g, b, a) end
+    if jo ~= nil then roleDraw(jo, font, tostring(str), x, y, z, r, g, b, a) end
 end
 function LEAN.drawTextureScaled(self, texture, x, y, w, h, a, r, g, b)
     local jo = self.javaObject

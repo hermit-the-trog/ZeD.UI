@@ -449,6 +449,7 @@ function X.checkRoleFonts()
         end
     end
     X.freeFace = X.fallback and (standH * 64 / 77) or nil
+    if X._scriptReset then X._scriptReset() end   -- (the script faces are looked up again)
     if was ~= X.fallback then _entryFaces, _entryTarget, _entryFont = nil, nil, nil end
     if X._fontsSettled and (was ~= X.fallback or not X._fontsLogged) then
         X._fontsLogged = true
@@ -469,7 +470,12 @@ end
 
 -- Width / height in SCREEN px of `str` drawn at `zoom` (explicit zoom: measured on the raw manager).
 function X.width(f, str, zoom)
-    return X.realTM():MeasureStringX(uifont(f), tostring(str)) * (zoom or 1)
+    str = tostring(str)
+    if type(f) == "table" and f.sdf then
+        local sf, zz = X.scriptSwap(str, zoom or 1, f.face)
+        if sf then return X.realTM():MeasureStringX(sf, str) * zz end
+    end
+    return X.realTM():MeasureStringX(uifont(f), str) * (zoom or 1)
 end
 function X.height(f, zoom)
     return X.realTM():getFontHeight(uifont(f)) * (zoom or 1)
@@ -481,6 +487,13 @@ function X.draw(el, f, str, x, y, zoom, r, g, b, a, align)
     str = tostring(str); zoom = zoom or 1
     local w = X.width(f, str, zoom)
     if align == "r" then x = x - w elseif align == "c" then x = x - w / 2 end
+    if type(f) == "table" and f.sdf then
+        local sf, zz, dy = X.scriptSwap(str, zoom, f.face)
+        if sf then
+            el:drawTextZoomed(str, math.floor(x), math.floor(y + dy), zz, r or 1, g or 1, b or 1, a or 1, sf)
+            return w
+        end
+    end
     el:drawTextZoomed(str, math.floor(x), math.floor(y), zoom, r or 1, g or 1, b or 1, a or 1, uifont(f))
     return w
 end
@@ -506,6 +519,120 @@ function X.zoomOf(font)
         _zoom.z[font] = z
     end
     return z
+end
+
+-- ---------------------------------------------------------------------------
+-- Text in scripts ZeD's fonts do not carry (Nov 1 2026; a folder named in Chinese drew "??").
+-- Fira covers Latin, Greek and Cyrillic. ZeD's font lists (EN, PL, RU fonts.txt) put the game's
+-- own Chinese and Japanese faces (zomboidMediumChinese / zomboidMediumJapanese, 23 px bitmaps
+-- from the game's media/fonts) on two slots nothing else draws with: Cred1 (ZeD's spare Chicago,
+-- unused) and DebugConsole (the -debug console). A string with a letter the role font lacks
+-- (the engine measures a missing glyph 0 wide; one past the font's table draws "?") is drawn and
+-- measured in whichever of those faces draws the most of its letters, zoomed to the role's size
+-- and set on the role's baseline. Decided once per string (kept, two generations), glyphs probed
+-- once per face. With the game's own fonts on the roles (Chinese, Japanese, Korean, Thai
+-- language; X.fallback) nothing changes: those already draw their language.
+-- Not covered by the game's faces: Korean and Thai letters (no free slot), and the simplified
+-- Chinese letters the game's Chinese face lacks (it is a traditional set; U+56FE, "map", is one).
+-- ---------------------------------------------------------------------------
+local SCRIPT_SLOTS = {
+    { name = "Cred1", em = 23, base = 19, probe = 0x5730 },          -- the game's Chinese face
+    { name = "DebugConsole", em = 23, base = 19, probe = 0x3042 },   -- the game's Japanese face
+}
+local ZED_BASE = 60 / 64      -- ZeD's distance-field atlases: baseline 60 px down a 64 px face
+local SF_MAX = 4000
+local SF = { ready = false, fonts = {}, zedFont = nil, has = {}, cur = {}, old = {}, n = 0 }
+X._scriptFonts = SF
+
+local function sfHas(font, c, str, i)
+    local byF = SF.has[font]
+    if not byF then byF = {}; SF.has[font] = byF end
+    local v = byF[c]
+    if v == nil then
+        v = X.realTM():MeasureStringX(font, string.sub(str, i, i)) > 0
+        byF[c] = v
+    end
+    return v
+end
+
+local function sfSetup()
+    SF.ready = true
+    SF.fonts, SF.has, SF.cur, SF.old, SF.n = {}, {}, {}, {}, 0
+    SF.zedFont = nil
+    if X.fallback or not UIFont then return end
+    local body = ZeD.Font and ZeD.Font.sdf and ZeD.Font.sdf.body
+    SF.zedFont = body and (body.slot or body.font) or nil
+    local tm = X.realTM()
+    for _, e in ipairs(SCRIPT_SLOTS) do
+        local f = UIFont[e.name]
+        -- (the slot must hold the face: a language's own list can put something else there)
+        if f and tm:MeasureStringX(f, string.char(e.probe)) > 0 then
+            SF.fonts[#SF.fonts + 1] = { font = f, em = e.em, base = e.base }
+        end
+    end
+end
+X._scriptReset = function() SF.ready = false end
+
+local function sfScan(str)
+    local n = #str
+    local zf = SF.zedFont
+    local wide, miss = 0, 0
+    for i = 1, n do
+        local c = string.byte(str, i)
+        if c and c >= 128 then
+            wide = wide + 1
+            if not sfHas(zf, c, str, i) then miss = miss + 1 end
+        end
+    end
+    if miss == 0 then return false end
+    local best, bestN = false, wide - miss
+    for k = 1, #SF.fonts do
+        local e = SF.fonts[k]
+        local got = 0
+        for i = 1, n do
+            local c = string.byte(str, i)
+            if c and c >= 128 and sfHas(e.font, c, str, i) then got = got + 1 end
+        end
+        if got > bestN then best, bestN = e, got end
+    end
+    return best
+end
+
+-- The face entry ({ font, em, base }) that draws `str` in place of ZeD's role fonts, or false.
+function X.scriptFont(str)
+    if not SF.ready then
+        if not X._fontsSettled then return false end
+        sfSetup()
+    end
+    if SF.zedFont == nil or #SF.fonts == 0 or type(str) ~= "string" then return false end
+    local v = SF.cur[str]
+    if v ~= nil then return v end
+    v = SF.old[str]
+    if v == nil then v = sfScan(str) end
+    if SF.n >= SF_MAX then SF.old, SF.cur, SF.n = SF.cur, {}, 0 end
+    SF.cur[str] = v
+    SF.n = SF.n + 1
+    return v
+end
+
+-- For a role font drawn at zoom z: the face, its zoom and the y shift that draw `str`, or nil
+-- when the role font draws it itself. face: the role atlas's face px (64).
+function X.scriptSwap(str, z, face)
+    local e = X.scriptFont(str)
+    if not e then return nil end
+    local f = face or 64
+    local zz = z * f / e.em
+    return e.font, zz, z * f * ZED_BASE - e.base * zz
+end
+
+-- Width in screen px of `str` in role font `font` at zoom z, in the face that draws it.
+function X.roleWidth(font, str, z)
+    if z ~= 1 then
+        local T = ZeD.T
+        local sf, zz = X.scriptSwap(str, z, (T and T.fontFace and T.fontFace[font]) or 64)
+        if sf then return X.realTM():MeasureStringX(sf, str) * zz end
+    end
+    return X.realTM():MeasureStringX(font, str) * z
 end
 
 -- ---------------------------------------------------------------------------
@@ -558,7 +685,7 @@ function TM:MeasureStringX(font, str)
     -- (mcOn's test inline: this runs a few hundred times a frame)
     if font == nil or not ((X._fontsSettled and MC.T == ZeD.T and MC.root == S._root and MC.gen == ZeD._trGen
                             and MC.fs == MC.fsNow) or mcOn()) then
-        return X.realTM():MeasureStringX(font, str) * X.zoomOf(font)
+        return X.roleWidth(font, str, X.zoomOf(font))
     end
     local byF = MC.x[font]
     if byF then
@@ -570,7 +697,7 @@ function TM:MeasureStringX(font, str)
     end
     local old = MC.xOld[font]
     local v = old and old[str]
-    if not v then v = X.realTM():MeasureStringX(font, str) * X.zoomOf(font) end
+    if not v then v = X.roleWidth(font, str, X.zoomOf(font)) end
     if MC.n >= MC_MAX then
         MC.xOld, MC.x, MC.n = MC.x, {}, 0
         byF = {}
