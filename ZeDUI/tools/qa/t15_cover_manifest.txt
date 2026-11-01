@@ -1,0 +1,6 @@
+# Nov 1 2026: t15 covering checks after punch list 42
+zedqa_prelude.lua | pre
+zedqa_rtv.lua | rtv | timeout=600
+zedqa_plates_336.lua | p336 | timeout=900
+zedqa_restock.lua | rst | timeout=900
+zedqa_px_icons.lua | px | timeout=240
