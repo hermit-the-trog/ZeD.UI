@@ -3,6 +3,8 @@
 Plain rules for the director before anything is built. Decision: PUNCH_LIST item 37 ("both, kept apart").
 Mockup: `ZeDUI/mockups/zed_mod_folders_v1.html` (PNGs beside it). Screen as built today:
 `42/media/lua/client/ZeD/ZeD_MainMenuMods.lua` (Mods page, Load order page, Profiles page).
+Load order tools (Find in the load order, pins to load first / last, Load before / after a chosen mod):
+`ZeDUI/MODS_LOAD_ORDER_SPEC.md`, mockup v2 `ZeDUI/mockups/zed_mod_folders_v2.html` (keeps this file's scenes).
 
 **Folders** sort the whole collection: every installed mod, on or off. They live in Zomboid/Lua/ModFolders.cfg,
 the file of [B42]Mod Folders (Workshop 3779201168), so a player's layout shows in ZeD and stays the same without ZeD.
