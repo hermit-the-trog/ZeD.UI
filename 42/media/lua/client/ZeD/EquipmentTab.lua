@@ -71,6 +71,28 @@ function ZeD.EquipmentTab.wordsOf(def)
     return def.type or def.id or ""
 end
 
+-- A slot's short words ("Glv" for Gloves, "Inr" for Inner): the SLOT column takes them
+-- before an item's name is cut (Oct 31 2026, punch list 29, the director's pick: at the
+-- half card the names read "T-shi..." beside "Inner"). Words of four letters or fewer
+-- stay whole. Through ZeD.tr, so a language gives its own.
+local SHORT_KEY = {
+    HAT = "UI_ZeD_Equip_Short_HAT", EYE = "UI_ZeD_Equip_Short_EYE", MSK = "UI_ZeD_Equip_Short_MSK",
+    EAR = "UI_ZeD_Equip_Short_EAR", SCF = "UI_ZeD_Equip_Short_SCF",
+    OUT = "UI_ZeD_Equip_Short_OUT", INR = "UI_ZeD_Equip_Short_INR", VST = "UI_ZeD_Equip_Short_VST",
+    UND = "UI_ZeD_Equip_Short_UND", NKL = "UI_ZeD_Equip_Short_NKL",
+    GLV = "UI_ZeD_Equip_Short_GLV", WCH = "UI_ZeD_Equip_Short_WCH", RNG = "UI_ZeD_Equip_Short_RNG",
+    ARM = "UI_ZeD_Equip_Short_ARM", SHD = "UI_ZeD_Equip_Short_SHD",
+    PNT = "UI_ZeD_Equip_Short_PNT", SOC = "UI_ZeD_Equip_Short_SOC", BOT = "UI_ZeD_Equip_Short_BOT",
+    KNE = "UI_ZeD_Equip_Short_KNE",
+    PRI = "UI_ZeD_Equip_Short_PRI", SEC = "UI_ZeD_Equip_Short_SEC", BAG = "UI_ZeD_Equip_Short_BAG",
+    BLT = "UI_ZeD_Equip_Short_BLT",
+}
+function ZeD.EquipmentTab.shortOf(def)
+    local k = def and SHORT_KEY[def.type]
+    if k then return ZeD.tr(k) end
+    return ZeD.EquipmentTab.wordsOf(def)
+end
+
 -- Build reverse lookup: PZ body location string → {groupIdx, slotIdx}
 -- All keys stored lowercase for case-insensitive matching.
 local LOCATION_TO_SLOT = {}
@@ -147,6 +169,35 @@ local function getLabelColW()
     return _labelColW
 end
 
+-- The SLOT column at its short words (punch list 29), measured the same way
+local _shortColW, _shortColWScale = nil, nil
+local function getShortColW()
+    local sig = tostring(ZeD.T.scale) .. (ZeD.trTestOn() and "t" or "")
+    if _shortColW and _shortColWScale == sig then return _shortColW end
+    local tm, T = ZeD.TM, ZeD.T
+    local maxW = 0
+    for _, group in ipairs(EQUIP_GROUPS) do
+        for _, slot in ipairs(group.slots) do
+            local w = tm:MeasureStringX(T.fontF1, ZeD.EquipmentTab.shortOf(slot))
+            if w > maxW then maxW = w end
+        end
+    end
+    _shortColW = math.ceil(maxW + T.sp.sm * 2)
+    _shortColWScale = sig
+    return _shortColW
+end
+
+-- The widest worn item's name (F2), kept per name and scale: the list stamps it as
+-- win._equipNameNeed each frame, and the SLOT column shortens when the names lack it
+local _nameW, _nameWSig = {}, nil
+local function nameWidth(name)
+    local sig = tostring(ZeD.T.scale)
+    if _nameWSig ~= sig then _nameW = {}; _nameWSig = sig end
+    local w = _nameW[name]
+    if not w then w = ZeD.TM:MeasureStringX(ZeD.T.fontF2, name); _nameW[name] = w end
+    return w
+end
+
 -- Default resizable column widths (matches inventory renderer pattern)
 local DIV_W = 6  -- divider hit zone width
 local function getDefaultColWidths(scale)
@@ -183,6 +234,18 @@ local function calcEquipColumns(w, win)
     local rightCols = slotColW + condColW + protColW * 3 + wtColW + padX
     local nameX = padX + iconW + iconGap
     local nameW = w - nameX - rightCols
+    -- the names lack room at the full slot words (the half card): the slot words shorten
+    -- first ("Glv", "Inr"), before a name is cut (Oct 31 2026, punch list 29). A width the
+    -- player dragged stays theirs; the row then picks the words that fit it.
+    local slotShort = false
+    if not (win and win._equipColWidths) and nameW < ((win and win._equipNameNeed) or 0) then
+        local sw = getShortColW() + T.px(4)
+        if sw < slotColW then
+            nameW = nameW + (slotColW - sw)
+            slotColW = sw
+            slotShort = true
+        end
+    end
     if nameW < T.px(40) then nameW = T.px(40) end
 
     -- Column order: NAME SLOT COND BITE SCR BUL WT
@@ -196,7 +259,7 @@ local function calcEquipColumns(w, win)
     return {
         padX = padX, iconW = iconW, iconGap = iconGap,
         nameX = nameX, nameW = nameW,
-        slotX = slotX, slotColW = slotColW,
+        slotX = slotX, slotColW = slotColW, slotShort = slotShort,
         condX = condX, condColW = condColW,
         biteX = biteX, scrX = scrX, bulX = bulX, protColW = protColW,
         wtX = wtX, wtColW = wtColW,
@@ -635,9 +698,14 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win)
     end
 
     -- Slot label (truncated to fit column)
+    -- (the short words when the column took them, or the full ones do not fit it: punch list 29)
+    local slotRoom = c.slotColW - c.padX * 2
     local typeStr = ZeD.EquipmentTab.wordsOf(slot)
+    if c.slotShort or tm:MeasureStringX(T.fontF1, typeStr) > slotRoom then
+        typeStr = ZeD.EquipmentTab.shortOf(slot)
+    end
     local typeColor = washed and T.textOnFocus or T.toneHi
-    typeStr = A.truncateText(typeStr, T.fontF1, c.slotColW - c.padX * 2)
+    typeStr = A.truncateText(typeStr, T.fontF1, slotRoom)
     panel:drawText(typeStr, x + c.slotX + c.padX, secTextY,
         typeColor.r, typeColor.g, typeColor.b, typeColor.a or 0.9, T.fontF1)
 
@@ -1332,6 +1400,17 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     elseif listExpanded then
         -- Column headers FIRST — equipped inventory list is the most-accessed
         -- region of this drawer.
+        -- the widest worn name: the SLOT column shortens when the names lack it (punch list 29)
+        local need = 0
+        for _, g in ipairs(data.groups) do
+            for _, s in ipairs(g.slots) do
+                if s.item then
+                    local nw = nameWidth(safeGet(s.item, "getDisplayName") or "?")
+                    if nw > need then need = nw end
+                end
+            end
+        end
+        win._equipNameNeed = need
         _drawEquipHeader(panel, x, drawY, contentW, win)
         drawY = drawY + T.px(EQUIP_HDR_H)
 
