@@ -77,6 +77,18 @@ local function craftPass(i)
         shot("craft_" .. pk[1])
         local e = stop(w, "worldTabContent", "craft:actQty")
         say(string.format("%s: one box %s, max %s, stop %s", pk[1], tostring(qb and qb.on), tostring(st._maxQty), tostring(e ~= nil)))
+        if not e then
+            -- where the band's stops are, if anywhere: every zone of the window and its craft:* stops
+            for _, z in ipairs(w._focusRing or {}) do
+                local ids = {}
+                for _, el in ipairs(z.elements or {}) do local id = tostring(el.id); if id:find("craft:") then ids[#ids + 1] = id end end
+                say(string.format("%s: zone %s, %d stops, craft ones: %s", pk[1], tostring(z.zone), #(z.elements or {}), table.concat(ids, " ")))
+            end
+            local zs = st.zones or {}
+            local kinds = {}
+            for _, zz in ipairs(zs) do if zz.type and tostring(zz.type):find("action") then kinds[#kinds + 1] = tostring(zz.type) .. (zz.single and "(single)" or "") end end
+            say(pk[1] .. ": band zones drawn: " .. table.concat(kinds, " ") .. "; drawer " .. tostring(w._drawerOpen) .. " tab " .. tostring(w._activeTab))
+        end
         if qb and qb.on then
             check(e ~= nil, pk[1] .. ": the amount box is a pad stop")
             if e then
