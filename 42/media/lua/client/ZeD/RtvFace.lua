@@ -341,7 +341,7 @@ function R.read(dev)
     st.battery = _get(dd, "getIsBatteryPowered", false)
     st.hasBattery = st.battery and _get(dd, "getHasBattery", false)
     st.charge = st.hasBattery and _get(dd, "getPower", 0) or 0
-    st.grid = _get(dd, "canBePoweredHere", false)
+    st.grid = O.canBePoweredHere(dd)
     st.powered = (st.battery and st.charge > 0) or st.grid
     st.on = st.switchOn and st.powered
     st.channel = _get(dd, "getChannel", 0)

@@ -614,7 +614,12 @@ end
 -- of those three appear is reported, not demanded.
 local function tvScreens(pid)
     local seen, shotFor, states = {}, {}, {}
-    for _, stop in ipairs(R.stops()) do
+    -- start off the first stop, past the snow, so tuning to it is a real change (the antique's dial test leaves it on
+    -- the first stop already, and re-tuning the same channel is no change: no snow, rightly)
+    local stops = R.stops()
+    step(2, function() local o = objs[pid]; if o then O.setChannel(p, o, stops[#stops].freq) end end)
+    step(math.ceil(R.ZAP_MS / 16) + 30, function() end)
+    for _, stop in ipairs(stops) do
         step(2, function() local o = objs[pid]; if o then O.setChannel(p, o, stop.freq) end end)
         step(2, function()
             local o = objs[pid]

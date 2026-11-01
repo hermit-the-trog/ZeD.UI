@@ -179,7 +179,7 @@ function TW.read(dev)
     st.switchOn = _get(dd, "getIsTurnedOn", false)
     st.battery = _get(dd, "getIsBatteryPowered", false)
     st.charge = st.battery and _get(dd, "getPower", 0) or 0
-    local grid = _get(dd, "canBePoweredHere", false)
+    local grid = O.canBePoweredHere(dd)
     st.powered = (st.battery and st.charge > 0) or grid
     -- a set placed where the grid or a generator reaches runs on it (AC on its display); in the hands, on its battery
     st.ac = (not st.battery) or (grid and not instanceof(dev, "InventoryItem"))

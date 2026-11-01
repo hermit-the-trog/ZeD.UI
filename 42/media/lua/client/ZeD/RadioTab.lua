@@ -316,7 +316,7 @@ function radioMainDisplay(panel, x, y, w, h, brand, dd)
     local batPowered   = _safeGet(dd, "getIsBatteryPowered", true)
     local batCharge    = _safeGet(dd, "getPower",            0)
     local hasBatItem   = _safeGet(dd, "getHasBattery",       false)
-    local extPower     = _safeGet(dd, "canBePoweredHere",    false)
+    local extPower     = ZeD.RadioOps.canBePoweredHere(dd)
     local hasUsablePower
     if batPowered then
         hasUsablePower = hasBatItem and type(batCharge) == "number" and batCharge > 0
@@ -1427,6 +1427,8 @@ end
 
 local function _powerToggle(dd)
     if dd == nil or dd.setIsTurnedOn == nil or dd.getIsTurnedOn == nil then return end
+    -- setIsTurnedOn asks canBePoweredHere, which throws for a set with no square: nothing to switch there
+    if not ZeD.RadioOps.poweredHere(dd) then return end
     dd:setIsTurnedOn(not dd:getIsTurnedOn())
 end
 
