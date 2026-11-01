@@ -853,8 +853,20 @@ local function _drawBeltRows(panel, win, slots, x, y, w, zones)
     local hh = T.px(GROUP_H)
     local lo = T.toneLo
     local hy = y + math.floor((hh - f1h) / 2)
-    panel:drawText(ZeD.textCase(ZeD.tr("UI_ZeD_Equip_BeltHeadLeft")), x + c.padX + T.px(2), hy, lo.r, lo.g, lo.b, lo.a or 1, f1)
+    -- the two heads keep to their own sides: short of room each is cut in its own share, the
+    -- right one gets at most half (Oct 31 2026, punch list 29: on the Deck with Large text
+    -- "The belt | keys" ran into "Slot | what gives it")
+    local headL = ZeD.textCase(ZeD.tr("UI_ZeD_Equip_BeltHeadLeft"))
     local cap = ZeD.textCase(ZeD.tr("UI_ZeD_Equip_BeltHeadRight"))
+    local hRoom = w - c.padX * 2 - T.px(2) - T.px(8)
+    local lw, rw = tm:MeasureStringX(f1, headL), tm:MeasureStringX(f1, cap)
+    if lw + rw > hRoom then
+        rw = math.min(rw, math.max(math.floor(hRoom / 2), hRoom - lw))
+        lw = hRoom - rw
+        headL = A.truncateText(headL, f1, lw)
+        cap = A.truncateText(cap, f1, rw)
+    end
+    panel:drawText(headL, x + c.padX + T.px(2), hy, lo.r, lo.g, lo.b, lo.a or 1, f1)
     panel:drawText(cap, x + w - c.padX - tm:MeasureStringX(f1, cap), hy, lo.r, lo.g, lo.b, lo.a or 1, f1)
     A.drawDividerH(panel, x, y + hh - T.px(1), w, false)
     y = y + hh
@@ -911,8 +923,10 @@ local function _drawBeltRows(panel, win, slots, x, y, w, zones)
         if s.inHand then rightEdge = bx - T.px(6) - _beltTagW(inHandTxt) end
         -- the item over the slot and what gives it: the name stops at the
         -- COND column (its bar sits beside it), the slot line runs under both
+        -- (the name stops before the verb too: on the Deck with Large text Detach sat over
+        -- "JS-2000 Sho..."; Oct 31 2026, punch list 29)
         local tx = iconX + c.iconW + c.iconGap
-        local textW = x + c.condX - T.px(6) - tx
+        local textW = math.min(x + c.condX - T.px(6), rightEdge - T.px(8)) - tx
         local subW = rightEdge - T.px(8) - tx
         local ty = y + math.floor((rowH - f2h - f1h - T.px(2)) / 2)
         if s.item then
@@ -928,7 +942,8 @@ local function _drawBeltRows(panel, win, slots, x, y, w, zones)
         local th = washB and T.textOnFocus or T.toneHi
         panel:drawText(A.truncateText(sub, f1, subW), tx, ty + f2h + T.px(2), th.r, th.g, th.b, th.a or 0.9, f1)
         -- condition, in the COND column level with the name: the framed strip
-        local f = s.item and B.cond(s.item)
+        -- (left out when the verb takes its room: the item's card still shows it)
+        local f = s.item and (x + c.condX + c.condColW - T.px(2) <= rightEdge - T.px(6)) and B.cond(s.item)
         local condHov = f and eqCondition(panel, x + c.condX + T.px(2), ty + math.floor(f2h / 2), c.condColW - T.px(4), f)
         local btnHover = rowHover and A.mouseIn(panel, bx, by, bw, bh)
         if rowHover and not condHov then   -- (on the strip the help line keeps its condition)
