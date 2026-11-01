@@ -1027,6 +1027,23 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
         Left for QA: the 720 passes at Normal and Large (about an hour each, on request); the Skills fix's re-check
         when Build has it (pskd + wpt on the Deck at Normal).
 
+      - **Build, Nov 1 2026, 2:10 pm (c., the Skills row: cause found, a rule for the director):**
+        c. **Cause.** The probe at Normal text: Down walks every training row to the last one, Foraging; the next
+           Down leaves the Skills content and lands on the eleventh row of the main inventory list, to the right of
+           the drawer. The pad's move looks first in the zone it is in, then in the rest of the window, and in the
+           rest of the window it takes a stop that is lower on the screen even when it is off to the side (the
+           "half" tier the cone rule allows inside a zone, so that a direction is never blocked). At Normal text an
+           inventory row sits a little lower than the last Skills row, so Down goes sideways into the list; at
+           Large text none does, and Down stays. The t15pre walk met the same jump one row earlier (Fishing), which
+           is why that run read as "a row out of reach". A pad-rules matter (GAMEPAD_SPEC), not a layout one.
+           **The rule proposed:** Up and Down leave a zone only for a stop directly above or below (one that lines
+           up across), never for one off to the side; inside a zone nothing changes; Left and Right do not change.
+           At the end of a column Down does nothing (the director's "directions match the screen"). Edge cases:
+           Up from the first inventory row still reaches the container row above it (lined up); Down from the last
+           tab in a tab strip stays there (Right takes it into the content, as today); the pad map tool
+           (padmap.py) gets the same rule, so the next pad map may list a few expected moves to re-read. Waits
+           for the director's yes.
+
 ## Test process
 
 - The release check (before every upload, about 5 minutes, pass or fail): right-click opens the
