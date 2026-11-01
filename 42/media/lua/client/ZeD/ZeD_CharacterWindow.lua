@@ -1361,6 +1361,12 @@ local function _buildSkillRowFocusables(win)
             onActivate = function(w, el)
                 if el.skillName then togglePinSkill(w, el.skillName) end
             end,
+            -- the one column (a narrow card, punch list 35): Left and Right do nothing;
+            -- Down and Up go through the column (cone-nav)
+            onDpadDir = function(w, el, dir)
+                if w._skillsOneCol and (dir == "left" or dir == "right") then return true end
+                return false
+            end,
         }
     end
     -- Seed only when unset (Q95: per-frame builder nil-guard).
