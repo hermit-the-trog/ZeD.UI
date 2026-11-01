@@ -122,6 +122,16 @@ function Z.shot(name)
     if CWm.isOpen() then Z.box(name .. " char", Z.CW()) end
     if WWm.isOpen() then Z.box(name .. " world", Z.WW()) end
 end
+-- the extent of a list of zones ({x, y, w, h}) as a string, nil when there are none (a pop-up's rows)
+function Z.zonesSig(zs)
+    if not (zs and #zs > 0) then return nil end
+    local x0, y0, x1, y1 = 1e9, 1e9, -1e9, -1e9
+    for _, z in ipairs(zs) do
+        x0, y0 = math.min(x0, z.x), math.min(y0, z.y)
+        x1, y1 = math.max(x1, z.x + z.w), math.max(y1, z.y + z.h)
+    end
+    return string.format("%d rows %d,%d %dx%d", #zs, math.floor(x0), math.floor(y0), math.floor(x1 - x0), math.floor(y1 - y0))
+end
 function Z.pointAt(x, y)
     if Mouse and Mouse.setXY then pcall(function() Mouse.setXY(math.floor(x), math.floor(y)) end) end
 end
@@ -324,12 +334,24 @@ if Z.want("02") then
         w._journalPageOpen = true
         w._journalPageZones = nil
     end)
-    S.step(40, function()
+    -- (Nov 1 2026, the fix after the first run: the list was caught a few px tall) the list's rows must stand still
+    -- for 20 frames running, and 30 frames at least must have passed since it opened, before the shot
+    S.poll(1, 600, function()
+        local w = Z.CW()
+        local s = (w and w._journalPageOpen) and Z.zonesSig(w._journalPageZones) or nil
+        Z.jr = Z.jr or { same = 0, f = 0 }
+        local R = Z.jr
+        R.f = R.f + 1
+        if s ~= nil and s == R.last then R.same = R.same + 1 else R.same, R.last = 0, s end
+        return s ~= nil and R.same >= 20 and R.f >= 30
+    end, function() say("note: the Page list did not settle (" .. tostring(Z.jr and Z.jr.last) .. ")") end)
+    S.step(2, function()
         local w = Z.CW()
         local zs = w._journalPageZones or {}
         local ids = {}
         for _, z in ipairs(zs) do ids[#ids + 1] = tostring(z.id) end
-        say("journal: Page pop-up open " .. tostring(w._journalPageOpen) .. " with " .. #zs .. " pages (" .. table.concat(ids, " ") .. ")")
+        say("journal: Page pop-up open " .. tostring(w._journalPageOpen) .. " with " .. #zs .. " pages (" .. table.concat(ids, " ")
+            .. ") | " .. tostring(Z.zonesSig(zs)))
         Z.shot("story_02a_journal_entry")
     end)
     S.step(2, function()

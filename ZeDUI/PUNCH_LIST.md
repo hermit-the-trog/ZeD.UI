@@ -1052,6 +1052,21 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
         no landing in the inventory) and wpt; the pad map at its next run (a few expected moves may read
         differently: a Down that used to leave a column sideways now stays).
 
+      - **QA, Nov 1 2026, 4:15 pm (before staging; reports qa/regression/2026-11-01_deck_skills_compass_800N.md and
+        2026-11-01_t15_720_short.md):**
+        c. **confirmed (f5e10d0).** Deck at Normal: Down past Foraging stays on Foraging at both text sizes; nothing lands
+           in the inventory list. wpt passed its Skills check. (wpt's one warning there, "Right from a row lands on the bag
+           on show" with the focus on charTabContent training:col1_Foraging, came right after the probe and looks like the
+           probe leaving the Skills tab open: test order.)
+        43 **confirmed (0bb6f48):** zedqa_probe_compass.lua (tag cmp): 8 of 8 headings right (E, N, W, S, NE, NW, SW, SE).
+        720 short (Build's deck_720_short_manifest, Normal): tww, cu, dollv4 PASS; the pair ends where it started and the
+        rolled close lands at 644. **wpt at 720 FAIL (product suspect, new today):** "Right from the Character window's
+        right edge: Char charTabContent:health:start" with the window on Loot, so the D-pad never crossed to the World
+        window and the 22 checks after it failed with it. This morning's 720N run (older code) and today's 800N run
+        (f5e10d0) pass that line. Suspect: "every tab keeps its stops while the tab drawer fills the window": at 720 a closed
+        tab's stops (Health's Start) stay live in charTabContent while Loot shows. Build to look; staging waits on it and
+        on the About line in UI.json (changed on disk at 3:11 pm, not Build's; the director to say).
+
 43. **Foraging finds: the compass letter is wrong (QA, Nov 1 2026, found while staging the gallery retake).** open.
     `ForagingTab.lua`: `angleToBearing` takes a maths angle (0 = east, 90 = north) and reads the COMPASS table from
     N at index 1, so a find due east is labelled N, north-east NE, due north E, and the ring runs the wrong way round
