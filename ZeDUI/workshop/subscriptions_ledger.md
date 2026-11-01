@@ -186,3 +186,18 @@ zedqa_mods_folders.lua); they had been unsubscribed with the director's earlier 
 | 3818733381 | The Only Cure+ (Field Surgery) (TheOnlyCurePlus) |
 | 2980583716 | Kilometers Per Hour (BB_KilometersPerHour) |
 | 3822813865 | Knox Packs: Upgradable Backpacks (KnoxPacks) |
+
+Nov 1 2026, morning: re-subscribed by QA for the gallery retake (slides 51-53, zedqa_mods_panes_run.ps1):
+
+| Workshop id | Mod (mod ids) |
+|---|---|
+| 3659137034 | Cone Vision Outline (ConeVisionOutline) |
+| 3616176188 | [B42.20]GaelGunStore 1.6 - Firearms pack (GaelGunStore_B42) |
+| 3633421539 | ModernFirearmsSystem 42.21 (ModernFirearmsSystem and its sub-mods) |
+| 3480990544 | Constown (B42) (Constown42) |
+| 3741334453 | New Hartburg (newhartburg) |
+| 3494108029 | Smart Radial Menu [B42 Stable] (SmartRadialMenu) |
+
+Steam's "Subscribe to All" on ModernFirearmsSystem also pulled in Shoot to Thrill (3813032735), Project Viewpoint (3809306528)
+and ZombieBuddy (3619862853, a Java mod) through its Workshop page's required items (its own mod.info requires nothing).
+All three were unsubscribed at once and are gone from disk. Rule kept: never ZombieBuddy or Java mods.
