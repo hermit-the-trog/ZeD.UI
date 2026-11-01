@@ -917,6 +917,33 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
            jrd "Too dark to write": the time of day. cu "Loot Character side down with the press" (720 only):
            not looked at yet; it goes with the e. fix's re-run.
 
+      - **Build, Nov 1 2026, the director's picks ("Yes, go") built:**
+        a. **fixed (build, Nov 1).** Beside a full card the inventory gives way first, from 200 units down to 180
+           (`INV_MIN_BESIDE_CARD` in both windows; the UI scale cap's fit rule, `ZeD.Scale.FIT_W_UNITS`, uses the
+           same 180). Alone, the inventory keeps 200. The Deck with Large text now fits the full card by 1 px of
+           margin (414 + 31 + 31 + 155 = 631 of 640). QA to confirm: tww, tw, rtv, ap, p336 and dollv4 on the
+           Deck at Large text; and that 4K, 1080p and the Deck at Normal text draw exactly what they did (the
+           rule only moves the line where a tab drops to the half card).
+        b. **follows a.**; QA re-runs dollv4 (the bands, the 49 slots, the "short" check) and mnote on the Deck
+           at Large text. zedqa_mapnotes.lua now reaches a stamp folded off a narrow header through the fold
+           arrow (the star's step is its own tick, at(80)) and shuts the fold after.
+        c. **probe written:** `ZeDUI/tools/qa/zedqa_probe_skills_down.lua` (tag pskd, about a minute, no game
+           change). Manifest line: `zedqa_probe_skills_down.lua | pskd | timeout=120`, on the Deck window (1280x800)
+           after the prelude; it walks Down through the Skills training rows at the run's text size and at Large,
+           prints each landing with the view and scroll, then every training stop below the last one with the
+           pad's own cost verdict and the focus manager's dry run of a Down. QA runs it when the director says;
+           build reads the print and fixes from it.
+        d. **test (build, Nov 1):** zedqa_wheel_icons.lua accepts the 16 px drawing scaled down for a box under
+           16 (the Deck's 12 and 14), the library rule since Oct 27. Design may draw a 12 px set later if the
+           director does not like the look on a Deck in the hand (the enlarged shots were sent Nov 1).
+        e. **fixed (build, Nov 1).** Every snap to Loot in the World window settles the cap push the animated
+           close used to give back (`settleCapPush`): the window goes back right by what the engine pushed it,
+           and the counters start clean. QA to confirm: tww and cu on the Deck at Normal text (644 stays 644; the
+           rolled close lands where it started), and the 4K pair unchanged. dke: QA re-runs race and primani alone
+           (ZeD_QA_DKE_ONLY) before anything is changed.
+        f. for QA: rst at 720 needs the character at the QA home first; jrd needs daylight; the cu "Loot side
+           down" at 720 goes with e.'s re-run.
+
 ## Test process
 
 - The release check (before every upload, about 5 minutes, pass or fail): right-click opens the

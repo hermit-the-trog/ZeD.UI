@@ -63,6 +63,10 @@ local STRIP_SCROLL_ROW_H   = 16
 local ITEM_CARD_W          = 220
 local DRAWER_W             = ITEM_CARD_W
 local TAB_DRAWER_W         = 480
+-- The inventory's minimum width beside an open full card (director, Nov 1 2026, punch list 42 a.; the
+-- same number and reasons as ZeD_CharacterWindow's INV_MIN_BESIDE_CARD): alone the inventory keeps 200
+-- units, beside a full card it gives way down to 180 before the tab drops to the half card.
+local INV_MIN_BESIDE_CARD  = 180
 local OBJECT_CARD_W        = 480   -- S124 object cards (generator, fires, farm plots)
 local DRAWER_PX_SPEED      = 260 * 8   -- ~2080 design units/sec, matches char window; scaled at use (T.px(DRAWER_PX_SPEED) * dt)
 local ACTION_TAB_STRIP_W   = 36
@@ -1878,9 +1882,10 @@ local function getWorldTargetDrawerW(win)
             base = T.px(getWorldTabDrawerW(win._activeTab))
             -- The window is capped at half the screen, so on a small screen or a
             -- large text size a full card would squeeze the inventory beside it
-            -- below its 200-unit minimum. Where the full card does not fit with the
-            -- inventory's minimum (it scrolls), the tab gets the half card, never a
-            -- width in between. Multi-column Loot lifts the cap, so it is left alone there.
+            -- below its minimum. The inventory gives way first, down to INV_MIN_BESIDE_CARD
+            -- (it scrolls anyway); where even that does not fit with the full card, the
+            -- tab gets the half card, never a width in between. Multi-column Loot lifts the
+            -- cap, so it is left alone there.
             -- (A rolled side (WindowCurtain) keeps the cap: the drawer stays as wide as it
             -- was, so a roll and an unroll only take the side away and give it back. Lifting
             -- the cap while rolled widened the drawer, shoved the window against the screen
@@ -1888,7 +1893,7 @@ local function getWorldTargetDrawerW(win)
             local heldIn = false
             if win._invDrawerOpen and #(win._mcSelected or {}) == 0 then
                 local maxW = win._maxWinW or math.floor(getCore():getScreenWidth() * 0.5)
-                heldIn = maxW - T.px(CONTAINER_STRIP_W) - T.px(ACTION_TAB_STRIP_W) - T.px(200) < full
+                heldIn = maxW - T.px(CONTAINER_STRIP_W) - T.px(ACTION_TAB_STRIP_W) - T.px(INV_MIN_BESIDE_CARD) < full
             end
             -- a two-way radio: a walkie's tab is the half card wherever one of its widths fits it (Oct 30 2026,
             -- punch list item 2), else the full card; a ham set's is the full card, or the card a walkie's width
@@ -1906,6 +1911,25 @@ local function getWorldTargetDrawerW(win)
         return base
     end
     return 0
+end
+
+-- A drawer that widened the window into the half-screen cap at the screen's edge was pushed
+-- left by the engine (setWidth keeps a top-level panel on screen); the animated close gives
+-- that push back as the drawer narrows (drawer._onPrerender, _drawerCapPush). A snap to Loot
+-- sets the width in one step and never runs that path, so the push stayed and the amount
+-- owed was paid out by a later animated close or grew over roll / unroll cycles (Nov 1 2026,
+-- punch list 42 e.: the World window 4 to 12 px off on the Deck). Every snap settles it here:
+-- the window goes back right by what it was pushed, as far as the screen allows, and both
+-- counters start clean.
+local function settleCapPush(win)
+    local pushed = win._drawerCapPush or 0
+    if pushed > 0 then
+        local room = getCore():getScreenWidth() - (win:getX() + win:getWidth())
+        local back = math.max(0, math.min(pushed, room))
+        if back > 0 then win:setX(win:getX() + back) end
+    end
+    win._drawerCapPush = 0
+    win._drawerCapLost = 0
 end
 
 -- Scroll dispatch per tab — for future scrollable tab content
@@ -2129,6 +2153,7 @@ _switchWorldTabForNav = function(win, content, tabId)
         local snapW = T.px(CONTAINER_STRIP_W) + baseInv + T.px(ACTION_TAB_STRIP_W)
         win.minimumWidth = math.min(snapW, win.minimumWidth or snapW)
         win:setWidth(snapW)
+        settleCapPush(win)
         if _syncWorldRingZones then _syncWorldRingZones(win, content) end
         return true
     end
@@ -2141,6 +2166,7 @@ _switchWorldTabForNav = function(win, content, tabId)
         local snapW = T.px(CONTAINER_STRIP_W) + baseInv + T.px(ACTION_TAB_STRIP_W)
         win.minimumWidth = math.min(snapW, win.minimumWidth or snapW)
         win:setWidth(snapW)
+        settleCapPush(win)
     end
     win._activeTab  = tabId
     win._drawerMode = "tab"
@@ -4186,6 +4212,7 @@ function ZeD_WorldWindow.toggle(playerNum)
                 local snapW = T.px(CONTAINER_STRIP_W) + baseInv + T.px(ACTION_TAB_STRIP_W)
                 win.minimumWidth = math.min(snapW, win.minimumWidth or snapW)
                 win:setWidth(snapW)
+                settleCapPush(win)
 
             elseif tabId == win._activeTab then
                 -- SAME TAB: toggle drawer open/closed
@@ -4215,6 +4242,7 @@ function ZeD_WorldWindow.toggle(playerNum)
                     local snapW = T.px(CONTAINER_STRIP_W) + baseInv + T.px(ACTION_TAB_STRIP_W)
                     win.minimumWidth = math.min(snapW, win.minimumWidth or snapW)
                 win:setWidth(snapW)
+                    settleCapPush(win)
                 end
                 -- Now open drawer from clean base
                 win._activeTab  = tabId

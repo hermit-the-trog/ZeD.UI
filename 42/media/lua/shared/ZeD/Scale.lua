@@ -57,8 +57,9 @@ end
 --  1. A fixed step FITS when, at that step times the text size's multiplier
 --     (Large: 1.15 on every T.px), one window at its narrowest useful width fits in
 --     half the screen's width (both windows are capped there): the tab strip 36 +
---     the inventory's minimum 200 + the full card 480 + the container strip 36 =
---     752 units. And the screen's height holds the windows' minimum useful height:
+--     the inventory's minimum beside a full card 180 (Nov 1 2026, punch list 42 a.:
+--     alone it keeps 200, beside a full card it gives way to 180) + the full card 480 +
+--     the container strip 36 = 732 units. And the screen's height holds the windows' minimum useful height:
 --     the title bar (26 units, Large 30, root scale only, as Tokens' SP() sizes it)
 --     + a tab strip of 6 tabs (6 x 36) + the help line (22). The engine font-size
 --     multiplier (USER_MUL) does not apply to a fixed step (S.compute hands
@@ -66,7 +67,7 @@ end
 --     scale, which sets the floor below.
 --  2. The cap is the largest step that fits, never below the largest step at or
 --     under what Auto picks on this screen (at 1280 wide with Large text Auto's 0.86
---     is 9 px over the half screen; the drawer's half card already takes that case)
+--     fits since the inventory gives way to 180 beside a full card)
 --     and never below the smallest step. ZeD setup's slider, the Mods page's
 --     drop-down and the controller's ZeD wheel offer the steps up to the cap; the
 --     ones above it are dimmed and inert, the help line saying "Too big for this
@@ -78,7 +79,7 @@ end
 --     asked. S.compute runs every 30 ticks and after a resolution change, so a new
 --     resolution or text size moves the cap within half a second.
 -- ---------------------------------------------------------------------------
-S.FIT_W_UNITS = 36 + 200 + 480 + 36   -- tab strip + inventory minimum + full card + container strip
+S.FIT_W_UNITS = 36 + 180 + 480 + 36   -- tab strip + inventory minimum beside a full card + full card + container strip
 S.FIT_TABS    = 6
 S.FIT_TAB_U   = 36
 S.FIT_HELP_U  = 22

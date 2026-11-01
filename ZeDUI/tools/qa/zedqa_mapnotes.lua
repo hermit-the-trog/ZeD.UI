@@ -62,15 +62,34 @@ local function storeTextureAt(id, wx, wy)
     end
     return nil
 end
-local function toolZone(id)
-    for _, z in ipairs(ww()._mapToolZones or {}) do if z.id == id and not z.isGrid then return z end end
+local function toolZone(id, grid)
+    for _, z in ipairs(ww()._mapToolZones or {}) do if z.id == id and (z.isGrid == true) == (grid == true) then return z end end
     return nil
 end
+-- A stamp folded off a narrow header (the Steam Deck's half card: pinned stamps fold away from the end,
+-- the Oct 31 rule) is still in the full set under the fold arrow. openedFold: this script opened the
+-- fold for it (shut again after the stamp is placed).
+local openedFold = false
 local function clickTool(id)
-    local z = toolZone(id)
-    if not z then say("ERR no toolbar button " .. id); return false end
+    local z = toolZone(id) or (openedFold and toolZone(id, true))
+    if not z then say("ERR no toolbar button " .. id .. (openedFold and " (the fold is open too)" or "")); return false end
     ZeD.MapsTab.onClick(ww(), z.x + 2, z.y + 2)
     return ww()._mapActiveTool == id
+end
+-- the fold arrow (the marks' disclosure): opens the full set when `id` is not on the header strip
+local function openFoldFor(id)
+    if toolZone(id) then return end
+    local d = ww()._mapDisclosureZone
+    if not d then say("ERR no fold arrow on the Maps header"); return end
+    ZeD.MapsTab.onClick(ww(), d.x + 2, d.y + 2)
+    openedFold = true
+    say(id .. " is folded off the header: opened the fold")
+end
+local function closeFold()
+    if not openedFold then return end
+    local d = ww()._mapDisclosureZone
+    if d then ZeD.MapsTab.onClick(ww(), d.x + 2, d.y + 2) end
+    openedFold = false
 end
 
 at(2, function()
@@ -111,9 +130,15 @@ at(70, function()
     if c1 ~= c0 + 1 or v1 ~= v0 + 1 or not s or not vs then say("ERR the note did not land in vanilla's store once") end
     if vs then say("note ink " .. tostring(N.inkOf(vs)) .. " rgb " .. string.format("%.3f %.3f %.3f", vs:getRed(), vs:getGreen(), vs:getBlue()) .. " scale " .. vs:getScale() .. " layer " .. tostring(vs:getLayerID())) end
     ww()._mapActiveTool = nil
+    -- the star's button: on the header strip, or under the fold arrow where the header is narrow
+    openFoldFor("star")
+end)
+
+at(80, function()
     -- a star a little to the right
     local m = mp()
     say("star tool armed: " .. tostring(clickTool("star")))
+    closeFold()
     m._gpCursorX = m._gpCursorX + ZeD.T.px(80)
     starW = { x = m.mapAPI:uiToWorldX(m._gpCursorX, m._gpCursorY), y = m.mapAPI:uiToWorldY(m._gpCursorX, m._gpCursorY) }
     ZeD.MapsTab.gpPlaceAtCursor(ww())
