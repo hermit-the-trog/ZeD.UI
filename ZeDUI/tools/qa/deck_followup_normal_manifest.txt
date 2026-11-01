@@ -1,0 +1,11 @@
+# Nov 1 2026, afternoon: the follow-up at Deck Normal text after the second round of t15 Deck fixes.
+# zedqa_run.ps1 -Manifest this -Mode windowed -Width 1280 -Height 800 -Report deck_followup_800N
+# Confirms: the Character window back where it was after a full-card tab (tww, 303 stays 303), the curtain rod
+# gone after a Loot press (cu), the two dash cars (dko then dke), then the Skills probe (pskd) with its Normal
+# pass and the zone / window named when the focus leaves the Skills content.
+zedqa_prelude.lua | pre | timeout=120
+zedqa_two_widths.lua | tww | timeout=900
+zedqa_curtain.lua | cu | timeout=400
+zedqa_dke_only_race_primani.lua | dko | timeout=60
+zedqa_dash_keys_edge.lua | dke | timeout=600 | expect=FBORenderCell
+zedqa_probe_skills_down.lua | pskd | timeout=180

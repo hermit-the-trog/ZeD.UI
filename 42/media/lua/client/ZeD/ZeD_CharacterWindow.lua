@@ -4523,9 +4523,10 @@ function ZeD_CharacterWindow.toggle(playerNum)
         if self:getX() ~= dx then self:setX(dx) end
         self:setWidth(effectiveW)
 
-        -- Clear saved width when drawer finishes closing
+        -- Clear saved width when drawer finishes closing (and the push below: a closed drawer owes nothing)
         if effectiveW == 0 then
             win._preDrawerW = nil
+            win._drawerCapPush = nil
         end
 
         -- Detect user drag: if X differs from what we set last frame, adjust anchor
@@ -4577,7 +4578,16 @@ function ZeD_CharacterWindow.toggle(playerNum)
             end
             win._drawerCapLost = lost
             win:setWidth(newW)
+            -- The drawer grows leftwards from the anchored right edge. Where that would put the
+            -- window past the screen's left edge the engine pins it at 0 (setX keeps a top-level
+            -- panel on screen); that pin is remembered as a push, not read as a drag that moves
+            -- the anchor (Nov 1 2026, punch list 42 e., the Character side: on the Deck the first
+            -- full-card open moved the window 4 px right for good). The anchor stays where it was,
+            -- so the window lands back on it as the drawer narrows.
             local newX = win._anchorRightEdge - newW
+            local pushed = 0
+            if newX < 0 then pushed = -newX; newX = 0 end
+            win._drawerCapPush = pushed
             win:setX(newX)
             win._lastSetX = newX
         else
@@ -4586,7 +4596,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
             -- (a window the player made narrower than the cap has nothing to give back)
             if (win._drawerCapLost or 0) > 0 and win:getWidth() + (win._rolled and (win._rollW or 0) or 0) < maxW - 1 then win._drawerCapLost = 0 end
             win._lastSetX = win:getX()
-            win._anchorRightEdge = win:getX() + win:getWidth()
+            -- (a window pinned at the screen's edge by an open drawer keeps its anchor, less the push)
+            win._anchorRightEdge = win:getX() + win:getWidth() - (win._drawerCapPush or 0)
         end
 
 

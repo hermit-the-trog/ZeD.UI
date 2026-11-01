@@ -986,6 +986,29 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
         Next QA (needs the screen): dko + dke alone at 800 Normal after the DONE fix; the 4K pair (tww, cu, about
         5 min fullscreen) to confirm a. and e. changed nothing at 4K; 720 Normal and Large passes when Build says.
 
+      - **Build, Nov 1 2026, afternoon (the second round, on QA's 1:10 pm note):**
+        e. **Character side fixed (build, Nov 1; way 1).** The Character window's drawer grows leftwards from its
+           anchored right edge; where that would put the window past the screen's left edge the engine pins it at 0,
+           and the code read that pin as a drag and moved the anchor 4 px. The pin is now remembered as a push
+           (`_drawerCapPush`, the mirror of the World window's counter): the anchor stays, the at-rest anchor is the
+           right edge less the push, and a closed drawer owes nothing. QA to confirm: tww at Normal (303 stays 303)
+           and at Large (253 stays 253); the end-of-run check.
+           **dko fixed:** zedqa_dke_only_race_primani.lua prints its DONE three ticks in (the runner's "run #" rule).
+        f. **fixed (build, Nov 1).** Cause (engine, PZAPI Q273): `UIManager.AddUI` and `RemoveElement` are queued and
+           applied a frame late, and an add cancels a queued remove of the same element while adding it again, so a
+           roll right after an unroll put the curtain rod in the UI list twice and the next unroll took one copy away
+           (the sides and runs it showed on depend on whether a roll landed inside that frame). The rod now joins the UI
+           manager once (`rod._inUI`) and only hides between rolls; it leaves with its window (C.drop).
+           zedqa_curtain.lua counts the rods showing, not the rods in the list. QA to confirm: cu at 800 Normal and
+           Large, and at 720.
+        c. **probe improved (build, Nov 1):** zedqa_probe_skills_down.lua's pass 1 is Normal text whatever the manifest
+           set before it (pass 2 Large), and a Down that lands on "nil" now names the window, the zone and the stop
+           the focus went to. The 1:10 print showed the focus leaving the Skills content on Down 12 to 14 from the
+           last row in pass 1 only; with the zone named the next print says where it went. Then the fix.
+        Manifests: `deck_followup_normal_manifest.txt` (prelude, tww, cu, dko, dke, pskd; -Width 1280 -Height 800)
+        and `deck_followup_large_manifest.txt` (prelude, Large, tww, cu). The 4K pair (tww, cu) and the 720 passes as
+        QA planned.
+
 ## Test process
 
 - The release check (before every upload, about 5 minutes, pass or fail): right-click opens the

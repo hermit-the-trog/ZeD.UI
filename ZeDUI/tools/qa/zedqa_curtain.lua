@@ -304,11 +304,14 @@ local function check(label, ok, detail)
     else fails = fails + 1; say("FAIL " .. label .. (detail and (": " .. detail) or "")) end
 end
 -- every ZeD_CurtainRod in the engine's UI list (a removed one leaves it by the next frame)
+-- the rods showing: a rod stays in the UI manager, hidden, between rolls (Nov 1 2026, punch list 42 f.;
+-- the engine applies adds and removes a frame late and a roll right after an unroll doubled the rod), so
+-- "gone" is "not visible", and a visible rod with no rolled window would be the fault
 local function rodsInUI()
     local n, ui = 0, UIManager.getUI()
     for i = 0, ui:size() - 1 do
         local ok, t = pcall(function() return ui:get(i):getTable() end)
-        if ok and t and t.Type == "ZeD_CurtainRod" then n = n + 1 end
+        if ok and t and t.Type == "ZeD_CurtainRod" and ui:get(i):isVisible() then n = n + 1 end
     end
     return n
 end
