@@ -1103,6 +1103,9 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     Reset windows from a tab other than Loot: a Right from the strip lands on a stop that is not drawn. Fix: the
     reset rebuilds each window's stops for Loot (both windows expose their ring sync; ZeD_Window.resetLayout
     calls it after the geometry). A few lines, no design call. Build asks the director whether it goes in t15.
+    **fixed (build, Nov 1 2026, the director: "Yes, both"; e78ddcd).** ZeD_CharacterWindow.syncRing and
+    ZeD_WorldWindow.syncRing rebuild the stops for the tab on show; ZeD_Window.resetLayout calls both after placing
+    the windows. QA to confirm: wpt after cu at 720 Normal (Right from the strip crosses to the World window, lit).
 
 ## Test process
 
