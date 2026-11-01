@@ -516,6 +516,17 @@ empty inventory. Full pass at 99d3372: 93/97, the rest known (rtv's vanilla Null
 lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game code as 99d3372)**: 4,253 files,
 42.8 MB; description 7,929 + 58; change note with tonight's fixes; zedqa.lock busy until the upload.
 
+37. **A player asks for Mod Folders support (the first Workshop comment, Oct 31 2026).** open. The comment asks
+    for "[B42]模组文件夹" ([B42]Mod Folders by FieClaussell, Workshop 3779201168, about 78,000 subscribers): it adds
+    folders to the game's own mod list (up to 99 named folders, collapse, drag to reorder, enable or disable a whole
+    folder, multi-select and move), kept in Zomboid/Lua/ModFolders.cfg. ZeD's Mods screen replaces the game's, so
+    that mod's folders never show while ZeD is on. Compat round 3 graded it "not needed" (ZeD's categories, search
+    and profiles), but a player who already sorted hundreds of mods into folders loses that layout in ZeD.
+    Options: (a) ZeD's Mods screen reads ModFolders.cfg and shows the player's folders as groups in the list, and
+    folder changes made in ZeD are written back to the same file, so the layout is the same with or without ZeD;
+    (b) keep it as it is and answer in the Compatibility thread with what ZeD's Mods screen offers; (c) a folder
+    feature of ZeD's own, separate from that file. Credit the maker either way.
+
 ## Test process
 
 - The release check (before every upload, about 5 minutes, pass or fail): right-click opens the
