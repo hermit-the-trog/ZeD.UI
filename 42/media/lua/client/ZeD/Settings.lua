@@ -177,6 +177,23 @@ uiScale.onChange = function(_, sel) applyScale(sel) end
 uiScale.onChangeApply = function(_, sel) applyScale(sel) end
 ZeD.Settings.applyScale = applyScale
 ZeD.Settings.uiScaleOption = uiScale   -- QA bridge drives it like the options screen
+-- The UI scale cap (punch list 39; the rules: ZeD.Scale.fitCap in shared/ZeD/Scale.lua): true when item i of
+-- control c is UI scale's fixed step above what fits this screen. ZeD setup's slider, the Mods page's
+-- drop-down and the controller's wheel dim such a step and take no pick of it. c: the option or its element.
+function ZeD.Settings.scaleStepOff(c, i)
+    if c == nil or not (c == uiScale or c == uiScale.element) then return false end
+    local v = scaleKeys[tonumber(i) or 0]
+    return (ZeD.Scale and ZeD.Scale.stepTooBig and ZeD.Scale.stepTooBig(v)) or false
+end
+-- The help line's words while some steps are off: "2x and up: too big for this screen." (nil when none are)
+function ZeD.Settings.scaleTooBigHelp()
+    for i = 2, #scaleKeys do
+        if ZeD.Scale and ZeD.Scale.stepTooBig and ZeD.Scale.stepTooBig(scaleKeys[i]) then
+            return ZeD.tr("UI_ZeD_Settings_ScaleTooBigFrom", scaleLabels[i])
+        end
+    end
+    return nil
+end
 
 -- ----- MOODLES (Oct 14 2026, director: "options would be best. each of the
 -- three placements are good for different users") -----

@@ -234,8 +234,14 @@ end
 -- ============================================================================
 local function comboText(c, i) local ok, t = pcall(function() return c:getOptionText(i) end); return ok and tostring(t or "") or "" end
 
+-- UI scale's steps above what fits this screen (punch list 39, ZeD.Scale.fitCap): dimmed, and no pick takes them
+local function stepOff(c, i)
+    local S = ZeD.Settings
+    return (S and S.scaleStepOff and S.scaleStepOff(c, i)) or false
+end
+
 local function setCombo(c, i)
-    if c.disabled then return end
+    if c.disabled or stepOff(c, i) then return end
     c.selected = i
     if c.onChange then c.onChange(c.target, c, c.onChangeArgs and c.onChangeArgs[1], c.onChangeArgs and c.onChangeArgs[2]) end
 end
@@ -337,6 +343,11 @@ local function help(r)
     end
     if r.only then t = join(t, MM.optionGroups.text(r.only[2])) end
     if r.why then t = join(t, MM.optionGroups.text(r.why)) end
+    -- UI scale on a small screen: which steps are off, and why (punch list 39)
+    if r.labelKey == "UI_ZeD_Settings_UiScale" and ZeD.Settings and ZeD.Settings.scaleTooBigHelp then
+        local tb = ZeD.Settings.scaleTooBigHelp()
+        if tb then t = join(t, tb) end
+    end
     return t
 end
 
@@ -922,6 +933,11 @@ local function scaleReadout(r)
         local root = ZeD.Scale and ZeD.Scale.root and ZeD.Scale.root() or 1
         return ZeD.tr("UI_ZeD_Options_ScaleAutoNow", scaleText(root))
     end
+    -- a saved step above this screen's cap (picked on a bigger monitor): kept, drawn at the cap
+    if stepOff(c, c.selected) then
+        local root = ZeD.Scale and ZeD.Scale.root and ZeD.Scale.root() or 1
+        return ZeD.tr("UI_ZeD_Options_ScaleCappedNow", comboText(c, c.selected), scaleText(root))
+    end
     return comboText(c, c.selected)
 end
 
@@ -1061,9 +1077,10 @@ function ZeD_MMOptions:drawZedControl(r, cx, ry, cw, rowId, hit)
             end
             spans[#spans + 1] = { lx, lx + lw }
             local lc = (i == sel) and T.text or d
-            self:drawText(lt, lx, nameY, lc.r, lc.g, lc.b, lc.a or 1, f1)
+            local la = (lc.a or 1) * (stepOff(c, i) and T.disabledAlpha or 1)   -- (too big for this screen: dimmed)
+            self:drawText(lt, lx, nameY, lc.r, lc.g, lc.b, la, f1)
         end
-        for i = 1, n do self:drawRect(stepX(i), barY + bh + T.px(1), T.px(1), T.px(4), bs.a, bs.r, bs.g, bs.b) end
+        for i = 1, n do self:drawRect(stepX(i), barY + bh + T.px(1), T.px(1), T.px(4), bs.a * (stepOff(c, i) and T.disabledAlpha or 1), bs.r, bs.g, bs.b) end
         place(1)
         if n > 1 then place(n) end
         for i = 2, n - 1 do place(i) end
@@ -1506,10 +1523,14 @@ function ZeD_MMOptions:openCombo(r, anchor)
     local items = {}
     for i = 1, #(c.options or {}) do
         local t = comboText(c, i)
-        items[#items + 1] = { text = (i == c.selected) and (t .. "  " .. string.char(171)) or t, fn = function() setCombo(c, i) end }
+        items[#items + 1] = { text = (i == c.selected) and (t .. "  " .. string.char(171)) or t, fn = function() setCombo(c, i) end,
+                              disabled = stepOff(c, i) or nil }   -- (UI scale: a step too big for this screen)
     end
     MM.openPopup("combo", items, anchor, false)
-    MM.ctx.dropFocus = c.selected or 1
+    -- (the live rows the controller walks: the steps too big for this screen come last and are skipped)
+    local live = 0
+    for i = 1, #items do if not items[i].disabled then live = live + 1 end end
+    MM.ctx.dropFocus = math.max(1, math.min(c.selected or 1, live))
     -- a long list opens with its current value in view
     MM.ctx.dropScroll = math.max(0, ((c.selected or 1) - 4) * ZeD.T.px(26))
 end
@@ -1606,7 +1627,12 @@ function ZeD_MMOptions:activateRow(r)
     if r.kind == "combo" and r.zedStyle then
         -- ZeD setup's switches, swatches and slider: the next choice (an on/off flips)
         local n = #(c.options or {})
-        if n > 0 and not c.disabled then setCombo(c, (c.selected or 1) % n + 1); MM.clickSound() end
+        if n > 0 and not c.disabled then
+            -- (UI scale on a small screen: past the last step that fits it wraps to Auto)
+            local nx = (c.selected or 1) % n + 1
+            if stepOff(c, nx) then nx = 1 end
+            setCombo(c, nx); MM.clickSound()
+        end
     elseif r.kind == "combo" then
         local anchor = { x = self:getAbsoluteX() + self.width / 2, y = self:getAbsoluteY() + self.height / 3, w = ZeD.T.px(COMBO_W), h = ZeD.T.px(24) }
         self:openCombo(r, anchor)
@@ -1630,7 +1656,7 @@ function ZeD_MMOptions:nudge(r, dir)
     if r.kind == "combo" then
         local n = #(c.options or {})
         local i = math.max(1, math.min(n, (c.selected or 1) + dir))
-        if i ~= c.selected then setCombo(c, i); MM.hoverSound() end
+        if i ~= c.selected and not stepOff(c, i) then setCombo(c, i); MM.hoverSound() end
         return true
     elseif r.kind == "volume" then
         local v = math.max(0, math.min(volumeMax(c), (c.volume or 0) + dir))

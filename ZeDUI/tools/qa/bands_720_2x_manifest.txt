@@ -1,3 +1,7 @@
+# STRESS PROBE ONLY (punch list 39, Oct 31 2026): ZeD setup's UI scale now stops at what fits (0.75 at 1280x720 and 1280x800,
+# Normal or Large text), so 2.0 at 720 is not a layout a player can pick. This run forces it with ZeD.Scale.override
+# (zedqa_scale2.lua) to look for crashes, lost stops and clipping that would also hurt at the real sizes; a layout
+# check at the small screens runs at Auto (or the cap), not here.
 # Oct 31 2026: the bands by pad at 1280x720, UI scale 2.0, Large text (the drawer fills the window). zedqa_run.ps1 -Manifest this -Mode windowed -Width 1280 -Height 720
 zedqa_prelude.lua | pre | timeout=120
 zedqa_scale2.lua | sc2 | timeout=60
