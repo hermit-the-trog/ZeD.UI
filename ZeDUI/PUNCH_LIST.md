@@ -608,6 +608,44 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
       Not covered: a resolution change while the game is running (each run starts at its size), and the Mods page's
       drop-down was only checked by the shared rule (Settings.scaleStepOff), not by a shot.
     - Open with the director: at 720 and the Deck the cap is 0.75 even with Normal text, so 1x can't be picked there.
+40. **Immersive Searching support (a Workshop comment by Kable; director, Oct 31 2026: "immersive searching is pretty cool.
+    not seen it before. would like to support that one too").** Workshop 3760450908, "Immersive Searching [B42MP]" by
+    キツネユキ (yuckyfox), mod ids ImmersiveSearching and OpenAllContainersISCompat (an add-on for Open All Containers),
+    ~3,400 subscribers, B42.18+, single and multiplayer. Its page asks that the mod not be altered without permission;
+    support goes in ZeD's own code. Subscribed Oct 31 (ledger).
+    - What it adds: a container's contents stay hidden until the character searches it, a timed action (rummage sound,
+      loot animation, about 1-3 s; longer in the dark, faster with Dextrous, slower with All Thumbs; optional Foraging XP).
+      Things appear one by one, heaviest first, from 20% of the way in. A search is remembered per container and per
+      player (mod data). Unsearched container buttons get a dark icon with a "?". Its sandbox has a "Search all" key and
+      controller button (off by default), a darkness penalty, a weight limit, and which containers to skip.
+    - What it hooks: ISInventoryPane:refreshContainer (the list shows only revealed things); ISInventoryPage:selectContainer
+      (picking a container starts the search) and :onJoypadDown (search all); the open/close sounds;
+      ISInventoryPaneContextMenu.getContainers; shouldBeVisible on the loot window handlers (Take all, Transfer all,
+      Move to floor, Remove all, mannequin); OnRefreshInventoryWindowContainers (the "?" icons); clicking a container in
+      the world (OnObjectLeftMouseButtonDown) also starts a search. Java-side: InventoryContainer DoTooltip (a bag's
+      tooltip shows it empty), ItemContainer hasRoomFor (nothing goes into an unsearched container) and
+      getCapacityWeight (0 until searched).
+    - QA, Oct 31 2026 (ZeDUI/tools/qa/zedqa_isearch.lua, isearch_manifest.txt; a duffel bag with 6 things put on the
+      floor; ZeD on at 4K, report qa/regression/2026-10-31_2323_mods_fullscreen4k.md; ZeD off,
+      qa/modload/2026-10-31_2327_is_console.txt). **No errors either way.** ZeD off: the mod works as described
+      (0 things listed until the search, 6 after, the "?" icon on the bag's button until then).
+      **ZeD on, the mod is bypassed:**
+      1. Picking the bag in ZeD's World window starts no search (ZeD sets its own active container and never calls
+         ISInventoryPage:selectContainer).
+      2. ZeD's list shows all 6 things before and during the search (it reads the container's items itself, not
+         through refreshContainer). Shot: zqa_is_zed_3_mid.png.
+      3. The footer reads "6 items | 0.0 of 18 kg" while the things are listed (the mod's weight hiding still applies).
+      4. No "?" mark: ZeD's container strip doesn't use the vanilla buttons.
+      5. Still working with ZeD: a search started the vanilla way (or by clicking the container in the world) runs and
+         marks the bag searched, and the "?" goes away on the vanilla buttons. Take all / Transfer all report visible
+         after the search. Not checked: that they hide before it in ZeD's row, and that dropping into an unsearched
+         container is refused in ZeD.
+    - Hooks the build can use: ImmersiveSearching.isSearched(player, container); ImmersiveSearching.Items[container]
+      .Searched[itemID] (what is revealed so far, while a search runs); the action ImmersiveSearching_ISSearch:new(player,
+      playerNum, object, container, weight, capacity, dark) (its startSearch is local); ImmersiveSearching_isBusy while
+      one runs; or press the hidden vanilla loot page's button for the container (selectContainer) so the mod starts its own.
+    - For the director (design): how an unsearched container looks in ZeD's strip, what its list shows before and
+      while it is searched, and whether "Search all" gets a place on the pad.
 41. **Load order tools for big mod lists (a Workshop comment by Kable, ~1,500 mods; director, Oct 31 2026: "I want
     the mod manager to really shine, so let's try and accommodate their request").** chosen. Rules
     ZeDUI/MODS_LOAD_ORDER_SPEC.md, mockup ZeDUI/mockups/zed_mod_folders_v2.html (7ee6ef4), together with item 37's
