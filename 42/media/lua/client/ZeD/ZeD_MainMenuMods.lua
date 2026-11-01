@@ -1801,6 +1801,7 @@ function ZeD_MMMods:drawProfiles(x, y, w, h)
     local facts = {}
     if selP.name then
         facts[#facts + 1] = ZeD.tr(diff.count == 1 and "UI_ZeD_Mods_ProfCountOne" or "UI_ZeD_Mods_ProfCountMany", diff.count)
+        if e and e.seps and #e.seps > 0 then facts[#facts + 1] = ZeD.tr(#e.seps == 1 and "UI_ZeD_Seps_ProfCountOne" or "UI_ZeD_Seps_ProfCountMany", #e.seps) end
         if e and e.saved and e.saved ~= "" then facts[#facts + 1] = ZeD.tr("UI_ZeD_Mods_ProfSaved", MM.playedText(e.saved)) end
     else
         facts[#facts + 1] = ZeD.tr("UI_ZeD_Mods_ProfPlain")
@@ -1867,13 +1868,28 @@ function ZeD_MMMods:drawProfiles(x, y, w, h)
             local kept0 = #order > 0
             if not kept0 and m then order = O.ruleOrder(O.readInfo(m, ids), ids); for _, id in ipairs(order) do seen[id] = true end end
             for _, id in ipairs(ids) do if not seen[id] then order[#order + 1] = id end end
-            local names, nums = {}, {}
-            for i, id in ipairs(order) do
+            local names, nums, heads = {}, {}, {}
+            local function modLine(id, n)
                 local md = m and m.mods[id]
-                names[i] = md and tostring(md.name) or ZeD.tr("UI_ZeD_Mods_ListNotInstalled", id)
-                nums[i] = tostring(i)
+                names[#names + 1] = md and tostring(md.name) or ZeD.tr("UI_ZeD_Mods_ListNotInstalled", id)
+                nums[#nums + 1] = tostring(n)
             end
-            pc = { name = selP.name, e = e, preset = preset, eo = e and e.order, kept = kept0, names = names, nums = nums }
+            -- (with separators: each one's heading line over its mods, MOD_FOLDERS_SPEC 10.3)
+            local runs = O.sectionRuns(e, order)
+            if runs then
+                local n = 0
+                for _, r in ipairs(runs) do
+                    if r.sep then
+                        names[#names + 1] = ZeD.tr(r.sep.on and "UI_ZeD_Seps_ProfHead" or "UI_ZeD_Seps_ProfHeadOff", r.sep.name, r.sep.on and #r.ids or #(r.sep.ids or {}))
+                        nums[#nums + 1] = ""
+                        heads[#names] = true
+                    end
+                    for _, id in ipairs(r.ids) do n = n + 1; modLine(id, n) end
+                end
+            else
+                for i, id in ipairs(order) do modLine(id, i) end
+            end
+            pc = { name = selP.name, e = e, preset = preset, eo = e and e.order, kept = kept0, names = names, nums = nums, heads = heads }
             self._profOrd = pc
         end
         local kept = pc.kept
@@ -1883,7 +1899,8 @@ function ZeD_MMMods:drawProfiles(x, y, w, h)
             if cy + lineH > y and cy < y + h then
                 local num = pc.nums[i]
                 self:drawText(num, ix + numW - MM.textW(f3, num), cy + math.floor((MM.fontH(f2) - MM.fontH(f3)) / 2), dc.r, dc.g, dc.b, dc.a or 1, f3)
-                self:drawText(ZeD.Atoms.truncateText(pc.names[i], f2, iw - numW - T.px(10)), ix + numW + T.px(10), cy, c.r, c.g, c.b, c.a or 1, f2)
+                local lc = pc.heads[i] and T.accent or c
+                self:drawText(ZeD.Atoms.truncateText(pc.names[i], f2, iw - numW - T.px(10)), ix + numW + T.px(10), cy, lc.r, lc.g, lc.b, lc.a or 1, f2)
             end
             cy = cy + lineH
         end

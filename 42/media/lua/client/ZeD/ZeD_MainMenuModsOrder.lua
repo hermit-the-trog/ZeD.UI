@@ -18,8 +18,9 @@
 --     Undo (the band, Ctrl+Z)
 --   * held until Done (spec 2.11); Done keeps the list's pins and rules (ZeD_ModOrder)
 --
--- Separators and sections (MOD_FOLDERS_SPEC, stage 3) are not built: orderSectionHook is where
--- their headings go into the list, Find included.
+-- Separators and sections (MOD_FOLDERS_SPEC 7, 8, 10, 11; stage 3) are ZeD_MainMenuModsSeps.lua:
+-- the list's entries, the separator rows, their pane and menu; this file keeps each mod's section
+-- (oSec) through every change, Undo and Back.
 -- ============================================================================
 require "ZeD/ZeD_MainMenuMods"
 require "ZeD/ZeD_ModOrder"
@@ -91,7 +92,7 @@ function ZeD_MMMods:relayoutList()
     local lo = O.getLo(O.listKey(m))
     if O.isEmpty(lo) then return end
     local ids = jlist(m:getActiveMods():getMods())
-    local order = O.layout(ids, self:infoFor(m, ids), lo, false)
+    local order = O.layout(O.seqFrom(lo, ids), self:infoFor(m, ids), lo, false)
     m:correctAndSaveModOrder(order)
 end
 
@@ -117,11 +118,15 @@ function ZeD_MMMods:enterOrder(page)
         self.oInfo = self:infoFor(m, ids)
         self.oKey = O.listKey(m)
         self.oLo = O.getLo(self.oKey)
-        self.order, self.oZone, self.oCarried = O.layout(ids, self.oInfo, self.oLo, false)
+        self.order, self.oZone, self.oCarried, self.oSec = O.layout(O.seqFrom(self.oLo, ids), self.oInfo, self.oLo, false)
     else
         self.order = jlist(m:getAllMapsInOrder())
-        self.oInfo, self.oLo, self.oZone, self.oCarried = {}, O.copyLo(nil), {}, {}
+        self.oInfo, self.oLo, self.oZone, self.oCarried, self.oSec = {}, O.copyLo(nil), {}, {}, {}
     end
+    -- (separators: nothing picked; what was on when the page opened, for Back)
+    self.oSepSel, self.oHeldSel, self.oOffHere = nil, nil, {}
+    self._oActive0 = {}
+    for _, id in ipairs(page == "order" and self.order or EMPTY) do self._oActive0[id] = true end
     self._orderStart = table.concat(self.order, ";")
     self.page = page
     self.oSel = 1
@@ -144,7 +149,11 @@ function ZeD_MMMods:leaveOrder(keep)
             for _, name in ipairs(self.order) do mo:add(name) end
         end
         self:say(ZeD.tr(self.page == "order" and "UI_ZeD_Mods_SayOrderSet" or "UI_ZeD_Mods_SayMapsSet"))
+    elseif m and self.page == "order" and self.sepMatchActive then
+        -- (Back: a separator's box turned mods on or off here; they go back as they were)
+        self:sepMatchActive(self._oActive0)
     end
+    self.oSepSel, self.oHeldSel = nil, nil
     MM.clickSound()
     self:closePicker(true)
     if self.find:isFocused() then self.find:unfocus() end
@@ -159,7 +168,7 @@ end
 function ZeD_MMMods:orderDone()
     if self.page == "order" then
         if self:orderCheck().firstBad then self:say(ZeD.tr("UI_ZeD_Mods_RuleFix")); MM.hoverSound(); return end
-        self.order, self.oZone, self.oCarried = O.layout(self.order, self.oInfo, self.oLo, false)
+        self.order, self.oZone, self.oCarried, self.oSec = O.layout(self:orderSeq(), self.oInfo, self.oLo, false)
         self:orderChanged()
     end
     self:leaveOrder(true)
@@ -168,7 +177,25 @@ end
 -- ----------------------------------------------------------------------------
 -- CHANGES, THE CHECK, UNDO
 -- ----------------------------------------------------------------------------
-function ZeD_MMMods:orderChanged() self.oVer = (self.oVer or 0) + 1 end
+function ZeD_MMMods:orderChanged()
+    self.oVer = (self.oVer or 0) + 1
+    -- (the separators' lists follow the order: once per change, spec 5.1)
+    if self.page == "order" and O.hasSeps(self.oLo) then O.secSync(self.oLo, self.order, self.oZone, self.oSec) end
+end
+
+-- the order to lay out from: with separators, each section's mods in their lists' order (so the
+-- mods that are off keep their places when they come back on), then the rest of the order
+function ZeD_MMMods:orderSeq()
+    if self.page ~= "order" or not O.hasSeps(self.oLo) then return self.order end
+    local seq, seen, on = {}, {}, {}
+    for _, id in ipairs(self.order) do on[id] = true end
+    local function add(id) if on[id] and not seen[id] then seen[id] = true; seq[#seq + 1] = id end end
+    for _, id in ipairs(self.order) do if (self.oZone[id] or 2) == 1 then add(id) end end
+    for _, id in ipairs(self.oLo.top or EMPTY) do add(id) end
+    for _, sp in ipairs(self.oLo.seps) do for _, id in ipairs(sp.ids or EMPTY) do add(id) end end
+    for _, id in ipairs(self.order) do add(id) end
+    return seq
+end
 
 -- the order check, worked out once per change (spec 5.1), not per frame
 function ZeD_MMMods:orderCheck()
@@ -193,7 +220,8 @@ local function copyMap(t) local o = {}; for k, v in pairs(t or EMPTY) do o[k] = 
 function ZeD_MMMods:orderSnap()
     local u = self.oUndo
     if not u then u = {}; self.oUndo = u end
-    u[#u + 1] = { order = copyArr(self.order), lo = O.copyLo(self.oLo), zone = copyMap(self.oZone), carried = copyMap(self.oCarried), sel = self.oSel }
+    u[#u + 1] = { order = copyArr(self.order), lo = O.copyLo(self.oLo), zone = copyMap(self.oZone), carried = copyMap(self.oCarried), sel = self.oSel,
+                  sec = copyMap(self.oSec), offHere = copyMap(self.oOffHere), sepSel = self.oSepSel }
     if #u > UNDO_MAX then table.remove(u, 1) end
 end
 
@@ -202,15 +230,23 @@ function ZeD_MMMods:orderUndo()
     if not (u and #u > 0) then return end
     local s = table.remove(u)
     self.order, self.oLo, self.oZone, self.oCarried = s.order, s.lo, s.zone, s.carried
+    self.oSec, self.oOffHere = s.sec or {}, s.offHere or {}
+    -- (a separator's box turned mods on or off: they go back with the order)
+    if self.page == "order" and self.sepMatchActive then
+        local want = {}
+        for _, id in ipairs(s.order) do want[id] = true end
+        self:sepMatchActive(want)
+    end
     self:orderChanged()
     self:orderSelectAt(s.sel or 1, false)
+    if s.sepSel and self.sepSelect then self:sepSelect(s.sepSel) end
     MM.clickSound()
     self:say(ZeD.tr("UI_ZeD_Order_SayUndone"))
 end
 
 -- lays the order out again (spec 4): after a pin, a rule, Auto (auto = true)
 function ZeD_MMMods:orderLayout(auto)
-    self.order, self.oZone, self.oCarried = O.layout(self.order, self.oInfo, self.oLo, auto)
+    self.order, self.oZone, self.oCarried, self.oSec = O.layout(self:orderSeq(), self.oInfo, self.oLo, auto)
     self:orderChanged()
 end
 
@@ -224,6 +260,7 @@ end
 function ZeD_MMMods:orderSelectAt(i, center)
     i = math.max(1, math.min(#self.order, i or 1))
     self.oSel = i
+    self.oSepSel, self.oHeldSel = nil, nil
     self.focusId = "orow:" .. i
     local v = self:orderView()
     local k = v.byPlace[i]
@@ -432,6 +469,8 @@ local function headText(blk, cnt, pinned, mz, q, helperOn)
     end
     return ZeD.upper(ZeD.tr(blk == 1 and "UI_ZeD_Order_HeadFirst" or "UI_ZeD_Order_HeadLast")), "(" .. table.concat(parts, ", ") .. ")"
 end
+
+ZeD_MMMods._orderHeadText = headText
 
 -- q: Find's text (lower case); skip: a mod left out (the picker's own); heads: the blocks'
 -- headings; pfx: the stops' prefix ("orow:" the page, "lp:" the picker)
@@ -655,7 +694,7 @@ end
 function ZeD_MMMods:drawOrderRow(e, v, res, x, ry, rw, gp, modal)
     local T = ZeD.T
     local f1, f2, f3 = T.fontF1, T.fontF2, T.fontF3
-    local isSel = e.i == self.oSel
+    local isSel = e.i == self.oSel and not self.oSepSel and not self.oHeldSel
     local hot = (not gp) and (not modal) and MM.ctx.hot == e.hid
     local focus = gp and (not modal) and self.focusId == e.sid
     local onFocus = MM.rowLook(self, x, ry, rw, e.h, isSel, hot, focus)
@@ -881,6 +920,8 @@ function ZeD_MMMods:drawOrder(x, y, w, h)
                 self._hits[#self._hits + 1] = hit
             end
         elseif e.k == "head" then self:drawOrderHead(e, rx, ry, rw)
+        elseif e.k == "sep" then self:drawSepRow(e, rx, ry, rw, vy, vh, gp, modal)
+        elseif e.k == "held" then self:drawHeldRow(e, rx, ry, rw, vy, vh, gp, modal)
         else self:drawOrderGap(e, rx, ry, rw) end
         k = k + 1
     end
@@ -888,6 +929,7 @@ function ZeD_MMMods:drawOrder(x, y, w, h)
         self:orderOffStop(ents, kPrev, k0, k)
         self:orderOffStop(ents, lastRow, k0, k)
         if kSel ~= kPrev and kSel ~= lastRow then self:orderOffStop(ents, kSel, k0, k) end
+        if self.sepOffStops then self:sepOffStops(v, k0, k) end
     end
     -- the drag's drop line
     local d = self._drag
@@ -1205,6 +1247,8 @@ function ZeD_MMMods:orderMenu(anchor)
         items[#items + 1] = "-"
         items[#items + 1] = { text = ZeD.tr("UI_ZeD_Order_RemoveRules"), fn = function() self:orderRemoveRules() end }
     end
+    -- (separators: Move to separator..., New separator...: ZeD_MainMenuModsSeps)
+    if self.sepRowItems then self:sepRowItems(items, id) end
     if not anchor then
         -- (at the row: from the controller or the keyboard)
         local T = ZeD.T
@@ -1541,6 +1585,8 @@ function ZeD_MMMods:orderStrip(stripY, w, row)
     if self.oUndo and #self.oUndo > 0 then
         rights[#rights + 1] = { "undo", ZeD.tr("UI_ZeD_Order_BtnUndo"), function() self:orderUndo() end, "default", false, ZeD.tr("UI_ZeD_Order_HelpUndo") }
     end
+    -- (separators: New separator..., Start separators from folders, Move it up)
+    if isOrder and self.sepStrip then status, color = self:sepStrip(rights, res, status, color) end
     rights[#rights + 1] = { "auto", ZeD.tr("UI_ZeD_Mods_BtnAuto"), function() self:autoSort() end, "default", not isOrder, ZeD.tr("UI_ZeD_Order_HelpAuto") }
     rights[#rights + 1] = { "done", getText("UI_mods_Done"), function() self:orderDone() end, "primary", isOrder and res.firstBad ~= nil }
     UI.stripSpecs(self, stripY, w, row, { { "back", getText("UI_btn_back"), function() self:leaveOrder(false) end } }, rights, status, true, color)
