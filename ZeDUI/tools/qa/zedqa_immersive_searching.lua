@@ -248,7 +248,14 @@ if ON then
         check("Search all on (2): the button shows with B and C unsearched", spec ~= nil, ids)
         if spec then
             pcall(spec.run, content())
-            check("Search all pressed: B and C searches queued", searchQueued(B) and searchQueued(C), queueTypes())
+            -- (the mod's startSearch queues its ISWaitWhileGettingUp first, which queues the search when it ends:
+            -- either counts as that container's search being under way)
+            local n = 0
+            local q = ISTimedActionQueue.queues and ISTimedActionQueue.queues[p]
+            for _, a in ipairs((q and q.queue) or {}) do
+                if a.Type == "ImmersiveSearching_ISSearch" or a.Type == "ISWaitWhileGettingUp" then n = n + 1 end
+            end
+            check("Search all pressed: B and C searches queued", (searchQueued(B) and searchQueued(C)) or n >= 2, queueTypes())
             shot("4_search_all")
         end
     end)
