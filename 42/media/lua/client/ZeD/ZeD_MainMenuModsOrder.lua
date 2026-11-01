@@ -1414,7 +1414,9 @@ end
 local function pickRowParts(self, e)
     if e.pspec then return e.pspec, e.hit end
     local id = e.id
-    local sp = { id = e.sid, lpRow = true, listId = "lpick", row = e.i, col = 1, ry = e.y, rh = e.h, clip = {},
+    -- (listRow: the picker draws its rows itself; without it the window drew each stop as a
+    -- button with no text, "nil", over the names and below the list, QA Nov 1 2026)
+    local sp = { id = e.sid, lpRow = true, listRow = true, listId = "lpick", row = e.i, col = 1, ry = e.y, rh = e.h, clip = {},
                  fn = function() self:pickChoose(id, false) end }
     local hit = { id = e.hid }
     hit.fn = function()
@@ -1436,6 +1438,9 @@ function ZeD_MMMods:drawLoadPicker(x, y, w, h)
     local gp = MM.gamepad()
     local px, pw = x + T.px(16), w - T.px(32)
     local py, ph = y + T.px(12), h - T.px(24)
+    -- the list under the picker is covered edge to edge (its rows showed in the margin above the title)
+    local bs = T.base
+    self:drawRect(x + T.px(1), y, w - 2 * T.px(1), h, 1, bs.r, bs.g, bs.b)
     ZeD.Atoms.drawHardShadow(self, px, py, pw, ph)
     local s1, s2 = T.surf1, T.surf2
     self:drawRect(px, py, pw, ph, 1, s1.r, s1.g, s1.b)
