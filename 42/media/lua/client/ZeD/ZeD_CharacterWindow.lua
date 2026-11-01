@@ -3747,6 +3747,13 @@ function ZeD_CharacterWindow.isOpen()
     return _charWin ~= nil
 end
 
+-- The controller's stops rebuilt for the tab on show (Reset windows sets Loot without a tab
+-- switch: Nov 1 2026, punch list 45, the old tab's stops stayed registered until the next change)
+function ZeD_CharacterWindow.syncRing(win)
+    win = win or ZeD_CharacterWindow.getWindow()
+    if win and win._mainContent and _syncRingZonesToActiveTab then _syncRingZonesToActiveTab(win, win._mainContent) end
+end
+
 function ZeD_CharacterWindow.getWindow()
     return _charWin
 end

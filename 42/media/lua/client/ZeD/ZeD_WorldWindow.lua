@@ -3058,6 +3058,12 @@ function ZeD_WorldWindow.isOpen()
     return _worldWin ~= nil
 end
 
+-- The controller's stops rebuilt for the tab on show (Reset windows: Nov 1 2026, punch list 45)
+function ZeD_WorldWindow.syncRing(win)
+    win = win or ZeD_WorldWindow.getWindow()
+    if win and win._mainContent and _syncWorldRingZones then _syncWorldRingZones(win, win._mainContent) end
+end
+
 function ZeD_WorldWindow.getWindow()
     return _worldWin
 end

@@ -1207,6 +1207,10 @@ function ZeD_Window.resetLayout(which)
     end
     if charWin then resetChar(charWin, defW, defH, gap, screenW) end
     if worldWin then resetWorld(worldWin, defW, defH, gap, screenW) end
+    -- the controller's stops follow the reset to Loot (Nov 1 2026, punch list 45: the stops of the
+    -- tab that was showing stayed registered, and a Right from the strip landed on one not drawn)
+    if charWin and ZeD_CharacterWindow.syncRing then ZeD_CharacterWindow.syncRing(charWin) end
+    if worldWin and ZeD_WorldWindow.syncRing then ZeD_WorldWindow.syncRing(worldWin) end
 end
 
 -- "char" or "world" for the Character / World pair, nil for any other window
