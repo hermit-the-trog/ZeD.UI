@@ -568,6 +568,23 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     w_forage reading Maps' 14 stops was not this fault: its shot's title reads "Ground + Maps", so the Forage tab
     never opened (its strip button scrolled out of reach at 720, item 27; the probe clicks the button only). QA to
     re-run the probe at 720 2x Large, opening a tab by setting it when its button is out of reach.
+39. **The UI scale stops at what fits the screen.** The director, Oct 31 2026: "NO ONE IS EVER GOING TO PLAY AT
+    2X on 720p. It's way too big to fit more than 5 words." **chosen: cap the UI scale to what fits.** On small
+    screens ZeD setup's UI scale slider stops at the largest step whose windows still fit; Auto stays the default.
+    - Fits: at that step times the text size (Large 1.15), one window at its narrowest useful width (tab strip 36 +
+      inventory minimum 200 + full card 480 + container strip 36 = 752 units) fits in half the screen's width, and
+      the screen's height holds the title bar + a tab strip of 6 tabs + the help line. Never below the step under
+      what Auto picks there, never below 0.5x. (The fixed steps take no engine font-size multiplier, so none is
+      applied to them.)
+    - The slider, the Mods page's drop-down and the controller's ZeD wheel offer steps up to the cap; the ones above
+      are dimmed and inert, the help line saying "Too big for this screen: 1x and up." A saved step above the cap
+      (picked on a bigger monitor) draws at the cap ("2x (0.75x here)") and stays saved, so the big monitor gets it
+      back. Auto is never capped (it fits everywhere but 1280 wide with Large text, 9 px over: the half card takes
+      that already). The QA override is not capped either.
+    - Live: from the screen size and the text size every half second and on a resolution change.
+    - Cap, Normal / Large text: 1280x720 0.75 / 0.75; 1280x800 0.75 / 0.75; 1920x1080 1.25 / 1; 2560x1440
+      1.5 / 1.25; 3840x2160 2 / 2. The 720 2x QA manifests are now marked stress probes only.
+    **built (9a3fd5c), QA to confirm.**
 ## Test process
 
 - The release check (before every upload, about 5 minutes, pass or fail): right-click opens the
