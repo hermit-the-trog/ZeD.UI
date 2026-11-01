@@ -9,7 +9,7 @@
 --   health     zed_11_health_exercise (page 23: the Exercise pop-up open, its dimmed choices, a body part under the
 --              pointer so the figure's readout shows), zed_11b_health_hover (the same hover, the pop-up shut)
 --   forage     zed_51_forage (page 29: Search pressed in the lot's real zone, More detail open, finds in the list)
---   furniture  zed_52_furniture (page 29: a chair on the lot under the pointer, its name on the tab and the chip)
+--   furniture  zed_52_furniture (page 29: a movable piece on the lot under the pointer, its name on the tab and the chip)
 -- NOV1_ONLY = { cards = true, ... } above this header takes only those sections.
 -- Every capture logs "rect <name> drawer x y w h window x y w h header h footer h tab id" for each window shown.
 -- Finds: the search runs for 8 s on its own; then, while the list has fewer than five, an icon in reach that the
@@ -143,6 +143,47 @@ function Z.pointAt(x, y)
 end
 -- the pointer where G.cleanLook leaves it: the bottom middle, under the tall windows
 function Z.park() Z.pointAt(core:getScreenWidth() / 2, core:getScreenHeight() - 6) end
+-- (Nov 1 2026, the fixes after the first run) a real pointer rest: the pointer walks onto (x, y) in 2 px steps for
+-- the first half of ms (the engine's UI tick runs every 100 ms and only a move it sees counts), then holds still
+-- there for the rest; getXY is asked each frame (nil: give up)
+function Z.restOn(getXY, ms)
+    local R = {}
+    S.poll(1, math.floor(ms / 3) + 900, function()
+        local now = getTimestampMs()
+        if not R.t0 then R.t0, R.n = now, 0 end
+        local x, y = getXY()
+        if not x then return true end
+        R.n = R.n + 1
+        if now - R.t0 < ms / 2 then
+            if R.n % 4 == 0 then Z.pointAt(x + ((((R.n / 4) % 2) == 0) and 2 or 0), y) end
+        else
+            Z.pointAt(x, y)
+        end
+        return now - R.t0 >= ms
+    end)
+end
+-- wait until what getSig answers (a string; nil while not there) has stayed the same for n frames, and at least
+-- minF frames have passed (a pop-up is caught whole, not while it grows)
+function Z.settle(label, getSig, n, minF, maxF)
+    local R = { same = 0, f = 0 }
+    S.poll(1, maxF or 600, function()
+        R.f = R.f + 1
+        local s = getSig()
+        if s ~= nil and s == R.last then R.same = R.same + 1 else R.same, R.last = 0, s end
+        if s ~= nil and R.same >= (n or 20) and R.f >= (minF or 30) then say(label .. ": settled (" .. tostring(s) .. ")"); return true end
+        return false
+    end, function() say("note: " .. label .. " did not settle (" .. tostring(R.last) .. ")") end)
+end
+-- the extent of a list of zones ({x, y, w, h}) as a string, nil when there are none
+function Z.zonesSig(zs)
+    if not (zs and #zs > 0) then return nil end
+    local x0, y0, x1, y1 = 1e9, 1e9, -1e9, -1e9
+    for _, z in ipairs(zs) do
+        x0, y0 = math.min(x0, z.x), math.min(y0, z.y)
+        x1, y1 = math.max(x1, z.x + z.w), math.max(y1, z.y + z.h)
+    end
+    return string.format("%d rows %d,%d %dx%d", #zs, math.floor(x0), math.floor(y0), math.floor(x1 - x0), math.floor(y1 - y0))
+end
 
 -- a scene: setup (may return false, why), settle, shot, rects
 function Z.setup(fn)
@@ -237,7 +278,50 @@ if Z.want("equip") then
 end
 
 -- ---- health (page 23) --------------------------------------------------------------
+-- (Nov 1 2026, the fixes after the first run: the pop-up was caught a few px tall, and the hover was a jump the tab
+-- never saw. Now the pop-up's rows must stand still for 20 frames, 30 at least, before anything else; the Character
+-- window is brought to the top, as a click on it would; the pointer walks onto a point of the part that the figure's
+-- own hit test names and rests there 600 ms; the shot waits until the tab reads that part for 6 frames.)
 if Z.want("health") then
+    local HB = {}
+    -- a screen point on the part, one the figure's hit test names (its rects are drawer-panel coordinates)
+    function HB.point()
+        local w = Z.CW()
+        local fig, dp = w and w._healthBodyFigure, w and w._drawerPanel
+        if not (fig and dp and fig.getPartRects) then return nil end
+        local pick = nil
+        for _, r in ipairs(fig:getPartRects()) do if r.name == HB.want then pick = r end end
+        if not pick then return nil end
+        local cx, cy = pick.x + math.floor(pick.w / 2), pick.y + math.floor(pick.h / 2)
+        for d = 0, math.floor(math.min(pick.w, pick.h) / 2), 2 do
+            for _, o in ipairs({ { 0, 0 }, { d, 0 }, { -d, 0 }, { 0, d }, { 0, -d } }) do
+                local lx, ly = cx + o[1], cy + o[2]
+                local hit = nil
+                pcall(function() hit = fig:hitTestAt(lx, ly) end)
+                if hit == HB.want then return dp:getAbsoluteX() + lx, dp:getAbsoluteY() + ly end
+            end
+        end
+        return dp:getAbsoluteX() + cx, dp:getAbsoluteY() + cy
+    end
+    -- the tab reads the part for 6 frames running (hovered and the active part both); else, after 4 s, by hand
+    function HB.hovered(label)
+        local R = { n = 0 }
+        S.poll(1, 240, function()
+            local w = Z.CW()
+            if w and HB.want and w._healthHoveredPart == HB.want and w._healthActivePart == HB.want then R.n = R.n + 1 else R.n = 0 end
+            return R.n >= 6
+        end, function()
+            local w = Z.CW()
+            say("note: " .. label .. ": the tab did not read the pointer's part (hovered " .. tostring(w and w._healthHoveredPart)
+                .. "): set by hand")
+            if w and HB.want then w._healthHoveredPart = HB.want end
+        end)
+    end
+    function HB.menuSig()
+        local w = Z.CW()
+        if not (w and w._healthMenuOpen) then return nil end
+        return Z.zonesSig(w._healthMenuZones)
+    end
     Z.tabStep("c", "health")
     S.step(10, function()
         if not Z.sc.ok then return end
@@ -247,42 +331,51 @@ if Z.want("health") then
         w._healthFigureExpanded = true
         pcall(function() w._healthScroll:setScrollPos(0) end)
         w._healthExerciseSel = "pushups"
-        ZeD.HealthTab.openMenu(w)
         Z.place()
+        Z.park()
     end)
-    -- the pointer on a body part of the figure (its rects, drawer-panel coordinates, from the last frame drawn)
     S.step(30, function()
         if not Z.sc.ok then return end
         local w = Z.CW()
-        local fig, dp = w._healthBodyFigure, w._drawerPanel
+        pcall(function() w:bringToTop() end)
+        ZeD.HealthTab.openMenu(w)
+    end)
+    Z.settle("health pop-up", HB.menuSig, 20, 30, 600)
+    S.step(2, function()
+        if not Z.sc.ok then return end
+        local w = Z.CW()
+        local fig = w._healthBodyFigure
         local rects = (fig and fig.getPartRects) and fig:getPartRects() or {}
-        local pick = nil
-        for _, r in ipairs(rects) do if r.name == "Upper Torso" then pick = r end end
-        pick = pick or rects[1]
-        if not (pick and dp) then Z.sc.ok, Z.sc.why = false, "the figure has no part rects (folded or not drawn)"; return end
-        Z.hoverPart = pick.name
-        Z.pointAt(dp:getAbsoluteX() + pick.x + pick.w / 2, dp:getAbsoluteY() + pick.y + pick.h / 2)
-        say(string.format("health: the pointer on %s (%d parts on the figure) | pop-up open %s", tostring(pick.name), #rects, tostring(w._healthMenuOpen)))
+        HB.want = nil
+        for _, r in ipairs(rects) do if r.name == "Upper Torso" then HB.want = r.name end end
+        HB.want = HB.want or (rects[1] and rects[1].name)
+        if not HB.want then Z.sc.ok, Z.sc.why = false, "the figure has no part rects (folded or not drawn)"; return end
+        local x, y = HB.point()
+        say(string.format("health: the pointer to %s at %s,%s (%d parts) | pop-up open %s", tostring(HB.want),
+            tostring(x and math.floor(x)), tostring(y and math.floor(y)), #rects, tostring(w._healthMenuOpen)))
     end)
-    S.step(20, function()
+    Z.restOn(function() if Z.sc.ok and HB.want then return HB.point() end return nil end, 600)
+    HB.hovered("zed_11")
+    Z.settle("health pop-up, before the shot", HB.menuSig, 10, 10, 300)
+    S.step(2, function()
         local w = Z.CW()
-        -- (the drawer's own mouse-move sets the hover from the real pointer; this only covers a frame it missed)
-        if Z.sc.ok and w and not w._healthHoveredPart then w._healthHoveredPart = Z.hoverPart end
-    end)
-    S.step(20, function()
-        local w = Z.CW()
-        say("health: hovered " .. tostring(w and w._healthHoveredPart) .. " | pop-up open " .. tostring(w and w._healthMenuOpen)
+        say("health: hovered " .. tostring(w and w._healthHoveredPart) .. " active " .. tostring(w and w._healthActivePart)
+            .. " | pop-up " .. tostring(w and w._healthMenuOpen) .. " " .. tostring(HB.menuSig())
             .. " | pick " .. tostring(w and w._healthExerciseSel))
         Z.finish("zed_11_health_exercise")
     end)
+    -- the pop-up shut through its own fields (closeMenu also hands the controller back to the box), the pointer kept
+    -- on the part, walked and rested again
     S.step(2, function()
         local w = Z.CW()
-        if w then ZeD.HealthTab.closeMenu(w) end
+        if w then w._healthMenuOpen = false; w._healthMenuZones = nil end
     end)
-    S.step(30, function()
+    Z.restOn(function() if Z.sc.ok and HB.want then return HB.point() end return nil end, 500)
+    HB.hovered("zed_11b")
+    S.step(10, function()
         local w = Z.CW()
-        if Z.sc.ok and w and not w._healthHoveredPart then w._healthHoveredPart = Z.hoverPart end
-        say("health: hovered " .. tostring(w and w._healthHoveredPart) .. " | pop-up open " .. tostring(w and w._healthMenuOpen))
+        say("health: hovered " .. tostring(w and w._healthHoveredPart) .. " active " .. tostring(w and w._healthActivePart)
+            .. " | pop-up open " .. tostring(w and w._healthMenuOpen))
         Z.finish("zed_11b_health_hover")
     end)
     S.step(2, function()
@@ -403,8 +496,17 @@ if Z.want("forage") then
 end
 
 -- ---- furniture (page 29) -----------------------------------------------------------
+-- (Nov 1 2026, the fixes after the first run: the chair's sprite was not one vanilla moves. A piece is movable for
+-- the game when its sprite carries IsMoveAble (ISMoveableSpriteProps.new: isMoveable); the furniture cursor reads
+-- nothing else. So: the pointer rests on a clear screen spot and the square the game reads there is taken (the tab's
+-- capture, as before); a movable piece already on it is used; else a movable sprite is found among the game's seats,
+-- tables and bins (its props checked) and placed as vanilla's placeMoveableInternal places a plain one,
+-- IsoObject.new(cell, square, sprite) added to the square; the pointer walks off the tile and back so the cursor
+-- reads it again, and the shot waits until the tab has read the piece.)
 if Z.want("furniture") then
-    local FU = { sprites = { "furniture_seating_outdoor_01_17", "furniture_seating_outdoor_01_16", "furniture_seating_indoor_01_0" } }
+    local FU = { families = { { "furniture_seating_outdoor_01_", 0, 23 }, { "furniture_seating_indoor_01_", 0, 15 },
+                              { "furniture_seating_indoor_02_", 0, 15 }, { "furniture_tables_low_01_", 0, 15 },
+                              { "trashcontainers_01_", 0, 23 }, { "furniture_storage_02_", 16, 23 } } }
     -- the screen point of a square's middle on the ground
     function FU.screenOf(x, y)
         local sx, sy = -1, -1
@@ -440,6 +542,54 @@ if Z.want("furniture") then
         end
         return nil
     end
+    -- what vanilla's furniture code makes of a sprite: movable, and its name (nil, nil when it is not movable)
+    function FU.props(spr)
+        local mp = nil
+        pcall(function() mp = ISMoveableSpriteProps.new(spr) end)
+        if not (mp and mp.isMoveable) then return nil end
+        local nm = nil
+        pcall(function() nm = mp.name or (spr:getProperties():has("CustomName") and spr:getProperties():get("CustomName")) end)
+        return mp, nm
+    end
+    -- a movable piece already on the square
+    function FU.onSquare(sq)
+        local objs = sq and sq:getObjects()
+        for i = 0, (objs and objs:size() or 0) - 1 do
+            local o = objs:get(i)
+            local spr = o and o:getSprite()
+            if spr and o ~= sq:getFloor() then
+                local mp, nm = FU.props(spr)
+                if mp then return o, spr:getName(), nm end
+            end
+        end
+        return nil
+    end
+    -- the first sprite of the families above that the game moves and that has a name of its own
+    function FU.movableSprite()
+        local fallback = nil
+        for _, f in ipairs(FU.families) do
+            for i = f[2], f[3] do
+                local name = f[1] .. i
+                local spr = getSprite(name)
+                if spr then
+                    local mp, nm = FU.props(spr)
+                    local high = false
+                    pcall(function() high = spr:getProperties():has("IsHigh") end)
+                    if mp and nm and not high then return name, nm end
+                    if mp and not fallback then fallback = name end
+                end
+            end
+        end
+        return fallback, nil
+    end
+    function FU.capName()
+        local FT = ZeD.FurnitureTab
+        local c = FT and FT.cap and FT.cap[0]
+        local mp = c and c.mp
+        local nm = nil
+        pcall(function() nm = mp and (mp.name or mp.customName or mp.spriteName) end)
+        return nm, c
+    end
     Z.tabStep("w", "furniture")
     S.step(30, function()
         if not Z.sc.ok then return end
@@ -456,15 +606,16 @@ if Z.want("furniture") then
             FU.sq, FU.sx, FU.sy = sq, sx, sy
         end
     end)
-    -- Nov 1 2026, second take: the pointer rests on the chosen screen spot first and the chair goes on the square the
-    -- game itself reads under the pointer (the tab's capture), not the one isoToScreen named: at 4K they differed
-    -- by six tiles and the tab read nil.
-    S.step(20, function() if Z.sc.ok and FU.sx then Z.pointAt(FU.sx, FU.sy) end end)
-    S.waitMs(500)
-    S.step(20, function()
+    S.step(2, function()
         if not Z.sc.ok then return end
         if not FU.sq then FU.sq, FU.sx, FU.sy = FU.find() end
-        if not FU.sq then Z.sc.ok, Z.sc.why = false, "no clear square on the screen for the chair"; return end
+        if not FU.sq then Z.sc.ok, Z.sc.why = false, "no clear square on the screen for the piece" end
+    end)
+    -- the pointer rests on the chosen screen spot first; the piece goes on the square the game itself reads under
+    -- the pointer (the tab's capture), not the one isoToScreen named: at 4K they differed by six tiles
+    Z.restOn(function() if Z.sc.ok and FU.sx then return FU.sx, FU.sy end return nil end, 600)
+    S.step(20, function()
+        if not Z.sc.ok then return end
         local FT = ZeD.FurnitureTab
         local c = FT and FT.cap and FT.cap[0]
         if c and c.sq then
@@ -473,38 +624,47 @@ if Z.want("furniture") then
         else
             say("furniture: the tab read no square under the pointer; using the named one")
         end
-        for _, name in ipairs(FU.sprites) do
-            if not FU.obj and getSprite(name) then
-                pcall(function()
-                    local o = IsoObject.new(FU.sq, name)
-                    FU.sq:AddTileObject(o)
-                    FU.obj, FU.sprite = o, name
-                end)
-            end
+        local o, sname, nm = FU.onSquare(FU.sq)
+        if o then
+            say(string.format("furniture: a movable piece is already there: %s (%s)", tostring(sname), tostring(nm)))
+            return
         end
-        if not FU.obj then Z.sc.ok, Z.sc.why = false, "no furniture sprite could be placed"; return end
-        say(string.format("furniture: %s placed at %d,%d (screen %d,%d)", FU.sprite, FU.sq:getX(), FU.sq:getY(), FU.sx, FU.sy))
+        local name, nm2 = FU.movableSprite()
+        if not name then Z.sc.ok, Z.sc.why = false, "no movable furniture sprite found (IsMoveAble)"; return end
+        local ok, e = pcall(function()
+            local obj = IsoObject.new(getCell(), FU.sq, name)
+            FU.sq:AddTileObject(obj)
+            FU.obj, FU.sprite = obj, name
+        end)
+        if not FU.obj then Z.sc.ok, Z.sc.why = false, "the piece could not be placed: " .. tostring(e); return end
+        local mp = FU.props(FU.obj:getSprite())
+        say(string.format("furniture: %s (%s) placed at %d,%d | movable for the game %s", FU.sprite, tostring(nm2),
+            FU.sq:getX(), FU.sq:getY(), tostring(mp ~= nil)))
+        -- (the cursor keeps the objects it read for a square: dropped, so it reads this one again)
+        local cur = FT and FT.cursorOf and FT.cursorOf(0)
+        if cur then cur.objectListCache = nil end
     end)
-    -- the pointer rests on the chair's square (the tab's hold reads a tile rested on for a quarter second)
-    S.step(20, function() if Z.sc.ok then Z.pointAt(FU.sx + 3, FU.sy - 3) end end)
-    S.waitMs(400)
-    S.step(2, function() if Z.sc.ok then Z.pointAt(FU.sx, FU.sy) end end)
-    S.waitMs(1200)
-    S.step(2, function()
+    -- off the tile and back (the tab's hold takes a tile rested on for a quarter second), then the wait for its read
+    Z.restOn(function() if Z.sc.ok and FU.sx then return FU.sx + ZeD.T.px(60), FU.sy + ZeD.T.px(30) end return nil end, 500)
+    Z.restOn(function() if Z.sc.ok and FU.sx then return FU.sx, FU.sy end return nil end, 900)
+    S.poll(2, 300, function()
+        if not Z.sc.ok then return true end
+        local nm = FU.capName()
+        return nm ~= nil
+    end, function() say("note: furniture: the tab read no piece under the pointer in 5 s") end)
+    S.step(20, function()
         local FT = ZeD.FurnitureTab
-        local c = FT and FT.cap and FT.cap[0]
-        local mp = c and c.mp
-        local nm = nil
-        pcall(function() nm = mp and (mp.name or mp.customName or mp.spriteName) end)
+        local nm, c = FU.capName()
         say(string.format("furniture: mode %s | the tab reads %s at %s", tostring(FT and FT.state and FT.state.mode), tostring(nm),
             tostring(c and c.sq and (c.sq:getX() .. "," .. c.sq:getY()))))
+        if Z.sc.ok and not nm then Z.sc.ok, Z.sc.why = false, "the tab read no piece under the pointer" end
         Z.finish("zed_52_furniture")
     end)
     S.step(2, function() Z.park(); Z.worldTab("loot") end)
     S.step(40, function()
         if FU.obj then
             pcall(function() FU.sq:transmitRemoveItemFromSquare(FU.obj) end)
-            say("furniture put back: the chair removed")
+            say("furniture put back: the piece removed")
         end
         FU.obj = nil
         Z.lock = nil
@@ -527,6 +687,7 @@ end)
 S.step(20, function()
     Z.untall()
     Z.openPair()
+    NOV1_ONLY = nil   -- (a section switch, e.g. gallery_nov1_only_furniture.lua, holds for this run only)
     say("put back: heights, places, tabs, options | theme " .. tostring(ZeD.currentBase) .. " " .. tostring(ZeD.currentAccent))
 end)
 S.start()

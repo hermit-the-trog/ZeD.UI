@@ -60,8 +60,8 @@ end
 function B.tall()
     local c, w = B.CW(), B.WW()
     if not (c and w) then return end
-    if not B.was.size then
-        B.was.size = { c = { c:getX(), c:getY(), c:getHeight() }, w = { w:getX(), w:getY(), w:getHeight() } }
+    if not B.was.heights then
+        B.was.heights = { c = { c:getX(), c:getY(), c:getHeight() }, w = { w:getX(), w:getY(), w:getHeight() } }
     end
     local m = ZeD.T.px(12)
     local h = core:getScreenHeight() - 2 * m
@@ -74,11 +74,11 @@ function B.tall()
 end
 function B.untall()
     local c, w = B.CW(), B.WW()
-    local s = B.was.size
+    local s = B.was.heights
     if not s then return end
     if c then c:setHeight(s.c[3]); pcall(function() c:onResize() end); c:setX(s.c[1]); c:setY(s.c[2]) end
     if w then w:setHeight(s.w[3]); pcall(function() w:onResize() end); w:setX(s.w[1]); w:setY(s.w[2]) end
-    B.lock, B.was.size = nil, nil
+    B.lock, B.was.heights = nil, nil
 end
 function B.goTab(win, strip, tab)
     for _, z in ipairs(strip and strip._hitZones or {}) do
@@ -136,6 +136,55 @@ function B.parkPos(k)
 end
 function B.park() B.parkK = 1; B.pointAt(B.parkPos(1)) end
 function B.nudge() B.parkK = (B.parkK == 1) and 2 or 1; B.pointAt(B.parkPos(B.parkK)) end
+-- (Nov 1 2026, the fixes after the first run) a real pointer rest: the pointer walks onto (x, y) in 2 px steps for
+-- the first half of ms (the engine's UI tick runs every 100 ms and only a move it sees counts), then holds still
+-- there; getXY is asked each frame (nil: give up)
+function B.restOn(getXY, ms)
+    local R = {}
+    S.poll(1, math.floor(ms / 3) + 900, function()
+        local now = getTimestampMs()
+        if not R.t0 then R.t0, R.n = now, 0 end
+        local x, y = getXY()
+        if not x then return true end
+        R.n = R.n + 1
+        if now - R.t0 < ms / 2 then
+            if R.n % 4 == 0 then B.pointAt(x + ((((R.n / 4) % 2) == 0) and 2 or 0), y) end
+        else
+            B.pointAt(x, y)
+        end
+        return now - R.t0 >= ms
+    end)
+end
+-- pred true for n frames running (max frames, then a note and on)
+function B.waitFor(label, pred, n, max)
+    local R = { n = 0 }
+    S.poll(1, max or 180, function()
+        local ok = false
+        pcall(function() ok = pred() == true end)
+        if ok then R.n = R.n + 1 else R.n = 0 end
+        return R.n >= (n or 6)
+    end, function() say("note: " .. label .. ": not reached") end)
+end
+-- the top-level UI elements drawn above win that hold the point (what makes pointerOn false), for the log
+function B.coverAt(x, y, win)
+    local out = {}
+    pcall(function()
+        local ui = UIManager.getUI()
+        local jo = win and win.javaObject
+        local seen = jo == nil
+        for i = 0, ui:size() - 1 do
+            local e = ui:get(i)
+            if seen and e ~= jo and e:isVisible() and e:isPointOver(x, y) then
+                local t = nil
+                pcall(function() t = e:getTable() and e:getTable().Type end)
+                out[#out + 1] = tostring(t or e:getClass():getSimpleName())
+            end
+            if e == jo then seen = true end
+        end
+    end)
+    if #out == 0 then return "nothing" end
+    return table.concat(out, ", ")
+end
 function B.boxRect(win)
     local b = win and win.windowBoxRect and win:windowBoxRect()
     if not b then return nil end
@@ -378,20 +427,35 @@ B.snap("zqa_cw_01_dark_small_card", function()
     return string.format("both windows: Character on its inventory with the apple's card open (card item %s), World on Loot",
         tostring(w and w._drawerItem and w._drawerItem:getDisplayName()))
 end)
--- the help line: the pointer held on the bag strip's Inventory button (the strip stamps its help each frame)
+-- the help line (Nov 1 2026, the fix after the first run: the bag strip's stamp never reached the footer, which kept
+-- the item count). The window box, an icon-only button: the window watches the raw pointer on it every frame
+-- (ZeD_Window:_watchBoxes sets _wboxHover while pointerOn, the engine's isMouseOver, says no window above holds the
+-- pointer) and its own help line draws the box's hint (UI_ZeD_WinMenu_Help) while _wboxHover is set. The Character
+-- window is brought to the top first (a click on it would), the pointer walks onto the box and rests 600 ms, and
+-- the shot waits until the window reads the hover for 6 frames.
 S.step(2, function()
     local c = B.CW()
-    local strip = c and c._containerStrip
-    if not (strip and strip:isVisible()) then S.err("cw_01b", "no bag strip on the Character window"); return end
-    B.pointAt(strip:getAbsoluteX() + math.floor(strip:getWidth() / 2), strip:getAbsoluteY() + ZeD.T.px(18))
+    if not c then S.err("cw_01b", "no Character window"); return end
+    pcall(function() c:bringToTop() end)
 end)
-S.waitMs(600)
+B.restOn(function()
+    local x0, y0, x1, y1 = B.boxRect(B.CW())
+    if not x0 then return nil end
+    return math.floor((x0 + x1) / 2), math.floor((y0 + y1) / 2)
+end, 600)
+B.waitFor("cw_01b: the window box hover", function() local c = B.CW(); return c and c._wboxHover == true end, 6, 240)
+S.step(1, function()
+    local c = B.CW()
+    if c and not c._wboxHover then
+        say("note: cw_01b: no hover on the window box (pointer on the window " .. tostring(c:pointerOn()) .. ", above it: "
+            .. B.coverAt(getMouseX(), getMouseY(), c) .. ")")
+    end
+end)
 B.snap("zqa_cw_01b_help_line", function()
     local c = B.CW()
-    local strip = c and c._containerStrip
-    return string.format("the pointer on the Character window's Inventory button (bag strip at %d,%d %dx%d): the footer help line",
-        strip and math.floor(strip:getAbsoluteX()) or -1, strip and math.floor(strip:getAbsoluteY()) or -1,
-        strip and math.floor(strip:getWidth()) or -1, strip and math.floor(strip:getHeight()) or -1)
+    local x0, y0, x1, y1 = B.boxRect(c)
+    return string.format("the pointer resting on the Character window's window box (%s,%s-%s,%s): its hover %s, pointer on the window %s; the footer help line shows the box's plain-words help",
+        tostring(x0), tostring(y0), tostring(x1), tostring(y1), tostring(c and c._wboxHover), tostring(c and c:pointerOn()))
 end)
 S.step(2, function() B.park() end)
 S.step(10, function() end)
@@ -436,19 +500,49 @@ for _, v in ipairs({ 100, 60 }) do
         return "both windows with the apple's card open at see-through " .. v .. ", the world behind them"
     end)
 end
+-- Solid while in use (Nov 1 2026, the fix after the first run: both windows stayed see-through). ZeD_Window:_inUse
+-- is the pointer on the window (pointerOn: the engine's isMouseOver, false while any window above holds the point)
+-- or the controller in it (the pad's focus on it in gamepad mode). The Character window is brought to the top, the
+-- pointer walks onto its title bar (nothing there answers a hover) and rests 700 ms, and the shot waits until its
+-- surface reads solid (_seeA 0.99) for 6 frames. If the pointer still does not count, the controller path is used
+-- (the pad's focus claimed on the Character window in gamepad mode) and the line says so.
 S.step(2, function()
     ZeD.Settings.setSolidInUse(true)
     local c = B.CW()
-    -- the title bar: nothing there answers a hover, so only the window's surface changes
-    if c then B.pointAt(c:getAbsoluteX() + math.floor(c:getWidth() * 0.4), c:getAbsoluteY() + math.floor(c:titleBarHeight() / 2)) end
+    if c then pcall(function() c:bringToTop() end) end
 end)
-S.waitMs(700)   -- (the fade to solid takes 200 ms)
+B.restOn(function()
+    local c = B.CW()
+    if not c then return nil end
+    return c:getAbsoluteX() + math.floor(c:getWidth() * 0.4), c:getAbsoluteY() + math.floor(c:titleBarHeight() / 2)
+end, 700)
+B.waitFor("cw_12b: the Character window solid under the pointer", function()
+    local c = B.CW()
+    return c ~= nil and (c._seeA or 0) >= 0.99
+end, 6, 120)
+S.step(2, function()
+    local c = B.CW()
+    if c and (c._seeA or 0) >= 0.99 then B.solidBy = "the pointer"; return end
+    say("note: cw_12b: the pointer did not count (pointer on the window " .. tostring(c and c:pointerOn()) .. ", above it: "
+        .. B.coverAt(getMouseX(), getMouseY(), c) .. "); the controller's focus instead")
+    B.solidBy = "the controller's focus"
+    D.setLockedMode("gamepad")
+    if c then F.claimFocus(c) end
+end)
+B.waitFor("cw_12b: the Character window solid", function()
+    local c = B.CW()
+    return c ~= nil and (c._seeA or 0) >= 0.99
+end, 6, 180)
 B.snap("zqa_cw_12b_solid_in_use", function()
     local c, w = B.CW(), B.WW()
-    return string.format("see-through 60 with Solid while in use on, the pointer on the Character window's title bar (its surface alpha %s, the World window's %s)",
-        tostring(c and c._seeA), tostring(w and w._seeA))
+    return string.format("see-through 60 with Solid while in use on, the Character window in use by %s (its surface alpha %s), the World window see-through (%s)",
+        tostring(B.solidBy), tostring(c and c._seeA), tostring(w and w._seeA))
 end)
 S.step(2, function()
+    if B.solidBy == "the controller's focus" then
+        pcall(function() F.releaseFocus() end)
+        D.setLockedMode("kbm")
+    end
     ZeD.Settings.setSolidInUse(B.was.solid)
     ZeD.Settings.setSeeThrough(B.was.see or 2)
     B.park()
