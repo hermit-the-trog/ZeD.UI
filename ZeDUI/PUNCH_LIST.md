@@ -866,6 +866,57 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
         after a.–e.; then stage t15 (drafts ready: tester_changenote_0.2.0-t15.txt; tester_description_0.2.0-t15
         .bbcode at 7,890 + 58).
 
+      - **Build, Nov 1 2026 (causes and the ways to fix a.-e., the director to pick):**
+        a. **Cause.** The window is capped at half the screen (640 px on the Deck). A tab gets the full card only
+           when the full card, the inventory's 200-unit minimum and the two strips fit inside that cap; otherwise
+           the half card, never a width between. With Large text every unit is 0.8625 px on the Deck: full card 414,
+           strips 31 + 31, inventory minimum 173 = 649 px, 9 px (about 10 units) over the cap. Normal text (0.75 px
+           a unit) needs 585 and fits. So every full-card tab drops to the half card (190 px), and everything built
+           for the full card goes with it: the doll's narrow layout without the bands (b., most of the dollv4
+           fails), the radios' and machines' narrow faces, the Maps header folding its stamps (b., the star).
+           Ways to fix: (1) the inventory gives way first: beside a full card it may go down to 180 units when
+           the half screen leaves it no more (it scrolls anyway); below that, the half card as today. The Deck with
+           Large text gets the full card everywhere with a 190-unit inventory (164 px); both windows stay side by
+           side at half the screen each; the rule is one sentence for the tests. (2) the window may grow past half
+           the screen by what the full card needs (649 of 1280 px): with a full card open in both, they overlap by
+           18 px. (3) leave it: the Deck with Large text is a half-card experience, the tests learn that. A fourth
+           way, a narrower full card, is a third width and is not offered. Build's pick: (1).
+        b. The doll (dollv4) and the Maps star (mnote) follow a.: with the full card back the bands show and the
+           header has room for all six stamps. The star is not lost when the header is narrow: stamps that fold
+           away sit under the fold arrow in the full set (the Oct 31 rule), so the test should click through the
+           arrow when the button is not on the strip. The doll's "short" check (a 380 px tall window) is re-run
+           after a. before any change.
+        c. **Skills, Down stops short (both Deck runs).** Every training row registers its pad stop whether or not
+           it is in view (the Oct 29 drawing pass left the stops in), and the pad's move takes every stop in the
+           column, so the cause is not a missing stop. The walk stops at the Fishing row while a row below it is
+           partly under the view's bottom edge; why Down does not land on it needs the game: a one-minute probe
+           on the Deck window printing the Skills column's stops and what Down picks from Fishing. Build writes
+           the probe; QA runs it when the director says. Not a design call.
+        d. **Wheel icons under 16 px.** The wheel's icon box is 16 units: 12 px on the Deck at Normal text, 14 at
+           Large. The icons exist at 16, 24, 32 and 48 px; under 16 the 16 is drawn smaller with nearest
+           filtering (the library rule since Oct 27). Ways: (1) Design draws a 12 px set (376 icons; and a 14 px
+           set for Large text, or Large uses the 12 too); (2) the wheel never draws under 16: at small scales the
+           cell holds the 16 px icon (the cell at rest is 16.5 px on the Deck, so the icon fills it edge to edge;
+           pointed, 25 px, the 24 fits); (3) keep the scaled 16 and tell the test so (the enlarged shots from the
+           720 run are with the director to judge). Build's pick: (3) for t15, (1) later if the look is not good
+           enough on a Deck in the hand.
+        e. **World window 4 to 12 px off after a close (cause found).** Opening a full-card tab widens the window
+           to the cap; on the Deck the World window sits 4 px right of centre, so the engine pushes it 4 px left to
+           keep it on screen. The drawer code remembers that push and gives it back while the drawer animates
+           shut. Closing by going to Loot snaps the width in one step and never runs that path, so the push is
+           kept (640, not 644) and the remembered amount stays owed: the next animated close pays it out (the
+           item card check saw 640 -> 644), and roll / unroll cycles add to it (656). Fix: every snap to Loot
+           settles the owed push the same way the animated close does (both windows; the Character window has no
+           such counter today because its anchor is its right edge). No design call.
+           dke (race, primani: the key read START with the key in): the dash shows START for 0.6 s after an
+           ignition press and the test waits 1.2 s, so a START after that means the press cranked the engine (the
+           key was already in when the test clicked). A fixture state, not the Deck; QA re-runs the two cars alone
+           (ZeD_QA_DKE_ONLY) before anything is changed.
+        f. 720 Normal leftovers (stopped at script 67): rst failed at the start ("no grandstand building near
+           892,13040", the fixture incomplete): the character was not at the QA home, a prelude question for QA.
+           jrd "Too dark to write": the time of day. cu "Loot Character side down with the press" (720 only):
+           not looked at yet; it goes with the e. fix's re-run.
+
 ## Test process
 
 - The release check (before every upload, about 5 minutes, pass or fail): right-click opens the
