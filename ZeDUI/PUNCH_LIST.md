@@ -556,6 +556,19 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     run with ZeD off to see how a non-English folder name is written (done: QA ran the mod's own save code in game,
     c8a237b, ZeDUI/ModFolders_sample.cfg; one hex code per UTF-16 unit, 地图 = "5730,56FE", Café = "43,61,66,E9",
     round trips hold; MOD_FOLDERS_SPEC.md section 9 updated). Next: build, after the director's OK.
+    **Stage 2 folders built (9b07ada, ced521a, d4a2fc0), QA to confirm.** ZeD_ModFolders.lua keeps
+    ModFolders.cfg as its lines: a line ZeD does not change is written back as read (an unchanged file
+    round-trips byte for byte, unknown lines stay in place); every change reads the file again first.
+    Calls the spec left open: lines ZeD adds go after the last line of their kind (new members by mod id),
+    existing lines keep their place rather than the whole file being re-sorted (spec 9.5), so the round
+    trip holds; Unfiled's open state is in Lua/ZeD_modfolders.txt; the controller reaches Move to folder
+    through Move to folder... in the mod's pane (the main menu's pad has no menu button), X on a folder row
+    is its box, A opens / closes; folder drag and Move up / down by drag are not built (stage 1 added no
+    drag to the Mods list): Move up / Move down are in the folder's menu and pane; the Load order page's
+    "which list" line shows only while folders exist; in a save's own list the folder box leaves on the
+    mods the save may hold (their own row asks). QA: zedqa_mods_folders.lua (tag mfo), then by hand:
+    right-click menus, Ctrl / Shift-click, Page Up / Down folder to folder, the pad on a folder row and
+    the pane's Move to folder..., 1,500 mods with folders (frame rate), Large text and 1280x720.
 38. **Pad stops not refreshed while the drawer fills the window.** Found by QA, Oct 31 2026 (1280x720, UI scale
     2.0, Large text; zedqa_picks_recheck.lua and zedqa_bands_probe.lua, 2026-10-31_2040 / _2049): the World
     window's open recipe had no card, amount box or Craft stops; the Character window's Health, Thermal, Identity,
