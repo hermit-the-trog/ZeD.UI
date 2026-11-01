@@ -3,3 +3,4 @@
 # ZeD off: zedqa_off_run.ps1 -ModList isearch_mods.txt -Script zedqa_isearch.lua -Tag is
 zedqa_prelude.lua | pre
 zedqa_isearch.lua | is | timeout=180
+zedqa_immersive_searching.lua | iss | timeout=240   # Nov 1 2026: ZeD's support (ModSupport/ImmersiveSearching.lua)
