@@ -944,6 +944,48 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
         f. for QA: rst at 720 needs the character at the QA home first; jrd needs daylight; the cu "Loot side
            down" at 720 goes with e.'s re-run.
 
+      - **QA, Nov 1 2026, 1:10 pm (the two Deck re-checks on 645d716 / 0884a2b; reports
+        qa/regression/2026-11-01_deck_recheck_800L.md, 11 / 12, and _800N.md, 3 / 7 with 2 warn, 1 timeout, 1 not run):**
+        a. **confirmed.** Deck at Large text: every full-card tab is the full card (tww: 414 px on all 13 tab cases,
+           the object cards, Craft at an oven and without, the ham set, Maps and its pop-out; the item cards and the
+           walkie stay the half card, 190, as designed). tw 21 shots, rtv 31, ap 5, p336 10 pass. Deck at Normal text
+           draws what it did (tww: full card 360 px on the same cases, none moved to the half card).
+        b. **confirmed.** dollv4 passes at Large (the wide, D-pad, pads, card, narrow and short checks; shot
+           zqa_dollv4_1280x800_wide shows the left bands and the slots). mnote passes at Large, the star reached through
+           the fold arrow.
+        c. wpt passes at both sizes (the Skills Down check included). **Probe print:** the whole "ZEDQA pskd" block is
+           the last script in 2026-11-01_deck_recheck_800L.md (section 12). In short: both passes ran at Large (the
+           manifest set Large before it, so pass 1 is not a Normal pass; a Normal print needs the probe in the Normal
+           manifest). Down walks all 11 col1 rows to Foraging, the last (y 298.9, h 22, view 320: 0.9 px under the
+           edge); "training stops below the last one: 0"; the dry run of Down from it is nil. Pass 1 (scrolling as it
+           went, 0.617 -> 0.987): **Down 12, 13, 14 from Foraging landed on nil, the focus lost.** Pass 2 (already at
+           the bottom): Down 12, 13 stay on Foraging. So on the Deck the last row is reached; the open fault is a Down
+           past it that drops the focus when the view was still scrolling, not when it was already at the bottom.
+        d. **confirmed (test).** wi passes at both sizes, 31 shots each.
+        e. **confirmed, World side.** tww at Normal: the World window is back at 644 after every tab and card (the
+           t15pre run had 640 after craft and the oven, 644 after the item card); cu: "tab closed while rolled World
+           644,0" (was 656). **New, the Character side, both text sizes:** the first full-card open pushes the
+           Character window 4 px right and it keeps it: tww "Character equip: closed, the window is back where and as
+           wide as it was (303,0 -> 307,0 at Normal; 253,0 -> 257,0 at Large)", then the end-of-run check. The pair
+           starts with the Character's right edge at 636 (the 8 px gap centred on 640); the full card wants 640 wide
+           anchored on that edge, so x would be -4 and the engine pushes it to 0; closed, it lands at 307 / 257. Latent
+           before today: the t15pre 800N run started tww with the Character already at 307 (an earlier test had pushed
+           it), and at Large the full card never opened. Same cause as e., the side Build said has no counter. Ways:
+           (1) settle the push on the Character window as the World one does now (a mirrored counter on the right-edge
+           anchor); (2) start the pair with the Character's right edge at 640 (no gap on that side, nothing to push);
+           (3) leave it, 4 px once per session, not visible in play; the test learns it. Build's call.
+           **dke not run:** zedqa_dke_only_race_primani.lua prints its DONE in the same tick the bridge starts it, before
+           the "run #6" line, and the runner ignores a DONE that comes before that line (the Oct 23 rule); 30 s TIMEOUT,
+           dke skipped. Build: delay the DONE a tick (the deep run does this), then QA re-runs dko + dke alone (the two
+           cars, a few minutes, needs the screen).
+        f. cu at 800 Normal: **"Loot World side down with the press: rolled false tab loot rods in UI 1"** (one
+           curtain rod still in the UI after the press; the roll itself ended and Loot is the tab). The t15pre 800N run
+           passed this line on both sides and 720N failed it on the Character side, so it moves between sides and
+           runs: a timing suspect (the rod's removal a tick behind the press) before a layout one. Build to look.
+           Not run this time: rst at 720, jrd (not in these manifests).
+        Next QA (needs the screen): dko + dke alone at 800 Normal after the DONE fix; the 4K pair (tww, cu, about
+        5 min fullscreen) to confirm a. and e. changed nothing at 4K; 720 Normal and Large passes when Build says.
+
 ## Test process
 
 - The release check (before every upload, about 5 minutes, pass or fail): right-click opens the
