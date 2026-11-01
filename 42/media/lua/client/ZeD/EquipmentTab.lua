@@ -187,6 +187,24 @@ local function getShortColW()
     return _shortColW
 end
 
+-- The protection and weight columns as narrow as what they hold (punch list 29, again, Oct 31
+-- 2026): a protection column its dot or its head word ("Bite"), the weight its number ("00.0")
+-- or "Wt", each with 2u either side; measured the same way
+local PROT_HEADS = { "IGUI_health_Bite", "UI_ZeD_Equip_ColScratch", "UI_ZeD_Equip_ColBullet" }
+local _narrowProtW, _narrowWtW, _narrowSig = nil, nil, nil
+local function getNarrowColW()
+    local sig = tostring(ZeD.T.scale) .. (ZeD.trTestOn() and "t" or "")
+    if _narrowProtW and _narrowSig == sig then return _narrowProtW, _narrowWtW end
+    local tm, T = ZeD.TM, ZeD.T
+    local p = T.px(6)   -- (the dot)
+    for _, k in ipairs(PROT_HEADS) do p = math.max(p, tm:MeasureStringX(T.fontF5, ZeD.tr(k))) end
+    local wt = math.max(tm:MeasureStringX(T.fontF1, "00.0"), tm:MeasureStringX(T.fontF5, ZeD.tr("UI_ZeD_Equip_ColWeight")))
+    _narrowProtW = math.ceil(p + T.px(4))
+    _narrowWtW = math.ceil(wt + T.px(4))
+    _narrowSig = sig
+    return _narrowProtW, _narrowWtW
+end
+
 -- The widest worn item's name (F2), kept per name and scale: the list stamps it as
 -- win._equipNameNeed each frame, and the SLOT column shortens when the names lack it
 local _nameW, _nameWSig = {}, nil
@@ -237,13 +255,51 @@ local function calcEquipColumns(w, win)
     -- the names lack room at the full slot words (the half card): the slot words shorten
     -- first ("Glv", "Inr"), before a name is cut (Oct 31 2026, punch list 29). A width the
     -- player dragged stays theirs; the row then picks the words that fit it.
-    local slotShort = false
-    if not (win and win._equipColWidths) and nameW < ((win and win._equipNameNeed) or 0) then
-        local sw = getShortColW() + T.px(4)
+    -- Checked in game the same night, the names still read "T-shi...", "Leat...": the
+    -- columns to the right (a 84u condition column, three 32u protection columns, a 40u
+    -- weight column) wanted 270u of a ~205u half card, so the name sat at its 40u least
+    -- and protection and weight drew past the card's edge. Now, while the widest worn
+    -- name lacks room, in turn: the slot words shorten (4u pads); the condition bar goes
+    -- to its least (ten segments, ZeD.Atoms.fillBarMinW); protection and weight become
+    -- as narrow as what they hold and the right margin 4u; then the name keeps the room
+    -- it needs and the columns that no longer fit inside the card are left out from the
+    -- right (weight, then the three protection columns together).
+    local slotShort, slotPad, wtPad, protOn, wtOn = false, padX, padX, true, true
+    local need = (win and win._equipNameNeed) or 0
+    if not (win and win._equipColWidths) and nameW < need then
+        local tight = T.px(4)
+        local sw = getShortColW() - sp.sm * 2 + tight * 2
         if sw < slotColW then
             nameW = nameW + (slotColW - sw)
             slotColW = sw
-            slotShort = true
+            slotShort, slotPad = true, tight
+        end
+        if nameW < need then
+            local cmin = ZeD.Atoms.fillBarMinW() + T.px(4)
+            if cmin < condColW then
+                nameW = nameW + (condColW - cmin)
+                condColW = cmin
+            end
+        end
+        if nameW < need then
+            local pw, ww = getNarrowColW()
+            if pw < protColW then
+                nameW = nameW + (protColW - pw) * 3
+                protColW = pw
+            end
+            if ww < wtColW then
+                nameW = nameW + (wtColW - ww)
+                wtColW = ww
+            end
+            nameW = nameW + padX - tight   -- (the right margin)
+            wtPad = T.px(2)
+        end
+        if nameW < need then
+            local room = nameW + protColW * 3 + wtColW   -- (the name and the columns after COND)
+            local rest = room - need
+            if rest < protColW * 3 + wtColW then wtOn = false end
+            if rest < protColW * 3 then protOn = false end
+            nameW = room - (protOn and protColW * 3 or 0) - (wtOn and wtColW or 0)
         end
     end
     if nameW < T.px(40) then nameW = T.px(40) end
@@ -259,10 +315,10 @@ local function calcEquipColumns(w, win)
     return {
         padX = padX, iconW = iconW, iconGap = iconGap,
         nameX = nameX, nameW = nameW,
-        slotX = slotX, slotColW = slotColW, slotShort = slotShort,
+        slotX = slotX, slotColW = slotColW, slotShort = slotShort, slotPad = slotPad,
         condX = condX, condColW = condColW,
-        biteX = biteX, scrX = scrX, bulX = bulX, protColW = protColW,
-        wtX = wtX, wtColW = wtColW,
+        biteX = biteX, scrX = scrX, bulX = bulX, protColW = protColW, protOn = protOn,
+        wtX = wtX, wtColW = wtColW, wtPad = wtPad, wtOn = wtOn,
     }
 end
 
@@ -699,14 +755,14 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win)
 
     -- Slot label (truncated to fit column)
     -- (the short words when the column took them, or the full ones do not fit it: punch list 29)
-    local slotRoom = c.slotColW - c.padX * 2
+    local slotRoom = c.slotColW - c.slotPad * 2
     local typeStr = ZeD.EquipmentTab.wordsOf(slot)
     if c.slotShort or tm:MeasureStringX(T.fontF1, typeStr) > slotRoom then
         typeStr = ZeD.EquipmentTab.shortOf(slot)
     end
     local typeColor = washed and T.textOnFocus or T.toneHi
     typeStr = A.truncateText(typeStr, T.fontF1, slotRoom)
-    panel:drawText(typeStr, x + c.slotX + c.padX, secTextY,
+    panel:drawText(typeStr, x + c.slotX + c.slotPad, secTextY,
         typeColor.r, typeColor.g, typeColor.b, typeColor.a or 0.9, T.fontF1)
 
     -- Condition: the framed strip, as the inventory lists'
@@ -718,7 +774,7 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win)
     end
 
     -- Protection columns (bite / scratch / bullet) — colored status dots
-    if slot.item and slot.prot then
+    if slot.item and slot.prot and c.protOn then
         local p = slot.prot
         local tierColor = ZeD.ProtectionTab.tierColor
         local dotSz = T.px(6)
@@ -734,10 +790,10 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win)
     end
 
     -- Weight
-    if slot.item then
+    if slot.item and c.wtOn then
         local wt = safeGet(slot.item, "getUnequippedWeight") or 0
         local wtStr = string.format("%.1f", wt)
-        A.drawTextRight(panel, wtStr, x + c.wtX + c.wtColW - c.padX, secTextY)
+        A.drawTextRight(panel, wtStr, x + c.wtX + c.wtColW - c.wtPad, secTextY)
     end
 
     -- Bottom divider
@@ -935,16 +991,22 @@ local function _drawEquipHeader(panel, x, y, w, win)
     panel:drawText(ZeD.tr("IGUI_Name"), x + cl.nameX, textY, c.r, c.g, c.b, c.a or 0.92, T.fontF5)
     drawCentered(ZeD.tr("UI_ZeD_Equip_ColSlot"), cl.slotX, cl.slotColW)
     drawCentered(ZeD.tr("UI_ZeD_Equip_ColCond"), cl.condX, cl.condColW)
-    drawCentered(ZeD.tr("IGUI_health_Bite"), cl.biteX, cl.protColW)
-    drawCentered(ZeD.tr("UI_ZeD_Equip_ColScratch"), cl.scrX,  cl.protColW)
-    drawCentered(ZeD.tr("UI_ZeD_Equip_ColBullet"), cl.bulX,  cl.protColW)
-    A.drawTextRight(panel, ZeD.tr("UI_ZeD_Equip_ColWeight"), x + cl.wtX + cl.wtColW - cl.padX, textY, T.fontF5, c)
+    if cl.protOn then   -- (left out when the card is too narrow for them, punch list 29)
+        drawCentered(ZeD.tr("IGUI_health_Bite"), cl.biteX, cl.protColW)
+        drawCentered(ZeD.tr("UI_ZeD_Equip_ColScratch"), cl.scrX,  cl.protColW)
+        drawCentered(ZeD.tr("UI_ZeD_Equip_ColBullet"), cl.bulX,  cl.protColW)
+    end
+    if cl.wtOn then
+        A.drawTextRight(panel, ZeD.tr("UI_ZeD_Equip_ColWeight"), x + cl.wtX + cl.wtColW - cl.wtPad, textY, T.fontF5, c)
+    end
 
     -- Divider hit zones for column resize (6px wide, centered on column edge)
     local divZones = {}
     divZones[#divZones + 1] = { col = "slot", x = x + cl.slotX - T.px(DIV_W) / 2, y = y, w = T.px(DIV_W), h = T.px(EQUIP_HDR_H) }
     divZones[#divZones + 1] = { col = "cond", x = x + cl.condX - T.px(DIV_W) / 2, y = y, w = T.px(DIV_W), h = T.px(EQUIP_HDR_H) }
-    divZones[#divZones + 1] = { col = "wt",   x = x + cl.wtX   - T.px(DIV_W) / 2, y = y, w = T.px(DIV_W), h = T.px(EQUIP_HDR_H) }
+    if cl.wtOn then
+        divZones[#divZones + 1] = { col = "wt",   x = x + cl.wtX   - T.px(DIV_W) / 2, y = y, w = T.px(DIV_W), h = T.px(EQUIP_HDR_H) }
+    end
     if win then win._equipDivZones = divZones end
 
     -- Divider hover feedback (2px accent line)
