@@ -140,8 +140,8 @@ from the folders.
 ## 9. ModFolders.cfg (from the mod's own code, Oct 31 2026)
 
 Read from `ModFolders.lua` (Workshop 3779201168, mod id `ModFolders`, its `loadConfig` / `saveConfig`). The code
-settles the format; one look at a file the mod itself wrote (a short run with ZeD off) is still worth doing before
-build, to confirm the hex of a non-English name.
+settles the format. **Confirmed in game (QA, Oct 31 2026, c8a237b):** the mod's own save and load code, run in the
+game, wrote ZeDUI/ModFolders_sample.cfg and read it back; the names below are from that file.
 
 **Where:** Zomboid/Lua/ModFolders.cfg (the game's `getFileReader` / `getFileWriter` folder, as ZeD's own files).
 
@@ -156,7 +156,12 @@ build, to confirm the hex of a non-English name.
 
 **Encoding (version 2):** each character as its character code in upper-case hex without padding, joined by commas:
 "Cars" is `43,61,72,73`. Kahlua's `string.byte` gives the UTF-16 unit, so a Chinese name gives 4-digit codes
-(`6A21,...`). ZeD encodes and decodes the same way (same engine, same functions). **Version 1** used %-escapes
+(`6A21,...`). ZeD encodes and decodes the same way (same engine, same functions). Confirmed in game: one hex code
+per UTF-16 unit, comma-separated; 地图 is `5730,56FE`, Café is `43,61,66,E9` (é is one unit, `E9`, not two UTF-8
+bytes); mod ids are encoded the same way (`ZeD_UI` is `5A,65,44,5F,55,49`); the round trip (write, read, write)
+gives the same names and the same file. **For QA scripts:** a literal non-ASCII character typed into a bridge script
+arrives as U+FFFD (the script file is not read as UTF-8), so build test names from codes (`string.char(0x5730,
+0x56FE)`), never from literal text. **Version 1** used %-escapes
 (`%41`, with `%XXXX` for codes above 255); the mod reads it and rewrites as version 2 on its next load. ZeD reads
 version 1 the same way and writes version 2.
 
