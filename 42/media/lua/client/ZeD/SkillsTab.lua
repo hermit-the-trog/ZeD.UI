@@ -82,15 +82,16 @@ end
 
 local BADGE_W = 20
 
-local function drawLevelBadge(panel, x, y, h, level, font)
+local function drawLevelBadge(panel, x, y, h, level, font, bw)
     local T = ZeD.T
+    bw = bw or T.px(BADGE_W)
     local bgA = level > 0 and 0.25 or 0.12
     local bg = T.surf3
-    panel:drawRect(x, y, T.px(BADGE_W), h, bgA, bg.r, bg.g, bg.b)
+    panel:drawRect(x, y, bw, h, bgA, bg.r, bg.g, bg.b)
 
     local lvStr = tostring(level)
     local lvW = ZeD.TM:MeasureStringX(font, lvStr)
-    local lvX = x + math.floor((T.px(BADGE_W) - lvW) / 2)
+    local lvX = x + math.floor((bw - lvW) / 2)
     local lvY = y + math.floor((h - ZeD.TM:getFontHeight(font)) / 2)
 
     if level <= 0 then
@@ -118,6 +119,32 @@ local function skillNameW(name, font)
     local w = byF[name]
     if not w then w = ZeD.TM:MeasureStringX(font, name); byF[name] = w end
     return w
+end
+
+-- A row's spacing (punch list 35 again, Oct 31 2026): the bar already gave way to its least
+-- (the Deck's shot: 21 px, its ten 1-unit segments), but the two ~96u columns there leave a
+-- name ~36u. When even the bar at its least leaves the longest name short, the level badge
+-- closes to its number ("10" and 2u either side) and the spaces round the name to 3u, the
+-- row's right margin to 2u. One choice for the whole grid, so the names stay in line.
+local _skFit = {}
+local function skillRowFit(columns, colW, barMin, font)
+    local T = ZeD.T
+    local longest = 0
+    for c = 1, 2 do
+        for _, g in ipairs(columns[c] or {}) do
+            for _, s in ipairs(g.skills or {}) do
+                local nw = skillNameW(s.name, font)
+                if nw > longest then longest = nw end
+            end
+        end
+    end
+    local f = _skFit
+    f.badge, f.gap, f.edge = T.px(BADGE_W), T.px(6), T.px(4)
+    if colW - f.badge - f.gap * 2 - f.edge - barMin < longest then
+        f.badge = math.min(f.badge, math.ceil(ZeD.TM:MeasureStringX(font, "10")) + T.px(4))
+        f.gap, f.edge = T.px(3), T.px(2)
+    end
+    return f
 end
 
 local function drawBoostPill(panel, x, y, rowH, boost, font)
@@ -1024,6 +1051,7 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     local font = T.fontF2
     local barW, barH = A.rowBarW(), A.fillBarCompactH()   -- (each row's level bar)
     local barMin = math.min(barW, A.fillBarMinW(10))          -- (its least: ten 1-unit segments)
+    local fit = skillRowFit(columns, colW, barMin, font)      -- (the badge and spaces, punch list 35)
     local col1X = x + pad
     local col2X = x + pad + colW + colGap
 
@@ -1081,17 +1109,17 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
 
                 if vis then
                     -- Level badge
-                    drawLevelBadge(panel, startX, cy, baseRowH, skill.level, font)
+                    drawLevelBadge(panel, startX, cy, baseRowH, skill.level, font, fit.badge)
 
                     -- The level bar at the right: ten segments, one per level (its help line: the XP to the next).
                     -- A name short of room takes it from the bar first, down to the bar's least; the
                     -- level number (the badge) stays (Oct 31 2026, punch list 35, the director's pick:
                     -- at 1280x720, UI scale 2.0, Large text the names read "A...")
-                    local nameX = startX + T.px(BADGE_W) + T.px(6)
+                    local nameX = startX + fit.badge + fit.gap
                     local rowBar = barW
-                    local over = skillNameW(skill.name, font) - (startX + colWidth - T.px(4) - barW - T.px(6) - nameX)
+                    local over = skillNameW(skill.name, font) - (startX + colWidth - fit.edge - barW - fit.gap - nameX)
                     if over > 0 then rowBar = math.max(barMin, barW - over) end
-                    local barX = startX + colWidth - T.px(4) - rowBar
+                    local barX = startX + colWidth - fit.edge - rowBar
                     if A.drawSegFill(panel, barX, cy + math.floor((baseRowH - barH) / 2), rowBar, barH, 10,
                             skill.level, levelBarColor(T, skill.level, isPinned)) then
                         help(win, ZeD.SkillsTab.barHelp(skill))
@@ -1106,7 +1134,7 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
                     -- Skill name (bodyH: the row font's height, measured once above), shortened clear of the tag and bar
                     local nameY = cy + math.floor((baseRowH - bodyH) / 2)
                     local nc = onFocus and T.textOnFocus or T.toneNorm
-                    panel:drawText(A.truncateText(skill.name, font, nameR - T.px(6) - nameX), nameX, nameY, nc.r, nc.g, nc.b, nc.a or 1, font)
+                    panel:drawText(A.truncateText(skill.name, font, nameR - fit.gap - nameX), nameX, nameY, nc.r, nc.g, nc.b, nc.a or 1, font)
 
                     -- a row extra's strip in its own lane under the row
                     if laneH > 0 then
