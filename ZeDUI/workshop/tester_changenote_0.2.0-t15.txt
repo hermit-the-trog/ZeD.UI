@@ -22,5 +22,14 @@ Small screens (Steam Deck, 720p)
 - Skills: one column when two would cut the names.
 - The ID card turns into a portrait card when narrow; the Maps header folds its stamps first.
 - With a controller, every tab keeps its stops while the tab drawer fills the window.
+- Large text on the Deck keeps the full card: the list beside it gives up a little width first, so the Equip doll keeps its bands and the radios and machines keep their full faces.
+- A window pushed against the screen's edge by an opening tab or card comes back to where it was when the tab or card closes.
+
+Fixes
+- Radios and TVs with no place in the world (on the floor, in a bag, part of a house) no longer throw an error every frame.
+- Main menu questions open on the answer that keeps your work (Keep editing, Cancel); Discard, Save, Delete and Upload take a deliberate move. B on a question puts the focus back where the question came from, on every page.
+- Mods: Undo after a separator was turned off no longer loses mods. The separator box, Undo and Back, the folder box, Discard, All on / No mods and loading a profile all change the list in one step.
+- Workshop page: the title and note fields work with the controller.
+- Restock: a run's moves are ZeD's own, so Put things back leaves on what a run put on or hung on the belt. Casual stops with a reason (you carry all you can; the rest in reach could not be taken) instead of waiting.
 
 Testers wanted: big mod lists. If you run hundreds of mods, try the Load order page (Find, separators, rules) and tell us in Bug reports how it holds up.
