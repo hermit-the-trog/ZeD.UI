@@ -3846,6 +3846,10 @@ function ZeD_WorldWindow.toggle(playerNum)
         content:setX(stripW)
         content:setWidth(math.max(invW, 0))
         content:setVisible(invW > 0)
+        -- the content's prerender (the controller's stops) does not run while it is hidden: the
+        -- drawer runs the refresh instead (punch list 28, Oct 31 2026: the Craft card and band
+        -- had no stops at 1280x720, UI scale 2.0)
+        if invW <= 0 and content._focusRefresh then content._focusRefresh(content) end
         containerStrip:setVisible(not win._rolled)
 
         -- Drawer + action tab strip positioned after content
@@ -4413,6 +4417,32 @@ function ZeD_WorldWindow.toggle(playerNum)
             if not okF then ZeD.logOnce("ContainerControls focus", eF) end
         end
 
+        -- the controller's stops (a function of its own: the drawer runs it too while this
+        -- side does not draw, the tab drawer taking the whole window; punch list 28)
+        content._focusRefresh(self)
+
+        -- The title is built in the window's prerender (composeWorldTitle: this side does
+        -- not draw while the tab drawer takes the whole window; break-it D1). The stats
+        -- are status only: the item count.
+        local stats = win._titleStatsT or {}
+        win._titleStatsT = stats
+        local st1 = stats[1] or {}
+        stats[1] = st1
+        if win._titleCount then
+            st1.text, st1.noMark = win._titleCount, true
+            win.titleStats = stats
+        else
+            win.titleStats = {}
+        end
+    end
+
+    -- The World window's per-frame stop refresh (the container strip, the main list, the MC columns,
+    -- the tab's stops, the item card). Oct 31 2026 (punch list 28): moved out of the content's
+    -- prerender, which does not run while the content is hidden (the tab drawer takes the whole
+    -- window at 1280x720, UI scale 2.0): the Craft tab's stops then stayed as they were when
+    -- the tab opened (no card, no amount box, no Craft). The drawer's prerender runs it then.
+    content._focusRefresh = function(self)
+        local T = ZeD.T
         -- --------------------------------------------------------
         -- S99 RING MODEL: PER-FRAME WORLDMAININV REFRESH (World Window)
         -- Unconditional — worldMainInv holds the active container's invrows
@@ -4857,20 +4887,6 @@ function ZeD_WorldWindow.toggle(playerNum)
                 end
                 objCard._grabFocus = nil
             end
-        end
-
-        -- The title is built in the window's prerender (composeWorldTitle: this side does
-        -- not draw while the tab drawer takes the whole window; break-it D1). The stats
-        -- are status only: the item count.
-        local stats = win._titleStatsT or {}
-        win._titleStatsT = stats
-        local st1 = stats[1] or {}
-        stats[1] = st1
-        if win._titleCount then
-            st1.text, st1.noMark = win._titleCount, true
-            win.titleStats = stats
-        else
-            win.titleStats = {}
         end
     end
     -- the help line's words when the pointer is over nothing with help of its own
