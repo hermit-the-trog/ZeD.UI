@@ -1086,10 +1086,13 @@ function ZeD_MMServer:next() end
 
 function ZeD_MMServer:setConfirm(mode)
     if self.confirm == mode then return end
+    -- (B on a question goes back to the stop it was asked from, the director's rule; t15 pre-upload)
+    if mode and not self.confirm then self._backFocus = self.focusId end
     self:commitCell()
     self.confirm = mode
     MM.ctx.open = nil
-    self.focusId = mode and "confirm:yes" or nil
+    self.focusId = mode and "confirm:yes" or self._backFocus
+    if not mode then self._backFocus = nil end
 end
 
 function ZeD_MMServer:buildStrip(stripY, stripH, w)
