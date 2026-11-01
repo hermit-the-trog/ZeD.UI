@@ -605,6 +605,11 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     description's Fonts line. QA: zedqa_sc_font.lua (tag scf, in regression.txt): 地图 / 简体中文 / Café widths,
     the count after the name, kana on the Japanese face, shot zqa_scf_draw.png; and look again at
     zqa_mfo_01_grouped.png's folders (地图 whole, the count after it) at 1080p and 4K.
+    - QA, Nov 1 2026: **confirmed.** scf 15 passed, 0 failed at 4K (1.75x) and at 1920x1080 (Auto) (reports
+      qa/regression/2026-11-01_0738_fullscreen4k.md, _0739_windowed.md); the drawn sample reads 地图(2), 简体中文(2),
+      Café(2) whole, each count right after its name (zqa_scf_draw.png, zqa_scf_draw_2160.png). The Mods page's
+      folders at 1080p and 4K (mfo 36 / 0 each; zqa_mfo_01_grouped_1080.png, _2160.png): 地图 whole, "(2 | 0 on)"
+      after it, Café and Weapons as before.
 38. **Pad stops not refreshed while the drawer fills the window.** Found by QA, Oct 31 2026 (1280x720, UI scale
     2.0, Large text; zedqa_picks_recheck.lua and zedqa_bands_probe.lua, 2026-10-31_2040 / _2049): the World
     window's open recipe had no card, amount box or Craft stops; the Character window's Health, Thermal, Identity,
