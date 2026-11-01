@@ -660,6 +660,11 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
       one runs; or press the hidden vanilla loot page's button for the container (selectContainer) so the mod starts its own.
     - For the director (design): how an unsearched container looks in ZeD's strip, what its list shows before and
       while it is searched, and whether "Search all" gets a place on the pad.
+    **Director's picks (Nov 1 2026):** an unsearched container shows a small "?" badge on its own pixel icon in
+    ZeD's strip (gone once searched); before a search the list reads "Not searched" with a Search button, and during
+    one a progress bar runs in the band while items appear in the list as the mod reveals them (heaviest first);
+    "Search all" (every container in reach) is a button in the container band, reachable by the pad. Support lives in
+    ZeD's own code (the mod's page asks that it not be altered).
 41. **Load order tools for big mod lists (a Workshop comment by Kable, ~1,500 mods; director, Oct 31 2026: "I want
     the mod manager to really shine, so let's try and accommodate their request").** chosen. Rules
     ZeDUI/MODS_LOAD_ORDER_SPEC.md, mockup ZeDUI/mockups/zed_mod_folders_v2.html (7ee6ef4), together with item 37's
