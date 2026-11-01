@@ -1,0 +1,6 @@
+-- ZeDUI/tools/qa/zedqa_scale2.lua  (Oct 31 2026, QA): UI scale 2.0 for the rest of the run (ZeD.Scale.override; the run
+-- ends with the game closing, so nothing to put back). grep "ZEDQA sc2".
+ZeD.Scale.override = 2.0; ZeD.Scale.refresh(); ZeD.applyTheme()
+local n = 0
+local function f() n = n + 1; if n == 30 then pcall(ZeD_Window.resetLayout) end; if n < 60 then return end; Events.OnTick.Remove(f); print("ZEDQA sc2 root " .. tostring(ZeD.Scale.root and ZeD.Scale.root())); print("ZEDQA sc2 DONE") end
+Events.OnTick.Add(f)
