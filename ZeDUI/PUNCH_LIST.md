@@ -835,6 +835,36 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
       (and the description editor's blocks and view tabs) were stops with no row. They have rows now, and
       focusRows sorts a missing row or column last instead of throwing. 3de956d
     - Re-run: rtv, p336, rst, px, mhd, msp, mfo, mlo; a pad pass on the main-menu pages' questions.
+    - QA, Nov 1 2026 (where things stand, before the director's account switch):
+      - Confirmed at 4K: rtv, p336 (2026-11-01_0917); rst, px on 4509a28 / b440d12 (2026-11-01_0950); mhd 78 / 0,
+        msp 39 / 0, mfo 36 / 0, mlo 24 / 0. mmq (zedqa_menu_questions.lua, new) at 4K before 957474a: Options,
+        Sandbox, Traits, Looks pass; Workshop failed on the pad-A error (since fixed, 3de956d); Server and Host's
+        world question SKIP on this rig. **Not yet re-run on 957474a / c2f98a9 / fa2b894 / 3de956d:** rst, px, mmq
+        (with its safe-answer expectations) and pad A on the Workshop form.
+      - Small screens, full regression on code before 957474a (reports qa/regression/2026-11-01_t15pre_800N,
+        _800L; 720N stopped at script 67 of 99 for the account switch, 720L not run): Deck Normal 94 / 99, 5 WARN;
+        Deck Large 90 / 100, 10 WARN; no FAIL. Found:
+        a. **Deck, Large text: the drawer is 190 px where the full card needs 200.** The ham radios ("the drawer
+           holds the whole set (190 px for 200)"), the handbuilt radio and the house TV (half card, "190 px, want
+           414"), the microwave and stove ("the tab is the full card" fails; the chrome microwave's full face 200 of
+           178 px), and every World tab tww expects as the full card (vehicle, maps, furniture, forage, craft, build,
+           animals, Maps pop-out: half). A realistic setting: a layout call for the director (what the full-card
+           surfaces do when the full card doesn't fit), then the tests' expectations.
+        b. Deck Large: dollv4 pad fails ("A opens the small slot's card (outermost first) | nil item nil layer",
+           "Inner steps to layer 2", "Left from Neck steps into the left band"); mnote: "no toolbar button star"
+           (the Maps header folds its stamps first: is the star meant to fold away, and where does it go?).
+        c. Both Deck runs: wpt "7 Char skills large pad: Down reaches the lowest control ... training:col1_Fishing and
+           it is in view" (bottom 250 of 273 Normal, 297 of 320 Large): the last Skills row's stop sits partly
+           below the view.
+        d. Both Deck runs: wi, every wheel's icons drawn at 12 px (Normal) / 14 px (Large) from 16 px drawings, so
+           not pixel for pixel. The pixel icons at Auto 0.75 scale: a design call (a 12 px set, or 16 px with a
+           smaller wheel) or the test's expectation.
+        e. Deck Normal: tww / cu, the World window comes back 4 to 12 px off where it was after a tab or card
+           closes (644 -> 640, 656 vs 644); dke "race / primani key reads start with the key in, engine off; want
+           off" (also 800L).
+      - Next QA: re-run rst, px, mmq and Workshop pad A on main; the Deck / 720 Normal and Large passes again
+        after a.–e.; then stage t15 (drafts ready: tester_changenote_0.2.0-t15.txt; tester_description_0.2.0-t15
+        .bbcode at 7,890 + 58).
 
 ## Test process
 
