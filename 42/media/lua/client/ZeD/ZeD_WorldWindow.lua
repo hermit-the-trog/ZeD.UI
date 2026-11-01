@@ -35,6 +35,7 @@ require "ZeD/MechanicsTab"
 require "ZeD/FurnitureTab"
 require "ZeD/ExtraContainers"
 require "ZeD/StripDecorators"
+require "ZeD/ContainerGates"
 
 ZeD = ZeD or {}
 ZeD_WorldWindow = {}
@@ -4390,14 +4391,16 @@ function ZeD_WorldWindow.toggle(playerNum)
             win._titleCount, win._statusLine = nil, nil
             if cnt then
                 local cInv = cnt.inventory
-                local cItems = cInv and cInv:getItems() and cInv:getItems():size() or 0
+                -- (a mod's gate, ContainerGates.lua: only what it lets show is counted, and its words
+                -- stand for the weight; Immersive Searching's "Not searched")
+                local cItems = cInv and ZeD.ContainerGates.count(cInv, win._playerObj) or 0
                 local cWeight = cInv and round(cInv:getCapacityWeight(), 1) or 0
                 local cMax = cInv and round(cInv:getMaxWeight(), 1) or 0
 
                 self._containerInfo = {
                     name    = cnt.name,
                     texture = not cnt.isFloor and cnt.texture or nil,
-                    stats   = cnt.isFloor and "" or string.format("%.1f/%.0fkg", cWeight, cMax),
+                    stats   = cnt.isFloor and "" or ZeD.ContainerGates.status(cInv, win._playerObj) or string.format("%.1f/%.0fkg", cWeight, cMax),
                     count   = ZeD.tr(cItems == 1 and "UI_ZeD_Inv_ItemsOne" or "UI_ZeD_Inv_ItemsMany", cItems),
                 }
 
@@ -4406,7 +4409,8 @@ function ZeD_WorldWindow.toggle(playerNum)
                 win._titleBase = cnt.name
                 win._titleCount = self._containerInfo.count
                 win._statusLine = cnt.isFloor and self._containerInfo.count
-                    or (self._containerInfo.count .. "  |  " .. ZeD.tr("UI_ZeD_World_WeightOf", string.format("%.1f", cWeight), string.format("%.0f", cMax)))
+                    or (self._containerInfo.count .. "  |  " .. (ZeD.ContainerGates.status(cInv, win._playerObj)
+                        or ZeD.tr("UI_ZeD_World_WeightOf", string.format("%.1f", cWeight), string.format("%.0f", cMax))))
                 self._inventory = cInv
             end
             self._ccEntry = cnt
@@ -4961,6 +4965,8 @@ function ZeD_WorldWindow.toggle(playerNum)
         local srcIsFloor  = srcInv ~= nil and srcInv:getType() == "floor"
         local destIsFloor = destInv ~= nil and destInv:getType() == "floor"
         if srcIsFloor and destIsFloor then return end
+        -- a mod's gate refuses things into this container (ContainerGates.lua: never searched)
+        if destInv and not destIsFloor and ZeD.ContainerGates.refuses(destInv, playerObj) then return end
 
         for _, item in ipairs(items) do
             if destIsFloor then

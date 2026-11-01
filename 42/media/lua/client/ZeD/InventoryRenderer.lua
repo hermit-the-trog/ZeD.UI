@@ -17,6 +17,7 @@ require "ZeD/Molecules"
 require "ZeD/Organisms"
 require "ZeD/ZeD_Panel"
 require "ZeD/ReadMarks"
+require "ZeD/ContainerGates"   -- (a mod that hides a container's things until searched: ModSupport files)
 
 ZeD = ZeD or {}
 
@@ -952,10 +953,13 @@ local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, col
     local groups, catOrder, flatItems = {}, {}, {}
     local catOf = {}   -- item -> its category key (the rows draw it every frame)
     local items = inv and inv:getItems()
+    -- a mod's gate (ContainerGates.lua): only the things it lets show (a search's finds so far)
+    local gate = ZeD.ContainerGates.get(inv, playerObj)
     if items then
         for i = 0, items:size() - 1 do
             local item = items:get(i)
-            if item and not item:isHidden() and not (isPlayerInv and heldByPlayer(playerObj, item)) then
+            if item and not item:isHidden() and not (isPlayerInv and heldByPlayer(playerObj, item))
+               and (not gate or ZeD.ContainerGates.keeps(gate, item)) then
                 local cat = ZeD.InventoryRenderer.catKey(item)
                 catOf[item] = cat
                 if not groups[cat] then
@@ -1068,6 +1072,9 @@ local function itemModel(self, inv, playerObj, isPlayerInv, sortCol, sortAsc, co
         ph, sh = playerObj:getPrimaryHandItem(), playerObj:getSecondaryHandItem()
     end
     local cf, ef = foldKey(collapsed), foldKey(expandedStacks)
+    -- a mod's gate: its signature changes as it lets more show (ContainerGates.lua)
+    local gate = ZeD.ContainerGates.get(inv, playerObj)
+    local gs = gate and (gate.sig or true) or false
     local cache = self._modelCache
     if not cache then
         cache = {}
@@ -1077,7 +1084,7 @@ local function itemModel(self, inv, playerObj, isPlayerInv, sortCol, sortAsc, co
     local c = cache[key]
     if c and c.age < MODEL_REFRESH and c.n == n and c.w == w and c.sortCol == sortCol
        and c.sortAsc == sortAsc and c.cf == cf and c.ef == ef and c.ph == ph and c.sh == sh
-       and c.isP == isPlayerInv then
+       and c.isP == isPlayerInv and c.gs == gs then
         c.age = c.age + 1
         return c.m
     end
@@ -1093,7 +1100,7 @@ local function itemModel(self, inv, playerObj, isPlayerInv, sortCol, sortAsc, co
         cache[key] = c
     end
     c.age, c.n, c.w, c.sortCol, c.sortAsc = 0, n, w, sortCol, sortAsc
-    c.cf, c.ef, c.ph, c.sh, c.isP = cf, ef, ph, sh, isPlayerInv
+    c.cf, c.ef, c.ph, c.sh, c.isP, c.gs = cf, ef, ph, sh, isPlayerInv, gs
     c.m = buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, collapsed, expandedStacks)
     return c.m
 end
@@ -1294,6 +1301,8 @@ local function renderItemList(self)
     -- badge). The rows are built in itemModel, only when the container changes.
     self._expandedStacks = self._expandedStacks or {}
     local M = itemModel(self, inv, playerObj, isPlayerInv, sortCol, sortAsc, collapsed, self._expandedStacks)
+    -- a container this list starts showing while on screen: a mod's pick hook (ContainerGates.seen)
+    ZeD.ContainerGates.seen(self, inv, playerObj)
     local groups, catOrder, flatItems = M.groups, M.catOrder, M.flatItems
     local useGroups, stackedGroups, catRowCount = M.useGroups, M.stackedGroups, M.catRowCount
     local childParent = M.childParent
@@ -1743,7 +1752,9 @@ local function renderItemList(self)
     -- --------------------------------------------------------
     -- (the library's empty line: F2 dim, at the list's text inset, 8u under its header)
     if #catOrder == 0 then
-        ZeD.Molecules.drawEmptyLine(self, xOff + padX, contentTop + T.px(8), scrollX - padX * 2, ZeD.tr("UI_ZeD_Inv_Empty"))
+        -- (a mod's gate words its own: "Not searched.")
+        ZeD.Molecules.drawEmptyLine(self, xOff + padX, contentTop + T.px(8), scrollX - padX * 2,
+            ZeD.ContainerGates.emptyText(inv, playerObj) or ZeD.tr("UI_ZeD_Inv_Empty"))
     end
 
     -- --------------------------------------------------------
@@ -2076,8 +2087,9 @@ local function renderMultiColumnContent(self)
             local weight   = inv and inv:getCapacityWeight() or 0
             local capacity = inv and inv:getMaxWeight() or 0
             local capStr   = capacity > 0 and string.format("%.1f", capacity) or "---"
-            local statsStr = string.format("%.1f/%skg", weight, capStr)
-            local itemCount = inv and inv:getItems():size() or 0
+            -- (a mod's gate: its words for the weight, and only the things it lets show)
+            local statsStr = ZeD.ContainerGates.status(inv, self._playerObj) or string.format("%.1f/%skg", weight, capStr)
+            local itemCount = inv and ZeD.ContainerGates.count(inv, self._playerObj) or 0
             local countStr  = ZeD.tr(itemCount == 1 and "UI_ZeD_Inv_ItemsOne" or "UI_ZeD_Inv_ItemsMany", itemCount)
 
             -- Bind column state onto self
@@ -2336,6 +2348,10 @@ local function handleDrop(content, items, srcInventory)
     -- on a release over the world, never over a window (the source list, a
     -- tab, the card, a locked container's button), and never from the floor.
     if not destContainer and (srcIsFloor or pointerOverUI()) then return end
+
+    -- A mod's gate refuses things put into this container (ContainerGates.lua: Immersive
+    -- Searching's never-searched container, as its hasRoomFor refuses them in vanilla's lists)
+    if destContainer and not destIsFloor and ZeD.ContainerGates.refuses(destContainer, playerObj) then return end
 
     for _, item in ipairs(items) do
         local cur = item:getContainer()

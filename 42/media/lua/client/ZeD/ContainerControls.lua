@@ -33,6 +33,11 @@
 -- A mod that puts buttons straight onto the game's inventory page (not in the
 -- handler lists) gets them here through CT.addProvider, called from its
 -- ModSupport file (Easy Drop'n'Loot: ModSupport/KADropnLoot.lua).
+-- A mod's gate on the container on show (ContainerGates.lua: Immersive
+-- Searching's unsearched container) can leave the moves out, add its own
+-- buttons (Search, Search all) and put a status line and a moving bar at the
+-- band's left ("Searching..."); a gate that refuses things on the other side
+-- turns the moves into it off. Moves into a refusing container are dropped.
 -- The row is one line, a ribbon that scrolls sideways when its buttons are
 -- wider than the list (the wheel, its arrows, the controller's focus).
 -- Pointing at (or focusing) a Same type button marks the rows it would move.
@@ -46,6 +51,7 @@
 require "ZeD/Tr"
 require "ZeD/ObjectCards"
 require "ZeD/ObjectCardLaundry"
+require "ZeD/ContainerGates"
 
 ZeD = ZeD or {}
 ZeD.ContainerControls = ZeD.ContainerControls or {}
@@ -192,6 +198,8 @@ end
 -- ----------------------------------------------------------------------------
 function CT.moveItems(playerObj, items, dest)
     if not (playerObj and dest and items and #items > 0) then return end
+    -- a mod's gate refuses things into this container (ContainerGates.lua: never searched)
+    if not isFloor(dest) and ZeD.ContainerGates.refuses(dest, playerObj) then return end
     local pn = playerObj:getPlayerNum()
     local floor = zedFloor()
     sortForTransfer(items)
@@ -645,6 +653,37 @@ local function sizeOf(inv)
     return items and items:size() or -1
 end
 
+-- A mod's gate on the container on show (ContainerGates.lua): its own buttons
+-- after the container's, the moves left out when it says so; the moves into
+-- the other side off when that side refuses things.
+local function applyGates(content, inv, other, moves, objs)
+    local G = ZeD.ContainerGates
+    local po = content._playerObj
+    local gate = G.get(inv, po)
+    content._cc.gated = gate ~= nil and gate.band ~= nil
+    if gate then
+        if gate.noMoves then moves = {} end
+        if gate.specs then
+            local ok, got = pcall(gate.specs, content._ccSide, content, inv)
+            if ok and type(got) == "table" then
+                for _, s in ipairs(got) do objs[#objs + 1] = s end
+            elseif not ok then
+                print("[ZeD] ContainerControls: a gate's buttons failed: " .. tostring(got))
+            end
+        end
+    end
+    if other and not isFloor(other) and G.refuses(other, po) then
+        for _, m in ipairs(moves) do m.enabled = false end
+    end
+    return moves, objs
+end
+
+-- what a gate says about a container, for the row's signature (false: no gate)
+local function gateMode(inv, po)
+    local gate = ZeD.ContainerGates.get(inv, po)
+    return gate and (gate.mode or true) or false
+end
+
 local function refresh(content)
     local cc = content._cc
     cc.tick = (cc.tick or 0) + 1
@@ -653,11 +692,15 @@ local function refresh(content)
     -- Java toString calls; Oct 22 2026, the drawing-cost work)
     local inv = content._inventory
     local n1, n2 = sizeOf(inv), sizeOf(other)
+    -- (a mod's gate on either side: the row is built again when what it says changes)
+    local g1, g2 = gateMode(inv, content._playerObj), gateMode(other, content._playerObj)
     local same = cc.sigSet and cc.sigInv == inv and cc.sigN1 == n1 and cc.sigOther == other and cc.sigN2 == n2
+        and cc.sigG1 == g1 and cc.sigG2 == g2
     if same and cc.tick - cc.frame < CT.REFRESH and cc.moves then return end
     if not same and cc.invSeen ~= inv then cc.ask = nil; cc.sx = {} end   -- another container: no pending question, the ribbons from their start
     cc.invSeen = inv
     cc.sigSet, cc.sigInv, cc.sigN1, cc.sigOther, cc.sigN2 = true, inv, n1, other, n2
+    cc.sigG1, cc.sigG2 = g1, g2
     cc.frame = cc.tick
     local ok, moves, objs
     if content._ccSide == "char" then ok, moves, objs = pcall(buildChar, content)
@@ -668,7 +711,8 @@ local function refresh(content)
         cc.lastErr = msg
         moves, objs = {}, {}
     end
-    cc.moves, cc.objs = moves or {}, objs or {}
+    moves, objs = applyGates(content, inv, other, moves or {}, objs or {})
+    cc.moves, cc.objs = moves, objs
 end
 
 -- a word button's width: the push button's (its label as it draws, sentence case)
@@ -750,7 +794,7 @@ function CT.layout(content, colW)
         cc.bottom = { question = cc.ask.ask, verb = sentence(getText("IGUI_invpage_RemoveAll")), x0 = padX, x1 = maxX, rects = {} }
         return ZeD.Molecules.bandH()
     end
-    if #cc.moves + #cc.objs == 0 then cc.bottom = nil; return 0 end
+    if #cc.moves + #cc.objs == 0 and not cc.gated then cc.bottom = nil; return 0 end
     cc.bottom = layRow(cc.moves, cc.objs, padX, maxX)
     return ZeD.Molecules.bandH()
 end
@@ -834,7 +878,7 @@ local function drawStrip(content, strip, name, top, h, xOff)
                 local o = _ccBtn
                 o.hover, o.disabled, o.help, o.win = hover, not enabled, help, win
                 o.focus = focused and _ccFocus or nil
-                M.drawButton(content, x, y, r.w, bh, r.label, danger and "danger" or "default", false, nil, o)
+                M.drawButton(content, x, y, r.w, bh, r.label, danger and "danger" or (s and s.primary and "primary") or "default", false, nil, o)
             end
         end
         if (hover or focused) and s and s.enabled and s.marks then content._ccMarks = s.marks end
@@ -858,6 +902,40 @@ local function drawStrip(content, strip, name, top, h, xOff)
                 local bs = T.borderS
                 content:drawRectBorder(x, by, bh, bh, (bs.a or 1) * T.disabledAlpha, bs.r, bs.g, bs.b)
             end
+        end
+    end
+end
+
+-- A mod's gate on the container on show: its status mark and words at the
+-- band's left, then its moving bar (a search running) up to the first button.
+-- The ribbon that scrolls has no room for it.
+local function drawGateLine(content, B, top, h, xOff)
+    if B.scroll then return end
+    local gate = ZeD.ContainerGates.get(content._inventory, content._playerObj)
+    local band = gate and gate.band
+    if not (band and band.text) then return end
+    local T, A = ZeD.T, ZeD.Atoms
+    local right = xOff + B.x1
+    for _, r in ipairs(B.rects) do
+        if xOff + r.tx < right then right = xOff + r.tx end
+    end
+    right = right - T.px(CT.GAP)
+    local x = xOff + B.x0
+    local sq = T.px(6)
+    A.drawStatusDot(content, x, top + math.floor((h - sq) / 2), band.color or T.warning, sq)
+    x = x + sq + T.px(6)
+    local f2 = T.fontF2
+    local room = right - x
+    if room <= 0 then return end
+    local s = A.truncateText(band.text, f2, room)
+    local tc = T.text
+    content:drawText(s, x, top + math.floor((h - ZeD.TM:getFontHeight(f2)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
+    if band.progress then
+        local bx = x + ZeD.TM:MeasureStringX(f2, s) + T.px(CT.GAP)
+        local bw = right - bx
+        local bh = T.fillBarH
+        if bw >= T.px(24) then
+            A.drawSmoothBar(content, bx, top + math.floor((h - bh) / 2), bw, band.progress, false, nil, bh)
         end
     end
 end
@@ -890,6 +968,7 @@ function CT.draw(content, top, colW, xOff, atBottom)
     _bandSpec.win, _bandSpec.noLine = win, not atBottom
     M.drawBand(content, xOff, top, colW, _bandSpec)
     drawStrip(content, B, "bot", top, rowH, xOff)
+    if cc.gated then drawGateLine(content, B, top, rowH, xOff) end
 end
 
 -- The icons' hover hints are the library's (ZeD.Molecules.drawIconButton asks
