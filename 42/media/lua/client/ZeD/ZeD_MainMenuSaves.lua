@@ -68,7 +68,8 @@ local function drawStripAndButtons(win)
     for _, b in ipairs(win._specs) do
         -- a button inside a scrolled pane draws (and clicks) only while it is fully in view
         local clipped = b.clipTop and (b.y < b.clipTop or b.y + b.h > b.clipBot)
-        if not b.band and not b.listRow and not clipped then
+        -- (noDraw: a stop the window draws itself, a Find field)
+        if not b.band and not b.listRow and not b.noDraw and not clipped then
             local hid = win.kind .. ":" .. b.id
             local hot = not gp and ctx.hot == hid
             MM.drawBtn(win, b, hot, gp and win.focusId == b.id, hot and ctx.press == hid)

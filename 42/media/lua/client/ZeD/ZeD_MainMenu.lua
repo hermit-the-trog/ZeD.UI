@@ -1628,6 +1628,14 @@ function ZeD_MMGlass:onMouseDown(x, y)
     if MM.entryUnder(self:getAbsoluteX() + x, self:getAbsoluteY() + y) then return false end
     return true
 end
+-- a right-click goes to the window under it when it has a use for one (the load order's row menu)
+function ZeD_MMGlass:onRightMouseDown(x, y) return true end
+function ZeD_MMGlass:onRightMouseUp(x, y)
+    if MM.ctx.open or blocked() then return true end
+    local w = MM.activeWindow()
+    if w and w:isVisible() and w.rightClick then w:rightClick(self:getAbsoluteX() + x, self:getAbsoluteY() + y) end
+    return true
+end
 
 -- Leaving a window lets go of its fields: a field stays focused while hidden, and the next window's
 -- keys would type into it (the Workshop's title behind the description editor).
