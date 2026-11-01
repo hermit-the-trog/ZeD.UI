@@ -585,6 +585,17 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     - Cap, Normal / Large text: 1280x720 0.75 / 0.75; 1280x800 0.75 / 0.75; 1920x1080 1.25 / 1; 2560x1440
       1.5 / 1.25; 3840x2160 2 / 2. The 720 2x QA manifests are now marked stress probes only.
     **built (9a3fd5c), QA to confirm.**
+41. **Load order tools for big mod lists (a Workshop comment by Kable, ~1,500 mods; director, Oct 31 2026: "I want
+    the mod manager to really shine, so let's try and accommodate their request").** chosen. Rules
+    ZeDUI/MODS_LOAD_ORDER_SPEC.md, mockup ZeDUI/mockups/zed_mod_folders_v2.html (7ee6ef4), together with item 37's
+    folders and separators as one Mods screen. Director's picks: Find in the load order shows only the matches, with
+    their real place numbers and the gaps counted; "Load after..." is kept as a rule (survives Auto and profiles,
+    shown on the row, removable); a pin or rule wins over a mod's own load-after wish with no yellow mark
+    (requirements are never overridden); pins and rules are kept with the list being edited, profiles or not.
+    Audit: Find is on the Mods page only and the pad can't reach it; moves are one place at a time; load-after
+    only as a one-time Conflicts fix; ZeD picks is a hidden pin last; the order check runs over the whole list twice
+    a frame (fix first for 1,500 mods); the profile writer drops lines it doesn't know.
+
 ## Test process
 
 - The release check (before every upload, about 5 minutes, pass or fail): right-click opens the
