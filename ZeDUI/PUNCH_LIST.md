@@ -569,6 +569,7 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     mods the save may hold (their own row asks). QA: zedqa_mods_folders.lua (tag mfo), then by hand:
     right-click menus, Ctrl / Shift-click, Page Up / Down folder to folder, the pad on a folder row and
     the pane's Move to folder..., 1,500 mods with folders (frame rate), Large text and 1280x720.
+    **Stage 3 separators built (0afb1ac, 8f70121, b828ebb), QA to confirm.** See item 41's note.
 38. **Pad stops not refreshed while the drawer fills the window.** Found by QA, Oct 31 2026 (1280x720, UI scale
     2.0, Large text; zedqa_picks_recheck.lua and zedqa_bands_probe.lua, 2026-10-31_2040 / _2049): the World
     window's open recipe had no card, amount box or Craft stops; the Character window's Health, Thermal, Identity,
@@ -669,6 +670,23 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     carried one; Move to top / bottom work inside the block until sections exist; LB / RB and Page Up / Down move
     a page; a choice that needs a pin is greyed ("pin it first too") instead of offering Pin first and load
     before; New game's Choose mods keeps its own list ([@list new game]).
+    **Stage 3 separators built (0afb1ac, 8f70121, b828ebb), QA to confirm.** Separators on the Load order
+    page (ZeD_MainMenuModsSeps.lua): box, collapse, New separator... / Rename... / Delete separator / Move
+    up / Move down with its mods, mods cross a separator one step at a time, Move to separator... in the
+    row's menu, a separator off turns its mods off (kept in place, dimmed, back on in place; Undo and Back
+    put them back), Find shows separators holding a match, Move it up for a need under a later separator,
+    Start separators from folders (asks before replacing); kept with the list and each profile as sep= /
+    top= lines in ZeD_modprofiles.txt; the Profiles page lists them. Auto sorts inside each section only.
+    Calls the spec left open: Start separators from folders is in the Load order band (while there are none)
+    and in a separator's menu and pane as Replace separators with folders, not on the Profiles page (Update
+    saves the result); Move it up puts the needed mod at the end of the section above (just above the mod
+    when the section above is off or there is none); a rule made toward a mod in another section moves the
+    mod into that section only when the rule has to move it; a separator is not dragged (Move up / Move
+    down, Ctrl+Up / Down, Y / X); a mod new to the list goes under the last separator even when it is off
+    (the box then shows the dash); deleting a separator that is off keeps its mods off, dimmed under the
+    one above. QA: zedqa_mods_separators.lua (tag msp), then by hand: right-click and A on a separator,
+    LB / RB and Ctrl+Page Up / Down separator to separator, a drag across a heading, Find with a
+    collapsed separator, 1,500 mods with separators (frame rate), Large text and 1280x720.
 
 ## Test process
 
