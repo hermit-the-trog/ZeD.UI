@@ -176,6 +176,10 @@ zedqa_soak.lua | soak | timeout=2700             # every tab for 12 rounds at th
 # ---- left out: main menu (need a -MainMenu launch)
 # zedqa_button_case_menu.lua, zedqa_header_fit.lua, zedqa_mod_conflicts.lua, zedqa_power_on.lua,
 # zedqa_settings.lua, zedqa_trash_quit.lua (also quits the game)
+# zedqa_mods_order.lua | mlo      the load order tools (Oct 31 2026, punch list 41): the order check not per frame, Find in
+#                                  the load order (place numbers, gaps), pins against a requirement, a Load after rule through
+#                                  Auto and a profile load, a circle refused, unknown profile lines kept; run with
+#                                  zedqa_menu_mods_run.ps1 -ModList compat_r4_mods.txt -Script zedqa_mods_order.lua -Tag mlo
 #
 # ---- never unattended (director; zedqa_run.ps1 refuses these names)
 # zedqa_new_qa_save.lua (makes a save), zedqa_mod_workshop.lua, zedqa_mods_open.lua,
