@@ -585,6 +585,16 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     - Cap, Normal / Large text: 1280x720 0.75 / 0.75; 1280x800 0.75 / 0.75; 1920x1080 1.25 / 1; 2560x1440
       1.5 / 1.25; 3840x2160 2 / 2. The 720 2x QA manifests are now marked stress probes only.
     **built (9a3fd5c), QA to confirm.**
+    - QA, Oct 31 2026 evening (ZeDUI/tools/qa/zedqa_scalecap.lua, scalecap_manifest.txt; windowed 1280x720,
+      1280x800, 1920x1080, fullscreen 4K): **all passed.** The caps match the table at every size and text size. The
+      ZeD setup slider and the wheel dim exactly the steps above the cap, and no dimmed wheel step can be picked. The
+      help line reads "Too big for this screen: 1x and up." (1.5x at 1080p Normal, 1.25x with Large). A saved 2x stays
+      saved: it draws 0.75 at 720 and the Deck, 1.25 at 1080p and 2 at 4K, and the row reads "2x (0.75x here)" /
+      "2x (1.25x here)". The cap follows the text size at once (1080p 1.25 -> 1); the drawn scale had updated within
+      30 frames. 4K offers every step. Put back afterwards each time. Shots: Zomboid/Screenshots/zqa_cap_<height>_setup_saved2x.png.
+      Not covered: a resolution change while the game is running (each run starts at its size), and the Mods page's
+      drop-down was only checked by the shared rule (Settings.scaleStepOff), not by a shot.
+    - Open with the director: at 720 and the Deck the cap is 0.75 even with Normal text, so 1x can't be picked there.
 41. **Load order tools for big mod lists (a Workshop comment by Kable, ~1,500 mods; director, Oct 31 2026: "I want
     the mod manager to really shine, so let's try and accommodate their request").** chosen. Rules
     ZeDUI/MODS_LOAD_ORDER_SPEC.md, mockup ZeDUI/mockups/zed_mod_folders_v2.html (7ee6ef4), together with item 37's
