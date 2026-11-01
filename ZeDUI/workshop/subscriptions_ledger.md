@@ -170,3 +170,19 @@ No subscribed page listed ZombieBuddy or a Java mod under "Required items", so n
 Oct 31 2026 evening: the director asked QA to subscribe "the other missing ones too". 136 rows of the table above were no longer on disk
 (unsubscribed since round 4); all 136 were subscribed again through the Steam client and all were on disk afterwards. Required items were
 taken with "Subscribe to All" (all already listed here or on disk, except Mod Manager Extension above).
+
+## Nov 1 2026
+
+Re-subscribed by QA for the Mods screen checks (compat_r4_mods.txt: mods with requirements for zedqa_mods_order.lua /
+zedqa_mods_folders.lua); they had been unsubscribed with the director's earlier subscriptions.
+
+| Workshop id | Mod (mod ids) |
+|---|---|
+| 3502080466 | Neat Crafting [B42] (Neat_Crafting; needs NeatUI_Framework 3508537032, on disk) |
+| 3536052310 | Neat Building [B42] (Neat_Building) |
+| 3540503606 | Neat Crafting & Neat Building - XP & Mod Display (Neat_Crafting_AddonXP, Neat_Building_AddonXP) |
+| 3459887404 | Building Craft (BuildingCraft) |
+| 3580276809 | [B42.21] The Only Cure (TheOnlyCure) |
+| 3818733381 | The Only Cure+ (Field Surgery) (TheOnlyCurePlus) |
+| 2980583716 | Kilometers Per Hour (BB_KilometersPerHour) |
+| 3822813865 | Knox Packs: Upgradable Backpacks (KnoxPacks) |
