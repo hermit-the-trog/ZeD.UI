@@ -714,6 +714,18 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     one above. QA: zedqa_mods_separators.lua (tag msp), then by hand: right-click and A on a separator,
     LB / RB and Ctrl+Page Up / Down separator to separator, a drag across a heading, Find with a
     collapsed separator, 1,500 mods with separators (frame rate), Large text and 1280x720.
+    - QA, Nov 1 2026: zedqa_mods_separators.lua **38 passed, 1 failed** at 4K, on the Deck and at 1280x720 (Auto,
+      Large text). **Fails 3d: a separator turned off and on again leaves The Only Cure+ (TheOnlyCurePlus) off and out
+      of the list**; its requirement The Only Cure, just above it under the same separator, comes back on ("still
+      off [TheOnlyCurePlus]; under it now TheOnlyCure;BB_KilometersPerHour;KnoxPacks;ZeD_UI"). The check now prints
+      that detail line. Stages 1 and 2 at 1280x720 Large: 24 / 0 and 36 / 0 (as the Deck).
+      **Seen at 1280x720 Large (zqa_mfo_04_ask_delete_720L.png):** the Mods page's last tab, Workshop, is cut off
+      by the right pane, and the "Changes discarded" note is drawn over it.
+      Not done: the checks by hand. The director declined QA control of the game window (Nov 1), so right-click,
+      drag, Ctrl / Shift-click, Page Up / Down and the pad wait for the director or another way to drive them;
+      frame rate at 1,500 mods also waits (the rig has ~280 mods). Hold script for a by-hand session:
+      zedqa_mods_hold.lua (tag mho; opens the Mods page on a test folders file, ends when Lua/zedqa_release.txt
+      has text).
 
 ## Test process
 
