@@ -247,7 +247,11 @@ step(20, function()
             if instanceof(it, "InventoryContainer") and it:getItemContainer() then clear(it:getItemContainer()) end
         end
         clear(p:getInventory())
-        say(string.format("the character's load set aside: %.1f of %.1f carried, now %.1f", w0, p:getMaxWeight(), p:getInventoryWeight()))
+        -- (the most you can carry: the game works it out in BodyDamage.Update, which god mode skips, so a QA
+        -- session in god mode from the load reads the starting 8, not the character's own; worked out here)
+        local mw0 = p:getMaxWeight()
+        pcall(function() p:getBodyDamage():UpdateStrength() end)
+        say(string.format("the character's load set aside: %.1f of %.1f carried (read %.1f in god mode), now %.1f", w0, p:getMaxWeight(), mw0, p:getInventoryWeight()))
     end
     local A, B = crateA:getContainer(), crateB:getContainer()
     axe = give(A, "Base.HandAxe")
@@ -515,8 +519,31 @@ untilDo(function() return onYou(crowbar) end, 900, function()
     shot("06_pin_casual")
 end, "casual: the far crate")
 untilDo(function() local r = R.runs[pn]; return r and r.done end, 600, function()
-    check(R.runs[pn].stopped == nil, "casual: done when the list is empty")
+    check(R.runs[pn].stopped == nil, "casual: done when the list is empty (" .. tostring(R.runs[pn].stopped) .. ")")
+    check(p:isEquippedClothing(hat), "casual: the " .. tostring(hat and hat:getDisplayName()) .. " worn (and left on)")
 end, "casual: done")
+-- Casual never waits on nothing: over what you can carry, it ends and says why
+local capWas
+step(10, function()
+    reset()
+    -- (god mode skips the game's own working out of it, so the lower limit holds for the run)
+    capWas = p:getMaxWeight()
+    p:setMaxWeight(math.max(0, math.floor(p:getInventoryWeight()) - 1))
+    local run = R.start(p, "restock")
+    run.z0 = 99
+end)
+untilDo(function() local r = R.runs[pn]; return r and r.done end, 300, function()
+    local run = R.runs[pn]
+    check(run.stopped == "full", "casual over the limit: ends with a reason (" .. tostring(run.stopped) .. ")")
+    check(not onYou(axe), "casual over the limit: nothing more taken")
+    local txt = EL.statusText(cw())
+    check(txt == ZeD.tr("UI_ZeD_Restock_StoppedFull"), "casual over the limit: the to-do says why (" .. tostring(txt) .. ")")
+end, "casual: over the limit")
+step(5, function()
+    p:setMaxWeight(capWas or 8)
+    pcall(function() p:getBodyDamage():UpdateStrength() end)
+    moveTo(S:getX() + 0.5, S:getY() + 0.5, 0)
+end)
 
 -- B4 long trip: over the limit, the heaviest supply, Make it N days ------------
 step(30, function()

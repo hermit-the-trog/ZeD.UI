@@ -104,7 +104,9 @@ local function finish(run)
     local gone = {}
     for _, item in ipairs(run.order) do
         local m = run.moved[item]
-        if not run.gameBack[item] then
+        -- (what the run put on or hung on the belt was what it was for: it stays on)
+        local kept = chr:isEquippedClothing(item) or chr:isAttachedItem(item)
+        if not run.gameBack[item] and not kept then
             if now[item] then backs[#backs + 1] = { item, m.src }
             elseif item:getContainer() == nil then gone[#gone + 1] = m end   -- (used up)
         end

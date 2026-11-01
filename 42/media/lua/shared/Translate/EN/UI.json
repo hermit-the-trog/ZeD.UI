@@ -3717,6 +3717,8 @@
     "UI_ZeD_Restock_StoppedKey": "Stopped: a key or button was pressed",
     "UI_ZeD_Restock_StoppedUser": "Stopped",
     "UI_ZeD_Restock_StoppedError": "Stopped: an error (see the log)",
+    "UI_ZeD_Restock_StoppedFull": "Stopped: you carry all you can",
+    "UI_ZeD_Restock_StoppedStuck": "Stopped: the rest in reach could not be taken",
     "UI_ZeD_Pin_Title": "Restock | %1",
     "UI_ZeD_Pin_TitleUnpack": "Unpack | %1",
     "UI_ZeD_Pin_Stop": "Stop",
