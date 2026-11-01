@@ -1117,6 +1117,16 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     ZeD_WorldWindow.syncRing rebuild the stops for the tab on show; ZeD_Window.resetLayout calls both after placing
     the windows. QA to confirm: wpt after cu at 720 Normal (Right from the strip crosses to the World window, lit).
 
+46. **The saved window place keeps the engine's push (QA, Nov 1 2026, the 720 wpt run's cu, first cycle only).** open,
+    not a t15 blocker. cu straight after the prelude: "cycle1 World saved: got 853.333 want 858.667" (5.3 px at 720;
+    the two 720 runs with cu after tww passed it). Cause (build): the World window's layout is also saved about once a
+    second while it is open (saveWorldStateThrottled), and while a full-card tab holds the window against the
+    screen's edge the saved x is the pushed one (640 px), not the window's own place (644). The window itself comes
+    back right (items 42 e. and 45), but a Save and Quit with such a tab open reopens the window 4 px left of
+    where it was. Fix: saveWorldState (and saveCharState) write the unpushed x, as they already write the unrolled
+    x for a rolled side: x + the cap push for the World window, the anchor's x for the Character window. A line
+    each; QA re-reads cu's saved lines after. For t16 unless the director says otherwise.
+
 ## Test process
 
 - The release check (before every upload, about 5 minutes, pass or fail): right-click opens the
