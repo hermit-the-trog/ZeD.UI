@@ -1127,6 +1127,11 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     x for a rolled side: x + the cap push for the World window, the anchor's x for the Character window. A line
     each; QA re-reads cu's saved lines after. For t16 unless the director says otherwise.
 
+      - **0.2.0-t15 uploaded Nov 1 2026, 3:55 pm (the director: "Uploaded").** Tag v0.2.0-t15 at d66f07e pushed;
+        backup D:\ZeD-UI backup6-11-01-t15 (zed_backups, workshop.txt + preview.png, the QA save); Contents
+        removed; zedqa.lock free. Next: the full 720 Normal and Large passes (QA, when the director gives the screen),
+        the Discord note (ask first), items 44 and 46 for build 16.
+
 ## Test process
 
 - The release check (before every upload, about 5 minutes, pass or fail): right-click opens the
