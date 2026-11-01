@@ -654,17 +654,11 @@ end
 -- ----------------------------------------------------------------------------
 -- the mods that are on made to be exactly want (Undo, Back)
 function ZeD_MMMods:sepMatchActive(want)
-    local m = model()
-    if not (m and want) then return end
-    local changed = false
-    for _, d in pairs(m.mods or EMPTY) do
-        if d.isActive and not want[d.modId] then m:forceActivateMods(d.modInfo, false); changed = true end
-    end
-    for id in pairs(want) do
-        local d = m.mods[id]
-        if d and not d.isActive and d.isAvailable then m:forceActivateMods(d.modInfo, true); changed = true end
-    end
-    if changed then self:dirty() end
+    if not (model() and want) then return end
+    -- (the player's own earlier set: back exactly, as one batch; QA Nov 1 2026, mhd: one at a
+    -- time, Undo lost The Only Cure+ to The Only Cure)
+    local go, _, off = self:applyOnSet(want, true)
+    if off or #go > 0 then self:dirty() end
 end
 
 -- after mods went on or off: the ones that went off with them (they need one) are shown dimmed
@@ -697,46 +691,13 @@ function ZeD_MMMods:sepReconcile(before, after, mine)
     self:orderChanged()
 end
 
--- ids on: one batch (QA Nov 1 2026, msp 3d: one at a time, The Only Cure went on first and the
--- game then refused The Only Cure+, which declares it incompatible, though the two had been on
--- together under the separator; the refused mod was also hidden, off under a separator that is
--- on). Every mod that can run is set on, then the requirements come along and the game's lists
--- are worked out once. Two mods of the batch that conflict go on together only when both were
--- on together when the separator went off (together: that set); otherwise the first in the list
--- goes on. A mod that stays off is shown dimmed in its place with the reason.
+-- ids on: one batch (QA Nov 1 2026, msp 3d), through the Mods screen's own (modsOnBatch). Two
+-- mods of the batch that conflict go on together only when both were on together when the
+-- separator went off (together: that set); otherwise the first in the list goes on. A mod that
+-- stays off is shown dimmed in its place with the reason.
 function ZeD_MMMods:sepTurnOnBatch(ids, together, cannot)
-    local m = model()
-    local go, goSet = {}, {}
-    for _, id in ipairs(ids) do
-        local d = m.mods[id]
-        if d and not d.isActive then
-            -- (a mod that cannot run stays off; the template mod asks on its own row)
-            local why = (d.modId == "ModTemplate") and ZeD.tr("UI_ZeD_Seps_WhyOff") or self:problemNow(d)
-            if not why then
-                for x in pairs(d.incompatibleWith or EMPTY) do
-                    if goSet[x] and not (together and together[id] and together[x]) then
-                        why = ZeD.tr("UI_ZeD_Mods_ProbConflicts", tostring(m.mods[x].name))
-                        break
-                    end
-                end
-            end
-            if why then
-                cannot[#cannot + 1] = tostring(d.name)
-                self.oOffHere[id] = why
-            else
-                go[#go + 1] = d
-                goSet[id] = true
-            end
-        end
-    end
-    for _, d in ipairs(go) do m:setModActive(d.modId, true); d.isActive = true end
-    for _, d in ipairs(go) do
-        for _, r in ipairs(jlist(d.modInfo:getRequire())) do
-            local rd = m.mods[r]
-            if rd and not rd.isActive then m:forceActivateMods(rd.modInfo, true) end
-        end
-    end
-    if #go > 0 then m:refreshMods() end
+    local _, off = self:modsOnBatch(ids, { together = together, why = self.oOffHere })
+    for _, n in ipairs(off) do cannot[#cannot + 1] = n end
 end
 
 -- ids on (true) or off (false) at once. Returns what could not run, what a save keeps on, and
