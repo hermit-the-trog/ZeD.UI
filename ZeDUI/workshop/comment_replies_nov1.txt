@@ -1,0 +1,24 @@
+Workshop comment replies (Nov 1 2026). POSTED Nov 1 ~7:50 am: warzone986, Kable (Immersive Searching), Vyra, 邦菊 (English + Chinese, one comment). HELD: Kable (1,500 mods) - no "Mods screen" thread exists.
+Already answered: 邦菊 (Mod Folders, our reply of Oct 31). A short follow-up for them is the last draft.
+
+--- warzone986 ("the first that literally redone EVERYTHING") ---
+@warzone986 Thank you. That was the goal: one look for everything. If you find a part I missed, the Bug reports thread is the place.
+
+--- Kable (Immersive Searching) ---
+@Kable Support for Immersive Searching is built and tested. ZeD's windows now show the mod's "?" on unsearched containers, list items as the search finds them, and hide Take all until the search is done. Search all appears when the mod's sandbox option turns it on. All the searching is still done by yuckyfox's mod; ZeD only shows it. It ships with the next test build.
+
+--- Kable (~1,500 mods: folders, load order search, load before/after) ---
+@Kable Built, and in testing now:
+- Folders on the Mods page, read from and saved to the same ModFolders.cfg as the Mod Folders mod
+- Separators in the load order (Mod Organizer 2 style), saved per profile
+- Find in the load order, showing each match's real place number
+- Load first / Load last pins, and Load after... / Load before... rules that survive Auto and profile loads
+- The Mods screen reworked so a list of 1,500 stays quick
+It ships with the next test build. If you can try it on your full list, the Mods screen thread wants your report.
+
+--- Vyra ("feels like a real vanilla UI upgrade ... not compatible with many UI mods") ---
+@Vyra Thank you. "A vanilla upgrade" is exactly what I was going for, so that one means a lot. You're right about other UI mods: ZeD replaces the same screens they do, so most can't run beside it. The Compatibility thread lists what works, what doesn't and why. If one you rely on isn't there, post its name and I'll test it.
+
+--- 邦菊 (follow-up to our Oct 31 reply) ---
+@邦菊 Mod Folders support is built: ZeD reads and saves the same ModFolders.cfg, so your folders show in ZeD and are still there if you play without it. Chinese folder names display correctly. It ships with the next test build.
+@邦菊 Mod Folders 支持已完成：ZeD 读取并保存同一个 ModFolders.cfg，你的文件夹会显示在 ZeD 中，不用 ZeD 时也依然保留。中文文件夹名可以正常显示。将随下一个测试版本发布。
