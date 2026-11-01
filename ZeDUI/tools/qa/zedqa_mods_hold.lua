@@ -37,7 +37,7 @@ local function t()
         if keep.ui then writeRaw(UISTATE, keep.ui) end
         F.load()
         writeRaw("zedqa_release.txt", "")
-        say("released; DONE")
+        say("released"); say("DONE")   -- (the runner looks for "ZEDQA mho DONE" exactly)
         Events.OnFETick.Remove(t)
     end
 end
