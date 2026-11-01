@@ -814,7 +814,12 @@ end
 -- player go down, over and up. _coneCost / _halfPlaneCost stay for reference.
 -- Returns (idx, pass): pass "cone" = lined up, "half" = off to the side (the
 -- debug overlay's cyan / magenta), nil when nothing lies that way.
-local function _pickBestWithFallback(elements, focusedIdx, dir)
+-- linedUpOnly: take only a stop that lines up across (tier 0), never one off to the side. Up and
+-- Down use it when they look beyond their own zone (director, Nov 1 2026, punch list 42 c.: on the
+-- Deck a Down past the last Skills row went sideways into the inventory list, because the rest of
+-- the window allowed the "half" tier; directions match the screen, so Up and Down leave a zone only
+-- for something directly above or below, and at the end of a column Down does nothing).
+local function _pickBestWithFallback(elements, focusedIdx, dir, linedUpOnly)
     if not elements or #elements == 0 then return nil, nil end
     if focusedIdx < 1 or focusedIdx > #elements then focusedIdx = 1 end
     local from = elements[focusedIdx]
@@ -824,6 +829,7 @@ local function _pickBestWithFallback(elements, focusedIdx, dir)
     for i = 1, #elements do
         if i ~= focusedIdx then
             local tier, c = N.cost(from, elements[i], dir)
+            if tier and linedUpOnly and tier ~= 0 then tier = nil end
             if tier and (bestTier == nil or tier < bestTier or (tier == bestTier and c < bestCost)) then
                 bestIdx, bestTier, bestCost = i, tier, c
             end
@@ -887,9 +893,9 @@ local function _refreshDebugPicks(w)
             end
         end
         local pickIdx, pass = _pickBestWithFallback(searchEls, searchFromIdx, dir)
-        if not pickIdx and searchEls ~= elements then   -- nothing more in the panel: the next one over
+        if not pickIdx and searchEls ~= elements then   -- nothing more in the panel: the next one over (Up / Down: lined up only)
             searchEls, searchFromIdx = elements, fromIdx
-            pickIdx, pass = _pickBestWithFallback(searchEls, searchFromIdx, dir)
+            pickIdx, pass = _pickBestWithFallback(searchEls, searchFromIdx, dir, dir == "up" or dir == "down")
         end
         if pickIdx then
             local el = searchEls[pickIdx]
@@ -1256,17 +1262,19 @@ local function _handleSpatialNav(w, dir)
                     if loc == fromLoc then pFrom = #pEls end
                 end
             end
-            local pk, ps = _pickBestWithFallback(pEls, pFrom, dir)
+            -- (Up / Down: only a stop lined up above or below, in this panel's other zones)
+            local pk, ps = _pickBestWithFallback(pEls, pFrom, dir, dir == "up" or dir == "down")
             if pk then
                 searchEls, searchLoc, newPickIdx, pass = pEls, pLoc, pk, ps
             end
         end
     end
     if not newPickIdx and searchEls ~= elements then
-        -- nothing more that way in this panel: the nearest one beyond it
+        -- nothing more that way in this panel: the nearest one beyond it (Up / Down: lined up only;
+        -- off to the side it is Left's or Right's, so Down at the end of a column does nothing)
         searchEls, searchLoc = elements, locator
         fromIdx = _findCurrentFlatIdx(w, locator) or 1
-        newPickIdx, pass = _pickBestWithFallback(searchEls, fromIdx, dir)
+        newPickIdx, pass = _pickBestWithFallback(searchEls, fromIdx, dir, dir == "up" or dir == "down")
     end
     if not newPickIdx then
         -- Oct 23 2026: nothing more that way in this window: Left / Right go
@@ -1368,7 +1376,7 @@ local function _handleSpatialNav(w, dir)
                         subIdx[#subEls] = i
                     end
                 end
-                local pick = _pickBestWithFallback(subEls, 1, dir)
+                local pick = _pickBestWithFallback(subEls, 1, dir, dir == "up" or dir == "down")
                 if pick and subIdx[pick] then newFlatIdx, pass = subIdx[pick], "panel" end
             end
         end

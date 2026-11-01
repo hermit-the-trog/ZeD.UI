@@ -81,9 +81,13 @@ def expected(e, els, d, data):
         return (None, None)
     pe = panel(e["zone"])
     if d in ("up", "down"):
+        # Up / Down leave a zone only for a stop lined up above or below (tier 0), never one off to
+        # the side (director, Nov 1 2026, punch list 42 c.); at the end of a column Down does nothing
         samez = [t for t in cands if t["zone"] == e["zone"]]
-        same = [t for t in cands if panel(t["zone"]) == pe]
-        pool = samez or same or cands
+        lined = [t for t in cands if cost(e, t, d)[0] == 0]
+        same = [t for t in lined if panel(t["zone"]) == pe]
+        pool = samez or same or lined
+        if not pool: return (None, None)
         best = min(pool, key=lambda t: cost(e, t, d))
     else:
         best = min(cands, key=lambda t: cost(e, t, d))
