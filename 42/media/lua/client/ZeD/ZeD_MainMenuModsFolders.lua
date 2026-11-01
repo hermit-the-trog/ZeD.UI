@@ -109,6 +109,7 @@ end
 -- the box's sentence for a folder of n installed mods, k on
 local function boxText(n, k)
     if n == 0 then return ZeD.tr("UI_ZeD_Folders_BoxEmpty") end
+    if n == 1 then return ZeD.tr(k == n and "UI_ZeD_Folders_BoxOffOne" or "UI_ZeD_Folders_BoxOnOne") end
     return ZeD.tr(k == n and "UI_ZeD_Folders_BoxOff" or "UI_ZeD_Folders_BoxOn", n)
 end
 
@@ -728,9 +729,10 @@ function ZeD_MMMods:folderDetailModel(iw)
     local n, k = v.tot[fid] or 0, v.on[fid] or 0
     c.n, c.k = n, k
     c.title = f and f.name or ZeD.tr("UI_ZeD_Folders_Unfiled")
-    c.sub = f and ZeD.tr("UI_ZeD_Folders_DetSub", n, k) or ZeD.tr("UI_ZeD_Folders_DetSubUnfiled", n, k)
+    local one = (n == 1) and "One" or ""
+    c.sub = f and ZeD.tr("UI_ZeD_Folders_DetSub" .. one, n, k) or ZeD.tr("UI_ZeD_Folders_DetSubUnfiled" .. one, n, k)
     local f2 = T.fontF2
-    local boxKey = (n == 0 and "UI_ZeD_Folders_DetBoxEmpty") or (k == n and "UI_ZeD_Folders_DetBoxAll") or (k == 0 and "UI_ZeD_Folders_DetBoxNone") or "UI_ZeD_Folders_DetBoxSome"
+    local boxKey = (n == 0 and "UI_ZeD_Folders_DetBoxEmpty") or (k == n and "UI_ZeD_Folders_DetBoxAll" .. one) or (k == 0 and "UI_ZeD_Folders_DetBoxNone" .. one) or "UI_ZeD_Folders_DetBoxSome"
     c.boxLines = f and ZeD.Atoms.wrapText(ZeD.tr(boxKey, n), f2, iw) or EMPTY
     c.orderLines = ZeD.Atoms.wrapText(ZeD.tr(f and "UI_ZeD_Folders_DetNeverOrder" or "UI_ZeD_Folders_DetUnfiledNote"), f2, iw)
     c.keptLines = ZeD.Atoms.wrapText(ZeD.tr("UI_ZeD_Folders_DetKeptNote"), f2, iw)
@@ -987,7 +989,7 @@ function ZeD_MMMods:getStatusLine()
             if n > 1 then return ZeD.tr("UI_ZeD_Folders_StatusPicked", n) end
         end
         local M = F.cur
-        if M and M.bad > 0 then return ZeD.tr("UI_ZeD_Folders_StatusBad", M.bad) end
+        if M and M.bad > 0 then return ZeD.tr(M.bad == 1 and "UI_ZeD_Folders_StatusBadOne" or "UI_ZeD_Folders_StatusBad", M.bad) end
     end
     return _status(self)
 end

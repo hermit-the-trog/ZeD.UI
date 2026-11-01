@@ -1012,8 +1012,9 @@ function ZeD_MMMods:sepFromFolders(confirmed)
     -- (each section sorted by the mods' own rules, never across a separator; nothing on or off)
     self:orderLayout(true)
     local res = self:orderCheck()
-    if res.nBad > 0 then self:say(ZeD.tr("UI_ZeD_Seps_SayFromFoldersRed", #seps, res.nBad))
-    else self:say(ZeD.tr("UI_ZeD_Seps_SayFromFolders", #seps)) end
+    local made = ZeD.tr(#seps == 1 and "UI_ZeD_Seps_ProfCountOne" or "UI_ZeD_Seps_ProfCountMany", #seps)
+    if res.nBad > 0 then self:say(ZeD.tr(res.nBad == 1 and "UI_ZeD_Seps_SayFromFoldersRedOne" or "UI_ZeD_Seps_SayFromFoldersRed", made, res.nBad))
+    else self:say(ZeD.tr("UI_ZeD_Seps_SayFromFolders", made)) end
     if seps[1] then self:sepSelect(seps[1].uid) end
     MM.clickSound()
 end
@@ -1225,7 +1226,8 @@ function ZeD_MMMods:sepDetailItems(items, rw, uid)
     local onN, shown, offAll = self:sepCounts(sp)
     local ticked = sp.on and shown == 0
     items[#items + 1] = { t = "title", text = sp.name }
-    local sub = sp.on and ZeD.tr("UI_ZeD_Seps_DetSubOn", onN, self:sepListName()) or ZeD.tr("UI_ZeD_Seps_DetSubOff", offAll, self:sepListName())
+    local sub = sp.on and ZeD.tr(onN == 1 and "UI_ZeD_Seps_DetSubOnOne" or "UI_ZeD_Seps_DetSubOn", onN, self:sepListName())
+        or ZeD.tr(offAll == 1 and "UI_ZeD_Seps_DetSubOffOne" or "UI_ZeD_Seps_DetSubOff", offAll, self:sepListName())
     items[#items + 1] = { t = "sub", text = sub }
     items[#items + 1] = { t = "btns", list = {
         btn("sbox", ZeD.tr(ticked and "UI_ZeD_Seps_BtnTurnOff" or "UI_ZeD_Seps_BtnTurnOn"), function() self:sepBox(uid) end, false, ZeD.tr("UI_ZeD_Seps_HelpBox", sp.name)),
@@ -1258,7 +1260,7 @@ function ZeD_MMMods:sepDetailItems(items, rw, uid)
     if n == 0 then textItem(items, rw, ZeD.tr("UI_ZeD_Seps_DetEmpty"), nil, true) end
     items[#items + 1] = { t = "head", text = ZeD.tr("UI_ZeD_Seps_DetBox") }
     if ticked then textItem(items, rw, ZeD.tr("UI_ZeD_Seps_DetBoxOn"))
-    else textItem(items, rw, ZeD.tr("UI_ZeD_Seps_DetBoxOff", shown + onN)) end
+    else textItem(items, rw, ZeD.tr((shown + onN == 1) and "UI_ZeD_Seps_DetBoxOffOne" or "UI_ZeD_Seps_DetBoxOff", shown + onN)) end
     textItem(items, rw, ZeD.tr("UI_ZeD_Seps_DetKept"), nil, true)
     if F.any() then
         items[#items + 1] = { t = "btns", list = { btn("sfrom", ZeD.tr("UI_ZeD_Seps_BtnReplace"), function() self:sepFromFolders(false) end, false, ZeD.tr("UI_ZeD_Seps_HelpFromFolders")) } }
