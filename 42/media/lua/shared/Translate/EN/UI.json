@@ -581,6 +581,7 @@
     "UI_ZeD_Craft_NoAlts": "No alternatives found",
     "UI_ZeD_Craft_NoneWithin": "None within %1 tiles.",
     "UI_ZeD_Craft_Pinned": "Pinned",
+    "UI_ZeD_Craft_QtyOne": "Amount: no more than one can be made now",
     "UI_ZeD_Craft_Required": "Required",
     "UI_ZeD_Craft_Results": "Results",
     "UI_ZeD_Craft_ShowAll": "All",

@@ -4685,6 +4685,10 @@ function ZeD_WorldWindow.toggle(playerNum)
                         .. ":" .. tostring(stk.cardScroll and stk.cardScroll.scrollPos or 0)
                         .. ":" .. tostring(stk.altScroll and stk.altScroll.scrollPos or 0)
                         .. ":" .. tostring(stk.sortMenuOpen) .. ":" .. tostring(stk.showMenuOpen)
+                        -- (Oct 31 2026, punch list 28: the band's shape, - n + or the one amount box,
+                        -- and the recipe picked; the stop count alone missed a change that kept it
+                        -- (two stops for one plus one more elsewhere), so the box went without its stop)
+                        .. ":" .. tostring(stk._bandSingle) .. ":" .. tostring(stk.selected)
                     -- S124 stations: binding, station dropdown and station-view controls
                     if win._activeTab == "craft" and ZeD.CraftingTab and ZeD.CraftingTab.focusKey then
                         scrollKey = scrollKey .. ":" .. tostring(ZeD.CraftingTab.focusKey(win))
