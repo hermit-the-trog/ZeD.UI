@@ -519,7 +519,7 @@ function ZeD_MMWorkshop:formBtn(id, text, fn, x, y, variant, row, col, disabled,
 end
 
 -- an entry in the form: shown only while it is wholly in view (one line unless h is given)
-function ZeD_MMWorkshop:formEntry(e, id, x, y, w, h)
+function ZeD_MMWorkshop:formEntry(e, id, x, y, w, h, row)
     local T = ZeD.T
     local eh = h or T.px(24)
     local fv = self._fv
@@ -530,7 +530,8 @@ function ZeD_MMWorkshop:formEntry(e, id, x, y, w, h)
         if self.focusId == id and MM.gamepad() then ZeD.Focus.mark(self, x, y, w, eh, MM.focusOpts()) end
     end
     -- (the controller lands on the field as on a button: A types in it)
-    self._specs[#self._specs + 1] = { id = id, listRow = true, x = x, y = y, w = w, h = eh, clipTop = fv.y, clipBot = fv.y + fv.h,
+    -- (a row and column like every stop: focusRows sorts by them, and one missing made A throw)
+    self._specs[#self._specs + 1] = { id = id, listRow = true, x = x, y = y, w = w, h = eh, clipTop = fv.y, clipBot = fv.y + fv.h, row = row or 450, col = 1,
                                       fn = function() e:focus() end }
     return eh
 end
@@ -584,7 +585,7 @@ function ZeD_MMWorkshop:formTop(it, ix, iw, cy)
     local f2, f3, dim = T.fontF2, T.fontF3, T.textDim
     -- the title
     label(self, ZeD.textCase(ZeD.trBare("UI_WorkshopSubmit_ItemTitle")), ix, cy, T.px(24))
-    cy = cy + self:formEntry(self.titleE, "f:title", vx, cy, vw) + T.px(10)
+    cy = cy + self:formEntry(self.titleE, "f:title", vx, cy, vw, nil, 290) + T.px(10)
     -- who can see it: one of a few, radio buttons
     label(self, ZeD.tr("UI_ZeD_Workshop_LabelWho"), ix, cy, bh)
     local bx = vx
@@ -666,7 +667,7 @@ function ZeD_MMWorkshop:formBottom(it, ix, iw, cy)
     cy = cy + bh + T.px(12)
     -- CHANGE NOTE
     label(self, ZeD.tr("UI_ZeD_Workshop_LabelChangeNote"), ix, cy, T.px(24))
-    cy = cy + self:formEntry(self.noteE, "f:note", vx, cy, vw, self:noteH(vw)) + T.px(4)
+    cy = cy + self:formEntry(self.noteE, "f:note", vx, cy, vw, self:noteH(vw), 450) + T.px(4)
     cy = self:paneText(ZeD.tr(it:getID() and "UI_ZeD_Workshop_NoteHelpUpdate" or "UI_ZeD_Workshop_NoteHelpNew"), vx, cy, vw, f3, dim) + T.px(10)
     -- WHAT GOES UP
     label(self, ZeD.tr("UI_ZeD_Workshop_LabelWhatGoesUp"), ix, cy, T.px(20))
