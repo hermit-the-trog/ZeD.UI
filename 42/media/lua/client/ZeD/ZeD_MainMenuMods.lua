@@ -827,13 +827,16 @@ end
 
 -- THE STRIP'S QUESTIONS AND FIELDS ------------------------------------------------
 
-local FIELD_MODES = { save = true, paste = true, rename = true, dup = true }
+-- (fnew / frename: a folder's name, ZeD_MainMenuModsFolders)
+local FIELD_MODES = { save = true, paste = true, rename = true, dup = true, fnew = true, frename = true }
+ZeD_MMMods.FIELD_MODES = FIELD_MODES
 
 -- Return in the band's field: the mode's own action
 function ZeD_MMMods:fieldEnter()
     local c = self.confirm
     if c == "save" then self:savePreset() elseif c == "paste" then self:pastePreset()
-    elseif c == "rename" then self:renameProfile() elseif c == "dup" then self:duplicateProfile() end
+    elseif c == "rename" then self:renameProfile() elseif c == "dup" then self:duplicateProfile()
+    elseif (c == "fnew" or c == "frename") and self.folderFieldEnter then self:folderFieldEnter(c) end
 end
 
 function ZeD_MMMods:setConfirm(mode)
@@ -842,7 +845,8 @@ function ZeD_MMMods:setConfirm(mode)
     MM.ctx.open = nil
     if FIELD_MODES[mode] then
         local pre = ""
-        if mode == "rename" then pre = self.psel or "" elseif mode == "dup" then pre = ZeD.tr("UI_ZeD_Mods_CopyName", self.psel or "") end
+        if mode == "rename" then pre = self.psel or "" elseif mode == "dup" then pre = ZeD.tr("UI_ZeD_Mods_CopyName", self.psel or "")
+        elseif mode == "frename" then pre = self._fieldPre or "" end
         self.field:setText(pre)
         self.field:setVisible(true)
         self.field:focus()
@@ -946,6 +950,8 @@ function ZeD_MMMods:buildStrip(stripY, stripH, w)
             cancel,
             { "confirm:yes", ZeD.tr("UI_ZeD_Mods_Replace"), function() self:updateProfile() end, "primary" } },
             ZeD.tr(on == 1 and "UI_ZeD_Mods_AskReplaceOne" or "UI_ZeD_Mods_AskReplaceMany", tostring(self.psel), on))
+    elseif (self.confirm == "fnew" or self.confirm == "frename" or self.confirm == "fdelete") and self.folderStrip then
+        self:folderStrip(stripY, stripH, w, row)
     elseif FIELD_MODES[self.confirm] then
         local c = self.confirm
         local ask = ZeD.tr((c == "save" and "UI_ZeD_Mods_AskNewName") or (c == "rename" and "UI_ZeD_Saves_AskRename") or (c == "dup" and "UI_ZeD_Mods_AskCopyAs") or "UI_ZeD_Mods_AskProfileText")
@@ -986,10 +992,11 @@ function ZeD_MMMods:buildStrip(stripY, stripH, w)
         end
         local mapConflicts = mc.v
         local lefts = { { "back", getText("UI_btn_back"), function() self:back() end } }
-        local rights = {
-            { "profiles", ZeD.tr("UI_ZeD_Mods_BtnProfiles"), function() self:enterProfiles() end },
-            { "order", ZeD.tr("UI_ZeD_Mods_BtnLoadOrder"), function() self:enterOrder("order") end },
-        }
+        local rights = {}
+        -- New folder... (ZeD_MainMenuModsFolders; not on the Workshop tab, which lists Steam's items)
+        if self.folderNewSpec and self.filter ~= "ws" then rights[1] = self:folderNewSpec() end
+        rights[#rights + 1] = { "profiles", ZeD.tr("UI_ZeD_Mods_BtnProfiles"), function() self:enterProfiles() end }
+        rights[#rights + 1] = { "order", ZeD.tr("UI_ZeD_Mods_BtnLoadOrder"), function() self:enterOrder("order") end }
         if mapConflicts then rights[#rights + 1] = { "maps", ZeD.tr("UI_ZeD_Mods_BtnMapOrder"), function() self:enterOrder("maps") end } end
         if self.filter == "ws" then rights[#rights + 1] = { "wsopen", ZeD.tr("UI_ZeD_Mods_BtnOpenWorkshop"), function() MS.openWorkshop() end } end
         -- changes waiting: the band says what they need, Undo changes stays on the screen, Reload is vanilla's accept
@@ -1069,9 +1076,14 @@ function ZeD_MMMods:drawList(x, y, w, h)
 
     -- the rows (the Workshop tab lists Steam's items instead)
     if self.filter == "ws" then self:drawWsRows(x, y, w, h, fY + fH); return end
+    -- (with folders: the line saying which list this is, then the rows grouped by folder:
+    -- ZeD_MainMenuModsFolders)
+    local top = fY + fH
+    if self.listLine then top = self:listLine(x, top, w, "list") end
+    if self.foldersOn and self:foldersOn() then self:drawFolderRows(x, y, w, h, top); return end
     local rows = self:rows()
     if not self.sel and rows[1] then self.sel = rows[1].modId end
-    local vy, vh = fY + fH, h - (fY + fH - y) - T.px(1)
+    local vy, vh = top, h - (top - y) - T.px(1)
     local rh = T.px(ROW_H)
     local rowsH = #rows * rh
     local sbW = T.sp.scrollbarW
@@ -1117,13 +1129,38 @@ function ZeD_MMMods:drawList(x, y, w, h)
         if k == i0 - 1 then
             -- (the focused row out of sight: its stop only)
         elseif ry + rh > vy and ry < vy + vh then
-            local isSel = d.modId == self.sel
+            self:drawModRow(d, x, ry, rw, rh, vy, vh, gp, rid, 0, star)
+        end
+      end
+    end
+    self:clearStencilRect()
+    if over then
+        local sx = x + w - T.px(1) - sbW
+        ZeD.Atoms.drawScrollTrack(self, sx, vy, sbW, vh)
+        local th = math.max(T.px(24), math.floor(vh * vh / rowsH))
+        local tyy = vy + math.floor((vh - th) * self.scroll / (rowsH - vh))
+        ZeD.Atoms.drawScrollThumb(self, sx, tyy, sbW, th, MM.ctx.hot == "mods:track" and "hover" or "default")
+        self._hits[#self._hits + 1] = { id = "mods:track", x = ax + sx, y = ay + vy, w = sbW, h = vh, drag = function(_, my)
+            self.scroll = math.floor(((my - ay - vy) / vh) * rowsH - vh / 2) end }
+    end
+end
+
+-- one mod's row of the Mods list (in sight): the box, icon, name, id or what is wrong, tags, star.
+-- indent: the folder grouping's step in (ZeD_MainMenuModsFolders); a row of a multi-selection
+-- draws picked too
+function ZeD_MMMods:drawModRow(d, x, ry, rw, rh, vy, vh, gp, rid, indent, star)
+    local T = ZeD.T
+    local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
+    local cb = T.checkboxSz
+    local f2 = T.fontF2
+    do
+            local isSel = d.modId == self.sel or (self.msel ~= nil and self.msel[d.modId] == true)
             local onFocus = MM.rowLook(self, x + T.px(1), ry, rw, rh, isSel, (not gp) and MM.ctx.hot == "mods:row:" .. d.modId, gp and self.focusId == rid)
             if (not gp) and MM.ctx.hot == "mods:row:" .. d.modId then ZeD.Help.set(self, ZeD.tr("UI_ZeD_MMHelp_ModRow")) end
             self:drawRect(x + T.px(1), ry + rh - T.px(1), rw, T.px(1), T.border.a, T.border.r, T.border.g, T.border.b)
             local prob = self:problem(d)
             -- the box: on / off (a mod that cannot run draws it disabled)
-            local cx, cyy = x + T.px(10), ry + math.floor((rh - cb) / 2)
+            local cx, cyy = x + T.px(10) + (indent or 0), ry + math.floor((rh - cb) / 2)
             ZeD.Atoms.drawCheckbox(self, cx, cyy, d.isActive, MM.ctx.hot == "mods:cb:" .. d.modId, prob ~= nil and not d.isActive)
             -- icon
             local ix = cx + cb + T.px(8)
@@ -1165,20 +1202,8 @@ function ZeD_MMMods:drawList(x, y, w, h)
             end
             local cy0, ch = math.max(ry, vy), math.min(ry + rh, vy + vh) - math.max(ry, vy)
             self._hits[#self._hits + 1] = { id = "mods:row:" .. d.modId, x = ax + x, y = ay + cy0, w = rw, h = ch, fn = function() self:clickRow(d) end }
-            self._hits[#self._hits + 1] = { id = "mods:cb:" .. d.modId, x = ax + x, y = ay + cy0, w = cb + T.px(16), h = ch, fn = function() self.sel = d.modId; self:toggle(d) end }
+            self._hits[#self._hits + 1] = { id = "mods:cb:" .. d.modId, x = ax + x, y = ay + cy0, w = cb + T.px(16) + (indent or 0), h = ch, fn = function() self.sel = d.modId; self.fsel = nil; self:toggle(d) end }
             self._hits[#self._hits + 1] = { id = "mods:star:" .. d.modId, x = ax + sx - T.px(4), y = ay + cy0, w = starW + T.px(8), h = ch, fn = function() self:toggleFav(d) end }
-        end
-      end
-    end
-    self:clearStencilRect()
-    if over then
-        local sx = x + w - T.px(1) - sbW
-        ZeD.Atoms.drawScrollTrack(self, sx, vy, sbW, vh)
-        local th = math.max(T.px(24), math.floor(vh * vh / rowsH))
-        local tyy = vy + math.floor((vh - th) * self.scroll / (rowsH - vh))
-        ZeD.Atoms.drawScrollThumb(self, sx, tyy, sbW, th, MM.ctx.hot == "mods:track" and "hover" or "default")
-        self._hits[#self._hits + 1] = { id = "mods:track", x = ax + sx, y = ay + vy, w = sbW, h = vh, drag = function(_, my)
-            self.scroll = math.floor(((my - ay - vy) / vh) * rowsH - vh / 2) end }
     end
 end
 
@@ -1338,6 +1363,11 @@ function ZeD_MMMods:drawDetail(x, y, w, h)
         end
         top = y + nh + T.px(1)
     end
+    -- a folder row picked: the folder's pane (ZeD_MainMenuModsFolders)
+    if self.fsel ~= nil and self.drawFolderDetail and self.filter ~= "ws" and self:foldersOn() then
+        self:drawFolderDetail(x, top, w, y + h - top)
+        return
+    end
     local d = self:selected()
     if not d then
         if self.filter == "ws" and self.wsSel and MS.ws.items[self.wsSel] then self:drawWsDetail(x, top, w, y + h - top) end
@@ -1396,6 +1426,8 @@ function ZeD_MMMods:drawDetail(x, y, w, h)
     end
     verb("toggle", ZeD.tr(d.isActive and "ContextMenu_Turn_Off" or "ContextMenu_Turn_On"), function() self:toggle(d) end, d.isActive and "default" or "primary", (not d.isActive) and prob ~= nil)
     verb("fav", ZeD.tr(d.favorite and "UI_ZeD_Mods_VerbUnfavourite" or "UI_ZeD_Mods_VerbFavourite"), function() self:toggleFav(d) end)
+    -- Move to folder... (the controller's way to the row's folder menu: ZeD_MainMenuModsFolders)
+    if self.folderVerb and self.filter ~= "ws" then verb("fmove", ZeD.tr("UI_ZeD_Folders_VerbMove"), function() self:folderVerb(d) end) end
     local wid, src, url = nil, "", ""
     pcall(function() wid = info:getWorkshopID(); src = tostring(info:getSource() or ""); url = tostring(info:getUrl() or "") end)
     if wid and wid ~= "" then verb("workshop", ZeD.tr("UI_ZeD_Workshop_OpenInSteam"), function() MS.openInSteam(wid) end) end
