@@ -68,6 +68,24 @@ end
 local function now() return getTimestampMs() end
 local function clamp(v, lo, hi) if v < lo then return lo end; if v > hi then return hi end; return v end
 
+-- vanilla's DeviceData:canBePoweredHere, without its Java NPE: for a mains set it asks its parent's square, and a set
+-- with no square (a house tile's CustomItem, a TV item on the floor or in a bag) throws (logged under -debug even
+-- inside pcall). Battery sets and car parts take vanilla's own path (it asks no square of them); no square, no grid.
+function O.canBePoweredHere(dd)
+    if dd == nil then return false end
+    if _get(dd, "getIsBatteryPowered", false) then return _get(dd, "canBePoweredHere", false) end
+    local par = _get(dd, "getParent", nil)
+    if par == nil then return false end
+    if not instanceof(par, "VehiclePart") and _get(par, "getSquare", nil) == nil then return false end
+    return _get(dd, "canBePoweredHere", false)
+end
+-- ISRadioAction:isValidToggleOnOff's test (and DeviceData:setIsTurnedOn's), safe the same way
+function O.poweredHere(dd)
+    if dd == nil then return false end
+    if _get(dd, "getIsBatteryPowered", false) and _get(dd, "getPower", 0) > 0 then return true end
+    return O.canBePoweredHere(dd)
+end
+
 -- the face for a fitted radio item; modded radios borrow the nearest face
 function O.kindOf(item, dd)
     if not item then return nil end
@@ -167,7 +185,7 @@ function O.read(part)
     st.ham = O.HAM[st.kind] == true
     st.switchOn = _get(dd, "getIsTurnedOn", false)
     local batt = _get(dd, "getIsBatteryPowered", false)
-    st.powered = (batt and _get(dd, "getPower", 0) > 0) or _get(dd, "canBePoweredHere", false)
+    st.powered = (batt and _get(dd, "getPower", 0) > 0) or O.canBePoweredHere(dd)
     st.on = st.switchOn and st.powered
     st.channel = _get(dd, "getChannel", 0)
     st.volume = _get(dd, "getDeviceVolume", 0.5)
@@ -224,6 +242,8 @@ local function run(mode, chr, part, arg)
     if not (ISRadioAction and chr and part) then return false end
     local a = ISRadioAction:new(mode, chr, part, arg)
     if not a.deviceData then return false end
+    -- vanilla's isValid / perform for power ask canBePoweredHere, which throws for a set with no square
+    if mode == "ToggleOnOff" and not O.poweredHere(a.deviceData) then return false end
     local ok, valid = pcall(function() local f = a["isValid" .. mode]; return (not f) or f(a) end)
     if not (ok and valid) then return false end
     local f = a["perform" .. mode]
