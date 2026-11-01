@@ -56,6 +56,7 @@ zedqa_win.lua | win                              # the pair at the natural root 
 zedqa_rootchange.lua | rc                        # a root change re-derives the geometry
 zedqa_scalewalk.lua | sw                         # main tabs of both windows at natural and 1.0
 zedqa_uiscale.lua | scale                        # UI scale steps, Auto, then back to the run's own step
+zedqa_sc_font.lua | scf                          # simplified Chinese face (Nov 1 2026, punch list 37): Cred1 holds Noto Sans SC, map / simplified Chinese / Cafe widths > 0, the count lands after the name, kana keep the game's face; shot zqa_scf_draw.png
 
 # ---- maps, journal, print
 zedqa_mapshot.lua | ms                           # both windows, then the Maps tab

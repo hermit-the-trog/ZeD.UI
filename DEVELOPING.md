@@ -110,6 +110,9 @@ how to run it; none is needed to run the mod, only to change its pictures.
 - `fonts/bake_sdf.py`: the five text roles, baked from Fira Sans Condensed and
   Fira Mono (SIL Open Font License) into distance-field atlases. You need the TTF
   files; they are not in the repository.
+- `fonts/bake_sdf_sc.py`: the simplified Chinese face (Noto Sans SC Regular, SIL
+  Open Font License) in the same format, 32 px; pass the OTF's path (from
+  github.com/notofonts/noto-cjk, Sans/SubsetOTF/SC; not in the repository).
 - `mainmenu/`, `buckles/`, `seats/`, `mechanics/`: the desk, the belt buckles and
   the vehicle drawings.
 - `release/make_shots.py` draws the Workshop gallery cards from captures;

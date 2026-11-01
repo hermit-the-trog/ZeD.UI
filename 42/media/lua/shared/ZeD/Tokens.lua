@@ -310,7 +310,7 @@ F.headLg     = { font = UIFont.CodeLarge,  px = 17 }  -- F4 Heading: Fira Sans C
 F.title      = { font = UIFont.Code,       px =  9 }  -- F5 Micro: Fira Sans Cond. Regular 9px (small)
 F.titleLg    = { font = UIFont.CodeSmall,  px = 11 }  -- F5 Micro: Fira Sans Cond. Regular 11px (large)
 -- Reserved slots (4 — speech, TV/radio, HOW YOU DIED, TBD)
-F.rsv1       = { font = UIFont.Cred1,     px = 20 }  -- (Nov 1 2026: Cred1 now holds the game's Chinese face for ZeD.Text.scriptFont; Chicago is off the list)
+F.rsv1       = { font = UIFont.Cred1,     px = 20 }  -- (Nov 1 2026: Cred1 now holds Noto Sans SC, ZeD's simplified Chinese face, for ZeD.Text.scriptFont; Chicago is off the list)
 F.rsv2       = { font = UIFont.Cred2,     px = 24 }  -- Chicago 24px
 F.rsv3       = { font = UIFont.MainMenu1, px = 16 }  -- Lekton Bold 16px
 F.rsv4       = { font = UIFont.MainMenu2, px = 20 }  -- Lekton Bold 20px
