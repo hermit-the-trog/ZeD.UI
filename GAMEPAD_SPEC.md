@@ -9,7 +9,7 @@
 
 | Button | Meaning | Mouse / keyboard twin | Notes |
 |---|---|---|---|
-| D-pad | Move focus (cone-nav) | arrow keys | Up/Down never leave the current panel; Left/Right cross panels. Off-axis cost is left-biased ("like reading"). Landing on a tab strip from elsewhere lands on the active tab. |
+| D-pad | Move focus (cone-nav) | arrow keys | Up/Down stay in their zone while it has a stop that way; beyond it they take only a stop lined up directly above or below (never one off to the side), so at the end of a column Down does nothing (director, Nov 1 2026, punch list 42 c.). Left/Right cross panels. Off-axis cost is left-biased ("like reading"). Landing on a tab strip from elsewhere lands on the active tab. |
 | A | Activate | left mouse | Tap = click (`onActivate`). Hold 350 ms = `onHold` where an element defines one (seek acceleration, card toggle). |
 | B | Cancel | Escape | Fires the focused element's `onCancel` only. If none, nothing happens. No shade-all, no hold variant. |
 | X | Context | right mouse (E) | Tap = `onContextMenu` or `onReset`, never both. Hold 350 ms = drag mode: D-pad moves the held element (`onHoldContextDrag`), release = `onHoldContextRelease`. First consumer: container-strip reorder. |

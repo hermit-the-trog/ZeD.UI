@@ -1044,6 +1044,14 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
            (padmap.py) gets the same rule, so the next pad map may list a few expected moves to re-read. Waits
            for the director's yes.
 
+      - **Build, Nov 1 2026, 2:20 pm: c. fixed (the director's yes to the rule).** Up and Down, when they look
+        beyond their own zone (the rest of the panel, then the rest of the window), take only a stop lined up
+        directly above or below; the "half" tier (off to the side) stays inside a zone and for Left and Right.
+        FocusManager's live move and its preview path, the pad map tool (padmap.py) and GAMEPAD_SPEC's D-pad row
+        carry the rule. QA to confirm on the Deck at Normal text: pskd (Down past Foraging stays on Foraging,
+        no landing in the inventory) and wpt; the pad map at its next run (a few expected moves may read
+        differently: a Down that used to leave a column sideways now stays).
+
 ## Test process
 
 - The release check (before every upload, about 5 minutes, pass or fail): right-click opens the
