@@ -209,6 +209,8 @@ end
 
 function ZeD_MMTraits:setConfirm(mode)
     if self.confirm == mode then return end
+    -- (B on a question goes back to the stop it was asked from, the director's rule; t15 pre-upload)
+    if mode and not self.confirm then self._backFocus = self.focusId end
     self.confirm = mode
     MM.ctx.open = nil
     if mode == "save" then
@@ -222,7 +224,8 @@ function ZeD_MMTraits:setConfirm(mode)
         self.field:setVisible(false)
         if self.field:isFocused() then self.field:unfocus() end
     end
-    self.focusId = mode and "confirm:yes" or nil
+    self.focusId = mode and "confirm:yes" or self._backFocus
+    if not mode then self._backFocus = nil end
 end
 
 -- ============================================================================

@@ -841,6 +841,9 @@ end
 
 function ZeD_MMMods:setConfirm(mode)
     if self.confirm == mode then return end
+    -- (a question opened from no question: the controller's stop it was asked from, for B to come back to; a caller that
+    -- named its own button keeps it. The leave question had none: B, B left the focus on nothing, t15 pre-upload)
+    if mode and not self.confirm and self._backFocus == nil then self._backFocus = self.focusId end
     self.confirm = mode
     MM.ctx.open = nil
     if FIELD_MODES[mode] then
