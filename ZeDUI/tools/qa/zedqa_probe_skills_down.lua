@@ -27,12 +27,17 @@ local function rectStr(e)
     if not e then return "nil" end
     return string.format("%s x %s y %s w %s h %s", tostring(e.id), tostring(e.x), tostring(e.y), tostring(e.w), tostring(e.h))
 end
+-- the focused stop in the Skills content, or nil and where the focus went instead (the window, the zone,
+-- the stop's id: the Nov 1 print said only "nil", which hid whether the focus left the zone or the window)
 local function focused()
     local w = Focus.getFocusedWindow()
-    if w ~= cw() then return nil end
+    local wn = (w == cw() and "Char") or (w == ZeD_WorldWindow.getWindow() and "World") or tostring(w)
+    if w ~= cw() then return nil, "focus in window " .. wn end
     local z = Focus.getFocusedZone(w)
     local e = Focus.getFocusedElement(w)
-    return (z and z.zone == ZONE) and e or nil
+    if z and z.zone == ZONE then return e, nil end
+    return nil, "focus in " .. wn .. " zone " .. tostring(z and z.zone) .. " on " .. tostring(e and e.id)
+        .. (e and string.format(" (x %s y %s w %s h %s)", tostring(e.x), tostring(e.y), tostring(e.w), tostring(e.h)) or "")
 end
 local function viewInfo(w)
     local dp = w._drawerPanel
@@ -72,9 +77,9 @@ local function pressDown()
 end
 local function afterPress()
     local w = cw()
-    local e = focused()
+    local e, where = focused()
     local id = e and e.id
-    say(string.format("Down %d -> %s | %s", presses, rectStr(e), viewInfo(w)))
+    say(string.format("Down %d -> %s | %s", presses, e and rectStr(e) or ("nil: " .. tostring(where)), viewInfo(w)))
     if id == lastId then same = same + 1 else same = 0 end
     lastId = id
     return same >= 2 or presses >= 40
@@ -112,9 +117,11 @@ local function look(label)
     pcall(function() getCore():TakeFullScreenshot("zqa_pskd_" .. label .. ".png") end)
 end
 
--- the schedule: open the window on Skills, two passes (the size it started at, then Large), put back
+-- the schedule: open the window on Skills, two passes (Normal text, then Large), put back
 at(2, function()
     if not (cw() and cw():isVisible()) then ZeD_CharacterWindow.toggleBothPaired(0) end
+    -- (a manifest that set Large text before this probe would make both passes Large: pass 1 is Normal)
+    if ZeD.currentSize ~= "small" then ZeD.applyTheme(nil, nil, "small"); say("text size -> small for pass 1") end
 end)
 at(20, function() stripTab(cw(), "skills") end)
 local walkFrom = 60

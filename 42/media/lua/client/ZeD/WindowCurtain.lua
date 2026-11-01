@@ -294,7 +294,12 @@ function C.roll(win)
     rod:setWidth(sideW); rod:setHeight(h)
     rod:setX(x); rod:setY(y)
     rod._h, rod._target = h, ZeD.T.titleBarH
-    rod:addToUIManager()
+    -- The rod joins the UI manager once and stays until its window closes (C.drop); an unroll
+    -- only hides it. The engine queues UIManager.AddUI and RemoveElement (toAdd / toRemove,
+    -- applied on the next update): a roll in the same frame as the unroll before it cancelled the
+    -- queued remove and queued a second add, so the UI list held the rod twice and an unroll took
+    -- only one away (Nov 1 2026, punch list 42 f.: "rods in UI 1" after a Loot press, on and off).
+    if not rod._inUI then rod:addToUIManager(); rod._inUI = true end
     rod:setVisible(true)
     if spec.onChange then spec.onChange(true) end
 end
@@ -338,7 +343,7 @@ local function restore(win)
     if win._lastSetX then win._lastSetX = win:getX() end
     win._closeOnRod = nil
     local rod = win._rod
-    if rod then rod:setVisible(false); rod:removeFromUIManager() end
+    if rod then rod:setVisible(false) end   -- (it stays in the UI manager, hidden, until C.drop)
 end
 
 -- at once: back to the full window (also when the drawer closes under a rolled
@@ -359,7 +364,7 @@ function C.drop(win)
     if win._rolled then restore(win) end
     local rod = win._rod
     win._rod = nil
-    if rod then rod:setVisible(false); rod:removeFromUIManager() end
+    if rod then rod:setVisible(false); rod:removeFromUIManager(); rod._inUI = nil end
 end
 
 -- every frame from the window's layout: the rod follows the window; the side
