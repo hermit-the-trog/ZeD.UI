@@ -1369,21 +1369,28 @@ local function popWidths(state, config, sortModes, showModes)
     local c = state._popW
     local lang = (ZeD.trTestOn and ZeD.trTestOn()) and 1 or 0
     local ro = config.readOnly and true or false
-    if c and c.scale == T.scale and c.font == T.fontF1 and c.lang == lang and c.ro == ro then return c.sort, c.show end
-    local sw, hw = 0, 0
-    for _, m in ipairs(sortModes) do sw = math.max(sw, M.popupMenuW(ZeD.tr("UI_ZeD_Craft_SortPick", m.label))) end
-    for _, m in ipairs(showModes) do hw = math.max(hw, M.popupMenuW(ZeD.tr("UI_ZeD_Craft_ShowToggle", m.label))) end
-    state._popW = { scale = T.scale, font = T.fontF1, lang = lang, ro = ro, sort = sw, show = hw }
-    return sw, hw
+    if c and c.scale == T.scale and c.font == T.fontF1 and c.lang == lang and c.ro == ro then return c.sort, c.show, c.sortC, c.showC end
+    local sw, hw, sc, hc = 0, 0, 0, 0
+    for _, m in ipairs(sortModes) do
+        sw = math.max(sw, M.popupMenuW(ZeD.tr("UI_ZeD_Craft_SortPick", m.label)))
+        sc = math.max(sc, M.popupMenuW(m.label, true))
+    end
+    for _, m in ipairs(showModes) do
+        hw = math.max(hw, M.popupMenuW(ZeD.tr("UI_ZeD_Craft_ShowToggle", m.label)))
+        hc = math.max(hc, M.popupMenuW(m.label, true))
+    end
+    -- (sortC / showC: the longest choice alone in a tight box, the band short of room, punch list 28)
+    state._popW = { scale = T.scale, font = T.fontF1, lang = lang, ro = ro, sort = sw, show = hw, sortC = sc, showC = hc }
+    return sw, hw, sc, hc
 end
 
 -- One of the band's pop-up boxes: its zone, and the open list's geometry (it opens
 -- upward from the box: the band is at the card's foot). frozen: greyed, no press.
 -- (short: the choice alone, shown when "Sort: Craftable" does not fit, break-it B2)
-local function drawPopBox(panel, state, kind, x, y, w, h, label, modes, frozen, focused, mx, my, short)
+local function drawPopBox(panel, state, kind, x, y, w, h, label, modes, frozen, focused, mx, my, short, tight)
     local P = POP[kind]
     local hov = (not frozen) and mx >= x and mx < x + w and my >= y and my < y + h
-    M.drawPopupMenu(panel, x, y, w, h, label, hov or state[P.open] == true, (focused and not frozen) and NO_FOCUS_OPTS or nil, frozen, short)
+    M.drawPopupMenu(panel, x, y, w, h, label, hov or state[P.open] == true, (focused and not frozen) and NO_FOCUS_OPTS or nil, frozen, short, tight)
     if frozen then
         state[P.open] = false
         state[P.zones] = nil
@@ -1424,22 +1431,31 @@ local function drawBandActions(panel, x, y, w, state, config, rd, pfx, fid, mx, 
     if mx < 0 then b.hover = false else b.hover = nil end
     b.focus = (rd and fid == pfx .. ":actBuild") and NO_FOCUS_OPTS or nil
     _bandSpec.win = state._focusWin
-    local _, out = M.drawBand(panel, x, y, w, _bandSpec)
-    local r = out.buttons[1]
-    -- the amount (- n +) left of it; the readout is as wide as the stepper makes it
+    -- the amount (- n +) left of it; the readout is as wide as the stepper makes it. Short
+    -- of room is measured at the usual sizes, before the band is drawn
     local qtyTW = ZeD.TM:MeasureStringX(T.fontF3, tostring(qty))
     local qtyW = math.max(bh, qtyTW + T.px(8))
     local stepW = bh * 2 + qtyW + 2 * T.px(4)
-    local rx = r and r.x or (x + w - T.px(8))
-    local sx = rx - gap - stepW
-    local narrow = (sx - gap - x) < (leftNeed or 0)
+    local edge = T.px(8)
+    local narrow = (x + w - edge - M.buttonW(b.label) - gap - stepW - gap - x) < (leftNeed or 0)
     if narrow then
         -- (Oct 31 2026, punch list 28, the director's pick: short of room the - n + become
-        -- one amount box, "< 3 >", its halves, the wheel and the pad's Left / Right step it)
-        gap = T.px(4)
+        -- one amount box, "< 3 >", its halves, the wheel and the pad's Left / Right step it.
+        -- Checked in game the same night, Sort and Show still lacked whole words: now the box
+        -- is as narrow as its digits, Craft / Build as narrow as its word, the band's
+        -- margins and spaces 4u)
+        gap, edge = T.px(4), T.px(4)
         stepW = M.qtySpinW(qty)
-        sx = rx - gap - stepW
+        b.w = ZeD.TM:MeasureStringX(T.fontF3, ZeD.btnCase(b.label)) + T.px(4) * 2
+        _bandSpec.edge = edge
+    else
+        b.w, _bandSpec.edge = nil, nil
     end
+    state._bandSingle = narrow   -- (the World window's pad stops rebuild when the band changes shape)
+    local _, out = M.drawBand(panel, x, y, w, _bandSpec)
+    local r = out.buttons[1]
+    local rx = r and r.x or (x + w - edge)
+    local sx = rx - gap - stepW
     local so = _bandStep
     so.focusId = nil
     so.narrow = narrow
@@ -1455,6 +1471,11 @@ local function drawBandActions(panel, x, y, w, state, config, rd, pfx, fid, mx, 
     if qb then
         qb.on, qb.x, qb.y, qb.w, qb.h = narrow and rd ~= nil, sx, y + T.px(5), stepW, bh
         qb.t = getTimestampMs()   -- (drawn this frame: a band no longer drawn takes no wheel)
+    end
+    -- the one box with nothing to step (the most is 1: Build, or materials for one): it stays a
+    -- pad stop, A and the wheel change nothing, and the help line says why (punch list 28)
+    if narrow and rd and maxQty <= 1 and (so.focusId == "qty" or (mx >= 0 and ZeD.Atoms.mouseIn(panel, sx, y + T.px(5), stepW, bh))) then
+        ZeD.Help.set(panel, ZeD.tr("UI_ZeD_Craft_QtyOne"))
     end
     if rd then
         for _, z in ipairs(stepZones) do
@@ -1488,7 +1509,7 @@ function CC.renderBand(panel, x, y, w, state, config, rd)
     local showModes = CC.popModes("show", config)
     local sortName = modeLabel(sortModes, state.sort or "craftable")
     local showName = modeLabel(showModes, CC.showMode(state, config))
-    local sortW, showW = popWidths(state, config, sortModes, showModes)
+    local sortW, showW, sortC, showC = popWidths(state, config, sortModes, showModes)
     local catName = ro and CC.activeCategoryLabel(state) or nil
     local catW = ro and T.px(CAT_BAND_W) or 0
     local sortMin, showMin = math.min(sortW, M.popupMenuW(sortName)), math.min(showW, M.popupMenuW(showName))
@@ -1506,8 +1527,14 @@ function CC.renderBand(panel, x, y, w, state, config, rd)
         leftEnd, narrow = drawBandActions(panel, x, y, w, state, config, rd, pfx, fid, mx,
             edge + gap * nGaps + catMin + sortMin + showMin)
     end
-    -- short of room the spaces close up first
-    if narrow then edge, gap = T.px(4), T.px(4) end
+    -- short of room the spaces close up first, and the boxes hold the choice alone ("Craftable",
+    -- not "Sort: Craftable") at tight pads, the longest choice at most (punch list 28)
+    if narrow then
+        edge, gap = T.px(4), T.px(4)
+        sortW, showW = sortC, showC
+        sortMin, showMin = M.popupMenuW(sortName, true), M.popupMenuW(showName, true)
+        if ro then catMin = math.min(catW, M.popupMenuW(catName, true)) end
+    end
 
     local lx = x + edge
     local avail = math.max(0, leftEnd - lx - gap * nGaps)
@@ -1523,9 +1550,9 @@ function CC.renderBand(panel, x, y, w, state, config, rd)
         else
             -- even the choices do not fit: each keeps its first letter and its arrow, and
             -- the rest is shared by what each choice needs over that (a punch list question)
-            local catF = ro and math.min(catMin, M.popupMenuW(string.sub(catName or "", 1, 1))) or 0
-            local sortF = math.min(sortMin, M.popupMenuW(string.sub(sortName, 1, 1)))
-            local showF = math.min(showMin, M.popupMenuW(string.sub(showName, 1, 1)))
+            local catF = ro and math.min(catMin, M.popupMenuW(string.sub(catName or "", 1, 1), narrow)) or 0
+            local sortF = math.min(sortMin, M.popupMenuW(string.sub(sortName, 1, 1), narrow))
+            local showF = math.min(showMin, M.popupMenuW(string.sub(showName, 1, 1), narrow))
             local fSum = catF + sortF + showF
             if avail >= fSum then
                 local k = (minSum > fSum) and (avail - fSum) / (minSum - fSum) or 0
@@ -1542,11 +1569,11 @@ function CC.renderBand(panel, x, y, w, state, config, rd)
         drawCatSelect(panel, state, pfx, lx, by, catW, bh, ZeD.tr("IGUI_invpanel_Category"), true)
         lx = lx + catW + gap
     end
-    drawPopBox(panel, state, "sort", lx, by, sortW, bh, ZeD.tr("UI_ZeD_Craft_SortPick", sortName),
-        sortModes, frozen, fid == pfx .. ":sortMenu", mx, my, sortName)
+    drawPopBox(panel, state, "sort", lx, by, sortW, bh, narrow and sortName or ZeD.tr("UI_ZeD_Craft_SortPick", sortName),
+        sortModes, frozen, fid == pfx .. ":sortMenu", mx, my, sortName, narrow)
     lx = lx + sortW + gap
-    drawPopBox(panel, state, "show", lx, by, showW, bh, ZeD.tr("UI_ZeD_Craft_ShowToggle", showName),
-        showModes, frozen, fid == pfx .. ":showMenu", mx, my, showName)
+    drawPopBox(panel, state, "show", lx, by, showW, bh, narrow and showName or ZeD.tr("UI_ZeD_Craft_ShowToggle", showName),
+        showModes, frozen, fid == pfx .. ":showMenu", mx, my, showName, narrow)
 end
 
 -- A band pop-up's list, open: drawn last (over the rows) above its box. Its row zones are
@@ -3393,10 +3420,13 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
                 craftKind = "actQty",
                 onFocus = function(w, el) end,
                 onActivate = function(w, el)
+                    -- (the most is 1: nothing to step, the help line says so; punch list 28)
                     local maxQ = state._maxQty or 99
+                    if maxQ <= 1 then return end
                     local q = state.qty or 1
                     state.qty = (q < maxQ) and (q + 1) or 1
                 end,
+                -- Left / Right step it; at its ends (and when the most is 1) they move on
                 onDpadDir = function(w, el, dir)
                     local q = state.qty or 1
                     if dir == "left" and q > 1 then state.qty = q - 1; return true end

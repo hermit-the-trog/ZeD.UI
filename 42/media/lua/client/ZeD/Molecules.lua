@@ -3003,9 +3003,17 @@ local function popupWords(label, short, font, room)
     return s
 end
 
+-- the box's pads: its edges to the words and the triangle, the words to the triangle; a
+-- tight box (a band short of room, punch list 28) closes them up to 4u and 2u
+local function popupPads(tight)
+    local T = ZeD.T
+    if tight then return T.px(4), T.px(2) end
+    return T.px(6), T.px(4)
+end
+
 -- the closed pop-up menu: the hover wash, a 1u frame, the choice's words and a down triangle
 -- (short: the choice alone, shown when the label and the choice do not fit together)
-local function drawPopupBox(panel, x, y, w, h, label, hover, focus, short)
+local function drawPopupBox(panel, x, y, w, h, label, hover, focus, short, tight)
     local T, A, tm = ZeD.T, ZeD.Atoms, ZeD.TM
     if hover then
         local hv = T.hover
@@ -3013,9 +3021,10 @@ local function drawPopupBox(panel, x, y, w, h, label, hover, focus, short)
     end
     local onFocus = markPart(panel, x, y, w, h, focus)
     local font = T.fontF1
-    local pad, tri = T.px(6), T.px(5)
+    local pad, wgap = popupPads(tight)
+    local tri = T.px(5)
     local tc = onFocus and T.textOnFocus or T.text
-    local s = popupWords(label, short, font, math.max(0, w - pad * 2 - tri - T.px(4)))
+    local s = popupWords(label, short, font, math.max(0, w - pad * 2 - tri - wgap))
     panel:drawText(s, x + pad, y + math.floor((h - tm:getFontHeight(font)) / 2), tc.r, tc.g, tc.b, tc.a or 1, font)
     A.drawTriangleDown(panel, x + w - pad - tri, y + math.floor((h - tri) / 2), tri, onFocus and T.textOnFocus or T.textDim)
     A.frame(panel, x, y, w, h, T.borderS)
@@ -3034,15 +3043,18 @@ end
 -- @param short  the choice alone ("Squats" for "Exercise: Squats"): shown instead of the
 --               label when the two do not fit together, cut short only if even it does not
 --               (Oct 31 2026, break-it B2)
+-- @param tight  true: the pads closed up (4u edges, 2u words to triangle), for a band short of
+--               room (Oct 31 2026, punch list 28); measure it with popupMenuW(label, true)
 -- @return w, h
 local _popupDim = {}
-function ZeD.Molecules.drawPopupMenu(panel, x, y, w, h, label, hover, focus, disabled, short)
+function ZeD.Molecules.drawPopupMenu(panel, x, y, w, h, label, hover, focus, disabled, short, tight)
     if disabled then
         local T, A, tm = ZeD.T, ZeD.Atoms, ZeD.TM
         local font = T.fontF1
-        local pad, tri = T.px(6), T.px(5)
+        local pad, wgap = popupPads(tight)
+        local tri = T.px(5)
         local tc, da = T.text, T.disabledAlpha
-        local s = popupWords(label, short, font, math.max(0, w - pad * 2 - tri - T.px(4)))
+        local s = popupWords(label, short, font, math.max(0, w - pad * 2 - tri - wgap))
         panel:drawText(s, x + pad, y + math.floor((h - tm:getFontHeight(font)) / 2), tc.r, tc.g, tc.b, (tc.a or 1) * da, font)
         local td, dc = T.textDim, _popupDim
         dc.r, dc.g, dc.b, dc.a = td.r, td.g, td.b, (td.a or 1) * da
@@ -3050,14 +3062,16 @@ function ZeD.Molecules.drawPopupMenu(panel, x, y, w, h, label, hover, focus, dis
         A.frame(panel, x, y, w, h, T.borderS, da)
         return w, h
     end
-    drawPopupBox(panel, x, y, w, h, label, hover, focus, short)
+    drawPopupBox(panel, x, y, w, h, label, hover, focus, short, tight)
     return w, h
 end
 
---- The closed pop-up menu's natural width for its words (F1, the pads, the triangle).
-function ZeD.Molecules.popupMenuW(label)
+--- The closed pop-up menu's natural width for its words (F1, the pads, the triangle);
+-- tight: with the closed-up pads (drawPopupMenu's tight)
+function ZeD.Molecules.popupMenuW(label, tight)
     local T = ZeD.T
-    return ZeD.TM:MeasureStringX(T.fontF1, label or "") + T.px(6) * 2 + T.px(5) + T.px(4)
+    local pad, wgap = popupPads(tight)
+    return ZeD.TM:MeasureStringX(T.fontF1, label or "") + pad * 2 + T.px(5) + wgap
 end
 
 --- The open pop-up list's height for a number of choices (drawSortMenuList's rows).
@@ -3623,7 +3637,8 @@ local STEPPER_GAP = 4   -- design units between the keys and the readout
 local _stepOpts = {}
 local _spinDim = {}
 local SPIN_TRI = 5   -- design units: the amount box's step triangles
-local SPIN_PAD = 4   -- design units: the box's edge to a triangle, a triangle to the number
+local SPIN_PAD = 2   -- design units: the box's edge to a triangle, a triangle to the number (as narrow
+                     -- as its digits allow: the band short of room, punch list 28, Oct 31 2026)
 
 --- The one amount box's width for qty (its number, two step triangles, their pads).
 function ZeD.Molecules.qtySpinW(qty)
@@ -4640,6 +4655,7 @@ end
 --              a System 7 checkbox and its words at the left, after the icons ("Show popups")
 --   win      = the window (help and hints; default: the window the panel is in)
 --   noLine   = true leaves out the structure line (a band right under another line)
+--   edge     = the band's side margin in screen px (default 8u; the Craft band short of room: 4u, punch list 28)
 -- }
 -- @return height, rects = { buttons = { [i] = {x, y, w, h, id} }, icons = { ... }, check = {x, y, w, h, id} }
 local _bandBtn, _bandIcon = {}, {}
@@ -4676,7 +4692,7 @@ function ZeD.Molecules.drawBand(panel, x, y, w, spec)
     local M = ZeD.Molecules
     spec = spec or NO_OPTS
     local H = M.bandH()
-    local edge, gap = T.px(8), T.px(8)
+    local edge, gap = spec.edge or T.px(8), T.px(8)   -- (spec.edge: screen px, a band short of room closes it up)
     local bh = T.buttonH
     local by = y + T.px(5)
     local out = { buttons = {}, icons = {} }
