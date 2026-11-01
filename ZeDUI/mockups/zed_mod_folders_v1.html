@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZeD-UI | Mod folders and separators v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans:wght@400;500;600;700&family=Fira+Sans+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================================
+   ZeD-UI | the Mods screen: folders (the collection) and separators (the load
+   order). Mockup v1 (Oct 31 2026). Director, punch list 37: "Do both?
+   Separators for organizing lists. and folders for organizing mods outside of
+   lists." Rules: ZeDUI/MOD_FOLDERS_SPEC.md. Built on the screen as built (the
+   gallery's Mods / Load order / Profiles captures, colours sampled from them)
+   and the cohesion spec: square status marks, System 7 checkboxes (X, mixed
+   dash), disclosure triangles, push buttons, the band and the help line.
+   Window at the real proportions: 1056 x 1030 design units (1 px at 1080p).
+   Mod names are made up.
+   ============================================================================ */
+:root {
+  --mono:'Fira Mono',monospace; --sans:'Fira Sans',sans-serif; --cond:'Fira Sans Condensed',sans-serif;
+  --desk:#070605; --body:#15130f; --panel:#100d0a; --surf2:#191715; --surf3:#211e1a; --title:#1b1917;
+  --border:#2c2a26; --borderS:#45423d; --text:#d8d5ce; --dim:#8c8981; --faint:#5f5c56;
+  --acc:#d4922a; --accB:#e8ae52; --sel:rgba(212,146,42,.30); --hov:rgba(255,255,255,.06);
+  --danger:#d9533c; --warn:#d2a23c; --ok:#7a9a34; --info:#4f93d4;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0b0a08; color:#d8d8d8; font-family:var(--sans); padding:22px 24px 60px; }
+.banner { font-family:var(--mono); font-size:11px; letter-spacing:2px; color:#cfc6a8; text-transform:uppercase; }
+h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:#f0ece0; margin:4px 0 6px; }
+.lede { font-size:13px; line-height:1.55; color:#b9b4a6; max-width:1100px; }
+.lede b { color:#efe6c4; font-weight:600; }
+.controls { display:flex; flex-wrap:wrap; gap:14px 22px; margin:16px 0 14px; align-items:flex-start; }
+.ctl { display:flex; flex-direction:column; gap:5px; }
+.ctl > span { font-family:var(--mono); font-size:10px; letter-spacing:1.5px; color:#8f8a7c; text-transform:uppercase; }
+.seg { display:flex; flex-wrap:wrap; gap:4px; max-width:1200px; }
+.seg button { font-family:var(--mono); font-size:11px; color:#d8d4c8; background:#1c1b18; border:1px solid #3a3832; padding:4px 9px; cursor:pointer; }
+.seg button.on { background:#d8c070; color:#111; border-color:#d8c070; }
+.stage-wrap { overflow:auto; max-width:100%; }
+.stage { position:relative; width:1076px; height:1050px; background:var(--desk); border:1px solid #2a2924; overflow:hidden; transform-origin:0 0; }
+.caption { font-family:var(--mono); font-size:11px; color:#8f8a7c; margin-top:8px; max-width:1100px; line-height:1.5; }
+body.shot { padding:0; } body.shot .banner, body.shot h1, body.shot .lede, body.shot .controls, body.shot .caption, body.shot .notes { display:none; }
+body.shot .stage { border:0; }
+
+/* ---- the ZeD OS window ------------------------------------------------- */
+.win { position:absolute; left:10px; top:10px; width:1056px; height:1030px; background:var(--body); display:flex; flex-direction:column; }
+.win::after { content:""; position:absolute; inset:0; border:1px solid var(--borderS); pointer-events:none; }
+.tb { height:26px; flex:none; display:flex; align-items:center; gap:10px; padding:0 8px; background:var(--title);
+      background-image:repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 3px); border-bottom:1px solid var(--borderS);
+      font-family:var(--mono); font-size:12px; color:#b9b7b2; }
+.tb .cb, .tb .wb { width:13px; height:13px; border:1px solid #6b6964; background:var(--title); flex:none; }
+.tb .wb { background:linear-gradient(var(--title),var(--title)) padding-box, repeating-linear-gradient(0deg,#6b6964 0 1px,transparent 1px 3px); background-clip:content-box; padding:2px; }
+.tb .t { background:var(--title); padding:0 6px; }
+.tb .t b { color:var(--text); font-weight:500; }
+.tb .st { margin-left:auto; display:flex; gap:12px; align-items:center; font-size:11px; color:var(--dim); }
+.sq { display:inline-block; width:6px; height:6px; flex:none; }
+.sq.ok { background:var(--ok); } .sq.warn { background:var(--warn); } .sq.bad { background:var(--danger); } .sq.acc { background:var(--acc); }
+.sq.hollow { border:1px solid var(--dim); }
+.main { flex:1; display:flex; min-height:0; gap:10px; padding:10px; }
+.col { display:flex; flex-direction:column; min-height:0; border:1px solid var(--borderS); background:var(--panel); position:relative; }
+.band { flex:none; height:36px; display:flex; align-items:center; gap:8px; padding:0 8px; background:var(--surf2); border-top:1px solid var(--borderS); }
+.band .sp { flex:1; }
+.band .msg { font-size:12.5px; color:var(--text); display:flex; align-items:center; gap:8px; min-width:0; }
+.help { flex:none; height:22px; display:flex; align-items:center; padding:0 10px; background:var(--surf2); border-top:1px solid var(--borderS); font-size:12px; color:var(--dim); }
+
+.b { height:26px; display:inline-flex; align-items:center; justify-content:center; padding:0 11px; font-family:var(--mono); font-size:11px; color:var(--text);
+     background:transparent; border:1px solid #6d6a64; border-radius:4px; box-shadow:inset 0 0 0 1px #000, 0 0 0 1px #000; outline:1px solid #3a3833; outline-offset:1px; white-space:nowrap; flex:none; }
+.b.pri { border-color:var(--acc); color:var(--accB); outline-color:rgba(212,146,42,.45); }
+.b.dan { border-color:var(--danger); color:#ef8a76; outline-color:rgba(217,83,60,.45); }
+.b.off { opacity:.42; }
+.b.sm { height:22px; padding:0 8px; font-size:10.5px; }
+.tabs { display:flex; gap:4px; padding:8px 8px 0; flex-wrap:wrap; }
+.tab { height:24px; padding:0 10px; display:flex; align-items:center; font-size:12px; color:var(--dim); border:1px solid var(--border); background:var(--surf2); }
+.tab.on { color:#160f05; border-color:var(--acc); background:var(--acc); font-weight:500; }
+.find { margin:8px; height:26px; display:flex; align-items:center; gap:8px; padding:0 8px; border:1px solid var(--border); background:var(--body); font-family:var(--mono); font-size:11px; color:var(--dim); }
+.which { flex:none; display:flex; align-items:center; gap:8px; padding:6px 10px; border-top:1px solid var(--borderS); background:var(--surf2); font-size:11.5px; color:var(--dim); line-height:1.35; }
+.which .k { font-family:var(--mono); font-size:10.5px; color:var(--accB); white-space:nowrap; }
+.rows { flex:1; overflow:hidden; border-top:1px solid var(--borderS); position:relative; }
+
+/* System 7 checkbox: square, X when on, a dash when mixed */
+.ck { width:13px; height:13px; border:1px solid #8a8780; background:#0c0a08; flex:none; position:relative; }
+.ck.on::before, .ck.on::after { content:""; position:absolute; left:-1px; top:5px; width:13px; height:1px; background:var(--text); }
+.ck.on::before { transform:rotate(45deg); } .ck.on::after { transform:rotate(-45deg); }
+.ck.mix::before { content:""; position:absolute; left:2px; right:2px; top:5px; height:2px; background:var(--text); }
+.ck.grey { opacity:.42; }
+.tri { width:0; height:0; flex:none; border-style:solid; }
+.tri.open { border-width:6px 4.5px 0 4.5px; border-color:var(--dim) transparent transparent transparent; }
+.tri.shut { border-width:4.5px 0 4.5px 6px; border-color:transparent transparent transparent var(--dim); }
+.fold { width:16px; height:12px; flex:none; position:relative; border:1px solid #b7a27a; background:#2a2418; margin-top:2px; }
+.fold::before { content:""; position:absolute; left:-1px; top:-4px; width:7px; height:3px; border:1px solid #b7a27a; border-bottom:0; background:#2a2418; }
+
+.row { position:relative; height:42px; display:flex; align-items:center; gap:10px; padding:0 10px; border-bottom:1px solid #1d1a16; }
+.row.in { padding-left:30px; }
+.row.sel { background:var(--sel); }
+.row .ic { width:24px; height:24px; flex:none; border:1px solid #3d3a35; background:#1d1a16; font-family:var(--mono); font-size:8px; color:var(--dim); display:flex; align-items:center; justify-content:center; }
+.row .nm { display:flex; flex-direction:column; min-width:0; }
+.row .nm b { font-weight:500; font-size:13px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.row .nm span { font-family:var(--mono); font-size:10px; color:var(--faint); }
+.row .tags { margin-left:auto; display:flex; gap:5px; }
+.tag { height:16px; padding:0 5px; display:inline-flex; align-items:center; gap:4px; font-family:var(--mono); font-size:9.5px; color:var(--text); border:1px solid var(--borderS); white-space:nowrap; }
+.frow { height:30px; display:flex; align-items:center; gap:8px; padding:0 10px; background:#1a1713; border-bottom:1px solid var(--border); }
+.frow.sel { background:var(--sel); }
+.frow .fn { font-size:13px; font-weight:600; color:var(--text); }
+.frow .cnt { font-family:var(--mono); font-size:10.5px; color:var(--dim); }
+.frow .r { margin-left:auto; display:flex; align-items:center; gap:8px; }
+.frow.unf .fn { font-weight:500; color:var(--dim); }
+
+/* the load order */
+.orow { height:30px; display:flex; align-items:center; gap:10px; padding:0 10px; border-bottom:1px solid #1d1a16; font-size:12.5px; color:var(--text); }
+.orow .n { width:24px; text-align:right; font-family:var(--mono); font-size:10.5px; color:var(--dim); flex:none; }
+.orow.dim { opacity:.42; }
+.orow .note { margin-left:auto; font-family:var(--mono); font-size:10px; color:var(--dim); }
+.orow.sel { background:var(--sel); }
+.sep { height:30px; display:flex; align-items:center; gap:8px; padding:0 10px; border-bottom:1px solid var(--border); }
+.sep.sel { background:var(--sel); }
+.sep .rule { flex:1; height:0; border-top:1px solid var(--borderS); border-bottom:1px solid #000; }
+.sep .rule.l { flex:0 0 14px; }
+.sep .sn { font-family:var(--cond); font-size:13px; font-weight:600; color:var(--text); letter-spacing:.2px; white-space:nowrap; }
+.sep .cnt { font-family:var(--mono); font-size:10.5px; color:var(--dim); white-space:nowrap; }
+.sep.off .sn, .sep.off .cnt { color:var(--dim); }
+
+/* detail pane */
+.det { flex:1; overflow:hidden; padding:14px 16px; display:flex; flex-direction:column; gap:10px; }
+.det h2 { font-family:var(--cond); font-weight:700; font-size:20px; color:var(--text); display:flex; align-items:center; gap:9px; }
+.det .by { font-size:12px; color:var(--dim); margin-top:-6px; }
+.btns { display:flex; gap:8px; flex-wrap:wrap; }
+.sh { display:flex; align-items:center; gap:7px; font-size:11.5px; font-weight:600; color:var(--accB); border-bottom:1px solid var(--border); padding-bottom:3px; margin-top:4px; }
+.sh span { color:var(--dim); font-weight:400; }
+.li { display:flex; align-items:center; gap:9px; font-size:12.5px; color:var(--text); line-height:1.6; }
+.li .ck { width:11px; height:11px; } .li .ck.on::before, .li .ck.on::after { width:11px; top:4px; }
+.li.dim { color:var(--dim); }
+.p { font-size:12.5px; line-height:1.5; color:#b9b6ae; }
+.need { display:flex; gap:8px; align-items:center; font-size:12px; color:var(--text); }
+
+/* pop-up list (System 7 context list look) */
+.pop { position:absolute; background:#1d1a16; border:1px solid var(--borderS); box-shadow:1px 1px 0 rgba(0,0,0,.5); padding:3px 0; z-index:5; min-width:190px; }
+.pop div { height:22px; display:flex; align-items:center; gap:8px; padding:0 12px; font-size:12.5px; color:var(--text); }
+.pop div.hi { background:var(--acc); color:#160f05; }
+.pop hr { border:0; border-top:1px solid var(--borderS); margin:3px 0; }
+
+/* the comparison scene */
+.mini { position:absolute; top:58px; width:1056px; height:1030px; transform:scale(.5); transform-origin:0 0; }
+.mini .win { left:0; top:0; }
+.ttl { position:absolute; font-family:var(--cond); font-size:17px; font-weight:600; color:#f0ece0; }
+.call { position:absolute; width:20px; height:20px; background:#d8c070; color:#111; font-family:var(--mono); font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; z-index:9; }
+.key { position:absolute; left:20px; top:600px; width:1036px; display:grid; grid-template-columns:1fr 1fr; gap:12px 30px; }
+.key div { display:flex; gap:10px; font-size:13px; line-height:1.5; color:#d2cdbf; }
+.key div i { flex:none; width:20px; height:20px; background:#d8c070; color:#111; font-family:var(--mono); font-size:11px; font-style:normal; font-weight:700; display:flex; align-items:center; justify-content:center; margin-top:1px; }
+
+/* notes */
+.notes { max-width:1100px; margin-top:26px; display:grid; gap:22px; }
+.notes h2 { font-family:var(--cond); font-weight:600; font-size:18px; color:#f0ece0; margin-bottom:8px; }
+.notes li { font-size:13px; line-height:1.6; color:#c4bfb1; margin-bottom:8px; }
+.notes ol { padding-left:20px; } .notes b { color:#efe6c4; font-weight:600; }
+.rec { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#d8c070; padding:0 5px; margin-right:6px; }
+.alt { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#9ab0c4; padding:0 5px; margin-right:6px; }
+</style>
+</head>
+<body>
+<div class="banner">ZeD-UI | main menu | the Mods screen | folders and separators | mockup v1</div>
+<h1>Mod folders and load order separators</h1>
+<p class="lede">Two ways to sort, kept apart. <b>Folders</b> sort the collection on the Mods page: every installed mod, on or off, from the same file [B42]Mod Folders uses, so a player's layout carries over and still works without ZeD. <b>Separators</b> sort the load order on its own page: headings where place is order, saved with each profile; turning one off turns off its mods. The two never touch, except for one button that starts a profile's separators from the folders. Rules: MOD_FOLDERS_SPEC.md.</p>
+
+<div class="controls">
+  <div class="ctl"><span>Screen</span><div class="seg" id="ctlScene"></div></div>
+  <div class="ctl"><span>Zoom</span><div class="seg" id="ctlZoom"></div></div>
+</div>
+<div class="stage-wrap" id="wrap"><div class="stage" id="stage"></div></div>
+<div class="caption" id="caption"></div>
+
+<section class="notes">
+  <div>
+    <h2>Questions for you</h2>
+    <ol>
+      <li><span class="rec">RECOMMEND</span><b>A folder's box acts at once</b> (no question first): the band says what changed, and nothing reaches the game before Accept. <span class="alt">OR</span> ask in the band first, as Mod Folders does.</li>
+      <li><span class="rec">RECOMMEND</span><b>The collection is always grouped</b> once a folder exists. <span class="alt">OR</span> two radio buttons over the list, "By folder" and "A to Z".</li>
+      <li><span class="rec">RECOMMEND</span><b>A newly turned-on mod goes to the end of the load order</b>, under the last separator (the game's place). <span class="alt">OR</span> under the separator named after its folder.</li>
+      <li><span class="rec">RECOMMEND</span><b>"Start separators from folders" uses only the mods that are on.</b> <span class="alt">OR</span> also holds the off mods under their folder's separator, dimmed.</li>
+    </ol>
+  </div>
+</section>
+
+<script>
+const $ = s => document.querySelector(s);
+const ck = s => `<span class="ck ${s || ""}"></span>`;
+const tri = open => `<span class="tri ${open ? "open" : "shut"}"></span>`;
+
+function win(title, stat, list, detail, band, help, listW) {
+  return `<div class="win">
+    <div class="tb"><span class="cb"></span><span class="t">${title}</span><div class="st">${stat}</div><span class="wb"></span></div>
+    <div class="main"><div class="col" style="width:${listW || 486}px">${list}</div><div class="col" style="flex:1"><div class="det">${detail}</div></div></div>
+    <div class="band">${band}</div><div class="help">${help}</div></div>`;
+}
+const STAT = (on, prof) => `${prof ? `<span>Profile: ${prof}</span>` : ""}<span><span class="sq ok"></span>&nbsp;${on} of 137 on</span>`;
+
+// ---- (a) the collection, with folders ----------------------------------------------
+function modRow(n, id, on, ic, opts) {
+  opts = opts || {};
+  return `<div class="row in ${opts.sel ? "sel" : ""}">${ck(on ? "on" : "")}<span class="ic">${ic || "MOD"}</span><div class="nm"><b>${n}</b><span>${id}</span></div>${opts.tags ? `<div class="tags">${opts.tags}</div>` : ""}</div>`;
+}
+function folderRow(name, open, cnt, box, sel) {
+  return `<div class="frow ${sel ? "sel" : ""}">${tri(open)}<span class="fold"></span><span class="fn">${name}</span><span class="cnt">${cnt}</span><div class="r">${ck(box)}</div></div>`;
+}
+function collectionList(popup) {
+  const tabs = [["All 137", 1], ["On 24"], ["Starred 3"], ["Maps 9"], ["Problems 1"], ["Conflicts 2"], ["Workshop 99"]];
+  return `<div class="tabs">${tabs.map(([t, on]) => `<span class="tab ${on ? "on" : ""}">${t}</span>`).join("")}</div>
+    <div class="find">Find:</div>
+    <div class="which"><span class="k">Collection</span>Every installed mod, on or off. Folders sort this list; they never change the load order.</div>
+    <div class="rows">
+      ${folderRow("Libraries", false, "(4 | all on)", "on")}
+      ${folderRow("Crafting", true, "(5 | 3 on)", "mix", true)}
+      ${modRow("Common Kitchen", "CommonKitchen", 1, "CRF")}
+      ${modRow("Hammer Recipes Fixed", "HammerFix", 1, "CRF")}
+      ${modRow("Tailor's Bench", "TailorsBench", 0, "CRF")}
+      ${modRow("Smoke and Cure", "SmokeAndCure", 1, "CRF", { tags: `<span class="tag"><span class="sq warn"></span>1 conflict</span>` })}
+      ${modRow("Rope Works", "RopeWorks", 0, "CRF")}
+      ${folderRow("Vehicles", false, "(31 | 6 on)", "mix")}
+      ${folderRow("Maps", false, "(9 | 4 on)", "mix")}
+      ${folderRow("To try later", false, "(0)", "grey")}
+      <div class="frow unf">${tri(true)}<span class="fn">Unfiled</span><span class="cnt">(88 | 7 on)</span></div>
+      ${modRow("'49 Dodge Power Wagon", "49powerWagon", 0, "K15")}
+      ${modRow("Knox Radio Plus", "KnoxRadioPlus", 1, "RAD", { sel: popup })}
+      ${modRow("Tidy Sorting", "TidySorting", 1, "UI")}
+      ${modRow("ZeD UI", "ZeD_UI", 1, "ZeD")}
+      ${modRow("Zomboid Weather Radio", "ZWeatherRadio", 0, "RAD")}
+    </div>
+    ${popup ? `<div class="pop" style="left:230px;top:660px"><div style="color:var(--dim)">Move to folder</div><hr><div>Libraries</div><div>Crafting</div><div class="hi">Vehicles</div><div>Maps</div><div>To try later</div><hr><div>New folder...</div></div>` : ""}`;
+}
+const DET_FOLDER = `<h2><span class="fold" style="transform:scale(1.2)"></span>Crafting</h2><div class="by">Folder | 5 mods, 3 on | from ModFolders.cfg</div>
+  <div class="btns"><span class="b">Turn all on</span><span class="b">Rename...</span><span class="b">Delete folder</span></div>
+  <div class="sh">In this folder <span>(5)</span></div>
+  <div class="li">${ck("on")}Common Kitchen</div><div class="li">${ck("on")}Hammer Recipes Fixed</div>
+  <div class="li">${ck("")}Tailor's Bench</div><div class="li">${ck("on")}Smoke and Cure</div><div class="li">${ck("")}Rope Works</div>
+  <div class="sh">Not installed <span>(1)</span></div>
+  <div class="li dim"><span class="sq hollow"></span>Kitchen Core <span style="font-family:var(--mono);font-size:10px">KitchenCore</span></div>
+  <div class="p" style="color:var(--dim)">Kept in the folder in case it comes back. Take it out from its menu.</div>
+  <div class="sh">What the box does</div>
+  <div class="p">Some are on, so the box turns all 5 on. Requirements come along from any folder. Nothing reaches the game until Accept.</div>
+  <div class="p" style="color:var(--dim)">A folder never changes the load order.</div>`;
+const BAND_MODS = `<span class="b">Back</span><span class="sp"></span><span class="b">New folder...</span><span class="b">Profiles</span><span class="b">Load order</span><span class="b pri">Accept</span>`;
+
+// ---- (b) the load order, with separators -------------------------------------------
+function orow(n, name, opts) { opts = opts || {}; return `<div class="orow ${opts.dim ? "dim" : ""} ${opts.sel ? "sel" : ""}"><span class="n">${n || ""}</span><span class="sq ${opts.dim ? "hollow" : (opts.mark || "ok")}"></span><span>${name}</span>${opts.note ? `<span class="note">${opts.note}</span>` : ""}</div>`; }
+function sep(name, cnt, on, open, sel) {
+  return `<div class="sep ${on ? "" : "off"} ${sel ? "sel" : ""}">${ck(on === "mix" ? "mix" : on ? "on" : "")}${tri(open)}<span class="rule l"></span><span class="sn">${name}</span><span class="cnt">${cnt}</span><span class="rule"></span></div>`;
+}
+function orderList() {
+  return `<div class="which"><span class="k">Load order</span>The mods that are on, top loads first. Separators belong to the profile in use: Crafting run.</div>
+    <div class="rows">
+      ${orow(1, "ZeD UI")}
+      ${sep("Libraries", "(4)", 1, true)}
+      ${orow(2, "Damn Lib")}${orow(3, "Tsar's Common Library")}${orow(4, "Kitchen Core Lite")}${orow(5, "Sounds Common")}
+      ${sep("Crafting", "(3)", 1, true)}
+      ${orow(6, "Common Kitchen")}${orow(7, "Hammer Recipes Fixed")}${orow(8, "Smoke and Cure")}
+      ${sep("Maps", "(4, off)", 0, true, true)}
+      ${orow("", "Rosewood Bunker", { dim: 1, note: "Off: Maps is off" })}${orow("", "Muldraugh Expanded", { dim: 1, note: "Off: Maps is off" })}
+      ${orow("", "Rural Kentucky Roads", { dim: 1, note: "Off: Maps is off" })}${orow("", "Irvington Strip", { dim: 1, note: "Off: Maps is off" })}
+      ${sep("Vehicles", "(6 | 9 to 14 hidden)", 1, false)}
+      ${sep("Unfiled", "(5)", 1, true)}
+      ${orow(15, "Knox Radio Plus")}${orow(16, "Tidy Sorting")}${orow(17, "Better Sorting Lite")}${orow(18, "Moodle Words")}${orow(19, "Sample Loot Tables")}
+    </div>`;
+}
+const DET_SEP = `<h2>Maps</h2><div class="by">Separator | off | 4 mods held off | profile Crafting run</div>
+  <div class="btns"><span class="b">Turn on</span><span class="b">Rename...</span><span class="b">Delete separator</span></div>
+  <div class="btns"><span class="b sm">Move up</span><span class="b sm">Move down</span></div>
+  <div class="sh">Under it <span>(4)</span></div>
+  <div class="li dim"><span class="sq hollow"></span>Rosewood Bunker</div><div class="li dim"><span class="sq hollow"></span>Muldraugh Expanded</div>
+  <div class="li dim"><span class="sq hollow"></span>Rural Kentucky Roads</div><div class="li dim"><span class="sq hollow"></span>Irvington Strip</div>
+  <div class="p">Its mods are off and keep their places. Turning it on puts all 4 back on, here, in this order. A mod dragged under it turns off.</div>
+  <div class="p" style="color:var(--dim)">Separators are ZeD's: the game sees only the mods, in order. They are saved with the profile.</div>`;
+const BAND_ORDER = `<span class="b">Back</span><span class="sp"></span><span class="b">New separator...</span><span class="b">Auto</span><span class="b pri">Done</span>`;
+
+// ---- (d) a new profile ---------------------------------------------------------------
+function profList(sel) {
+  const P = [["No mods", "Every mod off"], ["Crafting run", "19 mods | 5 separators"], ["Everything", "137 mods, 1 not installed | 9 separators"], ["New run", "24 mods | no separators", 1], ["ZeD only", "1 mod"]];
+  return `<div class="rows" style="border:0">${P.map(([n, s, me]) => `<div class="row ${me ? "sel" : ""}" style="padding-left:12px">${me ? '<span class="sq acc"></span>' : '<span style="width:6px"></span>'}<div class="nm"><b>${n}</b><span>${s}</span></div></div>`).join("")}</div>`;
+}
+function detNew(done) {
+  const order = done
+    ? `<div class="sh">Load order <span>(24, 6 separators)</span></div>
+       <div class="p" style="font-family:var(--mono);font-size:11px;line-height:1.75;color:var(--text)">1 ZeD UI<br><span style="color:var(--accB)">-- Libraries (4)</span><br>2 Damn Lib ... 5 Sounds Common<br><span style="color:var(--accB)">-- Crafting (3)</span><br>6 Common Kitchen ... 8 Smoke and Cure<br><span style="color:var(--accB)">-- Vehicles (6)</span><br><span style="color:var(--accB)">-- Maps (4)</span><br><span style="color:var(--accB)">-- Unfiled (6)</span></div>
+       <div class="need"><span class="sq warn"></span>Smoke and Cure needs Sounds Common: kept, it loads earlier.</div>`
+    : `<div class="sh">Separators <span>(none)</span></div>
+       <div class="p">This profile's load order has no separators yet.</div>
+       <div class="btns"><span class="b pri">Start separators from folders</span></div>
+       <div class="p" style="color:var(--dim)">Makes one separator for each folder that has mods on (5 of your 6 folders), named after it, and puts those mods under it in folder order, then "Unfiled" for the rest. Each section is then sorted by the mods' own rules. Nothing turns on or off. After this, folders and separators are separate again.</div>
+       <div class="sh">Load order <span>(24)</span></div>
+       <div class="p" style="font-family:var(--mono);font-size:11px;line-height:1.75;color:var(--text)">1 ZeD UI<br>2 Knox Radio Plus<br>3 Damn Lib<br>4 Common Kitchen<br>5 Rosewood Bunker<br>... 19 more</div>`;
+  return `<h2>New run</h2><div class="by">24 mods | saved just now</div>${order}`;
+}
+
+// ---- (c) which list am I in -----------------------------------------------------------
+function compare() {
+  const A = win(`Project Zomboid  +  <b>Mods</b>`, STAT(24), collectionList(false), DET_FOLDER, BAND_MODS, "Crafting: 5 mods, 3 on. The box turns all 5 on.");
+  const B = win(`Project Zomboid  +  <b>Load order</b>`, STAT(24, "Crafting run"), orderList(), DET_SEP, BAND_ORDER, "Maps is off: its 4 mods are off and keep their places.");
+  const c = (n, x, y) => `<span class="call" style="left:${x}px;top:${y}px">${n}</span>`;
+  return `<div class="ttl" style="left:20px;top:22px">The collection (Mods page)</div><div class="ttl" style="left:558px;top:22px">The load order (its own page)</div>
+    <div class="mini" style="left:10px">${A}</div><div class="mini" style="left:548px">${B}</div>
+    ${c(1, 112, 59)}${c(1, 680, 59)}${c(2, 236, 134)}${c(2, 774, 82)}${c(3, 236, 168)}${c(3, 774, 117)}${c(4, 236, 88)}${c(4, 774, 148)}${c(5, 372, 525)}${c(5, 960, 525)}
+    <div class="key">
+      <div><i>1</i>The title names the list: "Mods" or "Load order". The load order adds the profile it belongs to.</div>
+      <div><i>2</i>The line over each list says what it holds and what sorts it, in the list's own words.</div>
+      <div><i>3</i>Folders: triangle, folder picture, count of mods and how many are on. Separators: a ruled heading line, no folder picture.</div>
+      <div><i>4</i>Numbers only in the load order. The collection has tabs and Find; the load order has neither.</div>
+      <div><i>5</i>Each band names its own tool: "New folder..." on the Mods page, "New separator..." and Auto on the load order.</div>
+      <div><i>+</i>A folder's box and a separator's box look alike (both System 7 checkboxes) but sit in different lists: the folder's turns its mods on or off, the separator's does that and keeps their places.</div>
+    </div>`;
+}
+
+const SCENES = [
+  { id: "a", label: "(a) Collection: folders", cap: "The Mods page groups the collection by folder: Libraries collapsed (all on, box ticked), Crafting open with 3 of 5 on (the mixed dash), Vehicles and Maps collapsed and mixed, an empty folder (box greyed), then Unfiled. The selected folder shows in the detail pane, including a member that is not installed.",
+    html: () => win(`Project Zomboid  +  <b>Mods</b>`, STAT(24), collectionList(false), DET_FOLDER, BAND_MODS, "Crafting: 5 mods, 3 on. The box turns all 5 on.") },
+  { id: "a2", label: "(a) Move to folder", cap: "Right-click a row (or the controller's menu press) for Move to folder: the folders, then New folder. A dragged row does the same.",
+    html: () => win(`Project Zomboid  +  <b>Mods</b>`, STAT(24), collectionList(true), DET_FOLDER, BAND_MODS, "Knox Radio Plus: move it into a folder. The load order does not change.") },
+  { id: "b", label: "(b) Load order: separators", cap: "The Load order page: numbered on mods under separators. Maps is off: its 4 mods dim, lose their numbers and keep their places; the numbers close up. Vehicles is collapsed (its numbers jump). Unfiled holds the rest.",
+    html: () => win(`Project Zomboid  +  <b>Load order</b>`, STAT(20, "Crafting run"), orderList(), DET_SEP, BAND_ORDER, "Maps is off: its 4 mods are off and keep their places.") },
+  { id: "c", label: "(c) Which list am I in", cap: "Side by side at half size: five cues tell the collection from the load order.", html: compare },
+  { id: "d", label: "(d) New profile: start separators", cap: "A new profile on the Profiles page has no separators: one button starts them from the folders.",
+    html: () => win(`Project Zomboid  +  <b>Mod profiles</b>`, STAT(24, "New run"), profList(), detNew(false), `<span class="b">Back</span><span class="sp"></span><span class="b">New...</span><span class="b">Update...</span><span class="b">More</span><span class="b pri off">Load</span>`, "Start separators from folders: one separator per folder with mods on. Nothing turns on or off.", 400) },
+  { id: "d2", label: "(d) After the button", cap: "After pressing it: the separators are the folders' names, each section sorted by the mods' own rules. The band says what happened; Update saves them with the profile.",
+    html: () => win(`Project Zomboid  +  <b>Mod profiles</b>`, STAT(24, "New run"), profList(), detNew(true), `<span class="msg"><span class="sq ok"></span>5 separators from your folders, then Unfiled. Nothing turned on or off.</span><span class="sp"></span><span class="b">Undo</span><span class="b pri">Update...</span>`, "Update saves the separators with New run.", 400) },
+];
+
+let cur = SCENES[0], zoom = 1;
+function seg(id, items, get, set) {
+  const box = $(id); box.innerHTML = "";
+  items.forEach(([v, t]) => { const b = document.createElement("button"); b.className = get() === v ? "on" : ""; b.textContent = t; b.onclick = () => { set(v); render(); }; box.appendChild(b); });
+}
+function render() {
+  seg("#ctlScene", SCENES.map(s => [s.id, s.label]), () => cur.id, v => { cur = SCENES.find(s => s.id === v); });
+  seg("#ctlZoom", [[1, "100%"], [0.75, "75%"], [0.6, "60%"]], () => zoom, v => { zoom = v; });
+  const st = $("#stage");
+  st.innerHTML = cur.html();
+  st.style.transform = zoom === 1 ? "" : `scale(${zoom})`;
+  $("#wrap").style.height = (1050 * zoom + 4) + "px";
+  $("#wrap").style.width = (1076 * zoom + 4) + "px";
+  $("#caption").textContent = cur.cap;
+}
+const m = location.hash.match(/shot=(\w+)/);
+if (m) { document.body.classList.add("shot"); cur = SCENES.find(s => s.id === m[1]) || cur; }
+(document.fonts ? document.fonts.ready : Promise.resolve()).then(render);
+</script>
+</body>
+</html>

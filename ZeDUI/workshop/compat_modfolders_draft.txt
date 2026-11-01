@@ -1,0 +1,13 @@
+DRAFT, NOT POSTED (Oct 31 2026). For the Compatibility thread (Workshop item 3824968485). Post only after the folders
+are built and tested; until then the second paragraph is a plan, so keep "planned" or hold the post.
+Check before posting: the Workshop page names FieClaussell; the mod's own mod.info says author=Paltia. Credit the name
+the maker uses on Steam, and ask them if unsure.
+
+[h2][B42]Mod Folders, by FieClaussell[/h2]
+[url=https://steamcommunity.com/sharedfiles/filedetails/?id=3779201168][B42]Mod Folders[/url] adds folders to the game's mod list: named folders, collapse, reorder, and turning a whole folder on or off. It keeps them in Zomboid/Lua/ModFolders.cfg.
+
+ZeD-GUI replaces the game's Mods screen, so Mod Folders' own buttons do not show while ZeD-GUI is on. Planned: ZeD-GUI's Mods screen reads and writes the same ModFolders.cfg. Your folders show in ZeD-GUI as you left them, and a change made in either screen shows in the other. Folders sort the whole collection and never change the load order. Lines in the file that ZeD-GUI does not use are kept as they are.
+
+Separate from folders, ZeD-GUI's load order gets separators: headings inside the load order, saved with each ZeD-GUI profile. A new profile can start its separators from your folders.
+
+The folder file format is FieClaussell's work; ZeD-GUI only follows it. If you like having folders, rate and thank Mod Folders on its own page.
