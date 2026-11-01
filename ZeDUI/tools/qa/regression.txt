@@ -186,6 +186,13 @@ zedqa_soak.lua | soak | timeout=2700             # every tab for 12 rounds at th
 #                                  outside edit kept, nothing on / off or in the load order changed by folders; on its own
 #                                  file (Lua/ZeDQA_ModFolders.cfg), never the player's; run with
 #                                  zedqa_menu_mods_run.ps1 -ModList compat_r4_mods.txt -Script zedqa_mods_folders.lua -Tag mfo
+# zedqa_mods_separators.lua | msp  separators in the load order (Oct 31 2026, punch lists 37 and 41 stage 3): order follows
+#                                  position, a separator moved takes its mods, a separator off turns its mods off (kept in
+#                                  place, back on in place), separators through the profile file, a profile save and load
+#                                  and Auto, Start separators from folders places only mods that are on, folders and
+#                                  separators never change each other, the game's list holds no separator; on its own
+#                                  folders file (Lua/ZeDQA_ModFolders.cfg); run with
+#                                  zedqa_menu_mods_run.ps1 -ModList compat_r4_mods.txt -Script zedqa_mods_separators.lua -Tag msp
 #
 # ---- never unattended (director; zedqa_run.ps1 refuses these names)
 # zedqa_new_qa_save.lua (makes a save), zedqa_mod_workshop.lua, zedqa_mods_open.lua,
