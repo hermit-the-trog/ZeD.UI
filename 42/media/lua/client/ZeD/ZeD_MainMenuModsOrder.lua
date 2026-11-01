@@ -832,6 +832,8 @@ function ZeD_MMMods:drawOrder(x, y, w, h)
     else
         self.find:setVisible(false)
     end
+    -- (with folders: the line saying this is the load order, not the collection: ZeD_MainMenuModsFolders)
+    if self.listLine and isOrder then top = self:listLine(x, top, listW, "order") end
     local vy, vh = top, y + h - T.px(1) - top
     local res = self:orderCheck()
     local total = v.total
