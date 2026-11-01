@@ -126,6 +126,23 @@ end
 -- name ~36u. When even the bar at its least leaves the longest name short, the level badge
 -- closes to its number ("10" and 2u either side) and the spaces round the name to 3u, the
 -- row's right margin to 2u. One choice for the whole grid, so the names stay in line.
+-- One column when two would cut a name (the director's pick, Oct 31 2026, punch list 35): true
+-- when a column of the two-column grid, at the usual spacing and the bar at its least, is
+-- narrower than the longest skill name needs. The one column then holds every name and its
+-- full bar, and scrolls.
+local function skillsOneColumn(cats, colW2, font)
+    local T, A = ZeD.T, ZeD.Atoms
+    local longest = 0
+    for _, g in ipairs(cats or {}) do
+        for _, s in ipairs(g.skills or {}) do
+            local nw = skillNameW(s.name, font)
+            if nw > longest then longest = nw end
+        end
+    end
+    local barMin = math.min(A.rowBarW(), A.fillBarMinW(10))
+    return colW2 - T.px(BADGE_W) - T.px(6) * 2 - T.px(4) - barMin < longest
+end
+
 local _skFit = {}
 local function skillRowFit(columns, colW, barMin, font)
     local T = ZeD.T
@@ -925,13 +942,15 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     -- Column layout (colW computed after scroll setup, see below)
     local colGap = T.sp.sm
 
-    -- Distribute groups across 2 columns (load-balanced by skill count)
+    -- Distribute groups across 2 columns (load-balanced by skill count); all in the first when
+    -- two columns would cut a name (punch list 35; the width taken as if the scroll bar shows)
+    win._skillsOneCol = skillsOneColumn(data.categories, math.floor((w - scrollW - pad * 2 - colGap) / 2), T.fontF2)
     local columns = { {}, {} }
     local colCounts = { 0, 0 }
 
     for _, group in ipairs(data.categories) do
         local minCol = 1
-        if colCounts[2] < colCounts[1] then minCol = 2 end
+        if colCounts[2] < colCounts[1] and not win._skillsOneCol then minCol = 2 end
         columns[minCol][#columns[minCol] + 1] = group
         colCounts[minCol] = colCounts[minCol] + #group.skills + 1
     end
@@ -978,7 +997,7 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     -- cw = inner width between outer pads (passed to drawTrainingSection for groove/separator widths)
     local cw   = contentW - pad * 2
     -- colW accounts for outer pad on both sides within contentW
-    local colW = math.floor((cw - colGap) / 2)
+    local colW = win._skillsOneCol and cw or math.floor((cw - colGap) / 2)
 
     -- S103 gamepad scroll-follow. When the focused ring element is a skill
     -- row or training chevron, adjust scroll.scrollPos BEFORE scrollOff is
@@ -1160,16 +1179,23 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     drawColumn(col1X, colW, columns[1])
     drawColumn(col2X, colW, columns[2])
 
-    -- Column separator (XP grid only)
-    local sepX = x + pad + colW + math.floor(colGap / 2)
-    local sepTop = zoneABottom
-    local sepBot = sepTop + xpGridH
-    local sepC = T.border
-    panel:drawRect(sepX, sepTop, T.px(1), sepBot - sepTop, sepC.a, sepC.r, sepC.g, sepC.b)
+    -- Column separator (XP grid only; none for the one column)
+    if not win._skillsOneCol then
+        local sepX = x + pad + colW + math.floor(colGap / 2)
+        local sepTop = zoneABottom
+        local sepBot = sepTop + xpGridH
+        local sepC = T.border
+        panel:drawRect(sepX, sepTop, T.px(1), sepBot - sepTop, sepC.a, sepC.r, sepC.g, sepC.b)
+    end
 
     end -- gridExpanded
 
-    -- Training materials section (below XP grid when expanded, or directly below header when collapsed)
+    -- Training materials section (below XP grid when expanded, or directly below header when collapsed);
+    -- it keeps its own two columns when the skills are in one
+    if win._skillsOneCol then
+        colW = math.floor((cw - colGap) / 2)
+        col2X = x + pad + colW + colGap
+    end
     local trainingStartY = zoneABottom + (gridExpanded and xpGridH or 0)
     local tmZones, tmActualH = drawTrainingSection(
         panel, trainingStartY, col1X, cw, col1X, col2X, colW, colGap,
