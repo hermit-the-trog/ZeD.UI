@@ -115,13 +115,16 @@ end
 at(5, function() P:addToUIManager() end)
 at(40, function() shot("panel"); check(drawErr == nil, "the test panel drew") end)
 at(45, function() P:removeFromUIManager() end)
+-- (the card is the test's own screwdriver, loose in the main bag: the first item in the bag was a worn one, the QA
+-- character's glasses, belt or watch, which isEquipped does not count; removed at the end)
+local made, opened = nil, false
+at(45, function()
+    if not ZeD_CharacterWindow.isOpen() then ZeD_CharacterWindow.toggleBothPaired(0); opened = true end
+end)
 at(50, function()
-    local inv = getPlayer():getInventory():getItems()
-    for i = 0, inv:size() - 1 do
-        local it = inv:get(i)
-        if it and not it:isEquipped() then item = it; break end
-    end
-    if not item then say("ERR nothing loose in the bag for the card"); return end
+    made = getPlayer():getInventory():AddItem("Base.Screwdriver")
+    item = made
+    if not item then say("ERR no screwdriver made for the card"); return end
     before = { fav = item:isFavorite(), dis = ZeD.ActionStrip.getState(item, "unwanted", 0) }
     item:setFavorite(true)
     ZeD.ActionStrip.setState(item, "unwanted", true, 0)
@@ -148,6 +151,8 @@ local function tick()
             local w = CW()
             local r = w and w._drawerPanel and w._drawerPanel._itemCard and w._drawerPanel._itemCard.toggleRects
             say("card toggle rects " .. tostring(r and #r))
+            local card = w and w._drawerPanel and w._drawerPanel._itemCard
+            check(card ~= nil and card.item == item, "the card shows the screwdriver (" .. tostring(card and card.item and card.item:getDisplayName()) .. ")")
             if item and before then
                 item:setFavorite(before.fav)
                 ZeD.ActionStrip.setState(item, "unwanted", before.dis, 0)
@@ -161,6 +166,8 @@ local function tick()
         if poll() then
             shot("rows")
             check(item == nil or (item:isFavorite() == before.fav), "Fav put back")
+            if made then pcall(function() made:getContainer():Remove(made) end) end
+            if opened and ZeD_CharacterWindow.isOpen() then ZeD_CharacterWindow.toggleBothPaired(0) end
             say("DONE " .. fails .. " failed")
             phase = "done"
             Events.OnRenderTick.Remove(tick)
