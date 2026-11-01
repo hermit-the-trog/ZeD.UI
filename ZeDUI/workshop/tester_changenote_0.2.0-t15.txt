@@ -30,6 +30,8 @@ Fixes
 - Main menu questions open on the answer that keeps your work (Keep editing, Cancel); Discard, Save, Delete and Upload take a deliberate move. B on a question puts the focus back where the question came from, on every page.
 - Mods: Undo after a separator was turned off no longer loses mods. The separator box, Undo and Back, the folder box, Discard, All on / No mods and loading a profile all change the list in one step.
 - Workshop page: the title and note fields work with the controller.
+- Foraging: a find's compass letter points the right way (a find due east read N).
+- With a controller, Down at the end of a column stays there instead of jumping sideways into the list beside it.
 - Restock: a run's moves are ZeD's own, so Put things back leaves on what a run put on or hung on the belt. Casual stops with a reason (you carry all you can; the rest in reach could not be taken) instead of waiting.
 
 Testers wanted: big mod lists. If you run hundreds of mods, try the Load order page (Find, separators, rules) and tell us in Bug reports how it holds up.
