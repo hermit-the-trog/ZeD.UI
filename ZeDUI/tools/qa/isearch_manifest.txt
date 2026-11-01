@@ -1,0 +1,5 @@
+# ZeDUI/tools/qa/isearch_manifest.txt  (Oct 31 2026, punch list 40: Immersive Searching 3760450908)
+# ZeD on: zedqa_mods_run.ps1 -ModList isearch_mods.txt -Mode fullscreen4k -Manifest <this>
+# ZeD off: zedqa_off_run.ps1 -ModList isearch_mods.txt -Script zedqa_isearch.lua -Tag is
+zedqa_prelude.lua | pre
+zedqa_isearch.lua | is | timeout=180
