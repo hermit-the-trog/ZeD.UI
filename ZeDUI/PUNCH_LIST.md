@@ -547,6 +547,13 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     - Build to write the plain rules and a mockup for the director before building; credit FieClaussell in the
       Compatibility thread.
 
+    **Spec and mockup (build, Oct 31, 3f0b244):** ZeDUI/MOD_FOLDERS_SPEC.md (ModFolders.cfg's format from the
+    mod's own code, section 9), ZeDUI/mockups/zed_mod_folders_v1.html + PNGs, credit draft
+    ZeDUI/workshop/compat_modfolders_draft.txt (not posted; the Workshop page says FieClaussell, the mod's
+    info says Paltia: check before posting). **Director's picks (Oct 31):** a folder's on/off acts at once (Accept
+    is the commit); the collection is always grouped by folder once one exists; a newly turned-on mod goes to the
+    end of the load order; "Start separators from folders" places only mods that are on. Still worth one short
+    run with ZeD off to see how a non-English folder name is written. Next: build, after the director's OK.
 ## Test process
 
 - The release check (before every upload, about 5 minutes, pass or fail): right-click opens the
