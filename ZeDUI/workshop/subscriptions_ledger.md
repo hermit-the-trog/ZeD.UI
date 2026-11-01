@@ -164,3 +164,9 @@ No subscribed page listed ZombieBuddy or a Java mod under "Required items", so n
 | Workshop id | Mod | Why |
 |---|---|---|
 | 3779201168 | [B42]Mod Folders (FieClaussell; mod id ModFolders) | Subscribed by QA for punch list 37: the build session reads its code for the ModFolders.cfg format |
+| 3760450908 | Immersive Searching [B42MP] (キツネユキ / yuckyfox; mod ids ImmersiveSearching, OpenAllContainersISCompat) | Subscribed by QA for punch list 40: a Workshop comment by Kable asked for support; the director: "would like to support that one too" |
+| 3809991837 | Mod Manager Extension | Pulled in by Steam's "Subscribe to All" as a required item of Mod Load Order Sorter Extension (3809995878) |
+
+Oct 31 2026 evening: the director asked QA to subscribe "the other missing ones too". 136 rows of the table above were no longer on disk
+(unsubscribed since round 4); all 136 were subscribed again through the Steam client and all were on disk afterwards. Required items were
+taken with "Subscribe to All" (all already listed here or on disk, except Mod Manager Extension above).
