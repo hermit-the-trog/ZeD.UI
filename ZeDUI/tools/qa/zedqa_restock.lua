@@ -224,6 +224,31 @@ step(20, function()
     local nw = stash(function(it) return L.waterIn(it) > 0 end)
     local nk = stash(function(it) return it:getFullType() == "Base.Katana" end)
     say("set aside: " .. nw .. " things holding water, " .. nk .. " katanas")
+    -- the character's own load set aside too (put back at the end): the QA save's character gains things run over run
+    -- (12.5 of 18 carried at t12, 32.3 at t15), and once over the limit the takes, Casual's done and Make it N days
+    -- cannot hold. What is worn, in the hands or attached stays; what is loose and what the worn bags hold goes.
+    do
+        local w0 = p:getInventoryWeight()
+        local keep = {}
+        local wi = p:getWornItems()
+        for i = 0, wi:size() - 1 do keep[wi:get(i):getItem()] = true end
+        if p:getPrimaryHandItem() then keep[p:getPrimaryHandItem()] = true end
+        if p:getSecondaryHandItem() then keep[p:getSecondaryHandItem()] = true end
+        local function clear(cont)
+            local items = cont:getItems()
+            for i = items:size() - 1, 0, -1 do
+                local it = items:get(i)
+                local att = false
+                pcall(function() att = it:getAttachedSlot() >= 0 end)   -- (on the belt or the back: the hotbar keeps it)
+                if not (keep[it] or att) then stashed[#stashed + 1] = { cont = cont, item = it }; cont:Remove(it) end
+            end
+        end
+        for it in pairs(keep) do
+            if instanceof(it, "InventoryContainer") and it:getItemContainer() then clear(it:getItemContainer()) end
+        end
+        clear(p:getInventory())
+        say(string.format("the character's load set aside: %.1f of %.1f carried, now %.1f", w0, p:getMaxWeight(), p:getInventoryWeight()))
+    end
     local A, B = crateA:getContainer(), crateB:getContainer()
     axe = give(A, "Base.HandAxe")
     for _, c in ipairs({ { "Base.Hat_Fedora", "hat" }, { "Base.Hat_BaseballCap", "hat" }, { "Base.Necklace_Gold", "necklace" }, { "Base.Scarf_StripeBlackWhite", "scarf" } }) do
