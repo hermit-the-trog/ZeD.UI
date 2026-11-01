@@ -5897,9 +5897,9 @@
    "crops": [
     {
      "box": [
-      1980,
+      1955,
       372,
-      2830,
+      2835,
       1310
      ],
      "place": [
@@ -5912,9 +5912,9 @@
     {
      "src": "zqa_mp_5_srm_sandbox.png",
      "box": [
-      1980,
+      1955,
       372,
-      2830,
+      2835,
       1040
      ],
      "place": [
@@ -5942,9 +5942,9 @@
    ],
    "avoid": [
     [
-     1980,
+     1955,
      372,
-     2830,
+     2835,
      1310
     ]
    ],
@@ -5952,7 +5952,7 @@
     {
      "text": "The info pane's tabs: About, Options, Sandbox and Conflicts.",
      "anchor": [
-      1982,
+      1957,
       654
      ],
      "side": "left",
@@ -5966,7 +5966,7 @@
     {
      "text": "The mod's own options, kept as you change them. A square mark shows what you changed.",
      "anchor": [
-      1982,
+      1957,
       919
      ],
      "side": "left",
@@ -5980,7 +5980,7 @@
     {
      "text": "The settings files the mod keeps in Zomboid/Lua. Reset settings copies each, then empties it.",
      "anchor": [
-      1982,
+      1957,
       1247
      ],
      "side": "left",
@@ -6042,9 +6042,9 @@
     {
      "src": "zqa_mp_9_picked.png",
      "box": [
-      1980,
+      1955,
       686,
-      2830,
+      2835,
       1012
      ],
      "place": [
@@ -6081,8 +6081,8 @@
     {
      "text": "Choose whose copy runs. A reload puts it in place, no restart.",
      "anchor": [
-      2735,
-      568
+      2785,
+      545
      ],
      "side": "right",
      "crop": 0,
@@ -6146,9 +6146,9 @@
    "crops": [
     {
      "box": [
-      1980,
+      1955,
       372,
-      2830,
+      2835,
       1440
      ],
      "place": [
@@ -6161,9 +6161,9 @@
     {
      "src": "zqa_mp_14_ask_off.png",
      "box": [
-      1980,
+      1955,
       372,
-      2830,
+      2835,
       1262
      ],
      "place": [
@@ -6191,15 +6191,15 @@
    ],
    "avoid": [
     [
-     1980,
+     1955,
      372,
-     2830,
+     2835,
      1440
     ],
     [
-     1980,
+     1955,
      372,
-     2830,
+     2835,
      1262
     ],
     [
@@ -6213,7 +6213,7 @@
     {
      "text": "Saves keep their own mod lists, so the main list changes new games only.",
      "anchor": [
-      1982,
+      1957,
       1020
      ],
      "side": "left",
@@ -6227,8 +6227,8 @@
     {
      "text": "Careful: the pane lists what the save would lose, reason by reason.",
      "anchor": [
-      1982,
-      1132
+      1957,
+      1095
      ],
      "side": "left",
      "crop": 0,
