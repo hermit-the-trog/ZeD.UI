@@ -261,7 +261,7 @@ at(95, function() shot("05_deleted") end)
 at(100, function()
     local raw = readRaw(TEST) or ""
     writeRaw(TEST, raw .. "folder=9|1|51,41\n")
-    local ok, id = F.create("QA")
+    local ok, id = F.create("QA new")   -- (not "QA": the outside line above is a folder named QA, and a second QA is refused)
     local raw2 = readRaw(TEST) or ""
     check(ok and id == 10 and raw2:find("folder=9|1|51,41\n", 1, true) ~= nil, "9a an outside edit is kept (the change reads the file first)")
 end)

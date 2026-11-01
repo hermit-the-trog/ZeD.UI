@@ -569,6 +569,19 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     mods the save may hold (their own row asks). QA: zedqa_mods_folders.lua (tag mfo), then by hand:
     right-click menus, Ctrl / Shift-click, Page Up / Down folder to folder, the pad on a folder row and
     the pane's Move to folder..., 1,500 mods with folders (frame rate), Large text and 1280x720.
+    - QA, Nov 1 2026: zedqa_mods_folders.lua **36 passed, 0 failed** at 4K (1.75x) and on the Deck (1280x800,
+      Auto, Large text) with compat_r4_mods.txt. (The first 4K run failed 9a: the test's outside line was a
+      folder named QA and the test then made a second QA, refused as a duplicate; the test now makes "QA new".)
+      ZeD off: ZeDUI/tools/qa/modfolders_crossread.lua runs ZeD_ModFolders.lua as shipped and then the mod's own
+      loadConfig (copied unchanged) on what ZeD wrote, outside the game (Lua 5.1): **10 passed, 0 failed**
+      (folders in order, open / closed, names with & , é, members, next id). Not covered: the mod's own screen
+      drawing them.
+      **Found (shot zqa_mfo_01_grouped.png, both sizes):** (a) the Chinese folder name 地图 draws "??" (ZeD's Fira
+      fonts have no CJK; the first commenter writes Chinese, and Chinese mod names will do the same); (b) the
+      count after a name with those letters is drawn over the name ("?? Café(2 | 0 on)", "??(0)"): the name's
+      width is measured short; (c) the footer says "1 lines" (one line).
+      Not done yet (needs the screen again): right-click menus, Ctrl / Shift-click, Page Up / Down, the pad on a
+      folder row, frame rate with 1,500 mods, 1280x720.
     **Stage 3 separators built (0afb1ac, 8f70121, b828ebb), QA to confirm.** See item 41's note.
 38. **Pad stops not refreshed while the drawer fills the window.** Found by QA, Oct 31 2026 (1280x720, UI scale
     2.0, Large text; zedqa_picks_recheck.lua and zedqa_bands_probe.lua, 2026-10-31_2040 / _2049): the World
@@ -670,7 +683,16 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     carried one; Move to top / bottom work inside the block until sections exist; LB / RB and Page Up / Down move
     a page; a choice that needs a pin is greyed ("pin it first too") instead of offering Pin first and load
     before; New game's Choose mods keeps its own list ([@list new game]).
-    **Stage 3 separators built (0afb1ac, 8f70121, b828ebb), QA to confirm.** Separators on the Load order
+    - QA, Nov 1 2026: zedqa_mods_order.lua **24 passed, 0 failed** at 4K (1.75x) and on the Deck (1280x800, Auto,
+      Large text). The first run skipped parts 2-5: the compat_r4 mods had been unsubscribed; QA subscribed the 8
+      (ledger). Idle: 0 order checks, 0 list builds, 0 layouts over 60 frames.
+      **Found (shot zqa_mlo_06_circle.png):** (a) the Load after... picker shows the word "nil" in every row's second
+      column, at both sizes (over the end of long names at 4K: "Mod Display" + "nil"); (b) on the Deck with Large
+      text the picker is too short: its explanation ("Puts ... just after Knox Packs ... Auto and profile loads keep
+      it there.") is drawn over the list's last rows and over its own last line; (c) the picker's top edge leaves
+      the list behind it showing through above its title.
+      Not done yet (needs the screen again): the pad and keyboard paths, drag, the right-click menu, the look
+      against mockup v2, scrolling 1,500 mods.
     page (ZeD_MainMenuModsSeps.lua): box, collapse, New separator... / Rename... / Delete separator / Move
     up / Move down with its mods, mods cross a separator one step at a time, Move to separator... in the
     row's menu, a separator off turns its mods off (kept in place, dimmed, back on in place; Undo and Back
