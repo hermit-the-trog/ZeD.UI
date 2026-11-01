@@ -1067,6 +1067,16 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
         tab's stops (Health's Start) stay live in charTabContent while Loot shows. Build to look; staging waits on it and
         on the About line in UI.json (changed on disk at 3:11 pm, not Build's; the director to say).
 
+      - **QA, Nov 1 2026, 4:50 pm: t15 staged.** 45 **confirmed (e78ddcd):** wpt after cu at 720 Normal passes (the D-pad
+        crosses to the World window; 2026-11-01_t15_720_wpt.md). One new line in that run's cu, first cycle only: "cycle1
+        World saved: got 853.333,0 want 858.667,0" (5.3 px, 720, cu straight after the prelude; the two earlier 720 runs
+        today had cu after tww and passed it). Build to judge; not held for. **Staged from d66f07e:** 4,267 files, 46.45 MB,
+        modversion 0.2.0-t15; description 7,889 (+ the game's 58) into workshop.txt, the 37-line change note into
+        Lua/ZeD_workshop.txt; zedqa.lock busy until Contents is removed after the upload (the staged copy shadows the dev mod).
+        The director presses Upload; Build tags v0.2.0-t15 on d66f07e, refreshes the D: backup and removes Contents.
+        Not run before t15: the full 720 Normal and Large passes (the director: "Short 720, then stage"); they run after
+        the upload.
+
 43. **Foraging finds: the compass letter is wrong (QA, Nov 1 2026, found while staging the gallery retake).** open.
     `ForagingTab.lua`: `angleToBearing` takes a maths angle (0 = east, 90 = north) and reads the COMPASS table from
     N at index 1, so a find due east is labelled N, north-east NE, due north E, and the ring runs the wrong way round
