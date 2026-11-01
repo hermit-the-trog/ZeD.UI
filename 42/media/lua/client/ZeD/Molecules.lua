@@ -3618,8 +3618,61 @@ local STEPPER_GAP = 4   -- design units between the keys and the readout
 --- @param opts      optional { focusId = "dec" / "inc" (with focus = its mark opts) or
 ---                  focusParts, win }: the key with the controller's focus; narrow = true:
 ---                  the readout only as wide as its digits, not a key's width (a band short
----                  of room; Oct 31 2026, break-it B2)
+---                  of room; Oct 31 2026, break-it B2); single = true: the one amount box
+---                  (drawQtySpin; focusId "qty")
 local _stepOpts = {}
+local _spinDim = {}
+local SPIN_TRI = 5   -- design units: the amount box's step triangles
+local SPIN_PAD = 4   -- design units: the box's edge to a triangle, a triangle to the number
+
+--- The one amount box's width for qty (its number, two step triangles, their pads).
+function ZeD.Molecules.qtySpinW(qty)
+    local T = ZeD.T
+    return ZeD.TM:MeasureStringX(T.fontF3, tostring(qty)) + T.px(SPIN_TRI) * 2 + T.px(SPIN_PAD) * 4
+end
+
+-- The amount as ONE box (Oct 31 2026, punch list 28, the director's pick: on the smallest
+-- screens the - / + collapse into one control, so Sort and Show keep their words): a 1u
+-- frame round "< 3 >"; a press on its left half steps down, on its right half up (the
+-- zones "dec" and "inc", as the keys'), the wheel and the pad's Left / Right step it too
+-- (the caller's). A triangle dims at its end of the range. opts.focusId "qty" marks it.
+local function drawQtySpin(panel, x, y, qty, maxQty, h, hoverZone, opts)
+    local T, A, tm = ZeD.T, ZeD.Atoms, ZeD.TM
+    local font = T.fontF3
+    local w = ZeD.Molecules.qtySpinW(qty)
+    local half = math.floor(w / 2)
+    local hovDec, hovInc
+    if hoverZone ~= nil then
+        hovDec, hovInc = hoverZone == "dec", hoverZone == "inc"
+    else
+        hovDec, hovInc = A.mouseIn(panel, x, y, half, h), A.mouseIn(panel, x + half, y, w - half, h)
+    end
+    local canDec, canInc = qty > 1, qty < maxQty
+    local hv = T.hover
+    if hovDec and canDec then panel:drawRect(x, y, half, h, hv.a or 1, hv.r, hv.g, hv.b) end
+    if hovInc and canInc then panel:drawRect(x + half, y, w - half, h, hv.a or 1, hv.r, hv.g, hv.b) end
+    local f = partFocus(opts, "qty")
+    local onFocus = f and ZeD.Focus and ZeD.Focus.mark and ZeD.Focus.mark(panel, x, y, w, h, f) and true or false
+    local tri, pad = T.px(SPIN_TRI), T.px(SPIN_PAD)
+    local ty = y + math.floor((h - tri) / 2)
+    local on = onFocus and T.textOnFocus or T.text
+    local dc = _spinDim
+    local td = onFocus and T.textOnFocus or T.textDim
+    dc.r, dc.g, dc.b, dc.a = td.r, td.g, td.b, (td.a or 1) * T.disabledAlpha
+    A.drawTriangleLeft(panel, x + pad, ty, tri, canDec and on or dc)
+    A.drawTriangleRight(panel, x + w - pad - tri, ty, tri, canInc and on or dc)
+    local qtyStr = tostring(qty)
+    local qtyTW = tm:MeasureStringX(font, qtyStr)
+    panel:drawText(qtyStr, x + math.floor((w - qtyTW) / 2), y + math.floor((h - tm:getFontHeight(font)) / 2),
+        on.r, on.g, on.b, on.a or 1, font)
+    A.frame(panel, x, y, w, h, T.borderS)
+    local zones = {
+        { id = "dec", x = x, y = y, w = half, h = h },
+        { id = "inc", x = x + half, y = y, w = w - half, h = h },
+    }
+    return w, zones
+end
+
 function ZeD.Molecules.drawQtyStepper(panel, x, y, qty, maxQty, h, hoverZone, opts)
     local T  = ZeD.T
     local A  = ZeD.Atoms
@@ -3627,6 +3680,7 @@ function ZeD.Molecules.drawQtyStepper(panel, x, y, qty, maxQty, h, hoverZone, op
     local tm = ZeD.TM
     opts = opts or NO_OPTS
     h = h or (T.buttonH - T.px(4))
+    if opts.single then return drawQtySpin(panel, x, y, qty, maxQty, h, hoverZone, opts) end
     local bw = h
     local gap = T.px(STEPPER_GAP)
     local font = T.fontF3

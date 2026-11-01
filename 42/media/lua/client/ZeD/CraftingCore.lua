@@ -1434,21 +1434,33 @@ local function drawBandActions(panel, x, y, w, state, config, rd, pfx, fid, mx, 
     local sx = rx - gap - stepW
     local narrow = (sx - gap - x) < (leftNeed or 0)
     if narrow then
+        -- (Oct 31 2026, punch list 28, the director's pick: short of room the - n + become
+        -- one amount box, "< 3 >", its halves, the wheel and the pad's Left / Right step it)
         gap = T.px(4)
-        stepW = bh * 2 + qtyTW + T.px(8) + 2 * T.px(4)
+        stepW = M.qtySpinW(qty)
         sx = rx - gap - stepW
     end
     local so = _bandStep
     so.focusId = nil
     so.narrow = narrow
+    so.single = narrow
     if rd and fid then
         if fid == pfx .. ":actDec" then so.focusId = "dec"
-        elseif fid == pfx .. ":actInc" then so.focusId = "inc" end
+        elseif fid == pfx .. ":actInc" then so.focusId = "inc"
+        elseif fid == pfx .. ":actQty" then so.focusId = "qty" end
     end
     local _, stepZones = M.drawQtyStepper(panel, sx, y + T.px(5), qty, maxQty, bh, (mx < 0) and "" or nil, so)
+    if narrow then state._qtyBox = state._qtyBox or {} end
+    local qb = state._qtyBox
+    if qb then
+        qb.on, qb.x, qb.y, qb.w, qb.h = narrow and rd ~= nil, sx, y + T.px(5), stepW, bh
+        qb.t = getTimestampMs()   -- (drawn this frame: a band no longer drawn takes no wheel)
+    end
     if rd then
         for _, z in ipairs(stepZones) do
             z.type = "action_" .. z.id
+            -- the one box: the pad has one stop for it (buildFocusables)
+            if narrow then z.single, z.bx, z.bw = true, sx, stepW end
             zones[#zones + 1] = z
         end
         if r then zones[#zones + 1] = { type = "action_build", x = r.x, y = r.y, w = r.w, h = r.h } end
@@ -3003,6 +3015,14 @@ function CC.onMouseWheel(state, del, x, y, panelX, panelW)
         return true
     end
     if state.sortMenuOpen or state.showMenuOpen then return true end
+    -- the one amount box (a band short of room): the wheel steps it, up for more
+    -- (Oct 31 2026, punch list 28)
+    local qb = state._qtyBox
+    if qb and qb.on and (getTimestampMs() - (qb.t or 0)) < 250 and x >= qb.x and x < qb.x + qb.w and y >= qb.y and y < qb.y + qb.h then
+        if del < 0 then state.qty = math.min(state._maxQty or 99, (state.qty or 1) + 1)
+        else state.qty = math.max(1, (state.qty or 1) - 1) end
+        return true
+    end
     -- Dropdown scroll takes priority when open
     if state.catDropdownOpen then
         local totalRows = #(state.categoryList or {})
@@ -3364,6 +3384,28 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
                     state.ownedOnly = not state.ownedOnly
                 end,
             }
+        elseif z.type == "action_dec" and z.single then
+            -- the one amount box (a band short of room, punch list 28): one stop; Left /
+            -- Right step it and move on past its ends; A steps up, from the most back to 1
+            elements[#elements + 1] = {
+                x = z.bx, y = z.y, w = z.bw, h = z.h,
+                id = prefix .. ":actQty",
+                craftKind = "actQty",
+                onFocus = function(w, el) end,
+                onActivate = function(w, el)
+                    local maxQ = state._maxQty or 99
+                    local q = state.qty or 1
+                    state.qty = (q < maxQ) and (q + 1) or 1
+                end,
+                onDpadDir = function(w, el, dir)
+                    local q = state.qty or 1
+                    if dir == "left" and q > 1 then state.qty = q - 1; return true end
+                    if dir == "right" and q < (state._maxQty or 99) then state.qty = q + 1; return true end
+                    return false
+                end,
+            }
+        elseif z.type == "action_inc" and z.single then
+            -- (the box's right half: the same stop)
         elseif z.type == "action_dec" then
             elements[#elements + 1] = {
                 x = z.x, y = z.y, w = z.w, h = z.h,
