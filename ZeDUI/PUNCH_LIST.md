@@ -698,6 +698,12 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     the World band for any container on show while one in reach is unsearched, but only when the mod's sandbox
     "Search all" allows it (off by default: no button), corpses only when set so. QA zedqa_immersive_searching.lua
     (tag iss; in regression.txt it checks the mod-off case; with the mod: isearch_manifest.txt + isearch_mods.txt).
+    - QA, Nov 1 2026, 4K: **confirmed.** Mod on: iss 28 passed, 0 failed (report qa/regression/2026-11-01_0723_mods_
+      fullscreen4k.md; shots zqa_iss_on_*: the ? on the three bags, "Nothing found yet.", "Searching..." with the bar).
+      The first run failed "Search all pressed: B and C searches queued": the mod's startSearch queues its
+      ISWaitWhileGettingUp first and the search after it, and the later check (both searched) passed; the check now
+      accepts either. Mod off (iss_off_manifest.txt): 9 passed, nothing registered, A lists six, picking queues nothing.
+      No errors either way.
 41. **Load order tools for big mod lists (a Workshop comment by Kable, ~1,500 mods; director, Oct 31 2026: "I want
     the mod manager to really shine, so let's try and accommodate their request").** chosen. Rules
     ZeDUI/MODS_LOAD_ORDER_SPEC.md, mockup ZeDUI/mockups/zed_mod_folders_v2.html (7ee6ef4), together with item 37's
@@ -770,6 +776,13 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
       frame rate at 1,500 mods also waits (the rig has ~280 mods). Hold script for a by-hand session:
       zedqa_mods_hold.lua (tag mho; opens the Mods page on a test folders file, ends when Lua/zedqa_release.txt
       has text).
+    - QA, Nov 1 2026, after the fixes (2c26b97, 96d2beb, e93b22b, 1ceb12b, 9e7b950): **mlo 24 / 0, mfo 36 / 0, msp
+      39 / 0 at 4K and on the Deck (Large); mfo 36 / 0 at 1280x720 Large.** Seen fixed: 地图 draws whole (图 too) with
+      its count placed after it, at every size; the picker has no "nil", its explanation clear of the rows, nothing
+      showing above its title (4K and Deck); the Mods tabs fit at 720 Large (Workshop 273 whole); msp 3d passes (The
+      Only Cure+ back on with its separator). Mods-screen text looked normal with the font switch (menu bar, tabs, panes).
+      Still open: the scripted hand checks with the handlers the build sent (right-click, keys, clicks, pad), and
+      1,500 mods; drag needs the real mouse.
 
 ## Test process
 
