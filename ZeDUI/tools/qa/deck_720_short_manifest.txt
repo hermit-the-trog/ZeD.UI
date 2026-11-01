@@ -1,0 +1,10 @@
+# Nov 1 2026, before staging t15 (the director: "Short 720, then stage"): the covering scripts at 1280x720,
+# Normal text, about 15 minutes. The full 720 Normal and Large passes run after the upload.
+# zedqa_run.ps1 -Manifest this -Mode windowed -Width 1280 -Height 720 -Report t15_720_short
+# Covers: the two widths and the window's place after a tab or card (tww), the curtain and its rod (cu),
+# the pad into both windows and every tab's bottom at both text sizes (wpt), the doll (dollv4).
+zedqa_prelude.lua | pre | timeout=120
+zedqa_two_widths.lua | tww | timeout=900
+zedqa_curtain.lua | cu | timeout=400
+zedqa_world_pad_take.lua | wpt | timeout=900
+zedqa_doll_v4.lua | dollv4 | timeout=420
