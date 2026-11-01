@@ -1,0 +1,17 @@
+# Nov 1 2026: the Deck at Large text after the t15 Deck fixes (punch list 42 a, b, d; the c probe).
+# zedqa_run.ps1 -Manifest this -Mode windowed -Width 1280 -Height 800 -Report deck_recheck_800L
+# Confirms: the full card at Large text (tww, tw, rtv, ap, p336), the doll's bands and 49 slots (dollv4),
+# the star through the fold arrow (mnote), the wheel icons under 16 (wi); wpt's Skills check at both sizes;
+# then the Skills Down probe (pskd), a print for build, not a pass / fail.
+zedqa_prelude.lua | pre | timeout=120
+zedqa_textlarge.lua | txl | timeout=60
+zedqa_two_widths.lua | tww | timeout=900
+zedqa_doll_v4.lua | dollv4 | timeout=420
+zedqa_mapnotes.lua | mnote | timeout=120
+zedqa_twoway.lua | tw | timeout=600
+zedqa_rtv.lua | rtv | timeout=600
+zedqa_appliances.lua | ap | timeout=240
+zedqa_plates_336.lua | p336 | timeout=900
+zedqa_wheel_icons.lua | wi | timeout=600
+zedqa_world_pad_take.lua | wpt | timeout=900
+zedqa_probe_skills_down.lua | pskd | timeout=180
