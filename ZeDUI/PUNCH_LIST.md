@@ -1052,7 +1052,7 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
         no landing in the inventory) and wpt; the pad map at its next run (a few expected moves may read
         differently: a Down that used to leave a column sideways now stays).
 
-      - **QA, Nov 1 2026, 4:15 pm (before staging; reports qa/regression/2026-11-01_deck_skills_compass_800N.md and
+      - **QA, Nov 1 2026, 3:25 pm (before staging; reports qa/regression/2026-11-01_deck_skills_compass_800N.md and
         2026-11-01_t15_720_short.md):**
         c. **confirmed (f5e10d0).** Deck at Normal: Down past Foraging stays on Foraging at both text sizes; nothing lands
            in the inventory list. wpt passed its Skills check. (wpt's one warning there, "Right from a row lands on the bag
@@ -1067,7 +1067,7 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
         tab's stops (Health's Start) stay live in charTabContent while Loot shows. Build to look; staging waits on it and
         on the About line in UI.json (changed on disk at 3:11 pm, not Build's; the director to say).
 
-      - **QA, Nov 1 2026, 4:50 pm: t15 staged.** 45 **confirmed (e78ddcd):** wpt after cu at 720 Normal passes (the D-pad
+      - **QA, Nov 1 2026, 3:50 pm: t15 staged.** 45 **confirmed (e78ddcd):** wpt after cu at 720 Normal passes (the D-pad
         crosses to the World window; 2026-11-01_t15_720_wpt.md). One new line in that run's cu, first cycle only: "cycle1
         World saved: got 853.333,0 want 858.667,0" (5.3 px, 720, cu straight after the prelude; the two earlier 720 runs
         today had cu after tww and passed it). Build to judge; not held for. **Staged from d66f07e:** 4,267 files, 46.45 MB,
