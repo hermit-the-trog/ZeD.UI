@@ -45,7 +45,15 @@ local function powerable(x, y, z)
     end
     return nil
 end
--- a spot with free squares 2 either side and 2 above and below, the sides powerable
+-- one square to the next with no wall or door between (sq:canReachTo)
+local function reach(x0, y0, x1, y1, z)
+    local a, b = sqAt(x0, y0, z), sqAt(x1, y1, z)
+    local ok = false
+    if a and b then pcall(function() ok = a:canReachTo(b) end) end
+    return ok
+end
+-- a spot with free squares 2 either side and 2 above and below, the sides powerable; the generator's two squares above
+-- in reach (the engine switch walks the character up to it: across a wall the walk never ends, t15 pre-upload run)
 local function findSpot(cx, cy, cz, R)
     for r = 0, R do
         for dy = -r, r do
@@ -53,7 +61,9 @@ local function findSpot(cx, cy, cz, R)
                 if math.abs(dx) == r or math.abs(dy) == r then
                     local x, y = cx + dx, cy + dy
                     if freeSq(x, y, cz) and powerable(x - 2, y, cz) and powerable(x + 2, y, cz) and freeSq(x, y - 2, cz) and freeSq(x, y + 2, cz)
-                        and freeSq(x + 2, y + 2, cz) then return { x = x + 0.5, y = y + 0.5, z = cz } end
+                        and freeSq(x + 2, y + 2, cz) and freeSq(x, y - 1, cz) and reach(x, y, x, y - 1, cz) and reach(x, y - 1, x, y - 2, cz) then
+                        return { x = x + 0.5, y = y + 0.5, z = cz }
+                    end
                 end
             end
         end
@@ -333,7 +343,7 @@ local function objectPhase()
     step(200, function() shot(PH .. "_generator") end)
     step(5, function() cardRun("gen:engine", "generator") end)
     waitFor(10, 3000, function() return acted(function() return gen:isActivated() end) end, function()
-        check(gen:isActivated(), "generator: the engine switch starts it (" .. (gen:isActivated() and "it runs" or "the start was queued and never finished") .. ")")
+        check(gen:isActivated(), "generator: the engine switch starts it (" .. (gen:isActivated() and "it runs" or ("the start was queued and never finished: " .. queueDump())) .. ")")
     end)
     step(40, function() cardRun("gen:engine", "generator") end)
     waitFor(10, 3000, function() return acted(function() return not gen:isActivated() end) end, function()
