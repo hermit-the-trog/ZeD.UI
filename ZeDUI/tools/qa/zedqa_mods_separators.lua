@@ -240,6 +240,11 @@ at(60, function()
     w:sepBox(keep.beta)
     local allOn = true
     for _, id in ipairs(keep.bIds) do if not m.mods[id].isActive then allOn = false end end
+    if not (allOn and join(under(w, keep.beta)) == join(keep.bIds)) then
+        local offIds = {}
+        for _, id in ipairs(keep.bIds) do if not m.mods[id].isActive then offIds[#offIds + 1] = id end end
+        say("3d detail: still off [" .. table.concat(offIds, ";") .. "]; under it now [" .. join(under(w, keep.beta)) .. "], before [" .. join(keep.bIds) .. "]")
+    end
     check(allOn and join(under(w, keep.beta)) == join(keep.bIds), "3d on again: every mod back on, in the same places")
     -- (anything the cascade turned off with them comes back through the Undo of both)
 end)
