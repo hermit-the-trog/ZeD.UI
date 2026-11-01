@@ -1073,7 +1073,7 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
         today had cu after tww and passed it). Build to judge; not held for. **Staged from d66f07e:** 4,267 files, 46.45 MB,
         modversion 0.2.0-t15; description 7,889 (+ the game's 58) into workshop.txt, the 37-line change note into
         Lua/ZeD_workshop.txt; zedqa.lock busy until Contents is removed after the upload (the staged copy shadows the dev mod).
-        The director presses Upload; Build tags v0.2.0-t15 on d66f07e, refreshes the D: backup and removes Contents.
+        **Uploaded 3:55 pm** (the director; the window consumed the change note). Build tags v0.2.0-t15 on d66f07e, refreshes the D: backup and removes Contents.
         Not run before t15: the full 720 Normal and Large passes (the director: "Short 720, then stage"); they run after
         the upload.
 
