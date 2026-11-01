@@ -12,10 +12,15 @@
 --     rules, then the player's own place; Auto sorts by the mods' own wishes first
 --   * the order check (red / yellow / green per row), run once per change by the screen
 --   * the picker's questions: what must load before / after a mod (requirements, your rules)
+--   * separators (MOD_FOLDERS_SPEC 7, 8, 10; stage 3): headings inside the load order, MO2-style,
+--     kept with the pins and rules ("sep=" and "top=" lines); a mod's section is its place in the
+--     order; laying out keeps each mod in its section, and Auto sorts inside each section only
 --
 -- Nothing here draws. The Mods screen (ZeD_MainMenuModsOrder.lua) holds a working copy of the
--- list's pins and rules ("lo": { first = { ids }, last = { ids }, rules = { { id, how, other } } })
--- until Done.
+-- list's pins and rules ("lo": { first = { ids }, last = { ids }, rules = { { id, how, other } },
+-- seps = { { uid, name, on, open, ids } }, top = { ids } }) until Done. A separator's ids are its
+-- mods in order, on or off (an off mod keeps its place: turned on again it goes back there); top
+-- holds the mods above the first separator. Neither is written while no separator exists.
 -- ============================================================================
 ZeD = ZeD or {}
 ZeD.ModOrder = ZeD.ModOrder or {}
@@ -54,6 +59,36 @@ end
 -- (gen counts the file's changes: a screen keeps what it read from it until gen moves)
 O.gen = O.gen or 0
 
+-- a separator's name in the file: each UTF-16 unit as upper-case hex, joined by commas (the
+-- ModFolders.cfg encoding: any letter, and never a "|" or ";" that would break the line)
+local function encName(s)
+    s = tostring(s or "")
+    local out = {}
+    for i = 1, #s do out[i] = string.format("%X", string.byte(s, i)) end
+    return table.concat(out, ",")
+end
+local function decName(v)
+    local out = {}
+    for hex in tostring(v or ""):gmatch("([%x]+)") do
+        local code = tonumber(hex, 16)
+        if code then out[#out + 1] = string.char(code) end
+    end
+    return table.concat(out)
+end
+O.encName, O.decName = encName, decName
+
+-- every separator has a number of its own while the game runs (never written: an Undo's copy and
+-- the screen's sections point at it)
+O._uid = O._uid or 0
+function O.newUid() O._uid = O._uid + 1; return O._uid end
+
+-- sep=<1 on, 0 off>|<1 open, 0 collapsed>|<name, encoded>|<id;id;...>  (nil: not this form)
+local function parseSep(v)
+    local on, open, name, ids = tostring(v or ""):match("^([01])|([01])|([%x,]*)|(.*)$")
+    if not on then return nil end
+    return { uid = O.newUid(), on = on == "1", open = open == "1", name = decName(name), ids = splitIds(ids) }
+end
+
 function O.load()
     O.gen = O.gen + 1
     Store.t, Store.pre, Store.loaded = {}, {}, true
@@ -64,12 +99,15 @@ function O.load()
     while line do
         local name = line:match("^%[(.+)%]$")
         if name then
-            cur = { order = {}, first = {}, last = {}, rules = {}, keep = {} }
+            cur = { order = {}, first = {}, last = {}, rules = {}, keep = {}, seps = {}, top = {} }
             Store.t[name] = cur
         elseif cur then
             local k, v = line:match("^(%a+)=(.*)$")
-            if k == "order" or k == "first" or k == "last" then
+            if k == "order" or k == "first" or k == "last" or k == "top" then
                 cur[k] = splitIds(v)
+            elseif k == "sep" then
+                local sp = parseSep(v)
+                if sp then cur.seps[#cur.seps + 1] = sp else cur.keep[#cur.keep + 1] = line end
             elseif k == "rule" then
                 local a, how, b = v:match("^([^|]+)|(%a+)|(.+)$")
                 if a and (how == "after" or how == "before") then cur.rules[#cur.rules + 1] = { id = a, how = how, other = b }
@@ -91,7 +129,7 @@ local function isList(name) return tostring(name):sub(1, 1) == "@" end
 
 local function holdsNothing(e)
     return #(e.order or EMPTY) == 0 and #(e.first or EMPTY) == 0 and #(e.last or EMPTY) == 0 and #(e.rules or EMPTY) == 0
-        and #(e.keep or EMPTY) == 0 and (e.saved or "") == "" and (e.used or "") == ""
+        and #(e.keep or EMPTY) == 0 and (e.saved or "") == "" and (e.used or "") == "" and #(e.seps or EMPTY) == 0
 end
 
 function O.save()
@@ -113,6 +151,13 @@ function O.save()
             if e.first and #e.first > 0 then w:write("first=" .. table.concat(e.first, ";") .. "\n") end
             if e.last and #e.last > 0 then w:write("last=" .. table.concat(e.last, ";") .. "\n") end
             for _, r in ipairs(e.rules or EMPTY) do w:write("rule=" .. r.id .. "|" .. r.how .. "|" .. r.other .. "\n") end
+            -- (separators, only while one exists: the mods above the first one, then each in order)
+            if e.seps and #e.seps > 0 then
+                if e.top and #e.top > 0 then w:write("top=" .. table.concat(e.top, ";") .. "\n") end
+                for _, sp in ipairs(e.seps) do
+                    w:write("sep=" .. (sp.on and "1" or "0") .. "|" .. (sp.open and "1" or "0") .. "|" .. encName(sp.name) .. "|" .. table.concat(sp.ids or EMPTY, ";") .. "\n")
+                end
+            end
             if e.saved and e.saved ~= "" then w:write("saved=" .. e.saved .. "\n") end
             if e.used and e.used ~= "" then w:write("used=" .. e.used .. "\n") end
             for _, l in ipairs(e.keep or EMPTY) do w:write(l .. "\n") end
@@ -131,7 +176,7 @@ function O.entry(name, create)
     if not name then return nil end
     local t = O.entries()
     local e = t[name]
-    if not e and create then e = { order = {}, first = {}, last = {}, rules = {}, keep = {} }; t[name] = e end
+    if not e and create then e = { order = {}, first = {}, last = {}, rules = {}, keep = {}, seps = {}, top = {} }; t[name] = e end
     return e
 end
 
@@ -151,16 +196,27 @@ function O.listKey(m)
     return "@list main menu"
 end
 
+local function copyIds(t)
+    local o = {}
+    for i, id in ipairs(t or EMPTY) do o[i] = id end
+    return o
+end
+
 function O.copyLo(src)
-    local lo = { first = {}, last = {}, rules = {} }
+    local lo = { first = {}, last = {}, rules = {}, seps = {}, top = {} }
     if not src then return lo end
     for _, id in ipairs(src.first or EMPTY) do lo.first[#lo.first + 1] = id end
     for _, id in ipairs(src.last or EMPTY) do lo.last[#lo.last + 1] = id end
     for _, r in ipairs(src.rules or EMPTY) do lo.rules[#lo.rules + 1] = { id = r.id, how = r.how, other = r.other } end
+    -- (a copy keeps each separator's number: an Undo's copy is the same separator)
+    for _, sp in ipairs(src.seps or EMPTY) do
+        lo.seps[#lo.seps + 1] = { uid = sp.uid or O.newUid(), name = sp.name, on = sp.on ~= false, open = sp.open ~= false, ids = copyIds(sp.ids) }
+    end
+    lo.top = copyIds(src.top)
     return lo
 end
 
-function O.isEmpty(lo) return not lo or (#lo.first == 0 and #lo.last == 0 and #lo.rules == 0) end
+function O.isEmpty(lo) return not lo or (#lo.first == 0 and #lo.last == 0 and #lo.rules == 0 and #(lo.seps or EMPTY) == 0) end
 
 -- a section's pins and rules, as a working copy
 function O.getLo(name) return O.copyLo(O.entry(name)) end
@@ -169,7 +225,7 @@ function O.getLo(name) return O.copyLo(O.entry(name)) end
 function O.putLo(name, lo, save)
     local e = O.entry(name, true)
     local c = O.copyLo(lo)
-    e.first, e.last, e.rules = c.first, c.last, c.rules
+    e.first, e.last, e.rules, e.seps, e.top = c.first, c.last, c.rules, c.seps, c.top
     O.gen = O.gen + 1
     if save then O.save() end
 end
@@ -420,6 +476,182 @@ local function pinsFollow(pins, block, isPin)
     return out
 end
 
+-- ----------------------------------------------------------------------------
+-- SECTIONS (separators, MOD_FOLDERS_SPEC 7): each separator holds the mods under it, down to
+-- the next one; section 0 is the top, above the first separator. Only the middle of the order
+-- (not the pinned blocks, not ZeD picks) is cut into sections.
+-- ----------------------------------------------------------------------------
+function O.hasSeps(lo) return lo ~= nil and lo.seps ~= nil and #lo.seps > 0 end
+
+-- id -> the uid of its separator (0: the top); nil: in none (a mod newly on)
+function O.secMembers(lo)
+    local mem = {}
+    if not O.hasSeps(lo) then return mem end
+    for _, id in ipairs(lo.top or EMPTY) do mem[id] = 0 end
+    for _, sp in ipairs(lo.seps) do for _, id in ipairs(sp.ids or EMPTY) do mem[id] = sp.uid end end
+    return mem
+end
+
+-- uid -> its place among the separators (0: the top)
+function O.secIndex(lo)
+    local t = { [0] = 0 }
+    for k, sp in ipairs(lo and lo.seps or EMPTY) do t[sp.uid] = k end
+    return t
+end
+
+function O.sepOf(lo, uid)
+    for k, sp in ipairs(lo and lo.seps or EMPTY) do if sp.uid == uid then return sp, k end end
+    return nil, nil
+end
+
+-- each middle mod's section, and the middle grouped section by section (stable; Auto sorts
+-- inside each one and never across a separator, spec 7.6). A mod in no section: after every
+-- placed one, the last separator (where the game puts a mod turned on, spec 7.4, the director's
+-- pick); else the section of the nearest placed mod above it (the top when there is none: a mod
+-- unpinned from Load first lands at the top of the middle)
+local function sectionize(M, I, lo, auto)
+    local sec = {}
+    if not O.hasSeps(lo) then
+        if auto then M = O.ruleOrder(I, M) end
+        for _, id in ipairs(M) do sec[id] = 0 end
+        return M, sec
+    end
+    local mem, known = O.secMembers(lo), O.secIndex(lo)
+    local lastKnown = 0
+    for k, id in ipairs(M) do if mem[id] and known[mem[id]] then lastKnown = k end end
+    local lastUid = lo.seps[#lo.seps].uid
+    local cur = 0
+    local buckets = { [0] = {} }
+    for _, sp in ipairs(lo.seps) do buckets[sp.uid] = {} end
+    for k, id in ipairs(M) do
+        local s = mem[id]
+        if s and known[s] then cur = s
+        elseif k > lastKnown then s = lastUid
+        else s = cur end
+        sec[id] = s
+        local b = buckets[s]
+        b[#b + 1] = id
+    end
+    local out = {}
+    local function add(b)
+        if auto and #b > 1 then b = O.ruleOrder(I, b) end
+        for _, id in ipairs(b) do out[#out + 1] = id end
+    end
+    add(buckets[0])
+    for _, sp in ipairs(lo.seps) do add(buckets[sp.uid]) end
+    return out, sec
+end
+
+-- the separators' lists brought up to date from the order (once per change): each section's mods
+-- that are on, in order, with its mods that are off kept where they were (after the mod that was
+-- above them). A pinned mod belongs to no section while it is pinned.
+function O.secSync(lo, order, zone, sec)
+    if not lo then return end
+    if not O.hasSeps(lo) then lo.top = {}; return end
+    local onSet, mine = {}, {}
+    for _, id in ipairs(order) do onSet[id] = true end
+    local lists = { [0] = {} }
+    for _, sp in ipairs(lo.seps) do lists[sp.uid] = {} end
+    for _, id in ipairs(order) do
+        if (zone[id] or 2) == 2 then
+            local l = lists[(sec and sec[id]) or 0] or lists[0]
+            l[#l + 1] = id
+            mine[id] = l
+        end
+    end
+    local seen = {}
+    local function merge(old, cur)
+        local front, after = {}, {}
+        local anchor = nil
+        for _, id in ipairs(old or EMPTY) do
+            if onSet[id] then
+                if mine[id] == cur then anchor = id end
+            elseif not seen[id] then
+                seen[id] = true
+                if anchor then
+                    local t = after[anchor]
+                    if not t then t = {}; after[anchor] = t end
+                    t[#t + 1] = id
+                else
+                    front[#front + 1] = id
+                end
+            end
+        end
+        local out = front
+        for _, id in ipairs(cur) do
+            out[#out + 1] = id
+            for _, x in ipairs(after[id] or EMPTY) do out[#out + 1] = x end
+        end
+        return out
+    end
+    lo.top = merge(lo.top, lists[0])
+    for _, sp in ipairs(lo.seps) do sp.ids = merge(sp.ids, lists[sp.uid]) end
+end
+
+-- the order regrouped section by section in the separators' order (after a separator moved)
+function O.secGroup(order, zone, sec, lo)
+    local idx = O.secIndex(lo)
+    local F, L, B = {}, {}, {}
+    for k = 0, #(lo and lo.seps or EMPTY) do B[k] = {} end
+    for _, id in ipairs(order) do
+        local z = zone[id] or 2
+        if z == 1 then F[#F + 1] = id
+        elseif z == 2 then
+            local b = B[idx[(sec and sec[id]) or 0] or 0]
+            b[#b + 1] = id
+        else L[#L + 1] = id end
+    end
+    local out = {}
+    for _, id in ipairs(F) do out[#out + 1] = id end
+    for k = 0, #(lo and lo.seps or EMPTY) do for _, id in ipairs(B[k]) do out[#out + 1] = id end end
+    for _, id in ipairs(L) do out[#out + 1] = id end
+    return out
+end
+
+-- the game's order made ready for laying out: the mods the separators hold in their lists'
+-- order (a mod turned off and on again goes back to its place, spec 7.5), the others where
+-- they were (above the first held one, or after them all: a mod newly on goes to the end)
+function O.seqFrom(lo, ids)
+    if not O.hasSeps(lo) then return ids end
+    local mem = O.secMembers(lo)
+    local on, seen = {}, {}
+    for _, id in ipairs(ids) do on[id] = true end
+    local out, firstAt = {}, nil
+    for k, id in ipairs(ids) do if mem[id] ~= nil then firstAt = k; break end end
+    for k, id in ipairs(ids) do
+        if firstAt and k >= firstAt then break end
+        out[#out + 1] = id; seen[id] = true
+    end
+    local function add(id) if on[id] and not seen[id] then seen[id] = true; out[#out + 1] = id end end
+    for _, id in ipairs(lo.top or EMPTY) do add(id) end
+    for _, sp in ipairs(lo.seps) do for _, id in ipairs(sp.ids or EMPTY) do add(id) end end
+    for _, id in ipairs(ids) do add(id) end
+    return out
+end
+
+-- a saved entry's order cut into its sections, for the Profiles page: { { sep = <sep or nil>,
+-- ids = { ... } } }, the top first; nil when it has no separator
+function O.sectionRuns(e, order)
+    if not O.hasSeps(e) then return nil end
+    local mem, known = O.secMembers(e), O.secIndex(e)
+    local runs = { { sep = nil, ids = {} } }
+    local at = { [0] = runs[1] }
+    for _, sp in ipairs(e.seps) do
+        local r = { sep = sp, ids = {} }
+        runs[#runs + 1] = r
+        at[sp.uid] = r
+    end
+    local lastKnown = 0
+    for k, id in ipairs(order) do if mem[id] and known[mem[id]] then lastKnown = k end end
+    local cur = runs[1]
+    for k, id in ipairs(order) do
+        local r = mem[id] and at[mem[id]]
+        if r then cur = r elseif k > lastKnown then r = runs[#runs] else r = cur end
+        r.ids[#r.ids + 1] = id
+    end
+    return runs
+end
+
 function O.layout(order, I, lo, auto)
     O.stats.layouts = O.stats.layouts + 1
     lo = lo or O.copyLo(nil)
@@ -431,8 +663,9 @@ function O.layout(order, I, lo, auto)
     local L, inL, pinL = lastBlock(order, I, lo, on, helper, inF)
     local M = {}
     for _, id in ipairs(order) do if not inF[id] and not inL[id] and id ~= helper then M[#M + 1] = id end end
+    local sec
+    M, sec = sectionize(M, I, lo, auto)
     if auto then
-        M = O.ruleOrder(I, M)
         if #F > 1 then F = O.ruleOrder(I, F); lo.first = pinsFollow(lo.first, F, pinF) end
         if #L > 1 then L = O.ruleOrder(I, L); lo.last = pinsFollow(lo.last, L, pinL) end
     end
@@ -442,13 +675,14 @@ function O.layout(order, I, lo, auto)
     for _, id in ipairs(L) do out[#out + 1] = id; zone[id] = 3; if not pinL[id] then carried[id] = true end end
     if hasHelper then out[#out + 1] = helper; zone[helper] = 4 end
     -- your rules, oldest first, inside a block (a rule across blocks is kept or not by the blocks)
+    -- and inside a section (a rule across separators is kept or not: its row says so, spec 3.5)
     for _ = 1, 2 do
         for _, r in ipairs(lo.rules) do
             local za, zb = zone[r.id], zone[r.other]
-            if za and za == zb and za ~= 4 then O.place(out, I, r.id, r.how, r.other) end
+            if za and za == zb and za ~= 4 and (za ~= 2 or sec[r.id] == sec[r.other]) then O.place(out, I, r.id, r.how, r.other) end
         end
     end
-    return out, zone, carried
+    return out, zone, carried, sec
 end
 
 -- ----------------------------------------------------------------------------
