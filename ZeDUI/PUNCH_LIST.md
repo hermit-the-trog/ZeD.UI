@@ -810,6 +810,18 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     - mhd (product): Undo after a separator went off lost The Only Cure+ (one mod at a time, the msp 3d cause by
       another path). One shared batch (modsOnBatch / applyOnSet) for the separator box, Undo and Back, the
       folder box, Discard and Undo changes, All on / No mods and loading a profile (exactly). 9133b08
+    - rst, second look (product; the 09:17 re-run still had "the Fedora worn" and "casual: done"). Not the
+      load: since the additions presets (t14) the regression runs with Put things back on, which noted
+      Restock's queue as a run (the hat's move in, then the wear as its main action) and, once the hat was on,
+      took it off and back to the crate; Casual kept that job and never finished. Restock queues as ZeD's own
+      moves; Put things back leaves on what a run put on or hung on the belt; Casual ends with a reason instead
+      of waiting ("Stopped: you carry all you can", "Stopped: the rest in reach could not be taken"). The
+      capacity 8.0: god mode skips the game's own working out of it (BodyDamage.UpdateStrength), so a session
+      in god mode from the load keeps the starting 8; the test works it out at the fixture (18) and checks a
+      Casual run over a lowered limit ends "full". 4509a28
+    - px, second look (test): the card opened and drew; the test looked for it at w._drawerPanel._itemCard
+      (it is win._itemCard). Its row is selected as a click or A does, and the three mark chips checked on
+      the card. b440d12
     - Re-run: rtv, p336, rst, px, mhd, msp, mfo, mlo; a pad pass on the main-menu pages' questions.
 
 ## Test process
