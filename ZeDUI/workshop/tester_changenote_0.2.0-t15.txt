@@ -1,0 +1,26 @@
+0.2.0-t15: changes since 0.2.0-t14.
+
+Mods screen
+- Folders on the Mods page. ZeD reads and saves the same ModFolders.cfg as [B42]Mod Folders by FieClaussell, so folders made in either show in both, and they stay if you play without ZeD. A folder's box turns all its mods on or off; mods in no folder are listed under Unfiled. Folders never change the load order. Thanks to FieClaussell for the format; support their mod on its Workshop page.
+- Separators in the load order: name a block of mods, collapse it, move it with its mods, or turn the whole block off and back on in place. Separators are kept with the list and with each profile. Auto sorts inside each separator and never moves a mod across one. Start separators from your folders in one step.
+- Find in the load order shows only the matches, each with its real place number, and counts the mods in between. Show in the full list goes back to the whole order.
+- Load first and Load last pin a mod to either end; what a pinned mod needs comes along with it.
+- Load after... and Load before... keep a rule: Auto and profile loads keep it. A rule that would make a circle is greyed, with the reason.
+- Long lists are much faster: the order is worked out once per change instead of every frame, and only the rows in sight are drawn.
+- Lines ZeD does not understand in its profile file or in ModFolders.cfg are kept as they are.
+
+Immersive Searching
+- Support for Immersive Searching by キツネユキ (yuckyfox). Unsearched containers show its "?" in ZeD's container strips, a container's list shows things as the search finds them, and Take all and the other moves wait until the search is done. Search all appears in the button row when the mod's sandbox option allows it. The searching itself is still the mod's; support it on its Workshop page.
+
+Text
+- Simplified Chinese draws in Noto Sans SC (SIL Open Font License; credited in the licence and the README). Folder and mod names in Chinese show whole. Japanese keeps the game's Japanese face.
+
+Small screens (Steam Deck, 720p)
+- ZeD setup's UI scale stops at the largest size that fits the screen; bigger sizes are dimmed, with the reason. A larger size saved on a bigger monitor is kept and comes back there.
+- Craft: the amount turns into one box when there is no room for the arrows, and the controller still reaches it.
+- Equip: slot words shorten before an item's name is cut.
+- Skills: one column when two would cut the names.
+- The ID card turns into a portrait card when narrow; the Maps header folds its stamps first.
+- With a controller, every tab keeps its stops while the tab drawer fills the window.
+
+Testers wanted: big mod lists. If you run hundreds of mods, try the Load order page (Find, separators, rules) and tell us in Bug reports how it holds up.
