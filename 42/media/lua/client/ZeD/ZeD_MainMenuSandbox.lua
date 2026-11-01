@@ -510,10 +510,10 @@ end
 function ZeD_MMSandbox:loadPreset(i)
     local s = sand()
     if not s then return end
+    self:setConfirm(false)   -- (through setConfirm: the stop it was asked from comes back, _backFocus cleared)
     self:endCell()
     s.presetList.selected = i
     s:onPresetChange()
-    self.confirm = false
     self:refreshDiff(true)
     MM.clickSound()
 end

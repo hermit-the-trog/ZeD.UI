@@ -345,7 +345,7 @@ end
 function ZeD_MMWorkshop:upload()
     local it = self:item()
     if not it or self.busy then return end
-    self.confirm = false
+    self:setConfirm(false)
     if not self:freshOk() then return end
     self:apply()
     writeItem(it)                     -- (the note stays kept until Steam says it went up)
@@ -733,12 +733,12 @@ function ZeD_MMWorkshop:buildStrip(stripY, stripH, w)
             { "confirm:cancel", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
             { "confirm:no", ZeD.tr("UI_ZeD_MMWord_DiscardChanges"), function()
                 for _, x in ipairs(self.items) do pcall(function() x:readWorkshopTxt() end) end
-                self.unsaved = {}; self.confirm = false; MM.clickSound(); MM.showView("main") end, "danger" },
+                self.unsaved = {}; self:setConfirm(false); MM.showView("main") end, "danger" },   -- (setConfirm clicks)
             { "confirm:yes", getText("UI_btn_save"), function()
                 self:apply()
                 for _, x in ipairs(self.items) do if self.unsaved[x:getFolderName()] or x == self:item() then writeItem(x) end end
                 keepSave()
-                self.unsaved = {}; self.confirm = false; MM.clickSound(); MM.showView("main") end, "primary" } },
+                self.unsaved = {}; self:setConfirm(false); MM.showView("main") end, "primary" } },
             ZeD.tr("UI_ZeD_Workshop_AskSave"))
     else
         -- (Oct 22 2026: was `it and self:blocker() or ...`, which read "Nothing to upload" whenever

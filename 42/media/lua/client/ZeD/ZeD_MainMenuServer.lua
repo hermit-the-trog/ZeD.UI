@@ -1068,11 +1068,11 @@ function ZeD_MMServer:act(what)
         if what == "save" then
             local sp = self:customPanel("SpawnRegionsPanel")
             if sp then sp.listbox.currentItem = nil end   -- the list holds the regions' values (vanilla's row fields are not in use)
-            self.confirm = false
+            self:setConfirm(false)   -- (through setConfirm: _backFocus cleared)
             pe:onButtonSave()
         elseif what == "back" then
             if self:anyChanged() and self.confirm ~= "discard" then self:setConfirm("discard"); return end
-            self.confirm = false
+            self:setConfirm(false)
             pe:onButtonCancel()
         end
     elseif m == "points" then
