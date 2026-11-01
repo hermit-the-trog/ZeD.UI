@@ -789,6 +789,29 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
       Still open: the scripted hand checks with the handlers the build sent (right-click, keys, clicks, pad), and
       1,500 mods; drag needs the real mouse.
 
+42. **t15 pre-upload fixes (the 4K regression of Nov 1 2026, 95 / 99, and the hand check mhd).** built, waiting for QA.
+    - rtv FAIL (product): a mains set with no square (a house tile's CustomItem, a TV item on the floor or in a
+      bag) reached DeviceData:canBePoweredHere, which asks its parent's square: a Java NPE every frame (logged
+      under -debug even inside pcall). RadioOps.canBePoweredHere / poweredHere guard it (batteries and car parts
+      keep vanilla's path); the TV, two-way and old radio displays, the power key and ToggleOnOff use them. The
+      antique's "snow (standby)" was the test: its dial test left it on stop 1, so tuning to stop 1 was no change
+      (no snow, rightly); the screens pass now starts off the first stop. 312317d
+    - p336 WARN (test): no ZeD code on the generator path changed since t14; the staging spot moved (876,13018,
+      t14 876,13003) and the generator two squares up could sit across a wall, so the walk to it never ended.
+      The spot now needs both steps in reach; a start that never finishes prints the queue. da81d77
+    - rst WARN (test): the QA character's load grows run over run (12.5 of 18 at t12, 32.3 at t15: books, CDs);
+      all three fails began the run it went over the limit. The test sets aside what is loose and in the worn
+      bags for the run. fe7d473
+    - px WARN (test): the card step took the first item isEquipped did not count, a worn one, with the Character
+      window closed. It now opens the window, uses its own loose screwdriver and checks the card shows it. d94dde2
+    - Mods page pad (product): B on the leave question left the focus on nothing (back() named no button).
+      setConfirm keeps the stop a question came from; the same on Sandbox, Options, Looks, Traits, Server, Host
+      and Workshop. 7bca987
+    - mhd (product): Undo after a separator went off lost The Only Cure+ (one mod at a time, the msp 3d cause by
+      another path). One shared batch (modsOnBatch / applyOnSet) for the separator box, Undo and Back, the
+      folder box, Discard and Undo changes, All on / No mods and loading a profile (exactly). 9133b08
+    - Re-run: rtv, p336, rst, px, mhd, msp, mfo, mlo; a pad pass on the main-menu pages' questions.
+
 ## Test process
 
 - The release check (before every upload, about 5 minutes, pass or fail): right-click opens the
