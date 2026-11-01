@@ -924,6 +924,10 @@ function ZeD_MMMods:fieldEnter()
     elseif (c == "fnew" or c == "frename") and self.folderFieldEnter then self:folderFieldEnter(c) end
 end
 
+-- The answer the controller lands on when a question opens (the director, Nov 1 2026): a question that
+-- can lose or write work lands on the answer that stays; Discard, Save, Delete need a deliberate move.
+local SAFE_ANSWER = { back = "confirm:no", delete = "confirm:no", update = "confirm:no", reset = "confirm:no",
+                      fdelete = "confirm:no", turnoff = "confirm:keep", sreplace = "confirm:no" }
 function ZeD_MMMods:setConfirm(mode)
     if self.confirm == mode then return end
     -- (a question opened from no question: the controller's stop it was asked from, for B to come back to; a caller that
@@ -943,7 +947,7 @@ function ZeD_MMMods:setConfirm(mode)
         if self.field:isFocused() then self.field:unfocus() end
     end
     -- (leaving a question the pane asked: the controller goes back to the button that asked it)
-    self.focusId = mode and "confirm:yes" or self._backFocus
+    self.focusId = mode and (SAFE_ANSWER[mode] or "confirm:yes") or self._backFocus
     if not mode then self._backFocus = nil end
 end
 
@@ -1014,7 +1018,7 @@ function ZeD_MMMods:buildStrip(stripY, stripH, w)
     if self.confirm == "back" then
         -- Cancel stays; Discard changes drops what was done; Keep (vanilla's word) goes on with it
         UI.stripSpecs(self, stripY, w, row, {}, {
-            cancel,
+            { "confirm:no", ZeD.tr("UI_ZeD_MMWord_KeepEditing"), function() self:setConfirm(false) end, "default", false, ZeD.tr("UI_ZeD_MMHelp_KeepEditing") },
             { "confirm:discard", ZeD.tr("UI_ZeD_MMWord_DiscardChanges"), function() self:discard() end, "danger", false, ZeD.tr("UI_ZeD_MMHelp_DiscardChanges") },
             { "confirm:yes", getText("ContextMenu_Keep"), function() self:accept() end, "primary" } },
             ZeD.tr("UI_ZeD_Mods_AskKeep"))

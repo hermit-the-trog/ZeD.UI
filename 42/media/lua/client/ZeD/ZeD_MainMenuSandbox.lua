@@ -558,6 +558,9 @@ function ZeD_MMSandbox:commitText()
     if self.confirm == "save" then self:savePreset() end
 end
 
+-- The answer the controller lands on when a question opens (the director, Nov 1 2026): a question that
+-- can lose or write work lands on the answer that stays; Discard, Save, Delete need a deliberate move.
+local SAFE_ANSWER = { load = "confirm:no", delete = "confirm:no" }
 function ZeD_MMSandbox:setConfirm(mode)
     if self.confirm == mode then return end
     -- (B on a question goes back to the stop it was asked from, the director's rule; t15 pre-upload)
@@ -574,7 +577,7 @@ function ZeD_MMSandbox:setConfirm(mode)
         self.field:setVisible(false)
         if self.field:isFocused() then self.field:unfocus() end
     end
-    self.focusId = mode and "confirm:yes" or self._backFocus
+    self.focusId = mode and (SAFE_ANSWER[mode] or "confirm:yes") or self._backFocus
     if not mode then self._backFocus = nil end
 end
 
@@ -586,7 +589,7 @@ function ZeD_MMSandbox:buildStrip(stripY, stripH, w)
         local s = sand()
         local name = s and comboText(s.presetList, self._pending or 1) or ""
         UI.stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
+            { "confirm:no", ZeD.tr("UI_ZeD_MMWord_KeepEditing"), function() self:setConfirm(false) end, "default", false, ZeD.tr("UI_ZeD_MMHelp_KeepEditing") },
             { "confirm:yes", getText("UI_mainscreen_load"), function() self:loadPreset(self._pending or 1) end, "primary" } },
             ZeD.tr("UI_ZeD_Sandbox_AskLoad", name))
     elseif self.confirm == "delete" then

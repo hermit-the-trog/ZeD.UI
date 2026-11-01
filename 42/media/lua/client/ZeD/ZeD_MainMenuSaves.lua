@@ -441,7 +441,7 @@ function ZeD_MMLoad:setConfirm(mode)
         self.renameEntry:setVisible(false)
         if self.renameEntry:isFocused() then self.renameEntry:unfocus() end
     end
-    if mode == "delete" then self.focusId = "confirm:yes"
+    if mode == "delete" then self.focusId = "confirm:no"   -- (a question that loses work lands on Cancel, Nov 1 2026)
     elseif mode == "rename" then self.focusId = "confirm:no"
     else self.focusId = self.sel and ("save:" .. self.sel) or "back" end
 end

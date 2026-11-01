@@ -333,6 +333,9 @@ function ZeD_MMJoin:deleteAccount(account)
     self.sel = nil
 end
 
+-- The answer the controller lands on when a question opens (the director, Nov 1 2026): a question that
+-- can lose or write work lands on the answer that stays; Discard, Save, Delete need a deliberate move.
+local SAFE_ANSWER = { delServer = "confirm:no", forget = "confirm:no", delAccount = "confirm:no" }
 function ZeD_MMJoin:setConfirm(mode)
     if self.confirm == mode then return end
     self.confirm = mode
@@ -345,7 +348,7 @@ function ZeD_MMJoin:setConfirm(mode)
         self.field:setVisible(false)
         if self.field:isFocused() then self.field:unfocus() end
     end
-    self.focusId = mode and "confirm:yes" or self.focusId
+    self.focusId = mode and (SAFE_ANSWER[mode] or "confirm:yes") or self.focusId
 end
 
 -- FORMS ------------------------------------------------------------------------------

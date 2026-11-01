@@ -771,6 +771,9 @@ function ZeD_MMOptions:openVanillaController(page)
     pcall(function() o.tabs:activateView(getText("UI_optionscreen_controller")) end)
 end
 
+-- The answer the controller lands on when a question opens (the director, Nov 1 2026): a question that
+-- can lose or write work lands on the answer that stays; Discard, Save, Delete need a deliberate move.
+local SAFE_ANSWER = { back = "confirm:no", discard = "confirm:no" }
 function ZeD_MMOptions:setConfirm(mode)
     if self.confirm == mode then return end
     -- (B on a question goes back to the stop it was asked from, the director's rule; t15 pre-upload)
@@ -782,7 +785,7 @@ function ZeD_MMOptions:setConfirm(mode)
         if self.field:isFocused() then self.field:unfocus() end
     end
     if mode ~= "key" then self:stopCapture() end
-    self.focusId = mode and "confirm:yes" or self._backFocus
+    self.focusId = mode and (SAFE_ANSWER[mode] or "confirm:yes") or self._backFocus
     if not mode then self._backFocus = nil end
 end
 
@@ -1712,7 +1715,7 @@ function ZeD_MMOptions:buildStrip(stripY, stripH, w)
         local ask = (n == 1) and ZeD.tr("UI_ZeD_Options_AskDiscardOne") or ZeD.tr("UI_ZeD_Options_AskDiscardMany", math.max(n, 1))
         local go = (self.confirm == "back") and function() self:discard() end or function() self:discardStay() end
         UI.stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
+            { "confirm:no", ZeD.tr("UI_ZeD_MMWord_KeepEditing"), function() self:setConfirm(false) end, "default", false, ZeD.tr("UI_ZeD_MMHelp_KeepEditing") },
             { "confirm:yes", discardWord, go, "danger", false, ZeD.tr("UI_ZeD_MMHelp_DiscardChanges") } }, ask)
     elseif self.confirm == "monitor" then
         local left = math.max(0, math.ceil(((self._monitorUntil or 0) - MM.now()) / 1000))
