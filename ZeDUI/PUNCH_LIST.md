@@ -1052,6 +1052,14 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
         no landing in the inventory) and wpt; the pad map at its next run (a few expected moves may read
         differently: a Down that used to leave a column sideways now stays).
 
+43. **Foraging finds: the compass letter is wrong (QA, Nov 1 2026, found while staging the gallery retake).** open.
+    `ForagingTab.lua`: `angleToBearing` takes a maths angle (0 = east, 90 = north) and reads the COMPASS table from
+    N at index 1, so a find due east is labelled N, north-east NE, due north E, and the ring runs the wrong way round
+    (N, NE, E, SE... as the angle turns anticlockwise). Seen by reading the code (lines 126-131 and 1302-1304), not yet
+    in a capture. A find's "12 tiles NE" in the list would send the player the wrong way. Ways: (1) map the maths angle
+    to the compass index (north = 0 at the top, clockwise: index = floor(((90 - deg) mod 360 + 22.5) / 45) + 1); (2)
+    drop the letter and keep the distance. Build's call; a QA check can stage a find at a known square after.
+
 ## Test process
 
 - The release check (before every upload, about 5 minutes, pass or fail): right-click opens the
