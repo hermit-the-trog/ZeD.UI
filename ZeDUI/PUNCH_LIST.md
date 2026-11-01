@@ -526,6 +526,18 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     folder changes made in ZeD are written back to the same file, so the layout is the same with or without ZeD;
     (b) keep it as it is and answer in the Compatibility thread with what ZeD's Mods screen offers; (c) a folder
     feature of ZeD's own, separate from that file. Credit the maker either way.
+    **chosen (director, Oct 31: "Do both? Separators for organizing lists. and folders for organizing mods outside
+    of lists." then "Yes, record it"): both, kept apart.**
+    - Folders sort the collection: every installed mod, on or off. They read and write Zomboid/Lua/ModFolders.cfg,
+      so a player's Mod Folders layout shows in ZeD and stays the same without ZeD. A folder never changes what is on
+      or the load order; its on / off button turns its mods on or off, as Mod Folders' own does.
+    - Separators sort the load order (MO2-style): headings inside the list of mods that are on, where a mod's place
+      under a separator is its place in the order. Saved with each ZeD profile. Turning a separator off turns off
+      every mod under it.
+    - A mod's folder and its separator are independent; the screen must make clear which list you are in.
+    - A new profile can start its separators from the folders with one button.
+    - Build to write the plain rules and a mockup for the director before building; credit FieClaussell in the
+      Compatibility thread.
 
 ## Test process
 
