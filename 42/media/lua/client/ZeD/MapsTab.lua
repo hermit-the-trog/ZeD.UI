@@ -1348,14 +1348,23 @@ end
 
 -- The full set of marks under row one (the disclosure open), on surface 1 with
 -- a content line on top; returns its height.
-local function _markGrid(panel, win, x, gy, w, pins, why, focId, hov)
+-- noteFolded: the header had no room for the note ("Aa"); it leads the full set then
+-- (the header's stop, not a pinnable copy; noteWhy: why it cannot be used)
+local function _markGrid(panel, win, x, gy, w, pins, why, focId, hov, noteFolded, noteWhy)
     local T = ZeD.T
     local bs, gap = T.buttonH, T.px(MAP_ICON_BTN_GAP)
     local maxCols = math.max(1, math.floor((w - T.px(8)) / (bs + gap)))
-    local h = math.ceil(#MAP_ICONS / maxCols) * (bs + gap) + gap
+    local n = #MAP_ICONS + (noteFolded and 1 or 0)
+    local h = math.ceil(n / maxCols) * (bs + gap) + gap
     ZeD.Atoms.surfaceFill(panel, x, gy, w, h, "surf1")
     ZeD.Atoms.drawDividerH(panel, x, gy, w, false)
     local col, row = 0, 0
+    if noteFolded then
+        _toolButton(panel, win, "text", _textGlyph("Aa"), "UI_ZeD_Map_NoteDefault", x + T.px(4), gy + gap, bs,
+            "map:tool:text", focId, noteWhy, false, false, hov)
+        col = 1
+        if col >= maxCols then col, row = 0, 1 end
+    end
     for _, icon in ipairs(MAP_ICONS) do
         local bx = x + T.px(4) + col * (bs + gap)
         local by = gy + gap + row * (bs + gap)
@@ -1401,7 +1410,9 @@ local function renderMapToolbar(panel, win, x, y, w)
     -- What fits left of full view (Oct 31 2026, break-it E6: at 1280x720, UI scale 2.0,
     -- Large text the row ran under full view). The stamps close up their spaces first;
     -- then pinned stamps fold away from the end (each is still in the full set under
-    -- the fold arrow); then inks from the end, then the note. Nothing is half drawn.
+    -- the fold arrow); then the note ("Aa", it leads the full set then); the inks go
+    -- last, from the end, and the ink in use never goes (Oct 31 2026, punch list 36, the
+    -- director's pick: the ink in use always shows). Nothing is half drawn.
     local nPins, nInk = 0, #MAP_COLORS
     for _, pid in ipairs(pins) do if MAP_ICON_BY_ID[pid] then nPins = nPins + 1 end end
     local chevW = math.max(T.px(8), math.floor(ZeD.TM:getFontHeight(T.fontF1) * 0.7)) + T.px(6)
@@ -1410,8 +1421,13 @@ local function renderMapToolbar(panel, win, x, y, w)
     local sGap, showNote = btnGap, true
     if _toolRowW(bs, btnGap, inkW, sGap, nPins, nInk, true) > room then sGap = T.px(1) end
     while nPins > 0 and _toolRowW(bs, btnGap, inkW, sGap, nPins, nInk, true) > room do nPins = nPins - 1 end
-    while nInk > 0 and _toolRowW(bs, btnGap, inkW, sGap, 0, nInk, true) > room do nInk = nInk - 1 end
-    if nInk == 0 and _toolRowW(bs, btnGap, inkW, sGap, 0, 0, true) > room then showNote = false end
+    if _toolRowW(bs, btnGap, inkW, sGap, 0, nInk, true) > room then showNote = false end
+    while nInk > 1 and _toolRowW(bs, btnGap, inkW, sGap, 0, nInk, false) > room do nInk = nInk - 1 end
+    if _toolRowW(bs, btnGap, inkW, sGap, 0, nInk, false) > room then nInk = 0 end
+    -- the inks shown: the first nInk, the last of them swapped for the ink in use when
+    -- that one is further along
+    local inkUse = win._mapActiveColor or 1
+    local _, textWhy = _toolAllowed("text", ink)
 
     -- Row one: the disclosure, the pinned marks, the note, a line, the inks
     local curX = x + T.px(4)
@@ -1427,7 +1443,6 @@ local function renderMapToolbar(panel, win, x, y, w)
     end
     curX = curX + sGap
     if showNote then
-        local _, textWhy = _toolAllowed("text", ink)
         _toolButton(panel, win, "text", _textGlyph("Aa"), "UI_ZeD_Map_NoteDefault", curX, by, bs, "map:tool:text", focId, textWhy, false, false, hov)
         curX = curX + bs + btnGap * 2
         -- a content line between the tools and the inks
@@ -1435,7 +1450,9 @@ local function renderMapToolbar(panel, win, x, y, w)
         curX = curX + T.hair + btnGap * 2
     end
     local colY = y + math.floor((rowH - colSz) / 2)
-    for ci = 1, nInk do
+    for k = 1, nInk do
+        local ci = k
+        if k == nInk and inkUse > nInk and inkUse <= #MAP_COLORS then ci = inkUse end
         _swatch(panel, win, ci, curX, colY, colSz, ink, focId, hov)
         curX = curX + colSz + btnGap
     end
@@ -1448,7 +1465,7 @@ local function renderMapToolbar(panel, win, x, y, w)
     local totalH = rowH
 
     if win._mapToolsExpanded then
-        totalH = totalH + _markGrid(panel, win, x, y + totalH, w, pins, markWhy, focId, hov)
+        totalH = totalH + _markGrid(panel, win, x, y + totalH, w, pins, markWhy, focId, hov, not showNote, textWhy)
         -- an extension's row under the mark grid (Map Symbol Size Slider)
         totalH = totalH + Ext.drawRows(panel, win, x, y + totalH, w, "gridRow", focId)
     end
