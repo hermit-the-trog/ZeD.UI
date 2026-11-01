@@ -12,6 +12,10 @@
 -- zedqa_deep_run.lua first for all of them), Craft at an oven, the Radio tab with a walkie (Character) and a
 -- ham set (World), the Maps tab and its pop-out; then a window held in (room for less than the full card),
 -- where every tab must be the half card. All put back. grep "ZEDQA tww".
+-- The room rule (Nov 1 2026, punch list 42 a.): beside a full card the inventory gives way first, from its
+-- 200 units down to 180; a tab is the half card only when the full card does not fit with 180 units of
+-- inventory and the two strips inside the half-screen cap. On the Steam Deck (1280x800) that keeps the full
+-- card at Normal and Large text; the held-in case below leaves room for 300 units of drawer, under both.
 local p = getPlayer()
 local pn = p:getPlayerNum()
 local Focus = ZeD.Input.Focus

@@ -127,6 +127,13 @@ local TAB_SEP_MAR  = 0
 local ITEM_CARD_W       = 220
 local DRAWER_W          = ITEM_CARD_W
 local SKILLS_DRAWER_W   = 480
+-- The inventory's minimum width beside an open full card (director, Nov 1 2026, punch list 42 a.: "the
+-- inventory gives way first"). The inventory alone keeps its 200-unit minimum; beside a full card it may go
+-- down to this when half the screen leaves it no more (it scrolls anyway). On the Steam Deck with Large text
+-- the full card, the two strips and 200 units of inventory are 9 px over the half-screen cap; with 180 they
+-- fit, so the Deck keeps the full card (the doll's bands, the radios' and machines' full faces). Only below
+-- this does a tab drop to the half card. ZeD.Scale.FIT_W_UNITS (the UI scale cap) uses the same number.
+local INV_MIN_BESIDE_CARD = 180
 local DRAWER_SPEED      = 8    -- units/sec, matches CharacterDrawer pattern
 local DRAWER_PX_SPEED   = 260 * DRAWER_SPEED  -- ~2080 design units/sec; scaled at use (T.px(DRAWER_PX_SPEED) * dt)
 local CONTAINER_STRIP_W = 36
@@ -283,9 +290,10 @@ local function getTargetDrawerW(win)
             local half, full = T.px(DRAWER_W), T.px(SKILLS_DRAWER_W)
             -- The window is capped at half the screen, so on a small screen or a
             -- large text size a full card would squeeze the inventory beside it
-            -- below its 200-unit minimum. Where the full card does not fit with the
-            -- inventory's minimum (it scrolls), the tab gets the half card, never a
-            -- width in between. Multi-column Loot lifts the cap, so it is left alone there.
+            -- below its minimum. The inventory gives way first, down to INV_MIN_BESIDE_CARD
+            -- (it scrolls anyway); where even that does not fit with the full card, the
+            -- tab gets the half card, never a width in between. Multi-column Loot lifts the
+            -- cap, so it is left alone there.
             -- (A rolled side (WindowCurtain) keeps the cap: the drawer stays as wide as it
             -- was, so a roll and an unroll only take the side away and give it back. Lifting
             -- the cap while rolled widened the drawer, shoved the window against the screen
@@ -293,7 +301,7 @@ local function getTargetDrawerW(win)
             local heldIn = false
             if win._invDrawerOpen and #(win._mcSelected or {}) == 0 then
                 local maxW = win._maxWinW or math.floor(getCore():getScreenWidth() * 0.5)
-                heldIn = maxW - T.px(TAB_STRIP_W) - T.px(CONTAINER_STRIP_W) - T.px(200) < full
+                heldIn = maxW - T.px(TAB_STRIP_W) - T.px(CONTAINER_STRIP_W) - T.px(INV_MIN_BESIDE_CARD) < full
             end
             -- a two-way radio: a walkie's tab is the half card wherever one of its widths fits it (Oct 30 2026,
             -- punch list item 2), else the full card; a ham set's is the full card, or the card a walkie's width

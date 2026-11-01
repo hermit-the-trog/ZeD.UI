@@ -488,10 +488,13 @@ local function drawn(tag, m)
         if nm:find("/zed/wheel/", 1, true) then
             n = n + 1
             local _, want = W.iconTex("knife", c.active and on or rest)
-            if w ~= c.px or c.px ~= want then bad[#bad + 1] = string.format("%s: drawn %s px from a %s px drawing (want %d)", tostring(name):gsub("\n", "/"), tostring(c.px), tostring(w), want) end
+            -- pixel for pixel at 16 and up; a box under 16 (the Steam Deck: 12 at Normal text, 14 at Large)
+            -- draws the 16 scaled down, the library rule (director, Nov 1 2026, punch list 42 d.: keep it)
+            local okPx = (c.px == want) and (w == c.px or (want < 16 and w == 16))
+            if not okPx then bad[#bad + 1] = string.format("%s: drawn %s px from a %s px drawing (want %d%s)", tostring(name):gsub("\n", "/"), tostring(c.px), tostring(w), want, want < 16 and ", the 16 scaled" or "") end
         end
     end
-    check(n > 0 and #bad == 0, string.format("%s: %d wheel icons drawn pixel for pixel at the box's size%s", tag, n, #bad > 0 and (": " .. table.concat(bad, "; ")) or ""))
+    check(n > 0 and #bad == 0, string.format("%s: %d wheel icons drawn pixel for pixel at the box's size (under 16, the 16 scaled down)%s", tag, n, #bad > 0 and (": " .. table.concat(bad, "; ")) or ""))
     cells = nil
 end
 local function closeAll()
