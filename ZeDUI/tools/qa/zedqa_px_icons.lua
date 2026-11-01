@@ -6,7 +6,7 @@
 --      draw with no picture;
 --   2. a test panel: every icon in an icon button at rest, pointed at, lit, off and in the warning colour; the
 --      item card's mark strip wide and narrow, off and on; the chevrons at 5 to 16 units in four directions;
---   3. the real windows: the item card on the first thing in the bag with Fav and Dispose on (put back after),
+--   3. the real windows: the item card on the test's own screwdriver, its row selected, with Fav and Dispose on,
 --      and both container rows at the bottom of the lists.
 -- Copy to Zomboid/Lua/zedqa.lua, bump zedqa.go; grep "ZEDQA px"; captures Screenshots/zqa_px_*.png.
 local function say(s) print("ZEDQA px " .. tostring(s)) end
@@ -128,7 +128,22 @@ at(50, function()
     before = { fav = item:isFavorite(), dis = ZeD.ActionStrip.getState(item, "unwanted", 0) }
     item:setFavorite(true)
     ZeD.ActionStrip.setState(item, "unwanted", true, 0)
-    check(selectItem(item), "the card opened on " .. tostring(item:getDisplayName()))
+end)
+-- its row selected the way a player does (the row in the bag's list: a click or A), once the list has it
+at(58, function()
+    if not item then return end
+    local w = CW()
+    local how = nil
+    for _, z in ipairs(w and w._focusRing or {}) do
+        if z.zone == "charMainInv" then
+            for _, el in ipairs(z.elements or {}) do
+                if not how and el.item == item and el.onActivate then el.onActivate(w, el); how = "its row" end
+            end
+        end
+    end
+    if not how and selectItem(item) then how = "the selection (no row for it in the list)" end
+    say("selected by " .. tostring(how))
+    check(how ~= nil and w and w._drawerItem == item, "the card opened on " .. tostring(item:getDisplayName()))
 end)
 -- wait for the windows to stop moving, then shoot the card
 local still, last, waited = 0, nil, 0
@@ -139,7 +154,7 @@ local function poll(k)
     return still >= 30 or waited >= 900
 end
 local phase = "card"
-at(60, function() phase = "wait_card" end)
+at(62, function() phase = "wait_card" end)
 
 local k, i = 0, 1
 local function tick()
@@ -149,10 +164,22 @@ local function tick()
             if still < 30 then say("WARN the windows were still moving: captured anyway") end
             shot("card")
             local w = CW()
-            local r = w and w._drawerPanel and w._drawerPanel._itemCard and w._drawerPanel._itemCard.toggleRects
-            say("card toggle rects " .. tostring(r and #r))
-            local card = w and w._drawerPanel and w._drawerPanel._itemCard
-            check(card ~= nil and card.item == item, "the card shows the screwdriver (" .. tostring(card and card.item and card.item:getDisplayName()) .. ")")
+            -- (the card is the window's own, in the item drawer: win._itemCard; its mark chips' rects are
+            -- absolute, from the last frame drawn)
+            local card = w and w._itemCard
+            local r = card and card.toggleRects
+            local n, inside = 0, 0
+            for j = 1, 3 do
+                local t = r and r[j]
+                if t then
+                    n = n + 1
+                    local ax, ay = card:getAbsoluteX(), card:getAbsoluteY()
+                    if t.x >= ax and t.x + t.w <= ax + card:getWidth() and t.y >= ay and t.y + t.h <= ay + card:getHeight() then inside = inside + 1 end
+                end
+            end
+            say("card toggle rects " .. n .. ", on the card " .. inside)
+            check(card ~= nil and card:isVisible() and card.item == item, "the card shows the screwdriver (" .. tostring(card and card.item and card.item:getDisplayName()) .. ")")
+            check(n == 3 and inside == 3, "the card's three marks are drawn on it (" .. n .. ", " .. inside .. " on the card)")
             if item and before then
                 item:setFavorite(before.fav)
                 ZeD.ActionStrip.setState(item, "unwanted", before.dis, 0)
