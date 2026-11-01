@@ -1,0 +1,5 @@
+# Oct 31 2026: the director's layout picks at 1280x720, UI scale 2.0, Large text. zedqa_run.ps1 -Manifest this -Mode windowed -Width 1280 -Height 720
+zedqa_prelude.lua | pre | timeout=120
+zedqa_scale2.lua | sc2 | timeout=60
+zedqa_picks_large.lua | pkl | timeout=30
+zedqa_picks_recheck.lua | prc | timeout=300
