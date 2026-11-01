@@ -21,6 +21,7 @@ require "ZeD/ZeD_Panel"
 require "ZeD/SafeMode"
 require "ZeD/ZeD_TabPx"
 require "ZeD/InventoryRenderer"
+require "ZeD/ContainerGates"
 require "ZeD/ItemCard"
 require "ZeD/HealthTab"
 require "ZeD/SkillsTab"
@@ -5874,11 +5875,14 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 local cInv = cnt.inventory
                 local cWeight = cInv and round(cInv:getCapacityWeight(), 1) or 0
                 local cMax = cInv and round(cInv:getMaxWeight(), 1) or 0
-                local cItems = cInv and cInv:getItems() and cInv:getItems():size() or 0
+                -- (a mod's gate, ContainerGates.lua: only what it lets show is counted, and its words
+                -- stand for the weight; Immersive Searching's "Not searched" on a bag never searched)
+                local cItems = cInv and ZeD.ContainerGates.count(cInv, win._playerObj) or 0
                 self._containerInfo = {
                     name    = cnt.name,
                     texture = cnt.texture,
-                    stats   = ZeD.tr("UI_ZeD_Char_WeightOfMax", string.format("%.1f", cWeight), string.format("%.0f", cMax)),
+                    stats   = ZeD.ContainerGates.status(cInv, win._playerObj)
+                        or ZeD.tr("UI_ZeD_Char_WeightOfMax", string.format("%.1f", cWeight), string.format("%.0f", cMax)),
                     count   = (cItems == 1) and ZeD.tr("UI_ZeD_Char_ItemsOne", cItems) or ZeD.tr("UI_ZeD_Char_ItemsMany", cItems),
                 }
                 -- the help line's own words when the pointer is on nothing that has help
