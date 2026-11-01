@@ -591,6 +591,20 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
       Not done yet (needs the screen again): right-click menus, Ctrl / Shift-click, Page Up / Down, the pad on a
       folder row, frame rate with 1,500 mods, 1280x720.
     **Stage 3 separators built (0afb1ac, 8f70121, b828ebb), QA to confirm.** See item 41's note.
+    **Simplified Chinese font, director Nov 1 2026: built, QA to confirm.** The director approved shipping Noto Sans
+    SC Regular (Google / Adobe, SIL Open Font License 1.1; from github.com/notofonts/noto-cjk,
+    Sans/SubsetOTF/SC/NotoSansSC-Regular.otf, 8,331,336 bytes; the OTF is not in the repo). Baked by
+    ZeDUI/tools/fonts/bake_sdf_sc.py into the role faces' format (distance field, `type = sdf`) at a 32 px face,
+    spread 1.5: 42/media/fonts/sdf/notoSC.fnt + notoSC1-5.png, 4,171 glyphs (ASCII, Latin-1, the 3,755 GB2312
+    level-1 letters, GB2312 punctuation and full-width rows, CJK Symbols and Punctuation; no kana), 3.4 MB.
+    The EN / PL / RU font lists put it on Cred1 in place of the game's traditional face; ZeD.Text.scriptFont's
+    first Cred1 row (em 32, base 38, probe U+56FE) takes it, the game's face row stays as a fallback for a list
+    that still names it. Japanese keeps the game's face (DebugConsole). Limit: one face draws a whole string, so
+    a letter outside the set (rare or traditional) draws blank unless the Japanese face draws more of that
+    string. Licence: 42/media/fonts/sdf/NotoSansSC_OFL.txt; credit in LICENSE section 6, README, the t14
+    description's Fonts line. QA: zedqa_sc_font.lua (tag scf, in regression.txt): 地图 / 简体中文 / Café widths,
+    the count after the name, kana on the Japanese face, shot zqa_scf_draw.png; and look again at
+    zqa_mfo_01_grouped.png's folders (地图 whole, the count after it) at 1080p and 4K.
 38. **Pad stops not refreshed while the drawer fills the window.** Found by QA, Oct 31 2026 (1280x720, UI scale
     2.0, Large text; zedqa_picks_recheck.lua and zedqa_bands_probe.lua, 2026-10-31_2040 / _2049): the World
     window's open recipe had no card, amount box or Craft stops; the Character window's Health, Thermal, Identity,

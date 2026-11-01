@@ -62,7 +62,8 @@ font CodeLarge
 
 font Cred1
 {
-    fnt = zomboidMediumChinese.fnt,
+    fnt = sdf/notoSC.fnt,
+    type = sdf,
 }
 
 font MainMenu1

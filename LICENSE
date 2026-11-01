@@ -111,6 +111,12 @@ with the files:
     Telefonica S.A., licensed under the SIL Open Font License 1.1.
     https://openfontlicense.org
 
+  - Noto Sans SC (the simplified Chinese font textures,
+    42/media/fonts/sdf/notoSC*): copyright 2014-2021 Adobe, licensed under
+    the SIL Open Font License 1.1; the licence text is
+    42/media/fonts/sdf/NotoSansSC_OFL.txt.
+    https://github.com/notofonts/noto-cjk
+
   - Project Zomboid, its Lua, its scripts and its art: copyright The Indie
     Stone. Parts of this mod follow the game's own Lua as every mod does,
     under The Indie Stone's terms for mods. Nothing in this licence covers

@@ -532,10 +532,17 @@ end
 -- and set on the role's baseline. Decided once per string (kept, two generations), glyphs probed
 -- once per face. With the game's own fonts on the roles (Chinese, Japanese, Korean, Thai
 -- language; X.fallback) nothing changes: those already draw their language.
--- Not covered by the game's faces: Korean and Thai letters (no free slot), and the simplified
--- Chinese letters the game's Chinese face lacks (it is a traditional set; U+56FE, "map", is one).
+-- Not covered: Korean and Thai letters (no free slot).
+-- Simplified Chinese (director, Nov 1 2026): the game's Chinese face is a traditional set (U+56FE,
+-- the second letter of "map", drew blank), so ZeD's lists now put Noto Sans SC on Cred1 instead: a 32 px
+-- distance-field face (42/media/fonts/sdf/notoSC.fnt, ZeDUI/tools/fonts/bake_sdf_sc.py) with ASCII,
+-- Latin-1, the 3,755 GB2312 level-1 letters and CJK punctuation. One face draws a whole string, so
+-- a letter outside that set (a rare or traditional one) draws blank unless the Japanese face draws
+-- more of the string's letters. The second Cred1 row keeps the game's face working if a list
+-- still names it there (one row per slot is taken).
 -- ---------------------------------------------------------------------------
 local SCRIPT_SLOTS = {
+    { name = "Cred1", em = 32, base = 38, probe = 0x56FE },          -- Noto Sans SC (ZeD's)
     { name = "Cred1", em = 23, base = 19, probe = 0x5730 },          -- the game's Chinese face
     { name = "DebugConsole", em = 23, base = 19, probe = 0x3042 },   -- the game's Japanese face
 }
@@ -563,10 +570,12 @@ local function sfSetup()
     local body = ZeD.Font and ZeD.Font.sdf and ZeD.Font.sdf.body
     SF.zedFont = body and (body.slot or body.font) or nil
     local tm = X.realTM()
+    local taken = {}
     for _, e in ipairs(SCRIPT_SLOTS) do
         local f = UIFont[e.name]
         -- (the slot must hold the face: a language's own list can put something else there)
-        if f and tm:MeasureStringX(f, string.char(e.probe)) > 0 then
+        if f and not taken[e.name] and tm:MeasureStringX(f, string.char(e.probe)) > 0 then
+            taken[e.name] = true
             SF.fonts[#SF.fonts + 1] = { font = f, em = e.em, base = e.base }
         end
     end

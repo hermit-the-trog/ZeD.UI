@@ -30,4 +30,4 @@ Source-available, not open source. Read the code, learn from it, build add-ons f
 
 ## Credits
 
-Made by Hermit the Trog. The fonts are Fira Sans Condensed and Fira Mono, under the SIL Open Font License. The pixel art is the mod's own. Project Zomboid is made by The Indie Stone; ZeD-GUI is a fan-made mod and is not affiliated with The Indie Stone, Apple or Microsoft.
+Made by Hermit the Trog. The fonts are Fira Sans Condensed and Fira Mono, and Noto Sans SC for simplified Chinese, under the SIL Open Font License. The pixel art is the mod's own. Project Zomboid is made by The Indie Stone; ZeD-GUI is a fan-made mod and is not affiliated with The Indie Stone, Apple or Microsoft.
