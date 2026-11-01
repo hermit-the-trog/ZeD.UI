@@ -822,6 +822,18 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     - px, second look (test): the card opened and drew; the test looked for it at w._drawerPanel._itemCard
       (it is win._itemCard). Its row is selected as a click or A does, and the three mark chips checked on
       the card. b440d12
+    - Main menu questions land on the answer that stays (the director's pick, Nov 1): leave-with-changes
+      questions (Options, Server, Workshop, Mods, Sandbox's preset load) open on "Keep editing"; Host's Reset /
+      Delete, the deletes, Replace profile, Upload and Server's delete page on Cancel. Discard and Save need a
+      deliberate move. mmq expects the stay answer. 957474a
+    - Traits (product, latent): the column clamp and inStrip() took any id starting with "c" ("confirm:yes",
+      "clear") for a column stop; now "^c%d+:". c2f98a9
+    - Main menu (product): answers that cleared the question with self.confirm = false left _backFocus stale
+      (Sandbox load, Options apply / finish / monitor / restart, Server Save / Back, Workshop Save / Discard /
+      Upload); all through setConfirm(false); Mods' profile page changes clear it. fa2b894
+    - Workshop pad A dead (product): "__lt not defined" in focusRows' sort; the form's title and note fields
+      (and the description editor's blocks and view tabs) were stops with no row. They have rows now, and
+      focusRows sorts a missing row or column last instead of throwing. 3de956d
     - Re-run: rtv, p336, rst, px, mhd, msp, mfo, mlo; a pad pass on the main-menu pages' questions.
 
 ## Test process
