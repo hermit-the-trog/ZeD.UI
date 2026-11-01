@@ -580,6 +580,14 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
       fonts have no CJK; the first commenter writes Chinese, and Chinese mod names will do the same); (b) the
       count after a name with those letters is drawn over the name ("?? Café(2 | 0 on)", "??(0)"): the name's
       width is measured short; (c) the footer says "1 lines" (one line).
+      - (a) and (b) fixed (e93b22b): Fira has no CJK and the engine draws a letter past a font's table as "?"
+        and measures it 0 wide. ZeD's font lists now put the game's own Chinese and Japanese faces on two spare
+        slots (Cred1, DebugConsole); ZeD.Text.scriptFont (shared/ZeD/Scale.lua) picks, once per string, the face
+        that draws its letters, and every ZeD draw and measure of a role font goes through it, so the count lands
+        after the name. Limits: the game's Chinese face is a traditional set and lacks some simplified letters
+        (图 of 地图 among them: that letter draws blank); Korean and Thai have no free slot. Typed text in ZeD's
+        boxes is not covered. Full coverage would need ZeD to ship an open-licence Chinese font (director's call).
+      - (c) fixed (96d2beb): one / many keys for the help line and the folder and separator counts.
       Not done yet (needs the screen again): right-click menus, Ctrl / Shift-click, Page Up / Down, the pad on a
       folder row, frame rate with 1,500 mods, 1280x720.
     **Stage 3 separators built (0afb1ac, 8f70121, b828ebb), QA to confirm.** See item 41's note.
@@ -707,6 +715,10 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
       text the picker is too short: its explanation ("Puts ... just after Knox Packs ... Auto and profile loads keep
       it there.") is drawn over the list's last rows and over its own last line; (c) the picker's top edge leaves
       the list behind it showing through above its title.
+      - (a) and (b) fixed (2c26b97): the picker's row stops lacked listRow, so the window drew each as a button
+        with no text ("nil"), over the names and below the list over the explanation; the column now shows only
+        the short reason on a greyed row (Needs it, Circle, Pinned), and the name is cut before it. (c) fixed
+        (2c26b97): the list under the picker is covered edge to edge.
       Not done yet (needs the screen again): the pad and keyboard paths, drag, the right-click menu, the look
       against mockup v2, scrolling 1,500 mods.
     page (ZeD_MainMenuModsSeps.lua): box, collapse, New separator... / Rename... / Delete separator / Move
@@ -732,6 +744,13 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
       that detail line. Stages 1 and 2 at 1280x720 Large: 24 / 0 and 36 / 0 (as the Deck).
       **Seen at 1280x720 Large (zqa_mfo_04_ask_delete_720L.png):** the Mods page's last tab, Workshop, is cut off
       by the right pane, and the "Changes discarded" note is drawn over it.
+      - 3d fixed (1ceb12b): not a requirement. The Only Cure+ declares The Only Cure incompatible; both were on, and
+        turning the separator on one mod at a time put The Only Cure on first, so the game refused the other, which
+        was then hidden (off under a separator that is on). Turning a separator on is now one batch; mods it turned
+        off come back together even if they conflict; otherwise the first in the list wins and the other shows
+        dimmed with the reason. A folder's box keeps one at a time (it names the refused mod in the band).
+      - Tabs at 720 Large fixed (9e7b950): the tabs tighten to the list's width and, if still too wide, the row
+        slides to show the open tab; the note is in the pane's own band and no longer meets the tabs.
       Not done: the checks by hand. The director declined QA control of the game window (Nov 1), so right-click,
       drag, Ctrl / Shift-click, Page Up / Down and the pad wait for the director or another way to drive them;
       frame rate at 1,500 mods also waits (the rig has ~280 mods). Hold script for a by-hand session:
