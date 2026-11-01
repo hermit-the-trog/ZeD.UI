@@ -107,6 +107,19 @@ end
 -- Right-aligned tag showing "+75% XP" etc: the one tag look, with a positive square.
 -- ============================================================================
 
+-- A skill's name width in the row font, kept per scale (a row gives its bar's room to it, punch list 35)
+local _skNameW, _skNameSig = {}, nil
+local function skillNameW(name, font)
+    local sig = tostring(ZeD.T.scale)
+    if _skNameSig ~= sig then _skNameW = {}; _skNameSig = sig end
+    local byF = _skNameW[font]
+    if not byF then byF = {}; _skNameW[font] = byF end
+    name = name or ""
+    local w = byF[name]
+    if not w then w = ZeD.TM:MeasureStringX(font, name); byF[name] = w end
+    return w
+end
+
 local function drawBoostPill(panel, x, y, rowH, boost, font)
     local T = ZeD.T
     local pctStr = "75%"
@@ -1010,6 +1023,7 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
 
     local font = T.fontF2
     local barW, barH = A.rowBarW(), A.fillBarCompactH()   -- (each row's level bar)
+    local barMin = math.min(barW, A.fillBarMinW(10))          -- (its least: ten 1-unit segments)
     local col1X = x + pad
     local col2X = x + pad + colW + colGap
 
@@ -1069,9 +1083,16 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
                     -- Level badge
                     drawLevelBadge(panel, startX, cy, baseRowH, skill.level, font)
 
-                    -- The level bar at the right: ten segments, one per level (its help line: the XP to the next)
-                    local barX = startX + colWidth - T.px(4) - barW
-                    if A.drawSegFill(panel, barX, cy + math.floor((baseRowH - barH) / 2), barW, barH, 10,
+                    -- The level bar at the right: ten segments, one per level (its help line: the XP to the next).
+                    -- A name short of room takes it from the bar first, down to the bar's least; the
+                    -- level number (the badge) stays (Oct 31 2026, punch list 35, the director's pick:
+                    -- at 1280x720, UI scale 2.0, Large text the names read "A...")
+                    local nameX = startX + T.px(BADGE_W) + T.px(6)
+                    local rowBar = barW
+                    local over = skillNameW(skill.name, font) - (startX + colWidth - T.px(4) - barW - T.px(6) - nameX)
+                    if over > 0 then rowBar = math.max(barMin, barW - over) end
+                    local barX = startX + colWidth - T.px(4) - rowBar
+                    if A.drawSegFill(panel, barX, cy + math.floor((baseRowH - barH) / 2), rowBar, barH, 10,
                             skill.level, levelBarColor(T, skill.level, isPinned)) then
                         help(win, ZeD.SkillsTab.barHelp(skill))
                     end
@@ -1083,7 +1104,6 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
                     end
 
                     -- Skill name (bodyH: the row font's height, measured once above), shortened clear of the tag and bar
-                    local nameX = startX + T.px(BADGE_W) + T.px(6)
                     local nameY = cy + math.floor((baseRowH - bodyH) / 2)
                     local nc = onFocus and T.textOnFocus or T.toneNorm
                     panel:drawText(A.truncateText(skill.name, font, nameR - T.px(6) - nameX), nameX, nameY, nc.r, nc.g, nc.b, nc.a or 1, font)
