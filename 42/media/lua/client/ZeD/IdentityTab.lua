@@ -518,6 +518,182 @@ local function renderLicenseText(panel, win, data, x, drawY, w)
 end
 
 -- ============================================================================
+-- THE PORTRAIT CARD (Oct 31 2026, punch list 36, the director: "make a vertical version
+-- of the ID"). Below a width the side-by-side card's two-column fields are narrower than
+-- their longest label (they would read "..."); there the card stands up: the header band
+-- on top, the photo centred under it, the name, the fields as full-width label / value
+-- rows, then the seal. The same laminate, header, inks, fonts and seal.
+-- QA: ZeD.IdentityTab.qaLayout = "tall" or "wide" forces one (nil: by the width);
+-- win._idTall says which one drew.
+-- ============================================================================
+
+local TALL_PHOTO_H = 240   -- design units: the full-body photo's band in the portrait card
+local TALL_SEAL    = 96    -- design units: the seal at the portrait card's foot
+
+-- the field labels, in the order the portrait card lists them (the name is its own row)
+local TALL_LABELS = {
+    { "v", "IGUI_char_Sex" }, { "z", "UI_ZeD_Identity_Profession" }, { "z", "UI_ZeD_Identity_HairStyle" },
+    { "z", "UI_ZeD_Identity_BodyHair" }, { "z", "UI_ZeD_Identity_HairColor" }, { "z", "UI_ZeD_Identity_FacialHair" },
+    { "v", "IGUI_char_Survived_For" }, { "v", "IGUI_char_Favourite_Weapon" }, { "v", "IGUI_char_Zombies_Killed" },
+}
+local function tallLabel(i)
+    local d = TALL_LABELS[i]
+    return (d[1] == "v") and getText(d[2]) or ZeD.tr(d[2])
+end
+
+-- the widest field label (F1), kept per scale, font and language
+local _lblNeed, _lblSig = nil, nil
+local function labelNeed()
+    local T = ZeD.T
+    local sig = tostring(T.scale) .. tostring(T.fontF1) .. ((ZeD.trTestOn and ZeD.trTestOn()) and "t" or "")
+    if _lblNeed and _lblSig == sig then return _lblNeed end
+    local m = 0
+    for i = 1, #TALL_LABELS do m = math.max(m, ZeD.TM:MeasureStringX(T.fontF1, tallLabel(i))) end
+    _lblNeed, _lblSig = m, sig
+    return m
+end
+
+-- the portrait card at content width w? (the side-by-side card's field box against the
+-- widest label)
+local function isTall(w)
+    local q = ZeD.IdentityTab.qaLayout
+    if q == "tall" then return true elseif q == "wide" then return false end
+    local T = ZeD.T
+    local dataW = w - T.px(CARD_PAD) * 2 - T.px(LAMINATE_W) * 2 - T.px(PHOTO_W) - T.px(FIELD_PAD) * 2
+    local cellW = math.floor(dataW / 2) - T.px(6)
+    return cellW < labelNeed()
+end
+ZeD.IdentityTab.isTall = isTall
+
+-- one portrait row's height (the label and the value on one line)
+local function tallRowH()
+    local lblH, valH = fieldLineHs()
+    return math.max(lblH, valH) + ZeD.T.px(10)
+end
+
+local function tallPhotoH(expanded)
+    local T = ZeD.T
+    return expanded and T.px(TALL_PHOTO_H) or (T.px(FIELD_PAD) + T.px(PHOTO_SIZE))
+end
+
+local function measureTallH(expanded)
+    local T = ZeD.T
+    local secFH  = ZeD.TM:getFontHeight(T.fontF1)
+    local bodyFH = ZeD.TM:getFontHeight(T.fontF2)
+    local headerH = secFH + bodyFH + T.px(20)
+    local bodyH = tallPhotoH(expanded) + T.px(12)           -- the photo (its top pad) + gap
+    bodyH = bodyH + nameRowH() + T.px(12)                     -- the name + gap
+    bodyH = bodyH + tallRowH() * #TALL_LABELS                 -- the fields
+    bodyH = bodyH + T.px(8) + T.px(TALL_SEAL) + T.px(FIELD_PAD)   -- the seal + bottom pad
+    return T.px(CARD_PAD) + T.px(LAMINATE_W) + headerH + bodyH + T.px(LAMINATE_W) + T.px(CARD_PAD)
+end
+
+local function renderLicenseTall(panel, win, data, x, drawY, w)
+    local A, T, tm = ZeD.Atoms, ZeD.T, ZeD.TM
+    local pad, lam = T.px(CARD_PAD), T.px(LAMINATE_W)
+    local secFH  = tm:getFontHeight(T.fontF1)
+    local bodyFH = tm:getFontHeight(T.fontF2)
+    local headerH = secFH + bodyFH + T.px(20)
+    local expanded = win._identityPhotoExpanded and true or false
+
+    -- the laminate, the header band, the cream body (as the side-by-side card)
+    local cardX, cardW = x + pad, w - pad * 2
+    local totalH = measureTallH(expanded) - pad * 2
+    local cardBodyH = totalH - lam * 2 - headerH
+    fillRoundedCard(panel, cardX, drawY + pad, cardW, totalH, KY.laminate.r, KY.laminate.g, KY.laminate.b, KY.laminate.a)
+    local innerX, innerY, innerW = cardX + lam, drawY + pad + lam, cardW - lam * 2
+    panel:drawRect(innerX, innerY, innerW, headerH, 1.0, KY.blue.r, KY.blue.g, KY.blue.b)
+    local headerTex = getTexture("media/textures/ZeD/Kentucky-dl-head.png")
+    if headerTex then
+        panel:drawTextureScaledAspect(headerTex, innerX, innerY, innerW, headerH, 1.0, 1.0, 1.0, 1.0)
+    end
+    local bodyY = innerY + headerH
+    panel:drawRect(innerX, bodyY, innerW, cardBodyH, 1.0, KY.cardBg.r, KY.cardBg.g, KY.cardBg.b)
+
+    -- the photo, centred: the bust's square, or the full body's band across the card
+    -- (the window places the model in win._identityPhotoRect and keeps it in the view)
+    local pr = win._idTallPhoto or {}
+    win._idTallPhoto = pr
+    if expanded then
+        local ph = tallPhotoH(true)
+        panel:drawRect(innerX, bodyY, innerW, ph, 1.0, KY.skyBlue.r, KY.skyBlue.g, KY.skyBlue.b)
+        pr.x, pr.y, pr.w, pr.h, pr.expanded = innerX, bodyY, innerW, ph, true
+    else
+        local ps = math.min(T.px(PHOTO_SIZE), math.max(T.px(20), innerW - T.px(FIELD_PAD) * 2))
+        local px = innerX + math.floor((innerW - ps) / 2)
+        local py = bodyY + T.px(FIELD_PAD)
+        A.fillRounded(panel, px, py, ps, ps, KY.skyBlue.r, KY.skyBlue.g, KY.skyBlue.b, 1.0)
+        pr.x, pr.y, pr.w, pr.h, pr.expanded = px, py, ps, ps, nil
+    end
+    win._identityPhotoRect = pr
+    win._identityPhotoZone = { x = innerX, y = bodyY, w = innerW, h = tallPhotoH(expanded) }
+    local rowY = bodyY + tallPhotoH(expanded) + T.px(12)
+
+    -- the name, full width, the weight pill at its right while the name keeps room
+    local dataX = innerX + T.px(FIELD_PAD)
+    local dataW = innerW - T.px(FIELD_PAD) * 2
+    local wtW = tm:MeasureStringX(T.fontF2, data.weightStr)
+    local pillX = dataX + dataW - wtW - T.px(10)
+    local nameRoom = pillX - T.px(6) - dataX
+    if nameRoom < T.px(48) then
+        nameRoom = dataW
+    else
+        local pillY = rowY + T.px(2)
+        panel:drawRect(pillX, pillY, wtW + T.px(10), bodyFH + T.px(4), 0.1, KY.blue.r, KY.blue.g, KY.blue.b)
+        panel:drawText(data.weightStr, pillX + T.px(5), pillY + T.px(2), KY.ink.r, KY.ink.g, KY.ink.b, 0.85, T.fontF2)
+    end
+    local zoom = ZeD.Text.zoomPx(17)
+    local displayName = fitName(data.surname, data.forename, nameRoom, zoom)
+    if displayName ~= "" then
+        ZeD.Text.draw(panel, ZeD.Font.sdf.head, displayName, dataX, rowY, zoom, 0.07, 0.07, 0.07, 1.0, "l")
+    end
+    rowY = rowY + nameRowH() + T.px(12)
+    panel:drawRect(dataX, rowY - T.px(6), dataW, T.px(1), 0.08, KY.blue.r, KY.blue.g, KY.blue.b)
+
+    -- the fields: the label at the left (F1, the dim ink), the value at the right (F4),
+    -- each cut with "..." to its own room; a faint line under each row
+    local vals = win._idTallVals or {}
+    win._idTallVals = vals
+    vals[1], vals[2], vals[3], vals[4], vals[5] = data.sexStr, data.profession, data.hairStyle, data.bodyHair, data.hairColor
+    vals[6], vals[7], vals[8], vals[9] = data.facialHair, data.timeSurv, data.favWeapon, data.zKills
+    local lblH, valH = fieldLineHs()
+    local rh = tallRowH()
+    local gap = T.px(8)
+    local dots = tm:MeasureStringX(T.fontF1, "...")
+    for i = 1, #TALL_LABELS do
+        local line = math.max(lblH, valH)
+        local label = tallLabel(i)
+        local value = tostring(vals[i] or "")
+        local valNeed = tm:MeasureStringX(T.fontF4, value)
+        -- the label keeps at least half the row, the value what is left of it
+        local lblRoom = math.max(math.floor(dataW / 2), dataW - valNeed - gap)
+        local lblS = A.truncateText(label, T.fontF1, lblRoom)
+        local lblW = tm:MeasureStringX(T.fontF1, lblS)
+        if lblRoom > dots then
+            panel:drawText(lblS, dataX, rowY + math.floor((line - lblH) / 2),
+                KY.inkDim.r, KY.inkDim.g, KY.inkDim.b, KY.inkDim.a, T.fontF1)
+        end
+        local valRoom = dataW - lblW - gap
+        if valRoom > tm:MeasureStringX(T.fontF4, "...") then
+            local s = A.truncateText(value, T.fontF4, valRoom)
+            local sw = tm:MeasureStringX(T.fontF4, s)
+            panel:drawText(s, dataX + dataW - sw, rowY + math.floor((line - valH) / 2), 0.1, 0.1, 0.1, 1.0, T.fontF4)
+        end
+        rowY = rowY + rh
+        panel:drawRect(dataX, rowY - T.px(5), dataW, T.px(1), 0.08, KY.blue.r, KY.blue.g, KY.blue.b)
+    end
+
+    -- the seal, centred at the foot
+    local sealTex = getTexture("media/textures/ZeD/KY-seal.png")
+    if sealTex then
+        local sz = T.px(TALL_SEAL)
+        panel:drawTextureScaledAspect(sealTex, innerX + math.floor((innerW - sz) / 2), rowY + T.px(8), sz, sz, 0.5, 1, 1, 1)
+    end
+
+    borderRoundedCard(panel, cardX, drawY + pad, cardW, totalH, KY.blue.r, KY.blue.g, KY.blue.b, 0.3)
+end
+
+-- ============================================================================
 -- RENDERER — ZONE B: Character Traits
 -- ============================================================================
 
@@ -668,7 +844,10 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
     local hbL = HB and HB.layout(win, w - T.sp.scrollbarW) or nil
     local zoneHH = hbL and hbL.h or 0
 
-    local zoneAH = measureZoneAH()
+    -- the portrait card below a width (punch list 36), measured as if a scroll bar shows
+    local tall = isTall(w - T.sp.scrollbarW)
+    win._idTall = tall
+    local zoneAH = tall and measureTallH(win._identityPhotoExpanded) or measureZoneAH()
     local zoneBH = measureZoneBH(data)
     local totalContentH = zoneAH + zoneHH + zoneBH
 
@@ -716,10 +895,14 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
     -- ================================================================
     -- ZONE A: License Card
     -- ================================================================
-    renderLicenseBackground(panel, win, x, drawY, contentW)
+    if tall then
+        renderLicenseTall(panel, win, data, x, drawY, contentW)
+    else
+        renderLicenseBackground(panel, win, x, drawY, contentW)
+    end
 
     -- KY seal — below bust in non-expanded, hidden in expanded (full-body covers area)
-    if not win._identityPhotoExpanded then
+    if not tall and not win._identityPhotoExpanded then
         local secFH  = ZeD.TM:getFontHeight(T.fontF1)
         local bodyFH = ZeD.TM:getFontHeight(T.fontF2)
         local cardHeaderH = secFH + bodyFH + T.px(20)
@@ -734,7 +917,7 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
         end
     end
 
-    renderLicenseText(panel, win, data, x, drawY, contentW)
+    if not tall then renderLicenseText(panel, win, data, x, drawY, contentW) end
 
     -- ================================================================
     -- ZONE H: Hair and beard
