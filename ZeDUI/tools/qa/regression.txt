@@ -180,6 +180,12 @@ zedqa_soak.lua | soak | timeout=2700             # every tab for 12 rounds at th
 #                                  the load order (place numbers, gaps), pins against a requirement, a Load after rule through
 #                                  Auto and a profile load, a circle refused, unknown profile lines kept; run with
 #                                  zedqa_menu_mods_run.ps1 -ModList compat_r4_mods.txt -Script zedqa_mods_order.lua -Tag mlo
+# zedqa_mods_folders.lua | mfo    the Mods page's folders (Oct 31 2026, punch list 37 stage 2): ModFolders.cfg round-trips the
+#                                  sample byte for byte, a non-ASCII name saved as hex per UTF-16 unit, unknown lines kept,
+#                                  Unfiled, collapse saved, the folder's box (empty / mixed / all on), delete to Unfiled, an
+#                                  outside edit kept, nothing on / off or in the load order changed by folders; on its own
+#                                  file (Lua/ZeDQA_ModFolders.cfg), never the player's; run with
+#                                  zedqa_menu_mods_run.ps1 -ModList compat_r4_mods.txt -Script zedqa_mods_folders.lua -Tag mfo
 #
 # ---- never unattended (director; zedqa_run.ps1 refuses these names)
 # zedqa_new_qa_save.lua (makes a save), zedqa_mod_workshop.lua, zedqa_mods_open.lua,
