@@ -1281,6 +1281,11 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     a script item for getFullType, which it lacks, so the output types were empty and no item was instanced; the card
     reads the full type as module.name and, for an output written through a mapper (nails on a bat), the mapper's
     results, picking the one whose pattern you carry and comparing against that item. QA re-runs pvc at both sizes.
+    **Fourth pass (build, Nov 1, on the second run, 982ac42, where the card read right at both sizes):** the facing
+    wraps at the press itself (< from the first face lands on the last, never on 0 between frames); a zero skill part
+    reads "200 (200 + more with your Carpentry)" with the skill named (the recipe's highest relevant skill, else its
+    first required one, else carpentry: at level 0 the game names none); a thing that is not thumpable (the plank
+    barricade) has no strength line. QA to confirm those three; the rest of 49 read right on the second run.
 
     - **QA, Nov 1 2026, late (zedqa_preview_card.lua at 4K on 4593e3d, then on the Deck at 1e947e2; qa/regression/
       2026-11-01_t16_cards_4k.md, _800.md; shots in Screenshots/t16_cards_4k, _800): FAIL, the card's data path throws.**
