@@ -5,6 +5,7 @@
 -- noon (the clock to 13:00) and back at the save's own hour with the headlamps on, then off. Logs the light
 -- readings, the nightness in eighths and the plate laid over. Puts back D.qaNight / D.qaLit, the time,
 -- the car and its key. grep "ZEDQA dnt".
+if ZEDQA_HOME then ZEDQA_HOME("dnt") end   -- (punch list 47: open ground first; an earlier script can leave the character indoors)
 local p = getPlayer(); local D = ZeD.Dashboard
 local LIST = {
     { "wagon", "Base.CarStationWagon" }, { "nyala", "Base.CarNormal" }, { "dashelite", "Base.ModernCar" },

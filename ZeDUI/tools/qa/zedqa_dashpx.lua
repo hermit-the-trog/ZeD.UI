@@ -3,6 +3,7 @@
 -- headlights (+ lightbar, no siren), screenshot (Zomboid/Screenshots/zqa_dashpx_<tag>.png), print the
 -- dashboard's screen rect and badge, leave, remove. The van is the Spiffo's van (the sticker shows); five livery
 -- cars after the 19 check the badges against the game's names (a missing script just logs 'spawn failed'). grep "ZEDQA dpx".
+if ZEDQA_HOME then ZEDQA_HOME("dpx") end   -- (punch list 47: open ground first; an earlier script can leave the character indoors)
 local p = getPlayer(); local D = ZeD.Dashboard
 local LIST = {
     { "01_luxury", "Base.CarLuxury" }, { "02_nyala", "Base.CarNormal" }, { "03_cossette", "Base.SportsCar" },

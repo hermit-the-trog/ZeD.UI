@@ -10,6 +10,7 @@
 --   A parked car that moves (> 3 km/h) fell through the ground: that car is rejected (ERR), not judged.
 -- Screenshots: Zomboid/Screenshots/zqa_dbr_<case>.png; each shot logs the dash's screen rect and k. Leaves no car, no key
 -- and the windows reset. grep "ZEDQA dbr".
+if ZEDQA_HOME then ZEDQA_HOME("dbr") end   -- (punch list 47: open ground first; an earlier script can leave the character indoors)
 local p = getPlayer(); local D = ZeD.Dashboard
 local TAG = "dbr"
 local function say(s) print("ZEDQA " .. TAG .. " " .. tostring(s)) end

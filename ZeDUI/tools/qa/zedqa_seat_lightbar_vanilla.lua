@@ -4,6 +4,7 @@
 -- plain backdrops with the ZeD dash, on the open field of the ZeD-QA save. Copy to Zomboid/Lua/zedqa.lua and bump
 -- zedqa.go; grep console.txt for "ZEDQA sl". Spawned vehicles are removed.
 
+if ZEDQA_HOME then ZEDQA_HOME("sl") end   -- (punch list 47: open ground first; an earlier script can leave the character indoors)
 local p = getPlayer()
 local function say(s) print("ZEDQA sl " .. tostring(s)) end
 local function shot(n) pcall(function() getCore():TakeFullScreenshot("zqa_sl_" .. n .. ".png") end) end

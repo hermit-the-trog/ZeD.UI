@@ -4,6 +4,7 @@
 -- (radio + siren), screenshots each; the character steps beside each car first
 -- (a far car's physics are not loaded). Copy to Zomboid/Lua/zedqa.lua, bump
 -- zedqa.go; grep "ZEDQA sm".
+if ZEDQA_HOME then ZEDQA_HOME("sm") end   -- (punch list 47: open ground first; an earlier script can leave the character indoors)
 local p = getPlayer()
 local pn = p:getPlayerNum()
 local function say(s) print("ZEDQA sm " .. tostring(s)) end

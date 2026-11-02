@@ -1,4 +1,5 @@
 -- ZeD QA v5: tour #3 - spawn the remaining designs on a square beside the player
+if ZEDQA_HOME then ZEDQA_HOME("t3") end   -- (punch list 47: open ground first; an earlier script can leave the character indoors)
 local p = getPlayer(); local D = ZeD.Dashboard
 local spawnList = { "Base.SmallCar02", "Base.ModernCar", "Base.ModernCar02", "Base.SUV", "Base.Van", "Base.PickUpVan", "Base.OffRoad" }
 local steps = {}; local function at(n, f) steps[#steps + 1] = { n = n, f = f } end
