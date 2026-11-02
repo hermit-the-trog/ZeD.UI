@@ -35,7 +35,7 @@ local origKeyPressed, origKeepPressed
 
 local function holdKeepPressed(key)
     -- safe mode: vanilla's own hold (its radial)
-    if ZeD.Safe.on() then
+    if ZeD.Safe.on("belt") then
         if origKeepPressed then return origKeepPressed(key) end
         return
     end
@@ -185,7 +185,7 @@ local function unparkHotbar()
 end
 
 local function apply()
-    if not ZeD.Safe.on() then parkHotbar() end
+    if not ZeD.Safe.on("belt") then parkHotbar() end
     -- (D-pad Left was the belt's way in until Oct 23 2026; it is the Character
     -- wheel now, ZeD_DpadWheels.lua, whose Weapons slice covers the belt's
     -- weapons. That file also keeps a stray Left with a window open in the window.)
@@ -195,7 +195,7 @@ local function apply()
         -- vanilla's render without the hand items (the belt shows them): the
         -- heart's shake on damage, the debug text, the button tooltips, FPS
         function ISEquippedItem:render()
-            if ZeD.Safe.on() or inTutorial() then return origRender(self) end   -- safe mode and the Tutorial: vanilla's, hands and all
+            if ZeD.Safe.on("belt") or inTutorial() then return origRender(self) end   -- safe mode and the Tutorial: vanilla's, hands and all
             if self.mainHand and self.mainHand:getIsVisible() then self.mainHand:setVisible(false) end
             if self.offHand and self.offHand:getIsVisible() then self.offHand:setVisible(false) end
             -- the hands leave the hover list too (it tests bounds, not visibility;
@@ -235,7 +235,7 @@ local function apply()
         local origPre = ISEquippedItem.prerender
         function ISEquippedItem:prerender()
             origPre(self)
-            if ZeD.Safe.on() or inTutorial() then return end
+            if ZeD.Safe.on("belt") or inTutorial() then return end
             -- single player without -debug: the column goes when nothing but
             -- ZeD's replaced parts is left on it
             if not isClient() and not getCore():getDebug() then columnPrerender(self) end

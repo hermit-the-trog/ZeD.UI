@@ -68,7 +68,7 @@ end
 function S.drawing(playerNum)
     local im = IM()
     if not im or im.hudOff ~= false then return false end
-    if ZeD.Safe and ZeD.Safe.on() then return false end
+    if ZeD.Safe and ZeD.Safe.on("moodles") then return false end
     local els = type(im.elements) == "table" and im.elements[playerNum or 0]
     return type(els) == "table" and els[2] ~= nil
 end

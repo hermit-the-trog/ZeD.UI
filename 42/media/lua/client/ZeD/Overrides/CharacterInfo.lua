@@ -95,7 +95,7 @@ ISCharacterInfoWindow._zedOrigToggleView = ISCharacterInfoWindow._zedOrigToggleV
 local _origToggleView = ISCharacterInfoWindow._zedOrigToggleView
 
 function ISCharacterInfoWindow:toggleView(viewName)
-    if ZeD.Safe.on() then return _origToggleView(self, viewName) end
+    if ZeD.Safe.on("charinfo") then return _origToggleView(self, viewName) end
     local ok, handled = pcall(function()
         local tab = tabFor(viewName)
         if not tab then return false end
@@ -136,7 +136,7 @@ ISCharacterInfoWindow._zedOrigInitialise = ISCharacterInfoWindow._zedOrigInitial
 local _origInitialise = ISCharacterInfoWindow._zedOrigInitialise
 function ISCharacterInfoWindow:initialise(...)
     _origInitialise(self, ...)
-    if not ZeD.Safe.on() then self.visibleOnStartup = false end
+    if not ZeD.Safe.on("charinfo") then self.visibleOnStartup = false end
 end
 
 -- the game's window out of sight (left in the UI manager, as the game keeps it)
@@ -148,7 +148,7 @@ ISCharacterInfoWindow._zedOrigCreateChildren = ISCharacterInfoWindow._zedOrigCre
 local _origCreateChildren = ISCharacterInfoWindow._zedOrigCreateChildren
 function ISCharacterInfoWindow:createChildren(...)
     _origCreateChildren(self, ...)
-    if ZeD.Safe.on() then return end
+    if ZeD.Safe.on("charinfo") then return end
     self.visibleOnStartup = false
     hideGameWindow(self)
 end
@@ -157,7 +157,7 @@ ISCharacterInfoWindow._zedOrigSaveLayout = ISCharacterInfoWindow._zedOrigSaveLay
 local _origSaveLayout = ISCharacterInfoWindow._zedOrigSaveLayout
 function ISCharacterInfoWindow:SaveLayout(name, layout)
     _origSaveLayout(self, name, layout)
-    if not ZeD.Safe.on() and layout and layout.visible ~= nil then layout.visible = "false" end
+    if not ZeD.Safe.on("charinfo") and layout and layout.visible ~= nil then layout.visible = "false" end
 end
 
 -- the first ticks of a game: whatever shows the game's window as the game starts (its own
@@ -166,7 +166,7 @@ local WATCH_TICKS = 120
 local watchLeft = 0
 local function watchTick()
     watchLeft = watchLeft - 1
-    if not ZeD.Safe.on() then
+    if not ZeD.Safe.on("charinfo") then
         for n = 0, 3 do
             local ok, w = pcall(getPlayerInfoPanel, n)
             if ok and w then hideGameWindow(w) end

@@ -697,7 +697,7 @@ function ZeD_BeltHUD:player() return getSpecificPlayer(self.playerNum) end
 -- Should the belt show? (not dead, not in a vehicle seat, UI not toggled off,
 -- not in safe mode: SafeMode.lua, vanilla's hotbar is back then)
 function ZeD_BeltHUD:wanted()
-    if ZeD.Safe.on() then return false end
+    if ZeD.Safe.on("belt") then return false end
     local p = self:player()
     if not p or p:isDead() then return false end
     if p:getVehicle() then return false end

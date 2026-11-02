@@ -1220,7 +1220,7 @@ function D.install()
 end
 function D.getInstance() return D._instance end
 function D.show(character)
-    if ZeD.Safe.on() then return end   -- safe mode: vanilla's dashboard stays (SafeMode.lua)
+    if ZeD.Safe.on("dashboard") then return end   -- safe mode: vanilla's dashboard stays (SafeMode.lua)
     if not (character and instanceof(character, "IsoPlayer") and character:isLocalPlayer()) then return end
     local inst = D._instance or D.install()
     local pn = character.getPlayerNum and character:getPlayerNum() or 0

@@ -3162,7 +3162,7 @@ function ZeD_WorldWindow.toggle(playerNum)
     end
 
     -- safe mode (SafeMode.lua): the window does not open; callers fall back to vanilla's
-    if ZeD.Safe.on() then return end
+    if ZeD.Safe.on("windows") then return end
 
     local playerObj = getSpecificPlayer(playerNum)
     if not playerObj then return end
@@ -4406,7 +4406,7 @@ function ZeD_WorldWindow.toggle(playerNum)
         -- Suppress vanilla loot panel if it re-shows (not once safe mode has handed
         -- it back: this window may draw one last frame after a trip)
         local vl = getPlayerLoot(0)
-        if vl and vl:getIsVisible() and not ZeD.Safe.on() then vl:setVisible(false) end
+        if vl and vl:getIsVisible() and not ZeD.Safe.on("windows") then vl:setVisible(false) end
 
         closeCardIfItemGone(win, self)
 
@@ -5519,7 +5519,7 @@ function ZeD_WorldWindow.open(playerNum)
     -- (never for a dead character; code audit Oct 17 2026)
     local p = getSpecificPlayer(playerNum or 0)
     if p and p:isDead() then return end
-    if ZeD.Safe.on() then return end   -- safe mode: no ZeD window (SafeMode.lua)
+    if ZeD.Safe.on("windows") then return end   -- safe mode: no ZeD window (SafeMode.lua)
     if not _worldWin then
         ZeD_WorldWindow.toggle(playerNum)
     end
