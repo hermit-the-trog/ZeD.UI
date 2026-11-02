@@ -1257,6 +1257,16 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
       presses the same as the drawer's; the rest of the drawer is out of reach while the card is up (as with an
       item card). Pattern parity: the same card and rules on the Character window's Journal recipes where a
       recipe shows there.
+    **built (build, Nov 1 2026, the director: "Build"), QA to confirm.** ObjectCardPreview.lua, a half-width object card
+    kind over the Build or Craft drawer (the World window's object cards learned a half width for it); the header's
+    icon is a click and a controller stop (prefix:icon) in CraftingCore; ZeD.itemFacts exports the item card's facts.
+    Not built: the Journal's recipes (the Character window has no card drawer of its own). QA, at 4K and on the Deck:
+    Build, pick the big metal fence, click the icon: the card with the tiles, Facing with < and > turning it, the
+    words, "Strength 450", "Skill Metalworking 3", the Build verb (folded with its need when the parts are not
+    in reach); a log fence: "Strength 200 + N from your carpentry"; a plank barricade: no strength line; B closes
+    and the focus is back on the icon; picking another recipe closes it. Craft, with a baseball bat carried, pick
+    the spiked bat: What you get with the facts, and What changes against the bat (damage, condition, weight); a
+    recipe with several possible results shows "or one of N others". The 1080p pair unchanged elsewhere.
 
 50. **Notebook paper: the lines were not ruled like paper (the director, Nov 1 2026, with four pictures of the real
     sheet).** fixed (build, Nov 1), QA to confirm. The Notebooks page (the small page in the Journal's Notebooks

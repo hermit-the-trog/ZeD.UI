@@ -2327,6 +2327,18 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     if entry.iconTex then
         panel:drawTextureScaledAspect(entry.iconTex, iconX + T.px(2), iconY + T.px(2), iconSz - 2 * T.px(2), iconSz - 2 * T.px(2), 1, 1, 1, 1)
     end
+    -- the preview (punch list 49): the icon is a click and a controller stop that opens the recipe's card
+    state._rdLast = rd
+    do
+        local fid = tostring(config and config.prefix or "craft") .. ":icon"
+        if ZeD.Atoms.mouseIn(panel, iconX, iconY, iconSz, iconSz) then
+            local hv = T.hover
+            panel:drawRect(iconX, iconY, iconSz, iconSz, hv.a or 1, hv.r, hv.g, hv.b)
+            ZeD.Help.set(panel, ZeD.tr("UI_ZeD_Preview_HelpIcon"))
+        end
+        if state._gpFocusedId == fid and ZeD.Focus and ZeD.Focus.mark then ZeD.Focus.mark(panel, iconX, iconY, iconSz, iconSz) end
+        state.zones[#state.zones + 1] = { type = "detailIcon", x = iconX, y = iconY, w = iconSz, h = iconSz }
+    end
 
     -- Name (F2 13px, heading ink)
     local nameX = iconX + iconSz + T.px(6)
@@ -2552,6 +2564,7 @@ end
 -- ============================================================================
 
 function CC.render(panel, win, x, y, w, h, state, config, data)
+    state.config = config   -- (the preview card reads the tab's prefix, label and start action from it)
     local T = ZeD.T
 
     -- Load pins on first render (skip in readOnly — no pin system)
@@ -2918,7 +2931,11 @@ function CC.onClick(state, config, win, x, y, playerObj)
     for _, zone in ipairs(zones) do
         if x >= zone.x and x < zone.x + zone.w and y >= zone.y and y < zone.y + zone.h then
 
-            if zone.type == "recipeRow" then
+            if zone.type == "detailIcon" then
+                CC.openPreview(win, state, playerObj)
+                return true
+
+            elseif zone.type == "recipeRow" then
                 CC.handleRecipeClick(state, zone.id)
                 -- NOTE: no filterDirty here — selection doesn't change filter/
                 -- sort criteria.  Re-sorting would move the selected recipe
@@ -3176,6 +3193,21 @@ end
 --
 -- recipeStar zones intentionally NOT emitted as focusables — pin handled via
 -- X (onContextMenu) on the recipeRow itself per S107 design ruling.
+-- The recipe preview (punch list 49; ObjectCardPreview.lua): the picked recipe's card in the World window's
+-- card drawer, opened from the header's icon. The Journal's recipes (the Character window) have no card
+-- drawer of their own yet, so they open none.
+function CC.openPreview(win, state, playerObj)
+    local rd = state and state._rdLast
+    local OC = ZeD.ObjectCards
+    if not (rd and rd.entry and OC and OC.open and state.config) then return false end
+    if state.config.prefix == "jrecipe" then return false end
+    local player = playerObj or (win and win._playerObj)
+    if not player then return false end
+    local ok, opened = pcall(OC.open, player, "preview", { entry = rd.entry, rd = rd, state = state, win = win, config = state.config })
+    if not ok then ZeD.logOnce("CraftingCore preview", opened); return false end
+    return opened and true or false
+end
+
 function CC.buildFocusables(win, state, prefix, pinKey, startAction)
     local T = ZeD.T
     if not (win and state) then return {} end
@@ -3298,6 +3330,14 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
             if not slst then slst = {}; fc.sections[z.id] = slst end
             slst[n] = sel
             fc.made = fc.made + 1
+        elseif z.type == "detailIcon" then
+            elements[#elements + 1] = {
+                x = z.x, y = z.y, w = z.w, h = z.h,
+                id = prefix .. ":icon",
+                craftKind = "icon",
+                onFocus = function(w, el) end,
+                onActivate = function(w, el) CC.openPreview(w, state, w._playerObj) end,
+            }
         elseif z.type == "sortMenu" or z.type == "showMenu" then
             -- the band's Sort / Show pop-up boxes (Oct 30 2026): A opens the list
             local kind = (z.type == "showMenu") and "show" or "sort"

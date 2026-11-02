@@ -4024,5 +4024,22 @@
     "UI_ZeD_Seps_ProfHead": "-- %1 (%2)",
     "UI_ZeD_Seps_ProfHeadOff": "-- %1 (%2, off)",
     "UI_ZeD_Seps_ProfCountOne": "%1 separator",
-    "UI_ZeD_Seps_ProfCountMany": "%1 separators"
+    "UI_ZeD_Seps_ProfCountMany": "%1 separators",
+    "UI_ZeD_Preview_HelpIcon": "See what you would get before you make it",
+    "UI_ZeD_Preview_Strength": "Strength",
+    "UI_ZeD_Preview_StrengthSkill": "%1 + %2 from your carpentry",
+    "UI_ZeD_Preview_Skill": "Skill",
+    "UI_ZeD_Preview_Facing": "Facing %1",
+    "UI_ZeD_Preview_TurnLeft": "Turn it left",
+    "UI_ZeD_Preview_TurnRight": "Turn it right",
+    "UI_ZeD_Preview_NoPicture": "No picture for this one",
+    "UI_ZeD_Preview_YouGet": "What you get",
+    "UI_ZeD_Preview_Changes": "What changes",
+    "UI_ZeD_Preview_ChangeLine": "%1 to %2",
+    "UI_ZeD_Preview_OneOf": "or one of %1 others",
+    "UI_ZeD_Preview_Weight": "Weight",
+    "UI_ZeD_Preview_NeedParts": "the parts in reach",
+    "UI_ZeD_Preview_NeedLearn": "to know the recipe",
+    "UI_ZeD_Preview_NeedSkill": "a higher skill",
+    "UI_ZeD_Preview_HintGo": "make it"
 }

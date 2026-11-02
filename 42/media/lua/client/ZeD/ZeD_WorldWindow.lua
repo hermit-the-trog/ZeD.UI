@@ -1905,7 +1905,10 @@ local function getWorldTargetDrawerW(win)
             base = (heldIn or base <= half) and half or full
         end
         -- S124: the object card needs the full card, over a tab or on its own
+        -- (a kind marked half, the recipe preview, is the half card over the tab's card like an item card)
         if win._drawerObject and win._drawerItem == nil then
+            local d = win._drawerObject.def
+            if d and d.half then return math.max(base, T.px(ITEM_CARD_W)) end
             return T.px(OBJECT_CARD_W)
         end
         return base
@@ -3700,7 +3703,8 @@ function ZeD_WorldWindow.toggle(playerNum)
             -- inner edge is the pane line there)
         elseif showObj then
             self:setX(drawer:getX())
-            self:setWidth(math.min(effectiveW, T.px(OBJECT_CARD_W)))
+            local od = win._drawerObject and win._drawerObject.def
+            self:setWidth(math.min(effectiveW, T.px((od and od.half) and ITEM_CARD_W or OBJECT_CARD_W)))
             objCard:setX(0)
             objCard:setY(0)
             objCard:setWidth(self:getWidth())
@@ -3954,8 +3958,9 @@ function ZeD_WorldWindow.toggle(playerNum)
                     -- one surface over the world, not over a second layer of UI. (A card as
                     -- wide as the drawer leaves nothing: the tab still runs, for its zones.)
                     -- (an object card lies there the same way)
+                    local od = win._drawerObject and win._drawerObject.def
                     local coverL = (win._drawerItem ~= nil) and math.min(effectiveW, T.px(ITEM_CARD_W))
-                        or ((win._drawerObject ~= nil) and math.min(effectiveW, T.px(OBJECT_CARD_W))) or nil
+                        or ((win._drawerObject ~= nil) and math.min(effectiveW, T.px((od and od.half) and ITEM_CARD_W or OBJECT_CARD_W))) or nil
                     if coverL and coverL > 0 then
                         self:clearStencilRect()
                         self:setStencilRect(coverL, 0, effectiveW - coverL, dh)
