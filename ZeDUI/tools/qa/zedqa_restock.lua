@@ -202,12 +202,19 @@ end
 
 -- ---------------------------------------------------------------------------
 -- (punch list 47, Nov 2 2026) after ZEDQA_HOME's move the grandstand's cells take a moment to load: wait until
--- a square of it has its building (at once when the character was already home; about 10 s at most)
+-- every square of its floor around 892,13040 exists (x 875-893, y 13030-13050: the nearest 9x3 and its margin;
+-- one square loaded was not enough, the 9x3 was still loading). At once when the character was already home;
+-- about 15 s at most, then the floor search runs anyway and its error names what is missing.
 untilDo(function()
     local cell = getCell()
-    for dx = 0, 12 do local sq = cell:getGridSquare(892 - dx, 13040, 0); if sq and sq:getBuilding() then return true end end
-    return false
-end, 600, function() say("the grandstand is loaded") end, "the grandstand's squares to load")
+    for y = 13030, 13050 do
+        for x = 875, 893 do
+            local sq = cell:getGridSquare(x, y, 0)
+            if not (sq and sq:getChunk()) then return false end
+        end
+    end
+    return true
+end, 900, function() say("the grandstand is loaded") end, "the grandstand's floor to load")
 step(2, function()
     local ui = UIManager.getUI()
     for i = 0, ui:size() - 1 do local e = ui:get(i); if e:getClass():getSimpleName() == "UIDebugConsole" then e:setVisible(false) end end
