@@ -12,3 +12,6 @@ Journal
 
 Controller
 - Pick several things at once: hold A on a row to mark it (hold again to unmark), keep A held and press Up or Down to mark the rows you pass. With marks on the list, X opens the menu for all of them, Take, Drop and Move act on all of them, and B clears the marks. Hold X on a row is the quick use; tap A on a marked row opens its card and clears the marks.
+
+Mods
+- The page list beside Find scrolls: with a long mod list the Sandbox step, the Sandbox window in game and Options have pages past the bottom. The wheel over the list moves it, the bar drags, and the bumpers keep the picked page in view. (Thanks to Kable for the report.)

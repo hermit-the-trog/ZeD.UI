@@ -423,7 +423,18 @@ function ZeD_MMServer:drawPages(x, y, w, h, pages, finding)
     local ry = y + fH + T.px(1)
     local vh = y + h - T.px(1) - ry
     local total = 0
-    for _, p in ipairs(pages) do total = total + (p.head and T.px(HEAD_H) or T.px(PAGE_ROW_H)) end
+    local at, atH = 0, 0   -- (where the picked page sits: it comes into view when it changes, as a bumper picks)
+    for i, p in ipairs(pages) do
+        local ph = p.head and T.px(HEAD_H) or T.px(PAGE_ROW_H)
+        if i < self.pageIdx then at = at + ph elseif i == self.pageIdx then atH = ph end
+        total = total + ph
+    end
+    if self._pagesShown ~= self.pageIdx then
+        self._pagesShown = self.pageIdx
+        local ps = self.pagesScroll or 0
+        if at < ps then ps = at elseif at + atH > ps + vh then ps = at + atH - vh end
+        self.pagesScroll = ps
+    end
     self.pagesScroll = math.max(0, math.min(self.pagesScroll or 0, math.max(0, total - vh)))
     self._pagesBox = { x = x, y = ry, w = w, h = vh }
     local sbW = T.sp.scrollbarW
