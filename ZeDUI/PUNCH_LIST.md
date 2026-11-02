@@ -1610,6 +1610,15 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     has shown the error; they move to the same walk if one does. QA: the nine mods of round 5 on, the nav map
     (zedqa_navmap.lua) over the Identity tab: no "callFrame" lines in console.txt; Hair and beard's tool lines read right
     with a razor in a bag, scissors in the main inventory, gel and spray, and none.
+    **QA, Nov 2 2026: not fixed yet (fa00b9c; 2026-11-02_1234_mods_fullscreen4k.md, round 5's nine mods with compat_r5).**
+    The callFrame error still comes twice over the Identity tab, now from vanilla: "Lua(Vanilla).hairMenu (ISCharacterScreen
+    .lua:410) < harvest (ZeD_HairBeard.lua:255) < buildRows (341) < refresh (478) < layout (972)". ZeD's harvest calls
+    vanilla's hairMenu under its pcall to gather the styles, and hairMenu asks containsEvalRecurse(predicateRazor /
+    predicateScissors / predicateDoHairdo): the same Java-to-Lua predicate call the fix took out of tools(), one call site
+    further on (beardMenu likely the same). The new tools() walk itself logs nothing. Tool lines not checked yet (waits
+    for this). Same run: zedqa_moodles fails at "right: the column ... x -20000" and the rest, as expected now: Immersive
+    Moodles is one of the nine and ZeD leaves it the moodles (item 53); the compat round 5 manifest should drop mood or
+    run it without that mod.
 
 ## Test process
 
