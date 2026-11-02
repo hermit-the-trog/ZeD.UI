@@ -1,0 +1,3 @@
+# punch list 54 (Nov 2 2026): the predicate probe after the prelude
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pred_probe.lua | pp | timeout=60

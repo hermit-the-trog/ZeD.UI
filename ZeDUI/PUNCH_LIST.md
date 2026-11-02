@@ -1631,6 +1631,16 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     For build: the click path through the same walker (find the tool in Lua and start the game's ISCutHair /
     ISTrimBeard with it). Worth a note in the Compatibility thread once the mod is found (a bisect of the nine with a
     one-line predicate probe).
+    **QA, Nov 2 2026, third pass at 3e51a37: still open, and not the cheat menu.** Round 5 without RaxCheatMenu (now out of
+    compat_r5_mods.txt, the director's rule) still logs the callFrame error 5 times (2026-11-02_1304_mods_fullscreen4k.md);
+    without ImmersiveSleep the same (_1309). The trim picked from the list queues the razor's move out of the bag
+    (ISInventoryTransferAction) and HB.run returns false: the error is at vanilla ISBaseTimedAction:begin line 88
+    (self.character:StartAction, Java calling the action's Lua back) < ISTimedActionQueue.add < ZeD_PutBack.lua:152 add <
+    transferIfNeeded / ZeD_HairBeard cutHair (145, 157). Every failing chain runs through ZeD's Put back wrapper of
+    ISTimedActionQueue.add. A plain predicate search in a pcall passes with all nine (zedqa_pred_probe.lua, _1301), so the
+    trigger is the action start through that wrapper with these mods on, not searches as such. The tool lines are right
+    (16 / 17 in zedqa_hairbeard_tools.lua). The bisect stopped on the director's word; the remaining suspects are ZeD's
+    wrapper with the other eight.
     **Second pass (build, Nov 2 2026), after QA's run at fa00b9c.** The tools walk was clean, but the same error came
     from the game's own hairMenu (ISCharacterScreen.lua:410), which ZeD runs to read the styles (harvest, from
     buildRows): per style it asks player:getInventory():containsEvalRecurse(predicateRazor / Scissors / DoHairdo), the
