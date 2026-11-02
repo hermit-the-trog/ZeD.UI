@@ -1278,6 +1278,16 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     reads "[ZeD.QA] state #n ERR Object tried to call nil in pcall"; Kahlua logs the caught error as a Java exception, so
     the runner marks all 41 scripts FAIL and the run has no state data. sl's own lines unchanged (cars on loaded squares,
     vehicles=8, physics=false). Back to build: which call is nil; QA reruns when it is pushed.
+    **QA, Nov 2 2026, later still: the cause found (2026-11-02_pl47_state2_720.md at 22319df, 40 / 41;
+    2026-11-02_pl47_moved_sl_720.md).** The state line works; its "missing=get" is the call that broke the run before
+    (the cell's vehicle list's get is not reachable as o[m]), so each car's physics is still unseen. Nothing piles up:
+    vehicles=8 at the start, 10 or 11 mid-run, 8 again at sl; speed 1, not paused, not in a car. What moves is the
+    character: 925,13040 after the prelude, 965,13081 after script 57 (cb), 968,13081 after 61 (bg), 964,13079 after 63
+    (ws), there to sl (the save keeps it, so a run also starts there). Decisive: prelude, a move to 964.5,13078.5,0
+    (zedqa_move_to.lua), then sl fails exactly as in the full pass. That square is indoors (a room, not outside): sl's
+    cars spawn inside a building and their physics never wakes. Not the 13-chunk grid, not leftovers. For build: the
+    vehicle scripts start from the drag strip, or the scripts that walk the character away put it back. Not tested:
+    why the 1080p full pass passes sl from the same place.
     **Build's call (Nov 2 2026): the probe, not the halving.** QABridge.lua prints one line before every script it runs,
     grep "[ZeD.QA] state #": the game speed and pause, the character's place and car, the chunk grid, and each vehicle the
     cell holds (up to 12) with its distance, physics on or off, and "remote" if this game does not simulate it. One
