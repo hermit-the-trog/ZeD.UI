@@ -1197,6 +1197,13 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
       on a column row): the script's second crate did not open as a column (the window already showed it) and the
       World list had no four single rows in a row for the painted run; the staging is being fixed for one more short
       run on the Deck.
+    - **QA, Nov 1 2026, later (the staging fix, the Deck; 2026-11-01_t16_marks_800_b.md): 56 PASS, 1 FAIL (staging).**
+      The World list now had its four single rows (Apple, Banana, Bandage, Cabbage) and every World check passed as the
+      Character ones had: the painted run of four, letting go, the card hidden, the prompts, X's menu with Drop for all,
+      B clearing with the focus kept, tap A. Still not reached: the column checks (marks apart, tap A on a column row):
+      the column the script opened was not crate B's ("crate B as a column: true" then "no column for crate B (1
+      columns)"), with crate A on show. A rig matter for the next session. 44 is confirmed on every rule the director
+      picked except the one-list rule for a column, which no run has exercised yet.
 45. **Reset windows leaves the old tab's pad stops behind (QA, Nov 1 2026, the 720 short run; build's cause).**
     open. wpt at 1280x720 Normal, right after cu: with the Character window on Loot, Right from the container
     strip landed on a Health tab stop ("health:start", the exercise Start button) instead of crossing to the World
