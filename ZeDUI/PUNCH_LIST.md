@@ -1267,6 +1267,14 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     and the focus is back on the icon; picking another recipe closes it. Craft, with a baseball bat carried, pick
     the spiked bat: What you get with the facts, and What changes against the bat (damage, condition, weight); a
     recipe with several possible results shows "or one of N others". The 1080p pair unchanged elsewhere.
+    **Second pass (build, Nov 1, on QA's five points from reading the code):** (1, 2) the strength is now the number the
+    game sets when the thing is built (ISBuildIsoEntity: the script's health + its bonus at the sandbox's Construction
+    Bonus Points multiplier + the highest relevant skill level x the skill base health), shown as the total with its
+    parts: "600 (450 + 150 from your Metalworking)"; a log fence reads "200 + N from your Carpentry" through the same
+    rule; barricades still none. (3) Condition (the maximum) is a fact on the card and in What changes. (4) The facing
+    wraps by hand (Kahlua's % keeps the sign). (5) What changes skips inputs the recipe keeps (tools), so a hammer never
+    stands in for the bat. The small page draws no holes, by design. The punch list's expected lines above read as the
+    first pass wrote them; QA's scripts (pvc, nbp) carry the second.
 
 50. **Notebook paper: the lines were not ruled like paper (the director, Nov 1 2026, with four pictures of the real
     sheet).** fixed (build, Nov 1), QA to confirm. The Notebooks page (the small page in the Journal's Notebooks

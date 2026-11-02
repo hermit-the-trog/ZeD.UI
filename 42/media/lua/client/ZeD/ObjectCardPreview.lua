@@ -93,15 +93,33 @@ local function buildData(d, t, player)
         local tex = ((sn and sn ~= "") and getTexture(sn)) or e.iconTex
         if tex then d.faces[1] = { name = "", tiles = { { tex = tex, x = 0, y = 0, z = 0 } } } end
     end
-    local health = script and call(script, "getHealth") or -1
-    local base = script and call(script, "getSkillBaseHealth") or 0
-    if health and health ~= -1 then
-        d.strength = tostring(health)
-    elseif base and base > 0 then
-        local lvl = call(player, "getPerkLevel", Perks.Woodwork) or 0
-        local skill = lvl * 50
-        if CharacterTrait and CharacterTrait.HANDY and call(player, "hasTrait", CharacterTrait.HANDY) then skill = skill + 100 end
-        d.strength = ZeD.tr("UI_ZeD_Preview_StrengthSkill", tostring(base), tostring(skill))
+    -- the strength as the game sets it when the thing is built (ISBuildIsoEntity, the thumpable's max
+    -- health): the script's health (0 where it has none) + its bonus health at the sandbox's Construction
+    -- Bonus Points multiplier + the character's highest relevant skill level x the script's skill base
+    -- health. (QA, Nov 1 2026: the older getHealth helper that reads a fixed health alone is not what the
+    -- build uses.) Barricades carry none of the three: no line.
+    local base = math.max(script and call(script, "getHealth") or 0, 0)
+    local skillBase = script and call(script, "getSkillBaseHealth") or 0
+    local bonus = script and call(script, "getBonusHealth") or 0
+    if bonus > 0 then
+        local okM, mult = pcall(function() return getSandboxOptions():getOptionByName("ConstructionBonusPoints"):getValue() end)
+        local k = ({ [1] = 0.5, [2] = 0.7, [3] = 1.0, [4] = 1.3, [5] = 1.5 })[okM and mult or 3] or 1.0
+        bonus = math.floor(bonus * k + 0.5)
+    end
+    local skill, perkName = 0, nil
+    if skillBase > 0 then
+        local lvl = call(e.recipe, "getHighestRelevantSkillLevel", player) or 0
+        local perk = call(e.recipe, "getHighestRelevantSkill", player)
+        perkName = perk and tostring(call(perk, "getName") or "") or ""
+        skill = lvl * skillBase
+    end
+    local total = base + bonus + skill
+    if total > 0 or skillBase > 0 then
+        local parts = {}
+        if base > 0 then parts[#parts + 1] = tostring(base) end
+        if skillBase > 0 then parts[#parts + 1] = ZeD.tr("UI_ZeD_Preview_FromSkill", tostring(skill), perkName or "") end
+        if bonus > 0 then parts[#parts + 1] = ZeD.tr("UI_ZeD_Preview_Bonus", tostring(bonus)) end
+        d.strength = (#parts > 1) and (tostring(total) .. " (" .. table.concat(parts, " + ") .. ")") or tostring(total)
     end
     local sk = {}
     for _, s in ipairs(e.skillDefs or {}) do sk[#sk + 1] = tostring(s.name) .. " " .. tostring(s.required) end
@@ -122,19 +140,33 @@ local function craftData(d, t, player)
         local okI, it = pcall(instanceItem, types[1])
         if okI then item = it end
     end
-    if item and ZeD.itemFacts then d.facts, d.bars, d.cat = ZeD.itemFacts(item) end
+    -- the facts as the item card lists them, plus the condition it is made with (a bar on the card, a
+    -- number here: the thing to compare when the question is what lasts)
+    local function factsOf(it)
+        local f, b, c = ZeD.itemFacts(it)
+        if c == "Weapon" or c == "Firearm" or c == "Clothing" then
+            local cm = call(it, "getConditionMax")
+            if cm and cm > 0 then f[#f + 1] = { label = ZeD.tr("UI_ZeD_Preview_Condition"), value = tostring(cm) } end
+        end
+        return f, b, c
+    end
+    if item and ZeD.itemFacts then d.facts, d.bars, d.cat = factsOf(item) end
     d.tex = (item and (call(item, "getTex") or call(item, "getTexture"))) or e.iconTex
     d.weight = item and call(item, "getActualWeight") or nil
+    -- the item of yours the recipe would change: an input the recipe uses up (not a tool it keeps, so a
+    -- hammer never stands in for the bat) of the output's kind, that you carry
     if item and d.cat and (d.cat == "Weapon" or d.cat == "Firearm" or d.cat == "Clothing") then
         local inv = call(player, "getInventory")
         for _, inp in ipairs(e.inputDefs or {}) do
-            for ift in pairs(inp.validTypes or {}) do
-                local it = inv and call(inv, "getFirstTypeRecurse", ift) or nil
-                if it then
-                    local f2, _, c2 = ZeD.itemFacts(it)
-                    if c2 == d.cat then
-                        d.base, d.baseFacts, d.baseName = it, f2, call(it, "getDisplayName")
-                        break
+            if not (inp.isTool or inp.isKeep) then
+                for ift in pairs(inp.validTypes or {}) do
+                    local it = inv and call(inv, "getFirstTypeRecurse", ift) or nil
+                    if it then
+                        local f2, _, c2 = factsOf(it)
+                        if c2 == d.cat then
+                            d.base, d.baseFacts, d.baseName = it, f2, call(it, "getDisplayName")
+                            break
+                        end
                     end
                 end
             end
@@ -226,7 +258,11 @@ function def.body(card, x, y, w, t, player)
     local cy = y
     if t.obj.config.prefix == "build" then
         local n = #(d.faces or {})
-        local face = (n > 0) and d.faces[((t.face - 1) % n) + 1] or nil
+        -- (the face index wraps by hand: Kahlua's % keeps the sign, so (0 % n) + 1 would not land on the last)
+        if n > 0 then
+            if t.face < 1 then t.face = n elseif t.face > n then t.face = 1 end
+        end
+        local face = (n > 0) and d.faces[t.face] or nil
         local boxH = T.px(PICTURE_H)
         UI.fill(card, x, cy, w, boxH, "surf2")
         if face then
