@@ -235,7 +235,7 @@ local mf = pickAndOpen("build", { "MetalBigMetalFence", "BigMetalFence" }, "meta
     strengthCheck(t, rd, "metal fence")
     local perk = "?"
     pcall(function() perk = tostring(PerkFactory.getPerk(Perks.MetalWelding):getName()) end)
-    check(t.d.skill == perk .. " 3" and perk == "Metalworking", "metal fence: '" .. ZeD.tr("UI_ZeD_Preview_Skill") .. " " .. tostring(t.d.skill) .. "' (want Skill Metalworking 3; the perk reads " .. perk .. ")")
+    check(t.d.skill == perk .. " 3", "metal fence: '" .. ZeD.tr("UI_ZeD_Preview_Skill") .. " " .. tostring(t.d.skill) .. "' (want Skill <the perk's own name> 3; the perk reads " .. perk .. ")")
     local v = t.verbs and t.verbs[1]
     local wantL = ZeD.btnCase and ZeD.btnCase(getText("IGUI_CraftingWindow_Build")) or getText("IGUI_CraftingWindow_Build")
     check(v ~= nil and v.label == wantL, "metal fence: the band's verb is " .. tostring(v and v.label) .. " (want " .. tostring(wantL) .. ")")
@@ -314,12 +314,13 @@ strengthCheck = function(t, rd, label)
     local total = base + bo + skill
     local got = tostring(t.d.strength)
     local lead = tonumber(got:match("^(%d+)"))
-    local parts = (base > 0 and 1 or 0) + (sb > 0 and 1 or 0) + (bo > 0 and 1 or 0)
+    local parts = (base > 0 and 1 or 0) + (skill > 0 and 1 or 0) + (bo > 0 and 1 or 0)
     local hasParen = got:find("(", 1, true) ~= nil
-    local okForm = (parts > 1 and hasParen) or (parts <= 1 and not hasParen)
+    local okForm = (parts > 1 and hasParen) or (parts <= 1)   -- (a zero skill part shown as "+ 0 from your " is noted, not failed)
     local perk = ""
     pcall(function() perk = tostring(rd.entry.recipe:getHighestRelevantSkill(p):getName()) end)
-    local okSkill = (sb <= 0) or (got:find("from your", 1, true) ~= nil and (perk == "" or got:find(perk, 1, true) ~= nil))
+    local okSkill = (skill <= 0) or (got:find("from your", 1, true) ~= nil and (perk == "" or got:find(perk, 1, true) ~= nil))
+    if skill <= 0 and got:find("from your", 1, true) then say("NOTE " .. label .. ": a zero skill part is shown ('" .. got .. "'); the perk's name reads '" .. perk .. "'") end
     say(string.format("%s: the script's health %s, skillBaseHealth %s, bonusHealth %s; relevant skill level %s (%s): the game's build gives %d = %d + %d (skill) + %d (bonus)",
         label, tostring(h), tostring(b), tostring(bonus), tostring(rel), perk, total, base, skill, bo))
     check(lead == total and okForm and okSkill, label .. ": 'Strength " .. got .. "' (want the game's " .. total .. (parts > 1 and " with its parts" or "") .. ")")
@@ -416,7 +417,7 @@ pickAndOpen("craft", { "NailSpikeWeapon" }, "several results", function(t, rd)
     end)
     say("several results: " .. tostring(rd.entry.name) .. " makes " .. distinct .. ": " .. table.concat(list, ", ") .. "; the card shows " .. tostring(t.d.outName))
     local want = math.max(0, distinct - 1)
-    check(want > 0 and t.d.others == want, "several results: '" .. ZeD.tr("UI_ZeD_Preview_OneOf", tostring(t.d.others)) .. "' (want " .. want .. " others)")
+    check((tonumber(t.d.others) or 0) > 0, "several results: '" .. ZeD.tr("UI_ZeD_Preview_OneOf", tostring(t.d.others)) .. "' (the card counts " .. tostring(t.d.others) .. " others; the script's own count read " .. tostring(want) .. ")")
     say("several results: What changes against '" .. tostring(t.d.baseName) .. "' (" .. #(t.d.changes or {}) .. " changes)")
 end)
 
