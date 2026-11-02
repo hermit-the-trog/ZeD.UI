@@ -1134,6 +1134,25 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     once "select" exists (open the card, or select with the card on another press); what hold X's drag mode moves
     to; how a multi-selection shows (the list's selection wash) and what acts on it (the context menu, Take, drop);
     how it clears (B, or a tap elsewhere). Not for t15.
+    **Rules pass (build, Nov 1 2026 evening, for the director's picks).** What exists: with the mouse a click selects one
+    row, Ctrl-click adds or removes one, Shift-click takes the run between; the selection shows as the rows' wash,
+    feeds a drag of all of them and the context menu over all of them (the game's own menu for several items: drop
+    all, move all), and the card hides while more than one is selected. With the pad: tap A opens the row's card
+    and makes it the one selected (Hard Rule 3), hold A is quick use (a double-click), tap X is the row's menu, hold
+    X is drag mode, used today only by the container strip to reorder. Proposed rules:
+    1. Tap A on a row: as today, its card, that row the one selected.
+    2. Hold A on a row: MARK it (the row's wash, as Ctrl-click): a second mark on a marked row unmarks it. While
+       A stays held, Up and Down mark the rows passed (Shift-click's run, painted); letting go ends the stroke.
+    3. With marks on the list: the card hides (as with the mouse); the help line says "3 marked | X: menu | B: clear
+       marks"; tap X opens the game's menu for all marked rows; the band's Take / Drop / Move act on all marked;
+       the first B clears the marks and leaves the focus where it is; a stack header marks its whole stack.
+    4. Hold X on a row: quick use (the double-click), the director's own trade; the container strip keeps hold X
+       for reordering (another element, no clash).
+    5. Marks belong to one list: picking another container or tab clears them, as the mouse does. The pattern is the
+       same in the World window (parity).
+    Questions: (a) tap A on a marked row: open its card and drop the marks (the plain click's way), or keep the marks
+    and only move the focus? (b) the painted run while A is held: wanted, or marks one at a time only? (c) hold X as
+    quick use on rows: yes, or leave hold X unused on rows for later?
 
 45. **Reset windows leaves the old tab's pad stops behind (QA, Nov 1 2026, the 720 short run; build's cause).**
     open. wpt at 1280x720 Normal, right after cu: with the Character window on Loot, Right from the container
