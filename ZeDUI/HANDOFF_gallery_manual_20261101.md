@@ -45,7 +45,8 @@ QA → Design, from the director's words in the QA session (Nov 1 2026, afternoo
    publisher's name struck through and "hermit" written over it, so the body text reads as the publisher's and his
    marks as the reader's.
 
-Publisher and author names (the director asked for a pun on a programmer; his pick):
-- Author: **Manuel Paige** (the man page); or Sy Stemm, Polly Morphism, Ann Sibyl (ANSI), Lou Pback, Al Gorithm.
-- Publisher: **Null & Void Press**; or Core Dump Books, Segment & Fault, Stack and Heap, Bit Twiddler Publishing.
-- The cover's struck-through line is the publisher's docs group; keep the same name there and on the title page.
+**Names (the director's picks, Nov 1 2026):**
+- Author: **Ann Sibyl**.
+- Publisher: **Doidbros & Buzzlord Division of Informatics Publishing LLC**.
+- The cover's struck-through line is the publisher's docs group; the same names go there and on the title page, and the
+  running heads and copyright line carry the publisher.
