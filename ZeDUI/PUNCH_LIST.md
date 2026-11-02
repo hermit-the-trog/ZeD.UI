@@ -1274,6 +1274,10 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     (only sl prints, so where the count grows is not seen). Next: what scripts 42-80 leave that keeps a fresh car's
     physics asleep (the cars left behind, or a vehicle or seat state on the character); a halving of 42-80 at 720
     (about 15 min each) with the probe in a few of them, or a probe line at the start of each script.
+    **QA, Nov 2 2026, later: the state line at 242d3a0 errors before every script (2026-11-02_pl47_state_720.md).** Each
+    reads "[ZeD.QA] state #n ERR Object tried to call nil in pcall"; Kahlua logs the caught error as a Java exception, so
+    the runner marks all 41 scripts FAIL and the run has no state data. sl's own lines unchanged (cars on loaded squares,
+    vehicles=8, physics=false). Back to build: which call is nil; QA reruns when it is pushed.
     **Build's call (Nov 2 2026): the probe, not the halving.** QABridge.lua prints one line before every script it runs,
     grep "[ZeD.QA] state #": the game speed and pause, the character's place and car, the chunk grid, and each vehicle the
     cell holds (up to 12) with its distance, physics on or off, and "remote" if this game does not simulate it. One
@@ -1514,6 +1518,10 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     scroll (the in-game run with the 150 mods opened the save without them: one script load instead of three; to look
     at); the server settings' bumpers (no server settings file on this machine). Reports: 2026-11-02_pgl_4k.console.txt,
     2026-11-02_pgl_deck.console.txt, 2026-11-02_pl46_pgi_720.md.
+    **QA, Nov 2 2026, later: the real mouse wheel too (Deck, 27 / 27).** The run held at the Sandbox step and QA turned
+    the desktop's wheel over the page list (SetCursorPos + mouse_event from PowerShell, the game in front): the list
+    scrolled 60 px a notch, 4 s into the hold. The main menu's gap is closed; the in-game scroll with marks and the
+    server bumpers stay uncovered.
 
 ## Test process
 
