@@ -1301,6 +1301,12 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     loaded", then "no clear 9x3 floor in the grandstand" and the clean stop. Earlier at 720 (bisect b, Nov 1) rst straight
     after the prelude found its floor. Either something now stands on the floor (the QA save keeps what runs leave), or
     the floor check differs after a move. For build: name what blocks the floor in the ERR line.
+    **QA, Nov 2 2026, evening: what blocks it (f838593, 2026-11-02_pl47_moved_rst2_720.md).** The right building
+    (875,12964, x 875-893 y 12964-13122); its footprint tallies "no square" 2829, clear 103, two or three objects 49, not
+    free 8, another building or outside 32; the nearest 9x3 (885,13040) is blocked first at 884,13039 by "no square".
+    Nothing stands on the floor: most of it is not loaded yet when rst looks. Its wait ends when any one square from 880
+    to 892 has its building; the 9x3 it needs loads later. For build: wait until the nearest 9x3's squares all exist (or
+    the prelude's 300 frames after a move).
     **Build's call (Nov 2 2026): the probe, not the halving.** QABridge.lua prints one line before every script it runs,
     grep "[ZeD.QA] state #": the game speed and pause, the character's place and car, the chunk grid, and each vehicle the
     cell holds (up to 12) with its distance, physics on or off, and "remote" if this game does not simulate it. One
