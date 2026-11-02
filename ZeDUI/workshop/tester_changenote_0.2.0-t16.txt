@@ -15,6 +15,7 @@ Controller
 
 Mods
 - The page list beside Find scrolls: with a long mod list the Sandbox step, the Sandbox window in game and Options have pages past the bottom. The wheel over the list moves it, the bar drags, and the bumpers keep the picked page in view. (Thanks to Kable for the report.)
+- Immersive Moodles: with its HUD on, ZeD leaves the moodles to it, so each moodle shows once (its column, its hover text, its side). On the right it starts below ZeD's watch. (Thanks to Krovenox for the mod.)
 
 Windows
 - The World window comes back where you left it after a Save and Quit made while a wide card held it against the screen's edge (it reopened a few pixels to the left).
