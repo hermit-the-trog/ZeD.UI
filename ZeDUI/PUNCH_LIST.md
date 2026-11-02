@@ -1307,6 +1307,11 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     Nothing stands on the floor: most of it is not loaded yet when rst looks. Its wait ends when any one square from 880
     to 892 has its building; the 9x3 it needs loads later. For build: wait until the nearest 9x3's squares all exist (or
     the prelude's 300 frames after a move).
+    **QA, Nov 2 2026, evening: rst passes from the moved place (17cb7c7, 2026-11-02_pl47_moved_rst3_720.md, 3 / 3).**
+    Moved home, waited for the whole floor patch, fixture found (standing at 885,13029), built, stocked and its checks
+    passed. With the full 720 pass at 3d485cc (95 / 99, every vehicle script passing), 47 is done; the three warnings
+    left there (dgr, wpt, jrd) are the old rig notes under Test process. Not checked: why the 1080p pass passed sl from
+    the same place (the state line at 1080p would show it, if it ever matters).
     **Build's call (Nov 2 2026): the probe, not the halving.** QABridge.lua prints one line before every script it runs,
     grep "[ZeD.QA] state #": the game speed and pause, the character's place and car, the chunk grid, and each vehicle the
     cell holds (up to 12) with its distance, physics on or off, and "remote" if this game does not simulate it. One
