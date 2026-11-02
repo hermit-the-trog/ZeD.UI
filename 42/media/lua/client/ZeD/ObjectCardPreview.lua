@@ -118,9 +118,14 @@ local function buildData(d, t, player)
         local perk = call(e.recipe, "getHighestRelevantSkill", player)
         if perk ~= nil then perkName = tostring(call(perk, "getName") or "") end
         if perkName == "" and e.skillDefs and e.skillDefs[1] then perkName = tostring(e.skillDefs[1].name or "") end
-        if perkName == "" and PerkFactory and PerkFactory.getPerk and Perks and Perks.Woodwork then
-            local wp = call(PerkFactory, "getPerk", Perks.Woodwork)
-            if wp ~= nil then perkName = tostring(call(wp, "getName") or "") end
+        if perkName == "" and Perks and Perks.Woodwork then
+            -- (Perks.Woodwork is the perk itself in Lua: its own name, as the skill chips read it; the
+            -- factory's getPerk wants its enum and gave nothing, QA's third run)
+            perkName = tostring(call(Perks.Woodwork, "getName") or "")
+            if perkName == "" and PerkFactory and PerkFactory.getPerkName then
+                local okN, nm = pcall(PerkFactory.getPerkName, Perks.Woodwork)
+                if okN and nm then perkName = tostring(nm) end
+            end
         end
     end
     local total = base + bonus + skill
