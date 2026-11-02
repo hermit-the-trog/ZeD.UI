@@ -1275,6 +1275,12 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     wraps by hand (Kahlua's % keeps the sign). (5) What changes skips inputs the recipe keeps (tools), so a hammer never
     stands in for the bat. The small page draws no holes, by design. The punch list's expected lines above read as the
     first pass wrote them; QA's scripts (pvc, nbp) carry the second.
+    **Third pass (build, Nov 1, on the 4K and Deck runs):** the card opened, closed and focused right; its data threw.
+    (a) The engine's build object: BuildLogic.getSelectedBuildObject reads a recipe-to-entity lookup that only
+    getAllBuildableRecipes fills; the card now fills it once per card. (b) The craft output: the drawer's pre-bake asks
+    a script item for getFullType, which it lacks, so the output types were empty and no item was instanced; the card
+    reads the full type as module.name and, for an output written through a mapper (nails on a bat), the mapper's
+    results, picking the one whose pattern you carry and comparing against that item. QA re-runs pvc at both sizes.
 
     - **QA, Nov 1 2026, late (zedqa_preview_card.lua at 4K on 4593e3d, then on the Deck at 1e947e2; qa/regression/
       2026-11-01_t16_cards_4k.md, _800.md; shots in Screenshots/t16_cards_4k, _800): FAIL, the card's data path throws.**
