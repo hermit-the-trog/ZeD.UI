@@ -4044,5 +4044,8 @@
     "UI_ZeD_Preview_NeedParts": "the parts in reach",
     "UI_ZeD_Preview_NeedLearn": "to know the recipe",
     "UI_ZeD_Preview_NeedSkill": "a higher skill",
-    "UI_ZeD_Preview_HintGo": "make it"
+    "UI_ZeD_Preview_HintGo": "make it",
+    "UI_ZeD_Inv_MarkedHelp": "%1 marked | X: menu for all | B: clear marks",
+    "UI_ZeD_Inv_PromptClearMarks": "Clear marks",
+    "UI_ZeD_Inv_PromptMenuMarked": "Menu for marked"
 }

@@ -1467,6 +1467,22 @@ local function _handleSpatialNav(w, dir)
 end
 
 -- Hide every registered window (windowshade) + release focus. Idempotent.
+
+-- The painted run (punch list 44): while A stays held past its hold and the window has a stroke armed
+-- (w._gpPaint, set by a row's onHoldActivate), a D-pad move lands as usual and the row landed on takes
+-- the stroke's mark through its onPaint. Letting A go ends the stroke (the release clears w._gpPaint).
+local _spatialNavCore = _handleSpatialNav
+_handleSpatialNav = function(w, dir)
+    _spatialNavCore(w, dir)
+    if (not _preview) and _aHeld and _aConsumed and w and w._gpPaint then
+        local el = Focus.getFocusedElement(w)
+        if el and el.onPaint then
+            local paint = w._gpPaint
+            _fireCb("element.onPaint", function(ww, ee) el.onPaint(ww, ee, paint) end, w, el)
+        end
+    end
+end
+
 local function _hideAllWindows(reason)
     if #_windowRegistry == 0 then return end
     print("[ZeD.Input] Focus: hideAll (" .. (reason or "?") .. ")")
@@ -1762,7 +1778,7 @@ local function _onTick()
         if _yHeld                 then _yHeld = false; _yConsumed = false end
         if _prevYPressedUnfocused then _prevYPressedUnfocused = false end
         if _wsLatched             then _wsLatched = false end
-        if _aHeld                 then _aHeld = false; _aConsumed = false; _aWindow = nil end
+        if _aHeld                 then if _aWindow then _aWindow._gpPaint = nil end; _aHeld = false; _aConsumed = false; _aWindow = nil end
         if _xHeld                 then _xHeld = false; _xConsumed = false; _xWindow = nil; _xElement = nil end
         return
     end
@@ -1839,6 +1855,7 @@ local function _onTick()
                 local targetW = _aWindow or _focusedWindow
                 if targetW then _handleConfirm(targetW) end
             end
+            if _aWindow then _aWindow._gpPaint = nil end   -- (the painted run ends with the hold)
             _aHeld     = false
             _aStartMs  = 0
             _aConsumed = false
@@ -1861,6 +1878,10 @@ local function _onTick()
                     _fireCb("element.onHoldContextDrag(arm)",
                         function(w, e) el.onHoldContextDrag(w, e, nil) end,
                         _xWindow or _focusedWindow, el)
+                    _xConsumed = true
+                elseif el and el.onHoldContext then
+                    -- a one-shot hold with no drag (punch list 44: hold X on a row is the quick use)
+                    _fireCb("element.onHoldContext", el.onHoldContext, _xWindow or _focusedWindow, el)
                     _xConsumed = true
                 end
             end

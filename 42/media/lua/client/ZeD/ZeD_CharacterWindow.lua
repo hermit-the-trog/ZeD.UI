@@ -1521,17 +1521,23 @@ _buildInvRowFocusables = function(win)
                     if w._drawerItem == el.item then ZeD.Input.Focus.focusPrimarySoon(w, "charItemCard", 2) end
                 end
             end,
-            onHoldActivate = function(w, el)
-                -- (as a double-click: a thing in a bag comes to the main inventory)
+            -- the controller's marks (punch list 44): hold A marks, a held A paints, hold X is the quick use,
+            -- B clears the marks (its prompt and X's only while marks exist; the builders run every frame)
+            onHoldActivate = function(w, el) ZeD.InventoryRenderer.padMark(w, el) end,
+            onPaint        = function(w, el, paint) ZeD.InventoryRenderer.padPaint(w, el, paint) end,
+            onHoldContext  = function(w, el)
                 if not el.item then return end
                 pcall(ZeD.InventoryRenderer.quickUse, el.item, ZeD.playerNumOf(w))
             end,
+            onCancel = (ZeD.InventoryRenderer.padMarkCount(win) > 0) and ZeD.InventoryRenderer.padClearMarks or nil,
+            promptB  = (ZeD.InventoryRenderer.padMarkCount(win) > 0) and ZeD.tr("UI_ZeD_Inv_PromptClearMarks") or nil,
+            promptX  = (ZeD.InventoryRenderer.padMarkCount(win) > 0) and ZeD.tr("UI_ZeD_Inv_PromptMenuMarked") or nil,
             onContextMenu = function(w, el)
                 if not el.item then return end
                 if ISInventoryPaneContextMenu and ISInventoryPaneContextMenu.createMenu then
                     local cnt = w._mainContent
                     local stk = cnt and cnt._stacks and cnt._stacks[el.item]
-                    local itemsArr = (stk and stk.count > 1) and stk.items or {el.item}
+                    local itemsArr = ZeD.InventoryRenderer.padMarkedItems(w, el) or ((stk and stk.count > 1) and stk.items or {el.item})
                     ISInventoryPaneContextMenu.createMenu(ZeD.playerNumOf(w), true, itemsArr, 0, 0)
                 end
             end,
@@ -1653,18 +1659,24 @@ _buildCharacterMCColumnFocusables = function(win, slot)
                     if w._drawerItem == el.item then ZeD.Input.Focus.focusPrimarySoon(w, "charItemCard", 2) end
                 end
             end,
-            onHoldActivate = function(w, el)
-                -- (as a double-click: a thing in a bag comes to the main inventory)
+            -- the controller's marks (punch list 44): hold A marks, a held A paints, hold X is the quick use,
+            -- B clears the marks (its prompt and X's only while marks exist; the builders run every frame)
+            onHoldActivate = function(w, el) ZeD.InventoryRenderer.padMark(w, el) end,
+            onPaint        = function(w, el, paint) ZeD.InventoryRenderer.padPaint(w, el, paint) end,
+            onHoldContext  = function(w, el)
                 if not el.item then return end
                 pcall(ZeD.InventoryRenderer.quickUse, el.item, ZeD.playerNumOf(w))
             end,
+            onCancel = (ZeD.InventoryRenderer.padMarkCount(win) > 0) and ZeD.InventoryRenderer.padClearMarks or nil,
+            promptB  = (ZeD.InventoryRenderer.padMarkCount(win) > 0) and ZeD.tr("UI_ZeD_Inv_PromptClearMarks") or nil,
+            promptX  = (ZeD.InventoryRenderer.padMarkCount(win) > 0) and ZeD.tr("UI_ZeD_Inv_PromptMenuMarked") or nil,
             onContextMenu = function(w, el)
                 if not el.item then return end
                 if ISInventoryPaneContextMenu and ISInventoryPaneContextMenu.createMenu then
                     local cnt = w._mainContent
                     local cs2 = cnt and cnt._colStates and cnt._colStates[el.colIdx]
                     local stk = cs2 and cs2.stacks and cs2.stacks[el.item]
-                    local itemsArr = (stk and stk.count > 1) and stk.items or {el.item}
+                    local itemsArr = ZeD.InventoryRenderer.padMarkedItems(w, el) or ((stk and stk.count > 1) and stk.items or {el.item})
                     ISInventoryPaneContextMenu.createMenu(ZeD.playerNumOf(w), true, itemsArr, 0, 0)
                 end
             end,
