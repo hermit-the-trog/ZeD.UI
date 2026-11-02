@@ -93,6 +93,7 @@ local function spawn(script)
         if sq then pcall(function() free = sq:isFree(false) and not sq:HasTree() and not sq:getVehicleContainer() end) end
         if sq and free then
             local v = addVehicleDebug(script, IsoDirections.N, nil, sq)
+            if ZEDQA_VPROBE then ZEDQA_VPROBE("dgr", sq, v) end   -- (punch list 47: the 720 bisect)
             if v then cur = v; return true end
         end
     end

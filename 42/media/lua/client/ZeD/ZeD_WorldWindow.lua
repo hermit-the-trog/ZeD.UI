@@ -2341,7 +2341,10 @@ local function saveWorldState(win)
     -- Pre-S124 saves were written at scale 1.0, so they read back as-is.
     local baseW = CONTAINER_STRIP_W + (win._baseInvW or 372) + ACTION_TAB_STRIP_W   -- design units
     md.ZeD_WinState.world = {
-        x = (win:getX() - (win._rolled and win._rollW or 0)) / sc,   -- (a rolled side: where the window starts unrolled)
+        -- the window's own place: a rolled side where it starts unrolled, and a window the engine pushed left
+        -- while a full card holds it against the screen's edge where it stands without the push (punch list 46;
+        -- the Character window saves its anchor, which a push never moves)
+        x = (win:getX() + (win._drawerCapPush or 0) - (win._rolled and win._rollW or 0)) / sc,
         y = win:getY() / sc,
         w = baseW,
         h = win:getHeight() / sc,

@@ -80,6 +80,7 @@ local built = {}           -- the crates and the locker
 local stashed = {}         -- { cont, item } set aside
 
 local S, F, crateA, crateB, locker, crateF, building
+local noFixture = nil   -- (punch list 47: a fixture not found ends the run cleanly, not in a step error each)
 local axe, hat, hatLoc, screwdriver, bottle, katana, crowbar, bread
 local loId, ofId, longId
 
@@ -179,11 +180,12 @@ step(2, function()
     -- the clear square in the grandstand nearest its west door, with a clear corridor six squares east
     local cell = getCell()
     local b0 = cell:getGridSquare(892, 13040, 0)
+    if ZEDQA_VPROBE then ZEDQA_VPROBE("rst", b0, nil) end   -- (punch list 47: where the character stands at the fixture step)
     building = b0 and b0:getBuilding()
     if not building then
         for dx = 0, 12 do local sq = cell:getGridSquare(892 - dx, 13040, 0); if sq and sq:getBuilding() then building = sq:getBuilding(); break end end
     end
-    if not building then say("ERR no grandstand building near 892,13040"); return end
+    if not building then say("ERR no grandstand building near 892,13040"); noFixture = "no grandstand"; return end
     local d = building:getDef()
     local best, bd = nil, nil
     for y = d:getY() + 1, d:getY2() - 2 do
@@ -201,7 +203,7 @@ step(2, function()
             end
         end
     end
-    if not best then say("ERR no clear 9x3 floor in the grandstand"); return end
+    if not best then say("ERR no clear 9x3 floor in the grandstand"); noFixture = "no clear floor"; return end
     S = best
     F = cell:getGridSquare(S:getX() + 6, S:getY(), 0)
     say(string.format("fixture: building %s, standing at %d,%d (%d from 892,13040)", R.bkey(building), S:getX(), S:getY(), bd))
@@ -219,7 +221,12 @@ step(120, function()
 end)
 
 step(20, function()
-    if not (crateA and crateB and locker and crateF) then say("ERR the fixture is incomplete"); return end
+    if not (crateA and crateB and locker and crateF) then
+        say("ERR the fixture is incomplete")
+        for _, b in ipairs(built) do pcall(function() b.sq:transmitRemoveItemFromSquare(b.o) end) end   -- (what was built goes)
+        noFixture = "incomplete"
+        return
+    end
     -- set aside the building's water and katanas
     local nw = stash(function(it) return L.waterIn(it) > 0 end)
     local nk = stash(function(it) return it:getFullType() == "Base.Katana" end)
@@ -743,6 +750,14 @@ step(60, function() say("DONE (" .. fails .. " failed)") end)
 
 local function onTick()
     if qi >= #Q then Events.OnTick.Remove(onTick); return end
+    if noFixture then   -- (nothing was set aside or stocked yet: the rest has nothing to check or put back)
+        fails = fails + 1
+        say("ERR the fixture was not set up (" .. noFixture .. "): the rest is skipped")
+        say("DONE (" .. fails .. " failed)")
+        qi = #Q
+        Events.OnTick.Remove(onTick)
+        return
+    end
     local s = Q[qi + 1]
     if s.still then
         local sh = shape()
