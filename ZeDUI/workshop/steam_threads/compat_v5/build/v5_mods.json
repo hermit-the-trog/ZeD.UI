@@ -202,7 +202,7 @@
   "name": "Mod Load Order Sorter",
   "author": "REfRigERatoR",
   "list": "N",
-  "note": "ZeD's Mods screen has its own Auto sort, and from ZeD-GUI 0.2.0-t15 Find in the load order, Load first and Load last, Load after... and Load before... rules, separators and folders. The mod's Sort button is on the game's Mods screen, which ZeD replaces. Use one. [i](expected)[/i]",
+  "note": "ZeD's Mods screen has its own Auto sort, and from 0.2.0-t15 Find, Load first and Load last, Load after... and Load before... rules, separators and folders. The mod's Sort button is on the game's Mods screen, which ZeD replaces. Use one. [i](expected)[/i]",
   "cr": [
    null,
    null
@@ -2794,7 +2794,7 @@
   "name": "[B42] Mod Manager",
   "author": null,
   "list": "N",
-  "note": "ZeD's Mods screen does the job: profiles, search, and from ZeD-GUI 0.2.0-t15 Find in the load order, Load first and Load last, Load after... and Load before... rules, separators and folders. With the mod on, ZeD's Mods screen works as usual and the mod's own screens do not show.",
+  "note": "ZeD's Mods screen does the job: profiles, search, and from 0.2.0-t15 Find, Load first and Load last, Load after... and Load before... rules, separators and folders. With the mod on, ZeD's Mods screen works as usual and the mod's own screens do not show.",
   "cr": [
    "[url=https://steamcommunity.com/profiles/76561199029361096]the maker[/url]",
    null
@@ -6154,7 +6154,7 @@
   "name": "Mod Load Order Sorter Extension",
   "author": "Kaoeutsu",
   "list": "N",
-  "note": "Loads with no errors. ZeD's Mods screen replaces the load-order screen it extends, and from ZeD-GUI 0.2.0-t15 has Find in the load order, Load first and Load last, Load after... and Load before... rules, separators and folders. Use one. Its optional add-on was not tested.",
+  "note": "Loads with no errors. ZeD's Mods screen replaces the load-order screen it extends, and from 0.2.0-t15 has Find, Load first and Load last, Load after... and Load before... rules, separators and folders. Use one. Its optional add-on was not tested.",
   "cr": [
    "[url=https://steamcommunity.com/profiles/76561199113018152]Kaoeutsu[/url]",
    null

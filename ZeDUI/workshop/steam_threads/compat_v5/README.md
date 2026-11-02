@@ -7,23 +7,20 @@ and the support added in ZeD-GUI 0.2.0-t11 and 0.2.0-t15. 559 mods in all.
 
 ## Reply map
 
-`post00_first.txt` replaces the first post (its title line is not part of the post). Posts 01 to 13 replace
-replies 1 to 13 in place. **Reply 14, the round 4 post of Oct 29, stays as it is**: do not delete it (deleting it
-would move every later reply up one and break the index). The first post's index names it as the Oct 29 notes,
-with the lists current where the two differ. Posts 15, 16 and 17 are new replies, posted in that order after reply 14.
+Every post is an edit in place: nothing is added to the thread or deleted from it. `post00_first.txt` replaces the
+first post (its title line is not part of the post); posts 01 to 14 replace replies 1 to 14. Reply 14, the round 4
+notes of Oct 29, becomes Not needed part 2 (those notes are folded into the lists). The Does not work lists move
+into the first post, under its index, and the first post loses the old "fixed for 0.2.0-t7" section.
 
 | File | Reply | What it holds | Mods |
 |---|---|---|---|
-| post00_first | first post (replaces) | What the thread is, where each list is, how mods were tested (new lines for Oct 29, Nov 2 and round 5), the t7 fixes, help for long mod lists (t15 load order), how to add a mod | |
-| post01 | reply 1 (replaces) | Supported | 20 |
-| post02 | reply 2 (replaces) | Works well with ZeD | 13 |
-| post03 to post11 | replies 3 to 11 (replace) | Compatible, 9 parts: 0-9 to Be, Be to C, D to F, G to K, L to M, N to P, Q to Sm, Sm to Tr, Tr to Z | 414 |
-| post12 | reply 12 (replaces) | Compatible, vehicle packs | 49 |
-| post13 | reply 13 (replaces) | Does not work: with ZeD (3), and broken on 42.21 or 42.22 by themselves (11) | 14 |
-| (none) | reply 14 (stays) | Round 4 notes of Oct 29, as posted | |
-| post15 | new reply 15, after 14 | Not needed with ZeD, part 1 of 3, with the donations paragraph and makers' credits | 18 |
-| post16 | new reply 16, after 15 | Not needed with ZeD, part 2 of 3 | 13 |
-| post17 | new reply 17, after 16 | Not needed with ZeD, part 3 of 3 (round 5 made the list overflow two replies) | 18 |
+| post00_first | first post | What the thread is, the index, Does not work (with ZeD 3, broken by themselves 11), how mods were tested, help for long mod lists, how to add a mod | 14 |
+| post01 | reply 1 | Supported | 20 |
+| post02 | reply 2 | Works well with ZeD | 13 |
+| post03 to post11 | replies 3 to 11 | Compatible, 9 parts: 0-9 to Be, Be to C, D to F, G to K, L to M, N to P, Q to Sm, Sm to Tr, Tr to Z | 414 |
+| post12 | reply 12 | Compatible, vehicle packs | 49 |
+| post13 | reply 13 | Not needed with ZeD, part 1 of 2, with the donations paragraph and makers' credits | 25 |
+| post14 | reply 14 | Not needed with ZeD, part 2 of 2 | 24 |
 
 Counts per list: Supported 20, Works well 13, Compatible 414, vehicle packs 49, Not needed 49, Does not work
 with ZeD 3, broken by themselves 11. Total 559 (512 from v4, 38 from round 4 and t15, 9 from round 5).
