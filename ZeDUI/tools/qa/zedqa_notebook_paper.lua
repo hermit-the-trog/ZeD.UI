@@ -90,9 +90,10 @@ end
 local CAP, origRect, origText = nil, nil, nil
 local function capStart()
     if CAP then return end
-    CAP = { rects = {}, texts = {}, seen = {} }
+    CAP = { rects = {}, texts = {}, seen = {}, all = 0, objs = {} }
     origRect, origText = ISUIElement.drawRect, ISUIElement.drawText
     ISUIElement.drawRect = function(self, x, y, w, h, a, r, g, b)
+        if CAP then CAP.all = CAP.all + 1 end
         if CAP and r and g and b then
             local k = kindOf(r, g, b)
             if k and k ~= "ink" and k ~= "dim" then
@@ -117,8 +118,19 @@ local function capStart()
         end
         return origText(self, str, x, y, r, g, b, a, font)
     end
+    -- the two objects that draw the paper get the wrappers as their own fields too (Build, Nov 1 2026: the small
+    -- page through the Character window's drawer panel, the full page on the reader window), in case a class in
+    -- between carries its own drawRect; put back by capStop
+    local w = cw()
+    for _, o in ipairs({ w and w._drawerPanel, reader() }) do
+        if o then
+            CAP.objs[#CAP.objs + 1] = { o = o, rect = rawget(o, "drawRect"), text = rawget(o, "drawText") }
+            o.drawRect, o.drawText = ISUIElement.drawRect, ISUIElement.drawText
+        end
+    end
 end
 local function capStop()
+    for _, e in ipairs((CAP and CAP.objs) or {}) do e.o.drawRect, e.o.drawText = e.rect, e.text end
     if origRect then ISUIElement.drawRect = origRect end
     if origText then ISUIElement.drawText = origText end
     origRect, origText = nil, nil
@@ -133,7 +145,7 @@ local function measure(c, pred, label, full)
     for _, r in ipairs(c and c.rects or {}) do
         if r.k == "paper" and pred(r.panel) and (not paper or r.w * r.h > paper.w * paper.h) then paper = r end
     end
-    if not check(paper ~= nil, label .. ": the paper was drawn") then return end
+    if not check(paper ~= nil, label .. ": the paper was drawn (" .. tostring(c and c.all) .. " drawRect calls seen, " .. tostring(c and #c.rects) .. " in the paper's colours)") then return end
     local P = paper
     local ax, ay = P.panel:getAbsoluteX(), P.panel:getAbsoluteY()
     local function on(r) return r.panel == P.panel and r.x >= P.x - 1 and r.x <= P.x + P.w + 1 and r.y >= P.y - 1 and r.y <= P.y + P.h + 1 end
