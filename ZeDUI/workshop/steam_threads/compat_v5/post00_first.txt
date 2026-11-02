@@ -5,9 +5,9 @@ This thread lists the 559 mods tested with ZeD-GUI, sorted into five lists. Each
 [h2]Where each list is[/h2]
 Steam cannot link to a reply, so count the replies from the top of the thread.
 [list]
-[*][b]Reply 1: Supported.[/b] ZeD-GUI has its own support for the mod, so its features show in ZeD's windows (20 mods).
+[*][b]Reply 1: Supported.[/b] ZeD-GUI has its own support for the mod, so its features show in ZeD's windows (21 mods).
 [*][b]Reply 2: Works well with ZeD.[/b] The mod fills a gap or shows well in ZeD's windows; worth having (13).
-[*][b]Replies 3 to 11: Compatible[/b], in 9 parts: 0-9 to Be (reply 3), Be to C (reply 4), D to F (reply 5), G to K (reply 6), L to M (reply 7), N to P (reply 8), Q to Sm (reply 9), Sm to Tr (reply 10), Tr to Z (reply 11). Loads and works with ZeD-GUI, nothing special (414).
+[*][b]Replies 3 to 11: Compatible[/b], in 9 parts: 0-9 to Be (reply 3), Be to C (reply 4), D to F (reply 5), G to K (reply 6), L to M (reply 7), N to P (reply 8), Q to Sm (reply 9), Sm to Tr (reply 10), Tr to Z (reply 11). Loads and works with ZeD-GUI, nothing special (413).
 [*][b]Reply 12: Compatible, vehicle packs[/b] (49).
 [*][b]Replies 13 and 14: Not needed with ZeD.[/b] ZeD-GUI already does the job, so use one of the two; the makers are credited there (49).
 [*][b]This post, below: Does not work.[/b] Two lists: mods that do not work with ZeD-GUI, with why (3), and mods broken on 42.21 or 42.22 by themselves (11).

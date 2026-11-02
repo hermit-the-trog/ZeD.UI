@@ -101,8 +101,8 @@ CHANGED = {
 R5 = {
  "3830018449": ("Better Context Menu Icons", "SuperOl3g", "N",
                 "ZeD's menus draw their own icons for every action, so its icons do not show. Use one.", None),
- "3830422267": ("Immersive Moodles", "Krovenox", "C",
-                "Its moving moodle column draws at the top right while ZeD's moodles still show in their place, so each moodle shows twice.", None),
+ "3830422267": ("Immersive Moodles", "Krovenox", "S",
+                "While its moodle column is on, ZeD leaves the moodles to it: one set shows, the mod's, with its own hover text, and on the right it starts below ZeD's corner watch. With its \"Show Immersive HUD\" option off, ZeD's moodles show as usual. From ZeD-GUI 0.2.0-t16.", None),
  "3828627678": ("Paravel's Enhanced Inventory", "Paravel", "N",
                 "It replaces the game's inventory and loot windows, which ZeD already replaces; none of its windows showed over ZeD's. Needs Paravel's UI. Use one.", None),
  "3828626636": ("Paravel's UI", "Paravel", "N", "The base for Paravel's Enhanced Inventory. Use one.", None),
