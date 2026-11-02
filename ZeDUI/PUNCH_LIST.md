@@ -1746,6 +1746,14 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
 
 ## Test process
 
+- **QA, Nov 2 2026, the t16 pre-upload pass (the mod code at 361d0b6; nothing in 42/ changed after it).** Full 4K
+  regression 97 / 99, 0 fail, 0 timeout (qa/regression/2026-11-02_t16_4k.md). Two warnings, both seen before: wpt
+  "8 hold A moved the hammer out of the crate" (hold A marks rows now, so the test expects the old quick use), and
+  dke's dart "key reads start with the key in, engine off" with "the key never read START" (the same slip hit primani
+  and race in t15pre_800L; a timing slip in the test, not the dash). Short 720 and Deck passes 4 / 5 each, the one
+  warning the same wpt line (2026-11-02_t16_720_short.md, _800_short.md). Staged with stage_workshop.ps1 into
+  Workshop/ZeD-UI (item 3824968485, QABridge and TestInventory left out). The staged Contents folder shadows the dev
+  mod: remove it after the upload. Not uploaded.
 - The release check (before every upload, about 5 minutes, pass or fail): right-click opens the
   menu, both windows open, an item moves, the controller works, the watch reads the time. Not
   built yet.
