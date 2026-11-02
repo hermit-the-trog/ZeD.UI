@@ -1,0 +1,3 @@
+# punch list 56 (Nov 2 2026): the Simple belt
+zedqa_prelude.lua | pre | timeout=120
+zedqa_simple_belt.lua | sbl | timeout=300
