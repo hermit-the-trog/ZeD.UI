@@ -31,6 +31,7 @@ local function cw() return ZeD_CharacterWindow.getWindow() end
 local function ww() return ZeD_WorldWindow.getWindow() end
 local SW, SH = getCore():getScreenWidth(), getCore():getScreenHeight()
 local S = { was = {} }   -- the run's state (one table: the chunk's locals stay few)
+local strengthCheck   -- (defined after scriptHealth: the strength against the game's own formula, Build's second pass)
 
 -- ---- the step queue (as zedqa_two_widths.lua): wait n ticks, or until the World window is still
 local Q, qi, waitT = {}, 0, 0
@@ -231,7 +232,7 @@ local mf = pickAndOpen("build", { "MetalBigMetalFence", "BigMetalFence" }, "meta
         if k and k ~= "" then want = (getText(k):gsub("<br>", " ")) end
     end)
     check(want ~= nil and t.d.words == want, "metal fence: the game's own words ('" .. tostring(t.d.words) .. "'; the Tooltip reads '" .. tostring(want) .. "')")
-    check(t.d.strength == "450", "metal fence: '" .. ZeD.tr("UI_ZeD_Preview_Strength") .. " " .. tostring(t.d.strength) .. "' (want Strength 450)")
+    strengthCheck(t, rd, "metal fence")
     local perk = "?"
     pcall(function() perk = tostring(PerkFactory.getPerk(Perks.MetalWelding):getName()) end)
     check(t.d.skill == perk .. " 3" and perk == "Metalworking", "metal fence: '" .. ZeD.tr("UI_ZeD_Preview_Skill") .. " " .. tostring(t.d.skill) .. "' (want Skill Metalworking 3; the perk reads " .. perk .. ")")
@@ -294,14 +295,39 @@ local function scriptHealth(rd)
     pcall(function() rel = rd.entry.recipe:getHighestRelevantSkillLevel(p) end)
     return h, b, bonus, rel
 end
+-- The strength line against the game's own formula (ObjectCardPreview, Build's second pass, Nov 1 2026):
+-- max(health, 0) + bonusHealth x the sandbox Construction Bonus Points multiplier + the highest relevant skill level
+-- x skillBaseHealth, shown as the total alone, or as "total (base + N from your Skill + bonus)" when there is more
+-- than one part. The check: the leading number is the total, the parts show when there are several, and the skill
+-- part names the perk.
+strengthCheck = function(t, rd, label)
+    local h, b, bonus, rel = scriptHealth(rd)
+    local base = math.max(tonumber(h) or 0, 0)
+    local sb, bo, lvl = tonumber(b) or 0, tonumber(bonus) or 0, tonumber(rel) or 0
+    if bo > 0 then
+        local okM, mult = pcall(function() return getSandboxOptions():getOptionByName("ConstructionBonusPoints"):getValue() end)
+        local k = ({ [1] = 0.5, [2] = 0.7, [3] = 1.0, [4] = 1.3, [5] = 1.5 })[okM and mult or 3] or 1.0
+        bo = math.floor(bo * k + 0.5)
+    end
+    local skill = (sb > 0) and lvl * sb or 0
+    local total = base + bo + skill
+    local got = tostring(t.d.strength)
+    local lead = tonumber(got:match("^(%d+)"))
+    local parts = (base > 0 and 1 or 0) + (sb > 0 and 1 or 0) + (bo > 0 and 1 or 0)
+    local hasParen = got:find("(", 1, true) ~= nil
+    local okForm = (parts > 1 and hasParen) or (parts <= 1 and not hasParen)
+    local perk = ""
+    pcall(function() perk = tostring(rd.entry.recipe:getHighestRelevantSkill(p):getName()) end)
+    local okSkill = (sb <= 0) or (got:find("from your", 1, true) ~= nil and (perk == "" or got:find(perk, 1, true) ~= nil))
+    say(string.format("%s: the script's health %s, skillBaseHealth %s, bonusHealth %s; relevant skill level %s (%s): the game's build gives %d = %d + %d (skill) + %d (bonus)",
+        label, tostring(h), tostring(b), tostring(bonus), tostring(rel), perk, total, base, skill, bo))
+    check(lead == total and okForm and okSkill, label .. ": 'Strength " .. got .. "' (want the game's " .. total .. (parts > 1 and " with its parts" or "") .. ")")
+end
 local function woodCase(names, label, base)
     pickAndOpen("build", names, label, function(t, rd)
         local lvl, handy, n, how = carpentry()
-        local want = ZeD.tr("UI_ZeD_Preview_StrengthSkill", tostring(base), tostring(n))
-        local h, b, bonus, rel = scriptHealth(rd)
-        say(string.format("%s: Carpentry %d, Handy %s (%s): N = %d; the script: health %s, skillBaseHealth %s, bonusHealth %s; the game's build sets health + %s (relevant skill level) x skillBaseHealth + bonus",
-            label, lvl, tostring(handy), how, n, tostring(h), tostring(b), tostring(bonus), tostring(rel)))
-        check(t.d.strength == want, label .. ": 'Strength " .. tostring(t.d.strength) .. "' (want 'Strength " .. want .. "')")
+        say(string.format("%s: Carpentry %d, Handy %s (%s): the punch list's first-pass N would be %d", label, lvl, tostring(handy), how, n))
+        strengthCheck(t, rd, label)
     end)
 end
 woodCase({ "LogFence" }, "log fence", 200)
