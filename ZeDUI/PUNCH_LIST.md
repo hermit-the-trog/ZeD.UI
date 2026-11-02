@@ -1201,6 +1201,28 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     Back leaning out, the dip once each way and never the wrong framing; 1920x1080 and 4K pixel-identical to the
     Nov 1 desk captures (mm_desk_v4). The in-game scale on the Deck unchanged (0.75).
 
+49. **Build and Craft: see what you get before you commit (the director, Nov 1 2026; for t16).** open, the
+    director's words: on the Build tab, clicking the picked recipe's icon in the header could show "a preview of the
+    tile in-game, and a short description, if there is something like that"; "item stats, like if I'm going to put a
+    fence up or a metal fence up, which one can withstand more damage"; "the same would go for crafting: if I add
+    barbed wire to a bat, I want to see what that upgrade will do before I commit". What the game has (build, by
+    reading): every built thing has its tile pictures per face (the sprite rows in its SpriteConfig; loadable as
+    textures by name, as the object cards already do) and a strength: a fixed health (big metal fence 450, wire fence
+    400, log wall 500, brick wall 500 / 800, metal wall 700 / 800, metal frame 100) or a skill-based one (base + the
+    character's carpentry through buildUtil.getWoodHealth: log and stick fences 200 + skill; gates 300 skill-based),
+    and 135 of the 189 recipes carry a Tooltip key with real words (the big metal fence: "At least you'll see the
+    horde before they break in. Pointy weapons can attack through this."). Barricades carry no number in their
+    scripts (their strength is in the barricade code). Craft recipes name their output items, and the item card
+    already reads a weapon's damage, range, crit chance, tree damage and condition, so an upgrade can show the
+    output beside the input with the change. Today the Build header has a description slot that stays empty
+    (it reads a method the game does not have; getTooltip is the one). Ways: (1) the header fills in: the
+    description under the name, a strength line for the character as they are ("Strength 450" / "Strength 200,
+    + your carpentry"), and for a craft the output's key facts; (2) a click on the header's icon opens a preview
+    card in the drawer: the tile at twice its size, the face you would build with its rotation, the words, the
+    strength, the skill and time, and for a craft the output item's card with the change against the item it
+    upgrades ("Damage 0.8 to 1.2 -> 1.0 to 1.5"); (3) hover on the icon, a tooltip with the same. Build's pick: 1
+    always on, and 2 for the click. Waits for the director.
+
 ## Test process
 
 - The release check (before every upload, about 5 minutes, pass or fail): right-click opens the
