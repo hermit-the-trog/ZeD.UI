@@ -1,0 +1,4 @@
+# punch list 47 (Nov 2 2026): rst alone at 720 after a move away from the strip (its wait for the grandstand)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_move_to.lua | mv | timeout=120
+zedqa_restock.lua | rst | timeout=900
