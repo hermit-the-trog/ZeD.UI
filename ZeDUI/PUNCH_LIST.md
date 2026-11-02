@@ -1321,6 +1321,14 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
       line. The three Java exceptions left in the run (2x "getName of non-table: null", 1x "tried to call nil in
       pcall") look like the empty perk at level 0. The test now accepts the game's perk name ("Welding"), reads the
       card's own count of other results, and notes rather than fails a zero part.
+    - **QA, Nov 1 2026, last run (fourth pass 638baa7, pvc alone on the Deck; qa/regression/2026-11-01_t16_pvc_800_c.md):
+      every check of the script passes.** < from the first face lands on the last with its picture; the plank
+      barricade has no strength line; the log fence at Carpentry 0 reads "Strength 200 (200 + more with your )" and the
+      log gate "Strength 0 (more with your )": **the skill's name is still empty** at level 0 on the Deck (the card's
+      fallback to the recipe's first required skill, then carpentry, gave ""; Build to look at ObjectCardPreview.lua
+      116-124 with a LogFence at Carpentry 0). The runner's FAIL on the run was three exceptions the test itself logged
+      inside pcall under -debug (its own getName on a nil perk twice, a nil getOutputs once); both guarded now, so the
+      next run is clean on the rig side. One more pvc-alone run after the name fix closes 49.
 50. **Notebook paper: the lines were not ruled like paper (the director, Nov 1 2026, with four pictures of the real
     sheet).** fixed (build, Nov 1), QA to confirm. The Notebooks page (the small page in the Journal's Notebooks
     sub-tab) and the full page in the reader drew their blue rules only to the right of the red margin, from the
