@@ -1,0 +1,14 @@
+VERSION = 1,
+
+mods
+{
+    mod = SladeBagCheck,
+    mod = HandsOnInteractionsIso,
+    mod = RaxCheatMenu,
+    mod = ImmersiveSleep,
+    mod = ZeD_UI,
+}
+
+maps
+{
+}

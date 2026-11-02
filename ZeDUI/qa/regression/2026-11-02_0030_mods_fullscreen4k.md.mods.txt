@@ -1,0 +1,19 @@
+VERSION = 1,
+
+mods
+{
+    mod = SuperOl3gContextMenuIcons,
+    mod = ImmersiveMoodles,
+    mod = ParavelsUI,
+    mod = ParavelsEnhancedInventory,
+    mod = LightBelt,
+    mod = SladeBagCheck,
+    mod = HandsOnInteractionsIso,
+    mod = RaxCheatMenu,
+    mod = ImmersiveSleep,
+    mod = ZeD_UI,
+}
+
+maps
+{
+}

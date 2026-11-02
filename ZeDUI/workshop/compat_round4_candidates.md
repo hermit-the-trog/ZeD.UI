@@ -435,3 +435,22 @@ Subscribed overnight (`subscriptions_ledger.md`, Nov 2), tested with ZeD-GUI 0.2
 Not tested: Silent Hill 2 OG Main Menu Background (installed by hand) and Knox Companion (online web map).
 
 Found by the sandbox probe the same night (not a mod's fault; ZeD's): with the 150 mods of `compat_r3_full_2_mods.txt` on, the Sandbox step has 42 pages and its page list runs off the window: 22 rows fall below the list, 10 below the screen, at 4K; the mouse wheel does not move the list, and the controller's bumpers reach the last page but its row stays off screen (`zedqa_menu_sandbox_pages.lua`, `qa/regression/2026-11-02_sandbox_pages_4k.console.txt`, `qa/Nov2_compat_r4c/zqa_sbp_pages_*.png`). This is Kable's Bug reports post of Nov 1.
+
+## Round 5 (Nov 2 2026, overnight): new popular Build 42 mods on ZeD's screens since Oct 29
+
+Read from the Workshop's trending Build 42 lists (7 and 30 days, 4 pages each) against every id already in the compatibility record; the new ones that touch a screen ZeD owns were opened and checked for Java. Subscribed in the Steam client (`subscriptions_ledger.md`, Nov 2), tested with ZeD-GUI t15 code at 4K through `zedqa_mods_run.ps1` with `tools/qa/compat_r5.txt` (the r4b set) and `compat_r5_mods.txt` (9 mod ids, ZeD last). Reports `qa/regression/2026-11-02_0030_mods_fullscreen4k.md` and `_0041_` (the same group again): 11 / 12 each.
+
+| Mod | Workshop id | Verdict | Note |
+|---|---|---|---|
+| Better Context Menu Icons | 3830018449 | Not needed with ZeD | ZeD's menus draw their own icons for every action, so its icons do not show (as Simple Context Menu Icons) |
+| Immersive Moodles | 3830422267 | Compatible, with a note | its animated moodle column draws at the top right while ZeD's moodles still show in their place, so each moodle shows twice (`qa/Nov2_compat_r4c/immersive_moodles_twice.png`); a support candidate, as Moodle Quarters was |
+| Paravel's Enhanced Inventory (with Paravel's UI) | 3828627678, 3828626636 | Not needed with ZeD | it replaces the inventory and loot windows ZeD already replaces; none of its windows showed over ZeD's in the census |
+| Light Belt | 3828137227 | Compatible | lights hung on the belt slots; ZeD's belt passes |
+| Bag Check (Lua part) | 3829406098 | Compatible | its Ground Bag add-on needs ZombieBuddy (Java): not tested |
+| Hands-On Interactions (vanilla edition) | 3827791363 | Compatible | its Viewpoint edition needs ZombieBuddy: not tested |
+| Cheat Menu 2.0 - Rax's Reborn | 3815818643 | Compatible, with its own error | one of its server files (RaxMultiplayerOps.lua) does not compile under the game's -debug launch (over the 200 local names the debug compiler allows); its menu was not opened |
+| Immersive Sleep | 3829619974 | Compatible | |
+
+Skipped (need ZombieBuddy or ship Java): Tarkov Style (3830796987), PZ Custom Intros (3830292718), Check Yourself (3829214172).
+
+**A ZeD fault found with the nine together:** during the cone-nav map (`zedqa_navmap.lua`), on the Identity tab, ZeD's Hair and beard reads the tools in the inventory through `inv:getFirstEvalRecurse(fn)` inside a pcall (`ZeD_HairBeard.lua:89`, `tools()` from `refresh()` from `layout()`), and the game throws `NullPointerException: Cannot assign field "callFrame" because "a" is null at ReturnValues.put` (Kahlua's own) twice a run. Both full runs show it (4 lines each); neither half of the set (`compat_r5a_mods.txt`, `compat_r5b_mods.txt`) with the nav test alone does. Not a verdict on any mod; for Build.
