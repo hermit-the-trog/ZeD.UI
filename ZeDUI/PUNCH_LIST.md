@@ -1584,6 +1584,18 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     watch on (a worn watch) with the mod on the right: the first moodle below the watch; the mod's Show Immersive HUD
     off (a new game or reload): ZeD's moodles and note as usual; safe mode on and off; the Compatibility thread's entry
     moves from "Compatible, with a note" to Supported once confirmed.
+    **QA, Nov 2 2026: confirmed at e535b7b (2026-11-02_1227_mods_fullscreen4k.md, 47 / 47, at 4K with Immersive
+    Moodles alone; new check zedqa_immersive_moodles.lua; pictures in qa/Nov2_pl53).** console.txt: "[ImmersiveMoodles]
+    main loaded", "[ZeD] ImmersiveMoodles: support loaded (wrapped true)". Four moodles up (god mode off for the test).
+    At ZeD's place right, left and bottom: ZeD's layer hidden, M.rect nil, the game's column at -20000,-20000, the mod's
+    HUD on, no ZeD note drawn, and after a hunger level change none either; one column on screen, the mod's, and no row
+    above the belt at Bottom. The corner watch (worn, Corner) with the mod on the right: its top offset set 96, read 380,
+    the watch's bottom + 10 = 380, and the picture shows the first tile under the watch. Safe mode on: the game's clock
+    back, the mod's column under it, no ZeD note; off: as before. The mod's HUD off (simulated as its option does at
+    load: hudOff true, its HUD panel removed): ZeD's moodles back on screen with ZeD's note ("Agitated") on a level change;
+    HUD back on: ZeD steps aside again. Not covered: the option itself through a real reload (the state was set by the
+    test), and a controller. Ready for the Compatibility thread to list Immersive Moodles as Supported (the director's
+    call when the build ships).
 
 ## Test process
 
