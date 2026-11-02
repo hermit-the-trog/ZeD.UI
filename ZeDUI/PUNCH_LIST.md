@@ -1295,6 +1295,16 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     and whether a fresh car is marked as simulated elsewhere; a halving follows only if that points nowhere. (The
     physics world's own offset, WorldSimulation, is not reachable from Lua, so a stale offset can only be inferred: cars
     on loaded squares, physics off, nothing else wrong.)
+    **Cause found (QA, Nov 2 2026) and the fix (build, Nov 2).** QA's state lines and a moved-sl run: scripts 57, 61 and 63
+    (cb, bg, ws) leave the character in the grandstand at about 964,13079, indoors; the vehicle scripts spawn their cars a
+    few squares from the character, so the cars stand in the building and their physics never wakes ("isDriver of
+    non-table" at the enter). Not the 13-chunk grid, not cars left behind (the count stays 8 to 11). At 720 the
+    grandstand's west end (892) also falls outside the loaded grid from there, which is rst's "fixture not found". The
+    first state line's missing= named the cell vehicle list's get as the call Lua cannot reach (the earlier failure).
+    Fix, rig only: zedqa_prelude.lua defines ZEDQA_HOME(tag), the prelude's own move to the drag strip (out of any car,
+    when more than 3 squares away, one "ZEDQA home" line when it moves); the eleven vehicle scripts and rst call it first,
+    guarded. Parsed. QA: the 720 full pass (vehicle scripts and rst expected to pass); why the 1080p pass passed sl from
+    the same place is still open (the state line at 1080p would show where it stands).
 
 48. **The main menu on a Steam Deck and at 720p: readable type, the desk leans in (t16; the director, Nov 1 2026).**
     built (build, Nov 1), QA to confirm. The Oct 29 overflow was the saved 1.75 scale, now held at 0.75 by item 39, so

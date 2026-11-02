@@ -8,6 +8,7 @@
 -- their own radios back at the end. Copy to Zomboid/Lua/zedqa.lua, bump
 -- zedqa.go; grep console.txt for "ZEDQA rb".
 
+if ZEDQA_HOME then ZEDQA_HOME("rb") end   -- (punch list 47: open ground first; an earlier script can leave the character indoors)
 local p = getPlayer()
 local pn = p:getPlayerNum()
 local function say(s) print("ZEDQA rb " .. tostring(s)) end

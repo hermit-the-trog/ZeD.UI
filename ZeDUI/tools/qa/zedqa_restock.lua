@@ -21,6 +21,7 @@
 --   * the pad: the Loadouts ring, A restocks in the to-do, B back to the bar.
 -- Puts everything back (lists, setting, items, built things, the set-aside
 -- things, the character home). Screenshots/zqa_rst_*.png. grep "ZEDQA rst".
+if ZEDQA_HOME then ZEDQA_HOME("rst") end   -- (punch list 47: open ground first; an earlier script can leave the character indoors)
 local p = getPlayer()
 local pn = p:getPlayerNum()
 local foldWas = nil   -- (the Loadouts fold, put back at the end)

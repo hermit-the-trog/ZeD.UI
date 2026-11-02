@@ -45,6 +45,23 @@ local p = getPlayer()
 -- Irvington Speedway's drag strip, open asphalt, in daylight. The save keeps the move.
 local HOME = { x = 925.5, y = 13040.5, z = 0 }
 local moved = false
+
+-- (punch list 47, Nov 2 2026) the drag strip for every script that needs open ground. Scripts 57, 61 and 63
+-- (cb, bg, ws) leave the character in the grandstand at about 964,13079; a car spawned beside it then stands
+-- indoors and its physics never wakes (QA's moved-sl run at 720), and at 720 the grandstand's
+-- west end (892) is outside the loaded grid, so rst's fixture is not found. The vehicle scripts and rst call
+-- this first; it moves the character (out of any car) to the strip when it is elsewhere and says so.
+-- Returns true when it moved. A script run without the prelude skips it.
+function ZEDQA_HOME(tag)
+    local pl = getPlayer()
+    if not pl then return false end
+    local car = pl:getVehicle()
+    if car then car:exit(pl); triggerEvent("OnExitVehicle", pl) end
+    if math.abs(pl:getX() - HOME.x) <= 3 and math.abs(pl:getY() - HOME.y) <= 3 and math.floor(pl:getZ()) == HOME.z then return false end
+    print("ZEDQA home " .. tostring(tag) .. " moved from " .. math.floor(pl:getX()) .. "," .. math.floor(pl:getY()) .. "," .. math.floor(pl:getZ()) .. " to the drag strip")
+    pl:setX(HOME.x); pl:setY(HOME.y); pl:setZ(HOME.z); pl:setLastX(HOME.x); pl:setLastY(HOME.y); pl:setLastZ(HOME.z)
+    return true
+end
 local ok, e = pcall(function()
     if getGameSpeed and getGameSpeed() == 0 and setGameSpeed then setGameSpeed(1) end
     if p then p:setGodMod(true) end

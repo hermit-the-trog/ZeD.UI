@@ -1,4 +1,5 @@
 -- ZeD QA S124: tooltip frame in design units, map label layers, dash/watch text after the raw-manager measure fix
+if ZEDQA_HOME then ZEDQA_HOME("tm") end   -- (punch list 47: open ground first; an earlier script can leave the character indoors)
 local p = getPlayer()
 local steps = {}; local function at(n, f) steps[#steps + 1] = { n = n, f = f } end
 local function shot(tag) pcall(function() getCore():TakeFullScreenshot("zedqa_tm_" .. tag .. ".png") end) end

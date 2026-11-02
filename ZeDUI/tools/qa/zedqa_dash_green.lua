@@ -9,6 +9,7 @@
 -- the light at the car); the dash lights follow the car's real headlight switch. Puts back D.qaNight, the needle
 -- option, the car and its key. Screenshots: Zomboid/Screenshots/zqa_dgr_<case>.png; each shot logs the dash's screen
 -- rect. grep "ZEDQA dgr".
+if ZEDQA_HOME then ZEDQA_HOME("dgr") end   -- (punch list 47: open ground first; an earlier script can leave the character indoors)
 local p = getPlayer(); local D = ZeD.Dashboard
 local TAG = "dgr"
 local function say(s) print("ZEDQA " .. TAG .. " " .. tostring(s)) end

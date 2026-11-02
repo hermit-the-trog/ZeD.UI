@@ -9,6 +9,7 @@
 --   A parked car that moves (> 3 km/h) fell through the ground: that design is rejected (ERR), not judged.
 -- Screenshots: Zomboid/Screenshots/zqa_dke_<design>_<off|start|on>.png; each shot logs the dash's screen rect. Leaves no car,
 -- no key and the windows reset. grep "ZEDQA dke".
+if ZEDQA_HOME then ZEDQA_HOME("dke") end   -- (punch list 47: open ground first; an earlier script can leave the character indoors)
 local p = getPlayer(); local D = ZeD.Dashboard
 local TAG = "dke"
 local function say(s) print("ZEDQA " .. TAG .. " " .. tostring(s)) end

@@ -1,6 +1,7 @@
 -- ZeD QA (S125 polish pass): every dashboard design live, one vehicle at a time beside the player.
 -- spawn, repair, fuel, battery, key, enter, key in, start, radio + heater + headlights (+ lightbar, no siren),
 -- game screenshot (Zomboid/Screenshots/zqa_dash_<tag>.png), print the dashboard's screen rect, leave, remove.
+if ZEDQA_HOME then ZEDQA_HOME("dash") end   -- (punch list 47: open ground first; an earlier script can leave the character indoors)
 local p = getPlayer(); local D = ZeD.Dashboard
 local LIST = {
     { "01_luxury", "Base.CarLuxury" }, { "02_nyala", "Base.CarNormal" }, { "03_cossette", "Base.SportsCar" },
