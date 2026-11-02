@@ -54,6 +54,9 @@ local function buildData(d, t, player)
     local e = t.entry
     local okL, logic = pcall(function()
         local l = BuildLogic.new(player, nil, nil)
+        -- (getSelectedBuildObject reads a recipe-to-entity lookup that only getAllBuildableRecipes fills:
+        -- without this call it threw on every refresh, QA, Nov 1 2026)
+        l:getAllBuildableRecipes()
         l:setRecipe(e.recipe)
         return l
     end)
@@ -130,10 +133,69 @@ end
 local function craftData(d, t, player)
     local e = t.entry
     local out = e.outputDefs and e.outputDefs[1] or nil
+    -- a script item's full type: getFullType where it has one, else module.name (the drawer's pre-bake asks
+    -- only for getFullType, which the game's script items lack, so its output types come up empty)
+    local function ftOf(it)
+        if not it then return nil end
+        local ft = call(it, "getFullType") or call(it, "getFullName")
+        if not ft then
+            local mod = call(it, "getModule")
+            local nm = call(it, "getName")
+            if nm then ft = tostring(mod and call(mod, "getName") or "Base") .. "." .. tostring(nm) end
+        end
+        return ft
+    end
     local types = {}
     if out then for ft in pairs(out.validTypes or {}) do types[#types + 1] = ft end end
+    if #types == 0 then
+        pcall(function()
+            local outs = e.recipe:getOutputs()
+            local o0 = outs and outs:size() > 0 and outs:get(0) or nil
+            local poss = o0 and o0:getPossibleResultItems() or nil
+            if poss then for i = 0, poss:size() - 1 do local ft = ftOf(poss:get(i)); if ft then types[#types + 1] = ft end end end
+        end)
+    end
     table.sort(types)
     d.outName = (out and out.name) or e.displayName
+    local inv = call(player, "getInventory")
+    -- An output written through a mapper (the item you get follows the item you put in: nails on a bat
+    -- give that bat's spiked kind) lists no possible result items; its mapper does. The result whose
+    -- pattern you carry is the one shown, else the mapper's first.
+    local mappedBase = nil
+    if #types == 0 then
+        local okM, results, mapper = pcall(function()
+            local outs = e.recipe:getOutputs()
+            local o0 = outs and outs:size() > 0 and outs:get(0) or nil
+            local mp = o0 and o0:getOutputMapper() or nil
+            return mp and mp:getResultItems() or nil, mp
+        end)
+        if okM and results and results:size() > 0 then
+            local pick = nil
+            for i = 0, results:size() - 1 do
+                local r = results:get(i)
+                local pat = call(mapper, "getPatternForResult", r)
+                if pat then
+                    for j = 0, pat:size() - 1 do
+                        local pft = ftOf(pat:get(j))
+                        local carried = pft and inv and call(inv, "getFirstTypeRecurse", pft) or nil
+                        if carried then pick, mappedBase = r, carried; break end
+                    end
+                end
+                if pick then break end
+            end
+            pick = pick or results:get(0)
+            for i = 0, results:size() - 1 do
+                local ft = ftOf(results:get(i))
+                if ft then types[#types + 1] = ft end
+            end
+            local pft = ftOf(pick)
+            if pft then
+                for i, ft in ipairs(types) do if ft == pft then table.remove(types, i); break end end
+                table.insert(types, 1, pft)
+            end
+            d.outName = call(pick, "getDisplayName") or d.outName
+        end
+    end
     d.others = math.max(0, #types - 1)
     local item = nil
     if types[1] and instanceItem then
@@ -155,8 +217,11 @@ local function craftData(d, t, player)
     d.weight = item and call(item, "getActualWeight") or nil
     -- the item of yours the recipe would change: an input the recipe uses up (not a tool it keeps, so a
     -- hammer never stands in for the bat) of the output's kind, that you carry
-    if item and d.cat and (d.cat == "Weapon" or d.cat == "Firearm" or d.cat == "Clothing") then
-        local inv = call(player, "getInventory")
+    if item and mappedBase then
+        local f2, _, c2 = factsOf(mappedBase)
+        if c2 == d.cat then d.base, d.baseFacts, d.baseName = mappedBase, f2, call(mappedBase, "getDisplayName") end
+    end
+    if item and not d.base and d.cat and (d.cat == "Weapon" or d.cat == "Firearm" or d.cat == "Clothing") then
         for _, inp in ipairs(e.inputDefs or {}) do
             if not (inp.isTool or inp.isKeep) then
                 for ift in pairs(inp.validTypes or {}) do
@@ -196,7 +261,13 @@ end
 function def.refresh(t, player)
     local e, o = t.entry, t.obj
     local d = { words = e.description }
-    if o.config.prefix == "build" then buildData(d, t, player) else craftData(d, t, player) end
+    if o.config.prefix == "build" then
+        -- (worked out once per card: the engine's recipe list is built for it)
+        if not t._bd then t._bd = {}; buildData(t._bd, t, player) end
+        for k, v in pairs(t._bd) do d[k] = v end
+    else
+        craftData(d, t, player)
+    end
     t.d = d
     -- the drawer's own reading of the recipe, fresh when it is still this one
     local rd = (o.state._rdLast and o.state._rdLast.entry == e) and o.state._rdLast or o.rd
