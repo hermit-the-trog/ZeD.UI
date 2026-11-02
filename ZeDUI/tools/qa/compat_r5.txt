@@ -9,5 +9,5 @@ zedqa_navmap.lua | nav
 zedqa_exinfo.lua | ex
 zedqa_dash_props_smoke.lua | sm
 zedqa_mapshot.lua | ms
-zedqa_moodles.lua | mood | timeout=240
+# zedqa_moodles.lua | mood | timeout=240   (Nov 2 2026: dropped here; Immersive Moodles is in this set and ZeD leaves it the moodles, item 53)
 zedqa_messages.lua | msg | timeout=300 | expect=qaMessagesError

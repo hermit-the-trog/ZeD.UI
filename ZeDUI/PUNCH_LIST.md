@@ -1619,6 +1619,18 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     for this). Same run: zedqa_moodles fails at "right: the column ... x -20000" and the rest, as expected now: Immersive
     Moodles is one of the nine and ZeD leaves it the moodles (item 53); the compat round 5 manifest should drop mood or
     run it without that mod.
+    **QA, Nov 2 2026, second pass at d1dec5a (2026-11-02_1243 and _1248_mods_fullscreen4k.md, the nine mods on).** The
+    Identity tab's reading is clean: no callFrame from harvest or tools(). The tool lines read right
+    (zedqa_hairbeard_tools.lua): none finds nothing and allows nothing; a razor in a bag allows a shave and a beard trim,
+    not a cut; scissors allow a cut and a shave; gel and spray allow the gel / spray styles. But a pick fails: the trim
+    and the cut picked from the list throw the same error in vanilla's click path, "onTrimBeard (ISCharacterScreen.lua:539)
+    < reason (ZeD_HairBeard.lua:459) < run (588)" and "onCutHair (557) < reason (436) < run (588)" (its
+    getFirstEvalRecurse), so no action starts. With these nine mods the same error also hits vanilla code with no ZeD in
+    the chain (ProfessionVehicles CheckSwap at a car spawn, corpseStorageCheck) and the QA test's own getAllEvalRecurse:
+    one of the nine seems to break Java-to-Lua predicate calls for everyone (each half alone did not, Nov 2 overnight).
+    For build: the click path through the same walker (find the tool in Lua and start the game's ISCutHair /
+    ISTrimBeard with it). Worth a note in the Compatibility thread once the mod is found (a bisect of the nine with a
+    one-line predicate probe).
     **Second pass (build, Nov 2 2026), after QA's run at fa00b9c.** The tools walk was clean, but the same error came
     from the game's own hairMenu (ISCharacterScreen.lua:410), which ZeD runs to read the styles (harvest, from
     buildRows): per style it asks player:getInventory():containsEvalRecurse(predicateRazor / Scissors / DoHairdo), the
