@@ -1096,6 +1096,21 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
         laundry, the plates, the menus and the soak. Main-menu checks (ZeDUI/qa/Nov1_main_menu/): the About menu ends
         inside the glass at 720 and 800; the v4 desk at 1080p lit and dimmed matches Design's preview.
 
+      - **QA, Nov 1 2026, late: the 720 vehicle cluster, two probes.** (1) zedqa_probe_car_ticks.lua at 720, 800 and 4K
+        (qa/regression/2026-11-01_car_ticks_*.md): a tick is 8.5-9.3 ms at 720, 8.5-9.1 at 800, 9.4-10.4 at 4K; a car
+        spawned beside the character has its physics awake at tick 1 at every size and asleep by tick 180. **The
+        tick-against-wall-time reading is out.** (2) Bisect at 720 (2026-11-01_bisect_a_720.md, _b_720.md): prelude + sl
+        alone PASS; prelude + rst + sl PASS, and rst itself passed this time with its fixture found. **So neither the 720
+        window alone nor rst's failure makes the cluster; it takes more of the full pass's state** (something in scripts
+        42-80, or what eighty scripts leave behind: cars not removed, chunk churn) at 720 and not at 4K. Known from
+        Build (PZAPI Q274): the loaded chunk grid is 13 across at 720, 15 at 800, 19 at 1080p and 4K, and the vehicle
+        simulation follows it. Note: in both passing sl runs the police car entered with physics=false at 8.3-8.5 tiles
+        and the lightbar still opened, so "physics false" alone is not the fault; the full pass's "isDriver of
+        non-table: null" (the vehicle nil at the enter) is. Next, for the rig, not t15: a longer bisect (prelude + 42-80 +
+        sl at 720, about 35 min) or Build's prints (character x,y at the fixture step, chunkGridWidth, each spawned
+        car's distance and chunk) in the vehicle scripts, then the rst fixture guarded so a missing building ends the
+        script cleanly. The game is closed and the lock free.
+
 43. **Foraging finds: the compass letter is wrong (QA, Nov 1 2026, found while staging the gallery retake).** open.
     `ForagingTab.lua`: `angleToBearing` takes a maths angle (0 = east, 90 = north) and reads the COMPASS table from
     N at index 1, so a find due east is labelled N, north-east NE, due north E, and the ring runs the wrong way round
