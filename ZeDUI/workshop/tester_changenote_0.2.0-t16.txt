@@ -9,3 +9,6 @@ Build and Craft
 
 Journal
 - Notebook pages are ruled like paper: the lines run edge to edge through the red margin, the margin runs the page's full height, and a blank band sits above the first line.
+
+Controller
+- Pick several things at once: hold A on a row to mark it (hold again to unmark), keep A held and press Up or Down to mark the rows you pass. With marks on the list, X opens the menu for all of them, Take, Drop and Move act on all of them, and B clears the marks. Hold X on a row is the quick use; tap A on a marked row opens its card and clears the marks.

@@ -430,6 +430,84 @@ function ZeD.InventoryRenderer.doubleClick(win, item, playerNum)
     return true
 end
 
+
+-- ============================================================================
+-- CONTROLLER MARKS (punch list 44; the director's rules, Nov 1 2026)
+-- Hold A on a row MARKS it (the row's wash, as Ctrl-click); hold A on a marked row unmarks it; while A
+-- stays held, Up and Down mark the rows passed (Shift-click's run, painted; FocusManager fires onPaint on
+-- the row landed on). With marks on the list the card hides (as with the mouse), X opens the game's menu
+-- for every marked row, the band's Take / Drop / Move act on them, and B clears the marks and leaves the
+-- focus where it is. Tap A on a marked row opens its card and drops the marks (the plain click's way).
+-- Hold X on a row is the quick use (a double-click). Marks belong to one list: a stack header marks its
+-- whole stack; a mark in another column or container is another list (the column's own selection).
+-- ============================================================================
+-- the selection table a row belongs to (a column's or the main list's), the content and the column
+local function padSel(w, el)
+    local cnt = w and w._mainContent
+    if not cnt then return nil end
+    local cs = el and el.colIdx and cnt._colStates and cnt._colStates[el.colIdx] or nil
+    if cs then cs.selectedItems = cs.selectedItems or {}; return cs.selectedItems, cnt, cs end
+    cnt._selectedItems = cnt._selectedItems or {}
+    return cnt._selectedItems, cnt, nil
+end
+local function padStackItems(cnt, cs, item)
+    local stacks = cs and cs.stacks or (cnt and cnt._stacks)
+    local stk = stacks and stacks[item]
+    if stk and stk.count > 1 and stk.items then return stk.items end
+    return { item }
+end
+local function padRefresh(w, cnt)
+    if w._updateDrawer then pcall(w._updateDrawer, cnt) end   -- (the World's takes no argument; the extra one is ignored)
+end
+-- how many rows are marked in the window (the main list and every column)
+function ZeD.InventoryRenderer.padMarkCount(w)
+    local cnt = w and w._mainContent
+    if not cnt then return 0 end
+    local n = 0
+    for _ in pairs(cnt._selectedItems or {}) do n = n + 1 end
+    for _, cs in ipairs(cnt._colStates or {}) do for _ in pairs(cs.selectedItems or {}) do n = n + 1 end end
+    return n
+end
+-- hold A: mark or unmark the row (a stack header: its whole stack) and arm the painted run
+function ZeD.InventoryRenderer.padMark(w, el)
+    if not (el and el.item) then return end
+    local sel, cnt, cs = padSel(w, el)
+    if not sel then return end
+    local adding = not sel[el.item]
+    for _, it in ipairs(padStackItems(cnt, cs, el.item)) do sel[it] = adding or nil end
+    cnt._lastClickedItem = el.item
+    w._gpPaint = { adding = adding, col = el.colIdx }
+    padRefresh(w, cnt)
+end
+-- the painted run: the row landed on while A stays held takes the stroke's mark (the same list only)
+function ZeD.InventoryRenderer.padPaint(w, el, paint)
+    if not (el and el.item and paint) then return end
+    if (paint.col or false) ~= (el.colIdx or false) then return end
+    local sel, cnt, cs = padSel(w, el)
+    if not sel then return end
+    for _, it in ipairs(padStackItems(cnt, cs, el.item)) do sel[it] = paint.adding or nil end
+    cnt._lastClickedItem = el.item
+    padRefresh(w, cnt)
+end
+-- the marked rows of the row's own list, for X's menu; nil when nothing is marked
+function ZeD.InventoryRenderer.padMarkedItems(w, el)
+    if ZeD.InventoryRenderer.padMarkCount(w) == 0 then return nil end
+    local sel = padSel(w, el)
+    local out = {}
+    for it in pairs(sel or {}) do out[#out + 1] = it end
+    if #out == 0 then return nil end
+    return out
+end
+-- B: every mark in the window goes; the focus stays where it is
+function ZeD.InventoryRenderer.padClearMarks(w, el)
+    local cnt = w and w._mainContent
+    if not cnt then return end
+    cnt._selectedItems = {}
+    for _, cs in ipairs(cnt._colStates or {}) do cs.selectedItems = {} end
+    cnt._lastClickedItem = nil
+    padRefresh(w, cnt)
+end
+
 -- The quick use itself, for the double-click and the controller's hold A on a
 -- row (Oct 23 2026: hold A called only vanilla's basic action, which does
 -- nothing for a thing in a crate; vanilla's double-click brings it over first)
@@ -1131,6 +1209,11 @@ local function rowStates(self, item, isSelected, x, y, w, rowH, pointed)
     end
     if hover then ZeD.Help.set(self, ZeD.tr("UI_ZeD_Inv_RowHelp", item:getName() or "")) end
     if item ~= self._gpFocusedRowItem then return false end
+    do   -- marks on the list: the help line says how many and what X and B do (punch list 44)
+        local n = 0
+        for _ in pairs(self._selectedItems or {}) do n = n + 1 end
+        if n > 0 then ZeD.Help.set(self, ZeD.tr("UI_ZeD_Inv_MarkedHelp", n)) end
+    end
     local fo = gpFocusedItem(item)
     if not fo then return false end
     return ZeD.Focus.mark(self, x, y, w, rowH, fo) and true or false

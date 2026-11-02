@@ -1153,6 +1153,18 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     Questions: (a) tap A on a marked row: open its card and drop the marks (the plain click's way), or keep the marks
     and only move the focus? (b) the painted run while A is held: wanted, or marks one at a time only? (c) hold X as
     quick use on rows: yes, or leave hold X unused on rows for later?
+    **The director's picks (Nov 1 2026 evening): (a) drop the marks, (b) paint the run, (c) quick use.** **built (build,
+    Nov 1), QA to confirm.** InventoryRenderer: padMark / padPaint / padMarkedItems / padClearMarks / padMarkCount on the
+    list's own selection (the main list's or a column's, as Ctrl-click uses); the four row builders (main and columns,
+    both windows) give rows hold A = mark, onPaint, hold X = quick use, B = clear marks (its prompt and X's "Menu for
+    marked" only while marks exist), and X's menu takes every marked row; FocusManager: a D-pad move while A is held past
+    its hold lands as usual and the row landed on takes the stroke's mark (w._gpPaint; the release ends it), and an
+    element with no drag may take a one-shot onHoldContext; the help line on a focused row reads "3 marked | X: menu
+    for all | B: clear marks"; GAMEPAD_SPEC's A and X rows carry the rules. QA: with the pad on a crate's list, hold A
+    on a row (its wash, the card hides), hold A again (unmarked), hold A and Down three rows (four marked), X (the
+    game's menu for four: drop all, move all), B (marks gone, focus stays), tap A on a marked row (its card, marks
+    gone), hold X on a crate's row (it comes to the main inventory), a stack header (the whole stack marked), the same
+    in the Character window and in an extra column; the band's Take with marks takes them all.
 
 45. **Reset windows leaves the old tab's pad stops behind (QA, Nov 1 2026, the 720 short run; build's cause).**
     open. wpt at 1280x720 Normal, right after cu: with the Character window on Loot, Right from the container
