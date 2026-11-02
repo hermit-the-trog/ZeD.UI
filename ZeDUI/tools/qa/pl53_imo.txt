@@ -1,0 +1,3 @@
+# punch list 53 (Nov 2 2026): Immersive Moodles support with the mod on
+zedqa_prelude.lua | pre | timeout=120
+zedqa_immersive_moodles.lua | imo | timeout=300
