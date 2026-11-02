@@ -1,0 +1,3 @@
+# round 5 bisect: the hair-and-beard error under navmap
+zedqa_prelude.lua | pre
+zedqa_navmap.lua | nav
