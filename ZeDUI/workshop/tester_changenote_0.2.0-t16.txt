@@ -13,14 +13,16 @@ Journal
 Controller
 - Pick several things at once: hold A on a row to mark it (hold again to unmark), keep A held and press Up or Down to mark the rows you pass. With marks on the list, X opens the menu for all of them, Take, Drop and Move act on all of them, and B clears the marks. Hold X on a row is the quick use; tap A on a marked row opens its card and clears the marks.
 
-Mods
-- The page list beside Find scrolls: with a long mod list the Sandbox step, the Sandbox window in game and Options have pages past the bottom. The wheel over the list moves it, the bar drags, and the bumpers keep the picked page in view. (Thanks to Kable for the report.)
-- Immersive Moodles: with its HUD on, ZeD leaves the moodles to it, so each moodle shows once (its column, its hover text, its side). On the right it starts below ZeD's watch. (Thanks to Krovenox for the mod.)
-- Hair and beard no longer trips an error in the game's Lua with some large mod lists, which could leave a razor or scissors unfound.
+Belt
+- A Simple belt (ZeD setup, HUD, Belt): the same hands and slots with no leather strap or buckle, for a plainer screen. Full stays the default.
+
+Safe mode
 - Safe mode can now take one screen at a time: under Safe mode in ZeD setup, the inventory windows, the belt, the watch, the dashboard, the moodles, the quick wheels and character info each have their own switch. On gives that screen back to the game's own and keeps the rest of ZeD-GUI. (Thanks to LZV-R5 for the idea.)
 
 Windows
 - The World window comes back where you left it after a Save and Quit made while a wide card held it against the screen's edge (it reopened a few pixels to the left).
 
-Belt
-- A Simple belt (ZeD setup, HUD, Belt): the same hands and slots with no leather strap or buckle, for a plainer screen. Full stays the default.
+Mods
+- The page list beside Find scrolls: with a long mod list the Sandbox step, the Sandbox window in game and Options have pages past the bottom. The wheel over the list moves it, the bar drags, and the bumpers keep the picked page in view. (Thanks to Kable for the report.)
+- Immersive Moodles: with its HUD on, ZeD leaves the moodles to it, so each moodle shows once (its column, its hover text, its side). On the right it starts below ZeD's watch. (Thanks to Krovenox for the mod.)
+- Hair and beard finds your razor, scissors, gel and spray in its own way, so a large mod list no longer leaves one unfound.
