@@ -172,6 +172,13 @@ local function putBackInto(cont, it)
 end
 
 -- ---------------------------------------------------------------------------
+-- (punch list 47, Nov 2 2026) after ZEDQA_HOME's move the grandstand's cells take a moment to load: wait until
+-- a square of it has its building (at once when the character was already home; about 10 s at most)
+untilDo(function()
+    local cell = getCell()
+    for dx = 0, 12 do local sq = cell:getGridSquare(892 - dx, 13040, 0); if sq and sq:getBuilding() then return true end end
+    return false
+end, 600, function() say("the grandstand is loaded") end, "the grandstand's squares to load")
 step(2, function()
     local ui = UIManager.getUI()
     for i = 0, ui:size() - 1 do local e = ui:get(i); if e:getClass():getSimpleName() == "UIDebugConsole" then e:setVisible(false) end end
