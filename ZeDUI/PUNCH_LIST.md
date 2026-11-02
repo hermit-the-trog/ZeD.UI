@@ -1652,6 +1652,12 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     nine-mod run, cut, tie, untie, bald and a beard trim from Hair and beard each start their action with the right
     tool; then the bisect of the nine (QA's one-line predicate probe) to name the mod that breaks the call back, for the
     Compatibility thread (the director's call to post) and a note to its maker.
+    **The director, Nov 2 2026: no compat or support work for cheat mods, item or vehicle spawners, or mods that break
+    gameplay ("I don't want to waste my credits or resources on things that allow people to cheat ... Those people can
+    use their own UI").** The bisect of the nine is cancelled: the set holds Rax's Cheat Menu 2.0 (RaxCheatMenu, whose
+    server file fails to compile under -debug), the likely cause, and naming it serves only that mod. What was built
+    stays (ZeD finds its own tools and starts its own cut and trim: sound for ZeD on its own). The last check of the
+    pick path, if run, uses round 5 without RaxCheatMenu; with no failure there, 54 closes.
 
 ## Test process
 
