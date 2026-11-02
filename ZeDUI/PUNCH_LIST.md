@@ -1181,6 +1181,22 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     when the count changes. The hook: Focus.qaButton(name, true / false / nil) overrides a pad button's state, read by
     _btnDown in place of the raw isDown, and the Y / A / X holds run in _holdTicks before the no-pad return. Parsed
     (KCheck), i18n guard passes. QA: zedqa_pad_marks.lua (pmk) at 4K and Deck.
+    - **QA, Nov 1 2026, late (zedqa_pad_marks.lua on d87f278 at 4K and the Deck; qa/regression/2026-11-01_t16_marks_4k.md,
+      _800.md, the same at both; shots in Screenshots/t16_marks_4k, _800): 33 PASS, the two FAILs the script's own
+      staging. The hold was the real one through Focus.qaButton (press, held 450 ms by the clock, release).** Confirmed
+      in the Character window's main list: with no marks the hold-A prompt reads "Mark (hold)", B's prompt is hidden and
+      B does nothing; hold A marks the row (the wash, count 1) and the card stays hidden; hold A again unmarks; a stack
+      header marks its three; held A with Down x3 marks the four rows passed and letting go ends the stroke (the next
+      Down leaves the four); with marks the prompts read "Unmark (hold)", "Menu for 4 marked", "Clear marks"; X opens the
+      game's menu (11 options) and its Drop holds all 4; B clears the marks with the focus on the same row, B's prompt
+      gone, a second B nothing; tap A on a marked row opens its card and the other marks go. World: hold X on a crate
+      row is the quick use (the tweezers came to the main inventory); with marks the band's Take reads "Take marked"
+      (hint "Take the 3 marked"), moves only the marked rows (2 of 2, the apple left) and clears the marks; the Character
+      band's Transfer all reads "Move marked" (hint "Move the 3 marked") and moves only the marked (the corkscrews
+      stay), marks cleared. **Not yet run: the column checks** (marks apart between a column and the main list, tap A
+      on a column row): the script's second crate did not open as a column (the window already showed it) and the
+      World list had no four single rows in a row for the painted run; the staging is being fixed for one more short
+      run on the Deck.
 45. **Reset windows leaves the old tab's pad stops behind (QA, Nov 1 2026, the 720 short run; build's cause).**
     open. wpt at 1280x720 Normal, right after cu: with the Character window on Loot, Right from the container
     strip landed on a Health tab stop ("health:start", the exercise Start button) instead of crossing to the World
