@@ -1166,6 +1166,21 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     gone), hold X on a crate's row (it comes to the main inventory), a stack header (the whole stack marked), the same
     in the Character window and in an extra column; the band's Take with marks takes them all.
 
+    **QA's code read (Nov 1, late) and the fixes (build): six findings, all fixed, and the hook added.** (1) one controller
+    mark opened the card (the drawer showed it for exactly one selected): the controller's marks set a flag on the list
+    (_padMarks) and the drawer hides the card while it stands; a mouse press, a tap A or the marks going clear it. (2) the
+    painted run collapsed because the card's follow-focus replaced the selection: it stays out while A paints (w._gpPaint),
+    and the card is hidden anyway. (3)(4) B, its prompt and X's were set when the rows were built and went stale, and the
+    footer draws prompts, not help words: the rows' onCancel, promptB, promptX and promptHold are functions the footer
+    reads each frame (Organisms: a prompt may be a function; false hides it); B with no marks does nothing (no sound);
+    X reads "Menu for 3 marked", hold A "Mark (hold)" or "Unmark (hold)"; the help line is gone. (5) tap A on a marked
+    column row cleared the main list's selection: it clears every list's marks first (padClearMarks wipes in place; the
+    column tables and the content's alias one another, so the tables stay and empty), and padMarkCount counts a table
+    once. (6) the band's Take took everything: with marks the World band's Take is "Take marked" (the marked rows of
+    every list) and the Character band's Transfer all is "Move marked", or "Drop marked" to the floor; the band rebuilds
+    when the count changes. The hook: Focus.qaButton(name, true / false / nil) overrides a pad button's state, read by
+    _btnDown in place of the raw isDown, and the Y / A / X holds run in _holdTicks before the no-pad return. Parsed
+    (KCheck), i18n guard passes. QA: zedqa_pad_marks.lua (pmk) at 4K and Deck.
 45. **Reset windows leaves the old tab's pad stops behind (QA, Nov 1 2026, the 720 short run; build's cause).**
     open. wpt at 1280x720 Normal, right after cu: with the Character window on Loot, Right from the container
     strip landed on a Health tab stop ("health:start", the exercise Start button) instead of crossing to the World

@@ -459,14 +459,31 @@ end
 local function padRefresh(w, cnt)
     if w._updateDrawer then pcall(w._updateDrawer, cnt) end   -- (the World's takes no argument; the extra one is ignored)
 end
--- how many rows are marked in the window (the main list and every column)
-function ZeD.InventoryRenderer.padMarkCount(w)
-    local cnt = w and w._mainContent
+-- how many rows are marked in the content (the main list and every column; in column mode the
+-- renderer binds one column's table as the content's own, so a table counts once)
+local function markCountOf(cnt)
     if not cnt then return 0 end
-    local n = 0
-    for _ in pairs(cnt._selectedItems or {}) do n = n + 1 end
-    for _, cs in ipairs(cnt._colStates or {}) do for _ in pairs(cs.selectedItems or {}) do n = n + 1 end end
+    local n, seen = 0, {}
+    local function add(t) if t and not seen[t] then seen[t] = true; for _ in pairs(t) do n = n + 1 end end end
+    add(cnt._selectedItems)
+    for _, cs in ipairs(cnt._colStates or {}) do add(cs.selectedItems) end
     return n
+end
+function ZeD.InventoryRenderer.padMarkCount(w) return markCountOf(w and w._mainContent) end
+ZeD.InventoryRenderer.padMarkCountOf = markCountOf
+-- every marked item of the content, list after list (the band's Take / Move marked); nil without any
+function ZeD.InventoryRenderer.padMarkedAll(cnt)
+    if not cnt then return nil end
+    local out, seenT, seenI = {}, {}, {}
+    local function add(t)
+        if not t or seenT[t] then return end
+        seenT[t] = true
+        for it in pairs(t) do if not seenI[it] then seenI[it] = true; out[#out + 1] = it end end
+    end
+    add(cnt._selectedItems)
+    for _, cs in ipairs(cnt._colStates or {}) do add(cs.selectedItems) end
+    if #out == 0 then return nil end
+    return out
 end
 -- hold A: mark or unmark the row (a stack header: its whole stack) and arm the painted run
 function ZeD.InventoryRenderer.padMark(w, el)
@@ -476,6 +493,7 @@ function ZeD.InventoryRenderer.padMark(w, el)
     local adding = not sel[el.item]
     for _, it in ipairs(padStackItems(cnt, cs, el.item)) do sel[it] = adding or nil end
     cnt._lastClickedItem = el.item
+    cnt._padMarks = true   -- (the controller's marks: the card hides even at one; the drawer reads it)
     w._gpPaint = { adding = adding, col = el.colIdx }
     padRefresh(w, cnt)
 end
@@ -487,6 +505,7 @@ function ZeD.InventoryRenderer.padPaint(w, el, paint)
     if not sel then return end
     for _, it in ipairs(padStackItems(cnt, cs, el.item)) do sel[it] = paint.adding or nil end
     cnt._lastClickedItem = el.item
+    cnt._padMarks = true
     padRefresh(w, cnt)
 end
 -- the marked rows of the row's own list, for X's menu; nil when nothing is marked
@@ -498,14 +517,45 @@ function ZeD.InventoryRenderer.padMarkedItems(w, el)
     if #out == 0 then return nil end
     return out
 end
--- B: every mark in the window goes; the focus stays where it is
-function ZeD.InventoryRenderer.padClearMarks(w, el)
+-- the marks go, in place (the renderer's column tables and the content's alias one another, so the
+-- tables stay and empty); no drawer refresh here, the caller's own follows
+local function wipeMarks(cnt)
+    if not cnt then return end
+    local seen = {}
+    local function wipe(t) if t and not seen[t] then seen[t] = true; for k in pairs(t) do t[k] = nil end end end
+    wipe(cnt._selectedItems)
+    for _, cs in ipairs(cnt._colStates or {}) do wipe(cs.selectedItems) end
+    cnt._lastClickedItem = nil
+    cnt._padMarks = nil
+end
+ZeD.InventoryRenderer.padClearMarksOf = wipeMarks
+-- B: every mark in the window goes; the focus stays where it is (quiet: the caller refreshes the drawer)
+function ZeD.InventoryRenderer.padClearMarks(w, el, quiet)
     local cnt = w and w._mainContent
     if not cnt then return end
-    cnt._selectedItems = {}
-    for _, cs in ipairs(cnt._colStates or {}) do cs.selectedItems = {} end
-    cnt._lastClickedItem = nil
-    padRefresh(w, cnt)
+    wipeMarks(cnt)
+    if not quiet then padRefresh(w, cnt) end
+end
+-- B on a row: with marks it clears them; without, nothing (false: no sound, and the prompt hides)
+function ZeD.InventoryRenderer.padCancel(w, el)
+    if ZeD.InventoryRenderer.padMarkCount(w) == 0 then return false end
+    ZeD.InventoryRenderer.padClearMarks(w, el)
+    return true
+end
+-- the footer's words, read every frame (a prompt may be a function; false hides it, nil is the default word)
+function ZeD.InventoryRenderer.padPromptB(w, el)
+    if ZeD.InventoryRenderer.padMarkCount(w) == 0 then return false end
+    return ZeD.tr("UI_ZeD_Inv_PromptClearMarks")
+end
+function ZeD.InventoryRenderer.padPromptX(w, el)
+    local n = ZeD.InventoryRenderer.padMarkCount(w)
+    if n == 0 then return nil end
+    return ZeD.tr("UI_ZeD_Inv_PromptMenuMarked", n)
+end
+function ZeD.InventoryRenderer.padPromptHold(w, el)
+    local sel = padSel(w, el)
+    local marked = sel and el and el.item and sel[el.item]
+    return ZeD.tr(marked and "UI_ZeD_Inv_PromptUnmark" or "UI_ZeD_Inv_PromptMark")
 end
 
 -- The quick use itself, for the double-click and the controller's hold A on a
@@ -1209,11 +1259,6 @@ local function rowStates(self, item, isSelected, x, y, w, rowH, pointed)
     end
     if hover then ZeD.Help.set(self, ZeD.tr("UI_ZeD_Inv_RowHelp", item:getName() or "")) end
     if item ~= self._gpFocusedRowItem then return false end
-    do   -- marks on the list: the help line says how many and what X and B do (punch list 44)
-        local n = 0
-        for _ in pairs(self._selectedItems or {}) do n = n + 1 end
-        if n > 0 then ZeD.Help.set(self, ZeD.tr("UI_ZeD_Inv_MarkedHelp", n)) end
-    end
     local fo = gpFocusedItem(item)
     if not fo then return false end
     return ZeD.Focus.mark(self, x, y, w, rowH, fo) and true or false

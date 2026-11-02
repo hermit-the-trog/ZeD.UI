@@ -623,7 +623,17 @@ local function _addListPrompts(win, prompts)
     for i = #(extra or {}), 1, -1 do table.insert(prompts, 1, extra[i]) end
 end
 
-local function _promptsFor(el)
+-- a prompt word may be a function of (win, el), read each frame: false hides the prompt, nil is the default word
+local function _pv(v, win, el)
+    if type(v) == "function" then
+        local ok, r = pcall(v, win, el)
+        if ok then return r end
+        return nil
+    end
+    return v
+end
+
+local function _promptsFor(el, win)
     local out = {}
     if not el then
         out[#out + 1] = { glyph = "Y", label = ZeD.tr("UI_ZeD_Prompt_Windows") }
@@ -635,11 +645,12 @@ local function _promptsFor(el)
         if id:sub(1, #prefix) == prefix and #prefix > bestLen then labels = def; bestLen = #prefix end
     end
     labels = labels or {}
-    if el.onActivate     then out[#out + 1] = { glyph = "A", label = el.promptA or ZeD.tr(labels.a or "UI_ZeD_Prompt_Select") } end
-    if el.onHoldActivate then out[#out + 1] = { glyph = "A", label = ZeD.tr("UI_ZeD_Prompt_Hold", el.promptHold or ZeD.tr(labels.hold or "UI_ZeD_Prompt_Use")) } end
-    if el.onContextMenu  then out[#out + 1] = { glyph = "X", label = el.promptX or ZeD.tr(labels.x or "UI_ZeD_Prompt_Menu") }
+    local pA, pH, pX, pB = _pv(el.promptA, win, el), _pv(el.promptHold, win, el), _pv(el.promptX, win, el), _pv(el.promptB, win, el)
+    if el.onActivate     and pA ~= false then out[#out + 1] = { glyph = "A", label = pA or ZeD.tr(labels.a or "UI_ZeD_Prompt_Select") } end
+    if el.onHoldActivate and pH ~= false then out[#out + 1] = { glyph = "A", label = ZeD.tr("UI_ZeD_Prompt_Hold", pH or ZeD.tr(labels.hold or "UI_ZeD_Prompt_Use")) } end
+    if el.onContextMenu  then if pX ~= false then out[#out + 1] = { glyph = "X", label = pX or ZeD.tr(labels.x or "UI_ZeD_Prompt_Menu") } end
     elseif el.onReset    then out[#out + 1] = { glyph = "X", label = ZeD.tr("UI_ZeD_Prompt_Reset") } end
-    if el.onCancel       then out[#out + 1] = { glyph = "B", label = el.promptB or ZeD.tr(labels.b or "UI_ZeD_Prompt_Back") } end
+    if el.onCancel       and pB ~= false then out[#out + 1] = { glyph = "B", label = pB or ZeD.tr(labels.b or "UI_ZeD_Prompt_Back") } end
     -- controls the element answers to beyond the face buttons (the map: the triggers zoom, the stick moves)
     if el.extraPrompts then for _, p in ipairs(el.extraPrompts) do out[#out + 1] = p end end
     out[#out + 1] = { glyph = "Y", label = ZeD.tr("UI_ZeD_Prompt_Windows") }
@@ -659,7 +670,7 @@ function ZeD_Window:_footerPrompts()
     if not (Det and Det.getMode and Det.getMode() == "gamepad") then return nil end
     if not (Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == self) then return nil end
     local el = Focus.getFocusedElement and Focus.getFocusedElement(self)
-    local prompts = _promptsFor(el)
+    local prompts = _promptsFor(el, self)
     pcall(_addListPrompts, self, prompts)
     -- the Y hold's lock, while it is on: a "Locked" prompt in place of Y's
     if Focus.isLocked and Focus.isLocked() then

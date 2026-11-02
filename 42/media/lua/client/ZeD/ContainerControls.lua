@@ -544,18 +544,45 @@ local function addProviderSpecs(list, side, content, inv, other)
     return list
 end
 
+-- the controller's marked rows of a list (punch list 44), nil without any, and the set the band washes
+local function markedOf(content)
+    local R = ZeD.InventoryRenderer
+    return R and R.padMarkedAll and R.padMarkedAll(content) or nil
+end
+local function markedSet(items)
+    local set = {}
+    for _, it in ipairs(items) do set[it] = true end
+    return set
+end
+
 local function buildChar(content)
     local playerObj = content._playerObj
     local inv = content._inventory
     local dest = otherInventory(content)
     local moves = {}
-    local xfer = transferAllItems(playerObj, inv, dest)
-    moves[#moves + 1] = { id = "xfer", label = sentence(getText("IGUI_invpage_Transfer_all")), enabled = dest ~= nil and #xfer > 0,
-        icon = "tray_out", hint = sentence(getText("IGUI_invpage_Transfer_all")),
-        run = function(ct)
-            local d = otherInventory(ct)
-            CT.moveItems(playerObj, transferAllItems(playerObj, ct._inventory, d), d)
-        end }
+    local marked = markedOf(content)
+    if marked then
+        -- the controller's marks (punch list 44): with rows marked, the move is of the marked rows only
+        local toFloor = dest ~= nil and isFloor(dest)
+        moves[#moves + 1] = { id = "xfer", label = ZeD.tr(toFloor and "UI_ZeD_Controls_DropMarked" or "UI_ZeD_Controls_MoveMarked"),
+            enabled = dest ~= nil, marks = markedSet(marked),
+            icon = "tray_out", hint = ZeD.tr(toFloor and "UI_ZeD_Controls_HintDropMarked" or "UI_ZeD_Controls_HintMoveMarked", #marked),
+            run = function(ct)
+                local d = otherInventory(ct)
+                local items = markedOf(ct)
+                if not (items and d) then return end
+                ZeD.InventoryRenderer.padClearMarksOf(ct)
+                CT.moveItems(playerObj, items, d)
+            end }
+    else
+        local xfer = transferAllItems(playerObj, inv, dest)
+        moves[#moves + 1] = { id = "xfer", label = sentence(getText("IGUI_invpage_Transfer_all")), enabled = dest ~= nil and #xfer > 0,
+            icon = "tray_out", hint = sentence(getText("IGUI_invpage_Transfer_all")),
+            run = function(ct)
+                local d = otherInventory(ct)
+                CT.moveItems(playerObj, transferAllItems(playerObj, ct._inventory, d), d)
+            end }
+    end
     local keep = function(item) return not item:isFavorite() and not item:isEquipped() end
     local same, sameSet = sameTypeItems(inv, dest, keep)
     moves[#moves + 1] = { id = "same", label = ZeD.tr("UI_ZeD_Controls_SameType"), enabled = #same > 0, marks = sameSet,
@@ -582,18 +609,33 @@ local function buildWorld(content)
     local dest = otherInventory(content)
     local onFloor = isFloor(inv)
     local moves = {}
-    moves[#moves + 1] = { id = "take", label = sentence(getText("IGUI_invpage_Loot_all")), enabled = not inv:isEmptyOrUnwanted(playerObj),
-        icon = "tray_in", hint = sentence(getText("IGUI_invpage_Loot_all")),
-        run = function(ct)
-            local src, d = ct._inventory, otherInventory(ct)
-            if not isFloor(src) and not luautils.walkToContainer(src, pn) then return end
-            local items, heavy, n = takeAllItems(playerObj, src)
-            if heavy and n == 1 then
-                ISInventoryPaneContextMenu.equipHeavyItem(playerObj, heavy)
-                return
-            end
-            CT.moveItems(playerObj, items, d)
-        end }
+    local marked = markedOf(content)
+    if marked then
+        -- the controller's marks (punch list 44): with rows marked, Take takes the marked rows only
+        moves[#moves + 1] = { id = "take", label = ZeD.tr("UI_ZeD_Controls_TakeMarked"), enabled = true, marks = markedSet(marked),
+            icon = "tray_in", hint = ZeD.tr("UI_ZeD_Controls_HintTakeMarked", #marked),
+            run = function(ct)
+                local src, d = ct._inventory, otherInventory(ct)
+                if not isFloor(src) and not luautils.walkToContainer(src, pn) then return end
+                local items = markedOf(ct)
+                if not items then return end
+                ZeD.InventoryRenderer.padClearMarksOf(ct)
+                CT.moveItems(playerObj, items, d)
+            end }
+    else
+        moves[#moves + 1] = { id = "take", label = sentence(getText("IGUI_invpage_Loot_all")), enabled = not inv:isEmptyOrUnwanted(playerObj),
+            icon = "tray_in", hint = sentence(getText("IGUI_invpage_Loot_all")),
+            run = function(ct)
+                local src, d = ct._inventory, otherInventory(ct)
+                if not isFloor(src) and not luautils.walkToContainer(src, pn) then return end
+                local items, heavy, n = takeAllItems(playerObj, src)
+                if heavy and n == 1 then
+                    ISInventoryPaneContextMenu.equipHeavyItem(playerObj, heavy)
+                    return
+                end
+                CT.moveItems(playerObj, items, d)
+            end }
+    end
     local keep = function(item) return not item:isFavorite() and not item:isUnwanted(playerObj) end
     local same, sameSet = sameTypeItems(inv, dest, keep)
     moves[#moves + 1] = { id = "same", label = ZeD.tr("UI_ZeD_Controls_SameType"), enabled = #same > 0, marks = sameSet,
@@ -694,13 +736,15 @@ local function refresh(content)
     local n1, n2 = sizeOf(inv), sizeOf(other)
     -- (a mod's gate on either side: the row is built again when what it says changes)
     local g1, g2 = gateMode(inv, content._playerObj), gateMode(other, content._playerObj)
+    local R = ZeD.InventoryRenderer
+    local m = (R and R.padMarkCountOf) and R.padMarkCountOf(content) or 0   -- (the controller's marks, punch list 44)
     local same = cc.sigSet and cc.sigInv == inv and cc.sigN1 == n1 and cc.sigOther == other and cc.sigN2 == n2
-        and cc.sigG1 == g1 and cc.sigG2 == g2
+        and cc.sigG1 == g1 and cc.sigG2 == g2 and cc.sigM == m
     if same and cc.tick - cc.frame < CT.REFRESH and cc.moves then return end
     if not same and cc.invSeen ~= inv then cc.ask = nil; cc.sx = {} end   -- another container: no pending question, the ribbons from their start
     cc.invSeen = inv
     cc.sigSet, cc.sigInv, cc.sigN1, cc.sigOther, cc.sigN2 = true, inv, n1, other, n2
-    cc.sigG1, cc.sigG2 = g1, g2
+    cc.sigG1, cc.sigG2, cc.sigM = g1, g2, m
     cc.frame = cc.tick
     local ok, moves, objs
     if content._ccSide == "char" then ok, moves, objs = pcall(buildChar, content)

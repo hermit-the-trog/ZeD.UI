@@ -4045,7 +4045,14 @@
     "UI_ZeD_Preview_NeedLearn": "to know the recipe",
     "UI_ZeD_Preview_NeedSkill": "a higher skill",
     "UI_ZeD_Preview_HintGo": "make it",
-    "UI_ZeD_Inv_MarkedHelp": "%1 marked | X: menu for all | B: clear marks",
     "UI_ZeD_Inv_PromptClearMarks": "Clear marks",
-    "UI_ZeD_Inv_PromptMenuMarked": "Menu for marked"
+    "UI_ZeD_Inv_PromptMenuMarked": "Menu for %1 marked",
+    "UI_ZeD_Inv_PromptMark": "Mark",
+    "UI_ZeD_Inv_PromptUnmark": "Unmark",
+    "UI_ZeD_Controls_TakeMarked": "Take marked",
+    "UI_ZeD_Controls_HintTakeMarked": "Take the %1 marked",
+    "UI_ZeD_Controls_MoveMarked": "Move marked",
+    "UI_ZeD_Controls_HintMoveMarked": "Move the %1 marked",
+    "UI_ZeD_Controls_DropMarked": "Drop marked",
+    "UI_ZeD_Controls_HintDropMarked": "Drop the %1 marked"
 }
