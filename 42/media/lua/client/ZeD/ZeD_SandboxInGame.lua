@@ -580,17 +580,22 @@ end
 function ZeD_MMSandboxIG:drawPages(x, y, w, h, pages, finding)
     ZeD_MMOptions.drawPages(self, x, y, w, h, pages, finding)
     local T = ZeD.T
-    local ry = y + T.px(FIND_H) + T.px(1)
+    local box = self._pagesBox
+    if not box then return end
+    local ry = box.y - (self.pagesScroll or 0)   -- (the list scrolls: the marks ride with their rows, clipped to the box)
     local rh = T.px(PAGE_ROW_H)
     local dsz = T.px(6)
+    local dx = x + T.px(1) + (self._pagesRowW or (w - 2 * T.px(1))) - T.px(15)
+    self:setStencilRect(box.x + T.px(1), box.y, box.w - 2 * T.px(1), box.h)
     for _, p in ipairs(pages) do
-        if not p.virtual then
+        if not p.virtual and ry + rh > box.y and ry < box.y + box.h then
             local any = false
             for _, r in ipairs(self:rowsFor(p)) do if r.name and self.diff[r.name] then any = true end end
-            if any then ZeD.Atoms.drawStatusDot(self, x + w - T.px(16), ry + math.floor((rh - dsz) / 2), T.accent, dsz) end
+            if any then ZeD.Atoms.drawStatusDot(self, dx, ry + math.floor((rh - dsz) / 2), T.accent, dsz) end
         end
         ry = ry + rh
     end
+    self:clearStencilRect()
 end
 
 -- TAGS: WHEN and RISK at the right of a row. The library tag (an outline, the word in the

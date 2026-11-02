@@ -1448,6 +1448,24 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
       would show whether reviewers turn up before all 28 are drafted.
     - Reply to Turk is waiting on this (drafts with the director: ask for translators, or also offer an AI draft).
 
+52. **The Sandbox page list does not scroll (a Workshop bug report by Kable, Nov 1 2026; the director, Nov 2: "Sandbox scroll
+    fix").** fixed (build, Nov 2), QA to confirm. Kable's picture showed the Sandbox page list cut off; QA confirmed it
+    overnight: with 150 mods the Sandbox step has 42 pages, 22 fall below the list and 10 below the screen even at 4K,
+    the wheel does nothing, and the bumpers reach the last page but draw it off screen. For a 1,500-mod list most pages
+    could not be reached by mouse. Cause: the page list under Find (one function, ZeD_MMOptions.drawPages, shared by
+    Options, the main menu's Sandbox step and the Sandbox window in game) drew every page top to bottom with no box,
+    no scroll and no wheel; the wheel handler only listened over the settings rows. The server settings screen had its
+    own list that did scroll, but its bumpers did not bring the picked page into view either. Fix: the shared list
+    clips to its box, scrolls by the wheel over it (two rows a notch) and by a bar that drags, takes clicks only where
+    a row shows, and brings the picked page into view whenever it changes (a bumper, a page opened from elsewhere);
+    the in-game Sandbox's change marks ride with their rows; the server list follows the picked page the same way. QA:
+    the 150-mod rig at 4K and on the Deck: the wheel over the page list moves it to the last page; the bar drags; RB
+    from the first page to the last keeps the picked page in view at every step and LB wraps back to the top; a click on
+    a half-hidden row at the box's edge picks it, a click on the Find box above it does not pick a page; the in-game
+    Sandbox window the same, its change marks on the right rows after a scroll; Options with many mod pages; the
+    server settings' bumpers. Reply to Kable drafted in the Nov 2 morning note (post after the build ships, with the
+    director's yes).
+
 ## Test process
 
 - The release check (before every upload, about 5 minutes, pass or fail): right-click opens the

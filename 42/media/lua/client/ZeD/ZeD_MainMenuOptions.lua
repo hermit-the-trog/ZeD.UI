@@ -881,18 +881,50 @@ function ZeD_MMOptions:drawPages(x, y, w, h, pages, finding)
     local kind = self.kind
     self._hits[#self._hits + 1] = { id = kind .. ":find", x = ax + self.find.x, y = ay + self.find.y, w = self.find.width, h = self.find.height,
                                     fn = function() self.find:focus() end }
-    local ry = y + fH + T.px(1)
+    -- the pages under Find scroll in their own box (a Workshop report, Nov 1 2026: with a long mod list the Sandbox
+    -- step has dozens of pages and they ran off the window, the wheel did nothing). The wheel over the box moves it,
+    -- the bar drags, and the picked page comes into view whenever it changes (a bumper, a page shown from elsewhere).
+    local top0 = y + fH + T.px(1)
+    local vh = y + h - T.px(1) - top0
     local rh = T.px(PAGE_ROW_H)
+    local total = #pages * rh
+    if self._pagesShown ~= self.pageIdx then
+        self._pagesShown = self.pageIdx
+        local at, ps = (self.pageIdx - 1) * rh, self.pagesScroll or 0
+        if at < ps then ps = at elseif at + rh > ps + vh then ps = at + rh - vh end
+        self.pagesScroll = ps
+    end
+    self.pagesScroll = math.max(0, math.min(self.pagesScroll or 0, math.max(0, total - vh)))
+    self._pagesBox = { x = x, y = top0, w = w, h = vh }
+    local sbW = T.sp.scrollbarW
+    local over = total > vh
+    local rw = w - 2 * T.px(1) - (over and sbW or 0)
+    self._pagesRowW = rw   -- (Sandbox in game sets its change marks inside the rows)
+    self:setStencilRect(x + T.px(1), top0, w - 2 * T.px(1), vh)
+    local ry = top0 - self.pagesScroll
     for i, p in ipairs(pages) do
-        local isSel = (i == self.pageIdx) and not finding
-        local hid = kind .. ":page:" .. i
-        MM.rowWash(self, x + T.px(1), ry, w - 2 * T.px(1), rh, isSel, (not MM.gamepad()) and self:pctx().hot == hid)
-        local tc = isSel and T.textHead or T.text
-        self:drawText(ZeD.Atoms.truncateText(p.title, f2, w - T.px(20)), x + T.px(10), ry + math.floor((rh - MM.fontH(f2)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
-        self._hits[#self._hits + 1] = { id = hid, x = ax + x, y = ay + ry, w = w, h = rh, fn = function()
-            if self.find:getInternalText() ~= "" then self.find:setText("") end
-            if self.pageIdx ~= i then self.pageIdx = i; self.scroll = 0; self.focusId = nil; MM.clickSound() end end }
+        if ry + rh > top0 and ry < top0 + vh then
+            local isSel = (i == self.pageIdx) and not finding
+            local hid = kind .. ":page:" .. i
+            MM.rowWash(self, x + T.px(1), ry, rw, rh, isSel, (not MM.gamepad()) and self:pctx().hot == hid)
+            local tc = isSel and T.textHead or T.text
+            self:drawText(ZeD.Atoms.truncateText(p.title, f2, rw - T.px(18)), x + T.px(10), ry + math.floor((rh - MM.fontH(f2)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
+            local top, bot = math.max(ry, top0), math.min(ry + rh, top0 + vh)   -- (a row half out takes clicks only where it shows)
+            self._hits[#self._hits + 1] = { id = hid, x = ax + x, y = ay + top, w = rw + T.px(1), h = bot - top, fn = function()
+                if self.find:getInternalText() ~= "" then self.find:setText("") end
+                if self.pageIdx ~= i then self.pageIdx = i; self.scroll = 0; self.focusId = nil; MM.clickSound() end end }
+        end
         ry = ry + rh
+    end
+    self:clearStencilRect()
+    if over then
+        local sx = x + w - T.px(1) - sbW
+        local tid = kind .. ":pagestrack"
+        ZeD.Atoms.drawScrollTrack(self, sx, top0, sbW, vh)
+        local th = math.max(T.px(24), math.floor(vh * vh / total))
+        ZeD.Atoms.drawScrollThumb(self, sx, top0 + math.floor((vh - th) * self.pagesScroll / (total - vh)), sbW, th, self:pctx().hot == tid and "hover" or "default")
+        self._hits[#self._hits + 1] = { id = tid, x = ax + sx, y = ay + top0, w = sbW, h = vh, drag = function(_, myy)
+            self.pagesScroll = math.floor(((myy - ay - top0) / vh) * total - vh / 2) end }
     end
 end
 
@@ -1876,9 +1908,14 @@ end
 function ZeD_MMOptions:close() self:back() end
 
 function ZeD_MMOptions:wheel(del)
+    local mx, my = getMouseX() - self:getAbsoluteX(), getMouseY() - self:getAbsoluteY()
+    local pb = self._pagesBox   -- (over the page list: it scrolls; a row at a time, two per notch)
+    if pb and mx >= pb.x and mx < pb.x + pb.w and my >= pb.y and my < pb.y + pb.h then
+        self.pagesScroll = (self.pagesScroll or 0) + del * ZeD.T.px(PAGE_ROW_H) * 2
+        return true
+    end
     local l = self._list
     if not l then return false end
-    local mx, my = getMouseX() - self:getAbsoluteX(), getMouseY() - self:getAbsoluteY()
     if mx < l.x or mx > l.x + l.w or my < l.y or my > l.y + l.h then return false end
     self.scroll = self.scroll + del * ZeD.T.px(ROW_H) * 2
     return true
