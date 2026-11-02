@@ -1714,7 +1714,17 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     yeah, you can turn it off. But why would you want to? In safety").** The seven rows sit in Troubleshooting right
     under Safe mode and read as it does: ticked is the game's own, unticked (the default) is ZeD's. Names "Safe mode:
     belt" and so on, each with a line under it ("The game's own hotbar"). The ZeD screens group is gone.
-
+    **QA, Nov 2 2026: confirmed at d751c3f (2026-11-02_pl55_screens_4k.md, 77 / 79, zedqa_screens.lua; pictures
+    qa/Nov2_t16/screens_six.png).** Each of the seven switches ticked: ZeD.Safe.on(name) true and every other screen stays
+    ZeD's; the belt gives the game's hotbar back (the picture shows it), the watch the game's clock (y 10, visible), the
+    moodles the game's column, the windows close; unticked, each is ZeD's again (the clock parked at y -4000). The console
+    says "[ZeD] Screens: <name> handed back to the game" and "is ZeD's again" for all seven. Belt and watch ticked together:
+    both the game's. Safe mode on over them: every screen the game's; off again: belt and watch stay the game's (their
+    ticks), moodles and windows ZeD's. The ticks are saved: ModOptions.ini holds screenBelt|2 and screenWatch|2. The two
+    FAILs are the test's (it reopened ZeD's windows in the same tick the switch went off; the switch is read every half
+    second; the later step reopened them fine). Not covered: the game's own inventory windows opened by the I key with
+    the windows switch on, the dashboard (no car in the test), the quick wheels and the game's character info by their
+    keys; those three were checked by their switch state and console lines only.
 56. **A simple belt (the director, Nov 2 2026: "I want to add simple belt for T16").** Behind the Workshop ask to turn the belt
     off (item 55): give it a simple form, as ZeD already pairs a full and a simple version (the progress bar; the context
     menu strip and the classic menu): one for immersion, one plain. Options and a mockup for the director first.
@@ -1725,6 +1735,14 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     applies at once (the layout cache follows the option). QA: Full and Simple at 4K and on the Deck, with 0, 1, 4 and
     the most slots; a gun (the ammo tab), a worn watch on each wrist, the Messages note; drag an item onto a slot and
     off; the number keys; the controller's belt focus; moodles placed at the bottom sit above it.
+    **QA, Nov 2 2026: confirmed at 361d0b6 (2026-11-02_pl56_belt_4k.md and _deck.md, 16 / 17 each,
+    zedqa_simple_belt.lua; pictures qa/Nov2_t16/simple_belt_rows.png).** Full: strap and buckle. Simple at 4K and on the
+    Deck: no strap, buckle, runs or closure; both hands; all 3 slots in key order, 6 units apart, the belt centred
+    (4K 1692 + 457 wide, Deck 542 + 197); a pistol in hand shows the ammo tab; a watch on the left and on the right
+    wrist shows on the belt; a knife goes onto free slot 2 and off again (B.attach / B.detach, the drag's calls) and slot
+    2's key puts it in hand; moodles at Bottom sit above the belt (4K bottom 2013 < 2034; Deck 737 < 746). The one FAIL is
+    the test's: the Messages lamp shows only with messages, Full has none either. Not covered: slot counts other than 3
+    (0, 1, 4, the most), a real mouse drag, the controller's belt focus under Simple.
 
 ## Test process
 

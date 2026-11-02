@@ -1,0 +1,3 @@
+# punch list 55 (Nov 2 2026): ZeD setup screen switches
+zedqa_prelude.lua | pre | timeout=120
+zedqa_screens.lua | scr | timeout=300
