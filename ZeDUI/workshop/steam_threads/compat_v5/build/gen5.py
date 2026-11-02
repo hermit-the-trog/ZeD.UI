@@ -12,7 +12,7 @@ OUT = os.path.dirname(HERE)
 V4 = os.path.join(OUT, "..", "compat_v4", "build", "v4_mods.json")
 LIMIT = 7800
 U = "https://steamcommunity.com/sharedfiles/filedetails/?id="
-R14 = 14            # reply 14 is the round 4 post of Oct 29; it stays as posted
+NREPLY = 14         # the thread has 14 replies; every list is edited into one of them, none added
 
 mods = json.load(open(V4, encoding="utf-8"))
 for wid, ch in CHANGED.items():
@@ -89,18 +89,21 @@ for k, part in enumerate(CP):
     if k == 0 and sa.isdigit(): sa = "0-9"
     if k + 1 == len(CP): sb = "z"
     CR.append(f"{sa[0].upper() + sa[1:]} to {sb[0].upper() + sb[1:]}")
-NP = split(N, lambda k: LIMIT - 760 if k == 0 else LIMIT - 200, credits=True)   # only part 1 carries the long intro
+N_INTRO = """ZeD-GUI already does the job of these mods, so use one of the two. Most still load with ZeD-GUI on; the part that does the same job does not show.
 
-# reply numbers: replies 1 to 13 are edited in place, reply 14 stays, the rest are new replies after it
-blocks = ["S", "W"] + [("C", k) for k in range(len(CP))] + ["V", "X"] + [("N", k) for k in range(len(NP))]
+ZeD-GUI does not take donations. If ZeD-GUI does the job of a mod you used and you want to give something back, give it to the person who made that mod. They worked these problems out first, and some of them do this to put food on the table. Where no support link is listed, the maker's Steam page is linked where known.
+"""
+NP = split(N, lambda k: LIMIT - len(N_INTRO) - 64 if k == 0 else LIMIT - 86, credits=True)   # only part 1 carries the long intro
+
+# reply numbers: the lists fill replies 1 to 14 in place; Does not work sits in the first post
+blocks = ["S", "W"] + [("C", k) for k in range(len(CP))] + ["V"] + [("N", k) for k in range(len(NP))]
 where, rep = {}, 1
 for b in blocks:
-    if rep == R14: rep += 1
     if isinstance(b, tuple): where.setdefault(b[0], []).append(rep)
     else: where[b] = rep
     rep += 1
 NREPLIES = rep - 1
-assert where["X"] < R14 < where["N"][0], ("the lists before reply 14 must fill replies 1 to 13", where)
+assert NREPLIES == NREPLY, ("the lists must fill exactly the 14 replies", NREPLIES, where)
 def rr(ns):
     if len(ns) == 1: return f"Reply {ns[0]}"
     if len(ns) == 2: return f"Replies {ns[0]} and {ns[1]}"
@@ -110,6 +113,14 @@ cparts = ", ".join(f"{CR[k]} (reply {where['C'][k]})" for k in range(len(CP)))
 COMPAT_INTRO = "Loaded with ZeD-GUI, no errors of their own, and ZeD-GUI's tests passed with them on. Nothing special to say unless a note says so. A note that starts \"Part of it does not show\" means the mod adds to a game screen that ZeD-GUI replaces."
 
 posts = {}
+XPOST = f"""[h2]Does not work with ZeD[/h2]
+These do a job ZeD-GUI also does, in a way that clashes with it: both draw at once, or ZeD's screen replaces the one the mod changes. Run one or the other.
+{L(XZ)}
+
+[h2]Broken on 42.21 or 42.22 by themselves[/h2]
+These are broken on Project Zomboid 42.21 or 42.22 by themselves, with or without ZeD-GUI. Found a mod that clashes with ZeD-GUI? Reply with its name, its Workshop link and what happened.
+{L(X)}
+""".rstrip()
 posts["post00_first"] = f"""TITLE: Compatibility with other mods
 
 This thread lists the {len(mods)} mods tested with ZeD-GUI, sorted into five lists. Each list is in alphabetical order. Last updated Nov 2 2026.
@@ -121,10 +132,11 @@ Steam cannot link to a reply, so count the replies from the top of the thread.
 [*][b]Reply {where['W']}: Works well with ZeD.[/b] The mod fills a gap or shows well in ZeD's windows; worth having ({len(W)}).
 [*][b]{rr(where['C'])}: Compatible[/b], in {len(CP)} parts: {cparts}. Loads and works with ZeD-GUI, nothing special ({len(Cs)}).
 [*][b]Reply {where['V']}: Compatible, vehicle packs[/b] ({len(V)}).
-[*][b]Reply {where['X']}: Does not work.[/b] Two lists: mods that do not work with ZeD-GUI, with why ({len(XZ)}), and mods broken on 42.21 or 42.22 by themselves ({len(X)}).
-[*][b]Reply {R14}:[/b] the notes on the Oct 29 tests, kept as posted. Where it and the lists differ, the lists are current.
 [*][b]{rr(where['N'])}: Not needed with ZeD.[/b] ZeD-GUI already does the job, so use one of the two; the makers are credited there ({len(N)}).
+[*][b]This post, below: Does not work.[/b] Two lists: mods that do not work with ZeD-GUI, with why ({len(XZ)}), and mods broken on 42.21 or 42.22 by themselves ({len(X)}).
 [/list]
+
+{XPOST}
 
 [h2]How the mods were tested[/h2]
 [list]
@@ -137,16 +149,6 @@ Steam cannot link to a reply, so count the replies from the top of the thread.
 [*]Nov 2 2026, ZeD-GUI 0.2.0-t15: nine more mods from the Workshop's trending Build 42 lists since Oct 29, on at once with the same tests, twice.
 [*]Each mod's own features were [b]not[/b] tried one by one. A note marked [i](expected)[/i] comes from how the mod works, and one marked [i](by reading its code)[/i] from its code, not from a test.
 [/list]
-
-[h2]Found in the Oct 26 tests, fixed for ZeD-GUI 0.2.0-t7[/h2]
-[list]
-[*]Lines other mods add to the item tooltip (Starlit Library, More Item Information, Show Sowing Season, This Is Me, Brita's Armor Pack) were left out of ZeD's tooltip. They show now.
-[*]A mod that adds its own page to the game's Options (True Music Jukebox, Combat Text) emptied ZeD setup of ZeD's own options. ZeD setup is whole again, and the mod's page is listed after the game's Mods page.
-[*]Smart Radial Menu errored and drew no wheel. A mod's own wheel now stays the game's; the game's own wheels stay ZeD's.
-[*]A mod's belt slot (Brita's) showed its raw id, running out of its box. The belt uses the slot's own name, cut to fit.
-[*]With Neat Rocco's UI on, other mods' notes stayed on screen instead of going to Messages. They go to Messages again (the two mods still do the same job: use one).
-[/list]
-Not ZeD-GUI's: with Project Writing on, the game seemed to hang after writing in a notebook. The mod pauses the game while its notebook is open (its own option), and a quit waits until the notebook is closed.
 
 [h2]Help in ZeD-GUI for long mod lists[/h2]
 [list]
@@ -183,20 +185,9 @@ Sorted by make, then model. Each pack's cars were spawned and driven one by one:
 
 for k, part in enumerate(NP):
     head = f"[h2]Not needed with ZeD (part {k + 1} of {len(NP)})[/h2]\n" if len(NP) > 1 else "[h2]Not needed with ZeD[/h2]\n"
-    intro = """ZeD-GUI already does the job of these mods, so use one of the two. Most still load with ZeD-GUI on; the part that does the same job does not show.
-
-ZeD-GUI does not take donations. If ZeD-GUI does the job of a mod you used and you want to give something back, give it to the person who made that mod. They worked these problems out first, and some of them do this to put food on the table. Where no support link is listed, the maker's Steam page is linked where known; many keep theirs there.
-""" if k == 0 else f"Part {k} is in reply {where['N'][k - 1]}.\n"
+    intro = N_INTRO if k == 0 else f"Part {k} is in reply {where['N'][k - 1]}.\n"
     posts[f"post{where['N'][k]:02d}"] = head + intro + L(part, credits=True) + "\n"
 
-posts[f"post{where['X']:02d}"] = f"""[h2]Does not work with ZeD[/h2]
-These do a job ZeD-GUI also does, in a way that clashes with it: both draw at once, or ZeD's screen replaces the one the mod changes. Run one or the other.
-{L(XZ)}
-
-[h2]Broken on 42.21 or 42.22 by themselves[/h2]
-These are broken on Project Zomboid 42.21 or 42.22 by themselves, with or without ZeD-GUI. Found a mod that clashes with ZeD-GUI? Reply with its name, its Workshop link and what happened.
-{L(X)}
-"""
 
 os.makedirs(OUT, exist_ok=True)
 for f in os.listdir(OUT):

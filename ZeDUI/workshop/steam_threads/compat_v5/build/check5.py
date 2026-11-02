@@ -67,7 +67,7 @@ for f in files:
             continue
         for i in ID.findall(line):
             count[i] = count.get(i, 0) + 1
-            if f.startswith("post00"): fail(f"mod {i} listed in the first post"); continue
+            if f.startswith("post00") and cur not in ("XZ", "X"): fail(f"mod {i} listed in the first post outside Does not work"); continue
             if cur is None: fail(f"{f}: mod {i} outside a list heading"); continue
             if i in mods and mods[i]["list"] != cur: fail(f"{f}: {mods[i]['name']} is under {cur}, its data says {mods[i]['list']}")
             seq.setdefault(cur, []).append(i)
@@ -105,13 +105,13 @@ for s in ("Last updated Nov 2 2026", "Oct 29 2026, ZeD-GUI 0.2.0-t11", "Nov 2 20
 rep = {}
 for f, hs in heads.items():
     rep[int(re.match(r"post(\d+)", f).group(1))] = hs
-if 14 in rep: fail("a list file for reply 14, which stays as posted")
+if sorted(rep) != list(range(1, 15)): fail(f"the lists must fill replies 1 to 14 exactly, they fill {sorted(rep)}")
 def nums(label):
     m = re.search(r"\[\*\]\[b\](Repl(?:y|ies) [^:]*): " + re.escape(label), first)
     if not m: fail(f"index lacks {label}"); return []
     return [int(x) for x in re.findall(r"\d+", m.group(1))]
 for label, code in (("Supported", "S"), ("Works well with ZeD", "W"), ("Compatible[/b]", "C"), ("Compatible, vehicle packs", "V"),
-                    ("Does not work", "XZ"), ("Not needed with ZeD", "N")):
+                    ("Not needed with ZeD", "N")):
     ns = nums(label)
     m = re.search(r"\[\*\]\[b\](Repl(?:y|ies) [^:]*): " + re.escape(label), first)
     if m and " to " in m.group(1): ns = list(range(ns[0], ns[-1] + 1))
@@ -124,7 +124,8 @@ for code, label in (("S", "Supported"), ("W", "Works well"), ("C", "nothing spec
     if not m or int(m.group(1)) != counts.get(code): fail(f"first post count for {code}: {m and m.group(1)} vs {counts.get(code)}")
 m = re.search(r"with why \((\d+)\), and mods broken on 42\.21 or 42\.22 by themselves \((\d+)\)", first)
 if not m or (int(m.group(1)), int(m.group(2))) != (counts.get("XZ"), counts.get("X")): fail("first post counts for Does not work")
+if "[b]This post, below: Does not work.[/b]" not in first or "[h2]Does not work with ZeD[/h2]" not in first: fail("first post lacks its Does not work lists")
 for r in range(1, max(rep) + 1):
-    if r != 14 and r not in rep: fail(f"no file for reply {r}")
+    if r not in rep: fail(f"no file for reply {r}")
 print("RESULT:", "PASS" if ok else "FAIL")
 sys.exit(0 if ok else 1)

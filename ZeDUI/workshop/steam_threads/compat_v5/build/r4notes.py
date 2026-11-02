@@ -7,7 +7,7 @@ T11 = "From ZeD-GUI 0.2.0-t11."
 T15 = "From ZeD-GUI 0.2.0-t15."
 KAO = "[url=https://steamcommunity.com/profiles/76561199113018152]Kaoeutsu[/url]"   # same Steam page as Wound Expansion's maker
 STAR = "[url=https://steamcommunity.com/id/strelka]star[/url]"                       # as on Change Sandbox Options
-LOADORDER = ("Find in the load order, Load first and Load last, Load after... and Load before... rules, "
+LOADORDER = ("Find, Load first and Load last, Load after... and Load before... rules, "
              "separators and folders")
 WELCOME = "ZeD already keeps the welcome note and other notes out of the way, in Messages."
 
@@ -43,7 +43,7 @@ R4 = {
  "3718883428": ("RC's Structures Framework [B42.17+ MP]", "RedChili", "C", "A library for Better Building Plus.", None),
  "3796440093": ("SideWinder's Placement+", "Side Winder", "C", "", None),
  "3809995878": ("Mod Load Order Sorter Extension", "Kaoeutsu", "N",
-                f"Loads with no errors. ZeD's Mods screen replaces the load-order screen it extends, and from ZeD-GUI 0.2.0-t15 has {LOADORDER}. Use one. Its optional add-on was not tested.", KAO),
+                f"Loads with no errors. ZeD's Mods screen replaces the load-order screen it extends, and from 0.2.0-t15 has {LOADORDER}. Use one. Its optional add-on was not tested.", KAO),
  # third group, Nov 2
  "3813943783": ("Item Arrange Extension", "Kechna", "C", "Needs Item Arrange.", None),
  "3827271522": ("GarageWorks [B42]", "telvary", "C", "", None),
@@ -88,8 +88,8 @@ CHANGED = {
  # Supported in 0.2.0-t15 (was Not needed)
  "3779201168": dict(list="S", author="FieClaussell", note="ZeD's Mods page reads and saves the same folder file as the mod, so folders made in either show in both and stay when you play without ZeD. A folder's box turns its mods on or off; folders never change the load order. Thanks to FieClaussell for the format; support the mod on its Workshop page. " + T15),
  # Not needed: reasons refreshed with 0.2.0-t15's load order
- "3423660713": dict(note=f"ZeD's Mods screen has its own Auto sort, and from ZeD-GUI 0.2.0-t15 {LOADORDER}. The mod's Sort button is on the game's Mods screen, which ZeD replaces. Use one." + EXP),
- "3567084868": dict(note=f"ZeD's Mods screen does the job: profiles, search, and from ZeD-GUI 0.2.0-t15 {LOADORDER}. With the mod on, ZeD's Mods screen works as usual and the mod's own screens do not show."),
+ "3423660713": dict(note=f"ZeD's Mods screen has its own Auto sort, and from 0.2.0-t15 {LOADORDER}. The mod's Sort button is on the game's Mods screen, which ZeD replaces. Use one." + EXP),
+ "3567084868": dict(note=f"ZeD's Mods screen does the job: profiles, search, and from 0.2.0-t15 {LOADORDER}. With the mod on, ZeD's Mods screen works as usual and the mod's own screens do not show."),
  # file names taken out of notes
  "3056481712": dict(note="Its alert at game start shows raw text keys on 42.21: its translations are in the old format. Not ZeD."),
  "2950750587": dict(note="One error of its own at load on 42.21 (in its weather channel code). Not ZeD."),
