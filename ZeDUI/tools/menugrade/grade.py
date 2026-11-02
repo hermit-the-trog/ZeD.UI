@@ -9,7 +9,7 @@ its lightness, tint and colourfulness (each channel's mean and spread) toward th
 usage: py grade.py <frames dir> <strength> [out dir]
   frames dir: screenshots of the video (zqa_tv_1/2/4/5.png from ZeDUI/tools/qa/zedqa_titlevideo.lua; frame 3 is the
   lamp's flicker and is left out, the desk is drawn lamp-on)
-  reads the ungraded art from ZeDUI/art/main_menu/v3, writes the graded textures to out dir (default: the mod's
+  reads the ungraded art from ZeDUI/art/main_menu/v4, writes the graded textures to out dir (default: the mod's
   media/textures/ZeD/mainmenu) and prints the desk's measured margin colours, graded, for ZeD_MainMenu.lua."""
 import json
 import os
@@ -19,7 +19,7 @@ import numpy as np
 from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ART = os.path.join(HERE, "..", "..", "art", "main_menu", "v3")
+ART = os.path.join(HERE, "..", "..", "art", "main_menu", "v4")      # v4 (Nov 1 2026): the book on the monitor
 MOD_TEX = os.path.join(HERE, "..", "..", "..", "42", "media", "textures", "ZeD", "mainmenu")
 
 
@@ -106,6 +106,8 @@ def video_stats(frames_dir):
         p = os.path.join(frames_dir, "zqa_tv_%d.png" % n)
         if os.path.exists(p):
             labs.append(rgb2lab(np.array(Image.open(p).convert("RGB")).astype(float)).reshape(-1, 3))
+    if not labs:                    # the frames only feed the printout; the look below does not read them
+        return None, None
     v = np.concatenate(labs)
     return v.mean(0), v.std(0)
 
@@ -119,7 +121,8 @@ def main():
     dl = rgb2lab(np.array(desk)[..., :3].astype(float))
     alpha = np.array(desk)[..., 3] > 0
     smu, ssd = stats(dl, alpha)
-    print("video  L a b mean %s sd %s" % (np.round(dmu, 1), np.round(dsd, 1)))
+    if dmu is None: print("video  (no frames in %s: statistics skipped)" % frames)
+    else: print("video  L a b mean %s sd %s" % (np.round(dmu, 1), np.round(dsd, 1)))
     print("desk   L a b mean %s sd %s" % (np.round(smu, 1), np.round(ssd, 1)))
     grade = make_look(k)
     for name in ("desk.png", "desk_lampdim.png", "dial_clean.png"):

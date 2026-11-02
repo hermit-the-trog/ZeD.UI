@@ -39,6 +39,12 @@ PAL = {
     "corn": "#f2c230", "corn_l": "#ffe98a", "corn_d": "#b8860f", "leaf": "#4caa3c", "leaf_d": "#1f5c26", "sugar": "#fffaf0",
     "smoke": "#3a3b42", "disk": "#2c3f7d", "disk_l": "#d9d2bd",
     "box_blue": "#24408f", "box_purple": "#5c3c7d", "box_teal": "#2f7f7a",
+    # the book (Nov 1 2026): Bitchin' znix Programs, the Workshop cover's book, spine out. Its colours are the cover's:
+    # the dusk sky top to bottom, cream type, the PEARS chip, the maroon stripes at the foot; masking tape, red marker
+    "bk_sky0": "#1c1e34", "bk_sky1": "#282440", "bk_sky2": "#3a2a4a", "bk_sky3": "#543450", "bk_sky4": "#703e4a",
+    "bk_sky5": "#8c5042", "bk_cream": "#e2dac6", "bk_pear": "#ccb046", "bk_ink": "#1e1a24",
+    "bk_band0": "#602836", "bk_band1": "#783442", "bk_band2": "#965246",
+    "tape": "#d8c58e", "tape_d": "#b3a06c", "tape_hi": "#ece0b4", "marker": "#de4638", "marker_d": "#a8281e",
     # paper, cork, posters
     "cork": "#b17d46", "cork_d": "#8a5c2e", "frame": "#6a4526",
     "paper": "#e8dcb6", "paper_d": "#c4b48c", "sticky": "#e6bf3c", "sticky_d": "#b7922a",
@@ -65,6 +71,9 @@ LOCK = os.path.join(os.path.dirname(os.path.abspath(__file__)), "palette_v3.json
 FRESH = ("orange", "orange_d", "orange_ink", "claim", "promo", "claim_hi", "fruit", "fruit_d", "fruit_k", "fruit_h",
          "corn", "corn_l", "corn_d", "leaf", "leaf_d", "sugar")    # materials drawn since the palette was locked
 FRESH_SLOTS = 32                                    # the palette entries they share
+FRESH_BOOK = ("bk_sky0", "bk_sky1", "bk_sky2", "bk_sky3", "bk_sky4", "bk_sky5", "bk_cream", "bk_pear", "bk_ink",
+              "bk_band0", "bk_band1", "bk_band2", "tape", "tape_d", "tape_hi", "marker", "marker_d")
+FRESH_BOOK_SLOTS = 24                               # the book's own entries (Nov 1 2026), so the can's stay as they were
 
 
 def zdesk(x, y): return np.maximum(0.0, (y - DESK_Y) * 1.15)
@@ -400,6 +409,132 @@ def simz_box_art(x0, y0, w, h, z):
                 if ch_ in cmap: S.px(zx + rx, zy + ry, cmap[ch_])
 
 
+MARKER = {"Z": ["111", "001", "010", "100", "111"], "e": ["000", "011", "111", "100", "011"],    # red marker on the tape
+          "D": ["110", "101", "101", "101", "110"], "-": ["00", "00", "11", "00", "00"],
+          "G": ["011", "100", "101", "101", "011"], "U": ["101", "101", "101", "101", "111"], "I": ["1", "1", "1", "1", "1"]}
+
+
+def down_spine(ox, oy, s, c, font=None, wob=None, space=2):
+    """type running down a spine, letter tops toward the right (the front cover), so you tilt your head right to
+    read it: a glyph's row r lands at x = ox + 4 - r, its columns run down from y. wob: per-letter x offsets, for a
+    hand that wanders. Returns the row after the last letter."""
+    v = oy
+    with S.surf(d=False):
+        for i, ch in enumerate(s):
+            if ch == " ":
+                v += space; continue
+            g = (font or {}).get(ch) or (["1", "1", "0", "0", "0"] if ch == "'" else FONT[ch])
+            du = wob[i] if wob else 0
+            for r, row in enumerate(g):
+                for cc, b in enumerate(row):
+                    if b == "1": S.px(ox + 4 - r + du, v + cc, c)
+            v += len(g[0]) + 1
+    return v
+
+
+def lean_left(draw, y_top, steps):
+    """draw() paints an object upright; then each of its rows moves left by the number of steps still below it
+    (steps: rows counted down from y_top), so the top leans over by len(steps) px. The steps sit on rows the print
+    leaves empty, so no letter breaks across one."""
+    rec = np.zeros((H, W), bool)
+    names = ("C", "T", "N", "Z", "G", "E", "E_lamp", "D")
+    before = {n: getattr(S, n).copy() for n in names}
+    paint0 = S.paint
+
+    def paint(mask, c):
+        rec[mask] = True
+        paint0(mask, c)
+    S.paint = paint
+    try:
+        draw()
+    finally:
+        del S.paint
+    after = {n: getattr(S, n).copy() for n in names}
+    for n in names: getattr(S, n)[rec] = before[n][rec]
+    ys, xs = np.nonzero(rec)
+    k = np.array([sum(1 for b in steps if y - y_top < b) for y in ys], int)
+    for n in names: getattr(S, n)[ys, xs - k] = after[n][ys, xs]
+
+
+# THE BOOK (Nov 1 2026): Bitchin' znix Programs, the book on the Workshop cover, spine out and leaning on the monitor.
+# 14 x 78: a Sybex-size book, a hair shorter than the game box and thinner. The title runs down the spine in the cover's
+# two lines (BITCHIN' ZNIX / PROGRAMS). Masking tape over ZNIX, torn at both ends, its top corner lifting where the first
+# stroke of the printed Z shows; ZeD-GUI on the tape in the cover's red marker. The PEARS chip and the maroon stripes at
+# the foot are the cover's. No author on the spine: the name is on the cover, and in the world.
+BOOK_X, BOOK_Y, BOOK_W, BOOK_H, BOOK_Z = 390, 172, 14, 78, 57      # its foot clear of the case, its top on the monitor
+BOOK_STEPS = (2, 10, 18, 26, 34, 40, 48, 55, 62, 72)   # the lean: 10 px over the height, each step on a row between letters
+
+
+def book_spine():
+    bx, by, bw, bh, z = BOOK_X, BOOK_Y, BOOK_W, BOOK_H, BOOK_Z
+
+    def spine_n(xs, ys):                   # a rounded spine: its edges turn away to either side
+        u = (xs - (bx + bw / 2)) / (bw / 2)
+        return np.stack([0.6 * u ** 3, np.zeros_like(xs), np.ones_like(xs)], 1)
+    bands = ((0, "bk_sky0"), (9, "bk_sky1"), (24, "bk_sky2"), (38, "bk_sky3"), (52, "bk_sky4"), (64, "bk_sky5"))
+    with S.surf(nf=spine_n, z=z, g=0.35):
+        for i, (v0, m) in enumerate(bands):                         # the dusk, banded the way the cover bands it
+            v1 = bands[i + 1][0] if i + 1 < len(bands) else 72
+            S.rect(bx, by + v0, bw, v1 - v0, m)
+            if i: S.paint(S.m_rect(bx, by + v0, bw, 1) & ((XX + YY) % 2 == 0), bands[i - 1][1])
+        S.rect(bx, by + 72, bw, 1, "bk_band0")                      # the foot: the cover's maroon stripes
+        S.rect(bx, by + 73, bw, 5, "bk_band1")
+        S.paint(S.m_rect(bx, by + 73, bw, 5) & (((XX + YY) % 4) < 2), "bk_band2")
+        down_spine(bx + 8, by + 3, "BITCHIN' ZNIX", "bk_cream")    # line one, nearest the front cover
+        down_spine(bx + 1, by + 3, "PROGRAMS", "bk_cream")
+        with S.surf(d=False):                                       # the PEARS chip, upright, as publishers print it
+            S.frame(bx + 2, by + 62, 9, 10, "bk_ink")
+            S.rect(bx + 3, by + 63, 7, 8, "bk_pear")
+            for v, (u0, n) in zip(range(64, 70), ((6, 1), (5, 3), (5, 3), (4, 5), (4, 5), (5, 3))):
+                S.rect(bx + u0, by + v, n, 1, "bk_ink")
+    # the tape: over ZNIX and on down, room for a longer word; torn at both ends
+    tape = S.m_rect(bx + 7, by + 36, 7, 26)
+    tape &= ~(S.m_rect(bx, by + 36, bw, 1) & ((XX == bx + 9) | (XX == bx + 12)))
+    tape &= ~(S.m_rect(bx, by + 61, bw, 1) & ((XX == bx + 7) | (XX == bx + 10) | (XX == bx + 13)))
+    with S.surf(n=(0.12, 0, 1), z=z + 0.2, g=0.05, d=False):
+        S.paint(tape, "tape")
+        S.tone(tape, 0.93 + 0.1 * np.random.default_rng(42).random((H, W)))      # crepe paper, a little mottled
+        S.vline(bx + 13, by + 37, 24, "tape_d")                                    # it wraps round toward the front
+    with S.surf(n=(0.5, -0.55, 0.65), z=z + 0.6, g=0.1, d=False):
+        S.px(bx + 7, by + 36, "tape_hi")                                           # the top corner, lifting
+    with S.surf(nf=spine_n, z=z, g=0.35, d=False):
+        S.px(bx + 6, by + 37, "bk_sky2")
+    S.tone(S.m_rect(bx + 6, by + 37, 1, 1), 0.4)                                   # the shadow under the lift
+    with S.surf(n=(0.12, 0, 1), z=z + 0.3, g=0.2):
+        down_spine(bx + 8, by + 37, "ZeD-GUI", "marker", font=MARKER, wob=(0, 0, 1, 0, 0, 1, 0))
+        for (u, v) in ((8, 39), (12, 45), (10, 54)):                              # where the marker sat and soaked in
+            S.px(bx + u, by + v, "marker_d")
+    # the top: page edges between the covers; the back cover's edge down the left side
+    with S.surf(n=(0, -1, 0.35), z=z - 2, g=0.1, d=False):
+        S.rect(bx, by - 1, bw, 1, "paper_d"); S.px(bx, by - 1, "bk_sky0"); S.px(bx + bw - 1, by - 1, "bk_sky0")
+    with S.surf(n=(-1, 0, 0.4), z=z - 3, g=0.3, d=False):
+        S.rect(bx - 1, by, 1, bh, "bk_sky0")
+
+
+def simz_spine(x, y, w=19, h=82):
+    """THE SIMZ, spine out (Nov 1 2026; it showed its front): a big box, fatter than the book. The name across the
+    spine as big boxes printed it, the front's build-mode grid carried round with the resident walking it."""
+    box3d(x, y, w, h, 0.02, "box_blue", "navy", "dgray", z=56, depth=30, gloss=0.3)
+    with S.surf(z=56, d=False):
+        S.frame(x, y, w, h, "ink")
+        S.rect(x + 1, y + 2, w - 2, 15, "paper")
+        text(x + 2, y + 4, "THE", "ink")
+        text(x + 2, y + 10, "SIM", "navy"); text(x + 14, y + 10, "Z", "simz_gd")
+        art = S.m_rect(x + 1, y + 18, w - 2, 52)
+        S.paint(art, "simz_bg")
+        S.paint(art & ((((XX - 2 * YY) % 16) < 2) | (((XX + 2 * YY) % 16) < 2)), "simz_grid")
+        S.rect(x + 1, y + 71, w - 2, 9, "paper")                                  # the publisher's block, a house in it
+        for v, (u0, n) in enumerate(((9, 1), (8, 3), (7, 5), (8, 3))):
+            S.rect(x + u0, y + 73 + v, n, 1, "navy")
+        S.px(x + 9, y + 76, "paper")
+    ZOMB = [".gg...", ".gk...", ".ss...", "sssgg.", ".ss...", ".pp...", ".p.p.."]
+    cmap = {"g": "zskin", "k": "ink", "s": "zshirt", "p": "zpants"}
+    with S.surf(z=56.3, d=False):
+        for ry, row in enumerate(ZOMB):
+            for rx, ch_ in enumerate(row):
+                if ch_ in cmap: S.px(x + 7 + rx, y + 44 + ry, cmap[ch_])
+
+
 def build_objects():
     # ============================================================ ARCHITECT LAMP (left)
     BX, BY = 8, DESK_Y + 18
@@ -652,24 +787,23 @@ def build_objects():
         bevel_rect(bbx + 40 + i * 5, bby + 58, 4, 8, "lgray", z=33, r=1, g=0.6)
         with S.surf(z=33): S.hline(bbx + 40 + i * 5, bby + 65, 4, "mgray")
 
-    # ============================================================ GAME BOXES (front right)
-    gbx, gby, gbw, gbh = 382, 168, 58, 82
-    for n, (spx, colr) in enumerate(((442, "box_purple"), (456, "box_teal"))):
-        box3d(spx, gby + 3, 13, gbh - 3, 0.012, colr, "black", "dgray", z=50, depth=20, gloss=0.3)
+    # ============================================================ SPINES (front right, Nov 1 2026): a little shelf on the monitor
+    # The book leans on the monitor's right side; THE SIMZ stands spine out against its foot, the two boxes after it.
+    # (THE SIMZ showed its front until now: simz_box_art above still draws that front.)
+    # The boxes touch, their ink outlines between them. The purple one stands tallest: it hides the boombox's keys.
+    # They grew from 13 to 16 wide with THE SIMZ beside them: big boxes, all of them, thicker than the book.
+    gby, gbh = 168, 82
+    foot = gby + gbh
+    S.shade(0.5 * np.clip(1 - (((XX - 422) / 42.0) ** 2 + ((YY - foot - 1) / 4.0) ** 2), 0, 1), "desk")
+    sx_ = BOOK_X + BOOK_W
+    for spx, top, colr in ((sx_ + 19, gby - 2, "box_purple"), (sx_ + 35, gby + 3, "box_teal")):
+        box3d(spx, top, 16, foot - top, 0.012, colr, "black", "dgray", z=50, depth=20, gloss=0.3)
         with S.surf(z=50, d=False):
-            S.frame(spx, gby + 3, 13, gbh - 3, "ink")
-            for yy in range(gby + 14, gby + gbh - 16, 4): S.rect(spx + 5, yy, 3, 2, "paper")
-            S.rect(spx + 3, gby + gbh - 13, 7, 6, "paper")
-    S.shade(0.5 * np.clip(1 - (((XX - gbx - gbw / 2 - 20) / 50.0) ** 2 + ((YY - gby - gbh - 1) / 4.0) ** 2), 0, 1), "desk")
-    box3d(gbx, gby, gbw, gbh, 0.012, "box_blue", "black", "dgray", z=56, depth=20, gloss=0.3)
-    with S.surf(z=56, d=False):
-        S.frame(gbx, gby, gbw, gbh, "ink")
-    simz_box_art(gbx + 4, gby + 4, gbw - 8, 46, z=56)
-    with S.surf(z=56, d=False):
-        S.rect(gbx + 4, gby + 53, gbw - 8, 22, "paper")
-        S.rect(gbx + 4, gby + gbh - 5, gbw - 8, 2, "label")
-    text(gbx + 6, gby + 54, "THE", "ink")
-    text(gbx + 6, gby + 60, "SIM", "navy", 2, 1); text(gbx + 30, gby + 60, "Z", "simz_gd", 2, 1)
+            S.frame(spx, top, 16, foot - top, "ink")
+            for yy in range(top + 11, foot - 16, 4): S.rect(spx + 6, yy, 4, 2, "paper")
+            S.rect(spx + 3, foot - 13, 10, 6, "paper")
+    simz_spine(sx_, gby)
+    lean_left(book_spine, BOOK_Y, BOOK_STEPS)
 
     # ============================================================ DESKTOP CASE (front, runs off the bottom)
     csx, csy, csw, csh = 90, 238, 300, 44
@@ -798,20 +932,26 @@ if __name__ == "__main__":
     PINS = [(146, 246, 3, 2), (300, 262, 3, 2), (140, 246, 3, 2), (356, 224, 3, 2), (419, 121, 1, 8)]
     pins = [srgb(lit[y0:y0 + h0, x0:x0 + w0].reshape(-1, 3).mean(0)) for x0, y0, w0, h0 in PINS]
     fresh = np.zeros((H, W), bool)
+    fresh_book = np.zeros((H, W), bool)
     if args.refit or not os.path.exists(LOCK):
-        pal = pal_fresh = S.palette_for([lit, dim], pins=pins)
+        pal = pal_fresh = pal_book = S.palette_for([lit, dim], pins=pins)
         json.dump({"palette": [[float(v) for v in c] for c in pal]}, open(os.path.join(out, "palette.json"), "w"))
     else:
         # the approved room's palette for every pixel; the fresh materials' pixels may also use their own entries
         pal = np.asarray(json.load(open(LOCK))["palette"], np.float32)
-        fresh = np.isin(S.C, [S.idx[n] for n in FRESH])
-        X = np.vstack([srgb(f)[fresh] for f in (lit, dim)])
-        X = np.unique(np.round(X * 255).astype(int), axis=0).astype(np.float32) / 255
-        pal_fresh = np.vstack([pal, S.kmeans(X, FRESH_SLOTS, iters=20) if len(X) > FRESH_SLOTS else X])
+
+        def own_entries(names, slots):
+            m = np.isin(S.C, [S.idx[n] for n in names])
+            X = np.vstack([srgb(f)[m] for f in (lit, dim)])
+            X = np.unique(np.round(X * 255).astype(int), axis=0).astype(np.float32) / 255
+            return m, np.vstack([pal, S.kmeans(X, slots, iters=20) if len(X) > slots else X])
+        fresh, pal_fresh = own_entries(FRESH, FRESH_SLOTS)
+        fresh_book, pal_book = own_entries(FRESH_BOOK, FRESH_BOOK_SLOTS)      # a group of its own: the can's untouched
 
     def quantize(frame):
         img_, _ = S.quantize(frame, palette=pal)
         if fresh.any(): img_ = np.where(fresh[..., None], S.quantize(frame, palette=pal_fresh)[0], img_)
+        if fresh_book.any(): img_ = np.where(fresh_book[..., None], S.quantize(frame, palette=pal_book)[0], img_)
         return img_
     img, img_dim = quantize(lit), quantize(dim)
     # the dial without its needle: paint the tuner face where the needle was, light it, cut the 7 x 10 box
