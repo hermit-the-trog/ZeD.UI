@@ -413,7 +413,9 @@ pickAndOpen("craft", { "NailSpikeWeapon" }, "several results", function(t, rd)
         local seen = {}
         if rd.entry.recipe.getOutputs == nil then return end   -- (not every recipe object has it; a nil call in a pcall still logs under -debug)
         local outs = rd.entry.recipe:getOutputs()
-        local items = outs:get(0):getPossibleResultItems()
+        local o = outs and outs:size() > 0 and outs:get(0) or nil
+        if o == nil or o.getPossibleResultItems == nil then return end   -- (a mapped output has no result list of its own; the card reads the mapper)
+        local items = o:getPossibleResultItems()
         for i = 0, items:size() - 1 do
             local ft = items:get(i):getFullType()
             if not seen[ft] then seen[ft] = true; distinct = distinct + 1; list[#list + 1] = ft end
