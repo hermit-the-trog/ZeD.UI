@@ -109,6 +109,18 @@ local function cells(L)
     return out
 end
 
+-- The icon block as the main window's small layout needs it (ZeD_MainMenu.lua: MM.smallFits and the window's
+-- build): its width across the columns the cells wrap into, the edge and the gap in px, and whether every
+-- column is still on the monitor.
+function MM.iconBlock(L)
+    local T = ZeD.T
+    local cs = cells(L)
+    local minX = L.tx + L.tw
+    for _, c in ipairs(cs) do if c.x < minX then minX = c.x end end
+    local right = L.tx + L.tw - T.px(EDGE)
+    return { w = right - minX, edge = T.px(EDGE), gap = T.px(GAP), fits = minX >= L.tx + T.px(EDGE) }
+end
+
 -- ============================================================================
 -- THE ICON LAYER (a child of the desk under the windows; the "desktop" view's
 -- controller and keys come here too)

@@ -89,6 +89,17 @@ local WIDE_H, BIG_PAD_X = 34, 22
 local HEAD_H = 37
 local MOD_ROW_H = 28   -- (the pause window's Mods page)
 local WIN_TOP, WIN_TOP_FIRST = 20, 86   -- below the menu bar: with Continue / without
+-- The two framings of the desk (Design's HANDOFF_small_screens_20261029.md; built Nov 1 2026, punch list 48).
+-- The 1080p menu needs a monitor SMALL_W x SMALL_H design units. Where the room's monitor holds it, the room
+-- framing is the only one (every desktop size on Auto: pixel-identical to before). Where it does not (a Steam
+-- Deck, 720p, 1366 x 768), the main view and the desktop stay in the room in the small layout (the window
+-- narrows to the room left of the icon block) and every other view leans in: the desk at the smallest whole
+-- multiple whose monitor holds the menu, the monitor whole on screen, LEAN_BEZEL desk px of the right bezel in
+-- view. The move between framings is a dip: DIP_MS to black, the switch, DIP_MS back.
+local SMALL_W, SMALL_H = 960, 720
+local SMALL_MAIN_MIN_W, SMALL_MAIN_H = 360, 471   -- the band's five buttons; the main window at small text
+local LEAN_BEZEL = 10
+local DIP_MS = 100
 
 -- (the month names' translation keys; ZeD.tr turns one into the player's language where it shows)
 local MONTHS = { "UI_ZeD_MainMenu_MonthJan", "UI_ZeD_MainMenu_MonthFeb", "UI_ZeD_MainMenu_MonthMar",
@@ -178,7 +189,8 @@ end
 -- LAYOUT: the desk at the largest whole multiple that covers the screen while
 -- the CRT's screen stays on it; margins (ultrawide) get the wall and desktop.
 -- ---------------------------------------------------------------------------
-function MM.layout()
+-- The room: the desk at the largest whole multiple that covers the screen with the monitor on it.
+function MM.roomLayout()
     local sw, sh = getCore():getScreenWidth(), getCore():getScreenHeight()
     local c = MM._layout
     if c and c.sw == sw and c.sh == sh then return c end
@@ -195,6 +207,108 @@ function MM.layout()
           tx = ox + TUBE_X * s, ty = oy + TUBE_Y * s, tw = TUBE_W * s, th = TUBE_H * s }
     MM._layout = c
     return c
+end
+
+-- Does this framing's monitor hold the 1080p menu?
+function MM.roomHolds(L)
+    local T = ZeD.T
+    return L.tw >= T.px(SMALL_W) and L.th >= T.px(SMALL_H)
+end
+
+-- Leaning in: the desk at the smallest whole multiple whose monitor holds the menu, the monitor whole on the
+-- screen and centred top to bottom, LEAN_BEZEL desk px of the right bezel in view and the lamp side getting
+-- the rest; the picture slid back where a screen edge would show. nil where the room is already as big
+-- as the screen allows (then the room is all there is).
+function MM.leanLayout()
+    local T = ZeD.T
+    local sw, sh = getCore():getScreenWidth(), getCore():getScreenHeight()
+    local m = T.scale or 1
+    local c = MM._lean
+    if c and c.sw == sw and c.sh == sh and c.m == m then return c.ok and c or nil end
+    local room = MM.roomLayout()
+    local want = math.max(1, math.ceil(math.max(T.px(SMALL_W) / TUBE_W, T.px(SMALL_H) / TUBE_H) - 0.001))
+    local fitS = math.floor(math.min(sw / TUBE_W, sh / TUBE_H))
+    local s = math.min(want, fitS)
+    if s <= room.s then MM._lean = { sw = sw, sh = sh, m = m, ok = false }; return nil end
+    local oy = math.floor((sh - TUBE_H * s) / 2) - TUBE_Y * s
+    local ox = sw - (TUBE_X + TUBE_W + LEAN_BEZEL) * s
+    if ox > 0 then ox = 0 end
+    if ox + DESK_W * s < sw then ox = sw - DESK_W * s end
+    if ox + TUBE_X * s < 0 then ox = -TUBE_X * s end
+    if ox + (TUBE_X + TUBE_W) * s > sw then ox = sw - (TUBE_X + TUBE_W) * s end
+    if oy > 0 then oy = 0 end
+    if oy + DESK_H * s < sh then oy = sh - DESK_H * s end
+    if oy + TUBE_Y * s < 0 then oy = -TUBE_Y * s end
+    if oy + (TUBE_Y + TUBE_H) * s > sh then oy = sh - (TUBE_Y + TUBE_H) * s end
+    c = { sw = sw, sh = sh, m = m, ok = true, lean = true, s = s, ox = ox, oy = oy,
+          tx = ox + TUBE_X * s, ty = oy + TUBE_Y * s, tw = TUBE_W * s, th = TUBE_H * s }
+    MM._lean = c
+    return c
+end
+
+-- The small layout fits the room when the main window, narrowed to the room left of the icon block, still
+-- holds the band's buttons and ends inside the monitor, and the icon block's columns stay on the monitor.
+function MM.smallFits(L)
+    local T = ZeD.T
+    local blk = MM.iconBlock and MM.iconBlock(L) or nil
+    if not blk then return true end
+    if L.tw - blk.edge * 2 - blk.w - blk.gap < T.px(SMALL_MAIN_MIN_W) then return false end
+    local win = MM.root and MM.root.win
+    local h = (win and win.height and win.height > 0) and win.height or T.px(SMALL_MAIN_H)
+    if T.px(BAR_H) + T.px(WIN_TOP) + h > L.th then return false end
+    return blk.fits
+end
+
+-- Which framing the view on show wants.
+function MM.wantFraming()
+    local room = MM.roomLayout()
+    if MM.roomHolds(room) then return "room" end
+    if not MM.leanLayout() then return "room" end
+    local v = MM.view or "main"
+    if v == "main" or v == "desktop" then return MM.smallFits(room) and "room" or "lean" end
+    return "lean"
+end
+
+-- The framing in use: everything on the desk reads it (the picture, the lights, the needle, the dial, the
+-- power button, the bar, the windows, the pop-ups, the glass). It changes only at the bottom of a dip.
+function MM.layout()
+    if MM._framing == "lean" then return MM.leanLayout() or MM.roomLayout() end
+    return MM.roomLayout()
+end
+
+-- Every frame before the desk is drawn: the first framing is taken at once; a change starts a dip (DIP_MS
+-- down to black, the switch at the bottom, DIP_MS back up). Power-on, power-off and the wake keep the framing
+-- of the view they started in: no dip starts while they run.
+function MM.framingTick(t)
+    local want = MM.wantFraming()
+    if MM._framing == nil then MM._framing = want; return end
+    local d = MM._dip
+    if d then
+        local e = t - d.t0
+        if e >= DIP_MS and not d.switched then MM._framing = d.to; d.switched = true end
+        if e >= DIP_MS * 2 then MM._dip = nil end
+        return
+    end
+    if want ~= MM._framing and not MM.powerOff and not MM.poweringOn() and not MM.waking then
+        MM._dip = { t0 = t, to = want }
+    end
+end
+
+-- The dip's darkness this frame, 0 to 1 (drawn over the glass).
+function MM.dipAlpha(t)
+    local d = MM._dip
+    if not d then return 0 end
+    local e = t - d.t0
+    if e < DIP_MS then return e / DIP_MS end
+    return math.max(0, 1 - (e - DIP_MS) / DIP_MS)
+end
+
+-- the scale's clamp while the desk is up and no game is loaded (shared/ZeD/Scale.lua, S.compute)
+if ZeD.Scale then
+    ZeD.Scale.menuUp = function()
+        local m = MainScreen and MainScreen.instance
+        return MM.root ~= nil and m ~= nil and not m.inGame
+    end
 end
 
 -- native rect -> screen rect
@@ -1164,6 +1278,7 @@ function ZeD_MMDesk:createChildren()
 end
 
 function ZeD_MMDesk:prerender()
+    MM.framingTick(now())
     local L = MM.layout()
     if self.width ~= L.sw or self.height ~= L.sh then self:setWidth(L.sw); self:setHeight(L.sh) end
     -- the root scale follows the screen at the menu too (no OnTick here)
@@ -1673,6 +1788,8 @@ function ZeD_MMGlass:prerender()
     local L = MM.layout()
     if self.width ~= L.sw or self.height ~= L.sh then self:setWidth(L.sw); self:setHeight(L.sh) end
     MM.drawGlass(self, L)
+    local da = MM.dipAlpha(now())
+    if da > 0 then self:drawRect(0, 0, self.width, self.height, da, 0, 0, 0) end
     if MM.debugHits and MM.root then
         local r = MM.root
         MM.drawHitOverlay(self, { r, r.bar, r.drop, MM.activeWindow() })
@@ -1758,6 +1875,11 @@ function ZeD_MMWindow:build()
     local L = (self.kind == "main") and MM.layout() or nil
     if self.kind == "main" then
         w = math.min(T.px(MAIN_W), L.tw - T.px(24))
+        -- the small layout (a monitor that does not hold the 1080p menu): the window takes the room left of
+        -- the desktop's icon block and sits at the monitor's left edge
+        local blk = (not MM.roomHolds(L)) and MM.iconBlock and MM.iconBlock(L) or nil
+        self._small = blk
+        if blk then w = math.max(T.px(200), L.tw - blk.edge * 2 - blk.w - blk.gap) end
     else
         w = T.px(PAUSE_W)
     end
@@ -1862,7 +1984,7 @@ function ZeD_MMWindow:build()
     local x, wy
     if self.kind == "main" then
         local barH = T.px(BAR_H)
-        x = L.tx + math.floor((L.tw - w) / 2)
+        x = self._small and (L.tx + self._small.edge) or (L.tx + math.floor((L.tw - w) / 2))
         wy = L.ty + barH + T.px(MM.continueInfo() and WIN_TOP or WIN_TOP_FIRST)
         if wy + h > L.ty + L.th then wy = math.max(L.ty + barH, L.ty + L.th - h) end
         self.title = ZeD.tr("UI_ZeD_MainMenu_MainTitle")
@@ -2221,6 +2343,13 @@ function MM.attach(m)
         root:initialise()
         m:addChild(root)
         MM.root = root
+        MM._framing, MM._dip = nil, nil
+        -- the menu's scale (Scale.lua, S.compute: at least 1.0 while the desk is up), applied before the first frame
+        local S = ZeD.Scale
+        if S and S.refresh then
+            local r = S.refresh()
+            if S._appliedRoot and math.abs(S._appliedRoot - r) > 0.001 then ZeD.applyTheme() end
+        end
         MM.refresh()
         -- vanilla's debug scenario list sat over the logo; it is in the Debug menu now
         local ds = DebugScenarios and DebugScenarios.instance

@@ -1180,6 +1180,27 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     whether its square has a chunk), and rst's fixture guarded so a missing building ends the script cleanly instead
     of 14 exceptions. Build writes the prints and the guard before the next slot.
 
+48. **The main menu on a Steam Deck and at 720p: readable type, the desk leans in (t16; the director, Nov 1 2026).**
+    built (build, Nov 1), QA to confirm. The Oct 29 overflow was the saved 1.75 scale, now held at 0.75 by item 39, so
+    the 1080p menu fits the room's monitor at Auto; what was left was the type, 5 to 8 px at 0.75, under Valve's 9 px
+    floor. The director's pick ("2" of three): the menu at 1.0 with Design's lean-in (HANDOFF_small_screens_20261029,
+    sections 2 to 6), the game staying at 0.75 so the Deck keeps the full card (item 42 a). Built: (1) the menu's
+    scale: while the desk is up and no game is loaded the root is at least 1.0 and at most sMax / 4 (4 on a Deck or at
+    720p, 6 at 1080p, 12 at 4K: no change at 1080p and up); the game's scale and its fit cap are untouched.
+    (2) Two framings behind MM.layout(): the room (as today) and leaning in (the desk at the smallest whole multiple
+    whose monitor holds 960 x 720 units, the monitor whole on screen and centred, 10 desk px of the right bezel in
+    view). The room is the only framing wherever its monitor holds the menu (every desktop size). Where it does not,
+    the main view and the desktop stay in the room in the small layout (the window narrows to the room left of the
+    icon block, 456 units on a Deck, and sits at the left edge) and every other view leans in: Load, New game and
+    its steps, Mods, Options, and every registered view. If the small layout does not fit (Large text), the main view
+    leans in too. (3) The move between framings is a 200 ms dip to black and back; none starts while the power-on,
+    the power-off or the wake runs. Section 1 of the handoff (Auto's floor 1.0 in the game, a 1.5x cap, the
+    options row text) is superseded by item 39 and not built. QA: at 1280x800 and 1280x720, Auto, Normal and Large:
+    the main view in the small layout with nothing past the monitor (Normal), the main view leaned in (Large), every
+    page (Options, Spawn, Sandbox, Traits, Looks, Mods, Load, Workshop, Credits) leaned in and fitting the monitor,
+    Back leaning out, the dip once each way and never the wrong framing; 1920x1080 and 4K pixel-identical to the
+    Nov 1 desk captures (mm_desk_v4). The in-game scale on the Deck unchanged (0.75).
+
 ## Test process
 
 - The release check (before every upload, about 5 minutes, pass or fail): right-click opens the

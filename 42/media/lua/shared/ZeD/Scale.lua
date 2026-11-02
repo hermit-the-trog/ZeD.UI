@@ -135,7 +135,8 @@ end
 
 -- Raw computation: screen height over the base, clamped, times the user knob.
 -- A fixed step above the cap draws at the cap (S.userScale itself is left as saved).
-function S.compute()
+-- (S.computeGame is the game's scale; S.compute below adds the main menu's clamp.)
+function S.computeGame()
     if S.override then return S.override end
     if S.userScale then
         local cap = S.fitCap()
@@ -148,6 +149,36 @@ function S.compute()
     local r = h / S.BASE_H
     if r < S.MIN then r = S.MIN elseif r > S.MAX then r = S.MAX end
     return r * S.userMul()
+end
+
+-- ---------------------------------------------------------------------------
+-- THE MAIN MENU'S SCALE (Nov 1 2026, the director's pick on Design's
+-- HANDOFF_small_screens_20261029.md, section 2; punch list 48). While the desk is up
+-- and no game is loaded the root is at least 1.0, so the menu's type meets Valve's
+-- readable size on a Steam Deck, and at most sMax / 4, where sMax is the largest whole
+-- multiple of the desk picture whose monitor (240 x 180 px) fits the screen: 4 on a Deck
+-- or at 720p, 6 at 1080p, 12 at 4K. The game's own scale (S.computeGame, with the fit
+-- cap) is untouched: a Deck plays at 0.75 and reads its menu at 1.0. At 1080p and up
+-- nothing changes (the root is already 1.0 or more and under the cap). The desk leans
+-- in to hold the 1080p menu where the room's monitor cannot (ZeD_MainMenu.lua).
+-- S.menuUp is set by ZeD_MainMenu.lua; S.override (QA) bypasses the clamp.
+-- ---------------------------------------------------------------------------
+S.menuUp = S.menuUp or nil
+S.MENU_TUBE_W, S.MENU_TUBE_H = 240, 180
+function S.menuMax(w, h)
+    if not (w and h) then w, h = S.screenSize() end
+    local sMax = math.max(1, math.floor(math.min(w / S.MENU_TUBE_W, h / S.MENU_TUBE_H)))
+    return sMax / 4
+end
+function S.compute()
+    local r = S.computeGame()
+    if S.override then return r end
+    if S.menuUp and S.menuUp() then
+        local mx = S.menuMax()
+        if r < 1 then r = 1 end
+        if r > mx then r = mx end
+    end
+    return r
 end
 
 -- Cached root scale (recomputed every 30 ticks, on resolution change, and on refresh()).
