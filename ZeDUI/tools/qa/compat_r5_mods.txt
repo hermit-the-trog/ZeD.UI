@@ -5,5 +5,4 @@ ParavelsEnhancedInventory
 LightBelt
 SladeBagCheck
 HandsOnInteractionsIso
-RaxCheatMenu
 ImmersiveSleep

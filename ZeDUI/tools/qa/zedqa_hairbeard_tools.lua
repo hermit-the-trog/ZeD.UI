@@ -129,7 +129,7 @@ for _, c in ipairs(CASES) do
         local r = report(c[1])
         local t = r.t
         if c[1] == "none" then
-            check(next(t) == nil, "none: no tool found")
+            local n = 0; for _ in pairs(t) do n = n + 1 end; check(n == 0, "none: no tool found")
             check(not r.shave and not r.cut and not r.gel and not r.spray, "none: no shave, cut or style can be done")
             if not female then check(r.beardSeen and not r.beard, "none: no beard trim can be done") end
         elseif c[1] == "razor_in_bag" then
