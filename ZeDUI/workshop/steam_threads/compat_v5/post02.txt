@@ -1,0 +1,17 @@
+[h2]Works well with ZeD[/h2]
+These fill a gap or show well in ZeD's windows. ZeD-GUI has no code of its own for them.
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3392699932]Auto Loot[/url] by Tchernobill: Its Auto Loot switch and Store All are buttons in the footer of ZeD's Inventory window, and its rows are in ZeD's item and container menus.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3387539308]Auto Mechanics[/url] by Tchernobill: Train mechanics, Uninstall all and Continue are in the part menu of ZeD's Vehicle tab (X or right-click on a part). [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3635856965]Better Auto Mechanics [B42.20.4+ MP+SP][/url]: Its part actions are in the part menu of ZeD's Vehicle tab, and its mechanics window is the game's, which opens ZeD's Vehicle tab. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3387957272]Detailed Descriptions for Occupations and Traits[/url] by Jetmax937: Its longer trait and occupation texts show on ZeD's Traits screen and, from 0.2.0-t6, on hover in the Identity tab.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3617732907]Inspect Items Framework[/url]: Its Inspect item row is in ZeD's item menu, and its inspect window opens clear of ZeD's windows.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2650547917]Manage Containers[/url] by Jeff: Its container rules run from the container buttons in ZeD's windows.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3389003300][B42] Moodle Descriptions Expanded[/url]: Its longer moodle texts, with the numbers, are what ZeD's moodle notes show.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=515555911]More Builds[/url]: Its build window opens from its row in ZeD's world menu and works beside ZeD's windows.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3776531193]Palm Pilot[/url]: Its Palm Pilot screen opens beside ZeD's windows.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3772979228][B42.20] Plain Moodles Redone[/url]: Its plain icons and level bars show in ZeD's moodle column at the right edge; above the belt, its icons without the bars.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3470659758]The Shortcut[/url] by Rocco: Its shortcut bar sits just above ZeD's belt.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2757712197]Vehicle Repair Overhaul[/url] by hehehemann: Its repairs (heater, lightbar, engine rebuild) are in the part menu of ZeD's Vehicle tab. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3628835042]Workshop Update Checker[/url]: Its Mod Updates button shows at the bottom right of ZeD's main menu.
+[/list]

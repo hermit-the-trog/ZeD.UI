@@ -1,0 +1,47 @@
+TITLE: Compatibility with other mods
+
+This thread lists the 550 mods tested with ZeD-GUI, sorted into five lists. Each list is in alphabetical order. Last updated Nov 2 2026.
+
+[h2]Where each list is[/h2]
+Steam cannot link to a reply, so count the replies from the top of the thread.
+[list]
+[*][b]Reply 1: Supported.[/b] ZeD-GUI has its own support for the mod, so its features show in ZeD's windows (20 mods).
+[*][b]Reply 2: Works well with ZeD.[/b] The mod fills a gap or shows well in ZeD's windows; worth having (13).
+[*][b]Replies 3 to 11: Compatible[/b], in 9 parts: 0-9 to Be (reply 3), Be to C (reply 4), D to F (reply 5), G to K (reply 6), L to M (reply 7), N to P (reply 8), Q to Sm (reply 9), Sm to Tr (reply 10), Tr to Z (reply 11). Loads and works with ZeD-GUI, nothing special (408).
+[*][b]Reply 12: Compatible, vehicle packs[/b] (49).
+[*][b]Reply 13: Does not work.[/b] Two lists: mods that do not work with ZeD-GUI, with why (3), and mods broken on 42.21 or 42.22 by themselves (11).
+[*][b]Reply 14:[/b] the notes on the Oct 29 tests, kept as posted. Where it and the lists differ, the lists are current.
+[*][b]Replies 15 and 16: Not needed with ZeD.[/b] ZeD-GUI already does the job, so use one of the two; the makers are credited there (46).
+[/list]
+
+[h2]How the mods were tested[/h2]
+[list]
+[*]Project Zomboid 42.21 (42.22 from Oct 29), single player, ZeD-GUI loaded after the other mods. Every error in the game's log was checked for the mod that made it, with ZeD-GUI off as well when it might be ZeD's.
+[*]Oct 24 2026, ZeD-GUI 0.2.0-t3 and t4, a 1920x1080 window: 124 Workshop items (128 mods) on at once, then ZeD-GUI's own tests; 62 of the 66 that ran passed as they do without other mods.
+[*]Oct 25 2026, ZeD-GUI 0.2.0-t5, 3840x2160 at UI scale 1.75: 48 more mods on at once with ZeD-GUI's whole test run, and 37 vehicle packs, their cars spawned and driven one by one.
+[*]Oct 26 2026, ZeD-GUI 0.2.0-t6, 3840x2160: each mod ZeD-GUI supports, on by itself, with ZeD-GUI's tests for that support. Then 302 more mods in eight groups of 26 to 42, each group on at once with ZeD-GUI's tests for the screens it touches; the group's own windows opened, the item tooltip compared with and without ZeD-GUI, and new vehicle packs driven. Last, ZeD-GUI's whole test run with that round's Compatible and Works well mods, about 150 at a time.
+[*]Oct 29 2026, ZeD-GUI 0.2.0-t11, 3840x2160 at UI scale 1.75: 34 popular Build 42 mods not yet on the list were picked, and the first of them tested in groups, each group on at once with ZeD-GUI's tests for every window, the item menu, the controller, the dashboard, the map and the moodles. The seven mods that ZeD-GUI 0.2.0-t11 supports were each tested with a check of that support in ZeD's windows.
+[*]Nov 2 2026, ZeD-GUI 0.2.0-t15, 3840x2160: the rest of those mods, 20 on at once with the same tests, and the main menu walked through Mods, Options, Spawn, Sandbox, Traits and Looks.
+[*]Each mod's own features were [b]not[/b] tried one by one. A note marked [i](expected)[/i] comes from how the mod works, and one marked [i](by reading its code)[/i] from its code, not from a test.
+[/list]
+
+[h2]Found in the Oct 26 tests, fixed for ZeD-GUI 0.2.0-t7[/h2]
+[list]
+[*]Lines other mods add to the item tooltip (Starlit Library, More Item Information, Show Sowing Season, This Is Me, Brita's Armor Pack) were left out of ZeD's tooltip. They show now.
+[*]A mod that adds its own page to the game's Options (True Music Jukebox, Combat Text) emptied ZeD setup of ZeD's own options. ZeD setup is whole again, and the mod's page is listed after the game's Mods page.
+[*]Smart Radial Menu errored and drew no wheel. A mod's own wheel now stays the game's; the game's own wheels stay ZeD's.
+[*]A mod's belt slot (Brita's) showed its raw id, running out of its box. The belt uses the slot's own name, cut to fit.
+[*]With Neat Rocco's UI on, other mods' notes stayed on screen instead of going to Messages. They go to Messages again (the two mods still do the same job: use one).
+[/list]
+Not ZeD-GUI's: with Project Writing on, the game seemed to hang after writing in a notebook. The mod pauses the game while its notebook is open (its own option), and a quit waits until the notebook is closed.
+
+[h2]Help in ZeD-GUI for long mod lists[/h2]
+[list]
+[*]Notes and errors other mods show at game start go into ZeD-GUI's Messages window instead of covering the game.
+[*]In Mods, a mod's About tab says what turning it off does to a save. In a save's own mod list, turning off a mod that is not safe asks first.
+[*]When two mods ship the same code file, the Conflicts tab can pick whose copy the game runs, file by file (single player).
+[*]From 0.2.0-t15 the load order has Find, Load first and Load last, and Load after... and Load before... rules that Auto keeps; separators name and fold a block of mods. The Mods page has folders, shared with [B42]Mod Folders.
+[/list]
+
+[h2]To add a mod to the list[/h2]
+Reply with the mod's name, its Workshop link, the ZeD-GUI version, and what happened: it works, part of it does not show (say which), or it does not work. For an error, the Bug reports thread says what to include.
