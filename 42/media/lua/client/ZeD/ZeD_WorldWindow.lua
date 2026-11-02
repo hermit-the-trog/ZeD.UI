@@ -1084,7 +1084,7 @@ _buildWorldMCColumnFocusables = function(win, slot)
                 if cnt then cnt._gpFocusedRowItem = el.item end
                 w._gpFocusedMCItem   = el.item
                 w._gpFocusedMCColIdx = el.colIdx
-                if w._drawerItem ~= nil and w._updateDrawer and el.item and cnt then
+                if w._drawerItem ~= nil and w._updateDrawer and el.item and cnt and not w._gpPaint then
                     local sel = cnt._selectedItems or {}
                     for k in pairs(sel) do sel[k] = nil end
                     sel[el.item] = true
@@ -1108,6 +1108,7 @@ _buildWorldMCColumnFocusables = function(win, slot)
                     return
                 end
                 if cnt and w._updateDrawer then
+                    ZeD.InventoryRenderer.padClearMarks(w, el, true)   -- (punch list 44: the marks drop, every list's)
                     local sel = cnt._selectedItems or {}
                     for k in pairs(sel) do sel[k] = nil end
                     -- S117: A toggles the card drawer (mirror Char invrow).
@@ -1125,16 +1126,17 @@ _buildWorldMCColumnFocusables = function(win, slot)
                 end
             end,
             -- the controller's marks (punch list 44): hold A marks, a held A paints, hold X is the quick use,
-            -- B clears the marks (its prompt and X's only while marks exist; the builders run every frame)
+            -- B clears the marks (its prompt and X's only while marks exist, read each frame)
             onHoldActivate = function(w, el) ZeD.InventoryRenderer.padMark(w, el) end,
             onPaint        = function(w, el, paint) ZeD.InventoryRenderer.padPaint(w, el, paint) end,
             onHoldContext  = function(w, el)
                 if not el.item then return end
                 pcall(ZeD.InventoryRenderer.quickUse, el.item, ZeD.playerNumOf(w))
             end,
-            onCancel = (ZeD.InventoryRenderer.padMarkCount(win) > 0) and ZeD.InventoryRenderer.padClearMarks or nil,
-            promptB  = (ZeD.InventoryRenderer.padMarkCount(win) > 0) and ZeD.tr("UI_ZeD_Inv_PromptClearMarks") or nil,
-            promptX  = (ZeD.InventoryRenderer.padMarkCount(win) > 0) and ZeD.tr("UI_ZeD_Inv_PromptMenuMarked") or nil,
+            onCancel   = ZeD.InventoryRenderer.padCancel,      -- B clears the marks (nothing without them)
+            promptB    = ZeD.InventoryRenderer.padPromptB,     -- the footer reads these each frame (functions)
+            promptX    = ZeD.InventoryRenderer.padPromptX,
+            promptHold = ZeD.InventoryRenderer.padPromptHold,
             onContextMenu = function(w, el)
                 if not el.item then return end
                 if ISInventoryPaneContextMenu and ISInventoryPaneContextMenu.createMenu then
@@ -1424,7 +1426,7 @@ _buildWorldInvRowFocusables = function(win)
                 -- `_drawerMode` stays "tab"), moving the gp cursor to a
                 -- different invrow live-swaps the card to the newly-focused
                 -- item. Gate on `_drawerItem ~= nil`, not `_drawerMode`.
-                if w._drawerItem ~= nil and w._updateDrawer and el.item and cnt then
+                if w._drawerItem ~= nil and w._updateDrawer and el.item and cnt and not w._gpPaint then
                     local sel = cnt._selectedItems or {}
                     for k in pairs(sel) do sel[k] = nil end
                     sel[el.item] = true
@@ -1450,6 +1452,7 @@ _buildWorldInvRowFocusables = function(win)
                     return
                 end
                 if cnt and w._updateDrawer then
+                    ZeD.InventoryRenderer.padClearMarks(w, el, true)   -- (punch list 44: the marks drop, every list's)
                     local sel = cnt._selectedItems or {}
                     for k in pairs(sel) do sel[k] = nil end
                     -- S117: A toggles the card drawer (mirror Char invrow).
@@ -1469,16 +1472,17 @@ _buildWorldInvRowFocusables = function(win)
                 end
             end,
             -- the controller's marks (punch list 44): hold A marks, a held A paints, hold X is the quick use,
-            -- B clears the marks (its prompt and X's only while marks exist; the builders run every frame)
+            -- B clears the marks (its prompt and X's only while marks exist, read each frame)
             onHoldActivate = function(w, el) ZeD.InventoryRenderer.padMark(w, el) end,
             onPaint        = function(w, el, paint) ZeD.InventoryRenderer.padPaint(w, el, paint) end,
             onHoldContext  = function(w, el)
                 if not el.item then return end
                 pcall(ZeD.InventoryRenderer.quickUse, el.item, ZeD.playerNumOf(w))
             end,
-            onCancel = (ZeD.InventoryRenderer.padMarkCount(win) > 0) and ZeD.InventoryRenderer.padClearMarks or nil,
-            promptB  = (ZeD.InventoryRenderer.padMarkCount(win) > 0) and ZeD.tr("UI_ZeD_Inv_PromptClearMarks") or nil,
-            promptX  = (ZeD.InventoryRenderer.padMarkCount(win) > 0) and ZeD.tr("UI_ZeD_Inv_PromptMenuMarked") or nil,
+            onCancel   = ZeD.InventoryRenderer.padCancel,      -- B clears the marks (nothing without them)
+            promptB    = ZeD.InventoryRenderer.padPromptB,     -- the footer reads these each frame (functions)
+            promptX    = ZeD.InventoryRenderer.padPromptX,
+            promptHold = ZeD.InventoryRenderer.padPromptHold,
             onContextMenu = function(w, el)
                 if not el.item then return end
                 if ISInventoryPaneContextMenu and ISInventoryPaneContextMenu.createMenu then
@@ -4311,7 +4315,9 @@ function ZeD_WorldWindow.toggle(playerNum)
             if count > 1 then break end
         end
 
-        if count == 1 then
+        if count == 0 then content._padMarks = nil end   -- (the marks gone, their rule with them)
+        -- the controller's marks hide the card even at one (punch list 44), as the mouse's many do
+        if count == 1 and not content._padMarks then
             -- Item selected: show item card (overlay if tab active)
             if win._drawerObject then   -- S124: the item card replaces an object card
                 win._drawerObject = nil
@@ -5081,6 +5087,7 @@ function ZeD_WorldWindow.toggle(playerNum)
     local handleDrop           = r.handleDrop
 
     content.onMouseDown = function(self, x, y)
+        self._padMarks = nil   -- (a mouse press: the mouse's card rule again; punch list 44)
         -- the container buttons' row
         do
             local ccZone = self:hitZoneAt(x, y)
@@ -5449,6 +5456,7 @@ function ZeD_WorldWindow.toggle(playerNum)
     end
 
     content.onRightMouseDown = function(self, x, y)
+        self._padMarks = nil
         if self._drag:isActive() or self._drag:isPending() then
             self._drag:cancel()
             self:setCapture(false)

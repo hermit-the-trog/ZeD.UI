@@ -1063,8 +1063,8 @@ local function _handleBContextual()
     if not w then return end
     local el = Focus.getFocusedElement(w)
     if not el or not el.onCancel then return end
-    pcall(function() getSoundManager():playUISound("UIToggleTickBox") end)
-    _fireCbR("element.onCancel", el.onCancel, w, el)
+    local took = _fireCbR("element.onCancel", el.onCancel, w, el)
+    if took ~= false then pcall(function() getSoundManager():playUISound("UIToggleTickBox") end) end
     -- Return value ignored — no fall-through path exists post-S113.
 end
 
@@ -1769,46 +1769,24 @@ local function _currentDpadDir(joypadData)
     return nil
 end
 
-local function _onTick()
-    -- (A) Mode gate.
-    local mode = ZeD.Input.Detector and ZeD.Input.Detector.getMode
-                 and ZeD.Input.Detector.getMode()
-    if mode ~= "gamepad" then
-        if _dpadHoldDir           then _dpadHoldDir = nil end
-        if _yHeld                 then _yHeld = false; _yConsumed = false end
-        if _prevYPressedUnfocused then _prevYPressedUnfocused = false end
-        if _wsLatched             then _wsLatched = false end
-        if _aHeld                 then if _aWindow then _aWindow._gpPaint = nil end; _aHeld = false; _aConsumed = false; _aWindow = nil end
-        if _xHeld                 then _xHeld = false; _xConsumed = false; _xWindow = nil; _xElement = nil end
-        return
-    end
+-- QA hook (punch list 44): a QA script may hold a pad button on a rig with no pad bound.
+-- Focus.qaButton(name, true) holds the button, false lets it go, nil hands it back to the pad.
+local _qaBtn = {}
+function Focus.qaButton(name, down) _qaBtn[name] = down end
+local function _btnDown(name, jid)
+    local o = _qaBtn[name]
+    if o ~= nil then return o end
+    if jid == nil then return false end
+    return JoypadButton[name]:isDown(jid)
+end
 
-    -- Oct 23 2026: never focus with nothing lit. A fresh window lands on its
-    -- list's first row once the rows exist; focus left on a zone that went
-    -- away (a card closed, a tab emptied) moves to the list (Focus.ensureEntry)
-    if _focusedWindow and (_focusedWindow._focusPendingEntry or not _focusLive(_focusedWindow)) then
-        local ok, err = pcall(Focus.ensureEntry, _focusedWindow)
-        if not ok then print("[ZeD.Input] Focus: ensureEntry failed: " .. tostring(err)) end
-    end
-    -- Oct 23 2026 (director: "it's not properly releasing control and
-    -- returning control back to the spot"): a prompt or menu that closed and
-    -- left the pad with no focus at all (it goes to the game then: Left was
-    -- the belt) hands it back to the focused window, on the element it had
-    if _focusedWindow and JoypadState and JoypadState.players and JoypadState.players[1]
-       and getJoypadFocus and getJoypadFocus(0) == nil
-       and _focusedWindow:isVisible() and not _focusedWindow.windowShaded then
-        _pushEngineFocus(_focusedWindow)
-    end
-
-    local jd = getJoypadData and getJoypadData(0)
-    if not jd or not jd.id then return end
-    local jid = jd.id
-
-    -- (B) Global Y rising-edge (only when no ZeD window is focused).
+-- the Y, A and X holds: a tap on release, the hold at 350 ms. jid may be nil (no pad bound):
+-- the holds still run so QA's hook can drive them; a nil pad reads as every button up.
+local function _holdTicks(jid)
     if not _focusedWindow then
-        local yNow = JoypadButton.Y:isDown(jid)
+        local yNow = _btnDown("Y", jid)
         -- (Oct 24 2026: with a bumper held, Y is a quick action chord, ZeD_QuickChords.lua, never the windows)
-        local bumper = JoypadButton.LeftBump:isDown(jid) or JoypadButton.RightBump:isDown(jid)
+        local bumper = _btnDown("LeftBump", jid) or _btnDown("RightBump", jid)
         if yNow and (not _prevYPressedUnfocused) and (not _yHeld) and not bumper then
             _yHeld      = true
             _yStartMs   = getTimestampMs()
@@ -1821,7 +1799,7 @@ local function _onTick()
 
     -- (C) Y hold-timer.
     if _yHeld then
-        local stillDown = JoypadButton.Y:isDown(jid)
+        local stillDown = _btnDown("Y", jid)
         if stillDown then
             if (not _yConsumed) and (getTimestampMs() - _yStartMs) >= _holdMs() then
                 _handleYHold()
@@ -1840,7 +1818,7 @@ local function _onTick()
     -- early without a hold target fires onActivate; released-early after
     -- threshold already fired _handleHoldConfirm and is marked consumed.
     if _aHeld then
-        local stillDown = JoypadButton.A:isDown(jid)
+        local stillDown = _btnDown("A", jid)
         if stillDown then
             if (not _aConsumed) and (getTimestampMs() - _aStartMs) >= A_HOLD_MS then
                 local targetW = _aWindow or _focusedWindow
@@ -1870,7 +1848,7 @@ local function _onTick()
     -- lock the drag target — focused element may shift if cone-nav fires
     -- mid-hold (defensive, shouldn't happen since D-pad is intercepted).
     if _xHeld then
-        local stillDown = JoypadButton.X:isDown(jid)
+        local stillDown = _btnDown("X", jid)
         if stillDown then
             if (not _xConsumed) and (getTimestampMs() - _xStartMs) >= X_HOLD_MS then
                 local el = _xElement
@@ -1911,6 +1889,44 @@ local function _onTick()
     -- No lock state (Y-hold-lock retired S113); always fires when active.
     -- Iterate connected controllers (Q89) and compute right-stick magnitude².
     -- NO math.abs() on axis values (Q90) — we use ax²+ay² which is always >=0.
+end
+
+local function _onTick()
+    -- (A) Mode gate.
+    local mode = ZeD.Input.Detector and ZeD.Input.Detector.getMode
+                 and ZeD.Input.Detector.getMode()
+    if mode ~= "gamepad" then
+        if _dpadHoldDir           then _dpadHoldDir = nil end
+        if _yHeld                 then _yHeld = false; _yConsumed = false end
+        if _prevYPressedUnfocused then _prevYPressedUnfocused = false end
+        if _wsLatched             then _wsLatched = false end
+        if _aHeld                 then if _aWindow then _aWindow._gpPaint = nil end; _aHeld = false; _aConsumed = false; _aWindow = nil end
+        if _xHeld                 then _xHeld = false; _xConsumed = false; _xWindow = nil; _xElement = nil end
+        return
+    end
+
+    -- Oct 23 2026: never focus with nothing lit. A fresh window lands on its
+    -- list's first row once the rows exist; focus left on a zone that went
+    -- away (a card closed, a tab emptied) moves to the list (Focus.ensureEntry)
+    if _focusedWindow and (_focusedWindow._focusPendingEntry or not _focusLive(_focusedWindow)) then
+        local ok, err = pcall(Focus.ensureEntry, _focusedWindow)
+        if not ok then print("[ZeD.Input] Focus: ensureEntry failed: " .. tostring(err)) end
+    end
+    -- Oct 23 2026 (director: "it's not properly releasing control and
+    -- returning control back to the spot"): a prompt or menu that closed and
+    -- left the pad with no focus at all (it goes to the game then: Left was
+    -- the belt) hands it back to the focused window, on the element it had
+    if _focusedWindow and JoypadState and JoypadState.players and JoypadState.players[1]
+       and getJoypadFocus and getJoypadFocus(0) == nil
+       and _focusedWindow:isVisible() and not _focusedWindow.windowShaded then
+        _pushEngineFocus(_focusedWindow)
+    end
+
+    local jd = getJoypadData and getJoypadData(0)
+    local jid = jd and jd.id or nil
+    _holdTicks(jid)   -- (before the no-pad return: QA's hook drives the holds with no pad bound)
+    if not jid then return end
+
     local aimThSq = _aimingThresholdSq()
     local maxMagSq = 0
     local n = (getControllerCount and getControllerCount()) or 0
