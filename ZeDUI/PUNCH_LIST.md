@@ -1430,6 +1430,24 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
       top with "Page 1 of 10" in that band (y +23), the margin 2 px at 0.137 (the code's 104 of 760) full height, three
       binder holes at x +11 left of the margin, nothing red across; the line counter sits at the foot below the rules
       (y +316), by design. The test's two "sits in the head band" lines were its own (a screen y against a page y).
+51. **AI-drafted translations for players to check (the director, Nov 2 2026, from the Workshop comments).** open, an
+    idea for Build and the director to talk through; nothing started. Turk asked "Bro please add turkish" (Nov 2).
+    The director can't read the languages players ask for, so a translation can't be checked here. The idea: ZeD drafts
+    the missing languages with AI and posts them in the Translations thread, so a native speaker fixes the phrases the
+    draft gets wrong instead of translating all 2,400 from nothing. QA's notes for the talk:
+    - The saving is in typing, not reading: a reviewer still reads every phrase to find the wrong ones. Say so in the ask.
+    - Drafts stay out of the mod until a speaker signs off (an unchecked language would ship under ZeD's name). They
+      live in a drafts folder in the public repo, linked from the Translations thread (Steam threads hold no files).
+    - Label them as AI drafts up front; some players feel strongly about AI.
+    - Each draft is checked before it is posted: every phrase against its length limit in ZeDUI/i18n/UI_ZeD.context.md,
+      the guard test, a look in game with the language on, and the pixel face's capitals for that language's letters
+      (Turkish needs Ş, Ğ and İ on the watch, dash and action bar; not checked yet).
+    - New phrases in later builds get drafted alone, so reviewers check a short list.
+    - Drafts are strongest for the big languages (Turkish, Russian, Chinese, Portuguese, Spanish, German, French, Polish,
+      Japanese, Korean) and weaker for the small ones. A pilot with Turkish and Simplified Chinese (the two asked for)
+      would show whether reviewers turn up before all 28 are drafted.
+    - Reply to Turk is waiting on this (drafts with the director: ask for translators, or also offer an AI draft).
+
 ## Test process
 
 - The release check (before every upload, about 5 minutes, pass or fail): right-click opens the
