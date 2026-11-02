@@ -201,3 +201,29 @@ Nov 1 2026, morning: re-subscribed by QA for the gallery retake (slides 51-53, z
 Steam's "Subscribe to All" on ModernFirearmsSystem also pulled in Shoot to Thrill (3813032735), Project Viewpoint (3809306528)
 and ZombieBuddy (3619862853, a Java mod) through its Workshop page's required items (its own mod.info requires nothing).
 All three were unsubscribed at once and are gone from disk. Rule kept: never ZombieBuddy or Java mods.
+
+## Nov 2 2026 (overnight, round 4c: the rest of round 4)
+
+Subscribed in the Steam client (the director: "run and update the mod compatibility list overnight"). No Java or ZombieBuddy item.
+
+| Id | Name | Why |
+|---|---|---|
+| 3813943783 | Item Arrange Extension | round 4c (needs Item Arrange) |
+| 3767639280 | [B42.20] Item Arrange | round 4c: required by Item Arrange Extension |
+| 3827271522 | GarageWorks [B42] | round 4c |
+| 3820590495 | PZ Relationship (Build 42) | round 4c (Moodle Framework already on disk) |
+| 3820870164 | DIY Gear - Craft Weapons, Armor, Tools & Parts | round 4c |
+| 3802480042 | PM2 - Complete Repair Overhaul | round 4c |
+| 3825220364 | SpiffBoy [B42.21+] | round 4c |
+| 3825220785 | SpiffBoy SDK [B42.21+] | round 4c |
+| 3814251221 | Crosshair Overhaul | round 4c |
+| 3795593080 | More Simple Context Menu Icons | round 4c (needs Simple Context Menu Icons) |
+| 3634921763 | Simple Context Menu Icons | round 4c: required by the mod above |
+| 3824292323 | Loose Ends: Scenario Editor, Game Master & Story Framework | round 4c |
+| 3827432728 | Ente's Auto Sorter - Inventory/Base/Cars | round 4c (needs Better Containers) |
+| 3586216562 | Better Containers | round 4c: required by Ente's Auto Sorter |
+| 3824731938 | Extensive health redone | round 4c |
+| 3828392514 | Drag And Drop (Item Placements) | round 4c |
+| 3826624859 | Farm Panel Plus (B42) | round 4c |
+
+Not subscribed: Silent Hill 2 OG Main Menu Background (3804255753: installed by hand, a .bik file copied into the game folder) and Knox Companion (3826373926: links the save to an outside web map, online). Mod Load Order Sorter Extension (3809995878, on disk since Oct 29) has a ZombieBuddy sub-mod (ModLoadOrderSorterExtensionZB): only its Lua base mod is tested.

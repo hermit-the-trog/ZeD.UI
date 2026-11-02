@@ -1,0 +1,30 @@
+VERSION = 1,
+
+mods
+{
+    mod = MoodleFramework,
+    mod = ItemArrange,
+    mod = SimpleContextMenuIcons,
+    mod = EURY_CONTAINERS,
+    mod = SpiffBoy,
+    mod = CAItemArrangeExtension,
+    mod = GarageWorks,
+    mod = PlayerGreetings,
+    mod = DIYWeapons,
+    mod = PreventativeMaintenanceTwo,
+    mod = SpiffBoySDK,
+    mod = CompleteCrosshairOverhaul,
+    mod = MoreSimpleContextMenuIcons,
+    mod = LooseEnds,
+    mod = EnteBaseAutosorter,
+    mod = ExtensiveHealthRedone,
+    mod = DragAndDrop,
+    mod = FarmPanelPlus,
+    mod = ThisIsYourLife,
+    mod = TIYLFullClothingUIFix,
+    mod = ZeD_UI,
+}
+
+maps
+{
+}

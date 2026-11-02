@@ -1,0 +1,21 @@
+ZEDQA r3m start
+ZEDQA r3m ui main: MainScreen@0,0,3840x2160
+ZEDQA r3m shot zqa_r3m_1_main.png
+ZEDQA r3m ui mods: MainScreen@0,0,3840x2160
+ZEDQA r3m mods window rows: ?
+ZEDQA r3m shot zqa_r3m_2_mods.png
+ZEDQA r3m ui options: MainScreen@0,0,3840x2160
+ZEDQA r3m shot zqa_r3m_3_options.png
+ZEDQA r3m ui spawn: MainScreen@0,0,3840x2160
+ZEDQA r3m shot zqa_r3m_4_spawn.png
+ZEDQA r3m shot zqa_r3m_5_sandbox.png
+ZEDQA r3m ui traits: MainScreen@0,0,3840x2160
+ZEDQA r3m occupations 25 (not vanilla: )
+ZEDQA r3m traits positive 49, negative 32
+ZEDQA r3m shot zqa_r3m_6_traits.png
+ZEDQA r3m shot zqa_r3m_7_traits_scrolled.png
+ZEDQA r3m ui looks: MainScreen@0,0,3840x2160
+ZEDQA r3m shot zqa_r3m_8_looks.png
+ZEDQA r3m ui main again: MainScreen@0,0,3840x2160
+ZEDQA r3m DONE
+default.txt, ModOptions.ini and autoload put back
