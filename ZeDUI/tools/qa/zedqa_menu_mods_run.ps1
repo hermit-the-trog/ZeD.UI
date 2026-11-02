@@ -18,6 +18,8 @@ param(
     [Parameter(Mandatory)][string]$Script,
     [Parameter(Mandatory)][string]$Tag,
     [int]$TimeoutSec = 300,
+    [int]$Width = 0,    # (Nov 2 2026) with -Height: a window of that size (pzlaunchwin.ps1 -MainMenu), ZeD's UI scale Auto,
+    [int]$Height = 0,   #   the fullscreen options put back after (pzrestorewin.ps1); 0 = fullscreen at 1.75x as before
     [string]$Maps = ""   # (Oct 26 2026, compat round 3) a file of map folder names for default.txt's maps section (Muldraugh, KY added last)
 )
 $ErrorActionPreference = "Stop"
@@ -50,10 +52,16 @@ try {
     if ($Maps) { $mapLines = ((@(Get-Content $Maps | ForEach-Object { $_.Trim() } | Where-Object { $_ }) + @("Muldraugh, KY") | ForEach-Object { "    map = $_," }) -join "`r`n") + "`r`n" }
     $ids = @(Get-Content $ModList | ForEach-Object { $_.Trim() } | Where-Object { $_ -and $_ -ne "ZeD_UI" }) + @("ZeD_UI")
     Write-T $Default ("VERSION = 1,`r`n`r`nmods`r`n{`r`n" + (($ids | ForEach-Object { "    mod = $_," }) -join "`r`n") + "`r`n}`r`n`r`nmaps`r`n{`r`n" + $mapLines + "}`r`n")
-    $lines = @(($keepOptions -split "\r?\n") | Where-Object { $_ -ne "" -and $_ -notmatch '\|ZeD_UI\|uiScale\|' }) + @("combobox|ZeD_UI|uiScale|7")
+    $lines = @(($keepOptions -split "\r?\n") | Where-Object { $_ -ne "" -and $_ -notmatch '\|ZeD_UI\|uiScale\|' })
+    if ($Width -le 0) { $lines += "combobox|ZeD_UI|uiScale|7" }   # (windowed: no line, ZeD's Auto)
     Write-T $ModOptions (($lines -join "`r`n") + "`r`n")
     Write-T (Join-Path $Lua "zedqa.autoload") "0"
-    Start-Process -FilePath (Join-Path $GameDir "ProjectZomboid64.exe") -ArgumentList "-debug" -WorkingDirectory $GameDir | Out-Null
+    if ($Width -gt 0) {
+        $out = (& (Join-Path $PSScriptRoot "pzlaunchwin.ps1") -MainMenu -Width $Width -Height $Height 2>&1 | Out-String).Trim()
+        Write-Output "pzlaunchwin.ps1: $out"
+    } else {
+        Start-Process -FilePath (Join-Path $GameDir "ProjectZomboid64.exe") -ArgumentList "-debug" -WorkingDirectory $GameDir | Out-Null
+    }
     Start-Sleep -Seconds 10
     $t0 = Get-Date
     while (-not ((Log) -match '\[ZeD\.QA\] bridge armed \(main menu')) {
@@ -78,6 +86,7 @@ finally {
         Bump
         for ($i = 0; $i -lt 60 -and (Running); $i++) { Start-Sleep -Seconds 2 }
     }
+    if ($Width -gt 0 -and -not (Running)) { $r = (& (Join-Path $PSScriptRoot "pzrestorewin.ps1") 2>&1 | Out-String).Trim(); Write-Output "pzrestorewin.ps1: $r" }
     if (Running) { Write-Output "the game is still running: default.txt and ModOptions.ini NOT put back" }
     else {
         Write-T $Default $keepDefault; Write-T $ModOptions $keepOptions; Write-T (Join-Path $Lua "zedqa.autoload") $keepAuto

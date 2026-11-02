@@ -1,0 +1,4 @@
+# punch list 46 (Nov 2 2026): cu straight after the prelude at 1280x720; cycle 1's World saved x must be the window's own (858.667)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_curtain.lua | cu | timeout=400
+zedqa_sandbox_ig_pages_run.lua | pgi | timeout=600
