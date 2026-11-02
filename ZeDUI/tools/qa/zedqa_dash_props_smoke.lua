@@ -30,6 +30,7 @@ local function spawn(script, dx, dy)
     local sq = getCell():getGridSquare(math.floor(p:getX()) + dx, math.floor(p:getY()) + dy, math.floor(p:getZ()))
     if not sq then say("no square for " .. script); return nil end
     local ok, v = pcall(addVehicleDebug, script, IsoDirections.N, nil, sq)
+    if ZEDQA_VPROBE then ZEDQA_VPROBE("sm", sq, ok and v or nil) end   -- (punch list 47: the 720 bisect)
     if ok and v then spawned[#spawned + 1] = v; say("spawned " .. script .. " beside the character"); return v end
     return nil
 end

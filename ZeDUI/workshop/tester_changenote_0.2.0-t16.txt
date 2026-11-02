@@ -15,3 +15,6 @@ Controller
 
 Mods
 - The page list beside Find scrolls: with a long mod list the Sandbox step, the Sandbox window in game and Options have pages past the bottom. The wheel over the list moves it, the bar drags, and the bumpers keep the picked page in view. (Thanks to Kable for the report.)
+
+Windows
+- The World window comes back where you left it after a Save and Quit made while a wide card held it against the screen's edge (it reopened a few pixels to the left).

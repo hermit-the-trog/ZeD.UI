@@ -1229,6 +1229,11 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     where it was. Fix: saveWorldState (and saveCharState) write the unpushed x, as they already write the unrolled
     x for a rolled side: x + the cap push for the World window, the anchor's x for the Character window. A line
     each; QA re-reads cu's saved lines after. For t16 unless the director says otherwise.
+    **Fixed (build, Nov 2 2026), QA to confirm.** saveWorldState writes x + the cap push (the window's own place without
+    the engine's push), still less the roll for a rolled side. The Character window needed nothing: it saves from its
+    anchor, which a push never moves (the push is kept apart, _drawerCapPush, and the anchor is set less it). QA: the
+    720 wpt run's cu straight after the prelude, the World window's saved x the window's own (858.667 at 720), with a
+    full-card tab open while the save is written.
 
       - **0.2.0-t15 uploaded Nov 1 2026, 3:55 pm (the director: "Uploaded").** Tag v0.2.0-t15 at d66f07e pushed;
         backup D:\ZeD-UI backup\2026-11-01-t15 (zed_backups, workshop.txt + preview.png, the QA save); Contents
@@ -1248,6 +1253,15 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     in the vehicle scripts (the character's x,y and IsoChunkMap.chunkGridWidth at the spawn; each car's distance and
     whether its square has a chunk), and rst's fixture guarded so a missing building ends the script cleanly instead
     of 14 exceptions. Build writes the prints and the guard before the next slot.
+    **Build, Nov 2 2026: the prints and the guard are in (rig files only).** zedqa_prelude.lua defines ZEDQA_VPROBE(tag, sq,
+    v); the eleven vehicle scripts (sl, rb, sm, tm, t3, dash, dpx, dnt, dgr, dke, dbr) call it on the line after their one
+    spawn, guarded so a script run alone skips it. One line each, grep "ZEDQA vp": the character's x,y, the chunk grid
+    (chunks and tiles across, from the chunk map's own width) and the tiles it covers, the spawn square's x,y, its
+    distance from the character, whether it has a chunk and whether it lies in the chunk map, the car's script, place
+    and distance, and the cell's vehicle count (cars left behind by earlier scripts show as a growing count). rst prints
+    the same line at its fixture step (the square at 892,13040), and a fixture not found (no grandstand, no clear floor,
+    or an incomplete build, whose pieces are removed) now ends the script with one ERR line and DONE instead of an error
+    in every later step. Parsed (KCheck). Ready for the 35-minute 720 slot.
 
 48. **The main menu on a Steam Deck and at 720p: readable type, the desk leans in (t16; the director, Nov 1 2026).**
     built (build, Nov 1), QA to confirm. The Oct 29 overflow was the saved 1.75 scale, now held at 0.75 by item 39, so

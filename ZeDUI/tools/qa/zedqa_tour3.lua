@@ -17,6 +17,7 @@ for _, sc in ipairs(spawnList) do
     at(t, function()
         local sq = getCell():getGridSquare(math.floor(p:getX()) + 5, math.floor(p:getY()) + 2, math.floor(p:getZ()))
         local v = sq and addVehicleDebug(script, IsoDirections.N, nil, sq) or nil
+        if ZEDQA_VPROBE then ZEDQA_VPROBE("t3", sq, v) end   -- (punch list 47: the 720 bisect)
         cur = v
         if v then v:enter(0, p); triggerEvent("OnEnterVehicle", p) else print("ZEDQA t3 spawn failed " .. script .. " sq=" .. tostring(sq)) end
     end)

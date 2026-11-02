@@ -7,6 +7,38 @@
 -- says so as an ERR line, so the run reads WARN instead of timing out.
 -- grep "ZEDQA pre".
 local function say(s) print("ZEDQA pre " .. tostring(s)) end
+
+-- (punch list 47, Nov 2 2026) the vehicle probe for the 1280x720 bisect: where the character stands, how wide
+-- the loaded chunk grid is and what it covers, and whether a spawn square and its car lie inside it. The
+-- vehicle scripts call it right after their spawn when it exists (a script run alone skips it). One line
+-- each; grep "ZEDQA vp".
+function ZEDQA_VPROBE(tag, sq, v)
+    local ok, line = pcall(function()
+        local pl, cell = getPlayer(), getCell()
+        local cm = cell:getChunkMap(0)
+        local wt = cm:getWidthInTiles()
+        local px, py = pl:getX(), pl:getY()
+        local out = string.format("ZEDQA vp %s player=%d,%d grid=%d chunks (%d tiles) loaded x %d-%d y %d-%d",
+            tostring(tag), math.floor(px), math.floor(py), math.floor(wt / 8), wt,
+            cm:getWorldXMinTiles(), cm:getWorldXMaxTiles(), cm:getWorldYMinTiles(), cm:getWorldYMaxTiles())
+        if sq then
+            local sx, sy = sq:getX(), sq:getY()
+            out = out .. string.format(" sq=%d,%d dist=%.1f chunk=%s inMap=%s", sx, sy,
+                math.sqrt((sx - px) ^ 2 + (sy - py) ^ 2), tostring(sq:getChunk() ~= nil), tostring(cell:isInChunkMap(sx, sy)))
+        else
+            out = out .. " sq=nil"
+        end
+        if v then
+            out = out .. string.format(" car=%s at %.1f,%.1f dist=%.1f", tostring(v:getScriptName()), v:getX(), v:getY(),
+                math.sqrt((v:getX() - px) ^ 2 + (v:getY() - py) ^ 2))
+        else
+            out = out .. " car=nil"
+        end
+        local vs = cell:getVehicles()
+        return out .. " vehicles=" .. tostring(vs and vs:size())
+    end)
+    print(ok and line or ("ZEDQA vp " .. tostring(tag) .. " ERR " .. tostring(line)))
+end
 local p = getPlayer()
 -- (Oct 27 2026, the director: the QA character stood in thick woods, with no open ground to
 -- spawn things and the view often blocked, and runs drifted into night) every run starts on
