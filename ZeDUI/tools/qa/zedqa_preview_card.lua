@@ -318,7 +318,10 @@ strengthCheck = function(t, rd, label)
     local hasParen = got:find("(", 1, true) ~= nil
     local okForm = (parts > 1 and hasParen) or (parts <= 1)   -- (a zero skill part shown as "+ 0 from your " is noted, not failed)
     local perk = ""
-    pcall(function() perk = tostring(rd.entry.recipe:getHighestRelevantSkill(p):getName()) end)
+    pcall(function()   -- (at level 0 the game names no skill: the nil is checked, not indexed, so -debug logs nothing)
+        local pk = rd.entry.recipe:getHighestRelevantSkill(p)
+        if pk ~= nil then perk = tostring(pk:getName()) end
+    end)
     local okSkill = (skill <= 0) or (got:find("from your", 1, true) ~= nil and (perk == "" or got:find(perk, 1, true) ~= nil))
     if skill <= 0 and got:find("from your", 1, true) then say("NOTE " .. label .. ": a zero skill part is shown ('" .. got .. "'); the perk's name reads '" .. perk .. "'") end
     say(string.format("%s: the script's health %s, skillBaseHealth %s, bonusHealth %s; relevant skill level %s (%s): the game's build gives %d = %d + %d (skill) + %d (bonus)",
@@ -408,6 +411,7 @@ pickAndOpen("craft", { "NailSpikeWeapon" }, "several results", function(t, rd)
     local distinct, list = 0, {}
     pcall(function()
         local seen = {}
+        if rd.entry.recipe.getOutputs == nil then return end   -- (not every recipe object has it; a nil call in a pcall still logs under -debug)
         local outs = rd.entry.recipe:getOutputs()
         local items = outs:get(0):getPossibleResultItems()
         for i = 0, items:size() - 1 do
