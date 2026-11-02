@@ -83,14 +83,45 @@ local function isGel(it) return it:getType() == "Hairgel" end
 local function isSpray(it) return it:getType() == "Hairspray2" end
 local function isHairdo(it) return it:hasTag(ItemTag.DO_HAIRDO) or isGel(it) or isSpray(it) end
 
+-- The first of each tool the character carries, bags included. One walk in Lua over the
+-- inventory, each item tested for all five: the container's own items first, then each
+-- bag's (the order the game's getFirstEvalRecurse uses). Nov 2 2026 (QA, compat round 5):
+-- handing these tests to the game's getFirstEvalRecurse, which calls back into Lua for
+-- every item, made Kahlua throw "Cannot assign field callFrame because a is null" at
+-- ReturnValues.put with nine popular mods on (each half alone did not); the walk makes no
+-- such call back, and goes over the inventory once instead of five times.
+local TOOL_TESTS = { { "razor", isRazor }, { "scissors", isScissors }, { "gel", isGel },
+                     { "spray", isSpray }, { "hairdo", isHairdo } }
 local function tools(p)
-    local inv = p:getInventory()
-    local function first(fn)
-        local ok, it = pcall(function() return inv:getFirstEvalRecurse(fn) end)
-        return ok and it or nil
+    local out, left = {}, #TOOL_TESTS
+    local function test(it)
+        for _, t in ipairs(TOOL_TESTS) do
+            if out[t[1]] == nil and t[2](it) then out[t[1]] = it; left = left - 1 end
+        end
     end
-    return { razor = first(isRazor), scissors = first(isScissors), gel = first(isGel),
-             spray = first(isSpray), hairdo = first(isHairdo) }
+    local function walk(inv, depth)
+        if not inv or left == 0 or depth > 6 then return end   -- (a bag in a bag in a bag: six deep is plenty)
+        local items = inv:getItems()
+        local bags = nil
+        for i = 0, items:size() - 1 do
+            local it = items:get(i)
+            if it then
+                test(it)
+                if left == 0 then return end
+                if instanceof(it, "InventoryContainer") then bags = bags or {}; bags[#bags + 1] = it end
+            end
+        end
+        for _, bag in ipairs(bags or {}) do
+            walk(bag:getInventory(), depth + 1)
+            if left == 0 then return end
+        end
+    end
+    local ok, err = pcall(walk, p:getInventory(), 0)
+    if not ok and not HB._toolsWarned then
+        HB._toolsWarned = true
+        print("[ZeD] Hair and beard: reading the tools failed: " .. tostring(err))
+    end
+    return out
 end
 
 local function has(req, tl)
