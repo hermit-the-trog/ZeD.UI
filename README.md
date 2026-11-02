@@ -1,6 +1,6 @@
 # ZeD-GUI
 
-ZeD-GUI, the Zero Day Graphic User Interface, is a mod for Project Zomboid Build 42. It replaces the inventory, the character and loot windows, the HUD and the menus. In the fiction it runs on ZNIX, a made-up platform: a custom kernel built by a paranoid do-it-yourself doomsday prepper. The look is inspired by the popular operating systems of the period, Macintosh System 6 and System 7 most of all; it is not an endorsement of Apple, Microsoft or any other brand. It works with a controller and with a mouse and keyboard.
+ZeD-GUI, the ZeroDay Graphical User Interface, is a mod for Project Zomboid Build 42. It replaces the inventory, the character and loot windows, the HUD and the menus. In the fiction it runs on ZNIX, a made-up platform: a custom kernel built by a paranoid do-it-yourself doomsday prepper. The look is inspired by Macintosh System 6 and System 7, as well as DOS and the Texas Instruments TI-99/4A; it is not an endorsement of Apple, Microsoft, Texas Instruments or any other brand. It works with a controller and with a mouse and keyboard.
 
 ## Where to get it
 
