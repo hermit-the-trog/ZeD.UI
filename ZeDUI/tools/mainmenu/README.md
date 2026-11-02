@@ -1,15 +1,21 @@
-# Main menu desk, v3
+# Main menu desk, v4
 
-The lit night room behind the main menu, approved by the director on Oct 15 2026. On Oct 28 2026 the orange soda can replaced the cola (see Decisions).
+The lit night room behind the main menu, approved by the director on Oct 15 2026 (v3). On Oct 28 2026 the orange soda can replaced the cola. On Nov 1 2026 (v4) the Workshop cover's book, Bitchin' znix Programs, leans spine out on the monitor's right side, THE SIMZ turned spine out beside it, and the two boxes after it grew to big-box size (see Decisions).
 
 The previews:
-- `previews/main_menu_4x.png`: the desk at 4x, with the screen's contents pasted in from the S125 capture.
+- `previews/main_menu_v4_4x.png`: v4 at 4x, graded as the mod draws it, the screen's contents from the S125 capture.
+- `previews/spines_v3_vs_v4_6x.png`: the right of the desk, v3 then v4, graded.
+- `previews/main_menu_4x.png`: v3 at 4x, ungraded, with the screen's contents pasted in from the S125 capture.
 - `previews/lit_and_lamp_dipped_2x.png`: the lit room, and the room on a lamp flicker.
 - `previews/lights_on_off_8x.png`: the hard disk light and the floppy light, each on and off.
 
-## The art (staged, not live yet)
+## The art
 
-The files are in `ZeDUI/art/main_menu/v3/`. Swap them in together with the code changes below. The picture alone, without those changes, gets the wrong needle and light colours.
+v3 is live: the mod's textures are v3 graded (`../menugrade/grade.py`), and `ZeD_MainMenu.lua` has the steps below.
+
+v4 is staged in `ZeDUI/art/main_menu/v4/`. It keeps v3's contract and colours (its `desk_info.json` is v3's), and only pixels right of x 380 change, so it goes in with no code change: `py ../menugrade/grade.py <frames dir> 1.0` grades it into `42/media/textures/ZeD/mainmenu/`. The frames feed only a printout; without them the grade still runs.
+
+v3's files, kept in `ZeDUI/art/main_menu/v3/`:
 
 | File | Size | What it is |
 |---|---|---|
@@ -21,7 +27,7 @@ The files are in `ZeDUI/art/main_menu/v3/`. Swap them in together with the code 
 
 The contract is unchanged. The tube, both lights, the dial, the needle, the power button and the desk edge row (184) are where they were.
 
-## Wiring it in (next code session)
+## Wiring it in (v3: done, in `ZeD_MainMenu.lua`; kept as the record of what the code paints)
 
 1. Copy the four PNGs into `42/media/textures/ZeD/mainmenu/`.
 
@@ -67,8 +73,9 @@ The contract is unchanged. The tube, both lights, the dial, the needle, the powe
 You need Python 3 with numpy, scipy and Pillow. Run from this folder:
 
 ```
-python gen_desk.py --to ../../art/main_menu/v3      # the textures and desk_info.json; prints the Lua colours
-python preview.py ../../art/main_menu/v3/desk.png ../../qa/S125_mainmenu/01_main_menu.png previews/main_menu_4x.png
+python gen_desk.py --to ../../art/main_menu/v4      # the textures and desk_info.json; prints the Lua colours
+python ../menugrade/grade.py none 1.0 <graded dir>   # graded as the mod draws it (default out: the mod's textures)
+python preview.py <graded dir>/desk.png ../../qa/S125_mainmenu/01_main_menu.png previews/main_menu_v4_4x.png
 ```
 
 The textures the mod loads are graded from these by `../menugrade/grade.py` at strength 1.0 (see its header). Its frames folder only feeds the statistics it prints.
@@ -86,6 +93,7 @@ The textures the mod loads are graded from these by `../menugrade/grade.py` at s
   - It is the exact palette the approved room was fitted to.
   - Refitting it shifts colours across the whole picture: about one pixel in five, and the margin colours with them. So `gen_desk.py` quantises to the locked palette.
   - Materials drawn since the lock are listed in `FRESH`. They get their own entries (`FRESH_SLOTS`).
+  - The book's materials are a group of their own (`FRESH_BOOK`, 24 entries), so adding it left the can's entries as they were.
   - Redrawing an object therefore changes only that object's own pixels.
   - `--refit` fits a fresh palette instead and writes it to the output folder as `palette.json`. Adopt it by copying it over `palette_v3.json`, and only when the whole room is being redrawn.
 
@@ -94,7 +102,15 @@ The textures the mod loads are graded from these by `../menugrade/grade.py` at s
 - **The room:** night, lit by the desk lamp, the monitor and moonlight. The walnut paneling stays.
 - **The desk:** one solid slab of dark walnut, darker than the paneling. The grain runs the length of the top.
 - **Wall poster:** HEVEY DEWIS AND THE REPORTERS. The lower third sits behind the boombox on purpose.
-- **Front game box:** THE SIMZ.
+- **Front game box:** THE SIMZ. Since Nov 1 2026 it stands spine out (director: turn it so it "shows just the spine"); `simz_box_art()` still draws the front.
+- **The book on the monitor** (director, Nov 1 2026; v4):
+  - The book on the Workshop cover, Bitchin' znix Programs, the real Easter egg among the parody props: someone who loaded the Steam page sees it again here.
+  - Spine out, leaning on the monitor's right side: the top touches the monitor, the foot stands clear of the case. 14 x 78, a Sybex-size book, nearly the box's height and thinner. The lean is 10 px over the height, each step on a row between letters so no letter breaks.
+  - The title runs down the spine in the cover's two lines (BITCHIN' ZNIX / PROGRAMS), letter tops to the right: you tilt your head to read it, as on a real spine. Hard to read is fine: "It's an Easter egg."
+  - Masking tape over ZNIX with ZeD-GUI on it in red marker (director's idea), torn at both ends, the top corner lifting where the first stroke of the printed Z shows.
+  - The cover's colours: the dusk sky banded down the spine, cream type, the yellow PEARS chip upright at the foot, the maroon stripes under it.
+  - No author on the spine (director: his name stays off the front of Project Zomboid, as the game's developers sit behind a Credits button).
+- **The boxes beside it:** THE SIMZ spine out at 19 wide (big boxes were "like a large family Bible or an encyclopedia", director), the purple and teal boxes grown from 13 to 16 wide, all three touching, the purple one tallest so the boombox's keys don't peek over the row.
 - **Corkboard:** the Princess Quest 3 cover stays.
 - Both pieces are original parody art. Nothing is copied from a real cover.
 - **Maker's mark:** reads KI on the monitor and on the case.
