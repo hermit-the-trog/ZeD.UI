@@ -1,0 +1,44 @@
+pgl start | screen 1280x800 | root scale 1 | text small
+pgl Sandbox step: 42 pages | box 312,149 210x528 | rows of 30 px: 1260 px of rows | rows drawn 18 | overflows true | screen bottom 800
+pgl PASS Sandbox step: every row drawn lies inside the page box (18 drawn)
+pgl PASS Sandbox step: the page box ends on screen (677)
+pgl PASS Sandbox step: the pages overflow and a scroll bar is there
+pgl PASS Sandbox step: not every page is drawn at once (18 of 42)
+pgl shot zqa_pgl_sandbox_1280x800
+pgl wheel: first notch over the box's middle (the real cursor 633,363): pagesScroll 0 -> 60 | the settings list's scroll 0
+pgl PASS Sandbox step: the wheel over the page list reaches the last page (13 notches; page 42 row 647+30 | box 149 to 677)
+pgl Sandbox step: wheel end pagesScroll 732 | the page shown 1 (unchanged by the wheel: true)
+pgl PASS Sandbox step: the wheel scrolls without changing the picked page
+pgl shot zqa_pgl_sandbox_1280x800_wheelend
+pgl Sandbox step: wheel up: 13 notches | pagesScroll 0 | rows drawn 18 from page 1 at 149 | picked 1
+pgl PASS Sandbox step: the wheel back up returns to the first page (page 1 row 149+30 | box 149 to 677)
+pgl PASS Sandbox step: the bar dragged to its end shows the last page (page 42 row 647+30 | box 149 to 677)
+pgl PASS Sandbox step: the bar dragged to its middle scrolls about halfway (0.50 of the way)
+pgl PASS Sandbox step: the bar dragged to its top shows the first page (page 1 row 149+30 | box 149 to 677)
+pgl PASS Sandbox step: RB from the first page reaches the last (page 42 of 42)
+pgl PASS Sandbox step: the picked page stays whole in view at every RB (41 steps)
+pgl shot zqa_pgl_sandbox_1280x800_rblast
+pgl PASS Sandbox step: RB on the last page wraps to the first, in view (page 1 row 149+30 | box 149 to 677)
+pgl PASS Sandbox step: LB on the first page wraps to the last, in view (page 42 row 647+30 | box 149 to 677)
+pgl Sandbox step: scrolled half a row: top row 4 15 px showing | bottom row 22 3 px showing
+pgl shot zqa_pgl_sandbox_1280x800_edge
+pgl PASS Sandbox step: a click on the half-hidden top row picks it (hit sandbox:page:4, page 1 -> 4)
+pgl PASS Sandbox step: 2 px past the box's top edge is not a page (nil)
+pgl PASS Sandbox step: a click on the half-hidden bottom row picks it (hit sandbox:page:22, page 4 -> 22)
+pgl PASS Sandbox step: 2 px past the box's bottom edge is not a page (nil)
+pgl PASS Sandbox step: a click on Find picks no page (sandbox:find)
+pgl Options: 9 pages | box 312,149 210x528 | rows of 30 px: 270 px of rows | rows drawn 9 | overflows false | screen bottom 800
+pgl PASS Options: every row drawn lies inside the page box (9 drawn)
+pgl PASS Options: the page box ends on screen (677)
+pgl NOTE Options: the pages fit their box at this size; the scroll checks have nothing to scroll
+pgl PASS Options: no scroll bar when the pages fit
+pgl shot zqa_pgl_options_1280x800
+pgl PASS Options: RB from the first page reaches the last (page 9 of 9)
+pgl PASS Options: the picked page stays whole in view at every RB (8 steps)
+pgl shot zqa_pgl_options_1280x800_rblast
+pgl PASS Options: RB on the last page wraps to the first, in view (page 1 row 149+30 | box 149 to 677)
+pgl PASS Options: LB on the first page wraps to the last, in view (page 9 row 389+30 | box 149 to 677)
+pgl did not run: none
+pgl NOTE not run here: the server settings' bumpers (no server settings file on this machine)
+pgl summary 1280x800: 26 PASS, 0 FAIL
+pgl DONE
