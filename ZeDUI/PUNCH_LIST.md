@@ -1329,6 +1329,12 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
       116-124 with a LogFence at Carpentry 0). The runner's FAIL on the run was three exceptions the test itself logged
       inside pcall under -debug (its own getName on a nil perk twice, a nil getOutputs once); both guarded now, so the
       next run is clean on the rig side. One more pvc-alone run after the name fix closes 49.
+    - **QA, Nov 1 2026: confirmed (2f65396, pvc alone on the Deck; qa/regression/2026-11-01_t16_pvc_800_d.md).** Every
+      check passes: the metal pole fence "Strength 500 (450 + 50 from your Welding)", the log fence "Strength 200 (200 +
+      more with your Carpentry)", the log gate "Strength 0 (more with your Carpentry)", the plank barricade no line, <
+      from the first face round to the last, the double gate's four tiles, the spiked bat's What you get and What
+      changes, "or one of 7 others". The run's one logged exception is the test's own (a nil call inside its "several
+      results" pcall under -debug), fixed on the rig side. 49 closed on the product side.
 50. **Notebook paper: the lines were not ruled like paper (the director, Nov 1 2026, with four pictures of the real
     sheet).** fixed (build, Nov 1), QA to confirm. The Notebooks page (the small page in the Journal's Notebooks
     sub-tab) and the full page in the reader drew their blue rules only to the right of the red margin, from the
