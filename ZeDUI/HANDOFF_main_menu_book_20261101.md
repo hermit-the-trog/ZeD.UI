@@ -3,7 +3,7 @@
 Design → Code. The Workshop cover's book, Bitchin' znix Programs, now leans spine out on the monitor in the main menu
 desk (v4), and THE SIMZ turned spine out beside it. Decisions and how to rebuild: `tools/mainmenu/README.md`.
 
-> **Status: drawn, waiting for the director's look.** Install only after he signs it off.
+> **Status: installed (build, Nov 1 2026, 4:06 pm; the director: "V4 is great").** grade.py none 1.0 wrote desk.png, desk_lampdim.png and dial_clean.png into the mod; the printed margin and lens colours equal ZeD_MainMenu.lua's to the byte. The check pass (the 1080p captures against the preview) is QA's next screen slot.
 
 ## What's in this (Design's files, plus one string he asked for)
 
