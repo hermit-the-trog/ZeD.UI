@@ -37,7 +37,37 @@ local function readAll(name)
     return s
 end
 
+-- (punch list 47, Nov 2 2026) the state each QA script starts from, one line before it runs: the game's
+-- speed and pause, the character's place and car, the chunk grid, and every vehicle the cell still holds with
+-- its distance, whether its physics is on and whether this game simulates it. A long run's leftovers (cars
+-- not removed, a seat, a speed) show where they first appear. grep "[ZeD.QA] state".
+local function stateLine(n)
+    local ok, line = pcall(function()
+        local pl, cell = getPlayer(), getCell()
+        if not (pl and cell) then return "no player" end
+        local px, py = pl:getX(), pl:getY()
+        local cm = cell:getChunkMap(0)
+        local car = pl:getVehicle()
+        local out = string.format("speed=%s paused=%s player=%d,%d grid=%d inCar=%s",
+            tostring(getGameSpeed and getGameSpeed()), tostring(isGamePaused and isGamePaused()),
+            math.floor(px), math.floor(py), math.floor((cm and cm:getWidthInTiles() or 0) / 8),
+            tostring(car and car:getScriptName() or false))
+        local vs = cell:getVehicles()
+        local n2 = vs and vs:size() or 0
+        out = out .. " vehicles=" .. n2
+        for i = 0, math.min(n2, 12) - 1 do
+            local v = vs:get(i)
+            out = out .. string.format(" [%s %.0f %s%s]", tostring(v:getScriptName()):gsub("^Base%.", ""),
+                math.sqrt((v:getX() - px) ^ 2 + (v:getY() - py) ^ 2),
+                v:isPhysicsActive() and "on" or "off", v:isLocalPhysicSim() and "" or " remote")
+        end
+        return out
+    end)
+    print("[ZeD.QA] state #" .. n .. " " .. (ok and line or ("ERR " .. tostring(line))))
+end
+
 function B.runScript()
+    stateLine(B._runs + 1)
     local src = readAll("zedqa.lua")
     if not src then print("[ZeD.QA] zedqa.lua missing") return end
     local fn, err = loadstring(src, "zedqa.lua")

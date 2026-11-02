@@ -1274,6 +1274,13 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     (only sl prints, so where the count grows is not seen). Next: what scripts 42-80 leave that keeps a fresh car's
     physics asleep (the cars left behind, or a vehicle or seat state on the character); a halving of 42-80 at 720
     (about 15 min each) with the probe in a few of them, or a probe line at the start of each script.
+    **Build's call (Nov 2 2026): the probe, not the halving.** QABridge.lua prints one line before every script it runs,
+    grep "[ZeD.QA] state #": the game speed and pause, the character's place and car, the chunk grid, and each vehicle the
+    cell holds (up to 12) with its distance, physics on or off, and "remote" if this game does not simulate it. One
+    720 run of prelude + 42-80 + sl shows where the vehicle count first grows, whether an old car keeps its physics on
+    and whether a fresh car is marked as simulated elsewhere; a halving follows only if that points nowhere. (The
+    physics world's own offset, WorldSimulation, is not reachable from Lua, so a stale offset can only be inferred: cars
+    on loaded squares, physics off, nothing else wrong.)
 
 48. **The main menu on a Steam Deck and at 720p: readable type, the desk leans in (t16; the director, Nov 1 2026).**
     built (build, Nov 1), QA to confirm. The Oct 29 overflow was the saved 1.75 scale, now held at 0.75 by item 39, so
