@@ -182,6 +182,9 @@ local function getBarsForItem(item)
     local cond=safeGet(item,"getCondition"); local mc=safeGet(item,"getConditionMax")
     if cond and mc and mc>0 then table.insert(bars,{label="Condition",ratio=math.max(0,math.min(1,cond/mc))}) end; return bars
 end
+-- the facts, bars and kind of an item another surface shows without holding it (the recipe
+-- preview, punch list 49: the item you would craft, and the one of yours it upgrades)
+ZeD.itemFacts = function(item) return getStatsForItem(item), getBarsForItem(item), getItemCategory(item) end
 
 local function getNutritionForItem(item)
     if not instanceof(item, "Food") then return {} end
