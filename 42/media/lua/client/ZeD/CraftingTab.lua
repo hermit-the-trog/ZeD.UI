@@ -84,13 +84,17 @@ local function buildCatalog()
         local iconTex = nil
         pcall(function() iconTex = recipe:getIconTexture() end)
 
-        -- Pre-bake description (check method exists before calling — Kahlua logs
-        -- Java exceptions from pcall even when caught, spamming the console)
+        -- Pre-bake description: the recipe's Tooltip (a translation key; vanilla's info box reads it the
+        -- same way). Until Nov 1 2026 this asked for getDescription, which the game's recipes do not have,
+        -- so the header's description slot stayed empty (punch list 49).
         local description = nil
-        if recipe.getDescription then
+        if recipe.getTooltip then
             pcall(function()
-                local d = recipe:getDescription()
-                if d and d ~= "" then description = tostring(d) end
+                local k = recipe:getTooltip()
+                if k and k ~= "" then
+                    local d = getText(k)
+                    if d and d ~= "" and d ~= k then description = tostring(d):gsub("<br>", " ") end
+                end
             end)
         end
 
