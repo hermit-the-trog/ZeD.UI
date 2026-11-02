@@ -134,6 +134,7 @@ Steam cannot link to a reply, so count the replies from the top of the thread.
 [*]Oct 26 2026, ZeD-GUI 0.2.0-t6, 3840x2160: each mod ZeD-GUI supports, on by itself, with ZeD-GUI's tests for that support. Then 302 more mods in eight groups of 26 to 42, each group on at once with ZeD-GUI's tests for the screens it touches; the group's own windows opened, the item tooltip compared with and without ZeD-GUI, and new vehicle packs driven. Last, ZeD-GUI's whole test run with that round's Compatible and Works well mods, about 150 at a time.
 [*]Oct 29 2026, ZeD-GUI 0.2.0-t11, 3840x2160 at UI scale 1.75: 34 popular Build 42 mods not yet on the list were picked, and the first of them tested in groups, each group on at once with ZeD-GUI's tests for every window, the item menu, the controller, the dashboard, the map and the moodles. The seven mods that ZeD-GUI 0.2.0-t11 supports were each tested with a check of that support in ZeD's windows.
 [*]Nov 2 2026, ZeD-GUI 0.2.0-t15, 3840x2160: the rest of those mods, 20 on at once with the same tests, and the main menu walked through Mods, Options, Spawn, Sandbox, Traits and Looks.
+[*]Nov 2 2026, ZeD-GUI 0.2.0-t15: nine more mods from the Workshop's trending Build 42 lists since Oct 29, on at once with the same tests, twice.
 [*]Each mod's own features were [b]not[/b] tried one by one. A note marked [i](expected)[/i] comes from how the mod works, and one marked [i](by reading its code)[/i] from its code, not from a test.
 [/list]
 

@@ -6,7 +6,7 @@ import os, re, sys, json
 sys.stdout.reconfigure(encoding="utf-8")
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from r4notes import R4
+from r4notes import R4, R5
 NEW = os.path.dirname(HERE)
 V4 = os.path.join(NEW, "..", "compat_v4", "build", "v4_mods.json")
 LIMIT = 7800
@@ -74,7 +74,7 @@ for f in files:
 
 want = v4 | r4
 missing = sorted(want - set(count)); dupes = sorted(i for i, c in count.items() if c > 1); extra = sorted(set(count) - want)
-print(f"expected {len(want)} mods ({len(v4)} from v4, {len(r4)} new in round 4 and 0.2.0-t15); found {len(count)} in {len(files)} posts")
+print(f"expected {len(want)} mods ({len(v4)} from v4, {len(r4)} new in rounds 4 and 5 and 0.2.0-t15); found {len(count)} in {len(files)} posts")
 print("missing:", missing or "none"); print("twice or more:", dupes or "none"); print("not expected:", extra or "none")
 if missing or dupes or extra: fail("mods missing, doubled or unexpected")
 
@@ -88,7 +88,9 @@ print("rows per list:", counts, "total", sum(counts.values()))
 # round 4 verdicts that must hold
 must = {"S": ["2871469707", "2854030563", "2923554542", "3410947298", "2914075159", "3789660055", "3819438691", "3760450908", "3779201168"],
         "XZ": ["3819012597", "3773911887", "3796139100"],
-        "N": ["3423660713", "3567084868", "3809995878"]}
+        "N": ["3423660713", "3567084868", "3809995878", "3830018449", "3828627678", "3828626636"]}
+for i in R5:
+    if i not in ("3830018449", "3828627678", "3828626636") and mods[i]["list"] != "C": fail(f"{mods[i]['name']} should be Compatible")
 for l, ids in must.items():
     for i in ids:
         if mods[i]["list"] != l: fail(f"{mods[i]['name']} should be on {l}")
@@ -98,7 +100,7 @@ if "FieClaussell" not in open(os.path.join(NEW, "post01.txt"), encoding="utf-8")
 
 # first post: index, counts and dates
 first = open(os.path.join(NEW, "post00_first.txt"), encoding="utf-8").read()
-for s in ("Last updated Nov 2 2026", "Oct 29 2026, ZeD-GUI 0.2.0-t11", "Nov 2 2026, ZeD-GUI 0.2.0-t15", "To add a mod to the list", f"lists the {len(want)} mods"):
+for s in ("Last updated Nov 2 2026", "Oct 29 2026, ZeD-GUI 0.2.0-t11", "Nov 2 2026, ZeD-GUI 0.2.0-t15", "nine more mods from the Workshop's trending Build 42 lists since Oct 29", "To add a mod to the list", f"lists the {len(want)} mods"):
     if s not in first: fail(f"first post lacks {s!r}")
 rep = {}
 for f, hs in heads.items():

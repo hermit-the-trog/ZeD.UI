@@ -1,8 +1,6 @@
 [h2]Compatible, Be to C (part 2 of 9)[/h2]
 Loaded with ZeD-GUI, no errors of their own, and ZeD-GUI's tests passed with them on. Nothing special to say unless a note says so. A note that starts "Part of it does not show" means the mod adds to a game screen that ZeD-GUI replaces. The first post says which reply holds each part; vehicle packs are in reply 12.
 [list]
-[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3634569678]Better Safehouse [B42.20- MP][/url]: Multiplayer safehouse screens.
-[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2756434288]Better Server Settings[/url]
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2313387159]Better Sorting[/url] by ChthonicKnight: One error of its own at load on 42.21 (a drink with no item, BSdynamicCats). Not ZeD.
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3794379457]Better World Map[/url] by EROGZ: Part of it does not show: its labels are for the game's map, not ZeD's Maps tab. [i](expected)[/i]
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3461415167]Bicycle![/url] by RedChili
@@ -26,6 +24,7 @@ Loaded with ZeD-GUI, no errors of their own, and ZeD-GUI's tests passed with the
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2749928925]CDDA Zombies[/url]
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3776182375]CH Status HUD[/url]: Its status panel shows at the top left; ZeD's windows can cover it while a drawer is open.
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3634630898]Challenge Traits - Headshots, CDDA, and More [42.21 Stable][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3815818643]Cheat Menu 2.0 - Rax's Reborn[/url] by Rax: One error of its own: part of it does not load when the game is started in debug mode. Its menu was not opened.
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3453422228]Cheat Menu Phoenix [B42] [B41 Re-Up][/url]: Its rows are in ZeD's world menu.
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3683918273]Cheat Menu: Reloaded [B42 Fixed][/url]: Its rows are in ZeD's world menu.
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3287958074]Choose Your Spawn![/url]

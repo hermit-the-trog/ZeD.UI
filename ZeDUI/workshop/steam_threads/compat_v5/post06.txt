@@ -8,6 +8,7 @@ Loaded with ZeD-GUI, no errors of their own, and ZeD-GUI's tests passed with the
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3722064198][42.20.4MP] Gunworks Framework[/url] by Marz, Chuck, Shark, Alex, Nik
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3342191739]Gyde's Trait Magazines [B42.20][/url] by Gyde
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3776852122]Gyde's Trait Magazines Extended+[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3827791363]Hands-On Interactions[/url] by olavsoe: Its Viewpoint edition was not tested.
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3786918614]Hands: Stow, Equip, Place [B42][/url]
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2423266708]Hats and Glasses Don't Fall[/url]
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3672792485]HEF - Helicopter Event Framework[/url]
@@ -22,6 +23,8 @@ Loaded with ZeD-GUI, no errors of their own, and ZeD-GUI's tests passed with the
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3718412967]Icons Inventory[/url] by blint: Part of it does not show: its icon grid is on the game's inventory window. [i](by reading its code)[/i]
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3607686447]Immersive Blackouts [B42MP][/url]
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3653092321]Immersive Hotwire[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3830422267]Immersive Moodles[/url] by Krovenox: Its moving moodle column draws at the top right while ZeD's moodles still show in their place, so each moodle shows twice.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3829619974]Immersive Sleep[/url]
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3810071828]Immersive Snow[/url] by kurmetov
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3426448380]Immersive Suicide[/url] by kStank
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3647117173]ImmersiveSolarArrays [42.16+][/url]: Part of it may not show: it draws on the game's inventory list. [i](by reading its code)[/i]
