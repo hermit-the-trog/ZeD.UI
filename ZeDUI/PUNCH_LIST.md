@@ -1077,6 +1077,25 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
         Not run before t15: the full 720 Normal and Large passes (the director: "Short 720, then stage"); they run after
         the upload.
 
+      - **QA, Nov 1 2026, evening: the full 720 passes after the upload** (qa/regression/2026-11-01_t15_720N.md 86 / 99,
+        2026-11-01_t15_720L.md 86 / 100). The same thirteen scripts miss at both text sizes; nothing else:
+        - **Every vehicle script, one cause (eleven scripts):** cars never settle at 1280x720. sl, rb, sm, tm, t3 FAIL on
+          vanilla's onEnterVehicle ("attempted index: isDriver of non-table: null", the vehicle nil at the enter); dash19
+          and dpx "car not ready in 90 ticks (not entered)" on every car; dnt "spawn failed ... no ready car" for all seven;
+          dgr, dke, dbr "car not settled at the seat step ... square true, chunk true, 7.0 away, physics false" for every
+          car. All of them PASS at 4K (t14c) and dke passed at 1280x800 this afternoon. **Build's reading:** the scripts
+          wait in ticks for things that happen in wall time (a spawned car's physics, the chunks after the prelude's
+          move); a 720 window runs many more ticks a second than 4K, so the waits run out first. A rig fault, not the mod.
+          **Probe written** (zedqa_probe_car_ticks.lua, tag pct: one car, wall ms at ticks 30-300 next to its physics)
+          to run at 720, 800 and 4K; if 90 ticks is a fraction of a second at 720 and seconds at 4K, the vehicle scripts
+          and the prelude move to wall-clock waits (as dke's steps already do).
+        - rst FAIL ("no grandstand building near 892,13040; the fixture is incomplete", then ready 0 of 0, ghosts, 14
+          Java exceptions): the same cause suspect (the building not streamed in when the fixture looks).
+        - jrd WARN "Too dark to write": the time of day. Large only: card_pad "ran twice (re-bump)", the runner.
+        Passed at 720 at both sizes: everything else, including tww, cu, wpt, dollv4, the pad suites, the radios, TVs,
+        laundry, the plates, the menus and the soak. Main-menu checks (ZeDUI/qa/Nov1_main_menu/): the About menu ends
+        inside the glass at 720 and 800; the v4 desk at 1080p lit and dimmed matches Design's preview.
+
 43. **Foraging finds: the compass letter is wrong (QA, Nov 1 2026, found while staging the gallery retake).** open.
     `ForagingTab.lua`: `angleToBearing` takes a maths angle (0 = east, 90 = north) and reads the COMPASS table from
     N at index 1, so a find due east is labelled N, north-east NE, due north E, and the ring runs the wrong way round
