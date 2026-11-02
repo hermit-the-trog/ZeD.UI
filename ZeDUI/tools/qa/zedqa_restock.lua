@@ -122,6 +122,35 @@ local function clearSq(sq)
     if not sq:isFree(false) then return false end
     return sq:getObjects():size() <= 1 and sq:getWorldObjects():size() == 0
 end
+-- why a square is not clear, in words (punch list 47: the floor search names what blocks it)
+local function whyNot(sq)
+    if not sq then return "no square" end
+    if sq:getBuilding() ~= building then return "another building or outside" end
+    if not sq:getRoom() then return "no room" end
+    local parts = {}
+    if not sq:isFree(false) then parts[#parts + 1] = "not free" end
+    local objs = sq:getObjects()
+    if objs:size() > 1 then
+        local names = {}
+        for i = 0, objs:size() - 1 do
+            local o = objs:get(i)
+            local spr = o:getSprite()
+            names[#names + 1] = tostring(spr and spr:getName() or o:getObjectName())
+        end
+        parts[#parts + 1] = objs:size() .. " objects (" .. table.concat(names, ", ") .. ")"
+    end
+    local wo = sq:getWorldObjects()
+    if wo:size() > 0 then
+        local names = {}
+        for i = 0, math.min(wo:size(), 6) - 1 do
+            local it = wo:get(i):getItem()
+            names[#names + 1] = tostring(it and it:getFullType())
+        end
+        parts[#parts + 1] = wo:size() .. " on the floor (" .. table.concat(names, ", ") .. ")"
+    end
+    if #parts == 0 then return "clear" end
+    return table.concat(parts, "; ")
+end
 local function moveTo(x, y, z)
     p:setX(x); p:setY(y); p:setZ(z); p:setLastX(x); p:setLastY(y); p:setLastZ(z)
 end
@@ -211,7 +240,44 @@ step(2, function()
             end
         end
     end
-    if not best then say("ERR no clear 9x3 floor in the grandstand"); noFixture = "no clear floor"; return end
+    if not best then
+        -- what stands in the way: the building and its bounds, how many squares fail for each reason, and the
+        -- first blocking square of the 9x3 nearest 892,13040 with what is on it
+        say(string.format("ERR no clear 9x3 floor in the grandstand: building %s, x %d-%d y %d-%d",
+            R.bkey(building), d:getX(), d:getX2(), d:getY(), d:getY2()))
+        local tally, near, nearD = {}, nil, nil
+        for y = d:getY() + 1, d:getY2() - 2 do
+            for x = d:getX() + 1, d:getX2() - 8 do
+                local dist = math.abs(x - 892) + math.abs(y - 13040)
+                if not nearD or dist < nearD then nearD, near = dist, { x = x, y = y } end
+            end
+        end
+        for y = d:getY(), d:getY2() do
+            for x = d:getX(), d:getX2() do
+                local why = whyNot(cell:getGridSquare(x, y, 0))
+                local key = why:match("^[^(;]*") or why
+                tally[key] = (tally[key] or 0) + 1
+            end
+        end
+        local tl = {}
+        for k, n in pairs(tally) do tl[#tl + 1] = k .. "=" .. n end
+        table.sort(tl)
+        say("floor squares: " .. table.concat(tl, " | "))
+        if near then
+            local found = false
+            for dy = -1, 1 do for dx = -1, 7 do
+                if not found then
+                    local sq = cell:getGridSquare(near.x + dx, near.y + dy, 0)
+                    if not clearSq(sq) then
+                        found = true
+                        say(string.format("nearest 9x3 at %d,%d: first blocked %d,%d: %s", near.x, near.y, near.x + dx, near.y + dy, whyNot(sq)))
+                    end
+                end
+            end end
+        end
+        noFixture = "no clear floor"
+        return
+    end
     S = best
     F = cell:getGridSquare(S:getX() + 6, S:getY(), 0)
     say(string.format("fixture: building %s, standing at %d,%d (%d from 892,13040)", R.bkey(building), S:getX(), S:getY(), bd))
