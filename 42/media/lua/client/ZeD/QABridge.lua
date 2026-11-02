@@ -42,28 +42,50 @@ end
 -- its distance, whether its physics is on and whether this game simulates it. A long run's leftovers (cars
 -- not removed, a seat, a speed) show where they first appear. grep "[ZeD.QA] state".
 local function stateLine(n)
-    local ok, line = pcall(function()
-        local pl, cell = getPlayer(), getCell()
-        if not (pl and cell) then return "no player" end
-        local px, py = pl:getX(), pl:getY()
-        local cm = cell:getChunkMap(0)
-        local car = pl:getVehicle()
-        local out = string.format("speed=%s paused=%s player=%d,%d grid=%d inCar=%s",
-            tostring(getGameSpeed and getGameSpeed()), tostring(isGamePaused and isGamePaused()),
-            math.floor(px), math.floor(py), math.floor((cm and cm:getWidthInTiles() or 0) / 8),
-            tostring(car and car:getScriptName() or false))
-        local vs = cell:getVehicles()
-        local n2 = vs and vs:size() or 0
-        out = out .. " vehicles=" .. n2
-        for i = 0, math.min(n2, 12) - 1 do
-            local v = vs:get(i)
-            out = out .. string.format(" [%s %.0f %s%s]", tostring(v:getScriptName()):gsub("^Base%.", ""),
-                math.sqrt((v:getX() - px) ^ 2 + (v:getY() - py) ^ 2),
-                v:isPhysicsActive() and "on" or "off", v:isLocalPhysicSim() and "" or " remote")
+    -- every call is looked up before it is made: a method or global the game does not expose is named in the
+    -- line ("missing=") instead of failing (a failure caught by pcall still logs a Java exception under -debug,
+    -- and the runner counts it against the script; Nov 2 2026, the first state run)
+    local missing = {}
+    local function call(o, m, ...)
+        if o == nil then return nil end
+        local f = o[m]
+        if type(f) ~= "function" then missing[m] = true; return nil end
+        return f(o, ...)
+    end
+    local function glob(name)
+        local f = _G[name]
+        if type(f) ~= "function" then missing[name] = true; return nil end
+        return f()
+    end
+    local function num(v) return type(v) == "number" and v or 0 end
+    local pl, cell = getPlayer(), getCell()
+    if not (pl and cell) then print("[ZeD.QA] state #" .. n .. " no player"); return end
+    local px, py = num(call(pl, "getX")), num(call(pl, "getY"))
+    local cm = call(cell, "getChunkMap", 0)
+    local car = call(pl, "getVehicle")
+    local out = "speed=" .. tostring(glob("getGameSpeed")) .. " paused=" .. tostring(glob("isGamePaused"))
+        .. " player=" .. math.floor(px) .. "," .. math.floor(py)
+        .. " grid=" .. math.floor(num(call(cm, "getWidthInTiles")) / 8)
+        .. " inCar=" .. tostring(car and call(car, "getScriptName") or false)
+    local vs = call(cell, "getVehicles")
+    local cnt = num(call(vs, "size"))
+    out = out .. " vehicles=" .. cnt
+    for i = 0, math.min(cnt, 12) - 1 do
+        local v = call(vs, "get", i)
+        if v then
+            local name = tostring(call(v, "getScriptName"))
+            name = string.gsub(name, "^Base%.", "")
+            local dx, dy = num(call(v, "getX")) - px, num(call(v, "getY")) - py
+            local phys = call(v, "isPhysicsActive")
+            local sim = call(v, "isLocalPhysicSim")
+            out = out .. " [" .. name .. " " .. math.floor(math.sqrt(dx * dx + dy * dy) + 0.5) .. " "
+                .. (phys == true and "on" or (phys == false and "off" or "?")) .. (sim == false and " remote" or "") .. "]"
         end
-        return out
-    end)
-    print("[ZeD.QA] state #" .. n .. " " .. (ok and line or ("ERR " .. tostring(line))))
+    end
+    local m = {}
+    for k in pairs(missing) do m[#m + 1] = k end
+    if #m > 0 then table.sort(m); out = out .. " missing=" .. table.concat(m, ",") end
+    print("[ZeD.QA] state #" .. n .. " " .. out)
 end
 
 function B.runScript()
