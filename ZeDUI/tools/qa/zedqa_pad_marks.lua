@@ -277,7 +277,8 @@ end
 
 -- ---- the crates (as zedqa_world_pad_take.lua builds one)
 local MINE = { ["Base.Nails"] = true, ["Base.Bandage"] = true, ["Base.Hammer"] = true, ["Base.Apple"] = true,
-    ["Base.TinnedBeans"] = true, ["Base.Eraser"] = true, ["Base.Tweezers"] = true, ["Base.Corkscrew"] = true }
+    ["Base.TinnedBeans"] = true, ["Base.Eraser"] = true, ["Base.Tweezers"] = true, ["Base.Corkscrew"] = true,
+    ["Base.Banana"] = true, ["Base.Cabbage"] = true, ["Base.Carrots"] = true }
 local function onlyMine(c)
     local items = c:getItems()
     for i = 0, items:size() - 1 do if not MINE[items:get(i):getFullType()] then return false end end
@@ -313,13 +314,27 @@ local function findInfo(full)
     end
     return nil
 end
+-- a square with any container on it already (Nov 1 2026, the first run: wood crates stack, so the
+-- second crate went on top of the first and the scan below handed back the first crate's container:
+-- crate A and crate B were one container, and the World window had it on show, so no column)
+local function holdsContainer(sq)
+    local objs = sq and sq:getObjects()
+    for i = 0, (objs and objs:size() or 0) - 1 do
+        if objs:get(i):getContainer() then return true end
+    end
+    return false
+end
+local function isOurs(o)
+    for _, c in ipairs(S.crates) do if c == o then return true end end
+    return false
+end
 local function buildCrate()
     local info = findInfo("Base.Wood_Crate_Lvl1")
     if not info then return nil end
     local px, py = math.floor(p:getX()), math.floor(p:getY())
     for _, o in ipairs({ { 1, 0 }, { 0, 1 }, { -1, 0 }, { 0, -1 }, { 1, 1 }, { -1, 1 }, { 1, -1 }, { -1, -1 } }) do
         local sq = getCell():getGridSquare(px + o[1], py + o[2], 0)
-        if sq then
+        if sq and not holdsContainer(sq) then
             p:setBuildCheat(true)
             local b = ISBuildIsoEntity:new(p, info, 1, ISInventoryPaneContextMenu.getContainers(p))
             b.buildCheat = true; b.player = pn; b.sq = sq
@@ -330,7 +345,7 @@ local function buildCrate()
                 local objs = sq:getObjects()
                 for i = 0, objs:size() - 1 do
                     local c = objs:get(i)
-                    if instanceof(c, "IsoThumpable") and c:getContainer() then
+                    if instanceof(c, "IsoThumpable") and c:getContainer() and not isOurs(c) then
                         pcall(function() c:getModData().ZeDQA = "pmk" end)
                         S.crates[#S.crates + 1] = c
                         return c:getContainer()
@@ -663,10 +678,13 @@ step(75, function()   -- (the World window's list looks for containers every 30 
     S.crateA = buildCrate()
     S.crateB = buildCrate()
     check(S.crateA ~= nil and S.crateB ~= nil, "two crates were built beside the character (A " .. tostring(S.crateA ~= nil) .. ", B " .. tostring(S.crateB ~= nil) .. ")")
+    if S.crateA and S.crateB and not check(S.crateA ~= S.crateB, "crate A and crate B are two containers") then S.crateB = nil end
     if S.crateA then addTo(S.crateA, { "Base.Bandage", "Base.Hammer", "Base.Apple" }) end
     if S.crateB then
-        addTo(S.crateB, { "Base.Apple", "Base.Bandage", "Base.Corkscrew", "Base.Eraser", "Base.Hammer", "Base.TinnedBeans",
-            "Base.Tweezers", "Base.Nails", "Base.Nails", "Base.Nails" })
+        -- four different foods with no stacks (the list sorts by category, then name: Apple, Banana,
+        -- Cabbage, Carrots sit next to each other), so the painted run has its four single rows
+        addTo(S.crateB, { "Base.Apple", "Base.Banana", "Base.Cabbage", "Base.Carrots", "Base.Bandage", "Base.Corkscrew",
+            "Base.Eraser", "Base.Hammer", "Base.TinnedBeans", "Base.Tweezers", "Base.Nails", "Base.Nails", "Base.Nails" })
     end
     -- a stack of three in the main inventory (corkscrews: the QA character carries none)
     addTo(p:getInventory(), { "Base.Corkscrew", "Base.Corkscrew", "Base.Corkscrew" })
@@ -705,7 +723,19 @@ step(10, function()
 end)
 step(20, function()
     if not (S.crateA and S.crateB) then return end
-    say("World: crate B as a column: " .. tostring(ZeD_WorldWindow.toggleColumn(S.crateB)))
+    -- the column is for a container that is not the one on show (toggleColumn finds it among the
+    -- window's containers by its inventory): crate A on show, crate B to the column
+    local w = ww()
+    local on = w._containers and w._containers[w._activeContainer or 1]
+    local onInv = on and on.inventory
+    say("World: on show before the column: " .. ((onInv == S.crateA and "crate A") or (onInv == S.crateB and "crate B") or tostring(on and on.name)))
+    if onInv == S.crateB then
+        local st = elIn(w, "worldContainerStrip", function(e) return e.inventory == S.crateA end)
+        if st and st.onActivate then st.onActivate(w, st) end
+        say("World: crate B was on show: crate A put on show again")
+    end
+    if colOn(w, S.crateB) then say("World: crate B already has a column")
+    else say("World: crate B as a column: " .. tostring(ZeD_WorldWindow.toggleColumn(S.crateB))) end
 end)
 step(10, function() whenStill(function() end) end)
 step(30, function()
