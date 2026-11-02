@@ -735,7 +735,8 @@ function ZeD_Reader:onJoypadDirRight() if self.mode == "notebook" then return se
 -- padlock locks the notebook to you at once, Done saves every page and the
 -- name, Back leaves it as it was; someone else's locked notebook, or a Read
 -- note without a pencil, opens to read only.
-local NB = { LINES = 15, LETTERS = 80, RAIL = 230, PAGE_W = 760, HOLE = 14, MARGIN = 64 }
+-- (MARGIN: the red line about a seventh of the page in, as on the real sheet; Nov 1 2026, punch list 50)
+local NB = { LINES = 15, LETTERS = 80, RAIL = 230, PAGE_W = 760, HOLE = 14, MARGIN = 104 }
 local RULE = { r = 0.725, g = 0.776, b = 0.839 }
 local MARGIN_C = { r = 0.827, g = 0.604, b = 0.573 }
 
@@ -937,14 +938,16 @@ function ZeD_Reader:drawNotePage(a)
         local hy = py + T.px(40) + math.floor((ph - T.px(80)) * k / 2) - math.floor(hole / 2)
         punch(self, px + T.px(14) + math.floor(hole / 2), hy + math.floor(hole / 2), math.floor(hole / 2), TABLE)
     end
-    local mx = px + T.px(NB.MARGIN)
-    self:drawRect(mx, py + headH, T.px(2), ph - headH, 1, MARGIN_C.r, MARGIN_C.g, MARGIN_C.b)
-    self:drawRect(mx, py + headH - T.px(2), pw - (mx - px), T.px(2), 1, MARGIN_C.r, MARGIN_C.g, MARGIN_C.b)
+    -- the rules as the real sheet has them (director, Nov 1 2026, punch list 50): blue, edge to edge through
+    -- the margin, the first one closing the head band (the name and the page number write in the band), one
+    -- under each line of the box after it; the red margin runs the page's full height and nothing runs across
     -- (the box's first line starts LINE_TOP below its top; each rule runs under a line)
+    local mx = px + T.px(NB.MARGIN)
     local LINE_TOP = T.px(4)
-    for i = 1, NB.LINES do
-        self:drawRect(mx + T.px(2), py + headH + T.px(2) + LINE_TOP + lh * i, pw - (mx - px) - T.px(2), T.px(1), 1, RULE.r, RULE.g, RULE.b)
+    for i = 0, NB.LINES do
+        self:drawRect(px, py + headH + T.px(2) + LINE_TOP + lh * i, pw, T.px(1), 1, RULE.r, RULE.g, RULE.b)
     end
+    self:drawRect(mx, py, T.px(2), ph, 1, MARGIN_C.r, MARGIN_C.g, MARGIN_C.b)
     -- the name (edited in place) and the page number
     local f3 = T.fontF3
     local pn = ZeD.tr("UI_ZeD_Reader_PageOf", self.pageIx, self.nPages)

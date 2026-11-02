@@ -1258,6 +1258,16 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
       item card). Pattern parity: the same card and rules on the Character window's Journal recipes where a
       recipe shows there.
 
+50. **Notebook paper: the lines were not ruled like paper (the director, Nov 1 2026, with four pictures of the real
+    sheet).** fixed (build, Nov 1), QA to confirm. The Notebooks page (the small page in the Journal's Notebooks
+    sub-tab) and the full page in the reader drew their blue rules only to the right of the red margin, from the
+    very top, the margin close to the edge, and the full page ran a red line across the head. Now, as the real
+    sheet: the rules run edge to edge through the margin, the red margin runs the page's full height about a
+    seventh of the width in (104 of 760 units on the full page), a blank band sits above the first rule (one rule
+    tall on the small page; the head band with the name and page number on the full page, closed by the first
+    rule), nothing red runs across, the binder holes stay. QA: the Notebooks sub-tab's small page with and without
+    writing, and Open full, at 4K and on the Deck.
+
 ## Test process
 
 - The release check (before every upload, about 5 minutes, pass or fail): right-click opens the
