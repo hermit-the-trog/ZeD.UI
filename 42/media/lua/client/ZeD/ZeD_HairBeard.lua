@@ -33,6 +33,7 @@ require "ZeD/Atoms"
 require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
 require "ZeD/Tr"
+pcall(require, "XpSystem/ISUI/ISCharacterScreen")
 
 ZeD = ZeD or {}
 ZeD.HairBeard = ZeD.HairBeard or {}
@@ -127,6 +128,57 @@ local function tools(p)
         print("[ZeD] Hair and beard: reading the tools failed: " .. tostring(err))
     end
     return out
+end
+
+-- Doing a cut or a trim. The game's handlers (ISCharacterScreen.onCutHair / onTrimBeard) find
+-- the tool with getFirstEvalRecurse, the call back of KB Q275; with some mod sets that call fails
+-- for everyone (QA, Nov 2 2026: round 5's nine mods; vanilla's own car spawn failed the same way)
+-- and the handler stops before the action is queued. These are the same steps, the tool found by
+-- ZeD's walk. They stand in only for the game's own handlers: a hair mod that put its own
+-- handler in place keeps it (the game's are kept here as the file loads, before any mod's).
+local VANILLA_CUT = ISCharacterScreen and ISCharacterScreen.onCutHair
+local VANILLA_TRIM = ISCharacterScreen and ISCharacterScreen.onTrimBeard
+
+function HB.cutHair(p, style, time)
+    local hs = p:isFemale() and getHairStylesInstance():FindFemaleStyle(style) or getHairStylesInstance():FindMaleStyle(style)
+    if p:getClothingItem_Head() ~= nil then
+        ISTimedActionQueue.add(ISUnequipAction:new(p, p:getClothingItem_Head(), 50))
+    end
+    local tl = tools(p)
+    local scissors, razor = tl.scissors, tl.razor
+    local name = hs and hs:getName() or style
+    if name ~= "Bald" and not (hs and hs:isAttachedHair()) and not p:getVisual():getNonAttachedHair() then
+        if not getDebug() then ISWorldObjectContextMenu.equip(p, p:getPrimaryHandItem(), scissors or razor, true) end
+    end
+    if name == "Bald" then
+        if scissors then ISWorldObjectContextMenu.equip(p, p:getPrimaryHandItem(), scissors, true)
+        elseif razor then ISWorldObjectContextMenu.equip(p, p:getPrimaryHandItem(), razor, true) end
+    end
+    ISTimedActionQueue.add(ISCutHair:new(p, style, scissors or razor, time))
+end
+
+function HB.trimBeard(p, style)
+    local tl = tools(p)
+    local tool = tl.razor or tl.scissors
+    if tool then ISWorldObjectContextMenu.equip(p, p:getPrimaryHandItem(), tool, true) end
+    ISTimedActionQueue.add(ISTrimBeard:new(p, style, tool))
+end
+
+-- the cut or trim a row runs: ZeD's steps for the game's own handler, else whatever handler is there
+local function cutVia(p, style, time)
+    local fn = ISCharacterScreen.onCutHair
+    if fn == VANILLA_CUT then return HB.cutHair(p, style, time) end
+    return fn(p, style, time)
+end
+local function trimVia(p, style)
+    local fn = ISCharacterScreen.onTrimBeard
+    if fn == VANILLA_TRIM then return HB.trimBeard(p, style) end
+    return fn(p, style)
+end
+local function runOption(o)
+    if o.onSelect == VANILLA_CUT then return HB.cutHair(o.target, o.param1, o.param2) end
+    if o.onSelect == VANILLA_TRIM then return HB.trimBeard(o.target, o.param1) end
+    return o.onSelect(o.target, o.param1, o.param2, o.param3, o.param4, o.param5, o.param6)
 end
 
 local function has(req, tl)
@@ -423,7 +475,7 @@ local function buildRows(win, p, part)
                     local req = hairReq(id, hs and hs:isAttachedHair())
                     local ok = reqsOk(e.requirements)
                     local r = hairRow(p, cur, id, label, ok, (not ok) and reasonFor(req) or nil,
-                        function(pl) ISCharacterScreen.onCutHair(pl, id, t) end, tie and "tie" or "cut")
+                        function(pl) cutVia(pl, id, t) end, tie and "tie" or "cut")
                     rows[#rows + 1] = r
                 end
             elseif type(o.onSelect) == "function" then
@@ -433,7 +485,7 @@ local function buildRows(win, p, part)
                 if kind == "cut" and hs and hs:isAttachedHair() then kind = "tie" end
                 local reason = o.reason or (o.notAvailable and o.toolTip and o.toolTip.description) or nil
                 local r = hairRow(p, cur, style, nm, not o.notAvailable, reason,
-                    function() o.onSelect(o.target, o.param1, o.param2, o.param3, o.param4, o.param5, o.param6) end, kind)
+                    function() runOption(o) end, kind)
                 if vset and kind == "cut" and style and not vset[style] then r.mod = "SpnHairAPI" end
                 rows[#rows + 1] = r
             end
@@ -450,13 +502,13 @@ local function buildRows(win, p, part)
                     local label = (id == "") and getText("ContextMenu_TrimBeard") or intoLabel("ContextMenu_TrimBeard_For", beardWord(id))
                     local ok = reqsOk(e.requirements)
                     local r = beardRow(id, label, ok, (not ok) and reasonFor("rs") or nil,
-                        function(pl) ISCharacterScreen.onTrimBeard(pl, id) end)
+                        function(pl) trimVia(pl, id) end)
                     rows[#rows + 1] = r
                 end
             elseif type(o.onSelect) == "function" then
                 local reason = o.reason or (o.notAvailable and o.toolTip and o.toolTip.description) or nil
                 rows[#rows + 1] = beardRow(o.param1, nm, not o.notAvailable, reason,
-                    function() o.onSelect(o.target, o.param1, o.param2, o.param3, o.param4, o.param5, o.param6) end)
+                    function() runOption(o) end)
             end
         end
     end
