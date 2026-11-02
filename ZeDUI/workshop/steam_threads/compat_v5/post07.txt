@@ -1,0 +1,51 @@
+[h2]Compatible, L to M (part 5 of 9)[/h2]
+Loaded with ZeD-GUI, no errors of their own, and ZeD-GUI's tests passed with them on. Nothing special to say unless a note says so. A note that starts "Part of it does not show" means the mod adds to a game screen that ZeD-GUI replaces. The first post says which reply holds each part; vehicle packs are in reply 12.
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3388808256][B42+]L4D2 Zombie Siege Background Main Menu [16:9+21:9][/url]: Part of it does not show: ZeD's main menu is its own desk, so the menu background it replaces is not seen.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3629835761]Ladders?! B42.20 SP/MP (Unofficial)[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3652012357]Lean & Lie[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3538353228]Legendary Backpacks[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3669469283]Legendary Professions and Traits[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3779562002]LG Extended Electricity[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3779561845]LG Extended Plumbing[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3403870858]Lifestyle: Hobbies[/url] by Angry
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2874678809]Lingering Whispers...[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2920899878]Load All Magazines[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3797292945]Locksmith - Padlocks, Lockpicking, & Re-pinning [B42][/url] by avenoir: Its rows are in ZeD's item and world menus.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3774789651]Long Term Preservation [42.20][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3406392630]Long Term Preservation [B42.13][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3824292323]Loose Ends: Scenario Editor, Game Master & Story Framework[/url] by nullTrace9342: Its tracker sits at the top right, clear of ZeD's watch.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3823828778]Loot Tracker[/url] by willy_theBean: Part of it does not show: its building colours and restock timer are drawn on the game's map. [i](expected)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2732407704][ Reworked] Madax Weapon Pack - B42[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3747202678][B42] Madax Weapons Pack - Fixed 42.21[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3386409674][B42] MandoDB - Old Moodles Icons + Redrawn[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3785198639]Map All Known Fix [B42][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3360392628]Map Mod Manager[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3399645148]Map Symbols Plus (Hand-drawn)[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3395592779]Map Symbols Plus (Stensil)[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3812456765]Martial Arts - Version 2[/url]: Its Martial Arts skill is in ZeD's Skills tab. Its style window button is on the game's side bar, which ZeD hides. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3423601261][B42] Mastered Traits[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3805849470]Mattnetic's Heart Health Meter [B42][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2879745353]Melos Tiles for Miles Tilepack[/url] by melos_tiles
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2928660831]Military Grid Reference System For Map Callouts Cause You And Your Friends Get Lost Easily[/url]: Part of it does not show: its grid is drawn on the game's map, which ZeD's map replaces. [i](expected)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2629286881]Military Ponchos [B42][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2705406713]Military Tool Kit[/url] by Papa_Chad
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2866258937]Mini Health Panel[/url] by Speedy Von Gofast: A click on it opens ZeD's Character window on the Health tab. From ZeD-GUI 0.2.0-t6.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3710913197]Mini Health Plus[/url]: Its body figure panel shows on screen. Its click to the Health page was not tried.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3388844542]Minimal Display Bars + Nutritions + Discomfort [B41/B42.20][/url]: Its bars show at the top left.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3019672735]Mod Comparer[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3077900375]Mod Update and Alert System[/url] by Chuckleberry Finn
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3823338627]Modded Clothing Dataset Compatibility [B42][/url]: A clothing list for This Is Your Life, which does not work with ZeD (see the Does not work reply).
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3451167732]Modern Status[/url] by Rocco: Its bars work; its layout menu opens from the game's Health button, which ZeD hides. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3633421539]ModernFirearmsSystem 42.21 (SP/MP)[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3396446795]Moodle Framework[/url] by Tchernobill: Part of it does not show where you set it: its extra moodles stay at the game's old place at the right edge, not where ZeD's Moodles setting puts them. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3520758551]More Car Features + Spawn Zones Expansion[/url] by GamestaMechanic
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3413150945]More Damaged Objects[/url] by carlesturo
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3162566044][B41/B42] More Immersive Vehicles[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3494474677][B42] More Item Information[/url]: Its tooltip lines (insulation, wind, material, growing season): from ZeD-GUI 0.2.0-t7 they show on ZeD's item tooltip; in 0.2.0-t6 ZeD's tooltip leaves them out.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3390897023]More Maps [B42][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3457064550]More on the Floor[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=1299328280]More Traits [Legacy, read description][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3799050151]More Traits Definitive Edition[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3636171151][B42][MP]MoreMenuOptions[/url]
+[/list]
