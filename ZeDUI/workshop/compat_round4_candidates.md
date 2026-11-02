@@ -409,3 +409,29 @@ Subscribed the same afternoon (Steam signed in; `subscriptions_ledger.md`), test
 | This Is Your Life (character creator) | 3773911887 | Not yet tested | 3796139100 turned out to be its clothing-UI fix; the creator itself and its dataset were subscribed at the end of the day for the next menu run. |
 
 Also in the group's log: eight `Index 200 out of bounds ... LexState.new_localvar` refusals, which is the game's debug-build Lua compiler refusing a file with more than 200 locals (knowledge bank Q260). Not ZeD's (ZeD-alone runs show none); one of the ten has such a file. Everything still passed, so it is a mod-own matter under `-debug` only.
+
+## Results, third group (Nov 2 2026, overnight): the rest of round 4
+
+Subscribed overnight (`subscriptions_ledger.md`, Nov 2), tested with ZeD-GUI 0.2.0-t15 code (main, 638baa7 and later), game 42.22, on a copy of the ZeD-QA save at 4K, ZeD scale 1.75, through `zedqa_mods_run.ps1` with `tools/qa/compat_r4c.txt` (the r4b set: the visible-UI census, every tab, the grid, the item menu as a list, the card on the pad, the cone-nav map, the Health tab's exercise info, a car's dashboard, the map, the moodles, Messages) and `compat_r4c_mods.txt` (20 mods, requirements first, ZeD last). Report `qa/regression/2026-11-02_0003_mods_fullscreen4k.md`: 12 / 12 pass. The main-menu mods through `zedqa_menu_mods_run.ps1` with `zedqa_r3_menu.lua` (`qa/regression/2026-11-02_r4c_menu.console.txt`): Mods, Options, Spawn, Sandbox, Traits (25 occupations, 49 positive and 32 negative traits), Looks, no error. Pictures of note in `qa/Nov2_compat_r4c/`.
+
+| Mod | Workshop id | Verdict | Note |
+|---|---|---|---|
+| Item Arrange Extension (with Item Arrange) | 3813943783, 3767639280 | Compatible | |
+| GarageWorks | 3827271522 | Compatible | |
+| PZ Relationship (with Moodle Framework) | 3820590495 | Compatible | single player only tested; its player menu is for multiplayer |
+| DIY Gear | 3820870164 | Compatible | its recipes list in ZeD's Craft tab |
+| PM2 - Complete Repair Overhaul | 3802480042 | Compatible | |
+| SpiffBoy and SpiffBoy SDK | 3825220364, 3825220785 | Compatible | |
+| Crosshair Overhaul | 3814251221 | Compatible | its panel is present (1x1, drawn while aiming) |
+| More Simple Context Menu Icons (with Simple Context Menu Icons) | 3795593080, 3634921763 | Compatible | ZeD's menus draw their own icons, so the mods' icons do not show in ZeD's strip or list (expected) |
+| Loose Ends | 3824292323 | Compatible | its tracker sits top right (300x40), clear of the watch |
+| Ente's Auto Sorter (with Better Containers) | 3827432728, 3586216562 | Compatible, with a note | its button bar (Tidy, Unpack, Cars, Stock, Search, Setup) is drawn bottom centre over the top half of ZeD's belt (`ente_bar_over_belt.png`); Better Containers logs its own text-format errors (10) at load |
+| Extensive health redone | 3824731938 | Compatible | ZeD's Health tab passes with it on |
+| Drag And Drop (Item Placements) | 3828392514 | Compatible | dragging out of ZeD's lists into the world not tried (expected: ZeD's lists keep their own drag) |
+| Farm Panel Plus | 3826624859 | Compatible | its panel opens on Ctrl+G (not opened in this run) |
+| This Is Your Life (character creator, with its clothing fix and dataset) | 3773911887, 3796139100, 3823338627 | Does not work with ZeD | loads without error, but ZeD's own Looks screen replaces the creator it changes, so none of its features show |
+| Mod Load Order Sorter Extension (Lua base mod; with Mod Load Order Sorter) | 3809995878 | Not needed with ZeD | ZeD's Mods screen replaces the load-order screen it extends; since 0.2.0-t15 ZeD's load order has Find, Load first / last and Load after / before rules. Its ZombieBuddy sub-mod was not tested (Java). |
+
+Not tested: Silent Hill 2 OG Main Menu Background (installed by hand) and Knox Companion (online web map).
+
+Found by the sandbox probe the same night (not a mod's fault; ZeD's): with the 150 mods of `compat_r3_full_2_mods.txt` on, the Sandbox step has 42 pages and its page list runs off the window: 22 rows fall below the list, 10 below the screen, at 4K; the mouse wheel does not move the list, and the controller's bumpers reach the last page but its row stays off screen (`zedqa_menu_sandbox_pages.lua`, `qa/regression/2026-11-02_sandbox_pages_4k.console.txt`, `qa/Nov2_compat_r4c/zqa_sbp_pages_*.png`). This is Kable's Bug reports post of Nov 1.

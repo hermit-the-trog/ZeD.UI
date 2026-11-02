@@ -1,0 +1,34 @@
+ZEDQA sbp start | screen 3840x2160 | view main
+ZEDQA sbp step main: view main | 30 frames
+ZEDQA sbp step newgame: view newgame | 30 frames
+ZEDQA sbp NOTE New game: playstyle 5 (Sandbox), its next()
+ZEDQA sbp step spawn: view spawn | 30 frames
+ZEDQA sbp step sandbox: view sandbox | 45 frames
+ZEDQA sbp screen 3840x2160 | window 995,303 1850x1356 (bottom 1659) | root scale 1.75 | text small
+ZEDQA sbp sandbox pages: 42 (page hits drawn: 42) | page row height T.px(30) = 53, measured 53
+ZEDQA sbp page list area: 1016,370 368x1165 (Find box 60 px, rows from 432, list bottom 1535)
+ZEDQA sbp page titles: Time | Zombie | Loot | World | Nature | Meta | Character | Vehicles | Livestock | More Builds | Military Grid Reference System (FMCCYAYFGLE) | PZ TrueMoozic | PZ True Moozic Debug | PZ TrueMoozic - Holiday | Radio Frequency Manager | Better Safehouse | Better Safehouse - Custom | Better Safehouse - Extra | Better Safehouse - Expansion | Pager Network | Pager Tower (Only Applies to Ultra Realistic) | Civil Defense Sirens | More menu options | True Music Radio | Whose Key Is This? | Area Tasks | Night Vision Chucked | Helicopter Events | Undead Survivor | Military Ponchos - Aky | Sandbox_MWPWeapons | KYR Real Weather | Bandits General | Immersive Solar Arrays | Sandbox_SleepWithFriends | MFS 1 - Firearm Spawn Switches (Off Removes Type from New Loot) | MFS 2 - Individual Firearm Rates (0 = Off, 1 = Default) | MFS 3 - Firearm and Attachment Loot | MFS 4 - Gameplay Settings | CDDA Zombies' Spawn Rate | Wash or Rot | ZeD-GUI
+ZEDQA sbp last page row (42 ZeD-GUI): 2605 to 2658 | list bottom 1535 | window bottom 1659 | screen bottom 2160 | over by 1123 px
+ZEDQA sbp FAIL every sandbox page row lies inside the page list: 22 of 42 rows fall below it (10 past the screen's bottom): Pager Tower (Only Applies to Ultra Realistic) | Civil Defense Sirens | More menu options | True Music Radio | Whose Key Is This? | Area Tasks | Night Vision Chucked | Helicopter Events | Undead Survivor | Military Ponchos - Aky | Sandbox_MWPWeapons | KYR Real Weather | Bandits General | Immersive Solar Arrays | Sandbox_SleepWithFriends | MFS 1 - Firearm Spawn Switches (Off Removes Type from New Loot) | MFS 2 - Individual Firearm Rates (0 = Off, 1 = Default) | MFS 3 - Firearm and Attachment Loot | MFS 4 - Gameplay Settings | CDDA Zombies' Spawn Rate | Wash or Rot | ZeD-GUI
+ZEDQA sbp shot zqa_sbp_pages_3840x2160
+ZEDQA sbp wheel: mouse set to 1200,982 (over the page list) | first page row at 432 | right list scroll 0
+ZEDQA sbp wheel: the mouse reads 1922,1081
+ZEDQA sbp wheel: window onMouseWheel(1) -> true
+ZEDQA sbp wheel: desk MM.wheel(1) -> true
+ZEDQA sbp wheel: first page row 432 -> 432 | right list scroll 0 -> 0 | page 1 -> 1
+ZEDQA sbp FAIL the wheel does not scroll the page list (the first page row did not move)
+ZEDQA sbp pad Down x102: focus went through 5 controls, last back | landed on a page row false (first few: orow:2, orow:3, orow:4, orow:5, back)
+ZEDQA sbp NOTE pad: the D-pad does not move onto the page list; pages change with LB / RB (joyBumper)
+ZEDQA sbp pad RB x41 from page 1: page 42 of 42
+ZEDQA sbp PASS the pad's RB reaches the last sandbox page (page 42 of 42)
+ZEDQA sbp pad: the chosen page's row 2605 to 2658 | list bottom 1535 | screen bottom 2160
+ZEDQA sbp FAIL the last page's row (chosen by the pad) is drawn inside the page list
+ZEDQA sbp FAIL the last page's row (chosen by the pad) is on screen
+ZEDQA sbp shot zqa_sbp_pages_3840x2160_padlast
+ZEDQA sbp pad: RB once more -> page 1
+ZEDQA sbp step back to main: view main | 30 frames
+ZEDQA sbp put back: view main
+ZEDQA sbp did not run: none
+ZEDQA sbp summary 3840x2160: 1 PASS, 4 FAIL
+ZEDQA sbp DONE
+default.txt, ModOptions.ini and autoload put back
