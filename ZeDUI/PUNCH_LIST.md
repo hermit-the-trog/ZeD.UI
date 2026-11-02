@@ -1234,6 +1234,9 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     anchor, which a push never moves (the push is kept apart, _drawerCapPush, and the anchor is set less it). QA: the
     720 wpt run's cu straight after the prelude, the World window's saved x the window's own (858.667 at 720), with a
     full-card tab open while the save is written.
+    **QA, Nov 2 2026: confirmed at 436dabb (2026-11-02_pl46_pgi_720.md: the prelude then cu at 1280x720).** cycle1 World
+    saved 858.667,0 with the Maps card open in the drawer (the window held at 640 by the push); cycle2 858.667 too; the
+    Character window 404,0 from its anchor. cu passes.
 
       - **0.2.0-t15 uploaded Nov 1 2026, 3:55 pm (the director: "Uploaded").** Tag v0.2.0-t15 at d66f07e pushed;
         backup D:\ZeD-UI backup\2026-11-01-t15 (zed_backups, workshop.txt + preview.png, the QA save); Contents
@@ -1262,6 +1265,15 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     the same line at its fixture step (the square at 892,13040), and a fixture not found (no grandstand, no clear floor,
     or an incomplete build, whose pieces are removed) now ends the script with one ERR line and DONE instead of an error
     in every later step. Parsed (KCheck). Ready for the 35-minute 720 slot.
+    **QA, Nov 2 2026: run (2026-11-02_pl47_bisect_720.md: prelude + scripts 42-80 + sl at 1280x720, 40 / 41).** Scripts
+    42-80 all pass; sl fails as in the full passes (vanilla's "onEnterVehicle: isDriver of non-table: null" for the police
+    car and the van, physics=false at the enter). The probe rules out the cars falling outside the simulated grid:
+    "player=964,13078 grid=13 chunks (104 tiles) loaded x 912-1016 y 13024-13128 sq=968,13078 dist=4.1 chunk=true
+    inMap=true car=Base.CarLightsPolice ... vehicles=8" (the van the same at 6.0 tiles). Each car is a few tiles from the
+    character, on a loaded square in the chunk map; the cell holds 8 vehicles, so earlier scripts left cars behind
+    (only sl prints, so where the count grows is not seen). Next: what scripts 42-80 leave that keeps a fresh car's
+    physics asleep (the cars left behind, or a vehicle or seat state on the character); a halving of 42-80 at 720
+    (about 15 min each) with the probe in a few of them, or a probe line at the start of each script.
 
 48. **The main menu on a Steam Deck and at 720p: readable type, the desk leans in (t16; the director, Nov 1 2026).**
     built (build, Nov 1), QA to confirm. The Oct 29 overflow was the saved 1.75 scale, now held at 0.75 by item 39, so
@@ -1479,6 +1491,22 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     Sandbox window the same, its change marks on the right rows after a scroll; Options with many mod pages; the
     server settings' bumpers. Reply to Kable drafted in the Nov 2 morning note (post after the build ships, with the
     director's yes).
+    **QA, Nov 2 2026: confirmed at 3050a0d (the 150-mod rig, the main menu at 4K and on the Deck; the in-game window at
+    720; new checks zedqa_menu_pagelist.lua and zedqa_sandbox_ig_pages.lua on zedqa_pagelist_lib.lua).** The Sandbox step,
+    42 pages: 26 / 26 at 4K (box 1101 px, 21 rows shown) and 26 / 26 on the Deck (box 528 px, 18 rows shown). Every drawn
+    row inside the box and the box on screen; a bar when the pages overflow; the wheel over the list reaches the last
+    page whole (11 notches at 4K, 13 on the Deck) without changing the picked page, and back up to the first; the bar
+    pressed at its end, middle (half way) and top; RB from page 1 to 42 keeps the picked row whole in view at all 41
+    steps, RB on the last wraps to the first and LB on the first to the last, both in view; a click on a row cut by the
+    box's top or bottom edge picks it, 2 px past either edge picks no page, a click on Find picks none. Pictures: the
+    rows clip cleanly at both edges. Options, 9 pages: they fit at both sizes (no bar), bumpers and wraps pass. The
+    Sandbox window in game (720): its 12 pages fit, bumpers and wraps pass; a changed setting's mark sits on its page's
+    row inside the box, and Undo clears it. Not covered: the wheel by a real mouse (the test points the game's mouse
+    reading at the list for each notch: the game reads the desktop cursor every frame; QA's control of the game window
+    was not granted with nobody at the PC); the in-game window with a list long enough to scroll, so its marks riding a
+    scroll (the in-game run with the 150 mods opened the save without them: one script load instead of three; to look
+    at); the server settings' bumpers (no server settings file on this machine). Reports: 2026-11-02_pgl_4k.console.txt,
+    2026-11-02_pgl_deck.console.txt, 2026-11-02_pl46_pgi_720.md.
 
 ## Test process
 
