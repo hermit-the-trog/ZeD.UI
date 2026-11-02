@@ -6388,5 +6388,113 @@
    null
   ],
   "r4": true
+ },
+ "3830018449": {
+  "id": "3830018449",
+  "name": "Better Context Menu Icons",
+  "author": "SuperOl3g",
+  "list": "N",
+  "note": "ZeD's menus draw their own icons for every action, so its icons do not show. Use one.",
+  "cr": [
+   null,
+   null
+  ],
+  "r4": true
+ },
+ "3830422267": {
+  "id": "3830422267",
+  "name": "Immersive Moodles",
+  "author": "Krovenox",
+  "list": "C",
+  "note": "Its moving moodle column draws at the top right while ZeD's moodles still show in their place, so each moodle shows twice.",
+  "cr": [
+   null,
+   null
+  ],
+  "r4": true
+ },
+ "3828627678": {
+  "id": "3828627678",
+  "name": "Paravel's Enhanced Inventory",
+  "author": "Paravel",
+  "list": "N",
+  "note": "It replaces the game's inventory and loot windows, which ZeD already replaces; none of its windows showed over ZeD's. Needs Paravel's UI. Use one.",
+  "cr": [
+   null,
+   null
+  ],
+  "r4": true
+ },
+ "3828626636": {
+  "id": "3828626636",
+  "name": "Paravel's UI",
+  "author": "Paravel",
+  "list": "N",
+  "note": "The base for Paravel's Enhanced Inventory. Use one.",
+  "cr": [
+   null,
+   null
+  ],
+  "r4": true
+ },
+ "3828137227": {
+  "id": "3828137227",
+  "name": "Light Belt [B42 MP]",
+  "author": "mirusona",
+  "list": "C",
+  "note": "Its lights hang on the belt slots; ZeD's belt works with it on.",
+  "cr": [
+   null,
+   null
+  ],
+  "r4": true
+ },
+ "3829406098": {
+  "id": "3829406098",
+  "name": "Bag Check (B42)",
+  "author": "Slade",
+  "list": "C",
+  "note": "Its Ground Bag add-on was not tested.",
+  "cr": [
+   null,
+   null
+  ],
+  "r4": true
+ },
+ "3827791363": {
+  "id": "3827791363",
+  "name": "Hands-On Interactions",
+  "author": "olavsoe",
+  "list": "C",
+  "note": "Its Viewpoint edition was not tested.",
+  "cr": [
+   null,
+   null
+  ],
+  "r4": true
+ },
+ "3815818643": {
+  "id": "3815818643",
+  "name": "Cheat Menu 2.0 - Rax's Reborn",
+  "author": "Rax",
+  "list": "C",
+  "note": "One error of its own: part of it does not load when the game is started in debug mode. Its menu was not opened.",
+  "cr": [
+   null,
+   null
+  ],
+  "r4": true
+ },
+ "3829619974": {
+  "id": "3829619974",
+  "name": "Immersive Sleep",
+  "author": null,
+  "list": "C",
+  "note": "",
+  "cr": [
+   null,
+   null
+  ],
+  "r4": true
  }
 }

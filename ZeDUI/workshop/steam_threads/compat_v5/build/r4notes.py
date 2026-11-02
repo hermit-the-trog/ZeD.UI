@@ -95,3 +95,22 @@ CHANGED = {
  "2950750587": dict(note="One error of its own at load on 42.21 (in its weather channel code). Not ZeD."),
  "3036830549": dict(note="Its clothing tooltip errors every frame on 42.21 (a nil call in its own tooltip code), with or without ZeD-GUI. Not ZeD."),
 }
+
+# Round 5 (Nov 2 2026, overnight): the Workshop's trending Build 42 mods since Oct 29, ZeD-GUI 0.2.0-t15 code.
+# Makers from each mod's mod.info; names as on the Workshop.
+R5 = {
+ "3830018449": ("Better Context Menu Icons", "SuperOl3g", "N",
+                "ZeD's menus draw their own icons for every action, so its icons do not show. Use one.", None),
+ "3830422267": ("Immersive Moodles", "Krovenox", "C",
+                "Its moving moodle column draws at the top right while ZeD's moodles still show in their place, so each moodle shows twice.", None),
+ "3828627678": ("Paravel's Enhanced Inventory", "Paravel", "N",
+                "It replaces the game's inventory and loot windows, which ZeD already replaces; none of its windows showed over ZeD's. Needs Paravel's UI. Use one.", None),
+ "3828626636": ("Paravel's UI", "Paravel", "N", "The base for Paravel's Enhanced Inventory. Use one.", None),
+ "3828137227": ("Light Belt [B42 MP]", "mirusona", "C", "Its lights hang on the belt slots; ZeD's belt works with it on.", None),
+ "3829406098": ("Bag Check (B42)", "Slade", "C", "Its Ground Bag add-on was not tested.", None),
+ "3827791363": ("Hands-On Interactions", "olavsoe", "C", "Its Viewpoint edition was not tested.", None),
+ "3815818643": ("Cheat Menu 2.0 - Rax's Reborn", "Rax", "C",
+                "One error of its own: part of it does not load when the game is started in debug mode. Its menu was not opened.", None),
+ "3829619974": ("Immersive Sleep", None, "C", "", None),
+}
+R4.update(R5)

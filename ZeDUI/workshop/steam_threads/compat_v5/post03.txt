@@ -27,6 +27,7 @@ Loaded with ZeD-GUI, no errors of their own, and ZeD-GUI's tests passed with the
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3388183573]Auto Tailoring[/url]: Its Auto Rip rows are in ZeD's item menu. Part of it does not show: its buttons on the game's protection page. [i](by reading its code)[/i]
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3386860561]B42 Native ModOptions Example[/url]: Its example options page is in the game's Mod Options.
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3238830225]B42 Real Firearms WIP[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3829406098]Bag Check (B42)[/url] by Slade: Its Ground Bag add-on was not tested.
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3789234614]Balaclava Slot[/url]
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3469292499][B42] Bandits Creator[/url]: Its rows are in ZeD's world menu.
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3268487204]Bandits NPC[/url] by Slayer: Its note at game start goes into ZeD's Messages.
@@ -39,4 +40,6 @@ Loaded with ZeD-GUI, no errors of their own, and ZeD-GUI's tests passed with the
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3580557206]Better Daily Reports[/url]: Its daily report window opens by itself at game start, clear of ZeD's windows.
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3420478458][B42.21] Better Flashlights[/url]
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3768298886]Better Lockpicking (Continued) b42.20+[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3634569678]Better Safehouse [B42.20- MP][/url]: Multiplayer safehouse screens.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2756434288]Better Server Settings[/url]
 [/list]

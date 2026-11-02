@@ -9,6 +9,7 @@ Loaded with ZeD-GUI, no errors of their own, and ZeD-GUI's tests passed with the
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3779562002]LG Extended Electricity[/url]
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3779561845]LG Extended Plumbing[/url]
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3403870858]Lifestyle: Hobbies[/url] by Angry
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3828137227]Light Belt [B42 MP][/url] by mirusona: Its lights hang on the belt slots; ZeD's belt works with it on.
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2874678809]Lingering Whispers...[/url]
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2920899878]Load All Magazines[/url]
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3797292945]Locksmith - Padlocks, Lockpicking, & Re-pinning [B42][/url] by avenoir: Its rows are in ZeD's item and world menus.
