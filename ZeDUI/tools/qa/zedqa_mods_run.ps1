@@ -18,7 +18,9 @@ param(
     [Parameter(Mandatory)][string]$ModList,
     [ValidateSet("windowed", "fullscreen4k")][string]$Mode = "windowed",
     [string]$Manifest = "",
-    [switch]$ZeDFirst
+    [switch]$ZeDFirst,
+    [int]$Width = 0,    # (Nov 2 2026) windowed only: passed to zedqa_run.ps1 (1280x800 the Deck, 1280x720)
+    [int]$Height = 0
 )
 $ErrorActionPreference = "Stop"
 $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
@@ -42,6 +44,7 @@ try {
     [System.IO.File]::WriteAllText((Join-Path $QaSave "mods.txt"), $txt, $Utf8NoBom)
     $a = @{ Mode = $Mode; Report = $Report }
     if ($Manifest) { $a.Manifest = $Manifest }
+    if ($Width -gt 0) { $a.Width = $Width; $a.Height = $Height }
     & (Join-Path $QaDir "zedqa_run.ps1") @a 2>&1 | ForEach-Object { Write-Output $_ }
 }
 finally {

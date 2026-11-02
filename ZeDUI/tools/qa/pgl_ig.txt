@@ -1,0 +1,3 @@
+# punch list 52 in game (Nov 2 2026): the Sandbox window page list and change marks with the 150-mod list
+zedqa_prelude.lua | pre
+zedqa_sandbox_ig_pages_run.lua | pgi | timeout=600

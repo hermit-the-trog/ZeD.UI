@@ -1,0 +1,42 @@
+# punch list 47 (Nov 2 2026): the 720 vehicle bisect: prelude + full-pass scripts 42-80 + sl, with Build's ZEDQA vp probe lines
+zedqa_prelude.lua | pre                          # opens both windows, unpauses, god mode, ~60 ticks
+zedqa_reader.lua | rd                            # the reader through vanilla's Read: paper, words, zoom, flyer, map
+zedqa_reader_refs.lua | rr                       # reader reference captures; items taken back
+zedqa_notebook.lua | nb                          # writing in a notebook through vanilla's Write; locked notebook
+zedqa_print_fit.lua | pf                         # newspaper stories fitted to their columns (prototype)
+zedqa_print_typeset.lua | ts                     # newspaper page typeset by ZeD (prototype)
+zedqa_prompts.lua | pr                           # every prompt kind through vanilla's constructors, answered harmlessly
+zedqa_fishing.lua | fi                           # vanilla's tension meter fed each tension
+zedqa_props_plates.lua | props                   # rod and clock radio plates on a test panel
+zedqa_belt_strap.lua | belt                      # the pixel-art belt strap
+zedqa_straps.lua | straps                        # per-slot strap materials, four loadouts, all taken off
+zedqa_buckle.lua | bk                            # the buckle stays on the screen centre with a watch on either wrist
+zedqa_buckles.lua | bks                          # every profession's buckle; the profession goes back
+zedqa_beltwatch.lua | bw                         # the mini watch on the belt: pop, drag, tuck, Corner mode
+zedqa_hands_together.lua | ht | timeout=300           # the hands together at the left end (main 56, off 44), the off hand peeking with one item in both hands, the ammo tab under the main hand, clicks, the pad walk, watches
+zedqa_watches2.lua | watches                     # the nine watch plates by day and night; own watch and time back
+zedqa_container_bottom.lua | cb                  # container buttons row at the bottom, campfire ribbon
+zedqa_container_controls.lua | ct                # Same type / Take all / Transfer all / To floor, campfire buttons
+zedqa_container_controls_captures.lua | cc       # ZeD and vanilla windows on the truck bed (mockup backdrops)
+zedqa_px_icons.lua | px | timeout=240           # ZeD's pixel icons outside the wheels: every id's drawings and the box rule, a test panel (each icon in every button state, the card's marks, the chevrons), the item card's marks and both rows live
+zedqa_button_case_game.lua | bg                  # sentence-case buttons across the windows; shirt taken back
+zedqa_immersive_searching.lua | iss | timeout=240   # punch list 40, Immersive Searching support: here (the mod off) nothing changes; with the mod on (isearch_manifest.txt, isearch_mods.txt) the ? chip, the pick starts its search, things turn up as it reveals them, the band's bar, Search all, Take all and moves held back
+zedqa_wheel_sizes.lua | ws                       # the ZeD wheel at 3 to 11 slices
+zedqa_wheel_icons.lua | wi | timeout=600       # the wheels' icons: every icon, the box rule, vanilla's words and pictures, ZeD's wheels, the live radials; captures at the scale in use and at 1x
+zedqa_wheels.lua | wh                            # vanilla's wheels through vanilla's functions, routed slices
+zedqa_dpad_wheels.lua | dw | timeout=600       # the D-pad wheels and the Select ZeD wheel: slices on foot / in a car / by an animal, inner wheels, Back, takes, paused, L3 / R3; every theme at both sizes
+zedqa_pad_glyphs.lua | pg | timeout=400         # the button pictures: footer and wheel prompts in every set (PlayStation, Xbox, Steam Deck, Nintendo), boxed names on Keyboard/mouse, light and high contrast, the dash hint
+zedqa_quick_chords.lua | qc | timeout=300       # quick action chords: the defaults resolve, LB + X torch from a bag on and off, eat / drink / smoke queued, a gone thing's reason, the press swallowed, assigning from a wheel, ZeD setup's rows and list
+zedqa_put_back.lua | pb | timeout=900 | expect=ISDrinkFromBottle.lua:82   # putting things back: apple, lighter, bottle back into the bag; a tire's jack and wrench back into the trunk; not after a stop; not with the switch off
+zedqa_food_verbs.lua | fv | timeout=120         # a food with its own verb: the card says Smoke / Drink, the action bar SMOKING; an apple still Eat / EATING
+zedqa_messages.lua | msg | timeout=300 | expect=qaMessagesError   # Messages: another mod's notes kept (not shown), its question asked and copied, an error filed once, the toast, the belt's note, the window's OK (mouse and pad), the per-mod pop-up switch, Clear
+zedqa_moodles.lua | mood | timeout=240          # the moodles in each place (and the thought bubble with its trail, the note by itself) (right edge, left edge, centred above the belt): on screen, where the place puts them, no second copy; four moodles turned on and put back
+zedqa_ring_squares.lua | rs | timeout=200       # the hands' condition ring at full / 70 / 50 / 20 per cent; ZeD setup's switch hides the windows' theme, accent and text squares, R stays and answers; hands and switch put back
+zedqa_sandbox_ig.lua | sbx | timeout=240         # Sandbox options in game: the pause line only with the switch on, pages and tags, a fixed setting locked, Zombie Count's link, Undo, Apply asks then sets the options / SandboxVars / day length / History, Put back; puts everything back
+zedqa_twoway.lua | tw | timeout=600             # the ten two-way radio faces in the radio tab, their controls, full view, the controller
+zedqa_rtv.lua | rtv | timeout=600               # the ordinary radios, the CD player and the three TVs as faces (Oct 30 2026): half / full card, power, volume, tuning, presets, battery / headphones / CD through vanilla's actions, the controller's stops, the simple card with faces off, placed sets by their tiles, the TV screen's states; all taken away
+zedqa_appliances.lua | ap | timeout=240         # oven and microwave faces at whole zoom in the Craft tab, and in their own window (at the West Point Fossoil: power indoors)
+zedqa_two_widths.lua | tww | timeout=900          # the two widths (Oct 29 2026): every tab, card and the Maps pop-out in both windows is the half card or the full card, the other window never moves or resizes, no overlap, a held-in window gets the half card
+zedqa_plates_336.lua | p336 | timeout=900          # the 336 px machine plates and 200 px narrow faces (Oct 29 2026): oven, both microwaves, generator, grill at the run scale and at 0.5, which face is drawn, presses that act
+zedqa_laundry.lua | ldy | timeout=600            # the washer, dryer and washer-dryer face cards (Oct 30 2026): the container row's gears button opens the card, the face that fills it, door / power / WASH / DRY through vanilla's actions, the clock's phase lamps, the plain buttons back through LD.useFace; machines and shirt taken away (indoors for power)
+zedqa_seat_lightbar_vanilla.lua | sl | expect=FBORenderLevels.getNLevels   # seat chooser and lightbar from vanilla's entry points (the game's own render error late in a long run; not with ZeD alone or off, Oct 27 2026)
