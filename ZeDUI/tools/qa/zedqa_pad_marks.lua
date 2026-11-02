@@ -1,53 +1,47 @@
--- ZeDUI/tools/qa/zedqa_pad_marks.lua  (Nov 1 2026; punch list 44, for t16)
+-- ZeDUI/tools/qa/zedqa_pad_marks.lua  (Nov 1 2026; punch list 44, for t16; brought in line with d87f278)
 -- Controller marks in the inventory, both windows: the Character window's main list and a World
 -- window column (crate B, opened as a column beside the main list showing crate A; both crates are
 -- built beside the character for the run).
 --
--- THE HOLD CANNOT BE DRIVEN TODAY. FocusManager keeps the A and X hold state in file locals
--- (_aHeld, _aStartMs, _aConsumed, _aWindow; _xHeld ... X_HOLD_MS), out of a script's reach, and its
--- OnTick poll (_onTick, sections C2 / C3) decides "held past 350 ms" and "let go" by reading the
--- real button every tick: JoypadButton.A:isDown(jid) / JoypadButton.X:isDown(jid). The poll also
--- stops before those sections when player 1 has no controller bound (getJoypadData(0) with no id),
--- which is how the QA character plays. So a press sent through Focus.dispatchJoypadDown(A or X)
--- either resolves as a tap on the next tick (a pad bound, its button up) or stays armed for good
--- (no pad bound). There is no field a script can set to say "A is held".
--- What this script does instead (the stand-in), each the exact call the manager would make:
---   hold A    = the focused row's onHoldActivate(w, el)        (_handleHoldConfirm's call: padMark)
---   held Down = Focus.dispatchJoypadDir(w, "down"), then the row landed on takes
---               el.onPaint(w, el, w._gpPaint)                  (the _handleSpatialNav wrapper's call)
---   let go A  = w._gpPaint = nil                               (the C2 release's line)
---   hold X    = the focused row's onHoldContext(w, el)         (C3's one-shot call: the quick use)
---   tap A / X = the focused element's onActivate / onContextMenu (a pad bound: dispatchJoypadDown)
---   B         = Focus.dispatchJoypadDown(w, Joypad.BButton)    (the real path: B is immediate)
--- Marks set up for a check that is not about marking (the menu, B, tap A, the band) are made with
--- InventoryRenderer.padMark straight on the row elements, focus kept; the lines say so.
--- The hook Build can add (FocusManager.lua) so the real hold runs: a stand-in for the two buttons'
--- state, read by C2 / C3 in place of the raw button, and C2 / C3 run before the "no controller
--- bound" return. This script looks for Focus.qaButton and, when it exists, drives the real hold:
---     dispatchJoypadDown(A); Focus.qaButton("A", true); wait 450 ms by the clock (the poll fires
---     onHoldActivate); dispatchJoypadDir Down (the wrapper paints); Focus.qaButton("A", false)
---     (the poll's release clears _gpPaint); Focus.qaButton("A", nil) (back to the real pad).
+-- THE HOLD: FocusManager's QA hook, Focus.qaButton(name, down) (true held, false up, nil the real
+-- pad; read by _btnDown in place of the raw isDown, and the A / X / Y holds run in _holdTicks before
+-- the no-pad return). The press still arms the hold (_aHeld / _xHeld are set by the press handler), so:
+--     Focus.dispatchJoypadDown(w, A or X); Focus.qaButton(name, true); wait 450 ms by the clock
+--     (past A_HOLD_MS / X_HOLD_MS: the poll fires onHoldActivate / onHoldContext); D-pad moves
+--     with A held (the _handleSpatialNav wrapper paints); Focus.qaButton(name, false) (the poll's
+--     release clears _gpPaint); a few ticks later Focus.qaButton(name, nil).
+--   tap A / X = dispatchJoypadDown, then qaButton(name, false): the poll resolves a tap next tick
+--   B         = Focus.dispatchJoypadDown(w, Joypad.BButton)    (B is immediate)
+-- Only when Focus.qaButton is missing (an older build) the script falls back to the stand-in, the
+-- calls the manager would make: onHoldActivate / onPaint after dispatchJoypadDir / w._gpPaint = nil /
+-- onHoldContext / onActivate / onContextMenu. The setup line says which drive ran.
+-- Marks set up for a check that is not about marking (the menu after a short stroke, tap A, the
+-- bands) are made with InventoryRenderer.padMark straight on the row elements, focus kept; the lines
+-- say so.
 --
 -- Checks ("ZEDQA pmk PASS/FAIL ..." with the values), in each window's list:
---   hold A marks the row (in its list's selection = the wash; padMarkCount 1); with one mark the
---   card is hidden; hold A again unmarks; a stack header marks its stack (count = the stack's
+--   with no marks the footer's hold-A prompt reads "Mark (hold)", B's prompt is hidden and B does
+--   nothing; hold A marks the row (in its list's selection = the wash; padMarkCount 1); with one mark
+--   the card is hidden; hold A again unmarks; a stack header marks its stack (count = the stack's
 --   size); hold A + Down x3 marks the four rows (union of their stacks) and letting go ends the
 --   stroke (the next Down leaves the marks as they were); with the marks the card is hidden; the
---   help line's words "N marked | X: menu for all | B: clear marks" are stamped, and drawn (not
---   replaced by the prompts); the footer's X and B prompts read "Menu for marked" and "Clear
---   marks"; X opens the game's menu and its Drop / Grab takes all N (the option's items printed);
---   B clears the marks and the focus stays on the row; tap A on a marked row opens its card and the
---   other marks go. World only: marks in the column and in the main list stay apart (selections
---   and X's items); hold X on a crate row brings it to the main inventory; the band's Take with two
---   of crate A's three rows marked takes the two and leaves the third.
+--   footer reads "Unmark (hold)" on a marked row, X "Menu for N marked" and B "Clear marks"; X opens
+--   the game's menu and its Drop / Grab takes all N (the option's items printed); B clears the marks,
+--   the focus stays on the row, B's prompt goes and a second B does nothing; tap A on a marked row
+--   opens its card and the marks go. World only: marks in the column and in the main list stay apart
+--   (selections and X's items); hold X on a crate row brings it to the main inventory (quick use).
+--   The bands (single view): with two of crate A's three rows marked the World band's Take reads
+--   "Take marked" and takes the two, the third stays, the marks go; with two of the bag's rows marked
+--   the Character band's Transfer all reads "Move marked" ("Drop marked" when the World window shows
+--   the floor) and moves the two, the corkscrews stay, the marks go.
 -- Pictures: zqa_pmk_char_marks.png, zqa_pmk_world_marks.png (the marked run, the rect printed).
 -- Puts back: marks cleared, the card closed, the column shut, the crates and the run's things
--- removed, the help-line wrapper taken off, input mode back to auto. grep "ZEDQA pmk".
+-- removed, the hook handed back to the pad, input mode back to auto. grep "ZEDQA pmk".
 local p = getPlayer()
 local pn = p:getPlayerNum()
 local Focus, Det, R = ZeD.Input.Focus, ZeD.Input.Detector, ZeD.InventoryRenderer
 local function say(s) print("ZEDQA pmk " .. tostring(s)) end
-local S = { pass = 0, fail = 0, added = {}, crates = {}, helpLog = {} }
+local S = { pass = 0, fail = 0, added = {}, crates = {} }
 S.hook = type(Focus.qaButton) == "function"
 local SW, SH = getCore():getScreenWidth(), getCore():getScreenHeight()
 local function check(ok, what)
@@ -366,25 +360,39 @@ local function waitQu()
     end
     insertNext(10, waitQu)
 end
-local function waitBand()
-    S.bandWait = S.bandWait + 1
+-- a band's move with marks (S.mv: tag, w, moved + dest, stay + stayIn): wait for the transfers, then look
+local function waitMove()
+    local mv = S.mv
+    mv.n = mv.n + 1
     local busy = false
     pcall(function()
         local q = ISTimedActionQueue.getTimedActionQueue(p)
         busy = q ~= nil and q.queue ~= nil and #q.queue > 0
     end)
-    if (busy or S.bandWait < 3) and S.bandWait <= 60 then insertNext(10, waitBand); return end
-    local inv = p:getInventory()
+    if (busy or mv.n < 3) and mv.n <= 60 then insertNext(10, waitMove); return end
     local got, names = 0, {}
-    for _, it in ipairs(S.bandMarked) do
-        if it:getContainer() == inv then got = got + 1 end
+    for _, it in ipairs(mv.moved) do
+        if it:getContainer() == mv.dest then got = got + 1 end
         names[#names + 1] = nm(it)
     end
-    local leftIn = S.bandLeft:getContainer()
-    check(got == #S.bandMarked and leftIn == S.crateA,
-        string.format("the band's Take with marks takes the %d marked (%s) and leaves the rest: %d of them in the bag, the unmarked %s in %s",
-            #S.bandMarked, table.concat(names, ", "), got, nm(S.bandLeft),
-            (leftIn == S.crateA and "the crate") or (leftIn == inv and "the bag") or tostring(leftIn and leftIn:getType())))
+    local stayed = 0
+    for _, it in ipairs(mv.stay) do if it:getContainer() == mv.stayIn then stayed = stayed + 1 end end
+    check(got == #mv.moved and stayed == #mv.stay,
+        string.format("%s moves only the marked rows: %d of %d marked (%s) in %s, %d of %d unmarked still in %s (%d ticks)",
+            mv.tag, got, #mv.moved, table.concat(names, ", "), mv.destName, stayed, #mv.stay, mv.stayName, mv.n * 10))
+    local left = R.padMarkCount(mv.w)
+    check(left == 0, mv.tag .. " clears the marks (" .. left .. " left)")
+end
+-- the footer's word for the hold ("Mark (hold)" / "Unmark (hold)")
+local function holdWord(key) return ZeD.tr("UI_ZeD_Prompt_Hold", ZeD.tr(key)) end
+-- the band's move with this id, as the band last built it (its word), and its controller stop
+local function bandMove(w, id)
+    local cnt = w and w._mainContent
+    local mv
+    for _, m in ipairs(cnt and cnt._cc and cnt._cc.moves or {}) do if m.id == id then mv = m end end
+    local zn = (w == cw()) and "charCtl" or "worldCtl"
+    local stop = elIn(w, zn, function(e) return e.ccKey == id end)
+    return mv, stop, zn
 end
 
 -- ===================================================================== the run on one list (S.L)
@@ -414,14 +422,25 @@ local function queueMarks(tag, shotName)
         for _, it in ipairs(S.run) do runNames[#runNames + 1] = nm(it) end
         say(string.format("%s%s, %d rows (%d stops); four in a row: %s; a stack: %s x%d; the hold: %s", T, L.name, #rowsOf(L), #els,
             (#runNames > 0 and table.concat(runNames, ", ") or "none"), nm(S.stack), S.stack and #stackItems(L, S.stack) or 0,
-            S.hook and "Focus.qaButton (the real poll)" or "stand-in (the manager's own calls; the poll reads the real button)"))
+            S.hook and "Focus.qaButton (the manager's own poll)" or "stand-in (no Focus.qaButton in this build)"))
         S.skip = not check(#S.run == 4, T .. "the list has four single rows in a row for the checks")
         if not S.skip then focusRow(L, S.run[1]) end
     end)
-    -- 2. hold A marks the row
+    -- 2. no marks: the footer offers the mark, B shows nothing and does nothing; then hold A marks the row
     step(10, function()
         if S.skip then return end
         local L = S.L
+        local line, by = promptsOf(L.w)
+        local wantH = holdWord("UI_ZeD_Inv_PromptMark")
+        check(has(by.A, wantH), T .. "with no marks the footer's hold-A prompt reads '" .. wantH .. "' (A: " .. join(by.A) .. ")")
+        check(by.B == nil, T .. "with no marks B's prompt is hidden (B: " .. join(by.B) .. ")")
+        say(T .. "footer with no marks: " .. (line ~= "" and line or "no prompts"))
+        local before = focusedItem(L)
+        Focus.dispatchJoypadDown(L.w, Joypad.BButton)
+        local after, z = focusedItem(L)
+        check(after == before and R.padMarkCount(L.w) == 0 and L.w._drawerItem == nil,
+            string.format("%swith no marks B does nothing (focus %s -> %s in %s, %d marked, card on %s)", T, nm(before), nm(after),
+                tostring(z and z.zone), R.padMarkCount(L.w), nm(L.w._drawerItem)))
         say(T .. "hold A on " .. nm(focusedItem(L)))
         hold(L.w, "A", function()
             local sel = selOf(L)
@@ -529,31 +548,24 @@ local function queueMarks(tag, shotName)
         focusRow(L, S.run[4])
         say(T .. S.N .. " marked; the focus on " .. nm(focusedItem(L)))
     end)
-    -- 7. the card, the help line, the footer's prompts, the picture
+    -- 7. the card and the footer's prompts with the marks (read as the footer draws them), the picture
     step(5, function()
         if S.skip then return end
-        whenStill(function() S.helpLog = {}; insertNext(12, function() end) end)
+        whenStill(function() end)
     end)
-    step(2, function()
+    step(5, function()
         if S.skip then return end
         local L = S.L
         local w = L.w
         check(w._drawerItem == nil, string.format("%swith %d marked the card is hidden (card on %s)", T, S.N, nm(w._drawerItem)))
-        local want = ZeD.tr("UI_ZeD_Inv_MarkedHelp", S.N)
-        local seen, list = S.helpLog[w] or {}, {}
-        for t in pairs(seen) do list[#list + 1] = "'" .. t .. "'" end
-        check(seen[want] == true, T .. "the help line's words on the focused row are '" .. want .. "' (stamped: " .. (#list > 0 and table.concat(list, ", ") or "none") .. ")")
-        local line, by, nP = promptsOf(w)
-        check(nP == 0, T .. "and they are drawn: the footer shows the words, not prompts in their place (" .. nP .. " prompts)")
-        local wantX, wantB = ZeD.tr("UI_ZeD_Inv_PromptMenuMarked"), ZeD.tr("UI_ZeD_Inv_PromptClearMarks")
-        check(has(by.X, wantX), T .. "the footer's X prompt reads '" .. wantX .. "' (X: " .. join(by.X) .. ")")
+        local line, by = promptsOf(w)
+        local nAll = R.padMarkCount(w)
+        local wantH = holdWord("UI_ZeD_Inv_PromptUnmark")
+        local wantX, wantB = ZeD.tr("UI_ZeD_Inv_PromptMenuMarked", nAll), ZeD.tr("UI_ZeD_Inv_PromptClearMarks")
+        check(has(by.A, wantH), T .. "on a marked row the footer's hold-A prompt reads '" .. wantH .. "' (A: " .. join(by.A) .. ")")
+        check(has(by.X, wantX), T .. "the footer's X prompt reads '" .. wantX .. "' (X: " .. join(by.X) .. "; padMarkCount " .. nAll .. ")")
         check(has(by.B, wantB), T .. "the footer's B prompt reads '" .. wantB .. "' (B: " .. join(by.B) .. ")")
-        say(T .. "footer: " .. (line ~= "" and line or "no prompts"))
-        local holdUse = ZeD.tr("UI_ZeD_Prompt_Hold", ZeD.tr("UI_ZeD_Prompt_Use"))
-        if has(by.A, holdUse) then say(T .. "NOTE the hold-A prompt still reads '" .. holdUse .. "' (hold A marks a row now)") end
-        local e = Focus.getFocusedElement(w)
-        say(string.format("%sthe focused row's own fields: onCancel %s, promptX %s, promptB %s", T,
-            tostring(e ~= nil and e.onCancel ~= nil), tostring(e and e.promptX), tostring(e and e.promptB)))
+        say(T .. "footer with marks: " .. (line ~= "" and line or "no prompts"))
         shot(shotName)
     end)
     -- 8. X: the game's menu for every marked row
@@ -594,6 +606,17 @@ local function queueMarks(tag, shotName)
         check(it ~= nil and it == S.bAt, string.format("%sand the focus stays on the same row (%s, now %s in %s)", T, nm(S.bAt), nm(it), tostring(z and z.zone)))
         if n > 0 then R.padClearMarks(L.w) end
     end)
+    step(5, function()
+        if S.skip then return end
+        local L = S.L
+        local _, by = promptsOf(L.w)
+        local wantH = holdWord("UI_ZeD_Inv_PromptMark")
+        check(by.B == nil and has(by.A, wantH), T .. "after B the footer's B prompt is gone (B: " .. join(by.B) .. ") and hold A reads '" .. wantH .. "' again (A: " .. join(by.A) .. ")")
+        local before = focusedItem(L)
+        Focus.dispatchJoypadDown(L.w, Joypad.BButton)
+        local after = focusedItem(L)
+        check(after == before and R.padMarkCount(L.w) == 0, string.format("%sa second B does nothing (focus %s -> %s, %d marked)", T, nm(before), nm(after), R.padMarkCount(L.w)))
+    end)
     -- 10. tap A on a marked row: its card, and the marks go
     step(10, function()
         if S.skip then return end
@@ -614,10 +637,9 @@ local function queueMarks(tag, shotName)
         local sel = selOf(L)
         local others = nKeys(sel) - ((sel[S.run[2]] and 1) or 0)
         check(w._drawerItem == S.run[2], T .. "tap A on a marked row opens its card (card on " .. nm(w._drawerItem) .. ")")
-        check(others == 0, string.format("%sand the marks go: %d other rows still marked (list count %d, padMarkCount %d)", T, others, nKeys(sel), R.padMarkCount(w)))
-        local cnt = w._mainContent
-        if cnt then cnt._selectedItems = {}; cnt._lastClickedItem = nil; pcall(w._updateDrawer, cnt) end
-        R.padClearMarks(w)
+        check(others == 0, string.format("%sand the marks go: %d other rows still marked (list count %d, padMarkCount %d, the controller's flag %s)",
+            T, others, nKeys(sel), R.padMarkCount(w), tostring(w._mainContent and w._mainContent._padMarks)))
+        R.padClearMarks(w)   -- (wipes every list in place and closes the card)
     end)
 end
 
@@ -633,23 +655,9 @@ step(20, function()
     end
     p:setGodMod(true)
     say("scene: " .. nz .. " zombies removed; screen " .. SW .. "x" .. SH .. "; controller bound to player 1: " .. tostring(padBound()))
-    say(S.hook and "the hold: Focus.qaButton found, the real hold is driven"
-        or "the hold: NOT drivable (FocusManager reads JoypadButton.A / X:isDown each tick and keeps its hold state in locals); stand-in calls, see the header")
+    say(S.hook and "the hold: Focus.qaButton found, the real hold is driven (press, qaButton held " .. HOLD_WAIT_MS .. " ms by the clock, release)"
+        or "the hold: no Focus.qaButton in this build: stand-in calls (the manager's own), see the header")
     sweepOldCrates()
-    -- the help line's words: stamped during the draw and taken the same frame, so they are
-    -- caught as they are stamped (the window's _helpText is gone by the next tick)
-    S.helpSet = ZeD.Help.set
-    ZeD.Help.set = function(panel, text)
-        if text ~= nil then
-            local ok, win = pcall(ZeD.Surface.windowOf, panel)
-            if ok and win then
-                local log = S.helpLog[win] or {}
-                S.helpLog[win] = log
-                log[tostring(text)] = true
-            end
-        end
-        return S.helpSet(panel, text)
-    end
 end)
 step(75, function()   -- (the World window's list looks for containers every 30 frames)
     S.crateA = buildCrate()
@@ -662,6 +670,10 @@ step(75, function()   -- (the World window's list looks for containers every 30 
     end
     -- a stack of three in the main inventory (corkscrews: the QA character carries none)
     addTo(p:getInventory(), { "Base.Corkscrew", "Base.Corkscrew", "Base.Corkscrew" })
+    S.bagStay = { S.added[#S.added - 2], S.added[#S.added - 1], S.added[#S.added] }
+    -- two single things in the bag for the Character band's Move marked (kinds the QA character carries none of)
+    addTo(p:getInventory(), { "Base.Eraser", "Base.Tweezers" })
+    S.bagMove = { S.added[#S.added - 1], S.added[#S.added] }
     stripTab(cw(), cw()._tabStripPanel, "loot"); stripTab(ww(), ww()._actionTabStrip, "loot")
 end)
 
@@ -754,10 +766,8 @@ step(10, function()
     local ma = R.padMarkedItems(w, rowEl(S.main, S.mi)) or {}
     check(#ca == 1 and ca[1] == S.ci and #ma == 1 and ma[1] == S.mi,
         string.format("apart: X's menu takes its own list's marks only (column: %d, %s; main: %d, %s)", #ca, nm(ca[1]), #ma, nm(ma[1])))
-    say("apart: padMarkCount with one mark in each list: " .. R.padMarkCount(w) .. "; card on " .. nm(w._drawerItem))
-    local cnt = w._mainContent
-    if cnt then cnt._selectedItems = {}; cnt._lastClickedItem = nil; pcall(w._updateDrawer, cnt) end
-    R.padClearMarks(w)
+    check(R.padMarkCount(w) == 2, "apart: padMarkCount counts each list's mark once (" .. R.padMarkCount(w) .. " with one mark in each list; card on " .. nm(w._drawerItem) .. ")")
+    R.padClearMarks(w)   -- (every list's table wiped in place)
 end)
 
 -- hold X on a crate row: the quick use (it comes to the main inventory)
@@ -798,33 +808,73 @@ step(10, function()
             if e.item:getFullType() == "Base.Apple" then S.bandLeft = e.item else els[#els + 1] = e end
         end
     end
-    if #els < 2 or not S.bandLeft then say("band: crate A's rows are not in the main list (" .. #rowsOf(M) .. " rows): skipped"); return end
+    if #els < 2 or not S.bandLeft then say("band (World): crate A's rows are not in the main list (" .. #rowsOf(M) .. " rows): skipped"); return end
     for k = 1, 2 do R.padMark(w, els[k]); S.bandMarked[k] = els[k].item end
     w._gpPaint = nil
-    local stops, take = {}, nil
-    local z = zoneOf(w, "worldCtl")
-    for _, e in ipairs(z and z.elements or {}) do
-        stops[#stops + 1] = tostring(e.id) .. " '" .. tostring(e.promptA) .. "'"
-        if e.ccKey == "take" then take = e end
-    end
-    say("band: " .. nKeys(selOf(M)) .. " marked (by padMark: " .. nm(S.bandMarked[1]) .. ", " .. nm(S.bandMarked[2]) .. "), " .. nm(S.bandLeft) .. " not; the band's stops: " .. (#stops > 0 and table.concat(stops, ", ") or "none"))
-    if not check(take ~= nil, "band: the World window's band has its Take stop (worldCtl:take)") then return end
+    S.bandSkip = false
+    say("band (World): " .. nKeys(selOf(M)) .. " marked (by padMark: " .. nm(S.bandMarked[1]) .. ", " .. nm(S.bandMarked[2]) .. "), " .. nm(S.bandLeft) .. " not")
+end)
+step(10, function()   -- (the band rebuilds when the count changes)
+    if S.bandSkip then return end
+    local w = ww()
+    local mv, stop = bandMove(w, "take")
+    local want = ZeD.tr("UI_ZeD_Controls_TakeMarked")
+    check(mv ~= nil and mv.label == want, string.format("band (World): with marks the Take reads '%s' (reads '%s', hint '%s')",
+        want, tostring(mv and mv.label), tostring(mv and mv.hint)))
+    if not check(stop ~= nil, "band (World): the Take has its controller stop (worldCtl:take, '" .. tostring(stop and stop.promptA) .. "')") then return end
     Focus.claimFocus(w)
-    Focus.focusWhere(w, "worldCtl", function(e) return e == take end)
-    say("band: A on " .. tostring(take.id) .. " (" .. tap(w, "A") .. ")")
-    S.bandSkip, S.bandWait = false, 0
-    insertNext(10, waitBand)
+    Focus.focusWhere(w, "worldCtl", function(e) return e == stop end)
+    say("band (World): A on " .. tostring(stop.id) .. " (" .. tap(w, "A") .. ")")
+    S.mv = { tag = "band (World): Take marked", w = w, moved = S.bandMarked, dest = p:getInventory(), destName = "the bag",
+        stay = { S.bandLeft }, stayIn = S.crateA, stayName = "crate A", n = 0 }
+    insertNext(10, waitMove)
+end)
+
+-- the Character band's Move marked (the bag on show; the other side is what the World window shows)
+step(10, function()
+    S.cbSkip = true
+    local w = cw()
+    if not (S.bagMove and S.bagMove[1] and S.bagMove[2] and S.bagStay and S.bagStay[3]) then say("band (Character): the bag's test things are missing: skipped"); return end
+    Focus.claimFocus(w)
+    R.padClearMarks(w)
+    local M = { w = w, zone = "charMainInv", name = "Character main list" }
+    local n = 0
+    for _, it in ipairs(S.bagMove) do
+        local e = rowEl(M, it)
+        if e then R.padMark(w, e); n = n + 1 end
+    end
+    w._gpPaint = nil
+    local wv = ww()
+    local wc = wv and wv._containers and wv._containers[wv._activeContainer or 1]
+    S.cDest, S.cFloor = wc and wc.inventory, wc and wc.isFloor
+    if n < 2 or not S.cDest then say("band (Character): " .. n .. " of the bag's two rows found, the other side " .. tostring(S.cDest) .. ": skipped"); return end
+    S.cbSkip = false
+    say("band (Character): " .. nKeys(selOf(M)) .. " marked (by padMark: " .. nm(S.bagMove[1]) .. ", " .. nm(S.bagMove[2]) .. "), the corkscrews not; the other side: "
+        .. (S.cDest == S.crateA and "crate A" or tostring(S.cDest:getType())) .. (S.cFloor and " (the floor)" or ""))
+end)
+step(10, function()
+    if S.cbSkip then return end
+    local w = cw()
+    local mv, stop = bandMove(w, "xfer")
+    local want = ZeD.tr(S.cFloor and "UI_ZeD_Controls_DropMarked" or "UI_ZeD_Controls_MoveMarked")
+    check(mv ~= nil and mv.label == want, string.format("band (Character): with marks Transfer all reads '%s' (reads '%s', hint '%s')",
+        want, tostring(mv and mv.label), tostring(mv and mv.hint)))
+    if not check(stop ~= nil, "band (Character): the move has its controller stop (charCtl:xfer, '" .. tostring(stop and stop.promptA) .. "')") then return end
+    Focus.focusWhere(w, "charCtl", function(e) return e == stop end)
+    say("band (Character): A on " .. tostring(stop.id) .. " (" .. tap(w, "A") .. ")")
+    S.mv = { tag = "band (Character): " .. want, w = w, moved = S.bagMove, dest = S.cDest,
+        destName = (S.cDest == S.crateA and "crate A" or tostring(S.cDest:getType())),
+        stay = S.bagStay, stayIn = p:getInventory(), stayName = "the bag", n = 0 }
+    insertNext(10, waitMove)
 end)
 
 -- ===================================================================== put back
 step(10, function()
-    if S.helpSet then ZeD.Help.set = S.helpSet; S.helpSet = nil end
+    if S.hook then pcall(Focus.qaButton, "A", nil); pcall(Focus.qaButton, "X", nil) end
     for _, w in ipairs({ cw(), ww() }) do
         if w then
-            pcall(R.padClearMarks, w)
+            pcall(R.padClearMarks, w)   -- (every list's marks and the card's row, in place; the card closes)
             w._gpPaint = nil
-            local cnt = w._mainContent
-            if cnt and w._drawerItem then cnt._selectedItems = {}; cnt._lastClickedItem = nil; pcall(w._updateDrawer, cnt) end
         end
     end
     if S.crateB and colOn(ww(), S.crateB) then ZeD_WorldWindow.toggleColumn(S.crateB) end
@@ -848,12 +898,11 @@ step(15, function()
         for _, it in ipairs(S.added) do if it:getContainer() then left = left + 1 end end
         local still = 0
         for _, o in ipairs(S.crates) do if o:getSquare() then still = still + 1 end end
-        say(string.format("put back: crates left %d, the run's things left %d of %d, marks Char %d World %d, card Char %s World %s, World column for crate B %s, help wrapper off %s",
+        say(string.format("put back: crates left %d, the run's things left %d of %d, marks Char %d World %d, card Char %s World %s, World column for crate B %s",
             still, left, #S.added, R.padMarkCount(cw()), R.padMarkCount(ww()), nm(cw()._drawerItem), nm(ww()._drawerItem),
-            tostring(S.crateB ~= nil and colOn(ww(), S.crateB)), tostring(S.helpSet == nil)))
+            tostring(S.crateB ~= nil and colOn(ww(), S.crateB))))
     end)
     if not ok then say("ERR put back " .. tostring(e)) end
-    if S.helpSet then ZeD.Help.set = S.helpSet; S.helpSet = nil end
     if S.hook then pcall(Focus.qaButton, "A", nil); pcall(Focus.qaButton, "X", nil) end
     Det.setLockedMode(Det.MODE_KBM); Det.setLockedMode(nil)
     say(S.pass .. " passed, " .. S.fail .. " failed")
