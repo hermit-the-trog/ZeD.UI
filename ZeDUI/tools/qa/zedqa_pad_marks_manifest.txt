@@ -2,7 +2,7 @@
 # the card, the help line and the footer with marks, X's menu for all, B clears, tap A opens the card,
 # hold X is the quick use, the column's and the main list's marks stay apart, the band's Take with marks.
 # The Character window's main list and a World window column (two crates built beside the character).
-# The hold is driven through Focus.qaButton (d87f278); the stand-in runs only where the hook is missing. for it (see the script's header).
+# The hold is driven through Focus.qaButton (d87f278); the stand-in runs only where the hook is missing (see the script's header).
 # Run it twice, once at each of the director's setups:
 #   zedqa_run.ps1 -Manifest zedqa_pad_marks_manifest.txt -Mode fullscreen4k -Report pad_marks_4k
 #   zedqa_run.ps1 -Manifest zedqa_pad_marks_manifest.txt -Mode windowed -Width 1280 -Height 800 -Report pad_marks_800
