@@ -1301,6 +1301,21 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
       "Skill Welding 3" (the perk's getName), not "Metalworking"; the test now accepts the game's name. The QA script
       reads the strength against the game's formula (base + bonus x the sandbox multiplier + skill x skill base) and
       prints the parts. Re-run (both sizes, about 10 min each) when the fix is on main.
+    - **QA, Nov 1 2026, later (third pass 982ac42, at 4K and the Deck; qa/regression/2026-11-01_t16_cards_4k_b.md,
+      _800_b.md; shots in Screenshots/t16_cards_4k_b, _800_b): mostly there, three product points left.** Now right at
+      both sizes: the metal pole fence shows two faces with the Facing row, > turns it and < turns it back; "Strength
+      500 (450 + 50 from your Welding)" against the game's formula (health 450 + Welding 1 x 50); the double gate shows
+      4 tiles on 4 squares, 4x1 facing north and 1x4 facing west; the spiked bat's What you get has 6 facts (Damage
+      1.2 - 1.9, Speed, Range, Crit, Tree dmg, Condition 10; weight 2.5) and What changes against the carried Baseball
+      Bat reads Damage 0.8 - 1.1 -> 1.2 - 1.9 (+50%), Range 1.2 -> 1.3 (+8%), Condition 15 -> 10 (-33%), Weight 2.0 ->
+      2.5; the nail-spiked weapon says "or one of 7 others". Left (product): (1) **< from the first face still lands on
+      face 0, "No picture for this one"** at both sizes (the by-hand wrap did not take). (2) **A zero skill part is
+      shown with an empty name:** the log fence at Carpentry 0 reads "Strength 200 (200 + 0 from your )"; the log gate
+      (health -1, skill base 300) reads "Strength 0" at Carpentry 0, true to the formula but worth a design look (name
+      the skill it would grow with, or hide a zero part). (3) **The plank barricade shows "Strength 0"** instead of no
+      line. The three Java exceptions left in the run (2x "getName of non-table: null", 1x "tried to call nil in
+      pcall") look like the empty perk at level 0. The test now accepts the game's perk name ("Welding"), reads the
+      card's own count of other results, and notes rather than fails a zero part.
 50. **Notebook paper: the lines were not ruled like paper (the director, Nov 1 2026, with four pictures of the real
     sheet).** fixed (build, Nov 1), QA to confirm. The Notebooks page (the small page in the Journal's Notebooks
     sub-tab) and the full page in the reader drew their blue rules only to the right of the red margin, from the
@@ -1319,6 +1334,14 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
       without holes (by design). The two quick-note lines sit on the rules. The script's own measure (a wrapped drawRect /
       drawText for a few ticks) saw none of the paper's draws, so its four "the paper was drawn" lines are the test, not
       the paper: the paper is drawn by another call; QA fixes the measure next time.
+    - **QA, Nov 1 2026, later: confirmed by measure at both sizes (the measure hooks the drawer panel and the reader
+      window now; 2026-11-01_t16_cards_800_b.md).** Small page: the paper 335 x 103 units, 5 rules at a 17.5 px pitch,
+      the first 1.4 pitches below the top, every rule edge to edge through the margin, the red margin 1 px wide at 0.137
+      of the width and the page's full height, nothing red across, both quick-note lines on a rule and right of the
+      margin, no holes (by design). Full page: 570 x 339, 16 rules at 17 px, the first 53 px (3.1 pitches) below the
+      top with "Page 1 of 10" in that band (y +23), the margin 2 px at 0.137 (the code's 104 of 760) full height, three
+      binder holes at x +11 left of the margin, nothing red across; the line counter sits at the foot below the rules
+      (y +316), by design. The test's two "sits in the head band" lines were its own (a screen y against a page y).
 ## Test process
 
 - The release check (before every upload, about 5 minutes, pass or fail): right-click opens the

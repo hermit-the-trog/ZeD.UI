@@ -201,7 +201,13 @@ local function measure(c, pred, label, full)
     -- the head band's words (the full page's page number) above the first rule
     for _, t in ipairs(dim) do
         say(string.format("%s: '%s' at y +%.0f (the first rule at +%.0f)", label, t.s, t.y - P.y, first))
-        if full then check(t.y + t.h <= first + 1, label .. ": '" .. t.s .. "' sits in the head band, above the first rule") end
+        -- (the text's y is on the screen, the first rule's is from the page's top: both relative here; the line
+        -- counter sits at the foot, below the rules, by design)
+        local rel = t.y - P.y
+        if full then
+            if rel < first then check(rel + t.h <= first + 1, label .. ": '" .. t.s .. "' sits in the head band, above the first rule")
+            else say(string.format("%s: '%s' sits at the foot, below the rules (y +%.0f)", label, t.s, rel)) end
+        end
     end
     -- the binder holes (discs of the table's colour in slices): grouped where the slices stop touching
     table.sort(holes, function(a, b) return a.y < b.y end)
