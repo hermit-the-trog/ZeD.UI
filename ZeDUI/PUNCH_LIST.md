@@ -1166,6 +1166,20 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
         removed; zedqa.lock free. Next: the full 720 Normal and Large passes (QA, when the director gives the screen),
         the Discord note (ask first), items 44 and 46 for build 16.
 
+47. **The test rig at 1280x720: every vehicle script fails in the full pass, and passes alone (QA, Nov 1 2026).** open,
+    rig only, not the mod. In both full 720 passes (Normal 86 / 99, Large 86 / 100) the thirteen same scripts fell:
+    every vehicle script (sl, rb, sm, tm, t3 with vanilla's "onEnterVehicle: isDriver of non-table: null", the
+    vehicle nil at the enter; dash19, dpx, dnt, dgr, dke, dbr with cars never settling) and rst (its fixture not
+    found). Ruled out: frame timing (a tick is 8.5 to 10 ms at every size; a fresh car's physics is awake on tick 1
+    at 720, probe pct); 720 alone and rst's failure (bisects a and b at 720: prelude + sl pass, prelude + rst + sl
+    pass with the fixture found). Known (PZAPI Q274): the loaded chunk grid is sized from the screen, 13 chunks
+    across at 720 against 19 at 1080p and 4K, and the vehicle simulation follows it. What is left: the state eighty
+    scripts leave behind at a 13-chunk grid (cars not removed, chunk churn) puts spawned cars outside what the game
+    simulates by script 81. Next (a screen slot, about 35 min): prelude + scripts 42-80 + sl at 720, with two prints
+    in the vehicle scripts (the character's x,y and IsoChunkMap.chunkGridWidth at the spawn; each car's distance and
+    whether its square has a chunk), and rst's fixture guarded so a missing building ends the script cleanly instead
+    of 14 exceptions. Build writes the prints and the guard before the next slot.
+
 ## Test process
 
 - The release check (before every upload, about 5 minutes, pass or fail): right-click opens the
