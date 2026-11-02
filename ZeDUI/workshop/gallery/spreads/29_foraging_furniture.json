@@ -1,0 +1,267 @@
+{
+ "id": "foraging_furniture",
+ "n": 29,
+ "pages": [
+  78,
+  79
+ ],
+ "left": {
+  "kind": "taped",
+  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "blocks": [
+   {
+    "chapter": [
+     "29",
+     "Foraging and Furniture"
+    ]
+   },
+   {
+    "p": "The *Furniture* tab of the *World* window works on the furniture in the world. Choose a mode at the top of the tab, then point at a piece: the tab shows a card for it."
+   },
+   {
+    "at": 674
+   },
+   {
+    "caption": [
+     "Figure 29-1",
+     "The Furniture tab, with an Outdoor Bench under the pointer."
+    ]
+   },
+   {
+    "p": "The card gives the piece's name, whether the mode can be used on it, and what that takes: encumbrance, skill, tool and the chance to break. The piece is also listed under *On this tile*."
+   }
+  ],
+  "prints": [
+   {
+    "src": "zed_52_furniture.png",
+    "box": [
+     2641,
+     58,
+     3482,
+     446
+    ],
+    "scale": 0.6,
+    "at": [
+     300,
+     384
+    ],
+    "tape": [
+     "t",
+     "r"
+    ]
+   }
+  ],
+  "marks": [
+   {
+    "text": "Five modes: Pick up, Place, Rotate, Disassemble and Repair. The lit one is in use.",
+    "pen": "blu",
+    "at": [
+     60,
+     null
+    ],
+    "maxw": 184,
+    "bend": 0,
+    "to": [
+     0,
+     2700,
+     111
+    ]
+   },
+   {
+    "text": "Choose a mode, then point at furniture in the world.",
+    "pen": "blu",
+    "at": [
+     60,
+     null
+    ],
+    "maxw": 184,
+    "bend": 0,
+    "to": [
+     0,
+     2674,
+     422
+    ]
+   }
+  ],
+  "sticky": {
+   "at": [
+    330,
+    880
+   ],
+   "w": 330,
+   "h": 112,
+   "text": "Furniture: pick a mode, then point at a piece."
+  }
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Foraging and Furniture",
+  "blocks": [
+   {
+    "h2": "Foraging"
+   },
+   {
+    "at": 874
+   },
+   {
+    "caption": [
+     "Figure 29-2",
+     "The Foraging tab while searching, and its foot."
+    ]
+   },
+   {
+    "p": "To start looking, click *Search* at the foot of the tab; while you search, the button reads *Stop searching*. *More detail* opens the categories in range and the modifiers."
+   }
+  ],
+  "prints": [
+   {
+    "src": "zed_51_forage.png",
+    "box": [
+     2641,
+     58,
+     3482,
+     832
+    ],
+    "scale": 0.55,
+    "at": [
+     1040,
+     262
+    ],
+    "tape": [
+     "tl",
+     "tr"
+    ]
+   },
+   {
+    "src": "zed_51_forage.png",
+    "box": [
+     2641,
+     2036,
+     3482,
+     2100
+    ],
+    "scale": 0.55,
+    "at": [
+     1040,
+     728
+    ],
+    "tape": [
+     "t",
+     "b"
+    ]
+   }
+  ],
+  "marks": [
+   {
+    "text": "The tags give the zone's conditions, movement, season and weather.",
+    "pen": "blu",
+    "at": [
+     1150,
+     198
+    ],
+    "maxw": 380,
+    "to": [
+     1,
+     2975,
+     230
+    ]
+   },
+   {
+    "text": "The pop-up picks a category to look for.",
+    "pen": "blu",
+    "at": [
+     1676,
+     null
+    ],
+    "maxw": 184,
+    "bend": 0,
+    "to": [
+     1,
+     3448,
+     98
+    ]
+   },
+   {
+    "text": "The search radius in tiles, and the net change from modifiers.",
+    "pen": "blu",
+    "at": [
+     1676,
+     null
+    ],
+    "maxw": 184,
+    "bend": 0,
+    "to": [
+     [
+      1,
+      3420,
+      209
+     ],
+     [
+      1,
+      3420,
+      246
+     ]
+    ]
+   },
+   {
+    "text": "Finds are listed with distance, name and weight.",
+    "pen": "blu",
+    "at": [
+     1676,
+     null
+    ],
+    "maxw": 184,
+    "bend": 0,
+    "to": [
+     1,
+     3450,
+     711
+    ]
+   },
+   {
+    "text": "Crouch and Aim only show your stance.",
+    "pen": "blu",
+    "at": [
+     1030,
+     794
+    ],
+    "maxw": 200,
+    "to": [
+     [
+      2,
+      2720,
+      2068
+     ],
+     [
+      2,
+      2805,
+      2068
+     ]
+    ]
+   },
+   {
+    "text": "This button starts or stops the search.",
+    "pen": "blu",
+    "at": [
+     1340,
+     794
+    ],
+    "maxw": 240,
+    "to": [
+     2,
+     3360,
+     2068
+    ]
+   }
+  ],
+  "sticky": {
+   "at": [
+    1668,
+    862
+   ],
+   "w": 196,
+   "h": 150,
+   "text": "The Foraging tab while searching."
+  }
+ }
+}

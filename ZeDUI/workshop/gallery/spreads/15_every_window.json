@@ -1,0 +1,58 @@
+{
+ "id": "every_window",
+ "n": 15,
+ "pages": [50, 51],
+ "left": {
+  "kind": "taped",
+  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "blocks": [
+   {"chapter": ["15", "Every Window"]},
+   {"p": "Every ZNIX window has the same two parts at its edges: a window box at the right end of the title bar, which pulls down the window menu, and a help line along the foot of the window. Figure 15-1 shows both on the *Character* window."},
+   {"p": "The window menu holds the settings for how the windows look: the theme, the accent, the size of the text, how much of the scene shows through and how the controller marks what it is on. The items of the menu are listed in Table 15-1 on the facing page. An item marked with an arrow opens a list of its own, as *Theme* does in Figure 15-1."},
+   {"at": 838},
+   {"caption": ["Figure 15-1", "The window menu, at top, and the help line at the foot of the window."]}
+  ],
+  "prints": [
+   {"src": "zqa_cw_02_dark_small_window_menu_theme.png", "box": [1540, 0, 2250, 470], "scale": 0.75, "at": [258, 330], "tape": ["tr", "bl"]},
+   {"src": "zqa_cw_01_dark_small_card.png", "box": [745, 2040, 1912, 2142], "scale": 0.5, "at": [258, 734], "tape": ["t", "r"]}
+  ],
+  "marks": [
+   {"text": "The box at the right end of every title bar pulls down the window menu.", "pen": "blu", "at": [62, 252], "maxw": 188, "to": [0, 1884, 44], "bend": -0.2},
+   {"text": "Theme, Accent, Text size, See-through and Controller highlight each open a list. Reset and ZeD setup are at the bottom of the menu.", "pen": "blu", "at": [62, 410], "maxw": 188, "to": [[0, 1600, 105], [0, 1640, 410]]},
+   {"text": "The help line at the foot shows the window's own count: 35 items, 0.0 of 8 kg.", "pen": "blu", "at": [62, 742], "maxw": 188, "to": [1, 815, 2121]},
+   {"circle": {"print": 0, "box": [1910, 70, 2002, 96]}, "pen": "grn"}
+  ],
+  "sticky": {"at": [548, 880], "w": 336, "text": "The window box pulls down the window menu."}
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Every Window",
+  "blocks": [
+   {"h2": "The Window Menu"},
+   {"table": {"label": "Table 15-1", "title": "The items of the window menu", "cols": [0.36, 0.64], "head": ["Item", "What it sets"],
+     "rows": [
+      ["Theme", "*Dark*, *Light* or *High contrast*."],
+      ["Accent", "The accent color of the window."],
+      ["Text size", "*Small* or *Large*."],
+      ["See-through", "100% to 60%, and *Solid while in use*."],
+      ["Controller highlight", "The controller's mark (Chapter 17)."],
+      ["Reset this window", "Resets the window."],
+      ["Reset both windows", "On the *Character* and *World* windows."],
+      ["ZeD setup...", "Opens *ZeD setup*."]
+     ]}},
+   {"h2": "The Help Line"},
+   {"p": "The line at the foot of each window is its help line. With the mouse, it gives the help for the control under the pointer, in plain words, and otherwise the window's own count. With a controller, it shows the buttons for what has focus (Figure 15-2)."},
+   {"p": "To resize a window, drag its grow box, or its bottom edge, bottom left corner or sides."},
+   {"at": 874},
+   {"caption": ["Figure 15-2", "The help line with a controller."]}
+  ],
+  "prints": [
+   {"src": "zqa_cw_14_focus_hand_inventory_row.png", "box": [1130, 2040, 1912, 2142], "scale": 0.7, "at": [1096, 752], "tape": ["tl", "b"]}
+  ],
+  "marks": [
+   {"text": "With a controller it shows the buttons for what has focus.", "pen": "blu", "at": [1676, 676], "maxw": 184, "to": [2, 1800, 2120]},
+   {"text": "Drag the grow box to resize.", "pen": "blu", "at": [1676, 794], "maxw": 184, "to": [2, 1893, 2125]}
+  ],
+  "sticky": {"at": [1392, 908], "w": 268, "text": "The help line is at the foot."}
+ }
+}

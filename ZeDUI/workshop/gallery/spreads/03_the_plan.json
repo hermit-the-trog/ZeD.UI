@@ -1,0 +1,50 @@
+{
+ "id": "the_plan",
+ "n": 3,
+ "pages": [26, 27],
+ "left": {
+  "kind": "taped",
+  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "blocks": [
+   {"chapter": ["3", "The Plan"]},
+   {"p": "Angel finds a flyer for the old station and writes his plan in the journal. This chapter explains the *Journal* tab of the *Character* window, in Figure 3-1, and the reader, in Figure 3-2."},
+   {"p": "The *Journal* tab keeps a log of your days. The *Page* pop-up at the top left chooses what the tab shows: the journal, notebooks, papers or recipes. To add an entry, type it in the box under the search field and click *Save*. *Into* shows where the entry goes: here, the log only. Entries are grouped by month, and each carries the day and the time it was written."},
+   {"at": 838},
+   {"caption": ["Figure 3-1", "The Journal tab."]},
+   {"p": "To find an entry, type in the search field beside the *Page* pop-up. The help line at the foot of the window gives the window's status while the pointer is over nothing."}
+  ],
+  "prints": [
+   {"src": "story_02a_journal_entry.png", "box": [296, 0, 1200, 735], "scale": 0.6, "at": [300, 346], "tape": ["tl", "br"]}
+  ],
+  "marks": [
+   {"text": "The Page pop-up picks what this tab shows: here, the journal.", "pen": "blu", "at": [62, null], "maxw": 186, "bend": 0.03, "to": [0, 392, 94]},
+   {"text": "Type an entry,", "pen": "blu", "at": [62, null], "maxw": 186, "bend": 0.03, "to": [0, 402, 232]},
+   {"text": "Each entry carries the day and time it was written.", "pen": "blu", "at": [62, null], "maxw": 186, "bend": 0.03, "to": [0, 386, 425]},
+   {"text": "and press Save to add it to the log.", "pen": "blu", "at": [62, null], "maxw": 186, "bend": 0.03, "to": [0, 1098, 662]}
+  ],
+  "sticky": {"at": [600, 880], "w": 280, "h": 136, "text": "The plan, in a note in the journal."}
+ },
+ "right": {
+  "kind": "taped",
+  "head": "The Plan",
+  "blocks": [
+   {"h2": "The Reader"},
+   {"p": "A flyer opens in the reader, shown in Figure 3-2. The page fills the window. The column at the right sets out *This piece*, its kind and whether you have read it, and *Places*, the places that the piece names."},
+   {"p": "*Show on map* marks a place on the map. The map is described in Chapter 4."},
+   {"p": "At the foot of the window, *Paper* shows the page as it is printed and *Words* shows its text. The buttons at the right end of the foot set the zoom."},
+   {"at": 884},
+   {"caption": ["Figure 3-2", "A flyer open in the reader."]},
+   {"p": "The title bar names the piece. To close the reader, click the close box at the left end of the title bar."}
+  ],
+  "prints": [
+   {"src": "story_01a_flyer_reader.png", "box": [884, 200, 2955, 1925], "scale": 0.27, "at": [1028, 306], "tape": ["t", "bl"]},
+   {"src": "story_01a_flyer_reader.png", "box": [2440, 255, 2950, 560], "scale": 0.5, "at": [1388, 312], "tape": ["tr", "b"]},
+   {"src": "story_01a_flyer_reader.png", "box": [884, 1858, 1250, 1925], "scale": 0.6, "at": [1036, 786], "tape": ["l"]}
+  ],
+  "marks": [
+   {"text": "The places a flyer names. Show on map marks the place on the map.", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0.03, "to": [[2, 2730, 478], [2, 2645, 522]]},
+   {"text": "Paper shows the page; Words shows the text.", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0.0, "to": [3, 1168, 1890]}
+  ],
+  "sticky": {"at": [1520, 892], "w": 280, "h": 128, "text": "A flyer for the old station."}
+ }
+}

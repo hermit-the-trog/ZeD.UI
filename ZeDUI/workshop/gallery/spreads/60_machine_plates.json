@@ -1,0 +1,275 @@
+{
+ "id": "machine_plates",
+ "n": 60,
+ "pages": [
+  140,
+  141
+ ],
+ "left": {
+  "kind": "manual",
+  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "blocks": [
+   {
+    "chapter": [
+     "60",
+     "Machine Plates"
+    ]
+   },
+   {
+    "p": "Ovens, microwaves and generators show their own controls on a plate, sized to fill the card. The keys and switches on the plate set and run the machine; its display or gauge reads it."
+   },
+   {
+    "p": "An oven or a microwave shows its plate in the *Crafting* tab, at a station. A generator shows its plate in its own card. Table 60-1 lists the plates and where each is shown."
+   },
+   {
+    "table": {
+     "label": "Table 60-1",
+     "title": "The machine plates",
+     "cols": [
+      0.25,
+      0.45,
+      0.3
+     ],
+     "head": [
+      "Plate",
+      "Kinds",
+      "Shown in"
+     ],
+     "rows": [
+      [
+       "Ranges",
+       "Green, red, gray, modern and industrial ranges; the large modern oven",
+       "The *Crafting* tab at a station"
+      ],
+      [
+       "Fryer",
+       "The fryer",
+       "The *Crafting* tab"
+      ],
+      [
+       "Microwaves",
+       "White touchpad and chrome",
+       "The *Crafting* tab"
+      ],
+      [
+       "Generators",
+       "Red, yellow, blue and old",
+       "The generator's card"
+      ],
+      [
+       "Grill",
+       "The propane grill",
+       "The grill's card"
+      ]
+     ]
+    }
+   },
+   {
+    "p": "On a generator's plate, the engine switch starts and stops the generator, and the gauge reads its fuel. A generator that stands indoors shows a warning above its plate."
+   },
+   {
+    "note": "A plate's pixels are drawn at a whole zoom, so they stay square."
+   }
+  ],
+  "marks": [
+   {
+    "circle": {
+     "word": "square"
+    },
+    "pen": "grn"
+   }
+  ]
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Machine Plates",
+  "blocks": [
+   {
+    "h2": "Three Plates"
+   },
+   {
+    "p": "Figure 60-1 shows three of the plates."
+   },
+   {
+    "at": 944
+   },
+   {
+    "caption": [
+     "Figure 60-1",
+     "An oven, a microwave and a generator."
+    ]
+   }
+  ],
+  "prints": [
+   {
+    "src": "g14_plate_oven_clean.png",
+    "box": [
+     2662,
+     166,
+     3478,
+     452
+    ],
+    "scale": 0.55,
+    "at": [
+     1196,
+     236
+    ],
+    "tape": [
+     "t",
+     "r"
+    ]
+   },
+   {
+    "src": "zqa_ap_3_tab_microwave.png",
+    "box": [
+     2662,
+     167,
+     3478,
+     518
+    ],
+    "scale": 0.55,
+    "at": [
+     1196,
+     432
+    ],
+    "tape": [
+     "tl",
+     "br"
+    ]
+   },
+   {
+    "src": "g14_plate_generator.png",
+    "box": [
+     2650,
+     238,
+     3452,
+     648
+    ],
+    "scale": 0.55,
+    "at": [
+     1200,
+     662
+    ],
+    "tape": [
+     "l",
+     "b"
+    ]
+   }
+  ],
+  "marks": [
+   {
+    "text": "BAKE, the number keys and START set and run the oven. The display shows the heat.",
+    "pen": "blu",
+    "at": [
+     1040,
+     246
+    ],
+    "maxw": 146,
+    "to": [
+     [
+      0,
+      3092,
+      226
+     ],
+     [
+      0,
+      2898,
+      316
+     ]
+    ],
+    "from": [
+     [
+      1186,
+      240
+     ],
+     null
+    ],
+    "bend": 0.0
+   },
+   {
+    "circle": {
+     "print": 0,
+     "box": [
+      3124,
+      374,
+      3244,
+      394
+     ]
+    },
+    "pen": "grn"
+   },
+   {
+    "text": "The microwave: power level, time cook, the number keys and start.",
+    "pen": "blu",
+    "at": [
+     1676,
+     512
+    ],
+    "maxw": 184,
+    "to": [
+     [
+      1,
+      3352,
+      334
+     ],
+     [
+      1,
+      3372,
+      467
+     ]
+    ]
+   },
+   {
+    "text": "A warning shows when the generator stands indoors.",
+    "pen": "blu",
+    "at": [
+     1040,
+     640
+    ],
+    "maxw": 146,
+    "to": [
+     2,
+     2728,
+     254
+    ]
+   },
+   {
+    "text": "The engine switch starts and stops the generator.",
+    "pen": "blu",
+    "at": [
+     1040,
+     772
+    ],
+    "maxw": 146,
+    "to": [
+     2,
+     2722,
+     494
+    ]
+   },
+   {
+    "text": "The gauge reads its fuel.",
+    "pen": "blu",
+    "at": [
+     1676,
+     790
+    ],
+    "maxw": 184,
+    "to": [
+     2,
+     3372,
+     526
+    ]
+   }
+  ],
+  "sticky": {
+   "at": [
+    1672,
+    866
+   ],
+   "w": 192,
+   "h": 154,
+   "text": "Each machine has its own plate."
+  }
+ }
+}

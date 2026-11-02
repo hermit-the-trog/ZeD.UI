@@ -1,0 +1,43 @@
+{
+ "id": "barricading",
+ "n": 7,
+ "pages": [34, 35],
+ "left": {
+  "kind": "manual",
+  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "blocks": [
+   {"chapter": ["7", "Barricading"]},
+   {"p": "Angel boards up the front window of the station. You barricade a window from its context menu, which ZNIX draws as a strip of buttons at the pointer with a label above it. Figure 7-1 shows the strip, and Table 7-1 lists its parts."},
+   {"h2": "To Barricade a Window"},
+   {"list": ["Right-click the window. The context menu opens at the pointer.", "Click *Window*. The strip changes in place to the window's own actions, and *<* takes the first place in it.", "Point at the planks. The button lights, and the label reads *Window > Barricade (Planks)*.", "Click. The action bar over your character shows the job while it runs."], "numbered": true},
+   {"table": {"label": "Table 7-1", "title": "The parts of the context menu", "cols": [0.28, 0.72], "head": ["Part", "What it does"], "rows": [["Label", "Names the action under the pointer."], ["<", "Goes back. It is the first button of a submenu."], ["Lit button", "The button under the pointer."], ["Corner mark", "The button opens a submenu."]]}}
+  ],
+  "marks": [
+   {"circle": {"word": "submenu"}, "pen": "grn"}
+  ]
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Barricading",
+  "blocks": [
+   {"h2": "The Action Bar"},
+   {"p": "While the job runs, the action bar over your character names the action and shows the step and the percent. A barricade goes up in steps: in Figure 7-1, Angel is on step 2 of 3, at 40 percent."},
+   {"p": "The bar fills as the job goes on, and dividers in it mark the steps."},
+   {"p": "The label of the context menu is drawn black on white in every theme. Near the top of the screen, the strip opens below the pointer, with the label under it."},
+   {"p": "A menu of more than ten buttons shows chevrons at both ends of the strip, and the strip scrolls round."},
+   {"at": 876},
+   {"caption": ["Figure 7-1", "The context menu on the front window, top, and the action bar while Angel barricades it, bottom."]}
+  ],
+  "prints": [
+   {"src": "story_05a_barricade_menu.png", "box": [1660, 940, 2200, 1200], "scale": 0.9, "at": [1156, 322], "tape": ["tl", "tr"]},
+   {"src": "story_05b_barricade_bar.png", "box": [1660, 860, 2200, 1120], "scale": 0.9, "at": [1156, 594], "tape": ["bl", "br"]}
+  ],
+  "marks": [
+   {"text": "The label names the action under the pointer: Window, Barricade (Planks).", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0.02, "to": [0, 2070, 994]},
+   {"text": "The strip is a submenu: < goes back, the lit button is the one under the pointer.", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0.02, "to": [0, 1980, 1047]},
+   {"circle": {"print": 0, "box": [1864, 1030, 1898, 1064]}, "pen": "grn"},
+   {"text": "The action bar shows the action, the step and the percent: step 2 of 3, 40 percent.", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0.02, "to": [1, 2013, 927]}
+  ],
+  "sticky": {"at": [1520, 902], "w": 280, "h": 120, "text": "Boarding up the front window."}
+ }
+}

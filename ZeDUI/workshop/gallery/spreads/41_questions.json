@@ -1,0 +1,44 @@
+{
+ "id": "questions",
+ "n": 41,
+ "pages": [102, 103],
+ "left": {
+  "kind": "taped",
+  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "blocks": [
+   {"chapter": ["41", "Questions"]},
+   {"p": "Some of the game's actions ask a question before they go ahead, such as \"Are you sure you want to sleep?\" Others ask for a time or a name. Each question opens in a small window of its own, drawn as a ZNIX window: a close box at the left of its bar, the window box at the right, the question in the body and the answers as buttons in the band at its foot. Figure 41-1 shows a question with two answers and the window that sets the alarm."},
+   {"at": 744},
+   {"caption": ["Figure 41-1", "A question, left, and Set Alarm Time, right."]},
+   {"p": "To answer a question, click one of the buttons in the band at the foot of its window. In *Set Alarm Time*, click the minus and plus buttons beside the hour and the minute to change them, and click the *Alarm* checkbox to set the alarm on. When the time is set, click *OK*."}
+  ],
+  "prints": [
+   {"src": "zqa_pr_01_sleep.png", "box": [1645, 935, 2200, 1228], "scale": 0.54, "at": [258, 334], "tape": ["tl", "b"]},
+   {"src": "zqa_pr_07_alarm.png", "box": [1645, 850, 2195, 1310], "scale": 0.54, "at": [580, 334], "tape": ["t", "br"]}
+  ],
+  "marks": [
+   {"text": "A question from the game. The answers sit in the band at the window's foot.", "pen": "blu", "at": [272, 540], "maxw": 286, "to": [[0, 1998, 1150], [0, 2112, 1150]]},
+   {"text": "Hour and minute have minus and plus buttons, and a checkbox sets the alarm on.", "pen": "blu", "at": [600, 628], "maxw": 280, "to": [[1, 1697, 1136], [1, 1982, 1078]]}
+  ],
+  "sticky": {"at": [560, 892], "w": 300, "h": 112, "text": "The game's questions, drawn as ZeD windows."}
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Questions",
+  "blocks": [
+   {"h2": "Typing a Name"},
+   {"p": "A question that asks for a word, such as *Change Item Name*, has a text box in its body, with *Cancel* and *OK* in the band at its foot. Type the word in the box and click *OK*. When you use a controller, a keyboard opens on the screen under the box. Some of its keys carry the picture of a button on the pad, the button that presses that key. Figure 41-2 shows the box and the keyboard together."},
+   {"at": 760},
+   {"caption": ["Figure 41-2", "A prompt for a name, with the keyboard open under it."]},
+   {"p": "The keys that carry a button are *Delete*, *Caps*, both *Shift* keys, *Accept*, *Space*, the *<* and *>* keys and *Cancel*. The pictures are drawn for the controller you use. To choose the set, open *ZeD setup* and set *Gamepad glyph display* under *Controls*."}
+  ],
+  "prints": [
+   {"src": "zqa_pr_06_keyboard.png", "box": [1415, 920, 2425, 1665], "scale": 0.58, "at": [1046, 270], "tape": ["tl", "r"]}
+  ],
+  "marks": [
+   {"text": "A prompt with a text box: Cancel and OK sit at the foot.", "pen": "blu", "at": [1676, null], "maxw": 184, "to": [[2, 2165, 1066], [2, 2150, 1156]]},
+   {"text": "On a controller the keyboard opens under the box. Its keys carry the pad's buttons.", "pen": "blu", "at": [1676, null], "maxw": 184, "to": [2, 2370, 1449]}
+  ],
+  "sticky": {"at": [1440, 904], "w": 300, "h": 112, "text": "The pad gets an on-screen keyboard."}
+ }
+}

@@ -1,0 +1,196 @@
+{
+ "id": "health_compare",
+ "n": 23,
+ "pages": [
+  66,
+  67
+ ],
+ "left": {
+  "kind": "manual",
+  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "blocks": [
+   {
+    "chapter": [
+     "23",
+     "Health Tab"
+    ]
+   },
+   {
+    "p": "The *Health* tab of the *Character* window shows the state of the body and sets up exercise. Figure 23-1 shows the tab as the game draws it: a figure, an *Exercise* button and a list of the body parts with the health of each."
+   },
+   {
+    "at": 920
+   },
+   {
+    "caption": [
+     "Figure 23-1",
+     "The Health tab as the game draws it."
+    ]
+   },
+   {
+    "p": "The rest of this chapter describes the tab shown in Figure 23-2."
+   }
+  ],
+  "prints": [
+   {
+    "src": "van_11_health.png",
+    "box": [
+     2411,
+     790,
+     2981,
+     1810
+    ],
+    "scale": 0.45,
+    "at": [
+     446,
+     430
+    ],
+    "printed": true
+   }
+  ],
+  "marks": [
+   {
+    "text": "Vanilla: the Health tab.",
+    "pen": "blu",
+    "at": [
+     420,
+     372
+    ],
+    "maxw": 300,
+    "to": [
+     0,
+     2591,
+     860
+    ]
+   }
+  ]
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Health Tab",
+  "blocks": [
+   {
+    "h2": "Reading the Tab"
+   },
+   {
+    "p": "Figure 23-2 shows the tab with push-ups picked: the figure of the body at the left, overall health and the exercise at the right, and the controls for the exercise along the foot."
+   },
+   {
+    "at": 800
+   },
+   {
+    "caption": [
+     "Figure 23-2",
+     "The Health tab, with push-ups picked."
+    ]
+   },
+   {
+    "p": "To exercise, pick the exercise from the *Exercise* pop-up, set the minutes with *-* and *+*, from 10 to 60, and click *Start*. The text under the exercise's name says what it trains."
+   }
+  ],
+  "prints": [
+   {
+    "src": "zed_11_health_exercise.png",
+    "box": [
+     354,
+     56,
+     1199,
+     694
+    ],
+    "scale": 0.6,
+    "at": [
+     1135,
+     310
+    ],
+    "tape": [
+     "tl",
+     "tr"
+    ]
+   }
+  ],
+  "marks": [
+   {
+    "text": "ZeD: the body figure.",
+    "pen": "blu",
+    "at": [
+     1036,
+     null
+    ],
+    "maxw": 92,
+    "bend": 0,
+    "to": [
+     1,
+     522,
+     430
+    ]
+   },
+   {
+    "text": "Overall health: a framed bar and a percentage.",
+    "pen": "blu",
+    "at": [
+     1676,
+     null
+    ],
+    "maxw": 188,
+    "bend": 0,
+    "to": [
+     1,
+     1150,
+     176
+    ]
+   },
+   {
+    "text": "This text says what the exercise trains.",
+    "pen": "blu",
+    "at": [
+     1676,
+     null
+    ],
+    "maxw": 184,
+    "bend": 0,
+    "to": [
+     1,
+     1064,
+     311
+    ]
+   },
+   {
+    "text": "Pick an exercise.",
+    "pen": "blu",
+    "at": [
+     1190,
+     730
+    ],
+    "maxw": 220,
+    "to": [
+     1,
+     560,
+     660
+    ]
+   },
+   {
+    "text": "Set the minutes, 10 to 60.",
+    "pen": "blu",
+    "at": [
+     1440,
+     730
+    ],
+    "maxw": 230,
+    "to": [
+     1,
+     994,
+     660
+    ]
+   }
+  ],
+  "sticky": {
+   "at": [
+    1470,
+    914
+   ],
+   "w": 330,
+   "h": 112,
+   "text": "The Health tab: the body, overall health and exercise."
+  }
+ }
+}

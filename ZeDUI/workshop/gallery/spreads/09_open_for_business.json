@@ -1,0 +1,49 @@
+{
+ "id": "open_for_business",
+ "n": 9,
+ "pages": [38, 39],
+ "left": {
+  "kind": "taped",
+  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "blocks": [
+   {"chapter": ["9", "Open for Business"]},
+   {"p": "With the shelves stocked, Angel opens the station for business in the Fossoil's colors: the Light theme and the Blue accent. Both are set from the window menu."},
+   {"p": "To open the window menu, click the window box at the right end of the title bar. The menu lists *Theme*, *Accent*, *Text size*, *See-through* and *Controller highlight*, each with a submenu, then *Reset this window*, *Reset both windows* and *ZeD setup...*. Figure 9-1 shows the menu with the *Accent* submenu open."},
+   {"at": 686},
+   {"caption": ["Figure 9-1", "The window menu, with Accent open."]},
+   {"h2": "To Set the Accent Color"},
+   {"list": ["Click the window box. The window menu opens.", "Choose *Accent*. Its submenu opens beside the menu.", "Click a color. A check mark shows the one in use."], "numbered": true},
+   {"p": "*Text size* chooses *Small* or *Large*. *See-through* sets how much of the game shows through the window, from 100% down to 60%, and *Solid while in use*."}
+  ],
+  "prints": [
+   {"src": "story_08c_footer_blue.png", "box": [2335, 30, 3035, 560], "scale": 0.5, "at": [300, 372], "tape": ["tl", "tr"]}
+  ],
+  "marks": [
+   {"text": "Accent: eight colors or None for this window, or Same as Accent color. The Fossoil uses Blue.", "pen": "blu", "at": [62, null], "maxw": 186, "bend": 0.0, "to": [0, 2714, 291]}
+  ],
+  "sticky": {"at": [600, 884], "w": 280, "h": 132, "text": "The Fossoil's colors: Light and Blue."}
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Open for Business",
+  "blocks": [
+   {"h2": "Theme"},
+   {"p": "*Theme* sets the theme: *Dark*, *Light* or *High contrast*. A check mark shows the one in use. Figure 9-2 shows the *Theme* submenu with *Light* chosen, and both windows after the change."},
+   {"at": 726},
+   {"caption": ["Figure 9-2", "The Theme submenu, top, and the Character and World windows in the Light theme with the Blue accent, bottom."]},
+   {"p": "The accent color is set for each window. Angel chose Blue for the *Character* window and for the *World* window."},
+   {"p": "Every window of ZNIX has a window box at the right end of its title bar."}
+  ],
+  "prints": [
+   {"src": "story_08b_footer_light.png", "box": [2335, 30, 3035, 460], "scale": 0.55, "at": [1100, 280], "tape": ["tl", "b"]},
+   {"src": "story_08d_open_light_blue.png", "box": [1136, 0, 2704, 322], "scale": 0.39, "at": [1030, 556], "tape": ["l", "tr"]}
+  ],
+  "marks": [
+   {"text": "Window menu: the box at the right end of the title bar pulls it down.", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0.0, "to": [1, 2675, 44]},
+   {"text": "Theme: Dark, Light or High contrast. A check mark shows the one in use.", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0.0, "to": [1, 2803, 126]},
+   {"circle": {"print": 1, "box": [2702, 112, 2800, 140]}, "pen": "grn"},
+   {"text": "Result: both windows in the Light theme, with the Blue accent.", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0.0, "to": [2, 2673, 95]}
+  ],
+  "sticky": {"at": [1520, 884], "w": 280, "h": 132, "text": "Open for business: Light theme, Blue accent."}
+ }
+}

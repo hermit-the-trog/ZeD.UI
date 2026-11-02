@@ -1,0 +1,46 @@
+{
+ "id": "grid_view",
+ "n": 20,
+ "pages": [60, 61],
+ "left": {
+  "kind": "taped",
+  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "blocks": [
+   {"chapter": ["20", "List or Grid"]},
+   {"p": "Each column of the *Character* and *World* windows shows its items as a list or as a grid. The two buttons at the right of its header choose the view; the one in use is solid in the accent color."},
+   {"at": 478},
+   {"p": "In the list, each item has a row of its own: its picture and its name, then its category, its condition and its weight, under the column heads *Name*, *Cat*, *Cond* and *Wt*. Click a column head to sort the list by it. Items that stack show as one row with their count. Figure 20-1 shows the inventory of the *Character* window as a list, sorted by name, with the list button lit."},
+   {"at": 884},
+   {"caption": ["Figure 20-1", "The inventory as a list."]},
+   {"p": "With a controller, click the left stick in a window to sort the list, and the right stick to switch between the list and the grid."}
+  ],
+  "prints": [
+   {"src": "zed_13_crafting.png", "box": [1136, 0, 1913, 735], "scale": 0.54, "at": [300, 440], "tape": ["tl", "br"]}
+  ],
+  "marks": [
+   {"text": "Press the list button for one row per item, with its category, condition and weight.", "pen": "blu", "at": [330, 352], "maxw": 420, "to": [0, 1645, 78]},
+   {"underline": "solid", "pen": "grn"}
+  ],
+  "sticky": {"at": [62, 896], "w": 190, "h": 120, "text": "List: one row per item."}
+ },
+ "right": {
+  "kind": "taped",
+  "head": "List or Grid",
+  "blocks": [
+   {"h2": "The Grid"},
+   {"p": "To see the items of a column as pictures, click the grid button in its header. Each column has its own pair of buttons and keeps its own view. Figure 20-2 shows the inventory as a grid."},
+   {"at": 478},
+   {"p": "In the grid, each item is a picture, and the items are grouped under a heading for their category, with the count beside it, such as *Food (3)*. The weight of the item is printed in the top right corner of its picture, and its condition is the bar below. A number at the bottom right of a picture is the count of a stack. To go back to the list, click the list button."},
+   {"at": 884},
+   {"caption": ["Figure 20-2", "The inventory as a grid."]}
+  ],
+  "prints": [
+   {"src": "zed_53_grid.png", "box": [1136, 0, 1913, 735], "scale": 0.54, "at": [1186, 440], "tape": ["t", "br"]}
+  ],
+  "marks": [
+   {"text": "Press the grid button for a picture of each item, with its weight and condition.", "pen": "blu", "at": [1200, 352], "maxw": 440, "to": [1, 1710, 78]},
+   {"text": "Each picture carries the item's weight in its corner and its condition below.", "pen": "blu", "at": [1676, 640], "maxw": 184, "to": [[1, 1398, 450], [1, 1376, 521]]}
+  ],
+  "sticky": {"at": [1330, 910], "w": 332, "h": 106, "text": "Grid: a picture of each item."}
+ }
+}

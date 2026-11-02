@@ -1,0 +1,42 @@
+{
+ "id": "hero",
+ "n": 1,
+ "pages": [22, 23],
+ "left": {
+  "kind": "taped",
+  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "blocks": [
+   {"chapter": ["1", "Introduction"]},
+   {"p": "This book describes ZNIX and the windows it draws over the game: what each window shows, where its controls are and how they are used. It assumes that you have started a game and can move your character about the world."},
+   {"p": "Chapters 2 through 14 are a walkthrough. They follow one survivor, Angel Cross, who pumped gas at the Fossoil station in West Point, Kentucky, as he goes back to the station and opens it for business again. Each chapter takes one step of the story and explains the windows and controls that the step uses. The chapters after the walkthrough describe the windows one at a time."},
+   {"h2": "Conventions"},
+   {"list": ["Names on the screen (buttons, tabs, menu items and window names) are set in bold: *Save*, *Install*, *Character*.", "Anything you type is set in `monospace`.", "Figures and tables are numbered by chapter: Figure 1-1 is the first figure in Chapter 1."]},
+   {"p": "Read the walkthrough in order the first time. Each chapter assumes the windows and controls of the chapters before it."}
+  ],
+  "prints": [
+   {"src": "zed_02_hero_close.png", "box": [0, 0, 3840, 2160], "scale": 0.28, "at": [412, 302], "tape": ["tl", "r"], "cross": true}
+  ],
+  "marks": [
+   {"text": "Character window. Everything about you: what you carry and wear, health, temperature, ID, journal and skills.", "pen": "blu", "at": [62, null], "maxw": 186, "bend": 0.01, "to": [0, 1000, 196]},
+   {"text": "The belt: your off hand and main hand at the left end, then the numbered slots on a strap. The green ring shows the main hand's condition.", "pen": "blu", "at": [62, 944], "maxw": 600, "to": [0, 1546, 2085]}
+  ]
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Introduction",
+  "blocks": [
+   {"h2": "The Screen in Play"},
+   {"p": "Figure 1-1 shows the screen in play. ZNIX draws two windows over the game and the belt along the foot of the screen. The *Character* window, at the left, holds everything about your character: what you carry and wear, health, temperature, ID, journal and skills. Its tabs run down the left side of the window."},
+   {"p": "The *World* window, at the right, holds the world around you: containers, crafting, building, furniture, maps, foraging, animals and vehicles. Its tabs run down the right side of the window."},
+   {"p": "Along the foot of each window runs its help line. It gives the plain-words help for what the pointer is over, or else the window's own status line."},
+   {"p": "At the right end of each title bar is the window box. Click it to pull down the window menu: *Theme*, *Accent*, *Text size*, *See-through* and more. Chapter 9 describes the window menu."},
+   {"p": "The belt holds your off hand and your main hand at its left end, then the numbered slots on a strap. The green ring round the main hand shows its condition."},
+   {"at": 962},
+   {"caption": ["Figure 1-1", "The screen in play: two windows and the belt."]}
+  ],
+  "marks": [
+   {"text": "World window. The world around you: containers, crafting, building, furniture, maps, foraging, animals and vehicles.", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0.01, "to": [0, 3285, 78]}
+  ],
+  "sticky": {"at": [1576, 882], "w": 270, "h": 140, "text": "The whole screen: two windows and the belt."}
+ }
+}

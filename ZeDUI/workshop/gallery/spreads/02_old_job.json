@@ -1,0 +1,47 @@
+{
+ "id": "old_job",
+ "n": 2,
+ "pages": [24, 25],
+ "left": {
+  "kind": "taped",
+  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "blocks": [
+   {"chapter": ["2", "Old Job"]},
+   {"p": "Angel Cross pumped gas at the Fossoil station. Six days in, he takes stock of what he can do in two tabs of the *Character* window: *Skills*, in Figure 2-1, and *Identity*, in Figure 2-2."},
+   {"p": "The *Skills* tab lists every skill by group, such as *Combat - Firearms*, *Crafting* and *Farming*. Each skill shows its level at the left and a bar at the right. A skill that gains experience faster than usual carries a tag with its boost, such as *+125% XP*. Angel's Mechanics is at 7 and his Welding at 6; his Cooking is still at 2."},
+   {"at": 916},
+   {"caption": ["Figure 2-1", "The Skills tab."]}
+  ],
+  "prints": [
+   {"src": "story_00b_skills_tall.png", "box": [718, 0, 1622, 949], "scale": 0.53, "at": [300, 350], "tape": ["tl", "tr"]}
+  ],
+  "marks": [
+   {"text": "Cooking is still at 2.", "pen": "blu", "at": [62, null], "maxw": 186, "bend": 0.04, "to": [0, 815, 507]},
+   {"text": "Mechanics at 7, with a +125% XP boost.", "pen": "blu", "at": [62, null], "maxw": 186, "bend": 0.04, "to": [0, 815, 757]},
+   {"text": "Welding at 6, with +75% XP.", "pen": "blu", "at": [62, null], "maxw": 186, "bend": 0.04, "to": [0, 815, 907]}
+  ],
+  "sticky": {"at": [560, 896], "w": 360, "h": 118, "text": "Six days in: Mechanics 7, Welding 6, Cooking 2."}
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Old Job",
+  "blocks": [
+   {"h2": "The Identity Tab"},
+   {"p": "The *Identity* tab holds your character's ID card: name, weight, sex, profession, hair style and color, body and facial hair, how long you have survived, your favorite weapon and the number of zombies you have killed."},
+   {"p": "Under the card, *Hair and beard* sets your look as it is, *Now*, beside the look a pick gives, *After*. Click *Hair* or *Beard* to choose which one you style. *Shave* needs a razor or scissors."},
+   {"p": "*Traits* lists your positive traits and your negative ones. Each trait ends in a square mark: green for a positive trait, red for a negative one."},
+   {"at": 916},
+   {"caption": ["Figure 2-2", "The Identity tab."]}
+  ],
+  "prints": [
+   {"src": "story_00a_identity_tall.png", "box": [902, 0, 1806, 1690], "scale": 0.5, "at": [1190, 150], "tape": ["t", "br"]}
+  ],
+  "marks": [
+   {"text": "A mechanic, six days in, 23 zombies killed.", "pen": "blu", "at": [1676, 440], "maxw": 184, "bend": 0.04, "to": [[1, 1612, 353], [1, 1454, 603], [1, 1536, 694]]},
+   {"text": "Hair and beard: Now is your look, After previews a pick.", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0.0, "to": [1, 1215, 940]},
+   {"text": "Good traits carry a green mark.", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0.04, "to": [1, 1771, 1328]},
+   {"text": "Bad ones carry a red mark.", "pen": "blu", "at": [1676, null], "maxw": 184, "bend": 0.04, "to": [1, 1771, 1543]}
+  ],
+  "sticky": {"at": [1024, 872], "w": 204, "h": 144, "text": "Angel pumped gas at the Fossoil."}
+ }
+}

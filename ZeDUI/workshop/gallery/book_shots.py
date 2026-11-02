@@ -207,9 +207,9 @@ def render(ms, shot, screens, out_path, patches=(), jpg_dir=None):
         if bx in (x0, x1): bx += -12 if bx == x0 else 12
         if by in (y0, y1): by += -10 if by == y0 else 10
         dist = math.hypot(ax - bx, ay - by)
-        if dist < 24:
+        if dist < 10:   # (Nov 1 2026: was 24; a note that near its point still gets a short arrow)
             continue
-        ex, ey = ax - (ax - bx) / dist * 14, ay - (ay - by) / dist * 14
+        ex, ey = ax - (ax - bx) / dist * 3, ay - (ay - by) / dist * 3   # (Nov 1 2026: was 14 px short; the head now touches the point)
         pp.arrow(d, (bx, by), (ex, ey), pen if on_pic or fm[int(min(OW - 1, ex)), int(min(OH - 1, ey))] else ink, bend=0.15)
 
     # checks: notes on notes, and notes covering another note's point

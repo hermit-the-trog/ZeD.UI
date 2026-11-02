@@ -1,0 +1,238 @@
+{
+ "id": "crafting",
+ "n": 27,
+ "pages": [
+  74,
+  75
+ ],
+ "left": {
+  "kind": "manual",
+  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "blocks": [
+   {
+    "chapter": [
+     "27",
+     "Crafting"
+    ]
+   },
+   {
+    "p": "The *Crafting* tab of the *World* window lists the recipes you can make and opens one at a time. The list is at the left; the recipe you click opens at the right. The controls of the tab are listed in Table 27-1."
+   },
+   {
+    "gap": 14
+   },
+   {
+    "table": {
+     "label": "Table 27-1",
+     "title": "The controls of the Crafting tab",
+     "cols": [
+      0.24,
+      0.76
+     ],
+     "head": [
+      "Control",
+      "What it does"
+     ],
+     "rows": [
+      [
+       "Station",
+       "Picks the station to craft at."
+      ],
+      [
+       "Category",
+       "Picks a category of recipes to look through."
+      ],
+      [
+       "Search",
+       "Finds recipes by name, category or ingredient."
+      ],
+      [
+       "Sort",
+       "Orders the list by *Craftable*, *Known*, *Name*, *Freq* or *Recent*."
+      ],
+      [
+       "Show",
+       "*Ready* lists only what you can make now; *Known* and *All* list more."
+      ],
+      [
+       "Craft",
+       "Makes the recipe. The number beside it, set with *-* and *+*, is how many."
+      ]
+     ]
+    }
+   },
+   {
+    "p": "The open recipe gives its name, *Known* when you have learned it, how long it takes, and the *Required* list of everything it needs. A red square marks what is missing. A green square in the list marks a recipe you can make now."
+   },
+   {
+    "note": "*Craft* stays dimmed while a red square shows in the *Required* list."
+   }
+  ],
+  "marks": [
+   {
+    "underline": "Ready",
+    "pen": "grn"
+   }
+  ]
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Crafting",
+  "blocks": [
+   {
+    "h2": "A Recipe Open"
+   },
+   {
+    "at": 816
+   },
+   {
+    "caption": [
+     "Figure 27-1",
+     "The Crafting tab, with a recipe open."
+    ]
+   },
+   {
+    "p": "In Figure 27-1 the recipe *Add Cigarette to Pack* is open. It is known and takes 25 seconds, but both things it needs are missing."
+   }
+  ],
+  "prints": [
+   {
+    "src": "zed_13_crafting.png",
+    "box": [
+     2634,
+     44,
+     3482,
+     700
+    ],
+    "scale": 0.53,
+    "at": [
+     1193,
+     312
+    ],
+    "tape": [
+     "tr",
+     "l"
+    ]
+   }
+  ],
+  "marks": [
+   {
+    "text": "Pick the station to craft at, and a category to look through.",
+    "pen": "blu",
+    "at": [
+     1193,
+     214
+    ],
+    "maxw": 290,
+    "to": [
+     [
+      0,
+      2855,
+      77
+     ],
+     [
+      0,
+      3150,
+      77
+     ]
+    ],
+    "bend": 0
+   },
+   {
+    "text": "Search by name, category or ingredient.",
+    "pen": "blu",
+    "at": [
+     1500,
+     206
+    ],
+    "maxw": 160,
+    "to": [
+     0,
+     3236,
+     77
+    ],
+    "bend": 0
+   },
+   {
+    "text": "A green square marks a recipe you can make now.",
+    "pen": "blu",
+    "at": [
+     1040,
+     null
+    ],
+    "maxw": 140,
+    "bend": 0,
+    "to": [
+     0,
+     2656,
+     156
+    ]
+   },
+   {
+    "text": "Sort by Craftable, Known, Name, Freq or Recent.",
+    "pen": "blu",
+    "at": [
+     1040,
+     null
+    ],
+    "maxw": 140,
+    "bend": 0,
+    "to": [
+     0,
+     2670,
+     662
+    ]
+   },
+   {
+    "text": "Show: Ready lists only what you can make now. The pop-up also has Known and All.",
+    "pen": "blu",
+    "at": [
+     1252,
+     704
+    ],
+    "maxw": 380,
+    "to": [
+     0,
+     2960,
+     675
+    ]
+   },
+   {
+    "text": "Craft stays dimmed while red squares show in the Required list.",
+    "pen": "blu",
+    "at": [
+     1676,
+     null
+    ],
+    "maxw": 184,
+    "bend": 0,
+    "to": [
+     0,
+     3455,
+     664
+    ]
+   },
+   {
+    "circle": {
+     "print": 0,
+     "box": [
+      3392,
+      308,
+      3434,
+      368
+     ]
+    },
+    "pen": "grn"
+   }
+  ],
+  "sticky": {
+   "at": [
+    1470,
+    914
+   ],
+   "w": 330,
+   "h": 112,
+   "text": "The Crafting tab, with a recipe open."
+  }
+ }
+}

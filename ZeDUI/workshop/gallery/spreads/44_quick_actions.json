@@ -1,0 +1,43 @@
+{
+ "id": "quick_actions",
+ "n": 44,
+ "pages": [108, 109],
+ "left": {
+  "kind": "taped",
+  "head": "Bitchin' znix Programs  \u00b7  Doidbros & Buzzlord",
+  "blocks": [
+   {"chapter": ["44", "Quick Actions"]},
+   {"p": "A quick action runs an action from the wheels with one chord. In the world, hold *LB* or *RB* and press *A*, *B*, *X*, *Y*, *L3* or *R3*: the action set on that chord runs, as it would from its wheel. There are twelve chords, and each holds one action."},
+   {"at": 794},
+   {"caption": ["Figure 44-1", "Quick actions in ZeD setup, with the LB + X row chosen."]},
+   {"p": "To change a chord, choose its row and press *A*: a list of the wheels' actions opens. To clear a chord, press *X* on its row. Chords work in the world while no window has the controller, and not while the game is paused."}
+  ],
+  "prints": [
+   {"src": "zqa_g3_setup_chords.png", "box": [1462, 592, 2758, 1288], "scale": 0.46, "at": [262, 384], "tape": ["tl", "tr"]}
+  ],
+  "marks": [
+   {"text": "Twelve chords: a bumper with a face button or a stick click.", "pen": "blu", "at": [60, null], "maxw": 186, "to": [[0, 1503, 633], [0, 1503, 857]]},
+   {"text": "A chooses the action. X clears it.", "pen": "blu", "at": [560, 738], "maxw": 400, "to": [0, 2088, 1255]}
+  ],
+  "sticky": {"at": [580, 918], "w": 290, "h": 100, "text": "Twelve actions, one chord each."}
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Quick Actions",
+  "blocks": [
+   {"h2": "Choosing the Action"},
+   {"p": "The list holds every action on the four wheels, grouped by wheel, and marks the one now on the chord. A chord can also be set from a wheel: point at a slice, hold a bumper and press a button."},
+   {"at": 922},
+   {"caption": ["Figure 44-2", "Put things back, top, and the list."]}
+  ],
+  "prints": [
+   {"src": "zqa_g3_setup_putback.png", "box": [1460, 955, 2760, 1560], "scale": 0.46, "at": [1040, 290], "tape": ["l", "r"]},
+   {"src": "zqa_g3_setup_list.png", "box": [2000, 1588, 2732, 2150], "scale": 0.46, "at": [1040, 612], "tape": ["l", "tr"]}
+  ],
+  "marks": [
+   {"text": "Put things back after an action. Off until you turn it on.", "pen": "blu", "at": [1676, null], "maxw": 186, "to": [[1, 2074, 986], [1, 2700, 1462]]},
+   {"text": "Every action on the wheels, in a list. The one on the chord you are editing is marked \u00ab.", "pen": "blu", "at": [1416, 760], "maxw": 244, "to": [2, 2147, 2116]}
+  ],
+  "sticky": {"at": [1520, 908], "w": 300, "h": 104, "text": "Put things back is off until you turn it on."}
+ }
+}
