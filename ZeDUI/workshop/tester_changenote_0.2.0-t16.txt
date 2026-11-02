@@ -1,0 +1,11 @@
+0.2.0-t16: changes since 0.2.0-t15.
+
+Small screens (Steam Deck, 720p)
+- The main menu reads at a size made for a handheld. Where the monitor on the desk cannot hold the full menu, the main view stays in the room with the window narrowed beside the icons, and every other page leans the desk in so the monitor fills the screen's height; Back leans out. Each switch is a short dip to black. Nothing changes at 1080p and up, and the game's own scale is untouched.
+
+Build and Craft
+- See what you get before you make it: click the picked recipe's icon in the header (A with a controller) for its card. A build recipe shows the thing's tiles as they will stand, with Left and Right to turn it, the game's words, its strength for your character as you are now (the base, what your skill adds, any bonus) and the skill it needs. A craft recipe shows the item you would get as its card shows it and, when the recipe upgrades one of your own items, what changes, old to new. The card's button builds or crafts; it opens for a recipe you cannot make yet, and only the button says no.
+- A recipe's short description shows under its name where the game has one.
+
+Journal
+- Notebook pages are ruled like paper: the lines run edge to edge through the red margin, the margin runs the page's full height, and a blank band sits above the first line.
