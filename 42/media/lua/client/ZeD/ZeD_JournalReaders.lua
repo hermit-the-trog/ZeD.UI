@@ -717,14 +717,17 @@ local function bookSub(p, b)
     return ZeD.tr("UI_ZeD_Notebook_SubWritten", kind, n, all)
 end
 
--- the page small: ruled paper with its margin, the writing in ink; as tall as its
--- writing and two more rules (the quick note under it stays in view in a short drawer)
+-- the page small: ruled paper as the real sheet is ruled (director, Nov 1 2026, punch list 50): the blue
+-- rules run edge to edge through the red margin, the margin runs the page's full height about a seventh
+-- in, and a blank band one rule tall sits above the first rule; the writing in ink sits on the rules. As
+-- tall as its writing and two more rules (the quick note under it stays in view in a short drawer).
 local function miniPage(panel, b, page, x, y, w)
     local T = ZeD.T
     local f = T.fontF2
     local lh = fh(f) + T.px(6)
     local text = N.page(b, page)
-    local margin = T.px(28)
+    local margin = math.max(T.px(28), math.floor(w * 0.14))
+    local head = lh                        -- the blank band above the first rule
     local lines = {}
     for l in (text .. "\n"):gmatch("(.-)\n") do
         if l == "" then lines[#lines + 1] = ""
@@ -732,14 +735,15 @@ local function miniPage(panel, b, page, x, y, w)
     end
     if text == "" then lines = {} end
     local rows = math.max(4, math.min(N.LINES, #lines + 2), #lines)
-    local ph = T.px(10) + rows * lh + T.px(10)
+    local ph = T.px(10) + head + rows * lh + T.px(10)
     panel:drawRect(x, y, w, ph, 1, PAPER.r, PAPER.g, PAPER.b)
-    panel:drawRect(x + margin, y, T.px(1), ph, 1, MARGIN.r, MARGIN.g, MARGIN.b)
-    for i = 1, rows do
-        panel:drawRect(x + margin + T.px(1), y + T.px(10) + lh * i - T.px(1), w - margin - T.px(1), T.px(1), 1, RULE.r, RULE.g, RULE.b)
+    -- the rules: the first closes the blank band, then one under each line of writing
+    for i = 0, rows do
+        panel:drawRect(x, y + T.px(10) + head + lh * i - T.px(1), w, T.px(1), 1, RULE.r, RULE.g, RULE.b)
     end
+    panel:drawRect(x + margin, y, T.px(1), ph, 1, MARGIN.r, MARGIN.g, MARGIN.b)
     for i, l in ipairs(lines) do
-        panel:drawText(l, x + margin + T.px(6), y + T.px(10) + lh * (i - 1) + (lh - fh(f)) - T.px(3), INK.r, INK.g, INK.b, 1, f)
+        panel:drawText(l, x + margin + T.px(6), y + T.px(10) + head + lh * (i - 1) + (lh - fh(f)) - T.px(3), INK.r, INK.g, INK.b, 1, f)
     end
     return ph
 end
