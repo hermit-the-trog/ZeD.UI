@@ -1,0 +1,60 @@
+{
+ "id": "controller_map",
+ "n": 42,
+ "pages": [104, 105],
+ "left": {
+  "kind": "manual",
+  "head": "Bitchin' znix Programs  \u00b7  Doidbros & Buzzlord",
+  "blocks": [
+   {"chapter": ["42", "Controller"]},
+   {"table": {
+     "label": "Table 42-1",
+     "title": "The buttons of the controller",
+     "cols": [0.2, 0.8],
+     "head": ["Button", "What it does"],
+     "rows": [
+      ["A (Cross)", "Left click: it opens, takes and presses."],
+      ["X (Square)", "Right click: it opens the context menu."],
+      ["B (Circle)", "Back: it closes or backs out."],
+      ["Y (Triangle)", "Tap: open, hide or show both windows. Hold: close both."],
+      ["D-pad", "In a window, moves from control to control. With no window open, hold a direction for a wheel: *Character*, *World*, *Social* or *Here and now*."],
+      ["Left stick", "Walk. In a window, click it to sort the list."],
+      ["Right stick", "Aim; both windows hide. In a window, click it for *List* or *Grid*. In a wheel, point."],
+      ["LB", "The *Character* window. No window open: LB + RB zooms out. Quick actions: LB + a button."],
+      ["RB", "The *World* window. No window open: RB + LB zooms in. Quick actions: RB + a button."],
+      ["LT and RT", "The game's own: aim and attack. On the map, zoom."],
+      ["View", "In a window: layout. No window open: hold for the ZeD wheel."],
+      ["Menu", "The game's pause menu."]
+     ]
+   }}
+  ],
+  "marks": [
+   {"circle": {"word": "wheel"}, "pen": "grn"}
+  ]
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Controller",
+  "blocks": [
+   {"h2": "Where the Buttons Are"},
+   {"p": "Every mouse action has a button: *A* is the left click, *X* is the right click and *B* backs out. Figure 42-1 shows where each button is, and Table 42-1 says what it does."},
+   {"at": 872},
+   {"caption": ["Figure 42-1", "The controller."]},
+   {"at": 934},
+   {"p": "Choose the button pictures in *ZeD setup*, under *Controls*."}
+  ],
+  "prints": [
+   {"src": "C:/Users/you/Zomboid/mods/ZeD-UI/ZeDUI/workshop/controller_map/controller_pad_px.png", "box": [80, 112, 1552, 1008], "scale": 0.375, "at": [1060, 480], "tape": ["l", "tr"], "resample": "nearest"}
+  ],
+  "marks": [
+   {"text": "LT | RT: the game's own, aim and attack. On the map, zoom.", "pen": "blu", "at": [1096, 312], "maxw": 600, "to": [[0, 300, 235], [0, 1310, 235]]},
+   {"text": "LB: Character window. Quick actions: LB + a button.", "pen": "blu", "at": [1182, 356], "maxw": 140, "to": [0, 470, 284]},
+   {"text": "RB: World window. Quick actions: RB + a button.", "pen": "blu", "at": [1336, 356], "maxw": 150, "to": [0, 1100, 284]},
+   {"text": "Y: tap to open, hide or show both windows. Hold: close both.", "pen": "blu", "at": [1646, null], "maxw": 210, "to": [0, 1205, 475]},
+   {"text": "B: back. Close or back out.", "pen": "blu", "at": [1646, null], "maxw": 210, "to": [0, 1300, 572]},
+   {"text": "A: left click. Open, take, press.", "pen": "blu", "at": [1646, null], "maxw": 210, "to": [0, 1205, 668]},
+   {"text": "X: right click, the context menu.", "pen": "blu", "at": [1420, 850], "maxw": 200, "to": [0, 1108, 572]}
+  ],
+  "sticky": {"at": [1614, 906], "w": 246, "h": 104, "text": "Every mouse action has a button."}
+ }
+}

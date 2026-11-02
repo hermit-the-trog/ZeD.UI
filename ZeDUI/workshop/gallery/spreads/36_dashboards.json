@@ -1,0 +1,49 @@
+{
+ "id": "dashboards",
+ "n": 36,
+ "pages": [92, 93],
+ "left": {
+  "kind": "manual",
+  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "blocks": [
+   {"chapter": ["36", "Dashboards"]},
+   {"p": "While you drive, ZNIX draws the dashboard of the car at the foot of the screen, in place of the game's own. Each model has its own badge and its own console, with the controls for the heater that a car of its kind would have had."},
+   {"p": "The controls of a dashboard are set out in Table 36-1. They do what the game's own controls for the car do."},
+   {"gap": 6},
+   {"table": {"label": "Table 36-1", "title": "The controls of a dashboard", "cols": [0.28, 0.72], "head": ["Control", "What it does"],
+     "rows": [["Key", "Insert it, start the engine and stop it. The key turns *OFF*, *ON* and *START* while the engine cranks."],
+              ["Lights", "The knob turns the headlights on and off."],
+              ["Lock", "The rocker locks and unlocks the doors."],
+              ["Trunk", "Locks and unlocks the trunk."],
+              ["Cruise", "Holds the speed you are driving at."],
+              ["Radio", "Power, volume, tuning and the presets."],
+              ["Heater", "*TEMP* sets the heat and *FAN* the blower. *A/C*, *HEAT* and *DEF* choose what it does."]]}},
+   {"p": "On a controller, the dashboard takes the controller when you choose *Vehicle*, then *Dashboard*, on the *World* wheel. Until it does, a line at the top of the dashboard says how."}
+  ],
+  "marks": [
+   {"circle": {"word": "Dashboard"}, "pen": "grn"}
+  ]
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Dashboards",
+  "blocks": [
+   {"h2": "The Taxi"},
+   {"p": "Figure 36-1 shows the middle of a taxi's dashboard. The key is at the left. At the top are the meter, with the fare and the extras, and the cab's license; under them are the radio and the heater, and at the right an ash tray, open."},
+   {"at": 702},
+   {"caption": ["Figure 36-1", "The middle of a taxi's dashboard."]},
+   {"p": "To start the fare, click the flag on the meter; click it again to stop it. The taxi's radio is the plain ValuTech FM set, with *VOL*, *TUNE*, six presets, *MUTE* and *SEEK*. Under it are the heater's *TEMP* and *AIR* levers, *A/C*, *DEF* and the *FAN* knob."},
+   {"p": "A passenger sees the same dashboard, but only the driver can use its controls."}
+  ],
+  "prints": [
+   {"src": "zqa_r6p_taxi_extras.png", "box": [1880, 1775, 2700, 2150], "scale": 0.74, "at": [1032, 262], "tape": ["tl", "br"]}
+  ],
+  "marks": [
+   {"text": "The hula girl sways in the turns.", "pen": "blu", "at": [1676, null], "maxw": 184, "to": [0, 2500, 1815]},
+   {"text": "The taxi's meter: click the flag to start it, and again to stop it. Extra riders add to EXTRAS.", "pen": "blu", "at": [1676, null], "maxw": 184, "to": [[0, 2386, 1908], [0, 2328, 1869]]},
+   {"text": "Ash trays open and shut with a click.", "pen": "blu", "at": [1676, null], "maxw": 184, "to": [0, 2612, 1978]},
+   {"text": "The key turns OFF, ON and START while the engine cranks.", "pen": "blu", "at": [1046, 586], "maxw": 390, "bend": 0, "to": [0, 1942, 2100]}
+  ],
+  "sticky": {"at": [1452, 874], "w": 270, "h": 140, "text": "The taxi's dash: key, meter and ash tray all work."}
+ }
+}

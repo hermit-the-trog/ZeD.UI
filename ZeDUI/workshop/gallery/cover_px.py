@@ -257,7 +257,7 @@ band(tx0, ty0, tx1, ty1, "tl0", "tl2", 0.0, 0.4)
 for x in range(tx0, tx1 + 1): P(x, ty0, "tl1")
 for y in range(ty0, ty1 + 1): P(tx1 + 1, y, "tl2")
 AUTH = (tx0 + 5, ty0 + 5)
-text("ZNIX DOCS", AUTH[0], AUTH[1], "ink"); text("GROUP", AUTH[0], AUTH[1] + 9, "ink")
+text("D&B DOCS", AUTH[0], AUTH[1], "ink"); text("GROUP", AUTH[0], AUTH[1] + 9, "ink")   # the publisher's (Nov 1 2026)
 for x in range(tx0 + 4, tx1 - 3): P(x, ty0 + 27, "tl2"); P(x, ty0 + 28, "tl1")
 y = ty0 + 33
 for ls in (["FOR BUILD 42"], ["CHARACTER AND", "WORLD WINDOWS"], ["MOUSE AND", "GAMEPAD"]):
@@ -374,7 +374,7 @@ for k in range(6):                                  # a caret up into the struck
     P(zx - 8 + k, y1_ + 9 - k, "pen"); P(zx - 8 + k, y1_ + 10 - k, "pen")
     P(zx - 2 + k, y1_ + 4 + k, "pen"); P(zx - 2 + k, y1_ + 5 + k, "pen")
 ax, ay = AUTH
-for x in range(ax - 2, ax + tw("ZNIX DOCS") + 3): P(x, ay + 3, "pen")
+for x in range(ax - 2, ax + tw("D&B DOCS") + 3): P(x, ay + 3, "pen")
 for x in range(ax - 2, ax + tw("GROUP") + 3): P(x, ay + 12, "pen")
 hm = ttf_mask("hermit", 18, BALL); stamp(hm, ax + 35, ay + 6, "blu", rot=5)
 # masking tape across the foot, his line on it

@@ -1,0 +1,56 @@
+{
+ "id": "smoke_break",
+ "n": 12,
+ "pages": [44, 45],
+ "left": {
+  "kind": "taped",
+  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "blocks": [
+   {"chapter": ["12", "Smoke Break"]},
+   {"p": "Angel Cross steps out of the store for a cigarette. While the character smokes, the action bar over the head names the action and the item, and a strip under the words fills as the action runs. In Figure 12-1 the bar reads *SMOKING* and *CIGARETTE*, at 26 percent."},
+   {"p": "The bar has two styles, set in *Options*, *ZeD setup*, *Action bar*: *Verbose*, with words, as shown here, and *Simple*, with ten segments."},
+   {"p": "The watch you wear sits at the left end of the belt. To open the full watch, press the face of the small one. The full watch can be dragged anywhere on the screen. The keys on its face are listed in Table 12-1 on the facing page."},
+   {"at": 870},
+   {"caption": ["Figure 12-1", "The action bar, and the full watch open."]}
+  ],
+  "prints": [
+   {"src": "story_11_smoke_break.png", "box": [1830, 836, 2036, 1222], "scale": 0.72, "at": [258, 290], "tape": ["tr", "b"]},
+   {"src": "story_11_smoke_break.png", "box": [1320, 1672, 2300, 2148], "scale": 0.46, "at": [258, 612], "tape": ["tl", "tr"]}
+  ],
+  "marks": [
+   {"text": "The action bar names the action and the item: smoking, a cigarette, 26 percent.", "pen": "blu", "at": [62, 292], "maxw": 188, "to": [0, 1900, 868]},
+   {"text": "The full watch opens when you press the face of the small one. Drag it anywhere.", "pen": "blu", "at": [62, 612], "maxw": 188, "to": [1, 1375, 1800]},
+   {"text": "The small watch, at the left end of the belt.", "pen": "blu", "at": [62, 768], "maxw": 188, "to": [1, 1380, 2081]},
+   {"circle": {"print": 0, "box": [1966, 873, 1996, 891]}, "pen": "grn"}
+  ],
+  "sticky": {"at": [612, 894], "w": 270, "h": 126, "text": "The bar says what you are doing."}
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Smoke Break",
+  "blocks": [
+   {"h2": "Moodles"},
+   {"p": "The moodles are the game's own. They can sit on the right edge of the screen, as in Figure 12-2, on the left edge, or in a row above the belt. To read one, point at it: a thought bubble gives its name and what it means, and trails back to the moodle it belongs to. The bubble also shows by itself when a moodle changes. Figure 12-2 shows the bubble for the *Agitated* moodle, which reads *Racing heart. Confused thoughts.*"},
+   {"at": 512},
+   {"caption": ["Figure 12-2", "The thought bubble for a moodle."]},
+   {"h2": "The Full Watch"},
+   {"p": "The full watch in Figure 12-1 is the digital model. To put it away, press the small watch again. Its keys are listed in Table 12-1."},
+   {"gap": 6},
+   {"table": {"label": "Table 12-1", "title": "Keys of the digital watch", "cols": [0.3, 0.7], "head": ["Key", "What it does"],
+     "rows": [
+      ["LIGHT", "Lights the display."],
+      ["ALARM, SET", "Set the alarm and turn it on or off."],
+      ["SPEED", "Steps the game speed: 1x, 2x, 3x."],
+      ["START", "Starts or pauses the game."]
+     ]}}
+  ],
+  "prints": [
+   {"src": "story_11_smoke_break.png", "box": [3264, 950, 3840, 1172], "scale": 0.6, "at": [1294, 330], "tape": ["tl", "b"]}
+  ],
+  "marks": [
+   {"text": "The thought bubble trails to its moodle. It also shows by itself when a moodle changes.", "pen": "blu", "at": [1676, 176], "maxw": 184, "to": [2, 3660, 995]},
+   {"text": "The moodles are the game's own. Point at one for its name and description.", "pen": "blu", "at": [1676, 350], "maxw": 184, "to": [2, 3805, 1020]}
+  ],
+  "sticky": {"at": [1392, 904], "w": 268, "text": "Point at a moodle to read it."}
+ }
+}

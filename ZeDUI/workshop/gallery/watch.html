@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Layout Desk</title>
+<!--
+  The layout desk: watch the gallery spreads being laid out (Nov 1 2026).
+  Open this file in a browser and leave it open. Every render by spread.py leaves a stamp in out_spread/_watch/
+  (see watch.py); this page looks for new stamps every two seconds, shows whatever was just drawn, and keeps every
+  draft so a spread's layout can be replayed.  Keys: Left/Right step drafts, Space replays, Esc follows the desk.
+-->
+<style>
+:root {
+  --desk: #161411;
+  --panel: #1f1c18;
+  --panel-2: #29251f;
+  --line: #3a342b;
+  --ink: #ede7d9;
+  --muted: #a69d8b;
+  --faint: #6f675a;
+  --red: #e2513d;
+  --amber: #e4a93d;
+  --green: #7cc382;
+  --blue: #8fa7e6;
+  --mono: "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; background: var(--desk); color: var(--ink); }
+body { font: 14px/1.45 "Segoe UI", system-ui, -apple-system, sans-serif; }
+button { font: inherit; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line); border-radius: 5px; padding: 4px 11px; cursor: pointer; }
+button:hover { border-color: var(--muted); }
+button:focus-visible, .tile:focus-visible, input:focus-visible, li:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+button.on { background: #3a2a24; border-color: var(--red); }
+button:disabled { opacity: .4; cursor: default; }
+
+header { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding: 10px 18px; background: rgba(22, 20, 17, .94); border-bottom: 1px solid var(--line); backdrop-filter: blur(4px); }
+.brand { display: flex; align-items: baseline; gap: 10px; flex: 1 1 auto; min-width: 0; }
+.book { font: 700 19px/1.2 Georgia, "Times New Roman", serif; letter-spacing: .2px; white-space: nowrap; }
+.sub { color: var(--muted); }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--faint); align-self: center; flex: none; }
+.dot.live { background: var(--red); animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(226, 81, 61, .55); } 50% { box-shadow: 0 0 0 7px rgba(226, 81, 61, 0); } }
+.stats { display: flex; gap: 16px; color: var(--muted); font-variant-numeric: tabular-nums; flex-wrap: wrap; }
+.stats b { color: var(--ink); font-weight: 600; }
+
+main { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; padding: 16px 18px 6px; }
+.stage { min-width: 0; }
+.frame { position: relative; aspect-ratio: 16 / 9; width: min(100%, calc((100vh - 250px) * 16 / 9)); min-width: min(100%, 480px); margin: 0 auto; background: #0c0b09; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.frame img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; cursor: zoom-in; }
+.frame img.px { image-rendering: pixelated; }
+.empty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--faint); text-align: center; padding: 20px; }
+.cap { width: min(100%, calc((100vh - 250px) * 16 / 9)); min-width: min(100%, 480px); margin: 10px auto 0; }
+.titlerow { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.snum { font: 600 22px/1 var(--mono); color: var(--muted); }
+.stitle { font: 700 22px/1.2 Georgia, "Times New Roman", serif; }
+.spages, .swhen { color: var(--muted); }
+.swhen { margin-left: auto; font-variant-numeric: tabular-nums; }
+.controls { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.controls input[type=range] { flex: 1 1 200px; accent-color: var(--red); min-width: 120px; }
+.dlabel { color: var(--muted); font-variant-numeric: tabular-nums; min-width: 128px; }
+.checks { list-style: none; margin: 8px 0 0; padding: 0; }
+.checks li { font: 12.5px/1.45 var(--mono); color: var(--amber); border-left: 3px solid var(--amber); padding: 2px 8px; margin: 3px 0; background: rgba(228, 169, 61, .07); }
+.checks li.ok { color: var(--green); border-color: var(--green); background: rgba(124, 195, 130, .07); }
+
+aside { min-width: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; display: flex; flex-direction: column; max-height: calc(100vh - 92px); }
+aside h2, .sheet h2 { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: .9px; text-transform: uppercase; color: var(--muted); }
+aside h2 { padding: 10px 12px 8px; border-bottom: 1px solid var(--line); }
+#log { list-style: none; margin: 0; padding: 4px 0; overflow-y: auto; flex: 1; }
+#log li { display: grid; grid-template-columns: auto 1fr auto; gap: 2px 8px; padding: 6px 12px; cursor: pointer; border-bottom: 1px solid rgba(58, 52, 43, .55); }
+#log li:hover { background: var(--panel-2); }
+#log li.new { animation: arrive 2.4s ease-out; }
+@keyframes arrive { from { background: rgba(226, 81, 61, .28); } to { background: transparent; } }
+#log time { font: 12px/1.6 var(--mono); color: var(--faint); }
+#log .what { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#log .what b { font-family: var(--mono); font-weight: 600; color: var(--muted); margin-right: 5px; }
+#log .d { grid-column: 2 / 4; color: var(--faint); font-size: 12.5px; }
+#log .k { font-size: 12px; }
+.warn { color: var(--amber); }
+.okc { color: var(--green); }
+.quiet { color: var(--faint); padding: 12px; }
+
+.sheet { padding: 14px 18px 24px; }
+.sheet h2 { margin-bottom: 10px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(214px, 1fr)); gap: 12px; }
+.tile { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; cursor: pointer; transition: border-color .2s; }
+.tile:hover { border-color: var(--muted); }
+.tile.current { border-color: var(--blue); box-shadow: 0 0 0 1px var(--blue); }
+.tile.fresh { animation: fresh 6s ease-out; }
+@keyframes fresh { 0% { box-shadow: 0 0 0 3px var(--red); } 100% { box-shadow: 0 0 0 0 rgba(226, 81, 61, 0); } }
+.thumb { position: relative; aspect-ratio: 16 / 9; background: #0c0b09; }
+.thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb img.px { image-rendering: pixelated; }
+.todo .thumb { background: repeating-linear-gradient(135deg, #12100e 0 10px, #171512 10px 20px); }
+.todo .thumb img { display: none; }
+.wait { position: absolute; inset: 0; display: none; place-items: center; color: var(--faint); font-size: 12.5px; }
+.todo .wait { display: grid; }
+figcaption { padding: 7px 10px 8px; }
+.row { display: flex; align-items: baseline; gap: 7px; min-width: 0; }
+.num { font: 600 12.5px/1 var(--mono); color: var(--muted); flex: none; }
+.t { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.todo .t { color: var(--muted); font-weight: 400; }
+.row.sub { justify-content: space-between; margin-top: 2px; font-size: 12px; color: var(--faint); }
+.badges { display: flex; gap: 8px; }
+footer { padding: 0 18px 22px; color: var(--faint); font-size: 12.5px; }
+kbd { font: 11.5px var(--mono); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; color: var(--muted); }
+
+@media (max-width: 1100px) {
+  main { grid-template-columns: minmax(0, 1fr); }
+  aside { max-height: 300px; }
+  .frame, .cap { width: 100%; min-width: 0; }
+}
+@media (max-width: 560px) {
+  header, main, .sheet, footer { padding-left: 16px; padding-right: 16px; }
+  .grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .book { font-size: 16px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><span id="dot" class="dot" title="Red while spreads are being drawn"></span><span class="book">Bitchin' znix Programs</span><span class="sub">layout desk</span></div>
+  <div class="stats"><span id="count"></span><span id="ndrafts"></span><span id="since"></span></div>
+</header>
+
+<main>
+  <section class="stage" aria-label="The spread on the desk">
+    <div class="frame"><img id="stageImg" alt="" hidden><div id="stageEmpty" class="empty">Waiting for the first spread…</div></div>
+    <div class="cap">
+      <div class="titlerow"><span id="sNum" class="snum"></span><span id="sTitle" class="stitle"></span><span id="sPages" class="spages"></span><span id="sWhen" class="swhen"></span></div>
+      <div class="controls">
+        <button id="prev" title="Earlier draft (Left arrow)" aria-label="Earlier draft">◀</button>
+        <input id="slider" type="range" min="1" max="1" value="1" aria-label="Draft">
+        <button id="next" title="Later draft (Right arrow)" aria-label="Later draft">▶</button>
+        <span id="dlabel" class="dlabel"></span>
+        <button id="replay" title="Play this spread's drafts from the first (Space)">Replay drafts</button>
+        <button id="follow" class="on" title="Show whatever is being laid out right now (Esc)">Following the desk</button>
+      </div>
+      <ul id="checks" class="checks"></ul>
+    </div>
+  </section>
+  <aside aria-label="Desk log"><h2>Desk log</h2><ol id="log"></ol></aside>
+</main>
+
+<section class="sheet" aria-label="Every spread in book order"><h2>The book, in order</h2><div id="grid" class="grid"></div></section>
+<footer>Leave this open: it looks for new drafts every two seconds. Click a spread to hold it on the desk.
+  <kbd>←</kbd> <kbd>→</kbd> step through drafts · <kbd>Space</kbd> replay · <kbd>Esc</kbd> follow the desk · click the big picture for full size.</footer>
+
+<script>
+(() => {
+  const OUT = "out_spread/", W = OUT + "_watch/";
+  const COVER = "znix_01_cover.png", COVER_1X = "znix_01_cover_1x.png";
+  const SLIDES = [
+  [1, "hero", "Introduction"], [2, "old_job", "Old job"], [3, "the_plan", "The plan"], [4, "the_route", "The route"],
+  [5, "driving_in", "Driving in"], [6, "fixing_the_car", "Fixing the car"], [7, "barricading", "Barricading"], [8, "stocking_shelves", "Stocking shelves"],
+  [9, "open_for_business", "Open for business"], [10, "pumping_gas", "Pumping gas"], [11, "customers", "Customers"], [12, "smoke_break", "Smoke break"],
+  [13, "keeping_count", "Keeping count"], [14, "night_shift", "Night shift"], [15, "every_window", "Every window"], [16, "see_through", "See-through"],
+  [17, "controller_highlight", "Controller highlight"], [18, "hidden_actions", "Hidden actions"], [19, "inventory_compare", "Inventory and loot"], [20, "grid_view", "List or grid"],
+  [21, "item_cards", "Item cards"], [22, "equip_doll", "Equipment tab"], [23, "health_compare", "Health tab"], [24, "thermal", "Thermal tab"],
+  [25, "context_menus", "Context menus"], [26, "action_bar_compare", "Action bar"], [27, "crafting", "Crafting"], [28, "building", "Building"],
+  [29, "foraging_furniture", "Foraging and furniture"], [30, "belt", "The belt"], [31, "bubbles", "Speech, thoughts and hands"], [32, "moodles", "Moodles"],
+  [33, "watches", "Watches"], [34, "messages", "Messages"], [35, "car_radio", "The car radio"], [36, "dashboards", "Dashboards"],
+  [37, "two_way_radios", "Two-way radios"], [38, "ovens", "Ovens and microwaves"], [39, "reading_writing", "Reading and writing"], [40, "fishing", "Fishing"],
+  [41, "questions", "Questions"], [42, "controller_map", "Controller"], [43, "controller", "On a controller"], [44, "quick_actions", "Quick actions"],
+  [45, "themes", "Themes and accents"], [46, "wallpapers", "Wallpapers"], [47, "desk", "The Desk"], [48, "options_menu", "Options"],
+  [49, "sandbox_ingame", "Sandbox options in game"], [50, "mod_manager", "Mods"], [51, "mod_settings", "A mod's settings"], [52, "file_picks", "Picking files"],
+  [53, "turn_off", "Turning a mod off"], [54, "load_order", "Profiles and load order"], [55, "uploader", "Uploading"], [56, "loadouts", "Loadouts (testers wanted)"],
+  [57, "radios", "Radios and the CD player"], [58, "tvs", "Television sets"], [59, "laundry", "Washer and dryer"], [60, "machine_plates", "Machine plates"]
+  ];
+  const pad = n => String(n).padStart(2, "0");
+  const BOOK = [
+    { key: "cover", n: null, title: "Cover", pages: "cover", cover: true },
+    { key: "00_title", n: null, title: "Title page", pages: "front matter" },
+    ...SLIDES.map(([n, id, title]) => ({ key: pad(n) + "_" + id, n, title, pages: "pp. " + (2 * n + 20) + "–" + (2 * n + 21) })),
+  ];
+  const byKey = Object.fromEntries(BOOK.map(b => [b.key, b]));
+  const WATCHED = BOOK.filter(b => !b.cover);
+  const S = {};                                   // key -> its latest stamp (see watch.py)
+  const $ = id => document.getElementById(id);
+  const st = { key: "cover", i: null, follow: true, timer: null, want: null };
+  const inflight = {};
+  let booted = false, settled = 0, unseen = 0;
+
+  // ---------- small helpers
+  const clock = t => new Date(t * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  function ago(t) {
+    const s = Math.max(0, Math.round(Date.now() / 1000 - t));
+    if (s < 5) return "just now";
+    if (s < 60) return s + " s ago";
+    if (s < 3600) return Math.floor(s / 60) + " min ago";
+    if (s < 86400) return Math.floor(s / 3600) + " h ago";
+    return Math.floor(s / 86400) + " d ago";
+  }
+  const titleOf = b => (S[b.key] && S[b.key].title) || b.title;
+  const hist = key => (S[key] && S[key].history) || [];
+  const plural = (n, w) => n + " " + w + (n === 1 ? "" : "s");
+  function latestKey() {
+    let best = null, t = -1;
+    for (const b of WATCHED) if (S[b.key] && S[b.key].t > t) { t = S[b.key].t; best = b.key; }
+    return best;
+  }
+  function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+
+  // ---------- the contact sheet
+  const tiles = {};
+  for (const b of BOOK) {
+    const f = el("figure", "tile" + (b.cover ? "" : " todo"));
+    f.tabIndex = 0;
+    const th = el("div", "thumb"), img = el("img");
+    img.alt = "";
+    img.loading = "lazy";
+    if (b.cover) { img.src = COVER_1X; img.className = "px"; }
+    th.append(img, el("span", "wait", "not laid out yet"));
+    const cap = el("figcaption"), r1 = el("div", "row"), r2 = el("div", "row sub");
+    const num = el("span", "num", b.n == null ? "" : pad(b.n)), t = el("span", "t", b.title);
+    const pp = el("span", "pp", b.pages), badges = el("span", "badges");
+    r1.append(num, t); r2.append(pp, badges); cap.append(r1, r2); f.append(th, cap);
+    f.addEventListener("click", () => pin(b.key, null));
+    f.addEventListener("keydown", e => { if (e.key === "Enter") pin(b.key, null); });
+    $("grid").append(f);
+    tiles[b.key] = { f, img, t, badges };
+  }
+  function drawTile(b) {
+    const s = S[b.key], tl = tiles[b.key];
+    if (!s) return;
+    tl.f.classList.remove("todo");
+    tl.img.src = W + b.key + ".thumb.jpg?v=" + s.t;
+    tl.t.textContent = titleOf(b);
+    tl.badges.textContent = "";
+    tl.badges.append(el("span", "", plural(s.history.length, "draft")));
+    if (s.checks && s.checks.length) tl.badges.append(el("span", "warn", plural(s.checks.length, "check")));
+    else if (s.checks) tl.badges.append(el("span", "okc", "clean"));
+  }
+  function markCurrent() { for (const k in tiles) tiles[k].f.classList.toggle("current", k === st.key); }
+  function flash(key) { const f = tiles[key].f; f.classList.remove("fresh"); void f.offsetWidth; f.classList.add("fresh"); }
+
+  // ---------- the stage
+  const stageImg = $("stageImg"), slider = $("slider");
+  function setStage(src, px, fallback) {
+    st.want = src;
+    if (!src) { stageImg.hidden = true; $("stageEmpty").hidden = false; return; }
+    const pre = new Image();
+    pre.onload = () => { if (st.want !== src) return; stageImg.src = src; stageImg.className = px ? "px" : ""; stageImg.hidden = false; $("stageEmpty").hidden = true; };
+    pre.onerror = () => { if (st.want === src && fallback) setStage(fallback, px, null); };
+    pre.src = src;
+  }
+  function show(key, i) {
+    const b = byKey[key], h = hist(key);
+    st.key = key;
+    st.i = (i == null || i >= h.length - 1) ? null : Math.max(0, i);
+    if (b.cover) setStage(COVER, false, COVER_1X);
+    else if (!h.length) setStage(null);
+    else if (st.i == null) setStage(OUT + key + ".png?v=" + S[key].t, false, W + "drafts/" + h[h.length - 1].f);
+    else setStage(W + "drafts/" + h[st.i].f, false, null);
+    caption();
+    markCurrent();
+  }
+  function caption() {
+    const b = byKey[st.key], h = hist(st.key);
+    const idx = st.i == null ? h.length - 1 : st.i;
+    $("sNum").textContent = b.n == null ? "" : pad(b.n);
+    $("sTitle").textContent = titleOf(b);
+    $("sPages").textContent = b.pages;
+    slider.max = Math.max(1, h.length);
+    slider.value = Math.max(1, idx + 1);
+    slider.disabled = h.length < 2;
+    $("prev").disabled = h.length < 2 || idx <= 0;
+    $("next").disabled = h.length < 2 || st.i == null;
+    $("replay").disabled = h.length < 2;
+    $("dlabel").textContent = h.length ? "draft " + (idx + 1) + " of " + h.length + (st.i == null ? " · latest" : "") : "";
+    const cl = $("checks");
+    cl.textContent = "";
+    const e = h[idx];
+    if (e && e.checks) {
+      if (!e.checks.length) cl.append(el("li", "ok", "Renderer checks: clean"));
+      for (const c of e.checks) cl.append(el("li", "", "CHECK  " + c));
+    }
+    tickStage();
+  }
+  function tickStage() {
+    const b = byKey[st.key], h = hist(st.key);
+    const e = h[st.i == null ? h.length - 1 : st.i];
+    $("sWhen").textContent = e ? "drawn " + clock(e.t) + " · " + ago(e.t) : (b.cover ? "the approved cover" : "not laid out yet");
+  }
+  stageImg.addEventListener("click", () => { if (stageImg.src) window.open(stageImg.src, "_blank"); });
+
+  // ---------- following, pinning, replaying
+  function setFollow(on) {
+    st.follow = on;
+    const fb = $("follow");
+    fb.classList.toggle("on", on);
+    fb.textContent = on ? "Following the desk" : "Follow the desk";
+    if (on) { stopReplay(); const k = latestKey(); if (k) show(k, null); }
+  }
+  function pin(key, i) { stopReplay(); setFollow(false); show(key, i); window.scrollTo({ top: 0, behavior: "smooth" }); }
+  function stopReplay() { if (st.timer) { clearInterval(st.timer); st.timer = null; $("replay").textContent = "Replay drafts"; } }
+  function replay() {
+    if (st.timer) { stopReplay(); return; }
+    const key = st.key, h = hist(key);
+    if (h.length < 2) return;
+    setFollow(false);
+    for (const e of h) { const im = new Image(); im.src = W + "drafts/" + e.f; }
+    let i = 0;
+    show(key, 0);
+    $("replay").textContent = "Stop";
+    st.timer = setInterval(() => {
+      i += 1;
+      if (i >= h.length - 1) { stopReplay(); show(key, null); } else show(key, i);
+    }, Math.max(380, Math.min(1000, 10000 / h.length)));
+  }
+  function step(d) {
+    const h = hist(st.key);
+    if (h.length < 2) return;
+    stopReplay(); setFollow(false);
+    const idx = (st.i == null ? h.length - 1 : st.i) + d;
+    show(st.key, Math.min(h.length - 1, Math.max(0, idx)));
+  }
+  $("prev").addEventListener("click", () => step(-1));
+  $("next").addEventListener("click", () => step(1));
+  $("replay").addEventListener("click", replay);
+  $("follow").addEventListener("click", () => setFollow(!st.follow));
+  slider.addEventListener("input", () => { stopReplay(); setFollow(false); show(st.key, Number(slider.value) - 1); });
+  document.addEventListener("keydown", e => {
+    if (e.target.tagName === "INPUT" && e.key !== "Escape") return;
+    if (e.key === "ArrowLeft") { step(-1); e.preventDefault(); }
+    else if (e.key === "ArrowRight") { step(1); e.preventDefault(); }
+    else if (e.key === " ") { replay(); e.preventDefault(); }
+    else if (e.key === "Escape") setFollow(true);
+  });
+
+  // ---------- the desk log
+  function logItem(key, k, isNew) {
+    const b = byKey[key], e = hist(key)[k];
+    const li = el("li", isNew ? "new" : "");
+    li.tabIndex = 0;
+    const what = el("span", "what");
+    if (b.n != null) what.append(el("b", "", pad(b.n)));
+    what.append(document.createTextNode(titleOf(b)));
+    const chk = !e.checks ? el("span", "k", "") : e.checks.length ? el("span", "k warn", plural(e.checks.length, "check")) : el("span", "k okc", "clean");
+    li.append(el("time", "", clock(e.t)), what, chk, el("span", "d", "draft " + (k + 1)));
+    li.addEventListener("click", () => pin(key, k));
+    li.addEventListener("keydown", ev => { if (ev.key === "Enter") pin(key, k); });
+    return li;
+  }
+  function bootLog() {
+    const all = [];
+    for (const b of WATCHED) hist(b.key).forEach((e, k) => all.push([e.t, b.key, k]));
+    all.sort((a, b) => b[0] - a[0]);
+    const log = $("log");
+    log.textContent = "";
+    if (!all.length) log.append(el("li", "quiet", "Nothing drawn yet. Drafts appear here as they are made."));
+    for (const [, key, k] of all.slice(0, 80)) log.append(logItem(key, k, false));
+  }
+  function logNew(key, k) {
+    const log = $("log");
+    const q = log.querySelector(".quiet");
+    if (q) q.remove();
+    log.prepend(logItem(key, k, true));
+    while (log.children.length > 200) log.lastChild.remove();
+  }
+
+  // ---------- header
+  function stats() {
+    const done = WATCHED.filter(b => S[b.key]).length;
+    const drafts = WATCHED.reduce((a, b) => a + hist(b.key).length, 0);
+    $("count").innerHTML = "<b>" + done + "</b> of " + WATCHED.length + " spreads laid out";
+    $("ndrafts").innerHTML = "<b>" + drafts + "</b> drafts";
+    tickHeader();
+  }
+  function tickHeader() {
+    const k = latestKey();
+    const t = k ? S[k].t : 0;
+    const live = t && Date.now() / 1000 - t < 180;
+    $("dot").classList.toggle("live", !!live);
+    $("since").textContent = k ? "last drawn " + ago(t) + " (" + titleOf(byKey[k]) + ")" : "nothing drawn yet";
+    document.title = (unseen ? "(" + unseen + ") " : "") + "Layout Desk";
+  }
+
+  // ---------- the stamps: each stamp file calls stamp({...})
+  window.stamp = info => {
+    const key = info && info.name, b = byKey[key];
+    if (!b || !Array.isArray(info.history)) return;
+    const old = S[key];
+    if (old && old.t === info.t) return;
+    S[key] = info;
+    drawTile(b);
+    if (!booted) return;
+    flash(key);
+    const fresh = info.history.map((e, k) => [e.t, k]).filter(([t]) => !old || t > old.t);
+    for (const [, k] of fresh) logNew(key, k);                  // every draft since we last looked
+    if (document.hidden) unseen += fresh.length;
+    if (st.follow) show(key, null);
+    else if (st.key === key) caption();
+    stats();
+  };
+  function boot() {
+    booted = true;
+    bootLog();
+    stats();
+    const k = latestKey();
+    show(k || "cover", null);
+    if (!k) $("stageEmpty").textContent = "Waiting for the first spread…";
+  }
+  function poll() {
+    for (const b of WATCHED) {
+      if (inflight[b.key]) continue;
+      inflight[b.key] = true;
+      const s = document.createElement("script");
+      const done = () => {
+        s.remove();
+        inflight[b.key] = false;
+        if (!booted && ++settled === WATCHED.length) boot();
+      };
+      s.onload = done;
+      s.onerror = done;                                            // not drawn yet
+      s.src = W + b.key + ".js?t=" + Date.now();
+      document.head.append(s);
+    }
+  }
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) { unseen = 0; tickHeader(); } });
+  show("cover", null);
+  poll();
+  setTimeout(() => { if (!booted) boot(); }, 6000);              // in case a stamp never answers
+  setInterval(poll, 2000);
+  setInterval(() => { tickHeader(); tickStage(); }, 1000);
+})();
+</script>
+</body>
+</html>

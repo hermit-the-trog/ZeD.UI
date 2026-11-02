@@ -1,0 +1,200 @@
+{
+ "id": "building",
+ "n": 28,
+ "pages": [
+  76,
+  77
+ ],
+ "left": {
+  "kind": "manual",
+  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "blocks": [
+   {
+    "chapter": [
+     "28",
+     "Building"
+    ]
+   },
+   {
+    "p": "The *Building* tab of the *World* window lists the structures you can build. It is laid out as the *Crafting* tab is (Chapter 27): the list at the left, and at the right the structure you click."
+   },
+   {
+    "p": "Pick a category from the pop-up at the top left, or search the structures by name in the box beside it. *Sort* and *Show* at the foot of the tab order and filter the list. With *Show: Ready* on, the list holds only what you can build now."
+   },
+   {
+    "p": "The open structure gives its name, *Known* when you have learned the recipe, how long it takes, and the *Required* list of everything it needs, with a count for each. A red square marks what is missing."
+   },
+   {
+    "h2": "To Build a Structure"
+   },
+   {
+    "list": [
+     "Pick a category, or search the structures by name.",
+     "Click the structure in the list.",
+     "Set how many with *-* and *+* beside *Build*.",
+     "When no red square shows in the *Required* list, click *Build*."
+    ],
+    "numbered": true
+   },
+   {
+    "note": "*Build* stays dimmed while a red square shows in the *Required* list."
+   }
+  ],
+  "marks": [
+   {
+    "circle": {
+     "word": "Ready"
+    },
+    "pen": "grn"
+   }
+  ]
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Building",
+  "blocks": [
+   {
+    "h2": "A Structure Open"
+   },
+   {
+    "at": 816
+   },
+   {
+    "caption": [
+     "Figure 28-1",
+     "The Building tab, with a recipe open."
+    ]
+   },
+   {
+    "p": "In Figure 28-1 the *Advanced Forge* is open. It is known and takes 50 seconds, but none of the seven things it needs is at hand."
+   }
+  ],
+  "prints": [
+   {
+    "src": "zed_50_building.png",
+    "box": [
+     2634,
+     44,
+     3482,
+     700
+    ],
+    "scale": 0.53,
+    "at": [
+     1193,
+     312
+    ],
+    "tape": [
+     "tr",
+     "l"
+    ]
+   }
+  ],
+  "marks": [
+   {
+    "text": "Pick a category, or search the structures by name.",
+    "pen": "blu",
+    "at": [
+     1250,
+     214
+    ],
+    "maxw": 390,
+    "to": [
+     [
+      0,
+      2880,
+      77
+     ],
+     [
+      0,
+      3380,
+      77
+     ]
+    ],
+    "bend": 0
+   },
+   {
+    "text": "Known: you have learned the recipe.",
+    "pen": "blu",
+    "at": [
+     1040,
+     null
+    ],
+    "maxw": 140,
+    "bend": 0,
+    "to": [
+     0,
+     3098,
+     232
+    ]
+   },
+   {
+    "text": "Required (0/7): everything the recipe needs. Red squares mark what is missing.",
+    "pen": "blu",
+    "at": [
+     1040,
+     null
+    ],
+    "maxw": 140,
+    "bend": 0,
+    "to": [
+     0,
+     3100,
+     280
+    ]
+   },
+   {
+    "text": "50s is how long it takes.",
+    "pen": "blu",
+    "at": [
+     1676,
+     null
+    ],
+    "maxw": 184,
+    "bend": 0,
+    "to": [
+     0,
+     3225,
+     232
+    ]
+   },
+   {
+    "text": "Build stays dimmed while red squares show in the Required list.",
+    "pen": "blu",
+    "at": [
+     1676,
+     null
+    ],
+    "maxw": 184,
+    "bend": 0,
+    "to": [
+     0,
+     3455,
+     664
+    ]
+   },
+   {
+    "text": "Show: Ready is on, so the list holds only what you can build now. Nothing is ready yet.",
+    "pen": "blu",
+    "at": [
+     1252,
+     704
+    ],
+    "maxw": 380,
+    "to": [
+     0,
+     2960,
+     675
+    ]
+   }
+  ],
+  "sticky": {
+   "at": [
+    1470,
+    914
+   ],
+   "w": 330,
+   "h": 112,
+   "text": "The Building tab, with a recipe open."
+  }
+ }
+}

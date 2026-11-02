@@ -1,0 +1,51 @@
+{
+ "id": "watches",
+ "n": 33,
+ "pages": [86, 87],
+ "left": {
+  "kind": "taped",
+  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "blocks": [
+   {"chapter": ["33", "Watches"]},
+   {"p": "A watch is shown on the belt only while your character wears one, and it is drawn to match the watch worn. Figure 33-1 shows the small watch on the belt in four models."},
+   {"p": "A watch worn on the left wrist sits at the left end of the belt, left of the off hand. The main hand sits right of the off hand, and the slots of the belt follow."},
+   {"at": 904},
+   {"caption": ["Figure 33-1", "The small watch in four models."]}
+  ],
+  "prints": [
+   {"src": "gbw_DigitalBlack.png", "box": [1320, 2020, 2210, 2142], "scale": 0.62, "at": [300, 356], "tape": ["tl", "tr"]},
+   {"src": "gbw_DigitalTimez.png", "box": [1320, 2020, 2210, 2142], "scale": 0.62, "at": [300, 466], "tape": ["t", "br"]},
+   {"src": "gbw_ClassicGold.png", "box": [1320, 2020, 2210, 2142], "scale": 0.62, "at": [300, 576], "tape": ["tl", "b"]},
+   {"src": "gbw_DigitalRed.png", "box": [1320, 2020, 2210, 2142], "scale": 0.62, "at": [300, 686], "tape": ["tr", "b"]}
+  ],
+  "marks": [
+   {"text": "A watch worn on the left wrist sits left of the off hand, at the left end of the belt.", "pen": "blu", "at": [56, null], "maxw": 196, "to": [0, 1452, 2066]},
+   {"text": "Press the face to open the full watch. Press it again to put it away.", "pen": "blu", "at": [56, null], "maxw": 196, "to": [1, 1462, 2090]},
+   {"text": "Each model is drawn to match the watch you wear.", "pen": "blu", "at": [56, null], "maxw": 196, "to": [2, 1468, 2088]},
+   {"text": "The left pusher sets the game speed. The right one starts or pauses it.", "pen": "blu", "at": [272, 802], "maxw": 290, "bend": 0, "to": [[3, 1438, 2086], [3, 1512, 2086]]},
+   {"text": "The main hand (Primary) sits right of the off hand (Secondary).", "pen": "blu", "at": [590, 802], "maxw": 280, "to": [3, 1670, 2092]}
+  ],
+  "sticky": {"at": [612, 920], "w": 262, "h": 106, "text": "The watch you wear, on the belt."}
+ },
+ "right": {
+  "kind": "manual",
+  "head": "Watches",
+  "blocks": [
+   {"h2": "The Full Watch"},
+   {"p": "To open the full watch, click the face of the small watch on the belt. Click it again to put the full watch away. The full watch takes the place of the game's clock and of its speed controls."},
+   {"p": "Every watch has the same four controls: pause and play, a speed step, the alarm on or off, and setting the alarm. On the small watch, the left pusher sets the game speed and the right one starts or pauses the game. On a digital watch the keys are set out in Table 33-1."},
+   {"gap": 6},
+   {"table": {"label": "Table 33-1", "title": "The keys of a digital watch", "cols": [0.3, 0.7], "head": ["Key", "What it does"],
+     "rows": [["ALARM", "Turns the alarm on or off."],
+              ["SET", "Sets the alarm."],
+              ["SPEED", "Steps the game speed through 1x, 2x and 3x."],
+              ["START", "Pauses the game, or starts it again."]]}},
+   {"p": "The speed in use is shown on the display of every watch, with *PAUSE* while the game is paused, and a mark lights on the *SPEED* key. A digital watch also shows the date and the air temperature."},
+   {"p": "On a classic watch with hands, the pushers are on the side of the case and a small display is set in the dial."},
+   {"note": "A watch worn on the right wrist sits on the belt right of the main hand instead."}
+  ],
+  "marks": [
+   {"circle": {"word": "PAUSE"}, "pen": "grn"}
+  ]
+ }
+}

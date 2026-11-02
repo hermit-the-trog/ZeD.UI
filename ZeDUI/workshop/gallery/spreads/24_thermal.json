@@ -1,0 +1,194 @@
+{
+ "id": "thermal",
+ "n": 24,
+ "pages": [
+  68,
+  69
+ ],
+ "left": {
+  "kind": "manual",
+  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "blocks": [
+   {
+    "chapter": [
+     "24",
+     "Thermal Tab"
+    ]
+   },
+   {
+    "p": "The *Thermal* tab of the *Character* window shows a figure of the body drawn in colors. The figure gives one reading for every part of the body. Beside the figure are the core, air and wind temperatures, and under them a color scale with a marker."
+   },
+   {
+    "p": "Which reading the figure shows is chosen with the *View* pop-up at the foot of the tab, and the figure takes its colors from the view picked. Figure 24-1 shows the figure in two of its views."
+   },
+   {
+    "at": 832
+   },
+   {
+    "caption": [
+     "Figure 24-1",
+     "The figure in the Insulation view, left, and the Wetness view, right."
+    ]
+   },
+   {
+    "p": "To change the view, click the *View* pop-up and pick a view from it."
+   }
+  ],
+  "prints": [
+   {
+    "src": "zed_70_thermal_insulation.png",
+    "box": [
+     365,
+     118,
+     820,
+     692
+    ],
+    "scale": 0.55,
+    "at": [
+     309,
+     470
+    ],
+    "printed": true
+   },
+   {
+    "src": "zed_72_thermal_wetness.png",
+    "box": [
+     365,
+     118,
+     820,
+     692
+    ],
+    "scale": 0.55,
+    "at": [
+     589,
+     470
+    ],
+    "printed": true
+   }
+  ],
+  "marks": [
+   {
+    "circle": {
+     "print": 0,
+     "box": [
+      380,
+      650,
+      572,
+      680
+     ]
+    },
+    "pen": "grn"
+   },
+   {
+    "circle": {
+     "print": 1,
+     "box": [
+      380,
+      650,
+      572,
+      680
+     ]
+    },
+    "pen": "grn"
+   }
+  ]
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Thermal Tab",
+  "blocks": [
+   {
+    "h2": "Reading the Figure"
+   },
+   {
+    "p": "Figure 24-2 shows the tab in the *Skin Temperature* view. Each part of the figure is drawn in the color of its reading."
+   },
+   {
+    "at": 830
+   },
+   {
+    "caption": [
+     "Figure 24-2",
+     "The Thermal tab in the Skin Temperature view."
+    ]
+   },
+   {
+    "p": "The temperatures beside the figure are given in degrees. The scale under them runs from blue to orange."
+   }
+  ],
+  "prints": [
+   {
+    "src": "zed_66_thermal_skin.png",
+    "box": [
+     354,
+     56,
+     1199,
+     692
+    ],
+    "scale": 0.6,
+    "at": [
+     1040,
+     284
+    ],
+    "tape": [
+     "tl",
+     "tr"
+    ]
+   }
+  ],
+  "marks": [
+   {
+    "text": "Core, air and wind temperatures sit beside the figure.",
+    "pen": "blu",
+    "at": [
+     1676,
+     null
+    ],
+    "maxw": 184,
+    "bend": 0,
+    "to": [
+     2,
+     1138,
+     178
+    ]
+   },
+   {
+    "text": "The View pop-up picks the view. The figure takes its colors from the view picked.",
+    "pen": "blu",
+    "at": [
+     1040,
+     712
+    ],
+    "maxw": 250,
+    "to": [
+     2,
+     470,
+     664
+    ]
+   },
+   {
+    "text": "The figure shows one reading for every body part, here the skin temperature.",
+    "pen": "blu",
+    "at": [
+     1330,
+     712
+    ],
+    "maxw": 320,
+    "to": [
+     2,
+     666,
+     440
+    ]
+   }
+  ],
+  "sticky": {
+   "at": [
+    1470,
+    914
+   ],
+   "w": 330,
+   "h": 112,
+   "text": "The Thermal tab in three of its views."
+  }
+ }
+}

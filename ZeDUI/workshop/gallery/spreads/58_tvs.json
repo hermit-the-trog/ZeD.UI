@@ -1,0 +1,206 @@
+{
+ "id": "tvs",
+ "n": 58,
+ "pages": [
+  136,
+  137
+ ],
+ "left": {
+  "kind": "taped",
+  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "blocks": [
+   {
+    "chapter": [
+     "58",
+     "Television Sets"
+    ]
+   },
+   {
+    "p": "A television set in reach is shown in the *Radio* tab of the *World* window, under a line that gives its name. Each of the three sets has a face of its own. The screen shows the picture, snow or the off-air cards."
+   },
+   {
+    "at": 774
+   },
+   {
+    "caption": [
+     "Figure 58-1",
+     "The Premium Technologies Television, playing a tape."
+    ]
+   },
+   {
+    "p": "Under the screen are the set's controls: the tape slot with its keys, the tape counter, the channel with *CH*, *VOL*, *MUTE* and *POWER*."
+   }
+  ],
+  "prints": [
+   {
+    "src": "g14_tv_widescreen.png",
+    "box": [
+     2664,
+     122,
+     3462,
+     686
+    ],
+    "scale": 0.6,
+    "at": [
+     292,
+     380
+    ],
+    "tape": [
+     "t",
+     "r"
+    ]
+   }
+  ],
+  "marks": [
+   {
+    "text": "A tape plays on the screen: its title, then the lines it has shown.",
+    "pen": "blu",
+    "at": [
+     62,
+     468
+    ],
+    "maxw": 184,
+    "to": [
+     [
+      0,
+      2742,
+      181
+     ],
+     [
+      0,
+      2760,
+      497
+     ]
+    ]
+   }
+  ],
+  "sticky": {
+   "at": [
+    596,
+    884
+   ],
+   "w": 290,
+   "h": 136,
+   "text": "Three television sets, each with its own face."
+  }
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Television Sets",
+  "blocks": [
+   {
+    "h2": "Snow and the Off-Air Cards"
+   },
+   {
+    "p": "Off the dial, or just after a channel change, the screen shows snow. A station that is off the air shows its sign-off card; once it has stopped for good, it shows the standby card."
+   },
+   {
+    "at": 944
+   },
+   {
+    "caption": [
+     "Figure 58-2",
+     "The ValuTech set, top, and the Antique set, bottom."
+    ]
+   }
+  ],
+  "prints": [
+   {
+    "src": "g14_tv_black.png",
+    "box": [
+     2645,
+     122,
+     3452,
+     706
+    ],
+    "scale": 0.5,
+    "at": [
+     1036,
+     290
+    ],
+    "tape": [
+     "t",
+     "bl"
+    ]
+   },
+   {
+    "src": "g14_tv_antique.png",
+    "box": [
+     2658,
+     104,
+     3452,
+     636
+    ],
+    "scale": 0.5,
+    "at": [
+     1244,
+     616
+    ],
+    "tape": [
+     "tl",
+     "r"
+    ]
+   }
+  ],
+  "marks": [
+   {
+    "text": "Off the dial, or just after a channel change, the screen shows snow.",
+    "pen": "blu",
+    "at": [
+     1478,
+     330
+    ],
+    "maxw": 180,
+    "to": [
+     1,
+     3160,
+     400
+    ]
+   },
+   {
+    "text": "A station that is off the air shows its sign-off card, or the standby card once it has stopped for good.",
+    "pen": "blu",
+    "at": [
+     1040,
+     640
+    ],
+    "maxw": 190,
+    "to": [
+     2,
+     2900,
+     290
+    ]
+   },
+   {
+    "text": "The knob pulls on and pushes off, and turns for the volume. The dial has twelve stops.",
+    "pen": "blu",
+    "at": [
+     1676,
+     630
+    ],
+    "maxw": 184,
+    "to": [
+     [
+      2,
+      3330,
+      196
+     ],
+     [
+      2,
+      3338,
+      328
+     ]
+    ]
+   }
+  ],
+  "sticky": {
+   "at": [
+    1672,
+    856
+   ],
+   "w": 192,
+   "h": 164,
+   "text": "Picture, snow or the off-air cards."
+  }
+ }
+}

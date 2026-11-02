@@ -1,0 +1,48 @@
+{
+ "id": "bubbles",
+ "n": 31,
+ "pages": [82, 83],
+ "left": {
+  "kind": "taped",
+  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "blocks": [
+   {"chapter": ["31", "Speech, Thoughts and Hands"]},
+   {"p": "What your character says is shown over the head, in a balloon drawn in the colors of the current theme. With the action bar set to *Verbose*, the action under way is shown there too, in a thought bubble (Figure 31-2, on the facing page)."},
+   {"h2": "The Hands"},
+   {"p": "The hands are at the left end of the belt: the off hand, then the larger main hand. Each shows the item it holds, with a ring round it for the item's condition, filled clockwise from the top."},
+   {"p": "When one item is held in both hands, the main hand keeps its circle and the off hand slides in behind it, so that only its edge shows. To reach the off hand, click that edge. On a controller, Left moves from slot 1 of the belt to the main hand and then to the off hand."},
+   {"at": 880},
+   {"caption": ["Figure 31-1", "Two items, top, and one item held in both hands, bottom."]}
+  ],
+  "prints": [
+   {"src": "zqa_ht_01_two.png", "box": [1500, 1985, 2215, 2145], "scale": 0.75, "at": [296, 548], "tape": ["tl", "br"]},
+   {"src": "zqa_ht_02_both.png", "box": [1500, 1985, 2215, 2145], "scale": 0.75, "at": [296, 700], "tape": ["t", "br"]}
+  ],
+  "marks": [
+   {"text": "Off hand, then the larger main hand, at the belt's left end. Each ring is the item's condition.", "pen": "blu", "at": [62, null], "maxw": 184, "bend": -0.25, "to": [[0, 1598, 2072], [0, 1700, 2052]]},
+   {"text": "One item in both hands: the main hand keeps its circle and the off hand peeks out from behind it.", "pen": "blu", "at": [62, null], "maxw": 184, "to": [1, 1608, 2085]},
+   {"circle": {"word": "Verbose"}, "pen": "grn"}
+  ],
+  "sticky": {"at": [496, 902], "w": 380, "h": 116, "text": "The hands sit at the belt's left end, each with a condition ring."}
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Speech, Thoughts and Hands",
+  "blocks": [
+   {"h2": "Over the Head"},
+   {"p": "Figure 31-2 shows both at once: the action under way in a thought bubble at the left, and what the character says in a balloon at the right. Both are drawn just above the head of the character, over the game."},
+   {"at": 664},
+   {"caption": ["Figure 31-2", "The thought bubble, left, and the balloon, right."]},
+   {"p": "The thought bubble names the action and the item it is done with, and has a bar that fills as the action goes on. When several actions are waiting, the bar is divided into one part for each."},
+   {"p": "To choose the style of the action bar on a controller, hold *View* for the ZeD wheel and choose *Action bar*."}
+  ],
+  "prints": [
+   {"src": "zqa_bub_both_dark.png", "box": [1825, 880, 2235, 1165], "scale": 1.25, "at": [1046, 258], "tape": ["tl", "tr"]}
+  ],
+  "marks": [
+   {"text": "With the action bar on Verbose, the action shows in a thought bubble.", "pen": "blu", "at": [1676, null], "maxw": 184, "to": [2, 1990, 928]},
+   {"text": "What your character says shows in a balloon, in the theme's colors.", "pen": "blu", "at": [1676, null], "maxw": 184, "to": [2, 2196, 968]}
+  ],
+  "sticky": {"at": [1456, 872], "w": 266, "h": 140, "text": "Over the head: what you say and what you're doing."}
+ }
+}

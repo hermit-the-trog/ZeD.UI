@@ -1,0 +1,291 @@
+{
+ "id": "uploader",
+ "n": 55,
+ "pages": [
+  130,
+  131
+ ],
+ "left": {
+  "kind": "taped",
+  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "blocks": [
+   {
+    "chapter": [
+     "55",
+     "Uploading"
+    ]
+   },
+   {
+    "p": "A mod is uploaded to the Steam Workshop from one window, the *Workshop* window. The list at the left of the window gives your mods. The pane at the right holds the Workshop page of the mod picked, one field to a line."
+   },
+   {
+    "at": 948
+   },
+   {
+    "caption": [
+     "Figure 55-1",
+     "A mod's page, ready to go up."
+    ]
+   }
+  ],
+  "prints": [
+   {
+    "src": "mm4_15_upload_ready.png",
+    "box": [
+     1590,
+     370,
+     2830,
+     1494
+    ],
+    "scale": 0.44,
+    "at": [
+     264,
+     330
+    ],
+    "tape": [
+     "t",
+     "br"
+    ]
+   },
+   {
+    "src": "mm4_16_upload_ask.png",
+    "box": [
+     994,
+     2006,
+     2850,
+     2062
+    ],
+    "scale": 0.42,
+    "at": [
+     70,
+     860
+    ],
+    "tape": [
+     "l",
+     "r"
+    ]
+   }
+  ],
+  "marks": [
+   {
+    "text": "Who can see it, tags and the preview picture.",
+    "pen": "blu",
+    "at": [
+     62,
+     340
+    ],
+    "maxw": 184,
+    "to": [
+     [
+      0,
+      1635,
+      472
+     ],
+     [
+      0,
+      1635,
+      566
+     ],
+     [
+      0,
+      1635,
+      915
+     ]
+    ]
+   },
+   {
+    "text": "Edit description opens the block editor.",
+    "pen": "blu",
+    "at": [
+     62,
+     688
+    ],
+    "maxw": 184,
+    "to": [
+     0,
+     1880,
+     1252
+    ]
+   },
+   {
+    "text": "The folder is checked before it goes up.",
+    "pen": "blu",
+    "at": [
+     62,
+     790
+    ],
+    "maxw": 184,
+    "to": [
+     0,
+     1872,
+     1481
+    ]
+   },
+   {
+    "text": "Anything that cannot be undone asks first.",
+    "pen": "blu",
+    "at": [
+     62,
+     926
+    ],
+    "maxw": 184,
+    "from": "top",
+    "to": [
+     1,
+     1120,
+     2034
+    ]
+   }
+  ],
+  "sticky": {
+   "at": [
+    650,
+    914
+   ],
+   "w": 300,
+   "h": 110,
+   "text": "Upload to the Workshop from one window."
+  }
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Uploading",
+  "blocks": [
+   {
+    "h2": "The Description Editor"
+   },
+   {
+    "p": "To write the description, click *Edit description...* in the *Workshop* window. The editor builds the page from blocks, each added from *Add a block*. *Add a section* adds a whole section at once, such as *Features* or *Requirements*."
+   },
+   {
+    "at": 840
+   },
+   {
+    "caption": [
+     "Figure 55-2",
+     "The page as Steam shows it, and the blocks and sections."
+    ]
+   },
+   {
+    "p": "To keep the page, click *Use this description*."
+   }
+  ],
+  "prints": [
+   {
+    "src": "mm4_12_editor.png",
+    "box": [
+     2196,
+     380,
+     2846,
+     920
+    ],
+    "scale": 0.55,
+    "at": [
+     1034,
+     300
+    ],
+    "tape": [
+     "tr",
+     "b"
+    ]
+   },
+   {
+    "src": "mm4_12_editor.png",
+    "box": [
+     1004,
+     360,
+     1372,
+     1170
+    ],
+    "scale": 0.5,
+    "at": [
+     1428,
+     300
+    ],
+    "tape": [
+     "t",
+     "b"
+    ]
+   },
+   {
+    "src": "mm4_12_editor.png",
+    "box": [
+     994,
+     2008,
+     1290,
+     2060
+    ],
+    "scale": 0.6,
+    "at": [
+     1428,
+     742
+    ],
+    "tape": [
+     "tl",
+     "bl"
+    ]
+   }
+  ],
+  "marks": [
+   {
+    "text": "Build the page from blocks and whole sections.",
+    "pen": "blu",
+    "at": [
+     1676,
+     440
+    ],
+    "maxw": 184,
+    "bend": 0.45,
+    "to": [
+     [
+      3,
+      1156,
+      396
+     ],
+     [
+      3,
+      1178,
+      762
+     ]
+    ]
+   },
+   {
+    "text": "The page as Steam will show it.",
+    "pen": "blu",
+    "at": [
+     1046,
+     640
+    ],
+    "maxw": 360,
+    "to": [
+     2,
+     2330,
+     886
+    ]
+   },
+   {
+    "text": "A running count of characters: 698 of 7,950.",
+    "pen": "blu",
+    "at": [
+     1676,
+     734
+    ],
+    "maxw": 184,
+    "to": [
+     4,
+     1262,
+     2034
+    ]
+   }
+  ],
+  "sticky": {
+   "at": [
+    1484,
+    870
+   ],
+   "w": 300,
+   "h": 150,
+   "text": "The description editor shows the page as Steam will."
+  }
+ }
+}

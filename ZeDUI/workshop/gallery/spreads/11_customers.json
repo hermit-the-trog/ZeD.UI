@@ -1,0 +1,50 @@
+{
+ "id": "customers",
+ "n": 11,
+ "pages": [42, 43],
+ "left": {
+  "kind": "taped",
+  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "blocks": [
+   {"chapter": ["11", "Customers"]},
+   {"p": "The Fossoil station is open, and its first customers are in the store. This chapter turns to the belt, the strip along the foot of the screen that holds the watch you wear, your two hands and the slots for what you keep ready."},
+   {"p": "Figure 11-1 shows the store from outside, with the belt below it. The parts of the belt are listed in Table 11-1 on the facing page, from left to right."},
+   {"at": 897},
+   {"caption": ["Figure 11-1", "The store and the belt."]}
+  ],
+  "prints": [
+   {"src": "story_10_customers_queue.png", "box": [1300, 910, 2600, 2160], "scale": 0.42, "at": [258, 318], "tape": ["t", "br"]},
+   {"src": "zqa_ht_06_rightwatch_pistol.png", "box": [1302, 2016, 1730, 2138], "scale": 0.43, "at": [56, 670], "tape": ["t", "b"]}
+  ],
+  "marks": [
+   {"text": "At least someone knows how to queue in this country.", "pen": "grn", "at": [62, 318], "maxw": 188, "to": [0, 2095, 1185]},
+   {"text": "The buckle shows the profession. This one is for mechanics.", "pen": "blu", "at": [62, 416], "maxw": 188, "to": [0, 1915, 2070]},
+   {"text": "The two hands: off hand (Secondary) and main hand (Primary). Both are empty here.", "pen": "blu", "at": [62, 512], "maxw": 188, "to": [[0, 1477, 2085], [0, 1577, 2085]]},
+   {"text": "Watch on the left wrist is the watch on the left side of the belt. Watch worn on the right wrist ... you guessed it, on the right of the belt.", "pen": "blu", "at": [62, 756], "maxw": 188, "to": [[0, 1381, 2083], [1, 1675, 2075]]}
+  ],
+  "sticky": {"at": [588, 886], "w": 296, "text": "The belt: watch, hands, slots and buckle."}
+ },
+ "right": {
+  "kind": "manual",
+  "head": "Customers",
+  "blocks": [
+   {"h2": "The Belt"},
+   {"p": "The belt runs along the foot of the screen (Figure 11-1). The watch you wear and your two hands are at its left end, and the strap with the slots and the buckle follows them. Table 11-1 lists its parts."},
+   {"gap": 8},
+   {"table": {"label": "Table 11-1", "title": "The parts of the belt", "cols": [0.27, 0.73], "head": ["Part", "What it shows"],
+     "rows": [
+      ["Watch", "The watch you wear on the left wrist. A watch worn on the right wrist sits right of the hands."],
+      ["Off hand", "*Secondary*: the smaller circle."],
+      ["Main hand", "*Primary*: the larger circle. A ring round a hand shows the condition of what it holds."],
+      ["Ammo tab", "Only with a loaded gun in the main hand: a tab with its rounds."],
+      ["Slots", "Numbered slots on both sides of the buckle, each with what it holds."],
+      ["Buckle", "The profession. The buckle in Figure 11-1 is a mechanic's."]
+     ]}},
+   {"note": "In Figure 11-1 both hands are empty, so each shows only its name."},
+   {"p": "A hand that holds something shows the item in its circle, with a ring round it for the item's condition. The small watch shows the watch you wear, drawn to match its model; Chapter 12 shows the full watch."}
+  ],
+  "marks": [
+   {"circle": {"word": "right", "nth": 1}, "pen": "grn"}
+  ]
+ }
+}
