@@ -1288,6 +1288,14 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     cars spawn inside a building and their physics never wakes. Not the 13-chunk grid, not leftovers. For build: the
     vehicle scripts start from the drag strip, or the scripts that walk the character away put it back. Not tested:
     why the 1080p full pass passes sl from the same place.
+    **QA, Nov 2 2026, evening: the full 720 pass at 3d485cc, 95 / 99, 0 fail (was 86 / 99; 2026-11-02_pl47_full_720.md).**
+    Every vehicle script passes: sl, rb, sm, tm, t3, dash, dpx, dnt, dke, dbr, each starting with its "moved ... to the
+    drag strip" line. Four warnings: dgr's fire truck never reached 64 km/h (max 0.0; the old drag-strip note under Test
+    process); wpt "hold A moved the hammer out of the crate" (the old Eraser-position note); jrd "Too dark to write" (the
+    time of day, noted before); and rst, moved from 964,13081 to the strip, then at once "no grandstand building near
+    892,13040" and its clean stop. rst's fixture is looked for right after the move, likely before the grandstand's
+    cells load (the prelude waits 300 frames after its move). For build: rst waits after ZEDQA_HOME moves it. The vehicle
+    part of 47 is done; rst is what is left.
     **Build's call (Nov 2 2026): the probe, not the halving.** QABridge.lua prints one line before every script it runs,
     grep "[ZeD.QA] state #": the game speed and pause, the character's place and car, the chunk grid, and each vehicle the
     cell holds (up to 12) with its distance, physics on or off, and "remote" if this game does not simulate it. One
