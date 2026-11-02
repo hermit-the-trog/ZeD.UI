@@ -33,6 +33,9 @@
 -- placing; it lists the moodles in that mod's order (so the note is for the
 -- moodle under the pointer), draws no copy of its own in the row, and tells the
 -- mod where the moodles go through M.rect.
+-- A stand-in marked whole (ModSupport/ImmersiveMoodles.lua: its own column, side,
+-- top and hover text) is left the moodles entirely while it draws: ZeD places
+-- nothing, draws no row and no note, and M.rect is nil.
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -122,6 +125,7 @@ Events.OnGameStart.Add(function() orderCache = nil end)
 
 -- A stand-in: another mod that draws the moodles in place of the game's column.
 -- spec = { id = "<mod id>",
+--          whole = true                                 -- (optional) it draws the moodles in whole: ZeD steps aside
 --          order = { { "ENDURANCE", "<art>" }, ... }   -- its draw order, ORDER's shape
 --          drawing = function(playerNum) ... end }      -- true while it draws for that player
 -- One at a time (the last to call wins); nil takes it away.
@@ -243,6 +247,10 @@ function ZeD_MoodleLayer:_place()
     self._rect = nil
     if not (p and mui) then self._show = false; return end
     local pn = self.playerNum
+    -- a stand-in that draws the moodles in whole: nothing for ZeD to place or say (the game's
+    -- column stays wherever that mod put it; no row, no note, M.rect nil)
+    local si = M.standIn(pn)
+    if si and si.whole then self._show = false; return end
     local shown = (ISUIHandler == nil or ISUIHandler.allUIVisible ~= false) and mui:isVisible()
     self._show = shown
     if place == "bottom" then

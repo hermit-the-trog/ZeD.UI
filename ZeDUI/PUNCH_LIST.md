@@ -1567,6 +1567,24 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     scrolled 60 px a notch, 4 s into the hold. The main menu's gap is closed; the in-game scroll with marks and the
     server bumpers stay uncovered.
 
+53. **Immersive Moodles support (QA's compat round 5, Nov 2 2026; the director, Nov 2: "Immersive Moodles").** built
+    (build, Nov 2), QA to confirm. Immersive Moodles (Workshop 3830422267, mod id ImmersiveMoodles, by Krovenox, about
+    2,100 subscribers) draws an animated moodle column of its own and parks the game's column off screen every frame;
+    ZeD placed the game's column every frame too, so each moodle showed twice, the game's with ZeD's hover note
+    (qa/Nov2_compat_r4c/immersive_moodles_twice.png). The Moodle Quarters way (ZeD moves the mod's panel to ZeD's place)
+    does not fit: the mod's column wraps to the screen's height, draws bars beside each tile, has its own side and top
+    options and its own hover text, and cannot lie in ZeD's row above the belt. So ZeD leaves the moodles to it:
+    ModSupport/ImmersiveMoodles.lua tells ZeD_Moodles it draws them in whole (setStandIn, whole = true) while its HUD is
+    on for the player, and ZeD then places nothing, draws no row and no note. With the mod's "Show Immersive HUD" off,
+    or in ZeD's safe mode, ZeD works as without it. One addition: the mod starts its column below the game's clock,
+    which ZeD's watch hides and draws in its place, so on the right its top offset is read as at least the corner
+    watch's bottom + 10 (the player's own offset wins when lower). ZeD's Moodles place option (right, left, row) has no
+    effect while the mod draws; the mod's own options decide. QA: with the mod on, one set of moodles (the mod's), no
+    ZeD note on hover (the mod's own), the game's column nowhere, with ZeD's place at right, left and bottom; the corner
+    watch on (a worn watch) with the mod on the right: the first moodle below the watch; the mod's Show Immersive HUD
+    off (a new game or reload): ZeD's moodles and note as usual; safe mode on and off; the Compatibility thread's entry
+    moves from "Compatible, with a note" to Supported once confirmed.
+
 ## Test process
 
 - The release check (before every upload, about 5 minutes, pass or fail): right-click opens the
