@@ -1201,6 +1201,16 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     Back leaning out, the dip once each way and never the wrong framing; 1920x1080 and 4K pixel-identical to the
     Nov 1 desk captures (mm_desk_v4). The in-game scale on the Deck unchanged (0.75).
 
+    - **QA, Nov 1 2026, evening: confirmed.** zedqa_menu_lean.lua at 1280x800 and 1280x720, Normal then Large
+      (ZeDUI/qa/Nov1_main_menu/README.md, lean/, the game consoles in qa/regression/2026-11-01_menu_lean_*): **47 / 47
+      at Normal and 48 / 48 at Large, each size, 0 FAIL.** Root 1.0 at the menu, the game's 0.75 beside it. Normal:
+      the main view in the room (desk 3x, monitor 720x540, the window's right edge 750 against the icon block at 764),
+      Options, New game with Spawn, Sandbox, Traits and Looks, Mods, Load, Workshop and Credits each lean in (desk 4x,
+      monitor 960x720 whole on screen, 40 px = 10 desk px of the right bezel), Back leans out, one dip each way; the
+      frame caught 108 / 116 ms into the first dip is black (darkness 0.92 at 800, 0.84 at 720), never the wrong
+      framing. Large: the main view leans in too and nothing dips. The 1080p desk after the change: every pixel
+      outside the monitor's screen is identical to this afternoon's capture (the differences lie inside
+      498-1425 x 129-762, the menu window's own content: the save thumbnail, the Last played time, the clock).
 49. **Build and Craft: see what you get before you commit (the director, Nov 1 2026; for t16).** open, the
     director's words: on the Build tab, clicking the picked recipe's icon in the header could show "a preview of the
     tile in-game, and a short description, if there is something like that"; "item stats, like if I'm going to put a

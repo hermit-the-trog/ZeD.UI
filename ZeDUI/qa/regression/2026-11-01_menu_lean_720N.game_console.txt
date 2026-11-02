@@ -1,0 +1,414 @@
+LOG  : General      f:0> 01-11-2026 19:37:18
+LOG  : General      f:0> SLF4J(I): Attempting to load provider "zombie.core.logger.Slf4jBridge" specified via "slf4j.provider" system property
+LOG  : General      f:0> ===== System specs =====
+LOG  : General      f:0> CPU: 11th Gen Intel(R) Core(TM) i9-11900K @ 3.50GHz, vendor: GenuineIntel, cores: 8, threads: 16
+LOG  : General      f:0> RAM: 65424 Mb
+LOG  : General      f:0> Base board: MPG Z490 GAMING EDGE WIFI (MS-7C79), vendor: Micro-Star International Co., Ltd.
+LOG  : General      f:0> GPU: NVIDIA GeForce RTX 4090, vendor: NVIDIA, video memory: 24564 Mb, driver: 32.0.16.1742
+LOG  : General      f:0> Disk info: 930.41 Gb, free space: 452.83 Gb, usable space: 452.83 Gb
+LOG  : General      f:0> OS: Windows 11, version: 10.0, arch: amd64, build: 26300
+LOG  : General      f:0> JVM (free: 900 Mb, max: 3072 Mb, total available: 1024 Mb)
+LOG  : General      f:0> ========================
+LOG  : General      f:0> java.specification.version=25
+LOG  : General      f:0> sun.cpu.isalist=amd64
+LOG  : General      f:0> sun.jnu.encoding=Cp1252
+LOG  : General      f:0> java.vm.vendor=Azul Systems, Inc.
+LOG  : General      f:0> sun.arch.data.model=64
+LOG  : General      f:0> java.vendor.url=http://www.azul.com/
+LOG  : General      f:0> zomboid.steam=1
+LOG  : General      f:0> java.vm.specification.version=25
+LOG  : General      f:0> os.name=Windows 11
+LOG  : General      f:0> zomboid.znetlog=1
+LOG  : General      f:0> slf4j.provider=zombie.core.logger.Slf4jBridge
+LOG  : General      f:0> jdk.debug=release
+LOG  : General      f:0> sun.cpu.endian=little
+LOG  : General      f:0> java.specification.vendor=Oracle Corporation
+LOG  : General      f:0> java.version.date=2025-10-21
+LOG  : General      f:0> java.home=E:\Project Zomboid\SteamApps\common\P...
+LOG  : General      f:0> file.separator=\
+LOG  : General      f:0> line.separator=
+
+LOG  : General      f:0> java.vm.specification.vendor=Oracle Corporation
+LOG  : General      f:0> java.specification.name=Java Platform API Specification
+LOG  : General      f:0> java.awt.headless=true
+LOG  : General      f:0> sun.management.compiler=HotSpot 64-Bit Tiered Compilers
+LOG  : General      f:0> java.runtime.version=25.0.1+8-LTS
+LOG  : General      f:0> stdout.encoding=Cp1252
+LOG  : General      f:0> os.version=10.0
+LOG  : General      f:0> jna.nosys=false
+LOG  : General      f:0> java.runtime.name=OpenJDK Runtime Environment
+LOG  : General      f:0> file.encoding=UTF-8
+LOG  : General      f:0> java.vm.name=OpenJDK 64-Bit Server VM
+LOG  : General      f:0> java.vendor.version=Zulu25.30+17-CA
+LOG  : General      f:0> jna.loaded=true
+LOG  : General      f:0> java.vendor.url.bug=http://www.azul.com/support/
+LOG  : General      f:0> java.version=25.0.1
+LOG  : General      f:0> os.arch=amd64
+LOG  : General      f:0> java.vm.specification.name=Java Virtual Machine Specification
+LOG  : General      f:0> sun.os.patch.level=
+LOG  : General      f:0> native.encoding=Cp1252
+LOG  : General      f:0> java.vm.info=mixed mode, sharing
+LOG  : General      f:0> stderr.encoding=Cp1252
+LOG  : General      f:0> java.vendor=Azul Systems, Inc.
+LOG  : General      f:0> java.vm.version=25.0.1+8-LTS
+LOG  : General      f:0> stdin.encoding=Cp1252
+LOG  : General      f:0> sun.io.unicode.encoding=UnicodeLittle
+LOG  : General      f:0> java.class.version=69.0
+LOG  : General      f:0> -----
+LOG  : General      f:0> version=42.22.0 e013dbb529 demo=false
+LOG  : General      f:0> revision=e013dbb529 pzbullet=1.0.0.28
+LOG  : General      f:0> You can setup the log levels in the debuglog.cfg file
+LOG  : General      f:0> Logs configuration:
+LOG  : General      f:0>      General: General
+LOG  : General      f:0>      Network: General
+LOG  : General      f:0>          Lua: General
+LOG  : General      f:0>          Mod: General
+LOG  : General      f:0>  Multiplayer: General
+LOG  : General      f:0> ClientCommand: General
+LOG  : General      f:0>      Default: General
+LOG  : General      f:0> LightingFPS set to 60
+LOG  : General      f:0> Display mode changed to 1280x720 freq=0 fullScreen=false
+LOG  : General      f:0> GraphicsCard: NVIDIA Corporation NVIDIA GeForce RTX 4090/PCIe/SSE2
+LOG  : General      f:0> OpenGL version: 4.6.0 NVIDIA 617.42
+LOG  : General      f:0> Desktop resolution 3840x2160
+LOG  : General      f:0> Initial resolution 1280x720 fullScreen=false
+LOG  : General      f:0> OpenGL 1.5 buffer objects supported
+LOG  : General      f:0> VSync: ON
+LOG  : General      f:0> 1793590639796 fmod: Java loging: OK
+LOG  : General      f:0> 1793590639799 fmod: FMOD::Studio::System::create() result: No errors.
+LOG  : General      f:0> 1793590639799 fmod: FMOD::Studio::System::getCoreSystem() result: No errors.
+LOG  : General      f:0> 1793590639799 fmod: FMOD_System_GetVersion() result: No errors.
+LOG  : General      f:0> 1793590639799 fmod: fmodintegration built with version 20309, fmod shared library version 20309
+LOG  : General      f:0> 1793590639799 fmod: System Create: OK
+LOG  : General      f:0> 1793590639799 fmod: FMOD_System_SetSoftwareFormat() result: No errors.
+LOG  : General      f:0> 1793590639836 fmod: FMOD::Studio::System::Initialize() result: No errors.
+LOG  : General      f:0> 1793590639838 fmod: Creating DSP for capture sound
+LOG  : General      f:0> 1793590639838 fmod: FMOD_System_CreateDSP() result: No errors.
+LOG  : General      f:0> 1793590639838 fmod: FMOD_DSP_SetBypass() result: No errors.
+LOG  : General      f:0> 1793590639838 fmod: FMOD_System_GetMasterChannelGroup() result: No errors.
+LOG  : General      f:0> 1793590639838 fmod: FMOD_ChannelGroup_AddDSP() result: No errors.
+LOG  : General      f:0> 1793590639839 fmod: FMOD_System_Set3DSettings() result: No errors.
+LOG  : Mod          f:0> refusing to list examplemod
+ERROR: General      f:0 at AngelCodeFont.parseFnt              > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont_0.png
+ERROR: General      f:0 at AngelCodeFont.parseFnt              > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont2_0.png
+ERROR: General      f:0 at AngelCodeFont.parseFnt              > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/fonts/zomboidDialogue.bmfc_0.png
+LOG  : General      f:0> Loading networking libraries...
+LOG  : General      f:0> Loading steam_api64...
+LOG  : General      f:0> Loading RakNet64...
+LOG  : General      f:0> Loading ZNetJNI64...
+LOG  : General      f:0> SteamUtils initialised successfully
+LOG  : General      f:0> Loading Mods
+LOG  : Mod          f:0> refusing to list examplemod
+LOG  : Mod          f:0> loading ZeD_UI
+LOG  : Mod          f:0> mod "ZeD_UI" overrides media/fileguidtable.xml
+LOG  : Mod          f:0> mod "ZeD_UI" overrides media/fonts/en/fonts.txt
+LOG  : Mod          f:0> mod "ZeD_UI" overrides media/fonts/pl/fonts.txt
+LOG  : Mod          f:0> mod "ZeD_UI" overrides media/fonts/ru/fonts.txt
+LOG  : Mod          f:0> mod "ZeD_UI" overrides media/lua/shared/translate/en/itemname.json
+LOG  : Mod          f:0> mod "ZeD_UI" overrides media/lua/shared/translate/en/sandbox.json
+LOG  : Mod          f:0> mod "ZeD_UI" overrides media/lua/shared/translate/en/ui.json
+LOG  : General      f:0> Loading Translations
+LOG  : General      f:0> texturepack: loading UI
+LOG  : General      f:0> Loading UI texture pack
+LOG  : General      f:0> texturepack: loading UI2
+LOG  : General      f:0> Loading UI2 texture pack
+LOG  : General      f:0> texturepack: loading IconsMoveables
+LOG  : General      f:0> Loading IconsMoveables texture pack
+LOG  : General      f:0> texturepack: loading RadioIcons
+LOG  : General      f:0> Loading RadioIcons texture pack
+LOG  : General      f:0> texturepack: loading ApComUI
+LOG  : General      f:0> Loading ApComUI texture pack
+LOG  : General      f:0> texturepack: loading Mechanics
+LOG  : General      f:0> Loading Mechanics texture pack
+LOG  : General      f:0> texturepack: loading WeatherFx
+LOG  : General      f:0> Loading WeatherFx texture pack
+LOG  : General      f:0> Loading Scripts
+ERROR: General      f:0 at FluidContainerScript.load           > Sanitizing container name 'Large Bucket', name may not contain whitespaces.
+ERROR: General      f:0 at FluidContainerScript.load           > Sanitizing container name 'Fuel Pump', name may not contain whitespaces.
+WARN : General      f:0 at XuiSkin$EntityUiStyle.Load          > Could not find icon: Build_AnvilStone, script = Stone Anvil
+WARN : General      f:0 at XuiSkin$EntityUiStyle.LoadComponentInfo> Could not find icon: Build_AnvilStone
+WARN : General      f:0 at XuiSkin$EntityUiStyle.Load          > Could not find icon: Build_AnvilStone, script = Stone Anvil
+WARN : General      f:0 at XuiSkin$EntityUiStyle.LoadComponentInfo> Could not find icon: Build_AnvilStone
+WARN : General      f:0 at XuiSkin$EntityUiStyle.Load          > Could not find icon: Build_AnvilStone, script = Stone Anvil
+WARN : General      f:0 at XuiSkin$EntityUiStyle.LoadComponentInfo> Could not find icon: Build_AnvilStone
+WARN : General      f:0 at XuiSkin$EntityUiStyle.Load          > Could not find icon: Build_AnvilStone, script = Stone Anvil
+WARN : General      f:0 at XuiSkin$EntityUiStyle.LoadComponentInfo> Could not find icon: Build_AnvilStone
+WARN : General      f:0 at TaggedObjectManager.createTagBits   > manager-> new tag discovered that was not preprocessed, tag: keyduplicator
+WARN : General      f:0 at TaggedObjectManager.createTagBits   > manager-> new tag discovered that was not preprocessed, tag: choppingblock
+WARN : General      f:0 at SoundManager.debugScriptSound       > no such sound "CorpseDrop" in item Base.CorpseFemale
+WARN : General      f:0 at SoundManager.debugScriptSound       > no such sound "CorpseDrop" in item Base.CorpseMale
+LOG  : General      f:0> Loading Clothing
+LOG  : General      f:0> 
+LOG  : General      f:0> Loading Lua
+WARN : Lua          f:0 at Lua(Vanilla).corpseStorageCheck     > require("ISUI/ISInventoryPaneContextMenu") failed
+WARN : Lua          f:0 at Lua(Vanilla).corpseStorageCheck     > require("ISUI/ISVehicleMenu") failed
+WARN : Lua          f:0 at Lua(Vanilla).corpseStorageCheck     > require("ISUI/ISContextMenu") failed
+WARN : Lua          f:0 at Lua(Vanilla).ISCampingMenu          > require("Camping/CCampfireSystem") failed
+WARN : Lua          f:0 at Lua(Vanilla).ISInventoryTransferUtil> require("TimedActions/ISInventoryTransferAction") failed
+WARN : Lua          f:0 at Lua(Vanilla).ISInventoryTransferUtil> require("ISUI/PlayerData/ISPlayerData") failed
+LOG  : Lua          f:0> [ZeD] Scale: text manager proxy installed (role fonts measure zoomed)
+LOG  : Lua          f:0> [ZeD] Fonts: ZeD's distance-field role fonts are in place (EN)
+WARN : Lua          f:0 at Lua(Vanilla).ISAnimalContextMenu    > require("BuildingObjects/ISAnimalPickMateCursor") failed
+WARN : Lua          f:0 at Lua(Vanilla).TakeSameType           > require("ISUI/InventoryWindow/ISLootWindowControlHandler") failed
+WARN : Lua          f:0 at Lua(Vanilla).FloorTakeSameType      > require("ISUI/InventoryWindow/ISLootWindowControlHandler") failed
+WARN : Lua          f:0 at Lua(Vanilla).testUI                 > require("pzapi/ui/ui") failed
+LOG  : Lua          f:0> [ZeD] ObjectCards: object card loaded
+LOG  : Lua          f:0> [ZeD] ObjectCardLaundry: laundry card loaded
+LOG  : Lua          f:0> [ZeD] Stations: station discovery and binding loaded
+LOG  : Lua          f:0> [ZeD] FurnitureTab: Furniture tab loaded
+LOG  : Lua          f:0> [ZeD.Input] ActionMap loaded - 18 actions registered
+LOG  : Lua          f:0> [ZeD.Input] BumperChord loaded - no arming timeout, hold-and-tap model
+LOG  : Lua          f:0> [ZeD.Input] InputModeDetector loaded - awaiting first input event
+LOG  : Lua          f:0> [ZeD] MechTrailer: animal trailer page loaded
+LOG  : Lua          f:0> [ZeD] MechanicsTab: Vehicle tab loaded
+LOG  : Lua          f:0> [ZeD] ObjectCardHook: butcher hook card loaded
+LOG  : Lua          f:0> [ZeD] ObjectCardHutch: hutch card loaded
+LOG  : Lua          f:0> [ZeD] ObjectCardLock: padlock card loaded
+LOG  : Lua          f:0> [ZeD] ObjectCardTrack: track card loaded
+LOG  : Lua          f:0> [ZeD] ObjectCardTrough: trough card loaded
+LOG  : Lua          f:0> [ZeD] Overrides/Animals: hutch, trough, butcher hook and tracks routed to the animal cards
+LOG  : Lua          f:0> [ZeD] Belt: module loaded
+LOG  : Lua          f:0> [ZeD] Overrides/Belt: hotbar and hand slots routed to the belt
+LOG  : Lua          f:0> [ZeD] Overrides/CarRadio: the car radio routed to ZeD
+LOG  : Lua          f:0> [ZeD] Overrides/CharacterInfo: the game's Character window pages routed to ZeD's Character window tabs
+LOG  : Lua          f:0> [ZeD] Overrides/Fishing: the tension meter is the rod in hand
+LOG  : Lua          f:0> [ZeD] Overrides/Fluids: transfer liquid and container info routed to the fluid card
+LOG  : Lua          f:0> [ZeD] Overrides/Furniture: moveables info and extended placement routed to the Furniture tab and placement card
+LOG  : Lua          f:0> [ZeD] Overrides/Garment: clothing's Inspect opens the ZeD item card
+LOG  : Lua          f:0> [ZeD] Overrides/InfoCards: generator, fire and farm plot info routed to the object card
+LOG  : Lua          f:0> [ZeD] Overrides/Padlocks: combination padlocks routed to the lock card
+LOG  : Lua          f:0> [ZeD] Overrides/PostDeath: the death screen is a ZeD System 7 alert
+LOG  : Lua          f:0> [ZeD] Overrides/Prompts: vanilla's pop-ups and keyboard open as ZeD prompts
+LOG  : Lua          f:0> [ZeD] Overrides/ScreenIcons: vanilla window buttons hidden on the left-edge HUD column
+LOG  : Lua          f:0> [ZeD] Overrides/Seats: the seat chooser and the lightbar routed to ZeD
+LOG  : Lua          f:0> [ZeD] Overrides/Sleeping: the sleep clock is a red-number clock radio
+LOG  : Lua          f:0> [ZeD] Overrides/Stations: station, oven, crafting and build windows routed to the World window
+LOG  : Lua          f:0> [ZeD] Overrides/TextScale: ISUIElement text draws follow the root scale for the ZeD role fonts
+LOG  : Lua          f:0> [ZeD] Overrides/TextScale: 21 ZeD classes draw scaled borders; lean draw calls on 31 classes (155)
+LOG  : Lua          f:0> [ZeD] Overrides/TrailerAnimals: Check Animals routed to the Vehicle tab
+LOG  : Lua          f:0> [ZeD] Overrides/VehicleMechanics: mechanics window routed to the Vehicle tab
+LOG  : Lua          f:0> [ZeD] Overrides/Wheels: vanilla's radial wheels drawn as ZeD wheels; wheel slices route to ZeD windows
+LOG  : Lua          f:0> [ZeD] Overrides/WorldMap: ISWorldMap Show/Hide/Toggle routed to the ZeD map pop-out
+LOG  : Lua          f:0> [ZeD] StationAppliance: oven and microwave plates loaded
+LOG  : Lua          f:0> [ZeD] StationMachine: drying rack view loaded
+LOG  : Lua          f:0> [ZeD] ActionBar: module loaded
+LOG  : Lua          f:0> [ZeD] DpadWheels: the D-pad's four wheels are ZeD's (Character, World, Social, Here and now)
+LOG  : Lua          f:0> [ZeD] Moodles: module loaded
+LOG  : Lua          f:0> [ZeD] PutBack: after an action, what it took out goes back (when Put things back is on)
+LOG  : Lua          f:0> [ZeD] QuickChords: a bumper held with A, B, X, Y, L3 or R3 runs a quick action
+LOG  : Lua          f:0> OnLoadSoundbanks
+LOG  : General      f:0> texturepack: loading Tiles2x
+LOG  : General      f:0> Loading Tiles2x texture pack
+LOG  : General      f:0> texturepack: loading Overlays2x
+LOG  : General      f:0> Loading Overlays2x texture pack
+LOG  : General      f:0> texturepack: loading JumboTrees2x
+LOG  : General      f:0> Loading JumboTrees2x texture pack
+LOG  : General      f:0> texturepack: loading JumboTreesBigs2x
+LOG  : General      f:0> Loading JumboTreesBigs2x texture pack
+LOG  : General      f:0> texturepack: loading Tiles2x.floor
+LOG  : General      f:0> Loading Tiles2x.floor texture pack
+LOG  : General      f:0> texturepack: loading B42ChunkCaching2x
+LOG  : General      f:0> Loading B42ChunkCaching2x texture pack
+LOG  : General      f:0> texturepack: loading B42ChunkCaching2x.floor
+LOG  : General      f:0> Loading B42ChunkCaching2x.floor texture pack
+LOG  : General      f:0> texturepack: loading Clock2x
+LOG  : General      f:0> Loading Clock2x texture pack
+LOG  : General      f:0> Loading models and animations
+LOG  : General      f:0> 1793590659597 fmod: globalSystem = 0x5D76D18
+LOG  : General      f:0> 1793590659598 fmod: FMOD_System_GetRecordDriverInfo: nativeRate = 192000, nativeChannels = 2
+LOG  : General      f:0> 1793590659598 fmod: System create record sound: OK
+LOG  : General      f:0> 1793590659599 fmod: Create resampler: OK
+LOG  : General      f:0> 1793590659599 fmod: Create acoustic echo canceller: OK
+LOG  : General      f:0> 1793590659606 fmod: GetRecordNumDrivers id = 0, sound = 0x433d318 loop=1
+LOG  : General      f:0> Game booting
+LOG  : Lua          f:0> [ZeD] Overrides/Animals: hutch, trough, butcher hook and tracks routed to the animal cards
+LOG  : Lua          f:0> [ZeD] Overrides/Belt: hotbar and hand slots routed to the belt
+LOG  : Lua          f:0> [ZeD] Overrides/Fluids: transfer liquid and container info routed to the fluid card
+LOG  : Lua          f:0> [ZeD] Overrides/Furniture: moveables info and extended placement routed to the Furniture tab and placement card
+LOG  : Lua          f:0> [ZeD] Overrides/InfoCards: generator, fire and farm plot info routed to the object card
+LOG  : Lua          f:0> [ZeD] Overrides/Stations: station, oven, crafting and build windows routed to the World window
+LOG  : Lua          f:0> [ZeD] Overrides/TextScale: 25 ZeD classes draw scaled borders; lean draw calls on 3 classes (15)
+LOG  : Lua          f:0> [ZeD] Overrides/TrailerAnimals: Check Animals routed to the Vehicle tab
+LOG  : Lua          f:0> [ZeD] Overrides/VehicleMechanics: mechanics window routed to the Vehicle tab
+LOG  : General      f:0> STATE: exit zombie.gameStates.TermsOfServiceState
+LOG  : Lua          f:0> [ZeD.QA] bridge armed (main menu, poll every 30 ticks)
+LOG  : Lua          f:0> ZEDQA g14l desk menu bar: Debug left out true
+LOG  : Lua          f:0> ZEDQA g14l position readout and cheat lines off true
+LOG  : Lua          f:0> ZEDQA g14l left-edge column hidden false
+LOG  : Lua          f:0> ZEDQA g14l look dark orange small | GAL_LOOK dark orange, GAL_STILL 20
+LOG  : Lua          f:0> [ZeD.QA] run #1 ok=true
+LOG  : Lua          f:0> ZEDQA g14l DONE
+LOG  : Lua          f:0> [ZeD.QA] run #2 ok=true
+LOG  : Lua          f:0> ZEDQA mln start | framing room (wants room) | desk 3x | monitor 280,45 720x540 | screen 1280x720 | root 1, game 0.75 | text normal (small)
+LOG  : Lua          f:0> ZEDQA mln roomLayout: desk 3x, origin -80,-45, monitor 280,45 720x540 | holds the 1080p menu false | small layout fits true
+LOG  : Lua          f:0> ZEDQA mln leanLayout: desk 4x, origin -200,-120, monitor 280,0 960x720 | right bezel 40 px
+LOG  : Lua          f:0> ZEDQA mln step main: view main, framing room -> room | dip no | 30 frames
+LOG  : Lua          f:0> ZEDQA mln shot mln_1280x720_normal_main
+LOG  : Lua          f:0> ZEDQA mln main | view main | framing room (wants room) | desk 3x | monitor 280,45 720x540 | screen 1280x720 | root 1, game 0.75 | text normal (small)
+LOG  : Lua          f:0> ZEDQA mln main window 294,89 456x466 (right 750, bottom 555) | visible true
+LOG  : Lua          f:0> ZEDQA mln PASS main: the page fits inside the monitor's glass
+LOG  : Lua          f:0> ZEDQA mln PASS main: framing room, the design's room
+LOG  : Lua          f:0> ZEDQA mln main: the main window starts 14 px from the monitor's left edge
+LOG  : Lua          f:0> ZEDQA mln PASS main: the main window ends left of the icon block (window right 750, icons from 764, block fits true)
+LOG  : Lua          f:0> ZEDQA mln shot mln_1280x720_normal_dip
+LOG  : Lua          f:0> ZEDQA mln PASS mid-dip shot 116 ms into the dip on the switch to options: black (darkness 0.84) | switched nil (darkness read this tick; the picture is this frame's)
+LOG  : Lua          f:0> ZEDQA mln step options: view options, framing room -> lean | dip yes | 30 frames
+LOG  : Lua          f:0> ZEDQA mln shot mln_1280x720_normal_options
+LOG  : Lua          f:0> ZEDQA mln options | view options | framing lean (wants lean) | desk 4x | monitor 280,0 960x720 | screen 1280x720 | root 1, game 0.75 | text normal (small)
+LOG  : Lua          f:0> ZEDQA mln options window 300,36 920x672 (right 1220, bottom 708) | visible true
+LOG  : Lua          f:0> ZEDQA mln PASS options: the page fits inside the monitor's glass
+LOG  : Lua          f:0> ZEDQA mln PASS options: framing lean, the design's lean
+LOG  : Lua          f:0> ZEDQA mln PASS options: 10 desk px of the right bezel showing (40 px = 10 desk px at 4x)
+LOG  : Lua          f:0> ZEDQA mln PASS options: the desk at 4x, the monitor 960x720 px and whole on screen (4x, monitor 280,0 960x720, whole true)
+LOG  : Lua          f:0> ZEDQA mln step back from options: view main, framing lean -> room | dip yes | 30 frames
+LOG  : Lua          f:0> ZEDQA mln step newgame: view newgame, framing room -> lean | dip yes | 30 frames
+LOG  : Lua          f:0> ZEDQA mln shot mln_1280x720_normal_newgame
+LOG  : Lua          f:0> ZEDQA mln newgame | view newgame | framing lean (wants lean) | desk 4x | monitor 280,0 960x720 | screen 1280x720 | root 1, game 0.75 | text normal (small)
+LOG  : Lua          f:0> ZEDQA mln newgame window 300,174 920x394 (right 1220, bottom 568) | visible true
+LOG  : Lua          f:0> ZEDQA mln PASS newgame: the page fits inside the monitor's glass
+LOG  : Lua          f:0> ZEDQA mln PASS newgame: framing lean, the design's lean
+LOG  : Lua          f:0> ZEDQA mln PASS newgame: 10 desk px of the right bezel showing (40 px = 10 desk px at 4x)
+LOG  : Lua          f:0> ZEDQA mln PASS newgame: the desk at 4x, the monitor 960x720 px and whole on screen (4x, monitor 280,0 960x720, whole true)
+LOG  : Lua          f:0> ZEDQA mln NOTE New game: playstyle 5 (Sandbox), its next()
+LOG  : General      f:0> MapGroup 1/1
+LOG  : General      f:0>   Brandenburg, KY
+LOG  : General      f:0>   Echo Creek, KY
+LOG  : General      f:0>   Ekron, KY
+LOG  : General      f:0>   Fallas Lake, KY
+LOG  : General      f:0>   Irvington, KY
+LOG  : General      f:0>   March Ridge, KY
+LOG  : General      f:0>   Riverside, KY
+LOG  : General      f:0>   Rosewood, KY
+LOG  : General      f:0>   Valley Station, KY
+LOG  : General      f:0>   West Point, KY
+LOG  : General      f:0>   Muldraugh, KY
+LOG  : General      f:0> -----
+LOG  : General      f:0> MapGroup 1/1
+LOG  : General      f:0>   Brandenburg, KY
+LOG  : General      f:0>   Echo Creek, KY
+LOG  : General      f:0>   Ekron, KY
+LOG  : General      f:0>   Fallas Lake, KY
+LOG  : General      f:0>   Irvington, KY
+LOG  : General      f:0>   March Ridge, KY
+LOG  : General      f:0>   Riverside, KY
+LOG  : General      f:0>   Rosewood, KY
+LOG  : General      f:0>   Valley Station, KY
+LOG  : General      f:0>   West Point, KY
+LOG  : General      f:0>   Muldraugh, KY
+LOG  : General      f:0> -----
+LOG  : Lua          f:0> ZEDQA mln step spawn: view spawn, framing lean -> lean | dip no | 30 frames
+LOG  : Lua          f:0> ZEDQA mln shot mln_1280x720_normal_spawn
+LOG  : Lua          f:0> ZEDQA mln spawn | view spawn | framing lean (wants lean) | desk 4x | monitor 280,0 960x720 | screen 1280x720 | root 1, game 0.75 | text normal (small)
+LOG  : Lua          f:0> ZEDQA mln spawn window 300,36 920x672 (right 1220, bottom 708) | visible true
+LOG  : Lua          f:0> ZEDQA mln PASS spawn: the page fits inside the monitor's glass
+LOG  : Lua          f:0> ZEDQA mln PASS spawn: framing lean, the design's lean
+LOG  : Lua          f:0> ZEDQA mln PASS spawn: 10 desk px of the right bezel showing (40 px = 10 desk px at 4x)
+LOG  : Lua          f:0> ZEDQA mln PASS spawn: the desk at 4x, the monitor 960x720 px and whole on screen (4x, monitor 280,0 960x720, whole true)
+LOG  : Lua          f:0> ZEDQA mln step sandbox: view sandbox, framing lean -> lean | dip no | 30 frames
+LOG  : Lua          f:0> ZEDQA mln shot mln_1280x720_normal_sandbox
+LOG  : Lua          f:0> ZEDQA mln sandbox | view sandbox | framing lean (wants lean) | desk 4x | monitor 280,0 960x720 | screen 1280x720 | root 1, game 0.75 | text normal (small)
+LOG  : Lua          f:0> ZEDQA mln sandbox window 300,36 920x672 (right 1220, bottom 708) | visible true
+LOG  : Lua          f:0> ZEDQA mln PASS sandbox: the page fits inside the monitor's glass
+LOG  : Lua          f:0> ZEDQA mln PASS sandbox: framing lean, the design's lean
+LOG  : Lua          f:0> ZEDQA mln PASS sandbox: 10 desk px of the right bezel showing (40 px = 10 desk px at 4x)
+LOG  : Lua          f:0> ZEDQA mln PASS sandbox: the desk at 4x, the monitor 960x720 px and whole on screen (4x, monitor 280,0 960x720, whole true)
+LOG  : Lua          f:0> ZEDQA mln step traits: view traits, framing lean -> lean | dip no | 30 frames
+LOG  : Lua          f:0> ZEDQA mln shot mln_1280x720_normal_traits
+LOG  : Lua          f:0> ZEDQA mln traits | view traits | framing lean (wants lean) | desk 4x | monitor 280,0 960x720 | screen 1280x720 | root 1, game 0.75 | text normal (small)
+LOG  : Lua          f:0> ZEDQA mln traits window 300,36 920x672 (right 1220, bottom 708) | visible true
+LOG  : Lua          f:0> ZEDQA mln PASS traits: the page fits inside the monitor's glass
+LOG  : Lua          f:0> ZEDQA mln PASS traits: framing lean, the design's lean
+LOG  : Lua          f:0> ZEDQA mln PASS traits: 10 desk px of the right bezel showing (40 px = 10 desk px at 4x)
+LOG  : Lua          f:0> ZEDQA mln PASS traits: the desk at 4x, the monitor 960x720 px and whole on screen (4x, monitor 280,0 960x720, whole true)
+WARN : General      f:0 at AnimatedModel$AnimatedModelInstanceRenderData.initMatrixPalette> skinningData is null, matrixPalette may be invalid
+WARN : General      f:0 at AnimatedModel$AnimatedModelInstanceRenderData.initMatrixPalette> skinningData is null, matrixPalette may be invalid
+WARN : General      f:0 at AnimatedModel$AnimatedModelInstanceRenderData.initMatrixPalette> skinningData is null, matrixPalette may be invalid
+WARN : General      f:0 at AnimatedModel$AnimatedModelInstanceRenderData.initMatrixPalette> skinningData is null, matrixPalette may be invalid
+WARN : General      f:0 at AnimatedModel$AnimatedModelInstanceRenderData.initMatrixPalette> skinningData is null, matrixPalette may be invalid
+WARN : General      f:0 at AnimatedModel$AnimatedModelInstanceRenderData.initMatrixPalette> skinningData is null, matrixPalette may be invalid
+WARN : General      f:0 at AnimatedModel$AnimatedModelInstanceRenderData.initMatrixPalette> skinningData is null, matrixPalette may be invalid
+WARN : General      f:0 at AnimatedModel$AnimatedModelInstanceRenderData.initMatrixPalette> skinningData is null, matrixPalette may be invalid
+WARN : General      f:0 at AnimatedModel$AnimatedModelInstanceRenderData.initMatrixPalette> skinningData is null, matrixPalette may be invalid
+LOG  : Lua          f:0> ZEDQA mln step looks: view looks, framing lean -> lean | dip no | 30 frames
+LOG  : Lua          f:0> ZEDQA mln shot mln_1280x720_normal_looks
+LOG  : Lua          f:0> ZEDQA mln looks | view looks | framing lean (wants lean) | desk 4x | monitor 280,0 960x720 | screen 1280x720 | root 1, game 0.75 | text normal (small)
+LOG  : Lua          f:0> ZEDQA mln looks window 300,36 920x672 (right 1220, bottom 708) | visible true
+LOG  : Lua          f:0> ZEDQA mln PASS looks: the page fits inside the monitor's glass
+LOG  : Lua          f:0> ZEDQA mln PASS looks: framing lean, the design's lean
+LOG  : Lua          f:0> ZEDQA mln PASS looks: 10 desk px of the right bezel showing (40 px = 10 desk px at 4x)
+LOG  : Lua          f:0> ZEDQA mln PASS looks: the desk at 4x, the monitor 960x720 px and whole on screen (4x, monitor 280,0 960x720, whole true)
+LOG  : Lua          f:0> ZEDQA mln step back out of new game 1: view traits, framing lean -> lean | dip no | 30 frames
+LOG  : Lua          f:0> ZEDQA mln step back out of new game 2: view sandbox, framing lean -> lean | dip no | 30 frames
+LOG  : Lua          f:0> ZEDQA mln step back out of new game 3: view spawn, framing lean -> lean | dip no | 30 frames
+LOG  : Lua          f:0> ZEDQA mln step back out of new game 4: view newgame, framing lean -> lean | dip no | 30 frames
+LOG  : Lua          f:0> ZEDQA mln step back out of new game 5: view main, framing lean -> room | dip yes | 30 frames
+LOG  : Lua          f:0> ZEDQA mln step back out of new game 6: view main, framing room -> room | dip no | 30 frames
+LOG  : Lua          f:0> ZEDQA mln step back to main: view main, framing room -> room | dip no | 30 frames
+LOG  : General      f:0> -----
+LOG  : General      f:0> -----
+LOG  : Lua          f:0> ZEDQA mln step mods: view mods, framing room -> lean | dip yes | 30 frames
+LOG  : Lua          f:0> ZEDQA mln shot mln_1280x720_normal_mods
+LOG  : Lua          f:0> ZEDQA mln mods | view mods | framing lean (wants lean) | desk 4x | monitor 280,0 960x720 | screen 1280x720 | root 1, game 0.75 | text normal (small)
+LOG  : Lua          f:0> ZEDQA mln mods window 300,36 920x672 (right 1220, bottom 708) | visible true
+LOG  : Lua          f:0> ZEDQA mln PASS mods: the page fits inside the monitor's glass
+LOG  : Lua          f:0> ZEDQA mln PASS mods: framing lean, the design's lean
+LOG  : Lua          f:0> ZEDQA mln PASS mods: 10 desk px of the right bezel showing (40 px = 10 desk px at 4x)
+LOG  : Lua          f:0> ZEDQA mln PASS mods: the desk at 4x, the monitor 960x720 px and whole on screen (4x, monitor 280,0 960x720, whole true)
+LOG  : Lua          f:0> ZEDQA mln step back from mods: view main, framing lean -> room | dip yes | 30 frames
+LOG  : General      f:0> MapGroup 1/2
+LOG  : General      f:0>   Brandenburg, KY
+LOG  : General      f:0>   Echo Creek, KY
+LOG  : General      f:0>   Ekron, KY
+LOG  : General      f:0>   Fallas Lake, KY
+LOG  : General      f:0>   Irvington, KY
+LOG  : General      f:0>   March Ridge, KY
+LOG  : General      f:0>   Riverside, KY
+LOG  : General      f:0>   Rosewood, KY
+LOG  : General      f:0>   Valley Station, KY
+LOG  : General      f:0>   West Point, KY
+LOG  : General      f:0>   Muldraugh, KY
+LOG  : General      f:0> MapGroup 2/2
+LOG  : General      f:0>   challengemaps/Tutorial
+LOG  : General      f:0> -----
+LOG  : Lua          f:0> ZEDQA mln step load: view load, framing room -> lean | dip yes | 30 frames
+LOG  : Lua          f:0> ZEDQA mln shot mln_1280x720_normal_load
+LOG  : Lua          f:0> ZEDQA mln load | view load | framing lean (wants lean) | desk 4x | monitor 280,0 960x720 | screen 1280x720 | root 1, game 0.75 | text normal (small)
+LOG  : Lua          f:0> ZEDQA mln load window 300,36 920x672 (right 1220, bottom 708) | visible true
+LOG  : Lua          f:0> ZEDQA mln PASS load: the page fits inside the monitor's glass
+LOG  : Lua          f:0> ZEDQA mln PASS load: framing lean, the design's lean
+LOG  : Lua          f:0> ZEDQA mln PASS load: 10 desk px of the right bezel showing (40 px = 10 desk px at 4x)
+LOG  : Lua          f:0> ZEDQA mln PASS load: the desk at 4x, the monitor 960x720 px and whole on screen (4x, monitor 280,0 960x720, whole true)
+LOG  : Lua          f:0> ZEDQA mln step back from load: view main, framing lean -> room | dip yes | 30 frames
+LOG  : Lua          f:0> ZEDQA mln step workshop: view workshop, framing room -> lean | dip yes | 30 frames
+LOG  : Lua          f:0> ZEDQA mln shot mln_1280x720_normal_workshop
+LOG  : Lua          f:0> ZEDQA mln workshop | view workshop | framing lean (wants lean) | desk 4x | monitor 280,0 960x720 | screen 1280x720 | root 1, game 0.75 | text normal (small)
+LOG  : Lua          f:0> ZEDQA mln workshop window 300,36 920x672 (right 1220, bottom 708) | visible true
+LOG  : Lua          f:0> ZEDQA mln PASS workshop: the page fits inside the monitor's glass
+LOG  : Lua          f:0> ZEDQA mln PASS workshop: framing lean, the design's lean
+LOG  : Lua          f:0> ZEDQA mln PASS workshop: 10 desk px of the right bezel showing (40 px = 10 desk px at 4x)
+LOG  : Lua          f:0> ZEDQA mln PASS workshop: the desk at 4x, the monitor 960x720 px and whole on screen (4x, monitor 280,0 960x720, whole true)
+LOG  : Lua          f:0> ZEDQA mln step back from workshop: view main, framing lean -> room | dip yes | 30 frames
+LOG  : Lua          f:0> ZEDQA mln step credits: view credits, framing room -> lean | dip yes | 30 frames
+LOG  : Lua          f:0> ZEDQA mln shot mln_1280x720_normal_credits
+LOG  : Lua          f:0> ZEDQA mln credits | view credits | framing lean (wants lean) | desk 4x | monitor 280,0 960x720 | screen 1280x720 | root 1, game 0.75 | text normal (small)
+LOG  : Lua          f:0> ZEDQA mln credits window 300,36 920x672 (right 1220, bottom 708) | visible true
+LOG  : Lua          f:0> ZEDQA mln PASS credits: the page fits inside the monitor's glass
+LOG  : Lua          f:0> ZEDQA mln PASS credits: framing lean, the design's lean
+LOG  : Lua          f:0> ZEDQA mln PASS credits: 10 desk px of the right bezel showing (40 px = 10 desk px at 4x)
+LOG  : Lua          f:0> ZEDQA mln PASS credits: the desk at 4x, the monitor 960x720 px and whole on screen (4x, monitor 280,0 960x720, whole true)
+LOG  : Lua          f:0> ZEDQA mln step back: view main, framing lean -> room | dip yes | 30 frames
+LOG  : Lua          f:0> ZEDQA mln shot mln_1280x720_normal_back
+LOG  : Lua          f:0> ZEDQA mln back | view main | framing room (wants room) | desk 3x | monitor 280,45 720x540 | screen 1280x720 | root 1, game 0.75 | text normal (small)
+LOG  : Lua          f:0> ZEDQA mln back window 294,89 456x466 (right 750, bottom 555) | visible true
+LOG  : Lua          f:0> ZEDQA mln PASS back: the page fits inside the monitor's glass
+LOG  : Lua          f:0> ZEDQA mln PASS back: framing room, the design's room
+LOG  : Lua          f:0> ZEDQA mln back: the main window starts 14 px from the monitor's left edge
+LOG  : Lua          f:0> ZEDQA mln PASS back: the main window ends left of the icon block (window right 750, icons from 764, block fits true)
+LOG  : Lua          f:0> ZEDQA mln put back: view main, framing room, ZeD menu closed true
+LOG  : Lua          f:0> ZEDQA mln dips seen: options (room -> lean); back from options (lean -> room); newgame (room -> lean); back out of new game 5 (lean -> room); mods (room -> lean); back from mods (lean -> room); load (room -> lean); back from load (lean -> room); workshop (room -> lean); back from workshop (lean -> room); credits (room -> lean); back (lean -> room)
+LOG  : Lua          f:0> ZEDQA mln not opened: none
+LOG  : Lua          f:0> ZEDQA mln summary 1280x720 normal: 47 PASS, 0 FAIL
+LOG  : Lua          f:0> ZEDQA mln DONE
+LOG  : Lua          f:0> ZEDQA g14e put back: menus true, watermark true, column nil, options true | look now dark teal
+LOG  : Lua          f:0> [ZeD.QA] run #3 ok=true
+LOG  : Lua          f:0> ZEDQA g14e DONE
