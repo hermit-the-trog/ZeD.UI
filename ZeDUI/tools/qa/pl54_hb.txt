@@ -1,0 +1,4 @@
+# punch list 54 (Nov 2 2026): Hair and beard with round 5 nine mods on: the tools check, then the full Hair and beard test (picks)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_hairbeard_tools.lua | hbt | timeout=300
+zedqa_hairbeard.lua | hb | timeout=420
