@@ -1296,6 +1296,11 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     892,13040" and its clean stop. rst's fixture is looked for right after the move, likely before the grandstand's
     cells load (the prelude waits 300 frames after its move). For build: rst waits after ZEDQA_HOME moves it. The vehicle
     part of 47 is done; rst is what is left.
+    **QA, Nov 2 2026, evening: rst's wait at afbc5a2 works, its fixture still fails (2026-11-02_pl47_moved_rst_720.md:
+    prelude, the move to 964,13078, rst at 720).** "moved from 964,13078,0 to the drag strip", then "the grandstand is
+    loaded", then "no clear 9x3 floor in the grandstand" and the clean stop. Earlier at 720 (bisect b, Nov 1) rst straight
+    after the prelude found its floor. Either something now stands on the floor (the QA save keeps what runs leave), or
+    the floor check differs after a move. For build: name what blocks the floor in the ERR line.
     **Build's call (Nov 2 2026): the probe, not the halving.** QABridge.lua prints one line before every script it runs,
     grep "[ZeD.QA] state #": the game speed and pause, the character's place and car, the chunk grid, and each vehicle the
     cell holds (up to 12) with its distance, physics on or off, and "remote" if this game does not simulate it. One
