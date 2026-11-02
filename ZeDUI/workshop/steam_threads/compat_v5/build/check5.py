@@ -86,11 +86,11 @@ counts = {l: len(v) for l, v in seq.items()}
 print("rows per list:", counts, "total", sum(counts.values()))
 
 # round 4 verdicts that must hold
-must = {"S": ["2871469707", "2854030563", "2923554542", "3410947298", "2914075159", "3789660055", "3819438691", "3760450908", "3779201168"],
+must = {"S": ["2871469707", "2854030563", "2923554542", "3410947298", "2914075159", "3789660055", "3819438691", "3760450908", "3779201168", "3830422267"],
         "XZ": ["3819012597", "3773911887", "3796139100"],
         "N": ["3423660713", "3567084868", "3809995878", "3830018449", "3828627678", "3828626636"]}
 for i in R5:
-    if i not in ("3830018449", "3828627678", "3828626636") and mods[i]["list"] != "C": fail(f"{mods[i]['name']} should be Compatible")
+    if i not in ("3830018449", "3828627678", "3828626636", "3830422267") and mods[i]["list"] != "C": fail(f"{mods[i]['name']} should be Compatible")
 for l, ids in must.items():
     for i in ids:
         if mods[i]["list"] != l: fail(f"{mods[i]['name']} should be on {l}")
