@@ -360,7 +360,7 @@ D.orig = D.orig or {}
 -- the game's own wheels: safe mode, ZeD not drawn yet, or the Tutorial (it
 -- teaches the game's controls and steps the game's Select wheel)
 function D.gameWheels()
-    if ZeD.Safe.on() or not (ZeD.T and ZeD.T.px) then return true end
+    if ZeD.Safe.on("wheels") or not (ZeD.T and ZeD.T.px) then return true end
     return getCore():getGameMode() == "Tutorial"
 end
 local HOOKS = { left = "onDisplayLeft", right = "onDisplayRight", up = "onDisplayUp", down = "onDisplayDown" }

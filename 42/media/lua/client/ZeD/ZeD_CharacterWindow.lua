@@ -3722,7 +3722,7 @@ end
 
 local function _hideVanilla()
     -- safe mode (SafeMode.lua): the game's own pages stay as they are
-    if ZeD.Safe.on() then return end
+    if ZeD.Safe.on("windows") then return end
     local vi = getPlayerInventory(0)
     local vl = getPlayerLoot(0)
     if vi then vi:setVisible(false) end
@@ -3755,7 +3755,7 @@ end
 if ISButtonPrompt then
     local _vanillaOnYPress = ISButtonPrompt.onYPress
     ISButtonPrompt.onYPress = function(self)
-        if _vanillaOnYPress and ZeD.Safe.on() then return _vanillaOnYPress(self) end
+        if _vanillaOnYPress and ZeD.Safe.on("windows") then return _vanillaOnYPress(self) end
     end
 end
 
@@ -3796,7 +3796,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     end
 
     -- safe mode (SafeMode.lua): the window does not open; callers fall back to vanilla's
-    if ZeD.Safe.on() then return end
+    if ZeD.Safe.on("windows") then return end
 
     local playerObj = getSpecificPlayer(playerNum)
     if not playerObj then return end
@@ -5814,8 +5814,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
         -- handed it back: this window may draw one last frame after a trip)
         local vi = getPlayerInventory(0)
         local vl = getPlayerLoot(0)
-        if vi and vi:getIsVisible() and not ZeD.Safe.on() then vi:setVisible(false) end
-        if vl and vl:getIsVisible() and not ZeD.Safe.on() then vl:setVisible(false) end
+        if vi and vi:getIsVisible() and not ZeD.Safe.on("windows") then vi:setVisible(false) end
+        if vl and vl:getIsVisible() and not ZeD.Safe.on("windows") then vl:setVisible(false) end
 
         -- The card's item gone (eaten, dropped, moved to the world): the card closes, as a
         -- deselect would. Checked every 10 frames (code audit Oct 17 2026: the card and its
@@ -6795,7 +6795,7 @@ function ZeD_CharacterWindow.toggleBothPaired(playerNum)
     if not getPlayerInventory(playerNum) then return end
     if getCore():getGameMode() == "Tutorial" then return end
     -- safe mode: the game's own inventory answers (its key handler, its Y prompt)
-    if ZeD.Safe.on() then return end
+    if ZeD.Safe.on("windows") then return end
 
     local charOpen  = ZeD_CharacterWindow.isOpen()
     local worldOpen = ZeD_WorldWindow.isOpen()
@@ -6827,7 +6827,7 @@ function ZeD_CharacterWindow.ensureBothOpenForGamepad(playerNum)
     if getGameSpeed() <= 0 then return end
     if not getPlayerInventory(playerNum) then return end
     if getCore():getGameMode() == "Tutorial" then return end
-    if ZeD.Safe.on() then return end   -- safe mode: no ZeD windows (SafeMode.lua)
+    if ZeD.Safe.on("windows") then return end   -- safe mode: no ZeD windows (SafeMode.lua)
 
     if not ZeD_CharacterWindow.isOpen() then
         if not _openOrStepAside(ZeD_CharacterWindow.toggle, playerNum, "the Character window failed to open") then return end
@@ -6896,7 +6896,7 @@ end
 -- The inventory key (kept on the module so QA can press it). In safe mode the
 -- game's own handler answers it.
 function ZeD_CharacterWindow._onKeyPressed(key)
-    if ZeD.Safe.on() then
+    if ZeD.Safe.on("windows") then
         _vanillaInvKeyPressed(key)
         return
     end

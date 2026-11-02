@@ -89,7 +89,7 @@ end
 
 -- true when a call belongs to the engine's wheel (its own, or any wheel in safe mode)
 local function engineSide(menu)
-    return not menu._zed and (menu.javaObject ~= nil or ZeD.Safe.on())
+    return not menu._zed and (menu.javaObject ~= nil or ZeD.Safe.on("wheels"))
 end
 
 -- run a slice's command as vanilla does (after the wheel has gone)
@@ -116,7 +116,7 @@ local function hookRadial()
     -- a plain element (drawn in Lua) in place of the engine's RadialMenu
     function R:instantiate()
         remember(self)
-        if not ready() or ZeD.Safe.on() then return O.instantiate(self) end
+        if not ready() or ZeD.Safe.on("wheels") then return O.instantiate(self) end
         -- a mod's own wheel class (Smart Radial Menu's SRMMenuObject) draws itself over the
         -- engine's and calls its Java methods (getSliceIndexFromMouse ...): it stays the engine's
         local cls = getmetatable(self)
@@ -219,7 +219,7 @@ local function hookRoutes()
         ISBackButtonWheel._zedRoutes = true
         local orig = ISBackButtonWheel.onCommand
         ISBackButtonWheel.onCommand = function(self, command)
-            if ZeD.Safe.on() then return orig(self, command) end
+            if ZeD.Safe.on("wheels") then return orig(self, command) end
             local paused = UIManager.getSpeedControls() and UIManager.getSpeedControls():getCurrentGameSpeed() == 0
             if command == "PlayerInfo" and not paused and openPair(self.playerNum) then
                 setJoypadFocus(self.playerNum, nil)
@@ -233,7 +233,7 @@ local function hookRoutes()
         ISSearchWindow._zedRoute = true
         local orig = ISSearchWindow.toggleWindow
         ISSearchWindow.toggleWindow = function(character)
-            if ZeD.Safe.on() then return orig(character) end
+            if ZeD.Safe.on("wheels") then return orig(character) end
             local pn = character and character.getPlayerNum and character:getPlayerNum() or 0
             if openWorldTab(pn, "forage") then return end
             return orig(character)
@@ -244,7 +244,7 @@ local function hookRoutes()
         ISDesignationZonePanel._zedRoute = true
         local orig = ISDesignationZonePanel.toggleZoneUI
         ISDesignationZonePanel.toggleZoneUI = function(playerNum)
-            if ZeD.Safe.on() then return orig(playerNum) end
+            if ZeD.Safe.on("wheels") then return orig(playerNum) end
             if openWorldTab(playerNum, "animals") then return end
             return orig(playerNum)
         end
@@ -253,7 +253,7 @@ local function hookRoutes()
         ISDPadWheels._zedRoute = true
         local orig = ISDPadWheels.showAnimalZoneUI
         ISDPadWheels.showAnimalZoneUI = function(playerNum)
-            if ZeD.Safe.on() then return orig(playerNum) end
+            if ZeD.Safe.on("wheels") then return orig(playerNum) end
             if openWorldTab(playerNum, "animals") then return end   -- (vanilla's first-time zone note stays with its panel)
             return orig(playerNum)
         end

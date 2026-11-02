@@ -414,7 +414,7 @@ end
 function ZeD_Watch:prerender()
     -- safe mode (SafeMode.lua): nothing parked, and this watch hides (a watch made
     -- after safe mode began hides here; the "watch" hook below shows it again)
-    if ZeD.Safe.on() then self:setVisible(false); return end
+    if ZeD.Safe.on("watch") then self:setVisible(false); return end
     local player = getSpecificPlayer(self.playerNum)
     if not player or (ISUIHandler and ISUIHandler.allUIVisible == false) then return end
     -- Park the Java clock and speed controls every frame. setVisible(false) is NOT enough in

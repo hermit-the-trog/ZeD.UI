@@ -308,7 +308,7 @@ end
 function M.rect(playerNum)
     local L = M._layers and M._layers[playerNum or 0]
     if not (L and L._show and L._rect) then return nil end
-    if ZeD.Safe and ZeD.Safe.on() then return nil end
+    if ZeD.Safe and ZeD.Safe.on("moodles") then return nil end
     return L._rect
 end
 
@@ -509,7 +509,7 @@ function M.install(playerNum)
     local layer = ZeD_MoodleLayer:new(playerNum)
     layer:initialise()
     layer:addToUIManager()
-    layer:setVisible(not ZeD.Safe.on())   -- safe mode: hidden until ZeD takes over again
+    layer:setVisible(not ZeD.Safe.on("moodles"))   -- safe mode: hidden until ZeD takes over again
     M._layers[playerNum] = layer
     print("[ZeD] Moodles: layer installed for player " .. tostring(playerNum) .. " (" .. M.place() .. ")")
     return layer
@@ -521,7 +521,7 @@ function M.getLayer(playerNum) return M._layers[playerNum or 0] end
 -- so a move made any earlier never reaches the screen.
 local function preDraw()
     if not ZeD.T then return end
-    if ZeD.Safe.on() then return end   -- safe mode: vanilla's column stays where the engine puts it
+    if ZeD.Safe.on("moodles") then return end   -- safe mode: vanilla's column stays where the engine puts it
     for _, layer in pairs(M._layers) do layer:_place() end
 end
 Events.OnPreUIDraw.Add(preDraw)

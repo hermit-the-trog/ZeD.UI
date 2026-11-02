@@ -477,6 +477,28 @@ additionsPreset:addItem(ZeD.tr("UI_ZeD_Settings_PresetAccessible"), false)
 additionsPreset:addItem(getText("Sandbox_Custom"), false)   -- (the game's own "Custom")
 ZeD.Settings.additionsPresetOption = additionsPreset
 
+-- ----- ZED SCREENS (director, Nov 2 2026, punch list 55: "instead of doing a modular release, just allow our
+-- mod to step aside"; a Workshop comment asked to turn the belt off and keep the rest) -----
+-- One switch per ZeD screen that can hand itself back: Off gives that screen back to the game's own (what safe
+-- mode does for all of them, SafeMode.lua), On is ZeD's. All On by default. Not additions: the presets leave
+-- them alone. (Combos are saved by position, so these stay after every older option.)
+ZeD.Settings.screenOptions = {}
+for _, sc in ipairs({
+    { "screenWindows",   "windows",   "UI_ZeD_Settings_ScreenWindows" },
+    { "screenBelt",      "belt",      "UI_ZeD_Settings_ScreenBelt" },
+    { "screenWatch",     "watch",     "UI_ZeD_Settings_ScreenWatch" },
+    { "screenDashboard", "dashboard", "UI_ZeD_Settings_ScreenDashboard" },
+    { "screenMoodles",   "moodles",   "UI_ZeD_Settings_ScreenMoodles" },
+    { "screenWheels",    "wheels",    "UI_ZeD_Settings_ScreenWheels" },
+    { "screenCharInfo",  "charinfo",  "UI_ZeD_Settings_ScreenCharInfo" },
+}) do
+    local o = opts:addComboBox(sc[1], ZeD.tr(sc[3]), ZeD.tr(sc[3] .. "Tip"))
+    o:addItem(getText("UI_Off"), false)
+    o:addItem(getText("UI_On"), true)    -- default: ZeD's
+    ZeD.Settings.screenOptions[sc[2]] = o
+    if ZeD.Safe and ZeD.Safe.setPieceOption then ZeD.Safe.setPieceOption(sc[2], o) end
+end
+
 -- ----- THE KEYS OF THE OPTION NAMES -----
 -- ModOptions keeps each name as the text the option was made with, which is read once, here at
 -- file load, so the test language could never stretch it. Each option also keeps the key of its
@@ -501,6 +523,10 @@ do
         ammoBox = "UI_ZeD_Settings_AmmoBox", readMarks = "UI_ZeD_Settings_ReadMarks", readNext = "UI_ZeD_Settings_ReadNext",
         dashLamps = "UI_ZeD_Settings_DashLamps", moodleNotices = "UI_ZeD_Settings_MoodleNotices",
         loadouts = "UI_ZeD_Settings_Loadouts", additionsPreset = "UI_ZeD_Settings_Preset",
+        screenWindows = "UI_ZeD_Settings_ScreenWindows", screenBelt = "UI_ZeD_Settings_ScreenBelt",
+        screenWatch = "UI_ZeD_Settings_ScreenWatch", screenDashboard = "UI_ZeD_Settings_ScreenDashboard",
+        screenMoodles = "UI_ZeD_Settings_ScreenMoodles", screenWheels = "UI_ZeD_Settings_ScreenWheels",
+        screenCharInfo = "UI_ZeD_Settings_ScreenCharInfo",
     }
     for id, key in pairs(nameKeys) do
         local o = opts.dict and opts.dict[id]

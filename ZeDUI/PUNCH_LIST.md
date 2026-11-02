@@ -1691,6 +1691,19 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     runs (ZeD.Safe.register: the belt gives back the game's hotbar, the watch the game's clock, the moodles the game's
     column, and so on); a per-screen switch in ZeD setup would run that one screen's step and leave the rest, so the
     work is mostly the switches and their words, not new hand-backs. Reply to LZV-R5 waits until it ships.
+    **The director, Nov 2 2026: seven switches ("I'm okay with that"); built (build, Nov 2), QA to confirm, the last
+    code for t16.** ZeD setup has a ZeD screens group: Inventory windows, Belt, Watch, Dashboard, Moodle placing, Quick
+    wheels, Character info, each a checkbox, On (ZeD's) by default; Off hands that one screen back to the game's own,
+    the step safe mode takes for all of them. SafeMode.lua: ZeD.Safe.on(name) is true while safe mode holds or that
+    screen is switched off; each hook follows its own switch (sync keeps a per-screen state); every check in the
+    seven screens' files names its screen (35 lines). Not additions: the presets leave them alone. QA: each switch off
+    and on in game (the game's own screen comes back at once and ZeD's goes; on again, ZeD's returns), two off
+    together, safe mode on with switches mixed (everything the game's), and a restart keeps the picks. If Inventory
+    windows off shows a fault that is not a quick fix, its row is hidden for t16 rather than fixed late.
+
+56. **A simple belt (the director, Nov 2 2026; for t17).** open, a design job. Behind the Workshop ask to turn the belt
+    off (item 55): give it a simple form, as ZeD already pairs a full and a simple version (the progress bar; the context
+    menu strip and the classic menu): one for immersion, one plain. Options and a mockup for the director first.
 
 ## Test process
 

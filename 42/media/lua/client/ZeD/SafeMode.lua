@@ -16,6 +16,11 @@
 --     once more (Zomboid/Lua/ZeD_safe_trip.txt).
 --
 --   ZeD.Safe.on()              true while safe mode holds (the option, or a trip)
+--   ZeD.Safe.on(name)          true while safe mode holds or the player gave that screen back
+--                              to the game in ZeD setup's ZeD screens (one of the hooks below:
+--                              belt, charinfo, dashboard, moodles, watch, wheels, windows)
+--   ZeD.Safe.setPieceOption(name, option)   the ZeD setup switch for a screen (item 1 Off:
+--                              the game's own; item 2 On: ZeD's)
 --   ZeD.Safe.fault(key, err)   a failure at key that happens every frame
 --                              (ZeD.logOnce and ZeD.Safe.guard call it)
 --   ZeD.Safe.trip(where, err)  step aside now, for this session
@@ -85,7 +90,29 @@ local function readOption()
     return ok and v == 2
 end
 
-function S.on()
+-- ZeD screens (director, Nov 2 2026, punch list 55: "instead of doing a modular release, just allow our mod
+-- to step aside"): each of ZeD's screens with a hand-back can be given back to the game on its own. The switch
+-- is read like the safe mode option, at most every half second per screen.
+local pieceOptions = S._pieceOptions or {}
+S._pieceOptions = pieceOptions
+local pieceRead = {}   -- name -> { off = bool, next = ms }
+function S.setPieceOption(name, option) pieceOptions[name] = option end
+function S.pieceOff(name)
+    -- (Settings.lua makes the switches; whichever file loads first, its table is found here too)
+    local o = pieceOptions[name] or (ZeD.Settings and ZeD.Settings.screenOptions and ZeD.Settings.screenOptions[name])
+    if not o then return false end
+    local now = getTimestampMs()
+    local r = pieceRead[name]
+    if not r then r = { off = false, next = 0 }; pieceRead[name] = r end
+    if now >= r.next then
+        r.next = now + READ_MS
+        local ok, v = pcall(o.getValue, o)
+        r.off = ok and v == 1
+    end
+    return r.off
+end
+
+function S.on(name)
     local now = getTimestampMs()
     if now >= st.nextRead then
         st.nextRead = now + READ_MS
@@ -93,7 +120,9 @@ function S.on()
         if st.option and not v then st.tripped = false end   -- the option turned Off: a trip goes with it
         st.option = v
     end
-    return st.tripped or st.option
+    if st.tripped or st.option then return true end
+    if name then return S.pieceOff(name) end
+    return false
 end
 
 -- ----------------------------------------------------------------------------
@@ -104,30 +133,40 @@ local function runHook(name, fn, what)
     if not ok then print("[ZeD] Safe mode: " .. tostring(name) .. " could not " .. what .. ": " .. tostring(err)) end
 end
 
+-- each hook follows safe mode or its own screen's switch: handed back while either says so
+st.by = st.by or {}
 local function sync()
-    local want = S.on()
-    if want == st.applied then return end
-    st.applied = want
+    local all = S.on()
+    if all ~= st.applied then
+        st.applied = all
+        print(all and "[ZeD] Safe mode: on, the game's own interface is back" or "[ZeD] Safe mode: off, ZeD UI is back")
+    end
     for i = 1, #order do
         local name = order[i]
         local h = hooks[name]
-        if h then
+        local want = all or S.pieceOff(name)
+        if h and want ~= (st.by[name] or false) then
+            st.by[name] = want
             if want then
                 if h.leave then runHook(name, h.leave, "hand back") end
             elseif h.enter then
                 runHook(name, h.enter, "take over again")
             end
+            if not all then
+                print("[ZeD] Screens: " .. name .. (want and " handed back to the game" or " is ZeD's again"))
+            end
         end
     end
-    print(want and "[ZeD] Safe mode: on, the game's own interface is back" or "[ZeD] Safe mode: off, ZeD UI is back")
 end
-
 function S.register(name, def)
     if type(name) ~= "string" or type(def) ~= "table" then return end
     if not hooks[name] then order[#order + 1] = name end
     hooks[name] = def
-    -- registered while safe mode already holds: it hands back at once
-    if st.applied and def.leave then runHook(name, def.leave, "hand back") end
+    -- registered while safe mode already holds, or with its screen given back: it hands back at once
+    if (st.applied or S.pieceOff(name)) and def.leave then
+        st.by[name] = true
+        runHook(name, def.leave, "hand back")
+    end
 end
 
 function S.reread()
