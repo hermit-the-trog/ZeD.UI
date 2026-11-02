@@ -1,0 +1,11 @@
+# Nov 1 2026: t16's two new cards (punch list 49 the recipe preview card, 50 the notebook paper), then the
+# two widths check (the World window's object cards learned a half width for the preview: the 1080p pair
+# must be unchanged elsewhere). Run it twice, once at each of the director's setups:
+#   zedqa_run.ps1 -Manifest zedqa_t16_cards_manifest.txt -Mode fullscreen4k -Report t16_cards_4k
+#   zedqa_run.ps1 -Manifest zedqa_t16_cards_manifest.txt -Mode windowed -Width 1280 -Height 800 -Report t16_cards_800
+# (the second is the Steam Deck). The screenshots share names across the two runs: copy
+# Zomboid/Screenshots/zqa_pvc_*.png and zqa_nbp_*.png away after the first run.
+zedqa_prelude.lua | pre | timeout=120
+zedqa_preview_card.lua | pvc | timeout=300
+zedqa_notebook_paper.lua | nbp | timeout=180
+zedqa_two_widths.lua | tww | timeout=900
