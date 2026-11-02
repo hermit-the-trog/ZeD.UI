@@ -1685,6 +1685,12 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     watch, belt, dashboard, moodle placing, the item card) cannot be handed back to the game. To settle with the
     director: whether stepping aside is the player's switch per screen in ZeD setup, automatic when another mod owns
     that screen (as for Immersive Moodles), or both; and which screens come first. One upload either way.
+    The comment (LZV-R5, Workshop, Nov 2 2026): "Just one suggestion; Could be a modular selection? Maybe desable the hot
+    bar but keep inventory and cars ui, etc." So the ask is per screen: the belt off (the game's hotbar back), the
+    windows and the dashboard kept. Build's note: each ZeD screen already has its own hand-back step, the one safe mode
+    runs (ZeD.Safe.register: the belt gives back the game's hotbar, the watch the game's clock, the moodles the game's
+    column, and so on); a per-screen switch in ZeD setup would run that one screen's step and leave the rest, so the
+    work is mostly the switches and their words, not new hand-backs. Reply to LZV-R5 waits until it ships.
 
 ## Test process
 
