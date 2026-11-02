@@ -23,6 +23,11 @@
 --     what fits, attach / detach / draw, the slot list menu, drops);
 --   * ZeD_BeltHUD — the organism (mouse, drag in / out, tooltips, controller).
 -- Every layout number is a DESIGN UNIT and goes through T.px at use (S124).
+--
+-- Two forms (the "Belt" option; director, Nov 2 2026, punch list 56: a full and a simple version, as for the
+-- action bar and the context menu): Full, the leather strap with each slot's material and the profession buckle;
+-- Simple, the same hands, slots, ammo tab, wrist watch and note with no strap and no buckle, the slots evenly
+-- spaced after the hands, the belt centred on its own width. Everything the belt does is the same in both.
 -- ============================================================================
 
 require "ZeD/Tr"
@@ -64,6 +69,15 @@ local AMMO_CARD_W = 280      -- the widest the gun's detail card gets
 local LIST_ROW_H, LIST_W = 26, 290
 
 local DOT = "|"   -- the separator: ZeD OS's pipe (director, Oct 16 2026: no middle dots)
+local SIMPLE_GAP = 6   -- the Simple belt's gap between slots (no strap material to show between them)
+
+-- the Simple belt (the "Belt" option's second item), read as the belt lays out
+function B.simple()
+    local o = ZeD.Settings and ZeD.Settings.beltStyleOption
+    if not o then return false end
+    local ok, v = pcall(o.getValue, o)
+    return ok and v == 2
+end
 
 local function col(c) return c.r, c.g, c.b end
 local function hex(h)
@@ -725,8 +739,10 @@ function ZeD_BeltHUD:_layoutCached(slots)
     local pri = p and p:getPrimaryHandItem()
     local two = pri ~= nil and pri == p:getSecondaryHandItem()
     local now = getTimestampMs and getTimestampMs() or 0
+    local simple = B.simple()
     local dirty = L == nil or L.T ~= T or L.p ~= p or L.n ~= n or L.wItem ~= wItem or L.wPlate ~= wPlate
-        or L.wWrist ~= wWrist or L.lamp ~= lamp or L.ammo ~= ammo or L.two ~= two or not self._provAt or now - self._provAt > 1000
+        or L.wWrist ~= wWrist or L.lamp ~= lamp or L.ammo ~= ammo or L.two ~= two or L.simple ~= simple
+        or not self._provAt or now - self._provAt > 1000
     if not dirty then
         local types = L.types
         for i = 1, n do
@@ -742,7 +758,7 @@ function ZeD_BeltHUD:_layoutCached(slots)
             types[i] = s and s.slot and s.slot.slotType
         end
         self._lk = { T = T, p = p, n = n, wItem = wItem, wPlate = wPlate, wWrist = wWrist, lamp = lamp, ammo = ammo, two = two,
-                     types = types, w = w, h = h }
+                     simple = simple, types = types, w = w, h = h }
         return w, h
     end
     for _, b in ipairs(self._boxes) do
@@ -815,6 +831,23 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp, ammo, two)
         x = x + mw
     end
     x = x + px(END_GAP)
+    if B.simple() then
+        -- the Simple belt: the slots evenly spaced after the hands, no strap and no buckle
+        for i = 1, n do
+            boxes[#boxes + 1] = { kind = "slot", i = i, s = slots[i], x = x, y = by, w = box, h = box }
+            x = x + box + px(SIMPLE_GAP)
+        end
+        if n > 0 then x = x - px(SIMPLE_GAP) end
+        if lamp then
+            x = x + px(END_GAP)
+            local lw = px(LAMP)
+            boxes[#boxes + 1] = { kind = "lamp", x = x, y = math.floor((h - lw) / 2), w = lw, h = lw }
+            x = x + lw
+        end
+        self._boxes = boxes
+        self._strap, self._buckle, self._runs, self._closure = nil, nil, nil, nil
+        return x, h
+    end
     local strapX = x
     x = x + px(PAD)                       -- the slots sit PAD in from the strap's end (the buckle's place counts it)
     -- the buckle's place is its art at the whole zoom (58 x 40 texels at T.art; Oct 21 2026)
@@ -1569,8 +1602,8 @@ function ZeD_BeltHUD:_prerender()
     if self:getHeight() ~= h then self:setHeight(h) end
     self._drawn = true
 
-    self:_drawStrap()
-    self:_drawBuckle()
+    if self._strap then self:_drawStrap() end      -- (the Simple belt has neither)
+    if self._buckle then self:_drawBuckle() end
 
     local mx, my = self:getMouseX(), self:getMouseY()
     local over = (mx >= 0 and my >= 0 and mx < w and my < h) and self:boxAt(mx, my) or nil

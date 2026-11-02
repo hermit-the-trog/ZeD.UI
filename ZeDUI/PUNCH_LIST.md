@@ -1705,9 +1705,16 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     under Safe mode and read as it does: ticked is the game's own, unticked (the default) is ZeD's. Names "Safe mode:
     belt" and so on, each with a line under it ("The game's own hotbar"). The ZeD screens group is gone.
 
-56. **A simple belt (the director, Nov 2 2026; for t17).** open, a design job. Behind the Workshop ask to turn the belt
+56. **A simple belt (the director, Nov 2 2026: "I want to add simple belt for T16").** Behind the Workshop ask to turn the belt
     off (item 55): give it a simple form, as ZeD already pairs a full and a simple version (the progress bar; the context
     menu strip and the classic menu): one for immersion, one plain. Options and a mockup for the director first.
+    **Built (build, Nov 2 2026), QA to confirm.** ZeD setup's HUD group has "Belt: Full | Simple" beside the action
+    bar (Full the default). Simple keeps everything the belt does (both hands, every slot in key order, the ammo tab,
+    the wrist watch, the Messages note, drag in and out, keys, the controller) and drops the decoration: no leather
+    strap, no buckle, the slots evenly spaced (6 units) after the hands, the belt centred on its own width. A change
+    applies at once (the layout cache follows the option). QA: Full and Simple at 4K and on the Deck, with 0, 1, 4 and
+    the most slots; a gun (the ammo tab), a worn watch on each wrist, the Messages note; drag an item onto a slot and
+    off; the number keys; the controller's belt focus; moodles placed at the bottom sit above it.
 
 ## Test process
 
