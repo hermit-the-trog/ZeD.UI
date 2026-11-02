@@ -1597,6 +1597,20 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     test), and a controller. Ready for the Compatibility thread to list Immersive Moodles as Supported (the director's
     call when the build ships).
 
+54. **Hair and beard: a Kahlua error with round 5's nine mods on (QA's compat round 5, Nov 2 2026; the director, Nov 2:
+    "Yes, hair and beard").** fixed (build, Nov 2), QA to confirm. On the Identity tab, Hair and beard's tool lookup
+    (ZeD_HairBeard.lua tools(), from refresh() from layout(), every few frames) asked the game five times for the first
+    razor, scissors, gel, spray and hairdo item through getFirstEvalRecurse, handing it a Lua test that the game calls
+    back for every item. With the nine mods of round 5 on together the game's Lua engine threw "NullPointerException:
+    Cannot assign field callFrame because a is null at ReturnValues.put" twice a run; the pcall caught it (so a tool was
+    likely just not found), but -debug logged it as a Java exception. Each half of the set alone was clean, so no single
+    mod is to blame. Fix: one walk over the inventory in Lua (the container's own items first, then each bag's, as the
+    game's search goes), each item tested for all five tools; no call back from the game, and one pass instead of five.
+    KB Q275. Other ZeD code still hands tests to the game's searches (object cards, the quick wheel, the trailer): none
+    has shown the error; they move to the same walk if one does. QA: the nine mods of round 5 on, the nav map
+    (zedqa_navmap.lua) over the Identity tab: no "callFrame" lines in console.txt; Hair and beard's tool lines read right
+    with a razor in a bag, scissors in the main inventory, gel and spray, and none.
+
 ## Test process
 
 - The release check (before every upload, about 5 minutes, pass or fail): right-click opens the
