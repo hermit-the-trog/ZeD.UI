@@ -174,15 +174,21 @@ G.ZED_GROUPS = {
         { "sandboxInGame", "onoff", under = "UI_ZeD_Options_UnderSandboxIG" }, { "loadouts", "onoff" },
         -- (director, Oct 30 2026: Restock works only with a loadout, so its row dims and goes inert while Loadouts is off)
         { "restock", "radio", needs = "loadouts", needsWhy = "UI_ZeD_Options_NeedsLoadouts" } } },
-    -- (director, Nov 2 2026, punch list 55: each ZeD screen can step aside; Off is the game's own)
-    { "UI_ZeD_Options_ZedScreens", { { "screenWindows", "onoff" }, { "screenBelt", "onoff" }, { "screenWatch", "onoff" },
-        { "screenDashboard", "onoff" }, { "screenMoodles", "onoff" }, { "screenWheels", "onoff" }, { "screenCharInfo", "onoff" } } },
     { "UI_ZeD_Options_ZedWindows", { { "inventoryView", "radio" }, { "equipView", "radio" }, { "charAccent", "swatch" }, { "worldAccent", "swatch" }, { "hiddenActions" } } },
     { "UI_ZeD_Options_ZedHud", { { "moodlePlace", "radio", short = { "UI_ZeD_Options_MoodlesRight", "UI_ZeD_Options_MoodlesLeft", "UI_ZeD_Options_MoodlesBottom" } }, { "watchPlace", "radio" }, { "actionBar", "radio" } } },
     { "UI_ZeD_Options_ZedControls", { { "focusStyle" }, { "contextStyle", "radio" }, { "glyphDisplay" }, { "inputModeLock" } } },
     -- (Oct 24 2026, mockup zed_quick_chords_v1: the twelve chords, ZeD_QuickChords; not ModOptions: rows of their own)
     { "UI_ZeD_Options_ZedChords", {}, chords = true },
+    -- (director, Nov 2 2026, punch list 55: one screen at a time steps aside, under Safe mode and read as it is:
+    -- ticked, that screen is the game's own)
     { "UI_ZeD_Options_ZedTrouble", { { "safeMode", "onoff", under = "UI_ZeD_Options_UnderSafeMode" },
+                                     { "screenWindows", "onoff", under = "UI_ZeD_Options_UnderScreenWindows" },
+                                     { "screenBelt", "onoff", under = "UI_ZeD_Options_UnderScreenBelt" },
+                                     { "screenWatch", "onoff", under = "UI_ZeD_Options_UnderScreenWatch" },
+                                     { "screenDashboard", "onoff", under = "UI_ZeD_Options_UnderScreenDashboard" },
+                                     { "screenMoodles", "onoff", under = "UI_ZeD_Options_UnderScreenMoodles" },
+                                     { "screenWheels", "onoff", under = "UI_ZeD_Options_UnderScreenWheels" },
+                                     { "screenCharInfo", "onoff", under = "UI_ZeD_Options_UnderScreenCharInfo" },
                                      { "testLanguage", "onoff" } } },
 }
 

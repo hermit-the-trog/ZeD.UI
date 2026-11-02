@@ -1700,6 +1700,10 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     and on in game (the game's own screen comes back at once and ZeD's goes; on again, ZeD's returns), two off
     together, safe mode on with switches mixed (everything the game's), and a restart keeps the picks. If Inventory
     windows off shows a fault that is not a quick fix, its row is hidden for t16 rather than fixed late.
+    **Moved under Safe mode (the director, Nov 2 2026: "put the switches in the safe mode area. So they read more like,
+    yeah, you can turn it off. But why would you want to? In safety").** The seven rows sit in Troubleshooting right
+    under Safe mode and read as it does: ticked is the game's own, unticked (the default) is ZeD's. Names "Safe mode:
+    belt" and so on, each with a line under it ("The game's own hotbar"). The ZeD screens group is gone.
 
 56. **A simple belt (the director, Nov 2 2026; for t17).** open, a design job. Behind the Workshop ask to turn the belt
     off (item 55): give it a simple form, as ZeD already pairs a full and a simple version (the progress bar; the context

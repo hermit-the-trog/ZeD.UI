@@ -19,8 +19,8 @@
 --   ZeD.Safe.on(name)          true while safe mode holds or the player gave that screen back
 --                              to the game in ZeD setup's ZeD screens (one of the hooks below:
 --                              belt, charinfo, dashboard, moodles, watch, wheels, windows)
---   ZeD.Safe.setPieceOption(name, option)   the ZeD setup switch for a screen (item 1 Off:
---                              the game's own; item 2 On: ZeD's)
+--   ZeD.Safe.setPieceOption(name, option)   the ZeD setup switch for a screen, under Safe mode
+--                              and read the same way (item 1 Off: ZeD's; item 2 On: the game's own)
 --   ZeD.Safe.fault(key, err)   a failure at key that happens every frame
 --                              (ZeD.logOnce and ZeD.Safe.guard call it)
 --   ZeD.Safe.trip(where, err)  step aside now, for this session
@@ -107,7 +107,7 @@ function S.pieceOff(name)
     if now >= r.next then
         r.next = now + READ_MS
         local ok, v = pcall(o.getValue, o)
-        r.off = ok and v == 1
+        r.off = ok and v == 2   -- (On: the game's own, as for Safe mode itself)
     end
     return r.off
 end

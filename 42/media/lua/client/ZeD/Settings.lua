@@ -479,9 +479,10 @@ ZeD.Settings.additionsPresetOption = additionsPreset
 
 -- ----- ZED SCREENS (director, Nov 2 2026, punch list 55: "instead of doing a modular release, just allow our
 -- mod to step aside"; a Workshop comment asked to turn the belt off and keep the rest) -----
--- One switch per ZeD screen that can hand itself back: Off gives that screen back to the game's own (what safe
--- mode does for all of them, SafeMode.lua), On is ZeD's. All On by default. Not additions: the presets leave
--- them alone. (Combos are saved by position, so these stay after every older option.)
+-- One switch per ZeD screen that can hand itself back, under Safe mode in ZeD setup and read as it is (director,
+-- Nov 2 2026: "you can turn it off. But why would you want to? In safety"): On gives that one screen back to the
+-- game's own (what safe mode does for all of them, SafeMode.lua), Off (the default) keeps it ZeD's. Not additions:
+-- the presets leave them alone. (Combos are saved by position, so these stay after every older option.)
 ZeD.Settings.screenOptions = {}
 for _, sc in ipairs({
     { "screenWindows",   "windows",   "UI_ZeD_Settings_ScreenWindows" },
@@ -493,8 +494,8 @@ for _, sc in ipairs({
     { "screenCharInfo",  "charinfo",  "UI_ZeD_Settings_ScreenCharInfo" },
 }) do
     local o = opts:addComboBox(sc[1], ZeD.tr(sc[3]), ZeD.tr(sc[3] .. "Tip"))
-    o:addItem(getText("UI_Off"), false)
-    o:addItem(getText("UI_On"), true)    -- default: ZeD's
+    o:addItem(getText("UI_Off"), true)   -- default: ZeD's
+    o:addItem(getText("UI_On"), false)   -- the game's own
     ZeD.Settings.screenOptions[sc[2]] = o
     if ZeD.Safe and ZeD.Safe.setPieceOption then ZeD.Safe.setPieceOption(sc[2], o) end
 end
