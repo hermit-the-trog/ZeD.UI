@@ -35,8 +35,17 @@ QA → Design, from the director's words in the QA session (Nov 1 2026, afternoo
   a note within 10 px gets a short arrow), not committed; take or leave them with the rebuild.
 - QA's re-point pass (new crops and points for every page) waits for the new page geometry, so it is done once.
 
-## Open questions for the director (QA will ask)
+## The director's answers (Nov 1 2026, evening)
 
-1. One spread per slide at 1920x1080, or one page with a plain facing page?
-2. Do the margin notes in his pen stay beside the sticky note, or does the sticky note replace them on the taped-on pages?
-3. Who writes the printed body text: the description's own words (as the captions are now), or new manual prose?
+1. **Each image is an open spread**: two pages, left and right, in one 1920 x 1080 picture.
+2. **The pens.** He writes in the margins in blue and red (blue explanations, red arrows); the **sticky notes are in black**;
+   the **green** pen circles things on the page. The four-colour Bic, "and he knows it".
+3. **The printed body** is the original publisher's: a very dry, descriptive manual for operating the fictional ZNIX
+   system and programming for it, in the register of a 1993 manual. Not his voice. The cover already has the
+   publisher's name struck through and "hermit" written over it, so the body text reads as the publisher's and his
+   marks as the reader's.
+
+Publisher and author names (the director asked for a pun on a programmer; his pick):
+- Author: **Manuel Paige** (the man page); or Sy Stemm, Polly Morphism, Ann Sibyl (ANSI), Lou Pback, Al Gorithm.
+- Publisher: **Null & Void Press**; or Core Dump Books, Segment & Fault, Stack and Heap, Bit Twiddler Publishing.
+- The cover's struck-through line is the publisher's docs group; keep the same name there and on the title page.
