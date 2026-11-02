@@ -92,31 +92,36 @@ local function isHairdo(it) return it:hasTag(ItemTag.DO_HAIRDO) or isGel(it) or 
 -- such call back, and goes over the inventory once instead of five times.
 local TOOL_TESTS = { { "razor", isRazor }, { "scissors", isScissors }, { "gel", isGel },
                      { "spray", isSpray }, { "hairdo", isHairdo } }
+-- Every item in a container and its bags, in the game's search order, handed to visit(item);
+-- visit returns true to stop. Returns true when stopped. (Lua only: nothing is handed to Java.)
+local function walkItems(inv, visit, depth)
+    depth = depth or 0
+    if not inv or depth > 6 then return false end   -- (a bag in a bag in a bag: six deep is plenty)
+    local items = inv:getItems()
+    local bags = nil
+    for i = 0, items:size() - 1 do
+        local it = items:get(i)
+        if it then
+            if visit(it) then return true end
+            if instanceof(it, "InventoryContainer") then bags = bags or {}; bags[#bags + 1] = it end
+        end
+    end
+    for _, bag in ipairs(bags or {}) do
+        if walkItems(bag:getInventory(), visit, depth + 1) then return true end
+    end
+    return false
+end
 local function tools(p)
     local out, left = {}, #TOOL_TESTS
-    local function test(it)
-        for _, t in ipairs(TOOL_TESTS) do
-            if out[t[1]] == nil and t[2](it) then out[t[1]] = it; left = left - 1 end
-        end
-    end
-    local function walk(inv, depth)
-        if not inv or left == 0 or depth > 6 then return end   -- (a bag in a bag in a bag: six deep is plenty)
-        local items = inv:getItems()
-        local bags = nil
-        for i = 0, items:size() - 1 do
-            local it = items:get(i)
-            if it then
-                test(it)
-                if left == 0 then return end
-                if instanceof(it, "InventoryContainer") then bags = bags or {}; bags[#bags + 1] = it end
+    local function walk(inv)
+        walkItems(inv, function(it)
+            for _, t in ipairs(TOOL_TESTS) do
+                if out[t[1]] == nil and t[2](it) then out[t[1]] = it; left = left - 1 end
             end
-        end
-        for _, bag in ipairs(bags or {}) do
-            walk(bag:getInventory(), depth + 1)
-            if left == 0 then return end
-        end
+            return left == 0
+        end)
     end
-    local ok, err = pcall(walk, p:getInventory(), 0)
+    local ok, err = pcall(walk, p:getInventory())
     if not ok and not HB._toolsWarned then
         HB._toolsWarned = true
         print("[ZeD] Hair and beard: reading the tools failed: " .. tostring(err))
@@ -231,6 +236,50 @@ local function newRecorder()
     return setmetatable(rec, { __index = function() return function() end end })
 end
 
+-- The game's menus ask the character's inventory, per style, whether a razor, scissors or a
+-- hairdo item is on hand (containsEvalRecurse with a Lua test the game calls back for every
+-- item: the call back KB Q275 warns of, which threw with round 5's nine mods on; QA, Nov 2
+-- 2026). While ZeD reads a menu, the character it is given answers those from one Lua walk
+-- over the inventory (the items gathered once per read); everything else goes to the real
+-- character. The options keep the real character (put back after the read: see harvest).
+local function forwarder(real)
+    -- anything not named goes to the real object, as a method call on it
+    return function(t, k)
+        local f = real[k]
+        if type(f) ~= "function" then return f end
+        return function(me, ...) if me == t then return f(real, ...) end return f(me, ...) end
+    end
+end
+local function invStandIn(p)
+    local real = p:getInventory()
+    local list = nil
+    local function all()
+        if not list then list = {}; walkItems(real, function(it) list[#list + 1] = it; return false end) end
+        return list
+    end
+    local inv = {
+        containsEvalRecurse = function(_, test) for _, it in ipairs(all()) do if test(it) then return true end end return false end,
+        getFirstEvalRecurse = function(_, test) for _, it in ipairs(all()) do if test(it) then return it end end return nil end,
+        containsEval = function(_, test) for _, it in ipairs(all()) do if test(it) then return true end end return false end,
+        getFirstEval = function(_, test) for _, it in ipairs(all()) do if test(it) then return it end end return nil end,
+    }
+    return setmetatable(inv, { __index = forwarder(real) })
+end
+local function charStandIn(p)
+    local inv = invStandIn(p)
+    -- (the calls the game's hairMenu / beardMenu make, written out: a name looked up on a Java
+    -- object is not always reachable, KB Q275; anything else a hair mod's menu asks is forwarded)
+    local c = {
+        getInventory   = function() return inv end,
+        getHumanVisual = function() return p:getHumanVisual() end,
+        getVisual      = function() return p:getVisual() end,
+        isFemale       = function() return p:isFemale() end,
+        getPlayerNum   = function() return p:getPlayerNum() end,
+        getJoypadBind  = function() return p:getJoypadBind() end,
+    }
+    return setmetatable(c, { __index = forwarder(p) })
+end
+
 local function standIn(p, playerNum)
     local s = { char = p, playerNum = playerNum }
     -- the game's addTooltip greys the option and gives its reason; this one writes both down
@@ -252,9 +301,23 @@ local function harvest(p, which)
     local orig = ISContextMenu.get
     ISContextMenu.get = function() return rec end
     -- playerNum -100: the menu's "give the pad to the menu" step finds no pad there
-    local ok, err = pcall(fn, standIn(p, -100), BUTTON)
+    local proxy = charStandIn(p)
+    local screen = standIn(proxy, -100)
+    local ok, err = pcall(fn, screen, BUTTON)
     ISContextMenu.get = orig
     if not ok then ZeD.logOnce("hairbeard harvest " .. which, err) end
+    -- the read is done: the screen and every option get the real character back (the game's
+    -- options carry it as their target, and a picture mod's lists may carry it one level in)
+    screen.char = p
+    local function real(v) if v == proxy then return p end return v end
+    for _, o in ipairs(rec.options) do
+        o.target = real(o.target)
+        for i = 1, 6 do
+            local k = "param" .. i
+            o[k] = real(o[k])
+            if type(o[k]) == "table" then for kk, vv in pairs(o[k]) do if vv == proxy then o[k][kk] = p end end end
+        end
+    end
     return rec.options
 end
 

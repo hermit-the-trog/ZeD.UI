@@ -1619,6 +1619,17 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     for this). Same run: zedqa_moodles fails at "right: the column ... x -20000" and the rest, as expected now: Immersive
     Moodles is one of the nine and ZeD leaves it the moodles (item 53); the compat round 5 manifest should drop mood or
     run it without that mod.
+    **Second pass (build, Nov 2 2026), after QA's run at fa00b9c.** The tools walk was clean, but the same error came
+    from the game's own hairMenu (ISCharacterScreen.lua:410), which ZeD runs to read the styles (harvest, from
+    buildRows): per style it asks player:getInventory():containsEvalRecurse(predicateRazor / Scissors / DoHairdo), the
+    same call back; beardMenu does too. Now the menu is read with a stand-in character: its getInventory answers
+    containsEvalRecurse and getFirstEvalRecurse (and the non-recursive pair) from one Lua walk of the inventory and its
+    bags, the calls the game's menus make on the character are written out (getHumanVisual, getVisual, isFemale,
+    getPlayerNum, getJoypadBind), anything else a hair mod's menu asks is forwarded to the real character. After the
+    read every option's target and params (and a picture mod's lists one level in) get the real character back, so a
+    picked style runs on the player as before. The game's own onCutHair / onTrimBeard, run when a style is picked,
+    still search the real inventory once, as the game does. QA: the same nine-mod run, no callFrame lines; the tool
+    lines; cut, tie, untie and trim a beard from Hair and beard (the actions run on the player).
 
 ## Test process
 
