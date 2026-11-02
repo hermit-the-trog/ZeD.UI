@@ -1641,6 +1641,16 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     trigger is the action start through that wrapper with these mods on, not searches as such. The tool lines are right
     (16 / 17 in zedqa_hairbeard_tools.lua). The bisect stopped on the director's word; the remaining suspects are ZeD's
     wrapper with the other eight.
+    **QA, Nov 2 2026, Build's begin probe (zedqa_begin_probe.lua, round 5 minus the cheat menu; parked until after t16).**
+    With the eight mods the trim fails, with ZeD alone it starts (no callFrame line). At ISBaseTimedAction.begin the
+    character is an IsoPlayer and self.action a LuaTimedActionNew, for the transfer, the equip and the trim alike; the
+    transfer and equip start fine. Inside the trim's start every call is fine: setActionAnim(CharacterActionAnims.Shave),
+    getStaticModel ("Base.Razor_Ground"), setOverrideHandModels; its isValid (true), its waitToStart (false) and its
+    update (setMetabolicTarget) are fine too. Yet begin still throws the masked NPE after the trim's start returns, and
+    the action then throws again every tick while it stays queued (268 lines in one run). So the bad call is in what
+    StartAction / LuaTimedActionNew.start does after the Lua start (javap: setWaitForFinished, ActionManager
+    .createNetTimedAction, the debug trace), or in a wrapper around it (ZeD_ActionBar wraps ISBaseTimedAction.create,
+    perform and stop). None of the eight mods touches ISTrimBeard, CharacterActionAnims, waitToStart or isValid.
     **Second pass (build, Nov 2 2026), after QA's run at fa00b9c.** The tools walk was clean, but the same error came
     from the game's own hairMenu (ISCharacterScreen.lua:410), which ZeD runs to read the styles (harvest, from
     buildRows): per style it asks player:getInventory():containsEvalRecurse(predicateRazor / Scissors / DoHairdo), the
