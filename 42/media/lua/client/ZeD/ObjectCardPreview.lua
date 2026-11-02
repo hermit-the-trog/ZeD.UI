@@ -101,28 +101,40 @@ local function buildData(d, t, player)
     -- Bonus Points multiplier + the character's highest relevant skill level x the script's skill base
     -- health. (QA, Nov 1 2026: the older getHealth helper that reads a fixed health alone is not what the
     -- build uses.) Barricades carry none of the three: no line.
+    local thump = script and call(script, "getIsThumpable")
     local base = math.max(script and call(script, "getHealth") or 0, 0)
-    local skillBase = script and call(script, "getSkillBaseHealth") or 0
-    local bonus = script and call(script, "getBonusHealth") or 0
+    local skillBase = math.max(script and call(script, "getSkillBaseHealth") or 0, 0)
+    local bonus = math.max(script and call(script, "getBonusHealth") or 0, 0)
     if bonus > 0 then
         local okM, mult = pcall(function() return getSandboxOptions():getOptionByName("ConstructionBonusPoints"):getValue() end)
         local k = ({ [1] = 0.5, [2] = 0.7, [3] = 1.0, [4] = 1.3, [5] = 1.5 })[okM and mult or 3] or 1.0
         bonus = math.floor(bonus * k + 0.5)
     end
-    local skill, perkName = 0, nil
+    local skill, perkName = 0, ""
     if skillBase > 0 then
-        local lvl = call(e.recipe, "getHighestRelevantSkillLevel", player) or 0
+        skill = (call(e.recipe, "getHighestRelevantSkillLevel", player) or 0) * skillBase
+        -- the skill it grows with: the recipe's highest relevant one; at level 0 the game names none,
+        -- so the recipe's first required skill, else carpentry (the game's wood rule)
         local perk = call(e.recipe, "getHighestRelevantSkill", player)
-        perkName = perk and tostring(call(perk, "getName") or "") or ""
-        skill = lvl * skillBase
+        if perk ~= nil then perkName = tostring(call(perk, "getName") or "") end
+        if perkName == "" and e.skillDefs and e.skillDefs[1] then perkName = tostring(e.skillDefs[1].name or "") end
+        if perkName == "" and PerkFactory and PerkFactory.getPerk and Perks and Perks.Woodwork then
+            local wp = call(PerkFactory, "getPerk", Perks.Woodwork)
+            if wp ~= nil then perkName = tostring(call(wp, "getName") or "") end
+        end
     end
     local total = base + bonus + skill
-    if total > 0 or skillBase > 0 then
+    -- a thing that is not thumpable (a barricade: its strength is each plank's) has no line
+    if thump ~= false and (base > 0 or skillBase > 0 or bonus > 0) then
         local parts = {}
         if base > 0 then parts[#parts + 1] = tostring(base) end
-        if skillBase > 0 then parts[#parts + 1] = ZeD.tr("UI_ZeD_Preview_FromSkill", tostring(skill), perkName or "") end
+        if skillBase > 0 then
+            parts[#parts + 1] = (skill > 0) and ZeD.tr("UI_ZeD_Preview_FromSkill", tostring(skill), perkName)
+                                            or ZeD.tr("UI_ZeD_Preview_GrowsWith", perkName)
+        end
         if bonus > 0 then parts[#parts + 1] = ZeD.tr("UI_ZeD_Preview_Bonus", tostring(bonus)) end
-        d.strength = (#parts > 1) and (tostring(total) .. " (" .. table.concat(parts, " + ") .. ")") or tostring(total)
+        local showParts = #parts > 1 or (skillBase > 0 and skill == 0)
+        d.strength = showParts and (tostring(total) .. " (" .. table.concat(parts, " + ") .. ")") or tostring(total)
     end
     local sk = {}
     for _, s in ipairs(e.skillDefs or {}) do sk[#sk + 1] = tostring(s.name) .. " " .. tostring(s.required) end
@@ -349,11 +361,12 @@ function def.body(card, x, y, w, t, player)
             local bh = T.buttonH
             local bw = UI.buttonW("<")
             UI.button(card, x, cy, "<", { w = bw, h = bh, hover = UI.hovered(card, "oc:faceL"), focus = card:focusOf("oc:faceL") })
+            -- (the index wraps at the press itself, so it is never 0 or past the end between frames)
             card:zone({ fid = "oc:faceL", x = x, y = cy, w = bw, h = bh, body = true, help = ZeD.tr("UI_ZeD_Preview_TurnLeft"),
-                run = function() t.face = t.face - 1 end })
+                run = function() t.face = (t.face > 1) and (t.face - 1) or n end })
             UI.button(card, x + w - bw, cy, ">", { w = bw, h = bh, hover = UI.hovered(card, "oc:faceR"), focus = card:focusOf("oc:faceR") })
             card:zone({ fid = "oc:faceR", x = x + w - bw, y = cy, w = bw, h = bh, body = true, help = ZeD.tr("UI_ZeD_Preview_TurnRight"),
-                run = function() t.face = t.face + 1 end })
+                run = function() t.face = (t.face < n) and (t.face + 1) or 1 end })
             local nm = face and face.name or ""
             if FACE_KEYS[nm] then nm = ZeD.tr(FACE_KEYS[nm]) end
             local label = (nm ~= "") and ZeD.tr("UI_ZeD_Preview_Facing", nm) or ""

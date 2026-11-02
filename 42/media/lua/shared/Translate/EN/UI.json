@@ -4029,6 +4029,7 @@
     "UI_ZeD_Preview_Strength": "Strength",
     "UI_ZeD_Preview_FromSkill": "%1 from your %2",
     "UI_ZeD_Preview_Bonus": "%1 bonus",
+    "UI_ZeD_Preview_GrowsWith": "more with your %1",
     "UI_ZeD_Preview_Condition": "Condition",
     "UI_ZeD_Preview_Skill": "Skill",
     "UI_ZeD_Preview_Facing": "Facing %1",
