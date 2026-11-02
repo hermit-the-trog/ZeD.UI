@@ -1668,6 +1668,23 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     server file fails to compile under -debug), the likely cause, and naming it serves only that mod. What was built
     stays (ZeD finds its own tools and starts its own cut and trim: sound for ZeD on its own). The last check of the
     pick path, if run, uses round 5 without RaxCheatMenu; with no failure there, 54 closes.
+    **Build, Nov 2 2026, after QA's 1304 / 1309 runs (still failing without RaxCheatMenu or ImmersiveSleep; every
+    failing chain through ZeD_PutBack's ISTimedActionQueue.add wrapper, at ISBaseTimedAction:begin line 88).** The NPE
+    is Kahlua masking the real error: LuaJavaInvoker checks a call's self and arguments in prepareCall, and when that
+    check fails its cleanup calls ReturnValues.put with a ReturnValues never set (put(null)), which throws "callFrame
+    ... a is null". So a Java method is being called from Lua with the wrong self or a wrong argument type: at line 88,
+    self.character:StartAction(self.action). QA's next probe prints the action's type, its character's and its
+    action's types at begin, to name which (Hands-On Interactions wraps the transfer action's new and start; Immersive
+    Sleep wraps the queue's add and adjustMaxTime).
+
+55. **ZeD steps aside instead of a modular release (the director, Nov 2 2026).** open, an idea for the design pass.
+    A player asked for ZeD to be modular (to use only some of it). The director: "instead of doing a modular release,
+    just allow our mod to step aside." What exists: every added feature can be switched off (item 18, the Additions
+    presets), and ZeD steps aside by itself for one mod today (Immersive Moodles, item 53: while that mod draws the
+    moodles, ZeD places none). What does not: ZeD's own screens (the main menu, the Character and World windows, the
+    watch, belt, dashboard, moodle placing, the item card) cannot be handed back to the game. To settle with the
+    director: whether stepping aside is the player's switch per screen in ZeD setup, automatic when another mod owns
+    that screen (as for Immersive Moodles), or both; and which screens come first. One upload either way.
 
 ## Test process
 
