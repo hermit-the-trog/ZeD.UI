@@ -1,0 +1,3 @@
+# punch list 54 (Nov 2 2026): Build's action start probe with round 5 minus the cheat menu
+zedqa_prelude.lua | pre | timeout=120
+zedqa_begin_probe.lua | bp | timeout=120
