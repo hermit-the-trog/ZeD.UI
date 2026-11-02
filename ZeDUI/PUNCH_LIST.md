@@ -1642,6 +1642,16 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     picked style runs on the player as before. The game's own onCutHair / onTrimBeard, run when a style is picked,
     still search the real inventory once, as the game does. QA: the same nine-mod run, no callFrame lines; the tool
     lines; cut, tie, untie and trim a beard from Hair and beard (the actions run on the player).
+    **Third pass (build, Nov 2 2026), after QA's d1dec5a run (reading clean, tool lines right, picks failing).** QA
+    found the call back failing for everyone with the nine on, ZeD or not (vanilla's car spawn CheckSwap and
+    corpseStorageCheck too), so one of the nine breaks the game's Java-to-Lua predicate calls; each half alone is clean.
+    The game's onCutHair / onTrimBeard find the tool that way and stop before the action is queued, so a pick did
+    nothing. ZeD now does those same steps itself with the tool from its own walk (HB.cutHair: the hat off, the tool in
+    hand by the game's rules, ISCutHair; HB.trimBeard: razor or scissors in hand, ISTrimBeard), but only in place of
+    the game's own handlers (kept as the file loads): a hair mod that put its own handler in place keeps it. QA: the
+    nine-mod run, cut, tie, untie, bald and a beard trim from Hair and beard each start their action with the right
+    tool; then the bisect of the nine (QA's one-line predicate probe) to name the mod that breaks the call back, for the
+    Compatibility thread (the director's call to post) and a note to its maker.
 
 ## Test process
 
