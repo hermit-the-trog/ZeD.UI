@@ -1232,6 +1232,31 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     strength, the skill and time, and for a craft the output item's card with the change against the item it
     upgrades ("Damage 0.8 to 1.2 -> 1.0 to 1.5"); (3) hover on the icon, a tooltip with the same. Build's pick: 1
     always on, and 2 for the click. Waits for the director.
+    **The director, Nov 1 2026: "2", the preview card on the icon's click.** The header's description slot is fixed
+    on the way (build, Nov 1: Build and Craft read the recipe's Tooltip through getText; a plain bug since the slot
+    was drawn). **The card's rules, for the director's yes before the build:**
+    - Opens on a click on the picked recipe's icon in the header, or A on it with a controller (the icon is a
+      stop). It is a card in the drawer, the half card, over the recipe list, the way an item card opens; the list
+      stays behind it. B, Back, a click on the icon again or picking another recipe closes it, and the focus goes
+      back to the icon.
+    - A build recipe's card: the thing's picture at twice its tile size, facing north; where it has four faces,
+      Left and Right turn it, and a thing built on several squares (a double gate) shows whole. Under it the
+      name, the game's words, then Strength as a number for your character as they stand: a fixed one plain
+      ("Strength 450"), a wooden one as its parts ("Strength 200 + 150 from your carpentry": the game gives 50 a
+      level and 100 more for Handy), barricades with no number (their strength is each plank's). Then the skill
+      it needs and the time. The band at the foot: Build and Back; Build greyed with the reason when you cannot
+      yet (the hidden-actions rule as the object cards keep it).
+    - A craft recipe's card: the thing you would get, shown as its item card would show it (damage, range, crit,
+      condition, weight, and the food label where it is food). When the recipe upgrades one of your own items
+      (the input that matches the output's kind, a bat into a spiked bat), a Change strip under the facts: each
+      fact that changes, old to new, with the step ("Damage 0.8 to 1.2 -> 1.0 to 1.5, +25%"). The band: Craft
+      and Back.
+    - Reading is free: the card opens for a recipe you cannot make yet or do not know; only the button at the
+      foot says no. A recipe whose result is one of several (a random one) shows the first with "or one of N".
+    - The pad: Up and Down walk the card's stops (the facing turn, the band); the card's own Craft or Build
+      presses the same as the drawer's; the rest of the drawer is out of reach while the card is up (as with an
+      item card). Pattern parity: the same card and rules on the Character window's Journal recipes where a
+      recipe shows there.
 
 ## Test process
 
