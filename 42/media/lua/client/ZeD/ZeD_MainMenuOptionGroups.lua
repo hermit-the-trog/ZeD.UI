@@ -175,7 +175,7 @@ G.ZED_GROUPS = {
         -- (director, Oct 30 2026: Restock works only with a loadout, so its row dims and goes inert while Loadouts is off)
         { "restock", "radio", needs = "loadouts", needsWhy = "UI_ZeD_Options_NeedsLoadouts" } } },
     { "UI_ZeD_Options_ZedWindows", { { "inventoryView", "radio" }, { "equipView", "radio" }, { "charAccent", "swatch" }, { "worldAccent", "swatch" }, { "hiddenActions" } } },
-    { "UI_ZeD_Options_ZedHud", { { "moodlePlace", "radio", short = { "UI_ZeD_Options_MoodlesRight", "UI_ZeD_Options_MoodlesLeft", "UI_ZeD_Options_MoodlesBottom" } }, { "watchPlace", "radio" }, { "actionBar", "radio" } } },
+    { "UI_ZeD_Options_ZedHud", { { "moodlePlace", "radio", short = { "UI_ZeD_Options_MoodlesRight", "UI_ZeD_Options_MoodlesLeft", "UI_ZeD_Options_MoodlesBottom" } }, { "watchPlace", "radio" }, { "actionBar", "radio" }, { "beltStyle", "radio" } } },
     { "UI_ZeD_Options_ZedControls", { { "focusStyle" }, { "contextStyle", "radio" }, { "glyphDisplay" }, { "inputModeLock" } } },
     -- (Oct 24 2026, mockup zed_quick_chords_v1: the twelve chords, ZeD_QuickChords; not ModOptions: rows of their own)
     { "UI_ZeD_Options_ZedChords", {}, chords = true },

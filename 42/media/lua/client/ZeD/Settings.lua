@@ -500,6 +500,14 @@ for _, sc in ipairs({
     if ZeD.Safe and ZeD.Safe.setPieceOption then ZeD.Safe.setPieceOption(sc[2], o) end
 end
 
+-- ----- THE BELT'S FORM (director, Nov 2 2026, punch list 56: a full and a simple version, as for the action bar) -----
+-- Full: the leather strap and the profession buckle. Simple: the same slots and hands with no strap or buckle.
+-- ZeD_Belt.lua reads it as it lays out, so a change applies at once. Full is the default.
+local beltStyle = opts:addComboBox("beltStyle", ZeD.tr("UI_ZeD_Settings_Belt"), ZeD.tr("UI_ZeD_Settings_BeltTip"))
+beltStyle:addItem(ZeD.tr("UI_ZeD_Settings_BeltFull"), true)   -- default
+beltStyle:addItem(ZeD.tr("UI_ZeD_Settings_ActionBarSimple"), false)
+ZeD.Settings.beltStyleOption = beltStyle
+
 -- ----- THE KEYS OF THE OPTION NAMES -----
 -- ModOptions keeps each name as the text the option was made with, which is read once, here at
 -- file load, so the test language could never stretch it. Each option also keeps the key of its
@@ -527,7 +535,7 @@ do
         screenWindows = "UI_ZeD_Settings_ScreenWindows", screenBelt = "UI_ZeD_Settings_ScreenBelt",
         screenWatch = "UI_ZeD_Settings_ScreenWatch", screenDashboard = "UI_ZeD_Settings_ScreenDashboard",
         screenMoodles = "UI_ZeD_Settings_ScreenMoodles", screenWheels = "UI_ZeD_Settings_ScreenWheels",
-        screenCharInfo = "UI_ZeD_Settings_ScreenCharInfo",
+        screenCharInfo = "UI_ZeD_Settings_ScreenCharInfo", beltStyle = "UI_ZeD_Settings_Belt",
     }
     for id, key in pairs(nameKeys) do
         local o = opts.dict and opts.dict[id]

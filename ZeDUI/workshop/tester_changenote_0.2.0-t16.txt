@@ -21,3 +21,6 @@ Mods
 
 Windows
 - The World window comes back where you left it after a Save and Quit made while a wide card held it against the screen's edge (it reopened a few pixels to the left).
+
+Belt
+- A Simple belt (ZeD setup, HUD, Belt): the same hands and slots with no leather strap or buckle, for a plainer screen. Full stays the default.
