@@ -227,3 +227,19 @@ Subscribed in the Steam client (the director: "run and update the mod compatibil
 | 3826624859 | Farm Panel Plus (B42) | round 4c |
 
 Not subscribed: Silent Hill 2 OG Main Menu Background (3804255753: installed by hand, a .bik file copied into the game folder) and Knox Companion (3826373926: links the save to an outside web map, online). Mod Load Order Sorter Extension (3809995878, on disk since Oct 29) has a ZombieBuddy sub-mod (ModLoadOrderSorterExtensionZB): only its Lua base mod is tested.
+
+Round 5, the same night (new trending Build 42 mods on ZeD's screens; no Java or ZombieBuddy item):
+
+| Id | Name | Why |
+|---|---|---|
+| 3830018449 | Better Context Menu Icons | round 5 |
+| 3830422267 | Immersive Moodles | round 5 |
+| 3828627678 | Paravel's Enhanced Inventory | round 5 (needs Paravel's UI) |
+| 3828626636 | Paravel's UI | round 5: required by the mod above |
+| 3828137227 | Light Belt [B42 MP] | round 5 |
+| 3829406098 | Bag Check (B42) | round 5 (its Ground Bag add-on needs ZombieBuddy: not tested) |
+| 3827791363 | Hands-On Interactions | round 5 (its Viewpoint edition needs ZombieBuddy: not tested) |
+| 3815818643 | Cheat Menu 2.0 - Rax's Reborn | round 5 |
+| 3829619974 | Immersive Sleep | round 5 |
+
+Not subscribed (ZombieBuddy): Tarkov Style (3830796987), PZ Custom Intros (3830292718), Check Yourself (3829214172).
