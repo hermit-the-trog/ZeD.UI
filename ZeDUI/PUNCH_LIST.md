@@ -1276,6 +1276,25 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     stands in for the bat. The small page draws no holes, by design. The punch list's expected lines above read as the
     first pass wrote them; QA's scripts (pvc, nbp) carry the second.
 
+    - **QA, Nov 1 2026, late (zedqa_preview_card.lua at 4K on 4593e3d, then on the Deck at 1e947e2; qa/regression/
+      2026-11-01_t16_cards_4k.md, _800.md; shots in Screenshots/t16_cards_4k, _800): FAIL, the card's data path throws.**
+      What passes at both: Build tab, the big metal pole fence picked by name; the header's icon is a stop (build:icon)
+      with the focus; A opens the preview as the half card over the drawer (Deck: 893,20 165x278, drawer 360), the list
+      behind; the focus goes into the card; the game's own words from the Tooltip; the verb Build, folded with its
+      need ("a higher skill"); B closes it with the focus back on the icon; A opens it again; picking another recipe
+      closes it; the craft tab the same with the spiked bat (craft:icon, A opens). tww unchanged at both.
+      **The fault:** every refresh of the card throws, 20 times a run: java.lang.NullPointerException "Cannot invoke
+      CraftRecipeComponentScript.getParent() because craftRecipeComponentScript is null" at
+      BuildLogic.getSelectedBuildObject(BuildLogic.java:82), from ObjectCards.lua:55 call <- ObjectCardPreview.lua:60
+      buildData <- :199 refresh (plus 3x "getScript of non-table", 2x "getName of non-table", 1x "tried to call nil in
+      pcall"). So the card has no strength line at all ("Strength nil"), the metal fence shows one face and no Facing
+      row, the double gate (DoubleFenceGate, 'Double Tall Metal Pole Gate') shows 1 tile on 1 square, and the craft
+      card for the spiked bat has 0 facts in What you get and nothing in What changes; "or one of N others" reads 0.
+      Same at 4K on the first pass and on the Deck on the second (1e947e2), so the second pass did not reach it: the
+      BuildLogic the card makes has no recipe component set when getSelectedBuildObject runs. Wording: the skill reads
+      "Skill Welding 3" (the perk's getName), not "Metalworking"; the test now accepts the game's name. The QA script
+      reads the strength against the game's formula (base + bonus x the sandbox multiplier + skill x skill base) and
+      prints the parts. Re-run (both sizes, about 10 min each) when the fix is on main.
 50. **Notebook paper: the lines were not ruled like paper (the director, Nov 1 2026, with four pictures of the real
     sheet).** fixed (build, Nov 1), QA to confirm. The Notebooks page (the small page in the Journal's Notebooks
     sub-tab) and the full page in the reader drew their blue rules only to the right of the red margin, from the
@@ -1286,6 +1305,14 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     rule), nothing red runs across, the binder holes stay. QA: the Notebooks sub-tab's small page with and without
     writing, and Open full, at 4K and on the Deck.
 
+    - **QA, Nov 1 2026, late: confirmed by the pictures (zedqa_notebook_paper.lua at 4K and the Deck; shots
+      zqa_nbp_small_blank / _written, zqa_nbp_full_blank / _written in Screenshots/t16_cards_4k, _800).** The full page on
+      the Deck: the blue rules run edge to edge through the red margin, 16 rules at a 17 px pitch, the first rule 53 px
+      below the page's top with the title and "Page 1 of 10" in that band, the red margin the page's full height about
+      0.137 of the width in (a seventh is 0.143), no red line across, three holes at the left; the small page the same
+      without holes (by design). The two quick-note lines sit on the rules. The script's own measure (a wrapped drawRect /
+      drawText for a few ticks) saw none of the paper's draws, so its four "the paper was drawn" lines are the test, not
+      the paper: the paper is drawn by another call; QA fixes the measure next time.
 ## Test process
 
 - The release check (before every upload, about 5 minutes, pass or fail): right-click opens the
