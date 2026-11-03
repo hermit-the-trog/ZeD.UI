@@ -1933,6 +1933,19 @@ item says so.
       button table under it, drawn in the player's chosen button pictures.
     - **Check (QA, 4K):** the wheel opens it; B closes it and focus returns; every role on the page matches the
       gamepad spec; no "coming later" text is left anywhere in ZeD.
+    **QA, Nov 2 2026: confirmed (zedqa_cmap.lua through cmap_run.ps1; 32 / 32 at 4K, 32 / 32 at the Deck Large,
+    37 / 37 at 720 Large).** The wheel's entry runs the map (no "Coming later."). With Xbox, PlayStation, Deck,
+    Nintendo and Off: the full card wide (840 at 4K, 414 at the small sizes), centred, 12 rows, each set's own button
+    pictures in the table, Off's names in faint boxes. B, A, Escape and a real click on the close box each close it,
+    and no controller focus is left on it. At 4K and at the Deck Large the body fits with no scroll; at 720 Large it
+    runs 30 px past: it opens at the top, D-pad Down scrolls to the end and Up back, the wheel scrolls it, the footer
+    offers "D-pad: Scroll". Notes sent to build: the window was see-through (build makes it solid); the pad art is
+    the same Xbox-lettered pad in every set (by design; the director's call).
+    **The director, Nov 2 2026, evening: the bumpers lengthened.** From the director's sketch: LB and RB run out
+    along the pad's shoulders until their outer ends follow the curve of the body; the triggers sit above them.
+    Drawn by QA (ZeDUI/tools/icons/bumpers_long.py: each new column a copy of the bumper's own, lowered onto the
+    shoulder; a light edge at LB's end, a shaded edge and outline at RB's) into controller_map.png; before and after
+    in qa/Nov2_beta/pl67_bumpers_before_after.png.
 68. **Hair and beard with the eight-mod set (the director, Nov 2: the beta can ship with it as a known issue; keep
     working on it).** Item 54 continues. If it is unsolved at staging, it goes on item 57's Known issues.
 69. **Oct 30's band calls and the radio faces (the director, Nov 2).**

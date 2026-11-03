@@ -1,0 +1,4 @@
+# punch list 67 (Nov 2 2026): the controller map on a short screen with Large text (720: its body scrolls); run with cmap_run.ps1 -Deck or -Short
+zedqa_prelude.lua | pre | timeout=120
+zedqa_textlarge.lua | txl | timeout=60
+zedqa_cmap.lua | cmap | timeout=300

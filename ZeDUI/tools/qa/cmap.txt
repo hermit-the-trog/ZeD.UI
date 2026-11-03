@@ -1,0 +1,3 @@
+# punch list 67 (Nov 2 2026): the controller map, each picture set and every way to shut it; run with cmap_run.ps1
+zedqa_prelude.lua | pre | timeout=120
+zedqa_cmap.lua | cmap | timeout=300
