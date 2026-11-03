@@ -1787,10 +1787,23 @@ item says so.
       A saved 0.5 draws at 0.75 and reads "0.5x (0.75x here)", as a capped step does. The saved position is kept,
       because combos save by position.
     - **Check (QA, 4K):** no 0.5 step can be picked by mouse or pad; a saved 0.5 draws 0.75 and reads as said.
+    **QA, Nov 2 2026, at 4K (zedqa_beta_ig.lua in game, zedqa_menu_beta.lua at the main menu): confirmed but one
+    readout.** ZeD setup's slider: Left presses reach Auto; A on Auto steps to 0.75x; Left from 0.75x goes back to Auto
+    past 0.5x; Right from Auto lands on 0.75x. The 0.5x step stays in the list (saves keep their place). In game the
+    scale wheel reads Auto, 0.75x, 1x, 1.25x, 1.5x, 1.75x, 2x (no 0.5x); with 0.5 saved it draws at 0.75 and the wheel
+    shows 0.5x dimmed, "Not offered in this build: it draws at 0.75x.", no pick. **The readout:** at the main menu a
+    saved 0.5 reads "0.5x (1x here)", not "0.5x (0.75x here)" (shot mbt_scale_05_saved): scaleReadout prints the main
+    menu's own root (1 there), while the game draws it at 0.75. For build: say 0.75x for a retired step, or the game's
+    scale.
 59. **Every dimmed row loses its hover highlight (the director, Nov 2: "Yes").** chosen. Item 20's rule now covers
     the game's own greyed-out settings too: the ones that do nothing while ZeD runs.
     - **Check (QA, 4K, real mouse):** a greyed game setting and the dimmed Restock row light up for neither the
       mouse nor the pad; the help line still says why.
+    **QA, Nov 2 2026: confirmed at 4K for the game's do-nothing settings (zedqa_menu_beta.lua).** The pointer held over
+    "Cycle Container Key" (Controls, a game setting that does nothing with ZeD) gives it no hover wash (MM.rowLook's hot
+    argument false for that row) and it is not a controller stop; a live row on the same page under the pointer does
+    take the wash (the check sees one). Picture mbt_dim_moot_hover for the help line. Not covered yet: the Restock row
+    with Loadouts off and a greyed Sandbox option.
 60. **Simple versions of every immersive surface (the director, Nov 2: "the beta release is gonna have our vision
     and then a more simplified vision").** chosen.
     - The machines' simple cards from item 17 are in the beta: radios, TVs, walkie-talkies, ham sets, ovens,
@@ -1850,6 +1863,9 @@ item says so.
 65. **ZeD's version in About (the director, Nov 2: "Yes").** chosen. The desk's About adds a ZeD-GUI row beside the
     game's build, read from ZeD's own mod.info.
     - **Check (QA, 4K):** About reads ZeD-GUI with the staged version and Game with the game's build.
+    **QA, Nov 2 2026: confirmed at 4K (zedqa_menu_beta.lua, main menu, ZeD only).** The ZeD menu's About lists
+    "ZeD-GUI 0.1.1242300k" above "Game Build 42.22.0" (shot mbt_about); MM.zedVersion equals mod.info's modversion. The
+    staged copy's stamped version is checked at the next staging.
 66. **Bug reports in two presses (the director, Nov 2).** chosen.
     - Error capture exists: Messages files each mod's errors (12 kept per mod) and has "Copy for a bug report" per
       source.
@@ -1868,6 +1884,16 @@ item says so.
     **fixed (build, Nov 2 2026):** a separator entry opens the next error; its head and stack wait and go in front of
     that error's exception. QA to re-check with two errors in a row. (The "at game start" tag on both cards is by
     design: it marks anything in the first real minute after the game loads.)
+    **QA, Nov 2 2026, at 4K (zedqa_beta_ig.lua, 31 / 32): confirmed but one fault.** No errors: Bug report counts 0,
+    says so, and copies the header plus "No errors were caught this session.". Two errors: the summary card's button is
+    "Copy all for a bug report"; the error cards read "1 of 2 kept" then "2 of 2 kept", newest first, each with its own
+    Copy; every copy starts "ZeD-GUI 0.1.1242300k | Project Zomboid 42.22.0 ...", "Mods on (1):", a mod a line; Copy
+    all holds both; the wheel's Bug report counts 2 and says "2 errors are copied, with ZeD-GUI's version and your mod
+    list. Paste them into a thread on ZeD-GUI's Workshop page, or send them to Hermit." (shot zqa_big_bugreport_two);
+    the ZeD wheel has Bug report (bullhorn) right after Messages. **The fault:** the older error's Copy also carries the
+    newer error's head (its separator lines and "attempted index: qaBetaErrorTwo of non-table: null"): M.readErrors adds
+    every entry without "Exception" to the last error, and the game writes the next error's head before its exception
+    entry. The newest card's copy is clean. Asked: both cards' heads read "at game start" for errors a minute into play.
 67. **The controller map (the director, Nov 2: "has to have it").** chosen. The quick wheel's "Controller map"
     entry ("Coming later.") opens a page showing what each button does in ZeD.
     - Build brings its layout to the director first, and it covers both pad glyph sets.
@@ -1909,6 +1935,9 @@ item says so.
     - Hair and beard: clicking a picked row should un-pick it, but it stays picked (ZeD_HairBeard.lua near line
       1656, `x and nil or y`). Found by build, Nov 2.
     - The ZeD style menu's hover flicker (item 7), cause unchecked.
+    **QA, Nov 2 2026, Hair and beard's un-pick: confirmed at 4K (zedqa_beta_ig.lua).** A click picks a row, a second
+    click on it un-picks it (sel nil), a third picks it again. At 4K the Hair and beard rows sit below the ID card in
+    the Character window's opening size, so the click went through HB.onClick on a stand-in row zone.
 72. **The t16 test gaps (beta definition, point 4).** QA.
     - The game's own inventory opened by its key with the Safe mode windows switch on; the dashboard, the quick
       wheels and the game's character info by their keys.

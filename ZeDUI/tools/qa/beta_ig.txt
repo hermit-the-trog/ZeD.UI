@@ -1,0 +1,3 @@
+# beta builds 8e12102 and 8dece63 (Nov 2 2026): 58 wheel, 71, 66 in game at 4K
+zedqa_prelude.lua | pre | timeout=120
+zedqa_beta_ig.lua | big | timeout=300 | expect=qaBetaError
