@@ -1,0 +1,6 @@
+# punch list 60 (Nov 2 2026): the plain appliance, machine-plate and laundry cards (Devices on Simple), pictures and errors
+zedqa_prelude.lua | pre | timeout=120
+zedqa_devices_form.lua | dvf | timeout=30
+zedqa_appliances.lua | ap | timeout=900
+zedqa_plates_336.lua | p336 | timeout=600
+zedqa_laundry.lua | ldy | timeout=900

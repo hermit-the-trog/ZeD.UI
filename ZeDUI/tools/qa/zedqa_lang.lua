@@ -48,7 +48,7 @@ step(10, function()
     if not check(readKeys() and #keys > 500, "ZeD's English keys read (" .. #keys .. ")") then return end
     local raw, same, sameList = 0, 0, {}
     for _, k in ipairs(keys) do
-        local s = getTextOrNull(k)
+        local s = getTextOrNull(k, "%1", "%2", "%3", "%4")   -- (42.22: a word with a placeholder asked without its arguments logs an exception)
         if s == nil then raw = raw + 1
         else
             local en = ZeD.trEnglish and ZeD.trEnglish(k) or nil

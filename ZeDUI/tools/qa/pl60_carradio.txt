@@ -1,0 +1,5 @@
+# punch list 60 (Nov 2 2026): the car radio up close, Devices on Simple
+zedqa_prelude.lua | pre | timeout=120
+zedqa_devices_form.lua | dvf | timeout=30
+zedqa_car_radio_build.lua | rb | timeout=600
+zedqa_car_radio_cd.lua | cd | timeout=600

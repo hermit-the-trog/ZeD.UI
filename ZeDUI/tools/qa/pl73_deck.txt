@@ -1,0 +1,7 @@
+# punch list 73 (Nov 2 2026): the Deck-only fixes at the Deck with Large text: every tab and card (28 boxes, 29 Equip names,
+# 35 Skills grid, 36 ID card and Maps), the controller stops while the drawer fills the window (38)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_textlarge.lua | txl | timeout=60
+zedqa_two_widths.lua | tww | timeout=900
+zedqa_picks_large.lua | pkl | timeout=30
+zedqa_picks_recheck.lua | prc | timeout=300
