@@ -1,0 +1,3 @@
+# ZeDUI/tools/qa/ctx_letters.txt  (Nov 3 2026): the context menu letters for an option with no icon (Build 5f2f68a8)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_ctx_letters.lua | ctl | timeout=120
