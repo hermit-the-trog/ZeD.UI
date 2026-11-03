@@ -90,7 +90,8 @@ local function _designFor(scriptName)
 end
 D._designFor = _designFor   -- exposed for QA probes
 
-local function _brandName(vehicle, scriptName)
+-- the car's name as the game writes it ("Chevalier Nyala"; the simple dash's heading), and in capitals for the badges
+local function _carName(vehicle, scriptName)
     local key = nil
     pcall(function() local sc = vehicle:getScript(); key = sc:getCarModelName() or sc:getName() end)
     local name = nil
@@ -100,8 +101,9 @@ local function _brandName(vehicle, scriptName)
         if not name and key:find("Burnt") then name = getTextOrNull("IGUI_VehicleName" .. (key:gsub("Burnt", ""))) end
     end
     local s = name and tostring(name) or tostring(scriptName or ""):gsub("^Base%.", ""):gsub("(%l)(%u)", "%1 %2")
-    return ZeD.upper(s)
+    return s
 end
+local function _brandName(vehicle, scriptName) return ZeD.upper(_carName(vehicle, scriptName)) end
 
 -- The game names a car "<livery> <maker> <model>": "Fossoil Chevalier D6", "Knox Distillery Franklin Valuline",
 -- "Wrecked Dash Rancher", "Muldraugh Police Chevalier Nyala". The maker is one of these five (each names its mark on the
@@ -169,7 +171,7 @@ local function _badges(design, vehicle, scriptName, ownFamily)
     local sub = design.sub or ""
     local tag = (sub ~= "" and not model:find(sub, 1, true)) and sub or ""
     return { full = make .. " " .. model, make = make, model = model, sub = sub, tag = tag, unit = unit, livery = livery, name = name,
-             brand = _brandOf(design, make) }
+             brand = _brandOf(design, make), plainName = _carName(vehicle, scriptName) }
 end
 D._badges = _badges   -- exposed for QA probes (a modded car's name on a game car: the plaque)
 
@@ -715,19 +717,33 @@ function ZeD_Dashboard:_control(id, x, y, w, h, st, enabled)
         local focused = self._focEl and self._focEl.id == "dash:" .. id
         if focused then self:_focusCue(id, x, y, w, h)
         elseif self._over and ZeD.Atoms.mouseIn(self, hr.x, hr.y, hr.w, hr.h) then self:_hoverCue(id, x, y, w, h) end
-        -- X offers the secondary verb only when it can happen: "Remove key" needs a key in the lock
-        local secondary = SECONDARY[id]
-        if id == "ignition" and not st.keysIn then secondary = nil end
-        self._elements[#self._elements + 1] = {
-            x = hr.x, y = hr.y, w = hr.w, h = hr.h, id = "dash:" .. id,
-            promptA = self._pad and ZeD.tr(_promptKey(id, st)) or nil,
-            promptX = (self._pad and secondary) and ZeD.tr(secondary) or nil,
-            promptB = self._pad and ZeD.tr("UI_ZeD_Dash_PromptDrive") or nil,
-            onActivate = function(win, el) win:_fire(id, false) end,
-            onContextMenu = function(win, el) if secondary then win:_fire(id, true) end end,
-            onCancel = function(win, el) win:_release(); win:_unregister() end,
-        }
+        self:_element(id, hr, st)
     end
+end
+
+-- the control's focus element for the pad (hr: its rect in panel pixels); the plate and the simple strip both
+-- come here, so A, X and B do the same on either
+function ZeD_Dashboard:_element(id, hr, st)
+    -- X offers the secondary verb only when it can happen: "Remove key" needs a key in the lock
+    local secondary = SECONDARY[id]
+    if id == "ignition" and not st.keysIn then secondary = nil end
+    self._elements[#self._elements + 1] = {
+        x = hr.x, y = hr.y, w = hr.w, h = hr.h, id = "dash:" .. id,
+        promptA = self._pad and ZeD.tr(_promptKey(id, st)) or nil,
+        promptX = (self._pad and secondary) and ZeD.tr(secondary) or nil,
+        promptB = self._pad and ZeD.tr("UI_ZeD_Dash_PromptDrive") or nil,
+        onActivate = function(win, el) win:_fire(id, false) end,
+        onContextMenu = function(win, el) if secondary then win:_fire(id, true) end end,
+        onCancel = function(win, el) win:_release(); win:_unregister() end,
+    }
+end
+
+-- a control of the simple strip, already drawn: its click area (screen pixels in the panel) and its focus element
+function ZeD_Dashboard:_plainControl(id, x, y, w, h, st, enabled)
+    if not self._driver then return end
+    local hr = { id = id, x = x, y = y, w = w, h = h, enabled = enabled ~= false }
+    self._hit[#self._hit + 1] = hr
+    if hr.enabled then self:_element(id, hr, st) end
 end
 
 -- ---------------------------------------------------------------------------
@@ -989,6 +1005,537 @@ function ZeD_Dashboard:_ctx(des, pending)
 end
 
 -- ---------------------------------------------------------------------------
+-- THE SIMPLE DASH (the director, Nov 2 2026, punch list 60; ZeDUI/SIMPLE_VERSIONS_PROPOSAL.md): a plain strip in
+-- ZeD's own parts where the pixel dash sits, showing what this car's dash shows and reaching what it reaches. ZeD
+-- setup's "Dashboard" row picks it (ZeD.Settings.dashSimple); a change takes effect the next frame, mid-drive too.
+--   heading   the car's name (Passenger at the right for a passenger)
+--   readouts  speed and RPM in large type over their bars; fuel, temperature, oil and volts as bars; gear,
+--             odometer, clock and the climate; in the taxi the fare and the extras
+--   lamps     the warning lamps this car's dash has, as status dots with their names
+--   controls  rows of plain buttons: the car and the climate (each in the plate's left-to-right order), then the
+--             fitted radio (its face's order) with its display as words before them
+-- Every button carries the plate's own control id (ZeD_Dashboard:_plainControl -> _element), so a click, the right
+-- button, the wheel on the radio's knobs and the controller go through _fire to ACT exactly as on the plate; the
+-- lamps' hover cards are the plate's (D.lampText).
+-- ---------------------------------------------------------------------------
+function D.simple() return ZeD.Settings and ZeD.Settings.dashSimple and ZeD.Settings.dashSimple() or false end
+
+ZeD.trDefaults({
+    UI_ZeD_DashPlain_Pair = "%1: %2", UI_ZeD_DashPlain_Speed = "Speed", UI_ZeD_DashPlain_Mph = "mph", UI_ZeD_DashPlain_Rpm = "RPM",
+    UI_ZeD_DashPlain_Fuel = "Fuel", UI_ZeD_DashPlain_Oil = "Oil", UI_ZeD_DashPlain_Volts = "Volts", UI_ZeD_DashPlain_Gear = "Gear",
+    UI_ZeD_DashPlain_Odometer = "Odometer", UI_ZeD_DashPlain_Miles = "%1 mi", UI_ZeD_DashPlain_Clock = "Clock",
+    UI_ZeD_DashPlain_AM = "AM", UI_ZeD_DashPlain_PM = "PM", UI_ZeD_DashPlain_Climate = "Climate", UI_ZeD_DashPlain_Heat = "Heat",
+    UI_ZeD_DashPlain_FanN = "Fan %1", UI_ZeD_DashPlain_Fare = "Fare", UI_ZeD_DashPlain_Extras = "Extras", UI_ZeD_DashPlain_Dollars = "$%1",
+    UI_ZeD_DashPlain_Lamps = "Lamps", UI_ZeD_DashPlain_Brake = "Brake", UI_ZeD_DashPlain_Belt = "Belt", UI_ZeD_DashPlain_Hot = "Hot",
+    UI_ZeD_DashPlain_Shift = "Shift", UI_ZeD_DashPlain_TurnL = "Left turn", UI_ZeD_DashPlain_TurnR = "Right turn",
+    UI_ZeD_DashPlain_FourWD = "4WD", UI_ZeD_DashPlain_RowCar = "Car", UI_ZeD_DashPlain_Ignition = "Ignition",
+    UI_ZeD_DashPlain_Hotwired = "Hotwired", UI_ZeD_DashPlain_KeyOut = "Key out", UI_ZeD_DashPlain_TrunkLock = "Trunk lock",
+    UI_ZeD_DashPlain_Cruise = "Cruise", UI_ZeD_DashPlain_Meter = "Meter", UI_ZeD_DashPlain_AshTray = "Ash tray",
+    UI_ZeD_DashPlain_SetTemp = "Temp", UI_ZeD_DashPlain_Fan = "Fan", UI_ZeD_DashPlain_Tune = "Tune", UI_ZeD_DashPlain_Power = "Power",
+    UI_ZeD_DashPlain_Signal = "Signal", UI_ZeD_DashPlain_Disc = "Disc in", UI_ZeD_DashPlain_Lights = "Lights",
+})
+
+local PLAIN_W, PLAIN_PAD, PLAIN_GAP, PLAIN_BIG_W, PLAIN_ROW_W, PLAIN_BIG_SEGS = 800, 8, 6, 120, 64, 12
+-- a control for a part the car does not have (no trunk bed, heater, lightbar or tray) leaves the strip; one waiting on
+-- the engine (cruise) stays, greyed, as on the plate
+local PLAIN_STATIC = { hasTrunk = true, hasHeater = true, hasLightbar = true, vanTray = true }
+local CLIMATE_IDS = { temp = true, tempup = true, tempdn = true, heat = true, fan = true, fanup = true, fandn = true,
+                      ac = true, def = true, off = true, mode = true }
+-- the warning lamps in the strip's order, their names and their colours (theme tokens: never the plate's own colours)
+local LAMP_ORDER = { "genLamp", "engLamp", "oilLamp", "brakeLamp", "beltLamp", "fuelLamp", "tempLamp", "shiftLamp",
+                     "hiBeam", "turnL", "turnR", "fourWD" }
+local LAMP_WORD = { genLamp = "Tooltip_Dashboard_Battery", engLamp = "IGUI_VehiclePartEngine", oilLamp = "UI_ZeD_DashPlain_Oil",
+    brakeLamp = "UI_ZeD_DashPlain_Brake", beltLamp = "UI_ZeD_DashPlain_Belt", fuelLamp = "UI_ZeD_DashPlain_Fuel",
+    tempLamp = "UI_ZeD_DashPlain_Hot", shiftLamp = "UI_ZeD_DashPlain_Shift", hiBeam = "Tooltip_Dashboard_Headlights",
+    turnL = "UI_ZeD_DashPlain_TurnL", turnR = "UI_ZeD_DashPlain_TurnR", fourWD = "UI_ZeD_DashPlain_FourWD" }
+local LAMP_TOKEN = { genLamp = "danger", oilLamp = "danger", brakeLamp = "danger", beltLamp = "danger", tempLamp = "danger",
+    shiftLamp = "danger", engLamp = "warning", fuelLamp = "warning", fourWD = "warning", hiBeam = "info",
+    turnL = "positive", turnR = "positive" }
+-- the lamps with a hover card (the plate's LAMP_ZONE ids)
+local PLAIN_LAMP_ZONE = { genLamp = "batt", engLamp = "eng", hiBeam = "head" }
+local SIREN_WORD = { [0] = "IGUI_VehicleLightbar_STANDBY", "IGUI_VehicleLightbar_YELP", "IGUI_VehicleLightbar_WAIL", "IGUI_VehicleLightbar_ALARM" }
+D.SIREN_WORD = SIREN_WORD
+
+-- a plate control's enabled state this frame (the plate and the strip ask the same)
+local function _hitEnabled(hz, st)
+    local en = true
+    if hz.needs then en = st[hz.needs] and true or false end
+    if hz.id == "ignition" then en = st.hasKey or st.keysIn or st.hotwired or st.running end
+    if hz.id == "meter" then en = st.power end
+    return en and true or false
+end
+
+-- per design, worked out once: its controls split into the car's and the climate's (each left to right, as the
+-- controller's cone-nav reads the plate), its warning lamps, its gauges' full scale and whether it has the fare meter
+local function _plainPlan(des)
+    local pl = des._plainPlan
+    if pl then return pl end
+    pl = { car = {}, climate = {}, lamps = {}, speedMax = 120, rpmMax = 7000 }
+    local seen, list = {}, {}
+    for _, hz in ipairs(des.hits or {}) do
+        if not seen[hz.id] then seen[hz.id] = true; list[#list + 1] = hz end
+    end
+    table.sort(list, function(a, b)
+        local ax, bx = a.x + a.w / 2, b.x + b.w / 2
+        if ax ~= bx then return ax < bx end
+        return a.y < b.y
+    end)
+    for _, hz in ipairs(list) do
+        local row = CLIMATE_IDS[hz.id] and pl.climate or pl.car
+        row[#row + 1] = hz
+    end
+    pl.meter = seen.meter == true
+    local has, sp, rp = {}, false, false
+    for _, p in ipairs(des.parts or {}) do
+        if p.t == "lamp" and p.src then has[p.src] = true end
+        if (p.t == "needle" or p.t == "ribbon") and p.max then
+            if p.src == "speed_mph" and not sp then pl.speedMax, sp = p.max, true
+            elseif p.src == "rpm" and not rp then pl.rpmMax, rp = p.max, true end
+        end
+    end
+    for _, src in ipairs(LAMP_ORDER) do if has[src] then pl.lamps[#pl.lamps + 1] = src end end
+    des._plainPlan = pl
+    return pl
+end
+D._plainPlan = _plainPlan   -- (QA probes)
+
+local function _pair(a, b) return ZeD.tr("UI_ZeD_DashPlain_Pair", a, b) end
+
+-- the heater's set temperature as the plate's climate readout prints it (21 C at the knob's middle), in the
+-- player's unit
+local function _heatTemp(st)
+    local t = 21 + (st.heaterTemp or 0) * 0.28
+    local c = true
+    pcall(function() c = getCore():getOptionTemperatureDisplayCelsius() end)
+    if c == false then return tostring(math.floor(t * 9 / 5 + 32 + 0.5)) .. string.char(176) .. "F" end
+    return tostring(math.floor(t + 0.5)) .. string.char(176) .. "C"
+end
+
+-- the key in the lock, as the plate draws it (its OFF - ON - START steps, ZeD_Dashboard:_keyPos)
+local function _ignitionWord(st)
+    if st.keysIn and not st.hotwired then
+        if st.keyPos == "start" then return ZeD.tr("UI_ZeD_Dash_PromptStart") end
+        if st.keyPos == "on" then return ZeD.tr("UI_On") end
+        return ZeD.tr("UI_Off")
+    end
+    if st.hotwired then return ZeD.tr("UI_ZeD_DashPlain_Hotwired") end
+    if st.running then return ZeD.tr("UI_On") end
+    return ZeD.tr(st.hasKey and "UI_ZeD_DashPlain_KeyOut" or "UI_ZeD_Dash_PromptNoKey")
+end
+
+-- a button's words and whether it shows on (the primary look): a switch names itself, a setting adds its value
+local LABEL_KEY = { lights = "Tooltip_Dashboard_Headlights", lock = "Tooltip_Dashboard_LockedDoors", trunk = "UI_ZeD_DashPlain_TrunkLock",
+    cruise = "UI_ZeD_DashPlain_Cruise", meter = "UI_ZeD_DashPlain_Meter", ash = "UI_ZeD_DashPlain_AshTray", ac = "UI_ZeD_Dash_PromptAc" }
+local ON_FROM = { lights = "lights", lock = "anyLocked", trunk = "trunkLocked", cruise = "cruise", meter = "meterOn", ash = "ashIsOpen", ac = "ac" }
+local function _radioLabel(id, r)
+    if id == "vol" then return _pair(ZeD.tr("IGUI_RadioVolume"), _pct((r.volume or 0) * 100)), r.on end
+    if id == "tune" then return _pair(ZeD.tr("UI_ZeD_DashPlain_Tune"), RO.freqText(r.channel, r.ham)), false end
+    if id == "pwr" then return ZeD.tr("UI_ZeD_DashPlain_Power"), r.switchOn end
+    if id == "mic" then return ZeD.tr("IGUI_RadioMicrophone"), not r.micMuted end
+    if id == "scan" then return ZeD.tr("UI_ZeD_Dash_PromptScan"), r.scanning end
+    if id == "mute" then return ZeD.tr("UI_ZeD_Dash_PromptMute"), r.muted end
+    if id == "play" then return ZeD.tr("UI_ZeD_Dash_PromptPlayStop"), r.playing end
+    if id:sub(1, 6) == "preset" then
+        local i = tonumber(id:sub(7)) or 0
+        local p = r.presets and r.presets[i]
+        return _pair(tostring(i), p and RO.freqText(p.freq, r.ham) or "--"), r.presetIdx == i
+    end
+    return nil
+end
+local function _plainLabel(id, st)
+    if id == "ignition" then return _pair(ZeD.tr("UI_ZeD_DashPlain_Ignition"), _ignitionWord(st)), st.running end
+    if ON_FROM[id] then return ZeD.tr(LABEL_KEY[id]), st[ON_FROM[id]] and true or false end
+    if id == "lbar" then
+        local m = st.lightbarMode or 0
+        return _pair(ZeD.tr("ContextMenu_VehicleLightbar"), m == 0 and ZeD.tr("UI_Off") or tostring(m)), m > 0
+    end
+    if id == "siren" then
+        local m = st.sirenMode or 0
+        return _pair(ZeD.tr("UI_ZeD_Dash_PromptSiren"), ZeD.textCase(ZeD.tr(SIREN_WORD[m] or SIREN_WORD[0]))), m > 0
+    end
+    if id == "heat" then return ZeD.tr("Tooltip_Dashboard_Heater"), st.heaterOn and not st.ac end
+    if id == "def" then return ZeD.tr("UI_ZeD_Dash_PromptDefrost"), st.heaterOn and (st.heaterTemp or 0) >= 25 end
+    if id == "off" then return ZeD.tr("UI_ZeD_Dash_PromptClimateOff"), not st.heaterOn end
+    if id == "temp" then return _pair(ZeD.tr("UI_ZeD_DashPlain_SetTemp"), _heatTemp(st)), false end
+    if id == "fan" then return _pair(ZeD.tr("UI_ZeD_DashPlain_Fan"), tostring(st.fan or 0)), (st.fan or 0) > 0 end
+    if st.radio then
+        local t, on = _radioLabel(id, st.radio)
+        if t then return t, on and true or false end
+    end
+    return ZeD.tr(_promptKey(id, st)), false
+end
+
+-- the radio's display in words (what its glass shows: the band and frequency or the disc's time, the station or
+-- the disc, then its marks)
+local function _radioLine(r)
+    if not r.on then return ZeD.tr("UI_Off") end
+    local parts = {}
+    if r.playing then
+        local s = math.floor((r.cdMs or 0) / 1000)
+        local m = math.floor(s / 60)
+        parts[1] = string.format("CD %d:%02d", m, s - m * 60)
+        parts[2] = r.mediaTitle or ZeD.textCase(RO.word("disc"))
+    elseif r.ham then
+        parts[1] = "CH" .. (r.presetIdx and string.format("%02d", r.presetIdx) or "--") .. " " .. RO.freqText(r.channel, true) .. " MHz"
+        local p = r.presetIdx and r.presets and r.presets[r.presetIdx]
+        local nm = r.name or (p and p.name ~= "" and p.name) or nil
+        if nm then parts[2] = nm end
+    else
+        parts[1] = "FM " .. RO.freqText(r.channel, false) .. " MHz"
+        if r.name then parts[#parts + 1] = r.name end
+    end
+    if r.flash then parts[#parts + 1] = ZeD.textCase(r.flash)
+    elseif r.scanning then parts[#parts + 1] = ZeD.textCase(RO.word("scan")) end
+    if r.muted then parts[#parts + 1] = ZeD.textCase(RO.word("mute")) end
+    if r.ham and r.micMuted then parts[#parts + 1] = ZeD.textCase(RO.word("micOff")) end
+    if not r.ham and not r.playing then
+        if r.presetIdx and r.presetIdx <= 6 then parts[#parts + 1] = "P" .. r.presetIdx end
+        if r.signal then parts[#parts + 1] = ZeD.tr("UI_ZeD_DashPlain_Signal") end
+        if r.hasMedia then parts[#parts + 1] = ZeD.tr("UI_ZeD_DashPlain_Disc") end
+    end
+    return table.concat(parts, " | ")
+end
+
+local function _clockText(st)
+    local h, m = st.hour or 0, st.minute or 0
+    local ok, v24 = pcall(function() return getCore():getOptionClock24Hour() end)
+    if ok and v24 == false then
+        local pm = h >= 12
+        h = h - math.floor(h / 12) * 12
+        if h == 0 then h = 12 end
+        return string.format("%d:%02d", h, m) .. " " .. ZeD.tr(pm and "UI_ZeD_DashPlain_PM" or "UI_ZeD_DashPlain_AM")
+    end
+    return string.format("%02d:%02d", h, m)
+end
+
+local function _climateText(st)
+    if not (st.power and st.heaterOn) then return ZeD.tr("UI_Off") end
+    return _heatTemp(st) .. " | " .. ZeD.tr(st.ac and "UI_ZeD_Dash_PromptAc" or "UI_ZeD_DashPlain_Heat")
+        .. " | " .. ZeD.tr("UI_ZeD_DashPlain_FanN", tostring(st.fan or 0))
+end
+
+-- the readings beside the two big ones, in columns of three: { label, value (or nil), bar share (or nil), bar colour }
+local function _cell(out, n, label, value, bar, col)
+    n = n + 1
+    local c = out[n]
+    if not c then c = {}; out[n] = c end
+    c.label, c.value, c.bar, c.col = label, value, bar, col
+    return n
+end
+local function _plainCells(st, pl, out)
+    local T = ZeD.T
+    local n = 0
+    n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Fuel"), st.power and _pct((st.fuel or 0) * 100) or "--", st.fuel or 0, st.fuelLamp and T.danger or T.accent)
+    n = _cell(out, n, ZeD.tr("IGUI_Temperature"), nil, st.temp or 0, st.tempLamp and T.danger or T.accent)
+    n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Oil"), nil, st.oil or 0, T.accent)
+    n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Volts"), nil, st.volts or 0, T.accent)
+    local g = tostring(st.gear or "")
+    local gear = st.gearSel or ""
+    if gear == "D" and st.running and g:match("^%d$") then gear = gear .. " " .. g end
+    n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Gear"), gear)
+    n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Odometer"), ZeD.tr("UI_ZeD_DashPlain_Miles", tostring(st.odo or 0)))
+    n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Clock"), _clockText(st))
+    if st.hasHeater then n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Climate"), _climateText(st)) end
+    if pl.meter then
+        local live = st.power and st.meterOn
+        n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Fare"), live and ZeD.tr("UI_ZeD_DashPlain_Dollars", string.format("%.2f", st.fare or 0)) or "--")
+        n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Extras"), live and ZeD.tr("UI_ZeD_DashPlain_Dollars", string.format("%.2f", st.fareExtra or 0)) or "--")
+    end
+    return n
+end
+
+-- the buttons of a row (the plate's controls, the car's missing parts left out)
+local function _plainItems(list, st, out)
+    for _, hz in ipairs(list) do
+        if not (hz.needs and PLAIN_STATIC[hz.needs] and not st[hz.needs]) then
+            local text, on = _plainLabel(hz.id, st)
+            out[#out + 1] = { id = hz.id, text = text, on = on, en = _hitEnabled(hz, st) }
+        end
+    end
+    return out
+end
+
+-- the radio's row: its display in words, then its face's controls (the plate's head unit ids)
+local function _radioItems(st)
+    local r = st.radio
+    local H = r and DP.heads and DP.heads[r.kind]
+    if not H then return nil end
+    local out = { { text = _radioLine(r) } }
+    local seen = {}
+    for _, hp in ipairs(H.parts) do
+        local id = nil
+        if hp.t == "display" then id = "radio" elseif hp.t == "knob" or hp.t == "button" then id = hp.id end
+        if id and not seen[id] then
+            seen[id] = true
+            local text, on = _plainLabel(id, st)
+            out[#out + 1] = { id = id, text = text, on = on, en = true }
+        end
+    end
+    return out
+end
+
+-- lays items ({ w }) out left to right from x0, a new line where the next would pass xMax; the height taken
+local function _flow(items, x0, xMax, y, h, gap)
+    local x, lines = x0, 1
+    for i = 1, #items do
+        local it = items[i]
+        if x > x0 and x + it.w > xMax then x = x0; y = y + h + gap; lines = lines + 1 end
+        it.x, it.y = x, y
+        x = x + it.w + gap
+    end
+    return lines * h + (lines - 1) * gap
+end
+
+-- a big reading: its name, the figure in large type with its unit, its bar under it
+function ZeD_Dashboard:_plainBig(x, y, w, label, value, unit, share, col, big)
+    local T = ZeD.T
+    local px, tm = T.px, ZeD.TM
+    local tc, td = T.text, T.textDim
+    self:drawText(label, x, y, td.r, td.g, td.b, td.a or 1, T.fontF1)
+    local y2 = y + big.fh1 + px(2)
+    local vw
+    if big.hf then vw = ZeD.Text.draw(self, big.hf, value, x, y2, big.z, tc.r, tc.g, tc.b, tc.a or 1, "l")
+    else
+        self:drawText(value, x, y2, tc.r, tc.g, tc.b, tc.a or 1, T.fontF4)
+        vw = tm:MeasureStringX(T.fontF4, value)
+    end
+    if unit and unit ~= "" then self:drawText(unit, x + vw + px(4), y2 + big.h - big.fh1, td.r, td.g, td.b, td.a or 1, T.fontF1) end
+    local s = math.max(0, math.min(1, share or 0))
+    ZeD.Atoms.drawSegFill(self, x, y2 + big.h + px(3), w, big.barH, PLAIN_BIG_SEGS, math.floor(s * PLAIN_BIG_SEGS + 0.5), col)
+end
+
+-- the readouts block: the two big readings, then the cells in columns of rows
+function ZeD_Dashboard:_plainReadouts(st, pl, cells, n, y, W, big, rows, cellH)
+    local T = ZeD.T
+    local px, tm = T.px, ZeD.TM
+    local pad, gap = px(PLAIN_PAD), px(PLAIN_GAP)
+    local bigW = px(PLAIN_BIG_W)
+    local mph = math.floor((st.speed_mph or 0) + 0.5)
+    self:_plainBig(pad, y, bigW, ZeD.tr("UI_ZeD_DashPlain_Speed"), tostring(mph), ZeD.tr("UI_ZeD_DashPlain_Mph"),
+        (st.speed_mph or 0) / pl.speedMax, T.accent, big)
+    local rpm = math.floor((st.rpm or 0) / 50 + 0.5) * 50
+    self:_plainBig(pad + bigW + gap * 2, y, bigW, ZeD.tr("UI_ZeD_DashPlain_Rpm"), tostring(rpm), nil,
+        (st.rpm or 0) / pl.rpmMax, st.shiftLamp and T.danger or T.accent, big)
+    local ax = pad + 2 * bigW + gap * 4
+    local cols = math.max(1, math.ceil(n / rows))
+    local cw = math.floor((W - pad - ax - (cols - 1) * gap * 2) / cols)
+    local f1, f2 = T.fontF1, T.fontF2
+    local fh1, fh2 = tm:getFontHeight(f1), tm:getFontHeight(f2)
+    local fbH = T.fillBarH or px(8)
+    local tc, td = T.text, T.textDim
+    for c = 0, cols - 1 do
+        -- each column's names share one width (the longest of them)
+        local lw = 0
+        for r = 1, rows do
+            local cell = (c * rows + r <= n) and cells[c * rows + r]
+            if cell then lw = math.max(lw, tm:MeasureStringX(f1, cell.label)) end
+        end
+        lw = lw + px(6)
+        local cx = ax + c * (cw + gap * 2)
+        for r = 1, rows do
+            local i = c * rows + r
+            local cell = (i <= n) and cells[i]
+            if cell then
+                local cy = y + (r - 1) * cellH
+                self:drawText(cell.label, cx, cy + math.floor((fh2 - fh1) / 2), td.r, td.g, td.b, td.a or 1, f1)
+                local vx = cx + lw
+                if cell.bar then
+                    local vw = cell.value and math.max(px(32), tm:MeasureStringX(f2, cell.value)) or 0
+                    local bw = cx + cw - vx - (cell.value and (vw + px(4)) or 0)
+                    if bw > px(8) then ZeD.Atoms.drawFillBar(self, vx, cy + math.floor((fh2 - fbH) / 2), bw, cell.bar, false, cell.col, fbH) end
+                    if cell.value then
+                        self:drawText(cell.value, cx + cw - tm:MeasureStringX(f2, cell.value), cy, tc.r, tc.g, tc.b, tc.a or 1, f2)
+                    end
+                elseif cell.value then
+                    self:drawText(cell.value, vx, cy, tc.r, tc.g, tc.b, tc.a or 1, f2)
+                end
+            end
+        end
+    end
+end
+
+-- a row's name in the left column
+function ZeD_Dashboard:_plainRowName(text, y, h)
+    local T = ZeD.T
+    local td = T.textDim
+    local fh1 = ZeD.TM:getFontHeight(T.fontF1)
+    self:drawText(text, T.px(PLAIN_PAD), y + math.floor((h - fh1) / 2), td.r, td.g, td.b, td.a or 1, T.fontF1)
+end
+
+-- a row's buttons (and the radio's words), drawn, each registered under its plate id
+local _btnOpts = {}
+function ZeD_Dashboard:_plainButtons(items, st, mx, my, over, zones)
+    local T = ZeD.T
+    local bh = T.buttonH
+    local tc = T.text
+    local fh2 = ZeD.TM:getFontHeight(T.fontF2)
+    for _, it in ipairs(items) do
+        if it.id then
+            local en = it.en and self._driver
+            local hov = (en and over and mx >= it.x and mx < it.x + it.w and my >= it.y and my < it.y + bh) and true or false
+            local o = _btnOpts
+            o.hover, o.disabled = hov, not en
+            o.focus = (en and self._focEl and self._focEl.id == "dash:" .. it.id) and self._markOpts or nil
+            ZeD.Molecules.drawButton(self, it.x, it.y, it.w, bh, it.text, it.on and "primary" or "default", hov and isMouseButtonDown(0), nil, o)
+            self:_plainControl(it.id, it.x, it.y, it.w, bh, st, it.en)
+            -- the heater's hover card sits on its button (the plate's: the heater button, else the temperature control)
+            if (it.id == "heat" or (it.id == "temp" and not zones.heat)) and st.hasHeater then
+                zones.heat = { id = "heat", x = it.x, y = it.y, w = it.w, h = bh }
+            end
+        else
+            self:drawText(it.text, it.x, it.y + math.floor((bh - fh2) / 2), tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
+        end
+    end
+end
+
+-- the lamps: a status dot each (its colour lit, a hollow square dark) and its name
+function ZeD_Dashboard:_plainLamps(items, st, zones)
+    local T = ZeD.T
+    local px = T.px
+    local ds = px(7)
+    local fh2 = ZeD.TM:getFontHeight(T.fontF2)
+    local tc = T.text
+    for _, it in ipairs(items) do
+        local v = st[it.src]
+        local col = nil
+        if type(v) == "string" then col = (v == D.LAMP_COLOR.worn) and T.warning or T.danger
+        elseif v then col = T[LAMP_TOKEN[it.src] or "danger"] end
+        local dy = it.y + math.floor((fh2 - ds) / 2)
+        if col then ZeD.Atoms.drawStatusDot(self, it.x, dy, col, ds)
+        else ZeD.Atoms.drawStatusHollow(self, it.x, dy, T.textDim, ds) end
+        self:drawText(it.text, it.x + ds + px(4), it.y, tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
+        local zid = PLAIN_LAMP_ZONE[it.src]
+        if zid then zones[#zones + 1] = { id = zid, x = it.x, y = it.y, w = it.w, h = fh2 } end
+    end
+end
+
+-- the lamp (or the heater's button) under the pointer: the plate's detail card
+function ZeD_Dashboard:_plainLampHover(st, zones, mx, my)
+    self._lampHov = nil
+    if not st.lampsOn or not self:isMouseOver() then return end
+    if zones.heat then zones[#zones + 1] = zones.heat end
+    for _, z in ipairs(zones) do
+        if mx >= z.x and mx < z.x + z.w and my >= z.y and my < z.y + z.h then
+            local name, lines = D.lampText(z.id, st)
+            if name then
+                self._lampHov = z.id
+                ZeD.Atoms.requestDetailCard(self, "lamp:" .. z.id, { title = name, lines = lines, maxW = 220 }, self)
+            end
+            return
+        end
+    end
+end
+
+-- the strip: lay out, size and place, then draw (k: the plate's multiple, kept for the props up close)
+local _plainCellBuf = {}
+function ZeD_Dashboard:_plain(des, st, k)
+    local T = ZeD.T
+    local px, tm = T.px, ZeD.TM
+    local f1, f2 = T.fontF1, T.fontF2
+    local fh1, fh2 = tm:getFontHeight(f1), tm:getFontHeight(f2)
+    local pad, gap, bh = px(PLAIN_PAD), px(PLAIN_GAP), T.buttonH
+    local pl = _plainPlan(des)
+    local pn = self.playerNum
+    local W = math.min(px(PLAIN_W), getPlayerScreenWidth(pn))
+    local rowX, rowMax = pad + px(PLAIN_ROW_W), W - pad
+    -- the big figures: the distance-field heading face (the simple watch's), else F4
+    local big = self._plainBigM or {}
+    self._plainBigM = big
+    big.hf = ZeD.Font and ZeD.Font.sdf and ZeD.Font.sdf.head
+    big.z = big.hf and (24 * (T.scale or 1) / (big.hf.face or 64)) or nil
+    if not big.z then big.hf = nil end
+    big.h = big.hf and math.floor(ZeD.Text.height(big.hf, big.z)) or tm:getFontHeight(T.fontF4)
+    big.fh1, big.barH = fh1, px(8)
+    local blockH = fh1 + px(2) + big.h + px(3) + big.barH
+    local n = _plainCells(st, pl, _plainCellBuf)
+    local rows = math.max(1, math.ceil(n / 3))
+    local cellH = math.max(fh2, T.fillBarH or px(8)) + px(3)
+    local readH = math.max(blockH, rows * cellH - px(3))
+
+    -- the rows below the readouts, laid out first: their wrapping sets the strip's height
+    local y = pad + fh1 + gap + readH + gap
+    local lamps = {}
+    for _, src in ipairs(pl.lamps) do
+        local text = ZeD.tr(LAMP_WORD[src])
+        lamps[#lamps + 1] = { src = src, text = text, w = px(7) + px(4) + tm:MeasureStringX(f2, text) + px(8) }
+    end
+    local lampY = y
+    if #lamps > 0 then y = y + _flow(lamps, rowX, rowMax, y, fh2, px(4)) + gap end
+    local sections = {}
+    local car = _plainItems(pl.car, st, {})
+    if #car > 0 then sections[#sections + 1] = { name = ZeD.tr("UI_ZeD_DashPlain_RowCar"), items = car } end
+    local clim = _plainItems(pl.climate, st, {})
+    if #clim > 0 then sections[#sections + 1] = { name = ZeD.tr("UI_ZeD_DashPlain_Climate"), items = clim } end
+    local radio = _radioItems(st)
+    if radio then sections[#sections + 1] = { name = ZeD.tr("Tooltip_Dashboard_Radio"), items = radio } end
+    for _, sec in ipairs(sections) do
+        for _, it in ipairs(sec.items) do
+            if it.id then it.w = ZeD.Molecules.buttonW(it.text)
+            else it.w = math.min(rowMax - rowX, tm:MeasureStringX(f2, it.text) + px(8)) end
+        end
+        sec.y = y
+        sec.h = _flow(sec.items, rowX, rowMax, y, bh, px(4))
+        y = y + sec.h + gap
+    end
+    local stripH = (self._pad and self._driver) and ZeD.PadGlyphs.stripH() or 0
+    local bodyH = y - gap + pad
+    local H = bodyH + stripH
+
+    -- the place: the pixel dash's, centred on the bottom edge of the player's screen
+    local x0 = getPlayerScreenLeft(pn) + math.floor((getPlayerScreenWidth(pn) - W) / 2)
+    local y0 = getPlayerScreenTop(pn) + getPlayerScreenHeight(pn) - H
+    if self:getWidth() ~= W then self:setWidth(W) end
+    if self:getHeight() ~= H then self:setHeight(H) end
+    if self:getX() ~= x0 then self:setX(x0) end
+    if self:getY() ~= y0 then self:setY(y0) end
+    -- the radio and the siren controller up close line up on the strip's right end (plate pixels, as the console)
+    local cr = self._plainConsole or {}
+    self._plainConsole = cr
+    cr.x, cr.y, cr.w, cr.h = 0, 0, W / k, H / k
+    self._consoleRect = cr
+
+    -- the box and its heading
+    ZeD.Surface.fill(self, 0, 0, W, bodyH, "surf2")
+    local b = T.borderS
+    self:drawRectBorder(0, 0, W, bodyH, b.a or 1, b.r, b.g, b.b)
+    local th, td = T.textHead or T.text, T.textDim
+    local name = (self._badge and self._badge.plainName) or ""
+    self:drawText(name, pad, pad, th.r, th.g, th.b, th.a or 1, f1)
+    if not self._driver then
+        local pass = ZeD.textCase(ZeD.tr("UI_ZeD_Dash_Passenger"))
+        self:drawText(pass, W - pad - tm:MeasureStringX(f1, pass), pad, td.r, td.g, td.b, td.a or 1, f1)
+    end
+    self:_plainReadouts(st, pl, _plainCellBuf, n, pad + fh1 + gap, W, big, rows, cellH)
+
+    local mx, my = self:getMouseX(), self:getMouseY()
+    self._over = self:isMouseOver()
+    local zones = {}
+    if #lamps > 0 then
+        self:_plainRowName(ZeD.tr("UI_ZeD_DashPlain_Lamps"), lampY, fh2)
+        self:_plainLamps(lamps, st, zones)
+    end
+    for _, sec in ipairs(sections) do
+        self:_plainRowName(sec.name, sec.y, bh)
+        self:_plainButtons(sec.items, st, mx, my, self._over, zones)
+    end
+    self:_plainLampHover(st, zones, mx, my)
+
+    -- the controller's prompts while it has the dash (the help line's strip, as on the props up close)
+    if stripH > 0 then
+        local prompts
+        local fe = self._focEl
+        if fe then
+            prompts = { { glyph = "A", label = fe.promptA or ZeD.tr("UI_ZeD_Dash_PromptPress") } }
+            if fe.promptX then prompts[#prompts + 1] = { glyph = "X", label = fe.promptX } end
+            prompts[#prompts + 1] = { glyph = "B", label = ZeD.tr("UI_ZeD_Dash_PromptDrive") }
+        else
+            prompts = { ZeD.tr("UI_ZeD_Dash_HintWheel") }
+        end
+        ZeD.PadGlyphs.drawStrip(self, 0, bodyH, W, prompts)
+    end
+end
+
+-- ---------------------------------------------------------------------------
 -- prerender: the plate, the live parts, the hits and focus elements
 -- ---------------------------------------------------------------------------
 function ZeD_Dashboard:prerender()
@@ -1009,7 +1556,11 @@ function ZeD_Dashboard:prerender()
     local vd = getPlayerVehicleDashboard and getPlayerVehicleDashboard(self.playerNum)
     if vd and vd.isVisible and vd:isVisible() then pcall(vd.setVisible, vd, false) end
 
-    local w, h, k = self:_layout()
+    -- (the simple strip sizes and places itself, ZeD_Dashboard:_plain; _s stays the plate's multiple, which the radio
+    -- and the siren controller up close are drawn at)
+    local plain = D.simple()
+    local k
+    if plain then k = P.k(self:_scale()) else local _, _, kk = self:_layout(); k = kk end
     self._s = k
     local now = getTimestampMs()
     local dt = self._lastMs and math.max(0, math.min(250, now - self._lastMs)) or 0
@@ -1055,6 +1606,12 @@ function ZeD_Dashboard:prerender()
     if self._reg and Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() ~= self then self:_unregister() end
     self._hit = {}; self._elements = {}
     self._consoleRect = des.console   -- the radio and siren props up close line up on the console (plate pixels; _s = k)
+    if plain then
+        local okP, eP = pcall(self._plain, self, des, st, k)
+        if not okP then ZeD.logOnce("dash plain", eP) end
+        self:_ring(Focus)
+        return
+    end
     _nightLight(self, vehicle, chr, st, des, dt)
 
     local cv = P.canvas(self, 0, 0, k)
@@ -1065,11 +1622,7 @@ function ZeD_Dashboard:prerender()
     -- controls last, so a focus cue sits over the art
     self._over = self:isMouseOver()
     for _, hz in ipairs(des.hits) do
-        local en = true
-        if hz.needs then en = st[hz.needs] and true or false end
-        if hz.id == "ignition" then en = st.hasKey or st.keysIn or st.hotwired or st.running end
-        if hz.id == "meter" then en = st.power end
-        self:_control(hz.id, hz.x, hz.y, hz.w, hz.h, st, en)
+        self:_control(hz.id, hz.x, hz.y, hz.w, hz.h, st, _hitEnabled(hz, st))
     end
     for _, c in ipairs(pending) do self:_control(c[1], c[2], c[3], c[4], c[5], st, c[6]) end
     -- the top edge's two words: cream with a dark shadow, or a plain dark ink where the design's top edge is light
@@ -1112,6 +1665,12 @@ function ZeD_Dashboard:prerender()
         end
     end
     self:_lampHover(des, st, k)
+    self:_ring(Focus)
+end
+
+-- this frame's controls to the focus ring, the focused one kept by its id (the plate and the simple strip share the
+-- ids, so the controller stays on the same control when the form changes mid-drive)
+function ZeD_Dashboard:_ring(Focus)
     if Focus and Focus.setRingZoneElements then
         local zone = self._focusRing[1]
         local oldEl = zone.elements[zone.focusedElementIdx or 1]
