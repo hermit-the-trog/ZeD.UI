@@ -1753,7 +1753,10 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
   and race in t15pre_800L; a timing slip in the test, not the dash). Short 720 and Deck passes 4 / 5 each, the one
   warning the same wpt line (2026-11-02_t16_720_short.md, _800_short.md). Staged with stage_workshop.ps1 into
   Workshop/ZeD-UI (item 3824968485, QABridge and TestInventory left out). The staged Contents folder shadows the dev
-  mod: remove it after the upload. Not uploaded.
+  mod: remove it after the upload. Not uploaded. Restaged by the build session with -Version 0.2.0-t16 (the mod list
+  read 0.1.1242300k before), and the description's version line now says "shown in Mods" only: the desk's About
+  row shows the game's build, not ZeD's. Every upload: stage with -Version 0.2.0-tN, and write that build's
+  tester_description into Workshop/ZeD-UI/workshop.txt (staging keeps the old one).
 - The release check (before every upload, about 5 minutes, pass or fail): right-click opens the
   menu, both windows open, an item moves, the controller works, the watch reads the time. Not
   built yet.
