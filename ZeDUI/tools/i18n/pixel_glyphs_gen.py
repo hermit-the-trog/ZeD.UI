@@ -335,10 +335,13 @@ def compose35t(faces, base, mark):
     if mark in MB35:
         key = "commaT" if (mark == "comma" and base == "T") else mark
         return ["0" * w] * TALL_UP + full + [MB35[key][:w].ljust(w, "0")]
-    if mark == "breve":
-        # a two-row cup, one row higher than the other marks (QA: the one-row "101" read as an umlaut, RO "MÄR")
-        cup = {3: ["101", "111"], 4: ["1001", "0110"]}[w]   # (a U, not a V: "101" over "010" reads as a caron)
-        return cup + ["0" * w] + full
+    if mark == "breve" or (mark == "tilde" and w == 4):
+        # two-row marks, one row higher than the others (QA: the one-row breve "101" read as an umlaut, RO
+        # "MÄR"): the breve a U (a V would read as a caron); the tilde a wave where there is room for one
+        # (Ñ). Three wide, a wave reads as an acute (Ã as Á, another Portuguese letter), so Ã and Õ keep
+        # the one-row bar, which QA read as close to a macron but right in context.
+        two = {"breve": {3: ["101", "111"], 4: ["1001", "0110"]}, "tilde": {4: ["0101", "1010"]}}[mark][w]
+        return two + ["0" * w] + full
     return [M35[w][mark], "0" * w] + full
 
 
