@@ -1874,6 +1874,12 @@ item says so.
     adds Fare, Extras and Meter; the police car Lightbar and Siren. The police car and the Primani did not start in
     this run (the strip read Ignition: Start); the clicks, the meter, the siren card, the pad, a passenger and safe
     mode are still to be checked.
+    **QA, Nov 2 2026: the plain appliance, machine-plate and laundry cards (Devices on Simple; zedqa_appliances 22 / 22,
+    zedqa_plates_336 and zedqa_laundry run on Simple, 2026-11-02_pl60_devices2_4k.md).** The plain oven card: the
+    temperature and timer readouts, the number keys, Bake, Timer, Broil; the plain washer: its cycle (Wash), power,
+    "On the water pipes", Inside with Open; no game errors in the run. The face-only checks (face size, zoom, the
+    water meter's art) fail there by design. Item 76: seated in a pickup, every World strip button (both seats, the
+    glove box, the ground) has the game's own picture; none needed the box (2026-11-02_pl76_strips_4k.md).
 61. **The Vehicle tab on small screens (the director, Nov 2: undecided, must be decided before the beta).** open.
     - Beside the car figure, Type, Distance and Key show only their labels at small sizes.
     - **QA first:** one small-screen screenshot of the Vehicle tab with the hood open (1280x720 or the Deck,
@@ -1907,6 +1913,13 @@ item says so.
     24 languages, the plain post asking players to check them, and the corrections thread. Unsure choices the drafts
     flagged (for a checker): Loadouts / Outfits / Restock / Unpack have no game word in any of the three; TR "Etüt" for
     Survey, PTBR "Kits" / "Trajes", CN 配装 / 穿搭.
+    **QA, Nov 2 2026: TR, CN and PTBR in game at 4K (lang_run.ps1; 2026-11-02_pl62_lang_TR.md, _CN.md, _PTBR.md; 5 / 5
+    each).** The game in each language: the list names it a ZeD machine draft (Türkçe and the others); every ZeD key
+    has text (0 with none, 4255 to 4256 keys); the windows, Health, Skills, the belt and the watch draw in the
+    language (Turkish İ, ı, Ş, Ç in the windows; the watch's weekday "ÇA" in its LCD letters). These runs started just
+    before f37b8b01 (the 141 newest phrases), so 71 to 78 newest keys still read English here; the full pass reruns
+    all three on the frozen code. Note: the hand circles' Turkish labels are cut short ("İkincil Do.", "Birincil
+    Dona."). Offline: every %1..%4 placeholder matches English in all three.
 63. **Ente's Auto Sorter (the director, Nov 2).** chosen. A note in the Compatibility thread: its button bar sits over
     ZeD's belt, so drag its bar aside. It is not popular enough to special-case. QA adds the line at the next thread
     edit.
