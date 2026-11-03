@@ -699,7 +699,9 @@ end
 local function clock12(h, m)
     local h12 = h % 12
     if h12 == 0 then h12 = 12 end
-    return string.format("%d:%02d %s", h12, m, ZeD.tr(h >= 12 and "UI_ZeD_MainMenu_PM" or "UI_ZeD_MainMenu_AM"))
+    -- (the order is the language's: Korean, Japanese and Chinese put AM / PM first)
+    return ZeD.tr("UI_ZeD_MainMenu_Clock12", h12, string.format("%02d", m),
+        ZeD.tr(h >= 12 and "UI_ZeD_MainMenu_PM" or "UI_ZeD_MainMenu_AM"))
 end
 
 -- getLastPlayedDate's text -> "Oct 14 2026, 7:52 PM" (unknown shapes pass through)

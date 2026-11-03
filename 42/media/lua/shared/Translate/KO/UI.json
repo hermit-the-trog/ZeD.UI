@@ -1412,6 +1412,7 @@
     "UI_ZeD_MainMenu_AboutSub": "안전한 ZNIX 커늘 -- 전원 뽑지마",
     "UI_ZeD_MainMenu_AboutUptime": "가동 시간",
     "UI_ZeD_MainMenu_AM": "오전",
+    "UI_ZeD_MainMenu_Clock12": "%3 %1:%2",
     "UI_ZeD_MainMenu_AndMore": "외 %1개",
     "UI_ZeD_MainMenu_AskQuitGame": "Project Zomboid를 종료하시겠습니까?",
     "UI_ZeD_MainMenu_BuildVersion": "빌드 %1",

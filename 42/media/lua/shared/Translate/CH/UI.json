@@ -1412,6 +1412,7 @@
     "UI_ZeD_MainMenu_AboutSub": "安全的 ZNIX 內和 -- 別拔電源",
     "UI_ZeD_MainMenu_AboutUptime": "運作時間",
     "UI_ZeD_MainMenu_AM": "上午",
+    "UI_ZeD_MainMenu_Clock12": "%3%1:%2",
     "UI_ZeD_MainMenu_AndMore": "還有 %1 項",
     "UI_ZeD_MainMenu_AskQuitGame": "退出 Project Zomboid？",
     "UI_ZeD_MainMenu_BuildVersion": "Build %1",

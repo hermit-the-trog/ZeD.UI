@@ -1412,6 +1412,7 @@
     "UI_ZeD_MainMenu_AboutSub": "secure ZNIX kernal -- DO NOT UNPLUG",
     "UI_ZeD_MainMenu_AboutUptime": "Uptime",
     "UI_ZeD_MainMenu_AM": "AM",
+    "UI_ZeD_MainMenu_Clock12": "%1:%2 %3",
     "UI_ZeD_MainMenu_AndMore": "and %1 more",
     "UI_ZeD_MainMenu_AskQuitGame": "Quit Project Zomboid?",
     "UI_ZeD_MainMenu_BuildVersion": "Build %1",
