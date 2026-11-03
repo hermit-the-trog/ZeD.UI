@@ -17,7 +17,12 @@ Run the commands below from `Zomboid/mods/ZeD-UI`.
    Check the summary: about 3,000 files and 37.3 MB (0.2.0-t6: 2,998 files, Oct 26 2026; the fonts carry extended Latin, Greek and Cyrillic since Oct 20 2026), the version, the preview passing, and the Workshop item id once there is one.
    
    Never delete `Zomboid/Workshop/ZeD-UI/workshop.txt`. After the first upload it holds the item's id. Without it, the next Upload creates a second item.
-6. **The preview picture** is the ZNIX USER cover (Oct 21 2026), in place as `ZeDUI/tools/release/preview.png`. For the test item it carries the red TEST BUILD band (Oct 28 2026: `pixel_znix.py --test` writes `znix_256_test.png`); the release item gets the plain cover (`pixel_znix.py` without the flag writes `znix_256.png`). To change it, edit and run `py -I ZeDUI/workshop/thumbnail/pixel_znix.py` (with `--test` for the test item), copy the result over `ZeDUI/tools/release/preview.png`, then stage again. Don't run `make_preview.py`: it draws the old desk-crop picture and would overwrite the cover.
+6. **The preview picture** is the 1993 thumbnail (director, Nov 3 2026: "The year is 1993, and so is the user
+   interface. All of it.", BETA on caution tape), in place as `ZeDUI/tools/release/preview.png` (512 x 512). Stage
+   without `-Preview` so that is the one that goes up. Its sources are in `ZeDUI/workshop/thumbnail/` (src_1993_*.py,
+   year_1993_*.png); when the beta ends, drop the tape (the last block of card() in src_1993_year2.py) and re-export.
+   Don't run `make_preview.py` (the old desk picture) or `pixel_znix.py` (the old ZNIX USER cover): either would
+   overwrite it. The animated version goes on after the Upload (step 16b).
 
 ## The upload
 
@@ -32,6 +37,16 @@ Run the commands below from `Zomboid/mods/ZeD-UI`.
 15. Open the item in Steam and check that it is still hidden and the size is about 35 MB. Don't subscribe on this computer: the copy in `Zomboid/mods` is already there, and two copies of the same mod clash.
 16. Remove `Zomboid/Workshop/ZeD-UI/Contents` after the upload and the check in step 15 (`workshop.txt` and `preview.png` stay). Then tag the staging commit (`git tag -a v<version> <commit> -m "Tester build <version>, uploaded <date>"`, `git push origin v<version>`) and refresh the backup: a new dated folder under `D:\ZeD-UI backup\` with `zed_backups`, the Workshop item folder and the QA save (standing rule, director, Oct 28 2026). Push main at the end of every session. The staged copy has the same mod id as the dev mod, and the game loads the Workshop folder first, so it would shadow the dev mod with a copy that has no QA bridge. Stage again right before the next upload.
 
+16b. **The animated thumbnail** (director, Nov 3 2026; punch list 81). The Upload put the still back as the
+    thumbnail; this sets the animated one (`ZeDUI/workshop/thumbnail/year_1993_animated.gif`, frame 1 is the still).
+    The director runs it, or build on his word, last thing, with nobody in the game: SteamCMD's login signs the
+    Steam client out on this PC.
+    - Once: install SteamCMD to `C:\steamcmd` and log in by hand (the script's header has the steps).
+    - `pwsh -File ZeDUI/tools/release/set_preview_gif.ps1 -SteamUser <account> -DryRun`, then without `-DryRun`. It
+      reads the item id from workshop.txt and sends the preview only (no files, no page text).
+    - The first time, on the unlisted test item (`-ItemId <id>`), checking its files and page text are untouched.
+    - Check the item page, the Workshop grid and the Steam app show it moving; sign the Steam client back in.
+
 17. **Pin a discussion** on the item page called "Bug reports" (Discussions > Start a new discussion, then Pin), and link it at the top of the description.
 18. **Add the gallery images.** The game uploads only preview.png. On the item page in Steam (the browser or the Steam client), choose Add/edit images & videos and add the JPGs from ZeDUI/workshop/shots/out in their numbered order (each is under 1 MB). Do this once per build that changes the screenshots.
 
@@ -40,10 +55,12 @@ Run the commands below from `Zomboid/mods/ZeD-UI`.
 The test item keeps its id; the full release will be a separate item, so nothing rated or posted on the test item reaches the release. Before the visibility changes, on the item page (owner controls, right side):
 
 1. **The item says it is a test.** The title reads `ZeD-GUI [TEST BUILD]`, the first paragraph says it is the test build and not the release (the full release comes as a separate item once the tests confirm it works well and meets the project's goals and quality standards), and the cover carries the red TEST BUILD band (the upload's preview.png, `pixel_znix.py --test`). An upload puts the title and description back from `workshop.txt`, so check them after the upload, not before.
-2. **Untick Allow Comments.** Steam's own note: it hides existing comments and the option to leave new ones. Discussions are separate and stay open, so every report has to go to the pinned Bug reports thread. Leave Allow Comments off for the life of the test item.
+2. **Leave Allow Comments on.** The director found (Nov 3 2026) that with comments off nobody can post in the
+   discussions either, so Bug reports, Suggestions and the rest go dead. The page says comments are fine too: he
+   reads them.
 3. **Bug reports is pinned** at the top of Discussions; Compatibility and Add-on makers sit beside it.
 4. **Change Visibility** to Public. Note the time: the door is meant to stay open about a day. Anyone who subscribes keeps access after it closes (unlisted only hides the item from search), and the item shows in Steam's recent lists while it is public.
-5. **Close the door:** Change Visibility back to Unlisted. The title, the paragraph, the band and the comments setting stay as they are; they are true of the test item for good.
+5. **Close the door:** Change Visibility back to Unlisted. The title, the paragraph and the band stay as they are; they are true of the test item for good. Comments stay on.
 
 ## What to send testers
 
