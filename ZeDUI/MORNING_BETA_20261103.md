@@ -10,7 +10,10 @@ report in the ZeD wheel; the machine translations for Turkish, Simplified Chines
 Life with its hometowns and poster stories; container pictures instead of letters; the redrawn washer, dryer and
 washer-dryer; desk v5 with the Kentucky Instruments pad; ZeD-GUI's version in About; 0.5x gone from UI scale.
 
-QA's full pre-release pass: **(filled in when it reports; see the last section)**.
+QA's full pre-release pass, on the frozen build: the five-minute release check passed all 16 checks, and the full
+4K run passed 97 of 99 scripts with no failures and no ZeD errors in the game's log. The two warnings are the same two
+as at t16, and both are faults in the tests, not in ZeD: one still expects the old quick use on a held A, and one
+times a car's key start a little differently each run. **(The rest of the pass: filled in when it reports.)**
 
 The gallery is ready: 63 pictures in `ZeDUI/workshop/gallery/upload/`, the cover, the title page and 61 chapters.
 
