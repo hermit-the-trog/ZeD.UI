@@ -1,0 +1,11 @@
+{
+    "Sandbox_ZeD": "ZeD-GUI",
+    "Sandbox_ZeD_TaxiFlagDrop": "出租车计价器：起步价",
+    "Sandbox_ZeD_TaxiFlagDrop_tooltip": "司机放下计价旗时，出租车计价器显示的美元数。",
+    "Sandbox_ZeD_TaxiPerFifthMile": "出租车计价器：每 1/5 英里",
+    "Sandbox_ZeD_TaxiPerFifthMile_tooltip": "计价旗放下后，每行驶五分之一英里，计价器增加的美元数。",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting": "出租车计价器：每分钟等候",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting_tooltip": "计价旗放下后，出租车每等候一分钟（时速低于 5 公里，发动机运转），计价器按真实时间增加的美元数。",
+    "Sandbox_ZeD_TaxiPerExtraPassenger": "出租车计价器：每名额外乘客",
+    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "在“附加费”下为第一名之后的每位乘客显示的美元数。司机不计。"
+}
