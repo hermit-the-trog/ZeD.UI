@@ -1032,6 +1032,8 @@ function ZeD.RadioTab.faceFor(entry)
     local pid, des = ZeD.TwoWay.plateFor(entry)
     if des then return ZeD.TwoWay, pid, des end
     if ZeD.RadioTab.useFaces == false then return nil, nil, nil end
+    -- ZeD setup's Devices row (Full or Simple, punch list 60): Simple draws the plain card
+    if ZeD.Settings and ZeD.Settings.devicesSimple and ZeD.Settings.devicesSimple() then return nil, nil, nil end
     pid, des = ZeD.Rtv.plateFor(entry)
     if des then return ZeD.Rtv, pid, des end
     return nil, nil, nil

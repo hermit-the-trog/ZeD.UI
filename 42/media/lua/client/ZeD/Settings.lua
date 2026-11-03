@@ -515,6 +515,21 @@ beltStyle:addItem(ZeD.tr("UI_ZeD_Settings_BeltFull"), true)   -- default
 beltStyle:addItem(ZeD.tr("UI_ZeD_Settings_ActionBarSimple"), false)
 ZeD.Settings.beltStyleOption = beltStyle
 
+-- ----- THE DEVICES' FORM (the director, Oct 30 2026, punch list 17; the rules approved Nov 2 2026, punch list 60 and
+-- ZeDUI/SIMPLE_VERSIONS_PROPOSAL.md) -----
+-- Full: each device drawn as its face (radios, TVs, two-way sets, ovens, microwaves, the fryer, the grill, generators,
+-- washers and dryers). Simple: the same controls and readings as a plain ZeD card. Full is the default; Vanilla Plus
+-- keeps Full, Vanilla Access picks Simple (the additions presets below).
+local devicesStyle = opts:addComboBox("devicesStyle", ZeD.tr("UI_ZeD_Settings_Devices"), ZeD.tr("UI_ZeD_Settings_DevicesTip"))
+devicesStyle:addItem(ZeD.tr("UI_ZeD_Settings_BeltFull"), true)   -- default
+devicesStyle:addItem(ZeD.tr("UI_ZeD_Settings_ActionBarSimple"), false)
+ZeD.Settings.devicesStyleOption = devicesStyle
+-- true while the devices are drawn as simple cards (read as they draw, so a change applies at once)
+function ZeD.Settings.devicesSimple()
+    local ok, v = pcall(devicesStyle.getValue, devicesStyle)
+    return ok and v == 2
+end
+
 -- ----- THE KEYS OF THE OPTION NAMES -----
 -- ModOptions keeps each name as the text the option was made with, which is read once, here at
 -- file load, so the test language could never stretch it. Each option also keeps the key of its
@@ -543,6 +558,7 @@ do
         screenWatch = "UI_ZeD_Settings_ScreenWatch", screenDashboard = "UI_ZeD_Settings_ScreenDashboard",
         screenMoodles = "UI_ZeD_Settings_ScreenMoodles", screenWheels = "UI_ZeD_Settings_ScreenWheels",
         screenCharInfo = "UI_ZeD_Settings_ScreenCharInfo", beltStyle = "UI_ZeD_Settings_Belt",
+        devicesStyle = "UI_ZeD_Settings_Devices",
     }
     for id, key in pairs(nameKeys) do
         local o = opts.dict and opts.dict[id]
@@ -575,7 +591,7 @@ local function setUpAdditions()
     local CUSTOM_FILE = "ZeD_custom_additions.txt"   -- (Zomboid/Lua: <option id>=<item>, a line each)
     -- every addition a preset sets, by option id (restock: 1 Hardcore, 2 Casual, 3 Accessible)
     local IDS = { "ammoBox", "readMarks", "readNext", "dimRead", "dashLamps", "moodleNotices",
-                  "messagesCatch", "messagesToast", "putBack", "sandboxInGame", "loadouts", "restock" }
+                  "messagesCatch", "messagesToast", "putBack", "sandboxInGame", "loadouts", "restock", "devicesStyle" }
     -- THE PRESETS, by the preset's item: the item each addition is set to. An id a preset leaves out is left as
     -- it is and does not count when the values are matched to a preset (Vanilla leaves Restock: it does nothing
     -- while Loadouts is off). When the "faces or simple cards" switch is built (punch list 17), its id goes in
@@ -586,10 +602,12 @@ local function setUpAdditions()
           messagesCatch = OFF, messagesToast = OFF, putBack = OFF, sandboxInGame = OFF, loadouts = OFF },
         -- 2 Vanilla Plus: every addition on, Restock Casual
         { ammoBox = ON, readMarks = ON, readNext = ON, dimRead = ON, dashLamps = ON, moodleNotices = ON,
-          messagesCatch = ON, messagesToast = ON, putBack = ON, sandboxInGame = ON, loadouts = ON, restock = 2 },
+          messagesCatch = ON, messagesToast = ON, putBack = ON, sandboxInGame = ON, loadouts = ON, restock = 2,
+          devicesStyle = 1 },
         -- 3 Vanilla Accessible: every addition on, Restock Accessible
         { ammoBox = ON, readMarks = ON, readNext = ON, dimRead = ON, dashLamps = ON, moodleNotices = ON,
-          messagesCatch = ON, messagesToast = ON, putBack = ON, sandboxInGame = ON, loadouts = ON, restock = 3 },
+          messagesCatch = ON, messagesToast = ON, putBack = ON, sandboxInGame = ON, loadouts = ON, restock = 3,
+          devicesStyle = 2 },
     }
     ZeD.Settings.ADDITION_IDS = IDS
     ZeD.Settings.ADDITION_PRESETS = PRESETS
