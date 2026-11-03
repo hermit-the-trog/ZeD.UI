@@ -183,7 +183,14 @@ ZeD.Settings.uiScaleOption = uiScale   -- QA bridge drives it like the options s
 function ZeD.Settings.scaleStepOff(c, i)
     if c == nil or not (c == uiScale or c == uiScale.element) then return false end
     local v = scaleKeys[tonumber(i) or 0]
-    return (ZeD.Scale and ZeD.Scale.stepTooBig and ZeD.Scale.stepTooBig(v)) or false
+    local Sc = ZeD.Scale
+    if Sc and Sc.stepRetired and Sc.stepRetired(v) then return true end   -- 0.5x, not offered in the beta (item 58)
+    return (Sc and Sc.stepTooBig and Sc.stepTooBig(v)) or false
+end
+-- true when item i is a retired step (0.5x): the controller's wheel leaves it out; the slider dims it
+function ZeD.Settings.scaleStepRetired(i)
+    local Sc = ZeD.Scale
+    return (Sc and Sc.stepRetired and Sc.stepRetired(scaleKeys[tonumber(i) or 0])) or false
 end
 -- The help line's words while some steps are off: "2x and up: too big for this screen." (nil when none are)
 function ZeD.Settings.scaleTooBigHelp()

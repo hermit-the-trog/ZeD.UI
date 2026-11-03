@@ -240,6 +240,18 @@ local function stepOff(c, i)
     return (S and S.scaleStepOff and S.scaleStepOff(c, i)) or false
 end
 
+-- the next step from i in direction dir that is not off (the retired 0.5x sits right after Auto, punch list 58),
+-- wrapping round when wrap is set; nil when none is
+local function nextOn(c, i, dir, wrap)
+    local n = #(c.options or {})
+    for _ = 1, n do
+        i = i + dir
+        if wrap then i = (i - 1) % n + 1 elseif i < 1 or i > n then return nil end
+        if not stepOff(c, i) then return i end
+    end
+    return nil
+end
+
 local function setCombo(c, i)
     if c.disabled or stepOff(c, i) then return end
     c.selected = i
@@ -1433,7 +1445,11 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
             local rowId = "r" .. i
             local fid = "orow:" .. idx
             local off = needsOff(r)
-            if not off then   -- (a row waiting on another switch is no stop for the controller)
+            -- a dimmed row (waiting on another switch, or a game setting that does nothing with ZeD active) is no stop
+            -- for the controller and takes no hover wash; its line underneath and the help line say why (the director,
+            -- Nov 2 2026, punch list 59: every dimmed row behaves the same)
+            local dimRow = off or (r.moot and true) or (self.rowDisabled and self:rowDisabled(r)) or false
+            if not (off or r.moot) then
                 self._specs[#self._specs + 1] = { id = fid, listRow = true, row = idx, col = 1, rowRef = r, ry = ry + self.scroll - vy, rh = rh,
                     fn = function() self:activateRow(r) end }
             end
@@ -1443,7 +1459,7 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
                 local isHov = mx >= x and mx < x + inner and my >= ry and my < ry + rh and my >= vy and my < vy + vh
                 if isHov then hovered = r end
                 -- the row's wash: T.hover under the pointer, the controller's mark on the focused row (under the words)
-                local onFocus = MM.rowLook(self, x + T.px(1), ry, inner, rh, false, isHov and not gp and not MM.ctx.open, isFoc)
+                local onFocus = MM.rowLook(self, x + T.px(1), ry, inner, rh, false, isHov and not gp and not MM.ctx.open and not dimRow, isFoc)
                 -- the changed dot, the label
                 local lx = x + T.px(12)
                 if self:isChanged(r) then
@@ -1666,9 +1682,8 @@ function ZeD_MMOptions:activateRow(r)
         -- ZeD setup's switches, swatches and slider: the next choice (an on/off flips)
         local n = #(c.options or {})
         if n > 0 and not c.disabled then
-            -- (UI scale on a small screen: past the last step that fits it wraps to Auto)
-            local nx = (c.selected or 1) % n + 1
-            if stepOff(c, nx) then nx = 1 end
+            -- (UI scale: off steps are skipped, so past the last step that fits it wraps to Auto)
+            local nx = nextOn(c, c.selected or 1, 1, true) or 1
             setCombo(c, nx); MM.clickSound()
         end
     elseif r.kind == "combo" then
@@ -1693,8 +1708,8 @@ function ZeD_MMOptions:nudge(r, dir)
     local c = r.control
     if r.kind == "combo" then
         local n = #(c.options or {})
-        local i = math.max(1, math.min(n, (c.selected or 1) + dir))
-        if i ~= c.selected and not stepOff(c, i) then setCombo(c, i); MM.hoverSound() end
+        local i = nextOn(c, c.selected or 1, dir, false)   -- (off steps skipped; stops at the ends)
+        if i and i ~= c.selected then setCombo(c, i); MM.hoverSound() end
         return true
     elseif r.kind == "volume" then
         local v = math.max(0, math.min(volumeMax(c), (c.volume or 0) + dir))
