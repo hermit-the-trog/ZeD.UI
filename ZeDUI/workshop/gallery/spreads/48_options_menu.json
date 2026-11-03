@@ -1,44 +1,222 @@
 {
  "id": "options_menu",
  "n": 48,
- "pages": [116, 117],
+ "pages": [
+  116,
+  117
+ ],
  "left": {
   "kind": "taped",
   "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
   "blocks": [
-   {"chapter": ["48", "Options"]},
-   {"p": "*Options* opens on *ZeD setup*, the first page in the list at the left of the window. The game's own pages follow it: *Display*, *Graphics*, *Audio*, *Controls*, *Gameplay*, *Interface*, *Accessibility* and *Mods*. *ZeD setup* begins with *Look*, shown in Figure 48-1."},
-   {"at": 674},
-   {"caption": ["Figure 48-1", "The Look section, at the top of ZeD setup."]},
-   {"p": "Below *Look* come the sections *Additions*, *Windows*, *HUD*, *Controls*, *Quick actions (controller)* and *Troubleshooting*. The buttons at the foot of the window are *Back*, *Reset to defaults*, *Discard changes* and *Apply*."},
-   {"note": "Each setting is explained in the band above the buttons, with its default."}
+   {
+    "chapter": [
+     "48",
+     "Options"
+    ]
+   },
+   {
+    "p": "*Options* opens on *ZeD setup*, the first page in the list at the left of the window. The game's own pages follow it: *Display*, *Graphics*, *Audio*, *Controls*, *Gameplay*, *Interface*, *Accessibility* and *Mods*. *ZeD setup* begins with *Look*, shown in Figure 48-1."
+   },
+   {
+    "at": 674
+   },
+   {
+    "caption": [
+     "Figure 48-1",
+     "The Look section, at the top of ZeD setup."
+    ]
+   },
+   {
+    "p": "Below *Look* come the sections *Full or simple*, *Additions*, *Windows*, *HUD*, *Controls*, *Quick actions (controller)* and *Troubleshooting*. The buttons at the foot of the window are *Back*, *Reset to defaults*, *Discard changes* and *Apply*."
+   },
+   {
+    "note": "Each setting is explained in the band above the buttons, with its default."
+   }
   ],
   "prints": [
-   {"src": "_before_nov1/mm4_01_options_zed.png", "box": [1290, 372, 2600, 806], "scale": 0.48, "at": [250, 410], "tape": ["tl", "br"]}
+   {
+    "src": "mm4_01_options_zed.png",
+    "box": [
+     1290,
+     372,
+     2600,
+     806
+    ],
+    "scale": 0.48,
+    "at": [
+     250,
+     410
+    ],
+    "tape": [
+     "tl",
+     "br"
+    ]
+   }
   ],
   "marks": [
-   {"text": "Theme, accent, text size, see-through and UI scale: radio buttons, swatches and sliders.", "pen": "blu", "at": [60, 254], "maxw": 186, "bend": -0.08, "to": [[0, 2050, 445], [0, 2105, 501], [0, 2158, 612]]}
+   {
+    "text": "Theme, accent, text size, see-through and UI scale: radio buttons, swatches and sliders.",
+    "pen": "blu",
+    "at": [
+     60,
+     254
+    ],
+    "maxw": 186,
+    "bend": -0.08,
+    "to": [
+     [
+      0,
+      2050,
+      445
+     ],
+     [
+      0,
+      2105,
+      501
+     ],
+     [
+      0,
+      2158,
+      612
+     ]
+    ]
+   }
   ],
-  "sticky": {"at": [560, 912], "w": 300, "h": 100, "text": "ZeD setup comes first."}
+  "sticky": {
+   "at": [
+    560,
+    912
+   ],
+   "w": 300,
+   "h": 100,
+   "text": "ZeD setup comes first."
+  }
  },
  "right": {
   "kind": "taped",
   "head": "Options",
   "blocks": [
-   {"h2": "Hidden Actions"},
-   {"p": "*Hidden actions*, under *Windows*, sets what is done with the actions you cannot take right now: *Folded* puts them under a hint row you can open, *Show all, grayed* shows every one grayed out, and *Hide* shows none of them."},
-   {"at": 900},
-   {"caption": ["Figure 48-2", "ZeD setup, top, and the Interface page."]}
+   {
+    "h2": "Hidden Actions"
+   },
+   {
+    "p": "*Hidden actions*, under *Windows*, sets what is done with the actions you cannot take right now: *Folded* puts them under a hint row you can open, *Show all, grayed* shows every one grayed out, and *Hide* shows none of them."
+   },
+   {
+    "at": 900
+   },
+   {
+    "caption": [
+     "Figure 48-2",
+     "ZeD setup, top, and the Interface page."
+    ]
+   }
   ],
   "prints": [
-   {"src": "mm4_01_options_zed.png", "box": [1290, 1079, 2846, 1960], "scale": 0.39, "at": [1030, 320], "tape": ["tl", "tr"]},
-   {"src": "mm4_02_options_interface.png", "box": [1290, 372, 2560, 726], "scale": 0.42, "at": [1030, 700], "tape": ["l", "br"]}
+   {
+    "src": "_before_beta/mm4_01_options_zed.png",
+    "box": [
+     1290,
+     1079,
+     2846,
+     1960
+    ],
+    "scale": 0.39,
+    "at": [
+     1030,
+     320
+    ],
+    "tape": [
+     "tl",
+     "tr"
+    ]
+   },
+   {
+    "src": "mm4_02_options_interface.png",
+    "box": [
+     1290,
+     372,
+     2560,
+     726
+    ],
+    "scale": 0.42,
+    "at": [
+     1030,
+     700
+    ],
+    "tape": [
+     "l",
+     "br"
+    ]
+   }
   ],
   "marks": [
-   {"text": "Hidden actions is a pop-up menu: Folded, Show all or Hide.", "pen": "blu", "at": [1676, null], "maxw": 186, "to": [[1, 2480, 1110], [1, 2180, 1209]]},
-   {"text": "Every setting is explained in the band at the foot.", "pen": "blu", "at": [1676, null], "maxw": 186, "to": [1, 2790, 1882]},
-   {"text": "Game settings ZeD replaces are grayed out and say so.", "pen": "blu", "at": [1676, null], "maxw": 186, "to": [[2, 2440, 500], [2, 1800, 529]]}
+   {
+    "text": "Hidden actions is a pop-up menu: Folded, Show all or Hide.",
+    "pen": "blu",
+    "at": [
+     1676,
+     null
+    ],
+    "maxw": 186,
+    "to": [
+     [
+      1,
+      2480,
+      1110
+     ],
+     [
+      1,
+      2180,
+      1209
+     ]
+    ]
+   },
+   {
+    "text": "Every setting is explained in the band at the foot.",
+    "pen": "blu",
+    "at": [
+     1676,
+     null
+    ],
+    "maxw": 186,
+    "to": [
+     1,
+     2790,
+     1882
+    ]
+   },
+   {
+    "text": "Game settings ZeD replaces are grayed out and say so.",
+    "pen": "blu",
+    "at": [
+     1676,
+     null
+    ],
+    "maxw": 186,
+    "to": [
+     [
+      2,
+      2440,
+      500
+     ],
+     [
+      2,
+      1800,
+      529
+     ]
+    ]
+   }
   ],
-  "sticky": {"at": [1566, 892], "w": 290, "h": 120, "text": "The game's pages say what ZeD replaces."}
+  "sticky": {
+   "at": [
+    1566,
+    892
+   ],
+   "w": 290,
+   "h": 120,
+   "text": "The game's pages say what ZeD replaces."
+  }
  }
 }

@@ -1,46 +1,217 @@
 {
  "id": "two_way_radios",
  "n": 37,
- "pages": [94, 95],
+ "pages": [
+  94,
+  95
+ ],
  "left": {
   "kind": "manual",
   "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
   "blocks": [
-   {"chapter": ["37", "Two-Way Radios"]},
-   {"p": "A two-way radio sends as well as receives. Walkie-talkies and the ham sets each have their own face in the *Radio* tab, and every knob and key on the face works. Figure 37-1 shows a ham set; a walkie-talkie is shown on the facing page."},
-   {"at": 708},
-   {"caption": ["Figure 37-1", "A ham set in the Radio tab."]},
-   {"at": 810},
-   {"p": "On the ham set, the *CH* keys step through the channels and *MEM* is the memory key; hold it to name a channel. The red marker on the dial follows the frequency, and *RANGE* shows how far the set transmits."},
-   {"p": "The arrows at the top of the tab step from one radio within reach to the next. Between them is where the radio is, such as *Floor*."}
+   {
+    "chapter": [
+     "37",
+     "Two-Way Radios"
+    ]
+   },
+   {
+    "p": "A two-way radio sends as well as receives. Walkie-talkies and the ham sets each have their own face in the *Radio* tab, and every knob and key on the face works. Figure 37-1 shows a ham set; a walkie-talkie is shown on the facing page."
+   },
+   {
+    "at": 708
+   },
+   {
+    "caption": [
+     "Figure 37-1",
+     "A ham set in the Radio tab."
+    ]
+   },
+   {
+    "at": 810
+   },
+   {
+    "p": "On the ham set, the *CH* keys step through the channels and *MEM* is the memory key; hold it to name a channel. The red marker on the dial follows the frequency, and *RANGE* shows how far the set transmits."
+   },
+   {
+    "p": "The arrows at the top of the tab step from one radio within reach to the next. Between them is where the radio is, such as *Floor*."
+   }
   ],
   "prints": [
-   {"src": "zqa_tw_5_ham_civilian_tab.png", "box": [2644, 44, 3486, 478], "scale": 0.62, "at": [312, 404], "printed": true}
+   {
+    "src": "zqa_tw_5_ham_civilian_tab.png",
+    "box": [
+     2644,
+     44,
+     3486,
+     478
+    ],
+    "scale": 0.62,
+    "at": [
+     312,
+     404
+    ],
+    "printed": true
+   }
   ],
   "marks": [
-   {"text": "The red marker follows the frequency.", "pen": "blu", "at": [62, null], "maxw": 184, "to": [0, 2802, 258]},
-   {"text": "Range shows how far the set transmits.", "pen": "blu", "at": [706, 690], "maxw": 184, "bend": 0, "to": [0, 3412, 377]}
+   {
+    "text": "The red marker follows the frequency.",
+    "pen": "blu",
+    "at": [
+     62,
+     null
+    ],
+    "maxw": 184,
+    "to": [
+     0,
+     2802,
+     258
+    ]
+   },
+   {
+    "text": "Range shows how far the set transmits.",
+    "pen": "blu",
+    "at": [
+     706,
+     690
+    ],
+    "maxw": 184,
+    "bend": 0,
+    "to": [
+     0,
+     3412,
+     377
+    ]
+   }
   ]
  },
  "right": {
   "kind": "taped",
   "head": "Two-Way Radios",
   "blocks": [
-   {"h2": "Walkie-Talkies"},
-   {"p": "Figure 37-2 shows a ValuTech walkie-talkie held in the main hand, in the *Radio* tab at the right and in full view at the left. On its face are *VOL - PWR* and *TUNE*, the display, the channel keys either side of *M*, and *PUSH TO TALK*; every one of them works."},
-   {"at": 852},
-   {"caption": ["Figure 37-2", "Full view, left, and the Radio tab, right."]},
-   {"p": "To open full view, click the button at the right of the tab's header, or click the face. Full view shows the face on its own, with no window frame; drag it anywhere on the screen."}
+   {
+    "h2": "Walkie-Talkies"
+   },
+   {
+    "p": "Figure 37-2 shows a ValuTech walkie-talkie held in the main hand, in the *Radio* tab at the right and in full view at the left. On its face are *VOL - PWR* and *TUNE*, the display, the channel keys either side of *M*, and *PUSH TO TALK*; every one of them works."
+   },
+   {
+    "at": 852
+   },
+   {
+    "caption": [
+     "Figure 37-2",
+     "Full view, left, and the Radio tab, right."
+    ]
+   },
+   {
+    "p": "To open full view, click the button at the right of the tab's header, or click the face. Full view shows the face on its own, with no window frame; drag it anywhere on the screen."
+   }
   ],
   "prints": [
-   {"src": "zqa_tw_3a_valutech_full_view.png", "box": [2668, 604, 3092, 1336], "scale": 0.6, "at": [1036, 262], "tape": ["tl", "tr"]},
-   {"src": "zqa_tw_1b_valutech_tab.png", "box": [744, 0, 1200, 956], "scale": 0.52, "at": [1400, 262], "tape": ["t", "br"]}
+   {
+    "src": "zqa_tw_3a_valutech_full_view.png",
+    "box": [
+     2668,
+     604,
+     3092,
+     1336
+    ],
+    "scale": 0.53,
+    "at": [
+     1046,
+     330
+    ],
+    "tape": [
+     "tl",
+     "tr"
+    ]
+   },
+   {
+    "src": "zqa_tw_1b_valutech_tab.png",
+    "box": [
+     744,
+     0,
+     1200,
+     956
+    ],
+    "scale": 0.48,
+    "at": [
+     1410,
+     330
+    ],
+    "tape": [
+     "t",
+     "br"
+    ]
+   }
   ],
   "marks": [
-   {"text": "The button at the right of the header opens full view. A click on the face does too.", "pen": "blu", "at": [1676, null], "maxw": 184, "to": [2, 1157, 78]},
-   {"text": "Every knob and key on the face works: volume, tuning, channels, memory and push to talk.", "pen": "blu", "at": [1676, null], "maxw": 184, "to": [[2, 1110, 222], [2, 1074, 455], [2, 1092, 700]]},
-   {"text": "Full view: the face on its own, with no window frame. Drag it anywhere.", "pen": "blu", "at": [1046, 738], "maxw": 330, "bend": 0, "to": [1, 2760, 1300]}
+   {
+    "text": "The button at the right of the header opens full view. A click on the face does too.",
+    "pen": "blu",
+    "at": [
+     1676,
+     null
+    ],
+    "maxw": 184,
+    "to": [
+     2,
+     1157,
+     78
+    ]
+   },
+   {
+    "text": "Every knob and key on the face works: volume, tuning, channels, memory and push to talk.",
+    "pen": "blu",
+    "at": [
+     1676,
+     null
+    ],
+    "maxw": 184,
+    "to": [
+     [
+      2,
+      1110,
+      222
+     ],
+     [
+      2,
+      1074,
+      455
+     ],
+     [
+      2,
+      1092,
+      700
+     ]
+    ]
+   },
+   {
+    "text": "Full view: the face on its own, with no window frame. Drag it anywhere.",
+    "pen": "blu",
+    "at": [
+     1046,
+     738
+    ],
+    "maxw": 330,
+    "bend": 0,
+    "to": [
+     1,
+     2760,
+     1300
+    ]
+   }
   ],
-  "sticky": {"at": [1452, 878], "w": 270, "h": 136, "text": "Each radio gets its own face, and every knob works."}
+  "sticky": {
+   "at": [
+    1672,
+    806
+   ],
+   "w": 188,
+   "h": 212,
+   "text": "Each radio gets its own face, and every knob works."
+  }
  }
 }

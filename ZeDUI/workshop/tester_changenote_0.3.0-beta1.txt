@@ -1,7 +1,7 @@
 0.3.0-beta1: the beta. Changes since 0.2.0-t16.
 
 Full or simple
-- A new group in ZeD setup, Full or simple, right after Look: the belt, the action bar, the context menu, the Equip view, the devices, the watch and the dashboard, each drawn as the real thing (Full) or as a plain ZeD card with the same buttons and readings (Simple). Full stays the default; the Vanilla Access preset picks Simple.
+- A new group in ZeD setup, Full or simple, right after Look: the belt, the action bar, the context menu, the Equip view, the devices, the watch and the dashboard, each drawn as the real thing (Full) or as a plain ZeD card with the same buttons and readings (Simple). Full stays the default; the Vanilla Access preset picks Simple for the devices, the watch and the dashboard.
 - Devices, Simple: every radio, CD player, TV, walkie-talkie, ManPack and ham set, the car radio up close, the ovens, microwaves and fryer, the generator, the propane grill and the washers and dryers are plain cards, with every reading and every button in the face's own order.
 - Watch, Simple: a plain clock box with the time, the weekday and date, the temperature, the game's speed and the alarm, and the same buttons; a plain time box on the belt.
 - Dashboard, Simple: a plain strip with the speed, RPM, fuel, temperature, gear and odometer, the lamps as dots and every switch as a button, the taxi meter and the police siren included.
