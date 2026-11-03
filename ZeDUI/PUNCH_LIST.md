@@ -2028,6 +2028,21 @@ item says so.
       corrected.
     - Confirmed items move under "## Confirmed".
     - The text lost in item 41 near its Stage 3 note is restored from git history.
+76. **No letters in the container strips (the director, Nov 2 2026: a container with no icon "just has a letter ... That
+    just takes me to modern day, and it throws me out of the immersive 1993").** fixed (build, Nov 2 2026).
+    - Cause 1: a car's containers looked their icon up by the part's category, which matched nothing in the game's
+      table, so every trunk, truck bed, seat and glove box showed a letter. The game keys its car art by the
+      container's own type (TruckBed, GloveBox, SeatFrontLeft ...); ZeD now does the same, then the part id, then the
+      category.
+    - Cause 2: a container type the game has no picture for drew its first letter; the game itself shows a default.
+      Now every strip button with no picture of its own (World and Character windows, the floor and the main
+      inventory) shows the game's own box (its cardboard box / crate icon, ZeD.genericContainerTex). The column
+      headers already leave the icon out rather than draw a letter.
+    - **Check (QA, 4K):** in a car (a trunk, a truck bed, the glove box, the seats) every strip button has the game's
+      picture; a container the game has no icon for (a mod's, or one of the rare types) shows the box; no letter
+      anywhere in either strip.
+    - Related, for the director: the right-click strip draws two letters for an action ZeD has no icon for
+      (Molecules drawContextCell's fallback), the same modern tell.
 
 ## Test process
 

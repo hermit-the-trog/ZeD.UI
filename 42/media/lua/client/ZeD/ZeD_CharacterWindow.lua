@@ -3428,7 +3428,7 @@ local function drawContainerStrip(self, win, content)
             onFocusM = ZeD.Focus.mark(self, T.px(1), curY, w - T.px(1), T.px(CONTAINER_BTN_SZ), stripFocus)
         end
         local iconAlpha = mainVis and 1 or 0.5
-        local tex = mainCnt.texture
+        local tex = mainCnt.texture or (ZeD.genericContainerTex and ZeD.genericContainerTex())
         if tex then
             local ix = math.floor((w - iconSz) / 2)
             local iy = curY + math.floor((T.px(CONTAINER_BTN_SZ) - iconSz) / 2)
@@ -3580,8 +3580,8 @@ local function drawContainerStrip(self, win, content)
                 onFocusC = ZeD.Focus.mark(self, T.px(1), btnY, w - T.px(1), T.px(CONTAINER_BTN_SZ), stripFocus)
             end
 
-            -- Icon or first-letter glyph
-            local tex = cnt.texture
+            -- Icon (the game's own box when it has none of its own; ZeD.genericContainerTex, ZeD_WorldWindow.lua)
+            local tex = cnt.texture or (ZeD.genericContainerTex and ZeD.genericContainerTex())
             if tex then
                 local ix = math.floor((w - iconSz) / 2)
                 local iy = btnY + math.floor((T.px(CONTAINER_BTN_SZ) - iconSz) / 2)
