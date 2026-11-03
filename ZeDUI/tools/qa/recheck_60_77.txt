@@ -1,0 +1,4 @@
+# Nov 2 2026: re-check of build fixes: the plain cards (Stop, Signal, disc time) and the laundry rows (piped, dryer)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_plain_cards.lua | plc | timeout=400
+zedqa_laundry.lua | ldy | timeout=900
