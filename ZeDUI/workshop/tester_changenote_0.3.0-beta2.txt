@@ -1,0 +1,9 @@
+0.3.0-beta2: changes since 0.3.0-beta1.
+
+Languages
+- Machine drafts of every language the game has: Spanish (Spain, Mexico, Argentina, Chile), Portuguese (Portugal), French, German, Italian, Catalan, Dutch, Danish, Norwegian, Finnish, Polish, Czech, Hungarian, Romanian, Russian, Ukrainian, Japanese, Korean, Thai, Traditional Chinese and Indonesian, beside the Turkish, Simplified Chinese and Brazilian Portuguese of beta 1. Each is marked as a machine translation in the language list. Japanese, Korean, Thai, Traditional Chinese, Russian and Ukrainian had a second, careful pass. Corrections are welcome in the Translations discussion.
+- The main menu's clock puts AM / PM first where a language does (Korean, Japanese, Chinese).
+- The hand circles on the belt fit their words in every language.
+
+Action bar
+- Accented capitals keep their full height, with the accent above the letter (SYÖMINEN, MAÇÃ, MĂR), on both lines. The action bar is 2 units taller to make room.
