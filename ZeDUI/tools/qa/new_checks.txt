@@ -1,0 +1,4 @@
+# the beta checklist's three new checks (old items 4 and 6); save and reload (old item 10) runs by reload_run.ps1
+zedqa_prelude.lua | pre | timeout=120
+zedqa_disclosure_walk.lua | dsc | timeout=900
+zedqa_button_census.lua | bcn | timeout=600
