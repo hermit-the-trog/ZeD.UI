@@ -1,0 +1,199 @@
+{
+ "id": "cooking",
+ "n": 63,
+ "pages": [
+  146,
+  147
+ ],
+ "left": {
+  "kind": "taped",
+  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "blocks": [
+   {
+    "chapter": [
+     "63",
+     "Cooking"
+    ]
+   },
+   {
+    "p": "With a pot, a pan, a bowl, bread or a cup in your bags, and something nearby that goes in it, the *Character* window shows the *Cooking* tab. Pick the dish at the top (*Dish*) and what it goes in (*In*)."
+   },
+   {
+    "p": "The ingredients that fit are listed on the left, each with what one gives at your Cooking level and how many are in reach. Press one to put it in the dish. An ingredient with none left, or one the dish has no room for, is greyed."
+   },
+   {
+    "at": 796
+   },
+   {
+    "caption": [
+     "Figure 63-1",
+     "A stew planned: carrots, potato and cabbage, 3 of 6."
+    ]
+   }
+  ],
+  "prints": [
+   {
+    "src": "C:/Users/danie/Zomboid/Screenshots/gallery_beta2/zqa_c80_3840x2160_2_stew_plan.png",
+    "box": [
+     358,
+     50,
+     1210,
+     700
+    ],
+    "scale": 0.56,
+    "at": [
+     318,
+     392
+    ],
+    "tape": [
+     "tl",
+     "tr"
+    ]
+   }
+  ],
+  "marks": [
+   {
+    "text": "What one gives, and how many are in reach.",
+    "pen": "blu",
+    "at": [
+     62,
+     420
+    ],
+    "maxw": 186,
+    "bend": 0.02,
+    "to": [
+     0,
+     691,
+     130
+    ]
+   },
+   {
+    "text": "A stew takes six. Three are in.",
+    "pen": "blu",
+    "at": [
+     62,
+     560
+    ],
+    "maxw": 186,
+    "bend": 0.02,
+    "to": [
+     0,
+     964,
+     222
+    ]
+   },
+   {
+    "text": "Make: the game's own actions, one by one.",
+    "pen": "blu",
+    "at": [
+     62,
+     680
+    ],
+    "maxw": 186,
+    "bend": 0.02,
+    "to": [
+     0,
+     1130,
+     662
+    ]
+   },
+   {
+    "circle": {
+     "print": 0,
+     "box": [
+      796,
+      253,
+      921,
+      367
+     ]
+    },
+    "pen": "grn"
+   }
+  ],
+  "sticky": {
+   "at": [
+    600,
+    880
+   ],
+   "w": 280,
+   "h": 136,
+   "text": "Supper, planned before it is made."
+  }
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Cooking",
+  "blocks": [
+   {
+    "h2": "Making It"
+   },
+   {
+    "p": "The dish, on the right, lists what goes in, in order; press one to take it back out. *Make* puts each ingredient in as you would by hand, with the game's own actions, one after another. When what is in reach makes more than one, a count beside *Make* says how many. Cook the dish afterwards on a stove or a fire."
+   },
+   {
+    "h2": "Saved Dishes"
+   },
+   {
+    "p": "*Save dish* keeps a dish. Saved dishes head the *Dish* list, marked *saved*: pick one and its ingredients go back in the plan. When one is not in reach, the dish names it and offers one of the same kind to use instead; it never swaps on its own."
+   },
+   {
+    "at": 762
+   },
+   {
+    "caption": [
+     "Figure 63-2",
+     "The Dish list: a saved stew, then the dishes the pot makes."
+    ]
+   },
+   {
+    "note": "The tab keeps the game's rules: the same limits and amounts, the same dish as by hand."
+   }
+  ],
+  "prints": [
+   {
+    "src": "C:/Users/danie/Zomboid/Screenshots/gallery_beta2/zqa_c80_3840x2160_5_dish_list.png",
+    "box": [
+     358,
+     50,
+     1210,
+     420
+    ],
+    "scale": 0.56,
+    "at": [
+     1110,
+     508
+    ],
+    "tape": [
+     "tl",
+     "tr"
+    ]
+   }
+  ],
+  "marks": [
+   {
+    "text": "A saved dish heads the list.",
+    "pen": "blu",
+    "at": [
+     1676,
+     null
+    ],
+    "maxw": 184,
+    "bend": 0.02,
+    "to": [
+     1,
+     728,
+     117
+    ]
+   }
+  ],
+  "sticky": {
+   "at": [
+    1520,
+    880
+   ],
+   "w": 280,
+   "h": 136,
+   "text": "The stew, saved for next time."
+  }
+ }
+}
