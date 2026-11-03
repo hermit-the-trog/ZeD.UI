@@ -624,13 +624,13 @@ function ZeD_MMWorkshop:formTop(it, ix, iw, cy)
     local pw = ix + iw - px
     local name = path:match("([^/\\]+)$") or "preview.png"
     local yy = self:paneText(name, px, cy, pw, f2, T.text)
-    -- (the game's own rule, checked again when it uploads: a 256 x 256 PNG of 1000 KB at most)
+    -- (the game's own rule, checked again when it uploads: a square PNG, 256 or 512, of 1000 KB at most)
     local check, good
     if not tex then check, good = ZeD.tr("UI_ZeD_Workshop_NoPicture"), false
     else
         local tw2, th2 = tex:getWidthOrig(), tex:getHeightOrig()
-        good = tw2 == 256 and th2 == 256
-        check = good and ZeD.tr("UI_ZeD_Workshop_PictureOk")
+        good = tw2 == th2 and (tw2 == 256 or tw2 == 512)
+        check = good and ZeD.tr("UI_ZeD_Workshop_PictureOk", tw2, th2)
             or ZeD.tr("UI_ZeD_Workshop_PictureWrongSize", tw2, th2)
     end
     local dsz = T.px(7)

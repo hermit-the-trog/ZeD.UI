@@ -4,11 +4,15 @@ ZNIX programs book ... this would never be featured in a magazine like that"; it
 cover in ../thumbnail/). The card is drawn at 480 x 270 by cover_px.py, one art pixel per screen pixel, so a 256 x 256
 cut of it is the art at 1x, nothing resampled.
 
+The game's uploader takes a square PNG of 256 or 512 (and 1000 KB at most); --size 512 doubles every pixel, so
+Steam shows the same art sharp where it draws the picture larger than 256 (the director, Nov 3 2026).
+
 The build's colour (the director, Nov 2 2026): red is a test build, yellow the beta, green the release.
   --style strip    a band across the foot with the word, as the test build's cover had (default)
   --style sticker  a price-sticker on the book's corner, in the fiction of the used copy
-usage: python thumb_px.py --test | --beta | --release | --plain  [--style strip|sticker]  [--out file.png]
-Writes thumb_256_<tag>[_sticker].png beside this script unless --out is given."""
+usage: python thumb_px.py --test | --beta | --release | --plain  [--style strip|sticker]  [--size 256|512]
+                          [--out file.png]
+Writes thumb_<size>_<tag>[_sticker].png beside this script unless --out is given."""
 import os
 import subprocess
 import sys
@@ -111,6 +115,9 @@ def main():
     a = sys.argv[1:]
     style = a[a.index("--style") + 1] if "--style" in a else "strip"
     out = a[a.index("--out") + 1] if "--out" in a else None
+    size = int(a[a.index("--size") + 1]) if "--size" in a else 256
+    if size not in (256, 512):
+        sys.exit("--size is 256 or 512 (the sizes the game's uploader takes)")
     band = next((b for k, b in BANDS.items() if k in a), None)
     sq = cut(card())
     tag = "plain"
@@ -119,7 +126,9 @@ def main():
         (sticker if style == "sticker" else strip)(sq, label, mid, light, dark, ink)
         if style == "sticker":
             tag += "_sticker"
-    out = out or os.path.join(HERE, "thumb_256_%s.png" % tag)
+    if size != 256:
+        sq = sq.resize((size, size), Image.NEAREST)   # whole pixels doubled, nothing smoothed
+    out = out or os.path.join(HERE, "thumb_%d_%s.png" % (size, tag))
     sq.save(out, optimize=True)
     print("wrote", out, os.path.getsize(out), "bytes")
 

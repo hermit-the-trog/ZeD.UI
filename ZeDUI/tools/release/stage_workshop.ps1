@@ -66,14 +66,15 @@
 
 .PARAMETER Preview
     The preview picture to copy beside Contents/ instead of ZeDUI/tools/release/preview.png
-    (e.g. ZeDUI/workshop/thumbnail/znix_256_beta.png: red is a test build, yellow the beta, green the release).
+    (e.g. ZeDUI/workshop/gallery/thumb_512_beta.png: red is a test build, yellow the beta, green the release;
+    the game takes a square PNG of 256 or 512).
 
 .EXAMPLE
     & C:/Users/danie/Zomboid/mods/ZeD-UI/ZeDUI/tools/release/stage_workshop.ps1 -DryRun
 .EXAMPLE
     & C:/Users/danie/Zomboid/mods/ZeD-UI/ZeDUI/tools/release/stage_workshop.ps1 -Version 0.2.0-test1
 .EXAMPLE
-    & .../stage_workshop.ps1 -Version 0.3.0-beta1 -Title "ZeD-GUI [BETA]" -Description ZeDUI/workshop/tester_description_0.3.0-beta1.bbcode -ChangeNote ZeDUI/workshop/tester_changenote_0.3.0-beta1.txt -Preview ZeDUI/workshop/thumbnail/znix_256_beta.png
+    & .../stage_workshop.ps1 -Version 0.3.0-beta1 -Title "ZeD-GUI [BETA]" -Description ZeDUI/workshop/tester_description_0.3.0-beta1.bbcode -ChangeNote ZeDUI/workshop/tester_changenote_0.3.0-beta1.txt -Preview ZeDUI/workshop/gallery/thumb_512_beta.png
 #>
 [CmdletBinding()]
 param(
@@ -245,7 +246,7 @@ if ($ChangeNote) {
 if ($Version -and -not $Description) { Warn 'no -Description: workshop.txt keeps the page text it has (the last build''s)' }
 if ($Version -and -not $ChangeNote) { Warn 'no -ChangeNote: the upload window keeps the change note it has' }
 
-# the preview picture: Steam wants a 256 x 256 PNG of 1000 KB at most
+# the preview picture: the game's uploader takes a square PNG of 256 or 512, 1000 KB at most
 function Test-Preview([string]$path) {
     if (-not (Test-Path -LiteralPath $path)) { return 'missing (run make_preview.py)' }
     $b = [IO.File]::ReadAllBytes($path)
@@ -253,7 +254,7 @@ function Test-Preview([string]$path) {
     if ($b.Length -lt 24 -or $b[0] -ne 0x89 -or $b[1] -ne 0x50 -or $b[2] -ne 0x4E -or $b[3] -ne 0x47) { return 'not a PNG' }
     $w = ([int]$b[16] -shl 24) -bor ([int]$b[17] -shl 16) -bor ([int]$b[18] -shl 8) -bor [int]$b[19]
     $h = ([int]$b[20] -shl 24) -bor ([int]$b[21] -shl 16) -bor ([int]$b[22] -shl 8) -bor [int]$b[23]
-    if ($w -ne 256 -or $h -ne 256) { return "${w} x ${h} (must be 256 x 256)" }
+    if ($w -ne $h -or ($w -ne 256 -and $w -ne 512)) { return "${w} x ${h} (must be 256 x 256 or 512 x 512)" }
     return $null
 }
 $previewProblem = Test-Preview $Preview

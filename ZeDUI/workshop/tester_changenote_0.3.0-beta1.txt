@@ -25,6 +25,7 @@ Windows and cards
 - The walkie-talkie and ham radio faces lose their printed brand foot.
 - Radios: Stop takes at once, a station between lines still shows its signal, and a disc's time runs.
 - About shows ZeD-GUI's version.
+- In the context menu's icon strip, an option with no picture of its own shows its first two letters as a capital and a small letter.
 
 Options
 - 0.5x is no longer offered in UI scale; a saved 0.5x draws at 0.75x.
@@ -32,3 +33,4 @@ Options
 
 Main menu
 - The desk has the Kentucky Instruments controller on it.
+- The Workshop upload page takes a 512 x 512 preview picture as well as 256 x 256, as the game does.

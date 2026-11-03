@@ -3990,7 +3990,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Workshop_NeedTitle` | `It needs a title` | Workshop upload screen: in the strip, why Upload is off | - |
 | `UI_ZeD_Workshop_NoFolders` | `No folders in Zomboid/Workshop yet. Copy ModTemplate there, rename it and put your mod in its Contents/mods folder; it shows here.` | Workshop upload screen: empty folder list (keep the names ModTemplate, Zomboid/Workshop and Contents/mods) | - |
 | `UI_ZeD_Workshop_NoneYet` | `None yet.` | Workshop upload screen: the description when it is empty | - |
-| `UI_ZeD_Workshop_NoPicture` | `No picture: the folder needs a preview.png, 256 x 256.` | Workshop upload screen: under the picture box (keep preview.png and 256 x 256) | - |
+| `UI_ZeD_Workshop_NoPicture` | `No picture: the folder needs a preview.png, 256 x 256 or 512 x 512.` | Workshop upload screen: under the picture box (keep preview.png, 256 x 256 and 512 x 512) | - |
 | `UI_ZeD_Workshop_NoSteam` | `Steam is not running` | Workshop upload screen: red status in the title bar | - |
 | `UI_ZeD_Workshop_NotCreated` | `Steam did not create the item (its answer: %1)` | Workshop upload screen: red note. %1 is Steam's answer | - |
 | `UI_ZeD_Workshop_NoteHelpNew` | `Shown on the change notes page from the first upload on.` | Workshop upload screen: under the change note field, for a new item | - |
@@ -4001,8 +4001,8 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Workshop_NotUpdated` | `The upload did not go through (Steam's answer: %1)` | Workshop upload screen: red note. %1 is Steam's answer | - |
 | `UI_ZeD_Workshop_OnWorkshop` | `On the Workshop \| %1` | Workshop upload screen: under a folder in the list. %1 is the item number. The \| is a separator | - |
 | `UI_ZeD_Workshop_OpenInSteam` | `Open in Steam` | Workshop upload screen: button that opens the item's Steam page | 18 |
-| `UI_ZeD_Workshop_PictureOk` | `256 x 256: the size the game asks for. It must stay under 1000 KB.` | Workshop upload screen: under the picture box | - |
-| `UI_ZeD_Workshop_PictureWrongSize` | `This one is %1 x %2; the game takes only 256 x 256.` | Workshop upload screen: under the picture box. %1 and %2 are its width and height | - |
+| `UI_ZeD_Workshop_PictureOk` | `%1 x %2: a size the game takes. It must stay under 1000 KB.` | Workshop upload screen: under the picture box. %1 and %2 are its width and height (256 or 512) | - |
+| `UI_ZeD_Workshop_PictureWrongSize` | `This one is %1 x %2; the game takes only 256 x 256 or 512 x 512.` | Workshop upload screen: under the picture box. %1 and %2 are its width and height | - |
 | `UI_ZeD_Workshop_Saved` | `Saved to Workshop/%1/workshop.txt` | Workshop upload screen: note after Save. %1 is the folder's name (keep the path as it is) | - |
 | `UI_ZeD_Workshop_SaveFailed` | `Could not write workshop.txt` | Workshop upload screen: red note after Save failed | - |
 | `UI_ZeD_Workshop_SeenEveryone` | `Seen by everyone.` | Workshop upload screen: line under the visibility buttons | - |
