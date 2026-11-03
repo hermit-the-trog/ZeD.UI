@@ -1,0 +1,4 @@
+# punch list 61 (Nov 2 2026): the Vehicle tab at a small size, Large text
+zedqa_prelude.lua | pre | timeout=120
+zedqa_textlarge.lua | txl | timeout=60
+zedqa_vehicle_small.lua | vsm | timeout=180
