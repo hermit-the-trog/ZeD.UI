@@ -165,21 +165,38 @@ function ZeD_MessagesWindow:buildCards(g, cur, areaX, areaW)
         if it.k == "note" and not it.done then
             for bi, b in ipairs(it.buttons or {}) do btns[#btns + 1] = { label = btnLabel(tostring(b.title or "")), i = bi, primary = bi == #it.buttons } end
         elseif it.k == "err" then
-            btns[#btns + 1] = { label = btnLabel(tr("UI_ZeD_Msg_Copy")), copy = true, primary = true }
+            btns[#btns + 1] = { label = btnLabel(tr("UI_ZeD_Msg_CopyAll")), copy = true, primary = true }
         end
-        local ch = px(U.CARD_HEAD_H) + px(U.CARD_PAD) + textH + px(U.CARD_PAD) + (#btns > 0 and (bh + px(U.CARD_PAD)) or 0)
-        local card = { x = cx, y = cy, w = cw, h = ch, it = it, lines = lines, btns = btns }
-        local bx = cx + cw - px(U.CARD_PAD)
-        for bi = #btns, 1, -1 do
-            local b = btns[bi]
-            local bw = Mo.buttonW(b.label)
-            bx = bx - bw
-            b.x, b.y, b.w, b.h, b.card = bx, cy + ch - px(U.CARD_PAD) - bh, bw, bh, card
-            bx = bx - px(U.BAND_GAP)
+        -- (the card and its buttons, placed; shared by the per-error cards below)
+        local function place(cit, clines, cbtns, cTextH)
+            local ch = px(U.CARD_HEAD_H) + px(U.CARD_PAD) + cTextH + px(U.CARD_PAD) + (#cbtns > 0 and (bh + px(U.CARD_PAD)) or 0)
+            local card = { x = cx, y = cy, w = cw, h = ch, it = cit, lines = clines, btns = cbtns }
+            local bx = cx + cw - px(U.CARD_PAD)
+            for bi = #cbtns, 1, -1 do
+                local b = cbtns[bi]
+                local bw = Mo.buttonW(b.label)
+                bx = bx - bw
+                b.x, b.y, b.w, b.h, b.card = bx, cy + ch - px(U.CARD_PAD) - bh, bw, bh, card
+                bx = bx - px(U.BAND_GAP)
+            end
+            for _, b in ipairs(cbtns) do g.btns[#g.btns + 1] = b end
+            g.cards[#g.cards + 1] = card
+            cy = cy + ch + px(U.CARD_GAP)
         end
-        for _, b in ipairs(btns) do g.btns[#g.btns + 1] = b end
-        g.cards[#g.cards + 1] = card
-        cy = cy + ch + px(U.CARD_GAP)
+        place(it, lines, btns, textH)
+        -- every kept error its own card, newest first, with its own Copy (the director, Nov 2 2026, punch list 66)
+        if it.k == "err" then
+            local n = #(it.texts or {})
+            for i = n, 1, -1 do
+                local t = it.texts[i]
+                local first = t:match("([^\n]*Exception[^\n]*)") or t:match("([^\n]+)") or t
+                first = first:gsub("^%s+", ""):sub(1, 300)
+                local el, eh = {}, 0
+                for _, l in ipairs(ZeD.Atoms.wrapText(first, T.fontF1, inner)) do el[#el + 1] = { text = l, font = T.fontF1, mono = true }; eh = eh + fh(T.fontF1) + px(3) end
+                local eit = { k = "err", when = tostring((it.whens and it.whens[i]) or "") .. " | " .. tr("UI_ZeD_Msg_ErrorNofM", n - i + 1, n) }
+                place(eit, el, { { label = btnLabel(tr("UI_ZeD_Msg_CopyOne")), copy = true, idx = i } }, eh)
+            end
+        end
     end
     return cy + self.scroll - g.body.y
 end
@@ -441,7 +458,8 @@ function ZeD_MessagesWindow:pressCard(b)
     if not b then return end
     sound("UIActivateButton")
     if b.copy then
-        pcall(function() Clipboard.setClipboard(MS.report(self.sel)) end)
+        local text = b.idx and MS.reportOne(self.sel, b.idx) or MS.report(self.sel)
+        pcall(function() Clipboard.setClipboard(text) end)
         b.label = btnLabel(tr("UI_ZeD_Msg_Copied"))
         return
     end
