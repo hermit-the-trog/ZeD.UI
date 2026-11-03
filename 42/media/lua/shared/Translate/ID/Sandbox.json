@@ -1,0 +1,11 @@
+{
+    "Sandbox_ZeD": "ZeD-GUI",
+    "Sandbox_ZeD_TaxiFlagDrop": "Argo Taksi: Turun Bendera",
+    "Sandbox_ZeD_TaxiFlagDrop_tooltip": "Dolar yang ditunjukkan argo taksi saat pengemudi menurunkan bendera.",
+    "Sandbox_ZeD_TaxiPerFifthMile": "Argo Taksi: Per 1/5 Mil",
+    "Sandbox_ZeD_TaxiPerFifthMile_tooltip": "Dolar yang ditambahkan argo untuk setiap seperlima mil yang ditempuh dengan bendera turun.",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting": "Argo Taksi: Per Menit Menunggu",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting_tooltip": "Dolar yang ditambahkan argo untuk setiap menit waktu nyata taksi menunggu (di bawah 5 km/h, mesin menyala) dengan bendera turun.",
+    "Sandbox_ZeD_TaxiPerExtraPassenger": "Argo Taksi: Per Penumpang Tambahan",
+    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "Dolar yang ditampilkan di bawah TAMBAHAN untuk setiap penumpang setelah yang pertama. Pengemudi tidak dihitung."
+}
