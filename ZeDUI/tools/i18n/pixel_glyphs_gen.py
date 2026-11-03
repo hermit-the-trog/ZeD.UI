@@ -335,7 +335,18 @@ def compose35t(faces, base, mark):
     if mark in MB35:
         key = "commaT" if (mark == "comma" and base == "T") else mark
         return ["0" * w] * TALL_UP + full + [MB35[key][:w].ljust(w, "0")]
+    if mark == "breve":
+        # a two-row cup, one row higher than the other marks (QA: the one-row "101" read as an umlaut, RO "MÄR")
+        cup = {3: ["101", "111"], 4: ["1001", "0110"]}[w]   # (a U, not a V: "101" over "010" reads as a caron)
+        return cup + ["0" * w] + full
     return [M35[w][mark], "0" * w] + full
+
+
+def up_of(face, rows):
+    """Rows above the cell: the glyph's height past the face's line and any mark below."""
+    h = 7 if face == "57t" else 5
+    below = 1 if all(c == "0" for r in rows[:TALL_UP] for c in r) else 0   # (a glyph with a mark below starts blank)
+    return len(rows) - h - below
 
 
 def build():
@@ -385,6 +396,10 @@ def check(faces, out35, out57, tall):
     problems = []
     for face, table, hs in (("35", out35, (5,)), ("57", out57, (7,)), ("57t", tall["57t"], (9, 10)),
                             ("35t", tall["35t"], (7, 8))):
+        if face in tall:
+            for cp, rows in table.items():
+                if up_of(face, rows) not in (TALL_UP, TALL_UP + 1):
+                    problems.append("%s U+%04X has %d rows above the line" % (face, cp, up_of(face, rows)))
         for cp, rows in table.items():
             w = len(rows[0])
             if len(rows) not in hs:
@@ -414,8 +429,8 @@ def lua_text(out35, out57, tall):
     ]
     for face, table in (("35", out35), ("57", out57), ("57t", tall["57t"]), ("35t", tall["35t"])):
         lines.append('  ["%s"] = {' % face)
-        up = (", up = %d" % TALL_UP) if face in tall else ""
         for cp in sorted(table):
+            up = (", up = %d" % up_of(face, table[cp])) if face in tall else ""
             rows = ", ".join('"%s"' % r for r in table[cp])
             lines.append("    [%d] = { %s%s },   -- U+%04X" % (cp, rows, up, cp))
         lines.append("  },")
