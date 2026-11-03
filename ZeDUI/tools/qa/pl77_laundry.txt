@@ -1,0 +1,3 @@
+# punch list 77 (Nov 2 2026): the laundry redesign, every machine and water level
+zedqa_prelude.lua | pre | timeout=120
+zedqa_laundry.lua | ldy | timeout=900
