@@ -333,6 +333,10 @@ function ZeD_CookAdd:start()
     ISAddItemInRecipe.start(self)
 end
 function ZeD_CookAdd:complete()
+    -- the dish as it is now: in 42.22 an action's complete() runs after the next one's isValidStart()
+    -- and start() (QA's diagnostic, 2026-11-03_cook80_diag.md), so the next add began on the plain pot
+    -- and made a second stew; the completes run in queue order, so the chain is right here
+    self.baseItem = self.chain.base
     local ok = ISAddItemInRecipe.complete(self)
     self.chain.base = self.baseItem
     return ok
