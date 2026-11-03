@@ -1772,7 +1772,9 @@ item says so.
       belt with the green ring. The title card (znix_01_cover.png) is redrawn with the same changes; the gallery's
       00_cover on Steam is still the old one until QA replaces it.
     - Two marks to choose from (thumb_compare_beta.png): a yellow BETA strip across the foot (thumb_256_beta.png),
-      or a yellow BETA price sticker on the cover (thumb_256_beta_sticker.png). Waiting: the director's pick.
+      or a yellow BETA price sticker on the cover (thumb_256_beta_sticker.png). **The director, Nov 2 2026: "the yellow
+      strip at the bottom."** thumb_256_beta.png is now ZeDUI/tools/release/preview.png (staging's default), and QA
+      replaces the gallery's 00_cover on Steam with the redrawn title card.
     - The margin, found: Steam's item page asks for the preview at 268 x 268 in letterbox mode with a black fill
       (`?imw=268&imh=268&ima=fit&impolicy=Letterbox&imcolor=%23000000`), and the game's uploader insists on exactly
       256 x 256 ("The preview.png file must be exactly 256x256 pixels in size"), so Steam pads every side with 6 px of
@@ -1852,9 +1854,18 @@ item says so.
         through files or the console.
     - **Check (QA, 4K):** force an error from a test mod; Messages files it; each copy and the menu's Bug report put
       the expected text on the clipboard (read back); with no errors, Bug report says so.
+    **QA, Nov 2 2026 (zedqa_beta_ig.lua, 4K):** confirmed but one fault: the older error's Copy carried the newer
+    error's separator and "attempted index" head. Cause: the game writes each error as a separator with its message,
+    then the Lua stack, then the exception entry, and readErrors added every non-exception entry to the last error.
+    **fixed (build, Nov 2 2026):** a separator entry opens the next error; its head and stack wait and go in front of
+    that error's exception. QA to re-check with two errors in a row. (The "at game start" tag on both cards is by
+    design: it marks anything in the first real minute after the game loads.)
 67. **The controller map (the director, Nov 2: "has to have it").** chosen. The quick wheel's "Controller map"
     entry ("Coming later.") opens a page showing what each button does in ZeD.
     - Build brings its layout to the director first, and it covers both pad glyph sets.
+    - **Layout approved (the director, Nov 2 2026: "The controller map layout is right"):** the gallery's chapter 42
+      page brought into a ZeD window: the pixel pad (ZeDUI/workshop/controller_map/pixel_pad.py) with its callouts, the
+      button table under it, drawn in the player's chosen button pictures.
     - **Check (QA, 4K):** the wheel opens it; B closes it and focus returns; every role on the page matches the
       gamepad spec; no "coming later" text is left anywhere in ZeD.
 68. **Hair and beard with the eight-mod set (the director, Nov 2: the beta can ship with it as a known issue; keep

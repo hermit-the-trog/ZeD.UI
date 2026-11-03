@@ -275,6 +275,7 @@ end
 -- ---------------------------------------------------------------------------
 local errSeen = 0          -- the game's entry count when last read (KahluaThread.errorCount: one per entry added)
 local lastErr = nil
+local pending = nil        -- the next error's head and Lua stack, read before its exception entry (see readErrors)
 -- one error is several entries in the game's list (a separator, the dump's head, the
 -- exception "java.lang.RuntimeException: ...", its stack dumps): the exception counts and
 -- opens a record, the others are added to the record before them
@@ -318,7 +319,18 @@ function M.readErrors()
     for i = from, size - 1 do
         local s = tostring(list:get(i) or "")
         if M.qaLog then print("[ZeD] Messages: error entry " .. tostring(i) .. ": " .. string.sub(string.gsub(s, "\n", " / "), 1, 160)) end
-        if string.find(s, "Exception", 1, true) then fileError(s)
+        -- One error is written as: a separator line with the message ("------..." then "attempted index: ..."),
+        -- then "dumping Lua stack trace" with the Lua stack, then the exception entry, then (in -debug) the Java
+        -- stack. The separator opens the next error, so its head and stack wait in `pending` and go in front of that
+        -- error's exception; only what follows an exception belongs to it (punch list 66, QA Nov 2 2026: the older
+        -- error's copy carried the next one's head).
+        if string.find(s, "Exception", 1, true) then
+            fileError(pending and (pending .. "\n" .. s) or s)
+            pending = nil
+        elseif string.find(s, "^%s*%-%-%-%-%-%-%-%-%-%-%-%-%-%-%-%-%-%-%-%-") then
+            pending = s
+        elseif pending then
+            pending = pending .. "\n" .. s
         elseif lastErr and #lastErr.texts > 0 then
             local t = lastErr.texts
             t[#t] = t[#t] .. "\n" .. s
