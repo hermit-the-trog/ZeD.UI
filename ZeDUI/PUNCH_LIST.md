@@ -1795,6 +1795,8 @@ item says so.
     saved 0.5 reads "0.5x (1x here)", not "0.5x (0.75x here)" (shot mbt_scale_05_saved): scaleReadout prints the main
     menu's own root (1 there), while the game draws it at 0.75. For build: say 0.75x for a retired step, or the game's
     scale.
+    **QA, Nov 2 2026, after Build's readout fix: confirmed (2026-11-02_beta_menu_4k_b.md, 11 / 11).** With 0.5 saved
+    the main menu row reads "0.5x (0.75x here)".
 59. **Every dimmed row loses its hover highlight (the director, Nov 2: "Yes").** chosen. Item 20's rule now covers
     the game's own greyed-out settings too: the ones that do nothing while ZeD runs.
     - **Check (QA, 4K, real mouse):** a greyed game setting and the dimmed Restock row light up for neither the
@@ -1911,6 +1913,9 @@ item says so.
     newer error's head (its separator lines and "attempted index: qaBetaErrorTwo of non-table: null"): M.readErrors adds
     every entry without "Exception" to the last error, and the game writes the next error's head before its exception
     entry. The newest card's copy is clean. Asked: both cards' heads read "at game start" for errors a minute into play.
+    **QA, Nov 2 2026, after 30e99e8: the fault is fixed (2026-11-02_beta_ig_4k_b.md, 32 / 32).** Two errors in a row:
+    the older card's Copy holds only its own error (its separator, "attempted index: qaBetaErrorOne ...", its
+    java.lang.RuntimeException and stack); the newer error's head is no longer on it. Everything else as above.
 67. **The controller map (the director, Nov 2: "has to have it").** chosen. The quick wheel's "Controller map"
     entry ("Coming later.") opens a page showing what each button does in ZeD.
     - Build brings its layout to the director first, and it covers both pad glyph sets.

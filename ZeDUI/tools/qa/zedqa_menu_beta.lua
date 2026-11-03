@@ -200,7 +200,7 @@ at(10, function()
     pointBack()
     MM.rowLook = realRowLook
     local w = O(); if w then pcall(function() w:close() end) end
-    say("summary: " .. passes .. " PASS, " .. fails .. " FAIL")
+    if fails == 0 then say("summary: all " .. passes .. " PASS") else say("summary: " .. fails .. " of " .. (passes + fails) .. " checks FAIL") end
     say("DONE")
 end)
 
