@@ -35,6 +35,8 @@ C = dict(
     tape0=(206, 198, 170), tape1=(180, 170, 142), coffee=(110, 76, 52),
     b0=(230, 222, 200), b1=(208, 198, 172), b2=(182, 172, 146), b3=(140, 130, 108), b4=(100, 92, 76), scr0=(18, 24, 30), scr1=(30, 44, 50),
     win=(150, 156, 150), winD=(96, 104, 100),
+    zg0=(108, 106, 98), zg1=(96, 94, 86), zw0=(36, 36, 34), zw1=(22, 22, 20), zw2=(70, 68, 62), zac=(226, 150, 40),
+    zt0=(150, 146, 136), zi0=(196, 84, 62), zi1=(214, 176, 70), zi2=(96, 160, 110), zi3=(110, 140, 196), zsk=(196, 160, 130), zgr=(80, 200, 100),
     red=(178, 38, 44), redD=(120, 24, 30), pen=(222, 70, 56), blu=(36, 52, 128), sticky=(214, 196, 98), stickyD=(176, 158, 72),
     fl0=(34, 36, 42), fl1=(50, 52, 60), fl2=(70, 72, 80), met0=(150, 154, 160), met1=(190, 194, 198), met2=(110, 114, 120),
     lab=(226, 220, 204), labL=(170, 180, 196), pen0=(200, 160, 60), pen1=(170, 130, 44), pen2=(230, 196, 104), wood=(214, 178, 132), lead=(40, 40, 44),
@@ -275,15 +277,31 @@ band(cx0, cy0, cx0 + 52, cy0 + 44, "b2", "b3", 0.2, 0.85)
 for x in range(cx0 + 2, cx0 + 51): P(x, cy0, "b1")
 for y in range(cy0 + 2, cy0 + 43): P(cx0, y, "b1"); P(cx0 + 52, y, "b4")
 R(cx0 + 6, cy0 + 5, cx0 + 46, cy0 + 34, "b4"); band(cx0 + 7, cy0 + 6, cx0 + 45, cy0 + 33, "scr1", "scr0", 0.0, 0.9)
-wx0, wy0, wx1, wy1 = cx0 + 11, cy0 + 9, cx0 + 41, cy0 + 30
-R(wx0, wy0, wx1, wy1, "win")
-for x in range(wx0, wx1 + 1): P(x, wy0, "ink"); P(x, wy1, "ink"); P(x, wy0 + 4, "ink")
-for yy in range(wy0, wy1 + 1): P(wx0, yy, "ink"); P(wx1, yy, "ink")
-for x in range(wx0 + 6, wx1 - 1):
-    P(x, wy0 + 1, "ink"); P(x, wy0 + 3, "ink")
-R(wx0 + 2, wy0 + 1, wx0 + 4, wy0 + 3, "ink"); R(wx0 + 3, wy0 + 2, wx0 + 3, wy0 + 2, "win")
-for k in range(4):
-    R(wx0 + 3, wy0 + 7 + k * 5, wx0 + 5, wy0 + 8 + k * 5, "winD"); R(wx0 + 8, wy0 + 7 + k * 5, wx1 - 4 - (k % 3) * 4, wy0 + 7 + k * 5, "winD")
+# the screen shows ZeD as it plays (the director, Nov 2 2026: the old light window "doesn't look like our interface at
+# all"): the game's grey ground, the two dark windows side by side along the top (the Character window's tab strip at
+# its left edge, the World window's at its right, each tab an accent square, the lists in rows with coloured icons),
+# the character in the open, and the belt along the foot with the main hand's green ring.
+sx0, sy0, sx1, sy1 = cx0 + 7, cy0 + 6, cx0 + 45, cy0 + 33
+for yy in range(sy0, sy1 + 1):
+    for xx in range(sx0, sx1 + 1): P(xx, yy, "zg1" if dith(xx, yy, 0.35) else "zg0")
+def zwin(x0, y0, x1, y1, tabs_left):
+    R(x0, y0, x1, y1, "zw0")
+    R(x0, y0, x1, y0 + 1, "zw1")                                   # the title bar
+    tx = x0 if tabs_left else x1                                   # the tab strip, one accent square lit
+    for k in range(5):
+        P(tx, y0 + 3 + k * 2, "zac" if k == 0 else "zw2")
+    lx0, lx1 = (x0 + 2, x1 - 1) if tabs_left else (x0 + 1, x1 - 2)
+    icons = ("zi0", "zi1", "zi2", "zi3", "zi1", "zi0")
+    for k in range(6):                                             # the list's rows: an icon, then the name
+        y = y0 + 3 + k * 2
+        P(lx0, y, icons[k]); R(lx0 + 2, y, lx1 - (k % 3) * 2 - 1, y, "zt0")
+zwin(sx0 + 1, sy0 + 1, sx0 + 18, sy0 + 15, True)                  # Character window
+zwin(sx0 + 20, sy0 + 1, sx1 - 1, sy0 + 15, False)                # World window
+R(sx0 + 18, sy0 + 19, sx0 + 18, sy0 + 21, "ink"); P(sx0 + 18, sy0 + 18, "zsk")   # the character
+for k in range(6):                                                 # the belt: the hands, then the slots
+    bx = sx0 + 11 + k * 3
+    R(bx, sy1 - 2, bx + 1, sy1 - 1, "zw0")
+P(sx0 + 12, sy1 - 2, "zgr"); P(sx0 + 15, sy1 - 2, "zac")
 R(cx0 + 30, cy0 + 38, cx0 + 40, cy0 + 39, "b4"); P(cx0 + 44, cy0 + 38, (96, 150, 92))
 R(cx0 + 18, cy0 + 45, cx0 + 34, cy0 + 47, "b3")
 R(cx0 - 4, cy0 + 48, cx0 + 56, cy0 + 56, "b2"); band(cx0 - 4, cy0 + 48, cx0 + 56, cy0 + 56, "b2", "b3", 0.2, 0.9)
