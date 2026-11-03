@@ -384,7 +384,7 @@ function ZeD_MMSpawn:prerender()
     local items = self:items()
     if self.sel > #items then self.sel = math.max(1, #items) end
     local it = items[self.sel]
-    self.title = ZeD.tr("UI_ZeD_Spawn_Title")
+    self.title = ZeD.tr(self.titleKey or "UI_ZeD_Spawn_Title")   -- (a page built on this one names itself: ModSupport/ThisIsYourLife.lua)
     self.titleStats = { { text = MM.modeName(tostring(getWorld():getGameMode())), noMark = true } }
     ZeD_Window.prerender(self)
     if not isMouseButtonDown(0) then self._drag = nil end

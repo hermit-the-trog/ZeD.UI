@@ -2386,7 +2386,9 @@ function MM.redirect(screen, view)
     screen._zedRedirect = true
     local orig = screen.setVisible
     screen.setVisible = function(self, visible, joypadData)
-        if visible and MM.root then
+        -- (MM.redirectPass: a mod's own screen may run instead, e.g. This Is Your Life's poster stories fill in
+        -- the occupation and the looks themselves; ModSupport/ThisIsYourLife.lua)
+        if visible and MM.root and not (MM.redirectPass and MM.redirectPass(self)) then
             orig(self, false, joypadData)
             MM.showView(view, joypadData)
             return
