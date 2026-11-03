@@ -38,6 +38,7 @@ FILES = ('UI.json', 'Sandbox.json', 'ItemName.json')
 
 PLACE = re.compile(r'%[1-9]')
 MARKUP = re.compile(r'<[A-Z_]+(?::[^>]*)?>')
+MOJIBAKE = re.compile('[ÂÃ][\u0080-¿]|â€|�')
 
 
 def load_json(path):
@@ -108,6 +109,8 @@ def check_pairs(pairs, en):
             errs.append('%s: markup %s became %s' % (k, MARKUP.findall(e), MARKUP.findall(t)))
         if t.strip() == '' and e.strip() != '':
             errs.append('%s: empty' % k)
+        if MOJIBAKE.search(t) and not MOJIBAKE.search(e):
+            errs.append('%s: garbled letters (UTF-8 read as Latin-1, e.g. "Ã³" for "ó")' % k)
         if t == e and re.search(r'[A-Za-z]{4,}', e):
             warns.append('%s: same as English (%r)' % (k, e[:40]))
     return errs, warns
