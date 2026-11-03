@@ -128,15 +128,22 @@ function ZeD_SirenController:layout(des)
     local pw, ph = des.w * s, des.h * s
     local stripH = self.joyfocus and ZeD.PadGlyphs.stripH() or 0
     local w, h = pw, ph + (stripH > 0 and (T.px(4) + stripH) or 0)
+    self:place(w, h, s)
+    self._s, self._pw, self._ph, self._stripH = s, pw, ph, stripH
+end
+
+-- w x h placed above the dash's console, its right edge on the console's (the simple dash: the strip's right
+-- end), else above the bottom of the player's screen; kept on the screen
+function ZeD_SirenController:place(w, h, s)
     local pn = self.playerNum
     local dash = ZeD.Dashboard and ZeD.Dashboard.getInstance and ZeD.Dashboard.getInstance()
     local x, y
     if dash and dash:isVisible() and dash._consoleRect and dash.playerNum == pn then
         local cs, ds = dash._consoleRect, dash._s or s
-        x = dash:getX() + math.floor((cs.x + cs.w) * ds) - des.w * s
+        x = dash:getX() + math.floor((cs.x + cs.w) * ds) - w
         y = dash:getY() - h - math.floor(GAP * s)
     else
-        x = getPlayerScreenLeft(pn) + math.floor((getPlayerScreenWidth(pn) - pw) / 2)
+        x = getPlayerScreenLeft(pn) + math.floor((getPlayerScreenWidth(pn) - w) / 2)
         y = getPlayerScreenTop(pn) + getPlayerScreenHeight(pn) - h - math.floor(220 * s)
     end
     local l, t = getPlayerScreenLeft(pn), getPlayerScreenTop(pn)
@@ -146,7 +153,6 @@ function ZeD_SirenController:layout(des)
     if self.height ~= h then self:setHeight(h) end
     if self.x ~= x then self:setX(x) end
     if self.y ~= y then self:setY(y) end
-    self._s, self._pw, self._ph, self._stripH = s, pw, ph, stripH
 end
 
 -- ---------------------------------------------------------------------------
@@ -157,6 +163,13 @@ function ZeD_SirenController:prerender()
     local des = plate()
     if not (T and des) then return end
     if not self:vehicle() then self:close(); return end
+    -- the simple dash (ZeD setup's "Dashboard" row) brings the controller up as a plain card
+    self._plainOn = S.simple()
+    if self._plainOn then
+        local ok, e = pcall(self._plain, self)
+        if not ok then ZeD.logOnce("siren plain", e) end
+        return
+    end
     self:layout(des)
     local s = self._s
     local lights, siren = self:modes()
@@ -187,6 +200,82 @@ function ZeD_SirenController:prerender()
             { glyph = "^v", pad = { "DUD" }, label = ZeD.tr("UI_ZeD_Siren_PromptTurn") },
             { glyph = "A", label = ZeD.tr("UI_ZeD_Siren_Step") }, { glyph = "B", label = ZeD.tr("UI_ZeD_Hud_PutAway") } })
     end
+end
+
+-- ---------------------------------------------------------------------------
+-- THE SIMPLE FORM (the director, Nov 2 2026, punch list 60; ZeDUI/SIMPLE_VERSIONS_PROPOSAL.md): with the simple
+-- dash, a plain card in ZeD's own parts where the prop rises. The two switches side by side, LIGHTS left and SIREN
+-- right as on the panel: each its name as a button (the knob: a press steps it), then its four positions as buttons
+-- with the highest at the top (up turns it up), the one it is at in the primary look. The click areas carry the
+-- plate's ids ("lights:knob", "siren:2"), so the mouse, the wheel and the controller work as on the prop; the
+-- controller's mark sits on the chosen switch's name.
+-- ---------------------------------------------------------------------------
+function S.simple() return ZeD.Settings and ZeD.Settings.dashSimple and ZeD.Settings.dashSimple() or false end
+
+local SIREN_KEYS = { [0] = "IGUI_VehicleLightbar_STANDBY", "IGUI_VehicleLightbar_YELP", "IGUI_VehicleLightbar_WAIL", "IGUI_VehicleLightbar_ALARM" }
+local SWITCH_KEYS = { lights = "UI_ZeD_DashPlain_Lights", siren = "UI_ZeD_Dash_PromptSiren" }
+local function modeWord(group, m)
+    if group == "lights" then return (m == 0) and ZeD.tr("UI_Off") or tostring(m) end
+    return ZeD.textCase(ZeD.tr(SIREN_KEYS[m] or SIREN_KEYS[0]))
+end
+S.modeWord = modeWord   -- (QA probes)
+
+local PLAIN_COL_W, PLAIN_PAD, PLAIN_GAP = 104, 8, 4
+local _btnO, _markO = {}, { focused = true }
+function ZeD_SirenController:_plain()
+    local T = ZeD.T
+    local px = T.px
+    local pad, gap, bh = px(PLAIN_PAD), px(PLAIN_GAP), T.buttonH
+    local f1 = T.fontF1
+    local fh1 = ZeD.TM:getFontHeight(f1)
+    local colW = px(PLAIN_COL_W)
+    local stripH = self.joyfocus and ZeD.PadGlyphs.stripH() or 0
+    local w = pad * 2 + colW * 2 + px(8)
+    local bodyH = pad + fh1 + gap + 5 * bh + 4 * gap + pad
+    local h = bodyH + stripH
+    local dash = ZeD.Dashboard and ZeD.Dashboard.getInstance and ZeD.Dashboard.getInstance()
+    self:place(w, h, (dash and dash._s) or 1)
+    self._s, self._stripH = 1, stripH
+    ZeD.Surface.fill(self, 0, 0, w, bodyH, "surf2")
+    local b = T.borderS
+    self:drawRectBorder(0, 0, w, bodyH, b.a or 1, b.r, b.g, b.b)
+    local th = T.textHead or T.text
+    self:drawText(ZeD.tr("IGUI_VehicleLightbar_Title"), pad, pad, th.r, th.g, th.b, th.a or 1, f1)
+    local lights, siren = self:modes()
+    local hits = {}
+    _markO.win = self
+    for gi, group in ipairs(GROUPS) do
+        local x = pad + (gi - 1) * (colW + px(8))
+        local y = pad + fh1 + gap
+        local cur = (group == "lights") and lights or siren
+        -- the switch's name: a press steps it, as the knob does; the controller's mark is here
+        local kid = group .. ":knob"
+        local o = _btnO
+        o.hover = (self._hover == kid and not self.joyfocus) and true or false
+        o.focus = (self.joyfocus and self.focus == gi) and _markO or nil
+        ZeD.Molecules.drawButton(self, x, y, colW, bh, ZeD.tr(SWITCH_KEYS[group]), "default", o.hover and isMouseButtonDown(0), nil, o)
+        hits[#hits + 1] = { id = kid, x = x, y = y, w = colW, h = bh, group = group, knob = true }
+        for m = 3, 0, -1 do
+            y = y + bh + gap
+            local id = group .. ":" .. m
+            o.hover = (self._hover == id and not self.joyfocus) and true or false
+            o.focus = nil
+            ZeD.Molecules.drawButton(self, x, y, colW, bh, modeWord(group, m), (m == cur) and "primary" or "default", o.hover and isMouseButtonDown(0), nil, o)
+            hits[#hits + 1] = { id = id, x = x, y = y, w = colW, h = bh, group = group, knob = false, mode = m }
+        end
+    end
+    self._hits = hits
+    if stripH > 0 then
+        ZeD.PadGlyphs.drawStrip(self, 0, bodyH, w, {
+            { glyph = "<>", label = ZeD.tr("UI_ZeD_Siren_PromptSwitch") },
+            { glyph = "^v", pad = { "DUD" }, label = ZeD.tr("UI_ZeD_Siren_PromptTurn") },
+            { glyph = "A", label = ZeD.tr("UI_ZeD_Siren_Step") }, { glyph = "B", label = ZeD.tr("UI_ZeD_Hud_PutAway") } })
+    end
+end
+
+-- the controller's mark (the hand, corners or ants) over the plain card, drawn last
+function ZeD_SirenController:render()
+    if self._plainOn and ZeD.Focus and ZeD.Focus.drawOverlay then ZeD.Focus.drawOverlay(self, self) end
 end
 
 -- ---------------------------------------------------------------------------
