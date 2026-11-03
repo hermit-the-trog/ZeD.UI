@@ -1,0 +1,21 @@
+DRAFT for the director to post when 0.3.0-beta2 is on the Workshop (not posted). It replaces translations_beta_post.txt
+(beta 1, three languages). QA rewrites the 24 per-language "translate" replies to "check the machine draft" at the
+same time. Words that Steam's English swear filter stars out in other languages: check the preview before posting.
+
+===== 1. New section at the top of the Translations thread's first post =====
+
+[b]Machine translations (from 0.3.0-beta2)[/b]
+ZeD-GUI now ships a draft in every language the game has. They were made by machine and are marked "(machine translation, ZeD-GUI)" in the game's language list. Japanese, Korean, Thai, Traditional Chinese, Russian and Ukrainian had a second, careful pass by machine; none has been checked by a native speaker yet. Expect mistakes: words that are wrong for the game, phrases too long for their space, sentences that read stiffly.
+
+If you speak one of these languages, please help fix them:
+[list]
+[*]Post in your language's reply below with the phrase as it shows, where you saw it (a screenshot helps), and what it should say.
+[*]Or send a corrected UI.json for your language (Translate/<code> in the mod's folder). The section below says how.
+[/list]
+Each language has a short list of the choices its translator was least sure of, the best place to start: [url=https://github.com/hermit-the-trog/ZeD.UI/tree/main/ZeDUI/i18n/mt_notes]ZeDUI/i18n/mt_notes[/url]. When players have checked a language, its machine-translation mark comes off.
+
+===== 2. Reply in the thread =====
+
+Beta 0.3.0-beta2 is out with machine-made drafts of every language the game has. Switch the game's language to try yours. They're marked as machine translations in the language list, because that's what they are: a starting point, not a finished job.
+
+If you speak one of them, corrections in your language's reply are the most useful thing you can send right now: the phrase, where it shows, and what it should say. Thank you.
