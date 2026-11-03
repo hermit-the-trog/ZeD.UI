@@ -9,6 +9,7 @@
    {"chapter": ["34", "Messages"]},
    {"p": "Some mods open a note when the game starts or when something changes. ZNIX keeps the notes in one window, *Messages*, instead of showing them over the game, and nothing pauses the game."},
    {"p": "When a note comes in, a strip at the right of the screen names the mod for a few seconds (Figure 34-1). Click the strip to open *Messages* at that mod. The paper note at the right end of the belt counts the notes that are new."},
+   {"p": "A mod's errors wait here too, each with *Copy*; *Bug report* on the ZeD wheel copies them all, with the mods that are on."},
    {"at": 650},
    {"caption": ["Figure 34-1", "Notes from two mods have come in."]},
    {"p": "To read the notes a mod has sent:"},

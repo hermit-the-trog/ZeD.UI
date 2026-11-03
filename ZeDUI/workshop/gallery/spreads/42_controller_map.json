@@ -55,6 +55,6 @@
    {"text": "A: left click. Open, take, press.", "pen": "blu", "at": [1646, null], "maxw": 210, "to": [0, 1205, 668]},
    {"text": "X: right click, the context menu.", "pen": "blu", "at": [1420, 850], "maxw": 200, "to": [0, 1108, 572]}
   ],
-  "sticky": {"at": [1614, 906], "w": 246, "h": 104, "text": "Every mouse action has a button."}
+  "sticky": {"at": [1614, 846], "w": 246, "h": 184, "text": "Every mouse action has a button. In game: quick wheel, Help."}
  }
 }
