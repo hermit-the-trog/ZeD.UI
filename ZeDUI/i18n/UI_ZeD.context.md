@@ -2827,7 +2827,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Radio_FullView` | `Full view` | Character / World window, Radio tab: hover hint of the icon button at the header's right end that shows a two-way radio's face on its own, over the world | 24 |
 | `UI_ZeD_Radio_LocBack` | `Back` | Character / World window, Radio tab: header pill, radio carried on the back | 12 |
 | `UI_ZeD_Radio_LocPrimary` | `Primary` | Character / World window, Radio tab: header pill, radio held in the primary hand; also the belt's main-hand circle, where 9 letters is the most that fits (abbreviate with a period: Secund.) | 9 |
-| `UI_ZeD_Radio_LocSecondary` | `Secondary` | Character / World window, Radio tab: header pill, radio held in the secondary hand; also the belt's off-hand circle, where 9 letters is the most that fits (abbreviate with a period: Secund.) | 9 |
+| `UI_ZeD_Radio_LocSecondary` | `Secondary` | Character / World window, Radio tab: header pill, radio held in the secondary hand; also the belt's off-hand circle, the smaller one, where 8 letters is the most that fits (abbreviate with a period: Secund.) | 8 |
 | `UI_ZeD_Radio_MemFull` | `MEMORY FULL` | Two-way radio display flash when MEM has no room left | 16 |
 | `UI_ZeD_Radio_Mic` | `MIC` | Dash head unit (two-way set) small display: microphone muted | 4 |
 | `UI_ZeD_Radio_MicOff` | `MIC OFF` | Two-way radio display: microphone muted | 8 |
