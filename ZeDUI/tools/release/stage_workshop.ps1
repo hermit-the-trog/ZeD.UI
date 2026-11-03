@@ -51,16 +51,39 @@
 .PARAMETER KeepDevTools
     Also ship the dev-only Lua (the F6 test window and the -debug QA bridge).
 
+.PARAMETER Description
+    The build's page text (a .bbcode file, e.g. ZeDUI/workshop/tester_description_0.3.0-beta1.bbcode): written into
+    workshop.txt's description= lines, the id, tags and visibility kept. Refused past Steam's 8,000 characters (the
+    game adds 58 for the Workshop and Mod ID lines). Warned when it does not name -Version. (Punch list 70, Nov 2 2026:
+    t16 went to staging with t15's page text because staging kept the old one.)
+
+.PARAMETER ChangeNote
+    The build's change note (a .txt file): written into Zomboid/Lua/ZeD_workshop.txt, where ZeD's upload window
+    finds it for the ZeD-UI folder.
+
+.PARAMETER Title
+    The item's title in workshop.txt (e.g. "ZeD-GUI [BETA]"). Left as it is when not given.
+
+.PARAMETER Preview
+    The preview picture to copy beside Contents/ instead of ZeDUI/tools/release/preview.png
+    (e.g. ZeDUI/workshop/thumbnail/znix_256_beta.png: red is a test build, yellow the beta, green the release).
+
 .EXAMPLE
     & C:/Users/danie/Zomboid/mods/ZeD-UI/ZeDUI/tools/release/stage_workshop.ps1 -DryRun
 .EXAMPLE
     & C:/Users/danie/Zomboid/mods/ZeD-UI/ZeDUI/tools/release/stage_workshop.ps1 -Version 0.2.0-test1
+.EXAMPLE
+    & .../stage_workshop.ps1 -Version 0.3.0-beta1 -Title "ZeD-GUI [BETA]" -Description ZeDUI/workshop/tester_description_0.3.0-beta1.bbcode -ChangeNote ZeDUI/workshop/tester_changenote_0.3.0-beta1.txt -Preview ZeDUI/workshop/thumbnail/znix_256_beta.png
 #>
 [CmdletBinding()]
 param(
     [string]$Version,
     [switch]$DryRun,
-    [switch]$KeepDevTools
+    [switch]$KeepDevTools,
+    [string]$Description,
+    [string]$ChangeNote,
+    [string]$Title,
+    [string]$Preview
 )
 
 Set-StrictMode -Version Latest
@@ -77,7 +100,8 @@ $ItemName  = 'ZeD-UI'
 $Item      = Join-Path $WsRoot $ItemName
 $Contents  = Join-Path $Item 'Contents'
 $Stage     = Join-Path $Contents (Join-Path 'mods' $ModFolder)
-$Preview   = Join-Path $PSScriptRoot 'preview.png'
+$PreviewArg = $Preview
+$Preview   = if ($PreviewArg) { [IO.Path]::GetFullPath((Join-Path $ModRoot $PreviewArg)) } else { Join-Path $PSScriptRoot 'preview.png' }
 $PicksSrc  = Join-Path $ModRoot 'ZeDUI/picks_mod/ZeD_Picks'                       # ZeD picks (ZeD_ModPicks.lua)
 $PicksStage = Join-Path $Contents 'mods/ZeD_Picks'
 
@@ -198,6 +222,29 @@ $srcInfo = Get-Content -LiteralPath (Join-Path $v42 'mod.info') -Raw
 $srcVer = if ($srcInfo -match '(?m)^modversion=(.*?)\r?$') { $Matches[1] } else { '(none)' }
 $upVer = if ($Version) { $Version } else { $srcVer }
 
+# the page text, the change note and the title (punch list 70): read and checked before anything is written
+$descLines = $null; $noteText = $null
+$WsTxtPath = Join-Path $Item 'workshop.txt'
+$KeepFile  = Join-Path $Zomboid 'Lua/ZeD_workshop.txt'
+if ($Description) {
+    $dp = [IO.Path]::GetFullPath((Join-Path $ModRoot $Description))
+    if (-not (Test-Path -LiteralPath $dp)) { Fail "-Description: $dp not found" }
+    $dt = ([IO.File]::ReadAllText($dp, [Text.Encoding]::UTF8)) -replace "`r", ''
+    $dt = $dt.TrimEnd("`n")
+    $room = 8000 - 58
+    if ($dt.Length -gt $room) { Fail ("-Description: {0:N0} characters; Steam takes {1:N0} once the game adds its 58" -f $dt.Length, $room) }
+    if ($Version -and -not $dt.Contains($Version)) { Warn "-Description does not name $Version (the page's version line)" }
+    $descLines = $dt -split "`n"
+}
+if ($ChangeNote) {
+    $cp = [IO.Path]::GetFullPath((Join-Path $ModRoot $ChangeNote))
+    if (-not (Test-Path -LiteralPath $cp)) { Fail "-ChangeNote: $cp not found" }
+    $noteText = (([IO.File]::ReadAllText($cp, [Text.Encoding]::UTF8)) -replace "`r", '').TrimEnd("`n")
+    if ($Version -and -not $noteText.Contains($Version)) { Warn "-ChangeNote does not name $Version" }
+}
+if ($Version -and -not $Description) { Warn 'no -Description: workshop.txt keeps the page text it has (the last build''s)' }
+if ($Version -and -not $ChangeNote) { Warn 'no -ChangeNote: the upload window keeps the change note it has' }
+
 # the preview picture: Steam wants a 256 x 256 PNG of 1000 KB at most
 function Test-Preview([string]$path) {
     if (-not (Test-Path -LiteralPath $path)) { return 'missing (run make_preview.py)' }
@@ -303,6 +350,30 @@ if (-not $DryRun) {
 
     if ($previewProblem) { Warn "preview.png $previewProblem; not copied (the Workshop will not take the item without it)" }
     else { Copy-Item -LiteralPath $Preview -Destination (Join-Path $Item 'preview.png') -Force }
+
+    # workshop.txt: the title and the page text, the id, tags and visibility kept (UTF-8, no BOM, LF as the game writes)
+    if ($descLines -or $Title) {
+        if (-not (Test-Path -LiteralPath $WsTxtPath)) { Fail "workshop.txt not found at $WsTxtPath (the first Upload writes it)" }
+        $old = ([IO.File]::ReadAllText($WsTxtPath, [Text.Encoding]::UTF8)) -replace "`r", ''
+        $out = New-Object System.Collections.Generic.List[string]
+        $descDone = $false
+        foreach ($l in ($old.TrimEnd("`n") -split "`n")) {
+            if ($Title -and $l.StartsWith('title=')) { $out.Add("title=$Title"); continue }
+            if ($descLines -and $l.StartsWith('description=')) {
+                if (-not $descDone) { foreach ($d in $descLines) { $out.Add("description=$d") }; $descDone = $true }
+                continue
+            }
+            $out.Add($l)
+        }
+        if ($descLines -and -not $descDone) { foreach ($d in $descLines) { $out.Add("description=$d") } }
+        [IO.File]::WriteAllText($WsTxtPath, (($out -join "`n") + "`n"), (New-Object Text.UTF8Encoding $false))
+    }
+    # the change note, where ZeD's upload window reads it (ZeD_MainMenuWorkshop.lua keepLoad: "note <folder>", "|" lines)
+    if ($null -ne $noteText) {
+        $k = "ZeD-UI Workshop window: the folder picked last, and the change notes not uploaded yet`npicked=$ItemName`nnote $ItemName`n"
+        foreach ($l in ($noteText -split "`n")) { $k += "|$l`n" }
+        [IO.File]::WriteAllText($KeepFile, $k, (New-Object Text.UTF8Encoding $false))
+    }
 }
 
 # ---------------------------------------------------------------------------
@@ -327,6 +398,10 @@ Write-Host '== SUMMARY ==' -ForegroundColor Cyan
 "  ZeD picks:   {0}" -f $(if (Test-Path -LiteralPath (Join-Path $PicksSrc '42/mod.info')) { $(if ($DryRun) { 'would stage' } else { 'staged' }) + ' mods/ZeD_Picks (the helper mod for file picks)' } else { 'MISSING (ZeDUI/picks_mod/ZeD_Picks)' })
 "  dev tools:   {0}" -f $(if ($KeepDevTools) { 'shipped (-KeepDevTools)' } else { 'left out' })
 "  preview.png: {0}" -f $(if ($previewProblem) { $previewProblem } else { '256 x 256 PNG, ok' + $(if ($DryRun) { '' } else { ' (copied into the item folder)' }) })
+"  page text:   {0}" -f $(if ($descLines) { "{0} ({1:N0} + 58 of 8,000 characters){2}" -f $Description, ($descLines -join "`n").Length, $(if ($DryRun) { ' would be written' } else { ' written into workshop.txt' }) } else { 'kept as it is in workshop.txt' })
+"  title:       {0}" -f $(if ($Title) { $Title } else { 'kept as it is' })
+"  change note: {0}" -f $(if ($null -ne $noteText) { "{0}{1}" -f $ChangeNote, $(if ($DryRun) { ' would be written' } else { ' written into Lua/ZeD_workshop.txt' }) } else { 'kept as it is in Lua/ZeD_workshop.txt' })
+"  preview:     {0}" -f $Preview
 "  workshop.txt: {0}" -f $(if ($wsId) { "kept; item id $wsId (Upload updates that item)" } elseif (Test-Path -LiteralPath $wsTxt) { 'kept; no id yet (the first Upload creates the item)' } else { 'none yet (ZeD''s upload window writes it on Save)' })
 '  biggest files:'
 foreach ($r in ($copy | Sort-Object Size -Descending | Select-Object -First 10)) { '    {0,10}  {1}' -f (Mb $r.Size), $r.Rel }
