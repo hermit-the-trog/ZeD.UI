@@ -1,0 +1,11 @@
+{
+    "Sandbox_ZeD": "ZeD-GUI",
+    "Sandbox_ZeD_TaxiFlagDrop": "計程車計費表：起跳價",
+    "Sandbox_ZeD_TaxiFlagDrop_tooltip": "司機放下計費旗時，計程車計費表顯示的美元數。",
+    "Sandbox_ZeD_TaxiPerFifthMile": "計程車計費表：每 1/5 英里",
+    "Sandbox_ZeD_TaxiPerFifthMile_tooltip": "計費旗放下後，每行駛五分之一英里，計費表增加的美元數。",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting": "計程車計費表：每分鐘等候",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting_tooltip": "計費旗放下後，計程車每等候一分鐘（時速低於 5 km/h，引擎運轉），計費表按真實時間增加的美元數。",
+    "Sandbox_ZeD_TaxiPerExtraPassenger": "計程車計費表：每名額外乘客",
+    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "在「其他」下為第一名之後的每位乘客顯示的美元數。司機不計。"
+}
