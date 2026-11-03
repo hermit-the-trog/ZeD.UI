@@ -1,0 +1,3 @@
+# punch list 60 (Nov 2 2026): the Simple watch at 4K, pictures for the director and its buttons
+zedqa_prelude.lua | pre | timeout=120
+zedqa_simple_watch.lua | sw | timeout=300
