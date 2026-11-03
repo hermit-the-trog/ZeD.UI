@@ -1,0 +1,14 @@
+ZEDQA wsp start
+ZEDQA wsp PASS the Workshop upload page opens
+ZEDQA wsp folders: ModTemplate, ZeD-UI
+ZEDQA wsp PASS the page is on the ZeD-UI folder
+ZEDQA wsp preview C:\Users\you\Zomboid\Workshop\ZeD-UI\preview.png: 512 x 512
+ZEDQA wsp PASS the picture reads 512 x 512
+ZEDQA wsp PASS the dot is green (a size the game takes)
+ZEDQA wsp the words: 512 x 512: a size the game takes. It must stay under 1000 KB.
+ZEDQA wsp PASS the words name 512 x 512 and the 1000 KB limit
+ZEDQA wsp the game's own check (SteamWorkshopItem.validatePreviewImage): not reached: expected argument of type Path, got String java.lang.RuntimeException
+ZEDQA wsp what keeps it from going up: nothing
+ZEDQA wsp shot zqa_wsp_page
+ZEDQA wsp summary: all 5 PASS
+ZEDQA wsp DONE
