@@ -2070,6 +2070,8 @@ item says so.
     before a release: the release check, the full run at 4K, the simple versions, the old items 4 to 16 (each mapped
     to how it is checked now), small screens once, the main menu, the languages, the upload. Three checks are still to
     build (the disclosure walk, the button census, save and reload); QA builds them once the director approves.
+    **The director, Nov 2 2026: approved ("thumbs up").** QA builds the three missing checks next (the disclosure walk,
+    the button census, save and reload); both sessions refresh the list after every build.
 75. **Punch list housekeeping (build).**
     - Item headers that still say open or fixed although a later QA paragraph confirms them get their state
       corrected.
