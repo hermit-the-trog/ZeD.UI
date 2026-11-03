@@ -935,10 +935,20 @@ function CK.render(panel, win, x, y, w, h)
     local mx, my = panel:getMouseX(), panel:getMouseY()
     local inL = (not isGamepad()) and not s.popup and mx >= x and mx < x + listW and my >= top and my < top + bodyH
     local inR = (not isGamepad()) and not s.popup and mx >= rx and mx < x + w and my >= top and my < top + bodyH
+    -- The Character window clips its drawer with a stencil, and PZ stencils do not nest: a column's own
+    -- clip, once cleared, leaves its rect marked apart from the drawer's, so what draws over it later
+    -- (the open Dish and Sort lists) was hidden there (QA, Nov 3 2026). After each column the drawer's
+    -- clip is laid again over the whole tab.
+    local function relayClip()
+        panel:clearStencilRect()
+        panel:setStencilRect(x, y, w, h)
+    end
     renderIngredients(panel, win, s, x, top, listW, bodyH, chr, inL and { x = mx, y = my } or nil)
+    relayClip()
     local bd = T.borderS
     panel:drawRect(x + listW, top, T.px(1), bodyH, bd.a or 1, bd.r, bd.g, bd.b)
     renderDish(panel, win, s, rx, top, rw, bodyH, chr, inR and { x = mx, y = my } or nil)
+    relayClip()
     -- the controller's scroll-follow, in the column the focused element is in
     local gp = s.gpId
     if gp then
