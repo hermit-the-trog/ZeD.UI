@@ -2367,6 +2367,14 @@ item says so.
     - For the director's tuning (the game's own rules, the same as by hand): the tab goes away after Make (the pot
       is now a dish, and only an empty pot or pan starts one); seasoning is not offered for a dish not yet begun;
       frozen food is not listed at all.
+81. **The Workshop thumbnail: "The year is 1993, and so is the user interface. All of it." (the director, Nov 3 2026:
+    "That's the one that goes with the next upload").** done (design). A 1993 window on a dithered desktop, 1993 huge,
+    ALL in the heavy face, BETA on pixel caution tape along the foot. It is now `ZeDUI/tools/release/preview.png`
+    (what stage_workshop.ps1 copies into the item), `workshop/thumbnail/preview.png` (the page mockup's) and the
+    Workshop folder's preview.png; sources and the 1024 in `ZeDUI/workshop/thumbnail/` (src_1993_*.py,
+    year_1993_*.png). The desk picture and the book cover are kept as backups beside them.
+    - **Build:** do not run `make_preview.py` for a release (it would draw the old desk preview over this one). When
+      the beta ends, drop the tape (the last block of card() in src_1993_year2.py) and re-export.
 
 ## Test process
 
