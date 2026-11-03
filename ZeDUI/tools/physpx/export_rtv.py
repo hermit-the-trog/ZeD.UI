@@ -12,7 +12,7 @@ the antique set's in black and white in its tube's tint, ready to draw over the 
     <texdir>offair/<plate>/<screen>.png      screen = bars, standby, signoff_<channel>, snow_0..2
 The two channels the game has a logo for leave a box on their card for the game's own picture (logos: the file, the
 box as fractions of the screen, the tint to draw it with).
-usage: python export_rtv.py [mod root]   (default: ./out/mod/ZeD-UI)"""
+usage: python export_rtv.py [mod root] [--into-mod]   (default: ./out/mod/ZeD-UI; the mod itself refused without --into-mod)"""
 import os
 import sys
 
@@ -81,5 +81,17 @@ def export(root, only=None):
     return out, pictures
 
 
+# The tools have drifted from the committed art (design, Nov 2 2026, ZeDUI/HANDOFF_laundry_redesign_20261102.md): the
+# committed oven, generator, grill, ham, walkie and microwave textures and six oven / ham entries in PhysPx.lua are newer
+# than what these generators make today, so a full export straight into the mod would put older art back. Export to the
+# default folder (or any other) and copy the plates you changed; writing into the mod itself needs --into-mod.
+MOD_ROOT = os.path.normpath(os.path.join(HERE, "..", "..", ".."))
+
 if __name__ == "__main__":
-    export(sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "out", "mod", "ZeD-UI"))
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    root = args[0] if args else os.path.join(HERE, "out", "mod", "ZeD-UI")
+    if os.path.normcase(os.path.normpath(os.path.abspath(root))) == os.path.normcase(MOD_ROOT) and "--into-mod" not in sys.argv:
+        sys.exit("REFUSED: this would rewrite every machine plate in the mod, and the committed oven, generator, grill, "
+                 "ham, walkie and microwave art is newer than these tools make. Export to the default folder and copy the "
+                 "plates you changed, or pass --into-mod once the tools are level with the committed art.")
+    export(root)
