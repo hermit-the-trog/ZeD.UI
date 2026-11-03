@@ -1884,6 +1884,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_MainMenu_AboutSub` | `secure ZNIX kernal -- DO NOT UNPLUG` | Main menu bar, ZeD menu, About block: the line under the title | - |
 | `UI_ZeD_MainMenu_AboutUptime` | `Uptime` | About block: left label of the row showing how long the game has run | 12 |
 | `UI_ZeD_MainMenu_AM` | `AM` | Clock in the main menu dates (12-hour) | 3 |
+| `UI_ZeD_MainMenu_Clock12` | `%1:%2 %3` | The 12-hour clock in the main menu dates: %1 hour, %2 minutes, %3 AM or PM. Put %3 first where your language does (Korean %3 %1:%2) | - |
 | `UI_ZeD_MainMenu_AndMore` | `and %1 more` | Pause window, Mods page: last line when the list is cut. %1 is how many more mods there are | - |
 | `UI_ZeD_MainMenu_AskQuitGame` | `Quit Project Zomboid?` | Main menu: question in the action strip before quitting the game | - |
 | `UI_ZeD_MainMenu_BuildVersion` | `Build %1` | About block: the game's build. %1 is the version number | - |

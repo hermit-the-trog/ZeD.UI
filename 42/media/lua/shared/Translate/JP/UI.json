@@ -1412,6 +1412,7 @@
     "UI_ZeD_MainMenu_AboutSub": "セキュアなZNIXカネール -- 電源を抜くな",
     "UI_ZeD_MainMenu_AboutUptime": "稼働時間",
     "UI_ZeD_MainMenu_AM": "AM",
+    "UI_ZeD_MainMenu_Clock12": "%3%1:%2",
     "UI_ZeD_MainMenu_AndMore": "他%1件",
     "UI_ZeD_MainMenu_AskQuitGame": "Project Zomboidを終了しますか?",
     "UI_ZeD_MainMenu_BuildVersion": "Build %1",
