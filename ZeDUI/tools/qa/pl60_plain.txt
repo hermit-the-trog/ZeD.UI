@@ -1,0 +1,3 @@
+# punch list 60 (Nov 2 2026): the plain device cards: every control by mouse, the pad, back to Full
+zedqa_prelude.lua | pre | timeout=120
+zedqa_plain_cards.lua | plc | timeout=400

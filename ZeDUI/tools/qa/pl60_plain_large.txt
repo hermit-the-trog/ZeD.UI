@@ -1,0 +1,4 @@
+# punch list 60 (Nov 2 2026): the plain device cards on the Deck with Large text
+zedqa_prelude.lua | pre | timeout=120
+zedqa_textlarge.lua | txl | timeout=60
+zedqa_plain_cards.lua | plc | timeout=400

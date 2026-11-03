@@ -1,0 +1,5 @@
+# punch list 60 (Nov 2 2026): the plain device cards through the radio and two-way tests (pictures for the director)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_devices_form.lua | dvf | timeout=30
+zedqa_rtv.lua | rtv | timeout=900
+zedqa_twoway.lua | tw | timeout=900
