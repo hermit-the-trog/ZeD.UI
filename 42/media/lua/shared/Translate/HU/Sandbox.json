@@ -1,0 +1,11 @@
+{
+    "Sandbox_ZeD": "ZeD-GUI",
+    "Sandbox_ZeD_TaxiFlagDrop": "Taxióra: alapdíj",
+    "Sandbox_ZeD_TaxiFlagDrop_tooltip": "Dollár, amit a taxióra mutat, amikor a sofőr lehúzza a zászlót.",
+    "Sandbox_ZeD_TaxiPerFifthMile": "Taxióra: 1/5 mérföldenként",
+    "Sandbox_ZeD_TaxiPerFifthMile_tooltip": "Dollár, amit az óra hozzáad minden megtett mérföldötödért, lehúzott zászlóval.",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting": "Taxióra: percenkénti várakozás",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting_tooltip": "Dollár, amit az óra hozzáad a taxi várakozásának minden valós percéért (5 km/h alatt, járó motorral), lehúzott zászlóval.",
+    "Sandbox_ZeD_TaxiPerExtraPassenger": "Taxióra: minden további utas",
+    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "Dollár, ami az EXTRÁK alatt látszik az első után minden utasért. A sofőr nem számít."
+}
