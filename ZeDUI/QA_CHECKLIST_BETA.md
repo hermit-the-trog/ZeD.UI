@@ -99,6 +99,8 @@ The language goes back to English after.
 - Staging sets the version, writes the page text and change note, and puts the preview in place.
 - The staged copy matches the tested code.
 - The release check passes on the staged copy, the last thing before Upload.
+- After the Upload: the animated thumbnail is set (release checklist 16b, `set_preview_gif.ps1`) and plays on the item
+  page, the Workshop grid and the Steam app; the item's files and page text are unchanged (punch list 81).
 
 ---
 
