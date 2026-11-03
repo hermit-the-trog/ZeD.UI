@@ -12,7 +12,11 @@
 -- knobs' pointers, the flames' glow under the hood, the lid thermometer, the
 -- tank gauge and the tank in the cart. The centre knob and the red igniter
 -- light it or shut it off, the cart takes a tank in or gives it back. Under the
--- plate the hours of gas, then the grill's contents.
+-- plate the hours of gas, then the grill's contents. Its Simple form (ZeD setup's
+-- Devices row; ZeD.ObjectCardPlain in ObjectCardPower.lua) draws the same
+-- readings and the same controls as plain rows: the gas left in large type,
+-- the lid heat, the burner, the igniter and the tank with its gauge, each the
+-- face's own zone (bbq:burner, bbq:ignite, bbq:tank).
 -- Every action goes through vanilla's camping / barbecue handlers.
 -- ============================================================================
 
@@ -20,6 +24,7 @@ require "ZeD/ObjectCards"
 require "ZeD/ZeD_PixelParts"
 require "ZeD/ZeD_Plate"
 require "ZeD/PhysPx"
+require "ZeD/ObjectCardPower"   -- (the plain card's parts: ZeD.ObjectCardPlain)
 
 local OC = ZeD.ObjectCards
 local P = ZeD.Px
@@ -425,57 +430,110 @@ local function grillState(t, d)
 end
 local function plateTex(name) return P.tex(ZeD.PhysPx.texdir .. name .. ".png") end
 
+-- the grill's controls (the face's and the plain card's): the cart takes a tank or gives it back; the igniter
+-- lights the burner (t.toggle: vanilla's toggle, nil without gas)
+local function tankFn(p, tt)
+    if tt.obj:hasPropaneTank() then ISBBQMenu.onRemovePropaneTank(nil, p:getPlayerNum(), tt.obj)
+    else
+        local tank = ISBBQMenu.FindPropaneTank(p, tt.obj)
+        if tank then ISBBQMenu.onInsertPropaneTank(nil, p:getPlayerNum(), tt.obj, tank) end
+    end
+end
+local function ignite(p, tt) if not tt.obj:isLit() and tt.toggle then tt.toggle(p, tt) end end
+
+-- the gas left as hours and minutes ("12:30"; "0:00" with no tank)
+local function gasText(d)
+    if not d.tank then return "0:00" end
+    local gm = math.floor(d.fuel % 60)
+    return tostring(math.floor(d.fuel / 60)) .. ":" .. (gm < 10 and "0" or "") .. tostring(gm)
+end
+
+ZeD.trDefaults({
+    UI_ZeD_PlainCard_Burner = "Burner",
+    UI_ZeD_PlainCard_Igniter = "Igniter",
+    UI_ZeD_PlainCard_LidHeat = "Lid heat",
+})
+
+-- The Simple form: the gas left in large type; then the face top to bottom: the lid thermometer, the burner knob, the
+-- igniter, the tank in the cart with its gauge. The controls are the face's zones (same fids, runs and help).
+local function propanePlain(card, x, y, w, t)
+    local T = ZeD.T
+    local d = t.d
+    local OP = ZeD.ObjectCardPlain
+    local y0 = y
+    local st = grillState(t, d)
+    y = y + OP.readout(card, x, y, w, { cols = {
+        { label = ZeD.tr("UI_ZeD_Fire_GasLeft"), big = gasText(d), unit = ZeD.tr("UI_ZeD_PlainCard_HrsUnit"), live = d.tank },
+    } })
+    y = y + OP.row(card, x, y, w, { label = ZeD.tr("UI_ZeD_PlainCard_LidHeat"), share = st.grillTemp,
+        shareC = d.lit and T.warning or nil })
+    y = y + OP.row(card, x, y, w, {
+        label = ZeD.tr("UI_ZeD_PlainCard_Burner"),
+        value = d.lit and OC.cap(ZeD.tr("IGUI_Fireplace_Burning")) or ZeD.tr("UI_Off"), dot = d.lit and T.positive or nil,
+        ctl = { kind = "switch", fid = "bbq:burner", on = d.lit, help = ZeD.tr("UI_ZeD_Fire_HelpBurner"),
+                run = t.toggle and function(cc, p) t.toggle(p, t) end or nil },
+    })
+    y = y + OP.row(card, x, y, w, {
+        label = ZeD.tr("UI_ZeD_PlainCard_Igniter"),
+        ctl = { kind = "button", fid = "bbq:ignite", word = getText("ContextMenu_Light"), help = ZeD.tr("UI_ZeD_Fire_HelpIgnite"),
+                run = (not d.lit and t.toggle) and function(cc, p) ignite(p, t) end or nil },
+    })
+    y = y + OP.row(card, x, y, w, {
+        label = ZeD.tr("UI_ZeD_Fire_Tank"),
+        value = d.tank and ZeD.tr("UI_ZeD_Fire_TankIn") or ZeD.tr("IGUI_None"),
+        share = st.tankF, shareLabel = ZeD.tr("UI_ZeD_Fire_Tank"),
+        ctl = { kind = "button", fid = "bbq:tank", word = ZeD.tr(d.tank and "UI_ZeD_Fire_RemoveTank" or "UI_ZeD_Fire_InsertTank"),
+                help = ZeD.tr("UI_ZeD_Fire_HelpTankPart"), run = (d.tank or d.spare) and function(cc, p) tankFn(p, t) end or nil },
+    })
+    return y - y0
+end
+
 local function propaneBody(card, x, y, w, t, player)
     local T = ZeD.T
     local d = t.d
     local y0 = y
     local gap = T.px(8)
-    local X = ZeD.PhysPx
-    -- the width that fills the card, else the narrow face where the main face at the whole zoom does not fit it
-    -- (the card's plate room, the same with or without its scrollbar)
-    local room = card._plateRoom or w
-    local des = X and P.pick(X.fallback.propane, room)
-    if des then
-        local Sc = ZeD.Scale
-        local k = P.kFit((Sc and Sc.root and Sc.root()) or 1, des.w, room)   -- whole zoom, inside the card
-        local px0 = x + PL.centre(w, des.w, k)
-        local cv = P.canvas(card, px0, y, k)
-        local st = grillState(t, d)
-        PL.draw(cv, des, st, { tex = plateTex, now = getTimestampMs() })
-        -- the centre knob turns it on or off; the igniter lights it; the cart takes a tank or gives it back
-        local function tankFn(p, tt)
-            if tt.obj:hasPropaneTank() then ISBBQMenu.onRemovePropaneTank(nil, p:getPlayerNum(), tt.obj)
-            else
-                local tank = ISBBQMenu.FindPropaneTank(p, tt.obj)
-                if tank then ISBBQMenu.onInsertPropaneTank(nil, p:getPlayerNum(), tt.obj, tank) end
+    -- the face, or its simple form (ZeD setup's Devices row: read as it draws, so a change applies at once)
+    if ZeD.ObjectCardPlain.on() then
+        y = y + propanePlain(card, x, y, w, t) + gap
+    else
+        local X = ZeD.PhysPx
+        -- the width that fills the card, else the narrow face where the main face at the whole zoom does not fit it
+        -- (the card's plate room, the same with or without its scrollbar)
+        local room = card._plateRoom or w
+        local des = X and P.pick(X.fallback.propane, room)
+        if des then
+            local Sc = ZeD.Scale
+            local k = P.kFit((Sc and Sc.root and Sc.root()) or 1, des.w, room)   -- whole zoom, inside the card
+            local px0 = x + PL.centre(w, des.w, k)
+            local cv = P.canvas(card, px0, y, k)
+            local st = grillState(t, d)
+            PL.draw(cv, des, st, { tex = plateTex, now = getTimestampMs() })
+            -- the centre knob turns it on or off; the igniter lights it; the cart takes a tank or gives it back
+            local helpKey = { burner = "UI_ZeD_Fire_HelpBurner", ignite = "UI_ZeD_Fire_HelpIgnite", tank = "UI_ZeD_Fire_HelpTankPart" }
+            for _, c in ipairs(PL.controls(des, st)) do
+                local fid = "bbq:" .. c.id
+                local fn = nil
+                if c.id == "burner" then fn = t.toggle
+                elseif c.id == "ignite" then fn = (not d.lit and t.toggle) and ignite or nil
+                elseif c.id == "tank" then fn = (d.tank or d.spare) and tankFn or nil end
+                -- a key (the igniter, the cart) takes the pointer's wash and the controller's mark; the
+                -- burner knob keeps its own lit ring
+                if c.kind == "turn" then
+                    if card._fid == fid then PL.cue(cv, c, T.accent, 0.55) end
+                else
+                    if UI.hovered(card, fid) then PL.hoverKey(cv, c) end
+                    local fm = card:focusOf(fid)
+                    if fm then PL.markKey(card, c, px0, y, k, fm) end
+                end
+                card:zone({ fid = fid, x = px0 + c.x * k, y = y + c.y * k, w = c.w * k, h = c.h * k, body = true,
+                    help = helpKey[c.id] and ZeD.tr(helpKey[c.id]) or nil,
+                    run = fn and function(cc, p) fn(p, t) end or nil })
             end
+            y = y + des.h * k + T.px(6)
         end
-        local function ignite(p, tt) if not tt.obj:isLit() and t.toggle then t.toggle(p, tt) end end
-        local helpKey = { burner = "UI_ZeD_Fire_HelpBurner", ignite = "UI_ZeD_Fire_HelpIgnite", tank = "UI_ZeD_Fire_HelpTankPart" }
-        for _, c in ipairs(PL.controls(des, st)) do
-            local fid = "bbq:" .. c.id
-            local fn = nil
-            if c.id == "burner" then fn = t.toggle
-            elseif c.id == "ignite" then fn = (not d.lit and t.toggle) and ignite or nil
-            elseif c.id == "tank" then fn = (d.tank or d.spare) and tankFn or nil end
-            -- a key (the igniter, the cart) takes the pointer's wash and the controller's mark; the
-            -- burner knob keeps its own lit ring
-            if c.kind == "turn" then
-                if card._fid == fid then PL.cue(cv, c, T.accent, 0.55) end
-            else
-                if UI.hovered(card, fid) then PL.hoverKey(cv, c) end
-                local fm = card:focusOf(fid)
-                if fm then PL.markKey(card, c, px0, y, k, fm) end
-            end
-            card:zone({ fid = fid, x = px0 + c.x * k, y = y + c.y * k, w = c.w * k, h = c.h * k, body = true,
-                help = helpKey[c.id] and ZeD.tr(helpKey[c.id]) or nil,
-                run = fn and function(cc, p) fn(p, t) end or nil })
-        end
-        y = y + des.h * k + T.px(6)
+        y = y + UI.pair(card, x, y, w, ZeD.tr("UI_ZeD_Fire_GasLeft"), ZeD.tr("UI_ZeD_Fire_Hrs", gasText(d)), ZeD.tr("UI_ZeD_Fire_Tank"), d.tank and ZeD.tr("UI_ZeD_Fire_TankIn") or ZeD.tr("IGUI_None")) + gap
     end
-    local gm = math.floor(d.fuel % 60)
-    local hrs = d.tank and (tostring(math.floor(d.fuel / 60)) .. ":" .. (gm < 10 and "0" or "") .. tostring(gm)) or "0:00"
-    y = y + UI.pair(card, x, y, w, ZeD.tr("UI_ZeD_Fire_GasLeft"), ZeD.tr("UI_ZeD_Fire_Hrs", hrs), ZeD.tr("UI_ZeD_Fire_Tank"), d.tank and ZeD.tr("UI_ZeD_Fire_TankIn") or ZeD.tr("IGUI_None")) + gap
     local items = d.container and call(d.container, "getItems")
     local n = items and items:size() or 0
     if n > 0 then

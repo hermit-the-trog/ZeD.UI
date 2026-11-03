@@ -11,7 +11,9 @@
 -- the one in use (walking away releases it, as in the tab).
 -- Mouse: as in the tab (a knob's left half turns it down, the right half up; the
 -- wheel turns it). Controller: up / down walk the controls in reading order, left /
--- right turn a knob (or walk), A presses, B closes.
+-- right turn a knob (or walk), A presses, B closes. With ZeD setup's Devices row on Simple the
+-- window holds the plain card (StationAppliance.lua) at ZeD's own size; its controls are the face's, so the
+-- mouse, the wheel and the controller work on it unchanged.
 -- ============================================================================
 require "ZeD/StationAppliance"
 ZeD.StationPopout = ZeD.StationPopout or {}
@@ -96,8 +98,17 @@ function ZeD_StationPopout:prerender()
     local k = self:zoomFor(des)
     local margin = T.px(16)
     local tbH = self:titleBarHeight()
-    local w = (des and des.w * k or T.px(400)) + 2 * margin
-    local bodyH = self._bodyH or (des and des.h * k + T.px(160)) or T.px(300)
+    -- Simple (ZeD setup's Devices row): the plain card at ZeD's own size, the card's width (a switch applies at once)
+    local simple = SA.simple and SA.simple() or false
+    if simple ~= self._simple then self._simple, self._bodyH = simple, nil end
+    local w, bodyH
+    if simple then
+        w = T.px(SA.PLAIN_POP_W) + T.sp.scrollbarW + 2 * margin
+        bodyH = self._bodyH or T.px(420)
+    else
+        w = (des and des.w * k or T.px(400)) + 2 * margin
+        bodyH = self._bodyH or (des and des.h * k + T.px(160)) or T.px(300)
+    end
     local h = tbH + bodyH + self:footerHeight()   -- the help line under the body
     if self.width ~= w or self.height ~= h then
         self:setWidth(w); self:setHeight(h)
