@@ -1,0 +1,11 @@
+{
+    "Sandbox_ZeD": "ZeD-GUI",
+    "Sandbox_ZeD_TaxiFlagDrop": "Taksameter: Startgebyr",
+    "Sandbox_ZeD_TaxiFlagDrop_tooltip": "Dollars, taxaens taksameter viser, når chaufføren trækker flaget ned.",
+    "Sandbox_ZeD_TaxiPerFifthMile": "Taksameter: Pr. 1/5 mil",
+    "Sandbox_ZeD_TaxiPerFifthMile_tooltip": "Dollars, taksameteret lægger til for hver femtedel mil, der køres med flaget nede.",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting": "Taksameter: Pr. ventende minut",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting_tooltip": "Dollars, taksameteret lægger til for hvert minut i realtid, taxaen venter (under 5 km/t, motor i gang), med flaget nede.",
+    "Sandbox_ZeD_TaxiPerExtraPassenger": "Taksameter: Pr. ekstra passager",
+    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "Dollars vist under EKSTRA for hver passager efter den første. Chaufføren tæller ikke med."
+}
