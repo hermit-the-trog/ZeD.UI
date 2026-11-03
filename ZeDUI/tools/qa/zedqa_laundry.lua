@@ -132,6 +132,7 @@ local instantWas = false
 pcall(function() instantWas = p:isTimedActionInstantCheat() end)
 local useFaceWas = LD.useFace
 local washer, dryer, combo
+local grownW = nil
 
 -- power for the machine's square: the grid flag
 -- (the world flag and the shut-off day together: with the flag off and the modifier at 0 no square has grid power)
@@ -237,7 +238,7 @@ local function barParts(faceId)
     local meter, drum = 0, 0
     for _, part in ipairs(des and des.parts or {}) do
         if part.t == "bars" and part.src == "waterMeter" then meter = meter + 1 end
-        if part.t == "bars" and part.src == "water" then drum = drum + 1 end
+        if part.src == "water" or part.src == "waterBare" or part.src == "waterLoad" then drum = drum + 1 end
     end
     return meter, drum
 end
@@ -328,6 +329,16 @@ local function machine(tag, getObj, pidWant, opts)
         check(LD.plateId(obj) == pidWant, tag .. ": the class picks the " .. pidWant .. " face (" .. tostring(LD.plateId(obj)) .. ")")
         check(LD.useFace(obj), tag .. ": the face shows (LD.useFace)")
         ZeD_WorldWindow.selectContainer(obj:getContainer(), 900)
+        -- (the windows grown once, so a whole face shows without scrolling: for the pictures; put back at the end)
+        local W = WW()
+        if W and not grownW then
+            grownW = { w = W:getHeight(), c = ZeD_CharacterWindow.getWindow() and ZeD_CharacterWindow.getWindow():getHeight() }
+            local add = math.min(ZeD.T.px(300), getCore():getScreenHeight() - (W:getY() + W:getHeight()) - ZeD.T.px(10))
+            if add > 0 then
+                W:setHeight(W:getHeight() + add)
+                local C = ZeD_CharacterWindow.getWindow(); if C then C:setHeight(C:getHeight() + add) end
+            end
+        end
     end)
     -- the machine is within a square: it must be in the World window's container list before anything is pressed
     waitFor(10, 900, function() return obj == nil or inList(obj) end, function()
@@ -378,9 +389,23 @@ local function machine(tag, getObj, pidWant, opts)
         shot(tag .. "_1_open")
     end)
     -- the water at each of the game's five levels, the tub empty and then with clothes (Nov 2 2026, punch list 77: the
-    -- top-loader's soak1..5 among the clothes, water1..5 in the empty tub; the washer-dryer keeps its water1..5)
+    -- top-loader's soak1..5 among the clothes, water1..5 in the empty tub; the washer-dryer keeps its water1..5). The
+    -- card's reading of the machine (def.refresh's t.d) is given the level: a machine on piped water reports 10000
+    -- (always five) and one off the supply would not take water from a script, so the card's pictures are checked for
+    -- each level as the card would read it from the machine.
     if opts.hasWater then
-        local cap
+        local shirtGone = {}   -- (the machine is a Java object: the flag is kept here, not on it)
+        local qa = { lvl = nil }
+        local origRefresh
+        step(5, function()
+            local e = entry()
+            if not (e and e.def) then return end
+            origRefresh = e.def.refresh
+            e.def.refresh = function(t, pl)
+                origRefresh(t, pl)
+                if qa.lvl and t.d then t.d.cap = 20; t.d.fluid = 20 * qa.lvl / 5; t.d.hasWater = true end
+            end
+        end)
         for _, withClothes in ipairs({ false, true }) do
             for lvl = 1, 5 do
                 step(5, function()
@@ -388,27 +413,24 @@ local function machine(tag, getObj, pidWant, opts)
                     local c = obj:getContainer()
                     local items = c:getItems()
                     if not withClothes then
-                        for i = items:size() - 1, 0, -1 do
-                            local it = items:get(i)
-                            if tostring(it:getType()):find("Tshirt", 1, true) then cap = cap; c:Remove(it); obj._qaShirtGone = true end
+                        for i2 = items:size() - 1, 0, -1 do
+                            local it = items:get(i2)
+                            if tostring(it:getType()):find("Tshirt", 1, true) then c:Remove(it); shirtGone[obj] = true end
                         end
-                    elseif obj._qaShirtGone then
+                    elseif shirtGone[obj] then
                         local shirt = c:AddItem("Base.Tshirt_DefaultTEXTURE_TINT"); if shirt then added[#added + 1] = shirt end
-                        obj._qaShirtGone = nil
+                        shirtGone[obj] = nil
                     end
-                    cap = cap or (function() local v; pcall(function() v = obj:getFluidCapacity() end); return (v and v > 0) and v or 20 end)()
-                    pcall(function() obj:emptyFluid() end)
-                    pcall(function() obj:createFluidContainersFromSpriteProperties() end)
-                    pcall(function() obj:addFluid(FluidType.Water, cap * lvl / 5 - 0.01) end)
+                    qa.lvl = lvl
                 end)
-                step(20, function()
+                step(90, function()
                     if not obj then return end
                     local e = entry()
                     local st = e and e.t and e.t._st
                     local key = withClothes and "waterLoad" or "waterBare"
-                    say(string.format("%s: level %d %s: fluid %.1f of %.1f | water %s waterLoad %s waterBare %s | face %s", tag, lvl,
-                        withClothes and "with clothes" or "empty", obj:getFluidAmount() or -1, cap or -1, tostring(st and st.water),
-                        tostring(st and st.waterLoad), tostring(st and st.waterBare), tostring(e and e.t and e.t._face)))
+                    say(string.format("%s: level %d %s: water %s waterLoad %s waterBare %s | clothes %s | face %s", tag, lvl,
+                        withClothes and "with clothes" or "empty", tostring(st and st.water), tostring(st and st.waterLoad),
+                        tostring(st and st.waterBare), tostring(st and st.hasItems), tostring(e and e.t and e.t._face)))
                     if pidWant == "washer" then
                         check(st and st[key] == lvl, string.format("%s: water level %d %s draws its %s picture", tag, lvl,
                             withClothes and "with clothes" or "in the empty tub", withClothes and ("soak" .. lvl) or ("water" .. lvl)))
@@ -419,7 +441,12 @@ local function machine(tag, getObj, pidWant, opts)
                 end)
             end
         end
-        step(5, function() if obj then setWater(obj, true) end end)
+        step(5, function()
+            qa.lvl = nil
+            local e = entry()
+            if e and e.def and origRefresh then e.def.refresh = origRefresh end
+            if obj then setWater(obj, true) end
+        end)
     end
     step(30, function()
         if not obj then return end
@@ -519,6 +546,7 @@ step(20, function()
     if watr and watrWas ~= nil then watr:setValue(watrWas); pcall(function() so:toLua() end) end
     getWorld():setHydroPowerOn(hydroWas)
     pcall(function() p:setTimedActionInstantCheat(instantWas) end)
+    if grownW then pcall(function() WW():setHeight(grownW.w); if grownW.c then ZeD_CharacterWindow.getWindow():setHeight(grownW.c) end end) end
     if winsWere and not ZeD_CharacterWindow.isOpen() then ZeD_CharacterWindow.toggleBothPaired(pn) end
     if spot or travelled then moveTo(home.x, home.y, home.z); t0 = getTimestampMs() end
     say("cleanup done: " .. #placed .. " machines removed, " .. #added .. " items taken back")

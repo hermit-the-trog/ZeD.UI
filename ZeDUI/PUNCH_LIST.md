@@ -2097,6 +2097,29 @@ item says so.
       make today. Running it straight into the mod would put older art back; design exported to a scratch folder and
       copied the laundry files only. Build to bring the tools level with the committed art (or guard the exporter to
       named plates) before anyone exports again.
+    **QA, Nov 2 2026: confirmed at 4K and on the Deck with Large text (zedqa_laundry.lua, 202 / 202 at each;
+    2026-11-02_pl77_laundry_4k.md, _800L.md; pictures for the director qa/Nov2_beta/pl77_laundry_4k.png and
+    pl77_washer_soak3_deck.png).** The washer, dryer and washer-dryer through the gears button: the face that fills the
+    card at a whole zoom (washer@392 at both sizes), power the primary stop, no power (red lamp, the band says so), no
+    water (FILL), running (one phase lamp lit, the cycle dial moving, the next phase later), stopped (lamps dark), the
+    door opens the contents, the washer-dryer's WASH and DRY. The washer at every water level as the card reads it:
+    water1..5 in the empty tub, soak1..5 among the clothes; the washer-dryer's water1..5. The console controls (cycle
+    dial, power, the water meter, the phase lamps) sit on the art; nothing is cut off once the window shows the whole
+    face (the test grows it: at 4K the opening height scrolls the face, as the radios do). The levels are given to the
+    card's reading: a machine on piped water reports 10000 (always five), and one off the supply would not take water
+    from a script. **For build:** (1) a machine on the house supply reads "Water 10000.0 of 10000 L"; (2) the dryer
+    shows a "Water 0.0 L" row though it holds none; (3) once in two 4K runs the dryer's card opened blank (the face
+    not drawn) for its first picture; it drew in the other run and on the Deck. One test-timing slip: "stopped again:
+    lamps dark" read too soon after the stop once (the washer one run, the dryer another).
+78. **The main menu desk v5: the joystick ports and the KI pad (design, Cowork; the director, Nov 2 2026: "Desk is
+    approved").** chosen, staged, not installed (ZeDUI/HANDOFF_main_menu_pad_20261102.md). Two 9-pin joystick ports on
+    the case front, 1 and 2, the Kentucky Instruments pad's plug pushed into 1 (its cable out of the back and down), 2
+    empty with its pins; the pad lying flat on the desk at the bottom right, beige, Super NES thick, edges rounded.
+    The art is in ZeDUI/art/main_menu/v5 (gen_desk.py; grade.py reads v5); no code change, the contract is unchanged.
+    - **Build:** `py grade.py none 1.0` in ZeDUI/tools/menugrade, check that only desk.png and desk_lampdim.png
+      change under 42/media/textures/ZeD/mainmenu, commit with the staged files.
+    - **Check (QA):** the menu at 1080p against previews/main_menu_v5_4x.png, the lights blink in place, the lamp
+      flicker shows the pad; how much of the pad shows at 1280x800 and 720 (the lean-in) and on ultrawide.
 
 ## Test process
 
