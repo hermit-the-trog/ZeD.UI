@@ -2290,6 +2290,24 @@ item says so.
     condition is earned at Mechanics 4 (UI_ZeD_Craft_SkillLevel + IGUI_perks_Mechanics). The step before uses
     Tooltip_vehicle_require*, and the work place uses IGUI_AttachedItems_Location. No new words. The diagrams are
     today's baked figures.** Untested in game at the time.
+    **QA, Nov 3 2026: section 8 in game, 31 of 33 at 4K, the Deck and 720p (Large text at the two small sizes)**
+    (zedqa_mech79.lua through release_check.ps1 -Manifest, the real cursor for hover; reports
+    2026-11-03_pl79_*.md; pictures ZeDUI/qa/review_20261103/pl79). Pass: By section (a brake and a suspension under
+    their tire, a window under its door), the missing tire keeps its row, every row inside the list column; By
+    condition greyed at Mechanics 3 (a press does nothing) and usable at 4; hover on a row lights the part and never
+    opens the card; a click opens the card, the same row closes it, another swaps it; no back arrow; the wheel keeps the
+    card; a click on the diagram picks a part; a real Uninstall and Install of a tire from the footer, the card staying
+    on it; A opens and B closes through the controller's elements; the trailer's animal rows fit the list column. At
+    720p with Large text the tire's footer holds Sort, Deflate and Uninstall (the main verb lit).
+    - **Fail: no step before on a brake.** The rear left brake (recipe known, Mechanics 4 of 3, tools in the bag, its
+      tire still on) shows no Uninstall: the card folds every verb that cannot be done yet into the "With ..." row, and
+      the step before is looked for among the shown verbs only, so the line and its button never appear.
+    - **Check: the folded row says "With Basic Mechanics (recipe), ..."** though isRecipeKnown is true after
+      learnRecipe; the needs use isRecipeActuallyKnown. Whether a learned recipe counts there needs a look.
+    - **Cut text:** the folded row ("With Basic Mechanics (recipe), ...", "With Tire Pump you could pum...") is cut at
+      every size; "Right Headlig..." in the list at 4K and 1.75x.
+    - **Colourblind:** in greyscale the lit Muffler (a thin strip) is the same grey as its neighbours; the outline does
+      not make a small part stand out.
 80. **A Cooking tab: cook dishes the second way (the director, Nov 3 2026).** chosen; after the beta, before the release
     (it adds a feature, so it stays off the beta code freeze).
     - The rule behind it (the director): "I want to give people two ways to do everything." The right-click menu is

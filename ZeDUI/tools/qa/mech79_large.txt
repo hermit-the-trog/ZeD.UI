@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/mech79_large.txt  (Nov 3 2026): punch list 79 at a small size with Large text
+zedqa_prelude.lua | pre | timeout=120
+zedqa_textlarge.lua | txl | timeout=60
+zedqa_mech79.lua | m79 | timeout=600

@@ -5,7 +5,7 @@
 #   pwsh -File ZeDUI/tools/qa/release_check.ps1 [-Report name] [-Width 1280 -Height 800]   (a size: windowed at it, the Deck)
 # -Staged: on the staged Workshop copy, right before Upload (Nov 3 2026). Copy QABridge.lua into the staged copy first and
 # take it out after; the runner refuses a staged copy without its -StagedCopy, and with it unless the bridge is there.
-param([string]$Report = "release_check", [int]$Width = 0, [int]$Height = 0, [switch]$Staged)
+param([string]$Report = "release_check", [int]$Width = 0, [int]$Height = 0, [switch]$Staged, [string]$Manifest = "release_check.txt")   # -Manifest (Nov 3 2026): another manifest that needs the real mouse
 $ErrorActionPreference = "Stop"
 $here = $PSScriptRoot
 $lua = "C:\Users\you\Zomboid\Lua"
@@ -13,7 +13,7 @@ foreach ($f in "zedqa_click.txt", "zedqa_click_done.txt", "zedqa_click_stop.txt"
 $size = if ($Width -gt 0) { @("-Mode", "windowed", "-Width", $Width, "-Height", $Height) } else { @("-Mode", "fullscreen4k") }
 $helper = Start-Process pwsh -ArgumentList @("-NoProfile", "-File", (Join-Path $here "release_check_mouse.ps1")) -WindowStyle Hidden -PassThru
 try {
-    & pwsh -File (Join-Path $here "zedqa_run.ps1") -Manifest (Join-Path $here "release_check.txt") @size -Report $Report -StagedCopy:$Staged
+    & pwsh -File (Join-Path $here "zedqa_run.ps1") -Manifest (Join-Path $here $Manifest) @size -Report $Report -StagedCopy:$Staged
 }
 finally {
     Set-Content -Path (Join-Path $lua "zedqa_click_stop.txt") -Value "stop"
