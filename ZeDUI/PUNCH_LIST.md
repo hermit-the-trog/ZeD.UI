@@ -1964,6 +1964,12 @@ item says so.
       taller in every language: the director's call.
       **The director, Nov 3 2026: "Yes, 2 px taller."** Build makes the action bar 2 px taller in every language so the
       second line takes the tall accented capitals too; QA checks it at 4K (PT, RO, DE, EN, and the Simple bar).
+      **Built (build, d6f38241): line 2 in "35t", the bar 2 units lower, the box 24 + bar, the bubble 36.** **QA, Nov 3
+      2026: PT, RO, DE and EN at 4K** (2026-11-03_pl62_lang_*_taller.md; picture review_20261103/action_bar_taller.png;
+      EN's language checks fail by design, it is not a draft). PT reads MAÇÃ whole; DE APFEL and EN APPLE sit with the
+      extra row between the lines; the bar clears line 2. Found: RO MĂR reads as MÄR, because the small face's breve is
+      the same "101" row as the umlaut dots, which to a Romanian reader is the wrong letter. Not seen: the thought bubble
+      (the run uses the plain box) and the Simple bar (its own size, unchanged).
     **Built (build, Nov 3 2026): the other 24 languages drafted (Sonnet), JP/KO/TH/CH/RU/UA proofread (Fable), all in
     ZeD.MACHINE_LANGS; notes for checkers in ZeDUI/i18n/mt_notes/; the main-menu clock is a translatable pattern
     (UI_ZeD_MainMenu_Clock12).** Not in the uploaded beta; ships with the next build. Hand-circle labels fit (off hand 8
