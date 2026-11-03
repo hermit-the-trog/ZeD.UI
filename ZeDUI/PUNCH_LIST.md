@@ -1837,6 +1837,12 @@ item says so.
     mode "On/off" leaves set mode instead of switching the alarm (it sends the watch's alarm press, the back press in
     set mode); (2) the buttons' words run past their buttons at 4K ("Pause", "Speed", "Alarm", "On/off"); (3) the set
     mode's help line "Set the alarm hour with ..." runs out of the box (not wrapped).
+    **QA, Nov 2 2026, after cb8447cc: the three watch faults are fixed (23 / 23 at 4K and 23 / 23 on the Deck with
+    Large text; 2026-11-02_pl60_watch_4k_b.md, _800L.md; the director's picture retaken,
+    qa/Nov2_beta/pl60_simple_watch.png).** Every button holds its word (4K box 476 x 212, set mode 518 x 176; Deck
+    Large 234 x 103); the set mode's help line wraps in F2 inside the box; On/off ("alarmtoggle") switches the alarm
+    and stays in set mode, Done leaves. Note for build: on the Deck the corner box sits over the World window's
+    top-right corner (its tab strip's edge).
 61. **The Vehicle tab on small screens (the director, Nov 2: undecided, must be decided before the beta).** open.
     - Beside the car figure, Type, Distance and Key show only their labels at small sizes.
     - **QA first:** one small-screen screenshot of the Vehicle tab with the hood open (1280x720 or the Deck,

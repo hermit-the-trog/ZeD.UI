@@ -1,0 +1,4 @@
+# punch list 60 (Nov 2 2026): the Simple watch on the Deck with Large text
+zedqa_prelude.lua | pre | timeout=120
+zedqa_textlarge.lua | txl | timeout=60
+zedqa_simple_watch.lua | sw | timeout=300
