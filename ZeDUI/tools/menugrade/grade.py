@@ -9,7 +9,7 @@ its lightness, tint and colourfulness (each channel's mean and spread) toward th
 usage: py grade.py <frames dir> <strength> [out dir]
   frames dir: screenshots of the video (zqa_tv_1/2/4/5.png from ZeDUI/tools/qa/zedqa_titlevideo.lua; frame 3 is the
   lamp's flicker and is left out, the desk is drawn lamp-on)
-  reads the ungraded art from ZeDUI/art/main_menu/v4, writes the graded textures to out dir (default: the mod's
+  reads the ungraded art from ZeDUI/art/main_menu/v5, writes the graded textures to out dir (default: the mod's
   media/textures/ZeD/mainmenu) and prints the desk's measured margin colours, graded, for ZeD_MainMenu.lua."""
 import json
 import os
@@ -19,7 +19,7 @@ import numpy as np
 from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ART = os.path.join(HERE, "..", "..", "art", "main_menu", "v4")      # v4 (Nov 1 2026): the book on the monitor
+ART = os.path.join(HERE, "..", "..", "art", "main_menu", "v5")      # v5 (Nov 2 2026): the joystick ports and the KI pad
 MOD_TEX = os.path.join(HERE, "..", "..", "..", "42", "media", "textures", "ZeD", "mainmenu")
 
 

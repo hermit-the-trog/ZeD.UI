@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ZeD-UI main menu desk, v3: the lit night room. Draws the desk picture and the pieces ZeD_MainMenu.lua lays over it.
+"""ZeD-UI main menu desk, v5 (v3's lit night room): the lit night room. Draws the desk picture and the pieces ZeD_MainMenu.lua lays over it.
 
     python gen_desk.py --to OUT_FOLDER
 
@@ -18,6 +18,7 @@ Contract with ZeD_MainMenu.lua (native pixels of desk.png):
 import os, sys, math
 import numpy as np
 from PIL import Image
+from scipy import ndimage as ndi
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from desk_engine import Scene, W, H, VPX, VPY, lin, srgb, hx
 
@@ -62,6 +63,8 @@ PAL = {
     # boombox
     "bb": "#56595e", "bb_l": "#9ea3a9", "bb_d": "#2a2c30", "grille": "#1c1d20", "tuner": "#c9c2a4", "needle": "#c0341f",
     # emissive bits
+    # the Kentucky Instruments pad's buttons (Nov 2 2026)
+    "pad_y": "#d9a92a", "pad_x": "#2f62b8", "pad_b": "#c22a2a", "pad_a": "#22894f",
     "led_g": "#4ad04a", "led_a": "#e8a830", "led_off_g": "#2b3d2b", "led_off_a": "#4a3412",
 }
 
@@ -73,7 +76,9 @@ FRESH = ("orange", "orange_d", "orange_ink", "claim", "promo", "claim_hi", "frui
 FRESH_SLOTS = 32                                    # the palette entries they share
 FRESH_BOOK = ("bk_sky0", "bk_sky1", "bk_sky2", "bk_sky3", "bk_sky4", "bk_sky5", "bk_cream", "bk_pear", "bk_ink",
               "bk_band0", "bk_band1", "bk_band2", "tape", "tape_d", "tape_hi", "marker", "marker_d")
-FRESH_BOOK_SLOTS = 24                               # the book's own entries (Nov 1 2026), so the can's stay as they were
+FRESH_BOOK_SLOTS = 24
+FRESH_PAD = ("pad_y", "pad_x", "pad_b", "pad_a")
+FRESH_PAD_SLOTS = 12                                # the pad's buttons (Nov 2 2026): a group of their own                               # the book's own entries (Nov 1 2026), so the can's stay as they were
 
 
 def zdesk(x, y): return np.maximum(0.0, (y - DESK_Y) * 1.15)
@@ -899,6 +904,159 @@ def build_objects():
         with S.surf(z=67, d=False):
             for yy in range(chy + 4, chy + 11, 2): S.hline(mx + mw - 51 + i * 12, yy, 5, "beige_d")
 
+    # ============================================================ JOYSTICK PORTS (Nov 2 2026, the director): two 9-pin ports on
+    # the case front between the vents and the drive, 1 and 2 over them. The Kentucky Instruments pad's plug sits in 1, its
+    # cable dropping off the bottom; 2 is empty, its pins showing.
+    def de9(x, y, empty=True):
+        with S.surf(z=99, g=0.5):
+            for r in range(6):
+                ins = r // 3
+                S.rect(x + ins, y + r, 13 - 2 * ins, 1, "mgray")
+        with S.surf(z=97, d=False):
+            for r in range(1, 5):
+                ins = r // 3
+                S.rect(x + 1 + ins, y + r, 11 - 2 * ins, 1, "black")
+            if empty:
+                for i in range(5): S.px(x + 2 + i * 2, y + 2, "lgray")
+                for i in range(4): S.px(x + 3 + i * 2, y + 3, "lgray")
+        with S.surf(z=99, d=False):
+            S.px(x - 2, y + 2, "beige_d"); S.px(x + 14, y + 2, "beige_d")              # the screw holes
+    for i, (px_, empty) in enumerate(((236, False), (258, True))):
+        de9(px_, 258, empty)
+        text(px_ + 5, 250, "12"[i], "dgray")
+    # the plug in port 1: the pad's own beige plastic, ridged grips, two thumbscrews, the cable out of its foot
+    with S.surf(nf=lambda xs, ys: np.stack([np.clip((xs - 242.5) / 9.0, -1, 1) * 0.5, -0.1 * np.ones_like(xs),
+                                            np.ones_like(xs)], 1), z=106, g=0.3):
+        S.rect(233, 256, 19, 10, "beige")
+    with S.surf(z=106, d=False):
+        S.frame(233, 256, 19, 10, "beige_d")
+        for xx in (235, 237, 248, 250): S.vline(xx, 258, 6, "beige_s")          # the grips, either side of the boot
+    for tx in (231, 252):
+        with S.surf(nf=lambda xs, ys, tx=tx: np.stack([(xs - tx - 0.5) / 2.0, (ys - 261) / 2.0, np.ones_like(xs)], 1), z=107, g=0.8):
+            S.disc(tx + 0.5, 261, 1.5, "lgray")
+    # the cable comes straight out of the plug's back toward us, through a round strain-relief boot, then sags down
+    # in front of the plug and off the bottom of the picture
+    BX, BY = 242.5, 260.5
+    with S.surf(z=109, d=False): S.disc(BX, BY, 3.7, "beige_d")
+    with S.surf(nf=lambda xs, ys: np.stack([(xs - BX) / 3.0, (ys - BY) / 3.0, np.ones_like(xs)], 1), z=110, g=0.5):
+        S.disc(BX, BY, 3.0, "beige")
+    with S.surf(nf=lambda xs, ys: np.stack([(xs - BX) / 2.0, (ys - BY) / 2.0, np.ones_like(xs)], 1), z=112, g=0.5):
+        S.disc(BX, BY, 1.6, "black")
+    def cable_n(xs, ys):
+        cxs = 242.0 + np.clip(ys - 262, 0, 8) * 0.12                          # it drifts a hair right as it falls
+        return np.stack([(xs + 0.5 - cxs) / 1.2, -0.2 * np.ones_like(xs), np.ones_like(xs)], 1)
+    with S.surf(nf=cable_n, z=113, g=0.5):
+        for yy in range(int(BY), 270):
+            x_ = 241 + (1 if yy >= 266 else 0)
+            S.rect(x_, yy, 2, 1, "black")
+            if yy >= int(BY) + 2: S.px(x_ - 1, yy, "dgray")                          # the light along its left
+    S.shade((slice(263, 270), slice(244, 246), 0.4), lambda s: s.mat_mask("beige", "beige_s"))   # the cable's shadow
+    S.shade((slice(256, 270), slice(252, 255), 0.35), lambda s: s.mat_mask("beige"))      # the plug's shadow on the case
+
+    # ============================================================ THE KENTUCKY INSTRUMENTS PAD (Nov 2 2026, the director)
+    # Lying flat on the desk in front of the boxes, the controller map's pad: beige like the computer, about as thick as a
+    # Super NES pad, the D-pad, the two sticks, VIEW and MENU, Y X B A in their colours, the shoulders behind. Seen from
+    # a little above (the room's own eye line is too low to read it), its right end running off the picture.
+    X0, YT, SV, TH = 394.0, 242.0, 0.5, 7                  # left end, the top face's far edge, depth squash, thickness
+    def P(u, v): return X0 + u, YT + v * SV
+    U = XX + 0.5 - X0; V = (YY + 0.5 - YT) / SV
+    def inside(u, v):
+        grip = (((u - 22) / 22) ** 2 + ((v - 21.5) / 21.5) ** 2 <= 1) | (((u - 74) / 22) ** 2 + ((v - 21.5) / 21.5) ** 2 <= 1)
+        mid = (u >= 22) & (u <= 74) & (v >= 2.5) & (v <= 40)
+        cut = ((u - 48) / 17) ** 2 + ((v - 49) / 12.5) ** 2 < 1
+        return grip | (mid & ~cut)
+    top = inside(U, V)
+    side = np.zeros_like(top)
+    for k in range(1, TH + 1):
+        side |= inside(U, (YY + 0.5 - k - YT) / SV)
+    side &= ~top
+    body = top | side
+    # its shadow on the desk: soft, under and to the left of it, away from the moon
+    sh = ndi.binary_dilation(body, iterations=2)
+    sh = np.roll(np.roll(sh, 1, 0), -2, 1)
+    S.shade(np.where(sh & ~body, 0.55, 0.0), "desk")
+    # the cable: out of the left grip, down the desk toward the front of the computer, off the bottom
+    with S.surf(n=(0, -0.6, 0.8), z=95, g=0.4):
+        for (x_, y_) in ((394, 255), (393, 256), (393, 257), (392, 258), (392, 259), (392, 260), (391, 261), (391, 262),
+                         (391, 263), (391, 264), (392, 265), (392, 266), (392, 267), (392, 268), (393, 269)):
+            S.px(x_, y_, "black")
+    # the shoulders behind the far edge: the bumpers, the triggers further back
+    for u0 in (8.0, 62.0):
+        with S.surf(n=(0, -0.3, 1), z=76, g=0.3):
+            S.rect(X0 + u0 + 3, YT - 4, 20, 2, "beige_d")                                     # the triggers
+        with S.surf(n=(0, -0.5, 1), z=77, g=0.3):
+            S.rect(X0 + u0, YT - 2, 26, 3, "beige_s"); S.hline(X0 + u0, YT - 2, 26, "beige_h")
+    # the body: the top face (a slow bevel at its rim), the sides
+    def top_n(xs, ys):
+        u = xs - X0; v = (ys - YT) / SV
+        e = np.minimum(1.0, np.maximum(0.0, 1 - np.minimum.reduce([np.abs(v - 0.0), np.abs(v - 43.0)]) / 4.0))
+        return np.stack([0.15 * np.sign(u - 48) * (np.abs(u - 48) / 48) ** 3, -1.0 + 0.0 * xs, 0.35 + 0.0 * xs], 1)
+    def side_n(xs, ys):
+        u = xs - X0
+        nx = np.where(u < 22, (u - 22) / 22, np.where(u > 74, (u - 74) / 22, 0.0))
+        return np.stack([nx * 0.8, 0.12 * np.ones_like(xs), np.ones_like(xs)], 1)
+    with S.surf(nf=side_n, z=82, g=0.25): S.paint(side, "beige")
+    with S.surf(nf=top_n, z=80, g=0.3): S.paint(top, "beige")
+    rim_far = top & ~np.roll(top, 1, 0)
+    rim_near = top & ~np.roll(top, -1, 0)
+    with S.surf(n=(0, -1.0, -0.15), z=79, g=0.45): S.paint(rim_far, "beige")             # the back edge rolls away
+    # a soft, rounded edge where the top turns down into the sides: the top's last rows roll toward us, the side's
+    # first row rolls up toward the top (no hard line between them)
+    def roll_n(k):
+        def f(xs, ys):
+            u = xs - X0
+            nx = np.where(u < 22, (u - 22) / 22, np.where(u > 74, (u - 74) / 22, 0.0)) * 0.5 * k
+            return np.stack([nx, (-1.0 + 0.75 * k) * np.ones_like(xs), (0.35 + 0.65 * k) * np.ones_like(xs)], 1)
+        return f
+    edge1 = top & ~np.roll(top, -3, 0) & ~rim_near                     # two rows in from the edge
+    with S.surf(nf=roll_n(0.35), z=81, g=0.35): S.paint(edge1, "beige")
+    with S.surf(nf=roll_n(0.7), z=81, g=0.35): S.paint(rim_near, "beige")
+    shoulder = side & np.roll(top, 1, 0)
+    with S.surf(nf=roll_n(0.95), z=82, g=0.3): S.paint(shoulder, "beige")
+    S.tone(body, 0.97 + 0.04 * np.random.default_rng(31).random((H, W)))
+    S.tone(top & ~ndi.binary_dilation(~top, iterations=2), 0.88)
+    S.tone(top & ndi.binary_dilation(~top, iterations=2), 0.94)                                    # (the top faces the ceiling: a shade under the case's front)
+    seam = side & ~np.roll(side, -1, 0)                                                   # where it meets the desk
+    with S.surf(nf=side_n, z=82, d=False): S.paint(seam, "beige_d")
+    tn = (0, -1.0, 0.35)
+    def E(u, v, ru, rv, c, z=81, n=tn, g=0.3, d=True):
+        cx, cy = P(u, v)
+        with S.surf(n=n, z=z, g=g, d=d): S.ellipse(cx, cy, ru, rv * SV, c)
+    # the D-pad in its dish
+    E(22, 22, 10, 9.5, "beige_s", g=0.2)
+    cx, cy = P(22, 22)
+    with S.surf(z=82, d=False):
+        S.rect(cx - 6, cy, 13, 2, "black"); S.rect(cx - 2, cy - 3, 5, 7, "black")             # its depth
+    with S.surf(n=tn, z=83, g=0.5):
+        S.rect(cx - 6, cy - 1, 13, 2, "dgray"); S.rect(cx - 2, cy - 4, 5, 6, "dgray")
+    with S.surf(n=tn, z=83, g=0.7, d=False):
+        S.hline(cx - 6, cy - 1, 4, "mgray"); S.hline(cx + 3, cy - 1, 4, "mgray"); S.hline(cx - 2, cy - 4, 5, "mgray")
+        S.px(cx, cy, "black")
+    # Y X B A in their dish
+    E(74, 22, 12, 10.5, "beige_s", g=0.2)
+    for (u, v, c) in ((74, 14.5, "pad_y"), (66, 22, "pad_x"), (82, 22, "pad_b"), (74, 29.5, "pad_a")):
+        bx, by = P(u, v)
+        with S.surf(z=82, d=False): S.ellipse(bx, by + 1, 3, 1.6, "black")
+        with S.surf(n=tn, z=84, g=0.7): S.ellipse(bx, by, 3, 1.6, c)
+        with S.surf(n=tn, z=84, g=0.9, d=False): S.px(int(bx) - 1, int(by - 1), "label")
+    # the sticks: a ring in the face, the cap standing up on its post
+    for u in (40, 56):
+        sx_, sy_ = P(u, 31)
+        E(u, 31, 6, 6.5, "beige_d", g=0.2)
+        with S.surf(z=82, d=False): S.ellipse(sx_, sy_ - 0.5, 4.5, 2.3, "black")
+        with S.surf(n=tn, z=86, g=0.4): S.ellipse(sx_, sy_ - 2, 4.5, 2.3, "dgray")
+        with S.surf(n=tn, z=86, g=0.8, d=False): S.hline(int(sx_) - 2, int(sy_ - 3), 3, "mgray")
+    # VIEW and MENU
+    for u in (41, 55):
+        vx, vy = P(u, 18)
+        with S.surf(n=tn, z=82, g=0.5): S.rect(int(vx) - 3, int(vy), 6, 1, "dgray")
+    # the maker's mark between them, flattened by the angle
+    mx_, my_ = P(42, 9)
+    with S.surf(d=False):
+        for ry, row in enumerate(KY[::2]):
+            for rx, b in enumerate(row):
+                if b == "#": S.px(int(mx_) + rx, int(my_) + ry, "beige_d")
+
 
 def vignette():
     e = np.minimum(np.minimum(XX + 0.5, W - XX - 0.5), np.minimum(YY + 0.5, (H - YY - 0.5) * 3))
@@ -933,8 +1091,9 @@ if __name__ == "__main__":
     pins = [srgb(lit[y0:y0 + h0, x0:x0 + w0].reshape(-1, 3).mean(0)) for x0, y0, w0, h0 in PINS]
     fresh = np.zeros((H, W), bool)
     fresh_book = np.zeros((H, W), bool)
+    fresh_pad = np.zeros((H, W), bool)
     if args.refit or not os.path.exists(LOCK):
-        pal = pal_fresh = pal_book = S.palette_for([lit, dim], pins=pins)
+        pal = pal_fresh = pal_book = pal_pad = S.palette_for([lit, dim], pins=pins)
         json.dump({"palette": [[float(v) for v in c] for c in pal]}, open(os.path.join(out, "palette.json"), "w"))
     else:
         # the approved room's palette for every pixel; the fresh materials' pixels may also use their own entries
@@ -947,11 +1106,13 @@ if __name__ == "__main__":
             return m, np.vstack([pal, S.kmeans(X, slots, iters=20) if len(X) > slots else X])
         fresh, pal_fresh = own_entries(FRESH, FRESH_SLOTS)
         fresh_book, pal_book = own_entries(FRESH_BOOK, FRESH_BOOK_SLOTS)      # a group of its own: the can's untouched
+        fresh_pad, pal_pad = own_entries(FRESH_PAD, FRESH_PAD_SLOTS)
 
     def quantize(frame):
         img_, _ = S.quantize(frame, palette=pal)
         if fresh.any(): img_ = np.where(fresh[..., None], S.quantize(frame, palette=pal_fresh)[0], img_)
         if fresh_book.any(): img_ = np.where(fresh_book[..., None], S.quantize(frame, palette=pal_book)[0], img_)
+        if fresh_pad.any(): img_ = np.where(fresh_pad[..., None], S.quantize(frame, palette=pal_pad)[0], img_)
         return img_
     img, img_dim = quantize(lit), quantize(dim)
     # the dial without its needle: paint the tuner face where the needle was, light it, cut the 7 x 10 box
