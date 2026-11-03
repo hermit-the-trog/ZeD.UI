@@ -157,7 +157,7 @@ function def.refresh(t, player)
     d.fluid = call(o, "getFluidAmount") or 0
     d.cap = call(o, "getFluidCapacity") or 0
     -- on the house pipes: the game reports 10000 of 10000 L, which says nothing (QA, Nov 2 2026, punch list 77)
-    d.piped = (call(o, "getUsesExternalWaterSource") and call(o, "hasExternalWaterSource")) and true or false
+    d.piped = ((call(o, "getUsesExternalWaterSource") and call(o, "hasExternalWaterSource")) or d.cap >= 9999) and true or false   -- (the pipes report a 10000 L tank)
     -- a dryer takes no water: no water row for it
     d.dryerOnly = (not d.combo) and instanceof(o, "IsoClothingDryer") or false
     d.washMode = (not d.combo and instanceof(o, "IsoClothingWasher")) or (d.combo and o:isModeWasher()) or false
