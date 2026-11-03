@@ -5,5 +5,14 @@ Languages
 - The main menu's clock puts AM / PM first where a language does (Korean, Japanese, Chinese).
 - The hand circles on the belt fit their words in every language.
 
+Cooking (new)
+- A Cooking tab in the Character window, shown while you carry a pot, a pan, a bowl, bread or a cup and something in reach goes into it: pick the dish and what it is made in, add ingredients from the list (by name or by kind), and Make. Each ingredient goes in as it would by hand, so the game's limits and results stay. A dish can be saved to make again, and when what is in reach makes more than one, a count shows beside Make.
+
+Vehicle tab
+- Two columns, like Crafting: the parts on the left, the car diagram or the chosen part's card on the right, the actions at the foot. No back arrow: the same row again brings the diagram back.
+- Sort by section (a brake under its tire, a window under its door) or, from Mechanics level 4, by condition.
+- The card says what has to come off first, with a key to it, where the work is done, and the spares in reach.
+- The car diagrams are redrawn in pixel art; hovering a row lights its part, and a click on the diagram picks it.
+
 Action bar
 - Accented capitals keep their full height, with the accent above the letter (SYÖMINEN, MAÇÃ, MĂR), on both lines. The action bar is 2 units taller to make room.
