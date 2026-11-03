@@ -613,6 +613,10 @@ D.B.zed = function(p, pn)
                      detail = (n > 0) and tr(un > 0 and "UI_ZeD_Msg_New" or "UI_ZeD_Msg_CountStat", un > 0 and un or n) or nil,
                      run = (n > 0) and function(pl, pn2) MS.open() end or nil, off = (n == 0) and tr("UI_ZeD_Msg_None") or nil }
         end)(),
+        -- Bug report (the director, Nov 2 2026, punch list 66): every caught error with ZeD's version and the mod
+        -- list onto the clipboard, ready to paste into a Workshop thread or send to Hermit
+        { name = tr("UI_ZeD_Msg_BugReport"), icon = "bullhorn", detail = tr("UI_ZeD_Msg_BugReportDetail"),
+          run = function(pl, pn2) if ZeD.Messages and ZeD.Messages.copyBugReport then ZeD.Messages.copyBugReport(pn2) end end },
         { name = tr("UI_ZeD_Wheel_ResetWindows"), icon = "rotate", detail = tr("UI_ZeD_Wheel_ResetWindowsDetail"), run = Z.resetWindows },
         { name = tr("UI_ZeD_Options_GroupZed"), icon = "gears", detail = tr("UI_ZeD_Wheel_ZeDSetupDetail"), run = function(pl, n) D.H.openSetup(pl, n) end },
         { name = tr("UI_ZeD_Settings_SafeMode"), icon = "safemode", detail = tr("UI_ZeD_Wheel_SafeModeDetail"), run = Z.safeMode },

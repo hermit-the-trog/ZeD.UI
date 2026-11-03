@@ -296,7 +296,9 @@ local function fileError(s)
     for _, f in ipairs(item.firsts) do if f == first then known = true; break end end
     if not known and #item.firsts < 5 then item.firsts[#item.firsts + 1] = first end
     item.texts[#item.texts + 1] = s
-    if #item.texts > KEEP_ERRORS then table.remove(item.texts, 1) end
+    item.whens = item.whens or {}
+    item.whens[#item.texts] = when()   -- (each kept error's own time, for its card and its copy)
+    if #item.texts > KEEP_ERRORS then table.remove(item.texts, 1); table.remove(item.whens, 1) end
     for _, t in ipairs(M.toasts) do if t.source == name and t.kind == "crit" then t.text = ZeD.tr("UI_ZeD_Msg_ToastErrors", item.count) end end
     bump()
 end
@@ -324,14 +326,88 @@ function M.readErrors()
     end
 end
 
--- the bug report text for an error source: what ZeD knows, then the kept errors in full
+-- ---------------------------------------------------------------------------
+-- BUG REPORTS (the director, Nov 2 2026, punch list 66: "no digging through files or the console"). Every copied
+-- report starts with the same header, so a paste into a Workshop thread or a paste site says what ran:
+-- ZeD-GUI's version, the game's build, then the mods that are on, one per line.
+-- ---------------------------------------------------------------------------
+function M.reportHeader()
+    local zv = safe(function() local mi = getModInfoByID("ZeD_UI"); return mi and mi:getModVersion() end)
+    local gv = safe(function() return tostring(getCore():getVersion()) end)
+    local out = { "ZeD-GUI " .. tostring(zv or "?") .. " | Project Zomboid " .. tostring(gv or "?") }
+    local mods = safe(getActivatedMods)
+    local n = mods and mods:size() or 0
+    out[#out + 1] = "Mods on (" .. n .. "):"
+    for i = 0, n - 1 do
+        local id = tostring(mods:get(i))
+        local mi = safe(getModInfoByID, id)
+        local nm = mi and safe(function() return mi:getName() end)
+        local ver = mi and safe(function() return mi:getModVersion() end)
+        out[#out + 1] = "  " .. ((nm and nm ~= id) and (nm .. " (" .. id .. ")") or id) .. ((ver and ver ~= "") and (" " .. ver) or "")
+    end
+    out[#out + 1] = ""
+    return table.concat(out, "\n")
+end
+
+-- one source's errors, every kept one in full ("errors" is how many came; the newest 12 are kept)
+local function sourceBlock(name, it)
+    local out = { name .. ": " .. it.count .. " errors, the newest " .. #it.texts .. " in full", "" }
+    for i, t in ipairs(it.texts) do
+        out[#out + 1] = "--- " .. tostring((it.whens and it.whens[i]) or "") .. " ---"
+        out[#out + 1] = t
+        out[#out + 1] = ""
+    end
+    return table.concat(out, "\n")
+end
+
+-- the bug report text for an error source: the header, then its kept errors in full
 function M.report(name)
     local s = M.sources[name]
     local it = s and s.items[1]
     if not it or it.k ~= "err" then return "" end
-    local out = { name .. ": " .. it.count .. " errors (ZeD-GUI Messages)", "" }
-    for _, t in ipairs(it.texts) do out[#out + 1] = t; out[#out + 1] = "" end
-    return table.concat(out, "\n")
+    return M.reportHeader() .. "\n" .. sourceBlock(name, it)
+end
+
+-- one kept error of a source (i: its place in the kept list), with the header
+function M.reportOne(name, i)
+    local s = M.sources[name]
+    local it = s and s.items[1]
+    local t = it and it.k == "err" and it.texts[i]
+    if not t then return "" end
+    return M.reportHeader() .. "\n" .. name .. ": " .. tostring((it.whens and it.whens[i]) or "") .. "\n" .. t .. "\n"
+end
+
+-- every error source's report in one text, and how many errors it holds
+function M.reportAll()
+    local names = {}
+    for name, s in pairs(M.sources) do
+        if s.kind == "err" and s.items[1] and s.items[1].k == "err" then names[#names + 1] = name end
+    end
+    table.sort(names)
+    local parts, n = { M.reportHeader() }, 0
+    for _, name in ipairs(names) do
+        local it = M.sources[name].items[1]
+        n = n + it.count
+        parts[#parts + 1] = sourceBlock(name, it)
+    end
+    if n == 0 then parts[#parts + 1] = "No errors were caught this session." end
+    return table.concat(parts, "\n"), n
+end
+
+-- The ZeD wheel's Bug report: every error, with the header, onto the clipboard, then a note saying so
+function M.copyBugReport(pn)
+    local text, n = M.reportAll()
+    local ok = pcall(function() Clipboard.setClipboard(text) end)
+    local msg
+    if not ok then msg = ZeD.tr("UI_ZeD_Msg_BugReportFailed")
+    elseif n == 0 then msg = ZeD.tr("UI_ZeD_Msg_BugReportNone")
+    else msg = ZeD.tr("UI_ZeD_Msg_BugReportCopied", n) end
+    print("[ZeD] Bug report: " .. tostring(n) .. " errors copied to the clipboard (" .. tostring(ok) .. ")")
+    local modal = ISModalDialog:new(0, 0, 380, 160, msg, false, nil, nil, pn)
+    modal:initialise()
+    modal:addToUIManager()
+    if pn and JoypadState and JoypadState.players[pn + 1] then setJoypadFocus(pn, modal) end
+    return n
 end
 
 -- ---------------------------------------------------------------------------
