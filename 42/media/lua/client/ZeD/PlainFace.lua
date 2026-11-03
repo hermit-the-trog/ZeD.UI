@@ -104,7 +104,7 @@ function V.signal(x)
     if not st.on then return DASH end
     local n
     if x.tv then n = (ZeD.Rtv.SIGNAL and ZeD.Rtv.SIGNAL[x.air or "snow"]) or 0
-    else n = st.signal and 3 or 0 end
+    else n = (st.signal and 3) or (st.name and 1) or 0 end   -- (a named station between lines: weak, not none)
     if n >= 3 then return ZeD.tr("UI_ZeD_Plain_SigGood"), T.positive end
     if n == 2 then return ZeD.tr("UI_ZeD_Plain_SigFair"), T.warning end
     if n == 1 then return ZeD.tr("UI_ZeD_Plain_SigPoor"), T.danger end
