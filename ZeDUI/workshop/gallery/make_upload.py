@@ -6,7 +6,9 @@ Writes, in upload order:
   00_cover.jpg   from znix_01_cover.png (cover_px.py)
   00_title.jpg   from out_spread/00_title.png (title_spread.py)
   01_hero.jpg .. 63_cooking.jpg   from out_spread/NN_id.png (spread.py)
-  64_the_end.jpg   the director's closing picture, placed by hand (kept, reported STALE)
+  64_livestock_trailer.jpg .. 68_stir_fry.jpg   from extras/NN_id.png: plain full-screen screenshots, no text
+                   (the director, Nov 3 2026: "round the number of gallery images up"; 71 in all)
+  69_the_end.jpg   the director's closing picture, placed by hand, always last (kept, reported STALE)
 
 Each JPEG is kept under Steam's 1 MB. Colour is kept at full resolution (4:4:4) wherever that fits, so the red and
 blue ink and the 1-bit print stay sharp; only a picture that will not fit drops to 4:2:0. Stale JPEGs in the upload
@@ -45,6 +47,9 @@ def main(out=None, up=None):
     spreads = sorted(p for p in glob.glob(os.path.join(out, "*.png")) if re.match(r"\d\d_", os.path.basename(p))
                      and not os.path.basename(p).startswith("00_"))
     jobs += [(p, os.path.basename(p)[:-4] + ".jpg") for p in spreads]
+    # the plain screenshots after the spreads (1920x1080 masters scaled from the 4K captures, nothing drawn on them)
+    extras = sorted(glob.glob(os.path.join(HERE, "extras", "*.png")))
+    jobs += [(p, os.path.basename(p)[:-4] + ".jpg") for p in extras]
     bad = 0
     for png, name in jobs:
         if not os.path.exists(png):
