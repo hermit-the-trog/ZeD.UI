@@ -1,11 +1,11 @@
-# ZeDUI/tools/icons/bumpers_long.py  (Nov 2 2026, the director's sketch for the controller map)
-# Lengthens the controller map's bumpers (LB, RB) outward along the pad's shoulders in
-# 42/media/textures/ZeD/controller_map.png, so each one's outer end follows the curve of the pad's body.
-# The art is drawn in 4 x 4 pixel cells. Each new bumper column is a copy of a column of that bumper (the same dot
-# phase), lowered so it sits on the body's top edge there; the outer end takes the bumper's own end look (a light edge
-# on the left, a shaded edge and dark outline on the right). The triggers above stay; their lower part goes behind
-# the longer bumper, as on a real pad.
-# Run: py -3 -I bumpers_long.py <in.png> <out.png>
+# ZeDUI/tools/icons/bumpers_long.py  (Nov 2 2026, the director's sketches for the controller map)
+# Lengthens the controller map's bumpers (LB, RB) outward in 42/media/textures/ZeD/controller_map.png, straight, until
+# each outer end meets the start of the curve of the pad's body (the director's second mark: the bumpers do not bend
+# down over the shoulders). Run on the ORIGINAL art (git show 5c3705df:42/media/textures/ZeD/controller_map.png).
+# The art is drawn in 4 x 4 pixel cells. The new length is the bumper's own columns (the same dot phase); the outer
+# ends are the bumpers' own ends moved out: LB's rounded light left end for LB, LB's shaded right end (its outline and
+# drop shadow) for RB. The triggers above stay; their lower part goes behind the longer bumpers.
+# Run: py -3 -I bumpers_long.py <original.png> <out.png>
 import sys
 from PIL import Image
 
@@ -14,73 +14,50 @@ im = Image.open(src).convert("RGBA")
 W, H = im.size
 C = 4
 CW, CH = W // C, H // C
-grid = [[im.getpixel((cx * C + 1, cy * C + 1)) for cy in range(CH)] for cx in range(CW)]
+orig = [[im.getpixel((cx * C + 1, cy * C + 1)) for cy in range(CH)] for cx in range(CW)]
+grid = [col[:] for col in orig]
 EMPTY = (0, 0, 0, 0)
-LIGHT, SHADE, OUTLINE = (250, 245, 232, 255), (172, 162, 138, 255), (124, 115, 96, 255)
-BODY = {(228, 220, 200, 255), (206, 197, 174, 255), (250, 245, 232, 255), (172, 162, 138, 255), (124, 115, 96, 255)}
+BUMPER = {(250, 245, 232, 255), (206, 197, 174, 255), (172, 162, 138, 255)}   # its light edge, fill and dots
 TOP, BOT = 31, 37          # the bumpers' rows (cells)
-FLAT = 38                  # the body's top edge where it is flat
 
-def body_top(cx):
-    # the first cell of the body in this column, from the flat top down
-    for cy in range(FLAT, CH):
-        if grid[cx][cy] != EMPTY and grid[cx][cy] in BODY:
-            return cy
-    return None
+def tmpl(cx, lo, hi): return next(t for t in range(lo, hi + 1) if t % 4 == cx % 4)
 
-def extend(cols, tmpl_lo, tmpl_hi, outer):
-    """cols: the columns to (re)draw, inner to outer; templates from [tmpl_lo, tmpl_hi]; outer: -1 left, +1 right"""
-    new = {}
+def fill(cols, lo, hi):
     for cx in cols:
-        bt = body_top(cx)
-        if bt is None:
-            continue
-        s = bt - FLAT
-        tc = next(t for t in range(tmpl_lo, tmpl_hi + 1) if t % 4 == cx % 4)
+        tc = tmpl(cx, lo, hi)
         for r in range(TOP, BOT + 1):
-            new[(cx, r + s)] = grid[tc][r]
-        # the seam under the bumper: one light line, as under its flat part (the right shoulder's dark outline
-        # goes to the bumper's outer end instead)
-        if grid[cx][bt] == OUTLINE:
-            grid[cx][bt] = LIGHT
-    for (cx, cy), c in new.items():
-        grid[cx][cy] = c
-    # the outer end: per row, the outermost new cell
-    rows = {}
-    for (cx, cy) in new:
-        if cy not in rows or (cx - rows[cy]) * outer > 0:
-            rows[cy] = cx
-    for cy, cx in rows.items():
-        bottom = (cx, cy + 1) not in new
-        if outer < 0:
-            grid[cx][cy] = SHADE if bottom else LIGHT
-        else:
-            grid[cx][cy] = SHADE
-            nx = cx + 1
-            if nx < CW and (nx, cy) not in new and grid[nx][cy] not in BODY - {OUTLINE}:
-                grid[nx][cy] = OUTLINE
-    return new
+            grid[cx][r] = orig[tc][r]
 
-# LB: from its old left end (cell 47) out to the shoulder (cell 18); its dots copied from cells 50 to 61
-extend(range(47, 17, -1), 50, 61, -1)
-# RB: mirrored, from cell 152 out to cell 181; its dots copied from cells 130 to 141
-extend(range(152, 182), 130, 141, +1)
+# ---- LB: straight out to cell 30 (the body's flat top starts at 28; its curve begins there)
+SHIFT_L = -12              # (a multiple of 4: the dots keep their phase)
+fill(range(30 + 0, 48), 50, 61)
+for r in range(TOP, BOT + 1):
+    start = next(cx for cx in range(40, 50) if orig[cx][r] in BUMPER)   # LB's own left end in this row
+    ns = start + SHIFT_L
+    for cx in range(26, ns):
+        grid[cx][r] = orig[cx][r]           # left of the new end: as before (empty, or the trigger behind)
+    for k in range(0, 4):
+        grid[ns + k][r] = orig[start + k][r]   # the rounded light end, moved out
+
+# ---- RB: straight out to the body's right end (cell 171), with LB's shaded right end as its outer end
+SHIFT_R = 96               # LB's right end (cells 70 to 77) lands at 166 to 173
+fill(range(150, 176), 130, 141)
+for r in range(TOP, BOT + 1):
+    end = max(cx for cx in range(60, 80) if orig[cx][r] in BUMPER)      # LB's own right end in this row
+    ne = end + SHIFT_R
+    for k in range(-3, 3):
+        grid[ne + k][r] = orig[end + k][r]     # the shaded end, its outline and shadow, moved out
+    for cx in range(ne + 3, 178):
+        grid[cx][r] = orig[cx][r]              # past it: as before (empty)
 
 out = Image.new("RGBA", (W, H), EMPTY)
 px = out.load()
+opx = im.load()
 for cx in range(CW):
     for cy in range(CH):
-        c = grid[cx][cy]
+        same = grid[cx][cy] == orig[cx][cy]
         for dx in range(C):
             for dy in range(C):
-                px[cx * C + dx, cy * C + dy] = c
-# keep anything the cells cannot hold (sub-cell detail) where the cells did not change
-orig = im.load()
-for cx in range(CW):
-    for cy in range(CH):
-        if grid[cx][cy] == im.getpixel((cx * C + 1, cy * C + 1)):
-            for dx in range(C):
-                for dy in range(C):
-                    px[cx * C + dx, cy * C + dy] = orig[cx * C + dx, cy * C + dy]
+                px[cx * C + dx, cy * C + dy] = opx[cx * C + dx, cy * C + dy] if same else grid[cx][cy]
 out.save(dst)
 print("written", dst)

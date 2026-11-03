@@ -1941,11 +1941,11 @@ item says so.
     runs 30 px past: it opens at the top, D-pad Down scrolls to the end and Up back, the wheel scrolls it, the footer
     offers "D-pad: Scroll". Notes sent to build: the window was see-through (build makes it solid); the pad art is
     the same Xbox-lettered pad in every set (by design; the director's call).
-    **The director, Nov 2 2026, evening: the bumpers lengthened.** From the director's sketch: LB and RB run out
-    along the pad's shoulders until their outer ends follow the curve of the body; the triggers sit above them.
-    Drawn by QA (ZeDUI/tools/icons/bumpers_long.py: each new column a copy of the bumper's own, lowered onto the
-    shoulder; a light edge at LB's end, a shaded edge and outline at RB's) into controller_map.png; before and after
-    in qa/Nov2_beta/pl67_bumpers_before_after.png.
+    **The director, Nov 2 2026, evening: the bumpers lengthened, straight.** From the director's two sketches: LB and
+    RB run out straight until their outer ends meet the start of the curve of the pad's body (the second sketch: no
+    bending down over the shoulders); the triggers sit above them. Drawn by QA (ZeDUI/tools/icons/bumpers_long.py,
+    from the original art: the bumper's own columns, LB's rounded light end moved out for LB, LB's shaded end with its
+    outline and shadow for RB) into controller_map.png; before and after in qa/Nov2_beta/pl67_bumpers_before_after.png.
 68. **Hair and beard with the eight-mod set (the director, Nov 2: the beta can ship with it as a known issue; keep
     working on it).** Item 54 continues. If it is unsolved at staging, it goes on item 57's Known issues.
 69. **Oct 30's band calls and the radio faces (the director, Nov 2).**
