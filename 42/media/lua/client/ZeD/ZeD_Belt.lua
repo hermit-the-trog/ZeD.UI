@@ -392,7 +392,12 @@ function B.handName(which)
     local k = (which == "p") and "p" or "s"
     local s = c[k]
     if s then return s end
-    s = getText(k == "p" and "IGUI_PrimaryTooltip" or "IGUI_SecondaryTooltip")
+    -- ZeD's own short word where the player's language has one (QA, Nov 2 2026: the game's Turkish "Ikincil Donanim"
+    -- was cut in the hand circle), else the game's word
+    local zk = (k == "p") and "UI_ZeD_Radio_LocPrimary" or "UI_ZeD_Radio_LocSecondary"
+    local own = ZeD.tr(zk)
+    if ZeD.trEnglish and own ~= ZeD.trEnglish(zk) then s = own
+    else s = getText(k == "p" and "IGUI_PrimaryTooltip" or "IGUI_SecondaryTooltip") end
     c[k] = s
     return s
 end
