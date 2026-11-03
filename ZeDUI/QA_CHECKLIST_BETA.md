@@ -1,6 +1,6 @@
 # QA checklist for the beta (0.3.0-beta1)
 
-Draft for the director's review, Nov 2 2026 (punch list 74). QA runs it, and both sessions refresh it after every build.
+Approved by the director, Nov 2 2026 (punch list 74). QA runs it, and both sessions refresh it after every build.
 
 Testing runs at 4K, the director's own screen. The Steam Deck and 720p are checked only where an item says so, and once in the full pass. "Done" means QA has seen it work in the game.
 
