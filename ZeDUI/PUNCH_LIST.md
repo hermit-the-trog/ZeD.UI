@@ -2284,7 +2284,12 @@ item says so.
     - **Design:** the 13 body diagrams (327 layers) redrawn in ZeD pixel art, same shapes, through MechFigs; they drop
       in when done and do not hold up the build.
     - **QA:** the spec's section 8; QA_CHECKLIST_BETA.md has the Vehicle tab row in its pass 1 table.
-
+    **Built (build, Nov 3 2026, 2cb35519): MechanicsTab.lua on CraftingCore's split (list 240u left, diagram or card
+    right, footer with Sort and the part's verbs). By section uses the parts' own install tables: requireUninstalled
+    puts a brake or suspension under its tire, a window sits under its door, and the engine bay under the hood. By
+    condition is earned at Mechanics 4 (UI_ZeD_Craft_SkillLevel + IGUI_perks_Mechanics). The step before uses
+    Tooltip_vehicle_require*, and the work place uses IGUI_AttachedItems_Location. No new words. The diagrams are
+    today's baked figures.** Untested in game at the time.
 80. **A Cooking tab: cook dishes the second way (the director, Nov 3 2026).** chosen; after the beta, before the release
     (it adds a feature, so it stays off the beta code freeze).
     - The rule behind it (the director): "I want to give people two ways to do everything." The right-click menu is
