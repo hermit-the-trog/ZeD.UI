@@ -1926,6 +1926,13 @@ item says so.
     before f37b8b01 (the 141 newest phrases), so 71 to 78 newest keys still read English here; the full pass reruns
     all three on the frozen code. Note: the hand circles' Turkish labels are cut short ("İkincil Do.", "Birincil
     Dona."). Offline: every %1..%4 placeholder matches English in all three.
+    **QA, Nov 2 2026: the gallery for 0.3.0-beta1, in Screenshots/gallery_t14 (the old copies in _before_beta).** At 4K:
+    the laundry trio indoors (59), the messages toast and radio window (34), the two-way radio pages (37, retaken with
+    the debug console hidden: gallery_console_off.lua), and eight new pages: gb_cmap_window, gb_bugreport_wheel,
+    gb_bugreport_dialog, gb_simple_watch, gb_simple_belt, gb_plain_radio, gb_forms_setup, gb_plain_dash
+    (2026-11-02_gallery_beta_4k.md, _gallery_tw_retake_4k.md). The main menu (gallery_menus_run.ps1, every script
+    DONE, everything put back): desk_02, desk_04, desk_05 (46/47) and mm4_01, mm4_02 (48). The one FAIL in the
+    first run was the test's own tidy-up asking a washer for radio data (guarded now); its pictures were fine.
 63. **Ente's Auto Sorter (the director, Nov 2).** chosen. A note in the Compatibility thread: its button bar sits over
     ZeD's belt, so drag its bar aside. It is not popular enough to special-case. QA adds the line at the next thread
     edit.
