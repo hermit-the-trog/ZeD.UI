@@ -2373,6 +2373,10 @@ item says so.
       only a sliver of each list's frame shows (zedqa_cook_popup.lua; Screenshots/zqa_ckp_3840x2160_*.png). The
       tab's state is right (open, rows placed, a click on a row works blind), so the checks passed: a picture
       caught it.** Sent to Build.
+      **Fixed in 9c021c35 (the drawer's clip laid again after each column's own), restaged: both lists draw over
+      the columns (zqa_ckp_*_r2 pictures), the release check 16 / 16 and Cooking 47 / 47 on the restaged copy, no errors
+      in the log (2026-11-03_cook_popup_r2.md, _beta2_staged_r2.md, _gallery_beta2_cook_r2.md). Beta 2 is ready for the
+      director's sign-off.** Gallery pictures for the beta 2 spreads: Screenshots/gallery_beta2/ (not committed).
 81. **The Workshop thumbnail: "The year is 1993, and so is the user interface. All of it." (the director, Nov 3 2026:
     "That's the one that goes with the next upload").** done (design). A 1993 window on a dithered desktop, 1993 huge,
     ALL in the heavy face, BETA on pixel caution tape along the foot. It is now `ZeDUI/tools/release/preview.png`
