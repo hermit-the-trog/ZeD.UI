@@ -1952,8 +1952,19 @@ item says so.
     Cyrillic language (É, Ä, Ö, Ü, Ç, Ñ, À, Ì, l·l, the Cyrillic set) is in both pixel sizes; CJK and Thai have none
     by design (they fall back). Found: the German off-hand circle reads "Nebenhan." (Nebenhand, 9 letters, does not fit
     the smaller off-hand circle; the 9-letter limit holds for the main hand only).
-    - **Open (low priority, off the beta path): the 5-row pixel Ã.** Its tilde merges with the A's apex so it reads as
-      a plain A (PT and PTBR action bar "MAÇA"); a tweak to ZeDUI/tools/i18n/pixel_glyphs_gen.py, likely Õ and Ñ too.
+    - **Open (low priority, off the beta path): accented pixel capitals read poorly.** In the 5-row face Ã and Â read as
+      a plain A (PT and PTBR "MAÇA" for Maçã, RO "MANCAT" for Mâncat); in the 7-row face the base letter shrinks to make
+      room for the accent, so Ö, Í and É read as small letters beside full capitals (FI "SYöMINEN", CS "JEDENí", HU
+      "EVéS"). A tweak to ZeDUI/tools/i18n/pixel_glyphs_gen.py; likely Õ, Ñ and the rest of the accented set too.
+    **Built (build, Nov 3 2026): the other 24 languages drafted (Sonnet), JP/KO/TH/CH/RU/UA proofread (Fable), all in
+    ZeD.MACHINE_LANGS; notes for checkers in ZeDUI/i18n/mt_notes/; the main-menu clock is a translatable pattern
+    (UI_ZeD_MainMenu_Clock12).** Not in the uploaded beta; ships with the next build. Hand-circle labels fit (off hand 8
+    letters: Nebenh., Secund., Másodl.; 958488c3).
+    **QA, Nov 3 2026: NL, DA, NO, ID, PL, FI, CS, RO, HU in game at 4K, all 5 PASS each; DE rerun on 958488c3 reads
+    "Nebenh."** (2026-11-03_pl62_lang_*.md). All 27 of the game's languages now pass the language check. Norwegian's
+    setup script was logged DONE but the runner read the line torn (a TIMEOUT for the prelude only; its checks ran).
+    Danish and Norwegian "Sekundær" fills the off-hand circle edge to edge (fits, tight). The Translations thread's 24
+    "translate" replies wait for the next upload before they become "check the machine draft" (the beta has none).
 63. **Ente's Auto Sorter (the director, Nov 2).** chosen. A note in the Compatibility thread: its button bar sits over
     ZeD's belt, so drag its bar aside. It is not popular enough to special-case. QA adds the line at the next thread
     edit.
