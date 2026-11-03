@@ -1,0 +1,21 @@
+DRAFT for the director to post (not posted). Two pieces: an edit to the Translations thread's first post (a new
+section at its top), and a reply in the same thread announcing it. Turk's question ("Bro please add turkish") was
+already answered by the director on Nov 2.
+
+===== 1. New section at the top of the Translations thread's first post =====
+
+[b]Machine translations (from 0.3.0-beta1)[/b]
+ZeD-GUI now ships drafts in [b]Turkish[/b], [b]Simplified Chinese[/b] and [b]Brazilian Portuguese[/b]. They were made by machine, and they are marked "(machine translation, ZeD-GUI)" in the game's language list. Expect mistakes: words that are wrong for the game, phrases too long for their space, sentences that read stiffly.
+
+If you speak one of these languages, please help fix them:
+[list]
+[*]Post here with the phrase as it shows, where you saw it (a screenshot helps), and what it should say.
+[*]Or send a corrected UI.json for your language (Translate/TR, Translate/CN or Translate/PTBR in the mod's folder). The section below says how.
+[/list]
+When a language has been checked by players, the machine-translation mark comes off. More languages will follow the same way.
+
+===== 2. Reply in the thread =====
+
+Beta 0.3.0-beta1 is out with machine-made drafts of Turkish, Simplified Chinese and Brazilian Portuguese. Switch the game's language to try one. They're marked as machine translations in the language list, because that's what they are: a starting point, not a finished job.
+
+If you speak one of them, corrections here are the most useful thing you can send right now: the phrase, where it shows, and what it should say. Thank you.
