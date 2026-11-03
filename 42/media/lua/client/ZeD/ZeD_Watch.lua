@@ -404,6 +404,105 @@ function ZeD_Watch:_hitsFrom(des, st, k)
     for i = #ctl, 1, -1 do ctl[i] = nil end      -- Plate.controls appends: start empty next frame
 end
 
+-- ---------------------------------------------------------------------------
+-- THE SIMPLE WATCH (the director, Nov 2 2026, punch list 60; ZeDUI/SIMPLE_VERSIONS_PROPOSAL.md): a plain clock box in
+-- ZeD's own parts, with the same readings and the same buttons as the watch (their ids go to _act unchanged).
+-- Worn: the time large, the weekday and date, the temperature, the game's speed and the alarm, then Start or Pause,
+-- Speed, Alarm and Set; while setting, the alarm hour with - and + and Done. No watch: the four speed keys.
+-- ---------------------------------------------------------------------------
+function W.simple() return ZeD.Settings and ZeD.Settings.watchSimple and ZeD.Settings.watchSimple() or false end
+
+local PLAIN_W, PLAIN_PAD, PLAIN_GAP = 150, 8, 4
+function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
+    local T = ZeD.T
+    local px = T.px
+    local f1, f2 = T.fontF1, T.fontF2
+    local tm = ZeD.TM
+    local fh1, fh2 = tm:getFontHeight(f1), tm:getFontHeight(f2)
+    local hf = ZeD.Font and ZeD.Font.sdf and ZeD.Font.sdf.head
+    local z = hf and (26 * (T.scale or 1) / (hf.face or 64)) or nil
+    local bigH = (hf and z) and math.floor(ZeD.Text.height(hf, z)) or tm:getFontHeight(T.fontF5)
+    local w = px(PLAIN_W)
+    local pad, gap, bh = px(PLAIN_PAD), px(PLAIN_GAP), T.buttonH
+    local rd = self._st.display
+    local btns = {}
+    local h
+    if not item then
+        h = pad + fh2 + gap + bh + pad
+        for i = 0, 3 do btns[#btns + 1] = { id = "speed" .. i, text = ZeD.tr("UI_ZeD_WatchPlain_Speed" .. i), on = (speed == i) or (i == 3 and speed > 3) } end
+    else
+        _reading(rd, player, item, speed, self._setOpen, armed, alarmHour)
+        h = pad + bigH + gap + fh2 + gap + fh2 + gap + bh + pad
+        if self._setOpen then
+            btns = { { id = "setdn", text = "-" }, { id = "setup", text = "+" }, { id = "alarm", text = ZeD.tr("UI_ZeD_WatchPlain_AlarmOnOff") }, { id = "set", text = ZeD.tr("UI_ZeD_WatchPlain_Done") } }
+        else
+            btns = { { id = "start", text = ZeD.tr(speed == 0 and "UI_ZeD_WatchPlain_Start" or "UI_ZeD_WatchPlain_Pause") },
+                     { id = "speed", text = ZeD.tr("UI_ZeD_WatchPlain_SpeedBtn") },
+                     { id = "alarm", text = ZeD.tr("UI_ZeD_WatchPlain_AlarmBtn") },
+                     { id = "set", text = ZeD.tr("UI_ZeD_WatchPlain_Set") } }
+        end
+    end
+    -- placed as the watch is: at the clock's corner, or popped above the belt
+    self:_layout(w, h, 1)
+    if self._belt and item then self:_placePopped(w, h) end
+    self._s = 1
+    -- the box
+    ZeD.Surface.fill(self, 0, 0, w, h, "surf2")
+    local b = T.borderS
+    self:drawRectBorder(0, 0, w, h, b.a or 1, b.r, b.g, b.b)
+    local tc, td = T.text, T.textDim
+    local y = pad
+    if not item then
+        self:drawText(ZeD.tr("UI_ZeD_WatchPlain_GameSpeed"), pad, y, td.r, td.g, td.b, td.a or 1, f2)
+        y = y + fh2 + gap
+    elseif self._setOpen then
+        local s = armed and ZeD.tr("UI_ZeD_WatchPlain_AlarmAt", string.format("%d:00", alarmHour)) or ZeD.tr("UI_ZeD_WatchPlain_AlarmOff")
+        if hf and z then ZeD.Text.draw(self, hf, s, pad, y, z * 0.7, tc.r, tc.g, tc.b, tc.a or 1, "l")
+        else self:drawText(s, pad, y, tc.r, tc.g, tc.b, tc.a or 1, T.fontF5) end
+        y = y + bigH + gap
+        self:drawText(ZeD.tr("UI_ZeD_WatchPlain_SetHelp"), pad, y, td.r, td.g, td.b, td.a or 1, f1)
+        y = y + fh2 + gap + fh2 + gap
+    else
+        local t = (rd.time or ""):gsub("^%s+", "")
+        if hf and z then ZeD.Text.draw(self, hf, t, pad, y, z, tc.r, tc.g, tc.b, tc.a or 1, "l")
+        else self:drawText(t, pad, y, tc.r, tc.g, tc.b, tc.a or 1, T.fontF5) end
+        local tw = (hf and z) and ZeD.Text.width(hf, t, z) or tm:MeasureStringX(T.fontF5, t)
+        local tail = (rd.sec and (":" .. rd.sec) or "") .. (rd.pm and (" " .. ZeD.tr("UI_ZeD_WatchPlain_PM")) or "")
+        if tail ~= "" then self:drawText(tail, pad + tw + px(3), y + bigH - fh1, td.r, td.g, td.b, td.a or 1, f1) end
+        y = y + bigH + gap
+        -- the weekday and date, the temperature at the right
+        self:drawText(((rd.day or "") .. " " .. (rd.date or "")), pad, y, tc.r, tc.g, tc.b, tc.a or 1, f2)
+        if rd.temp then
+            local ts = tostring(rd.temp) .. (rd.tempUnit or "")
+            self:drawText(ts, w - pad - tm:MeasureStringX(f2, ts), y, tc.r, tc.g, tc.b, tc.a or 1, f2)
+        end
+        y = y + fh2 + gap
+        -- the game's speed, the alarm at the right (a status dot when it is set)
+        local sp = (speed == 0) and ZeD.tr("UI_ZeD_WatchPlain_Paused") or ZeD.tr("UI_ZeD_WatchPlain_SpeedN", tostring(speed))
+        self:drawText(sp, pad, y, td.r, td.g, td.b, td.a or 1, f2)
+        local al = armed and ZeD.tr("UI_ZeD_WatchPlain_AlarmAt", rd.almTime or string.format("%d:00", alarmHour)) or ZeD.tr("UI_ZeD_WatchPlain_AlarmOff")
+        local aw = tm:MeasureStringX(f2, al)
+        self:drawText(al, w - pad - aw, y, td.r, td.g, td.b, td.a or 1, f2)
+        if armed then
+            local ds = px(6)
+            ZeD.Atoms.drawStatusDot(self, w - pad - aw - ds - px(4), y + math.floor((fh2 - ds) / 2), T.accent, ds)
+        end
+        y = y + fh2 + gap
+    end
+    -- the buttons, evenly across the box; their ids are the watch's own
+    local hits = self._hit
+    for i = #hits, 1, -1 do hits[i] = nil end
+    local n = #btns
+    local bw = math.floor((w - 2 * pad - (n - 1) * gap) / n)
+    local mx, my = self:getMouseX(), self:getMouseY()
+    for i, bt in ipairs(btns) do
+        local bx = pad + (i - 1) * (bw + gap)
+        local hov = mx >= bx and mx < bx + bw and my >= y and my < y + bh
+        ZeD.Molecules.drawButton(self, bx, y, bw, bh, bt.text, bt.on and "primary" or "default", hov and isMouseButtonDown(0))
+        hits[#hits + 1] = { id = bt.id, x = bx, y = y, w = bw, h = bh }
+    end
+end
+
 function ZeD_Watch:_canvas(k)
     local cv = self._cv
     if not cv then cv = ZeD.Px.canvas(self, 0, 0, k); self._cv = cv end
@@ -442,6 +541,7 @@ function ZeD_Watch:prerender()
     if item ~= self._item then self._setOpen = false; self._litUntil = 0 end   -- a different watch: nothing carries over
     self._item = item
 
+    if not item and W.simple() then pcall(self._plain, self, player, nil, speed, false, 6); return end
     if not item then
         -- no watch: the tape deck keys, the key for the game's speed sitting down
         local X = ZeD.PhysPx
@@ -471,6 +571,18 @@ function ZeD_Watch:prerender()
         return
     end
     if not self._belt then self._popped = false end
+    if W.simple() then
+        local armedS = _safe(function() return item:isAlarmSet() end, false) and true or false
+        local hourS = _safe(function() return item:getHour() end, 6) or 6
+        if self._belt then
+            local now = getTimestampMs()
+            if self:isMouseOver() or self._dragAt or self._setOpen then self._popTouched = now
+            elseif now - (self._popTouched or now) > W.POP_IDLE_MS then W.togglePop(false); return end
+        end
+        local okP, eP = pcall(self._plain, self, player, item, speed, armedS, hourS)
+        if not okP then ZeD.logOnce("watch plain", eP) end
+        return
+    end
     self:_layout(des.w, des.h, k); self._s = k
     if self._belt then
         self:_placePopped(des.w * k, des.h * k)
