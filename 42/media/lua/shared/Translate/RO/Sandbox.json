@@ -1,0 +1,11 @@
+{
+    "Sandbox_ZeD": "ZeD-GUI",
+    "Sandbox_ZeD_TaxiFlagDrop": "Taximetru: pornire cursă",
+    "Sandbox_ZeD_TaxiFlagDrop_tooltip": "Dolari afișați de taximetru când șoferul coboară pavilionul.",
+    "Sandbox_ZeD_TaxiPerFifthMile": "Taximetru: la 1/5 mile",
+    "Sandbox_ZeD_TaxiPerFifthMile_tooltip": "Dolari adăugați de taximetru pentru fiecare a cincea parte de milă parcursă cu pavilionul coborât.",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting": "Taximetru: pe minut de așteptare",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting_tooltip": "Dolari adăugați de taximetru pentru fiecare minut real în care taxiul așteaptă (sub 5 km/h, motor pornit) cu pavilionul coborât.",
+    "Sandbox_ZeD_TaxiPerExtraPassenger": "Taximetru: per pasager în plus",
+    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "Dolari afișați sub EXTRA pentru fiecare pasager după primul. Șoferul nu contează."
+}
