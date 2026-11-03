@@ -2284,6 +2284,10 @@ item says so.
     - **Design:** the 13 body diagrams (327 layers) redrawn in ZeD pixel art, same shapes, through MechFigs; they drop
       in when done and do not hold up the build.
     - **QA:** the spec's section 8; QA_CHECKLIST_BETA.md has the Vehicle tab row in its pass 1 table.
+    - **Design, Nov 3 2026: the diagrams are redrawn and staged** (the director: "The vehicle mockup looks
+      awesome"). All 13 bodies, 314 layers, the same texture names and anchors form: ZeDUI/art/mech_pixel/, from
+      tools/mechanics/pixel_mech_figs.py. Build: install per ZeDUI/HANDOFF_vehicle_diagrams_20261103.md (copy the
+      textures and MechFigs.lua; draw the figure at a whole multiple so the pixels stay crisp). QA: its checks there.
     **Built (build, Nov 3 2026, 2cb35519): MechanicsTab.lua on CraftingCore's split (list 240u left, diagram or card
     right, footer with Sort and the part's verbs). By section uses the parts' own install tables: requireUninstalled
     puts a brake or suspension under its tire, a window sits under its door, and the engine bay under the hood. By
@@ -2308,6 +2312,16 @@ item says so.
       every size; "Right Headlig..." in the list at 4K and 1.75x.
     - **Colourblind:** in greyscale the lit Muffler (a thin strip) is the same grey as its neighbours; the outline does
       not make a small part stand out.
+    **QA, Nov 3 2026: the fixes (aec72d19) and the pixel-art diagrams (291ed0dd), all 45 PASS at 4K, the Deck and
+    720p (Large text at both small sizes)** (2026-11-03_pl79b_*.md; pictures ZeDUI/qa/review_20261103/pl79). The step
+    before shows on the brake and its button opens the tire's card; the folded "With ..." row wraps ("With Tire Pump
+    you could pump up the tire."); Right Headlight fits the list; in greyscale the lit part's box stands out. A pickup,
+    a van, a sports car and a trailer: each inspected, hover on a row lights its part, a click on the diagram picks a
+    part; the figures are crisp at 4K and 1.75 (no uneven pixel widths to the eye); a missing headlight shows its hollow
+    red mark and "Missing" in the list. Not settled: the recipe line. Reading Laine's Auto Manual in the run did not
+    make isRecipeActuallyKnown true within the minute waited, so whether the line is right for a real reader is
+    unchecked. The test save is back as it was (recipe unknown, the magazine unread; an earlier run had left it
+    marked read, cleared). Item cards' folded rows not looked at (drawMoreRow changed).
 80. **A Cooking tab: cook dishes the second way (the director, Nov 3 2026).** chosen; after the beta, before the release
     (it adds a feature, so it stays off the beta code freeze).
     - The rule behind it (the director): "I want to give people two ways to do everything." The right-click menu is

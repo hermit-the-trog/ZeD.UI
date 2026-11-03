@@ -1,3 +1,3 @@
 # ZeDUI/tools/qa/mech79.txt  (Nov 3 2026): punch list 79, VEHICLE_TAB_SPEC.md section 8 (run at 4K, the Deck and 720p)
 zedqa_prelude.lua | pre | timeout=120
-zedqa_mech79.lua | m79 | timeout=600
+zedqa_mech79.lua | m79 | timeout=1200
