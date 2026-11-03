@@ -1,0 +1,3 @@
+# ZeDUI/tools/qa/release_check.txt  (Nov 2 2026, punch list 70): the five-minute release check; run with release_check.ps1
+zedqa_prelude.lua | pre | timeout=120
+zedqa_release_check.lua | rel | timeout=240
