@@ -156,6 +156,10 @@ function def.refresh(t, player)
     d.powered = (c ~= nil and c:isPowered()) and true or false
     d.fluid = call(o, "getFluidAmount") or 0
     d.cap = call(o, "getFluidCapacity") or 0
+    -- on the house pipes: the game reports 10000 of 10000 L, which says nothing (QA, Nov 2 2026, punch list 77)
+    d.piped = (call(o, "getUsesExternalWaterSource") and call(o, "hasExternalWaterSource")) and true or false
+    -- a dryer takes no water: no water row for it
+    d.dryerOnly = (not d.combo) and instanceof(o, "IsoClothingDryer") or false
     d.washMode = (not d.combo and instanceof(o, "IsoClothingWasher")) or (d.combo and o:isModeWasher()) or false
     d.hasWater = d.fluid > 0
     local items = c and c:getItems()
@@ -331,8 +335,9 @@ local function drawFace(card, x, y, w, t)
     local water = (d.cap > 0) and ZeD.tr("UI_ZeD_Laundry_WaterOf", string.format("%.1f", d.fluid), math.floor(d.cap + 0.5))
         or ZeD.tr("UI_ZeD_Laundry_WaterL", string.format("%.1f", d.fluid))
     local inside = (d.n == 0) and ZeD.tr("IGUI_None") or ZeD.tr(d.n == 1 and "UI_ZeD_Laundry_ItemsOne" or "UI_ZeD_Laundry_ItemsMany", d.n)
-    -- (a row each: a machine on a water pipe reads "10000.0 of 10000 L", too long to share a row; punch list 24)
-    h = h + UI.pairWide(card, x, y + h, w, ZeD.tr("UI_ZeD_Laundry_Water"), water)
+    if d.piped then water = ZeD.tr("UI_ZeD_Laundry_WaterPiped") end
+    -- (a row each: the readings are too long to share a row; punch list 24. None for a dryer: punch list 77)
+    if not d.dryerOnly then h = h + UI.pairWide(card, x, y + h, w, ZeD.tr("UI_ZeD_Laundry_Water"), water) end
     h = h + UI.pairWide(card, x, y + h, w, ZeD.tr("UI_ZeD_Laundry_Inside"), inside)
     return h
 end
