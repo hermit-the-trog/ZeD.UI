@@ -44,7 +44,7 @@ local MT = ZeD.MechanicsTab
 local REACH_TILES   = 4.5    -- tiles from the vehicle centre: the tab offers it
 local KEEP_TILES    = 6      -- tiles: an inspection lasts until you walk past this (vanilla)
 local PAD           = 10
-local FIG_H         = 244    -- the diagram's height in the right column
+local FIG_H         = 258    -- the diagram's height in the right column (the pixel-art bodies are 256 rows)
 local COL_GAP       = 12
 local ROW_H         = 24
 local CAT_H         = 15     -- the library's category row
@@ -845,7 +845,10 @@ local TEX = {}
 tex = function(name)
     local t = TEX[name]
     if t == nil then
-        t = getTexture("media/textures/ZeD/mech/zm_" .. name .. ".png") or false   -- zm_: vanilla packs share the base names
+        -- zm_: vanilla packs share the base names. Nearest filtering (3, as ZeD_PixelParts' textures): the
+        -- figures are pixel art since Nov 3 2026 (Design, punch list 79) and blur when filtered linearly
+        local path = "media/textures/ZeD/mech/zm_" .. name .. ".png"
+        t = (Texture and Texture.getSharedTexture and Texture.getSharedTexture(path, 3)) or getTexture(path) or false
         TEX[name] = t
     end
     return t or nil
@@ -879,6 +882,10 @@ local function drawFigure(panel, s, fx, fy, fw, fh, v, parts, hlId, unknown, wor
     local U = prefix and F and F.unions and F.unions[prefix]
     if not U then return end
     local sc = math.min(fw / U.w, fh / U.h)
+    -- whole screen pixels per art pixel where that keeps most of the box (1080p 1x, 4K 2x), so the
+    -- pixel art stays even; between whole scales (1.75) the fit scale, drawn nearest
+    local sci = math.floor(sc + 1e-6)
+    if sci >= 1 and sci / sc >= 0.85 then sc = sci end
     local ox = fx + math.floor((fw - U.w * sc) / 2)
     local oy = fy + math.floor((fh - U.h * sc) / 2)
     local function rectOf(key)
