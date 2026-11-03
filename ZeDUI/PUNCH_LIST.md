@@ -1970,6 +1970,12 @@ item says so.
       extra row between the lines; the bar clears line 2. Found: RO MĂR reads as MÄR, because the small face's breve is
       the same "101" row as the umlaut dots, which to a Romanian reader is the wrong letter. Not seen: the thought bubble
       (the run uses the plain box) and the Simple bar (its own size, unchanged).
+      **QA, Nov 3 2026: the breve fix (a072865c) and the thought bubble at 4K, RO, PT, DE, EN**
+      (2026-11-03_pl62_lang_*_bubble.md; picture review_20261103/action_bar_bubble.png). (Correction: the earlier runs did
+      show the thought bubble, Verbose being the default; the crops cut its tail.) The bubble is the same in all four: its
+      height, the trail of dots and its gap to the head; line 1's marks (MÂNCAT) stay clear of its top edge. RO MĂR now
+      reads as Ă (a U one row up, a clear row under line 1). Note: PT Ã's tilde in the small tall face is a flat bar, so
+      it reads closer to a macron (Ā) than a wave; readable in context.
     **Built (build, Nov 3 2026): the other 24 languages drafted (Sonnet), JP/KO/TH/CH/RU/UA proofread (Fable), all in
     ZeD.MACHINE_LANGS; notes for checkers in ZeDUI/i18n/mt_notes/; the main-menu clock is a translatable pattern
     (UI_ZeD_MainMenu_Clock12).** Not in the uploaded beta; ships with the next build. Hand-circle labels fit (off hand 8
