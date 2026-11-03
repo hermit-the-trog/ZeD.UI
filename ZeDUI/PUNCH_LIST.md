@@ -1944,6 +1944,16 @@ item says so.
     Found: UI_ZeD_MainMenu_Clock12 (021f78b9) is in EN, CN, CH, JP and KO only, so 14 languages show the English time
     pattern; the Spain Spanish off-hand label is cut to "Secundari." (as PTBR's was before "Secund."); in the 5-row
     pixel face Ã reads as a plain A (the tilde merges with the apex: PT and PTBR "MAÇA" for Maçã).
+    Build answered (1c3d7e04): the 12-hour clock stays in every language (the 1993 desk's way; a native checker can ask
+    for 24-hour); the hand circles now read "Secund." (ES, AR, ES_MX, ES_CL, CA) and "Princip." / "Second." (FR, IT).
+    **QA, Nov 3 2026: TH, FR, DE, IT, CA, ES_MX, AR, ES_CL in game at 4K, all 5 PASS each**
+    (2026-11-03_pl62_lang_*.md; every key has text, 12 to 28 the same as English). Thai draws in the windows and falls
+    back to the regular face on the action bar. Offline, every capital the action-bar lines use in every Latin and
+    Cyrillic language (É, Ä, Ö, Ü, Ç, Ñ, À, Ì, l·l, the Cyrillic set) is in both pixel sizes; CJK and Thai have none
+    by design (they fall back). Found: the German off-hand circle reads "Nebenhan." (Nebenhand, 9 letters, does not fit
+    the smaller off-hand circle; the 9-letter limit holds for the main hand only).
+    - **Open (low priority, off the beta path): the 5-row pixel Ã.** Its tilde merges with the A's apex so it reads as
+      a plain A (PT and PTBR action bar "MAÇA"); a tweak to ZeDUI/tools/i18n/pixel_glyphs_gen.py, likely Õ and Ñ too.
 63. **Ente's Auto Sorter (the director, Nov 2).** chosen. A note in the Compatibility thread: its button bar sits over
     ZeD's belt, so drag its bar aside. It is not popular enough to special-case. QA adds the line at the next thread
     edit.
