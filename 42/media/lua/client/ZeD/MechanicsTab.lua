@@ -909,6 +909,13 @@ local function drawFigure(panel, s, fx, fy, fw, fh, v, parts, hlId, unknown, wor
                         if hlId == p.id or workId == p.id then
                             local full = tex(key) or t
                             panel:drawTextureScaledAspect(full, lx, ly, lw, lh, 0.75, ac.r, ac.g, ac.b)
+                            -- and its outline in the text colour, so the lit part never rests on
+                            -- colour alone (the colourblind modes; Vehicle tab spec 3)
+                            local rim = tex(key .. "_rim")
+                            if rim then
+                                local oc = T.text
+                                panel:drawTextureScaledAspect(rim, lx, ly, lw, lh, 1, oc.r, oc.g, oc.b)
+                            end
                         end
                     end
                     x0 = x0 and math.min(x0, lx) or lx
