@@ -66,7 +66,7 @@ end
 local CAT = nil
 local function catalog()
     if CAT then return CAT end
-    CAT = { dishes = {}, order = {}, byBase = {} }
+    CAT = { dishes = {}, order = {}, byBase = {}, keyOfLabel = {}, keyOf = {} }
     local ok, list = pcall(getEvolvedRecipes)
     if not ok or not list then return CAT end
     for i = 0, list:size() - 1 do
@@ -77,11 +77,16 @@ local function catalog()
         local result = fullType(r:getFullResultItem())
         -- from scratch only: a recipe that adds to a dish already made (base == its result) is left to the game
         if not hidden and base ~= result then
-            local key = r:getUntranslatedName()
+            -- one dish per name: the game's Stir fry, Stir fry Griddle Pan and Stir fry Forged are one
+            -- Stir-fry, made in whichever of them is at hand (QA, Nov 3 2026)
+            local un = r:getUntranslatedName()
+            local label = (getTextOrNull and getTextOrNull("ContextMenu_EvolvedRecipe_" .. un)) or r:getName() or un
+            local key = CAT.keyOfLabel[label]
+            if not key then key = un; CAT.keyOfLabel[label] = key end
+            CAT.keyOf[r] = key
             local d = CAT.dishes[key]
             if not d then
-                local label = getTextOrNull and getTextOrNull("ContextMenu_EvolvedRecipe_" .. key) or nil
-                d = { key = key, label = label or r:getName() or key, recipes = {} }
+                d = { key = key, label = label, recipes = {} }
                 CAT.dishes[key] = d
                 CAT.order[#CAT.order + 1] = key
             end
@@ -113,6 +118,10 @@ local function st(win)
 end
 
 local function containersFor(chr)
+    -- (the game's list reads the player's inventory pages; at quit the window draws once after they
+    -- are gone, and the game's function prints its error even under pcall: QA, Nov 3 2026)
+    local pd = getPlayerData and getPlayerData(chr:getPlayerNum())
+    if not pd then return ZeD.CraftingCore.buildContainers(chr) end
     local ok, list = pcall(ISInventoryPaneContextMenu.getContainers, chr)
     if ok and list and list:size() > 0 then return list end
     return ZeD.CraftingCore.buildContainers(chr)
@@ -164,7 +173,7 @@ local function scan(s, chr, force)
             local rs = C.byBase[item:getFullType()]
             if rs then
                 for _, r in ipairs(rs) do
-                    local key = r:getUntranslatedName()
+                    local key = C.keyOf[r] or r:getUntranslatedName()
                     local list = bases[key]
                     if not list then list = {}; bases[key] = list; dishes[#dishes + 1] = key end
                     list[#list + 1] = { item = item, recipe = r, name = item:getDisplayName(), where = whereOf(item, chr),
@@ -240,7 +249,30 @@ local function ingredients(s, chr)
             end
         end
     end
-    for _, g in ipairs(groups) do g.n = #g.items end
+    -- every item of each kind in reach, in the same state as the one the game offers (the game's list
+    -- may hold one of each kind; the count and Make need them all: QA, Nov 3 2026)
+    local function same(a, b)
+        if not instanceof(a, "Food") then return true end
+        return a:isRotten() == b:isRotten() and a:isFrozen() == b:isFrozen() and a:isBurnt() == b:isBurnt()
+            and a:isCooked() == b:isCooked()
+    end
+    for _, g in ipairs(groups) do
+        local rep = g.items[1]
+        if rep then
+            local have = {}
+            for _, it in ipairs(g.items) do have[it] = true end
+            for ci = 0, s.containers:size() - 1 do
+                local list = s.containers:get(ci):getItemsFromFullType(g.ft)
+                if list then
+                    for ii = 0, list:size() - 1 do
+                        local it = list:get(ii)
+                        if not have[it] and it ~= b.item and same(it, rep) then have[it] = true; g.items[#g.items + 1] = it end
+                    end
+                end
+            end
+        end
+        g.n = #g.items
+    end
     s.ingCache = { item = b.item, at = s.scanAt, list = groups, byFt = byFt }
     return groups
 end
