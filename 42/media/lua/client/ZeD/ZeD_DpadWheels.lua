@@ -1131,8 +1131,9 @@ end
 function N.help(p, pn)
     return {
         { name = getText("UI_optionscreen_binding_Toggle Survival Guide"), icon = "guide", run = function(pl, n) ISDPadWheels.showSurvGuide(n) end },
-        -- (v1: no screen for the controller map yet, DPAD_WHEELS_SPEC section 6)
-        { name = tr("UI_ZeD_Wheel_ControllerMap"), icon = "gamepad", off = tr("UI_ZeD_Wheel_ComingLater") },
+        -- the controller map (the director, Nov 2 2026, punch list 67): ZeD_ControllerMap.lua
+        { name = tr("UI_ZeD_Wheel_ControllerMap"), icon = "gamepad",
+          run = function(pl, n) if ZeD.ControllerMap and ZeD.ControllerMap.open then ZeD.ControllerMap.open(n) end end },
     }
 end
 
