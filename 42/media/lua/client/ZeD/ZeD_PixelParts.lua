@@ -683,8 +683,9 @@ function P.fit(str, font, scale, w)
     while #words > 1 and P.textWidth(table.concat(words, " "), font, scale) > w do table.remove(words, 1) end
     local s = table.concat(words, " ")
     if P.textWidth(s, font, scale) <= w then return s, font, scale end
-    if (font == "57" or font == "57t") and P.textWidth(s, "35", scale) <= w then return s, "35", scale end
-    font = "35"
+    local small = (font == "57t" or font == "35t") and "35t" or "35"   -- (a tall face falls back to the tall small one)
+    if (font == "57" or font == "57t") and P.textWidth(s, small, scale) <= w then return s, small, scale end
+    font = small
     while #s > 1 and P.textWidth(s, font, scale) > w do s = s:sub(1, -2) end
     return s, font, scale
 end

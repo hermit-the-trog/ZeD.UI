@@ -483,8 +483,8 @@ end
 function AB.sizeVerbose(st)
     local L1, R1, L2, R2 = AB.verboseText(st)
     local w1 = P.textWidth(L1, "57t", 1) + (R1 ~= "" and 6 + P.textWidth(R1, "57t", 1) or 0)
-    local w2 = P.textWidth(L2, "35", 1) + (R2 ~= "" and 6 + P.textWidth(R2, "35", 1) or 0)
-    return math.max(60, 4 + math.max(w1, w2) + 4), 22 + AB.BAR_H
+    local w2 = P.textWidth(L2, "35t", 1) + (R2 ~= "" and 6 + P.textWidth(R2, "35t", 1) or 0)
+    return math.max(60, 4 + math.max(w1, w2) + 4), 24 + AB.BAR_H
 end
 local function overall(st) return st.qn > 1 and (st.qi + st.frac) / st.qn or st.frac end
 
@@ -520,7 +520,7 @@ end
 function AB.verboseWidth(st)
     local L1, R1, L2, R2 = AB.verboseText(st)
     local w1 = P.textWidth(L1, "57t", 1) + (R1 ~= "" and 6 + P.textWidth(R1, "57t", 1) or 0)
-    local w2 = P.textWidth(L2, "35", 1) + (R2 ~= "" and 6 + P.textWidth(R2, "35", 1) or 0)
+    local w2 = P.textWidth(L2, "35t", 1) + (R2 ~= "" and 6 + P.textWidth(R2, "35t", 1) or 0)
     return math.max(60, math.max(w1, w2))
 end
 
@@ -533,8 +533,8 @@ end
 
 -- the verbose layout with its top-left at (px, py), bw wide: L1 / R1 in the 5 x 7 face ("57t": accented capitals
 -- at full height, their marks in the two rows above py, which the box and the bubble leave free), L2 / R2 in the
--- 3 x 5 face 9 below (its marks inside the cell: the rows between the lines are too few for tall ones), the bar 16
--- below. The bar is the windows' framed strip (director, Oct 27 2026: "Make the
+-- 3 x 5 face 11 below ("35t", the same, its marks in the two rows over it: the director, Nov 3 2026, "Yes, 2 px
+-- taller", so the item name reads MAÇÃ, not MAÇA), the bar 18 below. The bar is the windows' framed strip (director, Oct 27 2026: "Make the
 -- belt hands' condition ring and the action bar's progress line the same chunky framed strip as the other
 -- status bars"): a 1-unit T.borderS frame, the solid base well, a flat fill BAR_H - 2 tall inside the frame;
 -- the queue's steps divide it with frame-coloured lines
@@ -554,10 +554,10 @@ function AB.drawVerboseBody(cv, T, st, a, ms, px, py, bw)
     end
     txt(L1, px, py, c1, "57t")
     txt(R1, px + bw, py, rc, "57t", "r")
-    txt(L2, px, py + 9, lc, "35")
-    txt(R2, px + bw, py + 9, lc, "35", "r")
+    txt(L2, px, py + 11, lc, "35t")
+    txt(R2, px + bw, py + 11, lc, "35t", "r")
     local bh = AB.BAR_H
-    local bx, by = px, py + 16
+    local bx, by = px, py + 18
     local fx, fy, fwid, fh = bx + 1, by + 1, bw - 2, bh - 2      -- inside the frame
     R(cv, bx, by, bw, bh, ZeD.Bubbles.solid.base, a)
     if st.noend and st.phase ~= "stopped" then
