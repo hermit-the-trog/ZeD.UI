@@ -2272,6 +2272,37 @@ item says so.
       change under 42/media/textures/ZeD/mainmenu, commit with the staged files.
     - **Check (QA):** the menu at 1080p against previews/main_menu_v5_4x.png, the lights blink in place, the lamp
       flicker shows the pad; how much of the pad shows at 1280x800 and 720 (the lean-in) and on ultrawide.
+79. **The Vehicle tab in two columns (the director, Nov 2-3 2026: in the beta, "we're just refining the features that
+    we already offer").** chosen. Spec: ZeDUI/VEHICLE_TAB_SPEC.md. The tab becomes Crafting's layout: the part list on
+    the left (By section, a part under the one that comes off first; By condition, greyed until Mechanics level 4 with
+    "Mechanics Level 4" from words already translated); the car diagram on the right, lighting the part the pointer or
+    the pad's focus is on, clickable; a click or A puts the part's card in its place, the same row again or B brings
+    the diagram back; no back arrow, no second screen. Missing parts keep their rows; the card adds the step before
+    (with a button to that part), spares and tools in reach, tire pressure / battery / fuel, and where the work is
+    done; the footer's verbs lit or greyed with the reason, as on every card.
+    - **Build:** MechanicsTab.lua on CraftingCore's split, measures and pad paths; ship with today's baked figures.
+    - **Design:** the 13 body diagrams (327 layers) redrawn in ZeD pixel art, same shapes, through MechFigs; they drop
+      in when done and do not hold up the build.
+    - **QA:** the spec's section 8; QA_CHECKLIST_BETA.md has the Vehicle tab row in its pass 1 table.
+
+80. **A Cooking tab: cook dishes the second way (the director, Nov 3 2026).** chosen; after the beta, before the release
+    (it adds a feature, so it stays off the beta code freeze).
+    - The rule behind it (the director): "I want to give people two ways to do everything." The right-click menu is
+      one way; this tab is the other for the pot and pan dishes, which today are right-click only (the game's
+      ingredient-by-ingredient dishes: stews, soups, stir fries, salads, sandwiches, pies, cereal bowls). QA read of the
+      code, Nov 3: ZeD's Crafting tab runs the game's craft recipes; these dishes are outside the game's crafting
+      system and ZeD keeps the game's right-click options for them.
+    - Where: a tab in the Character window that shows up when a cooking vessel (pot, pan, bowl and the like) is in the
+      inventory and ingredients are in reach.
+    - What: built like ZeD's Crafting tab, the same two-column layout and the same way of working, so it is consistent
+      and predictable: it lists the ingredients, and a dish is built from scratch there.
+    - Saved recipes: a dish can be saved there to make again.
+    - Sorting: by ingredient, and by kind (condiments and spices and the like).
+    - The game's rules stay: the same ingredient limits per pot, pan, bowl and dish, the same results as adding them by
+      hand (no conveniences that remove the game's stakes).
+    - Design source: ZeD's own Crafting tab only. The director knows other cooking mods exist and wants none of their
+      design carried over.
+    - Next: Build designs it from the Crafting tab and brings any design questions to the director before building.
 
 ## Test process
 
