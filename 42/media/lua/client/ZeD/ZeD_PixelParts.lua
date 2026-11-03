@@ -551,6 +551,8 @@ local function glyph(font, ch)
     local g = cache[ch]
     if g then return g end
     local rows = F[ch] or F[" "]
+    -- (a tall accented capital in "57t" has rows above the cell: up of them, drawn above the line's top)
+    local up = rows.up or 0
     g = { w = #rows[1], h = #rows, runs = {} }
     for ry = 1, #rows do
         local row = rows[ry]
@@ -558,7 +560,7 @@ local function glyph(font, ch)
         for rx = 1, #row + 1 do
             local on = rx <= #row and row:sub(rx, rx) == "1"
             if on and not start then start = rx end
-            if (not on) and start then g.runs[#g.runs + 1] = { start - 1, ry - 1, rx - start }; start = nil end
+            if (not on) and start then g.runs[#g.runs + 1] = { start - 1, ry - 1 - up, rx - start }; start = nil end
         end
     end
     cache[ch] = g
@@ -601,7 +603,7 @@ end
 local function layoutBuild(str, font)
     local F = ZeD.PixelFonts and ZeD.PixelFonts[font]
     if not F then return nil end
-    local h = (font == "57") and 7 or 5
+    local h = P.fontHeight(font)
     local tr = turkic()
     local chars = {}
     for i = 1, #str do
@@ -668,7 +670,8 @@ function P.textWidth(str, font, scale)
     return lay.w * scale
 end
 
-function P.fontHeight(font) return (font == "57") and 7 or 5 end
+-- ("57t", the 5 x 7 face with tall accented capitals, keeps the face's 7-row line: its marks draw above it)
+function P.fontHeight(font) return (font == "57" or font == "57t") and 7 or 5 end
 
 -- fit a label in w pixels: the make off the front first, then the smaller face, then letters off the end
 function P.fit(str, font, scale, w)
@@ -680,7 +683,7 @@ function P.fit(str, font, scale, w)
     while #words > 1 and P.textWidth(table.concat(words, " "), font, scale) > w do table.remove(words, 1) end
     local s = table.concat(words, " ")
     if P.textWidth(s, font, scale) <= w then return s, font, scale end
-    if font == "57" and P.textWidth(s, "35", scale) <= w then return s, "35", scale end
+    if (font == "57" or font == "57t") and P.textWidth(s, "35", scale) <= w then return s, "35", scale end
     font = "35"
     while #s > 1 and P.textWidth(s, font, scale) > w do s = s:sub(1, -2) end
     return s, font, scale
