@@ -434,13 +434,25 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
         _reading(rd, player, item, speed, self._setOpen, armed, alarmHour)
         h = pad + bigH + gap + fh2 + gap + fh2 + gap + bh + pad
         if self._setOpen then
-            btns = { { id = "setdn", text = "-" }, { id = "setup", text = "+" }, { id = "alarm", text = ZeD.tr("UI_ZeD_WatchPlain_AlarmOnOff") }, { id = "set", text = ZeD.tr("UI_ZeD_WatchPlain_Done") } }
+            btns = { { id = "setdn", text = "-" }, { id = "setup", text = "+" }, { id = "alarmtoggle", text = ZeD.tr("UI_ZeD_WatchPlain_AlarmOnOff") }, { id = "set", text = ZeD.tr("UI_ZeD_WatchPlain_Done") } }
         else
             btns = { { id = "start", text = ZeD.tr(speed == 0 and "UI_ZeD_WatchPlain_Start" or "UI_ZeD_WatchPlain_Pause") },
                      { id = "speed", text = ZeD.tr("UI_ZeD_WatchPlain_SpeedBtn") },
                      { id = "alarm", text = ZeD.tr("UI_ZeD_WatchPlain_AlarmBtn") },
                      { id = "set", text = ZeD.tr("UI_ZeD_WatchPlain_Set") } }
         end
+    end
+    -- as wide as the buttons' words need (each its text and a margin), never narrower than the design width
+    -- (the buttons share the width equally, so each must hold the widest word)
+    local widest = 0
+    for _, bt in ipairs(btns) do widest = math.max(widest, ZeD.Molecules.buttonW(bt.text)) end
+    local need = 2 * pad + (#btns - 1) * gap + #btns * widest
+    if need > w then w = need end
+    -- set mode: the help line wraps to the box (the normal face, not the mono one)
+    local helpLines = nil
+    if item and self._setOpen then
+        helpLines = ZeD.Atoms.wrapText(ZeD.tr("UI_ZeD_WatchPlain_SetHelp"), f2, w - 2 * pad)
+        h = pad + bigH + gap + #helpLines * fh2 + gap + bh + pad
     end
     -- placed as the watch is: at the clock's corner, or popped above the belt
     self:_layout(w, h, 1)
@@ -460,8 +472,11 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
         if hf and z then ZeD.Text.draw(self, hf, s, pad, y, z * 0.7, tc.r, tc.g, tc.b, tc.a or 1, "l")
         else self:drawText(s, pad, y, tc.r, tc.g, tc.b, tc.a or 1, T.fontF5) end
         y = y + bigH + gap
-        self:drawText(ZeD.tr("UI_ZeD_WatchPlain_SetHelp"), pad, y, td.r, td.g, td.b, td.a or 1, f1)
-        y = y + fh2 + gap + fh2 + gap
+        for _, l in ipairs(helpLines or {}) do
+            self:drawText(l, pad, y, td.r, td.g, td.b, td.a or 1, f2)
+            y = y + fh2
+        end
+        y = y + gap
     else
         local t = (rd.time or ""):gsub("^%s+", "")
         if hf and z then ZeD.Text.draw(self, hf, t, pad, y, z, tc.r, tc.g, tc.b, tc.a or 1, "l")
@@ -627,6 +642,7 @@ function ZeD_Watch:_act(id)
         if W.hasLight(self._def) then self._litUntil = getTimestampMs() + W.LIGHT_MS end   -- a watch without one: nothing
         return
     end
+    if id == "alarmtoggle" then pcall(function() item:setAlarmSet(not item:isAlarmSet()) end); return end   -- (the Simple watch's set mode)
     if id == "alarm" then
         if self._setOpen then self._setOpen = false; return end
         pcall(function() item:setAlarmSet(not item:isAlarmSet()) end); return
