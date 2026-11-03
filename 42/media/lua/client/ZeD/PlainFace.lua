@@ -22,6 +22,9 @@
 -- and turnMult forward to the real driver, so nothing about how a radio works
 -- is copied here. What each card shows comes from the real face's plate: its
 -- controls (PhysPx hits) in the face's order, each turned into a plain row.
+-- A driver of another family says how its plates read through base.plainSpec(pid) (the car radio up close,
+-- ZeD_CarRadio.lua): { tw (a two-way set), volPower (the volume knob pushes for power), order (hits -> the face's
+-- order), noBattery (no battery reading), after = { [plain id] = a row to follow it } }.
 --
 -- The plain controls, and the face's control each one works:
 --   power    switch   the power key (a walkie's VOL knob pressed, the antique
@@ -31,6 +34,8 @@
 --   channel  stepper  CH- / CH+ (a TV's channel, a two-way set's memory) or the
 --                     antique set's channel dial
 --   mute, mic, scan   switches;  p1..p6  the preset keys (held: store)
+--   seek     stepper  the car radios' SEEK key: + the next station, - the one before ("seekdn" to the driver)
+--   pwr               the car radios' own power key or rocker: the power switch
 --   play, phones, battery, media (the slot / eject)   buttons on their rows
 --   mem (held: name), lamp   the footer band's buttons
 -- A stepper is one control: a click on its left half lowers, on its right half
@@ -187,11 +192,14 @@ local C_BATTERY = { id = "battery", kind = "button", label = "IGUI_VehiclePartBa
 local C_MEM = { id = "mem", kind = "button", foot = true, real = "mem", word = WORD.mem }
 local C_LAMP = { id = "lamp", kind = "button", foot = true, real = "lamp", word = WORD.lamp,
     sel = function(x) return O.lampLit(x.dev) == true end }
+local C_SEEK = { id = "seek", kind = "stepper", label = "UI_ZeD_RadioPrompt_Seek", dn = "seekdn", up = "seek" }
 
 local function add(out, c)
     if out.byId[c.id] then return end
     out.list[#out.list + 1] = c
     out.byId[c.id] = c
+    local ex = out.after and out.after[c.id]          -- (a driver's own row that follows this one)
+    if ex then add(out, ex) end
 end
 
 local function powerCtl(real)
@@ -213,9 +221,9 @@ end
 
 -- one face control -> its plain row (a control the row already holds adds nothing)
 local function place(out, id, isTw, tv, shared, have)
-    if id == "power" or id == "volpwr" or (id == "vol" and (isTw or shared)) then
-        if not out.byId.power then add(out, powerCtl((isTw and "vol") or (shared and "volpwr") or "power")) end
-        if isTw or shared then add(out, C_VOL_KNOB) end
+    if id == "power" or id == "volpwr" or id == "pwr" or (id == "vol" and (isTw or shared)) then
+        if not out.byId.power then add(out, powerCtl((id == "pwr" and "pwr") or (isTw and "vol") or (shared and "volpwr") or "power")) end
+        if id ~= "pwr" and (isTw or shared) then add(out, C_VOL_KNOB) end
     elseif id == "vol" then add(out, C_VOL_KNOB)
     elseif id == "voldn" or id == "volup" then add(out, C_VOL_KEYS)
     elseif id == "tune" then
@@ -230,6 +238,7 @@ local function place(out, id, isTw, tv, shared, have)
     elseif id == "mem" then add(out, C_MEM)
     elseif id == "mic" then add(out, C_MIC); add(out, C_RANGE)
     elseif id == "scan" then add(out, C_SCAN)
+    elseif id == "seek" then add(out, C_SEEK)
     elseif id == "lamp" then add(out, C_LAMP)
     elseif id == "slot" or id == "eject" then add(out, mediaCtl(id))
     elseif id == "play" then add(out, C_PLAY)
@@ -248,16 +257,24 @@ controlsFor = function(base, pid)
     local des = X and X.plates and X.plates[pid]
     if not des then return out end
     local TW, R = ZeD.TwoWay, ZeD.Rtv
-    local isTw = base == TW
-    local tv = (not isTw) and R.isTv(pid) or false
-    local shared = (not isTw) and R.factsOf(des).volPower or false
+    local spec = base.plainSpec and base.plainSpec(pid) or nil
+    local isTw, tv, shared
+    if spec then
+        isTw, tv, shared = spec.tw == true, false, spec.volPower == true
+    else
+        isTw = base == TW
+        tv = (not isTw) and R.isTv(pid) or false
+        shared = (not isTw) and R.factsOf(des).volPower or false
+    end
+    out.after = spec and spec.after or nil
     local hits = PL.controls(des, {})
-    local order = isTw and TW.readingOrder(hits, 1) or R.focusOrder(hits, 1)
+    local order
+    if spec and spec.order then order = spec.order(hits) else order = isTw and TW.readingOrder(hits, 1) or R.focusOrder(hits, 1) end
     local have = {}
     for _, h in ipairs(hits) do have[h.id] = true end
     for _, h in ipairs(order) do place(out, h.id, isTw, tv, shared, have) end
     -- a two-way set's battery is read on its glass (BAT / AC), never pressed
-    if isTw then add(out, C_BATT_READ) end
+    if isTw and not (spec and spec.noBattery) then add(out, C_BATT_READ) end
     out.tw, out.tv = isTw, tv
     out.keyN = out.byId.presets and #out.byId.presets.keys or 0
     _ctl[key] = out
@@ -549,7 +566,46 @@ local function drawControl(panel, cx, cy, ch, c, x, face, hits, fo)
     end
 end
 
+-- a reading that may need more than one line (c.wrap: the car ValuTech's preset names): its parts (" | " between
+-- them) packed into lines at the right, the label beside the first
+local function packParts(text, font, maxW)
+    local lines, cur = {}, nil
+    local tm = ZeD.TM
+    for part in (text .. " | "):gmatch("(.-) | ") do
+        local try = cur and (cur .. " | " .. part) or part
+        if cur and tm:MeasureStringX(font, try) > maxW then lines[#lines + 1] = cur; cur = part else cur = try end
+    end
+    if cur then lines[#lines + 1] = cur end
+    return lines
+end
+
+local function wrapRow(panel, x0, y, w, c, x, draw)
+    local T, tm, A = ZeD.T, ZeD.TM, ZeD.Atoms
+    local pad, gap = T.px(10), T.px(8)
+    local lh = rowH()
+    local f1, f2 = T.fontF1, T.fontF2
+    local label = A.textCase(ZeD.tr(c.label))
+    local lw = tm:MeasureStringX(f1, label)
+    local vw = w - 2 * pad - lw - gap
+    local lines = packParts((c.val(x)) or "", f2, vw)
+    local fh1, fh2 = tm:getFontHeight(f1), tm:getFontHeight(f2)
+    local first = math.floor((lh - fh2) / 2)
+    local h = math.max(lh, first + #lines * fh2 + first)
+    if not draw then return h end
+    local ac = T.accent
+    local lx = x0 + pad
+    panel:drawText(label, lx, y + first + math.floor((fh2 - fh1) / 2), ac.r, ac.g, ac.b, 1, f1)
+    local ty = y + first
+    for _, s in ipairs(lines) do
+        A.drawTextRight(panel, A.truncateText(s, f2, vw), x0 + w - pad, ty, f2, T.text)
+        ty = ty + fh2
+    end
+    A.drawDividerH(panel, lx, y + h - T.line(T.borderW), w - 2 * pad)
+    return h
+end
+
 local function row(panel, x0, y, w, c, x, face, hits, draw, fo)
+    if c.wrap then return wrapRow(panel, x0, y, w, c, x, draw) end
     local T, tm, A = ZeD.T, ZeD.TM, ZeD.Atoms
     local pad, gap = T.px(10), T.px(8)
     local lh = rowH()
@@ -657,7 +713,7 @@ layout = function(panel, x0, y0, w, x, face, draw)
     local T = ZeD.T
     local hits = {}
     local fo = nil
-    if draw then _fo.win = face.win; fo = _fo end
+    if draw then _fo.win, _fo.focused = face.win, face.ownFocus; fo = _fo end
     local y = y0
     y = y + readout(panel, x0, y, w, x, draw)
     if draw then ZeD.Atoms.drawDividerH(panel, x0, y, w, true) end
@@ -696,7 +752,8 @@ function PF.height(base, dev, pid, w)
 end
 
 -- the card at (x, y), w wide: returns this frame's hits (panel px) and the read state
---   face = { dev, pid, des, w, minH, focusId, hoverId, pressId, win }
+--   face = { dev, pid, des, w, minH, focusId, hoverId, pressId, win, ownFocus (true: a prop that keeps its own focus,
+--            ZeD.Focus.mark's opts.focused) }
 function PF.draw(base, panel, x0, y0, face)
     local x = ctxOf(base, face.dev, face.pid)
     if not x then return {}, nil end
