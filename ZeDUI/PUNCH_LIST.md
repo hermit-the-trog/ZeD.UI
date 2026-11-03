@@ -1839,6 +1839,14 @@ item says so.
     run as written. The poster stories hand out a weapon, food and in two a repaired car (`addVehicle` + "repair"),
     against the standing rules unless the director says otherwise. Untested: whether ZeD's Spawn window lists its
     hidden "This Is Your Life" region. Waiting: the director's pick, (a) support the hometowns or (b) leave it.
+    **Chosen (the director, Nov 2 2026): support it, scripted starts and poster stories included.** "Adding a car at
+    the start, that's not really cheating. That's just a backstory or a scenario. What I think of as cheating is like
+    spawners." Build: a ZeD hometown picker (the 11 towns with their origin trait and blurb) that hands the pick to the
+    mod (`TIYL.Flow.completeOrigin`), the partner start passed through, and the poster stories as a second picker
+    (`TIYL.Flow.completePosterStory`); ZeD keeps its own Occupation, Traits and Looks pages. Build brings the pickers'
+    layout to the director first. **Check (QA, 4K, the mod on):** a new game through ZeD's creator with a hometown
+    spawns there with its origin trait and map reveal; a poster story starts as the mod writes it; with the mod off,
+    nothing of it shows; multiplayer is a separate pass.
 65. **ZeD's version in About (the director, Nov 2: "Yes").** chosen. The desk's About adds a ZeD-GUI row beside the
     game's build, read from ZeD's own mod.info.
     - **Check (QA, 4K):** About reads ZeD-GUI with the staged version and Game with the game's build.
