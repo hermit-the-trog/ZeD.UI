@@ -10,6 +10,18 @@ until players have checked it. This tool keeps the drafts honest:
                                   where a translation is expected (reported, not failed: some words stay the same)
   merge <parts_dir> <LANG>        the translated parts into 42/media/lua/shared/Translate/<LANG>/UI.json, in the
                                   English key order, with the Sandbox and ItemName files beside it if parts hold them
+  pack <out_dir> [--size N] [--with LANG]
+                                  the English as numbered lines for a translator (fewer tokens than split): one
+                                  pack_NN.txt per N keys (default 1100), "number | longest | where | English", a
+                                  "^" where the place is the same as the line above; index.json maps the numbers back.
+                                  --with adds ZeD's current LANG text under each line ("  = ..."), for a variant or a
+                                  proofreader that sends back only the lines it changes
+  glossary <LANG> <out_file>      the game's own words for <LANG>: short phrases of the game's English that ZeD's
+                                  English uses, with what the game's <LANG> files call them (game wording wins)
+  unpack <pack_dir> <out_dir> [--base LANG]
+                                  a translator's out_NN.txt files ("number<TAB>text" per line, an optional third
+                                  column, a reason, is dropped) back into part_NN.json files for check and merge;
+                                  --base starts from ZeD's current LANG text, so the out files need only the changes
 
 Run with the ComfyUI venv Python and -I, from the repo root.
 """
@@ -147,6 +159,149 @@ def merge(parts_dir, lang):
     return 0
 
 
+GAME_TR = r'E:/Project Zomboid/steamapps/common/ProjectZomboid/media/lua/shared/Translate'
+
+
+def _esc(v):
+    return v.replace('\\', '\\\\').replace('\n', '\\n').replace('\t', '\\t')
+
+
+def _unesc(v):
+    out, i = [], 0
+    while i < len(v):
+        c = v[i]
+        if c == '\\' and i + 1 < len(v):
+            n = v[i + 1]
+            out.append({'n': '\n', 't': '\t', '\\': '\\'}.get(n, '\\' + n))
+            i += 2
+        else:
+            out.append(c)
+            i += 1
+    return ''.join(out)
+
+
+def _ours(lang):
+    """{key: text} from ZeD's own Translate/<lang> files (empty when the language has none yet)."""
+    out = {}
+    d = os.path.join(ROOT, '42', 'media', 'lua', 'shared', 'Translate', lang)
+    for fn in FILES:
+        p = os.path.join(d, fn)
+        if os.path.exists(p):
+            out.update(load_json(p))
+    return out
+
+
+def pack(out_dir, size=1100, with_lang=None):
+    en, ctx = english(), context()
+    have = _ours(with_lang) if with_lang else {}
+    os.makedirs(out_dir, exist_ok=True)
+    keys = list(en.keys())
+    index = {}
+    n = 0
+    for i in range(0, len(keys), size):
+        n += 1
+        lines, prev = [], None
+        for j, k in enumerate(keys[i:i + size]):
+            num = i + j + 1
+            index[str(num)] = k
+            where, mx = ctx.get(k, ('', '-'))
+            w = '^' if where == prev else (where or '-')
+            prev = where
+            lines.append('%d | %s | %s | %s' % (num, mx, w, _esc(en[k][1])))
+            if with_lang:
+                # the language's current text on its own line (the English may hold " | " itself)
+                lines.append('  = ' + (_esc(have[k]) if k in have else '(none yet)'))
+        with open(os.path.join(out_dir, 'pack_%02d.txt' % n), 'w', encoding='utf-8', newline='\n') as f:
+            f.write('\n'.join(lines) + '\n')
+    with open(os.path.join(out_dir, 'index.json'), 'w', encoding='utf-8') as f:
+        json.dump(index, f, ensure_ascii=False)
+    print('packed %d keys into %d packs in %s' % (len(keys), n, out_dir))
+
+
+GAME_UI_FILES = ('UI.json', 'IG_UI.json', 'ContextMenu.json', 'Tooltip.json', 'Moodles.json', 'BodyParts.json', 'Sandbox.json')
+STOP = set('a an the and or of to in on at by for from with as is are be it its this that you your yes no up out off one all can '
+           'not but if so do does has have will what when where which who how more most less other some any each '.split())
+
+
+def _game_strings(lang, files=GAME_UI_FILES):
+    """{key: text} from the game's interface files in Translate/<lang> (files that do not parse are skipped)."""
+    out = {}
+    d = os.path.join(GAME_TR, lang)
+    if not os.path.isdir(d):
+        return out
+    for fn in sorted(os.listdir(d)):
+        if fn in files:
+            try:
+                data = load_json(os.path.join(d, fn))
+            except Exception:
+                continue
+            for k, v in data.items():
+                if isinstance(v, str):
+                    out[k] = v
+    return out
+
+
+def glossary(lang, out_file, top=160):
+    zed = [v.lower() for _, v in english().values()]
+    gen, gl = _game_strings('EN'), _game_strings(lang)
+    phrase = re.compile(r"^[A-Za-z][A-Za-z' -]{1,23}$")
+    by_en = {}
+    for k, v in gen.items():
+        v2 = v.strip()
+        if phrase.match(v2) and len(v2.split()) <= 3 and v2.lower() not in STOP and k in gl and gl[k].strip() and gl[k].strip() != v2:
+            by_en.setdefault(v2.lower(), {}).setdefault(gl[k].strip(), 0)
+            by_en[v2.lower()][gl[k].strip()] += 1
+    scored = []
+    for term, targets in by_en.items():
+        pat = re.compile(r'(?<![a-z])' + re.escape(term) + r'(?![a-z])')
+        hits = sum(1 for z in zed if pat.search(z))
+        if hits >= 3:
+            best = sorted(targets.items(), key=lambda t: -t[1])[:2]
+            scored.append((hits, term, ' / '.join(t for t, _ in best)))
+    scored.sort(key=lambda t: (-t[0], t[1]))
+    with open(out_file, 'w', encoding='utf-8', newline='\n') as f:
+        f.write('# The game\'s own interface words in %s (English = the game\'s %s; two when the game uses both), most '
+                'used in ZeD first. Use the game\'s word where the meaning matches; a word can be wrong for a given line.\n'
+                % (lang, lang))
+        for hits, term, tgt in scored[:top]:
+            f.write('%s = %s\n' % (term, tgt))
+    print('glossary %s: %d terms in %s' % (lang, min(top, len(scored)), out_file))
+
+
+def unpack(pack_dir, out_dir, base=None):
+    """With base=LANG the out files hold only changed lines: ZeD's current <base> text is written first as part_00.json,
+    so merge (later parts win) keeps every line the out files leave alone. A third tab column (a reason) is dropped."""
+    index = load_json(os.path.join(pack_dir, 'index.json'))
+    os.makedirs(out_dir, exist_ok=True)
+    total, bad = 0, 0
+    if base:
+        have = _ours(base)
+        with open(os.path.join(out_dir, 'part_00.json'), 'w', encoding='utf-8') as f:
+            json.dump(have, f, ensure_ascii=False, indent=1)
+        print('base %s: %d keys' % (base, len(have)))
+    for fn in sorted(os.listdir(pack_dir)):
+        if not (fn.startswith('out_') and fn.endswith('.txt')):
+            continue
+        part = {}
+        with open(os.path.join(pack_dir, fn), encoding='utf-8-sig') as f:
+            for ln, line in enumerate(f, 1):
+                line = line.rstrip('\r\n')
+                if not line.strip():
+                    continue
+                num, sep, text = line.partition('\t')
+                k = index.get(num.strip())
+                if not sep or not k:
+                    print('  FAIL %s line %d: not "number<TAB>text": %r' % (fn, ln, line[:60]))
+                    bad += 1
+                    continue
+                part[k] = _unesc(text.split('\t')[0])
+        total += len(part)
+        with open(os.path.join(out_dir, fn.replace('out_', 'part_').replace('.txt', '.json')), 'w', encoding='utf-8') as f:
+            json.dump(part, f, ensure_ascii=False, indent=1)
+    print('unpacked %d lines (%d bad) of %d keys into %s' % (total, bad, len(index), out_dir))
+    return 1 if bad else 0
+
+
 if __name__ == '__main__':
     a = sys.argv[1:]
     if not a:
@@ -159,6 +314,13 @@ if __name__ == '__main__':
         sys.exit(check(a[1]))
     elif a[0] == 'merge':
         sys.exit(merge(a[1], a[2]))
+    elif a[0] == 'pack':
+        pack(a[1], int(a[a.index('--size') + 1]) if '--size' in a else 1100,
+             a[a.index('--with') + 1] if '--with' in a else None)
+    elif a[0] == 'glossary':
+        glossary(a[1], a[2])
+    elif a[0] == 'unpack':
+        sys.exit(unpack(a[1], a[2], a[a.index('--base') + 1] if '--base' in a else None))
     else:
         print(__doc__)
         sys.exit(2)
