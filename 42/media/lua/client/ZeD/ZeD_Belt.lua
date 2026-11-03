@@ -27,7 +27,8 @@
 -- Two forms (the "Belt" option; director, Nov 2 2026, punch list 56: a full and a simple version, as for the
 -- action bar and the context menu): Full, the leather strap with each slot's material and the profession buckle;
 -- Simple, the same hands, slots, ammo tab, wrist watch and note with no strap and no buckle, the slots evenly
--- spaced after the hands, the belt centred on its own width. Everything the belt does is the same in both.
+-- spaced after the hands, the middle of the slots on the screen's centre (where Full puts its buckle, so the slots
+-- stay put while the hands change). Everything the belt does is the same in both.
 -- ============================================================================
 
 require "ZeD/Tr"
@@ -837,12 +838,16 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp, ammo, two)
     end
     x = x + px(END_GAP)
     if B.simple() then
-        -- the Simple belt: the slots evenly spaced after the hands, no strap and no buckle
+        -- the Simple belt: the slots evenly spaced after the hands, no strap and no buckle. The middle of the slots
+        -- goes on the screen's centre, as Full's buckle does (QA, Nov 2 2026: centred on its own width, a second
+        -- item in the off hand moved every slot by half the hands' change)
+        local slotsX = x
         for i = 1, n do
             boxes[#boxes + 1] = { kind = "slot", i = i, s = slots[i], x = x, y = by, w = box, h = box }
             x = x + box + px(SIMPLE_GAP)
         end
         if n > 0 then x = x - px(SIMPLE_GAP) end
+        self._anchorX = math.floor((slotsX + x) / 2)
         if lamp then
             x = x + px(END_GAP)
             local lw = px(LAMP)
@@ -853,6 +858,7 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp, ammo, two)
         self._strap, self._buckle, self._runs, self._closure = nil, nil, nil, nil
         return x, h
     end
+    self._anchorX = nil
     local strapX = x
     x = x + px(PAD)                       -- the slots sit PAD in from the strap's end (the buckle's place counts it)
     -- the buckle's place is its art at the whole zoom (58 x 40 texels at T.art; Oct 21 2026)
@@ -1598,7 +1604,7 @@ function ZeD_BeltHUD:_prerender()
     -- the buckle on the screen's centre (director, Oct 19 2026: the belt may sit off centre;
     -- the buckle is where the eye goes)
     local b = self._buckle
-    local bx = b and (b.x + math.floor(b.w / 2)) or math.floor(w / 2)
+    local bx = b and (b.x + math.floor(b.w / 2)) or self._anchorX or math.floor(w / 2)   -- (Simple: the slots' middle)
     local sx = getPlayerScreenLeft(self.playerNum) + math.floor(getPlayerScreenWidth(self.playerNum) / 2) - bx
     local sy = getPlayerScreenTop(self.playerNum) + getPlayerScreenHeight(self.playerNum) - h - T.px(BOTTOM)
     if self:getX() ~= sx then self:setX(sx) end
