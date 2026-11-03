@@ -229,6 +229,27 @@ def check_json():
         fail("UI.json has %d bad entries (key shape or empty/non-string value), e.g. %s" % (len(bad), bad[:5]))
     else:
         ok("UI.json valid, %d keys" % len(data))
+    # a key written twice: Python keeps the last quietly, but the game refuses the whole file and will not start
+    # (Nov 2 2026: "JSONException: Duplicate key" stopped the game at load). Every language's files, not just EN.
+    import glob as _glob
+    tdir = os.path.dirname(os.path.dirname(UI_JSON))
+    dups = []
+    for f in sorted(_glob.glob(os.path.join(tdir, "*", "*.json"))):
+        seen = set()
+        def hook(pairs, f=f, seen=seen):
+            for k, _ in pairs:
+                if k in seen:
+                    dups.append("%s: %s" % (os.path.relpath(f, tdir), k))
+                seen.add(k)
+            return dict(pairs)
+        try:
+            json.load(open(f, encoding="utf-8-sig"), object_pairs_hook=hook)
+        except Exception as e:
+            fail("%s does not parse: %s" % (os.path.relpath(f, tdir), e))
+    if dups:
+        fail("duplicate keys (the game will not start): " + ", ".join(dups[:10]))
+    else:
+        ok("no duplicate keys in any language's files")
     return data
 
 

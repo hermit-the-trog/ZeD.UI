@@ -533,7 +533,7 @@ end
 -- ----- THE WATCH'S FORM (the director, Nov 2 2026, punch list 60: the watch is in the beta) -----
 -- Full: the watch you wear, drawn as itself (and the tape deck keys with none). Simple: a plain clock box with the
 -- same readings and buttons, and a plain time box for the small one on the belt.
-local watchStyle = opts:addComboBox("watchStyle", ZeD.tr("UI_ZeD_Settings_Watch"), ZeD.tr("UI_ZeD_Settings_WatchTip"))
+local watchStyle = opts:addComboBox("watchStyle", ZeD.tr("UI_ZeD_Settings_WatchStyle"), ZeD.tr("UI_ZeD_Settings_WatchStyleTip"))
 watchStyle:addItem(ZeD.tr("UI_ZeD_Settings_BeltFull"), true)   -- default
 watchStyle:addItem(ZeD.tr("UI_ZeD_Settings_ActionBarSimple"), false)
 ZeD.Settings.watchStyleOption = watchStyle
@@ -582,7 +582,7 @@ do
         screenWatch = "UI_ZeD_Settings_ScreenWatch", screenDashboard = "UI_ZeD_Settings_ScreenDashboard",
         screenMoodles = "UI_ZeD_Settings_ScreenMoodles", screenWheels = "UI_ZeD_Settings_ScreenWheels",
         screenCharInfo = "UI_ZeD_Settings_ScreenCharInfo", beltStyle = "UI_ZeD_Settings_Belt",
-        devicesStyle = "UI_ZeD_Settings_Devices", watchStyle = "UI_ZeD_Settings_Watch", dashStyle = "UI_ZeD_Settings_Dash",
+        devicesStyle = "UI_ZeD_Settings_Devices", watchStyle = "UI_ZeD_Settings_WatchStyle", dashStyle = "UI_ZeD_Settings_Dash",
     }
     for id, key in pairs(nameKeys) do
         local o = opts.dict and opts.dict[id]
