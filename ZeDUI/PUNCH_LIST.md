@@ -1800,6 +1800,15 @@ item says so.
     edit.
 64. **This Is Your Life (the director, Nov 2).** open. Build takes a short read of what it adds: hometown postcards,
     Origin Traits and scripted starts, all switchable in sandbox. It reports to the director, who decides.
+    **Read (build, Nov 2 2026): ZeDUI/workshop/TIYL_read_20261102.md.** Workshop 3773911887. It overrides the game's
+    creator screens in place (TIYLFlow.lua: SandboxOptionsScreen, CharacterCreationProfession, CharacterCreationMain and
+    MapSpawnSelect setVisible at class level; TIYLAppearanceSkin replaces CharacterCreationMain's prerender) and adds
+    its own postcard and map-board panels, so under ZeD's Spawn, Occupation and Looks windows nothing of it shows and no
+    origin is set. Support option (a), about a day: a ZeD hometown picker over `TIYL.Origins` that calls
+    `TIYL.Flow.completeOrigin(id)` after Spawn; the in-game parts (origin trait, map reveal, journal, milestones) then
+    run as written. The poster stories hand out a weapon, food and in two a repaired car (`addVehicle` + "repair"),
+    against the standing rules unless the director says otherwise. Untested: whether ZeD's Spawn window lists its
+    hidden "This Is Your Life" region. Waiting: the director's pick, (a) support the hometowns or (b) leave it.
 65. **ZeD's version in About (the director, Nov 2: "Yes").** chosen. The desk's About adds a ZeD-GUI row beside the
     game's build, read from ZeD's own mod.info.
     - **Check (QA, 4K):** About reads ZeD-GUI with the staged version and Game with the game's build.
