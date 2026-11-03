@@ -1,0 +1,11 @@
+{
+    "Sandbox_ZeD": "ZeD-GUI",
+    "Sandbox_ZeD_TaxiFlagDrop": "Taxímetre: baixada de bandera",
+    "Sandbox_ZeD_TaxiFlagDrop_tooltip": "Dòlars que mostra el taxímetre del taxi quan el conductor baixa la bandera.",
+    "Sandbox_ZeD_TaxiPerFifthMile": "Taxímetre: per 1/5 de milla",
+    "Sandbox_ZeD_TaxiPerFifthMile_tooltip": "Dòlars que el taxímetre afegeix per cada cinquè de milla conduït amb la bandera baixada.",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting": "Taxímetre: per minut d'espera",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting_tooltip": "Dòlars que el taxímetre afegeix per cada minut de temps real que el taxi espera (a menys de 5 km/h, amb el motor en marxa) amb la bandera baixada.",
+    "Sandbox_ZeD_TaxiPerExtraPassenger": "Taxímetre: per passatger extra",
+    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "Dòlars que es mostren sota EXTRES per cada passatger després del primer. El conductor no compta."
+}
