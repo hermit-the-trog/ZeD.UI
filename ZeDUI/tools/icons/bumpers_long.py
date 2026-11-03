@@ -15,8 +15,19 @@ W, H = im.size
 C = 4
 CW, CH = W // C, H // C
 orig = [[im.getpixel((cx * C + 1, cy * C + 1)) for cy in range(CH)] for cx in range(CW)]
-grid = [col[:] for col in orig]
 EMPTY = (0, 0, 0, 0)
+
+# ---- the triggers (with their LT / RT labels) nudged in toward the middle by NUDGE cells (the director, Nov 2 2026:
+# "nudge those like 3 pixels in"). Only the rows above the bumpers move (14 to 30); below, the bumpers cover them.
+NUDGE = 3
+def move_block(x0, x1, dx):
+    block = {(cx, cy): orig[cx][cy] for cx in range(x0, x1 + 1) for cy in range(14, 31)}
+    for (cx, cy) in block: orig[cx][cy] = EMPTY
+    for (cx, cy), c in block.items():
+        if c != EMPTY: orig[cx + dx][cy] = c
+move_block(26, 60, NUDGE)       # LT and its label (the LB label starts at cell 64)
+move_block(139, 173, -NUDGE)    # RT and its label (the RB label ends at cell 137)
+grid = [col[:] for col in orig]
 BUMPER = {(250, 245, 232, 255), (206, 197, 174, 255), (172, 162, 138, 255)}   # its light edge, fill and dots
 TOP, BOT = 31, 37          # the bumpers' rows (cells)
 
@@ -35,7 +46,7 @@ for r in range(TOP, BOT + 1):
     start = next(cx for cx in range(40, 50) if orig[cx][r] in BUMPER)   # LB's own left end in this row
     ns = start + SHIFT_L
     for cx in range(26, ns):
-        grid[cx][r] = orig[cx][r]           # left of the new end: as before (empty, or the trigger behind)
+        grid[cx][r] = EMPTY                 # left of the new end: empty (the trigger now starts right of it)
     for k in range(0, 4):
         grid[ns + k][r] = orig[start + k][r]   # the rounded light end, moved out
 
@@ -48,14 +59,14 @@ for r in range(TOP, BOT + 1):
     for k in range(-3, 3):
         grid[ne + k][r] = orig[end + k][r]     # the shaded end, its outline and shadow, moved out
     for cx in range(ne + 3, 178):
-        grid[cx][r] = orig[cx][r]              # past it: as before (empty)
+        grid[cx][r] = EMPTY                    # past it: empty
 
 out = Image.new("RGBA", (W, H), EMPTY)
 px = out.load()
 opx = im.load()
 for cx in range(CW):
     for cy in range(CH):
-        same = grid[cx][cy] == orig[cx][cy]
+        same = grid[cx][cy] == im.getpixel((cx * C + 1, cy * C + 1))   # (unchanged from the file: keep its pixels)
         for dx in range(C):
             for dy in range(C):
                 px[cx * C + dx, cy * C + dy] = opx[cx * C + dx, cy * C + dy] if same else grid[cx][cy]

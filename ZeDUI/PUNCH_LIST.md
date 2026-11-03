@@ -1943,7 +1943,7 @@ item says so.
     the same Xbox-lettered pad in every set (by design; the director's call).
     **The director, Nov 2 2026, evening: the bumpers lengthened, straight.** From the director's two sketches: LB and
     RB run out straight until their outer ends meet the start of the curve of the pad's body (the second sketch: no
-    bending down over the shoulders); the triggers sit above them. Drawn by QA (ZeDUI/tools/icons/bumpers_long.py,
+    bending down over the shoulders); the triggers (with their LT / RT labels) sit above them, nudged 3 art pixels in toward the middle (the director's third ask). Drawn by QA (ZeDUI/tools/icons/bumpers_long.py,
     from the original art: the bumper's own columns, LB's rounded light end moved out for LB, LB's shaded end with its
     outline and shadow for RB) into controller_map.png; before and after in qa/Nov2_beta/pl67_bumpers_before_after.png.
 68. **Hair and beard with the eight-mod set (the director, Nov 2: the beta can ship with it as a known issue; keep
