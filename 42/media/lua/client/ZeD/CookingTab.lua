@@ -69,6 +69,20 @@ local function catalog()
     CAT = { dishes = {}, order = {}, byBase = {}, keyOfLabel = {}, keyOf = {} }
     local ok, list = pcall(getEvolvedRecipes)
     if not ok or not list then return CAT end
+    -- each dish is keyed by the plainest of its recipes' names (Stew, not StewForged), so a saved
+    -- dish and a test read the same key whichever recipe the game lists first
+    local function labelOf(r)
+        local un = r:getUntranslatedName()
+        return (getTextOrNull and getTextOrNull("ContextMenu_EvolvedRecipe_" .. un)) or r:getName() or un
+    end
+    for i = 0, list:size() - 1 do
+        local r = list:get(i)
+        local un, label = r:getUntranslatedName(), labelOf(r)
+        local k = CAT.keyOfLabel[label]
+        if not k or string.len(un) < string.len(k) or (string.len(un) == string.len(k) and un < k) then
+            CAT.keyOfLabel[label] = un
+        end
+    end
     for i = 0, list:size() - 1 do
         local r = list:get(i)
         local hidden = false
@@ -79,10 +93,8 @@ local function catalog()
         if not hidden and base ~= result then
             -- one dish per name: the game's Stir fry, Stir fry Griddle Pan and Stir fry Forged are one
             -- Stir-fry, made in whichever of them is at hand (QA, Nov 3 2026)
-            local un = r:getUntranslatedName()
-            local label = (getTextOrNull and getTextOrNull("ContextMenu_EvolvedRecipe_" .. un)) or r:getName() or un
+            local label = labelOf(r)
             local key = CAT.keyOfLabel[label]
-            if not key then key = un; CAT.keyOfLabel[label] = key end
             CAT.keyOf[r] = key
             local d = CAT.dishes[key]
             if not d then
@@ -120,8 +132,9 @@ end
 local function containersFor(chr)
     -- (the game's list reads the player's inventory pages; at quit the window draws once after they
     -- are gone, and the game's function prints its error even under pcall: QA, Nov 3 2026)
-    local pd = getPlayerData and getPlayerData(chr:getPlayerNum())
-    if not pd then return ZeD.CraftingCore.buildContainers(chr) end
+    local pn = chr:getPlayerNum()
+    local ok0, ready = pcall(function() return getPlayerInventory(pn) ~= nil and getPlayerLoot(pn) ~= nil end)
+    if not (ok0 and ready) then return ZeD.CraftingCore.buildContainers(chr) end
     local ok, list = pcall(ISInventoryPaneContextMenu.getContainers, chr)
     if ok and list and list:size() > 0 then return list end
     return ZeD.CraftingCore.buildContainers(chr)
