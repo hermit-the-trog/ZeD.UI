@@ -1,0 +1,11 @@
+{
+    "Sandbox_ZeD": "ZeD-GUI",
+    "Sandbox_ZeD_TaxiFlagDrop": "Taksimetre: açılış ücreti",
+    "Sandbox_ZeD_TaxiFlagDrop_tooltip": "Şoför bayrağı indirdiğinde taksimetrenin gösterdiği dolar.",
+    "Sandbox_ZeD_TaxiPerFifthMile": "Taksimetre: 1/5 mil başına",
+    "Sandbox_ZeD_TaxiPerFifthMile_tooltip": "Bayrak inikken sürülen her mil beşte biri için taksimetrenin eklediği dolar.",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting": "Taksimetre: bekleme dakikası başına",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting_tooltip": "Bayrak inikken taksi beklediğinde (5 km/s altında, motor çalışırken) gerçek zamanın her dakikası için taksimetrenin eklediği dolar.",
+    "Sandbox_ZeD_TaxiPerExtraPassenger": "Taksimetre: ek yolcu başına",
+    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "İlkinden sonraki her yolcu için EXTRAS altında gösterilen dolar. Şoför sayılmaz."
+}
