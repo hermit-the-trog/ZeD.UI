@@ -2067,6 +2067,21 @@ item says so.
       anywhere in either strip.
     - Related, for the director: the right-click strip draws two letters for an action ZeD has no icon for
       (Molecules drawContextCell's fallback), the same modern tell.
+77. **The laundry faces redrawn (design, Cowork; the director, Nov 2 2026: "These are great. I love them.").** built
+    (258dc431, 2817d3f1; ZeDUI/HANDOFF_laundry_redesign_20261102.md). The game model's proportions; the washer a
+    top-loader seen from above (backsplash console, lid up, basket and agitator, the load round it, soapy water rising
+    through it at the 5 levels: `washer*_soak1..5` with clothes, `washer*_water1..5` without, from ObjectCardLaundry's
+    new `waterLoad` / `waterBare` states); the dryer under the matching console; the washer-dryer still a front-loader
+    with new clothes and water. PhysPx.lua changed in its 15 laundry entries only (checked).
+    - **Check (QA, in game, at a couple of UI scales):** each machine empty and with clothes; the washer at every water
+      level with and without clothes; power off and the running lamps; the lid / door click opens the contents; nothing
+      cut off, the controls line up with the art. Retake the laundry QA captures, and the gallery's laundry spread (59)
+      when convenient.
+    - **Build note (design's warning):** export_rtv.py rebuilds every machine plate, and the committed oven, generator,
+      grill, ham, walkie and microwave textures and six oven / ham entries in PhysPx.lua are newer than what the tools
+      make today. Running it straight into the mod would put older art back; design exported to a scratch folder and
+      copied the laundry files only. Build to bring the tools level with the committed art (or guard the exporter to
+      named plates) before anyone exports again.
 
 ## Test process
 
