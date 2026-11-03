@@ -750,12 +750,12 @@ local function setUpAdditions()
     local WAS_ON = { "ammoBox", "readMarks", "readNext", "dashLamps", "moodleNotices", "messagesCatch", "messagesToast", "loadouts" }
     local ok, r = pcall(function() return getFileReader("ModOptions.ini", false) end)
     if ok and r then
-        local had, has = false, {}
+        local had, has, val = false, {}, {}
         pcall(function()
             local l = r:readLine()
             while l do
-                local id = l:match("|ZeD_UI|([%w_]+)|")
-                if id then had = true; has[id] = true end
+                local id, v = l:match("|ZeD_UI|([%w_]+)|(%d*)")
+                if id then had = true; has[id] = true; val[id] = tonumber(v) end
                 l = r:readLine()
             end
         end)
@@ -764,6 +764,14 @@ local function setUpAdditions()
             for _, id in ipairs(WAS_ON) do
                 local o = opt(id)
                 if o and not has[id] then o:setValue(ON) end
+            end
+            -- (beta, Nov 2 2026: the Full or simple rows joined the presets. A player on Vanilla Access, preset item 3,
+            -- from before them gets them Simple, as the preset now asks, instead of the preset reading Custom.)
+            if val.additionsPreset == 3 then
+                for _, id in ipairs({ "devicesStyle", "watchStyle", "dashStyle" }) do
+                    local o = opt(id)
+                    if o and not has[id] then o:setValue(2) end
+                end
             end
         end
     end
