@@ -1672,7 +1672,7 @@ function ZeD.RadioTab.onWheel(win, del, x, y)
     local h = _hitZone(tw.view, x, y) and TW.hitAt(tw.hits, x, y) or nil
     if h and h.knob then
         win._radioWheel = win._radioWheel or { t = 0, streak = 0 }
-        local n = _turnStreak(win._radioWheel, 110)
+        local n = _turnStreak(win._radioWheel, 160)   -- (a brisk hand spins about 10 notches a second: 110 ms sat on it; QA, Nov 2 2026)
         local mult = (h.id == "tune") and TW.turnMult(tw.pid, n) or 1
         TW.turn(win._playerObj, tw.dev, h.id, del > 0 and -1 or 1, mult)
         return true
