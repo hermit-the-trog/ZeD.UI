@@ -388,6 +388,13 @@ local function machine(tag, getObj, pidWant, opts)
         if shirt then added[#added + 1] = shirt end
         shot(tag .. "_1_open")
     end)
+    -- (a second later: the face's pictures load on its first opening, item 26's rule; blank still here would be a fault)
+    step(60, function()
+        if not obj then return end
+        local e = entry()
+        say(tag .. ": a second after opening: face " .. tostring(e and e.t and e.t._face))
+        shot(tag .. "_1_open_later")
+    end)
     -- the water at each of the game's five levels, the tub empty and then with clothes (Nov 2 2026, punch list 77: the
     -- top-loader's soak1..5 among the clothes, water1..5 in the empty tub; the washer-dryer keeps its water1..5). The
     -- card's reading of the machine (def.refresh's t.d) is given the level: a machine on piped water reports 10000

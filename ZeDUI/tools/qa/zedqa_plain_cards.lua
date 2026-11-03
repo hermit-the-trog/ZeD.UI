@@ -192,10 +192,12 @@ for _, m in ipairs(SETS) do
         check(one ~= 0, m.pid .. ": the wheel over the frequency turns it (" .. chWas .. " -> " .. dd:getChannel() .. ")")
         if m.tune then
             chWas = dd:getChannel()
-            for _ = 1, 8 do wheel(fid, -1) end
+            -- (the speed-up: from the 9th notch of a streak, each within 160 ms of the one before; this step starts after
+            -- a pause well over 160 ms, so the streak starts clean: 8 notches at 1x, then 4 at 5x)
+            for _ = 1, 12 do wheel(fid, -1) end
             local fast = dd:getChannel() - chWas
-            say(m.pid .. ": one notch " .. one .. ", eight fast notches " .. fast)
-            check(math.abs(fast) > 8 * math.abs(one), m.pid .. ": a fast spin goes further than its notches one by one")
+            say(m.pid .. ": one notch " .. one .. ", twelve fast notches " .. fast .. " (want " .. (8 * one + 4 * 5 * one) .. ")")
+            check(math.abs(fast) > 12 * math.abs(one), m.pid .. ": a fast spin (12 notches) goes further than its notches one by one")
             dd:setChannel(station())
         end
     end)
