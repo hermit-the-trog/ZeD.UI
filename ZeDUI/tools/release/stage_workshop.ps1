@@ -398,7 +398,7 @@ Write-Host '== SUMMARY ==' -ForegroundColor Cyan
 "  mod.info:    {0}" -f ($modInfos -join ', ')
 "  ZeD picks:   {0}" -f $(if (Test-Path -LiteralPath (Join-Path $PicksSrc '42/mod.info')) { $(if ($DryRun) { 'would stage' } else { 'staged' }) + ' mods/ZeD_Picks (the helper mod for file picks)' } else { 'MISSING (ZeDUI/picks_mod/ZeD_Picks)' })
 "  dev tools:   {0}" -f $(if ($KeepDevTools) { 'shipped (-KeepDevTools)' } else { 'left out' })
-"  preview.png: {0}" -f $(if ($previewProblem) { $previewProblem } else { '256 x 256 PNG, ok' + $(if ($DryRun) { '' } else { ' (copied into the item folder)' }) })
+"  preview.png: {0}" -f $(if ($previewProblem) { $previewProblem } else { 'square PNG (256 or 512), ok' + $(if ($DryRun) { '' } else { ' (copied into the item folder)' }) })
 "  page text:   {0}" -f $(if ($descLines) { "{0} ({1:N0} + 58 of 8,000 characters){2}" -f $Description, ($descLines -join "`n").Length, $(if ($DryRun) { ' would be written' } else { ' written into workshop.txt' }) } else { 'kept as it is in workshop.txt' })
 "  title:       {0}" -f $(if ($Title) { $Title } else { 'kept as it is' })
 "  change note: {0}" -f $(if ($null -ne $noteText) { "{0}{1}" -f $ChangeNote, $(if ($DryRun) { ' would be written' } else { ' written into Lua/ZeD_workshop.txt' }) } else { 'kept as it is in Lua/ZeD_workshop.txt' })
