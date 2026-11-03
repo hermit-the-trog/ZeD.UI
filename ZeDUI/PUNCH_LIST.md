@@ -1815,6 +1815,15 @@ item says so.
     - Build brings the layout rules and that list to the director before building anything.
     - **Check (QA, after it is built):** the ZeD setup switch flips every listed surface between its two forms, live;
       each simple card does everything its face does, with the mouse and the pad.
+    **Proposal and answers (ZeDUI/SIMPLE_VERSIONS_PROPOSAL.md; the director, Nov 2 2026: "the rules are right.
+    Watch and dashboard go into the beta. Fictional pieces stay simple"):** the six rules stand (nothing lost, ZeD's
+    plain parts, one device-card layout, the pad in the face's order, one "Look" group in ZeD setup with a Full /
+    Simple row per family and Vanilla Access picking Simple, Full the default). In the beta: group A, the devices
+    (radios and TVs, walkies and ham sets, the car radio, ovens / microwaves / fryer, the grill, generators, washers
+    and dryers), and group B, the watch and the dashboard with the taxi meter and the siren. Group C keeps its plain
+    way in; group D (ID card, notebook paper, balloons, the main menu desk, sleep clock, fishing reel, death alert,
+    seat chooser, map pins, the Messages note) stays as it is, with no simple version (build's reading of "stay
+    simple"). First: the radio's simple card as a picture for the director, then the rest in that layout.
 61. **The Vehicle tab on small screens (the director, Nov 2: undecided, must be decided before the beta).** open.
     - Beside the car figure, Type, Distance and Key show only their labels at small sizes.
     - **QA first:** one small-screen screenshot of the Vehicle tab with the hood open (1280x720 or the Deck,
