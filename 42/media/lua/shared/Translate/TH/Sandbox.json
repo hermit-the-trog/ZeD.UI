@@ -1,0 +1,11 @@
+{
+    "Sandbox_ZeD": "ZeD-GUI",
+    "Sandbox_ZeD_TaxiFlagDrop": "มิเตอร์แท็กซี่: ค่าแรกเข้า",
+    "Sandbox_ZeD_TaxiFlagDrop_tooltip": "จำนวนดอลลาร์ที่มิเตอร์แท็กซี่แสดงเมื่อคนขับดึงธงลง",
+    "Sandbox_ZeD_TaxiPerFifthMile": "มิเตอร์แท็กซี่: ต่อ 1/5 ไมล์",
+    "Sandbox_ZeD_TaxiPerFifthMile_tooltip": "จำนวนดอลลาร์ที่มิเตอร์เพิ่มให้ทุกเศษหนึ่งส่วนห้าของไมล์ที่ขับขณะธงลง",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting": "มิเตอร์แท็กซี่: ต่อนาทีที่รอ",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting_tooltip": "จำนวนดอลลาร์ที่มิเตอร์เพิ่มให้ทุกนาทีในเวลาจริงที่แท็กซี่รอ (ต่ำกว่า 5 km/h เครื่องยนต์ติดอยู่) ขณะธงลง",
+    "Sandbox_ZeD_TaxiPerExtraPassenger": "มิเตอร์แท็กซี่: ต่อผู้โดยสารเพิ่ม",
+    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "จำนวนดอลลาร์ที่แสดงใต้ เพิ่มเติม สำหรับผู้โดยสารทุกคนหลังคนแรก ไม่นับคนขับ"
+}
