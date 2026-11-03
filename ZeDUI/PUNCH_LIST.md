@@ -1956,6 +1956,12 @@ item says so.
       a plain A (PT and PTBR "MAÇA" for Maçã, RO "MANCAT" for Mâncat); in the 7-row face the base letter shrinks to make
       room for the accent, so Ö, Í and É read as small letters beside full capitals (FI "SYöMINEN", CS "JEDENí", HU
       "EVéS"). A tweak to ZeDUI/tools/i18n/pixel_glyphs_gen.py; likely Õ, Ñ and the rest of the accented set too.
+      **Built (build, Nov 3 2026, 0e8cfcaf): a "57t" face with tall accented capitals for the action bar's first line
+      only** (the mark in two rows above the line, a cedilla one row below). **QA, Nov 3 2026: FI, CS, HU, RO rerun at
+      4K, 5 / 5 each: SYÖMINEN, JEDENÍ, EVÉS, MÂNCAT read as full capitals, the marks inside the box**
+      (2026-11-03_pl62_lang_*_accents.md; picture ZeDUI/qa/review_20261103/action_bar_accents.png). Still open: the
+      second line (the item name: RO MĂR, PT MAÇÃ) has one free row, so tall marks there need the action bar 2 px
+      taller in every language: the director's call.
     **Built (build, Nov 3 2026): the other 24 languages drafted (Sonnet), JP/KO/TH/CH/RU/UA proofread (Fable), all in
     ZeD.MACHINE_LANGS; notes for checkers in ZeDUI/i18n/mt_notes/; the main-menu clock is a translatable pattern
     (UI_ZeD_MainMenu_Clock12).** Not in the uploaded beta; ships with the next build. Hand-circle labels fit (off hand 8
