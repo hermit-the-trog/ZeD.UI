@@ -1,0 +1,3 @@
+# ZeDUI/tools/qa/vehicle_review.txt  (Nov 3 2026): the Vehicle tab at full height for the director
+zedqa_prelude.lua | pre | timeout=120
+zedqa_vehicle_review.lua | vrv | timeout=180
