@@ -1,0 +1,11 @@
+{
+    "Sandbox_ZeD": "ZeD-GUI",
+    "Sandbox_ZeD_TaxiFlagDrop": "Таксометр: подача",
+    "Sandbox_ZeD_TaxiFlagDrop_tooltip": "Долари, які показує таксометр, коли водій опускає прапорець.",
+    "Sandbox_ZeD_TaxiPerFifthMile": "Таксометр: за 1/5 милі",
+    "Sandbox_ZeD_TaxiPerFifthMile_tooltip": "Долари, які лічильник додає за кожну п'яту милі, проїхану з опущеним прапорцем.",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting": "Таксометр: за хвилину очікування",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting_tooltip": "Долари, які лічильник додає за кожну хвилину реального часу, поки таксі чекає (менше 5 км/год, двигун працює) з опущеним прапорцем.",
+    "Sandbox_ZeD_TaxiPerExtraPassenger": "Таксометр: за кожного додаткового пасажира",
+    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "Долари, що показуються під «ДОДАТКОВО» за кожного пасажира після першого. Водій не враховується."
+}
