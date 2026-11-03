@@ -3876,13 +3876,14 @@ function ZeD.Molecules.drawContextCell(panel, x, y, def, flags, T)
         end
     else
         -- S99: no-icon fallback — draw first letter(s) in a box. Uses the
-        -- first two letters of def.name (stripping non-letters) in F1 (mono).
+        -- first two letters of def.name (stripping non-letters) in F1 (mono),
+        -- in sentence case: a capital, then a small letter ("Op" for Open).
         -- Text colors tuned for max contrast: primary `text` on inactive
         -- cells, `textOnAccent` on active cells (the theme's high-contrast
         -- pair designed for readable text on the accent background).
         local name = def.name or "?"
         local clean = tostring(name):gsub("[^%w]+", "")
-        local letters = ZeD.upper(clean:sub(1, 2))
+        local letters = ZeD.upper(clean:sub(1, 1)) .. string.lower(clean:sub(2, 2))
         if letters == "" then letters = "?" end
         local font = T.fontF1 or T.fontF3
         local tm = ZeD.TM
