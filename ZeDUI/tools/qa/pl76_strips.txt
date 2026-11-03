@@ -1,0 +1,3 @@
+# punch list 76 (Nov 2 2026): no letters in the container strips (seated in a pickup)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_strip_icons.lua | sti | timeout=240

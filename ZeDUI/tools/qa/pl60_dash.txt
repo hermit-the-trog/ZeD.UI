@@ -1,0 +1,4 @@
+# punch list 60 (Nov 2 2026): the Simple dashboard on every design (pictures for the director)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_dash_form.lua | dsf | timeout=30
+zedqa_dash19.lua | dash | timeout=900
