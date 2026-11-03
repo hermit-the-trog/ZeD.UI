@@ -1,0 +1,7 @@
+# ZeDUI/tools/qa/gallery_beta2_cook.txt  (Nov 3 2026): the Cooking pictures again in the gallery look (the Dish list open)
+zedqa_prelude.lua | pre | timeout=120
+gallery_t14_look.lua | g14l | timeout=60
+gallery_daylight.lua | day | timeout=120
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_cook80.lua | c80 | timeout=1500
+gallery_t14_end.lua | g14e | timeout=60

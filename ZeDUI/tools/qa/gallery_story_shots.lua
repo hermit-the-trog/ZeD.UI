@@ -606,7 +606,9 @@ if want("04b") then
         local w = Z.WW()
         if not (w and T4.id) then return end
         local s = MT.getState(w)
-        s.view, s.card, s.verb, s.confirm, s.cardScroll, s.pick, s.fixPick = "card", T4.id, "install", nil, 0, 1, 1
+        -- the two-column tab (Nov 3 2026, 0.3.0-beta2): the tire's card open in the right column, as a click on its
+        -- row opens it, with Install chosen
+        s.card, s.verb, s.confirm, s.sortOpen, s.cardScroll, s.pick, s.fixPick = T4.id, "install", nil, nil, 0, 1, 1
         s.items, s.needsCache, s.fixCache, s.partsCache = nil, nil, nil, nil
         if not CWm.isOpen() then CWm.toggle(pn) end
         Z.place()
@@ -627,7 +629,7 @@ if want("04b") then
         local it = T4.part and T4.part:getInventoryItem()
         say("tire back on: " .. tostring(it ~= nil))
         local w = Z.WW()
-        if w then local s = MT.getState(w); s.view, s.card = "overview", nil end
+        if w then local s = MT.getState(w); s.card = nil end
         Z.closePair()
     end)
 end

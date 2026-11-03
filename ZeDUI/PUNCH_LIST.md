@@ -2367,6 +2367,12 @@ item says so.
     - For the director's tuning (the game's own rules, the same as by hand): the tab goes away after Make (the pot
       is now a dish, and only an empty pot or pan starts one); seasoning is not offered for a dish not yet begun;
       frozen food is not listed at all.
+    - **QA, Nov 3 2026, the staged 0.3.0-beta2 (0860bd72): the release check 16 / 16, Cooking 47 / 47, the Vehicle
+      tab 45 / 45, no errors in the log (qa/regression/2026-11-03_beta2_staged.md). One fault found in the gallery
+      pass, open, blocks the upload: the Cooking tab's open lists (Dish, Sort) are hidden behind its two columns;
+      only a sliver of each list's frame shows (zedqa_cook_popup.lua; Screenshots/zqa_ckp_3840x2160_*.png). The
+      tab's state is right (open, rows placed, a click on a row works blind), so the checks passed: a picture
+      caught it.** Sent to Build.
 81. **The Workshop thumbnail: "The year is 1993, and so is the user interface. All of it." (the director, Nov 3 2026:
     "That's the one that goes with the next upload").** done (design). A 1993 window on a dithered desktop, 1993 huge,
     ALL in the heavy face, BETA on pixel caution tape along the foot. It is now `ZeDUI/tools/release/preview.png`
@@ -2375,6 +2381,18 @@ item says so.
     year_1993_*.png). The desk picture and the book cover are kept as backups beside them.
     - **Build:** do not run `make_preview.py` for a release (it would draw the old desk preview over this one). When
       the beta ends, drop the tape (the last block of card() in src_1993_year2.py) and re-export.
+    - **The animated version (the director: "That is banging. Love it.")**: `ZeDUI/workshop/thumbnail/year_1993_animated.gif`
+      (512 x 512, 88 frames, about 8 s, 651 KB, under Steam's 1 MB; frame 1 is the still, pixel for pixel; drawn by
+      src_1993_anim.py). The game's uploader takes only the PNG, so: upload as usual, then set the GIF as the item's
+      preview with SteamCMD (a VDF with appid 108600, publishedfileid, previewfile = the GIF; `workshop_build_item`).
+      Logging into SteamCMD logs the Steam client out on that PC. Check the item page, the Workshop grid and the app.
+    - **The step (director, Nov 3 2026: "Yes. Write that up"):** `ZeDUI/tools/release/set_preview_gif.ps1`, release
+      checklist step 16b, after every Upload (each Upload puts the still back). Item id from workshop.txt, the GIF
+      checked (a GIF, square, under 1 MB), a SteamCMD item file with the preview only. The director runs it, or build
+      on his word (he signs off every upload). Needs SteamCMD installed at C:\steamcmd and logged in once by hand
+      (not done yet). Dry run checked Nov 3 (item 3824968485, 512 x 512, 652 KB).
+    - **QA:** the first run on the unlisted test item: the GIF plays on the item page, the grid and the Steam app;
+      the item's files, size, title and description are unchanged; then the same on the real item.
 
 ## Test process
 
