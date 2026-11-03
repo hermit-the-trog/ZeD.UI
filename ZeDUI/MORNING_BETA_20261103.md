@@ -53,8 +53,11 @@ redraw it.
 5. **One decision still open:** the Vehicle tab on small screens. QA's pictures at 720p and the Deck, at the real
    settings, show every value; only the parts list under the car is tight (one heading shows before Close Hood, the
    rest scrolls). My recommendation: leave it as it is for the beta.
-6. **One question you never answered (no rush):** in the context menu's icon strip, an option with no icon of its
-   own shows two letters. Keep the letters, or something else?
+6. **Answered Nov 3:** the context menu keeps its two letters for an option with no icon, now in sentence case ("Op").
+
+**Changed Nov 3 morning, at your word:** the thumbnail is now 512 x 512. The game's uploader takes a square picture of
+256 or 512 (only ZeD's own upload page held it to 256), so the book cover is staged with every pixel doubled and Steam
+draws it sharp wherever it shows it bigger than 256. Both changes are staged; QA checks them before you upload.
 
 After you upload, I tag the build, refresh the D: backup and clear the staged copy.
 
