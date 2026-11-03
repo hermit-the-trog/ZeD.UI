@@ -1512,7 +1512,7 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
       top with "Page 1 of 10" in that band (y +23), the margin 2 px at 0.137 (the code's 104 of 760) full height, three
       binder holes at x +11 left of the margin, nothing red across; the line counter sits at the foot below the rules
       (y +316), by design. The test's two "sits in the head band" lines were its own (a screen y against a page y).
-51. **AI-drafted translations for players to check (the director, Nov 2 2026, from the Workshop comments).** open, an
+51. **AI-drafted translations for players to check (the director, Nov 2 2026, from the Workshop comments).** **[superseded by 62.]** open, an
     idea for Build and the director to talk through; nothing started. Turk asked "Bro please add turkish" (Nov 2).
     The director can't read the languages players ask for, so a translation can't be checked here. The idea: ZeD drafts
     the missing languages with AI and posts them in the Translations thread, so a native speaker fixes the phrases the
