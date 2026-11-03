@@ -45,6 +45,7 @@ require "ZeD/Molecules"
 require "ZeD/TwoWayFace"
 require "ZeD/TwoWayFull"
 require "ZeD/RtvFace"
+require "ZeD/PlainFace"
 
 ZeD = ZeD or {}
 ZeD.RadioTab = ZeD.RadioTab or {}
@@ -1027,15 +1028,24 @@ end
 ZeD.RadioTab.useFaces = true
 
 -- the face a radio tab entry is drawn as: its driver (ZeD.TwoWay or ZeD.Rtv), plate id and plate; nil for the
--- simple card
+-- simple card. ZeD setup's Devices row (Full or Simple, punch list 60): Simple draws the plain card over the same
+-- driver (PlainFace.lua: ZeD.PlainFace.wrap, its own size in place of the plate). The drawn chassis stays only for
+-- a radio with no face at all (a modded one).
+local function _simple()
+    return ZeD.PlainFace ~= nil and ZeD.Settings ~= nil and ZeD.Settings.devicesSimple ~= nil and ZeD.Settings.devicesSimple() == true
+end
 function ZeD.RadioTab.faceFor(entry)
     local pid, des = ZeD.TwoWay.plateFor(entry)
-    if des then return ZeD.TwoWay, pid, des end
+    if des then
+        if _simple() then return ZeD.PlainFace.wrap(ZeD.TwoWay), pid, ZeD.PlainFace.des(ZeD.TwoWay, pid) end
+        return ZeD.TwoWay, pid, des
+    end
     if ZeD.RadioTab.useFaces == false then return nil, nil, nil end
-    -- ZeD setup's Devices row (Full or Simple, punch list 60): Simple draws the plain card
-    if ZeD.Settings and ZeD.Settings.devicesSimple and ZeD.Settings.devicesSimple() then return nil, nil, nil end
     pid, des = ZeD.Rtv.plateFor(entry)
-    if des then return ZeD.Rtv, pid, des end
+    if des then
+        if _simple() then return ZeD.PlainFace.wrap(ZeD.Rtv), pid, ZeD.PlainFace.des(ZeD.Rtv, pid) end
+        return ZeD.Rtv, pid, des
+    end
     return nil, nil, nil
 end
 
@@ -1077,6 +1087,7 @@ function ZeD.RadioTab.wantW(win, base, limit)
     local r = win and win._radios and win._radios[win._radioIdx or 1]
     local drv, pid, des = ZeD.RadioTab.faceFor(r)
     if not des then return nil end
+    if drv.plain then return drv.wantW(pid, des) end      -- the plain card: the half card, a TV's the full card
     local T, Sc = ZeD.T, ZeD.Scale
     local k = ZeD.Px.k((Sc and Sc.root and Sc.root()) or 1)
     if drv == ZeD.Rtv then return ZeD.Rtv.wantW(pid, des, k, limit) end
@@ -1129,10 +1140,13 @@ local function renderTwoWay(panel, win, x, y, w, h, current, pid, des, drv)
     local Sc = ZeD.Scale
     local sbW = T.sp.scrollbarW
     -- the plates' whole zoom (a whole step down only when the drawer cannot hold the face; it never flips with the scrollbar)
-    local k = ZeD.Px.kFit((Sc and Sc.root and Sc.root()) or 1, TW.slotW(des), w - sbW)
+    -- (the plain card, PlainFace.lua: no zoom and no margin; the drawer's width and as tall as its rows)
+    local plain = TW.plain == true
+    local k = plain and 1 or ZeD.Px.kFit((Sc and Sc.root and Sc.root()) or 1, TW.slotW(des), w - sbW)
     local pad = TW.PAD * k
     local footH = TW.footer and T.px(22) or 0
-    local contentH = pad + des.h * k + pad + footH
+    local faceH = plain and TW.height(current.radioInstance, pid, w - sbW) or des.h * k
+    local contentH = pad + faceH + pad + footH
     local scroll = win._radioScroll
     if not scroll then scroll = ZeD_ScrollbarState:new(); win._radioScroll = scroll end
     local needs = contentH > h
@@ -1150,7 +1164,8 @@ local function renderTwoWay(panel, win, x, y, w, h, current, pid, des, drv)
         scroll:setScrollPos(0)
     end
     -- centred across the drawer: a walkie's drawer is its own panel, a ham set's the full drawer
-    local fx = x + math.floor((cw - des.w * k) / 2)
+    local faceW = plain and cw or des.w * k
+    local fx = x + math.floor((cw - faceW) / 2)
     local fy0 = y + pad                                       -- the face's top, scrolled to the top
     local tw = win._radioTw
     local dev = current.radioInstance
@@ -1186,7 +1201,8 @@ local function renderTwoWay(panel, win, x, y, w, h, current, pid, des, drv)
     if press and press.fired and not isMouseButtonDown(0) then tw.press = nil end
     local hov = TW.hitAt(tw.hits, panel:getMouseX(), panel:getMouseY())
     local hits = TW.drawFace(panel, fx, fy, k, { dev = dev, pid = pid, des = des, focusId = fctl,
-        hoverId = (not fctl) and hov and hov.id or nil, pressId = tw.press and tw.press.id or nil })
+        hoverId = (not fctl) and hov and hov.id or nil, pressId = tw.press and tw.press.id or nil,
+        w = faceW, minH = needs and 0 or h, win = win })
     -- the footer: at the drawer's foot, or under the face when the body scrolls
     if TW.footer then
         local footY = math.max(fy + des.h * k + pad, y + h - footH)
@@ -1195,7 +1211,7 @@ local function renderTwoWay(panel, win, x, y, w, h, current, pid, des, drv)
     panel:clearStencilRect()
     if needs then scroll:draw(panel) end
     tw.pid, tw.des, tw.k, tw.hits, tw.fy = pid, des, k, hits, fy
-    tw.face = { x = fx, y = fy, w = des.w * k, h = des.h * k }
+    tw.face = { x = fx, y = fy, w = faceW, h = faceH }
     tw.view = { x = x, y = y, w = cw, h = h }
 end
 
@@ -1293,7 +1309,7 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
     -- (the drawer is that card wherever one fits; centred in the drawer, its margins its own); a ham set's for
     -- the drawer as a machine plate's. A ham set the tab cannot hold at the plates' whole zoom: its narrow face
     -- (the drawer is then a walkie's width). The ordinary radios and the TVs the same way (RtvFace.pickFace).
-    if twDes then
+    if twDes and not fDrv.plain then
         local Sc = ZeD.Scale
         local k0 = ZeD.Px.k((Sc and Sc.root and Sc.root()) or 1)
         if not isTw then
@@ -1738,11 +1754,56 @@ local function _rtvFocusables(win, tw)
     return elements
 end
 
+-- The plain card (PlainFace.lua, Devices: Simple): its controls in the order it draws them (the face's order: power
+-- first, top to bottom, then the footer band), then the header's browse keys. A presses (a list opens under the key);
+-- held (or X) a preset key stores and MEM names. A stepper is one stop: left / right turn it (the tuning faster
+-- while held), up / down move on, since the card is a column.
+local function _plainFocusables(win, tw)
+    local D = tw.drv
+    local dev = tw.dev
+    local elements = {}
+    local onFocus = function(w, e) w._gpFocusedRadioCtl = e.id end
+    for _, h in ipairs(D.focusOrder(tw.hits)) do
+        local id = h.id
+        local el = { x = h.x, y = h.y, w = h.w, h = h.h, id = "radio:tw:" .. id, onFocus = onFocus }
+        if h.knob then
+            el.onDpadDir = function(w, e, dir)
+                if dir ~= "left" and dir ~= "right" then return false end
+                w._radioPadTurn = w._radioPadTurn or { t = 0, streak = 0 }
+                local n = _turnStreak(w._radioPadTurn, 260)
+                D.turn(w._playerObj, dev, id, dir == "right" and 1 or -1, (id == "tune") and D.turnMult(tw.pid, n) or 1)
+                return true
+            end
+        else
+            el.onActivate = function(w)
+                local t = w._radioTw
+                D.press(w._playerObj, dev, id, nil, _menuAt(t, _hitById(t, id)))
+            end
+            if D.holdable(id) then
+                el.onHoldActivate = function(w) D.secondary(w._playerObj, dev, id, nil) end
+                el.onContextMenu = function(w) D.secondary(w._playerObj, dev, id, nil) end
+            end
+        end
+        elements[#elements + 1] = el
+    end
+    local function addHeader(z, id, fn)
+        if z and (z.w or 0) > 0 then elements[#elements + 1] = { x = z.x, y = z.y, w = z.w, h = z.h, id = id, onFocus = onFocus, onActivate = fn } end
+    end
+    addHeader(win._radioBrowsePrevZone, "radio:browsePrev", function(w) _browsePrev(w); w._gpFocusedRadioCtl = nil end)
+    addHeader(win._radioBrowseNextZone, "radio:browseNext", function(w) _browseNext(w); w._gpFocusedRadioCtl = nil end)
+    if elements[1] and win._gpFocusedRadioCtl == nil then win._gpFocusedRadioCtl = elements[1].id end
+    return elements
+end
+
 function ZeD.RadioTab.buildFocusables(win)
     if not win then return {} end
     -- an ordinary radio's or a TV's face (above)
     local rtw = win._radioTw
     local rcur = win._radios and win._radios[win._radioIdx or 1]
+    -- the plain card (Devices: Simple): its rows top to bottom, then its footer band (above)
+    if rtw and rtw.drv and rtw.drv.plain and rcur and rcur.radioInstance == rtw.dev and rtw.hits then
+        return _plainFocusables(win, rtw)
+    end
     if rtw and rtw.drv == ZeD.Rtv and rcur and rcur.radioInstance == rtw.dev and rtw.hits then
         return _rtvFocusables(win, rtw)
     end

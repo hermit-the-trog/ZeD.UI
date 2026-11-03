@@ -403,6 +403,15 @@ local function hms(ms)
     return string.format("%d:%02d:%02d", math.floor(s / 3600) % 10, math.floor(s / 60) % 60, s % 60)
 end
 
+-- (the plain card, PlainFace.lua, reads what the face reads: the signal light's steps, the clocks as the glass
+-- prints them, and the lines the set has shown)
+R.SIGNAL = SIGNAL
+R.elapsed, R.hms = elapsed, hms
+function R.heardLines(st)
+    local h = heardFor(st)
+    return h and h.lines or nil
+end
+
 -- the plate's own facts, kept on the plate: its screen, its tape slot, the progress line's length, and whether its
 -- power is the volume knob's push / pull (the antique set: two areas on one place)
 local function factsOf(des)
