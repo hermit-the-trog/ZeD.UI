@@ -74,11 +74,11 @@ SPECS = [("radio_black",     R.radio_black,     "half", [],       {},           
          ("tv_black",        R.tv_black,        "full", [],       {},                  [R.state_tv(False, power=False), R.state_tv(True, ch=3, signal=2)],
           "ValuTech Television", "Base.TvBlack"),
          ("tv_antique",      R.tv_antique,      "full", [],       {},                  [st_ant(False), st_ant(True)],             "Antique Television",              "Base.TvAntique"),
-         ("washer",          L.washer,          "full", CLOTHES,  {},                  [L.state("washer", powered=False), L.state("washer", running=True, water=4, items=True, phase="phWash")],
+         ("washer",          L.washer,          "full", L.VARIANTS["washer"],  {},                  [L.state("washer", powered=False), L.state("washer", running=True, water=4, items=True, phase="phWash")],
           "Premium Technologies washer", "IsoClothingWasher"),
-         ("dryer",           L.dryer,           "full", CLOTHES,  {},                  [L.state("dryer", powered=False), L.state("dryer", running=True, items=True, phase="phDry")],
+         ("dryer",           L.dryer,           "full", L.VARIANTS["dryer"],  {},                  [L.state("dryer", powered=False), L.state("dryer", running=True, items=True, phase="phDry")],
           "Premium Technologies dryer", "IsoClothingDryer"),
-         ("washer_dryer",    L.combo,           "full", CLOTHES,  {},                  [L.state("combo", water=0), L.state("combo", running=True, water=3, items=True, phase="phRinse")],
+         ("washer_dryer",    L.combo,           "full", L.VARIANTS["combo"],  {},                  [L.state("combo", water=0), L.state("combo", running=True, water=3, items=True, phase="phRinse")],
           "ValuTech washer-dryer", "IsoCombinationWasherDryer")]
 
 # where a width's circuit does not fit: the face is left out of the pick table (the card falls back as for the walkies)
