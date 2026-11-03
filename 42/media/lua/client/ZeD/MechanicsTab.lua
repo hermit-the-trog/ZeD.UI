@@ -52,6 +52,7 @@ local COLHDR_H      = 20
 local SEC_H         = 20
 local FIX_H         = 38
 local MINI_BAR_W    = 40
+local LIST_BAR_W    = 24     -- the part list's bar, in its narrower column
 local PCT_W         = 34
 local SCROLL_STEP   = 48
 local FLASH_MS      = 1600
@@ -926,7 +927,11 @@ local function drawFigure(panel, s, fx, fy, fw, fh, v, parts, hlId, unknown, wor
             end
             if x0 then
                 local g = T.px(2)
-                s.figZones[#s.figZones + 1] = { id = p.id, x = x0 - g, y = y0 - g, w = (x1 - x0) + g * 2, h = (y1 - y0) + g * 2 }
+                local z = { id = p.id, x = x0 - g, y = y0 - g, w = (x1 - x0) + g * 2, h = (y1 - y0) + g * 2 }
+                s.figZones[#s.figZones + 1] = z
+                -- the lit part also gets a box in the text colour around it: a thin part (the
+                -- muffler) lit only by its own outline reads as its neighbours in greyscale (QA)
+                if hlId == p.id then ZeD.Atoms.frame(panel, z.x, z.y, z.w, z.h, T.text) end
             end
         end
     end
@@ -1361,7 +1366,7 @@ local function cardModel(s, part, chr, v)
         if not s.verb and shown[1] then s.verb = shown[1].id end
     end
     return { part = part, p = partModel(part, chr, v), needs = needs, shown = shown, hidden = hidden,
-             primary = primary, busy = activeAction(chr, v) ~= nil }
+             verbs = verbs, primary = primary, busy = activeAction(chr, v) ~= nil }
 end
 
 -- run a verb from the footer (a destructive one asks first)
@@ -1479,8 +1484,10 @@ local function renderList(panel, win, s, x, top, w, bodyH, v, chr, inspected, pa
                         rightX = condRight - bw
                         M.drawTag(panel, rightX, cy + math.floor((rh - T.px(16)) / 2), label, T.danger)
                     else
-                        local barX = condRight - T.px(PCT_W + 6) - T.px(MINI_BAR_W)
-                        miniBar(panel, barX, cy + math.floor(rh / 2), T.px(MINI_BAR_W), p.cond)
+                        -- (the list column's bar is narrower than the card's, so names fit: QA saw
+                        -- "Right Headlig..." at 4K)
+                        local barX = condRight - T.px(PCT_W + 4) - T.px(LIST_BAR_W)
+                        miniBar(panel, barX, cy + math.floor(rh / 2), T.px(LIST_BAR_W), p.cond)
                         A.drawTextRight(panel, tostring(p.cond) .. "%", condRight, cy + math.floor((rh - T.fontF3H) / 2), T.fontF3, ink)
                         rightX = barX
                     end
@@ -1619,8 +1626,10 @@ local function renderCardBody(panel, win, s, x, top, w, bodyH, v, chr, cm)
     local sb = nil
     if s.verb == "install" or s.verb == "uninstall" then sb = stepBefore(v, part, s.verb) end
     if not sb then
-        for _, sv in ipairs(cm.shown) do
-            if sv.id == "install" or sv.id == "uninstall" then sb = stepBefore(v, part, sv.id); if sb then break end end
+        -- every verb the part has, the folded ones too: a brake blocked only by its tire has its
+        -- Uninstall folded away (QA, punch list 79)
+        for _, vb in ipairs(cm.verbs) do
+            if vb == "install" or vb == "uninstall" then sb = stepBefore(v, part, vb); if sb then break end end
         end
     end
     if sb then

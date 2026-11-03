@@ -5027,10 +5027,13 @@ function ZeD.Molecules.drawMoreRow(panel, x, y, w, hidden, key, opts)
     local draw = not opts.measure
     local f2 = T.fontF2
     local fh = ZeD.TM:getFontHeight(f2)
-    local rowH = math.max(T.px(20), fh + T.px(6))
     local open = DS.isOpen(key)
     local cx = x + (opts.inset or 0)
     local tri = T.px(8)
+    -- the row's words wrap under each other when they do not fit (a narrow card column: QA saw
+    -- "With Tire Pump you could pum..." in the Vehicle tab's two columns, Nov 3 2026)
+    local lines = A.wrapText(DS.rowText(hidden), f2, math.max(T.px(20), x + w - (cx + tri + T.px(6))))
+    local rowH = math.max(T.px(20), fh * math.max(1, #lines) + T.px(6))
     if draw then
         local hover = opts.hover
         if hover == nil then hover = A.mouseIn(panel, x, y, w, rowH) end
@@ -5043,10 +5046,12 @@ function ZeD.Molecules.drawMoreRow(panel, x, y, w, hidden, key, opts)
             onFocus = ZeD.Focus.mark(panel, x, y, w, rowH, opts.focus)
         end
         local tc = onFocus and T.textOnFocus or T.textDim
-        local ty = y + math.floor((rowH - tri) / 2)
+        local ly = y + math.floor((rowH - fh * math.max(1, #lines)) / 2)
+        local ty = ly + math.floor((fh - tri) / 2)   -- (the triangle beside the first line)
         if open then A.drawTriangleDown(panel, cx, ty, tri, tc) else A.drawTriangleRight(panel, cx, ty, tri, tc) end
-        local text = A.truncateText(DS.rowText(hidden), f2, x + w - (cx + tri + T.px(6)))
-        panel:drawText(text, cx + tri + T.px(6), y + math.floor((rowH - fh) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
+        for i, ln in ipairs(lines) do
+            panel:drawText(ln, cx + tri + T.px(6), ly + (i - 1) * fh, tc.r, tc.g, tc.b, tc.a or 1, f2)
+        end
     end
     cx = cx + tri + T.px(6)
     local rowRect = { x = x, y = y, w = w, h = rowH }
