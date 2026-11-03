@@ -139,7 +139,28 @@ local function hand(p, X, Y, ck, ang, len, w, cl)
 end
 
 -- st: hour, minute (24 h), fmt24, speed (0 = paused), armed, dark, lit, night (the sun is down, lit or not)
+-- the Simple watch (punch list 60): the small one on the belt is a plain box with the time
+local function drawPlain(p, x, y, st)
+    local T = ZeD.T
+    local w, h = M.size()
+    ZeD.Surface.fill(p, x, y, w, h, "surf2")
+    local b = T.borderS
+    p:drawRectBorder(x, y, w, h, b.a or 1, b.r, b.g, b.b)
+    local hh = st.hour or 0
+    if not st.fmt24 then hh = hh % 12; if hh == 0 then hh = 12 end end
+    local s = string.format("%d:%02d", hh, st.minute or 0)
+    local f = T.fontF2
+    local tm = ZeD.TM
+    local tc = T.text
+    p:drawText(s, x + math.floor((w - tm:MeasureStringX(f, s)) / 2), y + math.floor((h - tm:getFontHeight(f)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f)
+    if st.armed then
+        local ds = T.px(5)
+        ZeD.Atoms.drawStatusDot(p, x + w - ds - T.px(3), y + T.px(3), T.accent, ds)
+    end
+end
+
 function M.draw(p, x, y, plate, st)
+    if ZeD.Watch and ZeD.Watch.simple and ZeD.Watch.simple() then drawPlain(p, x, y, st); return end
     local spec = M.SPEC[plate]
     if not spec then return end
     local ck, ox, oy = fit()
