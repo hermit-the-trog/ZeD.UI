@@ -52,6 +52,14 @@ local function stews(ft)
     for i = 0, l:size() - 1 do local it = l:get(i); local ex = it:getExtraItems(); out[#out + 1] = { n = ex and ex:size() or 0, name = it:getDisplayName() } end
     return out
 end
+-- what the tab sees: the bases for the dish and each ingredient's count (and the game's reason)
+local function report(tag)
+    local s = S(); if not s then return end
+    local bl, ing = {}, {}
+    for _, o in ipairs((s.bases or {})[s.dish or ""] or {}) do bl[#bl + 1] = o.item:getFullType() .. (o.ok and " ok" or " dry") .. (o.mine and " mine" or "") end
+    for ft, g in pairs((s.ingCache and s.ingCache.byFt) or {}) do ing[#ing + 1] = ft .. " x" .. tostring(g.n) .. (g.why and (" (" .. g.why .. ")") or "") end
+    say(tag .. ": dish " .. tostring(s.dish) .. ", bases [" .. table.concat(bl, ", ") .. "], in reach [" .. table.concat(ing, ", ") .. "], plan " .. planFts())
+end
 local mdWas
 local Q, qi, wait = {}, 0, 0
 local function step(n, fn) Q[#Q + 1] = { n = n, fn = fn } end
@@ -65,10 +73,20 @@ local function openTab()
     end)
     waitFor(10, 600, drawn, function() pcall(function() Mouse.setXY(sw - 4, sh - 4) end) end)
 end
-local function pickDish(key)
+-- by the dish's name as the list shows it (Build's b8cd702d keys a dish by the first of the game's recipes with
+-- that name: Stew may be StewForged inside)
+local function pickDish(un)
+    local label = (getTextOrNull and getTextOrNull("ContextMenu_EvolvedRecipe_" .. un)) or un
+    local key
     step(20, function() press("cook:dish") end)
-    step(20, function() if not press("cook:pop:dish:" .. key) then local s = S(); if s then s.popup = nil end end end)
-    step(20, function() local s = S(); check(s and s.dish == key, "the Dish list picks " .. key .. " (now " .. tostring(s and s.dish) .. ")") end)
+    step(20, function()
+        local s = S()
+        for _, m in ipairs((s and s.dishGeo and s.dishGeo.modes) or {}) do
+            if not key and m.label == label and m.id:sub(1, 5) == "dish:" then key = m.id:sub(6) end
+        end
+        if not (key and press("cook:pop:dish:" .. key)) then say("(no " .. label .. " in the Dish list)"); if s then s.popup = nil end end
+    end)
+    step(20, function() local s = S(); check(s and key and s.dish == key, "the Dish list picks " .. label .. " (now " .. tostring(s and s.dish) .. ")") end)
 end
 if getGameSpeed() <= 0 then setGameSpeed(1) end
 
@@ -79,6 +97,7 @@ step(120, function()
     md.ZeD_CookDishes = {}
     if not ZeD_CharacterWindow.isOpen() then ZeD_CharacterWindow.toggleBothPaired(0) end
     say("before: tab shown " .. tostring(tabShown()) .. " (the character's own bags)")
+    say("own bags: carrots " .. count("Base.Carrots") .. ", potatoes " .. count("Base.Potato") .. ", cabbage " .. count("Base.Cabbage") .. ", stews " .. count("Base.PotOfStew") .. ", pots " .. count("Base.Pot"))
 end)
 step(30, function()
     local pot = add("Base.Pot"); water(pot)
@@ -112,11 +131,12 @@ step(30, function()
     shot("2_stew_plan")
     press("cook:make")
 end)
-waitFor(30, 3600, function() return idle() and count("Base.PotOfStew") > 0 and count("Base.Cabbage") == 0 end, function()
+waitFor(30, 3600, function() return idle() and count("Base.PotOfStew") > 0 and count("Base.Potato") == 0 end, function()
     local st = stews("Base.PotOfStew")
     check(#st == 1, "one pot of stew made (" .. #st .. ")")
     check(st[1] and st[1].n == 3, "it holds all three (" .. tostring(st[1] and st[1].n) .. "): " .. tostring(st[1] and st[1].name))
-    check(count("Base.Carrots") + count("Base.Potato") + count("Base.Cabbage") == 0, "the three went in")
+    -- a cabbage is more than one dish takes: the game uses part of it and leaves the rest (as by hand)
+    check(count("Base.Carrots") + count("Base.Potato") == 0, "the carrot and the potato went in (cabbage left: " .. count("Base.Cabbage") .. ", part used)")
     check(count("Base.Pot") == 0, "no empty pot left behind")
     shot("2_stew_made")
 end)
@@ -124,6 +144,8 @@ step(30, function() takeAllOf("Base.PotOfStew") end)
 
 -- ---- (3) two at once
 step(10, function()
+    takeAllOf("Base.Cabbage")
+    local s = S(); if s then s.plan = {} end
     for _ = 1, 2 do local pot = add("Base.Pot"); water(pot) end
     add("Base.Carrots", 2); add("Base.Potato", 2)
 end)
@@ -132,6 +154,7 @@ pickDish("Stew")
 step(20, function() press("cook:ing:Base.Carrots") end)
 step(20, function() press("cook:ing:Base.Potato") end)
 step(30, function()
+    report("two pots")
     check(zone("cook:inc") ~= nil, "two pots and enough for two: the count shows")
     press("cook:inc")
 end)
@@ -169,23 +192,33 @@ step(10, function() local s = S(); say("dishes now: " .. table.concat((s and s.d
 pickDish("Stir fry")
 for _, ft in ipairs({ "Base.Potato", "Base.Cabbage", "Base.Tomato", "Base.Onion" }) do step(15, function() press("cook:ing:" .. ft) end) end
 step(30, function()
+    local s = S()
+    local b = s and s.bases and s.bases[s.dish] and s.bases[s.dish][s.baseIdx or 1]
+    local r = b and b.recipe
+    local mx = r and r:getMaxItems()
+    local canUse = {}
+    pcall(function() local l = r:getItemsCanBeUse(p, b.item, s.containers); for i = 0, l:size() - 1 do local it = l:get(i); canUse[#canUse + 1] = it:getFullType() .. (instanceof(it, "Food") and it:isFrozen() and " frozen" or "") end end)
+    local fr = {}
+    for _, it in ipairs(made) do if it:getContainer() and instanceof(it, "Food") and it:isFrozen() then fr[#fr + 1] = it:getFullType() end end
+    say("stir-fry: recipe " .. tostring(r and r:getUntranslatedName()) .. ", max " .. tostring(mx) .. ", base " .. tostring(b and b.item:getFullType()) .. "; the game offers [" .. table.concat(canUse, ", ") .. "]; frozen now [" .. table.concat(fr, ", ") .. "]")
+    report("stir-fry four in")
     check(#plan() == 4, "four in the stir-fry (" .. planFts() .. ")")
     local z = zone("cook:ing:Base.BellPepper"); check(z and z.disabled, "a fifth greys (bell pepper)")
     press("cook:ing:Base.BellPepper")
 end)
 step(20, function()
     check(#plan() == 4, "a press on it adds nothing")
-    local z = zone("cook:ing:Base.Pepper"); check(z and not z.disabled, "seasoning still goes in when the dish is full")
-    press("cook:ing:Base.Pepper")
+    -- the game offers no seasoning to a dish not yet begun (Pepper is not in its list; QA, Nov 3): the tab lists none
+    check(zone("cook:ing:Base.Pepper") == nil, "no seasoning offered to a new stir-fry (as the game)")
 end)
 step(20, function()
-    check(#plan() == 5, "pepper in, apart (" .. planFts() .. ")")
-    local z = zone("cook:ing:Base.Pepper"); check(z and z.disabled, "seasoning goes in once")
+    check(#plan() == 4, "still four (" .. planFts() .. ")")
     local s = S(); local g = s and s.ingCache and s.ingCache.byFt or {}
-    local br = g["Base.Broccoli"]
-    check(br and br.why == getText("ContextMenu_CantAddFrozenFood"), "frozen broccoli greys with the game's words (" .. tostring(br and br.why) .. ")")
+    -- the game leaves frozen food out of what it offers (QA, Nov 3): not listed, rather than greyed
+    check(g["Base.Broccoli"] == nil, "frozen broccoli is not offered (as the game)")
     local ca = g["Base.Carrots"]
     say("carrots: " .. tostring(ca and ca.n) .. " usable, why " .. tostring(ca and ca.why))
+    report("stir-fry full")
     check(ca and ca.n == 1 and not ca.why, "a frozen carrot beside a good one: the good one still goes in")
     shot("4_stirfry_full")
 end)
