@@ -234,7 +234,11 @@ local function ingredients(s, chr)
                 local g = byFt[ft]
                 if not g then
                     local spice = false
-                    pcall(function() spice = (instanceof(it, "Food") and it:isSpice()) or it:getScriptItem():isSpice() end)
+                    -- as the game's own menu reads it: a food's own isSpice, the script's only for a non-food
+                    -- (the script says spice for many vegetables: QA saw a stir-fry take five, Nov 3 2026)
+                    pcall(function()
+                        if instanceof(it, "Food") then spice = it:isSpice() else spice = it:getScriptItem():isSpice() end
+                    end)
                     local kind = "Other"
                     pcall(function() if instanceof(it, "Food") and it:getFoodType() then kind = it:getFoodType() end end)
                     if spice then kind = "_spice" end
