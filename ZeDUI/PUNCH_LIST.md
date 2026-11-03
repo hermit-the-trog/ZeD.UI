@@ -1786,6 +1786,14 @@ item says so.
     - Beside the car figure, Type, Distance and Key show only their labels at small sizes.
     - **QA first:** one small-screen screenshot of the Vehicle tab with the hood open (1280x720 or the Deck,
       Normal text). The director picks the fix from it.
+    - **QA, Nov 2 2026: the pictures are in (zedqa_vehicle_small.lua; qa/Nov2_beta/pl61_*; reports
+      2026-11-02_pl61_vehicle_720.md, _720L.md, _800L.md).** At 1280x720 Normal, 1280x720 Large and the Deck (1280x800)
+      Large, UI scale Auto, both windows open: before the hood is opened, Type, Distance and Key each show their value
+      ("Standard", "3 tiles", "On you"); with the hood open the summary (Engine, Quality, Loudness, Weight, Fuel,
+      Battery, Key) shows every value. The labels-only look was seen Oct 31 at UI scale 2.0 (item 35's stress
+      setting) and at the Deck before the scale cap; at today's real settings it does not happen. What is tight at
+      720 is the parts list under the figure: with the hood open one heading row ("Under Hood (4)") shows before the
+      Close Hood button, the rest by scrolling. For the director: (c) "leave it" now matches what a player sees.
 62. **Machine translations for every language the game supports (the director, Nov 2).** chosen; replaces item 51.
     - AI drafts ship inside the mod. Each is labelled as a machine translation in the language list.
     - Order: Turkish, Simplified Chinese and Brazilian Portuguese first. Russian, Ukrainian, Latin American

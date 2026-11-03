@@ -1,0 +1,3 @@
+# punch list 61 (Nov 2 2026): the Vehicle tab at a small size, hood open, Normal text
+zedqa_prelude.lua | pre | timeout=120
+zedqa_vehicle_small.lua | vsm | timeout=180
