@@ -1,0 +1,11 @@
+{
+    "Sandbox_ZeD": "ZeD-GUI",
+    "Sandbox_ZeD_TaxiFlagDrop": "Taximètre : prise en charge",
+    "Sandbox_ZeD_TaxiFlagDrop_tooltip": "Dollars affichés par le taximètre quand le chauffeur baisse le drapeau.",
+    "Sandbox_ZeD_TaxiPerFifthMile": "Taximètre : par 1/5 de mile",
+    "Sandbox_ZeD_TaxiPerFifthMile_tooltip": "Dollars que le compteur ajoute pour chaque cinquième de mile parcouru drapeau baissé.",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting": "Taximètre : par minute d'attente",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting_tooltip": "Dollars que le compteur ajoute pour chaque minute en temps réel où le taxi attend (sous 5 km/h, moteur en marche) drapeau baissé.",
+    "Sandbox_ZeD_TaxiPerExtraPassenger": "Taximètre : par passager supplémentaire",
+    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "Dollars affichés sous EXTRAS pour chaque passager après le premier. Le chauffeur ne compte pas."
+}
