@@ -101,12 +101,13 @@ if __name__ == "__main__":
 
 # ---------------------------------------------------------------------------
 # Grid box behind the figure: the Health tab's perspective-box look, drawn for
-# the diagram's box in the two-column Vehicle tab's right column (205 x 244 design
-# units -> 404 x 488 px at the 2x root, a whole number of grid squares; it was the car's own 120 x 244 before the
-# columns, the director, Nov 3 2026: "widen the background grid").
-# White lines; the game tints them with textDim, so all three bases work.
+# the diagram's box in the two-column Vehicle tab's right column (202 x 258 design
+# units -> 404 x 516 px at the 2x root, a whole number of grid squares across; 258
+# holds the pixel-art bodies' 256 rows at one screen pixel each at 1x; it was the
+# car's own 120 x 244 before the columns, the director, Nov 3 2026: "widen the
+# background grid"). White lines; the game tints them with textDim.
 # ---------------------------------------------------------------------------
-def bake_gridbox(path, W=404, H=488, inset=26, step=32):
+def bake_gridbox(path, W=404, H=516, inset=26, step=32):
     from PIL import ImageDraw
     img = Image.new("RGBA", (W, H), (255, 255, 255, 0))
     d = ImageDraw.Draw(img)
