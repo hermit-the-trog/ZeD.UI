@@ -63,7 +63,8 @@ B.LINE = 9               -- line pitch of the 5 x 7 face
 B.GAP = 3                -- head top to the tail tip / the trail's end
 B.TAIL_H = 9
 B.THOUGHT_PAD = 7
-B.THOUGHT_H = 34         -- the action bar's two lines and its 6-unit framed strip (Oct 27 2026; was 30 with a 2-unit line)
+B.THOUGHT_H = 36         -- the action bar's two lines and its 6-unit framed strip (Oct 27 2026; was 30 with a 2-unit line;
+                         -- 36 from Nov 3 2026: two more between the lines for the item name's tall accents)
 B.TRAIL_H = 15
 B.MIN_MS = 800           -- a balloon shows at least this long, then as long as the engine's line would (B.current)
 B.MAX_MS = 20000
