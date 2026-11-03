@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/cook80_large.txt  (Nov 3 2026): punch list 80 at the Deck size with Large text
+zedqa_prelude.lua | pre | timeout=120
+zedqa_textlarge.lua | txl | timeout=60
+zedqa_cook80.lua | c80 | timeout=1500

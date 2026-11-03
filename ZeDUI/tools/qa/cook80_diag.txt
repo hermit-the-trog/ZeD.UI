@@ -1,0 +1,3 @@
+# ZeDUI/tools/qa/cook80_diag.txt  (Nov 3 2026): punch list 80, each step of Make logged
+zedqa_prelude.lua | pre | timeout=120
+zedqa_cook80_diag.lua | c8d | timeout=900
