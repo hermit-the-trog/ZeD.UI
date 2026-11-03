@@ -1,0 +1,11 @@
+{
+    "Sandbox_ZeD": "ZeD-GUI",
+    "Sandbox_ZeD_TaxiFlagDrop": "Taxameter: Instaptarief",
+    "Sandbox_ZeD_TaxiFlagDrop_tooltip": "Dollars die de taxameter toont als de chauffeur de vlag omlaag trekt.",
+    "Sandbox_ZeD_TaxiPerFifthMile": "Taxameter: per 1/5 mijl",
+    "Sandbox_ZeD_TaxiPerFifthMile_tooltip": "Dollars die de meter toevoegt voor elke vijfde mijl die met de vlag omlaag wordt gereden.",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting": "Taxameter: per wachtminuut",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting_tooltip": "Dollars die de meter toevoegt voor elke minuut echte tijd dat de taxi wacht (onder 5 km/h, motor draait) met de vlag omlaag.",
+    "Sandbox_ZeD_TaxiPerExtraPassenger": "Taxameter: per extra passagier",
+    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "Dollars getoond onder EXTRA'S voor elke passagier na de eerste. De chauffeur telt niet mee."
+}
