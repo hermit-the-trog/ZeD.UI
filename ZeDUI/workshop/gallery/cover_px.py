@@ -261,11 +261,12 @@ for y in range(ty0, ty1 + 1): P(tx1 + 1, y, "tl2")
 AUTH = (tx0 + 5, ty0 + 5)
 text("D&B DOCS", AUTH[0], AUTH[1], "ink"); text("GROUP", AUTH[0], AUTH[1] + 9, "ink")   # the publisher's (Nov 1 2026)
 for x in range(tx0 + 4, tx1 - 3): P(x, ty0 + 27, "tl2"); P(x, ty0 + 28, "tl1")
-y = ty0 + 33
-for ls in (["FOR BUILD 42"], ["CHARACTER AND", "WORLD WINDOWS"], ["MOUSE AND", "GAMEPAD"]):
+y = ty0 + 32
+# (the director, Nov 2 2026: make it clear this is a complete UI for Project Zomboid, a total rebuild)
+for ls in (["THE WHOLE UI", "REBUILT"], ["FOR PROJECT", "ZOMBOID B42"], ["PAD AND MOUSE"]):
     R(tx0 + 4, y + 2, tx0 + 5, y + 3, "ink")
     for j, s_ in enumerate(ls): text(s_, tx0 + 9, y + j * 9, "ink", gap=1)
-    y += len(ls) * 9 + 4
+    y += len(ls) * 9 + 3
 # the computer on the sand, backlit; its shadow toward us
 cx0, cy0 = BX + 124, BY + 126
 for y in range(cy0 + 58, BY + 210):
