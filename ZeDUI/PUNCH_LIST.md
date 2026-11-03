@@ -2134,6 +2134,8 @@ item says so.
     - G. Languages on the frozen code: TR, CN, PTBR 5 / 5 each, 4256 keys, 0 with no text. The hand circles: Turkish
       Birincil / İkincil and Chinese fit; Portuguese read "Secundári.", Build shortened it to "Secund." (3abae4c1).
     - The gallery: mm4_03_options_hidden.png (ZeD setup at Windows, the Hidden actions pop-up open) for page 48.
+    - QA, Nov 3 2026: Portuguese again on 3abae4c1, 5 / 5; the belt reads "Secund." and "Principal", both whole
+      (2026-11-03_rc_lang_PTBR_3abae4c1.md). The pass is complete; Build stages.
 75. **Punch list housekeeping (build).**
     - Item headers that still say open or fixed although a later QA paragraph confirms them get their state
       corrected.
