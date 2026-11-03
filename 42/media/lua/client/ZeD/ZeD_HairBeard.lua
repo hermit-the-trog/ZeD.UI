@@ -1653,7 +1653,7 @@ function HB.onClick(win, x, y)
         if inRect(z, x, y) then
             local it = z.item
             if it.kind == "row" then
-                st.sel = (st.sel == it.row.key) and nil or it.row.key
+                if st.sel == it.row.key then st.sel = nil else st.sel = it.row.key end   -- a second click un-picks (`x and nil or y` always gave y)
                 st.done = nil
             elseif it.kind == "more" then
                 DS.toggle(it.key)

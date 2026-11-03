@@ -785,6 +785,19 @@ function MM.version()
     return MM._version
 end
 
+-- ZeD-GUI's own version, from its mod.info (the staged copy is stamped with the build's version, e.g. 0.3.0-beta1;
+-- the director, Nov 2 2026: About shows ZeD's version beside the game's build, for bug reports)
+function MM.zedVersion()
+    if not MM._zedVersion then
+        local ok, v = pcall(function()
+            local mi = getModInfoByID and getModInfoByID("ZeD_UI")
+            return mi and mi:getModVersion()
+        end)
+        MM._zedVersion = (ok and v and tostring(v) ~= "") and tostring(v) or "?"
+    end
+    return MM._zedVersion
+end
+
 local _clock = { at = -1, s = "", fmt = nil }
 function MM.clock()
     local t = now()
@@ -1426,6 +1439,7 @@ local function aboutRows()
     rows[#rows + 1] = { "kv", ZeD.tr("UI_ZeD_MainMenu_AboutPhoneTaps"), ZeD.tr("UI_ZeD_MainMenu_AboutPhoneTapsValue"), T.px(18) }
     rows[#rows + 1] = { "kv", ZeD.tr("UI_ZeD_MainMenu_AboutUptime"), (up >= 60) and ZeD.tr("UI_ZeD_MainMenu_UptimeHours", math.floor(up / 60), string.format("%02d", up % 60)) or ZeD.tr("UI_ZeD_MainMenu_UptimeMinutes", up), T.px(18) }
     rows[#rows + 1] = { "kv", ZeD.tr("UI_ZeD_MainMenu_AboutDisplay"), sw .. " x " .. sh .. DOT .. string.format("%.2fx", T.scale or 1), T.px(18) }
+    rows[#rows + 1] = { "kv", ZeD.tr("UI_ZeD_MainMenu_AboutZeD"), MM.zedVersion(), T.px(18) }
     rows[#rows + 1] = { "kv", ZeD.tr("UI_ZeD_MainMenu_AboutGame"), ZeD.tr("UI_ZeD_MainMenu_BuildVersion", MM.version()), T.px(18) }
     return rows
 end

@@ -133,6 +133,14 @@ function S.stepTooBig(v)
     return type(v) == "number" and v > S.fitCap() + 1e-6
 end
 
+-- The smallest fixed step offered (the director, Nov 2 2026, punch list 58: 0.5x did not look right at scale, so it
+-- is not offered in the beta; bring it back after the beta for players who want smaller windows). The step stays in
+-- the list, because combos save by position: a saved 0.5 draws at the floor and keeps its saved value.
+S.STEP_FLOOR = 0.75
+function S.stepRetired(v)
+    return type(v) == "number" and v < S.STEP_FLOOR - 1e-6
+end
+
 -- Raw computation: screen height over the base, clamped, times the user knob.
 -- A fixed step above the cap draws at the cap (S.userScale itself is left as saved).
 -- (S.computeGame is the game's scale; S.compute below adds the main menu's clamp.)
@@ -141,6 +149,7 @@ function S.computeGame()
     if S.userScale then
         local cap = S.fitCap()
         if S.userScale > cap then return cap end
+        if S.userScale < S.STEP_FLOOR then return S.STEP_FLOOR end   -- a retired step (0.5) draws at the floor
         return S.userScale
     end
     local h = S.BASE_H
