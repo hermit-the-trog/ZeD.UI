@@ -1843,6 +1843,21 @@ item says so.
     Large 234 x 103); the set mode's help line wraps in F2 inside the box; On/off ("alarmtoggle") switches the alarm
     and stays in set mode, Done leaves. Note for build: on the Deck the corner box sits over the World window's
     top-right corner (its tab strip's edge).
+    **QA, Nov 2 2026: the plain device cards at 4K (zedqa_plain_cards.lua through pl60_plain_run.ps1, 35 / 36; pictures
+    for the director in qa/Nov2_beta/pl60_plain_cards.png).** Black radio, red radio, Tactical walkie in the hand: the
+    plain card drawn; power switch; the volume stepper's right half raises, left half lowers; the wheel over the
+    frequency turns it and a fast spin goes further (2400 against 200 a notch; once in five runs it did not speed up);
+    a held preset (right-click) stores and the key recalls; battery and headphones keys queue the game's action; the
+    disc key opens the disc list; Play plays a disc put in; MEM pressed stores and held opens the naming box; the
+    controller starts on power and the footer is the card's last stop; Devices back to Full gives the face back at
+    once. Notes: at 4K the Character window's opening height is shorter than a radio's card (789 in a 585 view), so
+    the card scrolls; the test grows the window. The TV and the army ham pictures come from the radio and two-way
+    tests run on Simple (the TV is off the air on the QA save's day 6: snow, no programme; the ham was off). **For
+    build:** (1) Stop: a second Play press leaves the disc playing; the game's own StopPlayMedia() also leaves
+    isPlayingMedia() true straight after, so it is the shared play/stop or the game, not the plain card (no face
+    test ever checked Stop); (2) the black radio on NNR Radio reads "Signal None"; (3) the red radio's disc time reads
+    0:00 while it plays. Still to do: the Deck pass with Large text, and a TV with a programme on (needs an earlier
+    day).
 61. **The Vehicle tab on small screens (the director, Nov 2: undecided, must be decided before the beta).** open.
     - Beside the car figure, Type, Distance and Key show only their labels at small sizes.
     - **QA first:** one small-screen screenshot of the Vehicle tab with the hood open (1280x720 or the Deck,

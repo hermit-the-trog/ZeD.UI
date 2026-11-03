@@ -377,6 +377,50 @@ local function machine(tag, getObj, pidWant, opts)
         if shirt then added[#added + 1] = shirt end
         shot(tag .. "_1_open")
     end)
+    -- the water at each of the game's five levels, the tub empty and then with clothes (Nov 2 2026, punch list 77: the
+    -- top-loader's soak1..5 among the clothes, water1..5 in the empty tub; the washer-dryer keeps its water1..5)
+    if opts.hasWater then
+        local cap
+        for _, withClothes in ipairs({ false, true }) do
+            for lvl = 1, 5 do
+                step(5, function()
+                    if not obj then return end
+                    local c = obj:getContainer()
+                    local items = c:getItems()
+                    if not withClothes then
+                        for i = items:size() - 1, 0, -1 do
+                            local it = items:get(i)
+                            if tostring(it:getType()):find("Tshirt", 1, true) then cap = cap; c:Remove(it); obj._qaShirtGone = true end
+                        end
+                    elseif obj._qaShirtGone then
+                        local shirt = c:AddItem("Base.Tshirt_DefaultTEXTURE_TINT"); if shirt then added[#added + 1] = shirt end
+                        obj._qaShirtGone = nil
+                    end
+                    cap = cap or (function() local v; pcall(function() v = obj:getFluidCapacity() end); return (v and v > 0) and v or 20 end)()
+                    pcall(function() obj:emptyFluid() end)
+                    pcall(function() obj:createFluidContainersFromSpriteProperties() end)
+                    pcall(function() obj:addFluid(FluidType.Water, cap * lvl / 5 - 0.01) end)
+                end)
+                step(20, function()
+                    if not obj then return end
+                    local e = entry()
+                    local st = e and e.t and e.t._st
+                    local key = withClothes and "waterLoad" or "waterBare"
+                    say(string.format("%s: level %d %s: fluid %.1f of %.1f | water %s waterLoad %s waterBare %s | face %s", tag, lvl,
+                        withClothes and "with clothes" or "empty", obj:getFluidAmount() or -1, cap or -1, tostring(st and st.water),
+                        tostring(st and st.waterLoad), tostring(st and st.waterBare), tostring(e and e.t and e.t._face)))
+                    if pidWant == "washer" then
+                        check(st and st[key] == lvl, string.format("%s: water level %d %s draws its %s picture", tag, lvl,
+                            withClothes and "with clothes" or "in the empty tub", withClothes and ("soak" .. lvl) or ("water" .. lvl)))
+                    else
+                        check(st and st.water == lvl, string.format("%s: water level %d %s", tag, lvl, withClothes and "with clothes" or "empty"))
+                    end
+                    shot(string.format("%s_lvl%d_%s", tag, lvl, withClothes and "soak" or "water"))
+                end)
+            end
+        end
+        step(5, function() if obj then setWater(obj, true) end end)
+    end
     step(30, function()
         if not obj then return end
         check(liveState().hasItems == true, tag .. ": the clothes show with a shirt inside")

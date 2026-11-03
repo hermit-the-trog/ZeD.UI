@@ -1,0 +1,4 @@
+# punch list 77 (Nov 2 2026): the laundry redesign on the Deck with Large text
+zedqa_prelude.lua | pre | timeout=120
+zedqa_textlarge.lua | txl | timeout=60
+zedqa_laundry.lua | ldy | timeout=900

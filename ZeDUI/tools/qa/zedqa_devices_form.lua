@@ -6,4 +6,7 @@ local now = S.devicesStyleOption:getValue()
 local want = (now == 2) and 1 or 2
 S.devicesStyleOption:setValue(want)
 print("ZEDQA dvf Devices " .. tostring(now) .. " -> " .. tostring(want) .. " (simple " .. tostring(S.devicesSimple()) .. ")")
-print("ZEDQA dvf DONE")
+-- (DONE a few ticks later: the runner watches for it after the script has started)
+local n = 0
+local function tick() n = n + 1; if n >= 5 then Events.OnTick.Remove(tick); print("ZEDQA dvf DONE") end end
+Events.OnTick.Add(tick)
