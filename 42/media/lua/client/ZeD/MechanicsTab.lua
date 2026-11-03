@@ -1,17 +1,21 @@
 -- ZeD-UI/42/media/lua/client/ZeD/MechanicsTab.lua
 -- ============================================================================
 -- VEHICLE TAB — World window, contextual (replaces vanilla ISVehicleMechanics)
--- Contract: ZeDUI/mockups/zed_vehicle_mechanics_v1.html (approved Oct 13 2026,
--- director: "go with your recommendations, build it").
+-- Contract: ZeDUI/VEHICLE_TAB_SPEC.md (the director, Nov 2-3 2026, punch list 79), on
+-- the first tab's mockup zed_vehicle_mechanics_v1 (Oct 13 2026).
 --
--- Shape follows the Health tab: a car figure (scanline layers baked from the
--- vanilla mechanics overlay by ZeDUI/tools/mechanics/bake_mech_figs.py) beside
--- a summary, then every part grouped by area. A part opens as a 480-wide item
--- card: back arrow, name, verbs in the header, the progress band, a stat grid,
--- an install pick list or the repair recipes, a NEEDS checklist for the
--- highlighted verb, and the part's vanilla info text. Destructive verbs confirm
--- in the footer. X / right-click on a part opens vanilla's own part menu, which
--- ZeD's context-menu hook renders.
+-- Two columns, as Crafting and Building (CraftingCore's split measure): the part list
+-- on the left (By section: the game's categories, a part under the one that has to come
+-- off first, from the parts' own install tables; By condition: worst first, earned at
+-- Mechanics level 4); on the right the car diagram (scanline layers baked from the
+-- vanilla mechanics overlay by ZeDUI/tools/mechanics/bake_mech_figs.py, MechFigs) with
+-- the vehicle's summary, or, a part chosen, its card: the step before, the readings and
+-- where the work is done, the install pick list or the repair recipes, a NEEDS line for
+-- each greyed verb, the part's vanilla info text. A click or A on a row chooses the part,
+-- the same row again or B brings the diagram back; no back arrow, no second screen. The
+-- footer holds Sort and the chosen part's verbs (lit, or greyed with what they need in
+-- the card); destructive verbs confirm in it. X / right-click on a part opens vanilla's
+-- own part menu, which ZeD's context-menu hook renders.
 --
 -- Entry: Overrides/VehicleMechanics.lua routes ISOpenMechanicsUIAction:perform
 -- (right-click Mechanics, the hood, the mechanics key) to MT.openFromAction.
@@ -40,13 +44,12 @@ local MT = ZeD.MechanicsTab
 local REACH_TILES   = 4.5    -- tiles from the vehicle centre: the tab offers it
 local KEEP_TILES    = 6      -- tiles: an inspection lasts until you walk past this (vanilla)
 local PAD           = 10
-local FIG_W, FIG_H  = 120, 244
+local FIG_H         = 244    -- the diagram's height in the right column
 local COL_GAP       = 12
 local ROW_H         = 24
 local CAT_H         = 15     -- the library's category row
 local COLHDR_H      = 20
 local SEC_H         = 20
-local PICK_H        = 26
 local FIX_H         = 38
 local MINI_BAR_W    = 40
 local PCT_W         = 34
@@ -299,6 +302,45 @@ local function partModel(part, chr, v)
     }
 end
 
+-- the part ids an install / uninstall table names ("A;B" or one id)
+local function idsIn(val)
+    local out = {}
+    if type(val) == "string" then
+        for id in string.gmatch(val, "[^;]+") do out[#out + 1] = id end
+    end
+    return out
+end
+
+-- The part a part sits under in the list By section (VEHICLE_TAB_SPEC 2): the one that has to
+-- come off first (its table's requireUninstalled: a brake or a suspension under its tire), from
+-- the game's own install tables, so modded cars group as their scripts say. A window sits under
+-- the door it needs (the door's table asks for the window off first, but the window is in the
+-- door); the engine bay's parts sit under the hood. nil: a top row.
+local function parentOf(v, part)
+    local id = part:getId()
+    for _, key in ipairs({ "uninstall", "install" }) do
+        local kv = part:getTable(key)
+        if kv and kv.requireUninstalled then
+            for _, q in ipairs(idsIn(kv.requireUninstalled)) do
+                local qp = v:getPartById(q)
+                if qp and q ~= id and not (part:getDoor() and qp:getWindow()) then return q end
+            end
+        end
+    end
+    if part:getWindow() then
+        local kv = part:getTable("install")
+        if kv and kv.requireInstalled then
+            for _, q in ipairs(idsIn(kv.requireInstalled)) do
+                local qp = v:getPartById(q)
+                if qp and qp:getDoor() then return q end
+            end
+        end
+    end
+    local ok, area = pcall(function() return part:getArea() end)
+    if ok and area == "Engine" and id ~= "EngineDoor" and v:getPartById("EngineDoor") then return "EngineDoor" end
+    return nil
+end
+
 local function collectParts(v, chr)
     local list = {}
     for i = 0, v:getPartCount() - 1 do
@@ -307,6 +349,9 @@ local function collectParts(v, chr)
         if cat ~= "nodisplay" then
             local m = partModel(part, chr, v)
             m.order = i
+            m.parent = parentOf(v, part)
+            local door = part:getDoor()
+            m.locked = door ~= nil and door:isLocked() and not door:isOpen()
             list[#list + 1] = m
         end
     end
@@ -789,7 +834,6 @@ end
 -- opts for the library parts that take the controller's focus themselves (reused each frame)
 local _cancelOpts = {}                 -- the progress band's Cancel
 local _browseOpts = { focusParts = {} } -- the drawer header's previous / next keys
-local _backOpts = {}                   -- the card back bar's back key
 
 -- ----------------------------------------------------------------------------
 -- Car figure
@@ -1020,7 +1064,7 @@ local function drawSummary(panel, s, sx, sy, sw, v, chr, parts, hl)
         if p.part:getWheelFriction() > 0 and item then
             yy = yy + M.drawStatRow(panel, sx, yy, sw, ZeD.tr("UI_ZeD_Veh_Friction"), tostring(round(p.part:getWheelFriction(), 2)))
         end
-        return
+        return yy
     end
     local ov = overallCond(v)
     yy = yy + drawLabelValue(panel, sx, yy, sw, ZeD.tr("UI_ZeD_Veh_Overall"), tostring(ov) .. "%") + T.px(4)
@@ -1060,299 +1104,7 @@ local function drawSummary(panel, s, sx, sy, sw, v, chr, parts, hl)
     local ks, kc = keyState(v, chr)
     yy = yy + M.drawStatRowDot(panel, sx, yy, sw, getText("IGUI_ItemType_Key"), ks, kc == "pos" and T.positive or T.warning)
     yy = yy + ZeD.MechTrailer.drawTowRow(panel, s, sx, yy, sw, v)
-end
-
-local function groupedParts(s, parts)
-    local groups, byCat = {}, {}
-    if s.sort == "cond" then
-        local all = {}
-        for _, p in ipairs(parts) do all[#all + 1] = p end
-        table.sort(all, function(a, b)
-            local ca = (a.missing or a.smashed) and -1 or a.cond
-            local cb = (b.missing or b.smashed) and -1 or b.cond
-            if ca == cb then return a.order < b.order end
-            return ca < cb
-        end)
-        groups[1] = { cat = "_worst", label = ZeD.tr("UI_ZeD_Veh_WorstFirst"), parts = all }
-        return groups
-    end
-    for _, p in ipairs(parts) do
-        local g = byCat[p.cat]
-        if not g then
-            g = { cat = p.cat, label = catLabel(p.cat), parts = {} }
-            byCat[p.cat] = g
-            groups[#groups + 1] = g
-        end
-        g.parts[#g.parts + 1] = p
-    end
-    table.sort(groups, function(a, b)
-        local ra, rb = CAT_RANK[a.cat] or 99, CAT_RANK[b.cat] or 99
-        if ra == rb then return a.label < b.label end
-        return ra < rb
-    end)
-    return groups
-end
-
-local function openCard(win, s, id)
-    s.view, s.card, s.verb, s.confirm = "card", id, nil, nil
-    s.cardScroll, s.pick, s.fixPick = 0, 1, 1
-    s.items = nil
-    s.needsCache, s.fixCache, s.partsCache = nil, nil, nil
-    win._mechFocusTarget = "card"
-end
-local function closeCard(win, s)
-    s.view, s.confirm = "overview", nil
-    s.needsCache, s.fixCache, s.partsCache = nil, nil, nil
-    win._mechFocusTarget = s.card and ("mech:row:" .. s.card) or nil
-    s.card = nil
-end
-
-local function renderOverview(panel, win, s, x, y, w, h, v, chr, inspected)
-    local T = ZeD.T
-    local A = ZeD.Atoms
-    local M = ZeD.Molecules
-    local TM = ZeD.TM
-    local parts = cachedParts(s, v, chr)
-
-    -- header: browse + vehicle name + type tag
-    _browseOpts.focusParts.prev = focusFor(s, "mech:prev")
-    _browseOpts.focusParts.next = focusFor(s, "mech:next")
-    local prevZ, nextZ = M.drawDrawerInternalHeader(panel, x, y, w,
-        { idx = s.idx, total = #s.vehicles }, vehicleName(v), mechType(v), nil, _browseOpts)
-    local headerH = T.px((ZeD.Spacing and ZeD.Spacing.tabHeaderH) or 37)
-    if #s.vehicles > 1 then
-        stamp(s, "mech:prev", prevZ.x, prevZ.y, prevZ.w, prevZ.h, function()
-            s.idx = s.idx - 1; if s.idx < 1 then s.idx = #s.vehicles end
-            s.scrollY, s.view, s.card = 0, "overview", nil
-        end)
-        stamp(s, "mech:next", nextZ.x, nextZ.y, nextZ.w, nextZ.h, function()
-            s.idx = s.idx + 1; if s.idx > #s.vehicles then s.idx = 1 end
-            s.scrollY, s.view, s.card = 0, "overview", nil
-        end)
-    end
-
-    -- the band at the foot holds the tab's own actions; with none to offer it is not drawn
-    local hood = inspected and v:getPartById("EngineDoor") or nil
-    local hoodOpen = hood and hood:getDoor() and hood:getInventoryItem() and hood:getDoor():isOpen()
-    local barVerbs = {
-        { id = "inspect", label = getText("ContextMenu_Inspect"), variant = "primary", canDo = true, sensible = not inspected,
-          help = ZeD.tr("UI_ZeD_Veh_HelpInspect"),
-          fn = function() ISVehicleMenu.onMechanic(chr, v) end },
-        { id = "closehood", label = getText("IGUI_CloseHood"), canDo = true, sensible = hoodOpen and true or false,
-          help = ZeD.tr("UI_ZeD_Veh_HelpCloseHood"),
-          fn = function()
-              ISTimedActionQueue.add(ISPathFindAction:pathToVehicleArea(chr, v, hood:getArea()))
-              ISTimedActionQueue.add(ISCloseVehicleDoor:new(chr, v, hood))
-              local e = INSP[v:getId()]
-              if e then e.hood = nil end
-          end },
-    }
-    local barShown = ZeD.Disclose.split(barVerbs)
-    local bandH = (#barShown > 0) and M.bandH() or 0
-
-    local top = y + headerH
-    local TR = ZeD.MechTrailer
-    local trailer = TR.isTrailer(v)
-    if trailer then TR.prepare(s, v, chr) end
-    local pbH = inspected and progressBand(panel, win, s, x, top, w, v, chr) or 0
-    if pbH == 0 and trailer then pbH = TR.drawBand(panel, s, x, top, w, v, chr) end
-    top = top + pbH
-    local bodyH = h - headerH - pbH - bandH
-    local scrollW = T.sp.scrollbarW
-    local cw = w - scrollW
-    local pad = T.px(PAD)
-
-    local mx, my = panel:getMouseX(), panel:getMouseY()
-    local mouseIn = (not isGamepad()) and mx >= x and mx < x + cw and my >= top and my < top + bodyH
-    local gpId = s.gpId
-    local hl = nil
-    if gpId and gpId:sub(1, 9) == "mech:row:" then hl = gpId:sub(10) end
-    if mouseIn then
-        hl = figurePartAt(s, mx, my)
-        if not hl then
-            for _, z in ipairs(s.lastRows or {}) do if hit(z, mx, my) then hl = z.part end end
-        end
-    end
-    s.hl = hl
-    -- a row of the list under the pointer (inside the body)
-    local function rowHover(ry, rh) return mouseIn and my >= ry and my < ry + rh end
-
-    panel:setStencilRect(x, top, w, bodyH)
-    local cy = top - s.scrollY
-    local clip = { x = x, y = top, w = w, h = bodyH }
-    s.bodyClip = clip
-
-    -- zone A: figure + summary (an animal trailer's summary holds the trailer)
-    local figW, figH = T.px(FIG_W), T.px(FIG_H)
-    drawFigure(panel, s, x + pad, cy + pad, figW, figH, v, parts, hl, not inspected, s.working)
-    local sx = x + pad + figW + T.px(COL_GAP)
-    local sw = cw - (sx - x) - pad
-    local sumBottom = cy
-    if trailer and not (inspected and hl) then
-        sumBottom = TR.drawSummary(panel, win, s, sx, cy + pad, sw, v, chr, inspected)
-    elseif inspected then
-        drawSummary(panel, s, sx, cy + pad, sw, v, chr, parts, hl)
-    else
-        local yy = cy + pad
-        yy = yy + drawLabelValue(panel, sx, yy, sw, ZeD.tr("UI_ZeD_Veh_Overall"), "?") + T.px(4)
-        A.drawSegFill(panel, sx, yy, sw, T.fillBarH, A.FILL_SEGS, 0)   -- (not known yet: no reading in the help line)
-        yy = yy + T.fillBarH + T.px(8)
-        local dc = T.textDim
-        yy = yy + dotLine(panel, sx, yy, sw, { r = dc.r, g = dc.g, b = dc.b, a = 0.6 }, ZeD.tr("UI_ZeD_Veh_NotInspected")) + T.px(8)
-        A.drawDividerH(panel, sx, yy, sw, false)
-        yy = yy + T.px(6)
-        yy = yy + M.drawStatRow(panel, sx, yy, sw, getText("IGUI_PlayerStats_Type"), mechType(v))
-        yy = yy + M.drawStatRow(panel, sx, yy, sw, ZeD.tr("UI_ZeD_Veh_Distance"), ZeD.tr(math.floor((currentEntry(s) and currentEntry(s).dist or 0) + 0.5) == 1 and "UI_ZeD_Veh_TilesOne" or "UI_ZeD_Veh_Tiles", math.floor((currentEntry(s) and currentEntry(s).dist or 0) + 0.5)))
-        local ks, kc = keyState(v, chr)
-        yy = yy + M.drawStatRowDot(panel, sx, yy, sw, getText("IGUI_ItemType_Key"), ks, kc == "pos" and T.positive or T.warning)
-        yy = yy + TR.drawTowRow(panel, s, sx, yy, sw, v)
-    end
-    cy = math.max(cy + figH + pad * 2, sumBottom + pad)
-
-    s.lastRows = {}
-    -- an animal trailer's animals come before its parts
-    if trailer then
-        cy = TR.drawSections(panel, win, s, x, cy, cw, v, chr, clip, mouseIn and { x = mx, y = my } or nil)
-    end
-    if inspected then
-        -- column heads (Part, Info, Cond): F5 in sentence case, a content line under; Part and
-        -- Cond sort the list, the sorted one underlined
-        local hh = T.px(COLHDR_H)
-        A.surfaceFill(panel, x, cy, cw, hh, "surf2")
-        local f5 = T.fontF5
-        local f5h = TM:getFontHeight(f5)
-        local ty = cy + math.floor((hh - f5h) / 2)
-        local condRight = x + cw - pad
-        local infoRight = condRight - T.px(MINI_BAR_W + PCT_W + 6) - T.px(10)
-        local ac, tt, td = T.accent, T.text, T.textSec
-        local function sortLabel(label, key, lx, rightAlign)
-            label = cased(label)
-            local lw = TM:MeasureStringX(f5, label)
-            local px0 = rightAlign and (lx - lw) or lx
-            local zid = "mech:sort:" .. key
-            local zx, zw = px0 - T.px(4), lw + T.px(8)
-            if rowHover(cy, hh) and mx >= zx and mx < zx + zw then
-                local hv = T.hover
-                panel:drawRect(zx, cy, zw, hh, hv.a, hv.r, hv.g, hv.b)
-                help(panel, key == "area" and "UI_ZeD_Veh_HelpSortArea" or "UI_ZeD_Veh_HelpSortCond")
-            end
-            local onFocus = markAt(s, panel, zid, zx, cy, zw, hh)
-            local c = onFocus and T.textOnFocus or ((s.sort == key) and tt or td)
-            panel:drawText(label, px0, ty, c.r, c.g, c.b, c.a or 1, f5)
-            if s.sort == key then panel:drawRect(px0, ty + f5h, lw, T.hair, c.a or 1, c.r, c.g, c.b) end
-            stamp(s, zid, zx, cy, zw, hh, function() s.sort = key; s.scrollY = 0 end,
-                  { clip = { x = x, y = top, w = w, h = bodyH } })
-        end
-        local infoHdr = cased(ZeD.tr("UI_ZeD_Veh_HdrInfo"))
-        sortLabel(ZeD.tr("UI_ZeD_Veh_HdrPart"), "area", x + pad, false)
-        panel:drawText(infoHdr, infoRight - TM:MeasureStringX(f5, infoHdr), ty, td.r, td.g, td.b, td.a or 1, f5)
-        sortLabel(ZeD.tr("UI_ZeD_Veh_HdrCond"), "cond", condRight, true)
-        A.drawDividerH(panel, x, cy + hh - T.hair, cw, false)
-        cy = cy + hh
-
-        local clip = { x = x, y = top, w = w, h = bodyH }
-        for _, g in ipairs(groupedParts(s, parts)) do
-            -- category row (A / click collapses)
-            local ch = T.px(CAT_H)
-            local collapsed = s.collapsed[g.cat]
-            local catKey = g.cat
-            M.drawCategoryRow(panel, x, cy, cw, g.label, #g.parts, not collapsed, {
-                hover = rowHover(cy, ch), focus = focusFor(s, "mech:cat:" .. catKey), inset = pad })
-            if rowHover(cy, ch) then help(panel, "UI_ZeD_Veh_HelpFold") end
-            stamp(s, "mech:cat:" .. catKey, x, cy, cw, ch, function() s.collapsed[catKey] = not s.collapsed[catKey] end,
-                  { clip = clip, isDisclosure = true })
-            cy = cy + ch
-            if not collapsed then
-                for ri, p in ipairs(g.parts) do
-                    local rh = T.px(ROW_H)
-                    if ri % 2 == 0 then
-                        local st = T.stripe
-                        panel:drawRect(x, cy, cw, rh, st.a, st.r, st.g, st.b)
-                    end
-                    if hl == p.id and not gpId then
-                        local hv = T.hover
-                        panel:drawRect(x, cy, cw, rh, hv.a, hv.r, hv.g, hv.b)
-                    end
-                    if rowHover(cy, rh) then help(panel, "UI_ZeD_Veh_HelpPartRow") end
-                    local pid = p.id
-                    local onFocus = markAt(s, panel, "mech:row:" .. pid, x, cy, cw, rh)
-                    local ink = onFocus and T.textOnFocus or T.text
-                    local inkDim = onFocus and T.textOnFocus or T.textDim
-                    local dc = (p.missing or p.smashed) and T.danger or statusColor(T, p.cond)
-                    local d = T.px(7)
-                    A.drawStatusDot(panel, x + pad, cy + math.floor((rh - d) / 2), dc, d)
-                    local nameX = x + pad + d + T.px(8)
-                    local infoW = (p.info and p.info ~= "") and TM:MeasureStringX(T.fontF3, p.info) or 0
-                    local nameMaxW = infoRight - infoW - T.px(10) - nameX
-                    local nm = p.name
-                    if TM:MeasureStringX(T.fontF2, nm) > nameMaxW then nm = A.truncateText(nm, T.fontF2, nameMaxW) end
-                    panel:drawText(nm, nameX, cy + math.floor((rh - T.fontF2H) / 2), ink.r, ink.g, ink.b, ink.a or 1, T.fontF2)
-                    if p.info and p.info ~= "" then
-                        A.drawTextRight(panel, p.info, infoRight, cy + math.floor((rh - T.fontF3H) / 2), T.fontF3, inkDim)
-                    end
-                    if p.missing or p.smashed then
-                        -- a word for the state, as a tag with its red square
-                        local label = p.missing and getText("IGUI_Missing") or ZeD.tr("UI_ZeD_Veh_Smashed")
-                        local bw = TM:MeasureStringX(T.fontF1, cased(label)) + T.px(20)
-                        M.drawTag(panel, condRight - bw, cy + math.floor((rh - T.px(16)) / 2), label, T.danger)
-                    else
-                        local barX = condRight - T.px(PCT_W + 6) - T.px(MINI_BAR_W)
-                        miniBar(panel, barX, cy + math.floor(rh / 2), T.px(MINI_BAR_W), p.cond)
-                        A.drawTextRight(panel, tostring(p.cond) .. "%", condRight, cy + math.floor((rh - T.fontF3H) / 2), T.fontF3, ink)
-                    end
-                    local z = stamp(s, "mech:row:" .. pid, x, cy, cw, rh, function() openCard(win, s, pid) end,
-                                    { clip = clip, part = pid, isRow = true })
-                    s.lastRows[#s.lastRows + 1] = z
-                    cy = cy + rh
-                end
-            end
-        end
-    else
-        -- the parts wait for an inspection (the band's Inspect): the list's head, then one dim sentence
-        local ch = M.drawCategoryRow(panel, x, cy, cw, ZeD.tr("UI_ZeD_Veh_PartsLabel"), #parts, false,
-            { noArrow = true, inset = pad })
-        cy = cy + ch + T.px(8)
-        cy = cy + M.drawEmptyLine(panel, x + pad, cy, cw - pad * 2, ZeD.tr("UI_ZeD_Veh_InspectParts", vehicleName(v))) + T.px(8)
-    end
-    panel:clearStencilRect()
-
-    local total = (cy + s.scrollY) - top
-    s.maxScroll = math.max(0, total - bodyH)
-    if s.scrollY > s.maxScroll then s.scrollY = s.maxScroll end
-    s.bodyRect = { x = x, y = top, w = w, h = bodyH }
-    drawScrollbar(panel, x + w - scrollW, top, bodyH, total, s.scrollY)
-
-    -- opened from Check Animals: scroll just enough to show the animals
-    if s.showAnimals then
-        s.showAnimals = nil
-        if trailer and s.trAnimalsY then
-            local want = math.min(s.trAnimalsEnd or s.trAnimalsY, s.trAnimalsY + T.px(CAT_H + 3 * 40))
-            local delta = math.min(want - (top + bodyH), s.trAnimalsY - top)
-            if delta > 0 then s.scrollY = math.min(s.maxScroll, s.scrollY + delta) end
-        end
-    end
-
-    -- gamepad scroll-follow for rows and headers
-    if gpId then
-        local z = s.byId[gpId]
-        if z and z.clip then
-            if z.y < top then s.scrollY = math.max(0, s.scrollY - (top - z.y))
-            elseif z.y + z.h > top + bodyH then s.scrollY = math.min(s.maxScroll, s.scrollY + (z.y + z.h - (top + bodyH))) end
-        end
-    end
-
-    -- the band: Inspect before an inspection, Close hood while the hood is open
-    if bandH > 0 then
-        local buttons = {}
-        for i, bv in ipairs(barShown) do
-            buttons[i] = { label = bv.label, variant = bv.variant, help = bv.help, focus = focusFor(s, "mech:" .. bv.id) }
-        end
-        local _, out = M.drawBand(panel, x, y + h - bandH, w, { win = win, buttons = buttons })
-        for i, bv in ipairs(barShown) do
-            local r = out.buttons[i]
-            stamp(s, "mech:" .. bv.id, r.x, r.y, r.w, r.h, bv.fn, { footer = true })
-        end
-    end
+    return yy
 end
 
 -- ----------------------------------------------------------------------------
@@ -1446,22 +1198,133 @@ local function verbSensible(part, vb)
     return true
 end
 
-local function renderCard(panel, win, s, x, y, w, h, v, chr)
-    local T = ZeD.T
-    local A = ZeD.Atoms
-    local M = ZeD.Molecules
-    local TM = ZeD.TM
+-- ----------------------------------------------------------------------------
+-- The part list's order (VEHICLE_TAB_SPEC.md 2). By section: the game's part
+-- categories, a part under the one it hangs off (parentOf); By condition: worst
+-- first, earned at Mechanics level 4.
+-- ----------------------------------------------------------------------------
+local COND_LEVEL = 4   -- the Mechanics level that earns By condition (the director, Nov 2 2026)
+local CHILD_IN   = 12  -- a part under another: its row indented this much
+
+local function condEarned(chr) return chr ~= nil and mechLevel(chr) >= COND_LEVEL end
+-- the greyed choice's words: "Mechanics Level 4" from words the game and ZeD already have
+local function condGateText() return ZeD.tr("UI_ZeD_Craft_SkillLevel", getText("IGUI_perks_Mechanics"), COND_LEVEL) end
+
+local function groupedParts(s, parts, chr)
+    if s.sort == "cond" and condEarned(chr) then
+        local all = {}
+        for _, p in ipairs(parts) do all[#all + 1] = p end
+        table.sort(all, function(a, b)
+            local ca = (a.missing or a.smashed) and -1 or a.cond
+            local cb = (b.missing or b.smashed) and -1 or b.cond
+            if ca == cb then return a.order < b.order end
+            return ca < cb
+        end)
+        local rows = {}
+        for i, p in ipairs(all) do rows[i] = { p = p, depth = 0 } end
+        return { { cat = "_worst", label = ZeD.tr("UI_ZeD_Veh_WorstFirst"), rows = rows } }
+    end
+    -- By section: each top part with the parts under it, walked in the vehicle's own order
+    local byId, kids, roots = {}, {}, {}
+    for _, p in ipairs(parts) do byId[p.id] = p end
+    for _, p in ipairs(parts) do
+        local par = p.parent
+        if par and par ~= p.id and byId[par] then
+            local k = kids[par]
+            if not k then k = {}; kids[par] = k end
+            k[#k + 1] = p
+        else
+            roots[#roots + 1] = p
+        end
+    end
+    local groups, byCat, seen = {}, {}, {}
+    local function groupFor(cat)
+        local g = byCat[cat]
+        if not g then
+            g = { cat = cat, label = catLabel(cat), rows = {} }
+            byCat[cat] = g
+            groups[#groups + 1] = g
+        end
+        return g
+    end
+    local function walk(g, p, depth)
+        if seen[p.id] then return end
+        seen[p.id] = true
+        g.rows[#g.rows + 1] = { p = p, depth = depth }
+        for _, c in ipairs(kids[p.id] or {}) do walk(g, c, depth + 1) end
+    end
+    for _, p in ipairs(roots) do
+        -- the hood with the engine bay under it heads Under hood, whatever its own category
+        local cat = (p.id == "EngineDoor" and kids[p.id]) and "engine" or p.cat
+        walk(groupFor(cat), p, 0)
+    end
+    for _, p in ipairs(parts) do   -- (a link that runs in a circle: the part keeps a row of its own)
+        if not seen[p.id] then walk(groupFor(p.cat), p, 0) end
+    end
+    table.sort(groups, function(a, b)
+        local ra, rb = CAT_RANK[a.cat] or 99, CAT_RANK[b.cat] or 99
+        if ra == rb then return a.label < b.label end
+        return ra < rb
+    end)
+    return groups
+end
+
+-- The part that has to be dealt with before this one can be installed or uninstalled
+-- (the card's first line, spec 4.1): { id, text } or nil. The game's own words.
+local function stepBefore(v, part, verb)
+    local kv = part:getTable(verb == "install" and "install" or "uninstall")
+    if not kv then return nil end
+    for _, q in ipairs(idsIn(kv.requireUninstalled)) do
+        local qp = v:getPartById(q)
+        if qp and qp:getInventoryItem() then
+            return { id = q, text = getText("Tooltip_vehicle_requireUnistalled", partName(q)) }
+        end
+    end
+    if verb == "install" then
+        for _, q in ipairs(idsIn(kv.requireInstalled)) do
+            local qp = v:getPartById(q)
+            if qp and not qp:getInventoryItem() and qp:getTable("install") then
+                return { id = q, text = getText("Tooltip_vehicle_requireInstalled", partName(q)) }
+            end
+        end
+    end
+    return nil
+end
+
+-- Where the game walks the character to work on the part (spec 4.4): its area in words
+local function workPlace(part)
+    local ok, area = pcall(function() return part:getArea() end)
+    if not ok or not area or area == "" then return nil end
+    if area == "Engine" then return catLabel("engine") end
+    return cased(partName(area))
+end
+
+local function openCard(win, s, id)
+    s.card, s.verb, s.confirm, s.sortOpen = id, nil, nil, nil
+    s.cardScroll, s.pick, s.fixPick = 0, 1, 1
+    s.items = nil
+    s.needsCache, s.fixCache, s.partsCache = nil, nil, nil
+    win._mechFocusTarget = "card"
+end
+local function closeCard(win, s)
+    s.confirm, s.sortOpen = nil, nil
+    s.cardScroll = 0
+    s.needsCache, s.fixCache, s.partsCache = nil, nil, nil
+    win._mechFocusTarget = s.card and ("mech:row:" .. s.card) or nil
+    s.card = nil
+end
+
+-- ----------------------------------------------------------------------------
+-- The chosen part's verbs and what each needs (the card and the footer share it)
+-- ----------------------------------------------------------------------------
+local function cardModel(s, part, chr, v)
     local DS = ZeD.Disclose
-    local part = v:getPartById(s.card)
-    if not part then closeCard(win, s); return end
-    local p = partModel(part, chr, v)
     local verbs = verbsFor(part, chr)
     local gpId = s.gpId
     if gpId and gpId:sub(1, 10) == "mech:verb:" then s.verb = gpId:sub(11) end
-
-    -- Every verb with what it needs, sorted by the hidden-actions setting: the ones you can do
-    -- are shown; the ones you cannot yet fold into one row after them; the ones that make
-    -- no sense now are gone.
+    -- every verb with what it needs, sorted by the hidden-actions setting: the ones you can do
+    -- are shown; the ones you cannot yet fold into one row in the card; the ones that make no
+    -- sense now are gone
     local needs, list = {}, {}
     for _, vb in ipairs(verbs) do
         local n = needsFor(s, part, vb, chr, v)
@@ -1490,83 +1353,319 @@ local function renderCard(panel, win, s, x, y, w, h, v, chr)
         end
         if not s.verb and shown[1] then s.verb = shown[1].id end
     end
-    local busy = activeAction(chr, v) ~= nil
+    return { part = part, p = partModel(part, chr, v), needs = needs, shown = shown, hidden = hidden,
+             primary = primary, busy = activeAction(chr, v) ~= nil }
+end
 
-    -- header: back + name + the verbs you can do (mouse hover on a verb picks the one whose details show)
-    local defs = {}
-    for i, sv in ipairs(shown) do
-        defs[i] = { label = sv.label, primary = (sv.id == primary), disabled = not sv.canDo, danger = sv.danger,
-                    focus = focusFor(s, "mech:verb:" .. sv.id), help = sv.help }
-    end
-    local rects = {}
-    _backOpts.focus = focusFor(s, "mech:back")
-    _backOpts.focusId = _backOpts.focus and "back" or nil
-    local headerH = M.drawCardBackBar(panel, x, y, w, p.name, defs, busy, false, rects, _backOpts)
-    stamp(s, "mech:back", rects.back.x, rects.back.y, rects.back.w, rects.back.h, function() closeCard(win, s) end)
-    local mx, my = panel:getMouseX(), panel:getMouseY()
-    for i, sv in ipairs(shown) do
-        local r = rects.verbs and rects.verbs[i]
-        if r then
-            local verb = sv.id
-            stamp(s, "mech:verb:" .. verb, r.x, r.y, r.w, r.h, function()
-                s.verb = verb
-                if busy or not needs[verb].ok then return end
-                if DANGER[verb] then s.confirm = verb; win._mechFocusTarget = "mech:confirm:no"; return end
-                runVerb(s, verb, part, chr)
-            end, { verb = verb })
-            if not isGamepad() and hit(r, mx, my) then s.verb = verb end
-        end
-    end
+-- run a verb from the footer (a destructive one asks first)
+local function pressVerb(win, s, cm, verb, chr)
+    s.verb = verb
+    if cm.busy or not cm.needs[verb].ok then return end
+    if DANGER[verb] then s.confirm = verb; win._mechFocusTarget = "mech:confirm:no"; return end
+    runVerb(s, verb, cm.part, chr)
+end
 
-    -- the band under the progress band: only while a question waits (Cancel and the verb)
-    local top = y + headerH
-    local pbH = progressBand(panel, win, s, x, top, w, v, chr)
-    top = top + pbH
-    local confirmH = s.confirm and M.bandH() or 0
-    local bodyH = h - headerH - pbH - confirmH
+-- ----------------------------------------------------------------------------
+-- Left: the part list
+-- ----------------------------------------------------------------------------
+local function renderList(panel, win, s, x, top, w, bodyH, v, chr, inspected, parts, trailer, mouse)
+    local T = ZeD.T
+    local A = ZeD.Atoms
+    local M = ZeD.Molecules
+    local TM = ZeD.TM
     local scrollW = T.sp.scrollbarW
     local cw = w - scrollW
-    local pad = T.px(12)
+    local pad = T.px(PAD)
+    local gpId, hl = s.gpId, s.hl
     local clip = { x = x, y = top, w = w, h = bodyH }
+    s.listClip = clip
+    local mx, my = mouse and mouse.x or -1, mouse and mouse.y or -1
+    local function rowHover(ry, rh) return mouse ~= nil and my >= ry and my < ry + rh end
+
+    panel:setStencilRect(x, top, w, bodyH)
+    local cy = top - s.scrollY
+    s.lastRows = {}
+    -- an animal trailer's animals come before its parts
+    if trailer then
+        s.bodyClip = clip
+        cy = ZeD.MechTrailer.drawSections(panel, win, s, x, cy, cw, v, chr, clip, mouse)
+    end
+    if inspected then
+        -- column heads: Part sorts By section; Cond sorts By condition, a sort from Mechanics 4
+        -- (under it a heading only); the sorted one underlined
+        local hh = T.px(COLHDR_H)
+        A.surfaceFill(panel, x, cy, cw, hh, "surf2")
+        local f5 = T.fontF5
+        local f5h = TM:getFontHeight(f5)
+        local ty = cy + math.floor((hh - f5h) / 2)
+        local condRight = x + cw - pad
+        local tt, td = T.text, T.textSec
+        local earned = condEarned(chr)
+        local sortKey = (s.sort == "cond" and earned) and "cond" or "area"
+        local function sortLabel(label, key, lx, rightAlign)
+            label = cased(label)
+            local lw = TM:MeasureStringX(f5, label)
+            local px0 = rightAlign and (lx - lw) or lx
+            local active = key ~= "cond" or earned
+            local zid = "mech:sort:" .. key
+            local zx, zw = px0 - T.px(4), lw + T.px(8)
+            if active and rowHover(cy, hh) and mx >= zx and mx < zx + zw then
+                local hv = T.hover
+                panel:drawRect(zx, cy, zw, hh, hv.a, hv.r, hv.g, hv.b)
+                help(panel, key == "area" and "UI_ZeD_Veh_HelpSortArea" or "UI_ZeD_Veh_HelpSortCond")
+            end
+            local onFocus = active and markAt(s, panel, zid, zx, cy, zw, hh) or false
+            local c = onFocus and T.textOnFocus or ((sortKey == key) and tt or td)
+            panel:drawText(label, px0, ty, c.r, c.g, c.b, c.a or 1, f5)
+            if sortKey == key then panel:drawRect(px0, ty + f5h, lw, T.hair, c.a or 1, c.r, c.g, c.b) end
+            if active then
+                stamp(s, zid, zx, cy, zw, hh, function() s.sort = key; s.scrollY = 0 end, { clip = clip, pane = "list" })
+            end
+        end
+        sortLabel(ZeD.tr("UI_ZeD_Veh_HdrPart"), "area", x + pad, false)
+        sortLabel(ZeD.tr("UI_ZeD_Veh_HdrCond"), "cond", condRight, true)
+        A.drawDividerH(panel, x, cy + hh - T.hair, cw, false)
+        cy = cy + hh
+
+        for _, g in ipairs(groupedParts(s, parts, chr)) do
+            -- category row (A / click folds it)
+            local ch = T.px(CAT_H)
+            local collapsed = s.collapsed[g.cat]
+            local catKey = g.cat
+            M.drawCategoryRow(panel, x, cy, cw, g.label, #g.rows, not collapsed, {
+                hover = rowHover(cy, ch), focus = focusFor(s, "mech:cat:" .. catKey), inset = pad })
+            if rowHover(cy, ch) then help(panel, "UI_ZeD_Veh_HelpFold") end
+            stamp(s, "mech:cat:" .. catKey, x, cy, cw, ch, function() s.collapsed[catKey] = not s.collapsed[catKey] end,
+                  { clip = clip, isDisclosure = true, pane = "list" })
+            cy = cy + ch
+            if not collapsed then
+                for ri, row in ipairs(g.rows) do
+                    local p = row.p
+                    local rh = T.px(ROW_H)
+                    if ri % 2 == 0 then
+                        local sp = T.stripe
+                        panel:drawRect(x, cy, cw, rh, sp.a, sp.r, sp.g, sp.b)
+                    end
+                    if s.card == p.id then
+                        local ac = T.accent
+                        panel:drawRect(x, cy, cw, rh, T.selectionA, ac.r, ac.g, ac.b)
+                    elseif hl == p.id and not gpId then
+                        local hv = T.hover
+                        panel:drawRect(x, cy, cw, rh, hv.a, hv.r, hv.g, hv.b)
+                    end
+                    if rowHover(cy, rh) then help(panel, "UI_ZeD_Veh_HelpPartRow") end
+                    local pid = p.id
+                    local onFocus = markAt(s, panel, "mech:row:" .. pid, x, cy, cw, rh)
+                    local ink = onFocus and T.textOnFocus or T.text
+                    local inkDim = onFocus and T.textOnFocus or T.textDim
+                    local dc = (p.missing or p.smashed) and T.danger or statusColor(T, p.cond)
+                    local d = T.px(7)
+                    local indent = T.px(CHILD_IN) * row.depth
+                    A.drawStatusDot(panel, x + pad + indent, cy + math.floor((rh - d) / 2), dc, d)
+                    local nameX = x + pad + indent + d + T.px(8)
+                    -- the right end: the state as a red tag (Missing, Smashed), or the bar and percent;
+                    -- a locked door says so before them
+                    local rightX
+                    if p.missing or p.smashed then
+                        local label = p.missing and getText("IGUI_Missing") or ZeD.tr("UI_ZeD_Veh_Smashed")
+                        local bw = TM:MeasureStringX(T.fontF1, cased(label)) + T.px(20)
+                        rightX = condRight - bw
+                        M.drawTag(panel, rightX, cy + math.floor((rh - T.px(16)) / 2), label, T.danger)
+                    else
+                        local barX = condRight - T.px(PCT_W + 6) - T.px(MINI_BAR_W)
+                        miniBar(panel, barX, cy + math.floor(rh / 2), T.px(MINI_BAR_W), p.cond)
+                        A.drawTextRight(panel, tostring(p.cond) .. "%", condRight, cy + math.floor((rh - T.fontF3H) / 2), T.fontF3, ink)
+                        rightX = barX
+                    end
+                    if p.locked then
+                        local lw = cased(getText("EC_Locked"))
+                        local lwW = TM:MeasureStringX(T.fontF1, lw)
+                        if rightX - T.px(6) - lwW > nameX + T.px(40) then
+                            rightX = rightX - T.px(6) - lwW
+                            panel:drawText(lw, rightX, cy + math.floor((rh - T.fontF1H) / 2), inkDim.r, inkDim.g, inkDim.b, inkDim.a or 1, T.fontF1)
+                        end
+                    end
+                    local nameMaxW = rightX - T.px(8) - nameX
+                    local nm = p.name
+                    if TM:MeasureStringX(T.fontF2, nm) > nameMaxW then nm = A.truncateText(nm, T.fontF2, math.max(0, nameMaxW)) end
+                    panel:drawText(nm, nameX, cy + math.floor((rh - T.fontF2H) / 2), ink.r, ink.g, ink.b, ink.a or 1, T.fontF2)
+                    -- a click or A chooses the part; the chosen row again brings the diagram back
+                    local z = stamp(s, "mech:row:" .. pid, x, cy, cw, rh, function()
+                        if s.card == pid then closeCard(win, s) else openCard(win, s, pid) end
+                    end, { clip = clip, part = pid, isRow = true, pane = "list" })
+                    s.lastRows[#s.lastRows + 1] = z
+                    cy = cy + rh
+                end
+            end
+        end
+    else
+        -- the parts wait for an inspection (the footer's Inspect): the list's head, then one dim sentence
+        local ch = M.drawCategoryRow(panel, x, cy, cw, ZeD.tr("UI_ZeD_Veh_PartsLabel"), #parts, false,
+            { noArrow = true, inset = pad })
+        cy = cy + ch + T.px(8)
+        cy = cy + M.drawEmptyLine(panel, x + pad, cy, cw - pad * 2, ZeD.tr("UI_ZeD_Veh_InspectParts", vehicleName(v))) + T.px(8)
+    end
+    panel:clearStencilRect()
+
+    local total = (cy + s.scrollY) - top
+    s.maxScroll = math.max(0, total - bodyH)
+    if s.scrollY > s.maxScroll then s.scrollY = s.maxScroll end
+    drawScrollbar(panel, x + w - scrollW, top, bodyH, total, s.scrollY)
+
+    -- opened from Check Animals: scroll just enough to show the animals
+    if s.showAnimals then
+        s.showAnimals = nil
+        if trailer and s.trAnimalsY then
+            local want = math.min(s.trAnimalsEnd or s.trAnimalsY, s.trAnimalsY + T.px(CAT_H + 3 * 40))
+            local delta = math.min(want - (top + bodyH), s.trAnimalsY - top)
+            if delta > 0 then s.scrollY = math.min(s.maxScroll, s.scrollY + delta) end
+        end
+    end
+end
+
+-- ----------------------------------------------------------------------------
+-- Right, no part chosen: the car diagram and the vehicle's summary
+-- ----------------------------------------------------------------------------
+local function renderDiagram(panel, win, s, x, top, w, bodyH, v, chr, inspected, parts, trailer)
+    local T = ZeD.T
+    local A = ZeD.Atoms
+    local M = ZeD.Molecules
+    local scrollW = T.sp.scrollbarW
+    local cw = w - scrollW
+    local pad = T.px(PAD)
+    local clip = { x = x, y = top, w = w, h = bodyH }
+    s.rightClip = clip
+    panel:setStencilRect(x, top, w, bodyH)
+    local cy = top - s.cardScroll + pad
+    local figW, figH = cw - pad * 2, T.px(FIG_H)
+    drawFigure(panel, s, x + pad, cy, figW, figH, v, parts, s.hl, not inspected, s.working)
+    s.figClip = clip
+    cy = cy + figH + T.px(COL_GAP)
+    local sx, sw = x + pad, cw - pad * 2
+    if trailer then
+        s.bodyClip = clip
+        cy = ZeD.MechTrailer.drawSummary(panel, win, s, sx, cy, sw, v, chr, inspected) or cy
+    elseif inspected then
+        cy = drawSummary(panel, s, sx, cy, sw, v, chr, parts, nil) or cy
+    else
+        local yy = cy
+        yy = yy + drawLabelValue(panel, sx, yy, sw, ZeD.tr("UI_ZeD_Veh_Overall"), "?") + T.px(4)
+        A.drawSegFill(panel, sx, yy, sw, T.fillBarH, A.FILL_SEGS, 0)   -- (not known yet: no reading in the help line)
+        yy = yy + T.fillBarH + T.px(8)
+        local dc = T.textDim
+        yy = yy + dotLine(panel, sx, yy, sw, { r = dc.r, g = dc.g, b = dc.b, a = 0.6 }, ZeD.tr("UI_ZeD_Veh_NotInspected")) + T.px(8)
+        A.drawDividerH(panel, sx, yy, sw, false)
+        yy = yy + T.px(6)
+        yy = yy + M.drawStatRow(panel, sx, yy, sw, getText("IGUI_PlayerStats_Type"), mechType(v))
+        local dist = math.floor((currentEntry(s) and currentEntry(s).dist or 0) + 0.5)
+        yy = yy + M.drawStatRow(panel, sx, yy, sw, ZeD.tr("UI_ZeD_Veh_Distance"), ZeD.tr(dist == 1 and "UI_ZeD_Veh_TilesOne" or "UI_ZeD_Veh_Tiles", dist))
+        local ks, kc = keyState(v, chr)
+        yy = yy + M.drawStatRowDot(panel, sx, yy, sw, getText("IGUI_ItemType_Key"), ks, kc == "pos" and T.positive or T.warning)
+        yy = yy + ZeD.MechTrailer.drawTowRow(panel, s, sx, yy, sw, v)
+        cy = yy
+    end
+    panel:clearStencilRect()
+    local total = (cy + pad + s.cardScroll) - top
+    s.maxRight = math.max(0, total - bodyH)
+    if s.cardScroll > s.maxRight then s.cardScroll = s.maxRight end
+    drawScrollbar(panel, x + w - scrollW, top, bodyH, total, s.cardScroll)
+end
+
+-- ----------------------------------------------------------------------------
+-- Right, a part chosen: its card (spec 4). The verbs are in the footer.
+-- ----------------------------------------------------------------------------
+local function renderCardBody(panel, win, s, x, top, w, bodyH, v, chr, cm)
+    local T = ZeD.T
+    local A = ZeD.Atoms
+    local M = ZeD.Molecules
+    local TM = ZeD.TM
+    local DS = ZeD.Disclose
+    local part, p = cm.part, cm.p
+    local scrollW = T.sp.scrollbarW
+    local cw = w - scrollW
+    local pad = T.px(PAD)
+    local clip = { x = x, y = top, w = w, h = bodyH }
+    s.rightClip = clip
+    local iw = cw - pad * 2
 
     panel:setStencilRect(x, top, w, bodyH)
     local cy = top - s.cardScroll + pad
 
-    -- the folded row after the verbs: what you could do with the right things (A / click opens it);
-    -- a verb shown greyed (the setting "show all") says what it needs right under the row
-    local moreKey = "veh:part:" .. tostring(p.id)
-    for _, sv in ipairs(shown) do
-        if not sv.canDo then
-            cy = cy + M.drawNeedsLine(panel, x + pad, cy, cw - pad * 2, DS.needsLine(sv)) + T.px(4)
+    -- the part: its icon (ghosted when it is missing), its name, its category
+    local icon, ghost = iconFor(p)
+    local isz = T.px(36)
+    local bg, bd = T.surf2, ghost and T.danger or T.borderS
+    if not ghost then panel:drawRect(x + pad, cy, isz, isz, bg.a, bg.r, bg.g, bg.b) end
+    panel:drawRectBorder(x + pad, cy, isz, isz, bd.a or 1, bd.r, bd.g, bd.b)
+    if icon then A.drawIcon(panel, icon, x + pad + T.px(3), cy + T.px(3), isz - T.px(6), ghost and 0.3 or 1.0, T.iconWhite) end
+    local tx = x + pad + isz + T.px(8)
+    local tw = x + pad + iw - tx
+    local hc, dcl = T.text, T.textDim
+    local nm = p.name
+    if TM:MeasureStringX(T.fontF4, nm) > tw then nm = A.truncateText(nm, T.fontF4, tw) end
+    panel:drawText(nm, tx, cy, hc.r, hc.g, hc.b, hc.a or 1, T.fontF4)
+    panel:drawText(A.truncateText(catLabel(p.cat), T.fontF1, tw), tx, cy + T.fontF4H, dcl.r, dcl.g, dcl.b, dcl.a or 1, T.fontF1)
+    cy = cy + math.max(isz, T.fontF4H + T.fontF1H) + T.px(10)
+
+    -- the step before (spec 4.1): the part that has to come off (or go on) first, and a key
+    -- that chooses it
+    local sb = nil
+    if s.verb == "install" or s.verb == "uninstall" then sb = stepBefore(v, part, s.verb) end
+    if not sb then
+        for _, sv in ipairs(cm.shown) do
+            if sv.id == "install" or sv.id == "uninstall" then sb = stepBefore(v, part, sv.id); if sb then break end end
         end
     end
-    if #hidden > 0 then
-        local mh, rowRect = M.drawMoreRow(panel, x + pad, cy, cw - pad * 2, hidden, moreKey,
+    if sb then
+        cy = cy + M.drawNeedsLine(panel, x + pad, cy, iw, sb.text) + T.px(4)
+        local label = cased(partName(sb.id))
+        local bw = math.min(iw, M.buttonW(label))
+        local bh = T.buttonH
+        local onFocus = focusFor(s, "mech:step")
+        M.drawButton(panel, x + pad, cy, bw, bh, label, "default", false, nil,
+            { focus = onFocus, win = win, help = ZeD.tr("UI_ZeD_Veh_HelpPartRow") })
+        local toId = sb.id
+        stamp(s, "mech:step", x + pad, cy, bw, bh, function() openCard(win, s, toId) end, { clip = clip, pane = "right" })
+        cy = cy + bh + T.px(10)
+    end
+
+    -- a verb shown greyed says what it needs; the folded row after: what you could do with the
+    -- right things (A / click opens it)
+    local moreKey = "veh:part:" .. tostring(p.id)
+    for _, sv in ipairs(cm.shown) do
+        if not sv.canDo then
+            cy = cy + M.drawNeedsLine(panel, x + pad, cy, iw, DS.needsLine(sv)) + T.px(4)
+        end
+    end
+    if #cm.hidden > 0 then
+        local mh, rowRect = M.drawMoreRow(panel, x + pad, cy, iw, cm.hidden, moreKey,
             { focus = focusFor(s, "mech:more"), win = win })
         if rowRect then
-            stamp(s, "mech:more", rowRect.x, rowRect.y, rowRect.w, rowRect.h, function() DS.toggle(moreKey) end, { clip = clip })
+            stamp(s, "mech:more", rowRect.x, rowRect.y, rowRect.w, rowRect.h, function() DS.toggle(moreKey) end, { clip = clip, pane = "right" })
         end
         cy = cy + mh + T.px(6)
     end
 
-    -- stat grid with the part's icon (ghosted when the part is missing)
-    local icon, ghost = iconFor(p)
-    cy = cy + M.drawTopStatsGrid(panel, x + pad, cy, cw - pad * 2, icon, cardStats(p, v, chr), ghost)
+    -- the readings: condition and what the part carries beyond it (pressure, charge, fuel...),
+    -- and where the work is done (spec 4.3, 4.4)
+    local stats = cardStats(p, v, chr)
+    local place = workPlace(part)
+    if place then stats[#stats + 1] = { label = getText("IGUI_AttachedItems_Location"), value = place } end
+    cy = cy + M.drawTopStatsList(panel, x + pad, cy, iw, stats)
     cy = cy + T.px(8)
     if not p.missing and not p.smashed then
-        A.drawFillBar(panel, x + pad, cy, cw - pad * 2, p.cond / 100, true, nil, nil, ZeD.tr("IGUI_invpanel_Condition"))
+        A.drawFillBar(panel, x + pad, cy, iw, p.cond / 100, true, nil, nil, ZeD.tr("IGUI_invpanel_Condition"))
         cy = cy + T.fillBarH + T.px(10)
     end
 
-    local function section(text, aside)
+    local function section(text)
         local sh = M.drawSectionHeader(panel, x + pad, cy, cw - pad, text, nil, true, false, nil, nil, pad, T.px(SEC_H), true)
-        if aside then A.drawTextRight(panel, cased(aside), x + cw - pad, cy + math.floor((T.px(SEC_H) - T.fontF1H) / 2), T.fontF1, T.textDim) end
         cy = cy + sh + T.px(4)
     end
 
     -- one pickable row: the radio, a selected wash, the controller's mark; returns the ink and the x after the radio
     local function pickRow(id, rowY, rh, sel, radioY, enabled, focusable)
-        local rowX, rowW = x + pad, cw - pad * 2
+        local rowX, rowW = x + pad, iw
         local hov = enabled and (not isGamepad()) and A.mouseIn(panel, rowX, rowY, rowW, rh, clip)
         if sel then
             local ac = T.accent
@@ -1581,53 +1680,56 @@ local function renderCard(panel, win, s, x, y, w, h, v, chr)
         return onFocus, rx + rs + T.px(8)
     end
 
-    -- install: pick list
+    -- install: the spares in reach and where each is (spec 4.2)
     if s.verb == "install" then
         local picks = installPicks(part, chr, itemsFor(s, chr))
         local owned = 0
         for _, pk in ipairs(picks) do if not pk.none then owned = owned + 1 end end
         if s.pick > owned then s.pick = math.max(1, owned) end
-        section(ZeD.tr("UI_ZeD_Veh_FromBags"), nil)
+        section(ZeD.tr("UI_ZeD_Veh_FromBags"))
         for i, pk in ipairs(picks) do
-            local rh = T.px(PICK_H)
+            local rh = T.px(FIX_H)
             local sel = (not pk.none) and (i == s.pick)
             local onFocus, textX = pickRow("mech:pick:" .. tostring(i), cy, rh, sel,
-                cy + math.floor((rh - A.radioSize()) / 2), not pk.none, not pk.none)
+                cy + T.px(6), not pk.none, not pk.none)
             local rc = onFocus and T.textOnFocus or (pk.none and T.textDim or T.text)
             local dimc = onFocus and T.textOnFocus or T.textDim
-            panel:drawText(pk.name, textX, cy + math.floor((rh - T.fontF2H) / 2), rc.r, rc.g, rc.b, rc.a or 1, T.fontF2)
-            local right = x + cw - pad - T.px(4)
+            local maxW = (x + pad + iw - T.px(4)) - textX
+            local nmk = pk.name
+            if TM:MeasureStringX(T.fontF2, nmk) > maxW then nmk = A.truncateText(nmk, T.fontF2, maxW) end
+            panel:drawText(nmk, textX, cy + T.px(3), rc.r, rc.g, rc.b, rc.a or 1, T.fontF2)
+            -- the second line: where it is and its condition (or that none is near)
+            local ly = cy + T.px(3) + T.fontF2H
             if pk.none then
-                A.drawTextRight(panel, cased(ZeD.tr("UI_ZeD_Veh_NoneNearby")), right, cy + math.floor((rh - T.fontF1H) / 2), T.fontF1, dimc)
+                panel:drawText(cased(ZeD.tr("UI_ZeD_Veh_NoneNearby")), textX, ly, dimc.r, dimc.g, dimc.b, dimc.a or 1, T.fontF1)
             else
-                A.drawTextRight(panel, pk.loc, right, cy + math.floor((rh - T.fontF1H) / 2), T.fontF1, dimc)
-                local locW = TM:MeasureStringX(T.fontF1, pk.loc)
-                local pctR = right - locW - T.px(12)
-                A.drawTextRight(panel, tostring(pk.cond) .. "%", pctR, cy + math.floor((rh - T.fontF3H) / 2), T.fontF3, onFocus and T.textOnFocus or T.text)
-                miniBar(panel, pctR - T.px(PCT_W + 4) - T.px(MINI_BAR_W), cy + math.floor(rh / 2), T.px(MINI_BAR_W), pk.cond)
+                local right = x + pad + iw - T.px(4)
+                A.drawTextRight(panel, tostring(pk.cond) .. "%", right, ly, T.fontF1, onFocus and T.textOnFocus or T.text)
+                local loc = A.truncateText(pk.loc, T.fontF1, math.max(0, right - T.px(40) - textX))
+                panel:drawText(loc, textX, ly, dimc.r, dimc.g, dimc.b, dimc.a or 1, T.fontF1)
                 local idx = i
-                stamp(s, "mech:pick:" .. tostring(i), x + pad, cy, cw - pad * 2, rh, function() s.pick = idx end, { clip = clip })
+                stamp(s, "mech:pick:" .. tostring(i), x + pad, cy, iw, rh, function() s.pick = idx end, { clip = clip, pane = "right" })
             end
-            A.drawDividerH(panel, x + pad, cy + rh - T.px(1), cw - pad * 2, false)
+            A.drawDividerH(panel, x + pad, cy + rh - T.px(1), iw, false)
             cy = cy + rh
         end
         cy = cy + T.px(10)
     end
 
-    -- repair: recipe rows (pickable; the Repair verb runs the picked one)
+    -- repair: recipe rows (pickable; Repair in the footer runs the picked one)
     if s.verb == "fix" then
         local fr = cachedFixRows(s, part, chr)
         if s.fixPick > #fr then s.fixPick = 1 end
         if not (fr[s.fixPick] and fr[s.fixPick].ok) then
             for i, r in ipairs(fr) do if r.ok then s.fixPick = i; break end end
         end
-        section(ZeD.tr("UI_ZeD_Veh_RepairWith"), nil)
+        section(ZeD.tr("UI_ZeD_Veh_RepairWith"))
         for i, r in ipairs(fr) do
             local rh = T.px(FIX_H)
             local sel = (i == s.fixPick) and r.ok
             local onFocus, textX = pickRow("mech:fix:" .. tostring(i), cy, rh, sel, cy + T.px(6), r.ok, true)
             local tcl = onFocus and T.textOnFocus or (r.ok and T.text or T.textDim)
-            local maxW = (x + cw - pad - T.px(4)) - textX
+            local maxW = (x + pad + iw - T.px(4)) - textX
             local label = r.label
             if TM:MeasureStringX(T.fontF2, label) > maxW then label = A.truncateText(label, T.fontF2, maxW) end
             panel:drawText(label, textX, cy + T.px(3), tcl.r, tcl.g, tcl.b, tcl.a or 1, T.fontF2)
@@ -1636,8 +1738,8 @@ local function renderCard(panel, win, s, x, y, w, h, v, chr)
             local mc = onFocus and T.textOnFocus or T.textDim
             panel:drawText(meta, textX, cy + T.px(3) + T.fontF2H, mc.r, mc.g, mc.b, mc.a or 1, T.fontF1)
             local idx = i
-            stamp(s, "mech:fix:" .. tostring(i), x + pad, cy, cw - pad * 2, rh, function() if fr[idx] and fr[idx].ok then s.fixPick = idx end end, { clip = clip })
-            A.drawDividerH(panel, x + pad, cy + rh - T.px(1), cw - pad * 2, false)
+            stamp(s, "mech:fix:" .. tostring(i), x + pad, cy, iw, rh, function() if fr[idx] and fr[idx].ok then s.fixPick = idx end end, { clip = clip, pane = "right" })
+            A.drawDividerH(panel, x + pad, cy + rh - T.px(1), iw, false)
             cy = cy + rh
         end
         cy = cy + T.px(10)
@@ -1645,29 +1747,27 @@ local function renderCard(panel, win, s, x, y, w, h, v, chr)
 
     -- the chance of success for the highlighted verb (install / uninstall): a framed bar, the
     -- share that works filled
-    local n = s.verb and needs[s.verb]
+    local n = s.verb and cm.needs[s.verb]
     if n and s.verb ~= "fix" then
         local sc, fc = n.chance[1], n.chance[2]
         if fc and fc > 0 then
-            local bw = cw - pad * 2
             local succ = cased(ZeD.tr("UI_ZeD_Veh_SuccessPct", tostring(sc) .. "%"))
-            -- (ten segments; its help line the words under it, "Success 64%")
-            if A.drawFillBar(panel, x + pad, cy, bw, sc / 100, false, T.positive) then ZeD.Help.set(panel, succ) end
+            if A.drawFillBar(panel, x + pad, cy, iw, sc / 100, false, T.positive) then ZeD.Help.set(panel, succ) end
             cy = cy + T.fillBarH + T.px(3)
             local tt = T.text
             panel:drawText(succ, x + pad, cy, tt.r, tt.g, tt.b, tt.a or 1, T.fontF1)
-            A.drawTextRight(panel, cased(ZeD.tr("UI_ZeD_Veh_FailurePct", tostring(fc) .. "%")), x + pad + bw, cy, T.fontF1, tt)
+            A.drawTextRight(panel, cased(ZeD.tr("UI_ZeD_Veh_FailurePct", tostring(fc) .. "%")), x + pad + iw, cy, T.fontF1, tt)
             cy = cy + T.fontF1H + T.px(10)
         end
     end
 
-    -- ABOUT: vanilla part info text
+    -- ABOUT: the game's part info text
     local about = txt("IGUI_Vehicle_CondInfo" .. p.id, nil)
     if about then
         about = string.gsub(about, "<LINE>", " ")
-        section(ZeD.tr("UI_ZeD_Veh_About"), nil)
+        section(ZeD.tr("UI_ZeD_Veh_About"))
         local dc = T.textDim
-        for _, ln in ipairs(A.wrapText(about, T.fontF2, cw - pad * 2)) do
+        for _, ln in ipairs(A.wrapText(about, T.fontF2, iw)) do
             panel:drawText(ln, x + pad, cy, dc.r, dc.g, dc.b, dc.a or 1, T.fontF2)
             cy = cy + T.fontF2H
         end
@@ -1676,33 +1776,278 @@ local function renderCard(panel, win, s, x, y, w, h, v, chr)
     panel:clearStencilRect()
 
     local total = (cy + s.cardScroll) - top
-    s.maxScroll = math.max(0, total - bodyH)
-    if s.cardScroll > s.maxScroll then s.cardScroll = s.maxScroll end
-    s.bodyRect = { x = x, y = top, w = w, h = bodyH }
+    s.maxRight = math.max(0, total - bodyH)
+    if s.cardScroll > s.maxRight then s.cardScroll = s.maxRight end
     drawScrollbar(panel, x + w - scrollW, top, bodyH, total, s.cardScroll)
-    if gpId then
-        local z = s.byId[gpId]
-        if z and z.clip then
-            if z.y < top then s.cardScroll = math.max(0, s.cardScroll - (top - z.y))
-            elseif z.y + z.h > top + bodyH then s.cardScroll = math.min(s.maxScroll, s.cardScroll + (z.y + z.h - (top + bodyH))) end
+end
+
+-- ----------------------------------------------------------------------------
+-- The footer (the band at the foot, both columns): Sort at the left; the chosen part's
+-- verbs at the right (the main one last), lit or greyed; with no part chosen, Inspect
+-- before an inspection and Close hood while the hood is open. A question in its place
+-- before a destructive verb.
+-- ----------------------------------------------------------------------------
+local _footBtns = {}
+local _footSpec = { buttons = _footBtns }
+local _footOrder = {}
+
+local function sortModes(chr)
+    local earned = condEarned(chr)
+    return {
+        { id = "area", label = getText("IGUI_invpanel_Category") },
+        { id = "cond", label = getText("IGUI_invpanel_Condition"), disabled = not earned,
+          aside = (not earned) and condGateText() or nil },
+    }
+end
+
+local function renderFooter(panel, win, s, x, y, w, v, chr, inspected, cm, barShown)
+    local T = ZeD.T
+    local M = ZeD.Molecules
+    local bh = T.buttonH
+    local gap, edge = T.px(8), T.px(8)
+
+    if s.confirm and cm then
+        local verb = s.confirm
+        local q = (verb == "takeParts") and ZeD.tr("UI_ZeD_Veh_ConfirmTakeParts")
+                  or ZeD.tr("UI_ZeD_Veh_ConfirmSmash", string.lower(cm.p.name))
+        local _, cancelR, verbR = M.drawQuestionBand(panel, x, y, w, q, vlabel(verb), { win = win, danger = true,
+            cancelFocus = focusFor(s, "mech:confirm:no"), verbFocus = focusFor(s, "mech:confirm:yes"),
+            cancelHelp = ZeD.tr("UI_ZeD_Veh_HelpConfirmNo"), verbHelp = ZeD.tr(VERB_HELP[verb] or "UI_ZeD_Veh_HelpDefault") })
+        stamp(s, "mech:confirm:no", cancelR.x, cancelR.y, cancelR.w, cancelR.h, function() s.confirm = nil end, { footer = true })
+        stamp(s, "mech:confirm:yes", verbR.x, verbR.y, verbR.w, verbR.h, function()
+            s.confirm = nil
+            runVerb(s, verb, cm.part, chr)
+        end, { footer = true })
+        return
+    end
+
+    -- the buttons: the chosen part's verbs, or the tab's own (Inspect, Close hood)
+    for i = #_footBtns, 1, -1 do _footBtns[i] = nil end
+    for i = #_footOrder, 1, -1 do _footOrder[i] = nil end
+    if cm then
+        local mainSv = nil
+        for _, sv in ipairs(cm.shown) do
+            if sv.id == cm.primary then mainSv = sv else _footOrder[#_footOrder + 1] = sv end
+        end
+        if mainSv then _footOrder[#_footOrder + 1] = mainSv end
+        for _, sv in ipairs(_footOrder) do
+            _footBtns[#_footBtns + 1] = {
+                label = sv.label, id = sv.id, disabled = (not sv.canDo) or cm.busy,
+                variant = (sv.id == cm.primary) and "primary" or (sv.danger and "danger" or nil),
+                focus = focusFor(s, "mech:verb:" .. sv.id), help = sv.help, verb = true, canDo = sv.canDo }
+        end
+    else
+        for _, bv in ipairs(barShown) do
+            _footBtns[#_footBtns + 1] = { label = bv.label, id = bv.id, variant = bv.variant, help = bv.help,
+                                          focus = focusFor(s, "mech:" .. bv.id), fn = bv.fn }
         end
     end
 
-    -- the question before the irreversible (Smash the window? Take engine parts?): Cancel and the verb
-    if s.confirm then
-        local verb = s.confirm
-        local q = (verb == "takeParts") and ZeD.tr("UI_ZeD_Veh_ConfirmTakeParts")
-                  or ZeD.tr("UI_ZeD_Veh_ConfirmSmash", string.lower(p.name))
-        local fy = y + h - confirmH
-        local _, cancelR, verbR = M.drawQuestionBand(panel, x, fy, w, q, vlabel(verb), { win = win, danger = true,
-            cancelFocus = focusFor(s, "mech:confirm:no"), verbFocus = focusFor(s, "mech:confirm:yes"),
-            cancelHelp = ZeD.tr("UI_ZeD_Veh_HelpConfirmNo"), verbHelp = ZeD.tr(VERB_HELP[verb] or "UI_ZeD_Veh_HelpDefault") })
-        stamp(s, "mech:confirm:no", cancelR.x, cancelR.y, cancelR.w, cancelR.h, function() s.confirm = nil end)
-        stamp(s, "mech:confirm:yes", verbR.x, verbR.y, verbR.w, verbR.h, function()
-            s.confirm = nil
-            runVerb(s, verb, part, chr)
+    -- Sort at the left (inspected only): "Sort: Category"; short of room the choice alone
+    local showSort = inspected
+    local modes = showSort and sortModes(chr) or nil
+    local cur = (s.sort == "cond" and condEarned(chr)) and 2 or 1
+    local sortLabel, sortW, tight = nil, 0, false
+    local function buttonsW()
+        local bw = 0
+        for _, b in ipairs(_footBtns) do bw = bw + M.buttonW(b.label) + gap end
+        return bw
+    end
+    if showSort then
+        local full = ZeD.tr("UI_ZeD_Craft_SortPick", modes[cur].label)
+        local fullW = 0
+        for _, m in ipairs(modes) do fullW = math.max(fullW, M.popupMenuW(ZeD.tr("UI_ZeD_Craft_SortPick", m.label))) end
+        sortLabel, sortW = full, fullW
+        if edge * 2 + sortW + gap + buttonsW() > w then
+            sortLabel, tight = modes[cur].label, true
+            sortW = 0
+            for _, m in ipairs(modes) do sortW = math.max(sortW, M.popupMenuW(m.label, true)) end
+        end
+    end
+    -- still short of room: the greyed verbs leave the footer first (the card says what each
+    -- needs), then the first ones; the main one always stays
+    local room = w - edge * 2 - (showSort and (sortW + gap) or 0)
+    local function dropOne(pred)
+        for i, b in ipairs(_footBtns) do
+            if pred(b) and i < #_footBtns then table.remove(_footBtns, i); return true end
+        end
+        return false
+    end
+    while buttonsW() > room and dropOne(function(b) return b.verb and not b.canDo end) do end
+    while buttonsW() > room and dropOne(function() return true end) do end
+
+    _footSpec.win = win
+    local _, out = M.drawBand(panel, x, y, w, _footSpec)
+    for i, b in ipairs(_footBtns) do
+        local r = out.buttons[i]
+        if r then
+            if b.verb then
+                local verb = b.id
+                stamp(s, "mech:verb:" .. verb, r.x, r.y, r.w, r.h, function() pressVerb(win, s, cm, verb, chr) end,
+                      { verb = verb, footer = true, disabled = b.disabled })
+                if not isGamepad() and hit(r, panel:getMouseX(), panel:getMouseY()) then s.verb = verb end
+            else
+                stamp(s, "mech:" .. b.id, r.x, r.y, r.w, r.h, b.fn, { footer = true })
+            end
+        end
+    end
+
+    if showSort then
+        local by = y + T.px(5)
+        local sx = x + edge
+        local mx, my = panel:getMouseX(), panel:getMouseY()
+        local hov = (not isGamepad()) and mx >= sx and mx < sx + sortW and my >= by and my < by + bh
+        M.drawPopupMenu(panel, sx, by, sortW, bh, sortLabel, hov or s.sortOpen == true, focusFor(s, "mech:sortMenu"), false,
+            modes[cur].label, tight)
+        if hov then ZeD.Help.set(panel, ZeD.tr("UI_ZeD_Craft_SortHelp")) end
+        stamp(s, "mech:sortMenu", sx, by, sortW, bh, function() s.sortOpen = not s.sortOpen end, { footer = true })
+        s.sortGeo = { x = sx, y = by - M.popupListH(#modes), w = sortW, modes = modes, cur = modes[cur].id }
+    else
+        s.sortOpen, s.sortGeo = nil, nil
+    end
+end
+
+-- The footer's Sort list, open: drawn last, over the columns, upward from its box
+local _sortListOpts = {}
+local function renderSortList(panel, s, chr)
+    local g = s.sortGeo
+    if not (s.sortOpen and g) then return end
+    local M = ZeD.Molecules
+    local hoverId = nil
+    if not isGamepad() and s.sortZones then
+        local mx, my = panel:getMouseX(), panel:getMouseY()
+        for _, z in ipairs(s.sortZones) do if hit(z, mx, my) then hoverId = z.id end end
+    end
+    _sortListOpts.minW = g.w
+    _sortListOpts.focusId = nil
+    local gp = s.gpId
+    if gp and gp:sub(1, 13) == "mech:sortRow:" then
+        _sortListOpts.focusId = gp:sub(14)
+        _sortListOpts.focus = focusFor(s, gp)
+    end
+    local _, _, zs = M.drawSortMenuList(panel, g.x, g.y, g.modes, g.cur, hoverId, _sortListOpts)
+    s.sortZones = zs
+    for _, z in ipairs(zs) do
+        local id = z.id
+        if z.disabled and hoverId == id then ZeD.Help.set(panel, condGateText()) end
+        stamp(s, "mech:sortRow:" .. id, z.x, z.y, z.w, z.h, function()
+            if z.disabled then return end
+            s.sort, s.scrollY, s.sortOpen = id, 0, nil
+            s.win._mechFocusTarget = "mech:sortMenu"
+        end, { footer = true, sortRow = true })
+    end
+end
+
+-- ----------------------------------------------------------------------------
+-- The tab: the header, the two columns, the footer
+-- ----------------------------------------------------------------------------
+local function renderSplit(panel, win, s, x, y, w, h, v, chr, inspected)
+    local T = ZeD.T
+    local M = ZeD.Molecules
+    local parts = cachedParts(s, v, chr)
+
+    -- header: browse + vehicle name + type tag
+    _browseOpts.focusParts.prev = focusFor(s, "mech:prev")
+    _browseOpts.focusParts.next = focusFor(s, "mech:next")
+    local prevZ, nextZ = M.drawDrawerInternalHeader(panel, x, y, w,
+        { idx = s.idx, total = #s.vehicles }, vehicleName(v), mechType(v), nil, _browseOpts)
+    local headerH = T.px((ZeD.Spacing and ZeD.Spacing.tabHeaderH) or 37)
+    if #s.vehicles > 1 then
+        stamp(s, "mech:prev", prevZ.x, prevZ.y, prevZ.w, prevZ.h, function()
+            s.idx = s.idx - 1; if s.idx < 1 then s.idx = #s.vehicles end
+            s.scrollY, s.cardScroll, s.card, s.confirm = 0, 0, nil, nil
+        end)
+        stamp(s, "mech:next", nextZ.x, nextZ.y, nextZ.w, nextZ.h, function()
+            s.idx = s.idx + 1; if s.idx > #s.vehicles then s.idx = 1 end
+            s.scrollY, s.cardScroll, s.card, s.confirm = 0, 0, nil, nil
         end)
     end
+
+    -- the chosen part (only after an inspection; a part that is gone lets the card go)
+    local cm = nil
+    if s.card and inspected then
+        local part = v:getPartById(s.card)
+        if part then cm = cardModel(s, part, chr, v) else s.card = nil end
+    elseif s.card then
+        s.card = nil
+    end
+
+    -- the tab's own actions, for the footer with no part chosen
+    local hood = inspected and v:getPartById("EngineDoor") or nil
+    local hoodOpen = hood and hood:getDoor() and hood:getInventoryItem() and hood:getDoor():isOpen()
+    local barVerbs = {
+        { id = "inspect", label = getText("ContextMenu_Inspect"), variant = "primary", canDo = true, sensible = not inspected,
+          help = ZeD.tr("UI_ZeD_Veh_HelpInspect"),
+          fn = function() ISVehicleMenu.onMechanic(chr, v) end },
+        { id = "closehood", label = getText("IGUI_CloseHood"), canDo = true, sensible = hoodOpen and true or false,
+          help = ZeD.tr("UI_ZeD_Veh_HelpCloseHood"),
+          fn = function()
+              ISTimedActionQueue.add(ISPathFindAction:pathToVehicleArea(chr, v, hood:getArea()))
+              ISTimedActionQueue.add(ISCloseVehicleDoor:new(chr, v, hood))
+              local e = INSP[v:getId()]
+              if e then e.hood = nil end
+          end },
+    }
+    local barShown = ZeD.Disclose.split(barVerbs)
+    local hasFooter = inspected or cm ~= nil or #barShown > 0
+    local bandH = hasFooter and M.bandH() or 0
+
+    local top = y + headerH
+    local TR = ZeD.MechTrailer
+    local trailer = TR.isTrailer(v)
+    if trailer then TR.prepare(s, v, chr) end
+    local pbH = inspected and progressBand(panel, win, s, x, top, w, v, chr) or 0
+    if pbH == 0 and trailer then pbH = TR.drawBand(panel, s, x, top, w, v, chr) end
+    top = top + pbH
+    local bodyH = h - headerH - pbH - bandH
+
+    -- the columns: CraftingCore's split measure for the list, the rest for the right
+    local CCm = ZeD.CraftingCore
+    local listW = T.px((CCm and CCm.PANE_W_SPLIT) or 240)
+    local rx = x + listW + T.px(1)
+    local rw = x + w - rx
+    s.splitX = x + listW
+
+    -- what is lit: the controller's row, or the row or diagram part under the pointer
+    local mx, my = panel:getMouseX(), panel:getMouseY()
+    local inList = (not isGamepad()) and mx >= x and mx < x + listW and my >= top and my < top + bodyH and not s.sortOpen
+    local inRight = (not isGamepad()) and mx >= rx and mx < x + w and my >= top and my < top + bodyH and not s.sortOpen
+    local gpId = s.gpId
+    local hl = nil
+    if gpId and gpId:sub(1, 9) == "mech:row:" then hl = gpId:sub(10) end
+    if inList then
+        for _, z in ipairs(s.lastRows or {}) do if hit(z, mx, my) then hl = z.part end end
+    elseif inRight and not cm then
+        hl = figurePartAt(s, mx, my)
+    end
+    s.hl = hl
+
+    renderList(panel, win, s, x, top, listW, bodyH, v, chr, inspected, parts, trailer, inList and { x = mx, y = my } or nil)
+    local bd = T.borderS
+    panel:drawRect(x + listW, top, T.px(1), bodyH, bd.a or 1, bd.r, bd.g, bd.b)
+    if cm then
+        renderCardBody(panel, win, s, rx, top, rw, bodyH, v, chr, cm)
+    else
+        renderDiagram(panel, win, s, rx, top, rw, bodyH, v, chr, inspected, parts, trailer)
+    end
+
+    -- gamepad scroll-follow, in the column the focused element is in
+    if gpId then
+        local z = s.byId[gpId]
+        if z and z.clip then
+            local c = z.clip
+            if z.pane == "right" then
+                if z.y < c.y then s.cardScroll = math.max(0, s.cardScroll - (c.y - z.y))
+                elseif z.y + z.h > c.y + c.h then s.cardScroll = math.min(s.maxRight or 0, s.cardScroll + (z.y + z.h - (c.y + c.h))) end
+            else
+                if z.y < c.y then s.scrollY = math.max(0, s.scrollY - (c.y - z.y))
+                elseif z.y + z.h > c.y + c.h then s.scrollY = math.min(s.maxScroll or 0, s.scrollY + (z.y + z.h - (c.y + c.h))) end
+            end
+        end
+    end
+
+    if hasFooter then renderFooter(panel, win, s, x, y + h - bandH, w, v, chr, inspected, cm, barShown) end
+    renderSortList(panel, s, chr)
 end
 
 -- ----------------------------------------------------------------------------
@@ -1741,12 +2086,8 @@ function MT.render(panel, win, x, y, w, h)
         TR.hideAvatar(s)
         s.view, s.animal, s.animalId = "overview", nil, nil
     end
-    if s.view == "card" and s.card and inspected then
-        renderCard(panel, win, s, x, y, w, h, v, chr)
-    else
-        if s.view == "card" then s.view, s.card = "overview", nil end
-        renderOverview(panel, win, s, x, y, w, h, v, chr, inspected)
-    end
+    s.view = "overview"
+    renderSplit(panel, win, s, x, y, w, h, v, chr, inspected)
 end
 
 function MT.register(dispatch)
@@ -1759,6 +2100,19 @@ end
 -- ----------------------------------------------------------------------------
 function MT.onClick(win, x, y)
     local s = st(win)
+    -- the Sort list, open: a press on one of its choices picks it, anywhere else shuts it
+    if s.sortOpen then
+        for i = #s.zones, 1, -1 do
+            local z = s.zones[i]
+            if (z.sortRow or z.id == "mech:sortMenu") and hit(z, x, y) then
+                pcall(function() getSoundManager():playUISound("UIActivateButton") end)
+                z.fn()
+                return true
+            end
+        end
+        s.sortOpen = nil
+        return true
+    end
     for i = #s.zones, 1, -1 do
         local z = s.zones[i]
         if hit(z, x, y) and (not z.clip or hit(z.clip, x, y)) then
@@ -1767,13 +2121,11 @@ function MT.onClick(win, x, y)
             return true
         end
     end
-    -- figure part → card
-    if s.view == "overview" then
+    -- a part on the diagram chooses it, as its row does
+    if not s.card and s.figClip and hit(s.figClip, x, y) then
         local id = figurePartAt(s, x, y)
-        if id and s.bodyRect and hit(s.bodyRect, x, y) then
-            local e = currentEntry(s)
-            if e and INSP[e.id] then openCard(win, s, id); return true end
-        end
+        local e = currentEntry(s)
+        if id and e and INSP[e.id] then openCard(win, s, id); return true end
     end
     return true
 end
@@ -1784,22 +2136,26 @@ function MT.onRightClick(win, x, y)
     local e = currentEntry(s)
     if not chr or not e or not INSP[e.id] or s.view == "animal" then return true end
     local id = nil
-    if s.view == "card" then id = s.card
-    else
-        id = figurePartAt(s, x, y)
-        if not id then
-            for _, z in ipairs(s.lastRows or {}) do if hit(z, x, y) and hit(z.clip, x, y) then id = z.part end end
-        end
+    for _, z in ipairs(s.lastRows or {}) do if hit(z, x, y) and hit(z.clip, x, y) then id = z.part end end
+    if not id then
+        if s.card and s.rightClip and hit(s.rightClip, x, y) then id = s.card
+        elseif not s.card and s.figClip and hit(s.figClip, x, y) then id = figurePartAt(s, x, y) end
     end
     if id then partContextMenu(e.vehicle:getPartById(id), chr) end
     return true
 end
 
+-- The wheel scrolls the column under the pointer; it never closes the card (spec 4)
 function MT.onMouseWheel(win, del)
     local s = st(win)
     local step = ZeD.T.px(SCROLL_STEP) * del
-    if s.view ~= "overview" then
+    if s.view == "animal" then
         s.cardScroll = math.max(0, math.min(s.maxScroll or 0, s.cardScroll + step))
+        return true
+    end
+    local mx = s.panel and s.panel:getMouseX() or 0
+    if s.splitX and mx > s.splitX then
+        s.cardScroll = math.max(0, math.min(s.maxRight or 0, s.cardScroll + step))
     else
         s.scrollY = math.max(0, math.min(s.maxScroll or 0, s.scrollY + step))
     end
@@ -1807,7 +2163,9 @@ function MT.onMouseWheel(win, del)
 end
 
 -- ----------------------------------------------------------------------------
--- Gamepad: elements from this frame's stamped zones
+-- Gamepad: elements from this frame's stamped zones. A on a row chooses the part (its
+-- card in the right column), B shuts the card (or the open Sort list); B with neither
+-- leaves the tab as before.
 -- ----------------------------------------------------------------------------
 function MT.buildFocusables(win)
     local s = win and win._mech
@@ -1816,57 +2174,73 @@ function MT.buildFocusables(win)
     local els = {}
     for _, z in ipairs(s.zones) do
         local zz = z
-        local el = { x = zz.x, y = zz.y, w = zz.w, h = zz.h, id = zz.id,
-                     isDisclosure = zz.isDisclosure,
-                     onActivate = function() zz.fn() end }
-        if s.view == "card" then
-            el.onCancel = function()
-                if s.confirm then s.confirm = nil else closeCard(win, s) end
-                return true
+        -- with the Sort list open the pad walks its choices and its box only
+        if not s.sortOpen or zz.sortRow or zz.id == "mech:sortMenu" then
+            local el = { x = zz.x, y = zz.y, w = zz.w, h = zz.h, id = zz.id,
+                         isDisclosure = zz.isDisclosure, disabled = zz.disabled,
+                         onActivate = function() zz.fn() end }
+            if s.view == "animal" then
+                el.onCancel = function() ZeD.MechTrailer.closeAnimal(win, s); return true end
+            elseif s.sortOpen then
+                el.onCancel = function() s.sortOpen = nil; win._mechFocusTarget = "mech:sortMenu"; return true end
+            elseif s.confirm or s.card then
+                el.onCancel = function()
+                    if s.confirm then s.confirm = nil else closeCard(win, s) end
+                    return true
+                end
             end
-        elseif s.view == "animal" then
-            el.onCancel = function() ZeD.MechTrailer.closeAnimal(win, s); return true end
+            if zz.isRow then
+                el.onContextMenu = function()
+                    local e = currentEntry(s)
+                    if e and chr then partContextMenu(e.vehicle:getPartById(zz.part), chr) end
+                end
+            elseif s.card and zz.verb then
+                el.onContextMenu = function()
+                    local e = currentEntry(s)
+                    if e and chr and s.card then partContextMenu(e.vehicle:getPartById(s.card), chr) end
+                end
+            end
+            els[#els + 1] = el
         end
-        if zz.isRow then
-            el.onContextMenu = function()
-                local e = currentEntry(s)
-                if e and chr then partContextMenu(e.vehicle:getPartById(zz.part), chr) end
-            end
-        elseif s.view == "card" and zz.verb then
-            el.onContextMenu = function()
-                local e = currentEntry(s)
-                if e and chr and s.card then partContextMenu(e.vehicle:getPartById(s.card), chr) end
-            end
-        end
-        els[#els + 1] = el
     end
     return els
 end
 
--- Signature for the World window's per-frame refresh: rebuild when the view,
--- the scroll offset or the element set changes.
+-- Signature for the World window's per-frame refresh: rebuild when the chosen part,
+-- a scroll offset or the element set changes.
 function MT.focusKey(win)
     local s = win and win._mech
     if not s then return "none" end
     return tostring(s.view) .. ":" .. tostring(s.card) .. ":" .. tostring(math.floor(s.scrollY or 0)) .. ":"
         .. tostring(math.floor(s.cardScroll or 0)) .. ":" .. tostring(s.confirm) .. ":" .. tostring(#s.zones) .. ":" .. tostring(s.idx)
-        .. ":" .. tostring(s.animalId)
+        .. ":" .. tostring(s.animalId) .. ":" .. tostring(s.sortOpen) .. ":" .. tostring(s.verb)
 end
 
--- Focus target after a view change (card opened -> first verb; card closed -> its row)
+-- Focus target after a change (card opened -> its first lit verb; card closed -> its row;
+-- the Sort list shut -> its box)
 function MT.focusTargetIndex(win, els)
     local t = win and win._mechFocusTarget
     if not t then return nil end
     -- the new view's zones appear a frame later: keep the target until it lands
     win._mechFocusTries = (win._mechFocusTries or 0) + 1
     local found = ZeD.MechTrailer.focusTarget(t, els)
-    for i, e in ipairs(els) do
-        if found then break end
-        if t == "card" and e.id:sub(1, 10) == "mech:verb:" then found = i; break end
-        if e.id == t then found = i; break end
-    end
     if not found and t == "card" then
-        for i, e in ipairs(els) do if e.id == "mech:back" then found = i; break end end
+        local firstVerb = nil
+        for i, e in ipairs(els) do
+            if e.id:sub(1, 10) == "mech:verb:" then
+                if not e.disabled then found = i; break end
+                firstVerb = firstVerb or i
+            end
+        end
+        found = found or firstVerb
+        if not found then
+            for i, e in ipairs(els) do
+                if e.id == "mech:step" or e.id:sub(1, 9) == "mech:pick" or e.id:sub(1, 8) == "mech:fix" then found = i; break end
+            end
+        end
+    end
+    if not found then
+        for i, e in ipairs(els) do if e.id == t then found = i; break end end
     end
     if found or win._mechFocusTries > 10 then
         win._mechFocusTarget, win._mechFocusTries = nil, 0

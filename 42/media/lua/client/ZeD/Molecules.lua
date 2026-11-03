@@ -3170,7 +3170,9 @@ end
 -- "sortMenu" zone's bottom-left. Solid surface 1, a 1u frame and the hard shadow (it pops up);
 -- the current choice carries the selected wash, the pointed one the hover wash.
 -- opts: optional { focusId / focus / focusParts (a mode id), minW (px), win }
--- @return w, h, zones { {id = mode id, x, y, w, h, type = "sort"} }
+-- A mode may be { disabled = true, aside = "Mechanics Level 4" }: greyed, no hover wash, its
+-- aside right-aligned after its words (a choice that is earned, Vehicle tab spec 2).
+-- @return w, h, zones { {id = mode id, x, y, w, h, type = "sort", disabled} }
 function ZeD.Molecules.drawSortMenuList(panel, x, y, modes, activeMode, hoverZone, opts)
     local T, A, tm = ZeD.T, ZeD.Atoms, ZeD.TM
     opts = opts or NO_OPTS
@@ -3178,7 +3180,10 @@ function ZeD.Molecules.drawSortMenuList(panel, x, y, modes, activeMode, hoverZon
     local rowH = T.px(STRIP_H)
     local padX = T.px(8)
     local w = opts.minW or 0
-    for _, m in ipairs(modes) do w = math.max(w, tm:MeasureStringX(font, m.label) + padX * 2) end
+    for _, m in ipairs(modes) do
+        local aw = m.aside and (tm:MeasureStringX(font, m.aside) + padX) or 0
+        w = math.max(w, tm:MeasureStringX(font, m.label) + aw + padX * 2)
+    end
     local h = rowH * #modes
     local s1 = T.surf1
     panel:drawRect(x, y, w, h, 1, s1.r, s1.g, s1.b)
@@ -3190,14 +3195,20 @@ function ZeD.Molecules.drawSortMenuList(panel, x, y, modes, activeMode, hoverZon
             local ac = T.accent
             panel:drawRect(x, ry, w, rowH, T.selectionA or 0.30, ac.r, ac.g, ac.b)
         end
-        if hoverZone == m.id then
+        if hoverZone == m.id and not m.disabled then
             local hv = T.hover
             panel:drawRect(x, ry, w, rowH, hv.a or 1, hv.r, hv.g, hv.b)
         end
         local onFocus = markPart(panel, x, ry, w, rowH, partFocus(opts, m.id))
         local tc = onFocus and T.textOnFocus or T.text
-        panel:drawText(m.label, x + padX, ry + math.floor((rowH - fh) / 2), tc.r, tc.g, tc.b, tc.a or 1, font)
-        zones[#zones + 1] = { id = m.id, x = x, y = ry, w = w, h = rowH, type = "sort" }
+        local ta = (tc.a or 1) * (m.disabled and T.disabledAlpha or 1)
+        local ty = ry + math.floor((rowH - fh) / 2)
+        panel:drawText(m.label, x + padX, ty, tc.r, tc.g, tc.b, ta, font)
+        if m.aside then
+            local dc = onFocus and T.textOnFocus or T.textDim
+            panel:drawText(m.aside, x + w - padX - tm:MeasureStringX(font, m.aside), ty, dc.r, dc.g, dc.b, (dc.a or 1) * (m.disabled and T.disabledAlpha or 1), font)
+        end
+        zones[#zones + 1] = { id = m.id, x = x, y = ry, w = w, h = rowH, type = "sort", disabled = m.disabled }
     end
     A.frame(panel, x, y, w, h, T.borderS)
     A.drawHardShadow(panel, x, y, w, h)
