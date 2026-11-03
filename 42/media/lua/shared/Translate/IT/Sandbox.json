@@ -1,0 +1,11 @@
+{
+    "Sandbox_ZeD": "ZeD-GUI",
+    "Sandbox_ZeD_TaxiFlagDrop": "Tassametro: scatto iniziale",
+    "Sandbox_ZeD_TaxiFlagDrop_tooltip": "Dollari che il tassametro del taxi mostra quando il tassista abbassa la bandierina.",
+    "Sandbox_ZeD_TaxiPerFifthMile": "Tassametro: per 1/5 di miglio",
+    "Sandbox_ZeD_TaxiPerFifthMile_tooltip": "Dollari che il tassametro aggiunge per ogni quinto di miglio percorso con la bandierina giù.",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting": "Tassametro: per minuto d'attesa",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting_tooltip": "Dollari che il tassametro aggiunge per ogni minuto di tempo reale in cui il taxi aspetta (sotto 5 km/h, motore acceso) con la bandierina giù.",
+    "Sandbox_ZeD_TaxiPerExtraPassenger": "Tassametro: per passeggero in più",
+    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "Dollari mostrati sotto EXTRA per ogni passeggero dopo il primo. Il conducente non conta."
+}

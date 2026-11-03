@@ -309,7 +309,7 @@ end
 -- ZeD's machine-translated languages (the director, Nov 2 2026, punch list 62): AI drafts that ship in the mod and
 -- are labelled as machine translations in the language list until players have checked them. Keyed by the game's
 -- language code (Translate/<code>/). A language leaves this list once a player-checked version replaces its draft.
-ZeD.MACHINE_LANGS = ZeD.MACHINE_LANGS or { TR = true, CN = true, PTBR = true, PT = true, CH = true, KO = true, JP = true, RU = true, ES = true, UA = true, TH = true, ES_CL = true, FR = true, AR = true, ES_MX = true }
+ZeD.MACHINE_LANGS = ZeD.MACHINE_LANGS or { TR = true, CN = true, PTBR = true, PT = true, CH = true, KO = true, JP = true, RU = true, ES = true, UA = true, TH = true, ES_CL = true, FR = true, AR = true, ES_MX = true, IT = true }
 
 -- true when a language's display name (as the game's language list shows it) is one of ZeD's machine drafts
 local _mtText = nil
