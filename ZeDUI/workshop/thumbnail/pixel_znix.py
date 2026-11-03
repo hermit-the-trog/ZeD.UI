@@ -187,15 +187,23 @@ for i in range(9):
     if gx + 3 >= wx1 or gy + 3 >= wy1: continue
     R(gx, gy, gx + 3, gy + 3, 'wht'); d.rectangle([gx, gy, gx + 3, gy + 3], outline=C['winD']); R(gx + 1, gy + 1, gx + 2, gy + 2, gc[i])
 
-# --- the test build's band (run with --test): red across the foot, TEST BUILD in white -----------
-# (Oct 28 2026: the test item's cover while its door is open; the release item gets the plain cover)
-if '--test' in sys.argv:
+# --- the build's band across the foot (the director, Nov 2 2026: red is a test build, yellow the beta, green the
+# release; Oct 28 2026: the test item's cover while its door is open). Run with --test, --beta or --release; with none
+# the plain cover is written.
+BANDS = {
+    '--test':    ('TEST BUILD', (200, 32, 42), (232, 84, 76), (132, 16, 24), 'wht', 'test'),
+    '--beta':    ('BETA', (236, 196, 36), (252, 228, 120), (168, 130, 10), 'ink', 'beta'),
+    '--release': ('RELEASE', (31, 140, 76), (92, 196, 128), (16, 86, 44), 'wht', 'release'),
+}
+band = next((b for k, b in BANDS.items() if k in sys.argv), None)
+if band:
+    label, mid, light, dark, ink, tag = band
+    C['bandM'], C['bandL'], C['bandD'] = mid, light, dark
     by0, by1 = G - 14, G - 1
-    R(0, by0, G - 1, by1, 'red'); H(0, G - 1, by0, 'redL'); H(0, G - 1, by1, 'redD')
-    tb = 'TEST BUILD'
-    text(tb, (G - tw(tb, F57)) // 2, by0 + 4, 'wht', F57)
-    im.resize((256, 256), Image.NEAREST).save(HERE + 'znix_256_test.png', optimize=True)
-    im.resize((1024, 1024), Image.NEAREST).save(HERE + 'znix_1024_test.png')
+    R(0, by0, G - 1, by1, 'bandM'); H(0, G - 1, by0, 'bandL'); H(0, G - 1, by1, 'bandD')
+    text(label, (G - tw(label, F57)) // 2, by0 + 4, ink, F57)
+    im.resize((256, 256), Image.NEAREST).save(HERE + 'znix_256_%s.png' % tag, optimize=True)
+    im.resize((1024, 1024), Image.NEAREST).save(HERE + 'znix_1024_%s.png' % tag)
 else:
     im.resize((256, 256), Image.NEAREST).save(HERE + 'znix_256.png', optimize=True)
     im.resize((1024, 1024), Image.NEAREST).save(HERE + 'znix_1024.png')
