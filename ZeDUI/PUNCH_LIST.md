@@ -1976,7 +1976,7 @@ item says so.
       height, the trail of dots and its gap to the head; line 1's marks (MÂNCAT) stay clear of its top edge. RO MĂR now
       reads as Ă (a U one row up, a clear row under line 1). Note: PT Ã's tilde in the small tall face is a flat bar, so
       it reads closer to a macron (Ā) than a wave; readable in context.
-      Build (6c1e0c2b): a 3-wide two-row tilde draws as a slash (Ã would read as Á), so Ã and Õ keep the one-row bar;
+      Build (db3512d9): a 3-wide two-row tilde draws as a slash (Ã would read as Á), so Ã and Õ keep the one-row bar;
       Ñ, 4 wide, gets a two-row wave. Not run (no Spanish word with Ñ in the check); closed.
     **Built (build, Nov 3 2026): the other 24 languages drafted (Sonnet), JP/KO/TH/CH/RU/UA proofread (Fable), all in
     ZeD.MACHINE_LANGS; notes for checkers in ZeDUI/i18n/mt_notes/; the main-menu clock is a translatable pattern
