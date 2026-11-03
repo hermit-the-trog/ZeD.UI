@@ -1,5 +1,7 @@
 # Good morning: the beta, 0.3.0-beta1
 
+**Uploaded Nov 3 2026, 8:34 am.** Still yours: the translations post and the Vehicle tab call.
+
 Written by the build session overnight, Nov 2 to Nov 3 2026. Plain summary first, then what is left for you.
 
 ## Where it stands
@@ -47,7 +49,7 @@ redraw it.
 2. **Upload** from the desk's Mod Uploader. It is staged under the new title "ZeD-GUI [BETA]" with
    the yellow-strip book as the thumbnail, the beta page text and the change note, and the item is already set to
    **Public**. Until the upload, the game loads the staged copy; it is the same build, so playing is fine.
-3. **The gallery pictures** listed above, on the item's page.
+3. **The gallery pictures:** done, all 63 are up and match.
 4. **Post the translations announcement** in the Translations thread: the text is ready in
    `ZeDUI/workshop/steam_threads/translations_beta_post.txt` (a new top section for the first post, and a reply).
 5. **One decision still open:** the Vehicle tab on small screens. QA's pictures at 720p and the Deck, at the real
@@ -59,7 +61,7 @@ redraw it.
 256 or 512 (only ZeD's own upload page held it to 256), so the book cover is staged with every pixel doubled and Steam
 draws it sharp wherever it shows it bigger than 256. Both changes are staged, and QA checked them on the staged copy: the release check passed all 16, the menu shows "Op", and the upload page shows the 512 picture with a green dot.
 
-After you upload, I tag the build, refresh the D: backup and clear the staged copy.
+**Done Nov 3:** the beta went up at 8:34 am (51.66 MB, the 512 book cover, the beta page text). All 63 gallery pictures on the page match ours (QA put up the changed ones and a retaken 55). The build is tagged v0.3.0-beta1, the D: backup is refreshed (2026-11-03-beta1) and the staged copy is cleared, so the game loads the dev mod again.
 
 ## Known issues on the page
 
