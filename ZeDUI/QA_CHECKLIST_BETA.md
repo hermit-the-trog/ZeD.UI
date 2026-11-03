@@ -29,6 +29,8 @@ Only what the build changed, plus the release check.
 | The belt, watch, moodles or action bar | the belt, watch, hands, moodles and Simple belt scripts |
 | Radios, TVs, appliances or laundry | the radio, two-way, appliance and laundry scripts, with faces and with plain cards |
 | Cars or dashboards | the dashboard scripts with Full and with the Simple strip, and the car radio |
+| The Vehicle tab (mechanics) | zedqa_mech79 (release_check.ps1 -Manifest mech79.txt; VEHICLE_TAB_SPEC.md section 8, punch list 79) |
+| The Cooking tab | zedqa_cook80 (punch list 80) |
 | The wheels or quick actions | the wheels, D-pad wheels and chords scripts and the controller map |
 | The main menu, Options, Mods or Sandbox | the main menu scripts (About, Options, page lists, Mods) |
 | Words or translations | the translation guard, plus the test language on the changed screens |
