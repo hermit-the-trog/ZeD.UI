@@ -5,7 +5,8 @@
 Writes, in upload order:
   00_cover.jpg   from znix_01_cover.png (cover_px.py)
   00_title.jpg   from out_spread/00_title.png (title_spread.py)
-  01_hero.jpg .. 60_machine_plates.jpg   from out_spread/NN_id.png (spread.py)
+  01_hero.jpg .. 63_cooking.jpg   from out_spread/NN_id.png (spread.py)
+  64_the_end.jpg   the director's closing picture, placed by hand (kept, reported STALE)
 
 Each JPEG is kept under Steam's 1 MB. Colour is kept at full resolution (4:4:4) wherever that fits, so the red and
 blue ink and the 1-bit print stay sharp; only a picture that will not fit drops to 4:2:0. Stale JPEGs in the upload
@@ -56,8 +57,8 @@ def main(out=None, up=None):
             bad += 1
         print("%-30s q%d %s %7d bytes%s" % (name, q, ss, n, flag))
     nums = [int(os.path.basename(p)[:2]) for p in spreads]
-    if nums != list(range(1, 61)):
-        print("CHECK the spreads are not 01..60:", nums)
+    if nums != list(range(1, 64)):
+        print("CHECK the spreads are not 01..63:", nums)
         bad += 1
     wrote = set(name for _, name in jobs)
     for p in sorted(glob.glob(os.path.join(up, "*.jpg"))):
