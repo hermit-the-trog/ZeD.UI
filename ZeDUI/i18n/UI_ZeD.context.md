@@ -811,6 +811,24 @@ Action bar over the character's head: one label per game action (pixel face, cap
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
+| `UI_ZeD_Cook_BasePick` | `In: %1` | Cooking tab header: the box that picks what the dish is made in (a pot, a bowl, bread...). %1 the item's name | 24 |
+| `UI_ZeD_Cook_CookAfter` | `Cook it afterwards on a stove or a fire.` | Cooking tab: under a dish that still needs cooking once made | - |
+| `UI_ZeD_Cook_DishPick` | `Dish: %1` | Cooking tab header: the box that picks the dish (Stew, Salad...). %1 the dish | 24 |
+| `UI_ZeD_Cook_EmptyDish` | `Press an ingredient on the left to add it.` | Cooking tab: the dish column while nothing is in it yet | - |
+| `UI_ZeD_Cook_Forget` | `Forget dish` | Cooking tab band: a button that removes this saved dish | 14 |
+| `UI_ZeD_Cook_Full` | `The dish is full: the game takes no more.` | Cooking tab: help line over an ingredient when the dish holds as many as the game allows | - |
+| `UI_ZeD_Cook_HelpAdd` | `Add this to the dish` | Cooking tab: help line over an ingredient row | - |
+| `UI_ZeD_Cook_HelpBuild` | `Make the dish: each ingredient goes in as you would add it by hand` | Cooking tab: help line over the Make button | - |
+| `UI_ZeD_Cook_HelpRemove` | `Take this back out of the dish` | Cooking tab: help line over an ingredient already in the dish (before it is made) | - |
+| `UI_ZeD_Cook_Ingredients` | `Ingredients %1 / %2` | Cooking tab: section heading over the dish's ingredients. %1 how many, %2 the most the dish takes | 24 |
+| `UI_ZeD_Cook_Make` | `Make` | Cooking tab band: the main button that makes the dish | 10 |
+| `UI_ZeD_Cook_NeedsWater` | `needs water` | Cooking tab: beside a pot that needs water before it takes ingredients | 16 |
+| `UI_ZeD_Cook_NoIngredients` | `Nothing in reach goes into this dish.` | Cooking tab: the ingredient list when nothing in reach fits | - |
+| `UI_ZeD_Cook_NotInReach` | `Not in reach` | Cooking tab: a saved dish's ingredient that is not in your bags or nearby | 14 |
+| `UI_ZeD_Cook_Save` | `Save dish` | Cooking tab band: a button that keeps this dish to make again | 14 |
+| `UI_ZeD_Cook_Saved` | `saved` | Cooking tab: beside a saved dish in the Dish list | 8 |
+| `UI_ZeD_Cook_Seasoning` | `Seasoning` | Cooking tab: the kind for spices and the like (they do not count toward the dish's limit) | 14 |
+| `UI_ZeD_Cook_UseInstead` | `Use %1` | Cooking tab: a button on a saved dish's missing ingredient that takes another of the same kind instead. %1 that ingredient | 20 |
 | `UI_ZeD_Craft_AllRecipes` | `All Recipes` | Craft, Build and Journal tabs: section heading above the full recipe list | 20 |
 | `UI_ZeD_Craft_AltOther` | `Other compatible` | Craft and Build tabs, alternatives list: heading above items you do not carry | 24 |
 | `UI_ZeD_Craft_AltOwned` | `Owned` | Craft and Build tabs, alternatives list: heading above items you carry | 20 |

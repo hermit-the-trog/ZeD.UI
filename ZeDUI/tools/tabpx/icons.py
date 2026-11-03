@@ -316,6 +316,24 @@ ICONS = {
     ".d...d....d...d.",
     "................",
     "................"],
+# Cooking (punch list 80, Nov 3 2026): a pot with its lid and handles, steam over it
+"cooking": [
+    "....l....l......",
+    "...l....l....l..",
+    "....l....l..l...",
+    "................",
+    ".......wld......",
+    "....wllllllld...",
+    "...lmmmmmmmmmd..",
+    "..kdddddddddddk.",
+    "wllwlllllllllldd",
+    "lmlmmmmmmmmmmmdk",
+    "..lmmmmmmmmmmmd.",
+    "..lmmmmmmmmmmmd.",
+    "..lmmmmmmmmmmdd.",
+    "..dmmmmmmmmmddk.",
+    "...dddddddddkk..",
+    "................"],
 }
 
 TONES = "wlmdk"

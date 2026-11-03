@@ -1,6 +1,9 @@
-# Cooking tab: design draft (punch list 80, Nov 3 2026)
+# Cooking tab: design (punch list 80, Nov 3 2026)
 
-Build's first pass, for the director's answers before any mockup or code. Source: ZeD's own Crafting tab only.
+The director's answer to the four questions below (Nov 3 2026): "Go with your recs and we will tune it." Built
+with Build's picks: the ingredients on the left with the dish in the header, saved dishes at the top of the Dish
+list, a missing ingredient named with a same-kind swap offered as a press, the drinks included. No mockup first: the
+director tunes it in game. Code: 42/media/lua/client/ZeD/CookingTab.lua. Source: ZeD's own Crafting tab only.
 
 ## What the game does today
 
@@ -50,4 +53,4 @@ A Character window tab, **Cooking**, shown when a base is in the inventory and a
 4. **Drinks:** the 11 drinks (coffee, tea, cocoa in cups and mugs) in the same tab, or left to right-click? *Build's
    pick: in the tab; they are the same system.*
 
-After the answers: a mockup in ZeD's look for the director, then the build.
+Answered: Build's picks, all four.
