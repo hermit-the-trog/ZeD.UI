@@ -318,7 +318,7 @@ end
 local function clockOf(st)
     local key = st.key
     if not st.hasMedia then R._clock[key] = nil; return 0, 0 end
-    local mi = _get(st.dd, "getMediaIndex", -1)
+    local mi = tostring(_get(st.dd, "getMediaIndex", -1))   -- (a Java short: a new object each read; compared as text)
     local c = R._clock[key]
     if not c or c.media ~= mi then c = { ms = 0, media = mi, lines = 0 }; R._clock[key] = c end
     local t = now()
@@ -352,11 +352,17 @@ function R.read(dev)
     st.presets = O.presetList(dd)
     for i, p in ipairs(st.presets) do if p.freq == st.channel then st.presetIdx = i; break end end
     st.name = O.chanName(st.channel)
+    -- on air: the game's flag is true only at the moment a line arrives, so a station also counts while it has shown a
+    -- line in the last HEARD_MS (QA, Nov 2 2026: 98.0 NNR read "no signal" between lines)
     st.signal = _get(dd, "isReceivingSignal", false)
+    if not st.signal then
+        local h = R._heard[st.key]
+        st.signal = (h and h.ms and now() - h.ms < R.HEARD_MS) and true or false
+    end
     st.phones = _get(dd, "getHeadphoneType", -1) >= 0
     st.mediaType = _get(dd, "getMediaType", -1)
     st.hasMedia = st.mediaType >= 0 and _get(dd, "hasMedia", false)
-    st.playing = st.hasMedia and _get(dd, "isPlayingMedia", false)
+    st.playing = st.hasMedia and O.playingNow(dd, st.key)
     if st.hasMedia then
         local md = _get(dd, "getMediaData", nil)
         if md then

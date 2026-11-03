@@ -201,7 +201,7 @@ function O.read(part)
     st.range = _get(dd, "getTransmitRange", 0)
     st.mediaType = _get(dd, "getMediaType", -1)
     st.hasMedia = st.mediaType >= 0 and _get(dd, "hasMedia", false)
-    st.playing = st.hasMedia and _get(dd, "isPlayingMedia", false)
+    st.playing = st.hasMedia and O.playingNow(dd, st.key)
     if st.hasMedia then
         local md = _get(dd, "getMediaData", nil)
         if md then
@@ -439,7 +439,36 @@ function O.mic(chr, part)
     return run("MuteMicrophone", chr, part, not _get(dd, "getMicIsMuted", false))
 end
 
-function O.playStop(chr, part) stopScan(part); return run("TogglePlayMedia", chr, part) end
+-- PLAY / STOP (QA, Nov 2 2026, punch list 60): the game's StopPlayMedia drops the disc at once but clears its playing
+-- flag only after a short stop timer that runs on game time (DeviceData.updateMediaPlaying: never while paused), and
+-- StartPlayMedia does nothing until it has cleared. So a set read "playing" after Stop, and a second press called Stop
+-- again. ZeD remembers its own Stop: the set reads stopped at once, and a Play pressed meanwhile starts the media as
+-- soon as the game lets it.
+O._stopping = O._stopping or {}
+O._wantPlay = O._wantPlay or {}
+-- is the media playing, as the player sees it (dd: the device data; key: keyOf(part))
+function O.playingNow(dd, key)
+    local p = _get(dd, "isPlayingMedia", false) and true or false
+    if key == nil or not O._stopping[key] then return p end
+    if p then return O._wantPlay[key] and true or false end   -- still stopping: off, unless Play was pressed since
+    O._stopping[key] = nil
+    if O._wantPlay[key] then
+        O._wantPlay[key] = nil
+        pcall(function() dd:StartPlayMedia() end)
+        return _get(dd, "isPlayingMedia", false) and true or false
+    end
+    return false
+end
+function O.playStop(chr, part)
+    stopScan(part)
+    local key = part and keyOf(part)
+    if key and O._stopping[key] then O._wantPlay[key] = not O._wantPlay[key]; return true end
+    local dd = part and _get(part, "getDeviceData", nil)
+    local was = dd and _get(dd, "isPlayingMedia", false)
+    local ok = run("TogglePlayMedia", chr, part)
+    if ok and was and key then O._stopping[key], O._wantPlay[key] = true, nil end
+    return ok
+end
 
 -- the CDs the character carries (and in the bags they wear) that this radio plays
 function O.cds(chr, part)
