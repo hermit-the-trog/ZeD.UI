@@ -2350,6 +2350,23 @@ item says so.
     - Design source: ZeD's own Crafting tab only. The director knows other cooking mods exist and wants none of their
       design carried over.
     - Next: Build designs it from the Crafting tab and brings any design questions to the director before building.
+    - **QA, Nov 3 2026: built and tested (Build's 8d3b20d8 to 5a59ca55). 47 / 47 at 4K and at the Deck with Large
+      text, no Cooking tab errors in the game's log** (qa/regression/2026-11-03_cook80_4k_r6.md, _1280x800L.md;
+      zedqa_cook80.lua). The tab comes with a pot of water and vegetables on the character and goes with the pot; a
+      stew of three made with Make is one pot holding all three, as by hand (a cabbage is more than one dish takes:
+      the game uses part and leaves the rest); two pots and enough for two show the count, it stops at 2, Make 2 gives
+      two stews; a stir-fry stops at 4 (Ingredients 4 / 4); saved dishes save, head the Dish list, load, offer Use
+      <same kind> for a missing one (none with nothing of its kind), keep Make greyed while one is missing, and Forget;
+      the controller's A adds, takes out, opens a list and picks, B shuts it, and only the list's choices and the
+      boxes are stops while it is open. At the Deck with Large text the header (Dish, the pot) and the band (Sort,
+      the count, Save, Make) fit. Pictures (not committed): qa/review_20261103/pl80/.
+    - Found and fixed on the way (Build): Make made extra half stews (the game finishes each added ingredient after
+      the next has started; each now takes the dish as it finishes); the count missed items the game lists once; the
+      stir-fry was listed three times (one per pan); every vegetable was read as seasoning, so no limit held; an
+      error printed at quit.
+    - For the director's tuning (the game's own rules, the same as by hand): the tab goes away after Make (the pot
+      is now a dish, and only an empty pot or pan starts one); seasoning is not offered for a dish not yet begun;
+      frozen food is not listed at all.
 
 ## Test process
 
