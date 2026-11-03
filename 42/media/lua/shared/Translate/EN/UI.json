@@ -2190,6 +2190,8 @@
     "UI_ZeD_Settings_ActionBar": "Action bar",
     "UI_ZeD_Settings_ActionBarSimple": "Simple",
     "UI_ZeD_Settings_Belt": "Belt",
+    "UI_ZeD_Settings_Dash": "Dashboard",
+    "UI_ZeD_Settings_DashTip": "The car's dashboard, the taxi meter and the siren controller. Full: each car's own dash. Simple: a plain strip with the same readings, lamps and switches.",
     "UI_ZeD_Settings_Devices": "Devices",
     "UI_ZeD_Settings_Watch": "Watch",
     "UI_ZeD_Settings_WatchTip": "The watch in the corner and the small one on the belt. Full: the watch you wear, as itself. Simple: a plain clock box with the same readings and buttons.",

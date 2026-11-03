@@ -168,7 +168,7 @@ G.ZED_GROUPS = {
     -- (the director, Nov 2 2026, punch list 60: "the beta release is gonna have our vision and then a more simplified
     -- vision"; one row per family, Full or Simple. The watch's and the dashboard's rows join when their simple forms are
     -- built.)
-    { "UI_ZeD_Options_ZedForms", { { "beltStyle", "radio" }, { "actionBar", "radio" }, { "contextStyle", "radio" }, { "equipView", "radio" }, { "devicesStyle", "radio" }, { "watchStyle", "radio" } } },
+    { "UI_ZeD_Options_ZedForms", { { "beltStyle", "radio" }, { "actionBar", "radio" }, { "contextStyle", "radio" }, { "equipView", "radio" }, { "devicesStyle", "radio" }, { "watchStyle", "radio" }, { "dashStyle", "radio" } } },
     -- (director, Oct 30 2026: every thing vanilla does not do in one group after the look, the preset first;
     -- Settings.lua setUpAdditions. Put back, Messages and Sandbox in game had groups of their own until then,
     -- Ammo on the belt, Moodle notices and Dashboard lamps were in HUD, Restock and the read marks in Windows.)
