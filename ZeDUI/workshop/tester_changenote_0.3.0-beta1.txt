@@ -1,0 +1,34 @@
+0.3.0-beta1: the beta. Changes since 0.2.0-t16.
+
+Full or simple
+- A new group in ZeD setup, Full or simple, right after Look: the belt, the action bar, the context menu, the Equip view, the devices, the watch and the dashboard, each drawn as the real thing (Full) or as a plain ZeD card with the same buttons and readings (Simple). Full stays the default; the Vanilla Access preset picks Simple.
+- Devices, Simple: every radio, CD player, TV, walkie-talkie, ManPack and ham set is a plain card in the Radio tab, with the station, the frequency, the signal and every button in the face's own order.
+- Watch, Simple: a plain clock box with the time, the weekday and date, the temperature, the game's speed and the alarm, and the same buttons; a plain time box on the belt.
+- Dashboard, Simple: a plain strip with the speed, RPM, fuel, temperature, gear and odometer, the lamps as dots and every switch as a button, the taxi meter and the police siren included.
+
+Controller
+- The controller map: the quick wheel's Help, Controller map opens a page with the controller and what each button does, drawn in your own button pictures.
+
+Bug reports
+- Bug report in the ZeD wheel copies every error with ZeD-GUI's version, your game version and your mod list, ready to paste into Bug reports.
+- Messages shows each kept error on its own card with its own Copy.
+
+Languages
+- Machine drafts of Turkish, Simplified Chinese and Brazilian Portuguese, marked as machine translations in the language list. Corrections welcome in the Translations discussion.
+
+This Is Your Life
+- Supported: pick its town in Spawn and a Hometown page lists the 11 hometowns with their origin traits, then the poster stories. A hometown goes on through ZeD's own pages; a poster story sets itself up as the mod writes it.
+
+Windows and cards
+- Containers with no picture of their own show the game's box instead of a letter; a car's trunk, truck bed, glove box and seats show the game's own pictures.
+- The washer, dryer and washer-dryer are redrawn: the washer a top-loader seen from above, with the water rising through the clothes; a machine on the house pipes reads On the water pipes, and a dryer has no water row.
+- The walkie-talkie and ham radio faces lose their printed brand foot.
+- Radios: Stop takes at once, a station between lines still shows its signal, and a disc's time runs.
+- About shows ZeD-GUI's version.
+
+Options
+- 0.5x is no longer offered in UI scale; a saved 0.5x draws at 0.75x.
+- Dimmed rows no longer light up under the pointer, and settings that do nothing with ZeD-GUI are skipped by the controller.
+
+Main menu
+- The desk has the Kentucky Instruments controller on it.
