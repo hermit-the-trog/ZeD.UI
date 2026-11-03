@@ -1930,6 +1930,11 @@ item says so.
     - The Nov 1 About paragraph was the director's edit, and it is kept. Closes item 42's question.
     - **Check (QA, 4K):** the walkie and ham faces at the half and the full card show no printed foot and nothing
       else moved.
+    **QA, Nov 2 2026: the radio faces confirmed at 4K (twoway.txt at e4e48d7, 192 / 192;
+    qa/regression/2026-11-02_pl69_twoway_4k.md).** Every walkie and ham face is drawn with no printed foot (no brand
+    bar, no "2-WAY PORTABLE"); each is still its own face, centred in its panel, the walkies on the half card where a
+    width fits, the hams across the drawer, every control on the face, full view and the controller as before (shots
+    zqa_tw_*).
 70. **The release check and the staging step (beta definition, point 5).** chosen.
     - Release check: the five-minute check before every upload. Right-click opens the menu, both windows open, an
       item moves, the controller works, the watch reads the time.
@@ -1943,6 +1948,15 @@ item says so.
     -Title and -Preview. With -Version but no -Description or -ChangeNote it warns that the old text stays. Tested for
     real with the t16 files (lock set busy, files backed up): workshop.txt byte-identical, the change note round-trips;
     Contents removed and the files and lock put back after. The release check is still to build.
+    **QA, Nov 2 2026: the five-minute release check is built and passes at 4K (16 / 16, about two minutes from launch
+    to quit).** Run: `pwsh -File ZeDUI/tools/qa/release_check.ps1` (it starts release_check_mouse.ps1, runs
+    release_check.txt through zedqa_run.ps1 at 4K, stops the helper, prints RESULT). zedqa_release_check.lua checks:
+    1 both windows open by the inventory key's call; 2 a test item goes to the floor by the game's transfer, the World
+    window lists it, it comes back and the Character window lists it; 4 the controller's focus on its row, A opens its
+    card on the primary action (charItemCard:hverb_1), B goes back to the row; 3 a REAL right-click (the helper moves
+    the desktop cursor to the row and presses the right button) opens the item menu, and the menu was made for that
+    item; 5 a worn watch shows and its face reads the game's hour and minute. It uses the screen while it runs. Part
+    of every per-build pass from now on.
 71. **Loose ends from older notes (beta definition, point 8).** chosen; build looks at each, then QA checks what was
     fixed.
     - The oven's object card drawn behind its Craft tab (Oct 29-30 notes).
