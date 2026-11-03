@@ -46,16 +46,17 @@ step(10, function()
     say("its name in the language list: " .. name .. " | a ZeD machine draft " .. tostring(machine))
     check(machine == true, lang .. " is one of ZeD's machine-translated languages (the list marks it)")
     if not check(readKeys() and #keys > 500, "ZeD's English keys read (" .. #keys .. ")") then return end
-    local raw, same, sameList = 0, 0, {}
+    local raw, same, sameList, rawList = 0, 0, {}, {}
     for _, k in ipairs(keys) do
         local s = getTextOrNull(k, "%1", "%2", "%3", "%4")   -- (42.22: a word with a placeholder asked without its arguments logs an exception)
-        if s == nil then raw = raw + 1
+        if s == nil then raw = raw + 1; if #rawList < 12 then rawList[#rawList + 1] = k end
         else
             local en = ZeD.trEnglish and ZeD.trEnglish(k) or nil
             if en and s == en and #s > 3 then same = same + 1; if #sameList < 12 then sameList[#sameList + 1] = k end end
         end
     end
     say(string.format("%s: %d keys | no text %d | same as the English %d (e.g. %s)", lang, #keys, raw, same, table.concat(sameList, ", ")))
+    if raw > 0 then say("no text: " .. table.concat(rawList, ", ")) end   -- (Nov 3 2026: name them)
     check(raw == 0, lang .. ": every ZeD key has text (no raw UI_ZeD_ key can show)")
     check(same < #keys * 0.08, lang .. ": nearly every key is translated (" .. same .. " the same as the English)")
 end)
