@@ -2062,6 +2062,11 @@ item says so.
     the desktop cursor to the row and presses the right button) opens the item menu, and the menu was made for that
     item; 5 a worn watch shows and its face reads the game's hour and minute. It uses the screen while it runs. Part
     of every per-build pass from now on.
+    **QA, Nov 3 2026: the release check on the staged 0.3.0-beta1 copy (director: "do what's still open"). All 16 PASS**
+    at 4K (ZeDUI/qa/regression/2026-11-03_rc_staged_release_check.md). The staged copy leaves out the QA bridge, so
+    QABridge.lua was copied in for the run and taken out after; the staged folder's 4,363 files hash the same before
+    and after. The runner refuses a staged copy as before; `release_check.ps1 -Staged` lets it run on one, and only
+    while the bridge is in it.
 71. **Loose ends from older notes (beta definition, point 8).** chosen; build looks at each, then QA checks what was
     fixed.
     - The oven's object card drawn behind its Craft tab (Oct 29-30 notes).

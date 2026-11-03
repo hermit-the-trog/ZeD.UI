@@ -89,7 +89,8 @@ param(
     [ValidateRange(5, 86400)][int]$TimeoutSec = 180,
     [string]$Report = "",
     [switch]$KeepOpen,
-    [switch]$Check
+    [switch]$Check,
+    [switch]$StagedCopy   # (the release check on a staged copy: allowed only when the staged copy carries the QA bridge)
 )
 
 # ============================================================================
@@ -949,7 +950,14 @@ if ($Check) {
 $staged = @(Get-ChildItem -Path "C:/Users/you/Zomboid/Workshop/*/Contents/mods/*/42/mod.info", "C:/Users/you/Zomboid/Workshop/*/Contents/mods/*/common/mod.info", "C:/Users/you/Zomboid/Workshop/*/Contents/mods/*/mod.info" -ErrorAction SilentlyContinue |
     Where-Object { Select-String -LiteralPath $_.FullName -Pattern '^\s*id=ZeD_UI\s*$' -Quiet -ErrorAction SilentlyContinue } |
     ForEach-Object { $_.FullName -replace '[\\/]mods[\\/].*$', '' } | Select-Object -Unique)
-if ($staged.Count -gt 0) {
+if ($staged.Count -gt 0 -and $StagedCopy) {
+    # -StagedCopy (release_check.ps1 -Staged): run against the staged copy on purpose; it needs the bridge put in for the run
+    foreach ($folder in $staged) {
+        if (-not (Test-Path (Join-Path $folder "mods/ZeD-UI/42/media/lua/client/ZeD/QABridge.lua"))) { Write-Output "-StagedCopy: $folder has no QA bridge (copy 42/media/lua/client/ZeD/QABridge.lua in for the run, take it out after)"; exit 3 }
+        Write-Output "-StagedCopy: running against the staged copy at $folder"
+    }
+}
+elseif ($staged.Count -gt 0) {
     foreach ($folder in $staged) { Write-Output "A Workshop staging copy of ZeD-UI is at $folder; the game would load it instead of the dev mod. Remove its Contents folder (stage it again right before an upload)." }
     exit 3
 }
