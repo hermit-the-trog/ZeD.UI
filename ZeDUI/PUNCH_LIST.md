@@ -1838,6 +1838,14 @@ item says so.
       translations never go in comments.
     - **Check (QA, 4K):** each drafted language loads with no missing keys (the i18n guard); its label shows in the
       language list; the Turkish capitals Ş, Ğ and İ and the Chinese faces draw whole on ZeD's text and pixel faces.
+    **Built (build, Nov 2 2026):** ZeDUI/tools/i18n/mt.py splits the English with each phrase's context and length,
+    checks a draft (placeholders, %%, markup) and merges it. Turkish (TR), Simplified Chinese (CN) and Brazilian
+    Portuguese (PTBR) drafts are in Translate/<code>/ (UI, Sandbox, ItemName; every key, 0 check errors; commits
+    2d1bc44, 10150ed, 7dd3d7f). ZeD.MACHINE_LANGS in shared/ZeD/Tr.lua marks them, and ZeD's Options language list
+    draws "(machine translation, ZeD-GUI)" after their names (the option text stays the game's). Still to do: the other
+    24 languages, the plain post asking players to check them, and the corrections thread. Unsure choices the drafts
+    flagged (for a checker): Loadouts / Outfits / Restock / Unpack have no game word in any of the three; TR "Etüt" for
+    Survey, PTBR "Kits" / "Trajes", CN 配装 / 穿搭.
 63. **Ente's Auto Sorter (the director, Nov 2).** chosen. A note in the Compatibility thread: its button bar sits over
     ZeD's belt, so drag its bar aside. It is not popular enough to special-case. QA adds the line at the next thread
     edit.
@@ -1860,6 +1868,15 @@ item says so.
     layout to the director first. **Check (QA, 4K, the mod on):** a new game through ZeD's creator with a hometown
     spawns there with its origin trait and map reveal; a poster story starts as the mod writes it; with the mod off,
     nothing of it shows; multiplayer is a separate pass.
+    **Built (build, Nov 2 2026, feda927; the director: "go with your plan"):** ModSupport/ThisIsYourLife.lua. The mod's
+    hidden town "This Is Your Life" stays in ZeD's Spawn list, described; its Next opens the Hometown page
+    (ZeD_MMHometown, ZeD's Spawn window subclassed: the 11 hometowns with the origin trait under each blurb, Knox Country
+    as Random, then the five poster stories, single player only; the map frames each town's houses and plays its town
+    video). Next selects the mod's region and calls TIYL.Flow.completeOrigin / completePosterStory, then vanilla's
+    clickNext. A hometown carries on through ZeD's Sandbox, Occupation, Traits and Looks; as Occupation comes up the pick
+    is handed over again (the partner start ticked in Sandbox counts). A story lets the mod's own occupation and looks
+    screens run (MM.redirectPass, a new hook in MM.redirect): they fill in the name, job and look and press Play. Back
+    drops the pick (TIYL.Flow.abandon); any other town drops it too. Not tried in the game yet.
 65. **ZeD's version in About (the director, Nov 2: "Yes").** chosen. The desk's About adds a ZeD-GUI row beside the
     game's build, read from ZeD's own mod.info.
     - **Check (QA, 4K):** About reads ZeD-GUI with the staged version and Game with the game's build.
