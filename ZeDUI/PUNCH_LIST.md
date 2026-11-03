@@ -1744,6 +1744,140 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     the test's: the Messages lamp shows only with messages, Full has none either. Not covered: slot counts other than 3
     (0, 1, 4, the most), a real mouse drag, the controller's belt focus under Simple.
 
+## Beta (0.3.0-beta1)
+
+The director, Nov 2 2026 (ZeDUI/BETA_DECISIONS.md, from the Cowork session; the questions in
+ZeDUI/HANDOFF_cowork_beta_20261102.md): the build after t16 is the beta. Every item below is chosen. Each carries its
+own check, and nothing is done until QA confirms it in the game. QA works in two passes: after each build, only what
+that build changed plus the five-minute release check; before a release, the full checklist (rewritten for the beta,
+item 74, reviewed by the director first). Regular testing runs at one resolution (4K); Deck and 720p only where an
+item says so.
+
+57. **The beta's name, page and thumbnail (the director, Nov 2 2026).** chosen.
+    - The version is 0.3.0-beta1 (1.0 is the release). It is the same Workshop item (3824968485), retitled from
+      "ZeD-GUI [TEST BUILD]" to "ZeD-GUI [BETA]", and it stays public.
+    - A Known issues section sits front and centre on the beta's description. The Hair and beard error with the
+      eight-mod set is listed if it is still unsolved (item 68).
+    - Thumbnail: find why ours shows a margin and make it fill the whole square. The beta swaps the test build's red
+      border and strip for yellow. Red is a test build, yellow the beta, green the release.
+    - **Check (QA, at staging):** the staged mod.info reads 0.3.0-beta1; workshop.txt's title reads "ZeD-GUI
+      [BETA]"; the description opens with Known issues; preview.png is 256 x 256 with no margin and yellow trim.
+58. **UI scale: the 0.5 step is still offered (the director, Nov 2: keep the 0.75 cap on the Deck and at 720p; 0.5 was
+    dropped because it did not look right; bring it back after the beta).** chosen.
+    - Build found it is not gone: ZeD setup's scale list still holds 0.5x (Settings.lua scaleKeys).
+    - Fix: 0.5x is not offered in the beta (the slider, the Mods page's drop-down and the controller's ZeD wheel).
+      A saved 0.5 draws at 0.75 and reads "0.5x (0.75x here)", as a capped step does. The saved position is kept,
+      because combos save by position.
+    - **Check (QA, 4K):** no 0.5 step can be picked by mouse or pad; a saved 0.5 draws 0.75 and reads as said.
+59. **Every dimmed row loses its hover highlight (the director, Nov 2: "Yes").** chosen. Item 20's rule now covers
+    the game's own greyed-out settings too: the ones that do nothing while ZeD runs.
+    - **Check (QA, 4K, real mouse):** a greyed game setting and the dimmed Restock row light up for neither the
+      mouse nor the pad; the help line still says why.
+60. **Simple versions of every immersive surface (the director, Nov 2: "the beta release is gonna have our vision
+    and then a more simplified vision").** chosen.
+    - The machines' simple cards from item 17 are in the beta: radios, TVs, walkie-talkies, ham sets, ovens,
+      microwaves, the fryer, the grill and generators.
+    - Build also lists every other place ZeD shows something in a more immersive or graphic way and proposes a
+      simple version for each.
+    - Build brings the layout rules and that list to the director before building anything.
+    - **Check (QA, after it is built):** the ZeD setup switch flips every listed surface between its two forms, live;
+      each simple card does everything its face does, with the mouse and the pad.
+61. **The Vehicle tab on small screens (the director, Nov 2: undecided, must be decided before the beta).** open.
+    - Beside the car figure, Type, Distance and Key show only their labels at small sizes.
+    - **QA first:** one small-screen screenshot of the Vehicle tab with the hood open (1280x720 or the Deck,
+      Normal text). The director picks the fix from it.
+62. **Machine translations for every language the game supports (the director, Nov 2).** chosen; replaces item 51.
+    - AI drafts ship inside the mod. Each is labelled as a machine translation in the language list.
+    - Order: Turkish, Simplified Chinese and Brazilian Portuguese first. Russian, Ukrainian, Latin American
+      Spanish, Chinese and Japanese are the next big audiences, then the rest.
+    - A plain post says these are machine translations and that ZeD wants players to check and correct them before
+      the release. One discussion thread collects corrections. Steam comments cap near 8,000 characters, so
+      translations never go in comments.
+    - **Check (QA, 4K):** each drafted language loads with no missing keys (the i18n guard); its label shows in the
+      language list; the Turkish capitals Ş, Ğ and İ and the Chinese faces draw whole on ZeD's text and pixel faces.
+63. **Ente's Auto Sorter (the director, Nov 2).** chosen. A note in the Compatibility thread: its button bar sits over
+    ZeD's belt, so drag its bar aside. It is not popular enough to special-case. QA adds the line at the next thread
+    edit.
+64. **This Is Your Life (the director, Nov 2).** open. Build takes a short read of what it adds: hometown postcards,
+    Origin Traits and scripted starts, all switchable in sandbox. It reports to the director, who decides.
+65. **ZeD's version in About (the director, Nov 2: "Yes").** chosen. The desk's About adds a ZeD-GUI row beside the
+    game's build, read from ZeD's own mod.info.
+    - **Check (QA, 4K):** About reads ZeD-GUI with the staged version and Game with the game's build.
+66. **Bug reports in two presses (the director, Nov 2).** chosen.
+    - Error capture exists: Messages files each mod's errors (12 kept per mod) and has "Copy for a bug report" per
+      source.
+    - Still to build:
+      - Every error gets its own copy.
+      - Every copied report starts with ZeD's version, the game's build and the mod list, ready to paste into a
+        Workshop thread or a paste site.
+      - A Bug report entry in the ZeD menu, where the style options are, copies every error with that header. It
+        then says the errors are copied and can be pasted into a Workshop thread or sent to Hermit. No digging
+        through files or the console.
+    - **Check (QA, 4K):** force an error from a test mod; Messages files it; each copy and the menu's Bug report put
+      the expected text on the clipboard (read back); with no errors, Bug report says so.
+67. **The controller map (the director, Nov 2: "has to have it").** chosen. The quick wheel's "Controller map"
+    entry ("Coming later.") opens a page showing what each button does in ZeD.
+    - Build brings its layout to the director first, and it covers both pad glyph sets.
+    - **Check (QA, 4K):** the wheel opens it; B closes it and focus returns; every role on the page matches the
+      gamepad spec; no "coming later" text is left anywhere in ZeD.
+68. **Hair and beard with the eight-mod set (the director, Nov 2: the beta can ship with it as a known issue; keep
+    working on it).** Item 54 continues. If it is unsolved at staging, it goes on item 57's Known issues.
+69. **Oct 30's band calls and the radio faces (the director, Nov 2).**
+    - The four band calls are kept as built: Craft's Show pop-up, "Save loadout" and "Save outfit", no number beside
+      Craft's amount, and an exercise you can't do stays listed with Start greyed and the reason shown. Closes
+      item 21's open question.
+    - The walkie-talkie and ham radio faces lose their printed foot (the brand and "2-WAY PORTABLE"); the brand is
+      already on the graphic. chosen.
+    - The Nov 1 About paragraph was the director's edit, and it is kept. Closes item 42's question.
+    - **Check (QA, 4K):** the walkie and ham faces at the half and the full card show no printed foot and nothing
+      else moved.
+70. **The release check and the staging step (beta definition, point 5).** chosen.
+    - Release check: the five-minute check before every upload. Right-click opens the menu, both windows open, an
+      item moves, the controller works, the watch reads the time.
+    - Staging: stage_workshop.ps1 takes the version and writes that build's page text into workshop.txt by itself,
+      so the t16 slip can't recur.
+    - **Check (QA):** the release check runs and passes on the current build; a dry staging shows the version and the
+      new page text.
+71. **Loose ends from older notes (beta definition, point 8).** chosen; build looks at each, then QA checks what was
+    fixed.
+    - The oven's object card drawn behind its Craft tab (Oct 29-30 notes).
+    - The oven tab at UI scale 0.5. This is moot once 0.5 goes (item 58); build checks that nothing else at small
+      scales shares the cause.
+    - The plate export shifting pixels on a re-run (a tool, not the mod).
+    - Hair and beard: clicking a picked row should un-pick it, but it stays picked (ZeD_HairBeard.lua near line
+      1656, `x and nil or y`). Found by build, Nov 2.
+    - The ZeD style menu's hover flicker (item 7), cause unchecked.
+72. **The t16 test gaps (beta definition, point 4).** QA.
+    - The game's own inventory opened by its key with the Safe mode windows switch on; the dashboard, the quick
+      wheels and the game's character info by their keys.
+    - The Simple belt with 0, 1, 4 and the most slots, a real mouse drag and the controller.
+    - The load order tools by hand (right-click menus, Ctrl and Shift-click, Page Up and Down, the pad on folder and
+      separator rows, drag) and with 1,500 mods.
+    - The marks with a container column (item 44's one-list rule).
+73. **Fixes built but never confirmed (beta definition, point 2).** QA confirms or reopens each:
+    - 1: right-click on an inventory row (the release check covers it).
+    - 6: the item card's X.
+    - 7: the window box and close box hover.
+    - 26: a laundry card's first opening.
+    - 28: the Craft amount box at its smallest, with a recipe whose most is 1 and one of 10 or more.
+    - 29: Equip names at the half card.
+    - 35: the one-column Skills grid, and a wide card keeping two.
+    - 36: the portrait ID card, with a screenshot for the director, and the Maps ink in use.
+    - 38: the controller stops while a drawer fills the window.
+    - 42: the main menu's leave-with-changes question and the pad A on the Workshop form.
+    - 43: a forage find staged east reads E.
+
+    The small-screen ones (28, 29, 35, 36, 38) are checked at the Deck size: they exist only there.
+74. **QA's checklist rewritten for the beta (the director, Nov 2).** QA.
+    - QA rewrites items 4 to 16 and its regression list in the two-pass shape: a per-build pass of only what changed
+      plus the release check, and a full pre-release checklist.
+    - The director reviews the full checklist before testing starts, and both sessions refresh it after every build.
+75. **Punch list housekeeping (build).**
+    - Item headers that still say open or fixed although a later QA paragraph confirms them get their state
+      corrected.
+    - Confirmed items move under "## Confirmed".
+    - The text lost in item 41 near its Stage 3 note is restored from git history.
+
 ## Test process
 
 - **QA, Nov 2 2026, the t16 pre-upload pass (the mod code at 361d0b6; nothing in 42/ changed after it).** Full 4K
