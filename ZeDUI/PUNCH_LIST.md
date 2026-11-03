@@ -1858,6 +1858,11 @@ item says so.
     test ever checked Stop); (2) the black radio on NNR Radio reads "Signal None"; (3) the red radio's disc time reads
     0:00 while it plays. Still to do: the Deck pass with Large text, and a TV with a programme on (needs an earlier
     day).
+    **QA, Nov 2 2026, after build's radio fixes: all 36 pass at 4K (2026-11-02_pl60_plain_4k_b.md).** Stop stops the
+    disc (read through ZeD's own O.playingNow; the game's isPlayingMedia lags by design); the black radio on 98.0 NNR
+    reads "Signal Poor", not None; the disc's time runs (0:06 five seconds in). Not yet checked: Stop while the game is
+    paused. The fast wheel spin missed its speed-up in two of about seven runs (black radio): intermittent, sent to
+    build.
 61. **The Vehicle tab on small screens (the director, Nov 2: undecided, must be decided before the beta).** open.
     - Beside the car figure, Type, Distance and Key show only their labels at small sizes.
     - **QA first:** one small-screen screenshot of the Vehicle tab with the hood open (1280x720 or the Deck,
@@ -2111,6 +2116,11 @@ item says so.
     shows a "Water 0.0 L" row though it holds none; (3) once in two 4K runs the dryer's card opened blank (the face
     not drawn) for its first picture; it drew in the other run and on the Deck. One test-timing slip: "stopped again:
     lamps dark" read too soon after the stop once (the washer one run, the dryer another).
+    **QA, Nov 2 2026, after build's two row fixes (2026-11-02_recheck_60_77_4k.md, 201 / 202).** The plain dryer has
+    no Water row now (only Inside): confirmed. The piped washer still reads "Water 10000.0 of 10000 L": the test's
+    machine has setUsesExternalWaterSource(false) (the script's own water switch) yet reports 10000, so the
+    both-flags rule does not catch it; sent back to build. The dryer's first 4K picture was blank again (the face not
+    drawn when the card had just opened); a picture a second later is to be added to tell loading from a fault.
 78. **The main menu desk v5: the joystick ports and the KI pad (design, Cowork; the director, Nov 2 2026: "Desk is
     approved").** chosen, staged, not installed (ZeDUI/HANDOFF_main_menu_pad_20261102.md). Two 9-pin joystick ports on
     the case front, 1 and 2, the Kentucky Instruments pad's plug pushed into 1 (its cable out of the back and down), 2

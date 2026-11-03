@@ -108,16 +108,8 @@ local function newRadio(ft)
     end
     return it
 end
--- a station the game broadcasts on (the first of its radio channels), else 98.0
-local function station()
-    local f = 98000
-    pcall(function()
-        local list = ZomboidRadio.getInstance():getChannelList("Radio")
-        local it = list and list:keySet():iterator()
-        if it and it:hasNext() then f = it:next() end
-    end)
-    return f
-end
+-- the station: 98.0 MHz (NNR Radio on the QA save; ZomboidRadio's channel list is not reachable from a script)
+local function station() return 98000 end
 
 local Q, qi = {}, 1
 local function step(k, fn) Q[#Q + 1] = { n = k, fn = fn } end
@@ -274,13 +266,16 @@ for _, m in ipairs(SETS) do
         end)
         step(30, function()
             local dd = cur.it:getDeviceData()
-            local playing = false; pcall(function() playing = dd:isPlayingMedia() end)
+            local playing = false; pcall(function() playing = O.playingNow(dd, O.keyOf(cur.it)) end)
             check(hitOf("play") ~= nil and playing, m.pid .. ": Play plays the disc put in")
             shot(m.pid .. "_disc")
+        end)
+        step(300, function()
+            shot(m.pid .. "_disc_5s")   -- (five seconds into the disc: its time runs)
             if hitOf("play") then click("play") end
         end)
         step(90, function()
-            local playing = true; pcall(function() playing = cur.it:getDeviceData():isPlayingMedia() end)
+            local playing = true; pcall(function() playing = O.playingNow(cur.it:getDeviceData(), O.keyOf(cur.it)) end)   -- (ZeD's own reading: the game's isPlayingMedia clears only when its stop timer runs out)
             check(not playing, m.pid .. ": Stop stops it")
             if playing then
                 local t = tw(); local dd = cur.it:getDeviceData()
