@@ -165,6 +165,10 @@ G.ZED_GROUPS = {
     -- in use a checkbox under it; Controller highlight leads Controls as a pop-up menu with a live sample beside it; Hidden
     -- actions closes Windows as a pop-up menu. The windows' theme squares are gone with their setting.)
     { "UI_ZeD_Options_ZedLook", { { "baseTheme", "radio" }, { "accentColor", "swatch" }, { "textSize", "radio" }, { "seeThrough", "scale" }, { "solidInUse", "onoff" }, { "uiScale", "scale", short = { "UI_ZeD_Settings_Auto" } } } },
+    -- (the director, Nov 2 2026, punch list 60: "the beta release is gonna have our vision and then a more simplified
+    -- vision"; one row per family, Full or Simple. The watch's and the dashboard's rows join when their simple forms are
+    -- built.)
+    { "UI_ZeD_Options_ZedForms", { { "beltStyle", "radio" }, { "actionBar", "radio" }, { "contextStyle", "radio" }, { "equipView", "radio" }, { "devicesStyle", "radio" } } },
     -- (director, Oct 30 2026: every thing vanilla does not do in one group after the look, the preset first;
     -- Settings.lua setUpAdditions. Put back, Messages and Sandbox in game had groups of their own until then,
     -- Ammo on the belt, Moodle notices and Dashboard lamps were in HUD, Restock and the read marks in Windows.)
@@ -174,9 +178,9 @@ G.ZED_GROUPS = {
         { "sandboxInGame", "onoff", under = "UI_ZeD_Options_UnderSandboxIG" }, { "loadouts", "onoff" },
         -- (director, Oct 30 2026: Restock works only with a loadout, so its row dims and goes inert while Loadouts is off)
         { "restock", "radio", needs = "loadouts", needsWhy = "UI_ZeD_Options_NeedsLoadouts" } } },
-    { "UI_ZeD_Options_ZedWindows", { { "inventoryView", "radio" }, { "equipView", "radio" }, { "charAccent", "swatch" }, { "worldAccent", "swatch" }, { "hiddenActions" } } },
-    { "UI_ZeD_Options_ZedHud", { { "moodlePlace", "radio", short = { "UI_ZeD_Options_MoodlesRight", "UI_ZeD_Options_MoodlesLeft", "UI_ZeD_Options_MoodlesBottom" } }, { "watchPlace", "radio" }, { "actionBar", "radio" }, { "beltStyle", "radio" } } },
-    { "UI_ZeD_Options_ZedControls", { { "focusStyle" }, { "contextStyle", "radio" }, { "glyphDisplay" }, { "inputModeLock" } } },
+    { "UI_ZeD_Options_ZedWindows", { { "inventoryView", "radio" }, { "charAccent", "swatch" }, { "worldAccent", "swatch" }, { "hiddenActions" } } },
+    { "UI_ZeD_Options_ZedHud", { { "moodlePlace", "radio", short = { "UI_ZeD_Options_MoodlesRight", "UI_ZeD_Options_MoodlesLeft", "UI_ZeD_Options_MoodlesBottom" } }, { "watchPlace", "radio" } } },
+    { "UI_ZeD_Options_ZedControls", { { "focusStyle" }, { "glyphDisplay" }, { "inputModeLock" } } },
     -- (Oct 24 2026, mockup zed_quick_chords_v1: the twelve chords, ZeD_QuickChords; not ModOptions: rows of their own)
     { "UI_ZeD_Options_ZedChords", {}, chords = true },
     -- (director, Nov 2 2026, punch list 55: one screen at a time steps aside, under Safe mode and read as it is:
