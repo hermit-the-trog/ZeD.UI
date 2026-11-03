@@ -1880,6 +1880,12 @@ item says so.
     "On the water pipes", Inside with Open; no game errors in the run. The face-only checks (face size, zoom, the
     water meter's art) fail there by design. Item 76: seated in a pickup, every World strip button (both seats, the
     glove box, the ground) has the game's own picture; none needed the box (2026-11-02_pl76_strips_4k.md).
+    **QA, Nov 2 2026: the car radio on Simple at 4K (pl60_carradio.txt, 4 / 4 PASS; 2026-11-02_pl60_carradio_4k.md).**
+    The plain ValuTech card over the dash: frequency and station name, Power, Volume, Seek, Mute, the six presets with
+    their names, Frequency, Signal; power, a stored preset (STORE 4) and the ValuTech, makeshift, ham and army sets all
+    fit and report. The old CD step made its own disc, which the radio does not count ("No CDs on you"), so insert,
+    play and eject did not run here; the plain cards test already plays and stops the character's own CD. No game
+    errors from ZeD (the two "Vehicles.Init.Radio" lines are the game's own).
 61. **The Vehicle tab on small screens (the director, Nov 2: undecided, must be decided before the beta).** open.
     - Beside the car figure, Type, Distance and Key show only their labels at small sizes.
     - **QA first:** one small-screen screenshot of the Vehicle tab with the hood open (1280x720 or the Deck,
@@ -2082,6 +2088,10 @@ item says so.
     - 43: a forage find staged east reads E.
 
     The small-screen ones (28, 29, 35, 36, 38) are checked at the Deck size: they exist only there.
+    **QA, Nov 2 2026: the Deck pass at 1280x800 with Large text (pl73_deck.txt, 5 / 5 PASS;
+    2026-11-02_pl73_deck_800L.md).** Every Character and World tab, the item cards, the object cards, the oven and
+    radio cards and the five Journal pages: the two windows never overlap (Character ends at 636 or 640, World starts
+    at 640 or 644); Skills opens by its button; the Equip names and the Skills grid fit.
 74. **QA's checklist rewritten for the beta (the director, Nov 2).** QA.
     - QA rewrites items 4 to 16 and its regression list in the two-pass shape: a per-build pass of only what changed
       plus the release check, and a full pre-release checklist.
