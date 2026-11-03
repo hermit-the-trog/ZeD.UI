@@ -28,6 +28,20 @@ local function ids()
     return table.concat(t, ",")
 end
 local function spd() return getGameSpeed() end
+-- every button holds its word: the drawn buttons (the box's hits) against their words' widths in the button font
+local function wordsFit(tag)
+    local w = inst()
+    if not w then return end
+    local ok, worst = true, ""
+    for _, h in ipairs(w._hit or {}) do
+        local word = h.text or (w._plainBtns and w._plainBtns[h.id])
+        if word then
+            local tw = ZeD.TM:MeasureStringX(ZeD.T.fontF2, ZeD.btnCase and ZeD.btnCase(word) or word)
+            if tw + ZeD.T.px(4) > h.w then ok = false; worst = worst .. " " .. h.id .. "(" .. tw .. ">" .. h.w .. ")" end
+        end
+    end
+    say(tag .. ": button widths " .. (ok and "hold their words" or ("too narrow:" .. worst)) .. " | box " .. math.floor(w:getWidth()) .. "x" .. math.floor(w:getHeight()))
+end
 
 local Q, qi = {}, 1
 local function step(k, fn) Q[#Q + 1] = { n = k, fn = fn } end
@@ -52,6 +66,7 @@ step(60, function()
     check(w and w:getIsVisible(), "60 watch: the corner watch shows")
     say("1: buttons " .. ids() .. " | box " .. (w and (math.floor(w:getX()) .. "," .. math.floor(w:getY()) .. " " .. math.floor(w:getWidth()) .. "x" .. math.floor(w:getHeight())) or "-"))
     check(ids() == "start,speed,alarm,set", "60 watch: Start/Pause, Speed, Alarm, Set (" .. ids() .. ")")
+    wordsFit("1")
     shot("1_worn")
     setGameSpeed(1)
     W.act("start")
@@ -90,23 +105,27 @@ step(20, function()
     local w = inst()
     check(w and w._setOpen == true, "60 watch 2: Set opens set mode")
     say("2: buttons " .. ids())
-    check(ids() == "setdn,setup,alarm,set", "60 watch 2: -, +, On/off, Done (" .. ids() .. ")")
+    check(ids() == "setdn,setup,alarmtoggle,set", "60 watch 2: -, +, On/off, Done (" .. ids() .. ")")
+    wordsFit("2")
     shot("2_set")
+    -- (the watch's own rules: + with the alarm off arms it at 0:00, then steps up; - steps down, and below 0 turns it off)
+    pcall(function() watch:setAlarmSet(true); watch:setHour(7); watch:setMinute(0) end)
     hourWas = watch:getHour()
     W.act("setup")
 end)
 step(10, function()
     local h = watch:getHour()
-    check(h == (hourWas + 1) % 24 or (hourWas == 23 and h ~= 23), "60 watch 2: + steps the alarm hour up (" .. hourWas .. " -> " .. h .. ")")
+    check(h == hourWas + 1, "60 watch 2: + steps the alarm hour up (" .. hourWas .. " -> " .. h .. ")")
     W.act("setdn")
 end)
 step(10, function()
     check(watch:getHour() == hourWas, "60 watch 2: - steps it back (" .. watch:getHour() .. ")")
     local armedB = watch:isAlarmSet()
-    W.act("alarm")
+    W.act("alarmtoggle")
     local w = inst()
     say("2: On/off pressed: alarm " .. tostring(armedB) .. " -> " .. tostring(watch:isAlarmSet()) .. " | set mode " .. tostring(w and w._setOpen))
-    check(watch:isAlarmSet() ~= armedB, "60 watch 2: On/off turns the alarm on or off (it " .. ((w and not w._setOpen) and "left set mode instead" or "stayed") .. ")")
+    check(watch:isAlarmSet() ~= armedB and w and w._setOpen, "60 watch 2: On/off switches the alarm and stays in set mode")
+    shot("2_set_toggled")
     if w and not w._setOpen then W.act("set") end   -- (back into set mode for Done)
 end)
 step(10, function()
