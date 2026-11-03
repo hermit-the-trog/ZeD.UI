@@ -126,7 +126,7 @@ function Z.clearAll()
     pcall(function() if ZeD_WorldWindow.closeObjectCard then ZeD_WorldWindow.closeObjectCard() end end)
     for _, obj in ipairs(Z.placed) do
         pcall(function() if obj.isActivated and obj:isActivated() then obj:setActivated(false) end end)
-        pcall(function() local dd = obj:getDeviceData(); if dd then dd:StopPlayMedia(); dd:setIsTurnedOn(false) end end)
+        pcall(function() local dd = obj.getDeviceData and obj:getDeviceData(); if dd then dd:StopPlayMedia(); dd:setIsTurnedOn(false) end end)
         local sq = obj:getSquare()
         if sq then pcall(function() sq:transmitRemoveItemFromSquare(obj) end) end
         pcall(function() if instanceof(obj, "IsoGenerator") then obj:remove() end end)

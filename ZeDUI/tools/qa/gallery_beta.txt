@@ -3,6 +3,7 @@
 zedqa_prelude.lua | pre | timeout=120
 gallery_t14_look.lua | g14l | timeout=60
 gallery_daylight.lua | day | timeout=120
+gallery_console_off.lua | gco | timeout=30
 zedqa_twoway.lua | tw | timeout=900
 gallery_t14_look.lua | g14l2 | timeout=60
 zedqa_gallery_t4.lua | g4 | timeout=240
