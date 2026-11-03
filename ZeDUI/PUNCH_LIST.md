@@ -746,6 +746,7 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
         (2c26b97): the list under the picker is covered edge to edge.
       Not done yet (needs the screen again): the pad and keyboard paths, drag, the right-click menu, the look
       against mockup v2, scrolling 1,500 mods.
+    **Stage 3 separators built (0afb1ac, 8f70121, b828ebb), QA to confirm.** Separators on the Load order
     page (ZeD_MainMenuModsSeps.lua): box, collapse, New separator... / Rename... / Delete separator / Move
     up / Move down with its mods, mods cross a separator one step at a time, Move to separator... in the
     row's menu, a separator off turns its mods off (kept in place, dimmed, back on in place; Undo and Back
@@ -1111,7 +1112,7 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
         car's distance and chunk) in the vehicle scripts, then the rst fixture guarded so a missing building ends the
         script cleanly. The game is closed and the lock free.
 
-43. **Foraging finds: the compass letter is wrong (QA, Nov 1 2026, found while staging the gallery retake).** open.
+43. **Foraging finds: the compass letter is wrong (QA, Nov 1 2026, found while staging the gallery retake).** **[confirmed (QA, Nov 1 2026, the probe; header corrected Nov 2).]** open.
     `ForagingTab.lua`: `angleToBearing` takes a maths angle (0 = east, 90 = north) and reads the COMPASS table from
     N at index 1, so a find due east is labelled N, north-east NE, due north E, and the ring runs the wrong way round
     (N, NE, E, SE... as the angle turns anticlockwise). Seen by reading the code (lines 126-131 and 1302-1304), not yet
@@ -1204,7 +1205,7 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
       the column the script opened was not crate B's ("crate B as a column: true" then "no column for crate B (1
       columns)"), with crate A on show. A rig matter for the next session. 44 is confirmed on every rule the director
       picked except the one-list rule for a column, which no run has exercised yet.
-45. **Reset windows leaves the old tab's pad stops behind (QA, Nov 1 2026, the 720 short run; build's cause).**
+45. **Reset windows leaves the old tab's pad stops behind (QA, Nov 1 2026, the 720 short run; build's cause).** **[confirmed (QA, Nov 1 2026; header corrected Nov 2).]**
     open. wpt at 1280x720 Normal, right after cu: with the Character window on Loot, Right from the container
     strip landed on a Health tab stop ("health:start", the exercise Start button) instead of crossing to the World
     window, and the 22 lines after it fell with it. Cause (build): the runner resets both windows before each
@@ -1220,7 +1221,7 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     ZeD_WorldWindow.syncRing rebuild the stops for the tab on show; ZeD_Window.resetLayout calls both after placing
     the windows. QA to confirm: wpt after cu at 720 Normal (Right from the strip crosses to the World window, lit).
 
-46. **The saved window place keeps the engine's push (QA, Nov 1 2026, the 720 wpt run's cu, first cycle only).** open,
+46. **The saved window place keeps the engine's push (QA, Nov 1 2026, the 720 wpt run's cu, first cycle only).** **[confirmed (QA, Nov 2 2026; header corrected Nov 2).]** open,
     not a t15 blocker. cu straight after the prelude: "cycle1 World saved: got 853.333 want 858.667" (5.3 px at 720;
     the two 720 runs with cu after tww passed it). Cause (build): the World window's layout is also saved about once a
     second while it is open (saveWorldStateThrottled), and while a full-card tab holds the window against the
@@ -1361,7 +1362,7 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
       framing. Large: the main view leans in too and nothing dips. The 1080p desk after the change: every pixel
       outside the monitor's screen is identical to this afternoon's capture (the differences lie inside
       498-1425 x 129-762, the menu window's own content: the save thumbnail, the Last played time, the clock).
-49. **Build and Craft: see what you get before you commit (the director, Nov 1 2026; for t16).** open, the
+49. **Build and Craft: see what you get before you commit (the director, Nov 1 2026; for t16).** **[confirmed (QA, Nov 1 2026; header corrected Nov 2).]** open, the
     director's words: on the Build tab, clicking the picked recipe's icon in the header could show "a preview of the
     tile in-game, and a short description, if there is something like that"; "item stats, like if I'm going to put a
     fence up or a metal fence up, which one can withstand more damage"; "the same would go for crafting: if I add
@@ -1486,7 +1487,7 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
       changes, "or one of 7 others". The run's one logged exception is the test's own (a nil call inside its "several
       results" pcall under -debug), fixed on the rig side. 49 closed on the product side.
 50. **Notebook paper: the lines were not ruled like paper (the director, Nov 1 2026, with four pictures of the real
-    sheet).** fixed (build, Nov 1), QA to confirm. The Notebooks page (the small page in the Journal's Notebooks
+    sheet).** **[confirmed (QA, Nov 1 2026; header corrected Nov 2).]** fixed (build, Nov 1), QA to confirm. The Notebooks page (the small page in the Journal's Notebooks
     sub-tab) and the full page in the reader drew their blue rules only to the right of the red margin, from the
     very top, the margin close to the edge, and the full page ran a red line across the head. Now, as the real
     sheet: the rules run edge to edge through the margin, the red margin runs the page's full height about a
@@ -1530,7 +1531,7 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     - Reply to Turk is waiting on this (drafts with the director: ask for translators, or also offer an AI draft).
 
 52. **The Sandbox page list does not scroll (a Workshop bug report by Kable, Nov 1 2026; the director, Nov 2: "Sandbox scroll
-    fix").** fixed (build, Nov 2), QA to confirm. Kable's picture showed the Sandbox page list cut off; QA confirmed it
+    fix").** **[confirmed (QA, Nov 2 2026; header corrected Nov 2).]** fixed (build, Nov 2), QA to confirm. Kable's picture showed the Sandbox page list cut off; QA confirmed it
     overnight: with 150 mods the Sandbox step has 42 pages, 22 fall below the list and 10 below the screen even at 4K,
     the wheel does nothing, and the bumpers reach the last page but draw it off screen. For a 1,500-mod list most pages
     could not be reached by mouse. Cause: the page list under Find (one function, ZeD_MMOptions.drawPages, shared by
@@ -1567,7 +1568,7 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     scrolled 60 px a notch, 4 s into the hold. The main menu's gap is closed; the in-game scroll with marks and the
     server bumpers stay uncovered.
 
-53. **Immersive Moodles support (QA's compat round 5, Nov 2 2026; the director, Nov 2: "Immersive Moodles").** built
+53. **Immersive Moodles support (QA's compat round 5, Nov 2 2026; the director, Nov 2: "Immersive Moodles").** **[confirmed (QA, Nov 2 2026; header corrected Nov 2).]** built
     (build, Nov 2), QA to confirm. Immersive Moodles (Workshop 3830422267, mod id ImmersiveMoodles, by Krovenox, about
     2,100 subscribers) draws an animated moodle column of its own and parks the game's column off screen every frame;
     ZeD placed the game's column every frame too, so each moodle showed twice, the game's with ZeD's hover note
@@ -1598,7 +1599,7 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     call when the build ships).
 
 54. **Hair and beard: a Kahlua error with round 5's nine mods on (QA's compat round 5, Nov 2 2026; the director, Nov 2:
-    "Yes, hair and beard").** fixed (build, Nov 2), QA to confirm. On the Identity tab, Hair and beard's tool lookup
+    "Yes, hair and beard").** **[parked: a known issue for the beta (68), still being worked on.]** fixed (build, Nov 2), QA to confirm. On the Identity tab, Hair and beard's tool lookup
     (ZeD_HairBeard.lua tools(), from refresh() from layout(), every few frames) asked the game five times for the first
     razor, scissors, gel, spray and hairdo item through getFirstEvalRecurse, handing it a Lua test that the game calls
     back for every item. With the nine mods of round 5 on together the game's Lua engine threw "NullPointerException:
@@ -1687,7 +1688,7 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     action's types at begin, to name which (Hands-On Interactions wraps the transfer action's new and start; Immersive
     Sleep wraps the queue's add and adjustMaxTime).
 
-55. **ZeD steps aside instead of a modular release (the director, Nov 2 2026).** open, an idea for the design pass.
+55. **ZeD steps aside instead of a modular release (the director, Nov 2 2026).** **[confirmed (QA, Nov 2 2026; header corrected Nov 2).]** open, an idea for the design pass.
     A player asked for ZeD to be modular (to use only some of it). The director: "instead of doing a modular release,
     just allow our mod to step aside." What exists: every added feature can be switched off (item 18, the Additions
     presets), and ZeD steps aside by itself for one mod today (Immersive Moodles, item 53: while that mod draws the
@@ -1725,7 +1726,7 @@ lines, the curtain order fluke, PASS alone). **t14 re-staged from 1e64f9f (game 
     second; the later step reopened them fine). Not covered: the game's own inventory windows opened by the I key with
     the windows switch on, the dashboard (no car in the test), the quick wheels and the game's character info by their
     keys; those three were checked by their switch state and console lines only.
-56. **A simple belt (the director, Nov 2 2026: "I want to add simple belt for T16").** Behind the Workshop ask to turn the belt
+56. **A simple belt (the director, Nov 2 2026: "I want to add simple belt for T16").** **[confirmed (QA, Nov 2 2026; header corrected Nov 2).]** Behind the Workshop ask to turn the belt
     off (item 55): give it a simple form, as ZeD already pairs a full and a simple version (the progress bar; the context
     menu strip and the classic menu): one for immersion, one plain. Options and a mockup for the director first.
     **Built (build, Nov 2 2026), QA to confirm.** ZeD setup's HUD group has "Belt: Full | Simple" beside the action
@@ -1866,6 +1867,13 @@ item says so.
     **QA, Nov 2 2026, after the speed-up fix: 36 / 36 (2026-11-02_recheck_60_77_4k_b.md).** Twelve quick notches after a
     pause give 6400 against 200 a notch: the speed-up starts at the 8th notch (7 at 1x, 5 at 5x), one notch sooner than
     build described; told build.
+    **QA, Nov 2 2026: the Simple dashboard on every design at 4K (dash19 with Dashboard on Simple,
+    2026-11-02_pl60_dash_4k.md; pictures for the director qa/Nov2_beta/pl60_simple_dash.png).** All 19 cars draw the
+    plain strip (1400 x 430 to 483 at 4K, bottom centre): Speed, RPM, Fuel, Volts, Temperature, Oil, Gear, Odometer,
+    Clock, Climate; the lamps as status dots; Car, Climate and Radio rows of buttons with the radio's presets; the taxi
+    adds Fare, Extras and Meter; the police car Lightbar and Siren. The police car and the Primani did not start in
+    this run (the strip read Ignition: Start); the clicks, the meter, the siren card, the pad, a passenger and safe
+    mode are still to be checked.
 61. **The Vehicle tab on small screens (the director, Nov 2: undecided, must be decided before the beta).** open.
     - Beside the car figure, Type, Distance and Key show only their labels at small sizes.
     - **QA first:** one small-screen screenshot of the Vehicle tab with the hood open (1280x720 or the Deck,
@@ -2190,4 +2198,7 @@ item says so.
 
 ## Confirmed
 
-(none yet)
+Items QA has confirmed in the game in full (their history stays in place above; Nov 2 2026, build's tidy, item 75):
+2, 3 (one gap: the ham at 1.5), 18, 19, 21, 22, 23, 24, 25, 27, 28, 30, 31, 32, 33, 34, 35, 36 (its first fixes), 37 and
+41 (by script; hand checks open), 39, 40, 42 (its a-f), 43, 44 (but the column rule), 45, 46, 48, 49, 50, 52, 53, 55, 56,
+65, 67, 69, 70, 77. The beta items' states are on each item under "## Beta".

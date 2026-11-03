@@ -1,0 +1,3 @@
+# punch list 62 (Nov 2 2026): one machine-translated language in game; run with lang_run.ps1 -Lang TR | CN | PTBR
+zedqa_prelude.lua | pre | timeout=120
+zedqa_lang.lua | lng | timeout=240
