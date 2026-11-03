@@ -1863,6 +1863,9 @@ item says so.
     reads "Signal Poor", not None; the disc's time runs (0:06 five seconds in). Not yet checked: Stop while the game is
     paused. The fast wheel spin missed its speed-up in two of about seven runs (black radio): intermittent, sent to
     build.
+    **QA, Nov 2 2026, after the speed-up fix: 36 / 36 (2026-11-02_recheck_60_77_4k_b.md).** Twelve quick notches after a
+    pause give 6400 against 200 a notch: the speed-up starts at the 8th notch (7 at 1x, 5 at 5x), one notch sooner than
+    build described; told build.
 61. **The Vehicle tab on small screens (the director, Nov 2: undecided, must be decided before the beta).** open.
     - Beside the car figure, Type, Distance and Key show only their labels at small sizes.
     - **QA first:** one small-screen screenshot of the Vehicle tab with the hood open (1280x720 or the Deck,
@@ -2121,6 +2124,9 @@ item says so.
     machine has setUsesExternalWaterSource(false) (the script's own water switch) yet reports 10000, so the
     both-flags rule does not catch it; sent back to build. The dryer's first 4K picture was blank again (the face not
     drawn when the card had just opened); a picture a second later is to be added to tell loading from a fault.
+    **QA, Nov 2 2026, after the piped fix: 202 / 202, both row fixes confirmed (2026-11-02_recheck_60_77_4k_b.md).** The
+    piped washer reads "Water: On the water pipes"; the plain dryer shows only Inside. The dryer card blank on its first
+    4K frame draws its face a second later (its pictures loading, item 26 rule): not a fault.
 78. **The main menu desk v5: the joystick ports and the KI pad (design, Cowork; the director, Nov 2 2026: "Desk is
     approved").** chosen, staged, not installed (ZeDUI/HANDOFF_main_menu_pad_20261102.md). Two 9-pin joystick ports on
     the case front, 1 and 2, the Kentucky Instruments pad's plug pushed into 1 (its cable out of the back and down), 2
