@@ -993,6 +993,10 @@ local function scaleReadout(r)
     -- a saved step above this screen's cap (picked on a bigger monitor): kept, drawn at the cap
     if stepOff(c, c.selected) then
         local root = ZeD.Scale and ZeD.Scale.root and ZeD.Scale.root() or 1
+        -- a retired step (0.5x) draws at the floor in game; the main menu's own root is no guide to that (QA, Nov 2 2026)
+        if ZeD.Settings and ZeD.Settings.scaleStepRetired and ZeD.Settings.scaleStepRetired(c.selected) then
+            root = (ZeD.Scale and ZeD.Scale.STEP_FLOOR) or 0.75
+        end
         return ZeD.tr("UI_ZeD_Options_ScaleCappedNow", comboText(c, c.selected), scaleText(root))
     end
     return comboText(c, c.selected)
