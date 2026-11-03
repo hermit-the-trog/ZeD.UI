@@ -2321,7 +2321,12 @@ item says so.
     red mark and "Missing" in the list. Not settled: the recipe line. Reading Laine's Auto Manual in the run did not
     make isRecipeActuallyKnown true within the minute waited, so whether the line is right for a real reader is
     unchecked. The test save is back as it was (recipe unknown, the magazine unread; an earlier run had left it
-    marked read, cleared). Item cards' folded rows not looked at (drawMoreRow changed).
+    marked read, cleared). Build: the recipe line stays the game's own rule (vanilla's doMenuTooltip uses the same
+    isRecipeActuallyKnown). **QA, Nov 3 2026: item cards' folded row at 4K and the Deck with Large text**
+    (zedqa_morerow.lua; 2026-11-03_morerow_*.md; picture ZeDUI/qa/review_20261103/pl79/item_card_folded_row.png): a
+    blunt kitchen knife's card wraps "With a whetstone or a file in your bags you could sharpen it." over three lines,
+    the triangle beside the first, nothing over it below. A worn bat and hammer show no folded row (their repair is
+    not offered here). A tin of beans, a log and a cigarette pack have none either (their verbs are not care verbs).
 80. **A Cooking tab: cook dishes the second way (the director, Nov 3 2026).** chosen; after the beta, before the release
     (it adds a feature, so it stays off the beta code freeze).
     - The rule behind it (the director): "I want to give people two ways to do everything." The right-click menu is

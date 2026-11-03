@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/morerow_large.txt  (Nov 3 2026): the folded row on item cards, Large text
+zedqa_prelude.lua | pre | timeout=120
+zedqa_textlarge.lua | txl | timeout=60
+zedqa_morerow.lua | mrw | timeout=240
