@@ -1,0 +1,12 @@
+Loadouts = Kits, Outfits = Tenues, Restock = Réassort, Unpack = Déballer (Hardcore / Casual / Access modes kept in English).
+Full / Simple = Complet / Simple; belt = ceinture; drawer = tiroir; card = fiche; wheel = roue; Safe mode = Mode sans échec.
+"ZeD setup" translated as "Configuration ZeD" everywhere; Survey (map style) = Relevé; presets = préréglages (game word).
+Action bar lines (2-285) use infinitives (ALLUMER, RAMASSER...) because of the 14-char limit; check a few verbs (ACTIONNER for every switch).
+Pixel-face lines (dashboard prompts 607-702, radio strip 2121-2176) are written WITHOUT accents, since the pixel face has only A-Z.
+Hutch = clapier, Foraging = CUEILLETTE, Traits "ladders" = échelles, Build (character build) kept as "build".
+Container search = Fouiller, foraging/stance search = Chercher (game glossary says Chercher).
+Whitelist kept in English (13 letters in French did not fit 12); Weight column Wt = Pds, Poids where it fits.
+"Escape" written Échap; Shift kept as Shift+F10; Mod Uploader = Envoi de mods; Upload = Envoyer.
+Spongie / Skill Recovery Journal items left in English (Transcribe Into Journal, Bound Journal, Scrap Electronics = Déchets électroniques).
+Weekday abbreviations on the LCD: LU MA ME JE VE SA DI; months Jan Fév Mar Avr Mai Juin Juil Août Sep Oct Nov Déc.
+The owner's rough draft (About block) keeps French misspellings (noyeau, grace) on purpose.

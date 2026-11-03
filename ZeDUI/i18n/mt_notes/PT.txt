@@ -1,0 +1,12 @@
+PT-PT made from the PTBR draft (out files hold only changed lines; 1476 of 4267).
+Address: informal "tu" (as the game's PT menus: tens, queres, podes); imperatives "clica / prime / escolhe".
+Action bar: gerund -> "A + infinitive" in capitals (A CARREGAR); "A PÔR" uses Ô (planned pixel glyph), check it draws.
+Done = "Feito" everywhere (fits the 6-letter chip at line 1897); the game says CONCLUÍDO, a checker may prefer that where it fits.
+Tiles = "mosaicos" (game word), sandbox = "Jogo Aberto" (game's JOGO ABERTO), controller = "comando" (game: Selecionar Comando), dashboard = "tablier".
+Zombie kept as "zombie" (game's spelling), "personagem" feminine, "sacos" for bags, "recipiente", "ficheiro", "Definições", "Rato", "Ecrã".
+Foraging = "forragear"; take = "Levar", pick up = "Apanhar", place = "Pousar" (game ContextMenu words).
+Loadouts "Kits", Outfits "Trajes", Restock "Repor", Unpack "Desempacotar" (game ContextMenu_Unpack), Survey "Cadastro" kept, Safe mode "Modo seguro", card "ficha", wheel "roda", belt "cinto", drawer "gaveta".
+Weekday chips (SX SG SA DO QI TE QA) were left as in PTBR; SA for sábado may want SB.
+Cruise "Piloto" and 2-way "rádios de comunicação" left as in PTBR; Meter (taxi) left "Medidor" (limit).
+Presets kept as "Presets" at 14 letters (Predefinições does not fit); "Link" kept as the loanword.
+Chip texts near their limit (CORT. CABELO, A VER ARMAD., REM. REMENDO, Cast. escuro, Transf. na fila) are the ones to eyeball on screen.

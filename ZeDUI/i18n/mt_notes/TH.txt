@@ -1,0 +1,18 @@
+TH notes for the native checker
+Loadouts = ชุดอุปกรณ์; Outfits = ชุดเสื้อผ้า (game's outfit is ชุด); Restock = เติมของ; Unpack = แกะของ.
+Survey = สำรวจ; Full / Simple = แบบเต็ม / แบบง่าย; belt = เข็มขัด; drawer = ลิ้นชัก; card = การ์ด; wheel = วงล้อ; Safe mode = โหมดปลอดภัย.
+Chord (bumper + button) = ปุ่มลัด; Quick actions = การกระทำด่วน; preset = พรีเซ็ต; build (trait build) = บิลด์.
+Kept in English: Vanilla / Vanilla Plus / Vanilla Access / Plus / Access / Custom (preset names), ZeD picks, compass letters, AM/PM, SIG, VOL, AL / AL OFF, A/C.
+Hardcore / Casual restock modes = ฮาร์ดคอร์ / สบายๆ; Verbose = ละเอียด.
+Pixel-face caps lines: Thai stays inside `longest`, measured by visible width (tone marks and vowels above/below do not count).
+Short body-part and slot columns (Cond, Wt, Dist, Bul, Scr) use very short Thai words; check they read right.
+Fuel tag in the recipe row (597) is เพลิง (6 max); probably should be เชื้อไฟ if there is room.
+About text (1408) is a deliberately messy rant: misspellings (เคอเนล, อัพ) and run-ons are on purpose.
+Sandbox setting names in the help bands follow the game's Thai names where known; the rest are my own wording.
+Dates: month names abbreviated Thai (ม.ค.), main menu ones without the final dot (limit 4).
+Weekday codes on the watch are จ. อ. พ. พฤ ศ. ส. อา (2 max).
+Address form: plain คุณ, no ครับ/ค่ะ.
+
+Proofread (Fable, 166 fixes) left for a checker: F / M as ม / ผ (limit 2); the Fuel tag ฟืน (6) vs เชื้อเพลิง (8);
+stubble ตอเครา / ตอผม; erosion ความรกร้าง; dashboard Signal สัญญาณ (may be the turn signal); the Loot tab หยิบของ;
+the doll view ตุ๊กตา; the LCD weekday codes.

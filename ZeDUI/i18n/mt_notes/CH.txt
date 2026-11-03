@@ -1,0 +1,17 @@
+CH (Traditional Chinese, Taiwan usage) notes for the native checker
+Loadouts = 配裝, Outfits = 服裝 (the game's word), Restock = 補貨, Unpack = 歸位, Survey = 測繪, Safe mode = 安全模式.
+Full / Simple = 完整 / 簡易; Verbose = 詳細. The belt = 腰帶, the drawer = 抽屜, the card = 卡片, the wheel = 輪盤.
+Crafting action verbs and the Craft tab use 合成 (the game's own word); 製作 only appears in 製作名單 (credits) and where the English says made/built.
+Moodles = 情緒圖示 and sandbox setting names (斷水時間, 殭屍數量, 物品重新整理小時數...) follow the game's Sandbox.json so players can find them.
+Workshop = 工作坊 in prose; Steam stays Steam. Mod profile = 設定檔. Pin (load order) = 釘選; Pin (skills, map tools) = 釘選 too.
+Hutch = 畜欄 and hatch door = 孵化門 (game words). Trunk = 後備箱 (game word). Dashboard = 儀表板.
+Line 1408 (the prepper's About text) keeps deliberate typos: 內和 (kernel), 切聽, 破部不了. Check it reads as rough and human, not as a real error.
+Date lines: month names are "4月" style numerals, order 年 月 日 as in Taiwan; line 717/1444 expect %1 to be the numeral month.
+Units kept as the English writes them: kg, L, ml, km, m, psi, cal, MHz; hour/minute words are written out (小時, 分鐘).
+Pixel-face lines (radio and dashboard readouts, action bar) are in Chinese at the English's length limit; check they fit the face.
+SELECT button (2697) is 選擇; please confirm Taiwan players call it that on the controller.
+Doubtful: 網戀詐騙 (Catfish), 烘焙義賣, 迪克西木屋, 巫師城堡 (poster story names, no game word); 暴雷 (Spoiler block); 3 other sandbox names not in the game file are my own wording (e.g. 末日後的月數).
+
+Proofread (Fable, 115 fixes) left for a checker: SELECT = 選擇 (pad button name); radio brand-bar words and every
+pixel-face line on screen; item and skill names not checked against the game's CH file: 電工, 電子廢料, 耕作, 小鏟,
+密碼鎖 / 掛鎖, 斯皮福; PAINTING 粉刷 vs PLASTERING 抹灰 (Taiwan may say 上漆 / 批土); "One wash" = 一抹.

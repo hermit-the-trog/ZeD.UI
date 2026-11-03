@@ -1,0 +1,13 @@
+Address: neutral "Anda" (game menus are neutral; its tutorial text uses kamu, not copied).
+Loadouts = "Loadout" (kept English); Outfits = "Set pakaian"; Restock = "Isi Ulang"; Unpack = "Buka Kemasan" (game glossary).
+Survey = "Survei"; Full / Simple = "Penuh" / "Sederhana"; Verbose = "Rinci"; Safe mode = "Mode Aman".
+Hardcore / Casual / Access = "Hardcore" / "Kasual" / "Access"; Vanilla, Vanilla Plus, Vanilla Access kept as names.
+belt = "sabuk" (game word); drawer = "laci"; card = "kartu"; wheel = "roda"; chord = "kombinasi".
+Game loanwords kept as the game does: tile, trait, skill, Loot, Mod, Build, moodle, Sandbox.
+Action bar verbs are in the "MEN-" form in capitals; some shortened to fit 14 (CEK JARING, AMBIL BBM, PASANG JEBAKAN).
+Fuel/BBM used on tight labels (Bahan bakar elsewhere); "Klep" used for the hutch egg hatch.
+Months: Agu, Des, Mei, Okt; weekdays on the watch: JU SE SA MI KA SL RB; compass: T U TL BL S TG BD B.
+Quick-action chord = "kombinasi tombol" wording; check it reads naturally.
+Slot abbreviations (Srg, Dlm, Clna, Utm, Syl, Ked, Bwh, Prgl, Pel, Gor) are guesses; fit tiny columns.
+The owner's rough draft (About block) keeps run-ons and a few spelling slips on purpose ("kernal", "ngebobol").
+Sandbox setting names reuse the game's own ID names where I found them (Saluran Air Mati, Listrik Padam, Jam untuk Respawn Loot).

@@ -1,0 +1,18 @@
+Loadouts = Комплекты, Outfits = Наряды (game's "Наряд"), Restock = Пополнить, Unpack = Разложить, Survey (map style) = Съёмка.
+Full / Simple = Полная / Простая; belt = Ремень; drawer = ящик (a native checker may prefer another word); card = карточка; wheel = колесо; Safe mode = Безопасный режим.
+Preset names kept in English as the brief says: Vanilla, Vanilla Plus, Vanilla Access, Plus, Access, Custom, and the Restock modes Hardcore, Casual, Access.
+Action bar (pixel face, 14 max): verbal nouns in Cyrillic capitals (СНЯТИЕ, РЕМОНТ); Ё written as Е; some are clipped (УСТ. БАЛЛОНА, УСТ. ЛОВУШКИ). The pixel face may lack Cyrillic.
+Counts follow the "Предметов: %1" pattern; where the number leads (%1 день, %1 мод) the line is the singular-only variant, and "%1 изм." abbreviates "changes".
+Dashboard and radio pixel-face lines are shortened (ГРМ, СИГН, ПРД ОК, КАН, ДОР); native check wanted.
+D-pad is "Крест. Выбор" (the game's word is Крестовина); Esc, Ctrl+Up and similar key names left in English.
+Sentences use the formal "вы", as the game does. "Needs X" lines use "Нужно: X" so the nominative stays correct after placeholders.
+Moodles = значки состояний (game: "значки состояний (мудлы)"). Craft tab = Создание (the game itself says "крафт" in places).
+Weather/season/compass: compass letters В С СВ СЗ Ю ЮВ ЮЗ З; dates keep the "%1 %2, %3" shape with the game's month names.
+The About text (line 1408) is a deliberate rough draft with misspellings (безопастный, кернал); check it reads as the prepper's voice.
+Fuel gauge E/F became 0/П. AM/PM left as AM/PM (12-hour clock lines).
+Sandbox help texts name vanilla options with the game's RU labels where known (Макс. появления новых предметов, Месяцев с начала апокалипсиса); other names may differ.
+Hair colour words (Тёмный шатен, Рыжеватый) and the genetics trait badges are the least certain wording.
+
+Proofread (Fable, 132 fixes) left for a checker: Farming skill = Земледелие (the game may say Фермерство); Papers
+tab Бумаги; "отошёл в сторону" for Safe mode; Допы for taxi Extras; Отбеливатель / Электронный лом / Точильный
+камень; "Создать игру" for Host; ЗВОНОК for the watch alarm; the full-month date order.
