@@ -2297,9 +2297,10 @@ item says so.
     - What: built like ZeD's Crafting tab, the same two-column layout and the same way of working, so it is consistent
       and predictable: it lists the ingredients, and a dish is built from scratch there.
     - Saved recipes: a dish can be saved there to make again.
-    - Making several (the director, Nov 3 2026): a saved dish can be made in multiples, with a minus and plus button
-      and a count beside Build ("Otherwise, people will just ask for it anyway"). E.g. a burger recipe with ingredients
-      in reach for five: set 5, Build. The count goes no higher than the ingredients and vessels in reach allow, and each
+    - Making several (the director, Nov 3 2026): any dish can be made in multiples, saved or not. Once the
+      ingredients are picked, the tab checks what is in the inventory and in reach; when there is enough for more than
+      one (ingredients and vessels: e.g. four bowls), a minus and plus button and a count show beside Build, set 3, Build
+      ("Otherwise, people will just ask for it anyway"). The count goes no higher than what is there allows, and each
       dish is made by the game's own steps (the same as the Crafting tab's batch count).
     - Sorting: by ingredient, and by kind (condiments and spices and the like).
     - The game's rules stay: the same ingredient limits per pot, pan, bowl and dish, the same results as adding them by
