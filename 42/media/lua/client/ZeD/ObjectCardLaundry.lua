@@ -267,6 +267,8 @@ local function plateState(t, d)
     st.waterMeter = d.powered and w or 0     -- (the meter: dark without power; the drum keeps `water`)
     st.noWater = d.washMode and not d.hasWater
     st.hasItems = d.n > 0
+    st.waterLoad = st.hasItems and w or 0    -- (the top-loader's water among the clothes: its `soak` pictures)
+    st.waterBare = (not st.hasItems) and w or 0   -- (and in the empty tub: its `water` pictures)
     st.modeWash = d.combo and d.washMode
     st.modeDry = d.combo and not d.washMode
     clockState(t, d, st)
