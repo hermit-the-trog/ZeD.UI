@@ -13,7 +13,13 @@ washer-dryer; desk v5 with the Kentucky Instruments pad; ZeD-GUI's version in Ab
 QA's full pre-release pass, on the frozen build: the five-minute release check passed all 16 checks, and the full
 4K run passed 97 of 99 scripts with no failures and no ZeD errors in the game's log. The two warnings are the same two
 as at t16, and both are faults in the tests, not in ZeD: one still expects the old quick use on a held A, and one
-times a car's key start a little differently each run. **(The rest of the pass: filled in when it reports.)**
+times a car's key start a little differently each run. The rest of the pass was clean too: every page on Simple, save
+and reload, the Steam Deck and 720p, the three new languages, the main menu, and a census of all 481 controller stops
+with no dead buttons. It found two real faults, both fixed and checked again in the game before staging: the Simple
+belt slid every slot sideways when a second item went into the off hand, and in Brazilian Portuguese the off-hand
+circle cut its word short ("Secundári."; it now reads "Secund.").
+
+**The release candidate is staged and ready to upload**, at the build QA passed. Nothing has gone up.
 
 The gallery is ready: 63 pictures in `ZeDUI/workshop/gallery/upload/`, the cover, the title page and 61 chapters.
 
@@ -38,9 +44,9 @@ redraw it.
 ## What is left for you
 
 1. **Say yes to the upload.** Nothing goes up without you.
-2. **Upload** from the game's Workshop screen (or ZeD's upload window). It is staged under the new title "ZeD-GUI
-   [BETA]" with the yellow-strip book as the thumbnail, the beta page text and the change note. Set it to **Public** in
-   the upload window (staging keeps the item's current visibility).
+2. **Upload** from the desk's Mod Uploader. It is staged under the new title "ZeD-GUI [BETA]" with
+   the yellow-strip book as the thumbnail, the beta page text and the change note, and the item is already set to
+   **Public**. Until the upload, the game loads the staged copy; it is the same build, so playing is fine.
 3. **The gallery pictures** listed above, on the item's page.
 4. **Post the translations announcement** in the Translations thread: the text is ready in
    `ZeDUI/workshop/steam_threads/translations_beta_post.txt` (a new top section for the first post, and a reply).
@@ -54,9 +60,14 @@ After you upload, I tag the build, refresh the D: backup and clear the staged co
 
 ## Known issues on the page
 
-Hair and beard with some large mod lists can stop with a game error; multiplayer is untested; the three new
-languages are machine drafts. These are listed first on the beta's page.
+Hair and beard with some large mod lists can stop with a game error; multiplayer is untested; This Is Your Life
+is new and not yet played through with that mod on; the three new languages are machine drafts. These are listed first on the beta's page.
 
 ## Not seen in the game yet
 
-(filled in from QA's pass)
+- **This Is Your Life with the mod itself turned on:** ZeD's hometown and poster-story pages are built, but nobody has
+  started a new game through them with that mod running. With the mod off nothing of it shows. I added a line about it
+  under Known issues on the page, so testers who use it know to report.
+- **Multiplayer:** not tested (it is on the page as a known issue).
+- A few of QA's own tests still miss things a picture shows are fine (four folding sections, one sandbox page); QA
+  looked at each picture.
