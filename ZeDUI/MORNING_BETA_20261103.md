@@ -57,7 +57,7 @@ redraw it.
 
 **Changed Nov 3 morning, at your word:** the thumbnail is now 512 x 512. The game's uploader takes a square picture of
 256 or 512 (only ZeD's own upload page held it to 256), so the book cover is staged with every pixel doubled and Steam
-draws it sharp wherever it shows it bigger than 256. Both changes are staged; QA checks them before you upload.
+draws it sharp wherever it shows it bigger than 256. Both changes are staged, and QA checked them on the staged copy: the release check passed all 16, the menu shows "Op", and the upload page shows the 512 picture with a green dot.
 
 After you upload, I tag the build, refresh the D: backup and clear the staged copy.
 
