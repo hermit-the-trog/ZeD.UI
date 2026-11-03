@@ -32,15 +32,15 @@ time, and agree what "beta" means (section 4). Then write the handback (section 
 
 ## 2. Where things stand
 
-- **t16:**
-  - It is staged and passed every pre-upload check. The full 4K run passed 97 of 99, and the short Deck and 720p
-    runs passed 4 of 5 each.
-  - The only warnings are two known slips in the tests, not the mod.
-  - The version reads 0.2.0-t16 in the mod list, and the page text is the t16 copy.
+- **t16 is live.**
+  - The director uploaded it on Nov 2 2026.
+  - It is tagged v0.2.0-t16 and backed up to D:, and the staged copy is removed. Nothing about t16 is waiting.
+  - Before upload it passed every check. The full 4K run passed 97 of 99, the short Deck and 720p runs passed 4 of 5
+    each, and the only warnings were two known slips in the tests.
   - The director's new name and look wording is in the mod description, the README, the Workshop text and the
     GitHub blurb.
-  - **Not uploaded yet**: the director presses Upload. After it, the build session tags the build, backs it up to
-    D:, pushes and removes the staged copy.
+- **The Workshop comments are all answered.** The director replied to every comment on Nov 2, including Kable,
+  LZV-R5 and the Turkish player.
 - **The Compatibility thread** was posted today, with Immersive Moodles listed as Supported from t16.
 - **The punch list's state, item by item:** see section 6, written from a full audit tonight.
 
@@ -87,7 +87,7 @@ Players ask for languages the director can't read; the most recent is a Turkish 
   Simplified Chinese, the two asked for, and see whether checkers turn up before drafting the other 26.
 - (c) After the beta.
 
-**Recommendation: (b) as a small pilot.** The reply to the Turkish player waits on this answer.
+**Recommendation: (b) as a small pilot.** The Turkish player has already had a reply from the director.
 
 **3.6 Three other mods** (QA's round-five notes).
 - **Ente's Auto Sorter** puts its button bar over ZeD's belt.
@@ -148,16 +148,8 @@ actions.
 - The About paragraph in ZeD's desk menu was changed on Nov 1, not by the build session. Was that the director's
   edit, and is it kept?
 
-**3.12 Replies waiting to be posted** (after the t16 upload; the director approves each one before it is posted).
-- **Kable** (the Sandbox page list): "Thanks for the report and the picture. Confirmed: with a long mod list the
-  Sandbox page list ran past the window and the wheel did not scroll it. Fixed in 0.2.0-t16: the list scrolls with the
-  wheel and follows the controller's page."
-- **LZV-R5** (asked for a modular ZeD): "Thanks, and good idea. In 0.2.0-t16, Safe mode in ZeD setup can hand one
-  screen at a time back to the game: the inventory windows, the belt, the watch, the dashboard, the moodles, the quick
-  wheels and character info, each with its own switch, the rest of ZeD-GUI kept. And if it was the belt's look you
-  wanted gone, the HUD settings now have a Simple belt: the same slots with no strap or buckle."
-- **Turk** (asked for Turkish): waits on question 3.5.
-- **The Discord note** for t16: the change note, ask first.
+**3.12 The Discord note for t16.** The Workshop replies are done. Should a Discord note with the t16 change note go
+out too, and has it already?
 
 ## 4. What "beta" means: Claude's proposed definition (for the director to agree or change)
 
@@ -199,7 +191,7 @@ When the conversation is done, write `ZeDUI/BETA_DECISIONS.md` in the repo
 - each question's answer, in the director's words where possible, with the date
 - the agreed beta definition
 - anything the director added
-- which replies may be posted
+- whether the Discord note for t16 goes out
 
 Then commit only that file and push. The checkout is shared with the build and QA sessions, so never stash, check
 out, pull with autostash or touch other files.
@@ -259,7 +251,7 @@ The 720p vehicle test rig is fixed too.
 - The controller map (3.8).
 - The Hair and beard error (3.9).
 - The beta's name and place (3.10).
-- The replies (3.12).
+- The Discord note (3.12).
 - Three small confirmations (3.11).
 
 ### Build work known now (before the director's answers add more)
