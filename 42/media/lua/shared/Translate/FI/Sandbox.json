@@ -1,0 +1,11 @@
+{
+    "Sandbox_ZeD": "ZeD-GUI",
+    "Sandbox_ZeD_TaxiFlagDrop": "Taksimittari: lähtömaksu",
+    "Sandbox_ZeD_TaxiFlagDrop_tooltip": "Taksimittarin näyttämä dollarimäärä, kun kuljettaja vetää lipun alas.",
+    "Sandbox_ZeD_TaxiPerFifthMile": "Taksimittari: per 1/5 mailia",
+    "Sandbox_ZeD_TaxiPerFifthMile_tooltip": "Mittarin lisäämä dollarimäärä jokaista lipun ollessa alhaalla ajettua mailin viidennestä kohden.",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting": "Taksimittari: per odotusminuutti",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting_tooltip": "Mittarin lisäämä dollarimäärä jokaista reaaliaikaista minuuttia kohden, jonka taksi odottaa (alle 5 km/h, moottori käy) lipun ollessa alhaalla.",
+    "Sandbox_ZeD_TaxiPerExtraPassenger": "Taksimittari: per lisämatkustaja",
+    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "LISÄT-kohdassa näytettävä dollarimäärä jokaista ensimmäisen jälkeistä matkustajaa kohden. Kuljettajaa ei lasketa."
+}
