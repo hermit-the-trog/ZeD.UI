@@ -2071,7 +2071,8 @@ item says so.
     **changes.** The context menu: options with no icon show Qa, Op, Wx (a capital, then a small letter), drawn by
     ZeD, all 4 PASS (zedqa_ctx_letters.lua). Turkish not settled: names with letters past A-Z typed into the test
     script showed Ek and 0i, but the script file itself may be read in the wrong encoding, so this says nothing about
-    the game's real Turkish text; no Turkish run was made. The Workshop page on ZeD-UI: the 512 x 512 picture, a green
+    the game's real Turkish text; no Turkish run was made. Build settled it from the game's code: Kahlua's %w is
+    Java's isLowerCase / isUpperCase / isDigit, so Ç and İ survive the strip, and ZeD.upper handles the Turkish i. The Workshop page on ZeD-UI: the 512 x 512 picture, a green
     dot and "512 x 512: a size the game takes. It must stay under 1000 KB.", nothing blocking the upload, all 5 PASS
     (zedqa_ws_preview.lua through ws_preview_run.ps1; Upload never pressed). The change note box is off the form's
     first screen (the long note makes it tall; it shows once the form is scrolled), as designed. Bridge copied in for
