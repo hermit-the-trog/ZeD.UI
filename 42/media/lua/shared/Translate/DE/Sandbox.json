@@ -1,0 +1,11 @@
+{
+    "Sandbox_ZeD": "ZeD-GUI",
+    "Sandbox_ZeD_TaxiFlagDrop": "Taxameter: Grundgebühr",
+    "Sandbox_ZeD_TaxiFlagDrop_tooltip": "Dollar, die das Taxameter anzeigt, wenn der Fahrer die Flagge herunterzieht.",
+    "Sandbox_ZeD_TaxiPerFifthMile": "Taxameter: pro 1/5 Meile",
+    "Sandbox_ZeD_TaxiPerFifthMile_tooltip": "Dollar, die das Taxameter für jede gefahrene Fünftelmeile bei heruntergezogener Flagge addiert.",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting": "Taxameter: pro Wartezeit-Minute",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting_tooltip": "Dollar, die das Taxameter für jede Minute Echtzeit addiert, die das Taxi wartet (unter 5 km/h, Motor läuft), bei heruntergezogener Flagge.",
+    "Sandbox_ZeD_TaxiPerExtraPassenger": "Taxameter: pro zusätzlichem Fahrgast",
+    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "Dollar, die unter EXTRAS für jeden Fahrgast nach dem ersten angezeigt werden. Der Fahrer zählt nicht."
+}
