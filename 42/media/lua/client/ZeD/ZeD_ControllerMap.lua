@@ -172,6 +172,13 @@ end
 
 function ZeD_ControllerMap:render() ZeD_Window.render(self) end
 
+-- always solid (QA, Nov 2 2026: the game showed through the table's words): a page to read, whatever See-through says
+function ZeD_ControllerMap:_surfaceAlpha(T)
+    local base = (T.surf1 and T.surf1.a) or 1
+    if base >= 0.999 then return nil end
+    return 1
+end
+
 function ZeD_ControllerMap:getFooterPrompts()
     if not self.joyfocus then return nil end
     local out = {}
