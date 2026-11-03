@@ -1,0 +1,505 @@
+Translators wanted: posts for the Workshop discussions (Nov 3 2026)
+One post per language. The Turkish, Chinese and Portuguese posts are themselves machine translations of the English;
+a native speaker who answers can correct them too.
+
+========================================================================================================
+ENGLISH
+========================================================================================================
+Title: Translators wanted: Turkish, Chinese (Simplified), Portuguese (Brazil)
+
+ZeD-GUI comes in three languages that are machine translations: Turkish, Simplified Chinese and Brazilian Portuguese. No native speaker has checked them yet. In the game's language list they are marked "(machine translation, ZeD-GUI)".
+
+I'm looking for native speakers to check them and correct what is wrong.
+
+How to help
+- Set the game to your language and play with ZeD-GUI on.
+- Post in this thread what reads wrong, is cut off or is not translated: what the screen says and what it should say. A screenshot helps.
+- Or work in the file: ZeD's text is in 42/media/lua/shared/Translate/<language>/UI.json in the source code (linked at the bottom of the mod page), about 4,200 lines.
+- Only ZeD's own text needs checking. Words the game already translates come from the game.
+
+Credit
+Everyone who helps is named in the credits on the Workshop page, with the language they worked on. Tell me the name you want used.
+
+========================================================================================================
+TÜRKÇE
+========================================================================================================
+Başlık: Çevirmen aranıyor: Türkçe
+
+ZeD-GUI'nin Türkçesi makine çevirisidir ve henüz anadili Türkçe olan biri tarafından kontrol edilmedi. Oyunun dil listesinde "(makine çevirisi, ZeD-GUI)" olarak işaretlidir.
+
+Çeviriyi kontrol edip hataları düzeltecek, anadili Türkçe olan oyuncular arıyorum.
+
+Nasıl yardım edebilirsiniz
+- Oyunu Türkçeye ayarlayın ve ZeD-GUI açıkken oynayın.
+- Yanlış okunan, kesilen ya da çevrilmemiş metinleri bu konuya yazın: ekranda ne yazıyor ve ne yazması gerekiyor. Ekran görüntüsü çok işe yarar.
+- Ya da doğrudan dosya üzerinde çalışın: ZeD'in metinleri kaynak kodda 42/media/lua/shared/Translate/TR/UI.json dosyasındadır (bağlantı mod sayfasının en altında), yaklaşık 4.200 satır.
+- Yalnızca ZeD'in kendi metinlerinin kontrol edilmesi gerekiyor. Oyunun zaten çevirdiği sözcükler oyundan gelir.
+
+Teşekkür
+Yardım eden herkesin adı, çalıştığı dille birlikte Workshop sayfasındaki teşekkürler bölümünde yer alır. Hangi adın kullanılmasını istediğinizi yazın.
+
+========================================================================================================
+简体中文
+========================================================================================================
+标题：招募译者：简体中文
+
+ZeD-GUI 的简体中文是机器翻译，目前还没有母语者校对过。在游戏的语言列表中，它标注为"（机器翻译，ZeD-GUI）"。
+
+我在寻找以中文为母语的玩家来检查译文并改正错误。
+
+如何帮忙
+- 把游戏语言设为简体中文，开启 ZeD-GUI 进行游戏。
+- 在本帖中写下读起来不对、显示被截断或没有翻译的文字：屏幕上显示的是什么，应该是什么。附上截图会很有帮助。
+- 也可以直接修改文件：ZeD 的文字在源代码的 42/media/lua/shared/Translate/CN/UI.json 中（链接在模组页面底部），大约 4,200 行。
+- 只需检查 ZeD 自己的文字。游戏本身已经翻译的词语来自游戏。
+
+致谢
+每位帮忙的人都会和所负责的语言一起列在创意工坊页面的致谢中。请告诉我您希望使用的名字。
+
+========================================================================================================
+PORTUGUÊS (BRASIL)
+========================================================================================================
+Título: Procuram-se tradutores: português do Brasil
+
+O português do Brasil do ZeD-GUI é uma tradução automática e ainda não foi revisado por um falante nativo. Na lista de idiomas do jogo ele aparece marcado como "(tradução automática, ZeD-GUI)".
+
+Procuro falantes nativos para revisar a tradução e corrigir o que estiver errado.
+
+Como ajudar
+- Coloque o jogo em português do Brasil e jogue com o ZeD-GUI ativado.
+- Escreva neste tópico o que está estranho, cortado ou sem tradução: o que aparece na tela e o que deveria aparecer. Uma captura de tela ajuda muito.
+- Ou trabalhe direto no arquivo: os textos do ZeD estão em 42/media/lua/shared/Translate/PTBR/UI.json no código-fonte (link no fim da página do mod), cerca de 4.200 linhas.
+- Só os textos do próprio ZeD precisam de revisão. As palavras que o jogo já traduz vêm do jogo.
+
+Créditos
+Todos que ajudarem serão citados nos créditos da página da Workshop, junto com o idioma em que trabalharam. Diga qual nome você quer que seja usado.
+
+########################################################################################################
+THE GAME'S OTHER LANGUAGES (Nov 3 2026): ZeD has no translation in these yet; its own text shows in English.
+These posts ask for a translation, not a check. Strewberrie (the game's joke language) left out.
+########################################################################################################
+
+========================================================================================================
+ENGLISH (the master for the posts below)
+========================================================================================================
+Title: Translators wanted: <language>
+
+ZeD-GUI isn't translated into <language> yet. Its own text shows in English; words the game already translates show in <language>.
+
+I'm looking for native speakers to translate it.
+
+How to help
+- ZeD's text is in 42/media/lua/shared/Translate/EN/UI.json in the source code (linked at the bottom of the mod page), about 4,200 lines. Translate a copy and post a link to it in this thread.
+- Or start small: post here the words you see most (the window names, the tabs, the buttons) with their translation.
+- Only ZeD's own text needs translating.
+
+Credit
+Everyone who helps is named in the credits on the Workshop page, with the language they worked on. Tell me the name you want used.
+
+========================================================================================================
+ESPAÑOL (ESPAÑA)
+========================================================================================================
+Título: Se buscan traductores: español (España)
+
+ZeD-GUI todavía no está traducido al español. Sus propios textos aparecen en inglés; las palabras que el juego ya traduce aparecen en español.
+
+Busco hablantes nativos que quieran traducirlo.
+
+Cómo ayudar
+- Los textos de ZeD están en 42/media/lua/shared/Translate/EN/UI.json en el código fuente (enlace al final de la página del mod), unas 4.200 líneas. Traduce una copia y publica un enlace en este hilo.
+- O empieza por algo pequeño: publica aquí las palabras que más se ven (los nombres de las ventanas, las pestañas, los botones) con su traducción.
+- Solo hay que traducir los textos propios de ZeD.
+
+Créditos
+Todas las personas que ayuden aparecerán en los créditos de la página del Workshop, junto con el idioma en el que trabajaron. Dime qué nombre quieres que use.
+
+========================================================================================================
+ESPAÑOL (MÉXICO)
+========================================================================================================
+Título: Se buscan traductores: español (México)
+
+ZeD-GUI todavía no está traducido al español de México. Sus propios textos aparecen en inglés; las palabras que el juego ya traduce aparecen en español.
+
+Busco hablantes nativos que quieran traducirlo.
+
+Cómo ayudar
+- Los textos de ZeD están en 42/media/lua/shared/Translate/EN/UI.json en el código fuente (liga al final de la página del mod), unas 4,200 líneas. Traduce una copia y publica una liga en este hilo.
+- O empieza con algo pequeño: publica aquí las palabras que más se ven (los nombres de las ventanas, las pestañas, los botones) con su traducción.
+- Solo hay que traducir los textos propios de ZeD.
+
+Créditos
+Todas las personas que ayuden aparecerán en los créditos de la página del Workshop, junto con el idioma en el que trabajaron. Dime qué nombre quieres que use.
+
+========================================================================================================
+ESPAÑOL (ARGENTINA)
+========================================================================================================
+Título: Se buscan traductores: español (Argentina)
+
+ZeD-GUI todavía no está traducido al español de Argentina. Sus propios textos aparecen en inglés; las palabras que el juego ya traduce aparecen en español.
+
+Busco hablantes nativos que quieran traducirlo.
+
+Cómo ayudar
+- Los textos de ZeD están en 42/media/lua/shared/Translate/EN/UI.json en el código fuente (link al final de la página del mod), unas 4.200 líneas. Traducí una copia y publicá un link en este hilo.
+- O empezá por algo chico: publicá acá las palabras que más se ven (los nombres de las ventanas, las pestañas, los botones) con su traducción.
+- Solo hay que traducir los textos propios de ZeD.
+
+Créditos
+Todas las personas que ayuden van a figurar en los créditos de la página del Workshop, junto con el idioma en el que trabajaron. Decime qué nombre querés que use.
+
+========================================================================================================
+ESPAÑOL (CHILE)
+========================================================================================================
+Título: Se buscan traductores: español (Chile)
+
+ZeD-GUI todavía no está traducido al español de Chile. Sus propios textos aparecen en inglés; las palabras que el juego ya traduce aparecen en español.
+
+Busco hablantes nativos que quieran traducirlo.
+
+Cómo ayudar
+- Los textos de ZeD están en 42/media/lua/shared/Translate/EN/UI.json en el código fuente (link al final de la página del mod), unas 4.200 líneas. Traduce una copia y publica un link en este hilo.
+- O parte por algo chico: publica aquí las palabras que más se ven (los nombres de las ventanas, las pestañas, los botones) con su traducción.
+- Solo hay que traducir los textos propios de ZeD.
+
+Créditos
+Todas las personas que ayuden aparecerán en los créditos de la página del Workshop, junto con el idioma en el que trabajaron. Dime qué nombre quieres que use.
+
+========================================================================================================
+PORTUGUÊS (PORTUGAL)
+========================================================================================================
+Título: Procuram-se tradutores: português (Portugal)
+
+O ZeD-GUI ainda não está traduzido para português europeu. Os seus próprios textos aparecem em inglês; as palavras que o jogo já traduz aparecem em português.
+
+Procuro falantes nativos que o queiram traduzir.
+
+Como ajudar
+- Os textos do ZeD estão em 42/media/lua/shared/Translate/EN/UI.json no código-fonte (ligação no fim da página do mod), cerca de 4.200 linhas. Traduza uma cópia e publique uma ligação neste tópico.
+- Ou comece por pouco: publique aqui as palavras que mais se veem (os nomes das janelas, os separadores, os botões) com a respetiva tradução.
+- Só é preciso traduzir os textos do próprio ZeD.
+
+Créditos
+Todas as pessoas que ajudarem serão referidas nos créditos da página do Workshop, com o idioma em que trabalharam. Diga-me que nome quer que seja usado.
+
+========================================================================================================
+FRANÇAIS
+========================================================================================================
+Titre : Traducteurs recherchés : français
+
+ZeD-GUI n'est pas encore traduit en français. Ses propres textes s'affichent en anglais ; les mots que le jeu traduit déjà s'affichent en français.
+
+Je cherche des locuteurs natifs pour le traduire.
+
+Comment aider
+- Les textes de ZeD se trouvent dans 42/media/lua/shared/Translate/EN/UI.json dans le code source (lien en bas de la page du mod), environ 4 200 lignes. Traduisez une copie et postez un lien dans ce sujet.
+- Ou commencez petit : postez ici les mots que l'on voit le plus (les noms des fenêtres, les onglets, les boutons) avec leur traduction.
+- Seuls les textes propres à ZeD sont à traduire.
+
+Remerciements
+Chaque personne qui aide est citée dans les remerciements de la page Workshop, avec la langue sur laquelle elle a travaillé. Dites-moi quel nom vous voulez voir apparaître.
+
+========================================================================================================
+DEUTSCH
+========================================================================================================
+Titel: Übersetzer gesucht: Deutsch
+
+ZeD-GUI ist noch nicht ins Deutsche übersetzt. Seine eigenen Texte erscheinen auf Englisch; Wörter, die das Spiel schon übersetzt, erscheinen auf Deutsch.
+
+Ich suche Muttersprachler, die es übersetzen.
+
+So kannst du helfen
+- Die Texte von ZeD stehen im Quellcode in 42/media/lua/shared/Translate/EN/UI.json (Link unten auf der Mod-Seite), etwa 4.200 Zeilen. Übersetze eine Kopie und poste einen Link in diesem Thread.
+- Oder fang klein an: poste hier die Wörter, die man am häufigsten sieht (Fensternamen, Reiter, Schaltflächen), mit ihrer Übersetzung.
+- Übersetzt werden müssen nur die eigenen Texte von ZeD.
+
+Danksagung
+Alle, die helfen, werden in den Credits auf der Workshop-Seite genannt, zusammen mit ihrer Sprache. Sag mir, welcher Name dort stehen soll.
+
+========================================================================================================
+ITALIANO
+========================================================================================================
+Titolo: Cercasi traduttori: italiano
+
+ZeD-GUI non è ancora tradotto in italiano. I suoi testi compaiono in inglese; le parole che il gioco traduce già compaiono in italiano.
+
+Cerco madrelingua disposti a tradurlo.
+
+Come aiutare
+- I testi di ZeD sono in 42/media/lua/shared/Translate/EN/UI.json nel codice sorgente (link in fondo alla pagina della mod), circa 4.200 righe. Traduci una copia e pubblica un link in questa discussione.
+- Oppure inizia in piccolo: pubblica qui le parole che si vedono di più (i nomi delle finestre, le schede, i pulsanti) con la loro traduzione.
+- Vanno tradotti solo i testi di ZeD.
+
+Riconoscimenti
+Chi aiuta viene citato nei riconoscimenti della pagina del Workshop, con la lingua su cui ha lavorato. Dimmi quale nome vuoi che usi.
+
+========================================================================================================
+CATALÀ
+========================================================================================================
+Títol: Es busquen traductors: català
+
+ZeD-GUI encara no està traduït al català. Els seus textos surten en anglès; les paraules que el joc ja tradueix surten en català.
+
+Busco parlants nadius que el vulguin traduir.
+
+Com ajudar
+- Els textos de ZeD són a 42/media/lua/shared/Translate/EN/UI.json al codi font (enllaç al final de la pàgina del mod), unes 4.200 línies. Tradueix-ne una còpia i publica'n un enllaç en aquest fil.
+- O comença per poc: publica aquí les paraules que més es veuen (els noms de les finestres, les pestanyes, els botons) amb la seva traducció.
+- Només cal traduir els textos propis de ZeD.
+
+Crèdits
+Totes les persones que ajudin sortiran als crèdits de la pàgina del Workshop, amb l'idioma en què han treballat. Digues-me quin nom vols que hi posi.
+
+========================================================================================================
+NEDERLANDS
+========================================================================================================
+Titel: Vertalers gezocht: Nederlands
+
+ZeD-GUI is nog niet in het Nederlands vertaald. De eigen teksten verschijnen in het Engels; woorden die het spel al vertaalt verschijnen in het Nederlands.
+
+Ik zoek moedertaalsprekers die het willen vertalen.
+
+Zo help je
+- De teksten van ZeD staan in 42/media/lua/shared/Translate/EN/UI.json in de broncode (link onderaan de modpagina), ongeveer 4.200 regels. Vertaal een kopie en plaats een link in deze discussie.
+- Of begin klein: zet hier de woorden die je het vaakst ziet (de namen van de vensters, de tabbladen, de knoppen) met hun vertaling.
+- Alleen de eigen teksten van ZeD hoeven vertaald te worden.
+
+Vermelding
+Iedereen die helpt, wordt genoemd in de credits op de Workshop-pagina, samen met de taal waaraan diegene werkte. Laat me weten welke naam ik moet gebruiken.
+
+========================================================================================================
+DANSK
+========================================================================================================
+Titel: Oversættere søges: dansk
+
+ZeD-GUI er endnu ikke oversat til dansk. Dets egne tekster vises på engelsk; ord, som spillet allerede oversætter, vises på dansk.
+
+Jeg søger folk med dansk som modersmål til at oversætte det.
+
+Sådan hjælper du
+- ZeD's tekster ligger i 42/media/lua/shared/Translate/EN/UI.json i kildekoden (link nederst på mod-siden), omkring 4.200 linjer. Oversæt en kopi, og del et link i denne tråd.
+- Eller start i det små: skriv her de ord, man ser mest (vinduernes navne, fanerne, knapperne), med deres oversættelse.
+- Kun ZeD's egne tekster skal oversættes.
+
+Tak
+Alle, der hjælper, nævnes i krediteringen på Workshop-siden sammen med det sprog, de har arbejdet på. Skriv, hvilket navn du vil have brugt.
+
+========================================================================================================
+NORSK
+========================================================================================================
+Tittel: Oversettere søkes: norsk
+
+ZeD-GUI er ennå ikke oversatt til norsk. De egne tekstene vises på engelsk; ord som spillet allerede oversetter, vises på norsk.
+
+Jeg ser etter folk med norsk som morsmål som vil oversette det.
+
+Slik hjelper du
+- Tekstene til ZeD ligger i 42/media/lua/shared/Translate/EN/UI.json i kildekoden (lenke nederst på mod-siden), omtrent 4 200 linjer. Oversett en kopi og del en lenke i denne tråden.
+- Eller start i det små: skriv her ordene man ser mest (navnene på vinduene, fanene, knappene) med oversettelsen.
+- Bare ZeDs egne tekster trenger oversettelse.
+
+Takk
+Alle som hjelper, blir nevnt i kredittene på Workshop-siden sammen med språket de jobbet med. Si hvilket navn du vil at jeg skal bruke.
+
+========================================================================================================
+SUOMI
+========================================================================================================
+Otsikko: Kääntäjiä haetaan: suomi
+
+ZeD-GUI:ta ei ole vielä käännetty suomeksi. Sen omat tekstit näkyvät englanniksi; sanat, jotka peli jo kääntää, näkyvät suomeksi.
+
+Etsin äidinkielenään suomea puhuvia kääntämään sen.
+
+Näin voit auttaa
+- ZeD:n tekstit ovat lähdekoodissa tiedostossa 42/media/lua/shared/Translate/EN/UI.json (linkki modin sivun alalaidassa), noin 4 200 riviä. Käännä kopio ja jaa linkki tähän ketjuun.
+- Tai aloita pienestä: kirjoita tänne useimmin näkyvät sanat (ikkunoiden nimet, välilehdet, painikkeet) käännöksineen.
+- Vain ZeD:n omat tekstit pitää kääntää.
+
+Kiitokset
+Jokainen auttaja mainitaan Workshop-sivun kiitoksissa yhdessä kielen kanssa, jonka parissa hän työskenteli. Kerro, mitä nimeä haluat käytettävän.
+
+========================================================================================================
+POLSKI
+========================================================================================================
+Tytuł: Szukam tłumaczy: polski
+
+ZeD-GUI nie jest jeszcze przetłumaczony na polski. Jego własne teksty wyświetlają się po angielsku; słowa, które gra już tłumaczy, wyświetlają się po polsku.
+
+Szukam osób, dla których polski jest językiem ojczystym, chętnych do tłumaczenia.
+
+Jak pomóc
+- Teksty ZeD są w pliku 42/media/lua/shared/Translate/EN/UI.json w kodzie źródłowym (link na dole strony moda), około 4200 linii. Przetłumacz kopię i wrzuć link w tym wątku.
+- Albo zacznij od czegoś małego: wypisz tutaj najczęściej widoczne słowa (nazwy okien, zakładki, przyciski) z tłumaczeniem.
+- Tłumaczyć trzeba tylko teksty samego ZeD.
+
+Podziękowania
+Każda osoba, która pomoże, zostanie wymieniona w podziękowaniach na stronie Workshop, razem z językiem, nad którym pracowała. Napisz, jakiego imienia lub nicku mam użyć.
+
+========================================================================================================
+ČEŠTINA
+========================================================================================================
+Název: Hledám překladatele: čeština
+
+ZeD-GUI zatím není přeložený do češtiny. Jeho vlastní texty se zobrazují anglicky; slova, která hra už překládá, se zobrazují česky.
+
+Hledám rodilé mluvčí, kteří by ho přeložili.
+
+Jak pomoct
+- Texty ZeD jsou ve zdrojovém kódu v souboru 42/media/lua/shared/Translate/EN/UI.json (odkaz dole na stránce modu), asi 4 200 řádků. Přelož kopii a vlož odkaz do tohoto vlákna.
+- Nebo začni v malém: napiš sem nejčastěji viditelná slova (názvy oken, záložky, tlačítka) s překladem.
+- Překládat je potřeba jen vlastní texty ZeD.
+
+Poděkování
+Každý, kdo pomůže, bude uveden v poděkování na stránce Workshopu spolu s jazykem, na kterém pracoval. Napiš, jaké jméno mám použít.
+
+========================================================================================================
+MAGYAR
+========================================================================================================
+Cím: Fordítókat keresek: magyar
+
+A ZeD-GUI még nincs lefordítva magyarra. A saját szövegei angolul jelennek meg; azok a szavak, amelyeket a játék már lefordít, magyarul.
+
+Anyanyelvi beszélőket keresek, akik lefordítanák.
+
+Hogyan segíthetsz
+- A ZeD szövegei a forráskódban vannak, a 42/media/lua/shared/Translate/EN/UI.json fájlban (a link a mod oldalának alján), nagyjából 4200 sor. Fordíts le egy másolatot, és tegyél be róla egy linket ebbe a témába.
+- Vagy kezdd kicsiben: írd ide a leggyakrabban látott szavakat (az ablakok nevei, a fülek, a gombok) a fordításukkal.
+- Csak a ZeD saját szövegeit kell lefordítani.
+
+Köszönet
+Mindenki, aki segít, szerepelni fog a Workshop-oldal köszönetnyilvánításában, azzal a nyelvvel együtt, amelyen dolgozott. Írd meg, milyen nevet használjak.
+
+========================================================================================================
+ROMÂNĂ
+========================================================================================================
+Titlu: Caut traducători: română
+
+ZeD-GUI nu este încă tradus în română. Textele lui proprii apar în engleză; cuvintele pe care jocul le traduce deja apar în română.
+
+Caut vorbitori nativi care să-l traducă.
+
+Cum poți ajuta
+- Textele ZeD sunt în codul sursă, în 42/media/lua/shared/Translate/EN/UI.json (link în josul paginii modului), circa 4.200 de rânduri. Tradu o copie și pune un link în acest fir.
+- Sau începe cu puțin: scrie aici cuvintele care se văd cel mai des (numele ferestrelor, filele, butoanele) cu traducerea lor.
+- Trebuie traduse doar textele proprii ale ZeD.
+
+Mulțumiri
+Toți cei care ajută vor fi menționați la mulțumiri pe pagina Workshop, alături de limba la care au lucrat. Spune-mi ce nume vrei să folosesc.
+
+========================================================================================================
+РУССКИЙ
+========================================================================================================
+Заголовок: Ищу переводчиков: русский
+
+ZeD-GUI пока не переведён на русский. Его собственные тексты показываются на английском; слова, которые игра уже переводит, показываются на русском.
+
+Ищу носителей языка, готовых его перевести.
+
+Как помочь
+- Тексты ZeD лежат в исходном коде в файле 42/media/lua/shared/Translate/EN/UI.json (ссылка внизу страницы мода), около 4 200 строк. Переведите копию и выложите ссылку в этой теме.
+- Или начните с малого: напишите здесь слова, которые встречаются чаще всего (названия окон, вкладки, кнопки), с переводом.
+- Переводить нужно только собственные тексты ZeD.
+
+Благодарности
+Все, кто поможет, будут указаны в благодарностях на странице Workshop вместе с языком, над которым работали. Напишите, какое имя указать.
+
+========================================================================================================
+УКРАЇНСЬКА
+========================================================================================================
+Заголовок: Шукаю перекладачів: українська
+
+ZeD-GUI ще не перекладено українською. Його власні тексти показуються англійською; слова, які гра вже перекладає, показуються українською.
+
+Шукаю носіїв мови, які хотіли б його перекласти.
+
+Як допомогти
+- Тексти ZeD лежать у вихідному коді у файлі 42/media/lua/shared/Translate/EN/UI.json (посилання внизу сторінки мода), близько 4 200 рядків. Перекладіть копію і викладіть посилання в цій темі.
+- Або почніть з малого: напишіть тут слова, які трапляються найчастіше (назви вікон, вкладки, кнопки), з перекладом.
+- Перекладати потрібно лише власні тексти ZeD.
+
+Подяки
+Усі, хто допоможе, будуть згадані в подяках на сторінці Workshop разом із мовою, над якою працювали. Напишіть, яке ім'я вказати.
+
+========================================================================================================
+繁體中文
+========================================================================================================
+標題：徵求譯者：繁體中文
+
+ZeD-GUI 目前還沒有繁體中文翻譯。它自己的文字以英文顯示；遊戲本身已翻譯的詞語則以中文顯示。
+
+我在尋找以中文為母語的玩家來翻譯。
+
+如何幫忙
+- ZeD 的文字在原始碼的 42/media/lua/shared/Translate/EN/UI.json 中（連結在模組頁面底部），大約 4,200 行。翻譯一份副本，並在本串貼上連結。
+- 也可以從小處開始：在這裡貼出最常看到的詞語（視窗名稱、分頁、按鈕）和翻譯。
+- 只需翻譯 ZeD 自己的文字。
+
+致謝
+每位幫忙的人都會和所負責的語言一起列在工作坊頁面的致謝中。請告訴我您希望使用的名字。
+
+========================================================================================================
+日本語
+========================================================================================================
+タイトル：翻訳者募集：日本語
+
+ZeD-GUI はまだ日本語に翻訳されていません。ZeD 独自のテキストは英語で表示され、ゲームがすでに翻訳している言葉は日本語で表示されます。
+
+翻訳してくださる日本語ネイティブの方を探しています。
+
+協力の方法
+- ZeD のテキストはソースコードの 42/media/lua/shared/Translate/EN/UI.json にあります（リンクは MOD ページの一番下）。約 4,200 行です。コピーを翻訳して、このスレッドにリンクを投稿してください。
+- 小さく始めることもできます：よく目にする言葉（ウィンドウ名、タブ、ボタン）と訳をここに投稿してください。
+- 翻訳が必要なのは ZeD 独自のテキストだけです。
+
+クレジット
+協力してくださった方は全員、担当した言語とともに Workshop ページのクレジットに名前を載せます。使ってほしい名前を教えてください。
+
+========================================================================================================
+한국어
+========================================================================================================
+제목: 번역자 모집: 한국어
+
+ZeD-GUI는 아직 한국어로 번역되지 않았습니다. ZeD 자체의 텍스트는 영어로 표시되고, 게임이 이미 번역한 단어는 한국어로 표시됩니다.
+
+번역해 주실 한국어 원어민을 찾고 있습니다.
+
+도와주는 방법
+- ZeD의 텍스트는 소스 코드의 42/media/lua/shared/Translate/EN/UI.json에 있습니다(링크는 모드 페이지 맨 아래). 약 4,200줄입니다. 사본을 번역해서 이 스레드에 링크를 올려 주세요.
+- 작게 시작해도 됩니다: 가장 자주 보이는 단어(창 이름, 탭, 버튼)와 번역을 여기에 올려 주세요.
+- ZeD 자체의 텍스트만 번역하면 됩니다.
+
+크레딧
+도와주신 분은 모두 작업한 언어와 함께 Workshop 페이지의 크레딧에 이름이 올라갑니다. 사용할 이름을 알려 주세요.
+
+========================================================================================================
+ภาษาไทย
+========================================================================================================
+หัวข้อ: รับสมัครผู้แปล: ภาษาไทย
+
+ZeD-GUI ยังไม่มีคำแปลภาษาไทย ข้อความของ ZeD เองจะแสดงเป็นภาษาอังกฤษ ส่วนคำที่เกมแปลไว้แล้วจะแสดงเป็นภาษาไทย
+
+กำลังมองหาเจ้าของภาษาที่ช่วยแปลได้
+
+วิธีช่วย
+- ข้อความของ ZeD อยู่ในซอร์สโค้ดที่ 42/media/lua/shared/Translate/EN/UI.json (ลิงก์อยู่ท้ายหน้าม็อด) ประมาณ 4,200 บรรทัด แปลสำเนาแล้วโพสต์ลิงก์ไว้ในกระทู้นี้
+- หรือเริ่มจากส่วนเล็ก ๆ: โพสต์คำที่เห็นบ่อยที่สุด (ชื่อหน้าต่าง แท็บ ปุ่ม) พร้อมคำแปลไว้ที่นี่
+- แปลเฉพาะข้อความของ ZeD เองเท่านั้น
+
+เครดิต
+ทุกคนที่ช่วยจะได้รับการระบุชื่อในเครดิตบนหน้า Workshop พร้อมภาษาที่ช่วยแปล บอกชื่อที่ต้องการให้ใช้ได้เลย
+
+========================================================================================================
+BAHASA INDONESIA
+========================================================================================================
+Judul: Dicari penerjemah: Bahasa Indonesia
+
+ZeD-GUI belum diterjemahkan ke Bahasa Indonesia. Teks milik ZeD sendiri tampil dalam bahasa Inggris; kata-kata yang sudah diterjemahkan oleh game tampil dalam Bahasa Indonesia.
+
+Saya mencari penutur asli yang mau menerjemahkannya.
+
+Cara membantu
+- Teks ZeD ada di kode sumber, di 42/media/lua/shared/Translate/EN/UI.json (tautan di bagian bawah halaman mod), sekitar 4.200 baris. Terjemahkan salinannya dan bagikan tautannya di utas ini.
+- Atau mulai dari yang kecil: tulis di sini kata-kata yang paling sering terlihat (nama jendela, tab, tombol) beserta terjemahannya.
+- Hanya teks milik ZeD sendiri yang perlu diterjemahkan.
+
+Kredit
+Semua yang membantu akan disebutkan di bagian kredit halaman Workshop, beserta bahasa yang dikerjakan. Beri tahu saya nama yang ingin dipakai.
