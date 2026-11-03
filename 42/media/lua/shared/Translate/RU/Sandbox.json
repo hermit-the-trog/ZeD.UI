@@ -1,0 +1,11 @@
+{
+    "Sandbox_ZeD": "ZeD-GUI",
+    "Sandbox_ZeD_TaxiFlagDrop": "Счётчик такси: посадка",
+    "Sandbox_ZeD_TaxiFlagDrop_tooltip": "Доллары, которые показывает счётчик такси, когда водитель опускает флажок.",
+    "Sandbox_ZeD_TaxiPerFifthMile": "Счётчик такси: за 1/5 мили",
+    "Sandbox_ZeD_TaxiPerFifthMile_tooltip": "Доллары, которые счётчик добавляет за каждую пятую часть мили при опущенном флажке.",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting": "Счётчик такси: за минуту ожидания",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting_tooltip": "Доллары, которые счётчик добавляет за каждую минуту реального времени, пока такси ждёт (медленнее 5 км/ч, двигатель работает) при опущенном флажке.",
+    "Sandbox_ZeD_TaxiPerExtraPassenger": "Счётчик такси: за доп. пассажира",
+    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "Доллары, показываемые под ДОПЫ за каждого пассажира после первого. Водитель не считается."
+}
