@@ -1,0 +1,3 @@
+# ZeDUI/tools/qa/morerow.txt  (Nov 3 2026): the folded "With ..." row on item cards (aec72d19)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_morerow.lua | mrw | timeout=240
