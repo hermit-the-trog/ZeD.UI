@@ -1,0 +1,13 @@
+Bokmål, informal du. Mods = "mod/mods" (game's own), Workshop and Steam kept as names.
+Loadouts = Utrustninger, Outfits = Antrekk (game word), Restock = Etterfyll, Unpack = Pakk ut, Survey = Oppmåling.
+Full / Simple = Full / Enkel. Belt = Belte, drawer = skuff, card = kort, wheel = hjul, Safe mode = Sikker modus.
+Chord (quick action) = kombinasjon; Access = Tilgang; Preset / Builds (character) = Mal / Maler.
+Action bar verbs use present tense in capitals (STRØR AGN, SLÅR AV/PÅ for every switch/toggle); chum/lure = agn/sluk.
+Hutch = bur, trough = trau, ranch tab = Gård, skills = ferdigheter, traits = egenskaper, Craft tab = Håndverk.
+Sandbox help bands reuse the game's NO option names where known (e.g. Måneder siden apokalypsen, Antall timer for respawn av gods).
+Names kept in English: ZeD picks, Transcribe Into Journal, Bound Journal, Mod Options, Spongie's Character Customisation.
+Weekday letters on the watch: MA TI ON TO FR LØ SØ; compass: N NØ Ø SØ S SV V NV; month short names Jan Feb Mar Apr Mai Jun Jul Aug Sep Okt Nov Des.
+Male/female badges (378/379) = Hu / Ha because the limit is 2 letters and H would clash.
+Menu title "Settings" = Oppsett (limit 12); Options screen = Alternativer; ZeD setup = ZeD-oppsett.
+The About-block rant (1408) keeps lower-case sentences and a few misspellings (kjærne) on purpose.
+"Hastighet | %1x" (456) sits right at the 14 limit; Fart would be safer if it clips.

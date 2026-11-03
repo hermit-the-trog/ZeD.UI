@@ -1,0 +1,14 @@
+ZeD terms: Loadouts = Zestawy, Outfits = Stroje, Restock = Uzupełnij, Unpack = Wypakuj, Survey (map style) = Plan, Full / Simple = Pełny / Prosty.
+Belt = pasek, drawer = szuflada, card = karta, wheel = koło, Safe mode = Tryb bezpieczny, ZeD setup = Konfiguracja ZeD, Craft tab = Wytwarzanie.
+Overview (Animals) = Podsumowanie; Ranch = Hodowla; Hutch = Kurnik; Roster = Zwierzęta (check against game wording).
+Action bar (lines 2-285) uses -nie verbal nouns in caps, abbreviated to fit 14 (e.g. DOLEW. PALIWA); pixel face needs Ą Ć Ę Ł Ń Ó Ś Ź Ż glyphs.
+Line 378/379 (F/M): Sa and Sc (samica, samiec); 514/518 left/right: L and P. 979-986 compass: W, N, NW, NZ, P, PW, PZ, Z.
+Line 462 No-craft = "Nie wytw." (10 limit); 898 Almost ready = "Prawie".
+"With %1 you could %2" / "%1 needs %2" fragments: Polish needs nominative lists, so templates are "Gdy masz: %1, możesz: %2." and "%1: potrzebne %2." (infinitive actions, nominative needs).
+Counts avoid plural forms: "Zwierzęta: %1", "Pola: %1", "Punkty: %1", "Przedm.: %1".
+Game's Sandbox names used verbatim in help texts (Odcięcie wody, Godziny do pojawienia się nowych przedmiotów...); Loot page = Przedmioty.
+Mod-manager and preset names kept in English as names: Vanilla, Vanilla Plus, Vanilla Access, Plus, Access, Hardcore, Casual, Custom, ZeD picks.
+Line 1408 (About text): kept the run-on and typos in Polish (jondro, zlamiecie); please check the tone.
+Line 2155/2156 radio brand bar: "* RADIO BAZOWE 2-WAY"; 2157 TX OK = NAD OK.
+Moodle kept as "moodle" (the game's PL uses it in options).
+Formal address is not used: the game's PL speaks to the player with "ty" forms (Weź, Zapisz).

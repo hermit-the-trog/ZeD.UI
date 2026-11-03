@@ -1,0 +1,14 @@
+Czech (CS) notes for the native checker
+Address: informal (tykani), as the game's own CS interface does ("Klikni").
+Loadout = Sada vybavy, Outfit = Sada obleceni (game's word), Restock = Doplnit zasoby, Unpack = Vybalit; preset names Vanilla, Vanilla Plus, Vanilla Access, Plus, Access, Hardcore, Casual, Custom kept in English.
+Full / Simple = Plne / Jednoduche; Survey (map style) = Pruzkum; belt = Pasek; drawer = zasuvka; card = karta; wheel = kolo; Safe mode = Bezpecny rezim; chord = zkratka; station = pracoviste.
+Hutch = Boudy as a general heading (game uses Kralikarna / Kurnik for the specific kinds).
+Mod = mod written "mod, mody" as in the game ("Mody"); zombie = zombik/zombici as in the game.
+Traits kept as "trait/traity" (the game's character creation says TRAITY); Moodle = moodl/moodly.
+Action bar words (pack 1, lines 2-285) are verbal nouns in capitals within 14 characters; some shortened (SEJMUTI ZAPL., NASAZ. LAKADLA). Please read them for naturalness.
+Counts: where %1 can be 1, 2 or 5 I used "Label: %1" forms (Predmety: %1, Dlazdic: %1); a few "dni/dnu" cases use "dnu: %1".
+Pixel-face lines (radio, dashboard) keep accented capitals; the face has C, S, Z, R, E, U accents but please check D, N, T with caron if used.
+The About paragraph (line 1408) is a deliberately rough draft with misspellings (jadro, komonisti not used; "jadro", "protiodposlechovy" typos kept loosely): check the tone.
+Setting names inside Sandbox help text use the game's own CS names (Hodiny do obnovy koristi, Mesice od apokalypsy, ...).
+Dates: month abbreviations lower case (dub, srp, ...); date order changed to day. month year.
+Line 342 keeps its leading "| " exactly as the English has it.

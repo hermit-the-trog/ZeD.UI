@@ -1,0 +1,18 @@
+ZeD terms chosen: Loadouts = Комплекти, Outfits = Костюми (the game's word), Restock = Поповнення/Поповнити, Unpack = Розпакувати, Survey = Кадастр (map style), Full/Simple = Повний/Простий, the belt = Пояс (clothing belt stays Ремінь), the drawer = шухляда, the card = картка, the wheel = колесо, Safe mode = Безпечний режим, chord = комбінація, slice = сектор.
+Preset names kept in English (Vanilla, Vanilla Plus, Vanilla Access, Plus, Access, Custom); Restock modes translated: Хардкор, Казуал, Доступ.
+"ZeD setup" = Налаштування ZeD; "Options" and "Settings" both = Налаштування (the game uses one word for both).
+Craft tab/wheel = Крафт (loanword used in the game's own help); the action bar verb is ВИГОТОВЛЕННЯ.
+Workshop item = елемент (the game says "файл майстерні"); upload = Завантажити (game wording), Майстерня capitalised.
+Action bar lines are Ukrainian verbal nouns in capitals; several shortened (КРІПЛ. ПРИНАДИ, ВИДАЛ. ОСТОВА) to fit 14.
+Plurals avoided with "Тварин: %1", "Предметів: %1", "Плиток: %1" style (reads right for 1, 2, 5).
+Pixel-face lines (radio, dash readouts) are Cyrillic capitals; check the pixel face has Cyrillic glyphs.
+Compass letters (E N NE NW S SE SW W), E/F fuel gauge, AM/PM kept Latin (width limits 2-3).
+Sandbox option names inside help texts follow the game's UA Sandbox.json (e.g. Відключення води, Кількість зомбі, Розширені опції зомбі).
+Formal "Ви" where the player is addressed (as the game does); most lines are impersonal.
+Dated: 1408 keeps the rough-draft misspellings on purpose (прослушки, обіспечена).
+Unsure: Spongie / Skill Recovery Journal menu entry "Transcribe Into Journal" left in English in quotes (mod's own text).
+Unsure: dash/appliance labels in pack 2 and 3 (lines 607-648, 1198-1244) had no context; short Ukrainian words chosen.
+
+Proofread (Fable, 162 fixes) left for a checker: Повний / Простий / Докладний do not agree with the feminine Панель
+дій; Значки стану for moodles; Клітки for hutches; Кадастр for Survey; зерно for the world seed; "%1 помер(-ла)";
+pixel-face РУХ СКЛА and the microwave Сер-вис / Сер-низ.

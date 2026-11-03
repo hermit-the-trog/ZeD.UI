@@ -1,0 +1,14 @@
+Hungarian (informal "te" form, as the game). Terms to check first:
+Loadouts = "Csomagok", Outfits = "Öltözékek", Restock = "Utánpótlás", Unpack = "Kipakolás" (my own choices; no game word).
+Wheel = "körmenü"; belt = "öv"; drawer = "fiók"; card = "kártya"; Safe mode = "Biztonságos mód"; Survey = "Felmérés".
+Full / Simple = "Teljes" / "Sima" (glossary "simple" = Sima).
+Preset (saved looks, sandbox) = "Minta"; ZeD setup preset names (Vanilla, Plus, Access, Hardcore, Casual, Custom) kept in English.
+"Builds" (occupation/traits screen) = "Szett"; "Host a game" = "Játék hosztolása" (unsure of the game's own word).
+Game recipe word is "Recept" (the glossary's "Tananyagok" is the Journal recipes tab only, not used).
+Sandbox option names inside help text follow the game's HU (Víz elfogyása, Zombi Mennyisége, Népességszorzó...); a few the game keeps in English stay English.
+Compass in the animal track card (limit 2): ÉNY/DNY shortened to ÉY/DY, W = NY.
+Watch weekdays (2 letters, no accents): HE KE SE CS PE SO VA. Months in the journal: Szep (4 letters).
+Pixel-face capitals use accents (the ext glyph set has Á É Ő Ű).
+Action bar verbs are verbal nouns (EVÉS, IVÁS); a few shortened to fit 14 (CSALI FELRAKÁS, PALACK KIVÉTEL).
+"Help line" phrases "With %1 you could %2" = "%1 esetén %2." with the %2 parts as -hat/-het forms.
+Sandbox/mod-manager texts were long: a native pass over 2931-3064 and 3951-4205 would help most.

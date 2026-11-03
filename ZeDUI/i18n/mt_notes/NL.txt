@@ -1,0 +1,14 @@
+Address: informal "je" (matches the game's NL UI.json). Buttons use infinitives; action bar uses infinitive verbs in capitals, no diacritics.
+Loadouts / Outfits kept as the English loanwords; Restock = Aanvullen, Unpack = Uitpakken, Survey = Opmeting, Full / Simple = Volledig / Eenvoudig, Verbose = Uitgebreid.
+Belt = Riem (as the game), drawer = lade, card = kaart, wheel = wiel, Safe mode = Veilige modus, chord = combinatie (not on screen where limits are tight).
+Preset names kept in English: Vanilla, Vanilla Plus, Vanilla Access, Custom, Access, Hardcore, Casual, PZ Teal, ZeD picks.
+Main/off hand: Hoofd / Neven (captions), Nevenhand (button), hoofdhand/nevenhand (sentences).
+Fuel (small tag on a craft ingredient) = Stook, because Brandstof does not fit 6-8 chars; Fire card "Needs fuel" = Stook nodig.
+Trait = karaktertrek (game word); where too long: "Geen" (2452) and "%1 zonder" (2453) are shortened, check them.
+Mod options screen: "Quit to restart" (1525) = Afsluiten; the limit of 18 left no room for "herstart", check wording.
+Sandbox setting names follow the game's own NL where found (Uren tot respawnen van plunderbuit, Max. uren tot respawnen..., Maanden sinds het einde der tijden); Water/Electricity Shutoff rows are my own readable names (Waterafsluiting (dag)).
+Month abbreviations and weekday pairs in lower case / VR MA ZA ZO DO DI WO. Compass: O N NO NW Z ZO ZW W. Date order changed to day before month in 1294, 1444, 1450, 1799.
+Description editor B / I / S U letter buttons left as the English letters (they match the Steam codes [b] [i] [s] [u]).
+Skill Recovery Journal strings keep the mod's own English words (Transcribe Into Journal, Bound Journal).
+Item card "Pad" = Opvullen, "Equip" = Dragen, "Weight reduce" = Lichter; pin/unpin in the mod manager = vastzetten / losmaken.
+Station (crafting) = Werkplek; "Hand" crafting = Met de hand; Foraging = foerageren (action bar FOERAGEREN).

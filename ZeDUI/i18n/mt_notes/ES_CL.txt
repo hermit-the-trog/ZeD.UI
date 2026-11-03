@@ -1,0 +1,10 @@
+Chilean Spanish made from the Spain draft (--base ES): only 308 of 4267 lines differ. Voice stays informal tu, as the game's own ES_CL menus.
+Game ES_CL words used over the Spain ones: Bencina (gasolina, "ECHANDO BENC.", bomba de bencina for surtidor), Auto, Tablero (salpicadero), Maleta (trunk), Tanque (propane bombona), Refrigerador, Vidrio, Mezclilla, Lentes, Audifonos, Mouse, Computador, Fogata, Botar (drop/dispose), Tomar (coger), Cloro, Papas, Fosforos/encendedor, Trapeador, Cañerias.
+Configuraciones replaces Ajustes (game: "Configuraciones"); "Config." where the limit is 12-18 (1137, 1425, 1687). Sandbox replaces "Mundo abierto" (game: OPCIONES DE SANDBOX); Sandbox option names in help texts follow game ES_CL (Reaparicion de Botin, Corte de Agua, Meses tras el Apocalipsis, Cantidad de zombies ...).
+zombi became zombie (game ES_CL spelling). Pulsa became Presiona (game key prompts), D-pad for Cruceta, Enter for Intro, HP for CV, carnet for carne.
+Preset: game word is "Preestablecido" (used where the length is free); the four tight labels (1379, 1381, 2223, 2225) say "Presets" because "Preestablecidos" does not fit. Native checker: pick one word.
+Outfits kept as "Conjuntos" although the game glossary has outfit = Ropa (Ropa is also ZeD's Clothing label). Loadouts "Kits", Restock "Reponer", Unpack "Desempaquetar" kept as Spain.
+Action bar: TOCANDO BOCINA (horn), CARGANDO BENC. (refuel), DESMANTELANDO (wreck), DESMALEZANDO (bush), CORTANDO PASTO, ENYESANDO (plaster); all within 14.
+About text (1408) rewritten with ustedes and Chilean slang (me pillaron, Chupense, buena onda), accents still deliberately missing.
+Fixed mojibake in the Spain draft lines 550 551 658 659 1134 1884 1885 2259 2474 (counted in the 308).
+Kept as Spain because Chile uses them too: baldosas, bolsas, ficha, rueda, cajon, cinturon, Catastro, partida, pienso, bolígrafo, intermitente, taxímetro/bajada de bandera, haz clic.

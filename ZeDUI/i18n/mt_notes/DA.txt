@@ -1,0 +1,14 @@
+Mod = "mod/mods" (common Danish); the game's own "Modifikationer" is too long for tabs and counts.
+Outfit = "beklædning" (game's word); Loadout = "udrustning"; Restock = "Genopfyld"; Unpack = "Pak ud"; Survey = "Opmåling".
+Card = "datablad" (not "kort", which is the game's word for map). Drawer = "skuffen"; belt = "bæltet"; wheel = "hjul".
+Full / Simple = "Fuld" / "Simpel"; Safe mode = "Sikker tilstand".
+Preset names kept in English: Vanilla, Vanilla Plus, Vanilla Access, Custom, Access, Hardcore, Casual.
+Action bar (pixel face, max 14): present-tense verbs in capitals (TÆNDER, BETJENER for toggles); Æ Ø Å are in the pixel font.
+BETJENER stands for every generic "SWITCHING"; AGNER for baiting; SMIDER for all "DROPPING".
+"Chord" = "kombination"; "Builds" kept as the loan word "Builds" on the character screen.
+Option names inside Sandbox help text use the game's own Danish ("Vandet lukkes", "Måneder siden dommedag"); other option names translated freely, worth a check.
+Crouch = "Hug", Hair tie "Bind", Hunger/Thirst reduction = "Sultreduktion/Tørstreduktion".
+Ranch = "Gård", Hutch = "Bur", Trough = "Trug", nest box = "rede"; "tiles" = "felter" as the game's glossary.
+Sandbox/Journal etc: "Sandkasse", "Journal"; Catfish (origin) = "Havkat" is a guess.
+Joke "About" text keeps its misspellings in Danish ("kærnel", missing commas).
+Date lines use Danish order ("3. nov 1993") via the %n order.

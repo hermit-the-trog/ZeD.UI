@@ -1,0 +1,12 @@
+Argentine Spanish made from the Spain draft: 507 lines changed, the rest keep the Spain text (written as out_01..04, changed lines only).
+Voseo: the game's own AR is mixed (podes/tenes/queres/Necesitas often, but Pulsa/Haz/Usa imperatives in tu). I used voseo throughout (podés, tenés, Hacé clic, Elegí, Presioná). A checker may want tu imperatives kept.
+"Pulsa/pulsar" became "Presioná/Presionar" (game AR says Pulsa; Argentine speech says presionar/apretar). "Ratón" became "mouse".
+Gloss tooltips written as "Cerrar: cierra esta ventana" keep the 3rd-person form (same spelling as tu/vos); only clear imperatives were voseo'd.
+Tiles = "casillas" (game glossary), ground = "piso" (game's floor container title), propane tank = "garrafa" (game), trunk = "baúl", fuel = "nafta" (game).
+Mop = "lampazo", bleach = "lavandina", pen = "lapicera", glasses = "anteojos", socks = "medias" (all as the game's AR items).
+Restock/Unpack: Reponer kept; Unpack = "Desempacar" (empaquetado to empacado). Take = "Agarrar" (game glossary) instead of Tomar/Coger.
+Action bar (14 chars): CARGANDO NAFTA, BOCINANDO (honk), REVOCANDO (plaster), DESMALEZANDO, CORTANDO PASTO, SACANDO HUEVOS. Check these first.
+Dashboard = "Tablero" (game), Ignition = "Encendido", Signal = "Luz de giro", Drive = "Manejar", Denim = "Jean", Target icon = "Blanco".
+About text (1408) rewritten with ustedes and "che", "papas", "buena onda", "anti escuchas telefonicas"; accents still deliberately missing.
+The Spain draft had broken accents (mojibake) in 550, 551, 658, 659, 1134, 1884, 1885, 2259, 2474; fixed here. 
+Left as Spain: "sitio" in many lines, "Sustituir", "Refrescar", "surtidor" (all understood in Argentina). Pen/lighter-style words only changed where they appear.

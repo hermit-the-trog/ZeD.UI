@@ -1,0 +1,18 @@
+JP notes (4267 lines, 0 check errors, 0 over the longest limit)
+Terms: Loadouts = ロードアウト; Outfits = 衣装 (game word); Restock = 補充; Unpack = 荷解き; Survey = 測量; Full / Simple = フル / シンプル; belt = ベルト; drawer = ドロワー; card = カード; wheel = ホイール; chord = ボタンの組み合わせ; Safe mode = セーフモード; station = ステーション.
+Kept in English as names: Vanilla / Vanilla Plus / Vanilla Access / Custom / Plus, restock modes Hardcore / Casual / Access, ZeD picks, Spongie's Character Customisation, Transcribe Into Journal, Bound Journal, AM / PM on the main menu clock, E / F on the fuel gauge.
+Action bar (pixel face) lines use -中 endings (e.g. 給油中); the pixel face may not have kanji, check in game.
+Skill and sandbox words follow the game's JP files (耕作, 電気工学, 電子廃材, 水道供給, 電力供給, ゾンビの個体数, 戦利品がリスポーンするまでの時間).
+Dates: %3年%1%2日 style; month names are 1月..12月, so the game's own month name inside %1 should also be numeric (check it is not English).
+Weekdays on the watch LCD are two kanji (月曜 etc.); a 2-letter cell may need 1 kanji instead.
+Compass letters are 東 西 南 北 and combinations; female / male letters are 雌 / 雄.
+Owner's rough-draft About text is rewritten sloppy on purpose (カネール for kernel); check the voice.
+Help-line frames: "%1には%2が必要です。" and "%1があれば、%2ことができます。"; the %2 pieces are verb dictionary forms or noun phrases and read slightly stiff.
+Taxi dashboard Extras = 割増; Fare = 運賃; Flag Drop = 基本料金.
+Foraging search = 探索, container search = 調べる, game search (find box) = 検索.
+Gender-neutral 後方から連れ出せます used for both "her" and "him" lines.
+Genetics badge names (不安症, 臆病, 小人症, 多産, 大食い...) are my own; the game has no JP words for these.
+
+Proofread (Fable, 126 fixes) left for a checker: the verb stem + 中 action-bar forms (開け中, 拾い中, 注ぎ中) are
+readable but colloquial; 匹 vs 頭 / 羽 counters for mixed livestock; hair headings mix nouns and verbs; unverified
+game terms: 南京錠のキー, 黙示録からの月数, 侵食, コンポスト箱, 切り込み板.

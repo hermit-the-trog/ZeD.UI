@@ -1,0 +1,13 @@
+Address: informal du (the game's DE UI and tooltips use du); buttons are infinitives.
+Moodles = Zustandsanzeigen (the game's own word, from its Moodle size option).
+Loadouts and Outfits kept as English words; Restock = Nachschub, Unpack = Auspacken, Access kept as a name.
+Wheel = Rad, drawer = Schublade, card = Karte, belt = Gürtel, chord = Kombination, Survey = Vermessung, Full / Simple = Voll / Einfach.
+Safe mode = Abgesicherter Modus; Mod manager separators = Trenner, pins = Anheftung, Load order = Ladefolge (shortened for the 14-character limit).
+Sandbox presets = Vorgabe; character-looks presets = Vorlage; builds kept as Build.
+Hours/minutes: h and min (Std. does not fit the narrow slots); tiles = Kacheln (game word).
+Action bar: capitals with Ä Ö Ü, SS for ß; verbs as nouns/infinitives, some shortened (KURZSCHLIESSEN, KÖDER ANHÄNGEN).
+Tracking skill written Spurenlesen (not found in the game's DE file, please verify).
+Slot codes (lines 849-871, Arm/Tsch/Hsch/Auß...) are my own 3-4 letter abbreviations.
+Water/Electricity Shutoff use the game's Wasserausfall / Stromausfall; Electricity skill = Elektrotechnik; Foraging = Nahrungssuche.
+The owner's About text keeps deliberate misspellings (Kernal, Programierung).
+This Is Your Life (line 2867) left in English; check the game's DE name.

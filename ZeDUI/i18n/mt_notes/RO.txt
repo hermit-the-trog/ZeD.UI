@@ -1,0 +1,13 @@
+Romanian (RO): informal "tu" imperatives as the game's menus (Citește, Deschide); s/t with comma below.
+Action bar: long-infinitive nouns in capitals (ARUNCARE, REPARARE); "MEȘTEȘUGĂRIT" for crafting is the game's own word.
+Counts: labels ("Obiecte: %1", "Animale: %1", "zile: %1") so 1 and 20 both read right; time phrases use h / min.
+Loadouts = Seturi, Outfits = Ținute, Restock = Reaprovizionare, Unpack = Despachetează, Safe mode = Mod de siguranță.
+Survey = "Cadastru" (map style), Full/Simple = Complet/Simplu, belt = centura, drawer = sertar, card = fișă, wheel = roată.
+Tile = "pătrat" (pl. pătrate); Tracking = Urmărire; ladder (Traits tab) = trepte; "Loot" = Pradă (game word).
+ZeD setup = "Configurare ZeD"; Workshop = "Atelier" (game says ATELIER STEAM); Mod manager terms: fixat/Desprinde for pin/Unpin.
+Sandbox help texts use the game's own RO setting names where found (Oprirea Rețelei de Apă, Ore pentru Reapariția Prăzii).
+"Hand" slot captions: Mâna 1 / Mâna 2 for main / off hand (short for the 7-char limit); Left/Right zone words are St. / Dr.
+Origin trait names: Catfish = "Pește-pisică", Bake sale = "Vânzare de prăjituri" (literal, check).
+The About-block rough draft (line 1408) is translated with deliberate misspellings and a few missing diacritics.
+Sandbox "N changes" strings (%1 modificări) are plain plural: wrong for 20 and up ("de modificări").
+Option names of other mods stay in English (Transcribe Into Journal, Bound Journal, Mod Options).

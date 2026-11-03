@@ -1,0 +1,17 @@
+Style: sentences in 합니다/습니다 (instructions as 하십시오), buttons and headings as noun forms. Particles written as 을(를), 이(가), 과(와), (으)로 because the inserted %1 can end in either sound.
+Loadouts = 로드아웃, Outfits = 복장 (game's 겉옷 means outerwear, so not used), Restock = 재보급, Unpack = 짐 풀기. "Access" kept in English (Restock Access, Vanilla Access); Vanilla / Vanilla Plus / Custom / ZeD picks kept as names.
+Full / Simple = 실물 / 간단 (Full = the real thing drawn); Verbose = 자세히; Survey map = 측량; belt = 벨트; drawer = 서랍; card = 카드; wheel = 휠; Safe mode = 안전 모드; Action bar = 동작 표시줄; "ZeD setup" = ZeD 설정.
+Chord (bumper + button) = 조합 입력 (Quick actions); Station = 설비, Bench = 작업대, Appliance = 가전.
+Mod manager: Separator = 구분자 (not 구분선, which is the description editor's Divider); Pin = 고정; Unfiled = 미분류; Load first/last = 먼저 로드 / 나중에 로드.
+Sandbox-in-game help bands use the game's own Korean setting names (e.g. 단수, 단전, 좀비 수량, 종말 이후 흘러간 개월 수); Water/Electricity Shutoff (day) = 단수 (일자) / 단전 (일자).
+Petrol = 기름 and Scrap Electronics = 전기 회로 부속 (from the game's item names); moodle = 무들 (game's word).
+Action bar words are progressive forms (-는 중) within 14 characters; DONE = 완료, STOPPED = 중단됨.
+Dashboard pixel faces (A/C, AUTO, FAN%1, PASSENGER) are Korean or kept as English where the face has no Hangul (checker: does the pixel face have Hangul glyphs? line 657 'D-pad Right: Vehicle / Dashboard' was written in Hangul).
+Folded hidden-action rows: "%1 있으면 %2 가능." with %2 as a noun phrase (구멍 수선, 씻기), avoiding verb endings.
+Intro paragraph (About, line 1408): kept the character's rough, misspelled voice (맹든, 커늘, 쓸수) on purpose; "commies" became 공산당 놈들.
+Weekday abbreviations on the watch are single Hangul letters (월 화 수 목 금 토 일).
+Place names: Knox Country = 녹스 카운티, Kentucky = 켄터키.
+
+Proofread (Fable, 186 fixes) left for a checker: foraging Search is 검색 in places and 탐색 in others (match the
+game's word); Combination Padlock = 숫자 자물쇠 while the code is 번호; the trait "ladder" is 단계, the same word as
+level; Restless = 안절부절 and Weak birth = 약한 출산 are weak badge names.

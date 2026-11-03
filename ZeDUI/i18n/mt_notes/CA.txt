@@ -1,0 +1,12 @@
+Catalan (CA). Informal tu imperatives as the game's CA does (Prem, Tria, Pots). Neutral/standard Catalan, not the game's Valencian forms (eixir, xicotet): sortir, desar, rentar.
+Loadouts = Equipatges; Outfits = Conjunts (game word); Restock = Reposició; Unpack = Desempaquetar (game word).
+Survey (map style) = Topografia; Full / Simple = Complet / Simple; belt = cinturó; drawer = calaix; card = fitxa; wheel = roda; Safe mode = Mode segur.
+ZeD setup = Configuració de ZeD (translated everywhere); Build (traits screen) = Model; Preset = Preajust.
+Item = objecte (the game says "cosa"); loot respawn quoted in sandbox help as "reaparició de coses" (game glossary).
+Dashboard = Tauler (short; the game says quadre de comandaments); Workshop kept as Steam's name; Verbose = Detallada.
+Hardcore / Casual / Access / Vanilla / Plus / Custom kept as English preset names. Mod menu entries (Transcribe Into Journal, Bound Journal) left in English.
+Tiles = caselles; hutch = galliner; trough = menjadora; hotbar = barra d'accés ràpid; See-through = Transparència.
+Weekday LCD pairs are DL DM DC DJ DV DS DG; compass W = O, NW = NO, SW = SO (Catalan).
+Action bar uses gerunds, capitals with accents (pixel face has them); some shortened to fit 14: AFEGINT COMB., COMPR. TRAMPA, TREIENT TANC.
+Item 1408 (the prepper's draft) written with dropped accents and a run-on on purpose, as the English keeps its slips.
+Dash lines 657 keep "D-pad" (English does).
