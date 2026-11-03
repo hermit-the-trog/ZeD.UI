@@ -440,38 +440,7 @@ function TW.turnMult(pid, streak)
     return (streak >= 8 and 5) or 1
 end
 
--- ---------------------------------------------------------------------------
--- THE TAB'S FOOTER: the brand at the left (as the AM/FM chassis' bar), the set's kind at the right
--- ---------------------------------------------------------------------------
-function TW.footer(panel, x, y, w, h, pid, highTier)
-    local T = ZeD.T
-    local tm = ZeD.TM
-    local font = T.fontF1
-    local ty = y + math.floor((h - tm:getFontHeight(font)) / 2)
-    local info = TW.info(pid) or {}
-    local tag = ZeD.tr(info.base and "UI_ZeD_Radio_TwoWayBase" or "UI_ZeD_Radio_TwoWayPortable")
-    local bg, ink, dim
-    if highTier then
-        local pt = T.radio.pt
-        bg, ink, dim = pt.brandBarBg, pt.btnText, { r = pt.btnText.r, g = pt.btnText.g, b = pt.btnText.b, a = 0.78 }
-    else
-        local vt = T.radio.vt
-        bg, ink, dim = vt.chassisBg, vt.btnText, vt.silkScreen
-    end
-    panel:drawRect(x, y, w, h, bg.a or 1, bg.r, bg.g, bg.b)
-    panel:drawRect(x, y, w, T.px(1), 0.55, 0, 0, 0)
-    local tagW = tm:MeasureStringX(font, tag)
-    local brand = info.brand or ""
-    -- (a walkie's tab is narrow: the brand gives way to the set's kind, cut short as the header's name is)
-    local room = w - 2 * T.px(10) - tagW - T.px(8)
-    if brand ~= "" and tm:MeasureStringX(font, brand) > room then
-        while #brand > 1 and tm:MeasureStringX(font, brand .. "...") > room do brand = brand:sub(1, #brand - 1) end
-        brand = brand .. "..."
-    end
-    if brand ~= "" then
-        panel:drawText(brand, x + T.px(10), ty, ink.r, ink.g, ink.b, ink.a or 1, font)
-    end
-    panel:drawText(tag, x + w - T.px(10) - tagW, ty, dim.r, dim.g, dim.b, dim.a or 1, font)
-end
+-- (no footer: the director, Nov 2 2026, punch list 69: the walkie and ham faces lose their printed foot, the brand and
+-- "2-WAY PORTABLE"; the brand is already on the graphic. RadioTab.lua draws the face alone while TW.footer is nil.)
 
 return TW
