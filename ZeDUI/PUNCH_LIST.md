@@ -1762,6 +1762,22 @@ item says so.
       border and strip for yellow. Red is a test build, yellow the beta, green the release.
     - **Check (QA, at staging):** the staged mod.info reads 0.3.0-beta1; workshop.txt's title reads "ZeD-GUI
       [BETA]"; the description opens with Known issues; preview.png is 256 x 256 with no margin and yellow trim.
+    **Thumbnail (build, Nov 2 2026 evening).**
+    - The director: "change our preview thumbnail to the bitchin' ZNIX programs book with the ZGUI ... this would
+      never be featured in a magazine like that", and "make this clear that this is a total UI rebuild ... a
+      complete UI for Project Zomboid". The old monitor picture "doesn't look like our interface at all".
+    - Built (759bb9e, 0cdfcbb): ZeDUI/workshop/gallery/thumb_px.py cuts the title card's book (cover_px.py) to 256 x
+      256 at 1x. The cover's bullets now read THE WHOLE UI REBUILT | FOR PROJECT ZOMBOID B42 | PAD AND MOUSE. Its
+      monitor shows ZeD as it plays: two dark windows with accent tab strips over grey ground, the character and the
+      belt with the green ring. The title card (znix_01_cover.png) is redrawn with the same changes; the gallery's
+      00_cover on Steam is still the old one until QA replaces it.
+    - Two marks to choose from (thumb_compare_beta.png): a yellow BETA strip across the foot (thumb_256_beta.png),
+      or a yellow BETA price sticker on the cover (thumb_256_beta_sticker.png). Waiting: the director's pick.
+    - The margin, found: Steam's item page asks for the preview at 268 x 268 in letterbox mode with a black fill
+      (`?imw=268&imh=268&ima=fit&impolicy=Letterbox&imcolor=%23000000`), and the game's uploader insists on exactly
+      256 x 256 ("The preview.png file must be exactly 256x256 pixels in size"), so Steam pads every side with 6 px of
+      black. It can't be filled from the game. The book's dark desk edges blend with that black; the old cream
+      magazine made it stand out.
 58. **UI scale: the 0.5 step is still offered (the director, Nov 2: keep the 0.75 cap on the Deck and at 720p; 0.5 was
     dropped because it did not look right; bring it back after the beta).** chosen.
     - Build found it is not gone: ZeD setup's scale list still holds 0.5x (Settings.lua scaleKeys).
@@ -1786,6 +1802,10 @@ item says so.
     - Beside the car figure, Type, Distance and Key show only their labels at small sizes.
     - **QA first:** one small-screen screenshot of the Vehicle tab with the hood open (1280x720 or the Deck,
       Normal text). The director picks the fix from it.
+    **QA, Nov 2 2026 (6515c6e, qa/Nov2_beta/pl61_*):** at 720 Normal, 720 Large and the Deck Large, UI scale Auto,
+    Type, Distance and Key show their values ("Standard", "3 tiles", "On you"); the labels-only look came at UI scale
+    2.0, item 35's stress setting. The tight spot at 720 is the parts list under the figure: with the hood open only
+    "Under Hood (4)" shows above Close Hood. QA told the director that "leave it" now matches what a player sees.
     - **QA, Nov 2 2026: the pictures are in (zedqa_vehicle_small.lua; qa/Nov2_beta/pl61_*; reports
       2026-11-02_pl61_vehicle_720.md, _720L.md, _800L.md).** At 1280x720 Normal, 1280x720 Large and the Deck (1280x800)
       Large, UI scale Auto, both windows open: before the hood is opened, Type, Distance and Key each show their value
@@ -1855,6 +1875,12 @@ item says so.
       so the t16 slip can't recur.
     - **Check (QA):** the release check runs and passes on the current build; a dry staging shows the version and the
       new page text.
+    **Staging step built (build, Nov 2 2026).** stage_workshop.ps1 takes -Description (bbcode written into
+    workshop.txt's description= lines, id, tags and visibility kept; refused past 8,000 - 58 characters; warned when it
+    doesn't name -Version), -ChangeNote (written into Zomboid/Lua/ZeD_workshop.txt as the upload window reads it),
+    -Title and -Preview. With -Version but no -Description or -ChangeNote it warns that the old text stays. Tested for
+    real with the t16 files (lock set busy, files backed up): workshop.txt byte-identical, the change note round-trips;
+    Contents removed and the files and lock put back after. The release check is still to build.
 71. **Loose ends from older notes (beta definition, point 8).** chosen; build looks at each, then QA checks what was
     fixed.
     - The oven's object card drawn behind its Craft tab (Oct 29-30 notes).
