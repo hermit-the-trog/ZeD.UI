@@ -260,7 +260,7 @@ local function stopScan(part)
 end
 O.stopScan = stopScan
 
-function O.power(chr, part) stopScan(part); return run("ToggleOnOff", chr, part) end
+function O.power(chr, part) stopScan(part); if part and O.forgetStop then O.forgetStop(keyOf(part)) end; return run("ToggleOnOff", chr, part) end
 
 -- dir +1 / -1 a tenth; wrap = the dash's one-button volume (past full it starts over)
 function O.volStep(chr, part, dir, wrap)
@@ -447,9 +447,20 @@ end
 O._stopping = O._stopping or {}
 O._wantPlay = O._wantPlay or {}
 -- is the media playing, as the player sees it (dd: the device data; key: keyOf(part))
+-- (a remembered Stop and Play go with an eject, a power change, a new disc, or after STOP_MS: a Play left waiting
+-- must not start a disc later on its own; code review, Nov 2 2026)
+local STOP_MS = 4000
+function O.forgetStop(key) if key then O._stopping[key], O._wantPlay[key] = nil, nil end end
 function O.playingNow(dd, key)
     local p = _get(dd, "isPlayingMedia", false) and true or false
     if key == nil or not O._stopping[key] then return p end
+    local s = O._stopping[key]
+    local mi = tostring(_get(dd, "getMediaIndex", -1))
+    if type(s) ~= "table" or s.media ~= mi or getTimestampMs() - s.t > STOP_MS
+       or not _get(dd, "getIsTurnedOn", false) or not _get(dd, "hasMedia", false) then
+        O.forgetStop(key)
+        return p
+    end
     if p then return O._wantPlay[key] and true or false end   -- still stopping: off, unless Play was pressed since
     O._stopping[key] = nil
     if O._wantPlay[key] then
@@ -466,7 +477,10 @@ function O.playStop(chr, part)
     local dd = part and _get(part, "getDeviceData", nil)
     local was = dd and _get(dd, "isPlayingMedia", false)
     local ok = run("TogglePlayMedia", chr, part)
-    if ok and was and key then O._stopping[key], O._wantPlay[key] = true, nil end
+    if ok and was and key then
+        O._stopping[key] = { t = getTimestampMs(), media = tostring(_get(dd, "getMediaIndex", -1)) }
+        O._wantPlay[key] = nil
+    end
     return ok
 end
 
@@ -504,12 +518,14 @@ local function mediaAction(chr, part, isRemove, item)
 end
 function O.insert(chr, part, item)
     stopScan(part)
+    if part and O.forgetStop then O.forgetStop(keyOf(part)) end
     if not item then return false end
     pcall(ISInventoryPaneContextMenu.transferIfNeeded, chr, item)
     return mediaAction(chr, part, false, item)
 end
 function O.eject(chr, part)
     if not part then return false end
+    if O.forgetStop then O.forgetStop(keyOf(part)) end
     local dd = part:getDeviceData()
     if not (dd and _get(dd, "hasMedia", false)) then return false end
     return mediaAction(chr, part, true, nil)
