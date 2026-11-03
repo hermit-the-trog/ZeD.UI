@@ -1,0 +1,61 @@
+[h2]👍 Compatible, G to K (part 4 of 9)[/h2]
+Loaded with ZeD-GUI, no errors of their own, and ZeD-GUI's tests passed with them on. Nothing special to say unless a note says so. A note that starts ⚠️ "Part of it does not show" means the mod adds to a game screen that ZeD-GUI replaces. The first post says which reply holds each part; vehicle packs are in reply 11.
+[h3]G[/h3]
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3827271522]GarageWorks [B42][/url] by telvary
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3755993986]Gas Pump Indicator[/url] by movinow
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3722134990][42.21MP] GoM - Guns of Marz[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3793289804]GPS Cross-Device - ProjectZomboidMap.com[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3722064198][42.20.4MP] Gunworks Framework[/url] by Marz, Chuck, Shark, Alex, Nik
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3342191739]Gyde's Trait Magazines [B42.20][/url] by Gyde
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3776852122]Gyde's Trait Magazines Extended+[/url]
+[/list]
+[h3]H[/h3]
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3827791363]Hands-On Interactions[/url] by olavsoe: Its Viewpoint edition was not tested.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3786918614]Hands: Stow, Equip, Place [B42][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2423266708]Hats and Glasses Don't Fall[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3672792485]HEF - Helicopter Event Framework[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3256482412]Hephas Occupations and Traits[/url]: Its occupations take the place of the game's in ZeD's occupation list (its WithVanillaProfessions add-on keeps the game's).
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3618557184]Here Goes the Sun [B42MP][/url] by Bass
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3600186927]Hide Equipped Items[/url]: Its row is in ZeD's item menu; what it hides is in the game's inventory list. [i](expected)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3554048011]Hide Menu Debug + Remove Build Information[/url]: ⚠️ Part of it does not show: it hides the game's own Debug menu and build text; ZeD's main menu is its own.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3626823538]Hoarder's Delight - Box & Carton Bulk Packing [42.21 Stable][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3661336777]Horse Mod[/url] by albion: Wants to be on in the main menu's mod list too, or it warns at game start that it was not loaded properly and pauses the game (its own check). The warning goes into ZeD's Messages and the game runs on.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3650168851][B42] Horticulture[/url]
+[/list]
+[h3]I[/h3]
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2714198296]I Don't Need A Lighter[/url] by Fingbel
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3718412967]Icons Inventory[/url] by blint: ⚠️ Part of it does not show: its icon grid is on the game's inventory window. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3607686447]Immersive Blackouts [B42MP][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3653092321]Immersive Hotwire[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3829619974]Immersive Sleep[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3810071828]Immersive Snow[/url] by kurmetov
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3426448380]Immersive Suicide[/url] by kStank
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3647117173]ImmersiveSolarArrays [42.16+][/url]: ⚠️ Part of it may not show: it draws on the game's inventory list. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2648152698]Improved Blood Effects[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2645975408]Improved Fire & Smoke Effects[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3565698092]Injury Indicator [B42][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2948824747]Inspect Weapon[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3789584579]Instinctive Hearing [B42][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3486217110][B42] Intuitive Crafting[/url]: ⚠️ Part of it does not show: it changes the game's crafting window; ZeD's World window has its own Craft tab. [i](expected)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3796373365]It is of interest to me![/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3767639280]Item Arrange[/url] by Slayer
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3813943783]Item Arrange Extension[/url] by Kechna: Needs Item Arrange.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3477237184][B42] Item Details[/url]: ⚠️ Part of it does not show: its details are drawn on the game's inventory list. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3826420021]Item Details Panel[/url] by DarMeao Haaaa!: One error of its own at load. Its panels sit beside the game's item tooltip, which ZeD's tooltip runs through, so they may show; not seen in the test.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3662387304]Item Rarity UI (Build 41 + 42)[/url]: ⚠️ Part of it does not show: its rarity colours and sort are for the game's inventory list. [i](by reading its code)[/i]
+[/list]
+[h3]J[/h3]
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3717902500]JB's Bugs In Lights[/url] by jimbeamdiablo
+[/list]
+[h3]K[/h3]
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3470422050]KATTAJ1 Clothes Core[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3470426196]KATTAJ1 Military Pack [B41/B42MP][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2980583716]Kilometers Per Hour[/url] by Braven: Loads; ZeD's dashboard draws its own speed, so its reading is not used.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2881764317]Known And Collected[/url]: ⚠️ Part of it does not show: its read marks are drawn on the game's inventory list. ZeD's lists mark read and unread themselves. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3822813865]Knox Packs: Upgradable Backpacks[/url] by SA_AS: Its packs are in ZeD's lists; the upgrades were not tried.
+[/list]

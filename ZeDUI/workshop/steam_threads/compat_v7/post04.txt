@@ -1,0 +1,58 @@
+[h2]👍 Compatible, D to F (part 3 of 9)[/h2]
+Loaded with ZeD-GUI, no errors of their own, and ZeD-GUI's tests passed with them on. Nothing special to say unless a note says so. A note that starts ⚠️ "Part of it does not show" means the mod adds to a game screen that ZeD-GUI replaces. The first post says which reply holds each part; vehicle packs are in reply 11.
+[h3]D[/h3]
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2939187818]Darker Map[/url]: ⚠️ Part of it does not show: it darkens the game's map; the map key opens ZeD's map, which has its own styles.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3571222611]Darker Map & Satellite View[/url]: ⚠️ Part of it does not show: it restyles the game's map; the map key opens ZeD's map, which has its own styles. [i](expected)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3452711271]darlak's H.E.C.U.[/url] by darlak97
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3197857648]Decoholic[/url] by PePePePePeil
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=1436878551]Defecation v3.59 (Build 42.20mp+)[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3392964216]Devcatt's Furry Moodles [Build 42+][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3761218629]Dismantle All at Once[/url]: ⚠️ Part of it may not show: it hooks the right-click of the game's inventory list. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3428369137]Dismantle Any Car[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3820870164]DIY Gear - Craft Weapons, Armor, Tools & Parts[/url] by Phinn: Its recipes are in ZeD's Craft tab.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3828392514]Drag And Drop (Item Placements)[/url] by Crypt Voice: Dragging out of ZeD's lists into the world was not tried; ZeD's lists keep their own drag. [i](expected)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3393821407][B42] Drag Bodies Faster[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3671176591]dustinguished bolt cutters[/url] by dustinguished
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2996978365]Dynamic Backpack Upgrades[/url] by Dr. Lalaoz
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3674800555]Dynamic Moodles[/url]: ⚠️ Part of it does not show: its moodle looks go to Moodles in lua's drawing, not to ZeD's moodles. [i](expected)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3781818628]Dynamic Snow for Vanilla Vehicles [B42 MP][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2459400130]Dynamic Traits and Expanded Moodles [B41 & B42][/url]: Its moodles go through Moodle Framework, which keeps them at the game's old place at the right edge. [i](expected)[/i]
+[/list]
+[h3]E[/h3]
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3566088272]Easy Set Alarm[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3456212729]Eat Smart[/url]: Its food rows come through the game's item menu.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3374408921]Efficiency Skill Mod 2[/url]: Its Efficiency skill is in ZeD's starting skills on the occupation screen.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3442862183]Effortless Towing[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2735059209]Ellie's Tattoo Parlor V4 b41/b42[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2674541310]Energy Drinks [B42][/url] by Anton Yagoda
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3827432728]Ente's Auto Sorter - Inventory/Base/Cars[/url] by Ente: Its button bar at the bottom centre is drawn over the top half of ZeD's belt. Needs Better Containers.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3446510982]Equip Clothing While Moving [B42.20/B42.19/B41][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2896041179]errorMagnifier[/url] by Chuckleberry Finn: Keeps a copy of every error it shows. With a mod erroring every minute (Week One NPC), the game ran out of memory after about 35 minutes with 128 mods.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3432928943]Escape From Tarkov Backpacks [B42.20][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3119788162]42.21 | Every Texture Optimized[/url] by maceleet
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2867163008]Everything Has a Name[/url]: Its Rename Stack row is in ZeD's item menu.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3392001801]Excavation[/url] by albion
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3440958051][B42 STABLE] Expanded Professions[/url]: Its 7 occupations are in ZeD's occupation list.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3650035249]Extended categories - Better Hoarding! (B42 SP/MP)[/url] by Kechna: ⚠️ Part of it does not show: its categories and colours are drawn on the game's inventory list, which ZeD replaces. [i](by reading its code)[/i] One error of its own at the main menu on 42.21 (an option text with a stray %). Not ZeD.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3824731938]Extensive health redone[/url] by Wartank: ZeD's Health tab works with it on.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3120702374]Extra Gun Slot[/url] by Braven
+[/list]
+[h3]F[/h3]
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3826624859]Farm Panel Plus (B42)[/url] by Lebanon: Its panel opens on Ctrl+G, beside ZeD's windows. [i](expected)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3444499190]Farming Expansion B42[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2584112711]Faster Hood Opening[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3785740658]Fence Sheets[/url] by ragone
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2256623447]Firearms[/url] by Hyzo
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3153010942]First Aid VHS Tapes[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2940354599]Fitness & Workout Overhaul[/url] by Codename280
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3795414660]Fitted Barricades[/url] by ragone
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3430172149][B42MP] FlipVehiclePlusTrailer[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2447729538]Fluffy Hair [B41/B42][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3750861914]Football & Shoving [SP & MP][/url]: Its NFL Player occupation is in ZeD's occupation list.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3042138819]Functional Appliances 2[/url] by Norby007
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3744455714]Functional Pager - Immersive Map-Wide Communication [B42][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3685672179][B42] Functional TV Movies & Series - Framework[/url]
+[/list]
