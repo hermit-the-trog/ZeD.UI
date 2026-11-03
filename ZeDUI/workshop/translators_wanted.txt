@@ -377,7 +377,7 @@ ZeD-GUI nu este încă tradus în română. Textele lui proprii apar în englez�
 
 Caut vorbitori nativi care să-l traducă.
 
-Cum poți ajuta
+Moduri de a ajuta
 - Textele ZeD sunt în codul sursă, în 42/media/lua/shared/Translate/EN/UI.json (link în josul paginii modului), circa 4.200 de rânduri. Tradu o copie și pune un link în acest fir.
 - Sau începe cu puțin: scrie aici cuvintele care se văd cel mai des (numele ferestrelor, filele, butoanele) cu traducerea lor.
 - Trebuie traduse doar textele proprii ale ZeD.
