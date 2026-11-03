@@ -1640,6 +1640,14 @@ local ICON_FALLBACKS = {
     newspaper_times      = "postbox",
 }
 
+
+-- A container with no picture of its own shows the game's own box (its cardboard box / crate icon), never a letter
+-- (the director, Nov 2 2026: a letter "takes me to modern day" and out of 1993). Shared by both windows' strips.
+ZeD.genericContainerTex = ZeD.genericContainerTex or function()
+    local I = ContainerButtonIcons
+    return I and (I.cardboardbox or I.crate or I.smallbox) or getTexture("media/ui/Container_Crate.png")
+end
+
 -- Resolve a container icon: try direct, then fallback alias, then nil
 local function resolveContainerIcon(containerType)
     if not ContainerButtonIcons then return nil end
@@ -2652,7 +2660,8 @@ local function buildWorldContainers(playerObj)
                             containers[#containers + 1] = {
                                 inventory = part:getItemContainer(),
                                 name = partName,
-                                texture = resolveContainerIcon(vehType),
+                                texture = resolveContainerIcon(tostring(part:getItemContainer():getType()))
+                                      or resolveContainerIcon(tostring(part:getId())) or resolveContainerIcon(vehType),
                                 isFloor = false,
                                 sourceType = "vehicle",
                             }
@@ -2839,7 +2848,7 @@ local function drawWorldContainerStrip(self, win, content)
         end
 
         local iconAlpha = mainVis and 1 or 0.5
-        local tex = floorCnt.texture
+        local tex = floorCnt.texture or ZeD.genericContainerTex()
         if tex then
             local ix = math.floor((w - iconSz) / 2)
             local iy = curY + math.floor((T.px(CONTAINER_BTN_SZ) - iconSz) / 2)
@@ -2988,8 +2997,8 @@ local function drawWorldContainerStrip(self, win, content)
 
             -- (a locked container: its dim icon and the padlock below say it; no tinted fill)
 
-            -- Icon or glyph
-            local tex = cnt.texture
+            -- Icon (the game's own box when it has none of its own; ZeD.genericContainerTex)
+            local tex = cnt.texture or ZeD.genericContainerTex()
             if tex then
                 local ix = math.floor((w - iconSz) / 2)
                 local iy = drawY + math.floor((T.px(CONTAINER_BTN_SZ) - iconSz) / 2)
