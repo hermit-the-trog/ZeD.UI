@@ -21,6 +21,10 @@
 --   CONNECT / DISCONNECT  ISPlugGenerator (off, same skill)
 --   TAKE           ISTakeGenerator (disconnected)
 -- All actions go through vanilla's own handlers (walk-adjacent included).
+-- Its Simple form (ZeD setup's Devices row; the plain parts below, shared with
+-- the grill and the laundry cards): the run time left and the fuel in large
+-- type over the fuel gauge, then the engine switch and the outlet (the face's
+-- own zones, gen:engine and gen:outlet) and the readings this model's face shows.
 -- ============================================================================
 
 require "ZeD/ObjectCards"
@@ -34,6 +38,253 @@ local PL = ZeD.Plate
 local UI = OC.ui
 local call = OC.call
 local DOT = OC.DOT
+
+-- ============================================================================
+-- THE PLAIN OBJECT CARD (Nov 2 2026): the Simple form of the generator, the propane grill and the laundry faces
+-- (ZeD setup's Devices row, Full or Simple: ZeD.Settings.devicesSimple; the rules the director approved,
+-- ZeDUI/SIMPLE_VERSIONS_PROPOSAL.md). It does everything the face does and shows everything it shows; only the art
+-- goes. One layout: a readout block across the top (the one or two values that matter most, in large type), then
+-- rows of label | value | control in the face's own order, then what the card already had under the face. Every
+-- control is the face's own zone: the same fid, the same run, the same help, so the mouse, the controller and the
+-- header verbs work unchanged. Read as each card draws, so switching Full / Simple applies at once.
+-- Shared by ObjectCardFire.lua and ObjectCardLaundry.lua (they require this file); the radio tab's simple cards are
+-- PlainFace.lua, built the same way.
+-- ============================================================================
+ZeD.ObjectCardPlain = ZeD.ObjectCardPlain or {}
+local OP = ZeD.ObjectCardPlain
+OP.BIG_PX = 26            -- the readout's large type (design units), as the radio's simple card
+
+ZeD.trDefaults({
+    UI_ZeD_PlainCard_HrsUnit = "hrs",
+    UI_ZeD_PlainCard_DaysUnit = "days",
+    UI_ZeD_PlainCard_Join = "%1 | %2",
+})
+
+-- true while the devices draw as simple cards
+function OP.on()
+    local S = ZeD.Settings
+    if not (S and S.devicesSimple) then return false end
+    local ok, v = pcall(S.devicesSimple)
+    return ok and v == true
+end
+
+-- a row's height: a push button with room round it
+local function rowH()
+    local T = ZeD.T
+    return math.max(T.px(24), T.buttonH + T.px(6))
+end
+
+-- one half of an on/off switch: wide enough for either word
+local function segW()
+    local T, tm = ZeD.T, ZeD.TM
+    local f = T.fontF3
+    local a = tm:MeasureStringX(f, ZeD.btnCase(ZeD.tr("UI_Off")))
+    local b = tm:MeasureStringX(f, ZeD.btnCase(ZeD.tr("UI_On")))
+    return math.max(a, b, T.px(14)) + 2 * T.px(8)
+end
+
+-- the selected wash (the current one of a switch or a pair), and the focus ink on the words
+local _sel = { fill = { r = 0, g = 0, b = 0, a = 0 } }
+local _ink = {}
+local function selColors(ink)
+    local T = ZeD.T
+    local f = _sel.fill
+    f.r, f.g, f.b, f.a = T.accent.r, T.accent.g, T.accent.b, T.selectionA
+    _sel.text = ink and T.textOnFocus or nil
+    return _sel
+end
+local function inkColors()
+    _ink.text = ZeD.T.textOnFocus
+    return _ink
+end
+
+local _bo = {}
+local function btnOpts(hover, focus, disabled)
+    local o = _bo
+    o.hover, o.focus, o.disabled = hover, focus, disabled
+    o.help, o.win, o.compact, o.font = nil, nil, nil, nil
+    return o
+end
+
+-- the widest word of a pair (its keys share one width)
+local function pairKeyW(items)
+    local mw = 0
+    for _, it in ipairs(items) do mw = math.max(mw, ZeD.Molecules.buttonW(it.word)) end
+    return mw
+end
+
+-- a control's width: "switch" (Off | On), "button" (one push button), "pair" (keys side by side, one selected)
+local function ctlW(c)
+    if not c then return 0 end
+    local T = ZeD.T
+    if c.kind == "switch" then return 2 * segW() + T.px(2) end
+    if c.kind == "pair" then return #c.items * pairKeyW(c.items) + (#c.items - 1) * T.px(2) end
+    return ZeD.Molecules.buttonW(c.word)
+end
+
+-- the zone: the face's own (fid, run, help, primary)
+local function stamp(card, fid, x, y, w, h, run, help, primary)
+    card:zone({ fid = fid, x = x, y = y, w = w, h = h, body = true, primary = primary or nil, help = help, run = run })
+end
+
+-- an on/off switch: one control (A or a click toggles it, as the face's switch), the current half selected
+local function drawSwitch(card, cx, cy, ch, c)
+    local T, M, UI = ZeD.T, ZeD.Molecules, ZeD.ObjectCards.ui
+    local sw = segW()
+    local cw = 2 * sw + T.px(2)
+    local fo = card:focusOf(c.fid)
+    local ink = false
+    if fo and ZeD.Focus and ZeD.Focus.mark then ink = ZeD.Focus.mark(card, cx, cy, cw, ch, fo) == true end
+    local hov = UI.hovered(card, c.fid)
+    for i = 1, 2 do
+        local isOn = i == 2
+        local sel = (c.on == true) == isOn
+        local colors = sel and selColors(ink) or (ink and inkColors() or nil)
+        M.drawButton(card, cx + (i - 1) * (sw + T.px(2)), cy, sw, ch, ZeD.tr(isOn and "UI_On" or "UI_Off"), "default", false,
+            colors, btnOpts(hov and not sel, nil, c.run == nil))
+    end
+    stamp(card, c.fid, cx, cy, cw, ch, c.run, c.help, c.primary)
+end
+
+-- one push button (sel: the current one of a pair; dis: drawn dimmed, else whenever it can't act now)
+local function drawKey(card, bx, by, bw, bh, word, fid, run, help, primary, sel, dis)
+    local UI = ZeD.ObjectCards.ui
+    if dis == nil then dis = run == nil end
+    ZeD.Molecules.drawButton(card, bx, by, bw, bh, word, "default", false, sel and selColors(false) or nil,
+        btnOpts(UI.hovered(card, fid), card:focusOf(fid), dis))
+    stamp(card, fid, bx, by, bw, bh, run, help, primary)
+end
+
+local function drawControl(card, cx, cy, ch, c)
+    if c.kind == "switch" then
+        drawSwitch(card, cx, cy, ch, c)
+    elseif c.kind == "pair" then
+        local kw, gap = pairKeyW(c.items), ZeD.T.px(2)
+        for i, it in ipairs(c.items) do
+            drawKey(card, cx + (i - 1) * (kw + gap), cy, kw, ch, it.word, it.fid, it.run, it.help, it.primary, it.sel, it.dis)
+        end
+    else
+        drawKey(card, cx, cy, ctlW(c), ch, c.word, c.fid, c.run, c.help, c.primary, c.sel)
+    end
+end
+
+-- the value's width: its words (and status square), and a segmented bar after them
+local function valueW(r)
+    local T = ZeD.T
+    local w = 0
+    if r.value and r.value ~= "" then
+        w = ZeD.TM:MeasureStringX(T.fontF2, r.value) + (r.dot and T.px(10) or 0)
+    end
+    if r.share then w = w + ZeD.Atoms.rowBarW() + ((w > 0) and T.px(8) or 0) end
+    return w
+end
+
+-- the value, right-aligned in its room: the words (a status square before them), then the bar
+local function drawValue(card, vx, vy, vw, lh, r, label)
+    local T, A, tm = ZeD.T, ZeD.Atoms, ZeD.TM
+    local right = vx + vw
+    if r.share then
+        local bw, bh = A.rowBarW(), T.fillBarH
+        if vw >= bw then
+            A.drawFillBar(card, right - bw, vy + math.floor((lh - bh) / 2), bw, r.share, false, r.shareC, bh, r.shareLabel or label)
+            right = right - bw - T.px(8)
+        end
+    end
+    if not (r.value and r.value ~= "") or right <= vx then return end
+    local f2 = T.fontF2
+    local s = A.truncateText(r.value, f2, right - vx - (r.dot and T.px(10) or 0))
+    local sw = tm:MeasureStringX(f2, s)
+    A.drawTextRight(card, s, right, vy + math.floor((lh - tm:getFontHeight(f2)) / 2), f2, T.text)
+    if r.dot then A.drawStatusDot(card, right - sw - T.px(10), vy + math.floor((lh - T.px(6)) / 2), r.dot, T.px(6)) end
+end
+
+-- A row: label | value | control (the control on a line of its own when the three do not fit). Returns its height.
+-- r = { label, value, dot (the status square's colour), share (0..1: a segmented bar), shareC, shareLabel, ctl }
+-- ctl = { kind = "switch", fid, on, run, help, primary } | { kind = "button", fid, word, run, help, primary }
+--     | { kind = "pair", items = { { fid, word, sel, run, help, primary, dis }, ... } }
+--     (run nil: the control can't act now, drawn dimmed; a pair's key says dis itself: its current one is lit, not dim)
+function OP.row(card, x, y, w, r)
+    local T, tm, A = ZeD.T, ZeD.TM, ZeD.Atoms
+    local gap = T.px(8)
+    local lh = rowH()
+    local f1 = T.fontF1
+    local label = A.textCase(r.label or "")
+    local lw = tm:MeasureStringX(f1, label)
+    local c = r.ctl
+    local cw = ctlW(c)
+    local vw = valueW(r)
+    local two = cw > 0 and (lw + gap + vw + gap + cw > w)
+    local h = two and (lh + lh) or lh
+    local ac = T.accent
+    card:drawText(label, x, y + math.floor((lh - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
+    local right = x + w
+    local vx = x + lw + gap
+    local bh = T.buttonH
+    local cy = y + math.floor((lh - bh) / 2)
+    if two then
+        drawValue(card, vx, y, right - vx, lh, r, label)
+        cy = cy + lh
+    else
+        drawValue(card, vx, y, ((cw > 0) and (right - cw - gap) or right) - vx, lh, r, label)
+    end
+    if c then drawControl(card, right - cw, cy, bh, c) end
+    A.drawDividerH(card, x, y + h - T.line(T.borderW), w)
+    return h
+end
+
+-- The readout block across the top: one or two columns of a small label over a value in large type (a unit after
+-- it), an optional line of words, an optional segmented bar the full width, and the strong rule under it.
+-- spec = { cols = { { label, big, unit, live (false: the value dim) }, ... }, line, lineC, bar (0..1), barLabel, barC }
+function OP.readout(card, x, y, w, spec)
+    local T, tm, A = ZeD.T, ZeD.TM, ZeD.Atoms
+    local UI = ZeD.ObjectCards.ui
+    local f1, f2 = T.fontF1, T.fontF2
+    local h1, hb = tm:getFontHeight(f1), T.px(OP.BIG_PX)
+    local ac, tc, dc = T.accent, T.text, T.textDim
+    local y0 = y
+    y = y + T.px(4)
+    local cols = spec.cols or {}
+    local n = math.max(1, #cols)
+    local cg = T.px(16)
+    local colW = math.floor((w - (n - 1) * cg) / n)
+    for i, c in ipairs(cols) do
+        local cx = x + (i - 1) * (colW + cg)
+        card:drawText(A.truncateText(A.textCase(c.label or ""), f1, colW), cx, y, ac.r, ac.g, ac.b, 1, f1)
+        local bw = UI.big(card, c.big or "--", cx, y + h1 + T.px(2), OP.BIG_PX, (c.live == false) and dc or tc) or 0
+        if c.unit and c.unit ~= "" then
+            card:drawText(c.unit, cx + bw + T.px(6), y + h1 + T.px(2) + hb - h1, dc.r, dc.g, dc.b, dc.a or 1, f1)
+        end
+    end
+    y = y + h1 + T.px(2) + hb + T.px(6)
+    if spec.line and spec.line ~= "" then
+        local lc = spec.lineC or tc
+        card:drawText(A.truncateText(spec.line, f2, w), x, y, lc.r, lc.g, lc.b, lc.a or 1, f2)
+        y = y + tm:getFontHeight(f2) + T.px(4)
+    end
+    if spec.bar then
+        A.drawFillBar(card, x, y, w, spec.bar, false, spec.barC, T.fillBarH, spec.barLabel)
+        y = y + T.fillBarH + T.px(4)
+    end
+    y = y + T.px(2)
+    A.drawDividerH(card, x, y, w, true)
+    return y + T.line(T.borderW) - y0
+end
+
+-- the readings a face shows: the set of its live parts' sources, per plate id (kept)
+local _srcs = {}
+function OP.sources(pid)
+    local key = tostring(pid)
+    local f = _srcs[key]
+    if f then return f end
+    f = {}
+    local X = ZeD.PhysPx
+    local des = X and X.plates and pid and X.plates[pid]
+    for _, part in ipairs(des and des.parts or {}) do
+        if part.src then f[part.src] = true end
+    end
+    _srcs[key] = f
+    return f
+end
 
 local OIL_COND = 25           -- the OIL lamp lights under a quarter's condition (director, Oct 16 2026)
 -- The load meters' full scale: L/h burnt above the engine's own idle. Calibrated (Oct 16 2026) against vanilla's
@@ -205,6 +456,28 @@ local function hhmm(hours)
     return (h < 10 and "0" or "") .. tostring(h) .. ":" .. (m < 10 and "0" or "") .. tostring(m)
 end
 
+-- the run time left at the current draw: its words and their key ("33:20" hrs, or days past 100 hours).
+-- getTotalPowerUsing already carries the sandbox fuel factor: it is the litres burnt per game hour, so
+-- fuel / draw is the run time left
+local function runTime(d)
+    local hrs, unitKey = "--:--", "UI_ZeD_Power_Hrs"
+    if d.on then
+        local draw = (d.total and d.total > 0) and d.total or d.base
+        if draw and draw > 0 then
+            local hh = d.fuel / draw
+            if hh >= 100 then
+                local days = math.floor(hh / 24)
+                hrs, unitKey = (days > 999) and "999+" or tostring(days), "UI_ZeD_Power_Days"
+            else
+                hrs = hhmm(hh)
+            end
+        end
+    elseif d.fuel <= 0 then
+        hrs = "00:00"
+    end
+    return hrs, unitKey
+end
+
 -- the plate for this generator: by its item, else the one a modded set borrows
 local function plateFor(d)
     local X = ZeD.PhysPx
@@ -267,26 +540,88 @@ local function drawPlate(card, x, y, w, t)
             run = fn and function(cc, p) fn(p, t) end or nil })
     end
     local h = des.h * k + T.px(6)
-    -- getTotalPowerUsing already carries the sandbox fuel factor: it is the
-    -- litres burnt per game hour, so fuel / draw is the run time left
-    local hrs, unitKey = "--:--", "UI_ZeD_Power_Hrs"
-    if d.on then
-        local draw = (d.total and d.total > 0) and d.total or d.base
-        if draw and draw > 0 then
-            local hh = d.fuel / draw
-            if hh >= 100 then
-                local days = math.floor(hh / 24)
-                hrs, unitKey = (days > 999) and "999+" or tostring(days), "UI_ZeD_Power_Days"
-            else
-                hrs = hhmm(hh)
-            end
-        end
-    elseif d.fuel <= 0 then
-        hrs = "00:00"
-    end
+    local hrs, unitKey = runTime(d)
     h = h + UI.pair(card, x, y + h, w, ZeD.tr("UI_ZeD_Power_RunTimeLeft"), ZeD.tr(unitKey, hrs), ZeD.tr("UI_ZeD_Power_Fuel"),
         ZeD.tr("UI_ZeD_Power_FuelOf", string.format("%.1f", d.fuel), math.floor(d.max + 0.5)))
     return h
+end
+
+-- ---------------------------------------------------------------------------
+-- THE SIMPLE FORM (ZeD.ObjectCardPlain, above): the run time left and the fuel in large type, the fuel gauge as a
+-- segmented bar; then the face's two controls in its order, the engine switch and the outlet, as the same zones
+-- (gen:engine, gen:outlet); then the readings this model's face shows (its OIL lamp, its volt and cycle meters, its
+-- load needle or OVERLOAD lamp). Condition, what it powers and the cans follow, as under the face.
+-- ---------------------------------------------------------------------------
+ZeD.trDefaults({
+    UI_ZeD_PlainCard_OfL = "of %1 L",
+    UI_ZeD_PlainCard_Engine = "Engine",
+    UI_ZeD_PlainCard_Outlet = "Outlet",
+    UI_ZeD_PlainCard_Connected = "Connected",
+    UI_ZeD_PlainCard_NotConnected = "Not connected",
+    UI_ZeD_PlainCard_OilLamp = "Oil lamp",
+    UI_ZeD_PlainCard_LampLit = "Lit",
+    UI_ZeD_PlainCard_LampOut = "Out",
+    UI_ZeD_PlainCard_Output = "Output",
+    UI_ZeD_PlainCard_Volts = "%1 V",
+    UI_ZeD_PlainCard_Hz = "%1 Hz",
+    UI_ZeD_PlainCard_Load = "Load",
+    UI_ZeD_PlainCard_Overload = "Overload",
+    UI_ZeD_PlainCard_LoadNormal = "Normal",
+})
+
+local function drawPlain(card, x, y, w, t)
+    local T = ZeD.T
+    local d = t.d
+    local OP = ZeD.ObjectCardPlain
+    local _, pid = plateFor(d)
+    local F = OP.sources(pid)
+    local st = plateState(d)
+    local y0 = y
+    local hrs, unitKey = runTime(d)
+    y = y + OP.readout(card, x, y, w, {
+        cols = {
+            { label = ZeD.tr("UI_ZeD_Power_RunTimeLeft"), big = hrs, live = d.on,
+              unit = ZeD.tr(unitKey == "UI_ZeD_Power_Days" and "UI_ZeD_PlainCard_DaysUnit" or "UI_ZeD_PlainCard_HrsUnit") },
+            { label = ZeD.tr("UI_ZeD_Power_Fuel"), big = string.format("%.1f", d.fuel),
+              unit = ZeD.tr("UI_ZeD_PlainCard_OfL", math.floor(d.max + 0.5)) },
+        },
+        bar = st.fuel, barLabel = ZeD.tr("UI_ZeD_Power_Fuel"),
+    })
+    -- the engine switch turns it on / off; the outlet connects / disconnects (vanilla's rules: t.toggle, t.plug)
+    y = y + OP.row(card, x, y, w, {
+        label = ZeD.tr("UI_ZeD_PlainCard_Engine"),
+        value = ZeD.tr(d.on and "UI_ZeD_Power_PillRunning" or "UI_Off"), dot = d.on and T.positive or nil,
+        ctl = { kind = "switch", fid = "gen:engine", on = d.on, help = ZeD.tr("UI_ZeD_Power_HelpEngine"),
+                run = t.toggle and function(cc, p) t.toggle(p, t) end or nil },
+    })
+    y = y + OP.row(card, x, y, w, {
+        label = ZeD.tr("UI_ZeD_PlainCard_Outlet"),
+        value = ZeD.tr(st.connected and "UI_ZeD_PlainCard_Connected" or "UI_ZeD_PlainCard_NotConnected"),
+        dot = st.connected and T.positive or nil,
+        ctl = { kind = "button", fid = "gen:outlet", word = ZeD.tr(d.conn and "UI_ZeD_Power_Disconnect" or "UI_ZeD_Power_Connect"),
+                help = ZeD.tr("UI_ZeD_Power_HelpOutlet"), run = t.plug and function(cc, p) t.plug(p, t) end or nil },
+    })
+    if F.service then
+        y = y + OP.row(card, x, y, w, { label = ZeD.tr("UI_ZeD_PlainCard_OilLamp"),
+            value = ZeD.tr(st.service and "UI_ZeD_PlainCard_LampLit" or "UI_ZeD_PlainCard_LampOut"),
+            dot = st.service and T.warning or nil })
+    end
+    if F.volts or F.hz then
+        local v = F.volts and ZeD.tr("UI_ZeD_PlainCard_Volts", d.on and 120 or 0) or nil
+        local hz = F.hz and ZeD.tr("UI_ZeD_PlainCard_Hz", d.on and 60 or 0) or nil
+        local out = (v and hz) and ZeD.tr("UI_ZeD_PlainCard_Join", v, hz) or (v or hz)
+        y = y + OP.row(card, x, y, w, { label = ZeD.tr("UI_ZeD_PlainCard_Output"), value = out, dot = d.on and T.positive or nil })
+    end
+    if F.load or F.overload then
+        local word, dot = nil, nil
+        if F.overload then
+            word = ZeD.tr(st.overload and "UI_ZeD_PlainCard_Overload" or "UI_ZeD_PlainCard_LoadNormal")
+            dot = st.overload and T.danger or nil
+        end
+        y = y + OP.row(card, x, y, w, { label = ZeD.tr("UI_ZeD_PlainCard_Load"), value = word, dot = dot,
+            share = F.load and st.load or nil, shareC = st.overload and T.danger or nil })
+    end
+    return y - y0
 end
 
 function def.body(card, x, y, w, t, player)
@@ -298,7 +633,12 @@ function def.body(card, x, y, w, t, player)
     if d.toxic then
         y = y + UI.warn(card, x, y, w, ZeD.tr("UI_ZeD_Power_Fumes")) + gap
     end
-    y = y + drawPlate(card, x, y, w, t) + gap
+    -- the face, or its simple form (ZeD setup's Devices row: read as it draws, so a change applies at once)
+    if ZeD.ObjectCardPlain.on() then
+        y = y + drawPlain(card, x, y, w, t) + gap
+    else
+        y = y + drawPlate(card, x, y, w, t) + gap
+    end
 
     -- condition
     local condC = d.cond > 50 and T.positive or T.warning

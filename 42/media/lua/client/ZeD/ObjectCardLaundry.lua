@@ -32,12 +32,18 @@
 -- one button in place of vanilla's laundry buttons while LD.useFace says so).
 -- LD.useFace is the one switch between the face and today's plain controls
 -- (punch list 17, "faces or simple cards", will hang its setting there).
+-- The Simple form (ZeD setup's Devices row; ZeD.ObjectCardPlain in
+-- ObjectCardPower.lua): the cycle phase in large type over the cycle dial as a
+-- segmented bar; then the power switch, the washer-dryer's Wash | Dry keys, the
+-- water and what is inside with the door's Open key, each the face's own zone
+-- (ldy:power, ldy:mode_wash, ldy:mode_dry, ldy:door) with the face's run and help.
 -- ============================================================================
 
 require "ZeD/ObjectCards"
 require "ZeD/ZeD_PixelParts"
 require "ZeD/ZeD_Plate"
 require "ZeD/PhysPx"
+require "ZeD/ObjectCardPower"   -- (the plain card's parts: ZeD.ObjectCardPlain)
 
 local OC = ZeD.ObjectCards
 local P = ZeD.Px
@@ -342,8 +348,75 @@ local function drawFace(card, x, y, w, t)
     return h
 end
 
+ZeD.trDefaults({
+    UI_ZeD_PlainCard_Cycle = "Cycle",
+    UI_ZeD_PlainCard_Mode = "Mode",
+    UI_ZeD_PlainCard_Wash = "Wash",
+    UI_ZeD_PlainCard_Rinse = "Rinse",
+    UI_ZeD_PlainCard_Spin = "Spin",
+    UI_ZeD_PlainCard_Dry = "Dry",
+    UI_ZeD_PlainCard_Cool = "Cool",
+})
+local PHASE_KEY = { phWash = "UI_ZeD_PlainCard_Wash", phRinse = "UI_ZeD_PlainCard_Rinse", phSpin = "UI_ZeD_PlainCard_Spin",
+    phDry = "UI_ZeD_PlainCard_Dry", phCool = "UI_ZeD_PlainCard_Cool" }
+
+-- a face control as a plain control's zone: the face's run (nil = not now) and help, by its id
+local function plainRun(t, d, id)
+    local fn, help = control(t, d, id)
+    return fn and function(cc, p) fn(p, t) end or nil, help
+end
+
+-- The Simple form: the cycle phase in large type (the phase lamps) over the cycle dial; then the power switch (the
+-- run lamp, NO POWER), the washer-dryer's mode keys (its WASH / DRY lamps), the water (the meter, FILL), what is
+-- inside and the door. Same zones as the face, so the mouse, the controller and the opening focus are unchanged.
+local function drawPlain(card, x, y, w, t)
+    local T = ZeD.T
+    local d = t.d
+    local OP = ZeD.ObjectCardPlain
+    t._face, t._k = "plain", nil   -- (for the QA bridge)
+    local st = plateState(t, d)
+    t._st = st
+    local phase = nil
+    for _, k in ipairs(ALL_PHASES) do if st[k] then phase = k end end
+    local y0 = y
+    y = y + OP.readout(card, x, y, w, {
+        cols = { { label = ZeD.tr("UI_ZeD_PlainCard_Cycle"), live = d.on,
+                   big = phase and ZeD.tr(PHASE_KEY[phase]) or ZeD.tr("UI_ZeD_Plain_Stopped") } },
+        bar = st.cycleF or 0, barLabel = ZeD.tr("UI_ZeD_PlainCard_Cycle"),
+    })
+    local run, help = plainRun(t, d, "power")
+    local pw, pdot = ZeD.tr("UI_Off"), nil
+    if d.on then pw, pdot = ZeD.tr("UI_ZeD_Power_PillRunning"), T.positive
+    elseif not d.powered then pw, pdot = ZeD.tr("UI_ZeD_Plain_NoPower"), T.warning end
+    y = y + OP.row(card, x, y, w, { label = ZeD.tr("IGUI_RadioPower"), value = pw, dot = pdot,
+        ctl = { kind = "switch", fid = "ldy:power", on = d.on, run = run, help = help, primary = true } })
+    if d.combo then
+        local wr, wh = plainRun(t, d, "mode_wash")
+        local dr, dh = plainRun(t, d, "mode_dry")
+        y = y + OP.row(card, x, y, w, { label = ZeD.tr("UI_ZeD_PlainCard_Mode"), ctl = { kind = "pair", items = {
+            { fid = "ldy:mode_wash", word = ZeD.tr("UI_ZeD_PlainCard_Wash"), sel = d.washMode, run = wr, help = wh, dis = not d.canMode },
+            { fid = "ldy:mode_dry", word = ZeD.tr("UI_ZeD_PlainCard_Dry"), sel = not d.washMode, run = dr, help = dh, dis = not d.canMode },
+        } } })
+    end
+    -- (no water row for a dryer: punch list 77; the pipes say so: "On the water pipes")
+    if not d.dryerOnly then
+        local water = (d.cap > 0) and ZeD.tr("UI_ZeD_Laundry_WaterOf", string.format("%.1f", d.fluid), math.floor(d.cap + 0.5))
+            or ZeD.tr("UI_ZeD_Laundry_WaterL", string.format("%.1f", d.fluid))
+        if d.piped then water = ZeD.tr("UI_ZeD_Laundry_WaterPiped") end
+        y = y + OP.row(card, x, y, w, { label = ZeD.tr("UI_ZeD_Laundry_Water"), value = water,
+            dot = st.noWater and T.warning or nil })
+    end
+    local inside = (d.n == 0) and ZeD.tr("IGUI_None") or ZeD.tr(d.n == 1 and "UI_ZeD_Laundry_ItemsOne" or "UI_ZeD_Laundry_ItemsMany", d.n)
+    local dr2, dh2 = plainRun(t, d, "door")
+    y = y + OP.row(card, x, y, w, { label = ZeD.tr("UI_ZeD_Laundry_Inside"), value = inside,
+        ctl = { kind = "button", fid = "ldy:door", word = ZeD.tr("IGUI_Open"), run = dr2, help = dh2 } })
+    return y - y0
+end
+
 function def.body(card, x, y, w, t, player)
     if not t.d then return 0 end
+    -- the face, or its simple form (ZeD setup's Devices row: read as it draws, so a change applies at once)
+    if ZeD.ObjectCardPlain.on() then return drawPlain(card, x, y, w, t) end
     return drawFace(card, x, y, w, t)
 end
 
