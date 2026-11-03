@@ -232,7 +232,14 @@ end
 -- ============================================================================
 -- VALUES: read, change (as vanilla's own control would), compare
 -- ============================================================================
-local function comboText(c, i) local ok, t = pcall(function() return c:getOptionText(i) end); return ok and tostring(t or "") or "" end
+local function comboText(c, i)
+    local ok, t = pcall(function() return c:getOptionText(i) end)
+    t = ok and tostring(t or "") or ""
+    -- the language list: ZeD's machine-drafted languages carry a mark, drawn only (the game picks a language by its
+    -- option text, so the option itself stays as the game wrote it; punch list 62)
+    if t ~= "" and ZeD.isMachineLangText and ZeD.isMachineLangText(t) then t = t .. " " .. ZeD.tr("UI_ZeD_Options_MachineTranslation") end
+    return t
+end
 
 -- UI scale's steps above what fits this screen (punch list 39, ZeD.Scale.fitCap): dimmed, and no pick takes them
 local function stepOff(c, i)

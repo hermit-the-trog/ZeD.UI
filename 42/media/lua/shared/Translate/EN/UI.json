@@ -1883,6 +1883,7 @@
     "UI_ZeD_Options_PromptPage": "Page",
     "UI_ZeD_Options_PromptToggle": "Toggle",
     "UI_ZeD_Options_SameAsAccent": "Same as Accent",
+    "UI_ZeD_Options_MachineTranslation": "(machine translation, ZeD-GUI)",
     "UI_ZeD_Options_ScaleAutoNow": "Auto (%1 here)",
     "UI_ZeD_Options_ScaleCappedNow": "%1 (%2 here)",
     "UI_ZeD_Options_SecColors": "Colors",

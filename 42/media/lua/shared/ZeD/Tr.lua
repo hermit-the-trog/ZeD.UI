@@ -306,6 +306,27 @@ local function turkicNow()
     return name == "TR" or name == "AZ"
 end
 
+-- ZeD's machine-translated languages (the director, Nov 2 2026, punch list 62): AI drafts that ship in the mod and
+-- are labelled as machine translations in the language list until players have checked them. Keyed by the game's
+-- language code (Translate/<code>/). A language leaves this list once a player-checked version replaces its draft.
+ZeD.MACHINE_LANGS = ZeD.MACHINE_LANGS or { TR = true, CN = true, PTBR = true }
+
+-- true when a language's display name (as the game's language list shows it) is one of ZeD's machine drafts
+local _mtText = nil
+function ZeD.isMachineLangText(text)
+    if not _mtText then
+        _mtText = {}
+        pcall(function()
+            local langs = Translator.getAvailableLanguage()
+            for i = 0, langs:size() - 1 do
+                local l = langs:get(i)
+                if ZeD.MACHINE_LANGS[tostring(l:name())] then _mtText[tostring(l:text())] = true end
+            end
+        end)
+    end
+    return _mtText[text] == true
+end
+
 function ZeD.upper(s)
     if s == nil then return "" end
     if type(s) ~= "string" then s = tostring(s) end
