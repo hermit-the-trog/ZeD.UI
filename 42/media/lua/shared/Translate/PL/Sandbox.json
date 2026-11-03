@@ -1,0 +1,11 @@
+{
+    "Sandbox_ZeD": "ZeD-GUI",
+    "Sandbox_ZeD_TaxiFlagDrop": "Taksometr: opłata początkowa",
+    "Sandbox_ZeD_TaxiFlagDrop_tooltip": "Dolary pokazywane na taksometrze, gdy kierowca opuszcza flagę.",
+    "Sandbox_ZeD_TaxiPerFifthMile": "Taksometr: za 1/5 mili",
+    "Sandbox_ZeD_TaxiPerFifthMile_tooltip": "Dolary dodawane przez taksometr za każdą piątą część mili przejechaną z opuszczoną flagą.",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting": "Taksometr: za minutę postoju",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting_tooltip": "Dolary dodawane przez taksometr za każdą minutę czasu rzeczywistego, gdy taksówka czeka (poniżej 5 km/h, silnik włączony) z opuszczoną flagą.",
+    "Sandbox_ZeD_TaxiPerExtraPassenger": "Taksometr: za dodatkowego pasażera",
+    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "Dolary pokazywane pod DODATKI za każdego pasażera po pierwszym. Kierowca się nie liczy."
+}
