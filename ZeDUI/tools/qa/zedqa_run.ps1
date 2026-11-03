@@ -344,14 +344,15 @@ function Read-Manifest([string]$Path) {
         if ($line -eq "" -or $line.StartsWith("#")) { continue }
         $parts = @($line -split '\|' | ForEach-Object { $_.Trim() })
         $rel = $parts[0]
-        $tag = ""; $timeout = $TimeoutSec; $end = $null; $expect = $null
+        $tag = ""; $timeout = $TimeoutSec; $end = $null; $expect = $null; $noReset = $false
         for ($i = 1; $i -lt $parts.Count; $i++) {
             $p = $parts[$i]
             if ($p -match '^timeout\s*=\s*(\d+)$') { $timeout = [int]$Matches[1] }
             elseif ($p -match '^end\s*=\s*(.+)$') { $end = $Matches[1].Trim() }
             elseif ($p -match '^expect\s*=\s*(.+)$') { $expect = $Matches[1].Trim() }
+            elseif ($p -eq 'noreset') { $noReset = $true }   # the windows stay where the save left them (zedqa_reload_b.lua)
             elseif ($i -eq 1 -and $p -match '^\w+$') { $tag = $p }
-            elseif ($p -ne "") { $problems.Add("line ${no}: '$p' is not a tag, timeout=, end= or expect=") }
+            elseif ($p -ne "") { $problems.Add("line ${no}: '$p' is not a tag, timeout=, end=, expect= or noreset") }
         }
         $full = [System.IO.Path]::GetFullPath((Join-Path $QaDir $rel))
         $name = [System.IO.Path]::GetFileName($full)
@@ -369,7 +370,7 @@ function Read-Manifest([string]$Path) {
         if (-not $tag) { $tag = $inferred }
         if (-not $tag) { $problems.Add("line ${no}: no ZEDQA tag in $name; give one as '$rel | <tag>'"); continue }
         $items.Add([pscustomobject]@{
-            Line = $no; Rel = $rel; Name = $name; Path = $full; Tag = $tag; Inferred = $inferred
+            Line = $no; Rel = $rel; Name = $name; Path = $full; Tag = $tag; Inferred = $inferred; NoReset = $noReset
             Timeout = $timeout; End = $end; Expect = $expect; Prefixes = (Get-ShotPrefixes $src)
         })
     }
@@ -703,7 +704,7 @@ function Invoke-QaScript($Item, $Res) {
     # before whatever is there ("-- header" becomes a comment after it), so line numbers in
     # errors still match the file.
     $body = [System.IO.File]::ReadAllText($Item.Path)
-    $body = $ResetPrefix + $body
+    if (-not $Item.NoReset) { $body = $ResetPrefix + $body }
     try { Write-Text $BridgeLua $body }
     catch { Start-Sleep -Seconds 1; Write-Text $BridgeLua $body }
     $from = Update-Log

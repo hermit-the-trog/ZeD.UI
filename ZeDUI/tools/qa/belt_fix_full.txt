@@ -1,0 +1,3 @@
+# the hands on Full once (Build 4dbefe69)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_hands_together.lua | ht | timeout=300

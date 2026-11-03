@@ -1,0 +1,2 @@
+# the beta checklist, old item 10: save and reload, second half (run by reload_run.ps1); no window reset first
+zedqa_reload_b.lua | rlb | timeout=120 | noreset

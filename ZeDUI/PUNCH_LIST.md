@@ -2110,6 +2110,30 @@ item says so.
     build (the disclosure walk, the button census, save and reload); QA builds them once the director approves.
     **The director, Nov 2 2026: approved ("thumbs up").** QA builds the three missing checks next (the disclosure walk,
     the button census, save and reload); both sessions refresh the list after every build.
+    **QA, Nov 2-3 2026: the full pre-release pass (Pass 2) for 0.3.0-beta1, on the frozen code (b20818cb, then Build's
+    two fixes from it: 4dbefe69 the Simple belt, 3abae4c1 the Portuguese hand label). Reports 2026-11-02_rc_*.**
+    - A. The release check: 16 / 16 at 4K (2026-11-02_release_check.md); 16 / 16 at the Deck size (_rc_release_800).
+    - B. The full run, all 99 scripts at 4K: 97 pass, 2 warn, 0 fail (_rc_full_4k). Both warnings as at t16 and
+      test-side: wpt "hold A moved the hammer" (the test expects the old quick use); dke one car's key-start timing
+      (race here, dart at t16). No ZeD errors in the log.
+    - C. Everything on Simple (zedqa_all_simple.lua, simple_pass.txt; _rc_simple_4k): one finding, the Simple belt's
+      slot 1 moved 32 px when the off hand filled; Build fixed it (4dbefe69) and hands_together now passes on Full and
+      on Simple (_rc_belt_full, _rc_belt_simple). Test-side: the face-only checks of rtv, tw and ldy on plain cards;
+      sbl's Messages lamp (shows only while Messages keeps something) and its "belt is centred" (the fix centres the
+      slots, as designed).
+    - D. The three new checks: the disclosure walk (zedqa_disclosure_walk.lua) 63 / 67, the 4 misses seen open and
+      closed in their pictures (Zombies Killed, the 1993 group, Build's empty All recipes, the ID card; the test's
+      layout reading only sees controller stops); the button census (zedqa_button_census.lua) 481 stops, 0 dead,
+      45 / 45 (_rc_census); save and reload (reload_run.ps1) 7 / 7: two settings, the Character window's place and
+      tab, a loadout, all back after a quit (_rc_reload_a, _rc_reload_b).
+    - E. Small screens: the short pass at 1280x800 and 1280x720, 4 / 5 each, the one warning wpt's as above.
+    - F. The main menu (zedqa_menu_mods_run.ps1): About DONE; the Full or simple group 10 / 10; the beta menu checks
+      11 / 11; Mod folders with compat_r4 36 / 36; the page lists with the long list 26 / 26 at 4K; sandbox pages
+      4 / 5, the miss test-side (the mouse never reached the list: it read 1922,1081; the page-list run's wheel
+      checks pass). Logs 2026-11-02_rc_menu_*.log.
+    - G. Languages on the frozen code: TR, CN, PTBR 5 / 5 each, 4256 keys, 0 with no text. The hand circles: Turkish
+      Birincil / İkincil and Chinese fit; Portuguese read "Secundári.", Build shortened it to "Secund." (3abae4c1).
+    - The gallery: mm4_03_options_hidden.png (ZeD setup at Windows, the Hidden actions pop-up open) for page 48.
 75. **Punch list housekeeping (build).**
     - Item headers that still say open or fixed although a later QA paragraph confirms them get their state
       corrected.

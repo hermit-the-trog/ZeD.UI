@@ -1,0 +1,3 @@
+# the beta checklist, old item 10: save and reload, first half (run by reload_run.ps1)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_reload_a.lua | rla | timeout=120

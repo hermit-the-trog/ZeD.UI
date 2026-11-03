@@ -1,0 +1,5 @@
+# the Simple belt: slot 1 holds still when the hands change (Build 4dbefe69)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_all_simple.lua | asp | timeout=30
+zedqa_hands_together.lua | ht | timeout=300
+zedqa_simple_belt.lua | sbl | timeout=300

@@ -1,0 +1,18 @@
+# the beta checklist, part C: the same areas with every Full or simple row on Simple (zedqa_all_simple.lua first).
+# The tabs on Simple, then each simple form's own scripts.
+zedqa_prelude.lua | pre | timeout=120
+zedqa_all_simple.lua | asp | timeout=30
+suite_tabs.lua | tabs
+zedqa_ctxlist.lua | cl
+zedqa_ctx_icons.lua | cx | timeout=300
+zedqa_simple_belt.lua | sbl | timeout=300
+zedqa_simple_watch.lua | sw | timeout=300
+zedqa_hands_together.lua | ht | timeout=300
+zedqa_food_verbs.lua | fv | timeout=120
+zedqa_plain_cards.lua | plc | timeout=400
+zedqa_appliances.lua | ap | timeout=900
+zedqa_laundry.lua | ldy | timeout=900
+zedqa_rtv.lua | rtv | timeout=900
+zedqa_twoway.lua | tw | timeout=900
+zedqa_dash19.lua | dash | timeout=900
+zedqa_car_radio_build.lua | rb | timeout=600
