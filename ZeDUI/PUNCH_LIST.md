@@ -2042,6 +2042,11 @@ item says so.
     - QA rewrites items 4 to 16 and its regression list in the two-pass shape: a per-build pass of only what changed
       plus the release check, and a full pre-release checklist.
     - The director reviews the full checklist before testing starts, and both sessions refresh it after every build.
+    **QA, Nov 2 2026: the draft is written for the director's review: ZeDUI/QA_CHECKLIST_BETA.md.** Pass 1 after each
+    build: the release check, the build's own checks, and the scripts that cover what changed (a table by area). Pass 2
+    before a release: the release check, the full run at 4K, the simple versions, the old items 4 to 16 (each mapped
+    to how it is checked now), small screens once, the main menu, the languages, the upload. Three checks are still to
+    build (the disclosure walk, the button census, save and reload); QA builds them once the director approves.
 75. **Punch list housekeeping (build).**
     - Item headers that still say open or fixed although a later QA paragraph confirms them get their state
       corrected.
