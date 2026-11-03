@@ -1,0 +1,5 @@
+# ZeDUI/tools/qa/release_check_beta2.txt  (Nov 3 2026): the release check on the staged 0.3.0-beta2, plus a Cooking stew and the Vehicle tab
+zedqa_prelude.lua | pre | timeout=120
+zedqa_release_check.lua | rel | timeout=240
+zedqa_cook80.lua | c80 | timeout=1500
+zedqa_mech79.lua | m79 | timeout=1200
