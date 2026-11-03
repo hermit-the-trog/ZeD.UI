@@ -1824,6 +1824,19 @@ item says so.
     way in; group D (ID card, notebook paper, balloons, the main menu desk, sleep clock, fishing reel, death alert,
     seat chooser, map pins, the Messages note) stays as it is, with no simple version (build's reading of "stay
     simple"). First: the radio's simple card as a picture for the director, then the rest in that layout.
+    **QA, Nov 2 2026: ZeD setup's "Full or simple" group confirmed (zedqa_menu_forms.lua, main menu, 10 / 10).** Right
+    after Look; Belt, Action bar, Context menu, Equip view, Devices, Watch, Dashboard in that order; no other group
+    shows them; Vanilla Access sets Devices, Watch and Dashboard to Simple, Vanilla Plus to Full; each of the three
+    picked by hand makes the Preset read Custom; Discard put everything back.
+    **QA, Nov 2 2026: the Simple watch at 4K (zedqa_simple_watch.lua, 20 / 23; pictures for the director in
+    qa/Nov2_beta/pl60_simple_watch.png).** Worn, the corner box: the time large with seconds, "WE 21", 79°F, Speed x1,
+    Alarm off; Pause / Start pauses and runs the game, Speed steps x2 and x3, Alarm sets and clears the alarm (Alarm
+    15:00 with the dot). No watch: Game speed with Pause, x1, x2, x3, each setting the speed. On the belt: the plain
+    time box, and the plain watch pops above it. Full brings the watch's art back at once. + and - follow the watch's
+    rules (+ with the alarm off arms it at 0:00; - from 0 turns it off). **Three faults, sent to build:** (1) in set
+    mode "On/off" leaves set mode instead of switching the alarm (it sends the watch's alarm press, the back press in
+    set mode); (2) the buttons' words run past their buttons at 4K ("Pause", "Speed", "Alarm", "On/off"); (3) the set
+    mode's help line "Set the alarm hour with ..." runs out of the box (not wrapped).
 61. **The Vehicle tab on small screens (the director, Nov 2: undecided, must be decided before the beta).** open.
     - Beside the car figure, Type, Distance and Key show only their labels at small sizes.
     - **QA first:** one small-screen screenshot of the Vehicle tab with the hood open (1280x720 or the Deck,
