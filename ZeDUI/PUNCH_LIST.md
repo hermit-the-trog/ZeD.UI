@@ -1933,6 +1933,17 @@ item says so.
     (2026-11-02_gallery_beta_4k.md, _gallery_tw_retake_4k.md). The main menu (gallery_menus_run.ps1, every script
     DONE, everything put back): desk_02, desk_04, desk_05 (46/47) and mm4_01, mm4_02 (48). The one FAIL in the
     first run was the test's own tidy-up asking a washer for radio data (guarded now); its pictures were fine.
+    **QA, Nov 3 2026: the first new drafts in game at 4K (lang_run.ps1, now taking every game language; reports
+    2026-11-03_pl62_lang_RU/UA/JP/KO/CH/PT/ES.md): all 5 PASS in each.** Each is named a ZeD machine draft in the list,
+    every key has text, 6 to 20 lines the same as English (units, button letters, the mod's name). Russian and Ukrainian
+    draw in the pixel capitals (action bar ЕДА / ЯБЛОКО, ХАРЧУВАННЯ / ЯБЛУКО; Є, І, Ї and Ґ did not come up in the
+    pictures); Korean, Japanese and Traditional Chinese windows draw whole in the game's fonts, and the action bar falls
+    back to the regular face as planned. The first Japanese run showed one key with no text: it ran while the Fable
+    proofread was being written into the shared checkout; rerun on 9f475791, 5 / 5 (zedqa_lang.lua now names any key
+    with no text). RU and UA ran before their proofreads (28a3e944, 83e668e0), which change words only.
+    Found: UI_ZeD_MainMenu_Clock12 (021f78b9) is in EN, CN, CH, JP and KO only, so 14 languages show the English time
+    pattern; the Spain Spanish off-hand label is cut to "Secundari." (as PTBR's was before "Secund."); in the 5-row
+    pixel face Ã reads as a plain A (the tilde merges with the apex: PT and PTBR "MAÇA" for Maçã).
 63. **Ente's Auto Sorter (the director, Nov 2).** chosen. A note in the Compatibility thread: its button bar sits over
     ZeD's belt, so drag its bar aside. It is not popular enough to special-case. QA adds the line at the next thread
     edit.

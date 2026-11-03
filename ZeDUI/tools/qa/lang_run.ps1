@@ -1,7 +1,7 @@
 # ZeDUI/tools/qa/lang_run.ps1  (Nov 2 2026, QA; punch list 62): one of ZeD's machine-translated languages in game.
 # Sets the game's language in options.ini (the game reads it at launch), runs lang_check.txt at 4K, puts the language back.
-#   pwsh -File ZeDUI/tools/qa/lang_run.ps1 -Lang TR      (TR, CN, PTBR)
-param([Parameter(Mandatory)][ValidateSet("TR", "CN", "PTBR")][string]$Lang)
+#   pwsh -File ZeDUI/tools/qa/lang_run.ps1 -Lang TR      (any of the game's language codes that ZeD has a draft for; Nov 3 2026: all 27)
+param([Parameter(Mandatory)][ValidateSet("TR", "CN", "PTBR", "PT", "ES", "ES_MX", "AR", "ES_CL", "FR", "DE", "IT", "CA", "NL", "DA", "NO", "FI", "PL", "CS", "HU", "RO", "RU", "UA", "CH", "JP", "KO", "TH", "ID")][string]$Lang)
 $ErrorActionPreference = "Stop"
 $here = $PSScriptRoot
 $ini = "C:\Users\danie\Zomboid\options.ini"
