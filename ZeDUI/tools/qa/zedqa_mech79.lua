@@ -41,6 +41,7 @@ local v, trailer, key, hovered
 local made, animals = {}, {}
 local mechWas = p:getPerkLevel(Perks.Mechanics)
 local knewRecipe = true
+local readWas = true
 
 local function freeSq(offsets)
     for _, o in ipairs(offsets) do
@@ -63,11 +64,29 @@ step(120, function()
     end
     p:setPerkLevelDebug(Perks.Mechanics, 3)
     -- brakes and suspension need the recipe; known, their cards show Uninstall (and its step before)
-    pcall(function() knewRecipe = p:isRecipeKnown("Basic Mechanics") end)
-    if not knewRecipe then pcall(function() p:learnRecipe("Basic Mechanics") end) end
+    -- the real path (Build, Nov 3): read Laine's Auto Manual (Base.MechanicMag1), as a player learns it. The read is
+    -- recorded in the character's already-read books; that list is put back after (this script's runs of Nov 3
+    -- before this line left it marked read with the recipe taken away: cleared here once, when the recipe is unknown)
+    local rb = p:getAlreadyReadBook()
+    pcall(function() knewRecipe = p:isRecipeActuallyKnown("Basic Mechanics") end)
+    readWas = rb:contains("Base.MechanicMag1")
+    if readWas and not knewRecipe then
+        while rb:contains("Base.MechanicMag1") do rb:remove("Base.MechanicMag1") end
+        readWas = false
+        say("cleared a stale read of Base.MechanicMag1 left by an earlier run of this script")
+    end
+    say("before: Basic Mechanics known " .. tostring(knewRecipe) .. ", magazine read " .. tostring(readWas))
+    if not knewRecipe then
+        local mag = p:getInventory():AddItem("Base.MechanicMag1")
+        if mag then made[#made + 1] = mag; ISTimedActionQueue.add(ISReadABook:new(p, mag, 150)) end
+    end
     say("car at " .. math.floor(v:getX()) .. "," .. math.floor(v:getY()) .. "; Mechanics " .. mechWas .. " -> 3")
 end)
-step(180, function()
+waitFor(30, 3600, function() local k = false; pcall(function() k = p:isRecipeActuallyKnown("Basic Mechanics") end); return k and not ISTimedActionQueue.isPlayerDoingAction(p) end, function()
+    local k = false; pcall(function() k = p:isRecipeActuallyKnown("Basic Mechanics") end)
+    say("Basic Mechanics known by reading the magazine: " .. tostring(k))
+end)
+step(60, function()
     if not v then return end
     local tire = v:getPartById("TireFrontLeft")
     if tire then pcall(function() tire:setInventoryItem(nil); v:transmitPartItem(tire) end) end
@@ -217,7 +236,7 @@ step(30, function()
     local z = zone("mech:step")
     local vb = {}
     for _, q in ipairs(zonesLike("mech:verb:")) do vb[#vb + 1] = q.id:sub(11) .. (q.disabled and " (greyed)" or "") end
-    local known = false; pcall(function() known = p:isRecipeKnown("Basic Mechanics") end)
+    local known = false; pcall(function() known = p:isRecipeActuallyKnown("Basic Mechanics") end)
     local bp = v and v:getPartById("BrakeRearLeft")
     local ut = bp and bp:getTable("uninstall")
     say("brake card: verbs " .. table.concat(vb, ", ") .. " | Basic Mechanics known " .. tostring(known) .. " | uninstall table: recipes " .. tostring(ut and ut.recipes) .. ", skills " .. tostring(ut and ut.skills) .. ", requireUninstalled " .. tostring(ut and ut.requireUninstalled))
@@ -272,6 +291,63 @@ step(20, function()
 end)
 step(20, function() check(S() and S().card == nil, "B closes the card") end)
 
+-- ---- the new diagrams on other bodies (291ed0dd): each inspected, one part off (the missing pulse), the real cursor on
+-- the first row in view (the lit part), a click in the diagram's middle (the part it picks)
+local tourV
+local function tour(script, offPart)
+    step(10, function()
+        local sq = freeSq({ { 0, 5 }, { 0, -5 }, { 5, 3 }, { -5, 3 }, { 6, 0 }, { -6, 0 } })
+        tourV = sq and addVehicleDebug(script, IsoDirections.N, nil, sq) or nil
+        if not tourV then say("ERR " .. script .. ": no free square"); return end
+        pcall(function() local it = p:getInventory():AddItem(tourV:createVehicleKey()); made[#made + 1] = it end)
+    end)
+    step(120, function()
+        if not tourV then return end
+        local pt = tourV:getPartById(offPart)
+        if pt then pcall(function() pt:setInventoryItem(nil); tourV:transmitPartItem(pt) end) end
+        if not ZeD_WorldWindow.isOpen() then ZeD_CharacterWindow.toggleBothPaired(0) end
+        ISVehicleMenu.onMechanic(p, tourV)
+    end)
+    waitFor(30, 3600, function() local s = S(); local e = s and s.vehicles and s.vehicles[s.idx]; return tourV and MT.isInspected(tourV) and e and e.vehicle == tourV end, function()
+        check(tourV and MT.isInspected(tourV), script .. ": inspected, its tab on it")
+        local s = S()
+        local z
+        for _, r in ipairs(s.lastRows or {}) do local c, cy = r.clip, r.y + math.floor(r.h / 2); if not z and (not c or (cy >= c.y and cy < c.y + c.h)) then z = r end end
+        hovered = z and z.part
+        if z then
+            pcall(function() local fw = getFileWriter("zedqa_click_done.txt", true, false); fw:write(""); fw:close() end)
+            pcall(function() local f = getFileWriter("zedqa_click.txt", true, false); f:write("move " .. math.floor(s.panel:getAbsoluteX() + z.x + 20) .. " " .. math.floor(s.panel:getAbsoluteY() + z.y + z.h / 2)); f:close() end)
+        end
+    end)
+    waitFor(10, 600, function() local r = getFileReader("zedqa_click_done.txt", false); local l = r and r:readLine(); if r then r:close() end; return l ~= nil and l:find("done", 1, true) ~= nil end, function() end)
+    step(30, function()
+        local s = S()
+        check(s and s.hl ~= nil and s.hl == hovered, script .. ": hover on a row lights its part (" .. tostring(hovered) .. ", lit " .. tostring(s and s.hl) .. ")")
+        say(script .. ": rows " .. table.concat(rowOrder(), ", "))
+        shot("t_" .. script:gsub("Base%.", "") .. "_lit")
+        pcall(function() Mouse.setXY(sw - 4, sh - 4) end)
+        local c = s and s.figClip
+        if c then
+            for dy = math.floor(c.h / 4), c.h - 1, 6 do
+                for dx = math.floor(c.w / 4), c.w - 1, 6 do
+                    if not s.card then MT.onClick(W(), c.x + dx, c.y + dy) end
+                end
+            end
+        end
+    end)
+    step(30, function()
+        local s = S()
+        check(s and s.card ~= nil, script .. ": a click on the diagram picks a part (" .. tostring(s and s.card) .. ")")
+        shot("t_" .. script:gsub("Base%.", "") .. "_card")
+        if s and s.card then press(zone("mech:row:" .. s.card)) end
+    end)
+    step(10, function() if tourV then pcall(function() tourV:permanentlyRemove() end); tourV = nil end end)
+end
+tour("Base.PickUpTruck", "DoorFrontLeft")
+tour("Base.Van", "DoorFrontRight")
+tour("Base.SportsCar", "HeadlightLeft")
+tour("Base.Trailer", "TireRearLeft")
+
 -- ---- the trailer
 step(10, function()
     local sq
@@ -321,6 +397,10 @@ step(20, function()
     for _, it in ipairs(made) do pcall(function() if it:getContainer() then it:getContainer():Remove(it) end end) end
     p:setPerkLevelDebug(Perks.Mechanics, mechWas)
     if not knewRecipe then pcall(function() p:getKnownRecipes():remove("Basic Mechanics") end) end
+    if not readWas then pcall(function() local rb = p:getAlreadyReadBook(); while rb:contains("Base.MechanicMag1") do rb:remove("Base.MechanicMag1") end end) end
+    local kn = false; pcall(function() kn = p:isRecipeActuallyKnown("Basic Mechanics") end)
+    say("after: Basic Mechanics known " .. tostring(kn) .. ", magazine read " .. tostring(p:getAlreadyReadBook():contains("Base.MechanicMag1")))
+    if tourV then pcall(function() tourV:permanentlyRemove() end) end
     say("put back: car, trailer, " .. #animals .. " animals, " .. #made .. " items taken away; Mechanics " .. p:getPerkLevel(Perks.Mechanics))
     if fails == 0 then say("summary: all " .. passes .. " PASS") else say("summary: " .. fails .. " of " .. (passes + fails) .. " checks FAIL") end
 end)
