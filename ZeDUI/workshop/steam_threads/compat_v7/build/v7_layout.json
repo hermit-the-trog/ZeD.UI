@@ -1,0 +1,40 @@
+{
+ "where": {
+  "S": 0,
+  "W": 1,
+  "C": [
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10
+  ],
+  "V": 11,
+  "N": [
+   12,
+   13
+  ],
+  "X": 14
+ },
+ "replies": 14,
+ "compatible_parts": [
+  "0-9 to Be",
+  "Be to C",
+  "D to F",
+  "G to K",
+  "L to M",
+  "N to P",
+  "Q to Sm",
+  "Sm to Tr",
+  "Tr to Z"
+ ],
+ "letters": {
+  "C": true,
+  "V": true,
+  "N": false
+ }
+}

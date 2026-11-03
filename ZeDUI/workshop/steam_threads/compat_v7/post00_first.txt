@@ -1,0 +1,40 @@
+TITLE: Compatibility with other mods
+
+This thread lists the 559 mods tested with ZeD-GUI, sorted into five lists. Each list is in alphabetical order. The Compatible lists have a heading for each letter. Last updated Nov 2 2026.
+
+[h2]📋 Where each list is[/h2]
+Steam cannot link to a reply, so count the replies from the top of the thread.
+[list]
+[*]✅ [b]This post, below: Supported.[/b] ZeD-GUI has its own support for the mod, so its features show in ZeD's windows (21 mods).
+[*]⭐ [b]Reply 1: Works well with ZeD.[/b] The mod fills a gap or shows well in ZeD's windows; worth having (13). After it: how the mods were tested, help for long mod lists, and how to add a mod.
+[*]👍 [b]Replies 2 to 10: Compatible[/b], in 9 parts: 0-9 to Be (reply 2), Be to C (reply 3), D to F (reply 4), G to K (reply 5), L to M (reply 6), N to P (reply 7), Q to Sm (reply 8), Sm to Tr (reply 9), Tr to Z (reply 10). Loads and works with ZeD-GUI, nothing special (413).
+[*]🚗 [b]Reply 11: Compatible, vehicle packs[/b] (49).
+[*]🤝 [b]Replies 12 and 13: Not needed with ZeD.[/b] ZeD-GUI already does the job, so use one of the two; the makers are credited there (49).
+[*]❌ [b]Reply 14: Does not work.[/b] Two lists: mods that do not work with ZeD-GUI, with why (3), and mods broken on 42.21 or 42.22 by themselves (11).
+[/list]
+
+[h2]✅ Supported[/h2]
+ZeD-GUI has its own support for these mods: their features show in ZeD's windows. Each support turns on only while that mod is on; ZeD's folders, which share [B42]Mod Folders' file, are always there.
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3789660055]Container Capacity Indicator [B42][/url]: Every container button on ZeD's strips carries a fullness bar in the mod's bands (green, amber, red). From ZeD-GUI 0.2.0-t11.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2804531012]Draw On The Map - Free Hand Drawing[/url]: Draw, Line and Erase on the Maps tab toolbar, with Thickness and Fill. Controller: hold A on the map cursor. From ZeD-GUI 0.2.0-t6.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2871469707]Easy Drop'n'Loot[/url] by [usa]: Its Transfer category and Loot category buttons are in ZeD's container buttons row, in the Character and World windows, and move the same items the mod's own buttons would. Its Drop all (Category) rows are in ZeD's item menu. From ZeD-GUI 0.2.0-t11.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2914075159]Evolving Traits World (ETW) + More Traits continuation[/url]: Its traits are in ZeD's trait list, and its trait progress page is rows in ZeD's Traits tab: the mod's bars, its gain and lose marks, the trait you have now, and its own numbers and words at the foot. With Traits As Skills on, both share the one tab. From ZeD-GUI 0.2.0-t11.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2923554542]Exp Recovery for Skill Books[/url]: The saved XP is a strip under each skill in ZeD's Skills tab (grey for where the skill is, blue for what the saved XP would add); the numbers per book stage are in the row's hover card. From ZeD-GUI 0.2.0-t11.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3830422267]Immersive Moodles[/url] by Krovenox: While its moodle column is on, ZeD leaves the moodles to it: one set shows, the mod's, with its own hover text, and on the right it starts below ZeD's corner watch. With its "Show Immersive HUD" option off, ZeD's moodles show as usual. From ZeD-GUI 0.2.0-t16.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3760450908]Immersive Searching [B42MP][/url] by キツネユキ (yuckyfox): Containers not yet searched show its "?" in ZeD's container strips, a container's list shows things as the search finds them, and Take all and the other moves wait until the search is done. Search all is in the button row when the mod's sandbox option allows it. The searching itself is the mod's; support it on its Workshop page. From ZeD-GUI 0.2.0-t15.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3589548354]Improved Hair Menu[/url] by duckduckquack and TwisTonFire: Its cuts, ties and trims are rows in the Identity tab's Hair and Beard section. From ZeD-GUI 0.2.0-t6.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2734705913]Map Symbol Size Slider[/url]: Its Symbol Size slider is in the Maps tab, beside the mark grid, and saves to the mod's own setting. From ZeD-GUI 0.2.0-t6.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3779201168][B42]Mod Folders[/url] by FieClaussell: ZeD's Mods page reads and saves the same folder file as the mod, so folders made in either show in both and stay when you play without ZeD. A folder's box turns its mods on or off; folders never change the load order. Thanks to FieClaussell for the format; support the mod on its Workshop page. From ZeD-GUI 0.2.0-t15.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2854030563]Moodle Quarters [B42][/url] by DahakaMVl: The mod draws the moodles wherever ZeD puts them (right edge, left edge, or the row above the belt), with its own plates and order; ZeD's hover note follows its order. From ZeD-GUI 0.2.0-t11.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3760534563]NeatUI Hairstyler[/url] by Gimmi: Its cuts, ties and trims are rows in the Identity tab's Hair and Beard section. From ZeD-GUI 0.2.0-t6.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3410947298][B42] Nested Containers[/url] by Nikku Miru: A bag carried inside a bag gets its own column on ZeD's container strip, in the Character and World windows, following the mod's depth and filter options. From ZeD-GUI 0.2.0-t11.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2879960936]Players On Map[/url]: Other players' squares and names on the Maps tab, and a Players list. Multiplayer only. From ZeD-GUI 0.2.0-t6.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2815560151]Share Annotations[/url] by belette: Learned map notes in the Maps tab's side list, to show, hide or delete. A set hidden on the game's map can be shown again. From ZeD-GUI 0.2.0-t6.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2503622437]Skill Recovery Journal[/url] by Chuckleberry Finn: Its strip under each row of the Skills tab, a key line, and the numbers in a hover card. From ZeD-GUI 0.2.0-t6.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3414634809]Spongie's Character Customisation[/url] by Spongie: Its faces and details are the Character window's Appearance tab and rows on the Looks screen for a new character; its window at game start opens that tab, paused, as the mod does. The mod's rules and saving are its own. From ZeD-GUI 0.2.0-t5.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3041733782]Spongie's Hairstyle Unlocker[/url] by Spongie: The styles it unlocks are rows in the Identity tab's Hair and Beard section, marked with its tag. From ZeD-GUI 0.2.0-t6.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3784847437]Traits As Skills[/url] by GersonRess: A Traits tab after Skills, its traits drawn like skills with ten steps. From ZeD-GUI 0.2.0-t6.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3097650043]Where Am I?[/url] by Braven: The name of the area you are in, over the Maps tab. From ZeD-GUI 0.2.0-t6.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3819438691]Wound Expansion[/url] by Kaoeutsu: Its wounds and conditions show in ZeD's Health tab, in the part's detail and the injury list, in the mod's own words and colours; its treatments are in the part's menu. From ZeD-GUI 0.2.0-t11.
+[/list]
