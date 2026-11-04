@@ -408,7 +408,7 @@ function B.paginate(bk, u)
                     local n, per = #rules.rows, RULE_ROWS
                     local long = 0
                     for _, row in ipairs(rules.rows) do long = math.max(long, #tostring(row[#rules.cols] or "")) end
-                    if long > 28 then per = math.floor(RULE_ROWS / 2) end
+                    if long > 28 then per = 16 end   -- (QA: 16 still fit on the Deck at Large text)
                     local parts = math.max(1, math.ceil(n / per))
                     for c = 1, parts do
                         local part = rules

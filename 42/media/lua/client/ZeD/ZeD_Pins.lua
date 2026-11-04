@@ -106,11 +106,12 @@ P.kindOf = kindOf
 -- a name short enough for the title bar (QA, Nov 4 2026: with a book's whole title only one pin fitted): the part
 -- before a colon or a bracket, at most SHORT letters
 local SHORT = 16
-local function shortName(n)
+local function shortName(n, max)
+    max = max or SHORT
     n = tostring(n or "")
     local head = n:match("^([^:%(]+)")
     if head and head:gsub("%s+$", "") ~= "" then n = head:gsub("%s+$", "") end
-    if #n > SHORT then n = n:sub(1, SHORT - 1):gsub("%s+$", "") .. "..." end
+    if #n > max then n = n:sub(1, max - 1):gsub("%s+$", "") .. "..." end
     return n
 end
 P.shortName = shortName
@@ -120,40 +121,63 @@ function P.stats(p)
     local T = ZeD.T
     local out = {}
     for _, e in ipairs(list(p)) do
-        local text, color = nil, nil
+        -- form(name): the pin's words with a name (nil: the number alone); the title bar takes the longest form that
+        -- fits, then shorter ones (QA, Nov 4 2026: pins were dropped where a shorter form would have fitted)
+        local form, color, full = nil, nil, nil
         if e.k == "skill" then
             local pd = ZeD.SkillsTab and ZeD.SkillsTab.getPinData and ZeD.SkillsTab.getPinData(p, e.id)
             if pd then
-                if pd.level >= 10 then text, color = ZeD.tr("UI_ZeD_Char_PinMax", pd.name), T.positive
-                else text, color = ZeD.tr("UI_ZeD_Char_PinLevel", pd.name, pd.level, pd.xpInLevel .. "/" .. pd.xpForLevel), T.accent end
+                full = pd.name
+                if pd.level >= 10 then
+                    color = T.positive
+                    form = function(n) return n and ZeD.tr("UI_ZeD_Char_PinMax", n) or "10" end
+                else
+                    color = T.accent
+                    form = function(n)
+                        if n then return ZeD.tr("UI_ZeD_Char_PinLevel", n, pd.level, pd.xpInLevel .. "/" .. pd.xpForLevel) end
+                        return ZeD.tr("UI_ZeD_Pin_Of", pd.level, pd.xpInLevel, pd.xpForLevel)
+                    end
+                end
             end
         else
             local it = itemOf(p, e.id, e)
             if it then
-                local name = shortName(it:getDisplayName())
+                full = it:getDisplayName()
                 pcall(function()
+                    local key, a1, a2
                     if e.k == "book" then
                         local n, r = it:getNumberOfPages() or 0, it:getAlreadyReadPages() or 0
-                        text = ZeD.tr("UI_ZeD_Pin_Of", name, r, n)
+                        key, a1, a2 = "UI_ZeD_Pin_Of", r, n
                         color = (n > 0 and r >= n) and T.positive or T.accent
                     elseif e.k == "fluid" then
                         local fc = it:getFluidContainer()
-                        local a, c = fc:getAmount() or 0, fc:getCapacity() or 0
-                        text = ZeD.tr("UI_ZeD_Pin_Litres", name, string.format("%.1f", a), string.format("%.1f", c))
-                        color = (c > 0 and a / c < 0.25) and T.warning or T.info
+                        local am, c = fc:getAmount() or 0, fc:getCapacity() or 0
+                        key, a1, a2 = "UI_ZeD_Pin_Litres", string.format("%.1f", am), string.format("%.1f", c)
+                        color = (c > 0 and am / c < 0.25) and T.warning or T.info
                     elseif e.k == "uses" then
                         local u = it:getCurrentUsesFloat() or 0
-                        text = ZeD.tr("UI_ZeD_Pin_Pct", name, math.floor(u * 100 + 0.5))
+                        key, a1 = "UI_ZeD_Pin_Pct", math.floor(u * 100 + 0.5)
                         color = (u < 0.25) and T.warning or T.info
                     elseif e.k == "cond" then
                         local c, m = it:getCondition() or 0, it:getConditionMax() or 1
-                        text = ZeD.tr("UI_ZeD_Pin_Of", name, c, m)
+                        key, a1, a2 = "UI_ZeD_Pin_Of", c, m
                         color = (c <= 0 and T.danger) or ((c / m <= 0.25) and T.warning) or T.positive
+                    end
+                    if key then
+                        form = function(n)
+                            local t = ZeD.tr(key, n or "", a1, a2)
+                            if not n then t = t:gsub("^%s*|%s*", "") end
+                            return t
+                        end
                     end
                 end)
             end
         end
-        if text then out[#out + 1] = { text = text, color = color } end
+        if form then
+            local text = form(shortName(full, SHORT))
+            local alts = { form(shortName(full, 8)), form(nil) }
+            out[#out + 1] = { text = text, color = color, alts = alts }
+        end
     end
     return out
 end
