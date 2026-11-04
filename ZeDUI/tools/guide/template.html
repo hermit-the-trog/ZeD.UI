@@ -1,6 +1,6 @@
 <title>ZeD Survival Guide</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans+Condensed:wght@400;500;600&family=Domine:wght@700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400;1,700&family=Arimo:wght@700&family=Archivo+Black&family=Archivo:ital,wdth,wght@1,112,900&family=Archivo+Narrow:wght@700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans+Condensed:wght@400;500;600&family=Domine:wght@700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400;1,700&family=Arimo:ital,wght@0,700;1,400;1,700&family=Archivo+Black&family=Archivo:ital,wdth,wght@1,112,900&family=Archivo+Narrow:wght@700&display=swap">
 <style>
 /* Survival guide (F1), mockup v1, Nov 3 2026. One topic (Character > Skill Books) in both looks:
    Simple = a ZeD window (the split layout of the Crafting, Vehicle and Cooking tabs),
@@ -98,8 +98,8 @@ h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:var(--note-
 
 /* ---------------- Full: the printed manual, set like a 1990 newsstand survival magazine ---------------- */
 .desk { position:absolute; inset:0; background:repeating-linear-gradient(90deg, rgba(0,0,0,.08) 0 3px, transparent 3px 11px), var(--wd1); }
-.book { position:absolute; left:46px; top:22px; width:1060px; height:656px; display:flex; }
-.page { position:relative; width:530px; height:656px; color:var(--news); padding:26px 40px 34px; overflow:hidden;
+.book { position:absolute; left:46px; top:8px; width:1060px; height:650px; display:flex; }
+.page { position:relative; width:530px; height:650px; color:var(--news); padding:26px 40px 34px; overflow:hidden;
   background:radial-gradient(ellipse at 50% 45%, transparent 60%, rgba(160,120,40,.16) 100%), var(--paper); }
 .page.l { box-shadow:inset -14px 0 18px -14px rgba(0,0,0,.35); }
 .page.r { box-shadow:inset 14px 0 18px -14px rgba(0,0,0,.35); }
@@ -160,6 +160,27 @@ h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:var(--note-
 .ct .ct-d b { font-family:var(--sub); font-weight:700; font-size:10px; }
 .ct li.ours .ct-t::after { content:""; }
 
+
+/* v6: pages set like Chapter 1 of the 1983 bookstore guide (the director, Nov 3 2026) */
+.chn { font-family:var(--sub); font-weight:700; font-size:14px; }
+.cht { text-align:center; font-family:var(--ital); font-style:italic; font-weight:900; font-stretch:112%; text-transform:uppercase; line-height:1.02; letter-spacing:.4px; margin:2px 0 10px; }
+.cht.big { font-size:34px; }
+.cht.mid { font-size:24px; margin-top:10px; }
+.photo { position:relative; margin:0 -2px; }
+.photo img { display:block; width:100%; height:auto; aspect-ratio:2/1; object-fit:cover; filter:grayscale(1) contrast(1.3) brightness(1.06) sepia(.12); }
+.photo::after { content:""; position:absolute; inset:0; background:radial-gradient(circle, rgba(35,42,58,.32) .7px, transparent 1.1px) 0 0/3px 3px; mix-blend-mode:multiply; }
+.pcap { font-family:var(--sub); font-style:italic; font-weight:400; font-size:9.5px; line-height:1.3; text-align:center; margin:4px 0 0; }
+.sdeck { text-align:center; font-family:var(--sub); font-weight:700; font-size:14.5px; line-height:1.25; margin:12px 6px 10px; }
+.cols.bk3 p { font-size:11.4px; }
+.cols.bk3 p:first-child::first-letter { font-family:var(--serif); font-weight:400; font-size:38px; line-height:.84; padding:2px 5px 0 0; }
+.foot2 { position:absolute; left:40px; right:40px; bottom:12px; display:flex; justify-content:space-between; align-items:baseline; font-family:var(--sub); font-weight:700; font-size:8.5px; letter-spacing:.8px; text-transform:uppercase; }
+.foot2 .pn { font-size:10px; letter-spacing:0; }
+.navrow { position:absolute; left:40px; right:40px; bottom:-26px; display:flex; justify-content:space-between; font-family:var(--mono); font-size:10.5px; color:#cfc6a8; }
+.navrow span { cursor:pointer; }
+.book { overflow:visible; }
+
+.page .key { background:none; color:var(--news); border:1px solid var(--news); border-bottom-width:2px; border-radius:2px; font-family:var(--sub); font-weight:700; font-size:9.5px; padding:0 4px; text-transform:uppercase; }
+
 /* notes under the stage */
 .notes { max-width:1180px; margin-top:22px; display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:22px; }
 .notes > div { min-width:0; }
@@ -168,7 +189,7 @@ h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:var(--note-
 @media (prefers-reduced-motion: reduce) { * { transition:none !important; } }
 </style>
 
-<div class="banner">ZeD-GUI | Survival guide (F1) | mockup v5</div>
+<div class="banner">ZeD-GUI | Survival guide (F1) | mockup v6</div>
 <h1>Survival Guide: both looks on one topic</h1>
 <p class="lede">The game's <b>Skill Books</b> topic in the <b>Simple</b> look (a ZeD window, laid out like the Crafting, Vehicle and Cooking tabs) and the <b>Full</b> look (a printed manual, new from the bookstore, set like a 1990 newsstand survival magazine). The topic list and text are the game's own; the numbers under <b>The rules in numbers</b> are read from the game's files (42.22). Click topics, open and close sections, type in Find, and turn the pages in the book.</p>
 <div class="controls">
@@ -184,7 +205,7 @@ h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:var(--note-
   </ul></div>
   <div><h2>The two looks</h2><ul>
     <li><b>Simple</b> is the default: list left, topic right, Find and the start-up box in the band, Previous and Next at the right. The controller: D-pad in the list, A opens, RB and LB turn topics, B closes.</li>
-    <li><b>Full</b> is set like a 1990 newsstand survival magazine: a kicker over a heavy headline, an italic deck and a byline between rules, two justified columns with a drop cap and the first word in capitals, the clip as a boxed halftone, a grey-tint department bar, bold run-in subheads, charts in a ruled box with the caption inside. No marks of any kind. LB and RB turn the page.</li>
+    <li><b>Full</b> pages are set like Chapter 1 of the 1983 bookstore guide: a chapter's first topic opens with Chapter n, the chapter name in heavy italic capitals, a halftone photo with an italic caption and a bold Title Case line under it (try Movement); later topics carry their own title in the same face. The rules pages keep the 1990 magazine's furniture: a kicker over a heavy headline, an italic deck and a byline between rules, two justified columns with a drop cap and the first word in capitals, the clip as a boxed halftone, a grey-tint department bar, bold run-in subheads, charts in a ruled box with the caption inside. No marks of any kind. LB and RB turn the page.</li>
     <li>The manual opens on its title page and contents (from a 1983 bookstore survival guide): numbered chapters, a line on each, dotted leaders to the page. F1 with nothing to jump to opens here; F1 from a tab opens its topic.</li>
     <li>Both read the same pages, so a topic written once shows in both.</li>
   </ul></div>
@@ -275,21 +296,29 @@ function contents() {
   </div>`;
 }
 
+function titleCase(t) { return t.replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1)); }
 function full() {
   const r = topic(S.sel); const f = flat(); const i = f.findIndex(x => x.t.id === S.sel);
+  const ci = DATA.sections.indexOf(r.s) + 1; const first = r.s.topics[0] === r.t;
   const n = DATA.sections.length; const span = 596;
   const tabs = DATA.sections.map((s, k) => `<button class="tabx ${s.id === r.s.id ? "on" : ""}" type="button" data-tab="${s.id}" style="top:${Math.round(k * (span - 24) / (n - 1))}px" aria-label="${esc(s.title)}">${esc(s.short)}</button>`).join("");
   const ps = r.t.text ? paras(r.t.text) : [r.s.zed ? "This page is still to write." : "The section's first page."];
   const sb = S.sel === "skill_books";
-  const deck = sb ? "What a skill book does for you, how far each one takes you, and what half a book is worth..." : (DATA.decks[r.t.id] || "");
+  const deck = first ? titleCase((DATA.blurbs[r.s.id] || "").replace(/\.$/, "")) : (sb ? "What A Skill Book Does, How Far Each One Takes You, And What Half A Book Is Worth" : "");
+  const pl = 6 + i * 2;
+  const head = first
+    ? `<div class="chn">Chapter ${ci}</div><div class="cht big">${esc(r.s.title)}</div>`
+    : `<div class="chn">Chapter ${ci} &nbsp;|&nbsp; ${esc(r.s.title)}</div><div class="cht mid">${esc(r.t.title)}</div>`;
+  const photo = r.t.clip ? `<div class="photo"><img alt="" src="${CLIP}"></div><div class="pcap">${esc(r.t.title)}: in the guide, this picture plays as a clip.</div>` : "";
+  const lead = first ? `<div style="font-family:var(--sub);font-weight:700;font-size:12.5px;margin:0 0 4px">${esc(r.t.title)}</div>` : "";
+  const body = ps.map((p, k) => `<p>${k === 0 ? p.replace(/^(\S+)/, '<span class="fw">$1</span>') : p}</p>`).join("");
   return `<div class="desk"></div><div class="book">
     <div class="page l">
-      <div class="kick"><span>${esc(r.s.title)}:</span></div>
-      <div class="hl">${esc(r.t.title)}</div>
-      ${deck ? `<div class="deck">${esc(deck)}</div>` : ""}<div class="by">Staff Report</div>
-      ${r.t.clip ? `<div class="halftone"><img alt="" src="${CLIP}"></div><div class="capn">${esc(r.t.title)}. <i>In the guide, this picture plays as a clip.</i></div>` : ""}
-      <div class="cols">${ps.map((p, k) => `<p>${k === 0 ? p.replace(/^(\S+)/, '<span class="fw">$1</span>') : p}</p>`).join("")}</div>
-      <div class="folio"><span>${180 + i * 2} &nbsp; The Survival Guide</span><span class="nav" id="btoc">contents</span><span class="nav" id="bprev">&#9664; previous page</span></div>
+      ${head}
+      ${photo}
+      ${deck ? `<div class="sdeck">${esc(deck)}</div>` : ""}
+      ${lead}<div class="cols bk3">${body}</div>
+      <div class="foot2"><span class="pn">${pl}</span><span>The Survival Guide</span></div>
     </div>
     <div class="page r">
       <div class="bar"><span>The Rules in Numbers</span></div>
@@ -300,9 +329,10 @@ function full() {
       <p class="bd first"><span class="runin">Reading Part of a Book &mdash; </span>Each tenth of a book read gives a tenth of its multiplier. Put it down halfway and you keep half the boost; read it to the end and you have all of it.</p>
       <p class="bd"><span class="runin">Which Skills &mdash; </span>Twenty-one skills use the middle column. Aiming, Reloading and Long Blade use the right one.</p>`
       : `<p class="bd first" style="margin-top:12px"><i>Where this topic has rules the game keeps in numbers, they print here.</i></p>`}
-      <div class="folio"><span class="nav" id="bnext">next page &#9654;</span><span>${esc(r.s.title)} &nbsp; ${181 + i * 2}</span></div>
+      <div class="foot2"><span>The Survival Guide</span><span class="pn">${pl + 1}</span></div>
       <div class="tabs">${tabs}</div>
     </div>
+    <div class="navrow"><span id="bprev">&#9664; previous page</span><span id="btoc">contents</span><span id="bnext">next page &#9654;</span></div>
   </div>`;
 }
 

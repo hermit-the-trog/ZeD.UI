@@ -138,4 +138,11 @@ completesurvival0000unse; the free preview stops after the contents, the rest ne
 director means: a title page and chapter heads in heavy italic display caps, a contents page with numbered chapters in
 bold sans caps, a line on each and dotted leaders to the page, a sepia photo facing the title page. Mockup v5 (same
 link) adds a title page and a contents spread ("Full: contents"): F1 with nothing to jump to opens there. Chapter 1's
-first spread (page 6) is past the free preview: the director asked Build to look at it; asked for a capture.
+first spread (pages 6-7) the director opened in the browser pane.
+
+The director: "look at chapter 1 first spread" (pages 6-7, the tents). Mockup v6 (same link) sets the manual's pages on
+it: a chapter's first topic opens with "Chapter n" in bold sans, the chapter name in heavy italic caps, a borderless
+halftone photo with an italic sans caption, a bold sans Title Case line under it, serif columns with a two-line drop
+cap and the first words in capitals; later topics carry their own title in the same italic face; the foot has the
+page number in the outer corner and the book's name in small sans caps. Keys print as outline keys in ink. The rules
+pages keep the 1990 magazine's grey bar, run-ins and ruled chart.
