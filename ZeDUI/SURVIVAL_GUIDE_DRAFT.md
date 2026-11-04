@@ -203,7 +203,7 @@ Decided (Nov 4 2026, four questions):
   line per action; the controller column in your controller's buttons, the keyboard column in your own bindings. The
   page text switches with your device as you play.
 - **A hint strip** for what is in front of you in the world, for keyboard and controller alike: one quiet strip, the
-  action and your key or button. ZeD setup: Always, First hours (the default) or Off. (Its own piece of work.)
+  action and your key or button. ZeD setup: Always (the default), First hours or Off (the director: "It's always on by default. The next one is first hours. And then the next option is off."). (Its own piece of work.)
 - **Rules pages, all four groups:** your body (carry weight, strength and fitness, tiredness, hunger and thirst,
   temperature, panic); food and health (calories and weight, food going stale and rotten, sickness, wounds and their
   healing times); skills and traits (XP per level, what a level gives, trait costs and effects, book and job
