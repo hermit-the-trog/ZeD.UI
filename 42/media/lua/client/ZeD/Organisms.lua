@@ -220,6 +220,9 @@ function ZeD_Window:setWindowShaded(shaded)
     local ov = self._zedOverlay
     if shaded then
         self.preShadeHeight = self.height
+        -- (the game's onResize lifts a window to its minimum height after every setHeight: a shaded
+        -- window's minimum is its title bar, or the roll-up kept the full frame, QA Nov 4 2026)
+        self.minimumHeight = tbH
         self:setHeight(tbH)
         local children = self:getChildren()
         if children then
@@ -231,6 +234,7 @@ function ZeD_Window:setWindowShaded(shaded)
             end
         end
     else
+        self.minimumHeight = T.minWinH
         self:setHeight(self.preShadeHeight or T.px(300))
         local children = self:getChildren()
         if children then
@@ -650,9 +654,9 @@ function ZeD_Window:_drawFrame()
     -- where and how big it first opened ("Reset this window" on a window outside the pair)
     if not self._zedHome then self._zedHome = { x = self:getX(), y = self:getY(), w = w, h = h } end
 
-    -- Reactive minimums — follow text size changes
+    -- Reactive minimums — follow text size changes (a shaded window's height is its title bar)
     self.minimumWidth = T.minWinW
-    self.minimumHeight = T.minWinH
+    self.minimumHeight = (self.windowShaded or self.isCollapsed) and tbH or T.minWinH
 
     self:_drawTitleBar(w, tbH)
 
