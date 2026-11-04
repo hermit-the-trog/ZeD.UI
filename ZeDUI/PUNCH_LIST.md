@@ -2417,6 +2417,22 @@ item says so.
       Skill Books, from Craft opens Crafting Menu; the controller: Help wheel opens it, D-pad up and down walk the list,
       A opens a section or a topic, Right into the text and up/down scroll it, Down to the band, LB/RB turn topics,
       B closes and gives the controller back; at the Deck with Large text the window fits; no errors in the log.
+    - **QA, Nov 3 2026, first run (b641524e): 54 / 57 at 4K and at the Deck with Large text** (qa/regression/
+      2026-11-03_guide82_4k.md, _1280x800L.md; zedqa_guide82.lua). Passing: the hooks (the game's guide never opens);
+      F1 opens and closes it, Escape and ZeD's Escape taker close it, the Help wheel and the forage window's entry open
+      it (on Foraging); the game pauses while it is open and runs after; 15 sections and 81 topics read from the game;
+      Find narrows ("vault": Vaulting; "book": 2) and clears; sections fold and open; Next walks all 81 in order and
+      wraps; 14 sections' clips play; long topics scroll with a bar; Skill Books' rules (Volume, Levels 1 to 2 ... 9 to
+      10, x3 to x16, Aiming, Long Blade, Reloading x1.5 to x8, three notes); the start-up box sets and clears the
+      game's option; F1 on Skills opens Skill Books, on Craft Crafting Menu; the pad's D-pad, A, LB / RB, the band and B.
+      The window fits at the Deck with Large text. Pictures: qa/review_20261103/pl82/.
+    - Found: (1) **Previous on the first topic throws** (ZeD_SurvivalGuide.lua:226, `(at - 1 + d) % #flat` is -1 in
+      Kahlua: its % keeps the sign; flat[0] is nil); LB there too. (2) **No still with video effects off**: the game
+      ships no stills for its guide clips (media/videos/survival_guide has only .bik), and the topic's thumbnail path
+      (media/ui/playstyleIcons/...) loads nothing, so the clip box is an empty black box. The director's game has video
+      effects off. (3) Turning video effects on with a topic open keeps the old state until another topic is chosen.
+      (4) Notes: the window is see-through (the ZeD option), so the inventory behind shows faintly through the list;
+      at the Deck the game's "Game Paused" sits over the guide's title line.
 
 ## Test process
 

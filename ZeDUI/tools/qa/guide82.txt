@@ -1,0 +1,3 @@
+# ZeDUI/tools/qa/guide82.txt  (Nov 3 2026): punch list 82, the survival guide (4K)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_guide82.lua | g82 | timeout=600
