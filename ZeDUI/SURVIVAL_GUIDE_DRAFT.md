@@ -151,6 +151,6 @@ The director on v6 (Nov 3 2026): "No drop caps though. Translation nightmare and
 first word in capitals that went with them. A paragraph opens plainly.
 
 The book's name (the director, Nov 3 2026): "Survive the Apocalypse. Survive an Outbreak like it's a Vacation. By
-Stevie Whetstone, Doidbros and Buzzlord Department of Survival Emergency Publications 1987." On the title page as
-title, subtitle, byline and imprint (Doidbros and Buzzlord / Department of Survival Emergency Publications / 1987);
+Stevie Whetstone, Doidbros and Buzzlord Division of Survival Emergency Publications 1987." On the title page as
+title, subtitle, byline and imprint (Doidbros and Buzzlord / Division of Survival Emergency Publications / 1987);
 "Survive the Apocalypse" is the running foot. The Simple window keeps the game's title, Survival Guide.
