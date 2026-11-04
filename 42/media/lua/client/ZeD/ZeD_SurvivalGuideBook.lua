@@ -337,12 +337,14 @@ end
 function ZeD_GuideBook:unit()
     local T = ZeD.T
     local pn = self.playerNum
-    -- (the page from the screen's scale alone: T.px also carries the text size, which only the type takes)
-    local u = T.root or (T.px(100) / 100)
-    local needW = (U.PW * 2 + U.EDGE * 2 + 20) * u
-    local needH = (U.PH + U.STRIP_GAP + 20 + TOP) * u + ZeD.Molecules.bandH()
-    local f = math.min(1, getPlayerScreenWidth(pn) / needW, getPlayerScreenHeight(pn) / needH)
-    return u * f
+    -- The page takes the screen's scale (T.px also carries the text size, which only the type takes), and on a
+    -- small screen it grows to fill the screen, up to its 1080p size: a book is read, not glanced at (QA, the Deck).
+    local root = T.root or (T.px(100) / 100)
+    local cap = math.max(root, 1)
+    local wUnits = U.PW * 2 + U.EDGE * 2 + 20
+    local hUnits = U.PH + U.STRIP_GAP + 20 + TOP
+    local fit = math.min(getPlayerScreenWidth(pn) / wUnits, (getPlayerScreenHeight(pn) - ZeD.Molecules.bandH()) / hUnits)
+    return math.min(cap, fit)
 end
 
 function ZeD_GuideBook:layout()
