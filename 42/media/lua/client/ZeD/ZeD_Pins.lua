@@ -92,6 +92,18 @@ local function kindOf(item)
 end
 P.kindOf = kindOf
 
+-- a name short enough for the title bar (QA, Nov 4 2026: with a book's whole title only one pin fitted): the part
+-- before a colon or a bracket, at most SHORT letters
+local SHORT = 16
+local function shortName(n)
+    n = tostring(n or "")
+    local head = n:match("^([^:%(]+)")
+    if head and head:gsub("%s+$", "") ~= "" then n = head:gsub("%s+$", "") end
+    if #n > SHORT then n = n:sub(1, SHORT - 1):gsub("%s+$", "") .. "..." end
+    return n
+end
+P.shortName = shortName
+
 -- the title bar's entries for the pins: { text, color }, oldest first
 function P.stats(p)
     local T = ZeD.T
@@ -107,7 +119,7 @@ function P.stats(p)
         else
             local it = itemOf(p, e.id)
             if it then
-                local name = it:getDisplayName()
+                local name = shortName(it:getDisplayName())
                 pcall(function()
                     if e.k == "book" then
                         local n, r = it:getNumberOfPages() or 0, it:getAlreadyReadPages() or 0
