@@ -326,7 +326,7 @@ end
 -- tree is never handed to the UIManager: the reader draws it after its own drawing (as the survival guide's book
 -- draws its text), so it sits in the reader's window, not over or under other windows.
 -- ---------------------------------------------------------------------------
-local V = { clip = nil, page = nil, id = nil }
+local V = { clip = nil, page = nil, id = nil, k = nil, pages = {} }
 local function vInit(node)
     local UI = PZAPI.UI
     UI._setParentChildRelationship(node)
@@ -336,17 +336,23 @@ local function vInit(node)
     UI._initElement(node)
     UI._initResize(node)
 end
--- the page node for a piece, built once per piece
-local function vBuild(m)
+-- the page node for a piece at scale k, built once per piece and scale (QA, Nov 4 2026: the node's own scale did
+-- not reach its atoms, so each one is scaled here: its place, its size, its text's scale)
+local SCALED = { x = true, y = true, width = true, height = true, scaleX = true, scaleY = true }
+local function vBuild(m, k)
     local UI = PZAPI and PZAPI.UI
     if not (UI and UI.Node and UI.Text and UI.Texture) then return false end
     local info = getTextOrNull(m.info)
     if not info then return false end
     if not V.clip then
-        V.clip = UI.Node{ x = 0, y = 0, width = 1, height = 1, isStencil = true }
+        -- (a panel clips, as the game's own reader body does: a node's isStencil did not, QA)
+        V.clip = UI.Panel{ x = 0, y = 0, width = 1, height = 1, isStencil = true, r = 0, g = 0, b = 0, a = 0 }
         vInit(V.clip)
     end
     if V.page then pcall(function() V.page:setVisible(false) end) end
+    local key = tostring(m.id) .. "@" .. string.format("%.4f", k)
+    local cached = V.pages[key]
+    if cached then V.page, V.id, V.k = cached, m.id, k; return true end
     local page = UI.Node{ x = 0, y = 0, width = 480, height = 720 }
     UI._addChild(V.clip, page)
     -- (vanilla's PrintMedia init, line for line: the parent's size, then each texture and text with its own fields)
@@ -360,34 +366,47 @@ local function vBuild(m)
             end
             if bad then break end
             if params.type == "parent" then
-                if params.width then page:setWidth(tonumber(params.width)) end
-                if params.height then page:setHeight(tonumber(params.height)) end
+                if params.width then page:setWidth(tonumber(params.width) * k) end
+                if params.height then page:setHeight(tonumber(params.height) * k) end
             elseif params.type == "text" then
-                local f = {}
-                for k, v in pairs(params) do
-                    if k ~= "type" then f[k] = (k == "font") and UIFont.FromString(v) or tonumber(v) end
+                local f = { scaleX = k, scaleY = k }
+                for kk, v in pairs(params) do
+                    if kk ~= "type" then
+                        if kk == "font" then f[kk] = UIFont.FromString(v)
+                        else
+                            local n = tonumber(v)
+                            f[kk] = (n and SCALED[kk]) and (n * k) or n
+                        end
+                    end
                 end
                 f.text = (tostring(data[2] or ""):gsub("%^", "\n"))
                 UI._addChild(page, UI.Text(f))
             elseif params.type == "texture" then
                 local f = {}
-                for k, v in pairs(params) do
-                    if k ~= "type" then f[k] = (k == "texture") and getTexture(v) or tonumber(v) end
+                for kk, v in pairs(params) do
+                    if kk ~= "type" then
+                        if kk == "texture" then f[kk] = getTexture(v)
+                        else
+                            local n = tonumber(v)
+                            f[kk] = (n and SCALED[kk] and kk ~= "scaleX" and kk ~= "scaleY") and (n * k) or n
+                        end
+                    end
                 end
                 UI._addChild(page, UI.Texture(f))
             end
         end
     end
-    V.page, V.id = page, m.id
+    V.page, V.id, V.k = page, m.id, k
+    V.pages[key] = page
     return true
 end
 
 -- the page placed for this frame: its canvas c (panel coordinates), the page's top-left (ox, oy) and scale k
 function P.vanillaPlace(panel, m, c, ox, oy, k)
     if not m then return false end
-    if V.id ~= m.id then
-        local ok, r = pcall(vBuild, m)
-        if not ok or not r then V.id = m.id; V.page = nil; return false end
+    if V.id ~= m.id or not V.k or math.abs(V.k - k) > 0.0001 then
+        local ok, r = pcall(vBuild, m, k)
+        if not ok or not r then V.id, V.k = m.id, k; V.page = nil; return false end
     end
     if not V.page then return false end
     local ok = pcall(function()
@@ -400,7 +419,6 @@ function P.vanillaPlace(panel, m, c, ox, oy, k)
         local pg = V.page
         if pg.x ~= ox - c.x then pg:setX(ox - c.x) end
         if pg.y ~= oy - c.y then pg:setY(oy - c.y) end
-        if pg.scaleX ~= k then pg:setScaleX(k); pg:setScaleY(k) end
         if not pg.visible then pg:setVisible(true) end
         if not cl.visible then cl:setVisible(true) end
     end)

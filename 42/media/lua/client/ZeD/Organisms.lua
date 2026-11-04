@@ -483,17 +483,7 @@ function ZeD_Window:_drawTitleBar(w, tbH)
                     if sx - an >= minX then txt, sw, need = tostring(alt), aw, an; break end
                 end
             end
-            if sx - need < minX then
-                -- (QA, Nov 4 2026: pins dropped with room to spare; the numbers once, for the log)
-                ZeD._titleFitSeen = ZeD._titleFitSeen or {}
-                local fk = tostring(self.title) .. ":" .. i .. ":" .. #stats
-                if not ZeD._titleFitSeen[fk] then
-                    ZeD._titleFitSeen[fk] = true
-                    print(string.format("[ZeD] title bar drops stat %d of %d (%s): sx %.1f need %.1f minX %.1f titleX %.1f tW %.1f right %.1f w %.1f hide %s",
-                        i, #stats, txt, sx, need, minX, titleX, tW, right, w, tostring(self._hideTitle)))
-                end
-                break
-            end
+            if sx - need < minX then break end
             sx = sx - sw
             self:drawText(txt, sx, textY, tc.r, tc.g, tc.b, tc.a or 1, f3)
             if mark then
