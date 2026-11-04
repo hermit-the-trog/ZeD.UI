@@ -2493,6 +2493,15 @@ item says so.
       Latin widths, so that line is not a fault.) The director's pictures retaken on 5c4a44a0 at 4K into
       Zomboid/Screenshots/guide_book_director/ (1 to 4, plus 5_shared_page; Nov 3's set moved to nov3/).
 
+84. **The Mods screen's readability (the director, Nov 4 2026, from FAIV's request in the Suggestions thread; promised
+    for the next beta).** Mockup ZeDUI/mockups/zed_mods_readability_v1.html, QA notes
+    ZeDUI/qa/2026-11-04_mods_readability.md. Built in 133c0dc4: on rows on a solid band darker than the list, off
+    rows' names and icons dimmed; an Off tab; Hide incompatible by Find (with the count); the tab and the box kept
+    between visits (ZeD_modsview.txt); a Simple view (ZeD setup, Full or simple: Mods screen); System 7's seven Finder
+    labels for folders (the picture tinted; ZeD_modfolders.txt) and separators (name and rules; ZeD_modprofiles.txt),
+    picked from a swatch row with None first. No edge stripe (the director: too modern). Open: QA at 4K and the Deck
+    Large in every theme, the labels' contrast in every theme and accent; the other 27 languages' 16 new keys.
+
 ## Test process
 
 - **QA, Nov 2 2026, the t16 pre-upload pass (the mod code at 361d0b6; nothing in 42/ changed after it).** Full 4K
