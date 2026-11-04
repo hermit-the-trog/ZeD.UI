@@ -2540,6 +2540,15 @@ item says so.
       - **All three:** the box's help line is longer than the band and ends in "..."; the end of the sentence is
         lost.
       - **Hungarian and Danish Full** fit.
+    - **QA, Nov 4 2026, recheck on 498ed7ee + f01b8ae8 at the Deck with Large text (English, Dutch, Hungarian,
+      Danish): PASS, 8 / 8.**
+      - Find keeps 158 px or more in every language, Simple and Full; nothing overlaps.
+      - Hungarian Simple shortens the box's label to "Összeférhetetlene..." and drops the count.
+      - The list's tabs drop their counts to fit in Dutch.
+      - The info pane's four tabs fit in all four.
+      - "Move to folder..." sits on its own line in Dutch and Hungarian, and is gone from Simple.
+      - The help lines fit in one line.
+      - Picture: Screenshots/zqa_mlg_recheck2.png.
 
 ## Test process
 
