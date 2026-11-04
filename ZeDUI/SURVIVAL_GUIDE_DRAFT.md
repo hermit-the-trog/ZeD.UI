@@ -182,3 +182,7 @@ the game's inline pictures, the 82 stills, a ~66-character measure, wrapping tab
 percentages with a worked example (the director), the narrower panel at about 66 characters a line (the director),
 a still from each clip when Video effects are off (the director). Still to do: the other 26 languages for the
 UI_ZeD_Guide_* keys; the Full look (the book); the five new sections' pages; clips with ZeD's menus.
+
+The director, Nov 3 2026 ("Yes, yes"): the book's title, subtitle and introduction are translated with the rest of
+the guide's own words (the names stay: Stevie Whetstone, Doidbros and Buzzlord, Muldraugh); topics share pages in the
+book (a chapter still opens on a fresh page; a topic with rules still faces them).
