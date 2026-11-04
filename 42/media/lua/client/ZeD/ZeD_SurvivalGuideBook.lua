@@ -43,6 +43,21 @@ local U = {
     TEXT = 12.5, LEAD = 1.42, CAP = 10, FOLIO = 9, CHAP = 13, OPEN = 30, TITLE = 22, DECK = 14,
     BAR = 19, STRIP_GAP = 10,
 }
+-- The type follows ZeD's text size like every ZeD surface (QA, Nov 3 2026: Large text never reached the book):
+-- each size below is its Small size times the text-size preset (T.scale over the root scale); long topics run on.
+local BASE_TYPE = { TEXT = 12.5, CAP = 10, FOLIO = 9, CHAP = 13, OPEN = 30, TITLE = 22, DECK = 14, BAR = 19 }
+local TM_ = 1
+local function applyType()
+    local m = 1
+    pcall(function() m = ZeD.T.scale / (ZeD.T.root or ZeD.Scale.root()) end)
+    if not (m and m > 0.5 and m < 3) then m = 1 end
+    TM_ = m
+    for k, v in pairs(BASE_TYPE) do U[k] = v * m end
+    return m
+end
+-- the room left at the top of the screen for the game's "Game Paused" box (QA: it sat over the book at the Deck)
+local TOP = 34
+
 local INK = { r = 0.137, g = 0.165, b = 0.227 }
 local PAPER = { r = 0.961, g = 0.925, b = 0.824 }
 local TINT = { r = 0.788, g = 0.769, b = 0.706 }
@@ -322,9 +337,10 @@ end
 function ZeD_GuideBook:unit()
     local T = ZeD.T
     local pn = self.playerNum
-    local u = T.px(100) / 100
+    -- (the page from the screen's scale alone: T.px also carries the text size, which only the type takes)
+    local u = T.root or (T.px(100) / 100)
     local needW = (U.PW * 2 + U.EDGE * 2 + 20) * u
-    local needH = (U.PH + U.STRIP_GAP + 40) * u + ZeD.Molecules.bandH()
+    local needH = (U.PH + U.STRIP_GAP + 20 + TOP) * u + ZeD.Molecules.bandH()
     local f = math.min(1, getPlayerScreenWidth(pn) / needW, getPlayerScreenHeight(pn) / needH)
     return u * f
 end
@@ -338,13 +354,14 @@ function ZeD_GuideBook:layout()
     if self.width ~= sw then self:setWidth(sw) end
     if self.height ~= sh then self:setHeight(sh) end
     local u = self:unit()
-    if self._u ~= u then self:readTopics(u) end
+    local m = applyType()
+    if self._u ~= u or self._m ~= m then self._m = m; self:readTopics(u) end
     local bw, bh = U.PW * 2 * u, U.PH * u
     local stripH = ZeD.Molecules.bandH()
     local total = bh + U.STRIP_GAP * u + stripH
     local g = {}
     g.u = u
-    g.book = { x = math.floor((sw - bw) / 2), y = math.floor((sh - total) / 2), w = bw, h = bh }
+    g.book = { x = math.floor((sw - bw) / 2), y = math.floor(TOP * u + (sh - TOP * u - total) / 2), w = bw, h = bh }
     g.left = { x = g.book.x, y = g.book.y, w = bw / 2, h = bh }
     g.right = { x = g.book.x + bw / 2, y = g.book.y, w = bw / 2, h = bh }
     g.strip = { x = g.book.x, y = g.book.y + bh + U.STRIP_GAP * u, w = bw, h = stripH }
@@ -465,7 +482,7 @@ function ZeD_GuideBook:drawRulesPage(p, x, y, w, u)
     local boxY = yy
     local pad = 8 * u
     local ncol = #r.cols
-    local cpx = 11 * u
+    local cpx = 11 * u * TM_
     local inner = tw_ - pad * 2
     local dataW, headW = {}, {}
     for c = 1, ncol do
@@ -540,33 +557,34 @@ function ZeD_GuideBook:drawContentsPage(x, y, w, u, hover)
     local yy = y + U.MT * u + 28 * u
     drawAt(self, F.head, upper(tr("UI_ZeD_Guide_BookContents")), tx, yy, 28 * u, INK)
     yy = yy + 18 * u
+    local cu = u * TM_   -- (the contents' type and rows, at the text size)
     self._contentsRows = {}
     for si, s in ipairs(self.sections) do
         local pg = self.sectionPage[s.id]
         local rowTop = yy
-        yy = yy + 13 * u
+        yy = yy + 13 * cu
         local num = tostring(si) .. "."
-        drawAt(self, F.sansB, num, tx + 18 * u - textW(F.sansB, num, 10 * u), yy, 10 * u, INK)
-        drawAt(self, F.sansB, upper(s.title), tx + 24 * u, yy, 10 * u, INK)
-        yy = yy + 12 * u
+        drawAt(self, F.sansB, num, tx + 18 * cu - textW(F.sansB, num, 10 * cu), yy, 10 * cu, INK)
+        drawAt(self, F.sansB, upper(s.title), tx + 24 * cu, yy, 10 * cu, INK)
+        yy = yy + 12 * cu
         local b = blurb(s)
-        local bw = textW(F.sans, b, 9.5 * u)
-        drawAt(self, F.sans, b, tx + 24 * u, yy, 9.5 * u, INK)
+        local bw = textW(F.sans, b, 9.5 * cu)
+        drawAt(self, F.sans, b, tx + 24 * cu, yy, 9.5 * cu, INK)
         local ptxt = pg and tostring(printed(pg)) or ""
-        local pw = textW(F.sansB, ptxt, 10 * u)
-        drawAt(self, F.sansB, ptxt, tx + tw_ - pw, yy, 10 * u, INK)
+        local pw = textW(F.sansB, ptxt, 10 * cu)
+        drawAt(self, F.sansB, ptxt, tx + tw_ - pw, yy, 10 * cu, INK)
         -- the dotted leader
-        local dx = tx + 24 * u + bw + 4 * u
+        local dx = tx + 24 * cu + bw + 4 * u
         while dx < tx + tw_ - pw - 4 * u do
             self:drawRect(dx, yy - 1.5 * u, math.max(1, u), math.max(1, u), 1, INK.r, INK.g, INK.b)
             dx = dx + 4 * u
         end
-        local row = { x = tx, y = rowTop, w = tw_, h = yy - rowTop + 4 * u, page = pg }
+        local row = { x = tx, y = rowTop, w = tw_, h = yy - rowTop + 4 * cu, page = pg }
         if hover and inRect(row, hover.x, hover.y) then
             self:drawRect(row.x - 4 * u, row.y + 2 * u, row.w + 8 * u, row.h, 0.08, INK.r, INK.g, INK.b)
         end
         self._contentsRows[#self._contentsRows + 1] = row
-        yy = yy + 6 * u
+        yy = yy + 6 * cu
     end
 end
 
@@ -803,6 +821,7 @@ function B.open(pn, want)
         B.books[pn] = bk
     end
     bk._clips = {}
+    bk._m = applyType()
     bk:readTopics(bk:unit())
     if want then
         local id = want
