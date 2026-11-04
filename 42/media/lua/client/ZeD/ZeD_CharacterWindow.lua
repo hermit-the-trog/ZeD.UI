@@ -161,7 +161,7 @@ local function saveCharState(win)
         x = anchor - baseW,
         y = win:getY() / sc,
         w = baseW,
-        h = win:getHeight() / sc,
+        h = ((win.windowShaded and win.preShadeHeight) or win:getHeight()) / sc,   -- (a rolled-up window: its unrolled height)
         anchorRightEdge = anchor,
         activeTab  = win._activeTab,
         drawerMode = win._drawerMode,

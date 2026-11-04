@@ -2355,7 +2355,7 @@ local function saveWorldState(win)
         x = (win:getX() + (win._drawerCapPush or 0) - (win._rolled and win._rollW or 0)) / sc,
         y = win:getY() / sc,
         w = baseW,
-        h = win:getHeight() / sc,
+        h = ((win.windowShaded and win.preShadeHeight) or win:getHeight()) / sc,   -- (a rolled-up window: its unrolled height)
         activeTab  = win._activeTab,
         drawerMode = (win._drawerMode ~= "object") and win._drawerMode or nil,
         drawerOpen = win._drawerOpen,
