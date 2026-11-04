@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/print_compare.txt  (Nov 4 2026): the game's print media vs ZeD's reader, pictures
+zedqa_prelude.lua | pre | timeout=120
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_print_compare.lua | prc | timeout=180

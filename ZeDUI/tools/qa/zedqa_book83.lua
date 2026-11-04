@@ -92,6 +92,32 @@ step(40, function()
     end
     check(#past == 0, "nothing past the folio" .. (#past > 0 and (" (pages " .. table.concat(past, ", ") .. ")") or ""))
     check(#overlap == 0, "no item overlaps the one before it" .. (#overlap > 0 and (" (" .. table.concat(overlap, ", ", 1, math.min(#overlap, 12)) .. ")") or ""))
+    -- c2581547 (the director: the publisher fills its pages): every flow page a third or more empty has a filler,
+    -- which starts below the page's last item and ends above the folio
+    do
+        local bottomY = (690 - 26 - 30) * u
+        local room = bottomY - 30 * u
+        local need, have, badF, extra = 0, 0, {}, 0
+        for i, p in ipairs(b.pages) do
+            if p.kind == "flow" then
+                local lastY, fil = 0, nil
+                for _, it in ipairs(p.items or {}) do
+                    if it.k == "filler" then fil = it
+                    else lastY = math.max(lastY, (it.k == "clip") and (it.y + it.h) or it.y) end
+                end
+                local empty = bottomY - lastY >= room / 3
+                if empty then need = need + 1 end
+                if fil then
+                    have = have + 1
+                    if not empty then extra = extra + 1 end
+                    if fil.y < lastY or (fil.y1 or 0) > (690 - 26) * u then badF[#badF + 1] = tostring(i) end
+                end
+            end
+        end
+        say(string.format("fillers: %d pages a third or more empty, %d with a filler (%d on fuller pages)", need, have, extra))
+        check(have >= need and need > 0, "every flow page a third or more empty has a filler")
+        check(#badF == 0, "fillers sit below the text and above the folio" .. (#badF > 0 and (" (pages " .. table.concat(badF, ", ") .. ")") or ""))
+    end
     -- 5c4a44a0: a chapter opener's clip spans the text; every other clip is two-thirds wide and a third tall, with
     -- its caption the next item
     local tw = math.floor((520 - 80) * u)
