@@ -154,6 +154,72 @@ local function argFor(k)
     return s
 end
 
+-- TWO WAYS (the director, Nov 4 2026: every page that teaches an action closes with "Mouse and keyboard |
+-- Controller", one short line per action). Read from the entry itself: the game gives each topic its keyboard keys
+-- and its controller buttons as two lists in the same order (the %1 %2 of its two texts), so row n pairs the two.
+-- A row's name is the game's own name for the binding (UI_optionscreen_binding_<name>, translated by the game);
+-- a mouse button or a picture has no name of its own and the row shows its keys only. Rows that are only pictures
+-- (the game's sidebar icons) and repeats are left out; a topic with no keys has no box.
+-- Each row: { label | nil, kb = { inline objects }, pad = { inline objects } }.
+local function cellFor(k)
+    local out = {}
+    if not k then return out end
+    k = tostring(k)
+    if k:find("<IMAGE", 1, true) then
+        local path = k:match("<IMAGE:%s*([^,>]+)")
+        local o = path and inlineTex((path:gsub("%s+$", "")))
+        if o then out[1] = o end
+        return out
+    end
+    local jp = k:match("<JOYPAD:%s*([%w_]+)")
+    if jp then
+        local r = PAD_ROLE[jp]
+        if r then out[1] = inlineTex("pad:" .. r) end
+        return out
+    end
+    if k:find("IGUI_", 1, true) then out[1] = inlineTex("key:" .. getText(k)); return out end
+    local core = getCore()
+    local ok, code = pcall(function() return core:getKey(k) end)
+    if not ok or not code or code == 0 then return out end
+    out[1] = inlineTex("key:" .. keyName(code))
+    local ok2, alt = pcall(function() return core:getAltKey(k) end)
+    if ok2 and alt and alt ~= 0 and alt ~= code then out[2] = inlineTex("key:" .. keyName(alt)) end
+    return out
+end
+local function isInput(k)
+    if not k then return false end
+    k = tostring(k)
+    return not k:find("<IMAGE", 1, true)
+end
+local function twoWays(t)
+    local e = t and t.entry
+    if not e then return nil end
+    local ok, kb, jp = pcall(function() return e:getKeys(), e:getJoypadKeys() end)
+    if not ok then return nil end
+    local nk, nj = kb and kb:size() or 0, jp and jp:size() or 0
+    local rows, seen = {}, {}
+    for i = 0, math.max(nk, nj) - 1 do
+        local a = (i < nk) and tostring(kb:get(i)) or nil
+        local b = (i < nj) and tostring(jp:get(i)) or nil
+        if isInput(a) or (b and b:find("<JOYPAD", 1, true)) then
+            local id = tostring(a) .. "|" .. tostring(b)
+            if not seen[id] then
+                seen[id] = true
+                local label = nil
+                if a and not a:find("[<_]") then
+                    local key = "UI_optionscreen_binding_" .. a
+                    local s = getTextOrNull(key)
+                    label = s or a
+                end
+                local row = { label = label, kb = cellFor(a), pad = cellFor(b) }
+                if #row.kb > 0 or #row.pad > 0 then rows[#rows + 1] = row end
+            end
+        end
+    end
+    return (#rows > 0) and rows or nil
+end
+W.twoWays = twoWays
+
 -- an entry's text for the device in use: the controller's own words and buttons (description_joypad) when the player
 -- is on a controller and the game has them, else the keyboard's words and keys. nil: an entry the game hides.
 local function entryText(e, joy)
@@ -503,6 +569,32 @@ function ZeD_GuideWindow:buildTopic(g, cx, cw)
             end
         end
     end
+    -- the two ways: a three-column table (what, mouse and keyboard, controller), one line an action
+    local ways = twoWays(t)
+    if ways then
+        y = y + px(U.PARA_GAP) * 2
+        local pad = px(U.RULES_PAD)
+        local s = fh(T.fontF2)
+        local box = { kind = "ways", x = cx, y = y, w = cw, rows = {}, s = s }
+        local inner = cw - pad * 2
+        local colW = math.floor(inner / 3)
+        box.colX = { cx + pad, cx + pad + colW, cx + pad + colW * 2 }
+        box.colW = colW
+        local ry = y + pad
+        box.headY = ry
+        box.heads = { tr("UI_ZeD_Guide_WaysKB"), tr("UI_ZeD_Guide_WaysPad") }
+        ry = ry + fh(T.fontF1) + px(4)
+        box.ruleY = ry
+        ry = ry + px(6)
+        for _, r in ipairs(ways) do
+            local lab = r.label and A.truncateText(r.label, T.fontF2, colW - px(6)) or ""
+            box.rows[#box.rows + 1] = { y = ry, label = lab, kb = r.kb, pad = r.pad }
+            ry = ry + s + px(6)
+        end
+        box.h = ry - y + pad - px(6)
+        items[#items + 1] = box
+        y = y + box.h
+    end
     local rf = Rules[t.titleKey]
     local ok, rules = false, nil
     if rf then ok, rules = pcall(rf) end
@@ -826,6 +918,26 @@ function ZeD_GuideWindow:prerender()
                         inlineDraw(self, run.tex, it.x + run.x, yy, run.s, tc)
                     else
                         self:drawText(run.text, it.x + run.x, yy, tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
+                    end
+                end
+            end
+        elseif it.kind == "ways" then
+            local by = it.y + oy
+            A.frame(self, it.x, by, it.w, it.h, T.border)
+            self:drawText(it.heads[1], it.colX[2], it.headY + oy, td.r, td.g, td.b, td.a or 1, T.fontF1)
+            self:drawText(it.heads[2], it.colX[3], it.headY + oy, td.r, td.g, td.b, td.a or 1, T.fontF1)
+            A.drawDividerH(self, it.x + px(U.RULES_PAD), it.ruleY + oy, it.w - px(U.RULES_PAD) * 2, false)
+            for _, r in ipairs(it.rows) do
+                local ry = r.y + oy
+                if ry + it.s >= ta.y and ry <= ta.y + ta.h then
+                    if r.label ~= "" then self:drawText(r.label, it.colX[1], ry, tc.r, tc.g, tc.b, tc.a or 1, T.fontF2) end
+                    for c, list in ipairs({ r.kb, r.pad }) do
+                        local xx = it.colX[c + 1]
+                        for _, o in ipairs(list) do
+                            local ow = inlineW(o, it.s)
+                            if xx + ow <= it.colX[c + 1] + it.colW then inlineDraw(self, o, xx, ry, it.s, tc) end
+                            xx = xx + ow + px(4)
+                        end
                     end
                 end
             end

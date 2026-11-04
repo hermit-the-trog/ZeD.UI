@@ -298,6 +298,22 @@ function B.paginate(bk, u)
             y = y + lineH
             add({ k = "line", y = y, line = l })
         end
+        -- the two ways (ZeD.Guide.twoWays): a small ruled table under the text, its heads, then a line an action;
+        -- the whole of it on one page
+        local ways = ZeD.Guide.twoWays and ZeD.Guide.twoWays(t)
+        if ways then
+            local rowH = px(U.TEXT) * 1.45
+            local need = px(U.TEXT) * 1.2 + px(U.CAP) * 1.6 + #ways * rowH + px(6)
+            if y + need > bottom then newPage(si, s, false) end
+            y = y + px(U.TEXT) * 1.2 + px(U.CAP)
+            add({ k = "waysHead", y = y })
+            y = y + px(U.CAP) * 0.6
+            for _, r in ipairs(ways) do
+                y = y + rowH
+                add({ k = "waysRow", y = y, row = r })
+            end
+            y = y + px(6)
+        end
     end
 
     for si, s in ipairs(bk.sections) do
@@ -484,6 +500,26 @@ function ZeD_GuideBook:drawFlowPage(p, x, y, w, u)
                 self:drawTextureScaled(c.video, cx_, cy, cw_, it.h, 1, 0.96, 0.93, 0.84)
             elseif c and c.still then
                 self:drawTextureScaledAspect(c.still, cx_, cy, cw_, it.h, 1, 0.96, 0.93, 0.84)
+            end
+        elseif k == "waysHead" then
+            -- (three columns: what, mouse and keyboard, controller; a rule under the heads)
+            local c2, c3 = tx + math.floor(tw_ / 3), tx + math.floor(tw_ * 2 / 3)
+            drawAt(self, F.sansB, ZeD.tr("UI_ZeD_Guide_WaysKB"), c2, y + it.y, U.CAP * u, INK)
+            drawAt(self, F.sansB, ZeD.tr("UI_ZeD_Guide_WaysPad"), c3, y + it.y, U.CAP * u, INK)
+            self:drawRect(tx, y + it.y + math.floor(U.CAP * u * 0.35), tw_, math.max(1, math.floor(u)), 1, INK.r, INK.g, INK.b)
+        elseif k == "waysRow" then
+            local r = it.row
+            local c2, c3 = tx + math.floor(tw_ / 3), tx + math.floor(tw_ * 2 / 3)
+            local s = U.TEXT * u * 1.05
+            if r.label then drawAt(self, F.text, r.label, tx, y + it.y, U.TEXT * u, INK) end
+            for c, list in ipairs({ r.kb, r.pad }) do
+                local xx = (c == 1) and c2 or c3
+                local lim = xx + math.floor(tw_ / 3)
+                for _, o in ipairs(list) do
+                    local ow = ZeD.Guide.inlineW(o, s)
+                    if xx + ow <= lim then ZeD.Guide.inlineDraw(self, o, xx, y + it.y - s * 0.82, s, INK, BOOK_PAL) end
+                    xx = xx + ow + 4 * u
+                end
             end
         elseif k == "caption" then
             drawCentre(self, F.sansI, it.text, cx, y + it.y, U.CAP * u, INK)
