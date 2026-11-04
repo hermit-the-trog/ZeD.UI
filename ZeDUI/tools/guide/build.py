@@ -1,9 +1,9 @@
-"""Builds ZeDUI/mockups/zed_survival_guide_v6.html from template.html and the game's own files (42.22)."""
+"""Builds ZeDUI/mockups/zed_survival_guide_v7.html from template.html and the game's own files (42.22)."""
 import base64, json, os, re, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))   # template.html and clip.jpg sit beside this script
 G = "E:/Project Zomboid/steamapps/common/ProjectZomboid/media"
-OUT = "C:/Users/danie/Zomboid/mods/ZeD-UI/ZeDUI/mockups/zed_survival_guide_v6.html"
+OUT = "C:/Users/danie/Zomboid/mods/ZeD-UI/ZeDUI/mockups/zed_survival_guide_v7.html"
 
 d = json.load(open(G + "/lua/shared/Translate/EN/SurvivalGuide.json", encoding="utf-8"))
 vids = set(os.listdir(G + "/videos/survival_guide"))
@@ -70,6 +70,13 @@ BLURBS = {
     "whatsnew": "The latest changes to ZeD.",
 }
 
+INTRO = [
+    "Most people who get into trouble out there are not unlucky. They are unready. They walk when they should wait, run when they should walk, and drink the water they should have boiled.",
+    "This book is about the small things done early: the curtains drawn before dark, the tub filled before the taps run dry, the bandage clean before it is needed. None of it is hard. All of it is easier on a quiet Tuesday than on the worst day of your life.",
+    "The second edition adds what readers asked for most: the numbers. How far a book takes you, how much a scratch should worry you, how long the water may run. They are printed plainly, chapter by chapter, under The Rules in Numbers.",
+    "Read it on the porch. Keep it in the truck. Treat the end of the world like a long trip somewhere with no gas stations, and you may even enjoy the view.",
+]
+
 ui = {}
 for f in os.listdir(G + "/lua/shared/Translate/EN"):
     if f.endswith(".json"):
@@ -77,9 +84,10 @@ for f in os.listdir(G + "/lua/shared/Translate/EN"):
             ui.update(json.load(open(G + "/lua/shared/Translate/EN/" + f, encoding="utf-8")))
         except Exception:
             pass
-data = {"sections": secs, "books": books, "decks": {}, "blurbs": BLURBS, "showGuide": ui.get("IGUI_Tutorial_ShowGuide", "Show the guide on startup")}
+data = {"sections": secs, "books": books, "decks": {}, "blurbs": BLURBS, "intro": INTRO, "showGuide": ui.get("IGUI_Tutorial_ShowGuide", "Show the guide on startup")}
 clip = "data:image/jpeg;base64," + base64.b64encode(open(os.path.join(HERE, "clip.jpg"), "rb").read()).decode()
 h = open(os.path.join(HERE, "template.html"), encoding="utf-8").read()
-h = h.replace("__DATA__", json.dumps(data, ensure_ascii=False)).replace("__CLIP__", clip)
+author = "data:image/png;base64," + base64.b64encode(open(os.path.join(HERE, "author.png"), "rb").read()).decode()
+h = h.replace("__DATA__", json.dumps(data, ensure_ascii=False)).replace("__CLIP__", clip).replace("__AUTHOR__", author)
 open(OUT, "w", encoding="utf-8").write(h)
 print(len(secs), "sections", sum(len(s["topics"]) for s in secs), "topics", os.path.getsize(OUT), "bytes")

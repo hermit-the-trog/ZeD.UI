@@ -157,3 +157,11 @@ title, subtitle, byline and imprint (Doidbros and Buzzlord / Division of Surviva
 
 The director: "the book is 87. A bit newer. Could be 2nd edition." The title page says Second Edition; the 1983 book is a
 layout reference only, and the author photo can look late 1980s.
+
+The author photo (Nov 3 2026): QA's in-game bust (Screenshots/guide_author/zqa_author_S_16.png: short dark hair,
+moustache, horn-rimmed glasses, lumberjack shirt; ZeDUI/tools/qa/zedqa_author_portrait.lua), straight on as in the
+director's reference, turned black and white from the red channel so the plaid shows, then a 45-degree dot screen
+(ZeDUI/tools/guide/author.png). Mockup v7 (same link): "Full: title page" is the title page alone; "Full: contents" is
+the contents (left) facing the Introduction (right) with the photo set into the text and Stevie Whetstone's name and
+town (Muldraugh) under it. The introduction's four paragraphs are Build's draft for the director to rewrite. A sepia
+frontispiece facing the title page (as in the 1983 book) waits on a capture with no UI in it.
