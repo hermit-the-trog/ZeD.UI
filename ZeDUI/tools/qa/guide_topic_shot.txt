@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/guide_topic_shot.txt  (Nov 3 2026): one guide topic in the window (lang_run.ps1 -Manifest this)
+zedqa_prelude.lua | pre | timeout=120
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_guide_topic_shot.lua | gts | timeout=120

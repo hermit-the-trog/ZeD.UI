@@ -1,0 +1,5 @@
+# ZeDUI/tools/qa/guide_cjk.txt  (Nov 3 2026): the window in a language without spaces (lang_run.ps1 -Manifest this)
+zedqa_prelude.lua | pre | timeout=120
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_guide82_measure.lua | g8m | timeout=300
+zedqa_book83_lang.lua | b8l | timeout=300
