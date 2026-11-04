@@ -4528,5 +4528,13 @@
     "UI_ZeD_Guide_Ad1_Coupon": "ご希望の書名にチェックを入れ、このページを Muldraugh, Kentucky の生存緊急出版部までお送りください。お届けまで6週間ほどかかります。",
     "UI_ZeD_Guide_Ad1_Name": "お名前",
     "UI_ZeD_Guide_Ad1_Address": "ご住所",
-    "UI_ZeD_Guide_Notes": "メモ"
+    "UI_ZeD_Guide_Notes": "メモ",
+    "UI_ZeD_Guide_CheckTitle": "最初の1週間",
+    "UI_ZeD_Guide_Check1": "カーテンを閉め、家の中を部屋ごとに確認します。",
+    "UI_ZeD_Guide_Check2": "蛇口から水が出るうちに、ボトル、鍋、バケツをすべて満たします。",
+    "UI_ZeD_Guide_Check3": "殴るための物と、持ち運ぶための物を見つけます。",
+    "UI_ZeD_Guide_Check4": "どんなに小さな傷でも、洗って包帯を巻きます。",
+    "UI_ZeD_Guide_Check5": "生鮮食品を先に食べます。缶詰は取っておきます。",
+    "UI_ZeD_Guide_Check6": "地図を見つけ、町から出る道を2つ覚えます。",
+    "UI_ZeD_Guide_Check7": "歩き、静かに行動し、戦うときはドアの所で戦います。"
 }

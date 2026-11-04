@@ -4528,5 +4528,13 @@
     "UI_ZeD_Guide_Ad1_Coupon": "원하는 책에 표시하고 이 페이지를 Muldraugh, Kentucky 생존 비상 출판부로 보내 주십시오. 배송에는 6주가 걸립니다.",
     "UI_ZeD_Guide_Ad1_Name": "이름",
     "UI_ZeD_Guide_Ad1_Address": "주소",
-    "UI_ZeD_Guide_Notes": "메모"
+    "UI_ZeD_Guide_Notes": "메모",
+    "UI_ZeD_Guide_CheckTitle": "첫 일주일",
+    "UI_ZeD_Guide_Check1": "커튼을 치고 집 안을 방마다 확인합니다.",
+    "UI_ZeD_Guide_Check2": "수도가 나오는 동안 병, 냄비, 양동이를 모두 채웁니다.",
+    "UI_ZeD_Guide_Check3": "때릴 물건과 담아 나를 물건을 찾습니다.",
+    "UI_ZeD_Guide_Check4": "아무리 작은 상처라도 씻고 붕대를 감습니다.",
+    "UI_ZeD_Guide_Check5": "신선한 음식을 먼저 먹습니다. 통조림은 남겨 둡니다.",
+    "UI_ZeD_Guide_Check6": "지도를 찾고 마을을 빠져나가는 길 두 개를 익힙니다.",
+    "UI_ZeD_Guide_Check7": "걸어 다니고, 조용히 움직이며, 문가에서 싸웁니다."
 }

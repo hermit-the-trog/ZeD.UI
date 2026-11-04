@@ -4527,5 +4527,13 @@
     "UI_ZeD_Guide_Ad1_Coupon": "Marque los títulos que desee y envíe esta página a la División de Publicaciones de Emergencia y Supervivencia, Muldraugh, Kentucky. Espere seis semanas para la entrega.",
     "UI_ZeD_Guide_Ad1_Name": "Nombre",
     "UI_ZeD_Guide_Ad1_Address": "Domicilio",
-    "UI_ZeD_Guide_Notes": "Notas"
+    "UI_ZeD_Guide_Notes": "Notas",
+    "UI_ZeD_Guide_CheckTitle": "Tu primera semana",
+    "UI_ZeD_Guide_Check1": "Cierra las cortinas y revisa la casa, cuarto por cuarto.",
+    "UI_ZeD_Guide_Check2": "Llena cada botella, olla y cubeta mientras las llaves sigan dando agua.",
+    "UI_ZeD_Guide_Check3": "Consigue algo para golpear y algo para cargar.",
+    "UI_ZeD_Guide_Check4": "Limpia y venda cada herida, por pequeña que sea.",
+    "UI_ZeD_Guide_Check5": "Come primero la comida fresca. Guarda las latas.",
+    "UI_ZeD_Guide_Check6": "Consigue un mapa y aprende dos salidas del pueblo.",
+    "UI_ZeD_Guide_Check7": "Camina, no hagas ruido y pelea en una puerta."
 }
