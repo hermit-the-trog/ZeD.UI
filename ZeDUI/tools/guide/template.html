@@ -144,8 +144,10 @@ h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:var(--note-
 /* the title page and the contents */
 .title-p { display:flex; flex-direction:column; align-items:center; text-align:center; }
 .tp-hd { margin-top:150px; font-family:var(--ital); font-style:italic; font-weight:900; font-stretch:112%; font-size:44px; line-height:1.02; letter-spacing:.5px; text-transform:uppercase; }
-.tp-ed { margin-top:22px; font-family:var(--sub); font-weight:700; font-size:12px; line-height:1.4; }
-.tp-im { position:absolute; left:40px; right:40px; bottom:60px; font-family:var(--sub); font-size:12px; letter-spacing:.6px; text-transform:uppercase; }
+.tp-sub { margin-top:14px; font-family:var(--sub); font-weight:700; font-size:15px; line-height:1.25; }
+.tp-ed { margin-top:26px; font-family:var(--sub); font-weight:700; font-size:12px; line-height:1.4; }
+.tp-im { position:absolute; left:40px; right:40px; bottom:56px; font-family:var(--sub); font-size:11px; line-height:1.45; }
+.tp-im b { display:block; font-size:12px; letter-spacing:.6px; text-transform:uppercase; }
 .ct-hd { font-family:var(--ital); font-style:italic; font-weight:900; font-stretch:112%; font-size:30px; text-transform:uppercase; text-align:right; margin:2px 0 8px; }
 .ct { list-style:none; margin:0; padding:0; }
 .ct li { display:grid; grid-template-columns:22px 1fr; column-gap:4px; margin-bottom:2px; cursor:pointer; }
@@ -207,7 +209,7 @@ h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:var(--note-
     <li>Both read the same pages, so a topic written once shows in both.</li>
   </ul></div>
   <div><h2>For you to look at</h2><ul>
-        <li>The book's name: The Survival Guide (the game's own words), or a title of its own?</li>
+        <li>The book (the director, Nov 3 2026): Survive the Apocalypse. Survive an Outbreak Like It's a Vacation. By Stevie Whetstone; Doidbros and Buzzlord, Department of Survival Emergency Publications, 1987.</li>
     <li>The deck line under each headline: written for each topic, or left off?</li>
     <li>F1 opens on what you are doing (agreed): from the Skills tab, this topic.</li>
   </ul></div>
@@ -282,9 +284,10 @@ function contents() {
     <span class="ct-d"><span>${esc(DATA.blurbs[s.id] || "")}</span><i></i><b>${pg[s.id]}</b></span></li>`).join("");
   return `<div class="desk"></div><div class="book">
     <div class="page l title-p">
-      <div class="tp-hd">The Survival<br>Guide</div>
-      <div class="tp-ed">Revised for the 1993 season<br>with The Rules in Numbers</div>
-      <div class="tp-im">Louisville, Kentucky</div>
+      <div class="tp-hd">Survive the<br>Apocalypse</div>
+      <div class="tp-sub">Survive an Outbreak<br>Like It's a Vacation</div>
+      <div class="tp-ed">By Stevie Whetstone</div>
+      <div class="tp-im"><b>Doidbros and Buzzlord</b>Department of Survival Emergency Publications<br>1987</div>
     </div>
     <div class="page r">
       <div class="ct-hd">Contents</div>
@@ -315,7 +318,7 @@ function full() {
       ${photo}
       ${deck ? `<div class="sdeck">${esc(deck)}</div>` : ""}
       ${lead}<div class="cols bk3">${body}</div>
-      <div class="foot2"><span class="pn">${pl}</span><span>The Survival Guide</span></div>
+      <div class="foot2"><span class="pn">${pl}</span><span>Survive the Apocalypse</span></div>
     </div>
     <div class="page r">
       <div class="bar"><span>The Rules in Numbers</span></div>
@@ -326,7 +329,7 @@ function full() {
       <p class="bd first"><span class="runin">Reading Part of a Book &mdash; </span>Each tenth of a book read gives a tenth of its multiplier. Put it down halfway and you keep half the boost; read it to the end and you have all of it.</p>
       <p class="bd"><span class="runin">Which Skills &mdash; </span>Twenty-one skills use the middle column. Aiming, Reloading and Long Blade use the right one.</p>`
       : `<p class="bd first" style="margin-top:12px"><i>Where this topic has rules the game keeps in numbers, they print here.</i></p>`}
-      <div class="foot2"><span>The Survival Guide</span><span class="pn">${pl + 1}</span></div>
+      <div class="foot2"><span>Survive the Apocalypse</span><span class="pn">${pl + 1}</span></div>
       <div class="tabs">${tabs}</div>
     </div>
     <div class="navrow"><span id="bprev">&#9664; previous page</span><span id="btoc">contents</span><span id="bnext">next page &#9654;</span></div>
