@@ -1,0 +1,30 @@
+0.3.0-beta3: changes since 0.3.0-beta2.
+
+Survival guide (F1)
+- Two looks: "Survive the Apocalypse", a printed 1987 survival manual, or a plain ZeD window (Full or simple in ZeD setup).
+- The text follows how you play. On a keyboard it shows your own keys, and a key you rebind shows its new key. On a controller it shows your controller's own buttons (Xbox, PlayStation, Nintendo or Steam Deck, picked in ZeD setup or by the game), and every action page leads with a box of the buttons. Switching between keyboard and controller with the guide open changes it at once.
+- Every page that teaches an action closes with a Mouse and keyboard | Controller box.
+- New chapters after the game's own: ZeD (each window and how to work it), First Days, Coming from Build 41, Your Controls (every key as you have set it) and What's New in ZeD.
+- The rules in numbers, read from your installed game and this world's settings: XP per level, occupations and traits, skill books, food spoiling, farming. This world's settings that a player might not want to know stay behind a "Show the numbers" bar.
+- The game's own clips stay for now; clips of ZeD's screens come later.
+
+Hint strip (new)
+- A quiet line above the belt with the actions for what you face: your Interact key where it works (doors, windows, fences, cars) and Right Click for the rest. On a controller it takes the place of the game's corner prompt, with your controller's buttons.
+- ZeD setup, Hint strip: Always (default), First hours (each hint stops after you have used it three times) or Off.
+
+Overhead notes (new)
+- The game's red and green lines over your head ("Not safe to sleep here", "I don't get it") show in ZeD's bubble, plain text with a mark, above any speech. Each is also kept in Messages under "Over your head", so a note you missed can be read later. Repeats count up instead of stacking.
+- The game's own XP lines still draw as the game draws them; Messages keeps a running total per skill and logs each level.
+- ZeD setup, Overhead notes (on in Vanilla Plus and Access).
+
+Pins on the Character window's title bar
+- Right-click to pin: a skill, the book you are reading (pages read), a water bottle or fuel can (litres), something with uses left (a lighter: percent) or a weapon (condition). A plain click no longer pins.
+- Three at most; a fourth takes off the oldest and says so.
+
+Mods screen
+- Mods that are on sit on a darker band; mods that are off have their names dimmed.
+- An Off tab beside On, and a Hide incompatible box beside Find, with the count of what it hides.
+- The tab and the box are kept between visits.
+- Colour labels for folders and separators, in ZeD's accent colours.
+- A Simple view in ZeD setup for new players: one line per mod, the All, On, Off and Problems tabs.
+- Fits the long languages on a Steam Deck with Large text.
