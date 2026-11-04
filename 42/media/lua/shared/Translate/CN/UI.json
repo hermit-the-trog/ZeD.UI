@@ -4333,5 +4333,21 @@
     "UI_ZeD_Guide_Blurb_ranching": "饲养、照料和屠宰动物。",
     "UI_ZeD_Guide_Blurb_fishing": "鱼饵、抛竿、收线和设陷阱。",
     "UI_ZeD_Guide_Blurb_cleaning": "尸体、污渍,清洗自己和衣物。",
-    "UI_ZeD_Guide_Blurb_multiplayer": "PVP、派系、聊天和互相检查伤口。"
+    "UI_ZeD_Guide_Blurb_multiplayer": "PVP、派系、聊天和互相检查伤口。",
+    "UI_ZeD_Mods_TabOff": "已关 %1",
+    "UI_ZeD_Mods_HideInc": "隐藏不兼容项",
+    "UI_ZeD_Mods_HideIncN": "已隐藏 %1",
+    "UI_ZeD_Mods_HelpHideInc": "隐藏已关闭且无法开启的模组：为其他游戏版本制作，或需要未安装的模组。下次访问时保持此设置。",
+    "UI_ZeD_Mods_Label": "标签",
+    "UI_ZeD_Mods_LabelNone": "无",
+    "UI_ZeD_Mods_LabelEssential": "必要",
+    "UI_ZeD_Mods_LabelHot": "热门",
+    "UI_ZeD_Mods_LabelInProgress": "进行中",
+    "UI_ZeD_Mods_LabelCool": "酷",
+    "UI_ZeD_Mods_LabelPersonal": "个人",
+    "UI_ZeD_Mods_LabelProject1": "项目 1",
+    "UI_ZeD_Mods_LabelProject2": "项目 2",
+    "UI_ZeD_Mods_HelpLabel": "标签：%1。为文件夹的图片，或分隔符的名称和线条着色。",
+    "UI_ZeD_Settings_Mods": "模组界面",
+    "UI_ZeD_Settings_ModsTip": "完整：每个模组的 ID 和标签、文件夹、配置和加载顺序。简洁：每个模组一行，含其方框、名称，出问题时有标记。"
 }

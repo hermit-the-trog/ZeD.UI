@@ -4332,5 +4332,21 @@
     "UI_ZeD_Guide_Blurb_ranching": "Tiere halten, versorgen und schlachten.",
     "UI_ZeD_Guide_Blurb_fishing": "Köder, Auswerfen, Einholen und Fallen.",
     "UI_ZeD_Guide_Blurb_cleaning": "Leichen, Flecken, sich und die Kleidung waschen.",
-    "UI_ZeD_Guide_Blurb_multiplayer": "PVP, Fraktionen, Chat und das gegenseitige Prüfen von Wunden."
+    "UI_ZeD_Guide_Blurb_multiplayer": "PVP, Fraktionen, Chat und das gegenseitige Prüfen von Wunden.",
+    "UI_ZeD_Mods_TabOff": "Aus %1",
+    "UI_ZeD_Mods_HideInc": "Inkompatible ausblenden",
+    "UI_ZeD_Mods_HideIncN": "%1 ausgeblendet",
+    "UI_ZeD_Mods_HelpHideInc": "Blendet die ausgeschalteten Mods aus, die sich nicht einschalten lassen: für eine andere Spielversion gemacht oder auf einen nicht installierten Mod angewiesen. Wird zwischen Besuchen gemerkt.",
+    "UI_ZeD_Mods_Label": "Etikett",
+    "UI_ZeD_Mods_LabelNone": "Keine",
+    "UI_ZeD_Mods_LabelEssential": "Wichtig",
+    "UI_ZeD_Mods_LabelHot": "Heiß",
+    "UI_ZeD_Mods_LabelInProgress": "In Arbeit",
+    "UI_ZeD_Mods_LabelCool": "Cool",
+    "UI_ZeD_Mods_LabelPersonal": "Persönlich",
+    "UI_ZeD_Mods_LabelProject1": "Projekt 1",
+    "UI_ZeD_Mods_LabelProject2": "Projekt 2",
+    "UI_ZeD_Mods_HelpLabel": "Etikett: %1. Färbt das Bild des Ordners oder den Namen und die Linie des Trenners.",
+    "UI_ZeD_Settings_Mods": "Mod-Bildschirm",
+    "UI_ZeD_Settings_ModsTip": "Voll: ID und Tags jedes Mods, Ordner, Profile und die Ladereihenfolge. Einfach: eine Zeile pro Mod, sein Kästchen, sein Name und eine Markierung bei Problemen."
 }

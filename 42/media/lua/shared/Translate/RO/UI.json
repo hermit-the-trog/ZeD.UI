@@ -4332,5 +4332,21 @@
     "UI_ZeD_Guide_Blurb_ranching": "Creșterea, mânuirea și tăiatul animalelor.",
     "UI_ZeD_Guide_Blurb_fishing": "Momeală, aruncarea, tragerea și capcane.",
     "UI_ZeD_Guide_Blurb_cleaning": "Cadavre, pete, spălatul tău și al hainelor.",
-    "UI_ZeD_Guide_Blurb_multiplayer": "PVP, facțiuni, chat și verificarea rănilor unul altuia."
+    "UI_ZeD_Guide_Blurb_multiplayer": "PVP, facțiuni, chat și verificarea rănilor unul altuia.",
+    "UI_ZeD_Mods_TabOff": "Oprite %1",
+    "UI_ZeD_Mods_HideInc": "Ascunde incompatibilele",
+    "UI_ZeD_Mods_HideIncN": "%1 ascunse",
+    "UI_ZeD_Mods_HelpHideInc": "Ascunde modurile oprite care nu pot fi pornite: făcute pentru altă versiune a jocului sau care cer un mod neinstalat. Se reține între vizite.",
+    "UI_ZeD_Mods_Label": "Etichetă",
+    "UI_ZeD_Mods_LabelNone": "Niciuna",
+    "UI_ZeD_Mods_LabelEssential": "Esențial",
+    "UI_ZeD_Mods_LabelHot": "Fierbinte",
+    "UI_ZeD_Mods_LabelInProgress": "În curs",
+    "UI_ZeD_Mods_LabelCool": "Rece",
+    "UI_ZeD_Mods_LabelPersonal": "Personal",
+    "UI_ZeD_Mods_LabelProject1": "Proiect 1",
+    "UI_ZeD_Mods_LabelProject2": "Proiect 2",
+    "UI_ZeD_Mods_HelpLabel": "Etichetă: %1. Colorează imaginea dosarului sau numele și linia separatorului.",
+    "UI_ZeD_Settings_Mods": "Ecranul de moduri",
+    "UI_ZeD_Settings_ModsTip": "Complet: ID-ul și etichetele fiecărui mod, dosare, profiluri și ordinea de încărcare. Simplu: o linie pe mod, căsuța, numele și un semn când ceva nu e în regulă."
 }

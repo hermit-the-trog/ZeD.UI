@@ -4332,5 +4332,21 @@
     "UI_ZeD_Guide_Blurb_ranching": "Memelihara, menangani, dan menyembelih hewan.",
     "UI_ZeD_Guide_Blurb_fishing": "Umpan, melempar, menggulung, dan menjebak.",
     "UI_ZeD_Guide_Blurb_cleaning": "Mayat, noda, mencuci diri dan pakaian.",
-    "UI_ZeD_Guide_Blurb_multiplayer": "PVP, faksi, obrolan, dan memeriksa luka satu sama lain."
+    "UI_ZeD_Guide_Blurb_multiplayer": "PVP, faksi, obrolan, dan memeriksa luka satu sama lain.",
+    "UI_ZeD_Mods_TabOff": "Nonaktif %1",
+    "UI_ZeD_Mods_HideInc": "Sembunyikan yang tidak kompatibel",
+    "UI_ZeD_Mods_HideIncN": "%1 disembunyikan",
+    "UI_ZeD_Mods_HelpHideInc": "Menyembunyikan mod nonaktif yang tidak bisa diaktifkan: dibuat untuk versi game lain, atau butuh mod yang belum terinstal. Diingat antar kunjungan.",
+    "UI_ZeD_Mods_Label": "Label",
+    "UI_ZeD_Mods_LabelNone": "Tidak ada",
+    "UI_ZeD_Mods_LabelEssential": "Penting",
+    "UI_ZeD_Mods_LabelHot": "Panas",
+    "UI_ZeD_Mods_LabelInProgress": "Sedang dikerjakan",
+    "UI_ZeD_Mods_LabelCool": "Sejuk",
+    "UI_ZeD_Mods_LabelPersonal": "Pribadi",
+    "UI_ZeD_Mods_LabelProject1": "Proyek 1",
+    "UI_ZeD_Mods_LabelProject2": "Proyek 2",
+    "UI_ZeD_Mods_HelpLabel": "Label: %1. Mewarnai gambar folder, atau nama dan garis pemisah.",
+    "UI_ZeD_Settings_Mods": "Layar mod",
+    "UI_ZeD_Settings_ModsTip": "Penuh: ID dan tag tiap mod, folder, profil, dan urutan muat. Sederhana: satu baris per mod, kotaknya, namanya, dan tanda saat ada masalah."
 }

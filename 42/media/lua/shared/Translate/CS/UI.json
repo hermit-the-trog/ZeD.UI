@@ -4332,5 +4332,21 @@
     "UI_ZeD_Guide_Blurb_ranching": "Chov, péče a porážka zvířat.",
     "UI_ZeD_Guide_Blurb_fishing": "Návnada, nahazování, navíjení a pasti.",
     "UI_ZeD_Guide_Blurb_cleaning": "Mrtvoly, skvrny, mytí sebe a oblečení.",
-    "UI_ZeD_Guide_Blurb_multiplayer": "PVP, frakce, chat a prohlížení ran jeden druhému."
+    "UI_ZeD_Guide_Blurb_multiplayer": "PVP, frakce, chat a prohlížení ran jeden druhému.",
+    "UI_ZeD_Mods_TabOff": "Vypnuté %1",
+    "UI_ZeD_Mods_HideInc": "Skrýt nekompatibilní",
+    "UI_ZeD_Mods_HideIncN": "Skryto: %1",
+    "UI_ZeD_Mods_HelpHideInc": "Skryje vypnuté módy, které nelze zapnout: vytvořené pro jinou verzi hry nebo potřebující mód, který není nainstalován. Pamatuje se mezi návštěvami.",
+    "UI_ZeD_Mods_Label": "Štítek",
+    "UI_ZeD_Mods_LabelNone": "Žádný",
+    "UI_ZeD_Mods_LabelEssential": "Zásadní",
+    "UI_ZeD_Mods_LabelHot": "Horké",
+    "UI_ZeD_Mods_LabelInProgress": "Rozpracované",
+    "UI_ZeD_Mods_LabelCool": "Chladné",
+    "UI_ZeD_Mods_LabelPersonal": "Osobní",
+    "UI_ZeD_Mods_LabelProject1": "Projekt 1",
+    "UI_ZeD_Mods_LabelProject2": "Projekt 2",
+    "UI_ZeD_Mods_HelpLabel": "Štítek: %1. Obarví obrázek složky nebo název a linku oddělovače.",
+    "UI_ZeD_Settings_Mods": "Obrazovka módů",
+    "UI_ZeD_Settings_ModsTip": "Plné: ID a štítky každého módu, složky, profily a pořadí načítání. Jednoduchá: jeden řádek na mód, jeho políčko, název a značka, když něco nesedí."
 }

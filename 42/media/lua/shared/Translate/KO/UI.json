@@ -4333,5 +4333,21 @@
     "UI_ZeD_Guide_Blurb_ranching": "동물 기르기, 다루기, 도축.",
     "UI_ZeD_Guide_Blurb_fishing": "미끼, 던지기, 감기, 덫.",
     "UI_ZeD_Guide_Blurb_cleaning": "시체, 얼룩, 몸과 옷 씻기.",
-    "UI_ZeD_Guide_Blurb_multiplayer": "PVP, 파벌, 채팅, 서로의 부상 확인."
+    "UI_ZeD_Guide_Blurb_multiplayer": "PVP, 파벌, 채팅, 서로의 부상 확인.",
+    "UI_ZeD_Mods_TabOff": "꺼짐 %1",
+    "UI_ZeD_Mods_HideInc": "호환 안 됨 숨기기",
+    "UI_ZeD_Mods_HideIncN": "%1개 숨김",
+    "UI_ZeD_Mods_HelpHideInc": "꺼져 있고 켤 수 없는 모드를 숨깁니다. 다른 게임 버전용이거나 설치되지 않은 모드가 필요한 경우입니다. 다음 방문에도 유지됩니다.",
+    "UI_ZeD_Mods_Label": "라벨",
+    "UI_ZeD_Mods_LabelNone": "없음",
+    "UI_ZeD_Mods_LabelEssential": "필수",
+    "UI_ZeD_Mods_LabelHot": "핫",
+    "UI_ZeD_Mods_LabelInProgress": "진행 중",
+    "UI_ZeD_Mods_LabelCool": "쿨",
+    "UI_ZeD_Mods_LabelPersonal": "개인",
+    "UI_ZeD_Mods_LabelProject1": "프로젝트 1",
+    "UI_ZeD_Mods_LabelProject2": "프로젝트 2",
+    "UI_ZeD_Mods_HelpLabel": "라벨: %1. 폴더 그림, 또는 구분선의 이름과 선에 색을 입힙니다.",
+    "UI_ZeD_Settings_Mods": "모드 화면",
+    "UI_ZeD_Settings_ModsTip": "실물: 각 모드의 ID와 태그, 폴더, 프로필, 로드 순서. 간단: 모드당 한 줄, 체크 칸, 이름, 문제가 있을 때 표시."
 }

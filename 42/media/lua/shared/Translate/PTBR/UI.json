@@ -4332,5 +4332,21 @@
     "UI_ZeD_Guide_Blurb_ranching": "Criar, manejar e abater animais.",
     "UI_ZeD_Guide_Blurb_fishing": "Isca, arremesso, puxar a linha e armadilhas.",
     "UI_ZeD_Guide_Blurb_cleaning": "Cadáveres, manchas, lavar você e suas roupas.",
-    "UI_ZeD_Guide_Blurb_multiplayer": "PVP, facções, chat e examinar os ferimentos uns dos outros."
+    "UI_ZeD_Guide_Blurb_multiplayer": "PVP, facções, chat e examinar os ferimentos uns dos outros.",
+    "UI_ZeD_Mods_TabOff": "Desligados %1",
+    "UI_ZeD_Mods_HideInc": "Ocultar incompatíveis",
+    "UI_ZeD_Mods_HideIncN": "%1 ocultos",
+    "UI_ZeD_Mods_HelpHideInc": "Oculta os mods desligados que não podem ser ligados: feitos para outra versão do jogo, ou que precisam de um mod que não está instalado. Fica salvo entre visitas.",
+    "UI_ZeD_Mods_Label": "Etiqueta",
+    "UI_ZeD_Mods_LabelNone": "Nenhuma",
+    "UI_ZeD_Mods_LabelEssential": "Essencial",
+    "UI_ZeD_Mods_LabelHot": "Quente",
+    "UI_ZeD_Mods_LabelInProgress": "Em andamento",
+    "UI_ZeD_Mods_LabelCool": "Legal",
+    "UI_ZeD_Mods_LabelPersonal": "Pessoal",
+    "UI_ZeD_Mods_LabelProject1": "Projeto 1",
+    "UI_ZeD_Mods_LabelProject2": "Projeto 2",
+    "UI_ZeD_Mods_HelpLabel": "Etiqueta: %1. Colore a imagem da pasta, ou o nome e a linha do separador.",
+    "UI_ZeD_Settings_Mods": "Tela de mods",
+    "UI_ZeD_Settings_ModsTip": "Completo: o ID e as etiquetas de cada mod, pastas, perfis e a ordem de carregamento. Simples: uma linha por mod, sua caixa, seu nome e uma marca quando algo está errado."
 }

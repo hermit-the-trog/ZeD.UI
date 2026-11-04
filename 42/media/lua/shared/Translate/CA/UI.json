@@ -4332,5 +4332,21 @@
     "UI_ZeD_Guide_Blurb_ranching": "Tenir, manejar i matar animals.",
     "UI_ZeD_Guide_Blurb_fishing": "Esca, llançament, recollida i paranys.",
     "UI_ZeD_Guide_Blurb_cleaning": "Cadàvers, taques, rentar-se i rentar la roba.",
-    "UI_ZeD_Guide_Blurb_multiplayer": "PVP, faccions, xat i revisar les ferides dels altres."
+    "UI_ZeD_Guide_Blurb_multiplayer": "PVP, faccions, xat i revisar les ferides dels altres.",
+    "UI_ZeD_Mods_TabOff": "Inactius %1",
+    "UI_ZeD_Mods_HideInc": "Amaga els incompatibles",
+    "UI_ZeD_Mods_HideIncN": "%1 amagats",
+    "UI_ZeD_Mods_HelpHideInc": "Amaga els mods inactius que no es poden activar: fets per a una altra versió del joc, o que necessiten un mod que falta. Es recorda entre visites.",
+    "UI_ZeD_Mods_Label": "Etiqueta",
+    "UI_ZeD_Mods_LabelNone": "Cap",
+    "UI_ZeD_Mods_LabelEssential": "Essencial",
+    "UI_ZeD_Mods_LabelHot": "Calent",
+    "UI_ZeD_Mods_LabelInProgress": "En curs",
+    "UI_ZeD_Mods_LabelCool": "Fresc",
+    "UI_ZeD_Mods_LabelPersonal": "Personal",
+    "UI_ZeD_Mods_LabelProject1": "Projecte 1",
+    "UI_ZeD_Mods_LabelProject2": "Projecte 2",
+    "UI_ZeD_Mods_HelpLabel": "Etiqueta: %1. Acoloreix la imatge de la carpeta, o el nom i la ratlla del separador.",
+    "UI_ZeD_Settings_Mods": "Pantalla de mods",
+    "UI_ZeD_Settings_ModsTip": "Complet: l'ID i les etiquetes de cada mod, carpetes, perfils i l'ordre de càrrega. Simple: una línia per mod, la seva casella, el seu nom i una marca si hi ha algun problema."
 }

@@ -4332,5 +4332,21 @@
     "UI_ZeD_Guide_Blurb_ranching": "Állatok tartása, kezelése és levágása.",
     "UI_ZeD_Guide_Blurb_fishing": "Csali, bedobás, behúzás és csapdák.",
     "UI_ZeD_Guide_Blurb_cleaning": "Hullák, foltok, a saját és a ruháid mosása.",
-    "UI_ZeD_Guide_Blurb_multiplayer": "PVP, frakciók, csevegés és egymás sebeinek vizsgálata."
+    "UI_ZeD_Guide_Blurb_multiplayer": "PVP, frakciók, csevegés és egymás sebeinek vizsgálata.",
+    "UI_ZeD_Mods_TabOff": "Ki %1",
+    "UI_ZeD_Mods_HideInc": "Összeférhetetlenek elrejtése",
+    "UI_ZeD_Mods_HideIncN": "%1 elrejtve",
+    "UI_ZeD_Mods_HelpHideInc": "Elrejti a kikapcsolt modokat, amelyeket nem lehet bekapcsolni: másik játékverzióra készültek, vagy olyan modot igényelnek, ami nincs telepítve. Látogatások között megmarad.",
+    "UI_ZeD_Mods_Label": "Címke",
+    "UI_ZeD_Mods_LabelNone": "Nincs",
+    "UI_ZeD_Mods_LabelEssential": "Fontos",
+    "UI_ZeD_Mods_LabelHot": "Forró",
+    "UI_ZeD_Mods_LabelInProgress": "Folyamatban",
+    "UI_ZeD_Mods_LabelCool": "Hűvös",
+    "UI_ZeD_Mods_LabelPersonal": "Személyes",
+    "UI_ZeD_Mods_LabelProject1": "1. projekt",
+    "UI_ZeD_Mods_LabelProject2": "2. projekt",
+    "UI_ZeD_Mods_HelpLabel": "Címke: %1. Színezi a mappa képét, vagy az elválasztó nevét és vonalát.",
+    "UI_ZeD_Settings_Mods": "Modok képernyő",
+    "UI_ZeD_Settings_ModsTip": "Teljes: minden mod azonosítója és címkéi, mappák, profilok és a betöltési sorrend. Sima: egy sor modonként, a jelölőnégyzete, a neve és egy jel, ha baj van."
 }

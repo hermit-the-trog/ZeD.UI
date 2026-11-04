@@ -4332,5 +4332,21 @@
     "UI_ZeD_Guide_Blurb_ranching": "Утримання, догляд і забій тварин.",
     "UI_ZeD_Guide_Blurb_fishing": "Наживка, закидання, витягування та пастки.",
     "UI_ZeD_Guide_Blurb_cleaning": "Трупи, плями, миття себе та одягу.",
-    "UI_ZeD_Guide_Blurb_multiplayer": "PVP, фракції, чат та огляд ран одне одного."
+    "UI_ZeD_Guide_Blurb_multiplayer": "PVP, фракції, чат та огляд ран одне одного.",
+    "UI_ZeD_Mods_TabOff": "Вимк. %1",
+    "UI_ZeD_Mods_HideInc": "Сховати несумісні",
+    "UI_ZeD_Mods_HideIncN": "Сховано: %1",
+    "UI_ZeD_Mods_HelpHideInc": "Ховає вимкнені моди, які не можна ввімкнути: зроблені для іншої версії гри або такі, що потребують мода, який не встановлено. Запам'ятовується між сеансами.",
+    "UI_ZeD_Mods_Label": "Мітка",
+    "UI_ZeD_Mods_LabelNone": "Немає",
+    "UI_ZeD_Mods_LabelEssential": "Важливе",
+    "UI_ZeD_Mods_LabelHot": "Гаряче",
+    "UI_ZeD_Mods_LabelInProgress": "У роботі",
+    "UI_ZeD_Mods_LabelCool": "Прохолодне",
+    "UI_ZeD_Mods_LabelPersonal": "Особисте",
+    "UI_ZeD_Mods_LabelProject1": "Проєкт 1",
+    "UI_ZeD_Mods_LabelProject2": "Проєкт 2",
+    "UI_ZeD_Mods_HelpLabel": "Мітка: %1. Фарбує значок теки або назву й лінію розділювача.",
+    "UI_ZeD_Settings_Mods": "Екран модів",
+    "UI_ZeD_Settings_ModsTip": "Повний: ID і теги кожного мода, теки, профілі й порядок завантаження. Простий: один рядок на мод, його прапорець, назва й позначка, якщо щось не так."
 }

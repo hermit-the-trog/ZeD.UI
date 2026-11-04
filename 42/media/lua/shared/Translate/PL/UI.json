@@ -4332,5 +4332,21 @@
     "UI_ZeD_Guide_Blurb_ranching": "Hodowla, obsługa i ubój zwierząt.",
     "UI_ZeD_Guide_Blurb_fishing": "Przynęta, zarzucanie, wyciąganie i pułapki.",
     "UI_ZeD_Guide_Blurb_cleaning": "Zwłoki, plamy, mycie siebie i ubrań.",
-    "UI_ZeD_Guide_Blurb_multiplayer": "PVP, frakcje, czat i sprawdzanie sobie nawzajem ran."
+    "UI_ZeD_Guide_Blurb_multiplayer": "PVP, frakcje, czat i sprawdzanie sobie nawzajem ran.",
+    "UI_ZeD_Mods_TabOff": "Wył. %1",
+    "UI_ZeD_Mods_HideInc": "Ukryj niezgodne",
+    "UI_ZeD_Mods_HideIncN": "Ukryto: %1",
+    "UI_ZeD_Mods_HelpHideInc": "Ukrywa wyłączone mody, których nie można włączyć: zrobione pod inną wersję gry lub wymagające moda, który nie jest zainstalowany. Zapamiętywane między wizytami.",
+    "UI_ZeD_Mods_Label": "Etykieta",
+    "UI_ZeD_Mods_LabelNone": "Brak",
+    "UI_ZeD_Mods_LabelEssential": "Istotne",
+    "UI_ZeD_Mods_LabelHot": "Pilne",
+    "UI_ZeD_Mods_LabelInProgress": "W toku",
+    "UI_ZeD_Mods_LabelCool": "Fajne",
+    "UI_ZeD_Mods_LabelPersonal": "Osobiste",
+    "UI_ZeD_Mods_LabelProject1": "Projekt 1",
+    "UI_ZeD_Mods_LabelProject2": "Projekt 2",
+    "UI_ZeD_Mods_HelpLabel": "Etykieta: %1. Koloruje obrazek folderu albo nazwę i linię separatora.",
+    "UI_ZeD_Settings_Mods": "Ekran modów",
+    "UI_ZeD_Settings_ModsTip": "Pełny: ID i tagi każdego moda, foldery, profile i kolejność ładowania. Prosty: jeden wiersz na moda, jego pole, nazwa i znak, gdy coś jest nie tak."
 }
