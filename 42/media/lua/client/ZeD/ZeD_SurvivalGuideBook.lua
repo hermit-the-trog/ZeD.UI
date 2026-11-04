@@ -193,16 +193,12 @@ local function wrapWords(words, f, px, widthFor, start, indent)
 end
 
 -- a line, justified unless it ends its paragraph
--- a line, justified unless it ends its paragraph: the extra room goes out as whole spaces, spread over the gaps
--- from the left, so each run of words between the game's small pictures is one string
+-- a line, ragged right; each run of words between the game's small pictures is one string
 local function drawLine(panel, f, px, l, x, baseY, c)
     local sp = spaceW(f, px)
     local gaps = #l.items - 1
+    -- (ragged right: the text atoms space words by whole spaces, so justifying doubled some gaps; QA, Nov 3 2026)
     local extraN = 0
-    if not l.last and gaps > 0 then
-        local room = math.max(0, l.width - l.indent - l.natural)
-        if room / gaps <= sp * 1.6 then extraN = math.floor(room / sp + 0.5) end   -- (a line too loose stays ragged)
-    end
     local xx = x + l.indent
     local runX, run = xx, nil
     local function flush()
@@ -857,6 +853,8 @@ function B.open(pn, want)
         bk:addToUIManager()
         bk:setAlwaysOnTop(true)
         pcall(setGameSpeed, 0)
+        -- (the open book is the pause: the game's "Game Paused" box would sit over its top on a small screen)
+        pcall(function() bk._pausedMsg = UIManager.isShowPausedMessage(); UIManager.setShowPausedMessage(false) end)
     end
     bk:bringToTop()
     B.layerToTop()
@@ -881,6 +879,7 @@ function B.close(pn)
     bk:setVisible(false)
     bk:removeFromUIManager()
     B.layerHide()
+    if bk._pausedMsg ~= nil then pcall(function() UIManager.setShowPausedMessage(bk._pausedMsg) end); bk._pausedMsg = nil end
     bk._clips = {}
     pcall(setGameSpeed, 1)
     local jd = JoypadState.players[(pn or 0) + 1]
