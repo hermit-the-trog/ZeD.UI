@@ -475,6 +475,14 @@ function ZeD_Window:_drawTitleBar(w, tbH)
             -- (a colour at alpha 0 was the old way to say "no mark")
             local mark = not st.noMark and (dc.a == nil or dc.a > 0)
             local need = sw + (mark and (mk + mkGap) or 0)
+            -- (a stat with shorter forms takes the longest that fits: the Character window's pins)
+            if sx - need < minX and st.alts then
+                for _, alt in ipairs(st.alts) do
+                    local aw = tm:MeasureStringX(f3, tostring(alt))
+                    local an = aw + (mark and (mk + mkGap) or 0)
+                    if sx - an >= minX then txt, sw, need = tostring(alt), aw, an; break end
+                end
+            end
             if sx - need < minX then
                 -- (QA, Nov 4 2026: pins dropped with room to spare; the numbers once, for the log)
                 ZeD._titleFitSeen = ZeD._titleFitSeen or {}
