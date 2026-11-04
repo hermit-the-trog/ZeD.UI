@@ -11,7 +11,7 @@ local function Wn() return G.get(0) end
 local function tw(font, s) return ZeD.TM:MeasureStringX(font, s) end
 local Q, qi, wait = {}, 0, 0
 local function step(n, fn) Q[#Q + 1] = { n = n, fn = fn } end
-local counts, over, headOver, rulesOver, clipOver = {}, {}, {}, {}, {}
+local counts, over, headOver, rulesOver, clipOver, breaks = {}, {}, {}, {}, {}, {}
 local measure
 
 step(60, function() G.open(0) end)
@@ -29,6 +29,7 @@ for i = 1, 90 do
             if it.kind == "line" then
                 local n, endX = 0, it.x
                 for _, r in ipairs(it.runs or {}) do
+                    if r.text and r.text:find("\n", 1, true) then breaks[#breaks + 1] = t.title end
                     if r.text then n = n + #r.text; endX = math.max(endX, it.x + r.x + tw(T.fontF2, r.text)) end
                     if r.tex then n = n + 1; endX = math.max(endX, it.x + r.x + r.s) end
                 end
@@ -60,6 +61,7 @@ step(5, function()
     say(string.format("lines %d; letters per line: most %d, longest tenth from %d; measure %d px; window %d x %d px",
         #counts, most, p90, measure or -1, w:getWidth(), w:getHeight()))
     check(most <= 75 and most >= 50, "letters per line about 60-70 (most " .. most .. ", longest tenth " .. p90 .. ")")
+    check(#breaks == 0, "no line carries a line break inside it (drawn a line low)" .. (#breaks > 0 and (" (" .. table.concat(breaks, ", ") .. ")") or ""))
     check(#over == 0, "no line runs past the measure" .. (#over > 0 and (" (" .. table.concat(over, ", ") .. ")") or ""))
     check(#clipOver == 0, "the clip fits the measure" .. (#clipOver > 0 and (" (" .. table.concat(clipOver, ", ") .. ")") or ""))
     check(#rulesOver == 0, "the rules table fits the measure" .. (#rulesOver > 0 and (" (" .. table.concat(rulesOver, ", ") .. ")") or ""))
