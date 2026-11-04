@@ -434,9 +434,13 @@ function B.paginate(bk, u)
     -- (the publisher fills its pages, the director, Nov 4 2026: "publishers [don't] like printing blank pages. It
     -- costs more money, so they generally fill the content"): a flow page a third or more empty takes a filler
     local room = bottom - px(U.MT)
+    local checkDone = false
     for i, pg in ipairs(pages) do
         if pg.kind == "flow" and pg.endY and bottom - pg.endY >= room / 3 then
-            pg.items[#pg.items + 1] = { k = "filler", y = pg.endY + px(16), y1 = bottom, seed = i }
+            -- (the First Days checklist once, on the first of its pages with the room)
+            local check = (not checkDone) and pg.section and pg.section.id == "zedch:firstdays"
+            if check then checkDone = true end
+            pg.items[#pg.items + 1] = { k = "filler", y = pg.endY + px(16), y1 = bottom, seed = i, check = check }
         end
     end
     if #pages % 2 == 1 then pages[#pages + 1] = { kind = "ad" } end
@@ -609,7 +613,7 @@ function ZeD_GuideBook:drawFlowPage(p, x, y, w, u)
                 end
             end
         elseif k == "filler" then
-            self:drawFiller(tx, tw_, y + it.y, y + it.y1, u, it.seed)
+            self:drawFiller(tx, tw_, y + it.y, y + it.y1, u, it.seed, it.check)
         elseif k == "caption" then
             drawCentre(self, F.sansI, it.text, cx, y + it.y, U.CAP * u, INK)
         elseif k == "deck" then
@@ -719,11 +723,101 @@ end
 
 -- A FILLER (what the publisher prints where the text leaves room): a quarter-page house ad box when it fits, else a
 -- ruled NOTES block as a real manual leaves for its owner. The ad's titles rotate by the page.
-function ZeD_GuideBook:drawFiller(tx, tw_, y0, y1, u, seed)
+-- the price in its black box, its words over two lines
+function ZeD_GuideBook:drawPriceBox(pX, pY, pW, pH, u)
+    self:drawRect(pX, pY, pW, pH, 1, INK.r, INK.g, INK.b)
+    local pw = {}
+    for wd in tr("UI_ZeD_Guide_Ad1_Price"):gmatch("%S+") do pw[#pw + 1] = wd end
+    local half = math.ceil(#pw / 2)
+    local pc = pX + pW / 2
+    drawCentre(self, F.sansB, upper(table.concat(pw, " ", 1, half)), pc, pY + pH * 0.42, U.CAP * u * 1.2, PAPER)
+    if #pw > half then drawCentre(self, F.sansB, upper(table.concat(pw, " ", half + 1)), pc, pY + pH * 0.8, U.CAP * u * 1.2, PAPER) end
+end
+
+-- the First Days checklist (the director, Nov 4 2026: tick-box checklists, the FEMA pamphlets' way): a framed box, its
+-- head, the items each with an empty tick box; returns its height
+local CHECK_N = 7
+function ZeD_GuideBook:drawChecklist(tx, tw_, by, u, measureOnly)
+    local px = U.TEXT * u
+    local lineH = px * U.LEAD
+    local ix, iw = tx + 12 * u, tw_ - 24 * u
+    local sq = math.floor(px * 0.8)
+    local rows = {}
+    for i = 1, CHECK_N do rows[i] = wrapWords(wordsOf(tr("UI_ZeD_Guide_Check" .. i)), F.text, px, function() return iw - sq - 10 * u end, 1, 0) end
+    local h = 14 * u + U.TITLE * u + 10 * u
+    for i = 1, CHECK_N do h = h + #rows[i] * lineH + 4 * u end
+    h = h + 10 * u
+    if measureOnly then return h end
+    local lw = math.max(1, math.floor(2 * u))
+    for i = 0, lw - 1 do self:drawRectBorder(tx + i, by + i, tw_ - i * 2, h - i * 2, 1, INK.r, INK.g, INK.b) end
+    local yy = by + 14 * u + U.TITLE * u * 0.8
+    drawAt(self, F.head, upper(tr("UI_ZeD_Guide_CheckTitle")), ix, yy, U.TITLE * u * 0.85, INK)
+    yy = yy + 6 * u
+    self:drawRect(ix, yy, iw, math.max(1, u), 1, INK.r, INK.g, INK.b)
+    yy = yy + 4 * u
+    for i = 1, CHECK_N do
+        for li, l in ipairs(rows[i]) do
+            yy = yy + lineH
+            if li == 1 then self:drawRectBorder(ix, yy - sq, sq, sq, 1, INK.r, INK.g, INK.b) end
+            drawLine(self, F.text, px, l, ix + sq + 10 * u, yy, INK)
+        end
+        yy = yy + 4 * u
+    end
+    return h
+end
+
+-- the half-page house ad: the frame, headline, deck, the paragraph, the five titles with tick boxes, the price box
+local function drawHalfAd(self, tx, tw_, by, u, adH)
+    local px = U.TEXT * u
+    local lineH = px * U.LEAD
+    local lw = math.max(1, math.floor(2 * u))
+    for i = 0, lw - 1 do self:drawRectBorder(tx + i, by + i, tw_ - i * 2, adH - i * 2, 1, INK.r, INK.g, INK.b) end
+    local ix, iw = tx + 14 * u, tw_ - 28 * u
+    local cx = tx + tw_ / 2
+    local yy = by + 14 * u + U.OPEN * u * 0.8
+    drawCentre(self, F.head, upper(tr("UI_ZeD_Guide_Ad1_Head")), cx, yy, U.OPEN * u * 0.8, INK)
+    yy = yy + U.DECK * u * 1.5
+    drawCentre(self, F.sansB, tr("UI_ZeD_Guide_Ad1_Deck"), cx, yy, U.DECK * u * 0.9, INK)
+    yy = yy + 6 * u
+    self:drawRect(ix, yy, iw, math.max(1, u), 1, INK.r, INK.g, INK.b)
+    for _, l in ipairs(wrapWords(wordsOf(tr("UI_ZeD_Guide_Ad1_Body")), F.text, px, function() return iw end, 1, 0)) do
+        yy = yy + lineH
+        drawLine(self, F.text, px, l, ix, yy, INK)
+    end
+    yy = yy + 6 * u
+    local sq = math.floor(px * 0.75)
+    local priceW = 90 * u
+    for t = 1, 5 do
+        yy = yy + lineH * 1.08
+        self:drawRectBorder(ix, yy - sq, sq, sq, 1, INK.r, INK.g, INK.b)
+        drawAt(self, F.textB, tr("UI_ZeD_Guide_Ad1_T" .. t), ix + sq + 8 * u, yy, px, INK)
+    end
+    self:drawPriceBox(tx + tw_ - 14 * u - priceW, by + adH - 14 * u - 62 * u, priceW, 62 * u, u)
+end
+
+function ZeD_GuideBook:drawFiller(tx, tw_, y0, y1, u, seed, check)
     local h = y1 - y0
     if h < 60 * u then return end
     local px = U.TEXT * u
     local lineH = px * U.LEAD
+    -- (the First Days pages: the checklist first, when it fits)
+    if check then
+        local ch = self:drawChecklist(tx, tw_, y0, u, true)
+        if h >= ch then
+            self:drawChecklist(tx, tw_, y0, u)
+            y0 = y0 + ch + 18 * u
+            h = y1 - y0
+            if h < 80 * u then return end
+        end
+    end
+    -- (the largest ad that fits: half a page, then the quarter-page box)
+    local halfH = 330 * u
+    if h >= halfH then
+        drawHalfAd(self, tx, tw_, y0, u, halfH)
+        y0 = y0 + halfH + 18 * u
+        h = y1 - y0
+        if h < 80 * u then return end
+    end
     local adH = 186 * u
     if h >= adH then
         local by = y0 + math.floor((h - adH) / 2)
