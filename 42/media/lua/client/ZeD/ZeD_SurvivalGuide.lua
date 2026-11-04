@@ -226,6 +226,19 @@ local function twoWays(t)
     if not ok then return nil end
     local nk, nj = kb and kb:size() or 0, jp and jp:size() or 0
     local rows, seen = {}, {}
+    if nk ~= nj and nk > 0 and nj > 0 then
+        local row = { kb = {}, pad = {} }
+        for i = 0, nk - 1 do
+            local a = tostring(kb:get(i))
+            if isInput(a) then for _, o in ipairs(cellFor(a)) do row.kb[#row.kb + 1] = o end end
+        end
+        for i = 0, nj - 1 do
+            local b = tostring(jp:get(i))
+            if b:find("<JOYPAD", 1, true) then for _, o in ipairs(cellFor(b)) do row.pad[#row.pad + 1] = o end end
+        end
+        if #row.kb > 0 or #row.pad > 0 then return { row } end
+        return nil
+    end
     for i = 0, math.max(nk, nj) - 1 do
         local a = (i < nk) and tostring(kb:get(i)) or nil
         local b = (i < nj) and tostring(jp:get(i)) or nil
@@ -431,8 +444,12 @@ end
 -- {mouse:0} {lit:Esc} (ZeDUI/tools/guide/chapters.py)
 function W.fillTokens(s)
     s = tostring(s or "")
-    return (s:gsub("{(%a+):([^}]+)}", function(kind, v)
-        kind, v = tostring(kind or ""), tostring(v or "")
+    -- (one capture, split here: Kahlua hands a second capture to the function as nil, QA Nov 4 2026)
+    return (s:gsub("{(%a+:[^}]+)}", function(tok)
+        tok = tostring(tok or "")
+        local c = tok:find(":", 1, true)
+        if not c then return "" end
+        local kind, v = tok:sub(1, c - 1), tok:sub(c + 1)
         if kind == "pad" then return MARK .. "pad:" .. v .. MARK end
         if kind == "lit" then return MARK .. "key:" .. v .. MARK end
         if kind == "mouse" then return MARK .. "key:" .. getText("IGUI_mouse_btn_" .. v) .. MARK end

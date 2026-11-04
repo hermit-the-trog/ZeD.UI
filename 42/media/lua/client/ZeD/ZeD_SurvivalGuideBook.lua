@@ -572,7 +572,15 @@ function ZeD_GuideBook:drawFlowPage(p, x, y, w, u)
             local r = it.row
             local c2, c3 = tx + math.floor(tw_ / 3), tx + math.floor(tw_ * 2 / 3)
             local s = U.TEXT * u * 1.05
-            if r.label then drawAt(self, F.text, r.label, tx, y + it.y, U.TEXT * u, INK) end
+            if r.label then
+                -- (a long binding name cut to its column: QA, "Toggle Clothing Protection Panel")
+                local lab, lim = r.label, math.floor(tw_ / 3) - 8 * u
+                if textW(F.text, lab, U.TEXT * u) > lim then
+                    while #lab > 1 and textW(F.text, lab .. "...", U.TEXT * u) > lim do lab = lab:sub(1, #lab - 1) end
+                    lab = lab .. "..."
+                end
+                drawAt(self, F.text, lab, tx, y + it.y, U.TEXT * u, INK)
+            end
             for c, list in ipairs({ r.kb, r.pad }) do
                 local xx = (c == 1) and c2 or c3
                 local lim = xx + math.floor(tw_ / 3)
