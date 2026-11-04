@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/book83_fonts.txt  (Nov 3 2026): punch list 83, the book faces probe (4K)
+zedqa_prelude.lua | pre | timeout=120
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_book83_fonts.lua | b8f | timeout=120
