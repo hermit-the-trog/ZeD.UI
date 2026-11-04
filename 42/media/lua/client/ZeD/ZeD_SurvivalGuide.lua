@@ -118,21 +118,38 @@ local function wrapRuns(para, font, maxW)
     local lines, cur, x = {}, {}, 0
     local function push() lines[#lines + 1] = cur; cur, x = {}, 0 end
     for _, at in ipairs(atoms) do
-        if x > 0 and x + at.w > maxW then push() end
         if at.tex then
+            if x > 0 and x + at.w > maxW then push() end
             cur[#cur + 1] = { tex = at.tex, x = x, s = s }
+            x = x + at.w
         else
             local last = cur[#cur]
-            local text = (x == 0) and at.text:gsub("^%s+", "") or at.text
+            local text = at.text
+            if x == 0 then text = text:gsub("^%s+", "") end
             if last and last.text then
                 -- (a picture the game could not find leaves no double space)
                 if last.text:sub(-1) == " " then text = text:gsub("^%s+", "") end
-                last.text = last.text .. text
+                local joined = last.text .. text
+                -- the run measured whole, its trailing space aside: pieces measured one by one add up a pixel or
+                -- two short of the joined line (QA, Nov 3 2026: a Thai line 2 px past the measure)
+                if last.x + twFull(font, (joined:gsub("%s+$", ""))) > maxW then
+                    push()
+                    text = at.text:gsub("^%s+", "")
+                    cur[1] = { text = text, x = 0 }
+                    x = twFull(font, text)
+                else
+                    last.text = joined
+                    x = last.x + twFull(font, joined)
+                end
             else
+                if x > 0 and x + twFull(font, (text:gsub("%s+$", ""))) > maxW then
+                    push()
+                    text = at.text:gsub("^%s+", "")
+                end
                 cur[#cur + 1] = { text = text, x = x }
+                x = x + twFull(font, text)
             end
         end
-        x = x + ((x == 0 and at.text) and twFull(font, (at.text:gsub("^%s+", ""))) or at.w)
     end
     if #cur > 0 then push() end
     return lines
