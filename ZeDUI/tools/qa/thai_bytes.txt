@@ -1,0 +1,3 @@
+# ZeDUI/tools/qa/thai_bytes.txt  (Nov 3 2026): Kahlua string functions on Thai (lang_run.ps1 -Lang TH -Manifest this)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_thai_bytes.lua | thb | timeout=60
