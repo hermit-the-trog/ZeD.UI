@@ -1,0 +1,9 @@
+# ZeDUI/tools/qa/guide82_all4k.txt  (Nov 3 2026): punch list 82 at 4K: the full check, then the pictures in the gallery look
+zedqa_prelude.lua | pre | timeout=120
+zedqa_guide82_measure.lua | g8m | timeout=300
+zedqa_guide82.lua | g82 | timeout=600
+gallery_t14_look.lua | g14l | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_guide82_icons.lua | g8i | timeout=600
+zedqa_guide82_stills.lua | g8s | timeout=600
+gallery_t14_end.lua | g14e | timeout=60

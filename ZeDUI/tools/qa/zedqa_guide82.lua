@@ -80,10 +80,12 @@ step(30, function()
     for i, row in ipairs(r.rows) do say("rules row " .. i .. ": " .. table.concat(row, " | ")) end
     check(#r.rows == 5, "five volumes")
     check(r.rows[1][2] ~= "" and r.rows[5][2] ~= "", "each volume's levels shown (" .. tostring(r.rows[1][2]) .. " ... " .. tostring(r.rows[5][2]) .. ")")
-    check(r.rows[1][3] == "x3" and r.rows[5][3] == "x16", "the main column runs x3 to x16 (" .. tostring(r.rows[1][3]) .. ", " .. tostring(r.rows[5][3]) .. ")")
+    check(r.rows[1][3] == "300%" and r.rows[2][3] == "500%" and r.rows[3][3] == "800%" and r.rows[4][3] == "1200%" and r.rows[5][3] == "1600%", "the main column reads 300% to 1600% (the director, Nov 3: percentages, not x3) (" .. tostring(r.rows[1][3]) .. ", " .. tostring(r.rows[5][3]) .. ")")
     local last = r.cols[#r.cols] or ""
     check(#r.cols >= 4 and last:find("Aiming") and last:find("Reloading") and last:find("Long Blade"), "the last column names Aiming, Reloading and Long Blade (" .. last .. ")")
-    check(r.rows[1][#r.cols] == "x1.5" and r.rows[5][#r.cols] == "x8", "and runs x1.5 to x8 (" .. tostring(r.rows[1][#r.cols]) .. ", " .. tostring(r.rows[5][#r.cols]) .. ")")
+    check(r.rows[1][#r.cols] == "150%" and r.rows[2][#r.cols] == "250%" and r.rows[3][#r.cols] == "400%" and r.rows[4][#r.cols] == "600%" and r.rows[5][#r.cols] == "800%", "and reads 150% to 800% (" .. tostring(r.rows[1][#r.cols]) .. ", " .. tostring(r.rows[5][#r.cols]) .. ")")
+    say("rules notes: " .. table.concat(r.notes or {}, " / "))
+    check(r.notes and r.notes[1] and r.notes[1]:find("100%%") and r.notes[1]:find("300%%") and r.notes[1]:find("10") and r.notes[1]:find("30"), "the first note says what 100% means, with 10 XP becoming 30 at 300%")
     local w = Wn()
     local has = false
     for _, it in ipairs((w._g and w._g.items) or {}) do if it.kind == "rules" then has = true end end

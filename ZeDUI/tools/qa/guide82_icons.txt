@@ -1,0 +1,6 @@
+# ZeDUI/tools/qa/guide82_icons.txt  (Nov 3 2026): punch list 82, the pictures in the text, 4K gallery look
+zedqa_prelude.lua | pre | timeout=120
+gallery_t14_look.lua | g14l | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_guide82_icons.lua | g8i | timeout=600
+gallery_t14_end.lua | g14e | timeout=60
