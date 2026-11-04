@@ -190,6 +190,9 @@ function B.paginate(bk, u)
             local room = math.max(1, math.floor((bottom - y) / lineH))
             local page = { kind = "topic", topic = t, section = s, si = si, first = first, heads = heads, headPx = headPx,
                            clipH = clipH, deck = deckLines, lines = {} }
+            -- a topic with rules starts on a left page, so its rules face it (a blank page before it if need be)
+            local hasRules = ZeD.Guide.Rules and ZeD.Guide.Rules[t.titleKey] ~= nil
+            if hasRules and (#pages + 1) % 2 == 0 then pages[#pages + 1] = { kind = "blank" } end
             if first then bk.sectionPage[s.id] = #pages + 1 end
             pages[#pages + 1] = page
             local li = 1
