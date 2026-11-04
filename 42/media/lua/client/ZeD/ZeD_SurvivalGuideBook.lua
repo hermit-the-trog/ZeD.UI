@@ -359,6 +359,9 @@ function B.paginate(bk, u)
             local first = ti == 1
             local rf = ZeD.Guide.Rules and ZeD.Guide.Rules[t.titleKey]
             if rf then
+                -- (the page that makes room is the publisher's house ad, never a blank page: the director, Nov 4
+                -- 2026, "options for callouts and advertisement styling. Look more built by a large publisher")
+                if (#pages + 1) % 2 == 0 then pages[#pages + 1] = { kind = "ad" } end
                 -- a fresh left page (a blank before it if need be), so the rules page faces it
                 newPage(si, s, first)
             elseif first then
@@ -425,7 +428,7 @@ function B.paginate(bk, u)
             end
         end
     end
-    if #pages % 2 == 1 then pages[#pages + 1] = { kind = "blank" } end
+    if #pages % 2 == 1 then pages[#pages + 1] = { kind = "ad" } end
     bk.pages = pages
 end
 
@@ -758,6 +761,88 @@ function ZeD_GuideBook:drawContentsPage(x, y, w, u, hover)
     end
 end
 
+-- THE PUBLISHER'S HOUSE AD (a page the layout leaves over: before a topic that faces its rules, the last page): a
+-- full-page mail-order ad in the 1980s survival magazines' manner, for the publisher's own (fictional) titles. A heavy
+-- frame, the headline, a deck, a paragraph, the titles with tick boxes, a price box and a coupon with a dashed edge.
+function ZeD_GuideBook:drawAdPage(x, y, w, u)
+    local m = U.M * u
+    local tx, tw_ = x + m, w - m * 2
+    local cx = x + w / 2
+    local top, bot = y + U.MT * u, y + (U.PH - U.FOOT - 6) * u
+    local lw = math.max(1, math.floor(2 * u))
+    for i = 0, lw - 1 do self:drawRectBorder(tx + i, top + i, tw_ - i * 2, bot - top - i * 2, 1, INK.r, INK.g, INK.b) end
+    local ix, iw = tx + 14 * u, tw_ - 28 * u
+    local yy = top + 16 * u
+    yy = yy + U.OPEN * u
+    drawCentre(self, F.head, upper(tr("UI_ZeD_Guide_Ad1_Head")), cx, yy, U.OPEN * u, INK)
+    yy = yy + U.DECK * u * 1.6
+    drawCentre(self, F.sansB, tr("UI_ZeD_Guide_Ad1_Deck"), cx, yy, U.DECK * u, INK)
+    yy = yy + U.TEXT * u * 0.8
+    self:drawRect(ix, yy, iw, math.max(1, u), 1, INK.r, INK.g, INK.b)
+    local px = U.TEXT * u
+    local lineH = px * U.LEAD
+    for _, l in ipairs(wrapWords(wordsOf(tr("UI_ZeD_Guide_Ad1_Body")), F.text, px, function() return iw end, 1, 0)) do
+        yy = yy + lineH
+        drawLine(self, F.text, px, l, ix, yy, INK)
+    end
+    -- the titles, each with its tick box, in a ruled box; the price in a black box at its right
+    yy = yy + lineH * 0.8
+    local boxY = yy
+    local priceW = 92 * u
+    local listW = iw - priceW - 10 * u
+    local sq = math.floor(px * 0.8)
+    for i = 1, 5 do
+        yy = yy + lineH * 1.15
+        self:drawRectBorder(ix + 8 * u, yy - sq, sq, sq, 1, INK.r, INK.g, INK.b)
+        drawAt(self, F.textB, tr("UI_ZeD_Guide_Ad1_T" .. i), ix + 8 * u + sq + 8 * u, yy, px, INK)
+    end
+    yy = yy + lineH * 0.6
+    self:drawRectBorder(ix, boxY, listW, yy - boxY, 1, INK.r, INK.g, INK.b)
+    local pY, pH = boxY + 10 * u, 70 * u
+    self:drawRect(ix + iw - priceW, pY, priceW, pH, 1, INK.r, INK.g, INK.b)
+    local pc = ix + iw - priceW / 2
+    local pw = {}
+    for wd in tr("UI_ZeD_Guide_Ad1_Price"):gmatch("%S+") do pw[#pw + 1] = wd end
+    local half = math.ceil(#pw / 2)
+    drawCentre(self, F.sansB, upper(table.concat(pw, " ", 1, half)), pc, pY + pH * 0.42, U.DECK * u, PAPER)
+    if #pw > half then drawCentre(self, F.sansB, upper(table.concat(pw, " ", half + 1)), pc, pY + pH * 0.78, U.DECK * u, PAPER) end
+    -- the coupon: a dashed edge, the words, lines to write on
+    yy = yy + 16 * u
+    local cY = yy
+    local cH = bot - 14 * u - cY
+    if cH > 60 * u then
+        local dash, gapD = 6 * u, 4 * u
+        local xx = ix
+        while xx < ix + iw do
+            local dw = math.min(dash, ix + iw - xx)
+            self:drawRect(xx, cY, dw, math.max(1, u), 1, INK.r, INK.g, INK.b)
+            self:drawRect(xx, cY + cH, dw, math.max(1, u), 1, INK.r, INK.g, INK.b)
+            xx = xx + dash + gapD
+        end
+        local yy2 = cY
+        while yy2 < cY + cH do
+            local dh = math.min(dash, cY + cH - yy2)
+            self:drawRect(ix, yy2, math.max(1, u), dh, 1, INK.r, INK.g, INK.b)
+            self:drawRect(ix + iw, yy2, math.max(1, u), dh, 1, INK.r, INK.g, INK.b)
+            yy2 = yy2 + dash + gapD
+        end
+        local cy2 = cY + 6 * u
+        local cpx = U.CAP * u * 1.1
+        for _, l in ipairs(wrapWords(wordsOf(tr("UI_ZeD_Guide_Ad1_Coupon")), F.text, cpx, function() return iw - 20 * u end, 1, 0)) do
+            cy2 = cy2 + cpx * 1.35
+            drawLine(self, F.text, cpx, l, ix + 10 * u, cy2, INK)
+        end
+        for _, k in ipairs({ "UI_ZeD_Guide_Ad1_Name", "UI_ZeD_Guide_Ad1_Address" }) do
+            cy2 = cy2 + cpx * 2.2
+            if cy2 > cY + cH - 4 * u then break end
+            local lab = tr(k)
+            drawAt(self, F.sansB, lab, ix + 10 * u, cy2, cpx, INK)
+            local lx = ix + 10 * u + textW(F.sansB, lab, cpx) + 8 * u
+            self:drawRect(lx, cy2 + 2 * u, ix + iw - 10 * u - lx, math.max(1, u), 1, INK.r, INK.g, INK.b)
+        end
+    end
+end
+
 function ZeD_GuideBook:drawIntroPage(x, y, w, u)
     local m = U.M * u
     local tx, tw_ = x + m, w - m * 2
@@ -801,6 +886,7 @@ function ZeD_GuideBook:drawPage(i, x, y, w, u, hover)
     elseif p.kind == "intro" then self:drawIntroPage(x, y, w, u)
     elseif p.kind == "flow" then self:drawFlowPage(p, x, y, w, u)
     elseif p.kind == "rules" then self:drawRulesPage(p, x, y, w, u)
+    elseif p.kind == "ad" then self:drawAdPage(x, y, w, u)
     else return end
     folio(self, p, x, y, w, u, printed(i), i % 2 == 1)
 end
