@@ -295,6 +295,27 @@ end
 -- ---------------------------------------------------------------------------
 local STRIP_H, PIC_H = 22, 14
 function G.stripH() return ZeD.T.px(STRIP_H) end
+-- the width drawStrip needs for these prompts (its 10u margins included)
+function G.stripW(prompts)
+    local T, tm = ZeD.T, ZeD.TM
+    local f2, f5 = T.fontF2, T.fontF5
+    local pic, gap, between = T.px(PIC_H), T.px(4), T.px(8)
+    local set = G.set()
+    local k = G.k(pic)
+    local total = 0
+    for i, pr in ipairs(prompts) do
+        local label, gw = nil, 0
+        if type(pr) == "string" then label = pr
+        else
+            label = tostring(pr.label or "")
+            local roles = (set and not pr.key and (pr.pad or G.roles(pr.glyph))) or false
+            if roles then gw = G.width(roles, k, set)
+            else gw = math.max(pic, tm:MeasureStringX(f5, tostring(pr.glyph or "")) + T.px(4)) end
+        end
+        total = total + ((gw > 0) and (gw + gap) or 0) + ((label ~= "") and tm:MeasureStringX(f2, label) or 0) + ((i > 1) and between or 0)
+    end
+    return total + T.px(20)
+end
 
 local _sw, _sr, _sg = {}, {}, {}   -- the prompts' widths, roles and picture widths (reused each frame)
 function G.drawStrip(panel, x, y, w, prompts)
@@ -316,7 +337,7 @@ function G.drawStrip(panel, x, y, w, prompts)
             label = pr
         else
             label = tostring(pr.label or "")
-            roles = (set and (pr.pad or G.roles(pr.glyph))) or false
+            roles = (set and not pr.key and (pr.pad or G.roles(pr.glyph))) or false
             if roles then gw = G.width(roles, k, set)
             else gw = math.max(pic, tm:MeasureStringX(f5, tostring(pr.glyph or "")) + T.px(4)) end
         end
