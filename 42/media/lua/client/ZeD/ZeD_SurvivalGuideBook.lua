@@ -60,6 +60,8 @@ local TOP = 34
 
 local INK = { r = 0.137, g = 0.165, b = 0.227 }
 local PAPER = { r = 0.961, g = 0.925, b = 0.824 }
+-- the button pictures printed in the book: its ink on its paper (ZeD_PadGlyphs.draw's palette)
+local BOOK_PAL = { text = INK, surf3 = PAPER, surf1 = PAPER, base = PAPER }
 local TINT = { r = 0.788, g = 0.769, b = 0.706 }
 local DESK = { r = 0.0, g = 0.0, b = 0.0, a = 0.62 }
 
@@ -183,7 +185,7 @@ local function wrapWords(words, f, px, widthFor, start, indent)
         cur, cw, n = {}, 0, n + 1
     end
     for _, wd in ipairs(words) do
-        local ww = wd.tex and icon or textW(f, wd.word, px)
+        local ww = wd.tex and ((ZeD.Guide and ZeD.Guide.inlineW) and ZeD.Guide.inlineW(wd.tex, px * 1.05) or icon) or textW(f, wd.word, px)
         if #cur > 0 and cw + sp + ww > lim() then flush(false) end
         cw = cw + ((#cur > 0) and sp or 0) + ww
         cur[#cur + 1] = { word = wd.word, tex = wd.tex, ww = ww }
@@ -209,7 +211,7 @@ local function drawLine(panel, f, px, l, x, baseY, c)
         if it.tex then
             flush()
             local s = px * 1.05
-            panel:drawTextureScaledAspect(it.tex, xx, baseY - s * 0.82, s, s, 1, 1, 1, 1)
+            ZeD.Guide.inlineDraw(panel, it.tex, xx, baseY - s * 0.82, s, INK, BOOK_PAL)
         else
             if run then run = run .. it.word else run, runX = it.word, xx end
         end
@@ -374,7 +376,8 @@ function ZeD_GuideBook:new(pn)
 end
 
 function ZeD_GuideBook:readTopics(u)
-    local joy = JoypadState and JoypadState.players and JoypadState.players[self.playerNum + 1] ~= nil
+    local joy = ZeD.Guide.onPad(self.playerNum)
+    self._joyRead = joy
     self.sections, self.byId, self.flat = ZeD.Guide.readTopicList(joy)
     self._u = u
     B.paginate(self, u)
@@ -404,7 +407,8 @@ function ZeD_GuideBook:layout()
     if self.height ~= sh then self:setHeight(sh) end
     local u = self:unit()
     local m = applyType()
-    if self._u ~= u or self._m ~= m then self._m = m; self:readTopics(u) end
+    -- (a new scale or text size, or a controller picked up or put down: the pages again, in its words)
+    if self._u ~= u or self._m ~= m or ZeD.Guide.onPad(self.playerNum) ~= self._joyRead then self._m = m; self:readTopics(u) end
     local bw, bh = U.PW * 2 * u, U.PH * u
     local stripH = ZeD.Molecules.bandH()
     local total = bh + U.STRIP_GAP * u + stripH
