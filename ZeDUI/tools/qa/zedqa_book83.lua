@@ -47,14 +47,51 @@ step(40, function()
     local b = Bk()
     check(B.isOpen(0) and not (G.get(0) and G.get(0):isReallyVisible()), "F1 opens the book (Full), not the window")
     check(speed() == 0, "the game is paused while the book is open")
-    local n, topics, rules, cont = #(b.pages or {}), 0, 0, 0
+    -- (Nov 3, 0394db83: the pages are a flow; topics share pages; a long topic runs on)
+    local n, rules, flows = #(b.pages or {}), 0, 0
+    local topics, perPage, runOns = 0, {}, 0
     for _, p in ipairs(b.pages or {}) do
-        if p.kind == "topic" and not p.cont then topics = topics + 1 end
-        if p.cont then cont = cont + 1 end
         if p.kind == "rules" then rules = rules + 1 end
+        if p.kind == "flow" then flows = flows + 1 end
     end
-    say(string.format("pages %d (%d spreads): %d topics, %d run-on, %d rules; unit %.3f", n, n / 2, topics, cont, rules, b._u or -1))
-    check(topics == #b.flat and rules >= 1 and n % 2 == 0, "every topic has its page, and the rules page is there (" .. topics .. " of " .. #b.flat .. ")")
+    for _, t in ipairs(b.flat) do
+        local i = b.pageOf[t.id]
+        if i then topics = topics + 1; perPage[i] = (perPage[i] or 0) + 1 end
+    end
+    local shared = 0
+    for _, k in pairs(perPage) do if k >= 2 then shared = shared + 1 end end
+    -- a run-on: a flow page with no topic starting on it (its label is the chapter's running line)
+    for i, p in ipairs(b.pages) do if p.kind == "flow" and not perPage[i] then runOns = runOns + 1 end end
+    say(string.format("pages %d (%d spreads): %d flow, %d pages shared by 2+ topics, %d run-on pages, %d rules; unit %.3f", n, n / 2, flows, shared, runOns, rules, b._u or -1))
+    check(topics == #b.flat and rules >= 1 and n % 2 == 0, "every topic has its place, and the rules page is there (" .. topics .. " of " .. #b.flat .. ")")
+    check(shared >= 10, "topics share pages (" .. shared .. " pages with two or more)")
+    -- every chapter opens a fresh page; Skill Books on a left page, its rules facing
+    local fresh = 0
+    for _, s in ipairs(b.sections) do
+        local i = b.sectionPage[s.id]; local p = b.pages[i]
+        local firstHead
+        for _, it in ipairs(p and p.items or {}) do if it.k == "head" then firstHead = firstHead or it end end
+        if p and p.kind == "flow" and p.si and b.sections[p.si] == s and firstHead and perPage[i] and b.pageOf[s.topics[1].id] == i then fresh = fresh + 1 end
+    end
+    check(fresh == #b.sections, "every chapter opener begins its own page (" .. fresh .. " of " .. #b.sections .. ")")
+    -- nothing past the folio; the items in order without overlap (a clip's foot above what follows)
+    local u = b._u or 1
+    local floor = (690 - 26) * u
+    local past, overlap = {}, {}
+    for i, p in ipairs(b.pages) do
+        if p.kind == "flow" then
+            local lastBottom = -1
+            for _, it in ipairs(p.items or {}) do
+                local top = it.y - (it.px or 0)
+                if it.k == "clip" then top = it.y end
+                if it.y > floor then past[#past + 1] = tostring(i) end
+                if top + 1 < lastBottom then overlap[#overlap + 1] = tostring(i) .. ":" .. tostring(it.k) end
+                lastBottom = (it.k == "clip") and (it.y + it.h) or it.y
+            end
+        end
+    end
+    check(#past == 0, "nothing past the folio" .. (#past > 0 and (" (pages " .. table.concat(past, ", ") .. ")") or ""))
+    check(#overlap == 0, "no item overlaps the one before it" .. (#overlap > 0 and (" (" .. table.concat(overlap, ", ", 1, math.min(#overlap, 12)) .. ")") or ""))
     check(spreadKinds() == "blank+title", "F1 with no tab opens on the title page (" .. spreadKinds() .. ")")
 end)
 step(20, function() f1() end)
@@ -111,7 +148,7 @@ step(30, function()
         local want = b.sectionPage[b.sections[si].id]
         b:goToPage(row.page)
         local i = b.spread * 2 - 1
-        local hit = (b.pages[i] and b.pages[i].si == si and b.pages[i].first) or (b.pages[i + 1] and b.pages[i + 1].si == si and b.pages[i + 1].first)
+        local hit = (i == want) or (i + 1 == want)
         if row.page == want and hit then ok = ok + 1 else bad[#bad + 1] = tostring(si) end
     end
     check(#rows == #b.sections and ok == #rows, "every contents row opens its chapter's first page (" .. ok .. " of " .. #b.sections .. (#bad > 0 and ("; not: " .. table.concat(bad, ", ")) or "") .. ")")
@@ -121,7 +158,8 @@ step(30, function()
         b:onMouseDown(r.x + r.w / 2, r.y + r.h / 2)
         local i = b.spread * 2 - 1
         local p1, p2 = b.pages[i], b.pages[i + 1]
-        if (p1 and p1.si == r.si and p1.first) or (p2 and p2.si == r.si and p2.first) then tok = tok + 1 else tbad[#tbad + 1] = tostring(r.si) end
+        local wp = b.sectionPage[b.sections[r.si].id]
+        if wp == i or wp == i + 1 then tok = tok + 1 else tbad[#tbad + 1] = tostring(r.si) end
     end
     check(#(b._thumbs or {}) == #b.sections and tok == #b.sections, "every thumb opens its chapter (" .. tok .. " of " .. #b.sections .. (#tbad > 0 and ("; not: " .. table.concat(tbad, ", ")) or "") .. ")")
     b.spread = 2
@@ -150,9 +188,10 @@ step(60, function() f1() end)
 step(40, function()
     local b = Bk(); local i = b.spread * 2 - 1
     local p1, p2 = b.pages[i], b.pages[i + 1]
-    local k1 = p1 and p1.topic and p1.topic.titleKey; local k2 = p2 and p2.topic and p2.topic.titleKey
+    local sb; for _, t in ipairs(b.flat) do if t.titleKey == "SurvivalGuide_skill_books_title" then sb = t end end
+    local k1 = (sb and b.pageOf[sb.id] == i) and sb.titleKey or nil; local k2 = p2 and p2.topic and p2.topic.titleKey
     say("Skills -> " .. tostring(p1 and p1.kind) .. " " .. tostring(k1) .. " | " .. tostring(p2 and p2.kind) .. " " .. tostring(k2))
-    check(p1 and p1.kind == "topic" and k1 == "SurvivalGuide_skill_books_title" and p2 and p2.kind == "rules", "F1 on Skills opens Skill Books facing its rules page")
+    check(p1 and p1.kind == "flow" and k1 == "SurvivalGuide_skill_books_title" and p2 and p2.kind == "rules", "F1 on Skills opens Skill Books facing its rules page")
 end)
 -- ---- clips and stills on a chapter opener
 step(10, function() local b = Bk(); b._clips = {}; core:setOptionDoVideoEffects(true); b.spread = math.floor((b.sectionPage[b.sections[2].id] + 1) / 2) end)
