@@ -176,3 +176,9 @@ remakes them. The book uses the second set; its script commit is ecf5610a.)
 
 The rules page (the director, Nov 3 2026: "Gray bar, gray bar."): it keeps the 1990 magazine's grey-tint bar, bold run-ins and
 ruled chart. The Full look is settled; the introduction's text stays Build's placeholder for the director.
+
+**The Simple look is done (Nov 3 2026, punch list 82, e225e3f9):** QA passes at 4K and the Deck with Large text (60/60,
+the game's inline pictures, the 82 stills, a ~66-character measure, wrapping table headings). Since the review: XP as
+percentages with a worked example (the director), the narrower panel at about 66 characters a line (the director),
+a still from each clip when Video effects are off (the director). Still to do: the other 26 languages for the
+UI_ZeD_Guide_* keys; the Full look (the book); the five new sections' pages; clips with ZeD's menus.
