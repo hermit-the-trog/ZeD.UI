@@ -1,9 +1,9 @@
-"""Builds ZeDUI/mockups/zed_survival_guide_v2.html from template.html and the game's own files (42.22)."""
+"""Builds ZeDUI/mockups/zed_survival_guide_v3.html from template.html and the game's own files (42.22)."""
 import base64, json, os, re, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))   # template.html and clip.jpg sit beside this script
 G = "E:/Project Zomboid/steamapps/common/ProjectZomboid/media"
-OUT = "C:/Users/danie/Zomboid/mods/ZeD-UI/ZeDUI/mockups/zed_survival_guide_v2.html"
+OUT = "C:/Users/danie/Zomboid/mods/ZeD-UI/ZeDUI/mockups/zed_survival_guide_v3.html"
 
 d = json.load(open(G + "/lua/shared/Translate/EN/SurvivalGuide.json", encoding="utf-8"))
 vids = set(os.listdir(G + "/videos/survival_guide"))
@@ -54,7 +54,7 @@ for f in os.listdir(G + "/lua/shared/Translate/EN"):
             ui.update(json.load(open(G + "/lua/shared/Translate/EN/" + f, encoding="utf-8")))
         except Exception:
             pass
-data = {"sections": secs, "books": books, "showGuide": ui.get("IGUI_Tutorial_ShowGuide", "Show the guide on startup")}
+data = {"sections": secs, "books": books, "decks": {}, "showGuide": ui.get("IGUI_Tutorial_ShowGuide", "Show the guide on startup")}
 clip = "data:image/jpeg;base64," + base64.b64encode(open(os.path.join(HERE, "clip.jpg"), "rb").read()).decode()
 h = open(os.path.join(HERE, "template.html"), encoding="utf-8").read()
 h = h.replace("__DATA__", json.dumps(data, ensure_ascii=False)).replace("__CLIP__", clip)

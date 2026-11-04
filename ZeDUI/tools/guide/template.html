@@ -1,21 +1,21 @@
 <title>ZeD Survival Guide</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans+Condensed:wght@400;500;600&family=Charis+SIL:ital,wght@0,400;0,700;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans+Condensed:wght@400;500;600&family=Domine:wght@700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400;1,700&family=Arimo:wght@700&family=Archivo+Black&display=swap">
 <style>
 /* Survival guide (F1), mockup v1, Nov 3 2026. One topic (Character > Skill Books) in both looks:
    Simple = a ZeD window (the split layout of the Crafting, Vehicle and Cooking tabs),
-   Full = a printed manual, new from the bookstore, no marks (v2, from the director's review of v1). Text, topics and numbers are the game's own
+   Full = a printed manual, new from the bookstore, no marks, set like a 1990 newsstand survival magazine (v3: the director's reference, Nov 3 2026; its look only, never its name or logo). Text, topics and numbers are the game's own
    (SurvivalGuide.json EN, XPSystem_SkillBook.lua, literature.txt, ISReadABook.lua; 42.22). */
 :root {
   color-scheme: dark;
   --mono:'Fira Mono',ui-monospace,Consolas,monospace; --cond:'Fira Sans Condensed','Arial Narrow',sans-serif;
-  --serif:'Charis SIL',Charter,Georgia,serif;
+  --serif:'Libre Baskerville','Century Schoolbook',Georgia,serif; --slab:'Domine','Clarendon',Georgia,serif; --sub:'Arimo',Helvetica,Arial,sans-serif; --disp:'Archivo Black','Arial Black',sans-serif;
   --desk:#0b0a08; --b:#0c0c0c; --s1:#131313; --s2:#1a1a1a; --s3:#222; --s4:#2a2a2a; --bd:#2a2a2a; --bs:#3a3a3a;
   --ac:#d4922a; --acb:#e8a830; --hov:rgba(212,146,42,.22); --sel:rgba(212,146,42,.55);
   --tx:rgba(214,214,212,.9); --ts:rgba(150,150,150,.75); --tf:rgba(120,120,120,.65); --th:rgba(222,210,190,.95);
   --pos:#7a9a34;
   --ink:#1a181e;
-  --wd1:#2a1f18; --paper:#f3efe4; --spot:#a8321c;
+  --wd1:#2a1f18; --paper:#f5ecd2; --news:#232a3a; --tint:#c9c4b4;
   --note-bg:#14130f; --note-tx:#c4bfb1; --note-hd:#f0ece0; --chip:#d8c070;
 }
 * { box-sizing:border-box; }
@@ -96,39 +96,45 @@ h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:var(--note-
 .help { height:20px; flex:none; display:flex; align-items:center; padding:0 10px; font-family:var(--mono); font-size:10.5px; color:var(--ts); border-top:1px solid var(--bd); background:var(--s1); }
 .key { display:inline-block; font-family:var(--mono); font-size:11px; color:var(--th); border:1px solid var(--bs); border-bottom-width:2px; border-radius:3px; padding:0 5px; background:var(--s3); }
 
-/* ---------------- Full: the printed manual (a new book, no marks) ---------------- */
+/* ---------------- Full: the printed manual, set like a 1990 newsstand survival magazine ---------------- */
 .desk { position:absolute; inset:0; background:repeating-linear-gradient(90deg, rgba(0,0,0,.08) 0 3px, transparent 3px 11px), var(--wd1); }
 .book { position:absolute; left:46px; top:22px; width:1060px; height:656px; display:flex; }
-.page { position:relative; width:530px; height:656px; background:var(--paper); color:var(--ink); padding:30px 44px 34px; }
+.page { position:relative; width:530px; height:656px; color:var(--news); padding:26px 40px 34px; overflow:hidden;
+  background:radial-gradient(ellipse at 50% 45%, transparent 60%, rgba(160,120,40,.16) 100%), var(--paper); }
 .page.l { box-shadow:inset -14px 0 18px -14px rgba(0,0,0,.35); }
 .page.r { box-shadow:inset 14px 0 18px -14px rgba(0,0,0,.35); }
-.rh { display:flex; justify-content:space-between; align-items:baseline; font-family:var(--cond); font-weight:600; font-size:10.5px; letter-spacing:1.6px; text-transform:uppercase; color:var(--ink); }
-.rh .pn { font-family:var(--serif); font-weight:700; font-size:12px; letter-spacing:0; }
-.chap { margin-top:22px; font-family:var(--cond); font-weight:600; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--spot); }
-.ch { margin:2px 0 0; font-family:var(--cond); font-weight:600; font-size:30px; line-height:1.05; text-wrap:balance; }
-.chr { height:3px; background:var(--spot); width:64px; margin:8px 0 6px; }
-.page p.bk { font-family:var(--serif); font-size:13.5px; line-height:1.55; margin:8px 0 0; text-align:justify; hyphens:auto; }
-.page h3 { font-family:var(--cond); font-weight:600; font-size:17px; margin:0; }
-.fig { margin-top:14px; border-top:1px solid var(--ink); border-bottom:1px solid var(--ink); padding:8px 0 7px; }
-.fig img { display:block; width:100%; height:auto; aspect-ratio:2/1; object-fit:cover; filter:grayscale(1) contrast(1.1) brightness(1.05); }
-.fig .fc { font-family:var(--serif); font-size:11.5px; margin-top:6px; }
-.fig .fc b { font-family:var(--cond); font-weight:600; color:var(--spot); margin-right:7px; }
-.tbl { width:100%; border-collapse:collapse; margin-top:10px; font-family:var(--serif); font-size:13px; color:var(--ink); }
-.tbl caption { caption-side:top; text-align:left; font-family:var(--serif); font-size:11.5px; padding-bottom:5px; }
-.tbl caption b { font-family:var(--cond); font-weight:600; color:var(--spot); margin-right:7px; }
-.tbl th { font-family:var(--cond); font-weight:600; text-align:left; border-top:1.5px solid var(--ink); border-bottom:1px solid var(--ink); padding:4px 8px 4px 0; font-size:12.5px; }
-.tbl td { border-bottom:1px solid rgba(26,24,30,.18); padding:4px 8px 4px 0; font-variant-numeric:tabular-nums; }
-.tbl tr:last-child td { border-bottom:1.5px solid var(--ink); }
-.box { margin-top:14px; border-left:3px solid var(--spot); padding:2px 0 2px 12px; }
-.box .bh { font-family:var(--cond); font-weight:600; font-size:11px; letter-spacing:1.6px; text-transform:uppercase; color:var(--spot); }
-.box p.bk { margin-top:4px; }
-.tabs { position:absolute; right:0; top:30px; bottom:30px; width:22px; }
-.tabx { position:absolute; right:0; width:22px; height:24px; background:var(--ink); border:0; padding:0; cursor:pointer; color:var(--paper);
-  font-family:var(--cond); font-weight:600; font-size:8px; writing-mode:vertical-rl; letter-spacing:.5px; opacity:.16; }
-.tabx:hover { opacity:.5; }
-.tabx.on { background:var(--spot); opacity:1; width:26px; }
-.foot { position:absolute; left:44px; right:44px; bottom:14px; display:flex; justify-content:space-between; font-family:var(--cond); font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#5a544a; }
-.foot span { cursor:pointer; }
+.kick { text-align:center; font-family:var(--serif); font-size:15px; margin-top:6px; }
+.kick span { display:inline-block; border-bottom:2.5px solid var(--news); padding:0 4px 2px; }
+.hl { text-align:center; font-family:var(--slab); font-weight:700; font-size:46px; line-height:1; margin:10px 0 8px; letter-spacing:-.5px; }
+.deck { border-top:1px solid var(--news); border-bottom:1px solid var(--news); padding:5px 10px; text-align:center;
+  font-family:var(--serif); font-style:italic; font-weight:700; font-size:13.5px; line-height:1.3; }
+.cols { column-count:2; column-gap:18px; column-rule:1px solid rgba(35,42,58,.35); margin-top:10px; }
+.cols p { font-family:var(--serif); font-size:11.6px; line-height:1.42; margin:0; text-align:justify; hyphens:auto; text-indent:1.2em; }
+.cols p:first-child { text-indent:0; }
+.cols p:first-child::first-letter { float:left; font-family:var(--slab); font-weight:700; font-size:40px; line-height:.86; padding:3px 5px 0 0; }
+.halftone { position:relative; border:1.5px solid var(--news); margin-top:12px; break-inside:avoid; }
+.halftone img { display:block; width:100%; height:auto; aspect-ratio:2/1; object-fit:cover; filter:grayscale(1) contrast(1.35) brightness(1.08) sepia(.15); }
+.halftone::after { content:""; position:absolute; inset:0; background:radial-gradient(circle, rgba(35,42,58,.35) .7px, transparent 1.1px) 0 0/3px 3px; mix-blend-mode:multiply; }
+.capn { font-family:var(--sub); font-weight:700; font-size:10.5px; line-height:1.3; margin-top:5px; }
+.capn i { font-family:var(--serif); font-weight:400; }
+.bar { border:1.5px solid var(--news); background:var(--tint); text-align:center; padding:7px 0 5px; margin-top:6px; }
+.bar span { font-family:var(--disp); font-size:24px; letter-spacing:1px; text-transform:uppercase; }
+.sub { font-family:var(--sub); font-weight:700; font-size:14px; margin:12px 0 3px; }
+.page p.bd { font-family:var(--serif); font-size:11.6px; line-height:1.42; margin:0; text-align:justify; hyphens:auto; text-indent:1.2em; }
+.page p.bd.first { text-indent:0; }
+.spec { width:100%; border-collapse:collapse; margin-top:6px; font-family:var(--serif); font-size:12px; color:var(--news); border:1.5px solid var(--news); }
+.spec th { font-family:var(--sub); font-weight:700; font-size:11px; text-align:left; background:var(--tint); border-bottom:1.5px solid var(--news); padding:4px 6px; }
+.spec td { padding:3px 6px; border-top:1px solid rgba(35,42,58,.3); font-variant-numeric:tabular-nums; }
+.side { margin-top:12px; border:1.5px solid var(--news); background:rgba(201,196,180,.45); padding:7px 10px 8px; }
+.side .sub { margin:0 0 3px; font-size:12.5px; }
+.folio { position:absolute; left:40px; right:40px; bottom:12px; display:flex; justify-content:space-between; align-items:baseline;
+  font-family:var(--sub); font-weight:700; font-size:9px; letter-spacing:1.2px; text-transform:uppercase; }
+.folio .nav { cursor:pointer; font-family:var(--serif); font-weight:400; font-size:10.5px; letter-spacing:0; text-transform:none; font-style:italic; }
+.tabs { position:absolute; right:0; top:26px; bottom:34px; width:20px; }
+.tabx { position:absolute; right:0; width:20px; height:24px; background:var(--news); border:0; padding:0; cursor:pointer; color:var(--paper);
+  font-family:var(--sub); font-weight:700; font-size:7.5px; writing-mode:vertical-rl; opacity:.12; }
+.tabx:hover { opacity:.45; }
+.tabx.on { opacity:1; }
 
 /* notes under the stage */
 .notes { max-width:1180px; margin-top:22px; display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:22px; }
@@ -138,9 +144,9 @@ h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:var(--note-
 @media (prefers-reduced-motion: reduce) { * { transition:none !important; } }
 </style>
 
-<div class="banner">ZeD-GUI | Survival guide (F1) | mockup v2</div>
+<div class="banner">ZeD-GUI | Survival guide (F1) | mockup v3</div>
 <h1>Survival Guide: both looks on one topic</h1>
-<p class="lede">The game's <b>Skill Books</b> topic in the <b>Simple</b> look (a ZeD window, laid out like the Crafting, Vehicle and Cooking tabs) and the <b>Full</b> look (a printed manual, new from the bookstore, with no marks). The topic list and text are the game's own; the numbers under <b>The rules in numbers</b> are read from the game's files (42.22). Click topics, open and close sections, type in Find, and turn the pages in the book.</p>
+<p class="lede">The game's <b>Skill Books</b> topic in the <b>Simple</b> look (a ZeD window, laid out like the Crafting, Vehicle and Cooking tabs) and the <b>Full</b> look (a printed manual, new from the bookstore, set like a 1990 newsstand survival magazine). The topic list and text are the game's own; the numbers under <b>The rules in numbers</b> are read from the game's files (42.22). Click topics, open and close sections, type in Find, and turn the pages in the book.</p>
 <div class="controls">
   <div class="ctl"><span>Look</span><div class="seg" id="lookSeg"><button data-v="simple" class="on" type="button">Simple: window</button><button data-v="full" type="button">Full: manual</button></div></div>
 </div>
@@ -154,12 +160,12 @@ h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:var(--note-
   </ul></div>
   <div><h2>The two looks</h2><ul>
     <li><b>Simple</b> is the default: list left, topic right, Find and the start-up box in the band, Previous and Next at the right. The controller: D-pad in the list, A opens, RB and LB turn topics, B closes.</li>
-    <li><b>Full</b> is a printed manual, new from the bookstore: black and one red ink, the clip as a numbered figure, the rules as a numbered table, the section index printed on the page edge. No marks of any kind. LB and RB turn the page.</li>
+    <li><b>Full</b> is set like a 1990 newsstand survival magazine: a kicker over a heavy headline, an italic deck between rules, two justified columns with a drop cap, the clip as a boxed halftone, grey-tint bars and spec tables. No marks of any kind. LB and RB turn the page.</li>
     <li>Both read the same pages, so a topic written once shows in both.</li>
   </ul></div>
   <div><h2>For you to look at</h2><ul>
         <li>The book's name: The Survival Guide (the game's own words), or a title of its own?</li>
-    <li>Its look: black and one red ink, for a 1993 bookstore manual?</li>
+    <li>The deck line under each headline: written for each topic, or left off?</li>
     <li>F1 opens on what you are doing (agreed): from the Skills tab, this topic.</li>
   </ul></div>
 </div>
@@ -228,30 +234,31 @@ function simple() {
 }
 function full() {
   const r = topic(S.sel); const f = flat(); const i = f.findIndex(x => x.t.id === S.sel);
-  const ci = DATA.sections.indexOf(r.s) + 1; const ti = r.s.topics.indexOf(r.t) + 1; const num = ci + "." + ti;
-  const n = DATA.sections.length; const span = 592;
+  const n = DATA.sections.length; const span = 596;
   const tabs = DATA.sections.map((s, k) => `<button class="tabx ${s.id === r.s.id ? "on" : ""}" type="button" data-tab="${s.id}" style="top:${Math.round(k * (span - 24) / (n - 1))}px" aria-label="${esc(s.title)}">${esc(s.short)}</button>`).join("");
-  const text = r.t.text ? paras(r.t.text).map(p => `<p class="bk">${p}</p>`).join("") : `<p class="bk"><i>${r.s.zed ? "This page is still to write." : "The section's first page."}</i></p>`;
+  const ps = r.t.text ? paras(r.t.text) : [r.s.zed ? "This page is still to write." : "The section's first page."];
   const sb = S.sel === "skill_books";
+  const deck = sb ? "What a skill book does for you, how far each one takes you, and what half a book is worth..." : (DATA.decks[r.t.id] || "");
   return `<div class="desk"></div><div class="book">
     <div class="page l">
-      <div class="rh"><span class="pn">${180 + i * 2}</span><span>The Survival Guide</span></div>
-      <div class="chap">Chapter ${ci} | ${esc(r.s.title)}</div>
-      <div class="ch">${num} ${esc(r.t.title)}</div><div class="chr"></div>
-      ${text}
-      ${r.t.clip ? `<div class="fig"><img alt="" src="${CLIP}"><div class="fc"><b>Figure ${num}</b>${esc(r.t.title)}. In the guide, this figure plays as a clip.</div></div>` : ""}
-      <div class="foot"><span id="bprev">&#9664; Previous</span><span></span></div>
+      <div class="kick"><span>${esc(r.s.title)}:</span></div>
+      <div class="hl">${esc(r.t.title)}</div>
+      ${deck ? `<div class="deck">${esc(deck)}</div>` : ""}
+      ${r.t.clip ? `<div class="halftone"><img alt="" src="${CLIP}"></div><div class="capn">${esc(r.t.title)}. <i>In the guide, this picture plays as a clip.</i></div>` : ""}
+      <div class="cols">${ps.map(p => `<p>${p}</p>`).join("")}</div>
+      <div class="folio"><span>${180 + i * 2} &nbsp; The Survival Guide</span><span class="nav" id="bprev">&#9664; previous page</span></div>
     </div>
     <div class="page r">
-      <div class="rh"><span>${esc(r.s.title)}</span><span class="pn">${181 + i * 2}</span></div>
-      <div class="chap">${num} continued</div><h3 style="margin-top:2px">The Rules in Numbers</h3><div class="chr"></div>
-      ${sb ? `<p class="bk">A skill book makes its skill learn faster, but only across its own two levels.</p>
-      <table class="tbl"><caption><b>Table ${num}</b>Skill book volumes</caption><thead><tr><th>Vol.</th><th>Levels</th><th>Most</th><th>Aiming, Reloading, Long Blade</th></tr></thead><tbody>
+      <div class="bar"><span>The Rules in Numbers</span></div>
+      ${sb ? `<div class="sub">The five volumes</div>
+      <p class="bd first">A skill book makes its skill learn faster, but only across its own two levels. Volume 1 is no help past level 2; for level 3 you want Volume 2.</p>
+      <table class="spec"><thead><tr><th>Volume</th><th>Levels</th><th>Most it multiplies</th><th>Aiming, Reloading, Long Blade</th></tr></thead><tbody>
       ${DATA.books.map(b => `<tr><td>${b.vol}</td><td>${b.lo} to ${b.hi}</td><td>x${b.m}</td><td>x${b.m2}</td></tr>`).join("")}</tbody></table>
-      <div class="box"><div class="bh">Reading part of a book</div><p class="bk">Each tenth of a book read gives a tenth of its multiplier. A book read to the end gives all of it.</p></div>
-      <div class="box"><div class="bh">Which skills</div><p class="bk">Twenty-one skills use the middle column. Aiming, Reloading and Long Blade use the right one.</p></div>`
-      : `<p class="bk"><i>Where this topic has rules the game keeps in numbers, they print here.</i></p>`}
-      <div class="foot"><span></span><span id="bnext">Next &#9654;</span></div>
+      <div class="sub">Reading part of a book</div>
+      <p class="bd first">Each tenth of a book read gives a tenth of its multiplier. Put it down halfway and you keep half the boost; read it to the end and you have all of it.</p>
+      <div class="side"><div class="sub">Which skills</div><p class="bd first">Twenty-one skills use the middle column. Aiming, Reloading and Long Blade use the right one.</p></div>`
+      : `<p class="bd first" style="margin-top:12px"><i>Where this topic has rules the game keeps in numbers, they print here.</i></p>`}
+      <div class="folio"><span class="nav" id="bnext">next page &#9654;</span><span>${esc(r.s.title)} &nbsp; ${181 + i * 2}</span></div>
       <div class="tabs">${tabs}</div>
     </div>
   </div>`;
