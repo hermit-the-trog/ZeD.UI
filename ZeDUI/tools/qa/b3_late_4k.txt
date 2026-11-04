@@ -1,0 +1,9 @@
+# ZeDUI/tools/qa/b3_late_4k.txt  (Nov 4 2026): print media, pins, the book with fillers at 4K (release_check.ps1 -Manifest this)
+zedqa_prelude.lua | pre | timeout=120
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_print_compare.lua | prc | timeout=180
+zedqa_pins.lua | pin | timeout=180
+gallery_t14_look.lua | g14l | timeout=60
+zedqa_book83_atoms.lua | b8a | timeout=900
+zedqa_book83.lua | b83 | timeout=900
+gallery_t14_end.lua | g14e | timeout=60
