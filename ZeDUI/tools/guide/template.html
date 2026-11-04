@@ -1,21 +1,21 @@
 <title>ZeD Survival Guide</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans+Condensed:wght@400;500;600&family=Caveat:wght@500;700&family=Charis+SIL:ital,wght@0,400;0,700;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans+Condensed:wght@400;500;600&family=Charis+SIL:ital,wght@0,400;0,700;1,400&display=swap">
 <style>
 /* Survival guide (F1), mockup v1, Nov 3 2026. One topic (Character > Skill Books) in both looks:
    Simple = a ZeD window (the split layout of the Crafting, Vehicle and Cooking tabs),
-   Full = the ZNIX manual (the gallery book's pages). Text, topics and numbers are the game's own
+   Full = a printed manual, new from the bookstore, no marks (v2, from the director's review of v1). Text, topics and numbers are the game's own
    (SurvivalGuide.json EN, XPSystem_SkillBook.lua, literature.txt, ISReadABook.lua; 42.22). */
 :root {
   color-scheme: dark;
   --mono:'Fira Mono',ui-monospace,Consolas,monospace; --cond:'Fira Sans Condensed','Arial Narrow',sans-serif;
-  --hand:'Caveat','Segoe Print',cursive; --serif:'Charis SIL',Charter,Georgia,serif;
+  --serif:'Charis SIL',Charter,Georgia,serif;
   --desk:#0b0a08; --b:#0c0c0c; --s1:#131313; --s2:#1a1a1a; --s3:#222; --s4:#2a2a2a; --bd:#2a2a2a; --bs:#3a3a3a;
   --ac:#d4922a; --acb:#e8a830; --hov:rgba(212,146,42,.22); --sel:rgba(212,146,42,.55);
   --tx:rgba(214,214,212,.9); --ts:rgba(150,150,150,.75); --tf:rgba(120,120,120,.65); --th:rgba(222,210,190,.95);
   --pos:#7a9a34;
-  --pg0:#ded6c0; --pg1:#d0c6ae; --pg2:#beb298; --pg3:#a0947c; --ink:#1a181e; --blu:#22327c; --red:#c4342c;
-  --wd1:#2a1f18; --wd2:#36281e; --print:#f1ede2; --tape:rgba(214,198,150,.82); --sticky:#eede76;
+  --ink:#1a181e;
+  --wd1:#2a1f18; --paper:#f3efe4; --spot:#a8321c;
   --note-bg:#14130f; --note-tx:#c4bfb1; --note-hd:#f0ece0; --chip:#d8c070;
 }
 * { box-sizing:border-box; }
@@ -96,42 +96,39 @@ h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:var(--note-
 .help { height:20px; flex:none; display:flex; align-items:center; padding:0 10px; font-family:var(--mono); font-size:10.5px; color:var(--ts); border-top:1px solid var(--bd); background:var(--s1); }
 .key { display:inline-block; font-family:var(--mono); font-size:11px; color:var(--th); border:1px solid var(--bs); border-bottom-width:2px; border-radius:3px; padding:0 5px; background:var(--s3); }
 
-/* ---------------- Full: the ZNIX manual ---------------- */
-.desk { position:absolute; inset:0; background:
-  repeating-linear-gradient(90deg, rgba(0,0,0,.08) 0 3px, transparent 3px 11px), var(--wd1); }
+/* ---------------- Full: the printed manual (a new book, no marks) ---------------- */
+.desk { position:absolute; inset:0; background:repeating-linear-gradient(90deg, rgba(0,0,0,.08) 0 3px, transparent 3px 11px), var(--wd1); }
 .book { position:absolute; left:46px; top:22px; width:1060px; height:656px; display:flex; }
-.page { position:relative; width:530px; height:656px; background:
-  radial-gradient(circle at 1px 1px, rgba(0,0,0,.07) 1px, transparent 1.4px) 0 0/6px 6px, var(--pg0);
-  color:var(--ink); padding:28px 40px 30px; }
-.page.l { box-shadow:inset -18px 0 22px -16px rgba(0,0,0,.45); }
-.page.r { box-shadow:inset 18px 0 22px -16px rgba(0,0,0,.45); }
-.rh { display:flex; align-items:baseline; gap:10px; font-family:var(--mono); font-size:11px; color:#3a3530; border-bottom:1px solid #3a3530; padding-bottom:5px; }
-.rh .pn { font-weight:700; }
-.page.r .rh { justify-content:flex-end; }
-.ch { display:flex; align-items:baseline; gap:12px; margin:18px 0 4px; border-bottom:2px solid var(--ink); padding-bottom:6px; }
-.ch b { font-family:var(--cond); font-weight:600; font-size:34px; }
-.ch span { font-family:var(--cond); font-weight:600; font-size:24px; }
-.page p.bk { font-family:var(--serif); font-size:13.5px; line-height:1.55; margin:9px 0 0; text-align:justify; hyphens:auto; }
-.page h3 { font-family:var(--cond); font-weight:600; font-size:18px; margin:16px 0 2px; }
-.prt { position:absolute; background:var(--print); padding:7px; box-shadow:2px 3px 0 rgba(0,0,0,.25); }
-.prt img { display:block; width:330px; height:165px; filter:grayscale(1) contrast(1.15); }
-.prt .pl { position:absolute; left:14px; bottom:14px; font-family:var(--mono); font-size:10px; color:#fff; background:rgba(0,0,0,.75); padding:2px 6px; }
-.tape { position:absolute; width:74px; height:22px; background:var(--tape); }
-.cap { font-family:var(--serif); font-size:12px; font-style:italic; position:absolute; }
-.cap b { font-style:normal; font-family:var(--cond); font-weight:600; margin-right:8px; }
-.tbl { width:100%; border-collapse:collapse; margin-top:8px; font-family:var(--serif); font-size:13px; color:var(--ink); }
-.tbl th { font-family:var(--cond); font-weight:600; text-align:left; border-bottom:1.5px solid var(--ink); padding:3px 6px 3px 0; font-size:13px; }
-.tbl td { border-bottom:1px solid rgba(26,24,30,.25); padding:3px 6px 3px 0; font-variant-numeric:tabular-nums; }
-.note { font-family:var(--hand); font-size:21px; line-height:1.05; color:var(--blu); position:absolute; }
-.note.red { color:var(--red); }
-.sticky { position:absolute; background:var(--sticky); padding:12px 14px; font-family:var(--hand); font-size:22px; line-height:1.1; color:#2a2a2e; box-shadow:2px 3px 0 rgba(0,0,0,.2); }
-.tabs { position:absolute; right:-28px; top:24px; display:flex; flex-direction:column; gap:2px; }
-.tabx { width:30px; height:28px; background:var(--pg1); border:1px solid var(--pg3); border-left:0; display:flex; align-items:center; justify-content:center;
-  font-family:var(--mono); font-size:8.5px; color:#3a3530; writing-mode:vertical-rl; cursor:pointer; padding:0; }
-.tabx.on { background:var(--pg0); width:34px; font-weight:700; }
-.foot { position:absolute; left:40px; right:40px; bottom:14px; display:flex; justify-content:space-between; font-family:var(--mono); font-size:11px; color:#3a3530; }
+.page { position:relative; width:530px; height:656px; background:var(--paper); color:var(--ink); padding:30px 44px 34px; }
+.page.l { box-shadow:inset -14px 0 18px -14px rgba(0,0,0,.35); }
+.page.r { box-shadow:inset 14px 0 18px -14px rgba(0,0,0,.35); }
+.rh { display:flex; justify-content:space-between; align-items:baseline; font-family:var(--cond); font-weight:600; font-size:10.5px; letter-spacing:1.6px; text-transform:uppercase; color:var(--ink); }
+.rh .pn { font-family:var(--serif); font-weight:700; font-size:12px; letter-spacing:0; }
+.chap { margin-top:22px; font-family:var(--cond); font-weight:600; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--spot); }
+.ch { margin:2px 0 0; font-family:var(--cond); font-weight:600; font-size:30px; line-height:1.05; text-wrap:balance; }
+.chr { height:3px; background:var(--spot); width:64px; margin:8px 0 6px; }
+.page p.bk { font-family:var(--serif); font-size:13.5px; line-height:1.55; margin:8px 0 0; text-align:justify; hyphens:auto; }
+.page h3 { font-family:var(--cond); font-weight:600; font-size:17px; margin:0; }
+.fig { margin-top:14px; border-top:1px solid var(--ink); border-bottom:1px solid var(--ink); padding:8px 0 7px; }
+.fig img { display:block; width:100%; height:auto; aspect-ratio:2/1; object-fit:cover; filter:grayscale(1) contrast(1.1) brightness(1.05); }
+.fig .fc { font-family:var(--serif); font-size:11.5px; margin-top:6px; }
+.fig .fc b { font-family:var(--cond); font-weight:600; color:var(--spot); margin-right:7px; }
+.tbl { width:100%; border-collapse:collapse; margin-top:10px; font-family:var(--serif); font-size:13px; color:var(--ink); }
+.tbl caption { caption-side:top; text-align:left; font-family:var(--serif); font-size:11.5px; padding-bottom:5px; }
+.tbl caption b { font-family:var(--cond); font-weight:600; color:var(--spot); margin-right:7px; }
+.tbl th { font-family:var(--cond); font-weight:600; text-align:left; border-top:1.5px solid var(--ink); border-bottom:1px solid var(--ink); padding:4px 8px 4px 0; font-size:12.5px; }
+.tbl td { border-bottom:1px solid rgba(26,24,30,.18); padding:4px 8px 4px 0; font-variant-numeric:tabular-nums; }
+.tbl tr:last-child td { border-bottom:1.5px solid var(--ink); }
+.box { margin-top:14px; border-left:3px solid var(--spot); padding:2px 0 2px 12px; }
+.box .bh { font-family:var(--cond); font-weight:600; font-size:11px; letter-spacing:1.6px; text-transform:uppercase; color:var(--spot); }
+.box p.bk { margin-top:4px; }
+.tabs { position:absolute; right:0; top:30px; bottom:30px; width:22px; }
+.tabx { position:absolute; right:0; width:22px; height:24px; background:var(--ink); border:0; padding:0; cursor:pointer; color:var(--paper);
+  font-family:var(--cond); font-weight:600; font-size:8px; writing-mode:vertical-rl; letter-spacing:.5px; opacity:.16; }
+.tabx:hover { opacity:.5; }
+.tabx.on { background:var(--spot); opacity:1; width:26px; }
+.foot { position:absolute; left:44px; right:44px; bottom:14px; display:flex; justify-content:space-between; font-family:var(--cond); font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#5a544a; }
 .foot span { cursor:pointer; }
-.src2 { font-family:var(--mono); font-size:9.5px; color:#5a544a; margin-top:6px; }
 
 /* notes under the stage */
 .notes { max-width:1180px; margin-top:22px; display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:22px; }
@@ -141,9 +138,9 @@ h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:var(--note-
 @media (prefers-reduced-motion: reduce) { * { transition:none !important; } }
 </style>
 
-<div class="banner">ZeD-GUI | Survival guide (F1) | mockup v1</div>
+<div class="banner">ZeD-GUI | Survival guide (F1) | mockup v2</div>
 <h1>Survival Guide: both looks on one topic</h1>
-<p class="lede">The game's <b>Skill Books</b> topic in the <b>Simple</b> look (a ZeD window, laid out like the Crafting, Vehicle and Cooking tabs) and the <b>Full</b> look (the ZNIX manual, as in the gallery). The topic list and text are the game's own; the numbers under <b>The rules in numbers</b> are read from the game's files (42.22). Click topics, open and close sections, type in Find, and turn the pages in the book.</p>
+<p class="lede">The game's <b>Skill Books</b> topic in the <b>Simple</b> look (a ZeD window, laid out like the Crafting, Vehicle and Cooking tabs) and the <b>Full</b> look (a printed manual, new from the bookstore, with no marks). The topic list and text are the game's own; the numbers under <b>The rules in numbers</b> are read from the game's files (42.22). Click topics, open and close sections, type in Find, and turn the pages in the book.</p>
 <div class="controls">
   <div class="ctl"><span>Look</span><div class="seg" id="lookSeg"><button data-v="simple" class="on" type="button">Simple: window</button><button data-v="full" type="button">Full: manual</button></div></div>
 </div>
@@ -157,13 +154,13 @@ h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:var(--note-
   </ul></div>
   <div><h2>The two looks</h2><ul>
     <li><b>Simple</b> is the default: list left, topic right, Find and the start-up box in the band, Previous and Next at the right. The controller: D-pad in the list, A opens, RB and LB turn topics, B closes.</li>
-    <li><b>Full</b> is the manual: the topic on the left page with the clip taped in, the rules on the right page, his notes and a sticky. Sections are the thumb tabs on the page edge; LB and RB turn the page.</li>
+    <li><b>Full</b> is a printed manual, new from the bookstore: black and one red ink, the clip as a numbered figure, the rules as a numbered table, the section index printed on the page edge. No marks of any kind. LB and RB turn the page.</li>
     <li>Both read the same pages, so a topic written once shows in both.</li>
   </ul></div>
   <div><h2>For you to look at</h2><ul>
-    <li>Does the Simple window read as one of ZeD's tabs?</li>
-    <li>In the manual, do the handwritten notes help, or should the rules stay printed only?</li>
-    <li>F1 opens on what you are doing: from the Skills tab, this topic.</li>
+        <li>The book's name: The Survival Guide (the game's own words), or a title of its own?</li>
+    <li>Its look: black and one red ink, for a 1993 bookstore manual?</li>
+    <li>F1 opens on what you are doing (agreed): from the Skills tab, this topic.</li>
   </ul></div>
 </div>
 
@@ -231,31 +228,28 @@ function simple() {
 }
 function full() {
   const r = topic(S.sel); const f = flat(); const i = f.findIndex(x => x.t.id === S.sel);
-  const tabs = DATA.sections.map(s => `<button class="tabx ${s.id === r.s.id ? "on" : ""}" type="button" data-tab="${s.id}" title="">${esc(s.short)}</button>`).join("");
+  const ci = DATA.sections.indexOf(r.s) + 1; const ti = r.s.topics.indexOf(r.t) + 1; const num = ci + "." + ti;
+  const n = DATA.sections.length; const span = 592;
+  const tabs = DATA.sections.map((s, k) => `<button class="tabx ${s.id === r.s.id ? "on" : ""}" type="button" data-tab="${s.id}" style="top:${Math.round(k * (span - 24) / (n - 1))}px" aria-label="${esc(s.title)}">${esc(s.short)}</button>`).join("");
   const text = r.t.text ? paras(r.t.text).map(p => `<p class="bk">${p}</p>`).join("") : `<p class="bk"><i>${r.s.zed ? "This page is still to write." : "The section's first page."}</i></p>`;
   const sb = S.sel === "skill_books";
   return `<div class="desk"></div><div class="book">
     <div class="page l">
-      <div class="rh"><span class="pn">${30 + i * 2}</span><span>Bitchin' znix Programs | Doidbros &amp; Buzzlord</span></div>
-      <div class="ch"><b>${esc(r.t.title)}</b></div>
+      <div class="rh"><span class="pn">${180 + i * 2}</span><span>The Survival Guide</span></div>
+      <div class="chap">Chapter ${ci} | ${esc(r.s.title)}</div>
+      <div class="ch">${num} ${esc(r.t.title)}</div><div class="chr"></div>
       ${text}
-      ${r.t.clip ? `<div class="prt" style="left:96px; top:${sb ? 300 : 280}px"><img alt="" src="${CLIP}"><span class="pl">&#9654; Clip</span></div>
-      <div class="tape" style="left:84px; top:${sb ? 290 : 270}px; transform:rotate(-18deg)"></div><div class="tape" style="left:390px; top:${sb ? 292 : 272}px; transform:rotate(14deg)"></div>
-      <div class="cap" style="left:96px; top:${sb ? 488 : 468}px"><b>Clip ${i + 1}</b>${esc(r.t.title)}, played in the guide.</div>` : ""}
-      ${sb ? `<div class="note" style="left:22px; top:528px; width:250px; transform:rotate(-2deg)">The clip still shows the old menus. Redo it with ours.</div>` : ""}
+      ${r.t.clip ? `<div class="fig"><img alt="" src="${CLIP}"><div class="fc"><b>Figure ${num}</b>${esc(r.t.title)}. In the guide, this figure plays as a clip.</div></div>` : ""}
       <div class="foot"><span id="bprev">&#9664; Previous</span><span></span></div>
     </div>
     <div class="page r">
-      <div class="rh"><span>${esc(r.s.title)}</span><span class="pn">${31 + i * 2}</span></div>
-      <h3>The Rules in Numbers</h3>
-      ${sb ? `<p class="bk" style="margin-top:4px">A skill book makes the skill learn faster, but only for its own two levels. Read from the game's files.</p>
-      <table class="tbl"><thead><tr><th>Vol.</th><th>Levels</th><th>Most</th><th>Aiming, Reloading, Long Blade</th></tr></thead><tbody>
+      <div class="rh"><span>${esc(r.s.title)}</span><span class="pn">${181 + i * 2}</span></div>
+      <div class="chap">${num} continued</div><h3 style="margin-top:2px">The Rules in Numbers</h3><div class="chr"></div>
+      ${sb ? `<p class="bk">A skill book makes its skill learn faster, but only across its own two levels.</p>
+      <table class="tbl"><caption><b>Table ${num}</b>Skill book volumes</caption><thead><tr><th>Vol.</th><th>Levels</th><th>Most</th><th>Aiming, Reloading, Long Blade</th></tr></thead><tbody>
       ${DATA.books.map(b => `<tr><td>${b.vol}</td><td>${b.lo} to ${b.hi}</td><td>x${b.m}</td><td>x${b.m2}</td></tr>`).join("")}</tbody></table>
-      <p class="bk">Each tenth of the book read gives a tenth of its multiplier: a book read to the end gives all of it.</p>
-      <div class="src2">XPSystem_SkillBook.lua | literature.txt | ISReadABook.lua | 42.22</div>
-      <div class="note" style="left:250px; top:404px; width:230px; transform:rotate(-3deg)">Read the whole book. Half a book, half the boost.</div>
-      <div class="note red" style="left:44px; top:458px; width:190px; transform:rotate(2deg)">Vol. 1 is no use past level 2!</div>
-      <div class="sticky" style="left:300px; top:500px; width:190px; transform:rotate(2.5deg)">Books first, then the work.</div>`
+      <div class="box"><div class="bh">Reading part of a book</div><p class="bk">Each tenth of a book read gives a tenth of its multiplier. A book read to the end gives all of it.</p></div>
+      <div class="box"><div class="bh">Which skills</div><p class="bk">Twenty-one skills use the middle column. Aiming, Reloading and Long Blade use the right one.</p></div>`
       : `<p class="bk"><i>Where this topic has rules the game keeps in numbers, they print here.</i></p>`}
       <div class="foot"><span></span><span id="bnext">Next &#9654;</span></div>
       <div class="tabs">${tabs}</div>
