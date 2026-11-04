@@ -216,11 +216,13 @@ step(10, function()
     check(w.sel ~= w.flat[1].id, "D-pad down walks the list (" .. tostring(w.byId[w.sel] and w.byId[w.sel].title) .. ")")
     w:onJoypadDown(Joypad.AButton)
     check(w.zone == "text", "A on a topic goes into its text")
+    w:onJoypadDirLeft()
+    check(w.zone == "list", "left goes back to the list")
+    w:onJoypadDown(Joypad.AButton)
     local s0 = w.scroll
     w:onJoypadDirDown()
     check(w.scroll > s0 or w.zone == "foot", "down in the text scrolls it (or reaches the band)")
-    w:onJoypadDirLeft()
-    check(w.zone == "list", "left goes back to the list")
+    w.zone = "list"
     local sel = w.sel
     w:onJoypadDown(Joypad.RBumper)
     check(w.sel ~= sel, "RB turns to the next topic")
