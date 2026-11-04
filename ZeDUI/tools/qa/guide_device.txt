@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/guide_device.txt  (Nov 4 2026): the guide follows the device (zedqa_run.ps1 -Manifest this)
+zedqa_prelude.lua | pre | timeout=120
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_guide_device.lua | gdv | timeout=240
