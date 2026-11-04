@@ -2557,6 +2557,16 @@ item says so.
       - On dark, Essential, Cool and In Progress stay as System 7 drew them, and Hot moves only a little. Personal,
         Project 1 and Project 2 lift to lavender, sage and tan, as they must to read on black.
       - Picture: Screenshots/zqa_mrd_labels_sheet_strong.png.
+    - **QA, Nov 4 2026, ZeD's accent colours as labels (ec4d450c, the director: "we are not System 7"): PASS, 35 / 36
+      at 4K plus 3 / 3 after a restart.** The one FAIL was QA's script still looking for "|cool" in the profile file
+      (fixed). Part B read "teal" back from that file after the restart.
+      - Nine swatch stops in the folder pane and in the separator pane (None and eight colours).
+      - Marks reach 3:1 or more, and separator names 4.5:1 or more, in dark, light and hicon with orange and blue.
+        The worst mark is 4.19:1 (light/orange teal on the band).
+      - Folder red and separator teal both survive a restart.
+      - Small: the teal label is named "PZ Teal" (the accent setting's own name, UI_ZeD_Accent_Teal), while the rest
+        are plain colour names ("Red", "Pink").
+      - Picture: Screenshots/zqa_mrd_labels_sheet_accents.png.
 
 ## Test process
 

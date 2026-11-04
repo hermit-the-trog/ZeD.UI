@@ -1,6 +1,6 @@
 -- ZeDUI/tools/qa/zedqa_mods_read2.lua  (Nov 4 2026, QA; Build's 133c0dc4) MAIN MENU ONLY, part B after a restart.
--- Part A (zedqa_mods_read.lua) left: tab=off, hideInc=1, folder 2 labelled "hot", the main menu list's
--- separator labelled "cool". Checks each came back after the game restarted, then puts back the files
+-- Part A (zedqa_mods_read.lua) left: tab=off, hideInc=1, folder 2 labelled "red", the main menu list's
+-- separator labelled "teal". Checks each came back after the game restarted, then puts back the files
 -- part A kept (Lua/ZeDQA_keep_*.txt). grep "ZEDQA mrd2".
 local MM = ZeD.MainMenu
 local O = ZeD.ModOrder
@@ -26,12 +26,12 @@ local function writeRaw(name, s) local w = getFileWriter(name, true, false); if 
 at(2, function()
     local ui = UIManager.getUI()
     for i = 0, ui:size() - 1 do local e = ui:get(i); if e:getClass():getSimpleName() == "UIDebugConsole" then e:setVisible(false) end end
-    check(F.labelOf("2") == "hot", "after a restart folder 2 still has its label (" .. tostring(F.labelOf("2")) .. ")")
+    check(F.labelOf("2") == "red", "after a restart folder 2 still has its label (" .. tostring(F.labelOf("2")) .. ")")
     O.load()
     local e = O.entry("@list main menu")
     local lab
     for _, sp in ipairs(e and e.seps or {}) do if sp.name == "QA Label" then lab = sp.label end end
-    check(lab == "cool", "after a restart the separator still has its label (" .. tostring(lab) .. ")")
+    check(lab == "teal", "after a restart the separator still has its label (" .. tostring(lab) .. ")")
     MM.openMods()
 end)
 at(40, function()

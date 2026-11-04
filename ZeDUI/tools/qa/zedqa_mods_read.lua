@@ -11,10 +11,10 @@
 --      falls back to All, no folders, the pane's About only; Full again after
 --   6. folder labels (on the test folders file, Lua/ZeDQA_ModFolders.cfg): set, None, the pane's eight swatch
 --      stops; the folders file byte for byte the same after labelling; the player's ModFolders.cfg untouched
---   7. separator labels in the load order: set, Undo takes it back, set again, Done writes "|cool" into
+--   7. separator labels in the load order: set, Undo takes it back, set again, Done writes "|teal" into
 --      ZeD_modprofiles.txt
--- Leaves for part B: tab=off and hideInc=1 (ZeD_modsview.txt), folder "2" labelled "hot", the list's
--- separator labelled "cool". Keeps the originals in Lua/ZeDQA_keep_*.txt for part B to put back.
+-- Leaves for part B: tab=off and hideInc=1 (ZeD_modsview.txt), folder "2" labelled "red", the list's
+-- separator labelled "teal". Keeps the originals in Lua/ZeDQA_keep_*.txt for part B to put back.
 -- Run: zedqa_menu_mods_run.ps1 -ModList compat_r4_mods.txt -Script zedqa_mods_read.lua -Tag mrd
 local MM = ZeD.MainMenu
 local O = ZeD.ModOrder
@@ -243,19 +243,19 @@ at(540, function()
     writeRaw(TESTF, SAMPLE)
     F.load()
     local cfg0 = readRaw(TESTF)
-    F.setLabel(2, "hot")
-    F.setLabel(3, "cool")
+    F.setLabel(2, "red")
+    F.setLabel(3, "teal")
     F.setLabel(3, nil)
-    check(F.labelOf(2) == "hot" and F.labelOf(3) == nil, "a folder takes a label; None takes it off")
+    check(F.labelOf(2) == "red" and F.labelOf(3) == nil, "a folder takes a label; None takes it off")
     check(readRaw(TESTF) == SAMPLE, "the folders file reads back exactly as the sample (ZeD never rewrote it)")
     check(readRaw(TESTF) == cfg0, "the folders file is byte for byte the same after labelling")
     local ui = readRaw("ZeD_modfolders.txt") or ""
-    check(ui:find("label=2|hot", 1, true) ~= nil and not ui:find("label=3|", 1, true), "labels are kept in ZeD's own file (ZeD_modfolders.txt)")
+    check(ui:find("label=2|red", 1, true) ~= nil and not ui:find("label=3|", 1, true), "labels are kept in ZeD's own file (ZeD_modfolders.txt)")
     w.filter = "all"; w.fsel = 2; w.sel = nil; w.scroll = 0; w:dirty()
 end)
 at(570, function()
     local w = W()
-    check(specIds(w, "flabel:") == 8, "the folder pane's swatch row has eight pad stops (None and the seven) (" .. specIds(w, "flabel:") .. ")")
+    check(specIds(w, "flabel:") == #ZeD.LABELS + 1, "the folder pane's swatch row has a pad stop for None and each colour (" .. specIds(w, "flabel:") .. ")")
     shot("6_folder_label")
 end)
 
@@ -273,16 +273,16 @@ at(580, function()
     w.oSel = mid
     w:sepNew("QA Label")
     keep.sep = w.oSepSel
-    w:sepSetLabel(keep.sep, "cool")
-    check(w:sepGet(keep.sep).label == "cool", "a separator takes a label")
+    w:sepSetLabel(keep.sep, "teal")
+    check(w:sepGet(keep.sep).label == "teal", "a separator takes a label")
     w:orderUndo()
     check(w:sepGet(keep.sep) and w:sepGet(keep.sep).label == nil, "Undo takes the label back")
-    w:sepSetLabel(keep.sep, "cool")
+    w:sepSetLabel(keep.sep, "teal")
 end)
 at(610, function()
     local w = W()
     if keep.sep then
-        check(specIds(w, "slabel:") == 8 or true, "separator pane swatch stops: " .. specIds(w, "slabel:"))
+        check(specIds(w, "slabel:") == #ZeD.LABELS + 1, "the separator pane has a pad stop for None and each colour: " .. specIds(w, "slabel:"))
         shot("7_separator_label")
     end
 end)
@@ -291,10 +291,10 @@ at(620, function()
     if not keep.sep then return end
     w:orderDone()
     local raw = readRaw("ZeD_modprofiles.txt") or ""
-    check(raw:find("|cool\n", 1, true) ~= nil, "Done writes the label on the separator's line in ZeD_modprofiles.txt")
+    check(raw:find("|teal\n", 1, true) ~= nil, "Done writes the label on the separator's line in ZeD_modprofiles.txt")
 end)
 
--- leave the state for part B: Off, Hide incompatible, folder 2 "hot", the separator "cool"
+-- leave the state for part B: Off, Hide incompatible, folder 2 "red", the separator "teal"
 at(640, function()
     local w = W()
     w.filter = "off"; w.hideInc = true; w:dirty()
