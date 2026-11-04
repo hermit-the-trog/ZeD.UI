@@ -56,17 +56,43 @@ the Vehicle tab's sections do), the clip and its text on the right, the band at 
 
 ## What else (for new players and old hands)
 
-Candidates; the research thread (director, Nov 3) feeds the list. Nothing here changes the game's rules or shows
-what the game keeps hidden.
-- **ZeD's own section:** each window and tab, how it works, cut down from the gallery book's chapters.
-- **F1 opens on where you are:** pressed in the Vehicle tab it opens Vehicles, in Cooking it opens Cooking.
-- **Your controls:** your keys and the controller map as they are set now, in the guide.
-- **First days:** a short path for a new character (water, food, a weapon, a safe place, light, sleep).
-- **Reference read from the game:** what each skill book and magazine teaches, what each skill level opens, the
-  recipes by station. The game's own data, so updates and mods show up.
-- **What's new in ZeD:** the change note of the build you are running.
+The director's research thread (Nov 3 2026, pasted into the build session) ranked what new players get stuck on
+and what experienced players leave the game to look up. Its main finding: the gap is **numbers the game keeps
+hidden**, not the basics the game's guide already covers. Top of each list:
+- **New players:** the Knox infection (a wound's "Infected" is not the zombie infection; a scratch can kill), fighting
+  groups in the open, sprinting into exhaustion and strain, noise (guns, alarms), the unannounced water shutoff,
+  wound care, moodles, curtains and windows, looting by instinct, weapons and bags, car keys and hotwiring, the
+  helicopter, Build 41 habits that no longer work, food and water, reading and TV.
+- **Old hands:** the map, skill XP and book multipliers, recipe magazines, trait and occupation costs, weapon stats,
+  infection timing, sandbox defaults, the helicopter, moodle thresholds, foraging, farming, smithing stations,
+  animals, vehicles and generators, carpentry.
+
+### The line: the game's rules, never your world's secrets
+
+ZeD's rule is to say the game's rules out loud but never reveal what it keeps from you. The research makes that line
+the main design question. Build's proposal:
+- **Yes, the rules, as plain numbers:** the infection odds by wound, what each skill book multiplies, the XP each
+  level takes, the moodle steps, the hotwire levels, the shutoff and helicopter windows **as sandbox ranges**. They
+  apply to everyone, every vet knows them, and new players lose characters for not knowing them.
+- **Never your world's or your character's secrets:** whether you are infected, the day your water goes off, the
+  helicopter's day, where loot or keys are, the map beyond what you have seen, what a magazine teaches before you
+  read it.
+- **Read from the game, not from fan sites:** every number the guide shows is read from the installed game's own
+  files or this world's sandbox settings, so it is right for this version and these settings, and a game update
+  changes it with no work. Where a number cannot be read that way, it is left out.
+
+### Proposed sections beyond the game's own
+
+1. **ZeD:** each window and tab, cut down from the gallery book.
+2. **The rules in numbers** (one page per game section, beside its topics): infection, moodles, skills and books,
+   hotwiring, shutoffs and the helicopter as your sandbox's ranges.
+3. **First days:** a short path for a new character, built from the new-player list (water early, walk don't run,
+   curtains, fight at doors and fences, a bag and a weapon first, the infection explained).
+4. **Build 41 habits:** what changed in Build 42 (traits, carpentry, crafting, magazines, weapon wear), for players
+   coming back.
+5. **F1 opens on where you are**, **your controls**, **what's new in ZeD** (as before).
 
 ## Open questions
 
-1. **RAD Video Tools:** OK to put the maker's free Bink encoder on this PC for the new clips?
-2. **What else:** which of the candidates above, after the research?
+1. **The line:** the game's rules as numbers yes, your world's secrets never (as above)?
+2. **The sections:** all five above, or which?
