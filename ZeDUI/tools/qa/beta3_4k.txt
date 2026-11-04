@@ -1,0 +1,11 @@
+# ZeDUI/tools/qa/beta3_4k.txt  (Nov 4 2026): beta 3 features at 4K (release_check.ps1 -Manifest this)
+zedqa_prelude.lua | pre | timeout=120
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_hint_strip.lua | hst | timeout=240
+zedqa_pins.lua | pin | timeout=180
+zedqa_halo_notes.lua | hln | timeout=180
+gallery_t14_look.lua | g14l | timeout=60
+zedqa_guide_device.lua | gdv | timeout=240
+zedqa_book83_atoms.lua | b8a | timeout=900
+zedqa_book83.lua | b83 | timeout=900
+gallery_t14_end.lua | g14e | timeout=60
