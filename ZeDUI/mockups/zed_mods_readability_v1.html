@@ -223,13 +223,13 @@ const MODS = [
 // System 7's Finder had seven labels; these are its colours, lifted to read on ZeD's dark grounds
 const LABELS = [
   { k:"none", name:"None" },
-  { k:"orange", name:"Orange", c:"#e8873a" },
-  { k:"red", name:"Red", c:"#e0584a" },
-  { k:"pink", name:"Pink", c:"#e070a8" },
-  { k:"teal", name:"Teal", c:"#3fb8c8" },
-  { k:"blue", name:"Blue", c:"#6f9be8" },
-  { k:"green", name:"Green", c:"#79b048" },
-  { k:"brown", name:"Brown", c:"#b48a58" },
+  { k:"orange", name:"Essential", c:"#e8873a" },
+  { k:"red", name:"Hot", c:"#e0584a" },
+  { k:"pink", name:"In Progress", c:"#e070a8" },
+  { k:"teal", name:"Cool", c:"#3fb8c8" },
+  { k:"blue", name:"Personal", c:"#6f9be8" },
+  { k:"green", name:"Project 1", c:"#79b048" },
+  { k:"brown", name:"Project 2", c:"#b48a58" },
 ];
 const FOLDERS = { Interface:"blue", Loot:"orange", Vehicles:"none", Comms:"teal", Maps:"green" };
 const SEPS = [ { n:"Libraries", lab:"red" }, { n:"Comms", lab:"teal" }, { n:"Maps", lab:"green" } ];
@@ -348,7 +348,7 @@ function sceneOrder() {
 const CAPS = {
   full: "<b>Full list.</b> On rows sit on the dark band with bright names; off rows show the list's ground with dimmed names and icons. The chosen row keeps the accent. Try Off, and Hide incompatible (three of these mods can't run).",
   simple: "<b>Simple list</b> (ZeD setup: Mods, Simple). One line a mod: the box, the name, a red mark when something is wrong. Tabs: All, On, Off, Problems. The pane shows About only.",
-  folders: "<b>Folders with labels.</b> Interface is Blue, Loot Orange, Comms Teal, Maps Green, Vehicles has none. The picture carries the colour; the row and its edge stay as they are. Choose a folder and pick a swatch.",
+  folders: "<b>Folders with labels.</b> System 7's Finder labels (the director): Interface is Personal, Loot Essential, Comms Cool, Maps Project 1, Vehicles has none. The picture carries the colour; the row and its edge stay as they are. Choose a folder and pick a swatch.",
   order: "<b>Load order with labels.</b> A separator's name and rule take its label colour. Choose a separator and pick a swatch.",
 };
 
