@@ -4526,5 +4526,6 @@
     "UI_ZeD_Guide_Ad1_Price": "Csak $4.95 darabja",
     "UI_ZeD_Guide_Ad1_Coupon": "Jelölje meg a kívánt címeket, és küldje be ezt az oldalt a következő címre: Túlélési Vészhelyzeti Kiadványok Osztálya, Muldraugh, Kentucky. A szállítás hat hétig tart.",
     "UI_ZeD_Guide_Ad1_Name": "Név",
-    "UI_ZeD_Guide_Ad1_Address": "Cím"
+    "UI_ZeD_Guide_Ad1_Address": "Cím",
+    "UI_ZeD_Guide_Notes": "Jegyzetek"
 }

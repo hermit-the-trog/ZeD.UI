@@ -4527,5 +4527,6 @@
     "UI_ZeD_Guide_Ad1_Price": "每本仅售 $4.95",
     "UI_ZeD_Guide_Ad1_Coupon": "请勾选所需书目，并将此页寄至 Muldraugh, Kentucky 求生应急出版部。请预留六周送达时间。",
     "UI_ZeD_Guide_Ad1_Name": "姓名",
-    "UI_ZeD_Guide_Ad1_Address": "地址"
+    "UI_ZeD_Guide_Ad1_Address": "地址",
+    "UI_ZeD_Guide_Notes": "笔记"
 }
