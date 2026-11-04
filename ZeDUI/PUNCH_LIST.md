@@ -2481,6 +2481,12 @@ item says so.
       spread whole spaces, so some gaps look doubled. Not run: Russian and Japanese. The director's pictures:
       Zomboid/Screenshots/guide_book_director/ (title, contents and introduction, a chapter opener, Skill Books and its
       rules).
+    - **QA, Nov 4 2026, the flow pages and translations (5c4a44a0, d085a6fc, 9e0089b5): PASS.** 4K 46/46: 62 pages,
+      26 shared by two or more topics, 1 run-on; 15 chapter openers' clips full width, 66 topic clips two-thirds,
+      centred (the director: QA found no page was ever shared with full-width clips). Deck Large 46/46: 74 pages, 18
+      shared, 4 run-ons, the pause box hidden. Russian and Spanish open the book fully translated (title, introduction,
+      rules; names kept); Japanese opens the window translated. Thai: no line past the measure in 81 topics. Japanese
+      line breaking (a full stop started a line) fixed in d085a6fc; QA's kinsoku check running.
 
 ## Test process
 
