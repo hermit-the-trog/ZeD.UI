@@ -119,3 +119,9 @@ rules, two justified columns with indents and a drop cap, the clip as a boxed ha
 grey-tint bars in heavy display caps, spec tables in a tinted box, cream newsprint, navy-black ink, folios at the foot.
 Open: the book's name; whether each topic gets a deck line. The PDF renders here with Windows' own PDF engine
 (scratchpad render.ps1, Windows.Data.Pdf from Windows PowerShell 5.1).
+
+Second reference (Nov 3 2026): the same magazine's January 1990 issue (a zip of page scans in Downloads; also kept out
+of the repo). Mockup v4 (same link) adds what it shows: a byline line ("Staff Report") between rules under the deck,
+the drop cap followed by the first word in capitals, bold run-in subheads ("Reading Part of a Book -- ..."), and
+charts in a ruled box with a bold caption centred inside at the foot. Its how-to pages (snares) use labelled line
+drawings in the same ruled box: the model for any diagram the guide needs.
