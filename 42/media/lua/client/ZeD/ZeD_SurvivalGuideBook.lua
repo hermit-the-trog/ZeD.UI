@@ -230,7 +230,12 @@ end
 -- ---------------------------------------------------------------------------
 -- the section's own words for its chapter opener and the contents (keys by the game's section title key)
 local function stemOf(titleKey) return tostring(titleKey):match("^SurvivalGuide_(.-)_title$") or tostring(titleKey) end
-local function blurb(s) local k = "UI_ZeD_Guide_Blurb_" .. stemOf(s.titleKey); local t = tr(k); return t ~= k and t or "" end
+local function blurb(s)
+    -- (ZeD's own chapters carry their blurb's key)
+    local k = s.blurbKey or ("UI_ZeD_Guide_Blurb_" .. stemOf(s.titleKey))
+    local t = tr(k)
+    return t ~= k and t or ""
+end
 -- (one capture: Kahlua hands an empty capture to the function as nil, so "a" would break a two-capture form)
 local function titleCase(s) return (s:gsub("%w[%w']*", function(w) return upper(w:sub(1, 1)) .. w:sub(2) end)) end
 
@@ -303,14 +308,40 @@ function B.paginate(bk, u)
         local ways = ZeD.Guide.twoWays and ZeD.Guide.twoWays(t)
         if ways then
             local rowH = px(U.TEXT) * 1.45
-            local need = px(U.TEXT) * 1.2 + px(U.CAP) * 1.6 + #ways * rowH + px(6)
+            -- (rows of words, ZeD's pages: each side wrapped in its half; the rest one line)
+            local half = textW_ / 2 - px(8)
+            local lines = {}
+            for i, r in ipairs(ways) do
+                if r.kbText then
+                    local a = wrapWords(wordsOf(r.kbText), F.text, px(U.TEXT), function() return half end, 1, 0)
+                    local b = wrapWords(wordsOf(r.padText), F.text, px(U.TEXT), function() return half end, 1, 0)
+                    lines[i] = { a = a, b = b, n = math.max(#a, #b, 1) }
+                else
+                    lines[i] = { n = 1 }
+                end
+            end
+            local function rowsH(from)
+                local h = 0
+                for i = from, #ways do h = h + lines[i].n * rowH end
+                return h
+            end
+            local need = px(U.TEXT) * 1.2 + px(U.CAP) * 1.6 + math.min(rowsH(1), rowH * 4) + px(6)
             if y + need > bottom then newPage(si, s, false) end
             y = y + px(U.TEXT) * 1.2 + px(U.CAP)
-            add({ k = "waysHead", y = y })
+            local texty = ways[1] and ways[1].kbText ~= nil
+            add({ k = "waysHead", y = y, texty = texty })
             y = y + px(U.CAP) * 0.6
-            for _, r in ipairs(ways) do
+            for i, r in ipairs(ways) do
+                local n = lines[i].n
+                if y + n * rowH > bottom then
+                    newPage(si, s, false)
+                    y = y + px(U.CAP)
+                    add({ k = "waysHead", y = y, texty = texty })
+                    y = y + px(U.CAP) * 0.6
+                end
                 y = y + rowH
-                add({ k = "waysRow", y = y, row = r })
+                add({ k = "waysRow", y = y, row = r, a = lines[i].a, b = lines[i].b, rowH = rowH })
+                y = y + (n - 1) * rowH
             end
             y = y + px(6)
         end
@@ -506,9 +537,16 @@ function ZeD_GuideBook:drawFlowPage(p, x, y, w, u)
         elseif k == "waysHead" then
             -- (three columns: what, mouse and keyboard, controller; a rule under the heads)
             local c2, c3 = tx + math.floor(tw_ / 3), tx + math.floor(tw_ * 2 / 3)
+            if it.texty then c2, c3 = tx, tx + math.floor(tw_ / 2) end
             drawAt(self, F.sansB, ZeD.tr("UI_ZeD_Guide_WaysKB"), c2, y + it.y, U.CAP * u, INK)
             drawAt(self, F.sansB, ZeD.tr("UI_ZeD_Guide_WaysPad"), c3, y + it.y, U.CAP * u, INK)
             self:drawRect(tx, y + it.y + math.floor(U.CAP * u * 0.35), tw_, math.max(1, math.floor(u)), 1, INK.r, INK.g, INK.b)
+        elseif k == "waysRow" and it.a then
+            -- (words on both sides, each wrapped in its half)
+            for c, lines in ipairs({ it.a, it.b }) do
+                local lx = (c == 1) and tx or (tx + math.floor(tw_ / 2))
+                for li, l in ipairs(lines) do drawLine(self, F.text, U.TEXT * u, l, lx, y + it.y + (li - 1) * it.rowH, INK) end
+            end
         elseif k == "waysRow" then
             local r = it.row
             local c2, c3 = tx + math.floor(tw_ / 3), tx + math.floor(tw_ * 2 / 3)

@@ -191,7 +191,35 @@ local function isInput(k)
     k = tostring(k)
     return not k:find("<IMAGE", 1, true)
 end
+local function zedWays(t)
+    local td = t.zed
+    local rows = {}
+    -- (a page's own rows: words on both sides)
+    for _, r in ipairs(td.ways or {}) do
+        rows[#rows + 1] = { kbText = W.fillTokens(tr(r[1])), padText = W.fillTokens(tr(r[2])) }
+    end
+    -- (the game topics' own rows, for the game's actions)
+    for _, tk in ipairs(td.waysFrom or {}) do
+        local gt = W._byTitle and W._byTitle[tk]
+        for _, r in ipairs((gt and W.twoWays(gt)) or {}) do rows[#rows + 1] = r end
+    end
+    -- (every key binding, as set now)
+    if td.keys and keyBinding then
+        for _, b in ipairs(keyBinding) do
+            local v = b.value and tostring(b.value) or ""
+            if v ~= "" and not v:find("^%[") then
+                local ok, code = pcall(function() return getCore():getKey(v) end)
+                if ok and code and code ~= 0 then
+                    rows[#rows + 1] = { label = getTextOrNull("UI_optionscreen_binding_" .. v) or v, kb = { inlineTex("key:" .. keyName(code)) }, pad = {} }
+                end
+            end
+        end
+    end
+    return (#rows > 0) and rows or nil
+end
+
 local function twoWays(t)
+    if t and t.zed then return zedWays(t) end
     local e = t and t.entry
     if not e then return nil end
     local ok, kb, jp = pcall(function() return e:getKeys(), e:getJoypadKeys() end)
@@ -372,7 +400,41 @@ local function readTopics(joy)
             end
         end
     end
+    -- ZeD's chapters (ZeD_GuideChapters, made by ZeDUI/tools/guide/chapters.py), after the game's
+    W._byTitle = {}
+    for _, t in ipairs(flat) do W._byTitle[t.titleKey] = t end
+    for _, ch in ipairs(ZeD.GuideChapters or {}) do
+        local sec = { id = "zedch:" .. ch.id, title = tr(ch.title), titleKey = ch.title, blurbKey = ch.blurb, topics = {}, zed = true }
+        sections[#sections + 1] = sec
+        for _, td in ipairs(ch.topics or {}) do
+            local id = sec.id .. ":" .. td.id
+            local t = { id = id, section = sec, title = tr(td.title), titleKey = td.title, text = W.fillTokens(tr(td.text)), zed = td }
+            sec.topics[#sec.topics + 1] = t
+            byId[id] = t
+            flat[#flat + 1] = t
+        end
+    end
     return sections, byId, flat
+end
+
+-- the tokens of ZeD's chapters as the markers the layout draws: {bind:KEYBIND_ID} {key:Binding id} {pad:A}
+-- {mouse:0} {lit:Esc} (ZeDUI/tools/guide/chapters.py)
+function W.fillTokens(s)
+    s = tostring(s or "")
+    return (s:gsub("{(%a+):([^}]+)}", function(kind, v)
+        kind, v = tostring(kind or ""), tostring(v or "")
+        if kind == "pad" then return MARK .. "pad:" .. v .. MARK end
+        if kind == "lit" then return MARK .. "key:" .. v .. MARK end
+        if kind == "mouse" then return MARK .. "key:" .. getText("IGUI_mouse_btn_" .. v) .. MARK end
+        local id = v
+        if kind == "bind" then
+            local ok, r = pcall(function() return KeybindId[v]:getId() end)
+            id = ok and r or v
+        end
+        local ok, code = pcall(function() return getCore():getKey(id) end)
+        if ok and code and code ~= 0 then return MARK .. "key:" .. keyName(code) .. MARK end
+        return ""
+    end))
 end
 
 -- ---------------------------------------------------------------------------
@@ -611,10 +673,21 @@ function ZeD_GuideWindow:buildTopic(g, cx, cw)
         ry = ry + fh(T.fontF1) + px(4)
         box.ruleY = ry
         ry = ry + px(6)
+        -- (rows of words, ZeD's pages: two halves, each wrapped)
+        local half = math.floor(inner / 2)
+        box.halfX = { cx + pad, cx + pad + half }
         for _, r in ipairs(ways) do
-            local lab = r.label and A.truncateText(r.label, T.fontF2, colW - px(6)) or ""
-            box.rows[#box.rows + 1] = { y = ry, label = lab, kb = r.kb, pad = r.pad }
-            ry = ry + s + px(6)
+            if r.kbText then
+                local kl = wrapRuns(r.kbText, T.fontF2, half - px(10))
+                local pl = wrapRuns(r.padText, T.fontF2, half - px(10))
+                box.rows[#box.rows + 1] = { y = ry, kbLines = kl, padLines = pl }
+                box.texty = true
+                ry = ry + math.max(#kl, #pl, 1) * (s + px(3)) + px(5)
+            else
+                local lab = r.label and A.truncateText(r.label, T.fontF2, colW - px(6)) or ""
+                box.rows[#box.rows + 1] = { y = ry, label = lab, kb = r.kb, pad = r.pad }
+                ry = ry + s + px(6)
+            end
         end
         box.h = ry - y + pad - px(6)
         items[#items + 1] = box
@@ -958,12 +1031,27 @@ function ZeD_GuideWindow:prerender()
         elseif it.kind == "ways" then
             local by = it.y + oy
             A.frame(self, it.x, by, it.w, it.h, T.border)
-            self:drawText(it.heads[1], it.colX[2], it.headY + oy, td.r, td.g, td.b, td.a or 1, T.fontF1)
-            self:drawText(it.heads[2], it.colX[3], it.headY + oy, td.r, td.g, td.b, td.a or 1, T.fontF1)
+            local hx1, hx2 = it.colX[2], it.colX[3]
+            if it.texty then hx1, hx2 = it.halfX[1], it.halfX[2] end
+            self:drawText(it.heads[1], hx1, it.headY + oy, td.r, td.g, td.b, td.a or 1, T.fontF1)
+            self:drawText(it.heads[2], hx2, it.headY + oy, td.r, td.g, td.b, td.a or 1, T.fontF1)
             A.drawDividerH(self, it.x + px(U.RULES_PAD), it.ruleY + oy, it.w - px(U.RULES_PAD) * 2, false)
             for _, r in ipairs(it.rows) do
                 local ry = r.y + oy
-                if ry + it.s >= ta.y and ry <= ta.y + ta.h then
+                if r.kbLines then
+                    for c, lines in ipairs({ r.kbLines, r.padLines }) do
+                        local lx = it.halfX[c]
+                        for li, runs in ipairs(lines) do
+                            local ly = ry + (li - 1) * (it.s + px(3))
+                            if ly + it.s >= ta.y and ly <= ta.y + ta.h then
+                                for _, run in ipairs(runs) do
+                                    if run.tex then inlineDraw(self, run.tex, lx + run.x, ly, run.s, tc)
+                                    else self:drawText(run.text, lx + run.x, ly, tc.r, tc.g, tc.b, tc.a or 1, T.fontF2) end
+                                end
+                            end
+                        end
+                    end
+                elseif ry + it.s >= ta.y and ry <= ta.y + ta.h then
                     if r.label ~= "" then self:drawText(r.label, it.colX[1], ry, tc.r, tc.g, tc.b, tc.a or 1, T.fontF2) end
                     for c, list in ipairs({ r.kb, r.pad }) do
                         local xx = it.colX[c + 1]
