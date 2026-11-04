@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/book83_lang.txt  (Nov 3 2026): punch list 83 in another language (lang_run.ps1 -Manifest this): the book or the window
+zedqa_prelude.lua | pre | timeout=120
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_book83_lang.lua | b8l | timeout=300
