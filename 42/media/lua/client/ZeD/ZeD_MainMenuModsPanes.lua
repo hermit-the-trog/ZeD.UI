@@ -83,8 +83,28 @@ function ZeD_MMMods:drawDetailTabs(d, x, w, cy, vy, vh)
     self.dtab = self.dtab or "about"
     -- (the Simple view: About only, no tabs)
     if self:simple() then self.dtab = "about"; return cy end
-    for i, t in ipairs(self:detailTabs(d)) do
-        local text = t.count and ZeD.tr("UI_ZeD_Mods_DTabCount", t.label, t.count) or t.label
+    -- the tabs fit the pane (QA Nov 4 2026, the Deck at Large text: Conflicts was cut): tighter padding, then gaps
+    local list = self:detailTabs(d)
+    local padX, gap = T.sp.tabPadX, T.sp.tabGap
+    local texts, need = {}, 0
+    for i, t in ipairs(list) do
+        texts[i] = t.count and ZeD.tr("UI_ZeD_Mods_DTabCount", t.label, t.count) or t.label
+        need = need + MM.textW(T.fontF2, ZeD.textCase(texts[i])) + padX * 2 + gap
+    end
+    local avail, n = w - pad * 2, #list
+    if need > avail and n > 0 then
+        local over = need - avail
+        local cutPad = math.min(padX - T.px(3), math.ceil(over / (2 * n)))
+        if cutPad > 0 then padX = padX - cutPad; over = over - cutPad * 2 * n end
+        if over > 0 then gap = gap - math.min(gap, math.ceil(over / n)) end
+    end
+    local tabOpts = self._dTabOpts
+    if not tabOpts then tabOpts = {}; self._dTabOpts = tabOpts end
+    tabOpts.padX = padX
+    local focOpts = self._dTabFoc
+    if not focOpts then focOpts = {}; self._dTabFoc = focOpts end
+    for i, t in ipairs(list) do
+        local text = texts[i]
         local hid = "mods:dtab:" .. t.id
         local hot = MM.ctx.hot == hid
         local sid = "dtab:" .. t.id
@@ -92,10 +112,11 @@ function ZeD_MMMods:drawDetailTabs(d, x, w, cy, vy, vh)
         -- half-scrolled one never leaves a hole above it)
         local tw
         if cy >= vy and cy + th <= vy + vh then
-            tw = ZeD.Molecules.drawTab(self, tx, cy, text, self.dtab == t.id, hot, t.none and self.dtab ~= t.id,
-                (gp and self.focusId == sid) and { focus = MM.focusOpts() } or nil)
+            local o = tabOpts
+            if gp and self.focusId == sid then focOpts.padX, focOpts.focus = padX, MM.focusOpts(); o = focOpts end
+            tw = ZeD.Molecules.drawTab(self, tx, cy, text, self.dtab == t.id, hot, t.none and self.dtab ~= t.id, o)
         else
-            tw = MM.textW(T.fontF2, ZeD.textCase(text)) + T.sp.tabPadX * 2
+            tw = MM.textW(T.fontF2, ZeD.textCase(text)) + padX * 2
         end
         local pick = function()
             if self.dtab ~= t.id then self.dtab = t.id; self.dscroll = 0; MM.clickSound() end
@@ -106,7 +127,7 @@ function ZeD_MMMods:drawDetailTabs(d, x, w, cy, vy, vh)
         end
         self._specs[#self._specs + 1] = { id = sid, listRow = true, paneStop = true, row = 550, col = i, x = tx, y = cy, w = tw, h = th,
                                           clipTop = vy, clipBot = vy + vh, fn = pick }
-        tx = tx + tw + T.sp.tabGap
+        tx = tx + tw + gap
     end
     ZeD.Atoms.drawDividerH(self, x + T.px(1), cy + th - T.px(1), w - 2 * T.px(1), true)
     return cy + th + T.px(TAB_GAP_Y)

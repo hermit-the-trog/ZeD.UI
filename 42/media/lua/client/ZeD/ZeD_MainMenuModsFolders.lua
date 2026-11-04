@@ -1000,7 +1000,8 @@ end
 -- a right-click on a row of the Mods list: a mod's Move to folder, a folder's own menu
 local _rightClick = ZeD_MMMods.rightClick
 function ZeD_MMMods:rightClick(mx, my)
-    if self.page ~= "list" or self.confirm or self.filter == "ws" then return _rightClick(self, mx, my) end
+    -- (the Simple view has no folders: the plain menu)
+    if self.page ~= "list" or self.confirm or self.filter == "ws" or self:simple() then return _rightClick(self, mx, my) end
     local L = self._list
     local lx, ly = mx - self:getAbsoluteX(), my - self:getAbsoluteY()
     if not (L and lx >= L.x and lx <= L.x + L.w and ly >= L.y and ly <= L.y + L.h) then return false end
