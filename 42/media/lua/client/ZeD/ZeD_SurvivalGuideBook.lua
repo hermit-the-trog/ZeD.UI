@@ -67,9 +67,64 @@ local function spaceW(f, px)
     return _spaces[k] * zoom(f, px)
 end
 -- text with its baseline at y
+-- THE TEXT LAYER. Lua's drawTextZoomed draws a distance-field face without the game's SDF shader, so the game's
+-- faces come out soft with a dark halo (QA, Nov 3 2026, punch list 83). The game's own text atoms (PZAPI's
+-- UI.Text, AtomUIText) draw through that shader, so the book's words are a pool of them, laid over the pages
+-- each frame at screen positions, one for each run of words; the panel draws everything else.
+local LAYER = { root = nil, pool = {}, n = 0, panel = nil }
+local function layerReady()
+    if LAYER.root then return true end
+    if not (PZAPI and PZAPI.UI and PZAPI.UI.Node and PZAPI.UI.Text) then return false end
+    local ok = pcall(function()
+        -- (a one-pixel root: it holds the text atoms and never stands in the pointer's way)
+        local root = PZAPI.UI.Node{ x = 0, y = 0, width = 1, height = 1, alwaysOnTop = true }
+        root:instantiate()
+        LAYER.root = root
+    end)
+    return ok and LAYER.root ~= nil
+end
+function B.layerBegin(panel)
+    LAYER.n = 0
+    LAYER.panel = layerReady() and panel or nil
+    if LAYER.panel and LAYER.root and not LAYER.root.visible then LAYER.root:setVisible(true) end
+end
+local function layerText(font, s, ax, ay, z, c, a)
+    LAYER.n = LAYER.n + 1
+    local node = LAYER.pool[LAYER.n]
+    if not node then
+        node = PZAPI.UI.Text{ font = font, text = s, x = ax, y = ay, scaleX = z, scaleY = z, r = c.r, g = c.g, b = c.b, a = a, width = 1, height = 1 }
+        PZAPI.UI._addChild(LAYER.root, node)
+        LAYER.pool[LAYER.n] = node
+        return
+    end
+    if node.font ~= font then node:setFont(font) end
+    if node.text ~= s then node:setText(s) end
+    if node.x ~= ax then node:setX(ax) end
+    if node.y ~= ay then node:setY(ay) end
+    if node.scaleX ~= z then node:setScaleX(z); node:setScaleY(z) end
+    if node.r ~= c.r or node.g ~= c.g or node.b ~= c.b or node.a ~= a then node:setColor(c.r, c.g, c.b, a) end
+    if not node.visible then node:setVisible(true) end
+end
+function B.layerEnd()
+    for i = LAYER.n + 1, #LAYER.pool do
+        local node = LAYER.pool[i]
+        if node.visible then node:setVisible(false) end
+    end
+end
+function B.layerHide()
+    for _, node in ipairs(LAYER.pool) do if node.visible then node:setVisible(false) end end
+    if LAYER.root and LAYER.root.visible then LAYER.root:setVisible(false) end
+end
+function B.layerToTop() if LAYER.root and LAYER.root.javaObj then pcall(function() LAYER.root.javaObj:bringToTop() end) end end
+
 local function drawAt(panel, f, s, x, baseY, px, c, a)
     local z = zoom(f, px)
-    panel:drawTextZoomed(s, x, baseY - f.base * z, z, c.r, c.g, c.b, a or 1, f.font)
+    local y = baseY - f.base * z
+    if LAYER.panel == panel then
+        layerText(f.font, s, panel:getAbsoluteX() + x, panel:getAbsoluteY() + y, z, c, a or 1)
+    else
+        panel:drawTextZoomed(s, x, y, z, c.r, c.g, c.b, a or 1, f.font)
+    end
 end
 local function drawCentre(panel, f, s, cx, baseY, px, c)
     drawAt(panel, f, s, cx - textW(f, s, px) / 2, baseY, px, c)
@@ -116,22 +171,38 @@ local function wrapWords(words, f, px, widthFor, start, indent)
 end
 
 -- a line, justified unless it ends its paragraph
+-- a line, justified unless it ends its paragraph: the extra room goes out as whole spaces, spread over the gaps
+-- from the left, so each run of words between the game's small pictures is one string
 local function drawLine(panel, f, px, l, x, baseY, c)
     local sp = spaceW(f, px)
     local gaps = #l.items - 1
-    local extra = 0
-    if not l.last and gaps > 0 then extra = math.max(0, (l.width - l.indent - l.natural) / gaps) end
-    if extra > sp * 1.6 then extra = 0 end   -- (a line too loose to justify stays ragged)
+    local extraN = 0
+    if not l.last and gaps > 0 then
+        local room = math.max(0, l.width - l.indent - l.natural)
+        if room / gaps <= sp * 1.6 then extraN = math.floor(room / sp + 0.5) end   -- (a line too loose stays ragged)
+    end
     local xx = x + l.indent
-    for _, it in ipairs(l.items) do
+    local runX, run = xx, nil
+    local function flush()
+        if run then drawAt(panel, f, run, runX, baseY, px, c) end
+        run = nil
+    end
+    for i, it in ipairs(l.items) do
         if it.tex then
+            flush()
             local s = px * 1.05
             panel:drawTextureScaledAspect(it.tex, xx, baseY - s * 0.82, s, s, 1, 1, 1, 1)
         else
-            drawAt(panel, f, it.word, xx, baseY, px, c)
+            if run then run = run .. it.word else run, runX = it.word, xx end
         end
-        xx = xx + it.ww + sp + extra
+        xx = xx + it.ww
+        if i <= gaps then
+            local k = 1 + ((extraN > 0) and (math.floor(extraN * i / gaps) - math.floor(extraN * (i - 1) / gaps)) or 0)
+            if run and not (l.items[i + 1] and l.items[i + 1].tex) then run = run .. string.rep(" ", k) end
+            xx = xx + sp * k
+        end
     end
+    flush()
 end
 
 -- ---------------------------------------------------------------------------
@@ -559,6 +630,7 @@ function ZeD_GuideBook:prerender()
     if not T then return end
     local ok, err = pcall(self.layout, self)
     if not ok then ZeD.logOnce("survival guide book", err); B.close(self.playerNum); return end
+    B.layerBegin(self)
     local g = self._g
     local u = g.u
     self:drawRect(0, 0, self.width, self.height, DESK.a, DESK.r, DESK.g, DESK.b)
@@ -609,6 +681,7 @@ function ZeD_GuideBook:prerender()
     _strip.check, _strip.win = c, self
     local _, rects = ZeD.Molecules.drawBand(self, g.strip.x, g.strip.y, g.strip.w, _strip)
     self._stripRects = rects
+    B.layerEnd()
 end
 
 -- ---------------------------------------------------------------------------
@@ -746,6 +819,7 @@ function B.open(pn, want)
         pcall(setGameSpeed, 0)
     end
     bk:bringToTop()
+    B.layerToTop()
     local jd = JoypadState.players[pn + 1]
     if jd then
         if jd.focus ~= bk then bk._prevFocus = jd.focus end
@@ -766,6 +840,7 @@ function B.close(pn)
     if not bk then return end
     bk:setVisible(false)
     bk:removeFromUIManager()
+    B.layerHide()
     bk._clips = {}
     pcall(setGameSpeed, 1)
     local jd = JoypadState.players[(pn or 0) + 1]
