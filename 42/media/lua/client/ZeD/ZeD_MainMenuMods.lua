@@ -1681,7 +1681,7 @@ function ZeD_MMMods:drawDetail(x, y, w, h)
     verb("toggle", ZeD.tr(d.isActive and "ContextMenu_Turn_Off" or "ContextMenu_Turn_On"), function() self:toggle(d) end, d.isActive and "default" or "primary", (not d.isActive) and prob ~= nil)
     verb("fav", ZeD.tr(d.favorite and "UI_ZeD_Mods_VerbUnfavourite" or "UI_ZeD_Mods_VerbFavourite"), function() self:toggleFav(d) end)
     -- Move to folder... (the controller's way to the row's folder menu: ZeD_MainMenuModsFolders)
-    if self.folderVerb and self.filter ~= "ws" then verb("fmove", ZeD.tr("UI_ZeD_Folders_VerbMove"), function() self:folderVerb(d) end) end
+    if self.folderVerb and self.filter ~= "ws" and not self:simple() then verb("fmove", ZeD.tr("UI_ZeD_Folders_VerbMove"), function() self:folderVerb(d) end) end
     local wid, src, url = nil, "", ""
     pcall(function() wid = info:getWorkshopID(); src = tostring(info:getSource() or ""); url = tostring(info:getUrl() or "") end)
     if wid and wid ~= "" then verb("workshop", ZeD.tr("UI_ZeD_Workshop_OpenInSteam"), function() MS.openInSteam(wid) end) end
