@@ -146,3 +146,6 @@ halftone photo with an italic sans caption, a bold sans Title Case line under it
 cap and the first words in capitals; later topics carry their own title in the same italic face; the foot has the
 page number in the outer corner and the book's name in small sans caps. Keys print as outline keys in ink. The rules
 pages keep the 1990 magazine's grey bar, run-ins and ruled chart.
+
+The director on v6 (Nov 3 2026): "No drop caps though. Translation nightmare and hard to read." Removed, with the
+first word in capitals that went with them. A paragraph opens plainly.
