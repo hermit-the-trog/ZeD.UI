@@ -5,11 +5,12 @@ Survival guide (F1)
 - The text follows how you play. On a keyboard it shows your own keys, and a key you rebind shows its new key. On a controller it shows your controller's own buttons (Xbox, PlayStation, Nintendo or Steam Deck, picked in ZeD setup or by the game), and every action page leads with a box of the buttons. Switching between keyboard and controller with the guide open changes it at once.
 - Every page that teaches an action closes with a Mouse and keyboard | Controller box.
 - New chapters after the game's own: ZeD (each window and how to work it), First Days, Coming from Build 41, Your Controls (every key as you have set it) and What's New in ZeD.
-- The rules in numbers, read from your installed game and this world's settings: XP per level, occupations and traits, skill books, food spoiling, farming. This world's settings that a player might not want to know stay behind a "Show the numbers" bar.
+- The rules in numbers, read from your installed game and this world's settings: XP per level, occupations and traits, skill books, the food you carry, crops. This world's settings that a player might not want to know stay behind a "Show the numbers" bar.
+- The book fills its pages as a publisher would: the publisher's own house ads, a ruled Notes block, and a "Your First Week" checklist in First Days. A topic with rules always faces them.
 - The game's own clips stay for now; clips of ZeD's screens come later.
 
 Hint strip (new)
-- A quiet line above the belt with the actions for what you face: your Interact key where it works (doors, windows, fences, cars) and Right Click for the rest. On a controller it takes the place of the game's corner prompt, with your controller's buttons.
+- A quiet line above the belt with the actions for what you face: your Interact key where it works (doors, windows, cars) and Right Click for the rest. On a controller it takes the place of the game's corner prompt, with your controller's buttons.
 - ZeD setup, Hint strip: Always (default), First hours (each hint stops after you have used it three times) or Off.
 
 Overhead notes (new)
@@ -28,3 +29,10 @@ Mods screen
 - Colour labels for folders and separators, in ZeD's accent colours.
 - A Simple view in ZeD setup for new players: one line per mod, the All, On, Off and Problems tabs.
 - Fits the long languages on a Steam Deck with Large text.
+
+Newspapers and flyers
+- Drawn exactly as the game lays them out, in the paper's own type and pictures, inside ZeD's reader. The page opens whole and zooms as one.
+
+Fixes
+- A line the game puts over your head no longer throws an error when ZeD passes it on.
+- The Cooking tab has its picture on the controller wheel.
