@@ -318,6 +318,107 @@ function P.draw(panel, pg, ox, oy, k)
     end
 end
 
+-- ---------------------------------------------------------------------------
+-- THE PAGE AS THE GAME DRAWS IT (the director, Nov 4 2026: "Vanilla is rendering those correctly. Can we just render
+-- them correctly in our window as well?"). The game's own PZAPI atoms, built from the piece's layout exactly as
+-- PZAPI's PrintMedia builds them (each texture at its place and size, each text in its own UIFont, scale, colour
+-- and width), under a clipping node at the reader's canvas; the whole page scaled as one by the reader's zoom. The
+-- tree is never handed to the UIManager: the reader draws it after its own drawing (as the survival guide's book
+-- draws its text), so it sits in the reader's window, not over or under other windows.
+-- ---------------------------------------------------------------------------
+local V = { clip = nil, page = nil, id = nil }
+local function vInit(node)
+    local UI = PZAPI.UI
+    UI._setParentChildRelationship(node)
+    UI._applyHooks(node)
+    UI._createAtomObjs(node)
+    UI._internalInit(node)
+    UI._initElement(node)
+    UI._initResize(node)
+end
+-- the page node for a piece, built once per piece
+local function vBuild(m)
+    local UI = PZAPI and PZAPI.UI
+    if not (UI and UI.Node and UI.Text and UI.Texture) then return false end
+    local info = getTextOrNull(m.info)
+    if not info then return false end
+    if not V.clip then
+        V.clip = UI.Node{ x = 0, y = 0, width = 1, height = 1, isStencil = true }
+        vInit(V.clip)
+    end
+    if V.page then pcall(function() V.page:setVisible(false) end) end
+    local page = UI.Node{ x = 0, y = 0, width = 480, height = 720 }
+    UI._addChild(V.clip, page)
+    -- (vanilla's PrintMedia init, line for line: the parent's size, then each texture and text with its own fields)
+    for i, val in ipairs(string.split(info, "<")) do
+        if val ~= "" then
+            local data = string.split(val, ">")
+            local params, bad = {}, false
+            for _, v in ipairs(string.split(data[1], ",")) do
+                local t = string.split(v, ":")
+                if t[1] == nil or t[2] == nil then bad = true else params[string.trim(t[1])] = string.trim(t[2]) end
+            end
+            if bad then break end
+            if params.type == "parent" then
+                if params.width then page:setWidth(tonumber(params.width)) end
+                if params.height then page:setHeight(tonumber(params.height)) end
+            elseif params.type == "text" then
+                local f = {}
+                for k, v in pairs(params) do
+                    if k ~= "type" then f[k] = (k == "font") and UIFont.FromString(v) or tonumber(v) end
+                end
+                f.text = (tostring(data[2] or ""):gsub("%^", "\n"))
+                UI._addChild(page, UI.Text(f))
+            elseif params.type == "texture" then
+                local f = {}
+                for k, v in pairs(params) do
+                    if k ~= "type" then f[k] = (k == "texture") and getTexture(v) or tonumber(v) end
+                end
+                UI._addChild(page, UI.Texture(f))
+            end
+        end
+    end
+    V.page, V.id = page, m.id
+    return true
+end
+
+-- the page placed for this frame: its canvas c (panel coordinates), the page's top-left (ox, oy) and scale k
+function P.vanillaPlace(panel, m, c, ox, oy, k)
+    if not m then return false end
+    if V.id ~= m.id then
+        local ok, r = pcall(vBuild, m)
+        if not ok or not r then V.id = m.id; V.page = nil; return false end
+    end
+    if not V.page then return false end
+    local ok = pcall(function()
+        local ax, ay = panel:getAbsoluteX(), panel:getAbsoluteY()
+        local cl = V.clip
+        if cl.x ~= ax + c.x then cl:setX(ax + c.x) end
+        if cl.y ~= ay + c.y then cl:setY(ay + c.y) end
+        if cl.width ~= c.w then cl:setWidth(c.w) end
+        if cl.height ~= c.h then cl:setHeight(c.h) end
+        local pg = V.page
+        if pg.x ~= ox - c.x then pg:setX(ox - c.x) end
+        if pg.y ~= oy - c.y then pg:setY(oy - c.y) end
+        if pg.scaleX ~= k then pg:setScaleX(k); pg:setScaleY(k) end
+        if not pg.visible then pg:setVisible(true) end
+        if not cl.visible then cl:setVisible(true) end
+    end)
+    V.panel = ok and panel or nil
+    return ok
+end
+-- hides it (the Words view, a notebook, the reader closed)
+function P.vanillaHide()
+    if V.clip and V.clip.visible then pcall(function() V.clip:setVisible(false) end) end
+    V.panel = nil
+end
+-- drawn by the panel that placed it this frame, after its own drawing
+function P.vanillaRender(panel)
+    if V.panel ~= panel or not V.clip then return end
+    pcall(function() V.clip.javaObj:update() end)
+    pcall(function() V.clip.javaObj:render() end)
+end
+
 -- the page's paper and pictures only, no words: a list's thumbnail, and a piece not
 -- read yet (reading it is vanilla's timed action; the tab never gives the words away)
 function P.drawArt(panel, pg, ox, oy, k, a)

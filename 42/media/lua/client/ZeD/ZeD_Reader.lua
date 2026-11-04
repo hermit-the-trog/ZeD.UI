@@ -123,6 +123,7 @@ end
 function ZeD_Reader:close()
     -- (a notebook's window closing ends the write action, as vanilla's Cancel does)
     if self.mode == "notebook" then self:endWriting(); return end
+    P.vanillaHide()
     self:setVisible(false)
     self:removeFromUIManager()
     if JoypadState.players[self.playerNum + 1] then setJoypadFocus(self.playerNum, nil) end
@@ -181,7 +182,9 @@ function ZeD_Reader:prerender()
     self:drawRect(c.x, c.y, c.w, c.h, 1, TABLE.r, TABLE.g, TABLE.b)
     ZeD.Atoms.frame(self, c.x, c.y, c.w, c.h, T.borderS)
     self:setStencilRect(c.x + u, c.y + u, c.w - 2 * u, c.h - 2 * u)
+    self._vanillaPage = false
     if self.view == "paper" and self.page then self:drawPaper(c) else self:drawWords(c) end
+    if not self._vanillaPage then P.vanillaHide() end
     self:clearStencilRect()
     self:drawSide(g.side)
     self:drawStrip(g.strip)
@@ -204,7 +207,9 @@ function ZeD_Reader:drawPaper(c)
     self.panY = math.max(-my, math.min(my, self.panY))
     local ox = c.x + math.floor((c.w - pw) / 2 + self.panX)
     local oy = c.y + math.floor((c.h - ph) / 2 + self.panY)
-    P.draw(self, pg, ox, oy, k)
+    -- the page as the game draws it (the director, Nov 4 2026); ZeD's own setting of it only if that cannot be built
+    self._vanillaPage = P.vanillaPlace(self, self.media, c, ox, oy, k)
+    if not self._vanillaPage then P.draw(self, pg, ox, oy, k) end
     self._hits[#self._hits + 1] = { id = "canvas", x = c.x, y = c.y, w = c.w, h = c.h, drag = true }
 end
 
@@ -519,6 +524,7 @@ end
 
 function ZeD_Reader:render()
     ZeD_Window.render(self)
+    if self._vanillaPage then P.vanillaRender(self) end
 end
 
 -- ---------------------------------------------------------------------------
