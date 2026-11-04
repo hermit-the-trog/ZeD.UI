@@ -1,0 +1,7 @@
+# ZeDUI/tools/qa/book83_atoms.txt  (Nov 3 2026): punch list 83, the book as text atoms (4K, gallery look). release_check.ps1 -Manifest this (the real mouse)
+zedqa_prelude.lua | pre | timeout=120
+gallery_t14_look.lua | g14l | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_book83_atoms.lua | b8a | timeout=900
+zedqa_book83.lua | b83 | timeout=900
+gallery_t14_end.lua | g14e | timeout=60

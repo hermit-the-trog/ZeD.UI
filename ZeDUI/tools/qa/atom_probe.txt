@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/atom_probe.txt  (Nov 3 2026): PZAPI text atoms drawn and captured? (4K)
+zedqa_prelude.lua | pre | timeout=120
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_atom_probe.lua | ap | timeout=120
