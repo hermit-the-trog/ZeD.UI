@@ -1,0 +1,5 @@
+# deck run of the roll-up (Nov 4 2026)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_textlarge.lua | txl | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_autocollapse.lua | acl | timeout=300

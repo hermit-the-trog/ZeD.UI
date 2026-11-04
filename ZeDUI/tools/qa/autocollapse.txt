@@ -2,3 +2,4 @@
 zedqa_prelude.lua | pre | timeout=120
 gallery_hidecon.lua | hcn | timeout=60
 zedqa_autocollapse.lua | acl | timeout=300
+zedqa_shade_probe.lua | shp | timeout=60
