@@ -2528,6 +2528,18 @@ item says so.
         - Simple's info pane still offers "Move to folder..." though Simple has no folders.
         - At the Deck with Large text the info pane's tab strip runs out (Conflicts cut to "Conf"); not checked
           whether that is new.
+    - **QA, Nov 4 2026, other languages (067a0361) at the Deck with Large text: Hungarian, Dutch, Danish**
+      (zedqa_mods_lang.lua; pictures Screenshots/zqa_mlg_*, zqa_mlg_strips.png).
+      - **FAIL, Hungarian Simple:** Find shrinks to 69 px and its field is drawn over the Hide incompatible box and the
+        start of its label ("...zeférhetetlenek elrejtése"). Simple's list column is narrower; the box, label and
+        "24 elrejtve" leave Find no room.
+      - **Dutch and Danish Simple:** Find is small (69 and 111 px) but nothing overlaps.
+      - **Dutch Full:** the tab strip runs past the list (Workshop cut to "Workshop 29"). The Off tab adds to an
+        older squeeze.
+      - **Dutch Full:** the pane's "Naar map verplaatsen..." button runs past the pane's right edge.
+      - **All three:** the box's help line is longer than the band and ends in "..."; the end of the sentence is
+        lost.
+      - **Hungarian and Danish Full** fit.
 
 ## Test process
 
