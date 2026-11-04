@@ -608,7 +608,7 @@ end
 
 -- Character: the XP each level takes (the game's own getter: it scales its listed numbers when it starts), skills
 -- with the same steps grouped; occupations and traits as on the character screen
-Rules.SurvivalGuide_character_title = function()
+local function skillTables()
     local out = {}
     local groups, order = {}, {}
     pcall(function()
@@ -674,7 +674,8 @@ end
 
 -- Food and water: how long the food you carry keeps and what it gives (its script); this world's rot and fridge
 -- settings named, not multiplied in (the game's multipliers are not readable)
-Rules.SurvivalGuide_food_and_water_title = function()
+-- (rules hang on a topic, never a chapter's opener: QA Nov 4 2026, the tables never showed)
+Rules.SurvivalGuide_eating_drinking_title = function()
     local p = getSpecificPlayer(0)
     if not p then return nil end
     local rows, seen = {}, {}
@@ -707,7 +708,7 @@ end
 
 -- Farming: each crop's hours a growth stage at this world's farming speed, the water it needs and its harvest
 -- (the game's farming table, there once a game runs)
-Rules.SurvivalGuide_farming_title = function()
+Rules.SurvivalGuide_sow_seeds_title = function()
     local conf = farming_vegetableconf and farming_vegetableconf.props
     if not conf then return nil end
     local speed = 1
@@ -742,6 +743,20 @@ local function worldRows(names)
     end
     return rows
 end
+-- Skill Books: the books' own table, then XP for each level, occupations and traits (all about skills)
+do
+    local books = Rules.SurvivalGuide_skill_books_title
+    Rules.SurvivalGuide_skill_books_title = function()
+        local out = {}
+        local ok, b = pcall(books)
+        if ok and b then
+            if b.cols then out[1] = b else for _, t in ipairs(b) do out[#out + 1] = t end end
+        end
+        for _, t in ipairs(skillTables() or {}) do out[#out + 1] = t end
+        return (#out > 0) and out or nil
+    end
+end
+
 Rules.SurvivalGuide_treat_water_title = function()
     local rows = worldRows({ "WaterShut", "ElecShut", "Helicopter" })
     if #rows == 0 then return nil end
