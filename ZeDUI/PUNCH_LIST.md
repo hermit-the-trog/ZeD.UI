@@ -2549,6 +2549,14 @@ item says so.
       - "Move to folder..." sits on its own line in Dutch and Hungarian, and is gone from Simple.
       - The help lines fit in one line.
       - Picture: Screenshots/zqa_mlg_recheck2.png.
+    - **QA, Nov 4 2026, strong label colours (09343999, the director: "I think they use strong colors"): PASS, 36 / 36
+      at 4K plus 3 / 3 after a restart.**
+      - The marks (swatches, folder picture, separator rules) reach 3:1 or more, and the separator names reach 4.5:1
+        or more, in dark, light and hicon, each with orange and blue. The worst mark is 4.18:1 (light/orange
+        Essential on the band).
+      - On dark, Essential, Cool and In Progress stay as System 7 drew them, and Hot moves only a little. Personal,
+        Project 1 and Project 2 lift to lavender, sage and tan, as they must to read on black.
+      - Picture: Screenshots/zqa_mrd_labels_sheet_strong.png.
 
 ## Test process
 

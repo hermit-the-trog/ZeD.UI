@@ -100,22 +100,26 @@ for i, cb in ipairs(combos) do
         local T = ZeD.T
         local s1 = T.surf1 or T.base
         local band = c2(T.onBand, s1)
-        local lows = {}
+        -- (Nov 4, 09343999: marks are graphics at 3:1; T.labelsText, a separator's name, is text at 4.5:1)
+        local lows, lowsT = {}, {}
         for _, L in ipairs(ZeD.LABELS) do
-            local c = T.labels and T.labels[L.k]
-            if c then
-                for _, bg in ipairs({ { "window", s1 }, { "band", T.onBand }, { "surface2", T.surf2 or s1 } }) do
-                    local r = c2(c, bg[2])
-                    if r < worst.lab then worst.lab = r; worst.labWhat = cb[1] .. "/" .. cb[2] .. " " .. L.k .. " on " .. bg[1] end
-                    if r < 4.5 then lows[#lows + 1] = L.k .. " on " .. bg[1] .. string.format(" %.2f", r) end
-                end
-            else lows[#lows + 1] = L.k .. " missing" end
+            for _, set in ipairs({ { T.labels, 3.0, lows, "mark" }, { T.labelsText, 4.5, lowsT, "name" } }) do
+                local c = set[1] and set[1][L.k]
+                if c then
+                    for _, bg in ipairs({ { "window", s1 }, { "band", T.onBand }, { "surface2", T.surf2 or s1 } }) do
+                        local r = c2(c, bg[2])
+                        if set[4] == "mark" and r < worst.lab then worst.lab = r; worst.labWhat = cb[1] .. "/" .. cb[2] .. " " .. L.k .. " on " .. bg[1] end
+                        if r < set[2] then set[3][#set[3] + 1] = L.k .. " on " .. bg[1] .. string.format(" %.2f", r) end
+                    end
+                else set[3][#set[3] + 1] = L.k .. " missing" end
+            end
         end
+        check(#lowsT == 0, cb[1] .. "/" .. cb[2] .. ": separator names (labelsText) 4.5:1 on the window, the rows and the band" .. (#lowsT > 0 and (" (" .. table.concat(lowsT, "; ") .. ")") or ""))
         if band < worst.band then worst.band = band end
         local labs = {}
         for _, L in ipairs(ZeD.LABELS) do labs[#labs + 1] = L.k .. " " .. (T.labels[L.k] and hex(T.labels[L.k]) or "?") end
         say(string.format("%s/%s: band %s on window %s, %.2f:1; labels %s", cb[1], cb[2], hex(T.onBand), hex(s1), band, table.concat(labs, ", ")))
-        check(#lows == 0, cb[1] .. "/" .. cb[2] .. ": all seven labels 4.5:1 on the window, the rows and the band" .. (#lows > 0 and (" (" .. table.concat(lows, "; ") .. ")") or ""))
+        check(#lows == 0, cb[1] .. "/" .. cb[2] .. ": all seven label marks 3:1 on the window, the rows and the band" .. (#lows > 0 and (" (" .. table.concat(lows, "; ") .. ")") or ""))
     end)
     at(40 + i * 40 + 30, function() shot(string.format("1_%s_%s_all", cb[1], cb[2])) end)
 end
