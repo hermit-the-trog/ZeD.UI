@@ -2448,6 +2448,28 @@ item says so.
       guide_director/ (Skill Books with its still, with the clip, scrolled to the rules; Barricading mid-clip; Find
       "book"; the Map topic's controller text with its button picture).
 
+83. **The survival guide's Full look: the book, "Survive the Apocalypse" (the director, Nov 3 2026: "The book look").**
+    built, QA to check (b1fae517). Mockup ZeDUI/mockups/zed_survival_guide_v7.html (the look settled with the director:
+    the 1983 bookstore guide's chapter openers, the 1990 magazine's grey bar, no marks, no drop caps). Code:
+    42/media/lua/client/ZeD/ZeD_SurvivalGuideBook.lua; ZeD_SurvivalGuide.lua opens it while ZeD setup's new Full or
+    simple row "Survival guide" is Full (the default; the Access preset picks Simple). Chinese, Japanese, Korean, Thai
+    and Arabic keep the window. The game's own faces at any size (Old Standard TT, Roberto Sans Bold Italic, Open Sans),
+    drawn as the print pages are. One topic a page; a chapter's first topic opens with "Chapter n", the chapter in heavy
+    italic capitals, the clip (or its still), an italic caption, a bold Title Case line; a topic with rules has them on
+    the next page; a long topic runs on. Front: the title page, the contents (page numbers, dotted leaders) facing the
+    introduction with the author's photo (its four paragraphs are Build's placeholder for the director to rewrite).
+    - **QA:** F1 opens the book (Full) and the window (Simple), both ways, and closes it; a new game with the start-up
+      box ticked opens the book on its title page; F1 from Skills opens the spread with Skill Books and its rules page;
+      the strip's Previous page, Contents, Next page and start-up box work; a click on the left page turns back, on the
+      right page on; the wheel, the arrow keys, Page Up/Down and Home work; the contents rows and the thumb index jump to
+      their chapters and their page numbers match the folios; every chapter opener and topic fits its page (nothing over
+      the folio; a run-on page reads "(continued)"); clips play on the page, and the stills show with effects off;
+      the Skill Books rules page draws the grey bar, the chart (headings wrap, nothing cut) and the notes; the title
+      page and the introduction (photo, text beside it then under it, the signature); the controller (LB/RB turn, Y
+      contents, Down to the strip, A presses, B closes); the book fits the Deck with Large text; Russian shows the book
+      in Cyrillic; Japanese shows the window; no errors in the log. Pictures for the director: the title page, the
+      contents and introduction, a chapter opener mid-clip, Skill Books with its rules page.
+
 ## Test process
 
 - **QA, Nov 2 2026, the t16 pre-upload pass (the mod code at 361d0b6; nothing in 42/ changed after it).** Full 4K
