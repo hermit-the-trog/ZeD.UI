@@ -4535,5 +4535,7 @@
     "UI_ZeD_Guide_Check4": "Rens og forbind hvert sår, uanset hvor lille det er.",
     "UI_ZeD_Guide_Check5": "Spis den friske mad først. Gem dåserne.",
     "UI_ZeD_Guide_Check6": "Find et kort og lær to veje ud af byen.",
-    "UI_ZeD_Guide_Check7": "Gå, vær stille, og kæmp i en døråbning."
+    "UI_ZeD_Guide_Check7": "Gå, vær stille, og kæmp i en døråbning.",
+    "UI_ZeD_Win_HelpPin": "Fastgør dette vindue som åbent. Hvis det ikke er fastgjort, ruller det op til titellinjen, når markøren forlader det.",
+    "UI_ZeD_Win_HelpUnpin": "Frigør: vinduet ruller op til titellinjen, når markøren forlader det, og ned igen, når markøren er over titellinjen."
 }

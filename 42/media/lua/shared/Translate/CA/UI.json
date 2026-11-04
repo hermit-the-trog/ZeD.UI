@@ -4535,5 +4535,7 @@
     "UI_ZeD_Guide_Check4": "Neteja i embena cada ferida, per petita que sigui.",
     "UI_ZeD_Guide_Check5": "Menja primer el menjar fresc. Guarda les llaunes.",
     "UI_ZeD_Guide_Check6": "Busca un mapa i aprèn dues sortides del poble.",
-    "UI_ZeD_Guide_Check7": "Camina, fes poc soroll i lluita en una porta."
+    "UI_ZeD_Guide_Check7": "Camina, fes poc soroll i lluita en una porta.",
+    "UI_ZeD_Win_HelpPin": "Fixa aquesta finestra oberta. Si no està fixada, s'enrotlla a la barra de títol quan el punter surt d'ella.",
+    "UI_ZeD_Win_HelpUnpin": "Deixa de fixar: la finestra s'enrotlla a la barra de títol quan el punter surt d'ella, i es desplega quan el punter és sobre la barra de títol."
 }

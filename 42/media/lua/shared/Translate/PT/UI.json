@@ -4535,5 +4535,7 @@
     "UI_ZeD_Guide_Check4": "Limpa e cobre com ligadura cada ferida, por mais pequena que seja.",
     "UI_ZeD_Guide_Check5": "Come primeiro a comida fresca. Guarda as latas.",
     "UI_ZeD_Guide_Check6": "Arranja um mapa e aprende duas saídas da cidade.",
-    "UI_ZeD_Guide_Check7": "Anda, fica em silêncio e luta numa porta."
+    "UI_ZeD_Guide_Check7": "Anda, fica em silêncio e luta numa porta.",
+    "UI_ZeD_Win_HelpPin": "Fixar esta janela aberta. Se não estiver fixada, enrola-se até à barra de título quando o ponteiro a abandona.",
+    "UI_ZeD_Win_HelpUnpin": "Desafixar: a janela enrola-se até à barra de título quando o ponteiro a abandona e desenrola-se quando o ponteiro está sobre a barra de título."
 }

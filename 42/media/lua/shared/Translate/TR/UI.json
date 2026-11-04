@@ -4535,5 +4535,7 @@
     "UI_ZeD_Guide_Check4": "Her yarayı, ne kadar küçük olursa olsun, temizleyin ve sarın.",
     "UI_ZeD_Guide_Check5": "Önce taze yiyecekleri yiyin. Konserveleri saklayın.",
     "UI_ZeD_Guide_Check6": "Bir harita bulun ve kasabadan çıkan iki yol öğrenin.",
-    "UI_ZeD_Guide_Check7": "Yürüyün, sessiz olun ve bir kapıda savaşın."
+    "UI_ZeD_Guide_Check7": "Yürüyün, sessiz olun ve bir kapıda savaşın.",
+    "UI_ZeD_Win_HelpPin": "Bu pencereyi açık sabitle. Sabitlenmemişse, işaretçi pencereden ayrılınca başlık çubuğuna kadar yukarı sarılır.",
+    "UI_ZeD_Win_HelpUnpin": "Sabitlemeyi kaldır: işaretçi pencereden ayrılınca pencere başlık çubuğuna kadar sarılır, işaretçi başlık çubuğunun üzerindeyken geri açılır."
 }

@@ -4535,5 +4535,7 @@
     "UI_ZeD_Guide_Check4": "Puhdista ja sido jokainen haava, olipa se kuinka pieni tahansa.",
     "UI_ZeD_Guide_Check5": "Syö tuore ruoka ensin. Säästä säilykkeet.",
     "UI_ZeD_Guide_Check6": "Etsi kartta ja opettele kaksi tietä pois kaupungista.",
-    "UI_ZeD_Guide_Check7": "Kävele, pysy hiljaa ja taistele ovella."
+    "UI_ZeD_Guide_Check7": "Kävele, pysy hiljaa ja taistele ovella.",
+    "UI_ZeD_Win_HelpPin": "Kiinnitä tämä ikkuna auki. Kiinnittämättömänä se kääriytyy otsikkopalkkiinsa, kun osoitin poistuu sen päältä.",
+    "UI_ZeD_Win_HelpUnpin": "Poista kiinnitys: ikkuna kääriytyy otsikkopalkkiinsa, kun osoitin poistuu sen päältä, ja avautuu, kun osoitin on otsikkopalkin päällä."
 }

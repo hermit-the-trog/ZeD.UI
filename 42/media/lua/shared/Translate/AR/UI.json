@@ -4535,5 +4535,7 @@
     "UI_ZeD_Guide_Check4": "Limpia y venda cada herida, por pequeña que sea.",
     "UI_ZeD_Guide_Check5": "Come primero la comida fresca. Guarda las latas.",
     "UI_ZeD_Guide_Check6": "Busca un mapa y aprende dos salidas del pueblo.",
-    "UI_ZeD_Guide_Check7": "Camina, haz poco ruido y pelea en una puerta."
+    "UI_ZeD_Guide_Check7": "Camina, haz poco ruido y pelea en una puerta.",
+    "UI_ZeD_Win_HelpPin": "ثبّت هذه النافذة مفتوحة. عند عدم التثبيت، تنطوي إلى شريط العنوان عندما يغادرها المؤشر.",
+    "UI_ZeD_Win_HelpUnpin": "إلغاء التثبيت: تنطوي النافذة إلى شريط العنوان عندما يغادرها المؤشر، وتنفتح عندما يكون المؤشر فوق شريط العنوان."
 }

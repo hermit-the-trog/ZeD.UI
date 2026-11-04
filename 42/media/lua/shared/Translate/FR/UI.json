@@ -4535,5 +4535,7 @@
     "UI_ZeD_Guide_Check4": "Nettoyez et bandez chaque blessure, même petite.",
     "UI_ZeD_Guide_Check5": "Mangez d'abord les aliments frais. Gardez les conserves.",
     "UI_ZeD_Guide_Check6": "Trouvez une carte et apprenez deux routes pour quitter la ville.",
-    "UI_ZeD_Guide_Check7": "Marchez, restez silencieux et battez-vous à une porte."
+    "UI_ZeD_Guide_Check7": "Marchez, restez silencieux et battez-vous à une porte.",
+    "UI_ZeD_Win_HelpPin": "Épingler cette fenêtre ouverte. Sinon, elle s'enroule sur sa barre de titre quand le pointeur la quitte.",
+    "UI_ZeD_Win_HelpUnpin": "Désépingler : la fenêtre s'enroule sur sa barre de titre quand le pointeur la quitte, et se déroule quand le pointeur est sur sa barre de titre."
 }

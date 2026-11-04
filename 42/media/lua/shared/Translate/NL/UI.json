@@ -4535,5 +4535,7 @@
     "UI_ZeD_Guide_Check4": "Reinig en verbind elke wond, hoe klein ook.",
     "UI_ZeD_Guide_Check5": "Eet eerst het verse eten. Bewaar de blikken.",
     "UI_ZeD_Guide_Check6": "Zoek een kaart en leer twee wegen de stad uit.",
-    "UI_ZeD_Guide_Check7": "Loop, wees stil en vecht bij een deur."
+    "UI_ZeD_Guide_Check7": "Loop, wees stil en vecht bij een deur.",
+    "UI_ZeD_Win_HelpPin": "Zet dit venster vast open. Zonder vastzetten rolt het op tot de titelbalk wanneer de aanwijzer het verlaat.",
+    "UI_ZeD_Win_HelpUnpin": "Losmaken: het venster rolt op tot de titelbalk wanneer de aanwijzer het verlaat en rolt weer uit wanneer de aanwijzer boven de titelbalk staat."
 }

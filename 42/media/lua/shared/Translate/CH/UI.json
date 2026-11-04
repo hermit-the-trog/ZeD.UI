@@ -4536,5 +4536,7 @@
     "UI_ZeD_Guide_Check4": "清潔並包紮每一個傷口，再小也一樣。",
     "UI_ZeD_Guide_Check5": "先吃新鮮的食物，留著罐頭。",
     "UI_ZeD_Guide_Check6": "找一張地圖，記住兩條離開城鎮的路。",
-    "UI_ZeD_Guide_Check7": "走路，保持安靜，在門口戰鬥。"
+    "UI_ZeD_Guide_Check7": "走路，保持安靜，在門口戰鬥。",
+    "UI_ZeD_Win_HelpPin": "將此視窗固定為開啟。未固定時，指標離開後視窗會捲起，只剩標題列。",
+    "UI_ZeD_Win_HelpUnpin": "取消固定：指標離開後視窗會捲起，只剩標題列；指標移到標題列上時視窗會展開。"
 }

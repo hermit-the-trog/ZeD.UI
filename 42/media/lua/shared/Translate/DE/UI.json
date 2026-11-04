@@ -4535,5 +4535,7 @@
     "UI_ZeD_Guide_Check4": "Reinige und verbinde jede Wunde, egal wie klein.",
     "UI_ZeD_Guide_Check5": "Iss zuerst das frische Essen. Heb die Konserven auf.",
     "UI_ZeD_Guide_Check6": "Finde eine Karte und lerne zwei Wege aus der Stadt.",
-    "UI_ZeD_Guide_Check7": "Geh, bleib leise und kämpfe an einer Tür."
+    "UI_ZeD_Guide_Check7": "Geh, bleib leise und kämpfe an einer Tür.",
+    "UI_ZeD_Win_HelpPin": "Dieses Fenster geöffnet halten. Ohne Fixierung rollt es sich auf die Titelleiste zusammen, sobald der Zeiger es verlässt.",
+    "UI_ZeD_Win_HelpUnpin": "Fixierung lösen: Das Fenster rollt sich auf die Titelleiste zusammen, sobald der Zeiger es verlässt, und rollt wieder aus, wenn der Zeiger über der Titelleiste steht."
 }
