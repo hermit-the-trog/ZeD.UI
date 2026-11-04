@@ -92,6 +92,30 @@ step(40, function()
     end
     check(#past == 0, "nothing past the folio" .. (#past > 0 and (" (pages " .. table.concat(past, ", ") .. ")") or ""))
     check(#overlap == 0, "no item overlaps the one before it" .. (#overlap > 0 and (" (" .. table.concat(overlap, ", ", 1, math.min(#overlap, 12)) .. ")") or ""))
+    -- 5c4a44a0: a chapter opener's clip spans the text; every other clip is two-thirds wide and a third tall, with
+    -- its caption the next item
+    local tw = math.floor((520 - 80) * u)
+    local openers = {}
+    for _, s in ipairs(b.sections) do if s.topics[1] then openers[s.topics[1].id] = true end end
+    local fullOk, smallOk, capOk, nClips, badClip = 0, 0, 0, 0, {}
+    for i, p in ipairs(b.pages) do
+        if p.kind == "flow" then
+            for j, it in ipairs(p.items or {}) do
+                if it.k == "clip" then
+                    nClips = nClips + 1
+                    local op = openers[it.topic.id]
+                    local wantW = op and tw or math.floor(tw * 2 / 3)
+                    if math.abs((it.w or tw) - wantW) <= 2 then if op then fullOk = fullOk + 1 else smallOk = smallOk + 1 end
+                    else badClip[#badClip + 1] = i .. ":" .. tostring(it.w) end
+                    local nx = p.items[j + 1]
+                    if nx and nx.k == "caption" and nx.text == it.topic.title then capOk = capOk + 1 end
+                end
+            end
+        end
+    end
+    say(string.format("clips %d: %d opener full width, %d two-thirds; text width %d", nClips, fullOk, smallOk, tw))
+    check(#badClip == 0 and fullOk == #b.sections and smallOk + fullOk == nClips, "openers full width, every other clip two-thirds" .. (#badClip > 0 and (" (" .. table.concat(badClip, ", ", 1, math.min(#badClip, 8)) .. ")") or ""))
+    check(capOk == nClips, "every clip has its caption under it (" .. capOk .. " of " .. nClips .. ")")
     check(spreadKinds() == "blank+title", "F1 with no tab opens on the title page (" .. spreadKinds() .. ")")
 end)
 step(20, function() f1() end)
