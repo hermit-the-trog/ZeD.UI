@@ -344,7 +344,9 @@ function B.paginate(bk, u)
         if padFirst then box() end
         local lines = bodyLines(t, F.text, px(U.TEXT), textW_)
         for i, l in ipairs(lines) do
-            local keep = (ways and not padFirst and i == math.max(1, #lines - 1)) and ((#lines - i + 1) * lineH + need) or lineH
+            -- (a topic's last line never alone atop a page: the line before goes with it, QA Nov 4 2026)
+            local keep = (i == #lines - 1) and (2 * lineH) or lineH
+            if ways and not padFirst and i == math.max(1, #lines - 1) then keep = (#lines - i + 1) * lineH + need end
             if y + keep > bottom then newPage(si, s, false) end
             y = y + lineH
             add({ k = "line", y = y, line = l })
