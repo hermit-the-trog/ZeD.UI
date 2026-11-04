@@ -24,6 +24,12 @@ own video format (Bink). Two ways to make them:
 Build's pick: RAD Video Tools. Remake only the clips that show the game's menus; the ones that show moves (walking,
 vaulting, aiming) stay as they are.
 
+**Installed Nov 3 2026 (the director: "Yes, install it"):** C:\RADVideoTools (radvideo64.exe, binkplay.exe), unpacked
+from the maker's RADTools.7z (sha1 93d2ec21, signed by Epic Games), no installer run. The game's guide clips are
+Bink 1 ("BIKi"), 960 x 480, 15 frames a second. Encode from PowerShell (from Git Bash it hangs):
+`Start-Process C:\RADVideoToolsadvideo64.exe -ArgumentList 'Bink','"<dir>???.png*0-95"','"<out>.bik"','/Bink1','/F15','/O','/#'`.
+A 24-frame test gave the same header as sg_aiming.bik. Not yet played in the game (QA's job).
+
 ## What the game's guide is
 
 - A window on F1 (and on the controller's Help wheel). A list on the left, a video clip and its text on the right,
