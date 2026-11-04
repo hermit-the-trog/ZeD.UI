@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/guide82_large.txt  (Nov 3 2026): punch list 82 at the Deck with Large text
+zedqa_prelude.lua | pre | timeout=120
+zedqa_textlarge.lua | txl | timeout=60
+zedqa_guide82.lua | g82 | timeout=600
