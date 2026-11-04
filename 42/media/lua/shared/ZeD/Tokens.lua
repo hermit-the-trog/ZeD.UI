@@ -688,9 +688,11 @@ function ZeD.textOn(fill)
 end
 
 -- The label colours for mod folders and separators (the director, Nov 4 2026: "System 7 finder labels"): System 7's
--- seven Finder labels in order, with its default names and colours. The colour a folder's picture or a separator's
--- name and rule is drawn in is P.labels[key]: the System 7 colour moved only as far as it needs to read on the theme's
--- surfaces (deriveReadable below), so each one passes 4.6 : 1 in every theme and accent.
+-- seven Finder labels in order, with its default names and colours, kept strong as System 7 drew them (the director,
+-- Nov 4 2026). P.labels[key] is the colour for marks (the swatches, a folder's picture, a separator's rules): the
+-- System 7 colour moved only as far as it needs for 3 : 1 on the theme's surfaces, so most stay as they were and only
+-- the dark blue and brown lift on the dark themes. P.labelsText[key] is the colour as text (a separator's name), moved
+-- as far as 4.6 : 1. Both made in deriveReadable below.
 ZeD.LABELS = {
     { k = "essential",  name = "UI_ZeD_Mods_LabelEssential",  c = hex("#FF6600") },
     { k = "hot",        name = "UI_ZeD_Mods_LabelHot",        c = hex("#DD0806") },
@@ -705,7 +707,7 @@ ZeD.LABELS = {
 ZeD.READABLE_KEYS = {
     "accentText", "toneHi", "toneLo", "textSec", "accentDim", "textDim", "textOnAccent", "textOnFocus",
     "dangerText", "warningText", "positiveText", "infoText", "textOnWarning", "textOnDanger",
-    "soiledWetText", "soiledBloodText", "soiledDirtText", "labels",
+    "soiledWetText", "soiledBloodText", "soiledDirtText", "labels", "labelsText",
 }
 
 -- A surface stack (surface, then one optional wash) as one opaque colour over a world grey
@@ -779,9 +781,12 @@ function ZeD.deriveReadable(P, baseKey)
     P.soiledBloodText = variant(base.soiledBlood, 0.20)
     P.soiledDirtText  = variant(base.soiledDirt, 0.20)
     -- the folder and separator labels as text and marks (on the list, its selection wash and the folder rows' surf2)
-    local labs = {}
-    for _, L in ipairs(ZeD.LABELS) do labs[L.k] = ZeD.legible(L.c, 4.6, bgs, up) end
-    P.labels = labs
+    local labs, labT = {}, {}
+    for _, L in ipairs(ZeD.LABELS) do
+        labs[L.k] = ZeD.legible(L.c, 3.0, bgs, up)
+        labT[L.k] = ZeD.legible(L.c, 4.6, bgs, up)
+    end
+    P.labels, P.labelsText = labs, labT
 end
 
 -- ---------------------------------------------------------------------------
