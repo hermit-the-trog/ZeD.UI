@@ -4340,5 +4340,15 @@
     "UI_ZeD_Mods_Label": "Nimiö",
     "UI_ZeD_Mods_HelpLabel": "Nimiö: %1. Värittää kansion kuvan tai erottimen nimen ja viivan.",
     "UI_ZeD_Settings_Mods": "Modit-näyttö",
-    "UI_ZeD_Settings_ModsTip": "Täysi: jokaisen modin tunnus ja tunnisteet, kansiot, profiilit ja latausjärjestys. Yksinkertainen: yksi rivi modia kohti, sen ruutu, nimi ja merkki, kun jokin on vialla."
+    "UI_ZeD_Settings_ModsTip": "Täysi: jokaisen modin tunnus ja tunnisteet, kansiot, profiilit ja latausjärjestys. Yksinkertainen: yksi rivi modia kohti, sen ruutu, nimi ja merkki, kun jokin on vialla.",
+    "UI_ZeD_Msg_OverHead": "Pääsi yllä",
+    "UI_ZeD_Msg_GameNotes": "Pelistä",
+    "UI_ZeD_Msg_Times": "%1 kertaa",
+    "UI_ZeD_Msg_KindGood": "Hyvä",
+    "UI_ZeD_Msg_KindBad": "Huono",
+    "UI_ZeD_Halo_XP": "%1 +%2 XP",
+    "UI_ZeD_Halo_LevelUp": "%1: taso %2",
+    "UI_ZeD_Halo_LevelDown": "%1: laski tasolle %2",
+    "UI_ZeD_Settings_HaloBubble": "Päänyläilmoitukset",
+    "UI_ZeD_Settings_HaloBubbleTip": "Pelin ilmoitukset hahmon pään yllä (Liian painava, Ei yletä) näkyvät ZeD:n kuplassa, ja jokainen säilytetään Viesteissä. XP ja tasot näkyvät edelleen pelin tavalla ja säilytetään myös Viesteissä."
 }

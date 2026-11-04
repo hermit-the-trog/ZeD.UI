@@ -4340,5 +4340,15 @@
     "UI_ZeD_Mods_Label": "Etichetta",
     "UI_ZeD_Mods_HelpLabel": "Etichetta: %1. Colora l'immagine della cartella, o il nome e la linea del separatore.",
     "UI_ZeD_Settings_Mods": "Schermata dei mod",
-    "UI_ZeD_Settings_ModsTip": "Completo: ID e tag di ogni mod, cartelle, profili e ordine di caricamento. Semplice: una riga per mod, la sua casella, il suo nome e un segno quando qualcosa non va."
+    "UI_ZeD_Settings_ModsTip": "Completo: ID e tag di ogni mod, cartelle, profili e ordine di caricamento. Semplice: una riga per mod, la sua casella, il suo nome e un segno quando qualcosa non va.",
+    "UI_ZeD_Msg_OverHead": "Sopra la testa",
+    "UI_ZeD_Msg_GameNotes": "Dal gioco",
+    "UI_ZeD_Msg_Times": "%1 volte",
+    "UI_ZeD_Msg_KindGood": "Buona",
+    "UI_ZeD_Msg_KindBad": "Cattiva",
+    "UI_ZeD_Halo_XP": "%1 +%2 XP",
+    "UI_ZeD_Halo_LevelUp": "%1: livello %2",
+    "UI_ZeD_Halo_LevelDown": "%1: scende al livello %2",
+    "UI_ZeD_Settings_HaloBubble": "Note sopra la testa",
+    "UI_ZeD_Settings_HaloBubbleTip": "Le note del gioco sopra la testa (Troppo pesante, Fuori portata) compaiono nel fumetto di ZeD e ognuna viene tenuta in Messaggi. XP e livelli si vedono ancora come nel gioco e vengono tenuti anche in Messaggi."
 }

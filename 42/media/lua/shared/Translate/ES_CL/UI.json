@@ -4340,5 +4340,15 @@
     "UI_ZeD_Mods_Label": "Etiqueta",
     "UI_ZeD_Mods_HelpLabel": "Etiqueta: %1. Colorea la imagen de la carpeta, o el nombre y la línea del separador.",
     "UI_ZeD_Settings_Mods": "Pantalla de mods",
-    "UI_ZeD_Settings_ModsTip": "Completo: el ID y las etiquetas de cada mod, carpetas, perfiles y el orden de carga. Simple: una línea por mod, su casilla, su nombre y una marca cuando algo falla."
+    "UI_ZeD_Settings_ModsTip": "Completo: el ID y las etiquetas de cada mod, carpetas, perfiles y el orden de carga. Simple: una línea por mod, su casilla, su nombre y una marca cuando algo falla.",
+    "UI_ZeD_Msg_OverHead": "Sobre tu cabeza",
+    "UI_ZeD_Msg_GameNotes": "Del juego",
+    "UI_ZeD_Msg_Times": "%1 veces",
+    "UI_ZeD_Msg_KindGood": "Bueno",
+    "UI_ZeD_Msg_KindBad": "Malo",
+    "UI_ZeD_Halo_XP": "%1 +%2 XP",
+    "UI_ZeD_Halo_LevelUp": "%1: nivel %2",
+    "UI_ZeD_Halo_LevelDown": "%1: baja al nivel %2",
+    "UI_ZeD_Settings_HaloBubble": "Notas sobre la cabeza",
+    "UI_ZeD_Settings_HaloBubbleTip": "Las notas del juego sobre tu cabeza (Demasiado pesado, No alcanzas) salen en la burbuja de ZeD y se guardan en Mensajes. La XP y los niveles se siguen mostrando como en el juego y también se guardan en Mensajes."
 }

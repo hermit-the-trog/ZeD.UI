@@ -4341,5 +4341,15 @@
     "UI_ZeD_Mods_Label": "標籤",
     "UI_ZeD_Mods_HelpLabel": "標籤：%1。為資料夾的圖片，或分隔線的名稱和線條著色。",
     "UI_ZeD_Settings_Mods": "模組畫面",
-    "UI_ZeD_Settings_ModsTip": "完整：每個模組的 ID 和標籤、資料夾、設定檔和載入順序。簡易：每個模組一行，含其方框、名稱，出問題時有標記。"
+    "UI_ZeD_Settings_ModsTip": "完整：每個模組的 ID 和標籤、資料夾、設定檔和載入順序。簡易：每個模組一行，含其方框、名稱，出問題時有標記。",
+    "UI_ZeD_Msg_OverHead": "頭頂上方",
+    "UI_ZeD_Msg_GameNotes": "來自遊戲",
+    "UI_ZeD_Msg_Times": "%1 次",
+    "UI_ZeD_Msg_KindGood": "好",
+    "UI_ZeD_Msg_KindBad": "壞",
+    "UI_ZeD_Halo_XP": "%1 +%2 經驗值",
+    "UI_ZeD_Halo_LevelUp": "%1：等級 %2",
+    "UI_ZeD_Halo_LevelDown": "%1：降至等級 %2",
+    "UI_ZeD_Settings_HaloBubble": "頭頂通知",
+    "UI_ZeD_Settings_HaloBubbleTip": "遊戲顯示在角色頭頂的通知（太重了、搆不到）會改用 ZeD 的氣泡顯示，並各自保留在「訊息」裡。技能經驗值與等級仍以遊戲原本的方式顯示，同樣會保留在「訊息」裡。"
 }

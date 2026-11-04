@@ -4340,5 +4340,15 @@
     "UI_ZeD_Mods_Label": "Etiqueta",
     "UI_ZeD_Mods_HelpLabel": "Etiqueta: %1. Acoloreix la imatge de la carpeta, o el nom i la ratlla del separador.",
     "UI_ZeD_Settings_Mods": "Pantalla de mods",
-    "UI_ZeD_Settings_ModsTip": "Complet: l'ID i les etiquetes de cada mod, carpetes, perfils i l'ordre de càrrega. Simple: una línia per mod, la seva casella, el seu nom i una marca si hi ha algun problema."
+    "UI_ZeD_Settings_ModsTip": "Complet: l'ID i les etiquetes de cada mod, carpetes, perfils i l'ordre de càrrega. Simple: una línia per mod, la seva casella, el seu nom i una marca si hi ha algun problema.",
+    "UI_ZeD_Msg_OverHead": "Sobre el teu cap",
+    "UI_ZeD_Msg_GameNotes": "Del joc",
+    "UI_ZeD_Msg_Times": "%1 vegades",
+    "UI_ZeD_Msg_KindGood": "Bo",
+    "UI_ZeD_Msg_KindBad": "Dolent",
+    "UI_ZeD_Halo_XP": "%1 +%2 XP",
+    "UI_ZeD_Halo_LevelUp": "%1: nivell %2",
+    "UI_ZeD_Halo_LevelDown": "%1: baixa al nivell %2",
+    "UI_ZeD_Settings_HaloBubble": "Notes sobre el cap",
+    "UI_ZeD_Settings_HaloBubbleTip": "Les notes del joc sobre el teu cap (Massa pesat, No hi arribes) surten a la bombolla de ZeD i es guarden a Missatges. L'XP i els nivells es continuen mostrant com al joc i també es guarden a Missatges."
 }

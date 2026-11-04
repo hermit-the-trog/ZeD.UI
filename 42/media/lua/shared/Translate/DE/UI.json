@@ -4340,5 +4340,15 @@
     "UI_ZeD_Mods_Label": "Etikett",
     "UI_ZeD_Mods_HelpLabel": "Etikett: %1. Färbt das Bild des Ordners oder den Namen und die Linie des Trenners.",
     "UI_ZeD_Settings_Mods": "Mod-Bildschirm",
-    "UI_ZeD_Settings_ModsTip": "Voll: ID und Tags jedes Mods, Ordner, Profile und die Ladereihenfolge. Einfach: eine Zeile pro Mod, sein Kästchen, sein Name und eine Markierung bei Problemen."
+    "UI_ZeD_Settings_ModsTip": "Voll: ID und Tags jedes Mods, Ordner, Profile und die Ladereihenfolge. Einfach: eine Zeile pro Mod, sein Kästchen, sein Name und eine Markierung bei Problemen.",
+    "UI_ZeD_Msg_OverHead": "Über deinem Kopf",
+    "UI_ZeD_Msg_GameNotes": "Vom Spiel",
+    "UI_ZeD_Msg_Times": "%1-mal",
+    "UI_ZeD_Msg_KindGood": "Gut",
+    "UI_ZeD_Msg_KindBad": "Schlecht",
+    "UI_ZeD_Halo_XP": "%1 +%2 EP",
+    "UI_ZeD_Halo_LevelUp": "%1: Stufe %2",
+    "UI_ZeD_Halo_LevelDown": "%1: runter auf Stufe %2",
+    "UI_ZeD_Settings_HaloBubble": "Notizen über dem Kopf",
+    "UI_ZeD_Settings_HaloBubbleTip": "Die Notizen des Spiels über deinem Kopf (Zu schwer, Nicht erreichbar) erscheinen in der Sprechblase von ZeD und werden einzeln in Nachrichten behalten. EP und Stufen erscheinen weiterhin wie im Spiel und werden ebenfalls in Nachrichten behalten."
 }

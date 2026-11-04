@@ -4340,5 +4340,15 @@
     "UI_ZeD_Mods_Label": "Štítek",
     "UI_ZeD_Mods_HelpLabel": "Štítek: %1. Obarví obrázek složky nebo název a linku oddělovače.",
     "UI_ZeD_Settings_Mods": "Obrazovka módů",
-    "UI_ZeD_Settings_ModsTip": "Plné: ID a štítky každého módu, složky, profily a pořadí načítání. Jednoduchá: jeden řádek na mód, jeho políčko, název a značka, když něco nesedí."
+    "UI_ZeD_Settings_ModsTip": "Plné: ID a štítky každého módu, složky, profily a pořadí načítání. Jednoduchá: jeden řádek na mód, jeho políčko, název a značka, když něco nesedí.",
+    "UI_ZeD_Msg_OverHead": "Nad hlavou",
+    "UI_ZeD_Msg_GameNotes": "Ze hry",
+    "UI_ZeD_Msg_Times": "%1krát",
+    "UI_ZeD_Msg_KindGood": "Dobré",
+    "UI_ZeD_Msg_KindBad": "Špatné",
+    "UI_ZeD_Halo_XP": "%1 +%2 XP",
+    "UI_ZeD_Halo_LevelUp": "%1: úroveň %2",
+    "UI_ZeD_Halo_LevelDown": "%1: pokles na úroveň %2",
+    "UI_ZeD_Settings_HaloBubble": "Poznámky nad hlavou",
+    "UI_ZeD_Settings_HaloBubbleTip": "Poznámky hry nad hlavou postavy (Příliš těžké, Nedosáhnete) se zobrazí v bublině ZeD a každá se uloží do Zpráv. XP a úrovně se dál zobrazují po způsobu hry a také se ukládají do Zpráv."
 }

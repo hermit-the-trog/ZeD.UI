@@ -4341,5 +4341,15 @@
     "UI_ZeD_Mods_Label": "라벨",
     "UI_ZeD_Mods_HelpLabel": "라벨: %1. 폴더 그림, 또는 구분선의 이름과 선에 색을 입힙니다.",
     "UI_ZeD_Settings_Mods": "모드 화면",
-    "UI_ZeD_Settings_ModsTip": "실물: 각 모드의 ID와 태그, 폴더, 프로필, 로드 순서. 간단: 모드당 한 줄, 체크 칸, 이름, 문제가 있을 때 표시."
+    "UI_ZeD_Settings_ModsTip": "실물: 각 모드의 ID와 태그, 폴더, 프로필, 로드 순서. 간단: 모드당 한 줄, 체크 칸, 이름, 문제가 있을 때 표시.",
+    "UI_ZeD_Msg_OverHead": "머리 위",
+    "UI_ZeD_Msg_GameNotes": "게임 알림",
+    "UI_ZeD_Msg_Times": "%1회",
+    "UI_ZeD_Msg_KindGood": "좋음",
+    "UI_ZeD_Msg_KindBad": "나쁨",
+    "UI_ZeD_Halo_XP": "%1 +%2 xp",
+    "UI_ZeD_Halo_LevelUp": "%1: %2단계",
+    "UI_ZeD_Halo_LevelDown": "%1: %2단계로 하락",
+    "UI_ZeD_Settings_HaloBubble": "머리 위 알림",
+    "UI_ZeD_Settings_HaloBubbleTip": "게임이 머리 위에 띄우는 알림(너무 무겁습니다, 닿지 않습니다)을 ZeD 말풍선으로 표시하고, 하나씩 메시지에 보관합니다. 기술 xp와 단계는 이전처럼 게임 방식으로 표시되며 메시지에도 보관됩니다."
 }

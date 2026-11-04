@@ -4341,5 +4341,15 @@
     "UI_ZeD_Mods_Label": "标签",
     "UI_ZeD_Mods_HelpLabel": "标签：%1。为文件夹的图片，或分隔符的名称和线条着色。",
     "UI_ZeD_Settings_Mods": "模组界面",
-    "UI_ZeD_Settings_ModsTip": "完整：每个模组的 ID 和标签、文件夹、配置和加载顺序。简洁：每个模组一行，含其方框、名称，出问题时有标记。"
+    "UI_ZeD_Settings_ModsTip": "完整：每个模组的 ID 和标签、文件夹、配置和加载顺序。简洁：每个模组一行，含其方框、名称，出问题时有标记。",
+    "UI_ZeD_Msg_OverHead": "头顶上方",
+    "UI_ZeD_Msg_GameNotes": "来自游戏",
+    "UI_ZeD_Msg_Times": "%1 次",
+    "UI_ZeD_Msg_KindGood": "好",
+    "UI_ZeD_Msg_KindBad": "坏",
+    "UI_ZeD_Halo_XP": "%1 +%2 经验值",
+    "UI_ZeD_Halo_LevelUp": "%1：等级 %2",
+    "UI_ZeD_Halo_LevelDown": "%1：降至等级 %2",
+    "UI_ZeD_Settings_HaloBubble": "头顶通知",
+    "UI_ZeD_Settings_HaloBubbleTip": "游戏显示在角色头顶的通知（太重了、够不到）会改用 ZeD 的气泡显示，并各自保留在“消息”里。技能经验值与等级仍按游戏原有方式显示，同样会保留在“消息”里。"
 }

@@ -4340,5 +4340,15 @@
     "UI_ZeD_Mods_Label": "Etikett",
     "UI_ZeD_Mods_HelpLabel": "Etikett: %1. Farger mappens bilde, eller skillerens navn og strek.",
     "UI_ZeD_Settings_Mods": "Modskjerm",
-    "UI_ZeD_Settings_ModsTip": "Full: hver mods ID og tagger, mapper, profiler og lasterekkefølgen. Enkel: én linje per mod, boksen, navnet og et merke når noe er galt."
+    "UI_ZeD_Settings_ModsTip": "Full: hver mods ID og tagger, mapper, profiler og lasterekkefølgen. Enkel: én linje per mod, boksen, navnet og et merke når noe er galt.",
+    "UI_ZeD_Msg_OverHead": "Over hodet",
+    "UI_ZeD_Msg_GameNotes": "Fra spillet",
+    "UI_ZeD_Msg_Times": "%1 ganger",
+    "UI_ZeD_Msg_KindGood": "Bra",
+    "UI_ZeD_Msg_KindBad": "Dårlig",
+    "UI_ZeD_Halo_XP": "%1 +%2 XP",
+    "UI_ZeD_Halo_LevelUp": "%1: nivå %2",
+    "UI_ZeD_Halo_LevelDown": "%1: ned til nivå %2",
+    "UI_ZeD_Settings_HaloBubble": "Notater over hodet",
+    "UI_ZeD_Settings_HaloBubbleTip": "Spillets notater over hodet (For tung, Kommer ikke til) vises i ZeDs boble, og hvert beholdes i Meldinger. XP og nivåer vises fortsatt slik spillet gjør det, og beholdes også i Meldinger."
 }

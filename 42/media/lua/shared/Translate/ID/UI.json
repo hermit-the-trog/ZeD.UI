@@ -4340,5 +4340,15 @@
     "UI_ZeD_Mods_Label": "Label",
     "UI_ZeD_Mods_HelpLabel": "Label: %1. Mewarnai gambar folder, atau nama dan garis pemisah.",
     "UI_ZeD_Settings_Mods": "Layar mod",
-    "UI_ZeD_Settings_ModsTip": "Penuh: ID dan tag tiap mod, folder, profil, dan urutan muat. Sederhana: satu baris per mod, kotaknya, namanya, dan tanda saat ada masalah."
+    "UI_ZeD_Settings_ModsTip": "Penuh: ID dan tag tiap mod, folder, profil, dan urutan muat. Sederhana: satu baris per mod, kotaknya, namanya, dan tanda saat ada masalah.",
+    "UI_ZeD_Msg_OverHead": "Di atas kepala",
+    "UI_ZeD_Msg_GameNotes": "Dari game",
+    "UI_ZeD_Msg_Times": "%1 kali",
+    "UI_ZeD_Msg_KindGood": "Baik",
+    "UI_ZeD_Msg_KindBad": "Buruk",
+    "UI_ZeD_Halo_XP": "%1 +%2 XP",
+    "UI_ZeD_Halo_LevelUp": "%1: level %2",
+    "UI_ZeD_Halo_LevelDown": "%1: turun ke level %2",
+    "UI_ZeD_Settings_HaloBubble": "Catatan di atas kepala",
+    "UI_ZeD_Settings_HaloBubbleTip": "Catatan game di atas kepala (Terlalu berat, Tidak terjangkau) tampil di gelembung ZeD, dan masing-masing disimpan di Pesan. XP dan level tetap tampil seperti di game, dan juga disimpan di Pesan."
 }

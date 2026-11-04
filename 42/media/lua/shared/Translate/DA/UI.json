@@ -4340,5 +4340,15 @@
     "UI_ZeD_Mods_Label": "Etiket",
     "UI_ZeD_Mods_HelpLabel": "Etiket: %1. Farver mappens billede, eller skillerens navn og streg.",
     "UI_ZeD_Settings_Mods": "Modifikationsskærm",
-    "UI_ZeD_Settings_ModsTip": "Fuld: hver modifikations ID og tags, mapper, profiler og indlæsningsrækkefølgen. Simpel: én linje pr. modifikation, dens felt, dens navn og et mærke, når noget er galt."
+    "UI_ZeD_Settings_ModsTip": "Fuld: hver modifikations ID og tags, mapper, profiler og indlæsningsrækkefølgen. Simpel: én linje pr. modifikation, dens felt, dens navn og et mærke, når noget er galt.",
+    "UI_ZeD_Msg_OverHead": "Over hovedet",
+    "UI_ZeD_Msg_GameNotes": "Fra spillet",
+    "UI_ZeD_Msg_Times": "%1 gange",
+    "UI_ZeD_Msg_KindGood": "Godt",
+    "UI_ZeD_Msg_KindBad": "Dårligt",
+    "UI_ZeD_Halo_XP": "%1 +%2 xp",
+    "UI_ZeD_Halo_LevelUp": "%1: niveau %2",
+    "UI_ZeD_Halo_LevelDown": "%1: ned til niveau %2",
+    "UI_ZeD_Settings_HaloBubble": "Noter over hovedet",
+    "UI_ZeD_Settings_HaloBubbleTip": "Spillets noter over hovedet (For tung, Kan ikke nå) vises i ZeD's boble, og hver gemmes i Beskeder. Xp og niveauer vises stadig som i spillet og gemmes også i Beskeder."
 }

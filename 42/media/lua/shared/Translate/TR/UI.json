@@ -4340,5 +4340,15 @@
     "UI_ZeD_Mods_Label": "Etiket",
     "UI_ZeD_Mods_HelpLabel": "Etiket: %1. Klasörün resmini veya ayırıcının adını ve çizgisini renklendirir.",
     "UI_ZeD_Settings_Mods": "Mod ekranı",
-    "UI_ZeD_Settings_ModsTip": "Tam: her modun kimliği ve etiketleri, klasörler, profiller ve yükleme sırası. Basit: mod başına bir satır, kutusu, adı ve bir şey ters olduğunda bir işaret."
+    "UI_ZeD_Settings_ModsTip": "Tam: her modun kimliği ve etiketleri, klasörler, profiller ve yükleme sırası. Basit: mod başına bir satır, kutusu, adı ve bir şey ters olduğunda bir işaret.",
+    "UI_ZeD_Msg_OverHead": "Başının üstünde",
+    "UI_ZeD_Msg_GameNotes": "Oyundan",
+    "UI_ZeD_Msg_Times": "%1 kez",
+    "UI_ZeD_Msg_KindGood": "İyi",
+    "UI_ZeD_Msg_KindBad": "Kötü",
+    "UI_ZeD_Halo_XP": "%1 +%2 TP",
+    "UI_ZeD_Halo_LevelUp": "%1: seviye %2",
+    "UI_ZeD_Halo_LevelDown": "%1: seviye %2 düzeyine düştü",
+    "UI_ZeD_Settings_HaloBubble": "Baş üstü notları",
+    "UI_ZeD_Settings_HaloBubbleTip": "Oyunun başının üstünde gösterdiği notlar (Çok ağır, Erişilemiyor) ZeD'in balonunda görünür ve her biri Mesajlar'da tutulur. Beceri TP'si ve seviyeleri yine oyunun kendi biçiminde görünür ve onlar da Mesajlar'da tutulur."
 }

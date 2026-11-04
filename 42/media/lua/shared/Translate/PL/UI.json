@@ -4340,5 +4340,15 @@
     "UI_ZeD_Mods_Label": "Etykieta",
     "UI_ZeD_Mods_HelpLabel": "Etykieta: %1. Koloruje obrazek folderu albo nazwę i linię separatora.",
     "UI_ZeD_Settings_Mods": "Ekran modów",
-    "UI_ZeD_Settings_ModsTip": "Pełny: ID i tagi każdego moda, foldery, profile i kolejność ładowania. Prosty: jeden wiersz na moda, jego pole, nazwa i znak, gdy coś jest nie tak."
+    "UI_ZeD_Settings_ModsTip": "Pełny: ID i tagi każdego moda, foldery, profile i kolejność ładowania. Prosty: jeden wiersz na moda, jego pole, nazwa i znak, gdy coś jest nie tak.",
+    "UI_ZeD_Msg_OverHead": "Nad głową",
+    "UI_ZeD_Msg_GameNotes": "Z gry",
+    "UI_ZeD_Msg_Times": "%1 razy",
+    "UI_ZeD_Msg_KindGood": "Dobre",
+    "UI_ZeD_Msg_KindBad": "Złe",
+    "UI_ZeD_Halo_XP": "%1 +%2 PD",
+    "UI_ZeD_Halo_LevelUp": "%1: poziom %2",
+    "UI_ZeD_Halo_LevelDown": "%1: spadek do poziomu %2",
+    "UI_ZeD_Settings_HaloBubble": "Notatki nad głową",
+    "UI_ZeD_Settings_HaloBubbleTip": "Notatki gry nad głową postaci (Za ciężkie, Poza zasięgiem) pokazują się w dymku ZeD, a każda trafia do Wiadomości. PD i poziomy umiejętności nadal wyświetlają się tak jak w grze i też trafiają do Wiadomości."
 }

@@ -4340,5 +4340,15 @@
     "UI_ZeD_Mods_Label": "Étiquette",
     "UI_ZeD_Mods_HelpLabel": "Étiquette : %1. Colore l'image du dossier, ou le nom et le trait du séparateur.",
     "UI_ZeD_Settings_Mods": "Écran des mods",
-    "UI_ZeD_Settings_ModsTip": "Complet : l'ID et les tags de chaque mod, dossiers, profils et ordre de chargement. Simple : une ligne par mod, sa case, son nom et une marque en cas de problème."
+    "UI_ZeD_Settings_ModsTip": "Complet : l'ID et les tags de chaque mod, dossiers, profils et ordre de chargement. Simple : une ligne par mod, sa case, son nom et une marque en cas de problème.",
+    "UI_ZeD_Msg_OverHead": "Au-dessus de la tête",
+    "UI_ZeD_Msg_GameNotes": "Du jeu",
+    "UI_ZeD_Msg_Times": "%1 fois",
+    "UI_ZeD_Msg_KindGood": "Bon",
+    "UI_ZeD_Msg_KindBad": "Mauvais",
+    "UI_ZeD_Halo_XP": "%1 +%2 EXP",
+    "UI_ZeD_Halo_LevelUp": "%1 : niveau %2",
+    "UI_ZeD_Halo_LevelDown": "%1 : retour au niveau %2",
+    "UI_ZeD_Settings_HaloBubble": "Notes au-dessus de la tête",
+    "UI_ZeD_Settings_HaloBubbleTip": "Les notes du jeu au-dessus de la tête (Trop lourd, Hors de portée) s'affichent dans la bulle de ZeD, et chacune est gardée dans Messages. L'EXP et les niveaux s'affichent toujours comme dans le jeu et sont aussi gardés dans Messages."
 }
