@@ -212,3 +212,7 @@ Decided (Nov 4 2026, four questions):
   out for themselves sit behind a spoiler bar, shown only when asked.
 - **The five new chapters: Build drafts them in the guide's manual voice, the director edits** them in a mockup
   before they are built and translated.
+
+The director, Nov 4 2026 (beta 3 by 5 pm, code freeze 3:30): ZeD clips after beta 3 (the game's clips stay); the five
+chapters ship as Build drafted them if the director's edits are not back by 1:30 pm. Title bar pins: three at most
+(mockup zed_title_pins_v1, "Three, build it").
