@@ -4336,7 +4336,7 @@
     "UI_ZeD_Mods_TabOff": "Oprite %1",
     "UI_ZeD_Mods_HideInc": "Ascunde incompatibilele",
     "UI_ZeD_Mods_HideIncN": "%1 ascunse",
-    "UI_ZeD_Mods_HelpHideInc": "Ascunde modurile oprite care nu pot fi pornite: făcute pentru altă versiune a jocului sau care cer un mod neinstalat. Se reține între vizite.",
+    "UI_ZeD_Mods_HelpHideInc": "Ascunde modurile oprite care nu pot fi pornite.",
     "UI_ZeD_Mods_Label": "Etichetă",
     "UI_ZeD_Mods_LabelNone": "Niciuna",
     "UI_ZeD_Mods_LabelEssential": "Esențial",

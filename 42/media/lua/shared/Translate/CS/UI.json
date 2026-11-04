@@ -4336,7 +4336,7 @@
     "UI_ZeD_Mods_TabOff": "Vypnuté %1",
     "UI_ZeD_Mods_HideInc": "Skrýt nekompatibilní",
     "UI_ZeD_Mods_HideIncN": "Skryto: %1",
-    "UI_ZeD_Mods_HelpHideInc": "Skryje vypnuté módy, které nelze zapnout: vytvořené pro jinou verzi hry nebo potřebující mód, který není nainstalován. Pamatuje se mezi návštěvami.",
+    "UI_ZeD_Mods_HelpHideInc": "Skryje vypnuté módy, které nelze zapnout.",
     "UI_ZeD_Mods_Label": "Štítek",
     "UI_ZeD_Mods_LabelNone": "Žádný",
     "UI_ZeD_Mods_LabelEssential": "Zásadní",

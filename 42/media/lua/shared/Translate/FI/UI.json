@@ -4336,7 +4336,7 @@
     "UI_ZeD_Mods_TabOff": "Pois %1",
     "UI_ZeD_Mods_HideInc": "Piilota yhteensopimattomat",
     "UI_ZeD_Mods_HideIncN": "%1 piilotettu",
-    "UI_ZeD_Mods_HelpHideInc": "Piilottaa pois päältä olevat modit, joita ei voi kytkeä päälle: tehty toiselle pelin versiolle tai vaativat modin, jota ei ole asennettu. Muistetaan käyntien välillä.",
+    "UI_ZeD_Mods_HelpHideInc": "Piilottaa pois päältä olevat modit, joita ei voi kytkeä päälle.",
     "UI_ZeD_Mods_Label": "Nimiö",
     "UI_ZeD_Mods_LabelNone": "Ei mitään",
     "UI_ZeD_Mods_LabelEssential": "Olennainen",

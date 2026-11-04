@@ -4336,7 +4336,7 @@
     "UI_ZeD_Mods_TabOff": "Disattivi %1",
     "UI_ZeD_Mods_HideInc": "Nascondi incompatibili",
     "UI_ZeD_Mods_HideIncN": "%1 nascosti",
-    "UI_ZeD_Mods_HelpHideInc": "Nasconde i mod disattivati che non si possono attivare: fatti per un'altra versione del gioco, o che richiedono un mod non installato. Viene ricordato tra una visita e l'altra.",
+    "UI_ZeD_Mods_HelpHideInc": "Nasconde i mod disattivati che non si possono attivare.",
     "UI_ZeD_Mods_Label": "Etichetta",
     "UI_ZeD_Mods_LabelNone": "Nessuna",
     "UI_ZeD_Mods_LabelEssential": "Essenziale",

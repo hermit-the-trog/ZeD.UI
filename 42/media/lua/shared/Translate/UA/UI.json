@@ -4336,7 +4336,7 @@
     "UI_ZeD_Mods_TabOff": "Вимк. %1",
     "UI_ZeD_Mods_HideInc": "Сховати несумісні",
     "UI_ZeD_Mods_HideIncN": "Сховано: %1",
-    "UI_ZeD_Mods_HelpHideInc": "Ховає вимкнені моди, які не можна ввімкнути: зроблені для іншої версії гри або такі, що потребують мода, який не встановлено. Запам'ятовується між сеансами.",
+    "UI_ZeD_Mods_HelpHideInc": "Ховає вимкнені моди, які не можна ввімкнути.",
     "UI_ZeD_Mods_Label": "Мітка",
     "UI_ZeD_Mods_LabelNone": "Немає",
     "UI_ZeD_Mods_LabelEssential": "Важливе",

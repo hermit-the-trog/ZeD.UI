@@ -4336,7 +4336,7 @@
     "UI_ZeD_Mods_TabOff": "Av %1",
     "UI_ZeD_Mods_HideInc": "Skjul inkompatible",
     "UI_ZeD_Mods_HideIncN": "%1 skjult",
-    "UI_ZeD_Mods_HelpHideInc": "Skjuler modene som er av og ikke kan slås på: laget for en annen spillversjon, eller som trenger en mod som ikke er installert. Huskes mellom besøk.",
+    "UI_ZeD_Mods_HelpHideInc": "Skjuler modene som er av og ikke kan slås på.",
     "UI_ZeD_Mods_Label": "Etikett",
     "UI_ZeD_Mods_LabelNone": "Ingen",
     "UI_ZeD_Mods_LabelEssential": "Viktig",

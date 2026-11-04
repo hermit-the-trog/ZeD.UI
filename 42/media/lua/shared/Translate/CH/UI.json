@@ -4337,7 +4337,7 @@
     "UI_ZeD_Mods_TabOff": "已關 %1",
     "UI_ZeD_Mods_HideInc": "隱藏不相容項",
     "UI_ZeD_Mods_HideIncN": "已隱藏 %1",
-    "UI_ZeD_Mods_HelpHideInc": "隱藏已關閉且無法開啟的模組：為其他遊戲版本製作，或需要未安裝的模組。下次造訪時保持此設定。",
+    "UI_ZeD_Mods_HelpHideInc": "隱藏已關閉且無法開啟的模組。",
     "UI_ZeD_Mods_Label": "標籤",
     "UI_ZeD_Mods_LabelNone": "無",
     "UI_ZeD_Mods_LabelEssential": "必要",

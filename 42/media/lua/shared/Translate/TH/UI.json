@@ -4336,7 +4336,7 @@
     "UI_ZeD_Mods_TabOff": "ปิด %1",
     "UI_ZeD_Mods_HideInc": "ซ่อนที่เข้ากันไม่ได้",
     "UI_ZeD_Mods_HideIncN": "ซ่อน %1",
-    "UI_ZeD_Mods_HelpHideInc": "ซ่อนม็อดที่ปิดอยู่และเปิดไม่ได้ เช่น สร้างมาสำหรับเกมเวอร์ชันอื่น หรือต้องใช้ม็อดที่ยังไม่ได้ติดตั้ง ระบบจำค่านี้ไว้ข้ามการเข้าใช้",
+    "UI_ZeD_Mods_HelpHideInc": "ซ่อนม็อดที่ปิดอยู่และเปิดไม่ได้",
     "UI_ZeD_Mods_Label": "ป้ายกำกับ",
     "UI_ZeD_Mods_LabelNone": "ไม่มี",
     "UI_ZeD_Mods_LabelEssential": "จำเป็น",

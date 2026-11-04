@@ -4337,7 +4337,7 @@
     "UI_ZeD_Mods_TabOff": "Off %1",
     "UI_ZeD_Mods_HideInc": "Hide incompatible",
     "UI_ZeD_Mods_HideIncN": "%1 hidden",
-    "UI_ZeD_Mods_HelpHideInc": "Hides the mods that are off and can't be turned on: made for another game version, or needing a mod that isn't installed. Kept between visits.",
+    "UI_ZeD_Mods_HelpHideInc": "Hides the mods that are off and can't be turned on.",
     "UI_ZeD_Mods_Label": "Label",
     "UI_ZeD_Mods_LabelNone": "None",
     "UI_ZeD_Mods_LabelEssential": "Essential",

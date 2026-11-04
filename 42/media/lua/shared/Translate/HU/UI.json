@@ -4336,7 +4336,7 @@
     "UI_ZeD_Mods_TabOff": "Ki %1",
     "UI_ZeD_Mods_HideInc": "Összeférhetetlenek elrejtése",
     "UI_ZeD_Mods_HideIncN": "%1 elrejtve",
-    "UI_ZeD_Mods_HelpHideInc": "Elrejti a kikapcsolt modokat, amelyeket nem lehet bekapcsolni: másik játékverzióra készültek, vagy olyan modot igényelnek, ami nincs telepítve. Látogatások között megmarad.",
+    "UI_ZeD_Mods_HelpHideInc": "Elrejti a kikapcsolt modokat, amelyeket nem lehet bekapcsolni.",
     "UI_ZeD_Mods_Label": "Címke",
     "UI_ZeD_Mods_LabelNone": "Nincs",
     "UI_ZeD_Mods_LabelEssential": "Fontos",

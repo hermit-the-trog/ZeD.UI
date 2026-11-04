@@ -4336,7 +4336,7 @@
     "UI_ZeD_Mods_TabOff": "Inactivos %1",
     "UI_ZeD_Mods_HideInc": "Ocultar incompatibles",
     "UI_ZeD_Mods_HideIncN": "%1 ocultos",
-    "UI_ZeD_Mods_HelpHideInc": "Oculta los mods inactivos que no se pueden activar: hechos para otra versión del juego o que necesitan un mod que no está instalado. Se recuerda entre visitas.",
+    "UI_ZeD_Mods_HelpHideInc": "Oculta los mods inactivos que no se pueden activar.",
     "UI_ZeD_Mods_Label": "Etiqueta",
     "UI_ZeD_Mods_LabelNone": "Ninguna",
     "UI_ZeD_Mods_LabelEssential": "Esencial",

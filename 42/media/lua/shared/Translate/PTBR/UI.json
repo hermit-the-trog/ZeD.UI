@@ -4336,7 +4336,7 @@
     "UI_ZeD_Mods_TabOff": "Desligados %1",
     "UI_ZeD_Mods_HideInc": "Ocultar incompatíveis",
     "UI_ZeD_Mods_HideIncN": "%1 ocultos",
-    "UI_ZeD_Mods_HelpHideInc": "Oculta os mods desligados que não podem ser ligados: feitos para outra versão do jogo, ou que precisam de um mod que não está instalado. Fica salvo entre visitas.",
+    "UI_ZeD_Mods_HelpHideInc": "Oculta os mods desligados que não podem ser ligados.",
     "UI_ZeD_Mods_Label": "Etiqueta",
     "UI_ZeD_Mods_LabelNone": "Nenhuma",
     "UI_ZeD_Mods_LabelEssential": "Essencial",

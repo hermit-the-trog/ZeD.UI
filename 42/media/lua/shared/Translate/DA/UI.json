@@ -4336,7 +4336,7 @@
     "UI_ZeD_Mods_TabOff": "Fra %1",
     "UI_ZeD_Mods_HideInc": "Skjul inkompatible",
     "UI_ZeD_Mods_HideIncN": "%1 skjult",
-    "UI_ZeD_Mods_HelpHideInc": "Skjuler de slukkede modifikationer, der ikke kan tændes: lavet til en anden spilversion, eller som kræver en modifikation, der ikke er installeret. Huskes mellem besøg.",
+    "UI_ZeD_Mods_HelpHideInc": "Skjuler de slukkede modifikationer, der ikke kan tændes.",
     "UI_ZeD_Mods_Label": "Etiket",
     "UI_ZeD_Mods_LabelNone": "Ingen",
     "UI_ZeD_Mods_LabelEssential": "Væsentlig",

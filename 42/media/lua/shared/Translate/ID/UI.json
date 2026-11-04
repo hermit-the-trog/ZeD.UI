@@ -4336,7 +4336,7 @@
     "UI_ZeD_Mods_TabOff": "Nonaktif %1",
     "UI_ZeD_Mods_HideInc": "Sembunyikan yang tidak kompatibel",
     "UI_ZeD_Mods_HideIncN": "%1 disembunyikan",
-    "UI_ZeD_Mods_HelpHideInc": "Menyembunyikan mod nonaktif yang tidak bisa diaktifkan: dibuat untuk versi game lain, atau butuh mod yang belum terinstal. Diingat antar kunjungan.",
+    "UI_ZeD_Mods_HelpHideInc": "Menyembunyikan mod nonaktif yang tidak bisa diaktifkan.",
     "UI_ZeD_Mods_Label": "Label",
     "UI_ZeD_Mods_LabelNone": "Tidak ada",
     "UI_ZeD_Mods_LabelEssential": "Penting",
