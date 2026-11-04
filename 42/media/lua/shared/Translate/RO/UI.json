@@ -4535,5 +4535,7 @@
     "UI_ZeD_Guide_Check4": "Curăță și bandajează fiecare rană, oricât de mică.",
     "UI_ZeD_Guide_Check5": "Mănâncă mai întâi mâncarea proaspătă. Păstrează conservele.",
     "UI_ZeD_Guide_Check6": "Găsește o hartă și învață două căi de ieșire din oraș.",
-    "UI_ZeD_Guide_Check7": "Mergi, stai liniștit și luptă la o ușă."
+    "UI_ZeD_Guide_Check7": "Mergi, stai liniștit și luptă la o ușă.",
+    "UI_ZeD_Win_HelpPin": "Fixează această fereastră deschisă. Dacă nu e fixată, se strânge pe bara de titlu când cursorul o părăsește.",
+    "UI_ZeD_Win_HelpUnpin": "Anulează fixarea: fereastra se strânge pe bara de titlu când cursorul o părăsește și se desface când cursorul se află deasupra barei de titlu."
 }

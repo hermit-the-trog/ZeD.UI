@@ -4535,5 +4535,7 @@
     "UI_ZeD_Guide_Check4": "Tisztítsd meg és kötözd be minden sebet, bármilyen kicsi is.",
     "UI_ZeD_Guide_Check5": "Előbb a friss ételt edd meg. A konzerveket tartsd meg.",
     "UI_ZeD_Guide_Check6": "Keress egy térképet, és tanulj meg két utat a városból.",
-    "UI_ZeD_Guide_Check7": "Sétálj, maradj csendben, és egy ajtónál harcolj."
+    "UI_ZeD_Guide_Check7": "Sétálj, maradj csendben, és egy ajtónál harcolj.",
+    "UI_ZeD_Win_HelpPin": "Rögzítsd nyitva ezt az ablakot. Rögzítés nélkül felgördül a címsorára, amikor a mutató elhagyja.",
+    "UI_ZeD_Win_HelpUnpin": "Rögzítés feloldása: az ablak felgördül a címsorára, amikor a mutató elhagyja, és legördül, amikor a mutató a címsor fölött van."
 }
