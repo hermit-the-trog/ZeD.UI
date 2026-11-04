@@ -186,3 +186,6 @@ UI_ZeD_Guide_* keys; the Full look (the book); the five new sections' pages; cli
 The director, Nov 3 2026 ("Yes, yes"): the book's title, subtitle and introduction are translated with the rest of
 the guide's own words (the names stay: Stevie Whetstone, Doidbros and Buzzlord, Muldraugh); topics share pages in the
 book (a chapter still opens on a fresh page; a topic with rules still faces them).
+
+The director, Nov 4 2026 (QA found no two topics ever shared a page: a full-width clip under a topic never fit):
+a chapter opener keeps the full-width clip; every other topic's clip is two-thirds of the text width, centred.

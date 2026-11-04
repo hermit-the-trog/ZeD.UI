@@ -258,7 +258,10 @@ function B.paginate(bk, u)
     local textW_ = px(U.PW - U.M * 2)
     local lineH = px(U.TEXT) * U.LEAD
     local bottom = px(U.PH - U.FOOT - U.MT)
-    local clipH = math.floor(textW_ / 2)
+    -- a chapter opener's clip spans the text; every other topic's is two-thirds of it, centred, so two short
+    -- topics share a page (the director, Nov 4 2026)
+    local clipW = { [true] = textW_, [false] = math.floor(textW_ * 2 / 3) }
+    local clipH = { [true] = math.floor(textW_ / 2), [false] = math.floor(textW_ / 3) }
     local page, y = nil, 0
     bk.sectionPage, bk.pageOf = {}, {}
 
@@ -280,10 +283,10 @@ function B.paginate(bk, u)
             add({ k = "head", y = y - hp * 0.18, text = table.concat(words, " "), px = hp })
         end
     end
-    local function clip(t)
+    local function clip(t, opener)
         if not (t.video and t.video ~= "") then return end
-        add({ k = "clip", y = y, h = clipH, topic = t })
-        y = y + clipH + px(U.CAP) * 1.5
+        add({ k = "clip", y = y, w = clipW[opener], h = clipH[opener], topic = t })
+        y = y + clipH[opener] + px(U.CAP) * 1.5
         add({ k = "caption", y = y, text = t.title })
         y = y + px(U.CAP) * 0.7
     end
@@ -310,7 +313,7 @@ function B.paginate(bk, u)
                 local hp = px(U.TITLE)
                 local nHead = #wrapWords(wordsOf(upper(t.title)), F.head, hp, function() return textW_ end, 1, 0)
                 local need = px(U.TEXT) * 1.2 + nHead * hp * 1.08 + px(6)
-                if t.video and t.video ~= "" then need = need + clipH + px(U.CAP) * 2.2 end
+                if t.video and t.video ~= "" then need = need + clipH[false] + px(U.CAP) * 2.2 end
                 need = need + lineH * 3
                 if not page or page.kind ~= "flow" or y + need > bottom then newPage(si, s, false) end
             end
@@ -319,7 +322,7 @@ function B.paginate(bk, u)
                 bk.sectionPage[s.id] = #pages
                 heads(s.title, px(U.OPEN))
                 y = y + px(10)
-                clip(t)
+                clip(t, true)
                 local d = blurb(s)
                 local dl = {}
                 if d ~= "" then dl = wrapWords(wordsOf(titleCase(d:gsub("%.$", ""))), F.sansB, px(U.DECK), function() return textW_ - px(20) end, 1, 0) end
@@ -336,7 +339,7 @@ function B.paginate(bk, u)
                 if not page.fresh then y = y + px(U.TEXT) * 1.2 end
                 heads(t.title, px(U.TITLE))
                 y = y + px(6)
-                clip(t)
+                clip(t, false)
             end
             body(t, si, s)
             if rf then
@@ -469,12 +472,14 @@ function ZeD_GuideBook:drawFlowPage(p, x, y, w, u)
         elseif k == "clip" then
             local c = self:clipTex(it.topic)
             local cy = y + it.y
-            self:drawRect(tx, cy, tw_, it.h, 1, INK.r, INK.g, INK.b)
+            local cw_ = it.w or tw_
+            local cx_ = tx + math.floor((tw_ - cw_) / 2)
+            self:drawRect(cx_, cy, cw_, it.h, 1, INK.r, INK.g, INK.b)
             if c and c.video then
                 pcall(function() c.video:RenderFrame() end)
-                self:drawTextureScaled(c.video, tx, cy, tw_, it.h, 1, 0.96, 0.93, 0.84)
+                self:drawTextureScaled(c.video, cx_, cy, cw_, it.h, 1, 0.96, 0.93, 0.84)
             elseif c and c.still then
-                self:drawTextureScaledAspect(c.still, tx, cy, tw_, it.h, 1, 0.96, 0.93, 0.84)
+                self:drawTextureScaledAspect(c.still, cx_, cy, cw_, it.h, 1, 0.96, 0.93, 0.84)
             end
         elseif k == "caption" then
             drawCentre(self, F.sansI, it.text, cx, y + it.y, U.CAP * u, INK)
