@@ -2440,6 +2440,13 @@ item says so.
       director's pictures, clean, in the gallery look: Zomboid/Screenshots/guide_director/ (Skill Books with its still,
       with the clip playing, scrolled to the whole rules table; Barricading mid-clip; Find narrowed to "book").
       Left open: the Deck with Large text after the stills (the layout did not change).
+    - **QA, Nov 3 2026: done (e225e3f9).** At 4K and at the Deck with Large text: g82 60 / 60, the pictures in the
+      text 8 / 8 (mouse 21 / 21, controller 22 / 22), the stills 4 / 4, the measure 8 / 8 (351 lines, at most 71
+      letters, the longest tenth from 66; no line past the measure; the head line, the clip, the rules table with its
+      long headings on two lines, and the band fit; the window fits the screen), no errors in the log (qa/regression/
+      2026-11-03_guide82_final_4k.md, _final_1280x800L.md). The director's pictures: Zomboid/Screenshots/
+      guide_director/ (Skill Books with its still, with the clip, scrolled to the rules; Barricading mid-clip; Find
+      "book"; the Map topic's controller text with its button picture).
 
 ## Test process
 
