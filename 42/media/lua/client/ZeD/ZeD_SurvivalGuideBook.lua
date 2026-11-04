@@ -140,7 +140,8 @@ end
 -- the section's own words for its chapter opener and the contents (keys by the game's section title key)
 local function stemOf(titleKey) return tostring(titleKey):match("^SurvivalGuide_(.-)_title$") or tostring(titleKey) end
 local function blurb(s) local k = "UI_ZeD_Guide_Blurb_" .. stemOf(s.titleKey); local t = tr(k); return t ~= k and t or "" end
-local function titleCase(s) return (s:gsub("(%w)([%w']*)", function(a, b) return upper(a) .. b end)) end
+-- (one capture: Kahlua hands an empty capture to the function as nil, so "a" would break a two-capture form)
+local function titleCase(s) return (s:gsub("%w[%w']*", function(w) return upper(w:sub(1, 1)) .. w:sub(2) end)) end
 
 -- all of a topic's body lines at width w (the game's line breaks start new lines; a <LINE> paragraph indents)
 local function bodyLines(t, f, px, w)
