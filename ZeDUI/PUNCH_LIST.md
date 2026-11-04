@@ -2433,6 +2433,13 @@ item says so.
       effects off. (3) Turning video effects on with a topic open keeps the old state until another topic is chosen.
       (4) Notes: the window is see-through (the ZeD option), so the inventory behind shows faintly through the list;
       at the Deck the game's "Game Paused" sits over the guide's title line.
+    - **QA, Nov 3 2026, the fixes (40ca0191, e87c0f62): 58 / 59 at 4K, then the stills 4 / 4, no errors in the log.**
+      Previous and LB wrap from the first topic to the last; the clip follows the Video effects option at once; with
+      it off every one of the 81 topics shows its still (Skill Books: the reading chair), on swaps to the clip and off
+      back at once (qa/regression/2026-11-03_guide82_4k_r2.md, _guide82_stills.md; zedqa_guide82_stills.lua). The
+      director's pictures, clean, in the gallery look: Zomboid/Screenshots/guide_director/ (Skill Books with its still,
+      with the clip playing, scrolled to the whole rules table; Barricading mid-clip; Find narrowed to "book").
+      Left open: the Deck with Large text after the stills (the layout did not change).
 
 ## Test process
 
