@@ -189,3 +189,26 @@ book (a chapter still opens on a fresh page; a topic with rules still faces them
 
 The director, Nov 4 2026 (QA found no two topics ever shared a page: a full-width clip under a topic never fit):
 a chapter opener keeps the full-width clip; every other topic's clip is two-thirds of the text width, centred.
+
+## The release candidate for the next beta (the director, Nov 4 2026)
+
+The director: "The next beta, I want that guide to be like really good. At least a very thorough release candidate.
+Make it usable... No one looks at it. And then people go to a wiki online to find information that is always out of
+date... This should be an easy to find place... This can be as much a survival guide as it is an encyclopedia of the
+game." Also: onboarding to both the game and ZeD; the text follows your input (your keys on keyboard and mouse, THAT
+controller's buttons: Xbox, PlayStation, Nintendo, Deck); every action's two ways, plain and quick to scan.
+
+Decided (Nov 4 2026, four questions):
+- **Two ways, on every action page:** a two-column box at the foot, "Mouse and keyboard | Controller", one short
+  line per action; the controller column in your controller's buttons, the keyboard column in your own bindings. The
+  page text switches with your device as you play.
+- **A hint strip** for what is in front of you in the world, for keyboard and controller alike: one quiet strip, the
+  action and your key or button. ZeD setup: Always, First hours (the default) or Off. (Its own piece of work.)
+- **Rules pages, all four groups:** your body (carry weight, strength and fitness, tiredness, hunger and thirst,
+  temperature, panic); food and health (calories and weight, food going stale and rotten, sickness, wounds and their
+  healing times); skills and traits (XP per level, what a level gives, trait costs and effects, book and job
+  multipliers); things you run (generators and fuel, vehicles, farming, the water and power shutoff from your
+  world's settings). Plus **spoiler hiding** (the director's own addition): numbers some players would rather find
+  out for themselves sit behind a spoiler bar, shown only when asked.
+- **The five new chapters: Build drafts them in the guide's manual voice, the director edits** them in a mockup
+  before they are built and translated.
