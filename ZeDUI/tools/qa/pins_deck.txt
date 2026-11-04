@@ -1,0 +1,5 @@
+# ZeDUI/tools/qa/pins_deck.txt  (Nov 4 2026): title bar pins at the Deck with Large text
+zedqa_prelude.lua | pre | timeout=120
+zedqa_textlarge.lua | txl | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_pins.lua | pin | timeout=180

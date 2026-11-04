@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/pins.txt  (Nov 4 2026): title bar pins
+zedqa_prelude.lua | pre | timeout=120
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_pins.lua | pin | timeout=180
