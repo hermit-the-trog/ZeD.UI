@@ -2469,6 +2469,18 @@ item says so.
       contents, Down to the strip, A presses, B closes); the book fits the Deck with Large text; Russian shows the book
       in Cyrillic; Japanese shows the window; no errors in the log. Pictures for the director: the title page, the
       contents and introduction, a chapter opener mid-clip, Skill Books with its rules page.
+    - **QA, Nov 3 2026: passes (da1a99cf).** At 4K and at the Deck with Large text: the book 40 / 40 at both (88 pages,
+      44 spreads; F1 on Skills opens Skill Books facing its rules), the real-mouse checks 9 / 9 (a contents row, clicks
+      over the text on both pages, a thumb, the strip's Next and start-up box all land through the words), no errors in
+      the log; the words crisp on the paper after several reopens (the game's own text atoms, drawn by the book); Aiming
+      plays; nothing left on screen after closing; frame time the same as the window look (8.3 ms, 120 fps). The Deck:
+      the book fills the screen (unit 1.0), Large text makes the type larger. Found on the way and fixed (Build): the
+      chapter decks' Title Case threw (Kahlua's empty capture), ZeD's font lists had no Sdf faces (every one drew as
+      Small), the Sdf type drew soft with a halo, the atoms sat under the pages after a reopen, Skill Books' rules
+      overleaf. Open, small: at the Deck the game's "Game Paused" box sits over the top of the gutter; justified lines
+      spread whole spaces, so some gaps look doubled. Not run: Russian and Japanese. The director's pictures:
+      Zomboid/Screenshots/guide_book_director/ (title, contents and introduction, a chapter opener, Skill Books and its
+      rules).
 
 ## Test process
 
