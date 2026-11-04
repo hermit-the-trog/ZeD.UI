@@ -196,7 +196,7 @@ end
 -- DRAWING THE GROUPED LIST
 -- ----------------------------------------------------------------------------
 -- a folder picture: a tab and a body, outlined (no fill: System 7's folder in a list). A labelled folder (fill = true)
--- is tinted as System 7's Finder tinted a labelled icon: the outline in the label's colour and a light wash of it inside
+-- is tinted: the outline in the label's colour and a light wash of it inside
 local function drawFolderPic(p, x, y, s, c, fill)
     local T = ZeD.T
     local u = T.px(1)
@@ -219,7 +219,7 @@ local function labelColor(key, asText)
 end
 ZeD_MMMods.labelColor = function(_, key, asText) return labelColor(key, asText) end
 
--- THE LABEL SWATCHES (the director, Nov 4 2026: "System 7 finder labels"): None, then System 7's seven labels, in
+-- THE LABEL SWATCHES (the director, Nov 4 2026): None, then the eight label colours (ZeD.LABELS: ZeD's accents), in
 -- the Maps tab's ink-swatch look: a hover wash and the controller's mark in a 2u ring round each, a 1u edge, a ring in
 -- the text colour round the one in use, and the label's name beside them. pick(key or nil). Returns the y under them.
 local SW = 18
@@ -268,7 +268,7 @@ function ZeD_MMMods:labelSwatches(ix, cy, cur, pick, row, vy, vh, idp, modal)
             if foc then ZeD.Focus.mark(self, rx, ry, rs, rs, MM.focusOpts()) end
             if hot or foc then
                 shown = L and L.k or nil
-                ZeD.Help.set(self, ZeD.tr("UI_ZeD_Mods_HelpLabel", ZeD.tr(L and L.name or "UI_ZeD_Mods_LabelNone")))
+                ZeD.Help.set(self, ZeD.tr("UI_ZeD_Mods_HelpLabel", ZeD.tr(L and L.name or "IGUI_None")))
             end
             if not modal then
                 local h, sp = e.hit, e.spec
@@ -281,7 +281,7 @@ function ZeD_MMMods:labelSwatches(ix, cy, cur, pick, row, vy, vh, idp, modal)
         sx = sx + sz + gap
     end
     -- the name of the label in use, or of the one pointed at
-    local nameKey = "UI_ZeD_Mods_LabelNone"
+    local nameKey = "IGUI_None"
     for _, L in ipairs(ZeD.LABELS) do if L.k == shown then nameKey = L.name end end
     local f2, tc = T.fontF2, T.text
     if cy >= vy and cy + sz <= vy + vh then
@@ -898,7 +898,7 @@ function ZeD_MMMods:drawFolderDetail(x, vy, w, vh)
     cy = cy + MM.fontH(f2) + T.px(8)
     -- the verbs (made once per change, with the pane's model)
     cy = self:paneVerbs(c.verbs, ix, cy, iw, vy, vh, 500) + T.px(12)
-    -- the folder's label (System 7's Finder labels), kept in ZeD's own file
+    -- the folder's label (ZeD's accent colours), kept in ZeD's own file
     if c.f then
         cy = self:paneHead(ZeD.tr("UI_ZeD_Mods_Label"), nil, ix, iw, cy)
         local fid = self.fsel

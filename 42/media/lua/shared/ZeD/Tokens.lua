@@ -687,20 +687,21 @@ function ZeD.textOn(fill)
     return c
 end
 
--- The label colours for mod folders and separators (the director, Nov 4 2026: "System 7 finder labels"): System 7's
--- seven Finder labels in order, with its default names and colours, kept strong as System 7 drew them (the director,
--- Nov 4 2026). P.labels[key] is the colour for marks (the swatches, a folder's picture, a separator's rules): the
--- System 7 colour moved only as far as it needs for 3 : 1 on the theme's surfaces, so most stay as they were and only
--- the dark blue and brown lift on the dark themes. P.labelsText[key] is the colour as text (a separator's name), moved
--- as far as 4.6 : 1. Both made in deriveReadable below.
+-- The label colours for mod folders and separators (the director, Nov 4 2026: "switch to our accent colors because we
+-- are not System 7"): None, then eight of ZeD's own accent colours (Mono left out: a grey label reads as none), named
+-- with the accent setting's own words. Each theme takes the accent's own variant (light for Light, dark for Dark and
+-- High contrast). P.labels[key] is the colour for marks (the swatches, a folder's picture, a separator's rules), moved
+-- only as far as 3 : 1 needs on the theme's surfaces; P.labelsText[key] is the colour as text (a separator's name),
+-- moved as far as 4.6 : 1. Both made in deriveReadable below.
 ZeD.LABELS = {
-    { k = "essential",  name = "UI_ZeD_Mods_LabelEssential",  c = hex("#FF6600") },
-    { k = "hot",        name = "UI_ZeD_Mods_LabelHot",        c = hex("#DD0806") },
-    { k = "inprogress", name = "UI_ZeD_Mods_LabelInProgress", c = hex("#F20884") },
-    { k = "cool",       name = "UI_ZeD_Mods_LabelCool",       c = hex("#02ABEA") },
-    { k = "personal",   name = "UI_ZeD_Mods_LabelPersonal",   c = hex("#0000D4") },
-    { k = "project1",   name = "UI_ZeD_Mods_LabelProject1",   c = hex("#006411") },
-    { k = "project2",   name = "UI_ZeD_Mods_LabelProject2",   c = hex("#562C05") },
+    { k = "red",    name = "ContextMenu_Red" },
+    { k = "orange", name = "ContextMenu_Orange" },
+    { k = "yellow", name = "ContextMenu_Yellow" },
+    { k = "green",  name = "ContextMenu_Green" },
+    { k = "blue",   name = "ContextMenu_Blue" },
+    { k = "teal",   name = "UI_ZeD_Accent_Teal" },
+    { k = "purple", name = "ContextMenu_Purple" },
+    { k = "pink",   name = "ContextMenu_Pink" },
 }
 
 -- Every field deriveReadable writes onto a palette (a window with its own accent swaps them all)
@@ -783,8 +784,12 @@ function ZeD.deriveReadable(P, baseKey)
     -- the folder and separator labels as text and marks (on the list, its selection wash and the folder rows' surf2)
     local labs, labT = {}, {}
     for _, L in ipairs(ZeD.LABELS) do
-        labs[L.k] = ZeD.legible(L.c, 3.0, bgs, up)
-        labT[L.k] = ZeD.legible(L.c, 4.6, bgs, up)
+        local set = ZeD.AccentColors[L.k]
+        local c = set and set[(baseKey == "light") and "light" or "dark"].accent
+        if c then
+            labs[L.k] = ZeD.legible(c, 3.0, bgs, up)
+            labT[L.k] = ZeD.legible(c, 4.6, bgs, up)
+        end
     end
     P.labels, P.labelsText = labs, labT
 end
