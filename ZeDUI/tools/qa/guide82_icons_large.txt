@@ -1,0 +1,6 @@
+# ZeDUI/tools/qa/guide82_icons_large.txt  (Nov 3 2026): punch list 82, the pictures in the text, the Deck with Large text
+zedqa_prelude.lua | pre | timeout=120
+zedqa_textlarge.lua | txl | timeout=60
+zedqa_guide82_icons.lua | g8i | timeout=600
+zedqa_guide82_measure.lua | g8m | timeout=300
+zedqa_guide82.lua | g82 | timeout=600
