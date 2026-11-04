@@ -472,8 +472,10 @@ function ZeD_GuideWindow:drawClip(it, t)
             if ok then self._clip = v end
         end
         if not self._clip then
-            local p = (t.thumb and t.thumb ~= "") and t.thumb or ("media/videos/" .. tostring(t.video):gsub("%.%w+$", "") .. ".png")
-            self._still = getTexture(p)
+            -- the game ships no stills for its guide clips: ZeD's own, one frame of each clip
+            -- (ZeDUI/tools/guide/make_stills.py; the director, Nov 3 2026: "A still from each clip")
+            local base = tostring(t.video):match("([^/\\]+)%.%w+$") or tostring(t.video):match("([^/\\]+)$") or ""
+            self._still = getTexture("media/textures/ZeD/guide/" .. base .. ".png")
         end
     end
     local bg = T.surf1 or T.surf2
