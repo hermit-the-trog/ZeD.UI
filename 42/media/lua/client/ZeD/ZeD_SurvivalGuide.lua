@@ -42,6 +42,9 @@ local function fh(font) return ZeD.TM:getFontHeight(font) end
 local function tw(font, s) return ZeD.TM:MeasureStringX(font, s) end
 -- (the game's measure leaves out spaces at the end of a string: measure them with a letter after)
 local function twFull(font, s) return tw(font, s .. "x") - tw(font, "x") end
+-- the width a run takes on the line, for the fit test: the larger of the two measures (QA, Nov 3 2026: on a Thai line
+-- ending in a vowel mark the "x" trick came out 2 px short of the run measured as drawn)
+local function twFit(font, s) return math.max(tw(font, s), twFull(font, s)) end
 local function inRect(r, x, y) return r and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h end
 local function sound(name) pcall(function() getSoundManager():playUISound(name or "UIActivateButton") end) end
 local function tr(k, ...) return ZeD.tr(k, ...) end
@@ -132,7 +135,7 @@ local function wrapRuns(para, font, maxW)
                 local joined = last.text .. text
                 -- the run measured whole, its trailing space aside: pieces measured one by one add up a pixel or
                 -- two short of the joined line (QA, Nov 3 2026: a Thai line 2 px past the measure)
-                if last.x + twFull(font, (joined:gsub("%s+$", ""))) > maxW then
+                if last.x + twFit(font, (joined:gsub("%s+$", ""))) > maxW then
                     push()
                     text = at.text:gsub("^%s+", "")
                     cur[1] = { text = text, x = 0 }
@@ -142,7 +145,7 @@ local function wrapRuns(para, font, maxW)
                     x = last.x + twFull(font, joined)
                 end
             else
-                if x > 0 and x + twFull(font, (text:gsub("%s+$", ""))) > maxW then
+                if x > 0 and x + twFit(font, (text:gsub("%s+$", ""))) > maxW then
                     push()
                     text = at.text:gsub("^%s+", "")
                 end
