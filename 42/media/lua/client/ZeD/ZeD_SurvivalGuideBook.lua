@@ -259,6 +259,7 @@ end
 -- heading, the clip and the line under it; each later topic follows on the same page under its own heading when its
 -- heading, clip and three lines still fit, else on the next; a long topic runs on. A topic with The Rules in Numbers
 -- starts a left page and its rules page faces it. Each page is a list of placed items (baselines and tops in px).
+local RULE_ROWS = 22   -- a rules page's rows at most (a longer table runs on)
 function B.paginate(bk, u)
     local px = function(n) return n * u end
     local pages = { { kind = "blank" }, { kind = "title" }, { kind = "contents" }, { kind = "intro" } }
@@ -397,8 +398,24 @@ function B.paginate(bk, u)
             body(t, si, s)
             if rf then
                 -- (each table its own rules page, the first facing the topic)
+                -- (a long table, 97 traits or 55 crops, runs on over as many pages as it needs: its first note
+                -- before the first part, the rest after the last)
                 for ri, rules in ipairs(ZeD.Guide.rulesList(t) or {}) do
-                    pages[#pages + 1] = { kind = "rules", topic = t, section = s, si = si, rules = rules, ri = ri }
+                    local n, per = #rules.rows, RULE_ROWS
+                    local parts = math.max(1, math.ceil(n / per))
+                    for c = 1, parts do
+                        local part = rules
+                        if parts > 1 then
+                            local rows = {}
+                            for i = (c - 1) * per + 1, math.min(n, c * per) do rows[#rows + 1] = rules.rows[i] end
+                            local notes = { (c == 1) and (rules.notes and rules.notes[1]) or false }
+                            if c == parts then for i = 2, #(rules.notes or {}) do notes[i] = rules.notes[i] end end
+                            local title = rules.title or tr("UI_ZeD_Guide_Rules")
+                            if c > 1 then title = title .. " " .. tr("UI_ZeD_Guide_BookContinued") end
+                            part = { title = title, cols = rules.cols, rows = rows, notes = notes, spoiler = rules.spoiler }
+                        end
+                        pages[#pages + 1] = { kind = "rules", topic = t, section = s, si = si, rules = part, ri = ri }
+                    end
                 end
                 page = nil
             end
