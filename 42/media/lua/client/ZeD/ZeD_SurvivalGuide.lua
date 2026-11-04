@@ -78,6 +78,17 @@ local function inlineTex(path)
     return t or nil
 end
 
+-- Japanese and Chinese line breaking (kinsoku, QA Nov 4 2026: a "。" started a line): these never start a line
+-- (closing marks, the long-vowel mark, small kana) and these never end one (opening marks); by code point, since
+-- non-ASCII literals do not survive in a .lua file
+local NO_START, NO_END = {}, {}
+for _, c in ipairs({ 0x3001, 0x3002, 0xFF0C, 0xFF0E, 0xFF01, 0xFF1F, 0xFF1A, 0xFF1B, 0x300D, 0x300F, 0xFF09, 0x3015,
+    0x3011, 0x3009, 0x300B, 0x30FC, 0x30FB, 0x3005, 0x3041, 0x3043, 0x3045, 0x3047, 0x3049, 0x3063, 0x3083, 0x3085,
+    0x3087, 0x308E, 0x30A1, 0x30A3, 0x30A5, 0x30A7, 0x30A9, 0x30C3, 0x30E3, 0x30E5, 0x30E7, 0x30EE, 0x30F5, 0x30F6 }) do
+    NO_START[c] = true
+end
+for _, c in ipairs({ 0x300C, 0x300E, 0xFF08, 0x3014, 0x3010, 0x3008, 0x300A }) do NO_END[c] = true end
+
 -- a paragraph wrapped at maxW: lines of runs ({ text, x } or { tex, x, s }), x from the line's start
 local function wrapRuns(para, font, maxW)
     local s = fh(font)
@@ -99,12 +110,14 @@ local function wrapRuns(para, font, maxW)
                     local ch = word:sub(k, k)
                     local c = string.byte(ch) or 0
                     local mark = c == 0x0E31 or (c >= 0x0E34 and c <= 0x0E3A) or (c >= 0x0E47 and c <= 0x0E4E)
-                    if piece ~= "" and not mark and not lead then
+                    -- (Japanese and Chinese: a closing mark stays with the character before it, an opening mark
+                    -- with the one after)
+                    if piece ~= "" and not mark and not lead and not NO_START[c] then
                         atoms[#atoms + 1] = { text = piece, w = twFull(font, piece) }
                         piece = ""
                     end
                     piece = piece .. ch
-                    lead = c >= 0x0E40 and c <= 0x0E44
+                    lead = (c >= 0x0E40 and c <= 0x0E44) or NO_END[c] == true
                 end
                 if piece ~= "" then atoms[#atoms + 1] = { text = piece, w = twFull(font, piece) } end
             else
