@@ -41,9 +41,15 @@ end
 function P.isPinned(p, k, id) return P.find(p, k, id) ~= nil end
 
 -- the name a pin shows for itself (an item's display name, a skill's)
-local function itemOf(p, id)
+local function itemOf(p, id, e)
     local ok, it = pcall(function() return p:getInventory():getItemWithIDRecursiv(tonumber(id)) end)
-    return ok and it or nil
+    if ok and it then return it end
+    -- (the same kind of thing you carry, when its id is not found: ids may not survive the game loading again)
+    if e and e.ft then
+        local ok2, it2 = pcall(function() return p:getInventory():getFirstTypeRecurse(e.ft) end)
+        if ok2 and it2 then e.id = it2:getID(); return it2 end
+    end
+    return nil
 end
 local function nameOf(p, e)
     if e.k == "skill" then
@@ -59,7 +65,12 @@ function P.toggle(p, k, id, name)
     local L = list(p)
     local i = P.find(p, k, id)
     if i then table.remove(L, i); return false end
-    L[#L + 1] = { k = k, id = id, name = name }
+    local ft = nil
+    if k ~= "skill" then
+        local it = itemOf(p, id)
+        if it then pcall(function() ft = it:getFullType() end) end
+    end
+    L[#L + 1] = { k = k, id = id, name = name, ft = ft }
     if #L > P.MAX then
         local gone = table.remove(L, 1)
         local pn = p:getPlayerNum()
@@ -117,7 +128,7 @@ function P.stats(p)
                 else text, color = ZeD.tr("UI_ZeD_Char_PinLevel", pd.name, pd.level, pd.xpInLevel .. "/" .. pd.xpForLevel), T.accent end
             end
         else
-            local it = itemOf(p, e.id)
+            local it = itemOf(p, e.id, e)
             if it then
                 local name = shortName(it:getDisplayName())
                 pcall(function()

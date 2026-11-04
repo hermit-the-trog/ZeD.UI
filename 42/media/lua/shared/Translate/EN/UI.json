@@ -4515,5 +4515,17 @@
     "UI_ZeD_Rules_ThisWorld": "This world",
     "UI_ZeD_Rules_WorldNote": "The ranges your world was made with. The day it happens is never shown.",
     "UI_ZeD_Rules_InfTitle": "The infection in this world",
-    "UI_ZeD_Rules_InfNote": "This world's settings for the zombie infection. Whether you have it is never shown."
+    "UI_ZeD_Rules_InfNote": "This world's settings for the zombie infection. Whether you have it is never shown.",
+    "UI_ZeD_Guide_Ad1_Head": "The Whole Shelf",
+    "UI_ZeD_Guide_Ad1_Deck": "Every manual a household needs before the lights go out.",
+    "UI_ZeD_Guide_Ad1_Body": "Doidbros and Buzzlord print plain, tested manuals for people who plan ahead. Each is the size of this one, sewn to lie flat, and printed on paper that takes a pencil.",
+    "UI_ZeD_Guide_Ad1_T1": "Survive the Apocalypse, Second Edition",
+    "UI_ZeD_Guide_Ad1_T2": "Water You Can Drink",
+    "UI_ZeD_Guide_Ad1_T3": "The Root Cellar Year",
+    "UI_ZeD_Guide_Ad1_T4": "Fix What You Own",
+    "UI_ZeD_Guide_Ad1_T5": "First Aid Far From Help",
+    "UI_ZeD_Guide_Ad1_Price": "Only $4.95 each",
+    "UI_ZeD_Guide_Ad1_Coupon": "Tick the titles you want and mail this page to Division of Survival Emergency Publications, Muldraugh, Kentucky. Allow six weeks for delivery.",
+    "UI_ZeD_Guide_Ad1_Name": "Name",
+    "UI_ZeD_Guide_Ad1_Address": "Address"
 }
