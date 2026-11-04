@@ -4526,5 +4526,6 @@
     "UI_ZeD_Guide_Ad1_Price": "Vain $4.95 kappale",
     "UI_ZeD_Guide_Ad1_Coupon": "Rastita haluamasi nimikkeet ja postita tämä sivu osoitteeseen Selviytymisen hätäjulkaisujen osasto, Muldraugh, Kentucky. Varaa toimitukseen kuusi viikkoa.",
     "UI_ZeD_Guide_Ad1_Name": "Nimi",
-    "UI_ZeD_Guide_Ad1_Address": "Osoite"
+    "UI_ZeD_Guide_Ad1_Address": "Osoite",
+    "UI_ZeD_Guide_Notes": "Muistiinpanot"
 }

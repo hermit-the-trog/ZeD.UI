@@ -274,6 +274,7 @@ function B.paginate(bk, u)
     bk.sectionPage, bk.pageOf = {}, {}
 
     local function newPage(si, s, opener)
+        if page then page.endY = y end
         page = { kind = "flow", si = si, section = s, items = {} }
         pages[#pages + 1] = page
         y = px(U.MT) + px(U.CHAP)
@@ -424,8 +425,18 @@ function B.paginate(bk, u)
                         pages[#pages + 1] = { kind = "rules", topic = t, section = s, si = si, rules = part, ri = ri }
                     end
                 end
+                if page then page.endY = y end
                 page = nil
             end
+        end
+    end
+    if page then page.endY = y end
+    -- (the publisher fills its pages, the director, Nov 4 2026: "publishers [don't] like printing blank pages. It
+    -- costs more money, so they generally fill the content"): a flow page a third or more empty takes a filler
+    local room = bottom - px(U.MT)
+    for i, pg in ipairs(pages) do
+        if pg.kind == "flow" and pg.endY and bottom - pg.endY >= room / 3 then
+            pg.items[#pg.items + 1] = { k = "filler", y = pg.endY + px(16), y1 = bottom, seed = i }
         end
     end
     if #pages % 2 == 1 then pages[#pages + 1] = { kind = "ad" } end
@@ -597,6 +608,8 @@ function ZeD_GuideBook:drawFlowPage(p, x, y, w, u)
                     xx = xx + ow + 4 * u
                 end
             end
+        elseif k == "filler" then
+            self:drawFiller(tx, tw_, y + it.y, y + it.y1, u, it.seed)
         elseif k == "caption" then
             drawCentre(self, F.sansI, it.text, cx, y + it.y, U.CAP * u, INK)
         elseif k == "deck" then
@@ -700,6 +713,62 @@ function ZeD_GuideBook:drawRulesPage(p, x, y, w, u)
     self:drawRectBorder(tx, boxY, tw_, boxH, 1, INK.r, INK.g, INK.b)
     yy = boxY + boxH + 6 * u
     for i = 2, #(r.notes or {}) do para(r.notes[i]) end
+    local bot = y + (U.PH - U.FOOT - U.MT) * u
+    if bot - yy >= (U.PH - U.MT - U.FOOT) * u / 3 then self:drawFiller(tx, tw_, yy + 16 * u, bot, u, (p.ri or 1) + #r.rows) end
+end
+
+-- A FILLER (what the publisher prints where the text leaves room): a quarter-page house ad box when it fits, else a
+-- ruled NOTES block as a real manual leaves for its owner. The ad's titles rotate by the page.
+function ZeD_GuideBook:drawFiller(tx, tw_, y0, y1, u, seed)
+    local h = y1 - y0
+    if h < 60 * u then return end
+    local px = U.TEXT * u
+    local lineH = px * U.LEAD
+    local adH = 186 * u
+    if h >= adH then
+        local by = y0 + math.floor((h - adH) / 2)
+        if h < adH + 120 * u then by = y0 end
+        local lw = math.max(1, math.floor(2 * u))
+        for i = 0, lw - 1 do self:drawRectBorder(tx + i, by + i, tw_ - i * 2, adH - i * 2, 1, INK.r, INK.g, INK.b) end
+        local ix, iw = tx + 12 * u, tw_ - 24 * u
+        local yy = by + 12 * u + U.TITLE * u
+        drawAt(self, F.head, upper(tr("UI_ZeD_Guide_Ad1_Head")), ix, yy, U.TITLE * u, INK)
+        yy = yy + U.DECK * u * 1.4
+        drawAt(self, F.sansB, tr("UI_ZeD_Guide_Ad1_Deck"), ix, yy, U.CAP * u * 1.15, INK)
+        local priceW = 82 * u
+        local sq = math.floor(px * 0.75)
+        local n = 5
+        local first = ((seed or 1) % n)
+        for j = 0, 2 do
+            yy = yy + lineH * 1.12
+            local t = ((first + j) % n) + 1
+            self:drawRectBorder(ix, yy - sq, sq, sq, 1, INK.r, INK.g, INK.b)
+            drawAt(self, F.textB, tr("UI_ZeD_Guide_Ad1_T" .. t), ix + sq + 8 * u, yy, px, INK)
+        end
+        local pY, pH = by + adH - 12 * u - 56 * u, 56 * u
+        local pX = tx + tw_ - 12 * u - priceW
+        self:drawRect(pX, pY, priceW, pH, 1, INK.r, INK.g, INK.b)
+        local pw = {}
+        for wd in tr("UI_ZeD_Guide_Ad1_Price"):gmatch("%S+") do pw[#pw + 1] = wd end
+        local half = math.ceil(#pw / 2)
+        local pc = pX + priceW / 2
+        drawCentre(self, F.sansB, upper(table.concat(pw, " ", 1, half)), pc, pY + pH * 0.42, U.CAP * u * 1.2, PAPER)
+        if #pw > half then drawCentre(self, F.sansB, upper(table.concat(pw, " ", half + 1)), pc, pY + pH * 0.8, U.CAP * u * 1.2, PAPER) end
+        y0 = by + adH + 18 * u
+        h = y1 - y0
+        if h < 80 * u then return end
+    end
+    -- NOTES: the word, a rule, then ruled lines to the foot
+    local yy = y0 + U.CAP * u
+    drawAt(self, F.sansB, upper(tr("UI_ZeD_Guide_Notes")), tx, yy, U.CAP * u * 1.1, INK)
+    yy = yy + 5 * u
+    self:drawRect(tx, yy, tw_, math.max(1, math.floor(1.5 * u)), 1, INK.r, INK.g, INK.b)
+    local gapL = lineH * 1.35
+    yy = yy + gapL
+    while yy < y1 - 4 * u do
+        self:drawRect(tx, yy, tw_, math.max(1, math.floor(u * 0.6)), 0.45, INK.r, INK.g, INK.b)
+        yy = yy + gapL
+    end
 end
 
 function ZeD_GuideBook:drawTitlePage(x, y, w, u)

@@ -4526,5 +4526,6 @@
     "UI_ZeD_Guide_Ad1_Price": "Solo $4.95 cada uno",
     "UI_ZeD_Guide_Ad1_Coupon": "Marque los títulos que desee y envíe esta página a la División de Publicaciones de Emergencia y Supervivencia, Muldraugh, Kentucky. Espere seis semanas para la entrega.",
     "UI_ZeD_Guide_Ad1_Name": "Nombre",
-    "UI_ZeD_Guide_Ad1_Address": "Domicilio"
+    "UI_ZeD_Guide_Ad1_Address": "Domicilio",
+    "UI_ZeD_Guide_Notes": "Notas"
 }

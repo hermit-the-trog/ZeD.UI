@@ -4526,5 +4526,6 @@
     "UI_ZeD_Guide_Ad1_Price": "Всего $4.95 за экземпляр",
     "UI_ZeD_Guide_Ad1_Coupon": "Отметьте нужные названия и отправьте эту страницу в Отдел аварийных изданий по выживанию, Muldraugh, Kentucky. Доставка занимает шесть недель.",
     "UI_ZeD_Guide_Ad1_Name": "Имя",
-    "UI_ZeD_Guide_Ad1_Address": "Адрес"
+    "UI_ZeD_Guide_Ad1_Address": "Адрес",
+    "UI_ZeD_Guide_Notes": "Заметки"
 }
