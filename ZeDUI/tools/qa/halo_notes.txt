@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/halo_notes.txt  (Nov 4 2026): overhead notes in ZeD bubble + Messages (zedqa_run.ps1 -Manifest this)
+zedqa_prelude.lua | pre | timeout=120
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_halo_notes.lua | hln | timeout=180
