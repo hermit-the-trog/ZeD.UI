@@ -81,7 +81,7 @@ W.TAB_ICONS = {
     ["skills-tab-white"] = "skills", ["radio-tab-white"] = "walkie", ["craft-tab-white"] = "craft",
     ["build-tab-white"] = "bricks", ["move-tab-white"] = "chair", ["map-tab-white"] = "map",
     ["forage-tab-white"] = "magnifier", ["farm-tab-white"] = "cow", ["vehicle-tab-white"] = "car",
-    ["appearance-tab-white"] = "mirror", ["traits-tab-white"] = "traits",
+    ["appearance-tab-white"] = "mirror", ["traits-tab-white"] = "traits", ["cooking-tab-white"] = "pot",
 }
 
 -- the slice's words first: several vanilla slices share one picture
