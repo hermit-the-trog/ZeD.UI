@@ -978,8 +978,31 @@ end
 -- ---------------------------------------------------------------------------
 -- ENTRY
 -- ---------------------------------------------------------------------------
--- open on a topic: an id (tostring of a SurvivalGuideEntry) or a title key
+-- shared with the book (ZeD_SurvivalGuideBook.lua): the topics, their paragraphs, the inline pictures
+W.readTopicList = readTopics
+W.paragraphs = paragraphs
+W.MARK = MARK
+W.inlineTex = inlineTex
+
+-- The Full look is the book, "Survive the Apocalypse" (ZeD setup, Full or simple: Survival guide). The book's
+-- faces (the game's Old Standard TT, Roberto Sans, Open Sans) draw Latin, Greek and Cyrillic, so a game in
+-- Chinese, Japanese, Korean, Thai or Arabic shows the window.
+local NO_BOOK_LANGS = { CN = true, CH = true, JP = true, KO = true, TH = true, AR = true }
+function W.useBook()
+    if not (ZeD.GuideBook and ZeD.GuideBook.open) then return false end
+    if ZeD.Settings and ZeD.Settings.guideSimple and ZeD.Settings.guideSimple() then return false end
+    local ok, name = pcall(function() return tostring(Translator.getLanguage():name()) end)
+    if ok and NO_BOOK_LANGS[name] then return false end
+    return true
+end
+
+-- open on a topic: an id (tostring of a SurvivalGuideEntry) or a title key; the book or the window
 function W.open(pn, want)
+    if W.useBook() then return ZeD.GuideBook.open(pn or 0, want) end
+    return W.openWindow(pn, want)
+end
+
+function W.openWindow(pn, want)
     pn = pn or 0
     local win = W.windows[pn]
     if not win then
@@ -1021,6 +1044,8 @@ function W.get(pn) return W.windows[pn or 0] end
 function W.toggle(pn)
     local win = W.windows[pn or 0]
     if win and win:isReallyVisible() then win:close(); return end
+    local B = ZeD.GuideBook
+    if B and B.isOpen and B.isOpen(pn or 0) then B.close(pn or 0); return end
     W.open(pn, W.contextTopicKey())
 end
 
@@ -1028,6 +1053,8 @@ function W.takeEscape()
     for _, win in pairs(W.windows) do
         if win and win:isReallyVisible() then win:close(); return true end
     end
+    local B = ZeD.GuideBook
+    if B and B.isOpen and B.isOpen(0) then B.close(0); return true end
     return false
 end
 ZeD.EscapeTakers = ZeD.EscapeTakers or {}
