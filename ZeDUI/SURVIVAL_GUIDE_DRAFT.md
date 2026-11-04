@@ -97,3 +97,6 @@ the main design question. Build's proposal:
 ## Decided
 
 All five sections (the director, Nov 3 2026: "All five"). Next: a mockup of both looks on one topic.
+
+Mockup v1 (Nov 3 2026): ZeDUI/mockups/zed_survival_guide_v1.html (built by ZeDUI/tools/guide/build.py from the game's
+files), published privately at https://claude.ai/artifact/97moJBEid53AxPt7zSHbMY. Both looks on Character > Skill Books.

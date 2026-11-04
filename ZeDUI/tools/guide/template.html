@@ -1,0 +1,298 @@
+<title>ZeD Survival Guide</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans+Condensed:wght@400;500;600&family=Caveat:wght@500;700&family=Charis+SIL:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/* Survival guide (F1), mockup v1, Nov 3 2026. One topic (Character > Skill Books) in both looks:
+   Simple = a ZeD window (the split layout of the Crafting, Vehicle and Cooking tabs),
+   Full = the ZNIX manual (the gallery book's pages). Text, topics and numbers are the game's own
+   (SurvivalGuide.json EN, XPSystem_SkillBook.lua, literature.txt, ISReadABook.lua; 42.22). */
+:root {
+  color-scheme: dark;
+  --mono:'Fira Mono',ui-monospace,Consolas,monospace; --cond:'Fira Sans Condensed','Arial Narrow',sans-serif;
+  --hand:'Caveat','Segoe Print',cursive; --serif:'Charis SIL',Charter,Georgia,serif;
+  --desk:#0b0a08; --b:#0c0c0c; --s1:#131313; --s2:#1a1a1a; --s3:#222; --s4:#2a2a2a; --bd:#2a2a2a; --bs:#3a3a3a;
+  --ac:#d4922a; --acb:#e8a830; --hov:rgba(212,146,42,.22); --sel:rgba(212,146,42,.55);
+  --tx:rgba(214,214,212,.9); --ts:rgba(150,150,150,.75); --tf:rgba(120,120,120,.65); --th:rgba(222,210,190,.95);
+  --pos:#7a9a34;
+  --pg0:#ded6c0; --pg1:#d0c6ae; --pg2:#beb298; --pg3:#a0947c; --ink:#1a181e; --blu:#22327c; --red:#c4342c;
+  --wd1:#2a1f18; --wd2:#36281e; --print:#f1ede2; --tape:rgba(214,198,150,.82); --sticky:#eede76;
+  --note-bg:#14130f; --note-tx:#c4bfb1; --note-hd:#f0ece0; --chip:#d8c070;
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--desk); color:var(--note-tx); font-family:var(--cond);
+  padding-block:20px 48px; padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px)); }
+.banner { font-family:var(--mono); font-size:11px; letter-spacing:2px; color:#cfc6a8; text-transform:uppercase; }
+h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:var(--note-hd); margin:4px 0 6px; text-wrap:balance; }
+.lede { font-size:14px; line-height:1.55; max-width:68ch; margin:0; }
+.lede b { color:#efe6c4; font-weight:600; }
+.controls { display:flex; flex-wrap:wrap; gap:10px 22px; margin:14px 0 12px; align-items:flex-end; }
+.ctl { display:flex; flex-direction:column; gap:5px; }
+.ctl > span { font-family:var(--mono); font-size:10px; letter-spacing:1.5px; color:#8f8a7c; text-transform:uppercase; }
+.seg { display:flex; flex-wrap:wrap; gap:4px; }
+.seg button { font-family:var(--mono); font-size:11px; color:#d8d4c8; background:#1c1b18; border:1px solid #3a3832; padding:5px 10px; cursor:pointer; }
+.seg button.on { background:var(--chip); color:#111; border-color:var(--chip); }
+.seg button:focus-visible, .row:focus-visible, .btn:focus-visible, .tabx:focus-visible { outline:2px solid var(--acb); outline-offset:1px; }
+.fitwrap { width:100%; overflow:hidden; }
+.stage { position:relative; width:1180px; height:700px; transform-origin:0 0; border:1px solid #2a2924; overflow:hidden;
+  background:radial-gradient(ellipse at 45% 40%, #2c3320 0%, #1c2216 45%, #0f120c 100%); }
+
+/* ---------------- Simple: the ZeD window ---------------- */
+.win { position:absolute; left:40px; top:24px; width:1100px; height:652px; background:rgba(19,19,19,.96); border:1px solid var(--bs); display:flex; flex-direction:column; }
+.tb { height:24px; flex:none; background:var(--s2); border-bottom:1px solid var(--bs); display:flex; align-items:center; justify-content:center; position:relative; }
+.tb::before { content:""; position:absolute; inset:0; background:repeating-linear-gradient(0deg, transparent 0 2px, rgba(255,255,255,.05) 2px 4px); }
+.tb .cb { position:absolute; left:6px; top:5px; width:12px; height:12px; border:1px solid var(--bs); background:var(--s2); z-index:1; }
+.tb .tt { font-family:var(--mono); font-size:12px; color:var(--ac); position:relative; z-index:1; background:var(--s2); padding:0 10px; }
+.wbody { flex:1; display:flex; min-height:0; }
+.list { width:290px; flex:none; border-right:1px solid var(--bs); display:flex; flex-direction:column; min-height:0; }
+.lscroll { flex:1; overflow:auto; padding:4px 0 8px; }
+.lscroll::-webkit-scrollbar, .rscroll::-webkit-scrollbar { width:8px; } .lscroll::-webkit-scrollbar-thumb, .rscroll::-webkit-scrollbar-thumb { background:var(--s4); }
+.cat { display:flex; align-items:center; gap:7px; height:26px; padding:0 10px; font-family:var(--mono); font-size:11px; font-weight:700; letter-spacing:.6px; color:var(--th); cursor:pointer; text-transform:uppercase; }
+.cat .tri { width:0; height:0; border-left:4px solid transparent; border-right:4px solid transparent; border-top:6px solid var(--ts); }
+.cat.closed .tri { border-top:4px solid transparent; border-bottom:4px solid transparent; border-left:6px solid var(--ts); border-right:0; }
+.cat .n { margin-left:auto; color:var(--tf); font-weight:400; }
+.cat.zed { color:var(--ac); }
+.row { display:flex; align-items:center; height:24px; padding:0 10px 0 26px; font-size:13.5px; color:var(--tx); cursor:pointer; position:relative; }
+.row:nth-child(even) { background:rgba(255,255,255,.022); }
+.row:hover { background:var(--hov); }
+.row.sel { background:var(--sel); color:#fff; }
+.row .tag { margin-left:auto; font-family:var(--mono); font-size:9px; letter-spacing:.6px; color:var(--pos); border:1px solid rgba(122,154,52,.6); padding:0 4px; }
+.row.sel .tag { color:#fff; border-color:rgba(255,255,255,.6); }
+.right { flex:1; display:flex; flex-direction:column; min-width:0; }
+.rhead { height:44px; flex:none; display:flex; align-items:center; gap:10px; padding:0 14px; border-bottom:1px solid var(--bd); }
+.rhead .nm { font-family:var(--cond); font-weight:600; font-size:20px; color:var(--th); }
+.rhead .sec { font-family:var(--mono); font-size:11px; color:var(--ts); text-transform:uppercase; letter-spacing:.8px; }
+.rhead .crumb { margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--tf); }
+.rscroll { flex:1; overflow:auto; padding:12px 16px 16px; display:flex; flex-direction:column; gap:12px; }
+.clip { position:relative; width:480px; height:240px; flex:none; border:1px solid var(--bs); background:#000; }
+.clip img { width:100%; height:100%; display:block; opacity:.92; }
+.clip .play { position:absolute; left:12px; bottom:10px; display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:10.5px; color:#fff; background:rgba(12,12,12,.85); border:1px solid var(--bs); padding:3px 8px; }
+.clip .play i { width:0; height:0; border-top:5px solid transparent; border-bottom:5px solid transparent; border-left:8px solid var(--ac); }
+.clip .redo { position:absolute; right:10px; top:10px; font-family:var(--mono); font-size:9.5px; letter-spacing:.8px; color:#111; background:var(--chip); padding:1px 6px; }
+.txt p { margin:0 0 7px; font-size:14.5px; line-height:1.5; color:var(--tx); max-width:66ch; }
+.lbl { font-family:var(--mono); font-size:10.5px; font-weight:700; letter-spacing:.9px; color:var(--ac); text-transform:uppercase; }
+.rules { border:1px solid var(--bd); background:var(--s2); padding:9px 12px 11px; display:flex; flex-direction:column; gap:8px; max-width:640px; }
+.rules table { border-collapse:collapse; font-size:13.5px; color:var(--tx); font-family:var(--cond); }
+.rules th { font-family:var(--mono); font-size:10px; font-weight:500; color:var(--ts); text-align:left; padding:0 18px 4px 0; letter-spacing:.4px; }
+.rules td { padding:3px 18px 3px 0; font-variant-numeric:tabular-nums; }
+.rules td.num { font-family:var(--mono); font-size:12.5px; color:var(--th); }
+.rules tbody tr:nth-child(odd) td { background:rgba(255,255,255,.02); }
+.rules ul { margin:0; padding-left:16px; } .rules li { font-size:13.5px; line-height:1.45; color:var(--tx); margin-bottom:3px; }
+.rules .src { font-family:var(--mono); font-size:10px; color:var(--tf); }
+.soon { font-size:13.5px; color:var(--ts); font-style:italic; }
+.band { height:40px; flex:none; display:flex; align-items:center; gap:10px; padding:0 10px; border-top:1px solid var(--bs); background:var(--s2); }
+.find { display:flex; align-items:center; gap:6px; height:26px; width:252px; border:1px solid var(--bs); background:var(--s1); padding:0 7px; }
+.find:focus-within { border-color:var(--ac); }
+.find span { font-family:var(--mono); font-size:10.5px; color:var(--ts); }
+.find input { flex:1; min-width:0; background:transparent; border:0; outline:0; color:var(--tx); font-family:var(--mono); font-size:12px; }
+.chk { display:flex; align-items:center; gap:7px; font-family:var(--mono); font-size:11px; color:var(--tx); cursor:pointer; user-select:none; }
+.chk i { width:13px; height:13px; border:1px solid var(--bs); background:var(--s1); position:relative; }
+.chk.on i::before, .chk.on i::after { content:""; position:absolute; left:5px; top:0; width:1px; height:11px; background:var(--ac); }
+.chk.on i::before { transform:rotate(45deg); } .chk.on i::after { transform:rotate(-45deg); }
+.sp { flex:1; }
+.btn { position:relative; padding:4px 13px; border:1px solid var(--bs); border-radius:4px; background:var(--s2); color:var(--tx); font-family:var(--mono); font-size:11.5px; cursor:pointer; }
+.btn::before { content:""; position:absolute; inset:2px; border:1px solid var(--bs); border-radius:2px; pointer-events:none; }
+.btn.def, .btn.def::before { border-color:var(--ac); } .btn.def { color:var(--ac); }
+.btn:disabled { opacity:.4; cursor:default; }
+.help { height:20px; flex:none; display:flex; align-items:center; padding:0 10px; font-family:var(--mono); font-size:10.5px; color:var(--ts); border-top:1px solid var(--bd); background:var(--s1); }
+.key { display:inline-block; font-family:var(--mono); font-size:11px; color:var(--th); border:1px solid var(--bs); border-bottom-width:2px; border-radius:3px; padding:0 5px; background:var(--s3); }
+
+/* ---------------- Full: the ZNIX manual ---------------- */
+.desk { position:absolute; inset:0; background:
+  repeating-linear-gradient(90deg, rgba(0,0,0,.08) 0 3px, transparent 3px 11px), var(--wd1); }
+.book { position:absolute; left:46px; top:22px; width:1060px; height:656px; display:flex; }
+.page { position:relative; width:530px; height:656px; background:
+  radial-gradient(circle at 1px 1px, rgba(0,0,0,.07) 1px, transparent 1.4px) 0 0/6px 6px, var(--pg0);
+  color:var(--ink); padding:28px 40px 30px; }
+.page.l { box-shadow:inset -18px 0 22px -16px rgba(0,0,0,.45); }
+.page.r { box-shadow:inset 18px 0 22px -16px rgba(0,0,0,.45); }
+.rh { display:flex; align-items:baseline; gap:10px; font-family:var(--mono); font-size:11px; color:#3a3530; border-bottom:1px solid #3a3530; padding-bottom:5px; }
+.rh .pn { font-weight:700; }
+.page.r .rh { justify-content:flex-end; }
+.ch { display:flex; align-items:baseline; gap:12px; margin:18px 0 4px; border-bottom:2px solid var(--ink); padding-bottom:6px; }
+.ch b { font-family:var(--cond); font-weight:600; font-size:34px; }
+.ch span { font-family:var(--cond); font-weight:600; font-size:24px; }
+.page p.bk { font-family:var(--serif); font-size:13.5px; line-height:1.55; margin:9px 0 0; text-align:justify; hyphens:auto; }
+.page h3 { font-family:var(--cond); font-weight:600; font-size:18px; margin:16px 0 2px; }
+.prt { position:absolute; background:var(--print); padding:7px; box-shadow:2px 3px 0 rgba(0,0,0,.25); }
+.prt img { display:block; width:330px; height:165px; filter:grayscale(1) contrast(1.15); }
+.prt .pl { position:absolute; left:14px; bottom:14px; font-family:var(--mono); font-size:10px; color:#fff; background:rgba(0,0,0,.75); padding:2px 6px; }
+.tape { position:absolute; width:74px; height:22px; background:var(--tape); }
+.cap { font-family:var(--serif); font-size:12px; font-style:italic; position:absolute; }
+.cap b { font-style:normal; font-family:var(--cond); font-weight:600; margin-right:8px; }
+.tbl { width:100%; border-collapse:collapse; margin-top:8px; font-family:var(--serif); font-size:13px; color:var(--ink); }
+.tbl th { font-family:var(--cond); font-weight:600; text-align:left; border-bottom:1.5px solid var(--ink); padding:3px 6px 3px 0; font-size:13px; }
+.tbl td { border-bottom:1px solid rgba(26,24,30,.25); padding:3px 6px 3px 0; font-variant-numeric:tabular-nums; }
+.note { font-family:var(--hand); font-size:21px; line-height:1.05; color:var(--blu); position:absolute; }
+.note.red { color:var(--red); }
+.sticky { position:absolute; background:var(--sticky); padding:12px 14px; font-family:var(--hand); font-size:22px; line-height:1.1; color:#2a2a2e; box-shadow:2px 3px 0 rgba(0,0,0,.2); }
+.tabs { position:absolute; right:-28px; top:24px; display:flex; flex-direction:column; gap:2px; }
+.tabx { width:30px; height:28px; background:var(--pg1); border:1px solid var(--pg3); border-left:0; display:flex; align-items:center; justify-content:center;
+  font-family:var(--mono); font-size:8.5px; color:#3a3530; writing-mode:vertical-rl; cursor:pointer; padding:0; }
+.tabx.on { background:var(--pg0); width:34px; font-weight:700; }
+.foot { position:absolute; left:40px; right:40px; bottom:14px; display:flex; justify-content:space-between; font-family:var(--mono); font-size:11px; color:#3a3530; }
+.foot span { cursor:pointer; }
+.src2 { font-family:var(--mono); font-size:9.5px; color:#5a544a; margin-top:6px; }
+
+/* notes under the stage */
+.notes { max-width:1180px; margin-top:22px; display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:22px; }
+.notes > div { min-width:0; }
+.notes h2 { font-family:var(--cond); font-weight:600; font-size:18px; color:var(--note-hd); margin:0 0 8px; }
+.notes ul { margin:0; padding-left:18px; } .notes li { font-size:13.5px; line-height:1.55; margin-bottom:7px; } .notes b { color:#efe6c4; font-weight:600; }
+@media (prefers-reduced-motion: reduce) { * { transition:none !important; } }
+</style>
+
+<div class="banner">ZeD-GUI | Survival guide (F1) | mockup v1</div>
+<h1>Survival Guide: both looks on one topic</h1>
+<p class="lede">The game's <b>Skill Books</b> topic in the <b>Simple</b> look (a ZeD window, laid out like the Crafting, Vehicle and Cooking tabs) and the <b>Full</b> look (the ZNIX manual, as in the gallery). The topic list and text are the game's own; the numbers under <b>The rules in numbers</b> are read from the game's files (42.22). Click topics, open and close sections, type in Find, and turn the pages in the book.</p>
+<div class="controls">
+  <div class="ctl"><span>Look</span><div class="seg" id="lookSeg"><button data-v="simple" class="on" type="button">Simple: window</button><button data-v="full" type="button">Full: manual</button></div></div>
+</div>
+<div class="fitwrap" id="fitwrap"><div class="stage" id="stage"></div></div>
+<div class="notes">
+  <div><h2>What is the game's, what is new</h2><ul>
+    <li><b>The game's:</b> the 15 sections, their topics, each topic's text and clip, the Show the guide on startup box (it still opens by itself on a new game).</li>
+    <li><b>New, under each section:</b> The rules in numbers, read from the game's files and this world's sandbox, never from fan sites. Here: what each skill book volume covers and multiplies.</li>
+    <li><b>New sections</b> at the foot of the list: ZeD, First days, Build 41 habits, Your controls, What's new in ZeD (topics shown, pages still to write).</li>
+    <li><b>The clip</b> shown is the game's own (its inventory menu and skills panel). Clips with the game's menus get remade with ZeD's; the yellow tag marks one.</li>
+  </ul></div>
+  <div><h2>The two looks</h2><ul>
+    <li><b>Simple</b> is the default: list left, topic right, Find and the start-up box in the band, Previous and Next at the right. The controller: D-pad in the list, A opens, RB and LB turn topics, B closes.</li>
+    <li><b>Full</b> is the manual: the topic on the left page with the clip taped in, the rules on the right page, his notes and a sticky. Sections are the thumb tabs on the page edge; LB and RB turn the page.</li>
+    <li>Both read the same pages, so a topic written once shows in both.</li>
+  </ul></div>
+  <div><h2>For you to look at</h2><ul>
+    <li>Does the Simple window read as one of ZeD's tabs?</li>
+    <li>In the manual, do the handwritten notes help, or should the rules stay printed only?</li>
+    <li>F1 opens on what you are doing: from the Skills tab, this topic.</li>
+  </ul></div>
+</div>
+
+<script>
+const DATA = __DATA__;
+const CLIP = "__CLIP__";
+const S = { look:"simple", sel:"skill_books", closed:{}, find:"", showStart:true, jump:true };
+try { const v = localStorage.getItem("zedGuideLook"); if (v) S.look = v; } catch (e) {}
+
+const RULES_SB = `
+  <table><thead><tr><th>Volume</th><th>Levels it covers</th><th>Most it multiplies</th><th>Aiming, Reloading, Long Blade</th></tr></thead><tbody>
+  ${DATA.books.map(b => `<tr><td class="num">${b.vol}</td><td class="num">${b.lo} to ${b.hi}</td><td class="num">x${b.m}</td><td class="num">x${b.m2}</td></tr>`).join("")}
+  </tbody></table>
+  <ul><li>Each tenth of the book you read gives a tenth of its multiplier; a book read to the end gives all of it.</li>
+  <li>The multiplier counts only while the skill is inside the book's levels.</li>
+  <li>Twenty-one skills use the main column; Aiming, Reloading and Long Blade use the right one.</li></ul>`;
+
+function esc(s) { return s.replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+function paras(t) { return t.split(/<LINE>/).map(x => x.trim()).filter(Boolean).map(x => esc(x).replace(/%\d/g, '<span class="key">key</span>')); }
+function topic(id) { for (const s of DATA.sections) for (const t of s.topics) if (t.id === id) return { s, t }; return null; }
+function flat() { const out = []; for (const s of DATA.sections) for (const t of s.topics) out.push({ s, t }); return out; }
+
+function listHTML() {
+  const q = S.find.trim().toLowerCase();
+  return DATA.sections.map(s => {
+    const ts = s.topics.filter(t => !q || t.title.toLowerCase().includes(q) || (t.text || "").toLowerCase().includes(q));
+    if (q && !ts.length) return "";
+    const closed = !q && S.closed[s.id];
+    return `<div class="cat ${closed ? "closed" : ""} ${s.zed ? "zed" : ""}" data-cat="${s.id}"><span class="tri"></span>${esc(s.title)}<span class="n">${ts.length}</span></div>` +
+      (closed ? "" : ts.map(t => `<div class="row ${t.id === S.sel ? "sel" : ""}" tabindex="0" data-t="${t.id}">${esc(t.title)}${t.redo ? '<span class="tag">REDO</span>' : ""}</div>`).join(""));
+  }).join("");
+}
+function bodyHTML(id) {
+  const r = topic(id); if (!r) return "";
+  const { s, t } = r;
+  let h = "";
+  if (t.clip) h += `<div class="clip"><img alt="Still from the game's ${esc(t.title)} clip" src="${CLIP}"><div class="play"><i></i>Clip | ${esc(t.title)}</div>${t.redo ? '<div class="redo">TO REMAKE IN ZED</div>' : ""}</div>`;
+  if (t.text) h += `<div class="txt">${paras(t.text).map(p => `<p>${p}</p>`).join("")}</div>`;
+  else h += `<p class="soon">${s.zed ? "This page is still to write." : "The game opens this section on its picture; ZeD opens its first topic."}</p>`;
+  if (id === "skill_books") h += `<div class="rules"><div class="lbl">The rules in numbers</div>${RULES_SB}<div class="src">Read from the game: XPSystem_SkillBook.lua, the books' scripts, ISReadABook.lua (42.22)</div></div>`;
+  else if (!s.zed && t.text) h += `<div class="rules"><div class="lbl">The rules in numbers</div><p class="soon" style="margin:0">Where this topic has rules the game keeps in numbers, they show here.</p></div>`;
+  return h;
+}
+function step(d) { const f = flat(); const i = f.findIndex(x => x.t.id === S.sel); const n = f[(i + d + f.length) % f.length]; S.sel = n.t.id; S.closed[n.s.id] = false; S.jump = true; render(); }
+
+function simple() {
+  const r = topic(S.sel);
+  return `<div class="win">
+    <div class="tb"><span class="cb"></span><span class="tt">Survival Guide</span></div>
+    <div class="wbody">
+      <div class="list"><div class="lscroll" id="lscroll">${listHTML()}</div></div>
+      <div class="right">
+        <div class="rhead"><span class="nm">${esc(r.t.title)}</span><span class="sec">${esc(r.s.title)}</span><span class="crumb">${flat().findIndex(x => x.t.id === S.sel) + 1} of ${flat().length}</span></div>
+        <div class="rscroll">${bodyHTML(S.sel)}</div>
+      </div>
+    </div>
+    <div class="band">
+      <label class="find"><span>Find</span><input id="find" type="text" value="${esc(S.find)}" autocomplete="off" aria-label="Find a topic"></label>
+      <span class="chk ${S.showStart ? "on" : ""}" id="chk" role="checkbox" aria-checked="${S.showStart}" tabindex="0"><i></i>${esc(DATA.showGuide)}</span>
+      <span class="sp"></span>
+      <button class="btn" type="button" id="prev">Previous</button><button class="btn def" type="button" id="next">Next</button>
+    </div>
+    <div class="help">${S.sel === "skill_books" ? "Skill Books: what a book does, and its numbers. F1 from the Skills tab opens here." : "Click a topic, or type in Find."}</div>
+  </div>`;
+}
+function full() {
+  const r = topic(S.sel); const f = flat(); const i = f.findIndex(x => x.t.id === S.sel);
+  const tabs = DATA.sections.map(s => `<button class="tabx ${s.id === r.s.id ? "on" : ""}" type="button" data-tab="${s.id}" title="">${esc(s.short)}</button>`).join("");
+  const text = r.t.text ? paras(r.t.text).map(p => `<p class="bk">${p}</p>`).join("") : `<p class="bk"><i>${r.s.zed ? "This page is still to write." : "The section's first page."}</i></p>`;
+  const sb = S.sel === "skill_books";
+  return `<div class="desk"></div><div class="book">
+    <div class="page l">
+      <div class="rh"><span class="pn">${30 + i * 2}</span><span>Bitchin' znix Programs | Doidbros &amp; Buzzlord</span></div>
+      <div class="ch"><b>${esc(r.t.title)}</b></div>
+      ${text}
+      ${r.t.clip ? `<div class="prt" style="left:96px; top:${sb ? 300 : 280}px"><img alt="" src="${CLIP}"><span class="pl">&#9654; Clip</span></div>
+      <div class="tape" style="left:84px; top:${sb ? 290 : 270}px; transform:rotate(-18deg)"></div><div class="tape" style="left:390px; top:${sb ? 292 : 272}px; transform:rotate(14deg)"></div>
+      <div class="cap" style="left:96px; top:${sb ? 488 : 468}px"><b>Clip ${i + 1}</b>${esc(r.t.title)}, played in the guide.</div>` : ""}
+      ${sb ? `<div class="note" style="left:22px; top:528px; width:250px; transform:rotate(-2deg)">The clip still shows the old menus. Redo it with ours.</div>` : ""}
+      <div class="foot"><span id="bprev">&#9664; Previous</span><span></span></div>
+    </div>
+    <div class="page r">
+      <div class="rh"><span>${esc(r.s.title)}</span><span class="pn">${31 + i * 2}</span></div>
+      <h3>The Rules in Numbers</h3>
+      ${sb ? `<p class="bk" style="margin-top:4px">A skill book makes the skill learn faster, but only for its own two levels. Read from the game's files.</p>
+      <table class="tbl"><thead><tr><th>Vol.</th><th>Levels</th><th>Most</th><th>Aiming, Reloading, Long Blade</th></tr></thead><tbody>
+      ${DATA.books.map(b => `<tr><td>${b.vol}</td><td>${b.lo} to ${b.hi}</td><td>x${b.m}</td><td>x${b.m2}</td></tr>`).join("")}</tbody></table>
+      <p class="bk">Each tenth of the book read gives a tenth of its multiplier: a book read to the end gives all of it.</p>
+      <div class="src2">XPSystem_SkillBook.lua | literature.txt | ISReadABook.lua | 42.22</div>
+      <div class="note" style="left:250px; top:404px; width:230px; transform:rotate(-3deg)">Read the whole book. Half a book, half the boost.</div>
+      <div class="note red" style="left:44px; top:458px; width:190px; transform:rotate(2deg)">Vol. 1 is no use past level 2!</div>
+      <div class="sticky" style="left:300px; top:500px; width:190px; transform:rotate(2.5deg)">Books first, then the work.</div>`
+      : `<p class="bk"><i>Where this topic has rules the game keeps in numbers, they print here.</i></p>`}
+      <div class="foot"><span></span><span id="bnext">Next &#9654;</span></div>
+      <div class="tabs">${tabs}</div>
+    </div>
+  </div>`;
+}
+
+function render() {
+  const st = document.getElementById("stage");
+  const scroll = document.getElementById("lscroll"); const top = scroll ? scroll.scrollTop : 0;
+  const hadFocus = document.activeElement && document.activeElement.id === "find";
+  st.innerHTML = S.look === "simple" ? simple() : full();
+  document.querySelectorAll("#lookSeg button").forEach(b => b.classList.toggle("on", b.dataset.v === S.look));
+  const ls = document.getElementById("lscroll"); if (ls) { ls.scrollTop = top; if (S.jump) { const r = ls.querySelector(".row.sel"); if (r) ls.scrollTop = r.offsetTop - ls.clientHeight / 2; S.jump = false; } }
+  const fi = document.getElementById("find");
+  if (fi) { fi.addEventListener("input", e => { S.find = e.target.value; render(); }); if (hadFocus) { fi.focus(); fi.setSelectionRange(fi.value.length, fi.value.length); } }
+  fit();
+}
+document.addEventListener("click", e => {
+  const lb = e.target.closest("#lookSeg button"); if (lb) { S.look = lb.dataset.v; try { localStorage.setItem("zedGuideLook", S.look); } catch (x) {} render(); return; }
+  const c = e.target.closest(".cat"); if (c) { S.closed[c.dataset.cat] = !S.closed[c.dataset.cat]; render(); return; }
+  const r = e.target.closest(".row"); if (r) { S.sel = r.dataset.t; render(); return; }
+  const tb = e.target.closest(".tabx"); if (tb) { const s = DATA.sections.find(x => x.id === tb.dataset.tab); if (s && s.topics.length) { S.sel = s.topics[0].id; S.jump = true; render(); } return; }
+  if (e.target.closest("#chk")) { S.showStart = !S.showStart; render(); return; }
+  if (e.target.closest("#prev") || e.target.closest("#bprev")) { step(-1); return; }
+  if (e.target.closest("#next") || e.target.closest("#bnext")) { step(1); return; }
+});
+document.addEventListener("keydown", e => {
+  if (e.target.id === "find") return;
+  if (e.key === "Enter" && e.target.classList && e.target.classList.contains("row")) { S.sel = e.target.dataset.t; render(); }
+  if (e.key === "ArrowDown" || e.key === "ArrowRight") { step(1); e.preventDefault(); }
+  if (e.key === "ArrowUp" || e.key === "ArrowLeft") { step(-1); e.preventDefault(); }
+});
+function fit() {
+  const w = document.getElementById("fitwrap").clientWidth; const st = document.getElementById("stage");
+  const k = Math.min(1, w / 1182); st.style.transform = `scale(${k})`; document.getElementById("fitwrap").style.height = (702 * k) + "px";
+}
+window.addEventListener("resize", fit);
+render();
+</script>
