@@ -37,6 +37,8 @@ local CLIP_SRC_W, CLIP_SRC_H = 960, 480   -- the game's guide clips (Bink, 960 x
 
 local function fh(font) return ZeD.TM:getFontHeight(font) end
 local function tw(font, s) return ZeD.TM:MeasureStringX(font, s) end
+-- (the game's measure leaves out spaces at the end of a string: measure them with a letter after)
+local function twFull(font, s) return tw(font, s .. "x") - tw(font, "x") end
 local function inRect(r, x, y) return r and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h end
 local function sound(name) pcall(function() getSoundManager():playUISound(name or "UIActivateButton") end) end
 local function tr(k, ...) return ZeD.tr(k, ...) end
@@ -78,7 +80,7 @@ local function wrapRuns(para, font, maxW)
     while i <= #para do
         local a = para:find(MARK, i, true)
         local textPart = para:sub(i, (a or (#para + 1)) - 1)
-        for word in textPart:gmatch("%s*%S+%s*") do atoms[#atoms + 1] = { text = word, w = tw(font, word) } end
+        for word in textPart:gmatch("%s*%S+%s*") do atoms[#atoms + 1] = { text = word, w = twFull(font, word) } end
         if not a then break end
         local b = para:find(MARK, a + 1, true)
         if not b then break end
@@ -103,7 +105,7 @@ local function wrapRuns(para, font, maxW)
                 cur[#cur + 1] = { text = text, x = x }
             end
         end
-        x = x + ((x == 0 and at.text) and tw(font, (at.text:gsub("^%s+", ""))) or at.w)
+        x = x + ((x == 0 and at.text) and twFull(font, (at.text:gsub("^%s+", ""))) or at.w)
     end
     if #cur > 0 then push() end
     return lines
@@ -162,6 +164,9 @@ W.Rules = Rules
 
 -- Skill Books: what each volume covers (the books' scripts) and multiplies (SkillBook, the
 -- game's reading rules); the skills that read slower named from the game's perks.
+-- a multiplier as the share of normal XP: 3 is 300%, 1.5 is 150%
+local function pct(m) return tostring(math.floor((tonumber(m) or 1) * 100 + 0.5)) .. "%" end
+
 Rules.SurvivalGuide_skill_books_title = function()
     if not SkillBook then return nil end
     local groups, order = {}, {}
@@ -196,11 +201,14 @@ Rules.SurvivalGuide_skill_books_title = function()
     for _, g in ipairs(others) do cols[#cols + 1] = table.concat(g.names, ", ") end
     local rows = {}
     for v = 1, 5 do
-        local r = { tostring(v), levels[v] and tr("UI_ZeD_Guide_SB_LevelRange", levels[v].lo, levels[v].hi) or "", "x" .. tostring(main.m[v]) }
-        for _, g in ipairs(others) do r[#r + 1] = "x" .. tostring(g.m[v]) end
+        local r = { tostring(v), levels[v] and tr("UI_ZeD_Guide_SB_LevelRange", levels[v].lo, levels[v].hi) or "", pct(main.m[v]) }
+        for _, g in ipairs(others) do r[#r + 1] = pct(g.m[v]) end
         rows[#rows + 1] = r
     end
-    local notes = { tr("UI_ZeD_Guide_SB_Covers"), tr("UI_ZeD_Guide_SB_Partial") }
+    -- the multipliers as plain numbers (the director, Nov 3 2026: "people don't understand what [x3] means")
+    local m1 = tonumber(main.m[1]) or 1
+    local notes = { tr("UI_ZeD_Guide_SB_Percent", pct(m1), tostring(math.floor(10 * m1 + 0.5))),
+                    tr("UI_ZeD_Guide_SB_Covers"), tr("UI_ZeD_Guide_SB_Partial") }
     if #others > 0 then notes[#notes + 1] = tr("UI_ZeD_Guide_SB_Which", #main.names) end
     return { cols = cols, rows = rows, notes = notes }
 end
