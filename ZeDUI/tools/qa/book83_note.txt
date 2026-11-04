@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/book83_note.txt  (Nov 3 2026): punch list 83 after 2d39a599: a handwritten note and the map (4K)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_notebook_paper.lua | nbp | timeout=600
+zedqa_flyers.lua | fl | timeout=300
