@@ -34,6 +34,9 @@ local U = {
     CLIP_W = 640, PARA_GAP = 8, LINE_GAP = 3, RULES_PAD = 10, COL_GAP = 18, BAND_EDGE = 8, BAND_GAP = 8,
 }
 local CLIP_SRC_W, CLIP_SRC_H = 960, 480   -- the game's guide clips (Bink, 960 x 480)
+-- the reading measure is the width of this many characters of ordinary English, spaces counted
+-- (a pangram run on: real letters and spaces, not one letter repeated)
+local MEASURE_SAMPLE = string.rep("the quick brown fox jumps over the lazy dog ", 3)
 
 local function fh(font) return ZeD.TM:getFontHeight(font) end
 local function tw(font, s) return ZeD.TM:MeasureStringX(font, s) end
@@ -335,9 +338,13 @@ function ZeD_GuideWindow:buildTopic(g, cx, cw)
     end
     for i, para in ipairs(paragraphs(t.text)) do
         if i > 1 then y = y + px(U.PARA_GAP) end
-        for _, runs in ipairs(wrapRuns(para, T.fontF2, cw)) do
-            items[#items + 1] = { kind = "line", x = cx, y = y, runs = runs }
-            y = y + fh(T.fontF2) + px(U.LINE_GAP)
+        -- (the game's single <LINE> break arrives as a newline inside the paragraph: each piece
+        -- starts a new line, as the game draws it)
+        for piece in (para .. "\n"):gmatch("(.-)\n") do
+            for _, runs in ipairs(wrapRuns(piece, T.fontF2, cw)) do
+                items[#items + 1] = { kind = "line", x = cx, y = y, runs = runs }
+                y = y + fh(T.fontF2) + px(U.LINE_GAP)
+            end
         end
     end
     local rf = Rules[t.titleKey]
@@ -403,7 +410,7 @@ function ZeD_GuideWindow:layout()
     -- window as wide as that needs (the director, Nov 3 2026: no gap beside the clip, and not too many
     -- words on a line for the eye to track). Large text keeps the same letters a line.
     local sbW0 = T.sp.scrollbarW
-    local measure = math.min(px(U.CLIP_W), tw(T.fontF2, string.rep("e", U.MEASURE_CHARS)))
+    local measure = math.min(px(U.CLIP_W), tw(T.fontF2, MEASURE_SAMPLE:sub(1, U.MEASURE_CHARS)))
     g.measure = measure
     local w = math.min(px(U.LIST_W) + px(U.PAD) * 4 + measure + sbW0, getPlayerScreenWidth(pn) - px(20))
     local bandH = Mo.bandH()
