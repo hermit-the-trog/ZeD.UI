@@ -1,0 +1,6 @@
+# ZeDUI/tools/qa/book83_deck_final.txt  (Nov 3 2026): punch list 83, the pause box and ragged lines at the Deck (Large text)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_textlarge.lua | txl | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_book83_pause.lua | b8p | timeout=120
+zedqa_book83.lua | b83 | timeout=900
