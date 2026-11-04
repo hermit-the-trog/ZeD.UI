@@ -132,3 +132,10 @@ headings, figures in round-cornered ruled frames with all-caps hand-lettered lab
 technical drawings with TOOLS AND MATERIALS lists, two-tone pictograms, "Page n" folios. What the magazine look does
 not have: checklists and step-by-step build pages. How the director wants it used is open (Build's suggestion: the
 First Days section and any build-it pages printed as a civil-defence pamphlet tucked into the guide).
+
+Fourth reference (Nov 3 2026): "The Complete Survival Guide" (DBI Books, 1983; archive.org
+completesurvival0000unse; the free preview stops after the contents, the rest needs a borrow). The bookstore book the
+director means: a title page and chapter heads in heavy italic display caps, a contents page with numbered chapters in
+bold sans caps, a line on each and dotted leaders to the page, a sepia photo facing the title page. Mockup v5 (same
+link) adds a title page and a contents spread ("Full: contents"): F1 with nothing to jump to opens there. Chapter 1's
+first spread (page 6) is past the free preview: the director asked Build to look at it; asked for a capture.

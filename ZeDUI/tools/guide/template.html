@@ -1,6 +1,6 @@
 <title>ZeD Survival Guide</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans+Condensed:wght@400;500;600&family=Domine:wght@700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400;1,700&family=Arimo:wght@700&family=Archivo+Black&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans+Condensed:wght@400;500;600&family=Domine:wght@700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400;1,700&family=Arimo:wght@700&family=Archivo+Black&family=Archivo:ital,wdth,wght@1,112,900&family=Archivo+Narrow:wght@700&display=swap">
 <style>
 /* Survival guide (F1), mockup v1, Nov 3 2026. One topic (Character > Skill Books) in both looks:
    Simple = a ZeD window (the split layout of the Crafting, Vehicle and Cooking tabs),
@@ -9,7 +9,7 @@
 :root {
   color-scheme: dark;
   --mono:'Fira Mono',ui-monospace,Consolas,monospace; --cond:'Fira Sans Condensed','Arial Narrow',sans-serif;
-  --serif:'Libre Baskerville','Century Schoolbook',Georgia,serif; --slab:'Domine','Clarendon',Georgia,serif; --sub:'Arimo',Helvetica,Arial,sans-serif; --disp:'Archivo Black','Arial Black',sans-serif;
+  --serif:'Libre Baskerville','Century Schoolbook',Georgia,serif; --slab:'Domine','Clarendon',Georgia,serif; --sub:'Arimo',Helvetica,Arial,sans-serif; --disp:'Archivo Black','Arial Black',sans-serif; --ital:'Archivo','Arial Black',sans-serif; --narrow:'Archivo Narrow','Arial Narrow',sans-serif;
   --desk:#0b0a08; --b:#0c0c0c; --s1:#131313; --s2:#1a1a1a; --s3:#222; --s4:#2a2a2a; --bd:#2a2a2a; --bs:#3a3a3a;
   --ac:#d4922a; --acb:#e8a830; --hov:rgba(212,146,42,.22); --sel:rgba(212,146,42,.55);
   --tx:rgba(214,214,212,.9); --ts:rgba(150,150,150,.75); --tf:rgba(120,120,120,.65); --th:rgba(222,210,190,.95);
@@ -142,6 +142,24 @@ h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:var(--note-
 .tabx:hover { opacity:.45; }
 .tabx.on { opacity:1; }
 
+
+/* the title page and the contents */
+.title-p { display:flex; flex-direction:column; align-items:center; text-align:center; }
+.tp-hd { margin-top:150px; font-family:var(--ital); font-style:italic; font-weight:900; font-stretch:112%; font-size:44px; line-height:1.02; letter-spacing:.5px; text-transform:uppercase; }
+.tp-ed { margin-top:22px; font-family:var(--sub); font-weight:700; font-size:12px; line-height:1.4; }
+.tp-im { position:absolute; left:40px; right:40px; bottom:60px; font-family:var(--sub); font-size:12px; letter-spacing:.6px; text-transform:uppercase; }
+.ct-hd { font-family:var(--ital); font-style:italic; font-weight:900; font-stretch:112%; font-size:30px; text-transform:uppercase; text-align:right; margin:2px 0 8px; }
+.ct { list-style:none; margin:0; padding:0; }
+.ct li { display:grid; grid-template-columns:22px 1fr; column-gap:4px; margin-bottom:2px; cursor:pointer; }
+.ct li:hover .ct-t { text-decoration:underline; }
+.ct .ct-n { font-family:var(--narrow); font-weight:700; font-size:10.5px; text-align:right; padding-right:4px; }
+.ct .ct-t { font-family:var(--narrow); font-weight:700; font-size:10.5px; text-transform:uppercase; letter-spacing:.2px; }
+.ct .ct-d { grid-column:2; display:flex; align-items:baseline; gap:4px; font-family:var(--sub); font-weight:400; font-size:9.5px; line-height:1.12; }
+.ct .ct-d span:first-child { flex:none; max-width:78%; }
+.ct .ct-d i { flex:1; border-bottom:1.5px dotted var(--news); transform:translateY(-3px); }
+.ct .ct-d b { font-family:var(--sub); font-weight:700; font-size:10px; }
+.ct li.ours .ct-t::after { content:""; }
+
 /* notes under the stage */
 .notes { max-width:1180px; margin-top:22px; display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:22px; }
 .notes > div { min-width:0; }
@@ -150,11 +168,11 @@ h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:var(--note-
 @media (prefers-reduced-motion: reduce) { * { transition:none !important; } }
 </style>
 
-<div class="banner">ZeD-GUI | Survival guide (F1) | mockup v4</div>
+<div class="banner">ZeD-GUI | Survival guide (F1) | mockup v5</div>
 <h1>Survival Guide: both looks on one topic</h1>
 <p class="lede">The game's <b>Skill Books</b> topic in the <b>Simple</b> look (a ZeD window, laid out like the Crafting, Vehicle and Cooking tabs) and the <b>Full</b> look (a printed manual, new from the bookstore, set like a 1990 newsstand survival magazine). The topic list and text are the game's own; the numbers under <b>The rules in numbers</b> are read from the game's files (42.22). Click topics, open and close sections, type in Find, and turn the pages in the book.</p>
 <div class="controls">
-  <div class="ctl"><span>Look</span><div class="seg" id="lookSeg"><button data-v="simple" class="on" type="button">Simple: window</button><button data-v="full" type="button">Full: manual</button></div></div>
+  <div class="ctl"><span>Look</span><div class="seg" id="lookSeg"><button data-v="simple" class="on" type="button">Simple: window</button><button data-v="full" type="button">Full: manual</button><button data-v="full" data-toc="1" type="button">Full: contents</button></div></div>
 </div>
 <div class="fitwrap" id="fitwrap"><div class="stage" id="stage"></div></div>
 <div class="notes">
@@ -167,6 +185,7 @@ h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:var(--note-
   <div><h2>The two looks</h2><ul>
     <li><b>Simple</b> is the default: list left, topic right, Find and the start-up box in the band, Previous and Next at the right. The controller: D-pad in the list, A opens, RB and LB turn topics, B closes.</li>
     <li><b>Full</b> is set like a 1990 newsstand survival magazine: a kicker over a heavy headline, an italic deck and a byline between rules, two justified columns with a drop cap and the first word in capitals, the clip as a boxed halftone, a grey-tint department bar, bold run-in subheads, charts in a ruled box with the caption inside. No marks of any kind. LB and RB turn the page.</li>
+    <li>The manual opens on its title page and contents (from a 1983 bookstore survival guide): numbered chapters, a line on each, dotted leaders to the page. F1 with nothing to jump to opens here; F1 from a tab opens its topic.</li>
     <li>Both read the same pages, so a topic written once shows in both.</li>
   </ul></div>
   <div><h2>For you to look at</h2><ul>
@@ -179,7 +198,7 @@ h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:var(--note-
 <script>
 const DATA = __DATA__;
 const CLIP = "__CLIP__";
-const S = { look:"simple", sel:"skill_books", closed:{}, find:"", showStart:true, jump:true };
+const S = { look:"simple", sel:"skill_books", closed:{}, find:"", showStart:true, jump:true, toc:false };
 try { const v = localStorage.getItem("zedGuideLook"); if (v) S.look = v; } catch (e) {}
 
 const RULES_SB = `
@@ -238,6 +257,24 @@ function simple() {
     <div class="help">${S.sel === "skill_books" ? "Skill Books: what a book does, and its numbers. F1 from the Skills tab opens here." : "Click a topic, or type in Find."}</div>
   </div>`;
 }
+function contents() {
+  const pg = {}; let at = 6;
+  DATA.sections.forEach(s => { pg[s.id] = at; at += s.topics.length * 2; });
+  const items = DATA.sections.map((s, k) => `<li data-cs="${s.id}"><span class="ct-n">${k + 1}.</span><span class="ct-t">${esc(s.title)}</span>
+    <span class="ct-d"><span>${esc(DATA.blurbs[s.id] || "")}</span><i></i><b>${pg[s.id]}</b></span></li>`).join("");
+  return `<div class="desk"></div><div class="book">
+    <div class="page l title-p">
+      <div class="tp-hd">The Survival<br>Guide</div>
+      <div class="tp-ed">Revised for the 1993 season<br>with The Rules in Numbers</div>
+      <div class="tp-im">Louisville, Kentucky</div>
+    </div>
+    <div class="page r">
+      <div class="ct-hd">Contents</div>
+      <ul class="ct">${items}</ul>
+    </div>
+  </div>`;
+}
+
 function full() {
   const r = topic(S.sel); const f = flat(); const i = f.findIndex(x => x.t.id === S.sel);
   const n = DATA.sections.length; const span = 596;
@@ -252,7 +289,7 @@ function full() {
       ${deck ? `<div class="deck">${esc(deck)}</div>` : ""}<div class="by">Staff Report</div>
       ${r.t.clip ? `<div class="halftone"><img alt="" src="${CLIP}"></div><div class="capn">${esc(r.t.title)}. <i>In the guide, this picture plays as a clip.</i></div>` : ""}
       <div class="cols">${ps.map((p, k) => `<p>${k === 0 ? p.replace(/^(\S+)/, '<span class="fw">$1</span>') : p}</p>`).join("")}</div>
-      <div class="folio"><span>${180 + i * 2} &nbsp; The Survival Guide</span><span class="nav" id="bprev">&#9664; previous page</span></div>
+      <div class="folio"><span>${180 + i * 2} &nbsp; The Survival Guide</span><span class="nav" id="btoc">contents</span><span class="nav" id="bprev">&#9664; previous page</span></div>
     </div>
     <div class="page r">
       <div class="bar"><span>The Rules in Numbers</span></div>
@@ -273,17 +310,19 @@ function render() {
   const st = document.getElementById("stage");
   const scroll = document.getElementById("lscroll"); const top = scroll ? scroll.scrollTop : 0;
   const hadFocus = document.activeElement && document.activeElement.id === "find";
-  st.innerHTML = S.look === "simple" ? simple() : full();
-  document.querySelectorAll("#lookSeg button").forEach(b => b.classList.toggle("on", b.dataset.v === S.look));
+  st.innerHTML = S.look === "simple" ? simple() : (S.toc ? contents() : full());
+  document.querySelectorAll("#lookSeg button").forEach(b => b.classList.toggle("on", b.dataset.v === S.look && (b.dataset.v !== "full" || (b.dataset.toc === "1") === S.toc)));
   const ls = document.getElementById("lscroll"); if (ls) { ls.scrollTop = top; if (S.jump) { const r = ls.querySelector(".row.sel"); if (r) ls.scrollTop = r.offsetTop - ls.clientHeight / 2; S.jump = false; } }
   const fi = document.getElementById("find");
   if (fi) { fi.addEventListener("input", e => { S.find = e.target.value; render(); }); if (hadFocus) { fi.focus(); fi.setSelectionRange(fi.value.length, fi.value.length); } }
   fit();
 }
 document.addEventListener("click", e => {
-  const lb = e.target.closest("#lookSeg button"); if (lb) { S.look = lb.dataset.v; try { localStorage.setItem("zedGuideLook", S.look); } catch (x) {} render(); return; }
+  const lb = e.target.closest("#lookSeg button"); if (lb) { S.look = lb.dataset.v; S.toc = lb.dataset.v === "full" && lb.dataset.toc === "1"; try { localStorage.setItem("zedGuideLook", S.look); } catch (x) {} render(); return; }
   const c = e.target.closest(".cat"); if (c) { S.closed[c.dataset.cat] = !S.closed[c.dataset.cat]; render(); return; }
   const r = e.target.closest(".row"); if (r) { S.sel = r.dataset.t; render(); return; }
+  const cs = e.target.closest("[data-cs]"); if (cs) { const s = DATA.sections.find(x => x.id === cs.dataset.cs); if (s && s.topics.length) { S.sel = s.topics[0].id; S.toc = false; S.jump = true; render(); } return; }
+  if (e.target.closest("#btoc")) { S.toc = true; render(); return; }
   const tb = e.target.closest(".tabx"); if (tb) { const s = DATA.sections.find(x => x.id === tb.dataset.tab); if (s && s.topics.length) { S.sel = s.topics[0].id; S.jump = true; render(); } return; }
   if (e.target.closest("#chk")) { S.showStart = !S.showStart; render(); return; }
   if (e.target.closest("#prev") || e.target.closest("#bprev")) { step(-1); return; }

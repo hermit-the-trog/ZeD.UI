@@ -1,9 +1,9 @@
-"""Builds ZeDUI/mockups/zed_survival_guide_v4.html from template.html and the game's own files (42.22)."""
+"""Builds ZeDUI/mockups/zed_survival_guide_v5.html from template.html and the game's own files (42.22)."""
 import base64, json, os, re, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))   # template.html and clip.jpg sit beside this script
 G = "E:/Project Zomboid/steamapps/common/ProjectZomboid/media"
-OUT = "C:/Users/danie/Zomboid/mods/ZeD-UI/ZeDUI/mockups/zed_survival_guide_v4.html"
+OUT = "C:/Users/danie/Zomboid/mods/ZeD-UI/ZeDUI/mockups/zed_survival_guide_v5.html"
 
 d = json.load(open(G + "/lua/shared/Translate/EN/SurvivalGuide.json", encoding="utf-8"))
 vids = set(os.listdir(G + "/videos/survival_guide"))
@@ -47,6 +47,29 @@ for v in range(1, 6):
     n = int(re.search(r"NumLevelsTrained = (\d+)", blk).group(1))
     books.append({"vol": v, "lo": lo, "hi": lo + n - 1, "m": m1[v - 1], "m2": m2[v - 1]})
 
+BLURBS = {
+    "movement": "Walking, running, climbing, vaulting and sneaking.",
+    "inventory": "Bags, carrying, and how weight slows you down.",
+    "interactable": "Doors, windows, curtains, lights, radios and generators.",
+    "combat": "Weapons, shoving, sneak attacks, shooting and fence defense.",
+    "food_and_water": "Opening, preparing and cooking food; making water safe.",
+    "character": "Moodles, health, sleep, exercise and skill books.",
+    "crafting": "The crafting and build menus, barricades and workstations.",
+    "vehicles": "Starting, fueling, repairing and loading a car.",
+    "weather": "Seasons, weather and dressing for the temperature.",
+    "foraging_mining": "Searching for food and supplies; breaking rock.",
+    "farming": "Seeds, furrows, planting and the harvest.",
+    "ranching": "Keeping, handling and butchering animals.",
+    "fishing": "Bait, casting, reeling in and trapping.",
+    "cleaning": "Corpses, stains, washing yourself and your clothes.",
+    "multiplayer": "PVP, factions, chat and checking each other's wounds.",
+    "zed": "The windows, cards, belt and action bar of ZeD.",
+    "first_days": "The first week: water, light, curtains and staying quiet.",
+    "b41": "What changed for players coming back from Build 41.",
+    "controls": "Your keys and your controller, as set now.",
+    "whatsnew": "The latest changes to ZeD.",
+}
+
 ui = {}
 for f in os.listdir(G + "/lua/shared/Translate/EN"):
     if f.endswith(".json"):
@@ -54,7 +77,7 @@ for f in os.listdir(G + "/lua/shared/Translate/EN"):
             ui.update(json.load(open(G + "/lua/shared/Translate/EN/" + f, encoding="utf-8")))
         except Exception:
             pass
-data = {"sections": secs, "books": books, "decks": {}, "showGuide": ui.get("IGUI_Tutorial_ShowGuide", "Show the guide on startup")}
+data = {"sections": secs, "books": books, "decks": {}, "blurbs": BLURBS, "showGuide": ui.get("IGUI_Tutorial_ShowGuide", "Show the guide on startup")}
 clip = "data:image/jpeg;base64," + base64.b64encode(open(os.path.join(HERE, "clip.jpg"), "rb").read()).decode()
 h = open(os.path.join(HERE, "template.html"), encoding="utf-8").read()
 h = h.replace("__DATA__", json.dumps(data, ensure_ascii=False)).replace("__CLIP__", clip)
