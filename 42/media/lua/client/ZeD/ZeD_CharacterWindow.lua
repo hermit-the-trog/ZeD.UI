@@ -815,6 +815,7 @@ local _buildCardActionFocusables
 -- S103: forward-declared so _buildSkillRowFocusables can bind togglePinSkill
 -- as an upvalue for its onActivate closure (defined much later in the file).
 local togglePinSkill
+local skillRowMenu   -- (Nov 4 2026: the skill row's menu, assigned with togglePinSkill below)
 
 -- S98: Sync the ring zones to the new active tab. Called from _switchTabForNav
 -- on both the loot-snap and non-loot-drawer paths. Centralizes the four
@@ -1366,9 +1367,12 @@ local function _buildSkillRowFocusables(win)
             onFocus = function(w, el)
                 w._gpFocusedSkill = el.skillName
             end,
-            -- S103: A pins/unpins, matching click handler at the mouse path.
+            -- A or X: the row's menu, with Pin to title bar (Nov 4 2026; was A pins at once)
             onActivate = function(w, el)
-                if el.skillName then togglePinSkill(w, el.skillName) end
+                if el.skillName then skillRowMenu(w, el.skillName, w:getAbsoluteX() + el.x + 40, w:getAbsoluteY() + el.y + el.h) end
+            end,
+            onContextMenu = function(w, el)
+                if el.skillName then skillRowMenu(w, el.skillName, w:getAbsoluteX() + el.x + 40, w:getAbsoluteY() + el.y + el.h) end
             end,
             -- the one column (a narrow card, punch list 35): Left and Right do nothing;
             -- Down and Up go through the column (cone-nav)
@@ -3684,36 +3688,24 @@ local function drawContainerStrip(self, win, content)
 end
 
 -- ============================================================================
--- PINNED SKILLS — click-to-pin in SkillsTab, max 2, FIFO overflow
+-- PINNED SKILLS (ZeD_Pins: from the row's menu, three pins at most of every kind)
 -- ============================================================================
 
-local function savePinnedSkills(win)
-    local md = win._playerObj:getModData()
-    md.ZeD_PinnedSkills = {}
-    for _, name in ipairs(win._pinnedSkills) do
-        md.ZeD_PinnedSkills[#md.ZeD_PinnedSkills + 1] = name
-    end
-end
 
 -- S103: assigned to the forward-declared upvalue (not `local function`) so
 -- _buildSkillRowFocusables's onActivate closure (declared earlier in the
 -- file) can capture it as an upvalue.
 togglePinSkill = function(win, skillName)
-    local pins = win._pinnedSkills
-    -- Already pinned → unpin
-    for i, p in ipairs(pins) do
-        if p == skillName then
-            table.remove(pins, i)
-            savePinnedSkills(win)
-            return
-        end
-    end
-    -- Not pinned → add, FIFO eviction if full
-    pins[#pins + 1] = skillName
-    if #pins > 2 then
-        table.remove(pins, 1)
-    end
-    savePinnedSkills(win)
+    -- (ZeD_Pins, Nov 4 2026: every kind of pin in one list, three at most; the row's menu calls it)
+    ZeD.Pins.toggle(win._playerObj, "skill", skillName)
+    win._pinnedSkills = ZeD.Pins.skillNames(win._playerObj)
+end
+
+-- a skill row's menu (the director, Nov 4 2026: pin from the menu, never a plain click)
+skillRowMenu = function(win, skillName, ax, ay)
+    if not skillName then return end
+    local pd = ZeD.SkillsTab.getPinData(win._playerObj, skillName)
+    ZeD.Pins.skillMenu(win._playerObj:getPlayerNum(), skillName, pd and pd.name or skillName, ax, ay)
 end
 
 -- ============================================================================
@@ -4049,14 +4041,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
     win._trainingGroupZones = nil
     win._skillRowZones     = nil
 
-    -- Pinned skills (max 2, click-to-pin, FIFO overflow, persistent)
-    win._pinnedSkills = {}
-    local md = playerObj:getModData()
-    if md.ZeD_PinnedSkills then
-        for _, name in ipairs(md.ZeD_PinnedSkills) do
-            win._pinnedSkills[#win._pinnedSkills + 1] = name
-        end
-    end
+    -- Pinned skills (ZeD_Pins: three pins at most of every kind, from the menus; the skill ones mark their rows)
+    win._pinnedSkills = ZeD.Pins.skillNames(playerObj)
 
     -- Equipment tab state (slot list + defense dashboard)
     win._equipListExpanded     = true   -- pinned "Equipped" disclosure default
@@ -5240,16 +5226,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     return true
                 end
             end
-            -- Skill row click-to-pin detection
-            if win._activeTab == "skills" and win._skillRowZones then
-                for _, zone in ipairs(win._skillRowZones) do
-                    if x >= zone.x and x <= zone.x + zone.w
-                       and y >= zone.y and y <= zone.y + zone.h then
-                        togglePinSkill(win, zone.name)
-                        return true
-                    end
-                end
-            end
+            -- (a plain click on a skill row no longer pins it: the row's right-click menu does, Nov 4 2026)
             -- Training materials expand/collapse click detection
             if win._activeTab == "skills" and win._trainingGroupZones then
                 for _, zone in ipairs(win._trainingGroupZones) do
@@ -5335,6 +5312,15 @@ function ZeD_CharacterWindow.toggle(playerNum)
     -- inventory rows use — gives Drop / Wear / Read / Repair / etc. on the
     -- equipped item.
     drawer.onRightMouseUp = function(self, x, y)
+        -- a skill row: its menu, Pin to title bar (ZeD_Pins)
+        if win._activeTab == "skills" and win._drawerMode == "tab" and win._skillRowZones then
+            for _, zone in ipairs(win._skillRowZones) do
+                if x >= zone.x and x <= zone.x + zone.w and y >= zone.y and y <= zone.y + zone.h then
+                    skillRowMenu(win, zone.name, self:getAbsoluteX() + x, self:getAbsoluteY() + y)
+                    return true
+                end
+            end
+        end
         -- the Journal's Loadouts page: a line's Remove, a list's Rename / Delete
         if win._activeTab == "journal" and win._drawerMode == "tab" and (win._journalSubTab or 1) == 5
            and ZeD.JournalLists and ZeD.JournalLists.onRightClick(win, x, y) then
@@ -5852,25 +5838,10 @@ function ZeD_CharacterWindow.toggle(playerNum)
         -- Build title stats: skill | HP | weight (right-to-left rendering)
         win.titleStats = {}
 
-        -- Pinned skill stats (leftmost)
-        for _, perkName in ipairs(win._pinnedSkills) do
-            local pd = ZeD.SkillsTab.getPinData(self._playerObj, perkName)
-            if pd then
-                local pinText, pinColor
-                if pd.level >= 10 then
-                    pinText = ZeD.tr("UI_ZeD_Char_PinMax", pd.name)
-                    pinColor = ZeD.colorAlpha(T.warning, 1.0)
-                else
-                    pinText = ZeD.tr("UI_ZeD_Char_PinLevel", pd.name, pd.level, pd.xpInLevel .. "/" .. pd.xpForLevel)
-                    if pd.xpPct >= 0.75 then     pinColor = T.danger
-                    elseif pd.xpPct >= 0.40 then pinColor = T.warning
-                    elseif pd.level > 0 then     pinColor = T.positive
-                    else                          pinColor = T.textDim
-                    end
-                end
-                win.titleStats[#win.titleStats + 1] = {text = pinText, color = pinColor}
-            end
-        end
+        -- the pins (ZeD_Pins: skills, the book read, liquids, what is left, condition; leftmost). The mark is the
+        -- pin's status, the words plain (Nov 4 2026: a skill near its next level was red, read as bad news)
+        win._pinnedSkills = ZeD.Pins.skillNames(self._playerObj)
+        for _, st in ipairs(ZeD.Pins.stats(self._playerObj)) do win.titleStats[#win.titleStats + 1] = st end
 
         -- HP (middle): its status square in the health colour
         win.titleStats[#win.titleStats + 1] = { text = hp .. "%", color = hpColor }

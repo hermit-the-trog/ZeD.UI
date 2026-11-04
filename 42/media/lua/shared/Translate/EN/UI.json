@@ -3378,7 +3378,7 @@
     "UI_ZeD_Skills_HelpBooksHide": "Fold the books that train %1.",
     "UI_ZeD_Skills_HelpBooksShow": "Show the books that train %1.",
     "UI_ZeD_Skills_HelpHeader": "Show or hide the skills.",
-    "UI_ZeD_Skills_HelpPin": "Pin %1 to the title bar.",
+    "UI_ZeD_Skills_HelpPin": "Right-click to pin %1 to the title bar.",
     "UI_ZeD_Skills_HelpUnpin": "Unpin %1 from the title bar.",
     "UI_ZeD_Skills_BarHelp": "%1 %2, %3 to level %4",
     "UI_ZeD_Bar_Help": "%1 %2",
@@ -4360,5 +4360,11 @@
     "UI_ZeD_Settings_HintStripTip": "A quiet strip above the belt: what you can do with what is in front of you, with your key or button. First hours: each hint stops once you have used it a few times.",
     "UI_ZeD_Settings_HintAlways": "Always",
     "UI_ZeD_Settings_HintFirst": "First hours",
-    "UI_ZeD_Hint_More": "More"
+    "UI_ZeD_Hint_More": "More",
+    "UI_ZeD_Pin_Pin": "Pin to title bar",
+    "UI_ZeD_Pin_Unpin": "Unpin from title bar",
+    "UI_ZeD_Pin_Replaced": "%1 pinned. %2 was taken off (%3 at most).",
+    "UI_ZeD_Pin_Of": "%1 | %2/%3",
+    "UI_ZeD_Pin_Litres": "%1 | %2/%3 L",
+    "UI_ZeD_Pin_Pct": "%1 | %2%%"
 }
