@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/halo_probe.txt  (Nov 4 2026): can ZeD catch the game's overhead text (zedqa_run.ps1 -Manifest this)
+zedqa_prelude.lua | pre | timeout=120
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_halo_probe.lua | hal | timeout=120
