@@ -248,21 +248,31 @@ local function twoWays(t)
 end
 W.twoWays = twoWays
 
+local STANDIN = {}
+for i = 1, 9 do STANDIN[i] = "\2" .. i .. "\2" end
+
 -- an entry's text for the device in use: the controller's own words and buttons (description_joypad) when the player
 -- is on a controller and the game has them, else the keyboard's words and keys. nil: an entry the game hides.
 local function entryText(e, joy)
     local desc = e:getDescription()
     if not desc then return nil end
     local raw, keys = nil, nil
+    -- (the game's text has %1$s ... for its keys: it is asked with stand-ins \2 n \2 (asked with none, it warned
+    -- once a topic, QA Nov 4 2026), which are then filled with ZeD's markers)
+    local S = STANDIN
     if joy then
-        raw = getTextOrNull(desc .. "_joypad")
+        raw = getTextOrNull(desc .. "_joypad", S[1], S[2], S[3], S[4], S[5], S[6], S[7], S[8], S[9])
         if raw then keys = e:getJoypadKeys() end
     end
-    if not raw then raw, keys = getTextOrNull(desc), e:getKeys() end
+    if not raw then raw, keys = getTextOrNull(desc, S[1], S[2], S[3], S[4], S[5], S[6], S[7], S[8], S[9]), e:getKeys() end
     if not raw or raw == "<IGNORE>" then return nil end
     local args = {}
     for i = 0, (keys and keys:size() or 0) - 1 do args[i + 1] = argFor(keys:get(i)) end
-    return (raw:gsub("%%(%d)", function(d) return args[tonumber(d)] or "" end))
+    raw = raw:gsub("\2(%d)\2%$s", function(d) return args[tonumber(d or "")] or "" end)
+    raw = raw:gsub("\2(%d)\2", function(d) return args[tonumber(d or "")] or "" end)
+    -- (a %n the game left as it was, with or without its $s)
+    raw = raw:gsub("%%(%d)%$s", function(d) return args[tonumber(d or "")] or "" end)
+    return (raw:gsub("%%(%d)", function(d) return args[tonumber(d or "")] or "" end))
 end
 
 -- Japanese and Chinese line breaking (kinsoku, QA Nov 4 2026: a "。" started a line): these never start a line
@@ -645,21 +655,11 @@ function ZeD_GuideWindow:buildTopic(g, cx, cw)
         items[#items + 1] = { kind = "clip", x = cx, y = y, w = w, h = h }
         y = y + h + px(U.PARA_GAP) * 2
     end
-    for i, para in ipairs(paragraphs(t.text)) do
-        if i > 1 then y = y + px(U.PARA_GAP) end
-        -- (the game's single <LINE> break arrives as a newline inside the paragraph: each piece
-        -- starts a new line, as the game draws it)
-        for piece in (para .. "\n"):gmatch("(.-)\n") do
-            for _, runs in ipairs(wrapRuns(piece, T.fontF2, cw)) do
-                items[#items + 1] = { kind = "line", x = cx, y = y, runs = runs }
-                y = y + fh(T.fontF2) + px(U.LINE_GAP)
-            end
-        end
-    end
     -- the two ways: a three-column table (what, mouse and keyboard, controller), one line an action
+    local function waysBox()
     local ways = twoWays(t)
     if ways then
-        y = y + px(U.PARA_GAP) * 2
+        y = y + ((y > 0) and px(U.PARA_GAP) * 2 or 0)
         local pad = px(U.RULES_PAD)
         local s = fh(T.fontF2)
         local box = { kind = "ways", x = cx, y = y, w = cw, rows = {}, s = s }
@@ -693,6 +693,23 @@ function ZeD_GuideWindow:buildTopic(g, cx, cw)
         items[#items + 1] = box
         y = y + box.h
     end
+    end
+    -- (on a controller the two ways come first, above the game's words, which often speak of the mouse: the
+    -- director, Nov 4 2026, "Option 3"; the same on every page, so a controller player always finds it there)
+    local padFirst = W.onPad(self.playerNum)
+    if padFirst then waysBox(); y = y + px(U.PARA_GAP) * 2 end
+    for i, para in ipairs(paragraphs(t.text)) do
+        if i > 1 then y = y + px(U.PARA_GAP) end
+        -- (the game's single <LINE> break arrives as a newline inside the paragraph: each piece
+        -- starts a new line, as the game draws it)
+        for piece in (para .. "\n"):gmatch("(.-)\n") do
+            for _, runs in ipairs(wrapRuns(piece, T.fontF2, cw)) do
+                items[#items + 1] = { kind = "line", x = cx, y = y, runs = runs }
+                y = y + fh(T.fontF2) + px(U.LINE_GAP)
+            end
+        end
+    end
+    if not padFirst then waysBox() end
     for ti, rules in ipairs(W.rulesList(t) or {}) do
         y = y + px(U.PARA_GAP) * 2
         local pad = px(U.RULES_PAD)

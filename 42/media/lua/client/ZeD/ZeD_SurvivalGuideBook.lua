@@ -298,41 +298,35 @@ function B.paginate(bk, u)
         y = y + px(U.CAP) * 0.7
     end
     local function body(t, si, s)
-        for _, l in ipairs(bodyLines(t, F.text, px(U.TEXT), textW_)) do
-            if y + lineH > bottom then newPage(si, s, false) end
-            y = y + lineH
-            add({ k = "line", y = y, line = l })
-        end
-        -- the two ways (ZeD.Guide.twoWays): a small ruled table under the text, its heads, then a line an action;
-        -- the whole of it on one page
+        -- the two ways (ZeD.Guide.twoWays): a small ruled table, its heads, then a line an action. On a controller it
+        -- leads the topic (the director, Nov 4 2026, "Option 3"); on a keyboard it follows the text and keeps the
+        -- text's last two lines with it (QA: a box stood alone at the top of the next page)
         local ways = ZeD.Guide.twoWays and ZeD.Guide.twoWays(t)
+        local rowH = px(U.TEXT) * 1.45
+        local wl, need = {}, 0
         if ways then
-            local rowH = px(U.TEXT) * 1.45
-            -- (rows of words, ZeD's pages: each side wrapped in its half; the rest one line)
             local half = textW_ / 2 - px(8)
-            local lines = {}
             for i, r in ipairs(ways) do
                 if r.kbText then
                     local a = wrapWords(wordsOf(r.kbText), F.text, px(U.TEXT), function() return half end, 1, 0)
                     local b = wrapWords(wordsOf(r.padText), F.text, px(U.TEXT), function() return half end, 1, 0)
-                    lines[i] = { a = a, b = b, n = math.max(#a, #b, 1) }
+                    wl[i] = { a = a, b = b, n = math.max(#a, #b, 1) }
                 else
-                    lines[i] = { n = 1 }
+                    wl[i] = { n = 1 }
                 end
             end
-            local function rowsH(from)
-                local h = 0
-                for i = from, #ways do h = h + lines[i].n * rowH end
-                return h
-            end
-            local need = px(U.TEXT) * 1.2 + px(U.CAP) * 1.6 + math.min(rowsH(1), rowH * 4) + px(6)
+            local rows = 0
+            for i = 1, #ways do rows = rows + wl[i].n * rowH end
+            need = px(U.TEXT) * 1.2 + px(U.CAP) * 1.6 + math.min(rows, rowH * 4) + px(6)
+        end
+        local function box()
             if y + need > bottom then newPage(si, s, false) end
             y = y + px(U.TEXT) * 1.2 + px(U.CAP)
             local texty = ways[1] and ways[1].kbText ~= nil
             add({ k = "waysHead", y = y, texty = texty })
             y = y + px(U.CAP) * 0.6
             for i, r in ipairs(ways) do
-                local n = lines[i].n
+                local n = wl[i].n
                 if y + n * rowH > bottom then
                     newPage(si, s, false)
                     y = y + px(U.CAP)
@@ -340,11 +334,21 @@ function B.paginate(bk, u)
                     y = y + px(U.CAP) * 0.6
                 end
                 y = y + rowH
-                add({ k = "waysRow", y = y, row = r, a = lines[i].a, b = lines[i].b, rowH = rowH })
+                add({ k = "waysRow", y = y, row = r, a = wl[i].a, b = wl[i].b, rowH = rowH })
                 y = y + (n - 1) * rowH
             end
             y = y + px(6)
         end
+        local padFirst = ways and bk._joyRead
+        if padFirst then box() end
+        local lines = bodyLines(t, F.text, px(U.TEXT), textW_)
+        for i, l in ipairs(lines) do
+            local keep = (ways and not padFirst and i == math.max(1, #lines - 1)) and ((#lines - i + 1) * lineH + need) or lineH
+            if y + keep > bottom then newPage(si, s, false) end
+            y = y + lineH
+            add({ k = "line", y = y, line = l })
+        end
+        if ways and not padFirst then box() end
     end
 
     for si, s in ipairs(bk.sections) do
