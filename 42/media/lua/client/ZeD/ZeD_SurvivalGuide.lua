@@ -83,7 +83,20 @@ local function wrapRuns(para, font, maxW)
     while i <= #para do
         local a = para:find(MARK, i, true)
         local textPart = para:sub(i, (a or (#para + 1)) - 1)
-        for word in textPart:gmatch("%s*%S+%s*") do atoms[#atoms + 1] = { text = word, w = twFull(font, word) } end
+        for word in textPart:gmatch("%s*%S+%s*") do
+            local ww = twFull(font, word)
+            if ww > maxW then
+                -- a word wider than the line (Japanese, Chinese, Korean and Thai write a sentence without
+                -- spaces: QA, Nov 3 2026) breaks between its characters (Kahlua strings are UTF-16: one
+                -- character per sub)
+                for k = 1, #word do
+                    local ch = word:sub(k, k)
+                    atoms[#atoms + 1] = { text = ch, w = twFull(font, ch) }
+                end
+            else
+                atoms[#atoms + 1] = { text = word, w = ww }
+            end
+        end
         if not a then break end
         local b = para:find(MARK, a + 1, true)
         if not b then break end
