@@ -4340,5 +4340,15 @@
     "UI_ZeD_Mods_Label": "Label",
     "UI_ZeD_Mods_HelpLabel": "Label: %1. Kleurt het plaatje van de map, of de naam en lijn van de scheiding.",
     "UI_ZeD_Settings_Mods": "Modificatiescherm",
-    "UI_ZeD_Settings_ModsTip": "Volledig: de ID en tags van elke modificatie, mappen, profielen en de laadvolgorde. Eenvoudig: één regel per modificatie, het vakje, de naam en een teken als er iets mis is."
+    "UI_ZeD_Settings_ModsTip": "Volledig: de ID en tags van elke modificatie, mappen, profielen en de laadvolgorde. Eenvoudig: één regel per modificatie, het vakje, de naam en een teken als er iets mis is.",
+    "UI_ZeD_Msg_OverHead": "Boven je hoofd",
+    "UI_ZeD_Msg_GameNotes": "Van het spel",
+    "UI_ZeD_Msg_Times": "%1 keer",
+    "UI_ZeD_Msg_KindGood": "Goed",
+    "UI_ZeD_Msg_KindBad": "Slecht",
+    "UI_ZeD_Halo_XP": "%1 +%2 xp",
+    "UI_ZeD_Halo_LevelUp": "%1: level %2",
+    "UI_ZeD_Halo_LevelDown": "%1: terug naar level %2",
+    "UI_ZeD_Settings_HaloBubble": "Notities boven het hoofd",
+    "UI_ZeD_Settings_HaloBubbleTip": "De notities van het spel boven je hoofd (Te zwaar, Buiten bereik) verschijnen in de bubbel van ZeD en worden elk bewaard in Berichten. Vaardigheids-xp en levels worden nog steeds getoond zoals in het spel en ook bewaard in Berichten."
 }

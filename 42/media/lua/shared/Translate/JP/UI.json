@@ -4341,5 +4341,15 @@
     "UI_ZeD_Mods_Label": "ラベル",
     "UI_ZeD_Mods_HelpLabel": "ラベル: %1。フォルダの絵、または区切りの名前と線に色を付けます。",
     "UI_ZeD_Settings_Mods": "MOD画面",
-    "UI_ZeD_Settings_ModsTip": "フル: 各MODのIDとタグ、フォルダ、プロファイル、ロード順。シンプル: MOD1つにつき1行で、チェック枠、名前、問題があるときの印。"
+    "UI_ZeD_Settings_ModsTip": "フル: 各MODのIDとタグ、フォルダ、プロファイル、ロード順。シンプル: MOD1つにつき1行で、チェック枠、名前、問題があるときの印。",
+    "UI_ZeD_Msg_OverHead": "頭の上",
+    "UI_ZeD_Msg_GameNotes": "ゲームから",
+    "UI_ZeD_Msg_Times": "%1回",
+    "UI_ZeD_Msg_KindGood": "良い",
+    "UI_ZeD_Msg_KindBad": "悪い",
+    "UI_ZeD_Halo_XP": "%1 +%2 XP",
+    "UI_ZeD_Halo_LevelUp": "%1: レベル %2",
+    "UI_ZeD_Halo_LevelDown": "%1: レベル %2 に低下",
+    "UI_ZeD_Settings_HaloBubble": "頭上の通知",
+    "UI_ZeD_Settings_HaloBubbleTip": "ゲームが頭の上に出す通知(重すぎます、届きません)をZeDの吹き出しで表示し、1件ずつメッセージに保管します。スキルのXPとレベルはこれまで通りゲームの形式で表示され、メッセージにも保管されます。"
 }

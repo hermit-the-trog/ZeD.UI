@@ -4340,5 +4340,15 @@
     "UI_ZeD_Mods_Label": "Címke",
     "UI_ZeD_Mods_HelpLabel": "Címke: %1. Színezi a mappa képét, vagy az elválasztó nevét és vonalát.",
     "UI_ZeD_Settings_Mods": "Modok képernyő",
-    "UI_ZeD_Settings_ModsTip": "Teljes: minden mod azonosítója és címkéi, mappák, profilok és a betöltési sorrend. Sima: egy sor modonként, a jelölőnégyzete, a neve és egy jel, ha baj van."
+    "UI_ZeD_Settings_ModsTip": "Teljes: minden mod azonosítója és címkéi, mappák, profilok és a betöltési sorrend. Sima: egy sor modonként, a jelölőnégyzete, a neve és egy jel, ha baj van.",
+    "UI_ZeD_Msg_OverHead": "A fejed felett",
+    "UI_ZeD_Msg_GameNotes": "A játéktól",
+    "UI_ZeD_Msg_Times": "%1 alkalommal",
+    "UI_ZeD_Msg_KindGood": "Jó",
+    "UI_ZeD_Msg_KindBad": "Rossz",
+    "UI_ZeD_Halo_XP": "%1 +%2 Tp",
+    "UI_ZeD_Halo_LevelUp": "%1: %2. szint",
+    "UI_ZeD_Halo_LevelDown": "%1: vissza a(z) %2. szintre",
+    "UI_ZeD_Settings_HaloBubble": "Fej feletti jegyzetek",
+    "UI_ZeD_Settings_HaloBubbleTip": "A játék fej feletti jegyzetei (Túl nehéz, Nem éri el) a ZeD buborékjában jelennek meg, és mindegyik megmarad az Üzenetekben. A Tp és a szintek továbbra is a játék módján látszanak, és az Üzenetekben is megmaradnak."
 }

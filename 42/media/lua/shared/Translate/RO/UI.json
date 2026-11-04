@@ -4340,5 +4340,15 @@
     "UI_ZeD_Mods_Label": "Etichetă",
     "UI_ZeD_Mods_HelpLabel": "Etichetă: %1. Colorează imaginea dosarului sau numele și linia separatorului.",
     "UI_ZeD_Settings_Mods": "Ecranul de moduri",
-    "UI_ZeD_Settings_ModsTip": "Complet: ID-ul și etichetele fiecărui mod, dosare, profiluri și ordinea de încărcare. Simplu: o linie pe mod, căsuța, numele și un semn când ceva nu e în regulă."
+    "UI_ZeD_Settings_ModsTip": "Complet: ID-ul și etichetele fiecărui mod, dosare, profiluri și ordinea de încărcare. Simplu: o linie pe mod, căsuța, numele și un semn când ceva nu e în regulă.",
+    "UI_ZeD_Msg_OverHead": "Deasupra capului",
+    "UI_ZeD_Msg_GameNotes": "Din joc",
+    "UI_ZeD_Msg_Times": "De %1 ori",
+    "UI_ZeD_Msg_KindGood": "Bun",
+    "UI_ZeD_Msg_KindBad": "Rău",
+    "UI_ZeD_Halo_XP": "%1 +%2 XP",
+    "UI_ZeD_Halo_LevelUp": "%1: nivel %2",
+    "UI_ZeD_Halo_LevelDown": "%1: scade la nivelul %2",
+    "UI_ZeD_Settings_HaloBubble": "Note deasupra capului",
+    "UI_ZeD_Settings_HaloBubbleTip": "Notele jocului deasupra capului (Prea greu, Nu ajungi) apar în balonul ZeD, iar fiecare se păstrează în Mesaje. XP și nivelurile se afișează în continuare ca în joc și se păstrează tot în Mesaje."
 }
