@@ -3811,6 +3811,20 @@ function ZeD_CharacterWindow.toggle(playerNum)
     )
     win:initialise()
     win:addToUIManager()
+    -- the game's own roll-up when not in use (ZeD_Window:_autoCollapse); the pin kept with the character
+    win.autoCollapse = true
+    pcall(function()
+        local md = getSpecificPlayer(0):getModData()
+        md.ZeD_WinPinned = md.ZeD_WinPinned or {}
+        win.pinned = md.ZeD_WinPinned.char == true
+    end)
+    win.onPinChange = function(_, on)
+        pcall(function()
+            local md = getSpecificPlayer(0):getModData()
+            md.ZeD_WinPinned = md.ZeD_WinPinned or {}
+            md.ZeD_WinPinned.char = on
+        end)
+    end
     win.minimumHeight = T.px(220)
     win._maxWinW = maxWinW
     _charWin = win

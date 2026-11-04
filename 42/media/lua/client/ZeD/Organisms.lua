@@ -132,6 +132,71 @@ end
 
 -- The window box at the right end of the title bar: the close box's size and look, three
 -- lines inside. Every ZeD window has one (noWindowBox = true leaves it out).
+-- THE PIN (Nov 4 2026, a regression fixed for beta 4: the director, and Lahy-uh-bil-i-tee's report "can you not have
+-- it act like the original menu? where it hides when not in use"). A window with autoCollapse behaves as the game's
+-- inventory pages do with a mouse (ISInventoryPage, ISPlayerDataObject): unpinned at first, it rolls up to its title
+-- bar a moment after the pointer leaves it (at once while aiming) and rolls down when the pointer is over its title
+-- bar; the pin box beside the window box keeps it open. With a controller it is always open (the game pins its
+-- pages for a controller). The roll-up is ZeD's window shade. When this was taken out is older than the repository
+-- (its first commit, v0.1.96, already had "No vanilla pin/collapse, stubs only"), so no commit can be named.
+local COLLAPSE_MS = 2000
+function ZeD_Window:pinRect()
+    if not self.autoCollapse then return nil end
+    local box = self:windowBoxRect()
+    if not box then return nil end
+    local T = ZeD.T
+    local r = self._pinRect
+    if not r then r = {}; self._pinRect = r end
+    r.x, r.y, r.w, r.h = box.x - T.sp.sm - box.w, box.y, box.w, box.h
+    return r
+end
+function ZeD_Window:setPinned(on)
+    self.pinned = on and true or false
+    if self.onPinChange then pcall(self.onPinChange, self, self.pinned) end
+    if self.pinned and self._autoShaded and self.windowShaded then
+        self._autoShaded = false
+        self:setWindowShaded(false)
+    end
+end
+-- each update: roll up or down as the game's inventory does
+function ZeD_Window:_autoCollapse()
+    if not self.autoCollapse or not self:getIsVisible() then return end
+    local pn = self.playerNum or 0
+    local pad = JoypadState and JoypadState.players and JoypadState.players[pn + 1] ~= nil
+    local now = getTimestampMs()
+    -- (an item dragged in either window: the windows stay as they are until it is dropped)
+    local dragging = self.moving
+    for _, get in ipairs({ ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow, ZeD_WorldWindow and ZeD_WorldWindow.getWindow }) do
+        local w = get and get()
+        local c = w and w._mainContent
+        if c and c._drag and c._drag:isActive() then dragging = true end
+    end
+    if pad or self.pinned or dragging or isMouseButtonDown(0) or isMouseButtonDown(1) then
+        self._outSince = nil
+        return
+    end
+    local mx, my = getMouseX() - self:getAbsoluteX(), getMouseY() - self:getAbsoluteY()
+    local inside = mx >= 0 and my >= 0 and mx <= self:getWidth() and my <= self:getHeight()
+    if inside then
+        self._outSince = nil
+        if self.windowShaded and my < self:titleBarHeight() then
+            self._autoShaded = false
+            self:setWindowShaded(false)
+        end
+        return
+    end
+    if self.windowShaded then self._outSince = nil; return end
+    local p = getSpecificPlayer(pn)
+    local aiming = false
+    pcall(function() aiming = p and p:isAiming() end)
+    self._outSince = self._outSince or now
+    if aiming or now - self._outSince > COLLAPSE_MS then
+        self._outSince = nil
+        self._autoShaded = true
+        self:setWindowShaded(true)
+    end
+end
+
 function ZeD_Window:windowBoxRect()
     if self.noWindowBox then return nil end
     local T = ZeD.T
@@ -447,7 +512,8 @@ function ZeD_Window:_drawTitleBar(w, tbH)
     ZeD.Surface.fill(self, 0, 0, w, tbH, "surf2")
 
     local box = self:windowBoxRect()
-    local right = box and (box.x - sp.md) or (w - sp.sm)
+    local pinR = self:pinRect()
+    local right = (pinR and (pinR.x - sp.md)) or (box and (box.x - sp.md)) or (w - sp.sm)
     local titleX = sp.sm + T.closeBoxSz + sp.md
     local textY = math.floor((tbH - (T.fontF3H or tm:getFontHeight(f3))) / 2)
     local shown, tW = nil, 0
@@ -525,6 +591,16 @@ function ZeD_Window:_drawTitleBar(w, tbH)
         ZeD.Atoms.drawCloseBox(self, cb.x, cb.y, cb.w, self._closeHover)
     end
     if box then drawWindowBox(self, box.x, box.y, box.w, self._wboxHover or self._wboxOpen) end
+    if pinR then
+        local bg = self._pinHover and T.hover or T.surf2
+        self:drawRect(pinR.x, pinR.y, pinR.w, pinR.h, 1, bg.r, bg.g, bg.b)
+        local bs = T.borderS
+        self:drawRectBorder(pinR.x, pinR.y, pinR.w, pinR.h, bs.a, bs.r, bs.g, bs.b)
+        local ins = T.px(2)
+        if ZeD.Atoms.drawPxIcon then
+            ZeD.Atoms.drawPxIcon(self, "pin", pinR.x + ins, pinR.y + ins, pinR.w - ins * 2, self.pinned and 1 or 0.55, self.pinned and T.accent or T.textDim)
+        end
+    end
 
     -- the structure line under the bar, to the frame's inner edges (a shaded window's frame closes it)
     if not (self.isCollapsed or self.windowShaded) then
@@ -1065,6 +1141,8 @@ function ZeD_Window:onMouseDown(x, y)
     -- nor counts towards a double-click
     local box = self:windowBoxRect()
     if box and x >= box.x and x < box.x + box.w and y >= box.y and y < box.y + box.h then return true end
+    local pr = self:pinRect()
+    if pr and x >= pr.x and x < pr.x + pr.w and y >= pr.y and y < pr.y + pr.h then return true end
 
     local tbH = self:titleBarHeight()
     if y < tbH and y > 0 then
@@ -1320,6 +1398,21 @@ function ZeD_Window:_watchBoxes()
     else
         self._wboxHover = false
     end
+    local pr = self:pinRect()
+    if pr then
+        local inside = mx >= pr.x and mx < pr.x + pr.w and my >= pr.y and my < pr.y + pr.h
+        if inside and not self:pointerOn() then inside = false end
+        self._pinHover = inside
+        if inside then self._updHelp = ZeD.tr(self.pinned and "UI_ZeD_Win_HelpUnpin" or "UI_ZeD_Win_HelpPin") end
+        if down then
+            if fresh and inside then self._pinWasDown = true end
+        elseif self._pinWasDown then
+            self._pinWasDown = false
+            if inside then self._boxDo = "pin" end
+        end
+    else
+        self._pinHover = false
+    end
 end
 
 function ZeD_Window:update()
@@ -1336,7 +1429,10 @@ function ZeD_Window:update()
         return
     elseif act == "menu" then
         self:openWindowMenu()
+    elseif act == "pin" then
+        self:setPinned(not self.pinned)
     end
+    self:_autoCollapse()
 
     -- The resize edges and corners (resizable windows only): `fresh` is the update the
     -- button went down, as for the boxes

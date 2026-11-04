@@ -4536,5 +4536,7 @@
     "UI_ZeD_Guide_Check4": "Clean and bandage every wound, however small.",
     "UI_ZeD_Guide_Check5": "Eat the fresh food first. Keep the cans.",
     "UI_ZeD_Guide_Check6": "Find a map and learn two ways out of town.",
-    "UI_ZeD_Guide_Check7": "Walk, keep it quiet, and fight at a door."
+    "UI_ZeD_Guide_Check7": "Walk, keep it quiet, and fight at a door.",
+    "UI_ZeD_Win_HelpPin": "Pin this window open. Unpinned, it rolls up to its title bar when the pointer leaves it.",
+    "UI_ZeD_Win_HelpUnpin": "Unpin: the window rolls up to its title bar when the pointer leaves it, and down when the pointer is over its title bar."
 }
