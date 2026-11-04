@@ -4351,5 +4351,7 @@
     "UI_ZeD_Halo_LevelUp": "%1: level %2",
     "UI_ZeD_Halo_LevelDown": "%1: down to level %2",
     "UI_ZeD_Settings_HaloBubble": "Overhead notes",
-    "UI_ZeD_Settings_HaloBubbleTip": "The game's notes over your head (Too heavy, Can't reach) in ZeD's bubble, and each kept in Messages. Skill XP and levels still show the game's way, and are kept in Messages too."
+    "UI_ZeD_Settings_HaloBubbleTip": "The game's notes over your head (Too heavy, Can't reach) in ZeD's bubble, and each kept in Messages. Skill XP and levels still show the game's way, and are kept in Messages too.",
+    "UI_ZeD_Guide_WaysKB": "Mouse and keyboard",
+    "UI_ZeD_Guide_WaysPad": "Controller"
 }
