@@ -80,27 +80,33 @@ function H.install()
     local O = H.orig
     O.addText, O.addGoodText, O.addBadText, O.addTextWithArrow = HT.addText, HT.addGoodText, HT.addBadText, HT.addTextWithArrow
     local ok = pcall(function()
+        -- (each passes on exactly the arguments it was given, never padded with nils: the game picks its Java overload
+        -- by the count, and a nil int threw, QA Nov 4 2026)
         -- addText(player, text [, separator] [, colour | r, g, b])
-        HT.addText = function(p, text, sep, c, g, b)
+        HT.addText = function(...)
+            local p, text, sep, c, g, b = ...
             local tone = nil
             if type(sep) ~= "string" then tone = toneOf(sep, c, g) else tone = toneOf(c, g, b) end
             if take(p, text, tone) then return end
-            return O.addText(p, text, sep, c, g, b)
+            return O.addText(...)
         end
-        HT.addGoodText = function(p, text, sep)
+        HT.addGoodText = function(...)
+            local p, text = ...
             if take(p, text, "good") then return end
-            return O.addGoodText(p, text, sep)
+            return O.addGoodText(...)
         end
-        HT.addBadText = function(p, text, sep)
+        HT.addBadText = function(...)
+            local p, text = ...
             if take(p, text, "bad") then return end
-            return O.addBadText(p, text, sep)
+            return O.addBadText(...)
         end
         -- addTextWithArrow(player, text [, separator], up, colour [, arrow colour] | r, g, b [, r, g, b])
-        HT.addTextWithArrow = function(p, text, a3, a4, a5, a6, a7, a8, a9, a10)
+        HT.addTextWithArrow = function(...)
+            local p, text, a3, a4, a5, a6, a7 = ...
             local tone
             if type(a3) == "string" then tone = toneOf(a5, a6, a7) else tone = toneOf(a4, a5, a6) end
             if take(p, text, tone) then return end
-            return O.addTextWithArrow(p, text, a3, a4, a5, a6, a7, a8, a9, a10)
+            return O.addTextWithArrow(...)
         end
     end)
     H.installed = ok
