@@ -1,0 +1,7 @@
+@糕级冻雾 Thank you. You're right that there is a lot to learn. That's what the survival guide is for, and a lot of work is going into it right now. It isn't out yet: it should be in the next beta build, possibly later today. F1 will open it in game. It covers the game's own systems as well as ZeD's screens, with clips, so it's meant for new players and veterans alike, in every language ZeD supports.
+
+On other UI mods: ZeD replaces the same screens most UI mods do, so most of them can't run beside it, and you won't need them. The Compatibility thread lists what works with ZeD and what doesn't. If a mod you use isn't there, post its name and I'll test it.
+
+谢谢。确实需要一些时间来熟悉。这正是生存指南的用途，我们目前正在为它投入大量精力。生存指南还没有发布，预计会在下一个测试版中推出，可能就在今天晚些时候。到时在游戏中按 F1 打开。它既讲解游戏本身的系统，也讲解 ZeD 的界面，并配有演示片段，新老玩家都能用得上，并提供 ZeD 支持的所有语言。
+
+关于其他界面模组：ZeD 替换的界面和大多数界面模组相同，所以大多数无法与它同时使用，你也不再需要它们。"兼容性"讨论帖列出了哪些可以与 ZeD 一起用、哪些不行。如果你用的模组不在列表里，请把名字发上来，我会测试。
