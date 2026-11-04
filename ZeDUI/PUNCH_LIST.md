@@ -2486,7 +2486,12 @@ item says so.
       centred (the director: QA found no page was ever shared with full-width clips). Deck Large 46/46: 74 pages, 18
       shared, 4 run-ons, the pause box hidden. Russian and Spanish open the book fully translated (title, introduction,
       rules; names kept); Japanese opens the window translated. Thai: no line past the measure in 81 topics. Japanese
-      line breaking (a full stop started a line) fixed in d085a6fc; QA's kinsoku check running.
+      line breaking (a full stop started a line) fixed in d085a6fc. **Kinsoku, QA Nov 4: PASS** (zedqa_kinsoku.lua,
+      every topic in the window): Japanese 314 lines and Chinese (CH) 224 CJK lines, none starting with a closing
+      mark, long-vowel mark or small kana, none ending with an opening mark; no line past the measure in either.
+      (g8m's "letters per line" count reads 35 in Japanese: it counts characters, and a CJK character is about two
+      Latin widths, so that line is not a fault.) The director's pictures retaken on 5c4a44a0 at 4K into
+      Zomboid/Screenshots/guide_book_director/ (1 to 4, plus 5_shared_page; Nov 3's set moved to nov3/).
 
 ## Test process
 
