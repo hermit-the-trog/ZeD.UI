@@ -458,7 +458,19 @@ W.Rules = Rules
 -- the helicopter, the infection's timing; the director, Nov 4 2026) shows a grey bar, "Show the numbers", until the
 -- player asks (a click, or A); it stays shown while the guide is open (W.spoil, emptied when the guide opens).
 W.spoil = W.spoil or {}
+W._rulesC = W._rulesC or {}
 function W.rulesList(t)
+    local rf = t and Rules[t.titleKey]
+    if not rf then return nil end
+    local c = W._rulesC[t.titleKey]
+    if c ~= nil then return c or nil end
+    local ok, r = pcall(rf)
+    if not ok or not r then W._rulesC[t.titleKey] = false; return nil end
+    if r.cols then r = { r } end
+    W._rulesC[t.titleKey] = (#r > 0) and r or false
+    return (#r > 0) and r or nil
+end
+function W._rulesListRaw(t)
     local rf = t and Rules[t.titleKey]
     if not rf then return nil end
     local ok, r = pcall(rf)
@@ -527,6 +539,203 @@ Rules.SurvivalGuide_skill_books_title = function()
                     tr("UI_ZeD_Guide_SB_Covers"), tr("UI_ZeD_Guide_SB_Partial") }
     if #others > 0 then notes[#notes + 1] = tr("UI_ZeD_Guide_SB_Which", #main.names) end
     return { cols = cols, rows = rows, notes = notes }
+end
+
+-- ---------------------------------------------------------------------------
+-- MORE RULES (the director, Nov 4 2026: your body, food and health, skills and traits, things you run). Every number
+-- read from the game or this world's settings (research: what Lua can read in 42.22); what cannot be read that way is
+-- left out. A world's settings that some players would rather find out sit behind the spoiler bar.
+-- ---------------------------------------------------------------------------
+local function sbOpt(name)
+    local ok, o = pcall(function() return getSandboxOptions():getOptionByName(name) end)
+    return ok and o or nil
+end
+-- a world setting's name and its choice in the game's words (nil when the game has no such setting)
+local function sbChoice(name)
+    local o = sbOpt(name)
+    if not o then return nil end
+    local ok, label, val = pcall(function()
+        local v
+        if o.getValueTranslationByIndex then v = o:getValueTranslationByIndex(o:getValue()) else v = tostring(o:getValue()) end
+        return o:getTranslatedName(), v
+    end)
+    if not ok then return nil end
+    return tostring(label), tostring(val)
+end
+local function sbNumber(name)
+    local o = sbOpt(name)
+    if not o then return nil end
+    local ok, label, v = pcall(function() return o:getTranslatedName(), o:getValue() end)
+    if not ok then return nil end
+    return tostring(label), v
+end
+local function fmt(n)
+    n = tonumber(n) or 0
+    if n == math.floor(n) then return tostring(math.floor(n)) end
+    return string.format("%.1f", n)
+end
+local function perkLabel(pk)
+    local ok, n = pcall(function() return pk:getName() end)
+    return ok and tostring(n) or tostring(pk)
+end
+-- a definition's skill boosts as words: "Carpentry +4, Carving +1"
+local function boostsOf(def)
+    local out = {}
+    pcall(function()
+        local t = transformIntoKahluaTable(def:getXpBoosts())
+        for pk, lv in pairs(t or {}) do out[#out + 1] = perkLabel(pk) .. " +" .. tostring(lv) end
+    end)
+    table.sort(out)
+    return table.concat(out, ", ")
+end
+
+-- Character: the XP each level takes (the game's own getter: it scales its listed numbers when it starts), skills
+-- with the same steps grouped; occupations and traits as on the character screen
+Rules.SurvivalGuide_character_title = function()
+    local out = {}
+    local groups, order = {}, {}
+    pcall(function()
+        local L = PerkFactory.PerkList
+        for i = 0, L:size() - 1 do
+            local pk = L:get(i)
+            if pk:getParent() ~= Perks.None then
+                local seq = {}
+                for n = 1, 10 do seq[n] = pk:getXpForLevel(n) end
+                local id = table.concat(seq, ",")
+                if not groups[id] then groups[id] = { seq = seq, names = {} }; order[#order + 1] = id end
+                local gn = groups[id].names
+                gn[#gn + 1] = perkLabel(pk)
+            end
+        end
+    end)
+    if #order > 0 then
+        table.sort(order, function(a, b) return #groups[a].names > #groups[b].names end)
+        local cols = { tr("UI_ZeD_Rules_Level") }
+        for gi, id in ipairs(order) do
+            local g = groups[id]
+            cols[#cols + 1] = (gi == 1 and #g.names > 3) and tr("UI_ZeD_Rules_MostSkills") or table.concat(g.names, ", ")
+        end
+        local rows = {}
+        for n = 1, 10 do
+            local r = { tostring(n) }
+            for _, id in ipairs(order) do r[#r + 1] = fmt(groups[id].seq[n]) end
+            rows[#rows + 1] = r
+        end
+        local notes = {}
+        local label, v = sbNumber("MultiplierConfig.Global")
+        if label then notes[#notes + 1] = tr("UI_ZeD_Rules_WorldIs", label, fmt(v)) end
+        out[#out + 1] = { title = tr("UI_ZeD_Rules_XPTitle"), cols = cols, rows = rows, notes = notes }
+    end
+    local occ = {}
+    pcall(function()
+        local L = CharacterProfessionDefinition.getProfessions()
+        for i = 0, L:size() - 1 do
+            local d = L:get(i)
+            occ[#occ + 1] = { tostring(d:getUIName()), tostring(d:getCost()), boostsOf(d) }
+        end
+    end)
+    if #occ > 0 then
+        table.sort(occ, function(a, b) return a[1] < b[1] end)
+        out[#out + 1] = { title = tr("UI_ZeD_Rules_OccTitle"), cols = { tr("UI_ZeD_Rules_Occupation"), tr("UI_ZeD_Rules_Points"), tr("UI_ZeD_Rules_Skills") }, rows = occ,
+                          notes = { tr("UI_ZeD_Rules_OccNote") } }
+    end
+    local tra = {}
+    pcall(function()
+        local L = CharacterTraitDefinition.getTraits()
+        for i = 0, L:size() - 1 do
+            local d = L:get(i)
+            if not d:isFree() then tra[#tra + 1] = { tostring(d:getUIName()), tostring(d:getCost()), boostsOf(d) } end
+        end
+    end)
+    if #tra > 0 then
+        table.sort(tra, function(a, b) return a[1] < b[1] end)
+        out[#out + 1] = { title = tr("UI_ZeD_Rules_TraitTitle"), cols = { tr("UI_ZeD_Rules_Trait"), tr("UI_ZeD_Rules_Points"), tr("UI_ZeD_Rules_Skills") }, rows = tra,
+                          notes = { tr("UI_ZeD_Rules_TraitNote") } }
+    end
+    return (#out > 0) and out or nil
+end
+
+-- Food and water: how long the food you carry keeps and what it gives (its script); this world's rot and fridge
+-- settings named, not multiplied in (the game's multipliers are not readable)
+Rules.SurvivalGuide_food_and_water_title = function()
+    local p = getSpecificPlayer(0)
+    if not p then return nil end
+    local rows, seen = {}, {}
+    pcall(function()
+        local items = ArrayList.new()
+        p:getInventory():getAllCategoryRecurse("Food", items)
+        for i = 0, items:size() - 1 do
+            local it = items:get(i)
+            local ft = it:getFullType()
+            if not seen[ft] then
+                seen[ft] = true
+                local sc = it:getScriptItem()
+                local fresh, rot = sc and sc:getDaysFresh() or 0, sc and sc:getDaysTotallyRotten() or 0
+                local kcal = 0
+                pcall(function() kcal = it:getCalories() end)
+                rows[#rows + 1] = { tostring(it:getDisplayName()), (fresh > 0 and fresh < 1000000) and fmt(fresh) or "-", (rot > 0 and rot < 1000000) and fmt(rot) or "-", fmt(kcal) }
+            end
+        end
+    end)
+    if #rows == 0 then return nil end
+    table.sort(rows, function(a, b) return a[1] < b[1] end)
+    local notes = {}
+    for _, name in ipairs({ "FoodRotSpeed", "FridgeFactor" }) do
+        local label, val = sbChoice(name)
+        if label then notes[#notes + 1] = tr("UI_ZeD_Rules_WorldIs", label, val) end
+    end
+    return { title = tr("UI_ZeD_Rules_FoodTitle"), cols = { tr("UI_ZeD_Rules_Food"), tr("UI_ZeD_Rules_Fresh"), tr("UI_ZeD_Rules_Rotten"), tr("UI_ZeD_Rules_Calories") },
+             rows = rows, notes = notes }
+end
+
+-- Farming: each crop's hours a growth stage at this world's farming speed, the water it needs and its harvest
+-- (the game's farming table, there once a game runs)
+Rules.SurvivalGuide_farming_title = function()
+    local conf = farming_vegetableconf and farming_vegetableconf.props
+    if not conf then return nil end
+    local speed = 1
+    pcall(function() speed = getSandboxOptions():getOptionByName("FarmingSpeedNew"):getValue() end)
+    if not speed or speed <= 0 then speed = 1 end
+    local rows = {}
+    for name, pr in pairs(conf) do
+        if type(pr) == "table" and pr.timeToGrow then
+            local crop = getTextOrNull("Farming_" .. tostring(name)) or tostring(name)
+            local water = pr.waterLvl and (tostring(pr.waterLvl) .. "%") or "-"
+            local yield = (pr.minVeg and pr.maxVeg) and (tostring(pr.minVeg) .. "-" .. tostring(pr.maxVeg)) or "-"
+            rows[#rows + 1] = { crop, fmt(pr.timeToGrow / speed), water, yield }
+        end
+    end
+    if #rows == 0 then return nil end
+    table.sort(rows, function(a, b) return a[1] < b[1] end)
+    local notes = {}
+    local label, v = sbNumber("FarmingSpeedNew")
+    if label then notes[#notes + 1] = tr("UI_ZeD_Rules_WorldIs", label, fmt(v)) end
+    notes[#notes + 1] = tr("UI_ZeD_Rules_CropNote")
+    return { title = tr("UI_ZeD_Rules_CropTitle"), cols = { tr("UI_ZeD_Rules_Crop"), tr("UI_ZeD_Rules_HoursStage"), tr("UI_ZeD_Rules_Water"), tr("UI_ZeD_Rules_Harvest") },
+             rows = rows, notes = notes }
+end
+
+-- this world's settings as ranges: the shutoff windows, the helicopter, how the infection works (spoilers: the
+-- choice's words only, never the day the world rolled)
+local function worldRows(names)
+    local rows = {}
+    for _, name in ipairs(names) do
+        local label, val = sbChoice(name)
+        if label then rows[#rows + 1] = { label, val } end
+    end
+    return rows
+end
+Rules.SurvivalGuide_treat_water_title = function()
+    local rows = worldRows({ "WaterShut", "ElecShut", "Helicopter" })
+    if #rows == 0 then return nil end
+    return { title = tr("UI_ZeD_Rules_WorldTitle"), cols = { tr("UI_ZeD_Rules_Setting"), tr("UI_ZeD_Rules_ThisWorld") }, rows = rows,
+             notes = { tr("UI_ZeD_Rules_WorldNote") }, spoiler = true }
+end
+Rules.SurvivalGuide_zombie_attacks_title = function()
+    local rows = worldRows({ "ZombieLore.Transmission", "ZombieLore.Mortality", "ZombieLore.Reanimate" })
+    if #rows == 0 then return nil end
+    return { title = tr("UI_ZeD_Rules_InfTitle"), cols = { tr("UI_ZeD_Rules_Setting"), tr("UI_ZeD_Rules_ThisWorld") }, rows = rows,
+             notes = { tr("UI_ZeD_Rules_InfNote") }, spoiler = true }
 end
 
 -- ---------------------------------------------------------------------------
@@ -1434,6 +1643,7 @@ end
 -- open on a topic: an id (tostring of a SurvivalGuideEntry) or a title key; the book or the window
 function W.open(pn, want)
     W.spoil = {}
+    W._rulesC = {}
     if W.useBook() then return ZeD.GuideBook.open(pn or 0, want) end
     return W.openWindow(pn, want)
 end
