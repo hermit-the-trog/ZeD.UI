@@ -367,6 +367,16 @@ haloBubble:addItem(getText("UI_Off"), true)   -- default
 haloBubble:addItem(getText("UI_On"), false)
 ZeD.Settings.haloBubbleOption = haloBubble
 ZeD.Settings.haloBubbleOn = function() return (haloBubble:getValue() or 1) == 2 end
+-- the hint strip: what you can do with what is in front of you, your key or button and the game's own words
+-- (the director, Nov 4 2026: "It's always on by default. The next one is first hours. And then the next option is
+-- off."; ZeD_HintStrip.lua). Not one of the presets' additions: the presets leave it as it is.
+local hintStrip = opts:addComboBox("hintStrip", ZeD.tr("UI_ZeD_Settings_HintStrip"), ZeD.tr("UI_ZeD_Settings_HintStripTip"))
+hintStrip:addItem(ZeD.tr("UI_ZeD_Settings_HintAlways"), true)   -- default
+hintStrip:addItem(ZeD.tr("UI_ZeD_Settings_HintFirst"), false)
+hintStrip:addItem(getText("UI_Off"), false)
+ZeD.Settings.hintStripOption = hintStrip
+-- "always" | "first" | "off"
+ZeD.Settings.hintStripMode = function() return ({ "always", "first", "off" })[hintStrip:getValue() or 1] or "always" end
 
 -- ----- SANDBOX OPTIONS IN GAME (director, Oct 24 2026; mockup zed_sandbox_ingame_v1;
 -- ZeD_SandboxInGame.lua) -----
@@ -604,7 +614,7 @@ do
         putBack = "UI_ZeD_Settings_PutBack", seeThrough = "UI_ZeD_Settings_SeeThrough",
         solidInUse = "UI_ZeD_Settings_SolidInUse", focusStyle = "UI_ZeD_Settings_FocusStyle",
         hiddenActions = "UI_ZeD_Settings_HiddenActions",
-        messagesCatch = "UI_ZeD_Settings_MsgCatch", messagesToast = "UI_ZeD_Settings_MsgToast", haloBubble = "UI_ZeD_Settings_HaloBubble",
+        messagesCatch = "UI_ZeD_Settings_MsgCatch", messagesToast = "UI_ZeD_Settings_MsgToast", haloBubble = "UI_ZeD_Settings_HaloBubble", hintStrip = "UI_ZeD_Settings_HintStrip",
         sandboxInGame = "UI_ZeD_Settings_SandboxIG", dimRead = "UI_ZeD_Settings_DimRead",
         ammoBox = "UI_ZeD_Settings_AmmoBox", readMarks = "UI_ZeD_Settings_ReadMarks", readNext = "UI_ZeD_Settings_ReadNext",
         dashLamps = "UI_ZeD_Settings_DashLamps", moodleNotices = "UI_ZeD_Settings_MoodleNotices",

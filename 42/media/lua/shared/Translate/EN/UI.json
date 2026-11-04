@@ -4355,5 +4355,10 @@
     "UI_ZeD_Guide_WaysKB": "Mouse and keyboard",
     "UI_ZeD_Guide_WaysPad": "Controller",
     "UI_ZeD_Guide_SpoilShow": "Show the numbers",
-    "UI_ZeD_Guide_SpoilWhy": "These numbers come from your world's settings. Some players would rather find out for themselves."
+    "UI_ZeD_Guide_SpoilWhy": "These numbers come from your world's settings. Some players would rather find out for themselves.",
+    "UI_ZeD_Settings_HintStrip": "Hint strip",
+    "UI_ZeD_Settings_HintStripTip": "A quiet strip above the belt: what you can do with what is in front of you, with your key or button. First hours: each hint stops once you have used it a few times.",
+    "UI_ZeD_Settings_HintAlways": "Always",
+    "UI_ZeD_Settings_HintFirst": "First hours",
+    "UI_ZeD_Hint_More": "More"
 }
