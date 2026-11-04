@@ -100,3 +100,14 @@ All five sections (the director, Nov 3 2026: "All five"). Next: a mockup of both
 
 Mockup v1 (Nov 3 2026): ZeDUI/mockups/zed_survival_guide_v1.html (built by ZeDUI/tools/guide/build.py from the game's
 files), published privately at https://claude.ai/artifact/97moJBEid53AxPt7zSHbMY. Both looks on Character > Skill Books.
+
+The director on mockup v1 (Nov 3 2026):
+1. The Simple window reads as one of ZeD's tabs: yes.
+2. The manual: "printed, this is a different book from Bitch'n Guide... So it has its own look and is an unmodified
+   manual with no marks or custom notes. Just bought from the bookstore. Book Naked." No handwriting, tape, stickies
+   or the gallery book's running head; its own printed look; the clip as a printed figure.
+3. F1 opens on what you are doing (from the Skills tab, Skill Books): yes.
+
+Mockup v2 (Nov 3 2026): ZeDUI/mockups/zed_survival_guide_v2.html, same link. The Full look is a clean printed manual: running
+head "The Survival Guide", black and one red ink, numbered chapters (the game's section order), the clip as a numbered
+figure, the rules as a numbered table, a printed thumb index on the right page edge. Open: the book's name; the ink.
