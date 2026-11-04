@@ -89,10 +89,21 @@ local function wrapRuns(para, font, maxW)
                 -- a word wider than the line (Japanese, Chinese, Korean and Thai write a sentence without
                 -- spaces: QA, Nov 3 2026) breaks between its characters (Kahlua strings are UTF-16: one
                 -- character per sub)
+                -- Thai: a letter keeps its vowel and tone marks, and a leading vowel keeps the letter after it
+                -- (QA: "อีก" broke after its vowel mark)
+                local piece, lead = "", false
                 for k = 1, #word do
                     local ch = word:sub(k, k)
-                    atoms[#atoms + 1] = { text = ch, w = twFull(font, ch) }
+                    local c = string.byte(ch) or 0
+                    local mark = c == 0x0E31 or (c >= 0x0E34 and c <= 0x0E3A) or (c >= 0x0E47 and c <= 0x0E4E)
+                    if piece ~= "" and not mark and not lead then
+                        atoms[#atoms + 1] = { text = piece, w = twFull(font, piece) }
+                        piece = ""
+                    end
+                    piece = piece .. ch
+                    lead = c >= 0x0E40 and c <= 0x0E44
                 end
+                if piece ~= "" then atoms[#atoms + 1] = { text = piece, w = twFull(font, piece) } end
             else
                 atoms[#atoms + 1] = { text = word, w = ww }
             end
