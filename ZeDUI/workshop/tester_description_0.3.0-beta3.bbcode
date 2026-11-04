@@ -1,0 +1,93 @@
+[h1]Project Zomboid's UI, completely rebuilt using only the PZ API and the Lua language.[/h1]
+[b]I traveled back to the year 1993 and brought back with me this graphical user interface.[/b]
+
+[h1]ZeD-GUI [B42] | beta 0.3.0-beta3[/h1]
+[b]This is the beta, for testing only.[/b] The full release will be uploaded as a separate item. Every feature planned for it is in. What's left is finding out what doesn't work, what pisses you off, what you're not getting, and what you want. Bugs go in the pinned [b]Bug reports[/b] discussion, one post per problem. Ideas and wishes go in [b]Suggestions[/b]. But let's be honest, you'll probably just drop it in the comments, and that's fine. I read those too. Let's see where we can take this thing.
+
+[h2]Known issues[/h2]
+This is made by one person in his spare time. When I started, I had 2,600 hours in Project Zomboid. Now I'm past 3,000, and every one of those extra hours was testing this mod. I've barely played Build 42 myself. I also don't follow the mod scene, so if something here looks like your idea, it's design through osmosis. If you think I stole it, let's talk. I'm one person, so there are bound to be bugs. When you find one, let me know.
+
+[list]
+[*][b]Hair and beard with some large mod lists:[/b] with certain mods on together, a haircut or a beard trim started from ZeD-GUI's Hair and beard can stop with a game error. ZeD-GUI on its own works. If it happens to you, say which mods you run in Bug reports.
+[*][b]Multiplayer:[/b] tested in single player only. If you try it on a server, tell me what happened.
+[*][b]This Is Your Life:[/b] new in this beta and not yet played through with that mod on. If a hometown or a poster story starts wrong, say so in Bug reports.
+[*][b]Survival guide clips[/b] still show the game's own screens; clips of ZeD come later.
+[*][b]Machine translations:[/b] every language other than English is a draft made by machine, marked as such in the language list. Corrections are welcome in the [b]Translations[/b] discussion.
+[/list]
+
+[h2]From the Hermit[/h2]
+[code]
+Hello, Hermit the Trog here. Thanks for checking out my mod ZeD-GUI. I
+started making this in 2022. That try died, and so did the second one in
+2024. This is the third, after hundreds of hours of development and art
+that grew out of the 600-plus images I drew from scratch, no stock art,
+to fit the game and the time period, before I ever brought AI in, and I
+am proud to share this passion project with you. 1993 I was a teenager,
+watching Beavis and Butthead and skateboarding with my homies, and this
+is my way of sharing some of the nostalgia I have for that special time.
+It feels like my first computer did. This is the single most in-depth
+project I have ever done in a long career in design and UI/UX. This is
+my magnum opus.
+
+Hermit the Trog is an artist and mad scientist, but not a coder. AI
+(Claude) coded this. All the logic, systems, workflows and art are the
+ideas and thoughts of one human. Most of those ideas came from being
+outside, not in front of a screen. Don't take my word for it, the code is
+linked at the bottom of this page.
+[/code]
+
+[h2]What it is[/h2]
+ZeD-GUI, the ZeroDay Graphical User Interface, is a complete interface for Project Zomboid Build 42: it replaces the inventory, the character and loot windows, the HUD and the menus, for controller or mouse and keyboard. In the fiction it runs on ZNIX, a made-up kernel built by a paranoid doomsday prepper. The look is inspired by Macintosh System 6 and 7, as well as DOS and the Texas Instruments TI-99/4A. This is not an endorsement of Apple, Microsoft, Texas Instruments or any other brand, unless you want to send Hermit some free stuff, and then this is totally an endorsement.
+
+The pictures above are the manual: a 1993 programming book with my notes in the margins, one feature to a spread. The short version:
+[list]
+[*][b]Character and World windows[/b] for everything you carry and everything around you, with a card for every item.
+[*][b]A HUD on a belt:[/b] your hands, your watch, a dashboard when you drive, and moodles where you want them.
+[*][b]A main menu that is a desk,[/b] and a Mods screen that catches missing requirements and conflicts and shows on and off at a glance.
+[*][b]A survival guide on F1,[/b] a 1987 manual or a plain window: the game's topics plus ZeD's own chapters, your keys or your controller's buttons, and the game's rules in numbers.
+[*][b]Hints and notes:[/b] a hint strip with the key for what you face, the game's overhead notes in a readable bubble and kept in Messages, and pins on the title bar.
+[*][b]Controller support,[/b] with the buttons drawn for Xbox, PlayStation, Steam Deck or Nintendo, and a controller map in the quick wheel.
+[*][b]A Vehicle tab and a Cooking tab[/b] laid out like Crafting: a car's parts beside its diagram, and the game's pot-and-pan dishes built from a list and saved to make again.
+[*][b]Full or simple:[/b] the belt, the watch, the dashboard, the radios and the machines come drawn as the real thing, or as plain cards with the same buttons. Pick in Options, ZeD setup.
+[*][b]Your look:[/b] dark, light or high contrast, nine accent colors, two text sizes and see-through windows.
+[/list]
+
+[h2]Before you subscribe[/h2]
+[list]
+[*][b]Build 42 only[/b] (tested on 42.21 and 42.22), not Build 41. Tested at 4K, 1080p, the Steam Deck's 1280x800 and 1280x720.
+[*][b]Use a new game or a copy of a save.[/b]
+[*][b]It replaces the game's inventory and character windows,[/b] so buttons that other mods add to those windows don't show. Mods that use the game's own systems (context menu options, container buttons, items, recipes) work.
+[*][b]It adds one item,[/b] a steel digital watch in the loot. Remove ZeD-GUI from a save and those watches go too; everything else can be added or removed at any time.
+[*][b]It comes with a helper mod, ZeD picks,[/b] which stays empty until you pick files in Mods.
+[*][b]Text is in English,[/b] with machine drafts in every other language the game has (see Known issues) and the game's own words wherever it has them.
+[/list]
+
+[h2]Getting started[/h2]
+[olist]
+[*]Subscribe, then turn on [b]ZeD-GUI[/b] in the main menu's Mods, after any other interface mods in the load order.
+[*]Quit and start the game again. ZeD-GUI loads its fonts at start.
+[*]Start a new game, or load a copy of a save.
+[*]Set the look and the HUD in Options, ZeD setup.
+[/olist]
+The inventory key opens the Character window, the loot key the World window.
+
+[h2]Reporting a problem[/h2]
+Post in the pinned [b]Bug reports[/b] discussion, with:
+[list]
+[*][b]the bug report:[/b] open the ZeD wheel and pick [b]Bug report[/b]. It copies every error with ZeD-GUI's version, your game version and your mod list, ready to paste;
+[*]what you did, what you expected and what happened, with a screenshot if you can.
+[/list]
+[b]Safe mode:[/b] if ZeD-GUI stops you from playing, turn on Safe mode in Options, ZeD setup. The game's own screens come back; say so in your report. Safe mode can also hand back one screen at a time.
+
+[h2]Server admins[/h2]
+Mod ID: ZeD_UI. Every player needs it, because it adds an item.
+
+[h2]Credits[/h2]
+Designed and directed by Hermit the Trog, built with Claude.
+
+Fonts: Fira Sans and Fira Mono; Noto Sans SC for simplified Chinese (SIL Open Font License). Icons: ZeD-GUI's own pixel art.
+
+Project Zomboid is made by The Indie Stone. ZeD-GUI is a fan-made mod, not affiliated with The Indie Stone, Apple, Microsoft or Texas Instruments.
+
+[h2]License[/h2]
+The code is on [url=https://github.com/hermit-the-trog/ZeD.UI]GitHub[/url]: read it, learn from it, build add-ons for it, send changes back. It's source-available, not open source: please don't re-upload or repost the mod anywhere. This page is the only place I publish it. If it's ever abandoned, the LICENSE file hands it on.
