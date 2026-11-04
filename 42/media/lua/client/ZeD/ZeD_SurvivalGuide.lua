@@ -222,7 +222,8 @@ function ZeD_GuideWindow:step(d)
     if #flat == 0 then return end
     local at = 1
     for i, t in ipairs(flat) do if t.id == self.sel then at = i end end
-    local n = ((at - 1 + d) % #flat) + 1
+    -- (Kahlua's % keeps the sign of a negative number: add the count first)
+    local n = ((at - 1 + d + #flat) % #flat) + 1
     self:choose(flat[n].id)
 end
 
@@ -460,8 +461,10 @@ local _catOpts = {}
 function ZeD_GuideWindow:drawClip(it, t)
     local T = ZeD.T
     local x, y = it.x, it.y + self._g.textOffY
-    if self._clipFor ~= t.id then
-        self._clipFor = t.id
+    -- (keyed on the topic and the game's video effects option, so turning it on or off shows at once)
+    local key = t.id .. (getCore():getOptionDoVideoEffects() and ":v" or ":s")
+    if self._clipFor ~= key then
+        self._clipFor = key
         self._clip, self._still = nil, nil
         local core = getCore()
         if core:getOptionDoVideoEffects() then
