@@ -4336,7 +4336,7 @@
     "UI_ZeD_Mods_TabOff": "Выкл. %1",
     "UI_ZeD_Mods_HideInc": "Скрыть несовместимые",
     "UI_ZeD_Mods_HideIncN": "Скрыто: %1",
-    "UI_ZeD_Mods_HelpHideInc": "Скрывает выключенные моды, которые нельзя включить: сделаны для другой версии игры или требуют мода, который не установлен. Запоминается между сеансами.",
+    "UI_ZeD_Mods_HelpHideInc": "Скрывает выключенные моды, которые нельзя включить.",
     "UI_ZeD_Mods_Label": "Метка",
     "UI_ZeD_Mods_LabelNone": "Нет",
     "UI_ZeD_Mods_LabelEssential": "Важное",

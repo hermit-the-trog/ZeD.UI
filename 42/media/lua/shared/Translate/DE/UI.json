@@ -4336,7 +4336,7 @@
     "UI_ZeD_Mods_TabOff": "Aus %1",
     "UI_ZeD_Mods_HideInc": "Inkompatible ausblenden",
     "UI_ZeD_Mods_HideIncN": "%1 ausgeblendet",
-    "UI_ZeD_Mods_HelpHideInc": "Blendet die ausgeschalteten Mods aus, die sich nicht einschalten lassen: für eine andere Spielversion gemacht oder auf einen nicht installierten Mod angewiesen. Wird zwischen Besuchen gemerkt.",
+    "UI_ZeD_Mods_HelpHideInc": "Blendet die ausgeschalteten Mods aus, die sich nicht einschalten lassen.",
     "UI_ZeD_Mods_Label": "Etikett",
     "UI_ZeD_Mods_LabelNone": "Keine",
     "UI_ZeD_Mods_LabelEssential": "Wichtig",

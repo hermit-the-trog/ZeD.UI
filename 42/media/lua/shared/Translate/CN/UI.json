@@ -4337,7 +4337,7 @@
     "UI_ZeD_Mods_TabOff": "已关 %1",
     "UI_ZeD_Mods_HideInc": "隐藏不兼容项",
     "UI_ZeD_Mods_HideIncN": "已隐藏 %1",
-    "UI_ZeD_Mods_HelpHideInc": "隐藏已关闭且无法开启的模组：为其他游戏版本制作，或需要未安装的模组。下次访问时保持此设置。",
+    "UI_ZeD_Mods_HelpHideInc": "隐藏已关闭且无法开启的模组。",
     "UI_ZeD_Mods_Label": "标签",
     "UI_ZeD_Mods_LabelNone": "无",
     "UI_ZeD_Mods_LabelEssential": "必要",

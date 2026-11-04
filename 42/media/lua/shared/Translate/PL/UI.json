@@ -4336,7 +4336,7 @@
     "UI_ZeD_Mods_TabOff": "Wył. %1",
     "UI_ZeD_Mods_HideInc": "Ukryj niezgodne",
     "UI_ZeD_Mods_HideIncN": "Ukryto: %1",
-    "UI_ZeD_Mods_HelpHideInc": "Ukrywa wyłączone mody, których nie można włączyć: zrobione pod inną wersję gry lub wymagające moda, który nie jest zainstalowany. Zapamiętywane między wizytami.",
+    "UI_ZeD_Mods_HelpHideInc": "Ukrywa wyłączone mody, których nie można włączyć.",
     "UI_ZeD_Mods_Label": "Etykieta",
     "UI_ZeD_Mods_LabelNone": "Brak",
     "UI_ZeD_Mods_LabelEssential": "Istotne",

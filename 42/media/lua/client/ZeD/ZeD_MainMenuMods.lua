@@ -1173,7 +1173,7 @@ end
 function ZeD_MMMods:tabList()
     local T = ZeD.T
     local all, on, favs, maps, probs, confs, wsn = self:counts()
-    local tabs = { { "all", ZeD.tr("UI_ZeD_Mods_TabAll", all) }, { "enabled", ZeD.tr("UI_ZeD_Mods_TabOn", on) } }
+    local tabs = { { "all", ZeD.tr("UI_ZeD_Mods_TabAll", all), all }, { "enabled", ZeD.tr("UI_ZeD_Mods_TabOn", on), on } }
     -- (the Simple view: All, On, Off and Problems; a tab left open in Full goes back to All)
     local simple = self:simple()
     if simple and not SIMPLE_TABS[self.filter] then self.filter = "all"; self.scroll = 0 end
@@ -1181,7 +1181,7 @@ function ZeD_MMMods:tabList()
                    { "problems", "UI_ZeD_Mods_TabProblems", probs }, { "conflicts", "UI_ZeD_Mods_TabConflicts", confs }, { "ws", "UI_ZeD_Mods_TabWorkshop", wsn } }
     if simple then more = { more[1], more[4] } end
     for _, t in ipairs(more) do
-        if t[3] > 0 or self.filter == t[1] then tabs[#tabs + 1] = { t[1], ZeD.tr(t[2], t[3]) } end
+        if t[3] > 0 or self.filter == t[1] then tabs[#tabs + 1] = { t[1], ZeD.tr(t[2], t[3]), t[3] } end
     end
     local need = T.px(16)
     for _, t in ipairs(tabs) do need = need + MM.textW(T.fontF2, t[2]) + T.sp.tabPadX * 2 + T.sp.tabGap end
@@ -1214,6 +1214,22 @@ function ZeD_MMMods:drawList(x, y, w, h)
             gap = gap - cutGap; over = over - cutGap * n
         end
         need = avail + math.max(0, over)
+        -- still too wide (QA Nov 4 2026, Dutch on the Deck at Large text): the tabs not open drop their counts
+        if over > 0 then
+            need = T.px(16)
+            for _, t in ipairs(tabs) do
+                if t[1] ~= self.filter and t[3] then
+                    local s = tostring(t[3])
+                    local a, b = t[2]:find(s, 1, true)
+                    if a then
+                        local short = (t[2]:sub(1, a - 1) .. t[2]:sub(b + 1)):gsub("%(%)", ""):gsub("^%s+", ""):gsub("%s+$", "")
+                        if short ~= "" then t[2] = short end
+                    end
+                end
+                need = need + MM.textW(T.fontF2, t[2]) + padX * 2 + gap
+            end
+            need = math.max(need, avail)
+        end
     end
     local tabOpts = self._tabOpts
     if not tabOpts then tabOpts = {}; self._tabOpts = tabOpts end
@@ -1342,7 +1358,20 @@ function ZeD_MMMods:hideIncBox(x, fY, w, fH)
     local label = ZeD.tr("UI_ZeD_Mods_HideInc")
     local inc = select(8, self:counts()) or 0
     local note = (self.hideInc and inc > 0) and ZeD.tr("UI_ZeD_Mods_HideIncN", inc) or nil
+    -- (Find keeps room for its label, a usable field and its Clear: QA Nov 4 2026, Hungarian in the Simple view at the
+    -- Deck, where the field was drawn over the box. Past that, the count goes first, then the label is cut)
+    local room = w - T.px(16) - (MM.textW(f2, ZeD.tr("UI_ZeD_Options_Find")) + T.px(16) + T.px(140))
+    if (self.find:getInternalText() or "") ~= "" then room = room - ZeD.Molecules.buttonW(ZeD.tr("UI_ZeD_Order_Clear")) - T.px(6) end
     local bw = cb + T.px(7) + MM.textW(f2, label) + (note and (T.px(8) + MM.textW(f3, note)) or 0)
+    if note and bw > room then
+        note = nil
+        bw = cb + T.px(7) + MM.textW(f2, label)
+    end
+    if bw > room then
+        local lw = math.max(T.px(30), room - cb - T.px(7))
+        label = ZeD.Atoms.truncateText(label, f2, lw)
+        bw = cb + T.px(7) + MM.textW(f2, label)
+    end
     local bx = x + w - T.px(8) - bw
     local by = fY + math.floor((fH - cb) / 2)
     local H = self._hiBox
@@ -1671,9 +1700,22 @@ function ZeD_MMMods:drawDetail(x, y, w, h)
     local by = ny + T.px(8)
     local bh = T.buttonH
     local bx = tx
+    -- (a row of buttons beside the picture, then under it at the pane's full width: QA Nov 4 2026, a Dutch button
+    -- wider than the room beside the picture ran past the pane)
+    local picBot = cy + (ptex and psz or 0)
+    local lx, lw = tx, tw
     local function verb(id, text, fn, variant, disabled)
         local bw = ZeD.Molecules.buttonW(text)
-        if bx + bw > tx + tw and bx > tx then bx = tx; by = by + bh + T.px(6) end
+        if bx + bw > lx + lw and bx > lx then
+            by = by + bh + T.px(6)
+            if by >= picBot then lx, lw = ix, iw end
+            bx = lx
+        end
+        if bw > lw and lx ~= ix then
+            by = math.max(by, picBot + T.px(6))
+            lx, lw = ix, iw
+            bx = lx
+        end
         self._specs[#self._specs + 1] = { id = id, text = text, fn = fn, variant = variant or "default", disabled = disabled,
                                           row = 500, col = #self._specs + 1, x = bx, y = by, w = bw, h = bh, clipTop = vy, clipBot = vy + vh }
         bx = bx + bw + T.px(6)

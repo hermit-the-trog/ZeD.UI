@@ -4337,7 +4337,7 @@
     "UI_ZeD_Mods_TabOff": "꺼짐 %1",
     "UI_ZeD_Mods_HideInc": "호환 안 됨 숨기기",
     "UI_ZeD_Mods_HideIncN": "%1개 숨김",
-    "UI_ZeD_Mods_HelpHideInc": "꺼져 있고 켤 수 없는 모드를 숨깁니다. 다른 게임 버전용이거나 설치되지 않은 모드가 필요한 경우입니다. 다음 방문에도 유지됩니다.",
+    "UI_ZeD_Mods_HelpHideInc": "꺼져 있고 켤 수 없는 모드를 숨깁니다.",
     "UI_ZeD_Mods_Label": "라벨",
     "UI_ZeD_Mods_LabelNone": "없음",
     "UI_ZeD_Mods_LabelEssential": "필수",

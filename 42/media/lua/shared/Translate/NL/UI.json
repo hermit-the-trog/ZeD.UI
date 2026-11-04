@@ -4336,7 +4336,7 @@
     "UI_ZeD_Mods_TabOff": "Uit %1",
     "UI_ZeD_Mods_HideInc": "Verberg incompatibele",
     "UI_ZeD_Mods_HideIncN": "%1 verborgen",
-    "UI_ZeD_Mods_HelpHideInc": "Verbergt de uitgeschakelde modificaties die niet kunnen worden ingeschakeld: gemaakt voor een andere spelversie, of met een modificatie nodig die niet is geïnstalleerd. Wordt onthouden tussen bezoeken.",
+    "UI_ZeD_Mods_HelpHideInc": "Verbergt de uitgeschakelde modificaties die niet kunnen worden ingeschakeld.",
     "UI_ZeD_Mods_Label": "Label",
     "UI_ZeD_Mods_LabelNone": "Geen",
     "UI_ZeD_Mods_LabelEssential": "Essentieel",

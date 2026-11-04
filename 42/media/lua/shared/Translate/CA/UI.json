@@ -4336,7 +4336,7 @@
     "UI_ZeD_Mods_TabOff": "Inactius %1",
     "UI_ZeD_Mods_HideInc": "Amaga els incompatibles",
     "UI_ZeD_Mods_HideIncN": "%1 amagats",
-    "UI_ZeD_Mods_HelpHideInc": "Amaga els mods inactius que no es poden activar: fets per a una altra versió del joc, o que necessiten un mod que falta. Es recorda entre visites.",
+    "UI_ZeD_Mods_HelpHideInc": "Amaga els mods inactius que no es poden activar.",
     "UI_ZeD_Mods_Label": "Etiqueta",
     "UI_ZeD_Mods_LabelNone": "Cap",
     "UI_ZeD_Mods_LabelEssential": "Essencial",

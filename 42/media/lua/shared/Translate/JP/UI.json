@@ -4337,7 +4337,7 @@
     "UI_ZeD_Mods_TabOff": "オフ %1",
     "UI_ZeD_Mods_HideInc": "非互換を隠す",
     "UI_ZeD_Mods_HideIncN": "%1 件を非表示",
-    "UI_ZeD_Mods_HelpHideInc": "オフで、オンにできないMODを隠します。別のゲームバージョン用か、未インストールのMODが必要なものです。次回以降も保持されます。",
+    "UI_ZeD_Mods_HelpHideInc": "オフで、オンにできないMODを隠します。",
     "UI_ZeD_Mods_Label": "ラベル",
     "UI_ZeD_Mods_LabelNone": "なし",
     "UI_ZeD_Mods_LabelEssential": "必須",

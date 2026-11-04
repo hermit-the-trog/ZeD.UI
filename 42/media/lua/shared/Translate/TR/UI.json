@@ -4336,7 +4336,7 @@
     "UI_ZeD_Mods_TabOff": "Kapalı %1",
     "UI_ZeD_Mods_HideInc": "Uyumsuzları gizle",
     "UI_ZeD_Mods_HideIncN": "%1 gizli",
-    "UI_ZeD_Mods_HelpHideInc": "Açılamayan kapalı modları gizler: başka bir oyun sürümü için yapılmış ya da yüklü olmayan bir mod gerektirenler. Ziyaretler arasında hatırlanır.",
+    "UI_ZeD_Mods_HelpHideInc": "Açılamayan kapalı modları gizler.",
     "UI_ZeD_Mods_Label": "Etiket",
     "UI_ZeD_Mods_LabelNone": "Yok",
     "UI_ZeD_Mods_LabelEssential": "Önemli",
