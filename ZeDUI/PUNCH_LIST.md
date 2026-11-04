@@ -2398,6 +2398,26 @@ item says so.
     - **QA:** the first run on the unlisted test item: the GIF plays on the item page, the grid and the Steam app;
       the item's files, size, title and description are unchanged; then the same on the real item.
 
+82. **The survival guide (F1), the Simple look (the director, Nov 3 2026: "You are go for build").** built, QA to
+    check (b641524e). Design: ZeDUI/SURVIVAL_GUIDE_DRAFT.md; mockup ZeDUI/mockups/zed_survival_guide_v7.html. Code:
+    42/media/lua/client/ZeD/ZeD_SurvivalGuide.lua (HOOK_MAP row 18). A ZeD window in place of the game's guide: the
+    game's 15 sections and their topics on the left (Find at the top, sections fold), the topic on the right (the game's
+    clip, the game's text, The Rules in Numbers for Skill Books), a band (the game's "Show the guide on startup",
+    Previous, Next) and the help line. The game's behaviour kept: F1 and the Help wheel toggle it, it opens by itself on
+    a new game while that box is ticked, the game pauses while it is open, the forage window's "?" opens Foraging.
+    F1 opens on the active tab's topic (Skills: Skill Books; Health: Health & First Aid; Craft: Crafting Menu; Build;
+    Forage; Maps; Vehicle: Mechanics Menu; Animals; Cooking; Thermal: Clothing & Temperature). English text only so far.
+    The Full look (the book, "Survive the Apocalypse") comes after this passes.
+    - **QA:** F1 opens and closes it (Escape and the close box close it too); the game is paused while it is open and
+      runs again after; Find narrows the list ("vault", "book") and clears; sections fold and open; Previous and Next
+      walk every topic in order and wrap; each section's clips play (video effects on) and show a still (off);
+      long topics scroll (wheel and bar); The Rules in Numbers on Skill Books shows five volumes, their levels
+      (1 to 2 ... 9 to 10), x3 to x16, and a last column naming Aiming, Reloading and Long Blade (x1.5 to x8);
+      the start-up box saves (a new game opens the guide when ticked, not when cleared); F1 from the Skills tab opens
+      Skill Books, from Craft opens Crafting Menu; the controller: Help wheel opens it, D-pad up and down walk the list,
+      A opens a section or a topic, Right into the text and up/down scroll it, Down to the band, LB/RB turn topics,
+      B closes and gives the controller back; at the Deck with Large text the window fits; no errors in the log.
+
 ## Test process
 
 - **QA, Nov 2 2026, the t16 pre-upload pass (the mod code at 361d0b6; nothing in 42/ changed after it).** Full 4K
