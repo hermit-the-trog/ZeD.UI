@@ -361,8 +361,10 @@ function B.paginate(bk, u)
             end
             body(t, si, s)
             if rf then
-                local ok, rules = pcall(rf)
-                if ok and rules then pages[#pages + 1] = { kind = "rules", topic = t, section = s, si = si, rules = rules } end
+                -- (each table its own rules page, the first facing the topic)
+                for ri, rules in ipairs(ZeD.Guide.rulesList(t) or {}) do
+                    pages[#pages + 1] = { kind = "rules", topic = t, section = s, si = si, rules = rules, ri = ri }
+                end
                 page = nil
             end
         end
@@ -539,9 +541,26 @@ function ZeD_GuideBook:drawRulesPage(p, x, y, w, u)
     local barH = U.BAR * u * 1.9
     self:drawRect(tx, yy, tw_, barH, 1, TINT.r, TINT.g, TINT.b)
     self:drawRectBorder(tx, yy, tw_, barH, 1, INK.r, INK.g, INK.b)
-    drawCentre(self, F.sansB, upper(tr("UI_ZeD_Guide_Rules")), x + w / 2, yy + barH * 0.68, U.BAR * u, INK)
+    drawCentre(self, F.sansB, upper(p.rules.title or tr("UI_ZeD_Guide_Rules")), x + w / 2, yy + barH * 0.68, U.BAR * u, INK)
     yy = yy + barH + U.TEXT * u
     local r = p.rules
+    -- a spoiler (the director, Nov 4 2026): a grey bar to show the numbers, and a line on why they are hidden
+    if ZeD.Guide.spoilHidden(p.topic, p.ri or 1, r) then
+        local bh = U.TEXT * u * 2.2
+        yy = yy + U.TEXT * u
+        self:drawRect(tx, yy, tw_, bh, 1, TINT.r, TINT.g, TINT.b)
+        self:drawRectBorder(tx, yy, tw_, bh, 1, INK.r, INK.g, INK.b)
+        drawCentre(self, F.sansB, upper(tr("UI_ZeD_Guide_SpoilShow")), x + w / 2, yy + bh * 0.64, U.TEXT * u, INK)
+        self._spoilRects = self._spoilRects or {}
+        self._spoilRects[#self._spoilRects + 1] = { x = tx, y = yy, w = tw_, h = bh, topic = p.topic, ri = p.ri or 1 }
+        yy = yy + bh + U.TEXT * u * 0.5
+        local px0 = U.TEXT * u
+        for _, l in ipairs(wrapWords(wordsOf(tr("UI_ZeD_Guide_SpoilWhy")), F.text, px0, function() return tw_ end, 1, 0)) do
+            yy = yy + px0 * U.LEAD
+            drawLine(self, F.text, px0, l, tx, yy, INK)
+        end
+        return
+    end
     local px = U.TEXT * u
     local lineH = px * U.LEAD
     local function para(text)
@@ -723,6 +742,7 @@ function ZeD_GuideBook:prerender()
     if not T then return end
     local ok, err = pcall(self.layout, self)
     if not ok then ZeD.logOnce("survival guide book", err); B.close(self.playerNum); return end
+    self._spoilRects = nil   -- (the spoiler bars on the open spread, made again as it draws)
     B.layerBegin(self)
     local g = self._g
     local u = g.u
@@ -822,6 +842,9 @@ function ZeD_GuideBook:onMouseDown(x, y)
     for _, r in ipairs(self._thumbs or {}) do
         if inRect(r, x, y) then self:goToPage(self.sectionPage[self.sections[r.si].id]); return true end
     end
+    for _, r in ipairs(self._spoilRects or {}) do
+        if inRect(r, x, y) then ZeD.Guide.spoil[ZeD.Guide.spoilKey(r.topic, r.ri)] = true; sound("UIActivateButton"); return true end
+    end
     local g = self._g
     if g and self.pages[self.spread * 2 - 1] and self.pages[self.spread * 2 - 1].kind == "contents" then
         for _, row in ipairs(self._contentsRows or {}) do
@@ -866,6 +889,10 @@ function ZeD_GuideBook:onJoypadDown(button, jd)
     elseif button == Joypad.YButton then self:goToPage(3)
     elseif button == Joypad.AButton and self.footFocus then
         self:press(({ "startup", "prev", "toc", "next" })[self.footFocus])
+    elseif button == Joypad.AButton then
+        -- (A on the pages shows the numbers a spoiler bar on the open spread hides)
+        for _, r in ipairs(self._spoilRects or {}) do ZeD.Guide.spoil[ZeD.Guide.spoilKey(r.topic, r.ri)] = true end
+        if self._spoilRects and #self._spoilRects > 0 then sound("UIActivateButton") end
     end
 end
 function ZeD_GuideBook:onJoypadDirLeft()

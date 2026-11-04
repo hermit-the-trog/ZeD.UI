@@ -4353,5 +4353,7 @@
     "UI_ZeD_Settings_HaloBubble": "Overhead notes",
     "UI_ZeD_Settings_HaloBubbleTip": "The game's notes over your head (Too heavy, Can't reach) in ZeD's bubble, and each kept in Messages. Skill XP and levels still show the game's way, and are kept in Messages too.",
     "UI_ZeD_Guide_WaysKB": "Mouse and keyboard",
-    "UI_ZeD_Guide_WaysPad": "Controller"
+    "UI_ZeD_Guide_WaysPad": "Controller",
+    "UI_ZeD_Guide_SpoilShow": "Show the numbers",
+    "UI_ZeD_Guide_SpoilWhy": "These numbers come from your world's settings. Some players would rather find out for themselves."
 }
