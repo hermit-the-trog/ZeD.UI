@@ -111,3 +111,11 @@ The director on mockup v1 (Nov 3 2026):
 Mockup v2 (Nov 3 2026): ZeDUI/mockups/zed_survival_guide_v2.html, same link. The Full look is a clean printed manual: running
 head "The Survival Guide", black and one red ink, numbered chapters (the game's section order), the clip as a numbered
 figure, the rules as a numbered table, a printed thumb index on the right page edge. Open: the book's name; the ink.
+
+The director on v2 (Nov 3 2026): "Looks too modern, AI web standards. This is the look", with a scan of a November 1990
+newsstand survival magazine (Downloads; kept out of the repo, it is someone else's magazine: its look only, never its
+name, logo or pages). Mockup v3 (same link): a kicker over a heavy bracketed-serif headline, an italic deck between two
+rules, two justified columns with indents and a drop cap, the clip as a boxed halftone with a bold sans caption,
+grey-tint bars in heavy display caps, spec tables in a tinted box, cream newsprint, navy-black ink, folios at the foot.
+Open: the book's name; whether each topic gets a deck line. The PDF renders here with Windows' own PDF engine
+(scratchpad render.ps1, Windows.Data.Pdf from Windows PowerShell 5.1).
