@@ -84,8 +84,21 @@ end
 -- ---------------------------------------------------------------------------
 -- what the game's Interact key does on a keyboard (the controller's A does more: lights, stoves, devices; those are
 -- in the right-click menu on a keyboard)
-local function keyDoes(fn)
+-- (doors and windows: the game sets their prompt with no function, the Java does the press; known by their words,
+-- QA Nov 4 2026)
+local DOOR_WORDS = nil
+local function doorWords(text)
+    if not DOOR_WORDS then
+        DOOR_WORDS = {}
+        for _, k in ipairs({ "ContextMenu_Open_door", "ContextMenu_Close_door", "ContextMenu_Open_window", "ContextMenu_Close_window" }) do
+            DOOR_WORDS[getText(k)] = true
+        end
+    end
+    return text ~= nil and DOOR_WORDS[tostring(text)] == true
+end
+local function keyDoes(fn, text)
     local P = ISButtonPrompt
+    if fn == nil then return doorWords(text) end
     return fn and P and (fn == P.openDoor or fn == P.closeDoor or fn == P.openWindow or fn == P.closeWindow
         or fn == P.climbInWindow or fn == P.climbFence or fn == P.climbOverWall or fn == P.cmdEnterVehicle
         or fn == P.cmdExitVehicle or fn == P.cmdOpenVehicleDoor or fn == P.cmdCloseVehicleDoor) or false
@@ -132,7 +145,7 @@ local function keyPrompts(pn, out)
         st.a, st.aFn = bp.aPrompt, bp.aFunc
     end
     if st.a and st.a ~= "" then
-        local key = keyDoes(st.aFn) and keyName("Interact")
+        local key = keyDoes(st.aFn, st.a) and keyName("Interact")
         if key and not spent(st.aFn, st.a) then out[#out + 1] = { glyph = key, key = true, label = tostring(st.a) } end
         if not spent("rightclick", "rightclick") then out[#out + 1] = { glyph = getText("IGUI_mouse_btn_1"), key = true, label = ZeD.tr("UI_ZeD_Hint_More") } end
     end
@@ -187,7 +200,7 @@ function ZeD_HintStripHUD:prerender()
     if not ok or not p then return end
     local G = ZeD.PadGlyphs
     local pn = self.playerNum
-    local w = math.min(G.stripW(p), getPlayerScreenWidth(pn) - T.px(40))
+    local w = math.min(math.ceil(G.stripW(p)) + 4, getPlayerScreenWidth(pn) - T.px(40))
     local h = G.stripH()
     local x = getPlayerScreenLeft(pn) + math.floor((getPlayerScreenWidth(pn) - w) / 2)
     local y = getPlayerScreenTop(pn) + getPlayerScreenHeight(pn) - h - T.px(16)
@@ -238,7 +251,7 @@ end
 local function onKey(key)
     if mode() ~= "first" then return end
     local st = H._eval[0]
-    if st and st.a and keyDoes(st.aFn) then
+    if st and st.a and keyDoes(st.aFn, st.a) then
         local ok, code = pcall(function() return getCore():getKey("Interact") end)
         if ok and code == key then H.used(st.aFn, st.a) end
     end
