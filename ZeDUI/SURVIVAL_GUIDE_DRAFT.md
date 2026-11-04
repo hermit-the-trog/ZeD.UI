@@ -173,3 +173,6 @@ behind him, then black and white with the face held in the mid greys and a 45-de
 
 (QA, Nov 3 2026: the first-round originals, zqa_author_S_16.png among them, are deleted; ZeDUI/tools/qa/author_portrait.txt
 remakes them. The book uses the second set; its script commit is ecf5610a.)
+
+The rules page (the director, Nov 3 2026: "Gray bar, gray bar."): it keeps the 1990 magazine's grey-tint bar, bold run-ins and
+ruled chart. The Full look is settled; the introduction's text stays Build's placeholder for the director.
