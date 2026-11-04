@@ -260,11 +260,12 @@ local function isLight(T)
     return b and (b.r + b.g + b.b) > 1.5
 end
 
--- the pictures side by side, each centred in a strip h tall at y; panel:drawRect only
-function G.draw(panel, roles, x, y, h, k, set)
+-- the pictures side by side, each centred in a strip h tall at y; panel:drawRect only. pal: the colours for the
+-- ink, paper and rim (text, surf3, surf1, base), ZeD.T when nil (the survival guide's book passes its ink on paper)
+function G.draw(panel, roles, x, y, h, k, set, pal)
     set = set or G.set()
     if not (set and roles and panel and panel.drawRect) then return 0 end
-    local T = ZeD.T
+    local T = pal or ZeD.T
     local light = isLight(T)
     local x0 = x
     for i, r in ipairs(roles) do

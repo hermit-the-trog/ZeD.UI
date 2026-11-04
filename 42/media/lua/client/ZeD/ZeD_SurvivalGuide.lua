@@ -71,11 +71,104 @@ local function inlineImages(s)
     end))
 end
 
-local _texCache = {}
+-- KEYS AND BUTTONS IN THE TEXT (the director, Nov 4 2026: the guide follows the device you use: your own keys on
+-- a keyboard, that controller's buttons on a controller, Xbox, PlayStation, Nintendo or Steam Deck). ZeD fills the
+-- game's %1 %2 ... itself (entryText below) with markers the layout draws in the line: "key:<name>" a key cap (the
+-- key's name in a frame, as the controller strip draws a key), "pad:<role>" ZeD's own button picture in the set the
+-- glyph setting picks (ZeD_PadGlyphs), any other path a picture from the game. One object per marker, kept.
+local _inl = {}
 local function inlineTex(path)
-    local t = _texCache[path]
-    if t == nil then t = getTexture(path) or false; _texCache[path] = t end
-    return t or nil
+    local o = _inl[path]
+    if o == nil then
+        local k = path:match("^key:(.+)$")
+        local r = path:match("^pad:(.+)$")
+        if k then o = { key = k }
+        elseif r then o = { pad = { r } }
+        else
+            local t = getTexture(path)
+            o = t and { tex = t } or false
+        end
+        _inl[path] = o
+    end
+    return o or nil
+end
+
+-- an inline thing's width at a line height s
+local function inlineW(o, s)
+    if o.tex then return s end
+    local T = ZeD.T
+    if o.key then return math.max(s, ZeD.TM:MeasureStringX(T.fontF5, o.key) + T.px(8)) end
+    if o.pad then
+        local G = ZeD.PadGlyphs
+        local set = G and G.set()
+        if set then return G.width(o.pad, G.k(s), set) end
+        return math.max(s, ZeD.TM:MeasureStringX(T.fontF5, G and G.name(o.pad[1]) or o.pad[1]) + T.px(8))
+    end
+    return s
+end
+
+-- draws one in a line, s tall at (x, y); ink the text's colour; pal the button pictures' colours (nil: ZeD.T)
+local function inlineDraw(panel, o, x, y, s, ink, pal)
+    if o.tex then panel:drawTextureScaledAspect(o.tex, x, y, s, s, 1, 1, 1, 1); return end
+    local T = ZeD.T
+    local G = ZeD.PadGlyphs
+    local set = o.pad and G and G.set()
+    if set then G.draw(panel, o.pad, x, y, s, G.k(s), set, pal); return end
+    local name = o.key or (G and G.name(o.pad[1]) or o.pad[1])
+    local w = inlineW(o, s)
+    ZeD.Atoms.frame(panel, x, y, w, s, ink)
+    local f5 = T.fontF5
+    local fh = ZeD.TM:getFontHeight(f5)
+    panel:drawText(name, x + math.floor((w - ZeD.TM:MeasureStringX(f5, name)) / 2), y + math.floor((s - fh) / 2), ink.r, ink.g, ink.b, ink.a or 1, f5)
+end
+
+-- the game's controller names (its <JOYPAD:...> markup) as ZeD's button roles
+local PAD_ROLE = { AButton = "A", BButton = "B", XButton = "X", YButton = "Y", LBumper = "LB", RBumper = "RB",
+    LTrigger = "LT", RTrigger = "RT", LStick = "LS", RStick = "RS", DPadUp = "DU", DPadDown = "DD", DPadLeft = "DL",
+    DPadRight = "DR", DPad = "DPAD", Menu = "START", Start = "START", View = "SEL", Back = "SEL", Select = "SEL" }
+
+-- a key's name as the game names it
+local function keyName(code)
+    local ok, n = pcall(function() return getKeyName(code) end)
+    if ok and n and n ~= "" then return tostring(n) end
+    return tostring(code)
+end
+
+-- one of an entry's keys as text for its %n: the game's words (IGUI_...), a button picture, a game picture, or a
+-- binding as your key cap (and its second key, "or", when it has one); as the game's own SurvivalGuideEntry does
+local function argFor(k)
+    k = tostring(k)
+    if k:find("IGUI_", 1, true) then return getText(k) end
+    local jp = k:match("<JOYPAD:%s*([%w_]+)")
+    if jp then
+        local r = PAD_ROLE[jp]
+        return r and (MARK .. "pad:" .. r .. MARK) or ""
+    end
+    if k:find("<IMAGE", 1, true) then return k end
+    local core = getCore()
+    local ok, code = pcall(function() return core:getKey(k) end)
+    if not ok or not code or code == 0 then return k end
+    local s = MARK .. "key:" .. keyName(code) .. MARK
+    local ok2, alt = pcall(function() return core:getAltKey(k) end)
+    if ok2 and alt and alt ~= 0 and alt ~= code then s = s .. " " .. getText("ContextMenu_or") .. " " .. MARK .. "key:" .. keyName(alt) .. MARK end
+    return s
+end
+
+-- an entry's text for the device in use: the controller's own words and buttons (description_joypad) when the player
+-- is on a controller and the game has them, else the keyboard's words and keys. nil: an entry the game hides.
+local function entryText(e, joy)
+    local desc = e:getDescription()
+    if not desc then return nil end
+    local raw, keys = nil, nil
+    if joy then
+        raw = getTextOrNull(desc .. "_joypad")
+        if raw then keys = e:getJoypadKeys() end
+    end
+    if not raw then raw, keys = getTextOrNull(desc), e:getKeys() end
+    if not raw or raw == "<IGNORE>" then return nil end
+    local args = {}
+    for i = 0, (keys and keys:size() or 0) - 1 do args[i + 1] = argFor(keys:get(i)) end
+    return (raw:gsub("%%(%d)", function(d) return args[tonumber(d)] or "" end))
 end
 
 -- Japanese and Chinese line breaking (kinsoku, QA Nov 4 2026: a "。" started a line): these never start a line
@@ -128,7 +221,7 @@ local function wrapRuns(para, font, maxW)
         local b = para:find(MARK, a + 1, true)
         if not b then break end
         local tex = inlineTex(para:sub(a + 1, b - 1))
-        if tex then atoms[#atoms + 1] = { tex = tex, w = s + ZeD.T.px(4) } end
+        if tex then atoms[#atoms + 1] = { tex = tex, w = inlineW(tex, s) + ZeD.T.px(4) } end
         i = b + 1
     end
     local lines, cur, x = {}, {}, 0
@@ -203,7 +296,7 @@ local function readTopics(joy)
             cur = { id = id, title = getText(titleKey), titleKey = titleKey, topics = {} }
             sections[#sections + 1] = cur
         elseif cur then
-            local text = e:getText(joy and true or false)
+            local text = entryText(e, joy)
             if text then
                 local t = { id = id, entry = e, section = cur, title = getText(titleKey), titleKey = titleKey,
                             text = text, video = e:getVideo(), thumb = e:getThumbnail() }
@@ -314,8 +407,14 @@ function ZeD_GuideWindow:createChildren()
     self._findField = f
 end
 
+-- true while this player is on a controller (the guide's words and buttons follow it as it changes)
+function W.onPad(pn)
+    return JoypadState and JoypadState.players and JoypadState.players[(pn or 0) + 1] ~= nil or false
+end
+
 function ZeD_GuideWindow:readTopics()
-    local joy = JoypadState and JoypadState.players and JoypadState.players[self.playerNum + 1] ~= nil
+    local joy = W.onPad(self.playerNum)
+    self._joyRead = joy
     self.sections, self.byId, self.flat = readTopics(joy)
     if not (self.sel and self.byId[self.sel]) then self.sel = self.flat[1] and self.flat[1].id or nil end
     self._clip, self._clipFor = nil, nil
@@ -646,6 +745,8 @@ function ZeD_GuideWindow:prerender()
     if not T then return end
     self.minimumWidth, self.minimumHeight = 0, 0
     self.title = getText("SurvivalGuide_WindowTitle")
+    -- (picked up or put down a controller: the words and buttons change with it)
+    if W.onPad(self.playerNum) ~= self._joyRead then self:readTopics() end
     local ok, err = pcall(self.layout, self)
     if not ok then ZeD.logOnce("survival guide", err); self:close(); return end
     ZeD_Window.prerender(self)
@@ -722,7 +823,7 @@ function ZeD_GuideWindow:prerender()
             if yy + fh(T.fontF2) >= ta.y and yy <= ta.y + ta.h then
                 for _, run in ipairs(it.runs) do
                     if run.tex then
-                        self:drawTextureScaledAspect(run.tex, it.x + run.x, yy, run.s, run.s, 1, 1, 1, 1)
+                        inlineDraw(self, run.tex, it.x + run.x, yy, run.s, tc)
                     else
                         self:drawText(run.text, it.x + run.x, yy, tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
                     end
@@ -1043,6 +1144,9 @@ W.readTopicList = readTopics
 W.paragraphs = paragraphs
 W.MARK = MARK
 W.inlineTex = inlineTex
+W.inlineW = inlineW
+W.inlineDraw = inlineDraw
+W.entryText = entryText
 
 -- The Full look is the book, "Survive the Apocalypse" (ZeD setup, Full or simple: Survival guide). The book's
 -- faces (the game's Old Standard TT, Roberto Sans, Open Sans) draw Latin, Greek and Cyrillic, so a game in
