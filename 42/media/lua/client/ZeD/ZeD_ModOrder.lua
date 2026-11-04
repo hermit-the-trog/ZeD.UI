@@ -83,7 +83,7 @@ O._uid = O._uid or 0
 function O.newUid() O._uid = O._uid + 1; return O._uid end
 
 -- sep=<1 on, 0 off>|<1 open, 0 collapsed>|<name, encoded>|<id;id;...>[|<label key>]  (nil: not this form)
--- (the label, Nov 4 2026: System 7's Finder labels; written only when the separator has one)
+-- (the label, Nov 4 2026: one of ZeD.LABELS, the accent colours; written only when the separator has one)
 local function parseSep(v)
     local on, open, name, rest = tostring(v or ""):match("^([01])|([01])|([%x,]*)|(.*)$")
     if not on then return nil end

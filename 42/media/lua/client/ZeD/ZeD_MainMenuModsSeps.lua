@@ -1260,7 +1260,7 @@ function ZeD_MMMods:sepDetailItems(items, rw, uid)
         btn("sup", ZeD.tr("UI_ServerSettings_ButtonMoveUp"), function() self:sepShift(uid, -1) end, k <= 1),
         btn("sdown", ZeD.tr("UI_ServerSettings_ButtonMoveDown"), function() self:sepShift(uid, 1) end, k >= #self.oLo.seps),
         btn("sfold", ZeD.tr(sp.open and "UI_ZeD_Seps_MenuCollapse" or "UI_ZeD_Seps_MenuExpand"), function() self:sepOpenClose(uid) end) } }
-    -- its label (System 7's Finder labels), kept with the profile's separators
+    -- its label (ZeD's accent colours), kept with the profile's separators
     items[#items + 1] = { t = "head", text = ZeD.tr("UI_ZeD_Mods_Label") }
     items[#items + 1] = { t = "labels", sp = sp, uid = uid }
     -- under it, in order: the mods on with their numbers, the mods off dimmed
