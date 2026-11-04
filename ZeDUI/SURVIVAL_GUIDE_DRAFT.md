@@ -165,3 +165,8 @@ director's reference, turned black and white from the red channel so the plaid s
 the contents (left) facing the Introduction (right) with the photo set into the text and Stevie Whetstone's name and
 town (Muldraugh) under it. The introduction's four paragraphs are Build's draft for the director to rewrite. A sepia
 frontispiece facing the title page (as in the 1983 book) waits on a capture with no UI in it.
+
+The author photo, redone (Nov 3 2026): QA's second set to the director's reference (brown hair parted to the side,
+horn-rimmed square glasses, moustache, flannel). Used zqa_author2_key_a_z15.png (grey plaid; QA's pick), keyed off
+its green, set on a blurred, lightened crop of the Fossoil store plate (zqa_author2_interior_store.png) for the room
+behind him, then black and white with the face held in the mid greys and a 45-degree dot screen sized by area.
