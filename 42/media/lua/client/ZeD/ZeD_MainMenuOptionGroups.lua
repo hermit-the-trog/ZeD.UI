@@ -174,7 +174,7 @@ G.ZED_GROUPS = {
     -- Ammo on the belt, Moodle notices and Dashboard lamps were in HUD, Restock and the read marks in Windows.)
     { "UI_ZeD_Options_ZedAdditions", { { "additionsPreset", "radio", short = { "UI_ZeD_Settings_PresetVanilla", "UI_ZeD_Options_PresetPlus", "UI_ZeD_Options_PresetAccessible", "Sandbox_Custom" } },
         { "ammoBox", "onoff" }, { "readMarks", "onoff" }, { "readNext", "onoff" }, { "dimRead", "onoff" }, { "dashLamps", "onoff" },
-        { "moodleNotices", "onoff" }, { "messagesCatch", "onoff" }, { "messagesToast", "onoff" }, { "putBack", "onoff" },
+        { "moodleNotices", "onoff" }, { "messagesCatch", "onoff" }, { "messagesToast", "onoff" }, { "haloBubble", "onoff" }, { "putBack", "onoff" },
         { "sandboxInGame", "onoff", under = "UI_ZeD_Options_UnderSandboxIG" }, { "loadouts", "onoff" },
         -- (director, Oct 30 2026: Restock works only with a loadout, so its row dims and goes inert while Loadouts is off)
         { "restock", "radio", needs = "loadouts", needsWhy = "UI_ZeD_Options_NeedsLoadouts" } } },

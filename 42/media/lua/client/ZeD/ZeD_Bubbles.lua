@@ -447,6 +447,107 @@ function B.drawSpeech(cv, T, L, a)
 end
 
 -- ---------------------------------------------------------------------------
+-- OVERHEAD NOTES (the director, Nov 4 2026: the game's red and green lines over the head, "Too heavy", "Can't
+-- reach", were nearly unreadable; "the same bubble plus a running log and messages"). ZeD_HaloText.lua hands each
+-- line here. A note is the speech balloon without its tail: the line in the 5 x 7 face, a status mark before it
+-- (positive for good news, danger for bad, none for plain), never coloured text. Up to NOTE_N stack above whatever is
+-- over the head, the newest nearest; each holds NOTE_MS and fades over NOTE_FADE_MS. The same line again while it
+-- shows starts its clock again instead of stacking.
+-- ---------------------------------------------------------------------------
+B.NOTE_N = 3
+B.NOTE_MS = 2600
+B.NOTE_FADE_MS = 500
+B.NOTE_MAXW = 120
+B.NOTE_GAP = 3            -- between stacked notes, and above what is under them
+B.NOTE_DOT = 3            -- the status mark (units), and its gap to the text
+B._notes = B._notes or {}  -- playerNum -> { { text, lines, tw, tone, ms }, ... } oldest first
+
+-- a note for a player: tone "good" | "bad" | nil
+function B.note(pn, text, tone)
+    local t = B.clean(text)
+    if t == "" then return nil end
+    local list = B._notes[pn]
+    if not list then list = {}; B._notes[pn] = list end
+    local ms = getTimestampMs()
+    for i = #list, 1, -1 do
+        if list[i].text == t and list[i].tone == tone then
+            local n = table.remove(list, i)
+            n.ms = ms
+            list[#list + 1] = n
+            return n
+        end
+    end
+    local lines, tw = B.wrap(t, B.NOTE_MAXW)
+    local n = { text = t, lines = lines, tw = tw, tone = tone, ms = ms }
+    list[#list + 1] = n
+    while #list > B.NOTE_N do table.remove(list, 1) end
+    return n
+end
+
+-- the notes to draw for a player now (each with .a, its alpha), or nil
+function B.notes(pn, ms)
+    local list = B._notes[pn]
+    if not list or #list == 0 then return nil end
+    for i = #list, 1, -1 do
+        local t = ms - list[i].ms
+        if t >= B.NOTE_MS + B.NOTE_FADE_MS then table.remove(list, i)
+        else list[i].a = (t > B.NOTE_MS) and (1 - (t - B.NOTE_MS) / B.NOTE_FADE_MS) or 1 end
+    end
+    if #list == 0 then return nil end
+    return list
+end
+
+-- the notes' boxes above what B.layout placed (or above the head), the newest nearest; grows L's box.
+-- rightU as for B.layout. Sets each note's .x .y .w .h.
+function B.layoutNotes(L, notes, rightU)
+    if not notes then L.notes = nil; return L end
+    L.notes = notes
+    local any = L.bar or L.sp
+    local base = any and L.y0 or -B.GAP
+    local x0, y0, x1, y1 = L.x0, L.y0, L.x1, L.y1
+    if not any then x0, y0, x1, y1 = 0, -B.GAP, 0, -B.GAP end
+    for i = #notes, 1, -1 do
+        local n = notes[i]
+        local w = n.tw + B.PAD * 2 + (n.tone and (B.NOTE_DOT * 2) or 0)
+        local h = #n.lines * B.LINE - 2 + B.PAD * 2
+        local x = -math.floor(w / 2)
+        if rightU and x + w + 2 > rightU then x = rightU - w - 2 end
+        local y = base - B.NOTE_GAP - h
+        n.x, n.y, n.w, n.h = x, y, w, h
+        base = y
+        x0, y0, x1 = math.min(x0, x), math.min(y0, y), math.max(x1, x + w + 2)
+        y1 = math.max(y1, y + h + 2)
+    end
+    L.x0, L.y0, L.x1, L.y1 = x0, y0, x1, y1
+    return L
+end
+
+-- the notes: shadow, body, the status mark, the lines
+function B.drawNotes(cv, T, L)
+    local notes = L.notes
+    if not notes then return end
+    local sh = B._shadow
+    local el = cv.el
+    for i = 1, #notes do
+        local n = notes[i]
+        local a = n.a or 1
+        B.roundBox(cv, n.x + 1, n.y + 1, n.w, n.h, sh, sh, a)
+        B.roundBox(cv, n.x, n.y, n.w, n.h, B.solid.surf1, T.borderS, a)
+        local tx = n.x + B.PAD
+        if n.tone then
+            local c = (n.tone == "good") and T.positive or T.danger
+            rectA(cv, tx, n.y + B.PAD + 2, B.NOTE_DOT, B.NOTE_DOT, c, a)
+            tx = tx + B.NOTE_DOT * 2
+        end
+        el._zedAlpha = a * (T.text.a or 1)
+        for j = 1, #n.lines do
+            P.text(cv, n.lines[j], tx, n.y + B.PAD + (j - 1) * B.LINE, T.text, "57", 1, "l", nil, nil)
+        end
+        el._zedAlpha = 1
+    end
+end
+
+-- ---------------------------------------------------------------------------
 -- the speech hook (see the header)
 -- ---------------------------------------------------------------------------
 B._sp = B._sp or {}       -- playerNum -> { text, lines, tw, sideLines, sideW, ms, endMs }
@@ -534,7 +635,7 @@ if Events and Events.OnTick and not B._hooked then
     B._hooked = true
     Events.OnTick.Add(function() pcall(pollAll) end)
     if Events.OnDeviceText then Events.OnDeviceText.Add(B.onDeviceText) end
-    if Events.OnGameStart then Events.OnGameStart.Add(function() B._sp, B._skip = {}, {} end) end
+    if Events.OnGameStart then Events.OnGameStart.Add(function() B._sp, B._skip, B._notes = {}, {}, {} end) end
 end
 
 return B

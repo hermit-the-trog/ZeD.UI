@@ -637,7 +637,7 @@ function ZeD_ActionBarLayer:prerender()
     local T = ZeD.T
     local pn = self.playerNum
     local chr = getSpecificPlayer(pn)
-    self._drawSt, self._drawSp = nil, nil
+    self._drawSt, self._drawSp, self._drawNotes = nil, nil, nil
     if not T or not chr or chr:isDead() or chr:isAsleep() then return end
     local ms = nowMs()
     local ok, st = pcall(AB.state, chr, pn)
@@ -658,7 +658,9 @@ function ZeD_ActionBarLayer:prerender()
     local Bb = ZeD.Bubbles
     pcall(Bb.poll, pn, chr)
     local sp, spA = Bb.current(pn, chr, ms)
-    if not st and not sp then return end
+    -- the overhead notes (ZeD_HaloText.lua hands them to ZeD_Bubbles)
+    local notes = Bb.notes(pn, ms)
+    if not st and not sp and not notes then return end
     -- colours that are not tokens of their own, synced in place (no allocation per frame)
     AB._dim = AB._dim or {}; ZeD.colorSync(AB._dim, T.text, (T.text.a or 1) * 0.55)
     AB._legend = AB._legend or {}; ZeD.colorSync(AB._legend, T.text, (T.text.a or 1) * 0.70)
@@ -677,11 +679,12 @@ function ZeD_ActionBarLayer:prerender()
     local W, H = AB.sizeSimple()
     local bar = st and (mode == "simple" and "simple" or "thought") or nil
     Bb.layout(L, bar, st and bar == "thought" and AB.verboseWidth(st) or 0, sp, math.floor((screenR - HX) / k), W, H, AB.GAP)
+    Bb.layoutNotes(L, notes, math.floor((screenR - HX) / k))
     local x0, y0, x1, y1 = HX + L.x0 * k, HY + L.y0 * k, HX + L.x1 * k, HY + L.y1 * k
     if bar == "simple" then
         L.px = math.floor(hx - W * k / 2 + 0.5)
         L.py = math.floor(hy - (AB.GAP + H) * k + 0.5)
-        if not sp then x0, y0, x1, y1 = L.px, L.py, L.px + W * k, L.py + H * k end
+        if not sp and not notes then x0, y0, x1, y1 = L.px, L.py, L.px + W * k, L.py + H * k end
         x0, y0 = math.min(x0, L.px), math.min(y0, L.py)
         x1, y1 = math.max(x1, L.px + W * k), math.max(y1, L.py + H * k)
     end
@@ -692,11 +695,12 @@ function ZeD_ActionBarLayer:prerender()
     L.ox, L.oy = HX - x0, HY - y0
     self._drawSt, self._drawA, self._drawMode, self._k, self._ms = st, a, mode, k, ms
     self._drawSp, self._drawSpA = sp, spA
+    self._drawNotes = notes
 end
 
 function ZeD_ActionBarLayer:render()
     local st, sp = self._drawSt, self._drawSp
-    if not st and not sp then return end
+    if not st and not sp and not self._drawNotes then return end
     local T = ZeD.T
     local L, k = self._lay, self._k
     local cv = P.canvas(self, L.ox, L.oy, k)
@@ -710,6 +714,7 @@ function ZeD_ActionBarLayer:render()
         end
     end
     if sp then ZeD.Bubbles.drawSpeech(cv, T, L, self._drawSpA) end
+    if self._drawNotes then ZeD.Bubbles.drawNotes(cv, T, L) end
     self._zedAlpha = 1
 end
 

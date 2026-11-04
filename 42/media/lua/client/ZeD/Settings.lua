@@ -360,6 +360,13 @@ msgToast:addItem(getText("UI_Off"), true)   -- default
 msgToast:addItem(getText("UI_On"), false)
 ZeD.Settings.messagesToastOption = msgToast
 ZeD.Settings.messagesToastOn = function() return (msgToast:getValue() or 1) == 2 end
+-- the game's overhead notes ("Too heavy", "Can't reach") in ZeD's bubble and the Messages log (the director, Nov 4
+-- 2026; ZeD_HaloText.lua). An addition like the others: off for a vanilla run, on in Vanilla Plus and Access.
+local haloBubble = opts:addComboBox("haloBubble", ZeD.tr("UI_ZeD_Settings_HaloBubble"), ZeD.tr("UI_ZeD_Settings_HaloBubbleTip"))
+haloBubble:addItem(getText("UI_Off"), true)   -- default
+haloBubble:addItem(getText("UI_On"), false)
+ZeD.Settings.haloBubbleOption = haloBubble
+ZeD.Settings.haloBubbleOn = function() return (haloBubble:getValue() or 1) == 2 end
 
 -- ----- SANDBOX OPTIONS IN GAME (director, Oct 24 2026; mockup zed_sandbox_ingame_v1;
 -- ZeD_SandboxInGame.lua) -----
@@ -597,7 +604,7 @@ do
         putBack = "UI_ZeD_Settings_PutBack", seeThrough = "UI_ZeD_Settings_SeeThrough",
         solidInUse = "UI_ZeD_Settings_SolidInUse", focusStyle = "UI_ZeD_Settings_FocusStyle",
         hiddenActions = "UI_ZeD_Settings_HiddenActions",
-        messagesCatch = "UI_ZeD_Settings_MsgCatch", messagesToast = "UI_ZeD_Settings_MsgToast",
+        messagesCatch = "UI_ZeD_Settings_MsgCatch", messagesToast = "UI_ZeD_Settings_MsgToast", haloBubble = "UI_ZeD_Settings_HaloBubble",
         sandboxInGame = "UI_ZeD_Settings_SandboxIG", dimRead = "UI_ZeD_Settings_DimRead",
         ammoBox = "UI_ZeD_Settings_AmmoBox", readMarks = "UI_ZeD_Settings_ReadMarks", readNext = "UI_ZeD_Settings_ReadNext",
         dashLamps = "UI_ZeD_Settings_DashLamps", moodleNotices = "UI_ZeD_Settings_MoodleNotices",
@@ -641,7 +648,7 @@ local function setUpAdditions()
     -- every addition a preset sets, by option id (restock: 1 Hardcore, 2 Casual, 3 Accessible)
     local IDS = { "ammoBox", "readMarks", "readNext", "dimRead", "dashLamps", "moodleNotices",
                   "messagesCatch", "messagesToast", "putBack", "sandboxInGame", "loadouts", "restock", "devicesStyle", "watchStyle", "dashStyle",
-                  "guideStyle", "modsStyle" }
+                  "guideStyle", "modsStyle", "haloBubble" }
     -- THE PRESETS, by the preset's item: the item each addition is set to. An id a preset leaves out is left as
     -- it is and does not count when the values are matched to a preset (Vanilla leaves Restock: it does nothing
     -- while Loadouts is off). When the "faces or simple cards" switch is built (punch list 17), its id goes in
@@ -649,15 +656,15 @@ local function setUpAdditions()
     local PRESETS = {
         -- 1 Vanilla: every addition off
         { ammoBox = OFF, readMarks = OFF, readNext = OFF, dimRead = OFF, dashLamps = OFF, moodleNotices = OFF,
-          messagesCatch = OFF, messagesToast = OFF, putBack = OFF, sandboxInGame = OFF, loadouts = OFF },
+          messagesCatch = OFF, messagesToast = OFF, putBack = OFF, sandboxInGame = OFF, loadouts = OFF, haloBubble = OFF },
         -- 2 Vanilla Plus: every addition on, Restock Casual
         { ammoBox = ON, readMarks = ON, readNext = ON, dimRead = ON, dashLamps = ON, moodleNotices = ON,
           messagesCatch = ON, messagesToast = ON, putBack = ON, sandboxInGame = ON, loadouts = ON, restock = 2,
-          devicesStyle = 1, watchStyle = 1, dashStyle = 1, guideStyle = 1, modsStyle = 1 },
+          devicesStyle = 1, watchStyle = 1, dashStyle = 1, guideStyle = 1, modsStyle = 1, haloBubble = ON },
         -- 3 Vanilla Accessible: every addition on, Restock Accessible
         { ammoBox = ON, readMarks = ON, readNext = ON, dimRead = ON, dashLamps = ON, moodleNotices = ON,
           messagesCatch = ON, messagesToast = ON, putBack = ON, sandboxInGame = ON, loadouts = ON, restock = 3,
-          devicesStyle = 2, watchStyle = 2, dashStyle = 2, guideStyle = 2, modsStyle = 2 },
+          devicesStyle = 2, watchStyle = 2, dashStyle = 2, guideStyle = 2, modsStyle = 2, haloBubble = ON },
     }
     ZeD.Settings.ADDITION_IDS = IDS
     ZeD.Settings.ADDITION_PRESETS = PRESETS
