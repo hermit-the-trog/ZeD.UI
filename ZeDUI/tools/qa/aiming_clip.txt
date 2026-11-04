@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/aiming_clip.txt  (Nov 3 2026): Aiming clip in the window and the book (4K)
+zedqa_prelude.lua | pre | timeout=120
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_aiming_clip.lua | aim | timeout=180
