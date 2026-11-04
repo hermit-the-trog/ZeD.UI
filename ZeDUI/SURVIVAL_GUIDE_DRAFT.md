@@ -69,6 +69,8 @@ hidden**, not the basics the game's guide already covers. Top of each list:
 
 ### The line: the game's rules, never your world's secrets
 
+**Agreed by the director, Nov 3 2026: "Yes, that's the line."**
+
 ZeD's rule is to say the game's rules out loud but never reveal what it keeps from you. The research makes that line
 the main design question. Build's proposal:
 - **Yes, the rules, as plain numbers:** the infection odds by wound, what each skill book multiplies, the XP each
@@ -94,5 +96,4 @@ the main design question. Build's proposal:
 
 ## Open questions
 
-1. **The line:** the game's rules as numbers yes, your world's secrets never (as above)?
-2. **The sections:** all five above, or which?
+1. **The sections:** all five above, or which?
