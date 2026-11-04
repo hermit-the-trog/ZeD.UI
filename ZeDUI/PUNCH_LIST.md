@@ -2501,6 +2501,33 @@ item says so.
     labels for folders (the picture tinted; ZeD_modfolders.txt) and separators (name and rules; ZeD_modprofiles.txt),
     picked from a swatch row with None first. No edge stripe (the director: too modern). Open: QA at 4K and the Deck
     Large in every theme, the labels' contrast in every theme and accent; the other 27 languages' 16 new keys.
+    - **QA, Nov 4 2026 (133c0dc4): PASS, 33 / 33 at 4K and 33 / 33 at the Deck (1280x800, Large text).**
+      zedqa_mods_read.lua (part A, 30) and zedqa_mods_read2.lua (part B after a restart, 3), with compat_r4_mods.txt
+      (395 installed, 11 on, 24 off with a problem).
+      - **Band and dim:** on rows draw the band and bright names; off names draw dimmed.
+      - **Off tab:** 384 rows, all off.
+      - **Hide incompatible:** takes out exactly the 24 off mods with a problem; all 11 on mods stay; "24 hidden"
+        beside it; the pad stop is there.
+      - **Simple:** 30u rows; tabs All / On / Off / Problems; Conflicts falls back to All; no folders; Full again
+        after.
+      - **Folder labels:** set and None; the folders file byte for byte the same; kept in ZeD_modfolders.txt.
+      - **Separator labels:** set; Undo takes it back; the pane's eight swatch stops; Done writes "|cool".
+      - **After a restart:** Off, Hide incompatible, the folder label and the separator label all come back.
+      - **Files:** the player's ModFolders.cfg untouched.
+      - **Contrast:** all seven labels at 4.5:1 or more on the window, the rows and the band in dark, light and high
+        contrast, each with orange and blue (worst 6.27:1).
+      - **The band against the window:** 1.14 to 1.22:1 as colours. In the pictures (the window is see-through over
+        the desk) it reads clearly in dark and high contrast, softer in light.
+      - Pictures: Screenshots/zqa_mrd_3840x2160_*, zqa_mrd_1280x800_*, zqa_mrd_themes_sheet.png,
+        zqa_mrd_labels_sheet.png.
+      - **Design note for the director:** the labels are lifted to 4.6:1 as if they were text, so in dark and high
+        contrast they come out pastel: Hot reads pink (#F5BAB9), Personal lavender, Project 2 beige. Swatches, the
+        folder picture and the separator's rules are graphics (WCAG asks 3:1), so they could keep System 7's strong
+        colours, with only the separator's name lifted.
+      - **Small (QA):**
+        - Simple's info pane still offers "Move to folder..." though Simple has no folders.
+        - At the Deck with Large text the info pane's tab strip runs out (Conflicts cut to "Conf"); not checked
+          whether that is new.
 
 ## Test process
 
