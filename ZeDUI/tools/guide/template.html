@@ -180,6 +180,16 @@ h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:var(--note-
 
 .page .key { background:none; color:var(--news); border:1px solid var(--news); border-bottom-width:2px; border-radius:2px; font-family:var(--sub); font-weight:700; font-size:9.5px; padding:0 4px; text-transform:uppercase; }
 
+
+/* the introduction, with the author's photo (as in the 1983 bookstore guide) */
+.in-hd { font-family:var(--ital); font-style:italic; font-weight:900; font-stretch:112%; font-size:30px; text-transform:uppercase; text-align:center; margin:4px 0 14px; }
+.in-ph { float:left; width:150px; margin:3px 12px 6px 0; border:1.5px solid var(--news); }
+.in-ph img { display:block; width:100%; height:auto; mix-blend-mode:multiply; }
+.in-tx p { font-family:var(--serif); font-size:11.6px; line-height:1.45; margin:0; text-align:justify; hyphens:auto; text-indent:1.2em; }
+.in-tx p:first-child { text-indent:0; }
+.in-sg { clear:both; margin-top:14px; text-align:right; font-family:var(--serif); font-style:italic; font-size:12px; line-height:1.35; }
+.in-sg b { display:block; font-family:var(--ital); font-style:italic; font-weight:900; font-size:16px; }
+
 /* notes under the stage */
 .notes { max-width:1180px; margin-top:22px; display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:22px; }
 .notes > div { min-width:0; }
@@ -188,11 +198,11 @@ h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:var(--note-
 @media (prefers-reduced-motion: reduce) { * { transition:none !important; } }
 </style>
 
-<div class="banner">ZeD-GUI | Survival guide (F1) | mockup v6</div>
+<div class="banner">ZeD-GUI | Survival guide (F1) | mockup v7</div>
 <h1>Survival Guide: both looks on one topic</h1>
 <p class="lede">The game's <b>Skill Books</b> topic in the <b>Simple</b> look (a ZeD window, laid out like the Crafting, Vehicle and Cooking tabs) and the <b>Full</b> look (a printed manual, new from the bookstore, set like a 1990 newsstand survival magazine). The topic list and text are the game's own; the numbers under <b>The rules in numbers</b> are read from the game's files (42.22). Click topics, open and close sections, type in Find, and turn the pages in the book.</p>
 <div class="controls">
-  <div class="ctl"><span>Look</span><div class="seg" id="lookSeg"><button data-v="simple" class="on" type="button">Simple: window</button><button data-v="full" type="button">Full: manual</button><button data-v="full" data-toc="1" type="button">Full: contents</button></div></div>
+  <div class="ctl"><span>Look</span><div class="seg" id="lookSeg"><button data-v="simple" class="on" type="button">Simple: window</button><button data-v="full" type="button">Full: manual</button><button data-v="full" data-toc="t" type="button">Full: title page</button><button data-v="full" data-toc="1" type="button">Full: contents</button></div></div>
 </div>
 <div class="fitwrap" id="fitwrap"><div class="stage" id="stage"></div></div>
 <div class="notes">
@@ -218,6 +228,7 @@ h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:var(--note-
 <script>
 const DATA = __DATA__;
 const CLIP = "__CLIP__";
+const AUTHOR = "__AUTHOR__";
 const S = { look:"simple", sel:"skill_books", closed:{}, find:"", showStart:true, jump:true, toc:false };
 try { const v = localStorage.getItem("zedGuideLook"); if (v) S.look = v; } catch (e) {}
 
@@ -277,22 +288,39 @@ function simple() {
     <div class="help">${S.sel === "skill_books" ? "Skill Books: what a book does, and its numbers. F1 from the Skills tab opens here." : "Click a topic, or type in Find."}</div>
   </div>`;
 }
+function intro() {
+  return `<div class="page r">
+      <div class="in-hd">Introduction</div>
+      <div class="in-tx">
+        <div class="in-ph"><img alt="Stevie Whetstone" src="${AUTHOR}"></div>
+        ${DATA.intro.map(p => `<p>${esc(p)}</p>`).join("")}
+      </div>
+      <div class="in-sg"><b>Stevie Whetstone</b>Muldraugh, Kentucky</div>
+      <div class="foot2"><span>Survive the Apocalypse</span><span class="pn">5</span></div>
+    </div>`;
+}
+
 function contents() {
   const pg = {}; let at = 6;
   DATA.sections.forEach(s => { pg[s.id] = at; at += s.topics.length * 2; });
   const items = DATA.sections.map((s, k) => `<li data-cs="${s.id}"><span class="ct-n">${k + 1}.</span><span class="ct-t">${esc(s.title)}</span>
     <span class="ct-d"><span>${esc(DATA.blurbs[s.id] || "")}</span><i></i><b>${pg[s.id]}</b></span></li>`).join("");
-  return `<div class="desk"></div><div class="book">
-    <div class="page l title-p">
+  if (S.toc === "title") return `<div class="desk"></div><div class="book">
+    <div class="page l"></div>
+    <div class="page r title-p">
       <div class="tp-hd">Survive the<br>Apocalypse</div>
       <div class="tp-sub">Survive an Outbreak<br>Like It's a Vacation</div>
       <div class="tp-ed">Second Edition<br><br>By Stevie Whetstone</div>
       <div class="tp-im"><b>Doidbros and Buzzlord</b>Division of Survival Emergency Publications<br>1987</div>
     </div>
-    <div class="page r">
-      <div class="ct-hd">Contents</div>
+  </div>`;
+  return `<div class="desk"></div><div class="book">
+    <div class="page l">
+      <div class="ct-hd" style="text-align:left">Contents</div>
       <ul class="ct">${items}</ul>
+      <div class="foot2"><span class="pn">4</span><span>Survive the Apocalypse</span></div>
     </div>
+    ${intro()}
   </div>`;
 }
 
@@ -341,14 +369,14 @@ function render() {
   const scroll = document.getElementById("lscroll"); const top = scroll ? scroll.scrollTop : 0;
   const hadFocus = document.activeElement && document.activeElement.id === "find";
   st.innerHTML = S.look === "simple" ? simple() : (S.toc ? contents() : full());
-  document.querySelectorAll("#lookSeg button").forEach(b => b.classList.toggle("on", b.dataset.v === S.look && (b.dataset.v !== "full" || (b.dataset.toc === "1") === S.toc)));
+  document.querySelectorAll("#lookSeg button").forEach(b => b.classList.toggle("on", b.dataset.v === S.look && (b.dataset.v !== "full" || (b.dataset.toc === "t" ? S.toc === "title" : b.dataset.toc === "1" ? S.toc === true : !S.toc))));
   const ls = document.getElementById("lscroll"); if (ls) { ls.scrollTop = top; if (S.jump) { const r = ls.querySelector(".row.sel"); if (r) ls.scrollTop = r.offsetTop - ls.clientHeight / 2; S.jump = false; } }
   const fi = document.getElementById("find");
   if (fi) { fi.addEventListener("input", e => { S.find = e.target.value; render(); }); if (hadFocus) { fi.focus(); fi.setSelectionRange(fi.value.length, fi.value.length); } }
   fit();
 }
 document.addEventListener("click", e => {
-  const lb = e.target.closest("#lookSeg button"); if (lb) { S.look = lb.dataset.v; S.toc = lb.dataset.v === "full" && lb.dataset.toc === "1"; try { localStorage.setItem("zedGuideLook", S.look); } catch (x) {} render(); return; }
+  const lb = e.target.closest("#lookSeg button"); if (lb) { S.look = lb.dataset.v; S.toc = lb.dataset.v === "full" && lb.dataset.toc ? (lb.dataset.toc === "t" ? "title" : true) : false; try { localStorage.setItem("zedGuideLook", S.look); } catch (x) {} render(); return; }
   const c = e.target.closest(".cat"); if (c) { S.closed[c.dataset.cat] = !S.closed[c.dataset.cat]; render(); return; }
   const r = e.target.closest(".row"); if (r) { S.sel = r.dataset.t; render(); return; }
   const cs = e.target.closest("[data-cs]"); if (cs) { const s = DATA.sections.find(x => x.id === cs.dataset.cs); if (s && s.topics.length) { S.sel = s.topics[0].id; S.toc = false; S.jump = true; render(); } return; }
