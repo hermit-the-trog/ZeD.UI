@@ -5841,7 +5841,10 @@ function ZeD_CharacterWindow.toggle(playerNum)
         -- the pins (ZeD_Pins: skills, the book read, liquids, what is left, condition; leftmost). The mark is the
         -- pin's status, the words plain (Nov 4 2026: a skill near its next level was red, read as bad news)
         win._pinnedSkills = ZeD.Pins.skillNames(self._playerObj)
-        for _, st in ipairs(ZeD.Pins.stats(self._playerObj)) do win.titleStats[#win.titleStats + 1] = st end
+        local pinStats = ZeD.Pins.stats(self._playerObj)
+        for _, st in ipairs(pinStats) do win.titleStats[#win.titleStats + 1] = st end
+        -- (the character's name gives way while pins show, the director, Nov 4 2026: the tab says whose it is)
+        win._hideTitle = #pinStats > 0
 
         -- HP (middle): its status square in the health colour
         win.titleStats[#win.titleStats + 1] = { text = hp .. "%", color = hpColor }
