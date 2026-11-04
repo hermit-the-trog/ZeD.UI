@@ -30,7 +30,7 @@ if not (W and W.iconTex and D and D.pictureOf) then say("ERR the wheel icons are
 local IDS = {
     "knife", "apple", "glass", "medkit", "bandage", "bed", "shirt", "backpack", "view_list", "hanger", "hand", "cigarette", "book", "watch",
     "walkie", "map", "minimap", "pin", "car", "cow", "toolbox", "magnifier", "magnifier_off", "bulb_on", "bulb_off",
-    "fence", "eye", "eye_off", "box_up", "box_down", "rotate", "screwdriver", "wrench", "generator", "campfire",
+    "fence", "eye", "eye_off", "box_up", "box_down", "rotate", "screwdriver", "wrench", "generator", "campfire", "pot",
     "chair", "gauge", "bullhorn", "rooms", "seat", "car_door", "car_enter", "car_exit", "key", "key_off", "hotwire",
     "hotwire_off", "headlight_on", "headlight_off", "heat", "snowflake", "horn", "lightbar", "speaker",
     "window_open", "window_close", "window_smash", "padlock", "padlock_open", "engine", "wash", "link", "unlink",
