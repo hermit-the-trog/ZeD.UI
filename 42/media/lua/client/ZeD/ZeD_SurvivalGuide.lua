@@ -381,6 +381,31 @@ end
 local Rules = {}
 W.Rules = Rules
 
+-- A topic's rules: Rules[titleKey]() gives one table ({ cols, rows, notes, title?, spoiler? }) or a list of them.
+-- A table with spoiler = true (a world's setting some players would rather find out for themselves: the shutoff,
+-- the helicopter, the infection's timing; the director, Nov 4 2026) shows a grey bar, "Show the numbers", until the
+-- player asks (a click, or A); it stays shown while the guide is open (W.spoil, emptied when the guide opens).
+W.spoil = W.spoil or {}
+function W.rulesList(t)
+    local rf = t and Rules[t.titleKey]
+    if not rf then return nil end
+    local ok, r = pcall(rf)
+    if not ok or not r then return nil end
+    if r.cols then return { r } end
+    return (#r > 0) and r or nil
+end
+function W.spoilKey(t, i) return tostring(t and t.titleKey) .. "#" .. tostring(i) end
+function W.spoilHidden(t, i, tb) return tb.spoiler and not W.spoil[W.spoilKey(t, i)] end
+-- shows every hidden table of a topic; true when there was one
+function W.showSpoilers(t)
+    local list = W.rulesList(t)
+    local any = false
+    for i, tb in ipairs(list or {}) do
+        if W.spoilHidden(t, i, tb) then W.spoil[W.spoilKey(t, i)] = true; any = true end
+    end
+    return any
+end
+
 -- Skill Books: what each volume covers (the books' scripts) and multiplies (SkillBook, the
 -- game's reading rules); the skills that read slower named from the game's perks.
 -- a multiplier as the share of normal XP: 3 is 300%, 1.5 is 150%
@@ -595,21 +620,28 @@ function ZeD_GuideWindow:buildTopic(g, cx, cw)
         items[#items + 1] = box
         y = y + box.h
     end
-    local rf = Rules[t.titleKey]
-    local ok, rules = false, nil
-    if rf then ok, rules = pcall(rf) end
-    if ok and rules then
+    for ti, rules in ipairs(W.rulesList(t) or {}) do
         y = y + px(U.PARA_GAP) * 2
         local pad = px(U.RULES_PAD)
         local inner = cw - pad * 2
         local top = y
         local ry = y + pad
-        local lab = ZeD.upper and ZeD.upper(tr("UI_ZeD_Guide_Rules")) or tr("UI_ZeD_Guide_Rules")
+        local labText = rules.title or tr("UI_ZeD_Guide_Rules")
+        local lab = ZeD.upper and ZeD.upper(labText) or labText
         local box = { kind = "rules", x = cx, y = top, w = cw, label = lab, labelY = ry, cells = {}, notes = {} }
         ry = ry + fh(T.fontF1) + px(8)
-        -- the table: each column at least as wide as its numbers; the room left over goes to the
-        -- headings, and a heading that still does not fit wraps onto more lines (QA, Nov 3 2026:
-        -- the slower skills' heading ran off the narrower measure)
+      if W.spoilHidden(t, ti, rules) then
+        -- (the spoiler bar, with a line on what it hides)
+        box.spoilBar = { x = cx + pad, y = ry, w = inner, h = fh(T.fontF2) + px(10), text = tr("UI_ZeD_Guide_SpoilShow"), ti = ti }
+        ry = ry + box.spoilBar.h + px(6)
+        for li, l in ipairs(A.wrapText(tr("UI_ZeD_Guide_SpoilWhy"), T.fontF2, inner)) do
+            box.notes[#box.notes + 1] = { x = cx + pad - px(12), y = ry, text = l }
+            ry = ry + fh(T.fontF2) + px(U.LINE_GAP)
+        end
+        box.h = ry - top + pad
+        items[#items + 1] = box
+        y = top + box.h
+      else
         local ncol = #rules.cols
         local dataW, headW = {}, {}
         for c = 1, ncol do
@@ -664,6 +696,7 @@ function ZeD_GuideWindow:buildTopic(g, cx, cw)
         box.h = ry - top + pad
         items[#items + 1] = box
         y = top + box.h
+      end
     end
     g.items, g.topicH = items, y
     return y
@@ -901,6 +934,7 @@ function ZeD_GuideWindow:prerender()
     end
 
     -- the topic: the clip, the game's words, the rules
+    g.spoilBars = nil
     local ta = g.text
     self:setStencilRect(ta.x, ta.y, ta.w, ta.h)
     local oy = g.textOffY
@@ -947,6 +981,18 @@ function ZeD_GuideWindow:prerender()
             if s2 then self:drawRect(it.x, by, it.w, it.h, s2.a or 1, s2.r, s2.g, s2.b) end
             A.frame(self, it.x, by, it.w, it.h, T.border)
             self:drawText(it.label, it.x + px(U.RULES_PAD), it.labelY + oy, ac.r, ac.g, ac.b, ac.a or 1, T.fontF1)
+            local sbar = it.spoilBar
+            if sbar then
+                local s3 = T.surf3
+                local hot = self._hover and self._hover.spoil == sbar
+                local fill = hot and (T.hover or s3) or s3
+                self:drawRect(sbar.x, sbar.y + oy, sbar.w, sbar.h, fill.a or 1, fill.r, fill.g, fill.b)
+                A.frame(self, sbar.x, sbar.y + oy, sbar.w, sbar.h, T.borderS)
+                local f2 = T.fontF2
+                self:drawText(sbar.text, sbar.x + math.floor((sbar.w - tw(f2, sbar.text)) / 2), sbar.y + oy + math.floor((sbar.h - fh(f2)) / 2), th.r, th.g, th.b, th.a or 1, f2)
+                g.spoilBars = g.spoilBars or {}
+                g.spoilBars[#g.spoilBars + 1] = { x = sbar.x, y = sbar.y + oy, w = sbar.w, h = sbar.h, bar = sbar }
+            end
             for _, c in ipairs(it.cells) do
                 if c.head then
                     self:drawText(c.text, c.x, c.y + oy, td.r, td.g, td.b, td.a or 1, T.fontF1)
@@ -1056,6 +1102,7 @@ function ZeD_GuideWindow:hitAt(x, y)
         for _, r in ipairs(g.rows) do if inRect(r, x, y) then return { row = r } end end
         return { list = true }
     end
+    for _, sb in ipairs(g.spoilBars or {}) do if inRect(sb, x, y) then return { spoil = sb.bar } end end
     if inRect(g.text, x, y) then return { text = true } end
     return nil
 end
@@ -1080,6 +1127,10 @@ function ZeD_GuideWindow:onMouseDown(x, y)
     local h = self:hitAt(x, y)
     if h and h.row then self.zone = "list"; self:pressRow(h.row) end
     if h and h.foot then self._down = h.foot end
+    if h and h.spoil then
+        W.spoil[W.spoilKey(self.byId and self.byId[self.sel], h.spoil.ti)] = true
+        sound("UIActivateButton")
+    end
     return true
 end
 
@@ -1170,6 +1221,9 @@ function ZeD_GuideWindow:onJoypadDown(button, joypadData)
         if r and r.section then self:pressRow(r) elseif r then self:choose(r.id, true); self.zone = "text"; sound("UISelectListItem") end
     elseif self.zone == "foot" then
         self:pressFoot(self._g and self._g.foot[self.footFocus])
+    elseif self.zone == "text" then
+        -- (A on the text shows the numbers a spoiler bar hides)
+        if W.showSpoilers(self.byId and self.byId[self.sel]) then sound("UIActivateButton") end
     end
 end
 
@@ -1274,6 +1328,7 @@ end
 
 -- open on a topic: an id (tostring of a SurvivalGuideEntry) or a title key; the book or the window
 function W.open(pn, want)
+    W.spoil = {}
     if W.useBook() then return ZeD.GuideBook.open(pn or 0, want) end
     return W.openWindow(pn, want)
 end
