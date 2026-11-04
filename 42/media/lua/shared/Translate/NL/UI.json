@@ -4514,5 +4514,17 @@
     "UI_ZeD_GCh_whatsnew_Title": "Nieuw in ZeD",
     "UI_ZeD_GCh_whatsnew_Blurb": "De wijzigingen in deze versie.",
     "UI_ZeD_GCh_whatsnew_beta3_Title": "Deze versie",
-    "UI_ZeD_GCh_whatsnew_beta3_Text": "De overlevingsgids: dit boek of het gewone venster (Volledig of eenvoudig in ZeD setup), met vijf nieuwe hoofdstukken, de regels van het spel als getallen en je eigen toetsen en knoppen op elke pagina. Het modscherm: mods die aan staan zitten op een donkere strook en mods die uit staan zijn gedimd, met een tabblad Uit, Verberg incompatibele, een Eenvoudige weergave en kleurlabels voor mappen en scheidingslijnen. De meldingen boven je hoofd in de ZeD-ballon, bewaard in Berichten. Een tipbalk voor wat voor je ligt. Vastgezette items op de titelbalk van het Karaktervenster."
+    "UI_ZeD_GCh_whatsnew_beta3_Text": "De overlevingsgids: dit boek of het gewone venster (Volledig of eenvoudig in ZeD setup), met vijf nieuwe hoofdstukken, de regels van het spel als getallen en je eigen toetsen en knoppen op elke pagina. Het modscherm: mods die aan staan zitten op een donkere strook en mods die uit staan zijn gedimd, met een tabblad Uit, Verberg incompatibele, een Eenvoudige weergave en kleurlabels voor mappen en scheidingslijnen. De meldingen boven je hoofd in de ZeD-ballon, bewaard in Berichten. Een tipbalk voor wat voor je ligt. Vastgezette items op de titelbalk van het Karaktervenster.",
+    "UI_ZeD_Guide_Ad1_Head": "De hele plank",
+    "UI_ZeD_Guide_Ad1_Deck": "Alle handboeken die een huishouden nodig heeft voordat het licht uitgaat.",
+    "UI_ZeD_Guide_Ad1_Body": "Doidbros en Buzzlord drukken eenvoudige, beproefde handboeken voor mensen die vooruitdenken. Elk is zo groot als dit exemplaar, genaaid zodat het plat blijft liggen en gedrukt op papier waar potlood op werkt.",
+    "UI_ZeD_Guide_Ad1_T1": "Overleef de Apocalyps, Tweede druk",
+    "UI_ZeD_Guide_Ad1_T2": "Water dat u kunt drinken",
+    "UI_ZeD_Guide_Ad1_T3": "Het jaar van de wortelkelder",
+    "UI_ZeD_Guide_Ad1_T4": "Repareer wat u bezit",
+    "UI_ZeD_Guide_Ad1_T5": "Eerste hulp ver van hulp",
+    "UI_ZeD_Guide_Ad1_Price": "Slechts $4.95 per stuk",
+    "UI_ZeD_Guide_Ad1_Coupon": "Kruis de gewenste titels aan en stuur deze pagina naar de Afdeling Noodpublicaties voor Overleving, Muldraugh, Kentucky. Reken op zes weken levertijd.",
+    "UI_ZeD_Guide_Ad1_Name": "Naam",
+    "UI_ZeD_Guide_Ad1_Address": "Adres"
 }

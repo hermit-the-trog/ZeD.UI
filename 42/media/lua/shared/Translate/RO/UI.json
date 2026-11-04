@@ -4514,5 +4514,17 @@
     "UI_ZeD_GCh_whatsnew_Title": "Noutăți în ZeD",
     "UI_ZeD_GCh_whatsnew_Blurb": "Schimbările din această versiune.",
     "UI_ZeD_GCh_whatsnew_beta3_Title": "Această versiune",
-    "UI_ZeD_GCh_whatsnew_beta3_Text": "Ghidul de supraviețuire: această carte sau fereastra simplă (Complet sau simplu în Configurare ZeD), cu cinci capitole noi, regulile jocului în cifre și tastele și butoanele tale pe fiecare pagină. Ecranul de moduri: modurile pornite stau pe o bandă întunecată, iar cele oprite sunt estompate, o filă Oprit, Ascunde incompatibilele, o vedere Simplă și etichete de culoare pentru dosare și separatoare. Notele de deasupra capului în balonul ZeD, păstrate în Mesaje. O bandă de indicii pentru ce ai în față. Fixări pe bara de titlu a ferestrei Personaj."
+    "UI_ZeD_GCh_whatsnew_beta3_Text": "Ghidul de supraviețuire: această carte sau fereastra simplă (Complet sau simplu în Configurare ZeD), cu cinci capitole noi, regulile jocului în cifre și tastele și butoanele tale pe fiecare pagină. Ecranul de moduri: modurile pornite stau pe o bandă întunecată, iar cele oprite sunt estompate, o filă Oprit, Ascunde incompatibilele, o vedere Simplă și etichete de culoare pentru dosare și separatoare. Notele de deasupra capului în balonul ZeD, păstrate în Mesaje. O bandă de indicii pentru ce ai în față. Fixări pe bara de titlu a ferestrei Personaj.",
+    "UI_ZeD_Guide_Ad1_Head": "Tot raftul",
+    "UI_ZeD_Guide_Ad1_Deck": "Toate manualele de care are nevoie o gospodărie înainte să se stingă luminile.",
+    "UI_ZeD_Guide_Ad1_Body": "Doidbros și Buzzlord tipăresc manuale simple și verificate pentru oamenii care se pregătesc din timp. Fiecare are dimensiunea acestuia, este cusut ca să stea deschis și este tipărit pe hârtie pe care se scrie cu creionul.",
+    "UI_ZeD_Guide_Ad1_T1": "Supraviețuiește apocalipsei, Ediția a doua",
+    "UI_ZeD_Guide_Ad1_T2": "Apă bună de băut",
+    "UI_ZeD_Guide_Ad1_T3": "Anul cu pivnița de rădăcinoase",
+    "UI_ZeD_Guide_Ad1_T4": "Repară ce ai",
+    "UI_ZeD_Guide_Ad1_T5": "Prim ajutor departe de orice ajutor",
+    "UI_ZeD_Guide_Ad1_Price": "Doar $4.95 bucata",
+    "UI_ZeD_Guide_Ad1_Coupon": "Bifați titlurile dorite și trimiteți această pagină la Divizia de Publicații de Urgență pentru Supraviețuire, Muldraugh, Kentucky. Socotiți șase săptămâni pentru livrare.",
+    "UI_ZeD_Guide_Ad1_Name": "Nume",
+    "UI_ZeD_Guide_Ad1_Address": "Adresa"
 }

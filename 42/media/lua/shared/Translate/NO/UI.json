@@ -4514,5 +4514,17 @@
     "UI_ZeD_GCh_whatsnew_Title": "Nytt i ZeD",
     "UI_ZeD_GCh_whatsnew_Blurb": "Endringene i denne versjonen.",
     "UI_ZeD_GCh_whatsnew_beta3_Title": "Denne versjonen",
-    "UI_ZeD_GCh_whatsnew_beta3_Text": "Overlevelsesguiden: denne boken eller det enkle vinduet (Full eller Enkel i ZeD-oppsett), med fem nye kapitler, spillets regler som tall og dine egne taster og knapper på hver side. Modskjermen: mods som er på ligger på et mørkt bånd og mods som er av dimmes, en Av-fane, Skjul inkompatible, en Enkel visning og fargemerker for mapper og skillelinjer. Notatene over hodet i ZeDs boble, oppbevart i Meldinger. En hintlinje for det som er foran deg. Festing til tittellinjen i Karaktervinduet."
+    "UI_ZeD_GCh_whatsnew_beta3_Text": "Overlevelsesguiden: denne boken eller det enkle vinduet (Full eller Enkel i ZeD-oppsett), med fem nye kapitler, spillets regler som tall og dine egne taster og knapper på hver side. Modskjermen: mods som er på ligger på et mørkt bånd og mods som er av dimmes, en Av-fane, Skjul inkompatible, en Enkel visning og fargemerker for mapper og skillelinjer. Notatene over hodet i ZeDs boble, oppbevart i Meldinger. En hintlinje for det som er foran deg. Festing til tittellinjen i Karaktervinduet.",
+    "UI_ZeD_Guide_Ad1_Head": "Hele hylla",
+    "UI_ZeD_Guide_Ad1_Deck": "Alle håndbøkene et hjem trenger før lyset går.",
+    "UI_ZeD_Guide_Ad1_Body": "Doidbros og Buzzlord trykker enkle, utprøvde håndbøker for folk som planlegger i forveien. Hver bok er like stor som denne, sydd så den ligger flatt, og trykt på papir som tar blyant.",
+    "UI_ZeD_Guide_Ad1_T1": "Overlev apokalypsen, Andre utgave",
+    "UI_ZeD_Guide_Ad1_T2": "Vann du kan drikke",
+    "UI_ZeD_Guide_Ad1_T3": "Rotkjelleråret",
+    "UI_ZeD_Guide_Ad1_T4": "Reparer det du eier",
+    "UI_ZeD_Guide_Ad1_T5": "Førstehjelp langt fra hjelp",
+    "UI_ZeD_Guide_Ad1_Price": "Bare $4.95 per stykk",
+    "UI_ZeD_Guide_Ad1_Coupon": "Kryss av for titlene du vil ha, og send denne siden til Avdeling for nødpublikasjoner om overlevelse, Muldraugh, Kentucky. Regn med seks ukers leveringstid.",
+    "UI_ZeD_Guide_Ad1_Name": "Navn",
+    "UI_ZeD_Guide_Ad1_Address": "Adresse"
 }

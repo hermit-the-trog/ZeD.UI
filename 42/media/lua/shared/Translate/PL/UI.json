@@ -4514,5 +4514,17 @@
     "UI_ZeD_GCh_whatsnew_Title": "Nowości w ZeD",
     "UI_ZeD_GCh_whatsnew_Blurb": "Zmiany w tej wersji.",
     "UI_ZeD_GCh_whatsnew_beta3_Title": "Ta wersja",
-    "UI_ZeD_GCh_whatsnew_beta3_Text": "Poradnik przetrwania: ta książka lub proste okno (Pełny lub Prosty w Konfiguracji ZeD), z pięcioma nowymi rozdziałami, zasadami gry w liczbach i twoimi własnymi klawiszami i przyciskami na każdej stronie. Ekran modów: włączone mody leżą na ciemnym pasie, a wyłączone są przyciemnione; jest karta Wył., Ukryj niezgodne, widok Prosty i kolorowe etykiety dla folderów i separatorów. Notatki nad twoją głową w dymku ZeD, zachowane w Wiadomościach. Linia podpowiedzi dla tego, co masz przed sobą. Przypinki na pasku tytułu okna Bohater."
+    "UI_ZeD_GCh_whatsnew_beta3_Text": "Poradnik przetrwania: ta książka lub proste okno (Pełny lub Prosty w Konfiguracji ZeD), z pięcioma nowymi rozdziałami, zasadami gry w liczbach i twoimi własnymi klawiszami i przyciskami na każdej stronie. Ekran modów: włączone mody leżą na ciemnym pasie, a wyłączone są przyciemnione; jest karta Wył., Ukryj niezgodne, widok Prosty i kolorowe etykiety dla folderów i separatorów. Notatki nad twoją głową w dymku ZeD, zachowane w Wiadomościach. Linia podpowiedzi dla tego, co masz przed sobą. Przypinki na pasku tytułu okna Bohater.",
+    "UI_ZeD_Guide_Ad1_Head": "Cała półka",
+    "UI_ZeD_Guide_Ad1_Deck": "Wszystkie poradniki, jakich potrzebuje dom, zanim zgasną światła.",
+    "UI_ZeD_Guide_Ad1_Body": "Doidbros i Buzzlord drukują proste, sprawdzone poradniki dla ludzi, którzy planują z wyprzedzeniem. Każdy ma rozmiar tego, jest szyty, by leżał płasko, i wydrukowany na papierze, na którym pisze się ołówkiem.",
+    "UI_ZeD_Guide_Ad1_T1": "Przetrwać apokalipsę, Wydanie drugie",
+    "UI_ZeD_Guide_Ad1_T2": "Woda zdatna do picia",
+    "UI_ZeD_Guide_Ad1_T3": "Rok w piwnicy na warzywa",
+    "UI_ZeD_Guide_Ad1_T4": "Napraw to, co masz",
+    "UI_ZeD_Guide_Ad1_T5": "Pierwsza pomoc daleko od lekarza",
+    "UI_ZeD_Guide_Ad1_Price": "Tylko $4.95 za egzemplarz",
+    "UI_ZeD_Guide_Ad1_Coupon": "Zaznacz wybrane tytuły i prześlij tę stronę na adres: Wydział Awaryjnych Publikacji o Przetrwaniu, Muldraugh, Kentucky. Na dostawę należy zaczekać sześć tygodni.",
+    "UI_ZeD_Guide_Ad1_Name": "Imię i nazwisko",
+    "UI_ZeD_Guide_Ad1_Address": "Adres"
 }

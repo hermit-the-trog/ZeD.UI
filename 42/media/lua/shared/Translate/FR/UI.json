@@ -4514,5 +4514,17 @@
     "UI_ZeD_GCh_whatsnew_Title": "Nouveautés de ZeD",
     "UI_ZeD_GCh_whatsnew_Blurb": "Les changements de cette version.",
     "UI_ZeD_GCh_whatsnew_beta3_Title": "Cette version",
-    "UI_ZeD_GCh_whatsnew_beta3_Text": "Le guide de survie : ce livre ou la fenêtre ordinaire (Complet ou simple dans Configuration ZeD), avec cinq nouveaux chapitres, les règles du jeu en chiffres et vos propres touches et boutons sur chaque page. L'écran des mods : les mods activés sont sur une bande sombre et ceux qui sont désactivés sont grisés, avec un onglet Inactifs, Masquer les incompatibles, une vue Simple et des étiquettes de couleur pour les dossiers et les séparateurs. Les notes au-dessus de votre tête dans la bulle de ZeD, conservées dans Messages. Une barre d'astuces pour ce qui est devant vous. Des épingles sur la barre de titre de la fenêtre Personnage."
+    "UI_ZeD_GCh_whatsnew_beta3_Text": "Le guide de survie : ce livre ou la fenêtre ordinaire (Complet ou simple dans Configuration ZeD), avec cinq nouveaux chapitres, les règles du jeu en chiffres et vos propres touches et boutons sur chaque page. L'écran des mods : les mods activés sont sur une bande sombre et ceux qui sont désactivés sont grisés, avec un onglet Inactifs, Masquer les incompatibles, une vue Simple et des étiquettes de couleur pour les dossiers et les séparateurs. Les notes au-dessus de votre tête dans la bulle de ZeD, conservées dans Messages. Une barre d'astuces pour ce qui est devant vous. Des épingles sur la barre de titre de la fenêtre Personnage.",
+    "UI_ZeD_Guide_Ad1_Head": "Tout le rayon",
+    "UI_ZeD_Guide_Ad1_Deck": "Tous les manuels dont un foyer a besoin avant que les lumières s'éteignent.",
+    "UI_ZeD_Guide_Ad1_Body": "Doidbros et Buzzlord impriment des manuels simples et éprouvés pour ceux qui prévoient. Chacun a le format de celui-ci, est cousu pour rester à plat et imprimé sur un papier qui accepte le crayon.",
+    "UI_ZeD_Guide_Ad1_T1": "Survivre à l'apocalypse, Deuxième édition",
+    "UI_ZeD_Guide_Ad1_T2": "De l'eau potable",
+    "UI_ZeD_Guide_Ad1_T3": "Une année de cave à légumes",
+    "UI_ZeD_Guide_Ad1_T4": "Réparez ce que vous possédez",
+    "UI_ZeD_Guide_Ad1_T5": "Premiers secours loin des secours",
+    "UI_ZeD_Guide_Ad1_Price": "Seulement $4.95 pièce",
+    "UI_ZeD_Guide_Ad1_Coupon": "Cochez les titres désirés et postez cette page à la Division des publications d'urgence sur la survie, Muldraugh, Kentucky. Prévoyez six semaines de livraison.",
+    "UI_ZeD_Guide_Ad1_Name": "Nom",
+    "UI_ZeD_Guide_Ad1_Address": "Adresse"
 }

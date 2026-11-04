@@ -4514,5 +4514,17 @@
     "UI_ZeD_GCh_whatsnew_Title": "Uutta ZeD:ssä",
     "UI_ZeD_GCh_whatsnew_Blurb": "Tämän version muutokset.",
     "UI_ZeD_GCh_whatsnew_beta3_Title": "Tämä versio",
-    "UI_ZeD_GCh_whatsnew_beta3_Text": "Selviytymisopas: tämä kirja tai tavallinen ikkuna (Täysi tai yksinkertainen ZeD-asetuksissa), viisi uutta lukua, pelin säännöt lukuina ja omat näppäimesi ja painikkeesi jokaisella sivulla. Modit-näyttö: päällä olevat modit ovat tummalla palkilla ja pois päältä olevat himmennetty, Pois-välilehti, Piilota yhteensopimattomat, Yksinkertainen näkymä sekä värinimiöt kansioille ja erottimille. Pääsi päällä olevat ilmoitukset ZeD:n puhekuplassa, tallennettuina Viesteihin. Vihjepalkki sille, mitä on edessäsi. Kiinnitykset Hahmo-ikkunan otsikkopalkissa."
+    "UI_ZeD_GCh_whatsnew_beta3_Text": "Selviytymisopas: tämä kirja tai tavallinen ikkuna (Täysi tai yksinkertainen ZeD-asetuksissa), viisi uutta lukua, pelin säännöt lukuina ja omat näppäimesi ja painikkeesi jokaisella sivulla. Modit-näyttö: päällä olevat modit ovat tummalla palkilla ja pois päältä olevat himmennetty, Pois-välilehti, Piilota yhteensopimattomat, Yksinkertainen näkymä sekä värinimiöt kansioille ja erottimille. Pääsi päällä olevat ilmoitukset ZeD:n puhekuplassa, tallennettuina Viesteihin. Vihjepalkki sille, mitä on edessäsi. Kiinnitykset Hahmo-ikkunan otsikkopalkissa.",
+    "UI_ZeD_Guide_Ad1_Head": "Koko hylly",
+    "UI_ZeD_Guide_Ad1_Deck": "Kaikki oppaat, joita talous tarvitsee ennen kuin valot sammuvat.",
+    "UI_ZeD_Guide_Ad1_Body": "Doidbros ja Buzzlord painavat selkeitä, koeteltuja oppaita ennakoiville ihmisille. Jokainen on tämän kirjan kokoinen, ommeltu aukeamaan tasaiseksi ja painettu paperille, jolle voi kirjoittaa lyijykynällä.",
+    "UI_ZeD_Guide_Ad1_T1": "Selviydy maailmanlopusta, Toinen painos",
+    "UI_ZeD_Guide_Ad1_T2": "Vettä, jonka voi juoda",
+    "UI_ZeD_Guide_Ad1_T3": "Juurikellarin vuosi",
+    "UI_ZeD_Guide_Ad1_T4": "Korjaa omat tavarasi",
+    "UI_ZeD_Guide_Ad1_T5": "Ensiapu kaukana avusta",
+    "UI_ZeD_Guide_Ad1_Price": "Vain $4.95 kappale",
+    "UI_ZeD_Guide_Ad1_Coupon": "Rastita haluamasi nimikkeet ja postita tämä sivu osoitteeseen Selviytymisen hätäjulkaisujen osasto, Muldraugh, Kentucky. Varaa toimitukseen kuusi viikkoa.",
+    "UI_ZeD_Guide_Ad1_Name": "Nimi",
+    "UI_ZeD_Guide_Ad1_Address": "Osoite"
 }

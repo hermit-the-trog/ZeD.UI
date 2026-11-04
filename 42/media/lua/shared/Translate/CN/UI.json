@@ -4515,5 +4515,17 @@
     "UI_ZeD_GCh_whatsnew_Title": "ZeD 新内容",
     "UI_ZeD_GCh_whatsnew_Blurb": "这个版本的变更。",
     "UI_ZeD_GCh_whatsnew_beta3_Title": "这个版本",
-    "UI_ZeD_GCh_whatsnew_beta3_Text": "生存指南：这本书或朴素窗口（在 ZeD 设置里选完整或简洁），有五个新章节、以数字呈现的游戏规则，以及每一页都显示你自己的按键和按钮。模组界面：已开启的模组显示在深色带上，已关闭的模组变暗，另有已关标签页、隐藏不兼容项、简洁视图，以及文件夹和分隔线的颜色标签。你头上的提示显示在 ZeD 的气泡中，并存放在消息里。针对你面前事物的提示条。角色窗口标题栏上的固定项。"
+    "UI_ZeD_GCh_whatsnew_beta3_Text": "生存指南：这本书或朴素窗口（在 ZeD 设置里选完整或简洁），有五个新章节、以数字呈现的游戏规则，以及每一页都显示你自己的按键和按钮。模组界面：已开启的模组显示在深色带上，已关闭的模组变暗，另有已关标签页、隐藏不兼容项、简洁视图，以及文件夹和分隔线的颜色标签。你头上的提示显示在 ZeD 的气泡中，并存放在消息里。针对你面前事物的提示条。角色窗口标题栏上的固定项。",
+    "UI_ZeD_Guide_Ad1_Head": "全套丛书",
+    "UI_ZeD_Guide_Ad1_Deck": "灯火熄灭之前，每个家庭都该备齐的手册。",
+    "UI_ZeD_Guide_Ad1_Body": "Doidbros 和 Buzzlord 出版朴实、经过检验的手册，献给凡事预先打算的人。每本与本书同样大小，线装可平摊翻开，纸张可用铅笔书写。",
+    "UI_ZeD_Guide_Ad1_T1": "末日求生，第二版",
+    "UI_ZeD_Guide_Ad1_T2": "能喝的水",
+    "UI_ZeD_Guide_Ad1_T3": "地窖里的一年",
+    "UI_ZeD_Guide_Ad1_T4": "自己的东西自己修",
+    "UI_ZeD_Guide_Ad1_T5": "远离救援的急救",
+    "UI_ZeD_Guide_Ad1_Price": "每本仅售 $4.95",
+    "UI_ZeD_Guide_Ad1_Coupon": "请勾选所需书目，并将此页寄至 Muldraugh, Kentucky 求生应急出版部。请预留六周送达时间。",
+    "UI_ZeD_Guide_Ad1_Name": "姓名",
+    "UI_ZeD_Guide_Ad1_Address": "地址"
 }

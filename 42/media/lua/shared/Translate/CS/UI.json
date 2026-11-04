@@ -4514,5 +4514,17 @@
     "UI_ZeD_GCh_whatsnew_Title": "Novinky v ZeD",
     "UI_ZeD_GCh_whatsnew_Blurb": "Změny v této verzi.",
     "UI_ZeD_GCh_whatsnew_beta3_Title": "Tato verze",
-    "UI_ZeD_GCh_whatsnew_beta3_Text": "Průvodce přežitím: tato kniha nebo prosté okno (Plné nebo Jednoduché v ZeD setup), s pěti novými kapitolami, pravidly hry jako čísly a tvými vlastními klávesami a tlačítky na každé stránce. Obrazovka Módy: zapnuté módy leží na tmavém pruhu a vypnuté jsou ztlumené, se záložkou Vypnuté, Skrýt nekompatibilní, Jednoduchým zobrazením a barevnými štítky pro složky a oddělovače. Poznámky nad tvou hlavou v bublině ZeD, uložené ve Zprávách. Pruh nápověd pro to, co máš před sebou. Připnuté na titulní liště okna Postava."
+    "UI_ZeD_GCh_whatsnew_beta3_Text": "Průvodce přežitím: tato kniha nebo prosté okno (Plné nebo Jednoduché v ZeD setup), s pěti novými kapitolami, pravidly hry jako čísly a tvými vlastními klávesami a tlačítky na každé stránce. Obrazovka Módy: zapnuté módy leží na tmavém pruhu a vypnuté jsou ztlumené, se záložkou Vypnuté, Skrýt nekompatibilní, Jednoduchým zobrazením a barevnými štítky pro složky a oddělovače. Poznámky nad tvou hlavou v bublině ZeD, uložené ve Zprávách. Pruh nápověd pro to, co máš před sebou. Připnuté na titulní liště okna Postava.",
+    "UI_ZeD_Guide_Ad1_Head": "Celá police",
+    "UI_ZeD_Guide_Ad1_Deck": "Každá příručka, kterou domácnost potřebuje, než zhasnou světla.",
+    "UI_ZeD_Guide_Ad1_Body": "Doidbros a Buzzlord tisknou věcné, vyzkoušené příručky pro lidi, kteří myslí dopředu. Každá má velikost této knihy, je šitá, aby zůstala rozevřená, a vytištěná na papíře, na který se dá psát tužkou.",
+    "UI_ZeD_Guide_Ad1_T1": "Přežít apokalypsu, Druhé vydání",
+    "UI_ZeD_Guide_Ad1_T2": "Voda, kterou můžete pít",
+    "UI_ZeD_Guide_Ad1_T3": "Rok v kořenovém sklepě",
+    "UI_ZeD_Guide_Ad1_T4": "Spravte, co vlastníte",
+    "UI_ZeD_Guide_Ad1_T5": "První pomoc daleko od lékaře",
+    "UI_ZeD_Guide_Ad1_Price": "Jen $4.95 za kus",
+    "UI_ZeD_Guide_Ad1_Coupon": "Zaškrtněte vybrané tituly a pošlete tuto stránku na adresu Oddělení pro nouzové publikace o přežití, Muldraugh, Kentucky. Počítejte se šesti týdny na dodání.",
+    "UI_ZeD_Guide_Ad1_Name": "Jméno",
+    "UI_ZeD_Guide_Ad1_Address": "Adresa"
 }
