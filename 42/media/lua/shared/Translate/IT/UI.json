@@ -4514,5 +4514,17 @@
     "UI_ZeD_GCh_whatsnew_Title": "Novità di ZeD",
     "UI_ZeD_GCh_whatsnew_Blurb": "Le modifiche di questa versione.",
     "UI_ZeD_GCh_whatsnew_beta3_Title": "Questa versione",
-    "UI_ZeD_GCh_whatsnew_beta3_Text": "La guida di sopravvivenza: questo libro o la finestra semplice (Completa o semplice in ZeD setup), con cinque nuovi capitoli, le regole del gioco in numeri e i tuoi tasti e pulsanti su ogni pagina. La schermata dei mod: i mod attivi stanno su una fascia scura e quelli disattivi sono attenuati, con una linguetta Disattivi, Nascondi incompatibili, una vista Semplice ed etichette colorate per cartelle e separatori. Le note sopra la tua testa nel fumetto di ZeD, conservate in Messaggi. Una barra dei suggerimenti per ciò che hai davanti. Elementi fissati sulla barra del titolo della finestra Personaggio."
+    "UI_ZeD_GCh_whatsnew_beta3_Text": "La guida di sopravvivenza: questo libro o la finestra semplice (Completa o semplice in ZeD setup), con cinque nuovi capitoli, le regole del gioco in numeri e i tuoi tasti e pulsanti su ogni pagina. La schermata dei mod: i mod attivi stanno su una fascia scura e quelli disattivi sono attenuati, con una linguetta Disattivi, Nascondi incompatibili, una vista Semplice ed etichette colorate per cartelle e separatori. Le note sopra la tua testa nel fumetto di ZeD, conservate in Messaggi. Una barra dei suggerimenti per ciò che hai davanti. Elementi fissati sulla barra del titolo della finestra Personaggio.",
+    "UI_ZeD_Guide_Ad1_Head": "Tutto lo scaffale",
+    "UI_ZeD_Guide_Ad1_Deck": "Tutti i manuali che servono in casa prima che le luci si spengano.",
+    "UI_ZeD_Guide_Ad1_Body": "Doidbros e Buzzlord stampano manuali semplici e collaudati per chi pianifica in anticipo. Ognuno ha le dimensioni di questo, è cucito per restare aperto e stampato su carta che accetta la matita.",
+    "UI_ZeD_Guide_Ad1_T1": "Sopravvivere all'apocalisse, Seconda edizione",
+    "UI_ZeD_Guide_Ad1_T2": "Acqua da bere",
+    "UI_ZeD_Guide_Ad1_T3": "Un anno con la cantina degli ortaggi",
+    "UI_ZeD_Guide_Ad1_T4": "Aggiusta ciò che hai",
+    "UI_ZeD_Guide_Ad1_T5": "Pronto soccorso lontano dai soccorsi",
+    "UI_ZeD_Guide_Ad1_Price": "Solo $4.95 a copia",
+    "UI_ZeD_Guide_Ad1_Coupon": "Segnate i titoli desiderati e spedite questa pagina alla Divisione Pubblicazioni di Emergenza e Sopravvivenza, Muldraugh, Kentucky. Consentite sei settimane per la consegna.",
+    "UI_ZeD_Guide_Ad1_Name": "Nome",
+    "UI_ZeD_Guide_Ad1_Address": "Indirizzo"
 }

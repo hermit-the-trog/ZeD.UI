@@ -4515,5 +4515,17 @@
     "UI_ZeD_GCh_whatsnew_Title": "ZeD의 새 기능",
     "UI_ZeD_GCh_whatsnew_Blurb": "이 버전의 변경점입니다.",
     "UI_ZeD_GCh_whatsnew_beta3_Title": "이 버전",
-    "UI_ZeD_GCh_whatsnew_beta3_Text": "생존 지침서: 이 책 또는 간단한 창(ZeD 설정의 실물 또는 간단), 새 장 다섯 개, 숫자로 보는 게임 규칙, 모든 페이지에 내 키와 버튼이 들어갑니다. 모드 화면: 켜진 모드는 어두운 띠 위에 놓이고 꺼진 모드는 흐리게 표시되며, 꺼짐 탭, 호환 안 됨 숨기기, 간단 보기, 폴더와 구분선의 색 라벨이 있습니다. 머리 위 알림은 ZeD의 말풍선에 나오고 메시지에 보관됩니다. 눈앞의 대상을 위한 힌트 줄. 캐릭터 창 제목 표시줄의 고정."
+    "UI_ZeD_GCh_whatsnew_beta3_Text": "생존 지침서: 이 책 또는 간단한 창(ZeD 설정의 실물 또는 간단), 새 장 다섯 개, 숫자로 보는 게임 규칙, 모든 페이지에 내 키와 버튼이 들어갑니다. 모드 화면: 켜진 모드는 어두운 띠 위에 놓이고 꺼진 모드는 흐리게 표시되며, 꺼짐 탭, 호환 안 됨 숨기기, 간단 보기, 폴더와 구분선의 색 라벨이 있습니다. 머리 위 알림은 ZeD의 말풍선에 나오고 메시지에 보관됩니다. 눈앞의 대상을 위한 힌트 줄. 캐릭터 창 제목 표시줄의 고정.",
+    "UI_ZeD_Guide_Ad1_Head": "책장 전체",
+    "UI_ZeD_Guide_Ad1_Deck": "불이 꺼지기 전에 가정마다 필요한 모든 안내서.",
+    "UI_ZeD_Guide_Ad1_Body": "Doidbros와 Buzzlord는 미리 대비하는 사람들을 위해 소박하고 검증된 안내서를 펴냅니다. 모든 책은 이 책과 같은 크기이며, 평평하게 펼쳐지도록 실로 꿰맸고 연필로 쓸 수 있는 종이에 인쇄했습니다.",
+    "UI_ZeD_Guide_Ad1_T1": "재앙에서 살아남기, 제2판",
+    "UI_ZeD_Guide_Ad1_T2": "마실 수 있는 물",
+    "UI_ZeD_Guide_Ad1_T3": "뿌리 저장고의 한 해",
+    "UI_ZeD_Guide_Ad1_T4": "가진 것은 직접 고치자",
+    "UI_ZeD_Guide_Ad1_T5": "도움이 먼 곳에서의 응급처치",
+    "UI_ZeD_Guide_Ad1_Price": "권당 $4.95",
+    "UI_ZeD_Guide_Ad1_Coupon": "원하는 책에 표시하고 이 페이지를 Muldraugh, Kentucky 생존 비상 출판부로 보내 주십시오. 배송에는 6주가 걸립니다.",
+    "UI_ZeD_Guide_Ad1_Name": "이름",
+    "UI_ZeD_Guide_Ad1_Address": "주소"
 }

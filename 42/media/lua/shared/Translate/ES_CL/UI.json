@@ -4514,5 +4514,17 @@
     "UI_ZeD_GCh_whatsnew_Title": "Novedades de ZeD",
     "UI_ZeD_GCh_whatsnew_Blurb": "Los cambios de esta versión.",
     "UI_ZeD_GCh_whatsnew_beta3_Title": "Esta versión",
-    "UI_ZeD_GCh_whatsnew_beta3_Text": "La guía de sobrevivencia: este libro o la ventana sencilla (Completo o Simple en Configuraciones de ZeD), con cinco capítulos nuevos, las reglas del juego en cifras y tus propias teclas y botones en cada página. La pantalla de Mods: los mods activos se ven sobre una banda oscura y los inactivos se atenúan, con una pestaña Desactivados, Ocultar incompatibles, una vista Simple y etiquetas de color para carpetas y separadores. Los avisos sobre tu cabeza en el globo de ZeD, guardados en Mensajes. Una franja de pistas para lo que tienes delante. Fijados en la barra de título de la ventana Personaje."
+    "UI_ZeD_GCh_whatsnew_beta3_Text": "La guía de sobrevivencia: este libro o la ventana sencilla (Completo o Simple en Configuraciones de ZeD), con cinco capítulos nuevos, las reglas del juego en cifras y tus propias teclas y botones en cada página. La pantalla de Mods: los mods activos se ven sobre una banda oscura y los inactivos se atenúan, con una pestaña Desactivados, Ocultar incompatibles, una vista Simple y etiquetas de color para carpetas y separadores. Los avisos sobre tu cabeza en el globo de ZeD, guardados en Mensajes. Una franja de pistas para lo que tienes delante. Fijados en la barra de título de la ventana Personaje.",
+    "UI_ZeD_Guide_Ad1_Head": "Toda la colección",
+    "UI_ZeD_Guide_Ad1_Deck": "Todos los manuales que un hogar necesita antes de que se corte la luz.",
+    "UI_ZeD_Guide_Ad1_Body": "Doidbros y Buzzlord imprimen manuales claros y probados para quienes se adelantan a los problemas. Cada uno tiene el tamaño de este, va cosido para abrirse del todo y está impreso en papel que admite lápiz.",
+    "UI_ZeD_Guide_Ad1_T1": "Sobrevivir al apocalipsis, Segunda edición",
+    "UI_ZeD_Guide_Ad1_T2": "Agua que se puede beber",
+    "UI_ZeD_Guide_Ad1_T3": "Un año con la bodega de raíces",
+    "UI_ZeD_Guide_Ad1_T4": "Arregle lo que ya tiene",
+    "UI_ZeD_Guide_Ad1_T5": "Primeros auxilios lejos de la ayuda",
+    "UI_ZeD_Guide_Ad1_Price": "Solo $4.95 cada uno",
+    "UI_ZeD_Guide_Ad1_Coupon": "Marque los títulos que desee y envíe esta página a la División de Publicaciones de Emergencia y Supervivencia, Muldraugh, Kentucky. Considere seis semanas para la entrega.",
+    "UI_ZeD_Guide_Ad1_Name": "Nombre",
+    "UI_ZeD_Guide_Ad1_Address": "Dirección"
 }

@@ -4514,5 +4514,17 @@
     "UI_ZeD_GCh_whatsnew_Title": "Nyt i ZeD",
     "UI_ZeD_GCh_whatsnew_Blurb": "Ændringerne i denne version.",
     "UI_ZeD_GCh_whatsnew_beta3_Title": "Denne version",
-    "UI_ZeD_GCh_whatsnew_beta3_Text": "Overlevelsesguiden: denne bog eller det almindelige vindue (Fuld eller Simpel i ZeD-opsætning), med fem nye kapitler, spillets regler som tal og dine egne taster og knapper på hver side. Mods-skærmen: mods, der er tændt, ligger på et mørkt bånd, og mods, der er slukket, bliver dæmpet, med en fane Fra, Skjul inkompatible, en Simpel visning og farvemærker til mapper og skillelinjer. Notaterne over dit hoved i ZeDs boble, gemt i Beskeder. En hintlinje til det, der er foran dig. Fastgjort på Karaktervinduets titellinje."
+    "UI_ZeD_GCh_whatsnew_beta3_Text": "Overlevelsesguiden: denne bog eller det almindelige vindue (Fuld eller Simpel i ZeD-opsætning), med fem nye kapitler, spillets regler som tal og dine egne taster og knapper på hver side. Mods-skærmen: mods, der er tændt, ligger på et mørkt bånd, og mods, der er slukket, bliver dæmpet, med en fane Fra, Skjul inkompatible, en Simpel visning og farvemærker til mapper og skillelinjer. Notaterne over dit hoved i ZeDs boble, gemt i Beskeder. En hintlinje til det, der er foran dig. Fastgjort på Karaktervinduets titellinje.",
+    "UI_ZeD_Guide_Ad1_Head": "Hele hylden",
+    "UI_ZeD_Guide_Ad1_Deck": "Alle de håndbøger, et hjem skal bruge, før lyset går ud.",
+    "UI_ZeD_Guide_Ad1_Body": "Doidbros og Buzzlord trykker enkle, afprøvede håndbøger til folk, der planlægger i god tid. Hver bog har samme størrelse som denne, er syet, så den ligger fladt, og er trykt på papir, man kan skrive på med blyant.",
+    "UI_ZeD_Guide_Ad1_T1": "Overlev apokalypsen, Anden udgave",
+    "UI_ZeD_Guide_Ad1_T2": "Vand du kan drikke",
+    "UI_ZeD_Guide_Ad1_T3": "Rodkælderens år",
+    "UI_ZeD_Guide_Ad1_T4": "Reparer det, du ejer",
+    "UI_ZeD_Guide_Ad1_T5": "Førstehjælp langt fra nærmeste hjælp",
+    "UI_ZeD_Guide_Ad1_Price": "Kun $4.95 pr. stk.",
+    "UI_ZeD_Guide_Ad1_Coupon": "Sæt kryds ved de titler, du ønsker, og send denne side til Afdelingen for Nødudgivelser om Overlevelse, Muldraugh, Kentucky. Regn med seks ugers leveringstid.",
+    "UI_ZeD_Guide_Ad1_Name": "Navn",
+    "UI_ZeD_Guide_Ad1_Address": "Adresse"
 }

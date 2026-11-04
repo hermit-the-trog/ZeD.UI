@@ -4514,5 +4514,17 @@
     "UI_ZeD_GCh_whatsnew_Title": "Yang Baru di ZeD",
     "UI_ZeD_GCh_whatsnew_Blurb": "Perubahan di versi ini.",
     "UI_ZeD_GCh_whatsnew_beta3_Title": "Versi ini",
-    "UI_ZeD_GCh_whatsnew_beta3_Text": "Panduan bertahan hidup: buku ini atau jendela biasa (Penuh atau sederhana di ZeD setup), dengan lima bab baru, aturan game dalam angka, dan tombol Anda sendiri di setiap halaman. Layar mod: mod yang aktif berada di pita gelap dan mod yang nonaktif meredup, dengan tab Nonaktif, Sembunyikan yang tidak kompatibel, tampilan Sederhana, dan label warna untuk folder dan pemisah. Catatan di atas kepala Anda di balon ZeD, disimpan di Pesan. Bilah petunjuk untuk apa yang ada di depan Anda. Sematan di bilah judul jendela Karakter."
+    "UI_ZeD_GCh_whatsnew_beta3_Text": "Panduan bertahan hidup: buku ini atau jendela biasa (Penuh atau sederhana di ZeD setup), dengan lima bab baru, aturan game dalam angka, dan tombol Anda sendiri di setiap halaman. Layar mod: mod yang aktif berada di pita gelap dan mod yang nonaktif meredup, dengan tab Nonaktif, Sembunyikan yang tidak kompatibel, tampilan Sederhana, dan label warna untuk folder dan pemisah. Catatan di atas kepala Anda di balon ZeD, disimpan di Pesan. Bilah petunjuk untuk apa yang ada di depan Anda. Sematan di bilah judul jendela Karakter.",
+    "UI_ZeD_Guide_Ad1_Head": "Seluruh Rak",
+    "UI_ZeD_Guide_Ad1_Deck": "Semua panduan yang dibutuhkan rumah tangga sebelum lampu padam.",
+    "UI_ZeD_Guide_Ad1_Body": "Doidbros dan Buzzlord mencetak buku panduan yang sederhana dan teruji untuk orang yang berencana jauh hari. Setiap buku seukuran buku ini, dijahit agar terbuka rata, dan dicetak di atas kertas yang bisa ditulisi pensil.",
+    "UI_ZeD_Guide_Ad1_T1": "Bertahan Hidup di Hari Kiamat, Edisi Kedua",
+    "UI_ZeD_Guide_Ad1_T2": "Air yang Bisa Diminum",
+    "UI_ZeD_Guide_Ad1_T3": "Setahun dengan Gudang Umbi",
+    "UI_ZeD_Guide_Ad1_T4": "Perbaiki Milik Anda Sendiri",
+    "UI_ZeD_Guide_Ad1_T5": "Pertolongan Pertama Jauh dari Bantuan",
+    "UI_ZeD_Guide_Ad1_Price": "Hanya $4.95 per buku",
+    "UI_ZeD_Guide_Ad1_Coupon": "Centang judul yang Anda inginkan dan kirim halaman ini ke Divisi Penerbitan Darurat Bertahan Hidup, Muldraugh, Kentucky. Harap tunggu enam minggu untuk pengiriman.",
+    "UI_ZeD_Guide_Ad1_Name": "Nama",
+    "UI_ZeD_Guide_Ad1_Address": "Alamat"
 }

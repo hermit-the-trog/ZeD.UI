@@ -4514,5 +4514,17 @@
     "UI_ZeD_GCh_whatsnew_Title": "Neu in ZeD",
     "UI_ZeD_GCh_whatsnew_Blurb": "Die Änderungen in dieser Version.",
     "UI_ZeD_GCh_whatsnew_beta3_Title": "Diese Version",
-    "UI_ZeD_GCh_whatsnew_beta3_Text": "Das Überlebenshandbuch: dieses Buch oder das schlichte Fenster (Voll oder Einfach in ZeD setup), mit fünf neuen Kapiteln, den Regeln des Spiels als Zahlen und deinen eigenen Tasten und Knöpfen auf jeder Seite. Der Mods-Bildschirm: aktive Mods liegen auf einem dunklen Band und inaktive Mods werden abgedunkelt, mit einem Tab Aus, Inkompatible ausblenden, einer Einfachen Ansicht und Farbmarkierungen für Ordner und Trennlinien. Die Hinweise über deinem Kopf in ZeDs Sprechblase, aufbewahrt in Nachrichten. Eine Hinweisleiste für das, was vor dir liegt. Angeheftetes in der Titelleiste des Charakterfensters."
+    "UI_ZeD_GCh_whatsnew_beta3_Text": "Das Überlebenshandbuch: dieses Buch oder das schlichte Fenster (Voll oder Einfach in ZeD setup), mit fünf neuen Kapiteln, den Regeln des Spiels als Zahlen und deinen eigenen Tasten und Knöpfen auf jeder Seite. Der Mods-Bildschirm: aktive Mods liegen auf einem dunklen Band und inaktive Mods werden abgedunkelt, mit einem Tab Aus, Inkompatible ausblenden, einer Einfachen Ansicht und Farbmarkierungen für Ordner und Trennlinien. Die Hinweise über deinem Kopf in ZeDs Sprechblase, aufbewahrt in Nachrichten. Eine Hinweisleiste für das, was vor dir liegt. Angeheftetes in der Titelleiste des Charakterfensters.",
+    "UI_ZeD_Guide_Ad1_Head": "Das ganze Regal",
+    "UI_ZeD_Guide_Ad1_Deck": "Alle Handbücher, die ein Haushalt braucht, bevor das Licht ausgeht.",
+    "UI_ZeD_Guide_Ad1_Body": "Doidbros und Buzzlord drucken schlichte, erprobte Handbücher für Leute, die vorausplanen. Jedes hat die Größe dieses Bandes, ist fadengeheftet, sodass es flach aufliegt, und auf Papier gedruckt, das Bleistift annimmt.",
+    "UI_ZeD_Guide_Ad1_T1": "Die Apokalypse überleben, Zweite Auflage",
+    "UI_ZeD_Guide_Ad1_T2": "Wasser, das Sie trinken können",
+    "UI_ZeD_Guide_Ad1_T3": "Das Jahr im Wurzelkeller",
+    "UI_ZeD_Guide_Ad1_T4": "Reparieren Sie, was Ihnen gehört",
+    "UI_ZeD_Guide_Ad1_T5": "Erste Hilfe fernab von Hilfe",
+    "UI_ZeD_Guide_Ad1_Price": "Nur $4.95 pro Stück",
+    "UI_ZeD_Guide_Ad1_Coupon": "Kreuzen Sie die gewünschten Titel an und senden Sie diese Seite an die Abteilung für Notfall- und Überlebensliteratur, Muldraugh, Kentucky. Rechnen Sie mit sechs Wochen Lieferzeit.",
+    "UI_ZeD_Guide_Ad1_Name": "Name",
+    "UI_ZeD_Guide_Ad1_Address": "Anschrift"
 }

@@ -4514,5 +4514,17 @@
     "UI_ZeD_GCh_whatsnew_Title": "ZeD'de yenilikler",
     "UI_ZeD_GCh_whatsnew_Blurb": "Bu sürümdeki değişiklikler.",
     "UI_ZeD_GCh_whatsnew_beta3_Title": "Bu sürüm",
-    "UI_ZeD_GCh_whatsnew_beta3_Text": "Hayatta kalma rehberi: bu kitap veya sade pencere (ZeD kurulumunda Tam veya Basit), beş yeni bölüm, oyunun kuralları sayılarla ve her sayfada kendi tuşlarınız ve düğmelerinizle. Mod ekranı: açık modlar koyu bir şeritte durur, kapalı olanlar soluklaşır; bir Kapalı sekmesi, Uyumsuzları gizle, bir Basit görünüm ve klasörler ile ayırıcılar için renk etiketleri. Başınızın üstündeki notlar ZeD'in balonunda, Mesajlar'da saklanır. Önünüzdeki şey için bir ipucu şeridi. Karakter penceresinin başlık çubuğunda sabitlemeler."
+    "UI_ZeD_GCh_whatsnew_beta3_Text": "Hayatta kalma rehberi: bu kitap veya sade pencere (ZeD kurulumunda Tam veya Basit), beş yeni bölüm, oyunun kuralları sayılarla ve her sayfada kendi tuşlarınız ve düğmelerinizle. Mod ekranı: açık modlar koyu bir şeritte durur, kapalı olanlar soluklaşır; bir Kapalı sekmesi, Uyumsuzları gizle, bir Basit görünüm ve klasörler ile ayırıcılar için renk etiketleri. Başınızın üstündeki notlar ZeD'in balonunda, Mesajlar'da saklanır. Önünüzdeki şey için bir ipucu şeridi. Karakter penceresinin başlık çubuğunda sabitlemeler.",
+    "UI_ZeD_Guide_Ad1_Head": "Tüm Raf",
+    "UI_ZeD_Guide_Ad1_Deck": "Bir evin ışıklar sönmeden önce ihtiyaç duyduğu bütün kılavuzlar.",
+    "UI_ZeD_Guide_Ad1_Body": "Doidbros ve Buzzlord, önceden plan yapanlar için sade ve denenmiş kılavuzlar basar. Her biri bunun boyutundadır, düz açılsın diye dikişlidir ve kurşun kalemle yazılabilen kâğıda basılmıştır.",
+    "UI_ZeD_Guide_Ad1_T1": "Kıyametten Sağ Çık, İkinci Baskı",
+    "UI_ZeD_Guide_Ad1_T2": "İçilebilir Su",
+    "UI_ZeD_Guide_Ad1_T3": "Kök Mahzeni Yılı",
+    "UI_ZeD_Guide_Ad1_T4": "Sahip Olduğunu Onar",
+    "UI_ZeD_Guide_Ad1_T5": "Yardımdan Uzakta İlk Yardım",
+    "UI_ZeD_Guide_Ad1_Price": "Tanesi yalnızca $4.95",
+    "UI_ZeD_Guide_Ad1_Coupon": "İstediğiniz kitapları işaretleyin ve bu sayfayı Hayatta Kalma Acil Yayınlar Bölümü, Muldraugh, Kentucky adresine postalayın. Teslimat için altı hafta bekleyin.",
+    "UI_ZeD_Guide_Ad1_Name": "Ad",
+    "UI_ZeD_Guide_Ad1_Address": "Adres"
 }

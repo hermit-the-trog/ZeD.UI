@@ -4514,5 +4514,17 @@
     "UI_ZeD_GCh_whatsnew_Title": "Novidades do ZeD",
     "UI_ZeD_GCh_whatsnew_Blurb": "As alterações desta versão.",
     "UI_ZeD_GCh_whatsnew_beta3_Title": "Esta versão",
-    "UI_ZeD_GCh_whatsnew_beta3_Text": "O guia de sobrevivência: este livro ou a janela simples (Completo ou simples na Configuração do ZeD), com cinco capítulos novos, as regras do jogo em números e as tuas próprias teclas e botões em cada página. O ecrã de mods: os mods ligados ficam numa faixa escura e os desligados ficam esbatidos, um separador Desligado, Ocultar incompatíveis, uma vista Simples e etiquetas de cor para pastas e divisórias. As notas por cima da cabeça no balão do ZeD, guardadas em Mensagens. Uma faixa de dicas para o que tens à frente. Fixados na barra de título da janela Personagem."
+    "UI_ZeD_GCh_whatsnew_beta3_Text": "O guia de sobrevivência: este livro ou a janela simples (Completo ou simples na Configuração do ZeD), com cinco capítulos novos, as regras do jogo em números e as tuas próprias teclas e botões em cada página. O ecrã de mods: os mods ligados ficam numa faixa escura e os desligados ficam esbatidos, um separador Desligado, Ocultar incompatíveis, uma vista Simples e etiquetas de cor para pastas e divisórias. As notas por cima da cabeça no balão do ZeD, guardadas em Mensagens. Uma faixa de dicas para o que tens à frente. Fixados na barra de título da janela Personagem.",
+    "UI_ZeD_Guide_Ad1_Head": "A estante completa",
+    "UI_ZeD_Guide_Ad1_Deck": "Todos os manuais de que uma casa precisa antes de as luzes se apagarem.",
+    "UI_ZeD_Guide_Ad1_Body": "A Doidbros e a Buzzlord imprimem manuais simples e testados para quem se previne. Cada um tem o tamanho deste, é cosido para ficar aberto e impresso em papel onde se escreve a lápis.",
+    "UI_ZeD_Guide_Ad1_T1": "Sobreviver ao Apocalipse, Segunda edição",
+    "UI_ZeD_Guide_Ad1_T2": "Água que se pode beber",
+    "UI_ZeD_Guide_Ad1_T3": "O ano da adega de raízes",
+    "UI_ZeD_Guide_Ad1_T4": "Repare o que é seu",
+    "UI_ZeD_Guide_Ad1_T5": "Primeiros socorros longe de ajuda",
+    "UI_ZeD_Guide_Ad1_Price": "Apenas $4.95 cada",
+    "UI_ZeD_Guide_Ad1_Coupon": "Assinale os títulos pretendidos e envie esta página para a Divisão de Publicações de Emergência e Sobrevivência, Muldraugh, Kentucky. Conte com seis semanas para a entrega.",
+    "UI_ZeD_Guide_Ad1_Name": "Nome",
+    "UI_ZeD_Guide_Ad1_Address": "Morada"
 }

@@ -4514,5 +4514,17 @@
     "UI_ZeD_GCh_whatsnew_Title": "Újdonságok a ZeD-ben",
     "UI_ZeD_GCh_whatsnew_Blurb": "Ennek a verziónak a változásai.",
     "UI_ZeD_GCh_whatsnew_beta3_Title": "Ez a verzió",
-    "UI_ZeD_GCh_whatsnew_beta3_Text": "A túlélési útmutató: ez a könyv vagy az egyszerű ablak (Teljes vagy sima a ZeD-beállításban), öt új fejezettel, a játék szabályaival számokban, és a saját billentyűiddel és gombjaiddal minden oldalon. A Modok képernyő: a bekapcsolt modok sötét sávon ülnek, a kikapcsoltak elhalványulnak, van Ki lap, Összeférhetetlenek elrejtése, Sima nézet, és színes címkék a mappákhoz és az elválasztókhoz. A fejed fölötti jegyzetek a ZeD buborékjában, az Üzenetekben megőrizve. Egy súgósáv arra, ami előtted van. Rögzítések a Karakterablak címsorán."
+    "UI_ZeD_GCh_whatsnew_beta3_Text": "A túlélési útmutató: ez a könyv vagy az egyszerű ablak (Teljes vagy sima a ZeD-beállításban), öt új fejezettel, a játék szabályaival számokban, és a saját billentyűiddel és gombjaiddal minden oldalon. A Modok képernyő: a bekapcsolt modok sötét sávon ülnek, a kikapcsoltak elhalványulnak, van Ki lap, Összeférhetetlenek elrejtése, Sima nézet, és színes címkék a mappákhoz és az elválasztókhoz. A fejed fölötti jegyzetek a ZeD buborékjában, az Üzenetekben megőrizve. Egy súgósáv arra, ami előtted van. Rögzítések a Karakterablak címsorán.",
+    "UI_ZeD_Guide_Ad1_Head": "A teljes polc",
+    "UI_ZeD_Guide_Ad1_Deck": "Minden kézikönyv, amire egy háztartásnak szüksége van, mielőtt kialszanak a fények.",
+    "UI_ZeD_Guide_Ad1_Body": "A Doidbros és a Buzzlord egyszerű, kipróbált kézikönyveket nyomtat előrelátó embereknek. Mindegyik akkora, mint ez, fűzött kötésű, hogy laposan feküdjön, és ceruzával is írható papírra nyomták.",
+    "UI_ZeD_Guide_Ad1_T1": "Túlélni az apokalipszist, Második kiadás",
+    "UI_ZeD_Guide_Ad1_T2": "Ivható víz",
+    "UI_ZeD_Guide_Ad1_T3": "A gyökérpince éve",
+    "UI_ZeD_Guide_Ad1_T4": "Javítsa meg, amije van",
+    "UI_ZeD_Guide_Ad1_T5": "Elsősegély a segítségtől távol",
+    "UI_ZeD_Guide_Ad1_Price": "Csak $4.95 darabja",
+    "UI_ZeD_Guide_Ad1_Coupon": "Jelölje meg a kívánt címeket, és küldje be ezt az oldalt a következő címre: Túlélési Vészhelyzeti Kiadványok Osztálya, Muldraugh, Kentucky. A szállítás hat hétig tart.",
+    "UI_ZeD_Guide_Ad1_Name": "Név",
+    "UI_ZeD_Guide_Ad1_Address": "Cím"
 }

@@ -4514,5 +4514,17 @@
     "UI_ZeD_GCh_whatsnew_Title": "Novetats de ZeD",
     "UI_ZeD_GCh_whatsnew_Blurb": "Els canvis d'aquesta versió.",
     "UI_ZeD_GCh_whatsnew_beta3_Title": "Aquesta versió",
-    "UI_ZeD_GCh_whatsnew_beta3_Text": "La guia de supervivència: aquest llibre o la finestra senzilla (Complet o Simple a Configuració de ZeD), amb cinc capítols nous, les regles del joc en xifres i les teves pròpies tecles i botons a cada pàgina. La pantalla de Mods: els mods activats es veuen sobre una banda fosca i els desactivats s'atenuen, amb una pestanya Desactivats, Amaga els incompatibles, una vista Simple i etiquetes de color per a carpetes i separadors. Els avisos sobre el teu cap al globus de ZeD, guardats a Missatges. Una franja de pistes per al que tens al davant. Fixats a la barra de títol de la finestra Personatge."
+    "UI_ZeD_GCh_whatsnew_beta3_Text": "La guia de supervivència: aquest llibre o la finestra senzilla (Complet o Simple a Configuració de ZeD), amb cinc capítols nous, les regles del joc en xifres i les teves pròpies tecles i botons a cada pàgina. La pantalla de Mods: els mods activats es veuen sobre una banda fosca i els desactivats s'atenuen, amb una pestanya Desactivats, Amaga els incompatibles, una vista Simple i etiquetes de color per a carpetes i separadors. Els avisos sobre el teu cap al globus de ZeD, guardats a Missatges. Una franja de pistes per al que tens al davant. Fixats a la barra de títol de la finestra Personatge.",
+    "UI_ZeD_Guide_Ad1_Head": "Tota la prestatgeria",
+    "UI_ZeD_Guide_Ad1_Deck": "Tots els manuals que necessita una llar abans que s'apaguin els llums.",
+    "UI_ZeD_Guide_Ad1_Body": "Doidbros i Buzzlord imprimeixen manuals clars i provats per a qui pensa amb temps. Cada un té la mida d'aquest, va cosit per obrir-se del tot i està imprès en paper que accepta el llapis.",
+    "UI_ZeD_Guide_Ad1_T1": "Sobreviure a l'apocalipsi, Segona edició",
+    "UI_ZeD_Guide_Ad1_T2": "Aigua que es pot beure",
+    "UI_ZeD_Guide_Ad1_T3": "L'any del celler d'arrels",
+    "UI_ZeD_Guide_Ad1_T4": "Arregli el que ja té",
+    "UI_ZeD_Guide_Ad1_T5": "Primers auxilis lluny de qualsevol ajuda",
+    "UI_ZeD_Guide_Ad1_Price": "Només $4.95 cada un",
+    "UI_ZeD_Guide_Ad1_Coupon": "Marqui els títols que vulgui i enviï aquesta pàgina a la Divisió de Publicacions d'Emergència i Supervivència, Muldraugh, Kentucky. Compti sis setmanes per al lliurament.",
+    "UI_ZeD_Guide_Ad1_Name": "Nom",
+    "UI_ZeD_Guide_Ad1_Address": "Adreça"
 }
