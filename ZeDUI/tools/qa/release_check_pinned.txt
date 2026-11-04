@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/release_check_pinned.txt  (Nov 4 2026): the release check with both windows pinned (beta3a rolls unpinned ones up)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=30
+zedqa_release_check.lua | rel | timeout=240

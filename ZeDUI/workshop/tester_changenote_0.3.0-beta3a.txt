@@ -1,0 +1,5 @@
+0.3.0-beta3a: hotfix for 0.3.0-beta3.
+
+- The Character and World windows roll up to their title bars when the pointer leaves them, and roll down when the pointer is over the title bar, as the game's inventory does. A rolled-up window lets clicks through to the world.
+- The pin box on the title bar keeps a window open. It's remembered for each character.
+- With a controller the windows stay open.

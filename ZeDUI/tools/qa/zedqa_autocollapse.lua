@@ -27,6 +27,7 @@ end
 local function done() local r = getFileReader("zedqa_click_done.txt", false); local l = r and r:readLine(); if r then r:close() end; return l ~= nil and l:find("done", 1, true) ~= nil end
 local function moveTo(x, y) req("move " .. math.floor(x) .. " " .. math.floor(y)) end
 local function clickAt(x, y) req("left " .. math.floor(x) .. " " .. math.floor(y)) end
+local keepH
 local function rolled(w) return w and w.windowShaded == true end
 
 step(30, function()
@@ -48,13 +49,30 @@ step(50, function()   -- ~0.8 s after the pointer left
 end)
 step(140, function()  -- ~3 s
     check(rolled(CW()) and rolled(WW()), "after about 3 s away: both rolled up")
+    keepH = keepH or {}
+    local c, w = CW(), WW()
+    say(string.format("rolled heights: char %d (title %d), world %d (title %d)", c:getHeight(), c:titleBarHeight(), w:getHeight(), w:titleBarHeight()))
+    local cs, ws = c.shownHeight and c:shownHeight() or c:getHeight(), w.shownHeight and w:shownHeight() or w:getHeight()
+    say("shown heights: char " .. tostring(cs) .. ", world " .. tostring(ws))
+    check(cs <= c:titleBarHeight() + 2 and ws <= w:titleBarHeight() + 2, "a rolled window shows its title bar only")
+    keepH.body = { x = c:getAbsoluteX() + c:getWidth() / 2, y = c:getAbsoluteY() + c:titleBarHeight() + 200 }
+
     shot("1_both_rolled_up")
+    moveTo(keepH.body.x, keepH.body.y)
+end)
+waitFor(5, 600, done, function() end)
+step(20, function()
+    local c = CW()
+    local over = false; pcall(function() over = c:isMouseOver() end)
+    check(not over and rolled(c), "the pointer where the body was is not over the window (the world gets it), and it stays rolled")
     local c = CW()
     moveTo(c:getAbsoluteX() + c:getWidth() / 2, c:getAbsoluteY() + c:titleBarHeight() / 2)
 end)
 waitFor(5, 600, done, function() end)
 step(20, function()
     check(not rolled(CW()) and rolled(WW()), "pointer on the Character window's title bar: it rolls down, the World window stays up")
+    say("char height after roll-down " .. CW():getHeight())
+    check(CW():getHeight() > 300, "it rolls down to its full height")
     shot("2_char_hovered_open")
     local c = CW()
     local r = c:pinRect()
