@@ -71,7 +71,8 @@ end
 
 -- folders show (the Workshop tab stays flat: it lists Steam's items, spec 2.2)
 function ZeD_MMMods:foldersOn()
-    return self.filter ~= "ws" and F.any()
+    -- (the Simple view lists the mods flat: folders are Full's)
+    return self.filter ~= "ws" and F.any() and not self:simple()
 end
 
 -- ----------------------------------------------------------------------------
@@ -194,16 +195,99 @@ end
 -- ----------------------------------------------------------------------------
 -- DRAWING THE GROUPED LIST
 -- ----------------------------------------------------------------------------
--- a folder picture: a tab and a body, outlined (no fill: System 7's folder in a list)
-local function drawFolderPic(p, x, y, s, c)
+-- a folder picture: a tab and a body, outlined (no fill: System 7's folder in a list). A labelled folder (fill = true)
+-- is tinted as System 7's Finder tinted a labelled icon: the outline in the label's colour and a light wash of it inside
+local function drawFolderPic(p, x, y, s, c, fill)
     local T = ZeD.T
     local u = T.px(1)
     local th = math.max(u * 2, math.floor(s * 0.2))
     local tw = math.floor(s * 0.45)
     local by = y + th
     local bh = s - th - u
+    if fill then
+        p:drawRect(x + u, y + u, tw - 2 * u, th, 0.30, c.r, c.g, c.b)
+        p:drawRect(x + u, by + u, s - 2 * u, bh - 2 * u, 0.30, c.r, c.g, c.b)
+    end
     p:drawRectBorder(x, y, tw, th + u, c.a or 1, c.r, c.g, c.b)
     p:drawRectBorder(x, by, s, bh, c.a or 1, c.r, c.g, c.b)
+end
+
+-- a label's colour on this theme (nil: no label, or one this version does not know)
+local function labelColor(key)
+    local L = key and ZeD.T.labels
+    return L and L[key] or nil
+end
+ZeD_MMMods.labelColor = function(_, key) return labelColor(key) end
+
+-- THE LABEL SWATCHES (the director, Nov 4 2026: "System 7 finder labels"): None, then System 7's seven labels, in
+-- the Maps tab's ink-swatch look: a hover wash and the controller's mark in a 2u ring round each, a 1u edge, a ring in
+-- the text colour round the one in use, and the label's name beside them. pick(key or nil). Returns the y under them.
+local SW = 18
+function ZeD_MMMods:labelSwatches(ix, cy, cur, pick, row, vy, vh, idp, modal)
+    local T = ZeD.T
+    local A = ZeD.Atoms
+    local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
+    local sz, gap, ring = T.px(SW), T.px(8), T.px(2)
+    local gp = MM.gamepad()
+    local C = self._swC
+    if not C then C = {}; self._swC = C end
+    local sx = ix + ring
+    local shown = cur
+    local n = #ZeD.LABELS + 1
+    for i = 1, n do
+        local L = ZeD.LABELS[i - 1]
+        local k = L and L.k or "none"
+        local id = idp .. ":" .. k
+        local e = C[id]
+        if not e then
+            local fn = function() pick(L and L.k or nil); MM.clickSound() end
+            e = { hit = { id = "mods:" .. id, fn = fn }, spec = { id = id, noDraw = true, paneStop = true, col = i, fn = fn } }
+            C[id] = e
+        end
+        local rx, ry, rs = sx - ring, cy - ring, sz + 2 * ring
+        if ry >= vy and ry + rs <= vy + vh then
+            local hot = (not gp) and (not modal) and MM.ctx.hot == e.hit.id
+            local foc = gp and (not modal) and self.focusId == id
+            if hot then
+                local hv = T.hover
+                self:drawRect(rx, ry, rs, rs, hv.a or 1, hv.r, hv.g, hv.b)
+            end
+            if L then
+                local c = labelColor(L.k) or T.text
+                self:drawRect(sx, cy, sz, sz, 1, c.r, c.g, c.b)
+            else
+                -- None: the list's own ground, empty
+                local b = T.base
+                self:drawRect(sx, cy, sz, sz, b.a or 1, b.r, b.g, b.b)
+            end
+            A.frame(self, sx, cy, sz, sz, T.borderS)
+            if (cur or "none") == k then
+                local u = T.hair
+                A.frame(self, sx - u, cy - u, sz + 2 * u, sz + 2 * u, T.text)
+            end
+            if foc then ZeD.Focus.mark(self, rx, ry, rs, rs, MM.focusOpts()) end
+            if hot or foc then
+                shown = L and L.k or nil
+                ZeD.Help.set(self, ZeD.tr("UI_ZeD_Mods_HelpLabel", ZeD.tr(L and L.name or "UI_ZeD_Mods_LabelNone")))
+            end
+            if not modal then
+                local h, sp = e.hit, e.spec
+                h.x, h.y, h.w, h.h = ax + rx, ay + ry, rs, rs
+                self._hits[#self._hits + 1] = h
+                sp.x, sp.y, sp.w, sp.h, sp.row, sp.clipTop, sp.clipBot = rx, ry, rs, rs, row, vy, vy + vh
+                self._specs[#self._specs + 1] = sp
+            end
+        end
+        sx = sx + sz + gap
+    end
+    -- the name of the label in use, or of the one pointed at
+    local nameKey = "UI_ZeD_Mods_LabelNone"
+    for _, L in ipairs(ZeD.LABELS) do if L.k == shown then nameKey = L.name end end
+    local f2, tc = T.fontF2, T.text
+    if cy >= vy and cy + sz <= vy + vh then
+        self:drawText(ZeD.tr(nameKey), sx, cy + math.floor((sz - MM.fontH(f2)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
+    end
+    return cy + sz + ring
 end
 
 -- a folder's box: ticked (all on), empty (none on), the dash (some on); greyed when empty (spec 6)
@@ -237,7 +321,8 @@ function ZeD_MMMods:drawFolderHead(e, x, ry, rw, vy, vh, gp)
     local nx = tx + tri + T.px(8)
     if e.f then
         local ps = T.px(14)
-        drawFolderPic(self, nx, ry + math.floor((e.h - ps) / 2), ps, onFocus and T.textOnFocus or T.text)
+        local lc = labelColor(F.labelOf(e.fkey))
+        drawFolderPic(self, nx, ry + math.floor((e.h - ps) / 2), ps, onFocus and T.textOnFocus or (lc or T.text), lc ~= nil and not onFocus)
         nx = nx + ps + T.px(8)
     end
     -- the box at the right (not on Unfiled, spec 5.1)
@@ -800,9 +885,11 @@ function ZeD_MMMods:drawFolderDetail(x, vy, w, vh)
     local z = 20 * (T.scale or 1) / (hf.face or 64)
     local tc, dc, txt, la = T.textHead, T.textDim, T.text, T.accent
     local tx = ix
+    local lab = c.f and F.labelOf(self.fsel) or nil
     if c.f then
         local ps = T.px(18)
-        drawFolderPic(self, ix, cy + T.px(3), ps, txt)
+        local lc = labelColor(lab)
+        drawFolderPic(self, ix, cy + T.px(3), ps, lc or txt, lc ~= nil)
         tx = ix + ps + T.px(10)
     end
     ZeD.Text.draw(self, hf, ZeD.Atoms.truncateText(c.title, T.fontF4, ix + iw - tx), tx, cy, z, tc.r, tc.g, tc.b, tc.a or 1, "l")
@@ -811,6 +898,12 @@ function ZeD_MMMods:drawFolderDetail(x, vy, w, vh)
     cy = cy + MM.fontH(f2) + T.px(8)
     -- the verbs (made once per change, with the pane's model)
     cy = self:paneVerbs(c.verbs, ix, cy, iw, vy, vh, 500) + T.px(12)
+    -- the folder's label (System 7's Finder labels), kept in ZeD's own file
+    if c.f then
+        cy = self:paneHead(ZeD.tr("UI_ZeD_Mods_Label"), nil, ix, iw, cy)
+        local fid = self.fsel
+        cy = self:labelSwatches(ix, cy + T.px(2), lab, function(k) F.setLabel(fid, k) end, 510, vy, vh, "flabel") + T.px(12)
+    end
     local lineH = MM.fontH(f2) + T.px(8)
     -- what is in it (only the lines in sight are drawn: a folder of 300 mods)
     cy = self:paneHead(c.inHead, c.inCount, ix, iw, cy)

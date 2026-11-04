@@ -36,6 +36,7 @@ ZeD.BaseThemes = {
     dark = {
         name     = "Dark",
         base     = hex("#0C0C0C", 0.92),   -- deepest background (neutral grey)
+        onBand   = hex("#030303", 1.0),     -- the Mods list: the solid band under a mod that is on (darker than base)
         surf1    = hex("#141414", 0.92),    -- window background
         surf2    = hex("#1C1C1C", 0.92),    -- title bars, elevated panels
         surf3    = hex("#242424", 0.92),    -- interactive elements, buttons
@@ -106,6 +107,7 @@ ZeD.BaseThemes = {
     light = {
         name     = "Light",
         base     = hex("#C6C6C6", 0.97),
+        onBand   = hex("#A6A6A6", 1.0),
         surf1    = hex("#BEBEBE", 0.97),
         surf2    = hex("#B6B6B6", 0.97),
         surf3    = hex("#AEAEAE", 0.97),
@@ -169,6 +171,7 @@ ZeD.BaseThemes = {
     hicon = {
         name     = "High contrast",
         base     = hex("#050505", 0.95),
+        onBand   = hex("#000000", 1.0),
         surf1    = hex("#111111", 0.95),
         surf2    = hex("#191919", 0.95),
         surf3    = hex("#202020", 0.95),
@@ -684,11 +687,25 @@ function ZeD.textOn(fill)
     return c
 end
 
+-- The label colours for mod folders and separators (the director, Nov 4 2026: "System 7 finder labels"): System 7's
+-- seven Finder labels in order, with its default names and colours. The colour a folder's picture or a separator's
+-- name and rule is drawn in is P.labels[key]: the System 7 colour moved only as far as it needs to read on the theme's
+-- surfaces (deriveReadable below), so each one passes 4.6 : 1 in every theme and accent.
+ZeD.LABELS = {
+    { k = "essential",  name = "UI_ZeD_Mods_LabelEssential",  c = hex("#FF6600") },
+    { k = "hot",        name = "UI_ZeD_Mods_LabelHot",        c = hex("#DD0806") },
+    { k = "inprogress", name = "UI_ZeD_Mods_LabelInProgress", c = hex("#F20884") },
+    { k = "cool",       name = "UI_ZeD_Mods_LabelCool",       c = hex("#02ABEA") },
+    { k = "personal",   name = "UI_ZeD_Mods_LabelPersonal",   c = hex("#0000D4") },
+    { k = "project1",   name = "UI_ZeD_Mods_LabelProject1",   c = hex("#006411") },
+    { k = "project2",   name = "UI_ZeD_Mods_LabelProject2",   c = hex("#562C05") },
+}
+
 -- Every field deriveReadable writes onto a palette (a window with its own accent swaps them all)
 ZeD.READABLE_KEYS = {
     "accentText", "toneHi", "toneLo", "textSec", "accentDim", "textDim", "textOnAccent", "textOnFocus",
     "dangerText", "warningText", "positiveText", "infoText", "textOnWarning", "textOnDanger",
-    "soiledWetText", "soiledBloodText", "soiledDirtText",
+    "soiledWetText", "soiledBloodText", "soiledDirtText", "labels",
 }
 
 -- A surface stack (surface, then one optional wash) as one opaque colour over a world grey
@@ -761,6 +778,10 @@ function ZeD.deriveReadable(P, baseKey)
     P.soiledWetText   = variant(base.soiledWet, 0.20)
     P.soiledBloodText = variant(base.soiledBlood, 0.20)
     P.soiledDirtText  = variant(base.soiledDirt, 0.20)
+    -- the folder and separator labels as text and marks (on the list, its selection wash and the folder rows' surf2)
+    local labs = {}
+    for _, L in ipairs(ZeD.LABELS) do labs[L.k] = ZeD.legible(L.c, 4.6, bgs, up) end
+    P.labels = labs
 end
 
 -- ---------------------------------------------------------------------------
@@ -810,6 +831,7 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
 
     -- Surface colors from base theme
     T.base     = base.base
+    T.onBand   = base.onBand or base.base
     T.surf1    = base.surf1
     T.surf2    = base.surf2
     T.surf3    = base.surf3

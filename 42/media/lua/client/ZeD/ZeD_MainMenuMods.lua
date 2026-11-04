@@ -64,16 +64,46 @@ local function jlist(l)
     return t
 end
 
+-- ----------------------------------------------------------------------------
+-- THE SCREEN'S OWN STATE (the director, Nov 4 2026, Workshop feedback): the tab and Hide incompatible are kept
+-- between visits and games, in Zomboid/Lua/ZeD_modsview.txt (tab=<the tab>, hideInc=<0 or 1>)
+-- ----------------------------------------------------------------------------
+local VIEW_FILE = "ZeD_modsview.txt"
+local VIEW_TABS = { all = true, enabled = true, off = true, favs = true, maps = true, problems = true, conflicts = true, ws = true }
+-- the tabs the Simple view shows (ZeD setup: Mods screen, Simple)
+local SIMPLE_TABS = { all = true, enabled = true, off = true, problems = true }
+local ROW_H_SIMPLE = 30
+local function viewLoad()
+    local v = { tab = "all", hideInc = false }
+    local lines = ZeD.ModFolders and ZeD.ModFolders.readLines(VIEW_FILE)
+    for _, l in ipairs(lines or {}) do
+        local t = l:match("^tab=(%w+)$")
+        if t and VIEW_TABS[t] then v.tab = t end
+        local h = l:match("^hideInc=(%d)$")
+        if h then v.hideInc = h == "1" end
+    end
+    return v
+end
+local function viewSave(v)
+    if ZeD.ModFolders then ZeD.ModFolders.writeLines({ "tab=" .. tostring(v.tab), "hideInc=" .. (v.hideInc and "1" or "0") }, VIEW_FILE) end
+end
+
 -- ============================================================================
 -- ZeD_MMMods
 -- ============================================================================
 ZeD_MMMods = ZeD_MMWindow:derive("ZeD_MMMods")
 
+-- true while the Mods screen is the Simple view (ZeD setup, read as it draws, so a change applies at once)
+function ZeD_MMMods:simple() return ZeD.Settings and ZeD.Settings.modsSimple and ZeD.Settings.modsSimple() or false end
+-- a mod row's height: two lines in Full, one in Simple
+function ZeD_MMMods:rowH() return ZeD.T.px(self:simple() and ROW_H_SIMPLE or ROW_H) end
+
 function ZeD_MMMods:new()
     local o = ZeD_MMWindow.new(self, "mods")
     o.noResetControl = true
     o.page = "list"          -- "list" | "order" | "maps"
-    o.filter = "all"         -- "all" | "enabled" | "favs" | "maps"
+    o.filter = "all"         -- "all" | "enabled" | "off" | "favs" | "maps" | "problems" | "conflicts" | "ws"
+    o.hideInc = false        -- Hide incompatible: mods that are off and cannot be turned on leave the list
     o.sel = nil
     o.scroll, o.dscroll = 0, 0
     o.confirm = false        -- false | "back" | "template" | "save" | "paste" | "delete" | "update" | "rename" | "dup" | "turnoff" | "reset"
@@ -111,6 +141,11 @@ function ZeD_MMMods:onShow()
     self.wsSel = nil
     self.psel = nil
     self.focusId = nil
+    -- the tab and Hide incompatible as they were left (ZeD_modsview.txt), read once a session
+    if not self._view then
+        self._view = viewLoad()
+        self.filter, self.hideInc = self._view.tab, self._view.hideInc
+    end
     -- the info pane's settings read afresh; ZeD picks' copies rebuilt from the mods as they are now
     -- (a picked mod Steam updated: its copy changes, and the next reload runs it)
     ZeD.ModSettings.reset()
@@ -134,7 +169,7 @@ function ZeD_MMMods:rows()
     local q = string.lower(tostring(self.find:getInternalText() or ""))
     local src = m.sortedMods
     local c = self._rowsC
-    if c and c.src == src and c.n == #(src or {}) and c.q == q and c.filter == self.filter and MM.now() - c.at < ROWS_MS then
+    if c and c.src == src and c.n == #(src or {}) and c.q == q and c.filter == self.filter and c.hide == self.hideInc and MM.now() - c.at < ROWS_MS then
         return c.out
     end
     local out, idx = {}, {}
@@ -144,6 +179,9 @@ function ZeD_MMMods:rows()
     for _, d in ipairs(m.sortedMods or {}) do
         local keep = true
         if self.filter == "enabled" and not d.isActive then keep = false end
+        if self.filter == "off" and d.isActive then keep = false end
+        -- (Hide incompatible: a mod that is off and cannot be turned on; one that is on stays, so a broken one shows)
+        if keep and self.hideInc and not d.isActive and self:problem(d) then keep = false end
         if self.filter == "favs" and not d.favorite then keep = false end
         if self.filter == "maps" and d.category ~= "map" then keep = false end
         if self.filter == "problems" and not self:problem(d) then keep = false end
@@ -160,7 +198,7 @@ function ZeD_MMMods:rows()
         end
         if keep then out[#out + 1] = d; idx[d.modId] = #out end
     end
-    self._rowsC = { src = src, n = #(src or {}), q = q, filter = self.filter, out = out, idx = idx, at = MM.now() }
+    self._rowsC = { src = src, n = #(src or {}), q = q, filter = self.filter, hide = self.hideInc, out = out, idx = idx, at = MM.now() }
     return out
 end
 
@@ -174,20 +212,23 @@ function ZeD_MMMods:dirty() self._cnt, self._diffs, self._rowsC, self._probC, se
 
 function ZeD_MMMods:counts()
     local c = self._cnt
-    if c and MM.now() - c.at < SLOW_MS then return c[1], c[2], c[3], c[4], c[5], c[6], c[7] end
+    if c and MM.now() - c.at < SLOW_MS then return c[1], c[2], c[3], c[4], c[5], c[6], c[7], c[8] end
     local m = model()
-    local all, on, favs, maps, probs, confs = 0, 0, 0, 0, 0, 0
+    local all, on, favs, maps, probs, confs, inc = 0, 0, 0, 0, 0, 0, 0
     for _, d in ipairs(m and m.sortedMods or {}) do
         all = all + 1
         if d.isActive then on = on + 1 end
         if d.favorite then favs = favs + 1 end
         if d.category == "map" then maps = maps + 1 end
-        if self:problem(d) then probs = probs + 1 end
+        if self:problem(d) then
+            probs = probs + 1
+            if not d.isActive then inc = inc + 1 end
+        end
         if MS.count(d.modId) > 0 then confs = confs + 1 end
     end
     local ws = #MS.ws.order
-    self._cnt = { all, on, favs, maps, probs, confs, ws, at = MM.now() }
-    return all, on, favs, maps, probs, confs, ws
+    self._cnt = { all, on, favs, maps, probs, confs, ws, inc, at = MM.now() }
+    return all, on, favs, maps, probs, confs, ws, inc
 end
 
 -- the installed mod a Workshop item brought (nil: none, or not installed yet)
@@ -1086,9 +1127,13 @@ function ZeD_MMMods:buildStrip(stripY, stripH, w)
         local lefts = { { "back", getText("UI_btn_back"), function() self:back() end } }
         local rights = {}
         -- New folder... (ZeD_MainMenuModsFolders; not on the Workshop tab, which lists Steam's items)
-        if self.folderNewSpec and self.filter ~= "ws" then rights[1] = self:folderNewSpec() end
-        rights[#rights + 1] = { "profiles", ZeD.tr("UI_ZeD_Mods_BtnProfiles"), function() self:enterProfiles() end }
-        rights[#rights + 1] = { "order", ZeD.tr("UI_ZeD_Mods_BtnLoadOrder"), function() self:enterOrder("order") end }
+        -- (the Simple view: no folders, profiles or load order; Map order still shows when maps clash)
+        local simple = self:simple()
+        if self.folderNewSpec and self.filter ~= "ws" and not simple then rights[1] = self:folderNewSpec() end
+        if not simple then
+            rights[#rights + 1] = { "profiles", ZeD.tr("UI_ZeD_Mods_BtnProfiles"), function() self:enterProfiles() end }
+            rights[#rights + 1] = { "order", ZeD.tr("UI_ZeD_Mods_BtnLoadOrder"), function() self:enterOrder("order") end }
+        end
         if mapConflicts then rights[#rights + 1] = { "maps", ZeD.tr("UI_ZeD_Mods_BtnMapOrder"), function() self:enterOrder("maps") end } end
         if self.filter == "ws" then rights[#rights + 1] = { "wsopen", ZeD.tr("UI_ZeD_Mods_BtnOpenWorkshop"), function() MS.openWorkshop() end } end
         -- changes waiting: the band says what they need, Undo changes stays on the screen, Reload is vanilla's accept
@@ -1129,8 +1174,12 @@ function ZeD_MMMods:tabList()
     local T = ZeD.T
     local all, on, favs, maps, probs, confs, wsn = self:counts()
     local tabs = { { "all", ZeD.tr("UI_ZeD_Mods_TabAll", all) }, { "enabled", ZeD.tr("UI_ZeD_Mods_TabOn", on) } }
-    local more = { { "favs", "UI_ZeD_Mods_TabStarred", favs }, { "maps", "UI_ZeD_Mods_TabMaps", maps }, { "problems", "UI_ZeD_Mods_TabProblems", probs },
-                   { "conflicts", "UI_ZeD_Mods_TabConflicts", confs }, { "ws", "UI_ZeD_Mods_TabWorkshop", wsn } }
+    -- (the Simple view: All, On, Off and Problems; a tab left open in Full goes back to All)
+    local simple = self:simple()
+    if simple and not SIMPLE_TABS[self.filter] then self.filter = "all"; self.scroll = 0 end
+    local more = { { "off", "UI_ZeD_Mods_TabOff", all - on }, { "favs", "UI_ZeD_Mods_TabStarred", favs }, { "maps", "UI_ZeD_Mods_TabMaps", maps },
+                   { "problems", "UI_ZeD_Mods_TabProblems", probs }, { "conflicts", "UI_ZeD_Mods_TabConflicts", confs }, { "ws", "UI_ZeD_Mods_TabWorkshop", wsn } }
+    if simple then more = { more[1], more[4] } end
     for _, t in ipairs(more) do
         if t[3] > 0 or self.filter == t[1] then tabs[#tabs + 1] = { t[1], ZeD.tr(t[2], t[3]) } end
     end
@@ -1201,7 +1250,15 @@ function ZeD_MMMods:drawList(x, y, w, h)
     ZeD.Surface.fill(self, x + T.px(1), fY, w - 2 * T.px(1), fH - T.px(1), "surf2")
     ZeD.Atoms.drawDividerH(self, x, fY + fH - T.px(1), w, true)
     local f2 = T.fontF2
-    self:findBar(x, fY, w, fH)
+    -- Hide incompatible at the right of Find (the director, Nov 4 2026)
+    local hw = self:hideIncBox(x, fY, w, fH)
+    self:findBar(x, fY, w - hw, fH)
+    -- (the tab and the box kept as they change: written only on a change)
+    local v = self._view
+    if v and (v.tab ~= self.filter or v.hideInc ~= self.hideInc) then
+        v.tab, v.hideInc = self.filter, self.hideInc
+        viewSave(v)
+    end
 
     -- the rows (the Workshop tab lists Steam's items instead)
     if self.filter == "ws" then self:drawWsRows(x, y, w, h, fY + fH); return end
@@ -1213,7 +1270,7 @@ function ZeD_MMMods:drawList(x, y, w, h)
     local rows = self:rows()
     if not self.sel and rows[1] then self.sel = rows[1].modId end
     local vy, vh = top, h - (top - y) - T.px(1)
-    local rh = T.px(ROW_H)
+    local rh = self:rowH()
     local rowsH = #rows * rh
     local sbW = T.sp.scrollbarW
     local over = rowsH > vh
@@ -1274,6 +1331,50 @@ function ZeD_MMMods:drawList(x, y, w, h)
     end
 end
 
+-- Hide incompatible (the director, Nov 4 2026, Workshop feedback): a box at the right of Find; while it is ticked
+-- the mods that are off and cannot be turned on leave the list, and how many is said beside it. Kept between visits
+-- (ZeD_modsview.txt). Returns the width it takes, so Find fits the rest.
+function ZeD_MMMods:hideIncBox(x, fY, w, fH)
+    local T = ZeD.T
+    local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
+    local f2, f3 = T.fontF2, T.fontF3
+    local cb = T.checkboxSz
+    local label = ZeD.tr("UI_ZeD_Mods_HideInc")
+    local inc = select(8, self:counts()) or 0
+    local note = (self.hideInc and inc > 0) and ZeD.tr("UI_ZeD_Mods_HideIncN", inc) or nil
+    local bw = cb + T.px(7) + MM.textW(f2, label) + (note and (T.px(8) + MM.textW(f3, note)) or 0)
+    local bx = x + w - T.px(8) - bw
+    local by = fY + math.floor((fH - cb) / 2)
+    local H = self._hiBox
+    if not H then
+        local toggle = function() self.hideInc = not self.hideInc; self.scroll = 0; self:dirty(); MM.clickSound() end
+        -- (row 99990 with Find and its Clear: the controller reaches it from Find)
+        H = { hit = { id = "mods:hideinc", fn = toggle },
+              spec = { id = "hideinc", noDraw = true, row = 99990, col = 3, fn = toggle, help = ZeD.tr("UI_ZeD_Mods_HelpHideInc") } }
+        self._hiBox = H
+    end
+    local hot = MM.ctx.hot == H.hit.id
+    local gp = MM.gamepad()
+    ZeD.Atoms.drawCheckbox(self, bx, by, self.hideInc == true, hot, false)
+    local c, dc = T.text, T.textDim
+    local tx = bx + cb + T.px(7)
+    self:drawText(label, tx, fY + math.floor((fH - MM.fontH(f2)) / 2), c.r, c.g, c.b, c.a or 1, f2)
+    if note then self:drawText(note, tx + MM.textW(f2, label) + T.px(8), fY + math.floor((fH - MM.fontH(f3)) / 2), dc.r, dc.g, dc.b, dc.a or 1, f3) end
+    local sp = H.spec
+    sp.x, sp.y, sp.w, sp.h = bx - T.px(4), fY + T.px(4), bw + T.px(8), fH - T.px(8)
+    local hit = H.hit
+    hit.x, hit.y, hit.w, hit.h = ax + sp.x, ay + sp.y, sp.w, sp.h
+    self._hits[#self._hits + 1] = hit
+    self._specs[#self._specs + 1] = sp
+    if gp and self.focusId == sp.id then
+        ZeD.Focus.mark(self, sp.x, sp.y, sp.w, sp.h, MM.focusOpts())
+        ZeD.Help.set(self, sp.help)
+    elseif (not gp) and hot then
+        ZeD.Help.set(self, sp.help)
+    end
+    return bw + T.px(16)
+end
+
 -- one mod's row of the Mods list (in sight): the box, icon, name, id or what is wrong, tags, star.
 -- indent: the folder grouping's step in (ZeD_MainMenuModsFolders); a row of a multi-selection
 -- draws picked too
@@ -1284,6 +1385,13 @@ function ZeD_MMMods:drawModRow(d, x, ry, rw, rh, vy, vh, gp, rid, indent, star)
     local f2 = T.fontF2
     do
             local isSel = d.modId == self.sel or (self.msel ~= nil and self.msel[d.modId] == true)
+            local simple = self:simple()
+            -- a mod that is on sits on a solid band, darker than the list (the director, Nov 4 2026: FAIV could not
+            -- tell on from off in a long list); the accent stays for the chosen row, hover and the controller
+            if d.isActive then
+                local bd = T.onBand
+                self:drawRect(x + T.px(1), ry, rw, rh, bd.a or 1, bd.r, bd.g, bd.b)
+            end
             local onFocus = MM.rowLook(self, x + T.px(1), ry, rw, rh, isSel, (not gp) and MM.ctx.hot == "mods:row:" .. d.modId, gp and self.focusId == rid)
             if (not gp) and MM.ctx.hot == "mods:row:" .. d.modId then ZeD.Help.set(self, ZeD.tr("UI_ZeD_MMHelp_ModRow")) end
             self:drawRect(x + T.px(1), ry + rh - T.px(1), rw, T.px(1), T.border.a, T.border.r, T.border.g, T.border.b)
@@ -1291,14 +1399,32 @@ function ZeD_MMMods:drawModRow(d, x, ry, rw, rh, vy, vh, gp, rid, indent, star)
             -- the box: on / off (a mod that cannot run draws it disabled)
             local cx, cyy = x + T.px(10) + (indent or 0), ry + math.floor((rh - cb) / 2)
             ZeD.Atoms.drawCheckbox(self, cx, cyy, d.isActive, MM.ctx.hot == "mods:cb:" .. d.modId, prob ~= nil and not d.isActive)
+            -- (an off mod's name and icon dim: the band, the box and the name's brightness all say on or off)
+            local nameC = onFocus and T.textOnFocus or (d.isActive and T.textHead or T.textDim)
+            local starW = T.px(16)
+            if simple then
+                -- the Simple view: the box, the name, one mark when something is wrong
+                local nx = cx + cb + T.px(10)
+                local dsz = T.px(7)
+                local right = x + rw - T.px(10)
+                if prob then
+                    ZeD.Atoms.drawStatusDot(self, right - dsz, ry + math.floor((rh - dsz) / 2), T.danger, dsz)
+                    right = right - dsz - T.px(8)
+                end
+                self:drawText(ZeD.Atoms.truncateText(tostring(d.name), f2, right - nx), nx, ry + math.floor((rh - MM.fontH(f2)) / 2), nameC.r, nameC.g, nameC.b, nameC.a or 1, f2)
+                local cy0, ch = math.max(ry, vy), math.min(ry + rh, vy + vh) - math.max(ry, vy)
+                self._hits[#self._hits + 1] = { id = "mods:row:" .. d.modId, x = ax + x, y = ay + cy0, w = rw, h = ch, fn = function() self:clickRow(d) end }
+                self._hits[#self._hits + 1] = { id = "mods:cb:" .. d.modId, x = ax + x, y = ay + cy0, w = cb + T.px(16) + (indent or 0), h = ch, fn = function() self.sel = d.modId; self.fsel = nil; self:toggle(d) end }
+                return
+            end
             -- icon
             local ix = cx + cb + T.px(8)
             local iconName = (d.icon and d.icon ~= "") and d.icon or CATEGORY_ICON[d.category or ""]
             local itex = iconName and getTexture(iconName) or nil
-            if itex then self:drawTextureScaledAspect(itex, ix, ry + math.floor((rh - T.px(ICON)) / 2), T.px(ICON), T.px(ICON), 1, 1, 1, 1) end
+            local ia = d.isActive and 1 or T.disabledAlpha
+            if itex then self:drawTextureScaledAspect(itex, ix, ry + math.floor((rh - T.px(ICON)) / 2), T.px(ICON), T.px(ICON), ia, 1, 1, 1) end
             -- name, then id and what is wrong
             local nx = ix + T.px(ICON) + T.px(8)
-            local starW = T.px(16)
             -- the tags (conflicts, Steam's state) sit at the right, before the star
             local chipR = x + rw - T.px(10) - starW - T.px(8)
             for ci, chip in ipairs(self:rowChips(d)) do
@@ -1308,7 +1434,6 @@ function ZeD_MMMods:drawModRow(d, x, ry, rw, rh, vy, vh, gp, rid, indent, star)
                 chipR = chipR - T.px(6)
             end
             local maxW = chipR - T.px(4) - nx
-            local nameC = onFocus and T.textOnFocus or ((prob and not d.isActive) and T.textDim or T.textHead)
             local l1y = ry + T.px(5)
             self:drawText(ZeD.Atoms.truncateText(tostring(d.name), f2, maxW), nx, l1y, nameC.r, nameC.g, nameC.b, nameC.a or 1, f2)
             local f3, dim = T.fontF3, onFocus and T.textOnFocus or T.textDim
@@ -2243,7 +2368,7 @@ function ZeD_MMMods:wheel(del)
     end
     local l = self._list
     if l and mx >= l.x and mx <= l.x + l.w and my >= l.y and my <= l.y + l.h then
-        self.scroll = self.scroll + del * T.px(ROW_H)
+        self.scroll = self.scroll + del * self:rowH()
         return true
     end
     local d = self._detail

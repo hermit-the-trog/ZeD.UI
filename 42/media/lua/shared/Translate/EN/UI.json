@@ -4333,5 +4333,21 @@
     "UI_ZeD_Guide_Blurb_ranching": "Keeping, handling and butchering animals.",
     "UI_ZeD_Guide_Blurb_fishing": "Bait, casting, reeling in and trapping.",
     "UI_ZeD_Guide_Blurb_cleaning": "Corpses, stains, washing yourself and your clothes.",
-    "UI_ZeD_Guide_Blurb_multiplayer": "PVP, factions, chat and checking each other's wounds."
+    "UI_ZeD_Guide_Blurb_multiplayer": "PVP, factions, chat and checking each other's wounds.",
+    "UI_ZeD_Mods_TabOff": "Off %1",
+    "UI_ZeD_Mods_HideInc": "Hide incompatible",
+    "UI_ZeD_Mods_HideIncN": "%1 hidden",
+    "UI_ZeD_Mods_HelpHideInc": "Hides the mods that are off and can't be turned on: made for another game version, or needing a mod that isn't installed. Kept between visits.",
+    "UI_ZeD_Mods_Label": "Label",
+    "UI_ZeD_Mods_LabelNone": "None",
+    "UI_ZeD_Mods_LabelEssential": "Essential",
+    "UI_ZeD_Mods_LabelHot": "Hot",
+    "UI_ZeD_Mods_LabelInProgress": "In Progress",
+    "UI_ZeD_Mods_LabelCool": "Cool",
+    "UI_ZeD_Mods_LabelPersonal": "Personal",
+    "UI_ZeD_Mods_LabelProject1": "Project 1",
+    "UI_ZeD_Mods_LabelProject2": "Project 2",
+    "UI_ZeD_Mods_HelpLabel": "Label: %1. It colours the folder's picture, or the separator's name and rule.",
+    "UI_ZeD_Settings_Mods": "Mods screen",
+    "UI_ZeD_Settings_ModsTip": "Full: each mod's ID and tags, folders, profiles and the load order. Simple: one line a mod, its box, its name and a mark when something is wrong."
 }

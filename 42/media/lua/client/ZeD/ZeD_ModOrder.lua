@@ -82,11 +82,14 @@ O.encName, O.decName = encName, decName
 O._uid = O._uid or 0
 function O.newUid() O._uid = O._uid + 1; return O._uid end
 
--- sep=<1 on, 0 off>|<1 open, 0 collapsed>|<name, encoded>|<id;id;...>  (nil: not this form)
+-- sep=<1 on, 0 off>|<1 open, 0 collapsed>|<name, encoded>|<id;id;...>[|<label key>]  (nil: not this form)
+-- (the label, Nov 4 2026: System 7's Finder labels; written only when the separator has one)
 local function parseSep(v)
-    local on, open, name, ids = tostring(v or ""):match("^([01])|([01])|([%x,]*)|(.*)$")
+    local on, open, name, rest = tostring(v or ""):match("^([01])|([01])|([%x,]*)|(.*)$")
     if not on then return nil end
-    return { uid = O.newUid(), on = on == "1", open = open == "1", name = decName(name), ids = splitIds(ids) }
+    local ids, label = rest:match("^([^|]*)|(%w+)$")
+    if not ids then ids = rest end
+    return { uid = O.newUid(), on = on == "1", open = open == "1", name = decName(name), ids = splitIds(ids), label = label }
 end
 
 function O.load()
@@ -155,7 +158,8 @@ function O.save()
             if e.seps and #e.seps > 0 then
                 if e.top and #e.top > 0 then w:write("top=" .. table.concat(e.top, ";") .. "\n") end
                 for _, sp in ipairs(e.seps) do
-                    w:write("sep=" .. (sp.on and "1" or "0") .. "|" .. (sp.open and "1" or "0") .. "|" .. encName(sp.name) .. "|" .. table.concat(sp.ids or EMPTY, ";") .. "\n")
+                    w:write("sep=" .. (sp.on and "1" or "0") .. "|" .. (sp.open and "1" or "0") .. "|" .. encName(sp.name) .. "|" .. table.concat(sp.ids or EMPTY, ";")
+                        .. (sp.label and ("|" .. sp.label) or "") .. "\n")
                 end
             end
             if e.saved and e.saved ~= "" then w:write("saved=" .. e.saved .. "\n") end
@@ -210,7 +214,7 @@ function O.copyLo(src)
     for _, r in ipairs(src.rules or EMPTY) do lo.rules[#lo.rules + 1] = { id = r.id, how = r.how, other = r.other } end
     -- (a copy keeps each separator's number: an Undo's copy is the same separator)
     for _, sp in ipairs(src.seps or EMPTY) do
-        lo.seps[#lo.seps + 1] = { uid = sp.uid or O.newUid(), name = sp.name, on = sp.on ~= false, open = sp.open ~= false, ids = copyIds(sp.ids) }
+        lo.seps[#lo.seps + 1] = { uid = sp.uid or O.newUid(), name = sp.name, on = sp.on ~= false, open = sp.open ~= false, ids = copyIds(sp.ids), label = sp.label }
     end
     lo.top = copyIds(src.top)
     return lo
