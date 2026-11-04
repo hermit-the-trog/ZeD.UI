@@ -1,0 +1,5 @@
+# ZeDUI/tools/qa/author_portrait.txt  (Nov 3 2026): the survival guide author photo, 4K
+zedqa_prelude.lua | pre | timeout=120
+gallery_t14_look.lua | g14l | timeout=60
+zedqa_author_portrait.lua | aut | timeout=300
+gallery_t14_end.lua | g14e | timeout=60
