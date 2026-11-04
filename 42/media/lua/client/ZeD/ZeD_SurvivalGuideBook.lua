@@ -360,7 +360,6 @@ function B.paginate(bk, u)
             local rf = ZeD.Guide.Rules and ZeD.Guide.Rules[t.titleKey]
             if rf then
                 -- a fresh left page (a blank before it if need be), so the rules page faces it
-                if (#pages + 1) % 2 == 0 then pages[#pages + 1] = { kind = "blank" } end
                 newPage(si, s, first)
             elseif first then
                 newPage(si, s, true)
@@ -404,6 +403,9 @@ function B.paginate(bk, u)
                 -- before the first part, the rest after the last)
                 for ri, rules in ipairs(ZeD.Guide.rulesList(t) or {}) do
                     local n, per = #rules.rows, RULE_ROWS
+                    local long = 0
+                    for _, row in ipairs(rules.rows) do long = math.max(long, #tostring(row[#rules.cols] or "")) end
+                    if long > 28 then per = math.floor(RULE_ROWS / 2) end
                     local parts = math.max(1, math.ceil(n / per))
                     for c = 1, parts do
                         local part = rules
@@ -679,13 +681,18 @@ function ZeD_GuideBook:drawRulesPage(p, x, y, w, u)
     end
     local ry = y0 + hl * cpx * 1.25 + 5 * u
     self:drawRect(tx + pad, ry, inner, math.max(1, 1.5 * u), 1, INK.r, INK.g, INK.b)
+    -- (the last column wraps in the room left; the row takes its lines: QA, the Deck ran them off the page)
+    local lastW = math.max(40 * u, tx + pad + inner - colX[ncol])
     for _, row in ipairs(r.rows) do
         ry = ry + cpx * 1.5
-        for c = 1, ncol do drawAt(self, F.text, row[c] or "", colX[c], ry, cpx, INK) end
+        for c = 1, ncol - 1 do drawAt(self, F.text, row[c] or "", colX[c], ry, cpx, INK) end
+        local lines = wrapWords(wordsOf(tostring(row[ncol] or "")), F.text, cpx, function() return lastW end, 1, 0)
+        for li, l in ipairs(lines) do drawLine(self, F.text, cpx, l, colX[ncol], ry + (li - 1) * cpx * 1.3, INK) end
+        if #lines > 1 then ry = ry + (#lines - 1) * cpx * 1.3 end
         self:drawRect(tx + pad, ry + cpx * 0.45, inner, math.max(1, u * 0.6), 0.3, INK.r, INK.g, INK.b)
     end
     ry = ry + cpx * 1.8
-    drawCentre(self, F.textB, p.topic.title, x + w / 2, ry, cpx, INK)
+    drawCentre(self, F.textB, r.title or p.topic.title, x + w / 2, ry, cpx, INK)
     local boxH = ry + pad - boxY
     self:drawRectBorder(tx, boxY, tw_, boxH, 1, INK.r, INK.g, INK.b)
     yy = boxY + boxH + 6 * u

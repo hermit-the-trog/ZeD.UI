@@ -1012,9 +1012,18 @@ function ZeD_GuideWindow:buildTopic(g, cx, cw)
         box.ruleY = ry
         ry = ry + px(4)
         for ri, r in ipairs(rules.rows) do
-            for c = 1, ncol do box.cells[#box.cells + 1] = { x = colX[c], y = ry, text = r[c] or "", stripe = (ri % 2 == 1) } end
-            box.cells[#box.cells].rowY = ry
-            ry = ry + fh(T.fontF2) + px(4)
+            -- (the last column wraps in the room left: "Carving +1, Foraging +1, Knapping +1, Maintenance +1", QA)
+            local lastW = math.max(px(40), cx + cw - pad - colX[ncol])
+            local lastLines = A.wrapText(r[ncol] or "", T.fontF2, lastW)
+            if #lastLines == 0 then lastLines = { "" } end
+            for c = 1, ncol - 1 do box.cells[#box.cells + 1] = { x = colX[c], y = ry, text = r[c] or "", stripe = (ri % 2 == 1) } end
+            local first = #box.cells + 1
+            for li, l in ipairs(lastLines) do
+                box.cells[#box.cells + 1] = { x = colX[ncol], y = ry + (li - 1) * fh(T.fontF2), text = l, stripe = (ri % 2 == 1) and li == 1 }
+            end
+            box.cells[first].rowY = ry
+            box.cells[first].rowH = #lastLines * fh(T.fontF2)
+            ry = ry + #lastLines * fh(T.fontF2) + px(4)
         end
         ry = ry + px(6)
         for _, note in ipairs(rules.notes or {}) do
@@ -1345,7 +1354,7 @@ function ZeD_GuideWindow:prerender()
                 else
                     if c.rowY and c.stripe then
                         local st = T.stripe
-                        if st then self:drawRect(it.x + T.hair, c.rowY + oy - px(2), it.w - T.hair * 2, fh(T.fontF2) + px(4), st.a or 1, st.r, st.g, st.b) end
+                        if st then self:drawRect(it.x + T.hair, c.rowY + oy - px(2), it.w - T.hair * 2, (c.rowH or fh(T.fontF2)) + px(4), st.a or 1, st.r, st.g, st.b) end
                     end
                 end
             end
