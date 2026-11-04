@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Title Bar Pins v1</title>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans:wght@400;500;600&family=Fira+Sans+Condensed:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* ZeD-GUI | pins on the Character window's title bar, mockup v1 (Nov 4 2026). The director: "option 2. Include a
+   bunch of options to start", the list growing from players' requests. Every pin is a number the game already shows:
+   nothing hidden. Pin and unpin from the right-click menu (X on a controller), never a plain click. */
+:root { --mono:'Fira Mono',monospace; --sans:'Fira Sans',sans-serif; --cond:'Fira Sans Condensed',sans-serif;
+  --body:#15130f; --panel:#100d0a; --surf2:#191715; --title:#1b1917; --border:#2c2a26; --borderS:#45423d;
+  --text:#d8d5ce; --head:#ece8df; --dim:#8c8981; --acc:#d4922a; --accB:#e8ae52; --sel:rgba(212,146,42,.30);
+  --danger:#d9533c; --warn:#d2a23c; --ok:#7a9a34; --info:#4f93d4; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0b0a08; color:#d8d8d8; font-family:var(--sans); padding:22px 24px 60px; }
+.banner { font-family:var(--mono); font-size:11px; letter-spacing:2px; color:#cfc6a8; text-transform:uppercase; }
+h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:#f0ece0; margin:4px 0 6px; }
+.lede { font-size:13px; line-height:1.55; color:#b9b4a6; max-width:1100px; }
+.lede b { color:#efe6c4; font-weight:600; }
+h2 { font-family:var(--mono); font-size:11px; letter-spacing:1.5px; color:#cfc6a8; text-transform:uppercase; margin:26px 0 8px; font-weight:500; }
+.cap { font-family:var(--mono); font-size:11px; color:#8f8a7c; margin-top:6px; max-width:1100px; line-height:1.6; }
+.tb { height:26px; display:flex; align-items:center; gap:10px; padding:0 8px; background:var(--title);
+      background-image:repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 3px); border:1px solid var(--borderS);
+      font-family:var(--mono); font-size:12px; color:#b9b7b2; }
+.tb .cb { width:13px; height:13px; border:1px solid #6b6964; background:var(--title); flex:none; }
+.tb .t { background:var(--title); padding:0 6px; color:var(--head); }
+.tb .st { margin-left:auto; display:flex; gap:14px; align-items:center; background:var(--title); padding:0 6px; white-space:nowrap; }
+.tb .st span { display:flex; align-items:center; gap:5px; color:var(--text); }
+.sq { display:inline-block; width:6px; height:6px; flex:none; }
+.ok { background:var(--ok); } .warn { background:var(--warn); } .bad { background:var(--danger); } .info { background:var(--info); } .accent { background:var(--acc); }
+.win { border:1px solid var(--borderS); background:var(--body); }
+.wbody { display:flex; gap:10px; padding:10px; }
+.col { border:1px solid var(--borderS); background:var(--panel); }
+.row { height:34px; display:flex; align-items:center; gap:10px; padding:0 10px; border-bottom:1px solid #24211c; font-size:13px; color:var(--head); position:relative; }
+.row .n { flex:1; } .row .v { font-family:var(--mono); font-size:11px; color:var(--dim); }
+.row.sel { background:var(--sel); }
+.pin { width:9px; height:11px; position:relative; flex:none; }
+.pin::before { content:""; position:absolute; left:2px; top:0; width:5px; height:5px; background:var(--acc); }
+.pin::after { content:""; position:absolute; left:4px; top:5px; width:1px; height:6px; background:var(--acc); }
+.menu { position:absolute; background:var(--surf2); border:1px solid var(--borderS); box-shadow:1px 1px 0 #000; min-width:190px; z-index:2; }
+.menu div { padding:5px 12px; font-size:12.5px; color:var(--text); }
+.menu div.hi { background:var(--acc); color:#160f05; }
+.menu hr { border:0; border-top:1px solid var(--border); margin:2px 0; }
+.help { height:22px; display:flex; align-items:center; padding:0 10px; background:var(--surf2); border-top:1px solid var(--borderS); font-size:12px; color:var(--dim); }
+.toast { display:inline-flex; gap:8px; align-items:center; padding:6px 10px; border:1px solid var(--borderS); background:var(--surf2); font-size:12.5px; color:var(--text); }
+table { border-collapse:collapse; font-size:12.5px; margin-top:6px; }
+td, th { border:1px solid var(--border); padding:5px 10px; text-align:left; vertical-align:top; }
+th { font-family:var(--mono); font-size:10.5px; color:var(--accB); font-weight:500; }
+td.m { font-family:var(--mono); font-size:11.5px; color:var(--text); white-space:nowrap; }
+.q { max-width:1100px; margin-top:22px; font-size:13px; line-height:1.6; color:#b9b4a6; }
+.q b { color:#efe6c4; }
+</style>
+</head>
+<body>
+<div class="banner">ZeD-GUI | Mockup | Title bar pins v1 | Nov 4 2026</div>
+<h1>Pin what you are watching to the Character window's title bar</h1>
+<p class="lede">Right-click a skill, a book, a bottle, a recipe or your car and choose <b>Pin to title bar</b> (X on a controller, then Pin). The pin sits in the title bar beside your health and weight, so you can watch it without opening a tab. Every pin is a number the game already shows you. A pinned row carries a small pin mark. <b>Three pins at most</b>; a fourth replaces the oldest, and the help line says which.</p>
+
+<h2>1. The title bar at 4K: three pins, then health and weight</h2>
+<div class="tb" style="width:1100px"><div class="cb"></div><div class="t">Character</div>
+  <div class="st">
+    <span><i class="sq accent"></i>Carpentry 3 | 120/300</span>
+    <span><i class="sq info"></i>Water Bottle | 0.6/1.0 L</span>
+    <span><i class="sq warn"></i>Spear | 2/3</span>
+    <span><i class="sq ok"></i>92%</span>
+    <span>11.4 / 18</span>
+  </div></div>
+<p class="cap">The mark is a status square, the words stay plain. A skill's mark is the accent (it was red near a level, which read as bad news). A container's is info blue, warning yellow under a quarter full. A recipe's is positive green with everything in hand, warning yellow otherwise. A car's fuel is warning yellow under a quarter tank.</p>
+
+<h2>2. Pinning: the right-click menu</h2>
+<div style="display:flex; gap:24px; align-items:flex-start">
+<div class="win" style="width:420px; position:relative">
+  <div class="tb"><div class="cb"></div><div class="t">Character</div></div>
+  <div class="wbody"><div class="col" style="flex:1">
+    <div class="row"><span class="n">Carpentry</span><span class="pin"></span><span class="v">3 | 120/300</span></div>
+    <div class="row sel"><span class="n">Cooking</span><span class="v">2 | 40/150</span></div>
+    <div class="row"><span class="n">Farming</span><span class="v">0 | 0/75</span></div>
+    <div class="row"><span class="n">Mechanics</span><span class="v">4 | 300/750</span></div>
+  </div></div>
+  <div class="menu" style="left:150px; top:98px">
+    <div>Cooking</div><hr>
+    <div class="hi">Pin to title bar</div>
+    <div>Open the skill's page</div>
+  </div>
+  <div class="help">Right-click a row, then Pin to title bar.</div>
+</div>
+<div style="display:flex; flex-direction:column; gap:10px; max-width:520px">
+  <div class="toast"><i class="sq info"></i>Cooking pinned to the title bar. Spear was taken off (three at most).</div>
+  <div class="cap" style="margin:0">A pin past the third replaces the oldest, and says so in the help line or the toast already used for notes: never a pop-up. Unpin from the same menu: "Unpin from title bar". A plain click on a skill row no longer pins (no more pins by accident).</div>
+</div>
+</div>
+
+<h2>3. The Deck at Large text: what fits</h2>
+<div class="tb" style="width:640px"><div class="cb"></div><div class="t">Character</div>
+  <div class="st">
+    <span><i class="sq accent"></i>Carpentry 3 | 120/300</span>
+    <span><i class="sq ok"></i>92%</span>
+    <span>11.4 / 18</span>
+  </div></div>
+<p class="cap">As today, the title bar fills from the right; a pin that would reach the window's title is not drawn on that screen (it stays pinned and shows again on a wider window). On the Deck at Large text one pin fits beside health and weight.</p>
+
+<h2>4. The kinds to start with (all numbers the game shows)</h2>
+<table>
+<tr><th>Pin</th><th>Pinned from</th><th>Shows</th><th>Mark</th></tr>
+<tr><td>A skill</td><td>Skills tab row</td><td class="m">Carpentry 3 | 120/300</td><td>accent; Max at level 10</td></tr>
+<tr><td>The book you read</td><td>The book's item card or menu</td><td class="m">Carpentry Vol. 2 | 48/220</td><td>accent; positive when finished</td></tr>
+<tr><td>A container of liquid</td><td>The item's menu</td><td class="m">Water Bottle | 0.6/1.0 L</td><td>info; warning under a quarter</td></tr>
+<tr><td>A recipe you gather for</td><td>Crafting tab, the recipe's menu</td><td class="m">Spear | 2/3</td><td>positive when all in hand, else warning</td></tr>
+<tr><td>Your car's fuel</td><td>Vehicle tab, the car's menu</td><td class="m">Fuel | 34%</td><td>warning under a quarter</td></tr>
+<tr><td>Calories (if the game shows them in the Health tab)</td><td>Health tab</td><td class="m">Calories | 1840</td><td>positive; warning when falling</td></tr>
+</table>
+<p class="q"><b>Questions for you:</b> three pins at most (today two), or another number? And the guide's ZeD chapter teaches it in its two-ways box: "Right-click, Pin to title bar | X, Pin".</p>
+</body>
+</html>
