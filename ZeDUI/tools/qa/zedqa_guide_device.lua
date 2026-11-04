@@ -47,7 +47,7 @@ step(30, function()
             if not ok then (joy and badP or badK)[#(joy and badP or badK) + 1] = title .. " (error " .. tostring(s) .. ")"
             elseif s then
                 if joy then nP = nP + 1 else nK = nK + 1 end
-                local bad = s:find("%%%d") or s:find("<JOYPAD", 1, true) or s:find("IGUI_", 1, true) or s:find("<KEY", 1, true)
+                local bad = s:find("%%%d") or s:find("$s", 1, true) or s:find("<JOYPAD", 1, true) or s:find("IGUI_", 1, true) or s:find("<KEY", 1, true)
                 if bad then local t = joy and badP or badK; t[#t + 1] = title .. ": " .. s:sub(math.max(1, bad - 20), bad + 30) end
                 if not joy and s:find("key:", 1, true) then capsK = capsK + 1 end
                 if joy and s:find("pad:", 1, true) then btnP = btnP + 1 end
