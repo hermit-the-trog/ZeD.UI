@@ -98,6 +98,16 @@ local function parse(s)
             elseif e.type then els[#els + 1] = e end
         end
     end
+    -- (the page is at least as large as its pictures reach: the Kentucky Herald's layout gives a page shorter than its
+    -- art, and the reader fitted the short page, QA Nov 4 2026)
+    for _, e in ipairs(els) do
+        if e.type == "texture" and (e.angle or 0) == 0 and e.width and e.height and (e.scaleX or 1) > 0 and (e.scaleY or 1) > 0 then
+            local r = (e.x or 0) - (e.pivotX or 0) * e.width + e.width
+            local b = (e.y or 0) - (e.pivotY or 0) * e.height + e.height
+            if r > parent.width then parent.width = r end
+            if b > parent.height then parent.height = b end
+        end
+    end
     return els, parent
 end
 

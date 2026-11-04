@@ -193,7 +193,9 @@ end
 function ZeD_Reader:paperScale(c)
     local pg = self.page
     local u2 = 2 * ZeD.T.hair
-    local fit = math.min((c.w - u2) / pg.w, (c.h - u2) / pg.h)
+    -- (a small margin: a page's tilted under-sheets reach past its stated size, and a fit to the edge cut the
+    -- Kentucky Herald's foot, QA Nov 4 2026)
+    local fit = math.min((c.w - u2) / pg.w, (c.h - u2) / pg.h) * 0.94
     return fit * ZOOMS[self.zoomIx]
 end
 
