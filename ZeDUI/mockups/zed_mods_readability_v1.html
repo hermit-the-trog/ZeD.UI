@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mods Readability v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans:wght@400;500;600;700&family=Fira+Sans+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================================
+   ZeD-GUI | the Mods screen, readability. Mockup v1 (Nov 4 2026).
+   Workshop feedback (FAIV, Suggestions thread): every row looks the same, so on
+   and off can't be told apart in a long list. The director's picks (QA notes
+   ZeDUI/qa/2026-11-04_mods_readability.md):
+     - mods that are on sit on a darker solid band; off mods' names and icons dim
+     - an Off tab beside On
+     - Hide incompatible by Find, kept between visits
+     - the tab is remembered when the screen closes and reopens
+     - a Simple view (ZeD setup, like the guide's Full / Simple): one line a mod
+     - a label colour for each folder and separator, System 7 Finder style: it
+       tints the folder's own picture and the separator's rule and name. No
+       stripe or mark on a row's edge. The picker is the Maps tab's ink swatches.
+   Built on zed_mod_folders_v2.html (colours sampled from the gallery captures).
+   Window at the real proportions: 1056 x 1030 design units. Mod names are made up.
+   ============================================================================ */
+:root {
+  --mono:'Fira Mono',monospace; --sans:'Fira Sans',sans-serif; --cond:'Fira Sans Condensed',sans-serif;
+  --desk:#070605; --body:#15130f; --panel:#100d0a; --surf2:#191715; --surf3:#211e1a; --title:#1b1917;
+  --border:#2c2a26; --borderS:#45423d; --text:#d8d5ce; --head:#ece8df; --dim:#8c8981; --faint:#5f5c56;
+  --acc:#d4922a; --accB:#e8ae52; --sel:rgba(212,146,42,.30); --hov:rgba(255,255,255,.06);
+  --danger:#d9533c; --warn:#d2a23c; --ok:#7a9a34; --info:#4f93d4;
+  /* the on band: a solid, darker fill under a mod that is on (off rows show the list's own ground) */
+  --offGround:#1a1814; --onBand:#0a0907;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0b0a08; color:#d8d8d8; font-family:var(--sans); padding:22px 24px 60px; }
+.banner { font-family:var(--mono); font-size:11px; letter-spacing:2px; color:#cfc6a8; text-transform:uppercase; }
+h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:#f0ece0; margin:4px 0 6px; }
+.lede { font-size:13px; line-height:1.55; color:#b9b4a6; max-width:1100px; }
+.lede b { color:#efe6c4; font-weight:600; }
+.controls { display:flex; flex-wrap:wrap; gap:14px 22px; margin:16px 0 14px; align-items:flex-start; }
+.ctl { display:flex; flex-direction:column; gap:5px; }
+.ctl > span { font-family:var(--mono); font-size:10px; letter-spacing:1.5px; color:#8f8a7c; text-transform:uppercase; }
+.seg { display:flex; flex-wrap:wrap; gap:4px; max-width:1200px; }
+.seg button { font-family:var(--mono); font-size:11px; color:#d8d4c8; background:#1c1b18; border:1px solid #3a3832; padding:4px 9px; cursor:pointer; }
+.seg button.on { background:#d8c070; color:#111; border-color:#d8c070; }
+.stage-wrap { overflow:auto; max-width:100%; }
+.stage { position:relative; width:1076px; height:1050px; background:var(--desk); border:1px solid #2a2924; overflow:hidden; }
+.caption { font-family:var(--mono); font-size:11px; color:#8f8a7c; margin-top:8px; max-width:1100px; line-height:1.6; }
+.caption b { color:#d8d0b8; font-weight:500; }
+
+/* ---- the ZeD OS window ------------------------------------------------- */
+.win { position:absolute; left:10px; top:10px; width:1056px; height:1030px; background:var(--body); display:flex; flex-direction:column; }
+.win::after { content:""; position:absolute; inset:0; border:1px solid var(--borderS); pointer-events:none; }
+.tb { height:26px; flex:none; display:flex; align-items:center; gap:10px; padding:0 8px; background:var(--title);
+      background-image:repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 3px); border-bottom:1px solid var(--borderS);
+      font-family:var(--mono); font-size:12px; color:#b9b7b2; }
+.tb .cb { width:13px; height:13px; border:1px solid #6b6964; background:var(--title); flex:none; }
+.tb .t { background:var(--title); padding:0 6px; }
+.tb .t b { color:var(--text); font-weight:500; }
+.tb .st { margin-left:auto; display:flex; gap:12px; align-items:center; font-size:11px; color:var(--dim); background:var(--title); padding:0 6px; }
+.sq { display:inline-block; width:6px; height:6px; flex:none; }
+.sq.ok { background:var(--ok); } .sq.warn { background:var(--warn); } .sq.bad { background:var(--danger); }
+.main { flex:1; display:flex; min-height:0; gap:10px; padding:10px; }
+.col { display:flex; flex-direction:column; min-height:0; border:1px solid var(--borderS); background:var(--panel); position:relative; }
+.band { flex:none; height:36px; display:flex; align-items:center; gap:8px; padding:0 8px; background:var(--surf2); border-top:1px solid var(--borderS); }
+.band .sp { flex:1; }
+.band .msg { font-size:12.5px; color:var(--text); display:flex; align-items:center; gap:8px; min-width:0; }
+.help { flex:none; height:22px; display:flex; align-items:center; padding:0 10px; background:var(--surf2); border-top:1px solid var(--borderS); font-size:12px; color:var(--dim); }
+
+.b { height:26px; display:inline-flex; align-items:center; justify-content:center; padding:0 11px; font-family:var(--mono); font-size:11px; color:var(--text);
+     background:transparent; border:1px solid #6d6a64; border-radius:4px; box-shadow:inset 0 0 0 1px #000, 0 0 0 1px #000; outline:1px solid #3a3833; outline-offset:1px; white-space:nowrap; flex:none; }
+.b.pri { border-color:var(--acc); color:var(--accB); outline-color:rgba(212,146,42,.45); }
+.b.sm { height:22px; padding:0 8px; font-size:10.5px; }
+.tabs { display:flex; gap:4px; padding:8px 8px 0; flex-wrap:wrap; }
+.tab { height:24px; padding:0 7px; display:flex; align-items:center; font-size:12px; color:var(--dim); border:1px solid var(--border); background:var(--surf2); cursor:pointer; white-space:nowrap; }
+.tab.on { color:#160f05; border-color:var(--acc); background:var(--acc); font-weight:500; }
+.findrow { display:flex; align-items:center; gap:10px; margin:8px; }
+.find { flex:1; height:26px; display:flex; align-items:center; gap:8px; padding:0 8px; border:1px solid var(--border); background:var(--body); font-family:var(--mono); font-size:11px; color:var(--dim); }
+.opt { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--text); white-space:nowrap; cursor:pointer; }
+.opt .n { font-family:var(--mono); font-size:10.5px; color:var(--dim); }
+.rows { flex:1; overflow:hidden; border-top:1px solid var(--borderS); position:relative; background:var(--offGround); }
+
+/* System 7 checkbox: square, X when on, a dash when mixed */
+.ck { width:13px; height:13px; border:1px solid #8a8780; background:#0c0a08; flex:none; position:relative; }
+.ck.on::before, .ck.on::after { content:""; position:absolute; left:-1px; top:5px; width:13px; height:1px; background:var(--text); }
+.ck.on::before { transform:rotate(45deg); } .ck.on::after { transform:rotate(-45deg); }
+.ck.mix::before { content:""; position:absolute; left:2px; right:2px; top:5px; height:2px; background:var(--text); }
+.ck.grey { opacity:.42; }
+.tri { width:0; height:0; flex:none; border-style:solid; }
+.tri.open { border-width:6px 4.5px 0 4.5px; border-color:var(--dim) transparent transparent transparent; }
+.tri.shut { border-width:4.5px 0 4.5px 6px; border-color:transparent transparent transparent var(--dim); }
+
+/* a mod's row (Full: two lines) */
+.row { position:relative; height:42px; display:flex; align-items:center; gap:10px; padding:0 10px; border-bottom:1px solid #24211c; cursor:pointer; }
+.row.on { background:var(--onBand); border-bottom-color:#1a1713; }
+.row.in { padding-left:30px; }
+.row.sel { background:var(--sel); }
+.row:hover:not(.sel) { box-shadow:inset 0 0 0 999px var(--hov); }
+.row .ic { width:24px; height:24px; flex:none; border:1px solid #3d3a35; background:#1d1a16; font-family:var(--mono); font-size:8px; color:var(--dim); display:flex; align-items:center; justify-content:center; }
+.row .nm { display:flex; flex-direction:column; min-width:0; flex:1; }
+.row .nm b { font-weight:500; font-size:13px; color:var(--head); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.row .nm span { font-family:var(--mono); font-size:10px; color:var(--faint); display:flex; align-items:center; gap:5px; }
+.row.off .nm b { color:var(--dim); }
+.row.off .ic { opacity:.45; }
+.row .tags { margin-left:auto; display:flex; gap:5px; }
+.tag { height:16px; padding:0 5px; display:inline-flex; align-items:center; gap:4px; font-family:var(--mono); font-size:9.5px; color:var(--text); border:1px solid var(--borderS); white-space:nowrap; }
+.row.off .tag { color:var(--dim); }
+/* Simple: one line a mod */
+.row.simple { height:30px; }
+.row.simple .nm b { font-size:13px; }
+.row .pm { margin-left:auto; width:7px; height:7px; background:var(--danger); flex:none; }
+
+/* folders: the picture is the label (System 7 Finder labels tinted the icon) */
+.frow { height:30px; display:flex; align-items:center; gap:8px; padding:0 10px; background:var(--surf2); border-bottom:1px solid var(--border); cursor:pointer; }
+.frow.sel { background:var(--sel); }
+.frow .fn { font-size:13px; font-weight:600; color:var(--head); }
+.frow .cnt { font-family:var(--mono); font-size:10.5px; color:var(--dim); }
+.frow .r { margin-left:auto; display:flex; align-items:center; gap:8px; }
+.frow.unf .fn { font-weight:500; color:var(--dim); }
+.fold { width:16px; height:12px; flex:none; position:relative; border:1px solid var(--lc, var(--text)); background:var(--lf, transparent); margin-top:3px; }
+.fold::before { content:""; position:absolute; left:-1px; top:-4px; width:7px; height:3px; border:1px solid var(--lc, var(--text)); border-bottom:0; background:var(--lf, transparent); }
+
+/* the load order */
+.orow { height:30px; display:flex; align-items:center; gap:10px; padding:0 10px; border-bottom:1px solid #1d1a16; font-size:12.5px; color:var(--head); background:var(--onBand); }
+.orow .n { width:28px; text-align:right; font-family:var(--mono); font-size:10.5px; color:var(--dim); flex:none; }
+.sep { height:30px; display:flex; align-items:center; gap:8px; padding:0 10px; background:var(--surf2); border-bottom:1px solid var(--border); cursor:pointer; }
+.sep.sel { background:var(--sel); }
+.sep .rule { flex:1; height:0; border-top:1px solid var(--lc, var(--borderS)); }
+.sep .rule.l { flex:0 0 12px; }
+.sep .sn { font-family:var(--sans); font-size:13px; font-weight:500; color:var(--lc, var(--head)); white-space:nowrap; }
+.sep .cnt { font-family:var(--mono); font-size:10.5px; color:var(--dim); white-space:nowrap; }
+
+/* the info pane */
+.info { flex:1; padding:14px 16px; overflow:hidden; display:flex; flex-direction:column; gap:10px; }
+.info h2 { font-family:var(--sans); font-size:19px; font-weight:600; color:var(--head); }
+.info .by { font-size:12.5px; color:var(--dim); margin-top:-6px; }
+.info .btns { display:flex; gap:8px; }
+.itabs { display:flex; gap:4px; border-bottom:1px solid var(--borderS); }
+.itab { height:24px; padding:0 10px; display:flex; align-items:center; font-size:12px; color:var(--dim); border:1px solid var(--border); border-bottom:0; background:var(--surf2); }
+.itab.on { color:var(--head); background:var(--panel); border-color:var(--borderS); }
+.kv { display:grid; grid-template-columns:110px 1fr; gap:5px 10px; font-size:12.5px; }
+.kv .k { font-family:var(--mono); font-size:11px; color:var(--accB); }
+.kv .v { color:var(--text); }
+.para { font-size:12.5px; line-height:1.5; color:var(--text); }
+.prob { display:flex; gap:8px; align-items:baseline; font-size:12.5px; color:var(--text); }
+.prob .sq { transform:translateY(-1px); }
+.hd { font-family:var(--sans); font-size:13px; font-weight:600; color:var(--accB); border-bottom:1px solid var(--border); padding-bottom:4px; margin-top:4px; }
+
+/* the label swatches (the Maps tab's ink row: square swatches, a 1u edge, a ring round the one in use) */
+.sw { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.swb { width:22px; height:22px; position:relative; cursor:pointer; flex:none; }
+.swb i { position:absolute; inset:0; border:1px solid var(--borderS); background:var(--c); }
+.swb.none i { background:var(--panel); }
+.swb.none i::after { content:""; position:absolute; left:-2px; right:-2px; top:50%; height:1px; background:var(--dim); transform:rotate(-45deg); }
+.swb.cur::after { content:""; position:absolute; inset:-3px; border:1px solid var(--text); }
+.swb:hover::before { content:""; position:absolute; inset:-4px; background:var(--hov); }
+.swname { font-size:12.5px; color:var(--text); margin-left:4px; }
+.fhand { position:absolute; width:16px; height:12px; }
+
+.notes { max-width:1100px; margin-top:20px; font-size:12.5px; line-height:1.6; color:#b9b4a6; }
+.notes h3 { font-family:var(--mono); font-size:11px; letter-spacing:1.5px; color:#cfc6a8; text-transform:uppercase; margin:14px 0 4px; font-weight:500; }
+.notes li { margin-left:18px; }
+</style>
+</head>
+<body>
+<div class="banner">ZeD-GUI | Mockup | Mods screen readability v1 | Nov 4 2026</div>
+<h1>Mods: telling on from off, an Off tab, Hide incompatible, a Simple view and folder labels</h1>
+<p class="lede">A player with a long list said every row looks the same. Here <b>mods that are on sit on a darker solid band</b>, and an <b>off mod's name and icon dim</b>. The accent stays for the row you chose, hover and the controller. Click the tabs, <b>Hide incompatible</b>, the rows and the label swatches; they work.</p>
+
+<div class="controls">
+  <div class="ctl"><span>Scene</span>
+    <div class="seg" id="scene">
+      <button data-v="full" class="on">Full list</button>
+      <button data-v="simple">Simple list</button>
+      <button data-v="folders">Folders with labels</button>
+      <button data-v="order">Load order with labels</button>
+    </div>
+  </div>
+</div>
+
+<div class="stage-wrap"><div class="stage"><div class="win" id="win"></div></div></div>
+<div class="caption" id="cap"></div>
+
+<div class="notes">
+  <h3>What changes</h3>
+  <ul>
+    <li><b>On and off.</b> On rows: a solid band, darker than the list, and the name in the heading colour. Off rows: the list's own ground, the name and icon dimmed. In Light the band is a shade darker than the page as well; in High Contrast it is black against the grey list. Not colour alone: the checkbox, the band and the name's brightness all say it.</li>
+    <li><b>Off tab</b> beside On, with its count. Like the others it hides when it would be empty.</li>
+    <li><b>Hide incompatible</b> by Find: mods the game can't run (made for another version, or needing a mod that isn't installed) leave the list. The count of hidden ones sits beside the box. Kept between visits.</li>
+    <li><b>The tab is remembered</b> when the screen closes and reopens (not drawn: it opens on the tab you left).</li>
+    <li><b>Simple view</b> (ZeD setup, Full or simple group, like the survival guide): one line a mod, the checkbox, the name and one red mark when something is wrong. No IDs, no chips; the pane shows About only. Folders, separators and the load order tools stay in Full.</li>
+    <li><b>Labels.</b> A folder or separator takes a label colour. The folder's own picture is tinted (its outline in the colour, a light fill), and a separator's name and rule. Nothing on the row's edge. The picker is the Maps tab's swatch row, with None first.</li>
+  </ul>
+</div>
+
+<script>
+// ---- data (made up) --------------------------------------------------------
+const MODS = [
+  { n:"Better Sorting", id:"BetterSortingB42", on:true, cat:"UI", f:"Interface" },
+  { n:"Common Sense", id:"CommonSense", on:true, cat:"QoL", f:"Interface" },
+  { n:"Sample Loot Rebalance", id:"SampleLootRebalance", on:true, cat:"LT", tags:["2 conflicts"], f:"Loot" },
+  { n:"Sample Loot Tables", id:"SampleLootTables", on:true, cat:"LT", tags:["2 conflicts"], f:"Loot" },
+  { n:"Sample Car Sounds", id:"SampleCarSounds", on:false, cat:"SND", prob:"Needs SampleSoundLibrary, not installed", inc:true, f:"Vehicles" },
+  { n:"Knox Radio Plus", id:"KnoxRadioPlus", on:true, cat:"RAD", f:"Comms" },
+  { n:"Pirate Radio FM", id:"PirateRadioFM", on:true, cat:"RAD", f:"Comms" },
+  { n:"Ham Radio Expanded", id:"HamRadioExpanded", on:false, cat:"RAD", f:"Comms" },
+  { n:"Sample Old HUD", id:"SampleOldHud", on:false, cat:"UI", prob:"Made for another game version (42.99.0 to ?)", inc:true, f:"Interface" },
+  { n:"Rosewood Bunker", id:"RosewoodBunker", on:true, cat:"MAP", f:"Maps" },
+  { n:"Muldraugh Expanded", id:"MuldraughExpanded", on:false, cat:"MAP", f:"Maps" },
+  { n:"Echo Creek Trailer Park", id:"EchoCreekTP", on:true, cat:"MAP", f:"Maps" },
+  { n:"Generator Hours", id:"GeneratorHours", on:true, cat:"QoL", f:null },
+  { n:"Walkie Range Fix", id:"WalkieRangeFix", on:false, cat:"RAD", f:"Comms" },
+  { n:"Spare Speakers", id:"SpareSpeakers", on:false, cat:"SND", f:null },
+  { n:"Batteries Recharge", id:"BatteriesRecharge", on:true, cat:"QoL", f:null },
+  { n:"Antenna Mast", id:"AntennaMast", on:false, cat:"RAD", f:"Comms" },
+  { n:"Old Car Pack", id:"OldCarPack", on:true, cat:"CAR", f:"Vehicles" },
+  { n:"Tow Truck Rework", id:"TowTruckRework", on:false, cat:"CAR", prob:"Made for another game version (41.78)", inc:true, f:"Vehicles" },
+  { n:"Morse Code Book", id:"MorseCodeBook", on:false, cat:"RAD", f:"Comms" },
+  { n:"Field Phones", id:"FieldPhones", on:true, cat:"RAD", f:"Comms" },
+  { n:"Scanner Frequencies", id:"ScannerFreqs", on:false, cat:"RAD", f:"Comms" },
+];
+// System 7's Finder had seven labels; these are its colours, lifted to read on ZeD's dark grounds
+const LABELS = [
+  { k:"none", name:"None" },
+  { k:"orange", name:"Orange", c:"#e8873a" },
+  { k:"red", name:"Red", c:"#e0584a" },
+  { k:"pink", name:"Pink", c:"#e070a8" },
+  { k:"teal", name:"Teal", c:"#3fb8c8" },
+  { k:"blue", name:"Blue", c:"#6f9be8" },
+  { k:"green", name:"Green", c:"#79b048" },
+  { k:"brown", name:"Brown", c:"#b48a58" },
+];
+const FOLDERS = { Interface:"blue", Loot:"orange", Vehicles:"none", Comms:"teal", Maps:"green" };
+const SEPS = [ { n:"Libraries", lab:"red" }, { n:"Comms", lab:"teal" }, { n:"Maps", lab:"green" } ];
+
+let S = { scene:"full", tab:"all", hideInc:false, sel:"SampleLootTables", fsel:"Comms", ssel:"Comms" };
+
+// ---- helpers ----------------------------------------------------------------
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+const lab = k => LABELS.find(l => l.k === k) || LABELS[0];
+function labVars(k) {
+  const L = lab(k);
+  if (!L.c) return "";
+  return `--lc:${L.c};--lf:${L.c}40;`;
+}
+function filtered() {
+  let m = MODS.slice();
+  if (S.tab === "enabled") m = m.filter(d => d.on);
+  if (S.tab === "off") m = m.filter(d => !d.on);
+  if (S.tab === "problems") m = m.filter(d => d.prob);
+  if (S.tab === "maps") m = m.filter(d => d.cat === "MAP");
+  if (S.tab === "conflicts") m = m.filter(d => d.tags);
+  if (S.hideInc) m = m.filter(d => !d.inc);
+  return m;
+}
+function tabsHTML(simple) {
+  const on = MODS.filter(d => d.on).length, off = MODS.length - on;
+  const probs = MODS.filter(d => d.prob).length, maps = MODS.filter(d => d.cat === "MAP").length, conf = MODS.filter(d => d.tags).length;
+  let t = [["all","All " + MODS.length],["enabled","On " + on],["off","Off " + off]];
+  if (!simple) t = t.concat([["favs","Starred 3"],["maps","Maps " + maps],["problems","Problems " + probs],["conflicts","Conflicts " + conf],["ws","Workshop 22"]]);
+  else t.push(["problems","Problems " + probs]);
+  return `<div class="tabs">${t.map(([k,l]) => `<div class="tab${S.tab===k?" on":""}" data-tab="${k}">${l}</div>`).join("")}</div>`;
+}
+function findHTML() {
+  const inc = MODS.filter(d => d.inc).length;
+  return `<div class="findrow"><div class="find">Find:</div>
+    <div class="opt" id="hideInc"><div class="ck${S.hideInc?" on":""}"></div>Hide incompatible${S.hideInc?` <span class="n">${inc} hidden</span>`:""}</div></div>`;
+}
+function rowHTML(d, simple) {
+  const sel = S.sel === d.id;
+  const cls = ["row", d.on ? "on" : "off", simple ? "simple" : "", sel ? "sel" : ""].join(" ");
+  const ck = `<div class="ck${d.on?" on":""}${(d.prob && !d.on)?" grey":""}"></div>`;
+  if (simple) return `<div class="${cls}" data-mod="${d.id}">${ck}<div class="nm"><b>${esc(d.n)}</b></div>${d.prob?'<div class="pm"></div>':""}</div>`;
+  const sub = d.prob ? `<span><i class="sq bad"></i>${esc(d.prob)}</span>` : `<span>${esc(d.id)}</span>`;
+  const tags = d.tags ? `<div class="tags">${d.tags.map(t => `<span class="tag"><i class="sq warn"></i>${t}</span>`).join("")}</div>` : "";
+  return `<div class="${cls}" data-mod="${d.id}">${ck}<div class="ic">${d.cat}</div><div class="nm"><b>${esc(d.n)}</b>${sub}</div>${tags}</div>`;
+}
+function infoHTML(d, simple) {
+  if (!d) return `<div class="info"><div class="para" style="color:var(--dim)">Choose a mod.</div></div>`;
+  const probs = d.prob ? `<div class="prob"><i class="sq bad"></i>${esc(d.prob)}</div>` : "";
+  const tabs = simple ? "" : `<div class="itabs"><div class="itab on">About</div><div class="itab">Options 0</div><div class="itab">Sandbox 2</div><div class="itab">Conflicts ${d.tags?2:0}</div></div>`;
+  const kv = simple ? "" : `<div class="kv"><div class="k">Version</div><div class="v">1.0</div><div class="k">Game</div><div class="v">42.17.0 to any</div><div class="k">ModID</div><div class="v">${esc(d.id)}</div><div class="k">Load order</div><div class="v">${d.on ? "12 of " + MODS.filter(m=>m.on).length : "off"}</div></div>`;
+  return `<div class="info"><h2>${esc(d.n)}</h2><div class="by">by Sample</div>
+    <div class="btns"><span class="b${d.on?"":" pri"}">${d.on?"Turn off":"Turn on"}</span>${simple?"":'<span class="b">Favorite</span>'}</div>
+    ${tabs}${probs}${kv}
+    <div class="para">A made-up mod for the mockup. Its own description from mod.info would sit here, as it does now.</div></div>`;
+}
+function tb(where) {
+  const on = MODS.filter(d => d.on).length;
+  return `<div class="tb"><div class="cb"></div><div class="t">Project Zomboid &rsaquo; <b>${where}</b></div><div class="st"><i class="sq ok"></i>${on} of ${MODS.length} on</div></div>`;
+}
+
+// ---- scenes ----------------------------------------------------------------
+function sceneList(simple) {
+  const rows = filtered();
+  const d = MODS.find(m => m.id === S.sel);
+  return tb("Mods") + `<div class="main">
+    <div class="col" style="width:540px">${tabsHTML(simple)}${findHTML()}
+      <div class="rows">${rows.map(r => rowHTML(r, simple)).join("") || '<div class="para" style="padding:10px;color:var(--dim)">No mods here.</div>'}</div></div>
+    <div class="col" style="flex:1">${infoHTML(d, simple)}</div></div>
+    <div class="band"><span class="b">Back</span><div class="sp"></div>${simple?"":'<span class="b">Load order</span><span class="b">Folders</span>'}<span class="b pri">Done</span></div>
+    <div class="help">${simple ? "Simple view: one line a mod. Full view (ZeD setup) adds IDs, tags, folders and the load order." : "On: a dark band under the row. Off: the name dims."}</div>`;
+}
+function swatchRow(cur, kind) {
+  return `<div class="sw">${LABELS.map(L => `<div class="swb${L.c?"":" none"}${L.k===cur?" cur":""}" data-lab="${L.k}" data-kind="${kind}" style="--c:${L.c||"transparent"}"><i></i></div>`).join("")}<span class="swname">${lab(cur).name}</span></div>`;
+}
+function sceneFolders() {
+  let h = "";
+  for (const f of Object.keys(FOLDERS)) {
+    const ms = MODS.filter(m => m.f === f), on = ms.filter(m => m.on).length;
+    const box = on === 0 ? "" : on === ms.length ? " on" : " mix";
+    const open = f === "Comms";
+    h += `<div class="frow${S.fsel===f?" sel":""}" data-folder="${f}"><div class="tri ${open?"open":"shut"}"></div><div class="fold" style="${labVars(FOLDERS[f])}"></div><span class="fn">${f}</span><span class="cnt">(${ms.length})</span><div class="r"><div class="ck${box}"></div></div></div>`;
+    if (open) h += ms.map(m => rowHTML(m, false).replace('class="row', 'class="row in')).join("");
+  }
+  const un = MODS.filter(m => !m.f);
+  h += `<div class="frow unf"><div class="tri shut"></div><span class="fn">Unfiled</span><span class="cnt">(${un.length})</span></div>`;
+  const f = S.fsel, ms = MODS.filter(m => m.f === f), on = ms.filter(m => m.on).length;
+  const pane = `<div class="info"><h2 style="display:flex;align-items:center;gap:10px"><span class="fold" style="width:22px;height:16px;${labVars(FOLDERS[f])}"></span>${f}</h2>
+    <div class="by">${ms.length} mods, ${on} on</div>
+    <div class="btns"><span class="b">Rename...</span><span class="b">Delete folder</span></div>
+    <div class="hd">Label</div>${swatchRow(FOLDERS[f], "folder")}
+    <div class="para" style="color:var(--dim)">The label tints the folder's picture in the list. Only this screen shows it; other mods that read your folders see them as before.</div>
+    <div class="hd">In this folder</div>
+    ${ms.map(m => `<div class="prob"><i class="sq ${m.prob?"bad":m.on?"ok":""}" style="${m.on||m.prob?"":"border:1px solid var(--dim)"}"></i>${esc(m.n)}${m.on?"":' <span style="color:var(--dim)">(off)</span>'}</div>`).join("")}
+  </div>`;
+  return tb("Mods &rsaquo; Folders") + `<div class="main"><div class="col" style="width:500px">${findHTML()}<div class="rows">${h}</div></div><div class="col" style="flex:1">${pane}</div></div>
+    <div class="band"><span class="b">Back</span><div class="sp"></div><span class="b">New folder...</span><span class="b pri">Done</span></div>
+    <div class="help">Pick a label for the folder. None takes it off.</div>`;
+}
+function sceneOrder() {
+  const groups = { Libraries:["Common Sense","Better Sorting","Batteries Recharge"], Comms:["Knox Radio Plus","Pirate Radio FM","Field Phones","Generator Hours"], Maps:["Rosewood Bunker","Echo Creek Trailer Park","Old Car Pack"] };
+  let n = 1, h = "";
+  for (const s of SEPS) {
+    h += `<div class="sep${S.ssel===s.n?" sel":""}" data-sep="${s.n}" style="${labVars(s.lab)}"><div class="ck on"></div><div class="tri open"></div><div class="rule l"></div><span class="sn">${s.n}</span><span class="cnt">(${groups[s.n].length})</span><div class="rule"></div></div>`;
+    h += groups[s.n].map(m => `<div class="orow"><span class="n">${n++}</span><i class="sq ok"></i>${m}</div>`).join("");
+  }
+  const s = SEPS.find(x => x.n === S.ssel);
+  const pane = `<div class="info"><h2>${s.n}</h2><div class="by">Separator | ${groups[s.n].length} mods under it | profile Everything</div>
+    <div class="btns"><span class="b">Rename...</span><span class="b">Remove separator</span></div>
+    <div class="hd">Label</div>${swatchRow(s.lab, "sep")}
+    <div class="para" style="color:var(--dim)">The label colours the separator's name and rule in the load order.</div></div>`;
+  return tb("Load order") + `<div class="main"><div class="col" style="width:500px"><div class="findrow"><div class="find">Find:</div></div><div class="rows" style="background:var(--onBand)">${h}</div></div><div class="col" style="flex:1">${pane}</div></div>
+    <div class="band"><span class="b">Back</span><div class="sp"></div><span class="b">Undo</span><span class="b">Auto</span><span class="b pri">Done</span></div>
+    <div class="help">Pick a label for the separator. None takes it off.</div>`;
+}
+const CAPS = {
+  full: "<b>Full list.</b> On rows sit on the dark band with bright names; off rows show the list's ground with dimmed names and icons. The chosen row keeps the accent. Try Off, and Hide incompatible (three of these mods can't run).",
+  simple: "<b>Simple list</b> (ZeD setup: Mods, Simple). One line a mod: the box, the name, a red mark when something is wrong. Tabs: All, On, Off, Problems. The pane shows About only.",
+  folders: "<b>Folders with labels.</b> Interface is Blue, Loot Orange, Comms Teal, Maps Green, Vehicles has none. The picture carries the colour; the row and its edge stay as they are. Choose a folder and pick a swatch.",
+  order: "<b>Load order with labels.</b> A separator's name and rule take its label colour. Choose a separator and pick a swatch.",
+};
+
+function render() {
+  const w = document.getElementById("win");
+  w.innerHTML = S.scene === "full" ? sceneList(false) : S.scene === "simple" ? sceneList(true) : S.scene === "folders" ? sceneFolders() : sceneOrder();
+  document.getElementById("cap").innerHTML = CAPS[S.scene];
+  document.querySelectorAll("#scene button").forEach(b => b.classList.toggle("on", b.dataset.v === S.scene));
+}
+document.getElementById("scene").addEventListener("click", e => { const v = e.target.dataset.v; if (v) { S.scene = v; if (v === "simple" && !["all","enabled","off","problems"].includes(S.tab)) S.tab = "all"; render(); } });
+document.getElementById("win").addEventListener("click", e => {
+  const t = e.target.closest("[data-tab],[data-mod],[data-folder],[data-sep],[data-lab],#hideInc");
+  if (!t) return;
+  if (t.id === "hideInc") S.hideInc = !S.hideInc;
+  else if (t.dataset.tab) S.tab = t.dataset.tab;
+  else if (t.dataset.lab) { if (t.dataset.kind === "folder") FOLDERS[S.fsel] = t.dataset.lab; else SEPS.find(x => x.n === S.ssel).lab = t.dataset.lab; }
+  else if (t.dataset.mod) {
+    const d = MODS.find(m => m.id === t.dataset.mod);
+    if (e.target.classList.contains("ck") && !d.inc) d.on = !d.on; else S.sel = d.id;
+  }
+  else if (t.dataset.folder) S.fsel = t.dataset.folder;
+  else if (t.dataset.sep) S.ssel = t.dataset.sep;
+  render();
+});
+{ const h = location.hash.slice(1).split(','); if (CAPS[h[0]]) S.scene = h[0]; if (h[1]) S.tab = h[1]; if (h[2] === 'hide') S.hideInc = true; }
+render();
+</script>
+</body>
+</html>
