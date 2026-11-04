@@ -1,7 +1,28 @@
 # Survival guide (F1): design draft (Nov 3 2026)
 
 The director, Nov 3 2026: "The ingame survival guide is next. Let's start on it. F1 guide..." Today ZeD passes the
-game's guide through untouched (HOOK_MAP row 18). Nothing is built yet; this draft is for the director's answers.
+game's guide through untouched (HOOK_MAP row 18). Nothing is built yet.
+
+## The director's answers (Nov 3 2026)
+
+1. **Both looks:** the ZNIX manual book (Full) and the plain ZeD window (Simple).
+2. **More than the game's guide:** "Yes, in addition to the vanilla guide and whatever else we can add. Make F1
+   useful for noobs and vets alike." A ZeD section, plus more (see "What else" below).
+3. **New clips:** "Can we make new clips with our UI instead of Vanilla?" Yes (below).
+4. **First run:** "Keep it the vanilla mechanic": it opens by itself on a new game, with the Show guide tick box.
+   This is the one exception to the no-pop-ups rule.
+
+## New clips: how
+
+The game plays clips a mod brings (VideoTexture.getOrCreate looks through the mods' media folders), in the game's
+own video format (Bink). Two ways to make them:
+- **RAD Video Tools** (the maker's free Bink encoder): real video, smooth, light on memory. A new program on this PC:
+  needs the director's OK (the no-installs rule). QA records with Windows' own recorder (Xbox Game Bar), the encoder
+  turns it into a clip.
+- **Flipbooks** (QA's screenshots played as frames, no new program): choppier, and heavy on memory past a few
+  seconds. Only for a short loop.
+Build's pick: RAD Video Tools. Remake only the clips that show the game's menus; the ones that show moves (walking,
+vaulting, aiming) stay as they are.
 
 ## What the game's guide is
 
@@ -27,13 +48,19 @@ the Vehicle tab's sections do), the clip and its text on the right, the band at 
 - **Search** in the band: type a word, the list keeps the topics that have it.
 - **Controller:** the same paths as the other split tabs (list, then clip, B back).
 
-## Questions for the director
+## What else (for new players and old hands)
 
-1. **Its shape:** a plain ZeD window as above, or the ZNIX manual look of the gallery book (the pages, the taped
-   prints) in game? *Build's pick: the plain window first. The book look could come later as the Full version, with
-   the window as the Simple one.*
-2. **ZeD's own pages:** add a "ZeD" section to the guide that explains ZeD's windows (the gallery book's chapters,
-   cut down), or keep the guide to the game's topics? *Build's pick: yes, one ZeD section at the end.*
-3. **The clips:** keep the game's video clips as they are (they show the game's own UI, not ZeD's), or show the text
-   only? *Build's pick: keep them; they show the moves, not the menus.*
-4. **First run:** never open by itself (your no-interruptions rule), F1 and the Help wheel only? *Build's pick: yes.*
+Candidates; the research thread (director, Nov 3) feeds the list. Nothing here changes the game's rules or shows
+what the game keeps hidden.
+- **ZeD's own section:** each window and tab, how it works, cut down from the gallery book's chapters.
+- **F1 opens on where you are:** pressed in the Vehicle tab it opens Vehicles, in Cooking it opens Cooking.
+- **Your controls:** your keys and the controller map as they are set now, in the guide.
+- **First days:** a short path for a new character (water, food, a weapon, a safe place, light, sleep).
+- **Reference read from the game:** what each skill book and magazine teaches, what each skill level opens, the
+  recipes by station. The game's own data, so updates and mods show up.
+- **What's new in ZeD:** the change note of the build you are running.
+
+## Open questions
+
+1. **RAD Video Tools:** OK to put the maker's free Bink encoder on this PC for the new clips?
+2. **What else:** which of the candidates above, after the research?
