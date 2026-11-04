@@ -170,3 +170,6 @@ The author photo, redone (Nov 3 2026): QA's second set to the director's referen
 horn-rimmed square glasses, moustache, flannel). Used zqa_author2_key_a_z15.png (grey plaid; QA's pick), keyed off
 its green, set on a blurred, lightened crop of the Fossoil store plate (zqa_author2_interior_store.png) for the room
 behind him, then black and white with the face held in the mid greys and a 45-degree dot screen sized by area.
+
+(QA, Nov 3 2026: the first-round originals, zqa_author_S_16.png among them, are deleted; ZeDUI/tools/qa/author_portrait.txt
+remakes them. The book uses the second set; its script commit is ecf5610a.)
