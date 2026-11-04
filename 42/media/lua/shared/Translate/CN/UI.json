@@ -4528,5 +4528,13 @@
     "UI_ZeD_Guide_Ad1_Coupon": "请勾选所需书目，并将此页寄至 Muldraugh, Kentucky 求生应急出版部。请预留六周送达时间。",
     "UI_ZeD_Guide_Ad1_Name": "姓名",
     "UI_ZeD_Guide_Ad1_Address": "地址",
-    "UI_ZeD_Guide_Notes": "笔记"
+    "UI_ZeD_Guide_Notes": "笔记",
+    "UI_ZeD_Guide_CheckTitle": "你的第一周",
+    "UI_ZeD_Guide_Check1": "拉上窗帘，逐间检查房子。",
+    "UI_ZeD_Guide_Check2": "趁水龙头还出水，把每个瓶子、锅和水桶都装满。",
+    "UI_ZeD_Guide_Check3": "找一件可以挥打的东西，再找一个可以装东西的容器。",
+    "UI_ZeD_Guide_Check4": "清洁并包扎每一个伤口，再小也一样。",
+    "UI_ZeD_Guide_Check5": "先吃新鲜的食物，留着罐头。",
+    "UI_ZeD_Guide_Check6": "找一张地图，记住两条离开城镇的路。",
+    "UI_ZeD_Guide_Check7": "走路，保持安静，在门口战斗。"
 }

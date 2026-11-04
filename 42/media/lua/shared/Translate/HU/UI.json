@@ -4527,5 +4527,13 @@
     "UI_ZeD_Guide_Ad1_Coupon": "Jelölje meg a kívánt címeket, és küldje be ezt az oldalt a következő címre: Túlélési Vészhelyzeti Kiadványok Osztálya, Muldraugh, Kentucky. A szállítás hat hétig tart.",
     "UI_ZeD_Guide_Ad1_Name": "Név",
     "UI_ZeD_Guide_Ad1_Address": "Cím",
-    "UI_ZeD_Guide_Notes": "Jegyzetek"
+    "UI_ZeD_Guide_Notes": "Jegyzetek",
+    "UI_ZeD_Guide_CheckTitle": "Az első heted",
+    "UI_ZeD_Guide_Check1": "Húzd be a függönyöket, és nézd át a házat szobáról szobára.",
+    "UI_ZeD_Guide_Check2": "Tölts meg minden palackot, fazekat és vödröt, amíg a csapok még működnek.",
+    "UI_ZeD_Guide_Check3": "Keress valamit, amivel ütni lehet, és valamit, amiben vinni lehet a holmit.",
+    "UI_ZeD_Guide_Check4": "Tisztítsd meg és kötözd be minden sebet, bármilyen kicsi is.",
+    "UI_ZeD_Guide_Check5": "Előbb a friss ételt edd meg. A konzerveket tartsd meg.",
+    "UI_ZeD_Guide_Check6": "Keress egy térképet, és tanulj meg két utat a városból.",
+    "UI_ZeD_Guide_Check7": "Sétálj, maradj csendben, és egy ajtónál harcolj."
 }

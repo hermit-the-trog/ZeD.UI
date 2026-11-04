@@ -4527,5 +4527,13 @@
     "UI_ZeD_Guide_Ad1_Coupon": "Cochez les titres désirés et postez cette page à la Division des publications d'urgence sur la survie, Muldraugh, Kentucky. Prévoyez six semaines de livraison.",
     "UI_ZeD_Guide_Ad1_Name": "Nom",
     "UI_ZeD_Guide_Ad1_Address": "Adresse",
-    "UI_ZeD_Guide_Notes": "Notes"
+    "UI_ZeD_Guide_Notes": "Notes",
+    "UI_ZeD_Guide_CheckTitle": "Votre première semaine",
+    "UI_ZeD_Guide_Check1": "Fermez les rideaux et inspectez la maison, pièce par pièce.",
+    "UI_ZeD_Guide_Check2": "Remplissez chaque bouteille, casserole et seau tant que les robinets coulent encore.",
+    "UI_ZeD_Guide_Check3": "Trouvez de quoi frapper et de quoi transporter vos affaires.",
+    "UI_ZeD_Guide_Check4": "Nettoyez et bandez chaque blessure, même petite.",
+    "UI_ZeD_Guide_Check5": "Mangez d'abord les aliments frais. Gardez les conserves.",
+    "UI_ZeD_Guide_Check6": "Trouvez une carte et apprenez deux routes pour quitter la ville.",
+    "UI_ZeD_Guide_Check7": "Marchez, restez silencieux et battez-vous à une porte."
 }

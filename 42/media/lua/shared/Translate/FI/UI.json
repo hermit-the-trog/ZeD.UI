@@ -4527,5 +4527,13 @@
     "UI_ZeD_Guide_Ad1_Coupon": "Rastita haluamasi nimikkeet ja postita tämä sivu osoitteeseen Selviytymisen hätäjulkaisujen osasto, Muldraugh, Kentucky. Varaa toimitukseen kuusi viikkoa.",
     "UI_ZeD_Guide_Ad1_Name": "Nimi",
     "UI_ZeD_Guide_Ad1_Address": "Osoite",
-    "UI_ZeD_Guide_Notes": "Muistiinpanot"
+    "UI_ZeD_Guide_Notes": "Muistiinpanot",
+    "UI_ZeD_Guide_CheckTitle": "Ensimmäinen viikkosi",
+    "UI_ZeD_Guide_Check1": "Sulje verhot ja tarkista talo huone huoneelta.",
+    "UI_ZeD_Guide_Check2": "Täytä jokainen pullo, kattila ja ämpäri, kun hanat vielä toimivat.",
+    "UI_ZeD_Guide_Check3": "Etsi jotain, millä lyödä, ja jotain, johon kantaa tavaraa.",
+    "UI_ZeD_Guide_Check4": "Puhdista ja sido jokainen haava, olipa se kuinka pieni tahansa.",
+    "UI_ZeD_Guide_Check5": "Syö tuore ruoka ensin. Säästä säilykkeet.",
+    "UI_ZeD_Guide_Check6": "Etsi kartta ja opettele kaksi tietä pois kaupungista.",
+    "UI_ZeD_Guide_Check7": "Kävele, pysy hiljaa ja taistele ovella."
 }
