@@ -73,7 +73,14 @@ step(20, function()
     check(st[2] and st[2].text:find(" L", 1, true) and st[2].color == T.warning, "the water bottle: litres, warning under 25%")
     check(st[3] and not st[3].text:find("%%%%") and st[3].text:find("%%"), "the lighter: a percentage with one % sign (" .. tostring(st[3] and st[3].text) .. ")")
 end)
-step(40, function() shot("1_three_pins") end)
+step(40, function()
+    local cw = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
+    local ts = cw and cw.titleStats or {}
+    local parts = {}
+    for _, s in ipairs(ts) do parts[#parts + 1] = tostring(s.text) end
+    say("Character window title stats now: " .. #ts .. " (" .. table.concat(parts, " | ") .. "); window width " .. tostring(cw and cw:getWidth()) .. ", hideTitle " .. tostring(cw and cw._hideTitle))
+    shot("1_three_pins")
+end)
 -- 4 a fourth drops the oldest with a note
 step(10, function()
     menuPin(items[4])
