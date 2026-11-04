@@ -451,7 +451,8 @@ function ZeD_Window:_drawTitleBar(w, tbH)
     local titleX = sp.sm + T.closeBoxSz + sp.md
     local textY = math.floor((tbH - (T.fontF3H or tm:getFontHeight(f3))) / 2)
     local shown, tW = nil, 0
-    local title = self.title
+    -- (a window may hide its title to give its stats the bar: the Character window while pins show)
+    local title = (not self._hideTitle) and self.title or nil
     if title and title ~= "" then
         shown = ZeD.Atoms.truncateText(tostring(title), f3, math.max(0, right - titleX - tbp))
         tW = tm:MeasureStringX(f3, shown)
