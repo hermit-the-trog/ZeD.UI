@@ -385,7 +385,10 @@ function ZeD_MMMods:drawSepRow(e, x, ry, rw, vy, vh, gp, modal)
     local cw = MM.textW(f3, e.cnt)
     local nameW = math.max(T.px(20), right - nx - cw - T.px(24))
     if e.tnw ~= nameW then e.tnw, e.tn = nameW, ZeD.Atoms.truncateText(e.name, f2, nameW) end
-    local nc = onFocus and T.textOnFocus or (lc and bc) or (e.sp.on and T.textHead or T.textDim)
+    -- (the name: the label's text colour, which reads at 4.6 : 1; the rules keep the strong mark colour)
+    local lt = lc and self:labelColor(e.sp.label, true)
+    local ltc = lt and { r = lt.r, g = lt.g, b = lt.b, a = la } or nil
+    local nc = onFocus and T.textOnFocus or ltc or (e.sp.on and T.textHead or T.textDim)
     self:drawText(e.tn, nx, ry + math.floor((e.h - MM.fontH(f2)) / 2), nc.r, nc.g, nc.b, nc.a or 1, f2)
     local cx = nx + MM.textW(f2, e.tn) + T.px(8)
     self:drawText(e.cnt, cx, ry + math.floor((e.h - MM.fontH(f3)) / 2), dim.r, dim.g, dim.b, dim.a or 1, f3)

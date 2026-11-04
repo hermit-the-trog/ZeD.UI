@@ -212,12 +212,12 @@ local function drawFolderPic(p, x, y, s, c, fill)
     p:drawRectBorder(x, by, s, bh, c.a or 1, c.r, c.g, c.b)
 end
 
--- a label's colour on this theme (nil: no label, or one this version does not know)
-local function labelColor(key)
-    local L = key and ZeD.T.labels
+-- a label's colour on this theme for marks, or as text (asText); nil: no label, or one this version does not know
+local function labelColor(key, asText)
+    local L = key and (asText and ZeD.T.labelsText or ZeD.T.labels)
     return L and L[key] or nil
 end
-ZeD_MMMods.labelColor = function(_, key) return labelColor(key) end
+ZeD_MMMods.labelColor = function(_, key, asText) return labelColor(key, asText) end
 
 -- THE LABEL SWATCHES (the director, Nov 4 2026: "System 7 finder labels"): None, then System 7's seven labels, in
 -- the Maps tab's ink-swatch look: a hover wash and the controller's mark in a 2u ring round each, a 1u edge, a ring in
