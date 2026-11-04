@@ -91,9 +91,16 @@ local function layerReady()
     if LAYER.root then return true end
     if not (PZAPI and PZAPI.UI and PZAPI.UI.Node and PZAPI.UI.Text) then return false end
     local ok = pcall(function()
-        -- (a one-pixel root: it holds the text atoms and never stands in the pointer's way)
-        local root = PZAPI.UI.Node{ x = 0, y = 0, width = 1, height = 1, alwaysOnTop = true }
-        root:instantiate()
+        -- (a one-pixel root, never handed to the UIManager: an atom root there draws under ZeD's always-on-top
+        -- book whatever is raised (QA, Nov 3 2026). The book draws it itself, after its own drawing, in render.)
+        local UI = PZAPI.UI
+        local root = UI.Node{ x = 0, y = 0, width = 1, height = 1 }
+        UI._setParentChildRelationship(root)
+        UI._applyHooks(root)
+        UI._createAtomObjs(root)
+        UI._internalInit(root)
+        UI._initElement(root)
+        UI._initResize(root)
         LAYER.root = root
     end)
     return ok and LAYER.root ~= nil
@@ -383,7 +390,9 @@ function ZeD_GuideBook:clipTex(t)
         c = false
         if getCore():getOptionDoVideoEffects() then
             local ok, v = pcall(getVideo, t.video, 960, 480)
-            if ok and v then c = { video = v } end
+            local valid = false
+            if ok and v then pcall(function() valid = v:isValid() end) end
+            if ok and v and valid then c = { video = v } end
         end
         if not c then
             local base = tostring(t.video):match("([^/\\]+)%.%w+$") or tostring(t.video):match("([^/\\]+)$") or ""
@@ -804,8 +813,18 @@ end
 function ZeD_GuideBook:onJoypadDirDown() if not self.footFocus then self.footFocus = 4; sound("UISelectListItem") end end
 function ZeD_GuideBook:onJoypadDirUp() if self.footFocus then self.footFocus = nil; sound("UISelectListItem") end end
 
+-- the words: the text atoms drawn over everything the panel drew this frame
+function ZeD_GuideBook:render()
+    ISPanelJoypad.render(self)
+    if LAYER.root and LAYER.panel == self then
+        local ok, err = pcall(function() LAYER.root.javaObj:render() end)
+        if not ok then ZeD.logOnce("survival guide book text", err) end
+    end
+end
+
 function ZeD_GuideBook:update()
     ISPanelJoypad.update(self)
+    if LAYER.root and LAYER.panel == self then pcall(function() LAYER.root.javaObj:update() end) end
     local jd = JoypadState and JoypadState.players and JoypadState.players[self.playerNum + 1]
     self.joyfocus = (jd and jd.focus == self) and jd or (B.qaJoy and self or nil)
 end

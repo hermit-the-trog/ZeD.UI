@@ -561,7 +561,10 @@ function ZeD_GuideWindow:drawClip(it, t)
         local core = getCore()
         if core:getOptionDoVideoEffects() then
             local ok, v = pcall(getVideo, t.video, CLIP_SRC_W, CLIP_SRC_H)
-            if ok then self._clip = v end
+            -- (a clip the game loads but cannot play shows its still: QA, sg_aiming.bik)
+            local valid = false
+            if ok and v then pcall(function() valid = v:isValid() end) end
+            if ok and v and valid then self._clip = v end
         end
         if not self._clip then
             -- the game ships no stills for its guide clips: ZeD's own, one frame of each clip
