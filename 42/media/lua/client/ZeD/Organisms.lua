@@ -176,7 +176,7 @@ function ZeD_Window:_autoCollapse()
         return
     end
     local mx, my = getMouseX() - self:getAbsoluteX(), getMouseY() - self:getAbsoluteY()
-    local inside = mx >= 0 and my >= 0 and mx <= self:getWidth() and my <= self:getHeight()
+    local inside = mx >= 0 and my >= 0 and mx <= self:getWidth() and my <= self:shownHeight()
     if inside then
         self._outSince = nil
         if self.windowShaded and my < self:titleBarHeight() then
@@ -212,6 +212,12 @@ end
 -- the title-bar double-click path AND FocusManager's windowshade-on-stick
 -- trigger (S95). Children are hidden/restored so content doesn't render
 -- underneath the collapsed title bar; the overlay that draws the frame stays.
+-- The height the window shows and takes the pointer in: its title bar while shaded or collapsed
+function ZeD_Window:shownHeight()
+    if self.windowShaded or self.isCollapsed then return math.min(self:getHeight(), self:titleBarHeight()) end
+    return self:getHeight()
+end
+
 function ZeD_Window:setWindowShaded(shaded)
     local T = ZeD.T
     if self.windowShaded == shaded then return end
@@ -224,6 +230,10 @@ function ZeD_Window:setWindowShaded(shaded)
         -- window's minimum is its title bar, or the roll-up kept the full frame, QA Nov 4 2026)
         self.minimumHeight = tbH
         self:setHeight(tbH)
+        -- (and as the game's inventory does when it rolls up, ISInventoryPage: the engine draws and takes the
+        -- pointer for the title bar only, whatever the height; QA Nov 4 2026 still read the full height after
+        -- the line above, so this holds whatever sets it back)
+        self:setMaxDrawHeight(tbH)
         local children = self:getChildren()
         if children then
             for _, child in pairs(children) do
@@ -235,6 +245,7 @@ function ZeD_Window:setWindowShaded(shaded)
         end
     else
         self.minimumHeight = T.minWinH
+        self:clearMaxDrawHeight()
         self:setHeight(self.preShadeHeight or T.px(300))
         local children = self:getChildren()
         if children then
@@ -468,7 +479,7 @@ function ZeD_Window:_keepOverlayLast()
         self._zedOverlay = ov
         ISUIElement.addChild(self, ov)
     end
-    local w, h = self:getWidth(), self:getHeight()
+    local w, h = self:getWidth(), self:shownHeight()
     if ov:getWidth() ~= w then ov:setWidth(w) end
     if ov:getHeight() ~= h then ov:setHeight(h) end
     if not ov:isVisible() then ov:setVisible(true) end
@@ -973,7 +984,7 @@ end
 function ZeD_Window._drawTop(win)
     local p = win._zedOverlay
     if not p then return end
-    local w, h = win:getWidth(), win:getHeight()
+    local w, h = win:getWidth(), win:shownHeight()
     local shaded = win.isCollapsed or win.windowShaded
     local lit = (not shaded) and win._rzLit or nil
     win:_watchBoxes()   -- (every frame drawn: update() runs only every 100 ms)
