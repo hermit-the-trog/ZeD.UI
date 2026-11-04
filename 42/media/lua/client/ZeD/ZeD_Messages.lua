@@ -23,7 +23,7 @@ ZeD = ZeD or {}
 ZeD.Messages = ZeD.Messages or {}
 local M = ZeD.Messages
 
-M.sources = M.sources or {}    -- name -> { name, kind = "mods" | "err", items = { ... }, at = sequence }
+M.sources = M.sources or {}    -- name -> { name, kind = "mods" | "err" | "halo", items = { ... }, at = sequence }
 M.toasts = M.toasts or {}      -- { kind = "warn" | "crit", head, text, source, untilMs }
 M.seq = M.seq or 0             -- bumps on every change (the window and the belt re-read)
 M.popups = M.popups or nil     -- mod name -> true: that mod's notes show as pop-ups (Zomboid/Lua/ZeD_messages.txt)
@@ -185,15 +185,59 @@ function M.count()
     for _, s in pairs(M.sources) do n = n + #s.items end
     return n
 end
--- the sources, mods first (newest first), then errors (newest first)
+-- the sources, mods first (newest first), then errors (newest first), then the notes over your head
 function M.list()
-    local mods, errs = {}, {}
+    local mods, errs, halos = {}, {}, {}
     for _, s in pairs(M.sources) do
-        if #s.items > 0 then if s.kind == "err" then errs[#errs + 1] = s else mods[#mods + 1] = s end end
+        if #s.items > 0 then
+            if s.kind == "err" then errs[#errs + 1] = s
+            elseif s.kind == "halo" then halos[#halos + 1] = s
+            else mods[#mods + 1] = s end
+        end
     end
     local by = function(a, b) return (a.at or 0) > (b.at or 0) end
     table.sort(mods, by); table.sort(errs, by)
-    return mods, errs
+    return mods, errs, halos
+end
+
+-- ---------------------------------------------------------------------------
+-- the notes over your head (the director, Nov 4 2026: "a running log", so a note you missed can be read later;
+-- ZeD_HaloText.lua). One source, newest first, already read (they never raise the unread count or a toast), the
+-- oldest dropped past HALO_KEEP. The same line again on top counts up instead of adding a card. An XP line adds to
+-- the one on top for the same skill (sum = true, with amount and its key).
+-- ---------------------------------------------------------------------------
+local HALO_KEEP = 100
+function M.halo(text, tone, sum)
+    text = tostring(text or "")
+    if text == "" then return end
+    local name = ZeD.tr("UI_ZeD_Msg_OverHead")
+    local s = M.sources[name]
+    if not s then
+        s = { name = name, kind = "halo", items = {} }
+        M.sources[name] = s
+    end
+    local top = s.items[1]
+    if sum and top and top.sumKey == sum.key then
+        top.amount = (top.amount or 0) + (sum.amount or 0)
+        top.text = ZeD.tr("UI_ZeD_Halo_XP", sum.label, string.format("%.1f", top.amount))
+        top.when = when()
+        bump()
+        return top
+    end
+    if (not sum) and top and top.text == text and top.tone == tone and not top.sumKey then
+        top.n = (top.n or 1) + 1
+        top.when = when()
+        bump()
+        return top
+    end
+    local it = { k = "halo", text = text, tone = tone, read = true, when = when() }
+    if sum then it.sumKey, it.amount = sum.key, sum.amount or 0 end
+    table.insert(s.items, 1, it)
+    while #s.items > HALO_KEEP do table.remove(s.items) end
+    M.seq = M.seq + 1
+    s.at = M.seq
+    bump()
+    return it
 end
 function M.markRead(name)
     local s = M.sources[name]

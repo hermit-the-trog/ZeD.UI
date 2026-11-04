@@ -102,12 +102,15 @@ end
 
 -- the sources in list order, and the chosen one (the first when none or gone)
 function ZeD_MessagesWindow:rows()
-    local mods, errs = MS.list()
+    local mods, errs, halos = MS.list()
     local rows = {}
     if #mods > 0 then rows[#rows + 1] = { head = tr("UI_ZeD_Msg_FromMods") } end
     for _, s in ipairs(mods) do rows[#rows + 1] = { src = s } end
     if #errs > 0 then rows[#rows + 1] = { head = tr("UI_ZeD_Msg_Errors") } end
     for _, s in ipairs(errs) do rows[#rows + 1] = { src = s } end
+    -- (the notes over your head: ZeD_HaloText, the director, Nov 4 2026)
+    if halos and #halos > 0 then rows[#rows + 1] = { head = tr("UI_ZeD_Msg_GameNotes") } end
+    for _, s in ipairs(halos or {}) do rows[#rows + 1] = { src = s } end
     local cur
     for _, r in ipairs(rows) do if r.src and r.src.name == self.sel then cur = r.src end end
     if not cur then
@@ -154,6 +157,9 @@ function ZeD_MessagesWindow:buildCards(g, cur, areaX, areaW)
                     if bi > 1 then lines[#lines + 1] = { gap = true } end
                     for _, l in ipairs(ZeD.Atoms.wrapText(bl.text, font, inner)) do lines[#lines + 1] = { text = l, font = font } end
                 end
+            end
+            if it.k == "halo" and (it.n or 1) > 1 then
+                lines[#lines + 1] = { text = tr("UI_ZeD_Msg_Times", it.n), font = T.fontF2, dim = true }
             end
             if it.k == "ask" and it.answer and it.answer ~= "" then
                 lines[#lines + 1] = { gap = true }
@@ -369,6 +375,11 @@ function ZeD_MessagesWindow:prerender()
             local hy = c.y + math.floor((px(U.CARD_HEAD_H) - tagH) / 2)
             local kindKey = ({ note = "UI_ZeD_Msg_KindNote", ask = "UI_ZeD_Msg_KindAnswered", err = "UI_ZeD_Msg_KindError" })[it.k] or "UI_ZeD_Msg_KindNote"
             local kcol = (it.k == "err" and T.danger) or (it.k == "ask" and (T.warning or ac)) or (T.info or ac)
+            -- (a note over your head: good news, bad news or plain, as its mark over the head said)
+            if it.k == "halo" then
+                kindKey = (it.tone == "good" and "UI_ZeD_Msg_KindGood") or (it.tone == "bad" and "UI_ZeD_Msg_KindBad") or "UI_ZeD_Msg_KindNote"
+                kcol = (it.tone == "good" and T.positive) or (it.tone == "bad" and T.danger) or T.textDim
+            end
             local kw = Mo.drawTag(self, c.x + px(U.CARD_PAD), hy, tr(kindKey), kcol)
             local meta = self.sel .. " | " .. tostring(it.when or "") .. ((it.done and it.answer) and (" | " .. tr("UI_ZeD_Msg_Answered", it.answer)) or "")
             self:drawText(A.truncateText(meta, T.fontF1, c.w - kw - px(U.CARD_PAD) * 3), c.x + px(U.CARD_PAD) * 2 + kw, c.y + math.floor((px(U.CARD_HEAD_H) - fh(T.fontF1)) / 2), td.r, td.g, td.b, td.a or 1, T.fontF1)
