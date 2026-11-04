@@ -248,65 +248,106 @@ local function bodyLines(t, f, px, w)
 end
 
 -- the page list for a reading of the topics (front matter, then a page a topic and its rules page)
+-- The pages, as a flow (the director, Nov 3 2026: topics share a page): a chapter opens on a fresh page with its
+-- heading, the clip and the line under it; each later topic follows on the same page under its own heading when its
+-- heading, clip and three lines still fit, else on the next; a long topic runs on. A topic with The Rules in Numbers
+-- starts a left page and its rules page faces it. Each page is a list of placed items (baselines and tops in px).
 function B.paginate(bk, u)
     local px = function(n) return n * u end
     local pages = { { kind = "blank" }, { kind = "title" }, { kind = "contents" }, { kind = "intro" } }
     local textW_ = px(U.PW - U.M * 2)
     local lineH = px(U.TEXT) * U.LEAD
     local bottom = px(U.PH - U.FOOT - U.MT)
-    bk.sectionPage = {}
+    local clipH = math.floor(textW_ / 2)
+    local page, y = nil, 0
+    bk.sectionPage, bk.pageOf = {}, {}
+
+    local function newPage(si, s, opener)
+        page = { kind = "flow", si = si, section = s, items = {} }
+        pages[#pages + 1] = page
+        y = px(U.MT) + px(U.CHAP)
+        local label = opener and tr("UI_ZeD_Guide_BookChapter", si) or (tr("UI_ZeD_Guide_BookChapter", si) .. "  |  " .. s.title)
+        page.items[#page.items + 1] = { k = "label", y = y, text = label, px = px(U.CHAP) * (opener and 1.1 or 0.9) }
+        y = y + px(U.CHAP) * 0.6
+        page.fresh = true
+    end
+    local function add(it) page.items[#page.items + 1] = it; page.fresh = false end
+    local function heads(text, hp)
+        for _, l in ipairs(wrapWords(wordsOf(upper(text)), F.head, hp, function() return textW_ end, 1, 0)) do
+            y = y + hp * 1.08
+            local words = {}
+            for _, it in ipairs(l.items) do words[#words + 1] = it.word or "" end
+            add({ k = "head", y = y - hp * 0.18, text = table.concat(words, " "), px = hp })
+        end
+    end
+    local function clip(t)
+        if not (t.video and t.video ~= "") then return end
+        add({ k = "clip", y = y, h = clipH, topic = t })
+        y = y + clipH + px(U.CAP) * 1.5
+        add({ k = "caption", y = y, text = t.title })
+        y = y + px(U.CAP) * 0.7
+    end
+    local function body(t, si, s)
+        for _, l in ipairs(bodyLines(t, F.text, px(U.TEXT), textW_)) do
+            if y + lineH > bottom then newPage(si, s, false) end
+            y = y + lineH
+            add({ k = "line", y = y, line = l })
+        end
+    end
+
     for si, s in ipairs(bk.sections) do
         for ti, t in ipairs(s.topics) do
             local first = ti == 1
-            -- the heading's room: Chapter n, the title, the clip, the caption, the deck
-            local y = px(U.MT)
-            y = y + px(U.CHAP) * 1.6
-            local headPx = first and px(U.OPEN) or px(U.TITLE)
-            local heads = wrapWords(wordsOf(upper(first and s.title or t.title)), F.head, headPx, function() return textW_ end, 1, 0)
-            y = y + #heads * headPx * 1.08 + px(10)
-            local clipH = 0
-            if t.video and t.video ~= "" then clipH = math.floor(textW_ / 2); y = y + clipH + px(U.CAP) * 2.2 end
-            local deckLines = {}
-            if first then
-                local d = blurb(s)
-                if d ~= "" then
-                    deckLines = wrapWords(wordsOf(titleCase(d:gsub("%.$", ""))), F.sansB, px(U.DECK), function() return textW_ - px(20) end, 1, 0)
-                    y = y + #deckLines * px(U.DECK) * 1.3 + px(8)
-                end
-                y = y + px(U.TEXT) * 1.6   -- (the topic's own name, a bold sans line, over its text)
-            end
-            local lines = bodyLines(t, F.text, px(U.TEXT), textW_)
-            local room = math.max(1, math.floor((bottom - y) / lineH))
-            local page = { kind = "topic", topic = t, section = s, si = si, first = first, heads = heads, headPx = headPx,
-                           clipH = clipH, deck = deckLines, lines = {} }
-            -- a topic with rules starts on a left page, so its rules face it (a blank page before it if need be)
-            local hasRules = ZeD.Guide.Rules and ZeD.Guide.Rules[t.titleKey] ~= nil
-            if hasRules and (#pages + 1) % 2 == 0 then pages[#pages + 1] = { kind = "blank" } end
-            if first then bk.sectionPage[s.id] = #pages + 1 end
-            pages[#pages + 1] = page
-            local li = 1
-            for k = 1, math.min(room, #lines) do page.lines[#page.lines + 1] = lines[k]; li = k + 1 end
-            -- a topic too long for its page runs on
-            while li <= #lines do
-                local cont = { kind = "topic", topic = t, section = s, si = si, cont = true, lines = {} }
-                local r2 = math.floor((bottom - px(U.MT) - px(U.CHAP) * 2) / lineH)
-                for k = li, math.min(#lines, li + r2 - 1) do cont.lines[#cont.lines + 1] = lines[k] end
-                li = li + r2
-                pages[#pages + 1] = cont
-            end
             local rf = ZeD.Guide.Rules and ZeD.Guide.Rules[t.titleKey]
+            if rf then
+                -- a fresh left page (a blank before it if need be), so the rules page faces it
+                if (#pages + 1) % 2 == 0 then pages[#pages + 1] = { kind = "blank" } end
+                newPage(si, s, first)
+            elseif first then
+                newPage(si, s, true)
+            else
+                -- room for the heading, the clip and three lines here, or the next page
+                local hp = px(U.TITLE)
+                local nHead = #wrapWords(wordsOf(upper(t.title)), F.head, hp, function() return textW_ end, 1, 0)
+                local need = px(U.TEXT) * 1.2 + nHead * hp * 1.08 + px(6)
+                if t.video and t.video ~= "" then need = need + clipH + px(U.CAP) * 2.2 end
+                need = need + lineH * 3
+                if not page or page.kind ~= "flow" or y + need > bottom then newPage(si, s, false) end
+            end
+            bk.pageOf[t.id] = #pages
+            if first then
+                bk.sectionPage[s.id] = #pages
+                heads(s.title, px(U.OPEN))
+                y = y + px(10)
+                clip(t)
+                local d = blurb(s)
+                local dl = {}
+                if d ~= "" then dl = wrapWords(wordsOf(titleCase(d:gsub("%.$", ""))), F.sansB, px(U.DECK), function() return textW_ - px(20) end, 1, 0) end
+                for _, l in ipairs(dl) do
+                    y = y + px(U.DECK) * 1.3
+                    local words = {}
+                    for _, it in ipairs(l.items) do words[#words + 1] = it.word or "" end
+                    add({ k = "deck", y = y, text = table.concat(words, " ") })
+                end
+                y = y + ((#dl > 0) and px(8) or 0) + px(U.TEXT) * 1.5
+                add({ k = "sub", y = y, text = t.title })
+                y = y + px(U.TEXT) * 0.3
+            else
+                if not page.fresh then y = y + px(U.TEXT) * 1.2 end
+                heads(t.title, px(U.TITLE))
+                y = y + px(6)
+                clip(t)
+            end
+            body(t, si, s)
             if rf then
                 local ok, rules = pcall(rf)
                 if ok and rules then pages[#pages + 1] = { kind = "rules", topic = t, section = s, si = si, rules = rules } end
+                page = nil
             end
         end
     end
     if #pages % 2 == 1 then pages[#pages + 1] = { kind = "blank" } end
     bk.pages = pages
-    bk.pageOf = {}
-    for i, p in ipairs(pages) do
-        if p.kind == "topic" and not p.cont and not bk.pageOf[p.topic.id] then bk.pageOf[p.topic.id] = i end
-    end
 end
 
 -- the printed number of the page at index i (the title page is the first right-hand page, ii)
@@ -413,53 +454,35 @@ local function folio(panel, pg, x, y, w, u, num, left)
     end
 end
 
-function ZeD_GuideBook:drawTopicPage(p, x, y, w, u)
+function ZeD_GuideBook:drawFlowPage(p, x, y, w, u)
     local m = U.M * u
     local tx, tw_ = x + m, w - m * 2
-    local yy = y + U.MT * u
-    local t, s = p.topic, p.section
-    local chap = p.cont and (tr("UI_ZeD_Guide_BookChapter", p.si) .. "  |  " .. t.title .. "  " .. tr("UI_ZeD_Guide_BookContinued"))
-        or (p.first and tr("UI_ZeD_Guide_BookChapter", p.si) or (tr("UI_ZeD_Guide_BookChapter", p.si) .. "  |  " .. s.title))
-    yy = yy + U.CHAP * u
-    drawAt(self, F.sansB, chap, tx, yy, U.CHAP * u * (p.first and 1.1 or 0.9), INK)
-    yy = yy + U.CHAP * u * 0.6
-    if not p.cont then
-        for _, l in ipairs(p.heads) do
-            yy = yy + p.headPx * 1.08
-            local words = {}
-            for _, it in ipairs(l.items) do words[#words + 1] = it.word or "" end
-            drawCentre(self, F.head, table.concat(words, " "), x + w / 2, yy - p.headPx * 0.18, p.headPx, INK)
-        end
-        yy = yy + 10 * u
-        if p.clipH > 0 then
-            local c = self:clipTex(t)
-            self:drawRect(tx, yy, tw_, p.clipH, 1, INK.r, INK.g, INK.b)
+    local cx = x + w / 2
+    for _, it in ipairs(p.items) do
+        local k = it.k
+        if k == "line" then
+            drawLine(self, F.text, U.TEXT * u, it.line, tx, y + it.y, INK)
+        elseif k == "head" then
+            drawCentre(self, F.head, it.text, cx, y + it.y, it.px, INK)
+        elseif k == "label" then
+            drawAt(self, F.sansB, it.text, tx, y + it.y, it.px, INK)
+        elseif k == "clip" then
+            local c = self:clipTex(it.topic)
+            local cy = y + it.y
+            self:drawRect(tx, cy, tw_, it.h, 1, INK.r, INK.g, INK.b)
             if c and c.video then
                 pcall(function() c.video:RenderFrame() end)
-                self:drawTextureScaled(c.video, tx, yy, tw_, p.clipH, 1, 0.96, 0.93, 0.84)
+                self:drawTextureScaled(c.video, tx, cy, tw_, it.h, 1, 0.96, 0.93, 0.84)
             elseif c and c.still then
-                self:drawTextureScaledAspect(c.still, tx, yy, tw_, p.clipH, 1, 0.96, 0.93, 0.84)
+                self:drawTextureScaledAspect(c.still, tx, cy, tw_, it.h, 1, 0.96, 0.93, 0.84)
             end
-            yy = yy + p.clipH + U.CAP * u * 1.5
-            drawCentre(self, F.sansI, t.title, x + w / 2, yy, U.CAP * u, INK)
-            yy = yy + U.CAP * u * 0.7
+        elseif k == "caption" then
+            drawCentre(self, F.sansI, it.text, cx, y + it.y, U.CAP * u, INK)
+        elseif k == "deck" then
+            drawCentre(self, F.sansB, it.text, cx, y + it.y, U.DECK * u, INK)
+        elseif k == "sub" then
+            drawAt(self, F.sansB, it.text, tx, y + it.y, U.TEXT * u, INK)
         end
-        for _, l in ipairs(p.deck or {}) do
-            yy = yy + U.DECK * u * 1.3
-            local words = {}
-            for _, it in ipairs(l.items) do words[#words + 1] = it.word or "" end
-            drawCentre(self, F.sansB, table.concat(words, " "), x + w / 2, yy, U.DECK * u, INK)
-        end
-        if p.first then
-            yy = yy + ((#(p.deck or {}) > 0) and 8 * u or 0) + U.TEXT * u * 1.5
-            drawAt(self, F.sansB, t.title, tx, yy, U.TEXT * u, INK)
-            yy = yy + U.TEXT * u * 0.3
-        end
-    end
-    local lineH = U.TEXT * u * U.LEAD
-    for _, l in ipairs(p.lines) do
-        yy = yy + lineH
-        drawLine(self, F.text, U.TEXT * u, l, tx, yy, INK)
     end
 end
 
@@ -636,7 +659,7 @@ function ZeD_GuideBook:drawPage(i, x, y, w, u, hover)
     if p.kind == "title" then self:drawTitlePage(x, y, w, u); return end
     if p.kind == "contents" then self:drawContentsPage(x, y, w, u, hover)
     elseif p.kind == "intro" then self:drawIntroPage(x, y, w, u)
-    elseif p.kind == "topic" then self:drawTopicPage(p, x, y, w, u)
+    elseif p.kind == "flow" then self:drawFlowPage(p, x, y, w, u)
     elseif p.kind == "rules" then self:drawRulesPage(p, x, y, w, u)
     else return end
     folio(self, p, x, y, w, u, printed(i), i % 2 == 1)
