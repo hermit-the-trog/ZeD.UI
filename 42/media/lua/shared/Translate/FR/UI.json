@@ -4332,5 +4332,21 @@
     "UI_ZeD_Guide_Blurb_ranching": "Garder, manipuler et abattre des animaux.",
     "UI_ZeD_Guide_Blurb_fishing": "Appât, lancer, ramener et pièges.",
     "UI_ZeD_Guide_Blurb_cleaning": "Cadavres, taches, se laver et laver ses vêtements.",
-    "UI_ZeD_Guide_Blurb_multiplayer": "JcJ, factions, chat et examen des blessures des autres."
+    "UI_ZeD_Guide_Blurb_multiplayer": "JcJ, factions, chat et examen des blessures des autres.",
+    "UI_ZeD_Mods_TabOff": "Inactifs %1",
+    "UI_ZeD_Mods_HideInc": "Masquer les incompatibles",
+    "UI_ZeD_Mods_HideIncN": "%1 masqués",
+    "UI_ZeD_Mods_HelpHideInc": "Masque les mods désactivés qui ne peuvent pas être activés : conçus pour une autre version du jeu, ou qui requièrent un mod non installé. Conservé entre les visites.",
+    "UI_ZeD_Mods_Label": "Étiquette",
+    "UI_ZeD_Mods_LabelNone": "Aucune",
+    "UI_ZeD_Mods_LabelEssential": "Essentiel",
+    "UI_ZeD_Mods_LabelHot": "Chaud",
+    "UI_ZeD_Mods_LabelInProgress": "En cours",
+    "UI_ZeD_Mods_LabelCool": "Cool",
+    "UI_ZeD_Mods_LabelPersonal": "Personnel",
+    "UI_ZeD_Mods_LabelProject1": "Projet 1",
+    "UI_ZeD_Mods_LabelProject2": "Projet 2",
+    "UI_ZeD_Mods_HelpLabel": "Étiquette : %1. Colore l'image du dossier, ou le nom et le trait du séparateur.",
+    "UI_ZeD_Settings_Mods": "Écran des mods",
+    "UI_ZeD_Settings_ModsTip": "Complet : l'ID et les tags de chaque mod, dossiers, profils et ordre de chargement. Simple : une ligne par mod, sa case, son nom et une marque en cas de problème."
 }

@@ -4332,5 +4332,21 @@
     "UI_ZeD_Guide_Blurb_ranching": "Hold, håndtering og slagtning af dyr.",
     "UI_ZeD_Guide_Blurb_fishing": "Agn, kast, indhaling og fælder.",
     "UI_ZeD_Guide_Blurb_cleaning": "Lig, pletter, vask af dig selv og dit tøj.",
-    "UI_ZeD_Guide_Blurb_multiplayer": "PVP, fraktioner, chat og at tjekke hinandens sår."
+    "UI_ZeD_Guide_Blurb_multiplayer": "PVP, fraktioner, chat og at tjekke hinandens sår.",
+    "UI_ZeD_Mods_TabOff": "Fra %1",
+    "UI_ZeD_Mods_HideInc": "Skjul inkompatible",
+    "UI_ZeD_Mods_HideIncN": "%1 skjult",
+    "UI_ZeD_Mods_HelpHideInc": "Skjuler de slukkede modifikationer, der ikke kan tændes: lavet til en anden spilversion, eller som kræver en modifikation, der ikke er installeret. Huskes mellem besøg.",
+    "UI_ZeD_Mods_Label": "Etiket",
+    "UI_ZeD_Mods_LabelNone": "Ingen",
+    "UI_ZeD_Mods_LabelEssential": "Væsentlig",
+    "UI_ZeD_Mods_LabelHot": "Varm",
+    "UI_ZeD_Mods_LabelInProgress": "I gang",
+    "UI_ZeD_Mods_LabelCool": "Cool",
+    "UI_ZeD_Mods_LabelPersonal": "Personlig",
+    "UI_ZeD_Mods_LabelProject1": "Projekt 1",
+    "UI_ZeD_Mods_LabelProject2": "Projekt 2",
+    "UI_ZeD_Mods_HelpLabel": "Etiket: %1. Farver mappens billede, eller skillerens navn og streg.",
+    "UI_ZeD_Settings_Mods": "Modifikationsskærm",
+    "UI_ZeD_Settings_ModsTip": "Fuld: hver modifikations ID og tags, mapper, profiler og indlæsningsrækkefølgen. Simpel: én linje pr. modifikation, dens felt, dens navn og et mærke, når noget er galt."
 }

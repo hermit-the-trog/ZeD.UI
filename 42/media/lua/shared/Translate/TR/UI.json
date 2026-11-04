@@ -4332,5 +4332,21 @@
     "UI_ZeD_Guide_Blurb_ranching": "Hayvanları besleme, idare etme ve kesme.",
     "UI_ZeD_Guide_Blurb_fishing": "Yem, olta atma, çekme ve tuzaklar.",
     "UI_ZeD_Guide_Blurb_cleaning": "Cesetler, lekeler, kendinizi ve kıyafetlerinizi yıkama.",
-    "UI_ZeD_Guide_Blurb_multiplayer": "PVP, gruplar, sohbet ve birbirinin yaralarına bakma."
+    "UI_ZeD_Guide_Blurb_multiplayer": "PVP, gruplar, sohbet ve birbirinin yaralarına bakma.",
+    "UI_ZeD_Mods_TabOff": "Kapalı %1",
+    "UI_ZeD_Mods_HideInc": "Uyumsuzları gizle",
+    "UI_ZeD_Mods_HideIncN": "%1 gizli",
+    "UI_ZeD_Mods_HelpHideInc": "Açılamayan kapalı modları gizler: başka bir oyun sürümü için yapılmış ya da yüklü olmayan bir mod gerektirenler. Ziyaretler arasında hatırlanır.",
+    "UI_ZeD_Mods_Label": "Etiket",
+    "UI_ZeD_Mods_LabelNone": "Yok",
+    "UI_ZeD_Mods_LabelEssential": "Önemli",
+    "UI_ZeD_Mods_LabelHot": "Sıcak",
+    "UI_ZeD_Mods_LabelInProgress": "Sürüyor",
+    "UI_ZeD_Mods_LabelCool": "Serin",
+    "UI_ZeD_Mods_LabelPersonal": "Kişisel",
+    "UI_ZeD_Mods_LabelProject1": "Proje 1",
+    "UI_ZeD_Mods_LabelProject2": "Proje 2",
+    "UI_ZeD_Mods_HelpLabel": "Etiket: %1. Klasörün resmini veya ayırıcının adını ve çizgisini renklendirir.",
+    "UI_ZeD_Settings_Mods": "Mod ekranı",
+    "UI_ZeD_Settings_ModsTip": "Tam: her modun kimliği ve etiketleri, klasörler, profiller ve yükleme sırası. Basit: mod başına bir satır, kutusu, adı ve bir şey ters olduğunda bir işaret."
 }

@@ -4333,5 +4333,21 @@
     "UI_ZeD_Guide_Blurb_ranching": "動物の飼育、扱い、解体。",
     "UI_ZeD_Guide_Blurb_fishing": "餌、投げ込み、巻き上げ、罠。",
     "UI_ZeD_Guide_Blurb_cleaning": "死体、汚れ、体や衣類を洗う。",
-    "UI_ZeD_Guide_Blurb_multiplayer": "PVP、派閥、チャット、互いの傷の確認。"
+    "UI_ZeD_Guide_Blurb_multiplayer": "PVP、派閥、チャット、互いの傷の確認。",
+    "UI_ZeD_Mods_TabOff": "オフ %1",
+    "UI_ZeD_Mods_HideInc": "非互換を隠す",
+    "UI_ZeD_Mods_HideIncN": "%1 件を非表示",
+    "UI_ZeD_Mods_HelpHideInc": "オフで、オンにできないMODを隠します。別のゲームバージョン用か、未インストールのMODが必要なものです。次回以降も保持されます。",
+    "UI_ZeD_Mods_Label": "ラベル",
+    "UI_ZeD_Mods_LabelNone": "なし",
+    "UI_ZeD_Mods_LabelEssential": "必須",
+    "UI_ZeD_Mods_LabelHot": "ホット",
+    "UI_ZeD_Mods_LabelInProgress": "進行中",
+    "UI_ZeD_Mods_LabelCool": "クール",
+    "UI_ZeD_Mods_LabelPersonal": "個人",
+    "UI_ZeD_Mods_LabelProject1": "プロジェクト1",
+    "UI_ZeD_Mods_LabelProject2": "プロジェクト2",
+    "UI_ZeD_Mods_HelpLabel": "ラベル: %1。フォルダの絵、または区切りの名前と線に色を付けます。",
+    "UI_ZeD_Settings_Mods": "MOD画面",
+    "UI_ZeD_Settings_ModsTip": "フル: 各MODのIDとタグ、フォルダ、プロファイル、ロード順。シンプル: MOD1つにつき1行で、チェック枠、名前、問題があるときの印。"
 }
