@@ -359,23 +359,45 @@ function ZeD_GuideWindow:buildTopic(g, cx, cw)
         local lab = ZeD.upper and ZeD.upper(tr("UI_ZeD_Guide_Rules")) or tr("UI_ZeD_Guide_Rules")
         local box = { kind = "rules", x = cx, y = top, w = cw, label = lab, labelY = ry, cells = {}, notes = {} }
         ry = ry + fh(T.fontF1) + px(8)
-        -- the table: each column as wide as its widest cell (headers wrap to two lines if long)
+        -- the table: each column at least as wide as its numbers; the room left over goes to the
+        -- headings, and a heading that still does not fit wraps onto more lines (QA, Nov 3 2026:
+        -- the slower skills' heading ran off the narrower measure)
         local ncol = #rules.cols
+        local dataW, headW = {}, {}
+        for c = 1, ncol do
+            local wmax = 0
+            for _, r in ipairs(rules.rows) do wmax = math.max(wmax, tw(T.fontF2, r[c] or "")) end
+            dataW[c] = wmax
+            -- (a heading's narrowest is its longest word)
+            local word = 0
+            for wd in tostring(rules.cols[c]):gmatch("%S+") do word = math.max(word, tw(T.fontF1, wd)) end
+            dataW[c] = math.max(dataW[c], word)
+            headW[c] = tw(T.fontF1, rules.cols[c])
+        end
+        local gap = px(U.COL_GAP)
+        local minTotal = gap * (ncol - 1)
+        for c = 1, ncol do minTotal = minTotal + dataW[c] end
+        local extra = math.max(0, inner - minTotal)
+        local want = 0
+        for c = 1, ncol do want = want + math.max(0, headW[c] - dataW[c]) end
         local widths = {}
         for c = 1, ncol do
-            local wmax = tw(T.fontF1, rules.cols[c])
-            for _, r in ipairs(rules.rows) do wmax = math.max(wmax, tw(T.fontF2, r[c] or "")) end
-            widths[c] = wmax
+            local need = math.max(0, headW[c] - dataW[c])
+            local give = (want > 0) and math.floor(need * math.min(1, extra / want)) or 0
+            widths[c] = dataW[c] + give
         end
-        local total = 0
-        for c = 1, ncol do total = total + widths[c] end
-        local gap = px(U.COL_GAP)
-        while total + gap * (ncol - 1) > inner and gap > px(6) do gap = gap - 1 end
         local colX = {}
         local x = cx + pad
         for c = 1, ncol do colX[c] = x; x = x + widths[c] + gap end
-        for c = 1, ncol do box.cells[#box.cells + 1] = { x = colX[c], y = ry, text = rules.cols[c], head = true } end
-        ry = ry + fh(T.fontF1) + px(4)
+        local headLines = 1
+        for c = 1, ncol do
+            local lines = A.wrapText(rules.cols[c], T.fontF1, widths[c])
+            headLines = math.max(headLines, #lines)
+            for li, l in ipairs(lines) do
+                box.cells[#box.cells + 1] = { x = colX[c], y = ry + (li - 1) * fh(T.fontF1), text = l, head = true }
+            end
+        end
+        ry = ry + headLines * fh(T.fontF1) + px(4)
         box.ruleY = ry
         ry = ry + px(4)
         for ri, r in ipairs(rules.rows) do
