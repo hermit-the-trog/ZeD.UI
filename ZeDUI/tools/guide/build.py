@@ -1,9 +1,9 @@
-"""Builds ZeDUI/mockups/zed_survival_guide_v3.html from template.html and the game's own files (42.22)."""
+"""Builds ZeDUI/mockups/zed_survival_guide_v4.html from template.html and the game's own files (42.22)."""
 import base64, json, os, re, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))   # template.html and clip.jpg sit beside this script
 G = "E:/Project Zomboid/steamapps/common/ProjectZomboid/media"
-OUT = "C:/Users/you/Zomboid/mods/ZeD-UI/ZeDUI/mockups/zed_survival_guide_v3.html"
+OUT = "C:/Users/you/Zomboid/mods/ZeD-UI/ZeDUI/mockups/zed_survival_guide_v4.html"
 
 d = json.load(open(G + "/lua/shared/Translate/EN/SurvivalGuide.json", encoding="utf-8"))
 vids = set(os.listdir(G + "/videos/survival_guide"))
