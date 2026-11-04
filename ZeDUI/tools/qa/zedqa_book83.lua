@@ -96,7 +96,8 @@ step(40, function()
     -- its caption the next item
     local tw = math.floor((520 - 80) * u)
     local openers = {}
-    for _, s in ipairs(b.sections) do if s.topics[1] then openers[s.topics[1].id] = true end end
+    local nOpenClip = 0
+    for _, s in ipairs(b.sections) do if s.topics[1] then openers[s.topics[1].id] = true; if s.topics[1].video and s.topics[1].video ~= "" then nOpenClip = nOpenClip + 1 end end end
     local fullOk, smallOk, capOk, nClips, badClip = 0, 0, 0, 0, {}
     for i, p in ipairs(b.pages) do
         if p.kind == "flow" then
@@ -114,7 +115,7 @@ step(40, function()
         end
     end
     say(string.format("clips %d: %d opener full width, %d two-thirds; text width %d", nClips, fullOk, smallOk, tw))
-    check(#badClip == 0 and fullOk == #b.sections and smallOk + fullOk == nClips, "openers full width, every other clip two-thirds" .. (#badClip > 0 and (" (" .. table.concat(badClip, ", ", 1, math.min(#badClip, 8)) .. ")") or ""))
+    check(#badClip == 0 and fullOk == nOpenClip and smallOk + fullOk == nClips, "openers full width, every other clip two-thirds" .. (#badClip > 0 and (" (" .. table.concat(badClip, ", ", 1, math.min(#badClip, 8)) .. ")") or ""))
     check(capOk == nClips, "every clip has its caption under it (" .. capOk .. " of " .. nClips .. ")")
     check(spreadKinds() == "blank+title", "F1 with no tab opens on the title page (" .. spreadKinds() .. ")")
 end)
