@@ -125,3 +125,10 @@ of the repo). Mockup v4 (same link) adds what it shows: a byline line ("Staff Re
 the drop cap followed by the first word in capitals, bold run-in subheads ("Reading Part of a Book -- ..."), and
 charts in a ruled box with a bold caption centred inside at the foot. Its how-to pages (snares) use labelled line
 drawings in the same ruled box: the model for any diagram the guide needs.
+
+Third reference (Nov 3 2026): FEMA's "Protection in the Nuclear Age" (H-20, June 1985, 42 pages; Downloads). A US
+government pamphlet: centred PART heads in bold sans caps, typewriter body, checklists with empty tick boxes under bold
+headings, figures in round-cornered ruled frames with all-caps hand-lettered labels, numbered STEP blocks beside
+technical drawings with TOOLS AND MATERIALS lists, two-tone pictograms, "Page n" folios. What the magazine look does
+not have: checklists and step-by-step build pages. How the director wants it used is open (Build's suggestion: the
+First Days section and any build-it pages printed as a civil-defence pamphlet tucked into the guide).
