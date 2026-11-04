@@ -94,6 +94,6 @@ the main design question. Build's proposal:
    coming back.
 5. **F1 opens on where you are**, **your controls**, **what's new in ZeD** (as before).
 
-## Open questions
+## Decided
 
-1. **The sections:** all five above, or which?
+All five sections (the director, Nov 3 2026: "All five"). Next: a mockup of both looks on one topic.
