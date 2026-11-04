@@ -1183,6 +1183,11 @@ function ZeD_MMMods:drawOrderDetail(px0, y, pw0, h, modal)
             local bc = T.border
             self:drawRect(rx, cy, rw, T.px(1), bc.a, bc.r, bc.g, bc.b)
             cy = cy + T.px(6)
+        elseif it.t == "labels" then
+            -- a separator's label swatches (ZeD_MainMenuModsFolders: labelSwatches)
+            rowN = rowN + 1
+            local uid = it.uid
+            cy = self:labelSwatches(rx, cy + T.px(2), it.sp.label, function(k) self:sepSetLabel(uid, k) end, rowN, y, bottom - y, "slabel", modal) + T.px(8)
         elseif it.t == "btns" then
             local bx = rx
             rowN = rowN + 1

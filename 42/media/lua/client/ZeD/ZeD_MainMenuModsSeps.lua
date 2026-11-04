@@ -373,7 +373,10 @@ function ZeD_MMMods:drawSepRow(e, x, ry, rw, vy, vh, gp, modal)
     local dim = onFocus and T.textOnFocus or T.textDim
     if e.open then ZeD.Atoms.drawTriangleDown(self, tx, tyy, tri, dim) else ZeD.Atoms.drawTriangleRight(self, tx, tyy, tri, dim) end
     -- the name on a rule, its count, the rule on to the right edge
-    local bc = T.border
+    -- (a labelled separator: its name and rules in the label's colour, dimmed while it is off)
+    local lc = (not onFocus) and self:labelColor(e.sp.label) or nil
+    local la = (lc and not e.sp.on) and T.disabledAlpha or 1
+    local bc = lc and { r = lc.r, g = lc.g, b = lc.b, a = la } or T.border
     local midY = ry + math.floor(e.h / 2)
     local lx = tx + tri + T.px(10)
     self:drawRect(lx, midY, T.px(12), T.px(1), bc.a, bc.r, bc.g, bc.b)
@@ -382,7 +385,7 @@ function ZeD_MMMods:drawSepRow(e, x, ry, rw, vy, vh, gp, modal)
     local cw = MM.textW(f3, e.cnt)
     local nameW = math.max(T.px(20), right - nx - cw - T.px(24))
     if e.tnw ~= nameW then e.tnw, e.tn = nameW, ZeD.Atoms.truncateText(e.name, f2, nameW) end
-    local nc = onFocus and T.textOnFocus or (e.sp.on and T.textHead or T.textDim)
+    local nc = onFocus and T.textOnFocus or (lc and bc) or (e.sp.on and T.textHead or T.textDim)
     self:drawText(e.tn, nx, ry + math.floor((e.h - MM.fontH(f2)) / 2), nc.r, nc.g, nc.b, nc.a or 1, f2)
     local cx = nx + MM.textW(f2, e.tn) + T.px(8)
     self:drawText(e.cnt, cx, ry + math.floor((e.h - MM.fontH(f3)) / 2), dim.r, dim.g, dim.b, dim.a or 1, f3)
@@ -569,6 +572,16 @@ function ZeD_MMMods:sepNew(name)
     self:sepSelect(sp.uid)
     self:say(ZeD.tr(dup and "UI_ZeD_Seps_SayMadeDup" or "UI_ZeD_Seps_SayMade", name))
     MM.clickSound()
+end
+
+-- a separator's label set or cleared (nil); Undo brings the last one back, as for a rename
+function ZeD_MMMods:sepSetLabel(uid, key)
+    local sp = self:sepGet(uid)
+    if not sp or sp.label == key then return end
+    self:orderSnap()
+    sp.label = key
+    self:orderChanged()
+    self:sepSelect(uid)
 end
 
 function ZeD_MMMods:sepRename(uid, name)
@@ -1009,7 +1022,7 @@ function ZeD_MMMods:sepFromFolders(confirmed)
         if not seen[f.id] then
             seen[f.id] = true
             local ids = by[f.id]
-            if ids and #ids > 0 then seps[#seps + 1] = { uid = O.newUid(), name = f.name, on = true, open = true, ids = ids } end
+            if ids and #ids > 0 then seps[#seps + 1] = { uid = O.newUid(), name = f.name, on = true, open = true, ids = ids, label = F.labelOf(f.id) } end
         end
     end
     if #rest > 0 then seps[#seps + 1] = { uid = O.newUid(), name = ZeD.tr("UI_ZeD_Folders_Unfiled"), on = true, open = true, ids = rest } end
@@ -1244,6 +1257,9 @@ function ZeD_MMMods:sepDetailItems(items, rw, uid)
         btn("sup", ZeD.tr("UI_ServerSettings_ButtonMoveUp"), function() self:sepShift(uid, -1) end, k <= 1),
         btn("sdown", ZeD.tr("UI_ServerSettings_ButtonMoveDown"), function() self:sepShift(uid, 1) end, k >= #self.oLo.seps),
         btn("sfold", ZeD.tr(sp.open and "UI_ZeD_Seps_MenuCollapse" or "UI_ZeD_Seps_MenuExpand"), function() self:sepOpenClose(uid) end) } }
+    -- its label (System 7's Finder labels), kept with the profile's separators
+    items[#items + 1] = { t = "head", text = ZeD.tr("UI_ZeD_Mods_Label") }
+    items[#items + 1] = { t = "labels", sp = sp, uid = uid }
     -- under it, in order: the mods on with their numbers, the mods off dimmed
     items[#items + 1] = { t = "head", text = ZeD.tr("UI_ZeD_Seps_DetUnder"), note = "(" .. tostring(onN + offAll) .. ")" }
     local idx = {}

@@ -81,6 +81,8 @@ function ZeD_MMMods:drawDetailTabs(d, x, w, cy, vy, vh)
     local th = T.tabH
     local gp = MM.gamepad()
     self.dtab = self.dtab or "about"
+    -- (the Simple view: About only, no tabs)
+    if self:simple() then self.dtab = "about"; return cy end
     for i, t in ipairs(self:detailTabs(d)) do
         local text = t.count and ZeD.tr("UI_ZeD_Mods_DTabCount", t.label, t.count) or t.label
         local hid = "mods:dtab:" .. t.id

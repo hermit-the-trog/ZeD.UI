@@ -481,17 +481,48 @@ function F.dropMember(modId)
 end
 
 -- ----------------------------------------------------------------------------
--- UNFILED'S OPEN STATE: ZeD's own (never in ModFolders.cfg, spec 3.6), in Zomboid/Lua/ZeD_modfolders.txt
+-- UNFILED'S OPEN STATE AND THE FOLDERS' LABELS: ZeD's own (never in ModFolders.cfg, spec 3.6, so the mod and
+-- anything else that reads the file sees it as before), in Zomboid/Lua/ZeD_modfolders.txt:
+--   unfiledOpen=<1 or 0>
+--   label=<folder id>|<label key>     one a labelled folder (the director, Nov 4 2026: System 7's Finder labels)
 -- ----------------------------------------------------------------------------
 local UI_FILE = "ZeD_modfolders.txt"
 
 local function uiLoad()
-    uiState = { unfiledOpen = true }
+    uiState = { unfiledOpen = true, labels = {} }
     local lines = F.readLines(UI_FILE)
     for _, l in ipairs(lines or EMPTY) do
         local v = l:match("^unfiledOpen=(%d)$")
         if v then uiState.unfiledOpen = v == "1" end
+        local fid, lab = l:match("^label=([^|]+)|(%w+)$")
+        if fid then uiState.labels[fid] = lab end
     end
+end
+
+-- the whole of ZeD's file, written again (labels in folder id order, so the file stays the same between writes)
+local function uiWrite()
+    local out = { "unfiledOpen=" .. (uiState.unfiledOpen and "1" or "0") }
+    local ids = {}
+    for fid in pairs(uiState.labels) do ids[#ids + 1] = fid end
+    table.sort(ids)
+    for _, fid in ipairs(ids) do out[#out + 1] = string.format("label=%s|%s", fid, uiState.labels[fid]) end
+    F.writeLines(out, UI_FILE)
+end
+
+-- a folder's label key (nil: none)
+function F.labelOf(fid)
+    if fid == nil then return nil end
+    if not uiState then uiLoad() end
+    return uiState.labels[tostring(fid)]
+end
+
+-- sets or clears (nil) a folder's label, written at once
+function F.setLabel(fid, key)
+    if fid == nil then return end
+    if not uiState then uiLoad() end
+    uiState.labels[tostring(fid)] = key
+    uiWrite()
+    F.gen = F.gen + 1
 end
 
 function F.unfiledOpen()
@@ -502,6 +533,6 @@ end
 function F.setUnfiledOpen(open)
     if not uiState then uiLoad() end
     uiState.unfiledOpen = open and true or false
-    F.writeLines({ "unfiledOpen=" .. (open and "1" or "0") }, UI_FILE)
+    uiWrite()
     F.gen = F.gen + 1
 end
