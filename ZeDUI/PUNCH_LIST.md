@@ -2567,6 +2567,24 @@ item says so.
       - Small: the teal label is named "PZ Teal" (the accent setting's own name, UI_ZeD_Accent_Teal), while the rest
         are plain colour names ("Red", "Pink").
       - Picture: Screenshots/zqa_mrd_labels_sheet_accents.png.
+85. **Overhead notes (the director, Nov 4 2026: the game's red and green lines over the head go into ZeD's bubble, and
+    every line into Messages; beta 3).** Built in cfd52083 (ZeD_HaloText.lua; ZeD setup: Overhead notes).
+    - **QA, Nov 4 2026: PASS at 4K and at the Deck with Large text** (zedqa_halo_notes.lua, halo_notes.txt,
+      halo_notes_deck.txt; probe f24a1517). 9 / 10 and 8 / 10; every miss was the test's own (its fade timing counts
+      ticks, not seconds; it expected XP before the game's multiplier).
+      - A real game line (ISReadABook:doHaloText, "I don't get it...") and a good line ("Learned Make Plank") show in
+        ZeD's bubble with their status squares, stacked above the speech bubble. They're gone after the hold.
+      - The same line three times is one bubble, and one Messages card reading "3 times".
+      - Messages: "From the game" > "Over your head", with Good and Bad tags. The cards are read, so there's no
+        unread count.
+      - XP (AddXP with the game's halo flag): the game's own green "Carpentry XP" still draws, and Messages keeps one
+        summed card, "Carpentry +5.0 XP". It isn't in ZeD's bubble.
+      - A level up is logged ("Cooking: level 1").
+      - Switched off: nothing goes to the bubble or to Messages.
+      - Note: the bubbles are world text, so at the Deck an open World window covers them (the game's own text
+        behaves the same).
+      - Test note: B42's Carpentry perk is Perks.Woodwork (Perks.Carpentry is nil and threw in AddXP).
+      - Pictures: Screenshots/zqa_hln_*, zqa_hln_sheet.png.
 
 ## Test process
 
