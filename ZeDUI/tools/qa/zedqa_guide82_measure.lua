@@ -14,7 +14,7 @@ local function step(n, fn) Q[#Q + 1] = { n = n, fn = fn } end
 local counts, over, headOver, rulesOver, clipOver, breaks = {}, {}, {}, {}, {}, {}
 local measure
 
-step(60, function() G.open(0) end)
+step(60, function() if G.openWindow then G.openWindow(0) else G.open(0) end end)
 for i = 1, 90 do
     step(3, function() local w = Wn(); local t = w.flat[i]; if t then w:choose(t.id, true) end end)
     step(3, function()

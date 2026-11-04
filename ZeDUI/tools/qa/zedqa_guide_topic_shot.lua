@@ -9,7 +9,7 @@ local was = opt:getValue()
 local n = 0
 local function tick()
     n = n + 1
-    if n == 20 then opt:setValue(2); G.open(0, key) end
+    if n == 20 then opt:setValue(2); if G.openWindow then G.openWindow(0, key) else G.open(0, key) end end
     if n == 80 then
         local w = G.get(0); local g = w._g; local T = ZeD.T
         local right = g.text.x + g.text.w - T.px(10) * 2 - (T.sp.scrollbarW or 0)
