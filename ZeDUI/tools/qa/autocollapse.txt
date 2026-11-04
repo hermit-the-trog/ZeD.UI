@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/autocollapse.txt  (Nov 4 2026): the windows roll up when not in use (release_check.ps1 -Manifest this: the real mouse)
+zedqa_prelude.lua | pre | timeout=120
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_autocollapse.lua | acl | timeout=300
