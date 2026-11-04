@@ -554,6 +554,18 @@ function ZeD.Settings.dashSimple()
     return ok and v == 2
 end
 
+-- ----- THE SURVIVAL GUIDE'S FORM (the director, Nov 3 2026: "Both" looks; ZeDUI/SURVIVAL_GUIDE_DRAFT.md) -----
+-- Full: the guide as a printed book, Survive the Apocalypse (ZeD_SurvivalGuideBook.lua). Simple: a ZeD window with the
+-- same topics, clips and numbers (ZeD_SurvivalGuide.lua).
+local guideStyle = opts:addComboBox("guideStyle", ZeD.tr("UI_ZeD_Settings_Guide"), ZeD.tr("UI_ZeD_Settings_GuideTip"))
+guideStyle:addItem(ZeD.tr("UI_ZeD_Settings_BeltFull"), true)   -- default
+guideStyle:addItem(ZeD.tr("UI_ZeD_Settings_ActionBarSimple"), false)
+ZeD.Settings.guideStyleOption = guideStyle
+function ZeD.Settings.guideSimple()
+    local ok, v = pcall(guideStyle.getValue, guideStyle)
+    return ok and v == 2
+end
+
 -- ----- THE KEYS OF THE OPTION NAMES -----
 -- ModOptions keeps each name as the text the option was made with, which is read once, here at
 -- file load, so the test language could never stretch it. Each option also keeps the key of its
@@ -583,6 +595,7 @@ do
         screenMoodles = "UI_ZeD_Settings_ScreenMoodles", screenWheels = "UI_ZeD_Settings_ScreenWheels",
         screenCharInfo = "UI_ZeD_Settings_ScreenCharInfo", beltStyle = "UI_ZeD_Settings_Belt",
         devicesStyle = "UI_ZeD_Settings_Devices", watchStyle = "UI_ZeD_Settings_WatchStyle", dashStyle = "UI_ZeD_Settings_Dash",
+        guideStyle = "UI_ZeD_Settings_Guide",
     }
     for id, key in pairs(nameKeys) do
         local o = opts.dict and opts.dict[id]
@@ -615,7 +628,8 @@ local function setUpAdditions()
     local CUSTOM_FILE = "ZeD_custom_additions.txt"   -- (Zomboid/Lua: <option id>=<item>, a line each)
     -- every addition a preset sets, by option id (restock: 1 Hardcore, 2 Casual, 3 Accessible)
     local IDS = { "ammoBox", "readMarks", "readNext", "dimRead", "dashLamps", "moodleNotices",
-                  "messagesCatch", "messagesToast", "putBack", "sandboxInGame", "loadouts", "restock", "devicesStyle", "watchStyle", "dashStyle" }
+                  "messagesCatch", "messagesToast", "putBack", "sandboxInGame", "loadouts", "restock", "devicesStyle", "watchStyle", "dashStyle",
+                  "guideStyle" }
     -- THE PRESETS, by the preset's item: the item each addition is set to. An id a preset leaves out is left as
     -- it is and does not count when the values are matched to a preset (Vanilla leaves Restock: it does nothing
     -- while Loadouts is off). When the "faces or simple cards" switch is built (punch list 17), its id goes in
@@ -627,11 +641,11 @@ local function setUpAdditions()
         -- 2 Vanilla Plus: every addition on, Restock Casual
         { ammoBox = ON, readMarks = ON, readNext = ON, dimRead = ON, dashLamps = ON, moodleNotices = ON,
           messagesCatch = ON, messagesToast = ON, putBack = ON, sandboxInGame = ON, loadouts = ON, restock = 2,
-          devicesStyle = 1, watchStyle = 1, dashStyle = 1 },
+          devicesStyle = 1, watchStyle = 1, dashStyle = 1, guideStyle = 1 },
         -- 3 Vanilla Accessible: every addition on, Restock Accessible
         { ammoBox = ON, readMarks = ON, readNext = ON, dimRead = ON, dashLamps = ON, moodleNotices = ON,
           messagesCatch = ON, messagesToast = ON, putBack = ON, sandboxInGame = ON, loadouts = ON, restock = 3,
-          devicesStyle = 2, watchStyle = 2, dashStyle = 2 },
+          devicesStyle = 2, watchStyle = 2, dashStyle = 2, guideStyle = 2 },
     }
     ZeD.Settings.ADDITION_IDS = IDS
     ZeD.Settings.ADDITION_PRESETS = PRESETS
