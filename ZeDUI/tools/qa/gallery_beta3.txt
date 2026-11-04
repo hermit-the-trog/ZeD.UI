@@ -1,0 +1,7 @@
+# ZeDUI/tools/qa/gallery_beta3.txt  (Nov 4 2026): the Beta 3 gallery breaks, 4K (zedqa_run.ps1 -Manifest this)
+zedqa_prelude.lua | pre | timeout=120
+gallery_daylight.lua | day | timeout=60
+gallery_t14_look.lua | g14l | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_beta3_breaks.lua | gb3 | timeout=300
+gallery_t14_end.lua | g14e | timeout=60
