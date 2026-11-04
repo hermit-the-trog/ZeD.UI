@@ -1,0 +1,6 @@
+**ZeD-GUI 0.3.0-beta3 is out on the Workshop, with a hotfix (beta3a) this afternoon.**
+- Survival guide on F1: a 1987 survival manual, or a plain window. The game's topics plus ZeD's own chapters, your own keys or your controller's buttons, and the game's rules in numbers (XP, occupations, traits, food, crops).
+- A hint strip above the belt shows the key for what you face. The game's red and green overhead notes now show in a readable bubble, and are kept in Messages.
+- Pins on the title bar (a skill, a book, a water bottle, a weapon); a Mods screen that shows on and off at a glance; newspapers and flyers drawn the way the game draws them.
+- Hotfix: the Character and World windows roll up when the pointer leaves and down on hover, like the game's inventory. The pin keeps one open.
+Beta 4 is tomorrow. Tell us what you want in it in the Workshop's Suggestions thread. Full change note attached.
