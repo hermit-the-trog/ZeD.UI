@@ -112,3 +112,69 @@ font DebugConsole
 {
     fnt = zomboidMediumJapanese.fnt,
 }
+
+font Handwritten
+{
+    fnt = handwritten_cyrillic.fnt,
+    img = handwritten_cyrillic.png,
+}
+
+font SdfRegular
+{
+    fnt = sdfRegular.fnt,
+    type = sdf,
+}
+
+font SdfItalic
+{
+    fnt = sdfItalic.fnt,
+    type = sdf,
+}
+
+font SdfBold
+{
+    fnt = sdfBold.fnt,
+    type = sdf,
+}
+
+font SdfBoldItalic
+{
+    fnt = sdfBoldItalic.fnt,
+    type = sdf,
+}
+
+font SdfOldRegular
+{
+    fnt = SdfOldRegular.fnt,
+    type = sdf,
+}
+
+font SdfOldBold
+{
+    fnt = SdfOldBold.fnt,
+    type = sdf,
+}
+
+font SdfOldItalic
+{
+    fnt = SdfOldItalic.fnt,
+    type = sdf,
+}
+
+font SdfOldBoldItalic
+{
+    fnt = SdfOldBoldItalic.fnt,
+    type = sdf,
+}
+
+font SdfRobertoSans
+{
+    fnt = sdfRobertoSans.fnt,
+    type = sdf,
+}
+
+font SdfCaveat
+{
+    fnt = sdfCaveat.fnt,
+    type = sdf,
+}
