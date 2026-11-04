@@ -1,0 +1,968 @@
+-- ZeD-UI/42/media/lua/client/ZeD/ZeD_SurvivalGuide.lua
+-- ============================================================================
+-- THE SURVIVAL GUIDE (F1), the Simple look (ZeDUI/SURVIVAL_GUIDE_DRAFT.md; mockup
+-- ZeDUI/mockups/zed_survival_guide_v7.html; director Nov 3 2026: "You are go for build").
+--
+-- A ZeD window in place of the game's guide (HOOK_MAP row 18): the game's sections and
+-- topics on the left (Find at the top, sections that fold), the chosen topic on the right
+-- (its clip, the game's own text, and The Rules in Numbers where the game keeps rules in
+-- numbers), a band at the foot (the game's "Show the guide on startup", Previous, Next) and
+-- the window's help line. Everything shown is read from the game: SurvivalGuideEntry for the
+-- topics, text and clips; the game's own files for the numbers (the director's line, Nov 3:
+-- the game's rules as numbers, never your world's secrets).
+--
+-- The game's behaviour is kept: F1 and the controller's Help wheel toggle it, it opens by
+-- itself on a new game while "Show the guide on startup" is ticked, the game pauses while it
+-- is open, and other windows open it on a topic (SurvivalGuide.openEntry). F1 opens it on
+-- the topic for what you are doing (the active Character or World tab).
+-- ============================================================================
+
+require "ZeD/Tr"
+require "ZeD/Tokens"
+require "ZeD/Atoms"
+require "ZeD/Molecules"
+require "ZeD/Organisms"
+
+ZeD = ZeD or {}
+ZeD.Guide = ZeD.Guide or {}
+local W = ZeD.Guide
+W.windows = W.windows or {}
+
+-- design units (1 px at 1080p; T.px scales them)
+local U = {
+    W = 1080, BODY_H = 580, LIST_W = 280, PAD = 10, HEAD_H = 40,
+    CLIP_W = 640, PARA_GAP = 8, LINE_GAP = 3, RULES_PAD = 10, COL_GAP = 18, BAND_EDGE = 8, BAND_GAP = 8,
+}
+local CLIP_SRC_W, CLIP_SRC_H = 960, 480   -- the game's guide clips (Bink, 960 x 480)
+
+local function fh(font) return ZeD.TM:getFontHeight(font) end
+local function tw(font, s) return ZeD.TM:MeasureStringX(font, s) end
+local function inRect(r, x, y) return r and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h end
+local function sound(name) pcall(function() getSoundManager():playUISound(name or "UIActivateButton") end) end
+local function tr(k, ...) return ZeD.tr(k, ...) end
+local function btnLabel(s) return ZeD.btnCase and ZeD.btnCase(s) or s end
+
+local _fo = {}
+local function focusOpts(win)
+    _fo.win, _fo.focused, _fo.pad = win, true, true
+    return _fo
+end
+
+-- ---------------------------------------------------------------------------
+-- THE GAME'S TOPICS (SurvivalGuideEntry, in the game's order)
+-- ---------------------------------------------------------------------------
+-- A controller's button pictures in the game's text (<IMAGE:...XBOX_A.png...>) become the
+-- button's name in brackets until the guide draws ZeD's own button pictures.
+local function inlineImages(s)
+    return (s:gsub("<%s*[Ii][Mm][Aa][Gg][Ee]%s*:%s*([^,>]+)[^>]*>", function(path)
+        local name = path:match("([^/\\]+)%.%a+%s*$") or path
+        name = name:gsub("^[Xx][Bb][Oo][Xx]_", "")
+        return "[" .. name .. "]"
+    end))
+end
+
+-- the topic's text as paragraphs (the game's <LINE> breaks), plain words
+local function paragraphs(text)
+    local out = {}
+    local P = ZeD.Prompt
+    local src = inlineImages(tostring(text or ""))
+    if P and P.parseRich then
+        for _, bl in ipairs(P.parseRich(src)) do
+            if bl.kind ~= "image" and bl.text and bl.text ~= "" then out[#out + 1] = bl.text end
+        end
+    else
+        for part in (src .. "<LINE>"):gmatch("(.-)<LINE>") do
+            part = part:gsub("<[^>]*>", ""):gsub("^%s+", ""):gsub("%s+$", "")
+            if part ~= "" then out[#out + 1] = part end
+        end
+    end
+    return out
+end
+
+-- the sections and their topics; rebuilt on each open (the controller changes the words)
+local function readTopics(joy)
+    local sections, byId, flat = {}, {}, {}
+    local ok, entries = pcall(function() return SurvivalGuideEntry.getAll() end)
+    if not ok or not entries then return sections, byId, flat end
+    local cur = nil
+    for i = 0, entries:size() - 1 do
+        local e = entries:get(i)
+        local id = tostring(e)
+        local titleKey = e:getTitle()
+        if not e:getSubCategory() then
+            cur = { id = id, title = getText(titleKey), titleKey = titleKey, topics = {} }
+            sections[#sections + 1] = cur
+        elseif cur then
+            local text = e:getText(joy and true or false)
+            if text then
+                local t = { id = id, entry = e, section = cur, title = getText(titleKey), titleKey = titleKey,
+                            text = text, video = e:getVideo(), thumb = e:getThumbnail() }
+                cur.topics[#cur.topics + 1] = t
+                byId[id] = t
+                flat[#flat + 1] = t
+            end
+        end
+    end
+    return sections, byId, flat
+end
+
+-- ---------------------------------------------------------------------------
+-- THE RULES IN NUMBERS (read from the game; nothing about this world's secrets)
+-- ---------------------------------------------------------------------------
+local Rules = {}
+W.Rules = Rules
+
+-- Skill Books: what each volume covers (the books' scripts) and multiplies (SkillBook, the
+-- game's reading rules); the skills that read slower named from the game's perks.
+Rules.SurvivalGuide_skill_books_title = function()
+    if not SkillBook then return nil end
+    local groups, order = {}, {}
+    for key, sb in pairs(SkillBook) do
+        if type(sb) == "table" and sb.maxMultiplier1 then
+            local sig = table.concat({ sb.maxMultiplier1, sb.maxMultiplier2, sb.maxMultiplier3, sb.maxMultiplier4, sb.maxMultiplier5 }, ",")
+            if not groups[sig] then groups[sig] = { sig = sig, m = { sb.maxMultiplier1, sb.maxMultiplier2, sb.maxMultiplier3, sb.maxMultiplier4, sb.maxMultiplier5 }, names = {} }; order[#order + 1] = sig end
+            local name = key
+            pcall(function() name = PerkFactory.getPerk(sb.perk):getName() end)
+            table.insert(groups[sig].names, name)
+        end
+    end
+    if #order == 0 then return nil end
+    table.sort(order, function(a, b) return #groups[a].names > #groups[b].names end)
+    local main = groups[order[1]]
+    local others = {}
+    for i = 2, #order do others[#others + 1] = groups[order[i]] end
+    for _, g in ipairs(others) do table.sort(g.names) end
+    -- the levels each volume covers, from any book of the main group (Carpentry first)
+    local levels = {}
+    local sm = ScriptManager and ScriptManager.instance
+    for v = 1, 5 do
+        pcall(function()
+            local it = sm and sm:getItem("Base.BookCarpentry" .. v)
+            if it then
+                local lo, n = it:getLevelSkillTrained(), it:getNumLevelsTrained()
+                if lo and n and n > 0 then levels[v] = { lo = lo, hi = lo + n - 1 } end
+            end
+        end)
+    end
+    local cols = { tr("UI_ZeD_Guide_SB_Vol"), tr("UI_ZeD_Guide_SB_Levels"), tr("UI_ZeD_Guide_SB_Most") }
+    for _, g in ipairs(others) do cols[#cols + 1] = table.concat(g.names, ", ") end
+    local rows = {}
+    for v = 1, 5 do
+        local r = { tostring(v), levels[v] and tr("UI_ZeD_Guide_SB_LevelRange", levels[v].lo, levels[v].hi) or "", "x" .. tostring(main.m[v]) }
+        for _, g in ipairs(others) do r[#r + 1] = "x" .. tostring(g.m[v]) end
+        rows[#rows + 1] = r
+    end
+    local notes = { tr("UI_ZeD_Guide_SB_Covers"), tr("UI_ZeD_Guide_SB_Partial") }
+    if #others > 0 then notes[#notes + 1] = tr("UI_ZeD_Guide_SB_Which", #main.names) end
+    return { cols = cols, rows = rows, notes = notes }
+end
+
+-- ---------------------------------------------------------------------------
+-- THE WINDOW
+-- ---------------------------------------------------------------------------
+ZeD_GuideWindow = ZeD_Window:derive("ZeD_GuideWindow")
+
+function ZeD_GuideWindow:new(playerNum)
+    local o = ZeD_Window.new(self, 0, 0, 100, 100, "")
+    o.resizable = false
+    o.pin = true
+    o.anchorLeft, o.anchorRight, o.anchorTop, o.anchorBottom = true, false, true, false
+    o.moveWithMouse = false
+    o.playerNum = playerNum or 0
+    o.sel = nil           -- the chosen topic's id
+    o.closed = {}         -- folded sections (by id)
+    o.find = ""           -- the Find text
+    o.listScroll = 0      -- px
+    o.scroll = 0          -- the topic's scroll, px
+    o.zone = "list"       -- controller: "list" | "text" | "foot"
+    o.listFocus = nil     -- controller: the row id ("s:<id>" a section, a topic id)
+    o.footFocus = 3       -- controller: 1 the start-up box, 2 Previous, 3 Next
+    o._hover = nil
+    o._down = nil
+    o:setWantKeyEvents(true)
+    return o
+end
+
+function ZeD_GuideWindow:createChildren()
+    ZeD_Window.createChildren(self)
+    self.minimumWidth, self.minimumHeight = 0, 0
+    local T = ZeD.T
+    local f = ZeD_SearchField:new(0, 0, T.px(200), tr("UI_ZeD_Guide_Find"))
+    f:initialise()
+    local win = self
+    f.onFilter = function(_, text)
+        win.find = text or ""
+        win.listScroll = 0
+    end
+    self:addChild(f)
+    self._findField = f
+end
+
+function ZeD_GuideWindow:readTopics()
+    local joy = JoypadState and JoypadState.players and JoypadState.players[self.playerNum + 1] ~= nil
+    self.sections, self.byId, self.flat = readTopics(joy)
+    if not (self.sel and self.byId[self.sel]) then self.sel = self.flat[1] and self.flat[1].id or nil end
+    self._clip, self._clipFor = nil, nil
+end
+
+function ZeD_GuideWindow:choose(id, noSound)
+    local t = id and self.byId and self.byId[id]
+    if not t then return end
+    if self.sel ~= id then self.scroll = 0 end
+    self.sel = id
+    self.closed[t.section.id] = nil
+    self.listFocus = id
+    self._jumpList = true
+    if not noSound then sound("UISelectListItem") end
+end
+
+-- the topic before or after the chosen one, in the game's order
+function ZeD_GuideWindow:step(d)
+    local flat = self.flat or {}
+    if #flat == 0 then return end
+    local at = 1
+    for i, t in ipairs(flat) do if t.id == self.sel then at = i end end
+    local n = ((at - 1 + d) % #flat) + 1
+    self:choose(flat[n].id)
+end
+
+-- ---------------------------------------------------------------------------
+-- LAYOUT (every frame from the live tokens; local px)
+-- ---------------------------------------------------------------------------
+local function matches(t, q)
+    if q == "" then return true end
+    return string.lower(t.title):find(q, 1, true) ~= nil or string.lower(t.text):find(q, 1, true) ~= nil
+end
+
+function ZeD_GuideWindow:buildList(g)
+    local T = ZeD.T
+    local px = T.px
+    local q = string.lower(self.find or "")
+    local y = g.list.y - self.listScroll
+    local rowH = T.rowH
+    local catH = px(24)
+    g.rows = {}
+    for _, s in ipairs(self.sections or {}) do
+        local shown = {}
+        for _, t in ipairs(s.topics) do if matches(t, q) then shown[#shown + 1] = t end end
+        if q == "" or #shown > 0 then
+            local folded = q == "" and self.closed[s.id]
+            g.rows[#g.rows + 1] = { x = 0, y = y, w = g.list.w, h = catH, section = s, count = #shown, folded = folded, id = "s:" .. s.id }
+            y = y + catH
+            if not folded then
+                for _, t in ipairs(shown) do
+                    g.rows[#g.rows + 1] = { x = 0, y = y, w = g.list.w, h = rowH, topic = t, id = t.id }
+                    y = y + rowH
+                end
+            end
+        end
+    end
+    return y + self.listScroll - g.list.y
+end
+
+-- the chosen topic laid out at width cw: the clip, the paragraphs, the rules
+function ZeD_GuideWindow:buildTopic(g, cx, cw)
+    local T = ZeD.T
+    local A = ZeD.Atoms
+    local px = T.px
+    local t = self.byId and self.byId[self.sel]
+    local items = {}
+    local y = 0
+    g.topic = t
+    if not t then g.items, g.topicH = items, 0; return 0 end
+    if t.video and t.video ~= "" then
+        local w = math.min(cw, px(U.CLIP_W))
+        local h = math.floor(w * CLIP_SRC_H / CLIP_SRC_W)
+        items[#items + 1] = { kind = "clip", x = cx, y = y, w = w, h = h }
+        y = y + h + px(U.PARA_GAP) * 2
+    end
+    for i, para in ipairs(paragraphs(t.text)) do
+        if i > 1 then y = y + px(U.PARA_GAP) end
+        for _, l in ipairs(A.wrapText(para, T.fontF2, cw)) do
+            items[#items + 1] = { kind = "line", x = cx, y = y, text = l }
+            y = y + fh(T.fontF2) + px(U.LINE_GAP)
+        end
+    end
+    local rf = Rules[t.titleKey]
+    local ok, rules = false, nil
+    if rf then ok, rules = pcall(rf) end
+    if ok and rules then
+        y = y + px(U.PARA_GAP) * 2
+        local pad = px(U.RULES_PAD)
+        local inner = cw - pad * 2
+        local top = y
+        local ry = y + pad
+        local lab = ZeD.upper and ZeD.upper(tr("UI_ZeD_Guide_Rules")) or tr("UI_ZeD_Guide_Rules")
+        local box = { kind = "rules", x = cx, y = top, w = cw, label = lab, labelY = ry, cells = {}, notes = {} }
+        ry = ry + fh(T.fontF1) + px(8)
+        -- the table: each column as wide as its widest cell (headers wrap to two lines if long)
+        local ncol = #rules.cols
+        local widths = {}
+        for c = 1, ncol do
+            local wmax = tw(T.fontF1, rules.cols[c])
+            for _, r in ipairs(rules.rows) do wmax = math.max(wmax, tw(T.fontF2, r[c] or "")) end
+            widths[c] = wmax
+        end
+        local total = 0
+        for c = 1, ncol do total = total + widths[c] end
+        local gap = px(U.COL_GAP)
+        while total + gap * (ncol - 1) > inner and gap > px(6) do gap = gap - 1 end
+        local colX = {}
+        local x = cx + pad
+        for c = 1, ncol do colX[c] = x; x = x + widths[c] + gap end
+        for c = 1, ncol do box.cells[#box.cells + 1] = { x = colX[c], y = ry, text = rules.cols[c], head = true } end
+        ry = ry + fh(T.fontF1) + px(4)
+        box.ruleY = ry
+        ry = ry + px(4)
+        for ri, r in ipairs(rules.rows) do
+            for c = 1, ncol do box.cells[#box.cells + 1] = { x = colX[c], y = ry, text = r[c] or "", stripe = (ri % 2 == 1) } end
+            box.cells[#box.cells].rowY = ry
+            ry = ry + fh(T.fontF2) + px(4)
+        end
+        ry = ry + px(6)
+        for _, note in ipairs(rules.notes or {}) do
+            for li, l in ipairs(A.wrapText(note, T.fontF2, inner - px(12))) do
+                box.notes[#box.notes + 1] = { x = cx + pad, y = ry, text = l, bullet = li == 1 }
+                ry = ry + fh(T.fontF2) + px(U.LINE_GAP)
+            end
+            ry = ry + px(3)
+        end
+        box.h = ry - top + pad
+        items[#items + 1] = box
+        y = top + box.h
+    end
+    g.items, g.topicH = items, y
+    return y
+end
+
+function ZeD_GuideWindow:layout()
+    local T = ZeD.T
+    local Mo = ZeD.Molecules
+    local px = T.px
+    local g = {}
+    local tbH = self:titleBarHeight()
+    local pn = self.playerNum
+    local w = math.min(px(U.W), getPlayerScreenWidth(pn) - px(20))
+    local bandH = Mo.bandH()
+    local bodyH = math.min(px(U.BODY_H), getPlayerScreenHeight(pn) - tbH - bandH - self:footerHeight() - px(20))
+    local bodyY = tbH
+    local listW = px(U.LIST_W)
+    local findH = T.inputH + px(U.PAD)
+    local sbW = T.sp.scrollbarW
+    g.body = { y = bodyY, h = bodyH }
+    g.find = { x = px(U.PAD), y = bodyY + math.floor(px(U.PAD) / 2), w = listW - px(U.PAD) * 2, h = T.inputH }
+    g.list = { x = 0, y = bodyY + findH, w = listW, h = bodyH - findH }
+    g.head = { x = listW, y = bodyY, w = w - listW, h = px(U.HEAD_H) }
+    g.text = { x = listW, y = bodyY + px(U.HEAD_H), w = w - listW, h = bodyH - px(U.HEAD_H) }
+    local bandY = bodyY + bodyH
+    g.band = { y = bandY, h = bandH }
+    local h = bandY + bandH + self:footerHeight()
+
+    -- the list, with a bar when it overflows (the rows then narrow)
+    local lh = self:buildList(g)
+    g.listNeedsBar = lh > g.list.h
+    if g.listNeedsBar then
+        g.list.w = listW - sbW
+        lh = self:buildList(g)
+    end
+    local maxL = math.max(0, lh - g.list.h)
+    if self.listScroll > maxL then self.listScroll = maxL; self:buildList(g) end
+    -- keep the chosen row in view after a jump (F1 on a topic, Previous, Next, the pad)
+    if self._jumpList then
+        self._jumpList = false
+        for _, r in ipairs(g.rows) do
+            if r.id == (self.listFocus or self.sel) then
+                if r.y < g.list.y then self.listScroll = math.max(0, self.listScroll - (g.list.y - r.y))
+                elseif r.y + r.h > g.list.y + g.list.h then self.listScroll = math.min(maxL, self.listScroll + (r.y + r.h - g.list.y - g.list.h)) end
+                self:buildList(g)
+                break
+            end
+        end
+    end
+    self._maxL = maxL
+    g.listH = lh
+
+    -- the topic, with a bar when it overflows
+    local pad = px(U.PAD) * 2
+    local th = self:buildTopic(g, g.text.x + pad, g.text.w - pad * 2)
+    g.textNeedsBar = th + pad > g.text.h
+    if g.textNeedsBar then th = self:buildTopic(g, g.text.x + pad, g.text.w - pad * 2 - sbW) end
+    local maxS = math.max(0, th + pad * 2 - g.text.h)
+    if self.scroll > maxS then self.scroll = maxS end
+    self._maxS = maxS
+    g.textOffY = g.text.y + pad - self.scroll
+
+    -- the two scrollbars
+    local function bar(key, visible, x, y, hh, size, pos, onScroll)
+        local sb = self[key]
+        if not sb then sb = ZeD_ScrollbarState:new(); sb.onScroll = onScroll; self[key] = sb end
+        sb.visible = visible
+        sb.width, sb.arrowH = sbW, sbW
+        sb.x, sb.y, sb.height = x, y, hh
+        sb:setBarSize(size)
+        if not sb.dragging then sb.scrollPos = pos end
+        return sb
+    end
+    local win = self
+    g.listSb = bar("_listSb", g.listNeedsBar, listW - sbW, g.list.y, g.list.h, g.list.h / math.max(1, lh),
+        maxL > 0 and math.min(1, self.listScroll / maxL) or 0, function(p) win.listScroll = math.floor(p * (win._maxL or 0) + 0.5) end)
+    g.textSb = bar("_textSb", g.textNeedsBar, w - sbW, g.text.y, g.text.h, g.text.h / math.max(1, th + pad * 2),
+        maxS > 0 and math.min(1, self.scroll / maxS) or 0, function(p) win.scroll = math.floor(p * (win._maxS or 0) + 0.5) end)
+
+    -- the band: the game's start-up box at the left, Previous and Next at the right
+    local bh = T.buttonH
+    local fy = bandY + px(5)
+    g.foot = {}
+    local label = getText("IGUI_Tutorial_ShowGuide")
+    g.foot[1] = { id = "startup", x = px(U.BAND_EDGE), y = fy, w = T.checkboxSz + px(6) + tw(T.fontF2, label), h = bh, label = label, check = true }
+    local right = { { id = "prev", label = btnLabel(tr("UI_ZeD_Guide_Prev")) }, { id = "next", label = btnLabel(tr("UI_ZeD_Guide_Next")), primary = true } }
+    local rx = w - px(U.BAND_EDGE)
+    for i = #right, 1, -1 do
+        local b = right[i]
+        local bw = Mo.buttonW(b.label)
+        rx = rx - bw
+        b.x, b.y, b.w, b.h = rx, fy, bw, bh
+        rx = rx - px(U.BAND_GAP)
+    end
+    g.foot[2], g.foot[3] = right[1], right[2]
+
+    -- size and place: the middle of the player's screen
+    if self.width ~= w then self:setWidth(w) end
+    if self.height ~= h then self:setHeight(h) end
+    local x = getPlayerScreenLeft(pn) + math.floor((getPlayerScreenWidth(pn) - w) / 2)
+    local yy = getPlayerScreenTop(pn) + math.floor((getPlayerScreenHeight(pn) - h) / 2)
+    if self.x ~= x then self:setX(x) end
+    if self.y ~= yy then self:setY(yy) end
+    local f = self._findField
+    if f then
+        if f.x ~= g.find.x then f:setX(g.find.x) end
+        if f.y ~= g.find.y then f:setY(g.find.y) end
+        if f.width ~= g.find.w then f:setWidth(g.find.w) end
+        if f.height ~= g.find.h then f:setHeight(g.find.h) end
+    end
+    self._g = g
+end
+
+-- ---------------------------------------------------------------------------
+-- DRAW
+-- ---------------------------------------------------------------------------
+-- (the list's right edge, after its scrollbar when it has one)
+local function listWOf(g)
+    return g.listNeedsBar and (g.list.w + ZeD.T.sp.scrollbarW) or g.list.w
+end
+
+local _bandBtns = { {}, {} }
+local _bandCheck = {}
+local _bandSpec = { buttons = _bandBtns }
+local _catOpts = {}
+
+-- the clip: the game's own video, or its still when the game's video effects are off
+function ZeD_GuideWindow:drawClip(it, t)
+    local T = ZeD.T
+    local x, y = it.x, it.y + self._g.textOffY
+    if self._clipFor ~= t.id then
+        self._clipFor = t.id
+        self._clip, self._still = nil, nil
+        local core = getCore()
+        if core:getOptionDoVideoEffects() then
+            local ok, v = pcall(getVideo, t.video, CLIP_SRC_W, CLIP_SRC_H)
+            if ok then self._clip = v end
+        end
+        if not self._clip then
+            local p = (t.thumb and t.thumb ~= "") and t.thumb or ("media/videos/" .. tostring(t.video):gsub("%.%w+$", "") .. ".png")
+            self._still = getTexture(p)
+        end
+    end
+    local bg = T.surf1 or T.surf2
+    self:drawRect(x, y, it.w, it.h, 1, 0, 0, 0)
+    if self._clip then
+        pcall(function() self._clip:RenderFrame() end)
+        self:drawTextureScaled(self._clip, x, y, it.w, it.h, 1, 1, 1, 1)
+    elseif self._still then
+        self:drawTextureScaledAspect(self._still, x, y, it.w, it.h, 1, 1, 1, 1)
+    end
+    ZeD.Atoms.frame(self, x, y, it.w, it.h, T.borderS)
+end
+
+function ZeD_GuideWindow:prerender()
+    local T = ZeD.T
+    if not T then return end
+    self.minimumWidth, self.minimumHeight = 0, 0
+    self.title = getText("SurvivalGuide_WindowTitle")
+    local ok, err = pcall(self.layout, self)
+    if not ok then ZeD.logOnce("survival guide", err); self:close(); return end
+    ZeD_Window.prerender(self)
+    self.minimumWidth, self.minimumHeight = 0, 0
+    local g = self._g
+    local A, Mo = ZeD.Atoms, ZeD.Molecules
+    local w = self.width
+    local px = T.px
+    local tc, th, td = T.text, T.textHead, T.textDim
+    local ac, hv = T.accent, T.hover
+    local joy = self.joyfocus ~= nil
+
+    -- the list and its Find
+    local bs = T.borderS
+    self:drawRect(g.list.x + listWOf(g), g.body.y, T.hair, g.body.h, bs.a or 1, bs.r, bs.g, bs.b)
+    self:setStencilRect(g.list.x, g.list.y, g.list.w, g.list.h)
+    for _, r in ipairs(g.rows) do
+        if r.y + r.h >= g.list.y and r.y <= g.list.y + g.list.h then
+            local focus = joy and self.zone == "list" and self.listFocus == r.id
+            local hover = (not joy) and self._hover and self._hover.row == r
+            if r.section then
+                local o = _catOpts
+                o.hover, o.h, o.inset = hover, r.h, px(U.PAD)
+                o.focus = focus and focusOpts(self) or nil
+                Mo.drawCategoryRow(self, r.x, r.y, r.w, r.section.title, r.count, not r.folded, o)
+                if hover then ZeD.Help.set(self, tr(r.folded and "UI_ZeD_Guide_HelpOpenSection" or "UI_ZeD_Guide_HelpFoldSection", r.section.title)) end
+            else
+                local on = self.sel == r.id
+                if on then self:drawRect(r.x, r.y, r.w, r.h, T.selectionA, ac.r, ac.g, ac.b)
+                elseif hover then self:drawRect(r.x, r.y, r.w, r.h, hv.a or 1, hv.r, hv.g, hv.b) end
+                if hover then ZeD.Help.set(self, tr("UI_ZeD_Guide_HelpTopic", r.topic.title)) end
+                local onFocus = focus and ZeD.Focus.mark(self, r.x, r.y, r.w, r.h, focusOpts(self), nil)
+                local col = onFocus and T.textOnFocus or tc
+                local nx = r.x + px(U.PAD) * 2 + px(4)
+                self:drawText(A.truncateText(r.topic.title, T.fontF2, r.w - (nx - r.x) - px(U.PAD)), nx, r.y + math.floor((r.h - fh(T.fontF2)) / 2), col.r, col.g, col.b, col.a or 1, T.fontF2)
+            end
+        end
+    end
+    self:clearStencilRect()
+    if #g.rows == 0 then
+        Mo.drawEmptyLine(self, px(U.PAD), g.list.y + px(8), g.list.w - px(U.PAD) * 2, tr("UI_ZeD_Guide_NoMatch"))
+    end
+    if g.listSb and g.listSb.visible then g.listSb:draw(self) end
+
+    -- the topic's head: its title, its section, where it sits
+    local t = g.topic
+    if t then
+        local hd = g.head
+        local hx = hd.x + px(U.PAD) * 2
+        local hy = hd.y + math.floor((hd.h - fh(T.fontF4)) / 2)
+        self:drawText(t.title, hx, hy, th.r, th.g, th.b, th.a or 1, T.fontF4)
+        local sx = hx + tw(T.fontF4, t.title) + px(10)
+        local sec = ZeD.upper and ZeD.upper(t.section.title) or t.section.title
+        self:drawText(sec, sx, hd.y + math.floor((hd.h - fh(T.fontF1)) / 2), td.r, td.g, td.b, td.a or 1, T.fontF1)
+        local at = 1
+        for i, x in ipairs(self.flat) do if x.id == t.id then at = i end end
+        local where = tr("UI_ZeD_Guide_NofM", at, #self.flat)
+        self:drawText(where, hd.x + hd.w - px(U.PAD) * 2 - tw(T.fontF1, where), hd.y + math.floor((hd.h - fh(T.fontF1)) / 2), td.r, td.g, td.b, td.a or 1, T.fontF1)
+        A.drawDividerH(self, hd.x, hd.y + hd.h - T.hair, hd.w, false)
+    end
+
+    -- the topic: the clip, the game's words, the rules
+    local ta = g.text
+    self:setStencilRect(ta.x, ta.y, ta.w, ta.h)
+    local oy = g.textOffY
+    for _, it in ipairs(g.items or {}) do
+        if it.kind == "clip" then
+            self:drawClip(it, t)
+            -- PZ stencils do not nest: draw the clip, then lay the topic's clip again
+            self:clearStencilRect()
+            self:setStencilRect(ta.x, ta.y, ta.w, ta.h)
+        elseif it.kind == "line" then
+            local yy = it.y + oy
+            if yy + fh(T.fontF2) >= ta.y and yy <= ta.y + ta.h then
+                self:drawText(it.text, it.x, yy, tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
+            end
+        elseif it.kind == "rules" then
+            local by = it.y + oy
+            local s2 = T.surf2
+            if s2 then self:drawRect(it.x, by, it.w, it.h, s2.a or 1, s2.r, s2.g, s2.b) end
+            A.frame(self, it.x, by, it.w, it.h, T.border)
+            self:drawText(it.label, it.x + px(U.RULES_PAD), it.labelY + oy, ac.r, ac.g, ac.b, ac.a or 1, T.fontF1)
+            for _, c in ipairs(it.cells) do
+                if c.head then
+                    self:drawText(c.text, c.x, c.y + oy, td.r, td.g, td.b, td.a or 1, T.fontF1)
+                else
+                    if c.rowY and c.stripe then
+                        local st = T.stripe
+                        if st then self:drawRect(it.x + T.hair, c.rowY + oy - px(2), it.w - T.hair * 2, fh(T.fontF2) + px(4), st.a or 1, st.r, st.g, st.b) end
+                    end
+                end
+            end
+            for _, c in ipairs(it.cells) do
+                if not c.head then self:drawText(c.text, c.x, c.y + oy, th.r, th.g, th.b, th.a or 1, T.fontF2) end
+            end
+            A.drawDividerH(self, it.x + px(U.RULES_PAD), it.ruleY + oy, it.w - px(U.RULES_PAD) * 2, false)
+            for _, n in ipairs(it.notes) do
+                local ny = n.y + oy
+                if n.bullet then self:drawRect(n.x, ny + math.floor(fh(T.fontF2) / 2) - px(2), px(4), px(4), tc.a or 1, tc.r, tc.g, tc.b) end
+                self:drawText(n.text, n.x + px(12), ny, tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
+            end
+        end
+    end
+    self:clearStencilRect()
+    if not t then
+        Mo.drawEmptyLine(self, ta.x + px(U.PAD) * 2, ta.y + px(8), ta.w - px(U.PAD) * 4, tr("UI_ZeD_Guide_NoMatch"))
+    end
+    if g.textSb and g.textSb.visible then g.textSb:draw(self) end
+
+    -- the band
+    local check = _bandCheck
+    local cf = g.foot[1]
+    check.label, check.id, check.help = cf.label, cf.id, tr("UI_ZeD_Guide_HelpStartup")
+    check.on = getCore():getOptionShowSurvivalGuide() and true or false
+    check.hover = (not joy) and self._hover and self._hover.foot == cf or false
+    check.focus = (joy and self.zone == "foot" and self.footFocus == 1) and focusOpts(self) or nil
+    for i = 1, 2 do
+        local b = g.foot[i + 1]
+        local e = _bandBtns[i]
+        e.label, e.variant, e.id = b.label, b.primary and "primary" or "default", b.id
+        e.help = tr(b.id == "prev" and "UI_ZeD_Guide_HelpPrev" or "UI_ZeD_Guide_HelpNext")
+        e.hover = (not joy) and self._hover and self._hover.foot == b or false
+        e.pressed = self._down == b
+        e.focus = (joy and self.zone == "foot" and self.footFocus == i + 1) and focusOpts(self) or nil
+    end
+    _bandSpec.win, _bandSpec.check = self, check
+    Mo.drawBand(self, 0, g.band.y, w, _bandSpec)
+end
+
+function ZeD_GuideWindow:getFooterPrompts()
+    if not self.joyfocus then return nil end
+    local P = ZeD.Prompt
+    local move = P and P.padNote and P.padNote(tr("UI_ZeD_Guide_DpadMove")) or tr("UI_ZeD_Guide_DpadMove")
+    return { move, { glyph = "LB", label = tr("UI_ZeD_Guide_Prev") }, { glyph = "RB", label = tr("UI_ZeD_Guide_Next") },
+             { glyph = "A", label = tr("UI_ZeD_Guide_Choose") }, { glyph = "B", label = getText("UI_Close") } }
+end
+
+function ZeD_GuideWindow:render() ZeD_Window.render(self) end
+
+-- ---------------------------------------------------------------------------
+-- OPEN AND CLOSE (the game pauses while the guide is open, as the game's guide does)
+-- ---------------------------------------------------------------------------
+function ZeD_GuideWindow:close()
+    self:setVisible(false)
+    self:removeFromUIManager()
+    if self._findField and self._findField.input then pcall(function() self._findField.input:unfocus() end) end
+    pcall(setGameSpeed, 1)
+    local jd = JoypadState.players[self.playerNum + 1]
+    if jd then
+        jd.focus = self._prevFocus
+        self._prevFocus = nil
+        updateJoypadFocus(jd)
+    end
+end
+
+-- ---------------------------------------------------------------------------
+-- ACTIONS
+-- ---------------------------------------------------------------------------
+function ZeD_GuideWindow:pressFoot(b)
+    if not b then return end
+    sound("UIActivateButton")
+    if b.id == "startup" then
+        local core = getCore()
+        core:setOptionShowSurvivalGuide(not core:getOptionShowSurvivalGuide())
+        core:saveOptions()
+    elseif b.id == "prev" then self:step(-1)
+    elseif b.id == "next" then self:step(1) end
+end
+
+function ZeD_GuideWindow:pressRow(r)
+    if not r then return end
+    if r.section then
+        self.closed[r.section.id] = not r.folded or nil
+        if not r.folded and self.find ~= "" then self.closed[r.section.id] = nil end
+        sound("UISelectListItem")
+    elseif r.topic then
+        self:choose(r.topic.id)
+    end
+end
+
+-- ---------------------------------------------------------------------------
+-- MOUSE (top-level: hit-tested here)
+-- ---------------------------------------------------------------------------
+function ZeD_GuideWindow:hitAt(x, y)
+    local g = self._g
+    if not g then return nil end
+    for _, b in ipairs(g.foot) do if inRect(b, x, y) then return { foot = b } end end
+    if inRect(g.list, x, y) then
+        for _, r in ipairs(g.rows) do if inRect(r, x, y) then return { row = r } end end
+        return { list = true }
+    end
+    if inRect(g.text, x, y) then return { text = true } end
+    return nil
+end
+
+function ZeD_GuideWindow:closeAction()
+    sound("UIActivateButton")
+    self:close()
+end
+
+function ZeD_GuideWindow:onMouseDown(x, y)
+    if not self:getIsVisible() then return true end
+    local cb = self:closeRect()
+    if cb and inRect(cb, x, y) then return true end
+    if inRect(self:windowBoxRect(), x, y) then return true end
+    for _, key in ipairs({ "_listSb", "_textSb" }) do
+        local sb = self[key]
+        if sb and sb.visible and x >= sb.x and x < sb.x + sb.width and y >= sb.y and y < sb.y + sb.height then
+            sb:handleMouseDown(y - sb.y)
+            return true
+        end
+    end
+    local h = self:hitAt(x, y)
+    if h and h.row then self.zone = "list"; self:pressRow(h.row) end
+    if h and h.foot then self._down = h.foot end
+    return true
+end
+
+function ZeD_GuideWindow:onMouseUp(x, y)
+    local down = self._down
+    self._down = nil
+    if self._listSb then self._listSb:handleMouseUp() end
+    if self._textSb then self._textSb:handleMouseUp() end
+    local h = self:hitAt(x, y)
+    if down and h and h.foot == down then self:pressFoot(down) end
+    return true
+end
+
+function ZeD_GuideWindow:onMouseUpOutside(x, y)
+    self._down = nil
+    if self._listSb then self._listSb:handleMouseUp() end
+    if self._textSb then self._textSb:handleMouseUp() end
+end
+
+function ZeD_GuideWindow:onMouseMove(dx, dy)
+    for _, key in ipairs({ "_listSb", "_textSb" }) do
+        local sb = self[key]
+        if sb and sb.dragging then sb:handleMouseMove(self:getMouseY() - sb.y) end
+    end
+end
+function ZeD_GuideWindow:onMouseMoveOutside(dx, dy) self:onMouseMove(dx, dy) end
+
+function ZeD_GuideWindow:onMouseWheel(del)
+    local g = self._g
+    if not g then return true end
+    local mx, my = self:getMouseX(), self:getMouseY()
+    local step = del * ZeD.T.px(40)
+    if inRect({ x = 0, y = g.list.y, w = listWOf(g), h = g.list.h }, mx, my) then
+        self.listScroll = math.max(0, math.min(self._maxL or 0, self.listScroll + step))
+    else
+        self.scroll = math.max(0, math.min(self._maxS or 0, self.scroll + step))
+    end
+    return true
+end
+
+function ZeD_GuideWindow:update()
+    ZeD_Window.update(self)
+    for _, key in ipairs({ "_listSb", "_textSb" }) do
+        local sb = self[key]
+        if sb and sb.visible then
+            local mx, my = self:getMouseX(), self:getMouseY()
+            if sb.dragging or (mx >= sb.x and mx < sb.x + sb.width) then sb:handleMouseMove(my - sb.y) end
+            if sb.dragging and not isMouseButtonDown(0) then sb:handleMouseUp() end
+        end
+    end
+    local jd = JoypadState and JoypadState.players and JoypadState.players[self.playerNum + 1]
+    self.joyfocus = (jd and jd.focus == self) and jd or (W.qaJoy and self or nil)
+    self._hover = self:hitAt(self:getMouseX(), self:getMouseY())
+end
+
+-- ---------------------------------------------------------------------------
+-- KEYS: Escape and F1 close (typing in Find keeps its keys)
+-- ---------------------------------------------------------------------------
+function ZeD_GuideWindow:isKeyConsumed(key) return key == Keyboard.KEY_ESCAPE end
+function ZeD_GuideWindow:onKeyPress(key)
+    if key == Keyboard.KEY_ESCAPE then
+        self:close()
+        GameKeyboard.eatKeyPress(key)
+    end
+end
+
+-- ---------------------------------------------------------------------------
+-- CONTROLLER: the list (up and down, A opens a section or a topic), the topic (up and
+-- down scroll), the band; LB and RB turn the topics anywhere, B closes
+-- ---------------------------------------------------------------------------
+function ZeD_GuideWindow:onGainJoypadFocus(joypadData) self.joyfocus = joypadData end
+function ZeD_GuideWindow:onLoseJoypadFocus(joypadData) self.joyfocus = nil end
+
+local function listIndex(self)
+    local rows = (self._g and self._g.rows) or {}
+    for i, r in ipairs(rows) do if r.id == (self.listFocus or self.sel) then return i, rows end end
+    return 1, rows
+end
+
+function ZeD_GuideWindow:onJoypadDown(button, joypadData)
+    if button == Joypad.BButton then self:close(); return end
+    if button == Joypad.LBumper then self:step(-1); self.zone = "list"; return end
+    if button == Joypad.RBumper then self:step(1); self.zone = "list"; return end
+    if button ~= Joypad.AButton then return end
+    if self.zone == "list" then
+        local i, rows = listIndex(self)
+        local r = rows[i]
+        if r and r.section then self:pressRow(r) elseif r then self:choose(r.id, true); self.zone = "text"; sound("UISelectListItem") end
+    elseif self.zone == "foot" then
+        self:pressFoot(self._g and self._g.foot[self.footFocus])
+    end
+end
+
+function ZeD_GuideWindow:onJoypadDirUp()
+    if self.zone == "list" then
+        local i, rows = listIndex(self)
+        if i > 1 then
+            local r = rows[i - 1]
+            self.listFocus = r.id
+            if r.topic then self:choose(r.id, true) end
+            self._jumpList = true
+            sound("UISelectListItem")
+        end
+    elseif self.zone == "text" then
+        if self.scroll > 0 then self.scroll = math.max(0, self.scroll - ZeD.T.px(60)) else self.zone = "list" end
+    elseif self.zone == "foot" then
+        self.zone = "list"; sound("UISelectListItem")
+    end
+end
+
+function ZeD_GuideWindow:onJoypadDirDown()
+    if self.zone == "list" then
+        local i, rows = listIndex(self)
+        if i < #rows then
+            local r = rows[i + 1]
+            self.listFocus = r.id
+            if r.topic then self:choose(r.id, true) end
+            self._jumpList = true
+            sound("UISelectListItem")
+        else
+            self.zone = "foot"; self.footFocus = 3; sound("UISelectListItem")
+        end
+    elseif self.zone == "text" then
+        if self.scroll < (self._maxS or 0) then self.scroll = math.min(self._maxS or 0, self.scroll + ZeD.T.px(60))
+        else self.zone = "foot"; self.footFocus = 3; sound("UISelectListItem") end
+    end
+end
+
+function ZeD_GuideWindow:onJoypadDirRight()
+    if self.zone == "list" then self.zone = "text"; sound("UISelectListItem")
+    elseif self.zone == "foot" and self.footFocus < 3 then self.footFocus = self.footFocus + 1; sound("UISelectListItem") end
+end
+
+function ZeD_GuideWindow:onJoypadDirLeft()
+    if self.zone == "text" then self.zone = "list"; sound("UISelectListItem")
+    elseif self.zone == "foot" and self.footFocus > 1 then self.footFocus = self.footFocus - 1; sound("UISelectListItem") end
+end
+
+-- ---------------------------------------------------------------------------
+-- F1 ON WHAT YOU ARE DOING: the open Character or World tab's topic (the game's topic keys)
+-- ---------------------------------------------------------------------------
+W.tabTopics = W.tabTopics or {
+    char = { skills = "SurvivalGuide_skill_books_title", health = "SurvivalGuide_first_aid_title",
+             thermal = "SurvivalGuide_temperature_title", cooking = "SurvivalGuide_cooking_title",
+             equip = "SurvivalGuide_equip_primary_title", loot = "SurvivalGuide_backpacks_title" },
+    world = { craft = "SurvivalGuide_crafting_menu_title", build = "SurvivalGuide_build_menu_title",
+              forage = "SurvivalGuide_foraging_title", maps = "SurvivalGuide_map_title",
+              vehicle = "SurvivalGuide_mechanics_menu_title", animals = "SurvivalGuide_animal_menu_title",
+              radio = "SurvivalGuide_television_title", loot = "SurvivalGuide_backpacks_title" },
+}
+
+local function openTab(win)
+    if not (win and win.isReallyVisible and win:isReallyVisible()) then return nil end
+    if win._drawerMode ~= "tab" then return nil end
+    return win._activeTab
+end
+
+function W.contextTopicKey()
+    local cw = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
+    local ww = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
+    local ct, wt = openTab(cw), openTab(ww)
+    -- (the window under the pointer first, then the Character window's tab, then the World's)
+    if ww and wt and ww.isMouseOver and ww:isMouseOver() and W.tabTopics.world[wt] then return W.tabTopics.world[wt] end
+    if ct and W.tabTopics.char[ct] then return W.tabTopics.char[ct] end
+    if wt and W.tabTopics.world[wt] then return W.tabTopics.world[wt] end
+    return nil
+end
+
+-- ---------------------------------------------------------------------------
+-- ENTRY
+-- ---------------------------------------------------------------------------
+-- open on a topic: an id (tostring of a SurvivalGuideEntry) or a title key
+function W.open(pn, want)
+    pn = pn or 0
+    local win = W.windows[pn]
+    if not win then
+        win = ZeD_GuideWindow:new(pn)
+        win:initialise()
+        win:instantiate()
+        W.windows[pn] = win
+    end
+    win:readTopics()
+    if want then
+        local id = want
+        if not win.byId[id] then
+            for _, t in ipairs(win.flat) do if t.titleKey == want then id = t.id end end
+        end
+        if win.byId[id] then win:choose(id, true) end
+    end
+    win.listFocus = win.sel
+    win._jumpList = true
+    if not win:isReallyVisible() then
+        win:setVisible(true)
+        win:addToUIManager()
+        win:setAlwaysOnTop(true)
+        pcall(setGameSpeed, 0)
+    end
+    win:bringToTop()
+    win.zone = "list"
+    local jd = JoypadState.players[pn + 1]
+    if jd then
+        if jd.focus ~= win then win._prevFocus = jd.focus end
+        jd.focus = win
+        jd.activeWhilePaused = true
+        updateJoypadFocus(jd)
+    end
+    return win
+end
+
+function W.get(pn) return W.windows[pn or 0] end
+
+function W.toggle(pn)
+    local win = W.windows[pn or 0]
+    if win and win:isReallyVisible() then win:close(); return end
+    W.open(pn, W.contextTopicKey())
+end
+
+function W.takeEscape()
+    for _, win in pairs(W.windows) do
+        if win and win:isReallyVisible() then win:close(); return true end
+    end
+    return false
+end
+ZeD.EscapeTakers = ZeD.EscapeTakers or {}
+ZeD.EscapeTakers.guide = W.takeEscape
+
+-- ---------------------------------------------------------------------------
+-- THE GAME'S ENTRY POINTS (HOOK_MAP row 18): F1, the Help wheel, openEntry, the first run
+-- ---------------------------------------------------------------------------
+local function blocked()
+    if MainScreen and MainScreen.instance and MainScreen.instance:isVisible() then return true end
+    return SurvivalGuide and SurvivalGuide.blockSurvivalGuide
+end
+
+local function onKey(key)
+    if not getCore():isKey(KeybindId.TOGGLE_SURVIVAL_GUIDE, key) then return end
+    if blocked() then return end
+    W.toggle(0)
+end
+
+local function onGameStart()
+    if isServer() then return end
+    local core = getCore()
+    if not core:getOptionShowSurvivalGuide() then return end
+    if core:isTutorial() and SurvivalGuide and SurvivalGuide.blockSurvivalGuide then return end
+    if isDemo and isDemo() and ISDemoPopup and ISDemoPopup.instance then return end
+    W.open(0)
+end
+
+local function hook()
+    if _G._zedGuideHooked or not SurvivalGuide then return end
+    _G._zedGuideHooked = true
+    -- the game's handlers come off the events; ZeD's take their places
+    if SurvivalGuide.onKeyPressed then Events.OnKeyPressed.Remove(SurvivalGuide.onKeyPressed) end
+    if SurvivalGuide.OnGameStart then Events.OnGameStart.Remove(SurvivalGuide.OnGameStart) end
+    Events.OnKeyPressed.Add(onKey)
+    Events.OnGameStart.Add(onGameStart)
+    -- the Help wheel calls SurvivalGuide.onKeyPressed by name; other windows call openEntry
+    SurvivalGuide.onKeyPressed = onKey
+    SurvivalGuide.openEntry = function(entry) W.open(0, entry and tostring(entry) or nil) end
+end
+hook()
