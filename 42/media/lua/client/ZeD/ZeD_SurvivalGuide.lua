@@ -30,7 +30,7 @@ W.windows = W.windows or {}
 
 -- design units (1 px at 1080p; T.px scales them)
 local U = {
-    W = 1080, BODY_H = 580, LIST_W = 280, PAD = 10, HEAD_H = 40,
+    BODY_H = 580, LIST_W = 280, PAD = 10, HEAD_H = 40, MEASURE_CHARS = 66,
     CLIP_W = 640, PARA_GAP = 8, LINE_GAP = 3, RULES_PAD = 10, COL_GAP = 18, BAND_EDGE = 8, BAND_GAP = 8,
 }
 local CLIP_SRC_W, CLIP_SRC_H = 960, 480   -- the game's guide clips (Bink, 960 x 480)
@@ -399,7 +399,13 @@ function ZeD_GuideWindow:layout()
     local g = {}
     local tbH = self:titleBarHeight()
     local pn = self.playerNum
-    local w = math.min(px(U.W), getPlayerScreenWidth(pn) - px(20))
+    -- The reading measure: about 66 letters of the body text a line, never wider than the clip, and the
+    -- window as wide as that needs (the director, Nov 3 2026: no gap beside the clip, and not too many
+    -- words on a line for the eye to track). Large text keeps the same letters a line.
+    local sbW0 = T.sp.scrollbarW
+    local measure = math.min(px(U.CLIP_W), tw(T.fontF2, string.rep("e", U.MEASURE_CHARS)))
+    g.measure = measure
+    local w = math.min(px(U.LIST_W) + px(U.PAD) * 4 + measure + sbW0, getPlayerScreenWidth(pn) - px(20))
     local bandH = Mo.bandH()
     local bodyH = math.min(px(U.BODY_H), getPlayerScreenHeight(pn) - tbH - bandH - self:footerHeight() - px(20))
     local bodyY = tbH
@@ -441,9 +447,10 @@ function ZeD_GuideWindow:layout()
 
     -- the topic, with a bar when it overflows
     local pad = px(U.PAD) * 2
-    local th = self:buildTopic(g, g.text.x + pad, g.text.w - pad * 2)
+    local cw = math.min(g.measure, g.text.w - pad * 2 - sbW)
+    local th = self:buildTopic(g, g.text.x + pad, cw)
     g.textNeedsBar = th + pad > g.text.h
-    if g.textNeedsBar then th = self:buildTopic(g, g.text.x + pad, g.text.w - pad * 2 - sbW) end
+    -- (room for the bar is kept either way, so the lines do not rewrap when it comes and goes)
     local maxS = math.max(0, th + pad * 2 - g.text.h)
     if self.scroll > maxS then self.scroll = maxS end
     self._maxS = maxS
