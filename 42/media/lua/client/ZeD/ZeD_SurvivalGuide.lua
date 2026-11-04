@@ -53,12 +53,60 @@ end
 -- ---------------------------------------------------------------------------
 -- A controller's button pictures in the game's text (<IMAGE:...XBOX_A.png...>) become the
 -- button's name in brackets until the guide draws ZeD's own button pictures.
+-- The game's text puts small pictures in its lines (<IMAGE:media/ui/...png,w,h>: a menu's icon, a
+-- controller button). They become a marker (\1 path \1) that the reader passes through as text, and the
+-- layout draws the picture in the line, a line's height square (QA, Nov 3 2026: "[Build_On_48]").
+local MARK = "\1"
 local function inlineImages(s)
     return (s:gsub("<%s*[Ii][Mm][Aa][Gg][Ee]%s*:%s*([^,>]+)[^>]*>", function(path)
-        local name = path:match("([^/\\]+)%.%a+%s*$") or path
-        name = name:gsub("^[Xx][Bb][Oo][Xx]_", "")
-        return "[" .. name .. "]"
+        return MARK .. path:gsub("%s+$", "") .. MARK
     end))
+end
+
+local _texCache = {}
+local function inlineTex(path)
+    local t = _texCache[path]
+    if t == nil then t = getTexture(path) or false; _texCache[path] = t end
+    return t or nil
+end
+
+-- a paragraph wrapped at maxW: lines of runs ({ text, x } or { tex, x, s }), x from the line's start
+local function wrapRuns(para, font, maxW)
+    local s = fh(font)
+    local atoms = {}
+    local i = 1
+    while i <= #para do
+        local a = para:find(MARK, i, true)
+        local textPart = para:sub(i, (a or (#para + 1)) - 1)
+        for word in textPart:gmatch("%s*%S+%s*") do atoms[#atoms + 1] = { text = word, w = tw(font, word) } end
+        if not a then break end
+        local b = para:find(MARK, a + 1, true)
+        if not b then break end
+        local tex = inlineTex(para:sub(a + 1, b - 1))
+        if tex then atoms[#atoms + 1] = { tex = tex, w = s + ZeD.T.px(4) } end
+        i = b + 1
+    end
+    local lines, cur, x = {}, {}, 0
+    local function push() lines[#lines + 1] = cur; cur, x = {}, 0 end
+    for _, at in ipairs(atoms) do
+        if x > 0 and x + at.w > maxW then push() end
+        if at.tex then
+            cur[#cur + 1] = { tex = at.tex, x = x, s = s }
+        else
+            local last = cur[#cur]
+            local text = (x == 0) and at.text:gsub("^%s+", "") or at.text
+            if last and last.text then
+                -- (a picture the game could not find leaves no double space)
+                if last.text:sub(-1) == " " then text = text:gsub("^%s+", "") end
+                last.text = last.text .. text
+            else
+                cur[#cur + 1] = { text = text, x = x }
+            end
+        end
+        x = x + ((x == 0 and at.text) and tw(font, (at.text:gsub("^%s+", ""))) or at.w)
+    end
+    if #cur > 0 then push() end
+    return lines
 end
 
 -- the topic's text as paragraphs (the game's <LINE> breaks), plain words
@@ -279,8 +327,8 @@ function ZeD_GuideWindow:buildTopic(g, cx, cw)
     end
     for i, para in ipairs(paragraphs(t.text)) do
         if i > 1 then y = y + px(U.PARA_GAP) end
-        for _, l in ipairs(A.wrapText(para, T.fontF2, cw)) do
-            items[#items + 1] = { kind = "line", x = cx, y = y, text = l }
+        for _, runs in ipairs(wrapRuns(para, T.fontF2, cw)) do
+            items[#items + 1] = { kind = "line", x = cx, y = y, runs = runs }
             y = y + fh(T.fontF2) + px(U.LINE_GAP)
         end
     end
@@ -568,7 +616,13 @@ function ZeD_GuideWindow:prerender()
         elseif it.kind == "line" then
             local yy = it.y + oy
             if yy + fh(T.fontF2) >= ta.y and yy <= ta.y + ta.h then
-                self:drawText(it.text, it.x, yy, tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
+                for _, run in ipairs(it.runs) do
+                    if run.tex then
+                        self:drawTextureScaledAspect(run.tex, it.x + run.x, yy, run.s, run.s, 1, 1, 1, 1)
+                    else
+                        self:drawText(run.text, it.x + run.x, yy, tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
+                    end
+                end
             end
         elseif it.kind == "rules" then
             local by = it.y + oy
