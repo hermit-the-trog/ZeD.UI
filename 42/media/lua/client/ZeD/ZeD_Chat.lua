@@ -97,6 +97,12 @@ function C.onMessage(message)
     if safe(function() return message:isServerAlert() end, false) then kind = "server" end
     local text = plain(safe(function() return message:getText() end, ""))
     if text == "" then return end
+    -- the server's DEFAULT welcome (ServerOptions' ServerWelcomeMessage as shipped) tells of the game's chat box, its
+    -- Tab key and Gear icon, which ZeD's window does not have: ZeD's own line instead. A welcome the server's admin
+    -- wrote is kept as written.
+    if text:find("Welcome to Project Zomboid Multiplayer!", 1, true) and text:find("Gear icon", 1, true) then
+        text = tr("UI_ZeD_Chat_Welcome")
+    end
     local col = nil
     if safe(function() return message:isCustomColor() end, false) then
         local c = safe(function() return message:getTextColor() end, nil)
@@ -112,6 +118,101 @@ function C.onMessage(message)
     local win = C.win
     if not (win and win:getIsVisible()) then C.unreadN = C.unreadN + 1 end
     if win then win._dirty = true end
+end
+
+-- ---------------------------------------------------------------------------
+-- NAME COLORS (the director, Nov 5 2026: "Allow players to select their username color in the chat. So it helps
+-- distinguish who's talking.") The game already has the setting: the multiplayer text color (its Options' color
+-- picker, getCore():getMpTextColor()), the color of your speech over your head, which the server shares with every
+-- player (setSpeakColourInfo, sendPersonalColor). A line's name is drawn in its author's speak color; a player out of
+-- reach, or a color that would not read on this player's window (under 3:1 against its surface), takes the theme's
+-- heading color. The chat window's menu sets your own, the game's way, so it shows for everyone and in the game's
+-- Options too.
+-- ---------------------------------------------------------------------------
+C.PALETTE = {
+    { k = "red",    name = "ContextMenu_Red",    r = 0.90, g = 0.32, b = 0.30 },
+    { k = "orange", name = "ContextMenu_Orange", r = 0.95, g = 0.58, b = 0.20 },
+    { k = "yellow", name = "ContextMenu_Yellow", r = 0.95, g = 0.85, b = 0.30 },
+    { k = "green",  name = "ContextMenu_Green",  r = 0.42, g = 0.80, b = 0.40 },
+    { k = "teal",   name = "UI_ZeD_Accent_Teal", r = 0.30, g = 0.80, b = 0.75 },
+    { k = "blue",   name = "ContextMenu_Blue",   r = 0.42, g = 0.62, b = 0.95 },
+    { k = "purple", name = "ContextMenu_Purple", r = 0.70, g = 0.52, b = 0.95 },
+    { k = "pink",   name = "ContextMenu_Pink",   r = 0.95, g = 0.50, b = 0.75 },
+    { k = "white",  name = "ContextMenu_White",  r = 0.95, g = 0.95, b = 0.95 },
+}
+local function lum(c)
+    local function ch(v) if v <= 0.03928 then return v / 12.92 end; return ((v + 0.055) / 1.055) ^ 2.4 end
+    return 0.2126 * ch(c.r) + 0.7152 * ch(c.g) + 0.0722 * ch(c.b)
+end
+local function contrast(a, b)
+    local la, lb = lum(a), lum(b)
+    if la < lb then la, lb = lb, la end
+    return (la + 0.05) / (lb + 0.05)
+end
+-- the color the game keeps for you (your Options' multiplayer text color)
+function C.myColor()
+    return safe(function()
+        local c = getCore():getMpTextColor()
+        return { r = c:getR(), g = c:getG(), b = c:getB() }
+    end, nil)
+end
+-- an author's color, looked up again every few seconds (nil: not known here)
+C._names = C._names or {}
+function C.nameColor(author)
+    if not author then return nil end
+    local now = getTimestampMs()
+    local e = C._names[author]
+    if e and now - e.t < 3000 then return e.c end
+    local c = nil
+    local me = safe(function() return getPlayer():getUsername() end, nil)
+    if author == me then c = C.myColor()
+    else
+        c = safe(function()
+            local p = getPlayerFromUsername(author)
+            local sc = p and p:getSpeakColour()
+            return sc and { r = sc:getR(), g = sc:getG(), b = sc:getB() } or nil
+        end, nil)
+    end
+    C._names[author] = { t = now, c = c }
+    return c
+end
+-- the name's color as it draws on this window: the author's, else the heading color
+function C.nameInk(author)
+    local T = ZeD.T
+    local c = C.nameColor(author)
+    if c and T.surf1 and contrast(c, T.surf1) >= 3 then return c end
+    return T.textHead
+end
+-- your own color, set the game's way (Options' gameOption.apply for the multiplayer text color)
+function C.setMyColor(e)
+    local ok, err = pcall(function()
+        getCore():setMpTextColor(ColorInfo.new(e.r, e.g, e.b, 1))
+        getCore():saveOptions()
+        local p = getPlayer()
+        if p then
+            p:setSpeakColourInfo(getCore():getMpTextColor())
+            sendPersonalColor(p)
+        end
+    end)
+    if not ok then ZeD.logOnce("chat name color", err) end
+    C._names = {}
+end
+-- the chat window's menu: Name color, the palette with a check by the one you have
+function C.menuItems()
+    local cur = C.myColor()
+    local kids = {}
+    for _, e in ipairs(C.PALETTE) do
+        local entry = e
+        kids[#kids + 1] = {
+            name = getTextOrNull(e.name) or tr(e.name), category = "pick",
+            onFire = function() C.setMyColor(entry) end,
+            checked = function()
+                local c = C.myColor()
+                return c ~= nil and math.abs(c.r - entry.r) < 0.02 and math.abs(c.g - entry.g) < 0.02 and math.abs(c.b - entry.b) < 0.02
+            end,
+        }
+    end
+    return { { name = tr("UI_ZeD_Chat_NameColor"), category = "own", children = kids } }
 end
 
 -- ---------------------------------------------------------------------------
@@ -190,6 +291,7 @@ function ZeD_ChatWindow:new(x, y, w, h)
     o.zone = "lines"       -- controller: "tabs" | "lines" | "input"
     o._dirty = true
     o._usedAt = getTimestampMs()
+    o.extraMenu = function() return C.menuItems() end
     o:setWantKeyEvents(true)
     return o
 end
@@ -258,7 +360,13 @@ function ZeD_ChatWindow:_wrapped(w)
             if ln.kind == "whisper" and ln.author then head = tr("UI_ZeD_Chat_From", ln.author) .. " " end
             if ln.kind == "shout" then head = ln.author and tr("UI_ZeD_Chat_Shouts", ln.author) .. " " or "" end
             local parts = ZeD.Atoms.wrapText(head .. ln.text, f, w)
-            for i, s in ipairs(parts) do out[#out + 1] = { s = s, ln = ln, first = i == 1, headW = (i == 1 and head ~= "") and ZeD.TM:MeasureStringX(f, head) or 0, head = head } end
+            -- (the head's width with its space: MeasureStringX does not count a trailing space)
+            local hw = 0
+            if head ~= "" then
+                local sp = ZeD.TM:MeasureStringX(f, "a a") - ZeD.TM:MeasureStringX(f, "aa")
+                hw = ZeD.TM:MeasureStringX(f, (head:gsub("%s+$", ""))) + math.max(sp, px(3))
+            end
+            for i, s in ipairs(parts) do out[#out + 1] = { s = s, ln = ln, first = i == 1, headW = (i == 1) and hw or 0, head = head } end
         end
     end
     self._wrap, self._wrapKey = out, key
@@ -365,7 +473,8 @@ function ZeD_ChatWindow:_drawLines(x, y, w, h)
             local r = rows[i]
             local c = r.ln.color or ((r.ln.kind == "server" or r.ln.kind == "admin") and ac) or tc
             if r.first and r.headW > 0 then
-                self:drawText(r.head, x, ry, hd.r, hd.g, hd.b, hd.a or 1, f)
+                local nc = C.nameInk(r.ln.author) or hd
+                self:drawText((r.head:gsub("%s+$", "")), x, ry, nc.r, nc.g, nc.b, nc.a or 1, f)
                 self:drawText(r.s:sub(#r.head + 1), x + r.headW, ry, c.r, c.g, c.b, c.a or 1, f)
             else
                 self:drawText(r.s, x, ry, c.r, c.g, c.b, c.a or 1, f)

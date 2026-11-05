@@ -4616,5 +4616,7 @@
     "UI_ZeD_Adm_NoFactions": "No factions.",
     "UI_ZeD_Adm_HelpOpenFaction": "This faction in the game's faction window.",
     "UI_ZeD_Adm_HelpMore": "Opens the game's own window for this tool.",
-    "UI_ZeD_Adm_MoreTools": "More tools"
+    "UI_ZeD_Adm_MoreTools": "More tools",
+    "UI_ZeD_Chat_NameColor": "Name color",
+    "UI_ZeD_Chat_Welcome": "Welcome. The chat key opens the line to type in; the tabs sort the lines by channel. /all speaks to everyone, /w name to one player."
 }
