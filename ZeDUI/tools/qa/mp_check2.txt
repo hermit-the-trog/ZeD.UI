@@ -1,0 +1,3 @@
+# ZeDUI/tools/qa/mp_check2.txt  (Nov 5 2026): after a rejoin: the hands, then the frame-rate and lag-spike bench, zedqa_run.ps1 -Mp -Manifest this
+mp_hand_after.lua | mph | timeout=60
+perf_motion.lua | pmo | timeout=500

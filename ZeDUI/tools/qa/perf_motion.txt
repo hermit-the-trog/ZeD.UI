@@ -1,0 +1,2 @@
+# ZeDUI/tools/qa/perf_motion.txt  (Nov 5 2026): frame rate and lag spikes, standing and walking (solo: ZeD on, or the ZeDQAShim swap)
+perf_motion.lua | pmo | timeout=500
