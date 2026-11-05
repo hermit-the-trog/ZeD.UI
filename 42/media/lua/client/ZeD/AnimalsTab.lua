@@ -1084,12 +1084,16 @@ local ALERT_LABELS = {
     lost_mother  = "UI_ZeD_Animals_AlertOrphan",
 }
 
-local function drawAlertRow(panel, x, y, w, alert)
+local function drawAlertRow(panel, x, y, w, alert, win, idx)
     local T = ZeD.T
     local A = ZeD.Atoms
     local ad = AD()
     local animal = alert.animal
     local rowH = T.px(ALERT_ROW_H)
+    -- (a stop for the controller, so a long list of alerts can be walked and read; nothing to press)
+    local onFocus = markId(panel, win, "animals:alert:" .. tostring(idx), x, y, w, rowH)
+    local ink = onFocus and T.textOnFocus or T.text
+    local inkDim = onFocus and T.textOnFocus or T.textDim
 
     -- Portrait icon
     local portraitPath = ad.resolvePortrait(animal)
@@ -1109,8 +1113,8 @@ local function drawAlertRow(panel, x, y, w, alert)
     local fh = ZeD.TM:getFontHeight(f2)
     local textY = y + math.floor((rowH - fh * 2) / 2)
 
-    panel:drawText(name, nameX, textY, T.text.r, T.text.g, T.text.b, T.text.a or 1, f2)
-    panel:drawText(species, nameX, textY + fh, T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, f2)
+    panel:drawText(name, nameX, textY, ink.r, ink.g, ink.b, ink.a or 1, f2)
+    panel:drawText(species, nameX, textY + fh, inkDim.r, inkDim.g, inkDim.b, inkDim.a or 1, f2)
 
     -- What is wrong: a tag with its status square (right-aligned)
     local label = ZeD.tr(ALERT_LABELS[alert.alertType] or "UI_ZeD_Animals_AlertDefault")
@@ -1332,7 +1336,24 @@ end
 -- O-ANOVW — RANCH OVERVIEW ORGANISM
 -- Composes: Alerts section → Zones section → Totals section.
 -- Reads all data from AlertPoller cache. Collapsible sections.
+-- The whole page scrolls as one unit (QA Nov 5 2026: 24 animals made 27 alerts, a page of 1961 in a 650 view, with no
+-- way down to the Totals, and the rows ran under the Create zone band): win._animalsScroll, the real bar, clipped
+-- between the tab strip and the band. Its height is last frame's (win._animalsOvH).
 -- ============================================================================
+
+-- the controller's stop kept in view (win._animalsOvRows: each stop's place in the page, from the last frame)
+local function ovFollow(win, scroll, maxOff, h, listH)
+    local el = liveEl(win)
+    local r = el and el.id and win._animalsOvRows and win._animalsOvRows[el.id]
+    if not r or maxOff <= 0 then return end
+    local rh = r.h
+    -- (the Totals' head: its rows are below it, not stops of their own)
+    if el.id == "animals:disclosure:totalsExpanded" then rh = listH - r.cy end
+    local off0 = math.floor(scroll.scrollPos * maxOff)
+    local off1 = off0
+    if r.cy < off0 then off1 = r.cy elseif r.cy + rh > off0 + h then off1 = math.min(r.cy, r.cy + rh - h) end
+    if off1 ~= off0 then scroll:setScrollPos(off1 / maxOff) end
+end
 
 local function renderRanchOverview(panel, win, x, y, w, h)
     -- Force cache refresh on first render
@@ -1341,6 +1362,7 @@ local function renderRanchOverview(panel, win, x, y, w, h)
     -- Reset click zones (an empty overview must not keep last frame's)
     win._animalsZoneCardZones = {}
     win._animalsSectionZones = {}
+    win._animalsAlertZones = {}
 
     local zones = AP().getZoneList()
     if #zones == 0 then
@@ -1362,7 +1384,33 @@ local function renderRanchOverview(panel, win, x, y, w, h)
     end
     local ovState = win._animalsOverviewState
 
-    local curY = y  -- header sits flush against tab strip bottom
+    -- the scroll: the page's height from the last frame, the bar at the right
+    local scroll = win._animalsScroll
+    local listH = win._animalsOvH or 0
+    local needs = scroll ~= nil and listH > h
+    local maxOff = math.max(0, listH - h)
+    local off = 0
+    if scroll then
+        scroll.visible = needs
+        if needs then
+            scroll.x, scroll.y, scroll.height = x + w - T.sp.scrollbarW, y, h
+            scroll.width = T.sp.scrollbarW
+            scroll.lineH = T.px(ALERT_ROW_H)
+            scroll:setBarSize(h / listH)
+            ovFollow(win, scroll, maxOff, h, listH)
+            off = math.floor(scroll.scrollPos * maxOff)
+        else
+            scroll:setScrollPos(0)
+        end
+    end
+    if needs then w = w - T.sp.scrollbarW end
+    win._animalsOvClip = { y = y, h = h }
+    local rows = {}
+    win._animalsOvRows = rows
+    local top = y - off
+    panel:setStencilRect(x, y, w, h)
+
+    local curY = top  -- header sits flush against tab strip bottom
 
     -- ── ALERTS SECTION ──
     local alerts = AP().getAlerts()
@@ -1373,11 +1421,15 @@ local function renderRanchOverview(panel, win, x, y, w, h)
         table.insert(win._animalsSectionZones, {
             x = x, y = secY, w = w, h = catH, key = "alertsExpanded"
         })
+        rows["animals:disclosure:alertsExpanded"] = { cy = secY - top, h = catH }
         curY = curY + catH
 
         if ovState.alertsExpanded then
-            for _, alert in ipairs(alerts) do
-                curY = curY + drawAlertRow(panel, x + pad, curY, w - pad * 2, alert)
+            for i, alert in ipairs(alerts) do
+                local rh = drawAlertRow(panel, x + pad, curY, w - pad * 2, alert, win, i)
+                table.insert(win._animalsAlertZones, { x = x + pad, y = curY, w = w - pad * 2, h = rh, i = i })
+                rows["animals:alert:" .. tostring(i)] = { cy = curY - top, h = rh }
+                curY = curY + rh
             end
         end
     end
@@ -1394,7 +1446,9 @@ local function renderRanchOverview(panel, win, x, y, w, h)
         end
         local summary = AP().getZoneSummary(zname)
         if summary then
-            curY = curY + drawZoneSummary(panel, x + pad, curY, w - pad * 2, summary, win)
+            local ch = drawZoneSummary(panel, x + pad, curY, w - pad * 2, summary, win)
+            rows["animals:zonecard:" .. tostring(summary.name)] = { cy = curY - top, h = ch }
+            curY = curY + ch
         end
     end
 
@@ -1407,6 +1461,7 @@ local function renderRanchOverview(panel, win, x, y, w, h)
         table.insert(win._animalsSectionZones, {
             x = x, y = secY, w = w, h = catH, key = "totalsExpanded"
         })
+        rows["animals:disclosure:totalsExpanded"] = { cy = secY - top, h = catH }
         curY = curY + catH
 
         if ovState.totalsExpanded then
@@ -1414,7 +1469,19 @@ local function renderRanchOverview(panel, win, x, y, w, h)
         end
     end
 
-    win._animalsContentH = curY - y
+    win._animalsOvH = curY - top
+    panel:clearStencilRect()
+    panel:setStencilRect(0, 0, panel:getWidth(), panel:getHeight())
+    if needs then
+        -- (the drawer hands a press to onClick; the hover, the drag and the release are kept here)
+        local mx, my = panel:getMouseX(), panel:getMouseY()
+        if scroll.dragging or scroll.upPressed or scroll.downPressed then
+            if isMouseButtonDown(0) then scroll:handleMouseMove(my - scroll.y) else scroll:handleMouseUp() end
+        elseif mx >= scroll.x and mx < scroll.x + scroll.width and my >= scroll.y and my < scroll.y + scroll.height then
+            scroll:handleMouseMove(my - scroll.y)
+        end
+        scroll:draw(panel)
+    end
 end
 
 -- ============================================================================
@@ -3062,6 +3129,8 @@ function ZeD.AnimalsTab.render(panel, win, x, y, w, h)
     win._animalsButcherZones = nil   -- the Butcher roster rebuilds it when drawn
     win._animalsRosterZones, win._animalsSortZone, win._animalsZoneNameZone = nil, nil, nil
     win._animalsZoneCardZones, win._animalsSectionZones = nil, nil
+    win._animalsAlertZones, win._animalsOvClip, win._animalsOvRows = nil, nil, nil
+    if win._animalsScroll then win._animalsScroll.visible = false end   -- (the Ranch page's bar: it shows it)
     win._animalsBreadcrumbZone = nil
 
     -- Zone create mode overrides everything
@@ -3260,8 +3329,10 @@ function ZeD.AnimalsTab.onClick(win, x, y)
         return true
     end
 
-    -- Section header collapse/expand clicks (overview)
-    if win._animalsSectionZones and win._animalsOverviewState then
+    -- Section header collapse/expand clicks (overview). The page scrolls: rows out of its view take no click
+    local ovClip = win._animalsOvClip
+    local inOv = not ovClip or (y >= ovClip.y and y < ovClip.y + ovClip.h)
+    if inOv and win._animalsSectionZones and win._animalsOverviewState then
         for _, sz in ipairs(win._animalsSectionZones) do
             if hitZone(sz, x, y) then
                 win._animalsOverviewState[sz.key] = not win._animalsOverviewState[sz.key]
@@ -3271,7 +3342,7 @@ function ZeD.AnimalsTab.onClick(win, x, y)
     end
 
     -- Zone card clicks → navigate to zone view
-    if win._animalsZoneCardZones then
+    if inOv and win._animalsZoneCardZones then
         for _, zc in ipairs(win._animalsZoneCardZones) do
             if hitZone(zc, x, y) then
                 navigate(win, "zone", zc.zoneName, nil)
@@ -3303,7 +3374,7 @@ function ZeD.AnimalsTab.onClick(win, x, y)
         end
     end
 
-    -- Scrollbar click (future overview scroll)
+    -- The Ranch page's scroll bar
     local scroll = win._animalsScroll
     if scroll and scroll.visible then
         local sp = ZeD.T.sp
@@ -3355,10 +3426,10 @@ function ZeD.AnimalsTab.onMouseWheel(win, del)
     end
 
 
-    -- Overview scroll (future)
+    -- The Ranch page: a row a tick
     local scroll = win._animalsScroll
     if scroll and scroll.visible then
-        scroll:handleMouseWheel(del)
+        scroll:setScrollPos(scroll.scrollPos + del * scroll:lineStep())
         return true
     end
     return false

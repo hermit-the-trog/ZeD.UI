@@ -866,6 +866,16 @@ local function _buildAnimalsFocusables(win)
                 end
             end
         end
+        -- The alerts' rows: stops to read them by (nothing to press; the page scrolls to them).
+        if win._animalsAlertZones then
+            for _, az in ipairs(win._animalsAlertZones) do
+                elements[#elements + 1] = {
+                    x = az.x, y = az.y, w = az.w, h = az.h,
+                    id = "animals:alert:" .. tostring(az.i),
+                    isAlertRow = true,
+                }
+            end
+        end
         -- Zone summary cards → navigate to zone view.
         if win._animalsZoneCardZones then
             for _, zc in ipairs(win._animalsZoneCardZones) do
@@ -4095,6 +4105,10 @@ function ZeD_WorldWindow.toggle(playerNum)
         if win._drawerMode == "tab" and win._activeTab == "furniture" then
             return ZeD.FurnitureTab.onMouseWheel(win, del)
         end
+        -- (the Animals tab's own wheel, nothing called it: the Ranch page, a zone's roster, Butcher, an animal's details)
+        if win._drawerMode == "tab" and win._activeTab == "animals" then
+            return ZeD.AnimalsTab.onMouseWheel(win, del)
+        end
         if win._drawerMode == "tab" then
             local scroll = getWorldActiveScroll(win)
             if scroll and scroll.visible then
@@ -4846,6 +4860,11 @@ function ZeD_WorldWindow.toggle(playerNum)
             if win._activeTab == "forage" then
                 local sc = win._forageScroll
                 scrollKey = tostring(sc and sc.scrollPos or 0) .. ":" .. tostring(win._moreDetailOpen)
+                if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
+            end
+            -- (the Ranch page's stops move with its scroll)
+            if win._activeTab == "animals" and win._animalsScroll and win._animalsScroll.visible then
+                scrollKey = tostring(win._animalsScroll.scrollPos)
                 if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
             end
             local extT = ZeD_WorldWindow._extTabs[win._activeTab]
