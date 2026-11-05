@@ -4569,5 +4569,22 @@
     "UI_ZeD_Srv_AskAdmins": "Ask the admins",
     "UI_ZeD_Srv_HelpTickets": "Send the admins a ticket and read their answers.",
     "UI_ZeD_Chat_Title": "Chat",
-    "UI_ZeD_Chat_KeyNew": "Chat: %1 new"
+    "UI_ZeD_Chat_KeyNew": "Chat: %1 new",
+    "UI_ZeD_Chat_TabGeneral": "General",
+    "UI_ZeD_Chat_TabFaction": "Faction",
+    "UI_ZeD_Chat_TabSafehouse": "Safehouse",
+    "UI_ZeD_Chat_TabPrivate": "Private",
+    "UI_ZeD_Chat_TabAdmin": "Admin",
+    "UI_ZeD_Chat_Type": "Type here; /all for everyone, /w name for one player",
+    "UI_ZeD_Chat_Send": "Send",
+    "UI_ZeD_Chat_HelpSend": "Send what you typed (Enter does too).",
+    "UI_ZeD_Chat_Slow": "Slow mode: %1 s before the next line",
+    "UI_ZeD_Chat_Older": "Older lines: scroll down for the newest.",
+    "UI_ZeD_Chat_Help": "The game's chat key opens the line to type in.",
+    "UI_ZeD_Chat_Nothing": "Nothing said here yet.",
+    "UI_ZeD_Chat_From": "From %1:",
+    "UI_ZeD_Chat_Shouts": "%1 shouts:",
+    "UI_ZeD_Chat_PadType": "Type",
+    "UI_ZeD_Chat_PadTabs": "D-pad left and right: the tabs",
+    "UI_ZeD_Chat_PadMove": "D-pad: scroll, the tabs, the line to type in"
 }
