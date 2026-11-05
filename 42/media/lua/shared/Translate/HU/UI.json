@@ -4615,5 +4615,7 @@
     "UI_ZeD_Adm_NoFactions": "Nincs csoport.",
     "UI_ZeD_Adm_HelpOpenFaction": "Ez a csoport, a játék csoport ablakában.",
     "UI_ZeD_Adm_HelpMore": "Megnyitja a játék saját ablakát ehhez az eszközhöz.",
-    "UI_ZeD_Adm_MoreTools": "További eszközök"
+    "UI_ZeD_Adm_MoreTools": "További eszközök",
+    "UI_ZeD_Chat_NameColor": "Név színe",
+    "UI_ZeD_Chat_Welcome": "Üdvözöljük. A csevegés gomb megnyitja a beírási sort; a lapok csatorna szerint rendezik a sorokat. /all mindenkihez szól, /w név egy játékoshoz."
 }

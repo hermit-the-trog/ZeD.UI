@@ -4616,5 +4616,7 @@
     "UI_ZeD_Adm_NoFactions": "没有阵营。",
     "UI_ZeD_Adm_HelpOpenFaction": "在游戏的阵营窗口中查看此阵营。",
     "UI_ZeD_Adm_HelpMore": "打开游戏自带的窗口使用此工具。",
-    "UI_ZeD_Adm_MoreTools": "更多工具"
+    "UI_ZeD_Adm_MoreTools": "更多工具",
+    "UI_ZeD_Chat_NameColor": "名称颜色",
+    "UI_ZeD_Chat_Welcome": "欢迎。按聊天键打开输入行；标签页按频道整理消息。/all 对所有人说话，/w 名称 对单个玩家说话。"
 }

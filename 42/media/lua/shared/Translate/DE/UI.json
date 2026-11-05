@@ -4615,5 +4615,7 @@
     "UI_ZeD_Adm_NoFactions": "Keine Fraktionen.",
     "UI_ZeD_Adm_HelpOpenFaction": "Diese Fraktion im Fraktionsfenster des Spiels.",
     "UI_ZeD_Adm_HelpMore": "Öffnet das eigene Fenster des Spiels für dieses Werkzeug.",
-    "UI_ZeD_Adm_MoreTools": "Weitere Werkzeuge"
+    "UI_ZeD_Adm_MoreTools": "Weitere Werkzeuge",
+    "UI_ZeD_Chat_NameColor": "Namensfarbe",
+    "UI_ZeD_Chat_Welcome": "Willkommen. Die Chat-Taste öffnet die Eingabezeile; die Reiter sortieren die Zeilen nach Kanal. /all spricht zu allen, /w Name zu einem Spieler."
 }

@@ -4615,5 +4615,7 @@
     "UI_ZeD_Adm_NoFactions": "Nicio facțiune.",
     "UI_ZeD_Adm_HelpOpenFaction": "Această facțiune în fereastra de facțiuni a jocului.",
     "UI_ZeD_Adm_HelpMore": "Deschide fereastra proprie a jocului pentru această unealtă.",
-    "UI_ZeD_Adm_MoreTools": "Mai multe unelte"
+    "UI_ZeD_Adm_MoreTools": "Mai multe unelte",
+    "UI_ZeD_Chat_NameColor": "Culoarea numelui",
+    "UI_ZeD_Chat_Welcome": "Bun venit. Tasta de chat deschide linia de scris; filele sortează liniile după canal. /all vorbește tuturor, /w nume unui singur jucător."
 }

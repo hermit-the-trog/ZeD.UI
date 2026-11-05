@@ -4615,5 +4615,7 @@
     "UI_ZeD_Adm_NoFactions": "Grup yok.",
     "UI_ZeD_Adm_HelpOpenFaction": "Bu grup, oyunun grup penceresinde.",
     "UI_ZeD_Adm_HelpMore": "Bu araç için oyunun kendi penceresini açar.",
-    "UI_ZeD_Adm_MoreTools": "Diğer araçlar"
+    "UI_ZeD_Adm_MoreTools": "Diğer araçlar",
+    "UI_ZeD_Chat_NameColor": "İsim rengi",
+    "UI_ZeD_Chat_Welcome": "Hoş geldiniz. Sohbet tuşu yazma satırını açar; sekmeler satırları kanala göre ayırır. /all herkese, /w isim tek bir oyuncuya konuşur."
 }

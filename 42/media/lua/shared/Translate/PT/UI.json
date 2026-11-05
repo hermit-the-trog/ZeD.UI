@@ -4615,5 +4615,7 @@
     "UI_ZeD_Adm_NoFactions": "Sem fações.",
     "UI_ZeD_Adm_HelpOpenFaction": "Esta fação na janela de fações do jogo.",
     "UI_ZeD_Adm_HelpMore": "Abre a janela própria do jogo para esta ferramenta.",
-    "UI_ZeD_Adm_MoreTools": "Mais ferramentas"
+    "UI_ZeD_Adm_MoreTools": "Mais ferramentas",
+    "UI_ZeD_Chat_NameColor": "Cor do nome",
+    "UI_ZeD_Chat_Welcome": "Bem-vindo. A tecla de conversa abre a linha para escrever; os separadores ordenam as linhas por canal. /all fala com todos, /w nome com um jogador."
 }

@@ -4616,5 +4616,7 @@
     "UI_ZeD_Adm_NoFactions": "沒有陣營。",
     "UI_ZeD_Adm_HelpOpenFaction": "在遊戲的陣營視窗中檢視此陣營。",
     "UI_ZeD_Adm_HelpMore": "開啟遊戲自帶的視窗使用此工具。",
-    "UI_ZeD_Adm_MoreTools": "更多工具"
+    "UI_ZeD_Adm_MoreTools": "更多工具",
+    "UI_ZeD_Chat_NameColor": "名稱顏色",
+    "UI_ZeD_Chat_Welcome": "歡迎。按下聊天鍵可開啟輸入列；分頁會依頻道整理訊息。/all 對所有人說話，/w 名稱 對單一玩家說話。"
 }

@@ -4615,5 +4615,7 @@
     "UI_ZeD_Adm_NoFactions": "Ei ryhmiä.",
     "UI_ZeD_Adm_HelpOpenFaction": "Tämä ryhmä pelin ryhmäikkunassa.",
     "UI_ZeD_Adm_HelpMore": "Avaa pelin oman ikkunan tälle työkalulle.",
-    "UI_ZeD_Adm_MoreTools": "Lisää työkaluja"
+    "UI_ZeD_Adm_MoreTools": "Lisää työkaluja",
+    "UI_ZeD_Chat_NameColor": "Nimen väri",
+    "UI_ZeD_Chat_Welcome": "Tervetuloa. Chat-näppäin avaa kirjoitusrivin; välilehdet lajittelevat rivit kanavan mukaan. /all puhuu kaikille, /w nimi yhdelle pelaajalle."
 }

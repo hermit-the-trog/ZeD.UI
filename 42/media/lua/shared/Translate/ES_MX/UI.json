@@ -4615,5 +4615,7 @@
     "UI_ZeD_Adm_NoFactions": "Sin facciones.",
     "UI_ZeD_Adm_HelpOpenFaction": "Esta facción, en la ventana de facción del juego.",
     "UI_ZeD_Adm_HelpMore": "Abre la ventana propia del juego para esta herramienta.",
-    "UI_ZeD_Adm_MoreTools": "Más herramientas"
+    "UI_ZeD_Adm_MoreTools": "Más herramientas",
+    "UI_ZeD_Chat_NameColor": "Color del nombre",
+    "UI_ZeD_Chat_Welcome": "Bienvenido. La tecla de chat abre la línea para escribir; las pestañas ordenan las líneas por canal. /all habla con todos, /w nombre con un jugador."
 }
