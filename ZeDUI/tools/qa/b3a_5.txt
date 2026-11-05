@@ -1,0 +1,20 @@
+# b3a_5: gallery_beta.txt for the Beta 3a spreads retake (Nov 4 2026, QA): the windows pinned after every look step (0.3.0-beta3a
+# rolls unpinned windows up) and the debug console hidden. Generated; the original's notes follow.
+# Nov 2 2026: the gallery for 0.3.0-beta1 (in game, 4K). Retakes under the same names (laundry 59, two-way 37,
+# messages 34) and the new pages (gallery_beta_new.lua). Then gallery_menus_run.ps1 for the desk (46/47) and Options (48).
+zedqa_prelude.lua | pre | timeout=120
+gallery_t14_look.lua | g14l | timeout=60
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_daylight.lua | day | timeout=120
+gallery_console_off.lua | gco | timeout=30
+zedqa_twoway.lua | tw | timeout=900
+gallery_t14_look.lua | g14l2 | timeout=60
+zedqa_pin_windows.lua | pnw2 | timeout=60
+zedqa_gallery_t4.lua | g4 | timeout=240
+gallery_only_laundry.lua | gol | timeout=30
+gallery_t14_indoor.lua | g14i | timeout=900
+gallery_t14_look.lua | g14l3 | timeout=60
+zedqa_pin_windows.lua | pnw3 | timeout=60
+gallery_beta_new.lua | gbn | timeout=600 | expect=qaGalleryError
+gallery_t14_end.lua | g14e | timeout=60

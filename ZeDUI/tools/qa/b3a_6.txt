@@ -1,0 +1,13 @@
+# b3a_6: gallery_beta2_story04b.txt for the Beta 3a spreads retake (Nov 4 2026, QA): the windows pinned after every look step (0.3.0-beta3a
+# rolls unpinned windows up) and the debug console hidden. Generated; the original's notes follow.
+# ZeDUI/tools/qa/gallery_beta2_story04b.txt  (Nov 3 2026): story beat 04b retaken on the two-column Vehicle tab (spread 06), 4K
+# zedqa_run.ps1 -Manifest this -Mode fullscreen4k. gallery_story_only.lua keeps beats 04 and 04b (the car is driven in by 04).
+zedqa_prelude.lua | pre | timeout=120
+gallery_t14_look.lua | g14l | timeout=60
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_story_only.lua | sto | timeout=60
+gallery_story_stage.lua | sts | timeout=600
+gallery_story_shots.lua | stz | timeout=1500
+gallery_story_teardown.lua | stt | timeout=600
+gallery_t14_end.lua | g14e | timeout=60

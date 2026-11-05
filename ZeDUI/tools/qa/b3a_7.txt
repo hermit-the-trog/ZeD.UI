@@ -1,0 +1,13 @@
+# b3a_7: gallery_beta2_tabs.txt for the Beta 3a spreads retake (Nov 4 2026, QA): the windows pinned after every look step (0.3.0-beta3a
+# rolls unpinned windows up) and the debug console hidden. Generated; the original's notes follow.
+# ZeDUI/tools/qa/gallery_beta2_tabs.txt  (Nov 3 2026): the gallery pictures for the beta 2 spreads, 4K, in the gallery look
+# release_check.ps1 -Manifest this (the real mouse: the hovered row). Keep: zqa_m79_*_2_hover_row, _6_card_brake_step,
+# zqa_c80_*_2_stew_plan, _5_dish_list (the rest are the checks own pictures).
+zedqa_prelude.lua | pre | timeout=120
+gallery_t14_look.lua | g14l | timeout=60
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_daylight.lua | day | timeout=120
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_cook80.lua | c80 | timeout=1500
+zedqa_mech79.lua | m79 | timeout=1200
+gallery_t14_end.lua | g14e | timeout=60
