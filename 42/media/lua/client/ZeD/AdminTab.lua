@@ -590,6 +590,7 @@ ZeD_WorldWindow.addTab({
     iconName = "admin-tab-white",
     label = function() return tr("UI_ZeD_World_TabAdmin") end,
     visible = function() return A.visible() end,
+    wheelHide = function() return not A.visible() end,   -- (on the D-pad wheels only for an admin on a server)
     render = A.render,
     scroll = function(win) local st = win._adminTab; return st and st.scroll or nil end,
     onClick = A.onClick,

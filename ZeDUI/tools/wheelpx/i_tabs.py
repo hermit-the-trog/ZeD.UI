@@ -161,3 +161,35 @@ def traits(c, s):
         c.poly([(11, 1), (19, 1), (15, 5.5)])
         c.rect(1, 7, 22, 9); c.rect(3, 9, 18, 5, v=0); c.rect(3, 9, 12, 5)
         for x in (2, 8, 14, 20): c.rect(x, 17.5, 2, 3)
+
+
+@icon("tower", "tab", "a tower computer, two drive bays and its lamp: the Server tab", ["server tab"])
+def tower(c, s):
+    if s == 16:
+        c.rect(4, 1, 8, 14); c.rect(5, 2, 6, 12, v=0)
+        c.rect(6, 3, 4, 1); c.rect(6, 5, 4, 1)          # the drive bays
+        c.px((9, 8))                                     # the lamp
+        for y in (10, 12): c.rect(6, y, 4, 1)            # the vents
+        c.rect(3, 15, 2, 1); c.rect(11, 15, 2, 1)        # the feet
+    else:
+        c.rect(6, 1, 12, 20); c.rect(7.5, 2.5, 9, 17, v=0)
+        c.rect(9, 4, 6, 1.5); c.rect(9, 7, 6, 1.5)
+        c.rect(13, 11, 1.5, 1.5)
+        for y in (14, 16.5): c.rect(9, y, 6, 1.2)
+        c.rect(4.5, 21.5, 3, 1.5); c.rect(16.5, 21.5, 3, 1.5)
+
+
+@icon("badge", "tab", "a lawman's badge, a five-point star in a ring: the Admin tab", ["admin tab"])
+def badge(c, s):
+    import math
+    def star(cx, cy, ro, ri):
+        pts = []
+        for i in range(10):
+            a = -math.pi / 2 + i * math.pi / 5
+            r = ro if i % 2 == 0 else ri
+            pts.append((cx + r * math.cos(a), cy + r * math.sin(a)))
+        return pts
+    if s == 16:
+        c.poly(star(8, 8.5, 7.5, 3.2)); c.poly(star(8, 8.5, 3.6, 1.6), v=0); c.px((8, 8))
+    else:
+        c.poly(star(12, 12.5, 11.5, 4.8)); c.poly(star(12, 12.5, 5.5, 2.4), v=0); c.rect(11, 11.5, 2, 2)

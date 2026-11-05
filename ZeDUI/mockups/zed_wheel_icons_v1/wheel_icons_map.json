@@ -755,6 +755,16 @@
    "means": "a level slider, its marker: the traits tab",
    "mapped": true
   },
+  "tower": {
+   "group": "tab",
+   "means": "a tower computer, two drive bays and its lamp: the Server tab",
+   "mapped": true
+  },
+  "badge": {
+   "group": "tab",
+   "means": "a lawman's badge, a five-point star in a ring: the Admin tab",
+   "mapped": true
+  },
   "tray_in": {
    "group": "row",
    "means": "an arrow down into an open tray: take all",
@@ -1849,6 +1859,36 @@
    "group": "ctx6",
    "means": "tally marks, four and a stroke through: uses, a count",
    "mapped": true
+  },
+  "outfit": {
+   "group": "lists",
+   "means": "a shirt on its hanger: an outfit",
+   "mapped": false
+  },
+  "outfit_add": {
+   "group": "lists",
+   "means": "a shirt on its hanger, a plus: save to an outfit",
+   "mapped": false
+  },
+  "outfit_remove": {
+   "group": "lists",
+   "means": "a shirt on its hanger, a minus: take out of the outfit",
+   "mapped": false
+  },
+  "loadout": {
+   "group": "lists",
+   "means": "a clipboard with its list: a loadout",
+   "mapped": false
+  },
+  "loadout_add": {
+   "group": "lists",
+   "means": "a clipboard with its list, a plus: save to a loadout",
+   "mapped": false
+  },
+  "loadout_remove": {
+   "group": "lists",
+   "means": "a clipboard with its list, a minus: take out of the loadout",
+   "mapped": false
   }
  },
  "order": "TEXT, then KEEP, then TEX; ZeD's own wheels name ids directly (ZED, TABS)",
@@ -3038,6 +3078,14 @@
   {
    "tab": "traits-tab-white",
    "id": "traits"
+  },
+  {
+   "tab": "server-tab-white",
+   "id": "tower"
+  },
+  {
+   "tab": "admin-tab-white",
+   "id": "badge"
   }
  ],
  "ROW": [
