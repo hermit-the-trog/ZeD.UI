@@ -1,0 +1,5 @@
+**ZeD-GUI 0.3.0-beta4 is out on the Workshop: multiplayer.**
+- On a server: a Server tab (who's online, PvP, faction, safehouse, ask the admins), a PvP marker on the belt, and chat on the belt in its own window, with each name in its player's color.
+- Admins get an Admin tab in the World window: players, admin powers, server message, tickets and the game's admin tools.
+- Fixed: left-clicking a container in the world opens it in ZeD's window, never the game's page (thanks FAIV). Cooking, the watch and Unequip now behave on a server.
+Tested on a local server with one player, so if you run ZeD on a server, tell us how it goes. Full change note attached.
