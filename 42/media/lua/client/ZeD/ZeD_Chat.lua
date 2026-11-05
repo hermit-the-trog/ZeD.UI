@@ -538,8 +538,10 @@ function C.open(typing, pad)
         local T = ZeD.T
         local sc = (T and T.scale) or 1
         local sw, sh = getCore():getScreenWidth(), getCore():getScreenHeight()
-        local x, y, w, h, tab = safe(readPlace, nil)
-        if x then x, y, w, h = x * sc, y * sc, w * sc, h * sc
+        -- (every value kept: safe() hands back only the first, and the rest came back nil, QA Nov 5 2026)
+        local ok, x, y, w, h, tab = pcall(readPlace)
+        if not ok then x = nil end
+        if x and y and w and h then x, y, w, h = x * sc, y * sc, w * sc, h * sc
         else w, h = px(U.W), px(U.H); x, y = px(15), sh - h - px(140) end
         -- (on the screen, whatever screen it was kept on)
         w = math.min(w, sw); h = math.min(h, sh)
