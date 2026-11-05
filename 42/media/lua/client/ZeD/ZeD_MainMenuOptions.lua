@@ -938,12 +938,7 @@ function ZeD_MMOptions:drawPages(x, y, w, h, pages, finding)
     self:clearStencilRect()
     if over then
         local sx = x + w - T.px(1) - sbW
-        local tid = kind .. ":pagestrack"
-        ZeD.Atoms.drawScrollTrack(self, sx, top0, sbW, vh)
-        local th = math.max(T.px(24), math.floor(vh * vh / total))
-        ZeD.Atoms.drawScrollThumb(self, sx, top0 + math.floor((vh - th) * self.pagesScroll / (total - vh)), sbW, th, self:pctx().hot == tid and "hover" or "default")
-        self._hits[#self._hits + 1] = { id = tid, x = ax + sx, y = ay + top0, w = sbW, h = vh, drag = function(_, myy)
-            self.pagesScroll = math.floor(((myy - ay - top0) / vh) * total - vh / 2) end }
+        MM.scrollBar(self, kind .. ":pagestrack", sx, top0, sbW, vh, self.pagesScroll, total, function(v) self.pagesScroll = v end)
     end
 end
 
@@ -1539,12 +1534,7 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
     -- the scroll bar
     if total > vh then
         local sx = x + w - T.px(1) - sbW
-        ZeD.Atoms.drawScrollTrack(self, sx, vy, sbW, vh)
-        local th = math.max(T.px(24), math.floor(vh * vh / total))
-        local tyy = vy + math.floor((vh - th) * self.scroll / (total - vh))
-        ZeD.Atoms.drawScrollThumb(self, sx, tyy, sbW, th, self:pctx().hot == self.kind .. ":track" and "hover" or "default")
-        self._hits[#self._hits + 1] = { id = self.kind .. ":track", x = ax + sx, y = ay + vy, w = sbW, h = vh, drag = function(_, myy)
-            self.scroll = math.floor(((myy - ay - vy) / vh) * total - vh / 2) end }
+        MM.scrollBar(self, self.kind .. ":track", sx, vy, sbW, vh, self.scroll, total, function(v) self.scroll = v end)
     end
     if #rows == 0 and finding then
         ZeD.Molecules.drawEmptyLine(self, x + T.px(12), vy + T.px(8), w - T.px(24), ZeD.tr("UI_ZeD_Options_NoMatch"))

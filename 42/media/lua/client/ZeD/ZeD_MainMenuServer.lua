@@ -471,9 +471,7 @@ function ZeD_MMServer:drawPages(x, y, w, h, pages, finding)
     self:clearStencilRect()
     if total > vh then
         local sx = x + w - T.px(1) - sbW
-        ZeD.Atoms.drawScrollTrack(self, sx, ry, sbW, vh)
-        local th = math.max(T.px(24), math.floor(vh * vh / total))
-        ZeD.Atoms.drawScrollThumb(self, sx, ry + math.floor((vh - th) * self.pagesScroll / (total - vh)), sbW, th, "default")
+        MM.scrollBar(self, "srvset:pagestrack", sx, ry, sbW, vh, self.pagesScroll, total, function(v) self.pagesScroll = v end)
     end
 end
 
@@ -637,9 +635,7 @@ function ZeD_MMServer:drawList(id, x, y, w, h, rows, sel, onPick, empty, row0, c
     end
     if total > vh then
         local sx = x + w - T.px(1) - sbW
-        ZeD.Atoms.drawScrollTrack(self, sx, vy, sbW, vh)
-        local th = math.max(T.px(24), math.floor(vh * vh / total))
-        ZeD.Atoms.drawScrollThumb(self, sx, vy + math.floor((vh - th) * sc / (total - vh)), sbW, th, "default")
+        MM.scrollBar(self, "srvset:track:" .. id, sx, vy, sbW, vh, sc, total, function(v) self._lists[id] = v end)
     end
 end
 

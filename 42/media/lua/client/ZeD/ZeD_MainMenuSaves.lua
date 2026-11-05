@@ -599,17 +599,10 @@ function ZeD_MMLoad:drawList(x, y, w, h)
         ry = ry + rh
     end
     self:clearStencilRect()
-    -- the scroll bar: a track to click and a thumb
+    -- the scroll bar
     if over then
         local sx = x + w - T.px(1) - sbW
-        ZeD.Atoms.drawScrollTrack(self, sx, vy, sbW, vh)
-        local th = math.max(T.px(24), math.floor(vh * vh / rowsH))
-        local tyy = vy + math.floor((vh - th) * self.scroll / (rowsH - vh))
-        ZeD.Atoms.drawScrollThumb(self, sx, tyy, sbW, th, MM.ctx.hot == "load:track" and "hover" or "default")
-        self._hits[#self._hits + 1] = { id = "load:track", x = ax + sx, y = ay + vy, w = sbW, h = vh, fn = function()
-            local my = getMouseY() - ay - vy
-            self.scroll = math.floor((my / vh) * rowsH - vh / 2)
-        end }
+        MM.scrollBar(self, "load:track", sx, vy, sbW, vh, self.scroll, rowsH, function(v) self.scroll = v end)
     end
 end
 

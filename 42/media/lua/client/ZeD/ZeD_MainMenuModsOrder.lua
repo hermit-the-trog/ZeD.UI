@@ -951,26 +951,7 @@ function ZeD_MMMods:drawOrder(x, y, w, h)
 end
 
 function ZeD_MMMods:orderScrollBar(sx, vy, sbW, vh, total)
-    local T = ZeD.T
-    local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
-    ZeD.Atoms.drawScrollTrack(self, sx, vy, sbW, vh)
-    local th = math.max(T.px(24), math.floor(vh * vh / total))
-    local tyy = vy + math.floor((vh - th) * self.scroll / (total - vh))
-    ZeD.Atoms.drawScrollThumb(self, sx, tyy, sbW, th, MM.ctx.hot == "mods:otrack" and "hover" or "default")
-    local hit = self._oTrack
-    if not hit then
-        hit = { id = "mods:otrack" }
-        hit.drag = function(_, my)
-            local tr = hit.track
-            if tr then self.scroll = math.floor(((my - tr.ay - tr.vy) / tr.vh) * tr.total - tr.vh / 2) end
-        end
-        hit.track = {}
-        self._oTrack = hit
-    end
-    local tr = hit.track
-    tr.ay, tr.vy, tr.vh, tr.total = ay, vy, vh, total
-    hit.x, hit.y, hit.w, hit.h = ax + sx, ay + vy, sbW, vh
-    if not self.pick then self._hits[#self._hits + 1] = hit end
+    MM.scrollBar(self, "mods:otrack", sx, vy, sbW, vh, self.scroll, total, function(v) self.scroll = v end, self.pick and { noHit = true } or nil)
 end
 
 -- ----------------------------------------------------------------------------
