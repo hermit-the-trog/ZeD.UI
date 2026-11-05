@@ -1,0 +1,14 @@
+0.3.0-beta4: multiplayer, and a fix for clicking containers.
+
+Multiplayer
+- A Server tab in the Character window, on a server only: the server's name, who's online, your role, PvP, your faction and safehouse, and Ask the admins. Each opens the game's own window for changes.
+- A PvP marker on the belt shows whether PvP is on, with the seconds while it switches. Click it to open the Server tab.
+- Chat on the belt: a chat key with a count of new lines opens ZeD's chat window. It drags, resizes and keeps its place. Tabs for General, Faction and Safehouse (while you have one), Private and Admin. The game's chat key and its slash commands work as before. After a while with nothing new it dims in place.
+- Each name in chat shows in that player's color. Pick your own from the chat window's menu (Name color); it's the game's multiplayer text color, so everyone sees it.
+- An Admin tab in the World window, for admins only: players (teleport, bring here, stats, kick, ban), the admin powers as tick boxes, a server message, tickets, safehouses and factions, and the game's other admin tools.
+- On a server, the watch leaves the time to the server (no pause or fast forward), and Unequip now goes through the game, so the server sees the hand emptied.
+- The Cooking tab's Make works on a server.
+
+Fixes
+- Left-clicking a container in the world opens it in ZeD's World window, whether the windows are closed, open on another container or rolled up. The game's own inventory page no longer appears. Thanks to FAIV for the report.
+- The new words are in all 28 languages.
