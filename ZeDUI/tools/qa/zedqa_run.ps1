@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+﻿#Requires -Version 7.0
 <#
 .SYNOPSIS
     Unattended ZeD-UI regression run through the QA bridge (Oct 19 2026).
@@ -90,7 +90,8 @@ param(
     [string]$Report = "",
     [switch]$KeepOpen,
     [switch]$Check,
-    [switch]$StagedCopy   # (the release check on a staged copy: allowed only when the staged copy carries the QA bridge)
+    [switch]$StagedCopy,  # (the release check on a staged copy: allowed only when the staged copy carries the QA bridge)
+    [string]$ShotSave = ""   # (Nov 4 2026, the gallery) continue Saves/Sandbox/<ShotSave> (a ZeD-Shots-* save) instead of ZeD-QA; latestSave.ini is put back after
 )
 
 # ============================================================================
@@ -534,7 +535,8 @@ function Wait-BridgeInGame($Prelude = $null, $PreludeRes = $null) {
     $m = [regex]::Match($all, 'Loading WorldDictionary:([^\r\n]*)')
     if ($m.Success) { $isQa = $m.Groups[1].Value -match 'Saves[\\/]+Sandbox[\\/]+ZeD-QA[\\/]' }
     else { $isQa = $all -match '\[ZeD\.QA\] ZeD-QA: the whole map known' }
-    if (-not $isQa) { throw "the loaded save is not Saves/Sandbox/ZeD-QA ($($m.Groups[1].Value)); no script was run" }
+    if ($ShotSave) { $isQa = $m.Success -and ($m.Groups[1].Value -match ('Saves[\\/]+Sandbox[\\/]+' + [regex]::Escape($ShotSave) + '[\\/]')) }
+    if (-not $isQa) { throw "the loaded save is not the expected one ($($m.Groups[1].Value)); no script was run" }
     Add-Note "the bridge armed in game on Saves/Sandbox/ZeD-QA"
     if (-not $Prelude) { return }
     for ($try = 1; ; $try++) {
@@ -968,6 +970,12 @@ if ($lock -match '^busy') { Write-Output "zedqa_run: not starting: $LockFile say
 if (Test-GameRunning) { Write-Output "zedqa_run: not starting: ProjectZomboid64.exe is running"; exit 2 }
 $ls = Read-Text $LatestSave
 $lsLines = @(([string]$ls) -split "\r?\n" | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+if ($ShotSave) {
+    if (-not ($ShotSave -match '^ZeD-Shots-[A-Za-z]+$') -or -not (Test-Path -LiteralPath (Join-Path $ZomboidDir "Saves\Sandbox\$ShotSave"))) { Write-Output "zedqa_run: not starting: no shot save Saves/Sandbox/$ShotSave"; exit 2 }
+    $script:LatestSaveWas = $ls
+    [IO.File]::WriteAllText($LatestSave, "$ShotSave`r`nSandbox`r`n")
+    $ls = "ZeD-QA`r`nSandbox"; $lsLines = @("ZeD-QA", "Sandbox")
+}
 if ($lsLines.Count -lt 1 -or $lsLines[0] -ne "ZeD-QA" -or ($lsLines.Count -ge 2 -and $lsLines[1] -ne "Sandbox")) {
     Write-Output "zedqa_run: not starting: $LatestSave does not point at Saves/Sandbox/ZeD-QA (it reads '$($lsLines -join ' / ')'); the autoload would continue another save"
     exit 2
@@ -1046,7 +1054,10 @@ finally {
         Write-Report $results $Report $info
     }
     catch { Write-Warning "zedqa_run: the end of the run failed: $($_.Exception.Message)" }
-    finally { Set-Lock "free" }
+    finally {
+        if ($script:LatestSaveWas) { [IO.File]::WriteAllText($LatestSave, [string]$script:LatestSaveWas); Write-Output "  latestSave.ini put back" }
+        Set-Lock "free"
+    }
 }
 
 Write-Output (Get-SummaryLine $results $Report)
