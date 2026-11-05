@@ -27,9 +27,18 @@
 -- querySteamWorkshopItemDetails): installed, update waiting, downloading,
 -- queued, subscribed but not installed; when it was updated and its size. Steam
 -- does the downloading (the game's download and subscribe calls are closed to
--- Lua); this only reads it, every 30 s at the main menu and every 10 s while
--- the Mods screen is open. An item that finishes an update while the game runs
--- is remembered: its new code needs a reload and its pictures a restart.
+-- Lua); this only reads it, every 10 s while the Mods screen is open (never from
+-- the menu behind it: see below). An item that finishes an update while the game
+-- runs is remembered: its new code needs a reload and its pictures a restart.
+--
+-- NEVER ASK STEAM OUTSIDE THE MODS SCREEN (QA Nov 5 2026, the hair trim that failed
+-- with Hands-On Interactions: "Cannot assign field callFrame because a is null").
+-- Steam's reply comes on the main thread and the game runs the Lua callback there
+-- whatever else is running; Lua offers no way to cancel a query. This used to ask
+-- every 30 s at the main menu, so a reply could land while a world loaded, with the
+-- loading thread in Lua: two threads shared the game's pool of call records, one
+-- record was handed out twice, and later calls failed in unrelated places, far from
+-- here. It only showed with a Workshop mod in the list (nothing to ask otherwise).
 -- ============================================================================
 
 ZeD = ZeD or {}
@@ -368,6 +377,7 @@ end
 
 local function onDetails(target, status, info)
     local ws = MS.ws
+    if not ws then return end   -- (a reply that outlived a Lua reload: nothing here to fill)
     ws.pending = false
     if tostring(status) ~= "Completed" or not info then return end
     local items, order = {}, {}
@@ -466,13 +476,6 @@ function MS.openInSteam(wid)
     if overlay then activateSteamOverlayToWorkshopItem(tostring(wid))
     else openUrl("https://steamcommunity.com/sharedfiles/filedetails/?id=" .. tostring(wid)) end
 end
-
--- the main menu polls the Workshop now and then (the Mods screen asks more often)
-local function onFETick()
-    if MainScreen and MainScreen.instance and MainScreen.instance.inGame then return end
-    MS.wsPoll(false)
-end
-Events.OnFETick.Add(onFETick)
 
 -- the mods the game loaded (fixed until the next reload, which reloads this file too)
 local loadedSet = nil
