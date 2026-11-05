@@ -2128,7 +2128,8 @@ function ZeD_Modal:prerender()
     -- Confirm/action button: primary or danger outline style
     local cbX = btnX + btnW + btnGap
     local actionVariant = (self.flavor == "danger") and "danger" or "primary"
-    ZeD.Molecules.drawButton(self, cbX, btnY, btnW, btnH, self.confirmText, actionVariant)
+    self._confirmOpts = self._confirmOpts or { default = true }   -- (the modal's default answer, red or not)
+    ZeD.Molecules.drawButton(self, cbX, btnY, btnW, btnH, self.confirmText, actionVariant, false, nil, self._confirmOpts)
     self._confirmRect = {x = cbX, y = btnY, w = btnW, h = btnH}
 
     self:drawRectBorder(mx, my, self.modalW, self.modalH, T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)

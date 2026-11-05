@@ -193,8 +193,14 @@ function ZeD.Molecules.drawButton(panel, x, y, w, h, text, variant, pressed, col
     end
     if onFocus then borderColor = T.textOnFocus end
 
-    -- Rounded border (colored per variant)
-    A.borderDoubleRounded(panel, x, y, w, h, borderColor.r, borderColor.g, borderColor.b, (borderColor.a or 1) * alpha)
+    -- Rounded border (colored per variant). The director, Nov 5 2026: "In System 7, only the default button gets the
+    -- two border line ... every other button's just a single line border." Two lines on the default button: "primary",
+    -- or a red button that is the default answer (opts.default: a confirm's Delete); one line on the rest.
+    if variant == "primary" or opts.default then
+        A.borderDoubleRounded(panel, x, y, w, h, borderColor.r, borderColor.g, borderColor.b, (borderColor.a or 1) * alpha)
+    else
+        A.borderRounded(panel, x, y, w, h, borderColor.r, borderColor.g, borderColor.b, (borderColor.a or 1) * alpha)
+    end
 
     -- Centered label (K22 Xanthus — instrument chrome)
     local tw = ZeD.TM:MeasureStringX(font, text)
@@ -4746,6 +4752,8 @@ function ZeD.Molecules.drawBand(panel, x, y, w, spec)
             right = right - bw
             local o = _bandBtn
             o.disabled, o.focus, o.help, o.win = b.disabled, b.focus, b.help, spec.win
+            -- (the main one, last in the list, is the default answer: red when it costs something)
+            o.default = i == #buttons and b.variant == "danger"
             if b.hover ~= nil then o.hover = b.hover else o.hover = A.mouseIn(panel, right, by, bw, bh) end
             M.drawButton(panel, right, by, bw, bh, b.label, b.variant or "default", b.pressed, nil, o)
             out.buttons[i] = { x = right, y = by, w = bw, h = bh, id = b.id }
