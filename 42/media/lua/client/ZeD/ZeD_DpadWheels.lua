@@ -1518,6 +1518,10 @@ end
 
 -- the server-only three (no server here to try them on: kept to the game's own calls)
 function H.chat(p, pn)
+    -- ZeD's chat window on a server (ZeD_Chat.lua: the pad reads first, A on the line to type); the game's box otherwise
+    if ZeD.Chat and ZeD.Chat.active and ZeD.Chat.active() then
+        return { detail = tr("UI_ZeD_Wheel_ChatDetail"), run = function() ZeD.Chat.open(false, true) end }
+    end
     if not (ISChat and ISChat.instance) then return nil end
     return { detail = tr("UI_ZeD_Wheel_ChatDetail"), run = function() ISChat.instance:focus() end }
 end
