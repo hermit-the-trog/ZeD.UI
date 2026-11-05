@@ -1,0 +1,1 @@
+mp_chat_admin_after.lua | mcb | timeout=60

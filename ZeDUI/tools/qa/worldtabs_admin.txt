@@ -1,0 +1,6 @@
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+zedqa_world_pad_take.lua | wpt | timeout=900
+zedqa_furniture.lua | fu | end=ZEDQA fu after leaving tab
+zedqa_tabicons.lua | ti
+zedqa_two_widths.lua | tww | timeout=900
