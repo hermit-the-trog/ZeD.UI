@@ -462,14 +462,7 @@ function ZeD_MMSpawn:drawTowns(x, y, w, h, items)
     self:clearStencilRect()
     if over then
         local sx = x + w - T.px(1) - sbW
-        ZeD.Atoms.drawScrollTrack(self, sx, vy, sbW, vh)
-        local th = math.max(T.px(24), math.floor(vh * vh / rowsH))
-        local tyy = vy + math.floor((vh - th) * self.scroll / (rowsH - vh))
-        ZeD.Atoms.drawScrollThumb(self, sx, tyy, sbW, th, MM.ctx.hot == "spawn:track" and "hover" or "default")
-        self._hits[#self._hits + 1] = { id = "spawn:track", x = ax + sx, y = ay + vy, w = sbW, h = vh, fn = function()
-            local my = getMouseY() - ay - vy
-            self.scroll = math.floor((my / vh) * rowsH - vh / 2)
-        end }
+        MM.scrollBar(self, "spawn:track", sx, vy, sbW, vh, self.scroll, rowsH, function(v) self.scroll = v end)
     end
 end
 
@@ -661,15 +654,7 @@ function ZeD_MMSpawn:drawDesc(x, y, w, h, it)
     self:clearStencilRect()
     if over then
         local sx = x + w - T.px(1) - sbW
-        ZeD.Atoms.drawScrollTrack(self, sx, vy, sbW, vh)
-        local th = math.max(T.px(24), math.floor(vh * vh / self._descContentH))
-        local tyy = vy + math.floor((vh - th) * self.descScroll / maxS)
-        ZeD.Atoms.drawScrollThumb(self, sx, tyy, sbW, th, MM.ctx.hot == "spawn:desctrack" and "hover" or "default")
-        local contentH = self._descContentH
-        self._hits[#self._hits + 1] = { id = "spawn:desctrack", x = ax + sx, y = ay + vy, w = sbW, h = vh, fn = function()
-            local my = getMouseY() - ay - vy
-            self.descScroll = math.floor((my / vh) * contentH - vh / 2)
-        end }
+        MM.scrollBar(self, "spawn:desctrack", sx, vy, sbW, vh, self.descScroll, self._descContentH, function(v) self.descScroll = v end)
     end
 end
 

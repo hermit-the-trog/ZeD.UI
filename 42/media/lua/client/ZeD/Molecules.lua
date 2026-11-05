@@ -984,14 +984,17 @@ function ZeD_ScrollbarState:draw(panel)
     local trackH = self:getTrackHeight()
     A.drawScrollTrack(panel, ox, oy + self.arrowH, w, trackH)
 
-    -- Up arrow
-    local upState = self.upPressed and "active" or (self.upHover and "hover" or "default")
-    A.drawScrollArrow(panel, ox, oy, self.arrowH, "up", upState)
+    -- (arrowH 0: a list too short for them, MM.scrollBar; the track takes the whole height)
+    if self.arrowH > 0 then
+        -- Up arrow
+        local upState = self.upPressed and "active" or (self.upHover and "hover" or "default")
+        A.drawScrollArrow(panel, ox, oy, self.arrowH, "up", upState)
 
-    -- Down arrow — sits flush against the top of the reserved area (grow box)
-    local downY = oy + self.arrowH + trackH
-    local downState = self.downPressed and "active" or (self.downHover and "hover" or "default")
-    A.drawScrollArrow(panel, ox, downY, self.arrowH, "down", downState)
+        -- Down arrow — sits flush against the top of the reserved area (grow box)
+        local downY = oy + self.arrowH + trackH
+        local downState = self.downPressed and "active" or (self.downHover and "hover" or "default")
+        A.drawScrollArrow(panel, ox, downY, self.arrowH, "down", downState)
+    end
 
     -- Thumb
     if self.barSizeRatio < 1.0 then

@@ -1338,12 +1338,7 @@ function ZeD_MMMods:drawList(x, y, w, h)
     self:clearStencilRect()
     if over then
         local sx = x + w - T.px(1) - sbW
-        ZeD.Atoms.drawScrollTrack(self, sx, vy, sbW, vh)
-        local th = math.max(T.px(24), math.floor(vh * vh / rowsH))
-        local tyy = vy + math.floor((vh - th) * self.scroll / (rowsH - vh))
-        ZeD.Atoms.drawScrollThumb(self, sx, tyy, sbW, th, MM.ctx.hot == "mods:track" and "hover" or "default")
-        self._hits[#self._hits + 1] = { id = "mods:track", x = ax + sx, y = ay + vy, w = sbW, h = vh, drag = function(_, my)
-            self.scroll = math.floor(((my - ay - vy) / vh) * rowsH - vh / 2) end }
+        MM.scrollBar(self, "mods:track", sx, vy, sbW, vh, self.scroll, rowsH, function(v) self.scroll = v end)
     end
 end
 
@@ -1584,12 +1579,7 @@ function ZeD_MMMods:drawWsRows(x, y, w, h, vy)
     self:clearStencilRect()
     if over then
         local sx = x + w - T.px(1) - sbW
-        ZeD.Atoms.drawScrollTrack(self, sx, vy, sbW, vh)
-        local thh = math.max(T.px(24), math.floor(vh * vh / rowsH))
-        local tyy = vy + math.floor((vh - thh) * self.scroll / (rowsH - vh))
-        ZeD.Atoms.drawScrollThumb(self, sx, tyy, sbW, thh, MM.ctx.hot == "mods:track" and "hover" or "default")
-        self._hits[#self._hits + 1] = { id = "mods:track", x = ax + sx, y = ay + vy, w = sbW, h = vh, drag = function(_, my)
-            self.scroll = math.floor(((my - ay - vy) / vh) * rowsH - vh / 2) end }
+        MM.scrollBar(self, "mods:wtrack", sx, vy, sbW, vh, self.scroll, rowsH, function(v) self.scroll = v end)
     end
 end
 
@@ -2072,9 +2062,7 @@ function ZeD_MMMods:drawProfiles(x, y, w, h)
     if rowsH > vh then
         local sbW = T.sp.scrollbarW
         local sx = x + listW - T.px(1) - sbW
-        ZeD.Atoms.drawScrollTrack(self, sx, vy, sbW, vh)
-        local th = math.max(T.px(24), math.floor(vh * vh / rowsH))
-        ZeD.Atoms.drawScrollThumb(self, sx, vy + math.floor((vh - th) * self.scroll / (rowsH - vh)), sbW, th, "default")
+        MM.scrollBar(self, "mods:ptrack", sx, vy, sbW, vh, self.scroll, rowsH, function(v) self.scroll = v end)
     end
 
     -- the picked profile, in a framed pane that scrolls as one unit

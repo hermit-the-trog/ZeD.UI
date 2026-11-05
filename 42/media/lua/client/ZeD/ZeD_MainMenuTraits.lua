@@ -384,13 +384,7 @@ function ZeD_MMTraits:drawColumn(c, x, y, w, h, rows)
     self:clearStencilRect()
     if over then
         local sx = x + w - T.px(1) - sbW
-        ZeD.Atoms.drawScrollTrack(self, sx, vy, sbW, vh)
-        local th = math.max(T.px(24), math.floor(vh * vh / total))
-        local tyy = vy + math.floor((vh - th) * self.scroll[c] / (total - vh))
-        local hid = "traits:track" .. c
-        ZeD.Atoms.drawScrollThumb(self, sx, tyy, sbW, th, MM.ctx.hot == hid and "hover" or "default")
-        self._hits[#self._hits + 1] = { id = hid, x = ax + sx, y = ay + vy, w = sbW, h = vh, drag = function(_, myy)
-            self.scroll[c] = math.floor(((myy - ay - vy) / vh) * total - vh / 2) end }
+        MM.scrollBar(self, "traits:track" .. c, sx, vy, sbW, vh, self.scroll[c], total, function(v) self.scroll[c] = v end)
     end
 end
 

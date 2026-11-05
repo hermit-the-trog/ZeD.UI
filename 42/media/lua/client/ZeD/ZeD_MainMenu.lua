@@ -1019,6 +1019,64 @@ function MM.pointer(ctx, panels)
 end
 
 -- ---------------------------------------------------------------------------
+-- THE SCROLL BAR (the director, Nov 5 2026: "The scroll bars in the menus ... are not Z scroll bars."). The menus' lists
+-- draw ZeD's own bar, ZeD_ScrollbarState: the arrows, the track, the thumb with its grip, their hover and press states.
+-- p: the panel; key: the bar's id, one per list; x, y, w, h: the bar in the panel; scroll: px scrolled; total: the
+-- content's height; set(v): takes a new scroll (px). The panel's p._hits gets one hit over the bar: a press goes to the
+-- bar (an arrow steps and repeats while held, the track pages, the thumb drags). The wheel and the controller keep
+-- moving the list's own scroll; the bar reads it each frame. A list too short for two arrows and a thumb has no
+-- arrows. opts: noHit (draw only), inDrop (a pull-down's bar).
+-- ---------------------------------------------------------------------------
+local BAR_REPEAT_MS = 300
+function MM.scrollBar(p, key, x, y, w, h, scroll, total, set, opts)
+    local T = ZeD.T
+    local bars = p._zedBars
+    if not bars then bars = {}; p._zedBars = bars end
+    local sb = bars[key]
+    if not sb then
+        sb = ZeD_ScrollbarState:new()
+        bars[key] = sb
+        sb.onScroll = function(pos) if sb._set then sb._set(math.floor(pos * sb._max + 0.5)) end end
+        local hit = { id = key }
+        hit.drag = function(_, my)
+            local ly = my - sb._top
+            if not sb._held then
+                sb._held, sb._heldAt = true, getTimestampMs()
+                sb:handleMouseDown(ly)
+            else
+                sb:handleMouseMove(ly)
+                if (sb.upPressed or sb.downPressed) and getTimestampMs() - sb._heldAt > BAR_REPEAT_MS then
+                    sb:setScrollPos(sb.scrollPos + (sb.upPressed and -0.05 or 0.05))
+                end
+            end
+        end
+        sb._hit = hit
+    end
+    local maxS = math.max(1, total - h)
+    sb.x, sb.y, sb.width, sb.height = x, y, w, h
+    sb.arrowH = (h >= w * 2 + T.px(24)) and w or 0
+    sb.visible = true
+    sb._set, sb._max, sb._top = set, maxS, p:getAbsoluteY() + y
+    sb:setBarSize(h / math.max(1, total))
+    if sb._held and not isMouseButtonDown(0) then
+        sb._held = false
+        sb:handleMouseUp()
+    end
+    if not sb.dragging then sb.scrollPos = math.max(0, math.min(1, scroll / maxS)) end
+    if not MM.gamepad() and not sb.dragging then
+        local mx, my = p:getMouseX(), p:getMouseY()
+        if mx >= x and mx < x + w and my >= y and my < y + h then sb:handleMouseMove(my - y) end
+    end
+    sb:draw(p)
+    if opts and opts.noHit then return sb end
+    local hit = sb._hit
+    hit.x, hit.y, hit.w, hit.h = p:getAbsoluteX() + x, sb._top, w, h
+    hit.inDrop = opts and opts.inDrop or nil
+    p._hits[#p._hits + 1] = hit
+    return sb
+end
+
+-- ---------------------------------------------------------------------------
 -- CONTROLS ON THE LIBRARY (cohesion pass). The menu has no FocusManager: a window of the
 -- menu says for itself which element holds the controller's focus, and that a controller is
 -- driving (MM.gamepad). Everything below hands the library those two facts.
@@ -1533,6 +1591,12 @@ function ZeD_MMDrop:prerender()
         end
     end
     local scrollMax = math.max(0, full - h)
+    local dropBarW = T.sp.scrollbarW
+    if scrollMax > 0 then
+        -- (wider by the bar, so it covers no words; kept on the screen)
+        w = w + dropBarW
+        x = math.max(0, math.min(x, getCore():getScreenWidth() - w))
+    end
     MM.ctx.dropScrollMax = scrollMax
     MM.ctx.dropScroll = math.max(0, math.min(MM.ctx.dropScroll or 0, scrollMax))
     local off = MM.ctx.dropScroll
@@ -1614,11 +1678,7 @@ function ZeD_MMDrop:prerender()
     end
     if scrollMax > 0 then
         self:clearStencilRect()
-        -- a small scroll bar on the right edge: there is more
-        local sbW = T.px(4)
-        local th = math.max(T.px(16), math.floor(h * h / full))
-        local ty = math.floor((h - th) * off / scrollMax)
-        self:drawRect(w - sbW - T.px(2), ty, sbW, th, 0.6, T.textDim.r, T.textDim.g, T.textDim.b)
+        MM.scrollBar(self, "drop:track", w - dropBarW - T.px(1), T.px(1), dropBarW, h - T.px(2), off, full, function(v) MM.ctx.dropScroll = v end, { inDrop = true })
     end
     -- the controller's mark over the rows (the hand, the corners, the ants), after the list
     if gp then ZeD.Focus.drawOverlay(self, self) end

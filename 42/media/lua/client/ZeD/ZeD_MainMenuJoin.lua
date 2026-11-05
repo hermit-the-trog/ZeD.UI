@@ -655,12 +655,7 @@ function ZeD_MMJoin:drawList(x, y, w, h)
     end
     if over then
         local sx = x + w - T.px(1) - sbW
-        ZeD.Atoms.drawScrollTrack(self, sx, vy, sbW, vh)
-        local th = math.max(T.px(24), math.floor(vh * vh / total))
-        local tyy = vy + math.floor((vh - th) * self.scroll / (total - vh))
-        ZeD.Atoms.drawScrollThumb(self, sx, tyy, sbW, th, MM.ctx.hot == "join:track" and "hover" or "default")
-        self._hits[#self._hits + 1] = { id = "join:track", x = ax + sx, y = ay + vy, w = sbW, h = vh, drag = function(_, myy)
-            self.scroll = math.floor(((myy - ay - vy) / vh) * total - vh / 2) end }
+        MM.scrollBar(self, "join:track", sx, vy, sbW, vh, self.scroll, total, function(v) self.scroll = v end)
     end
 end
 
