@@ -404,8 +404,10 @@ step(2, function()
             if #hits == 0 then missing[#missing + 1] = "the wounds (no wound now)" end
         elseif r[2]:find("^the tab slices") then
             local T = ZeD_CharacterWindow.TABS
-            for k, ti in ipairs({ 3, 2, 8 }) do
-                local nm = ZeD_CharacterWindow.tabLabel(T[ti])
+            -- (by id, never by place: an added tab moves the list; Nov 5 2026)
+            local function byId(id) for _, t in ipairs(T) do if t.id == id then return t end end end
+            for k, tid in ipairs({ "health", "equip", "radio" }) do
+                local nm = ZeD_CharacterWindow.tabLabel(byId(tid))
                 for _, a in ipairs(all) do if a.dir == "left" and a.depth == 2 and a.e.name == nm and a.e.key ~= nil and a.e.run and not a.e.sub then hits[#hits + 1] = { e = a.e, want = { ids[k] } } end end
             end
         else
