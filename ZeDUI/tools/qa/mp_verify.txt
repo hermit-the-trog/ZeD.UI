@@ -1,0 +1,2 @@
+# ZeDUI/tools/qa/mp_verify.txt  (Nov 5 2026): Build fixes 2e319d78 + the cooking question on the server (zedqa_run.ps1 -Mp)
+mp_verify.lua | mpv | timeout=300
