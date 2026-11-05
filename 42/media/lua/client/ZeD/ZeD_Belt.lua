@@ -59,6 +59,9 @@ local BOTTOM = 16          -- above the bottom of the screen
 local DRAG_PX = 5          -- design units before a press becomes a drag
 local WRIST = 8            -- the mini watch's gap from its hand circle (WatchMini.lua; Oct 19 2026)
 local LAMP = 38            -- the Messages note (MESSAGES_SPEC.md), last on the right, while Messages keeps anything
+-- on a server (MP_DECISIONS.md, Nov 5 2026): the chat key next to the Messages note (LAMP's size), and the PvP marker
+-- (a status dot and "PvP on" / "PvP off", the seconds left while it switches, an outline inside a non-PvP zone)
+local PVP_H, PVP_PAD = 26, 8
 local AMMO_W = 100         -- the ammo tab's words and rounds (mockup zed_belt_ammo_dash_v1, style B; approved Oct 26 2026;
                            -- redrawn Oct 26 2026 to the director's "needs segments for each round ... a bit more polish").
                            -- Since Oct 27 2026 a tab out from under the main hand, not a pouch on a strap (director: "I
@@ -738,6 +741,8 @@ function ZeD_BeltHUD:_layoutCached(slots)
     local L = self._lk
     local n = #slots
     local lamp = ZeD.Messages and ZeD.Messages.count() > 0 or false
+    local chat = (ZeD.Chat and ZeD.Chat.onBelt and ZeD.Chat.onBelt()) or false
+    local pvp = B.pvpWords(p) or false
     -- (the gun's capacity too: the ammo tab is as wide as its rounds need)
     local am = self:_ammoState(p)
     local ammo = am and (tostring(am.max) .. (am.chamber and "c" or "")) or false
@@ -747,7 +752,7 @@ function ZeD_BeltHUD:_layoutCached(slots)
     local now = getTimestampMs and getTimestampMs() or 0
     local simple = B.simple()
     local dirty = L == nil or L.T ~= T or L.p ~= p or L.n ~= n or L.wItem ~= wItem or L.wPlate ~= wPlate
-        or L.wWrist ~= wWrist or L.lamp ~= lamp or L.ammo ~= ammo or L.two ~= two or L.simple ~= simple
+        or L.wWrist ~= wWrist or L.lamp ~= lamp or L.ammo ~= ammo or L.two ~= two or L.simple ~= simple or L.chat ~= chat or L.pvp ~= pvp
         or not self._provAt or now - self._provAt > 1000
     if not dirty then
         local types = L.types
@@ -757,6 +762,7 @@ function ZeD_BeltHUD:_layoutCached(slots)
         end
     end
     if dirty then
+        self._tailChat, self._tailPvp = chat, pvp
         local w, h = self:_layout(slots, wItem, wPlate, wWrist, lamp, ammo, two)
         local types = {}
         for i = 1, n do
@@ -764,7 +770,7 @@ function ZeD_BeltHUD:_layoutCached(slots)
             types[i] = s and s.slot and s.slot.slotType
         end
         self._lk = { T = T, p = p, n = n, wItem = wItem, wPlate = wPlate, wWrist = wWrist, lamp = lamp, ammo = ammo, two = two,
-                     simple = simple, types = types, w = w, h = h }
+                     simple = simple, types = types, w = w, h = h, chat = chat, pvp = pvp }
         return w, h
     end
     for _, b in ipairs(self._boxes) do
@@ -854,6 +860,7 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp, ammo, two)
             boxes[#boxes + 1] = { kind = "lamp", x = x, y = math.floor((h - lw) / 2), w = lw, h = lw }
             x = x + lw
         end
+        x = self:_tailBoxes(boxes, x, h)
         self._boxes = boxes
         self._strap, self._buckle, self._runs, self._closure = nil, nil, nil, nil
         return x, h
@@ -891,6 +898,7 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp, ammo, two)
         boxes[#boxes + 1] = { kind = "lamp", x = x, y = math.floor((h - lw) / 2), w = lw, h = lw }
         x = x + lw
     end
+    x = self:_tailBoxes(boxes, x, h)
     self._boxes = boxes
     local strapH = STRAP_H * T.art   -- the strap art's height at its whole zoom (STRAP_TEX_H texels)
     self._strap = { x = strapX, y = math.floor((h - strapH) / 2), w = strapW, h = strapH }
@@ -958,7 +966,7 @@ end
 -- What a box would do with the current drag: "fit" / "no" / nil
 function ZeD_BeltHUD:_dropState(b, items)
     if not items then return nil end
-    if b.kind == "watch" or b.kind == "lamp" or b.kind == "ammo" then return "no" end
+    if b.kind == "watch" or b.kind == "lamp" or b.kind == "ammo" or b.kind == "chat" or b.kind == "pvp" then return "no" end
     if b.kind == "hand" then
         for _, it in ipairs(items) do if B.handTakes(it) then return "fit", it end end
         return "no"
@@ -1400,6 +1408,103 @@ function ZeD_BeltHUD:_drawBox(b, o)
     if o.state == "no" then fill(0.6, T.base) end
 end
 
+-- a press on the chat key or the PvP marker (pad: from the controller)
+function B.tailAct(kind, pad)
+    if kind == "chat" then
+        if ZeD.Chat and ZeD.Chat.toggle then ZeD.Chat.toggle(pad) end
+    elseif kind == "pvp" then
+        -- the marker is a marker: the switch is in the Server tab, which it opens
+        if ZeD_CharacterWindow and ZeD_CharacterWindow.openTab then pcall(ZeD_CharacterWindow.openTab, 0, "server") end
+    end
+end
+
+-- the PvP marker's words while the server's safety system is on ("PvP on", "PvP off 7"; nil otherwise), with "|z"
+-- for the non-PvP zone outline: the layout's key (a change lays the belt out again)
+function B.pvpWords(p)
+    if not (p and isClient() and ZeD.ServerTab and ZeD.ServerTab.pvpState) then return nil end
+    local pv = ZeD.ServerTab.pvpState(p)
+    B._pvp = pv
+    if not pv then return nil end
+    local t = ZeD.tr(pv.on and "UI_ZeD_Srv_PvPOn" or "UI_ZeD_Srv_PvPOff")
+    if pv.left > 0 then t = t .. " " .. tostring(pv.left) end
+    return t .. (pv.zone and "|z" or "")
+end
+
+-- the tail after the Messages note: the chat key, then the PvP marker; returns the new x
+function ZeD_BeltHUD:_tailBoxes(boxes, x, h)
+    local T = ZeD.T
+    local px = T.px
+    if self._tailChat then
+        x = x + px(END_GAP)
+        local lw = px(LAMP)
+        boxes[#boxes + 1] = { kind = "chat", x = x, y = math.floor((h - lw) / 2), w = lw, h = lw }
+        x = x + lw
+    end
+    local pw = self._tailPvp
+    if pw then
+        local zone = pw:sub(-2) == "|z"
+        local words = zone and pw:sub(1, -3) or pw
+        local tw = ZeD.TM:MeasureStringX(T.fontF2, words)
+        local bw = px(PVP_PAD) * 2 + px(6) + px(4) + tw
+        local bh = px(PVP_H)
+        x = x + px(END_GAP)
+        boxes[#boxes + 1] = { kind = "pvp", words = words, zone = zone, x = x, y = math.floor((h - bh) / 2), w = bw, h = bh }
+        x = x + bw
+    end
+    return x
+end
+
+-- the chat key: a box with a speech balloon in whole pixels and the count of new lines, as the Messages note
+function ZeD_BeltHUD:_drawChat(b, focus, hover)
+    local T = ZeD.T
+    local s1, bd, ac = T.surf1, T.borderS, T.accent
+    self:drawRect(b.x, b.y, b.w, b.h, 0.92, s1.r, s1.g, s1.b)
+    if focus then padMark(self, b, false)
+    elseif hover then hoverWash(self, b, false) end
+    self:drawRectBorder(b.x, b.y, b.w, b.h, 1, bd.r, bd.g, bd.b)
+    local k = math.max(1, math.floor(b.h / 19))
+    local bw, bh = 12 * k, 8 * k
+    local bx, by = b.x + math.floor((b.w - bw) / 2), b.y + math.floor((b.h - bh - 2 * k) / 2)
+    local c = T.text
+    self:drawRect(bx + k, by, bw - 2 * k, bh, 1, c.r, c.g, c.b)
+    self:drawRect(bx, by + k, bw, bh - 2 * k, 1, c.r, c.g, c.b)
+    self:drawRect(bx + 2 * k, by + bh, 2 * k, k, 1, c.r, c.g, c.b)
+    self:drawRect(bx + 2 * k, by + bh + k, k, k, 1, c.r, c.g, c.b)
+    -- three dots of words in the balloon
+    for i = 0, 2 do self:drawRect(bx + 3 * k + i * 2 * k, by + 3 * k, k, 2 * k, 1, s1.r, s1.g, s1.b) end
+    local un = ZeD.Chat and ZeD.Chat.unread and ZeD.Chat.unread() or 0
+    if un > 0 then
+        local t = tostring(un > 99 and "99" or un)
+        local f = T.fontF1
+        local tw, th = ZeD.TM:MeasureStringX(f, t), ZeD.TM:getFontHeight(f)
+        local pw, ph = tw + T.px(6), th + T.px(2)
+        local qx, qy = b.x + b.w - pw + T.px(4), b.y - T.px(4)
+        local ik = T.base or { r = 0.05, g = 0.05, b = 0.05 }
+        self:drawRect(qx, qy, pw, ph, 1, ac.r, ac.g, ac.b)
+        self:drawText(t, qx + T.px(3), qy + T.px(1), ik.r, ik.g, ik.b, 1, f)
+    end
+end
+
+-- the PvP marker: a status dot (danger while PvP is on, positive while off) and its words; a double outline in the
+-- accent while inside a non-PvP zone
+function ZeD_BeltHUD:_drawPvp(b, focus, hover)
+    local T = ZeD.T
+    local s1, bd = T.surf1, T.borderS
+    self:drawRect(b.x, b.y, b.w, b.h, 0.92, s1.r, s1.g, s1.b)
+    if focus then padMark(self, b, false)
+    elseif hover then hoverWash(self, b, false) end
+    local oc = b.zone and T.accent or bd
+    self:drawRectBorder(b.x, b.y, b.w, b.h, 1, oc.r, oc.g, oc.b)
+    if b.zone then self:drawRectBorder(b.x + T.px(2), b.y + T.px(2), b.w - T.px(4), b.h - T.px(4), 1, oc.r, oc.g, oc.b) end
+    local pv = B._pvp
+    local ds = T.px(6)
+    local dc = (pv and pv.on) and T.danger or T.positive
+    local fh = ZeD.TM:getFontHeight(T.fontF2)
+    ZeD.Atoms.drawStatusDot(self, b.x + T.px(PVP_PAD), b.y + math.floor((b.h - ds) / 2), dc, ds)
+    local tc = T.text
+    self:drawText(b.words, b.x + T.px(PVP_PAD) + ds + T.px(4), b.y + math.floor((b.h - fh) / 2), tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
+end
+
 -- the Messages note (MESSAGES_SPEC.md): a box with a paper note (the map flyer's, no pin) and the count of what is
 -- new (Visual Catalog A12: the danger red when an error is new, the accent for a note)
 local lampTex = nil
@@ -1636,6 +1741,12 @@ function ZeD_BeltHUD:_prerender()
         if b.kind == "lamp" then
             self:_drawLamp(b, gpTarget == b, b == over and not dragging)
             if b == over and not dragging then self._hover = { b = b } end
+        elseif b.kind == "chat" then
+            self:_drawChat(b, gpTarget == b, b == over and not dragging)
+            if b == over and not dragging then self._hover = { b = b } end
+        elseif b.kind == "pvp" then
+            self:_drawPvp(b, gpTarget == b, b == over and not dragging)
+            if b == over and not dragging then self._hover = { b = b } end
         elseif b.kind == "ammo" then
             -- (drawn before the loop, under the main hand)
             if b == over and not dragging then self._hover = { b = b } end
@@ -1655,7 +1766,7 @@ function ZeD_BeltHUD:_prerender()
             o.item, o.key, o.label, o.inHand = s.item, s.key, s.short, s.inHand
             o.lit = s.item and not instanceof(s.item, "HandWeapon") and call(s.item, "canBeActivated") and call(s.item, "isActivated")
         end
-        if b.kind ~= "watch" and b.kind ~= "lamp" and b.kind ~= "ammo" then
+        if b.kind ~= "watch" and b.kind ~= "lamp" and b.kind ~= "ammo" and b.kind ~= "chat" and b.kind ~= "pvp" then
             -- a drag in progress lights the boxes that take it (and dims the rest)
             if dragging then
                 local st = self:_dropState(b, dragging)
@@ -1697,6 +1808,11 @@ function ZeD_BeltHUD:_prerender()
     elseif hv and hv.b.kind == "lamp" then
         local un = ZeD.Messages.unread()
         A.requestHint(self, "lamp", ZeD.tr(un > 0 and "UI_ZeD_Msg_LampNew" or "UI_ZeD_Msg_Title", un), self)
+    elseif hv and hv.b.kind == "chat" then
+        local un = ZeD.Chat and ZeD.Chat.unread and ZeD.Chat.unread() or 0
+        A.requestHint(self, "chat", ZeD.tr(un > 0 and "UI_ZeD_Chat_KeyNew" or "UI_ZeD_Chat_Title", un), self)
+    elseif hv and hv.b.kind == "pvp" then
+        A.requestHint(self, "pvp", ZeD.tr("UI_ZeD_Srv_PvPMarker"), self)
     elseif hv and hv.b.kind == "watch" then
         local id = ZeD.WatchMini.hit(hv.b.plate, mx - hv.b.x, my - hv.b.y)
         local name = call(hv.b.item, "getDisplayName") or ZeD.tr("UI_ZeD_Belt_Watch")
@@ -1771,6 +1887,11 @@ function ZeD_BeltHUD:onMouseDown(x, y)
     if b.kind == "lamp" then
         pcall(function() getSoundManager():playUISound("UIActivateButton") end)
         ZeD.Messages.open()
+        return true
+    end
+    if b.kind == "chat" or b.kind == "pvp" then
+        pcall(function() getSoundManager():playUISound("UIActivateButton") end)
+        B.tailAct(b.kind)
         return true
     end
     if b.kind == "watch" then
@@ -1850,7 +1971,7 @@ function ZeD_BeltHUD:onRightMouseUp(x, y)
     if not self._drawn then return false end
     local b = self:boxAt(x, y)
     if not b then return false end
-    if b.kind == "watch" or b.kind == "lamp" or b.kind == "ammo" then return true end
+    if b.kind == "watch" or b.kind == "lamp" or b.kind == "ammo" or b.kind == "chat" or b.kind == "pvp" then return true end
     local p = self:player()
     if b.kind == "slot" then
         B.rightMenu(self.playerNum, b.i)
@@ -1870,7 +1991,7 @@ function B.takeDrop(playerNum, items)
     local mx, my = hud:getMouseX(), hud:getMouseY()
     if mx < 0 or my < 0 or mx >= hud:getWidth() or my >= hud:getHeight() then return false end
     local b = hud:boxAt(mx, my)
-    if not b or b.kind == "watch" or b.kind == "lamp" or b.kind == "ammo" then return true end   -- over the strap, the watch, the ammo box or the Messages note: no drop to the floor either
+    if not b or b.kind == "watch" or b.kind == "lamp" or b.kind == "ammo" or b.kind == "chat" or b.kind == "pvp" then return true end   -- over the strap, the watch, the ammo box or the Messages note: no drop to the floor either
     local st, it = hud:_dropState(b, items)
     if st ~= "fit" then return true end
     if b.kind == "hand" then
@@ -1997,6 +2118,10 @@ function ZeD_BeltHUD:onJoypadDown(button)
     if not b then return end
     if b.kind == "lamp" then
         if button == Joypad.AButton then ZeD.Messages.open() end
+        return
+    end
+    if b.kind == "chat" or b.kind == "pvp" then
+        if button == Joypad.AButton then B.tailAct(b.kind, true) end
         return
     end
     if b.kind == "watch" then
