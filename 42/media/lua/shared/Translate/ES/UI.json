@@ -4537,5 +4537,6 @@
     "UI_ZeD_Guide_Check6": "Busca un mapa y aprende dos salidas del pueblo.",
     "UI_ZeD_Guide_Check7": "Camina, haz poco ruido y pelea en una puerta.",
     "UI_ZeD_Win_HelpPin": "Fija esta ventana abierta. Si no está fijada, se enrolla hasta su barra de título cuando el puntero sale de ella.",
-    "UI_ZeD_Win_HelpUnpin": "Desfijar: la ventana se enrolla hasta su barra de título cuando el puntero sale de ella, y se desenrolla cuando el puntero está sobre la barra de título."
+    "UI_ZeD_Win_HelpUnpin": "Desfijar: la ventana se enrolla hasta su barra de título cuando el puntero sale de ella, y se desenrolla cuando el puntero está sobre la barra de título.",
+    "UI_ZeD_WatchPlain_ServerTime": "Hora del servidor"
 }

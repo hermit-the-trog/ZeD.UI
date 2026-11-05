@@ -4537,5 +4537,6 @@
     "UI_ZeD_Guide_Check6": "Najdi mapu a nauč se dvě cesty z města.",
     "UI_ZeD_Guide_Check7": "Choď, buď zticha a bojuj ve dveřích.",
     "UI_ZeD_Win_HelpPin": "Připne toto okno otevřené. Pokud není připnuté, sbalí se na záhlaví, jakmile z něj ukazatel odejde.",
-    "UI_ZeD_Win_HelpUnpin": "Odepnout: okno se sbalí na záhlaví, když z něj ukazatel odejde, a rozbalí se, když je ukazatel nad záhlavím."
+    "UI_ZeD_Win_HelpUnpin": "Odepnout: okno se sbalí na záhlaví, když z něj ukazatel odejde, a rozbalí se, když je ukazatel nad záhlavím.",
+    "UI_ZeD_WatchPlain_ServerTime": "Čas serveru"
 }

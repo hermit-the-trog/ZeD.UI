@@ -4537,5 +4537,6 @@
     "UI_ZeD_Guide_Check6": "Trova una mappa e impara due vie per uscire dalla città.",
     "UI_ZeD_Guide_Check7": "Cammina, fai silenzio e combatti a una porta.",
     "UI_ZeD_Win_HelpPin": "Fissa questa finestra aperta. Se non è fissata, si arrotola sulla barra del titolo quando il puntatore la lascia.",
-    "UI_ZeD_Win_HelpUnpin": "Sblocca: la finestra si arrotola sulla barra del titolo quando il puntatore la lascia, e si srotola quando il puntatore è sulla barra del titolo."
+    "UI_ZeD_Win_HelpUnpin": "Sblocca: la finestra si arrotola sulla barra del titolo quando il puntatore la lascia, e si srotola quando il puntatore è sulla barra del titolo.",
+    "UI_ZeD_WatchPlain_ServerTime": "Ora del server"
 }

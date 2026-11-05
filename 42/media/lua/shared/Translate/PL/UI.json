@@ -4537,5 +4537,6 @@
     "UI_ZeD_Guide_Check6": "Znajdź mapę i naucz się dwóch dróg z miasta.",
     "UI_ZeD_Guide_Check7": "Chodź, zachowuj się cicho i walcz przy drzwiach.",
     "UI_ZeD_Win_HelpPin": "Przypnij to okno jako otwarte. Bez przypięcia zwija się do paska tytułu, gdy wskaźnik je opuści.",
-    "UI_ZeD_Win_HelpUnpin": "Odepnij: okno zwija się do paska tytułu, gdy wskaźnik je opuści, i rozwija się, gdy wskaźnik jest nad paskiem tytułu."
+    "UI_ZeD_Win_HelpUnpin": "Odepnij: okno zwija się do paska tytułu, gdy wskaźnik je opuści, i rozwija się, gdy wskaźnik jest nad paskiem tytułu.",
+    "UI_ZeD_WatchPlain_ServerTime": "Czas serwera"
 }

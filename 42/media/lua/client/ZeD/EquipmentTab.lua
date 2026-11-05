@@ -1062,17 +1062,11 @@ function ZeD.EquipmentTab._handleAction(win, actionId, slot)
     if not player then return end
 
     if actionId == "unequip" then
-        if instanceof(slot.item, "Clothing") then
-            ISTimedActionQueue.add(ISUnequipAction:new(player, slot.item, 50))
-        else
-            -- Hand items: just remove from hand
-            if player:getPrimaryHandItem() == slot.item then
-                player:setPrimaryHandItem(nil)
-            end
-            if player:getSecondaryHandItem() == slot.item then
-                player:setSecondaryHandItem(nil)
-            end
-        end
+        -- The game's own unequip for clothing and hand items alike (ISUnequipAction, through
+        -- ISInventoryPaneContextMenu.unequipItem: it also puts out a lit candle or lantern). Emptying
+        -- the hand directly never reached a server: on a rejoin the item was back in the hand (QA's
+        -- multiplayer check, Nov 5 2026).
+        ISInventoryPaneContextMenu.unequipItem(slot.item, player:getPlayerNum())
         win._equipSelected = nil
         win._equipCache = nil
 

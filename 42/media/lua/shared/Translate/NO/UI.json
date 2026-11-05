@@ -4537,5 +4537,6 @@
     "UI_ZeD_Guide_Check6": "Finn et kart og lær to veier ut av byen.",
     "UI_ZeD_Guide_Check7": "Gå, vær stille og kjemp ved en dør.",
     "UI_ZeD_Win_HelpPin": "Fest dette vinduet åpent. Uten feste ruller det seg opp til tittellinjen når pekeren forlater det.",
-    "UI_ZeD_Win_HelpUnpin": "Løsne: vinduet ruller seg opp til tittellinjen når pekeren forlater det, og ned igjen når pekeren er over tittellinjen."
+    "UI_ZeD_Win_HelpUnpin": "Løsne: vinduet ruller seg opp til tittellinjen når pekeren forlater det, og ned igjen når pekeren er over tittellinjen.",
+    "UI_ZeD_WatchPlain_ServerTime": "Servertid"
 }
