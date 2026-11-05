@@ -951,7 +951,7 @@ function ZeD_MMMods:drawOrder(x, y, w, h)
 end
 
 function ZeD_MMMods:orderScrollBar(sx, vy, sbW, vh, total)
-    MM.scrollBar(self, "mods:otrack", sx, vy, sbW, vh, self.scroll, total, function(v) self.scroll = v end, self.pick and { noHit = true } or nil)
+    MM.scrollBar(self, "mods:otrack", sx, vy, sbW, vh, self.scroll, total, function(v) self.scroll = v end, { step = ZeD.T.px(ROW_H), noHit = self.pick and true or nil })
 end
 
 -- ----------------------------------------------------------------------------

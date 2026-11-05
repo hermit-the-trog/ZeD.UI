@@ -1338,7 +1338,7 @@ function ZeD_MMMods:drawList(x, y, w, h)
     self:clearStencilRect()
     if over then
         local sx = x + w - T.px(1) - sbW
-        MM.scrollBar(self, "mods:track", sx, vy, sbW, vh, self.scroll, rowsH, function(v) self.scroll = v end)
+        MM.scrollBar(self, "mods:track", sx, vy, sbW, vh, self.scroll, rowsH, function(v) self.scroll = v end, { step = rh })
     end
 end
 
@@ -1579,7 +1579,7 @@ function ZeD_MMMods:drawWsRows(x, y, w, h, vy)
     self:clearStencilRect()
     if over then
         local sx = x + w - T.px(1) - sbW
-        MM.scrollBar(self, "mods:wtrack", sx, vy, sbW, vh, self.scroll, rowsH, function(v) self.scroll = v end)
+        MM.scrollBar(self, "mods:wtrack", sx, vy, sbW, vh, self.scroll, rowsH, function(v) self.scroll = v end, { step = rh })
     end
 end
 
@@ -2062,7 +2062,7 @@ function ZeD_MMMods:drawProfiles(x, y, w, h)
     if rowsH > vh then
         local sbW = T.sp.scrollbarW
         local sx = x + listW - T.px(1) - sbW
-        MM.scrollBar(self, "mods:ptrack", sx, vy, sbW, vh, self.scroll, rowsH, function(v) self.scroll = v end)
+        MM.scrollBar(self, "mods:ptrack", sx, vy, sbW, vh, self.scroll, rowsH, function(v) self.scroll = v end, { step = rh })
     end
 
     -- the picked profile, in a framed pane that scrolls as one unit

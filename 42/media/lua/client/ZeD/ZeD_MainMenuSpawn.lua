@@ -462,7 +462,7 @@ function ZeD_MMSpawn:drawTowns(x, y, w, h, items)
     self:clearStencilRect()
     if over then
         local sx = x + w - T.px(1) - sbW
-        MM.scrollBar(self, "spawn:track", sx, vy, sbW, vh, self.scroll, rowsH, function(v) self.scroll = v end)
+        MM.scrollBar(self, "spawn:track", sx, vy, sbW, vh, self.scroll, rowsH, function(v) self.scroll = v end, { step = rh })
     end
 end
 
