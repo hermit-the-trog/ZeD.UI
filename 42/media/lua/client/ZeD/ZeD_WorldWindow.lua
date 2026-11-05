@@ -121,6 +121,7 @@ local WORLD_TABS = {
 
 -- a tab's name in the player's language
 function ZeD_WorldWindow.tabLabel(tab)
+    if tab.label then return tab.label() end
     if tab.vkey then return getText(tab.vkey) end
     return ZeD.tr(tab.key)
 end
@@ -154,6 +155,12 @@ local function isTabVisible(tab, win)
     if not tab.visible then return true end
     return tab.visible(win)
 end
+-- A tab another file adds (the Admin tab, AdminTab.lua; Nov 5 2026), as ZeD_CharacterWindow.addTab: def = id, key or
+-- label(), group, iconName, after (a tab id), visible(win), render(panel, win, x, y, w, h), and optionally
+-- scroll(win), onClick(win, x, y), buildFocusables(win), scrollKey(win), drawerW. Read at run time from
+-- ZeD_WorldWindow._extTabs by the window's per-tab dispatch (focus, click, scroll, the focus refresh).
+ZeD_WorldWindow._extTabs = ZeD_WorldWindow._extTabs or {}
+ZeD_WorldWindow._extPending = ZeD_WorldWindow._extPending or {}
 -- the tabs and the test, for the D-pad wheels' Tabs slice (ZeD_DpadWheels.lua)
 ZeD_WorldWindow.TABS = WORLD_TABS
 ZeD_WorldWindow.isTabVisible = isTabVisible
@@ -994,6 +1001,8 @@ _buildWorldPanelFocusables = function(win, content, tabId)
     -- S99: Loot invrows now live in worldMainInv zone (always-visible).
     -- worldTabContent carries per-tab secondary content only.
     if tabId == "loot"    then return {}                               end
+    local ext = ZeD_WorldWindow._extTabs[tabId]
+    if ext then return ext.buildFocusables and ext.buildFocusables(win) or {} end
     if tabId == "forage"  then return _buildForageFocusables(win)      end
     if tabId == "animals" then return _buildAnimalsFocusables(win)     end
     if tabId == "craft"   then return _buildWorldCraftFocusables(win)  end
@@ -1598,6 +1607,17 @@ end
 
 -- Tab content renderers
 local WORLD_TAB_RENDERERS = {}
+function ZeD_WorldWindow.addTab(def)
+    if ZeD_WorldWindow._extTabs[def.id] then return end
+    ZeD_WorldWindow._extTabs[def.id] = def
+    WORLD_TAB_RENDERERS[def.id] = def.render
+    WORLD_TAB_DRAWER_WIDTHS[def.id] = def.drawerW or TAB_DRAWER_W
+    local at = #WORLD_TABS + 1
+    for i, t in ipairs(WORLD_TABS) do
+        if t.id == def.after then at = i + 1 end
+    end
+    table.insert(WORLD_TABS, at, def)
+end
 ZeD.CraftingTab.register(WORLD_TAB_RENDERERS)
 ZeD.BuildingTab.register(WORLD_TAB_RENDERERS)
 ZeD.MapsTab.register(WORLD_TAB_RENDERERS)
@@ -1967,6 +1987,8 @@ local function getWorldActiveScroll(win)
     if win._activeTab == "maps"   then return nil end  -- map handles zoom, not scroll
     if win._activeTab == "forage" then return win._forageScroll end
     if win._activeTab == "animals" then return win._animalsScroll end
+    local ext = ZeD_WorldWindow._extTabs[win._activeTab]
+    if ext and ext.scroll then return ext.scroll(win) end
     return nil
 end
 
@@ -4117,6 +4139,8 @@ function ZeD_WorldWindow.toggle(playerNum)
         if win._drawerMode == "tab" and win._activeTab == "furniture" then
             return ZeD.FurnitureTab.onClick(win, x, y)
         end
+        local ext = win._drawerMode == "tab" and ZeD_WorldWindow._extTabs[win._activeTab]
+        if ext and ext.onClick then ext.onClick(win, x, y); return true end
         return false
     end
 
@@ -4730,7 +4754,8 @@ function ZeD_WorldWindow.toggle(playerNum)
                                             -- chassis zones stamped during
                                             -- render, picked up next frame.
                  win._activeTab == "vehicle" or -- S124: Vehicle tab zones stamped during render
-                 win._activeTab == "furniture"  -- S124: Furniture tab zones stamped during render
+                 win._activeTab == "furniture" or -- S124: Furniture tab zones stamped during render
+                 ZeD_WorldWindow._extTabs[win._activeTab] ~= nil   -- a tab another file added (addTab)
                ) then
             -- S98 per-frame refresh for NON-Loot World tabs. _forageStanceZones
             -- and _animalsSubmodeZones are populated by ForagingTab / AnimalsTab
@@ -4821,6 +4846,11 @@ function ZeD_WorldWindow.toggle(playerNum)
             if win._activeTab == "forage" then
                 local sc = win._forageScroll
                 scrollKey = tostring(sc and sc.scrollPos or 0) .. ":" .. tostring(win._moreDetailOpen)
+                if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
+            end
+            local extT = ZeD_WorldWindow._extTabs[win._activeTab]
+            if extT and extT.scrollKey then
+                scrollKey = tostring(extT.scrollKey(win))
                 if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
             end
             if win._activeTab == "vehicle" and ZeD.MechanicsTab and ZeD.MechanicsTab.focusKey then
