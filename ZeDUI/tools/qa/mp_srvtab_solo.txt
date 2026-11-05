@@ -1,0 +1,2 @@
+zedqa_prelude.lua | pre | timeout=120
+mp_srvtab.lua | mst | timeout=60
