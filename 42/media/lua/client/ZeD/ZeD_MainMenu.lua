@@ -27,6 +27,8 @@ require "ISUI/ISPanel"
 require "ZeD/Organisms"
 require "ZeD/Input/SpatialNav"
 require "ZeD/ZeD_MouseTick"
+require "ZeD/PixelFonts"
+require "ZeD/MenuNote"
 
 ZeD = ZeD or {}
 ZeD.MainMenu = ZeD.MainMenu or {}
@@ -56,6 +58,11 @@ local DIAL     = { 416, 120, 7, 10 }   -- the boombox dial without its needle (d
 local NEEDLE   = { 419, 121, 1, 8 }    -- the red tuning needle
 local NEEDLE_C = { r = 0x3c / 255, g = 0x0e / 255, b = 0x0f / 255 }   -- equals the baked needle (it must not change colour when it drifts)
 local POWER    = { 126, 243, 10, 10 }  -- the case's power button: Quit
+-- the change note on the corkboard: the paper is in the picture, the words are written on it (MM.drawNote)
+local NOTE_INK     = { r = 0x00 / 255, g = 0x0f / 255, b = 0x34 / 255 }   -- the note's ballpoint, measured from the render
+local NOTE_INK_DIM = { r = 0x00 / 255, g = 0x09 / 255, b = 0x2f / 255 }   -- on a lamp dip
+local NOTE_X, NOTE_HEAD_Y, NOTE_HEAD_ROOM = 52, 17, 40                    -- the heading: to the paper's right edge
+local NOTE_LINE_Y, NOTE_LINE_MAX = { 30, 37, 44, 51, 58 }, 10             -- the lines: each just above its blue rule
 
 -- The wallpaper: vanilla's old title painting and its lightning frame, drawn from the
 -- game's own files (Oct 28 2026; before, the mod shipped cropped copies and blanked the
@@ -410,6 +417,7 @@ function MM.drawDesk(p, L, t)
     local dipped = l.beats and l.i % 2 == 1
     local desk = tex(TEX .. (dipped and "desk_lampdim.png" or "desk.png"))
     if desk then p:drawTextureScaledAspect(desk, L.ox, L.oy, DESK_W * s, DESK_H * s, 1, 1, 1, 1) end
+    MM.drawNote(p, L, dipped)
 
     if not life.hdd.on then
         local x, y, w, h = nat(L, HDD)
@@ -427,6 +435,79 @@ function MM.drawDesk(p, L, t)
             local nx, ny, nw, nh = nat(L, NEEDLE)
             p:drawRect(nx + life.needle.dx * s, ny, nw, nh, 1, NEEDLE_C.r, NEEDLE_C.g, NEEDLE_C.b)
         end
+    end
+end
+
+-- ---------------------------------------------------------------------------
+-- THE CHANGE NOTE (the director, Nov 5 2026: ZeDUI/HANDOFF_main_menu_note_20261105.md). The menu writes on the paper in
+-- the desk picture, in the game's pixel faces at the desk's own multiple, so a release changes a word list
+-- (MenuNote.lua) and the heading follows the version: no art changes.
+-- ---------------------------------------------------------------------------
+-- 0.3.0-beta4: "BETA 4"; 0.3.0-beta3a: "BETA 3A"; a release, 1.0.0: "V1.0"; anything else (the dev copy): "DEV"
+function MM.noteHeading(v)
+    v = tostring(v or "")
+    local b = v:match("%-[bB][eE][tT][aA](%w+)$")
+    if b then return "BETA " .. b:upper() end
+    local maj, min = v:match("^(%d+)%.(%d+)")
+    if maj and tonumber(maj) >= 1 and not v:find("-", 1, true) then return "V" .. maj .. "." .. min end
+    return "DEV"
+end
+
+-- a word's solid runs in a pixel face, added to out as { x, y, w } in art pixels; a glyph the face lacks is left out.
+-- Returns the x past the word's last pixel.
+local function noteRuns(out, face, s, x, y)
+    local F = ZeD.PixelFonts[face]
+    local cx = x
+    local first = true
+    for i = 1, #s do
+        local g = F[s:sub(i, i)]
+        if g then
+            if not first then cx = cx + 1 end
+            first = false
+            for ry, row in ipairs(g) do
+                local col = 1
+                while col <= #row do
+                    if row:sub(col, col) == "1" then
+                        local e = col
+                        while row:sub(e + 1, e + 1) == "1" do e = e + 1 end
+                        out[#out + 1] = { x = cx + col - 1, y = y + ry - 1, w = e - col + 1 }
+                        col = e + 1
+                    else
+                        col = col + 1
+                    end
+                end
+            end
+            cx = cx + #g[1]
+        end
+    end
+    return cx
+end
+MM._noteRuns = noteRuns
+
+-- what the note says, worked out once
+local function noteWords()
+    if MM._note then return MM._note end
+    local out = {}
+    local head = {}
+    if noteRuns(head, "57", MM.noteHeading(MM.zedVersion()), NOTE_X, NOTE_HEAD_Y) - NOTE_X <= NOTE_HEAD_ROOM then
+        for _, r in ipairs(head) do out[#out + 1] = r end
+    end
+    for i, y in ipairs(NOTE_LINE_Y) do
+        local line = ZeD.MenuNote and ZeD.MenuNote[i]
+        if line then noteRuns(out, "35", tostring(line):upper():sub(1, NOTE_LINE_MAX), NOTE_X, y) end
+    end
+    MM._note = out
+    return out
+end
+
+-- the words, over the desk picture, in the room's light
+function MM.drawNote(p, L, dipped)
+    local s = L.s
+    local c = dipped and NOTE_INK_DIM or NOTE_INK
+    local runs = noteWords()
+    for i = 1, #runs do
+        local r = runs[i]
+        p:drawRect(L.ox + r.x * s, L.oy + r.y * s, r.w * s, s, 1, c.r, c.g, c.b)
     end
 end
 

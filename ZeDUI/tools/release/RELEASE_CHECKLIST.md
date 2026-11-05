@@ -10,6 +10,10 @@ Run the commands below from `Zomboid/mods/ZeD-UI`.
 2. **Commit what should go up.** The stage script copies the files as they are on disk and warns about uncommitted changes. Another session's unfinished work goes up too unless it is committed or set aside first.
 3. **Update `42/mod.info` before every upload** (director, Oct 22 2026). The game's mod list shows it, so testers read it. Check each line: `name=ZeD-GUI`; `description=` says what this build is (Oct 22: "Inspired by Apple System 7, Unix and Windows operating systems from the era. Built for controller and keyboard and mouse as equals."); `author=Hermit the Trog`; `url=` the Workshop page once the item has an id (`https://steamcommunity.com/sharedfiles/filedetails/?id=<item id>`); `versionMin=` the oldest build tested. Commit it.
 4. **Pick the version testers will quote.** The first tester build is `0.2.0-t1` (director, Oct 20 2026); later tester builds count up (`0.2.0-t2`). Either change `modversion=` in `42/mod.info` and commit it, or pass it to the stage script (`-Version`), which changes only the staged copy.
+4b. **The note on the main menu's corkboard** (director, Nov 5 2026). Build drafts five short lines from this
+   build's change note, ten characters each at most, in capitals ("SERVER TAB", "CHAT"); the director approves
+   them with the page text; they go in `42/media/lua/client/ZeD/MenuNote.lua` and are committed. The beta number
+   at the top comes from the version by itself.
 5. **Stage.**
    - `pwsh -File ZeDUI/tools/release/stage_workshop.ps1 -DryRun` lists what would go up and what is left out.
    - `pwsh -File ZeDUI/tools/release/stage_workshop.ps1 -Version 0.2.0-t1` builds `Zomboid/Workshop/ZeD-UI/`.
