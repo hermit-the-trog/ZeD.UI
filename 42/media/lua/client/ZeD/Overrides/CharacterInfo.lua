@@ -64,6 +64,12 @@ function ZeD_CharacterWindow.openTab(playerNum, tabId, toggle)
     end
     local win = ZeD_CharacterWindow.getWindow()
     if not win then return false end
+    -- (rolled up by the hover roll-up: down first, its roll-up counted again from now, QA Nov 5 2026)
+    if win.windowShaded then
+        win._autoShaded = false
+        win:setWindowShaded(false)
+        win._outSince = getTimestampMs() + 500
+    end
     local showing = win._activeTab == tabId and win._drawerOpen and win._drawerMode == "tab"
     if showing and not toggle then return true end
     local pending = true

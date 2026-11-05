@@ -32,6 +32,29 @@ local function tr(k, ...) return ZeD.tr(k, ...) end
 local function safe(fn, d) local ok, v = pcall(fn); if ok and v ~= nil then return v end; return d end
 local function px(n) return ZeD.T.px(n) end
 
+-- A button's words in sentence case: the game writes some of its English buttons in Title Case ("See Server
+-- Options", "Create Faction"), and ZeD's buttons read in sentence case (ZeD.btnCase turns only ALL CAPS). English
+-- only: other languages keep the game's own case (German nouns keep their capitals). A word with a capital inside
+-- it (PvP) stays as written.
+function S.btnWords(s)
+    if not s then return s end
+    local lang = safe(function() return tostring(Translator.getLanguage():name()) end, "EN")
+    if lang ~= "EN" then return s end
+    local n, caps = 0, 0
+    for w in s:gmatch("%a+") do
+        n = n + 1
+        if w:sub(1, 1):find("%u") then caps = caps + 1 end
+    end
+    if n < 2 or caps < n then return s end
+    local first = true
+    local out = s:gsub("%a+", function(w)
+        if first then first = false; return w end
+        if w:sub(2):find("%u") then return w end
+        return w:lower()
+    end)
+    return out
+end
+
 -- the server's word for a thing, from the game's own keys where it has them
 local function gt(key, fallbackKey) local t = getTextOrNull and getTextOrNull(key); return t or tr(fallbackKey) end
 
@@ -173,7 +196,7 @@ local function add(L, it) L[#L + 1] = it; return it end
 local function head(L, text, count) add(L, { k = "head", text = text, count = count }) end
 local function row(L, label, value, dot) add(L, { k = "row", label = label, value = value, dot = dot }) end
 local function line(L, text) add(L, { k = "line", text = text }) end
-local function btn(L, id, text, help, disabled) add(L, { k = "btn", id = id, text = text, help = help, disabled = disabled }) end
+local function btn(L, id, text, help, disabled) add(L, { k = "btn", id = id, text = S.btnWords(text), help = help, disabled = disabled }) end
 
 local function build(p)
     local T = ZeD.T
