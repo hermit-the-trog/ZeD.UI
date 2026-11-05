@@ -1,0 +1,2 @@
+zedqa_pin_windows.lua | pnw | timeout=60
+mp_srvtab2.lua | ms2 | timeout=120
