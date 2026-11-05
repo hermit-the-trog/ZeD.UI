@@ -8,6 +8,7 @@ Multiplayer
 - An Admin tab in the World window, for admins only: players (teleport, bring here, stats, kick, ban), the admin powers as tick boxes, a server message, tickets, safehouses and factions, and the game's other admin tools.
 - On a server, the watch leaves the time to the server (no pause or fast forward), and Unequip now goes through the game, so the server sees the hand emptied.
 - The Cooking tab's Make works on a server.
+- On a server the game's own Safety, Client and Admin buttons at the top left are hidden: the PvP marker, the Server tab and the Admin tab hold them now.
 
 Fixes
 - Left-clicking a container in the world opens it in ZeD's World window, whether the windows are closed, open on another container or rolled up. The game's own inventory page no longer appears. Thanks to FAIV for the report.
