@@ -1,2 +1,2 @@
-# ZeDUI/tools/qa/mp_cook_vanilla.txt  (Nov 5 2026): the game own add-to-dish on the server (zedqa_run.ps1 -Mp)
+mp_verify.lua | mpv | timeout=300
 mp_cook_vanilla.lua | mcv | timeout=120

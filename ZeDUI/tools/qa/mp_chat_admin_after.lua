@@ -13,7 +13,7 @@ local function t()
         local w = ZeD.Chat.win
         print("ZEDQA mcb chat window reopened at " .. tostring(w and (w:getX() .. "," .. w:getY() .. " " .. w:getWidth() .. "x" .. w:getHeight())))
         if w then w:setVisible(false) end
-        if p:isGodMod() then pcall(function() p:setGodMod(false); sendPlayerExtraInfo(p) end) end
+        -- (god mode stays on: the test server keeps the character in the world after the client quits, Nov 5 2026)
         print("ZEDQA mcb DONE")
         Events.OnTick.Remove(t)
     end
