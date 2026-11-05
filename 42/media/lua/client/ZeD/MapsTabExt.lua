@@ -538,21 +538,12 @@ local function drawSection(target, win, s, x, cy, w, ox, oy, focId, ask)
     return cy
 end
 
--- The scrollbar at the list's right edge (the track's outer edge is the list's):
--- the thumb shows where the list is; a press or a drag on the track moves it.
+-- The scrollbar at the list's right edge (the track's outer edge is the list's): ZeD's bar. The side list can draw in
+-- the map's pop-out, so the bar goes by the pointer's place alone (no window passed). Its zone only keeps a press on
+-- the bar from reaching the map under it.
 local function drawSideScroll(target, win, sx, y, sw, h, contentH, maxOff, ox, oy)
-    local T, A = ZeD.T, ZeD.Atoms
-    A.drawScrollTrack(target, sx, y, sw, h)
-    local th = math.max(T.px(20), math.floor(h * h / math.max(1, contentH)))
-    local ty = y + math.floor((h - th) * ((win._mapSideScroll or 0) / math.max(1, maxOff)))
-    local z = { id = "map:side:scroll", x = sx + ox, y = y + oy, w = sw, h = h, inert = true,
-        scrollbar = { y = y + oy, h = h, th = th, max = maxOff } }
-    local drag = win._mapExtDrag
-    local state = "default"
-    if drag ~= nil and drag.id == z.id then state = "dragging"
-    elseif A.mouseIn(target, sx, ty, sw, th) then state = "hover" end
-    A.drawScrollThumb(target, sx, ty, sw, th, state)
-    table.insert(win._mapExtZones, 1, z)
+    ZeD.Molecules.scrollBar(target, nil, "map:side", sx, y, sw, h, win._mapSideScroll or 0, contentH, function(v) win._mapSideScroll = v end)
+    table.insert(win._mapExtZones, 1, { id = "map:side:scroll", x = sx + ox, y = y + oy, w = sw, h = h, inert = true })
 end
 
 -- The question before a delete, at the card's foot (fy): "<Verb> the <thing>?
@@ -709,20 +700,12 @@ end
 -- INPUT
 -- ---------------------------------------------------------------------------
 
--- the side list's scrollbar set from the pointer's y (tab coordinates): the
--- thumb's middle goes under the pointer
-local function setScroll(win, z, my)
-    local s = z.scrollbar
-    local f = (my - s.y - s.th / 2) / math.max(1, s.h - s.th)
-    win._mapSideScroll = math.max(0, math.min(1, f)) * s.max
-end
-
 -- A click in the tab (tab coordinates). True when an extension's control took it.
 function E.onClick(win, x, y)
     for _, z in ipairs(win._mapExtZones or {}) do
         if inRect(z, x, y) then
-            if z.slider or z.scrollbar then
-                if z.slider then setSlider(z, x) else setScroll(win, z, y) end
+            if z.slider then
+                setSlider(z, x)
                 win._mapExtDrag = z
                 win._mapDragging = true
                 return true
@@ -751,13 +734,12 @@ function E.wheel(win, x, y, del)
     return false
 end
 
--- a slider or the side list's scrollbar being dragged, or a press an extension took on the map
+-- a slider being dragged, or a press an extension took on the map
 function E.mouseMove(mp, win)
     local z = win._mapExtDrag
     if z then
         if not isMouseButtonDown(0) then win._mapExtDrag = nil; return true end
-        if z.scrollbar then setScroll(win, z, mp:getMouseY() + mp:getY())
-        else setSlider(z, mp:getMouseX() + mp:getX()) end
+        setSlider(z, mp:getMouseX() + mp:getX())
         return true
     end
     local d = mp._extCapture

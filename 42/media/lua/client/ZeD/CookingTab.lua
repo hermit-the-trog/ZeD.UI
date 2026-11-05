@@ -565,15 +565,9 @@ local function stamp(s, id, x, y, w, h, fn, opts)
     return z
 end
 
-local function drawScrollbar(panel, x, top, h, total, scrollY)
-    local T, A = ZeD.T, ZeD.Atoms
+local function drawScrollbar(panel, win, key, x, top, h, total, scrollY, set)
     if total <= h then return end
-    local sw = T.sp.scrollbarW
-    A.drawScrollTrack(panel, x, top, sw - T.px(2), h)
-    local barH = math.max(T.px(20), math.floor(h * (h / total)))
-    local maxS = total - h
-    local frac = maxS > 0 and (scrollY / maxS) or 0
-    A.drawScrollThumb(panel, x, top + math.floor((h - barH) * frac), sw - T.px(2), barH)
+    ZeD.Molecules.scrollBar(panel, win, key, x, top, ZeD.T.sp.scrollbarW, h, scrollY, total, set)
 end
 
 -- ----------------------------------------------------------------------------
@@ -723,7 +717,7 @@ local function renderIngredients(panel, win, s, x, top, w, bodyH, chr, mouse)
     local total = (cy + s.listScroll) - top
     s.maxList = math.max(0, total - bodyH)
     if s.listScroll > s.maxList then s.listScroll = s.maxList end
-    drawScrollbar(panel, x + w - scrollW, top, bodyH, total, s.listScroll)
+    drawScrollbar(panel, win, "cook:list", x + w - scrollW, top, bodyH, total, s.listScroll, function(v) s.listScroll = v end)
 end
 
 -- ----------------------------------------------------------------------------
@@ -850,7 +844,7 @@ local function renderDish(panel, win, s, x, top, w, bodyH, chr, mouse)
     local total = (cy + pad + s.dishScroll) - top
     s.maxDish = math.max(0, total - bodyH)
     if s.dishScroll > s.maxDish then s.dishScroll = s.maxDish end
-    drawScrollbar(panel, x + w - scrollW, top, bodyH, total, s.dishScroll)
+    drawScrollbar(panel, win, "cook:dish", x + w - scrollW, top, bodyH, total, s.dishScroll, function(v) s.dishScroll = v end)
 end
 
 -- ----------------------------------------------------------------------------
