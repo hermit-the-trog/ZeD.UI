@@ -1524,9 +1524,11 @@ local function renderItemList(self)
         colDefs[#colDefs + 1] = {ZeD.tr("UI_ZeD_Inv_ColCat"),  "cat",  catX + padX,  catX,   catColW}
     end
     if showCond then
-        colDefs[#colDefs + 1] = {ZeD.tr("UI_ZeD_Inv_ColCond"), "cond", condX + padX, condX,  condColW}
+        -- (the director, Nov 5 2026: Condition and Weight headings sit at the right, over their values' right edge;
+        -- the 6th field is that edge: the condition strip ends 2u short of its column, as rowCondition is given it)
+        colDefs[#colDefs + 1] = {ZeD.tr("UI_ZeD_Inv_ColCond"), "cond", condX + padX, condX,  condColW, condX + condColW - T.px(2)}
     end
-    colDefs[#colDefs + 1] = {ZeD.tr("UI_ZeD_Inv_ColWt"),   "wt",   wtX + padX,   wtX,    wtColW}
+    colDefs[#colDefs + 1] = {ZeD.tr("UI_ZeD_Inv_ColWt"),   "wt",   wtX + padX,   wtX,    wtColW, wtX + wtColW - padX}
     -- the grid has no columns: its bar carries the same sort keys end to end
     if self._gv.on then colDefs = gridSortDefs(padX, scroll.visible and (colW - scrollW) or colW) end
 
@@ -1547,7 +1549,9 @@ local function renderItemList(self)
         local isActive = (sortCol == key)
         local color = T.toneNorm
         -- a header never runs past its own column: too long ends in "..."
-        label = truncateText(label, T.fontF5, hitX + hitW - drawX - T.px(2))
+        local rightX = def[6]
+        label = truncateText(label, T.fontF5, rightX and (rightX - hitX - T.px(2)) or (hitX + hitW - drawX - T.px(2)))
+        if rightX then drawX = rightX - ZeD.TM:MeasureStringX(T.fontF5, label) end
         dT(label, drawX, hdrTextY, color.r, color.g, color.b, color.a, T.fontF5)
         -- Under/overline active sort column (System 7 style)
         if isActive then
