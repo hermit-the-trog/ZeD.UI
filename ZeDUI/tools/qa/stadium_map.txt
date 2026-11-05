@@ -1,0 +1,2 @@
+# ZeDUI/tools/qa/stadium_map.txt  (Nov 4 2026): a coarse map around the stadium (zedqa_run.ps1 -ShotSave ZeD-Shots-Plizken)
+gallery_stadium_map.lua | stm | timeout=200

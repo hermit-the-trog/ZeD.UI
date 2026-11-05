@@ -1,0 +1,7 @@
+# ZeDUI/tools/qa/cinema_mckline.txt  (Nov 4 2026): the McKline cinema break, 4K, on the shot save
+#   zedqa_run.ps1 -Mode fullscreen4k -ShotSave ZeD-Shots-McKline -Manifest cinema_mckline.txt
+gallery_t14_look.lua | g14l | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_cinema_lib.lua | cinlib | timeout=60
+gallery_cinema_mckline.lua | cmck | timeout=400
+gallery_t14_end.lua | g14e | timeout=60

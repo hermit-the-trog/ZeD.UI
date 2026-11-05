@@ -1,0 +1,3 @@
+# ZeDUI/tools/qa/tower_probe.txt  (Nov 4 2026): Louisville tallest floors (zedqa_run.ps1 -ShotSave ZeD-Shots-McKline -Manifest this)
+gallery_hidecon.lua | hcn | timeout=60
+gallery_tower_probe.lua | twp | timeout=900

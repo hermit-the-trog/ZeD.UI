@@ -1,0 +1,7 @@
+# ZeDUI/tools/qa/cinema_laura.txt  (Nov 4 2026): the Laura Craft cinema break, 4K, on the Rosa shot save
+#   cinema_run.ps1 -Who Laura
+gallery_t14_look.lua | g14l | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_cinema_lib.lua | cinlib | timeout=60
+gallery_cinema_laura.lua | clau | timeout=400
+gallery_t14_end.lua | g14e | timeout=60
