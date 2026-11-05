@@ -4615,5 +4615,7 @@
     "UI_ZeD_Adm_NoFactions": "Brak frakcji.",
     "UI_ZeD_Adm_HelpOpenFaction": "Ta frakcja w oknie frakcji gry.",
     "UI_ZeD_Adm_HelpMore": "Otwiera własne okno gry dla tego narzędzia.",
-    "UI_ZeD_Adm_MoreTools": "Więcej narzędzi"
+    "UI_ZeD_Adm_MoreTools": "Więcej narzędzi",
+    "UI_ZeD_Chat_NameColor": "Kolor nazwy",
+    "UI_ZeD_Chat_Welcome": "Witaj. Klawisz czatu otwiera wiersz do pisania; karty sortują wiersze według kanału. /all mówi do wszystkich, /w nazwa do jednego gracza."
 }

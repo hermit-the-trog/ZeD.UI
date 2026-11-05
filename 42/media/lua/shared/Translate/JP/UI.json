@@ -4616,5 +4616,7 @@
     "UI_ZeD_Adm_NoFactions": "派閥なし。",
     "UI_ZeD_Adm_HelpOpenFaction": "この派閥(ゲームの派閥ウィンドウ)。",
     "UI_ZeD_Adm_HelpMore": "このツール用のゲーム標準ウィンドウを開きます。",
-    "UI_ZeD_Adm_MoreTools": "その他のツール"
+    "UI_ZeD_Adm_MoreTools": "その他のツール",
+    "UI_ZeD_Chat_NameColor": "名前の色",
+    "UI_ZeD_Chat_Welcome": "ようこそ。チャットキーで入力行を開きます。タブは行をチャンネルごとに分類します。/all は全員に、/w 名前 は特定のプレイヤーに話しかけます。"
 }

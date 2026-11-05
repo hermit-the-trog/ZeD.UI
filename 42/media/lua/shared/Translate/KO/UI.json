@@ -4616,5 +4616,7 @@
     "UI_ZeD_Adm_NoFactions": "조직 없음.",
     "UI_ZeD_Adm_HelpOpenFaction": "이 조직(게임의 조직 창).",
     "UI_ZeD_Adm_HelpMore": "이 도구용 게임 기본 창을 엽니다.",
-    "UI_ZeD_Adm_MoreTools": "도구 더보기"
+    "UI_ZeD_Adm_MoreTools": "도구 더보기",
+    "UI_ZeD_Chat_NameColor": "이름 색상",
+    "UI_ZeD_Chat_Welcome": "환영합니다. 채팅 키로 입력 줄을 엽니다. 탭은 줄을 채널별로 분류합니다. /all 은 모두에게, /w 이름 은 한 플레이어에게 말합니다."
 }

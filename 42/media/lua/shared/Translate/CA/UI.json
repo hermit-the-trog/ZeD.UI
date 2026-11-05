@@ -4615,5 +4615,7 @@
     "UI_ZeD_Adm_NoFactions": "Sense faccions.",
     "UI_ZeD_Adm_HelpOpenFaction": "Aquesta facció a la finestra de faccions del joc.",
     "UI_ZeD_Adm_HelpMore": "Obre la finestra pròpia del joc per a aquesta eina.",
-    "UI_ZeD_Adm_MoreTools": "Més eines"
+    "UI_ZeD_Adm_MoreTools": "Més eines",
+    "UI_ZeD_Chat_NameColor": "Color del nom",
+    "UI_ZeD_Chat_Welcome": "Benvingut. La tecla del xat obre la línia per escriure; les pestanyes ordenen les línies per canal. /all parla amb tothom, /w nom amb un sol jugador."
 }

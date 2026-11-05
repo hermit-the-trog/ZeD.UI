@@ -4615,5 +4615,7 @@
     "UI_ZeD_Adm_NoFactions": "Tidak ada faksi.",
     "UI_ZeD_Adm_HelpOpenFaction": "Faksi ini, di jendela faksi game.",
     "UI_ZeD_Adm_HelpMore": "Membuka jendela bawaan game untuk alat ini.",
-    "UI_ZeD_Adm_MoreTools": "Alat lainnya"
+    "UI_ZeD_Adm_MoreTools": "Alat lainnya",
+    "UI_ZeD_Chat_NameColor": "Warna nama",
+    "UI_ZeD_Chat_Welcome": "Selamat datang. Tombol obrolan membuka baris untuk mengetik; tab mengurutkan baris menurut saluran. /all berbicara kepada semua orang, /w nama kepada satu pemain."
 }

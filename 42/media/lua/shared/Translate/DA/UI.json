@@ -4615,5 +4615,7 @@
     "UI_ZeD_Adm_NoFactions": "Ingen fraktioner.",
     "UI_ZeD_Adm_HelpOpenFaction": "Denne fraktion i spillets fraktionsvindue.",
     "UI_ZeD_Adm_HelpMore": "Åbner spillets eget vindue til dette værktøj.",
-    "UI_ZeD_Adm_MoreTools": "Flere værktøjer"
+    "UI_ZeD_Adm_MoreTools": "Flere værktøjer",
+    "UI_ZeD_Chat_NameColor": "Navnefarve",
+    "UI_ZeD_Chat_Welcome": "Velkommen. Chattasten åbner linjen, du skriver i; fanerne sorterer linjerne efter kanal. /all taler til alle, /w navn til én spiller."
 }

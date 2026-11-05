@@ -4615,5 +4615,7 @@
     "UI_ZeD_Adm_NoFactions": "Žádné frakce.",
     "UI_ZeD_Adm_HelpOpenFaction": "Tato frakce v okně frakcí ve hře.",
     "UI_ZeD_Adm_HelpMore": "Otevře vlastní okno hry pro tento nástroj.",
-    "UI_ZeD_Adm_MoreTools": "Další nástroje"
+    "UI_ZeD_Adm_MoreTools": "Další nástroje",
+    "UI_ZeD_Chat_NameColor": "Barva jména",
+    "UI_ZeD_Chat_Welcome": "Vítejte. Klávesa chatu otevře řádek pro psaní; karty třídí řádky podle kanálu. /all mluví ke všem, /w jméno k jednomu hráči."
 }

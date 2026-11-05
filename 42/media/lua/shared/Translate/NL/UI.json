@@ -4615,5 +4615,7 @@
     "UI_ZeD_Adm_NoFactions": "Geen facties.",
     "UI_ZeD_Adm_HelpOpenFaction": "Deze factie, in het factievenster van het spel.",
     "UI_ZeD_Adm_HelpMore": "Opent het eigen venster van het spel voor dit hulpmiddel.",
-    "UI_ZeD_Adm_MoreTools": "Meer hulpmiddelen"
+    "UI_ZeD_Adm_MoreTools": "Meer hulpmiddelen",
+    "UI_ZeD_Chat_NameColor": "Naamkleur",
+    "UI_ZeD_Chat_Welcome": "Welkom. De chattoets opent de regel om in te typen; de tabbladen sorteren de regels per kanaal. /all spreekt iedereen toe, /w naam één speler."
 }
