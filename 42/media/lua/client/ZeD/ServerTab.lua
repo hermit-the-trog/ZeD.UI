@@ -432,6 +432,7 @@ ZeD_CharacterWindow.addTab({
     iconName = "server-tab-white",
     label = function() return tr("UI_ZeD_Char_TabServer") end,
     visible = function() return isClient() end,
+    wheelHide = function() return not isClient() end,   -- (not on the D-pad wheels in single player either)
     render = S.render,
     scroll = function(win) local st = win._serverTab; return st and st.scroll or nil end,
     onClick = S.onClick,

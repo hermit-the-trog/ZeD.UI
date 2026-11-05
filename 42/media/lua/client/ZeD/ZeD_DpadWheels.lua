@@ -827,10 +827,17 @@ end
 local C = {}
 D.C = C
 
+-- a Character window tab by its id (an added tab moves the list: never by its place)
+local function charTab(id)
+    for _, t in ipairs(ZeD_CharacterWindow and ZeD_CharacterWindow.TABS or {}) do if t.id == id then return t end end
+    return { id = id, key = "UI_ZeD_Char_Tab" }
+end
+
 function C.tabs(p, pn)
     local out = {}
     local win = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
     for _, tab in ipairs(ZeD_CharacterWindow and ZeD_CharacterWindow.TABS or {}) do
+      if not (tab.wheelHide and tab.wheelHide()) then
         local name = ZeD_CharacterWindow.tabLabel(tab)
         local e = { name = name, tab = tab.iconName, key = tab.id, run = function(pl, n) H.charTab(pl, n, tab.id) end }
         if tab.id == "radio" then
@@ -840,6 +847,7 @@ function C.tabs(p, pn)
             e.off = tr("UI_ZeD_Wheel_NotNow")
         end
         out[#out + 1] = e
+      end
     end
     return out
 end
@@ -856,7 +864,7 @@ function C.medicine(p, pn)
     local out = H.quick(p, "pills")
     for _, e in ipairs(ask("treatments", p, pn) or {}) do out[#out + 1] = e end
     while #out > 10 do out[#out] = nil end   -- (the Health tab and Back after them)
-    out[#out + 1] = { name = ZeD_CharacterWindow.tabLabel(ZeD_CharacterWindow.TABS[3]), tab = "health-tab-white", detail = tr("UI_ZeD_Wheel_EveryWound"), key = "health",
+    out[#out + 1] = { name = ZeD_CharacterWindow.tabLabel(charTab("health")), tab = "health-tab-white", detail = tr("UI_ZeD_Wheel_EveryWound"), key = "health",
         run = function(pl, n) H.charTab(pl, n, "health") end }
     return out
 end
@@ -872,7 +880,7 @@ end
 function C.clothing(p, pn)
     local out = ask("clothing", p, pn) or {}
     while #out > 10 do out[#out] = nil end
-    out[#out + 1] = { name = ZeD_CharacterWindow.tabLabel(ZeD_CharacterWindow.TABS[2]), tab = "equipment-tab-white", detail = tr("UI_ZeD_Wheel_EverythingYouWear"), key = "equip",
+    out[#out + 1] = { name = ZeD_CharacterWindow.tabLabel(charTab("equip")), tab = "equipment-tab-white", detail = tr("UI_ZeD_Wheel_EverythingYouWear"), key = "equip",
         run = function(pl, n) H.charTab(pl, n, "equip") end }
     return out
 end
@@ -950,6 +958,7 @@ function Wd.tabs(p, pn)
     local out = {}
     local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
     for _, tab in ipairs(ZeD_WorldWindow and ZeD_WorldWindow.TABS or {}) do
+      if not (tab.wheelHide and tab.wheelHide()) then
         local e = { name = ZeD_WorldWindow.tabLabel(tab), tab = tab.iconName, key = tab.id, run = function(pl, n) H.worldTab(pl, n, tab.id) end }
         -- (the contextual tabs asked by their own rules: the window's lists are stale while it is shut)
         if tab.id == "radio" then
@@ -962,6 +971,7 @@ function Wd.tabs(p, pn)
             e.off = tr("UI_ZeD_Wheel_NotNow")
         end
         out[#out + 1] = e
+      end
     end
     return out
 end
@@ -1328,7 +1338,7 @@ function H.radio(p, pn)
           run = function(pl) ZeD.RadioOps.power(pl, item) end },
         { name = tr("UI_ZeD_Wheel_NextStation"), icon = "seek", detail = mhz, run = function(pl) ZeD.RadioOps.seek(pl, item, 1) end,
           off = (not on) and tr("UI_ZeD_Wheel_RadioIsOff") or nil },
-        { name = ZeD_CharacterWindow.tabLabel(ZeD_CharacterWindow.TABS[8]), tab = "radio-tab-white", detail = tr("UI_ZeD_Wheel_EveryRadio"),
+        { name = ZeD_CharacterWindow.tabLabel(charTab("radio")), tab = "radio-tab-white", detail = tr("UI_ZeD_Wheel_EveryRadio"),
           run = function(pl, n) H.charTab(pl, n, "radio") end },
     }
 end

@@ -185,6 +185,7 @@ TABS = [   # the window tabs' slices (C.tabs, Wd.tabs and the rest name a tab by
     ("build-tab-white", "bricks"), ("move-tab-white", "chair"), ("map-tab-white", "map"),
     ("forage-tab-white", "magnifier"), ("farm-tab-white", "cow"), ("vehicle-tab-white", "car"),
     ("appearance-tab-white", "mirror"), ("traits-tab-white", "traits"),
+    ("server-tab-white", "tower"), ("admin-tab-white", "badge"),
 ]
 
 

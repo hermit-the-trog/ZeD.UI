@@ -82,6 +82,7 @@ W.TAB_ICONS = {
     ["build-tab-white"] = "bricks", ["move-tab-white"] = "chair", ["map-tab-white"] = "map",
     ["forage-tab-white"] = "magnifier", ["farm-tab-white"] = "cow", ["vehicle-tab-white"] = "car",
     ["appearance-tab-white"] = "mirror", ["traits-tab-white"] = "traits", ["cooking-tab-white"] = "pot",
+    ["server-tab-white"] = "tower", ["admin-tab-white"] = "badge",   -- (multiplayer, Nov 5 2026)
 }
 
 -- the slice's words first: several vanilla slices share one picture
