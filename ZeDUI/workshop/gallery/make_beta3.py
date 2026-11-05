@@ -2,28 +2,32 @@
 Builds upload_beta3/: the spreads from upload/ in their order, with plain full-screen captures placed after the run
 of spreads each one shows. Breaks are 1920x1080 JPEGs under Steam's 1 MB, made from the 4K captures; names sort into
 place ("14b_break_station.jpg" after "14_night_shift.jpg").
-usage: py make_beta3.py
+usage: py make_beta3.py [out folder, default upload_beta3]
 """
-import os, shutil
+import os, shutil, sys
 from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 UP = os.path.join(HERE, "upload")
-OUT = os.path.join(HERE, "upload_beta3")
+OUT = os.path.join(HERE, sys.argv[1] if len(sys.argv) > 1 else "upload_beta3")
 SHOTS = "C:/Users/you/Zomboid/Screenshots"
 G14 = SHOTS + "/gallery_t14"
 
+CIN = os.path.join(HERE, "cinema")
+# Nov 4 2026 (the director): every break is a movie scene on a cinema screen (cinema_frame.py; the pictures are framed
+# already, in cinema/). Each follows the run whose screens it shows best. The Beta 3 set's plain breaks are in git
+# (upload_beta3/, live on Steam until this set replaces it).
 BREAKS = [
-    ("14b_break_station", G14 + "/story_10_customers_queue.png"),
-    ("18b_break_windows", SHOTS + "/gal_b3_br_onscreen.png"),
-    ("26b_break_equip", SHOTS + "/gal_b3_br_equip.png"),
-    ("29b_break_crafting", SHOTS + "/gal_b3_br_craft.png"),
-    ("33b_break_smoke", G14 + "/story_11_smoke_break.png"),
-    ("41b_break_newspaper", SHOTS + "/gal_b3_br_reader.png"),
-    ("44b_break_controller", G14 + "/gb_bugreport_wheel.png"),
-    ("49b_break_desk", SHOTS + "/desk_01_painting.png"),
-    ("55b_break_mods", SHOTS + "/mm4_03_mods_conflict.png"),
-    ("63d_break_guide", SHOTS + "/gal_b3_br_guide.png"),
+    ("14b_break_kohners_map", CIN + "/cin_koh_maps.jpg"),        # the story: the route, a paper map
+    ("18b_break_plizken_windows", CIN + "/cin_plz_equip.jpg"),   # every window: both open
+    ("26b_break_mckline_health", CIN + "/cin_mck_health.jpg"),   # items and the character: the Health tab
+    ("29b_break_laura_crafting", CIN + "/cin_lau_craft.jpg"),    # making things: Crafting at the camp
+    ("33b_break_laura_camp", CIN + "/cin_lau_wide.jpg"),         # on screen: the belt with its holsters
+    ("41b_break_mckline_radio", CIN + "/cin_mck_radio.jpg"),     # machines and media: the walkie in the Radio tab
+    ("44b_break_plizken_stadium", CIN + "/cin_plz_wide.jpg"),    # the controller run ends: the stadium
+    ("49b_break_laura_building", CIN + "/cin_lau_build.jpg"),    # looks: the Light theme, Skills and Building
+    ("55b_break_plizken_vehicle", CIN + "/cin_plz_vehicle.jpg"), # mods: the ID card (Veteran) and a wreck
+    ("63d_break_kohners_car", CIN + "/cin_koh_vehicle.jpg"),     # vehicles and cooking: the broken-down car
 ]
 # today's plain screenshots 64-68 move to the runs they belong to
 MOVES = {"64_livestock_trailer.jpg": "62b_livestock_trailer.jpg", "65_sports_car.jpg": "62c_sports_car.jpg",
