@@ -996,6 +996,7 @@ local function drawAnswer(self, r, label, variant, state, help)
     o.hover = state == "hover" or state == "down"
     o.focus = state == "focus" and focusOpts(self) or nil
     o.help, o.win, o.disabled = help, self, false
+    o.default = variant == "danger"   -- (a costly question's last answer: red, and still the default)
     ZeD.Molecules.drawButton(self, r.x, r.y, r.w, r.h, label, variant or "default", state == "down", nil, o)
 end
 

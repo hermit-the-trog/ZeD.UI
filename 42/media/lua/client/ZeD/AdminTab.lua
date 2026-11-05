@@ -411,7 +411,7 @@ local function drawItem(panel, win, st, it, x, dy, cw, mx, my)
             local bx, by = x + pad + b.dx, dy + b.dy
             local hov = mx ~= nil and mx >= bx and mx < bx + b.w and my >= by and my < by + T.buttonH
             M.drawButton(panel, bx, by, b.w, T.buttonH, b.text, b.danger and "danger" or "default", hov and isMouseButtonDown(0), nil,
-                { hover = hov, disabled = b.disabled, help = b.help, win = win, focus = focusOf(win, "adm:b:" .. b.id) })
+                { hover = hov, disabled = b.disabled, help = b.help, win = win, focus = focusOf(win, "adm:b:" .. b.id), default = b.id == "askyes" })
             st.hits[#st.hits + 1] = { x = bx, y = by, w = b.w, h = T.buttonH, btn = b }
         end
     end
