@@ -1,0 +1,2 @@
+zedqa_pin_windows.lua | pnw | timeout=60
+mp_chat2.lua | mc2 | timeout=200
