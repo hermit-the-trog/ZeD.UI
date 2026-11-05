@@ -1032,16 +1032,9 @@ local function progressBand(panel, win, s, x, y, w, v, chr)
     return 0
 end
 
-local function drawScrollbar(panel, x, top, h, total, scrollY)
-    local T = ZeD.T
-    local A = ZeD.Atoms
+local function drawScrollbar(panel, win, key, x, top, h, total, scrollY, set)
     if total <= h then return end
-    local sw = T.sp.scrollbarW
-    A.drawScrollTrack(panel, x, top, sw - T.px(2), h)
-    local barH = math.max(T.px(20), math.floor(h * (h / total)))
-    local maxS = total - h
-    local frac = maxS > 0 and (scrollY / maxS) or 0
-    A.drawScrollThumb(panel, x, top + math.floor((h - barH) * frac), sw - T.px(2), barH)
+    ZeD.Molecules.scrollBar(panel, win, key, x, top, ZeD.T.sp.scrollbarW, h, scrollY, total, set)
 end
 
 -- ----------------------------------------------------------------------------
@@ -1531,7 +1524,7 @@ local function renderList(panel, win, s, x, top, w, bodyH, v, chr, inspected, pa
     local total = (cy + s.scrollY) - top
     s.maxScroll = math.max(0, total - bodyH)
     if s.scrollY > s.maxScroll then s.scrollY = s.maxScroll end
-    drawScrollbar(panel, x + w - scrollW, top, bodyH, total, s.scrollY)
+    drawScrollbar(panel, s.win, "mech:list", x + w - scrollW, top, bodyH, total, s.scrollY, function(v) s.scrollY = v end)
 
     -- opened from Check Animals: scroll just enough to show the animals
     if s.showAnimals then
@@ -1589,7 +1582,7 @@ local function renderDiagram(panel, win, s, x, top, w, bodyH, v, chr, inspected,
     local total = (cy + pad + s.cardScroll) - top
     s.maxRight = math.max(0, total - bodyH)
     if s.cardScroll > s.maxRight then s.cardScroll = s.maxRight end
-    drawScrollbar(panel, x + w - scrollW, top, bodyH, total, s.cardScroll)
+    drawScrollbar(panel, s.win, "mech:card", x + w - scrollW, top, bodyH, total, s.cardScroll, function(v) s.cardScroll = v end)
 end
 
 -- ----------------------------------------------------------------------------
@@ -1801,7 +1794,7 @@ local function renderCardBody(panel, win, s, x, top, w, bodyH, v, chr, cm)
     local total = (cy + s.cardScroll) - top
     s.maxRight = math.max(0, total - bodyH)
     if s.cardScroll > s.maxRight then s.cardScroll = s.maxRight end
-    drawScrollbar(panel, x + w - scrollW, top, bodyH, total, s.cardScroll)
+    drawScrollbar(panel, s.win, "mech:card", x + w - scrollW, top, bodyH, total, s.cardScroll, function(v) s.cardScroll = v end)
 end
 
 -- ----------------------------------------------------------------------------

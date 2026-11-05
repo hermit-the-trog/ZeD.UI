@@ -290,11 +290,8 @@ function ZeD_Reader:drawWords(c)
     if total > view then
         local sb = T.sp.scrollbarW
         local u, u2 = T.hair, 2 * T.hair
-        local sx = c.x + c.w - sb - u
-        ZeD.Atoms.drawScrollTrack(self, sx, c.y + u, sb, c.h - u2)
-        local th = math.max(T.px(24), math.floor((c.h - u2) * view / total))
-        local ty = c.y + u + math.floor((c.h - u2 - th) * self.wscroll / (total - view))
-        ZeD.Atoms.drawScrollThumb(self, sx, ty, sb, th, "default")
+        ZeD.Molecules.scrollBar(self, self, "reader:words", c.x + c.w - sb - u, c.y + u, sb, c.h - u2, self.wscroll, total,
+            function(v) self.wscroll = v end, { view = view, step = T.px(60) })
     end
     self._hits[#self._hits + 1] = { id = "canvas", x = c.x, y = c.y, w = c.w, h = c.h }
 end

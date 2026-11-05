@@ -1033,6 +1033,7 @@ end
 
 -- The list's scroll range in px, from the bar's height and its share of the list (the view's height)
 function ZeD_ScrollbarState:scrollRange()
+    if self.rangePx then return self.rangePx end   -- (a caller that knows it: a bar taller than the view)
     local r = self.barSizeRatio
     if r <= 0 or r >= 1 then return 0 end
     return self.height / r - self.height
@@ -1112,6 +1113,61 @@ function ZeD_ScrollbarState:handleMouseWheel(del)
 end
 
 ZeD.Molecules.ScrollbarState = ZeD_ScrollbarState
+
+-- THE BAR FOR A LIST THAT KEEPS ITS OWN SCROLL IN PX (the director, Nov 5 2026: every bar is ZeD's bar). Called while
+-- the list draws, each frame: the list says where the bar is and how to scroll, and the bar reads the mouse itself, so
+-- a surface needs no click code for it: an arrow steps a row and repeats while held, the track pages, the thumb drags.
+-- panel: draws it; win: the ZeD window (its pointer test: no window above holds the pointer; nil skips the test);
+-- key: this bar, one per list; x, y, w, h: the bar in the panel; scroll, total: px; set(v): takes a new scroll.
+-- opts: step (the list's row height), view (the view's height when the bar is taller than it). The main menu's lists
+-- use MM.scrollBar, the same bar through the menu's own hit boxes.
+local BAR_REPEAT_MS, BAR_STALE_MS = 300, 200
+function ZeD.Molecules.scrollBar(panel, win, key, x, y, w, h, scroll, total, set, opts)
+    local T = ZeD.T
+    local owner = win or panel
+    local bars = owner._zedBars
+    if not bars then bars = {}; owner._zedBars = bars end
+    local sb = bars[key]
+    if not sb then
+        sb = ZeD_ScrollbarState:new()
+        bars[key] = sb
+        sb.onScroll = function(pos) if sb._set then sb._set(math.floor(pos * sb._max + 0.5)) end end
+    end
+    local view = (opts and opts.view) or h
+    local maxS = math.max(1, total - view)
+    sb.x, sb.y, sb.width, sb.height = x, y, w, h
+    sb.arrowH = (h >= w * 2 + T.px(24)) and w or 0
+    sb.visible = true
+    sb.lineH = opts and opts.step or nil
+    sb.rangePx = maxS
+    sb._set, sb._max = set, maxS
+    sb:setBarSize(view / math.max(1, total))
+    if not sb.dragging then sb.scrollPos = math.max(0, math.min(1, scroll / maxS)) end
+    local now = getTimestampMs()
+    local down = isMouseButtonDown(0)
+    local mx, my = panel:getMouseX(), panel:getMouseY()
+    local inside = mx >= x and mx < x + w and my >= y and my < y + h
+    if inside and win and win.pointerOn and not win:pointerOn() then inside = false end
+    if sb._held then
+        if down then
+            sb:handleMouseMove(my - y)
+            if (sb.upPressed or sb.downPressed) and now - sb._heldAt > BAR_REPEAT_MS then
+                sb:setScrollPos(sb.scrollPos + (sb.upPressed and -sb:lineStep() or sb:lineStep()))
+            end
+        else
+            sb._held = false
+            sb:handleMouseUp()
+        end
+    elseif down and not sb._was and inside and now - (sb._at or 0) < BAR_STALE_MS then
+        sb._held, sb._heldAt = true, now
+        sb:handleMouseDown(my - y)
+    elseif inside then
+        sb:handleMouseMove(my - y)
+    end
+    sb._was, sb._at = down, now
+    sb:draw(panel)
+    return sb
+end
 
 
 -- ============================================================================

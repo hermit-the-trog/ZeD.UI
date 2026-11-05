@@ -2234,14 +2234,9 @@ local function renderRanchZone(panel, win, x, y, w, h)
 
     panel:clearStencilRect()
 
-    -- Scrollbar (uses A.drawScrollTrack/Thumb if available, else inline)
     if needsScroll then
-        local sbX = x + contentW + T.px(2)
-        A.drawScrollTrack(panel, sbX, rosterTop, scrollW - T.px(2), rosterH)
-        local barH = math.max(T.px(20), math.floor(rosterH * (rosterH / totalContentH)))
-        local scrollFrac = maxScroll > 0 and (zs.scrollY / maxScroll) or 0
-        local barY = rosterTop + math.floor((rosterH - barH) * scrollFrac)
-        A.drawScrollThumb(panel, sbX, barY, scrollW - T.px(2), barH)
+        ZeD.Molecules.scrollBar(panel, win, "an:roster", x + contentW + T.px(2), rosterTop, scrollW - T.px(2), rosterH,
+            zs.scrollY, totalContentH, function(v) zs.scrollY = v end, { step = T.px(AROW_H) })
     end
 
     win._animalsRosterScroll = {
@@ -2757,12 +2752,8 @@ local function renderRanchAnimal(panel, win, x, y, w, h)
 
     needsScroll = totalContentH > bodyH
     if needsScroll then
-        local sbX = x + w - scrollW
-        A.drawScrollTrack(panel, sbX, bodyTop, scrollW - T.px(2), bodyH)
-        local barH = math.max(T.px(20), math.floor(bodyH * (bodyH / totalContentH)))
-        local scrollFrac = maxScroll > 0 and (ds.scrollY / maxScroll) or 0
-        local barY = bodyTop + math.floor((bodyH - barH) * scrollFrac)
-        A.drawScrollThumb(panel, sbX, barY, scrollW - T.px(2), barH)
+        ZeD.Molecules.scrollBar(panel, win, "an:detail", x + w - scrollW, bodyTop, scrollW - T.px(2), bodyH,
+            ds.scrollY, totalContentH, function(v) ds.scrollY = v end, { step = T.px(VITAL_ROW_H) })
     end
 
     win._animalsDetailScroll = {
@@ -3008,12 +2999,8 @@ local function renderButcherOverview(panel, win, x, y, w, h)
     panel:clearStencilRect()
 
     if needsScroll then
-        local sbX = x + contentW + T.px(2)
-        A.drawScrollTrack(panel, sbX, rosterTop, scrollW - T.px(2), rosterH)
-        local barH = math.max(T.px(20), math.floor(rosterH * (rosterH / totalContentH)))
-        local scrollFrac = maxScroll > 0 and (bs.scrollY / maxScroll) or 0
-        local barY = rosterTop + math.floor((rosterH - barH) * scrollFrac)
-        A.drawScrollThumb(panel, sbX, barY, scrollW - T.px(2), barH)
+        ZeD.Molecules.scrollBar(panel, win, "an:butcher", x + contentW + T.px(2), rosterTop, scrollW - T.px(2), rosterH,
+            bs.scrollY, totalContentH, function(v) bs.scrollY = v end, { step = T.px(BROW_H) })
     end
 
     win._animalsButcherScroll = {

@@ -794,7 +794,6 @@ function ZeD_Prompt:layout()
         g.rich = { x = padL, y = tbH + padT, w = cw, h = viewH }
         if self._maxScroll > 0 then
             g.sb = { x = w - padR - sbW + T.px(4), y = tbH + padT, w = sbW - T.px(4), h = viewH }
-            g.hits[#g.hits + 1] = { id = "track", x = g.sb.x, y = g.sb.y, w = g.sb.w, h = g.sb.h }
         end
         bodyH = padT + viewH + T.px(U.PARA_GAP)
     elseif K == "text" then
@@ -1150,11 +1149,8 @@ function ZeD_Prompt:prerender()
         self:clearStencilRect()
         if g.sb then
             local sb = g.sb
-            A.drawScrollTrack(self, sb.x, sb.y, sb.w, sb.h)
-            local frac = r.h / math.max(1, self._contentH)
-            local thH = math.max(T.px(20), math.floor(sb.h * frac))
-            local ty = sb.y + math.floor((sb.h - thH) * ((self._scroll or 0) / math.max(1, self._maxScroll)))
-            A.drawScrollThumb(self, sb.x, ty, sb.w, thH, self._hover == "track" and "hover" or "default")
+            ZeD.Molecules.scrollBar(self, self, "prompt", sb.x, sb.y, sb.w, sb.h, self._scroll or 0, self._contentH or 0,
+                function(v) self._scroll = v end, { step = T.px(40) })
         end
     end
 
@@ -1225,13 +1221,6 @@ function ZeD_Prompt:onMouseDown(x, y)
         return true
     end
     local h = self:hitAt(x, y)
-    if h and h.id == "track" and self._g.sb then
-        -- a click on the track pages the note
-        local sb = self._g.sb
-        local page = self._g.rich.h - T.px(20)
-        self._scroll = clamp((self._scroll or 0) + ((y < sb.y + sb.h / 2) and -page or page), 0, self._maxScroll or 0)
-        return true
-    end
     self._down = h and h.id or nil
     self._downHit = h
     return true
