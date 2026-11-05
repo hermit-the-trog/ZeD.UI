@@ -284,7 +284,12 @@ end
 local function _speed() local sc = UIManager.getSpeedControls(); return sc and sc:getCurrentGameSpeed() or 1 end
 local SPEED_BUTTON = { [2] = "Fast Forward x 1", [3] = "Fast Forward x 2", [4] = "Wait" }
 local SPEED_MULT = { [2] = 5, [3] = 20, [4] = 40 }
+-- On a server the server sets the time: Start and Speed do nothing there (QA's multiplayer check, Nov 5 2026:
+-- the speed keys raised the client's own multiplier and its clock ran ahead of the server's), as the D-pad
+-- wheel's Game speed (ZeD_DpadWheels: UI_ZeD_Wheel_ServerTime)
+local function _serverTime() return isClient() end
 local function _setSpeed(n)
+    if _serverTime() then return end
     local sc = UIManager.getSpeedControls(); if not sc then return end
     if n <= 0 then pcall(function() sc:ButtonClicked("Pause") end); return end
     -- the fast speeds go through the clock's own buttons: SetCurrentGameSpeed only moves
@@ -428,13 +433,20 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
     local btns = {}
     local h
     if not item then
-        h = pad + fh2 + gap + bh + pad
-        for i = 0, 3 do btns[#btns + 1] = { id = "speed" .. i, text = ZeD.tr("UI_ZeD_WatchPlain_Speed" .. i), on = (speed == i) or (i == 3 and speed > 3) } end
+        if _serverTime() then
+            h = pad + fh2 + pad   -- (only the words: no speed keys on a server)
+        else
+            h = pad + fh2 + gap + bh + pad
+            for i = 0, 3 do btns[#btns + 1] = { id = "speed" .. i, text = ZeD.tr("UI_ZeD_WatchPlain_Speed" .. i), on = (speed == i) or (i == 3 and speed > 3) } end
+        end
     else
         _reading(rd, player, item, speed, self._setOpen, armed, alarmHour)
         h = pad + bigH + gap + fh2 + gap + fh2 + gap + bh + pad
         if self._setOpen then
             btns = { { id = "setdn", text = "-" }, { id = "setup", text = "+" }, { id = "alarmtoggle", text = ZeD.tr("UI_ZeD_WatchPlain_AlarmOnOff") }, { id = "set", text = ZeD.tr("UI_ZeD_WatchPlain_Done") } }
+        elseif _serverTime() then
+            btns = { { id = "alarm", text = ZeD.tr("UI_ZeD_WatchPlain_AlarmBtn") },
+                     { id = "set", text = ZeD.tr("UI_ZeD_WatchPlain_Set") } }
         else
             btns = { { id = "start", text = ZeD.tr(speed == 0 and "UI_ZeD_WatchPlain_Start" or "UI_ZeD_WatchPlain_Pause") },
                      { id = "speed", text = ZeD.tr("UI_ZeD_WatchPlain_SpeedBtn") },
@@ -465,7 +477,7 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
     local tc, td = T.text, T.textDim
     local y = pad
     if not item then
-        self:drawText(ZeD.tr("UI_ZeD_WatchPlain_GameSpeed"), pad, y, td.r, td.g, td.b, td.a or 1, f2)
+        self:drawText(ZeD.tr(_serverTime() and "UI_ZeD_WatchPlain_ServerTime" or "UI_ZeD_WatchPlain_GameSpeed"), pad, y, td.r, td.g, td.b, td.a or 1, f2)
         y = y + fh2 + gap
     elseif self._setOpen then
         local s = armed and ZeD.tr("UI_ZeD_WatchPlain_AlarmAt", string.format("%d:00", alarmHour)) or ZeD.tr("UI_ZeD_WatchPlain_AlarmOff")
@@ -493,7 +505,8 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
         end
         y = y + fh2 + gap
         -- the game's speed, the alarm at the right (a status dot when it is set)
-        local sp = (speed == 0) and ZeD.tr("UI_ZeD_WatchPlain_Paused") or ZeD.tr("UI_ZeD_WatchPlain_SpeedN", tostring(speed))
+        local sp = _serverTime() and ZeD.tr("UI_ZeD_WatchPlain_ServerTime")
+            or ((speed == 0) and ZeD.tr("UI_ZeD_WatchPlain_Paused") or ZeD.tr("UI_ZeD_WatchPlain_SpeedN", tostring(speed)))
         self:drawText(sp, pad, y, td.r, td.g, td.b, td.a or 1, f2)
         local al = armed and ZeD.tr("UI_ZeD_WatchPlain_AlarmAt", rd.almTime or string.format("%d:00", alarmHour)) or ZeD.tr("UI_ZeD_WatchPlain_AlarmOff")
         local aw = tm:MeasureStringX(f2, al)
@@ -508,7 +521,7 @@ function ZeD_Watch:_plain(player, item, speed, armed, alarmHour)
     local hits = self._hit
     for i = #hits, 1, -1 do hits[i] = nil end
     local n = #btns
-    local bw = math.floor((w - 2 * pad - (n - 1) * gap) / n)
+    local bw = (n > 0) and math.floor((w - 2 * pad - (n - 1) * gap) / n) or 0
     local mx, my = self:getMouseX(), self:getMouseY()
     for i, bt in ipairs(btns) do
         local bx = pad + (i - 1) * (bw + gap)
@@ -636,7 +649,7 @@ function ZeD_Watch:_act(id)
     local item = self._item
     if id:sub(1, 5) == "speed" and #id == 6 then _setSpeed(tonumber(id:sub(6))); return end   -- the tape deck keys
     if id == "speed" then _actSpeed(); return end
-    if id == "start" then _actStart(); return end
+    if id == "start" then _actStart(); return end   -- (both nothing on a server: _setSpeed)
     if not item then return end
     if id == "light" then
         if W.hasLight(self._def) then self._litUntil = getTimestampMs() + W.LIGHT_MS end   -- a watch without one: nothing
@@ -750,8 +763,9 @@ ZeD.Safe.register("watch", {
             if W._clockY then clock:setY(W._clockY) end
             clock:setVisible(true)
         end
+        -- (the speed controls stay hidden on a server: there they show at the top right and do nothing)
         local sc = UIManager.getSpeedControls and UIManager.getSpeedControls()
-        if sc then
+        if sc and not isClient() then
             if W._speedY then sc:setY(W._speedY) end
             sc:setVisible(true)
         end

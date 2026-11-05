@@ -4537,5 +4537,6 @@
     "UI_ZeD_Guide_Check6": "Cari peta dan pelajari dua jalan keluar kota.",
     "UI_ZeD_Guide_Check7": "Berjalanlah, jaga agar tetap senyap, dan bertarunglah di pintu.",
     "UI_ZeD_Win_HelpPin": "Sematkan jendela ini agar tetap terbuka. Jika tidak disematkan, jendela menggulung ke bilah judulnya saat penunjuk meninggalkannya.",
-    "UI_ZeD_Win_HelpUnpin": "Lepas sematan: jendela menggulung ke bilah judulnya saat penunjuk meninggalkannya, dan terbuka lagi saat penunjuk berada di atas bilah judul."
+    "UI_ZeD_Win_HelpUnpin": "Lepas sematan: jendela menggulung ke bilah judulnya saat penunjuk meninggalkannya, dan terbuka lagi saat penunjuk berada di atas bilah judul.",
+    "UI_ZeD_WatchPlain_ServerTime": "Waktu server"
 }

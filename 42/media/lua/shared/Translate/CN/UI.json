@@ -4538,5 +4538,6 @@
     "UI_ZeD_Guide_Check6": "找一张地图，记住两条离开城镇的路。",
     "UI_ZeD_Guide_Check7": "走路，保持安静，在门口战斗。",
     "UI_ZeD_Win_HelpPin": "将此窗口固定为打开。未固定时，指针离开后窗口会卷起，只剩标题栏。",
-    "UI_ZeD_Win_HelpUnpin": "取消固定：指针离开后窗口会卷起，只剩标题栏；指针移到标题栏上时窗口会展开。"
+    "UI_ZeD_Win_HelpUnpin": "取消固定：指针离开后窗口会卷起，只剩标题栏；指针移到标题栏上时窗口会展开。",
+    "UI_ZeD_WatchPlain_ServerTime": "服务器时间"
 }
