@@ -5764,3 +5764,71 @@ function ZeD_WorldWindow.toggleColumn(inv)
     end
     return false
 end
+
+-- ----------------------------------------------------------------------------
+-- THE GAME'S LOOT PAGE, WHEREVER IT IS ASKED FOR (FAIV's report on 0.3.0-beta3a, Nov 5 2026; the director:
+-- "let's fix that"). A left click on a container in the world is the game's own (ISObjectClickHandler: in
+-- reach, not aiming, the safehouse rule and the lock checked, the container explored or its items asked of the
+-- server): it hands the container to the game's loot page and shows it. The right-click menu and the
+-- controller show that page by their own ways too. ZeD only hid the page again from its own windows' drawing,
+-- so with both windows closed, or the World window rolled up, the game's page stayed; and an open window never
+-- took the clicked container. Here, each tick: the game's loot page showing means a container was asked for,
+-- so the page hides, the World window opens (or rolls down, counting its roll-up again from now) and shows
+-- that container in its Loot pane, as the page's setNewContainer would. The game's inventory page only hides.
+-- Safe mode hands the game's pages back (SafeMode.lua), so nothing here runs then.
+-- ----------------------------------------------------------------------------
+-- (the game makes its pages showing when it builds them, for a new character, a respawn or a new screen size:
+-- for a moment after those the pages only hide, so the World window does not open by itself)
+local _lootGraceUntil = 0
+local function _lootGrace() _lootGraceUntil = getTimestampMs() + 3000 end
+local function _lootPadToWorld()
+    local CW = ZeD_CharacterWindow
+    if CW and CW.ensureBothOpenForGamepad then pcall(CW.ensureBothOpenForGamepad, 0) end
+    local win = _worldWin
+    local F = ZeD.Input and ZeD.Input.Focus
+    if not (win and F and F.claimFocus) then return end
+    if win.windowShaded then win:setWindowShaded(false) end
+    -- (claimFocus does nothing when ZeD already counts the World window as focused: the engine's focus is put back too)
+    if F.getFocusedWindow and F.getFocusedWindow() == win then
+        if F.reclaimEngineFocus then pcall(F.reclaimEngineFocus) end
+    else
+        pcall(F.claimFocus, win)
+    end
+end
+local function _lootPageWatch()
+    if not getSpecificPlayer(0) or ZeD.Safe.on("windows") then return end
+    local vi = getPlayerInventory(0)
+    local vl = getPlayerLoot(0)
+    -- (the controller's way in, ISButtonPrompt:cmdShowLoot, also hands the pad's focus to the page: a hidden page
+    -- would hold it, so it goes to ZeD's World window instead, as RB does)
+    local jp = JoypadState and JoypadState.players and JoypadState.players[1]
+    local padOnPage = jp ~= nil and jp.focus ~= nil and (jp.focus == vl or jp.focus == vi)
+    if vi and vi:getIsVisible() then vi:setVisible(false) end
+    if not (vl and vl:getIsVisible()) then
+        if padOnPage and getTimestampMs() >= _lootGraceUntil then _lootPadToWorld() end
+        return
+    end
+    vl:setVisible(false)
+    local p = getSpecificPlayer(0)
+    local now = getTimestampMs()
+    if p:isDead() or now < _lootGraceUntil then return end
+    if padOnPage then _lootPadToWorld() end
+    -- (a vehicle's trunk opened names its container this way: ISOpenVehicleDoor)
+    local inv = vl.inventory
+    if vl.forceSelectedContainer and (vl.forceSelectedContainerTime or 0) > now then inv = vl.forceSelectedContainer end
+    if not _worldWin then ZeD_WorldWindow.open(0) end
+    local win = _worldWin
+    if not win then return end
+    if win.windowShaded then
+        win._autoShaded = false
+        win:setWindowShaded(false)
+    end
+    -- (an unpinned window rolls up again a moment after the pointer is away: counted from the click, a little
+    -- longer than the hover's wait, as the game's page counts from -30 after a click)
+    win._outSince = now + 500
+    if inv then ZeD_WorldWindow.selectContainer(inv, 60) end
+end
+Events.OnTick.Add(_lootPageWatch)
+if Events.OnGameStart then Events.OnGameStart.Add(_lootGrace) end
+if Events.OnCreatePlayer then Events.OnCreatePlayer.Add(_lootGrace) end
+if Events.OnResolutionChange then Events.OnResolutionChange.Add(_lootGrace) end

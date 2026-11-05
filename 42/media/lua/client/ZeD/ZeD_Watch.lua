@@ -777,3 +777,12 @@ ZeD.Safe.register("watch", {
 })
 
 Events.OnGameStart.Add(function() W._instance = nil; W.install() end)
+
+-- On a server the game's speed controls do nothing and showed at the top right from the join until the watch's
+-- first drawing parked them (QA's multiplayer check, Nov 5 2026): kept hidden there on every tick, whether a
+-- watch is worn or not (not in safe mode, which hands them back)
+Events.OnTick.Add(function()
+    if not isClient() or ZeD.Safe.on("watch") then return end
+    local sc = UIManager.getSpeedControls and UIManager.getSpeedControls()
+    if sc and sc:isVisible() then pcall(sc.setVisible, sc, false) end
+end)
