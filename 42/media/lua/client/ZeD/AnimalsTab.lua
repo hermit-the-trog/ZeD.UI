@@ -3131,6 +3131,8 @@ function ZeD.AnimalsTab.render(panel, win, x, y, w, h)
     win._animalsZoneCardZones, win._animalsSectionZones = nil, nil
     win._animalsAlertZones, win._animalsOvClip, win._animalsOvRows = nil, nil, nil
     if win._animalsScroll then win._animalsScroll.visible = false end   -- (the Ranch page's bar: it shows it)
+    -- (only the view drawn this frame answers the wheel)
+    win._animalsDetailScroll, win._animalsRosterScroll, win._animalsButcherScroll = nil, nil, nil
     win._animalsBreadcrumbZone = nil
 
     -- Zone create mode overrides everything
