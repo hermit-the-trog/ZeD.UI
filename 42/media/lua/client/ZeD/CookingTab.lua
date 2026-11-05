@@ -359,6 +359,64 @@ function ZeD_CookAdd:complete()
     return ok
 end
 
+-- ----------------------------------------------------------------------------
+-- Make on a server (QA's multiplayer check, Nov 5 2026; the director: fixed for Beta 4). The server builds an
+-- action's own half from its Lua type and runs its complete() there; ZeD_CookAdd lives in this client file, so the
+-- server did not know it and the add stopped at once (no stew, the ingredients untouched). The game's own
+-- ISAddItemInRecipe works there (QA: mp_cook_vanilla.lua). So on a server each ingredient is the game's own action,
+-- and before each one after the first a short wait of ZeD's own (client only, no complete(), as ZeDOpenCardAction)
+-- finds the dish the last add left and queues the next add onto it: the first add turns the base into another item
+-- (a pot of water becomes a pot of stew, with a new id), made on the server and sent back.
+-- ----------------------------------------------------------------------------
+-- the dish this chain cooks into, once the server has made it (nil: not yet)
+local function findDish(chr, recipe, chain)
+    local inv = chr:getInventory()
+    local cur = chain.baseId and inv:getItemById(chain.baseId)
+    if cur then
+        -- the base still here: the dish when the last add has turned it, else the add is not done yet
+        if recipe:isResultItem(cur) then return cur end
+        return nil
+    end
+    -- the base gone: the new dish is a result item that was not here before and no other chain has taken, the
+    -- newest first (a new item goes at the end: with two dishes made at once, this chain's is the last one made)
+    local items = inv:getItems()
+    for i = items:size() - 1, 0, -1 do
+        local it = items:get(i)
+        local id = it:getID()
+        if not chain.seen[id] and recipe:isResultItem(it) then return it end
+    end
+    return nil
+end
+
+ZeD_CookWait = ZeD_CookWait or ISBaseTimedAction:derive("ZeD_CookWait")
+function ZeD_CookWait:new(character, recipe, chain, usedItem)
+    local o = ISBaseTimedAction.new(self, character)
+    o.recipe, o.chain, o.usedItem = recipe, chain, usedItem
+    o.maxTime = -1
+    o.useProgressBar = false
+    o.stopOnWalk, o.stopOnRun = true, true
+    return o
+end
+function ZeD_CookWait:isValid() return true end
+function ZeD_CookWait:isValidStart() return true end
+function ZeD_CookWait:start() self.t0 = getTimestampMs() end
+function ZeD_CookWait:stop() ISBaseTimedAction.stop(self) end
+function ZeD_CookWait:perform() ISBaseTimedAction.perform(self) end
+function ZeD_CookWait:update()
+    local ok, dish = pcall(findDish, self.character, self.recipe, self.chain)
+    if ok and dish then
+        local ch = self.chain
+        ch.base, ch.baseId = dish, dish:getID()
+        ch.seen[ch.baseId] = true
+        ISTimedActionQueue.addAfter(self, ISAddItemInRecipe:new(self.character, self.recipe, dish, self.usedItem))
+        self:forceComplete()
+    elseif not ok or getTimestampMs() - (self.t0 or 0) > 10000 then
+        -- (the server never made it: the rest of this dish's adds go no further)
+        if not ok then ZeD.logOnce("cook wait", dish) end
+        self:forceStop()
+    end
+end
+
 local function make(s, chr, n)
     local b = curBase(s)
     if not b or n < 1 then return end
@@ -391,16 +449,31 @@ local function make(s, chr, n)
         end
         return false
     end
+    -- (on a server: the result items already here are not a new dish, for any of the chains)
+    local server = isClient()
+    local seen = {}
+    if server then
+        local items = inv:getItems()
+        for i = 0, items:size() - 1 do seen[items:get(i):getID()] = true end
+    end
     for k = 1, math.min(n, #bases) do
         local bk = bases[k]
         bring(bk.item)
-        local chain = { base = bk.item }
+        local chain = { base = bk.item, baseId = bk.item:getID(), seen = seen }
+        local first = true
         for _, e in ipairs(s.plan) do
             local it = pick(e.ft)
             if it then
                 bring(it)
                 if instanceof(it, "Food") then it:setChef(chr:getUsername()) end
-                ISTimedActionQueue.add(ZeD_CookAdd:new(chr, bk.recipe, chain, it))
+                if not server then
+                    ISTimedActionQueue.add(ZeD_CookAdd:new(chr, bk.recipe, chain, it))
+                elseif first then
+                    ISTimedActionQueue.add(ISAddItemInRecipe:new(chr, bk.recipe, bk.item, it))
+                else
+                    ISTimedActionQueue.add(ZeD_CookWait:new(chr, bk.recipe, chain, it))
+                end
+                first = false
             end
         end
     end
