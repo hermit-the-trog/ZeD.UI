@@ -2585,6 +2585,17 @@ item says so.
         behaves the same).
       - Test note: B42's Carpentry perk is Perks.Woodwork (Perks.Carpentry is nil and threw in AddXP).
       - Pictures: Screenshots/zqa_hln_*, zqa_hln_sheet.png.
+86. **The change note on the main menu's corkboard (the director, Nov 5 2026: "one long note, yellow paper, and it's
+    the change notes. At the top, it lists the current beta number").** chosen; staged, not installed
+    (ZeDUI/HANDOFF_main_menu_note_20261105.md). A sheet of yellow legal paper replaces the sticky note and the photo
+    beside Princess Quest 3. The paper is in the art (ZeDUI/art/main_menu/v6, grade.py reads v6); the menu writes the
+    words: the beta from the mod's version in the 5 x 7 face, five short lines from MenuNote.lua in the 3 x 5 face, in
+    the note's ink (lit and dimmed).
+    - **Build:** grade v6 in, then ZeD_MainMenu.lua writes the heading and the lines per the handoff's contract; add
+      MenuNote.lua with beta 4's lines (SERVER TAB, PVP MARKER, CHAT, ADMIN TAB, BOX FIX).
+    - **QA:** the handoff's checks (1080p against the preview, the lamp dip, 4K, the lean-in sizes, ultrawide, DEV,
+      a long line cut).
+    - **Every release:** the five lines updated (release checklist step 4b).
 
 ## Test process
 

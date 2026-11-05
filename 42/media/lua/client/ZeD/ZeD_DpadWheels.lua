@@ -830,7 +830,7 @@ D.C = C
 -- a Character window tab by its id (an added tab moves the list: never by its place)
 local function charTab(id)
     for _, t in ipairs(ZeD_CharacterWindow and ZeD_CharacterWindow.TABS or {}) do if t.id == id then return t end end
-    return { id = id, key = "UI_ZeD_Char_Tab" }
+    return { id = id, label = function() return "" end }
 end
 
 function C.tabs(p, pn)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ZeD-UI main menu desk, v5 (v3's lit night room): the lit night room. Draws the desk picture and the pieces ZeD_MainMenu.lua lays over it.
+"""ZeD-UI main menu desk, v6 (v3's lit night room; the change note, Nov 5 2026): the lit night room. Draws the desk picture and the pieces ZeD_MainMenu.lua lays over it.
 
     python gen_desk.py --to OUT_FOLDER
 
@@ -64,6 +64,8 @@ PAL = {
     "bb": "#56595e", "bb_l": "#9ea3a9", "bb_d": "#2a2c30", "grille": "#1c1d20", "tuner": "#c9c2a4", "needle": "#c0341f",
     # emissive bits
     # the Kentucky Instruments pad's buttons (Nov 2 2026)
+    # the change note (Nov 5 2026): yellow legal paper, its blue rules, ballpoint
+    "note": "#ead27a", "note_d": "#b89c48", "note_rule": "#7d98c4", "note_ink": "#233c8c",
     "pad_y": "#d9a92a", "pad_x": "#2f62b8", "pad_b": "#c22a2a", "pad_a": "#22894f",
     "led_g": "#4ad04a", "led_a": "#e8a830", "led_off_g": "#2b3d2b", "led_off_a": "#4a3412",
 }
@@ -78,7 +80,9 @@ FRESH_BOOK = ("bk_sky0", "bk_sky1", "bk_sky2", "bk_sky3", "bk_sky4", "bk_sky5", 
               "bk_band0", "bk_band1", "bk_band2", "tape", "tape_d", "tape_hi", "marker", "marker_d")
 FRESH_BOOK_SLOTS = 24
 FRESH_PAD = ("pad_y", "pad_x", "pad_b", "pad_a")
-FRESH_PAD_SLOTS = 12                                # the pad's buttons (Nov 2 2026): a group of their own                               # the book's own entries (Nov 1 2026), so the can's stay as they were
+FRESH_PAD_SLOTS = 12
+FRESH_NOTE = ("note", "note_d", "note_rule", "note_ink")
+FRESH_NOTE_SLOTS = 14                               # the change note (Nov 5 2026): a group of its own                                # the pad's buttons (Nov 2 2026): a group of their own                               # the book's own entries (Nov 1 2026), so the can's stay as they were
 
 
 def zdesk(x, y): return np.maximum(0.0, (y - DESK_Y) * 1.15)
@@ -220,13 +224,51 @@ with S.surf(z=3.3, d=False):
     S.px(cbx + 21, cby + 22, "red"); S.px(cbx + 16, cby + 14, "label"); S.px(cbx + 28, cby + 14, "label")
 text(cbx + 6, cby + 32, "PRINCESS", "ink"); text(cbx + 6, cby + 39, "QUEST", "ink"); text(cbx + 30, cby + 39, "3", "red")
 with S.surf(z=3.3): S.hline(cbx + 8, cby + 49, 28, "paper_d")
-pinned(cbx + 44, cby + 8, 30, 24, "sticky", "sticky_d", "disk")                                # sticky note
-with S.surf(z=3.3, d=False):
-    for i in range(3): S.hline(cbx + 47, cby + 13 + i * 5, 18 + (i % 2) * 5, "sticky_d")
-pinned(cbx + 46, cby + 36, 26, 22, "label", "paper_d", "red")                                 # photo
-with S.surf(z=3.3, d=False):
-    S.rect(cbx + 48, cby + 38, 22, 14, "sky1"); S.rect(cbx + 48, cby + 46, 22, 6, "pz_green")
-    S.disc(cbx + 60, cby + 43, 3, "moon")
+# ============================================================ THE CHANGE NOTE (Nov 5 2026, the director): one long sheet of
+# yellow legal paper where the sticky note and the photo were, pinned beside Princess Quest 3: the beta at the top, a
+# few short lines of what changed under it. The paper and its rules are drawn here; the words are written by
+# ZeD_MainMenu.lua in the game's pixel faces (5 x 7 for the beta, 3 x 5 for the lines), so a release changes a word
+# list, not the picture. NOTE_SAMPLE (environment) writes sample words into the picture, for previews only.
+NX0, NY0, NX1, NY1 = 49, 12, 92, 66                  # the sheet
+NOTE_HEAD = (52, 17)                                 # the beta: 5 x 7 face
+NOTE_LINES = [(52, 30 + 7 * i) for i in range(5)]    # the lines: 3 x 5 face, ten characters each
+nr = np.random.default_rng(77)
+S.shade((slice(NY0 + 2, NY1 + 3), slice(NX0 + 2, NX1 + 3), 0.45), "cork")
+sheet = S.m_rect(NX0, NY0 + 2, NX1 - NX0 + 1, NY1 - NY0 - 1)
+for x in range(NX0, NX1 + 1):                        # the perforated top: torn, a pixel or two either way
+    t = NY0 + int(nr.integers(0, 3))
+    sheet[t:NY0 + 2, x] = True
+curl = (XX - NX1) + (YY - NY1) > -7                  # the lower right corner lifts off the cork
+sheet &= ~curl
+with S.surf(n=(0.05, -0.08, 1), z=3.4, g=0.15):
+    S.paint(sheet, "note")
+S.tone(sheet, 0.95 + 0.06 * np.random.default_rng(78).random((H, W)))
+with S.surf(n=(-0.5, -0.5, 0.7), z=3.8, g=0.2):                                 # the curl's underside, catching light
+    S.paint(S.m_poly([(NX1 - 6, NY1 + 1), (NX1 + 1, NY1 - 6), (NX1 - 3, NY1 - 3)]), "note_d")
+with S.surf(z=3.4, d=False):
+    S.vline(NX0, NY0 + 2, NY1 - NY0 - 2, "note_d")                              # its left edge
+    for i, (lx, ly) in enumerate(NOTE_LINES):                                   # the rules under each line
+        S.hline(NX0 + 1, ly + 6, NX1 - NX0 - (6 if ly + 6 > NY1 - 8 else 0), "note_rule")
+    S.hline(NOTE_HEAD[0] - 1, NOTE_HEAD[1] + 8, 38, "red"); S.hline(NOTE_HEAD[0] - 1, NOTE_HEAD[1] + 10, 38, "red")
+with S.surf(nf=lambda xs, ys: np.stack([(xs - 70) / 3.0, (ys - 14.5) / 3.0, np.ones_like(xs)], 1), z=4.6, g=0.8):
+    S.disc(70, 14, 1.7, "red")                                                  # the pushpin
+S.shade((slice(15, 18), slice(70, 73), 0.5), lambda s: s.mat_mask("note"))
+F57S = {"B": ["11110", "10001", "10001", "11110", "10001", "10001", "11110"], "E": ["11111", "10000", "11110", "10000", "10000", "10000", "11111"],
+        "T": ["11111", "00100", "00100", "00100", "00100", "00100", "00100"], "A": ["01110", "10001", "10001", "11111", "10001", "10001", "10001"],
+        " ": ["000"] * 7, "4": ["00010", "00110", "01010", "10010", "11111", "00010", "00010"]}
+if os.environ.get("NOTE_SAMPLE"):
+    parts = os.environ["NOTE_SAMPLE"].split("|")
+    head, lines = parts[0], parts[1:]
+    with S.surf(d=False):
+        cx = NOTE_HEAD[0]
+        for ch in head:
+            g = F57S.get(ch, F57S[" "])
+            for ry, row in enumerate(g):
+                for rx, b in enumerate(row):
+                    if b == "1": S.px(cx + rx, NOTE_HEAD[1] + ry, "note_ink")
+            cx += len(g[0]) + 1
+    for (lx, ly), s in zip(NOTE_LINES, lines):
+        text(lx, ly, s, "note_ink")
 S.shade((slice(cby + 4, cby + cbh + 3), slice(cbx + cbw, cbx + cbw + 3), 0.5), lambda s: s.mat_mask("panel", "panel_g", "panel_h"))   # board on the wall
 
 # ============================================================ TALL POSTER (right): HEVEY DEWIS. The boombox handle hides it below row 101.
@@ -1092,8 +1134,9 @@ if __name__ == "__main__":
     fresh = np.zeros((H, W), bool)
     fresh_book = np.zeros((H, W), bool)
     fresh_pad = np.zeros((H, W), bool)
+    fresh_note = np.zeros((H, W), bool)
     if args.refit or not os.path.exists(LOCK):
-        pal = pal_fresh = pal_book = pal_pad = S.palette_for([lit, dim], pins=pins)
+        pal = pal_fresh = pal_book = pal_pad = pal_note = S.palette_for([lit, dim], pins=pins)
         json.dump({"palette": [[float(v) for v in c] for c in pal]}, open(os.path.join(out, "palette.json"), "w"))
     else:
         # the approved room's palette for every pixel; the fresh materials' pixels may also use their own entries
@@ -1107,12 +1150,14 @@ if __name__ == "__main__":
         fresh, pal_fresh = own_entries(FRESH, FRESH_SLOTS)
         fresh_book, pal_book = own_entries(FRESH_BOOK, FRESH_BOOK_SLOTS)      # a group of its own: the can's untouched
         fresh_pad, pal_pad = own_entries(FRESH_PAD, FRESH_PAD_SLOTS)
+        fresh_note, pal_note = own_entries(FRESH_NOTE, FRESH_NOTE_SLOTS)
 
     def quantize(frame):
         img_, _ = S.quantize(frame, palette=pal)
         if fresh.any(): img_ = np.where(fresh[..., None], S.quantize(frame, palette=pal_fresh)[0], img_)
         if fresh_book.any(): img_ = np.where(fresh_book[..., None], S.quantize(frame, palette=pal_book)[0], img_)
         if fresh_pad.any(): img_ = np.where(fresh_pad[..., None], S.quantize(frame, palette=pal_pad)[0], img_)
+        if fresh_note.any(): img_ = np.where(fresh_note[..., None], S.quantize(frame, palette=pal_note)[0], img_)
         return img_
     img, img_dim = quantize(lit), quantize(dim)
     # the dial without its needle: paint the tuner face where the needle was, light it, cut the 7 x 10 box
