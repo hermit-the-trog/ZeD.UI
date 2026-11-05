@@ -150,6 +150,11 @@ function WM.build(win)
     if not S then return {} end
     local items = {}
     local pair = win.pairKey and win:pairKey() or nil
+    -- a window's own choices first (the chat window's Name color, ZeD_Chat.lua)
+    if win.extraMenu then
+        local ok, extra = pcall(win.extraMenu, win)
+        if ok and type(extra) == "table" then for _, it in ipairs(extra) do items[#items + 1] = it end end
+    end
 
     local theme = { name = tr("UI_ZeD_WinMenu_Theme"), category = "look", children = {} }
     for i, k in ipairs(S.baseKeys or {}) do
