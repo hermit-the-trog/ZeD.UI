@@ -1,0 +1,2 @@
+# ZeDUI/tools/qa/mp_verify2.txt  (Nov 5 2026): after a rejoin, the hand (zedqa_run.ps1 -Mp)
+mp_hand_after.lua | mph | timeout=60

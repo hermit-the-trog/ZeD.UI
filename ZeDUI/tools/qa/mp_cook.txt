@@ -1,0 +1,2 @@
+# ZeDUI/tools/qa/mp_cook.txt  (Nov 5 2026): a two-ingredient Make on the server (zedqa_run.ps1 -Mp)
+mp_cook.lua | mpc | timeout=300

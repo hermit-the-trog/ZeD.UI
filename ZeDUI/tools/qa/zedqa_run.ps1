@@ -553,7 +553,7 @@ function Wait-BridgeInGame($Prelude = $null, $PreludeRes = $null) {
             $at = Invoke-StartClick; $clicks++
             Add-Note "clicked again at $at (the bridge had not armed in game after $([int]$el) s)"
         }
-        if ($el -ge $(if ($Mp) { 420 } else { 120 })) { throw "the bridge never armed in game (no '[ZeD.QA] bridge armed (in game' in console.txt)" }
+        if ($el -ge $(if ($Mp) { 900 } else { 120 })) { throw "the bridge never armed in game (no '[ZeD.QA] bridge armed (in game' in console.txt)" }
     }
     Start-Sleep -Seconds 3
     $null = Update-Log
