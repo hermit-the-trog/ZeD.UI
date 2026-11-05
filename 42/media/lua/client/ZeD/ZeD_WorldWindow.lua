@@ -5695,6 +5695,12 @@ function ZeD_WorldWindow.openTab(playerNum, tabId, toggle)
     end
     local win = _worldWin
     if not win then return false end
+    -- (rolled up by the hover roll-up: down first, its roll-up counted again from now, QA Nov 5 2026)
+    if win.windowShaded then
+        win._autoShaded = false
+        win:setWindowShaded(false)
+        win._outSince = getTimestampMs() + 500
+    end
     if ZeD_WorldWindow.isTabShowing(tabId) and not toggle then return true end
     local wantClick = true
     local function attempt()

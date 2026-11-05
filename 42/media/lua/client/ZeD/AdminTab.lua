@@ -187,7 +187,10 @@ local function head(L, text, count) add(L, { k = "head", text = text, count = co
 local function line(L, text) add(L, { k = "line", text = text }) end
 local function pick(L, id, text, sub, on) add(L, { k = "pick", id = id, text = text, sub = sub, on = on }) end
 local function btns(L, list) if #list > 0 then add(L, { k = "btns", list = list }) end end
-local function B(id, text, help, disabled, danger) return { id = id, text = text, help = help, disabled = disabled, danger = danger } end
+local function B(id, text, help, disabled, danger)
+    local S = ZeD.ServerTab
+    return { id = id, text = (S and S.btnWords) and S.btnWords(text) or text, help = help, disabled = disabled, danger = danger }
+end
 
 local function powers(p, L)
     local opts = ISAdminPowerUI and ISAdminPowerUI.OptionList

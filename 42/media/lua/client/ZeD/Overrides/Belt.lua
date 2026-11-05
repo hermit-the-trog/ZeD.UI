@@ -69,6 +69,8 @@ end
 -- vanilla's Debug button under forceEnable) is not ours to hide.
 local COLUMN_OWN = { "mainHand", "offHand", "invBtn", "healthBtn", "craftingBtn", "buildBtn",
     "movableBtn", "searchBtn", "zoneBtn", "mapBtn", "movableTooltip", "movablePopup", "metaPopup", "mapPopup" }
+-- on a server, the column's buttons ZeD's multiplayer surfaces replace (MP_DECISIONS.md)
+local MP_OWN = { "safetyBtn", "radialIcon", "clientBtn", "adminBtn" }
 -- frames the column waits before deciding, so other mods' hooks have added theirs
 local COLUMN_SETTLE = 30
 
@@ -236,6 +238,14 @@ local function apply()
         function ISEquippedItem:prerender()
             origPre(self)
             if ZeD.Safe.on("belt") or inTutorial() then return end
+            -- on a server: the game's Safety (and its countdown), Client and Admin buttons hide, as ZeD's PvP
+            -- marker, Server tab and Admin tab hold them (QA Nov 5 2026: they still showed at the top left)
+            if isClient() then
+                for _, k in ipairs(MP_OWN) do
+                    local b = self[k]
+                    if b and b:getIsVisible() then b:setVisible(false) end
+                end
+            end
             -- single player without -debug: the column goes when nothing but
             -- ZeD's replaced parts is left on it
             if not isClient() and not getCore():getDebug() then columnPrerender(self) end
