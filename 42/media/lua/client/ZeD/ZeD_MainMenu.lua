@@ -1025,7 +1025,8 @@ end
 -- content's height; set(v): takes a new scroll (px). The panel's p._hits gets one hit over the bar: a press goes to the
 -- bar (an arrow steps and repeats while held, the track pages, the thumb drags). The wheel and the controller keep
 -- moving the list's own scroll; the bar reads it each frame. A list too short for two arrows and a thumb has no
--- arrows. opts: noHit (draw only), inDrop (a pull-down's bar).
+-- arrows (MM.qaNoArrows shows that on any list). opts: step (the list's row height: what an arrow moves), noHit (draw
+-- only), inDrop (a pull-down's bar).
 -- ---------------------------------------------------------------------------
 local BAR_REPEAT_MS = 300
 function MM.scrollBar(p, key, x, y, w, h, scroll, total, set, opts)
@@ -1046,7 +1047,7 @@ function MM.scrollBar(p, key, x, y, w, h, scroll, total, set, opts)
             else
                 sb:handleMouseMove(ly)
                 if (sb.upPressed or sb.downPressed) and getTimestampMs() - sb._heldAt > BAR_REPEAT_MS then
-                    sb:setScrollPos(sb.scrollPos + (sb.upPressed and -0.05 or 0.05))
+                    sb:setScrollPos(sb.scrollPos + (sb.upPressed and -sb:lineStep() or sb:lineStep()))
                 end
             end
         end
@@ -1054,7 +1055,8 @@ function MM.scrollBar(p, key, x, y, w, h, scroll, total, set, opts)
     end
     local maxS = math.max(1, total - h)
     sb.x, sb.y, sb.width, sb.height = x, y, w, h
-    sb.arrowH = (h >= w * 2 + T.px(24)) and w or 0
+    sb.arrowH = (h >= w * 2 + T.px(24) and not MM.qaNoArrows) and w or 0
+    sb.lineH = opts and opts.step or (ZeD.TM:getFontHeight(T.fontF2) + T.px(10))
     sb.visible = true
     sb._set, sb._max, sb._top = set, maxS, p:getAbsoluteY() + y
     sb:setBarSize(h / math.max(1, total))
@@ -1678,7 +1680,7 @@ function ZeD_MMDrop:prerender()
     end
     if scrollMax > 0 then
         self:clearStencilRect()
-        MM.scrollBar(self, "drop:track", w - dropBarW - T.px(1), T.px(1), dropBarW, h - T.px(2), off, full, function(v) MM.ctx.dropScroll = v end, { inDrop = true })
+        MM.scrollBar(self, "drop:track", w - dropBarW - T.px(1), T.px(1), dropBarW, h - T.px(2), off, full, function(v) MM.ctx.dropScroll = v end, { inDrop = true, step = rowH })
     end
     -- the controller's mark over the rows (the hand, the corners, the ants), after the list
     if gp then ZeD.Focus.drawOverlay(self, self) end

@@ -1025,19 +1025,40 @@ function ZeD_ScrollbarState:draw(panel)
     end
 end
 
+-- The list's scroll range in px, from the bar's height and its share of the list (the view's height)
+function ZeD_ScrollbarState:scrollRange()
+    local r = self.barSizeRatio
+    if r <= 0 or r >= 1 then return 0 end
+    return self.height / r - self.height
+end
+-- An arrow moves one row, as System 7's do (QA Nov 5 2026: 5% of the list was 20 rows on 395 mods, and nothing at
+-- all on a list that only just runs over): self.lineH, a list's own row height, else a usual row. As a share of
+-- the bar's 0 to 1.
+function ZeD_ScrollbarState:lineStep()
+    local range = self:scrollRange()
+    if range <= 0 then return 0.05 end
+    return (self.lineH or ZeD.T.px(24)) / range
+end
+-- A press on the track moves about a page
+function ZeD_ScrollbarState:pageStep()
+    local range = self:scrollRange()
+    if range <= 0 then return 0.2 end
+    return self.height * 0.9 / range
+end
+
 --- Handle mouse down. localY is relative to scrollbar top.
 function ZeD_ScrollbarState:handleMouseDown(localY)
     if self.barSizeRatio >= 1.0 then return end
 
     if localY < self.arrowH then
         self.upPressed = true
-        self:setScrollPos(self.scrollPos - 0.05)
+        self:setScrollPos(self.scrollPos - self:lineStep())
         return
     end
     local downTop = self.arrowH + self:getTrackHeight()
     if localY >= downTop and localY < downTop + self.arrowH then
         self.downPressed = true
-        self:setScrollPos(self.scrollPos + 0.05)
+        self:setScrollPos(self.scrollPos + self:lineStep())
         return
     end
     local thumbY = self:getThumbY()
@@ -1049,9 +1070,9 @@ function ZeD_ScrollbarState:handleMouseDown(localY)
         return
     end
     if localY < thumbY then
-        self:setScrollPos(self.scrollPos - 0.2)
+        self:setScrollPos(self.scrollPos - self:pageStep())
     else
-        self:setScrollPos(self.scrollPos + 0.2)
+        self:setScrollPos(self.scrollPos + self:pageStep())
     end
 end
 

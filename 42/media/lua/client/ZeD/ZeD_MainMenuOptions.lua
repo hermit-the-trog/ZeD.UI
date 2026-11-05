@@ -938,7 +938,7 @@ function ZeD_MMOptions:drawPages(x, y, w, h, pages, finding)
     self:clearStencilRect()
     if over then
         local sx = x + w - T.px(1) - sbW
-        MM.scrollBar(self, kind .. ":pagestrack", sx, top0, sbW, vh, self.pagesScroll, total, function(v) self.pagesScroll = v end)
+        MM.scrollBar(self, kind .. ":pagestrack", sx, top0, sbW, vh, self.pagesScroll, total, function(v) self.pagesScroll = v end, { step = rh })
     end
 end
 

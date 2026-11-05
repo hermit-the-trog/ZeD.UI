@@ -602,7 +602,7 @@ function ZeD_MMLoad:drawList(x, y, w, h)
     -- the scroll bar
     if over then
         local sx = x + w - T.px(1) - sbW
-        MM.scrollBar(self, "load:track", sx, vy, sbW, vh, self.scroll, rowsH, function(v) self.scroll = v end)
+        MM.scrollBar(self, "load:track", sx, vy, sbW, vh, self.scroll, rowsH, function(v) self.scroll = v end, { step = T.px(ROW_H) })
     end
 end
 
