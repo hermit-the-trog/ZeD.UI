@@ -42,48 +42,32 @@ local function discoverPlayerAnimals(player)
     local zoneMap = {}   -- zone ref → list of animals
     local zoneList = {}  -- ordered zone refs
 
-    -- Strategy: iterate all IsoAnimal instances in loaded cells.
-    -- PZ exposes getCell():getObjectList() or we walk zones.
-    -- Safest approach: walk the player's known designation zones.
     local cell = getCell()
     if not cell then return animals, zoneMap, zoneList end
 
-    -- Approach: scan squares around player in a generous radius.
-    -- This catches all animals the player could reasonably manage.
-    -- For large ranches, EveryOneMinute cadence keeps it bounded.
+    -- The cell's own list of animals, not a walk over squares: the 151 x 151 walk took 25 to 30 ms on every
+    -- in-game minute, animals or none, and was every slow frame at 4K (QA's multiplayer report, Nov 5 2026).
+    -- The same reach as that walk: the player's floor, within SCAN_RADIUS squares.
     local sq = player:getCurrentSquare()
     if not sq then return animals, zoneMap, zoneList end
 
     local SCAN_RADIUS = 75  -- covers most ranch setups
     local cx, cy, cz = sq:getX(), sq:getY(), sq:getZ()
-    local seen = {}  -- dedup by animal ID
-
-    for x = cx - SCAN_RADIUS, cx + SCAN_RADIUS do
-        for y = cy - SCAN_RADIUS, cy + SCAN_RADIUS do
-            local gs = cell:getGridSquare(x, y, cz)
-            if gs then
-                local moving = gs:getMovingObjects()
-                if moving then
-                    for i = 0, moving:size() - 1 do
-                        local obj = moving:get(i)
-                        if obj and instanceof(obj, "IsoAnimal") and not AD.isWild(obj) then
-                            local id = obj:getOnlineID()
-                            if not seen[id] then
-                                seen[id] = true
-                                table.insert(animals, obj)
-
-                                local zone = obj.getDZone and obj:getDZone()
-                                if zone then
-                                    if not zoneMap[zone] then
-                                        zoneMap[zone] = {}
-                                        table.insert(zoneList, zone)
-                                    end
-                                    table.insert(zoneMap[zone], obj)
-                                end
-                            end
-                        end
-                    end
+    local ok, list = pcall(cell.getAnimals, cell)
+    -- (the list is a LinkedList, slow by index: walked once with its iterator)
+    local it = ok and list and list:iterator()
+    while it and it:hasNext() do
+        local obj = it:next()
+        if obj and math.floor(obj:getZ()) == cz and math.abs(obj:getX() - cx) <= SCAN_RADIUS
+                and math.abs(obj:getY() - cy) <= SCAN_RADIUS and not AD.isWild(obj) then
+            table.insert(animals, obj)
+            local zone = obj.getDZone and obj:getDZone()
+            if zone then
+                if not zoneMap[zone] then
+                    zoneMap[zone] = {}
+                    table.insert(zoneList, zone)
                 end
+                table.insert(zoneMap[zone], obj)
             end
         end
     end
