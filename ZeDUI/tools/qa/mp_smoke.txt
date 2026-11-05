@@ -1,0 +1,2 @@
+# ZeDUI/tools/qa/mp_smoke.txt  (Nov 5 2026): the multiplayer smoke check, zedqa_run.ps1 -Mp -Manifest this
+mp_smoke.lua | mps | timeout=120

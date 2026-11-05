@@ -1,0 +1,2 @@
+# ZeDUI/tools/qa/mp_check.txt  (Nov 5 2026): the multiplayer action checks, zedqa_run.ps1 -Mp -Manifest this
+mp_actions.lua | mpa | timeout=120

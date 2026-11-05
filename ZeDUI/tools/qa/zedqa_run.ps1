@@ -91,6 +91,7 @@ param(
     [switch]$KeepOpen,
     [switch]$Check,
     [switch]$StagedCopy,  # (the release check on a staged copy: allowed only when the staged copy carries the QA bridge)
+    [switch]$Mp,          # (Nov 5 2026, multiplayer QA) launch with -nosteam, join the local test server (mp_server.ps1 -Start) as its admin from the main menu, run the manifest on the multiplayer client
     [string]$ShotSave = ""   # (Nov 4 2026, the gallery) continue Saves/Sandbox/<ShotSave> (a ZeD-Shots-* save) instead of ZeD-QA; latestSave.ini is put back after
 )
 
@@ -479,15 +480,16 @@ function Start-Game4K {
     $global:LASTEXITCODE = 0
     $out = (& $RestoreWin 2>&1 | Out-String).Trim()
     Add-Note "pzrestorewin.ps1 (before a fullscreen run): $($out -replace '\s*\r?\n\s*', ' / ')"
-    Write-Text $AutoFile "1"
+    Write-Text $AutoFile $(if ($Mp) { "0" } else { "1" })
     $script:Launched = $true
     # the last session's console.txt also says "game loading took": only the new
     # one counts (different from the old text, or written since the launch)
     $old = Read-Text $ConsoleFile
     $oldText = $(if ($old) { $old -replace "`0", "" } else { "" })
     $launchAt = (Get-Date).AddSeconds(-2)
-    Start-Process -FilePath $GameExe -ArgumentList "-debug" -WorkingDirectory $GameDir | Out-Null
-    Add-Note "started ProjectZomboid64.exe -debug (fullscreen, the director's options.ini)"
+    $gameArgs = $(if ($Mp) { "-debug -nosteam" } else { "-debug" })
+    Start-Process -FilePath $GameExe -ArgumentList $gameArgs -WorkingDirectory $GameDir | Out-Null
+    Add-Note "started ProjectZomboid64.exe $gameArgs (fullscreen, the director's options.ini)"
     Start-Sleep -Seconds 10   # the game moves the old console.txt to Logs/ as it starts
     $loaded = $false
     for ($i = 0; $i -lt 300; $i++) {   # (up to 10 minutes: a long mod list loads slowly)
@@ -498,12 +500,36 @@ function Start-Game4K {
         $t = $c -replace "`0", ""
         $fresh = ($oldText.Length -eq 0) -or ($t.Length -lt $oldText.Length) -or (-not $t.StartsWith($oldText, [StringComparison]::Ordinal))
         if (-not $fresh) { try { $fresh = (Get-Item -LiteralPath $ConsoleFile -ErrorAction Stop).LastWriteTime -ge $launchAt } catch { } }
-        if ($fresh -and $t -match 'game loading took') { $loaded = $true; break }
+        if ($fresh -and $t -match $(if ($Mp) { '\[ZeD\.QA\] bridge armed \(main menu' } else { 'game loading took' })) { $loaded = $true; break }   # (-Mp: no save loads before the join)
     }
     if (-not $loaded) { throw "the game never reached 'game loading took' (5 minutes)" }
     Start-Sleep -Seconds 4
+    if ($Mp) { Join-MpServer; return }
     $at = Invoke-StartClick
     Add-Note "loaded; clicked the screen centre ($at) to pass 'click to start'"
+}
+
+# Multiplayer (Nov 5 2026): at the main menu, once the bridge has armed there, join the local test server through the
+# game's own connect call (ConnectToServer:connect, as the server list does) as the admin in Lua/zedqa_mp.txt. The
+# world then loads; Wait-BridgeInGame clicks through "click to start".
+function Join-MpServer {
+    $t0 = Get-Date
+    while (-not ((Update-Log) -ge 0 -and $script:ConsoleLog.ToString() -match '\[ZeD\.QA\] bridge armed \(main menu')) {
+        if (((Get-Date) - $t0).TotalSeconds -ge 90) { throw "the bridge never armed at the main menu" }
+        Start-Sleep -Seconds 2
+    }
+    Start-Sleep -Seconds 3
+    Write-Text $BridgeLua @'
+-- zedqa_run.ps1 -Mp: join the local test server (mp_server.ps1) as its admin
+local r = getFileReader("zedqa_mp.txt", false)
+local u, p = "zedqa", nil
+if r then local l = r:readLine(); while l do local k, v = l:match("^(%w+)=(.*)$"); if k == "user" then u = v elseif k == "password" then p = v end; l = r:readLine() end; r:close() end
+if not p then print("ZEDQA mpj ERR no Lua/zedqa_mp.txt (run mp_server.ps1 -Start)") return end
+print("ZEDQA mpj connecting to 127.0.0.1:16261 as " .. u)
+ConnectToServer.instance:connect(MainScreen.instance, "", u, p, "127.0.0.1", "127.0.0.1", "16261", "", false, true, 1)
+'@
+    $null = Invoke-Bump
+    Add-Note "multiplayer: at the main menu, joining 127.0.0.1:16261 as the test server's admin"
 }
 
 # Waits for the bridge to arm in game (clicking again if "click to start" did
@@ -527,7 +553,7 @@ function Wait-BridgeInGame($Prelude = $null, $PreludeRes = $null) {
             $at = Invoke-StartClick; $clicks++
             Add-Note "clicked again at $at (the bridge had not armed in game after $([int]$el) s)"
         }
-        if ($el -ge 120) { throw "the bridge never armed in game (no '[ZeD.QA] bridge armed (in game' in console.txt)" }
+        if ($el -ge $(if ($Mp) { 420 } else { 120 })) { throw "the bridge never armed in game (no '[ZeD.QA] bridge armed (in game' in console.txt)" }
     }
     Start-Sleep -Seconds 3
     $null = Update-Log
@@ -536,8 +562,9 @@ function Wait-BridgeInGame($Prelude = $null, $PreludeRes = $null) {
     if ($m.Success) { $isQa = $m.Groups[1].Value -match 'Saves[\\/]+Sandbox[\\/]+ZeD-QA[\\/]' }
     else { $isQa = $all -match '\[ZeD\.QA\] ZeD-QA: the whole map known' }
     if ($ShotSave) { $isQa = $m.Success -and ($m.Groups[1].Value -match ('Saves[\\/]+Sandbox[\\/]+' + [regex]::Escape($ShotSave) + '[\\/]')) }
+    if ($Mp) { $isQa = $true }
     if (-not $isQa) { throw "the loaded save is not the expected one ($($m.Groups[1].Value)); no script was run" }
-    Add-Note "the bridge armed in game on Saves/Sandbox/ZeD-QA"
+    Add-Note $(if ($Mp) { "the bridge armed in game on the multiplayer server ($($m.Groups[1].Value.Trim()))" } else { "the bridge armed in game on Saves/Sandbox/ZeD-QA" })
     if (-not $Prelude) { return }
     for ($try = 1; ; $try++) {
         Invoke-QaScript $Prelude $PreludeRes
@@ -976,7 +1003,7 @@ if ($ShotSave) {
     [IO.File]::WriteAllText($LatestSave, "$ShotSave`r`nSandbox`r`n")
     $ls = "ZeD-QA`r`nSandbox"; $lsLines = @("ZeD-QA", "Sandbox")
 }
-if ($lsLines.Count -lt 1 -or $lsLines[0] -ne "ZeD-QA" -or ($lsLines.Count -ge 2 -and $lsLines[1] -ne "Sandbox")) {
+if (-not $Mp -and ($lsLines.Count -lt 1 -or $lsLines[0] -ne "ZeD-QA" -or ($lsLines.Count -ge 2 -and $lsLines[1] -ne "Sandbox"))) {
     Write-Output "zedqa_run: not starting: $LatestSave does not point at Saves/Sandbox/ZeD-QA (it reads '$($lsLines -join ' / ')'); the autoload would continue another save"
     exit 2
 }
