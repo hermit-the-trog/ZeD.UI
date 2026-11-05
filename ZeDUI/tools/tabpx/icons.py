@@ -334,6 +334,42 @@ ICONS = {
     "..dmmmmmmmmmddk.",
     "...dddddddddkk..",
     "................"],
+# Server (multiplayer, Nov 5 2026, MP_DECISIONS.md): a tower computer, two drive bays, the power lamp lit, vents
+"server": [
+    "................",
+    "...wllllllllm...",
+    "...lmmmmmmmmd...",
+    "...lkkkkkkkkd...",
+    "...lmmmmmmmmd...",
+    "...lkkkkkkkkd...",
+    "...lmmmmmmmmd...",
+    "...lmmmmmmwmd...",
+    "...lmmmmmmmmd...",
+    "...lmdmdmdmmd...",
+    "...lmmmmmmmmd...",
+    "...lmdmdmdmmd...",
+    "...lmmmmmmmmd...",
+    "...dddddddddk...",
+    "..kk........kk..",
+    "................"],
+# Admin (multiplayer, Nov 5 2026, MP_DECISIONS.md): a lawman's badge, a five-point star
+"admin": [
+    "................",
+    ".......wl.......",
+    ".......lm.......",
+    "......lmmd......",
+    ".wlllllmmdddddm.",
+    "..lmmmmwmmmmmd..",
+    "...lmmmlmmmmd...",
+    "....lmmmmmmd....",
+    "....lmmmmmmd....",
+    "...lmmmmmmmmd...",
+    "...lmmmddmmmd...",
+    "..lmmmd..dmmmd..",
+    "..lmmd....dmmd..",
+    "..kdd......ddk..",
+    "................",
+    "................"],
 }
 
 TONES = "wlmdk"
