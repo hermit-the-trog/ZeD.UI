@@ -19,6 +19,9 @@ local Tk = ZeD.Tk
 local L = Tk.LIMITS
 
 Srv.handlers = Srv.handlers or {}
+Srv.modules = Srv.modules or {}  -- the modules this part answers; each phase adds its own
+Srv.modules[Tk.MOD_LINK] = true
+Srv.modules[Tk.MOD] = true
 Srv.mem = Srv.mem or {}          -- username -> the limits' memory; a restart clears it
 
 -- Both are in the 42.22 enum. If a game update renames one the local is nil, and hasCapability(nil) would match no
@@ -92,13 +95,13 @@ end
 
 function Srv.to(p, module, command, args) sendServerCommand(p, module, command, args) end
 
--- the answer to a command: rid only if the client sent a good one
-function Srv.ack(p, rid, ok, err, extra)
+-- the answer to a command: rid only if the client sent a good one. module, command: a phase's own (default: tickets)
+function Srv.ack(p, rid, ok, err, extra, module, command)
     local a = extra or {}
     a.ok = ok == true
     a.rid = rid
     a.err = err
-    Srv.to(p, Tk.MOD, "t_ack", a)
+    Srv.to(p, module or Tk.MOD, command or "t_ack", a)
 end
 
 function Srv.eachOnline(fn)
@@ -123,21 +126,23 @@ function Srv.player(user)
     return nil
 end
 
--- opts: cap (the capability it needs), limit (ms between runs), mark = false when the handler marks an accepted run itself
+-- opts: cap (the capability it needs), limit (ms between runs), mark = false when the handler marks an accepted run itself,
+-- ackModule and ackCommand when refusals answer on a phase's own module
 function Srv.register(module, command, opts, fn)
-    Srv.handlers[module .. "." .. command] = { name = command, cap = opts.cap, limit = opts.limit, mark = opts.mark, fn = fn }
+    Srv.handlers[module .. "." .. command] = { name = command, cap = opts.cap, limit = opts.limit, mark = opts.mark, fn = fn,
+        ackModule = opts.ackModule, ackCommand = opts.ackCommand }
 end
 
 local function run(h, p, a, rid)
     if h.cap and not Srv.can(p, h.cap) then
         Srv.deny(p, h.name)
-        Srv.ack(p, rid, false, "perm")
+        Srv.ack(p, rid, false, "perm", nil, h.ackModule, h.ackCommand)
         return
     end
     if h.limit then
         local left = Srv.left(p, h.name, h.limit)
         if left then
-            Srv.ack(p, rid, false, "wait", { left = left })
+            Srv.ack(p, rid, false, "wait", { left = left }, h.ackModule, h.ackCommand)
             return
         end
         if h.mark ~= false then Srv.mark(p, h.name) end
@@ -146,7 +151,7 @@ local function run(h, p, a, rid)
 end
 
 function Srv.onCommand(module, command, player, args)
-    if module ~= Tk.MOD_LINK and module ~= Tk.MOD then return end
+    if not Srv.modules[module] then return end
     if Srv.off or not player then return end
     if not general(player:getUsername(), getTimestampMs()) then return end
     local h = Srv.handlers[module .. "." .. tostring(command)]
@@ -157,7 +162,7 @@ function Srv.onCommand(module, command, player, args)
     if not ok then
         Srv.log("handler failed: " .. tostring(command) .. " from " .. tostring(player:getUsername()) .. ": " .. tostring(err))
         print("[ZeD] server: " .. tostring(command) .. " failed: " .. tostring(err))
-        pcall(Srv.ack, player, rid, false, "fail")
+        pcall(Srv.ack, player, rid, false, "fail", nil, h.ackModule, h.ackCommand)
     end
 end
 

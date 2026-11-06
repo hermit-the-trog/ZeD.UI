@@ -224,6 +224,14 @@ function M.ticket(id, who)
     return it
 end
 
+-- in place of the game's two invitation modals (ZeD_Claims.lua): the invitation itself waits in the Server tab
+function M.invite(text)
+    local name = ZeD.tr("UI_ZeD_Char_TabServer")
+    local it = M.add(name, "mods", { k = "invite", text = text })
+    toast("warn", ZeD.tr("UI_ZeD_Cl_ToastHead"), name, text)
+    return it
+end
+
 -- for staff, in place of the game's modal: a ticket came in
 function M.ticketNew()
     local name = getText("UI_userpanel_tickets")
