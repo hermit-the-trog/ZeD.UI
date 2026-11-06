@@ -1,0 +1,5 @@
+# the Ranch page after f59ffdc8 (Nov 5 2026)
+zedqa_prelude.lua | pre
+zedqa_animals.lua | an | timeout=60 | end=setup done
+zedqa_animals_page.lua | apg | timeout=90
+zedqa_world_pad_take.lua | wpt | timeout=300

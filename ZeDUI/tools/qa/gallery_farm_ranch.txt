@@ -1,0 +1,7 @@
+# the Farm and Ranch pictures (Nov 5 2026)
+zedqa_prelude.lua | pre
+gallery_t14_look.lua | g14l | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+gallery_farm_pre.lua | gfp | timeout=20
+zedqa_animals.lua | an | timeout=60 | end=setup done
+gallery_farm_ranch.lua | gfr | timeout=150

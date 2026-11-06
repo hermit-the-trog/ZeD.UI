@@ -1,0 +1,12 @@
+VERSION = 1,
+
+mods
+{
+    mod = ImmersiveMoodles,
+    mod = HandsOnInteractionsIso,
+    mod = ZeD_UI,
+}
+
+maps
+{
+}

@@ -513,21 +513,22 @@ step(10, function()
     local w, z, e = cur(); where("8 after the menu's B")
     check(w == ww() and z and z.zone == "worldMainInv" and e and e.item == walk.ctxRow and lit(w), "8 the menu closed: focus is back on the same row, lit")
 end)
--- hold A (vanilla's double-click: the hammer to the bag): focus stays in the list, on a neighbour
+-- hold X (vanilla's double-click, the quick use, since punch list 44 on Nov 1 2026; hold A marks the row now): the thing
+-- goes to the bag; focus stays in the list, on a neighbour
 step(5, function()
     local w = ww()
     local row = rowOf(w, "worldMainInv", "Base.Corkscrew")
     walk.moved = row and row.item
     Focus.focusWhere(w, "worldMainInv", function(x) return x == row end)
-    if row and row.onHoldActivate then row.onHoldActivate(w, row) end
+    if row and row.onHoldContext then row.onHoldContext(w, row) end
 end)
 local holdWait = 0
 local function waitHold()
     holdWait = holdWait + 1
     local moved = walk.moved and walk.moved:getContainer() ~= crateInv
     if moved or holdWait > 60 then
-        local w, z, e = cur(); where("8 after hold A")
-        check(moved, "8 hold A moved the hammer out of the crate")
+        local w, z, e = cur(); where("8 after hold X")
+        check(moved, "8 hold X moved the thing out of the crate")
         insertNext(20, function()
             local w2, z2, e2 = cur(); where("8 a moment later")
             check(w2 == ww() and z2 and (z2.zone == "worldMainInv" or z2.zone == "worldCtl") and e2 and lit(w2),
@@ -615,6 +616,13 @@ local function lowestInColumn(w, e)
     end
     return best
 end
+-- the Ranch page keeps its stops at their place in the page (f59ffdc8): where a stop shows now is that less the scroll
+local function shownOffset(w, e)
+    local r = e and e.id and w._animalsOvRows and w._animalsOvRows[e.id]
+    local sb = w._animalsScroll
+    if not (r and sb and sb.visible and sb.barSizeRatio < 1) then return 0 end
+    return (e.y or 0) - ((w._animalsOvClip and w._animalsOvClip.y or 0) + r.cy - math.floor(sb.scrollPos * sb:scrollRange()))
+end
 local function auditTab(done)
     local item = tabList[ti]
     if not item then return end
@@ -642,17 +650,19 @@ local function auditTab(done)
                 -- column, a two-column tab's other column is reached with Right (Health at
                 -- Large text: the exercise buttons end a few px below the figure's feet)
                 local lo = e2 and lowestInColumn(ww2, e2) or lowest(ww2)
-                local inView = e2 and e2.y >= 0 and bottomOf(e2) <= dp:getHeight() + 1
+                local shift = shownOffset(ww2, e2)
+                local inView = e2 and e2.y - shift >= 0 and bottomOf(e2) - shift <= dp:getHeight() + 1
                 local isLowest = e2 and lo and bottomOf(e2) >= bottomOf(lo) - 2
                 check(inView and isLowest, string.format("%s pad: Down reaches the lowest control of its column %s and it is in view (bottom %s of %d)",
-                    walk.tag, tostring(lastId), tostring(e2 and math.floor(bottomOf(e2))), dp:getHeight()))
+                    walk.tag, tostring(lastId), tostring(e2 and math.floor(bottomOf(e2) - shift)), dp:getHeight()))
                 -- the wheel: all the way down
                 for _ = 1, 60 do pcall(dp.onMouseWheel, dp, 1) end
                 insertNext(15, function()
                     local lo2 = lowest(ww2)
-                    check(lo2 and bottomOf(lo2) <= dp:getHeight() + 1 and lo2.y >= 0,
+                    local shift2 = shownOffset(ww2, lo2)
+                    check(lo2 and bottomOf(lo2) - shift2 <= dp:getHeight() + 1 and lo2.y - shift2 >= 0,
                         string.format("%s wheel: the lowest control %s is in view at the bottom (bottom %s of %d)",
-                            walk.tag, tostring(lo2 and lo2.id), tostring(lo2 and math.floor(bottomOf(lo2))), dp:getHeight()))
+                            walk.tag, tostring(lo2 and lo2.id), tostring(lo2 and math.floor(bottomOf(lo2) - shift2)), dp:getHeight()))
                     if ww2 == cw() and ww2._activeTab == "health" then
                         local sc = ww2._healthScroll
                         -- at the end of the scroll, what was drawn ends inside the view

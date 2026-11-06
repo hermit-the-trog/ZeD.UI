@@ -1,0 +1,5 @@
+# the Ranch step with the fixed test, the board with the marks (Nov 5 2026)
+zedqa_prelude.lua | pre
+zedqa_animals.lua | an | timeout=60 | end=setup done
+zedqa_world_pad_take.lua | wpt | timeout=300
+zedqa_btn_look.lua | bnl | timeout=60

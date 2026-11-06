@@ -1,0 +1,4 @@
+# the Ranch page at the Deck (Nov 5 2026)
+zedqa_prelude.lua | pre
+zedqa_animals.lua | an | timeout=60 | end=setup done
+zedqa_animals_page.lua | apg | timeout=90

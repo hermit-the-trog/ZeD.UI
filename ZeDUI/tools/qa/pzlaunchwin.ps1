@@ -5,7 +5,7 @@
 # with pzrestorewin.ps1 after the game has closed.
 # -MainMenu: stop at the main menu instead (no autoload, no click); returns
 # once the QA bridge has armed there.
-param([switch]$MainMenu, [int]$Width = 1920, [int]$Height = 1080)   # (Oct 29 2026: -Width / -Height for the small-screen passes: 1280x800 Deck, 1280x720)
+param([switch]$MainMenu, [switch]$NoSteam, [int]$Width = 1920, [int]$Height = 1080)   # (Oct 29 2026: -Width / -Height for the small-screen passes: 1280x800 Deck, 1280x720)
 $S = $PSScriptRoot
 # refuse to launch while a Workshop staging copy of ZeD-UI exists: the game scans
 # Workshop\*\Contents\mods before Zomboid\mods and the first folder with the mod id wins
@@ -24,7 +24,7 @@ $t = $t -replace '^fullScreen=.*', 'fullScreen=false' -replace '^width=.*', "wid
 Set-Content -Path $opt -Value $t
 Set-Content -Path "C:\Users\danie\Zomboid\Lua\zedqa.autoload" -Value ($(if ($MainMenu) { "0" } else { "1" })) -NoNewline
 $dir = "E:\Project Zomboid\SteamApps\common\ProjectZomboid"
-Start-Process -FilePath "$dir\ProjectZomboid64.exe" -ArgumentList "-debug" -WorkingDirectory $dir
+Start-Process -FilePath "$dir\ProjectZomboid64.exe" -ArgumentList $(if ($NoSteam) { "-debug -nosteam" } else { "-debug" }) -WorkingDirectory $dir
 $log = "C:\Users\danie\Zomboid\console.txt"
 Start-Sleep -Seconds 10
 $want = $(if ($MainMenu) { "bridge armed \(main menu" } else { "game loading took" })

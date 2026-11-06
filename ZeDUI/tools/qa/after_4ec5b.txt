@@ -1,0 +1,5 @@
+# the Animals tab on the new poller, hold X, after 4ec5b4f4 (Nov 5 2026)
+zedqa_prelude.lua | pre
+zedqa_animals.lua | an | timeout=120 | end=setup done
+zedqa_animals_list.lua | anl | timeout=60
+zedqa_world_pad_take.lua | wpt | timeout=300

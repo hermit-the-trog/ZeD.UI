@@ -1,0 +1,5 @@
+# the multiplayer surfaces at the Deck with Large text (Nov 5 2026)
+zedqa_pin_windows.lua | pnw | timeout=30
+mp_deck_setup.lua | mdk | timeout=20
+mp_surfaces_shots.lua | mss | timeout=240
+mp_deck_end.lua | mde | timeout=20

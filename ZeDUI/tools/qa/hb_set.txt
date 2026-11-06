@@ -1,0 +1,3 @@
+# Hair and beard's fault with mods on (punch list 54, Nov 5 2026): the tool lines and the trim picked from the list
+zedqa_prelude.lua | pre
+zedqa_hairbeard_tools.lua | hbt | timeout=240

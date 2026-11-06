@@ -1,0 +1,2 @@
+# the Radio tab keys on a server (Nov 5 2026), part 1
+mp_radio.lua | mrd | timeout=60

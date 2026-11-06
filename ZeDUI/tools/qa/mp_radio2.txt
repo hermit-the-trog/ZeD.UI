@@ -1,0 +1,2 @@
+# part 2, after a rejoin
+mp_radio_after.lua | mra | timeout=30

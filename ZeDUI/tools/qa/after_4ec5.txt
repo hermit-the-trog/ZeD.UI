@@ -1,0 +1,8 @@
+# after 4ec5b4f4 (Nov 5 2026): the lag spikes again, the Animals tab, the list headings
+zedqa_prelude.lua | pre
+perf_spikes.lua | pks | timeout=260
+zedqa_wt_bracket.lua | wtb | timeout=300
+zedqa_headers_lang.lua | hdl | timeout=60
+zedqa_animals.lua | an | timeout=120
+zedqa_animals_list.lua | anl | timeout=60
+zedqa_world_pad_take.lua | wpt | timeout=180

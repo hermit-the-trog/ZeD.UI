@@ -1,0 +1,13 @@
+VERSION = 1,
+
+mods
+{
+    mod = ParavelsEnhancedUI,
+    mod = ParavelsEnhancedInventory,
+    mod = HandsOnInteractionsIso,
+    mod = ZeD_UI,
+}
+
+maps
+{
+}
