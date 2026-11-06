@@ -10,6 +10,6 @@
 -- ============================================================================
 
 ZeD = ZeD or {}
-ZeD.MenuNote = { "SERVER TAB", "PVP MARKER", "CHAT", "ADMIN TAB", "BOX FIX" }
+ZeD.MenuNote = { "SCROLLBARS", "BUTTONS", "LESS LAG", "RANCH PAGE", "HEADINGS" }
 
 return ZeD.MenuNote
