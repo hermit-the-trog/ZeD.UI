@@ -93,6 +93,9 @@ function C.onMessage(message)
     -- (muted in the game's chat: kept out here too)
     local muted = safe(function() return ISChat.instance and ISChat.instance.mutedUsers and ISChat.instance.mutedUsers[author] end, nil)
     if author and muted then return end
+    -- (muted by staff, on the server's list: ZeD_Admin.lua. Staff still read them, marked)
+    local staffMuted = author and ZeD.Admin and ZeD.Admin.isMuted and ZeD.Admin.isMuted(author)
+    if staffMuted and not (ZeD.Adm.MUTE_STAFF_SEES and ZeD.Admin.can("BanUnbanUser")) then return end
     local kind = safe(function() return tostring(message:getChat():getType()) end, "general")
     if safe(function() return message:isServerAlert() end, false) then kind = "server" end
     local text = plain(safe(function() return message:getText() end, ""))
@@ -109,10 +112,24 @@ function C.onMessage(message)
         if c then col = { r = safe(function() return c:getR() end, 1), g = safe(function() return c:getG() end, 1), b = safe(function() return c:getB() end, 1) } end
     end
     local L = C.lines
+    if staffMuted then text = tr("UI_ZeD_Adm_MutedLine", text) end
     L[#L + 1] = {
         text = text, author = (author and author ~= "") and author or nil, kind = kind, color = col,
         time = safe(function() return message:getDatetimeStr() end, ""),
     }
+    while #L > MAX_LINES do table.remove(L, 1) end
+    C.lastLineAt = getTimestampMs()
+    local win = C.win
+    if not (win and win:getIsVisible()) then C.unreadN = C.unreadN + 1 end
+    if win then win._dirty = true end
+end
+
+-- a repeating server message (ZeD_ServerAdmin.lua): server Lua cannot reach the game's chat, so it arrives here and goes
+-- in the same list as the game's own server alerts
+function C.serverLine(text)
+    if not C.active() or type(text) ~= "string" or text == "" then return end
+    local L = C.lines
+    L[#L + 1] = { text = plain(text), kind = "server", time = "" }
     while #L > MAX_LINES do table.remove(L, 1) end
     C.lastLineAt = getTimestampMs()
     local win = C.win
@@ -245,6 +262,8 @@ function C.send(text)
     local p = getPlayer()
     if not p then return false end
     local cap = function(name) return safe(function() return p:getRole():hasCapability(Capability[name]) end, false) end
+    -- (a slash command still goes: it may be staff's, and the mute is about chat)
+    if ZeD.Admin and ZeD.Admin.isMuted and ZeD.Admin.isMuted(p:getUsername()) and tostring(text or ""):sub(1, 1) ~= "/" then return false, "muted" end
     if not cap("IgnoreChatSlowMode") and C.slowLeft() > 0 then return false, "slow" end
     if not cap("EmptyLinesInChat") then text = tostring(text or ""):gsub("[\n\r]", " ") end
     if not text or text:gsub("%s", "") == "" then return false end
@@ -326,6 +345,8 @@ function ZeD_ChatWindow:submit()
         self.scroll = 0
     elseif why == "slow" then
         self._slowNote = true
+    elseif why == "muted" then
+        C.serverLine(tr("UI_ZeD_Adm_YouMuted"))
     end
     self._usedAt = getTimestampMs()
     self.input:unfocus()
@@ -433,8 +454,10 @@ function ZeD_ChatWindow:_drawBody()
     local sx = pad + iw + px(U.GAP)
     local shov = (not cues) and mx >= sx and mx < sx + sw and my >= iy and my < iy + ih
     local slow = C.slowLeft()
+    local mutedMe = ZeD.Admin and ZeD.Admin.isMuted and ZeD.Admin.isMuted(ZeD.Admin.me())
+    local sendHelp = (mutedMe and tr("UI_ZeD_Adm_YouMuted")) or ((slow > 0) and tr("UI_ZeD_Chat_Slow", slow)) or tr("UI_ZeD_Chat_HelpSend")
     M.drawButton(self, sx, iy, sw, ih, sendLabel, "primary", shov and isMouseButtonDown(0), nil,
-        { hover = shov, disabled = slow > 0, win = self, help = (slow > 0) and tr("UI_ZeD_Chat_Slow", slow) or tr("UI_ZeD_Chat_HelpSend") })
+        { hover = shov, disabled = slow > 0 or mutedMe, win = self, help = sendHelp })
     self._sendRect = { x = sx, y = iy, w = sw, h = ih }
     self._inputRect = { x = pad, y = iy, w = iw, h = ih }
     -- the lines, newest at the bottom, between the tabs and the line to type in
