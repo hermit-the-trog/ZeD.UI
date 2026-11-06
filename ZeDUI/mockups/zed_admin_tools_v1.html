@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZeD Admin Tools v1</title>
+<!-- MP_ADMIN_SCOPE.md, Phase 2: admin clarity, players and moderation (Design, Cowork, Nov 5 2026).
+     The Admin tab (World window) as it would be: one Players list (the game's scoreboard and Users List together), the
+     Player card (what the game spreads over ISPlayerStatsUI and its seven pop-ups), Roles as ticks, Bans with a reason
+     and a length, an item spawner, server messages typed in place. Every name and reason is a field in the card
+     (the director, Nov 5 2026); confirms sit in the card's foot. The game's words kept (UI.json). Keyboard stands in
+     for the pad: Up / Down move the controller highlight, Enter is A, Escape is B. -->
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans+Condensed:wght@400;500;600&display=swap');
+:root {
+  --base: #1a1a1e; --surface-1: #222226; --surface-2: #2a2a2e; --surface-3: #333338;
+  --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.20);
+  --text: #d4d4d8; --text-secondary: rgba(255,255,255,0.45); --text-heading: rgba(255,255,255,0.65);
+  --accent: #3fa59a; --danger: #c44040; --warning: #c49040; --positive: #4a9a5a; --info: #4f86c6;
+  --stripe-1: #333338; --stripe-2: #2a2a2e;
+  --font-mono: 'Fira Mono', monospace; --font-sans: 'Fira Sans Condensed', sans-serif;
+  --fs: 15px; --fs-small: 13px; --page: #0e0f10;
+}
+:root[data-theme="light"] {
+  --base: #e9e7e2; --surface-1: #f2f0eb; --surface-2: #dddad3; --surface-3: #cfcbc2;
+  --border: rgba(0,0,0,0.14); --border-strong: rgba(0,0,0,0.30);
+  --text: #1d1d1f; --text-secondary: rgba(0,0,0,0.55); --text-heading: rgba(0,0,0,0.70);
+  --stripe-1: #cfcbc2; --stripe-2: #dddad3; --page: #8c8a84;
+}
+:root[data-theme="hc"] {
+  --base: #000; --surface-1: #0a0a0a; --surface-2: #141414; --surface-3: #262626;
+  --border: rgba(255,255,255,0.45); --border-strong: rgba(255,255,255,0.85);
+  --text: #fff; --text-secondary: rgba(255,255,255,0.80); --text-heading: #fff; --stripe-1: #444; --stripe-2: #111;
+}
+:root[data-size="large"] { --fs: 18px; --fs-small: 15px; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--page); color: var(--text); }
+body { font-family: var(--font-sans); font-size: var(--fs); display: flex; flex-direction: column; align-items: center; }
+.review { width: 100%; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; justify-content: center;
+  padding: 8px 16px; font-family: var(--font-mono); font-size: 12px; color: #aaa; background: #000; border-bottom: 1px solid #333; }
+.review b { color: #ddd; font-weight: 500; }
+.review button { font-family: var(--font-mono); font-size: 12px; background: #1b1b1b; color: #ccc; border: 1px solid #444; padding: 3px 8px; cursor: pointer; }
+.review button.on { border-color: #ddd; color: #fff; }
+.stage { flex: 1; display: flex; align-items: center; justify-content: center; padding: 16px; width: 100%; }
+.win { width: min(560px, 100%); height: min(820px, calc(100vh - 90px)); display: flex; flex-direction: column;
+  background: color-mix(in srgb, var(--base) 92%, transparent); border: 1px solid var(--border-strong); }
+.titlebar { height: 22px; flex: 0 0 22px; display: flex; align-items: center; gap: 10px; padding: 0 8px;
+  background: repeating-linear-gradient(to bottom, var(--stripe-1) 0 2px, var(--stripe-2) 2px 4px); border-bottom: 1px solid var(--border-strong); }
+.close { width: 12px; height: 12px; border: 1px solid var(--border-strong); background: var(--surface-1); }
+.titlechip { background: var(--surface-2); padding: 0 8px; font-family: var(--font-mono); font-size: var(--fs-small); }
+.titlechip .plus { color: var(--text-secondary); margin: 0 6px; }
+.body { flex: 1; display: flex; min-height: 0; }
+.rail { width: 46px; flex: 0 0 46px; border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+.rail div { height: 46px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono);
+  font-size: 11px; color: var(--text-secondary); border-bottom: 1px solid var(--border); }
+.rail div.on { background: var(--accent); color: var(--base); font-weight: 700; }
+.panel { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.panelhead { height: 44px; flex: 0 0 44px; display: flex; align-items: center; gap: 10px; padding: 0 14px; border-bottom: 1px solid var(--border);
+  font-weight: 600; font-size: calc(var(--fs) + 4px); }
+.panelhead .r { margin-left: auto; font-family: var(--font-mono); font-size: var(--fs-small); font-weight: 400; color: var(--text-secondary); }
+.scroll { flex: 1; overflow-y: auto; min-height: 0; }
+.helpband { flex: 0 0 auto; min-height: 30px; display: flex; align-items: center; gap: 12px; padding: 5px 12px;
+  background: var(--surface-2); border-top: 1px solid var(--border); font-size: var(--fs-small); color: var(--text-secondary); }
+.helpband .pad { margin-left: auto; font-family: var(--font-mono); white-space: nowrap; }
+.glyph { display: inline-block; min-width: 16px; height: 16px; line-height: 16px; text-align: center; border-radius: 8px;
+  background: var(--surface-3); color: var(--text); font-family: var(--font-mono); font-size: 10px; margin-right: 3px; padding: 0 3px; }
+.sec { padding: 6px 14px 4px; background: var(--surface-1); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono); font-weight: 700; font-size: var(--fs-small); color: var(--text-heading); display: flex; }
+.sec .r { margin-left: auto; font-weight: 400; }
+.pad14 { padding: 8px 14px; }
+.sumrow { display: flex; align-items: center; gap: 10px; padding: 7px 14px 7px 30px; position: relative; cursor: pointer; border-bottom: 1px solid var(--border); }
+.sumrow .meta { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); }
+.sumrow .go { margin-left: auto; font-family: var(--font-mono); color: var(--text-secondary); }
+.btn { position: relative; padding: 4px 14px; border: 1px solid var(--border-strong); border-radius: 5px; background: var(--surface-2);
+  color: var(--text); font-family: var(--font-mono); font-size: var(--fs-small); cursor: pointer; white-space: nowrap; }
+.btn::before { content: ""; position: absolute; inset: 2px; border: 1px solid var(--border-strong); border-radius: 3px; pointer-events: none; }
+.btn.default, .btn.default::before { border-color: var(--accent); } .btn.default { color: var(--accent); }
+.btn.danger, .btn.danger::before { border-color: var(--danger); } .btn.danger { color: var(--danger); }
+.btn:disabled { opacity: 0.4; cursor: default; }
+.btn.small { padding: 2px 10px; }
+.btnrow { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; }
+.chip { font-family: var(--font-mono); font-size: var(--fs-small); padding: 3px 9px; border: 1px solid var(--border-strong); background: var(--surface-1); cursor: pointer; display: inline-block; }
+.chip.on { background: var(--accent); color: var(--base); border-color: var(--accent); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.check { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; padding: 2px 0; }
+.box { width: 15px; height: 15px; flex: 0 0 15px; margin-top: 2px; border: 1px solid var(--border-strong); background: var(--surface-1);
+  display: flex; align-items: center; justify-content: center; color: var(--accent); font-family: var(--font-mono); font-size: 12px; line-height: 1; }
+.label { font-family: var(--font-mono); font-weight: 700; font-size: var(--fs-small); color: var(--text-heading); margin: 14px 0 6px; display: flex; }
+.label .r { margin-left: auto; font-weight: 400; color: var(--text-secondary); }
+.label:first-child { margin-top: 2px; }
+.sub { font-size: var(--fs-small); color: var(--text-secondary); margin-top: 3px; }
+.sub.warn { color: var(--warning); } .sub.bad { color: var(--danger); }
+.cardbody { padding: 10px 14px 14px; }
+.facts { display: grid; grid-template-columns: 110px 1fr; gap: 3px 10px; font-size: var(--fs-small); align-items: center; }
+.facts .k { font-family: var(--font-mono); font-weight: 700; color: var(--text-heading); }
+.field { width: 100%; background: var(--surface-1); border: 1px solid var(--border-strong); color: var(--text); font-family: var(--font-sans);
+  font-size: var(--fs); padding: 5px 8px; }
+.field:focus { outline: none; border-color: var(--accent); }
+.field.mono { font-family: var(--font-mono); font-size: var(--fs-small); }
+.select { background: var(--surface-1); border: 1px solid var(--border-strong); color: var(--text); font-family: var(--font-mono); font-size: var(--fs-small); padding: 3px 6px; }
+.role { font-family: var(--font-mono); font-size: 11px; font-weight: 700; padding: 0 5px; border: 1px solid currentColor; white-space: nowrap; }
+.list .item { display: flex; align-items: center; gap: 10px; padding: 6px 14px 6px 30px; border-bottom: 1px solid var(--border); position: relative; cursor: pointer; }
+.list .item .who { min-width: 96px; }
+.list .item .st { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); white-space: nowrap; }
+.list .item .st.on::before { content: "\25CF  "; color: var(--positive); }
+.list .item .end { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.cardbody .list .item { padding-left: 26px; padding-right: 0; }
+.cardbody .list .item:first-child { border-top: 1px solid var(--border); }
+.warnpts { font-family: var(--font-mono); font-size: 11px; color: var(--warning); white-space: nowrap; }
+.stepper { display: inline-flex; align-items: center; gap: 6px; }
+.stepper .val { min-width: 38px; text-align: center; font-family: var(--font-mono); padding: 3px 6px; border: 1px solid var(--border-strong); background: var(--surface-1); }
+.inset { margin-top: 8px; padding: 10px; border: 1px solid var(--border-strong); background: var(--surface-1); }
+.inset.danger { border-color: var(--danger); }
+.inset.warn { border-color: var(--warning); }
+.inset .acts { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
+.caps .grp { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); margin: 10px 0 2px; text-transform: uppercase; letter-spacing: 0.04em; }
+.skills { display: grid; grid-template-columns: 1fr auto auto; gap: 2px 10px; font-size: var(--fs-small); align-items: center; }
+.skills .lv { font-family: var(--font-mono); }
+.pips { font-family: var(--font-mono); letter-spacing: 1px; color: var(--accent); }
+.log { font-size: var(--fs-small); }
+.log div { display: grid; grid-template-columns: 70px 72px 1fr; gap: 8px; padding: 3px 0; border-bottom: 1px solid var(--border); }
+.log .t { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); }
+.foot { flex: 0 0 auto; display: flex; gap: 8px; align-items: center; justify-content: flex-end; padding: 7px 12px;
+  background: var(--surface-2); border-top: 1px solid var(--border); flex-wrap: wrap; }
+.foot .left { margin-right: auto; font-family: var(--font-mono); font-size: var(--fs-small); color: var(--text-secondary); }
+.foot .left.warn { color: var(--danger); flex: 1 1 100%; margin-right: 0; }
+.backbar { height: 34px; flex: 0 0 34px; display: flex; align-items: center; gap: 10px; padding: 0 10px 0 6px; border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono); font-size: var(--fs-small); background: var(--surface-1); }
+.backbar .back { cursor: pointer; padding: 2px 6px; color: var(--text-heading); }
+.backbar .title { font-weight: 700; }
+.backbar .r { margin-left: auto; }
+.hand { position: absolute; left: 5px; top: 50%; transform: translateY(-50%); width: 22px; height: 12px; pointer-events: none; z-index: 2; }
+.hand svg { display: block; }
+.withhand { position: relative; display: inline-block; }
+div.withhand { display: block; }
+.withhand.focused { margin-left: 24px; }
+div.withhand.focused { margin-left: 0; padding-left: 24px; }
+.withhand > .hand { left: -23px; }
+div.withhand > .hand { left: 0; }
+</style>
+</head>
+<body>
+<div class="review" id="review"></div>
+<div class="stage"><div class="win" id="win"></div></div>
+<script>
+const HAND = (() => {
+  const rows = ["......KKKKKKKKKK.", ".....KWWWWWWWWWWK", "..KKKKWWKKKKKKKK.", ".KWWWWWWK........", "KWWWWWWWK........",
+                "KWWWWWWK.........", "KWWWWWWWK........", ".KWWWWWWK........", "..KKKKKK........."];
+  let r = "";
+  rows.forEach((s, y) => [...s].forEach((c, x) => { if (c !== ".") r += `<rect x="${x}" y="${y}" width="1" height="1" fill="${c === "K" ? "#000" : "#fff"}"/>`; }));
+  return `<span class="hand"><svg width="22" height="12" viewBox="0 0 17 9" preserveAspectRatio="none" shape-rendering="crispEdges">${r}</svg></span>`;
+})();
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+// the game's roles (B42 defaults), each with its color and what it can do; the capabilities in plain words, grouped
+const CAPS = [
+  ["Players", [["seeStats", "See a player's stats and inventory"], ["kick", "Kick"], ["ban", "Ban and unban"], ["mute", "Mute a player's chat"],
+    ["warn", "Add warning points"], ["tpTo", "Teleport to a player"], ["tpBring", "Bring a player here"], ["roles", "Change a player's role"]]],
+  ["Tickets and chat", [["tickets", "Answer tickets"], ["spam", "Mark tickets as spam"], ["delTicket", "Delete tickets"], ["servermsg", "Send server messages"]]],
+  ["Their own powers", [["god", "God Mode"], ["invisible", "Invisible"], ["noclip", "No Clip"], ["carry", "Unlimited carry"], ["build", "Build Cheat Mode"]]],
+  ["World", [["items", "Spawn items"], ["safehouses", "Manage any safehouse or faction"], ["zones", "Edit zones (safe, non-PvP)"], ["weather", "Change the weather"]]],
+  ["Server", [["options", "Change server options"], ["sandbox", "Change sandbox options"], ["logs", "Read the logs"], ["editRoles", "Edit roles"]]],
+];
+const ALLCAPS = CAPS.flatMap(g => g[1].map(c => c[0]));
+const POWERS = ["god", "invisible", "noclip", "carry", "build"];
+const ROLES = [
+  { id: "banned", name: "banned", color: "#7a7a7a", desc: "Can't join.", caps: [], builtIn: true },
+  { id: "user", name: "user", color: "#d4d4d8", desc: "Everyone, to start.", caps: [], builtIn: true, def: "New User" },
+  { id: "priority", name: "priority", color: "#4f86c6", desc: "Gets in when the server is full.", caps: [], builtIn: true },
+  { id: "observer", name: "observer", color: "#9a6ac4", desc: "Watches; can't touch the world.", caps: ["invisible", "noclip"], builtIn: true },
+  { id: "gm", name: "GM", color: "#5a9a4a", desc: "Runs events.", caps: ["items", "weather", "tpTo", "tpBring", "servermsg", "invisible", "god"], builtIn: true },
+  { id: "moderator", name: "moderator", color: "#c49040", desc: "Keeps the peace.", caps: ["seeStats", "kick", "mute", "warn", "tpTo", "tickets", "spam", "logs"], builtIn: true },
+  { id: "overseer", name: "overseer", color: "#d4922a", desc: "A moderator who can ban.", caps: ["seeStats", "kick", "ban", "mute", "warn", "tpTo", "tpBring", "tickets", "spam", "logs", "invisible"], builtIn: true },
+  { id: "admin", name: "admin", color: "#c44040", desc: "Everything.", caps: ALLCAPS.slice(), builtIn: true },
+];
+const roleOf = id => ROLES.find(r => r.id === id);
+const pill = id => { const r = roleOf(id); return `<span class="role" style="color:${r.color}">${esc(r.name)}</span>`; };
+
+const S = {
+  me: "Hermit", theme: "dark", size: "small", screen: "home", who: null, roleId: null, focus: 0, flash: "",
+  find: "", onlineOnly: false, msg: "", repeat: false, every: 60,
+  open: null, reason: "", banLen: "3 days", banIp: false, newRole: null, keepPowers: [], warnN: 1,
+  roleDraft: null, confirm: null, item: null, itemFind: "", itemN: 1, itemTo: "me", banFind: "",
+  powers: { invisible: false, god: false, noclip: false, carry: false },
+  announce: [{ text: "Trading post Saturday at the Muldraugh church. Bring what you can spare.", every: 60 }],
+  players: [
+    { n: "Hermit", role: "admin", on: true, last: "now", warn: 0, kicks: 0, steam: "hermit.trog", prof: "Carpenter", place: "Riverside, 6330 x 5390", traits: ["Handy", "Night Owl"],
+      skills: [["Carpentry", 6], ["Maintenance", 3]], logs: [], tickets: [] },
+    { n: "Kade_R", role: "user", on: true, last: "now", warn: 2, kicks: 1, steam: "kader_ky", prof: "Farmer", place: "Riverside farm, 6280 x 5350",
+      traits: ["Strong", "Gardener", "Smoker"], skills: [["Farming", 5], ["Strength", 7], ["Carpentry", 2], ["Aiming", 1]],
+      logs: [{ t: "Warning", by: "Rosa", r: "Took the shared generator to his farm.", d: "Day 9" }, { t: "Kick", by: "Hermit", r: "Spamming chat after a death.", d: "Day 6" },
+             { t: "Warning", by: "Hermit", r: "Same, the next day.", d: "Day 7" }], tickets: ["#14 Griefing, open", "#9 Griefing, closed"] },
+    { n: "Rosa", role: "moderator", on: true, last: "now", warn: 0, kicks: 0, steam: "rosa.m", prof: "Nurse", place: "Muldraugh warehouse, 10650 x 9970",
+      traits: ["Fast Learner", "First Aider"], skills: [["First Aid", 4], ["Cooking", 3]], logs: [], tickets: ["#13 Stuck, in progress", "#10 Other, open"] },
+    { n: "Aretha", role: "user", on: true, last: "now", warn: 0, kicks: 0, steam: "aretha.b", prof: "Burglar", place: "Riverside, 6347 x 5372",
+      traits: ["Light Eater", "Graceful"], skills: [["Lightfoot", 3], ["Sneaking", 4]], logs: [], tickets: ["#15 Stuck, seen"] },
+    { n: "Mags_77", role: "user", on: true, last: "now", warn: 0, kicks: 0, steam: "magpie77", prof: "Mechanic", place: "Muldraugh mall, 10620 x 9640",
+      traits: ["Organized"], skills: [["Mechanics", 5]], logs: [], tickets: ["#12 Bug, answered"] },
+    { n: "mike_d", role: "user", on: true, last: "now", warn: 1, kicks: 0, steam: "miked", prof: "Unemployed", place: "Muldraugh gas station, 10790 x 10120",
+      traits: [], skills: [["Fitness", 2]], logs: [{ t: "Warning", by: "Rosa", r: "Rammed a car into the gas station queue.", d: "Day 11" }], tickets: ["#8 no kind, open"] },
+    { n: "tjk", role: "priority", on: false, last: "61 h ago", warn: 0, kicks: 0, steam: "tjk", prof: "Park Ranger", place: null,
+      traits: ["Outdoorsman"], skills: [["Foraging", 4]], logs: [], tickets: ["#11 Question, answered"] },
+    { n: "lootdrop99", role: "banned", on: false, last: "3 days ago", warn: 5, kicks: 1, steam: "lootdrop99", prof: "Unemployed", place: null,
+      traits: [], skills: [], logs: [{ t: "Ban", by: "Jules", r: "Scam spam in chat and tickets.", d: "Day 9" }], tickets: ["#7 spam"] },
+  ],
+  bans: [
+    { n: "lootdrop99", reason: "Scam spam in chat and tickets.", by: "Jules", until: null, steam: "76561198000000001", ip: true, when: "Day 9" },
+    { n: "xX_Torch", reason: "Burned the Riverside farm, twice.", by: "Hermit", until: "Nov 8, 9:40 PM (3 days)", steam: "76561198000000002", ip: false, when: "Day 11" },
+  ],
+};
+const ITEMS = [
+  ["Axe", "Base.Axe", "Weapon"], ["Baseball Bat", "Base.BaseballBat", "Weapon"], ["Katana", "Base.Katana", "Weapon"],
+  ["Hammer", "Base.Hammer", "Tool"], ["Saw", "Base.Saw", "Tool"], ["Nails", "Base.Nails", "Material"], ["Plank", "Base.Plank", "Material"],
+  ["Bandage", "Base.Bandage", "Medical"], ["Antibiotics", "Base.Antibiotics", "Medical"], ["Canned Beans", "Base.TinnedBeans", "Food"],
+  ["Water Bottle", "Base.WaterBottle", "Food"], ["Gas Can", "Base.PetrolCan", "Tool"], ["Car Battery", "Base.CarBattery1", "Vehicle"],
+  ["Generator", "Base.Generator", "Tool"], ["Shotgun Shells", "Base.ShotgunShells", "Ammo"],
+];
+const who = () => S.players.find(p => p.n === S.who);
+const POWER_WORDS = { invisible: ["Invisible", "Zombies and players can't see you."], god: ["God Mode", "Nothing hurts you."],
+  noclip: ["No Clip", "Walk through walls and floors."], carry: ["Unlimited carry", "Weight doesn't slow you."] };
+
+function renderReview() {
+  const b = (k, v, l) => `<button data-r="${k}:${v}" class="${S[k] === v ? "on" : ""}">${l}</button>`;
+  document.getElementById("review").innerHTML = `<b>ZeD Admin Tools v1</b>
+    <span>Theme ${b("theme", "dark", "Dark")} ${b("theme", "light", "Light")} ${b("theme", "hc", "High contrast")}</span>
+    <span>Text ${b("size", "small", "Small")} ${b("size", "large", "Large")}</span>
+    <span>Pad: Up / Down, Enter = A, Esc = B</span>`;
+}
+
+// ---------------------------------------------------------------- the Admin tab
+const W_ = (f, html, a) => `<span class="withhand" data-f="${f}"${a ? ` data-a="${a}"` : ""}>${html}</span>`;
+const B_ = (f, a, label, cls = "", dis = false) => W_(f, `<button class="btn ${cls}" data-a="${a}" ${dis ? "disabled" : ""}>${label}</button>`);
+const tick = (f, a, on, label, sub, cls = "") => `<div class="withhand ${cls}" data-f="${f}"><div class="check" data-a="${a}"><span class="box">${on ? "&#x2715;" : ""}</span>
+  <span>${label}${sub ? `<div class="sub">${sub}</div>` : ""}</span></div></div>`;
+
+function renderHome() {
+  const q = S.find.trim().toLowerCase();
+  const ps = S.players.filter(p => (!S.onlineOnly || p.on) && (!q || p.n.toLowerCase().includes(q) || p.role.includes(q) || p.steam.includes(q)));
+  const online = S.players.filter(p => p.on).length;
+  return {
+    head: `Admin <span class="r">you: ${pill("admin")}</span>`,
+    body: `
+      <div class="sec">Tickets<span class="r">5 open</span></div>
+      <div class="sumrow" data-f="tickets" data-a="flash:tickets"><span>2 Stuck, 1 Griefing, 1 Other, 1 with no kind</span><span class="go">&#9654;</span></div>
+      <div class="sec">Players<span class="r">${online} online, ${S.players.length} in all</span></div>
+      <div class="pad14" style="display:flex;gap:8px;align-items:center">
+        ${W_("find", `<input class="field" data-bind="find" placeholder="A name, a role, a Steam name" value="${esc(S.find)}">`)}
+        ${W_("onl", `<span class="chip ${S.onlineOnly ? "on" : ""}" data-a="onlineOnly">Online only</span>`)}</div>
+      <div class="list">${ps.map(p => `<div class="item" data-f="p-${esc(p.n)}" data-a="player:${esc(p.n)}">
+          <span class="who">${esc(p.n)}${p.n === S.me ? " (you)" : ""}</span>${pill(p.role)}
+          <span class="st ${p.on ? "on" : ""}">${p.on ? "online" : esc(p.last)}</span>
+          <span class="end">${p.warn ? `<span class="warnpts">${p.warn} warning${p.warn > 1 ? "s" : ""}</span>` : ""}<span class="st">&#9654;</span></span></div>`).join("")
+        || `<div class="item"><span class="st">Nobody matches.</span></div>`}</div>
+      <div class="sec">Admin powers<span class="r">yours</span></div>
+      <div class="pad14">${Object.entries(POWER_WORDS).map(([k, [w, d]]) => tick("pw-" + k, "power:" + k, S.powers[k], w, d)).join("")}
+        <div class="sub" style="margin-top:6px">Every power on shows over your head as the red Admin tag, so players know.</div></div>
+      <div class="sec">Server message</div>
+      <div class="pad14">
+        ${W_("msg", `<input class="field" data-bind="msg" placeholder="Every player sees this in chat" value="${esc(S.msg)}">`).replace('class="withhand"', 'class="withhand" style="display:block"')}
+        <div style="display:flex;gap:10px;align-items:center;margin-top:8px;flex-wrap:wrap">
+          ${tick("rep", "repeat", S.repeat, "Repeat every", "")}
+          <span class="chips">${[15, 30, 60, 120].map(m => W_("ev" + m, `<span class="chip ${S.every === m ? "on" : ""}" data-a="every:${m}">${m} min</span>`)).join("")}</span>
+          <span style="margin-left:auto">${B_("send", "send", "Send", "default", !S.msg.trim())}</span></div>
+        ${S.announce.length ? `<div class="label">Repeating</div><div class="list">${S.announce.map((a, i) => `<div class="item" data-f="an${i}">
+          <span style="flex:1">${esc(a.text)}</span><span class="st">every ${a.every} min</span>
+          <span class="end">${B_("stop" + i, "stop:" + i, "Stop", "small")}</span></div>`).join("")}</div>` : ""}</div>
+      <div class="sec">Roles<span class="r">${ROLES.length}</span></div>
+      <div class="sumrow" data-f="roles" data-a="go:roles"><span>What each role can do</span><span class="meta">new players get ${pill("user")}</span><span class="go">&#9654;</span></div>
+      <div class="sec">Bans<span class="r">${S.bans.length}</span></div>
+      <div class="sumrow" data-f="bans" data-a="go:bans"><span>Who's banned, why, and until when</span><span class="go">&#9654;</span></div>
+      <div class="sec">Spawn items</div>
+      <div class="sumrow" data-f="spawn" data-a="go:spawn"><span>Find an item, spawn it to you, the ground or a player</span><span class="go">&#9654;</span></div>
+      <div class="sec">More tools<span class="r">the game's own windows, in ZeD's skin</span></div>
+      <div class="pad14"><div class="btnrow">${["Server Options", "Sandbox Options", "PVP Log Tool", "Zone Editor", "Non PVP Zone", "Add Safezone", "Show Statistics"]
+        .map((t, i) => B_("mt" + i, "flash:more", t)).join("")}</div></div>`,
+    help: S.flash || "Pick a player for their card. Your powers save as you tick them.",
+    pad: `<span class="glyph">A</span>Pick <span class="glyph">B</span>Close`,
+  };
+}
+
+// ---------------------------------------------------------------- the player card
+function renderPlayer() {
+  const p = who(), self = p.n === S.me;
+  const r = roleOf(p.role);
+  let inset = "";
+  if (S.open === "kick") inset = `<div class="inset danger"><div class="label" style="margin-top:0">Reason<span class="r">${esc(p.n)} sees it</span></div>
+      ${W_("reason", `<input class="field" data-bind="reason" placeholder="Why, in a line" value="${esc(S.reason)}">`).replace('class="withhand"', 'class="withhand" style="display:block"')}
+      <div class="acts">${B_("kno", "close", "Cancel")}${B_("kyes", "dokick", "Kick", "danger", !S.reason.trim())}</div></div>`;
+  if (S.open === "ban") inset = `<div class="inset danger"><div class="label" style="margin-top:0">Reason<span class="r">${esc(p.n)} sees it, with your appeal line</span></div>
+      ${W_("reason", `<input class="field" data-bind="reason" placeholder="Why, in a line" value="${esc(S.reason)}">`).replace('class="withhand"', 'class="withhand" style="display:block"')}
+      <div class="label">For</div><div class="chips">${["1 hour", "1 day", "3 days", "1 week", "Permanent"].map(l => W_("bl" + l, `<span class="chip ${S.banLen === l ? "on" : ""}" data-a="banLen:${l}">${l}</span>`)).join("")}</div>
+      <div class="sub">${S.banLen === "Permanent" ? "Until someone unbans them." : "Lifts itself " + { "1 hour": "at 10:47 PM tonight", "1 day": "Nov 6, 9:47 PM", "3 days": "Nov 8, 9:47 PM", "1 week": "Nov 12, 9:47 PM" }[S.banLen] + "."}</div>
+      <div style="margin-top:8px">${tick("banip", "banIp", S.banIp, "Ban IP too", "Stops a new account from the same connection.")}</div>
+      <div class="acts">${B_("bno", "close", "Cancel")}${B_("byes", "doban", "Ban", "danger", !S.reason.trim())}</div></div>`;
+  if (S.open === "role") {
+    const nr = roleOf(S.newRole);
+    const gains = nr.caps.filter(c => !r.caps.includes(c) && !POWERS.includes(c));
+    const pw = nr.caps.filter(c => POWERS.includes(c) && !r.caps.includes(c));
+    const capName = id => CAPS.flatMap(g => g[1]).find(c => c[0] === id)[1];
+    inset = `<div class="inset warn"><div class="label" style="margin-top:0">Make ${esc(p.n)} ${esc(nr.name)}?</div>
+      <div class="sub">${gains.length ? "They'll be able to: " + gains.map(capName).join(", ").toLowerCase() + "." : "Nothing new they can do."}
+        ${r.caps.filter(c => !nr.caps.includes(c)).length ? " They lose: " + r.caps.filter(c => !nr.caps.includes(c)).map(capName).join(", ").toLowerCase() + "." : ""}</div>
+      ${pw.length ? `<div class="label">The game switches these on with the role</div>
+        ${pw.map(c => tick("kp-" + c, "keep:" + c, S.keepPowers.includes(c), capName(c) + (S.keepPowers.includes(c) ? ": stays on" : ": turned off for them"), "")).join("")}
+        <div class="sub warn">Tick only what they should have on from the start; they can switch the rest on themselves.</div>` : ""}
+      <div class="acts">${B_("rno", "close", "Cancel")}${B_("ryes", "dorole", "Change Role", "default")}</div></div>`;
+  }
+  if (S.open === "warn") inset = `<div class="inset warn"><div class="label" style="margin-top:0">Add Warning Points</div>
+      <div style="display:flex;gap:10px;align-items:center">${B_("wm", "warnN:-1", "&minus;", "small")}<span class="stepper"><span class="val">${S.warnN}</span></span>${B_("wp", "warnN:1", "+", "small")}
+        <span class="sub">${p.warn} now, ${p.warn + S.warnN} after</span></div>
+      <div class="label">Reason<span class="r">${esc(p.n)} sees it</span></div>
+      ${W_("reason", `<input class="field" data-bind="reason" placeholder="Why, in a line" value="${esc(S.reason)}">`).replace('class="withhand"', 'class="withhand" style="display:block"')}
+      <div class="acts">${B_("wno", "close", "Cancel")}${B_("wyes", "dowarn", "Add", "default", !S.reason.trim())}</div></div>`;
+  return {
+    back: { label: "Admin", title: p.n, r: pill(p.role) },
+    body: `<div class="cardbody">
+      <div class="facts">
+        <span class="k">Username</span><span>${esc(p.n)}</span>
+        <span class="k">Steam Name</span><span>${esc(p.steam)}</span>
+        <span class="k">Role</span><span>${self ? pill(p.role) + " (your own role is changed by another admin)" : W_("role", `<select class="select" id="rolesel">${ROLES.map(x => `<option value="${x.id}" ${x.id === (S.open === "role" ? S.newRole : p.role) ? "selected" : ""}>${esc(x.name)}</option>`).join("")}</select>`)}</span>
+        <span class="k">Status</span><span>${p.on ? "online" : "last here " + esc(p.last)}</span>
+        <span class="k">Where</span><span>${p.place ? esc(p.place) : "not on the map"}</span>
+        <span class="k">Warning Points</span><span class="${p.warn ? "warnpts" : ""}">${p.warn} | Kicks: ${p.kicks}</span>
+      </div>
+      ${self ? "" : `<div class="btnrow" style="margin-top:10px">
+        ${B_("tp", "tp", "Teleport", "", !p.on)}${B_("tpme", "bring", "Teleport To You", "", !p.on)}${B_("mute", "mute", p.muted ? "Unmute" : "Mute", "", !p.on)}
+        ${B_("warnb", "open:warn", "Add Warning Points")}${B_("kick", "open:kick", "Kick", "danger", !p.on)}${p.role === "banned" ? "" : B_("ban", "open:ban", "Ban", "danger")}</div>`}
+      ${inset}
+      <div class="label">Profession and traits</div>
+      <div class="sub" style="color:var(--text)">${esc(p.prof)}${p.traits.length ? ": " + p.traits.map(esc).join(", ") : ""}</div>
+      ${p.skills.length ? `<div class="label">Skills<span class="r">Level Up, Level Down</span></div><div class="skills">${p.skills.map(([s, l], i) => `<span>${esc(s)}</span>
+        <span class="pips">${"&#9632;".repeat(l)}<span style="color:var(--surface-3)">${"&#9632;".repeat(10 - l)}</span></span>
+        <span>${B_("sd" + i, "skill:" + i + ":-1", "&minus;", "small")} ${B_("su" + i, "skill:" + i + ":1", "+", "small")}</span>`).join("")}</div>` : ""}
+      <div class="label">Inventory</div>
+      <div class="list"><div class="item" data-f="inv" data-a="flash:inv"><span>Manage ${esc(p.n)}'s Inventory</span><span class="end"><span class="st">opens beside yours</span></span></div></div>
+      <div class="label">User Logs<span class="r">${p.logs.length}</span></div>
+      ${p.logs.length ? `<div class="log">${p.logs.map(l => `<div><span class="t">${esc(l.d)} ${esc(l.t)}</span><span class="t">${esc(l.by)}</span><span>${esc(l.r)}</span></div>`).join("")}</div>` : `<div class="sub">Nothing logged.</div>`}
+      <div class="label">Tickets<span class="r">${p.tickets.length}</span></div>
+      ${p.tickets.length ? p.tickets.map((t, i) => `<div class="sub" style="color:var(--text)">${esc(t)}</div>`).join("") : `<div class="sub">None.</div>`}
+      </div>`,
+    help: S.flash || (S.open === "ban" ? "The reason and the length show on their screen when they try to join." : S.open === "role" ? "A role's powers come on with it unless you say otherwise here." : `Everything about ${p.n} in one card. Kick and Ban ask for a reason first.`),
+    pad: `<span class="glyph">A</span>Pick <span class="glyph">B</span>Back`,
+  };
+}
+
+// ---------------------------------------------------------------- roles
+function renderRoles() {
+  return {
+    back: { label: "Admin", title: "Roles" },
+    body: `<div class="cardbody"><div class="sub" style="margin-top:0">Top to bottom, least to most. Pick one to see and change what it can do.</div>
+      <div class="list" style="margin-top:8px">${ROLES.map(r => `<div class="item" data-f="r-${r.id}" data-a="role:${r.id}">${pill(r.id)}
+        <span class="st">${esc(r.desc)}</span><span class="end"><span class="st">${S.players.filter(p => p.role === r.id).length} players</span>
+        ${r.def ? `<span class="st">new players</span>` : ""}<span class="st">&#9654;</span></span></div>`).join("")}</div>
+      <div style="margin-top:10px">${B_("addrole", "addrole", "Add role")}</div></div>`,
+    help: S.flash || "Roles are the game's own. ZeD shows what each can do as ticks.",
+    pad: `<span class="glyph">A</span>Pick <span class="glyph">B</span>Back`,
+  };
+}
+function renderRole() {
+  const d = S.roleDraft, orig = roleOf(S.roleId);
+  const changed = JSON.stringify(d) !== JSON.stringify({ name: orig.name, color: orig.color, desc: orig.desc, caps: orig.caps });
+  const COLORS = ["#d4d4d8", "#7a7a7a", "#4f86c6", "#3fa59a", "#5a9a4a", "#c4b040", "#d4922a", "#c49040", "#c44040", "#9a6ac4"];
+  return {
+    back: { label: "Roles", title: d.name || "New role", r: `<span class="role" style="color:${d.color}">${esc(d.name || "new")}</span>` },
+    body: `<div class="cardbody">
+      <div class="label">Name</div>
+      ${W_("rname", `<input class="field" data-bind="roleDraft.name" value="${esc(d.name)}" ${orig.builtIn && orig.id !== "gm" ? "" : ""}>`).replace('class="withhand"', 'class="withhand" style="display:block"')}
+      <div class="label">Description</div>
+      ${W_("rdesc", `<input class="field" data-bind="roleDraft.desc" value="${esc(d.desc)}">`).replace('class="withhand"', 'class="withhand" style="display:block"')}
+      <div class="label">Color<span class="r">their name and tag in chat</span></div>
+      <div class="chips">${COLORS.map(c => W_("c" + c, `<span class="chip ${d.color === c ? "on" : ""}" data-a="rcolor:${c}" style="width:22px;height:22px;padding:0;background:${c};border-color:${d.color === c ? "var(--accent)" : "var(--border-strong)"}"></span>`)).join("")}</div>
+      <div class="label">Capabilities<span class="r">${d.caps.length} of ${ALLCAPS.length}</span></div>
+      <div class="caps">${CAPS.map(([g, cs]) => `<div class="grp">${g}</div>${cs.map(([id, w]) => tick("cap-" + id, "cap:" + id, d.caps.includes(id), w,
+        POWERS.includes(id) ? "Comes on when someone gets this role; they can switch it off." : "")).join("")}`).join("")}</div>
+      ${orig.def ? `<div class="sub" style="margin-top:10px">New players start with this role.</div>` : `<div style="margin-top:10px">${B_("def", "flash:def", "Set default for New User")}</div>`}
+      </div>`,
+    foot: S.confirm ? `<span class="left warn">${esc(S.confirm)}</span>${B_("cno", "cno", "Keep it")}${B_("cyes", "cyes", "Delete role", "danger")}`
+      : `${orig.id === "admin" || orig.id === "user" ? "" : B_("rdel", "rdel", "Delete role", "danger")}<span class="left">${changed ? "Not saved yet." : ""}</span>
+         ${B_("rcancel", "back", "Cancel")}${B_("rsave", "rsave", "Save", "default", !changed)}`,
+    help: S.flash || (S.confirm ? "Nothing changes until you pick Delete role." : "Tick what this role can do. Save applies it to everyone with the role."),
+    pad: `<span class="glyph">A</span>Tick <span class="glyph">START</span>Save <span class="glyph">B</span>Back`,
+  };
+}
+
+// ---------------------------------------------------------------- bans
+function renderBans() {
+  return {
+    back: { label: "Admin", title: "Bans" },
+    body: `<div class="cardbody">
+      <div class="label">Ban someone who isn't on<span class="r">a username, a Steam ID or an IP</span></div>
+      <div style="display:flex;gap:8px">${W_("bf", `<input class="field mono" data-bind="banFind" placeholder="lootdrop99 or 76561198... or 203.0.113.7" value="${esc(S.banFind)}">`).replace('class="withhand"', 'class="withhand" style="flex:1"')}
+        ${B_("bgo", "flash:banoff", "Ban", "danger", !S.banFind.trim())}</div>
+      <div class="label">Banned<span class="r">${S.bans.length}</span></div>
+      <div class="list">${S.bans.map((b, i) => `<div class="item" data-f="b${i}" style="flex-wrap:wrap;cursor:default">
+        <span class="who">${esc(b.n)}</span><span class="st">${b.until ? "until " + esc(b.until) : "Permanent"}</span>
+        <span class="end">${B_("ub" + i, "unban:" + i, "Unban", "small")}</span>
+        <div style="flex-basis:100%" class="sub">${esc(b.reason)} ${esc(b.by)}, ${esc(b.when)}. Steam ID ${esc(b.steam)}${b.ip ? ", IP banned too" : ""}.</div></div>`).join("")
+        || `<div class="item"><span class="st">Nobody is banned.</span></div>`}</div>
+      <div class="label">What they see</div>
+      <div class="inset" style="font-size:var(--fs-small)">You're banned from Knox Survivors until Nov 8, 9:40 PM.<br>Reason: Burned the Riverside farm, twice.<br>
+        Appeal: discord.gg/knoxsurvivors</div>
+      <div class="sub">The appeal line is the server's own, set once under Server rules (Phase 5).</div></div>`,
+    foot: S.confirm ? `<span class="left warn">${esc(S.confirm)}</span>${B_("cno", "cno", "Keep the ban")}${B_("cyes", "cyes", "Unban", "default")}` : "",
+    help: S.flash || "Bans with a length lift themselves. Unban asks first.",
+    pad: `<span class="glyph">A</span>Pick <span class="glyph">B</span>Back`,
+  };
+}
+
+// ---------------------------------------------------------------- spawn items
+function renderSpawn() {
+  const q = S.itemFind.trim().toLowerCase();
+  const list = ITEMS.filter(i => !q || [i[0], q.includes(".") ? i[1] : i[1].split(".")[1], i[2]].join(" ").toLowerCase().includes(q));
+  const it = S.item !== null ? ITEMS[S.item] : null;
+  const onl = S.players.filter(p => p.on && p.n !== S.me);
+  return {
+    back: { label: "Admin", title: "Spawn items" },
+    body: `<div class="cardbody">
+      ${W_("if", `<input class="field" data-bind="itemFind" placeholder="Find an item: a name or Module.Type" value="${esc(S.itemFind)}">`).replace('class="withhand"', 'class="withhand" style="display:block"')}
+      <div class="sub">${list.length} of ${ITEMS.length} (the game's whole list in the real card)</div>
+      <div class="list" style="margin-top:6px">${list.map(i => { const n = ITEMS.indexOf(i); return `<div class="item" data-f="it${n}" data-a="item:${n}" style="${S.item === n ? "background:var(--accent);color:var(--base)" : ""}">
+        <span class="who">${esc(i[0])}</span><span class="st" style="${S.item === n ? "color:var(--base)" : ""}">${esc(i[1])}</span><span class="end"><span class="st" style="${S.item === n ? "color:var(--base)" : ""}">${esc(i[2])}</span></span></div>`; }).join("")}</div>
+      ${it ? `<div class="label">How many<span class="r">up to 100</span></div>
+        <div style="display:flex;gap:8px;align-items:center">${B_("nm", "itemN:-1", "&minus;", "small")}<span class="stepper"><span class="val">${S.itemN}</span></span>${B_("np", "itemN:1", "+", "small")}
+          ${[1, 5, 10, 50].map(n => W_("n" + n, `<span class="chip ${S.itemN === n ? "on" : ""}" data-a="itemSet:${n}">${n}</span>`)).join("")}</div>
+        <div class="label">To</div>
+        <div class="chips">${W_("tome", `<span class="chip ${S.itemTo === "me" ? "on" : ""}" data-a="itemTo:me">My inventory</span>`)}
+          ${W_("tog", `<span class="chip ${S.itemTo === "ground" ? "on" : ""}" data-a="itemTo:ground">The ground here</span>`)}
+          ${onl.map(p => W_("to" + p.n, `<span class="chip ${S.itemTo === p.n ? "on" : ""}" data-a="itemTo:${esc(p.n)}">${esc(p.n)}</span>`)).join("")}</div>` : ""}
+      </div>`,
+    foot: it ? `<span class="left">${S.itemN} x ${esc(it[0])} to ${S.itemTo === "me" ? "you" : S.itemTo === "ground" ? "the ground" : esc(S.itemTo)}</span>${B_("spawnb", "spawn", "Spawn", "default")}` : "",
+    help: S.flash || (it ? "Every spawn goes in the admin log, with who and where." : "Find an item, pick it, then how many and where."),
+    pad: `<span class="glyph">A</span>Pick <span class="glyph">START</span>Spawn <span class="glyph">B</span>Back`,
+  };
+}
+
+// ---------------------------------------------------------------- the frame
+function render() {
+  document.documentElement.dataset.theme = S.theme;
+  document.documentElement.dataset.size = S.size;
+  renderReview();
+  const v = { home: renderHome, player: renderPlayer, roles: renderRoles, role: renderRole, bans: renderBans, spawn: renderSpawn }[S.screen]();
+  const rails = ["GRD", "ADM", "MAP", "VEH", "RAD"];
+  document.getElementById("win").innerHTML = `
+    <div class="titlebar"><div class="close"></div><div class="titlechip">Ground <span class="plus">+</span> Admin</div></div>
+    <div class="body"><div class="rail">${rails.map(r => `<div class="${r === "ADM" ? "on" : ""}">${r}</div>`).join("")}</div>
+      <div class="panel">
+        ${v.back ? `<div class="backbar"><span class="back withhand" data-f="back" data-a="back">&#9664; ${esc(v.back.label)}</span><span class="title">${esc(v.back.title)}</span>${v.back.r ? `<span class="r">${v.back.r}</span>` : ""}</div>`
+          : `<div class="panelhead">${v.head}</div>`}
+        <div class="scroll" id="scroll">${v.body}</div>
+        ${v.foot ? `<div class="foot">${v.foot}</div>` : ""}
+        <div class="helpband"><span>${v.help}</span><span class="pad">${v.pad}</span></div>
+      </div></div>`;
+  const fs = [...document.querySelectorAll("#win [data-f]")];
+  if (S.focus >= fs.length) S.focus = fs.length - 1;
+  if (S.focus < 0) S.focus = 0;
+  const f = fs[S.focus];
+  if (f) { if (!f.classList.contains("item") && !f.classList.contains("sumrow")) f.classList.add("focused"); f.insertAdjacentHTML("afterbegin", HAND); }
+  document.querySelectorAll("#win [data-bind]").forEach(el => el.addEventListener("input", ev => {
+    const key = el.dataset.bind, pos = el.selectionStart;
+    setBind(key, ev.target.value); render();
+    const n = document.querySelector(`#win [data-bind="${key}"]`); if (n) { n.focus(); n.setSelectionRange(pos, pos); }
+  }));
+  const rs = document.getElementById("rolesel");
+  if (rs) rs.addEventListener("change", ev => { act("rolepick:" + ev.target.value); });
+}
+function setBind(key, v) { const ks = key.split("."); let o = S; while (ks.length > 1) o = o[ks.shift()]; o[ks[0]] = v; }
+function focusOn(f) { setTimeout(() => { const fs = [...document.querySelectorAll("#win [data-f]")]; const i = fs.findIndex(x => x.dataset.f === f); if (i >= 0) { S.focus = i; render(); } }, 0); }
+
+// ---------------------------------------------------------------- actions
+function act(a) {
+  const parts = a.split(":"), k = parts[0], p = S.who ? who() : null;
+  S.flash = "";
+  switch (k) {
+    case "flash": S.flash = { tickets: "Opens the Tickets queue (mockups/zed_tickets_v2.html).", more: "Opens the game's own window, in ZeD's skin, until ZeD rebuilds it.",
+      inv: "Their inventory opens in this window's ground pane, beside yours: drag, drop or delete.", def: "New players will start with this role.",
+      banoff: "Banned: they can't join, under that name, Steam ID or IP." }[parts[1]]; break;
+    case "onlineOnly": S.onlineOnly = !S.onlineOnly; break;
+    case "power": S.powers[parts[1]] = !S.powers[parts[1]]; S.flash = `${POWER_WORDS[parts[1]][0]} ${S.powers[parts[1]] ? "on" : "off"}. Saved.`; break;
+    case "repeat": S.repeat = !S.repeat; break;
+    case "every": S.every = +parts[1]; break;
+    case "send":
+      if (S.repeat) { S.announce.push({ text: S.msg.trim(), every: S.every }); S.flash = `Sent, and again every ${S.every} minutes until you stop it.`; }
+      else S.flash = "Sent. Every player sees it in chat.";
+      S.msg = ""; break;
+    case "stop": S.announce.splice(+parts[1], 1); S.flash = "Stopped."; break;
+    case "go": S.screen = parts[1]; S.focus = 0; S.confirm = null; break;
+    case "player": S.who = parts[1]; S.screen = "player"; S.open = null; S.reason = ""; S.focus = 0; break;
+    case "back":
+      S.confirm = null;
+      if (S.screen === "role") { S.screen = "roles"; } else { S.screen = "home"; }
+      S.open = null; S.focus = 0; break;
+    case "open": S.open = parts[1]; S.reason = ""; S.warnN = 1; S.banLen = "3 days"; S.banIp = false; focusOn(parts[1] === "warn" ? "wp" : "reason"); break;
+    case "close": S.open = null; break;
+    case "banLen": S.banLen = parts.slice(1).join(":"); break;
+    case "banIp": S.banIp = !S.banIp; break;
+    case "dokick": p.kicks++; p.on = false; p.last = "just now"; p.logs.unshift({ t: "Kick", by: S.me, r: S.reason.trim(), d: "Day 12" });
+      S.open = null; S.flash = `${p.n} kicked. They saw: "${S.reason.trim()}"`; break;
+    case "doban": S.bans.unshift({ n: p.n, reason: S.reason.trim(), by: S.me, until: S.banLen === "Permanent" ? null : S.banLen, steam: "7656119800000" + (10 + S.bans.length), ip: S.banIp, when: "Day 12" });
+      p.logs.unshift({ t: "Ban", by: S.me, r: S.reason.trim(), d: "Day 12" }); p.role = "banned"; p.on = false; p.last = "just now";
+      S.open = null; S.flash = `${p.n} banned${S.banLen === "Permanent" ? "" : " for " + S.banLen}.`; break;
+    case "rolepick":
+      if (parts[1] === p.role) { S.open = null; break; }
+      S.open = "role"; S.newRole = parts[1]; S.keepPowers = []; focusOn("rno"); break;
+    case "keep": { const i = S.keepPowers.indexOf(parts[1]); if (i >= 0) S.keepPowers.splice(i, 1); else S.keepPowers.push(parts[1]); break; }
+    case "dorole": {
+      const nr = roleOf(S.newRole), off = nr.caps.filter(c => POWERS.includes(c) && !S.keepPowers.includes(c));
+      p.role = S.newRole; S.open = null;
+      S.flash = `${p.n} is ${nr.name} now.` + (off.length ? " Their powers start off; they can switch them on." : ""); break;
+    }
+    case "warnN": S.warnN = Math.max(1, Math.min(10, S.warnN + +parts[1])); break;
+    case "dowarn": p.warn += S.warnN; p.logs.unshift({ t: "Warning", by: S.me, r: S.reason.trim(), d: "Day 12" }); S.open = null;
+      S.flash = `${S.warnN} warning point${S.warnN > 1 ? "s" : ""} added. ${p.n} sees the reason.`; break;
+    case "tp": S.flash = `Teleported to ${p.n}.`; break;
+    case "bring": S.flash = `${p.n} brought to you.`; break;
+    case "mute": p.muted = !p.muted; S.flash = p.muted ? `${p.n} can't use chat until you unmute them.` : `${p.n} can chat again.`; break;
+    case "skill": { const s = p.skills[+parts[1]]; s[1] = Math.max(0, Math.min(10, s[1] + +parts[2])); S.flash = `${s[0]} ${s[1]}.`; break; }
+    case "role": { const r = roleOf(parts[1]); S.roleId = r.id; S.roleDraft = { name: r.name, color: r.color, desc: r.desc, caps: r.caps.slice() }; S.screen = "role"; S.focus = 0; break; }
+    case "addrole": { const id = "r" + Date.now(); ROLES.splice(ROLES.length - 1, 0, { id, name: "new role", color: "#3fa59a", desc: "", caps: [] });
+      act("role:" + id); focusOn("rname"); return; }
+    case "rcolor": S.roleDraft.color = parts[1]; break;
+    case "cap": { const c = S.roleDraft.caps, i = c.indexOf(parts[1]); if (i >= 0) c.splice(i, 1); else c.push(parts[1]); break; }
+    case "rsave": Object.assign(roleOf(S.roleId), S.roleDraft, { caps: S.roleDraft.caps.slice() }); S.flash = "Saved. Everyone with this role has it now."; break;
+    case "rdel": S.confirm = `Delete the ${S.roleDraft.name} role? Its ${S.players.filter(x => x.role === S.roleId).length} players become user.`; focusOn("cno"); break;
+    case "unban": S.confirm = `Unban ${S.bans[+parts[1]].n}? They can join again right away.`; S.unbanI = +parts[1]; focusOn("cno"); break;
+    case "cno": S.confirm = null; break;
+    case "cyes":
+      if (S.screen === "role") { ROLES.splice(ROLES.findIndex(r => r.id === S.roleId), 1); S.players.forEach(x => { if (x.role === S.roleId) x.role = "user"; }); S.screen = "roles"; S.flash = "Role deleted."; }
+      else { const b = S.bans.splice(S.unbanI, 1)[0]; const pl = S.players.find(x => x.n === b.n); if (pl) pl.role = "user"; S.flash = `${b.n} unbanned.`; }
+      S.confirm = null; S.focus = 0; break;
+    case "item": S.item = +parts[1]; S.itemN = 1; break;
+    case "itemN": S.itemN = Math.max(1, Math.min(100, S.itemN + +parts[1])); break;
+    case "itemSet": S.itemN = +parts[1]; break;
+    case "itemTo": S.itemTo = parts[1]; break;
+    case "spawn": S.flash = `${S.itemN} x ${ITEMS[S.item][0]} spawned to ${S.itemTo === "me" ? "your inventory" : S.itemTo === "ground" ? "the ground here" : S.itemTo + "'s inventory"}. Logged.`; break;
+  }
+  render();
+}
+
+document.addEventListener("click", e => {
+  const r = e.target.closest("[data-r]");
+  if (r) { const [k, v] = r.dataset.r.split(/:(.*)/); S[k] = v; render(); return; }
+  if (e.target.closest("input, select")) return;
+  const a = e.target.closest("[data-a]");
+  if (a && !a.disabled) {
+    const fs = [...document.querySelectorAll("#win [data-f]")]; const f = a.closest("[data-f]"); if (f) S.focus = fs.indexOf(f);
+    act(a.dataset.a);
+  }
+});
+document.addEventListener("keydown", e => {
+  if (e.target.closest && e.target.closest("input, select")) { if (e.key === "Escape") e.target.blur(); return; }
+  const fs = [...document.querySelectorAll("#win [data-f]")];
+  if (e.key === "ArrowDown") { S.focus = Math.min(fs.length - 1, S.focus + 1); render(); e.preventDefault(); }
+  else if (e.key === "ArrowUp") { S.focus = Math.max(0, S.focus - 1); render(); e.preventDefault(); }
+  else if (e.key === "Enter") {
+    const f = fs[S.focus]; if (!f) return;
+    const field = f.querySelector("input, select"); if (field) { field.focus(); e.preventDefault(); return; }
+    const a = f.matches("[data-a]") ? f : f.querySelector("[data-a]");
+    if (a && !a.disabled) act(a.dataset.a); e.preventDefault();
+  } else if (e.key === "Escape") { if (S.confirm) act("cno"); else if (S.open) act("close"); else if (S.screen !== "home") act("back"); }
+  const h = document.querySelector("#win .hand"); if (h) h.parentElement.scrollIntoView({ block: "nearest" });
+});
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZeD Tickets v1</title>
+<!-- MP_ADMIN_SCOPE.md, Phase 1: reports and tickets (Design, Cowork, Nov 5 2026).
+     The player's Ask the admins card and their tickets (Server tab, Character window); the admin's Tickets queue and
+     ticket card (Admin tab, World window). Two-deep stack: the tab underneath, the card pushed on top with a back-bar.
+     Keyboard stands in for the pad: Up / Down move the controller highlight, Enter is A, Escape is B. -->
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans+Condensed:wght@400;500;600&display=swap');
+:root {
+  --base: #1a1a1e; --surface-1: #222226; --surface-2: #2a2a2e; --surface-3: #333338;
+  --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.20);
+  --text: #d4d4d8; --text-secondary: rgba(255,255,255,0.45); --text-heading: rgba(255,255,255,0.65);
+  --accent: #3fa59a; --danger: #c44040; --warning: #c49040; --positive: #4a9a5a; --info: #4f86c6; --violet: #9a6ac4;
+  --stripe-1: #333338; --stripe-2: #2a2a2e; --note: #c4a95a;
+  --font-mono: 'Fira Mono', monospace; --font-sans: 'Fira Sans Condensed', sans-serif;
+  --fs: 15px; --fs-small: 13px;
+  --page: #0e0f10;
+}
+:root[data-theme="light"] {
+  --base: #e9e7e2; --surface-1: #f2f0eb; --surface-2: #dddad3; --surface-3: #cfcbc2;
+  --border: rgba(0,0,0,0.14); --border-strong: rgba(0,0,0,0.30);
+  --text: #1d1d1f; --text-secondary: rgba(0,0,0,0.55); --text-heading: rgba(0,0,0,0.70);
+  --stripe-1: #cfcbc2; --stripe-2: #dddad3; --page: #8c8a84; --note: #8a6d1e;
+}
+:root[data-theme="hc"] {
+  --base: #000; --surface-1: #0a0a0a; --surface-2: #141414; --surface-3: #262626;
+  --border: rgba(255,255,255,0.45); --border-strong: rgba(255,255,255,0.85);
+  --text: #fff; --text-secondary: rgba(255,255,255,0.80); --text-heading: #fff;
+  --stripe-1: #444; --stripe-2: #111; --note: #ffd75e;
+}
+:root[data-size="large"] { --fs: 18px; --fs-small: 15px; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--page); color: var(--text); }
+body { font-family: var(--font-sans); font-size: var(--fs); display: flex; flex-direction: column; align-items: center; }
+
+/* the review bar (outside the game) */
+.review { width: 100%; display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: center;
+  padding: 8px 16px; font-family: var(--font-mono); font-size: 12px; color: #aaa; background: #000; border-bottom: 1px solid #333; }
+.review b { color: #ddd; font-weight: 500; }
+.review button { font-family: var(--font-mono); font-size: 12px; background: #1b1b1b; color: #ccc; border: 1px solid #444; padding: 3px 8px; cursor: pointer; }
+.review button.on { border-color: #ddd; color: #fff; }
+.review .sw { width: 16px; height: 16px; border: 1px solid #555; display: inline-block; cursor: pointer; vertical-align: middle; }
+.review .sw.on { outline: 1px solid #fff; outline-offset: 1px; }
+
+/* the window */
+.stage { flex: 1; display: flex; align-items: center; justify-content: center; padding: 16px; width: 100%; }
+.win { width: min(620px, 100%); height: min(760px, calc(100vh - 90px)); display: flex; flex-direction: column;
+  background: color-mix(in srgb, var(--base) 92%, transparent); border: 1px solid var(--border-strong); }
+.titlebar { height: 22px; flex: 0 0 22px; display: flex; align-items: center; gap: 10px; padding: 0 8px;
+  background: repeating-linear-gradient(to bottom, var(--stripe-1) 0 2px, var(--stripe-2) 2px 4px); border-bottom: 1px solid var(--border-strong); }
+.close { width: 12px; height: 12px; border: 1px solid var(--border-strong); background: var(--surface-1); }
+.titlechip { background: var(--surface-2); padding: 0 8px; font-family: var(--font-mono); font-size: var(--fs-small); color: var(--text); }
+.titlechip .plus { color: var(--text-secondary); margin: 0 6px; }
+.body { flex: 1; display: flex; min-height: 0; }
+.rail { width: 46px; flex: 0 0 46px; border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+.rail div { height: 46px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono);
+  font-size: 11px; color: var(--text-secondary); border-bottom: 1px solid var(--border); }
+.rail div.on { background: var(--accent); color: var(--base); font-weight: 700; }
+.panel { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.panelhead { height: 44px; flex: 0 0 44px; display: flex; align-items: center; padding: 0 14px; border-bottom: 1px solid var(--border);
+  font-family: var(--font-sans); font-weight: 600; font-size: calc(var(--fs) + 4px); }
+.panelhead .count { margin-left: auto; font-family: var(--font-mono); font-size: var(--fs-small); color: var(--text-secondary); font-weight: 400; }
+.scroll { flex: 1; overflow-y: auto; min-height: 0; }
+.helpband { flex: 0 0 auto; min-height: 30px; display: flex; align-items: center; gap: 12px; padding: 5px 12px;
+  background: var(--surface-2); border-top: 1px solid var(--border); font-family: var(--font-sans); font-size: var(--fs-small); color: var(--text-secondary); }
+.helpband .pad { margin-left: auto; font-family: var(--font-mono); white-space: nowrap; }
+.glyph { display: inline-block; min-width: 16px; height: 16px; line-height: 16px; text-align: center; border-radius: 8px;
+  background: var(--surface-3); color: var(--text); font-family: var(--font-mono); font-size: 10px; margin-right: 3px; }
+
+/* sections and rows */
+.sec { padding: 6px 14px 4px; background: var(--surface-1); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono); font-weight: 700; font-size: var(--fs-small); color: var(--text-heading); display: flex; }
+.sec .r { margin-left: auto; font-weight: 400; }
+.kv { display: flex; padding: 4px 14px; font-family: var(--font-mono); font-size: var(--fs-small); }
+.kv .k { font-weight: 700; color: var(--text-heading); }
+.kv .v { margin-left: auto; color: var(--text); }
+.pad14 { padding: 8px 14px; }
+.row { position: relative; display: grid; grid-template-columns: 92px minmax(0, 1fr) auto; gap: 8px; align-items: start;
+  padding: 7px 14px 7px 30px; border-bottom: 1px solid var(--border); cursor: pointer; }
+.row .first { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .meta { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row.dim { opacity: 0.55; }
+.row.sel { background: var(--accent); color: var(--base); }
+.row.sel .meta { color: var(--base); opacity: 0.8; }
+.empty { padding: 14px; color: var(--text-secondary); }
+
+/* the kind label: a word on a colored tag, never color alone */
+.kind { display: inline-block; font-family: var(--font-mono); font-size: 11px; font-weight: 700; padding: 1px 5px;
+  border: 1px solid currentColor; letter-spacing: 0.02em; white-space: nowrap; }
+.k-GRIEF { color: var(--danger); } .k-STUCK { color: var(--warning); } .k-BUG { color: var(--info); }
+.k-QUESTION { color: var(--positive); } .k-APPEAL { color: var(--violet); } .k-OTHER, .k-NONE { color: var(--text-secondary); }
+.row.sel .kind { color: var(--base); }
+.status { font-family: var(--font-mono); font-size: 11px; white-space: nowrap; }
+.st-Open::before { content: "\25CF  "; color: var(--accent); }
+.st-Progress::before { content: "\25D0  "; color: var(--warning); }
+.st-Answered::before { content: "\2713  "; color: var(--positive); }
+.st-Closed::before { content: "\25CB  "; color: var(--text-secondary); }
+.st-Sent::before { content: "\25CB  "; color: var(--text-secondary); }
+.st-Seen::before { content: "\25CF  "; color: var(--info); }
+.row.sel .status::before { color: var(--base); }
+
+/* controls */
+.btn { position: relative; padding: 4px 14px; border: 1px solid var(--border-strong); border-radius: 5px; background: var(--surface-2);
+  color: var(--text); font-family: var(--font-mono); font-size: var(--fs-small); cursor: pointer; white-space: nowrap; }
+.btn::before { content: ""; position: absolute; inset: 2px; border: 1px solid var(--border-strong); border-radius: 3px; pointer-events: none; }
+.btn.default, .btn.default::before { border-color: var(--accent); } .btn.default { color: var(--accent); }
+.btn.danger, .btn.danger::before { border-color: var(--danger); } .btn.danger { color: var(--danger); }
+.btn:disabled { opacity: 0.4; cursor: default; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-family: var(--font-mono); font-size: var(--fs-small); padding: 3px 9px; border: 1px solid var(--border-strong); background: var(--surface-1);
+  color: var(--text); cursor: pointer; }
+.chip.on { background: var(--accent); color: var(--base); border-color: var(--accent); }
+.check { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; }
+.box { width: 15px; height: 15px; flex: 0 0 15px; margin-top: 2px; border: 1px solid var(--border-strong); background: var(--surface-1);
+  display: flex; align-items: center; justify-content: center; color: var(--accent); font-family: var(--font-mono); font-size: 12px; line-height: 1; }
+.field { width: 100%; background: var(--surface-1); border: 1px solid var(--border-strong); color: var(--text); font-family: var(--font-sans);
+  font-size: var(--fs); padding: 6px 8px; resize: none; }
+.field:focus { outline: none; border-color: var(--accent); }
+.select { background: var(--surface-1); border: 1px solid var(--border-strong); color: var(--text); font-family: var(--font-mono);
+  font-size: var(--fs-small); padding: 3px 6px; }
+.label { font-family: var(--font-mono); font-weight: 700; font-size: var(--fs-small); color: var(--text-heading); margin: 12px 0 6px; }
+.label:first-child { margin-top: 2px; }
+.sub { font-size: var(--fs-small); color: var(--text-secondary); margin-top: 3px; }
+.filters { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: center; padding: 8px 14px; background: var(--surface-1);
+  border-bottom: 1px solid var(--border); font-family: var(--font-mono); font-size: var(--fs-small); }
+.filters .lbl { color: var(--text-heading); font-weight: 700; }
+.filters .line { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+/* the card */
+.backbar { height: 34px; flex: 0 0 34px; display: flex; align-items: center; gap: 10px; padding: 0 10px 0 6px; border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono); font-size: var(--fs-small); background: var(--surface-1); }
+.backbar .back { cursor: pointer; padding: 2px 6px; color: var(--text-heading); }
+.backbar .title { font-weight: 700; }
+.flagstrip { display: flex; gap: 8px; align-items: center; padding: 7px 14px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.cardbody { padding: 10px 14px 14px; }
+.facts { display: grid; grid-template-columns: 92px 1fr; gap: 3px 10px; font-size: var(--fs-small); }
+.facts .k { font-family: var(--font-mono); font-weight: 700; color: var(--text-heading); }
+.place { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.msg { margin: 8px 0; padding: 7px 9px; background: var(--surface-1); border-left: 3px solid var(--border-strong); }
+.msg.admin { border-left-color: var(--accent); }
+.msg.note { border-left-color: var(--note); background: color-mix(in srgb, var(--note) 9%, var(--surface-1)); }
+.msg .who { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); margin-bottom: 3px; }
+.msg.note .who { color: var(--note); }
+.foot { flex: 0 0 auto; display: flex; gap: 8px; align-items: center; justify-content: flex-end; padding: 7px 12px;
+  background: var(--surface-2); border-top: 1px solid var(--border); flex-wrap: wrap; }
+.foot .left { margin-right: auto; font-family: var(--font-mono); font-size: var(--fs-small); color: var(--text-secondary); }
+.foot .left.warn { color: var(--danger); }
+.toggle2 { display: flex; }
+.toggle2 .chip { border-right-width: 0; } .toggle2 .chip:last-child { border-right-width: 1px; }
+
+/* the controller highlight: the pointing hand at the left of the focused control */
+.hl { position: relative; }
+.hand { position: absolute; left: 5px; top: 50%; transform: translateY(-50%); width: 20px; height: 14px; pointer-events: none; z-index: 2; }
+.hand svg { display: block; }
+.withhand { position: relative; display: inline-block; }
+div.withhand { display: block; }
+.withhand.focused { margin-left: 24px; }
+div.withhand.focused { margin-left: 0; padding-left: 24px; }
+.withhand > .hand { left: -23px; }
+div.withhand > .hand { left: 0; }
+.chips + .sub { margin-top: 6px; }
+</style>
+</head>
+<body>
+<div class="review" id="review"></div>
+<div class="stage"><div class="win" id="win"></div></div>
+<script>
+// The System 7 pointing hand, 10 x 7 pixels at 2x: black outline, white glove, index finger to the right.
+const HAND = (() => {
+  const rows = [
+    "......KKKKKKKKKK.",
+    ".....KWWWWWWWWWWK",
+    "..KKKKWWKKKKKKKK.",
+    ".KWWWWWWK........",
+    "KWWWWWWWK........",
+    "KWWWWWWK.........",
+    "KWWWWWWWK........",
+    ".KWWWWWWK........",
+    "..KKKKKK.........",
+  ];
+  let r = "";
+  rows.forEach((s, y) => [...s].forEach((c, x) => {
+    if (c !== ".") r += `<rect x="${x}" y="${y}" width="1" height="1" fill="${c === "K" ? "#000" : "#fff"}"/>`;
+  }));
+  return `<span class="hand"><svg width="22" height="12" viewBox="0 0 17 9" preserveAspectRatio="none" shape-rendering="crispEdges">${r}</svg></span>`;
+})();
+const KINDS = [
+  { id: "BUG", word: "Bug", help: "Something in the game or a mod isn't working." },
+  { id: "GRIEF", word: "Griefing", help: "Someone broke, stole or burned something of yours." },
+  { id: "STUCK", word: "Stuck", help: "You can't move: in a wall, under the floor, out of the map." },
+  { id: "QUESTION", word: "Question", help: "Ask about the rules, the settings or the server." },
+  { id: "APPEAL", word: "Appeal", help: "Ask an admin to look again at a warning or a decision." },
+  { id: "OTHER", word: "Other", help: "Anything else for the admins." },
+];
+const KIND = Object.fromEntries(KINDS.map(k => [k.id, k]));
+KIND.NONE = { id: "NONE", word: "No kind", help: "Filed from the game's own window: no kind, no place, no time." };
+
+// The tickets as the server part keeps them (ZeD's record beside the game's own ticket).
+const S = {
+  view: "player", theme: "dark", size: "small", accent: "#3fa59a",
+  me: "Aretha", admin: "Hermit",
+  player: { screen: "server", ask: { kind: null, here: false, text: "" }, open: null, reply: "" },
+  adm: { screen: "queue", status: "Open", kind: "ALL", who: "ALL", mine: "ANY", find: "", newest: true, open: null,
+         answer: "", note: "", confirmDelete: false },
+  focus: 0, flash: "",
+  tickets: [
+    { id: 15, kind: "STUCK", author: "Aretha", day: 12, when: "Nov 5, 9:42 PM", place: "Riverside, 6347 x 5372", near: [],
+      status: "Seen", assignee: null, thread: [{ who: "Aretha", text: "Climbed out a window of the motel and I'm stuck between the fence and the wall. Can't get out either way." }], notes: [] },
+    { id: 14, kind: "GRIEF", author: "Kade_R", day: 12, when: "Nov 5, 9:14 PM", place: "Riverside farm, 6280 x 5350", near: ["Rosa", "Mags_77"],
+      status: "Open", assignee: null, thread: [{ who: "Kade_R", text: "Someone pulled the engine out of my pickup at the farm. It was fine at 6. Doors were locked." }], notes: [] },
+    { id: 13, kind: "STUCK", author: "Rosa", day: 12, when: "Nov 5, 8:51 PM", place: "Muldraugh warehouse, 10650 x 9970", near: [],
+      status: "Progress", assignee: "Hermit", thread: [{ who: "Rosa", text: "Fell through the floor at the warehouse by the gas station. Can't climb out." },
+      { who: "Hermit", admin: true, text: "On my way. Don't log out." }], notes: [{ who: "Hermit", text: "Floor tile missing at 10651 x 9971, z 1. Tell build-team." }] },
+    { id: 12, kind: "BUG", author: "Mags_77", day: 11, when: "Nov 4, 11:03 PM", place: null, near: [],
+      status: "Answered", assignee: "Hermit", thread: [{ who: "Mags_77", text: "Generator says it's on but the fridge next to it is dead." },
+      { who: "Hermit", admin: true, text: "Generators only reach about 20 tiles and the same floor. Move it closer and it'll come up." }], notes: [] },
+    { id: 11, kind: "QUESTION", author: "tjk", day: 11, when: "Nov 4, 7:30 PM", place: null, near: [],
+      status: "Answered", assignee: "Hermit", thread: [{ who: "tjk", text: "Can we claim vehicles on this server?" },
+      { who: "Hermit", admin: true, text: "Not yet. Vehicle claims come with the next update." }], notes: [] },
+    { id: 10, kind: "OTHER", author: "Rosa", day: 10, when: "Nov 3, 6:12 PM", place: null, near: [],
+      status: "Open", assignee: null, thread: [{ who: "Rosa", text: "Could we do a trading post at the Muldraugh church this weekend? I'll bring the ammo." }], notes: [] },
+    { id: 9, kind: "GRIEF", author: "Kade_R", day: 9, when: "Nov 2, 10:20 PM", place: "Riverside farm, 6290 x 5341", near: ["tjk"],
+      status: "Closed", assignee: "Hermit", thread: [{ who: "Kade_R", text: "My fence got knocked down again." },
+      { who: "Hermit", admin: true, text: "Checked the log: zombies, not a player. Rebuilt it for you this once." }], notes: [{ who: "Hermit", text: "Log shows a horde of 40 passing at 10:05." }] },
+    { id: 8, kind: "NONE", author: "mike_d", day: null, when: null, place: null, near: [],
+      status: "Open", assignee: null, thread: [{ who: "mike_d", text: "help my car is stuck on the fence at the gas station" }], notes: [] },
+  ],
+};
+const ADMIN_STATUS = { Open: "Open", Seen: "Open", Progress: "In progress", Answered: "Answered", Closed: "Closed" };
+const PLAYER_STATUS = { Open: "Sent", Seen: "Seen", Progress: "In progress", Answered: "Answered", Closed: "Closed" };
+const stClass = s => ({ Open: "Open", Seen: "Seen", Progress: "Progress", Answered: "Answered", Closed: "Closed", Sent: "Sent" }[s] || s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const kindTag = k => `<span class="kind k-${k}">${esc(KIND[k].word.toUpperCase())}</span>`;
+const isOpen = t => t.status === "Open" || t.status === "Seen" || t.status === "Progress";
+
+// ------------------------------------------------------------------ the review bar
+function renderReview() {
+  const accents = [["Orange", "#d4922a"], ["Teal", "#3fa59a"], ["Blue", "#4f86c6"], ["Green", "#5a9a4a"], ["Red", "#c45050"], ["Purple", "#9a6ac4"]];
+  document.getElementById("review").innerHTML = `
+    <b>ZeD Tickets v1</b>
+    <span>View as <button data-r="view:player" class="${S.view === "player" ? "on" : ""}">Player</button>
+      <button data-r="view:admin" class="${S.view === "admin" ? "on" : ""}">Admin</button></span>
+    <span>Theme <button data-r="theme:dark" class="${S.theme === "dark" ? "on" : ""}">Dark</button>
+      <button data-r="theme:light" class="${S.theme === "light" ? "on" : ""}">Light</button>
+      <button data-r="theme:hc" class="${S.theme === "hc" ? "on" : ""}">High contrast</button></span>
+    <span>Text <button data-r="size:small" class="${S.size === "small" ? "on" : ""}">Small</button>
+      <button data-r="size:large" class="${S.size === "large" ? "on" : ""}">Large</button></span>
+    <span>Accent ${accents.map(([n, c]) => `<span class="sw ${S.accent === c ? "on" : ""}" title="${n}" data-r="accent:${c}" style="background:${c}"></span>`).join(" ")}</span>
+    <span>Pad: Up / Down, Enter = A, Esc = B</span>`;
+}
+
+// ------------------------------------------------------------------ the player
+function playerTickets() { return S.tickets.filter(t => t.author === S.me); }
+
+function renderPlayer() {
+  const P = S.player;
+  if (P.screen === "ask") return renderAsk();
+  if (P.screen === "ticket") return renderPlayerTicket();
+  const mine = playerTickets();
+  const open = mine.filter(isOpen).length;
+  return {
+    title: `${S.me} <span class="plus">+</span> Server`, rail: 7, head: `Server`,
+    body: `
+      <div class="sec">Server</div>
+      <div class="kv"><span class="k">Name</span><span class="v">Knox Survivors</span></div>
+      <div class="kv"><span class="k">Players online</span><span class="v">6</span></div>
+      <div class="kv"><span class="k">Your role</span><span class="v">user</span></div>
+      <div class="sec">Tickets <span class="r">${open} open</span></div>
+      <div class="pad14"><span class="withhand" data-f="ask"><button class="btn" data-a="ask">Ask the admins</button></span>
+        <div class="sub">A bug, griefing, being stuck, a question: the admins see it with where and when.</div></div>
+      ${mine.length ? mine.map(t => `
+        <div class="row ${isOpen(t) ? "" : "dim"}" data-f="t${t.id}" data-a="popen:${t.id}">
+          <span>${kindTag(t.kind)}</span>
+          <span><div class="first">${esc(t.thread[t.thread.length - 1].text)}</div>
+            <div class="meta">#${t.id} | Day ${t.day} | ${t.thread.length > 1 ? (t.thread.length - 1) + " repl" + (t.thread.length > 2 ? "ies" : "y") : "no reply yet"}</div></span>
+          <span class="status st-${stClass(PLAYER_STATUS[t.status])}">${PLAYER_STATUS[t.status]}</span>
+        </div>`).join("") : `<div class="empty">You haven't asked the admins anything yet.</div>`}
+      <div class="sec">Faction</div><div class="kv"><span class="k">Not in a faction.</span></div>
+      <div class="sec">Safehouse</div><div class="kv"><span class="k">No safehouse.</span></div>`,
+    help: S.flash || "Your tickets: Sent, then Seen when an admin opens it, then Answered. A note on the belt tells you when they reply.",
+    pad: `<span class="glyph">A</span>Open <span class="glyph">B</span>Close`,
+  };
+}
+
+function renderAsk() {
+  const A = S.player.ask;
+  const k = A.kind ? KIND[A.kind] : null;
+  const canSend = A.kind && A.text.trim().length > 0;
+  return {
+    title: `${S.me} <span class="plus">+</span> Server`, rail: 7, head: null,
+    back: { to: "server", label: "Server", title: "Ask the admins" },
+    body: `
+      <div class="cardbody">
+        <div class="label">What is it about?</div>
+        <div class="chips">${KINDS.map(x => `<span class="withhand" data-f="k${x.id}"><span class="chip ${A.kind === x.id ? "on" : ""}" data-a="kind:${x.id}">${x.word}</span></span>`).join("")}</div>
+        <div class="sub">${k ? esc(k.help) : "Pick one, so the admins can sort what comes in."}</div>
+        <div class="label">Where</div>
+        <div class="withhand" data-f="here"><div class="check" data-a="here"><span class="box">${A.here ? "&#x2715;" : ""}</span>
+          <span>Include where I am<div class="sub">${A.here ? "Riverside, 6347 x 5372, and nobody else within 30 tiles." : "Your position and who is nearby go with it. Ticked for Griefing and Stuck."}</div></span></div></div>
+        <div class="label">What happened</div>
+        <div class="withhand" data-f="text"><textarea class="field" rows="6" id="asktext" placeholder="Say what you saw, when, and anything the admins should check.">${esc(A.text)}</textarea></div>
+      </div>`,
+    foot: `<span class="left">${canSend ? "Day 12, 9:47 PM goes with it." : (A.kind ? "Write what happened." : "Pick what it is about.")}</span>
+      <span class="withhand" data-f="cancel"><button class="btn" data-a="back">Cancel</button></span>
+      <span class="withhand" data-f="send"><button class="btn default" data-a="send" ${canSend ? "" : "disabled"}>Send</button></span>`,
+    help: S.flash || (k ? esc(k.help) : "The admins see the kind, the day and, if you include it, where you were."),
+    pad: `<span class="glyph">A</span>Pick <span class="glyph">B</span>Back`,
+  };
+}
+
+function renderPlayerTicket() {
+  const t = S.tickets.find(x => x.id === S.player.open);
+  const can = isOpen(t);
+  return {
+    title: `${S.me} <span class="plus">+</span> Server`, rail: 7, head: null,
+    back: { to: "server", label: "Server", title: `Ticket #${t.id}` },
+    flag: `${kindTag(t.kind)} <span class="status st-${stClass(PLAYER_STATUS[t.status])}">${PLAYER_STATUS[t.status]}</span>`,
+    body: `<div class="cardbody">
+        <div class="facts"><span class="k">Sent</span><span>Day ${t.day}, ${esc(t.when)}</span>
+          <span class="k">Where</span><span>${t.place ? esc(t.place) : "Not included"}</span></div>
+        ${t.thread.map(m => `<div class="msg ${m.admin ? "admin" : ""}"><div class="who">${esc(m.who)}${m.admin ? " (admin)" : ""}</div>${esc(m.text)}</div>`).join("")}
+        ${can ? `<div class="label">Add to it</div><div class="withhand" data-f="reply"><textarea class="field" rows="3" id="preply" placeholder="Anything new for the admins.">${esc(S.player.reply)}</textarea></div>` : `<div class="sub">This ticket is ${PLAYER_STATUS[t.status].toLowerCase()}. Something new? Ask the admins again.</div>`}
+      </div>`,
+    foot: can ? `<span class="withhand" data-f="psend"><button class="btn default" data-a="preply" ${S.player.reply.trim() ? "" : "disabled"}>Send</button></span>` : "",
+    help: S.flash || "Your ticket and everything said on it. Admin notes stay with the admins.",
+    pad: `<span class="glyph">A</span>Pick <span class="glyph">B</span>Back`,
+  };
+}
+
+// ------------------------------------------------------------------ the admin
+function filtered() {
+  const A = S.adm;
+  let t = S.tickets.filter(x => {
+    if (A.status === "Open" && !isOpen(x)) return false;
+    if (A.status === "Answered" && x.status !== "Answered") return false;
+    if (A.status === "Closed" && x.status !== "Closed") return false;
+    if (A.kind !== "ALL" && x.kind !== A.kind) return false;
+    if (A.who !== "ALL" && x.author !== A.who) return false;
+    if (A.mine === "ME" && x.assignee !== S.admin) return false;
+    if (A.mine === "NOBODY" && x.assignee) return false;
+    if (A.find && !x.thread.some(m => m.text.toLowerCase().includes(A.find.toLowerCase())) && !x.author.toLowerCase().includes(A.find.toLowerCase())) return false;
+    return true;
+  });
+  t.sort((a, b) => A.newest ? b.id - a.id : a.id - b.id);
+  return t;
+}
+
+function renderQueue() {
+  const A = S.adm;
+  const list = filtered();
+  const openCount = S.tickets.filter(isOpen).length;
+  const authors = [...new Set(S.tickets.map(t => t.author))].sort();
+  const stat = ["Open", "Answered", "Closed", "All"];
+  return {
+    title: `Ground <span class="plus">+</span> Admin`, rail: 1, head: `Tickets <span class="count">${openCount} open</span>`,
+    body: `
+      <div class="filters">
+        <span class="lbl">Show</span><span class="line toggle2">${stat.map(s => `<span class="withhand" data-f="s${s}"><span class="chip ${A.status === s ? "on" : ""}" data-a="status:${s}">${s}</span></span>`).join("")}</span>
+        <span class="lbl">Kind</span><span class="line"><span class="withhand" data-f="fkind"><select class="select" id="fkind">
+          <option value="ALL">Any kind</option>${[...KINDS, KIND.NONE].map(k => `<option value="${k.id}" ${A.kind === k.id ? "selected" : ""}>${k.word}</option>`).join("")}</select></span>
+          <span class="withhand" data-f="fwho"><select class="select" id="fwho"><option value="ALL">Any player</option>${authors.map(a => `<option ${A.who === a ? "selected" : ""}>${esc(a)}</option>`).join("")}</select></span>
+          <span class="withhand" data-f="fmine"><select class="select" id="fmine"><option value="ANY" ${A.mine === "ANY" ? "selected" : ""}>Anyone's</option><option value="ME" ${A.mine === "ME" ? "selected" : ""}>Taken by me</option><option value="NOBODY" ${A.mine === "NOBODY" ? "selected" : ""}>Not taken</option></select></span>
+          <span class="withhand" data-f="sort"><span class="chip" data-a="sort">${A.newest ? "Newest first" : "Oldest first"}</span></span></span>
+        <span class="lbl">Find</span><span class="line"><span class="withhand" data-f="find" style="flex:1"><input class="field" id="find" style="padding:3px 6px" placeholder="A word, a player" value="${esc(A.find)}"></span></span>
+      </div>
+      ${list.length ? list.map(t => `
+        <div class="row ${isOpen(t) ? "" : "dim"}" data-f="t${t.id}" data-a="aopen:${t.id}">
+          <span>${kindTag(t.kind)}</span>
+          <span><div class="first">${esc(t.thread[0].text)}</div>
+            <div class="meta">#${t.id} | ${esc(t.author)} | ${t.day ? "Day " + t.day : "no day"}${t.place ? " | " + esc(t.place.split(",")[0]) : ""}${t.assignee ? " | " + esc(t.assignee) : ""}</div></span>
+          <span class="status st-${stClass(t.status === "Seen" ? "Open" : t.status)}">${ADMIN_STATUS[t.status]}</span>
+        </div>`).join("") : `<div class="empty">No tickets match. ${A.status === "Open" ? "Nothing open: good." : ""}</div>`}`,
+    help: S.flash || `${list.length} of ${S.tickets.length} tickets. Open shows what still needs you; Answered and Closed are the history.`,
+    pad: `<span class="glyph">A</span>Open <span class="glyph">Y</span>Filters <span class="glyph">B</span>Close`,
+  };
+}
+
+function renderAdminTicket() {
+  const A = S.adm;
+  const t = S.tickets.find(x => x.id === A.open);
+  const can = isOpen(t);
+  return {
+    title: `Ground <span class="plus">+</span> Admin`, rail: 1, head: null,
+    back: { to: "queue", label: "Tickets", title: `#${t.id} from ${t.author}` },
+    flag: `${kindTag(t.kind)} <span class="status st-${stClass(t.status === "Seen" ? "Open" : t.status)}">${ADMIN_STATUS[t.status]}</span>
+      <span class="meta" style="margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--text-secondary)">${t.assignee ? "Taken by " + esc(t.assignee) : "Not taken"}</span>`,
+    body: `<div class="cardbody">
+        <div class="facts">
+          <span class="k">Player</span><span>${esc(t.author)} <span class="withhand" data-f="pcard"><button class="btn" data-a="pcard" style="margin-left:8px">Player card</button></span></span>
+          <span class="k">When</span><span>${t.day ? "Day " + t.day + " | " + esc(t.when) : "Not recorded (filed from the game's own window)"}</span>
+          <span class="k">Where</span><span class="place">${t.place ? esc(t.place) + ` <span class="withhand" data-f="go"><button class="btn" data-a="go">Go there</button></span>` : "Not included"}</span>
+          <span class="k">Nearby</span><span>${t.place ? (t.near.length ? t.near.map(esc).join(", ") : "Nobody within 30 tiles") : "Not recorded"}</span>
+        </div>
+        ${t.thread.map(m => `<div class="msg ${m.admin ? "admin" : ""}"><div class="who">${esc(m.who)}${m.admin ? " (admin)" : ""}</div>${esc(m.text)}</div>`).join("")}
+        ${t.notes.map(m => `<div class="msg note"><div class="who">Admin note: ${esc(m.who)}. ${esc(t.author)} doesn't see this.</div>${esc(m.text)}</div>`).join("")}
+        ${can ? `<div class="label">Answer ${esc(t.author)}</div><div class="withhand" data-f="answer"><textarea class="field" rows="3" id="answer" placeholder="${esc(t.author)} sees this.">${esc(A.answer)}</textarea></div>` : ""}
+        <div class="label">Admin note</div><div class="withhand" data-f="note"><textarea class="field" rows="2" id="note" placeholder="Only admins see notes.">${esc(A.note)}</textarea></div>
+        <div style="margin-top:6px"><span class="withhand" data-f="addnote"><button class="btn" data-a="addnote" ${A.note.trim() ? "" : "disabled"}>Add note</button></span></div>
+      </div>`,
+    foot: A.confirmDelete
+      ? `<span class="left warn">Delete #${t.id} and its notes for good?</span>
+         <span class="withhand" data-f="nodel"><button class="btn" data-a="nodel">Keep it</button></span>
+         <span class="withhand" data-f="yesdel"><button class="btn danger" data-a="yesdel">Delete for good</button></span>`
+      : `<span class="withhand" data-f="del"><button class="btn danger" data-a="del">Delete</button></span>
+         <span class="left"></span>
+         ${can && t.assignee !== S.admin ? `<span class="withhand" data-f="take"><button class="btn" data-a="take">Take it</button></span>` : ""}
+         ${can ? `<span class="withhand" data-f="close"><button class="btn" data-a="closet">Close</button></span>` : `<span class="withhand" data-f="reopen"><button class="btn" data-a="reopen">Reopen</button></span>`}
+         ${can ? `<span class="withhand" data-f="ans"><button class="btn default" data-a="answer" ${A.answer.trim() ? "" : "disabled"}>Answer</button></span>` : ""}`,
+    help: S.flash || (t.kind === "NONE" ? "Filed from the game's own window: only the message came with it." : "Answer and the player sees it. Close when it's done; it stays in the history. Delete only for spam."),
+    pad: `<span class="glyph">A</span>Pick <span class="glyph">X</span>Go there <span class="glyph">B</span>Back`,
+  };
+}
+
+// ------------------------------------------------------------------ the frame
+function render() {
+  document.documentElement.dataset.theme = S.theme;
+  document.documentElement.dataset.size = S.size;
+  document.documentElement.style.setProperty("--accent", S.accent);
+  renderReview();
+  const v = S.view === "player" ? renderPlayer() : (S.adm.screen === "ticket" ? renderAdminTicket() : renderQueue());
+  const rails = ["INV", "ADM", "WTR", "HP", "TMP", "CK", "ID", "SRV"];
+  const railLabels = S.view === "player" ? ["INV", "EQP", "HP", "TMP", "CK", "ID", "SK", "SRV"] : ["GRD", "ADM", "MAP", "VEH", "RAD", "", "", ""];
+  document.getElementById("win").innerHTML = `
+    <div class="titlebar"><div class="close"></div><div class="titlechip">${v.title}</div></div>
+    <div class="body">
+      <div class="rail">${railLabels.map((r, i) => `<div class="${i === v.rail ? "on" : ""}">${r}</div>`).join("")}</div>
+      <div class="panel">
+        ${v.back ? `<div class="backbar"><span class="back withhand" data-f="back" data-a="back">&#9664; ${esc(v.back.label)}</span><span class="title">${esc(v.back.title)}</span></div>` : `<div class="panelhead">${v.head}</div>`}
+        ${v.flag ? `<div class="flagstrip">${v.flag}</div>` : ""}
+        <div class="scroll" id="scroll">${v.body}</div>
+        ${v.foot ? `<div class="foot">${v.foot}</div>` : ""}
+        <div class="helpband"><span>${v.help}</span><span class="pad">${v.pad}</span></div>
+      </div>
+    </div>`;
+  // the controller highlight
+  const fs = [...document.querySelectorAll("#win [data-f]")];
+  if (S.focus >= fs.length) S.focus = fs.length - 1;
+  if (S.focus < 0) S.focus = 0;
+  const f = fs[S.focus];
+  if (f) {
+    if (f.classList.contains("row")) f.insertAdjacentHTML("afterbegin", HAND);
+    else { f.classList.add("focused"); f.insertAdjacentHTML("afterbegin", HAND); }
+  }
+  bindInputs();
+  S.flash = "";
+}
+
+function bindInputs() {
+  const on = (id, ev, fn) => { const e = document.getElementById(id); if (e) e.addEventListener(ev, fn); };
+  on("asktext", "input", e => { S.player.ask.text = e.target.value; refreshFoot(); });
+  on("preply", "input", e => { S.player.reply = e.target.value; refreshFoot(); });
+  on("answer", "input", e => { S.adm.answer = e.target.value; refreshFoot(); });
+  on("note", "input", e => { S.adm.note = e.target.value; const b = document.querySelector('[data-a="addnote"]'); if (b) b.disabled = !S.adm.note.trim(); });
+  on("find", "input", e => { S.adm.find = e.target.value; keepCaret("find", render); });
+  on("fkind", "change", e => { S.adm.kind = e.target.value; render(); });
+  on("fwho", "change", e => { S.adm.who = e.target.value; render(); });
+  on("fmine", "change", e => { S.adm.mine = e.target.value; render(); });
+}
+function keepCaret(id, fn) { const e = document.getElementById(id); const p = e.selectionStart; fn(); const n = document.getElementById(id); if (n) { n.focus(); n.setSelectionRange(p, p); } }
+function refreshFoot() {
+  const b = document.querySelector('[data-a="send"]'); if (b) b.disabled = !(S.player.ask.kind && S.player.ask.text.trim());
+  const r = document.querySelector('[data-a="preply"]'); if (r) r.disabled = !S.player.reply.trim();
+  const a = document.querySelector('[data-a="answer"]'); if (a && a.classList.contains("default")) a.disabled = !S.adm.answer.trim();
+}
+
+// ------------------------------------------------------------------ actions
+function act(a) {
+  const [k, v] = a.split(":");
+  const P = S.player, A = S.adm;
+  const t = () => S.tickets.find(x => x.id === A.open);
+  switch (k) {
+    case "ask": P.screen = "ask"; P.ask = { kind: null, here: false, text: "" }; S.focus = 0; break;
+    case "kind": P.ask.kind = v; if (v === "GRIEF" || v === "STUCK") P.ask.here = true; break;
+    case "here": P.ask.here = !P.ask.here; break;
+    case "send": {
+      const id = Math.max(...S.tickets.map(x => x.id)) + 1;
+      S.tickets.unshift({ id, kind: P.ask.kind, author: S.me, day: 12, when: "Nov 5, 9:47 PM", place: P.ask.here ? "Riverside, 6347 x 5372" : null,
+        near: [], status: "Open", assignee: null, thread: [{ who: S.me, text: P.ask.text.trim() }], notes: [] });
+      P.screen = "server"; S.focus = 0; S.flash = `Sent as #${id}. You'll see when an admin opens it.`; break;
+    }
+    case "popen": P.screen = "ticket"; P.open = +v; P.reply = ""; S.focus = 0; break;
+    case "preply": { const x = S.tickets.find(y => y.id === P.open); x.thread.push({ who: S.me, text: P.reply.trim() }); P.reply = ""; S.flash = "Added. The admins see it on the ticket."; break; }
+    case "back":
+      if (S.view === "player") { P.screen = "server"; } else { A.screen = "queue"; A.confirmDelete = false; }
+      S.focus = 0; break;
+    case "status": A.status = v; S.focus = 0; break;
+    case "sort": A.newest = !A.newest; break;
+    case "aopen": A.screen = "ticket"; A.open = +v; A.answer = ""; A.note = ""; A.confirmDelete = false; S.focus = 0;
+      { const x = t(); if (x.status === "Open") x.status = "Seen"; } break;
+    case "go": S.flash = `Teleported to ${t().place} (mockup). The game's own teleport, from the place on the ticket.`; break;
+    case "pcard": S.flash = "Opens the player's card (Phase 2): account, role, warnings, stats, kick, ban."; break;
+    case "take": t().assignee = S.admin; t().status = "Progress"; S.flash = "Taken: the other admins see it's yours."; break;
+    case "answer": t().thread.push({ who: S.admin, admin: true, text: A.answer.trim() }); t().status = "Answered"; t().assignee = t().assignee || S.admin;
+      A.answer = ""; S.flash = `Answered. ${t().author} gets a note on the belt.`; break;
+    case "addnote": t().notes.push({ who: S.admin, text: A.note.trim() }); A.note = ""; S.flash = "Note added. Only admins see it."; break;
+    case "closet": t().status = "Closed"; S.flash = "Closed. It stays in the history under Closed."; break;
+    case "reopen": t().status = "Progress"; S.flash = "Open again."; break;
+    case "del": A.confirmDelete = true; break;
+    case "nodel": A.confirmDelete = false; break;
+    case "yesdel": S.tickets = S.tickets.filter(x => x.id !== A.open); A.screen = "queue"; A.confirmDelete = false; S.focus = 0; S.flash = "Deleted for good."; break;
+  }
+  render();
+}
+
+document.addEventListener("click", e => {
+  const r = e.target.closest("[data-r]");
+  if (r) { const [k, v] = r.dataset.r.split(/:(.*)/); S[k] = v; S.focus = 0; render(); return; }
+  if (e.target.closest("textarea, input, select")) return;
+  const a = e.target.closest("[data-a]");
+  if (a && !a.disabled && !(a.querySelector && a.matches("button:disabled"))) {
+    const fs = [...document.querySelectorAll("#win [data-f]")];
+    const f = a.closest("[data-f]"); if (f) S.focus = fs.indexOf(f);
+    act(a.dataset.a);
+  }
+});
+document.addEventListener("keydown", e => {
+  if (e.target.closest && e.target.closest("textarea, input")) { if (e.key === "Escape") e.target.blur(); return; }
+  const fs = [...document.querySelectorAll("#win [data-f]")];
+  if (e.key === "ArrowDown") { S.focus = Math.min(fs.length - 1, S.focus + 1); render(); scrollFocus(); e.preventDefault(); }
+  else if (e.key === "ArrowUp") { S.focus = Math.max(0, S.focus - 1); render(); scrollFocus(); e.preventDefault(); }
+  else if (e.key === "Enter") {
+    const f = fs[S.focus]; if (!f) return;
+    const field = f.querySelector("textarea, input, select"); if (field) { field.focus(); e.preventDefault(); return; }
+    const a = f.matches("[data-a]") ? f : f.querySelector("[data-a]");
+    if (a && !a.disabled) act(a.dataset.a); e.preventDefault();
+  } else if (e.key === "Escape" || e.key === "Backspace") {
+    if ((S.view === "player" && S.player.screen !== "server") || (S.view === "admin" && S.adm.screen !== "queue")) act("back");
+  }
+});
+function scrollFocus() { const h = document.querySelector("#win .hand"); if (h) h.parentElement.scrollIntoView({ block: "nearest" }); }
+render();
+</script>
+</body>
+</html>

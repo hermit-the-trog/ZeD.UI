@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZeD Community and Extras v1</title>
+<!-- MP_ADMIN_SCOPE.md, Phases 5 and 6: community, and the opt-in systems (Design, Cowork, Nov 5 2026). The styles are
+     shared with zed_admin_tools_v1.html (Phase 2), whose notes follow.
+     Phase 2:
+     The Admin tab (World window) as it would be: one Players list (the game's scoreboard and Users List together), the
+     Player card (what the game spreads over ISPlayerStatsUI and its seven pop-ups), Roles as ticks, Bans with a reason
+     and a length, an item spawner, server messages typed in place. Every name and reason is a field in the card
+     (the director, Nov 5 2026); confirms sit in the card's foot. The game's words kept (UI.json). Keyboard stands in
+     for the pad: Up / Down move the controller highlight, Enter is A, Escape is B. -->
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans+Condensed:wght@400;500;600&display=swap');
+:root {
+  --base: #1a1a1e; --surface-1: #222226; --surface-2: #2a2a2e; --surface-3: #333338;
+  --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.20);
+  --text: #d4d4d8; --text-secondary: rgba(255,255,255,0.45); --text-heading: rgba(255,255,255,0.65);
+  --accent: #3fa59a; --danger: #c44040; --warning: #c49040; --positive: #4a9a5a; --info: #4f86c6;
+  --stripe-1: #333338; --stripe-2: #2a2a2e;
+  --font-mono: 'Fira Mono', monospace; --font-sans: 'Fira Sans Condensed', sans-serif;
+  --fs: 15px; --fs-small: 13px; --page: #0e0f10;
+}
+:root[data-theme="light"] {
+  --base: #e9e7e2; --surface-1: #f2f0eb; --surface-2: #dddad3; --surface-3: #cfcbc2;
+  --border: rgba(0,0,0,0.14); --border-strong: rgba(0,0,0,0.30);
+  --text: #1d1d1f; --text-secondary: rgba(0,0,0,0.55); --text-heading: rgba(0,0,0,0.70);
+  --stripe-1: #cfcbc2; --stripe-2: #dddad3; --page: #8c8a84;
+}
+:root[data-theme="hc"] {
+  --base: #000; --surface-1: #0a0a0a; --surface-2: #141414; --surface-3: #262626;
+  --border: rgba(255,255,255,0.45); --border-strong: rgba(255,255,255,0.85);
+  --text: #fff; --text-secondary: rgba(255,255,255,0.80); --text-heading: #fff; --stripe-1: #444; --stripe-2: #111;
+}
+:root[data-size="large"] { --fs: 18px; --fs-small: 15px; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--page); color: var(--text); }
+body { font-family: var(--font-sans); font-size: var(--fs); display: flex; flex-direction: column; align-items: center; }
+.review { width: 100%; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; justify-content: center;
+  padding: 8px 16px; font-family: var(--font-mono); font-size: 12px; color: #aaa; background: #000; border-bottom: 1px solid #333; }
+.review b { color: #ddd; font-weight: 500; }
+.review button { font-family: var(--font-mono); font-size: 12px; background: #1b1b1b; color: #ccc; border: 1px solid #444; padding: 3px 8px; cursor: pointer; }
+.review button.on { border-color: #ddd; color: #fff; }
+.stage { flex: 1; display: flex; align-items: center; justify-content: center; padding: 16px; width: 100%; }
+.win { width: min(560px, 100%); height: min(820px, calc(100vh - 90px)); display: flex; flex-direction: column;
+  background: color-mix(in srgb, var(--base) 92%, transparent); border: 1px solid var(--border-strong); }
+.titlebar { height: 22px; flex: 0 0 22px; display: flex; align-items: center; gap: 10px; padding: 0 8px;
+  background: repeating-linear-gradient(to bottom, var(--stripe-1) 0 2px, var(--stripe-2) 2px 4px); border-bottom: 1px solid var(--border-strong); }
+.close { width: 12px; height: 12px; border: 1px solid var(--border-strong); background: var(--surface-1); }
+.titlechip { background: var(--surface-2); padding: 0 8px; font-family: var(--font-mono); font-size: var(--fs-small); }
+.titlechip .plus { color: var(--text-secondary); margin: 0 6px; }
+.body { flex: 1; display: flex; min-height: 0; }
+.rail { width: 46px; flex: 0 0 46px; border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+.rail div { height: 46px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono);
+  font-size: 11px; color: var(--text-secondary); border-bottom: 1px solid var(--border); }
+.rail div.on { background: var(--accent); color: var(--base); font-weight: 700; }
+.panel { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.panelhead { height: 44px; flex: 0 0 44px; display: flex; align-items: center; gap: 10px; padding: 0 14px; border-bottom: 1px solid var(--border);
+  font-weight: 600; font-size: calc(var(--fs) + 4px); }
+.panelhead .r { margin-left: auto; font-family: var(--font-mono); font-size: var(--fs-small); font-weight: 400; color: var(--text-secondary); }
+.scroll { flex: 1; overflow-y: auto; min-height: 0; }
+.helpband { flex: 0 0 auto; min-height: 30px; display: flex; align-items: center; gap: 12px; padding: 5px 12px;
+  background: var(--surface-2); border-top: 1px solid var(--border); font-size: var(--fs-small); color: var(--text-secondary); }
+.helpband .pad { margin-left: auto; font-family: var(--font-mono); white-space: nowrap; }
+.glyph { display: inline-block; min-width: 16px; height: 16px; line-height: 16px; text-align: center; border-radius: 8px;
+  background: var(--surface-3); color: var(--text); font-family: var(--font-mono); font-size: 10px; margin-right: 3px; padding: 0 3px; }
+.sec { padding: 6px 14px 4px; background: var(--surface-1); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono); font-weight: 700; font-size: var(--fs-small); color: var(--text-heading); display: flex; }
+.sec .r { margin-left: auto; font-weight: 400; }
+.pad14 { padding: 8px 14px; }
+.sumrow { display: flex; align-items: center; gap: 10px; padding: 7px 14px 7px 30px; position: relative; cursor: pointer; border-bottom: 1px solid var(--border); }
+.sumrow .meta { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); }
+.sumrow .go { margin-left: auto; font-family: var(--font-mono); color: var(--text-secondary); }
+.btn { position: relative; padding: 4px 14px; border: 1px solid var(--border-strong); border-radius: 5px; background: var(--surface-2);
+  color: var(--text); font-family: var(--font-mono); font-size: var(--fs-small); cursor: pointer; white-space: nowrap; }
+.btn::before { content: ""; position: absolute; inset: 2px; border: 1px solid var(--border-strong); border-radius: 3px; pointer-events: none; }
+.btn.default, .btn.default::before { border-color: var(--accent); } .btn.default { color: var(--accent); }
+.btn.danger, .btn.danger::before { border-color: var(--danger); } .btn.danger { color: var(--danger); }
+.btn:disabled { opacity: 0.4; cursor: default; }
+.btn.small { padding: 2px 10px; }
+.btnrow { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; }
+.chip { font-family: var(--font-mono); font-size: var(--fs-small); padding: 3px 9px; border: 1px solid var(--border-strong); background: var(--surface-1); cursor: pointer; display: inline-block; }
+.chip.on { background: var(--accent); color: var(--base); border-color: var(--accent); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.check { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; padding: 2px 0; }
+.box { width: 15px; height: 15px; flex: 0 0 15px; margin-top: 2px; border: 1px solid var(--border-strong); background: var(--surface-1);
+  display: flex; align-items: center; justify-content: center; color: var(--accent); font-family: var(--font-mono); font-size: 12px; line-height: 1; }
+.label { font-family: var(--font-mono); font-weight: 700; font-size: var(--fs-small); color: var(--text-heading); margin: 14px 0 6px; display: flex; }
+.label .r { margin-left: auto; font-weight: 400; color: var(--text-secondary); }
+.label:first-child { margin-top: 2px; }
+.sub { font-size: var(--fs-small); color: var(--text-secondary); margin-top: 3px; }
+.sub.warn { color: var(--warning); } .sub.bad { color: var(--danger); }
+.cardbody { padding: 10px 14px 14px; }
+.facts { display: grid; grid-template-columns: 110px 1fr; gap: 3px 10px; font-size: var(--fs-small); align-items: center; }
+.facts .k { font-family: var(--font-mono); font-weight: 700; color: var(--text-heading); }
+.field { width: 100%; background: var(--surface-1); border: 1px solid var(--border-strong); color: var(--text); font-family: var(--font-sans);
+  font-size: var(--fs); padding: 5px 8px; }
+.field:focus { outline: none; border-color: var(--accent); }
+.field.mono { font-family: var(--font-mono); font-size: var(--fs-small); }
+.select { background: var(--surface-1); border: 1px solid var(--border-strong); color: var(--text); font-family: var(--font-mono); font-size: var(--fs-small); padding: 3px 6px; }
+.role { font-family: var(--font-mono); font-size: 11px; font-weight: 700; padding: 0 5px; border: 1px solid currentColor; white-space: nowrap; }
+.list .item { display: flex; align-items: center; gap: 10px; padding: 6px 14px 6px 30px; border-bottom: 1px solid var(--border); position: relative; cursor: pointer; }
+.list .item .who { min-width: 96px; }
+.list .item .st { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); white-space: nowrap; }
+.list .item .st.on::before { content: "\25CF  "; color: var(--positive); }
+.list .item .end { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.cardbody .list .item { padding-left: 26px; padding-right: 0; }
+.cardbody .list .item:first-child { border-top: 1px solid var(--border); }
+.warnpts { font-family: var(--font-mono); font-size: 11px; color: var(--warning); white-space: nowrap; }
+.stepper { display: inline-flex; align-items: center; gap: 6px; }
+.stepper .val { min-width: 38px; text-align: center; font-family: var(--font-mono); padding: 3px 6px; border: 1px solid var(--border-strong); background: var(--surface-1); }
+.inset { margin-top: 8px; padding: 10px; border: 1px solid var(--border-strong); background: var(--surface-1); }
+.inset.danger { border-color: var(--danger); }
+.inset.warn { border-color: var(--warning); }
+.inset .acts { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
+.caps .grp { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); margin: 10px 0 2px; text-transform: uppercase; letter-spacing: 0.04em; }
+.skills { display: grid; grid-template-columns: 1fr auto auto; gap: 2px 10px; font-size: var(--fs-small); align-items: center; }
+.skills .lv { font-family: var(--font-mono); }
+.pips { font-family: var(--font-mono); letter-spacing: 1px; color: var(--accent); }
+.log { font-size: var(--fs-small); }
+.log div { display: grid; grid-template-columns: 70px 72px 1fr; gap: 8px; padding: 3px 0; border-bottom: 1px solid var(--border); }
+.log .t { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); }
+.foot { flex: 0 0 auto; display: flex; gap: 8px; align-items: center; justify-content: flex-end; padding: 7px 12px;
+  background: var(--surface-2); border-top: 1px solid var(--border); flex-wrap: wrap; }
+.foot .left { margin-right: auto; font-family: var(--font-mono); font-size: var(--fs-small); color: var(--text-secondary); }
+.foot .left.warn { color: var(--danger); flex: 1 1 100%; margin-right: 0; }
+.backbar { height: 34px; flex: 0 0 34px; display: flex; align-items: center; gap: 10px; padding: 0 10px 0 6px; border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono); font-size: var(--fs-small); background: var(--surface-1); }
+.backbar .back { cursor: pointer; padding: 2px 6px; color: var(--text-heading); }
+.backbar .title { font-weight: 700; }
+.backbar .r { margin-left: auto; }
+.hand { position: absolute; left: 5px; top: 50%; transform: translateY(-50%); width: 22px; height: 12px; pointer-events: none; z-index: 2; }
+.hand svg { display: block; }
+.withhand { position: relative; display: inline-block; }
+div.withhand { display: block; }
+.withhand.focused { margin-left: 24px; }
+div.withhand.focused { margin-left: 0; padding-left: 24px; }
+.withhand > .hand { left: -23px; }
+div.withhand > .hand { left: 0; }
+</style>
+</head>
+<body>
+<div class="review" id="review"></div>
+<div class="stage"><div class="win" id="win"></div></div>
+<script>
+const HAND = (() => {
+  const rows = ["......KKKKKKKKKK.", ".....KWWWWWWWWWWK", "..KKKKWWKKKKKKKK.", ".KWWWWWWK........", "KWWWWWWWK........",
+                "KWWWWWWK.........", "KWWWWWWWK........", ".KWWWWWWK........", "..KKKKKK........."];
+  let r = "";
+  rows.forEach((s, y) => [...s].forEach((c, x) => { if (c !== ".") r += `<rect x="${x}" y="${y}" width="1" height="1" fill="${c === "K" ? "#000" : "#fff"}"/>`; }));
+  return `<span class="hand"><svg width="22" height="12" viewBox="0 0 17 9" preserveAspectRatio="none" shape-rendering="crispEdges">${r}</svg></span>`;
+})();
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const W_ = (f, html, style = "") => `<span class="withhand" data-f="${f}"${style ? ` style="${style}"` : ""}>${html}</span>`;
+const B_ = (f, a, label, cls = "", dis = false) => W_(f, `<button class="btn ${cls}" data-a="${a}" ${dis ? "disabled" : ""}>${label}</button>`);
+const tick = (f, a, on, label, sub, dis = false) => `<div class="withhand" data-f="${f}"><div class="check" data-a="${a}" style="${dis ? "opacity:.45;cursor:default" : ""}"><span class="box">${on ? "&#x2715;" : ""}</span>
+  <span>${label}${sub ? `<div class="sub">${sub}</div>` : ""}</span></div></div>`;
+const field = (f, bind, val, ph, block = true) => W_(f, `<input class="field" data-bind="${bind}" placeholder="${esc(ph)}" value="${esc(val)}">`, block ? "display:block" : "flex:1");
+
+const S = {
+  screen: "join", theme: "dark", size: "small", viewAs: "player", focus: 0, flash: "", sel: null, dirty: false,
+  motd: "Welcome to Knox Survivors. Day 12: the power's still on in Riverside. Trading post Saturday at the Muldraugh church.",
+  rules: ["Be decent in chat. No slurs, no spam.", "Don't take from a claimed safehouse, or from a locked car that isn't yours.",
+    "No killing on sight inside towns. Outside town, PvP is fair, with a warning first.", "Ask the admins (Server tab) for anything: bugs, griefing, getting stuck.",
+    "Leave roads clear when you build."],
+  newRule: 1, appeal: "discord.gg/knoxsurvivors", agree: true, reask: true, post: "", pinPost: true,
+  posts: [{ t: "Trading post Saturday at the Muldraugh church, 7 PM. Bring what you can spare.", by: "Hermit", d: "Nov 5", pin: true },
+    { t: "The server restarts every day at 4 AM Pacific. You'll get a 10-minute warning.", by: "Hermit", d: "Nov 1", pin: true },
+    { t: "Vehicle claims are coming with the next update.", by: "Rosa", d: "Nov 4", pin: false }],
+  chat: [["9:31", "Kade_R", "anyone seen my truck? it was at the farm", "General"], ["9:32", "mike_d", "lol nope", "General"],
+    ["9:33", "Rosa", "Kade, file a ticket and we'll look at the logs.", "General"], ["9:35", "Aretha", "stuck behind the motel fence again", "General"],
+    ["9:36", "Mags_77", "who wants to run to the mall tomorrow", "General"]],
+  muted: [],
+  x: { vc: { on: false, parts: true, drive: true, tow: false, per: 2, lapse: 7 }, sp: { on: false, dismantle: true, destroy: true, lot: true },
+       tp: { on: false, roles: ["moderator", "overseer", "admin"] }, cl: { on: false }, eco: { on: false } },
+};
+function renderReview() {
+  const b = (k, v, l) => `<button data-r="${k}:${v}" class="${S[k] === v ? "on" : ""}">${l}</button>`;
+  document.getElementById("review").innerHTML = `<b>ZeD Community and Extras v1</b>
+    <span>Player: ${b("screen", "join", "Joining")} ${b("screen", "server", "Server tab")} ${b("screen", "chat", "Chat")}</span>
+    <span>Admin: ${b("screen", "rules", "Rules and news")} ${b("screen", "extras", "Server extras")}</span>
+    ${S.screen === "chat" ? `<span>Chat as ${b("viewAs", "player", "Player")} ${b("viewAs", "admin", "Admin")}</span>` : ""}
+    <span>Theme ${b("theme", "dark", "Dark")} ${b("theme", "light", "Light")} ${b("theme", "hc", "High contrast")}</span>`;
+}
+
+// ---------------------------------------------------------------- the player: joining
+function renderJoin() {
+  return {
+    win: "Knox Survivors", rail: null, noBack: true,
+    body: `<div class="cardbody">
+      <div class="label">Message of the day</div><div>${esc(S.motd)}</div>
+      <div class="label">The rules<span class="r">changed Nov 5</span></div>
+      <ol style="margin:0;padding-left:22px">${S.rules.map((r, i) => `<li style="padding:3px 0">${esc(r)}${i === S.newRule ? ` <span class="role" style="color:var(--warning)">NEW</span>` : ""}</li>`).join("")}</ol>
+      <div class="label">Something wrong?</div><div class="sub" style="color:var(--text)">In the game: Server tab, Ask the admins. Banned or kicked: ${esc(S.appeal)}</div>
+      </div>`,
+    foot: `<span class="left">Rule 2 is new since you agreed.</span>${B_("leave", "flash:leave", "Leave")}${B_("agree", "flash:agree", "I agree", "default")}`,
+    help: S.flash || "Shown when you join, and again when the rules change. The same rules are in the Server tab any time.",
+    pad: `<span class="glyph">A</span>Pick`,
+  };
+}
+
+// ---------------------------------------------------------------- the player: the Server tab
+function renderServer() {
+  const pinned = S.posts.filter(p => p.pin), rest = S.posts.filter(p => !p.pin);
+  return {
+    win: `Aretha <span class="plus">+</span> Server`, rail: "player", head: "Server",
+    body: `
+      <div class="sec">Server</div>
+      <div class="pad14" style="padding-bottom:4px"><div style="font-weight:600">Knox Survivors</div><div class="sub" style="color:var(--text)">${esc(S.motd)}</div></div>
+      <div class="sumrow" data-f="rules" data-a="flash:rules"><span>The rules</span><span class="meta">${S.rules.length} | changed Nov 5</span><span class="go">&#9654;</span></div>
+      <div class="sec">News<span class="r">${S.posts.length}</span></div>
+      ${[...pinned, ...rest].map((p, i) => `<div class="pad14" style="border-bottom:1px solid var(--border)"><div>${p.pin ? `<span class="role" style="color:var(--accent)">PINNED</span> ` : ""}${esc(p.t)}</div>
+        <div class="sub">${esc(p.by)}, ${esc(p.d)}</div></div>`).join("")}
+      <div class="sec">This server's extras<span class="r">set by the admins</span></div>
+      <div class="pad14"><div class="rules" style="font-size:var(--fs-small)">
+        ${S.x.vc.on ? `<div>&#10003; Vehicle claims: claim a car in its Vehicle tab; others can't ${[S.x.vc.parts && "take parts", S.x.vc.drive && "drive it", S.x.vc.tow && "tow it"].filter(Boolean).join(", ")}.</div>` : `<div class="sub">No vehicle claims on this server.</div>`}
+        ${S.x.sp.on ? `<div>&#10003; Safehouses are protected: non-members can't dismantle or destroy anything${S.x.sp.lot ? ", on the whole lot" : ""}.</div>` : ""}
+        ${S.x.cl.on ? `<div class="sub">Taking from a container inside a safehouse is logged, for the admins.</div>` : ""}</div></div>
+      <div class="sec">Tickets<span class="r">1 open</span></div>
+      <div class="pad14">${B_("ask", "flash:ask", "Ask the admins")}</div>`,
+    help: S.flash || "The rules, the news and this server's extras, any time.",
+    pad: `<span class="glyph">A</span>Open <span class="glyph">B</span>Close`,
+  };
+}
+
+// ---------------------------------------------------------------- chat: pick a name
+function renderChat() {
+  const admin = S.viewAs === "admin";
+  return {
+    win: "Chat", rail: null, noBack: true,
+    body: `<div style="display:flex;gap:6px;padding:8px 14px;border-bottom:1px solid var(--border)">${["General", "Faction", "Safehouse", admin ? "Admin" : null].filter(Boolean)
+        .map((t, i) => `<span class="chip ${i === 0 ? "on" : ""}">${t}</span>`).join("")}</div>
+      <div class="list">${S.chat.map(([t, who, text], i) => {
+        const muted = S.muted.includes(who), open = S.sel === i;
+        return `<div class="item" data-f="c${i}" data-a="sel:${i}" style="flex-wrap:wrap;align-items:flex-start">
+          <span class="st" style="width:36px">${t}</span><span style="flex:1;min-width:0"><b>${esc(who)}</b> ${muted ? `<span class="st">muted (by you)</span>` : esc(text)}</span>
+          ${open ? `<div class="btnrow" style="flex-basis:100%;padding:6px 0 2px 46px">
+            ${B_("rep" + i, "report:" + who, "Report to the admins")}${B_("mu" + i, "mute:" + who, muted ? "Unmute" : "Mute (for you)")}
+            ${admin ? B_("pc" + i, "flash:card:" + who, "Player card") + B_("tp" + i, "flash:tp:" + who, "Teleport") : ""}</div>` : ""}</div>`;
+      }).join("")}</div>
+      <div class="pad14">${field("say", "say", "", "Say something")}</div>`,
+    help: S.flash || "Pick a line for what you can do about its sender. Mute is yours alone; nobody else is told.",
+    pad: `<span class="glyph">A</span>Pick <span class="glyph">B</span>Close`,
+  };
+}
+
+// ---------------------------------------------------------------- the admin: rules and news
+function renderRules() {
+  return {
+    win: `Ground <span class="plus">+</span> Admin`, rail: "admin", back: { label: "Admin", title: "Rules and news" },
+    body: `<div class="cardbody">
+      <div class="label">Message of the day<span class="r">top of the Server tab, and on joining</span></div>
+      ${W_("motd", `<textarea class="field" rows="2" data-bind="motd">${esc(S.motd)}</textarea>`, "display:block")}
+      <div class="label">The rules<span class="r">${S.rules.length}</span></div>
+      ${S.rules.map((r, i) => `<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px"><span class="st" style="width:16px;font-family:var(--font-mono)">${i + 1}</span>
+        ${field("r" + i, "rules." + i, r, "A rule, in a line", false)}
+        ${B_("up" + i, "move:" + i + ":-1", "&#9650;", "small", i === 0)}${B_("dn" + i, "move:" + i + ":1", "&#9660;", "small", i === S.rules.length - 1)}${B_("rm" + i, "rmrule:" + i, "&#x2715;", "small")}</div>`).join("")}
+      ${B_("addr", "addrule", "Add a rule")}
+      <div class="label">Appeal line<span class="r">on the ban and kick screens</span></div>
+      ${field("appeal", "appeal", S.appeal, "A Discord, a web address, an email")}
+      <div class="label">Joining</div>
+      ${tick("agree", "toggle:agree", S.agree, "Ask everyone to agree when they join", "They see the message of the day and the rules, with Leave and I agree.")}
+      ${tick("reask", "toggle:reask", S.reask, "Ask again when the rules change", "What changed is marked NEW.", !S.agree)}
+      <div class="label">News<span class="r">the Server tab</span></div>
+      ${W_("post", `<textarea class="field" rows="2" data-bind="post" placeholder="Something everyone should know">${esc(S.post)}</textarea>`, "display:block")}
+      <div style="display:flex;gap:10px;align-items:center;margin-top:6px">${tick("pin", "toggle:pinPost", S.pinPost, "Pin it to the top", "")}<span style="margin-left:auto">${B_("postb", "post", "Post", "default", !S.post.trim())}</span></div>
+      <div class="list" style="margin-top:8px">${S.posts.map((p, i) => `<div class="item" data-f="p${i}" style="flex-wrap:wrap;cursor:default;padding-left:26px">
+        <span style="flex:1;min-width:0">${p.pin ? `<span class="role" style="color:var(--accent)">PINNED</span> ` : ""}${esc(p.t)}<div class="sub">${esc(p.by)}, ${esc(p.d)}</div></span>
+        <span class="end">${B_("pp" + i, "pinp:" + i, p.pin ? "Unpin" : "Pin", "small")}${B_("dp" + i, "delp:" + i, "Delete", "small danger")}</span></div>`).join("")}</div>
+      </div>`,
+    foot: `<span class="left">${S.dirty ? "Not saved yet. Players see the change when you save." : "Saved."}</span>${B_("rsave", "save", "Save", "default", !S.dirty)}`,
+    help: S.flash || "Type in place. Rules and the message of the day save together; news posts at once.",
+    pad: `<span class="glyph">A</span>Pick <span class="glyph">START</span>Save <span class="glyph">B</span>Back`,
+  };
+}
+
+// ---------------------------------------------------------------- the admin: server extras (Phase 6, all off by default)
+function renderExtras() {
+  const x = S.x;
+  const stepper = (f, a, v, unit) => `<span style="display:inline-flex;gap:6px;align-items:center">${B_(f + "m", a + ":-1", "&minus;", "small")}<span class="stepper"><span class="val">${v}</span></span>${B_(f + "p", a + ":1", "+", "small")}<span class="sub" style="margin:0">${unit}</span></span>`;
+  const sys = (id, title, what, inner, dis) => `<div class="inset" style="${x[id].on ? "border-color:var(--accent)" : ""};${dis ? "opacity:.5" : ""}">
+      ${tick("x" + id, dis ? "flash:eco" : "sys:" + id, x[id].on, `<b>${title}</b>`, what, dis)}
+      ${x[id].on && inner ? `<div style="padding:6px 0 0 23px">${inner}</div>` : ""}</div>`;
+  return {
+    win: `Ground <span class="plus">+</span> Admin`, rail: "admin", back: { label: "Admin", title: "Server extras" },
+    body: `<div class="cardbody"><div class="sub" style="margin-top:0">Systems the game doesn't have, run by ZeD's server part. All off until you turn them on; players see what's on in their Server tab.</div>
+      ${sys("vc", "Vehicle claims", "A player claims a car from its Vehicle tab; the claim follows the car.",
+        `<div class="label" style="margin-top:4px">Others can't</div>${tick("vp", "vc:parts", x.vc.parts, "Take parts")}${tick("vd", "vc:drive", x.vc.drive, "Drive it")}${tick("vt", "vc:tow", x.vc.tow, "Tow it")}
+         <div class="label">Claims per player</div>${stepper("vn", "vcper", x.vc.per, x.vc.per === 1 ? "car" : "cars")}
+         <div class="label">A claim lapses after</div>${stepper("vl", "vclapse", x.vc.lapse, "real days away")}`)}
+      ${sys("sp", "Safehouse protection", "Non-members can't break what's inside a claim.",
+        `${tick("sd", "sp:dismantle", x.sp.dismantle, "No dismantling")}${tick("sx", "sp:destroy", x.sp.destroy, "No destroying (sledgehammer, axe on walls and doors)")}
+         ${tick("sl", "sp:lot", x.sp.lot, "Claims cover the lot", "The yard and the fence line, not just the walls.")}`)}
+      ${sys("tp", "Staff map teleport", "Roles that can teleport pick a spot on the map to go there.",
+        `<div class="sub" style="margin-top:0">Who: ${x.tp.roles.join(", ")} (from Roles: "Teleport to a player")</div>`)}
+      ${sys("cl", "Container log in safehouses", "Who took what from containers inside a safehouse, for the admins' Log.",
+        `<div class="sub warn" style="margin-top:0">Players are told in the Server tab that this is on.</div>`)}
+      ${sys("eco", "Economy", "A currency, shops and rewards. Its own design; later.", "", true)}
+      </div>`,
+    foot: `<span class="left">${S.dirty ? "Not saved yet." : "Saved."}</span>${B_("xsave", "save", "Save", "default", !S.dirty)}`,
+    help: S.flash || "Each is off by default. Saved to the server; a server that drops ZeD just loses the extras.",
+    pad: `<span class="glyph">A</span>Tick <span class="glyph">START</span>Save <span class="glyph">B</span>Back`,
+  };
+}
+
+// ---------------------------------------------------------------- the frame
+function render() {
+  document.documentElement.dataset.theme = S.theme;
+  document.documentElement.dataset.size = S.size;
+  renderReview();
+  const v = { join: renderJoin, server: renderServer, chat: renderChat, rules: renderRules, extras: renderExtras }[S.screen]();
+  const rails = v.rail === "player" ? ["INV", "EQP", "HP", "TMP", "CK", "ID", "SK", "SRV"] : v.rail === "admin" ? ["GRD", "ADM", "MAP", "VEH", "RAD"] : null;
+  const on = v.rail === "player" ? "SRV" : "ADM";
+  document.getElementById("win").innerHTML = `
+    <div class="titlebar"><div class="close"></div><div class="titlechip">${v.win}</div></div>
+    <div class="body">${rails ? `<div class="rail">${rails.map(r => `<div class="${r === on ? "on" : ""}">${r}</div>`).join("")}</div>` : ""}
+      <div class="panel">
+        ${v.back ? `<div class="backbar"><span class="back withhand" data-f="back" data-a="flash:back">&#9664; ${esc(v.back.label)}</span><span class="title">${esc(v.back.title)}</span></div>` : v.head ? `<div class="panelhead">${v.head}</div>` : ""}
+        <div class="scroll" id="scroll">${v.body}</div>
+        ${v.foot ? `<div class="foot">${v.foot}</div>` : ""}
+        <div class="helpband"><span>${v.help}</span><span class="pad">${v.pad}</span></div>
+      </div></div>`;
+  const fs = [...document.querySelectorAll("#win [data-f]")];
+  if (S.focus >= fs.length) S.focus = fs.length - 1;
+  if (S.focus < 0) S.focus = 0;
+  const f = fs[S.focus];
+  if (f) { if (!f.classList.contains("item") && !f.classList.contains("sumrow")) f.classList.add("focused"); f.insertAdjacentHTML("afterbegin", HAND); }
+  document.querySelectorAll("#win [data-bind]").forEach(el => el.addEventListener("input", ev => {
+    const key = el.dataset.bind, pos = el.selectionStart;
+    const ks = key.split("."); if (ks.length === 2) S[ks[0]][+ks[1]] = ev.target.value; else S[key] = ev.target.value;
+    if (key !== "post" && key !== "say") S.dirty = true;
+    render(); const n = document.querySelector(`#win [data-bind="${key}"]`); if (n) { n.focus(); n.setSelectionRange(pos, pos); }
+  }));
+}
+function act(a) {
+  const p = a.split(":"); S.flash = "";
+  switch (p[0]) {
+    case "flash": S.flash = { leave: "You leave the server.", agree: "In you go. The rules stay in the Server tab.", rules: "Opens the rules, as on joining.",
+      ask: "Opens Ask the admins (the tickets mockup).", back: "Back to the Admin tab.", eco: "Not yet: the economy gets its own design session.",
+      card: `Opens ${p[2]}'s Player card.`, tp: `Teleported to ${p[2]}.` }[p[1]]; break;
+    case "sel": S.sel = S.sel === +p[1] ? null : +p[1]; break;
+    case "report": S.flash = `Opens Ask the admins with ${p[1]} named and the chat lines around it attached.`; break;
+    case "mute": { const i = S.muted.indexOf(p[1]); if (i >= 0) S.muted.splice(i, 1); else S.muted.push(p[1]); S.flash = i >= 0 ? `${p[1]} unmuted.` : `${p[1]} muted for you. Nobody else is told.`; break; }
+    case "move": { const i = +p[1], j = i + +p[2]; [S.rules[i], S.rules[j]] = [S.rules[j], S.rules[i]]; S.dirty = true; break; }
+    case "rmrule": S.rules.splice(+p[1], 1); S.dirty = true; break;
+    case "addrule": S.rules.push(""); S.dirty = true; render(); { const fs = [...document.querySelectorAll("#win [data-f]")]; S.focus = fs.findIndex(x => x.dataset.f === "r" + (S.rules.length - 1)); } break;
+    case "toggle": S[p[1]] = !S[p[1]]; if (p[1] !== "pinPost") S.dirty = true; break;
+    case "post": S.posts.unshift({ t: S.post.trim(), by: "Hermit", d: "Nov 5", pin: S.pinPost }); S.post = ""; S.flash = "Posted. It's in everyone's Server tab now."; break;
+    case "pinp": S.posts[+p[1]].pin = !S.posts[+p[1]].pin; break;
+    case "delp": S.posts.splice(+p[1], 1); S.flash = "Deleted."; break;
+    case "save": S.dirty = false; S.flash = S.screen === "rules" ? (S.reask ? "Saved. Everyone is asked to agree again when they next join." : "Saved.") : "Saved to the server."; break;
+    case "sys": S.x[p[1]].on = !S.x[p[1]].on; S.dirty = true; break;
+    case "vc": S.x.vc[p[1]] = !S.x.vc[p[1]]; S.dirty = true; break;
+    case "sp": S.x.sp[p[1]] = !S.x.sp[p[1]]; S.dirty = true; break;
+    case "vcper": S.x.vc.per = Math.max(1, Math.min(5, S.x.vc.per + +p[1])); S.dirty = true; break;
+    case "vclapse": S.x.vc.lapse = Math.max(1, Math.min(30, S.x.vc.lapse + +p[1])); S.dirty = true; break;
+  }
+  render();
+}
+document.addEventListener("click", e => {
+  const r = e.target.closest("[data-r]");
+  if (r) { const [k, v] = r.dataset.r.split(/:(.*)/); S[k] = v; if (k === "screen") { S.focus = 0; S.sel = null; S.flash = ""; } render(); return; }
+  if (e.target.closest("input, textarea")) return;
+  const a = e.target.closest("[data-a]");
+  if (a && !a.disabled) { const fs = [...document.querySelectorAll("#win [data-f]")]; const f = a.closest("[data-f]"); if (f) S.focus = fs.indexOf(f); act(a.dataset.a); }
+});
+document.addEventListener("keydown", e => {
+  if (e.target.closest && e.target.closest("input, textarea")) { if (e.key === "Escape") e.target.blur(); return; }
+  const fs = [...document.querySelectorAll("#win [data-f]")];
+  if (e.key === "ArrowDown") { S.focus = Math.min(fs.length - 1, S.focus + 1); render(); e.preventDefault(); }
+  else if (e.key === "ArrowUp") { S.focus = Math.max(0, S.focus - 1); render(); e.preventDefault(); }
+  else if (e.key === "Enter") { const f = fs[S.focus]; if (!f) return; const fl = f.querySelector("input, textarea"); if (fl) { fl.focus(); e.preventDefault(); return; }
+    const a = f.matches("[data-a]") ? f : f.querySelector("[data-a]"); if (a && !a.disabled) act(a.dataset.a); e.preventDefault(); }
+  const h = document.querySelector("#win .hand"); if (h) h.parentElement.scrollIntoView({ block: "nearest" });
+});
+render();
+</script>
+</body>
+</html>
