@@ -14,7 +14,7 @@
 .EXAMPLE
     pwsh -File ZeDUI/tools/qa/mp_server.ps1 -Start
 #>
-param([switch]$Start, [switch]$Stop, [switch]$Status,
+param([switch]$Start, [switch]$Stop, [switch]$Status, [switch]$NoServerPart,   # (-NoServerPart, Nov 6 2026: step 10 of the tickets, no server folder in the server's ZeD and the Lua checksum off)
     [ValidateSet("ZeD_UI", "ZeDQAShim", "ZeD_UI;ZeDQAShim")][string]$Mods = "ZeD_UI")   # (-Mods ZeDQAShim: the game's own windows, for the benchmark's comparison; -Mods "ZeD_UI;ZeDQAShim": ZeD plus the shim's ZeDQA.role, for mp_tickets.lua)
 $ErrorActionPreference = "Stop"
 $GameDir  = "E:\Project Zomboid\steamapps\common\ProjectZomboid"
@@ -95,6 +95,11 @@ UDPPort=16262
 }
 # the mod list for this start
 (Get-Content $ini) -replace '^Mods=.*$', "Mods=$Mods" | Set-Content $ini -Encoding ascii
+if ($NoServerPart) {
+    Remove-Item (Join-Path $dst "42\media\lua\server\ZeD") -Recurse -Force
+    (Get-Content $ini) -replace '^DoLuaChecksum=.*$', 'DoLuaChecksum=false' | Set-Content $ini -Encoding ascii
+    "no server part, the Lua checksum off"
+}
 "mods: $Mods"
 $args = @("--enable-native-access=ALL-UNNAMED", "--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED", "-XX:+UseZGC",
     "-XX:-CreateCoredumpOnCrash", "-XX:-OmitStackTraceInFastThrow", "-Xmx3072m",
