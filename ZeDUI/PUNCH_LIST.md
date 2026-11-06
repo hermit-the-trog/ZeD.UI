@@ -2638,6 +2638,8 @@ item says so.
       ZeD_BodyFigure.lua's `M_HITS` / `F_HITS` / `M_HITMAP` / `F_HITMAP`. Don't rerun the whole export into 42/.
     - **Change note (the director's words, Nov 5 2026):** "Both male and female skeletons have had their elbows
       surgically repaired. Both are expected to make full recoveries."
+    - **Installed Nov 5 (5876172f). QA PASS:** both figures at 3x, tinted parts on their own bones, the hit walk down each
+      arm clean. The tabs ran on the male figure only and the Equip doll wasn't pictured; both draw the same parts.
 
 89. **The Identity tab, Immersive and Simple (the director, Nov 5 2026: "Everything is either immersive or simple").**
     Immersive is the license, Simple is ZeD components (called License and Plain in the notes below and in v1). Design:
@@ -2681,6 +2683,7 @@ item says so.
     UI_ZeD_Mods_HelpLabel, "colour" in UI_ZeD_GCh_zed_look_Text and UI_ZeD_GCh_whatsnew_beta3_Text), and
     `ZeDUI/workshop/license_block.bbcode` ("[h2]Licence[/h2]"; the live page already says License). The game's own
     keys (IGUI_char_Favourite_Weapon) stay as they are. Every change note and description from here on: American.
+    **Done Nov 5 (5876172f). QA PASS:** the five keys read American as the game loads them; the license block too.
 
 91. **The radial wheels redesign, for beta 6 (the director, Nov 5 2026, through QA: "Yes, add it").** The spec is the Claude
     doc "ZeD-GUI Radial Wheels: Build & QA Handoff" (https://claude.ai/artifact/4HtFjQfJExmaMQaQcJ8Yj3). Tap a D-pad
