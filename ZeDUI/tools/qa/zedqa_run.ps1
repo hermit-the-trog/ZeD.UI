@@ -228,6 +228,11 @@ function Update-Log {
     $raw = Read-Text $ConsoleFile
     if ($null -eq $raw) { return $script:ConsoleLog.Length }
     $text = $raw -replace "`0", ""
+    # (Nov 6 2026: a read can come back short while the game writes. The same file, not a new one: taking it from its start again
+    # re-reads the whole log, the launch's main menu line included, and the run stops as if the game had dropped to the menu)
+    $head = $text.Substring(0, [Math]::Min(400, $text.Length))
+    if ($text.Length -lt $script:ConsoleSeen -and $head.Length -gt 0 -and $head -eq $script:ConsoleHead) { return $script:ConsoleLog.Length }
+    if ($head.Length -ge 400) { $script:ConsoleHead = $head }
     if ($text.Length -lt $script:ConsoleSeen) {
         $script:RunNotes.Add("console.txt restarted at $(Get-Date -Format 'HH:mm:ss') (the game starts a new one when it grows large); anything between the last read and the restart is missing")
         $script:ConsoleSeen = 0

@@ -1,0 +1,2 @@
+zedqa_prelude.lua | pre | timeout=120
+zedqa_ctx_icons.lua | cx | timeout=300           # the right-click menu's pixel icons: every picture name has one, the lookup in the game's words, every icon in strip cells, the strip and the list on four things and the floor

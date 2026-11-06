@@ -1,0 +1,4 @@
+zedqa_pin_windows.lua | pnw | timeout=30
+mp_open.lua | mop | timeout=60
+mp_log.lua | mlg | timeout=240
+mp_extras.lua | mex | timeout=120

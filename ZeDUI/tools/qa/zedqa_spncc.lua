@@ -17,7 +17,7 @@ local function say(s) print("ZEDQA " .. TAG .. " " .. tostring(s)) end
 local p = getPlayer()
 if not p then say("ERR no player"); return end
 local S = ZeD.ModSupport and ZeD.ModSupport.SPNCC
-if not S then say("ERR ZeD's SPNCC support is not loaded (is the mod on?)"); return end
+if not S then say("ERR ZeD's SPNCC support is not loaded (is the mod on?)"); say("DONE"); return end
 local CW = ZeD_CharacterWindow
 local F = ZeD.Input and ZeD.Input.Focus
 local core = getCore()
