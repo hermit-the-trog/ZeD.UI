@@ -1,0 +1,2 @@
+zedqa_prelude.lua | pre | timeout=120
+zedqa_faiv.lua | fav | timeout=240

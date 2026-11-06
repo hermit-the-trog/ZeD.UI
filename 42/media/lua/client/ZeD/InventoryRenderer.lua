@@ -204,6 +204,35 @@ local function rebuildColStates(content)
     content._colStates = newStates
 end
 
+-- Nov 6 2026 (FAIV's report, a list stale until the window closed): a column's rows follow the container selected for it,
+-- by the container object, never by its place in the list. Each column is checked against the selection before it draws;
+-- any that disagrees is re-pointed by its object (keeping its scroll and selection) and the columns rebuilt, whichever way
+-- the list or the selection moved. Returns true when it rebuilt them.
+local function syncColStates(content)
+    local selected, containers = content._selectedContainers, content._containers
+    if not (selected and containers) then return false end
+    local states = content._colStates
+    local same = states ~= nil and #states == #selected
+    if same then
+        for i, cIdx in ipairs(selected) do
+            local c, cs = containers[cIdx], states[i]
+            if not c or cs.containerIdx ~= cIdx or cs.inventory ~= c.inventory then same = false; break end
+        end
+    end
+    if same then return false end
+    for _, cs in ipairs(states or {}) do
+        cs.containerIdx = nil
+        for i, c in ipairs(containers) do
+            if c.inventory == cs.inventory then cs.containerIdx = i; break end
+        end
+    end
+    for i = #selected, 1, -1 do
+        if not containers[selected[i]] then table.remove(selected, i) end
+    end
+    rebuildColStates(content)
+    return true
+end
+
 local function toggleContainer(content, cIdx, maxTotal)
     if not content._containers[cIdx] then return end
     local selected = content._selectedContainers
@@ -2126,6 +2155,8 @@ local function renderMultiColumnContent(self)
             lastCs.sortAsc         = self._sortAsc
         end
     end
+    -- (after the save above: that belongs to the columns as the last frame drew them)
+    if syncColStates(self) then colStates, N = self._colStates, #selected end
 
     -- Set bar height so renderItemList shifts content down.
     -- Caller can pre-set _barH = 0 to suppress the container bar (e.g. character window).
@@ -2355,6 +2386,29 @@ local function stripDropTarget(win)
     return cnt.inventory
 end
 
+-- Nov 6 2026 (FAIV's report, the rolled window): the list a release on another ZeD window's title bar lands in, the bar
+-- being all a rolled window has and its roll-down taking up to a tenth of a second. The same pointer test as
+-- ZeD_Window:_autoCollapse. The source's own bar takes nothing, as its own list doesn't, nor a bar the source window
+-- covers; a window showing no list takes nothing. A rolled World window's list stopped refreshing with its strip, so a
+-- container left behind, or locked since, takes nothing either.
+local function titleBarDropTarget(win, srcWin)
+    if not (win and win ~= srcWin and win._contentPanel and win:getIsVisible()) then return nil end
+    if win._invDrawerOpen == false then return nil end
+    local px, py = getMouseX(), getMouseY()
+    local function inside(w, h)
+        local dx, dy = px - w:getAbsoluteX(), py - w:getAbsoluteY()
+        return dx >= 0 and dx <= w:getWidth() and dy >= 0 and dy < h
+    end
+    if not inside(win, win:titleBarHeight()) then return nil end
+    if srcWin and inside(srcWin, srcWin:shownHeight()) then return nil end
+    local panel = win._contentPanel
+    local cols = panel._colStates
+    local last = cols and cols[#cols]
+    local inv = last and last.inventory or panel._inventory
+    if inv and win.windowShaded and win == ZeD_WorldWindow.getWindow() and not ZeD_WorldWindow.inReach(inv) then return nil end
+    return inv
+end
+
 -- True when the pointer is over a window or panel that takes the mouse (as
 -- vanilla's pane asks before it drops dragged items on the floor). Read once
 -- per drop, never per frame. When it can't tell, it answers true: a drop that
@@ -2468,6 +2522,13 @@ local function handleDrop(content, items, srcInventory)
         if not destContainer then
             destContainer = stripDropTarget(charWin) or stripDropTarget(worldWin)
         end
+
+        -- A window's title bar: that window's list, rolled or not
+        if not destContainer then
+            local srcWin = (charWin and charWin._contentPanel == content and charWin)
+                or (worldWin and worldWin._contentPanel == content and worldWin) or nil
+            destContainer = titleBarDropTarget(charWin, srcWin) or titleBarDropTarget(worldWin, srcWin)
+        end
     end
 
     local srcIsFloor  = srcContainer ~= nil and srcContainer:getType() == "floor"
@@ -2521,6 +2582,7 @@ ZeD.InventoryRenderer.collectSelectedItems       = collectSelectedItems
 ZeD.InventoryRenderer.handleDrop                 = handleDrop
 ZeD.InventoryRenderer.buildContainers            = buildContainers
 ZeD.InventoryRenderer.rebuildColStates           = rebuildColStates
+ZeD.InventoryRenderer.syncColStates              = syncColStates
 ZeD.InventoryRenderer.toggleContainer            = toggleContainer
 ZeD.InventoryRenderer.getColumnAtX               = getColumnAtX
 ZeD.InventoryRenderer.MIN_COL_W                  = MIN_COL_W
