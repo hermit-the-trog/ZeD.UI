@@ -1,0 +1,2 @@
+zedqa_pin_windows.lua | pnw | timeout=30
+mp_tk_mouse.lua | mtm | timeout=200

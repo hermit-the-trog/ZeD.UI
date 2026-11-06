@@ -157,7 +157,7 @@ end
 -- STEP 4 AND 5: the game's ticket, and the staff's commands
 -- ---------------------------------------------------------------------------
 add(500, function() role("admin") end)
-add(800, function() S.hello(); nolimits() end)
+add(800, function() nolimits(); S.hello() end)   -- (limits first: the last perm answer sent a hello of its own, inside hello's 5 s)
 add(1000, function()
     pass("step 5: admin again", S.staff == true and S.admin == true)
     -- (the five above are open: staff reset them through the queue so filing works)
@@ -271,7 +271,7 @@ add(1200, function()
 end)
 add(1000, function()
     local row = K.list and K.list.byId[K.card and K.card.gameId or 0]
-    pass("step 6: the game's window shows one answer", row and row.at == "qa: the first answer", row and row.at)
+    pass("step 6: the game's window shows one answer, the stub", row and row.at == Tk.answerText("qa: the first answer"), row and row.at)   -- (the director: the game's copy holds only the stub)
     -- from the bridge, as a plain player: forged tags and answers
     role("user")
 end)
@@ -285,13 +285,14 @@ end)
 add(3000, function() role("admin") end)
 add(1000, function() nolimits(); K.closeQueue(); K.openQueue({ status = "All" }) end)
 add(25000, function()
-    local q = K.queue
-    say("after the first sync: gameMax " .. tostring(K.gameMax) .. ", skipped " .. tostring(q and q.skipped))
-    SKIPPED = q and q.skipped
+    say("after the first sync: gameMax " .. tostring(K.gameMax) .. ", the list " .. tostring(K.list and #K.list.rows))
     K.closeQueue()
     K.openQueue({ status = "All" })
 end)
+-- (a page is read before its sync runs, so skipped shows at the next open: the rise is measured from that one)
 add(8000, function()
+    SKIPPED = K.queue and K.queue.skipped
+    say("second open: skipped " .. tostring(SKIPPED) .. ", gameMax " .. tostring(K.gameMax))
     K.closeQueue()
     K.openQueue({ status = "All" })
 end)
