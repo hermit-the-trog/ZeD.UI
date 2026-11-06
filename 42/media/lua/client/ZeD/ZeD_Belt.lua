@@ -610,7 +610,7 @@ end
 
 -- What a hand accepts from a drag (vanilla ISEquippedItem:getDraggedEquippableItem)
 function B.handTakes(item)
-    if not item or getCore():getGameMode() == "Tutorial" then return false end
+    if not item or tostring(getCore():getGameMode()) == "Tutorial" then return false end
     local si = call(item, "getScriptItem")
     if si and call(si, "getReplaceWhenUnequip") then return false end
     if call(item, "IsWeapon") then return (call(item, "getCondition") or 0) > 0 end
@@ -725,7 +725,7 @@ function ZeD_BeltHUD:wanted()
     if not p or p:isDead() then return false end
     if p:getVehicle() then return false end
     if ISUIHandler and ISUIHandler.allUIVisible == false then return false end
-    if getCore():getGameMode() == "Tutorial" then return false end
+    if tostring(getCore():getGameMode()) == "Tutorial" then return false end
     return B.hotbar(self.playerNum) ~= nil
 end
 

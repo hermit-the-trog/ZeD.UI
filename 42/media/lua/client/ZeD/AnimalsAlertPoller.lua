@@ -211,7 +211,7 @@ local function computeZoneSummary(zone, animals)
                     local gs = cell and cell:getGridSquare(x, y, 0)
                     if gs then
                         total = total + 1
-                        if gs:isRoofed() then roofed = roofed + 1 end
+                        if gs.haveRoofFull and gs:haveRoofFull() then roofed = roofed + 1 end
                     end
                 end
             end
