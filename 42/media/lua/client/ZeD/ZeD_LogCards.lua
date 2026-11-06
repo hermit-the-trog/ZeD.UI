@@ -243,8 +243,13 @@ function P.goBtn(st, r)
     local place = { x = r.x, y = r.y, z = r.z }
     return { id = "lgo:" .. r.s, text = tr("UI_ZeD_Tk_GoThere"), help = tr("UI_ZeD_Log_HelpGo"),
         live = function(c)
-            if not r.x then
+            if r.hid then
                 c.disabled, c.why = true, tr("UI_ZeD_Log_NoPlaceLine")
+            elseif not r.x then
+                c.disabled, c.why = true, tr("UI_ZeD_Log_NoPlaceHeld")
+            elseif r.src == "tap" then
+                -- (any client can write a line: one press must not take staff to a spot a griefer chose)
+                c.disabled, c.why = true, tr("UI_ZeD_Log_NoGoTap")
             else
                 D.liveGo(c)
             end
@@ -273,7 +278,7 @@ function P.noteBtn(st, card, r)
 end
 
 function P.lineItem(st, card, r, today)
-    local who = tostring(r.who or "")
+    local who = Lm.whoText(r)
     local open = card.sel == r.s
     local it = { k = "lline", r = r, kindK = r.k, tag = P.tagText(r), who = who, text = who .. " " .. Lm.lineText(r), metaText = Lm.metaText(r), col = P.col(r, today),
         open = open, c = { id = "l:" .. r.s, help = tr("UI_ZeD_Log_HelpLine"), run = function()
@@ -282,7 +287,7 @@ function P.lineItem(st, card, r, today)
         end } }
     if open then
         local ctls = { P.goBtn(st, r) }
-        if who ~= "" and who ~= "server" and r.src ~= "tap" then ctls[#ctls + 1] = P.cardBtn(st, card, "lpc:", r, who) end
+        if who ~= "" and r.who ~= Tk.SYS and r.src ~= "tap" then ctls[#ctls + 1] = P.cardBtn(st, card, "lpc:", r, who) end
         local other = Lm.otherName(r)
         if other and other ~= who then ctls[#ctls + 1] = P.cardBtn(st, card, "lpo:", r, other) end
         if card.around then ctls[#ctls + 1] = P.noteBtn(st, card, r) end
@@ -409,6 +414,17 @@ function P.items(win, st, t, card, page)
     return items
 end
 
+-- a card back on top after another log card sat over it: stacked log cards share the Find field and the page, so its own words go
+-- back in the field and its read goes out again
+function P.onTop(win, card)
+    if P.top == card then return end
+    P.top = card
+    D.setField(win, "lfind", card.find or "")
+    local box = D.fieldOf(win, "lfind")
+    if box then box._lastText = card.find or "" end
+    card.sentKey, card.askAt = nil, nil
+end
+
 -- what the card asks for now, and the same as a key
 function P.query(card)
     local find = Tk.clean(card.find)
@@ -421,10 +437,9 @@ end
 
 function P.refused(win, st, card, a)
     if st.card ~= card then return end
-    if a.err == "wait" then
-        card.sentKey = nil
-        return
-    end
+    -- (a read that was dropped or went unanswered is asked again: a page the first read can't bring back would strand the card)
+    if a.err == "wait" or a.err == "fail" then card.sentKey = nil end
+    if a.err == "wait" then return end
     D.flash(TC.qaState(st), F.errOf(a))
     if a.err == "perm" or a.err == "gone" then TC.back(win, st) end
 end
@@ -440,6 +455,7 @@ TC.kinds.log = {
             t.scroll:setScrollPos(card.pos)
             card.pos = nil
         end
+        P.onTop(win, card)
         if Lm.qaHold then return end
         -- (a second log card, from a ticket on a player's card over this one, took the page with it: read this one's again)
         if card.had and not Lm.page and not Lm.waiting then

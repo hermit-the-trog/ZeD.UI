@@ -50,7 +50,7 @@ local function findName()
             if c > bestN or (c == bestN and n < best) then best, bestN = n, c end
         end
     end
-    if found > 1 then Srv.action("admin", "server", "ticket tables", nil, "found " .. found .. "; using the one with the most tickets (" .. bestN .. ")") end
+    if found > 1 then Srv.action("admin", Tk.SYS, "ticket tables", nil, "found " .. found .. "; using the one with the most tickets (" .. bestN .. ")") end
     return best
 end
 
@@ -76,7 +76,7 @@ local function open()
         end
         md.schema = md.schema + 1
     end
-    if T.frozen then Srv.action("admin", "server", "ticket table frozen", nil, "schema " .. tostring(md.schema) .. ", this ZeD knows " .. SCHEMA) end
+    if T.frozen then Srv.action("admin", Tk.SYS, "ticket table frozen", nil, "schema " .. tostring(md.schema) .. ", this ZeD knows " .. SCHEMA) end
     T.byGame = {}
     for _, rec in pairs(md.tickets) do
         if rec.gameId then T.byGame[rec.gameId] = rec end
@@ -293,6 +293,12 @@ end
 local function logTk(rec, what, who)
     local pl = rec.place
     Srv.action("ticket", who, what, "#" .. tostring(rec.id), tostring(rec.kind), pl and pl.x, pl and pl.y, pl and pl.z)
+end
+
+-- a game row taken in. Its author is a claim, not a proof (the row came through a staff client), so the line is the server's and
+-- the name stays in its detail: it reads "not proved" and counts against no player's share or Who list
+local function logAdopted(rec, author)
+    Srv.action("ticket", Tk.SYS, "adopted from the game's window", "#" .. tostring(rec.id), tostring(rec.kind) .. ": " .. tostring(author))
 end
 
 local function toAuthor(rec, command, args)
@@ -805,7 +811,7 @@ local function adopt(md, r, c)
     c.open = c.open + 1
     c.gameOpen = c.gameOpen + 1
     c.claimed[author] = (c.claimed[author] or 0) + 1
-    logTk(rec, "adopted from the game's window", author)
+    logAdopted(rec, author)
 end
 
 -- a record meets its game row. What staff did before the link is owed to that row: viewed, and the one answer
@@ -856,7 +862,7 @@ local function resetLinks(md)
     for _, rec in pairs(md.tickets) do rec.gameId = nil end
     T.byGame = {}
     md.gameMax = 0
-    Srv.action("ticket", "server", "the game's ticket database was replaced", nil, "links cleared, matching again by tag")
+    Srv.action("ticket", Tk.SYS, "the game's ticket database was replaced", nil, "links cleared, matching again by tag")
 end
 
 -- is any of these rows, under a linked id, not the record linked to it? Only that proves a replaced database. A top

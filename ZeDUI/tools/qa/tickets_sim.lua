@@ -516,7 +516,7 @@ do
     W.moddata["ZeD_TK_planted"] = { schema = 1, nextId = 9, gameMax = 0, skipped = 0, chars = 0, tickets = {} }
     serverStart()
     check("two tables: the one with more tickets", rec(1) ~= nil)
-    check("two tables: a line, and no name in it", logHas("ticket tables | server | - | - | found 2;") and not logHas("planted"))
+    check("two tables: a line, and no name in it", logHas("ticket tables | @server | - | - | found 2;") and not logHas("planted"))
 
     -- newer data: read it, never change it
     world()
