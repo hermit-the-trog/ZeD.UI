@@ -2686,7 +2686,13 @@ item says so.
     doc "ZeD-GUI Radial Wheels: Build & QA Handoff" (https://claude.ai/artifact/4HtFjQfJExmaMQaQcJ8Yj3). Tap a D-pad
     direction to open, the left stick keeps walking, the right stick picks by angle, flick-release takes, the same
     direction or B cancels, four settings (Wheel open, Wheel commit, Wheel toggle mode, Wheel stick dead zone).
-    - **Read against what's built, Nov 5 (Build). Held until the director answers the open questions.**
+    - **Settled by the director, Nov 5:** Left and Right keep today's wheels (same slices, inner wheels, Tabs first),
+      only the gesture changes, so chords and spread 44 stand. Stick click ships as an exception to the rule: it counts
+      only with a wheel open and that setting chosen. Aim or attack with a wheel up closes the wheel, takes nothing, and
+      the attack happens; the bumpers close it and open the windows.
+    - **Inner wheels under the new gesture (Build's call):** a flick onto a slice with a corner triangle opens that ring
+      in place; a flick there takes; B backs out one level; the same D-pad direction closes all of it.
+    - **Read against what's built, Nov 5 (Build).**
       - The doc's "October mapping" is not what shipped. Shipped: GAMEPAD_SPEC (A left click, X right click, B back, Y
         windows, LB and RB the windows). The doc's QA line "A left-clicks, B right-clicks" and its paste-in section get
         corrected to that. "S119 lock" means the same current map.
