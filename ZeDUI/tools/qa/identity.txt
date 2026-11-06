@@ -1,0 +1,4 @@
+# the Identity tab (Nov 5 2026)
+zedqa_prelude.lua | pre
+zedqa_pin_windows.lua | pnw | timeout=30
+zedqa_identity.lua | idt | timeout=420

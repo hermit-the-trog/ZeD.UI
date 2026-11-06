@@ -1,0 +1,8 @@
+# the radial wheels (Nov 5 2026, punch list 91)
+zedqa_prelude.lua | pre
+zedqa_dpad_wheels.lua | dw | timeout=900
+zedqa_wheel_sizes.lua | ws
+zedqa_wheel_icons.lua | wi | timeout=600
+zedqa_wheels.lua | wh
+zedqa_pad_glyphs.lua | pg | timeout=400
+zedqa_quick_chords.lua | qc | timeout=300

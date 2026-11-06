@@ -1,0 +1,2 @@
+# the first client on the server, pinned, left open (Nov 5 2026)
+zedqa_pin_windows.lua | pnw | timeout=30
