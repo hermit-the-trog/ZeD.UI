@@ -6,8 +6,9 @@
 -- its view, stops unique and whole, every grayed foot button saying why), then walks the flows: the Server tab, the rules card, Rules and
 -- news (typing, moving, removing, adding, saving, a second admin, posting, pinning, deleting), the join window with mouse and pad at every
 -- size, never trapping anyone, the ban and kick screens, chat (picking, Mute, Report, Player card, Teleport, the pad), a report on its
--- ticket cards. It proves the logic and the sums. What it cannot prove is what the engine does: the text box, the keyboard, focus
--- landing, real font widths, the window's chrome.
+-- ticket cards. The last block runs the real FocusManager against the join window: its Y, a claim, the right stick. It proves the logic
+-- and the sums. What it cannot prove is what the engine does: the text box, the keyboard, focus landing, real font widths, the window's
+-- chrome.
 -- This file's first half is claim_cards_sim.lua's harness.
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/community_cards_sim.lua
 -- It prints FAIL lines and a last line "community_cards_sim: N checks, M failed", and exits 1 if any failed.
@@ -398,8 +399,8 @@ ZeD.btnCase = function(s) return s end
 ZeD.upper = function(s) return string.upper(s) end
 
 local TABS = {}
-ZeD_CharacterWindow = { addTab = function(def) TABS.server = def end, openTab = function(n, id) OPENED[#OPENED + 1] = id; return true end }
-ZeD_WorldWindow = { addTab = function(def) TABS.admin = def end, openTab = function(n, id) OPENED[#OPENED + 1] = id; return true end }
+ZeD_CharacterWindow = { addTab = function(def) TABS.server = def end, openTab = function(n, id) OPENED[#OPENED + 1] = id; return true end, getWindow = function() return "the Character window" end }
+ZeD_WorldWindow = { addTab = function(def) TABS.admin = def end, openTab = function(n, id) OPENED[#OPENED + 1] = id; return true end, getWindow = function() return "the World window" end }
 ZeD.Safe = { on = function(name) return SAFE == name end, guard = function(panel, fn)
     local ok, err = pcall(fn, panel)
     if ok then return true end
@@ -414,6 +415,9 @@ ZeD.Input = { Focus = {
     focusSoon = function(_, zone, pred) FOCUS.soon[#FOCUS.soon + 1] = { zone = zone, pred = pred } end,
     getFocusedWindow = function() return FOCUS.win end,
     getFocusedElement = function() return FOCUS.el end,
+    claimFocus = function(w) FOCUS.claimed = w end,
+    reclaimEngineFocus = function() FOCUS.reclaimed = true end,
+    releaseFocus = function() FOCUS.win = nil end,
 } }
 
 require "ZeD/Tokens"
@@ -955,6 +959,7 @@ do
     check("Save has not gone with it", lastCmd("m_save") == nil)
     ack("m_post", { id = 9 })
     check("the field empties", field("cm:post"):getText() == "")
+    check("a pin is for one post", card.pin == false)
     check("said", ZeD.Help.last == WORDS("UI_ZeD_Cm_Posted"), ZeD.Help.last)
     nowMs = nowMs + 20000
     CLIENT = {}
@@ -973,6 +978,8 @@ do
     press("tk:cmdel:1")
     click("tk:cmyes")
     check("Delete for good goes", lastCmd("m_del") and lastCmd("m_del").id == 1)
+    check("the pad lands on the next post's Delete", FOCUS.soon[#FOCUS.soon].pred({ id = CM._P.afterPost(1) }) and string.sub(CM._P.afterPost(1), 1, 9) == "tk:cmdel:", CM._P.afterPost(1))
+    check("the last post: the box to write one", CM._P.afterPost(12345) == "tk:f:cm:post")
     ack("m_del")
     -- the rights
     reset()
@@ -1001,6 +1008,102 @@ do
     draw()
     check("no server part: no row", stopOf("adm:tk:sum:cmedit") == nil)
     S.cm = true
+end
+
+-- the review's cases on Rules and news --------------------------------------------------------
+do
+    reset()
+    useTab("admin")
+    local v0 = view()
+    draw()
+    draw()
+    click("adm:tk:sum:cmedit")
+    local card = st.card
+    draw()
+    -- a key used once is never used again in this window: its box still holds what was typed
+    press("tk:cmadd")
+    draw()
+    local k1 = card.rows[#card.rows].key
+    typeIn(k1, "half a rule")
+    TC.back(win, st)
+    draw()
+    draw()
+    click("adm:tk:sum:cmedit")
+    card = st.card
+    draw()
+    check("back out: the rule is gone", #card.rows == v0.rules.n)
+    press("tk:cmadd")
+    draw()
+    draw()
+    local k2 = card.rows[#card.rows].key
+    check("Add a rule opens empty", k2 ~= k1 and field(k2) and field(k2):getText() == "", field(k2) and field(k2):getText())
+    check("and Save says so", footOf("rsave").disabled and footOf("rsave").why == WORDS("UI_ZeD_Cm_RuleEmpty", #card.rows), footOf("rsave").why)
+    press("tk:cmrm:" .. k2)
+    -- typing nothing, another admin changes a rule and takes one away
+    FOCUS.pad = false
+    TC.back(win, st)
+    draw()
+    click("adm:tk:sum:cmedit")
+    card = st.card
+    draw()
+    draw()
+    local e = { n = 4 }
+    for i = 1, 4 do e[i] = { id = v0.rules[i].id, text = v0.rules[i].text, rev = 1 } end
+    e[1].text = "Reworded by Bea"
+    local vb = view({ rules = e })
+    vb.edit.base = card.base + 1
+    vb.edit.by = "Bea"
+    draw()
+    draw()
+    draw()
+    check("an untouched card takes a changed rule", card.base == vb.edit.base and #card.rows == 4, card.base)
+    check("the words are the new ones", field("cm:r" .. e[1].id):getText() == "Reworded by Bea", field("cm:r" .. e[1].id):getText())
+    check("nothing to save", footOf("rsave").disabled and footOf("rsave").why == WORDS("UI_ZeD_Cm_NothingToSave"), footOf("rsave").why)
+    check("and it says Saved", textDrawn(WORDS("UI_ZeD_Cm_Saved")) and not textDrawn(WORDS("UI_ZeD_Cm_NotSaved")))
+    -- a tick changed is touching it
+    press("tk:cmask")
+    local vc = view({ rules = e, motd = "Newer" })
+    vc.edit.base = card.base + 1
+    draw()
+    draw()
+    check("a card you touched stays yours", card.base ~= vc.edit.base and textDrawn(WORDS("UI_ZeD_Cm_NotSaved")))
+    press("tk:cmask")
+    draw()
+    draw()
+    check("put back, it takes the new copy", card.base == vc.edit.base, card.base)
+    -- the field that follows its seed has not been typed in
+    local vd = view({ rules = e, motd = "Newer still" })
+    vd.edit.base = card.base + 1
+    draw()
+    draw()
+    draw()
+    check("the message moves with the rest", card.base == vd.edit.base and field("cm:motd"):getText() == "Newer still", field("cm:motd"):getText())
+    -- a pad's Add puts no caret in the box: A does that, with the pad keyboard
+    FOCUS.pad = true
+    press("tk:cmadd")
+    check("the pad: no caret", t.wantField == nil)
+    check("the pad lands on the new box", FOCUS.soon[#FOCUS.soon].pred({ id = "tk:f:" .. card.rows[#card.rows].key }))
+    FOCUS.pad = false
+    press("tk:cmrm:" .. card.rows[#card.rows].key)
+    -- frozen: community's own word
+    local vf = view({ frozen = true })
+    draw()
+    draw()
+    typeIn("cm:motd", "typed")
+    check("frozen: Save says rules and news", footOf("rsave").why == WORDS("UI_ZeD_Cm_Frozen"), footOf("rsave").why)
+    for _, it in ipairs(t.items) do
+        if it.k == "aflow" then
+            for _, c in ipairs(it.ctls) do
+                if c.id == "cmpost" then check("frozen: Post says so too", c.why == WORDS("UI_ZeD_Cm_Frozen"), c.why) end
+            end
+        end
+    end
+    vf.frozen = nil
+    -- the row's counts
+    check("one of each", CM._P.counts({ rules = { n = 1 }, news = { n = 1 } }) == "1 rule, 1 post", CM._P.counts({ rules = { n = 1 }, news = { n = 1 } }))
+    check("several", CM._P.counts({ rules = { n = 5 }, news = { n = 3 } }) == "5 rules, 3 posts")
+    check("none", CM._P.counts({ rules = { n = 0 }, news = { n = 0 } }) == "0 rules, 0 posts")
+    reset()
 end
 
 -- the join window at every size, mouse and pad ------------------------------------------------
@@ -1053,6 +1156,7 @@ do
                 end
                 check(name .. ": room to read", (t0.csh or 0) >= ZeD.T.px(120), t0.csh)
                 check(name .. ": the first rule shows", textDrawn(next(over) and "A long rule" or "Be decent", w0))
+                check(name .. ": the help fits its line", ZeD.TM:MeasureStringX(ZeD.T.fontF2, ZeD.tr("UI_ZeD_Cm_HelpJoin")) <= w0.width - 2 * ZeD.T.px(10))
                 if not next(over) then
                     check(name .. ": NEW on the changed rule", textDrawn(ZeD.tr("UI_ZeD_Cm_New"), w0))
                     check(name .. ": the foot says which", textDrawn(ZeD.tr("UI_ZeD_Cm_NewOne", 2), w0))
@@ -1173,6 +1277,76 @@ do
     M.joinScreen()
     check("never two", CM.joinWin == one)
     one:finish()
+
+    -- a build that fails leaves nothing up
+    local covers = {}
+    local coverNew, winNew = ZeD_JoinCover.new, ZeD_JoinWindow.new
+    ZeD_JoinCover.new = function(...)
+        local c = coverNew(...)
+        covers[#covers + 1] = c
+        return c
+    end
+    ZeD_JoinWindow.new = function() error("a mod patched the window") end
+    check("the build fails", not pcall(M.joinScreen))
+    check("no window, no cover, the keys free", CM.joinWin == nil and #covers == 0 and KEYS_ON == true)
+    ZeD_JoinWindow.new = winNew
+    ZeD_JoinCover.new = coverNew
+
+    -- the pad, whatever happens to it
+    JoypadState.players = { {} }
+    M.joinScreen()
+    w0 = CM.joinWin
+    local jd = JoypadState.players[1]
+    local deathPanel = { isVisible = function() return true end }
+    jd.focus = deathPanel
+    joinFrame(w0)
+    check("taken from it: the window takes the pad back", jd.focus == w0 and w0.joyfocus == jd and w0._padId == "tk:agree")
+    w0:onJoypadDown(Joypad.AButton)
+    check("and the answer gives it to whoever took it", CM.joinWin == nil and jd.focus == deathPanel, jd.focus)
+    M.joinScreen()
+    w0 = CM.joinWin
+    jd.focus = { isVisible = function() return false end }
+    joinFrame(w0)
+    w0:finish()
+    check("one that has gone since gets nothing", jd.focus == nil)
+    JoypadState.players = {}
+    M.joinScreen()
+    w0 = CM.joinWin
+    joinFrame(w0)
+    check("no pad yet: no prompts", w0.joyfocus == nil and w0:getFooterPrompts() == nil)
+    JoypadState.players = { {} }
+    jd = JoypadState.players[1]
+    joinFrame(w0)
+    check("a pad that arrives late gets the window", jd.focus == w0 and w0.joyfocus == jd and w0:getFooterPrompts() ~= nil)
+    w0:onJoypadDirLeft()
+    joinFrame(w0)
+    w0:onJoypadDown(Joypad.AButton)
+    check("and can answer", CM.joinWin == nil)
+    LEFT = 0
+    M.joinScreen()
+    w0 = CM.joinWin
+    jd.inMainMenu = true
+    local menu = { isVisible = function() return true end }
+    jd.focus = menu
+    joinFrame(w0)
+    check("the game's pause menu keeps the pad", jd.focus == menu)
+    jd.inMainMenu = nil
+    jd.focus = nil
+    joinFrame(w0)
+    check("and back from it, the window has it", jd.focus == w0)
+    w0:finish()
+    -- the window the pad was in comes back
+    FOCUS.win, FOCUS.claimed = "the Character window", nil
+    local shown = { isVisible = function() return true end }
+    FOCUS.win = shown
+    M.joinScreen()
+    w0 = CM.joinWin
+    check("the window lets go of the pad for this", FOCUS.win == nil and w0.padBack == shown and jd.focus == w0)
+    joinFrame(w0)
+    w0:finish()
+    check("and has it back at the end", FOCUS.claimed == shown)
+    FOCUS.claimed = nil
+    JoypadState.players = {}
 
     -- the model's own clock shows it once, on the hello that says so
     M.joined = nil
@@ -1298,7 +1472,13 @@ do
     check("a press picks it", cw.picked == row.ln)
     check("a player gets two buttons", cw._acts and #cw._acts == 2 and #cw._actHits == 2)
     check("the drawing's words", textDrawn(WORDS("UI_ZeD_Chat_Report"), cw) and textDrawn(WORDS("UI_ZeD_Chat_MuteYou"), cw))
-    check("the help line says what this is", cw:getStatusLine() == WORDS("UI_ZeD_Chat_HelpPick"))
+    check("picked: what the buttons do", cw:getStatusLine() == WORDS("UI_ZeD_Chat_HelpMute"), cw:getStatusLine())
+    cw.picked = nil
+    chatDraw(cw)
+    check("nothing picked, lines to pick: that you can", cw:getStatusLine() == WORDS("UI_ZeD_Chat_HelpPick"), cw:getStatusLine())
+    check("it fits the line at the window's first size", ZeD.TM:MeasureStringX(ZeD.T.fontF2, WORDS("UI_ZeD_Chat_HelpPick")) <= cw.width - 2 * ZeD.T.px(10))
+    cw:onMouseDown(cw._linesRect.x + 2, row.y + 1)
+    chatDraw(cw)
     -- Mute
     local before = #CLIENT
     local unread = Ch.unreadN
@@ -1490,8 +1670,250 @@ do
     cw.zone = "lines"
     cw:_padStep("up")
     check("no line to land on: up goes to the tabs", cw.zone == "tabs")
-    FOCUS.pad = false
+    cw:pickTab("general")
+
+    -- every line is reachable: the list scrolls past the last line with a sender, and past lines between two of them
+    local function fill(list)
+        Ch.lines = {}
+        for _, m in ipairs(list) do Ch.onMessage(msg(m[1], m[2], m[3])) end
+    end
+    local list = {}
+    for i = 1, 20 do list[#list + 1] = { nil, "restart notice " .. i, "server" } end
+    for i = 1, 20 do list[#list + 1] = { "Aretha", "my own line " .. i } end
+    list[#list + 1] = { "Kade_R", "the only line to pick" }
+    fill(list)
+    cw = chatDraw(chatWin(440, 300))
+    cw.joyfocus = { focus = cw }
+    cw.zone = "input"
+    cw:_padStep("up")
+    check("up from the line: the one line with a sender", cw.zone == "lines" and cw.cur and cw.cur.author == "Kade_R")
+    chatDraw(cw)
+    check("this window can scroll", (cw._maxScroll or 0) > 0)
+    cw:_padStep("up")
+    chatDraw(cw)
+    check("no line left that way: it scrolls, it does not leave", cw.zone == "lines" and cw.scroll > 0, cw.zone)
+    local presses = 0
+    while cw.zone == "lines" and presses < 80 do
+        cw:_padStep("up")
+        chatDraw(cw)
+        presses = presses + 1
+    end
+    check("the oldest line is reached", textDrawn("restart notice 1", cw) and cw.zone == "tabs" and cw.scroll == cw._maxScroll, presses)
+    check("leaving lets the cursor go", cw.cur == nil)
+    cw:_padStep("down")
+    chatDraw(cw)
+    check("down from the tabs: into the lines, at the top of the view", cw.zone == "lines" and cw.scroll == cw._maxScroll)
+    presses = 0
+    while cw.zone == "lines" and presses < 80 do
+        cw:_padStep("down")
+        chatDraw(cw)
+        presses = presses + 1
+    end
+    check("and all the way back", cw.zone == "input" and cw.scroll == 0, cw.zone)
+
+    list = { { "Mags_77", "the older line to pick" } }
+    for i = 1, 30 do list[#list + 1] = { "Aretha", "my own line " .. i } end
+    list[#list + 1] = { "Kade_R", "the newer line to pick" }
+    fill(list)
+    cw = chatDraw(chatWin(440, 300))
+    cw.joyfocus = { focus = cw }
+    cw.zone = "input"
+    cw:_padStep("up")
+    chatDraw(cw)
+    local most, was = 0, cw.scroll
+    presses = 0
+    local lh = ZeD.TM:getFontHeight(ZeD.T.fontF2) + ZeD.T.px(2)
+    while not (cw.cur and cw.cur.author == "Mags_77") and presses < 80 do
+        cw:_padStep("up")
+        chatDraw(cw)
+        most = math.max(most, cw.scroll - was)
+        was = cw.scroll
+        presses = presses + 1
+    end
+    check("from one line to the next: the lines between go by", cw.cur and cw.cur.author == "Mags_77" and most <= 3 * lh + 1, most)
+    cw:_padStep("up")
+    chatDraw(cw)
+    check("a line to land on from the tabs is the oldest in view", (function()
+        while cw.zone == "lines" do
+            cw:_padStep("up")
+            chatDraw(cw)
+        end
+        cw:_padStep("down")
+        chatDraw(cw)
+        return cw.cur and cw.cur.author == "Mags_77"
+    end)())
+
+    -- the pad goes with the card a press opened
+    fill({ { "Kade_R", "anyone seen my truck?" } })
+    Ch.qaAdmin = true
+    A2.qaLink = true
+    cw = chatDraw(chatWin(440, 300))
+    local function pickFirst()
+        cw = chatDraw(chatWin(440, 300))
+        JoypadState.players = { {} }
+        JoypadState.players[1].focus = cw
+        cw.joyfocus = JoypadState.players[1]
+        cw.picked = Ch.lines[1]
+        chatDraw(cw)
+    end
+    pickFirst()
+    FOCUS.claimed, FOCUS.win, FOCUS.reclaimed = nil, nil, nil
+    cw._acts[1].run(cw)
+    check("Report: the pad goes to the Character window", FOCUS.claimed == "the Character window" and Ch.win == nil)
+    pickFirst()
+    FOCUS.claimed, FOCUS.win = nil, "the Character window"
+    cw._acts[1].run(cw)
+    check("already its window: the pad is pushed back to it", FOCUS.reclaimed == true and FOCUS.claimed == nil)
+    pickFirst()
+    FOCUS.claimed, FOCUS.win = nil, "the Character window"
+    cw._acts[3].run(cw)
+    check("Player card: the World window", FOCUS.claimed == "the World window")
+    A2.openPlayerNext, TC.reportNext = nil, nil
+    FOCUS.claimed, FOCUS.win, FOCUS.reclaimed = nil, nil, nil
+    -- the mouse leaves focus alone
+    cw = chatDraw(chatWin(440, 300))
+    JoypadState.players = {}
+    cw.picked = Ch.lines[1]
+    chatDraw(cw)
+    cw._acts[1].run(cw)
+    check("a mouse press moves no pad", FOCUS.claimed == nil)
+    TC.reportNext = nil
+    A2.qaLink = nil
+    -- no server part: Player card opens the game's window, which needs someone this client can see
+    S.forceOff = true
+    cw = chatDraw(chatWin(440, 300))
+    cw.picked = Ch.lines[1]
+    chatDraw(cw)
+    check("someone near: live", cw._acts[3].disabled ~= true, cw._acts[3].why)
+    ONLINE = false
+    chatDraw(cw)
+    check("no one to open it on: gray, and why", cw._acts[3].disabled == true and cw._acts[3].why ~= nil and cw._acts[3].why ~= "", cw._acts[3].why)
+    ONLINE = true
+    S.forceOff = nil
     Ch.qaAdmin = nil
+    FOCUS.pad = false
+end
+
+-- a report the server can't keep: the name goes in the words, as with no server part --------------
+do
+    useTab("server")
+    for _, case in ipairs({ { "frozen", function() S.frozen = true end, function() S.frozen = nil end },
+        { "from before this phase", function() S.cm = false end, function() S.cm = true end } }) do
+        reset()
+        view()
+        case[2]()
+        TC.reportNext = { who = "mike_d", n = 1, { who = "mike_d", text = "lol nope", t = "9:32" } }
+        draw()
+        draw()
+        check(case[1] .. ": no report to lose", st.card and st.card.kind == "ask" and t.ask.report == nil)
+        check(case[1] .. ": the name is in the words", field("ask") and field("ask"):getText() == "About mike_d: ", field("ask") and field("ask"):getText())
+        case[3]()
+    end
+end
+
+-- the real Focus Manager: its Y, the pad's first press and the right stick --------------------------
+do
+    local stub, events, base = ZeD.Input, Events, print
+    local ticks, modeFns = {}, {}
+    Events = setmetatable({ OnTick = { Add = function(fn) ticks[#ticks + 1] = fn end, Remove = function() end },
+        ZeD_InputModeChanged = { Add = function(fn) modeFns[#modeFns + 1] = fn end } }, { __index = function(self, k)
+            local ev = { Add = function() end, Remove = function() end }
+            rawset(self, k, ev)
+            return ev
+        end })
+    ZeD.Input = { Detector = { getMode = function() return "gamepad" end } }
+    print = function() end
+    assert(loadfile(ROOT .. "42/media/lua/client/ZeD/Input/FocusManager.lua"))()
+    Events = events
+    local Fo = ZeD.Input.Focus
+    local stick = 0
+    getJoypadData = function() return JoypadState.players[1] and { id = 0 } or nil end
+    getJoypadFocus = function() return JoypadState.players[1] and JoypadState.players[1].focus end
+    getControllerCount = function() return 1 end
+    isControllerConnected = function() return true end
+    getControllerAxisValue = function() return stick end
+    JoypadButton = setmetatable({}, { __index = function() return { isDown = function() return false end } end })
+    local function panelStub()
+        local w = ISPanel:new(0, 0, 100, 100)
+        w.visible = true
+        return w
+    end
+    local charWin, worldWin = panelStub(), panelStub()
+    local opens = 0
+    local cw0, ww0 = ZeD_CharacterWindow, ZeD_WorldWindow
+    local isOpen = false
+    ZeD_CharacterWindow = { isOpen = function() return isOpen end, getWindow = function() return charWin end,
+        ensureBothOpenForGamepad = function() opens = opens + 1; isOpen = true end }
+    ZeD_WorldWindow = { isOpen = function() return isOpen end, getWindow = function() return worldWin end }
+    local function run(ms)
+        nowMs = nowMs + (ms or 50)
+        for _, fn in ipairs(ticks) do fn() end
+    end
+    local function tapY()
+        Fo.qaButton("Y", true)
+        run()
+        run()
+        Fo.qaButton("Y", false)
+        run()
+        run()
+    end
+    JoypadState.players = { {} }
+    local jd = JoypadState.players[1]
+    view()
+    -- first with no screen: this is the path that took the pad
+    tapY()
+    check("no screen: Y opens the pair (the path under test is live)", opens == 1 and Fo.getFocusedWindow() == charWin and jd.focus == charWin, opens)
+    Fo.releaseFocus()
+    isOpen = false
+    opens = 0
+    jd.focus = nil
+    M.joinScreen()
+    local w0 = CM.joinWin
+    check("the screen is up, the pad on it", w0 ~= nil and jd.focus == w0)
+    check("the manager knows", Fo.held() == true)
+    tapY()
+    w0:update()
+    check("Y opens nothing under it", opens == 0 and Fo.getFocusedWindow() == nil and jd.focus == w0, opens)
+    Fo.claimFocus(charWin)
+    check("a window's open path can't take the pad", Fo.getFocusedWindow() == nil and jd.focus == w0)
+    for _ = 1, 3 do
+        run()
+        w0:update()
+    end
+    check("a Y held across the screen's end opens nothing", (function()
+        Fo.qaButton("Y", true)
+        run()
+        w0:finish()
+        run()
+        Fo.qaButton("Y", false)
+        run()
+        run()
+        return opens == 0 and Fo.held() == false
+    end)())
+    -- a window focused when the screen goes up, and the right stick
+    Fo.claimFocus(charWin)
+    check("a window has the pad", jd.focus == charWin and Fo.getFocusedWindow() == charWin)
+    M.joinScreen()
+    w0 = CM.joinWin
+    check("the screen takes it", jd.focus == w0 and Fo.getFocusedWindow() == nil)
+    nowMs = nowMs + 5000
+    stick = 1
+    run()
+    run()
+    stick = 0
+    w0:update()
+    check("the stick does not take it back", jd.focus == w0 and CM.joinWin == w0)
+    w0:finish()
+    check("and the window has it again at the end", jd.focus == charWin and Fo.getFocusedWindow() == charWin)
+    -- (ZeD_CharacterWindow is too big for a stub world: the guard is read from its source)
+    local f = assert(io.open(ROOT .. "42/media/lua/client/ZeD/ZeD_CharacterWindow.lua", "rb"))
+    local src = f:read("*a")
+    f:close()
+    local at = string.find(src, "function ZeD_CharacterWindow.ensureBothOpenForGamepad", 1, true)
+    check("the pair's own opener stops for the screen", at ~= nil and string.find(string.sub(src, at, at + 200), "Focus.held()", 1, true) ~= nil)
+    ZeD.Input, print = stub, base
+    ZeD_CharacterWindow, ZeD_WorldWindow = cw0, ww0
+    JoypadState.players = {}
 end
 
 -- a report on its ticket cards ----------------------------------------------------------------

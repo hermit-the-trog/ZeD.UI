@@ -33,6 +33,8 @@ local K = ZeD.Tickets
 
 local APPEAL_FILE = "ZeD_appeal.txt"
 local APPEALS_MAX = 50                -- servers remembered, oldest out
+local REMOVED_KEYS = { "UI_Policy_Kick", "UI_Policy_KickReason", "UI_OnConnectFailed_Banned", "UI_OnConnectFailed_BannedReason" }
+local REASON = "ZEDREASON"            -- stands in for the reason: 42.22 logs an exception for words asked without their arguments
 
 M.seq = M.seq or 0                    -- bumps on every change (the cards re-read)
 
@@ -116,16 +118,28 @@ function M.appeal()
     return M.kept(M.serverKey())
 end
 
--- is this what the game says to someone kicked or banned? (the words of its keys, with the reason's place taken out.) The
--- line goes only under these: a server going down has nobody to appeal to
+-- the game's words for someone kicked or banned, each up to the reason's place. Once: the connect screen asks every frame
+local function removedHeads()
+    if M.heads then return M.heads end
+    local heads = {}
+    for _, key in ipairs(REMOVED_KEYS) do
+        local words = safe(function() return getText(key, REASON) end, nil)
+        if words and words ~= key then
+            local cut = string.find(words, REASON, 1, true)
+            local head = string.gsub(cut and string.sub(words, 1, cut - 1) or words, "%s+$", "")
+            if head ~= "" then heads[#heads + 1] = head end
+        end
+    end
+    M.heads = heads
+    return heads
+end
+
+-- is this what the game says to someone kicked or banned? The line goes only under these: a server going down has nobody to
+-- appeal to
 function M.isRemoved(s)
     if type(s) ~= "string" then return false end
-    for _, key in ipairs({ "UI_Policy_Kick", "UI_Policy_KickReason", "UI_OnConnectFailed_Banned", "UI_OnConnectFailed_BannedReason" }) do
-        local words = safe(function() return getText(key) end, nil)
-        if words and words ~= key then
-            local head = string.gsub(words, "%s*%%%d.*$", "")
-            if head ~= "" and string.find(s, head, 1, true) then return true end
-        end
+    for _, head in ipairs(removedHeads()) do
+        if string.find(s, head, 1, true) then return true end
     end
     return string.find(s, "You were banned", 1, true) ~= nil
 end

@@ -9,19 +9,23 @@
 -- those who may write, the two ticks. Who else has agreed never leaves the server.
 --
 -- A client that refuses to agree cannot play only because its own client leaves: server Lua cannot remove a player (A7),
--- as with the timed ban. The agreement itself is this server's record of what a client said.
+-- as with the timed ban. The agreement itself is this server's record of what a client said. As the ban's stay note does, the
+-- server looks again: a player asked at joining and still on with no answer after Cm.L.ASKED_MS gets one line in the log staff
+-- read. That is all it can do about a client that skips the screen.
 --
 -- Every edit goes through Srv.action, kind "community". An agreement is a line in the ZeD log alone: a busy server would
--- fill the ring with them.
+-- fill the ring with them. Only a real answer writes anything.
 -- ============================================================================
 if not isServer() then return end
 
 require "ZeD/ZeD_TicketProto"
+require "ZeD/ZeD_AdminProto"
 require "ZeD/ZeD_CommunityProto"
 require "ZeD/ZeD_ServerCore"
 
 local Srv = ZeD.Srv
 local Tk = ZeD.Tk
+local Adm = ZeD.Adm
 local Cm = ZeD.Cm
 if not Srv or Srv.off then return end
 
@@ -40,7 +44,7 @@ if not (CAP_RULES and CAP_NEWS) then
 end
 
 -- memory only: a /reloadlua of this file leaves it empty and open() fills it again
-local T = {}
+local T = { here = {} }               -- here: lower-case username -> { user, at, ask, noted }, one for each connection
 Srv.M = T
 
 -- ---------------------------------------------------------------------------
@@ -159,9 +163,21 @@ local function viewFor(md, p, base)
 end
 
 -- everyone online; can is tested again at every push, so a demoted client gets no more ticks
-local function pushAll(md)
+local function pushNow(md)
+    T.pushDue, T.pushedAt = nil, getTimestampMs()
     local base = baseView(md)
     Srv.eachOnline(function(o) Srv.to(o, Cm.MOD, "m_view", viewFor(md, o, base)) end)
+end
+
+-- a change. The whole board is the one large thing this part sends, so it goes out at most once in PUSH_MS: a change inside that
+-- goes with the first tick that may, and p, who made it, gets it now
+local function pushAll(md, p)
+    if not T.pushedAt or getTimestampMs() - T.pushedAt >= CL.PUSH_MS then
+        pushNow(md)
+        return
+    end
+    T.pushDue = true
+    Srv.to(p, Cm.MOD, "m_view", viewFor(md, p))
 end
 
 -- the appeal line for a player who has to leave (ZeD_ServerAdmin.lua: a banned player gets it with the reason)
@@ -198,11 +214,17 @@ end
 reg("m_agree", { limit = CL.AGREE_MS }, function(p, a, rid)
     local md = open()
     if frozen(p, rid) then return end
+    -- (not being asked: nothing to keep, or a rule added later would find this name and never ask)
+    if not asked(md, p:getUsername()) then
+        Srv.ack(p, rid, true)
+        return
+    end
     local rev = (Tk.whole(a.rev) and a.rev <= md.rev) and a.rev or md.rev
     local low = string.lower(p:getUsername())
     if not md.agreed[low] then md.agreedN = md.agreedN + 1 end
     md.agreed[low] = { rev = rev, t = getTimestamp() }
     trimAgreed(md)
+    if T.here[low] then T.here[low].ask = false end
     Srv.log("agreed to the rules: " .. tostring(p:getUsername()) .. ", revision " .. tostring(rev))
     Srv.ack(p, rid, true)
     Srv.to(p, Cm.MOD, "m_view", viewFor(md, p))
@@ -278,11 +300,11 @@ reg("m_save", { cap = CAP_RULES, limit = CL.SAVE_MS, mark = false }, function(p,
     logAt(p, "rules saved", tostring(rules.n) .. " rules, " .. tostring(fresh) .. " new or changed"
         .. (words and ", message or appeal changed" or "") .. ", ask " .. (md.ask and "on" or "off") .. ", again " .. (md.reask and "on" or "off"))
     Srv.ack(p, rid, true, nil, { base = md.saves, reasked = fresh > 0 and md.ask and md.reask or nil })
-    pushAll(md)
+    pushAll(md, p)
 end)
 
--- room for one more, or nil: the oldest post that is not pinned goes
-local function newsRoom(md)
+-- room for one more, or nil: the oldest post that is not pinned goes, and the log keeps its words
+local function newsRoom(md, p)
     if md.newsN < CL.NEWS_MAX then return true end
     local oldest = nil
     for _, post in pairs(md.news) do
@@ -291,7 +313,15 @@ local function newsRoom(md)
     if not oldest then return nil end
     md.news[oldest.id] = nil
     md.newsN = md.newsN - 1
+    logAt(p, "news pushed off the board", "#" .. tostring(oldest.id) .. " by " .. tostring(oldest.by) .. ": " .. oldest.text)
     return true
+end
+
+-- a role's rank, as the admin tools read it. (Without them, its place.)
+local function rankOf(p)
+    local r = p:getRole()
+    if Srv.rank then return Srv.rank(r) end
+    return r and r:getPosition() or -1
 end
 
 reg("m_post", { cap = CAP_NEWS, limit = CL.POST_MS, mark = false }, function(p, a, rid)
@@ -302,23 +332,31 @@ reg("m_post", { cap = CAP_NEWS, limit = CL.POST_MS, mark = false }, function(p, 
         Srv.ack(p, rid, false, "text")
         return
     end
-    if not newsRoom(md) then
-        Srv.ack(p, rid, false, "full")
+    if not newsRoom(md, p) then
+        Srv.ack(p, rid, false, "pinned")
         return
     end
     local id = md.nextPost
     md.nextPost = id + 1
-    md.news[id] = { id = id, text = text, by = p:getUsername(), t = getTimestamp(), pin = a.pin == true }
+    md.news[id] = { id = id, text = text, by = p:getUsername(), t = getTimestamp(), pin = a.pin == true, rank = rankOf(p) }
     md.newsN = md.newsN + 1
     Srv.mark(p, "m_post")
     logAt(p, "news posted", "#" .. tostring(id) .. ": " .. text)
     Srv.ack(p, rid, true, nil, { id = id })
-    pushAll(md)
+    pushAll(md, p)
 end)
 
+-- the post to pin or delete, or nil with the answer sent. As with acts on people, a role does not touch what one above it wrote
 local function postOf(md, p, rid, id)
     local post = Tk.whole(id) and md.news[id] or nil
-    if not post then Srv.ack(p, rid, false, "gone") end
+    if not post then
+        Srv.ack(p, rid, false, "gone")
+        return nil
+    end
+    if Adm.RANK_GUARD and post.rank and post.rank > rankOf(p) then
+        Srv.ack(p, rid, false, "rank")
+        return nil
+    end
     return post
 end
 
@@ -327,10 +365,15 @@ reg("m_pin", { cap = CAP_NEWS, limit = CL.PIN_MS }, function(p, a, rid)
     if frozen(p, rid) then return end
     local post = postOf(md, p, rid, a.id)
     if not post then return end
-    post.pin = a.on == true
+    local on = a.on == true
+    if (post.pin == true) == on then         -- (no change: nothing to log, nothing to send)
+        Srv.ack(p, rid, true)
+        return
+    end
+    post.pin = on
     logAt(p, post.pin and "news pinned" or "news unpinned", "#" .. tostring(post.id))
     Srv.ack(p, rid, true)
-    pushAll(md)
+    pushAll(md, p)
 end)
 
 reg("m_del", { cap = CAP_NEWS, limit = CL.PIN_MS }, function(p, a, rid)
@@ -342,18 +385,64 @@ reg("m_del", { cap = CAP_NEWS, limit = CL.PIN_MS }, function(p, a, rid)
     md.newsN = md.newsN - 1
     logAt(p, "news deleted", "#" .. tostring(post.id) .. ": " .. post.text)
     Srv.ack(p, rid, true)
-    pushAll(md)
+    pushAll(md, p)
 end)
+
+-- ---------------------------------------------------------------------------
+-- THE CLOCK: OnTickEvenPaused, as the admin tools' (A1)
+-- ---------------------------------------------------------------------------
+-- who was asked at joining and is still on with no answer. One line for a connection; Leave needs none, the player is gone
+local function lookAtAsked(md, t)
+    for low, e in pairs(T.here) do
+        local o = Srv.player(e.user)
+        if not o then
+            T.here[low] = nil
+        elseif e.ask and not asked(md, e.user) then
+            e.ask = false
+        elseif e.ask and not e.noted and t - e.at >= CL.ASKED_MS then
+            e.noted = true
+            logAt(o, "rules not answered", "asked at joining, revision " .. tostring(md.rev))
+        end
+    end
+end
+
+function Srv.communityTick()
+    local md = T.md
+    if not md then return end
+    local t = getTimestampMs()
+    if T.pushDue and t - T.pushedAt >= CL.PUSH_MS then pushNow(md) end
+    if not T.lookedAt or t - T.lookedAt >= CL.ASKED_LOOK_MS then
+        T.lookedAt = t
+        lookAtAsked(md, t)
+    end
+end
 
 -- ---------------------------------------------------------------------------
 -- OPENING
 -- ---------------------------------------------------------------------------
 Srv.modules[Cm.MOD] = true
-Srv.helloAdds.community = function(p, r) r.cm = viewFor(open(), p) end
+-- (a hello comes again at every respawn: the first of a connection is the one that shows the screen)
+Srv.helloAdds.community = function(p, r)
+    local v = viewFor(open(), p)
+    r.cm = v
+    local user = p:getUsername()
+    local low = string.lower(user)
+    if not T.here[low] then T.here[low] = { user = user, at = getTimestampMs(), ask = v.ask == true } end
+end
 
 if Srv.communityHooked == nil then
     Srv.communityHooked = true
     Events.OnInitGlobalModData.Add(function() if ZeD.Srv.openCommunity then ZeD.Srv.openCommunity() end end)
+    if Events.OnTickEvenPaused then
+        Events.OnTickEvenPaused.Add(function()
+            local ok, err = pcall(ZeD.Srv.communityTick)
+            if not ok and not Srv.communityFailed then
+                Srv.communityFailed = true
+                print("[ZeD] server: the community clock failed: " .. tostring(err))
+                Srv.log("community clock failed: " .. tostring(err))
+            end
+        end)
+    end
 end
 Srv.openCommunity = open
 

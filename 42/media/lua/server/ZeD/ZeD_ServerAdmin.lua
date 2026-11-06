@@ -179,6 +179,7 @@ local function rank(r)
     local plain = roleNamed("user")
     return math.max(r:getPosition(), plain and plain:getPosition() or 0)
 end
+Srv.rank = rank                  -- (ZeD_ServerCommunity.lua: a news post keeps its writer's)
 
 -- nil when p may act on this target, else the error word. A name nobody online holds and the server has never seen has
 -- no role to test: "unknown"

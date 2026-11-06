@@ -1402,29 +1402,35 @@ scope, and why.
    join. Agreeing is to the words on screen: the window keeps the view it opened with, and a push while reading changes nothing. A frozen table asks nobody, because it could
    not keep the answer.
 4. **Enforced by the client, as the timed ban is.** Server Lua cannot remove a player (A7). A modified client can skip the screen; the agreement is a record of what a client
-   said. It is a line in the ZeD log, not in `md.log`: agreements would crowd out the ring on a busy server. Every edit is `Srv.action("community", ...)`, so Phase 4's Log needs a
-   word for that kind when the two meet.
+   said. It is a line in the ZeD log, not in `md.log`: agreements would crowd out the ring on a busy server, and only a player who is being asked writes one. As the ban has its stay
+   note, a player asked at joining and still on with no answer after `Cm.L.ASKED_MS` gets one `Srv.action` line, "rules not answered", so a skipped screen is seen though it cannot be
+   stopped. Leave is not recorded: the player is simply gone. Every edit is `Srv.action("community", ...)`, so Phase 4's Log needs a word for that kind when the two meet. A post
+   pushed off the board is logged with its words, and acts on a report from chat go through `Srv.action("ticket", ...)` for the same reason.
 5. **The join screen holds the keys, not the character.** `doKeyPress(false)` stops the game's key events; only a focused text box stops `GameKeyboard.isKeyDown`, so WASD still
    walks behind the cover. The pad's focus is the window's, so a pad does not walk. The world runs on: a player reading on a hot spawn can be bitten, and Lua has nothing to
    stop that. The cover is 0.94 opaque.
-6. **The join window is not in the Focus Manager.** Its Y and bumpers would open windows under a modal. Up and Down scroll, Left and Right pick, A presses, B answers nothing,
-   and focus never leaves the two buttons, so reading never loses the button. It lands on I agree. No close box: closing would have to mean something. It is the same card as the
-   rest, on the ticket frame, through two small hooks: `K.noBack`, and `win._padId` for a window with its own pad, in `D.focusOf`.
-7. **Nothing can trap a player.** It goes up only on a view that says so. A failed draw closes it (`ZeD.Safe.guard`), as does safe mode (piece `community`), a ban, and the connection
-   ending. `ISServerDisconnectUI_OnServerDisconnectUI` is wrapped for that last one, or the cover would stand over the game's Exit and Quit. The same wrap clears `Admin.leave`, which
+6. **The join window is not a Focus Manager window, and the manager knows it is up.** The manager polls Y past engine focus and opens the pair on the first pad press, so while the
+   window stands `Focus.held()` stops Y, `claimFocus` and `ensureBothOpenForGamepad`. The window also takes the pad back in its own `update` from anything else (a death's panel, a pad
+   that arrives after it opened), and hands it back at the end. Up and Down scroll, Left and Right pick, A presses, B answers nothing, and focus never leaves the two buttons, so
+   reading never loses the button. It lands on I agree. No close box: closing would have to mean something. It is the same card as the rest, on the ticket frame, through two small
+   hooks: `K.noBack`, and `win._padId` for a window with its own pad, in `D.focusOf`.
+7. **Nothing can trap a player.** It goes up only on a view that says so. The window is built before the cover, so a build that fails leaves nothing up. A failed draw closes it
+   (`ZeD.Safe.guard`), as does safe mode (piece `community`), a ban, and the connection ending. `ISServerDisconnectUI_OnServerDisconnectUI` is wrapped for that last one, or the cover would stand over the game's Exit and Quit. The same wrap clears `Admin.leave`, which
    closes the ban screen for the same reason.
 8. **The appeal line reaches a removed player three ways.** On the ban screen with the reason, from the server (`leaveView`, since their client may never have heard it). Under the
    game's own words on a kick: the game draws the reason in Java on its disconnect screen, so ZeD adds one line under it, for a removal only (`M.isRemoved`, the game's own keys). On
    ZeD's connect screen when a banned login is refused, from `Lua/ZeD_appeal.txt`, kept per server (A7: they cannot log in to ask). Always `drawText`, never a link.
 9. **Two capabilities, not one** (`Cm.CAP_RULES`, `Cm.CAP_NEWS`). The game has none for this. Rules, message, appeal and the ticks need `ChangeAndReloadServerOptions`, the one that
    changes the server's welcome message; moderators lack it. News needs `DisplayServerMessage`, as the drawing's post by Rosa has it. Each half of the card grays with its reason.
-10. **Save is stopped on an older copy.** `base` counts the saves; a Save from before someone else's answers `stale`, the foot names who, and a second press replaces it. A clean card
-    takes their words at once.
+   `Adm.RANK_GUARD` covers news as it covers acts on people: a post keeps its writer's rank, and a lower role can't pin or delete it.
+10. **Save is stopped on an older copy.** `base` counts the saves; a Save from before someone else's answers `stale`, the foot names who, and a second press replaces it. A card nobody
+    has typed in takes their words at once. The whole board is pushed at most once in `Cm.L.PUSH_MS`, and whoever pressed gets it at once.
 11. **A report's chat is the reporter's word.** Server Lua cannot reach `ChatServer`, so the server hears none of it. `rec.report` is kept on the ticket (name, up to 11 lines, each cut to
     300), counted in `md.chars`, shown to staff and the reporter with that said on the card, and never put in the game's ticket, which is public. The kind starts at Griefing with
-    Include where I am ticked, the card's own rule for that kind; the player can change both. The words are still the player's to write.
-12. **Without the server part** chat still picks: Mute and an admin's two need nothing from it, and Report opens the game's fallback card with "About mike_d: " typed, and no chat. Rules,
-    news and the join screen do not exist there. Mute covers ZeD's window on this computer; the words over a head are the game's.
+    Include where I am ticked, the card's own rule for that kind; the player can change both. The words are still the player's to write. A staff member a report names can't answer,
+    close, or mark it spam (`named`); an admin can. A forged name stops one person handling one ticket, no more.
+12. **Without the server part** chat still picks: Mute and an admin's two need nothing from it, and Report opens the game's fallback card with "About mike_d: " typed, and no chat. The
+    same goes for a frozen ticket table and a server part from before this phase. Rules, news and the join screen do not exist there. Mute covers ZeD's window on this computer; the words over a head are the game's.
 13. **The fields.** A rule's box wraps and grows, where the drawing has one line: a one-line box cannot show a rule of 200 characters at Deck width. Enter makes a line break and Save
     flattens it. Up, Down and Remove are icon buttons with ZeD's own triangles and cross (the fonts have neither), and move under the field when they will not fit beside it. They take
     effect on Save, as drawn. A field not yet scrolled to has no box, so the card reads its seed until it does.
@@ -1432,8 +1438,8 @@ scope, and why.
     beside Pin and a post is public. PINNED sits in its own column, not inline. Pin it to the top starts unticked (the drawing's sample has it ticked, and everything would pin). The Server
     block keeps Online and Your role after the message and The rules row. News and The rules row go when there is nothing in them. A long list of new rules goes on the line over the
     band and reads "3 rules are new". Your own lines and server lines cannot be picked: nothing to do about them. On the pad a picked line's buttons are walked with Left and Right.
-15. **The director's questions, each answered the careful way behind one switch in `ZeD_CommunityProto.lua`:** `CAP_RULES`, `CAP_NEWS`, `ASK_ON_REMOVE = false`, `DELETE_ASKS = true`,
-    `REPORT_AROUND = 5`. Staff are asked like everyone: "everyone" is the tick's word.
+15. **The director's questions, each answered the careful way behind one switch in `ZeD_CommunityProto.lua`:** `CAP_RULES`, `CAP_NEWS`, `ASK_ON_REMOVE = false`, `DELETE_ASKS = true`, and
+    `Tk.REPORT_AROUND = 5` in `ZeD_TicketProto.lua`, where the server's limit is worked out from it. Staff are asked like everyone: "everyone" is the tick's word.
 
 Not settled, for QA on the local server (`mp_community.lua` prints these as PROBE and TODO lines):
 

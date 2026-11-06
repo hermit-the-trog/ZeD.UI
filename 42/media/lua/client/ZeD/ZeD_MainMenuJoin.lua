@@ -208,6 +208,7 @@ end
 -- which server: a banned player's appeal line is kept under it (ZeD_Community.lua)
 function MM.noteServer(server)
     MM.connectKey = ZeD.Community and ZeD.Community.keyOf(server:getIp(), tostring(server:getPort())) or nil
+    MM.appealRead, MM.appealKept = nil, nil
 end
 
 -- connecting: a saved account, or a public server (its password first, then an account)
@@ -1114,7 +1115,9 @@ function ZeD_MMConnect:prerender()
     cy = math.max(sy, cy + MM.fontH(f2)) + T.px(14)
     -- banned: the owner's appeal line, kept from the last time on this server. As text, never a link
     if failed and ZeD.Community and ZeD.Community.isRemoved(status) then
-        local appeal = ZeD.Community.kept(MM.connectKey)
+        -- (from its file once for each try: this draws every frame)
+        if not MM.appealRead then MM.appealRead, MM.appealKept = true, ZeD.Community.kept(MM.connectKey) end
+        local appeal = MM.appealKept
         if appeal then
             for _, l in ipairs(ZeD.Atoms.wrapText(ZeD.tr("UI_ZeD_Adm_SeeAppeal", appeal), f2, iw)) do
                 self:drawText(l, ix, cy, tcol.r, tcol.g, tcol.b, tcol.a or 1, f2)
