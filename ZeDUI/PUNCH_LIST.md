@@ -2736,6 +2736,26 @@ item says so.
     - **Built Nov 5 (merged 5ee11292). QA PASS, scripted:** zedqa_dpad_wheels 147 pass, 0 fail, and ws, wi, wh, pg, qc. No
       real pad yet: the first real tap, walking with a wheel up, cruise control and flick feel are the director's to try.
 
+92. **The dashes for Roadworthy: the missing lamps, an odometer and a trip odometer (the director, Nov 6 2026, from
+    Neonvolt's request; QA's `HANDOFF_design_dash_indicators_20261106.md`).** For the next beta, not beta 6. Design done
+    in `tools/dashpx/` (build.py clean, 19 dashes); `export_lua.py` not run, so nothing is in `42/` yet. The spec is
+    `HANDOFF_design_dash_roadworthy_20261106.md`.
+    - **Settled by the director:** a belt lamp on every road car; the race car gets OIL and WATER jewels only; the Dart
+      gets a temperature gauge in its empty dial; miles on the plate, the player's units on the Simple dash. Design's
+      call: lamps with nothing to show stay dark but for the key-on bulb check.
+    - **Drawn:** belt on 7 dashes, hot on 11, oil on 4, the Dart's gauge; mechanical drums (odometer and trip, the
+      tenths turning over) on every dial dash with a stem to zero the trip; the VFD and LCD odometers on cossette,
+      luxury and dashelite, switching ODO / TRIP.
+    - **Build:** export; the `drums` part; the `tripReset` and `odoButton` verbs; `odo` and `trip` on the car's modData
+      with a starting mileage for found cars; the hot lamp in the bulb check; the Simple dash's Trip cell; later,
+      the lamps wired to Roadworthy's states once QA has it running.
+    - **The LCD glass at night (the director, Nov 6: "When it's in the dark, it's glowing white still").** Live today
+      on the Dash Elite: its odometer and climate LCDs are redrawn in day gray at night with the key on. Fixed in the
+      tools (night.py bakes a dimmer backlight in the bulbs' color; it lights only with the panel lights). Build:
+      re-export, and `L.lit` added to the glass condition in ZeD_Plate.lua (the handoff's Night section). Can ship
+      ahead of the rest.
+    - **QA:** the handoff's nine steps; for the glass, the Dash Elite at night with the lights on and off.
+
 ## Test process
 
 - **QA, Nov 2 2026, the t16 pre-upload pass (the mod code at 361d0b6; nothing in 42/ changed after it).** Full 4K

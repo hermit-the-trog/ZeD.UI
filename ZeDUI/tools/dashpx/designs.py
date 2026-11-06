@@ -146,9 +146,10 @@ def cl_d6(b, bz="chrome", nd="#ff6a1a"):
     sq_dial(b, 58, 66, "temp", "C", "H", "temp", w=64, h=38, needle=nd, red_right=True, bezel=bz)
     sq_dial(b, 422, 22, "oil", "L", "H", "oil", w=64, h=40, needle=nd, bezel=bz)
     sq_dial(b, 422, 66, "volts", "8", "18", "batt", w=64, h=38, needle=nd, bezel=bz)
-    lamp_col(b, 96, 24, 28, [L_GEN, L_BRAKE, L_BELTS, L_LT])
+    # Nov 6 2026 (Roadworthy): OIL added to the left column (five lamps at a 13 pitch); the right column as it was
+    lamp_col(b, 96, 24, 28, [L_OIL, L_GEN, L_BRAKE, L_BELTS, L_LT], pitch=13)
     lamp_col(b, 356, 24, 28, [L_HI, L_ENG, ("TEMP", "tempLamp", RED), L_RT])
-    odometer(b, 225, 93)
+    odo_beside(b, 206, 93)
 
 
 def cl_van(b, bz="blackp", nd="#ff7a2a"):
@@ -159,7 +160,7 @@ def cl_van(b, bz="blackp", nd="#ff7a2a"):
                                                          ("oil", "L", "H", None, "OIL", False, False), ("volts", "8", "18", None, "VOLTS", False, False))):
         small_dial(b, 236 + i * 60, 48, 22, src, lo, hi, icon=ic, label=lab, bezel=bz, red_left=rl, red_right=rr_, needle=nd,
                    low_src="fuelLamp" if src == "fuel" else None)
-    lamp_text_row(b, 212, 82, [L_OIL, L_GEN, L_BRAKE, L_BELTS, L_HI, L_LT, L_RT])
+    lamp_text_row(b, 212, 82, [L_OIL, L_GEN, L_TEMP, L_BRAKE, L_BELTS, L_HI, L_LT, L_RT])      # Nov 6 2026: TEMP
     prndl(b, 392, 97, pitch=7)
 
 
@@ -175,14 +176,16 @@ def cl_cert(b, nd="#f4f4f0"):
     small_dial(b, 252, 82, 17, "oil", "L", "H", icon=None, label="OIL", bezel="blackp", needle=nd)
     small_dial(b, 312, 82, 17, "volts", "8", "18", icon=None, label="VOLT", bezel="blackp", needle=nd)
     lamp_col(b, 342, 24, 30, [L_OIL, L_GEN, L_BRAKE, L_BELTS])
-    lamp_col(b, 378, 24, 30, [L_HI, L_LT, L_RT, L_ENG])
+    lamp_col(b, 378, 24, 30, [L_HI, L_LT, L_RT, L_ENG, L_TEMP], pitch=13)        # Nov 6 2026: TEMP
     prndl(b, 352, 95, pitch=7)
     clock(b, 450, 52, 20, bezel="blackp")
 
 
 def cl_bull(b, nd="#e8402a"):
     """the Bulldriver: brushed aluminium, speedometer and tach in chrome, four gauges in a block"""
-    lamp_col(b, 26, 22, 34, [L_GEN, L_BRAKE, L_BELTS, L_HI, L_LT, L_RT], pitch=13)
+    # Nov 6 2026 (Roadworthy): OIL and TEMP added, the six lamps in two columns of four
+    lamp_col(b, 26, 22, 34, [L_OIL, L_GEN, L_BRAKE, L_BELTS], pitch=16)
+    lamp_col(b, 64, 22, 34, [L_TEMP, L_HI, L_LT, L_RT], pitch=16)
     dial(b, 150, 61, 39, 135, 405, *MPH100, "speed_mph", 100, minor=1, label="MPH", label_y=67, needle=nd, bezel="chrome", hub=3.0)
     odo_under(b, 150, 61, 39)
     dial(b, 270, 61, 39, 135, 375, list(range(0, 7)), [str(i) for i in range(7)], "rpm", 6000, minor=1, redzone=5, label="RPM",
@@ -202,7 +205,7 @@ def cl_rancher(b, nd="#f0ece0", lamps_right=True):
                                                          ("oil", "L", "H", None, "OIL", False, False), ("volts", "8", "18", None, "VOLT", False, False))):
         small_dial(b, 210 + i * 54, 46, 19, src, lo, hi, icon=ic, label=lab, bezel="blackp", red_left=rl, red_right=rr_, needle=nd,
                    low_src="fuelLamp" if src == "fuel" else None)
-    lamp_text_row(b, 190, 78, [L_OIL, L_GEN, L_BRAKE, L_BELTS])
+    lamp_text_row(b, 190, 78, [L_OIL, L_GEN, L_TEMP, L_BRAKE, L_BELTS])        # Nov 6 2026: TEMP
     if lamps_right:
         lamp_col(b, 420, 30, 34, [L_4X4, L_HI, L_LT, L_RT])
 
@@ -214,14 +217,11 @@ def cl_dart(b, nd="#ff8a2a"):
               minor=1, label="MPH", label_y=66, needle=nd, bezel="alu", hub=3.0)
     odo_under(b, 180, 60, 38)
     small_dial(b, 286, 50, 22, "fuel", "E", "F", icon="fuel", bezel="alu", red_left=True, needle=nd, low_src="fuelLamp")
-    # the blank: the tach option this car was not ordered with
-    cx, cy, r = 372, 52, 22
-    b.check_flat(cx - r - 3, cy - r - 3, 2 * r + 6, 2 * r + 6, "blank")
-    d.torus(cx, cy, r, r + 2.2, 1.6, "alu", polish=0.8, on=Z_CL)
-    cap = np.hypot(d.XX + 0.5 - cx, d.YY + 0.5 - cy) <= r
-    d.h[cap] = Z_CL - 1.5 + 1.2 * np.sqrt(np.clip(1 - (np.hypot(d.XX[cap] + 0.5 - cx, d.YY[cap] + 0.5 - cy) / r) ** 2, 0, 1))
-    d.mat[cap] = d.mid("blackp"); d.polish[cap] = 0.3; d.tex[cap] = 0
-    lamp_text_row(b, 244, 84, [L_OIL, L_GEN, ("TEMP", "tempLamp", RED), L_BRAKE, L_HI, L_LT, L_RT])
+    # where the blank was (the tach option this car was not ordered with): the temperature gauge, the fuel gauge's twin
+    # (Nov 6 2026, the director: "Yes, in the empty dial"; Roadworthy shows the engine's temperature)
+    small_dial(b, 372, 52, 22, "temp", "C", "H", icon="temp", bezel="alu", red_right=True, needle=nd)
+    # Nov 6 2026: BELTS added; the row moved left to keep its right margin
+    lamp_text_row(b, 224, 84, [L_OIL, L_GEN, ("TEMP", "tempLamp", RED), L_BRAKE, L_BELTS, L_HI, L_LT, L_RT])
 
 
 def cl_cossette(b):
@@ -248,8 +248,11 @@ def cl_cossette(b):
         m = d.text(lab, 356, yy, "vfdoff", align="r", flatlight=True); b.lamp(m, "power", "#8aff5a")
         bar_stack(b, 360, yy, 46, 5, 10, 1, src, "#8aff5a", vertical=False, warn_from=8 if src == "temp" else None)
     m = d.text("SHIFT", 384, 88, "vfdoff", align="c", flatlight=True); b.lamp(m, "shiftLamp", "#ff5a3a")
-    lamp_icon_strip(b, 132, 94, [("batt", "genLamp", RED), ("oil", "oilLamp", RED), ("brake", "brakeLamp", RED)], gap=5, check=False)
+    # Nov 6 2026 (Roadworthy): the coolant and belt lamps; the odometer in the pod's left, between the fuel bars and the arc
+    lamp_icon_strip(b, 124, 94, [("batt", "genLamp", RED), ("oil", "oilLamp", RED), ("brake", "brakeLamp", RED),
+                                 ("temp", "tempLamp", RED), ("belt", "beltLamp", RED)], gap=5, check=False)
     lamp_icon_strip(b, 300, 94, [("beam", "hiBeam", BLU), ("engine", "engLamp", AMB)], gap=5, check=False)
+    odo_digital(b, 124, 58, "#ffb02e", words_x=124, words_y=70, hit=(120, 54, 56, 26))
 
 
 # =================================================================================== consoles
@@ -296,7 +299,7 @@ def wagon(b):
     """Chevalier Cerise Wagon: walnut applique in a chrome lip, a ribbon speedometer, square fuel and temp, word lamps"""
     shell_boxy(b, face_wood=True, trim="chrome", wood_seed=3)
     ribbon_speedo(b, 128, 25, 248, 46, vmax=85, mode="fill", color="#f07a28")
-    odometer(b, 237, 60)
+    odo_beside(b, 220, 60)            # Nov 6 2026: the odometer and the trip odometer side by side under the ribbon
     sq_dial(b, 80, 28, "fuel", "E", "F", "fuel", w=72, h=42, red_left=True, low_src="fuelLamp")
     sq_dial(b, 426, 28, "temp", "C", "H", "temp", w=72, h=42, red_right=True)
     lamp_text_row(b, 130, 78, [L_OIL, L_GEN, L_TEMP, L_BRAKE, L_BELTS, L_LT, L_HI, L_RT])
@@ -331,7 +334,10 @@ def luxury(b):
         mm = d.text(ch, 214 + i * 9, 78, "vfdoff", align="c", flatlight=True); out[ch] = runs_of(mm)
     b.part("gear", letters=out, color=VC, box=None)
     lamp_icon_strip(b, 128, 91, [("batt", "genLamp", RED), ("oil", "oilLamp", RED), ("brake", "brakeLamp", RED)], gap=6, check=False)
-    lamp_icon_strip(b, 324, 91, [("beam", "hiBeam", BLU), ("engine", "engLamp", AMB)], gap=6, check=False)
+    # Nov 6 2026 (Roadworthy): the coolant and belt lamps after the beam and engine; the odometer right of the gear letters
+    lamp_icon_strip(b, 318, 91, [("beam", "hiBeam", BLU), ("engine", "engLamp", AMB), ("temp", "tempLamp", RED),
+                                 ("belt", "beltLamp", RED)], gap=6, check=False)
+    odo_digital(b, 280, 74, VC, words_x=332, words_y=74, hit=(276, 70, 76, 14))
     d.text("ELECTRONIC INSTRUMENT CLUSTER", 250, 92, "paint_c", align="c")
     clock(b, 456, 60, 17, bezel="chrome", nd="#e8e2d0")
     lower_boxy6(b, y0=118, chrome=True, trunk_label="TRUNK", trunk_sub="RELEASE")
@@ -450,10 +456,15 @@ def dashelite(b):
     small_dial(b, 428, 54, 21, "temp", "C", "H", icon="temp", bezel=None, red_right=True, needle=nd)
     for cx in (372, 428):
         d.paint(Mask(W, H).arc(cx, 54, 22.5, 22.5, 200, 340, 1.0).get() & m["face_mask"], "paint_w")
-    lamp_icon_strip(b, 344, 88, ICONS_90S, gap=5)
+    # Nov 6 2026 (Roadworthy): the coolant and belt lamps join the strip, which starts further left to keep its margin
+    lamp_icon_strip(b, 322, 88, ICONS_90S[:-1] + [("temp", "tempLamp", RED), ("belt", "beltLamp", RED), ICONS_90S[-1]], gap=4)
     prndl(b, 376, 100, pitch=8, color="#ff8a3a")
+    # the odometer: six figures (four before) in the same LCD, which has to stay in the needle's dead wedge; no room for
+    # words, so the trip shows as "t" and its miles ("t  128"), the 90s LCD way. A press switches, a long press zeroes
     window(d, 226, 92, 38, 12, 0.6, bezel=None, face="lcd", r=1, on=Z_CL, lens=False)
-    seg_readout(b, 230, 94, 4, 5, 8, 8, 1, "odo", "#1c2418", ghost="segoff", always=False)
+    # (Nov 6, review: six seven-segment figures at 4 pixels were a row of ghosts; the 3x5 face in black reads)
+    b.part("drums", src="odoShownT", x=230, y=93, n=6, cw=5, ch=10, fg="#1c2418", last_fg="#1c2418", text=True)
+    b.hit("odoButton", 224, 90, 42, 16)
     lower_curvy6(b, y0=122)
     cf = Mask(W, H).rrect(508, 34, 278, 128, 10).get()
     b.check_flat(506, 32, 282, 132, "console face")
@@ -503,8 +514,9 @@ def primani(b):
     dial(b, 352, 70, 34, 135, 375, list(range(0, 9)), [str(i) for i in range(9)], "rpm", 8000, minor=1, bezel=None, redzone=7,
          label="RPM", label2="X1000", label_y=80, needle=nd)
     d.paint(Mask(W, H).arc(352, 70, 35.5, 35.5, 0, 360, 1.0).get() & m["face_mask"], "paint_w")
-    lamp_icon_strip(b, 404, 44, [("batt", "genLamp", RED), ("oil", "oilLamp", RED)], gap=4)
-    lamp_icon_strip(b, 404, 58, [("brake", "brakeLamp", RED), ("engine", "engLamp", AMB)], gap=4)
+    # Nov 6 2026 (Roadworthy): the coolant and belt lamps, a third in the first two rows
+    lamp_icon_strip(b, 404, 44, [("batt", "genLamp", RED), ("oil", "oilLamp", RED), ("temp", "tempLamp", RED)], gap=4)
+    lamp_icon_strip(b, 404, 58, [("brake", "brakeLamp", RED), ("engine", "engLamp", AMB), ("belt", "beltLamp", RED)], gap=4)
     lamp_icon_strip(b, 404, 72, [("beam", "hiBeam", BLU), ("fuel", "fuelLamp", AMB)], gap=4)
     lamp_icon_strip(b, 404, 86, [("arrow_l", "turnL", GRN), ("arrow_r", "turnR", GRN)], gap=6)
     prndl(b, 410, 100, pitch=7, color="#ff8a3a")
@@ -525,12 +537,14 @@ def suv(b):
     nd = "#ff6a2a"
     small_dial(b, 64, 47, 18, "oil", "L", "H", label="OIL", bezel="blackp", needle=nd)
     small_dial(b, 64, 88, 16, "volts", "8", "18", label="VOLT", bezel="blackp", needle=nd)
-    lamp_col(b, 92, 28, 30, [("@batt", "genLamp", RED), ("@oil", "oilLamp", RED), ("@brake", "brakeLamp", RED), L_LT])
+    # Nov 6 2026 (Roadworthy): the coolant and belt lamps, a fifth in each column
+    lamp_col(b, 92, 28, 30, [("@batt", "genLamp", RED), ("@oil", "oilLamp", RED), ("@brake", "brakeLamp", RED),
+                             ("@temp", "tempLamp", RED), L_LT])
     dial(b, 178, 66, 38, 135, 405, *MPH100, "speed_mph", 100, minor=1, bezel="blackp", bezel_w=2, label="MPH", label_y=78, needle=nd, hub=3.0)
     odo_under(b, 178, 66, 38)
     dial(b, 288, 68, 32, 135, 375, list(range(0, 7)), [str(i) for i in range(7)], "rpm", 6000, minor=1, bezel="blackp", bezel_w=2,
          redzone=5, label="RPM", label2="X1000", label_y=76, needle=nd)
-    lamp_col(b, 334, 28, 34, [L_4X4, ("@beam", "hiBeam", BLU), ("@engine", "engLamp", AMB), L_RT])
+    lamp_col(b, 334, 28, 34, [L_4X4, ("@beam", "hiBeam", BLU), ("@engine", "engLamp", AMB), ("@belt", "beltLamp", RED), L_RT])
     small_dial(b, 410, 47, 18, "temp", "C", "H", icon="temp", bezel="blackp", red_right=True, needle=nd)
     small_dial(b, 410, 88, 16, "fuel", "E", "F", label="FUEL", bezel="blackp", red_left=True, needle=nd, low_src="fuelLamp")
     prndl(b, 222, 104, pitch=7, color="#ff8a3a", window_=False) if False else None
@@ -586,6 +600,16 @@ def race(b):
              hub=2.0, low_src="fuelLamp" if src == "fuel" else None)
         d.text(labs[0], cx - 13, cy + 9, "paint_w", align="c"); d.text(labs[1], cx + 13, cy + 9, "paint_w", align="c")
         d.text(key, cx, cy + 15, "paint_c", align="c")
+    # Nov 6 2026 (Roadworthy; the director: "Oil and water only", no belt lamp under a harness, no high beam): two red
+    # warning jewels between the tach and the gauges, the shift light's kind, each on its strip of label tape
+    for src, lab, jy in (("oilLamp", "OIL", 48), ("tempLamp", "WATER", 90)):
+        jx = 336
+        b.check_flat(jx - 10, jy - 10, 20, 20, f"jewel {lab}")
+        d.torus(jx, jy, 5, 8, 1.8, "chrome", polish=1.0, on=Z_FACE)
+        jm = np.hypot(d.XX + 0.5 - jx, d.YY + 0.5 - jy) < 5
+        d.h[jm] = Z_FACE + 1.5; d.mat[jm] = d.mid("paint_r"); d.polish[jm] = 1.0
+        b.part("lamp", src=src, color="#ff3a20", runs=runs_of(np.hypot(d.XX + 0.5 - jx, d.YY + 0.5 - jy) < 4.2))
+        dymo(d, lab, jx, jy + 11, on=Z_FACE, align="c")
     zt = Z_FACE + 0.8
     for i, (lab, src, hid) in enumerate((("IGN", "keysIn", "ignition"), ("FUEL", "running", None), ("FAN", "heaterOn", "fan"),
                                         ("LIGHTS", "lights", "lights"))):
