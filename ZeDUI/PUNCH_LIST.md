@@ -2612,6 +2612,9 @@ item says so.
       Held from Build until beta 5 ships (the director, Nov 5).
     - **Build:** the server part's data and messages for tickets, after the mockup is approved.
     - **QA:** each phase on the local server, two players for tickets and invites.
+    - **Settled by the director, Nov 5 (the design's E12, E13, E7):** a ticket stays open for replies after it's answered,
+      and a player's reply moves it back to In progress. The game's own ticket holds only a stub ("[GRIEF #14] see the
+      Tickets queue"), so reports stay private. Timed bans are ZeD's own ban; permanent bans are the game's.
 
 88. **The male skeleton's right arm (the director, Nov 5 2026: the lower arm, the wrist, the forearm, where the
     elbow joint is, "it's either dislocated or very broken. A doctor would probably want to get that person into
