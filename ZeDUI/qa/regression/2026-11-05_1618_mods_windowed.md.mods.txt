@@ -1,0 +1,16 @@
+VERSION = 1,
+
+mods
+{
+    mod = SuperOl3gContextMenuIcons,
+    mod = ImmersiveMoodles,
+    mod = ParavelsEnhancedUI,
+    mod = ParavelsEnhancedInventory,
+    mod = LightBelt,
+    mod = HandsOnInteractionsIso,
+    mod = ZeD_UI,
+}
+
+maps
+{
+}

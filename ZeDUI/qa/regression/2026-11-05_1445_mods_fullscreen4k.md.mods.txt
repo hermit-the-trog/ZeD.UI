@@ -1,0 +1,11 @@
+VERSION = 1,
+
+mods
+{
+    mod = ZeDPerfProbe,
+    mod = ZeD_UI,
+}
+
+maps
+{
+}

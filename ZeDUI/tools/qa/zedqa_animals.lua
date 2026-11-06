@@ -101,14 +101,14 @@ local function tick()
             say("hutch birds=" .. h:getAnimalInside():size() .. " dirt=" .. h:getHutchDirt())
         end
         if t then pcall(ISFeedingTroughMenu.onAddFoodDebug, p, t) say("trough fed") end
-        if k then
+        if k and not ZEDQA_NO_DEAD_COW then
             local ksq = k:getSquare()
             local cow = addAnimal(getCell(), ksq:getX() + 1, ksq:getY() + 1, 0, "cow", breedOf("cow"))
             if cow then cow:setHealth(0) say("cow killed") end
         end
         -- an animal zone over the yard
         local px, py = math.floor(p:getX()), math.floor(p:getY())
-        local ok, zerr = pcall(function() DesignationZoneAnimal.new("QA Yard", px - 8, py - 8, 0, px + 8, py + 8, true) end)
+        local ok, zerr = pcall(function() local z = ZEDQA_ZONE or { "QA Yard", -8, -8, 8, 8 }; DesignationZoneAnimal.new(z[1], px + z[2], py + z[3], 0, px + z[4], py + z[5], true) end)
         say("zone ok=" .. tostring(ok) .. " " .. tostring(zerr or ""))
         give("Base.HuntingKnife"); give("Base.Bucket"); give("Base.Broom"); give("Base.WaterBottle"); give("Base.HayTuft", 3); give("Base.AnimalFeedBag")
         local wb = p:getInventory():getFirstType("Base.WaterBottle")

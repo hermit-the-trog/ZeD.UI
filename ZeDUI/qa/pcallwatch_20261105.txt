@@ -1,0 +1,14 @@
+== Hands-On + ZeD_UI
+LOG  : Lua          f:0> [ZeD.QA] pcw watching every pcall for an overload mismatch
+LOG  : Lua          f:0> [ZeD.QA] pcw watching every pcall for an overload mismatch
+LOG  : Lua          f:800> [ZeD.QA] pcw java.lang.RuntimeException No implementation found for function: hasTag(class zombie.inventory.types.DrainableComboItem Base.Hairgel:zombie.inventory.types.DrainableComboItem@19c68362, class java.lang.String base:heavyitem)) in hasTag java.lang.RuntimeException | called function 0x1333308841
+LOG  : Lua          f:800> [ZeD.QA] pcw java.lang.RuntimeException No implementation found for function: hasTag(class zombie.inventory.types.DrainableComboItem Base.Hairgel:zombie.inventory.types.DrainableComboItem@19c68362, class java.lang.String HeavyItem)) in hasTag java.lang.RuntimeException | called function 0x1333308841
+LOG  : Lua          f:850> [ZeD.QA] pcw java.lang.RuntimeException No implementation found for function: hasTag(class zombie.inventory.types.DrainableComboItem Base.Hairspray2:zombie.inventory.types.DrainableComboItem@468cc973, class java.lang.String base:heavyitem)) in hasTag java.lang.RuntimeException | called function 0x1333308841
+LOG  : Lua          f:850> [ZeD.QA] pcw java.lang.RuntimeException No implementation found for function: hasTag(class zombie.inventory.types.DrainableComboItem Base.Hairspray2:zombie.inventory.types.DrainableComboItem@468cc973, class java.lang.String HeavyItem)) in hasTag java.lang.RuntimeException | called function 0x1333308841
+LOG  : Lua          f:0> [ZeD.QA] pcw watching every pcall for an overload mismatch
+== Hands-On + shim, ZeD off
+LOG  : Lua          f:0> [ZeD.QA] pcw watching every pcall for an overload mismatch
+LOG  : Lua          f:1000> [ZeD.QA] pcw java.lang.RuntimeException No implementation found for function: hasTag(class zombie.inventory.types.ComboItem Base.Razor:zombie.inventory.types.ComboItem@7a3746ae, class java.lang.String base:heavyitem)) in hasTag java.lang.RuntimeException | called function 0x230000970
+LOG  : Lua          f:1000> [ZeD.QA] pcw java.lang.RuntimeException No implementation found for function: hasTag(class zombie.inventory.types.ComboItem Base.Razor:zombie.inventory.types.ComboItem@7a3746ae, class java.lang.String HeavyItem)) in hasTag java.lang.RuntimeException | called function 0x230000970
+LOG  : Lua          f:1030> [ZeD.QA] pcw java.lang.RuntimeException No implementation found for function: hasTag(class zombie.inventory.types.ComboItem Base.Razor:zombie.inventory.types.ComboItem@41dddaf, class java.lang.String base:heavyitem)) in hasTag java.lang.RuntimeException | called function 0x230000970
+LOG  : Lua          f:1030> [ZeD.QA] pcw java.lang.RuntimeException No implementation found for function: hasTag(class zombie.inventory.types.ComboItem Base.Razor:zombie.inventory.types.ComboItem@41dddaf, class java.lang.String HeavyItem)) in hasTag java.lang.RuntimeException | called function 0x230000970

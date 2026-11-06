@@ -1,0 +1,3 @@
+# the board with the controller marks (Nov 5 2026)
+zedqa_prelude.lua | pre
+zedqa_btn_look.lua | bnl | timeout=60

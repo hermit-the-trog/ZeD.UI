@@ -470,10 +470,12 @@ function Invoke-StartClick {
 function Start-GameWindowed {
     $global:LASTEXITCODE = 0
     $script:Launched = $true   # (pzlaunchwin.ps1 changes options.ini first thing)
-    $out = (& $LaunchWin -Width $Width -Height $Height 2>&1 | Out-String).Trim()
+    # (Nov 5 2026: -Mp windowed, the Deck on the test server: stop at the main menu without Steam, then join)
+    $out = $(if ($Mp) { (& $LaunchWin -MainMenu -NoSteam -Width $Width -Height $Height 2>&1 | Out-String).Trim() } else { (& $LaunchWin -Width $Width -Height $Height 2>&1 | Out-String).Trim() })
     $code = $LASTEXITCODE
     Add-Note "pzlaunchwin.ps1: $($out -replace '\s*\r?\n\s*', ' / ')"
     if ($code -ne 0 -or $out -match 'never reached') { throw "the game did not finish loading (pzlaunchwin.ps1 exit $code)" }
+    if ($Mp) { Join-MpServer }
 }
 
 function Start-Game4K {

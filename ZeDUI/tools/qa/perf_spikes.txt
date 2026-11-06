@@ -1,0 +1,3 @@
+# the lag spikes: what runs inside a slow frame (Nov 5 2026)
+zedqa_prelude.lua | pre
+perf_spikes.lua | pks | timeout=260

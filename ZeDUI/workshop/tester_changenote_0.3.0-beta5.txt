@@ -17,3 +17,6 @@ Fixes
 - ZeD asks Steam about Workshop items only while the Mods screen is open. It used to ask from the main menu, and a reply could land while a game was loading.
 - On a server with the safety system on, the blank square at the left edge of the screen is gone.
 - This Is Your Life has been played through with the mod on: a hometown and a poster story both start as they should.
+
+Next
+- The next beta brings major overhauls and improvements to the multiplayer client and admin systems, with many popular tools, add-ons, requests and grumbles addressed.

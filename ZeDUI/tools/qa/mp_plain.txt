@@ -1,0 +1,3 @@
+# what a plain player sees (Nov 5 2026)
+zedqa_pin_windows.lua | pnw | timeout=30
+mp_nonadmin.lua | mna | timeout=60

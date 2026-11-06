@@ -1,0 +1,4 @@
+# the Ranch page and the controller (Nov 5 2026)
+zedqa_prelude.lua | pre
+zedqa_animals.lua | an | timeout=60 | end=setup done
+zedqa_ranch_pad.lua | rpd | timeout=40

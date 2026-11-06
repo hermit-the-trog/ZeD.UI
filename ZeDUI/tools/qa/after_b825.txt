@@ -1,0 +1,5 @@
+# an in-game bar after b8253d43 (Nov 5 2026); the save is put back by zedqa_mods_run.ps1
+zedqa_prelude.lua | pre
+zedqa_bar_step.lua | bst | timeout=40
+zedqa_btn_look.lua | bnl | timeout=60
+zedqa_prompts.lua | pr | timeout=180

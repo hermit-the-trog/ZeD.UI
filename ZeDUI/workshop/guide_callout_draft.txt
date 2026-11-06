@@ -1,0 +1,6 @@
+Draft for the next Workshop description (the director, Nov 5 2026). Not posted. Replaces the survival guide line under
+What's in it. Checked against ZeD_SurvivalGuide.lua: the game's topics and the rules pages are read from the running game
+(its guide text, skill books, XP table, traits, food scripts, farming table, this world's settings); what the game does not
+expose is left out. ZeD's own chapters are written by hand, so the line says "the game's topics and rules".
+
+[*][b]A survival guide on F1,[/b] a 1987 manual or a plain window: the game's topics plus ZeD's own chapters, your keys or your controller's buttons, and the game's rules in numbers. The game's topics and rules are plugged into the game itself: when an update adjusts, adds or changes something, the book changes with it, as soon as the game does, matched to your version and your world's settings. F1 just became your new Alt-Tab.
