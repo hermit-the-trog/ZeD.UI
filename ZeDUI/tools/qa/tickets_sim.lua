@@ -464,7 +464,7 @@ do
     world()
     local W1 = #W.logs
     local IL = W.server.ISLogSystem
-    for _, n in ipairs({ "ZeD", "zed", "Z-e_D", "myZED2" }) do IL.writeLog(nil, { loggerName = n, logText = "forged" }) end
+    for _, n in ipairs({ "ZeD", "zed", "Z-e_D", "ZeD2" }) do IL.writeLog(nil, { loggerName = n, logText = "forged" }) end
     check("no line through ISLogSystem to the ZeD log", #W.logs == W1)
     IL.writeLog(nil, { loggerName = "admin", logText = "fine" })
     check("other loggers still pass", #W.logs == W1 + 1)
