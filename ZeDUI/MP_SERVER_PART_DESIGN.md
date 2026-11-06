@@ -1211,8 +1211,10 @@ card). Module `ZeDA`; every answer comes back as `t_ack`. The table is `ZeD_AD_`
    own leaving. A modified client that ignores `a_leave` is kicked by the server's game call when it is banned online.
 2. **E7 as settled, with one edge.** Timed bans are ZeD's, permanent ones the game's. Server Lua sees no IP (`UdpConnection.getIP` is
    not reachable) and `IsoPlayer.getSteamID` is a long past what a Lua number holds, so a client names its own Steam ID in `a_hi`. A
-   timed ban on a Steam ID is client-claimed, like the rest of a timed ban. A timed ban on an IP is refused (`TIMED_IP`, below). A
-   ban row can gain the game's ban (`a_gameban`) when a client stayed, and that comes off when the timed ban ends.
+   timed ban on a Steam ID is client-claimed, like the rest of a timed ban, but the claim is checked: `IsoPlayer.getSteamID` read as
+   a Lua number is the real ID to within `SID_ROUND`, so a client can't name someone else's, and a server without Steam takes none.
+   A timed ban on an IP is refused (`TIMED_IP`, below). A ban row can gain the game's ban (`a_gameban`) when a client stayed, and that
+   comes off when the timed ban ends.
 3. **Mute.** The game's mute is voice only (`/voiceban`, `BanUnbanUser`). `IsoPlayer.setAllChatMuted` is set by the words filter and
    read by nothing in the chat path of 42.22. So Mute is the server's list (`md.mutes`, `a_mutes` to everyone): each ZeD client hides
    those lines and the muted client will not send. It is client enforced. A client without ZeD's chat is not stopped.
@@ -1252,3 +1254,50 @@ card). Module `ZeDA`; every answer comes back as `t_ack`. The table is `ZeD_AD_`
 fills on `requestUsers` alone (the game's own list reads it in `populateList`, with no event: ZeD reads it every second while the tab shows);
 E17, whether a `/banuser` from `a_owed` shows staff the game's answer; E18, whether a player reads the 12-second screen before the game's
 ban lands on a slow client. Each needs a second client on the local server (`mp_admin.lua` prints them as TODO lines).
+
+# Build's changes (Nov 6 2026, Phase 2, after the review)
+
+1. **A row's name is never read by its shape.** A username may be 17 digits from 7656 (`isValidUserName` allows it). The cards send
+   `user` from a row and `target` only from the Bans card's typed field. A typed target the server knows as a name, in any case, is a
+   name. `a_unban` takes `id`, `user`, `sid` or `ip`, each for what it is. `a_ban` no longer takes a `sid` at all: a ban's Steam ID is the
+   one the server checked in `a_hi`.
+2. **The guard holds on a Steam ID and on an unknown name.** A Steam ID runs the guard of every record that holds it, and a ban is tested
+   again whenever it is about to act (`bindsRole`), so a row made while little was known never removes a protected or higher role. A
+   name the server has never met answers `unknown` for a timed ban, warning points, a mute and a role, since there is no role to test;
+   a permanent ban still goes to the game, which tests it itself. **An IP has no such test:** server Lua sees no IP, so nothing ties one
+   to an account, and `/banip` asks only for `BanUnbanUser`, as it does in the game's own window.
+3. **Rank.** `Roles.addRole` starts a role under every other, so a role's rank is never counted under `user`. Its holders act on plain
+   players as soon as it is saved, and on nobody above `user` until it is moved. On the Role card Up and Down follow ZeD's list, least to
+   most, so Down is more rank; the game's list runs the other way.
+4. **Owed calls carry their ban.** Unbanned or lifted, the calls go with it, and an unban is owed only if the game's ban was made or may
+   have been. A call whose author lost `BanUnbanUser` (their last known role) or whose target rose above the ban is dropped with a log
+   line. A Kick goes a moment past the client's own clock and is dropped if they have left, so there is no age limit: an owed Kick is
+   either on someone still under the ban or it is gone. A call goes to one named client, which alone can answer `a_done`, and never to
+   its own target. A standing ban shuts its holder out of every command but the hello.
+5. **Ban IP too.** The game's IP ban needs the player on, refuses a Steam connection, and in either case bans nobody. So the IP call goes
+   first, at `LEAVE_S`, with the client held on the reason screen (`hold`: no Leave, the client's own clock doubled as a last resort),
+   and the plain ban always follows, `IP_GAP_S` later. A player gone before the call, or still on after it, means the game holds no IP:
+   the row says so and staff get a note. Offline, Ban IP too is refused up front.
+6. **A permanent ban keeps them out until the game holds it.** Until `a_done`, the row works as a timed one does on joining. With a Steam
+   ID on record a `BanSteamID` follows the plain ban, the only one of the two that stores a reason for the game's login line. Otherwise a
+   permanent ban shows the reason only while they are online, and the Bans card says so.
+7. **One row per player.** A second ban answers `already`, and the Player card shows the ban with Unban in Ban's place, behind the foot's
+   confirm. `BANS_MAX` drops the oldest permanent row the game already holds; timed rows are never dropped. `a_ban` and `a_unban` are paced
+   (`BAN_MS`), and past `OWED_MAX` a Kick goes, never a ban or an unban: those commands answer `full`.
+8. **Case.** The game's login matches `LOWER(username)`, so bans and mutes do too (`md.mutes` and the clients' list are lower case). Read
+   from the SQL only: a second client should confirm what spelling reaches `getUsername`.
+9. **The audit ring.** Past `LOG_ACTOR_MAX` a new line takes the place of that account's own oldest, so no one account evicts another's.
+   `s` is the order; Phase 4 sorts by it. `a_power` takes only an id on `POWER_CAP`, with its capability.
+10. **A role change across a restart.** The watch is in `md.watch`, and one back from a restart waits for that player's `a_hi`.
+11. **Reads on the card.** A player's tickets go to `AnswerTickets` alone, and the place of a role above the viewer's stays out of the view.
+12. **The game's windows.** Users and Check your stats are under More tools, and Check stats is on every Player card: accounts, passwords,
+    the whitelist, add XP, professions, traits and the game's banned lists have no card yet, and those windows are the way there.
+13. **Spectate is not built.** The scope lists it for the player card; the drawing dropped it, and the game's Lua has no spectate call to reach
+    (none on the admin panels, none on `LuaManager$GlobalObject`). For the director.
+14. **Without the server part** a Mute is the game's voice ban, kept on this client so Unmute works, and the card says voice only. A role
+    change says the game leaves the powers on. Timed bans and a spawn to the ground are refused, never turned into something else.
+
+**Part E gains:** E19, whether `IsoPlayer.getSteamID` reaches Lua as a number on a dedicated Steam server, as `KahluaNumberConverter` reads;
+if it does not, `sidOf` refuses every claim and name bans simply carry no Steam ID. E20, whether the game keeps the typed spelling of a
+username (item 8). Each needs a second client on a Steam server.
+

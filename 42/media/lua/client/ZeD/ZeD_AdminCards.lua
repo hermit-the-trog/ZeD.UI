@@ -88,6 +88,8 @@ function F.gate(c, capName, extra)
         local why = nil
         if capName and not M.can(capName) then why = M.why(capName) end
         if not why and extra then why = extra(cc) end
+        -- (a button, while a press waits for its answer; a chip or a tick is only a choice)
+        if not why and not cc.style and cc.text and F.t and F.t.busy then why = tr("UI_ZeD_Tk_Busy") end
         cc.disabled, cc.why = why ~= nil, why
     end
     c.live(c)
@@ -97,15 +99,19 @@ end
 function F.needPart() if not M.live() then return tr("UI_ZeD_Adm_NeedPart") end return nil end
 
 -- the server's word. Its own errors first; the ones it shares with tickets speak of tickets, so they have words here too
-local ADM_ERR = { self = true, protected = true, rank = true, offline = true, item = true, ipperm = true, gone = true, state = true, frozen = true, text = true, full = true }
+local ADM_ERR = { self = true, protected = true, rank = true, offline = true, item = true, ipperm = true, gone = true, state = true, frozen = true, text = true, full = true,
+    unknown = true, already = true, part = true }
 function F.errOf(a)
     if ADM_ERR[a.err] then return tr("UI_ZeD_Adm_Err_" .. a.err) end
     return C.errText(a.err, a.left)
 end
 
--- a command from a card: its answer in the help band, and the words stay on a refusal
+-- a command from a card: one at a time, its answer in the help band, and the words stay on a refusal. okText may be a
+-- function of the answer
 function F.act(win, st, send, okText, after)
     local t = TC.qaState(st)
+    if t.busy then return end
+    F.t = t
     t.busy = true
     send(function(a)
         t.busy = nil
@@ -113,6 +119,7 @@ function F.act(win, st, send, okText, after)
             D.flash(t, F.errOf(a))
             return
         end
+        if type(okText) == "function" then okText = okText(a) end
         if okText then D.flash(t, okText) end
         if after then after(a) end
     end)
@@ -241,7 +248,8 @@ TC.items.aline = {
     stops = function() end,
 }
 
--- arow: a list row. left, tag { text, color }, meta, warn, right, chev, lines under it, ctl (a button at its end), on
+-- arow: a list row. left, tag { text, color }, meta, dot (a green mark before the meta), warn, right, rtag (a tag at its
+-- end), chev, lines under it, ctl (a button at its end), on
 TC.items.arow = {
     layout = function(win, it, w)
         local T = ZeD.T
@@ -294,6 +302,11 @@ TC.items.arow = {
             F.drawCtl(panel, win, t, it.ctl, rx, dy + math.floor((topH - it.ctl.h) / 2), mx, my, ctx)
             rx = rx - px(8)
         end
+        if it.rtag then
+            local rw = F.tagW(it.rtag.text)
+            F.drawTag(panel, rx - rw, dy + math.floor((topH - px(16)) / 2), it.rtag.text, it.rtag.color, onF)
+            rx = rx - rw - px(6)
+        end
         if it.right then
             local rw = ZeD.TM:MeasureStringX(T.fontF3, it.right)
             local tc = onF and T.textOnFocus or T.textDim
@@ -306,31 +319,41 @@ TC.items.arow = {
             panel:drawText(it.warn, rx - rw, f3y, tc.r, tc.g, tc.b, tc.a or 1, T.fontF3)
             rx = rx - rw - px(8)
         end
-        -- the left: name, tag, meta. The meta gives way first, then the name, and the tag stays whole
+        -- the left: name, tag, meta. The meta gives way first, then the name, then the tag
         local tx = x + px(4)
         local room = rx - tx
-        local tagW = it.tag and (F.tagW(it.tag.text) + px(8)) or 0
         local leftW = ZeD.TM:MeasureStringX(T.fontF2, it.left or "")
         local keep = math.min(leftW, px(it.leftMin or 90))
-        local metaRoom = room - keep - tagW - px(8)
+        local tagText = it.tag and it.tag.text or nil
+        local dotW = it.dot and px(10) or 0
+        if tagText and F.tagW(tagText) + px(8) > room - keep then
+            tagText = A.truncateText(tagText, T.fontF1, math.max(px(16), room - keep - px(18)))
+        end
+        local tagW = tagText and (F.tagW(tagText) + px(8)) or 0
+        local metaRoom = room - keep - tagW - dotW - px(8)
         local meta = it.meta
         if meta and metaRoom > px(24) then
             meta = A.truncateText(meta, T.fontF3, metaRoom)
         else
             meta = nil
         end
-        local metaW = meta and (ZeD.TM:MeasureStringX(T.fontF3, meta) + px(8)) or 0
+        local metaW = meta and (ZeD.TM:MeasureStringX(T.fontF3, meta) + dotW + px(8)) or 0
         local left = A.truncateText(it.left or "", T.fontF2, math.max(px(20), room - tagW - metaW))
         local lc = onF and T.textOnFocus or T.text
         local a = (c and c.disabled) and T.disabledAlpha or 1
         panel:drawText(left, tx, ty, lc.r, lc.g, lc.b, (lc.a or 1) * a, T.fontF2)
-        local cx = tx + math.max(ZeD.TM:MeasureStringX(T.fontF2, left), math.min(leftW, px(it.leftMin or 90))) + px(8)
-        if it.tag then
-            F.drawTag(panel, cx, dy + math.floor((topH - px(16)) / 2), it.tag.text, it.tag.color, onF)
+        local cx = tx
+        if it.left then cx = tx + math.max(ZeD.TM:MeasureStringX(T.fontF2, left), keep) + px(8) end
+        if tagText then
+            F.drawTag(panel, cx, dy + math.floor((topH - px(16)) / 2), tagText, it.tag.color, onF)
             cx = cx + tagW
         end
         if meta then
             local mc = onF and T.textOnFocus or T.textDim
+            if it.dot then
+                A.drawStatusDot(panel, cx, dy + math.floor((topH - px(7)) / 2), onF and T.textOnFocus or T.positive, px(7))
+                cx = cx + dotW
+            end
             panel:drawText(meta, cx, f3y, mc.r, mc.g, mc.b, mc.a or 1, T.fontF3)
         end
         if it.lines then
@@ -515,6 +538,8 @@ end
 
 function ZeD_LeaveScreen:prerender()
     if M.leave ~= self.info then
+        local pad = JoypadState.players[1]
+        if pad and pad.focus == self then setJoypadFocus(0, nil) end
         self:setVisible(false)
         self:removeFromUIManager()
     end
@@ -536,8 +561,13 @@ function ZeD_LeaveScreen:render()
         end
         y = y + px(6)
     end
-    local left = math.max(0, math.ceil(((M.leaveAt or 0) - getTimestampMs()) / 1000))
     local dc = T.textDim
+    if self.info.hold then          -- (the game's call removes them: there is nothing to press and no count to give)
+        self:drawText(tr("UI_ZeD_Adm_SeeRemoved"), x, y, dc.r, dc.g, dc.b, dc.a or 1, T.fontF2)
+        self.btn = nil
+        return
+    end
+    local left = math.max(0, math.ceil(((M.leaveAt or 0) - getTimestampMs()) / 1000))
     self:drawText(tr("UI_ZeD_Adm_SeeLeaving", left), x, y, dc.r, dc.g, dc.b, dc.a or 1, T.fontF2)
     y = y + fh + px(10)
     local label = tr("UI_ZeD_Adm_Leave")
@@ -552,7 +582,7 @@ function ZeD_LeaveScreen:onMouseDown(x, y)
 end
 
 function ZeD_LeaveScreen:onJoypadDown(button)
-    if button == Joypad.AButton then M.leaveNow() end
+    if button == Joypad.AButton and not self.info.hold then M.leaveNow() end
 end
 
 function M.defaultLeave(info)
@@ -585,9 +615,9 @@ function F.push(win, st, card)
     D.push(win, st, card)
 end
 
-function P.summary(out, id, text, meta, capName, run)
+function P.summary(out, id, text, meta, capName, run, rtag)
     local c = F.gate({ id = id, run = run, help = text }, capName)
-    out[#out + 1] = { k = "tk", t = "arow", left = text, meta = meta, leftMin = 400, chev = true, c = c }
+    out[#out + 1] = { k = "tk", t = "arow", left = text, right = meta, rtag = rtag, leftMin = 400, chev = true, c = c }
 end
 
 function P.playerRow(st, r, me)
@@ -596,43 +626,51 @@ function P.playerRow(st, r, me)
     local name = (r.user == me) and tr("UI_ZeD_Adm_NameYou", r.user) or r.user
     local c = { id = "p:" .. r.user, help = tr("UI_ZeD_Adm_HelpPlayer"), run = function(ww) AC.openPlayer(ww, st, r.user, "adm:tk:p:" .. r.user) end }
     return { k = "tk", t = "arow", left = name, tag = r.role and { text = r.role, color = F.roleColor(r.role) } or nil,
-        meta = F.lastSeen(r), warn = warn, chev = true, c = c, on = false }
+        meta = F.lastSeen(r), dot = r.on, warn = warn, chev = true, c = c, on = false }
 end
 
+-- the game's tooltips hold rich text tags, and these lines are plain
+function F.plainTip(s)
+    if not s then return nil end
+    return (string.gsub(s, "%s*<LINE>%s*", " "))
+end
+
+-- every power the game has: one this role lacks stays on the list, gray, and says why
 function P.powers(out, win, p)
-    local opts = ISAdminPowerUI and ISAdminPowerUI.OptionList
-    local shown = false
-    for _, o in ipairs(opts or {}) do
-        if M.safeCap(p, o.capability) then
-            if not shown then
-                shown = true
-                out[#out + 1] = { k = "head", text = getText("IGUI_AdminPanel_AdminPower"), right = tr("UI_ZeD_Adm_Yours") }
+    local opts = ISAdminPowerUI and ISAdminPowerUI.OptionList or {}
+    if #opts > 0 then out[#out + 1] = { k = "head", text = tr("UI_ZeD_Adm_PowersHead"), right = tr("UI_ZeD_Adm_Yours") } end
+    for _, o in ipairs(opts) do
+        local capName = F.capName(o.capability)
+        local c = F.gate({ id = "pw:" .. o.id, help = F.plainTip(getTextOrNull("IGUI_CheatPanel_" .. o.id .. "_tooltip")),
+            run = function()
+                local pl = getPlayer()     -- (the object from before a death is not the one to tell the server about)
+                o.player = pl
+                local was = o:getValue() and true or false
+                o:setValue(not was)
+                sendPlayerExtraInfo(pl)
+                M.powerLog(o.id, not was)
+            end }, capName)
+        local gray = c.live
+        c.live = function(cc)
+            gray(cc)
+            if cc.disabled then
+                cc.on = false
+                return
             end
-            local c = { id = "pw:" .. o.id, help = getTextOrNull("IGUI_CheatPanel_" .. o.id .. "_tooltip"),
-                live = function(cc)
-                    o.player = getPlayer()
-                    local ok, v = pcall(function() return o:getValue() end)
-                    cc.on = ok and v and true or false
-                end,
-                run = function()
-                    local pl = getPlayer()     -- (the object from before a death is not the one to tell the server about)
-                    o.player = pl
-                    local was = o:getValue() and true or false
-                    o:setValue(not was)
-                    sendPlayerExtraInfo(pl)
-                    M.powerLog(o.id, not was)
-                end }
-            c.live(c)
-            out[#out + 1] = { k = "tk", t = "atick", win = win, text = o.text, sub = c.help, c = c }
+            o.player = getPlayer()
+            local ok, v = pcall(function() return o:getValue() end)
+            cc.on = ok and v and true or false
         end
+        c.live(c)
+        out[#out + 1] = { k = "tk", t = "atick", win = win, text = o.text, sub = c.help, c = c }
     end
-    if shown then out[#out + 1] = { k = "tk", t = "aline", text = tr("UI_ZeD_Adm_PowerTag"), win = win } end
+    if #opts > 0 then out[#out + 1] = { k = "tk", t = "aline", text = tr("UI_ZeD_Adm_PowerTag"), win = win } end
 end
 
-function M.safeCap(p, cap)
-    if M.qaCaps then return true end
-    local ok, r = pcall(function() return p:getRole():hasCapability(cap) end)
-    return ok and r == true
+function F.capName(cap)
+    if type(cap) == "string" then return cap end
+    local ok, n = pcall(function() return cap:name() end)
+    return ok and n or nil
 end
 
 function P.message(out, win, st, t)
@@ -703,7 +741,9 @@ function AC.homeItems(out, win, st, p)
         P.message(L, win, st, t)
         -- ROLES, BANS, SPAWN ITEMS
         L[#L + 1] = { k = "head", text = tr("UI_ZeD_Adm_Roles"), right = tostring(#M.roles()) }
-        P.summary(L, "sum:roles", tr("UI_ZeD_Adm_RolesSum"), nil, "RolesRead", function(ww) AC.openRoles(ww, st) end)
+        local newRole = M.defaultRoleName()
+        P.summary(L, "sum:roles", tr("UI_ZeD_Adm_RolesSum"), newRole and tr("UI_ZeD_Adm_NewPlayersGet") or nil, "RolesRead", function(ww) AC.openRoles(ww, st) end,
+            newRole and { text = newRole, color = F.roleColor(newRole) } or nil)
         L[#L + 1] = { k = "head", text = tr("UI_ZeD_Adm_Bans"), right = tostring(#M.banRows()) }
         P.summary(L, "sum:bans", tr("UI_ZeD_Adm_BansSum"), nil, "BanUnbanUser", function(ww) AC.openBans(ww, st) end)
         L[#L + 1] = { k = "head", text = tr("UI_ZeD_Adm_Spawn") }
@@ -715,6 +755,34 @@ function AC.homeItems(out, win, st, p)
 end
 
 function AC.homeHelp() return tr("UI_ZeD_Adm_HelpHome") end
+
+-- the head of the tab, as drawn: your own role, in its color
+function AC.drawYou(panel, x, y, w, h)
+    local T = ZeD.T
+    local name = M.myRoleName()
+    if not name then return end
+    if F.tagW(name) > math.floor(w / 3) then name = ZeD.Atoms.truncateText(name, T.fontF1, math.floor(w / 3)) end
+    local rx = x + w - px(10) - F.tagW(name)
+    F.drawTag(panel, rx, y + math.floor((h - px(16)) / 2), name, F.roleColor(name), false)
+    ZeD.Atoms.drawTextRight(panel, tr("UI_ZeD_Adm_YouRole"), rx - px(6), y + math.floor((h - ZeD.TM:getFontHeight(T.fontF1)) / 2), T.fontF1, T.textDim)
+end
+
+-- a note's Open: to the Admin tab, where the Bans card opens
+function AC.openNote(item)
+    item.read = true
+    M.openBansNext = true
+    M.bump()
+    if ZeD_WorldWindow and ZeD_WorldWindow.openTab then pcall(ZeD_WorldWindow.openTab, 0, "admin") end
+end
+
+-- once a frame on the tab, card or list
+function AC.frame(win, st)
+    if not M.openBansNext then return end
+    M.openBansNext = nil
+    if not M.can("BanUnbanUser") then return end
+    st.card, st.screen = nil, nil
+    AC.openBans(win, st)
+end
 
 function AC.openTickets(win, st)
     st.screen = "tickets"
@@ -775,14 +843,22 @@ end
 function P.facts(items, win, st, card, row, view, self)
     local on = (view and view.on) or row.on
     B.fact(items, tr("UI_ZeD_Adm_Username"), card.user)
-    B.fact(items, tr("UI_ZeD_Adm_SteamName"), (row.steam ~= nil and row.steam ~= "" and row.steam) or tr("UI_ZeD_Adm_NoSteam"))
+    B.fact(items, tr("UI_ZeD_Adm_SteamName"), (row.steam ~= nil and row.steam ~= "" and row.steam) or tr(M.onSteam() and "UI_ZeD_Adm_SteamUnknown" or "UI_ZeD_Adm_NoSteam"))
     local rp = P.rolePick(win, st, card, row, view, self)
     B.fact(items, rp.label, rp.value, rp.c)
     B.fact(items, tr("UI_ZeD_Adm_Status"), on and tr("UI_ZeD_Adm_Online") or tr("UI_ZeD_Adm_LastHere", F.ago(view and view.last) or row.lastText or tr("UI_ZeD_Adm_NeverSeen")))
     local where = tr("UI_ZeD_Adm_NotOnMap")
-    if view and view.x then where = Tk.whereText({ x = view.x, y = view.y }) end
+    if view and view.x then where = Tk.whereText({ x = view.x, y = view.y })
+    elseif view and view.hidden then where = tr("UI_ZeD_Adm_WhereHidden") end
     B.fact(items, tr("UI_ZeD_Adm_Where"), where)
-    B.fact(items, tr("UI_ZeD_Adm_WarnFact"), tr("UI_ZeD_Adm_WarnValue", row.warn or 0, row.kicks or 0))
+    -- (the game's user list alone holds these: 0 here would read as a clean record)
+    local unread = row.warn == nil and not M.can("SeeNetworkUsers")
+    B.fact(items, tr("UI_ZeD_Adm_WarnFact"), unread and M.why("SeeNetworkUsers") or tr("UI_ZeD_Adm_WarnValue", row.warn or 0, row.kicks or 0))
+    local ban = M.banOf(card.user)
+    if ban or (view and view.banId) then
+        local untilT = (view and view.banUntil) or (ban and ban.untilT)
+        B.fact(items, tr("UI_ZeD_Adm_BanFact"), untilT and tr("UI_ZeD_Adm_Until", D.realDate(untilT) or "") or tr("UI_ZeD_Adm_LenPerm"))
+    end
 end
 
 function P.notOn(user, on)
@@ -806,16 +882,29 @@ function P.acts(items, win, st, card, row, view, t)
         run = function(ww) F.act(ww, st, function(cb) M.teleport(user, cb) end, tr("UI_ZeD_Adm_Teleported", user)) end }, "TeleportToPlayer", notOn)
     ctls[2] = F.gate({ id = "tpme", text = getText("UI_Scoreboard_TeleportToYou"), help = tr("UI_ZeD_Adm_HelpBring"),
         run = function(ww) F.act(ww, st, function(cb) M.bring(user, cb) end, tr("UI_ZeD_Adm_Brought", user)) end }, "TeleportPlayerToAnotherPlayer", notOn)
-    local muted = M.isMuted(user)
-    ctls[3] = F.gate({ id = "mute", text = getText(muted and "UI_Scoreboard_Unmute" or "UI_Scoreboard_Mute"), help = tr("UI_ZeD_Adm_HelpMute"),
+    local muted = M.muted(user)
+    local live = M.live()
+    local muteWord = live and (muted and "UI_ZeD_Adm_Unmuted" or "UI_ZeD_Adm_Muted") or (muted and "UI_ZeD_Adm_VoiceUnmuted" or "UI_ZeD_Adm_VoiceMuted")
+    ctls[3] = F.gate({ id = "mute", text = getText(muted and "UI_Scoreboard_Unmute" or "UI_Scoreboard_Mute"), help = tr(live and "UI_ZeD_Adm_HelpMute" or "UI_ZeD_Adm_HelpMuteVoice"),
         run = function(ww)
-            F.act(ww, st, function(cb) M.mute(user, not muted, cb) end, tr(muted and "UI_ZeD_Adm_Unmuted" or "UI_ZeD_Adm_Muted", user))
-        end }, "BanUnbanUser")
+            F.act(ww, st, function(cb) M.mute(user, not muted, cb) end, tr(muteWord, user))
+        end }, "BanUnbanUser", function()
+            if muted then return nil end     -- (Unmute works on someone who has gone)
+            return notOn()
+        end)
     ctls[4] = F.gate({ id = "warnb", text = getText("IGUI_UserList_AddWarningPoint"), help = tr("UI_ZeD_Adm_HelpWarn"),
         run = function(ww) P.openPart(ww, st, card, "warn", "tk:wp") end }, "AddUserlog")
     ctls[5] = F.gate({ id = "kick", text = getText("IGUI_UserList_Kick"), danger = true, help = tr("UI_ZeD_Adm_HelpKick"),
         run = function(ww) P.openPart(ww, st, card, "kick", "tk:f:reason") end }, "KickUser", notOn)
-    if row.role ~= "banned" then
+    -- a ban stands: Unban in Ban's place. A second ban would be a second row on the game's one
+    local ban = M.banOf(user) or (view and view.banId and { id = view.banId, user = user }) or nil
+    if ban then
+        ctls[6] = F.gate({ id = "unban", text = getText("IGUI_UserList_UnBan"), help = tr("UI_ZeD_Adm_HelpUnban"),
+            run = function(ww)
+                t.confirm = ban
+                D.focusId(ww, st, "tk:cno")
+            end }, "BanUnbanUser")
+    elseif row.role ~= "banned" then
         ctls[6] = F.gate({ id = "ban", text = getText("IGUI_UserList_Ban"), danger = true, help = tr("UI_ZeD_Adm_HelpBan"),
             run = function(ww) P.openPart(ww, st, card, "ban", "tk:f:reason") end }, "BanUnbanUser")
     end
@@ -825,7 +914,7 @@ end
 function P.openPart(win, st, card, part, focus)
     card.open = part
     card.warnN, card.banIp = 1, false
-    card.len = Adm.DEFAULT_LEN
+    card.len = M.live() and Adm.DEFAULT_LEN or "perm"       -- (timed bans are the server part's)
     D.setField(win, "reason", "")
     D.focusId(win, st, focus)
     M.bump()
@@ -870,6 +959,12 @@ function P.banLine(id)
     return tr("UI_ZeD_Adm_LiftsAt", D.realDate(getTimestamp() + l.sec) or "")
 end
 
+-- a timed length chosen, and the server part gone since
+function P.timedGate(card)
+    if Adm.LENGTH[card.len].sec and not M.live() then return tr("UI_ZeD_Adm_NeedPart") end
+    return nil
+end
+
 function P.lenChips(card, id0)
     local ctls = {}
     for _, l in ipairs(Adm.LENGTHS) do
@@ -887,10 +982,10 @@ function P.lenChips(card, id0)
     return ctls
 end
 
-function P.banPart(items, win, st, card, sid)
+function P.banPart(items, win, st, card)
     local user = card.user
     F.inset(items, "danger", function()
-        B.label(items, tr("UI_ZeD_Adm_Reason"), tr("UI_ZeD_Adm_TheySeeBan", user))
+        B.label(items, tr("UI_ZeD_Adm_Reason"), tr("UI_ZeD_Adm_TheySee", user))
         F.field(items, "reason", 2, tr("UI_ZeD_Adm_ReasonHint"), true, AL.REASON_MAX)
         B.label(items, tr("UI_ZeD_Adm_For"))
         F.flow(items, P.lenChips(card, "bl:"))
@@ -908,11 +1003,11 @@ function P.banPart(items, win, st, card, sid)
             F.gate({ id = "byes", text = getText("IGUI_UserList_Ban"), danger = true, push = true, help = tr("UI_ZeD_Adm_HelpBan"),
                 run = function(ww)
                     local reason = F.text(ww, "reason")
-                    F.act(ww, st, function(cb) M.ban(user, reason, card.len, card.banIp, sid, cb) end, tr("UI_ZeD_Adm_Banned", user), function()
+                    F.act(ww, st, function(cb) M.ban(user, reason, card.len, card.banIp, cb) end, tr("UI_ZeD_Adm_Banned", user), function()
                         P.closePart(ww, st, card, "tk:back")
                         M.loadCard(user, true)
                     end)
-                end }, nil, P.reasonGate(win)),
+                end }, nil, function() return P.timedGate(card) or P.reasonGate(win)() end),
         })
     end)
 end
@@ -924,7 +1019,15 @@ function P.rolePart(items, win, st, card, fromRole)
         B.label(items, tr("UI_ZeD_Adm_MakeAsk", user, to))
         B.sub(items, (#gain > 0) and tr("UI_ZeD_Adm_WillDo", table.concat(gain, ", ")) or tr("UI_ZeD_Adm_NothingNew"))
         if #lose > 0 then B.sub(items, tr("UI_ZeD_Adm_WillLose", table.concat(lose, ", "))) end
-        if #powers > 0 then
+        if #powers > 0 and not M.live() then
+            -- (only the server part can turn them off: the game's own change leaves them on, so nothing here to tick)
+            local words = {}
+            for i, pw in ipairs(powers) do words[i] = getText("IGUI_CheatPanel_" .. pw.id) end
+            B.label(items, tr("UI_ZeD_Adm_PowersOn"))
+            B.sub(items, table.concat(words, ", "))
+            B.sub(items, tr("UI_ZeD_Adm_PowersStayOn"))
+            items[#items].tone = "warning"
+        elseif #powers > 0 then
             B.label(items, tr("UI_ZeD_Adm_PowersOn"))
             for _, pw in ipairs(powers) do
                 local id = pw.id
@@ -946,7 +1049,7 @@ function P.rolePart(items, win, st, card, fromRole)
                 run = function(ww)
                     local keep = {}
                     for id in pairs(card.keep) do keep[#keep + 1] = id end
-                    F.act(ww, st, function(cb) M.setRole(user, to, keep, cb) end, tr((#powers > #keep) and "UI_ZeD_Adm_RoleSetOff" or "UI_ZeD_Adm_RoleSet", user, to), function()
+                    F.act(ww, st, function(cb) M.setRole(user, to, keep, cb) end, tr((M.live() and #powers > #keep) and "UI_ZeD_Adm_RoleSetOff" or "UI_ZeD_Adm_RoleSet", user, to), function()
                         P.closePart(ww, st, card, "tk:role")
                         M.loadCard(user, true)
                     end)
@@ -978,7 +1081,8 @@ function P.warnPart(items, win, st, card, row)
             F.gate({ id = "wyes", text = tr("UI_ZeD_Adm_Add"), primary = true, push = true, help = tr("UI_ZeD_Adm_HelpWarn"),
                 run = function(ww)
                     local reason, n = F.text(ww, "reason"), card.warnN
-                    F.act(ww, st, function(cb) M.warn(user, n, reason, cb) end, tr("UI_ZeD_Adm_WarnDone", n, user), function()
+                    local done = (n == 1) and tr("UI_ZeD_Adm_WarnDone1", user) or tr("UI_ZeD_Adm_WarnDone", n, user)
+                    F.act(ww, st, function(cb) M.warn(user, n, reason, cb) end, done, function()
                         P.closePart(ww, st, card, "tk:warnb")
                     end)
                 end }, nil, P.reasonGate(win)),
@@ -1037,6 +1141,11 @@ function P.logs(items, card)
 end
 
 function P.tickets(items, win, st, card, view)
+    if not M.can("AnswerTickets") then          -- (the server sends a player's tickets to staff alone)
+        B.label(items, getText("UI_userpanel_tickets"))
+        B.sub(items, M.why("AnswerTickets"))
+        return
+    end
     local rows = view and view.tickets or {}
     B.label(items, getText("UI_userpanel_tickets"), tostring(view and view.ticketN or #rows))
     if #rows == 0 then B.sub(items, tr("UI_ZeD_Adm_NoTickets")) end
@@ -1061,7 +1170,7 @@ function P.playerItems(win, st, t, card, data)
     if not M.live() then B.sub(items, tr("UI_ZeD_Adm_NoPartCard")) end
     if not self then P.acts(items, win, st, card, row, view, t) end
     if card.open == "kick" then P.kickPart(items, win, st, card)
-    elseif card.open == "ban" then P.banPart(items, win, st, card, row.sid)
+    elseif card.open == "ban" then P.banPart(items, win, st, card)
     elseif card.open == "warn" then P.warnPart(items, win, st, card, row)
     elseif card.open == "role" and card.newRole then P.rolePart(items, win, st, card, (view and view.role) or row.role) end
     if M.live() then
@@ -1074,13 +1183,13 @@ function P.playerItems(win, st, t, card, data)
             B.sub(items, (M.can("CanSeePlayersStats") and tr("UI_ZeD_Tk_Loading")) or M.why("CanSeePlayersStats"))
         end
         P.skills(items, win, st, card, view)
-    else
-        F.flow(items, { F.gate({ id = "stats", text = tr("UI_ZeD_Adm_Stats"), help = tr("UI_ZeD_Adm_HelpStats"), run = function(ww) D.playerCard(ww, card.user) end },
-            "CanSeePlayersStats", function()
-                if not getPlayerFromUsername(card.user) then return tr("UI_ZeD_Adm_NotSeen") end
-                return nil
-            end) })
     end
+    -- (add XP, a trait, a profession: the game's window has them until they are ZeD's)
+    F.flow(items, { F.gate({ id = "stats", text = tr("UI_ZeD_Adm_Stats"), help = tr("UI_ZeD_Adm_HelpStats"), run = function(ww) D.playerCard(ww, card.user) end },
+        "CanSeePlayersStats", function()
+            if not getPlayerFromUsername(card.user) then return tr("UI_ZeD_Adm_NotSeen") end
+            return nil
+        end) })
     B.label(items, tr("UI_ZeD_Adm_Inventory"))
     items[#items + 1] = { k = "arow", left = getText("IGUI_PlayerStats_ManageInventory", card.user), leftMin = 300, meta = tr("UI_ZeD_Adm_GameWindow"), chev = true,
         c = F.gate({ id = "inv", help = tr("UI_ZeD_Adm_HelpInv"), run = function() M.openInventory(card.user, view and view.oid) end }, "InspectPlayerInventory") }
@@ -1100,6 +1209,7 @@ TC.kinds.player = {
     end,
     title = function(card) return card.user end,
     help = function(t, card)
+        if t.confirm then return tr("UI_ZeD_Adm_HelpUnbanAsk") end
         if card.open == "ban" then return tr("UI_ZeD_Adm_HelpBanCard") end
         if card.open == "role" then return tr("UI_ZeD_Adm_HelpRoleCard") end
         return tr("UI_ZeD_Adm_HelpPlayerCard", card.user)
@@ -1112,7 +1222,29 @@ TC.kinds.player = {
         end
         return 0
     end,
+    -- Unban, behind the foot's confirm
+    foot = function(win, st, t, card)
+        local row = t.confirm
+        if not row then return { main = {} } end
+        return { question = tr("UI_ZeD_Adm_UnbanAsk", card.user), main = {
+            D.btn("cno", tr("UI_ZeD_Adm_KeepBan"), function(ww)
+                t.confirm = nil
+                D.focusId(ww, st, "tk:unban")
+            end, nil, tr("UI_ZeD_Adm_HelpKeepBan")),
+            D.btn("cyes", getText("IGUI_UserList_UnBan"), function(ww)
+                t.confirm = nil
+                F.act(ww, st, function(cb) M.unban(row, cb) end, tr("UI_ZeD_Adm_Unbanned", card.user), function()
+                    D.focusId(ww, st, "tk:back")
+                    M.loadCard(card.user, true)
+                end)
+            end, "primary", tr("UI_ZeD_Adm_HelpUnban")) } }
+    end,
     cancel = function(win, st, t, card)
+        if t.confirm then
+            t.confirm = nil
+            D.focusId(win, st, "tk:unban")
+            return true
+        end
         if card.open then
             P.closePart(win, st, card, "tk:" .. (card.open == "warn" and "warnb" or card.open))
             return true
@@ -1143,7 +1275,7 @@ TC.kinds.roles = {
             for _, d in ipairs(r.defaults) do
                 if d == "defaultForNewUser" then right = tr("UI_ZeD_Adm_NewPlayers") .. " | " .. right end
             end
-            items[#items + 1] = { k = "arow", left = name, leftMin = 110, meta = r.desc, right = right, chev = true,
+            items[#items + 1] = { k = "arow", tag = { text = name, color = r.color }, meta = r.desc, right = right, chev = true,
                 c = { id = "r:" .. name, help = r.desc, land = true, run = function(ww) AC.openRole(ww, st, name) end } }
         end
         F.flow(items, { F.gate({ id = "addrole", text = getText("IGUI_RolesList_AddRole"), help = tr("UI_ZeD_Adm_HelpAddRole"), run = function(ww) AC.openRole(ww, st, nil) end }, "RolesWrite") })
@@ -1273,10 +1405,11 @@ function P.roleItems(win, st, t, card)
                 run = function(ww) F.act(ww, st, function(cb) M.defaultRole(card.name, cb) end, tr("UI_ZeD_Adm_DefaultDone")) end }, "RolesWrite") })
         end
         F.flow(items, {
+            -- (this list runs least to most, the game's most to least: Up here is less rank)
             F.gate({ id = "rup", text = getText("IGUI_RolesList_Up"), help = tr("UI_ZeD_Adm_HelpRoleUp"),
-                run = function(ww) F.act(ww, st, function(cb) M.moveRole(card.name, 1, cb) end) end }, "RolesWrite", P.canEditRole(card)),
-            F.gate({ id = "rdown", text = getText("IGUI_RolesList_Down"), help = tr("UI_ZeD_Adm_HelpRoleUp"),
                 run = function(ww) F.act(ww, st, function(cb) M.moveRole(card.name, -1, cb) end) end }, "RolesWrite", P.canEditRole(card)),
+            F.gate({ id = "rdown", text = getText("IGUI_RolesList_Down"), help = tr("UI_ZeD_Adm_HelpRoleUp"),
+                run = function(ww) F.act(ww, st, function(cb) M.moveRole(card.name, 1, cb) end) end }, "RolesWrite", P.canEditRole(card)),
         })
     end
     return items
@@ -1329,6 +1462,12 @@ TC.kinds.role = {
         if card.name then return card.name end
         return tr("UI_ZeD_Adm_NewRole")
     end,
+    flag = function(panel, win, t, card, data, x, y, w, bar)
+        if card.name then
+            F.drawTag(panel, x + w - px(10) - F.tagW(card.name), y - bar + math.floor((bar - px(16)) / 2), card.name, F.roleColor(card.name), false)
+        end
+        return 0
+    end,
     help = function(t, card)
         if t.confirm then return tr("UI_ZeD_Adm_HelpDeleteRole") end
         return tr("UI_ZeD_Adm_HelpRole")
@@ -1340,7 +1479,7 @@ TC.kinds.role = {
                 D.btn("cno", tr("UI_ZeD_Tk_KeepIt"), function(ww)
                     t.confirm = nil
                     D.focusId(ww, st, "tk:rdel")
-                end, nil, tr("UI_ZeD_Tk_HelpKeep")),
+                end, nil, tr("UI_ZeD_Adm_HelpKeepRole")),
                 D.btn("cyes", getText("IGUI_RolesList_DeleteRole"), function(ww)
                     t.confirm = nil
                     F.act(ww, st, function(cb) M.deleteRole(card.name, cb) end, tr("UI_ZeD_Adm_RoleDeleted"), function() TC.back(ww, st) end)
@@ -1360,10 +1499,11 @@ TC.kinds.role = {
         end
         local changed = P.roleChanged(win, card)
         return { lead = lead, status = changed and tr("UI_ZeD_Adm_NotSaved") or nil, main = {
-            D.btn("rcancel", getText("UI_Cancel"), function(ww) TC.back(ww, st) end, nil, tr("UI_ZeD_Tk_HelpCancelAsk")),
+            D.btn("rcancel", getText("UI_Cancel"), function(ww) TC.back(ww, st) end, nil, tr("UI_ZeD_Adm_HelpLeaveRole")),
             P.roleSaveBtn(win, st, t, card) } }
     end,
     padX = function(win, st, t, card)
+        if t.confirm then return nil end       -- (the foot asks another question now)
         local b = P.roleSaveBtn(win, st, t, card)
         return { label = b.label, run = b.run, disabled = b.disabled, why = b.why }
     end,
@@ -1386,6 +1526,13 @@ end
 
 function P.banName(b) return b.user or b.sid or b.ip or "" end
 
+-- out of the Unban confirm: back to the row's own Unban
+function P.keepBan(win, st, t)
+    local from = t.confirmFrom
+    t.confirm, t.confirmFrom = nil, nil
+    D.focusId(win, st, from or "tk:bgo")
+end
+
 function P.banRow(items, st, b, i)
     local until_ = b.untilT and tr("UI_ZeD_Adm_Until", D.realDate(b.untilT) or "") or tr("UI_ZeD_Adm_LenPerm")
     local parts = {}
@@ -1403,10 +1550,10 @@ function P.banRow(items, st, b, i)
         ctl = F.gate({ id = "ub:" .. i, text = getText("IGUI_UserList_UnBan"), help = tr("UI_ZeD_Adm_HelpUnban"),
             run = function(ww)
                 local t = TC.qaState(st)
-                t.confirm = row
+                t.confirm, t.confirmFrom = row, "tk:ub:" .. i
                 D.focusId(ww, st, "tk:cno")
             end }, "BanUnbanUser") }
-    if b.stay and not b.gameBan and b.id then
+    if b.stay and b.untilT and not b.gameBan and b.id then
         F.flow(items, { F.gate({ id = "gb:" .. i, text = tr("UI_ZeD_Adm_UseGameBan"), danger = true, help = tr("UI_ZeD_Adm_HelpGameBan"),
             run = function(ww) F.act(ww, st, function(cb) M.gameBan(row.id, cb) end, tr("UI_ZeD_Adm_GameBanDone", P.banName(row))) end }, "BanUnbanUser", F.needPart) })
     end
@@ -1424,7 +1571,8 @@ function P.bansItems(win, st, t, card)
     F.flow(items, { F.gate({ id = "bgo", text = getText("IGUI_UserList_Ban"), danger = true, help = tr("UI_ZeD_Adm_HelpBanOff"),
         run = function(ww)
             local target, reason = F.text(ww, "btarget"), F.text(ww, "breason")
-            F.act(ww, st, function(cb) M.ban(target, reason, card.len, false, nil, cb) end, tr("UI_ZeD_Adm_Banned", target), function()
+            local function said(a) return a.unknown and tr("UI_ZeD_Adm_BannedUnknown", target) or tr("UI_ZeD_Adm_Banned", target) end
+            F.act(ww, st, function(cb) M.banTyped(target, reason, card.len, cb) end, said, function()
                 D.setField(ww, "btarget", "")
                 D.setField(ww, "breason", "")
             end)
@@ -1433,7 +1581,7 @@ function P.bansItems(win, st, t, card)
             if target == "" then return tr("UI_ZeD_Adm_WriteTarget") end
             if F.text(win, "breason") == "" then return tr("UI_ZeD_Adm_WriteReason") end
             if Adm.targetKind(target) == "ip" and Adm.LENGTH[card.len].sec then return tr("UI_ZeD_Adm_IpPermOnly") end
-            return nil
+            return P.timedGate(card)
         end) })
     local rows = M.banRows()
     B.label(items, tr("UI_ZeD_Adm_Banned2"), tostring(#rows))
@@ -1444,7 +1592,7 @@ function P.bansItems(win, st, t, card)
         local sample = rows[1] or { reason = tr("UI_ZeD_Adm_ReasonHint"), untilT = getTimestamp() + 259200 }
         for _, s in ipairs(AC.leaveLines({ kind = "ban", reason = sample.reason or tr("UI_ZeD_Adm_ReasonHint"), untilT = sample.untilT })) do B.sub(items, s) end
     end)
-    B.sub(items, tr("UI_ZeD_Adm_AppealLater"))
+    B.sub(items, tr("UI_ZeD_Adm_SeeGameLine"))
     return items
 end
 
@@ -1462,19 +1610,15 @@ TC.kinds.bans = {
         local row = t.confirm
         if not row then return { main = {} } end
         return { question = tr("UI_ZeD_Adm_UnbanAsk", P.banName(row)), main = {
-            D.btn("cno", tr("UI_ZeD_Adm_KeepBan"), function(ww)
-                t.confirm = nil
-                D.focusId(ww, st, "tk:bgo")
-            end, nil, tr("UI_ZeD_Tk_HelpKeep")),
+            D.btn("cno", tr("UI_ZeD_Adm_KeepBan"), function(ww) P.keepBan(ww, st, t) end, nil, tr("UI_ZeD_Adm_HelpKeepBan")),
             D.btn("cyes", getText("IGUI_UserList_UnBan"), function(ww)
-                t.confirm = nil
+                t.confirm, t.confirmFrom = nil, nil
                 F.act(ww, st, function(cb) M.unban(row, cb) end, tr("UI_ZeD_Adm_Unbanned", P.banName(row)))
             end, "primary", tr("UI_ZeD_Adm_HelpUnban")) } }
     end,
     cancel = function(win, st, t, card)
         if not t.confirm then return false end
-        t.confirm = nil
-        D.focusId(win, st, "tk:bgo")
+        P.keepBan(win, st, t)
         return true
     end,
 }
@@ -1484,6 +1628,12 @@ TC.kinds.bans = {
 -- ---------------------------------------------------------------------------
 function AC.openSpawn(win, st)
     local t = TC.qaState(st)
+    -- (the box outlives the card: empty it, and what it last told onFilter)
+    local box = D.fieldOf(win, "ifind")
+    if box then
+        D.setField(win, "ifind", "")
+        box._lastText = ""
+    end
     F.push(win, st, { kind = "spawn", from = "adm:tk:sum:spawn", page = 1, n = 1, to = "me", find = "" })
     t.spawnGen = (t.spawnGen or 0) + 1
 end
@@ -1575,6 +1725,7 @@ function P.spawnBtn(win, st, t, card)
         F.act(ww, st, function(cb) M.spawn(it.full, card.n, card.to, cb) end, tr("UI_ZeD_Adm_Spawned", card.n, it.name, P.toWord(card.to)))
     end, "primary", tr("UI_ZeD_Adm_HelpSpawnBtn"))
     if not M.can("AddItem") then D.disable(b, M.why("AddItem"))
+    elseif card.to == "ground" and not M.live() then D.disable(b, tr("UI_ZeD_Adm_NeedPart"))
     elseif t.busy then D.disable(b, tr("UI_ZeD_Tk_Busy")) end
     return b
 end

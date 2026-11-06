@@ -5,7 +5,8 @@
 --
 -- With the server part every act goes to the server first, and the game's own call follows only on its ack: server Lua
 -- cannot kick, ban or set a role (A7), so that call goes from this client once the server has authorized it. Ban calls
--- that wait or must not be lost come back as a_owed, and this client says a_done when it has made them.
+-- that wait or must not be lost come back as a_owed, and this client says a_done when it has made them. A name from a row
+-- is sent as user and a typed target as target, and the shape of a string decides nothing about a row.
 --
 -- Without the server part the same functions make the game's call straight away; what only the server part can do (timed
 -- bans, repeats, the player's card, the log) is grayed on the cards with the reason.
@@ -48,7 +49,9 @@ M.cards = M.cards or {}               -- username -> the server's card
 M.logs = M.logs or {}                 -- username -> the game's user log
 M.bans = M.bans or {}                 -- ZeD's bans, as the server sends them
 M.repeats = M.repeats or {}
-M.mutes = M.mutes or {}               -- username -> true
+M.mutes = M.mutes or {}               -- lower-case username -> true
+M.voice = M.voice or {}               -- username -> true: voice banned here, with no server part to keep the list
+M.steamNames = M.steamNames or {}     -- Steam ID -> the name on Steam, once read
 M.gameIps = M.gameIps or {}           -- the game's own banned lists
 M.gameSids = M.gameSids or {}
 M.srvRows = M.srvRows or {}           -- username -> the server's row
@@ -118,6 +121,16 @@ function M.role(name)
     return nil
 end
 
+-- the role new players get, for the Roles row
+function M.defaultRoleName()
+    for _, r in ipairs(M.roles()) do
+        for _, d in ipairs(r.defaults) do
+            if d == "defaultForNewUser" then return r.name end
+        end
+    end
+    return nil
+end
+
 -- the capability every list of names has: the least role that has it, past banned
 function M.roleWith(capName)
     for _, r in ipairs(M.roles()) do
@@ -169,7 +182,24 @@ local function readUser(u)
     local role = u:getRole()
     return { user = u:getUsername(), on = u:isOnline() == true, role = role and role:getName() or nil,
         lastText = u:getLastConnection(), warn = u:getWarningPoints(), kicks = u:getKicks(), sid = u:getSteamid(),
-        steam = u:getDisplayName(), ipBan = u:getIpBanned(), sidBan = u:getSteamIdBanned() }
+        ipBan = u:getIpBanned(), sidBan = u:getSteamIdBanned() }
+end
+
+function M.onSteam() return safe(function() return getSteamModeActive() end, false) == true end
+
+-- the name on Steam, as ISScoreboard reads it. NetworkUser.getDisplayName is the name in the game, not this
+local function steamName(r)
+    if r.sid and r.sid ~= "" then
+        local name = M.steamNames[r.sid]
+        if not name then
+            name = safe(function() return getSteamProfileNameFromSteamID(r.sid) end, nil)
+            if name == "[unknown]" then return nil end        -- (Steam has not sent it yet: read again)
+            M.steamNames[r.sid] = name
+        end
+        return name
+    end
+    local name = safe(function() return getSteamProfileNameFromUsername(r.user) end, nil)
+    return (name ~= "[unknown]") and name or nil
 end
 
 local function sortRows(out)
@@ -207,13 +237,16 @@ function M.refreshRows()
         local row = byUser[pl.user]
         if row then row.on = true else add({ user = pl.user, on = true }) end
     end
+    if M.onSteam() then
+        for _, r in ipairs(out) do r.steam = steamName(r) end
+    end
     sortRows(out)
     M.rows = out
     M.onlineN = 0
     local sig = {}
     for i, r in ipairs(out) do
         if r.on then M.onlineN = M.onlineN + 1 end
-        sig[i] = table.concat({ r.user, tostring(r.on), tostring(r.role), tostring(r.warn), tostring(r.kicks), tostring(r.lastT) }, ",")
+        sig[i] = table.concat({ r.user, tostring(r.on), tostring(r.role), tostring(r.warn), tostring(r.kicks), tostring(r.lastT), tostring(r.steam) }, ",")
     end
     -- (read every second while the tab shows: the cards rebuild only for a real change)
     sig = table.concat(sig, ";")
@@ -273,7 +306,8 @@ local function askLists()
         if M.can("DisplayServerMessage") then S.send(Adm.MOD, "a_repeats", {}) end
     end
     if M.can("BanUnbanUser") then
-        if safe(function() return getSteamModeActive() end, false) then pcall(getBannedSteamIDs) else pcall(getBannedIPs) end
+        pcall(getBannedIPs)
+        if M.onSteam() then pcall(getBannedSteamIDs) end
     end
 end
 
@@ -341,8 +375,11 @@ end
 function M.mute(user, on, cb)
     act("a_mute", { user = user, on = on }, function()
         SendCommandToServer("/voiceban " .. Q(user) .. (on and " -true" or " -false"))
+        if not M.live() then M.voice[user] = on or nil end
     end, cb)
 end
+-- what the card's Mute reads: the server's list, or without it the voice ban made from here
+function M.muted(user) return M.isMuted(user) or M.voice[user] == true end
 function M.setRole(user, role, keep, cb)
     act("a_role", { user = user, role = role, keep = keep }, function() networkUserAction("SetRole", user, role) end, cb)
 end
@@ -384,34 +421,66 @@ end
 -- ---------------------------------------------------------------------------
 -- BANS
 -- ---------------------------------------------------------------------------
-function M.ban(target, reason, len, banIp, sid, cb)
+local function banAsk(args, cb)
+    K.requestOn(Adm.MOD, "a_ban", args, function(a)
+        if cb then cb(a) end
+        M.bump()
+    end)
+end
+
+-- a timed ban is ZeD's: without the server part only the game's permanent one exists
+local function noTimed(len, cb)
+    if not Adm.LENGTH[len].sec then return false end
+    if cb then cb({ ok = false, err = "part" }) end
+    return true
+end
+
+local function gameBanUser(user, reason, banIp)
+    -- (the game's call with the IP needs them on and can refuse, banning nobody: the plain one always follows it)
+    if banIp then SendCommandToServer("/banuser " .. Q(user) .. " -ip -r " .. Q(reason)) end
+    SendCommandToServer("/banuser " .. Q(user) .. " -r " .. Q(reason))
+end
+
+-- from a player's row or card: user is a username, whatever it looks like
+function M.ban(user, reason, len, banIp, cb)
     if M.live() then
-        K.requestOn(Adm.MOD, "a_ban", { target = target, reason = reason, len = len, banIp = banIp == true, sid = sid }, function(a)
-            if cb then cb(a) end
-            M.bump()
-        end)
+        banAsk({ user = user, reason = reason, len = len, banIp = banIp == true }, cb)
         return
     end
-    -- the game's ban, as its own Users List makes it (timed bans are grayed without the server part)
-    local kind = Adm.targetKind(target)
-    if kind == "ip" then SendCommandToServer("/banip " .. target)
-    elseif kind == "sid" then banUnbanUserAction("BanSteamID", target, reason)
-    else SendCommandToServer("/banuser " .. Q(target) .. (banIp and " -ip" or "") .. " -r " .. Q(reason)) end
+    if noTimed(len, cb) then return end
+    gameBanUser(user, reason, banIp)
     if cb then cb({ ok = true, fallback = true }) end
     M.bump()
 end
 
--- row: from M.banRows
-function M.unban(row, cb)
+-- typed on the Bans card: a username, a Steam ID or an IP. A name the game's list holds stays a name
+function M.banTyped(target, reason, len, cb)
     if M.live() then
-        local args = row.id and { id = row.id } or { target = row.user or row.sid or row.ip }
+        banAsk({ target = target, reason = reason, len = len, banIp = false }, cb)
+        return
+    end
+    if noTimed(len, cb) then return end
+    local kind = M.row(target) and "user" or Adm.targetKind(target)
+    if kind == "ip" then SendCommandToServer("/banip " .. target)
+    elseif kind == "sid" then banUnbanUserAction("BanSteamID", target, reason)
+    else gameBanUser(target, reason, false) end
+    if cb then cb({ ok = true, fallback = true }) end
+    M.bump()
+end
+
+-- row: from M.banRows. Each is lifted as what it is: a row the game holds on an IP by its IP, and never by the look of a name
+function M.unban(row, cb)
+    local onIp = row.ip ~= nil and row.game == true
+    if M.live() then
+        local args = (row.id and { id = row.id }) or (onIp and { ip = row.ip }) or (row.user and { user = row.user }) or (row.sid and { sid = row.sid }) or { ip = row.ip }
         K.requestOn(Adm.MOD, "a_unban", args, function(a)
             if cb then cb(a) end
             M.bump()
         end)
         return
     end
-    if row.user then banUnbanUserAction("UnBan", row.user, "")
+    if onIp then banUnbanUserAction("UnBanIPOnly", row.ip, "")
+    elseif row.user then banUnbanUserAction("UnBan", row.user, "")
     elseif row.sid then banUnbanUserAction("UnBanSteamID", row.sid, "")
     else banUnbanUserAction("UnBanIPOnly", row.ip, "") end
     if cb then cb({ ok = true, fallback = true }) end
@@ -452,19 +521,19 @@ end
 
 function M.banOf(user)
     for _, b in ipairs(M.banRows()) do
-        if b.user == user then return b end
+        if b.user == user and not (b.ip and b.game) then return b end
     end
     return nil
 end
 
 local OWED = {
-    Ban = function(a)
-        SendCommandToServer("/banuser " .. Q(a.target) .. (a.banIp and " -ip" or "") .. " -r " .. Q(a.reason or ""))
-    end,
+    Ban = function(a) SendCommandToServer("/banuser " .. Q(a.target) .. " -r " .. Q(a.reason or "")) end,
+    BanIP = function(a) SendCommandToServer("/banuser " .. Q(a.target) .. " -ip -r " .. Q(a.reason or "")) end,
     Kick = function(a) SendCommandToServer("/kickuser " .. Q(a.target) .. " -r " .. Q(a.reason or "")) end,
     BanSteamID = function(a) banUnbanUserAction("BanSteamID", a.target, a.reason or "") end,
     BanIPOnly = function(a) SendCommandToServer("/banip " .. a.target) end,
     UnBan = function(a) banUnbanUserAction("UnBan", a.target, "") end,
+    UnBanIP = function(a) banUnbanUserAction("UnBanIP", a.target, "") end,
     UnBanSteamID = function(a) banUnbanUserAction("UnBanSteamID", a.target, "") end,
     UnBanIPOnly = function(a) banUnbanUserAction("UnBanIPOnly", a.target, "") end,
 }
@@ -527,6 +596,10 @@ end
 
 -- to: "me", "ground" or a username
 function M.spawn(full, n, to, cb)
+    if to == "ground" and not M.live() then       -- (the game's /additem has no ground)
+        if cb then cb({ ok = false, err = "part" }) end
+        return
+    end
     if M.live() then
         K.requestOn(Adm.MOD, "a_spawn", { item = full, n = n, to = to }, function(a)
             if cb then cb(a) end
@@ -556,13 +629,16 @@ end
 
 -- d: name, desc, color, caps. isNew: the game makes the role, then this waits for it to arrive before filling it in
 function M.saveRole(d, isNew, cb)
+    if not isNew and not M.role(d.name) then         -- (another admin deleted it while the card was open)
+        if cb then cb({ ok = false, err = "gone" }) end
+        return
+    end
     roleAct(isNew and "add" or "save", d.name, function()
         if isNew then
             addRole(d.name)
             M.newRole = { d = d, at = now() }
         else
-            local r = M.role(d.name)
-            if r then setup(r.obj, d) end
+            setup(M.role(d.name).obj, d)
         end
         pcall(requestRoles)
         M.rolesAt = nil
@@ -585,7 +661,7 @@ function M.defaultRole(name, cb)
     end, cb)
 end
 
--- dir: 1 up, -1 down, as the game's Roles List
+-- dir: 1 more rank, -1 less, as moveRole has it. The game's Roles List sorts most first, so there 1 is Up; ZeD's lists least first
 function M.moveRole(name, dir, cb)
     roleAct((dir > 0) and "up" or "down", name, function()
         moveRole(dir, name)
@@ -632,7 +708,7 @@ end
 
 function on.a_mutes(a)
     local set = {}
-    for _, u in ipairs(a.list or {}) do set[u] = true end
+    for _, u in ipairs(a.list or {}) do set[string.lower(u)] = true end
     M.mutes = set
     M.bump()
 end
@@ -654,7 +730,9 @@ end
 
 function on.a_note(a)
     if a.kind == "stay" and ZeD.Messages and ZeD.Messages.adminNote then
-        ZeD.Messages.adminNote(tr("UI_ZeD_Adm_NoteStay", tostring(a.user)))
+        ZeD.Messages.adminNote(tr("UI_ZeD_Adm_NoteStay", tostring(a.user)), true)
+    elseif a.kind == "ipfail" and ZeD.Messages and ZeD.Messages.adminNote then
+        ZeD.Messages.adminNote(tr("UI_ZeD_Adm_NoteIpFail", tostring(a.user)), true)
     elseif a.kind == "spawn" and ZeD.Messages and ZeD.Messages.adminNote then
         ZeD.Messages.adminNote(tr("UI_ZeD_Adm_NoteSpawn", tostring(a.n), tostring(a.item)))
     end
@@ -678,16 +756,23 @@ end
 
 -- ---------------------------------------------------------------------------
 -- LEAVING: the server says a ban stands. The reason shows, then the client goes. Phase 5's ban and kick screen takes this
--- over by setting M.leaveScreen(info): info is kind, reason, untilT, by, and it may fill in the appeal line.
+-- over by setting M.leaveScreen(info): info is kind, reason, untilT, hold, and it may fill in the appeal line. hold: the
+-- game's call lands while they are on, so there is no Leave and the client's own clock runs twice as long, as a last resort.
 -- ---------------------------------------------------------------------------
 function on.a_leave(a)
-    M.leave = { kind = a.kind, reason = a.reason, untilT = a.untilT, by = a.by, at = now() }
-    M.leaveAt = now() + AL.LEAVE_S * 1000
+    if M.leaveAt then return end         -- (the server says it again: the clock already runs)
+    M.leave = { kind = a.kind, reason = a.reason, untilT = a.untilT, hold = a.hold == true, at = now() }
+    M.leaveAt = now() + AL.LEAVE_S * (a.hold and 2000 or 1000)
     local show = M.leaveScreen or M.defaultLeave
     if show then
         local ok, err = pcall(show, M.leave)
         if not ok then ZeD.logOnce("admin: leave screen", err) end
     end
+end
+
+-- the ban came off while they read it
+function on.a_stay()
+    M.leave, M.leaveAt = nil, nil
 end
 
 function M.leaveNow()
@@ -710,7 +795,8 @@ local function onBannedIPs(list)
     local out = {}
     for i = 0, list:size() - 1 do
         local b = list:get(i)
-        out[#out + 1] = { ip = b:getIp(), user = b:getUsername(), reason = b:getReason() }
+        local user = b:getUsername()          -- (an IP banned on its own holds an empty name)
+        out[#out + 1] = { ip = b:getIp(), user = (user ~= "") and user or nil, reason = b:getReason() }
     end
     M.gameIps = out
     M.bump()
@@ -770,9 +856,16 @@ if not M.hooked then
     if Events.OnReceiveUserlog then Events.OnReceiveUserlog.Add(onUserlog) end
     if Events.ViewBannedIPs then Events.ViewBannedIPs.Add(onBannedIPs) end
     if Events.ViewBannedSteamIDs then Events.ViewBannedSteamIDs.Add(onBannedSteamIDs) end
+    -- a role write lands here: setupRole and the rest only send a packet, and the cards read the list once a change bumps
+    if Events.OnRolesReceived then
+        Events.OnRolesReceived.Add(function()
+            M.rolesAt = nil
+            M.bump()
+        end)
+    end
 end
 
 -- a muted player: their lines are hidden here (ZeD_Chat.lua reads this), and their own client will not send
-function M.isMuted(user) return M.mutes[user] == true end
+function M.isMuted(user) return type(user) == "string" and M.mutes[string.lower(user)] == true end
 
 return M

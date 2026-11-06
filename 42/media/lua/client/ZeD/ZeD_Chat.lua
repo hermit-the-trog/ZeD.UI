@@ -345,6 +345,8 @@ function ZeD_ChatWindow:submit()
         self.scroll = 0
     elseif why == "slow" then
         self._slowNote = true
+    elseif why == "muted" then
+        C.serverLine(tr("UI_ZeD_Adm_YouMuted"))
     end
     self._usedAt = getTimestampMs()
     self.input:unfocus()
