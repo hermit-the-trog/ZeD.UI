@@ -35,7 +35,7 @@ def derive(st):
     s["beltLamp"] = check
     s["engLamp"] = check or (s.get("running") and s.get("engWarn", False))
     s["fuelLamp"] = power and s["fuel"] < 0.15
-    s["tempLamp"] = power and s["temp"] > 0.8
+    s["tempLamp"] = check or (power and s["temp"] > 0.8)     # Nov 6: the hot lamp bulb-checks with the rest
     s["hiBeam"] = power and s.get("lights", False)
     s["lightsLamp"] = power and s.get("lights", False)
     s["turnL"] = False; s["turnR"] = False
@@ -51,7 +51,15 @@ def derive(st):
     s["modeF"] = 0.0 if not s.get("heaterOn") else (0.33 if s.get("ac") else (1.0 if ht >= 25 else 0.66))
     gear = s.get("gear", "P") if s.get("running") else "P"
     s["gear"] = gear
-    s["odo"] = s.get("odo", 1234)
+    # Nov 6 2026 (Roadworthy support): the odometer and trip odometer in miles, with tenths; the electronic dashes show
+    # one at a time (odoTrip: the trip showing), the press switching them
+    s["odo"] = s.get("odo", 41837.36)
+    s["trip"] = s.get("trip", 128.64)
+    trip_on = bool(s.get("odoTrip", False))
+    s["odoShown"] = int(s["trip"] if trip_on else s["odo"])
+    s["odoShownT"] = ("t" + str(int(s["trip"])).rjust(5)) if trip_on else str(int(s["odo"]) % 1000000).rjust(6, "0")
+    s["odoMode"] = power and not trip_on
+    s["tripMode"] = power and trip_on
     s["shiftLamp"] = bool(s.get("running")) and s["rpm"] >= 6500
     return s
 
@@ -204,6 +212,44 @@ def draw_digits(cv, txt, x, y, cw, ch, pitch, t, color, off=None, align="r", n=N
         xx += pitch
 
 
+def draw_drums(cv, p, value, D=lambda c, x, y: c):
+    """odometer wheels (Nov 6 2026): the figures in the 3x5 face, white on the dark wheels and dark on the tenths wheel;
+    the tenths wheel rolls, the next figure coming up from below as the tenth goes by. Mechanical: drawn with or
+    without power, in the light where they sit"""
+    n, cw, ch, x0, y0 = p["n"], p["cw"], p["ch"], p["x"], p["y"]
+    g = F35
+    if p.get("text"):
+        # (an LCD that says its figures in the same 3x5 face: a string from the state, no wheels and no roll)
+        figs = str(value)[-n:].rjust(n)
+        roll = 0.0
+    else:
+        v = max(0.0, float(value))
+        tenths = v * 10.0
+        whole = int(tenths) // 10
+        figs = str(whole % (10 ** (n - 1))).rjust(n - 1, "0") + str(int(tenths) % 10)
+        # the tenths wheel holds its figure and turns over in the last fifth of each tenth: a figure caught
+        # halfway is two half-figures, and at 5 pixels that reads as neither
+        roll = max(0.0, (tenths - int(tenths) - 0.8) / 0.2)
+    for i, c in enumerate(figs):
+        last = i == n - 1
+        col = p["last_fg"] if last else p["fg"]
+        bx = x0 + i * cw
+        gx = bx + (cw - 1 - 3) // 2
+        gy = y0 + (ch - 5) // 2
+        shifts = [(c, 0)]
+        if last and p.get("tenths") and roll > 0.05:
+            off = int(round(roll * ch))
+            shifts = [(c, -off), (str((int(c) + 1) % 10), ch - off)]
+        for ch_, dy in shifts:
+            glyph = g.get(ch_, g.get(ch_.upper(), g.get(" ")))
+            if glyph is None: continue
+            for ry, row in enumerate(glyph):
+                yy = gy + ry + dy
+                if yy < y0 or yy >= y0 + ch: continue      # the wheel's window
+                for rx, bit in enumerate(row):
+                    if bit in ("1", 1, "#"): cv.rect(gx + rx, yy, 1, 1, D(col, gx + rx, yy))
+
+
 def text_width(t, font, scale):
     f = FONTS[font]
     return (sum(len(f.get(c, f.get(c.upper(), f[" "]))[0]) + 1 for c in t) - 1) * scale
@@ -242,6 +288,7 @@ def badge_fit(p, label, tag):
 def fmt_value(p, st):
     src = p["src"]; v = st.get(src, 0)
     if p.get("fmt") == "int": return str(int(round(v)))
+    if p.get("fmt") == "str": return str(v)
     if p.get("fmt") == "rpm100": return str(int(round(v / 100.0)))
     return str(v)
 
@@ -314,8 +361,10 @@ def render_live(plate, design, st, k=1, sprites=None, heads=None, night=None):
         if over is not None: base = Image.blend(base, over.convert("RGBA"), nt.n)
         plate = base
     cv = Canvas(plate, k)
-    if nt is not None and st.get("power"):
-        for g in nt.glass: cv.runs(g["runs"], g["color"], nt.n)        # the LCD glass, lit from behind
+    if nt is not None and st.get("power") and nt.lit:
+        # the LCD glass, lit from behind by the panel lights (Nov 6 2026: with them off it stays in the dark like the
+        # rest of the plate; its colours are the backlight's, baked by night.glass_runs)
+        for g in nt.glass: cv.runs(g["runs"], g["color"], nt.n)
     D = (lambda c, x, y: nt.dim(c, x, y)) if nt is not None else (lambda c, x, y: c)
     for p in design["parts"]:
         t = p["t"]
@@ -368,6 +417,9 @@ def render_live(plate, design, st, k=1, sprites=None, heads=None, night=None):
                 if p.get("red_from") is not None and i >= p["red_from"]: c = p.get("red", "#ff3a20")
                 elif p.get("warn_from") is not None and i >= p["warn_from"]: c = p.get("warn", "#ffb02e")
                 cv.runs(runs, c)
+        elif t == "drums":
+            if p.get("text") and not st.get("power"): continue     # the LCD kind needs the key; wheels don't
+            draw_drums(cv, p, st.get(p["src"], 0.0), D)
         elif t == "digits":
             if not st.get("power") and not p.get("always"): continue
             txt = fmt_value(p, st)

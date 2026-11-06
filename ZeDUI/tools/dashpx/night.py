@@ -48,7 +48,8 @@ BAYER4 = (np.array([[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]
 DAY_FLAT = 0.52
 DITHER_FROM = 0.03              # the light below which the dark stays clean (no dither)
 DARK_STEPS = (0.3, 0.6)         # the night's two steps under a ramp's darkest
-BACKLIT = ("lcd",)              # glass a car lights from behind while it has power (the 90s odometer and climate LCDs)
+BACKLIT = ("lcd",)              # glass a car lights from behind with the panel lights (the 90s odometer and climate LCDs)
+BACKLIGHT = 0.55                # the backlight's strength, a share of the glass's day colour (before the bulb's tint)
 
 
 def warm(c, f=1.0, tint=TINT):
@@ -472,9 +473,13 @@ def level_mul(level, n=1.0, lit=True, tint=None):
     return tuple((1 - n) + n * f * tc for tc in t)
 
 
-def glass_runs(d, day_img):
-    """the backlit LCD glass (and what is printed on it), as runs per colour from the day plate"""
+def glass_runs(d, day_img, tint_at=None):
+    """the backlit LCD glass (and what is printed on it), as runs per colour: the day plate's colour as the backlight
+    shows it, dimmer than daylight and in the colour of the dash's bulbs there (tint_at(x, y), else the default bulb).
+    Nov 6 2026 (the director: "When it's in the dark, it's glowing white still. It's the same gray color that it is
+    when it's in light"): the glass was redrawn in its day grey; the game draws these only with the panel lights on"""
     day = np.asarray(day_img.convert("RGBA"))
+    tint_at = tint_at or (lambda x, y: TINT)
     out = []
     for name in BACKLIT:
         if name not in d.names: continue
@@ -491,7 +496,8 @@ def glass_runs(d, day_img):
             pr = box_ & d.solid & np.isin(d.mat, [d.names.index(p) for p in ("segoff", "lcd") if p in d.names])
             cols = {}
             for y, x in zip(*np.nonzero(pr)):
-                cols.setdefault(tuple(int(v) for v in day[y, x, :3]), []).append((x, y))
+                c = warm(day[y, x, :3], BACKLIGHT, tint_at(x, y))
+                cols.setdefault(c, []).append((x, y))
             for c, px in sorted(cols.items(), key=lambda kv: -len(kv[1])):
                 out.append({"color": hexc(c), "runs": _runs(px)})
     return out
@@ -544,8 +550,9 @@ def bake(did, b, day_img, spec, seed=0, needles="own"):
     dark, _ = relight(b.d, day_img, spec, seed=seed, lights_on=False, parts=b.parts)
     lv, rows, cols = light_map(Ef, True)
     data = {"plate": f"dash_{did}_night", "dark": f"dash_{did}_dark", "cell": CELL, "cols": cols, "rows": rows,
-            "map": encode_map(lv), "glass": glass_runs(b.d, day_img)}
+            "map": encode_map(lv)}
     names = spec_tints(spec)
+    tint_at = lambda x, y: TINTS[names[0]] if names else TINT
     if len(names) > 1:
         ti, pal = tint_map(by_tint, Ef.shape, names)
         data["tints"] = [list(t) for t in pal]
@@ -553,6 +560,8 @@ def bake(did, b, day_img, spec, seed=0, needles="own"):
         data["_tidx"] = ti                       # (the previews' copy; the export leaves it out)
         if needles == "own" and (spec.get("wash") or {}).get("tint", DEFAULT_TINT) != DEFAULT_TINT:
             data["needleOwn"] = True
+        tint_at = lambda x, y: pal[int(ti[min(ti.shape[0] - 1, y // CELL), min(ti.shape[1] - 1, x // CELL)])]
+    data["glass"] = glass_runs(b.d, day_img, tint_at)
     return night, dark, data, lv
 
 

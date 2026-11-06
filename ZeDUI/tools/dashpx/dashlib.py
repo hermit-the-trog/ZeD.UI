@@ -468,19 +468,57 @@ def prndl(b, x, y, pitch=8, color="#ffb02e", letters="PRND21", style="lit", wind
     b.part("gear", letters=out, color=color, box=boxes if style == "marker" else None)
 
 
-def odometer(b, x, y, digits="83174", cw=6, ch=8):
-    """odometer drums: dark wheels, the tenths wheel white"""
+def odometer(b, x, y, n=6, cw=6, ch=8, src="odo", label=None):
+    """odometer drums: dark wheels, the tenths wheel white. The plate prints the wheels only; the game turns them
+    (`drums` part: the figures in the 3x5 face, the tenths wheel rolling between figures). Nov 6 2026 (Roadworthy
+    support, the director: a real odometer and trip odometer on every dash): before, the figures were printed, 83174
+    on every car."""
     d = b.d
-    b.check_flat(x - 1, y - 1, len(digits) * cw + 1, ch + 2, "odometer")
-    for i, c in enumerate(digits):
-        last = i == len(digits) - 1
+    b.check_flat(x - 1, y - 1, n * cw + 1, ch + 2, "odometer" if src == "odo" else "trip odometer")
+    for i in range(n):
+        last = i == n - 1
         d.paint(box(x + i * cw, y, cw - 1, ch), "paint_w" if last else "blackp")
-        d.text(c, x + i * cw + (cw - 4) // 2, y + (ch - 5) // 2, "face" if last else "paint_w")
+    b.part("drums", src=src, x=x, y=y, n=n, cw=cw, ch=ch, fg="#e8e4d8", last_fg="#1a1a1a", tenths=True)
 
 
-def odo_under(b, cx, cy, r):
-    """the odometer under a dial's hub, below its bottom figures"""
-    odometer(b, cx - 15, cy + int(r * 0.6), "83174")
+def trip_stem(b, x, y, glass_on=None):
+    """the trip reset: a black stem through the gauge's glass (or the face), pushed to zero the trip odometer"""
+    d = b.d
+    z = float(d.h[int(y), int(x)]) if glass_on is None else glass_on
+    d.dome(x, y, 2.2, 2.2, 1.8, "blackp", polish=0.8, on=z)
+    b.hit("tripReset", int(x) - 4, int(y) - 4, 9, 9)
+
+
+def odo_under(b, cx, cy, r, stem=True, trip_at=None):
+    """the odometer and the trip odometer in the needle's dead wedge under a dial's hub (Nov 6 2026): the odometer's
+    six wheels (five figures and the tenths) on the line under the dial's bottom figures, the trip odometer's four
+    (three and the tenths) under it, its reset stem to their right. Both rows in 5 px wheels: the wedge, the bezel
+    below and the 0 and the top figure either side leave no more (below the bezel is the binnacle's sill)"""
+    oy = cy + 22 - (39 - r)
+    odometer(b, cx - 15, oy, cw=5, ch=7)                         # five figures and the tenths (Roadworthy keeps six)
+    tx, ty = trip_at if trip_at else (cx - 10, oy + 8)
+    odometer(b, tx, ty, n=4, cw=5, ch=6, src="trip")            # three figures and the tenths
+    if stem: trip_stem(b, tx + 25, ty + 3)
+
+
+def odo_beside(b, x, y, stem=True):
+    """the odometer and, to its right, the trip odometer on the same line (a ribbon or a fan speedometer's foot)"""
+    odometer(b, x, y)
+    odometer(b, x + 40, y + 1, n=4, cw=5, ch=7, src="trip")
+    if stem: trip_stem(b, x + 40 + 24, y + 4)
+
+
+def odo_digital(b, x, y, color, ghost="vfdoff", words_x=None, words_y=None, hit=None):
+    """an electronic odometer: six segment figures, ODO and TRIP words beside them (one lit, the one showing). A press
+    on the readout switches between them, a long press zeroes the trip (the 90s way: one button)"""
+    d = b.d
+    seg_readout(b, x, y, 6, 5, 8, 8, 1, "odoShown", color, ghost=ghost, always=False)
+    wx = x + 6 * 8 + 3 if words_x is None else words_x
+    wy = y if words_y is None else words_y
+    m = d.text("ODO", wx, wy - 1, ghost, flatlight=True); b.lamp(m, "odoMode", color)
+    m = d.text("TRIP", wx, wy + 5, ghost, flatlight=True); b.lamp(m, "tripMode", color)
+    hx_, hy_, hw, hh = hit if hit else (x - 2, y - 2, 6 * 8 + 3 + 18, 12)
+    b.hit("odoButton", hx_, hy_, hw, hh)
 
 
 # ---- digital
