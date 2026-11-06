@@ -1,0 +1,18 @@
+0.3.0-beta5: ZeD's real scroll bar everywhere, one-line buttons, less lag and a fix for a rare fault after loading.
+
+Look
+- Every list uses ZeD's scroll bar now, in the main menus and in game: arrows, a thumb with its grip and hover and press looks. An arrow moves one row and repeats while held, and a click on the track moves about a page.
+- The bars on the Animals lists, Cooking, Vehicle mechanics and the Reader can be clicked and dragged now.
+- Buttons have one line, as in System 7. Only the default button keeps two.
+- Condition and Weight headings in the inventory lists sit at the right, over their values.
+- The corkboard on the main menu has a change note: the beta number and what's new.
+
+Animals
+- The Ranch page scrolls as one page, so a big ranch can reach its Totals, and the rows stay clear of Create zone.
+- With a controller, each alert on the Ranch page can be walked and read.
+- The mouse wheel works on the Animals tab's lists.
+
+Fixes
+- Less lag: the Animals tab's check walked 22,801 squares about every 4 seconds, on every save, and was behind the slow frames at 4K. It asks the game for its animals now.
+- A rare fault after loading a game: ZeD asked Steam about Workshop items from the main menu, and a reply landing during a load could break later actions in unrelated places, such as a haircut or a beard trim. ZeD asks only while the Mods screen is open now.
+- This Is Your Life has been played through with the mod on.
