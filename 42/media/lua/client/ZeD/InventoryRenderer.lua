@@ -204,6 +204,35 @@ local function rebuildColStates(content)
     content._colStates = newStates
 end
 
+-- Nov 6 2026 (FAIV's report, a list stale until the window closed): a column's rows follow the container selected for it,
+-- by the container object, never by its place in the list. Each column is checked against the selection before it draws;
+-- any that disagrees is re-pointed by its object (keeping its scroll and selection) and the columns rebuilt, whichever way
+-- the list or the selection moved. Returns true when it rebuilt them.
+local function syncColStates(content)
+    local selected, containers = content._selectedContainers, content._containers
+    if not (selected and containers) then return false end
+    local states = content._colStates
+    local same = states ~= nil and #states == #selected
+    if same then
+        for i, cIdx in ipairs(selected) do
+            local c, cs = containers[cIdx], states[i]
+            if not c or cs.containerIdx ~= cIdx or cs.inventory ~= c.inventory then same = false; break end
+        end
+    end
+    if same then return false end
+    for _, cs in ipairs(states or {}) do
+        cs.containerIdx = nil
+        for i, c in ipairs(containers) do
+            if c.inventory == cs.inventory then cs.containerIdx = i; break end
+        end
+    end
+    for i = #selected, 1, -1 do
+        if not containers[selected[i]] then table.remove(selected, i) end
+    end
+    rebuildColStates(content)
+    return true
+end
+
 local function toggleContainer(content, cIdx, maxTotal)
     if not content._containers[cIdx] then return end
     local selected = content._selectedContainers
@@ -2126,6 +2155,8 @@ local function renderMultiColumnContent(self)
             lastCs.sortAsc         = self._sortAsc
         end
     end
+    -- (after the save above: that belongs to the columns as the last frame drew them)
+    if syncColStates(self) then colStates, N = self._colStates, #selected end
 
     -- Set bar height so renderItemList shifts content down.
     -- Caller can pre-set _barH = 0 to suppress the container bar (e.g. character window).
@@ -2521,6 +2552,7 @@ ZeD.InventoryRenderer.collectSelectedItems       = collectSelectedItems
 ZeD.InventoryRenderer.handleDrop                 = handleDrop
 ZeD.InventoryRenderer.buildContainers            = buildContainers
 ZeD.InventoryRenderer.rebuildColStates           = rebuildColStates
+ZeD.InventoryRenderer.syncColStates              = syncColStates
 ZeD.InventoryRenderer.toggleContainer            = toggleContainer
 ZeD.InventoryRenderer.getColumnAtX               = getColumnAtX
 ZeD.InventoryRenderer.MIN_COL_W                  = MIN_COL_W

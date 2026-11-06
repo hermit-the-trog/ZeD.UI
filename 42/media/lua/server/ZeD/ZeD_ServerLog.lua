@@ -502,7 +502,7 @@ end
 
 function Lo.tap(name, text)
     if type(name) ~= "string" or type(text) ~= "string" then return end
-    if string.find(Lg.plainName(name), "zed", 1, true) then return end
+    if Lg.plainName(name) == "zed" then return end
     local md = table_()
     if not md then return end
     Lo.P.tap = Lo.P.tap + 1
