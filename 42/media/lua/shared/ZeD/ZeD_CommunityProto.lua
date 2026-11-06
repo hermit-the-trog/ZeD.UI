@@ -61,7 +61,7 @@ function Cm.line(s, max)
     return c
 end
 
--- "Rule 2", or nil. list: the rule numbers marked NEW, in order
+-- the rule numbers marked NEW for the player a view was built for, in order. A first agreement marks nothing
 function Cm.newRules(view)
     local out = {}
     if not (view and view.rules and view.since) then return out end

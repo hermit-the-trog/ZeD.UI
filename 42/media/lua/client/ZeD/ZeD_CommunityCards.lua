@@ -51,7 +51,6 @@ local D, B, F = TC._D, TC._B, AC._F
 local CL = Cm.L
 
 local NUM_W = 22             -- design units: a rule's number
-local ROW_GAP = 6
 local JOIN_W, JOIN_H = 480, 620
 local PAD_SCROLL_LINES = 3   -- a D-pad press on the join screen
 
@@ -141,7 +140,11 @@ TC.items.cmrule = {
     stops = function(it, x0, dy, w, add) add(it.c, x0, dy, w, it.h, it.y).promptA = false end,
 }
 
-function P.postMeta(post) return tr("UI_ZeD_Cm_PostBy", tostring(post.by), D.shortDate(post.t) or "") end
+function P.postMeta(post)
+    local day = D.shortDate(post.t)
+    if not day then return tostring(post.by) end
+    return tr("UI_ZeD_Cm_PostBy", tostring(post.by), day)
+end
 
 -- cmpost: a post, its PINNED tag, who and when; on the Admin card its Pin and Delete
 TC.items.cmpost = {
@@ -164,8 +167,14 @@ TC.items.cmpost = {
             it.ctlW = bw - px(6)
             it.below = tm:MeasureStringX(T.fontF3, it.meta) + px(8) + it.ctlW > w
             foot = it.below and (f3h + px(4) + T.buttonH - px(4)) or math.max(f3h, T.buttonH - px(4))
+            -- (here, not at draw: a post under the fold still needs its stops in the right place)
+            local bx = w - it.ctlW
+            local by = px(5) + #it.lines * f2h + px(3) + (it.below and (f3h + px(4)) or 0)
+            for _, c in ipairs(it.ctls) do
+                c.dx, c.dy = bx, by
+                bx = bx + c.w + px(6)
+            end
         end
-        it.footH = foot
         return px(5) + #it.lines * f2h + px(3) + foot + px(5)
     end,
     draw = function(panel, win, t, it, x, dy, w, mx, my, ctx)
@@ -181,15 +190,7 @@ TC.items.cmpost = {
         local mc = onF and T.textOnFocus or T.textDim
         local room = it.ctls and not it.below and (w - it.ctlW - px(8)) or w
         panel:drawText(ZeD.Atoms.truncateText(it.meta, T.fontF3, room), x, fy, mc.r, mc.g, mc.b, mc.a or 1, T.fontF3)
-        if it.ctls then
-            local bx = x + w - it.ctlW
-            local by = it.below and (fy + f3h + px(4)) or fy
-            for _, c in ipairs(it.ctls) do
-                c.dx, c.dy = bx - x, by - dy
-                D.drawInline(panel, win, t, c, bx, by, mx, my)
-                bx = bx + c.w + px(6)
-            end
-        end
+        for _, c in ipairs(it.ctls or {}) do D.drawInline(panel, win, t, c, x + c.dx, dy + c.dy, mx, my) end
         ZeD.Atoms.drawDividerH(panel, x, dy + it.h - T.hair, w, false)
     end,
     stops = function(it, x0, dy, w, add)
@@ -197,9 +198,7 @@ TC.items.cmpost = {
             add(it.c, x0, dy, w, it.h, it.y).promptA = false
             return
         end
-        for _, c in ipairs(it.ctls) do
-            add(c, x0 + (c.dx or 0), dy + (c.dy or 0), c.w, c.h, it.y + (c.dy or 0))
-        end
+        for _, c in ipairs(it.ctls) do add(c, x0 + c.dx, dy + c.dy, c.w, c.h, it.y + c.dy) end
     end,
 }
 
@@ -211,14 +210,23 @@ function P.downGlyph(p, x, y, s, c)
     local t = math.max(ZeD.T.px(6), math.floor(s * 0.6))
     ZeD.Atoms.drawTriangleDown(p, x + math.floor((s - t) / 2), y + math.floor((s - t) / 2), t, c)
 end
+function P.crossGlyph(p, x, y, s, c)
+    local t = math.max(ZeD.T.px(6), math.floor(s * 0.6))
+    ZeD.Atoms.drawCrossGlyph(p, x + math.floor((s - t) / 2), y + math.floor((s - t) / 2), t, c)
+end
 
--- a field's height, before its box exists: the words it will hold, not nothing, or a row would jump as it scrolled in
+-- a rule's height: its words, no spare line, and those words before its box exists, or a row would jump as it scrolled in
 function P.fieldH(win, it, w, sh)
-    if D.fieldOf(win, it.key) then return D.fieldH(win, it, w, sh) end
     local T = ZeD.T
     local lh = ZeD.TM:getFontHeight(T.fontF2)
-    local n = #D.wrap(it.seed or "", T.fontF2, math.max(1, w - px(16)))
-    return math.max(it.rows, n) * lh + px(8)
+    local text = D.fieldOf(win, it.key) and D.fieldText(win, it.key) or (it.seed or "")
+    if text ~= it.seen or it.seenW ~= w then
+        it.seen, it.seenW = text, w
+        it.count = #D.wrap(text, T.fontF2, math.max(1, w - px(16)))
+    end
+    local h = math.max(it.rows, it.count) * lh + px(8)
+    if sh then h = math.min(h, math.max(lh + px(8), sh - px(2))) end
+    return h
 end
 
 -- cmrow: a rule typed in place, with its number and Up, Down, Remove beside it, or under it when they will not fit
@@ -469,14 +477,14 @@ function P.addRow(win, st, t, card)
     D.focusId(win, st, "tk:f:" .. row.key)
 end
 
-function P.ruleRow(win, st, t, card, i, row, n)
+function P.ruleRow(win, st, t, card, i, row)
     local key = row.key
     local up = F.gate({ id = "cmup:" .. key, glyph = P.upGlyph, help = tr("UI_ZeD_Cm_HelpUp"), run = function(ww) P.move(ww, st, card, P.indexOf(card, key), -1) end }, nil,
         function() if P.indexOf(card, key) == 1 then return tr("UI_ZeD_Cm_AtTop") end return nil end)
     local down = F.gate({ id = "cmdn:" .. key, glyph = P.downGlyph, help = tr("UI_ZeD_Cm_HelpDown"), run = function(ww) P.move(ww, st, card, P.indexOf(card, key), 1) end }, nil,
         function() if P.indexOf(card, key) == #card.rows then return tr("UI_ZeD_Cm_AtBottom") end return nil end)
-    local rm = { id = "cmrm:" .. key, glyph = ZeD.Atoms.drawCrossGlyph, help = tr("UI_ZeD_Cm_HelpRemove"), run = function(ww) P.removeRow(ww, st, card, P.indexOf(card, key)) end }
-    return { k = "cmrow", n = i, key = key, rows = 1, hint = tr("UI_ZeD_Cm_RuleHint"), max = CL.RULE_MAX, seed = row.seed, keys = { up, down, rm }, c = { id = "f:" .. key, help = tr("UI_ZeD_Cm_HelpRule"),
+    local rm = { id = "cmrm:" .. key, glyph = P.crossGlyph, help = tr("UI_ZeD_Cm_HelpRemove"), run = function(ww) P.removeRow(ww, st, card, P.indexOf(card, key)) end }
+    return { k = "cmrow", isField = true, n = i, key = key, rows = 1, hint = tr("UI_ZeD_Cm_RuleHint"), max = CL.RULE_MAX, seed = row.seed, keys = { up, down, rm }, c = { id = "f:" .. key, help = tr("UI_ZeD_Cm_HelpRule"),
         land = i == 1, run = function(ww) D.useField(ww, key) end } }
 end
 
@@ -688,6 +696,13 @@ end
 function P.classes()
     if ZeD_JoinWindow then return end
 
+    -- safe mode: the join screen goes, and is not put up
+    ZeD.Safe.register("community", {
+        leave = function()
+            if CM.joinWin then CM.joinWin:finish() end
+        end,
+    })
+
     -- the cover: nothing behind it can be pressed. Keys go nowhere while it stands (doKeyPress), and the pad's focus is the window's
     ZeD_JoinCover = ISPanel:derive("ZeD_JoinCover")
     function ZeD_JoinCover:prerender()
@@ -714,7 +729,7 @@ function P.classes()
         o.moveWithMouse = false
         o.playerNum = 0
         o.pick = "agree"
-        o.st = { card = { kind = "cmjoin", view = view } }
+        o.joinSt = { card = { kind = "cmjoin", view = view } }
         return o
     end
 
@@ -739,7 +754,7 @@ function P.classes()
 
     function ZeD_JoinWindow:_body()
         local top = self:titleBarHeight()
-        TC.renderCard(self, self, self.st, 0, top, self.width, self.height - self:footerHeight() - top)
+        TC.renderCard(self, self, self.joinSt, 0, top, self.width, self.height - self:footerHeight() - top)
         self:clearStencilRect()
     end
 
@@ -760,7 +775,7 @@ function P.classes()
     end
 
     function ZeD_JoinWindow:press(id)
-        local t = TC.qaState(self.st)
+        local t = TC.qaState(self.joinSt)
         for _, r in ipairs(t.footRects or {}) do
             if r.b.id == id and r.b.run then
                 pcall(function() getSoundManager():playUISound("UIActivateButton") end)
@@ -771,24 +786,24 @@ function P.classes()
     end
 
     function ZeD_JoinWindow:onMouseDown(x, y)
-        TC.cardClick(self, self.st, x, y)
+        TC.cardClick(self, self.joinSt, x, y)
         return true
     end
     function ZeD_JoinWindow:onMouseMove(dx, dy)
-        local sc = TC.qaState(self.st).scroll
+        local sc = TC.qaState(self.joinSt).scroll
         if sc.dragging then sc:handleMouseMove(self:getMouseY() - sc.y) end
         return true
     end
-    function ZeD_JoinWindow:onMouseUp() TC.qaState(self.st).scroll:handleMouseUp(); return true end
-    function ZeD_JoinWindow:onMouseUpOutside() TC.qaState(self.st).scroll:handleMouseUp(); return true end
+    function ZeD_JoinWindow:onMouseUp() TC.qaState(self.joinSt).scroll:handleMouseUp(); return true end
+    function ZeD_JoinWindow:onMouseUpOutside() TC.qaState(self.joinSt).scroll:handleMouseUp(); return true end
     function ZeD_JoinWindow:onMouseWheel(del)
-        local sc = TC.qaState(self.st).scroll
+        local sc = TC.qaState(self.joinSt).scroll
         if sc.visible then sc:handleMouseWheel(del) end
         return true
     end
 
     function ZeD_JoinWindow:padScroll(dir)
-        local t = TC.qaState(self.st)
+        local t = TC.qaState(self.joinSt)
         local sc = t.scroll
         local range = (t.listH or 0) - (t.csh or 0)
         if not sc.visible or range <= 0 then return end
@@ -831,7 +846,7 @@ function P.classes()
 end
 
 function M.joinScreen()
-    if CM.joinWin or not M.view then return end
+    if CM.joinWin or not M.view or A2.leave then return end
     if ZeD.Safe and ZeD.Safe.on("community") then return end
     P.classes()
     local core = getCore()
@@ -856,6 +871,8 @@ end
 -- LEAVING: the ban screen's appeal line, and the game's own kick screen
 -- ---------------------------------------------------------------------------
 A2.leaveScreen = function(info)
+    -- (a banned player has nothing left to agree to)
+    if CM.joinWin then CM.joinWin:finish() end
     info.appeal = info.appeal or M.appeal()
     A2.defaultLeave(info)
 end
@@ -903,15 +920,6 @@ if not CM.offHooked and ISServerDisconnectUI_OnServerDisconnectUI then
     end
 end
 
--- safe mode: the join screen goes, and is not put up
-if ZeD.Safe and ZeD.Safe.register then
-    ZeD.Safe.register("community", {
-        leave = function()
-            if CM.joinWin then CM.joinWin:finish() end
-        end,
-    })
-end
-
 -- ---------------------------------------------------------------------------
 -- QA
 -- ---------------------------------------------------------------------------
@@ -919,9 +927,11 @@ function CM.qaOpen(win, st, kind)
     if kind == "rules" then CM.openRules(win, st) else CM.openEdit(win, st) end
 end
 -- the join card on a tab's panel, for the sims and the pictures: the window is the same card
-function CM.qaJoinCard(st) st.card = { kind = "cmjoin", view = M.view } end
+function CM.qaJoinCard(st)
+    st.card = { kind = "cmjoin", view = M.view }
+    TC.qaState(st).items = nil
+end
 function CM.qaType(win, key, text) D.setField(win, key, text) end
-function CM.qaRow(card, i) return card.rows[i] end
 function CM.qaAdd(win, st, t, card) P.addRow(win, st, t, card) end
 function CM.qaConfirm(st, post) TC.qaState(st).confirm = { post = post } end
 
