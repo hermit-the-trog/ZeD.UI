@@ -14,14 +14,17 @@
 --          pinned window leave it rolled. Those drags are cancelled. Then a real release (the list's own onMouseUp) on the
 --          rolled World window's title bar, at once and after it has rolled down: the item lands in the container it lists.
 --          The same release with that container left behind: nothing lands (the game's transfer checks no reach of its own).
---   STALE  the list shown against the container selected, by the object:
+--   STALE  the list shown against the container selected, by the object. Both windows are pinned for all of it (see its first
+--          step), and it ends by checking they stayed down:
 --            1  columns: a container walks out of reach: every column's rows are the container it is headed
 --            2  a view picked on another tab, back to Loot, then selections: the list is the selection
---            3  the Character window: the pad shows a bag, a click on main lists main
---            4  the World strip's Floor button lists the floor and lights it from a crate selection: after a world click, a
---               pad tap, a view come back to Loot; with a column open it takes the crate's place; a crate leaving reach too
--- Needs a container near the QA home (two within 2 squares of each other for the whole of STALE 1 and for 2) and a bag worn for
--- STALE 3; a step it can not do says SKIP. Windows, pins, speed and the character's place are put back.
+--            3  the Character window: the pad shows a bag, a click on main lists main (a school bag lent if none is worn)
+--            4  the World strip's Floor button lists the floor and lights it from a crate selection: after a real world click
+--               (ISObjectClickHandler, as FLASH), a pad tap, a view come back to Loot; with a column open it takes the crate's
+--               place; a crate leaving reach too
+--            5  unpinned and rolled: a selection brings the window down on the container, the first frame down is not stale
+-- Needs a container near the QA home (two within 2 squares of each other for the whole of STALE 1 and for 2); a step it can not
+-- do says SKIP. Windows, pins, speed, the bag and the character's place are put back.
 local function say(s) print("ZEDQA fav " .. tostring(s)) end
 if ZEDQA_HOME then ZEDQA_HOME("fav") end
 local p = getPlayer()
@@ -76,13 +79,16 @@ for _, a in ipairs(cands) do
     for _, b in ipairs(cands) do
         if a ~= b and not pairA and a.inv ~= b.inv and chebyshev(a.x, a.y, b.x, b.y) <= 2 then
             local fa, fl
+            local aSq, bSq = getCell():getGridSquare(a.x, a.y, a.z), getCell():getGridSquare(b.x, b.y, b.z)
+            -- (the list's own test beside the distance: a wall between a square and a crate takes it off the list)
+            local function reaches(sq, to) return sq == to or sq:canReachTo(to) end
             for dx = -4, 4 do for dy = -4, 4 do
                 local x, y = b.x + dx, b.y + dy
                 local sq = getCell():getGridSquare(x, y, b.z)
                 if sq and sq:isFree(false) then
                     local da, db = chebyshev(x, y, a.x, a.y), chebyshev(x, y, b.x, b.y)
-                    if da <= 1 and db <= 1 then fa = fa or { x = x, y = y } end
-                    if db <= 1 and da >= 3 then fl = fl or { x = x, y = y } end
+                    if da <= 1 and db <= 1 and reaches(sq, aSq) and reaches(sq, bSq) then fa = fa or { x = x, y = y } end
+                    if db <= 1 and da >= 3 and reaches(sq, bSq) then fl = fl or { x = x, y = y } end
                 end
             end end
             if fa and fl then pairA, pairB, both, leave = a, b, fa, fl end
@@ -315,6 +321,17 @@ local function colsAgree(w)
 end
 local function inList(w, inv) for _, c in ipairs(w._containers or {}) do if c.inventory == inv then return true end end return false end
 
+-- Both windows pinned and down for all of STALE. FLASH d, ROLL and the title bar drops leave them unpinned, and an unpinned window
+-- with the pointer away rolls up after 2 s (ZeD_Window:_autoCollapse). A rolled window draws no strip and no list, so its
+-- container list, its view and its columns stand still and every check here reads a list as old as the roll-up. The first run
+-- (Nov 6 2026, qa/regression/2026-11-06_faiv.md) failed eight lines and skipped 4e that way, and passed 1b's last line on a stale
+-- list; openTab rolls a window down, which is why the first half of 2 and all of 4c passed in that run.
+add(300, function()
+    local c, w = CW(), WW()
+    c:setPinned(true); w:setPinned(true)
+    c:setWindowShaded(false); w:setWindowShaded(false)
+end)
+
 -- 1a: columns A | B | floor, A walks out of reach, B stays
 add(300, function()
     if not pairA then say("SKIP stale 1a: no two containers side by side"); return end
@@ -348,6 +365,7 @@ add(2500, function()
     other()
 end)
 -- 1b: a single column's container walks away: the columns end
+local col1b = false
 add(800, function()
     standBy(cands[1])
 end)
@@ -356,13 +374,15 @@ add(2000, function()
     ZeD_WorldWindow.toggleColumn(cands[1].inv)
 end)
 add(800, function()
-    check(WW()._mainContent._colStates ~= nil and #WW()._mcSelected == 1, "1b one container and the floor in columns")
+    col1b = WW()._mainContent._colStates ~= nil and #WW()._mcSelected == 1
+    check(col1b, "1b one container and the floor in columns")
     standAt(cands[1].x + 6, cands[1].y + 6)
 end)
 add(2500, function()
     local w = WW()
     local gone = not inList(w, cands[1].inv)
-    if gone then check(w._mainContent._colStates == nil and #w._mcSelected == 0, "1b the last column's container left reach: one list again")
+    if not col1b then say("SKIP 1b: no column to lose")
+    elseif gone then check(w._mainContent._colStates == nil and #w._mcSelected == 0, "1b the last column's container left reach: one list again")
     else say("SKIP 1b: the container stayed in reach") end
 end)
 
@@ -441,10 +461,20 @@ add(800, function()
 end)
 
 -- 3: the Character window, the pad's bag, then main by the mouse
-local bagIdx
+local bagIdx, lentBag
 add(1200, function()
     local w = CW()
     if w._activeTab ~= "loot" then ZeD_CharacterWindow.openTab(0, "loot") end
+    local has = false
+    for _, cnt in ipairs(w._containers or {}) do if not cnt.isMain then has = true end end
+    if not has and not p:getClothingItem_Back() then
+        -- (the QA character wears none: a school bag lent, the list only takes a bag worn or in hand; taken back after the step)
+        lentBag = p:getInventory():AddItem("Base.Bag_Schoolbag")
+        if lentBag then p:setClothingItem_Back(lentBag) end
+    end
+end)
+add(1500, function()
+    local w = CW()
     for n, cnt in ipairs(w._containers or {}) do if not cnt.isMain then bagIdx = bagIdx or n end end
     if not bagIdx then say("SKIP stale 3: no bag worn"); return end
     w._activeContainer, w._viewedContainer, w._mainVisible = bagIdx, bagIdx, false   -- what the pad's tap sets
@@ -461,9 +491,11 @@ add(600, function()
     say("3 main's button reached: " .. tostring(hit))
 end)
 add(600, function()
-    if not bagIdx then return end
-    local w = CW()
-    check(w._mainVisible == true and w._viewedContainer == nil and w._activeContainer == 1 and w._mainContent._inventory == p:getInventory(), "3 a click on main lists main")
+    if bagIdx then
+        local w = CW()
+        check(w._mainVisible == true and w._viewedContainer == nil and w._activeContainer == 1 and w._mainContent._inventory == p:getInventory(), "3 a click on main lists main")
+    end
+    if lentBag then p:removeWornItem(lentBag, false); p:getInventory():Remove(lentBag); lentBag = nil end
 end)
 add(300, function()
     local w = WW()
@@ -498,7 +530,7 @@ local function floorPress(tag)
     end)
 end
 add(300, function() backToLoot(); other(); standBy(cands[1]) end)
-add(2000, function() ZeD_WorldWindow.selectContainer(cands[1].inv, 60) end)
+add(2000, function() click(cands[1]) end)
 floorPress("4a a world click")
 add(300, function()
     if not padTap(cands[1].inv) then say("SKIP 4b: no strip stop, the state set by hand"); ZeD_WorldWindow.selectContainer(cands[1].inv, 60) end
@@ -542,6 +574,34 @@ add(2500, function()
     local w = WW()
     if inList(w, cands[1].inv) then say("SKIP 4e: the container stayed in reach")
     else check(floorLit(w), "4e the selected crate out of reach: the floor lists, lit") end
+    check(CW().windowShaded ~= true and WW().windowShaded ~= true, "the windows stayed down through STALE, so the lists above were live")
+end)
+
+-- 5: a rolled window, unpinned as a player's is by default. Its list stands still, so a selection has to bring it down and what it
+-- missed must not outlast the roll-down.
+add(300, function()
+    roll(WW())
+    standBy(cands[1])
+end)
+add(1000, function()
+    say("5 rolled " .. tostring(WW().windowShaded) .. ", the crate in the list it stopped on: " .. tostring(inList(WW(), cands[1].inv)))
+    ZeD_WorldWindow.selectContainer(cands[1].inv, 60)
+end)
+add(800, function()
+    local w = WW()
+    check(w.windowShaded ~= true and shown() == cands[1].inv, "5 a selection on a rolled window brings it down on the container (rolled " .. tostring(w.windowShaded) .. ")")
+    roll(w)
+    standAt(cands[1].x + 8, cands[1].y + 8)
+end)
+add(1000, function()
+    local w = WW()
+    say("5 rolled again " .. tostring(w.windowShaded) .. ", the crate in the list it stopped on: " .. tostring(inList(w, cands[1].inv)))
+    w:setWindowShaded(false)
+end)
+add(120, function()
+    local w = WW()
+    check(not inList(w, cands[1].inv) and shown() ~= cands[1].inv, "5 the first frame down reads the list afresh: the crate left behind is gone")
+    w:setPinned(true)
 end)
 
 add(500, function()
