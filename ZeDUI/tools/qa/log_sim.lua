@@ -7,7 +7,8 @@
 -- The one log's shape, who may read it, hostile arguments, the filters and pages, vehicles, the E2 fallback, the game's PvP log,
 -- other mods' lines and what they can't do, Around ticket, Add to ticket, a restart, the words for every line, the ticket queue's
 -- line when the game's list stops answering. The last sections run ZeD_ServerExtras beside the Log, on the same classes, in the
--- game's load order: Phase 4 and Phase 6 together (world({ extras = true })).
+-- game's load order: Phase 4 and Phase 6 together (world({ extras = true })). The very last runs ZeD_ServerCommunity beside them: community's
+-- lines and a report's, through the Log (world({ community = true })).
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/log_sim.lua
 -- It prints FAIL lines and a last line "log_sim: N checks, M failed", and exits 1 if any failed.
 
@@ -460,7 +461,12 @@ local function serverStart()
     env.loaded["ZeD/ZeD_ServerAdmin"] = true
     runFile(env, FILES["ZeD/ZeD_LogProto"])
     env.loaded["ZeD/ZeD_LogProto"] = true
-    -- (the game's order, alphabetical in the folder: the extras' file loads before the Log's)
+    -- (the game's order, alphabetical in the folder: community's and the extras' files load before the Log's)
+    if W.community then
+        runFile(env, "42/media/lua/shared/ZeD/ZeD_CommunityProto.lua")
+        env.loaded["ZeD/ZeD_CommunityProto"] = true
+        runFile(env, "42/media/lua/server/ZeD/ZeD_ServerCommunity.lua")
+    end
     if W.extras then
         runFile(env, FILES["ZeD/ZeD_ExtrasProto"])
         env.loaded["ZeD/ZeD_ExtrasProto"] = true
@@ -2608,6 +2614,109 @@ do
     perform(m2, "ISTakeEngineParts", part(v2, "Engine", nil))
     local r = rowWith(rowsOf(a2, d3), "eparts")
     check("the Log runs alone", r and r.target == "Kade_R", r and r.target)
+end
+
+section("together: community's lines and a report's, through the Log")
+do
+    local a, ca = boot({ community = true, extras = true })
+    local d = { when = "d3" }
+    local function cm(command, args)
+        again(a)
+        W.clock = W.clock + 6000
+        a.box = {}
+        local w = wire(args)
+        net(function() W.server.Events.OnClientCommand.fire("ZeDM", command, a, w) end)
+        drain()
+        return okOf(a), errOf(a)
+    end
+    local LS = ca.env.ZeD.ServerPart
+    check("the hello: the log, community and the extras all land", LS.lg == true and LS.cm == true and LS.adm == true)
+    check("the agreement's kind has a chip", W.server.ZeD.Lg.KIND.community == true)
+
+    check("a save goes through", cm("m_save", { motd = "Hello", appeal = "", ask = false, reask = true, base = 0, rules = { n = 2, { text = "One" }, { text = "Two" } } }))
+    check("a post goes through", cm("m_post", { text = "Trader at\nnoon", pin = false }))
+    cm("m_pin", { id = 1, on = true })
+    cm("m_pin", { id = 1, on = false })
+    cm("m_del", { id = 1 })
+    local rows, page = rowsOf(a, { kind = "community", when = "d3" })
+    check("the chip's filter is a good query", page ~= nil and errOf(a) == nil, errOf(a))
+    check("every edit is on the Log", #rows == 5, rows and #rows)
+    local M0 = L(ca)
+    local function sayOf(what)
+        local r = rowWith(rows, what)
+        return r and r.k == "community" and M0.lineText(r) or nil
+    end
+    check("a save's words", sayOf("rules saved") == "saved the rules: 2 in all, 2 new or changed, and the message of the day or the appeal line", sayOf("rules saved"))
+    check("a post's, on one line", sayOf("news posted") == 'posted news #1: "Trader at noon"', sayOf("news posted"))
+    check("a pin's", sayOf("news pinned") == "pinned news #1", sayOf("news pinned"))
+    check("an unpin's", sayOf("news unpinned") == "unpinned news #1", sayOf("news unpinned"))
+    check("a delete's", sayOf("news deleted") == 'deleted news #1: "Trader at noon"', sayOf("news deleted"))
+    check("a post pushed off", M0.lineText({ k = "community", what = "news pushed off the board", text = "#4 by Rosa: Old news" }) == 'pushed news #4 by Rosa off the board: "Old news"')
+    check("no answer", M0.lineText({ k = "community", what = "rules not answered", text = "asked at joining, revision 2" }) == "was asked to agree to the rules and has not answered")
+    check("a line from a later ZeD reads as written", M0.lineText({ k = "community", what = "news archived", text = "#4" }) == "news archived: #4")
+    check("a good code with a detail it can't read does too", M0.lineText({ k = "community", what = "news posted", text = "no number" }) == "news posted: no number")
+    check("Find reads the words", #(rowsOf(a, { find = "saved the rules", when = "d3" })) == 1)
+    local codes = W.server.ZeD.Lg.findCodes("agree to the rules", W.server.ZeD.Lg.enWords) or {}
+    check("and a translated Find reaches the codes", codes[1] == "rules not answered", codes[1])
+    check("every row names its writer, with their place", (rowWith(rows, "news deleted") or {}).who == "Hermit" and (rowWith(rows, "news deleted") or {}).x ~= nil)
+    a.box = {}
+    check("an agreement stays out of the ring", (function()
+        local n = 0
+        for _, l in ipairs(W.logs) do if string.find(l.line, "community | agreed", 1, true) then n = n + 1 end end
+        return n == 0 and rowWith(rows, "agreed to the rules") == nil
+    end)())
+
+    -- a report from chat: the Log's words, and Around like any other ticket
+    local kade = player("Kade_R", "user", HERE_X, HERE_Y)
+    clientJoin(kade)
+    W.clock = W.clock + 60000
+    again(kade)
+    -- (the one who wrote the rules there has gone by the time it's filed, so the ticket's nearby list doesn't hold them)
+    local ax = a.x
+    a.x = ax + 500
+    tk(kade, "t_new", { kind = "GRIEF", here = true, text = "He took my truck",
+        report = { who = "mike_d", n = 1, { who = "mike_d", text = "lol nope", t = "9:32" } } })
+    a.x = ax
+    local id = 1
+    W.clock = W.clock + 60000
+    again(a)
+    tk(a, "t_answer", { id = id, text = "On it" })
+    again(a)
+    tk(a, "t_close", { id = id })
+    local trows = rowsOf(a, { kind = "ticket", when = "d3" })
+    local rep = rowWith(trows, "report answered")
+    check("what's done to a report is under Ticket", rep ~= nil and rep.target == "mike_d")
+    check("in words", rep and M0.lineText(rep) == "answered the report on mike_d, ticket #1", rep and M0.lineText(rep))
+    check("closed too", rowWith(trows, "report closed") ~= nil and M0.lineText(rowWith(trows, "report closed")) == "closed the report on mike_d, ticket #1")
+    check("its line offers the reported player's card", rep and M0.otherName(rep) == "mike_d")
+    check("Who finds them under that name", rowWith((rowsOf(a, { who = "mike_d", when = "d3" })), "report closed") ~= nil)
+    local _, around = rowsOf(a, { around = id })
+    check("a report's ticket opens Around", around ~= nil and around.around ~= nil and around.around.id == id, errOf(a))
+    local kept = false
+    for _, r in ipairs(around and around.rows or {}) do kept = kept or r.what == "rules saved" end
+    check("and community's lines are read there", kept)
+    local names = {}
+    for _, m in ipairs(around.around.missed or {}) do names[m.who] = true end
+    check("whoever wrote the rules there was there", names.Hermit == true)
+
+    -- a server with only some of the parts: each stands alone
+    world({ community = true, noLog = true })
+    local b = player("Hermit", "admin")
+    local cb = clientJoin(b)
+    local LB = cb.env.ZeD.ServerPart
+    check("community with no log", LB.cm == true and LB.lg == false and LB.adm == true)
+    world({ extras = true })
+    local b2 = player("Hermit", "admin")
+    local cb2 = clientJoin(b2)
+    local LB2 = cb2.env.ZeD.ServerPart
+    check("the log with no community", LB2.cm == false and LB2.lg == true)
+    CAPS.ChangeAndReloadServerOptions = nil
+    world({ community = true })
+    CAPS.ChangeAndReloadServerOptions = "ChangeAndReloadServerOptions"
+    check("a capability missing: community stays off, in the file's seven fields", logHas("admin | community off | @server | - | - | this game has no "))
+    local b3 = player("Hermit", "admin")
+    local cb3 = clientJoin(b3)
+    check("and the rest runs", cb3.env.ZeD.ServerPart.cm == false and cb3.env.ZeD.ServerPart.lg == true)
 end
 
 print("log_sim: " .. checks .. " checks, " .. failed .. " failed")

@@ -9,7 +9,9 @@
 --                  Player card
 --   ADMIN POWERS   your own powers, the game's list (ISAdminPowerUI.OptionList), with a line on what each does
 --   SERVER MESSAGE typed in place, Repeat every 15, 30, 60, 120 min, and the Stop list
---   ROLES, BANS, SPAWN ITEMS, SERVER EXTRAS   a row each, opening their cards (Server extras: ZeD_ExtrasCards.lua)
+--   ROLES, BANS, SPAWN ITEMS   a row each, opening their cards
+--   RULES AND NEWS  a row that opens its card (ZeD_CommunityCards.lua), on a server with that part
+--   SERVER EXTRAS  a row that opens its card (ZeD_ExtrasCards.lua)
 --   SAFEHOUSES     every safehouse and FACTIONS every faction. The Server tab's cards (ZeD_ClaimCards.lua) hold only your
 --                  own, so staff see everyone else's here: pick one to open it in the game's own window. Your own opens its
 --                  card
@@ -29,6 +31,7 @@ require "ZeD/ZeD_Admin"
 require "ZeD/ZeD_AdminCards"
 require "ZeD/ZeD_ExtrasCards"
 require "ZeD/ZeD_LogCards"
+require "ZeD/ZeD_CommunityCards"
 
 ZeD = ZeD or {}
 local A = {}

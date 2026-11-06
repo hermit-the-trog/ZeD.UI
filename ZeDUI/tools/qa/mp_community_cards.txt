@@ -1,0 +1,1 @@
+mp_community_cards.lua | mcm | timeout=420

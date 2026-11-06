@@ -90,6 +90,8 @@ local function textOf(rec)
     local n = 0
     for i = 1, rec.thread.n do n = n + #rec.thread[i].text end
     for i = 1, rec.notes.n do n = n + #rec.notes[i].text end
+    local rep = rec.report
+    for i = 1, (rep and rep.n or 0) do n = n + #rep[i].text end
     return n
 end
 
@@ -239,10 +241,22 @@ local function threadCopy(list)
     return out
 end
 
+-- a report from chat (Phase 5): who it names, and the chat as the reporter's client held it
+local function reportCopy(rep)
+    if not rep then return nil end
+    local out = { who = rep.who, n = rep.n }
+    for i = 1, rep.n do
+        local l = rep[i]
+        out[i] = { who = l.who, text = l.text, t = l.t, mark = l.mark }
+    end
+    return out
+end
+
 local function playerView(rec)
     return {
         id = rec.id, kind = rec.kind, st = Tk.PLAYER_ST[rec.status], day = rec.day, filed = rec.filed,
         place = placeCopy(rec.place), thread = threadCopy(rec.thread), can = Tk.canReply(rec.status) and true or false,
+        report = reportCopy(rec.report),
     }
 end
 
@@ -256,7 +270,7 @@ local function staffView(rec)
         id = rec.id, source = rec.source, kind = rec.kind, author = rec.author, status = rec.status, day = rec.day,
         filed = rec.filed, updated = rec.updated, place = placeCopy(rec.place), near = near, assignee = rec.assignee,
         spamBy = rec.spamBy, gameId = rec.gameId, gameFiled = rec.gameFiled, gameAns = rec.gameAns, gameGone = rec.gameGone,
-        unread = rec.unread, thread = threadCopy(rec.thread), notes = threadCopy(rec.notes),
+        unread = rec.unread, thread = threadCopy(rec.thread), notes = threadCopy(rec.notes), report = reportCopy(rec.report),
     }
 end
 
@@ -299,6 +313,11 @@ end
 -- the name stays in its detail: it reads "not proved" and counts against no player's share or Who list
 local function logAdopted(rec, author)
     Srv.action("ticket", Tk.SYS, "adopted from the game's window", "#" .. tostring(rec.id), tostring(rec.kind) .. ": " .. tostring(author))
+end
+
+-- what is done to a report goes in the log staff read: a report can name one of them
+local function logReport(rec, what, who)
+    if rec.report then Srv.action("ticket", who, what, rec.report.who, "ticket " .. tostring(rec.id)) end
 end
 
 local function toAuthor(rec, command, args)
@@ -386,6 +405,38 @@ local function goodText(s)
     return text
 end
 
+-- what a report from chat may hold: a name and the chat around the line, each cut to size. The server hears no chat (server
+-- Lua cannot reach ChatServer), so all of it is the reporter's word, and says so on the card. nil for none, false when bad
+local function goodReport(p, r)
+    if r == nil then return nil end
+    if type(r) ~= "table" or type(r.who) ~= "string" or Tk.name(r.who) == "" then
+        Srv.bad(p, "t_new report")
+        return false
+    end
+    local n = r.n
+    if not (n == 0 or Tk.whole(n)) or n > L.REPORT_LINES then
+        Srv.bad(p, "t_new report")
+        return false
+    end
+    local out = { who = Tk.name(r.who), n = n }
+    for i = 1, n do
+        local l = r[i]
+        if type(l) ~= "table" or type(l.who) ~= "string" or type(l.text) ~= "string" then
+            Srv.bad(p, "t_new report")
+            return false
+        end
+        out[i] = { who = Tk.name(l.who), text = string.sub(string.gsub(Tk.clean(l.text) or "", "\n", " "), 1, L.REPORT_TEXT),
+            mark = l.mark == true and true or nil, t = type(l.t) == "string" and string.sub(Tk.name(l.t), 1, 16) or nil }
+    end
+    return out
+end
+
+local function reportSize(rep)
+    local n = 0
+    for i = 1, (rep and rep.n or 0) do n = n + #rep[i].text end
+    return n
+end
+
 -- one line a minute for the whole server, with how many were refused: a refused t_new starts no limit
 local function fullLine(md, open, who)
     local t = getTimestampMs()
@@ -399,7 +450,8 @@ reg("t_new", { limit = L.NEW_MS, mark = false }, function(p, a, rid)
     local md = open()
     if frozen(p, rid) then return end
     local text = goodText(a.text)
-    if not Tk.isKind(a.kind) or not text then
+    local report = goodReport(p, a.report)
+    if not Tk.isKind(a.kind) or not text or report == false then
         if not Tk.isKind(a.kind) then Srv.bad(p, "t_new") end
         Srv.ack(p, rid, false, "text")
         return
@@ -410,7 +462,7 @@ reg("t_new", { limit = L.NEW_MS, mark = false }, function(p, a, rid)
         Srv.ack(p, rid, false, "many")
         return
     end
-    if c.open >= L.OPEN_ALL or not playerRoom(md, #text) then
+    if c.open >= L.OPEN_ALL or not playerRoom(md, #text + reportSize(report)) then
         fullLine(md, c.open, me)
         Srv.ack(p, rid, false, "full")
         return
@@ -421,6 +473,8 @@ reg("t_new", { limit = L.NEW_MS, mark = false }, function(p, a, rid)
         thread = { n = 0 }, notes = { n = 0 } }
     stamp(p, rec, a.here == true)
     line(md, rec.thread, me, text)
+    rec.report = report or nil
+    md.chars = md.chars + reportSize(report)
     md.tickets[id] = rec
     Srv.mark(p, "t_new")
     Srv.ack(p, rid, true, nil, { id = id, file = Tk.fileText(rec.kind, id, text) })
@@ -583,14 +637,26 @@ reg("t_queue", { cap = STAFF, limit = L.QUEUE_MS }, function(p, a, rid)
     Srv.to(p, Tk.MOD, "t_queue", r)
 end)
 
--- the record of a staff command that writes, or nil with the answer sent
-local function acting(p, a, rid, allowed)
+-- a report from chat that names this staff member: someone else answers and closes it. The name is the reporter's word, so a
+-- forged one stops one person handling one ticket, no more. An admin can still act: somebody has to be able to
+local function namedIn(p, rec)
+    local who = rec.report and rec.report.who
+    if not who or string.lower(who) ~= string.lower(p:getUsername()) then return false end
+    return not Srv.can(p, ADMIN)
+end
+
+-- the record of a staff command that writes, or nil with the answer sent. handles: this command answers or buries the ticket
+local function acting(p, a, rid, allowed, handles)
     local md = open()
     if frozen(p, rid) then return nil end
     local rec = recOf(md, a.id)
     if not rec then
         if not Tk.whole(a.id) then Srv.bad(p, "ticket id") end
         Srv.ack(p, rid, false, "gone")
+        return nil
+    end
+    if handles and namedIn(p, rec) then
+        Srv.ack(p, rid, false, "named")
         return nil
     end
     if allowed and not allowed(rec.status) then
@@ -644,7 +710,7 @@ reg("t_take", { cap = STAFF }, function(p, a, rid)
 end)
 
 reg("t_answer", { cap = STAFF }, function(p, a, rid)
-    local rec, md = acting(p, a, rid, Tk.canAnswer)
+    local rec, md = acting(p, a, rid, Tk.canAnswer, true)
     if not rec then return end
     local text = goodText(a.text)
     if not text then Srv.ack(p, rid, false, "text"); return end
@@ -666,6 +732,7 @@ reg("t_answer", { cap = STAFF }, function(p, a, rid)
     toAuthor(rec, "t_note", { id = rec.id, who = me })
     toAuthor(rec, "t_one", playerView(rec))
     logTk(rec, "answered", me)
+    logReport(rec, "report answered", me)
 end)
 
 reg("t_addnote", { cap = STAFF }, function(p, a, rid)
@@ -701,10 +768,11 @@ function Srv.ticketNote(p, id, text)
 end
 
 reg("t_close", { cap = STAFF }, function(p, a, rid)
-    local rec, md = acting(p, a, rid, Tk.canClose)
+    local rec, md = acting(p, a, rid, Tk.canClose, true)
     if not rec then return end
     rec.status = "Closed"
     changed(p, md, rec, rid, "closed")
+    logReport(rec, "report closed", p:getUsername())
 end)
 
 reg("t_reopen", { cap = STAFF }, function(p, a, rid)
@@ -715,7 +783,7 @@ reg("t_reopen", { cap = STAFF }, function(p, a, rid)
 end)
 
 reg("t_spam", { cap = STAFF }, function(p, a, rid)
-    local rec, md = acting(p, a, rid, function(st) return st ~= "Spam" end)
+    local rec, md = acting(p, a, rid, function(st) return st ~= "Spam" end, true)
     if not rec then return end
     rec.status = "Spam"
     rec.spamBy = p:getUsername()
@@ -726,6 +794,7 @@ reg("t_spam", { cap = STAFF }, function(p, a, rid)
     pushCard(rec)
     pushRow(md, rec)                 -- (the author's row reads Closed: playerRow maps it)
     logTk(rec, "marked spam", p:getUsername())
+    logReport(rec, "report marked spam", p:getUsername())
 end)
 
 reg("t_unspam", { cap = STAFF }, function(p, a, rid)
@@ -749,9 +818,10 @@ local function tomb(md, rec)
 end
 
 reg("t_delete", { cap = ADMIN }, function(p, a, rid)
-    local rec, md = acting(p, a, rid)
+    local rec, md = acting(p, a, rid, nil, true)
     if not rec then return end
     local id, author = rec.id, rec.author
+    logReport(rec, "report deleted", p:getUsername())
     if rec.source == "zed" and not rec.gameId and not rec.gameGone then tomb(md, rec) end
     Srv.ack(p, rid, true, nil, { gameId = rec.gameId })
     logTk(rec, "deleted", p:getUsername())

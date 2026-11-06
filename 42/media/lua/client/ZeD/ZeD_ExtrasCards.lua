@@ -206,7 +206,7 @@ function EC.open(win, st)
     F.push(win, st, { kind = "extras", from = "adm:tk:sum:extras", d = Ex.clean(E.set), base = E.set })
 end
 
--- the Admin tab's row, after Spawn items (AC.homeItems)
+-- the Admin tab's row, after Rules and news (AC.homeItems)
 function AC.extrasKey() return tostring(E.seq) .. ":" .. tostring(E.live()) end
 
 function AC.extrasHome(L2, win, st)
@@ -267,7 +267,7 @@ function P.tabItems(win, st)
     return out
 end
 
--- under the Server block, over Tickets, as drawn. Nothing without the server part
+-- under News, over Tickets, as drawn. Nothing without the server part
 function EC.blocks(L2, win, st)
     if not (E.live() and E.set) then return end
     E.mine()

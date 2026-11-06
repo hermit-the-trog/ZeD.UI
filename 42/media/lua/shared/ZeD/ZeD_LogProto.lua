@@ -22,8 +22,9 @@ Lg.VIEW_CAP = "AnswerTickets"
 -- on record is logged too, in a ring of its own (VEH_MAX), so scavenging can't push out ZeD's other lines.
 Lg.OWN_CAR_LINES = false
 
--- the chips, in the drawing's order; "other" has no chip and shows under All (a line another mod wrote)
-Lg.KINDS = { "admin", "safehouse", "faction", "vehicle", "pvp", "ticket", "container" }
+-- the chips, in the drawing's order; "other" has no chip and shows under All (a line another mod wrote). The drawing is from before
+-- community: its chip stands with the kinds always there, ahead of Container, the one that comes and goes
+Lg.KINDS = { "admin", "safehouse", "faction", "vehicle", "pvp", "ticket", "community", "container" }
 Lg.KIND = {}
 for _, k in ipairs(Lg.KINDS) do Lg.KIND[k] = true end
 Lg.OTHER = "other"
@@ -201,6 +202,13 @@ Lg.TICKET = { filed = "UI_ZeD_Log_T_Filed", ["player added to it"] = "UI_ZeD_Log
     answered = "UI_ZeD_Log_T_Answered", ["note added"] = "UI_ZeD_Log_T_Note", closed = "UI_ZeD_Log_T_Closed", reopened = "UI_ZeD_Log_T_Reopened",
     ["marked spam"] = "UI_ZeD_Log_T_Spam", ["not spam"] = "UI_ZeD_Log_T_NotSpam", deleted = "UI_ZeD_Log_T_Deleted",
     ["removed on the game's window"] = "UI_ZeD_Log_T_Removed" }
+-- what is done to a report from chat (ZeD_ServerTickets.lua). Its target is the player the report names, its detail "ticket 14"
+Lg.REPORT = { ["report answered"] = "UI_ZeD_Log_T_RepAnswered", ["report closed"] = "UI_ZeD_Log_T_RepClosed",
+    ["report marked spam"] = "UI_ZeD_Log_T_RepSpam", ["report deleted"] = "UI_ZeD_Log_T_RepDeleted" }
+-- community's lines (ZeD_ServerCommunity.lua). The details hold the numbers, and a post's words after its number
+Lg.COMMUNITY = { ["rules saved"] = "UI_ZeD_Log_C_Saved", ["rules not answered"] = "UI_ZeD_Log_C_NoAnswer", ["news posted"] = "UI_ZeD_Log_C_Post",
+    ["news deleted"] = "UI_ZeD_Log_C_Del", ["news pushed off the board"] = "UI_ZeD_Log_C_Pushed", ["news pinned"] = "UI_ZeD_Log_C_Pin",
+    ["news unpinned"] = "UI_ZeD_Log_C_Unpin" }
 
 local WHAT = {}
 function WHAT.vehicle(r, c)
@@ -231,6 +239,11 @@ end
 
 function WHAT.ticket(r, c)
     if r.what == "tickets full" then return c.w("UI_ZeD_Log_T_Full", tostring(r.text)) end
+    if Lg.REPORT[r.what] then
+        local id = string.match(r.text or "", "(%d+)")
+        if not (id and r.target) then return nil end
+        return c.w(Lg.REPORT[r.what], tostring(r.target), id)
+    end
     if r.what == "adopted from the game's window" and r.target then
         -- (the name came with the game's row: a claim, so the line says so and nothing counts it as theirs)
         local kind, name = string.match(r.text or "", "^([^:]*): (.*)$")
@@ -280,6 +293,32 @@ function WHAT.container(r, c)
     local s = tostring(r.text)
     if string.sub(s, -#Lg.TOLD) == Lg.TOLD then s = string.sub(s, 1, -#Lg.TOLD - 1) end
     return c.w("UI_ZeD_Log_Took", s)
+end
+
+-- a post's words go on one line, as the file has them
+local function oneLine(s) return (string.gsub(s, "\n", " ")) end
+
+function WHAT.community(r, c)
+    local what, text = r.what or "", r.text or ""
+    if what == "rules not answered" then return c.w(Lg.COMMUNITY[what]) end
+    if what == "rules saved" then
+        local n, fresh = string.match(text, "^(%d+) rules, (%d+) new or changed")
+        if not n then return nil end
+        local s = c.w(Lg.COMMUNITY[what], n, fresh)
+        if string.find(text, ", message or appeal changed", 1, true) then s = c.w("UI_ZeD_Log_C_SavedMsg", s) end
+        return s
+    end
+    local id, rest = string.match(text, "^#(%d+)(.*)$")
+    if not (id and Lg.COMMUNITY[what]) then return nil end
+    if what == "news pinned" or what == "news unpinned" then return c.w(Lg.COMMUNITY[what], id) end
+    if what == "news pushed off the board" then
+        local by, words = string.match(rest, "^ by (.-): (.*)$")
+        if not by then return nil end
+        return c.w(Lg.COMMUNITY[what], id, by, quoted(oneLine(words)))
+    end
+    local words = string.match(rest, "^: (.*)$")
+    if not words then return nil end
+    return c.w(Lg.COMMUNITY[what], id, quoted(oneLine(words)))
 end
 
 local LEN_WORD = { permanent = "UI_ZeD_Adm_LenPerm", h1 = "UI_ZeD_Adm_Len1h", d1 = "UI_ZeD_Adm_Len1d", d3 = "UI_ZeD_Adm_Len3d", w1 = "UI_ZeD_Adm_Len1w" }
@@ -391,6 +430,12 @@ Lg.EN = {
     UI_ZeD_Log_T_Reopened = "reopened %1 %2", UI_ZeD_Log_T_Spam = "marked %1 %2 as spam", UI_ZeD_Log_T_NotSpam = "marked %1 %2 as not spam",
     UI_ZeD_Log_T_Deleted = "deleted %1 %2", UI_ZeD_Log_T_Adopted = "took in %1 %2 from the game's window, filed in the name of %3, not proved",
     UI_ZeD_Log_T_Removed = "removed %1 %2 on the game's window", UI_ZeD_Log_T_Full = "could not file a ticket, the tickets are full: %1",
+    UI_ZeD_Log_T_RepAnswered = "answered the report on %1, ticket #%2", UI_ZeD_Log_T_RepClosed = "closed the report on %1, ticket #%2",
+    UI_ZeD_Log_T_RepSpam = "marked the report on %1 as spam, ticket #%2", UI_ZeD_Log_T_RepDeleted = "deleted the report on %1, ticket #%2",
+    UI_ZeD_Log_C_Saved = "saved the rules: %1 in all, %2 new or changed", UI_ZeD_Log_C_SavedMsg = "%1, and the message of the day or the appeal line",
+    UI_ZeD_Log_C_NoAnswer = "was asked to agree to the rules and has not answered", UI_ZeD_Log_C_Post = "posted news #%1: %2",
+    UI_ZeD_Log_C_Del = "deleted news #%1: %2", UI_ZeD_Log_C_Pushed = "pushed news #%1 by %2 off the board: %3", UI_ZeD_Log_C_Pin = "pinned news #%1",
+    UI_ZeD_Log_C_Unpin = "unpinned news #%1",
     UI_ZeD_Log_S_Claim = "claimed a safehouse", UI_ZeD_Log_S_Release = "released a safehouse", UI_ZeD_Log_S_In = "joined the safehouse",
     UI_ZeD_Log_S_Out = "left the safehouse", UI_ZeD_Log_S_Title = "renamed the safehouse %1", UI_ZeD_Log_S_Owner = "took the safehouse over from %1",
     UI_ZeD_Log_F_In = "joined %1", UI_ZeD_Log_F_Out = "left %1", UI_ZeD_Log_F_Create = "created %1", UI_ZeD_Log_F_Disband = "disbanded %1",
@@ -429,6 +474,8 @@ local CODE_KEY = { kill = "UI_ZeD_Log_P_Kill", hit = "UI_ZeD_Log_P_Hit", claim =
 for code, key in pairs(Lg.VEH) do CODE_KEY[code] = key end
 for code, key in pairs(Lg.TICKET) do CODE_KEY[code] = key end
 for code, key in pairs(Lg.HOUSE_NO) do CODE_KEY[code] = key end
+for code, key in pairs(Lg.REPORT) do CODE_KEY[code] = key end
+for code, key in pairs(Lg.COMMUNITY) do CODE_KEY[code] = key end
 CODE_KEY.took = "UI_ZeD_Log_Took"
 
 function Lg.findCodes(find, w)
