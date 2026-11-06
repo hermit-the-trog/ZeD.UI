@@ -1,12 +1,11 @@
-DRAFT for the director to post. Not sent. Waiting on one check: QA has to confirm the steps below on the game with no mods
-at all (see "Steps to reproduce"). Until then, the "Mods: none" line and the steps are expected, not proven.
+DRAFT for the director to post. Not sent. Reproduced by QA on the game with no mods (the log: ZeDUI/qa/pool_repro_20261105.txt).
 
 ----
 
 # [42.22.1] A Lua call that matches no Java overload corrupts Kahlua's argument pool: later actions fail with "Cannot assign field callFrame because a is null"
 
 **Version:** 42.22.1 (71e8410c42)
-**Mods:** none needed
+**Mods:** none. Reproduced on the unmodded game, in debug mode.
 **Single player or multiplayer:** seen in single player; the code is shared
 **New or existing save:** either
 **Severity:** a Lua error that a script catches and carries on from can break unrelated actions later, for the rest of the session. Players see the failure far from its cause, with a stack that points at innocent code.
@@ -34,21 +33,21 @@ In `se.krka.kahlua.integration.expose.MultiLuaJavaInvoker.call(LuaCallFrame, int
 
 The next two `MethodArguments.get(n)` calls of that size return the same object.
 
-The debug option behind `DebugOptions.instance.checks.objectPoolContains` should catch this at the second `put`, with "object pool already contains object".
+The check behind `DebugOptions.instance.checks.objectPoolContains` looks as though it would catch this at the second `put`, with "object pool already contains object". We haven't tested that.
 
 ## Steps to reproduce
 
-1. Start a game with no mods, in debug mode. Have a pair of scissors or a razor in the main inventory, and a beard on the character.
-2. Run this once from the Lua console. `hasTag` has two one-parameter overloads, and neither takes a string:
+1. Start a game with no mods, in debug mode. Give the character a beard and a razor in the main inventory.
+2. Run this once from the Lua console. Any item works. `hasTag` has two one-parameter overloads, and neither takes a string:
 
        local item = getPlayer():getInventory():getItems():get(0)
        print(pcall(function() return item:hasTag("not a tag") end))
 
    It prints false and "No implementation found for function: hasTag(...)". Nothing else looks wrong.
-3. Trim the beard from the character screen, or start any timed action.
+3. Trim the beard: `ISCharacterScreen.onTrimBeard(getPlayer(), "Goatee")`.
 
-**Expected:** the action runs. The failed call only affects the code that made it.
-**Actual:** the callFrame exception above, and the action doesn't start.
+**Expected:** the action starts with no error, as it does when step 2 is skipped. The failed call only affects the code that made it.
+**Actual:** `onTrimBeard` throws the callFrame exception above.
 
 ## Suggested fix
 
