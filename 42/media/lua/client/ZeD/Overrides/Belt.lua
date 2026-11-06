@@ -236,6 +236,21 @@ local function apply()
         end
         local origPre = ISEquippedItem.prerender
         function ISEquippedItem:prerender()
+            -- on a server the game's prerender paints its safety button's background and countdown on the column
+            -- itself, so hiding the button leaves them: a blank white square at the left edge (QA Nov 5 2026). Those
+            -- two draws are skipped while ZeD's PvP marker holds the job; everything else passes through.
+            if isClient() and not self._zedSafetyDraws then
+                self._zedSafetyDraws = true
+                self.drawTextureScaled = function(me, tex, ...)
+                    if tex == me.safetyBackground and not ZeD.Safe.on("belt") then return end
+                    return ISUIElement.drawTextureScaled(me, tex, ...)
+                end
+                self.drawText = function(me, str, x, y, ...)
+                    local b = me.safetyBtn
+                    if b and x == b:getX() + b:getWidth() and y == b:getY() and not ZeD.Safe.on("belt") then return end
+                    return ISUIElement.drawText(me, str, x, y, ...)
+                end
+            end
             origPre(self)
             if ZeD.Safe.on("belt") or inTutorial() then return end
             -- on a server: the game's Safety (and its countdown), Client and Admin buttons hide, as ZeD's PvP
