@@ -592,6 +592,7 @@ TC.back(WINS.server, sv)
 -- the queue
 local PAGE = { page = 1, pages = 2, n = 26, open = 9, spam = 1, gameMax = 0, skipped = 0, authors = { "Kade_R", "Rosa" }, rows = {} }
 for i = 1, 25 do PAGE.rows[i] = { id = i, kind = "BUG", author = "Rosa", st = "Open", day = 3, first = "Ticket " .. i, replies = 0, src = "zed" } end
+ad.screen = "tickets"
 ad.tk.q = { status = "Open", newest = true, page = 1, find = "" }
 ad.tk.queueKey = nil
 clearSent()
@@ -808,16 +809,17 @@ draw("admin")
 check("deleted while open: back, with the words", ad.card == nil and ad.tk.flashText == ZeD.tr("UI_ZeD_Tk_Err_gone"))
 -- leaving the tab closes the queue
 nowMs = nowMs + 3000
-EVENTS.OnTick.list[#EVENTS.OnTick.list]()
 for _, fn in ipairs(EVENTS.OnTick.list) do fn() end
 check("no frames: the queue closes", C.queueOpen == false)
 draw("admin")
 check("a frame opens it again", C.queueOpen == true)
 
 -- the fallback (B9)
--- (the game calls so far had no reply here: the model's clock lets them go)
-nowMs = nowMs + 11000
-for _, fn in ipairs(EVENTS.OnTick.list) do fn() end
+-- (the game calls so far had no reply here: the model's clock lets them go, one in flight at a time)
+for _ = 1, 6 do
+    nowMs = nowMs + 11000
+    for _, fn in ipairs(EVENTS.OnTick.list) do fn() end
+end
 S.forceOff = true
 C.mine, C.queue, C.card = {}, nil, nil
 ad.tk.queueKey, sv.tk.mineKey = nil, nil
@@ -927,7 +929,8 @@ do
     local function openAdmin(r)
         C.queue = { page = 1, pages = 1, n = 1, open = 1, spam = 0, rows = { { id = r.id, kind = r.kind, author = r.author, st = r.status, day = 1, first = "x", replies = 0 } } }
         C.seq = C.seq + 1
-        ad.tk.q = { status = "Open", newest = true, page = 1, find = "" }
+        ad.screen = "tickets"
+ad.tk.q = { status = "Open", newest = true, page = 1, find = "" }
         draw("admin")
         press("admin", "adm:tk:t:" .. r.id)
         deliver("t_card", r)
@@ -1012,7 +1015,8 @@ do
     do
         C.queue = { page = 1, pages = 2, n = 30, open = 30, spam = 0, rows = { { id = 32, kind = "BUG", author = "a", st = "Open", first = "x", replies = 0 } } }
         C.seq = C.seq + 1
-        ad.tk.q = { status = "Open", newest = true, page = 1, find = "" }
+        ad.screen = "tickets"
+ad.tk.q = { status = "Open", newest = true, page = 1, find = "" }
         FOCUS.pad = true
         draw("admin")
         local prev = stopOf("admin", "adm:tk:prev")
@@ -1185,7 +1189,8 @@ do
     -- the fallback's claim
     do
         S.forceOff = true
-        ad.tk.q = { status = "Open", newest = true, page = 1, find = "" }
+        ad.screen = "tickets"
+ad.tk.q = { status = "Open", newest = true, page = 1, find = "" }
         nowMs = nowMs + 20000
         draw("admin")
         C.onViewTickets(jlist({}))       -- (the frozen filing above is still waiting for its reply)

@@ -70,13 +70,16 @@ end
 -- COMMANDS TO THE SERVER
 -- ---------------------------------------------------------------------------
 -- cb gets the t_ack, or { ok = false, err = "fail" } after REPLY_MS. Returns the rid.
-function C.request(cmd, args, cb)
+function C.request(cmd, args, cb) return C.requestOn(Tk.MOD, cmd, args, cb) end
+
+-- the same for another module of the server part: every answer comes back as this one t_ack
+function C.requestOn(module, cmd, args, cb)
     ridNext = ridNext + 1
     local rid = ridNext
     args = args or {}
     args.rid = rid
     C.pend[rid] = { cmd = cmd, cb = cb, at = now() }
-    if not S.send(Tk.MOD, cmd, args) then
+    if not S.send(module, cmd, args) then
         C.pend[rid] = nil
         if cb then cb({ ok = false, err = "fail" }) end
         return nil
@@ -678,7 +681,7 @@ end
 
 function on.t_row(a)
     C.rowSeq = C.rowSeq + 1
-    if a.open then C.counts = { open = a.open, spam = a.spam or 0 } end
+    if a.open then C.counts = { open = a.open, spam = a.spam or 0, kinds = a.kinds } end
     if a.id then
         if a.pv then
             if not putRow(C.mine, a) then table.insert(C.mine, 1, a) end
@@ -699,7 +702,7 @@ function on.t_queue(a)
         C.queueRid = nil
     end
     C.queue = a
-    C.counts = { open = a.open or 0, spam = a.spam or 0 }
+    C.counts = { open = a.open or 0, spam = a.spam or 0, kinds = a.kinds }
     C.gameMax = a.gameMax or 0
     if C.wantSync and not S.frozen then
         C.wantSync = nil
@@ -769,7 +772,7 @@ end)
 
 -- the hello: the notes that wait, the counts, and my tickets (the catch-up for a ticket filed but never sent to the game)
 function C.onHello(a)
-    if a.open then C.counts = { open = a.open, spam = a.spam or 0 } end
+    if a.open then C.counts = { open = a.open, spam = a.spam or 0, kinds = a.kinds } end
     if type(a.unread) == "table" and ZeD.Messages and ZeD.Messages.ticket then
         for _, id in ipairs(a.unread) do ZeD.Messages.ticket(id) end
     end

@@ -20,6 +20,9 @@ local L = Tk.LIMITS
 
 Srv.handlers = Srv.handlers or {}
 Srv.mem = Srv.mem or {}          -- username -> the limits' memory; a restart clears it
+Srv.modules = Srv.modules or {}  -- the modules this part answers; each phase adds its own
+Srv.modules[Tk.MOD_LINK], Srv.modules[Tk.MOD] = true, true
+Srv.helloAdds = Srv.helloAdds or {}   -- more for the hello reply: a later phase keeps its own under a name
 
 -- Both are in the 42.22 enum. If a game update renames one the local is nil, and hasCapability(nil) would match no
 -- overload, which corrupts the game's call pool even inside pcall. So a missing one leaves the part off (below).
@@ -34,6 +37,32 @@ end
 
 -- every line goes to Zomboid/Logs/<date>_ZeD.txt. Never a ticket's text or a note, never the table's name
 function Srv.log(text) writeLog("ZeD", text) end
+
+function Srv.day() return math.floor(getGameTime():getWorldAgeHours() / 24) + 1 end
+
+-- THE ACTION LOG, the one thing Phase 4 reads. Admin actions (Srv.adminLog) and claim and faction changes
+-- (ZeD_ServerClaims.lua) all come through Srv.action, each as one line of seven fields, "-" for an empty one:
+--   kind | what | who | target | where | detail | day N
+-- kind: admin, safehouse, faction, or claims for the log's own word. A field has no line break and its | is turned to /, so
+-- a split on " | " always gives seven. Srv.actionStore (ZeD_ServerAdmin.lua) keeps the same line for the Log view; without
+-- the admin table the line still reaches the ZeD log.
+local function logField(v)
+    if v == nil then return "-" end
+    local s = string.gsub(Tk.clean(tostring(v)) or "", "\n", " ")
+    s = string.gsub(s, "|", "/")
+    if s == "" then return "-" end
+    return s
+end
+
+function Srv.action(kind, who, what, target, detail, x, y, z)
+    local where = "-"
+    if x then
+        where = tostring(x) .. "," .. tostring(y)
+        if z then where = where .. "," .. tostring(z) end
+    end
+    Srv.log(table.concat({ kind, logField(what), logField(who), logField(target), where, logField(detail), "day " .. tostring(Srv.day()) }, " | "))
+    if Srv.actionStore then Srv.actionStore(kind, who, what, target, detail, x, y, z) end
+end
 
 local function memOf(user)
     local m = Srv.mem[user]
@@ -92,13 +121,13 @@ end
 
 function Srv.to(p, module, command, args) sendServerCommand(p, module, command, args) end
 
--- the answer to a command: rid only if the client sent a good one
-function Srv.ack(p, rid, ok, err, extra)
+-- the answer to a command: rid only if the client sent a good one. module, command: a phase's own (default: tickets)
+function Srv.ack(p, rid, ok, err, extra, module, command)
     local a = extra or {}
     a.ok = ok == true
     a.rid = rid
     a.err = err
-    Srv.to(p, Tk.MOD, "t_ack", a)
+    Srv.to(p, module or Tk.MOD, command or "t_ack", a)
 end
 
 function Srv.eachOnline(fn)
@@ -123,21 +152,23 @@ function Srv.player(user)
     return nil
 end
 
--- opts: cap (the capability it needs), limit (ms between runs), mark = false when the handler marks an accepted run itself
+-- opts: cap (the capability it needs), limit (ms between runs), mark = false when the handler marks an accepted run itself,
+-- ackModule and ackCommand when refusals answer on a phase's own module
 function Srv.register(module, command, opts, fn)
-    Srv.handlers[module .. "." .. command] = { name = command, cap = opts.cap, limit = opts.limit, mark = opts.mark, fn = fn }
+    Srv.handlers[module .. "." .. command] = { name = command, cap = opts.cap, limit = opts.limit, mark = opts.mark, fn = fn,
+        ackModule = opts.ackModule, ackCommand = opts.ackCommand }
 end
 
 local function run(h, p, a, rid)
     if h.cap and not Srv.can(p, h.cap) then
         Srv.deny(p, h.name)
-        Srv.ack(p, rid, false, "perm")
+        Srv.ack(p, rid, false, "perm", nil, h.ackModule, h.ackCommand)
         return
     end
     if h.limit then
         local left = Srv.left(p, h.name, h.limit)
         if left then
-            Srv.ack(p, rid, false, "wait", { left = left })
+            Srv.ack(p, rid, false, "wait", { left = left }, h.ackModule, h.ackCommand)
             return
         end
         if h.mark ~= false then Srv.mark(p, h.name) end
@@ -146,7 +177,7 @@ local function run(h, p, a, rid)
 end
 
 function Srv.onCommand(module, command, player, args)
-    if module ~= Tk.MOD_LINK and module ~= Tk.MOD then return end
+    if not Srv.modules[module] then return end
     if Srv.off or not player then return end
     if not general(player:getUsername(), getTimestampMs()) then return end
     local h = Srv.handlers[module .. "." .. tostring(command)]
@@ -157,7 +188,7 @@ function Srv.onCommand(module, command, player, args)
     if not ok then
         Srv.log("handler failed: " .. tostring(command) .. " from " .. tostring(player:getUsername()) .. ": " .. tostring(err))
         print("[ZeD] server: " .. tostring(command) .. " failed: " .. tostring(err))
-        pcall(Srv.ack, player, rid, false, "fail")
+        pcall(Srv.ack, player, rid, false, "fail", nil, h.ackModule, h.ackCommand)
     end
 end
 
@@ -167,6 +198,7 @@ end
 Srv.register(Tk.MOD_LINK, "hello", { limit = L.HELLO_MS }, function(p, a, rid)
     local r = { v = Tk.PROTO, staff = Srv.can(p, CAP_STAFF), admin = Srv.can(p, CAP_ADMIN) }
     if Srv.helloFill then Srv.helloFill(p, r) end   -- (ZeD_ServerTickets.lua: frozen, unread, the counts for staff)
+    for _, fn in pairs(Srv.helloAdds) do fn(p, r) end
     Srv.to(p, Tk.MOD_LINK, "hello", r)
 end)
 

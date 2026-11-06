@@ -160,10 +160,11 @@ local function playerRoom(md, n, keep)
 end
 
 local function tally(md)
-    local c = { open = 0, spam = 0, gameOpen = 0, zed = {}, claimed = {} }
+    local c = { open = 0, spam = 0, gameOpen = 0, zed = {}, claimed = {}, kinds = {} }
     for _, rec in pairs(md.tickets) do
         if Tk.isOpen(rec.status) then
             c.open = c.open + 1
+            c.kinds[rec.kind] = (c.kinds[rec.kind] or 0) + 1
             if rec.source == "zed" then
                 c.zed[rec.author] = (c.zed[rec.author] or 0) + 1
             else
@@ -295,7 +296,7 @@ local function pushStaffRow(md, rec)
     local c = tally(md)
     Srv.eachStaff(function(o)
         local r = staffRow(rec)
-        r.open, r.spam = c.open, c.spam
+        r.open, r.spam, r.kinds = c.open, c.spam, c.kinds
         Srv.to(o, Tk.MOD, "t_row", r)
     end)
 end
@@ -309,7 +310,7 @@ end
 -- the counts alone: staff only
 local function pushCounts(md)
     local c = tally(md)
-    Srv.eachStaff(function(o) Srv.to(o, Tk.MOD, "t_row", { open = c.open, spam = c.spam }) end)
+    Srv.eachStaff(function(o) Srv.to(o, Tk.MOD, "t_row", { open = c.open, spam = c.spam, kinds = c.kinds }) end)
 end
 
 -- the card to staff who have it open; eachStaff tests the power again, so a demoted client gets no more notes
@@ -338,7 +339,7 @@ Srv.helloFill = function(p, r)
     end
     if Srv.can(p, STAFF) then
         local c = tally(md)
-        r.open, r.spam = c.open, c.spam
+        r.open, r.spam, r.kinds = c.open, c.spam, c.kinds
     end
 end
 
@@ -558,7 +559,7 @@ reg("t_queue", { cap = STAFF, limit = L.QUEUE_MS }, function(p, a, rid)
     local from = (page - 1) * L.PAGE_ROWS
     for i = 1, math.min(L.PAGE_ROWS, n - from) do rows[i] = staffRow(list[from + i]) end
     local c = tally(md)
-    local r = { page = page, pages = pages, n = n, rows = rows, open = c.open, spam = c.spam,
+    local r = { page = page, pages = pages, n = n, rows = rows, open = c.open, spam = c.spam, kinds = c.kinds,
         gameMax = md.gameMax, skipped = md.skipped, noSave = noSave() }
     if page == 1 then
         table.sort(authors)
@@ -919,6 +920,22 @@ reg("t_gamediff", { cap = STAFF, limit = L.DIFF_MS }, function(p, a, rid)
     end
     pushCounts(md)
 end)
+
+-- a player's tickets for their card (Phase 2): staff rows, the newest first, at most n. Rows only: the card has its own t_card
+function Srv.ticketsOf(user, n)
+    local md = open()
+    local list, c = {}, 0
+    for _, rec in pairs(md.tickets) do
+        if rec.author == user then
+            c = c + 1
+            list[c] = rec
+        end
+    end
+    table.sort(list, function(x, y) return x.id > y.id end)
+    local rows = {}
+    for i = 1, math.min(c, n) do rows[i] = staffRow(list[i]) end
+    return rows, c
+end
 
 -- ---------------------------------------------------------------------------
 -- OPENING

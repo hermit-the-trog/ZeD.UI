@@ -1196,3 +1196,192 @@ Where B2, B4, B6, B8 and B9 now differ, and why.
     card's place reads name and coordinates (`Tk.whereFull`). The adopted card's caveat is a line on the card. The wheel over a
     field scrolls the card, the hint is drawn by the card, wrapped, and the keyboard's key reads Accept (`setSingleLine`). It still
     sits at the screen's foot, not under the field.
+
+# Build's changes (Nov 5 2026, Phase 2, admin tools)
+
+The files: `shared/ZeD/ZeD_AdminProto.lua` (`ZeD.Adm`), `server/ZeD/ZeD_ServerAdmin.lua`, `client/ZeD/ZeD_Admin.lua` (the model),
+`client/ZeD/ZeD_AdminCards.lua` (the cards, on the ticket cards' engine, which gained `TC.kinds`, `TC.items` and pick lists over a
+card). Module `ZeDA`; every answer comes back as `t_ack`. The table is `ZeD_AD_` plus a UUID, as B2. The sims are `admin_sim.lua` and
+`admin_cards_sim.lua`; the bridge is `mp_admin.lua` and `mp_admin_cards.lua`. Where it differs from Part A, E7 or the drawing, and why.
+
+1. **A7 said a staff client makes the game's call. Two kinds now do.** Kick, warn, teleport, mute, role and Level Up go from the
+   client that pressed, on the ack. Ban calls go through `md.owed`: the server holds each one (`act`, `target`, `reason`, `at`) and
+   sends it to the actor or any staff member online until one answers `a_done`. That is what lets a player read the reason first
+   (the game's ban waits `LEAVE_S`, 12 seconds), an unban survive the actor leaving, and a timed ban's `Kick` back up the client's
+   own leaving. A modified client that ignores `a_leave` is kicked by the server's game call when it is banned online.
+2. **E7 as settled, with one edge.** Timed bans are ZeD's, permanent ones the game's. Server Lua sees no IP (`UdpConnection.getIP` is
+   not reachable) and `IsoPlayer.getSteamID` is a long past what a Lua number holds, so a client names its own Steam ID in `a_hi`. A
+   timed ban on a Steam ID is client-claimed, like the rest of a timed ban, but the claim is checked: `IsoPlayer.getSteamID` read as
+   a Lua number is the real ID to within `SID_ROUND`, so a client can't name someone else's, and a server without Steam takes none.
+   A timed ban on an IP is refused (`TIMED_IP`, below). A ban row can gain the game's ban (`a_gameban`) when a client stayed, and that
+   comes off when the timed ban ends.
+3. **Mute.** The game's mute is voice only (`/voiceban`, `BanUnbanUser`). `IsoPlayer.setAllChatMuted` is set by the words filter and
+   read by nothing in the chat path of 42.22. So Mute is the server's list (`md.mutes`, `a_mutes` to everyone): each ZeD client hides
+   those lines and the muted client will not send. It is client enforced. A client without ZeD's chat is not stopped.
+4. **Repeating messages do not go through `/servermsg`.** Server Lua cannot reach `ChatServer`, and `ChatManager` is not exposed. A
+   repeat is `a_srvmsg` to every connection, and `ZeD.Chat.serverLine` adds it with the server alerts. The first send is the game's.
+   It reaches only clients with ZeD's chat, and it has no alert over the screen. The clock skips an empty server instead of bursting.
+5. **The powers.** `GameServer.changeRole` switches on three, not the drawing's five: Invisible, No Clip, God Mode, each only when the
+   old role lacked it. The server watches for the role to land (`ROLE_WATCH_S`), turns off what was not ticked on its own object and
+   tells the player's client, which uses the game's setter and `sendPlayerExtraInfo` (client only).
+6. **Capabilities.** The drawing's 23 are the game's 97: all sit in the five groups, with short words (`UI_ZeD_Cap_*`) and the game's
+   tooltip in the help band. Each group folds, or a controller would walk a hundred stops. X is Save on this card and Spawn on the
+   spawn card (the drawing's START), since START is the game's.
+7. **A role's name cannot change.** The game's `setupRole` has no name, so the field shows only for a new role. Up and Down are added
+   to a role's card, or moving roles would have left with the Roles List window.
+8. **The Bans card gains a reason field and the lengths** for a ban on someone offline: the drawing has none, and each ban shows a
+   reason. A row can come from the game's own lists (`getBannedSteamIDs`, `getBannedIPs`, a `banned` role) with no ZeD record: it says so,
+   and Unban goes through the server for the log.
+9. **Manage Inventory opens the game's window,** not the ground pane as drawn: that pane is ZeD's world window and reading another
+   player's items into it is a job of its own.
+10. **Offline players come from `md.players`,** kept by the server's walk (`POLL_S`, a copy every `SNAP_S`), capped at 2000 oldest out,
+    merged with the game's `getUsers` on the client, which alone has warning points, kicks and Steam names. Without `SeeNetworkUsers` those
+    read 0. Kick counts are the game's.
+11. **The Tickets queue moved behind the summary,** on a screen of its own (`st.screen`). `TC.queueWatch` keeps it read while the tab
+    shows, so the sync with the game's list runs as before. `tally` gained `kinds` for the summary, staff only.
+12. **User Logs are the game's** (`requestUserlog`), each as a message stop. `getLastUpdate` is the date; the drawing's "Day 9" is not stored.
+13. **`Srv.adminLog`** writes every action to the ZeD log and to `md.log`, a ring of 2000 lines (who, what, target, text, place, real
+    time, day) for Phase 4. Reasons are in those lines; a ticket's words are not.
+14. **Safehouses and Factions stay in the tab,** under Spawn items. The drawing leaves them out. Phase 3's cards hold only your own, so
+    these lists stay as the way staff see everyone else's (see the merge's notes below).
+15. **The ban screen** is `ZeD_LeaveScreen`, over the game for 12 seconds with Leave. Phase 5 sets `ZeD.Admin.leaveScreen(info)`, and
+    `info.appeal` already has its line.
+16. **The director's questions, each answered the careful way behind one switch in `ZeD_AdminProto.lua`:** `TIMED_IP = false` (Ban IP too
+    goes with Permanent alone, since only a staff client could lift it); `RANK_GUARD = true` (nobody kicks, bans, warns, mutes, brings or
+    levels a role above theirs; the game asks that only of a role change); `MUTE_STAFF_SEES = true` (staff still read a muted player, marked);
+    `SPAWN_TELLS = false` (a player is not told, as `/additem`).
+
+**Part E gains:** E15, whether `getRoles` holds every role on a client without `RolesRead` (a gray then names no role); E16, whether `getUsers`
+fills on `requestUsers` alone (the game's own list reads it in `populateList`, with no event: ZeD reads it every second while the tab shows);
+E17, whether a `/banuser` from `a_owed` shows staff the game's answer; E18, whether a player reads the 12-second screen before the game's
+ban lands on a slow client. Each needs a second client on the local server (`mp_admin.lua` prints them as TODO lines).
+
+# Build's changes (Nov 6 2026, Phase 2, after the review)
+
+1. **A row's name is never read by its shape.** A username may be 17 digits from 7656 (`isValidUserName` allows it). The cards send
+   `user` from a row and `target` only from the Bans card's typed field. A typed target the server knows as a name, in any case, is a
+   name. `a_unban` takes `id`, `user`, `sid` or `ip`, each for what it is. `a_ban` no longer takes a `sid` at all: a ban's Steam ID is the
+   one the server checked in `a_hi`.
+2. **The guard holds on a Steam ID and on an unknown name.** A Steam ID runs the guard of every record that holds it, and a ban is tested
+   again whenever it is about to act (`bindsRole`), so a row made while little was known never removes a protected or higher role. A
+   name the server has never met answers `unknown` for a timed ban, warning points, a mute and a role, since there is no role to test;
+   a permanent ban still goes to the game, which tests it itself. **An IP has no such test:** server Lua sees no IP, so nothing ties one
+   to an account, and `/banip` asks only for `BanUnbanUser`, as it does in the game's own window.
+3. **Rank.** `Roles.addRole` starts a role under every other, so a role's rank is never counted under `user`. Its holders act on plain
+   players as soon as it is saved, and on nobody above `user` until it is moved. On the Role card Up and Down follow ZeD's list, least to
+   most, so Down is more rank; the game's list runs the other way.
+4. **Owed calls carry their ban.** Unbanned or lifted, the calls go with it, and an unban is owed only if the game's ban was made or may
+   have been. A call whose author lost `BanUnbanUser` (their last known role) or whose target rose above the ban is dropped with a log
+   line. A Kick goes a moment past the client's own clock and is dropped if they have left, so there is no age limit: an owed Kick is
+   either on someone still under the ban or it is gone. A call goes to one named client, which alone can answer `a_done`, and never to
+   its own target. A standing ban shuts its holder out of every command but the hello.
+5. **Ban IP too.** The game's IP ban needs the player on, refuses a Steam connection, and in either case bans nobody. So the IP call goes
+   first, at `LEAVE_S`, with the client held on the reason screen (`hold`: no Leave, the client's own clock doubled as a last resort),
+   and the plain ban always follows, `IP_GAP_S` later. A player gone before the call, or still on after it, means the game holds no IP:
+   the row says so and staff get a note. Offline, Ban IP too is refused up front.
+6. **A permanent ban keeps them out until the game holds it.** Until `a_done`, the row works as a timed one does on joining. With a Steam
+   ID on record a `BanSteamID` follows the plain ban, the only one of the two that stores a reason for the game's login line. Otherwise a
+   permanent ban shows the reason only while they are online, and the Bans card says so.
+7. **One row per player.** A second ban answers `already`, and the Player card shows the ban with Unban in Ban's place, behind the foot's
+   confirm. `BANS_MAX` drops the oldest permanent row the game already holds; timed rows are never dropped. `a_ban` and `a_unban` are paced
+   (`BAN_MS`), and past `OWED_MAX` a Kick goes, never a ban or an unban: those commands answer `full`.
+8. **Case.** The game's login matches `LOWER(username)`, so bans and mutes do too (`md.mutes` and the clients' list are lower case). Read
+   from the SQL only: a second client should confirm what spelling reaches `getUsername`.
+9. **The audit ring.** Past `LOG_ACTOR_MAX` a new line takes the place of that account's own oldest, so no one account evicts another's.
+   `s` is the order; Phase 4 sorts by it. `a_power` takes only an id on `POWER_CAP`, with its capability.
+10. **A role change across a restart.** The watch is in `md.watch`, and one back from a restart waits for that player's `a_hi`.
+11. **Reads on the card.** A player's tickets go to `AnswerTickets` alone, and the place of a role above the viewer's stays out of the view.
+12. **The game's windows.** Users and Check your stats are under More tools, and Check stats is on every Player card: accounts, passwords,
+    the whitelist, add XP, professions, traits and the game's banned lists have no card yet, and those windows are the way there.
+13. **Spectate is not built.** The scope lists it for the player card; the drawing dropped it, and the game's Lua has no spectate call to reach
+    (none on the admin panels, none on `LuaManager$GlobalObject`). For the director.
+14. **Without the server part** a Mute is the game's voice ban, kept on this client so Unmute works, and the card says voice only. A role
+    change says the game leaves the powers on. Timed bans and a spawn to the ground are refused, never turned into something else.
+
+**Part E gains:** E19, whether `IsoPlayer.getSteamID` reaches Lua as a number on a dedicated Steam server, as `KahluaNumberConverter` reads;
+if it does not, `sidOf` refuses every claim and name bans simply carry no Steam ID. E20, whether the game keeps the typed spelling of a
+username (item 8). Each needs a second client on a Steam server.
+
+# Build's changes (Nov 5 2026, Phase 3: safehouses and factions)
+
+Files: `ZeD_ClaimProto.lua` (shared), `ZeD_ServerClaims.lua` (server), `ZeD_Claims.lua` (the model), `ZeD_ClaimCards.lua` (the cards).
+`claims_sim.lua`, `claim_cards_sim.lua`, `mp_claims.lua`, `mp_claim_cards.lua`. Nothing is stored: no table, so no secret name.
+Where the build differs from `mockups/zed_safehouse_faction_v1.html` and `MP_ADMIN_SCOPE.md`, and why.
+
+1. **Expiry is the safehouse's, not a member's.** The game's tooltip says players are removed; its code does not. `SafeHouse.update`
+   releases the whole safehouse once `lastVisited + SafeHouseRemovalTime` hours has passed, and any allowed player standing in it
+   resets `lastVisited` (`IsoPlayer.updateInternal2`). So the drawing's "away 61 h: removed in 11 h" on a member's row is gone, and
+   the card says "Keep it by visiting within 3 days", as the scope has it. A member's row says online or offline.
+2. **The time left needs the server part.** `SafehouseSyncPacket` carries no `lastVisited`, so a client's copy is only the moment it
+   first heard of the safehouse. `c_info` sends hours ago, so no client clock enters the sum. Without the server part the rule shows
+   and the countdown does not.
+3. **Faction PvP and Show Tag are each player's own,** in the game (`IsoPlayer.setFactionPvp`, `setShowTag`, `FactionStatsPacket`),
+   not the owner's as drawn. Both ticks show for every member, and a line says so.
+4. **An invitation has no take-back call,** and only the server holds the list. Cancel on a pending row goes through `c_cancel`
+   (`Invite.removeInvite`, reached through `SafeHouse` and `Faction`). Without the server part it is gray and says why, and "invited,
+   waiting" is this client's memory for this session.
+5. **Invitations the client has no note of** (it joined after one was sent) are raised from `c_info`, which reads `hasInvite` on the
+   game's lists. The game sends an invitation once, to a player online, so with no server part one sent before a relog is gone, as
+   in the game.
+6. **The log compares the game's lists every 5 seconds** on `OnTickEvenPaused`, so a change from any window or the game's own expiry
+   is logged and none rests on a client's word. It writes through `Srv.action`, the one log (see the merge's notes below). It names who a change touched, not always
+   who made it: the game keeps no doer. At most 40 lines a pass.
+7. **Fields sit in the cards through two small additions to the ticket frame:** `TC.kinds` and `TC.items` (`TC.itemKinds` until the merge with Phase 2). A field's `one` makes it
+   a line that Enter saves and Escape puts back. `seed` keeps the box with what the game holds unless someone typed over it. A long
+   confirm is `foot.line`, on the line over the bands with mouse or pad, because the game's confirm words outrun a band at Deck width.
+8. **Save has no answer to wait for.** The game's calls send nothing back, so `C.expect` watches for the change for 8 seconds, then says
+   "Nothing changed. The server may have refused it." and keeps the words.
+9. **Member rows pick to a second line** when the buttons will not fit beside the name, as at Deck and 720. Drawn beside it.
+10. **Marks for a rule are ZeD's squares,** solid and hollow, not the drawing's check and cross: the fonts have neither, and each rule's
+    words say it anyway. The drawing's pointing hand is ZeD's focus mark. **The pad keyboard sits at the screen's foot,** not under
+    the field, as for tickets. After typing, focus goes to Save.
+11. **The place reads coordinates and the game's `getLocation`,** not a town: E3 is still open. The checker says "at 6402 x 5410".
+12. **Wars have no drawing.** Built as a card of the same parts. Refuse and Cancel go at once, as in the game's window. Accept and End ask
+    in the foot (`Cl.WAR_CONFIRM`), which the game does not do.
+13. **The rules show in the Server tab too** when you have no safehouse, under Can I claim this?, because that is when they matter. The
+    drawing has them only in the card.
+14. **The Tickets block stays directly under the Server block,** as its drawing has it, then Faction, Safehouse, Wars. The order in this
+    drawing has no Tickets block.
+15. **A claim's title is the username,** as the game's context menu sends it, not "Riverside house", until E3 gives a place name. The
+    title field takes the caret when the card opens; under the controller the card lands on it.
+16. **The game's 15 and its words' 14:** its code takes a 15-character faction name, its text says 3-14. ZeD holds to 14 (`Cl.NAME_MAX`).
+17. **A rename has no claim-day test.** `SafehouseChangeTitlePacket` extends `SafehouseID` and tests only that the title is not empty; the
+    survival test is in `SafeHouseTitle`, the claim packet's parent. So an owner on a new character can rename, as the game's window lets them.
+18. **The HUD's war icon opens the wars card** (`ISEquippedItem:onOptionMouseDown`, wrapped as `ZeD_ClaimCards.lua` loads, because the button
+    keeps the function it was built with). `ISWarManagerUI` runs only if the tab cannot open. The right-click menu's Claim war stays the game's:
+    the card says how.
+19. **A tag's Save waits for the server.** `sendFactionChangeTag` reads the tag and color off the client's object, so ZeD sets them, sends, and
+    puts them straight back; a tag the server takes reaches every client in a `FactionSync`, the sender too. The tag field is for an owner or
+    FactionCheat with enough members: `FactionChangeTagPacket` has no exception for any role. One the game does not fix: with a tag that exists,
+    the packet refuses anyone but the owner, so FactionCheat staff who are not the owner cannot change a color alone, and the card says nothing changed.
+20. **The log compares the game's lists every 5 seconds,** which is the limit of what Phase 4 can read from it. A change undone between two passes
+    leaves no line (an owner hands the house over and takes it back; someone joins and quits). A pass writes at most `LOG_PER_SCAN` lines and then one
+    `claims | N changes not logged` line. Player text in a line has its `|` turned to `/`, so a split on ` | ` gives seven fields. Factions are compared
+    by the object: two can share a name, because the game's rename does not test for one.
+
+Not settled, for QA on the local server (`mp_claims.lua` prints these as PROBE lines):
+
+| # | Unknown | How it settles |
+|---|---|---|
+| F1 | Whether Lua sees `hasInvite` and `removeInvite`: they live on `Invite`, which is not in `LuaManager$Exposer`. Absent, `c_cancel` answers `fail` and waiting invitations are not raised | PROBE line. Two clients for the real run |
+| F2 | Whether `IsoPlayer.updateInternal2` reaches `setLastVisited` on the server's copy of a player, as the bytecode reads | PROBE line: hours ago near 0 while standing in it |
+| F3 | **Settled by the jar: one refused safehouse packet kicks by default.** `SafehouseRelease`, `ChangeOwner`, `ChangeTitle` and `Invite` carry `AntiCheat.SafeHouseOwner`, `ChangeMember` carries `SafeHouseMember`. Both are built with `maxSuspiciousCounter` 1, `AntiCheatSafeHouse` defaults to 2 (kick; 1 bans), and `SuspiciousActivity.report` returns 1 on the first hit. Roles with `CantBeKickedByAnticheat` and debug servers are spared. So each confirm remembers the house it was opened on and is checked in the foot and on the press (`X.stillTrue`), and Save and Invite read the game's lists first | Two clients: a confirm open while the other removes or transfers. Expect the foot to close with no kick |
+| F4 | `onCommandEntered` on `ZeD_TextEntry` with `setMultipleLine(false)`, and the one-line box's height at each text size | Type a title on the local server; `mp_claim_cards.lua` at each size |
+| F5 | E8 again: that `OnTickEvenPaused` fires on the server. The log rests on it | The `safehouse | claim` line appears within 5 seconds |
+
+# Build's changes (Nov 6 2026, Phases 2 and 3 merged)
+
+Both phases grew the ticket frame at once. What the merge settled:
+
+1. **One hook for each job.** `TC.kinds` takes one contract: `key(t, card)`, and `cancel` answers true when it dealt with B, or the frame's
+   own answer runs. `TC.items` replaces `TC.itemKinds`: `gap` in design units, `draw(..., ctx)`, `stops(it, x0, dy, w, add)`, and `stops` may
+   be left out. `D.makeField` takes the whole item. A field's `seed` replaces its `start`; `afind` keeps `start`, for its own box. Labels both
+   wrap and take `right` or `rightFn`, cut to the room left.
+2. **One log.** `Srv.action(kind, who, what, target, detail, x, y, z)` in `ZeD_ServerCore.lua` writes every admin, safehouse and faction line:
+   `kind | what | who | target | where | detail | day N`, seven fields, `-` for an empty one. `Srv.adminLog` is that call with kind `admin`.
+   `md.log` holds every kind, with `kind` on each row, under the same per-account share. A faction's name is the line's target. With the
+   admin tools off the lines still reach the ZeD log, but no ring holds them. Ticket lines are still free text: Phase 4 moves them.
+3. **The Admin tab keeps Safehouses and Factions.** The Server tab's cards read only your own (`C.safe`, `C.fac`), so these lists are the only
+   way staff see anyone else's. Your own row opens its card; anyone else's opens the game's window, until a staff card holds them.
+4. **Two answers to a command stay.** Admin commands answer on the tickets' `t_ack`, and claims on their own `c_ack` through `ackModule`, since
+   those cards work without the tickets' model. `Srv.ack` carries both.
