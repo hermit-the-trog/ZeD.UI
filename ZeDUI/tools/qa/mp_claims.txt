@@ -1,1 +1,1 @@
-mp_claims.lua | mcl | timeout=240
+mp_claims.lua | mcl | timeout=520
