@@ -4,6 +4,7 @@
 -- In the World window, for admins only (the game's own test: the role has an admin tool), on a server only. One list:
 --   TICKETS        the summary, as drawn; its row opens the queue (ZeD_TicketCards.lua: filters, Find, rows, pages) on a
 --                  screen of its own behind st.screen, and a ticket card on top of that behind st.card
+--   LOG            its row opens the Log card (ZeD_LogCards.lua)
 --   PLAYERS        the one list, online and offline, with role, last seen, warning points and Find; a row opens the
 --                  Player card
 --   ADMIN POWERS   your own powers, the game's list (ISAdminPowerUI.OptionList), with a line on what each does
@@ -27,6 +28,7 @@ require "ZeD/ZeD_TicketCards"
 require "ZeD/ZeD_Admin"
 require "ZeD/ZeD_AdminCards"
 require "ZeD/ZeD_ExtrasCards"
+require "ZeD/ZeD_LogCards"
 
 ZeD = ZeD or {}
 local A = {}

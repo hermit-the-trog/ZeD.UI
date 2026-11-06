@@ -35,17 +35,25 @@ function Srv.can(p, cap)
     return role ~= nil and role:hasCapability(cap) == true
 end
 
--- every line goes to Zomboid/Logs/<date>_ZeD.txt. Never a ticket's text or a note, never the table's name
+-- the file: every line goes to Zomboid/Logs/<date>_ZeD.txt. Never a ticket's text or a note, never a table's name. Only
+-- Srv.fileLine calls this, so everything in that file is one log with one shape
 function Srv.log(text) writeLog("ZeD", text) end
 
-function Srv.day() return math.floor(getGameTime():getWorldAgeHours() / 24) + 1 end
+-- (0 before there is a game clock: the file's first lines are written as the Lua loads)
+function Srv.day()
+    local gt = getGameTime and getGameTime()
+    if not gt then return 0 end
+    return math.floor(gt:getWorldAgeHours() / 24) + 1
+end
 
--- THE ACTION LOG, the one thing Phase 4 reads. Admin actions (Srv.adminLog) and claim and faction changes
--- (ZeD_ServerClaims.lua) all come through Srv.action, each as one line of seven fields, "-" for an empty one:
+-- THE ACTION LOG, what the Log view reads. Everything the server part has to say comes through Srv.action, each as one line
+-- of seven fields, "-" for an empty one:
 --   kind | what | who | target | where | detail | day N
--- kind: admin, safehouse, faction, or claims for the log's own word. A field has no line break and its | is turned to /, so
--- a split on " | " always gives seven. Srv.actionStore (ZeD_ServerAdmin.lua) keeps the same line for the Log view; without
--- the admin table the line still reaches the ZeD log.
+-- kind: admin (the server part's own lines are here, who Tk.SYS), safehouse, faction, vehicle, pvp, ticket, container (a
+-- player's own game reporting, and the only kind that isn't the server's word), or claims for the log's own word. A field
+-- has no line break and its | is turned to /, so a split on " | " always gives seven.
+-- Srv.actionStore (ZeD_ServerAdmin.lua) keeps the same line for the Log view; without the admin table the line still reaches
+-- the ZeD log. ex: what a line's words need (car, part, locked), kept in the ring and not in the file.
 local function logField(v)
     if v == nil then return "-" end
     local s = string.gsub(Tk.clean(tostring(v)) or "", "\n", " ")
@@ -54,14 +62,19 @@ local function logField(v)
     return s
 end
 
-function Srv.action(kind, who, what, target, detail, x, y, z)
+-- the line in the file alone: for a table's own opening, which the ring can't hold yet
+function Srv.fileLine(kind, who, what, target, detail, x, y, z)
     local where = "-"
     if x then
         where = tostring(x) .. "," .. tostring(y)
         if z then where = where .. "," .. tostring(z) end
     end
     Srv.log(table.concat({ kind, logField(what), logField(who), logField(target), where, logField(detail), "day " .. tostring(Srv.day()) }, " | "))
-    if Srv.actionStore then Srv.actionStore(kind, who, what, target, detail, x, y, z) end
+end
+
+function Srv.action(kind, who, what, target, detail, x, y, z, ex)
+    Srv.fileLine(kind, who, what, target, detail, x, y, z)
+    if Srv.actionStore then Srv.actionStore(kind, who, what, target, detail, x, y, z, ex) end
 end
 
 local function memOf(user)
@@ -81,7 +94,7 @@ local function general(user, now)
         m.over = m.over + 1
         if not m.overLog or now - m.overLog >= L.MINUTE_MS then
             m.overLog = now
-            Srv.log("rate limit: " .. tostring(user) .. " over the general limit, " .. tostring(m.over) .. " dropped so far")
+            Srv.action("admin", user, "rate limit", nil, "over the general limit, " .. tostring(m.over) .. " dropped so far")
         end
         return false
     end
@@ -106,7 +119,7 @@ function Srv.deny(p, what)
     local now = getTimestampMs()
     if m.denyLog and now - m.denyLog < L.MINUTE_MS then return end
     m.denyLog = now
-    Srv.log("refused: " .. tostring(p:getUsername()) .. " has no right to " .. tostring(what))
+    Srv.action("admin", p:getUsername(), "refused", nil, "has no right to " .. tostring(what))
 end
 
 -- a line for arguments no client of ours sends, a few a minute per player
@@ -116,7 +129,7 @@ function Srv.bad(p, what)
     if not m.badAt or now - m.badAt >= L.MINUTE_MS then m.badAt, m.badN = now, 0 end
     if m.badN >= L.BAD_LINES then return end
     m.badN = m.badN + 1
-    Srv.log("bad arguments: " .. tostring(p:getUsername()) .. " on " .. tostring(what))
+    Srv.action("admin", p:getUsername(), "bad arguments", nil, what)
 end
 
 function Srv.to(p, module, command, args) sendServerCommand(p, module, command, args) end
@@ -186,7 +199,7 @@ function Srv.onCommand(module, command, player, args)
     local rid = Tk.whole(args.rid) and args.rid or nil
     local ok, err = pcall(run, h, player, args, rid)
     if not ok then
-        Srv.log("handler failed: " .. tostring(command) .. " from " .. tostring(player:getUsername()) .. ": " .. tostring(err))
+        Srv.action("admin", player:getUsername(), "handler failed", nil, tostring(command) .. ": " .. tostring(err))
         print("[ZeD] server: " .. tostring(command) .. " failed: " .. tostring(err))
         pcall(Srv.ack, player, rid, false, "fail", nil, h.ackModule, h.ackCommand)
     end
@@ -208,7 +221,7 @@ end)
 if not (CAP_STAFF and CAP_ADMIN) then
     Srv.off = true
     print("[ZeD] server part off: this game has no AnswerTickets or RolesWrite capability")
-    Srv.log("server part off: a capability is missing from this game version")
+    Srv.action("admin", Tk.SYS, "server part off", nil, "a capability is missing from this game version")
     return
 end
 Srv.off = nil
@@ -220,7 +233,8 @@ if Srv.listening == nil then
 end
 
 -- Any client can write to any logger through ISLogSystem (A5). The ZeD log is closed to that channel, by name with
--- its case and punctuation ignored. ISLogSystem.OnClientCommand looks the function up at each call.
+-- its case and punctuation ignored. ISLogSystem.OnClientCommand looks the function up at each call. Srv.tapBy names the
+-- sender for the Log view's tap (ZeD_ServerLog.lua), which sees the line when the game's writeLog is called.
 if not Srv.logClosed and ISLogSystem and ISLogSystem.writeLog then
     Srv.logClosed = true
     local base = ISLogSystem.writeLog
@@ -230,11 +244,14 @@ if not Srv.logClosed and ISLogSystem and ISLogSystem.writeLog then
             local plain = string.gsub(string.lower(name), "[^%a]", "")
             if string.find(plain, "zed", 1, true) then return end
         end
-        return base(who, packet)
+        Srv.tapBy = who and who:getUsername() or nil
+        local ok, err = pcall(base, who, packet)
+        Srv.tapBy = nil
+        if not ok then error(err) end
     end
 end
 
 print("[ZeD] server part up, protocol " .. tostring(Tk.PROTO))
-Srv.log("server part up, protocol " .. tostring(Tk.PROTO))
+Srv.action("admin", Tk.SYS, "server part up", nil, "protocol " .. tostring(Tk.PROTO))
 
 return Srv

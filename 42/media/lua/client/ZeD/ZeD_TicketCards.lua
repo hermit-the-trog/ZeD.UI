@@ -49,6 +49,7 @@ local L = Tk.LIMITS
 
 -- E5: OsLib reads real time in UTC, as far as the bytecode says. The date carries that word until QA settles it.
 local DATE_SAYS_UTC = true
+TC.DATE_SAYS_UTC = DATE_SAYS_UTC
 
 local PAD, ROW_PAD, CARD_PAD = 10, 7, 12   -- design units
 local CHIP_GAP, FIELD_PAD = 6, 4
@@ -89,6 +90,7 @@ local MONTHS = {
 local D = {}     -- the file's helpers (a table: Kahlua counts every local in the chunk)
 local B = {}     -- what each card holds
 TC._D, TC._B = D, B
+D.MONTHS = MONTHS
 -- Cards and items other files build on this frame (ZeD_AdminCards.lua, ZeD_ClaimCards.lua).
 -- TC.kinds: kind -> { data(card), items(win, st, t, card, data), foot(win, st, t, card, data), title(card, data),
 --   help(t, card, data), key(t, card), tick(win, st, t, card), back(win, st, t, card), gone(card),
@@ -907,6 +909,7 @@ end
 function D.queueNotes(frozen, page, mode)
     local out = {}
     if mode == "off" then out[#out + 1] = tr("UI_ZeD_Tk_HelpFallback") end
+    if C.gameSilent then out[#out + 1] = tr((mode == "off") and "UI_ZeD_Tk_GameSilentOff" or "UI_ZeD_Tk_GameSilent") end
     if frozen then out[#out + 1] = C.errText("frozen") end
     if page and page.noSave then out[#out + 1] = tr("UI_ZeD_Tk_NoSave") end
     if page and page.skipped and page.skipped > 0 then out[#out + 1] = tr("UI_ZeD_Tk_Skipped", page.skipped) end
@@ -1430,6 +1433,7 @@ function B.staffFacts(items, st, data)
         B.fact(items, tr("UI_ZeD_Tk_FactNear"), tr("UI_ZeD_Tk_NotRecorded"))
     end
     if data.gameGone then B.fact(items, tr("UI_ZeD_Tk_FactGame"), tr("UI_ZeD_Tk_RemovedGame")) end
+    if ZeD.LogCards then ZeD.LogCards.aroundFact(items, st, data) end
 end
 
 function B.staff(win, st, card, data)

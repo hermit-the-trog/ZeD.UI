@@ -26,6 +26,11 @@
 --
 -- The table has a secret random name, as the tickets' does (A2), and is never transmitted. Views are allowlists, for one
 -- player. Every act goes through Srv.action, with kinds vehicle, safehouse, container and admin.
+--
+-- WITH THE LOG (ZeD_ServerLog.lua, which wraps the same vehicle actions): that file loads after this one and wraps at load, and
+-- this one wraps when a system is first on, so its wrap sits outside the Log's. A refused action never reaches the Log's wrap: the
+-- refusal below is its only line, and the Log's probe hears of it (Srv.L.refused). The Log asks this file whose car it is and what
+-- a claim stops through the Srv.ex* functions at the end, each starting with one boolean, so with the extras off it touches nothing.
 -- ============================================================================
 if not isServer() then return end
 
@@ -48,7 +53,7 @@ local CAP = {}
 for _, name in ipairs(Ex.SERVER_CAPS) do
     CAP[name] = Capability and Capability[name]
     if not CAP[name] then
-        Srv.log("server extras off: this game has no " .. name .. " capability")
+        Srv.fileLine("admin", Tk.SYS, "server extras off", nil, "this game has no " .. name .. " capability")
         print("[ZeD] server extras off: no " .. name)
         return
     end
@@ -64,6 +69,7 @@ Srv.exOn = On
 local Tests = Srv.exTests or {}
 Srv.exTests = Tests
 Srv.exWrapped = Srv.exWrapped or {}
+Srv.exTop = Srv.exTop or {}     -- each wrapped function as it stands: the Log's fallback puts these on an action, refusal and all
 
 local F = {}     -- the file's helpers (a table: Kahlua counts every local in the chunk)
 
@@ -80,7 +86,7 @@ function F.findName()
             if not best or n < best then best = n end
         end
     end
-    if found > 1 then Srv.log("found " .. found .. " extras tables; using the first by name") end
+    if found > 1 then Srv.fileLine("admin", Tk.SYS, "extras tables", nil, "found " .. found .. "; using the first by name") end
     return best
 end
 
@@ -103,7 +109,7 @@ function F.open()
         end
         md.schema = md.schema + 1
     end
-    if T.frozen then Srv.log("the extras table is frozen: schema " .. tostring(md.schema) .. ", this ZeD knows " .. SCHEMA) end
+    if T.frozen then Srv.fileLine("admin", Tk.SYS, "extras table frozen", nil, "schema " .. tostring(md.schema) .. ", this ZeD knows " .. SCHEMA) end
     T.md = md
     T.counts = {}
     for _, c in pairs(md.claims) do T.counts[c.owner] = (T.counts[c.owner] or 0) + 1 end
@@ -157,12 +163,12 @@ function F.claimOf(v)
     if not c then return nil end
     if c.tok ~= v:getModData()[STAMP] then
         F.drop(md, key, c)
-        Srv.action("vehicle", c.owner, "claim gone: that car is gone", nil, c.name, c.x, c.y)
+        Srv.action("vehicle", c.owner, "claim gone: that car is gone", nil, c.name, c.x, c.y, nil, { car = c.name })
         return nil
     end
     if v:isBurnt() then
         F.drop(md, key, c)
-        Srv.action("vehicle", c.owner, "claim gone: burnt", nil, c.name, math.floor(v:getX()), math.floor(v:getY()))
+        Srv.action("vehicle", c.owner, "claim gone: burnt", nil, c.name, math.floor(v:getX()), math.floor(v:getY()), nil, { car = c.name })
         return nil
     end
     return c
@@ -223,18 +229,25 @@ function F.insideHouse(x, y)
     return false
 end
 
--- a refusal: said to the player and logged, one in NOTE_MS
-function F.refused(p, what, kind, who, x, y)
-    if Srv.left(p, "x_no", L.NOTE_MS) then return end
-    Srv.mark(p, "x_no")
+-- a refusal: said to the player and logged, one of each sort in NOTE_MS (a tow refused just after a part still says so). car:
+-- the car's name for the Log's words
+function F.refused(p, what, kind, who, x, y, car)
+    local key = "x_no:" .. what
+    if Srv.left(p, key, L.NOTE_MS) then return end
+    Srv.mark(p, key)
     Srv.to(p, Ex.MOD, "x_no", { what = what, who = who })
-    Srv.action(kind, p:getUsername(), "refused: " .. what, who, nil, math.floor(x), math.floor(y))
+    Srv.action(kind, p:getUsername(), "refused: " .. what, who, car, math.floor(x), math.floor(y), nil, car and { car = car } or nil)
+end
+
+function F.carName(v)
+    local sc = v:getScript()
+    return sc and (sc:getCarModelName() or sc:getName()) or nil
 end
 
 function F.refuseCar(p, v, what)
     local c = F.carBlock(p, v)
     if not c then return false end
-    F.refused(p, what, "vehicle", c.owner, v:getX(), v:getY())
+    F.refused(p, what, "vehicle", c.owner, v:getX(), v:getY(), F.carName(v))
     return true
 end
 
@@ -256,16 +269,22 @@ function F.wrap(name, cls, method, test)
     Tests[id] = test
     if Srv.exWrapped[id] then return end
     if not (cls and cls[method]) then
-        Srv.log("server extras: no " .. id .. " in this game; that part of the extras does nothing")
+        Srv.action("admin", Tk.SYS, "extras wrap missing", nil, "no " .. id .. " in this game; that part of the extras does nothing")
         return
     end
     Srv.exWrapped[id] = true
     local base = cls[method]
     cls[method] = function(self, a, b)
         local ok, no = pcall(Tests[id], self, a)
-        if ok and no then return false end
+        if ok and no then
+            -- (the Log's wrap is inside this one, so it won't see this action: a refusal still proves the road, E2)
+            local Lo = Srv.L
+            if Lo and Lo.refused then pcall(Lo.refused, name) end
+            return false
+        end
         return base(self, a, b)
     end
+    Srv.exTop[id] = cls[method]
 end
 
 -- complete() on the server; false is the game's own refusal (the head of this file)
@@ -311,10 +330,11 @@ function F.towWatch(player, args)
     if not (ida and idb) then return end
     local a, b = getVehicleById(ida), getVehicleById(idb)
     if not (a and b) then return end
-    local c = F.carBlock(player, a) or F.carBlock(player, b)
+    local c, car = F.carBlock(player, a), a
+    if not c then c, car = F.carBlock(player, b), b end
     if not c then return end
     a:breakConstraint(player, true, false)
-    F.refused(player, "tow", "vehicle", c.owner, a:getX(), a:getY())
+    F.refused(player, "tow", "vehicle", c.owner, a:getX(), a:getY(), F.carName(car))
 end
 
 function F.startWatch(p)
@@ -324,7 +344,7 @@ function F.startWatch(p)
     local c = F.carBlock(p, v)
     if not c then return end
     v:shutOff()
-    F.refused(p, "drive", "vehicle", c.owner, v:getX(), v:getY())
+    F.refused(p, "drive", "vehicle", c.owner, v:getX(), v:getY(), F.carName(v))
 end
 
 -- after the game's own handler: the listeners run in the order they were added, and the game's file loads first
@@ -340,7 +360,7 @@ function F.armWatch()
     -- (looked up at each call, so a reload of this file takes effect)
     Events.OnClientCommand.Add(function(module, command, player, args)
         local ok, err = pcall(function() ZeD.Srv.X.cmdWatch(module, command, player, args) end)
-        if not ok then Srv.log("vehicle command watch failed: " .. tostring(err)) end
+        if not ok then Srv.action("admin", Tk.SYS, "vehicle command watch failed", nil, tostring(err)) end
     end)
 end
 
@@ -400,7 +420,7 @@ function F.armDestroy()
     Srv.exHitHooked = true
     Events.OnWeaponHitThumpable.Add(function(chr, weapon, obj)
         local ok, err = pcall(function() ZeD.Srv.X.swing(chr, weapon, obj) end)
-        if not ok then Srv.log("swing watch failed: " .. tostring(err)) end
+        if not ok then Srv.action("admin", Tk.SYS, "swing watch failed", nil, tostring(err)) end
     end)
 end
 
@@ -413,7 +433,7 @@ function F.armClock()
         if not ok and not T.tickFailed then
             T.tickFailed = true
             print("[ZeD] server: extras clock failed: " .. tostring(err))
-            Srv.log("extras clock failed: " .. tostring(err))
+            Srv.action("admin", Tk.SYS, "extras clock failed", nil, tostring(err))
         end
     end)
 end
@@ -449,7 +469,7 @@ function F.lapse(md, now)
         local key = gone[i]
         local c = md.claims[key]
         F.drop(md, key, c)
-        Srv.action("vehicle", c.owner, "claim lapsed", nil, c.name, c.x, c.y)
+        Srv.action("vehicle", c.owner, "claim lapsed", nil, c.name, c.x, c.y, nil, { car = c.name })
     end
 end
 
@@ -466,7 +486,7 @@ function F.poll(md, now)
                     c.x, c.y = math.floor(v:getX()), math.floor(v:getY())
                 elseif On.drive and v:isEngineRunning() and F.carBlock(o, v) then
                     v:shutOff()
-                    F.refused(o, "drive", "vehicle", c.owner, v:getX(), v:getY())
+                    F.refused(o, "drive", "vehicle", c.owner, v:getX(), v:getY(), F.carName(v))
                 end
             end
         end
@@ -537,11 +557,6 @@ end
 
 function F.count(u) return T.counts[u] or 0 end
 
-function F.carName(v)
-    local sc = v:getScript()
-    return sc and (sc:getCarModelName() or sc:getName()) or nil
-end
-
 reg("x_claim", { limit = L.CLAIM_MS }, function(p, a, rid)
     local md = F.open()
     if F.frozen(p, rid) then return end
@@ -570,11 +585,12 @@ reg("x_claim", { limit = L.CLAIM_MS }, function(p, a, rid)
     if total >= L.CLAIMS_MAX then return Srv.ack(p, rid, false, "full") end
     local x, y = math.floor(v:getX()), math.floor(v:getY())
     local tok = getRandomUUID()
+    local car = F.carName(v)
     v:getModData()[STAMP] = tok
-    md.claims[Ex.keyOf(sql)] = { owner = u, at = getTimestamp(), name = F.carName(v), x = x, y = y, tok = tok }
+    md.claims[Ex.keyOf(sql)] = { owner = u, at = getTimestamp(), name = car, x = x, y = y, tok = tok }
     T.counts[u] = F.count(u) + 1
     md.seen[u] = getTimestamp()
-    Srv.action("vehicle", u, "claim", nil, F.carName(v), x, y)
+    Srv.action("vehicle", u, "claim", nil, car, x, y, nil, { car = car })
     Srv.ack(p, rid, true)
 end)
 
@@ -593,7 +609,7 @@ reg("x_release", { limit = L.CLAIM_MS }, function(p, a, rid)
         return Srv.ack(p, rid, false, "perm")
     end
     F.drop(md, a.key, c)
-    Srv.action("vehicle", u, "release", (c.owner ~= u) and c.owner or nil, c.name, c.x, c.y)
+    Srv.action("vehicle", u, "release", (c.owner ~= u) and c.owner or nil, c.name, c.x, c.y, nil, { car = c.name })
     Srv.ack(p, rid, true)
 end)
 
@@ -664,6 +680,29 @@ reg("x_took", { limit = L.TOOK_MS }, function(p, a, rid)
     end
     Srv.action("container", p:getUsername(), "took", nil, text .. " (reported by their game)", a.x, a.y, a.z)
 end)
+
+-- ---------------------------------------------------------------------------
+-- WHAT THE LOG ASKS (ZeD_ServerLog.lua). Each tests its boolean first: with the system off, no car is touched
+-- ---------------------------------------------------------------------------
+-- a claimed car's owner is the one who claimed it, whoever drove it last
+function Srv.exOwner(v)
+    if not On.claims then return nil end
+    local c = F.claimOf(v)
+    return c and c.owner or nil
+end
+-- this driver's engine is about to be shut off: they are no driver of this car
+function Srv.exDriveStops(p, v)
+    return On.drive == true and F.carBlock(p, v) ~= nil
+end
+-- this tow comes straight off, and its line says refused
+function Srv.exTowStops(p, a, b)
+    return On.tow == true and (F.carBlock(p, a) or F.carBlock(p, b)) ~= nil
+end
+-- is the Container log on? The Log's chip follows this
+function Srv.exContainerLog()
+    F.open()
+    return T.set.cl.on == true
+end
 
 -- ---------------------------------------------------------------------------
 -- OPENING
