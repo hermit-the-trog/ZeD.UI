@@ -3,12 +3,13 @@
 -- THE ADMIN TAB (the director's multiplayer decisions, Nov 5 2026: ZeDUI/MP_DECISIONS.md, sections 1 and 4)
 -- In the World window, for admins only (the game's own test: the role has an admin tool), on a server only.
 -- The first pass redraws the everyday tools; each shows only with the capability the game asks for it:
+--   TICKETS       first, as drawn: the queue (ZeD_TicketCards.lua: filters, Find, rows, pages), its count on the tab's
+--                 label, and the ticket card pushed on top of this list behind st.card
 --   PLAYERS       who is on (the game's scoreboard); pick one: Teleport to, Bring here, Check stats, Kick, Ban
 --                 (Kick and Ban ask first, in place); the server's own commands, as the game's scoreboard sends them
 --   ADMIN POWERS  your own powers (invisible, god mode, no clip ...), the game's list (ISAdminPowerUI.OptionList)
 --                 with its words; a tick applies it and tells the server, as the game's Save does
 --   SERVER MESSAGE a line every player sees (/servermsg), typed in the game's text prompt (ZeD draws it)
---   TICKETS       the players' tickets (the game's getTickets), each with its answer; Answer and Remove
 --   SAFEHOUSES    every safehouse and FACTIONS every faction; pick one to open it in the game's own window
 --   MORE TOOLS    the rest of the game's admin panel, its own windows: roles, users, statistics, the mini
 --                 scoreboard, server and sandbox options, the PvP log, weather, safe zones, non-PvP zones, the zone
@@ -21,7 +22,7 @@ require "ZeD/Molecules"
 require "ZeD/Tr"
 require "ZeD/ServerTab"
 require "ZeD/ZeD_WorldWindow"
-require "ZeD/ZeD_Tickets"
+require "ZeD/ZeD_TicketCards"
 
 ZeD = ZeD or {}
 local A = {}
@@ -40,14 +41,6 @@ function A.visible()
     if not isClient() then return false end
     local p = getPlayer()
     return p ~= nil and safe(function() return p:getRole():hasAdminTool() end, false)
-end
-
--- ---------------------------------------------------------------------------
--- THE TICKETS. Not every ViewTickets reply is the whole list (the design's A4), so ZeD_Tickets.lua reads them all and
--- keeps the latest full list; with the server part this no longer polls. The ticket cards replace this section.
--- ---------------------------------------------------------------------------
-local function askTickets(force)
-    if ZeD.Tickets then ZeD.Tickets.adminAsk(force) end
 end
 
 -- ---------------------------------------------------------------------------
@@ -89,19 +82,6 @@ function DO.askyes(p, st)
 end
 function DO.servermsg(p, st)
     textPrompt(tr("UI_ZeD_Adm_ServerMsgAsk"), "", function(text) SendCommandToServer("/servermsg " .. quote(text)) end)
-end
-function DO.answer(p, st)
-    local t = st.ticket
-    if not t then return end
-    textPrompt(tr("UI_ZeD_Adm_AnswerAsk", t.author), "", function(text)
-        ZeD.Tickets.gameAnswer(t.id, text)
-    end)
-end
-function DO.remove(p, st)
-    local t = st.ticket
-    if not t then return end
-    ZeD.Tickets.gameRemove(t.id)
-    st.ticket = nil
 end
 function DO.safehouse(p, st)
     local h = st.house
@@ -183,8 +163,10 @@ local function powers(p, L)
     end
 end
 
-local function build(p, st)
+local function build(p, st, win)
     local L = {}
+    -- TICKETS
+    if cap(p, "AnswerTickets") then ZeD.TicketCards.queueItems(L, win, st) end
     -- PLAYERS
     local S = ZeD.ServerTab
     local players = S and S.players or {}
@@ -222,24 +204,6 @@ local function build(p, st)
     if cap(p, "DisplayServerMessage") then
         head(L, tr("UI_ZeD_Adm_ServerMsg"))
         btns(L, { B("servermsg", tr("UI_ZeD_Adm_ServerMsgWrite"), tr("UI_ZeD_Adm_HelpServerMsg")) })
-    end
-    -- TICKETS
-    if cap(p, "AnswerTickets") then
-        askTickets()
-        local tickets = ZeD.Tickets and ZeD.Tickets.adminRows() or {}
-        head(L, getText("IGUI_AdminPanel_SeeTickets"), #tickets)
-        if #tickets == 0 then line(L, tr("UI_ZeD_Adm_NoTickets")) end
-        for _, t in ipairs(tickets) do
-            local on = st.ticket and st.ticket.id == t.id
-            pick(L, "t:" .. tostring(t.id), t.author, t.answer and tr("UI_ZeD_Adm_Answered") or nil, on)
-            L[#L].ticket = t
-            add(L, { k = "text", text = t.text })
-            if t.answer then add(L, { k = "text", text = t.answer, dim = true }) end
-            if on then
-                btns(L, { B("answer", getText("IGUI_TicketUI_AnswerTicket"), tr("UI_ZeD_Adm_HelpAnswer")),
-                          B("remove", getText("IGUI_TicketUI_RemoveTicket"), tr("UI_ZeD_Adm_HelpRemove"), false, true) })
-            end
-        end
     end
     -- SAFEHOUSES
     if cap(p, "CanSetupSafehouses") then
@@ -298,9 +262,8 @@ local function measure(L, w)
             it.h = f2h + px(ROW_GAP) * 2
         elseif it.k == "line" then
             it.h = f2h + px(ROW_GAP)
-        elseif it.k == "text" then
-            it.lines = ZeD.Atoms.wrapText(it.text, T.fontF2, inner - px(PAD))
-            it.h = math.max(1, #it.lines) * f2h + px(ROW_GAP)
+        elseif it.k == "tk" then
+            it.h = ZeD.TicketCards.itemH(it, inner)
         elseif it.k == "check" then
             it.h = math.max(f2h, T.checkboxSz or px(12)) + px(ROW_GAP) * 2
         elseif it.k == "btns" then
@@ -372,14 +335,13 @@ local function drawItem(panel, win, st, it, x, dy, cw, mx, my)
     local pad = px(PAD)
     if it.k == "head" then
         M.drawSectionHeader(panel, x + pad, dy, cw - pad, it.text, it.count, true, false, nil, nil, pad, nil, true)
+        if it.right then
+            ZeD.Atoms.drawTextRight(panel, it.right, x + cw - pad, dy + math.floor((it.h - ZeD.TM:getFontHeight(T.fontF1)) / 2), T.fontF1, T.textDim)
+        end
+    elseif it.k == "tk" then
+        ZeD.TicketCards.drawItem(panel, win, st, it, x, dy, cw, mx, my)
     elseif it.k == "line" then
         M.drawEmptyLine(panel, x + pad, dy, cw - 2 * pad, it.text)
-    elseif it.k == "text" then
-        local c = it.dim and T.textDim or T.text
-        local fh = ZeD.TM:getFontHeight(T.fontF2)
-        for i, s in ipairs(it.lines or {}) do
-            panel:drawText(s, x + 2 * pad, dy + (i - 1) * fh, c.r, c.g, c.b, c.a or 1, T.fontF2)
-        end
     elseif it.k == "pick" then
         drawPick(panel, win, st, it, x, dy, cw, mx, my)
     elseif it.k == "check" then
@@ -413,13 +375,19 @@ function A.render(panel, win, x, y, w, h)
     local st = state(win)
     local p = win._playerObj or getPlayer()
     if not p then return end
+    local TC = ZeD.TicketCards
+    TC.bind(win, st, "adm:tk:", "worldTabContent")
+    if st.card then
+        TC.renderCard(panel, win, st, x, y, w, h)
+        return
+    end
     -- (the players come from the game's scoreboard, as the Server tab asks it: asked here too while this tab shows)
     local S = ZeD.ServerTab
     if S and getTimestampMs() - (S.askedAt or 0) > 5000 then
         S.askedAt = getTimestampMs()
         if scoreboardUpdate then pcall(scoreboardUpdate) end
     end
-    local L = build(p, st)
+    local L = build(p, st, win)
     st.items = L
     local headH = M.getTabHeaderH()
     local sy, sh = y + headH, h - headH
@@ -436,12 +404,13 @@ function A.render(panel, win, x, y, w, h)
         scroll:setScrollPos(0)
     end
     local off = needs and math.floor(scroll.scrollPos * maxOff) or 0
-    st.off, st.sy, st.x = off, sy, x
+    st.off, st.sy, st.x, st.w = off, sy, x, w
     local Fo = ZeD.Input and ZeD.Input.Focus
     local mx, my = panel:getMouseX(), panel:getMouseY()
     if not (mx >= x and mx < x + w and my >= sy and my < sy + sh) or (Fo and Fo.cuesVisible and Fo.cuesVisible()) then mx, my = nil, nil end
     local cw = w - (needs and T.sp.scrollbarW or 0)
     st.hits = {}
+    TC.beginList(win, st, sy, sh, TC.queueHelp(st))
     panel:setStencilRect(x, sy, w, sh)
     for _, it in ipairs(L) do
         local dy = sy + it.y - off
@@ -449,8 +418,9 @@ function A.render(panel, win, x, y, w, h)
     end
     panel:clearStencilRect()
     panel:setStencilRect(0, 0, panel:getWidth(), panel:getHeight())
-    M.drawTabHeader(panel, x, y, w, tr("UI_ZeD_World_TabAdmin"), false, false, true)
+    M.drawTabHeader(panel, x, y, w, TC.tabLabel(tr("UI_ZeD_World_TabAdmin")), false, false, true)
     if needs then scroll:draw(panel) end
+    TC.endList(panel, win, st, sy, sy + sh)
 end
 
 -- ---------------------------------------------------------------------------
@@ -462,8 +432,6 @@ local function choose(st, it)
     if it.pl then
         if st.sel and st.sel.user == it.pl.user then st.sel = nil else st.sel = it.pl end
         st.ask, st.note = nil, nil
-    elseif it.ticket then
-        st.ticket = (st.ticket and st.ticket.id == it.ticket.id) and nil or it.ticket
     elseif it.house then
         st.house = (st.house == it.house) and nil or it.house
     elseif it.faction then
@@ -503,11 +471,17 @@ end
 
 function A.onClick(win, x, y)
     local st = state(win)
+    local TC = ZeD.TicketCards
+    if st.card then
+        TC.cardClick(win, st, x, y)
+        return
+    end
     local sc = st.scroll
     if sc.visible and x >= sc.x and x < sc.x + sc.width and y >= sc.y and y < sc.y + sc.height then
         sc:handleMouseDown(y - sc.y)
         return
     end
+    if TC.listClick(win, st, x, y) then return end
     for _, hz in ipairs(st.hits or {}) do
         if x >= hz.x and x < hz.x + hz.w and y >= hz.y and y < hz.y + hz.h then
             if hz.btn then press(win, st, hz.btn)
@@ -522,11 +496,16 @@ end
 function A.buildFocusables(win)
     local st = win._adminTab
     if not st then return {} end
+    local TC = ZeD.TicketCards
+    if st.card then return TC.cardStops(win, st) end
     local out = {}
+    if TC.popupStops(st, out) then return out end
     local sy, off, x0 = st.sy or 0, st.off or 0, (st.x or 0) + px(PAD)
     for _, it in ipairs(st.items or {}) do
         local dy = sy + it.y - off
-        if it.k == "pick" then
+        if it.k == "tk" then
+            TC.itemStops(out, st, it, x0, dy, st.w or 0, "adm")
+        elseif it.k == "pick" then
             local item = it
             out[#out + 1] = { x = x0, y = dy, w = px(200), h = it.h, cy = it.y, id = "adm:" .. it.id, adm = true,
                 onFocus = function() end, onActivate = function() choose(st, item) end }
@@ -549,7 +528,8 @@ end
 function A.scrollKey(win)
     local st = win._adminTab
     if not st then return nil end
-    local parts = { tostring(st.off or 0) }
+    if st.card then return ZeD.TicketCards.cardKey(st) end
+    local parts = { tostring(st.off or 0), ZeD.TicketCards.listKey(st) }
     for _, it in ipairs(st.items or {}) do
         if it.k == "btns" then parts[#parts + 1] = "b" .. #it.list
         elseif it.k == "pick" or it.k == "check" then parts[#parts + 1] = it.k:sub(1, 1) end
@@ -566,11 +546,14 @@ if ZeD.TabPx and ZeD.TabPx.ICONS then ZeD.TabPx.ICONS[TAB_ID] = true end
 ZeD_WorldWindow.addTab({
     id = TAB_ID, after = "vehicle", group = 2, glyph = "D",
     iconName = "admin-tab-white",
-    label = function() return tr("UI_ZeD_World_TabAdmin") end,
+    label = function() return ZeD.TicketCards.tabLabel(tr("UI_ZeD_World_TabAdmin")) end,
     visible = function() return A.visible() end,
     wheelHide = function() return not A.visible() end,   -- (on the D-pad wheels only for an admin on a server)
     render = A.render,
-    scroll = function(win) local st = win._adminTab; return st and st.scroll or nil end,
+    scroll = function(win)
+        local st = win._adminTab
+        return st and (ZeD.TicketCards.activeScroll(st) or st.scroll) or nil
+    end,
     onClick = A.onClick,
     buildFocusables = A.buildFocusables,
     scrollKey = A.scrollKey,

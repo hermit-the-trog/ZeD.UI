@@ -3766,6 +3766,43 @@ function ZeD_CharacterWindow.getWindow()
     return _charWin
 end
 
+-- The window open on a tab (a ticket note's Open key), as ZeD_WorldWindow.openTab does for its side
+function ZeD_CharacterWindow.openTab(playerNum, tabId)
+    if not _charWin then
+        local ok = pcall(ZeD_CharacterWindow.toggle, playerNum or 0)
+        if not ok then return false end
+    end
+    local win = _charWin
+    if not win then return false end
+    if win.windowShaded then
+        win._autoShaded = false
+        win:setWindowShaded(false)
+        win._outSince = getTimestampMs() + 500
+    end
+    if win._activeTab == tabId and win._drawerMode == "tab" and win._drawerOpen == true then return true end
+    local function attempt()
+        local strip = win._tabStripPanel
+        if strip and strip._hitZones then
+            for _, z in ipairs(strip._hitZones) do
+                if z.id == "tab:" .. tabId then
+                    strip:onMouseDown(z.x + 2, z.y + 2)
+                    return true
+                end
+            end
+        end
+        return false
+    end
+    if not attempt() then
+        local tries = 0
+        local function tick()
+            tries = tries + 1
+            if attempt() or tries >= 20 then Events.OnTick.Remove(tick) end
+        end
+        Events.OnTick.Add(tick)
+    end
+    return true
+end
+
 -- ============================================================================
 -- TOGGLE
 -- ============================================================================

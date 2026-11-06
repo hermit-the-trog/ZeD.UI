@@ -119,7 +119,7 @@ for k = 1, 12 do
     end)
 end
 add(500, function()
-    say("tickets known " .. tostring(A.tickets and #A.tickets or "?"))
+    say("tickets open " .. tostring(ZeD.TicketCards.openCount()))
     say("DONE")
 end)
 

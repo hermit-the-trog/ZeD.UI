@@ -8,9 +8,10 @@
 --   PLAYERS    who is on the server (the game's scoreboard, asked again every few seconds while the tab shows)
 --   FACTION    yours (name, tag, members) and the game's faction window; or Create faction where the server allows
 --   SAFEHOUSE  yours (title, owner, members) and the game's safehouse window
---   TICKETS    ask the admins (the game's tickets window)
+--   TICKETS    after the Server block, as drawn: N open, Ask the admins, my tickets (ZeD_TicketCards.lua: the block and
+--              its two cards, Ask the admins and my ticket, pushed on top of this list behind st.card)
 -- The game's user panel (ISUserPanelUI) is a set of buttons that open those same windows; this tab shows what they
--- hold at a glance and opens them for the changes (adding a player, a faction's tag, a ticket). Redrawing those
+-- hold at a glance and opens them for the changes (adding a player, a faction's tag). Redrawing those
 -- windows in ZeD is a later pass. Wording is the game's own (MP_DECISIONS.md, section 6).
 -- ============================================================================
 
@@ -19,6 +20,7 @@ require "ZeD/Atoms"
 require "ZeD/Molecules"
 require "ZeD/Tr"
 require "ZeD/ZeD_CharacterWindow"
+require "ZeD/ZeD_TicketCards"
 
 ZeD = ZeD or {}
 local S = {}
@@ -170,11 +172,7 @@ function OPEN.safehouse(p)
     local modal = ISSafehouseUI:new((getCore():getScreenWidth() - width) / 2, getCore():getScreenHeight() / 2 - 225, width, 450, h, p)
     modal:initialise(); modal:addToUIManager()
 end
-function OPEN.tickets(p)
-    if ISTicketsUI.instance then ISTicketsUI.instance:close() end
-    local modal = ISTicketsUI:new(getCore():getScreenWidth() / 2 - 250, getCore():getScreenHeight() / 2 - 225, 500, 450, p)
-    modal:initialise(); modal:addToUIManager()
-end
+function OPEN.ask(p, win) ZeD.TicketCards.openAsk(win, win._serverTab) end
 function OPEN.pvp()
     if ISEquippedItem and ISEquippedItem.toggleSafety then ISEquippedItem.toggleSafety(nil) end
 end
@@ -198,7 +196,7 @@ local function row(L, label, value, dot) add(L, { k = "row", label = label, valu
 local function line(L, text) add(L, { k = "line", text = text }) end
 local function btn(L, id, text, help, disabled) add(L, { k = "btn", id = id, text = S.btnWords(text), help = help, disabled = disabled }) end
 
-local function build(p)
+local function build(p, win, st)
     local T = ZeD.T
     local L = {}
     local so = getServerOptions and getServerOptions()
@@ -212,6 +210,8 @@ local function build(p)
     if role then row(L, tr("UI_ZeD_Srv_Role"), role) end
     local seeOpts = safe(function() return p:getRole():hasCapability(Capability.SeePublicServerOptions) end, false)
     btn(L, "options", getText("IGUI_AdminPanel_SeeServerOptions"), tr("UI_ZeD_Srv_HelpOptions"), not seeOpts)
+    -- TICKETS
+    ZeD.TicketCards.playerItems(L, win, st, function(id, text, help) return { k = "btn", id = id, text = S.btnWords(text), help = help } end)
     -- PVP (only while the server's safety system is on)
     local pv = pvpState(p)
     if pv then
@@ -259,9 +259,6 @@ local function build(p)
     else
         line(L, tr("UI_ZeD_Srv_NoSafehouse"))
     end
-    -- TICKETS
-    head(L, getText("UI_userpanel_tickets"))
-    btn(L, "tickets", tr("UI_ZeD_Srv_AskAdmins"), tr("UI_ZeD_Srv_HelpTickets"))
     return L
 end
 
@@ -282,6 +279,8 @@ local function measure(L, w)
             y = y + px(BTN_GAP)
             it.h = T.buttonH
             it.w = math.min(w - 2 * px(PAD), ZeD.Molecules.buttonW(it.text))
+        elseif it.k == "tk" then
+            it.h = ZeD.TicketCards.itemH(it, w - 2 * px(PAD))
         end
         it.y = y
         y = y + it.h
@@ -305,8 +304,15 @@ function S.render(panel, win, x, y, w, h)
     local st = state(win)
     local p = win._playerObj
     if not p then return end
+    local TC = ZeD.TicketCards
+    TC.bind(win, st, "srv:tk:", "charTabContent")
+    TC.frameServer(win, st)
     askPlayers()
-    local L = build(p)
+    if st.card then
+        TC.renderCard(panel, win, st, x, y, w, h)
+        return
+    end
+    local L = build(p, win, st)
     st.items = L
     local headH = M.getTabHeaderH()
     local sy, sh = y + headH, h - headH
@@ -339,12 +345,18 @@ function S.render(panel, win, x, y, w, h)
     local pad = px(PAD)
     local btns = {}
     st.btns = btns
+    TC.beginList(win, st, sy, sh, TC.mineHelp())
     panel:setStencilRect(x, sy, w, sh)
     for _, it in ipairs(L) do
         local dy = sy + it.y - off
         if dy + it.h >= sy and dy <= sy + sh then
             if it.k == "head" then
                 M.drawSectionHeader(panel, x + pad, dy, cw - pad, it.text, it.count, true, false, nil, nil, pad, nil, true)
+                if it.right then
+                    ZeD.Atoms.drawTextRight(panel, it.right, x + cw - pad, dy + math.floor((it.h - ZeD.TM:getFontHeight(T.fontF1)) / 2), T.fontF1, T.textDim)
+                end
+            elseif it.k == "tk" then
+                TC.drawItem(panel, win, st, it, x, dy, cw, mx, my)
             elseif it.k == "row" then
                 if it.dot then M.drawStatRowDot(panel, x + pad, dy, cw - 2 * pad, it.label, it.value, it.dot)
                 else M.drawStatRow(panel, x + pad, dy, cw - 2 * pad, it.label, it.value) end
@@ -366,6 +378,7 @@ function S.render(panel, win, x, y, w, h)
     panel:setStencilRect(0, 0, panel:getWidth(), panel:getHeight())
     M.drawTabHeader(panel, x, y, w, tr("UI_ZeD_Char_TabServer"), false, false, true)
     if needs then scroll:draw(panel) end
+    TC.endList(panel, win, st, sy, sy + sh)
 end
 
 -- ---------------------------------------------------------------------------
@@ -375,17 +388,23 @@ local function press(win, id)
     local p = win._playerObj
     if not p or not OPEN[id] then return end
     pcall(function() getSoundManager():playUISound("UIActivateButton") end)
-    local ok, err = pcall(OPEN[id], p)
+    local ok, err = pcall(OPEN[id], p, win)
     if not ok then ZeD.logOnce("server tab " .. id, err) end
 end
 
 function S.onClick(win, x, y)
     local st = state(win)
+    local TC = ZeD.TicketCards
+    if st.card then
+        TC.cardClick(win, st, x, y)
+        return
+    end
     local sc = st.scroll
     if sc.visible and x >= sc.x and x < sc.x + sc.width and y >= sc.y and y < sc.y + sc.height then
         sc:handleMouseDown(y - sc.y)
         return
     end
+    if TC.listClick(win, st, x, y) then return end
     for _, b in ipairs(st.btns or {}) do
         if x >= b.x and x < b.x + b.w and y >= b.y and y < b.y + b.h then
             if not b.disabled then press(win, b.id) end
@@ -398,6 +417,7 @@ end
 function S.buildFocusables(win)
     local st = win._serverTab
     if not st then return {} end
+    if st.card then return ZeD.TicketCards.cardStops(win, st) end
     local out = {}
     local sy, off = st.sy or 0, st.off or 0
     for _, it in ipairs(st.items or {}) do
@@ -408,6 +428,8 @@ function S.buildFocusables(win)
                 srv = true, help = it.help,
                 onFocus = function() end,
                 onActivate = function(w) if not dis then press(w, id) end end }
+        elseif it.k == "tk" then
+            ZeD.TicketCards.itemStops(out, st, it, (st.x or 0) + px(PAD), sy + it.y - off, st.w or 0, "srv")
         end
     end
     return out
@@ -416,9 +438,10 @@ end
 function S.scrollKey(win)
     local st = win._serverTab
     if not st then return nil end
+    if st.card then return ZeD.TicketCards.cardKey(st) end
     local n = 0
     for _, it in ipairs(st.items or {}) do if it.k == "btn" then n = n + 1 end end
-    return tostring(st.off or 0) .. ":" .. n .. ":" .. #S.players
+    return tostring(st.off or 0) .. ":" .. n .. ":" .. #S.players .. ":" .. ZeD.TicketCards.listKey(st)
 end
 
 -- ---------------------------------------------------------------------------
@@ -434,7 +457,10 @@ ZeD_CharacterWindow.addTab({
     visible = function() return isClient() end,
     wheelHide = function() return not isClient() end,   -- (not on the D-pad wheels in single player either)
     render = S.render,
-    scroll = function(win) local st = win._serverTab; return st and st.scroll or nil end,
+    scroll = function(win)
+        local st = win._serverTab
+        return st and (ZeD.TicketCards.activeScroll(st) or st.scroll) or nil
+    end,
     onClick = S.onClick,
     buildFocusables = S.buildFocusables,
     scrollKey = S.scrollKey,

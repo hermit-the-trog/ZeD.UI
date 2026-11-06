@@ -1130,3 +1130,29 @@ Where the build differs from Part B, and why. Everything else is as written.
 5. **QA:** `QARole.lua` is kept in the repo at `ZeDUI/tools/qa/shim/...`, since the shim is outside it. `mp_server.ps1 -Start`
    copies it into the shim on both sides, or the Lua checksum refuses the join, and takes `-Mods "ZeD_UI;ZeDQAShim"`, because
    the server did not load the shim before. It also answers `ZeDQA.nolimits`, so a run need not wait out five 60-second limits.
+
+# Build's changes (Nov 5 2026, Part D steps 8 to 10)
+
+The cards are `ZeD_TicketCards.lua`. Where they differ from Part B or the mockup, and why.
+
+1. **The Tickets block sits after the Server block,** as drawn, and the queue at the top of the Admin tab, as drawn here and in
+   `zed_admin_tools_v1.html`. B11 says "replaces the section"; the drawings say where. The queue stays inline in the tab's one
+   list (B11's two-deep stack), so 25 rows push Players down. `zed_admin_tools_v1.html` draws a summary row that opens the queue;
+   that is Phase 2's to decide.
+2. **Every thread message is a stop** with nothing to press, or a controller could not read a long
+   thread: the card scrolls only to a stop.
+3. **The back and foot stops are said to lie above and below the list,** whatever their place on screen, or Down from the last
+   line in view lands on the foot and skips what is under the fold.
+4. **With a controller the help line holds the prompts,** so an answer to a press, a grayed control's reason and the fallback's
+   line cannot be read there. On a card they go in the foot's own line; on a tab's list they are a line in the list.
+5. **Status marks are ZeD's squares,** hollow, half and solid, not the mockup's round glyphs: the fonts have none, and a status is
+   a square by the cohesion spec. **The back key has no word beside it** (the mockup's "Server"): the card back bar is ZeD's
+   molecule, the same on every card; its help line names where it goes.
+6. **`Y Filters` is not built.** Y is the window pair on every ZeD surface. Up reaches the filters.
+7. **The date reads UTC** (`DATE_SAYS_UTC` in `ZeD_TicketCards.lua`) until E5 is settled.
+8. **A field grows with its words,** so nothing scrolls inside the card's scroll. **Past what fits, the player pop-up ends in a
+   line pointing to Find.** Same reason.
+9. **`ZeD_CharacterWindow.openTab` did not exist,** so a note's Open went nowhere. Added, as the World window's.
+10. **The keyboard's `_multi` is turned off for these fields,** so RT ends the typing. With it on, RT makes a line break and the
+    plain way out is B, which puts the field back as it was.
+11. **The band gained `lead`,** push buttons at its left, and **the tag `frameColor`.** Tokens gained `violet` for Appeal.

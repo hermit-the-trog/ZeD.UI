@@ -54,7 +54,7 @@ add(300, function() scrollTo(WW()._adminTab, 1) end)
 add(1500, function() shot("admin_tab_foot") end)
 -- the game's windows the tabs open
 local OPEN = ZeD.ServerTab.OPEN
-for _, id in ipairs({ "options", "faction", "tickets" }) do
+for _, id in ipairs({ "options", "faction" }) do
     add(500, function() B0 = UIManager.getUI():size(); pcall(OPEN[id], p) end)
     add(1500, function() shot("game_window_" .. id); closeTop(B0) end)
 end

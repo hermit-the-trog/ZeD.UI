@@ -4748,6 +4748,8 @@ end
 --              hover (nil: the pointer is tested here), focus (ZeD.Focus.mark opts,
 --              when it has the controller's focus), help, id, minW (px), w (px: exactly
 --              this wide, a button that fills the room left); main one LAST
+--   lead     = push buttons at the left, after the icons, the same fields as buttons (a card's Delete and Spam, apart
+--              from its answers); their rects come back in out.lead
 --   icons    = { { icon = <Texture or draw fn>, active, disabled, hover, focus, hint, help, id } }
 --   check    = { label, on, hover (nil: tested here), focus (mark opts), disabled, help, id }:
 --              a System 7 checkbox and its words at the left, after the icons ("Show popups")
@@ -4755,7 +4757,7 @@ end
 --   noLine   = true leaves out the structure line (a band right under another line)
 --   edge     = the band's side margin in screen px (default 8u; the Craft band short of room: 4u, punch list 28)
 -- }
--- @return height, rects = { buttons = { [i] = {x, y, w, h, id} }, icons = { ... }, check = {x, y, w, h, id} }
+-- @return height, rects = { buttons = { [i] = {x, y, w, h, id} }, lead = { ... }, icons = { ... }, check = {x, y, w, h, id} }
 local _bandBtn, _bandIcon = {}, {}
 
 -- the band's checkbox and its words from x; returns its rect
@@ -4793,7 +4795,7 @@ function ZeD.Molecules.drawBand(panel, x, y, w, spec)
     local edge, gap = spec.edge or T.px(8), T.px(8)   -- (spec.edge: screen px, a band short of room closes it up)
     local bh = T.buttonH
     local by = y + T.px(5)
-    local out = { buttons = {}, icons = {} }
+    local out = { buttons = {}, icons = {}, lead = {} }
 
     A.surfaceFill(panel, x, y, w, H, "surf2")
     if not spec.noLine then A.drawDividerH(panel, x, y, w, true) end
@@ -4831,6 +4833,19 @@ function ZeD.Molecules.drawBand(panel, x, y, w, spec)
             left = left + bh + T.px(4)
         end
         if #icons > 0 then left = left - T.px(4) + gap end
+    end
+
+    -- the lead buttons, left to right
+    if spec.lead then
+        for i, b in ipairs(spec.lead) do
+            local bw = b.w or math.max(M.buttonW(b.label), b.minW or 0)
+            local o = _bandBtn
+            o.disabled, o.focus, o.help, o.win, o.default = b.disabled, b.focus, b.help, spec.win, false
+            if b.hover ~= nil then o.hover = b.hover else o.hover = A.mouseIn(panel, left, by, bw, bh) end
+            M.drawButton(panel, left, by, bw, bh, b.label, b.variant or "default", b.pressed, nil, o)
+            out.lead[i] = { x = left, y = by, w = bw, h = bh, id = b.id }
+            left = left + bw + gap
+        end
     end
 
     -- the checkbox and its words, after the icons

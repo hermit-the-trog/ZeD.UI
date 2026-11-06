@@ -746,7 +746,7 @@ end
 
 --- Draw a tag.
 -- @param statusColor  nil (no mark) or the colour of the 6u square mark
--- @param opts  optional { font, h, minW, keepCase, alpha, hollow, textColor }
+-- @param opts  optional { font, h, minW, keepCase, alpha, hollow, textColor, frameColor }
 --   h / minW give a box at least that size (drawBadge keeps the box it always had,
 --   so callers that measure it themselves still line up); the content is centred.
 --   hollow = the mark as a 1u outline (an "off" state).
@@ -758,7 +758,7 @@ function ZeD.Atoms.drawTag(panel, x, y, text, statusColor, opts)
     local w, s, font, sq, gap, contentW = tagMeasure(T, text, statusColor ~= nil, opts)
     local h = opts.h or T.px(16)
     local a = opts.alpha or 1
-    ZeD.Atoms.frame(panel, x, y, w, h, T.borderS, a)
+    ZeD.Atoms.frame(panel, x, y, w, h, opts.frameColor or T.borderS, a)
     local cx = x + math.floor((w - contentW) / 2)
     if statusColor then
         local sy = y + math.floor((h - sq) / 2)

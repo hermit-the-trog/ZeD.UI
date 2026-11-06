@@ -54,9 +54,8 @@ end)
 -- each button pressed where it is drawn
 local WINS = { options = function() return ISServerOptions and ISServerOptions.instance end,
     faction = function() return (ISFactionUI and ISFactionUI.instance) or (ISCreateFactionUI and ISCreateFactionUI.instance) end,
-    safehouse = function() return ISSafehouseUI and ISSafehouseUI.instance end,
-    tickets = function() return ISTicketsUI and ISTicketsUI.instance end }
-for _, id in ipairs({ "options", "faction", "safehouse", "tickets" }) do
+    safehouse = function() return ISSafehouseUI and ISSafehouseUI.instance end }
+for _, id in ipairs({ "options", "faction", "safehouse" }) do
     add(600, function()
         if SESSION == "solo" then return end
         local st = CW()._serverTab
