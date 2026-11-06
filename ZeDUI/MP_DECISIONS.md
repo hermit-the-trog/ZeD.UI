@@ -62,3 +62,8 @@ spelling, no middle dots.
 The handoff's open check still comes first: on a server, with ZeD's belt replacing the game's, can a player reach the
 user panel, the admin panel and the PvP button anywhere today (the pause menu, for example)? If not, those are missing
 outright until the Server and Admin tabs land, and that goes on the beta's known issues.
+
+## Round two (Nov 5 2026): the full scope
+The director: solve all of the multiplayer and admin problems in ZeD itself. The plan is `MP_ADMIN_SCOPE.md`: a server
+part (official Lua), gameplay systems as server settings off by default, ZeD's features always working on their own
+while reading other mods' data where it can, and reports and tickets first.

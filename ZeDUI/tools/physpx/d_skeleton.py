@@ -583,14 +583,26 @@ def build(sex):
         el = (BC + side * Fs["elbow"], F["el_y"])
         wr = (BC + side * Fs["wrist"], F["wr_y"])
         S.bone(f"bicep-{sfx}", shj, el, aw, aw * 0.9, z=3.4)
-        # the forearm's two bones side by side in the room the band leaves, or one where it is too slim for two
+        # the forearm: straight from the elbow joint to the wrist (director, Nov 5 2026, punch list 88: drawn to fill the
+        # flesh outline, which bows out at the elbow, the forearm left the upper arm at a step and the wrist bent out
+        # again: "it's either dislocated or very broken"). The elbow is the upper arm's own end; the wrist sits on the
+        # middle of the arm's room at the wrist row, so the bones end inside the arm. Two bones side by side (the ulna
+        # toward the body, thick at the elbow; the radius outside, thick at the wrist), or one where the arm is too slim.
         rm = room(el[1] + 2.0, wr[1] + 0.5, el[0], wr[0])
         if rm is not None:
+            wr = ((rm[1][-1] + rm[2][-1]) / 2.0, wr[1])
+            dx_, dy_ = wr[0] - el[0], wr[1] - el[1]
+            ln_ = math.hypot(dx_, dy_)
+            nx_, ny_ = -dy_ / ln_, dx_ / ln_
+            if nx_ * -side < 0: nx_, ny_ = -nx_, -ny_          # n points toward the body (medial)
             if float(np.median(rm[2] - rm[1])) >= 5.0:
-                S.blob(f"wrist-{sfx}", strip(rm, side, 0.0, 0.46, cap=aw * 1.3), z=3.2, bevel=1.0)
-                S.blob(f"wrist-{sfx}", strip(rm, side, 0.58, 1.0, cap=aw * 1.3), z=3.0, bevel=1.0)
+                o_ = aw * 0.30
+                ul = ((el[0] + nx_ * o_, el[1] + ny_ * o_), (wr[0] + nx_ * o_ * 0.8, wr[1] + ny_ * o_ * 0.8))
+                ra = ((el[0] - nx_ * o_ * 0.7, el[1] - ny_ * o_ * 0.7), (wr[0] - nx_ * o_, wr[1] - ny_ * o_))
+                S.bone(f"wrist-{sfx}", ul[0], ul[1], aw * 0.62, aw * 0.42, z=3.2, knob=False)
+                S.bone(f"wrist-{sfx}", ra[0], ra[1], aw * 0.42, aw * 0.62, z=3.0, knob=False)
             else:
-                S.blob(f"wrist-{sfx}", strip(rm, side, 0.0, 1.0, 1.6, cap=aw * 0.8), z=3.1, bevel=0.9)
+                S.bone(f"wrist-{sfx}", el, wr, aw * 0.62, aw * 0.66, z=3.1, knob=False)
         # the hand: the wrist's little bones, then the fingers spread across the hand's own width in the outline, row by
         # row down to its fingertips, so they follow its bend and stay inside it (Oct 17 2026)
         om = S.inner                      # the hand's room inside the band (Oct 19 2026)

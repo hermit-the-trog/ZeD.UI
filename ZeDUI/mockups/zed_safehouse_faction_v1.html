@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZeD Safehouse and Faction v1</title>
+<!-- MP_ADMIN_SCOPE.md, Phase 3: safehouses and factions in cards (Design, Cowork, Nov 5 2026).
+     The director, Nov 5 2026: "for things like factions, safe houses, whatever needs a name, can that name be inline and
+     not a pop-up?" Every name here is a field in the card: pick it, type, Save. No ISTextBox, no ISCreateFactionUI, no
+     invitation modal, no "Do you really want..." window: confirms sit in the card's foot.
+     The game's words are kept (UI.json, IGUI_SafehouseUI_* and IGUI_FactionUI_*). Keyboard stands in for the pad:
+     Up / Down move the controller highlight, Enter is A, Escape is B. -->
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans+Condensed:wght@400;500;600&display=swap');
+:root {
+  --base: #1a1a1e; --surface-1: #222226; --surface-2: #2a2a2e; --surface-3: #333338;
+  --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.20);
+  --text: #d4d4d8; --text-secondary: rgba(255,255,255,0.45); --text-heading: rgba(255,255,255,0.65);
+  --accent: #3fa59a; --danger: #c44040; --warning: #c49040; --positive: #4a9a5a;
+  --stripe-1: #333338; --stripe-2: #2a2a2e;
+  --font-mono: 'Fira Mono', monospace; --font-sans: 'Fira Sans Condensed', sans-serif;
+  --fs: 15px; --fs-small: 13px; --page: #0e0f10;
+}
+:root[data-theme="light"] {
+  --base: #e9e7e2; --surface-1: #f2f0eb; --surface-2: #dddad3; --surface-3: #cfcbc2;
+  --border: rgba(0,0,0,0.14); --border-strong: rgba(0,0,0,0.30);
+  --text: #1d1d1f; --text-secondary: rgba(0,0,0,0.55); --text-heading: rgba(0,0,0,0.70);
+  --stripe-1: #cfcbc2; --stripe-2: #dddad3; --page: #8c8a84;
+}
+:root[data-theme="hc"] {
+  --base: #000; --surface-1: #0a0a0a; --surface-2: #141414; --surface-3: #262626;
+  --border: rgba(255,255,255,0.45); --border-strong: rgba(255,255,255,0.85);
+  --text: #fff; --text-secondary: rgba(255,255,255,0.80); --text-heading: #fff; --stripe-1: #444; --stripe-2: #111;
+}
+:root[data-size="large"] { --fs: 18px; --fs-small: 15px; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--page); color: var(--text); }
+body { font-family: var(--font-sans); font-size: var(--fs); display: flex; flex-direction: column; align-items: center; }
+.review { width: 100%; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; justify-content: center;
+  padding: 8px 16px; font-family: var(--font-mono); font-size: 12px; color: #aaa; background: #000; border-bottom: 1px solid #333; }
+.review b { color: #ddd; font-weight: 500; }
+.review button { font-family: var(--font-mono); font-size: 12px; background: #1b1b1b; color: #ccc; border: 1px solid #444; padding: 3px 8px; cursor: pointer; }
+.review button.on { border-color: #ddd; color: #fff; }
+.stage { flex: 1; display: flex; align-items: center; justify-content: center; padding: 16px; width: 100%; }
+.win { width: min(560px, 100%); height: min(800px, calc(100vh - 100px)); display: flex; flex-direction: column;
+  background: color-mix(in srgb, var(--base) 92%, transparent); border: 1px solid var(--border-strong); }
+.titlebar { height: 22px; flex: 0 0 22px; display: flex; align-items: center; gap: 10px; padding: 0 8px;
+  background: repeating-linear-gradient(to bottom, var(--stripe-1) 0 2px, var(--stripe-2) 2px 4px); border-bottom: 1px solid var(--border-strong); }
+.close { width: 12px; height: 12px; border: 1px solid var(--border-strong); background: var(--surface-1); }
+.titlechip { background: var(--surface-2); padding: 0 8px; font-family: var(--font-mono); font-size: var(--fs-small); }
+.titlechip .plus { color: var(--text-secondary); margin: 0 6px; }
+.body { flex: 1; display: flex; min-height: 0; }
+.rail { width: 46px; flex: 0 0 46px; border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+.rail div { height: 46px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono);
+  font-size: 11px; color: var(--text-secondary); border-bottom: 1px solid var(--border); }
+.rail div.on { background: var(--accent); color: var(--base); font-weight: 700; }
+.panel { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.panelhead { height: 44px; flex: 0 0 44px; display: flex; align-items: center; padding: 0 14px; border-bottom: 1px solid var(--border);
+  font-weight: 600; font-size: calc(var(--fs) + 4px); }
+.scroll { flex: 1; overflow-y: auto; min-height: 0; }
+.helpband { flex: 0 0 auto; min-height: 30px; display: flex; align-items: center; gap: 12px; padding: 5px 12px;
+  background: var(--surface-2); border-top: 1px solid var(--border); font-size: var(--fs-small); color: var(--text-secondary); }
+.helpband .pad { margin-left: auto; font-family: var(--font-mono); white-space: nowrap; }
+.glyph { display: inline-block; min-width: 16px; height: 16px; line-height: 16px; text-align: center; border-radius: 8px;
+  background: var(--surface-3); color: var(--text); font-family: var(--font-mono); font-size: 10px; margin-right: 3px; }
+.sec { padding: 6px 14px 4px; background: var(--surface-1); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono); font-weight: 700; font-size: var(--fs-small); color: var(--text-heading); display: flex; }
+.sec .r { margin-left: auto; font-weight: 400; }
+.kv { display: flex; padding: 4px 14px; font-family: var(--font-mono); font-size: var(--fs-small); }
+.kv .k { font-weight: 700; color: var(--text-heading); } .kv .v { margin-left: auto; }
+.pad14 { padding: 8px 14px; }
+.sumrow { display: flex; align-items: center; gap: 10px; padding: 8px 14px 8px 30px; position: relative; cursor: pointer; }
+.sumrow .meta { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); }
+.sumrow .go { margin-left: auto; font-family: var(--font-mono); color: var(--text-secondary); }
+.note { margin: 8px 14px; padding: 8px 10px; border: 1px solid var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--surface-1)); }
+.note .acts { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+.btn { position: relative; padding: 4px 14px; border: 1px solid var(--border-strong); border-radius: 5px; background: var(--surface-2);
+  color: var(--text); font-family: var(--font-mono); font-size: var(--fs-small); cursor: pointer; white-space: nowrap; }
+.btn::before { content: ""; position: absolute; inset: 2px; border: 1px solid var(--border-strong); border-radius: 3px; pointer-events: none; }
+.btn.default, .btn.default::before { border-color: var(--accent); } .btn.default { color: var(--accent); }
+.btn.danger, .btn.danger::before { border-color: var(--danger); } .btn.danger { color: var(--danger); }
+.btn:disabled { opacity: 0.4; cursor: default; }
+.btn.small { padding: 2px 10px; }
+.check { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; }
+.check.off { opacity: 0.45; cursor: default; }
+.box { width: 15px; height: 15px; flex: 0 0 15px; margin-top: 2px; border: 1px solid var(--border-strong); background: var(--surface-1);
+  display: flex; align-items: center; justify-content: center; color: var(--accent); font-family: var(--font-mono); font-size: 12px; line-height: 1; }
+.label { font-family: var(--font-mono); font-weight: 700; font-size: var(--fs-small); color: var(--text-heading); margin: 14px 0 6px; display: flex; }
+.label .r { margin-left: auto; font-weight: 400; color: var(--text-secondary); }
+.label:first-child { margin-top: 2px; }
+.sub { font-size: var(--fs-small); color: var(--text-secondary); margin-top: 3px; }
+.sub.bad { color: var(--danger); }
+.sub.warn { color: var(--warning); }
+.cardbody { padding: 10px 14px 14px; }
+.facts { display: grid; grid-template-columns: 96px 1fr; gap: 3px 10px; font-size: var(--fs-small); }
+.facts .k { font-family: var(--font-mono); font-weight: 700; color: var(--text-heading); }
+
+/* THE INLINE NAME: the value is the field. At rest it reads as text in a field's frame; picked, it takes the caret. */
+.namefield { display: flex; align-items: center; gap: 8px; }
+.nameview { flex: 1; min-height: 32px; display: flex; align-items: center; padding: 4px 8px; border: 1px solid var(--border);
+  background: var(--surface-1); font-size: calc(var(--fs) + 2px); cursor: pointer; }
+.nameview.ro { border-color: transparent; background: none; padding-left: 0; cursor: default; }
+.nameedit { flex: 1; background: var(--surface-1); border: 1px solid var(--accent); color: var(--text); font-family: var(--font-sans);
+  font-size: calc(var(--fs) + 2px); padding: 4px 8px; min-height: 32px; }
+.nameedit:focus { outline: none; }
+.count { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); white-space: nowrap; }
+.count.bad { color: var(--danger); }
+.tagpill { font-family: var(--font-mono); font-weight: 700; font-size: var(--fs-small); padding: 0 4px; border: 1px solid currentColor; }
+
+.list .item { display: flex; align-items: center; gap: 10px; padding: 6px 0 6px 26px; border-bottom: 1px solid var(--border); position: relative; cursor: pointer; }
+.list .item:first-child { border-top: 1px solid var(--border); }
+.list .item .who { min-width: 90px; }
+.list .item .st { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); }
+.list .item .st.warn { color: var(--warning); }
+.list .item .st.on::before { content: "\25CF  "; color: var(--positive); }
+.list .item .acts { margin-left: auto; display: flex; gap: 6px; }
+.badge { font-family: var(--font-mono); font-size: 10px; font-weight: 700; padding: 0 4px; border: 1px solid var(--text-secondary); color: var(--text-secondary); }
+.drawer { margin-top: 8px; border: 1px solid var(--border-strong); background: var(--surface-1); }
+.drawer .dh { display: flex; padding: 5px 10px; font-family: var(--font-mono); font-size: var(--fs-small); font-weight: 700; color: var(--text-heading);
+  border-bottom: 1px solid var(--border); }
+.drawer .dh .r { margin-left: auto; font-weight: 400; color: var(--text-secondary); }
+.drawer .list .item { padding-left: 30px; padding-right: 10px; }
+.drawer .list .item:first-child { border-top: 0; }
+.rules { font-size: var(--fs-small); }
+.rules div { display: flex; gap: 8px; padding: 2px 0; }
+.rules .m { font-family: var(--font-mono); width: 14px; flex: 0 0 14px; }
+.rules .y { color: var(--positive); } .rules .n { color: var(--danger); }
+.swatches { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.sw { display: inline-block; vertical-align: middle; width: 20px; height: 20px; border: 1px solid var(--border-strong); cursor: pointer; }
+.list .item .st { white-space: nowrap; }
+.foot .left.warn { flex: 1 1 100%; margin-right: 0; }
+.sw.on { outline: 1px solid var(--accent); outline-offset: 2px; }
+.preview { display: inline-flex; gap: 6px; align-items: baseline; padding: 4px 10px; background: #3a4a3a; color: #fff; font-family: var(--font-mono); font-size: var(--fs-small); }
+.foot { flex: 0 0 auto; display: flex; gap: 8px; align-items: center; justify-content: flex-end; padding: 7px 12px;
+  background: var(--surface-2); border-top: 1px solid var(--border); flex-wrap: wrap; }
+.foot .left { margin-right: auto; font-family: var(--font-mono); font-size: var(--fs-small); color: var(--text-secondary); }
+.foot .left.warn { color: var(--danger); }
+.backbar { height: 34px; flex: 0 0 34px; display: flex; align-items: center; gap: 10px; padding: 0 10px 0 6px; border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono); font-size: var(--fs-small); background: var(--surface-1); }
+.backbar .back { cursor: pointer; padding: 2px 6px; color: var(--text-heading); }
+.backbar .title { font-weight: 700; }
+
+/* the pad keyboard (ZeD's own, already shipping for text boxes), opened under the field being typed */
+.padkb { margin-top: 8px; padding: 8px; background: var(--surface-2); border: 1px solid var(--border-strong); }
+.padkb .kr { display: flex; gap: 4px; justify-content: center; margin-bottom: 4px; }
+.padkb .k { min-width: 30px; height: 28px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-strong);
+  border-radius: 4px; background: var(--surface-1); font-family: var(--font-mono); font-size: 12px; cursor: pointer; position: relative; }
+.padkb .k.wide { min-width: 70px; } .padkb .k.space { min-width: 150px; }
+.padkb .k.cur { outline: 2px solid var(--accent); outline-offset: 1px; }
+.padkb .kh { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); text-align: center; margin-top: 6px; }
+
+/* the controller highlight: the pointing hand */
+.hand { position: absolute; left: 5px; top: 50%; transform: translateY(-50%); width: 22px; height: 12px; pointer-events: none; z-index: 2; }
+.hand svg { display: block; }
+.withhand { position: relative; display: inline-block; }
+div.withhand { display: block; }
+.withhand.focused { margin-left: 24px; }
+div.withhand.focused { margin-left: 0; padding-left: 24px; }
+.withhand > .hand { left: -23px; }
+div.withhand > .hand { left: 0; }
+</style>
+</head>
+<body>
+<div class="review" id="review"></div>
+<div class="stage"><div class="win" id="win"></div></div>
+<script>
+const HAND = (() => {
+  const rows = ["......KKKKKKKKKK.", ".....KWWWWWWWWWWK", "..KKKKWWKKKKKKKK.", ".KWWWWWWK........", "KWWWWWWWK........",
+                "KWWWWWWK.........", "KWWWWWWWK........", ".KWWWWWWK........", "..KKKKKK........."];
+  let r = "";
+  rows.forEach((s, y) => [...s].forEach((c, x) => { if (c !== ".") r += `<rect x="${x}" y="${y}" width="1" height="1" fill="${c === "K" ? "#000" : "#fff"}"/>`; }));
+  return `<span class="hand"><svg width="22" height="12" viewBox="0 0 17 9" preserveAspectRatio="none" shape-rendering="crispEdges">${r}</svg></span>`;
+})();
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const T = { // the game's own words (UI.json)
+  Safehouse: "Safehouse", Title: "Title", Owner: "Owner", Location: "Location", Created: "Created",
+  Players: "Allowed Players", AddPlayer: "Add Player", Release: "Release Safehouse", Quit: "Quit Safehouse",
+  ChangeOwner: "Change Owner", Respawn: "Respawn in Safehouse",
+  ReleaseConfirm: "Do you really want to release this safehouse?", QuitConfirm: "Are you really sure you want to leave this safehouse?",
+  RemoveSafe: n => `Do you really want to remove ${n} from this safehouse?`,
+  Faction: "Faction", FactionName: "Faction Name", Tag: "Faction Tag", CreateFaction: "Create Faction",
+  Disband: "Disband Faction", Leave: "Leave Faction", DisbandConfirm: "Do you really want to disband this faction?",
+  LeaveConfirm: "Are you really sure you want to leave this faction?", RemoveFac: n => `Do you really want to remove ${n} from this faction?`,
+  NameLen: "Faction name must be 3-14 characters in length.", TagLen: "Tag must be 1-4 characters in length.",
+  Exists: "Faction already exists.", TagExists: "Tag already exists.",
+  TagMembers: n => `You must have at least ${n} players in your faction to create a Tag`,
+  SurviveDays: n => `You must survive at least ${n} days to create a Faction`,
+  ShowTag: "Show Faction Tag (always shown to Faction members)", Pvp: "Enable melee PVP in Factions",
+  PvpHelp: "Allows melee combat and damage between Faction members",
+  InviteFac: (a, f) => `${a} is inviting you to ${f} faction.`, Sent: n => `An invitation has been sent to ${n}`,
+};
+// the server's own options, read for the rules (the server part sends them to every player)
+const RULES = { claimDay: 5, nonRes: false, trespass: false, fire: false, loot: false, respawn: true, removal: 72,
+  offlineOnly: false, facDay: 3, tagNeeds: 3 };
+const ONLINE = ["Rosa", "Kade_R", "Mags_77", "mike_d", "tjk"];
+const OTHER_FACTIONS = [{ name: "Muldraugh Mall", tag: "MALL" }, { name: "Rosewood Fire Co", tag: "RFC" }];
+const COLORS = ["#c45050", "#d4922a", "#c4b040", "#5a9a4a", "#3fa59a", "#4f86c6", "#9a6ac4", "#d4d4d8"];
+
+const S = {
+  me: "Aretha", day: 12, theme: "dark", size: "small", padkb: true,
+  safeRole: "owner", facRole: "owner",
+  screen: "server", edit: null, draft: "", drawer: null, confirm: null, rowOpen: null, focus: 0, flash: "", kbCur: 0,
+  invite: { from: "Mags_77", faction: "Muldraugh Mall" },
+  newFac: "", claimHere: true,
+  safe: { title: "Riverside Motel", owner: "Aretha", place: "Riverside, 6347 x 5372", created: "Day 4",
+    members: [{ n: "Aretha", on: true, h: 0 }, { n: "Rosa", on: true, h: 0 }, { n: "tjk", on: false, h: 61 }],
+    invited: ["Mags_77"], respawn: true },
+  fac: { name: "Riverside Farmers", tag: "RVF", color: "#5a9a4a", showTag: true, pvp: false, owner: "Aretha",
+    members: ["Aretha", "Kade_R", "Rosa"], invited: [] },
+};
+function syncRoles() {
+  S.safe.owner = S.safeRole === "owner" ? S.me : "Rosa";
+  S.fac.owner = S.facRole === "owner" ? S.me : "Kade_R";
+}
+const hasSafe = () => S.safeRole !== "none", hasFac = () => S.facRole !== "none";
+const ownsSafe = () => S.safeRole === "owner", ownsFac = () => S.facRole === "owner";
+
+// ---------------------------------------------------------------- the review bar
+function renderReview() {
+  const b = (k, v, l) => `<button data-r="${k}:${v}" class="${S[k] === v ? "on" : ""}">${l}</button>`;
+  document.getElementById("review").innerHTML = `<b>ZeD Safehouse and Faction v1</b>
+    <span>Safehouse ${b("safeRole", "owner", "Owner")} ${b("safeRole", "member", "Member")} ${b("safeRole", "none", "None")}</span>
+    <span>Faction ${b("facRole", "owner", "Owner")} ${b("facRole", "member", "Member")} ${b("facRole", "none", "None")}</span>
+    <span>Pad keyboard <button data-r="padkb:${S.padkb ? "0" : "1"}" class="${S.padkb ? "on" : ""}">${S.padkb ? "On" : "Off"}</button></span>
+    <span>Theme ${b("theme", "dark", "Dark")} ${b("theme", "light", "Light")} ${b("theme", "hc", "High contrast")}</span>
+    <span>Text ${b("size", "small", "Small")} ${b("size", "large", "Large")}</span>`;
+}
+
+// ---------------------------------------------------------------- the inline name
+const LIMITS = { safeTitle: [1, 30], facName: [3, 14], newFac: [3, 14], facTag: [1, 4] };
+function problem(id, v) {
+  v = v.trim();
+  const [lo, hi] = LIMITS[id];
+  if (id === "facTag") {
+    if (v.length < lo || v.length > hi) return T.TagLen;
+    if (OTHER_FACTIONS.some(f => f.tag.toLowerCase() === v.toLowerCase())) return T.TagExists;
+    return "";
+  }
+  if (id === "facName" || id === "newFac") {
+    if (v.length < lo || v.length > hi) return T.NameLen;
+    if (OTHER_FACTIONS.some(f => f.name.toLowerCase() === v.toLowerCase())) return T.Exists;
+    return "";
+  }
+  return v.length < 1 ? "A safehouse needs a title." : "";
+}
+const KB = ["1234567890".split(""), "QWERTYUIOP".split(""), "ASDFGHJKL'".split(""), "ZXCVBNM-.".split(""), ["Shift", "Space", "Del", "Done"]];
+const KBFLAT = KB.flat();
+function padKeyboard() {
+  let i = 0;
+  return `<div class="padkb">${KB.map(r => `<div class="kr">${r.map(k => {
+    const n = i++; const lab = k.length === 1 && !S.kbShift ? k.toLowerCase() : k;
+    return `<span class="k ${k.length > 1 ? (k === "Space" ? "space" : "wide") : ""} ${n === S.kbCur ? "cur" : ""}" data-kb="${esc(k)}">${esc(lab)}</span>`;
+  }).join("")}</div>`).join("")}
+    <div class="kh"><span class="glyph">A</span>type <span class="glyph">X</span>delete <span class="glyph">Y</span>space <span class="glyph">START</span>done <span class="glyph">B</span>cancel</div></div>`;
+}
+function nameField(id, value, canEdit, opts = {}) {
+  const mono = opts.mono ? "font-family:var(--font-mono);text-transform:uppercase;" : "";
+  if (S.edit === id) {
+    const err = problem(id, S.draft);
+    const [, hi] = LIMITS[id];
+    return `<div class="withhand" data-f="${id}-in"><div class="namefield">
+        <input class="nameedit" id="edit" style="${mono}" maxlength="${hi + 4}" value="${esc(S.draft)}" placeholder="${esc(opts.ph || "")}">
+        <span class="count ${S.draft.trim().length > hi ? "bad" : ""}">${S.draft.trim().length} / ${hi}</span></div></div>
+      ${err && S.draft.length ? `<div class="sub bad">${esc(err)}</div>` : (opts.hint ? `<div class="sub">${esc(opts.hint)}</div>` : "")}
+      ${S.padkb ? padKeyboard() : ""}`;
+  }
+  if (!canEdit) return `<div class="namefield"><div class="nameview ro" style="${mono}">${opts.render ? opts.render(value) : esc(value)}</div></div>`;
+  return `<div class="withhand" data-f="${id}" data-a="edit:${id}"><div class="namefield"><div class="nameview" style="${mono}">${opts.render ? opts.render(value) : esc(value)}</div></div></div>`;
+}
+const tagPill = (tag, color) => `<span class="tagpill" style="color:${color}">${esc(tag)}</span>`;
+
+// ---------------------------------------------------------------- the Server tab
+function renderServer() {
+  const f = S.fac, h = S.safe;
+  const away = h.members.filter(m => !m.on && m.h >= 48);
+  return {
+    head: "Server",
+    body: `
+      <div class="sec">Server</div>
+      <div class="kv"><span class="k">Name</span><span class="v">Knox Survivors</span></div>
+      <div class="kv"><span class="k">Players online</span><span class="v">6</span></div>
+      <div class="kv"><span class="k">Your role</span><span class="v">user</span></div>
+      ${!hasFac() && S.invite ? `<div class="note">${esc(T.InviteFac(S.invite.from, S.invite.faction))}
+          <div class="sub">An invitation waits here until you answer it. Nothing pops up over your game.</div>
+          <div class="acts"><span class="withhand" data-f="decline"><button class="btn" data-a="decline">Decline</button></span>
+          <span class="withhand" data-f="accept"><button class="btn default" data-a="accept">Accept</button></span></div></div>` : ""}
+      <div class="sec">${T.Faction}${hasFac() ? `<span class="r">${f.members.length} players</span>` : ""}</div>
+      ${hasFac() ? `<div class="sumrow" data-f="fac" data-a="open:faction">${f.tag ? tagPill(f.tag, f.color) : ""}<span>${esc(f.name)}</span>
+          <span class="meta">${T.Owner}: ${esc(f.owner)}</span><span class="go">&#9654;</span></div>`
+        : `<div class="kv"><span class="k">Not in a faction.</span></div>
+           <div class="pad14"><span class="withhand" data-f="newfac"><button class="btn" data-a="open:faction">${T.CreateFaction}</button></span>
+           <div class="sub">${S.day >= RULES.facDay ? `You can make one here: name it, and invite players.` : esc(T.SurviveDays(RULES.facDay))}</div></div>`}
+      <div class="sec">${T.Safehouse}${hasSafe() ? `<span class="r">${h.members.length} players</span>` : ""}</div>
+      ${hasSafe() ? `<div class="sumrow" data-f="safe" data-a="open:safe"><span>${esc(h.title)}</span>
+          <span class="meta">${esc(h.place.split(",")[0])} | ${T.Owner}: ${esc(h.owner)}</span><span class="go">&#9654;</span></div>
+          ${away.map(m => `<div class="pad14" style="padding-top:0"><div class="sub warn">${esc(m.n)} has been away ${m.h} hours: removed from the safehouse in ${RULES.removal - m.h}.</div></div>`).join("")}`
+        : `<div class="kv"><span class="k">No safehouse.</span></div>
+           <div class="pad14"><div class="label" style="margin-top:0">Can I claim this?</div>
+             <div class="rules"><div><span class="m y">&#10003;</span><span>Yes. You're in a house at Riverside, 6402 x 5410, nobody has claimed it, and claims open on day ${RULES.claimDay}.</span></div></div>
+             <div style="margin-top:8px"><span class="withhand" data-f="claim"><button class="btn default" data-a="claim">Claim Safehouse</button></span></div>
+             <div class="sub">Not here? It says why: someone's claim, too early, not a home (this server allows homes only), or you have one already.</div></div>`}`,
+    help: S.flash || "Your faction and your safehouse, each a card. Pick one to see everything and change what's yours.",
+    pad: `<span class="glyph">A</span>Open <span class="glyph">B</span>Close`,
+  };
+}
+
+// ---------------------------------------------------------------- the safehouse card
+function memberRows(list, owner, isOwner, kind) {
+  return list.map(m => {
+    const n = m.n || m, open = S.rowOpen === n && isOwner && n !== S.me;
+    const st = m.n === undefined ? "" : m.on ? `<span class="st on">online</span>`
+      : m.h >= 48 ? `<span class="st warn">away ${m.h} h: removed in ${RULES.removal - m.h} h</span>` : `<span class="st">here ${m.h} h ago</span>`;
+    return `<div class="item" data-f="m-${esc(n)}" ${isOwner && n !== S.me ? `data-a="row:${esc(n)}"` : ""}>
+      <span class="who">${esc(n)}${n === S.me ? " (you)" : ""}</span>${n === owner ? `<span class="badge">OWNER</span>` : ""}${st}
+      ${open ? `<span class="acts"><span class="withhand" data-f="own-${esc(n)}"><button class="btn small" data-a="owner:${kind}:${esc(n)}">${T.ChangeOwner}</button></span>
+        <span class="withhand" data-f="rem-${esc(n)}"><button class="btn small danger" data-a="remove:${kind}:${esc(n)}">Remove</button></span></span>` : ""}</div>`;
+  }).join("");
+}
+function inviteRows(list, isOwner, kind) {
+  return list.map(n => `<div class="item" data-f="inv-${esc(n)}"><span class="who">${esc(n)}</span><span class="st">invited, waiting</span>
+    ${isOwner ? `<span class="acts"><span class="withhand" data-f="uninv-${esc(n)}"><button class="btn small" data-a="uninvite:${kind}:${esc(n)}">Cancel</button></span></span>` : ""}</div>`).join("");
+}
+function addDrawer(kind, inList) {
+  const open = S.drawer === kind;
+  const cands = ONLINE.filter(n => !inList.includes(n));
+  return `<div style="margin-top:8px"><span class="withhand" data-f="add-${kind}"><button class="btn" data-a="drawer:${kind}">${T.AddPlayer} ${open ? "&#9662;" : "&#9656;"}</button></span></div>
+    ${open ? `<div class="drawer"><div class="dh">Players online<span class="r">pick one to invite</span></div><div class="list">
+      ${cands.length ? cands.map(n => `<div class="item" data-f="pick-${esc(n)}" data-a="invite:${kind}:${esc(n)}"><span class="who">${esc(n)}</span>
+        <span class="st">${kind === "safe" ? (n === "Kade_R" ? "has a safehouse already" : "no safehouse") : (n === "Mags_77" || n === "mike_d" ? "in Muldraugh Mall" : "no faction")}</span></div>`).join("")
+        : `<div class="item"><span class="st">Everyone online is in already.</span></div>`}</div></div>` : ""}`;
+}
+function renderSafe() {
+  const h = S.safe, own = ownsSafe();
+  const rule = (ok, yes, no) => `<div><span class="m ${ok ? "y" : "n"}">${ok ? "&#10003;" : "&#10005;"}</span><span>${ok ? yes : no}</span></div>`;
+  return {
+    back: { label: "Server", title: T.Safehouse },
+    body: `<div class="cardbody">
+      <div class="label">${T.Title}${own && S.edit !== "safeTitle" ? `<span class="r">pick to rename</span>` : ""}</div>
+      ${nameField("safeTitle", h.title, own, { hint: "Everyone in the safehouse sees the new title.", ph: "Name your safehouse" })}
+      <div class="facts" style="margin-top:10px">
+        <span class="k">${T.Owner}</span><span>${esc(h.owner)}</span>
+        <span class="k">${T.Location}</span><span>${esc(h.place)}</span>
+        <span class="k">${T.Created}</span><span>${esc(h.created)}</span></div>
+      <div style="margin-top:10px" class="withhand" data-f="respawn"><div class="check ${RULES.respawn ? "" : "off"}" data-a="respawn">
+        <span class="box">${h.respawn && RULES.respawn ? "&#x2715;" : ""}</span><span>${T.Respawn}
+        <div class="sub">${RULES.respawn ? "When you die, your next character starts here." : "This server doesn't allow it."}</div></span></div></div>
+      <div class="label">${T.Players}<span class="r">${h.members.length}</span></div>
+      <div class="list">${memberRows(h.members, h.owner, own, "safe")}${inviteRows(h.invited, own, "safe")}</div>
+      ${own ? addDrawer("safe", [...h.members.map(m => m.n), ...h.invited]) : ""}
+      <div class="label">This server's rules</div>
+      <div class="rules">
+        ${rule(!RULES.trespass, "Non-members can't walk in.", "Anyone can walk in.")}
+        ${rule(!RULES.loot, "Non-members can't take items.", "Anyone can take items.")}
+        ${rule(!RULES.fire, "Fire can't damage it.", "Fire can burn it.")}
+        ${rule(!RULES.offlineOnly, "Protected all the time, you on or off.", "Protected only while every member is offline.")}
+        ${rule(true, `A member away ${RULES.removal} real hours is removed.`, "")}
+      </div></div>`,
+    help: S.flash || (S.confirm ? `Nothing changes until you pick ${S.confirm.go}.` : S.edit ? "Type the title. Save keeps it; Cancel puts the old one back." : own ? "Pick the title to rename it, a player to change owner or remove them." : "Only the owner can rename it or change who's in it."),
+    pad: S.edit ? `<span class="glyph">START</span>Save <span class="glyph">B</span>Cancel` : `<span class="glyph">A</span>Pick <span class="glyph">B</span>Back`,
+    foot: footFor("safe"),
+  };
+}
+
+// ---------------------------------------------------------------- the faction card
+function renderFaction() {
+  const f = S.fac, own = ownsFac();
+  if (!hasFac()) {
+    const err = problem("newFac", S.draft);
+    return {
+      back: { label: "Server", title: T.CreateFaction },
+      body: `<div class="cardbody">
+        <div class="label">${T.FactionName}<span class="r">3-14 characters</span></div>
+        ${nameField("newFac", "", true, { hint: "The name everyone sees on the faction list.", ph: "Name your faction" })}
+        <div class="label">What comes next</div>
+        <div class="rules">
+          <div><span class="m y">&#10003;</span><span>You've survived ${S.day} days; this server asks for ${RULES.facDay}.</span></div>
+          <div><span class="m">&#8226;</span><span>Invite players from this card once it exists.</span></div>
+          <div><span class="m">&#8226;</span><span>At ${RULES.tagNeeds} players you can give it a Tag, shown over your heads.</span></div>
+        </div></div>`,
+      help: S.flash || (err && S.draft ? err : "Type the name. Create Faction makes it, with you as the owner."),
+      pad: `<span class="glyph">START</span>Create <span class="glyph">B</span>Cancel`,
+      foot: `<span class="withhand" data-f="cancelnew"><button class="btn" data-a="back">Cancel</button></span>
+        <span class="withhand" data-f="create"><button class="btn default" data-a="save" ${err ? "disabled" : ""}>${T.CreateFaction}</button></span>`,
+    };
+  }
+  const tagOk = f.members.length >= RULES.tagNeeds;
+  return {
+    back: { label: "Server", title: T.Faction },
+    body: `<div class="cardbody">
+      <div class="label">${T.FactionName}${own && S.edit !== "facName" ? `<span class="r">pick to rename</span>` : ""}</div>
+      ${nameField("facName", f.name, own, { hint: T.NameLen, ph: "Name your faction" })}
+      <div class="label">${T.Tag}${own && tagOk && S.edit !== "facTag" ? `<span class="r">1-4 characters</span>` : ""}</div>
+      ${tagOk ? nameField("facTag", f.tag, own, { mono: true, hint: T.TagLen, ph: "TAG", render: v => tagPill(v, f.color) })
+        : `<div class="sub">${esc(T.TagMembers(RULES.tagNeeds))} (${f.members.length} now).</div>`}
+      ${tagOk ? `<div class="label">Tag color</div>
+        <div class="swatches">${COLORS.map(c => own ? `<span class="withhand" data-f="c${c}"><span class="sw ${f.color === c ? "on" : ""}" style="background:${c}" data-a="color:${c}"></span></span>`
+          : (f.color === c ? `<span class="sw on" style="background:${c}"></span>` : "")).join("")}</div>
+        <div style="margin-top:10px" class="withhand" data-f="showtag"><div class="check ${own ? "" : "off"}" data-a="showtag"><span class="box">${f.showTag ? "&#x2715;" : ""}</span><span>${T.ShowTag}</span></div></div>
+        <div style="margin-top:8px"><span class="sub">Over your head:</span> <span class="preview">${esc(S.me)} ${f.showTag ? `<span style="color:${f.color}">[${esc(f.tag)}]</span>` : ""}</span></div>` : ""}
+      <div style="margin-top:10px" class="withhand" data-f="pvp"><div class="check ${own ? "" : "off"}" data-a="pvp"><span class="box">${f.pvp ? "&#x2715;" : ""}</span>
+        <span>${T.Pvp}<div class="sub">${T.PvpHelp}.</div></span></div></div>
+      <div class="label">Members<span class="r">${f.members.length}</span></div>
+      <div class="list">${memberRows(f.members.map(n => ({ n, on: ONLINE.includes(n) || n === S.me, h: 3 })), f.owner, own, "fac")}${inviteRows(f.invited, own, "fac")}</div>
+      ${own ? addDrawer("fac", [...f.members, ...f.invited]) : ""}
+      </div>`,
+    help: S.flash || (S.confirm ? `Nothing changes until you pick ${S.confirm.go}.` : S.edit ? "Type it. Save keeps it; Cancel puts the old one back." : own ? "Pick the name or the tag to change it. Ticks save as you set them." : "Only the owner can change the faction."),
+    pad: S.edit ? `<span class="glyph">START</span>Save <span class="glyph">B</span>Cancel` : `<span class="glyph">A</span>Pick <span class="glyph">B</span>Back`,
+    foot: footFor("fac"),
+  };
+}
+
+// the foot: Save while a name is being typed; a confirm when one is open; otherwise the card's leave or end
+function footFor(kind) {
+  if (S.edit) {
+    const err = problem(S.edit, S.draft);
+    return `<span class="left">${err ? esc(err) : ""}</span>
+      <span class="withhand" data-f="ecancel"><button class="btn" data-a="cancel">Cancel</button></span>
+      <span class="withhand" data-f="esave"><button class="btn default" data-a="save" ${err ? "disabled" : ""}>Save</button></span>`;
+  }
+  if (S.confirm) {
+    const c = S.confirm;
+    return `<span class="left warn">${esc(c.text)}</span>
+      <span class="withhand" data-f="no"><button class="btn" data-a="no">${c.keep}</button></span>
+      <span class="withhand" data-f="yes"><button class="btn danger" data-a="yes">${c.go}</button></span>`;
+  }
+  if (kind === "safe") return ownsSafe()
+    ? `<span class="withhand" data-f="release"><button class="btn danger" data-a="ask:release">${T.Release}</button></span>`
+    : `<span class="withhand" data-f="quit"><button class="btn danger" data-a="ask:quit">${T.Quit}</button></span>`;
+  return ownsFac()
+    ? `<span class="withhand" data-f="disband"><button class="btn danger" data-a="ask:disband">${T.Disband}</button></span>`
+    : `<span class="withhand" data-f="leave"><button class="btn danger" data-a="ask:leave">${T.Leave}</button></span>`;
+}
+
+// ---------------------------------------------------------------- the frame
+function render() {
+  document.documentElement.dataset.theme = S.theme;
+  document.documentElement.dataset.size = S.size;
+  renderReview();
+  const v = S.screen === "safe" ? renderSafe() : S.screen === "faction" ? renderFaction() : renderServer();
+  const rails = ["INV", "EQP", "HP", "TMP", "CK", "ID", "SK", "SRV"];
+  document.getElementById("win").innerHTML = `
+    <div class="titlebar"><div class="close"></div><div class="titlechip">${esc(S.me)} <span class="plus">+</span> Server</div></div>
+    <div class="body"><div class="rail">${rails.map(r => `<div class="${r === "SRV" ? "on" : ""}">${r}</div>`).join("")}</div>
+      <div class="panel">
+        ${v.back ? `<div class="backbar"><span class="back withhand" data-f="back" data-a="back">&#9664; ${esc(v.back.label)}</span><span class="title">${esc(v.back.title)}</span></div>`
+          : `<div class="panelhead">${v.head}</div>`}
+        <div class="scroll" id="scroll">${v.body}</div>
+        ${v.foot ? `<div class="foot">${v.foot}</div>` : ""}
+        <div class="helpband"><span>${v.help}</span><span class="pad">${v.pad}</span></div>
+      </div></div>`;
+  const fs = [...document.querySelectorAll("#win [data-f]")];
+  if (S.focus >= fs.length) S.focus = fs.length - 1;
+  if (S.focus < 0) S.focus = 0;
+  const f = fs[S.focus];
+  if (f) { if (!f.classList.contains("item") && !f.classList.contains("sumrow")) f.classList.add("focused"); f.insertAdjacentHTML("afterbegin", HAND); }
+  const e = document.getElementById("edit");
+  if (e) e.addEventListener("input", ev => { S.draft = ev.target.value; refreshEdit(); });
+}
+function refreshEdit() {
+  const err = problem(S.edit, S.draft);
+  document.querySelectorAll('[data-a="save"]').forEach(b => b.disabled = !!err);
+  const c = document.querySelector(".count"); if (c) { const hi = LIMITS[S.edit][1]; c.textContent = `${S.draft.trim().length} / ${hi}`; c.classList.toggle("bad", S.draft.trim().length > hi); }
+  const l = document.querySelector(".foot .left"); if (l) l.textContent = err;
+}
+function focusOn(f) { setTimeout(() => { const fs = [...document.querySelectorAll("#win [data-f]")]; const i = fs.findIndex(x => x.dataset.f === f); if (i >= 0) { S.focus = i; render(); } }, 0); }
+
+// ---------------------------------------------------------------- actions
+function act(a) {
+  const parts = a.split(":"), k = parts[0];
+  const h = S.safe, f = S.fac;
+  S.flash = "";
+  switch (k) {
+    case "open":
+      S.screen = parts[1]; S.focus = 0; S.drawer = null; S.confirm = null; S.rowOpen = null; S.edit = null;
+      if (parts[1] === "faction" && !hasFac()) { S.edit = "newFac"; S.draft = ""; S.focus = 1; }
+      break;
+    case "back":
+      if (S.edit && !(S.screen === "faction" && !hasFac())) { S.edit = null; break; }
+      S.screen = "server"; S.edit = null; S.drawer = null; S.confirm = null; S.rowOpen = null; S.focus = 0; break;
+    case "edit":
+      S.edit = parts[1]; S.draft = parts[1] === "safeTitle" ? h.title : parts[1] === "facName" ? f.name : f.tag; S.kbCur = 11; S.confirm = null;
+      render(); focusOn(parts[1] + "-in"); return;
+    case "cancel": { const id = S.edit; S.edit = null; render(); focusOn(id); return; }
+    case "save": {
+      const id = S.edit, v = S.draft.trim();
+      if (problem(id, v)) return;
+      if (id === "safeTitle") { h.title = v; S.flash = "Renamed. Everyone in the safehouse sees the new title."; }
+      if (id === "facName") { f.name = v; S.flash = "Renamed. The faction list shows the new name."; }
+      if (id === "facTag") { f.tag = v.toUpperCase(); S.flash = "Tag set. It shows over your heads."; }
+      if (id === "newFac") {
+        S.fac = { name: v, tag: "", color: "#5a9a4a", showTag: true, pvp: false, owner: S.me, members: [S.me], invited: [] };
+        S.facRole = "owner"; S.flash = `${v} made, with you as the owner. Invite players with Add Player.`;
+      }
+      S.edit = null; render(); focusOn(id === "newFac" ? "add-fac" : id); return;
+    }
+    case "respawn": if (RULES.respawn) { h.respawn = !h.respawn; S.flash = h.respawn ? "You'll respawn here." : "You won't respawn here."; } break;
+    case "showtag": if (ownsFac()) f.showTag = !f.showTag; break;
+    case "pvp": if (ownsFac()) { f.pvp = !f.pvp; S.flash = f.pvp ? "Members can hurt each other in melee." : "Members can't hurt each other in melee."; } break;
+    case "color": if (ownsFac()) f.color = parts[1]; break;
+    case "row": S.rowOpen = S.rowOpen === parts[1] ? null : parts[1]; break;
+    case "drawer": S.drawer = S.drawer === parts[1] ? null : parts[1]; break;
+    case "invite": (parts[1] === "safe" ? h.invited : f.invited).push(parts[2]); S.drawer = null; S.flash = T.Sent(parts[2]) + ". It waits in their Server tab until they answer."; break;
+    case "uninvite": { const l = parts[1] === "safe" ? h.invited : f.invited; l.splice(l.indexOf(parts[2]), 1); S.flash = `Invitation to ${parts[2]} cancelled.`; break; }
+    case "remove": S.confirm = { act: "remove", kind: parts[1], who: parts[2], keep: "Keep", go: "Remove",
+      text: parts[1] === "safe" ? T.RemoveSafe(parts[2]) : T.RemoveFac(parts[2]) }; focusOn("no"); break;
+    case "owner": S.confirm = { act: "owner", kind: parts[1], who: parts[2], keep: "Keep", go: T.ChangeOwner,
+      text: `Make ${parts[2]} the owner? You stay a member.` }; focusOn("no"); break;
+    case "ask": {
+      const m = { release: [T.ReleaseConfirm, "Release"], quit: [T.QuitConfirm, "Quit"], disband: [T.DisbandConfirm, "Disband"], leave: [T.LeaveConfirm, "Leave"] }[parts[1]];
+      S.confirm = { act: parts[1], keep: "Keep it", go: m[1], text: m[0] }; focusOn("no"); break;
+    }
+    case "no": S.confirm = null; break;
+    case "yes": {
+      const c = S.confirm; S.confirm = null; S.rowOpen = null;
+      if (c.act === "remove") {
+        if (c.kind === "safe") h.members = h.members.filter(m => m.n !== c.who); else f.members = f.members.filter(n => n !== c.who);
+        S.flash = `${c.who} removed.`;
+      } else if (c.act === "owner") {
+        if (c.kind === "safe") { h.owner = c.who; S.safeRole = "member"; } else { f.owner = c.who; S.facRole = "member"; }
+        S.flash = `${c.who} is the owner now.`;
+      } else if (c.act === "release" || c.act === "quit") { S.safeRole = "none"; S.screen = "server"; S.focus = 0; S.flash = c.act === "release" ? "Safehouse released." : "You left the safehouse."; }
+      else { S.facRole = "none"; S.screen = "server"; S.focus = 0; S.flash = c.act === "disband" ? "Faction disbanded." : "You left the faction."; }
+      break;
+    }
+    case "accept":
+      S.fac = { name: S.invite.faction, tag: "MALL", color: "#4f86c6", showTag: true, pvp: false, owner: S.invite.from, members: [S.invite.from, "mike_d", S.me], invited: [] };
+      S.facRole = "member"; S.invite = null; S.flash = "You're in Muldraugh Mall."; break;
+    case "decline": S.flash = `You declined ${S.invite.from}'s invitation.`; S.invite = null; break;
+    case "claim":
+      S.safe = { title: "Riverside house", owner: S.me, place: "Riverside, 6402 x 5410", created: `Day ${S.day}`, members: [{ n: S.me, on: true, h: 0 }], invited: [], respawn: true };
+      S.safeRole = "owner"; S.screen = "safe"; S.edit = "safeTitle"; S.draft = S.safe.title; S.flash = "Claimed. Give it a title, or keep the one it has.";
+      render(); focusOn("safeTitle-in"); return;
+  }
+  render();
+}
+function pressKey(key) {
+  if (key === "Shift") S.kbShift = !S.kbShift;
+  else if (key === "Space") S.draft += " ";
+  else if (key === "Del") S.draft = S.draft.slice(0, -1);
+  else if (key === "Done") { act("save"); return; }
+  else S.draft += S.kbShift ? key : key.toLowerCase();
+  render();
+}
+
+document.addEventListener("click", e => {
+  const r = e.target.closest("[data-r]");
+  if (r) {
+    const [k, v] = r.dataset.r.split(/:(.*)/);
+    if (k === "padkb") S.padkb = v === "1"; else S[k] = v;
+    if (k === "safeRole" || k === "facRole") { S.screen = "server"; S.edit = null; S.confirm = null; S.drawer = null; syncRoles(); }
+    S.focus = 0; render(); return;
+  }
+  const kb = e.target.closest("[data-kb]"); if (kb) { S.kbCur = KBFLAT.indexOf(kb.dataset.kb); pressKey(kb.dataset.kb); return; }
+  if (e.target.closest("input, textarea")) return;
+  const a = e.target.closest("[data-a]");
+  if (a && !a.disabled) {
+    const fs = [...document.querySelectorAll("#win [data-f]")]; const f = a.closest("[data-f]"); if (f) S.focus = fs.indexOf(f);
+    act(a.dataset.a);
+  }
+});
+document.addEventListener("keydown", e => {
+  const inField = e.target.closest && e.target.closest("input");
+  if (inField) { if (e.key === "Enter") { act("save"); e.preventDefault(); } else if (e.key === "Escape") { e.target.blur(); act("cancel"); } return; }
+  if (S.edit && S.padkb) {
+    const n = KBFLAT.length;
+    if (e.key === "ArrowRight") S.kbCur = (S.kbCur + 1) % n; else if (e.key === "ArrowLeft") S.kbCur = (S.kbCur + n - 1) % n;
+    else if (e.key === "ArrowDown") S.kbCur = Math.min(n - 1, S.kbCur + 10); else if (e.key === "ArrowUp") S.kbCur = Math.max(0, S.kbCur - 10);
+    else if (e.key === "Enter") { pressKey(KBFLAT[S.kbCur]); e.preventDefault(); return; }
+    else if (e.key === "Escape") { act(S.screen === "faction" && !hasFac() ? "back" : "cancel"); return; }
+    else return;
+    e.preventDefault(); render(); return;
+  }
+  const fs = [...document.querySelectorAll("#win [data-f]")];
+  if (e.key === "ArrowDown") { S.focus = Math.min(fs.length - 1, S.focus + 1); render(); e.preventDefault(); }
+  else if (e.key === "ArrowUp") { S.focus = Math.max(0, S.focus - 1); render(); e.preventDefault(); }
+  else if (e.key === "Enter") {
+    const f = fs[S.focus]; if (!f) return;
+    const a = f.matches("[data-a]") ? f : f.querySelector("[data-a]");
+    if (a && !a.disabled) act(a.dataset.a); e.preventDefault();
+  } else if (e.key === "Escape") { if (S.confirm) act("no"); else if (S.screen !== "server") act("back"); }
+  const h = document.querySelector("#win .hand"); if (h) h.parentElement.scrollIntoView({ block: "nearest" });
+});
+syncRoles();
+render();
+</script>
+</body>
+</html>

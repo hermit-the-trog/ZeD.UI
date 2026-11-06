@@ -2596,6 +2596,91 @@ item says so.
     - **QA:** the handoff's checks (1080p against the preview, the lamp dip, 4K, the lean-in sizes, ultrawide, DEV,
       a long line cut).
     - **Every release:** the five lines updated (release checklist step 4b).
+87. **Multiplayer and admin, the full scope (the director, Nov 5 2026: "I want to solve for all these problems ...
+    I would rather just have it included").** chosen; design first. ZeDUI/MP_ADMIN_SCOPE.md: ZeD ships a server part
+    (official Lua); six phases (reports and tickets; admin clarity, players and moderation; safehouses and factions in
+    cards; logs; community; opt-in systems off by default); every game pop-up the server surfaces open either moves
+    into a card or gets the ZeD skin (the table there).
+    - **Design:** Phase 1 mockup (Ask the admins, the Tickets queue, a ticket card) for the director.
+      Drawn Nov 5: `mockups/zed_tickets_v1.html`, then `_v2` with the director's word: the six kinds stand,
+      "nearby" is 30 tiles, Delete is admins only, moderators (and admins) mark Spam. Also settled Nov 5: names and
+      short text are inline fields in the cards, never pop-ups (MP_ADMIN_SCOPE.md, the pop-ups section).
+      Phase 3 drawn Nov 5: `mockups/zed_safehouse_faction_v1.html` (safehouse and faction cards, names inline).
+      Phase 2 drawn Nov 5: `mockups/zed_admin_tools_v1.html` (Players, the Player card, Roles, Bans, Spawn items).
+      Phase 4 drawn Nov 5: `mockups/zed_logs_v1.html`. Phases 5 and 6: `mockups/zed_community_v1.html`. All six
+      phases now have a mockup; the director's "looks good, continue" on Phase 2 (Nov 5).
+      Held from Build until beta 5 ships (the director, Nov 5).
+    - **Build:** the server part's data and messages for tickets, after the mockup is approved.
+    - **QA:** each phase on the local server, two players for tickets and invites.
+
+88. **The male skeleton's right arm (the director, Nov 5 2026: the lower arm, the wrist, the forearm, where the
+    elbow joint is, "it's either dislocated or very broken. A doctor would probably want to get that person into
+    surgery").** The body figure's `m-skeleton.png` (and the `m-bicep-r`, `m-wrist-r`, `m-hand-r` part layers drawn
+    from the same bones), made by `tools/physpx/d_skeleton.py`.
+    - **What's wrong:** below the elbow the forearm leaves the upper arm at a kink, stepping out sideways instead of
+      carrying on from the joint, and the wrist bends out again under it. The code's "r" is the character's right,
+      the viewer's left (x < 110); that side is the worst. The other arm has a smaller step at its elbow; fix both
+      to one rule so they match.
+    - **The fix:** one straight line from the elbow knob through the forearm (radius and ulna side by side) to the
+      wrist, the slight outward carry angle only, the elbow a joint the two bones meet at, not an offset. Then the
+      wrist and hand on the forearm's line. Check the female figure for the same fault while there.
+    - **Design:** redraw in `d_skeleton.py`, export to scratch, copy only the `m-` (and if needed `f-`) body files
+      and `ZeD_BodyLayout.lua`'s arm rectangles (the tools may have drifted from the committed art).
+    - **QA:** the Health, Thermal and Equipment tabs, both sexes, tinted parts still land on the right bones.
+    - **Done in design, Nov 5 2026 (not installed: beta 5 is being assembled).** The cause: the forearm was drawn
+      to fill the flesh outline, which bows out at the elbow, so it started off the upper arm's end. Now
+      `d_skeleton.py` draws it straight from the elbow joint to the wrist (the ulna toward the body, the radius
+      outside; one bone where the arm is too slim). Both arms, both sexes (hers had a smaller step). Only the arm
+      layers change, pixel-checked against the committed art: m/f `-skeleton`, `-bicep-l/r`, `-wrist-l/r`, `-hand-l`.
+      Staged in `ZeDUI/art/skeleton_arms_88/` with `_layout.lua.txt`.
+    - **Build, after beta 5 ships:** copy the 12 PNGs into `42/media/textures/ZeD/body/` and the arm rows of
+      `_layout.lua.txt` (the `bicep-r`, `wrist-r`, `wrist-l`, `hand-l` rects and the two hit maps) into
+      ZeD_BodyFigure.lua's `M_HITS` / `F_HITS` / `M_HITMAP` / `F_HITMAP`. Don't rerun the whole export into 42/.
+    - **Change note (the director's words, Nov 5 2026):** "Both male and female skeletons have had their elbows
+      surgically repaired. Both are expected to make full recoveries."
+
+89. **The Identity tab, Immersive and Simple (the director, Nov 5 2026: "Everything is either immersive or simple").**
+    Immersive is the license, Simple is ZeD components (called License and Plain in the notes below and in v1). Design:
+    `mockups/zed_identity_v2.html` (v1 before it); the art in `ZeDUI/art/identity/` from `tools/identity/ky_header.py`.
+    **Approved as drawn (the director, Nov 5 2026, 6:28 pm: "No changes").** Held from Build until beta 5 ships.
+    - **Weight** (the director: "as large as the name ... a plus or minus, depending on if it's going up or down. Both
+      cards"): on every card the weight is the name's size and weight, at the name row's right (the narrow license:
+      beside the surname; WGT leaves the small rows), then + gaining, ++ gaining fast, - losing, nothing steady, from the
+      game's own Nutrition (isIncWeightLot, isIncWeight, isDecWeight), the sign in the accent.
+    - **The header, in pixel art** ("the old art style"): 24 art pixels tall, two pieces pinned to the band's ends
+      (`ky_head_left.png`: the state, COMMONWEALTH OF / KENTUCKY / OPERATOR'S LICENSE; `ky_head_right.png`: CLASS D and
+      the BRAIN DONOR pill, the director's joke kept: "it's a zombie game, not heart donor"), drawn at a whole-number
+      scale (the band's height / 24) with nearest filtering (`Atoms` nearest loader), the band filled with KY.blue with a
+      lighter top rule and a shade bottom rule. Replaces `Kentucky-dl-head.png`.
+    - **The narrow card stays a license**, laid out like Tennessee's vertical card (the director's reference, Nov 5):
+      `ky_head_tall.png` (the three lines stacked); a 3:4 photo with OPERATOR / CLASS D, the permit, DL NO, SURVIVED big,
+      ISS (the game's start date) and EXP (four years on) beside it; the name big (surname over forename); small rows
+      (SEX, WGT, HAIR, STYLE, FACIAL, BODY, PROF, KILLS, FAV); the faded seal and `ky_donor.png` at the foot;
+      `ky_bg_tile.png` behind the fields and `ky_watermark.png` (the state, large and faint). Picking the photo fills the
+      whole card under the header with the full body; picking it again brings the card back.
+    - **Accent** (the director): every colored word on the license, wide and narrow (the labels, the CLASS box, the
+      permit, the weight's sign), is the player's accent, darkened for the cream card (62% accent, 38% black) so pale
+      accents read. Values stay black, Survived For's and EXP's too (the director, Nov 5: the colored survived value
+      "looks weird").
+    - **Carry permit by profession** (the director: "veteran, police officer, maybe throw in a couple surprises. Not
+      teacher."): Police Officer, Veteran, Security Guard, Park Ranger, Burger Flipper; Burglar's is stamped REVOKED.
+      Wide: a rubber stamp over the seal; narrow: a filled box under CLASS D; Plain: a "Carry permit" row. (Kentucky
+      only began issuing them in October 1996.)
+    - **Plain** (the director: "no graphic, just ZeD components, for vertical and wide"): the avatar on the theme's
+      surface, the name and weight, label / value rows (labels in the accent), no rules; a ZeD setup choice (Look,
+      Identity card: License / Plain).
+    - **Build, after beta 5:** IdentityTab.lua's two card layouts redrawn to the mockup; the tall layout's fields and
+      photo replaced; the setting added; the permit table in one place.
+    - **QA:** both styles at both widths, 1x and 2x and 1.75x at 4K, all nine accents and the three themes, the full
+      body both ways, a long name, each permit profession.
+
+90. **American spelling everywhere players read (the director, Nov 5 2026: "spell color C-O-L-O-R and leave the U over
+    in Europe").** color, gray, center, favorite, license, behavior. Design fixed its Nov 5 files (the MP mockups,
+    MP_ADMIN_SCOPE.md, VEHICLE_TAB_SPEC.md, ky_header.py). Left for Build after beta 5: five lines in
+    `42/media/lua/shared/Translate/EN/UI.json` ("Greyed" twice in UI_ZeD_Order_PickNone*, "colours" in
+    UI_ZeD_Mods_HelpLabel, "colour" in UI_ZeD_GCh_zed_look_Text and UI_ZeD_GCh_whatsnew_beta3_Text), and
+    `ZeDUI/workshop/license_block.bbcode` ("[h2]Licence[/h2]"; the live page already says License). The game's own
+    keys (IGUI_char_Favourite_Weapon) stay as they are. Every change note and description from here on: American.
 
 ## Test process
 
