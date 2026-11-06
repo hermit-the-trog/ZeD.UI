@@ -4,12 +4,15 @@
 -- odometer, stalled, Scale), written here from its reference page, with providers shaped like Roadworthy's.
 --   SAME    with no such mod every dash is exactly today's: the dash as it stood before this work (git show BASE) and the dash
 --           now, frame by frame over every design, every car state, Full and Simple, lamps setting on and off: every reading and
---           every draw call equal. Then again with the library there and nobody publishing.
+--           every draw call equal. Then again with the library there and nobody publishing, and with the library holding a
+--           stall that no mod has anything to say about.
 --   NEEDLES the temperature and oil needles follow the published gauges and hand back when they go
 --   LAMPS   amber, red, blink; each role on each plate: on a plate with the lamp it lights, on one without nothing is drawn and
 --           the Simple strip lists it; dark leaves ZeD's own lamp; check engine; the named constant
 --   GEAR, ODO, SPEED, STALL as published; made-up values stay where nothing is published
+--   PASSENGER the World Scale and the odometer from any seat, and no provider run for a passenger
 --   BREAKS  a poll, provider, gear, odometer or scale that throws or lies: ZeD's own value, no error out of the dash
+--   SAFE MODE the real watchdog and the real ZeD.logOnce: another mod's failure never trips it
 -- What it can't show is the real mods' numbers and how it looks: zedqa_roadworthy.lua, in the game with both mods on.
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/vskdash_sim.lua
 -- It prints FAIL lines and a last line "vskdash_sim: N checks, M failed", and exits 1 if any failed.
@@ -345,7 +348,7 @@ local function stubLibrary(S)
         return c
     end
     function K.gearLabel() if K.gearThrows then error("gear") end; return K.gear end
-    function K.odometer() if K.odoThrows then error("odo") end; return K.km, K.tripKm end
+    function K.odometer() K.odoCalls = (K.odoCalls or 0) + 1; if K.odoThrows then error("odo") end; return K.km, K.tripKm end
     function K.stalled() return K.held == true end
     return K
 end
@@ -408,6 +411,10 @@ if oldSource and #oldSource > 10000 then
     stubLibrary(1)
     local silent = sweep()
     sameFrames("the library there, nobody publishing", today, silent)
+    boot(nowSource, true)
+    stubLibrary(1).held = true
+    silent = sweep()
+    sameFrames("the library holding a stall, nobody publishing", today, silent)
     -- the proof can fail: one number moved in the old dash shows up
     boot((string.gsub(oldSource, "st.engWarn and 0.82 or 0.5", "st.engWarn and 0.82 or 0.51")), false)
     local moved = sweep()
@@ -493,6 +500,25 @@ do
     settle()
     check("ignition off: nothing published, ZeD's own rest", near(st().temp, 0.12, 0.01), st().temp)
 end
+do
+    -- a gauge with nothing of its own to keep it dark: the library's contract does (a needle rests with no power)
+    local K = start("nyala", { running = false, rpm = 0, kmh = 0 })
+    K.providers["rw.temp_gauge"].appliesTo = nil
+    K.providers["rw.oil_gauge"] = nil
+    K.register({ id = "x.boost", kind = "gauge", name = "Boost", read = function() return { level = "ok", value = 0.4 } end })
+    K.register({ id = "x.dial", kind = "gauge", name = "Coolant", read = function() return { level = "ok", value = 0.47, text = "92 C" } end })
+    env.simple = true
+    frames(3, 250)
+    check("with power a role-less gauge is listed", drewText(frame(0), "Boost: 40%"))
+    check("a gauge's text is what Simple prints", drewText(frame(0), "Coolant: 92 C") and not drewText(frame(0), "47%"))
+    K.power = 0
+    frames(3, 250)
+    check("no power: the temperature gauge gives no needle", st().pub.temp == nil, st().pub.temp)
+    check("no power: no gauge on Simple", not drewText(frame(0), "Boost") and not drewText(frame(0), "Coolant"))
+    K.providers["rw.temp_gauge"].unpowered = true
+    frames(3, 250)
+    check("flagged unpowered: it reads with the key out", st().pub.temp ~= nil)
+end
 
 -- ---------------------------------------------------------------------------
 section("LAMPS")
@@ -533,6 +559,29 @@ do
     start("nyala", { running = false, rpm = 0, kmh = 0 })
     frames(3, 250)
     check("bulb check stands with nothing lit", st().oilLamp == true and st().tempLamp ~= nil, st().oilLamp)
+end
+
+do
+    -- two lamps at one level on the engine lamp: steady, then blinking, in the library's order
+    local _, rw = start("d6")
+    rw.temp = 135
+    rw.check, rw.checkBlink = "crit", true
+    frames(3, 250)
+    local l = st().pub.lamps.engLamp
+    check("a steady red and a blinking red: the engine lamp blinks", l and l.blink == true, l and l.blink)
+    check("it takes the name of the lamp that has one", l and l.name == "Check engine", l and l.name)
+    local seen = {}
+    for _ = 1, 8 do frame(250); seen[tostring(st().engLamp)] = true end
+    check("the plate's engine lamp goes red and dark", seen[RED] and seen["false"], tostring(seen[RED]))
+    rw.check, rw.checkBlink = nil, nil
+    rw.oilLamp, rw.oilBlink = "crit", true
+    frames(3, 250)
+    l = st().pub.lamps.engLamp
+    check("the oil lamp's blink reaches the engine lamp it lights", l and l.blink == true, l and l.blink)
+    rw.oilBlink = nil
+    frames(3, 250)
+    l = st().pub.lamps.engLamp
+    check("nothing blinking: steady", l and l.blink == false, l and l.blink)
 end
 
 local ROLES = {
@@ -593,9 +642,9 @@ do
 end
 do
     local K = start("nyala")
-    K.register({ id = "other.hi", kind = "lamp", icon = "beam", name = "High beam", read = function() return { level = "ok", lit = true, color = { 0, 0, 1 } } end })
+    K.register({ id = "other.fuel", kind = "lamp", icon = "fuel", name = "Reserve", read = function() return { level = "ok", lit = true } end })
     frames(2, 200)
-    check("an indicator lit with nothing wrong: the plate's own color", st().hiBeam == true, st().hiBeam)
+    check("an indicator lit with nothing wrong: the plate's own color", st().fuelLamp == true, st().fuelLamp)
     K.register({ id = "other.gauge", kind = "gauge", name = "Boost", read = function() return { level = "ok", value = 0.4 } end })
     K.register({ id = "other.text", kind = "readout", name = "Limiter", read = function() return { level = "ok", text = "55 mph" } end })
     env.simple = true
@@ -608,6 +657,28 @@ do
     check("Simple lists a mod's gauge", drewText(log, "Boost: 40%"))
     check("Simple names the row", drewText(log, "Readouts"))
     check("Simple keeps the odometer out of the row (it has its own cell)", not drewText(log, "whole readout"))
+end
+
+do
+    -- the library's high beam: there on high, not there at all on low. The plate's blue lamp says the headlights are on.
+    local K = start("nyala", { lights = true })
+    local high = false
+    K.register({ id = "vsk.highbeam", kind = "lamp", icon = "beam", name = "High beam", order = 5,
+        read = function() if high then return { level = "ok", lit = true, color = { 0, 0, 1 } } end; return nil end })
+    frames(2, 200)
+    check("low beam, headlights on: the plate's lamp as today", st().hiBeam == true, st().hiBeam)
+    high = true
+    frames(2, 200)
+    check("high beam: the same lamp", st().hiBeam == true, st().hiBeam)
+    check("high beam claims no plate lamp", st().pub.lamps.hiBeam == nil)
+    env.simple = true
+    check("Simple lists it by the mod's name", drewText(frame(0), "High beam"))
+    env.simple = false
+    V.BORROW_UNPAINTED = true
+    env.lampsOn = true
+    frames(2, 200)
+    check("the constant on: an indicator with nothing wrong borrows no fault lamp", st().genLamp == false, st().genLamp)
+    V.BORROW_UNPAINTED = false
 end
 
 -- ---------------------------------------------------------------------------
@@ -687,16 +758,66 @@ do
     frames(2, 250)
     check("the hold over: dark again", st().power == false)
 end
+do
+    -- no mod behind the stall: the library's own lamp is not a mod publishing
+    local K = stubLibrary(1)
+    K.register({ id = "vsk.highbeam", kind = "lamp", icon = "beam", name = "High beam", read = function() return { level = "ok", lit = true } end })
+    env.simple, env.lampsOn = false, false
+    seat(running(scriptOf("cossette"), { keysIn = false, running = false, rpm = 0, kmh = 0 }))
+    newDash()
+    K.held = true
+    frames(3, 250)
+    check("only the library's lamp: no hold, dark as today", st().power == false and st().pub.stalled == nil, st().power)
+    K.register({ id = "x.lamp", kind = "lamp", name = "Anything", read = function() return { level = "off" } end })
+    frames(3, 250)
+    check("a mod publishing for this car: the hold stands", st().power == true and st().pub.stalled == true, st().power)
+    K.providers["x.lamp"].read = function() return { level = "off", hidden = true } end
+    frames(3, 250)
+    check("a hidden result is nobody publishing", st().power == false, st().power)
+end
 
 -- ---------------------------------------------------------------------------
-section("PASSENGER, COST, LOAD ORDER")
+section("PASSENGER")
 -- ---------------------------------------------------------------------------
 do
-    local K = start("nyala", { passenger = true })
+    local K, rw = start("nyala", { passenger = true, kmh = 65 }, 0.65)
+    rw.temp, rw.unbelted, rw.oilLamp = 142, true, "crit"
+    K.gear = "N"
+    settle()
     check("a passenger's dash never polls", K.polls == 0, K.polls)
-    check("a passenger's dash reads ZeD's own", st().pub == nil)
+    check("a passenger reads the speed the car stands for, as the driver", near(st().speed_kmh, 100, 0.5), st().speed_kmh)
+    check("a passenger's temperature is ZeD's own", near(st().temp, 0.5, 0.01), st().temp)
+    check("a passenger's lamps are ZeD's own", not st().tempLamp and not st().beltLamp and not st().oilLamp)
+    check("a passenger's gear letter is ZeD's own: the gearbox is a provider", st().gearSel == "D", st().gearSel)
+    local c0 = K.odoCalls or 0
+    for _ = 1, 600 do frame(16) end        -- 9.6 s at 60 fps
+    local calls = (K.odoCalls or 0) - c0
+    check("a passenger's figures are read five times a second", calls >= 44 and calls <= 50, calls)
+    K = start("dashelite", { passenger = true })
+    local made = st().odo
+    K.km, K.tripKm = 123513.5 * 1.609344, 5.15
+    frames(2, 200)
+    check("a passenger's Dash Elite shows Roadworthy's odometer", st().odo == 3513 and st().odo ~= made, st().odo)
+    env.simple = true
+    check("and a passenger's Simple dash", drewText(frame(0), "123513 mi"))
+    env.simple = false
+    K.held = true
+    seat(running(scriptOf("cossette"), { passenger = true, keysIn = false, running = false, rpm = 0, kmh = 0 }))
+    frames(3, 250)
+    check("a stall holds nothing up for a passenger", st().power == false and st().pub.stalled == nil, st().power)
+    K.odoThrows, VSK.Scale = true, "gone"
+    frames(3, 250)
+    check("a passenger with a broken odometer and scale: ZeD's own", st().pub.odoMiles == nil and st().pub.speedK == nil)
+    VSK = nil
+    frames(3, 250)
+    check("a passenger, no library: ZeD's own", st().pub == nil)
+end
 
-    K = start("nyala")
+-- ---------------------------------------------------------------------------
+section("COST, LOAD ORDER, ANOTHER CAR")
+-- ---------------------------------------------------------------------------
+do
+    local K = start("nyala")
     local p0 = K.polls
     local pub0 = st().pub
     for _ = 1, 600 do frame(16) end        -- 9.6 s at 60 fps
@@ -715,14 +836,35 @@ do
     frames(2, 250)
     check("a library that loads after ZeD is picked up", st().pub ~= nil)
 
+    -- the list is the car's. Out of one and into another, as the game does it: D.hide, then D.show hands the dash the new car
+    -- before its first frame, so the dash keeps its memory
+    local car1 = curCar
+    K = VSK.Dashboard
+    K.register({ id = "x.tpms", kind = "lamp", name = "Tires", read = function() if curCar == car1 then return { level = "warn" } end; return nil end })
+    frames(2, 250)
+    local function listed(want)
+        for _, e in ipairs(st().pub.list) do if e.id == want then return true end end
+        return false
+    end
+    check("(the first car has its lamp)", listed("x.tpms"))
+    inst.vehicle = nil
+    inst.vehicle = car1
+    K.providers["x.tpms"].read = function() return nil end
+    frames(2, 250)
+    check("back in the same car: its row holds still", listed("x.tpms"))
+    local mem = inst._mem
     local car2 = running(scriptOf("d6"))
     seat(car2)
-    local K2 = VSK.Dashboard
-    K2.register({ id = "x.only", kind = "lamp", name = "Only", read = function() return { level = "warn" } end })
+    inst.vehicle = nil
+    inst.vehicle = car2
+    K.register({ id = "x.only", kind = "lamp", name = "Only", read = function() return { level = "warn" } end })
     frames(2, 250)
-    local n = 0
-    for _ in pairs(st().pub.list) do n = n + 1 end
-    check("a new car starts its own list", n == 1, n)
+    check("(the dash kept its memory, as in the game)", inst._mem == mem)
+    local n, id = #st().pub.list, st().pub.list[1] and st().pub.list[1].id
+    check("a new car starts its own list", n == 1 and id == "x.only", tostring(n) .. " " .. tostring(id))
+    env.simple = true
+    check("Simple lists no lamp of the car before", not drewText(frame(0), "Tires"))
+    env.simple = false
 end
 
 -- ---------------------------------------------------------------------------
@@ -736,11 +878,14 @@ do
     env.errors = {}
     frames(3, 250)
     check("a poll that throws: no publishing", st().pub == nil)
-    check("  it is logged, once for the game's log to carry", #env.errors >= 1)
+    check("  nothing reaches ZeD.logOnce, which counts toward safe mode", #env.errors == 0, env.errors[1])
+    local p1 = K.polls
     settle()
     check("  ZeD's own value", near(st().temp, 0.5, 0.01), st().temp)
+    local asked = K.polls - p1
+    check("  the library is asked again only now and then", asked >= 19 and asked <= 21, asked)
     K.pollThrows = false
-    frames(3, 250)
+    frames(21, 250)
     check("  and it comes back", st().pub ~= nil)
 
     K, rw = start("nyala")
@@ -804,6 +949,44 @@ do
     frames(3, 250)
     check("a VSK that is something else: off", st().pub == nil)
     VSK = nil
+end
+
+-- ---------------------------------------------------------------------------
+section("SAFE MODE: another mod's failure is not ZeD's")
+-- ---------------------------------------------------------------------------
+do
+    local Dn = boot(nowSource, true)
+    ZeD.Safe = nil
+    dofile(CLIENT .. "ZeD/SafeMode.lua")
+    local body = readFile(ROOT .. "42/media/lua/shared/ZeD/Tokens.lua"):match("local _logSeen.-\nfunction ZeD%.logOnce.-\nend")
+    assert(body, "ZeD.logOnce is not where the sim looks for it")
+    assert(loadstring(body, "=logOnce"))()
+    local trips = {}
+    ZeD.Safe.trip = function(where) trips[#trips + 1] = tostring(where) end
+    local outPrint = print
+    local function failing(name, set)
+        local K = start("nyala")
+        set(K)
+        trips = {}
+        local said = {}
+        print = function(x) said[#said + 1] = tostring(x) end
+        local ok, err = pcall(function() for _ = 1, 600 do frame(16) end end)
+        print = outPrint
+        check(name .. ": the dash carries on", ok, err)
+        check(name .. ": the watchdog never trips (10 s of frames)", #trips == 0, trips[1])
+        return said
+    end
+    local said = failing("a poll that throws", function(K) K.pollThrows = true end)
+    check("  it says so once", #said == 1 and said[1]:find("the library changed", 1, true) ~= nil, table.concat(said, " | "))
+    failing("a poll with no list", function(K) K.poll = function() return {} end end)
+    local apply = Dn.applyPublished
+    said = failing("published data the dash can't take", function() Dn.applyPublished = function() error("published") end end)
+    Dn.applyPublished = apply
+    check("  it says so once", #said == 1, table.concat(said, " | "))
+    -- the proof can fail: the same failure through ZeD.logOnce does trip it
+    trips = {}
+    for _ = 1, 400 do clock = clock + 16; ZeD.logOnce("control", "x") end
+    check("the watchdog in this rig does trip on logOnce", #trips > 0, #trips)
 end
 
 -- ---------------------------------------------------------------------------
