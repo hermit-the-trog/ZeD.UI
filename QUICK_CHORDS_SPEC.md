@@ -11,7 +11,7 @@
 3. **The button pressed with a bumper does only the chord:** A does not interact, Y does not open the windows, the stick clicks do not do their own thing. A bumper on its own still does nothing in the world; LB + RB is still zoom.
 4. **More than one while held:** keep LB held and press X, then A: both run, in that order (the game queues them).
 5. **An action that can't run now** does nothing and the character says why, in the game's own over-the-head text, with the wheel's reason ("Nothing to drink on you.", "In a vehicle.").
-6. **Stick clicks (Hard Rule #11):** the rule keeps stray stick clicks harmless. A chord needs a bumper held as well, so L3 / R3 alone still do nothing in the world. The director asked for the L3 / R3 chords by name: #11 is amended to allow them (GLOSSARY.md).
+6. **Stick clicks (Hard Rule #11):** the rule keeps stray stick clicks harmless. A chord needs a bumper held as well, so L3 / R3 alone still do nothing in the world (the one exception came later: R3 with a wheel open and Wheel commit set to Stick click, GAMEPAD_SPEC.md). The director asked for the L3 / R3 chords by name: #11 is amended to allow them (GLOSSARY.md).
 
 ## 2. What can go on a chord (settled: any wheel action)
 
@@ -24,7 +24,7 @@
 ## 3. Assigning (settled: both ways)
 
 - **ZeD setup, Quick actions:** a page with the twelve chords as rows (the two button glyphs, then the action and where it lives on the wheels). A changes a row: a list of the wheels' actions, grouped by wheel, in the wheels' order. X clears a row.
-- **From a wheel:** point at a slice, hold a bumper and press a button: the chord is assigned. If it held another action, the new one replaces it and the bubble says so for a moment. An assigned slice's bubble shows its chord (`LB + X`).
+- **From a wheel:** point at a slice, hold a bumper and press a button: the chord is assigned. The bumper keeps the slice lit once the thumb leaves the stick; let go of the bumper with no button pressed and it closes the wheel and opens the windows instead (RADIAL_WHEELS_SPEC.md). If it held another action, the new one replaces it and the bubble says so for a moment. An assigned slice's bubble shows its chord (`LB + X`).
 - **Defaults:** a starting layout is proposed in the mockup for the director to change (the director's old Steam layout wins if they share it).
 - **Button pictures:** chords show as two pictures, `[LB] + [X]`, from ZeD's own pixel button set in the pad's colours (GAMEPAD_SPEC.md, Button pictures; director, Oct 24 2026).
 

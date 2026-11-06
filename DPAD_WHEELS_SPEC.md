@@ -20,6 +20,8 @@ They gather the quick actions that today are spread over the game's D-pad wheels
 
 ## 2. How it works (settled)
 
+**Changed Nov 5 2026 (punch list 91): the wheels are worked as RADIAL_WHEELS_SPEC.md says, and that file wins. By default a tap opens a wheel and it stays up; the right stick picks and letting it go takes; the left stick keeps walking; inner wheels are taken by flick; B backs out. What follows here is the Hold setting, and everything about what is on the wheels stands.**
+
 1. **Open:** hold the D-pad direction (left thumb). The wheel appears at the centre of that player's screen (split screen: `getPlayerScreenLeft/Top/Width/Height`, as vanilla).
 2. **Point with the right stick** (director: "RS to point. PS dpad is on the left, would be very difficult to do both with one hand."). `ZeD.Wheel.sliceFromJoypad` already reads the aiming axis (`getJoypadAimingAxisX/Y`), so this is today's behaviour. On open call `setJoypadIgnoreAimUntilCentered(true)`; while a wheel is open the right stick neither aims nor hides the windows.
 3. **Take:** let go of the D-pad. The pointed slice runs (vanilla's `setHideWhenButtonReleased(Joypad.DPad*)` model). Nothing pointed: the wheel closes.
@@ -92,7 +94,7 @@ Emote pictures stay vanilla's (they are the gestures).
 
 ### Select: ZeD (director, Oct 23 2026: "Can select become the zed manager, like theme, accent, text size, reset")
 
-The Select (Back) button's wheel becomes ZeD's own wheel. Hold Select, point with the right stick, let go to take, as the D-pad wheels do. Everything the game's Select wheel offered is on the D-pad wheels already (Player info: Character, Tabs; Crafting, Building, Move furniture: World, Craft and build; Search mode, Pick up, Investigate: World, Search; Zoom, Game speed: Here and now). The Last Stand mode's button moves to Here and now, added only in Last Stand. It opens while paused, as the game's Select wheel does.
+The Select (Back) button's wheel becomes ZeD's own wheel. It is worked as the D-pad wheels are (tap by default, RADIAL_WHEELS_SPEC.md). Everything the game's Select wheel offered is on the D-pad wheels already (Player info: Character, Tabs; Crafting, Building, Move furniture: World, Craft and build; Search mode, Pick up, Investigate: World, Search; Zoom, Game speed: Here and now). The Last Stand mode's button moves to Here and now, added only in Last Stand. It opens while paused, as the game's Select wheel does.
 
 Nine slices (director chose Safe mode as the ninth):
 
@@ -155,4 +157,4 @@ Built Oct 23 2026 (`ZeD_DpadWheels.lua`). What the build found and settled:
 - Split screen: each player's wheel on their own screen.
 - QA: a bridge script `zedqa_dpad_wheels.lua` (no physical pad: call the four `onDisplay*` with `{ player = 0, id = <joypad id or nil> }` and the fill functions directly, the way suite_gamepad does): log each wheel's slice names and live / off state on foot, in a car, by an animal; open one inner wheel per wheel; take one safe slice per wheel (Tabs ▸ Health, Map ▸ Mini-map, Shout, Zoom in) and check the result; screenshots of all four at 4K 1.75x with the windows reset. Add it to `regression.txt`.
 - Then the gallery's "On a controller" card gets a reshoot with the new wheels (design side, the director's call).
-- And the gallery's **Controller** map card (`shots.json` id `controller_map`) gets two balloon texts changed in the same commit as the wheels: D-pad: "In a window: move from control to control. No window open: hold for a wheel: Character, World, Social, Here and now." Right stick: "Aim. Hides both windows; Y brings them back. In a wheel: point." Then rebuild with make_shots `--only controller_map`, make_desc and the page mockup. The Steam description's Controller list gets the same line.
+- And the gallery's **Controller** map card (`shots.json` id `controller_map`) gets two balloon texts changed in the same commit as the wheels: D-pad: "In a window: move from control to control. No window open: tap for a wheel: Character, World, Social, Here and now." Right stick: "Aim. Hides both windows; Y brings them back. In a wheel: point." Then rebuild with make_shots `--only controller_map`, make_desc and the page mockup. The Steam description's Controller list gets the same line.
