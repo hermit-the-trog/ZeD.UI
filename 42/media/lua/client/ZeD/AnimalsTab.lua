@@ -3116,7 +3116,7 @@ function ZeD.AnimalsTab.render(panel, win, x, y, w, h)
     win._animalsButcherZones = nil   -- the Butcher roster rebuilds it when drawn
     win._animalsRosterZones, win._animalsSortZone, win._animalsZoneNameZone = nil, nil, nil
     win._animalsZoneCardZones, win._animalsSectionZones = nil, nil
-    win._animalsAlertZones, win._animalsOvClip, win._animalsOvRows = nil, nil, nil
+    win._animalsAlertZones, win._animalsOvClip = nil, nil   -- (not _animalsOvRows: the follow reads last frame's)
     if win._animalsScroll then win._animalsScroll.visible = false end   -- (the Ranch page's bar: it shows it)
     -- (only the view drawn this frame answers the wheel)
     win._animalsDetailScroll, win._animalsRosterScroll, win._animalsButcherScroll = nil, nil, nil

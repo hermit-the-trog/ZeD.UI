@@ -1,0 +1,25 @@
+Draft for the director to send to olavsoe, author of Hands-On Interactions (Isometric). Nothing has been sent.
+Reproduced on Hands-On 2.9.0, game 42.22, with Hands-On on and no other mod, using the game's own windows.
+
+----
+
+Hi olavsoe. I make ZeD-GUI, and we tracked down a game error that shows up with Hands-On Interactions on. It happens with Hands-On alone and the game's own windows, so it isn't a clash with my mod. The fix on your side is two lines, and it looks like a trap in the game rather than a mistake of yours.
+
+What players see: after a while, unrelated actions fail with "Cannot assign field callFrame because a is null". We got it on a beard trim (ISCharacterScreen.onTrimBeard) and on quitting to the menu. The action just doesn't happen.
+
+Where it starts: shared/HandsOn/HO_Carry.lua, lines 92 and 93 in hasHeavyTag, and the "base:generator" / "Generator" line in the model lookup (line 186):
+
+    if call(item, "hasTag", "base:heavyitem") then return true end
+    if call(item, "hasTag", "HeavyItem") then return true end
+
+In 42.22 hasTag takes an ItemTag, not a string, so those calls match no overload. Your pcall catches the error as intended, but the game has already been damaged by then. When a call matches none of a method's overloads, the game's Kahlua layer (MultiLuaJavaInvoker) releases its call record back to a pool twice. The record then sits in the pool twice, so a later nested call gets the same record as the call around it, and that one fails, somewhere with nothing to do with Hands-On.
+
+The fix: drop the string tries and use only the ItemTag, which your line 94 already does:
+
+    if ItemTag and ItemTag.HEAVY_ITEM and call(item, "hasTag", ItemTag.HEAVY_ITEM) then return true end
+
+and for the generator:
+
+    if ItemTag and ItemTag.GENERATOR and call(item, "hasTag", ItemTag.GENERATOR) then
+
+Any other call that tries several argument forms inside a pcall can trigger the same thing, so it's worth a quick look for those too. Happy to test a build if that helps. Thanks for the mod.
