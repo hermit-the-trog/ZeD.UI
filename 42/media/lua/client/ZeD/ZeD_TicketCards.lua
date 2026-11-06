@@ -1009,6 +1009,11 @@ end
 function D.queueTick(st, t)
     t.seenAt = now()
     TC._queueT = t
+    if t.qaPopNext then       -- (QA: mp_ticket_cards' pop-ups)
+        local k = t.qaPopNext
+        t.qaPopNext = nil
+        D.openPopup(st, t, k)
+    end
     if TC.qaHold then return end
     local mode = D.link()
     local settled = t.findAt and now() - t.findAt >= FIND_MS
@@ -2157,7 +2162,7 @@ function D.cardScroll(win, t, x, w, sy, sh, listH)
     scroll.x, scroll.y, scroll.height = x + w - T.sp.scrollbarW, sy, sh
     scroll:setBarSize(sh / math.max(1, listH))
     local Fo = ZeD.Input and ZeD.Input.Focus
-    local fe = Fo and Fo.getFocusedWindow and Fo.getFocusedWindow() == win and Fo.getFocusedElement and Fo.getFocusedElement(win)
+    local fe = Fo and Fo.getFocusedWindow and Fo.getFocusedWindow() == win and Fo.liveElement and Fo.liveElement(win)   -- (nil under the mouse)
     local field = D.typing(win, t)
     if field then
         fe = { tkc = true, cy = field.y, h = field.h }
@@ -2184,6 +2189,13 @@ function TC.renderCard(panel, win, st, x, y, w, h)
         if card.waited then
             card.waited = nil
             D.landLate(win, st)
+            card.landIn = 2      -- and again once the window has built this card's stops (it moves only off the back key)
+        elseif card.landIn then
+            card.landIn = card.landIn - 1
+            if card.landIn <= 0 then
+                card.landIn = nil
+                D.landLate(win, st)
+            end
         end
         card.had = true
     elseif card.had then
