@@ -79,6 +79,11 @@ local MORE = {
       run = function(p) closeOld(ISAddSafeZoneUI); openUI(ISAddSafeZoneUI:new(getCore():getScreenWidth() / 2 - 210, getCore():getScreenHeight() / 2 - 200, 300 + getCore():getOptionFontSizeReal() * 50, 400, p)) end },
     { id = "statistics", cap = "GetStatistic",     key = "IGUI_AdminPanel_ShowStatistics",
       run = function(p) closeOld(ISStatisticsUI); openUI(ISStatisticsUI:new(50, 50, p)) end },
+    -- accounts, passwords and the whitelist, and the game's lists of banned IPs and Steam IDs, until cards hold them
+    { id = "users",   cap = "SeeNetworkUsers",     key = "IGUI_AdminPanel_SeeUsers",
+      run = function(p) requestUsers(); closeOld(ISUsersList, "closeModal"); openUI(ISUsersList:new(50, 50, 800 + getCore():getOptionFontSizeReal() * 50, 600, p)) end },
+    { id = "mystats", cap = "CanSeePlayersStats",  key = "IGUI_AdminPanel_CheckYourStats",
+      run = function(p) closeOld(ISPlayerStatsUI); openUI(ISPlayerStatsUI:new(50, 50, 800 + getCore():getOptionFontSizeReal() * 50, 800, p, p)) end },
     { id = "climate", cap = "ClimateManager",      key = "IGUI_Adm_Weather_ClimateControl",
       run = function(p) local ui = ISAdminWeather.OnOpenPanel(); if ui and ui.onMadeActive then ui:onMadeActive() end end },
 }
@@ -263,6 +268,7 @@ function A.render(panel, win, x, y, w, h)
     if not p then return end
     local TC = ZeD.TicketCards
     TC.bind(win, st, "adm:tk:", "worldTabContent")
+    ZeD.AdminCards.frame(win, st)
     if st.card then
         TC.renderCard(panel, win, st, x, y, w, h)
         return
@@ -315,7 +321,10 @@ function A.render(panel, win, x, y, w, h)
     end
     panel:clearStencilRect()
     panel:setStencilRect(0, 0, panel:getWidth(), panel:getHeight())
-    if not onQueue then M.drawTabHeader(panel, x, y, w, TC.tabLabel(tr("UI_ZeD_World_TabAdmin")), false, false, true) end
+    if not onQueue then
+        M.drawTabHeader(panel, x, y, w, TC.tabLabel(tr("UI_ZeD_World_TabAdmin")), false, false, true)
+        ZeD.AdminCards.drawYou(panel, x, y, w, headH)
+    end
     if needs then scroll:draw(panel) end
     if lineH > 0 then TC._D.drawFootLine(panel, x, y + h - lineH, w, lineH, lineWords) end
     TC.endList(panel, win, st, sy, sy + sh)

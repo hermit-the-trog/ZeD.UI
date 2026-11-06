@@ -672,7 +672,7 @@ check("a timed length clears it", st.card.banIp == false)
 typeIn("reason", "Griefing")
 press("tk:byes")
 local a = sent("a_ban")
-check("the ban goes with its length and the player's Steam ID", a and a.target == "Kade_R" and a.len == "d1" and a.banIp == false and a.sid == "76561198000000003")
+check("the ban goes with its length, on the row's name", a and a.user == "Kade_R" and a.target == nil and a.len == "d1" and a.banIp == false and a.sid == nil)
 ack("a_ban", { id = 3 })
 check("no game call from the card: the server owes it", #SEND == 0 and #GAMECALLS == 0)
 
@@ -944,8 +944,169 @@ M.bump()
 press("adm:tk:p:Kade_R")
 press("tk:ban")
 check("a timed ban grays without the server part", grayWhy("tk:bl:h1") == ZeD.tr("UI_ZeD_Adm_NeedPart"))
+check("and the ban opens on what the game can do", st.card.len == "perm")
+st.card.len = "d3"                -- (the link fell with the part open)
+typeIn("reason", "Griefing")
+M.bump()
+check("a timed length left over grays Ban", grayWhy("tk:byes") == ZeD.tr("UI_ZeD_Adm_NeedPart"))
+TC._D.setField(win, "reason", "")
+st.card.open = nil
+M.bump()
+press("tk:role")
+stops("admin")[1].onCancel(win)
+draw()
+TC.back(win, st)
+press("adm:tk:p:Kade_R")
+st.card.newRole, st.card.open = "moderator", "role"
+M.bump()
+draw()
+draw()
+check("no ticks: only the server part can turn powers off", stopOf("tk:kp:Invisible") == nil)
+st.card.newRole, st.card.open = nil, nil
+TC.back(win, st)
+press("adm:tk:sum:spawn")
+draw()
+draw()
+press("tk:it:Base.Axe")
+st.card.to = "ground"
+M.bump()
+draw()
+check("Spawn to the ground grays without the part", (function()
+    for _, rc in ipairs(st.tk.footRects) do
+        if rc.b.id == "spawnb" then return rc.b.why == ZeD.tr("UI_ZeD_Adm_NeedPart") end
+    end
+    return false
+end)())
 TC.back(win, st)
 TC.qaLink = nil
+
+-- a press waits for its answer
+fresh()
+M.qaHold = true
+press("adm:tk:p:Kade_R")
+press("tk:warnb")
+typeIn("reason", "Third time")
+press("tk:wyes")
+clear()
+draw()
+check("the button says it waits", grayWhy("tk:wyes") == ZeD.tr("UI_ZeD_Tk_Busy"))
+stopOf("tk:wyes").onActivate(win)
+AC._F.act(win, st, function(cb) M.warn("Kade_R", 1, "again", cb) end)
+check("a second press sends nothing", sent("a_warn") == nil)
+st.tk.busy = nil
+stops("admin")[1].onCancel(win)
+TC.back(win, st)
+
+-- a player on a ban: Unban in Ban's place, behind the foot
+fresh()
+M.qaHold = true
+M.bans = { { id = 5, user = "Kade_R", reason = "x", by = "Hermit", day = 3, untilT = 1793913240 + 86400 } }
+M.bump()
+press("adm:tk:p:Kade_R")
+draw()
+draw()
+check("no second ban", stopOf("tk:ban") == nil and stopOf("tk:unban") ~= nil)
+press("tk:unban")
+check("it asks in the foot", st.tk.confirm ~= nil and st.tk.confirm.id == 5)
+draw()
+press("tk:cno")
+check("Keep the ban", st.tk.confirm == nil)
+clear()
+press("tk:unban")
+draw()
+press("tk:cyes")
+check("Unban goes", sent("a_unban") and sent("a_unban").id == 5)
+ack("a_unban")
+TC.back(win, st)
+M.bans = {}
+M.bump()
+
+-- the role's list, top to bottom, least to most: Up is less rank
+fresh()
+M.qaHold = true
+clear()
+press("adm:tk:sum:roles")
+press("tk:r:moderator")
+draw()
+draw()
+check("a role's back says Roles", TC._D.backHelp(st, st.card) == ZeD.tr("UI_ZeD_Adm_BackRoles"))
+press("tk:rup")
+ack("a_rolelog")
+check("Up: one row up this list", hasG("moveRole:-1:moderator"), GAMECALLS[1])
+clear()
+press("tk:rdown")
+ack("a_rolelog")
+check("Down: one row down", hasG("moveRole:1:moderator"), GAMECALLS[1])
+-- Delete asks: X is not Save while it does
+press("tk:rdel")
+draw()
+check("X has no Save during the confirm", TC.kinds.role.padX(win, st, st.tk, st.card) == nil)
+stops("admin")[1].onCancel(win)
+TC.back(win, st)
+TC.back(win, st)
+
+-- Keep the ban goes back to the row
+fresh()
+M.qaHold = true
+press("adm:tk:sum:bans")
+draw()
+draw()
+press("tk:ub:2")
+check("the confirm remembers its row", st.tk.confirmFrom == "tk:ub:2")
+press("tk:cno")
+check("and lets go", st.tk.confirmFrom == nil)
+TC.back(win, st)
+
+-- the spawn card's find box starts empty each time
+fresh()
+M.qaHold = true
+press("adm:tk:sum:spawn")
+draw()
+draw()
+win._tkFields.ifind.input:setText("bat")
+win._tkFields.ifind:update()
+draw()
+TC.back(win, st)
+press("adm:tk:sum:spawn")
+draw()
+draw()
+check("the box is empty again", TC._D.fieldText(win, "ifind") == "" and stopOf("tk:it:Base.Axe") ~= nil)
+TC.back(win, st)
+
+-- a power this role lacks stays, gray, and says why
+fresh()
+M.qaHold = true
+M.qaCaps = { Invisible = true, RolesRead = true }
+M.bump()
+check("gray with its reason", grayWhy("adm:tk:pw:GodMod") == M.why("GodMod"), grayWhy("adm:tk:pw:GodMod"))
+check("the one it has works", grayWhy("adm:tk:pw:Invisible") == nil)
+M.qaCaps = {}
+M.bump()
+check("rich text tags go", AC._F.plainTip("Fast move: <LINE> Move - arrow keys<LINE>Floor") == "Fast move: Move - arrow keys Floor")
+
+-- a card with no right to a player's tickets says so, and warning points nobody can read say that too
+fresh()
+M.qaHold = true
+M.qaCaps = { CanSeePlayersStats = true, RolesRead = true }
+M.rows = { { user = "Quiet", on = true, role = "user" } }
+M.bump()
+press("adm:tk:p:Quiet")
+draw()
+local why = M.why("AnswerTickets")
+local saw, sawWarn = false, false
+for _, it in ipairs(st.tk.items or {}) do
+    if it.text == why then saw = true end
+    if it.k == "fact" and it.value == M.why("SeeNetworkUsers") then sawWarn = true end
+end
+check("the tickets say why", saw)
+check("warning points say why", sawWarn)
+TC.back(win, st)
+M.qaCaps = {}
+M.bump()
+
+-- the words of a confirm are the card's own
+check("Keep it on a role", ZeD.tr("UI_ZeD_Adm_HelpKeepRole") ~= ZeD.tr("UI_ZeD_Tk_HelpKeep"))
+check("one warning point reads as one", ZeD.tr("UI_ZeD_Adm_WarnDone1", "Kade") == "1 warning point added. Kade sees the reason.")
 
 -- the leave screen's words
 do
@@ -956,6 +1117,9 @@ do
     M.leaveScreen = function(info) M.hooked5 = info end
     S.routes[Adm.MOD]("a_leave", { kind = "ban", reason = "R" })
     check("the hook takes it", M.hooked5 and M.hooked5.reason == "R")
+    M.hooked5 = nil
+    S.routes[Adm.MOD]("a_leave", { kind = "ban", reason = "R" })
+    check("said again, the clock runs on", M.hooked5 == nil)
     M.leaveScreen, M.leaveAt, M.leave = nil, nil, nil
 end
 

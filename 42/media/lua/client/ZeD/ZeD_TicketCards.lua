@@ -2022,6 +2022,17 @@ function D.drawCardItem(panel, win, t, it, x, dy, w, mx, my, viewY, viewH, cover
     end
 end
 
+-- where the back bar goes, in words
+function D.backHelp(st, card)
+    if st.tkZone ~= "worldTabContent" then return tr("UI_ZeD_Tk_BackServer") end
+    local from = card.parent and card.parent.kind
+    if from == "roles" then return tr("UI_ZeD_Adm_BackRoles") end
+    if from == "player" then return tr("UI_ZeD_Adm_BackPlayer") end
+    if from == "staff" then return tr("UI_ZeD_Tk_BackTicket") end
+    if st.screen == "tickets" then return tr("UI_ZeD_Tk_BackTickets") end
+    return tr("UI_ZeD_Tk_BackQueue")
+end
+
 function D.cardTitle(card, data)
     local K = TC.kinds[card.kind]
     if K then return K.title(card, data) end
@@ -2159,7 +2170,7 @@ function TC.renderCard(panel, win, st, x, y, w, h)
     t.barRects = t.barRects or {}
     local bar = M.drawCardBackBar(panel, x, y, w, D.cardTitle(card, data), nil, false, false, t.barRects,
         { win = win, focusParts = { back = D.focusOf(win, "tk:back") },
-          backHelp = tr((st.tkZone == "worldTabContent") and "UI_ZeD_Tk_BackQueue" or "UI_ZeD_Tk_BackServer") })
+          backHelp = D.backHelp(st, card) })
     local flagH = 0
     if K then
         if K.flag then flagH = K.flag(panel, win, t, card, data, x, y + bar, w, bar) end

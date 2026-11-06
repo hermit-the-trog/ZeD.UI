@@ -47,6 +47,18 @@ Adm.POWERS = {
     { id = "GodMod", cap = "ToggleGodModHimself" },
 }
 
+-- every power on the Admin tab (ISAdminPowerUI.OptionList) and the capability the game asks for it: what the server takes
+-- for a line in the log
+Adm.POWER_CAP = {
+    Invisible = "ToggleInvisibleHimself", GodMod = "ToggleGodModHimself", NoClip = "ToggleNoclipHimself",
+    FastMove = "UseFastMoveCheat", TimedActionInstant = "UseTimedActionInstantCheat", UnlimitedCarry = "ToggleUnlimitedCarry",
+    UnlimitedEndurance = "ToggleUnlimitedEndurance", UnlimitedAmmo = "ToggleUnlimitedAmmo", KnowAllRecipes = "ToggleKnowAllRecipes",
+    BuildCheat = "UseBuildCheat", FarmingCheat = "UseFarmingCheat", FishingCheat = "UseFishingCheat", HealthCheat = "UseHealthCheat",
+    MechanicsCheat = "UseMechanicsCheat", MoveableCheat = "UseMovablesCheat", CanSeeAll = "CanSeeAll", CanHearAll = "CanHearAll",
+    ZombiesDontAttack = "ManipulateZombie", BrushTool = "UseBrushToolManager", LootZed = "UseLootZed", LootLog = "UseLootLog",
+    AnimalCheat = "AnimalCheats", AnimalExtraValues = "AnimalCheats", AlwaysDay = "ClimateManager",
+}
+
 -- every limit in one place, so they can become server settings later
 Adm.L = {
     REASON_MAX = 200,
@@ -54,10 +66,12 @@ Adm.L = {
     WARN_MAX = 10,
     SPAWN_MAX = 100,
     REPEATS_MAX = 10,
-    BANS_MAX = 1000,
+    BANS_MAX = 1000,                    -- rows; past it the oldest permanent row the game holds goes, a timed one never
+    MUTES_MAX = 500,
     PLAYERS_MAX = 2000,                 -- players remembered for the offline list, oldest out
     PLAYERS_ROWS = 500,                 -- rows in one a_players
     LOG_MAX = 2000,                     -- admin actions kept for Phase 4's Log view, oldest out
+    LOG_ACTOR_MAX = 400,                -- past this share one account's new lines replace its own oldest
     OWED_MAX = 200,                     -- game calls waiting for a staff client
     TICKETS_ROWS = 10,                  -- tickets on a player card
     TARGET_MAX = 64,                    -- a name, a Steam ID or an IP
@@ -65,14 +79,18 @@ Adm.L = {
     CARD_MS = 500,
     LIST_MS = 1000,
     SPAWN_MS = 500,
-    POWER_MS = 500,
+    POWER_MS = 1000,
+    BAN_MS = 1500,                      -- between one account's bans, and its unbans
     POLL_S = 5,                         -- how often the server walks the players
     SNAP_S = 60,                        -- how often a player's card is copied for when they leave
     LEAVE_S = 12,                       -- how long a player reads the reason before they go
+    IP_GAP_S = 3,                       -- after the IP call, the plain ban: a player still on means the game refused the IP
     STAY_S = 20,                        -- past this, a banned client that has not left is reported to staff
     STAY_EVERY_S = 300,                 -- and again this often
     OWED_RETRY_S = 15,                  -- a game call with no word back goes again
     ROLE_WATCH_S = 30,                  -- a role change waits this long for the game to apply it
+    ROLE_WATCH_KEEP_S = 86400,          -- and this long for a player who is not on
+    SID_ROUND = 64,                     -- a Steam ID in a Lua number is this near the real one (a double, past 2^53)
 }
 
 -- the five groups, as drawn; every capability the game has (getCapabilities) sits in one. One this list has not met yet
@@ -120,7 +138,8 @@ Adm.SERVER_CAPS = {
     "ToggleNoclipHimself", "ToggleGodModHimself",
 }
 
--- what a typed target is: "ip", "sid" or "user". An IP is four numbers, a Steam ID seventeen digits from 7656
+-- what a typed target looks like: "ip", "sid" or "user". An IP is four numbers, a Steam ID seventeen digits from 7656. Only
+-- for the Bans card's typed field: a username can look like a Steam ID, so a name from a row is never read by its shape
 function Adm.targetKind(s)
     if type(s) ~= "string" then return nil end
     if string.match(s, "^%d+%.%d+%.%d+%.%d+$") then return "ip" end
