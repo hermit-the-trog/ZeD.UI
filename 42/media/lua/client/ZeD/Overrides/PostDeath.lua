@@ -284,9 +284,9 @@ end
 -- the state of vanilla's rules this frame
 function ISPostDeathUI:zedRules()
     local allDead = IsoPlayer.allPlayersDead()
-    local allowRespawn = getCore():getGameMode() ~= "Tutorial"
+    local allowRespawn = tostring(getCore():getGameMode()) ~= "Tutorial"
     if isClient() and getServerOptions():getBoolean("DropOffWhiteListAfterDeath") then allowRespawn = false end
-    local challenge = getCore():getGameMode() == "A Really CD DA"
+    local challenge = tostring(getCore():getGameMode()) == "A Really CD DA"
     return { quit = allDead, exit = allDead, respawn = allowRespawn, respawnEnabled = allowRespawn and not challenge }
 end
 

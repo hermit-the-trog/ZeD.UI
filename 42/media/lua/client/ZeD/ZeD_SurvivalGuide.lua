@@ -1765,7 +1765,7 @@ local function onGameStart()
     if isServer() then return end
     local core = getCore()
     if not core:getOptionShowSurvivalGuide() then return end
-    if core:isTutorial() and SurvivalGuide and SurvivalGuide.blockSurvivalGuide then return end
+    if tostring(core:getGameMode()) == "Tutorial" and SurvivalGuide and SurvivalGuide.blockSurvivalGuide then return end
     if isDemo and isDemo() and ISDemoPopup and ISDemoPopup.instance then return end
     W.open(0)
 end

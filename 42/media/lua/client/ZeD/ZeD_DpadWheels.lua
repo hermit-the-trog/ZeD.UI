@@ -393,7 +393,7 @@ D.orig = D.orig or {}
 -- teaches the game's controls and steps the game's Select wheel)
 function D.gameWheels()
     if ZeD.Safe.on("wheels") or not (ZeD.T and ZeD.T.px) then return true end
-    return getCore():getGameMode() == "Tutorial"
+    return tostring(getCore():getGameMode()) == "Tutorial"
 end
 local HOOKS = { left = "onDisplayLeft", right = "onDisplayRight", up = "onDisplayUp", down = "onDisplayDown" }
 
