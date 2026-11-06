@@ -997,11 +997,16 @@ do
     local left = player("left", "moderator")
     tk(left, "t_card", { id = did })
     tk(left, "t_queue", {})
-    d.box, closed.box, left.box = {}, {}, {}
+    local under = player("under", "moderator")
+    tk(under, "t_card", { id = did })
+    tk(under, "t_queue", {})
+    tk(left, "t_cardoff", {})
+    d.box, closed.box, left.box, under.box = {}, {}, {}, {}
     tk(admn, "t_addnote", { id = did, text = "first" })
     check("a card open gets the push", got(d, "t_card") ~= nil)
     check("staff without it open do not", got(closed, "t_card") == nil)
-    check("t_queue clears the open card", got(left, "t_card") == nil)
+    check("t_cardoff ends the card's pushes", got(left, "t_card") == nil)
+    check("the queue's traffic does not", got(under, "t_card") ~= nil)
     setRole(d, "user")
     d.box = {}
     W.net = {}
@@ -1139,8 +1144,9 @@ do
         g3.viewed = true
         openQ(T)
         local a, b = rec(2), rec(3)
-        check("viewed and answered: Answered", a.status == "Answered")
-        check("the answer on a viewed ticket: thread, game, not staff", a.thread.n == 2 and a.thread[2].game == true and a.thread[2].staff == nil)
+        check("viewed and answered: Seen, the answer proves nothing", a.status == "Seen")
+        check("the answer on a viewed ticket: notes, game, never the thread", a.thread.n == 1 and a.notes.n == 1 and a.notes[1].game == true)
+        check("it costs no first answer", a.gameAns == nil and a.gameClaim == true)
         check("viewed only: Seen", b.status == "Seen")
     end
 
@@ -1257,7 +1263,8 @@ do
         T.closeQueue()
         T.openQueue({})
         advance(15000)
-        check("no reset: links kept", rec(1).gameId == 1 and md().gameMax == 3, md().gameMax)
+        check("no reset: links kept, gameMax comes down to the top", rec(1).gameId == 1 and md().gameMax == 2, md().gameMax)
+        check("the removed row reads Removed", rec(3).gameGone == true and rec(3).gameId == nil)
         local n = 0
         for _ in pairs(md().tickets) do n = n + 1 end
         check("no duplicates", n == 3, n)
@@ -1287,7 +1294,7 @@ do
         gameAdd("griefer", "a forged answer", row.id)
         T.closeQueue()
         openQ(T)
-        check("unviewed: to notes", rec(1).notes.n == 1 and rec(1).gameAns == true and rec(1).thread.n == 1)
+        check("unviewed: to notes, marked, the first answer kept", rec(1).notes.n == 1 and rec(1).notes[1].game == true and rec(1).gameAns == nil and rec(1).thread.n == 1)
         check("no status change", rec(1).status == "Open")
         check("no belt note", rec(1).unread == nil)
         local row2 = gameAdd("mags", "second")
@@ -1296,7 +1303,7 @@ do
         gameAdd("hermit", "a real answer", row2.id)
         T.closeQueue()
         openQ(T)
-        check("viewed: to the thread, game", rec(2).thread.n == 2 and rec(2).thread[2].game == true)
+        check("viewed: notes too, staff only", rec(2).thread.n == 1 and rec(2).notes.n == 1 and rec(2).notes[1].game == true and rec(2).status ~= "Answered")
     end
 
     -- a replaced database: reset runs once, rows match afresh, no removeTicket on the wrong row
@@ -1348,7 +1355,7 @@ do
         local sent, sizes = 0, {}
         local real = c.env.sendClientCommand
         c.env.sendClientCommand = function(pl, module, command, args)
-            if command == "t_sync" then sent = sent + 1; sizes[sent] = #args.rows end
+            if command == "t_sync" and not args.reset then sent = sent + 1; sizes[sent] = #args.rows end
             return real(pl, module, command, args)
         end
         T.openQueue({})
@@ -1414,8 +1421,10 @@ do
     rec(open2).updated = 0
     M.chars = 4000000 - 800
     local big = player("big")
-    local id3 = newTicket(big, "BUG", string.rep("z", 1000))
-    check("past the characters, history goes early", id3 ~= nil and rec(2) == nil and rec(400) ~= nil and M.chars <= 4000000)
+    tk(big, "t_new", { kind = "BUG", text = string.rep("z", 1000) })
+    check("a player's words stop at the player line", errOf(big) == "full" and rec(2) ~= nil)
+    tk(staff, "t_addnote", { id = open2, text = string.rep("z", 1000) })
+    check("past the characters, a staff write sends history early", rec(open2).notes.n == 1 and rec(2) == nil and rec(400) ~= nil and M.chars <= 4000000)
     check("open tickets are never evicted", rec(open2) ~= nil)
 
     -- text held stays true across adds, notes, delete
@@ -1529,6 +1538,525 @@ do
     bc.env.ZeD.ServerPart.forceOff = true
     fire("user kade added a ticket <LINE> <LINE> words", -1, -1, -1)
     check("forceOff: the game's modal", #bc.modals == 3)
+end
+
+-- ---------------------------------------------------------------------------
+-- WHAT THE REVIEW FOUND
+-- ---------------------------------------------------------------------------
+section("the review's cases")
+do
+    local function boot(role, name)
+        world()
+        local staff = player(name or "hermit", role or "admin")
+        local c = clientJoin(staff)
+        return staff, c, c.env.ZeD.Tickets
+    end
+    local function openQ(T)
+        T.closeQueue()
+        T.openQueue({})
+        advance(4000)
+    end
+    local function records()
+        local n = 0
+        for _ in pairs(md().tickets) do n = n + 1 end
+        return n
+    end
+
+    -- an answer added after staff viewed the ticket is only a claim: never the player's thread, no status, no slot
+    do
+        local staff, c, T = boot()
+        local kade = player("kade")
+        local kc = clientJoin(kade)
+        kc.env.ZeD.Tickets.ask("GRIEF", false, "abuse")
+        advance(300)
+        openQ(T)
+        T.openCard(1)
+        advance(300)
+        check("staff viewed it", W.game[1].viewed == true)
+        gameAdd("Hermit", "Admin here: report rejected", W.game[1].id)
+        openQ(T)
+        check("forged after viewed: a note, marked", rec(1).notes.n == 1 and rec(1).notes[1].game == true and rec(1).thread.n == 1)
+        tk(kade, "t_one", { id = 1 })
+        check("the player reads nothing of it", not valuesHave(got(kade, "t_one"), "rejected"))
+        check("no status change", rec(1).status == "Seen" and rec(1).gameAns == nil)
+        local done
+        T.answer(1, "the real answer", function(a) done = a end)
+        advance(300)
+        check("the real answer still counts as first", done and done.first == true and rec(1).gameAns == true)
+        openQ(T)
+        check("a claim is noted once", rec(1).notes.n == 1)
+    end
+
+    -- an empty forged answer takes nothing
+    do
+        local staff, c, T = boot()
+        newTicket(player("kade"), "BUG", "x")
+        local row = gameAdd("kade", "[BUG #1] x")
+        openQ(T)
+        gameAdd("griefer", "", row.id)
+        openQ(T)
+        check("an empty answer: no line, no first answer gone", rec(1).notes.n == 0 and rec(1).gameAns == nil)
+    end
+
+    -- a griefer's answer on a viewed ticket not yet adopted
+    do
+        local staff, c, T = boot()
+        local row = gameAdd("rosa", "help")
+        row.viewed = true
+        gameAdd("griefer", "go away", row.id)
+        openQ(T)
+        check("adoption: Seen, in the open queue, the answer in notes", rec(1).status == "Seen" and rec(1).notes.n == 1 and rec(1).thread.n == 1)
+    end
+
+    -- Delete of a ticket with no link: the row goes from the game and nothing comes back
+    do
+        local staff, c, T = boot()
+        T.openQueue({})
+        advance(4000)
+        local grief = player("griefer")
+        local gc = clientJoin(grief)
+        gc.env.ZeD.Tickets.ask("GRIEF", false, "offensive words")
+        drain()
+        T.openCard(1)
+        drain()
+        check("no link yet", rec(1).gameId == nil)
+        T.delete(1)
+        drain()
+        check("the record went, with a mark", rec(1) == nil and md().tombs[1] == "griefer")
+        advance(6000)
+        check("the next sync removes the row", gameFind(1) == nil and md().tombs[1] == nil, #W.game)
+        check("nothing adopted", records() == 0, records())
+    end
+
+    -- the same with the author's client holding its filing until after the Delete
+    do
+        local staff, c, T = boot()
+        local g = player("griefer")
+        local id = newTicket(g, "GRIEF", "held words")
+        T.openQueue({})
+        advance(4000)
+        T.openCard(id)
+        advance(200)
+        T.delete(id)
+        advance(200)
+        gameAdd("griefer", "[GRIEF #1] held words")
+        openQ(T)
+        check("a row filed after the Delete goes too", #W.game == 0 and records() == 0)
+    end
+
+    -- evicted before its first sync: not adopted. A crash that rolled nextId back still adopts
+    do
+        local staff, c, T = boot()
+        local id = newTicket(player("kade"), "BUG", "old")
+        gameAdd("kade", "[BUG #1] old")
+        md().tickets[id] = nil
+        openQ(T)
+        check("evicted before the link: no new record", records() == 0 and md().gameMax == 1)
+        local staff2, c2, T2 = boot()
+        gameAdd("kade", "[BUG #1] lost in a crash")
+        openQ(T2)
+        check("nextId rolled back: adopted", rec(1) and rec(1).source == "game")
+    end
+
+    -- a moderator's forged rows: no Answered history, ZeD's records stay, the caps hold
+    do
+        local staff, c, T = boot("moderator", "mod")
+        local id = newTicket(player("kade"), "GRIEF", "evidence")
+        tk(staff, "t_close", { id = id })
+        check("closed", rec(id).status == "Closed")
+        for b = 1, 26 do
+            local rows = {}
+            for i = 1, 20 do rows[i] = { g = (b - 1) * 20 + i, a = "f" .. b .. "x" .. i, m = "m", v = true, aw = "w", at = "a" } end
+            W.server.ZeD.Srv.mem = {}
+            advance(1100)
+            tk(staff, "t_sync", { rows = rows, top = 0 })
+        end
+        local hist = 0
+        for _, r in pairs(md().tickets) do if not W.server.ZeD.Tk.isOpen(r.status) then hist = hist + 1 end end
+        check("forged rows cannot fill history", hist == 1 and rec(id) ~= nil, hist)
+        check("the adopted cap holds", records() == 101, records())
+    end
+
+    -- game records go before ZeD's
+    do
+        local staff, c, T = boot()
+        local M = md()
+        for i = 1, 500 do
+            M.tickets[i] = { id = i, source = (i % 2 == 0) and "game" or "zed", kind = "BUG", author = "a", status = "Closed", updated = i + 1000,
+                thread = { n = 1, { who = "a", t = 1, text = "x" } }, notes = { n = 0 } }
+        end
+        M.nextId, M.chars = 501, 500
+        local id = newTicket(player("p"), "BUG", "open")
+        tk(staff, "t_close", { id = id })
+        check("history over: a game record goes, not the older ZeD one", rec(1) ~= nil and rec(2) == nil)
+    end
+
+    -- a poisoned gameMax comes back down
+    do
+        local staff, c, T = boot("moderator", "mod")
+        newTicket(player("kade"), "BUG", "x")
+        gameAdd("kade", "[BUG #1] x")
+        openQ(T)
+        W.server.ZeD.Srv.mem = {}
+        advance(1100)
+        tk(staff, "t_sync", { rows = { { g = 2147483646, a = "f", m = "m" } }, top = 0 })
+        check("poisoned", md().gameMax == 2147483646)
+        gameAdd("rosa", "a real one")
+        T.closeQueue()
+        T.openQueue({})
+        advance(16000)
+        check("two lists bring it down to the top", md().gameMax == 2, md().gameMax)
+        check("no reset, the link kept", not logHas("was replaced") and rec(1).gameId == 1)
+    end
+
+    -- a line break in a claimed author
+    do
+        local staff, c, T = boot()
+        gameAdd("x\n[05-11-26 12:00:00] ticket 9 GRIEF deleted by Hermit", "hello")
+        openQ(T)
+        local one = true
+        for _, l in ipairs(W.logs) do if string.find(l.line, "\n", 1, true) then one = false end end
+        check("no line break reaches the log", one)
+        check("nor the record's name", not string.find(rec(1).author, "\n", 1, true))
+        T.openCard(1)
+        advance(300)
+        check("the row still matches its record", W.game[1].viewed == true)
+    end
+
+    -- the full line keeps a pace
+    do
+        world()
+        local M = md()
+        M.chars = 4000000
+        for i = 1, 20 do
+            local p = player("f" .. i)
+            tk(p, "t_new", { kind = "BUG", text = "x" })
+            advance(600)
+        end
+        check("one full line a minute", logCount("tickets full") == 1, logCount("tickets full"))
+        advance(60000)
+        tk(player("g"), "t_new", { kind = "BUG", text = "x" })
+        check("the next says how many", logCount("tickets full") == 2 and logHas("20 refused"))
+    end
+
+    -- players stop short of the cap; staff can still write; history stays
+    do
+        local staff, c, T = boot()
+        local M = md()
+        local closed = newTicket(player("old"), "BUG", "a closed report")
+        tk(staff, "t_addnote", { id = closed, text = "kept note" })
+        tk(staff, "t_close", { id = closed })
+        local open1 = newTicket(player("p"), "BUG", "open")
+        M.chars = 3500000
+        local late = player("late")
+        tk(late, "t_new", { kind = "BUG", text = "x" })
+        check("a player's write answers full", errOf(late) == "full")
+        check("history stays", rec(closed) ~= nil and rec(closed).notes.n == 1)
+        tk(staff, "t_answer", { id = open1, text = "staff can still answer" })
+        check("staff writes go in", errOf(staff) == nil and rec(open1).thread.n == 2)
+        -- Spam is the one pile a player's write can take room from
+        M.chars = 0
+        local noise = newTicket(player("n"), "BUG", string.rep("s", 900))
+        M.chars = 3499900
+        tk(staff, "t_spam", { id = noise })
+        local late2 = player("late2")
+        M.chars = 3500000
+        check("spam marked", rec(noise).status == "Spam")
+        tk(late2, "t_new", { kind = "BUG", text = "room now" })
+        check("Spam makes room, nothing else", rec(noise) == nil and rec(closed) ~= nil and errOf(late2) == nil)
+    end
+
+    -- a game answer is no more private than E13 says: the stub
+    do
+        local staff, c, T = boot()
+        W.server.ZeD.Tk.FILE_FULL_TEXT = false
+        c.env.ZeD.Tk.FILE_FULL_TEXT = false
+        local kc = clientJoin(player("kade"))
+        kc.env.ZeD.Tk.FILE_FULL_TEXT = false
+        kc.env.ZeD.Tickets.ask("GRIEF", false, "private words")
+        advance(300)
+        openQ(T)
+        T.openCard(1)
+        advance(300)
+        T.answer(1, "Mags took your truck")
+        advance(300)
+        local leaked = false
+        for _, r in ipairs(W.game) do if string.find(r.msg, "truck", 1, true) or string.find(r.msg, "private", 1, true) then leaked = true end end
+        check("E13 off: the answer is a stub too", not leaked and #W.game == 2 and W.game[2].msg == W.server.ZeD.Tk.FILE_STUB)
+        W.server.ZeD.Tk.FILE_FULL_TEXT = true
+    end
+
+    -- an empty proof is no replaced database
+    do
+        local staff, c, T = boot()
+        gameAdd("a", "one")
+        openQ(T)
+        gameRemove(1)
+        T.closeQueue()
+        T.openQueue({})
+        advance(16000)
+        check("the only ticket removed: not replaced", not logHas("was replaced"))
+        check("it reads Removed", rec(1).gameGone == true)
+    end
+    do
+        local staff, c, T = boot()
+        for i = 1, 150 do gameAdd("f" .. i, "forged " .. i) end
+        openQ(T)
+        advance(30000)
+        check("100 adopted, 50 skipped", records() == 100 and md().skipped == 50, md().skipped)
+        local sk = md().skipped
+        for id in pairs(md().tickets) do
+            W.server.ZeD.Srv.mem = {}
+            tk(staff, "t_delete", { id = id })
+        end
+        gameRemove(150)
+        T.closeQueue()
+        T.openQueue({})
+        advance(16000)
+        check("skipped rows are not adopted after a removal", records() == 0 and not logHas("was replaced"), records())
+        check("gameMax at the top", md().gameMax == 149, md().gameMax)
+    end
+
+    -- a batch the general limit drops is not passed by the next
+    do
+        local staff, c, T = boot()
+        for i = 1, 60 do gameAdd("a" .. i, "row " .. i) end
+        local real = W.server.Events.OnClientCommand
+        local dropped = 0
+        local fire = real.fire
+        real.fire = function(module, command, pl, a)
+            if command == "t_sync" and dropped == 0 and a.rows and #a.rows == 20 and a.rows[1].g == 21 then
+                dropped = 1
+                return
+            end
+            return fire(module, command, pl, a)
+        end
+        T.openQueue({})
+        advance(25000)
+        real.fire = fire
+        check("a batch was dropped", dropped == 1)
+        local seen = 0
+        for _, r in pairs(md().tickets) do if r.gameId then seen = seen + 1 end end
+        check("every row reached the server", seen + md().skipped == 60 and md().gameMax == 60, seen)
+        check("its rows, the dropped one's, are adopted", rec(21) ~= nil and rec(21).gameId == 21)
+    end
+
+    -- a wiped game table with ids that climb past gameMax: another player's answer stays out of the thread
+    do
+        local staff, c, T = boot()
+        newTicket(player("kade"), "BUG", "one")
+        gameAdd("kade", "[BUG #1] one")
+        newTicket(player("kade2"), "BUG", "two")
+        gameAdd("kade2", "[BUG #2] two")
+        openQ(T)
+        W.game, W.gameNext = {}, 0
+        local m = gameAdd("mike", "my own ticket")
+        m.viewed = true
+        gameAdd("hermit", "reply meant for mike only", m.id)
+        gameAdd("sue", "three")
+        gameAdd("sue", "four")
+        T.closeQueue()
+        T.openQueue({})
+        advance(6000)
+        check("replaced: found with top above gameMax", logCount("was replaced") == 1, logCount("was replaced"))
+        check("kade's thread is untouched", rec(1).thread.n == 1 and rec(1).notes.n == 0 and rec(1).gameId == nil)
+        local mike
+        for _, r in pairs(md().tickets) do if r.author == "mike" then mike = r end end
+        check("mike's ticket is adopted, the answer with it", mike ~= nil and mike.notes.n == 1)
+    end
+
+    -- a restored older table: the rows kept, then a new ticket under an old id
+    do
+        local staff, c, T = boot()
+        for i = 1, 6 do
+            newTicket(player("kade"), "BUG", "t" .. i)
+            gameAdd("kade", "[BUG #" .. i .. "] t" .. i)
+        end
+        openQ(T)
+        local kept = { W.game[1], W.game[2], W.game[3] }
+        W.game, W.gameNext = kept, 3
+        local n = gameAdd("mike", "new after the restore")
+        n.viewed = true
+        gameAdd("hermit", "for mike", n.id)
+        T.closeQueue()
+        T.openQueue({})
+        advance(6000)
+        check("restored: reset ran", logCount("was replaced") == 1)
+        check("kade's record has no stranger's words", rec(4).thread.n == 1 and rec(4).notes.n == 0)
+        check("the kept rows link again", rec(1).gameId == 1 and rec(3).gameId == 3)
+    end
+
+    -- an answer that differs from its record is not written, whoever sends it
+    do
+        local staff, c, T = boot()
+        newTicket(player("kade"), "BUG", "x")
+        gameAdd("kade", "[BUG #1] x")
+        openQ(T)
+        W.server.ZeD.Srv.mem = {}
+        advance(1100)
+        tk(staff, "t_gamediff", { ans = { { g = 1, a = "mike", m = "another ticket", who = "h", text = "not for kade" } } })
+        check("not written", rec(1).notes.n == 0 and rec(1).thread.n == 1)
+        check("and the rows match afresh", logCount("was replaced") == 1 and rec(1).gameId == nil)
+    end
+
+    -- the newest linked row removed, with no newer ticket
+    do
+        local staff, c, T = boot()
+        for i = 1, 3 do
+            newTicket(player("kade"), "BUG", "t" .. i)
+            gameAdd("kade", "[BUG #" .. i .. "] t" .. i)
+        end
+        openQ(T)
+        gameRemove(3)
+        T.closeQueue()
+        T.openQueue({})
+        advance(25000)
+        check("the newest removed: Removed", rec(3).gameGone == true and rec(3).gameId == nil)
+        local before = W.calls.getTickets
+        openQ(T)
+        check("the next open costs one list", W.calls.getTickets == before + 1, W.calls.getTickets - before)
+    end
+
+    -- filed while the queue is open: linked soon, then viewed and answered in the game
+    do
+        local staff, c, T = boot()
+        T.openQueue({})
+        advance(4000)
+        local kc = clientJoin(player("kade"))
+        kc.env.ZeD.Tickets.ask("BUG", false, "live")
+        advance(300)
+        T.openCard(1)
+        advance(300)
+        T.answer(1, "answered before the link")
+        advance(6000)
+        check("linked", rec(1).gameId == 1)
+        check("viewed in the game", W.game[1].viewed == true)
+        check("the first answer reached the game", #W.game == 2 and W.game[2].msg == "answered before the link" and rec(1).gameAns == true, #W.game)
+        openQ(T)
+        check("once", #W.game == 2)
+    end
+
+    -- a write on the oldest history record keeps its record
+    do
+        local staff, c, T = boot()
+        local M = md()
+        M.tickets[1] = { id = 1, source = "zed", kind = "BUG", author = "a", status = "Closed", updated = 1,
+            thread = { n = 1, { who = "a", t = 1, text = "x" } }, notes = { n = 0 } }
+        M.nextId = 2
+        M.chars = 4000000
+        tk(staff, "t_addnote", { id = 1, text = "a note" })
+        check("the record is not evicted from under its note", errOf(staff) == "full" and rec(1) ~= nil and M.chars == 4000000, M.chars)
+    end
+    do
+        local staff, c, T = boot()
+        local M = md()
+        for i = 1, 2 do
+            M.tickets[i] = { id = i, source = "zed", kind = "BUG", author = "a", status = "Closed", updated = i,
+                thread = { n = 1, { who = "a", t = 1, text = string.rep("x", 100) } }, notes = { n = 0 } }
+        end
+        M.nextId = 3
+        M.chars = 4000000
+        tk(staff, "t_addnote", { id = 1, text = "a note" })
+        check("the next one goes instead", rec(1) ~= nil and rec(2) == nil and rec(1).notes.n == 1 and M.chars == 3999906, M.chars)
+    end
+
+    -- frozen: a filing keeps ZeD's rows
+    do
+        local kade
+        world()
+        kade = player("kade")
+        local id = newTicket(kade, "BUG", "first")
+        rec(id).status = "Answered"
+        rec(id).thread.n = 3
+        rec(id).thread[2] = { who = "h", staff = true, t = 1, text = "first answer" }
+        rec(id).thread[3] = { who = "h", staff = true, t = 1, text = "second answer in ZeD only" }
+        W.server.ZeD.Srv.T.frozen = true
+        local kc = clientJoin(kade)
+        advance(6000)
+        local T = kc.env.ZeD.Tickets
+        check("frozen said", kc.env.ZeD.ServerPart.frozen == true)
+        check("my row", T.mine[1] and T.mine[1].id == id and T.mine[1].replies == 2)
+        T.ask("BUG", false, "while frozen")
+        advance(300)
+        check("the new row goes on top", T.mine[1].game == true and #T.mine == 2)
+        check("ZeD's row stays", T.mine[2].id == id and T.mine[2].last == "second answer in ZeD only")
+    end
+
+    -- a queue page resent after a card opened leaves the card's pushes alone
+    do
+        local staff, c, T = boot()
+        local two = player("two", "moderator")
+        local id = newTicket(player("kade"), "BUG", "x")
+        T.openQueue({})
+        advance(4000)
+        T.setQueue({})
+        T.setQueue({})
+        drain()
+        T.openCard(id)
+        advance(1500)
+        tk(two, "t_addnote", { id = id, text = "from the other one" })
+        drain()
+        check("a card open under the queue's traffic stays current", T.card and T.card.notes.n == 1)
+    end
+
+    -- an answer read on the open card: no note, nothing unread
+    do
+        local staff, c, T = boot()
+        local kade = player("kade")
+        local kc = clientJoin(kade)
+        local KT = kc.env.ZeD.Tickets
+        KT.ask("BUG", false, "x")
+        advance(300)
+        KT.onCard(1)
+        tk(staff, "t_answer", { id = 1, text = "answered" })
+        advance(100)
+        check("read as it arrives", rec(1).unread == nil and #kc.notes == 0)
+        advance(3000)
+        tk(staff, "t_reopen", { id = 1 })
+        tk(staff, "t_answer", { id = 1, text = "again" })
+        advance(100)
+        check("card closed: the note", rec(1).unread == true and #kc.notes == 1)
+    end
+
+    -- t_one and t_card with a rid get their ack, so nothing times out; gone comes at once
+    do
+        local staff, c, T = boot()
+        local kade = player("kade")
+        local kc = clientJoin(kade)
+        local KT = kc.env.ZeD.Tickets
+        KT.ask("BUG", false, "x")
+        advance(300)
+        local a1, a2, a3
+        KT.loadOne(1, function(a) a1 = a end)
+        T.openCard(1, function(a) a2 = a end)
+        KT.loadOne(99, function(a) a3 = a end)
+        advance(100)
+        check("t_one acks", a1 and a1.ok == true)
+        check("t_card acks", a2 and a2.ok == true)
+        check("gone comes back at once", a3 and a3.ok == false and a3.err == "gone")
+    end
+
+    -- the fallback: an answer on an unviewed row is a claim
+    do
+        local staff, c, T = boot()
+        c.env.ZeD.ServerPart.forceOff = true
+        local row = gameAdd("rosa", "[BUG] help")
+        gameAdd("griefer", "go away", row.id)
+        local r2 = gameAdd("tjk", "[BUG] two")
+        r2.viewed = true
+        gameAdd("hermit", "fixed", r2.id)
+        T.adminAsk(true)
+        advance(100)
+        local a, b = T.fallbackRow(row.id), T.fallbackRow(r2.id)
+        check("unviewed answer: still open, marked", a.st == "Open" and a.claim == true)
+        check("viewed answer: Answered", b.st == "Answered" and b.claim == nil)
+        check("the open count holds", T.fallbackOpen() == 1)
+        T.fallbackMine({ { g = 1, a = "me", m = "[BUG] x", v = false, aw = "griefer", at = "y" } })
+        check("my row: Sent, marked", T.mine[1].st == "Sent" and T.mine[1].claim == true)
+        T.gameView(row.id)
+        advance(100)
+        check("a card opened in the fallback views the row", W.game[1].viewed == true)
+    end
 end
 
 print("tickets_sim: " .. checks .. " checks, " .. failed .. " failed")

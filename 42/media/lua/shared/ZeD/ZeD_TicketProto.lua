@@ -20,7 +20,8 @@ Tk.NEAR = 30                -- tiles, on any floor (settled, the director, Nov 5
 -- re-enters the queue, and staff can Answer and Close an Answered ticket.
 Tk.REPLY_AT_ANSWERED = false
 -- E13: what goes in the game's own ticket. true is the scope: the player's words in full, as public as the game makes
--- them (any logged-in client reads every game ticket). false files only "[GRIEF #14] see the Tickets queue".
+-- them (any logged-in client reads every game ticket). false files only "[GRIEF #14] see the Tickets queue", and the
+-- staff's first answer goes to the game as that same stub.
 Tk.FILE_FULL_TEXT = true
 Tk.FILE_STUB = "see the Tickets queue"
 
@@ -54,6 +55,8 @@ Tk.LIMITS = {
     NOTES_MAX = 20,
     TEXT_MAX = 1000,
     CHARS_MAX = 4000000,                        -- all the text in the table
+    PLAYER_CHARS = 3500000,                     -- where a player's words stop; the rest is kept for staff
+    TOMBS_MAX = 50,                             -- deleted tickets whose game row has not been seen yet
     NEAR_MAX = 20,
     MINE_ROWS = 50,
     PAGE_ROWS = 25,
@@ -122,6 +125,10 @@ end
 function Tk.fileText(kind, id, text)
     return Tk.tag(kind, id, Tk.FILE_FULL_TEXT and text or Tk.FILE_STUB)
 end
+-- what the staff's first answer files in the game (E13): the same switch, or the answer would be public
+function Tk.answerText(text)
+    return Tk.FILE_FULL_TEXT and text or Tk.FILE_STUB
+end
 -- kind, id, the rest of the words. Kind and id are nil on an untagged message, or a tag ZeD did not write
 function Tk.parse(msg)
     if type(msg) ~= "string" then return nil, nil, "" end
@@ -139,10 +146,17 @@ function Tk.fileMatches(rec, msg)
     return first ~= nil and msg == Tk.tag(rec.kind, rec.id, first.text)
 end
 
+-- a name a game row claims, for one line: a line break stops at the door, or it reads as a second line in the log
+function Tk.name(s)
+    local c = string.gsub(Tk.clean(s) or "", "\n", " ")
+    return string.sub(c, 1, Tk.LIMITS.NAME_MAX)
+end
+
 -- the test before any game call: is this game row still that record? (B8)
 function Tk.sameTicket(author, msg, rec)
-    if type(rec) ~= "table" or author ~= rec.author then return false end
-    if rec.source == "zed" then return Tk.fileMatches(rec, msg) end
+    if type(rec) ~= "table" then return false end
+    if rec.source == "zed" then return author == rec.author and Tk.fileMatches(rec, msg) end
+    if Tk.name(author) ~= rec.author then return false end
     local first = rec.thread and rec.thread[1]
     if not first then return false end
     local kind, _, rest = Tk.parse(msg)
@@ -156,12 +170,20 @@ function Tk.isTicketMessage(msg)
     return type(msg) == "string" and string.sub(msg, 1, 5) == "user " and string.find(msg, " added a ticket", 1, true) ~= nil
 end
 
--- the place in words: its name once one is proved (E3), else the coordinates
+-- the place in words, for a row: its name once one is proved (E3), else the coordinates
 function Tk.whereText(place)
     if type(place) ~= "table" then return nil end
     if place.name then return place.name end
     if place.x and place.y then return tostring(place.x) .. " x " .. tostring(place.y) end
     return nil
+end
+-- the place on a card: the name and the coordinates, as drawn
+function Tk.whereFull(place)
+    if type(place) ~= "table" then return nil end
+    if place.name and place.x and place.y then
+        return place.name .. ", " .. tostring(place.x) .. " x " .. tostring(place.y)
+    end
+    return Tk.whereText(place)
 end
 
 return Tk

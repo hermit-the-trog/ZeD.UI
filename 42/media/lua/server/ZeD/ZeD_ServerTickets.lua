@@ -6,7 +6,7 @@
 -- every outgoing table from an allowlist (playerView, staffView, and the two rows); nothing else sends ticket data.
 --
 -- Server Lua cannot touch the game's tickets (A4), so clients do that work and report here (t_filed, t_sync,
--- t_gamediff). What comes back from the game's side is a claim, never proof (B8).
+-- t_gamediff). What comes back from the game's side is a claim, never proof (B8): an answer from there goes in notes.
 --
 -- writeLog lines carry id, kind, who, what and place: never the text, a note, or the table's name.
 -- ============================================================================
@@ -64,6 +64,7 @@ local function open()
     md.skipped = md.skipped or 0
     md.chars = md.chars or 0
     md.tickets = md.tickets or {}
+    md.tombs = md.tombs or {}        -- ticket id -> author: deleted with no game link yet (B8)
     if md.schema > SCHEMA then
         T.frozen = true              -- data from a newer ZeD: read it, never change it
     end
@@ -92,40 +93,70 @@ local function textOf(rec)
     return n
 end
 
--- a record leaves ZeD's table. The game's row stays, and gameMax stops it coming back (B8)
+-- a record leaves ZeD's table. The game's row stays, and gameMax or its tag stops it coming back (B8)
 local function drop(md, rec)
     md.chars = math.max(0, md.chars - textOf(rec))
     if rec.gameId then T.byGame[rec.gameId] = nil end
     md.tickets[rec.id] = nil
 end
 
--- History (Answered, Closed, Spam) goes oldest first: past the record cap, or early when the text cap needs the room.
--- Open tickets are never evicted.
-local function evict(md, extra)
-    local list, n = {}, 0
+-- what goes first: records adopted from the game, which forged rows can fill, so they never push out a ZeD record; then
+-- oldest first
+local function oldestFirst(a, b)
+    local ga, gb = a.source == "game", b.source == "game"
+    if ga ~= gb then return ga end
+    if a.updated ~= b.updated then return a.updated < b.updated end
+    return a.id < b.id
+end
+
+-- History (Answered, Closed, Spam) goes past the record cap, or early when the text cap needs the room. Open tickets
+-- are never evicted, and keep is the record being written to: it never goes from under its own write.
+local function evict(md, extra, keep)
+    local list, n, held = {}, 0, 0
     for _, rec in pairs(md.tickets) do
         if not Tk.isOpen(rec.status) then
-            n = n + 1
-            list[n] = rec
+            held = held + 1
+            if rec ~= keep then
+                n = n + 1
+                list[n] = rec
+            end
         end
     end
-    if n <= L.HISTORY and md.chars + extra <= L.CHARS_MAX then return end
-    table.sort(list, function(a, b)
-        if a.updated ~= b.updated then return a.updated < b.updated end
-        return a.id < b.id
-    end)
+    if held <= L.HISTORY and md.chars + extra <= L.CHARS_MAX then return end
+    table.sort(list, oldestFirst)
     local i = 1
-    while i <= n and (n - i + 1 > L.HISTORY or md.chars + extra > L.CHARS_MAX) do
+    while i <= n and (held > L.HISTORY or md.chars + extra > L.CHARS_MAX) do
         drop(md, list[i])
+        held = held - 1
         i = i + 1
     end
 end
 
--- may n more characters go in? History goes first; past that the cap holds and the writer is told full
-local function room(md, n)
+-- may staff write n more characters? History goes first; past that the cap holds and the writer is told full
+local function room(md, n, keep)
     if md.chars + n <= L.CHARS_MAX then return true end
-    evict(md, n)
+    evict(md, n, keep)
     return md.chars + n <= L.CHARS_MAX
+end
+
+-- may a player's words go in, or words from the game's side? They stop at PLAYER_CHARS, so free accounts can never fill
+-- the room staff write in. The only history they can push out is the Spam pile: staff have already said that is nothing.
+local function playerRoom(md, n, keep)
+    if md.chars + n <= L.PLAYER_CHARS then return true end
+    local list, c = {}, 0
+    for _, rec in pairs(md.tickets) do
+        if rec.status == "Spam" and rec ~= keep then
+            c = c + 1
+            list[c] = rec
+        end
+    end
+    table.sort(list, oldestFirst)
+    local i = 1
+    while i <= c and md.chars + n > L.PLAYER_CHARS do
+        drop(md, list[i])
+        i = i + 1
+    end
+    return md.chars + n <= L.PLAYER_CHARS
 end
 
 local function tally(md)
@@ -242,7 +273,8 @@ end
 local function staffRow(rec)
     return { id = rec.id, kind = rec.kind, author = rec.author, st = rec.status, day = rec.day, filed = rec.filed,
         where = Tk.whereText(rec.place), assignee = rec.assignee, first = preview(rec.thread[1].text),
-        replies = rec.thread.n - 1, src = rec.source }
+        replies = rec.thread.n - 1, src = rec.source,
+        unlinked = (rec.source == "zed" and rec.gameFiled and not rec.gameId and not rec.gameGone) or nil }
 end
 
 -- ---------------------------------------------------------------------------
@@ -259,14 +291,18 @@ local function toAuthor(rec, command, args)
     if o then Srv.to(o, Tk.MOD, command, args) end
 end
 
--- a changed ticket: its row to all staff with the counts, and to its author
-local function pushRow(md, rec)
+local function pushStaffRow(md, rec)
     local c = tally(md)
     Srv.eachStaff(function(o)
         local r = staffRow(rec)
         r.open, r.spam = c.open, c.spam
         Srv.to(o, Tk.MOD, "t_row", r)
     end)
+end
+
+-- a changed ticket: its row to all staff with the counts, and to its author
+local function pushRow(md, rec)
+    pushStaffRow(md, rec)
     toAuthor(rec, "t_row", playerRow(rec))
 end
 
@@ -335,6 +371,16 @@ local function goodText(s)
     return text
 end
 
+-- one line a minute for the whole server, with how many were refused: a refused t_new starts no limit
+local function fullLine(md, open, who)
+    local t = getTimestampMs()
+    T.fullN = (T.fullN or 0) + 1
+    if T.fullAt and t - T.fullAt < L.MINUTE_MS then return end
+    Srv.log("tickets full: " .. tostring(open) .. " open, " .. tostring(md.chars) .. " characters; " .. tostring(T.fullN)
+        .. " refused, the last " .. tostring(who))
+    T.fullAt, T.fullN = t, 0
+end
+
 reg("t_new", { limit = L.NEW_MS, mark = false }, function(p, a, rid)
     local md = open()
     if frozen(p, rid) then return end
@@ -350,8 +396,8 @@ reg("t_new", { limit = L.NEW_MS, mark = false }, function(p, a, rid)
         Srv.ack(p, rid, false, "many")
         return
     end
-    if c.open >= L.OPEN_ALL or not room(md, #text) then
-        Srv.log("tickets full: " .. tostring(c.open) .. " open, " .. tostring(md.chars) .. " characters; refused " .. tostring(me))
+    if c.open >= L.OPEN_ALL or not playerRoom(md, #text) then
+        fullLine(md, c.open, me)
         Srv.ack(p, rid, false, "full")
         return
     end
@@ -372,8 +418,9 @@ reg("t_filed", {}, function(p, a, rid)
     local md = open()
     if T.frozen then return end
     local rec = mine(p, md, a.id)
-    if not rec then return end
+    if not rec or rec.gameFiled then return end
     rec.gameFiled = true
+    pushStaffRow(md, rec)            -- (it says unlinked: a staff client with the queue open reads the game's list)
 end)
 
 reg("t_mine", { limit = L.MINE_MS }, function(p, a, rid)
@@ -401,6 +448,7 @@ reg("t_one", {}, function(p, a, rid)
         return
     end
     Srv.to(p, Tk.MOD, "t_one", playerView(rec))
+    if rid then Srv.ack(p, rid, true) end
 end)
 
 reg("t_reply", { limit = L.REPLY_MS, mark = false }, function(p, a, rid)
@@ -415,7 +463,7 @@ reg("t_reply", { limit = L.REPLY_MS, mark = false }, function(p, a, rid)
     if not Tk.canReply(rec.status) then Srv.ack(p, rid, false, "state"); return end
     local text = goodText(a.text)
     if not text then Srv.ack(p, rid, false, "text"); return end
-    if rec.thread.n >= L.THREAD_MAX or not room(md, #text) then Srv.ack(p, rid, false, "full"); return end
+    if rec.thread.n >= L.THREAD_MAX or not playerRoom(md, #text, rec) then Srv.ack(p, rid, false, "full"); return end
     line(md, rec.thread, p:getUsername(), text)
     if rec.status == "Answered" then rec.status = "Progress" end   -- (only with E12 on: back in the queue)
     rec.updated = getTimestamp()
@@ -484,7 +532,6 @@ reg("t_queue", { cap = STAFF, limit = L.QUEUE_MS }, function(p, a, rid)
         Srv.ack(p, rid, false, "text")
         return
     end
-    T.cards[me] = nil
     local q = { status = status, kind = a.kind, who = a.who, mine = a.mine, find = a.find and string.lower(a.find) or nil }
     if q.find == "" then q.find = nil end
     local list, n = {}, 0
@@ -542,7 +589,7 @@ end
 -- after a change: the card to the asker and all staff with it open, the row both ways
 local function changed(p, md, rec, rid, what)
     rec.updated = getTimestamp()
-    evict(md, 0)
+    evict(md, 0, rec)
     Srv.ack(p, rid, true)
     T.cards[p:getUsername()] = rec.id
     pushCard(rec)
@@ -568,7 +615,11 @@ reg("t_card", { cap = STAFF }, function(p, a, rid)
     else
         Srv.to(p, Tk.MOD, "t_card", staffView(rec))
     end
+    if rid then Srv.ack(p, rid, true) end
 end)
+
+-- the card closed: only this ends its pushes
+reg("t_cardoff", { cap = STAFF }, function(p, a, rid) T.cards[p:getUsername()] = nil end)
 
 reg("t_take", { cap = STAFF }, function(p, a, rid)
     local rec, md = acting(p, a, rid, Tk.isOpen)
@@ -583,7 +634,7 @@ reg("t_answer", { cap = STAFF }, function(p, a, rid)
     if not rec then return end
     local text = goodText(a.text)
     if not text then Srv.ack(p, rid, false, "text"); return end
-    if rec.thread.n >= L.THREAD_MAX or not room(md, #text) then Srv.ack(p, rid, false, "full"); return end
+    if rec.thread.n >= L.THREAD_MAX or not room(md, #text, rec) then Srv.ack(p, rid, false, "full"); return end
     local me = p:getUsername()
     line(md, rec.thread, me, text, { staff = true })
     rec.status = "Answered"
@@ -593,7 +644,7 @@ reg("t_answer", { cap = STAFF }, function(p, a, rid)
     -- the one game answer (A4): the first, while the record is linked and has none
     local first = rec.gameId ~= nil and rec.gameAns == nil
     if first then rec.gameAns = true end
-    evict(md, 0)
+    evict(md, 0, rec)
     Srv.ack(p, rid, true, nil, { first = first, gameId = rec.gameId })
     T.cards[me] = rec.id
     pushCard(rec)
@@ -608,7 +659,7 @@ reg("t_addnote", { cap = STAFF }, function(p, a, rid)
     if not rec then return end
     local text = goodText(a.text)
     if not text then Srv.ack(p, rid, false, "text"); return end
-    if rec.notes.n >= L.NOTES_MAX or not room(md, #text) then Srv.ack(p, rid, false, "full"); return end
+    if rec.notes.n >= L.NOTES_MAX or not room(md, #text, rec) then Srv.ack(p, rid, false, "full"); return end
     line(md, rec.notes, p:getUsername(), text)
     rec.updated = getTimestamp()
     Srv.ack(p, rid, true)
@@ -638,7 +689,7 @@ reg("t_spam", { cap = STAFF }, function(p, a, rid)
     rec.spamBy = p:getUsername()
     rec.unread = nil
     rec.updated = getTimestamp()
-    evict(md, 0)
+    evict(md, 0, rec)
     Srv.ack(p, rid, true)
     pushCard(rec)
     pushRow(md, rec)                 -- (the author's row reads Closed: playerRow maps it)
@@ -653,10 +704,23 @@ reg("t_unspam", { cap = STAFF }, function(p, a, rid)
     changed(p, md, rec, rid, "not spam")
 end)
 
+-- a ticket deleted with no game link: its row may exist, or come later (the author's client files after the ack). The
+-- next sync finds it by its tag and a staff client removes it. A few only: the oldest goes
+local function tomb(md, rec)
+    local n, low = 0, nil
+    for id in pairs(md.tombs) do
+        n = n + 1
+        if not low or id < low then low = id end
+    end
+    if n >= L.TOMBS_MAX then md.tombs[low] = nil end
+    md.tombs[rec.id] = rec.author
+end
+
 reg("t_delete", { cap = ADMIN }, function(p, a, rid)
     local rec, md = acting(p, a, rid)
     if not rec then return end
     local id, author = rec.id, rec.author
+    if rec.source == "zed" and not rec.gameId and not rec.gameGone then tomb(md, rec) end
     Srv.ack(p, rid, true, nil, { gameId = rec.gameId })
     logTk(rec, "deleted", p:getUsername())
     drop(md, rec)
@@ -675,32 +739,30 @@ end)
 -- ---------------------------------------------------------------------------
 -- THE GAME'S SIDE (B8): matching is the server's job. Only the server holds every record
 -- ---------------------------------------------------------------------------
+-- gameClaim: the game's side showed an answer, already in notes. It is not gameAns, so a forged row costs no first answer
 local function linksOf()
     local out = {}
-    for g, rec in pairs(T.byGame) do out[g] = rec.gameAns == true end
+    for g, rec in pairs(T.byGame) do out[g] = rec.gameAns == true or rec.gameClaim == true end
     return out
 end
 
 local function cut(s) return string.sub(Tk.clean(s) or "", 1, L.TEXT_MAX) end
 
 -- a game ticket with no record of ours. Its author and any answer are claims. Status needs viewed, the one field a
--- plain client cannot set, so a griefer cannot answer a ticket out of the Open queue. An answer on an unviewed ticket
--- goes in notes, for staff only.
+-- plain client cannot set, so a griefer cannot answer a ticket out of the Open queue. Any answer goes in notes, marked
+-- as the game's, for staff only: viewed says staff opened the ticket, not who wrote an answer added after that (B8).
 local function adopt(md, r, c)
     local kind, _, rest = Tk.parse(r.m)
     if not Tk.isKind(kind) then kind, rest = Tk.NONE, r.m end
-    local author = string.sub(Tk.clean(r.a) or "", 1, L.NAME_MAX)
+    local author = Tk.name(r.a)
     local text = cut(rest)
-    local viewed = r.v == true
     local answer = type(r.at) == "string" and cut(r.at) or ""
-    local answered = answer ~= ""
-    local status = "Open"
-    if viewed then status = answered and "Answered" or "Seen" end
-    if Tk.isOpen(status) and (c.open >= L.OPEN_ALL or c.gameOpen >= L.ADOPT_OPEN or (c.claimed[author] or 0) >= L.ADOPT_PER_AUTHOR) then
+    local status = (r.v == true) and "Seen" or "Open"
+    if c.open >= L.OPEN_ALL or c.gameOpen >= L.ADOPT_OPEN or (c.claimed[author] or 0) >= L.ADOPT_PER_AUTHOR then
         md.skipped = md.skipped + 1
         return
     end
-    if not room(md, #text + #answer) then
+    if not playerRoom(md, #text + #answer) then
         md.skipped = md.skipped + 1
         return
     end
@@ -710,19 +772,35 @@ local function adopt(md, r, c)
         gameId = r.g, gameFiled = true, thread = { n = 0 }, notes = { n = 0 } }
     line(md, rec.thread, author, text, { game = true })
     rec.thread[1].t = nil            -- (no time came with it)
-    if answered then
-        rec.gameAns = true
-        local who = string.sub(Tk.clean(r.aw) or "", 1, L.NAME_MAX)
-        line(md, viewed and rec.thread or rec.notes, who, answer, { game = true })
-    end
+    if type(r.aw) == "string" or answer ~= "" then rec.gameClaim = true end
+    if answer ~= "" then line(md, rec.notes, Tk.name(r.aw), answer, { game = true }) end
     md.tickets[id] = rec
     T.byGame[r.g] = rec
-    if Tk.isOpen(status) then
-        c.open = c.open + 1
-        c.gameOpen = c.gameOpen + 1
-        c.claimed[author] = (c.claimed[author] or 0) + 1
-    end
+    c.open = c.open + 1
+    c.gameOpen = c.gameOpen + 1
+    c.claimed[author] = (c.claimed[author] or 0) + 1
     logTk(rec, "adopted from the game's window", author)
+end
+
+-- a record meets its game row. What staff did before the link is owed to that row: viewed, and the one answer
+local function link(rec, g, c)
+    rec.gameId = g
+    rec.gameFiled = true
+    rec.gameGone = nil
+    T.byGame[g] = rec
+    local text = nil
+    if rec.gameAns == nil then
+        for i = 1, rec.thread.n do
+            if rec.thread[i].staff then
+                text = rec.thread[i].text
+                break
+            end
+        end
+    end
+    if text then rec.gameAns = true end
+    if text or rec.status ~= "Open" then
+        c.owe[#c.owe + 1] = { g = g, view = rec.status ~= "Open", text = text and Tk.answerText(text) or nil }
+    end
 end
 
 local function syncRow(md, r, c)
@@ -733,10 +811,14 @@ local function syncRow(md, r, c)
         local _, id = Tk.parse(r.m)
         local rec = id and md.tickets[id]
         if rec and rec.source == "zed" and not rec.gameId and rec.author == r.a and Tk.fileMatches(rec, r.m) then
-            rec.gameId = g
-            rec.gameFiled = true
-            rec.gameGone = nil
-            T.byGame[g] = rec
+            link(rec, g, c)
+        elseif id and not rec and id < md.nextId then
+            -- its record was deleted or evicted before the link: dealt with, not a new ticket. (A crash that rolled nextId
+            -- back still adopts: the id is then at or above it.) A deleted one's row goes from the game as well
+            if md.tombs[id] == r.a then
+                md.tombs[id] = nil
+                c.remove[#c.remove + 1] = { g = g, id = id }
+            end
         else
             adopt(md, r, c)
         end
@@ -744,14 +826,21 @@ local function syncRow(md, r, c)
     md.gameMax = g                   -- ids are never reused, so this one number stops any row coming back
 end
 
--- is any of these rows still the record linked to it? Then the database is the same one (a top below gameMax also
--- means the newest ticket was removed), and a reset would adopt every kept record a second time
-local function sameDb(rows)
+local function resetLinks(md)
+    for _, rec in pairs(md.tickets) do rec.gameId = nil end
+    T.byGame = {}
+    md.gameMax = 0
+    Srv.log("the game's ticket database was replaced: links cleared, matching again by tag")
+end
+
+-- is any of these rows, under a linked id, not the record linked to it? Only that proves a replaced database. A top
+-- below gameMax means no more than that the newest ticket was removed
+local function replacedDb(rows)
     for i = 1, L.SYNC_ROWS do
         local r = rows[i]
         if type(r) == "table" and Tk.whole(r.g) and type(r.a) == "string" and type(r.m) == "string" then
             local rec = T.byGame[r.g]
-            if rec and Tk.sameTicket(r.a, r.m, rec) then return true end
+            if rec and not Tk.sameTicket(r.a, r.m, rec) then return true end
         end
     end
     return false
@@ -762,24 +851,23 @@ reg("t_sync", { cap = STAFF, limit = L.SYNC_MS }, function(p, a, rid)
     if frozen(p, rid) then return end
     local rows = type(a.rows) == "table" and a.rows or {}
     if a.reset == true then
-        local top = type(a.top) == "number" and a.top or 0
-        local replaced = top < md.gameMax and not sameDb(rows)
+        local replaced = replacedDb(rows)
         if replaced then
-            for _, rec in pairs(md.tickets) do rec.gameId = nil end
-            T.byGame = {}
-            md.gameMax = 0
-            Srv.log("the game's ticket database was replaced: links cleared, matching again by tag")
+            resetLinks(md)
+        elseif a.lower == true and type(a.top) == "number" and a.top >= 0 and a.top == math.floor(a.top) and a.top < md.gameMax then
+            md.gameMax = a.top       -- (two full lists agree the newest went: ids are never reused, so nothing comes back)
         end
         Srv.ack(p, rid, true)
         Srv.to(p, Tk.MOD, "t_syncd", { links = linksOf(), gameMax = md.gameMax, reset = replaced or nil, same = (not replaced) or nil })
         return
     end
     local c = tally(md)
+    c.remove, c.owe = {}, {}
     for i = 1, L.SYNC_ROWS do
         if rows[i] then syncRow(md, rows[i], c) end
     end
     evict(md, 0)
-    Srv.ack(p, rid, true)
+    Srv.ack(p, rid, true, nil, { remove = (#c.remove > 0) and c.remove or nil, owe = (#c.owe > 0) and c.owe or nil })
     if a.done == true then
         Srv.to(p, Tk.MOD, "t_syncd", { links = linksOf(), gameMax = md.gameMax })
     end
@@ -803,23 +891,32 @@ reg("t_gamediff", { cap = STAFF, limit = L.DIFF_MS }, function(p, a, rid)
             end
         end
     end
+    local differs = false
     if type(a.ans) == "table" then
         for i = 1, L.DIFF_ROWS do
             local e = a.ans[i]
             local rec = type(e) == "table" and Tk.whole(e.g) and T.byGame[e.g] or nil
-            if rec and not rec.gameAns and type(e.text) == "string" then
-                local text = cut(e.text)
-                local who = string.sub(Tk.clean(e.who) or "", 1, L.NAME_MAX)
-                rec.gameAns = true
-                local list = (e.viewed == true) and rec.thread or rec.notes
-                local cap = (e.viewed == true) and L.THREAD_MAX or L.NOTES_MAX
-                if text ~= "" and list.n < cap and room(md, #text) then line(md, list, who, text, { game = true }) end
-                rec.updated = getTimestamp()
-                pushCard(rec)
+            if rec and type(e.text) == "string" and type(e.a) == "string" and type(e.m) == "string" then
+                if not Tk.sameTicket(e.a, e.m, rec) then
+                    differs = true
+                elseif not rec.gameAns and not rec.gameClaim then
+                    rec.gameClaim = true
+                    local text = cut(e.text)
+                    if text ~= "" and rec.notes.n < L.NOTES_MAX and playerRoom(md, #text, rec) then
+                        line(md, rec.notes, Tk.name(e.who), text, { game = true })
+                    end
+                    rec.updated = getTimestamp()
+                    pushCard(rec)
+                end
             end
         end
     end
     Srv.ack(p, rid, true)
+    if differs then
+        -- (a row under a linked id that is another ticket: the answer stays out of this record, and the rows match afresh)
+        resetLinks(md)
+        Srv.to(p, Tk.MOD, "t_syncd", { links = linksOf(), gameMax = md.gameMax, reset = true })
+    end
     pushCounts(md)
 end)
 

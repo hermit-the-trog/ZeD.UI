@@ -682,7 +682,7 @@ press("admin", "adm:tk:t:14")
 check("the card asks", lastSent("t_card") and lastSent("t_card").id == 14)
 nowMs = nowMs + 11000
 draw("admin")
-check("no answer in 10 seconds: back, with the words", ad.card == nil and ad.tk.flashText == ZeD.tr("UI_ZeD_Tk_Err_fail"))
+check("no answer in 10 seconds: back, with the words", ad.card == nil and ad.tk.flashText == ZeD.tr("UI_ZeD_Tk_LoadFail"))
 press("admin", "adm:tk:t:14")
 deliver("t_card", REC)
 draw("admin")
@@ -863,8 +863,11 @@ check("the count comes from the game's list", TC.openCount() == 1, TC.openCount(
 press("admin", "adm:tk:s:All")
 check("All shows the answered one", stopOf("admin", "adm:tk:t:8") ~= nil)
 press("admin", "adm:tk:s:Open")
+GAME = {}
 press("admin", "adm:tk:t:7")
 check("the fallback card is open", ad.card and ad.card.game)
+check("opening it views the game's row", GAME[1] and GAME[1][1] == "viewed" and GAME[1][3] == 7)
+C.onViewTickets(jlist({ row(7, "Rosa", "[GRIEF] My fence", true), row(8, "tjk", "plain words", true, "Hermit", "Done.") }))
 check("no Take, Spam, Close or notes", stopOf("admin", "tk:take") == nil and stopOf("admin", "tk:spam") == nil and stopOf("admin", "tk:close") == nil and stopOf("admin", "tk:f:note") == nil)
 type_("admin", "answer", "Looking")
 draw("admin")
@@ -905,6 +908,298 @@ draw("admin")
 check("E12 on: an Answered ticket takes another answer", stopOf("admin", "tk:ans") ~= nil and stopOf("admin", "tk:close") ~= nil and stopOf("admin", "tk:reopen") == nil)
 TC.back(WINS.admin, ad)
 Tk.REPLY_AT_ANSWERED = false
+
+-- what the review found ------------------------------------------------------------------
+do
+    local D = TC._D
+    local function drew(tab, words)
+        for _, t in ipairs(panels[tab].texts) do
+            if t.s == words then return true end
+        end
+        return false
+    end
+    local function longRec(id, n)
+        local r = { id = id, source = "zed", kind = "GRIEF", author = "Kade_R", status = "Progress", day = 1, filed = 1793913240, assignee = "Aretha",
+            thread = { n = n }, notes = { n = 0 }, gameFiled = true }
+        for i = 1, n do r.thread[i] = { who = "Kade_R", t = 1, text = string.rep("word ", 40) } end
+        return r
+    end
+    local function openAdmin(r)
+        C.queue = { page = 1, pages = 1, n = 1, open = 1, spam = 0, rows = { { id = r.id, kind = r.kind, author = r.author, st = r.status, day = 1, first = "x", replies = 0 } } }
+        C.seq = C.seq + 1
+        ad.tk.q = { status = "Open", newest = true, page = 1, find = "" }
+        draw("admin")
+        press("admin", "adm:tk:t:" .. r.id)
+        deliver("t_card", r)
+        draw("admin")
+    end
+
+    -- a field being typed in keeps its box and its caret, on a card that scrolls and one that does not
+    FOCUS.pad = false
+    for _, size in ipairs({ { 480, 800 }, { 360, 560 } }) do
+        W, H = size[1], size[2]
+        panels.admin = newPanel(W, H)
+        WINS.admin._tkFields = nil
+        local r = longRec(30, 12)
+        openAdmin(r)
+        ad.tk.scroll:setScrollPos(1)
+        draw("admin")
+        local box = field("admin", "answer")
+        local inner = box._entry
+        check("the field shows at the card's foot", box.visible, H)
+        inner:focus()
+        local kept = true
+        for n = 1, 76 do
+            inner:setText(string.rep("typing words ", n))
+            draw("admin")
+            if not (box.visible and inner:isFocused()) then kept = false end
+        end
+        check("typing 1000 characters keeps the box and the caret", kept, H)
+        for _, it in ipairs(ad.tk.items) do
+            if it.k == "field" and it.key == "answer" then
+                check("a field is never taller than the view", it.h <= ad.tk.csh, it.h)
+                check("and stays in it", it.y - ad.tk.off >= 0 and it.y - ad.tk.off + it.h <= ad.tk.csh + 1, it.y - ad.tk.off)
+            end
+        end
+        inner:unfocus()
+        inner:setText("")
+        TC.back(WINS.admin, ad)
+    end
+    W, H = 480, 800
+    panels.admin = newPanel(W, H)
+    WINS.admin._tkFields = nil
+
+    -- a staff answer closes the field a player is typing in
+    do
+        local me = { id = 40, kind = "BUG", st = "Progress", day = 1, filed = 1793913240, can = true, thread = { n = 1, { who = "Aretha", t = 1, text = "x" } } }
+        C.one[40] = me
+        TC.openMine(WINS.server, sv, 40)
+        draw("server")
+        type_("server", "reply", "half a thought")
+        C.one[40] = { id = 40, kind = "BUG", st = "Answered", day = 1, filed = 1793913240, can = false, thread = me.thread }
+        C.seq = C.seq + 1
+        draw("server")
+        check("the field goes, the words stay", stopOf("server", "tk:f:reply") == nil and drew("server", "half a thought"))
+        check("the foot says why", drew("server", ZeD.tr("UI_ZeD_Tk_FieldGone")))
+        check("an answer read on the card is said to be on screen", C.seeing(40))
+        TC.back(WINS.server, sv)
+        C.seeId = nil
+    end
+
+    -- with the controller the words have a line, in full
+    do
+        local r = longRec(31, 1)
+        r.place = { x = 1, y = 2, z = 0 }
+        r.status = "Open"
+        r.assignee = nil
+        openAdmin(r)
+        FOCUS.pad = true
+        ad.tk.flashText = nil
+        draw("admin")
+        local ans = stopOf("admin", "tk:ans")
+        FOCUS.el, FOCUS.win, FOCUS.id = ans, WINS.admin, ans and ans.id
+        draw("admin")
+        check("a grayed Answer's reason is read in full", drew("admin", ZeD.tr("UI_ZeD_Tk_WriteAnswer")))
+        TC.qaFlash(ad, ZeD.tr("UI_ZeD_Tk_Answered", "Kade_R"))
+        draw("admin")
+        check("so is the answer to a press", drew("admin", ZeD.tr("UI_ZeD_Tk_Answered", "Kade_R")))
+        ad.tk.flashText = nil
+        FOCUS.el, FOCUS.win, FOCUS.id = nil, nil, nil
+        TC.back(WINS.admin, ad)
+    end
+
+    -- Previous and Next say why they are gray
+    do
+        C.queue = { page = 1, pages = 2, n = 30, open = 30, spam = 0, rows = { { id = 32, kind = "BUG", author = "a", st = "Open", first = "x", replies = 0 } } }
+        C.seq = C.seq + 1
+        ad.tk.q = { status = "Open", newest = true, page = 1, find = "" }
+        FOCUS.pad = true
+        draw("admin")
+        local prev = stopOf("admin", "adm:tk:prev")
+        check("grayed Previous is a stop", prev ~= nil)
+        FOCUS.el, FOCUS.win, FOCUS.id = prev, WINS.admin, prev and prev.id
+        draw("admin")
+        check("its reason is a line in the list", drew("admin", ZeD.tr("UI_ZeD_Tk_FirstPage")))
+        FOCUS.el, FOCUS.win, FOCUS.id = nil, nil, nil
+        FOCUS.pad = false
+        draw("admin")
+    end
+
+    -- a push of data lands the controller once, unless it has moved
+    do
+        local r = longRec(33, 1)
+        C.queue = { page = 1, pages = 1, n = 1, open = 1, spam = 0, rows = { { id = 33, kind = "GRIEF", author = "Kade_R", st = "Progress", first = "x", replies = 0 } } }
+        C.seq = C.seq + 1
+        FOCUS.pad = true
+        draw("admin")
+        press("admin", "adm:tk:t:33")
+        FOCUS.el = stopOf("admin", "tk:back")
+        FOCUS.soon = {}
+        deliver("t_card", r)
+        draw("admin")
+        local f = FOCUS.soon[1]
+        check("the first frame with data lands", f ~= nil and #FOCUS.soon == 1)
+        check("on the answer field", f and f.pred(stopOf("admin", "tk:f:answer")) and not f.pred(stopOf("admin", "tk:back")))
+        TC.back(WINS.admin, ad)
+        press("admin", "adm:tk:t:33")
+        FOCUS.el = { id = "tk:m:1" }
+        FOCUS.soon = {}
+        deliver("t_card", r)
+        draw("admin")
+        check("not once the controller moved", #FOCUS.soon == 0)
+        FOCUS.el = nil
+        FOCUS.pad = false
+        TC.back(WINS.admin, ad)
+    end
+
+    -- the back key ends the card's pushes
+    do
+        local r = longRec(34, 1)
+        openAdmin(r)
+        clearSent()
+        TC.back(WINS.admin, ad)
+        check("closing a card tells the server", lastSent("t_cardoff") ~= nil)
+        check("a late push is dropped", (function() deliver("t_card", r); return C.card == nil end)())
+    end
+
+    -- Add note waits for its ack
+    do
+        local r = longRec(35, 1)
+        openAdmin(r)
+        type_("admin", "note", "one note")
+        draw("admin")
+        clearSent()
+        press("admin", "tk:addnote")
+        draw("admin")
+        check("a second press sends nothing", stopOf("admin", "tk:addnote") ~= nil and (function()
+            SENT = {}
+            stopOf("admin", "tk:addnote").onActivate(WINS.admin)
+            return lastSent("t_addnote") == nil
+        end)())
+        ad.tk.busy = nil
+        TC.back(WINS.admin, ad)
+    end
+
+    -- a card the server has no record of leaves at once
+    do
+        clearSent()
+        TC.openMine(WINS.server, sv, 77)
+        draw("server")
+        ackLast("t_one", { ok = false, err = "gone" })
+        draw("server")
+        check("gone comes at once", sv.card == nil and sv.tk.flashText == ZeD.tr("UI_ZeD_Tk_Err_gone"))
+        sv.tk.flashText = nil
+    end
+
+    -- the wrap: a run with no spaces, and blank lines
+    do
+        local T = ZeD.T
+        local long = string.rep("x", 1000)
+        local lines = D.wrap(long, T.fontF2, 300)
+        local total, fits = 0, true
+        for _, s in ipairs(lines) do
+            total = total + #s
+            if ZeD.TM:MeasureStringX(T.fontF2, s) > 300 then fits = false end
+        end
+        check("a run with no spaces is cut to the width", #lines > 1 and fits and total == 1000, #lines)
+        local para = D.wrap("one\n\ntwo", T.fontF2, 300)
+        check("a blank line stays", #para == 3 and para[2] == "", #para)
+        local r = longRec(36, 1)
+        r.thread[1].text = long
+        openAdmin(r)
+        for _, t in ipairs(panels.admin.texts) do
+            check("a long run draws inside the drawer", t.x + t.w <= W + 1, t.s)
+        end
+        TC.back(WINS.admin, ad)
+    end
+
+    -- the place on a card: a name and the coordinates
+    do
+        check("a row's where is the name", Tk.whereText({ name = "Riverside farm", x = 6280, y = 5350 }) == "Riverside farm")
+        check("a card's where has both", Tk.whereFull({ name = "Riverside farm", x = 6280, y = 5350 }) == "Riverside farm, 6280 x 5350")
+        check("with no name, the coordinates", Tk.whereFull({ x = 6280, y = 5350 }) == "6280 x 5350")
+    end
+
+    -- the claim on an adopted ticket is on the card, and a game answer in notes says what it is
+    do
+        local r = longRec(37, 1)
+        r.source = "game"
+        r.notes = { n = 1, { who = "Hermit", t = 1, text = "claimed", game = true } }
+        openAdmin(r)
+        draw("admin")
+        check("the card says what it can't prove", drew("admin", ZeD.tr("UI_ZeD_Tk_HelpGameCard")) or (function()
+            for _, it in ipairs(ad.tk.items) do
+                if it.k == "sub" and it.text == ZeD.tr("UI_ZeD_Tk_HelpGameCard") then return true end
+            end
+            return false
+        end)())
+        local found = false
+        for _, it in ipairs(ad.tk.items) do
+            if it.k == "msg" and it.who == ZeD.tr("UI_ZeD_Tk_NoteGame", "Hermit", "Kade_R") then found = true end
+        end
+        check("a game answer is labeled", found)
+        TC.back(WINS.admin, ad)
+    end
+
+    -- the wheel over a field scrolls the card
+    do
+        local r = longRec(38, 12)
+        openAdmin(r)
+        ad.tk.scroll:setScrollPos(1)
+        draw("admin")
+        local box = field("admin", "answer")
+        local before = ad.tk.scroll.scrollPos
+        local r2 = box._entry:onMouseWheel(-1)
+        check("the wheel moves the card", r2 == true and ad.tk.scroll.scrollPos < before, ad.tk.scroll.scrollPos)
+        TC.back(WINS.admin, ad)
+    end
+
+    -- the hint is drawn by the card, wrapped, under the empty box
+    do
+        local r = longRec(39, 1)
+        openAdmin(r)
+        draw("admin")
+        check("the box draws no hint of its own", field("admin", "answer").placeholder == "")
+        check("the card does", drew("admin", ZeD.tr("UI_ZeD_Tk_AnswerHint", "Kade_R")))
+        TC.back(WINS.admin, ad)
+    end
+
+    -- the Player card's reason
+    do
+        local r = longRec(41, 1)
+        ONLINE = false
+        ZeD.ServerTab.players = { { user = "Kade_R", name = "Kade_R" } }
+        openAdmin(r)
+        draw("admin")
+        check("on the server, not near", stopOf("admin", "tk:pcard").help == ZeD.tr("UI_ZeD_Adm_NotSeen"), stopOf("admin", "tk:pcard").help)
+        ZeD.ServerTab.players = { { user = "other", name = "other" } }
+        ad.tk.items = nil
+        draw("admin")
+        draw("admin")
+        check("not on the server", stopOf("admin", "tk:pcard").help == ZeD.tr("UI_ZeD_Tk_NotOnline"), stopOf("admin", "tk:pcard").help)
+        ZeD.ServerTab.players = {}
+        ONLINE = true
+        TC.back(WINS.admin, ad)
+    end
+
+    -- the fallback's claim
+    do
+        S.forceOff = true
+        ad.tk.q = { status = "Open", newest = true, page = 1, find = "" }
+        nowMs = nowMs + 20000
+        draw("admin")
+        C.onViewTickets(jlist({}))       -- (the frozen filing above is still waiting for its reply)
+        C.onViewTickets(jlist({ row(50, "Rosa", "[BUG] help", false, "griefer", "go away") }))
+        draw("admin")
+        check("an unviewed answer stays in the Open list", stopOf("admin", "adm:tk:t:50") ~= nil)
+        press("admin", "adm:tk:t:50")
+        C.onViewTickets(jlist({ row(50, "Rosa", "[BUG] help", true, "griefer", "go away") }))
+        check("the card still takes an answer", ad.card ~= nil)
+        TC.back(WINS.admin, ad)
+        C.onViewTickets(jlist({}))
+        S.forceOff = nil
+    end
+end
 
 print("ticket_cards_sim: " .. checks .. " checks, " .. failed .. " failed")
 if failed > 0 then os.exit(1) end
