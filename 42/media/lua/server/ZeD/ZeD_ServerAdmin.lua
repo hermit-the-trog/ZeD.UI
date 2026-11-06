@@ -16,7 +16,7 @@
 --
 -- The table has a secret random name, as the tickets' does (A2), and is never transmitted. Views are allowlists. Every
 -- action goes through Srv.adminLog into the server part's one log (Srv.action): a line in the ZeD log and a line in md.log,
--- which Phase 4's Log view reads. The ring here also holds the claim and faction lines from ZeD_ServerClaims.lua.
+-- which the Log view reads (ZeD_ServerLog.lua). The ring here holds every kind of line, not only these.
 -- ============================================================================
 if not isServer() then return end
 
@@ -40,7 +40,7 @@ local CAP = {}
 for _, name in ipairs(Adm.SERVER_CAPS) do
     CAP[name] = Capability and Capability[name]
     if not CAP[name] then
-        Srv.log("admin tools off: this game has no " .. name .. " capability")
+        Srv.action("admin", "server", "admin tools off", nil, "this game has no " .. name .. " capability")
         print("[ZeD] admin tools off: no " .. name)
         return
     end
@@ -63,7 +63,7 @@ local function findName()
             if not best or n < best then best = n end
         end
     end
-    if found > 1 then Srv.log("found " .. found .. " admin tables; using the first by name") end
+    if found > 1 then Srv.fileLine("admin", "server", "admin tables", nil, "found " .. found .. "; using the first by name") end
     return best
 end
 
@@ -95,7 +95,7 @@ local function open()
         end
         md.schema = md.schema + 1
     end
-    if T.frozen then Srv.log("the admin table is frozen: schema " .. tostring(md.schema) .. ", this ZeD knows " .. SCHEMA) end
+    if T.frozen then Srv.fileLine("admin", "server", "admin table frozen", nil, "schema " .. tostring(md.schema) .. ", this ZeD knows " .. SCHEMA) end
     T.md = md
     return md
 end
@@ -127,13 +127,19 @@ local function ringSlot(log, who)
     return log.at
 end
 
-function Srv.actionStore(kind, who, what, target, detail, x, y, z)
+function Srv.actionStore(kind, who, what, target, detail, x, y, z, ex)
     local md = open()
     if T.frozen then return end
     local log = md.log
     log.s = (log.s or 0) + 1
-    log[ringSlot(log, who)] = { s = log.s, t = getTimestamp(), day = today(), kind = kind, who = who, what = what, target = target, text = detail, x = x, y = y, z = z }
+    local row = { s = log.s, t = getTimestamp(), day = today(), kind = kind, who = who, what = what, target = target, text = detail, x = x, y = y, z = z }
+    if ex then row.car, row.part, row.locked = ex.car, ex.part, ex.locked end
+    log[ringSlot(log, who)] = row
 end
+
+-- what the Log view reads the ring through
+function Srv.logTable() return open() end
+function Srv.logFrozen() return T.frozen == true end
 
 function Srv.adminLog(who, what, target, detail, x, y, z) Srv.action("admin", who, what, target, detail, x, y, z) end
 
@@ -178,6 +184,12 @@ local function rank(r)
     if not r then return -1 end
     local plain = roleNamed("user")
     return math.max(r:getPosition(), plain and plain:getPosition() or 0)
+end
+
+-- is this name's role above p's? The Log view keeps such a player's places to themselves, as the Player card does. A name
+-- with no role to read is not above anyone
+function Srv.outranks(p, user)
+    return rank(roleOf(open(), user)) > rank(p:getRole())
 end
 
 -- nil when p may act on this target, else the error word. A name nobody online holds and the server has never seen has
@@ -390,7 +402,7 @@ local function owe(md, act, target, reason, delay, by, opts)
         if e.act == "Kick" and (not low or id < low) then low = id end
     end
     if n >= AL.OWED_MAX and low then
-        Srv.log("owed game calls full: dropped Kick on " .. tostring(md.owed[low].target))
+        Srv.adminLog("server", "owed game calls full", md.owed[low].target, "dropped a Kick")
         md.owed[low] = nil
     end
     local id = md.nextOwe
@@ -521,7 +533,7 @@ end
 local function reportStay(md, user, b, told, now)
     told.noted = now
     b.stay, b.stayUser = now, user
-    Srv.log("a banned client has not left: " .. tostring(user))
+    Srv.adminLog("server", "a banned client has not left", user)
     noteStaff({ kind = "stay", user = user, id = b.id })
 end
 
@@ -903,7 +915,7 @@ local function banRoom(md)
     end
     if n < AL.BANS_MAX then return true end
     if not oldest then return false end
-    Srv.log("ban list full: dropped row " .. tostring(oldest) .. ", the game still holds that ban")
+    Srv.adminLog("server", "ban list full", nil, "dropped row " .. tostring(oldest) .. ", the game still holds that ban")
     md.bans[oldest] = nil
     return true
 end
@@ -1172,7 +1184,7 @@ if Srv.adminHooked == nil then
         local ok, err = pcall(function() ZeD.Srv.adminTick() end)
         if not ok then
             print("[ZeD] server: admin clock failed: " .. tostring(err))
-            ZeD.Srv.log("admin clock failed: " .. tostring(err))
+            ZeD.Srv.action("admin", "server", "admin clock failed", nil, err)
         end
     end
     if Events.OnTickEvenPaused then Events.OnTickEvenPaused.Add(safeTick) end

@@ -1016,7 +1016,7 @@ do
     raw(a, "c_info", nil)
     advance(1200)
     check("nothing failed", not logHas("handler failed"))
-    check("a bad-argument line", logHas("bad arguments: Aretha on c_cancel"))
+    check("a bad-argument line", logHas("bad arguments | Aretha | - | - | c_cancel"))
     -- the limit
     advance(6000)
     ca.C.ask()

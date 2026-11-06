@@ -7,6 +7,7 @@
 --   v         the server's protocol, so later phases can test v >= n. Each side ignores commands it does not know.
 --   staff     AnswerTickets; admin: RolesWrite. The server decides every command regardless; these only draw buttons.
 --   adm       the server part holds the admin tools (Phase 2)
+--   lg        the server part holds the log (Phase 4)
 --   frozen    the server part is up and refuses writes (its data is from a newer ZeD)
 --   forceOff  QA: behave as if no server part answered
 -- Hello goes out at every OnCreatePlayer, a respawn included. send reads getPlayer() at each call: the object from
@@ -53,6 +54,7 @@ local function heard(a)
     S.admin = a.admin == true
     S.frozen = a.frozen == true
     S.adm = a.adm == 1
+    S.lg = a.lg == 1
     if ZeD.Tickets and ZeD.Tickets.onHello then ZeD.Tickets.onHello(a) end
     if ZeD.Admin and ZeD.Admin.onHello then ZeD.Admin.onHello(a) end
 end
