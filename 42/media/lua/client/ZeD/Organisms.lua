@@ -166,8 +166,8 @@ function ZeD_Window:_autoCollapse()
     local now = getTimestampMs()
     -- (an item dragged in either window: the windows stay as they are until it is dropped, but for one: Nov 6 2026,
     -- FAIV's report, a rolled window took no drop, its lists hidden, and the hover below never ran with the button held.
-    -- An item held over a rolled window's title bar rolls that window down, once, so the drop lands in its list. The game
-    -- rolls every page down at any drag, ISInventoryPage:update; here only the window aimed at: a window that opens at
+    -- An item held over a rolled window's title bar rolls that window down, once, so its list shows (the bar itself takes the
+    -- drop as that list, rolled or not: InventoryRenderer.handleDrop). The game rolls every page down at any drag, ISInventoryPage:update; here only the window aimed at: a window that opens at
     -- every drag covers the world a floor drop was aimed at, and a release over a window never drops to the floor.)
     local itemDrag = false
     for _, get in ipairs({ ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow, ZeD_WorldWindow and ZeD_WorldWindow.getWindow }) do

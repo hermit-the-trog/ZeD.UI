@@ -11,11 +11,15 @@
 --   ROLL   a rolled window under an item drag, the mouse faked (getMouseX, getMouseY, isMouseButtonDown, as zedqa_equipdrag).
 --          Held over its title bar it rolls down, each window and an Equip row's drag; it stays down while the item is held
 --          and rolls up after the usual wait once it is let go; a held button with no item (moving a rolled window) and a
---          pinned window leave it rolled. The drag is cancelled, not dropped: over an open window the drop is the old path.
+--          pinned window leave it rolled. Those drags are cancelled. Then a real release (the list's own onMouseUp) on the
+--          rolled World window's title bar, at once and after it has rolled down: the item lands in the container it lists.
+--          The same release with that container left behind: nothing lands (the game's transfer checks no reach of its own).
 --   STALE  the list shown against the container selected, by the object:
 --            1  columns: a container walks out of reach: every column's rows are the container it is headed
 --            2  a view picked on another tab, back to Loot, then selections: the list is the selection
 --            3  the Character window: the pad shows a bag, a click on main lists main
+--            4  the World strip's Floor button lists the floor and lights it from a crate selection: after a world click, a
+--               pad tap, a view come back to Loot; with a column open it takes the crate's place; a crate leaving reach too
 -- Needs a container near the QA home (two within 2 squares of each other for the whole of STALE 1 and for 2) and a bag worn for
 -- STALE 3; a step it can not do says SKIP. Windows, pins, speed and the character's place are put back.
 local function say(s) print("ZEDQA fav " .. tostring(s)) end
@@ -226,6 +230,75 @@ add(600, function()
     say("roll done")
 end)
 
+-- a real release on the World window's title bar: the Character list's own onMouseUp, the pointer faked
+local function aLoose()
+    local its = p:getInventory():getItems()
+    for n = 0, its:size() - 1 do
+        local it = its:get(n)
+        if not p:isEquipped(it) and not p:isAttachedItem(it) and not it:isFavorite() and not instanceof(it, "InventoryContainer") then return it end
+    end
+    return nil
+end
+local function titleDrop(tag, settle, walkAway)
+    local crate, item = cands[1].inv, nil
+    local function release()
+        local cc = CW()._mainContent
+        cc:onMouseUp(0, 0)
+        held = false
+    end
+    add(300, function()
+        local c, w = CW(), WW()
+        c:setPinned(false); w:setPinned(false)
+        c:setWindowShaded(false); w:setWindowShaded(false)
+        if c._activeTab ~= "loot" then ZeD_CharacterWindow.openTab(0, "loot") end
+        standBy(cands[1])
+    end)
+    add(2000, function() ZeD_WorldWindow.selectContainer(crate, 60) end)
+    add(800, function()
+        local c, w = CW(), WW()
+        item = aLoose()
+        if not (item and shown() == crate and crate:isItemAllowed(item) and crate:hasRoomFor(p, item)) then
+            say("SKIP " .. tag .. ": no loose item, or the container does not take it")
+            item = nil
+            return
+        end
+        if walkAway then standAt(cands[1].x + 8, cands[1].y + 8) end
+        arm(); away(); roll(w); held = true
+        local cc = c._mainContent
+        cc._dragSourceInv = p:getInventory()
+        cc._drag:beginPending({ item }, item, 0, 0)
+        cc._drag:activate()
+        onTitle(w)
+        if not settle then
+            check(w.windowShaded == true, tag .. ": released while it is still rolled")
+            release()
+        end
+    end)
+    add(600, function()
+        if not item or not settle then return end
+        check(WW().windowShaded ~= true, tag .. ": rolled down under the pointer")
+        release()
+    end)
+    add(3500, function()
+        disarm()
+        if not item then return end
+        if walkAway then
+            check(item:getContainer() == p:getInventory(), tag .. ": a container left behind took nothing")
+            standBy(cands[1])
+            return
+        end
+        check(item:getContainer() == crate, tag .. ": the item is in the container the window lists")
+        ISTimedActionQueue.add(ISInventoryTransferUtil.newInventoryTransferAction(p, item, crate, p:getInventory()))
+    end)
+    add(3000, function()
+        if item and not walkAway then check(item:getContainer() == p:getInventory(), tag .. ": the item came back") end
+        WW():setWindowShaded(false)
+    end)
+end
+titleDrop("title bar, at once", false)
+titleDrop("title bar, rolled down", true)
+titleDrop("title bar, left behind", false, true)
+
 -- ---------------------------------------------------------------------------
 -- STALE
 -- ---------------------------------------------------------------------------
@@ -395,6 +468,80 @@ end)
 add(300, function()
     local w = WW()
     if w._focusRing then check(w._lastInvRowInv == w._mainContent._inventory, "the pad's row zone follows the list shown, by the object") end
+end)
+
+-- 4: the World strip's Floor button, from a crate selection, whichever way the crate got there
+local function floorLit(w)
+    local fi = #w._containers
+    return shown() == w._containers[fi].inventory and w._activeContainer == fi and w._mainVisible == true and w._viewedContainer == nil
+end
+local function padTap(inv)
+    local w = WW()
+    for _, z in ipairs(w._focusRing or {}) do
+        if z.zone == "worldContainerStrip" then
+            for _, e in ipairs(z.elements or {}) do
+                if e.inventory == inv and e.onActivate then e.onActivate(w, e); return true end
+            end
+        end
+    end
+    return false
+end
+local function backToLoot() if WW()._activeTab ~= "loot" then ZeD_WorldWindow.openTab(0, "loot") end end
+local function floorPress(tag)
+    add(800, function()
+        check(shown() == cands[1].inv, tag .. ": the crate lists")
+        local hit = stripClick(WW(), ZeD_WorldWindow.getFloorContainer())
+        say(tag .. " the Floor button reached: " .. tostring(hit))
+    end)
+    add(800, function()
+        check(floorLit(WW()), tag .. ": the Floor button lists the floor and lights it")
+    end)
+end
+add(300, function() backToLoot(); other(); standBy(cands[1]) end)
+add(2000, function() ZeD_WorldWindow.selectContainer(cands[1].inv, 60) end)
+floorPress("4a a world click")
+add(300, function()
+    if not padTap(cands[1].inv) then say("SKIP 4b: no strip stop, the state set by hand"); ZeD_WorldWindow.selectContainer(cands[1].inv, 60) end
+end)
+floorPress("4b a pad tap")
+add(300, function() ZeD_WorldWindow.openTab(0, "craft") end)
+add(1200, function() stripClick(WW(), cands[1].inv) end)
+add(800, function() backToLoot() end)
+floorPress("4c a view come back to Loot")
+-- a crate picked, a column added, the floor: the column and the floor, no crate that was not asked for
+add(300, function()
+    if not pairA then say("SKIP 4d: no two containers side by side"); return end
+    standAt(both.x, both.y)
+end)
+add(2000, function()
+    if not pairA then return end
+    ZeD_WorldWindow.selectContainer(pairA.inv, 60)
+end)
+add(800, function()
+    if not pairA then return end
+    ZeD_WorldWindow.toggleColumn(pairB.inv)
+end)
+add(800, function()
+    if not pairA then return end
+    stripClick(WW(), ZeD_WorldWindow.getFloorContainer())
+end)
+add(800, function()
+    if not pairA then return end
+    local w = WW()
+    local cols = {}
+    for _, cs in ipairs(w._mainContent._colStates or {}) do cols[cs.inventory] = true end
+    check(w._mainVisible == true and w._activeContainer == #w._containers and cols[pairB.inv] == true
+        and cols[ZeD_WorldWindow.getFloorContainer()] == true and cols[pairA.inv] == nil, "4d the column and the floor, not the crate picked before")
+    ZeD_WorldWindow.selectContainer(pairA.inv, 60)
+end)
+-- the selected crate leaves reach: the floor it falls back to is listed and lit
+add(800, function() standBy(cands[1]) end)
+add(2000, function() ZeD_WorldWindow.selectContainer(cands[1].inv, 60) end)
+add(800, function() standAt(cands[1].x + 8, cands[1].y + 8) end)
+add(2500, function()
+    local w = WW()
+    if inList(w, cands[1].inv) then say("SKIP 4e: the container stayed in reach")
+    else check(floorLit(w), "4e the selected crate out of reach: the floor lists, lit") end
 end)
 
 add(500, function()
