@@ -4082,3 +4082,1124 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_NoResults` | `No results` | Empty list line when a search finds nothing. | 24 |
 | `UI_ZeD_Weight` | `Weight` | Weight label. | 12 |
 
+## Beta 6
+
+Limits here are estimates from the English: the cards wrap, buttons and tags do not.
+
+| Key | English | Where | Max |
+|---|---|---|---|
+| `UI_ZeD_DashPlain_Readouts` | `Readouts` | Simple dash: a cell's small head | 14 |
+| `UI_ZeD_DashPlain_Trip` | `Trip` | Simple dash: a cell's small head | 14 |
+| `UI_ZeD_MainMenu_Clock12` | `%1:%2 %3` | Main menu clock: %1 hour, %2 minutes, %3 AM or PM. Korean, Japanese and Chinese put AM/PM first | 14 |
+| `UI_ZeD_Options_NeedsNoToggle` | `Wheel toggle mode decides this while it is on.` | ZeD setup: the line under a grayed setting | - |
+| `UI_ZeD_Wheel_PromptMove` | `Move` | Controller prompt under a wheel | 14 |
+| `UI_ZeD_Settings_WheelOpen` | `Wheel open` | ZeD setup: a setting's name, or the help line under it (Tip) | 16 |
+| `UI_ZeD_Settings_WheelOpenTip` | `Tap: tap the D-pad and the wheel stays up, and the left stick keeps walking. Hold: the wheel is up while the direction is held, and letting go takes. The Select wheel works the same way.` | ZeD setup: a setting's name, or the help line under it (Tip) | - |
+| `UI_ZeD_Settings_WheelTap` | `Tap` | ZeD setup: a setting's name, or the help line under it (Tip) | 14 |
+| `UI_ZeD_Settings_WheelHold` | `Hold` | ZeD setup: a setting's name, or the help line under it (Tip) | 14 |
+| `UI_ZeD_Settings_WheelCommit` | `Wheel commit` | ZeD setup: a setting's name, or the help line under it (Tip) | 18 |
+| `UI_ZeD_Settings_WheelCommitTip` | `Flick-release: point with the right stick and let it go, and that slice is taken. Stick click: the slice stays lit when the stick is let go, and clicking the right stick takes it.` | ZeD setup: a setting's name, or the help line under it (Tip) | - |
+| `UI_ZeD_Settings_WheelFlick` | `Flick-release` | ZeD setup: a setting's name, or the help line under it (Tip) | 23 |
+| `UI_ZeD_Settings_WheelClick` | `Stick click` | ZeD setup: a setting's name, or the help line under it (Tip) | 17 |
+| `UI_ZeD_Settings_WheelToggle` | `Wheel toggle mode` | ZeD setup: a setting's name, or the help line under it (Tip) | 27 |
+| `UI_ZeD_Settings_WheelToggleTip` | `For a stick that is hard to work, or buttons that are hard to hold. Tap to open, the right stick or the D-pad moves the highlight, A takes, B closes, and the wheel stays up until you do.` | ZeD setup: a setting's name, or the help line under it (Tip) | - |
+| `UI_ZeD_Settings_WheelDeadZone` | `Wheel stick dead zone` | ZeD setup: a setting's name, or the help line under it (Tip) | 31 |
+| `UI_ZeD_Settings_WheelDeadZoneTip` | `How far the right stick has to move before a slice lights. A stick that drifts needs a higher number.` | ZeD setup: a setting's name, or the help line under it (Tip) | - |
+| `UI_ZeD_Identity_CarryPermit` | `Carry permit` | The Identity tab's license card: small printed labels, capitals as in the English | 18 |
+| `UI_ZeD_Identity_CarryRevoked` | `Revoked` | The Identity tab's license card: small printed labels, capitals as in the English | 14 |
+| `UI_ZeD_Identity_CarryYes` | `Concealed carry` | The Identity tab's license card: small printed labels, capitals as in the English | 25 |
+| `UI_ZeD_Identity_ClassD` | `CLASS D` | The Identity tab's license card: small printed labels, capitals as in the English | 14 |
+| `UI_ZeD_Identity_HelpPhoto` | `Pick the photo for the full body.` | The Identity tab's license card: small printed labels, capitals as in the English | 47 |
+| `UI_ZeD_Identity_HelpPhotoBack` | `Pick the photo again for the card.` | The Identity tab's license card: small printed labels, capitals as in the English | 48 |
+| `UI_ZeD_Identity_Operator` | `OPERATOR` | The Identity tab's license card: small printed labels, capitals as in the English | 14 |
+| `UI_ZeD_Identity_PermitLine1` | `CONCEALED` | The Identity tab's license card: small printed labels, capitals as in the English | 15 |
+| `UI_ZeD_Identity_PermitLine2` | `CARRY` | The Identity tab's license card: small printed labels, capitals as in the English | 14 |
+| `UI_ZeD_Identity_Revoked` | `REVOKED` | The Identity tab's license card: small printed labels, capitals as in the English | 14 |
+| `UI_ZeD_Identity_StampLine1` | `CONCEALED CARRY` | The Identity tab's license card: small printed labels, capitals as in the English | 25 |
+| `UI_ZeD_Identity_StampLine2` | `PERMIT` | The Identity tab's license card: small printed labels, capitals as in the English | 14 |
+| `UI_ZeD_Identity_TagBody` | `BODY` | The Identity tab's license card: small printed labels, capitals as in the English | 14 |
+| `UI_ZeD_Identity_TagDl` | `DL NO` | The Identity tab's license card: small printed labels, capitals as in the English | 14 |
+| `UI_ZeD_Identity_TagExp` | `EXP` | The Identity tab's license card: small printed labels, capitals as in the English | 14 |
+| `UI_ZeD_Identity_TagFacial` | `FACIAL` | The Identity tab's license card: small printed labels, capitals as in the English | 14 |
+| `UI_ZeD_Identity_TagFav` | `FAV` | The Identity tab's license card: small printed labels, capitals as in the English | 14 |
+| `UI_ZeD_Identity_TagHair` | `HAIR` | The Identity tab's license card: small printed labels, capitals as in the English | 14 |
+| `UI_ZeD_Identity_TagIss` | `ISS` | The Identity tab's license card: small printed labels, capitals as in the English | 14 |
+| `UI_ZeD_Identity_TagKills` | `KILLS` | The Identity tab's license card: small printed labels, capitals as in the English | 14 |
+| `UI_ZeD_Identity_TagProf` | `PROF` | The Identity tab's license card: small printed labels, capitals as in the English | 14 |
+| `UI_ZeD_Identity_TagSex` | `SEX` | The Identity tab's license card: small printed labels, capitals as in the English | 14 |
+| `UI_ZeD_Identity_TagStyle` | `STYLE` | The Identity tab's license card: small printed labels, capitals as in the English | 14 |
+| `UI_ZeD_Identity_TagSurvived` | `SURVIVED` | The Identity tab's license card: small printed labels, capitals as in the English | 14 |
+| `UI_ZeD_Settings_Identity` | `Identity card` | ZeD setup: a setting's name, or the help line under it (Tip) | 23 |
+| `UI_ZeD_Settings_IdentityTip` | `The Identity tab's card. Immersive: the Kentucky license. Simple: ZeD's own rows with the same facts.` | ZeD setup: a setting's name, or the help line under it (Tip) | - |
+| `UI_ZeD_Settings_Immersive` | `Immersive` | ZeD setup: a setting's name, or the help line under it (Tip) | 15 |
+| `UI_ZeD_Tk_KindTicket` | `Ticket` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_ToastHead` | `Ticket` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_NoteAnswered` | `%2 answered your ticket #%1.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 42 |
+| `UI_ZeD_Tk_NoteAway` | `Ticket #%1 was answered while you were away.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_NoteNew` | `A new ticket` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 18 |
+| `UI_ZeD_Tk_NoteOpen` | `Open` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_NoteOpenHelp` | `Open this ticket in the Server tab.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 49 |
+| `UI_ZeD_Tk_Err_perm` | `Your role can't do this on this server.` | A refusal, shown as a short message. Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 53 |
+| `UI_ZeD_Tk_Err_wait` | `Wait %1 seconds, then try again. Your text is kept.` | A refusal, shown as a short message. Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_Err_many` | `You already have %1 open tickets. Add to one of those instead.` | A refusal, shown as a short message. Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_Err_full` | `The server can't take more tickets for now. Your text is kept.` | A refusal, shown as a short message. Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_Err_gone` | `That ticket is gone.` | A refusal, shown as a short message. Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 30 |
+| `UI_ZeD_Tk_Err_state` | `That ticket has changed. Look at it again.` | A refusal, shown as a short message. Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_Err_text` | `Write between 1 and %1 characters.` | A refusal, shown as a short message. Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 48 |
+| `UI_ZeD_Tk_Err_frozen` | `This server's tickets come from a newer ZeD, so they can't be changed here.` | A refusal, shown as a short message. Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_Err_fail` | `No answer from the server. Your text is kept.` | A refusal, shown as a short message. Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_LoadFail` | `No answer from the server. Try the ticket again.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_NotSent` | `Your words, not sent` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 30 |
+| `UI_ZeD_Tk_FieldGone` | `This ticket changed, so your words were not sent.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_NoteGame` | `The game's window says %1 answered. %2 doesn't see this.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_HelpGameShort` | `Filed from the game's own window: only the message came with it.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_KindBug` | `Bug` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_KindGrief` | `Griefing` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_KindStuck` | `Stuck` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_KindQuestion` | `Question` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_KindAppeal` | `Appeal` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_KindOther` | `Other` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_KindNone` | `No kind` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_HelpBug` | `Something in the game or a mod isn't working.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_HelpGrief` | `Someone broke, stole or burned something of yours.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_HelpStuck` | `You can't move: in a wall, under the floor, out of the map.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_HelpQuestion` | `Ask about the rules, the settings or the server.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_HelpAppeal` | `Ask an admin to look again at a warning or a decision.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_HelpOther` | `Anything else for the admins.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 43 |
+| `UI_ZeD_Tk_StSent` | `Sent` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_StSeen` | `Seen` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_StOpen` | `Open` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_StProgress` | `In progress` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 17 |
+| `UI_ZeD_Tk_StAnswered` | `Answered` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_StClosed` | `Closed` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_StSpam` | `Spam` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_Day` | `Day %1` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_NoDay` | `no day` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_TimeAm` | `%1:%2 AM` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_TimePm` | `%1:%2 PM` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_When` | `%1 %2, %3` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 15 |
+| `UI_ZeD_Tk_WhenUtc` | `%1 %2, %3 UTC` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 23 |
+| `UI_ZeD_Tk_NoReply` | `no reply yet` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 18 |
+| `UI_ZeD_Tk_OneReply` | `1 reply` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_Replies` | `%1 replies` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 16 |
+| `UI_ZeD_Tk_NOpen` | `%1 open` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_TabCount` | `%1 (%2)` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_AskSub` | `A bug, griefing, being stuck, a question: the admins see it with where and when.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_NoneYet` | `You haven't asked the admins anything yet.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_HelpMine` | `Your tickets: Sent, then Seen when an admin opens it, then Answered. A note on the belt tells you when they reply.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_HelpShow` | `Open shows what still needs you. Answered and Closed are the history. Spam is out of the way.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_ShowAll` | `All` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_SpamN` | `Spam %1` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_AnyKind` | `Any kind` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_AnyPlayer` | `Any player` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 16 |
+| `UI_ZeD_Tk_Anyones` | `Anyone's` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_TakenMe` | `Taken by me` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 17 |
+| `UI_ZeD_Tk_NotTaken` | `Not taken` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 15 |
+| `UI_ZeD_Tk_Newest` | `Newest first` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 18 |
+| `UI_ZeD_Tk_Oldest` | `Oldest first` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 18 |
+| `UI_ZeD_Tk_FilterShow` | `Show` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_FilterKind` | `Kind` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_FilterFind` | `Find` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_FindHint` | `A word, a player` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 26 |
+| `UI_ZeD_Tk_HelpFilterKind` | `Show one kind of ticket.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 34 |
+| `UI_ZeD_Tk_HelpFilterWho` | `Show one player's tickets.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 40 |
+| `UI_ZeD_Tk_HelpFilterMine` | `Show tickets by who took them.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 44 |
+| `UI_ZeD_Tk_HelpSort` | `Newest or oldest first.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 33 |
+| `UI_ZeD_Tk_HelpFind` | `Find a word in the messages, or a player's name.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_HelpQueue` | `%1 tickets shown. Open shows what still needs you; Answered and Closed are the history; Spam is out of the way.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_HelpSpamAdmin` | `Marked as spam by an admin or a moderator. Delete it for good, or open it and put it back.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_HelpSpamMod` | `Marked as spam. An admin deletes it or puts it back.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_HelpFallback` | `No ZeD on this server: Take it, notes, Spam and Close need it, and the game keeps one answer.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_NoSave` | `This server has no timed saves, so tickets are only saved at a clean shutdown.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_Skipped` | `%1 more in the game's window.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 43 |
+| `UI_ZeD_Tk_LinkWait` | `Still checking this server. Try again in a moment.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_Loading` | `Asking the server...` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 30 |
+| `UI_ZeD_Tk_NothingOpen` | `No tickets match. Nothing open: good.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 51 |
+| `UI_ZeD_Tk_NoMatch` | `No tickets match.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 27 |
+| `UI_ZeD_Tk_Prev` | `Previous` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_Next` | `Next` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_HelpRefresh` | `Read the queue and the game's list again.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_FirstPage` | `This is the first page.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 33 |
+| `UI_ZeD_Tk_LastPage` | `This is the last page.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 32 |
+| `UI_ZeD_Tk_PageOf` | `Page %1 of %2` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 23 |
+| `UI_ZeD_Tk_MorePlayers` | `%1 more: use Find` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 27 |
+| `UI_ZeD_Tk_AskAbout` | `What is it about?` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 27 |
+| `UI_ZeD_Tk_AskPick` | `Pick one, so the admins can sort what comes in.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_AskWhere` | `Where` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_Here` | `Include where I am` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 28 |
+| `UI_ZeD_Tk_HereOff` | `Your position and who is nearby go with it. Ticked for Griefing and Stuck.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_HereOn` | `%1, and who is nearby.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 32 |
+| `UI_ZeD_Tk_AskWhat` | `What happened` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 23 |
+| `UI_ZeD_Tk_AskHint` | `Say what you saw, when, and anything the admins should check.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_AskPickShort` | `Pick what it is about.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 32 |
+| `UI_ZeD_Tk_AskWrite` | `Write what happened.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 30 |
+| `UI_ZeD_Tk_GoesWith` | `%1, %2 goes with it.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 30 |
+| `UI_ZeD_Tk_GoesWithUtc` | `%1, %2 UTC goes with it.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 34 |
+| `UI_ZeD_Tk_Send` | `Send` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_HelpSend` | `Send this to the admins.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 34 |
+| `UI_ZeD_Tk_HelpCancelAsk` | `Leave without sending.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 32 |
+| `UI_ZeD_Tk_HelpAsk` | `The admins see the kind, the day and, if you include it, where you were.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_Busy` | `Waiting for the server.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 33 |
+| `UI_ZeD_Tk_Sent` | `Sent as #%1. You'll see when an admin opens it.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_SentGame` | `Sent to the game's tickets. This server keeps one question and one answer.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_OneAnswer` | `This server keeps one question and one answer.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_CardMine` | `Ticket #%1` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 16 |
+| `UI_ZeD_Tk_FactSent` | `Sent` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_FactWhere` | `Where` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_NotRecorded` | `Not recorded` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 18 |
+| `UI_ZeD_Tk_NotIncluded` | `Not included` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 18 |
+| `UI_ZeD_Tk_AddTo` | `Add to it` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 15 |
+| `UI_ZeD_Tk_AddHint` | `Anything new for the admins.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 42 |
+| `UI_ZeD_Tk_DoneAnswered` | `This ticket is answered. Something new? Ask the admins again.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_DoneClosed` | `This ticket is closed. Something new? Ask the admins again.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_HelpMineCard` | `Your ticket and everything said on it. Admin notes stay with the admins.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_HelpReply` | `Add this to your ticket.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 34 |
+| `UI_ZeD_Tk_WriteReply` | `Write something to add.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 33 |
+| `UI_ZeD_Tk_Added` | `Added. The admins see it on the ticket.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 53 |
+| `UI_ZeD_Tk_ByAdmin` | `%1 (admin)` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 16 |
+| `UI_ZeD_Tk_ByGame` | `%1 (the game's window)` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 32 |
+| `UI_ZeD_Tk_CardStaff` | `#%1 from %2` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 17 |
+| `UI_ZeD_Tk_FactPlayer` | `Player` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_FactWhen` | `When` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_FactNear` | `Nearby` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_FactGame` | `Game's window` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 23 |
+| `UI_ZeD_Tk_PlayerCard` | `Player card` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 17 |
+| `UI_ZeD_Tk_GoThere` | `Go there` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_FromGame` | `Not recorded (filed from the game's own window)` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_NobodyNear` | `Nobody within %1 tiles` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 32 |
+| `UI_ZeD_Tk_RemovedGame` | `Removed from the game's window` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 44 |
+| `UI_ZeD_Tk_NoteBy` | `Admin note: %1. %2 doesn't see this.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 50 |
+| `UI_ZeD_Tk_AnswerTo` | `Answer %1` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 15 |
+| `UI_ZeD_Tk_AnswerHint` | `%1 sees this.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 23 |
+| `UI_ZeD_Tk_AdminNote` | `Admin note` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 16 |
+| `UI_ZeD_Tk_NoteHint` | `Only admins see notes.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 32 |
+| `UI_ZeD_Tk_AddNote` | `Add note` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_HelpAddNote` | `Keep this on the ticket, for staff only.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 54 |
+| `UI_ZeD_Tk_WriteNote` | `Write a note first.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 29 |
+| `UI_ZeD_Tk_NoteAdded` | `Note added. Only admins see it.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 45 |
+| `UI_ZeD_Tk_HelpPlayerCard` | `Open this player's stats.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 39 |
+| `UI_ZeD_Tk_NoStats` | `Your role can't see a player's stats.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 51 |
+| `UI_ZeD_Tk_NotOnline` | `This player isn't online.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 39 |
+| `UI_ZeD_Tk_HelpGo` | `Teleport to where this ticket was filed.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 54 |
+| `UI_ZeD_Tk_NoGo` | `Your role can't teleport to a place.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 50 |
+| `UI_ZeD_Tk_Going` | `Going to %1.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 18 |
+| `UI_ZeD_Tk_Delete` | `Delete` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_Spam` | `Spam` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_Take` | `Take it` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_Close` | `Close` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_Reopen` | `Reopen` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_Answer` | `Answer` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_NotSpam` | `Not spam` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_KeepIt` | `Keep it` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_DeleteGood` | `Delete for good` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 25 |
+| `UI_ZeD_Tk_DeleteAsk` | `Delete #%1 and its notes for good?` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 48 |
+| `UI_ZeD_Tk_Deleted` | `Deleted for good.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 27 |
+| `UI_ZeD_Tk_SpamBy` | `Marked spam by %1` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 27 |
+| `UI_ZeD_Tk_TakenBy` | `Taken by %1` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 17 |
+| `UI_ZeD_Tk_OnlyAdmin` | `Only an admin can delete it.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 42 |
+| `UI_ZeD_Tk_HelpDelete` | `Delete this ticket and its notes for good.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_HelpKeep` | `Keep the ticket.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 26 |
+| `UI_ZeD_Tk_HelpDeleteGood` | `This can't be undone.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 31 |
+| `UI_ZeD_Tk_HelpSpam` | `Take it out of the queue. The player sees it as Closed.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_HelpNotSpam` | `Put it back in the queue as Open.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 47 |
+| `UI_ZeD_Tk_HelpTake` | `Take this ticket, so the other admins see it's yours.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_HelpClose` | `Close it. It stays in the history.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 48 |
+| `UI_ZeD_Tk_HelpReopen` | `Open it again, to answer or add to it.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 52 |
+| `UI_ZeD_Tk_HelpAnswer` | `The player sees this, with a note on the belt.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_WriteAnswer` | `Write an answer first.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 32 |
+| `UI_ZeD_Tk_Taken` | `Taken: the other admins see it's yours.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 53 |
+| `UI_ZeD_Tk_ClosedDone` | `Closed. It stays in the history under Closed.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_ReopenDone` | `Open again.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 17 |
+| `UI_ZeD_Tk_NotSpamDone` | `Not spam: back in the queue as Open.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 50 |
+| `UI_ZeD_Tk_SpamDoneAdmin` | `Marked as spam. It's under Spam until you delete it or put it back.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_SpamDoneMod` | `Marked as spam. It's out of the queue; an admin deletes it or puts it back.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_Answered` | `Answered. %1 gets a note on the belt.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 51 |
+| `UI_ZeD_Tk_AnsweredGame` | `Answered in the game's ticket.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 44 |
+| `UI_ZeD_Tk_HelpSpamCardAdmin` | `Delete removes it for good. Not spam puts it back in the queue.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_HelpSpamCardMod` | `Not spam puts it back in the queue. An admin deletes spam for good.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_HelpGameCard` | `Filed from the game's own window: only the message came with it, and the author and any answer are as the game's ticket claims them.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_HelpStaffCard` | `Answer and the player sees it. Close when it's done; it stays in the history. Spam takes it out of the queue.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_BackQueue` | `Back to the Admin tab` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 31 |
+| `UI_ZeD_Tk_BackServer` | `Back to the Server tab` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 32 |
+| `UI_ZeD_Tk_PromptBack` | `Back` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Adm_NeedCap` | `%1 needs the %2 capability. The %3 role has it.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_NeedCapNone` | `%1 needs the %2 capability. No role has it yet: give it to one under Roles.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_NoteStay` | `%1 is banned and is still on the server. The game's ban is on the Bans card.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_NoteHead` | `Admin` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_AgoNow` | `just now` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_AgoMin` | `%1 min ago` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 16 |
+| `UI_ZeD_Adm_AgoHours` | `%1 h ago` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_AgoDays` | `%1 days ago` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 17 |
+| `UI_ZeD_Adm_Online` | `online` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_NeverSeen` | `not seen yet` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 18 |
+| `UI_ZeD_Adm_NeedPart` | `This needs ZeD's server part, which isn't on this server.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_SeeKicked` | `You were kicked from %1.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 34 |
+| `UI_ZeD_Adm_SeeUntil` | `You're banned from %1 until %2.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 45 |
+| `UI_ZeD_Adm_SeeBanned` | `You're banned from %1.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 32 |
+| `UI_ZeD_Adm_SeeReason` | `Reason: %1` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 16 |
+| `UI_ZeD_Adm_SeeAppeal` | `Appeal: %1` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 16 |
+| `UI_ZeD_Adm_SeeLeaving` | `Leaving the server in %1 s.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 41 |
+| `UI_ZeD_Adm_Leave` | `Leave` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_SumKind` | `%1 %2` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_SumNone` | `%1 with no kind` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 25 |
+| `UI_ZeD_Adm_SumOpen` | `%1 open` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_OneWarn` | `1 warning` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 15 |
+| `UI_ZeD_Adm_Warns` | `%1 warnings` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 17 |
+| `UI_ZeD_Adm_NameYou` | `%1 (you)` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_HelpPlayer` | `Everything about this player in one card.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_Yours` | `yours` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_PowerTag` | `Every power on shows over your head as the red Admin tag, so players know.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_MsgHint` | `Every player sees this in chat` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 44 |
+| `UI_ZeD_Adm_RepeatEvery` | `Repeat every` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 18 |
+| `UI_ZeD_Adm_HelpRepeat` | `The server sends it again at this pace until someone stops it, with or without you on.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_EveryMin` | `%1 min` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_Send` | `Send` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_HelpSendMsg` | `Sends it to every player now.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 43 |
+| `UI_ZeD_Adm_SentRepeat` | `Sent, and again every %1 minutes until you stop it.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_SentOnce` | `Sent. Every player sees it in chat.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 49 |
+| `UI_ZeD_Adm_WriteMsg` | `Write a message first.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 32 |
+| `UI_ZeD_Adm_Repeating` | `Repeating` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 15 |
+| `UI_ZeD_Adm_Stop` | `Stop` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_HelpStop` | `No more of this message.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 34 |
+| `UI_ZeD_Adm_Stopped` | `Stopped.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_EveryN` | `every %1 min` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 18 |
+| `UI_ZeD_Adm_PlayerCount` | `%1 online, %2 in all` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 30 |
+| `UI_ZeD_Adm_FindHint` | `A name, a role, a Steam name` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 42 |
+| `UI_ZeD_Adm_HelpFind` | `Finds players as you type.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 40 |
+| `UI_ZeD_Adm_OnlineOnly` | `Online only` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 17 |
+| `UI_ZeD_Adm_HelpOnlineOnly` | `Hides who isn't on.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 29 |
+| `UI_ZeD_Adm_NobodyMatches` | `Nobody matches.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 25 |
+| `UI_ZeD_Adm_Roles` | `Roles` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_RolesSum` | `What each role can do` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 31 |
+| `UI_ZeD_Adm_Bans` | `Bans` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_BansSum` | `Who's banned, why and until when` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 46 |
+| `UI_ZeD_Adm_Spawn` | `Spawn items` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 17 |
+| `UI_ZeD_Adm_SpawnSum` | `Find an item, spawn it to you, the ground or a player` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_HelpHome` | `Pick a player for their card. Your powers save as you tick them.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_Role` | `Role` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_OwnRole` | `%1 (your own role is changed by another admin)` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_HelpRolePick` | `Pick a role. It asks before anything changes.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_Username` | `Username` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_SteamName` | `Steam Name` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 16 |
+| `UI_ZeD_Adm_NoSteam` | `not on Steam` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 18 |
+| `UI_ZeD_Adm_Status` | `Status` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_LastHere` | `last here %1` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 18 |
+| `UI_ZeD_Adm_NotOnMap` | `not on the map` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 24 |
+| `UI_ZeD_Adm_Where` | `Where` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_WarnFact` | `Warning Points` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 24 |
+| `UI_ZeD_Adm_WarnValue` | `%1 | Kicks: %2` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 24 |
+| `UI_ZeD_Adm_NotOnline` | `%1 isn't online.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 26 |
+| `UI_ZeD_Adm_Teleported` | `Teleported to %1.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 27 |
+| `UI_ZeD_Adm_Brought` | `%1 brought to you.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 28 |
+| `UI_ZeD_Adm_HelpMute` | `Stops their chat and voice until someone unmutes them.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_Unmuted` | `%1 can chat again.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 28 |
+| `UI_ZeD_Adm_Muted` | `%1 can't use chat until you unmute them.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 54 |
+| `UI_ZeD_Adm_HelpWarn` | `Warning points stay on their record. They see the reason.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_WriteReason` | `Write a reason first.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 31 |
+| `UI_ZeD_Adm_Reason` | `Reason` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_TheySee` | `%1 sees it` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 16 |
+| `UI_ZeD_Adm_ReasonHint` | `Why, in a line` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 24 |
+| `UI_ZeD_Adm_Kicked` | `%1 kicked.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 16 |
+| `UI_ZeD_Adm_UntilUnban` | `Until someone unbans them.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 40 |
+| `UI_ZeD_Adm_LiftsAt` | `Lifts itself %1.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 26 |
+| `UI_ZeD_Adm_HelpLen` | `Timed bans lift themselves. Permanent stays until someone unbans them.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_For` | `For` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_BanIpLine` | `Stops a new account from the same connection.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_IpPermOnly` | `An IP ban can't lift itself: use it with Permanent.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_BanIp` | `Ban IP too` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 16 |
+| `UI_ZeD_Adm_Banned` | `%1 banned.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 16 |
+| `UI_ZeD_Adm_MakeAsk` | `Make %1 %2?` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 17 |
+| `UI_ZeD_Adm_WillDo` | `They'll be able to: %1.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 33 |
+| `UI_ZeD_Adm_NothingNew` | `Nothing new they can do.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 34 |
+| `UI_ZeD_Adm_WillLose` | `They lose: %1.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 24 |
+| `UI_ZeD_Adm_PowersOn` | `The game switches these on with the role` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 54 |
+| `UI_ZeD_Adm_PowerStays` | `%1: stays on` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 18 |
+| `UI_ZeD_Adm_PowerOff` | `%1: turned off for them` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 33 |
+| `UI_ZeD_Adm_HelpKeepPower` | `Tick only what they should have on from the start.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_KeepLine` | `Tick only what they should have on from the start; they can switch the rest on themselves.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_ChangeRole` | `Change Role` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 17 |
+| `UI_ZeD_Adm_HelpChangeRole` | `Applies the new role now.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 39 |
+| `UI_ZeD_Adm_RoleSetOff` | `%1 is %2 now. Their powers start off; they can switch them on.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_RoleSet` | `%1 is %2 now.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 23 |
+| `UI_ZeD_Adm_WarnLeast` | `One point is the least.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 33 |
+| `UI_ZeD_Adm_WarnMost` | `%1 points at a time is the most.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 46 |
+| `UI_ZeD_Adm_WarnAfter` | `%1 now, %2 after` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 26 |
+| `UI_ZeD_Adm_Add` | `Add` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_WarnDone` | `%1 warning points added. %2 sees the reason.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_Skills` | `Skills` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_SkillDone` | `%1 changed.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 17 |
+| `UI_ZeD_Adm_SkillLeast` | `This skill is at 0 already.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 41 |
+| `UI_ZeD_Adm_SkillMost` | `This skill is at the top already.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 47 |
+| `UI_ZeD_Adm_NoSkills` | `No skill above 0.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 27 |
+| `UI_ZeD_Adm_AllSkills` | `All skills` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 16 |
+| `UI_ZeD_Adm_HelpAllSkills` | `Shows the skills at 0 as well.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 44 |
+| `UI_ZeD_Adm_NothingLogged` | `Nothing logged.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 25 |
+| `UI_ZeD_Adm_LogHead` | `%1 %2, %3` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 15 |
+| `UI_ZeD_Adm_HelpTicket` | `Opens this ticket.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 28 |
+| `UI_ZeD_Adm_NoPartCard` | `Without ZeD's server part this card shows what the game keeps. The rest is in the game's own window.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_ProfTraits` | `Profession and traits` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 31 |
+| `UI_ZeD_Adm_ProfWith` | `%1: %2` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_Inventory` | `Inventory` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 15 |
+| `UI_ZeD_Adm_GameWindow` | `the game's window` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 27 |
+| `UI_ZeD_Adm_HelpInv` | `Opens their inventory in the game's own window.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_HelpBanCard` | `A timed ban shows the reason and the end date each time they try to join. A permanent ban shows it now; after that the game refuses them, with the reason on a Steam server.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_HelpRoleCard` | `A role's powers come on with it unless you say otherwise here.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_HelpPlayerCard` | `Everything about %1 in one card. Kick and Ban ask for a reason first.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_HelpRoles` | `Roles are the game's own. ZeD shows what each can do as ticks.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_RolesTop` | `Top to bottom, least to most. Pick one to see and change what it can do.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_NPlayers` | `%1 players` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 16 |
+| `UI_ZeD_Adm_NewPlayers` | `new players` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 17 |
+| `UI_ZeD_Adm_HelpAddRole` | `A new role, with a name you type on its card.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_RoleLocked` | `The game keeps this role as it is.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 48 |
+| `UI_ZeD_Adm_NOfM` | `%1 of %2` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_HelpGroup` | `Shows or hides this group.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 40 |
+| `UI_ZeD_Adm_PowerRoleLine` | `Comes on when someone gets this role; they can switch it off.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_Name` | `Name` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_RoleNameHint` | `A name for this role` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 30 |
+| `UI_ZeD_Adm_Description` | `Description` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 17 |
+| `UI_ZeD_Adm_RoleDescHint` | `What this role is for, in a line` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 46 |
+| `UI_ZeD_Adm_Color` | `Color` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_ColorLine` | `their name and tag in chat` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 40 |
+| `UI_ZeD_Adm_Capabilities` | `Capabilities` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 18 |
+| `UI_ZeD_Adm_IsDefault` | `New players start with this role.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 47 |
+| `UI_ZeD_Adm_HelpDefault` | `New players will start with this role.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 52 |
+| `UI_ZeD_Adm_DefaultDone` | `New players will start with this role.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 52 |
+| `UI_ZeD_Adm_HelpRoleUp` | `Moves this role on the list. Lower on the list is more rank, and nobody acts on a role above their own.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_RoleSaved` | `Saved. Everyone with this role has it now.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_HelpSaveRole` | `Applies this to everyone with the role.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 53 |
+| `UI_ZeD_Adm_WriteRoleName` | `Write a name first.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 29 |
+| `UI_ZeD_Adm_RoleExists` | `A role with this name already exists.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 51 |
+| `UI_ZeD_Adm_NothingToSave` | `Nothing changed yet.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 30 |
+| `UI_ZeD_Adm_NewRole` | `New role` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_HelpDeleteRole` | `Nothing changes until you pick Delete role.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_HelpRole` | `Tick what this role can do. Save applies it to everyone with the role.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_DeleteRoleAsk` | `Delete the %1 role? Its %2 players become user.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_RoleDeleted` | `Role deleted.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 23 |
+| `UI_ZeD_Adm_RoleDefault` | `The game needs this role as a default. Set another one first.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_NotSaved` | `Not saved yet.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 24 |
+| `UI_ZeD_Ex_ACar` | `A car` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 14 |
+| `UI_ZeD_Ex_Asking` | `Asking the server about this car...` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 49 |
+| `UI_ZeD_Ex_Claim` | `Claim` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 14 |
+| `UI_ZeD_Ex_ClaimFree` | `Nobody` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 14 |
+| `UI_ZeD_Ex_ClaimRow` | `Claimed by` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 16 |
+| `UI_ZeD_Ex_ClaimYours` | `You` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 14 |
+| `UI_ZeD_Ex_ClaimedBy` | `Claimed by %1` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 23 |
+| `UI_ZeD_Ex_ClaimedNow` | `Claimed.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 14 |
+| `UI_ZeD_Ex_ClaimsFull` | `You hold %1, and that's this server's limit. Release one first: Server tab, Your claims.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_ClaimsNone` | `You haven't claimed a car. Claim one from its Vehicle tab.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_ClaimsTop` | `Each car you hold, where you last drove it or claimed it.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_ClaimsWait` | `Asking the server...` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 30 |
+| `UI_ZeD_Ex_ClLimit` | `Each player's game reports its own takes, because the server can't see a transfer. A game that drops off straight after a take loses that line, and a modified game can leave out any line.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_ClTitle` | `Container log in safehouses` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 41 |
+| `UI_ZeD_Ex_ClTold` | `Players are told in the Server tab that this is on.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_ClWhat` | `Who took what from containers inside a safehouse, for the admins' Log.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_EcoTitle` | `Economy` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 14 |
+| `UI_ZeD_Ex_EcoWhat` | `A currency, shops and rewards. Its own design; later.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_EcoWhy` | `Not yet: the economy gets its own design session.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_Err_burnt` | `A burnt car can't be claimed.` | A refusal, shown as a short message. Server extras: vehicle claims, safehouse protection, map teleport, container log | 43 |
+| `UI_ZeD_Ex_Err_changed` | `Another admin saved first. Their changes are on this card now, with yours: look it over and save again.` | A refusal, shown as a short message. Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_Err_driven` | `Someone else is at the wheel.` | A refusal, shown as a short message. Server extras: vehicle claims, safehouse protection, map teleport, container log | 43 |
+| `UI_ZeD_Ex_Err_fail` | `No answer from the server.` | A refusal, shown as a short message. Server extras: vehicle claims, safehouse protection, map teleport, container log | 40 |
+| `UI_ZeD_Ex_Err_far` | `You're too far from the car.` | A refusal, shown as a short message. Server extras: vehicle claims, safehouse protection, map teleport, container log | 42 |
+| `UI_ZeD_Ex_Err_frozen` | `This server's extras were saved by a newer ZeD, so they stay as they are until this ZeD is updated.` | A refusal, shown as a short message. Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_Err_full` | `This server holds as many claims as it can.` | A refusal, shown as a short message. Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_Err_gone` | `That car or claim isn't there any more.` | A refusal, shown as a short message. Server extras: vehicle claims, safehouse protection, map teleport, container log | 53 |
+| `UI_ZeD_Ex_Err_house` | `This car is at someone else's safehouse, so it can't be claimed.` | A refusal, shown as a short message. Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_Err_key` | `You need this car's key to claim it.` | A refusal, shown as a short message. Server extras: vehicle claims, safehouse protection, map teleport, container log | 50 |
+| `UI_ZeD_Ex_Err_many` | `You hold as many claims as this server allows.` | A refusal, shown as a short message. Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_Err_off` | `That's off on this server now.` | A refusal, shown as a short message. Server extras: vehicle claims, safehouse protection, map teleport, container log | 44 |
+| `UI_ZeD_Ex_Err_soon` | `The server hasn't saved this car yet. Try again in a minute.` | A refusal, shown as a short message. Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_Err_taken` | `Someone has already claimed this car.` | A refusal, shown as a short message. Server extras: vehicle claims, safehouse protection, map teleport, container log | 51 |
+| `UI_ZeD_Ex_Err_text` | `The server couldn't read that.` | A refusal, shown as a short message. Server extras: vehicle claims, safehouse protection, map teleport, container log | 44 |
+| `UI_ZeD_Ex_Err_wait` | `Wait %1 seconds, then try again.` | A refusal, shown as a short message. Server extras: vehicle claims, safehouse protection, map teleport, container log | 46 |
+| `UI_ZeD_Ex_Head` | `This server's extras` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 30 |
+| `UI_ZeD_Ex_Help` | `Each is off by default. Saved to the server; a server that drops ZeD just loses the extras.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_HelpClaim` | `Claim this car: it's yours until you release it or stay away too long.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_HelpClaims` | `The cars you've claimed, wherever they are.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_HelpClaimsCard` | `Release a car here, even one you can't reach.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_HelpDestroy` | `Refused on the server: the sledgehammer, and swings at doors, built walls and barricades. A refused swing evens out a barricade's planks.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_HelpDismantle` | `Refused on the server: dismantling, scrapping furniture and prying off barricades.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_HelpKeep` | `Keep the claim.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 25 |
+| `UI_ZeD_Ex_HelpLapse` | `Days the owner stays off the server before the claim goes. A burnt car's claim goes the next time someone opens it or clears the wreck.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_HelpPer` | `How many cars one player can hold.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 48 |
+| `UI_ZeD_Ex_HelpRelease` | `Let go of the claim: anyone can take the car again.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_HelpRow` | `Vehicle claims, safehouse protection, the staff map teleport and the container log.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_HelpSave` | `Save to the server. Every player's Server tab follows.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_HelpTow` | `Refused on the server: a tow hitched to the car comes straight off again.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_Intro` | `Systems the game doesn't have, run by ZeD's server part. All off until you turn them on; players see what's on in their Server tab.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_Least` | `%1 is the least.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 26 |
+| `UI_ZeD_Ex_LineClaims` | `Vehicle claims: claim a car in its Vehicle tab; others can't %1.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_LineClaimsOnly` | `Vehicle claims: claim a car in its Vehicle tab.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_LineLog` | `Taking from a container inside a safehouse is logged, for the admins.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_LineSafe` | `Safehouses are protected: non-members can't %1 what's built there.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_LineSafeLot` | `Safehouses are protected: non-members can't %1 what's built there, on the whole lot.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_MapBanner` | `Pick a spot on the map to go there.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 49 |
+| `UI_ZeD_Ex_MapHelp` | `Then click the map, or press A on it, to go there.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_MapOff` | `There's no map to stand on there.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 47 |
+| `UI_ZeD_Ex_Merged` | `Another admin saved. Their changes are on this card now, with yours.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_Most` | `%1 is the most.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 25 |
+| `UI_ZeD_Ex_NOfM` | `%1 of %2` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 14 |
+| `UI_ZeD_Ex_NOn` | `%1 on` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 14 |
+| `UI_ZeD_Ex_NoClaims` | `No vehicle claims on this server.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 47 |
+| `UI_ZeD_Ex_No_destroy` | `This is %1's safehouse: you can't destroy that.` | A refusal, shown as a short message. Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_No_dismantle` | `This is %1's safehouse: you can't dismantle that.` | A refusal, shown as a short message. Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_No_drive` | `%1 has claimed this car: you can't drive it.` | A refusal, shown as a short message. Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_No_parts` | `%1 has claimed this car: you can't take from it.` | A refusal, shown as a short message. Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_No_tow` | `%1 has claimed this car: you can't tow it.` | A refusal, shown as a short message. Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_NoneOn` | `All off` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 14 |
+| `UI_ZeD_Ex_Release` | `Release` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 14 |
+| `UI_ZeD_Ex_ReleaseAsk` | `Release your claim on the %1?` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 43 |
+| `UI_ZeD_Ex_ReleaseAskCar` | `Release the claim on this car?` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 44 |
+| `UI_ZeD_Ex_Released` | `Released.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 15 |
+| `UI_ZeD_Ex_RowWords` | `Vehicle claims, safehouse protection and more` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_Saved` | `Saved.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 14 |
+| `UI_ZeD_Ex_SavedFlash` | `Saved to the server.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 30 |
+| `UI_ZeD_Ex_SetBy` | `set by the admins` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 27 |
+| `UI_ZeD_Ex_SpDestroy` | `No destroying (sledgehammer, axe on walls and doors)` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_SpDismantle` | `No dismantling` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 24 |
+| `UI_ZeD_Ex_SpLimit` | `The server refuses all of these. Windows, fire, cars and zombies aren't stopped.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_SpLot` | `Claims cover the lot` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 30 |
+| `UI_ZeD_Ex_SpLotSub` | `The yard and the fence line, not just the walls: %1 tiles out.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_SpTitle` | `Safehouse protection` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 30 |
+| `UI_ZeD_Ex_SpWhat` | `Non-members can't break what's inside a claim.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_Title` | `Server extras` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 23 |
+| `UI_ZeD_Ex_TpNobody` | `No role has it yet (from Roles: "%1").` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 52 |
+| `UI_ZeD_Ex_TpTitle` | `Staff map teleport` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 28 |
+| `UI_ZeD_Ex_TpWhat` | `Roles that can teleport pick a spot on the map to go there.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_TpWho` | `Who: %1 (from Roles: "%2")` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 40 |
+| `UI_ZeD_Ex_VcCant` | `Others can't` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 18 |
+| `UI_ZeD_Ex_VcCar` | `car` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 14 |
+| `UI_ZeD_Ex_VcCars` | `cars` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 14 |
+| `UI_ZeD_Ex_VcDays` | `real days away` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 24 |
+| `UI_ZeD_Ex_VcDrive` | `Drive it` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 14 |
+| `UI_ZeD_Ex_VcDriveSub` | `The engine won't start for them, and a running one stops. They can still sit in the seat.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_VcLapse` | `A claim lapses after` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 30 |
+| `UI_ZeD_Ex_VcLimit` | `The server refuses all of these. Looting the trunk, deflating a tire, breaking a window and ramming the car aren't stopped. A car at someone else's safehouse can't be claimed.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_VcParts` | `Take parts` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 16 |
+| `UI_ZeD_Ex_VcPartsSub` | `Uninstalling, taking engine parts, siphoning gas.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_VcPer` | `Claims per player` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 27 |
+| `UI_ZeD_Ex_VcTitle` | `Vehicle claims` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 24 |
+| `UI_ZeD_Ex_VcTow` | `Tow it` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 14 |
+| `UI_ZeD_Ex_VcWhat` | `A player claims a car from its Vehicle tab; the claim follows the car.` | Server extras: vehicle claims, safehouse protection, map teleport, container log | - |
+| `UI_ZeD_Ex_WordBoth` | `dismantle or destroy` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 30 |
+| `UI_ZeD_Ex_WordDestroy` | `destroy` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 14 |
+| `UI_ZeD_Ex_WordDismantle` | `dismantle` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 15 |
+| `UI_ZeD_Ex_WordDrive` | `drive it` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 14 |
+| `UI_ZeD_Ex_WordParts` | `take parts` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 16 |
+| `UI_ZeD_Ex_WordTow` | `tow it` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 14 |
+| `UI_ZeD_Ex_YourClaims` | `Your claims` | Server extras: vehicle claims, safehouse protection, map teleport, container log | 17 |
+| `UI_ZeD_Adm_Until` | `until %1` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_LenPerm` | `Permanent` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 15 |
+| `UI_ZeD_Adm_BanGame` | `From the game's own list.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 39 |
+| `UI_ZeD_Adm_BanBy` | `%1, %2.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_BanSteam` | `Steam ID %1.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 18 |
+| `UI_ZeD_Adm_BanIpToo` | `IP banned too.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 24 |
+| `UI_ZeD_Adm_BanStayed` | `This client did not leave when told.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 50 |
+| `UI_ZeD_Adm_HelpUnban` | `They can join again right away. It asks first.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_UseGameBan` | `Use the game's ban` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 28 |
+| `UI_ZeD_Adm_HelpGameBan` | `The server shuts this player out itself. It comes off when this ban ends.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_GameBanDone` | `The game's ban is on %1.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 34 |
+| `UI_ZeD_Adm_BanOff` | `Ban someone who isn't on` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 34 |
+| `UI_ZeD_Adm_BanOffLine` | `a username, a Steam ID or an IP` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 45 |
+| `UI_ZeD_Adm_BanTargetHint` | `lootdrop99 or 76561198... or 203.0.113.7` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 54 |
+| `UI_ZeD_Adm_ReasonOff` | `kept with the ban` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 27 |
+| `UI_ZeD_Adm_HelpBanOff` | `Bans them under that name, Steam ID or IP.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_WriteTarget` | `Write a username, a Steam ID or an IP first.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_Banned2` | `Banned` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_NobodyBanned` | `Nobody is banned.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 27 |
+| `UI_ZeD_Adm_WhatTheySee` | `What they see` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 23 |
+| `UI_ZeD_Adm_HelpUnbanAsk` | `Nothing changes until you pick Unban.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 51 |
+| `UI_ZeD_Adm_HelpBans` | `Bans with a length lift themselves. Unban asks first.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_UnbanAsk` | `Unban %1? They can join again right away.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_KeepBan` | `Keep the ban` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 18 |
+| `UI_ZeD_Adm_Unbanned` | `%1 unbanned.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 18 |
+| `UI_ZeD_Adm_ToYou` | `you` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_ToGround` | `the ground` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 16 |
+| `UI_ZeD_Adm_ItemHint` | `Find an item: a name or Module.Type` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 49 |
+| `UI_ZeD_Adm_HelpItemFind` | `Finds items as you type.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 34 |
+| `UI_ZeD_Adm_ItemCount` | `%1 of %2` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_HelpItem` | `Picks this item.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 26 |
+| `UI_ZeD_Adm_HowMany` | `How many` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_UpTo` | `up to %1` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_SpawnLeast` | `One is the least.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 27 |
+| `UI_ZeD_Adm_To` | `To` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_MyInventory` | `My inventory` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 18 |
+| `UI_ZeD_Adm_GroundHere` | `The ground here` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 25 |
+| `UI_ZeD_Adm_SpawnBtn` | `Spawn` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_Spawned` | `%1 x %2 spawned to %3. Logged.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 44 |
+| `UI_ZeD_Adm_HelpSpawnBtn` | `Makes the items now. It goes in the admin log.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_HelpSpawnLog` | `Every spawn goes in the admin log, with who and where.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_HelpSpawn` | `Find an item, pick it, then how many and where.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_SpawnLine` | `%1 x %2 to %3` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 23 |
+| `UI_ZeD_Adm_MoreLine` | `the game's own windows` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 32 |
+| `UI_ZeD_Adm_Len1h` | `1 hour` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_Len1d` | `1 day` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_Len3d` | `3 days` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_Len1w` | `1 week` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_GrpPlayers` | `Players` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_GrpTickets` | `Tickets and chat` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 26 |
+| `UI_ZeD_Adm_GrpPowers` | `Their own powers` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 26 |
+| `UI_ZeD_Adm_GrpWorld` | `World` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_GrpServer` | `Server` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_MutedLine` | `(muted) %1` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 16 |
+| `UI_ZeD_Adm_YouMuted` | `An admin muted you: your lines don't go out.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_Err_self` | `Not on yourself: another admin does that.` | A refusal, shown as a short message. Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_Err_protected` | `This player's role keeps them safe from that.` | A refusal, shown as a short message. Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_Err_rank` | `Their role sits above yours.` | A refusal, shown as a short message. Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 42 |
+| `UI_ZeD_Adm_Err_offline` | `That player isn't online.` | A refusal, shown as a short message. Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 39 |
+| `UI_ZeD_Adm_Err_item` | `The game has no such item.` | A refusal, shown as a short message. Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 40 |
+| `UI_ZeD_Adm_Err_ipperm` | `An IP ban can't lift itself: use it with Permanent.` | A refusal, shown as a short message. Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_Err_gone` | `That isn't there any more.` | A refusal, shown as a short message. Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 40 |
+| `UI_ZeD_Adm_Err_state` | `That can't be done now.` | A refusal, shown as a short message. Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 33 |
+| `UI_ZeD_Adm_Err_frozen` | `This server's admin records come from a newer ZeD, so they can't be changed here.` | A refusal, shown as a short message. Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_Err_text` | `Write a reason or a message in the space given.` | A refusal, shown as a short message. Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_Err_full` | `The server's list is full.` | A refusal, shown as a short message. Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 40 |
+| `UI_ZeD_Cap_LoginOnServer` | `Log in` | Roles page: one row with a tick per power a server role can hold | 14 |
+| `UI_ZeD_Cap_PriorityLogin` | `Get in first when the server is full` | Roles page: one row with a tick per power a server role can hold | 50 |
+| `UI_ZeD_Cap_CantBeKickedIfTooLaggy` | `Not kicked for lag` | Roles page: one row with a tick per power a server role can hold | 28 |
+| `UI_ZeD_Cap_ToggleGodModHimself` | `God Mode` | Roles page: one row with a tick per power a server role can hold | 14 |
+| `UI_ZeD_Cap_ToggleInvisibleHimself` | `Invisible` | Roles page: one row with a tick per power a server role can hold | 15 |
+| `UI_ZeD_Cap_ToggleInvincibleHimself` | `Invincible` | Roles page: one row with a tick per power a server role can hold | 16 |
+| `UI_ZeD_Cap_ToggleNoclipHimself` | `No Clip` | Roles page: one row with a tick per power a server role can hold | 14 |
+| `UI_ZeD_Cap_SeePlayersConnected` | `See who's connected` | Roles page: one row with a tick per power a server role can hold | 29 |
+| `UI_ZeD_Cap_TeleportToPlayer` | `Teleport to a player` | Roles page: one row with a tick per power a server role can hold | 30 |
+| `UI_ZeD_Cap_TeleportToCoordinates` | `Teleport to a place` | Roles page: one row with a tick per power a server role can hold | 29 |
+| `UI_ZeD_Cap_SeePublicServerOptions` | `See server options` | Roles page: one row with a tick per power a server role can hold | 28 |
+| `UI_ZeD_Cap_CanOpenLockedDoors` | `Open locked doors` | Roles page: one row with a tick per power a server role can hold | 27 |
+| `UI_ZeD_Cap_CanGoInsideSafehouses` | `Go inside any safehouse` | Roles page: one row with a tick per power a server role can hold | 33 |
+| `UI_ZeD_Cap_CanAlwaysJoinServer` | `Always join, even when full` | Roles page: one row with a tick per power a server role can hold | 41 |
+| `UI_ZeD_Cap_SeesInvisiblePlayers` | `See invisible players` | Roles page: one row with a tick per power a server role can hold | 31 |
+| `UI_ZeD_Cap_CanSeeMessageForAdmin` | `Get messages for admins` | Roles page: one row with a tick per power a server role can hold | 33 |
+| `UI_ZeD_Cap_PVPLogTool` | `PVP Log Tool` | Roles page: one row with a tick per power a server role can hold | 18 |
+| `UI_ZeD_Cap_CanSeePlayersStats` | `See a player's stats` | Roles page: one row with a tick per power a server role can hold | 30 |
+| `UI_ZeD_Cap_CantBeKickedByAnticheat` | `Not kicked by anti-cheat` | Roles page: one row with a tick per power a server role can hold | 34 |
+| `UI_ZeD_Cap_CantBeKickedByUser` | `Can't be kicked` | Roles page: one row with a tick per power a server role can hold | 25 |
+| `UI_ZeD_Cap_CantBeBannedByAnticheat` | `Not banned by anti-cheat` | Roles page: one row with a tick per power a server role can hold | 34 |
+| `UI_ZeD_Cap_CantBeBannedByUser` | `Can't be banned` | Roles page: one row with a tick per power a server role can hold | 25 |
+| `UI_ZeD_Cap_SeeWorldMap` | `See players on the world map` | Roles page: one row with a tick per power a server role can hold | 42 |
+| `UI_ZeD_Cap_CanMedicalCheat` | `Medical cheats` | Roles page: one row with a tick per power a server role can hold | 24 |
+| `UI_ZeD_Cap_UIManagerProcessCommands` | `Run console commands` | Roles page: one row with a tick per power a server role can hold | 30 |
+| `UI_ZeD_Cap_UseDebugContextMenu` | `Debug context menu` | Roles page: one row with a tick per power a server role can hold | 28 |
+| `UI_ZeD_Cap_ToggleGodModEveryone` | `God Mode for everyone` | Roles page: one row with a tick per power a server role can hold | 31 |
+| `UI_ZeD_Cap_ToggleInvisibleEveryone` | `Invisible for everyone` | Roles page: one row with a tick per power a server role can hold | 32 |
+| `UI_ZeD_Cap_ToggleNoclipEveryone` | `No Clip for everyone` | Roles page: one row with a tick per power a server role can hold | 30 |
+| `UI_ZeD_Cap_TeleportPlayerToAnotherPlayer` | `Bring a player here` | Roles page: one row with a tick per power a server role can hold | 29 |
+| `UI_ZeD_Cap_MakeEventsAlarmGunshot` | `Make alarms and gunshots` | Roles page: one row with a tick per power a server role can hold | 34 |
+| `UI_ZeD_Cap_StartStopRain` | `Change the weather` | Roles page: one row with a tick per power a server role can hold | 28 |
+| `UI_ZeD_Cap_AddItem` | `Spawn items` | Roles page: one row with a tick per power a server role can hold | 17 |
+| `UI_ZeD_Cap_AddXP` | `Level Up and Level Down` | Roles page: one row with a tick per power a server role can hold | 33 |
+| `UI_ZeD_Cap_SeeNetworkUsers` | `See every account` | Roles page: one row with a tick per power a server role can hold | 27 |
+| `UI_ZeD_Cap_UseLootZed` | `LootZed` | Roles page: one row with a tick per power a server role can hold | 14 |
+| `UI_ZeD_Cap_UseLootLog` | `Loot log` | Roles page: one row with a tick per power a server role can hold | 14 |
+| `UI_ZeD_Cap_CreateHorde` | `Create hordes` | Roles page: one row with a tick per power a server role can hold | 23 |
+| `UI_ZeD_Cap_CreateStory` | `Create stories` | Roles page: one row with a tick per power a server role can hold | 24 |
+| `UI_ZeD_Cap_KickUser` | `Kick` | Roles page: one row with a tick per power a server role can hold | 14 |
+| `UI_ZeD_Cap_DisplayServerMessage` | `Send server messages` | Roles page: one row with a tick per power a server role can hold | 30 |
+| `UI_ZeD_Cap_CanModifyPlayerStatsInThePlayerStatsUI` | `Change a player's stats` | Roles page: one row with a tick per power a server role can hold | 33 |
+| `UI_ZeD_Cap_CanModifyBodyStats` | `Change a player's body` | Roles page: one row with a tick per power a server role can hold | 32 |
+| `UI_ZeD_Cap_AdminChat` | `Admin chat` | Roles page: one row with a tick per power a server role can hold | 16 |
+| `UI_ZeD_Cap_HideFromSteamUserList` | `Hidden from the Steam list` | Roles page: one row with a tick per power a server role can hold | 40 |
+| `UI_ZeD_Cap_ToggleWriteRoleNameAbove` | `Role name over their head` | Roles page: one row with a tick per power a server role can hold | 39 |
+| `UI_ZeD_Cap_BanUnbanUser` | `Ban and unban` | Roles page: one row with a tick per power a server role can hold | 23 |
+| `UI_ZeD_Cap_EditMapSymbols` | `Edit shared map symbols` | Roles page: one row with a tick per power a server role can hold | 33 |
+| `UI_ZeD_Cap_ManipulateWhitelist` | `Change the whitelist` | Roles page: one row with a tick per power a server role can hold | 30 |
+| `UI_ZeD_Cap_ChangeAccessLevel` | `Change a player's role` | Roles page: one row with a tick per power a server role can hold | 32 |
+| `UI_ZeD_Cap_CanSetupSafehouses` | `Manage any safehouse` | Roles page: one row with a tick per power a server role can hold | 30 |
+| `UI_ZeD_Cap_CanSetupNonPVPZone` | `Edit non-PvP zones` | Roles page: one row with a tick per power a server role can hold | 28 |
+| `UI_ZeD_Cap_FactionCheat` | `Manage any faction` | Roles page: one row with a tick per power a server role can hold | 28 |
+| `UI_ZeD_Cap_AnswerTickets` | `Answer tickets` | Roles page: one row with a tick per power a server role can hold | 24 |
+| `UI_ZeD_Cap_RolesRead` | `See roles` | Roles page: one row with a tick per power a server role can hold | 15 |
+| `UI_ZeD_Cap_ToggleUnlimitedEndurance` | `Unlimited endurance` | Roles page: one row with a tick per power a server role can hold | 29 |
+| `UI_ZeD_Cap_ToggleKnowAllRecipes` | `Know all recipes` | Roles page: one row with a tick per power a server role can hold | 26 |
+| `UI_ZeD_Cap_ToggleUnlimitedAmmo` | `Unlimited ammo` | Roles page: one row with a tick per power a server role can hold | 24 |
+| `UI_ZeD_Cap_ToggleUnlimitedCarry` | `Unlimited carry` | Roles page: one row with a tick per power a server role can hold | 25 |
+| `UI_ZeD_Cap_UseMovablesCheat` | `Movables cheat` | Roles page: one row with a tick per power a server role can hold | 24 |
+| `UI_ZeD_Cap_UseFastMoveCheat` | `Fast move` | Roles page: one row with a tick per power a server role can hold | 15 |
+| `UI_ZeD_Cap_UseBuildCheat` | `Build Cheat Mode` | Roles page: one row with a tick per power a server role can hold | 26 |
+| `UI_ZeD_Cap_UseFarmingCheat` | `Farming cheat` | Roles page: one row with a tick per power a server role can hold | 23 |
+| `UI_ZeD_Cap_UseFishingCheat` | `Fishing cheat` | Roles page: one row with a tick per power a server role can hold | 23 |
+| `UI_ZeD_Cap_UseHealthCheat` | `Health cheat` | Roles page: one row with a tick per power a server role can hold | 18 |
+| `UI_ZeD_Cap_UseMechanicsCheat` | `Mechanics cheat` | Roles page: one row with a tick per power a server role can hold | 25 |
+| `UI_ZeD_Cap_UseTimedActionInstantCheat` | `Instant timed actions` | Roles page: one row with a tick per power a server role can hold | 31 |
+| `UI_ZeD_Cap_UseZombieDontAttackCheat` | `Zombies don't attack` | Roles page: one row with a tick per power a server role can hold | 30 |
+| `UI_ZeD_Cap_GeneralCheats` | `General cheats` | Roles page: one row with a tick per power a server role can hold | 24 |
+| `UI_ZeD_Cap_ModifyNetworkUsers` | `Change accounts` | Roles page: one row with a tick per power a server role can hold | 25 |
+| `UI_ZeD_Cap_EditItem` | `Edit items` | Roles page: one row with a tick per power a server role can hold | 16 |
+| `UI_ZeD_Cap_GetSteamScoreboard` | `Mini scoreboard` | Roles page: one row with a tick per power a server role can hold | 25 |
+| `UI_ZeD_Cap_GetStatistic` | `Server statistics` | Roles page: one row with a tick per power a server role can hold | 27 |
+| `UI_ZeD_Cap_SandboxOptions` | `Change sandbox options` | Roles page: one row with a tick per power a server role can hold | 32 |
+| `UI_ZeD_Cap_ReadUserLog` | `Read the user logs` | Roles page: one row with a tick per power a server role can hold | 28 |
+| `UI_ZeD_Cap_AddUserlog` | `Add warning points and logs` | Roles page: one row with a tick per power a server role can hold | 41 |
+| `UI_ZeD_Cap_WorkWithUserlog` | `Remove user log lines` | Roles page: one row with a tick per power a server role can hold | 31 |
+| `UI_ZeD_Cap_ClimateManager` | `Climate control` | Roles page: one row with a tick per power a server role can hold | 25 |
+| `UI_ZeD_Cap_InspectPlayerInventory` | `See a player's inventory` | Roles page: one row with a tick per power a server role can hold | 34 |
+| `UI_ZeD_Cap_AnimalCheats` | `Animal cheats` | Roles page: one row with a tick per power a server role can hold | 23 |
+| `UI_ZeD_Cap_DebugConsole` | `Debug console` | Roles page: one row with a tick per power a server role can hold | 23 |
+| `UI_ZeD_Cap_PopmanManage` | `Spawn and remove zombies` | Roles page: one row with a tick per power a server role can hold | 34 |
+| `UI_ZeD_Cap_ManipulateVehicle` | `Spawn vehicles` | Roles page: one row with a tick per power a server role can hold | 24 |
+| `UI_ZeD_Cap_ManipulateMods` | `Update mods` | Roles page: one row with a tick per power a server role can hold | 17 |
+| `UI_ZeD_Cap_ManipulateZombie` | `Remove zombies` | Roles page: one row with a tick per power a server role can hold | 24 |
+| `UI_ZeD_Cap_CanSeeAll` | `See everyone` | Roles page: one row with a tick per power a server role can hold | 18 |
+| `UI_ZeD_Cap_CanHearAll` | `Hear everyone` | Roles page: one row with a tick per power a server role can hold | 23 |
+| `UI_ZeD_Cap_UseBrushToolManager` | `Brush tool` | Roles page: one row with a tick per power a server role can hold | 16 |
+| `UI_ZeD_Cap_IgnoreChatSlowMode` | `Ignore chat slow mode` | Roles page: one row with a tick per power a server role can hold | 31 |
+| `UI_ZeD_Cap_EmptyLinesInChat` | `Empty lines in chat` | Roles page: one row with a tick per power a server role can hold | 29 |
+| `UI_ZeD_Cap_SaveWorld` | `Save the world` | Roles page: one row with a tick per power a server role can hold | 24 |
+| `UI_ZeD_Cap_QuitWorld` | `Close the server` | Roles page: one row with a tick per power a server role can hold | 26 |
+| `UI_ZeD_Cap_ChangeAndReloadServerOptions` | `Change server options` | Roles page: one row with a tick per power a server role can hold | 31 |
+| `UI_ZeD_Cap_ReloadLuaFiles` | `Reload Lua files` | Roles page: one row with a tick per power a server role can hold | 26 |
+| `UI_ZeD_Cap_BypassLuaChecksum` | `Skip the Lua checksum` | Roles page: one row with a tick per power a server role can hold | 31 |
+| `UI_ZeD_Cap_RolesWrite` | `Edit roles` | Roles page: one row with a tick per power a server role can hold | 16 |
+| `UI_ZeD_Cap_ConnectWithDebug` | `Connect in debug mode` | Roles page: one row with a tick per power a server role can hold | 31 |
+| `UI_ZeD_Adm_NeedCapOnly` | `%1 needs the %2 capability.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 41 |
+| `UI_ZeD_Adm_BackRoles` | `Back to Roles` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 23 |
+| `UI_ZeD_Adm_BackPlayer` | `Back to the player's card` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 39 |
+| `UI_ZeD_Tk_BackTicket` | `Back to the ticket` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 28 |
+| `UI_ZeD_Tk_BackTickets` | `Back to Tickets` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 25 |
+| `UI_ZeD_Adm_NoteIpFail` | `The game didn't ban %1's IP: they left first, or the game can't ban an IP on their connection. They are banned by name.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_NoteOpenHelp` | `Open the Bans card.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 29 |
+| `UI_ZeD_Adm_Err_unknown` | `This server hasn't seen that name, so it can't tell their role. Check the spelling. A permanent ban still goes to the game.` | A refusal, shown as a short message. Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_Err_already` | `There is a ban on them already. Unban them first to change it.` | A refusal, shown as a short message. Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_Err_part` | `This needs ZeD's server part, which isn't on this server.` | A refusal, shown as a short message. Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_BannedUnknown` | `Sent to the game for %1. This server hasn't seen that name: the game refuses it if there is no such account.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_SeeRemoved` | `The server is removing you.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 41 |
+| `UI_ZeD_Adm_SeeGameLine` | `A permanent ban shows this while they're online. When they try to come back, the game refuses them with its own line, and on a Steam server that line has the reason.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_PowersHead` | `Admin powers` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 18 |
+| `UI_ZeD_Adm_YouRole` | `you:` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_NewPlayersGet` | `new players get` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 25 |
+| `UI_ZeD_Adm_SteamUnknown` | `not known yet` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 23 |
+| `UI_ZeD_Adm_WhereHidden` | `Their role sits above yours.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 42 |
+| `UI_ZeD_Adm_BanFact` | `Banned` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_HelpMuteVoice` | `Without ZeD's server part this stops their voice only. Their chat stays open.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_VoiceMuted` | `%1 can't use voice until you unmute them.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_VoiceUnmuted` | `%1 can use voice again.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 33 |
+| `UI_ZeD_Adm_PowersStayOn` | `Without ZeD's server part the game leaves these on, and they switch them off themselves.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_WarnDone1` | `1 warning point added. %1 sees the reason.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Adm_HelpKeepRole` | `Keep the role.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 24 |
+| `UI_ZeD_Adm_HelpKeepBan` | `Keep the ban.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 23 |
+| `UI_ZeD_Adm_HelpLeaveRole` | `Leave without saving.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 31 |
+| `UI_ZeD_Adm_NoteSpawn` | `An admin spawned %1 x %2 to you.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 46 |
+| `UI_ZeD_Adm_HelpOpenOwn` | `Yours: its card in the Server tab.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 48 |
+| `UI_ZeD_Cl_AskStale` | `That changed while this was open. Nothing was sent.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_CanClaim` | `Can I claim this?` | Safehouse, faction and war cards on a multiplayer server | 27 |
+| `UI_ZeD_Cl_ClaimSub` | `Not here? It says why: someone's claim, too early, not a home, or you have one already.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_ClaimHeld` | `This building is already claimed.` | Safehouse, faction and war cards on a multiplayer server | 47 |
+| `UI_ZeD_Cl_ClaimTaken` | `This is %1's safehouse.` | Safehouse, faction and war cards on a multiplayer server | 33 |
+| `UI_ZeD_Cl_ClaimWait` | `Looking...` | Safehouse, faction and war cards on a multiplayer server | 16 |
+| `UI_ZeD_Cl_ClaimYes` | `Yes. You can claim this building at %1.` | Safehouse, faction and war cards on a multiplayer server | 53 |
+| `UI_ZeD_Cl_Claimed` | `Claimed. Give it a title, or keep the one it has.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_ClaimsOff` | `Nobody can claim a safehouse on this server.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_ColorBlue` | `Blue` | Safehouse, faction and war cards on a multiplayer server | 14 |
+| `UI_ZeD_Cl_ColorGreen` | `Green` | Safehouse, faction and war cards on a multiplayer server | 14 |
+| `UI_ZeD_Cl_ColorHelp` | `%1: the color your faction's tag shows in. It saves as you pick it.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_ColorOrange` | `Orange` | Safehouse, faction and war cards on a multiplayer server | 14 |
+| `UI_ZeD_Cl_ColorRed` | `Red` | Safehouse, faction and war cards on a multiplayer server | 14 |
+| `UI_ZeD_Cl_ColorTeal` | `Teal` | Safehouse, faction and war cards on a multiplayer server | 14 |
+| `UI_ZeD_Cl_ColorViolet` | `Violet` | Safehouse, faction and war cards on a multiplayer server | 14 |
+| `UI_ZeD_Cl_ColorWhite` | `White` | Safehouse, faction and war cards on a multiplayer server | 14 |
+| `UI_ZeD_Cl_ColorYellow` | `Yellow` | Safehouse, faction and war cards on a multiplayer server | 14 |
+| `UI_ZeD_Cl_ComesNext` | `What comes next` | Safehouse, faction and war cards on a multiplayer server | 25 |
+| `UI_ZeD_Cl_Count` | `%1 / %2` | Safehouse, faction and war cards on a multiplayer server | 14 |
+| `UI_ZeD_Cl_CreateSub` | `You can make one here: name it, and invite players.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_Created` | `%1 made, with you as the owner. Invite players with Add Player.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_Decline` | `Decline` | Safehouse, faction and war cards on a multiplayer server | 14 |
+| `UI_ZeD_Cl_Declined` | `You declined %1's invitation.` | Safehouse, faction and war cards on a multiplayer server | 43 |
+| `UI_ZeD_Cl_Disbanded` | `Faction disbanded.` | Safehouse, faction and war cards on a multiplayer server | 28 |
+| `UI_ZeD_Cl_EveryoneIn` | `Everyone online is in already.` | Safehouse, faction and war cards on a multiplayer server | 44 |
+| `UI_ZeD_Cl_FacGone` | `You're no longer in that faction.` | Safehouse, faction and war cards on a multiplayer server | 47 |
+| `UI_ZeD_Cl_GoDisband` | `Disband` | Safehouse, faction and war cards on a multiplayer server | 14 |
+| `UI_ZeD_Cl_GoLeave` | `Leave` | Safehouse, faction and war cards on a multiplayer server | 14 |
+| `UI_ZeD_Cl_GoQuit` | `Quit` | Safehouse, faction and war cards on a multiplayer server | 14 |
+| `UI_ZeD_Cl_GoRelease` | `Release` | Safehouse, faction and war cards on a multiplayer server | 14 |
+| `UI_ZeD_Cl_HasSafehouse` | `has a safehouse already` | Safehouse, faction and war cards on a multiplayer server | 33 |
+| `UI_ZeD_Cl_HelpAccept` | `Join them. The game's server decides.` | Safehouse, faction and war cards on a multiplayer server | 51 |
+| `UI_ZeD_Cl_HelpAdd` | `Who's online. Pick one to invite them; they answer in their Server tab.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_HelpClaim` | `Claim the building you're standing in. You can give it a title next.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_HelpConfirm` | `Nothing changes until you pick the button on the right.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_HelpCreate` | `Makes the faction, with you as the owner.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_HelpDecline` | `Say no. The invitation goes.` | Safehouse, faction and war cards on a multiplayer server | 42 |
+| `UI_ZeD_Cl_HelpDisband` | `Ends the faction for everyone in it. It asks first.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_HelpEdit` | `Save keeps it. Cancel puts the old words back.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_HelpFacMember` | `Only the owner can change the name, the tag or who's in it. The two ticks are yours.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_HelpFacOwner` | `Pick the name or the tag to change it, a player to change owner or remove them. The ticks save as you set them.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_HelpGo` | `%1: this can't be undone.` | Safehouse, faction and war cards on a multiplayer server | 39 |
+| `UI_ZeD_Cl_HelpKeep` | `Leave it as it is.` | Safehouse, faction and war cards on a multiplayer server | 28 |
+| `UI_ZeD_Cl_HelpLeave` | `Leaves the faction. It asks first.` | Safehouse, faction and war cards on a multiplayer server | 48 |
+| `UI_ZeD_Cl_HelpList` | `Your faction and your safehouse, each a card. Pick one to see everything and change what's yours.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_HelpNew` | `Type the name. Create Faction makes it, with you as the owner.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_HelpOpenFac` | `Open your faction's card.` | Safehouse, faction and war cards on a multiplayer server | 39 |
+| `UI_ZeD_Cl_HelpOpenSafe` | `Open your safehouse's card.` | Safehouse, faction and war cards on a multiplayer server | 41 |
+| `UI_ZeD_Cl_HelpOpenWars` | `Open the wars your safehouse is in.` | Safehouse, faction and war cards on a multiplayer server | 49 |
+| `UI_ZeD_Cl_HelpOwner` | `Hand the owner's place to this player. You stay a member.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_HelpPick` | `Invite %1. It waits in their Server tab until they answer.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_HelpQuit` | `Leaves the safehouse. It asks first.` | Safehouse, faction and war cards on a multiplayer server | 50 |
+| `UI_ZeD_Cl_HelpRelease` | `Gives the building up, for everyone in it. It asks first.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_HelpRemove` | `Take this player off the list. It asks first.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_HelpRevert` | `Puts the words back as they were.` | Safehouse, faction and war cards on a multiplayer server | 47 |
+| `UI_ZeD_Cl_HelpRow` | `Pick for Change Owner and Remove.` | Safehouse, faction and war cards on a multiplayer server | 47 |
+| `UI_ZeD_Cl_HelpSafeMember` | `Only the owner can rename it or change who's in it.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_HelpSafeOwner` | `Pick the title to rename it, a player to change owner or remove them.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_HelpSave` | `Saves what you typed. Everyone in it sees the change.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_HelpUninvite` | `Takes the invitation back.` | Safehouse, faction and war cards on a multiplayer server | 40 |
+| `UI_ZeD_Cl_HelpWarAccepted` | `Agree to the war. It starts when the countdown ends.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_HelpWarCanceled` | `Take back your claim of war.` | Safehouse, faction and war cards on a multiplayer server | 42 |
+| `UI_ZeD_Cl_HelpWarEnded` | `Ends this war now.` | Safehouse, faction and war cards on a multiplayer server | 28 |
+| `UI_ZeD_Cl_HelpWarRefused` | `Say no to the war.` | Safehouse, faction and war cards on a multiplayer server | 28 |
+| `UI_ZeD_Cl_HelpWars` | `Wars your safehouse is in. Each shows its countdown; what you can do is under it.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_InFaction` | `in %1` | Safehouse, faction and war cards on a multiplayer server | 14 |
+| `UI_ZeD_Cl_InviteFaction` | `%1 is inviting you to %2 faction.` | Safehouse, faction and war cards on a multiplayer server | 47 |
+| `UI_ZeD_Cl_InviteGone` | `That invitation no longer stands.` | Safehouse, faction and war cards on a multiplayer server | 47 |
+| `UI_ZeD_Cl_InviteSafe` | `%1 is inviting you to their safehouse.` | Safehouse, faction and war cards on a multiplayer server | 52 |
+| `UI_ZeD_Cl_InvitedWaiting` | `invited, waiting` | Safehouse, faction and war cards on a multiplayer server | 26 |
+| `UI_ZeD_Cl_Joined` | `You're in %1.` | Safehouse, faction and war cards on a multiplayer server | 23 |
+| `UI_ZeD_Cl_Keep` | `Keep` | Safehouse, faction and war cards on a multiplayer server | 14 |
+| `UI_ZeD_Cl_KeepDays` | `Keep it by visiting within %1 days.` | Safehouse, faction and war cards on a multiplayer server | 49 |
+| `UI_ZeD_Cl_KeepHours` | `Keep it by visiting within %1 hours.` | Safehouse, faction and war cards on a multiplayer server | 50 |
+| `UI_ZeD_Cl_KeepSoon` | `Visit within the hour, or it goes.` | Safehouse, faction and war cards on a multiplayer server | 48 |
+| `UI_ZeD_Cl_KindInvite` | `Invitation` | Safehouse, faction and war cards on a multiplayer server | 16 |
+| `UI_ZeD_Cl_Left` | `You left the faction.` | Safehouse, faction and war cards on a multiplayer server | 31 |
+| `UI_ZeD_Cl_MustBeOnline` | `%1 must be online to take it.` | Safehouse, faction and war cards on a multiplayer server | 43 |
+| `UI_ZeD_Cl_NPlayers` | `%1 players` | Safehouse, faction and war cards on a multiplayer server | 16 |
+| `UI_ZeD_Cl_NWars` | `Wars: %1` | Safehouse, faction and war cards on a multiplayer server | 14 |
+| `UI_ZeD_Cl_NameFirst` | `Type a name.` | Safehouse, faction and war cards on a multiplayer server | 18 |
+| `UI_ZeD_Cl_NameHint` | `Name your faction` | Safehouse, faction and war cards on a multiplayer server | 27 |
+| `UI_ZeD_Cl_NewSub` | `The name everyone sees on the faction list.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_NewHint` | `Name your faction` | Safehouse, faction and war cards on a multiplayer server | 27 |
+| `UI_ZeD_Cl_NewOwner` | `%1 is the owner now.` | Safehouse, faction and war cards on a multiplayer server | 30 |
+| `UI_ZeD_Cl_NextDays` | `You've survived %1 days; this server asks for %2.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_NextInvite` | `Invite players from this card once it exists.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_NextTag` | `At %1 players you can give it a Tag, shown over your heads.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_NoAnswer` | `Nothing changed. The server may have refused it.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_NoFactionYet` | `no faction` | Safehouse, faction and war cards on a multiplayer server | 16 |
+| `UI_ZeD_Cl_NoSafehouseYet` | `no safehouse` | Safehouse, faction and war cards on a multiplayer server | 18 |
+| `UI_ZeD_Cl_NoTag` | `No tag` | Safehouse, faction and war cards on a multiplayer server | 14 |
+| `UI_ZeD_Cl_NoTakeBack` | `Only ZeD's server part can take an invitation back. This server doesn't have it.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_NoWars` | `No wars right now.` | Safehouse, faction and war cards on a multiplayer server | 28 |
+| `UI_ZeD_Cl_NoteOpenHelp` | `Open the Server tab, where the invitation waits.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_NoteSub` | `An invitation waits here until you answer it. Nothing pops up over your game.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_Offline` | `offline` | Safehouse, faction and war cards on a multiplayer server | 14 |
+| `UI_ZeD_Cl_Online` | `online` | Safehouse, faction and war cards on a multiplayer server | 14 |
+| `UI_ZeD_Cl_OnePlayer` | `1 player` | Safehouse, faction and war cards on a multiplayer server | 14 |
+| `UI_ZeD_Cl_OverHead` | `Over your head:` | Safehouse, faction and war cards on a multiplayer server | 25 |
+| `UI_ZeD_Cl_OwnTick` | `Your own: each member sets this for themselves.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_OwnerAsk` | `Make %1 the owner? You stay a member.` | Safehouse, faction and war cards on a multiplayer server | 51 |
+| `UI_ZeD_Cl_OwnerAt` | `%1 | Owner: %2` | Safehouse, faction and war cards on a multiplayer server | 24 |
+| `UI_ZeD_Cl_OwnerIs` | `Owner: %1` | Safehouse, faction and war cards on a multiplayer server | 15 |
+| `UI_ZeD_Cl_PickInvite` | `pick one to invite` | Safehouse, faction and war cards on a multiplayer server | 28 |
+| `UI_ZeD_Cl_PickRename` | `pick to rename` | Safehouse, faction and war cards on a multiplayer server | 24 |
+| `UI_ZeD_Cl_PlayersOnline` | `Players online` | Safehouse, faction and war cards on a multiplayer server | 24 |
+| `UI_ZeD_Cl_Quit` | `You left the safehouse.` | Safehouse, faction and war cards on a multiplayer server | 33 |
+| `UI_ZeD_Cl_Released` | `Safehouse released.` | Safehouse, faction and war cards on a multiplayer server | 29 |
+| `UI_ZeD_Cl_Removed` | `%1 removed.` | Safehouse, faction and war cards on a multiplayer server | 17 |
+| `UI_ZeD_Cl_Renamed` | `Renamed. Everyone in the safehouse sees the new title.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_RenamedFaction` | `Renamed. The faction list shows the new name.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_RespawnNeeds` | `Not set. Tick it and your next character starts here.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_RespawnOff` | `This server doesn't allow it.` | Safehouse, faction and war cards on a multiplayer server | 43 |
+| `UI_ZeD_Cl_RespawnOn` | `When you die, your next character starts here.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_RuleAnyBuilding` | `Any building can be claimed.` | Safehouse, faction and war cards on a multiplayer server | 42 |
+| `UI_ZeD_Cl_RuleClaimAny` | `You can claim a safehouse from your first day.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_RuleClaimDay` | `You can claim a safehouse after surviving %1 days.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_RuleFireNo` | `Fire can't damage it.` | Safehouse, faction and war cards on a multiplayer server | 31 |
+| `UI_ZeD_Cl_RuleFireYes` | `Fire can burn it.` | Safehouse, faction and war cards on a multiplayer server | 27 |
+| `UI_ZeD_Cl_RuleHomesOnly` | `Homes only: non-residential buildings can't be claimed.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_RuleLootNo` | `Non-members can't take items.` | Safehouse, faction and war cards on a multiplayer server | 43 |
+| `UI_ZeD_Cl_RuleLootYes` | `Anyone can take items.` | Safehouse, faction and war cards on a multiplayer server | 32 |
+| `UI_ZeD_Cl_RuleNoClaims` | `Nobody can claim a safehouse here.` | Safehouse, faction and war cards on a multiplayer server | 48 |
+| `UI_ZeD_Cl_RuleProtectAlways` | `Protected all the time, you on or off.` | Safehouse, faction and war cards on a multiplayer server | 52 |
+| `UI_ZeD_Cl_RuleProtectOffline` | `Protected only while every member is offline.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_RuleRemoval` | `A safehouse nobody visits for %1 real hours is released.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_RuleRemovalOff` | `A safehouse is kept, however long nobody visits.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_RuleRespawnNo` | `No respawning in a safehouse.` | Safehouse, faction and war cards on a multiplayer server | 43 |
+| `UI_ZeD_Cl_RuleRespawnYes` | `You can respawn in your safehouse.` | Safehouse, faction and war cards on a multiplayer server | 48 |
+| `UI_ZeD_Cl_RuleTrespassNo` | `Non-members can't walk in.` | Safehouse, faction and war cards on a multiplayer server | 40 |
+| `UI_ZeD_Cl_RuleTrespassYes` | `Anyone can walk in.` | Safehouse, faction and war cards on a multiplayer server | 29 |
+| `UI_ZeD_Cl_Rules` | `This server's rules` | Safehouse, faction and war cards on a multiplayer server | 29 |
+| `UI_ZeD_Cl_SafeGone` | `You're no longer in that safehouse.` | Safehouse, faction and war cards on a multiplayer server | 49 |
+| `UI_ZeD_Cl_Sent` | `An invitation has been sent to %1. It waits in their Server tab until they answer.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_TagColor` | `Tag color` | Safehouse, faction and war cards on a multiplayer server | 15 |
+| `UI_ZeD_Cl_TagFirst` | `Give it a tag first: a color needs one.` | Safehouse, faction and war cards on a multiplayer server | 53 |
+| `UI_ZeD_Cl_TagHint` | `TAG` | Safehouse, faction and war cards on a multiplayer server | 14 |
+| `UI_ZeD_Cl_TagNeeds` | `%1 (%2 now).` | Safehouse, faction and war cards on a multiplayer server | 18 |
+| `UI_ZeD_Cl_TagSet` | `Tag set. It shows over your heads.` | Safehouse, faction and war cards on a multiplayer server | 48 |
+| `UI_ZeD_Cl_TitleEmpty` | `A safehouse needs a title.` | Safehouse, faction and war cards on a multiplayer server | 40 |
+| `UI_ZeD_Cl_TitleSub` | `Everyone in the safehouse sees the new title.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_TitleHint` | `Name your safehouse` | Safehouse, faction and war cards on a multiplayer server | 29 |
+| `UI_ZeD_Cl_TitleLong` | `A title can be at most %1 characters.` | Safehouse, faction and war cards on a multiplayer server | 51 |
+| `UI_ZeD_Cl_ToastHead` | `An invitation` | Safehouse, faction and war cards on a multiplayer server | 23 |
+| `UI_ZeD_Cl_Uninvited` | `Invitation to %1 taken back.` | Safehouse, faction and war cards on a multiplayer server | 42 |
+| `UI_ZeD_Cl_WarAcceptAsk` | `Accept the war with %1? Once it starts, they can walk in and take what they find.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_WarAccepted` | `Accepted` | Safehouse, faction and war cards on a multiplayer server | 14 |
+| `UI_ZeD_Cl_WarBlocked` | `Blocked` | Safehouse, faction and war cards on a multiplayer server | 14 |
+| `UI_ZeD_Cl_WarCanceled` | `Canceled` | Safehouse, faction and war cards on a multiplayer server | 14 |
+| `UI_ZeD_Cl_WarClaimed` | `Claimed` | Safehouse, faction and war cards on a multiplayer server | 14 |
+| `UI_ZeD_Cl_WarEndAsk` | `End this war now?` | Safehouse, faction and war cards on a multiplayer server | 27 |
+| `UI_ZeD_Cl_WarEnded` | `Ended` | Safehouse, faction and war cards on a multiplayer server | 14 |
+| `UI_ZeD_Cl_WarHow` | `To start one, right-click a safehouse that isn't yours: %1.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_WarOff` | `This server has no wars.` | Safehouse, faction and war cards on a multiplayer server | 34 |
+| `UI_ZeD_Cl_WarOn` | `Wars are on: a safehouse can be attacked if its owner accepts.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Cl_WarRefused` | `Refused` | Safehouse, faction and war cards on a multiplayer server | 14 |
+| `UI_ZeD_Cl_WarRules` | `How wars work here` | Safehouse, faction and war cards on a multiplayer server | 28 |
+| `UI_ZeD_Cl_WarStarted` | `Started` | Safehouse, faction and war cards on a multiplayer server | 14 |
+| `UI_ZeD_Cl_WarTimes` | `A war starts %1 seconds after it's accepted and lasts %2 seconds.` | Safehouse, faction and war cards on a multiplayer server | - |
+| `UI_ZeD_Log_Title` | `Log` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 14 |
+| `UI_ZeD_Log_Sum` | `Who did what, where and when` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 42 |
+| `UI_ZeD_Log_SumGame` | `The game's PvP log` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 28 |
+| `UI_ZeD_Log_Kind_admin` | `Admin` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 14 |
+| `UI_ZeD_Log_Kind_safehouse` | `Safehouse` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 15 |
+| `UI_ZeD_Log_Kind_faction` | `Faction` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 14 |
+| `UI_ZeD_Log_Kind_vehicle` | `Vehicle` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 14 |
+| `UI_ZeD_Log_Kind_pvp` | `PvP` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 14 |
+| `UI_ZeD_Log_Kind_ticket` | `Ticket` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 14 |
+| `UI_ZeD_Log_Kind_container` | `Container` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 15 |
+| `UI_ZeD_Log_Kind_other` | `Other` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 14 |
+| `UI_ZeD_Log_FWho` | `Who` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 14 |
+| `UI_ZeD_Log_Anyone` | `Anyone` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 14 |
+| `UI_ZeD_Log_When_hour` | `Last hour` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 15 |
+| `UI_ZeD_Log_When_today` | `Today` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 14 |
+| `UI_ZeD_Log_When_d3` | `3 days` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 14 |
+| `UI_ZeD_Log_FindHint` | `A word, a place, an item` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 34 |
+| `UI_ZeD_Log_HelpKind` | `Show one kind of line.` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 32 |
+| `UI_ZeD_Log_HelpWho` | `Show one player's lines, as the one who did it or the one it was done to.` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | - |
+| `UI_ZeD_Log_HelpWhen` | `How far back to look.` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 31 |
+| `UI_ZeD_Log_HelpFind` | `Find a word, a place or an item in the lines.` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | - |
+| `UI_ZeD_Log_HelpCard` | `Pick a line for Go there and the players' cards.` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | - |
+| `UI_ZeD_Log_HelpAround` | `Everything near the ticket's place and time.` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | - |
+| `UI_ZeD_Log_HelpLine` | `Pick this line for Go there and the players' cards.` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | - |
+| `UI_ZeD_Log_HelpGo` | `Teleport to where this happened.` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 46 |
+| `UI_ZeD_Log_HelpClear` | `Show the whole log instead.` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 41 |
+| `UI_ZeD_Log_HelpAdd` | `Add this line to the ticket as an admin note.` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | - |
+| `UI_ZeD_Log_HelpShow` | `The log around ticket #%1: its place, from three hours before it was filed.` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | - |
+| `UI_ZeD_Log_Show` | `Show` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 14 |
+| `UI_ZeD_Log_FactAround` | `Near this place and time` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 34 |
+| `UI_ZeD_Log_NoPlaceTicket` | `This ticket has no place, so there is nowhere to look around.` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | - |
+| `UI_ZeD_Log_NoPlaceLine` | `This line's place belongs to a role above yours.` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | - |
+| `UI_ZeD_Log_NoPlaceHeld` | `This line has no place on record.` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 47 |
+| `UI_ZeD_Log_NoGoTap` | `This place is only what the line claims, so Go there is off.` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | - |
+| `UI_ZeD_Log_TheServer` | `Server:` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 14 |
+| `UI_ZeD_Log_AnAddress` | `a hidden address` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 26 |
+| `UI_ZeD_Log_Around` | `Around ticket #%1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 27 |
+| `UI_ZeD_Log_AroundSub` | `Within %1 tiles of %2, from %3 to %4 (three hours before it was filed, half an hour after).` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | - |
+| `UI_ZeD_Log_Missed` | `%1 was here from %2 to %3. The ticket's nearby list (%4) missed them.` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | - |
+| `UI_ZeD_Log_Clear` | `Clear` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 14 |
+| `UI_ZeD_Log_Count` | `%1 of %2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 14 |
+| `UI_ZeD_Log_NoMatch` | `Nothing matches.` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 26 |
+| `UI_ZeD_Log_Lines` | `%1 lines. Every line also goes to the server's own log files, for outside tools.` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | - |
+| `UI_ZeD_Log_OneLine` | `1 line. Every line also goes to the server's own log files, for outside tools.` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | - |
+| `UI_ZeD_Log_NoContainer` | `Container takes aren't logged on this server (an opt-in, off).` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | - |
+| `UI_ZeD_Log_TimesUtc` | `Times are UTC.` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 24 |
+| `UI_ZeD_Log_MonthDay` | `%1 %2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 14 |
+| `UI_ZeD_Log_PlayerCard` | `%1's card` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 15 |
+| `UI_ZeD_Log_AddTo` | `Add to ticket #%1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 27 |
+| `UI_ZeD_Log_Added` | `Added to ticket #%1 as an admin note, with the line and its place.` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | - |
+| `UI_ZeD_Log_AlreadyOn` | `This line is on the ticket already.` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 49 |
+| `UI_ZeD_Log_FromPvp` | `from the game's PvP log` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 33 |
+| `UI_ZeD_Log_FromTap` | `from the log %1, not proved` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 41 |
+| `UI_ZeD_Log_FromTapBy` | `from the log %1, sent by %2, not proved` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 53 |
+| `UI_ZeD_Log_ACar` | `car` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 14 |
+| `UI_ZeD_Log_APart` | `a part` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 14 |
+| `UI_ZeD_Log_CarOf` | `%1's %2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 14 |
+| `UI_ZeD_Log_CarNone` | `a %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 14 |
+| `UI_ZeD_Log_V_Smash` | `smashed a window of %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 32 |
+| `UI_ZeD_Log_V_Part` | `removed the %1 from %2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 32 |
+| `UI_ZeD_Log_V_Eparts` | `took engine parts from %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 39 |
+| `UI_ZeD_Log_V_Siphon` | `siphoned gas from %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 30 |
+| `UI_ZeD_Log_V_Strip` | `stripped %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 17 |
+| `UI_ZeD_Log_V_Drive` | `drove off in %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 25 |
+| `UI_ZeD_Log_V_Hotwire` | `hotwired %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 17 |
+| `UI_ZeD_Log_V_Tow` | `hooked %1 up to tow` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 29 |
+| `UI_ZeD_Log_V_Locked` | `%1 (locked)` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 17 |
+| `UI_ZeD_Log_V_Dropped` | `had %1 more vehicle lines not kept, over the limit for one minute` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | - |
+| `UI_ZeD_Log_V_Claim` | `claimed %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 16 |
+| `UI_ZeD_Log_V_Release` | `released %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 17 |
+| `UI_ZeD_Log_V_Lapsed` | `lost the claim on %1, away too long` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 49 |
+| `UI_ZeD_Log_V_ClaimBurnt` | `lost the claim on %1, it burned` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 45 |
+| `UI_ZeD_Log_V_ClaimGone` | `lost the claim on %1, the car is gone` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 51 |
+| `UI_ZeD_Log_V_NoParts` | `was refused taking parts from %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 46 |
+| `UI_ZeD_Log_V_NoDrive` | `was refused driving %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 32 |
+| `UI_ZeD_Log_V_NoTow` | `was refused towing %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 31 |
+| `UI_ZeD_Log_Took` | `took %1 (reported by their game)` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 46 |
+| `UI_ZeD_Log_P_Kill` | `killed %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 15 |
+| `UI_ZeD_Log_P_Hit` | `hit %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 14 |
+| `UI_ZeD_Log_P_HitWith` | `hit %1 with %2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 24 |
+| `UI_ZeD_Log_T_Filed` | `filed %1 %2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 17 |
+| `UI_ZeD_Log_T_Added` | `added to %1 %2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 24 |
+| `UI_ZeD_Log_T_Seen` | `saw %1 %2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 15 |
+| `UI_ZeD_Log_T_Taken` | `took %1 %2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 16 |
+| `UI_ZeD_Log_T_Answered` | `answered %1 %2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 24 |
+| `UI_ZeD_Log_T_Note` | `added a note to %1 %2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 31 |
+| `UI_ZeD_Log_T_Closed` | `closed %1 %2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 18 |
+| `UI_ZeD_Log_T_Reopened` | `reopened %1 %2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 24 |
+| `UI_ZeD_Log_T_Spam` | `marked %1 %2 as spam` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 30 |
+| `UI_ZeD_Log_T_NotSpam` | `marked %1 %2 as not spam` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 34 |
+| `UI_ZeD_Log_T_Deleted` | `deleted %1 %2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 23 |
+| `UI_ZeD_Log_T_Adopted` | `took in %1 %2 from the game's window, filed in the name of %3, not proved` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | - |
+| `UI_ZeD_Log_T_Full` | `could not file a ticket, the tickets are full: %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | - |
+| `UI_ZeD_Log_T_Removed` | `removed %1 %2 on the game's window` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 48 |
+| `UI_ZeD_Log_S_Claim` | `claimed a safehouse` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 29 |
+| `UI_ZeD_Log_S_Release` | `released a safehouse` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 30 |
+| `UI_ZeD_Log_S_In` | `joined the safehouse` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 30 |
+| `UI_ZeD_Log_S_Out` | `left the safehouse` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 28 |
+| `UI_ZeD_Log_S_Title` | `renamed the safehouse %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 34 |
+| `UI_ZeD_Log_S_Owner` | `took the safehouse over from %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 45 |
+| `UI_ZeD_Log_S_NoDismantle` | `was refused dismantling in %1's safehouse` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | - |
+| `UI_ZeD_Log_S_NoDestroy` | `was refused breaking things in %1's safehouse` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | - |
+| `UI_ZeD_Log_F_In` | `joined %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 15 |
+| `UI_ZeD_Log_F_Out` | `left %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 14 |
+| `UI_ZeD_Log_F_Create` | `created %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 16 |
+| `UI_ZeD_Log_F_Disband` | `disbanded %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 18 |
+| `UI_ZeD_Log_F_Owner` | `took %1 over from %2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 30 |
+| `UI_ZeD_Log_F_Name` | `renamed %1 to %2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 26 |
+| `UI_ZeD_Log_F_Tag` | `changed the tag of %1 to %2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 41 |
+| `UI_ZeD_Log_InviteCancelled` | `cancelled the invitation to %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 44 |
+| `UI_ZeD_Log_A_Tp` | `teleported to %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 26 |
+| `UI_ZeD_Log_A_Bring` | `teleported %1 to them` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 31 |
+| `UI_ZeD_Log_A_Kick` | `kicked %1: %2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 23 |
+| `UI_ZeD_Log_A_Warn1` | `added %1 warning point to %2: %3` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 46 |
+| `UI_ZeD_Log_A_Warn` | `added %1 warning points to %2: %3` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 47 |
+| `UI_ZeD_Log_A_Mute` | `muted %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 14 |
+| `UI_ZeD_Log_A_Unmute` | `unmuted %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 16 |
+| `UI_ZeD_Log_A_Role` | `gave %1 the role %2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 29 |
+| `UI_ZeD_Log_A_LevelUp` | `leveled %1 up: %2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 27 |
+| `UI_ZeD_Log_A_LevelDown` | `leveled %1 down: %2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 29 |
+| `UI_ZeD_Log_A_Ban` | `banned %1 (%2): %3` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 28 |
+| `UI_ZeD_Log_A_Unban` | `unbanned %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 17 |
+| `UI_ZeD_Log_A_Lifted` | `the ban on %1 ran out` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 31 |
+| `UI_ZeD_Log_A_GameBan` | `put the game's ban on %1: %2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 42 |
+| `UI_ZeD_Log_A_Msg` | `sent a server message: %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 39 |
+| `UI_ZeD_Log_A_Repeat` | `set a repeating message, %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 41 |
+| `UI_ZeD_Log_A_RepeatStop` | `stopped a repeating message` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 41 |
+| `UI_ZeD_Log_A_Spawn` | `spawned %1 x %2 to %3` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 31 |
+| `UI_ZeD_Log_A_SpawnSelf` | `spawned %1 x %2 to themselves` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 43 |
+| `UI_ZeD_Log_A_SpawnGround` | `spawned %1 x %2 on the ground` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 43 |
+| `UI_ZeD_Log_A_Refused` | `tried a command they have no right to (%1)` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | - |
+| `UI_ZeD_Log_A_Rate` | `went over the rate limit, %1 commands dropped so far` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | - |
+| `UI_ZeD_Log_A_Bad` | `sent arguments no ZeD client sends (%1)` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 53 |
+| `UI_ZeD_Log_A_PowerOn` | `turned on %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 18 |
+| `UI_ZeD_Log_A_PowerOff` | `turned off %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 23 |
+| `UI_ZeD_Log_A_RoleAdd` | `added the role %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 27 |
+| `UI_ZeD_Log_A_RoleSave` | `changed the role %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 29 |
+| `UI_ZeD_Log_A_RoleDelete` | `deleted the role %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 29 |
+| `UI_ZeD_Log_A_RoleDefault` | `changed the default role to %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 44 |
+| `UI_ZeD_Log_A_RoleUp` | `moved the role %1 up` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 30 |
+| `UI_ZeD_Log_A_RoleDown` | `moved the role %1 down` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 32 |
+| `UI_ZeD_Log_A_Extras` | `changed the server extras: %1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 43 |
+| `UI_ZeD_Log_A_MapTp` | `teleported by the map` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 31 |
+| `UI_ZeD_Adm_Err_added` | `This line is on the ticket already.` | A refusal, shown as a short message. Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 49 |
+| `UI_ZeD_Adm_Err_noplace` | `This ticket has no place, so there is nowhere to look around.` | A refusal, shown as a short message. Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
+| `UI_ZeD_Tk_GameSilent` | `The game's ticket list has stopped answering. This queue still works, but tickets filed on the game's window won't show here and the two won't stay in step.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_GameSilentOff` | `The game's ticket list has stopped answering, so there is nothing to show here.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Cl_You` | `%1 (you)` | Safehouse, faction and war cards on a multiplayer server | 14 |
+| `UI_ZeD_Chat_HelpMute` | `Mute is yours alone; nobody else is told.` | The chat window: acting on a line of chat | - |
+| `UI_ZeD_Chat_HelpPick` | `Pick a line for what you can do about its sender.` | The chat window: acting on a line of chat | - |
+| `UI_ZeD_Chat_HelpReport` | `Opens Ask the admins with this player named and the chat around this line.` | The chat window: acting on a line of chat | - |
+| `UI_ZeD_Chat_MuteDone` | `%1 muted for you. Nobody else is told.` | The chat window: acting on a line of chat | 52 |
+| `UI_ZeD_Chat_MuteYou` | `Mute (for you)` | The chat window: acting on a line of chat | 24 |
+| `UI_ZeD_Chat_MutedByYou` | `muted (by you)` | The chat window: acting on a line of chat | 24 |
+| `UI_ZeD_Chat_PadActs` | `D-pad left and right: the buttons` | The chat window: acting on a line of chat | 47 |
+| `UI_ZeD_Chat_PadPick` | `Pick` | The chat window: acting on a line of chat | 14 |
+| `UI_ZeD_Chat_Report` | `Report to the admins` | The chat window: acting on a line of chat | 30 |
+| `UI_ZeD_Chat_Unmute` | `Unmute` | The chat window: acting on a line of chat | 14 |
+| `UI_ZeD_Chat_UnmuteDone` | `%1 unmuted.` | The chat window: acting on a line of chat | 17 |
+| `UI_ZeD_Cm_AddRule` | `Add a rule` | Community: server rules with I agree, news, reports from chat | 16 |
+| `UI_ZeD_Cm_Agree` | `I agree` | Community: server rules with I agree, news, reports from chat | 14 |
+| `UI_ZeD_Cm_Appeal` | `Appeal line` | Community: server rules with I agree, news, reports from chat | 17 |
+| `UI_ZeD_Cm_AppealHint` | `A Discord, a web address, an email` | Community: server rules with I agree, news, reports from chat | 48 |
+| `UI_ZeD_Cm_AppealLong` | `The appeal line is too long: %1 characters at most.` | Community: server rules with I agree, news, reports from chat | - |
+| `UI_ZeD_Cm_AppealWhere` | `on the ban and kick screens` | Community: server rules with I agree, news, reports from chat | 41 |
+| `UI_ZeD_Cm_AskAgain` | `Ask again when the rules change` | Community: server rules with I agree, news, reports from chat | 45 |
+| `UI_ZeD_Cm_AskAgainSub` | `What changed is marked NEW.` | Community: server rules with I agree, news, reports from chat | 41 |
+| `UI_ZeD_Cm_AskAll` | `Ask everyone to agree when they join` | Community: server rules with I agree, news, reports from chat | 50 |
+| `UI_ZeD_Cm_AskAllSub` | `They see the message of the day and the rules, with Leave and I agree.` | Community: server rules with I agree, news, reports from chat | - |
+| `UI_ZeD_Cm_AskFirst` | `Turn on Ask everyone to agree first.` | Community: server rules with I agree, news, reports from chat | 50 |
+| `UI_ZeD_Cm_AskNeedsRule` | `Add a rule first: there's nothing to agree to yet.` | Community: server rules with I agree, news, reports from chat | - |
+| `UI_ZeD_Cm_AtBottom` | `This rule is already last.` | Community: server rules with I agree, news, reports from chat | 40 |
+| `UI_ZeD_Cm_AtTop` | `This rule is already first.` | Community: server rules with I agree, news, reports from chat | 41 |
+| `UI_ZeD_Cm_Changed` | `changed %1` | Community: server rules with I agree, news, reports from chat | 16 |
+| `UI_ZeD_Cm_Counts` | `%1, %2` | Community: server rules with I agree, news, reports from chat | 14 |
+| `UI_ZeD_Cm_DeleteAsk` | `Delete this post? It leaves everyone's Server tab.` | Community: server rules with I agree, news, reports from chat | - |
+| `UI_ZeD_Cm_Deleted` | `Deleted.` | Community: server rules with I agree, news, reports from chat | 14 |
+| `UI_ZeD_Cm_Gone` | `The server stopped answering. The rules are not there to read.` | Community: server rules with I agree, news, reports from chat | - |
+| `UI_ZeD_Cm_HelpAddRule` | `A new rule at the end. It's new to everyone once you save.` | Community: server rules with I agree, news, reports from chat | - |
+| `UI_ZeD_Cm_HelpAgree` | `You're in. The rules stay in the Server tab.` | Community: server rules with I agree, news, reports from chat | - |
+| `UI_ZeD_Cm_HelpAppeal` | `Shown as text on the ban and kick screens. Nobody can click it.` | Community: server rules with I agree, news, reports from chat | - |
+| `UI_ZeD_Cm_HelpDelete` | `Takes this post out of everyone's Server tab.` | Community: server rules with I agree, news, reports from chat | - |
+| `UI_ZeD_Cm_HelpDeleteAsk` | `Delete takes it from everyone. Keep it leaves it as it is.` | Community: server rules with I agree, news, reports from chat | - |
+| `UI_ZeD_Cm_HelpDown` | `Move this rule down.` | Community: server rules with I agree, news, reports from chat | 30 |
+| `UI_ZeD_Cm_HelpEdit` | `Type in place. Rules and the message of the day save together; news posts at once.` | Community: server rules with I agree, news, reports from chat | - |
+| `UI_ZeD_Cm_HelpJoin` | `The same rules are in the Server tab any time.` | Community: server rules with I agree, news, reports from chat | - |
+| `UI_ZeD_Cm_HelpKeep` | `Leaves the post where it is.` | Community: server rules with I agree, news, reports from chat | 42 |
+| `UI_ZeD_Cm_HelpLeave` | `You leave the server. Nothing is kept against you.` | Community: server rules with I agree, news, reports from chat | - |
+| `UI_ZeD_Cm_HelpPin` | `Pinned posts stay at the top of News.` | Community: server rules with I agree, news, reports from chat | 51 |
+| `UI_ZeD_Cm_HelpPinIt` | `Pinned posts stay at the top of News.` | Community: server rules with I agree, news, reports from chat | 51 |
+| `UI_ZeD_Cm_HelpPost` | `Goes to everyone's Server tab now.` | Community: server rules with I agree, news, reports from chat | 48 |
+| `UI_ZeD_Cm_HelpRemove` | `Take this rule away. Nothing changes until you save.` | Community: server rules with I agree, news, reports from chat | - |
+| `UI_ZeD_Cm_HelpRule` | `One rule, in a line. Pick it and type.` | Community: server rules with I agree, news, reports from chat | 52 |
+| `UI_ZeD_Cm_HelpRules` | `The same rules you're asked to agree to when you join.` | Community: server rules with I agree, news, reports from chat | - |
+| `UI_ZeD_Cm_HelpRulesRow` | `Opens the rules, as on joining.` | Community: server rules with I agree, news, reports from chat | 45 |
+| `UI_ZeD_Cm_HelpSave` | `Saves the message of the day, the rules, the appeal line and the two ticks. Players see the change at once.` | Community: server rules with I agree, news, reports from chat | - |
+| `UI_ZeD_Cm_HelpUp` | `Move this rule up.` | Community: server rules with I agree, news, reports from chat | 28 |
+| `UI_ZeD_Cm_Joining` | `Joining` | Community: server rules with I agree, news, reports from chat | 14 |
+| `UI_ZeD_Cm_Motd` | `Message of the day` | Community: server rules with I agree, news, reports from chat | 28 |
+| `UI_ZeD_Cm_MotdHint` | `Something for everyone who joins` | Community: server rules with I agree, news, reports from chat | 46 |
+| `UI_ZeD_Cm_MotdLong` | `The message of the day is too long: %1 characters at most.` | Community: server rules with I agree, news, reports from chat | - |
+| `UI_ZeD_Cm_MotdWhere` | `top of the Server tab, and on joining` | Community: server rules with I agree, news, reports from chat | 51 |
+| `UI_ZeD_Cm_NPosts` | `%1 posts` | Community: server rules with I agree, news, reports from chat | 14 |
+| `UI_ZeD_Cm_NRules` | `%1 rules` | Community: server rules with I agree, news, reports from chat | 14 |
+| `UI_ZeD_Cm_New` | `NEW` | Community: server rules with I agree, news, reports from chat | 14 |
+| `UI_ZeD_Cm_NewMany` | `%1 rules are new since you agreed.` | Community: server rules with I agree, news, reports from chat | 48 |
+| `UI_ZeD_Cm_NewOne` | `Rule %1 is new since you agreed.` | Community: server rules with I agree, news, reports from chat | 46 |
+| `UI_ZeD_Cm_News` | `News` | Community: server rules with I agree, news, reports from chat | 14 |
+| `UI_ZeD_Cm_NewsWhere` | `the Server tab` | Community: server rules with I agree, news, reports from chat | 24 |
+| `UI_ZeD_Cm_NoRules` | `No rules yet.` | Community: server rules with I agree, news, reports from chat | 23 |
+| `UI_ZeD_Cm_NotSaved` | `Not saved yet.` | Community: server rules with I agree, news, reports from chat | 24 |
+| `UI_ZeD_Cm_NothingToSave` | `Nothing to save: nothing here has changed.` | Community: server rules with I agree, news, reports from chat | - |
+| `UI_ZeD_Cm_OnePost` | `%1 post` | Community: server rules with I agree, news, reports from chat | 14 |
+| `UI_ZeD_Cm_OneRule` | `%1 rule` | Community: server rules with I agree, news, reports from chat | 14 |
+| `UI_ZeD_Cm_Pin` | `Pin` | Community: server rules with I agree, news, reports from chat | 14 |
+| `UI_ZeD_Cm_PinIt` | `Pin it to the top` | Community: server rules with I agree, news, reports from chat | 27 |
+| `UI_ZeD_Cm_Pinned` | `PINNED` | Community: server rules with I agree, news, reports from chat | 14 |
+| `UI_ZeD_Cm_PinnedDone` | `Pinned.` | Community: server rules with I agree, news, reports from chat | 14 |
+| `UI_ZeD_Cm_Post` | `Post` | Community: server rules with I agree, news, reports from chat | 14 |
+| `UI_ZeD_Cm_PostBy` | `%1, %2` | Community: server rules with I agree, news, reports from chat | 14 |
+| `UI_ZeD_Cm_PostHint` | `Something everyone should know` | Community: server rules with I agree, news, reports from chat | 44 |
+| `UI_ZeD_Cm_Posted` | `Posted. It's in everyone's Server tab now.` | Community: server rules with I agree, news, reports from chat | - |
+| `UI_ZeD_Cm_RuleEmpty` | `Rule %1 has no words. Type it or remove it.` | Community: server rules with I agree, news, reports from chat | - |
+| `UI_ZeD_Cm_RuleHint` | `A rule, in a line` | Community: server rules with I agree, news, reports from chat | 27 |
+| `UI_ZeD_Cm_RuleLong` | `Rule %1 is too long: %2 characters at most.` | Community: server rules with I agree, news, reports from chat | - |
+| `UI_ZeD_Cm_Rules` | `The rules` | Community: server rules with I agree, news, reports from chat | 15 |
+| `UI_ZeD_Cm_RulesFull` | `That's the most: %1 rules.` | Community: server rules with I agree, news, reports from chat | 40 |
+| `UI_ZeD_Cm_RulesNews` | `Rules and news` | Community: server rules with I agree, news, reports from chat | 24 |
+| `UI_ZeD_Cm_RulesNewsSum` | `The message of the day, the rules, news` | Community: server rules with I agree, news, reports from chat | 53 |
+| `UI_ZeD_Cm_Save` | `Save` | Community: server rules with I agree, news, reports from chat | 14 |
+| `UI_ZeD_Cm_Saved` | `Saved.` | Community: server rules with I agree, news, reports from chat | 14 |
+| `UI_ZeD_Cm_SavedAsk` | `Saved. Everyone is asked to agree again when they next join.` | Community: server rules with I agree, news, reports from chat | - |
+| `UI_ZeD_Cm_SavedDone` | `Saved.` | Community: server rules with I agree, news, reports from chat | 14 |
+| `UI_ZeD_Cm_StaleBy` | `%1 saved first. Save again to replace it.` | Community: server rules with I agree, news, reports from chat | - |
+| `UI_ZeD_Cm_Unpin` | `Unpin` | Community: server rules with I agree, news, reports from chat | 14 |
+| `UI_ZeD_Cm_Unpinned` | `Unpinned.` | Community: server rules with I agree, news, reports from chat | 15 |
+| `UI_ZeD_Cm_WritePost` | `Write something first.` | Community: server rules with I agree, news, reports from chat | 32 |
+| `UI_ZeD_Cm_Wrong` | `In the game: Server tab, Ask the admins.` | Community: server rules with I agree, news, reports from chat | 54 |
+| `UI_ZeD_Cm_WrongAppeal` | `In the game: Server tab, Ask the admins. Banned or kicked: %1` | Community: server rules with I agree, news, reports from chat | - |
+| `UI_ZeD_Cm_WrongHead` | `Something wrong?` | Community: server rules with I agree, news, reports from chat | 26 |
+| `UI_ZeD_Tk_ChatAround` | `The chat around it` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 28 |
+| `UI_ZeD_Tk_ChatWhose` | `As it showed on the reporter's screen. The server hears no chat.` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_Err_stale` | `Someone else saved first. Save again to replace it.` | A refusal, shown as a short message. Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Tk_Err_named` | `This report names you, so another admin has to handle it.` | A refusal, shown as a short message. Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | - |
+| `UI_ZeD_Adm_Err_pinned` | `Every post is pinned. Unpin one first.` | A refusal, shown as a short message. Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 52 |
+| `UI_ZeD_Cm_Frozen` | `This server's rules and news come from a newer ZeD, so they can't be changed here.` | Community: server rules with I agree, news, reports from chat | - |
+| `UI_ZeD_Tk_FactReported` | `Reported` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Tk_ReportSeed` | `About %1: ` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 16 |
+| `UI_ZeD_Tk_ShortDate` | `%1 %2` | Tickets: a player asks the admins; staff queue, thread, private notes. Help lines show in a band at the foot of the card | 14 |
+| `UI_ZeD_Log_Kind_community` | `Community` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 15 |
+| `UI_ZeD_Log_C_Saved` | `saved the rules: %1 in all, %2 new or changed` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | - |
+| `UI_ZeD_Log_C_SavedMsg` | `%1, and the message of the day or the appeal line` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | - |
+| `UI_ZeD_Log_C_NoAnswer` | `was asked to agree to the rules and has not answered` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | - |
+| `UI_ZeD_Log_C_Post` | `posted news #%1: %2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 29 |
+| `UI_ZeD_Log_C_Del` | `deleted news #%1: %2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 30 |
+| `UI_ZeD_Log_C_Pushed` | `pushed news #%1 by %2 off the board: %3` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 53 |
+| `UI_ZeD_Log_C_Pin` | `pinned news #%1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 25 |
+| `UI_ZeD_Log_C_Unpin` | `unpinned news #%1` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 27 |
+| `UI_ZeD_Log_T_RepAnswered` | `answered the report on %1, ticket #%2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 51 |
+| `UI_ZeD_Log_T_RepClosed` | `closed the report on %1, ticket #%2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 49 |
+| `UI_ZeD_Log_T_RepSpam` | `marked the report on %1 as spam, ticket #%2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | - |
+| `UI_ZeD_Log_T_RepDeleted` | `deleted the report on %1, ticket #%2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 50 |

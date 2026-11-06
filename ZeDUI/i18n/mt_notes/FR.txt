@@ -10,3 +10,16 @@ Whitelist kept in English (13 letters in French did not fit 12); Weight column W
 Spongie / Skill Recovery Journal items left in English (Transcribe Into Journal, Bound Journal, Scrap Electronics = Déchets électroniques).
 Weekday abbreviations on the LCD: LU MA ME JE VE SA DI; months Jan Fév Mar Avr Mai Juin Juil Août Sep Oct Nov Déc.
 The owner's rough draft (About block) keeps French misspellings (noyeau, grace) on purpose.
+
+Beta 6 words (Nov 6 2026):
+Address: vous, as the game. Kept earlier words: ceinture (belt), fiche (card), roue (wheel), Simple.
+Immersive (new English word for Full) left as "Immersive" in the setting label; check against "Complet".
+Kick = Expulser (game word); ban = Bannir/Bannissements; unban = Débannir; mute = rendre muet / Réactiver.
+Claim (car, safehouse) = Revendiquer / revendication (the game says "revendiquer" for safehouses); safehouse = Abri.
+Faction tag = tag (the game's word); owner = propriétaire (the game says "chef" for faction leader).
+Staff = admins / l'équipe; ticket kept as "ticket"; Griefing = Vandalisme; Appeal = Recours; News post = annonce.
+Spawn = Créer / Créer des objets; Whitelist kept in English as in earlier drafts; Log = Journal.
+License card labels (24-41) use accents (OPÉRATEUR, DÉLIVRÉ, TUÉS): if that face lacks accents, strip them.
+Log lines are passé composé after a name (a tué %1, s'est vu refuser de ...). Gender of %1 car/part not known: "une %1", "(verrouillé)".
+Line 760 assumes %2 is the faction's name ("dans la faction %2"). "%1 ouvert(s)" avoids a plural guess.
+Line 95/255 and 498/488 "prendre (des) pièces" run a little over the estimate.

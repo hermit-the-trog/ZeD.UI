@@ -1,0 +1,15 @@
+
+Beta 6 words (Nov 6 2026):
+CN (Simplified) beta 6 words: multiplayer staff tools. No earlier CN notes; terms follow the CH notes mapped to simplified.
+Informal 你. Ticket = 工单 (game). Admin = 管理员, moderator = 协管员, staff = 管理员. Role = 角色, capability = 权限.
+Safehouse = 安全屋, faction = 阵营, war = 战争, ban = 封禁, kick = 踢出, warning points = 警告点数 (game).
+Admin mute = 禁言; a player's own mute (chat window) = 屏蔽 (game says 聊天屏蔽).
+Take a ticket = 接手 (not 认领); claim a car or safehouse = 认领; Release = 释放.
+Wheel = 轮盘, slice = 扇区/格, belt = 腰带, Full/Simple = 完整/简易; "Immersive" (43) written as 完整 to match Full.
+D-pad = 十字键, stick = 摇杆, dead zone = 死区, Tap/Hold = 轻点/按住.
+Licence card labels (17-40): OPERATOR = 驾驶人, CARRY PERMIT = 持枪许可, FACIAL = 面部, PROF = 职业, ISS = 签发.
+Dates 89/90: %1 expected to be a month with its 月, order 年月日 (%3年%1%2日). 87/88 = 上午/下午 before the time.
+Log lines (853 on) start straight after a player's name, no space added: 杀死了 %1, 封禁了 %1.
+Punctuation: full-width ，。：？ in prose; quotes “ ”; ASCII "..." kept.
+Doubtful: 故障 for Bug, 恶意破坏 for Griefing, 协管员, 拆零件 for take parts, 隐蔽携带 for Concealed carry.
+Lines 346 and the "%1 %2" shapes (252, 899, 1101) left as the English shape; the meaning of the slots is not visible.

@@ -16,3 +16,14 @@ Genetics badge names (不安症, 臆病, 小人症, 多産, 大食い...) are my
 Proofread (Fable, 126 fixes) left for a checker: the verb stem + 中 action-bar forms (開け中, 拾い中, 注ぎ中) are
 readable but colloquial; 匹 vs 頭 / 羽 counters for mixed livestock; hair headings mix nouns and verbs; unverified
 game terms: 南京錠のキー, 黙示録からの月数, 侵食, コンポスト箱, 切り込み板.
+
+Beta 6 words (Nov 6 2026):
+JP b6 notes: ですます, kept earlier terms (ホイール, カード, ベルト, ドロワー, フル / シンプル).
+Immersive = イマーシブ (distinct from フル). Ticket = チケット; Open/Seen/Answered/Closed = 受付中/確認済/回答済/終了.
+Take a ticket = 担当する (Taken by = 担当). Staff = スタッフ; admin = 管理者; capability = 権限.
+Claim: cars = 登録 (Release = 解除), safehouse = 確保 (Release = 手放す). Check these two read as one idea.
+Wheel slice = 項目; flick-release = フリック離し; stick click = スティック押し込み; dead zone = デッドゾーン.
+Log lines are plain past verbs after a name (kills = 倒した, hit = 殴った, hotwired = ホットワイヤーした).
+Dates %3年%1%2日; AM / PM kept in English as on the main menu clock.
+Licence labels: CARRY = 携帯, PERMIT = 許可証, FAV = 好み, ISS = 交付, KILLS = 討伐数 (pixel face may lack kanji).
+Unsure: LootZed kept in English; Griefing = 荒らし; Message of the day = 今日のメッセージ; News = ニュース.

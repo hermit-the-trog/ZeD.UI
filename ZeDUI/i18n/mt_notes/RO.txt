@@ -11,3 +11,16 @@ Origin trait names: Catfish = "Pește-pisică", Bake sale = "Vânzare de prăjit
 The About-block rough draft (line 1408) is translated with deliberate misspellings and a few missing diacritics.
 Sandbox "N changes" strings (%1 modificări) are plain plural: wrong for 20 and up ("de modificări").
 Option names of other mods stay in English (Transcribe Into Journal, Bound Journal, Mod Options).
+
+Beta 6 words (Nov 6 2026):
+Romanian: informal "tu" imperatives as earlier drafts; s/t with comma below.
+Ticket = Tichet (game: Tichete); safehouse = Adăpost (game); role = Rol; faction = Facțiune; Ban = Banează; staff = personalul; admin kept as "admin" (pl. admini).
+Kick = "Dă afară" (log: "a dat afară pe %1"); Claim = Revendică, Release = Eliberează; Capability = capacitate; powers = puteri.
+Wheel = roată; belt = centura; card = fișă; tab = fila; tile = pătrat; Tag = etichetă (chip ETICHETĂ).
+Counts as labels so 1 and 20 both read right (Deschise: %1, Răspunsuri: %1, Avertismente: %1, Postări: %1, Reguli: %1);
+but "acum %1 zile" (line 242) and "%1 pătrate" are wrong for 20 and up ("de zile").
+Wheel terms: Zonă moartă stick, Eliberare la țintire, Click pe stick, D-pad kept as English.
+Licence card: Permis de port, Port ascuns, NR. PERM., OMORÂRI, SUPRAVIEȚUIT (check against the 14 limit).
+Log lines read after a name; 976 "banul lui %1 a expirat". 1066/1067 use "Postări: %1" for the singular chips as well.
+Tight: 31 NR. PERM., 344 "Vezi toate" (limit 16), 598 "Schimbă vremea".
+Quote marks around role names use „ ”.

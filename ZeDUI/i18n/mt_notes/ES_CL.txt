@@ -8,3 +8,14 @@ Action bar: TOCANDO BOCINA (horn), CARGANDO BENC. (refuel), DESMANTELANDO (wreck
 About text (1408) rewritten with ustedes and Chilean slang (me pillaron, Chupense, buena onda), accents still deliberately missing.
 Fixed mojibake in the Spain draft lines 550 551 658 659 1134 1884 1885 2259 2474 (counted in the 308).
 Kept as Spain because Chile uses them too: baldosas, bolsas, ficha, rueda, cajon, cinturon, Catastro, partida, pienso, bolígrafo, intermitente, taxímetro/bajada de bandera, haz clic.
+
+Beta 6 words (Nov 6 2026):
+Chile from the Spain draft, informal tu. Same terms: Kits, rueda, ficha, cinturon, Reponer, Completo/Simple.
+Game ES_CL words used: Vetar/veto (ban; "Quitar veto" for unban, "Vetos" for the Bans card), Borrar (delete), Razon (reason), auto, maleta (trunk), bencina, maza, rasgos, Cruceta, zombie, carnet.
+"Quitar veto" is my own unban wording; the game has no unban word. Native checker: confirm.
+Kept baldosas, desmantelar (game), reclamo/Reclamar (game: Reclamar Refugio), "Tus reclamos".
+Staff-facing labels "en linea" (game) replace "conectado" in a few labels (243, 276, 279, 574, 726, 791, 800); the rest still say conectado.
+Presiona A (game key prompts). "Vuestras cabezas" became "sus cabezas".
+Pinchar una rueda kept; cerca for the fence; cuenta regresiva; sitio web; tablero for the news board.
+Ticket kept as "ticket" (game: Tickets). Griefing kept in English. Unmute button is "Reactivar" (14 limit).
+Check first: "Quitar veto", "Razon" lines, "Reactivar".
