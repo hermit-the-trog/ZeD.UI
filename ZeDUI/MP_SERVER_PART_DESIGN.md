@@ -1242,7 +1242,8 @@ card). Module `ZeDA`; every answer comes back as `t_ack`. The table is `ZeD_AD_`
 12. **User Logs are the game's** (`requestUserlog`), each as a message stop. `getLastUpdate` is the date; the drawing's "Day 9" is not stored.
 13. **`Srv.adminLog`** writes every action to the ZeD log and to `md.log`, a ring of 2000 lines (who, what, target, text, place, real
     time, day) for Phase 4. Reasons are in those lines; a ticket's words are not.
-14. **Safehouses and Factions stay in the tab,** under Spawn items, until Phase 3 replaces them. The drawing leaves them out.
+14. **Safehouses and Factions stay in the tab,** under Spawn items. The drawing leaves them out. Phase 3's cards hold only your own, so
+    these lists stay as the way staff see everyone else's (see the merge's notes below).
 15. **The ban screen** is `ZeD_LeaveScreen`, over the game for 12 seconds with Leave. Phase 5 sets `ZeD.Admin.leaveScreen(info)`, and
     `info.appeal` already has its line.
 16. **The director's questions, each answered the careful way behind one switch in `ZeD_AdminProto.lua`:** `TIMED_IP = false` (Ban IP too
@@ -1301,3 +1302,86 @@ ban lands on a slow client. Each needs a second client on the local server (`mp_
 if it does not, `sidOf` refuses every claim and name bans simply carry no Steam ID. E20, whether the game keeps the typed spelling of a
 username (item 8). Each needs a second client on a Steam server.
 
+# Build's changes (Nov 5 2026, Phase 3: safehouses and factions)
+
+Files: `ZeD_ClaimProto.lua` (shared), `ZeD_ServerClaims.lua` (server), `ZeD_Claims.lua` (the model), `ZeD_ClaimCards.lua` (the cards).
+`claims_sim.lua`, `claim_cards_sim.lua`, `mp_claims.lua`, `mp_claim_cards.lua`. Nothing is stored: no table, so no secret name.
+Where the build differs from `mockups/zed_safehouse_faction_v1.html` and `MP_ADMIN_SCOPE.md`, and why.
+
+1. **Expiry is the safehouse's, not a member's.** The game's tooltip says players are removed; its code does not. `SafeHouse.update`
+   releases the whole safehouse once `lastVisited + SafeHouseRemovalTime` hours has passed, and any allowed player standing in it
+   resets `lastVisited` (`IsoPlayer.updateInternal2`). So the drawing's "away 61 h: removed in 11 h" on a member's row is gone, and
+   the card says "Keep it by visiting within 3 days", as the scope has it. A member's row says online or offline.
+2. **The time left needs the server part.** `SafehouseSyncPacket` carries no `lastVisited`, so a client's copy is only the moment it
+   first heard of the safehouse. `c_info` sends hours ago, so no client clock enters the sum. Without the server part the rule shows
+   and the countdown does not.
+3. **Faction PvP and Show Tag are each player's own,** in the game (`IsoPlayer.setFactionPvp`, `setShowTag`, `FactionStatsPacket`),
+   not the owner's as drawn. Both ticks show for every member, and a line says so.
+4. **An invitation has no take-back call,** and only the server holds the list. Cancel on a pending row goes through `c_cancel`
+   (`Invite.removeInvite`, reached through `SafeHouse` and `Faction`). Without the server part it is gray and says why, and "invited,
+   waiting" is this client's memory for this session.
+5. **Invitations the client has no note of** (it joined after one was sent) are raised from `c_info`, which reads `hasInvite` on the
+   game's lists. The game sends an invitation once, to a player online, so with no server part one sent before a relog is gone, as
+   in the game.
+6. **The log compares the game's lists every 5 seconds** on `OnTickEvenPaused`, so a change from any window or the game's own expiry
+   is logged and none rests on a client's word. It writes through `Srv.action`, the one log (see the merge's notes below). It names who a change touched, not always
+   who made it: the game keeps no doer. At most 40 lines a pass.
+7. **Fields sit in the cards through two small additions to the ticket frame:** `TC.kinds` and `TC.items` (`TC.itemKinds` until the merge with Phase 2). A field's `one` makes it
+   a line that Enter saves and Escape puts back. `seed` keeps the box with what the game holds unless someone typed over it. A long
+   confirm is `foot.line`, on the line over the bands with mouse or pad, because the game's confirm words outrun a band at Deck width.
+8. **Save has no answer to wait for.** The game's calls send nothing back, so `C.expect` watches for the change for 8 seconds, then says
+   "Nothing changed. The server may have refused it." and keeps the words.
+9. **Member rows pick to a second line** when the buttons will not fit beside the name, as at Deck and 720. Drawn beside it.
+10. **Marks for a rule are ZeD's squares,** solid and hollow, not the drawing's check and cross: the fonts have neither, and each rule's
+    words say it anyway. The drawing's pointing hand is ZeD's focus mark. **The pad keyboard sits at the screen's foot,** not under
+    the field, as for tickets. After typing, focus goes to Save.
+11. **The place reads coordinates and the game's `getLocation`,** not a town: E3 is still open. The checker says "at 6402 x 5410".
+12. **Wars have no drawing.** Built as a card of the same parts. Refuse and Cancel go at once, as in the game's window. Accept and End ask
+    in the foot (`Cl.WAR_CONFIRM`), which the game does not do.
+13. **The rules show in the Server tab too** when you have no safehouse, under Can I claim this?, because that is when they matter. The
+    drawing has them only in the card.
+14. **The Tickets block stays directly under the Server block,** as its drawing has it, then Faction, Safehouse, Wars. The order in this
+    drawing has no Tickets block.
+15. **A claim's title is the username,** as the game's context menu sends it, not "Riverside house", until E3 gives a place name. The
+    title field takes the caret when the card opens; under the controller the card lands on it.
+16. **The game's 15 and its words' 14:** its code takes a 15-character faction name, its text says 3-14. ZeD holds to 14 (`Cl.NAME_MAX`).
+17. **A rename has no claim-day test.** `SafehouseChangeTitlePacket` extends `SafehouseID` and tests only that the title is not empty; the
+    survival test is in `SafeHouseTitle`, the claim packet's parent. So an owner on a new character can rename, as the game's window lets them.
+18. **The HUD's war icon opens the wars card** (`ISEquippedItem:onOptionMouseDown`, wrapped as `ZeD_ClaimCards.lua` loads, because the button
+    keeps the function it was built with). `ISWarManagerUI` runs only if the tab cannot open. The right-click menu's Claim war stays the game's:
+    the card says how.
+19. **A tag's Save waits for the server.** `sendFactionChangeTag` reads the tag and color off the client's object, so ZeD sets them, sends, and
+    puts them straight back; a tag the server takes reaches every client in a `FactionSync`, the sender too. The tag field is for an owner or
+    FactionCheat with enough members: `FactionChangeTagPacket` has no exception for any role. One the game does not fix: with a tag that exists,
+    the packet refuses anyone but the owner, so FactionCheat staff who are not the owner cannot change a color alone, and the card says nothing changed.
+20. **The log compares the game's lists every 5 seconds,** which is the limit of what Phase 4 can read from it. A change undone between two passes
+    leaves no line (an owner hands the house over and takes it back; someone joins and quits). A pass writes at most `LOG_PER_SCAN` lines and then one
+    `claims | N changes not logged` line. Player text in a line has its `|` turned to `/`, so a split on ` | ` gives seven fields. Factions are compared
+    by the object: two can share a name, because the game's rename does not test for one.
+
+Not settled, for QA on the local server (`mp_claims.lua` prints these as PROBE lines):
+
+| # | Unknown | How it settles |
+|---|---|---|
+| F1 | Whether Lua sees `hasInvite` and `removeInvite`: they live on `Invite`, which is not in `LuaManager$Exposer`. Absent, `c_cancel` answers `fail` and waiting invitations are not raised | PROBE line. Two clients for the real run |
+| F2 | Whether `IsoPlayer.updateInternal2` reaches `setLastVisited` on the server's copy of a player, as the bytecode reads | PROBE line: hours ago near 0 while standing in it |
+| F3 | **Settled by the jar: one refused safehouse packet kicks by default.** `SafehouseRelease`, `ChangeOwner`, `ChangeTitle` and `Invite` carry `AntiCheat.SafeHouseOwner`, `ChangeMember` carries `SafeHouseMember`. Both are built with `maxSuspiciousCounter` 1, `AntiCheatSafeHouse` defaults to 2 (kick; 1 bans), and `SuspiciousActivity.report` returns 1 on the first hit. Roles with `CantBeKickedByAnticheat` and debug servers are spared. So each confirm remembers the house it was opened on and is checked in the foot and on the press (`X.stillTrue`), and Save and Invite read the game's lists first | Two clients: a confirm open while the other removes or transfers. Expect the foot to close with no kick |
+| F4 | `onCommandEntered` on `ZeD_TextEntry` with `setMultipleLine(false)`, and the one-line box's height at each text size | Type a title on the local server; `mp_claim_cards.lua` at each size |
+| F5 | E8 again: that `OnTickEvenPaused` fires on the server. The log rests on it | The `safehouse | claim` line appears within 5 seconds |
+
+# Build's changes (Nov 6 2026, Phases 2 and 3 merged)
+
+Both phases grew the ticket frame at once. What the merge settled:
+
+1. **One hook for each job.** `TC.kinds` takes one contract: `key(t, card)`, and `cancel` answers true when it dealt with B, or the frame's
+   own answer runs. `TC.items` replaces `TC.itemKinds`: `gap` in design units, `draw(..., ctx)`, `stops(it, x0, dy, w, add)`, and `stops` may
+   be left out. `D.makeField` takes the whole item. A field's `seed` replaces its `start`; `afind` keeps `start`, for its own box. Labels both
+   wrap and take `right` or `rightFn`, cut to the room left.
+2. **One log.** `Srv.action(kind, who, what, target, detail, x, y, z)` in `ZeD_ServerCore.lua` writes every admin, safehouse and faction line:
+   `kind | what | who | target | where | detail | day N`, seven fields, `-` for an empty one. `Srv.adminLog` is that call with kind `admin`.
+   `md.log` holds every kind, with `kind` on each row, under the same per-account share. A faction's name is the line's target. With the
+   admin tools off the lines still reach the ZeD log, but no ring holds them. Ticket lines are still free text: Phase 4 moves them.
+3. **The Admin tab keeps Safehouses and Factions.** The Server tab's cards read only your own (`C.safe`, `C.fac`), so these lists are the only
+   way staff see anyone else's. Your own row opens its card; anyone else's opens the game's window, until a staff card holds them.
+4. **Two answers to a command stay.** Admin commands answer on the tickets' `t_ack`, and claims on their own `c_ack` through `ackModule`, since
+   those cards work without the tickets' model. `Srv.ack` carries both.

@@ -15,7 +15,8 @@
 -- does. Repeating messages run here too, on OnTickEvenPaused (A1): the game clock stops on an empty server.
 --
 -- The table has a secret random name, as the tickets' does (A2), and is never transmitted. Views are allowlists. Every
--- action goes through Srv.adminLog: a line in the ZeD log and a line in md.log, which Phase 4's Log view reads.
+-- action goes through Srv.adminLog into the server part's one log (Srv.action): a line in the ZeD log and a line in md.log,
+-- which Phase 4's Log view reads. The ring here also holds the claim and faction lines from ZeD_ServerClaims.lua.
 -- ============================================================================
 if not isServer() then return end
 
@@ -105,9 +106,9 @@ local function frozen(p, rid)
 end
 
 -- ---------------------------------------------------------------------------
--- THE LOG: who, what, on whom, where, real time and in-game day
+-- THE LOG'S RING: who, what, on whom, where, real time and in-game day, for every kind of line
 -- ---------------------------------------------------------------------------
-local function today() return math.floor(getGameTime():getWorldAgeHours() / 24) + 1 end
+local function today() return Srv.day() end
 
 -- where a new line goes. A ring of AL.LOG_MAX, oldest out, but one account never pushes out another's: past its share a
 -- new line takes the place of that account's own oldest (s says the order; Phase 4 sorts by it)
@@ -126,18 +127,15 @@ local function ringSlot(log, who)
     return log.at
 end
 
-function Srv.adminLog(who, what, target, detail, x, y, z)
+function Srv.actionStore(kind, who, what, target, detail, x, y, z)
     local md = open()
-    local line = "admin " .. tostring(what) .. " by " .. tostring(who)
-    if target then line = line .. " on " .. tostring(target) end
-    if x then line = line .. " at " .. tostring(x) .. "," .. tostring(y) .. "," .. tostring(z) end
-    if detail then line = line .. ": " .. tostring(detail) end
-    Srv.log(line)
     if T.frozen then return end
     local log = md.log
     log.s = (log.s or 0) + 1
-    log[ringSlot(log, who)] = { s = log.s, t = getTimestamp(), day = today(), who = who, what = what, target = target, text = detail, x = x, y = y, z = z }
+    log[ringSlot(log, who)] = { s = log.s, t = getTimestamp(), day = today(), kind = kind, who = who, what = what, target = target, text = detail, x = x, y = y, z = z }
 end
+
+function Srv.adminLog(who, what, target, detail, x, y, z) Srv.action("admin", who, what, target, detail, x, y, z) end
 
 local function logAt(p, what, target, detail)
     Srv.adminLog(p:getUsername(), what, target, detail, math.floor(p:getX()), math.floor(p:getY()), math.floor(p:getZ()))

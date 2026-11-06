@@ -1204,7 +1204,7 @@ TC.kinds.player = {
         M.watch()
         M.loadCard(card.user)
     end,
-    key = function(card)
+    key = function(t, card)
         return table.concat({ tostring(M.seq), tostring(card.open), tostring(card.newRole), tostring(card.warnN), tostring(card.len), tostring(card.banIp), tostring(card.allSkills) }, ":")
     end,
     title = function(card) return card.user end,
@@ -1375,7 +1375,7 @@ function P.roleItems(win, st, t, card)
     end
     B.label(items, tr("UI_ZeD_Adm_Description"))
     F.field(items, "rdesc", 2, tr("UI_ZeD_Adm_RoleDescHint"), card.name ~= nil, 150)
-    items[#items].start = d.desc      -- (the first time this drawer shows the field, it has only now been made)
+    items[#items].seed = d.desc       -- (the first time this drawer shows the field, it has only now been made)
     B.label(items, tr("UI_ZeD_Adm_Color"), tr("UI_ZeD_Adm_ColorLine"))
     local ctls = {}
     for i, c in ipairs(COLORS) do
@@ -1457,7 +1457,7 @@ end
 TC.kinds.role = {
     data = function(card) return card.d end,
     tick = function() M.watch() end,
-    key = function(card) return tostring(M.seq) .. ":" .. tostring(card.name) end,
+    key = function(t, card) return tostring(M.seq) .. ":" .. tostring(card.name) end,
     title = function(card)
         if card.name then return card.name end
         return tr("UI_ZeD_Adm_NewRole")
@@ -1599,7 +1599,7 @@ end
 TC.kinds.bans = {
     data = function() return true end,
     tick = function() M.watch() end,
-    key = function(card) return tostring(M.seq) .. ":" .. tostring(card.len) end,
+    key = function(t, card) return tostring(M.seq) .. ":" .. tostring(card.len) end,
     title = function() return tr("UI_ZeD_Adm_Bans") end,
     help = function(t)
         if t.confirm then return tr("UI_ZeD_Adm_HelpUnbanAsk") end
@@ -1733,7 +1733,7 @@ end
 TC.kinds.spawn = {
     data = function() return true end,
     tick = function() M.watch() end,
-    key = function(card) return table.concat({ tostring(M.seq), tostring(card.page), tostring(card.n), tostring(card.to), tostring(card.item and card.item.full), tostring(card.find) }, ":") end,
+    key = function(t, card) return table.concat({ tostring(M.seq), tostring(card.page), tostring(card.n), tostring(card.to), tostring(card.item and card.item.full), tostring(card.find) }, ":") end,
     title = function() return tr("UI_ZeD_Adm_Spawn") end,
     help = function(t, card) return tr(card.item and "UI_ZeD_Adm_HelpSpawnLog" or "UI_ZeD_Adm_HelpSpawn") end,
     items = function(win, st, t, card) return P.spawnItems(win, st, t, card) end,

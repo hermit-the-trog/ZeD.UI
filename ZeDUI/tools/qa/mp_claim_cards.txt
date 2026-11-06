@@ -1,0 +1,1 @@
+mp_claim_cards.lua | mcc | timeout=420

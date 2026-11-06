@@ -499,7 +499,7 @@ do
     check("a moderator cannot write roles", errOf(m) == "perm")
     say(a, "a_rolelog", { what = "save", role = "gm" })
     check("an admin can", okOf(a))
-    check("it is logged", logHas("roles: save by Hermit on gm"))
+    check("it is logged", logHas("admin | roles: save | Hermit | gm |"))
     -- an act needs both of the role's powers
     local gmUser = player("Gale", "gm")
     say(gmUser, "a_role", { user = "Kade", role = "user" })
@@ -537,7 +537,7 @@ do
     drain()
     check("kick acks", ca.r and ca.r.ok == true)
     check("the game's kick carries the reason", has(ca.slash, '/kickuser "Kade" -r "Spamming chat"'), ca.slash[1])
-    check("kick logged, with place and reason", logHas("admin kick by Hermit on Kade at 6280,5350,0: Spamming chat"))
+    check("kick logged, with place and reason", logHas("admin | kick | Hermit | Kade | 6280,5350,0 | Spamming chat | day"))
     ca.slash = {}
     M(ca).kick("Hermit", "x", function(r) ca.r = r end)
     drain()
@@ -561,14 +561,14 @@ do
     M(ca).warn("Kade", 2, "Took the generator", function(r) ca.r = r end)
     drain()
     check("warning points go through the game", has(ca.game, "warn:Kade:Took the generator:2"))
-    check("warning logged", logHas("admin warning points by Hermit on Kade"))
+    check("warning logged", logHas("admin | warning points | Hermit | Kade |"))
     M(ca).teleport("Kade")
     drain()
     check("teleport goes as the game's", has(ca.slash, '/teleport "Kade"'))
     M(ca).bring("Kade")
     drain()
     check("bring goes as the game's", has(ca.slash, '/teleportplayer "Kade" "Hermit"'))
-    check("both logged", logHas("admin teleport to by Hermit") and logHas("admin teleport to you by Hermit"))
+    check("both logged", logHas("admin | teleport to | Hermit |") and logHas("admin | teleport to you | Hermit |"))
     M(ca).mute("Kade", true)
     drain()
     check("mute: voice goes through the game", has(ca.slash, '/voiceban "Kade" -true'))
@@ -600,7 +600,7 @@ do
     check("their client switches them off with the game's own setter", has(cu.game, "power:Invisible:false") and has(cu.game, "power:NoClip:false") and not has(cu.game, "power:GodMod"))
     check("and tells the server", cu.extra == 1)
     check("nothing left to watch", next(md().watch) == nil)
-    check("role logged", logHas("admin role by Hermit on Kade"))
+    check("role logged", logHas("admin | role | Hermit | Kade |"))
     -- no one past their own rank
     local m = player("Rosa", "moderator")
     local cm = clientJoin(m)
@@ -717,7 +717,7 @@ do
     drain()
     check("the ban acks", ca.r.ok == true and ca.r.untilT ~= nil)
     check("their client is told to leave, with the reason", M(cu).leave and M(cu).leave.reason == "Burned the farm, twice" and M(cu).leave.untilT == ca.r.untilT)
-    check("it is logged", logHas("admin ban by Hermit on Torch"))
+    check("it is logged", logHas("admin | ban | Hermit | Torch |"))
     check("staff read it", #M(ca).bans == 1 and M(ca).bans[1].by == "Hermit")
     check("no game ban for a timed one", not has(ca.slash, "/banuser"))
     advance(6000)
@@ -735,7 +735,7 @@ do
     W.clock = W.clock + 21000
     W.server.Events.OnTickEvenPaused.fire()
     check("lifted with nobody on", next(md().bans) == nil)
-    check("the lift is logged", logHas("admin ban lifted by server on Torch"))
+    check("the lift is logged", logHas("admin | ban lifted | server | Torch |"))
 end
 
 section("a client that does not leave")
@@ -897,7 +897,7 @@ do
     M(ca).message("Hello there", nil, function(r) ca.r = r end)
     drain()
     check("once: the game's /servermsg", has(ca.slash, '/servermsg "Hello there"'))
-    check("logged", logHas("admin server message by Hermit at"))
+    check("logged", logHas("admin | server message | Hermit | - | 6280,5350,0"))
     ca.slash = {}
     M(ca).message("Trading post Saturday", 15, function(r) ca.r = r end)
     drain()
@@ -937,11 +937,11 @@ do
     M(ca).spawn("Base.Axe", 5, "me", function(r) ca.r = r end)
     drain()
     check("to me", ca.r.ok and #a.items == 5 and W.sent == 5)
-    check("logged", logHas("admin spawn by Hermit at 6280,5350,0: 5 x Base.Axe to me"))
+    check("logged", logHas("admin | spawn | Hermit | - | 6280,5350,0 | 5 x Base.Axe to me | day"))
     nolimit(a)
     say(a, "a_spawn", { item = "Base.Axe", n = 2, to = "Kade" })
     check("to a player", #u.items == 2)
-    check("logged with the player", logHas("admin spawn by Hermit on Kade"))
+    check("logged with the player", logHas("admin | spawn | Hermit | Kade |"))
     nolimit(a)
     say(a, "a_spawn", { item = "Base.Axe", n = 100, to = "ground" })
     check("the ground, a hundred", #W.ground == 100)
@@ -965,6 +965,16 @@ do
     W.server.ZeD.Srv.log = function() eaten = eaten + 1 end
     W.server.ZeD.Srv.adminLog("Hermit", "test", "x")
     check("it goes through the server part's log", eaten == 1)
+    -- the one log: another kind's line lands in the same ring, in the same shape
+    local lines = {}
+    W.server.ZeD.Srv.log = function(s) lines[#lines + 1] = s end
+    W.server.ZeD.Srv.action("safehouse", "Aretha", "claim", nil, nil, 10, 20)
+    W.server.ZeD.Srv.action("faction", "Aretha", "create", "River|side\nfake | day 1")
+    local l = md().log
+    check("a claim line reaches the ring, with its kind", l[l.at].kind == "faction" and l[l.at].who == "Aretha")
+    check("the shape: kind, what, who, target, where, detail, day", lines[1] == "safehouse | claim | Aretha | - | 10,20 | - | day 13", lines[1])
+    local _, seps = string.gsub(lines[2] or "", " | ", "")
+    check("player text cannot add a field or a line", seps == 6 and not string.find(lines[2] or "", "\n", 1, true), lines[2])
 end
 
 section("without the server part")
@@ -1375,7 +1385,7 @@ do
     check("a power that isn't on the list writes nothing", not logHas("x on Hermit"))
     nolimit(u)
     say(u, "a_power", { id = "GodMod", on = true })
-    check("nor one the role lacks", not logHas("by Kade"))
+    check("nor one the role lacks", not logHas("power on: GodMod | Kade"))
     say(a, "a_rolelog", { what = "save", role = "a\nb" })
     check("a role's name is one line", not logHas("a\nb"))
 end
