@@ -4420,12 +4420,15 @@ function ZeD_CharacterWindow.toggle(playerNum)
         return origOnMouseMove(self, x, y)
     end
 
+    -- a release reaches whatever is under the pointer, so the toggle only answers a press that
+    -- began on the model (a press on the frame beside it puts the model under the pointer)
     identityModel.onMouseUp = function(self, x, y)
         local wasDrag = self._didDrag
+        local pressed = self.mouseDown
         self.mouseDown = false
         self.dragX = 0
         self:setCapture(false)
-        if not wasDrag and win._activeTab == "identity" then
+        if pressed and not wasDrag and win._activeTab == "identity" then
             win._identityPhotoExpanded = not win._identityPhotoExpanded
             win._identityCustomZoom = 0  -- reset zoom on toggle
             -- Auto-scroll to top so full-body avatar is fully visible (ISUI3DModel can't partial-clip)

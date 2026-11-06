@@ -164,7 +164,7 @@ G.ZED_GROUPS = {
     -- (Oct 26 2026, COHESION_SPEC.md section 4: the windows' See-through is the stepped slider under Text size, Solid while
     -- in use a checkbox under it; Controller highlight leads Controls as a pop-up menu with a live sample beside it; Hidden
     -- actions closes Windows as a pop-up menu. The windows' theme squares are gone with their setting.)
-    { "UI_ZeD_Options_ZedLook", { { "baseTheme", "radio" }, { "accentColor", "swatch" }, { "textSize", "radio" }, { "seeThrough", "scale" }, { "solidInUse", "onoff" }, { "uiScale", "scale", short = { "UI_ZeD_Settings_Auto" } } } },
+    { "UI_ZeD_Options_ZedLook", { { "baseTheme", "radio" }, { "accentColor", "swatch" }, { "textSize", "radio" }, { "seeThrough", "scale" }, { "solidInUse", "onoff" }, { "uiScale", "scale", short = { "UI_ZeD_Settings_Auto" } }, { "identityStyle", "radio" } } },
     -- (the director, Nov 2 2026, punch list 60: "the beta release is gonna have our vision and then a more simplified
     -- vision"; one row per family, Full or Simple. The watch's and the dashboard's rows join when their simple forms are
     -- built.)
