@@ -12,3 +12,17 @@ Description editor B / I / S U letter buttons left as the English letters (they 
 Skill Recovery Journal strings keep the mod's own English words (Transcribe Into Journal, Bound Journal).
 Item card "Pad" = Opvullen, "Equip" = Dragen, "Weight reduce" = Lichter; pin/unpin in the mod manager = vastzetten / losmaken.
 Station (crafting) = Werkplek; "Hand" crafting = Met de hand; Foraging = foerageren (action bar FOERAGEREN).
+
+Beta 6 words (Nov 6 2026):
+Address: informal je/jij, as in the earlier notes; buttons are infinitives.
+Safehouse = schuilplaats and claim = opeisen/claimen (the game's schuilplaats; claim as the noun, Voertuigclaims).
+Kick = Eraf gooien (the game's word); in tight capability labels kicken / Niet te kicken. Ban = verbannen / Ontbannen / Verbanningen.
+Ticket kept as the game's word; Taken/Take it = Genomen/Nemen; Not taken = Niet genomen.
+Wheel = wiel, belt = riem, card = kaart, Full/Simple = Volledig/Eenvoudig (Identity card: Immersief/Eenvoudig).
+Spawn kept as a verb (spawnen), items = items; staff = team / admins; capability = bevoegdheid, powers = krachten.
+Tag over the head = label (faction and admin role tags both).
+Identity card: RB NR, UITGEG., GESL., BAARD for FACIAL, FAVORIET for FAV (check what FAV shows).
+Vehicle-claim verbs (494-499) end a sentence: "niet rijden / onderdelen pakken / slepen / afbreken of vernielen".
+Log lines follow a name in simple past: "doodde %1", "mocht niet in %1 rijden". Lines 976 and 996 read loosely.
+Mute (admin) = dempen, as the game's Dempen. Tiles = tegels (not in the game's NL file, please check).
+Dates 90-91 reordered to day before month (%2 %1).

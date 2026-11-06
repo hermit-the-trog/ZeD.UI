@@ -11,3 +11,15 @@ Sandbox option names inside help texts (Ore per respawn bottino, Interruzione ac
 About text (line 1408) keeps the rough voice: kernal, "po" without accent, LIBERTA without accent.
 Mod manager: pin = fissare, Unpin = Togli fissaggio, Load first/last = Carica per primo/ultimo, Unfiled = Senza cartella.
 Rewind (credits) = Riavvolgi; sort of D-pad/English "D-pad" kept as is.
+
+Beta 6 words (Nov 6 2026):
+Address: tu, imperative buttons, as the earlier draft. Kept: cintura (belt), scheda (card), ruota (wheel), Semplice.
+Immersive (new English word for Full) = Immersiva; check against Completo.
+Kick = Espelli (game word); ban = Banna/Ban, unban = Sbanna; mute = Silenzia / Riattiva.
+Claim (car, safehouse) = Rivendica / rivendicazione; safehouse = Rifugio; owner = Proprietario; faction = Fazione; tag kept as "tag".
+Staff = admin / staff; Griefing = Vandalismo; Appeal = Ricorso; news post = annuncio, News = Novità.
+Spawn = Genera (game word); Whitelist kept in English as in earlier drafts; Log = Registro (log kept in "log PvP").
+License card labels (24-41) use abbreviations: SCAD, RILASC, SOPRAV, PREF, PROF; check they read as printed labels.
+Log lines are "ha + participle" after a name; "si è visto rifiutare di ..." for refusals. Teleport "da %1" = "to where X is".
+Gender of %1 car/part unknown: "un'%1", "(bloccata)". Line 760 assumes %2 is the faction's name.
+Line 627 "Mov. rapido" abbreviated; 797 "Prop.:"; 498 "prendere parti" is terse.

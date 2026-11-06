@@ -15,7 +15,8 @@ until players have checked it. This tool keeps the drafts honest:
                                   pack_NN.txt per N keys (default 1100), "number | longest | where | English", a
                                   "^" where the place is the same as the line above; index.json maps the numbers back.
                                   --with adds ZeD's current LANG text under each line ("  = ..."), for a variant or a
-                                  proofreader that sends back only the lines it changes
+                                  proofreader that sends back only the lines it changes; --missing LANG packs only the
+                                  keys LANG has no text for yet (a new beta's words)
   glossary <LANG> <out_file>      the game's own words for <LANG>: short phrases of the game's English that ZeD's
                                   English uses, with what the game's <LANG> files call them (game wording wins)
   unpack <pack_dir> <out_dir> [--base LANG]
@@ -194,11 +195,12 @@ def _ours(lang):
     return out
 
 
-def pack(out_dir, size=1100, with_lang=None):
+def pack(out_dir, size=1100, with_lang=None, missing=None):
     en, ctx = english(), context()
     have = _ours(with_lang) if with_lang else {}
     os.makedirs(out_dir, exist_ok=True)
-    keys = list(en.keys())
+    gone = _ours(missing) if missing else {}
+    keys = [k for k in en if k not in gone]
     index = {}
     n = 0
     for i in range(0, len(keys), size):
@@ -278,7 +280,8 @@ def unpack(pack_dir, out_dir, base=None):
     os.makedirs(out_dir, exist_ok=True)
     total, bad = 0, 0
     if base:
-        have = _ours(base)
+        en = english()
+        have = {k: v for k, v in _ours(base).items() if k in en}
         with open(os.path.join(out_dir, 'part_00.json'), 'w', encoding='utf-8') as f:
             json.dump(have, f, ensure_ascii=False, indent=1)
         print('base %s: %d keys' % (base, len(have)))
@@ -319,7 +322,8 @@ if __name__ == '__main__':
         sys.exit(merge(a[1], a[2]))
     elif a[0] == 'pack':
         pack(a[1], int(a[a.index('--size') + 1]) if '--size' in a else 1100,
-             a[a.index('--with') + 1] if '--with' in a else None)
+             a[a.index('--with') + 1] if '--with' in a else None,
+             a[a.index('--missing') + 1] if '--missing' in a else None)
     elif a[0] == 'glossary':
         glossary(a[1], a[2])
     elif a[0] == 'unpack':
