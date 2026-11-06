@@ -60,7 +60,7 @@ end
 -- The Tutorial teaches the heart button in vanilla's left-edge column (and
 -- blinks it), so there vanilla's column stays exactly as it is.
 local function inTutorial()
-    return getCore():getGameMode() == "Tutorial"
+    return tostring(getCore():getGameMode()) == "Tutorial"
 end
 
 -- The column's own children: the hands the belt shows, the window buttons
