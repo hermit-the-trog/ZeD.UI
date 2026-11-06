@@ -1,0 +1,4 @@
+# the real mouse on an in-game bar (Nov 5 2026)
+zedqa_prelude.lua | pre
+zedqa_animals.lua | an | timeout=60 | end=setup done
+zedqa_bars_game.lua | bgm | timeout=90

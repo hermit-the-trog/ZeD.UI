@@ -1,17 +1,17 @@
 {
  "id": "laundry",
- "n": 59,
+ "n": 60,
  "pages": [
-  138,
-  139
+  140,
+  141
  ],
  "left": {
   "kind": "taped",
-  "head": "Bitchin' znix Programs  ·  Doidbros & Buzzlord",
+  "head": "Bitchin' znix Programs  \u00b7  Doidbros & Buzzlord",
   "blocks": [
    {
     "chapter": [
-     "59",
+     "60",
      "Washer and Dryer"
     ]
    },
@@ -23,7 +23,7 @@
    },
    {
     "caption": [
-     "Figure 59-1",
+     "Figure 60-1",
      "The washer-dryer."
     ]
    },
@@ -119,7 +119,7 @@
    },
    {
     "caption": [
-     "Figure 59-2",
+     "Figure 60-2",
      "The washer, top, and the dryer, bottom."
     ]
    }

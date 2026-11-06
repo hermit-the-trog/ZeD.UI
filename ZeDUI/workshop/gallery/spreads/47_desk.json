@@ -9,7 +9,7 @@
    {"chapter": ["47", "The Desk"]},
    {"p": "When the game starts, it opens on a desk with a monitor on it. The monitor holds the main menu: the menu bar along its top, a column of icons down its right side, and the windows that the menu opens. Each screen of the main menu opens in a window on the monitor."},
    {"h2": "The Menu Bar"},
-   {"p": "The menu bar holds the *ZeD*, *File*, *Multiplayer* and *Settings* menus, with the time at its right end. The *Settings* menu is described in Chapter 46."},
+   {"p": "The menu bar holds the *ZeD*, *File*, *Multiplayer* and *Settings* menus, with the time at its right end."},
    {"h2": "The Icons"},
    {"p": "The icons open the same screens as the menu. From the top, they are *Project Zomboid*, *New game*, *Load game*, *Join a server*, *Options*, *Mods* and *Mod Uploader*."},
    {"h2": "The Trash"},
