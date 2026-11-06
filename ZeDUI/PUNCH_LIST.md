@@ -2755,6 +2755,14 @@ item says so.
       re-export, and `L.lit` added to the glass condition in ZeD_Plate.lua (the handoff's Night section). Can ship
       ahead of the rest.
     - **QA:** the handoff's nine steps; for the glass, the Dash Elite at night with the lights on and off.
+93. **Police radar, a future build (the director, Nov 6 2026: "Cops and robbers. Cops and speeders.").** The police and
+    sheriff dashes read the speed of a car in a narrow cone off the hood, for multiplayer roleplay. Nothing built, not for
+    beta 6. Read from the game's code, not tested: the car's forward vector and every loaded car are there; time how far
+    the target moved between two reads rather than trust getCurrentSpeedKmHour on a car this client doesn't drive. Range
+    is capped by the loaded chunks, which shrink with the window, so set one fixed range below that. Check line of sight
+    yourself: the game won't stop a reading through a building. Proposed: cars within sight and a short fixed range only
+    (the director hasn't ruled on it; reaching past what the player sees would remove the game's stakes). The director
+    still decides where the readout sits (on the dash or above the siren controls). Needs two players on a server.
 
 ## Test process
 
