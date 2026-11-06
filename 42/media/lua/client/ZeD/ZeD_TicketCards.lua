@@ -1278,11 +1278,13 @@ function TC.openAsk(win, st)
 end
 
 -- from chat: Ask the admins with that player named and the chat around the line. The kind is a start: the player can change
--- it. Without the server part only the name goes, in the words: the game's tickets are public and hold no more (B9)
+-- it. Where the server can't keep a report (no server part, a frozen table, a part from before Phase 5) only the name goes, in
+-- the words: the game's tickets are public and hold no more (B9)
 function TC.openReport(win, st, r)
     local t = ts(st)
     local ask = { kind = "GRIEF", here = true }
-    if D.link() == "on" then
+    local mode, frozen = D.link()
+    if mode == "on" and not frozen and S.cm == true then
         ask.report = r
     else
         ask.seed = tr("UI_ZeD_Tk_ReportSeed", r.who)

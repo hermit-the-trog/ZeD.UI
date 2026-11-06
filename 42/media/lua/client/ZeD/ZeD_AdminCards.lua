@@ -100,7 +100,7 @@ function F.needPart() if not M.live() then return tr("UI_ZeD_Adm_NeedPart") end 
 
 -- the server's word. Its own errors first; the ones it shares with tickets speak of tickets, so they have words here too
 local ADM_ERR = { self = true, protected = true, rank = true, offline = true, item = true, ipperm = true, gone = true, state = true, frozen = true, text = true, full = true,
-    unknown = true, already = true, part = true }
+    unknown = true, already = true, part = true, pinned = true }
 function F.errOf(a)
     if ADM_ERR[a.err] then return tr("UI_ZeD_Adm_Err_" .. a.err) end
     return C.errText(a.err, a.left)

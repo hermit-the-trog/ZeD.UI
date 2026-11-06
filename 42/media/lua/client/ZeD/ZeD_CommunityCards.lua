@@ -11,10 +11,11 @@
 -- The appeal line is text, drawn with drawText like all player text, and never a link: nothing here opens anything.
 --
 -- The join window keeps to itself on a controller, as ZeD_Prompt does: the pad's focus is on the window, Up and Down scroll, Left
--- and Right pick Leave or I agree, and the window's focus never leaves those two. It is not in the Focus Manager, whose Y and
--- bumpers would open the windows under it. It holds nothing it could trap anyone with: it goes up only on the server's word (a
--- server without this part never says it), I agree closes it without waiting for an answer, a draw that fails closes it, safe
--- mode closes it, and so does the connection ending.
+-- and Right pick Leave or I agree, and the window's focus never leaves those two. It is not a Focus Manager window. The manager
+-- would open the pair under it (Y, and the first press of a pad), so while it stands Focus.held() stops that, and the window takes
+-- the pad back from whatever else takes it, a pad that arrives late included. It holds nothing it could trap anyone with: it goes
+-- up only on the server's word (a server without this part never says it), I agree closes it without waiting for an answer, a
+-- draw that fails closes it, safe mode closes it, and so does the connection ending. If it cannot be built nothing is left up.
 --
 -- A client that will not agree cannot play only because this client leaves: the server cannot remove a player (A7). The world
 -- runs on behind the cover, as behind any window.
@@ -348,7 +349,13 @@ function AC.homeExtra(L, win, st)
     L[#L + 1] = { k = "head", text = tr("UI_ZeD_Cm_RulesNews") }
     local c = F.gate({ id = "sum:cmedit", help = tr("UI_ZeD_Cm_RulesNews"), run = function(ww) CM.openEdit(ww, st) end }, nil, P.mayOpen)
     L[#L + 1] = { k = "tk", t = "arow", win = win, left = tr("UI_ZeD_Cm_RulesNewsSum"), leftMin = 200, chev = true, c = c,
-        right = v and tr("UI_ZeD_Cm_Counts", v.rules.n, v.news.n or 0) or nil }
+        right = v and P.counts(v) or nil }
+end
+
+function P.counts(v)
+    local posts = v.news.n or 0
+    return tr("UI_ZeD_Cm_Counts", tr((v.rules.n == 1) and "UI_ZeD_Cm_OneRule" or "UI_ZeD_Cm_NRules", v.rules.n),
+        tr((posts == 1) and "UI_ZeD_Cm_OnePost" or "UI_ZeD_Cm_NPosts", posts))
 end
 
 -- ---------------------------------------------------------------------------
@@ -376,11 +383,14 @@ function P.load(win, card)
     local e = v.edit or {}
     card.ask, card.reask, card.base = e.ask == true, e.reask == true, e.base
     card.rows = {}
+    local was = { motd = v.motd, appeal = v.appeal, ask = card.ask, reask = card.reask, n = v.rules.n }
     for i = 1, v.rules.n do
         local r = v.rules[i]
         card.rows[i] = { key = "cm:r" .. tostring(r.id), id = r.id, seed = r.text }
+        was[i] = { id = r.id, text = r.text }
         P.seed(win, card.rows[i].key, r.text)
     end
+    card.loaded = was
     P.seed(win, "cm:motd", v.motd)
     P.seed(win, "cm:appeal", v.appeal)
     card.stale = nil
@@ -389,7 +399,7 @@ end
 
 function CM.openEdit(win, st)
     D.setField(win, "cm:post", "")
-    local card = { kind = "cmedit", from = "adm:tk:sum:cmedit", pin = false, gen = 0, nextKey = 0 }
+    local card = { kind = "cmedit", from = "adm:tk:sum:cmedit", pin = false, gen = 0 }
     P.load(win, card)
     F.push(win, st, card)
     M.get()
@@ -412,10 +422,28 @@ function P.dirty(win, card)
     return false
 end
 
+-- has anyone touched this card since it loaded? Not the same as dirty, which reads against the view: when another admin saves,
+-- an untouched card differs from the new view and has to take it. (The message and the appeal line follow their seeds, so words
+-- that match the new view are not typed either.)
+function P.typed(win, card)
+    local was, v = card.loaded, M.view
+    if not (was and v) then return false end
+    local motd = Tk.clean(P.val(win, "cm:motd", was.motd)) or ""
+    if motd ~= was.motd and motd ~= v.motd then return true end
+    local appeal = P.rowText(win, { key = "cm:appeal", seed = was.appeal })
+    if appeal ~= was.appeal and appeal ~= v.appeal then return true end
+    if card.ask ~= was.ask or card.reask ~= was.reask then return true end
+    if #card.rows ~= was.n then return true end
+    for i, row in ipairs(card.rows) do
+        if row.id ~= was[i].id or P.rowText(win, row) ~= was[i].text then return true end
+    end
+    return false
+end
+
 -- why Save is gray, or nil
 function P.saveWhy(win, t, card)
     if not M.canRules() then return A2.why(Cm.CAP_RULES) end
-    if M.frozen() then return C.errText("frozen") end
+    if M.frozen() then return tr("UI_ZeD_Cm_Frozen") end
     if t.busy then return tr("UI_ZeD_Tk_Busy") end
     if not P.dirty(win, card) then return tr("UI_ZeD_Cm_NothingToSave") end
     for i, row in ipairs(card.rows) do
@@ -468,12 +496,13 @@ function P.removeRow(win, st, card, i)
     D.focusId(win, st, nextRow and ("tk:cmrm:" .. nextRow.key) or "tk:cmadd")
 end
 
+-- (the key is the window's to count: a box lives as long as the window, and a key used twice brings back what was typed in it)
 function P.addRow(win, st, t, card)
-    card.nextKey = card.nextKey + 1
-    local row = { key = "cm:n" .. tostring(card.nextKey), seed = "" }
+    win._cmRowKey = (win._cmRowKey or 0) + 1
+    local row = { key = "cm:n" .. tostring(win._cmRowKey), seed = "" }
     card.rows[#card.rows + 1] = row
     card.gen = card.gen + 1
-    t.wantField = row.key
+    if not D.padOn() then t.wantField = row.key end
     D.focusId(win, st, "tk:f:" .. row.key)
 end
 
@@ -541,12 +570,24 @@ function P.postCtls(win, st, t, post)
 end
 
 function P.newsWhy()
-    if M.frozen() then return C.errText("frozen") end
+    if M.frozen() then return tr("UI_ZeD_Cm_Frozen") end
     return nil
 end
 
 function P.delete(win, st, id)
     F.act(win, st, function(cb) M.del(id, cb) end, tr("UI_ZeD_Cm_Deleted"))
+end
+
+-- where the pad goes when a post goes: the next post's Delete, the one before, or the box to write one
+function P.afterPost(id)
+    local news = M.view and M.view.news or {}
+    for i = 1, news.n or 0 do
+        if news[i].id == id then
+            local other = news[i + 1] or news[i - 1]
+            if other then return "tk:cmdel:" .. tostring(other.id) end
+        end
+    end
+    return "tk:f:cm:post"
 end
 
 function P.newsPart(items, win, st, t, card, v)
@@ -558,9 +599,12 @@ function P.newsPart(items, win, st, t, card, v)
                 function(cc) cc.on = card.pin; return nil end),
             F.gate({ id = "cmpost", text = tr("UI_ZeD_Cm_Post"), primary = true, push = true, help = tr("UI_ZeD_Cm_HelpPost"),
                 run = function(ww)
-                    F.act(ww, st, function(cb) M.post(F.text(ww, "cm:post"), card.pin, cb) end, tr("UI_ZeD_Cm_Posted"), function() D.setField(ww, "cm:post", "") end)
+                    F.act(ww, st, function(cb) M.post(F.text(ww, "cm:post"), card.pin, cb) end, tr("UI_ZeD_Cm_Posted"), function()
+                        D.setField(ww, "cm:post", "")
+                        card.pin = false          -- (a pin is chosen for one post: pinned posts are never pushed off)
+                    end)
                 end }, nil, function()
-                    if M.frozen() then return C.errText("frozen") end
+                    if M.frozen() then return tr("UI_ZeD_Cm_Frozen") end
                     if F.text(win, "cm:post") == "" then return tr("UI_ZeD_Cm_WritePost") end
                     return nil
                 end),
@@ -597,7 +641,7 @@ TC.kinds.cmedit = {
                 card.savedBase = nil
                 P.load(win, card)
             end
-        elseif e.base ~= card.base and not P.dirty(win, card) then
+        elseif e.base ~= card.base and not P.typed(win, card) then
             P.load(win, card)
         end
     end,
@@ -616,6 +660,7 @@ TC.kinds.cmedit = {
                 D.btn("cmno", tr("UI_ZeD_Tk_KeepIt"), function(ww) CM.keepPost(ww, st, t) end, nil, tr("UI_ZeD_Cm_HelpKeep")),
                 D.btn("cmyes", tr("UI_ZeD_Tk_DeleteGood"), function(ww)
                     t.confirm = nil
+                    D.focusId(ww, st, P.afterPost(post.id))
                     P.delete(ww, st, post.id)
                 end, "danger", tr("UI_ZeD_Cm_HelpDelete")) } }
         end
@@ -769,7 +814,14 @@ function P.classes()
 
     function ZeD_JoinWindow:update()
         ZeD_Window.update(self)
+        if self.done then return end
+        -- the pad is this window's, however it got away and whenever it arrived: a death's panel takes it, and a pad can come after
+        -- this opened. Whoever held it gets it back at the end (finish). Not from the game's pause menu, which gives it back itself
         local jd = JoypadState and JoypadState.players and JoypadState.players[1]
+        if jd and jd.focus ~= self and not jd.inMainMenu then
+            if jd.focus then self.padTaken = jd.focus end
+            setJoypadFocus(0, self)
+        end
         self.joyfocus = (jd and jd.focus == self) and jd or nil
         self._padId = self.joyfocus and ("tk:" .. self.pick) or nil
     end
@@ -835,13 +887,18 @@ function P.classes()
         CM.joinWin = nil
         pcall(doKeyPress, true)
         local jd = JoypadState and JoypadState.players and JoypadState.players[1]
-        if jd and jd.focus == self then setJoypadFocus(0, nil) end
+        local taken = self.padTaken
+        if taken and not (taken.isVisible and taken:isVisible()) then taken = nil end
+        if jd and jd.focus == self then setJoypadFocus(0, taken) end
         self:setVisible(false)
         self:removeFromUIManager()
         if self.cover then
             self.cover:setVisible(false)
             self.cover:removeFromUIManager()
         end
+        -- (the window the pad was in when this opened)
+        local back = self.padBack
+        if back and not taken and back:isVisible() and not back.windowShaded then ZeD.Input.Focus.claimFocus(back) end
     end
 end
 
@@ -849,20 +906,26 @@ function M.joinScreen()
     if CM.joinWin or not M.view or A2.leave then return end
     if ZeD.Safe and ZeD.Safe.on("community") then return end
     P.classes()
-    local core = getCore()
-    local cover = ZeD_JoinCover:new(0, 0, core:getScreenWidth(), core:getScreenHeight())
-    cover:initialise()
-    cover:addToUIManager()
-    cover:setAlwaysOnTop(true)
+    -- the window first. If it cannot be built there is nothing up to cover the game, and past this point it can always be answered
     local win = ZeD_JoinWindow:new(M.view)
-    win.cover = cover
     win:initialise()
     win:instantiate()
     win:addToUIManager()
     win:setAlwaysOnTop(true)
-    win:bringToTop()
     CM.joinWin = win
+    local core = getCore()
+    local cover = ZeD_JoinCover:new(0, 0, core:getScreenWidth(), core:getScreenHeight())
+    win.cover = cover
+    cover:initialise()
+    cover:addToUIManager()
+    cover:setAlwaysOnTop(true)
+    win:bringToTop()
     pcall(doKeyPress, false)
+    local Fo = ZeD.Input and ZeD.Input.Focus
+    if Fo and Fo.getFocusedWindow then
+        win.padBack = Fo.getFocusedWindow()
+        if win.padBack then Fo.releaseFocus() end
+    end
     local jd = JoypadState and JoypadState.players and JoypadState.players[1]
     if jd then setJoypadFocus(0, win) end
 end

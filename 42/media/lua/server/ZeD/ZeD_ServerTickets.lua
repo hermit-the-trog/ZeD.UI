@@ -301,6 +301,11 @@ local function logTk(rec, what, who)
     Srv.log("ticket " .. tostring(rec.id) .. " " .. tostring(rec.kind) .. " " .. what .. " by " .. tostring(who) .. where)
 end
 
+-- what is done to a report goes in the log staff read: a report can name one of them
+local function logReport(rec, what, who)
+    if rec.report then Srv.action("ticket", who, what, rec.report.who, "ticket " .. tostring(rec.id)) end
+end
+
 local function toAuthor(rec, command, args)
     local o = Srv.player(rec.author)
     if o then Srv.to(o, Tk.MOD, command, args) end
@@ -619,14 +624,26 @@ reg("t_queue", { cap = STAFF, limit = L.QUEUE_MS }, function(p, a, rid)
     Srv.to(p, Tk.MOD, "t_queue", r)
 end)
 
--- the record of a staff command that writes, or nil with the answer sent
-local function acting(p, a, rid, allowed)
+-- a report from chat that names this staff member: someone else answers and closes it. The name is the reporter's word, so a
+-- forged one stops one person handling one ticket, no more. An admin can still act: somebody has to be able to
+local function namedIn(p, rec)
+    local who = rec.report and rec.report.who
+    if not who or string.lower(who) ~= string.lower(p:getUsername()) then return false end
+    return not Srv.can(p, ADMIN)
+end
+
+-- the record of a staff command that writes, or nil with the answer sent. handles: this command answers or buries the ticket
+local function acting(p, a, rid, allowed, handles)
     local md = open()
     if frozen(p, rid) then return nil end
     local rec = recOf(md, a.id)
     if not rec then
         if not Tk.whole(a.id) then Srv.bad(p, "ticket id") end
         Srv.ack(p, rid, false, "gone")
+        return nil
+    end
+    if handles and namedIn(p, rec) then
+        Srv.ack(p, rid, false, "named")
         return nil
     end
     if allowed and not allowed(rec.status) then
@@ -680,7 +697,7 @@ reg("t_take", { cap = STAFF }, function(p, a, rid)
 end)
 
 reg("t_answer", { cap = STAFF }, function(p, a, rid)
-    local rec, md = acting(p, a, rid, Tk.canAnswer)
+    local rec, md = acting(p, a, rid, Tk.canAnswer, true)
     if not rec then return end
     local text = goodText(a.text)
     if not text then Srv.ack(p, rid, false, "text"); return end
@@ -702,6 +719,7 @@ reg("t_answer", { cap = STAFF }, function(p, a, rid)
     toAuthor(rec, "t_note", { id = rec.id, who = me })
     toAuthor(rec, "t_one", playerView(rec))
     logTk(rec, "answered", me)
+    logReport(rec, "report answered", me)
 end)
 
 reg("t_addnote", { cap = STAFF }, function(p, a, rid)
@@ -719,10 +737,11 @@ reg("t_addnote", { cap = STAFF }, function(p, a, rid)
 end)
 
 reg("t_close", { cap = STAFF }, function(p, a, rid)
-    local rec, md = acting(p, a, rid, Tk.canClose)
+    local rec, md = acting(p, a, rid, Tk.canClose, true)
     if not rec then return end
     rec.status = "Closed"
     changed(p, md, rec, rid, "closed")
+    logReport(rec, "report closed", p:getUsername())
 end)
 
 reg("t_reopen", { cap = STAFF }, function(p, a, rid)
@@ -733,7 +752,7 @@ reg("t_reopen", { cap = STAFF }, function(p, a, rid)
 end)
 
 reg("t_spam", { cap = STAFF }, function(p, a, rid)
-    local rec, md = acting(p, a, rid, function(st) return st ~= "Spam" end)
+    local rec, md = acting(p, a, rid, function(st) return st ~= "Spam" end, true)
     if not rec then return end
     rec.status = "Spam"
     rec.spamBy = p:getUsername()
@@ -744,6 +763,7 @@ reg("t_spam", { cap = STAFF }, function(p, a, rid)
     pushCard(rec)
     pushRow(md, rec)                 -- (the author's row reads Closed: playerRow maps it)
     logTk(rec, "marked spam", p:getUsername())
+    logReport(rec, "report marked spam", p:getUsername())
 end)
 
 reg("t_unspam", { cap = STAFF }, function(p, a, rid)
@@ -767,9 +787,10 @@ local function tomb(md, rec)
 end
 
 reg("t_delete", { cap = ADMIN }, function(p, a, rid)
-    local rec, md = acting(p, a, rid)
+    local rec, md = acting(p, a, rid, nil, true)
     if not rec then return end
     local id, author = rec.id, rec.author
+    logReport(rec, "report deleted", p:getUsername())
     if rec.source == "zed" and not rec.gameId and not rec.gameGone then tomb(md, rec) end
     Srv.ack(p, rid, true, nil, { gameId = rec.gameId })
     logTk(rec, "deleted", p:getUsername())

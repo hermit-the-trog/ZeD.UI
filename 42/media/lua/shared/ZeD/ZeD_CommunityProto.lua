@@ -26,8 +26,6 @@ Cm.ASK_ON_REMOVE = false
 -- Deleting a news post asks first in the card's foot. The drawing deletes at once; Delete sits beside Pin, and a post is
 -- public. false: as drawn.
 Cm.DELETE_ASKS = true
--- How many chat lines go with a report, each side of the picked line.
-Cm.REPORT_AROUND = 5
 
 -- every limit in one place, so they can become server settings later
 Cm.L = {
@@ -43,6 +41,9 @@ Cm.L = {
     PIN_MS = 500,
     AGREE_MS = 2000,
     GET_MS = 1000,
+    PUSH_MS = 5000,                 -- the board goes to everyone at most this often; whoever pressed gets it at once
+    ASKED_MS = 300000,              -- asked and no answer for this long: one line in the log
+    ASKED_LOOK_MS = 5000,           -- how often the server looks
 }
 
 -- typed words, several lines, trimmed: nil if they are not words or are too long. Empty is allowed: the caller says.

@@ -310,7 +310,11 @@ local function clientJoin(p)
     env.require = function(n) requireIn(env, n) end
     env.getPlayer = function() return p end
     env.getTextOrNull = function() return nil end
-    env.getText = function(k) return W.texts[k] or k end
+    env.getText = function(k, a)
+        local s = W.texts[k] or k
+        if a ~= nil then s = string.gsub(s, "%%1", tostring(a)) end
+        return s
+    end
     env.getServerIP = function() return W.ip end
     env.getServerPort = function() return W.port end
     env.getFileWriter = function(name, create, append)
@@ -477,6 +481,27 @@ local function nolimit(p) W.server.ZeD.Srv.mem[p.name] = nil end
 local function Mo(c) return c.env.ZeD.Community end
 local function Cm() return W.server.ZeD.Cm end
 local function CT() return W.server.ZeD.Srv.M end
+-- long enough that a push held back has gone out
+local function flush() advance(W.server.ZeD.Cm.L.PUSH_MS + 600) end
+local function logCount(text)
+    local n = 0
+    for _, l in ipairs(W.logs) do
+        if string.find(l.line, text, 1, true) then n = n + 1 end
+    end
+    return n
+end
+local function boxCount(p, c)
+    local n = 0
+    for _, b in ipairs(p.box) do
+        if b.cmd == c then n = n + 1 end
+    end
+    return n
+end
+local function offline(p)
+    for i = #W.online, 1, -1 do
+        if W.online[i] == p then table.remove(W.online, i) end
+    end
+end
 local function cmd() return CT().md end
 local function sayM(p, command, args)
     p.box = {}
@@ -553,6 +578,7 @@ do
     m.role = ROLES.user
     nolimit(a)
     sayM(a, "m_post", { text = "news" })
+    flush()
     check("a demoted client's next view has no ticks", got(m, "m_view") and got(m, "m_view").edit == nil)
 end
 
@@ -629,9 +655,11 @@ do
     net(function() W.server.Events.OnClientCommand.fire("OtherMod", "m_save", a, { motd = "x" }) end)
     drain()
     nolimit(a)
+    p = a
+    a.box = {}
     net(function() W.server.Events.OnClientCommand.fire("ZeDM", "m_agree", a, nil) end)
     drain()
-    check("no args is fine", cmd().agreed.hermit ~= nil)
+    check("no args is fine", okOf(a))
     check("no Lua error in any of it", not logHas("handler failed"))
 end
 
@@ -731,7 +759,7 @@ do
     -- a rule changes while they are on: not during play
     local r = cmd().rules
     save(a, { rules = rulesOf({ id = r[1].id, text = "One" }, { id = r[2].id, text = "Two, new" }, { id = r[3].id, text = "Three" }) })
-    advance(100)
+    flush()
     check("on the server when the rules change: nothing pops up", cu.shown == 0)
     check("but the view knows", Mo(cu).view.ask == true and Mo(cu).view.rules[2].text == "Two, new")
     nolimit(u)
@@ -907,7 +935,7 @@ do
     sayM(a, "m_post", { text = "Restart at 4", pin = true })
     nolimit(m)
     sayM(m, "m_post", { text = "Newest plain" })
-    advance(100)
+    flush()
     local n = Mo(cu).view.news
     check("pinned first, newest first", n[1].text == "Restart at 4" and n[2].text == "Trading post Saturday" and n[3].text == "Newest plain" and n[4].text == "Vehicle claims are coming",
         n[1].text .. "/" .. n[2].text .. "/" .. n[3].text)
@@ -915,11 +943,11 @@ do
     sayM(m, "m_post", { text = "too soon" })
     nolimit(a)
     sayM(a, "m_pin", { id = 1, on = false })
-    advance(100)
+    flush()
     check("unpinned", cmd().news[1].pin == false and Mo(cu).view.news[1].text == "Restart at 4" and Mo(cu).view.news[5].text == "Trading post Saturday")
     nolimit(a)
     sayM(a, "m_del", { id = 2 })
-    advance(100)
+    flush()
     check("deleted, for everyone", Mo(cu).view.news.n == 4 and cmd().news[2] == nil)
     check("each edit is logged", logHas("news posted") and logHas("news unpinned") and logHas("news deleted"))
     sayM(u, "m_get", {})
@@ -934,7 +962,7 @@ do
     for _, post in pairs(cmd().news) do post.pin = true end
     nolimit(a)
     sayM(a, "m_post", { text = "nowhere" })
-    check("all pinned: full", errOf(a) == "full")
+    check("all pinned: said so", errOf(a) == "pinned")
     -- limits
     for _, post in pairs(cmd().news) do post.pin = false end
     nolimit(a)
@@ -1101,6 +1129,221 @@ do
     W.server = nil
     serverStart()
     check("two tables: the first by name", logHas("found 2 community tables"))
+end
+
+-- ---------------------------------------------------------------------------
+section("the review: only a real answer writes anything")
+do
+    local a = boot()
+    local u = player("Kade", "user")
+    clientJoin(u)
+    local lines = #W.logs
+    sayM(u, "m_agree", { rev = 0 })
+    check("not being asked: an answer, and nothing else", okOf(u) and got(u, "m_view") == nil)
+    check("no record", cmd().agreed.kade == nil and cmd().agreedN == 0)
+    check("no line", #W.logs == lines)
+    -- the record that would have said they agreed to rules they were never shown
+    save(a, { rules = rulesOf("One") })
+    save(a, { ask = true })
+    nolimit(u)
+    sayM(u, "m_get", {})
+    check("rules added later ask them", got(u, "m_view").ask == true)
+    nolimit(u)
+    sayM(u, "m_agree", { rev = 1 })
+    check("a real answer is kept", cmd().agreed.kade ~= nil and logCount("agreed to the rules: Kade") == 1)
+    for _ = 1, 5 do
+        nolimit(u)
+        sayM(u, "m_agree", { rev = 1 })
+    end
+    check("the same answer again writes nothing", logCount("agreed to the rules: Kade") == 1 and got(u, "m_view") == nil)
+end
+
+-- ---------------------------------------------------------------------------
+section("the review: a client that skips the screen")
+do
+    local a = boot()
+    save(a, { ask = true, rules = rulesOf("One") })
+    local L = Cm().L
+    local skip = player("Lee", "user")
+    local cs = clientJoin(skip)
+    advance(600)
+    check("asked", cs.shown == 1 and Mo(cs).view.ask == true)
+    local ok1 = player("Bea", "user")
+    clientJoin(ok1)
+    nolimit(ok1)
+    sayM(ok1, "m_agree", { rev = 1 })
+    local gone = player("Dee", "user")
+    clientJoin(gone)
+    offline(gone)
+    advance(L.ASKED_MS - 2000)
+    check("still reading: no line", logCount("rules not answered") == 0)
+    advance(L.ASKED_LOOK_MS + 3000)
+    check("no answer: one line, on the log staff read", logCount("rules not answered") == 1 and logCount("Lee") >= 1)
+    check("in the ring", (function()
+        for _, e in pairs(md().log) do
+            if type(e) == "table" and e.what == "rules not answered" and e.kind == "community" then return e.who == "Lee" end
+        end
+        return false
+    end)())
+    advance(L.ASKED_MS)
+    check("one line for a connection", logCount("rules not answered") == 1)
+    check("someone who answered, and someone who left, get none", not logHas("rules not answered | Bea") and not logHas("rules not answered | Dee"))
+    check("who left is forgotten", CT().here.dee == nil)
+    -- a respawn's hello is not a join: the screen does not come back, so it is not a skip
+    local late = player("Oki", "user")
+    clientJoin(late)
+    nolimit(late)
+    sayM(late, "m_agree", { rev = 1 })
+    save(a, { rules = rulesOf({ id = cmd().rules[1].id, text = "One" }, "Two") })
+    W.server.ZeD.Srv.mem[late.name] = nil
+    W.clients[late.name].env.Events.OnCreatePlayer.fire(0, late)
+    advance(L.ASKED_MS + L.ASKED_LOOK_MS + 1000)
+    check("a rule changed while on: no line", not logHas("rules not answered | Oki"))
+end
+
+-- ---------------------------------------------------------------------------
+section("the review: the board")
+do
+    local a = boot()
+    local m = player("Rosa", "moderator")
+    clientJoin(m)
+    local u = player("Kade", "user")
+    local cu = clientJoin(u)
+    sayM(a, "m_post", { text = "one" })
+    advance(100)
+    check("the first change goes to everyone at once", Mo(cu).view.news.n == 1)
+    u.box = {}
+    nolimit(a)
+    sayM(a, "m_post", { text = "two" })
+    check("whoever pressed has it now", got(a, "m_view") and got(a, "m_view").news.n == 2)
+    check("the rest wait", got(u, "m_view") == nil)
+    nolimit(a)
+    sayM(a, "m_pin", { id = 1, on = true })
+    nolimit(a)
+    sayM(a, "m_pin", { id = 1, on = false })
+    check("still waiting", got(u, "m_view") == nil)
+    flush()
+    check("then one push carries all of it", boxCount(u, "m_view") == 1 and Mo(cu).view.news.n == 2)
+    -- no change, nothing sent
+    sayM(a, "m_pin", { id = 1, on = true })
+    flush()
+    nolimit(a)
+    u.box = {}
+    local lines = logCount("news pinned")
+    sayM(a, "m_pin", { id = 1, on = true })
+    check("pinning what is pinned: an answer", okOf(a))
+    check("no line, no view", logCount("news pinned") == lines and got(a, "m_view") == nil)
+    flush()
+    check("and nobody else hears", got(u, "m_view") == nil)
+    -- a role does not touch what one above it wrote
+    nolimit(m)
+    sayM(m, "m_del", { id = 1 })
+    check("a moderator can't delete an admin's post", errOf(m) == "rank" and cmd().news[1] ~= nil)
+    nolimit(m)
+    sayM(m, "m_pin", { id = 1, on = false })
+    check("or unpin it", errOf(m) == "rank" and cmd().news[1].pin == true)
+    nolimit(m)
+    sayM(m, "m_post", { text = "mine" })
+    local mine = got(m, "t_ack").id
+    nolimit(m)
+    sayM(m, "m_pin", { id = mine, on = true })
+    check("their own they can", okOf(m))
+    nolimit(a)
+    sayM(a, "m_del", { id = mine })
+    check("an admin can reach down", okOf(a) and cmd().news[mine] == nil)
+    check("a post's rank stays home", keysIn(got(a, "m_view") or {}).rank == nil)
+    local Adm = W.server.ZeD.Adm
+    Adm.RANK_GUARD = false
+    nolimit(m)
+    sayM(m, "m_del", { id = 2 })
+    check("the switch off: a moderator can", okOf(m))
+    Adm.RANK_GUARD = true
+    -- a full board
+    for i = 1, Cm().L.NEWS_MAX do
+        nolimit(a)
+        sayM(a, "m_post", { text = "post " .. i, pin = i > 1 })
+    end
+    check("a post pushed off leaves its words in the log", logHas("news pushed off the board") and logHas(": one"))
+    nolimit(a)
+    sayM(a, "m_post", { text = "last plain" })
+    nolimit(a)
+    sayM(a, "m_post", { text = "over" })
+    check("every post pinned: its own word", errOf(a) == "pinned", errOf(a))
+end
+
+-- ---------------------------------------------------------------------------
+section("the review: a report that names staff")
+do
+    local a = boot()
+    local rosa = player("Rosa", "moderator")
+    clientJoin(rosa)
+    local bea = player("Bea", "moderator")
+    clientJoin(bea)
+    local u = player("Aretha", "user")
+    local cu = clientJoin(u)
+    local rep = { who = "ROSA", n = 1, { who = "Rosa", text = "move along", t = "9:32", mark = true } }
+    local back = nil
+    cu.env.ZeD.Tickets.ask("GRIEF", false, "she took it", function(x) back = x end, rep)
+    advance(100)
+    local T2 = W.server.ZeD.Srv.T
+    local rec = T2.md.tickets[back.id]
+    sayT(rosa, "t_spam", { id = back.id })
+    check("named, in any case: no Spam", errOf(rosa) == "named" and rec.status ~= "Spam", errOf(rosa))
+    sayT(rosa, "t_close", { id = back.id })
+    check("no Close", errOf(rosa) == "named" and rec.status ~= "Closed")
+    sayT(rosa, "t_answer", { id = back.id, text = "no I did not" })
+    check("no Answer", errOf(rosa) == "named" and rec.thread.n == 1)
+    sayT(bea, "t_answer", { id = back.id, text = "looking at it" })
+    check("another moderator can", okOf(bea) and rec.thread.n == 2)
+    check("and it is in the log staff read", (function()
+        for _, e in pairs(md().log) do
+            if type(e) == "table" and e.what == "report answered" and e.kind == "ticket" then return e.who == "Bea" and e.target == "ROSA" end
+        end
+        return false
+    end)())
+    sayT(a, "t_close", { id = back.id })
+    check("so can an admin", okOf(a) and rec.status == "Closed" and logHas("report closed"))
+    -- an admin named is still an admin
+    local rep2 = { who = "Hermit", n = 0 }
+    nolimit(u)
+    cu.env.ZeD.Tickets.ask("GRIEF", false, "him too", function(x) back = x end, rep2)
+    advance(100)
+    sayT(a, "t_spam", { id = back.id })
+    check("somebody has to be able to", okOf(a) and logHas("report marked spam"))
+    sayT(a, "t_delete", { id = back.id })
+    check("deleted, and said", okOf(a) and logHas("report deleted"))
+    -- a plain ticket is left alone
+    nolimit(u)
+    cu.env.ZeD.Tickets.ask("BUG", false, "plain", function(x) back = x end)
+    advance(100)
+    local before = logCount("report closed")
+    sayT(rosa, "t_close", { id = back.id })
+    check("a ticket with no report: as before", okOf(rosa) and logCount("report closed") == before)
+    -- one switch
+    local Tk = W.server.ZeD.Tk
+    check("the server's limit comes from the client's reach", Tk.LIMITS.REPORT_LINES == 2 * Tk.REPORT_AROUND + 1)
+end
+
+-- ---------------------------------------------------------------------------
+section("the review: the game's words, asked properly")
+do
+    local a, ca = boot()
+    local M = Mo(ca)
+    local calls, bare = 0, 0
+    ca.env.getText = function(k, x)
+        calls = calls + 1
+        local s = W.texts[k] or k
+        if x == nil and string.find(s, "%1", 1, true) then bare = bare + 1 end
+        if x ~= nil then s = string.gsub(s, "%%1", tostring(x)) end
+        return s
+    end
+    M.heads = nil
+    for _ = 1, 10 do M.isRemoved("Wrong password") end
+    check("no word is asked without its argument", bare == 0, bare)
+    check("asked once, not every frame", calls == 4, calls)
+    check("a ban with a reason still reads", M.isRemoved("You are banned from this server. Reason: griefing"))
+    check("cut at the reason", M.isRemoved("You were kicked. Reason: griefing"))
+    check("a lost server still does not", not M.isRemoved("Connection lost"))
 end
 
 print("community_sim: " .. checks .. " checks, " .. failed .. " failed")
