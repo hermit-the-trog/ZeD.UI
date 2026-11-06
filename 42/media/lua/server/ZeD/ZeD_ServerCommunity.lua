@@ -245,7 +245,9 @@ local function mergeRules(md, rows)
             md.nextRule = md.nextRule + 1
         end
     end
-    return out, fresh, next(byId) ~= nil, moved
+    local removed = false                         -- (Kahlua has no next())
+    for _ in pairs(byId) do removed = true end
+    return out, fresh, removed, moved
 end
 
 reg("m_save", { cap = CAP_RULES, limit = CL.SAVE_MS, mark = false }, function(p, a, rid)

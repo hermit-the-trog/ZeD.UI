@@ -1385,3 +1385,66 @@ Both phases grew the ticket frame at once. What the merge settled:
    way staff see anyone else's. Your own row opens its card; anyone else's opens the game's window, until a staff card holds them.
 4. **Two answers to a command stay.** Admin commands answer on the tickets' `t_ack`, and claims on their own `c_ack` through `ackModule`, since
    those cards work without the tickets' model. `Srv.ack` carries both.
+
+# Build's changes (Nov 6 2026, Phase 5: community)
+
+Files: `ZeD_CommunityProto.lua` (shared, `ZeD.Cm`), `ZeD_ServerCommunity.lua` (server), `ZeD_Community.lua` (the model), `ZeD_CommunityCards.lua` (the cards, the
+join window, the leaving screens). `community_sim.lua`, `community_cards_sim.lua`, `mp_community.lua`, `mp_community_cards.lua`. Module `ZeDM`; every answer comes back as
+`t_ack`. The table is `ZeD_CM_` plus a UUID, as B2. The view goes out with the hello (`r.cm`) and again as `m_view` at every change. Where it differs from the drawing or the
+scope, and why.
+
+1. **The screen asks once in a connection, on the hello.** Nobody is asked mid-play: a rule changed while you are on waits for your next join, a respawn is not a join. The
+   drawing's Saved line says the same.
+2. **A rule changed or added asks again; a rule moved or taken away does not** (`Cm.ASK_ON_REMOVE`). Each rule keeps the revision it last changed at, `md.rev` is the highest,
+   and a player who agreed at less is asked, with the rules past their revision marked NEW. The message of the day and the appeal line never ask again. "Changed Nov 5" moves
+   for any change to the list. With no rules the tick does not hold: there is nothing to agree to.
+3. **I agree closes the screen at once and tells the server after.** Nothing waits on an answer, so no server can hold anyone there. A lost answer means being asked again next
+   join. Agreeing is to the words on screen: the window keeps the view it opened with, and a push while reading changes nothing. A frozen table asks nobody, because it could
+   not keep the answer.
+4. **Enforced by the client, as the timed ban is.** Server Lua cannot remove a player (A7). A modified client can skip the screen; the agreement is a record of what a client
+   said. It is a line in the ZeD log, not in `md.log`: agreements would crowd out the ring on a busy server. Every edit is `Srv.action("community", ...)`, so Phase 4's Log needs a
+   word for that kind when the two meet.
+5. **The join screen holds the keys, not the character.** `doKeyPress(false)` stops the game's key events; only a focused text box stops `GameKeyboard.isKeyDown`, so WASD still
+   walks behind the cover. The pad's focus is the window's, so a pad does not walk. The world runs on: a player reading on a hot spawn can be bitten, and Lua has nothing to
+   stop that. The cover is 0.94 opaque.
+6. **The join window is not in the Focus Manager.** Its Y and bumpers would open windows under a modal. Up and Down scroll, Left and Right pick, A presses, B answers nothing,
+   and focus never leaves the two buttons, so reading never loses the button. It lands on I agree. No close box: closing would have to mean something. It is the same card as the
+   rest, on the ticket frame, through two small hooks: `K.noBack`, and `win._padId` for a window with its own pad, in `D.focusOf`.
+7. **Nothing can trap a player.** It goes up only on a view that says so. A failed draw closes it (`ZeD.Safe.guard`), as does safe mode (piece `community`), a ban, and the connection
+   ending. `ISServerDisconnectUI_OnServerDisconnectUI` is wrapped for that last one, or the cover would stand over the game's Exit and Quit. The same wrap clears `Admin.leave`, which
+   closes the ban screen for the same reason.
+8. **The appeal line reaches a removed player three ways.** On the ban screen with the reason, from the server (`leaveView`, since their client may never have heard it). Under the
+   game's own words on a kick: the game draws the reason in Java on its disconnect screen, so ZeD adds one line under it, for a removal only (`M.isRemoved`, the game's own keys). On
+   ZeD's connect screen when a banned login is refused, from `Lua/ZeD_appeal.txt`, kept per server (A7: they cannot log in to ask). Always `drawText`, never a link.
+9. **Two capabilities, not one** (`Cm.CAP_RULES`, `Cm.CAP_NEWS`). The game has none for this. Rules, message, appeal and the ticks need `ChangeAndReloadServerOptions`, the one that
+   changes the server's welcome message; moderators lack it. News needs `DisplayServerMessage`, as the drawing's post by Rosa has it. Each half of the card grays with its reason.
+10. **Save is stopped on an older copy.** `base` counts the saves; a Save from before someone else's answers `stale`, the foot names who, and a second press replaces it. A clean card
+    takes their words at once.
+11. **A report's chat is the reporter's word.** Server Lua cannot reach `ChatServer`, so the server hears none of it. `rec.report` is kept on the ticket (name, up to 11 lines, each cut to
+    300), counted in `md.chars`, shown to staff and the reporter with that said on the card, and never put in the game's ticket, which is public. The kind starts at Griefing with
+    Include where I am ticked, the card's own rule for that kind; the player can change both. The words are still the player's to write.
+12. **Without the server part** chat still picks: Mute and an admin's two need nothing from it, and Report opens the game's fallback card with "About mike_d: " typed, and no chat. Rules,
+    news and the join screen do not exist there. Mute covers ZeD's window on this computer; the words over a head are the game's.
+13. **The fields.** A rule's box wraps and grows, where the drawing has one line: a one-line box cannot show a rule of 200 characters at Deck width. Enter makes a line break and Save
+    flattens it. Up, Down and Remove are icon buttons with ZeD's own triangles and cross (the fonts have neither), and move under the field when they will not fit beside it. They take
+    effect on Save, as drawn. A field not yet scrolled to has no box, so the card reads its seed until it does.
+14. **Small changes from the drawing.** The foot's "Not saved yet." alone, since the band cut the rest; the sentence is in Save's help. Delete asks in the foot (`Cm.DELETE_ASKS`): it sits
+    beside Pin and a post is public. PINNED sits in its own column, not inline. Pin it to the top starts unticked (the drawing's sample has it ticked, and everything would pin). The Server
+    block keeps Online and Your role after the message and The rules row. News and The rules row go when there is nothing in them. A long list of new rules goes on the line over the
+    band and reads "3 rules are new". Your own lines and server lines cannot be picked: nothing to do about them. On the pad a picked line's buttons are walked with Left and Right.
+15. **The director's questions, each answered the careful way behind one switch in `ZeD_CommunityProto.lua`:** `CAP_RULES`, `CAP_NEWS`, `ASK_ON_REMOVE = false`, `DELETE_ASKS = true`,
+    `REPORT_AROUND = 5`. Staff are asked like everyone: "everyone" is the tick's word.
+
+Not settled, for QA on the local server (`mp_community.lua` prints these as PROBE and TODO lines):
+
+| # | Unknown | How it settles |
+|---|---|---|
+| G1 | That `doKeyPress(false)` stops I, T and Esc while the screen is up, read from `GameKeyboard.update` only | Press them with the screen up |
+| G2 | When the hello lands against the game's "click to start" and a new character's screens. The screen waits for `getPlayer()`; `UIManager` must be drawing | Join with a new account, and with a saved one |
+| G3 | That `getServerIP` in game is the string `server:getIp` gives the connect screen. `GameClient.ip` is set from the connect call, as far as the bytecode goes. If they differ a banned player sees no line | PROBE prints the key; compare it with the file after a ban |
+| G4 | That a panel added from the wrapped `ISServerDisconnectUI_OnServerDisconnectUI` draws in `ServerDisconnectState`, whose `ResetCallbacks` has just run. `UIManager.render` is called there | A kick on a second client |
+| G5 | That `LuaManager.call` finds the wrapped global. The name is looked up in the Lua environment at the call | The same kick |
+| G6 | `getAuthor` on a chat line: the username or a display name. Mute, Report, Player card and Teleport all take it as the username | A second client, with a name set apart from the username if the server allows it |
+| G7 | What `getDatetimeStr` holds. A report's time is cut to 16 characters | Read a report's lines on the local server |
+| G8 | That `OnGameStart` runs before the hello's answer on a fresh join, or the first answer would be read as a repeat. Harmless the other way | The join screen shows on the first join of a connection |
+| G9 | E5 again: the dates read in the viewer's zone or UTC. A post's short date carries no UTC word | Compare a post's date near midnight |

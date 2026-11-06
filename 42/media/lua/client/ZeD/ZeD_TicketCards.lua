@@ -2204,7 +2204,7 @@ end
 -- the field being typed in, if any
 function D.typing(win, t)
     for _, it in ipairs(t.items or {}) do
-        if it.k == "field" then
+        if it.k == "field" or it.isField then
             local inner = D.fieldInner(D.fieldOf(win, it.key))
             if inner and inner:isFocused() then return it end
         end
@@ -2527,7 +2527,7 @@ function TC.cardKey(st)
         parts[#parts + 1] = tostring(r.b.disabled)
     end
     for _, it in ipairs(t.items or {}) do
-        if it.k == "field" then parts[#parts + 1] = tostring(it.h) end
+        if it.k == "field" or it.isField then parts[#parts + 1] = tostring(it.h) end
     end
     return table.concat(parts, ",")
 end
