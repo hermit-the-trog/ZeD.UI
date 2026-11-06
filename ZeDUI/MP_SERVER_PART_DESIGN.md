@@ -1385,3 +1385,65 @@ Both phases grew the ticket frame at once. What the merge settled:
    way staff see anyone else's. Your own row opens its card; anyone else's opens the game's window, until a staff card holds them.
 4. **Two answers to a command stay.** Admin commands answer on the tickets' `t_ack`, and claims on their own `c_ack` through `ackModule`, since
    those cards work without the tickets' model. `Srv.ack` carries both.
+
+# Build's changes (Nov 6 2026, Phase 4: logs and accountability)
+
+Files: `ZeD_LogProto.lua` (shared, `ZeD.Lg`), `ZeD_ServerLog.lua` (server), `ZeD_Log.lua` (the model, `ZeD.Logs`), `ZeD_LogCards.lua` (the card). Module `ZeDL`; answers
+come back on the tickets' `t_ack`. `log_sim.lua`, `log_cards_sim.lua`, `mp_log.lua`, `mp_log_cards.lua`. Where the build differs from A5, A6, the scope and
+`mockups/zed_logs_v1.html`, and why.
+
+1. **Everything is on `Srv.action` now.** Tickets are kind `ticket` (`ticket | filed | Kade_R | #14 | 6280,5350,0 | GRIEF | day 12`: the record's kind in `detail`, never its words).
+   The core's lines (refused, bad arguments, rate limit, handler failed, up and off) and the admin clock's are kind `admin`, who `server` or the player. The ring holds them, so
+   a refused command reads in the Log view. Only a table's own opening writes to the file alone (`Srv.fileLine`), since the ring is inside the table being opened.
+   `Srv.log` is the writer behind both and nothing else calls it. Existing outside parsers of the old free-text ticket line have to change.
+2. **Two rings beside `md.log`.** The game's PvP hits go in `md.pvp` (`PVP_MAX`, 400) and other mods' lines in `md.tap` (`TAP_MAX`, 300), both in the same secret table. A fight fills a
+   10-hit buffer every few seconds and any client can write a tapped line, so neither may push out ZeD's evidence. All three share the order `s`. Hits and tapped lines are not
+   written to the ZeD log: they are already in the game's `pvp` file and the mod's own. Kills are ZeD's own lines (kind `pvp`) and are in the ZeD log.
+3. **E2 reads settled in the bytecode; the probe stays.** `NetTimedAction.parse` runs `<Type>.new` by name with the class first. `perform` takes `complete` with
+   `KahluaTable.rawget`, and `KahluaTableImpl.rawget` does not stop at the table: a key it lacks goes to the metatable's `rawget`, and so up the classes. So the class wrap is what
+   runs, and it is what ships. `.new` is wrapped too, to count. A class that makes `HOOK_MISS` (3) actions and reaches no complete turns the fallback on by itself (each new
+   action carries the wrap as its own `complete`), with one line in the ZeD log. Cancelled actions can trip it; that does no harm, because the two roads are one function.
+   `.new` must be wrapped on the server only: `NetTimedAction.set` on the client reads the closure's parameter names.
+4. **The game's PvP log has no weapon and no usable time.** `PVPEvent` keeps wielder, target and place; `getText` gives `[dd-MM-yy HH:mm:ss.SSS] "a" hit "b"`, and its fields aren't reachable
+   as methods. It holds the last ten hits. So `PVPLogTool.getEvents` is read every `POLL_S`, a line takes the time it was read (at most 10 seconds late), and more than ten hits between
+   two reads are lost. The drawing's "with a Baseball Bat" comes from `OnWeaponHitCharacter`, read beside it and lost if it does not fire on the server; the line then just says "hit Mags_77".
+   Reading needs `PVPLogTool`, the game's own test. The drawing's "a Baseball Bat" reads "with Baseball Bat": the article can't be chosen for every item name.
+5. **Kills come from `OnCharacterDeath`,** which `IsoGameCharacter.DoDeath` fires just before it reads `getAttackedBy` for the game's own kill line. Animals are left out. The kill line in the
+   game's `pvp` file is not read: `logKill` keeps nothing in `events`.
+6. **Other mods' lines.** The global `writeLog` is wrapped; A5's first path needs nothing more, since `ISLogSystem.writeLog` looks the global up. `Srv.tapBy` carries who sent a line through
+   `ISLogSystem`, so a line claiming to be someone else's reads "from the log X, sent by griefer, not proved". The ZeD log's name stays closed, in any case and punctuation. `TAP_PER_MIN` per
+   sender limits what is kept; the game's file gets every line regardless. A logger named `pvp` shows under the PvP chip with its own source, never as the game's. A logger that fits no chip
+   shows as Other under All: the drawing has no such chip.
+7. **Words live on the client, codes on the server.** A row holds `what`, `target`, `text` and the vehicle's `car`, `part` and `locked`; `ZeD_Log.lua` turns them into the viewer's language. A code it
+   has no words for reads as the server wrote it, which is how a later ZeD's lines and the server's own lines show. Nothing in the file changes for outside tools.
+8. **A place name is coordinates.** E3 is still open, so no line says "Riverside farm". The car's name is the game's `IGUI_VehicleName`, the part's `IGUI_VehiclePart`.
+9. **The owner is the last driver,** as A6 says, not a claim. `Lg.OWN_CAR_LINES` is false, so your own car writes no lines but "drove off". The drawing's "parked and locked his Chevalier D6" is not built: getting out and locking
+   have no server event. Two friends sharing a car write a "drove off" line each time the wheel changes hands. A line waits for `sqlId` to be 0 or more; a car with none has no owner.
+10. **Who reads it.** `Lg.VIEW_CAP` is `AnswerTickets`. The Log's row is under Tickets at the top of the tab, since the drawing doesn't place it. A role above yours keeps its place out of your view, as on the Player card: the
+    line stays, its place goes, Around and Find can't reach it, and a note added from it has none either.
+11. **Today is the UTC date,** as every date on these cards is until E5 is settled, and the card's last line says "Times are UTC".
+12. **Around ticket.** The server finds the ticket's place and time itself, from the number. Who the nearby list missed is a line in the band, not the help band as drawn: with a controller the help band holds the prompts. It names up to three: anyone with a
+    line there up to the filing, not a tapped line, not the author, not on the list. "missed him" reads "missed them". Add to ticket is on every line, not only vehicle lines as drawn: a PvP hit at the scene answers a griefing ticket too. Its note is written by the
+    server, in the server's words, with the line's time and place, and the same line can't go on twice.
+13. **Parts of the card.** `lfilt` and `lfind` are the list's filter items without their fill, so the label sits at the left as drawn. The count sits on the back bar through `flag`. The name is struck twice, since the fonts have no bold.
+    A name on a card button is cut to 16 characters. Clear sits under the band's words, not beside them: there is no room at Deck. `Y Filters` is not built, as on the Tickets card. Pages are new: the drawing has 16 lines. The first page reads itself again every 10 seconds; a later page stays put.
+14. **Without the server part** the row reads "The game's PvP log" and opens that window; gray with the capability's reason if the role lacks it.
+15. **The ticket queue's line.** `gameCall` marks `getTickets(nil)` as `full`. No answer in `REPLY_MS` raises `C.gameSilent`, and a line in the queue; an answer clears it. Nothing asks again on its account.
+
+**Container: the chip exists, the lines don't.** `Lg.CONTAINER_LOG` is false, and with it off the card says so and has no chip. On a server it is a question for the director, not only a switch: `ISInventoryTransferAction` is a client file and the transfer is Java (`ItemTransactionPacket`), so server Lua
+has no hook and no event for a take. The only route is the taker's own client reporting it, which a modified client can skip. The Log view would have to label those as it does a mod's lines. Phase 6 owns the switch and the player's notice, so that hook on the game's busiest action waits for that decision.
+
+**Director's questions, each answered the careful way behind one switch in `ZeD_LogProto.lua`:** `VIEW_CAP` (who reads the log), `OWN_CAR_LINES` (your own car), `CONTAINER_LOG` (above). `LOG_MAX` stays 2000 lines; a busy server may want more, and it is `Adm.L.LOG_MAX`.
+
+Not settled, for QA on the local server (`mp_log.lua` prints these as PROBE and TODO lines):
+
+| # | Unknown | How it settles |
+|---|---|---|
+| E2 | The class wrap reaching `complete` on a real server, though the bytecode says so | PROBE E2: `done` 1 with no fallback. Otherwise three smashes turn the fallback on, and the next line lands |
+| E1 | Whether Log Extender writes through either path. Still not on this machine | Subscribe it on the QA rig; its lines show as Other or under their logger's chip |
+| G1 | That `OnCharacterDeath` fires on the server for a player, with `getAttackedBy` set. The bytecode reads so; `IsoPlayer.OnDeath`'s other event, `OnPlayerDeath`, is for local players only | Two clients, PvP on: a `pvp \| kill` line |
+| G2 | That `OnWeaponHitCharacter` fires on the server, from `Hit.process`. Without it lines have no weapon, nothing else changes | PROBE weapons rises with a hit |
+| G3 | That `PVPLogTool.getEvents` holds the hits on a dedicated server and that `getX` reads through the exposer: the class and `PVPEvent` are both exposed, vanilla calls it only on a client | Two clients, PvP on: a hit reads in the view |
+| G4 | That replacing the global `writeLog` holds under `ISLogSystem` on a real server | PASS "the tap took a client's line" |
+| G5 | What `getSqlId` holds on a car spawned this session. Below 0 means no owner is kept | PROBE car |
+| G6 | Whether a tow reaches `vehicle.attachTrailer` as read, from the game's menu | TODO: a "hooked up" line |

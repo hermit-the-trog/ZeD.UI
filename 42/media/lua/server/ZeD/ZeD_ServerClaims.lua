@@ -244,7 +244,7 @@ if not W.watching then
         if not ok and not W.failed then
             W.failed = true
             print("[ZeD] server: the claims log failed: " .. tostring(err))
-            Srv.log("claims log failed: " .. tostring(err))
+            Srv.action("admin", "server", "claims log failed", nil, err)
         end
     end)
 end

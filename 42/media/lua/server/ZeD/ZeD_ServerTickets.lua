@@ -8,7 +8,7 @@
 -- Server Lua cannot touch the game's tickets (A4), so clients do that work and report here (t_filed, t_sync,
 -- t_gamediff). What comes back from the game's side is a claim, never proof (B8): an answer from there goes in notes.
 --
--- writeLog lines carry id, kind, who, what and place: never the text, a note, or the table's name.
+-- Log lines (Srv.action, kind ticket) carry id, kind, who, what and place: never the text, a note, or the table's name.
 -- ============================================================================
 if not isServer() then return end
 
@@ -50,7 +50,7 @@ local function findName()
             if c > bestN or (c == bestN and n < best) then best, bestN = n, c end
         end
     end
-    if found > 1 then Srv.log("found " .. found .. " ticket tables; using the one with the most tickets (" .. bestN .. ")") end
+    if found > 1 then Srv.action("admin", "server", "ticket tables", nil, "found " .. found .. "; using the one with the most tickets (" .. bestN .. ")") end
     return best
 end
 
@@ -76,7 +76,7 @@ local function open()
         end
         md.schema = md.schema + 1
     end
-    if T.frozen then Srv.log("the ticket table is frozen: schema " .. tostring(md.schema) .. ", this ZeD knows " .. SCHEMA) end
+    if T.frozen then Srv.action("admin", "server", "ticket table frozen", nil, "schema " .. tostring(md.schema) .. ", this ZeD knows " .. SCHEMA) end
     T.byGame = {}
     for _, rec in pairs(md.tickets) do
         if rec.gameId then T.byGame[rec.gameId] = rec end
@@ -281,10 +281,18 @@ end
 -- ---------------------------------------------------------------------------
 -- THE PUSHES
 -- ---------------------------------------------------------------------------
+-- what the Log view needs of a ticket (ZeD_ServerLog.lua): its place, its time, who it found nearby. Never its words
+function Srv.ticketFacts(id)
+    local rec = open().tickets[id]
+    if not rec then return nil end
+    local near = {}
+    for i = 1, (rec.near and rec.near.n or 0) do near[rec.near[i]] = true end
+    return { id = rec.id, author = rec.author, filed = rec.filed, place = placeCopy(rec.place), near = near }
+end
+
 local function logTk(rec, what, who)
-    local where = ""
-    if rec.place then where = " at " .. tostring(rec.place.x) .. "," .. tostring(rec.place.y) .. "," .. tostring(rec.place.z) end
-    Srv.log("ticket " .. tostring(rec.id) .. " " .. tostring(rec.kind) .. " " .. what .. " by " .. tostring(who) .. where)
+    local pl = rec.place
+    Srv.action("ticket", who, what, "#" .. tostring(rec.id), tostring(rec.kind), pl and pl.x, pl and pl.y, pl and pl.z)
 end
 
 local function toAuthor(rec, command, args)
@@ -377,8 +385,7 @@ local function fullLine(md, open, who)
     local t = getTimestampMs()
     T.fullN = (T.fullN or 0) + 1
     if T.fullAt and t - T.fullAt < L.MINUTE_MS then return end
-    Srv.log("tickets full: " .. tostring(open) .. " open, " .. tostring(md.chars) .. " characters; " .. tostring(T.fullN)
-        .. " refused, the last " .. tostring(who))
+    Srv.action("ticket", who, "tickets full", nil, tostring(open) .. " open, " .. tostring(md.chars) .. " characters; " .. tostring(T.fullN) .. " refused")
     T.fullAt, T.fullN = t, 0
 end
 
@@ -669,6 +676,24 @@ reg("t_addnote", { cap = STAFF }, function(p, a, rid)
     logTk(rec, "note added", p:getUsername())
 end)
 
+-- a line from the Log view, as an admin note: t_addnote's road. true, or false and the answer's word
+function Srv.ticketNote(p, id, text)
+    local md = open()
+    if T.frozen then return false, "frozen" end
+    local rec = md.tickets[id]
+    if not rec then return false, "gone" end
+    for i = 1, rec.notes.n do
+        if rec.notes[i].text == text then return false, "added" end
+    end
+    if rec.notes.n >= L.NOTES_MAX or not room(md, #text, rec) then return false, "full" end
+    line(md, rec.notes, p:getUsername(), text)
+    rec.updated = getTimestamp()
+    T.cards[p:getUsername()] = rec.id
+    pushCard(rec)
+    logTk(rec, "note added", p:getUsername())
+    return true
+end
+
 reg("t_close", { cap = STAFF }, function(p, a, rid)
     local rec, md = acting(p, a, rid, Tk.canClose)
     if not rec then return end
@@ -831,7 +856,7 @@ local function resetLinks(md)
     for _, rec in pairs(md.tickets) do rec.gameId = nil end
     T.byGame = {}
     md.gameMax = 0
-    Srv.log("the game's ticket database was replaced: links cleared, matching again by tag")
+    Srv.action("ticket", "server", "the game's ticket database was replaced", nil, "links cleared, matching again by tag")
 end
 
 -- is any of these rows, under a linked id, not the record linked to it? Only that proves a replaced database. A top

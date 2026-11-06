@@ -100,7 +100,7 @@ function F.needPart() if not M.live() then return tr("UI_ZeD_Adm_NeedPart") end 
 
 -- the server's word. Its own errors first; the ones it shares with tickets speak of tickets, so they have words here too
 local ADM_ERR = { self = true, protected = true, rank = true, offline = true, item = true, ipperm = true, gone = true, state = true, frozen = true, text = true, full = true,
-    unknown = true, already = true, part = true }
+    unknown = true, already = true, part = true, added = true, noplace = true }
 function F.errOf(a)
     if ADM_ERR[a.err] then return tr("UI_ZeD_Adm_Err_" .. a.err) end
     return C.errText(a.err, a.left)
@@ -716,7 +716,7 @@ function AC.homeItems(out, win, st, p)
     local t = TC.qaState(st)
     local me = M.me()
     local key = table.concat({ tostring(M.seq), tostring(C.seq), tostring(st.pfind), tostring(st.ponly), tostring(st.msgRepeat), tostring(st.msgEvery),
-        tostring(M.live()), tostring(#M.repeats), tostring(M.qaCaps) }, ":")
+        tostring(M.live()), tostring(#M.repeats), tostring(M.qaCaps), tostring(ZeD.Logs and ZeD.Logs.live()) }, ":")
     if st.homeKey ~= key or not st.homeItems then
         st.homeKey = key
         t.listGen = t.listGen + 1
@@ -724,6 +724,8 @@ function AC.homeItems(out, win, st, p)
         -- TICKETS
         L[#L + 1] = { k = "head", text = getText("UI_userpanel_tickets"), right = tr("UI_ZeD_Tk_NOpen", TC.openCount()) }
         P.summary(L, "sum:tickets", P.ticketSummary(), nil, "AnswerTickets", function(ww) AC.openTickets(ww, st) end)
+        -- LOG
+        if ZeD.LogCards then ZeD.LogCards.homeRow(L, st, P) end
         -- PLAYERS
         L[#L + 1] = { k = "head", text = tr("UI_ZeD_Srv_Players"), right = tr("UI_ZeD_Adm_PlayerCount", M.onlineN or 0, #M.rows) }
         L[#L + 1] = { k = "tk", t = "afind", win = win, key = "pfind", hint = tr("UI_ZeD_Adm_FindHint"), start = st.pfind or "",
