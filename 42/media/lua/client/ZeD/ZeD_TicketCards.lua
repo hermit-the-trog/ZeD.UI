@@ -110,6 +110,7 @@ function TC.bind(win, st, prefix, zone)
     local t = ts(st)
     t.prefix = prefix
     st.tkZone, st.tkWin = zone, win
+    win._tkSt = st
     return t
 end
 
@@ -207,6 +208,41 @@ function D.replies(n)
 end
 
 function D.oneLine(s) return (string.gsub(s or "", "\n", " ")) end
+
+-- how many characters of s fit in maxW, at least one
+function D.fitChars(s, font, maxW)
+    local lo, hi = 1, #s
+    while lo < hi do
+        local mid = math.ceil((lo + hi) / 2)
+        if ZeD.TM:MeasureStringX(font, string.sub(s, 1, mid)) <= maxW then lo = mid else hi = mid - 1 end
+    end
+    return lo
+end
+
+-- the wrap for words a player typed: as the atom's, but a word wider than the line is cut to fit, and an empty line stays
+function D.wrap(text, font, maxW)
+    local lines = {}
+    if not text or text == "" then return lines end
+    local from, n = 1, #text
+    while from <= n + 1 do
+        local brk = string.find(text, "\n", from, true) or (n + 1)
+        local para = string.sub(text, from, brk - 1)
+        if para == "" then
+            lines[#lines + 1] = ""
+        else
+            for _, one in ipairs(ZeD.Atoms.wrapText(para, font, maxW)) do
+                while #one > 1 and ZeD.TM:MeasureStringX(font, one) > maxW do
+                    local fit = D.fitChars(one, font, maxW)
+                    lines[#lines + 1] = string.sub(one, 1, fit)
+                    one = string.sub(one, fit + 1)
+                end
+                lines[#lines + 1] = one
+            end
+        end
+        from = brk + 1
+    end
+    return lines
+end
 
 function D.stWord(st) return tr(ST_WORD[st] or ST_WORD.Open) end
 function D.staffSt(st) if st == "Seen" then return "Open" end return st or "Open" end
@@ -359,6 +395,13 @@ function D.makeField(win, panel, key, multi, hint)
     if inner then
         -- (Escape leaves the field, as chat's line does)
         inner.onOtherKey = function(_, k) if k == Keyboard.KEY_ESCAPE then inner:unfocus() end end
+        -- (the wheel scrolls the card or the tab under the pointer: nothing scrolls inside the scroll)
+        inner.onMouseWheel = function(_, del)
+            local st = win._tkSt
+            local sc = st and (TC.activeScroll(st) or st.scroll)
+            if sc and sc.visible then sc:handleMouseWheel(del) end
+            return true
+        end
         if not multi then inner.javaObject:setMaxTextLength(L.FIND_MAX) end
     end
     win._tkFields[key] = box
@@ -384,7 +427,7 @@ function D.padType(win, box)
         if ok and osk then
             -- (one RT ends the typing. On several lines the keyboard's RT makes a line break, which leaves B, and B puts
             -- the field back as it was, as the plain way out)
-            osk._multi = false
+            if osk.setSingleLine then osk:setSingleLine() else osk._multi = false end
             osk.prevFocus = win
             jd.focus = osk
             if updateJoypadFocus then updateJoypadFocus(jd) end
@@ -402,22 +445,25 @@ function D.useField(win, key)
     if inner and box:isVisible() then inner:focus() end
 end
 
--- a field's height: its rows, and more for the words it holds
-function D.fieldH(win, it, w)
+-- a field's height: its rows, and more for the words it holds, up to the card's view (sh): a field taller than the view
+-- could never show its box
+function D.fieldH(win, it, w, sh)
     local T = ZeD.T
     local lh = ZeD.TM:getFontHeight(T.fontF2)
     local text = D.fieldText(win, it.key)
     if text ~= it.seen then
         it.seen = text
-        it.count = #ZeD.Atoms.wrapText(text, T.fontF2, math.max(1, w - px(2 * FIELD_PAD + 8)))
+        it.count = #D.wrap(text, T.fontF2, math.max(1, w - px(2 * FIELD_PAD + 8)))
     end
-    return math.max(it.rows, (it.count or 0) + 1) * lh + px(2 * FIELD_PAD)
+    local h = math.max(it.rows, (it.count or 0) + 1) * lh + px(2 * FIELD_PAD)
+    if sh then h = math.min(h, math.max(lh + px(2 * FIELD_PAD), sh - px(2))) end
+    return h
 end
 
 function D.drawField(panel, win, t, it, x, y, w, h, viewY, viewH, covered)
     local T, A = ZeD.T, ZeD.Atoms
     local box = D.fieldOf(win, it.key) or D.makeField(win, panel, it.key, true, it.hint)
-    box.placeholder = it.hint
+    box.placeholder = ""             -- (the box draws one line and nothing cuts it: the hint is drawn here, wrapped)
     local inner = D.fieldInner(box)
     local focused = inner and inner:isFocused()
     local f = D.focusOf(win, it.c.fullId)
@@ -425,20 +471,22 @@ function D.drawField(panel, win, t, it, x, y, w, h, viewY, viewH, covered)
     panel:drawRect(x, y, w, h, bg.a or 1, bg.r, bg.g, bg.b)
     D.mark(panel, x, y, w, h, f)
     A.frame(panel, x, y, w, h, (focused or f) and T.accent or T.borderS)
-    if not covered and y >= viewY and y + h <= viewY + viewH then
+    -- (a box with the caret stays: hiding it would hand the next keys to the game)
+    local shown = not covered and (focused or (y >= viewY and y + h <= viewY + viewH))
+    if shown then
         D.showField(box, x, y, w, h)
         if t.wantField == it.key then
             t.wantField = nil
             if inner then inner:focus() end
         end
-        return
     end
-    -- its words where the box would be (the list's stencil cuts them)
+    -- its words where the box would be, or under an empty box its hint (the list's stencil cuts them)
     local text = box:getText() or ""
+    if shown and (text ~= "" or focused) then return end
     local c = (text == "") and T.textDim or T.text
     local s = (text == "") and it.hint or text
     local lh = ZeD.TM:getFontHeight(T.fontF2)
-    for i, line in ipairs(A.wrapText(s, T.fontF2, math.max(1, w - px(2 * FIELD_PAD + 8)))) do
+    for i, line in ipairs(D.wrap(s, T.fontF2, math.max(1, w - px(2 * FIELD_PAD + 8)))) do
         panel:drawText(line, x + px(6), y + px(FIELD_PAD) + (i - 1) * lh, c.r, c.g, c.b, c.a or 1, T.fontF2)
     end
 end
@@ -618,6 +666,7 @@ function TC.itemStops(out, st, it, x0, dy, cw, flag)
     local function add(c, x, y, w, h, cy)
         local e = D.stop(c, t.prefix .. c.id, x, y, w, h, cy)
         e[flag] = true
+        e.tkWhy = function() return c.why end
         out[#out + 1] = e
     end
     if tt == "row" then
@@ -711,6 +760,21 @@ function D.flashItem(t)
         t.flashIt = { k = "tk", t = "wrap", text = s }
     end
     return t.flashIt
+end
+
+-- why the stop under the controller is gray: the help line holds the prompts, so a list says it in a line beside it
+function D.padWhy(win)
+    local Fo = ZeD.Input and ZeD.Input.Focus
+    local el = Fo and Fo.getFocusedElement and Fo.getFocusedElement(win)
+    return el and el.tkWhy and el.tkWhy() or nil
+end
+
+function D.whyItem(t, s)
+    if t.whyItemText ~= s then
+        t.whyItemText = s
+        t.whyIt = { k = "tk", t = "wrap", text = s }
+    end
+    return t.whyIt
 end
 
 -- the Tickets block, as drawn. btnItem makes the tab's own button.
@@ -937,7 +1001,9 @@ function TC.queueItems(out, win, st)
         t.queuePageNow = page
     end
     local pad = D.padOn()
+    local why = pad and D.padWhy(win) or nil
     for i, it in ipairs(t.queueList) do
+        if why and it.t == "pager" then out[#out + 1] = D.whyItem(t, why) end
         out[#out + 1] = it
         if i == 1 and pad and D.flashNow(t) then out[#out + 1] = D.flashItem(t) end
     end
@@ -1096,6 +1162,23 @@ function D.push(win, st, card)
     D.focusNext(win, st, function(e) return e.tkLand == true end)
 end
 
+-- the server's word on a card asked for: a refusal leaves the card at once, with no typed words to speak of
+function D.loadAnswer(win, st, card, a)
+    if a.ok ~= false or st.card ~= card then return end
+    if a.err == "fail" and card.had then return end     -- (what it holds is on screen; a push may yet come)
+    D.flash(ts(st), (a.err == "fail") and tr("UI_ZeD_Tk_LoadFail") or C.errText(a.err))
+    TC.back(win, st)
+end
+
+-- the first frame with data on a card that opened empty: the landing D.push asked for found only the back key. Not if
+-- the controller has moved on, and only onto a real stop, since the stops are a frame behind.
+function D.landLate(win, st)
+    local Fo = ZeD.Input and ZeD.Input.Focus
+    local el = Fo and Fo.getFocusedElement and Fo.getFocusedElement(win)
+    if el and el.id ~= "tk:back" then return end
+    D.focusNext(win, st, function(e) return e.tkLand == true and e.id ~= "tk:back" end)
+end
+
 function TC.openAsk(win, st)
     local t = ts(st)
     t.ask = { here = false }
@@ -1106,9 +1189,10 @@ end
 function TC.openMine(win, st, id, game)
     local t = ts(st)
     D.setField(win, "reply", "")
-    D.push(win, st, { kind = "mine", id = id, game = game, from = t.prefix .. "t:" .. tostring(id) })
+    local card = { kind = "mine", id = id, game = game, from = t.prefix .. "t:" .. tostring(id) }
+    D.push(win, st, card)
     if game or TC.qaHold then return end
-    C.loadOne(id)
+    C.loadOne(id, function(a) D.loadAnswer(win, st, card, a) end)
     C.read(id)
 end
 
@@ -1116,9 +1200,14 @@ function TC.openStaff(win, st, id, game)
     local t = ts(st)
     D.setField(win, "answer", "")
     D.setField(win, "note", "")
-    D.push(win, st, { kind = "staff", id = id, game = game, from = t.prefix .. "t:" .. tostring(id) })
-    if game or TC.qaHold then return end
-    C.openCard(id)
+    local card = { kind = "staff", id = id, game = game, from = t.prefix .. "t:" .. tostring(id) }
+    D.push(win, st, card)
+    if TC.qaHold then return end
+    if game then
+        if D.cap("AnswerTickets") then C.gameView(id) end
+        return
+    end
+    C.openCard(id, function(a) D.loadAnswer(win, st, card, a) end)
 end
 
 function TC.back(win, st)
@@ -1210,7 +1299,13 @@ function B.thread(items, th)
     end
 end
 
-function B.mine(card, data)
+-- a push closed the field being typed in: the words stay on the card, and the foot says why
+function B.unsent(items, win, key)
+    local text = Tk.clean(D.fieldText(win, key)) or ""
+    if text ~= "" then B.msg(items, tr("UI_ZeD_Tk_NotSent"), text, "plain") end
+end
+
+function B.mine(win, card, data)
     local items = {}
     if not data then
         B.sub(items, tr("UI_ZeD_Tk_Loading"))
@@ -1221,7 +1316,7 @@ function B.mine(card, data)
     local real = D.realDate(data.filed)
     if real then sent[#sent + 1] = real end
     B.fact(items, tr("UI_ZeD_Tk_FactSent"), (#sent > 0) and table.concat(sent, ", ") or tr("UI_ZeD_Tk_NotRecorded"))
-    B.fact(items, tr("UI_ZeD_Tk_FactWhere"), Tk.whereText(data.place) or tr("UI_ZeD_Tk_NotIncluded"))
+    B.fact(items, tr("UI_ZeD_Tk_FactWhere"), Tk.whereFull(data.place) or tr("UI_ZeD_Tk_NotIncluded"))
     B.thread(items, data.thread)
     if card.game then
         B.sub(items, tr("UI_ZeD_Tk_OneAnswer"))
@@ -1230,6 +1325,7 @@ function B.mine(card, data)
         B.field(items, "reply", 3, tr("UI_ZeD_Tk_AddHint"), true)
     else
         B.sub(items, tr((data.st == "Answered") and "UI_ZeD_Tk_DoneAnswered" or "UI_ZeD_Tk_DoneClosed"))
+        B.unsent(items, win, "reply")
     end
     return items
 end
@@ -1246,7 +1342,7 @@ function B.staffFacts(items, st, data)
     end
     B.fact(items, tr("UI_ZeD_Tk_FactWhen"), when or tr("UI_ZeD_Tk_FromGame"))
     if data.place then
-        B.fact(items, tr("UI_ZeD_Tk_FactWhere"), Tk.whereText(data.place), { id = "go", text = tr("UI_ZeD_Tk_GoThere"),
+        B.fact(items, tr("UI_ZeD_Tk_FactWhere"), Tk.whereFull(data.place), { id = "go", text = tr("UI_ZeD_Tk_GoThere"),
             help = tr("UI_ZeD_Tk_HelpGo"), live = D.liveGo, run = function() D.goThere(st, data.place) end })
         local near = {}
         for i = 1, (data.near and data.near.n or 0) do near[i] = tostring(data.near[i]) end
@@ -1265,11 +1361,14 @@ function B.staff(win, st, card, data)
         return items
     end
     B.staffFacts(items, st, data)
+    if data.source == "game" and not card.game then B.sub(items, tr("UI_ZeD_Tk_HelpGameCard")) end
     B.thread(items, data.thread)
     local notes = data.notes
     for i = 1, (notes and (notes.n or #notes) or 0) do
         local e = notes[i]
-        if e then B.msg(items, tr("UI_ZeD_Tk_NoteBy", tostring(e.who), tostring(data.author)), e.text, "note") end
+        if e then
+            B.msg(items, tr(e.game and "UI_ZeD_Tk_NoteGame" or "UI_ZeD_Tk_NoteBy", tostring(e.who), tostring(data.author)), e.text, "note")
+        end
     end
     local author = tostring(data.author)
     if card.game then
@@ -1285,11 +1384,13 @@ function B.staff(win, st, card, data)
     if Tk.canAnswer(data.status) then
         B.label(items, tr("UI_ZeD_Tk_AnswerTo", author))
         B.field(items, "answer", 3, tr("UI_ZeD_Tk_AnswerHint", author), true)
+    else
+        B.unsent(items, win, "answer")
     end
     B.label(items, tr("UI_ZeD_Tk_AdminNote"))
     B.field(items, "note", 2, tr("UI_ZeD_Tk_NoteHint"))
     items[#items + 1] = { k = "btn", c = { id = "addnote", text = tr("UI_ZeD_Tk_AddNote"), help = tr("UI_ZeD_Tk_HelpAddNote"),
-        live = D.liveAddNote, win = win, run = function(ww) D.addNote(ww, st, card.id) end } }
+        live = D.liveAddNote, win = win, tk = ts(st), run = function(ww) D.addNote(ww, st, card.id) end } }
     return items
 end
 
@@ -1298,11 +1399,11 @@ function D.cardData(card)
     if card.kind == "mine" then
         if card.game then
             for _, r in ipairs(C.mine or {}) do
-                if r.id == card.id then
+                if r.id == card.id and r.game then
                     local th = { n = 1, { who = D.me(), text = r.text or r.last } }
                     if r.ansText then
                         th.n = 2
-                        th[2] = { who = r.ansWho, text = r.ansText, staff = true }
+                        th[2] = { who = r.ansWho, text = r.ansText, staff = not r.claim, game = r.claim }
                     end
                     return { id = r.id, kind = r.kind, st = r.st, thread = th, can = false }
                 end
@@ -1317,7 +1418,7 @@ function D.cardData(card)
             local th = { n = 1, { who = r.author, text = r.text } }
             if r.ansText then
                 th.n = 2
-                th[2] = { who = r.ansWho, text = r.ansText, staff = true }
+                th[2] = { who = r.ansWho, text = r.ansText, staff = not r.claim, game = r.claim }
             end
             return { id = r.id, kind = r.kind, author = r.author, status = r.st, st = r.st, thread = th, notes = { n = 0 }, source = "game" }
         end
@@ -1329,7 +1430,7 @@ end
 
 function D.cardItems(win, st, t, card, data)
     if card.kind == "ask" then return B.ask(st, t) end
-    if card.kind == "mine" then return B.mine(card, data) end
+    if card.kind == "mine" then return B.mine(win, card, data) end
     return B.staff(win, st, card, data)
 end
 
@@ -1429,14 +1530,25 @@ function D.livePlayerCard(c)
     if TC.qaStats ~= nil then
         if not TC.qaStats then why = tr("UI_ZeD_Tk_NoStats") end
     elseif not D.cap("CanSeePlayersStats") then why = tr("UI_ZeD_Tk_NoStats")
-    elseif not getPlayerFromUsername(c.author) then why = tr("UI_ZeD_Tk_NotOnline") end
+    elseif not getPlayerFromUsername(c.author) then why = tr(D.onServer(c.author) and "UI_ZeD_Adm_NotSeen" or "UI_ZeD_Tk_NotOnline") end
     c.disabled, c.why = why ~= nil, why
+end
+
+-- a client knows only the players near it: the scoreboard says who is on the server at all
+function D.onServer(author)
+    local S2 = ZeD.ServerTab
+    if not S2 then return false end
+    if S2.askPlayers then S2.askPlayers() end
+    for _, pl in ipairs(S2.players or {}) do
+        if pl.user == author then return true end
+    end
+    return false
 end
 
 function D.liveAddNote(c)
     local _, frozen = D.link()
     local empty = (Tk.clean(D.fieldText(c.win, "note")) or "") == ""
-    local why = (frozen and C.errText("frozen")) or (empty and tr("UI_ZeD_Tk_WriteNote")) or nil
+    local why = (frozen and C.errText("frozen")) or (c.tk.busy and tr("UI_ZeD_Tk_Busy")) or (empty and tr("UI_ZeD_Tk_WriteNote")) or nil
     c.disabled, c.why = why ~= nil, why
 end
 
@@ -1450,6 +1562,12 @@ end
 function D.disable(b, why)
     b.disabled, b.why = true, why
     return b
+end
+
+-- the words for a field a push took away while it held text
+function D.fieldGone(win, key)
+    if (Tk.clean(D.fieldText(win, key)) or "") == "" then return nil end
+    return tr("UI_ZeD_Tk_FieldGone")
 end
 
 function D.footAsk(win, st, t)
@@ -1477,7 +1595,9 @@ function D.footAsk(win, st, t)
 end
 
 function D.footMine(win, st, t, card, data)
-    if not data or card.game or not data.can then return { main = {} } end
+    if not data or card.game or not data.can then
+        return { main = {}, status = (data and not card.game) and D.fieldGone(win, "reply") or nil }
+    end
     local send = D.btn("psend", tr("UI_ZeD_Tk_Send"), function(ww) D.reply(ww, st, card.id) end, "primary", tr("UI_ZeD_Tk_HelpReply"))
     local _, frozen = D.link()
     if frozen then D.disable(send, C.errText("frozen"))
@@ -1556,6 +1676,7 @@ function D.footStaff(win, st, t, card, data)
         for _, b in ipairs(foot.lead) do D.disable(b, why) end
         for _, b in ipairs(foot.main) do D.disable(b, why) end
     end
+    if not foot.status and not Tk.canAnswer(data.status) then foot.status = D.fieldGone(win, "answer") end
     return foot
 end
 
@@ -1595,6 +1716,26 @@ function D.footWords(win, t, foot)
     return foot.status
 end
 
+-- With the controller the words get a line of their own above the bands: a grayed control's reason and the answer to a
+-- press are read here, and between a card's buttons they would be cut to a word. The line is kept while the card has a
+-- foot, or the card would jump as focus moves. Returns its height and lines.
+function D.footLine(foot, w, words, bandsH)
+    if not D.padOn() or foot.question or (bandsH == 0 and not words) then return 0, nil end
+    local T = ZeD.T
+    local lines = words and D.wrap(words, T.fontF2, math.max(1, w - 2 * px(8))) or {}
+    return math.max(1, #lines) * ZeD.TM:getFontHeight(T.fontF2) + px(8), lines
+end
+
+function D.drawFootLine(panel, x, y, w, h, lines)
+    local T, A = ZeD.T, ZeD.Atoms
+    A.surfaceFill(panel, x, y, w, h, "surf2")
+    A.drawDividerH(panel, x, y, w, true)
+    local c = T.text
+    for i, s in ipairs(lines) do
+        panel:drawText(s, x + px(8), y + px(4) + (i - 1) * ZeD.TM:getFontHeight(T.fontF2), c.r, c.g, c.b, c.a or 1, T.fontF2)
+    end
+end
+
 function D.bandSpec(win, list)
     local out = {}
     for i, b in ipairs(list or {}) do
@@ -1604,7 +1745,7 @@ function D.bandSpec(win, list)
     return out
 end
 
-function D.drawFoot(panel, win, t, foot, x, y, w, two)
+function D.drawFoot(panel, win, t, foot, x, y, w, two, words, noLine)
     local M = ZeD.Molecules
     local rects = {}
     local function keep(out, list, field)
@@ -1612,16 +1753,15 @@ function D.drawFoot(panel, win, t, foot, x, y, w, two)
             if list[i] then rects[#rects + 1] = { x = r.x, y = r.y, w = r.w, h = r.h, b = list[i] } end
         end
     end
-    local words = D.footWords(win, t, foot)
     local lead, main = foot.lead or {}, foot.main or {}
     if two then
-        local _, o1 = M.drawBand(panel, x, y, w, { lead = D.bandSpec(win, lead), question = foot.question, win = win })
+        local _, o1 = M.drawBand(panel, x, y, w, { lead = D.bandSpec(win, lead), question = foot.question, win = win, noLine = noLine })
         keep(o1, lead, "lead")
         local _, o2 = M.drawBand(panel, x, y + M.bandH(), w,
             { buttons = D.bandSpec(win, main), status = words and { text = words } or nil, win = win, noLine = true })
         keep(o2, main, "buttons")
     else
-        local spec = { lead = D.bandSpec(win, lead), buttons = D.bandSpec(win, main), win = win }
+        local spec = { lead = D.bandSpec(win, lead), buttons = D.bandSpec(win, main), win = win, noLine = noLine }
         if foot.question then spec.question = foot.question
         elseif words then spec.status = { text = words } end
         local _, o = M.drawBand(panel, x, y, w, spec)
@@ -1642,7 +1782,7 @@ function D.factLabelW(items)
     return w
 end
 
-function D.layout(win, items, w)
+function D.layout(win, items, w, sh)
     local T, A, M, tm = ZeD.T, ZeD.Atoms, ZeD.Molecules, ZeD.TM
     local f2h, f3h, f1h = tm:getFontHeight(T.fontF2), tm:getFontHeight(T.fontF3), tm:getFontHeight(T.fontF1)
     local y = px(10)
@@ -1655,7 +1795,7 @@ function D.layout(win, items, w)
             it.h = f1h + px(6)
         elseif k == "sub" then
             y = y + px(4)
-            if it.wrapW ~= w then it.wrapW, it.lines = w, A.wrapText(it.text, T.fontF2, math.max(1, w)) end
+            if it.wrapW ~= w then it.wrapW, it.lines = w, D.wrap(it.text, T.fontF2, math.max(1, w)) end
             it.h = #it.lines * f2h
         elseif k == "chips" then
             it.h = D.flow(it.ctls, w, 0)
@@ -1664,7 +1804,7 @@ function D.layout(win, items, w)
             if it.wrapW ~= w then it.wrapW, it.lines = w, A.wrapText(it.sub, T.fontF2, math.max(1, w - cb - px(8))) end
             it.h = math.max(cb, f2h) + #it.lines * f2h + px(4)
         elseif k == "field" then
-            it.h = D.fieldH(win, it, w)
+            it.h = D.fieldH(win, it, w, sh)
         elseif k == "fact" then
             local btnW = 0
             if it.c then
@@ -1672,13 +1812,13 @@ function D.layout(win, items, w)
                 btnW = it.c.w + px(8)
             end
             local vw = math.max(px(40), w - lw - px(FACT_GAP) - btnW)
-            if it.wrapW ~= vw then it.wrapW, it.lines = vw, A.wrapText(it.value, T.fontF2, vw) end
+            if it.wrapW ~= vw then it.wrapW, it.lines = vw, D.wrap(it.value, T.fontF2, vw) end
             it.lw = lw
             it.h = math.max(#it.lines * f2h, it.c and it.c.h or 0) + px(3)
         elseif k == "msg" then
             y = y + px(8)
             local mw = w - px(18)
-            if it.wrapW ~= mw then it.wrapW, it.lines = mw, A.wrapText(it.text, T.fontF2, math.max(1, mw)) end
+            if it.wrapW ~= mw then it.wrapW, it.lines = mw, D.wrap(it.text, T.fontF2, math.max(1, mw)) end
             it.h = f3h + px(3) + #it.lines * f2h + px(14)
         elseif k == "btn" then
             y = y + px(6)
@@ -1818,7 +1958,7 @@ function D.cardHelp(t, card, data)
     if card.game then return tr("UI_ZeD_Tk_HelpFallback") end
     if data.status == "Spam" then return tr(D.isAdmin() and "UI_ZeD_Tk_HelpSpamCardAdmin" or "UI_ZeD_Tk_HelpSpamCardMod") end
     if data.gameGone then return tr("UI_ZeD_Tk_RemovedGame") end
-    if data.source == "game" then return tr("UI_ZeD_Tk_HelpGameCard") end
+    if data.source == "game" then return tr("UI_ZeD_Tk_HelpGameShort") end
     return tr("UI_ZeD_Tk_HelpStaffCard")
 end
 
@@ -1834,7 +1974,19 @@ function D.cardKey(t, card, inner)
     return table.concat(parts, ":")
 end
 
--- the card's list against its scroll; the controller's focus kept in view. Returns the offset.
+-- the field being typed in, if any
+function D.typing(win, t)
+    for _, it in ipairs(t.items or {}) do
+        if it.k == "field" then
+            local inner = D.fieldInner(D.fieldOf(win, it.key))
+            if inner and inner:isFocused() then return it end
+        end
+    end
+    return nil
+end
+
+-- the card's list against its scroll; the field being typed in kept in view as it grows, else the controller's focus.
+-- Returns the offset.
 function D.cardScroll(win, t, x, w, sy, sh, listH)
     local T = ZeD.T
     local scroll = t.scroll
@@ -1849,6 +2001,10 @@ function D.cardScroll(win, t, x, w, sy, sh, listH)
     scroll:setBarSize(sh / math.max(1, listH))
     local Fo = ZeD.Input and ZeD.Input.Focus
     local fe = Fo and Fo.getFocusedWindow and Fo.getFocusedWindow() == win and Fo.getFocusedElement and Fo.getFocusedElement(win)
+    local field = D.typing(win, t)
+    if field then
+        fe = { tkc = true, cy = field.y, h = field.h }
+    end
     if fe and fe.tkc and fe.cy then
         local off0 = math.floor(scroll.scrollPos * maxOff)
         local off1 = off0
@@ -1866,6 +2022,10 @@ function TC.renderCard(panel, win, st, x, y, w, h)
     if card.kind == "staff" then D.queueTick(st, t) end
     local data = D.cardData(card)
     if data then
+        if card.waited then
+            card.waited = nil
+            D.landLate(win, st)
+        end
         card.had = true
     elseif card.had then
         -- it was deleted while open, or the record went
@@ -1873,10 +2033,13 @@ function TC.renderCard(panel, win, st, x, y, w, h)
         TC.back(win, st)
         return
     elseif not TC.qaHold and t.pushedAt and now() - t.pushedAt >= LOAD_MS then
-        D.flash(t, C.errText("fail"))
+        D.flash(t, tr("UI_ZeD_Tk_LoadFail"))
         TC.back(win, st)
         return
+    else
+        card.waited = true
     end
+    if card.kind == "mine" and not card.game then C.onCard(card.id) end
     w = math.min(w, px(480))
     t.hits = {}
     ZeD.Help.set(win, D.cardHelp(t, card, data))
@@ -1889,7 +2052,10 @@ function TC.renderCard(panel, win, st, x, y, w, h)
     if card.kind ~= "ask" and data then flagH = D.drawFlag(panel, card, data, x, y + bar, w) end
     -- the foot, measured first: the body takes what is left
     local foot = D.footOf(win, st, t, card, data)
-    local footH, two = D.footH(foot, w)
+    local bandsH, two = D.footH(foot, w)
+    local words = D.footWords(win, t, foot)
+    local lineH, lineWords = D.footLine(foot, w, words, bandsH)
+    local footH = bandsH + lineH
     local sy = y + bar + flagH
     local sh = y + h - footH - sy
     local pad = px(CARD_PAD)
@@ -1900,7 +2066,7 @@ function TC.renderCard(panel, win, st, x, y, w, h)
         t.items = D.cardItems(win, st, t, card, data)
     end
     local items = t.items
-    local listH = D.layout(win, items, inner)
+    local listH = D.layout(win, items, inner, sh)
     local off, needs = D.cardScroll(win, t, x, w, sy, sh, listH)
     t.listH, t.off, t.csy, t.csh, t.cx, t.cpad, t.cin = listH, off, sy, sh, x, pad, inner
     local mx, my = panel:getMouseX(), panel:getMouseY()
@@ -1916,7 +2082,12 @@ function TC.renderCard(panel, win, st, x, y, w, h)
     panel:clearStencilRect()
     panel:setStencilRect(0, 0, panel:getWidth(), panel:getHeight())
     if needs then t.scroll:draw(panel) end
-    if footH > 0 then D.drawFoot(panel, win, t, foot, x, y + h - footH, w, two) else t.footRects = {} end
+    if lineH > 0 then D.drawFootLine(panel, x, y + h - footH, w, lineH, lineWords) end
+    if bandsH > 0 then
+        D.drawFoot(panel, win, t, foot, x, y + h - bandsH, w, two, (lineH == 0) and words or nil, lineH > 0)
+    else
+        t.footRects = {}
+    end
     local s = D.flashNow(t)
     if s and not D.padOn() then ZeD.Help.set(win, s) end
 end

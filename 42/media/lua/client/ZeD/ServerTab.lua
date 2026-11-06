@@ -84,6 +84,7 @@ local function askPlayers()
     S.askedAt = now
     if scoreboardUpdate then pcall(scoreboardUpdate) end
 end
+S.askPlayers = askPlayers
 
 -- ---------------------------------------------------------------------------
 -- WHAT THE TAB SHOWS, read once a frame while it shows

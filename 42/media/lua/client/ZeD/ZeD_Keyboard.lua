@@ -198,6 +198,13 @@ function ZeD_Keyboard:typeChar(ch)
     queueCharEvent(ch)
 end
 
+-- a field on several lines where RT should end the typing (a ticket's card): the key's word has to say so too
+function ZeD_Keyboard:setSingleLine()
+    self._multi = false
+    self._rows = buildRows(false, self._masked)
+    self:layout()
+end
+
 function ZeD_Keyboard:keyCode(code)
     local e = self.textEntryBox
     if not e then return end

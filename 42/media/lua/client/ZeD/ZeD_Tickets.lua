@@ -33,6 +33,9 @@ local BATCH_MS = 1100         -- between t_sync and t_gamediff batches (the serv
 local TWO_LISTS_MS = 10000    -- two full lists this far apart before anything counts as gone
 local NOTE_EVERY_MS = 10000   -- "a new ticket" on the belt, at most this often: addTicket has no limit
 local ADMIN_POLL_MS = 10000   -- without the server part, the Admin tab's list asks again this often
+local SOON_MS = 2000          -- an unlinked ticket reaches the queue: the game's list is read after this, at most this often
+local SYNC_TRIES = 5          -- a batch with no answer goes again this many times
+local SEEING_MS = 1500        -- a player's card drawn this recently is on screen
 
 C.seq = C.seq or 0            -- bumps on every change (the cards re-read)
 C.rowSeq = C.rowSeq or 0      -- bumps on every t_row (the queue's page may be stale)
@@ -224,6 +227,28 @@ end
 -- ---------------------------------------------------------------------------
 -- THE PLAYER
 -- ---------------------------------------------------------------------------
+-- the game's own row, in my rows' shape
+local function gameMineRow(row)
+    local kind, _, rest = Tk.parse(row.m)
+    if not Tk.isKind(kind) then kind, rest = Tk.NONE, row.m end
+    -- (viewed is the one field a plain client cannot set: without it an answer is the game's claim, not an answer, B9)
+    local answered = row.aw ~= nil and row.v == true
+    return { id = row.g, kind = kind, last = string.sub(row.aw and row.at or rest, 1, L.PREVIEW),
+        st = (answered and "Answered") or (row.v and "Seen") or "Sent", replies = row.aw and 1 or 0, game = true,
+        text = rest, ansWho = row.aw, ansText = row.at, claim = (row.aw ~= nil and not row.v) or nil }
+end
+
+-- a filing on a frozen server: ZeD's rows stay readable, and the new one goes on top
+local function addGameRow(rows, msg)
+    for i = #rows, 1, -1 do
+        if rows[i].m == msg then
+            table.insert(C.mine, 1, gameMineRow(rows[i]))
+            break
+        end
+    end
+    bump()
+end
+
 -- Send. Answers "wait" while the link is unknown and "text" for words the server would refuse, both with the typed
 -- text kept; otherwise "sent", with done(ack) to come. Keeps the fallback's path for frozen, as B9 says.
 function C.ask(kind, here, text, done)
@@ -242,9 +267,13 @@ function C.ask(kind, here, text, done)
     if not me then return "wait" end
     local p, x, y = getPlayer(), nil, nil
     if here == true and p then x, y = math.floor(p:getX()), math.floor(p:getY()) end
+    local msg = Tk.plainTag(kind, clean, x, y)
+    local frozen = S.available()
     gameCall({
-        run = function() addTicket(me, Tk.plainTag(kind, clean, x, y), -1) end,
-        got = function(rows) C.fallbackMine(rows) end,
+        run = function() addTicket(me, msg, -1) end,
+        got = function(rows)
+            if frozen then addGameRow(rows, msg) else C.fallbackMine(rows) end
+        end,
     })
     if done then done({ ok = true, fallback = true }) end
     return "sent"
@@ -253,14 +282,7 @@ end
 -- the game's own list of mine, in my rows' shape (B9): kind from the tag, viewed gives Seen, an answer gives Answered
 function C.fallbackMine(rows)
     local out = {}
-    for i = #rows, 1, -1 do
-        local row = rows[i]
-        local kind, _, rest = Tk.parse(row.m)
-        if not Tk.isKind(kind) then kind, rest = Tk.NONE, row.m end
-        out[#out + 1] = { id = row.g, kind = kind, last = string.sub(row.aw and row.at or rest, 1, L.PREVIEW),
-            st = (row.aw and "Answered") or (row.v and "Seen") or "Sent", replies = row.aw and 1 or 0, game = true,
-            text = rest, ansWho = row.aw, ansText = row.at }
-    end
+    for i = #rows, 1, -1 do out[#out + 1] = gameMineRow(rows[i]) end
     C.mine = out
     bump()
 end
@@ -275,9 +297,12 @@ function C.loadMine()
     gameCall({ run = function() getTickets(me) end, got = function(rows) C.fallbackMine(rows) end })
 end
 
-function C.loadOne(id) return C.request("t_one", { id = id }) end
+function C.loadOne(id, cb) return C.request("t_one", { id = id }, cb) end
 function C.reply(id, text, cb) return C.request("t_reply", { id = id, text = Tk.clean(text) }, cb) end
 function C.read(id) S.send(Tk.MOD, "t_read", { id = id }) end
+-- the player's card says it is on screen, each frame: an answer read there needs no note
+function C.onCard(id) C.seeId, C.seeAt = id, now() end
+function C.seeing(id) return C.seeId == id and C.seeAt ~= nil and now() - C.seeAt < SEEING_MS end
 
 -- the note's Open: read, and to the Server tab, where the ticket card opens (C.openId says which)
 function C.openNote(item)
@@ -293,49 +318,56 @@ end
 -- ---------------------------------------------------------------------------
 -- THE STAFF: the queue. Every change arrives as t_row; getTickets(nil) runs only on opening and on Refresh.
 -- ---------------------------------------------------------------------------
-local pumpSync       -- (below; hoisted for startBatches)
+local pumpSync, compare       -- (below; hoisted for what calls them)
 
-local function startBatches()
+local function startBatches(delay)
     local l = C.list
     if not l then return end
     local rows = {}
     for _, r in ipairs(l.rows) do
         if r.g > C.gameMax then rows[#rows + 1] = r end
     end
-    C.sync = { rows = rows, i = 1, top = l.top, nextAt = 0 }
+    C.sync = { rows = rows, i = 1, top = l.top, nextAt = delay or 0, tries = 0 }
     pumpSync()
 end
 
 local function cutRow(s) return s and string.sub(s, 1, L.SYNC_CUT) or nil end
 
--- Two full lists have a top below gameMax. Either the newest ticket was removed, or the game's table was replaced. The
--- server tells them apart from up to 20 rows that sit under a linked id, which still match their records if nothing
--- was replaced.
-local function askReset()
+-- After every sync: up to 20 rows that sit under a linked id go to the server, the newest first. A row that is not its
+-- record proves the game's table was replaced, whatever its top says; only the server can test that. lower says two
+-- full lists agree the top is below gameMax: the newest ticket was removed.
+local function startProof()
     local l = C.list
+    if not l or not C.queueOpen then return end
     local proof, n = {}, 0
     for i = #l.rows, 1, -1 do
         local r = l.rows[i]
-        if C.links and C.links[r.g] ~= nil and n < L.SYNC_ROWS then
+        if C.links[r.g] ~= nil and n < L.SYNC_ROWS then
             n = n + 1
-            proof[n] = { g = r.g, a = cutRow(r.a), m = cutRow(r.m) }
+            proof[n] = r
         end
     end
-    C.request("t_sync", { rows = proof, top = l.top, done = true, reset = true })
+    local lower = C.wantLower
+    C.wantLower = nil
+    if n == 0 and not lower then
+        compare(C.links)
+        return
+    end
+    C.sync = { rows = proof, i = 1, top = l.top, nextAt = now() + BATCH_MS, tries = 0, proof = true, lower = lower }
 end
 
 -- a full list, for the queue: what the server has not dealt with goes in batches
 local function afterList()
     if not C.queueOpen then return end
     local l = C.list
-    if l.top < C.gameMax and C.sameAt ~= C.gameMax then
-        if C.lowAt and C.links and l.at - C.lowAt >= TWO_LISTS_MS then
+    if l.top < C.gameMax then
+        if C.lowAt and l.at - C.lowAt >= TWO_LISTS_MS then
             C.lowAt = nil
-            askReset()
-            return
+            C.wantLower = true
+        else
+            C.lowAt = C.lowAt or l.at
+            C.recheckAt = now() + TWO_LISTS_MS
         end
-        C.lowAt = C.lowAt or l.at
-        C.recheckAt = now() + TWO_LISTS_MS
     else
         C.lowAt = nil
     end
@@ -344,28 +376,54 @@ end
 
 local function syncList() askFull(afterList) end
 
+-- a staff client is the only hands the game's table has: what a batch's ack says the row is owed
+local function settleRows(a)
+    local l = C.list
+    if not l then return end
+    for _, e in ipairs(a.remove or {}) do
+        local row = l.byId[e.g]
+        local _, id = Tk.parse(row and row.m)
+        if id == e.id then gameCall({ run = function() removeTicket(e.g) end, got = fullList }) end
+    end
+    local me = myName()
+    for _, e in ipairs(a.owe or {}) do
+        local row = l.byId[e.g]
+        if row and me then
+            if e.view and not row.v then
+                row.v = true
+                gameCall({ run = function() viewedTicket(me, e.g) end, got = fullList })
+            end
+            if e.text then gameCall({ run = function() addTicket(me, e.text, e.g) end, got = fullList }) end
+        end
+    end
+end
+
+-- One batch out at a time, and the next only after its ack: gameMax is a watermark, so a batch the general limit drops
+-- must never be passed by the one after it. A refused or unanswered batch goes again, the same rows.
 pumpSync = function()
     local y = C.sync
-    if not y or y.over or now() < y.nextAt then return end
-    local from, batch, n = y.i, {}, 0
-    while n < L.SYNC_ROWS and y.i <= #y.rows do
-        local r = y.rows[y.i]
+    if not y or y.waiting or now() < y.nextAt then return end
+    local to, batch, n = y.i, {}, 0
+    while n < L.SYNC_ROWS and to <= #y.rows do
+        local r = y.rows[to]
         n = n + 1
         batch[n] = { g = r.g, a = cutRow(r.a), m = cutRow(r.m), v = r.v, aw = cutRow(r.aw), at = cutRow(r.at) }
-        y.i = y.i + 1
+        to = to + 1
     end
-    local done = y.i > #y.rows
-    y.over = done
-    y.nextAt = now() + BATCH_MS
-    C.request("t_sync", { rows = batch, top = y.top, done = done }, function(a)
+    local done = to > #y.rows
+    y.waiting = true
+    C.request("t_sync", { rows = batch, top = y.top, done = done, reset = y.proof, lower = y.lower }, function(a)
+        settleRows(a)
         if C.sync ~= y then return end
-        if a.ok == false and a.err == "wait" then
-            y.i = from
-            y.over = false
-            y.nextAt = now() + BATCH_MS
-        elseif a.ok == false or y.over then
-            C.sync = nil
+        y.waiting = false
+        y.nextAt = now() + BATCH_MS
+        if a.ok == false then
+            y.tries = y.tries + 1
+            if (a.err ~= "wait" and a.err ~= "fail") or y.tries > SYNC_TRIES then C.sync = nil end
+            return
         end
+        y.i, y.tries = to, 0
+        if done then C.sync = nil end
     end)
 end
 
@@ -379,9 +437,10 @@ local function queueDiff(gone, ans)
     end
 end
 
--- what the game holds against what the server has linked. Only ids at or below the list's highest: a link made after
--- the list was fetched is not missing. A second list runs only when something looks gone.
-local function compare(links)
+-- what the game holds against what the server has linked. Runs once the server has said the table is the same one, so
+-- a linked id missing from two lists is gone, above the list's top too (a link made after a list was fetched shows in
+-- the second). An answer goes with its row: the server tests that row against the record before it writes.
+compare = function(links)
     local l = C.list
     if not l then return end
     local gone, ans, again = {}, {}, false
@@ -390,9 +449,9 @@ local function compare(links)
         if row then
             C.absent[g] = nil
             if has == false and row.aw then
-                ans[#ans + 1] = { g = g, who = cutRow(row.aw), text = cutRow(row.at), viewed = row.v }
+                ans[#ans + 1] = { g = g, a = cutRow(row.a), m = cutRow(row.m), who = cutRow(row.aw), text = cutRow(row.at) }
             end
-        elseif g <= l.top then
+        else
             local first = C.absent[g]
             if first and l.at - first >= TWO_LISTS_MS then
                 C.absent[g] = nil
@@ -420,7 +479,6 @@ function C.openQueue(q)
     if q then C.q = q end
     C.queueOpen = true
     C.wantSync = true
-    C.sameAt = nil
     sendQueue()
 end
 -- a changed filter or page: the server's list only
@@ -433,13 +491,24 @@ function C.closeQueue()
     C.wantSync = nil
     C.sync = nil
     C.recheckAt = nil
-    C.lowAt = nil
     diffQ = {}
 end
+-- a ticket came in, or was answered, with no game link yet: the game's list again, soon, once
+function C.syncSoon()
+    if C.queueOpen and not C.recheckAt then C.recheckAt = now() + SOON_MS end
+end
 
-function C.openCard(id) return C.request("t_card", { id = id }) end
--- the card closed: the next open of this ticket is a fresh one (the game's viewed goes with a fresh one)
-function C.closeCard() C.card = nil end
+function C.openCard(id, cb)
+    C.wantCard = id
+    return C.request("t_card", { id = id }, cb)
+end
+-- the card closed: the next open of this ticket is a fresh one (the game's viewed goes with a fresh one). Only this ends
+-- the card's pushes: the queue's own traffic runs under an open card
+function C.closeCard()
+    C.card = nil
+    C.wantCard = nil
+    S.send(Tk.MOD, "t_cardoff", {})
+end
 function C.take(id, cb) return C.request("t_take", { id = id }, cb) end
 function C.addNote(id, text, cb) return C.request("t_addnote", { id = id, text = Tk.clean(text) }, cb) end
 function C.close(id, cb) return C.request("t_close", { id = id }, cb) end
@@ -455,8 +524,10 @@ function C.answer(id, text, cb)
             local me = myName()
             -- (the one game answer; several replies live in ZeD's record, A4)
             withRow(a.gameId, rec, function()
-                gameCall({ run = function() addTicket(me, clean, a.gameId) end, got = fullList })
+                gameCall({ run = function() addTicket(me, Tk.answerText(clean), a.gameId) end, got = fullList })
             end)
+        elseif a.ok and not a.gameId then
+            C.syncSoon()         -- (the link will owe the game this answer)
         end
         if cb then cb(a) end
     end)
@@ -469,6 +540,8 @@ function C.delete(id, cb)
             withRow(a.gameId, rec, function()
                 gameCall({ run = function() removeTicket(a.gameId) end, got = fullList })
             end)
+        elseif a.ok then
+            C.syncSoon()         -- (no link: the next sync finds the row by its tag and removes it)
         end
         if cb then cb(a) end
     end)
@@ -484,13 +557,15 @@ function C.adminAsk(force)
     askFull()
 end
 
--- a game row in the shape of a staff row: kind from the tag, Seen if viewed, Answered if it holds the game's one answer
+-- a game row in the shape of a staff row: kind from the tag, Seen if viewed, Answered if viewed and it holds the game's
+-- one answer. An answer on an unviewed row is any client's claim: it is shown as that, and the ticket stays open.
 local function fallbackStaff(r)
     local kind, _, rest = Tk.parse(r.m)
     if not Tk.isKind(kind) then kind, rest = Tk.NONE, r.m end
-    return { id = r.g, kind = kind, author = r.a, st = (r.aw and "Answered") or (r.v and "Seen") or "Open",
+    local answered = r.aw ~= nil and r.v == true
+    return { id = r.g, kind = kind, author = r.a, st = (answered and "Answered") or (r.v and "Seen") or "Open",
         first = string.sub(rest, 1, L.PREVIEW), replies = r.aw and 1 or 0, game = true,
-        text = rest, ansWho = r.aw, ansText = r.at }
+        text = rest, ansWho = r.aw, ansText = r.at, claim = (r.aw ~= nil and not r.v) or nil }
 end
 
 function C.fallbackRow(id)
@@ -501,7 +576,7 @@ end
 function C.fallbackOpen()
     local n = 0
     for _, r in ipairs(C.list and C.list.rows or {}) do
-        if not r.aw then n = n + 1 end
+        if not (r.aw and r.v) then n = n + 1 end
     end
     return n
 end
@@ -543,6 +618,15 @@ function C.fallbackQueue(q)
     return { page = page, pages = pages, n = #list, rows = rows, open = C.fallbackOpen(), spam = 0, authors = authors }
 end
 
+-- the card opened: the game's window shows it viewed, and the player's row reads Seen (B9)
+function C.gameView(id)
+    local r = C.list and C.list.byId[id]
+    local me = myName()
+    if r and me and not r.v then
+        r.v = true
+        gameCall({ run = function() viewedTicket(me, id) end, got = fullList })
+    end
+end
 function C.gameAnswer(id, text)
     local me = myName()
     if me then gameCall({ run = function() addTicket(me, Tk.clean(text), id) end, got = fullList }) end
@@ -584,7 +668,7 @@ end
 local function putRow(list, a)
     if not list then return end
     for i, row in ipairs(list) do
-        if row.id == a.id then
+        if row.id == a.id and not row.game then
             list[i] = a
             return true
         end
@@ -601,8 +685,9 @@ function on.t_row(a)
             -- (a status changed by staff comes as this row alone: a ticket read on a card is asked for again)
             local held = C.one[a.id]
             if held and held.st ~= a.st then C.loadOne(a.id) end
-        elseif C.queue then
-            putRow(C.queue.rows, a)
+        else
+            if C.queue then putRow(C.queue.rows, a) end
+            if a.unlinked then C.syncSoon() end
         end
     end
     bump()
@@ -628,18 +713,17 @@ function on.t_syncd(a)
     C.links = a.links or {}
     if a.reset then
         C.lowAt = nil
-        startBatches()
-        return
+        startBatches(now() + BATCH_MS)
+    elseif a.same then
+        compare(C.links)
+    else
+        startProof()
     end
-    if a.same then
-        C.sameAt = C.gameMax
-        C.lowAt = nil
-    end
-    compare(C.links)
     bump()
 end
 
 function on.t_card(a)
+    if C.wantCard ~= a.id then return end    -- (a push for a card closed a moment ago)
     local fresh = not C.card or C.card.id ~= a.id
     C.card = a
     if fresh and a.gameId then
@@ -653,8 +737,13 @@ function on.t_card(a)
     bump()
 end
 
+-- on the card already: read as it arrives, so no note and no line at the next login
 function on.t_note(a)
-    if ZeD.Messages and ZeD.Messages.ticket then ZeD.Messages.ticket(a.id, a.who) end
+    if C.seeing(a.id) then
+        C.read(a.id)
+    elseif ZeD.Messages and ZeD.Messages.ticket then
+        ZeD.Messages.ticket(a.id, a.who)
+    end
     bump()
 end
 
@@ -662,7 +751,7 @@ function on.t_gone(a)
     local id = a.id
     C.one[id] = nil
     for i = #C.mine, 1, -1 do
-        if C.mine[i].id == id then table.remove(C.mine, i) end
+        if C.mine[i].id == id and not C.mine[i].game then table.remove(C.mine, i) end
     end
     if C.queue and C.queue.rows then
         for i = #C.queue.rows, 1, -1 do
@@ -730,8 +819,12 @@ local function tick()
         sendQueue()
     end
     if C.recheckAt and t >= C.recheckAt then
-        C.recheckAt = nil
-        syncList()
+        if C.sync then
+            C.recheckAt = t + BATCH_MS       -- (one sync at a time)
+        else
+            C.recheckAt = nil
+            syncList()
+        end
     end
 end
 

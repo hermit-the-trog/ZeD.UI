@@ -1156,3 +1156,43 @@ The cards are `ZeD_TicketCards.lua`. Where they differ from Part B or the mockup
 10. **The keyboard's `_multi` is turned off for these fields,** so RT ends the typing. With it on, RT makes a line break and the
     plain way out is B, which puts the field back as it was.
 11. **The band gained `lead`,** push buttons at its left, and **the tag `frameColor`.** Tokens gained `violet` for Appeal.
+
+# Build's changes (Nov 5 2026, after the review)
+
+Where B2, B4, B6, B8 and B9 now differ, and why.
+
+1. **An answer from the game's side is never proof, viewed or not.** `viewed` shows that staff opened a ticket, and any client
+   can add an answer row after that (A4). So B8's two tables change: every game-side answer goes in `notes` with `game = true`,
+   for staff only, and never in the thread. Adoption gives Seen if viewed, else Open, never Answered, so every adopted record
+   sits under the open caps. A foreign answer sets `gameClaim`, not `gameAns`: `first` stays true, and ZeD's real first answer
+   still goes to the game. The cost: a real answer given on the game's window reaches staff as a labeled note, and a ZeD player
+   reads it only in the game's window. On a server with old answered tickets, those adopt as open, up to the cap, for staff to
+   close.
+2. **B8's "no list of tombstones" has one small exception.** A tagged row whose id is below `nextId` and has no record was deleted
+   or evicted, so it is dealt with and not adopted. A crash that rolled `nextId` back still adopts, as B10 says. A Delete with no
+   game link keeps `md.tombs[id] = author`, at most 50, until the row is seen. The batch's ack then says `remove`, and the staff
+   client removes the row after testing its tag.
+3. **What staff did before a link is owed at the link.** The batch's ack says `owe {g, view, text}`: viewed, and the first staff
+   line as the one game answer. `getTickets(nil)` now also runs 2 seconds after a `t_row` with `unlinked` (the author's `t_filed`),
+   after an answer or a Delete with no link. B8 said only on opening and Refresh.
+4. **A replaced database needs a row that proves it.** After every sync up to 20 rows under linked ids go to the server, the
+   newest first. One that is not its record resets, whatever `top` says, and each `ans` carries its row, tested before anything
+   is written. An empty proof answers `same`: `top` below the lowest link is not evidence, since it is also what removing the only
+   ticket looks like. If two lists agree `top` is below `gameMax`, `lower` brings `gameMax` down to `top`, which heals a forged
+   `g`. A linked id missing from two lists is gone even above `top`, since `compare` runs only after `same`.
+5. **One `t_sync` batch out at a time.** The next goes after the ack, and a refused or unanswered batch goes again, the same rows:
+   `gameMax` is a watermark, so a batch the general limit drops must not be passed.
+6. **The text budget.** Players, adoption and game-side answers stop at `PLAYER_CHARS`, 3,500,000; the last 500,000 is for staff.
+   Past the line a player's write can evict only Spam. History goes early only for a staff write. Adopted records go before ZeD's,
+   then oldest first. The record being written to is never evicted. "tickets full" is one line a minute for the server.
+7. **`t_card` and `t_one` ack.** `t_queue` no longer clears `T.cards`: new `t_cardoff` does, sent when a card closes, because the
+   queue's own traffic runs under an open card.
+8. **E13 off files the staff's answer as the stub too** (`Tk.answerText`), or the first answer stays public.
+9. **The fallback (B9):** Answered needs viewed and an answer. An answer on an unviewed row keeps the ticket open and is labeled as
+   the game's. A ZeD card opened there calls `viewedTicket`.
+10. **The cards.** A field never outgrows the view, and one being typed in stays in view with its box. A push that takes a field
+    away keeps the words on the card and says why in the foot. With a controller the foot's words have a line of their own above
+    the bands, and a gray Previous or Next gets a line in the list. Player text wraps with a hard break and keeps blank lines. The
+    card's place reads name and coordinates (`Tk.whereFull`). The adopted card's caveat is a line on the card. The wheel over a
+    field scrolls the card, the hint is drawn by the card, wrapped, and the keyboard's key reads Accept (`setSingleLine`). It still
+    sits at the screen's foot, not under the field.
