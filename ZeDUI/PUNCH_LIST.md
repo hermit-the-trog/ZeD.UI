@@ -2678,6 +2678,9 @@ item says so.
       photo replaced; the setting added; the permit table in one place.
     - **QA:** both styles at both widths, 1x and 2x and 1.75x at 4K, all nine accents and the three themes, the full
       body both ways, a long name, each permit profession.
+    - **Built Nov 5 (e6188ce4, e453aab6). QA PASS in game:** both styles and widths, the half card at the Deck, weights,
+      permits, real mouse on model and sky, the server's ISS. Build added: the photo holds still on this tab (idles off),
+      the Equip doll keeps them (not yet seen by QA). For the director's eye: the half card, trait icons gone, the row in Look.
 
 90. **American spelling everywhere players read (the director, Nov 5 2026: "spell color C-O-L-O-R and leave the U over
     in Europe").** color, gray, center, favorite, license, behavior. Design fixed its Nov 5 files (the MP mockups,
@@ -2722,6 +2725,8 @@ item says so.
         doc's "mockup before code" step is skipped; the constants get a debug block for tuning on a real pad.
     - **QA:** the doc's checklist, corrected; then spreads 43 and 44 and the controller map if they change. Toggle mode
       goes on the Workshop page's Access list.
+    - **Built Nov 5 (merged 5ee11292). QA PASS, scripted:** zedqa_dpad_wheels 147 pass, 0 fail, and ws, wi, wh, pg, qc. No
+      real pad yet: the first real tap, walking with a wheel up, cruise control and flick feel are the director's to try.
 
 ## Test process
 
