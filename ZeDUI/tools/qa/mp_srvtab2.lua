@@ -52,15 +52,15 @@ add(500, function()
     pcall(function() st.off = 100000 end)
 end)
 add(1200, function()
-    local b = btn("tickets")
-    say("tickets button " .. tostring(b ~= nil) .. (b and (" label '" .. tostring(b.label) .. "'") or ""))
+    local b = btn("ask")
+    say("Ask the admins button " .. tostring(b ~= nil) .. (b and (" label '" .. tostring(b.label) .. "'") or ""))
     if b then S.onClick(CW(), b.x + 2, b.y + 2) end
     pcall(function() getCore():TakeFullScreenshot("ms2_foot.png") end)
 end)
 add(1500, function()
-    local t = ISTicketsUI and ISTicketsUI.instance
-    say("tickets -> the game's window open " .. tostring(vis(t)))
-    if t then pcall(function() t:close() end) end
+    local st = CW()._serverTab
+    say("Ask the admins -> the card open " .. tostring(st.card ~= nil))
+    if st.card then ZeD.TicketCards.back(CW(), st) end
     local labs = {}
     for _, b in ipairs(CW()._serverTab.btns or {}) do labs[#labs + 1] = tostring(b.label or b.text or b.id) end
     say("button words [" .. table.concat(labs, " | ") .. "]")

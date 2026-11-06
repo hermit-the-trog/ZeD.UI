@@ -35,6 +35,7 @@ local NOTE_EVERY_MS = 10000   -- "a new ticket" on the belt, at most this often:
 local ADMIN_POLL_MS = 10000   -- without the server part, the Admin tab's list asks again this often
 
 C.seq = C.seq or 0            -- bumps on every change (the cards re-read)
+C.rowSeq = C.rowSeq or 0      -- bumps on every t_row (the queue's page may be stale)
 C.mine = C.mine or {}         -- my rows, newest first
 C.one = C.one or {}           -- id -> my ticket as the server last sent it
 C.queue = C.queue or nil      -- the staff's queue page as last sent
@@ -257,7 +258,8 @@ function C.fallbackMine(rows)
         local kind, _, rest = Tk.parse(row.m)
         if not Tk.isKind(kind) then kind, rest = Tk.NONE, row.m end
         out[#out + 1] = { id = row.g, kind = kind, last = string.sub(row.aw and row.at or rest, 1, L.PREVIEW),
-            st = (row.aw and "Answered") or (row.v and "Seen") or "Sent", replies = row.aw and 1 or 0, game = true }
+            st = (row.aw and "Answered") or (row.v and "Seen") or "Sent", replies = row.aw and 1 or 0, game = true,
+            text = rest, ansWho = row.aw, ansText = row.at }
     end
     C.mine = out
     bump()
@@ -436,6 +438,8 @@ function C.closeQueue()
 end
 
 function C.openCard(id) return C.request("t_card", { id = id }) end
+-- the card closed: the next open of this ticket is a fresh one (the game's viewed goes with a fresh one)
+function C.closeCard() C.card = nil end
 function C.take(id, cb) return C.request("t_take", { id = id }, cb) end
 function C.addNote(id, text, cb) return C.request("t_addnote", { id = id, text = Tk.clean(text) }, cb) end
 function C.close(id, cb) return C.request("t_close", { id = id }, cb) end
@@ -471,34 +475,77 @@ function C.delete(id, cb)
 end
 
 -- ---------------------------------------------------------------------------
--- THE ADMIN TAB'S LIST, until the ticket cards replace it: the game's rows, as the latest full list holds them. With
--- the server part it opens the queue once; without it, it polls as it always did.
+-- THE QUEUE WITHOUT THE SERVER PART (B9): the game's list read here, on the 10-second poll the Admin tab always had
 -- ---------------------------------------------------------------------------
 function C.adminAsk(force)
-    if S.available() then
-        if force or not C.adminAsked then
-            C.adminAsked = true
-            C.openQueue()
-        end
-        return
-    end
     local t = now()
     if not force and C.pollAt and t - C.pollAt < ADMIN_POLL_MS then return end
     C.pollAt = t
     askFull()
 end
 
-function C.adminRows()
-    local out = {}
+-- a game row in the shape of a staff row: kind from the tag, Seen if viewed, Answered if it holds the game's one answer
+local function fallbackStaff(r)
+    local kind, _, rest = Tk.parse(r.m)
+    if not Tk.isKind(kind) then kind, rest = Tk.NONE, r.m end
+    return { id = r.g, kind = kind, author = r.a, st = (r.aw and "Answered") or (r.v and "Seen") or "Open",
+        first = string.sub(rest, 1, L.PREVIEW), replies = r.aw and 1 or 0, game = true,
+        text = rest, ansWho = r.aw, ansText = r.at }
+end
+
+function C.fallbackRow(id)
+    local r = C.list and C.list.byId[id]
+    return r and fallbackStaff(r) or nil
+end
+
+function C.fallbackOpen()
+    local n = 0
     for _, r in ipairs(C.list and C.list.rows or {}) do
-        out[#out + 1] = { id = r.g, author = r.a, text = r.m, answer = r.aw and (r.aw .. ": " .. tostring(r.at)) or nil }
+        if not r.aw then n = n + 1 end
     end
-    return out
+    return n
+end
+
+local function findIn(find, s) return s ~= nil and string.find(string.lower(s), find, 1, true) ~= nil end
+
+local function fallbackKeep(row, q, find)
+    if q.status == "Open" and row.st == "Answered" then return false end
+    if q.status == "Answered" and row.st ~= "Answered" then return false end
+    if q.kind and row.kind ~= q.kind then return false end
+    if q.who and row.author ~= q.who then return false end
+    if find and not (findIn(find, row.author) or findIn(find, row.text) or findIn(find, row.ansText)) then return false end
+    return true
+end
+
+-- a page of the game's list, filtered here: the same shape as the server's t_queue
+function C.fallbackQueue(q)
+    q = q or {}
+    local find = (q.find and q.find ~= "") and string.lower(q.find) or nil
+    local list, authors, seen = {}, {}, {}
+    for _, r in ipairs(C.list and C.list.rows or {}) do
+        local row = fallbackStaff(r)
+        if not seen[row.author] then
+            seen[row.author] = true
+            authors[#authors + 1] = row.author
+        end
+        if fallbackKeep(row, q, find) then list[#list + 1] = row end
+    end
+    table.sort(authors)
+    if q.newest == false then
+        table.sort(list, function(x, y) return x.id < y.id end)
+    else
+        table.sort(list, function(x, y) return x.id > y.id end)
+    end
+    local pages = math.max(1, math.ceil(#list / L.PAGE_ROWS))
+    local page = math.min(q.page or 1, pages)
+    local rows, from = {}, (page - 1) * L.PAGE_ROWS
+    for i = 1, math.min(L.PAGE_ROWS, #list - from) do rows[i] = list[from + i] end
+    return { page = page, pages = pages, n = #list, rows = rows, open = C.fallbackOpen(), spam = 0, authors = authors }
 end
 
 function C.gameAnswer(id, text)
     local me = myName()
-    if me then gameCall({ run = function() addTicket(me, text, id) end, got = fullList }) end
+    if me then gameCall({ run = function() addTicket(me, Tk.clean(text), id) end, got = fullList }) end
 end
 function C.gameRemove(id) gameCall({ run = function() removeTicket(id) end, got = fullList }) end
 
@@ -546,10 +593,14 @@ local function putRow(list, a)
 end
 
 function on.t_row(a)
+    C.rowSeq = C.rowSeq + 1
     if a.open then C.counts = { open = a.open, spam = a.spam or 0 } end
     if a.id then
         if a.pv then
             if not putRow(C.mine, a) then table.insert(C.mine, 1, a) end
+            -- (a status changed by staff comes as this row alone: a ticket read on a card is asked for again)
+            local held = C.one[a.id]
+            if held and held.st ~= a.st then C.loadOne(a.id) end
         elseif C.queue then
             putRow(C.queue.rows, a)
         end

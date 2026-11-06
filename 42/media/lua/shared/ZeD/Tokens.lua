@@ -54,6 +54,7 @@ ZeD.BaseThemes = {
         warning  = hex("#C49A2A"),
         positive = hex("#7A9A34"),
         info     = hex("#5A8A9A"),
+        violet   = hex("#9A6AC4"),                   -- a ticket's Appeal label
         -- Border weight (pixels) — High Contrast overrides this
         borderW  = 1,
         -- Disabled opacity
@@ -127,6 +128,7 @@ ZeD.BaseThemes = {
         warning  = hex("#6B5510"),
         positive = hex("#2A5511"),
         info     = hex("#1A5566"),
+        violet   = hex("#552288"),
         borderW  = 1,
         disabledAlpha = 0.42,
         chromeHi = rgba(1.0, 1.0, 1.0, 1.0),
@@ -188,6 +190,7 @@ ZeD.BaseThemes = {
         warning  = hex("#FFCC22"),
         positive = hex("#44DD44"),
         info     = hex("#44CCFF"),
+        violet   = hex("#CC99FF"),
         borderW  = 2,     -- thicker borders for accessibility
         disabledAlpha = 0.42,
         chromeHi = rgba(1.0, 1.0, 1.0, 1.0),
@@ -877,6 +880,7 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
     T.warning  = base.warning
     T.positive = base.positive
     T.info     = base.info
+    T.violet   = base.violet
 
     -- Structural values from base theme
     T.borderW      = base.borderW
