@@ -1126,7 +1126,7 @@ function D.applyPublished(st, pub, des)
     local worst = nil
     for _, e in ipairs(pub.list) do
         e.state = e.on and _pubState(e, phase) or false
-        if e.on and not (e.role and pl.has[e.role]) and (not worst or e.rank > worst.rank) then worst = e end
+        if e.on and e.rank >= 2 and not (e.role and pl.has[e.role]) and (not worst or e.rank > worst.rank) then worst = e end
     end
     local V = ZeD.ModSupport.VSKDash
     if worst and V.BORROW_UNPAINTED then
@@ -1629,7 +1629,9 @@ function ZeD_Dashboard:prerender()
     self._driver = _safe(function() return vehicle:isDriver(chr) end, false)
     local st = _state(vehicle, chr)
     local pubV = ZeD.ModSupport and ZeD.ModSupport.VSKDash
-    st.pub = (pubV and self._driver) and pubV.read(vehicle, chr, self._mem) or nil
+    if pubV then
+        if self._driver then st.pub = pubV.read(vehicle, chr, self._mem) else st.pub = pubV.figures(vehicle, self._mem) end
+    end
     D.derive(st, self._mem, dt)
     self:_trip(vehicle, st, dt)
     self._st = st
@@ -1656,7 +1658,7 @@ function ZeD_Dashboard:prerender()
     self._designId = designId
     if st.pub then
         local okP, eP = pcall(D.applyPublished, st, st.pub, des)
-        if not okP then ZeD.logOnce("dash published", tostring(eP)) end
+        if not okP then pubV.note("dash published", eP) end    -- (never logOnce: a mod's data is no ZeD fault)
     end
     st.brand = self._badge and self._badge.brand      -- the console's mark: the sprite and its model line show by it
     st.keyPos = self:_keyPos(st, now)
