@@ -49,6 +49,7 @@ DAY_FLAT = 0.52
 DITHER_FROM = 0.03              # the light below which the dark stays clean (no dither)
 DARK_STEPS = (0.3, 0.6)         # the night's two steps under a ramp's darkest
 BACKLIT = ("lcd",)              # glass a car lights from behind with the panel lights (the 90s odometer and climate LCDs)
+SMALL_GLASS, SMALL_GLASS_LIFT = 40, 1.7   # a window this wide or narrower, and how much brighter it lights
 BACKLIGHT = 0.55                # the backlight's strength, a share of the glass's day colour (before the bulb's tint)
 
 
@@ -498,6 +499,12 @@ def glass_runs(d, day_img, tint_at=None):
             for y, x in zip(*np.nonzero(pr)):
                 c = warm(day[y, x, :3], BACKLIGHT, tint_at(x, y))
                 cols.setdefault(c, []).append((x, y))
+            # a small window (the Dash Elite's odometer) lights brighter and flat: its figures are small and the ghost
+            # marks under them made them unreadable at night at game size (Nov 6 2026, QA's 1.6:1, now about 3.2:1)
+            if x1 - x0 <= SMALL_GLASS and cols:
+                top = max(cols, key=lambda c: len(cols[c]))
+                c = tuple(min(255, int(v * SMALL_GLASS_LIFT)) for v in top)
+                cols = {c: [(x, y) for y in range(y0, y1) for x in range(x0, x1)]}
             for c, px in sorted(cols.items(), key=lambda kv: -len(kv[1])):
                 out.append({"color": hexc(c), "runs": _runs(px)})
     return out
