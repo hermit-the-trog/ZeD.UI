@@ -61,6 +61,9 @@ local ZOOM_STEPS, ZOOM_MAX, Y_MIN, Y_MAX = 4, 18, -0.5, -0.875
 
 S.view = "grid"      -- "grid" (pictures) or "list"
 S.first = false      -- the mod asked for a look at game start (Save only, paused)
+-- the heads that fold, shut or open for the session (FAIV, Nov 6 2026: the add-ons' long list of details). det and face: this
+-- tab; looks: the Looks screen's details, kept apart. Details start shut, Face starts open
+S.closed = { det = true, looks = true }
 
 local function mod(name)
     local ok, m = pcall(require, name)
@@ -494,9 +497,11 @@ local function layoutReadOnly(st, L, kind, list, x, y, w, note)
     return y + T.px(6) + F5H()
 end
 
--- a section head (20u, sentence case, its content line under it); count = "(n)" after it
-local function layoutSubhead(L, text, x, y, w, count)
-    addItem(L, { kind = "subh", text = text, count = count, x = x, y = y, w = w, h = ZeD.T.px(20) })
+-- a section head (20u, sentence case, its content line under it); count = "(n)" after it; fold = its key in S.closed, for a head
+-- that folds
+local function layoutSubhead(L, text, x, y, w, count, fold)
+    addItem(L, { kind = "subh", text = text, count = count, fold = fold, shut = fold ~= nil and S.closed[fold] == true,
+        x = x, y = y, w = w, h = ZeD.T.px(20) })
     return y + ZeD.T.px(20) + ZeD.T.sp.afterGroove
 end
 
@@ -569,20 +574,26 @@ local function layout(win, st, w, viewH)
     local leftBottom = by + T.buttonH
     local rx = x + T.px(FIG_W) + T.px(COL_GAP)
     local rw = cw - T.px(FIG_W) - T.px(COL_GAP)
-    local ry = layoutSubhead(L, getText("UI_characreation_face"), rx, figTop, rw)
-    if st.canFace then ry = layoutOptions(st, L, "face", st.faces, rx, ry, rw)
-    else ry = layoutReadOnly(st, L, "face", st.faces, rx, ry, rw, getText("UI_characreation_facedisabled")) end
-    ry = ry + T.px(10)
-    addItem(L, { kind = "groove", x = rx, y = ry, w = rw })
-    ry = ry + T.grooveH + T.px(10)
+    -- (folded, a list isn't built at all: its tiles are no stops, no figures, no hover. The picks stay in st.det)
+    local ry = layoutSubhead(L, getText("UI_characreation_face"), rx, figTop, rw, nil, "face")
+    if not S.closed.face then
+        if st.canFace then ry = layoutOptions(st, L, "face", st.faces, rx, ry, rw)
+        else ry = layoutReadOnly(st, L, "face", st.faces, rx, ry, rw, getText("UI_characreation_facedisabled")) end
+        ry = ry + T.px(10)
+        addItem(L, { kind = "groove", x = rx, y = ry, w = rw })
+        ry = ry + T.grooveH + T.px(10)
+    end
     local n = 0
     for _ in pairs(st.det) do n = n + 1 end
-    ry = layoutSubhead(L, getText("UI_characreation_bodydetail"), rx, ry, rw, n)
+    -- (with no details there is nothing to fold: the head stays still, over the line that says so)
+    ry = layoutSubhead(L, getText("UI_characreation_bodydetail"), rx, ry, rw, n, #st.dets > 0 and "det" or nil)
     if #st.dets == 0 then
         addItem(L, { kind = "text", text = ZeD.tr("UI_ZeD_SPNCC_NoDetails"), x = rx, y = ry, dim = true })
         ry = ry + F2H()
-    elseif st.canDet then ry = layoutOptions(st, L, "det", st.dets, rx, ry, rw)
-    else ry = layoutReadOnly(st, L, "det", st.dets, rx, ry, rw, getText("UI_characreation_detailsdisabled")) end
+    elseif not S.closed.det then
+        if st.canDet then ry = layoutOptions(st, L, "det", st.dets, rx, ry, rw)
+        else ry = layoutReadOnly(st, L, "det", st.dets, rx, ry, rw, getText("UI_characreation_detailsdisabled")) end
+    end
     y = math.max(leftBottom, ry) + T.px(12)
     addItem(L, { kind = "groove", x = x, y = y, w = cw })
     y = y + T.grooveH + T.px(10)
@@ -632,6 +643,7 @@ end
 local function itemId(it)
     if it.kind == "tile" or it.kind == "lrow" then return "spn:" .. it.tk .. ":" .. it.opt.name end
     if it.kind == "fbtn" then return "spn:fig:" .. it.act end
+    if it.kind == "subh" and it.fold then return "spn:fold:" .. it.fold end
     if it.kind == "groom" then return "spn:shave:" .. it.key end
     if it.kind == "check" then return "spn:chk:" .. it.key end
     return nil
@@ -798,6 +810,12 @@ local function drawItem(panel, win, st, it, y, contentW)
     if k == "credit" then
         local c = T.textDim
         panel:drawText(it.text, it.x, y, c.r, c.g, c.b, c.a or 1, T.fontF5)
+    elseif k == "subh" and it.fold then
+        -- a head that folds: the triangle, the count after the name, the hover wash, the controller's mark
+        local hov = hoverIn(panel, st, it.x, y, it.w, it.h)
+        if hov then help(win, ZeD.tr(it.shut and "UI_ZeD_ETW_HelpCatShow" or "UI_ZeD_ETW_HelpCatHide", it.text)) end
+        ZeD.Molecules.drawSectionHeader(panel, it.x, y, it.w, it.text, it.count, not it.shut, hov, nil, true, nil, nil, nil,
+            { focus = focusOf(win, itemId(it)) })
     elseif k == "subh" then
         -- the section head: 20u, sentence case, its content line under it, not folding
         ZeD.Molecules.drawSectionHeader(panel, it.x, y, it.w, it.text, it.count, true, false, nil, nil, nil, nil, true)
@@ -1037,6 +1055,11 @@ function S.activate(win, st, it)
     elseif k == "check" then
         st[it.key] = not st[it.key]
         getSoundManager():playUISound("UIActivateButton")
+    elseif k == "subh" then
+        -- (a tile under the pointer goes with the fold, and the head stays in view for the controller)
+        S.closed[it.fold] = not S.closed[it.fold]
+        st.hover, st.lastPinned = nil, nil
+        getSoundManager():playUISound("UIActivateButton")
     end
 end
 
@@ -1073,8 +1096,9 @@ function S.onClick(win, x, y)
     end
 end
 
--- the controller's stops: the view pair, every option, the figure's buttons, Shave,
--- the check boxes, Cancel and Save (their rects as drawn this frame)
+-- the controller's stops: the view pair, the heads that fold (A toggles; left and right keep moving
+-- between the columns), every option of an open fold, the figure's buttons, Shave, the check boxes,
+-- Cancel and Save (their rects as drawn this frame)
 function S.buildFocusables(win)
     local st = win._spncc
     if not st or not st.data then return {} end
@@ -1107,6 +1131,7 @@ function S.scrollKey(win)
     local st = win._spncc
     if not st then return nil end
     return tostring(st.off or 0) .. ":" .. S.view .. ":" .. tostring(#(st.els or {})) .. ":" .. tostring(dirty(st)) .. tostring(S.first)
+        .. ":" .. tostring(S.closed.face) .. tostring(S.closed.det)
 end
 
 -- ---------------------------------------------------------------------------
@@ -1250,16 +1275,27 @@ function S.looksRows(v, rows, head)
                 panel.faceMenu:setSelectedOption(faces[i].name); update()
             end) }
     end
-    -- DETAILS: a tick each (an exclusive body location trades places, as in the mod)
+    -- DETAILS: a head that folds, shut to begin with, with the number picked; open, a tick each (an exclusive body location
+    -- trades places, as in the mod). The picks stay in the mod's menu, so folding touches nothing that gets saved.
+    -- (the head's help line reaches the band as a control's tooltip, as a tick's does)
     local dets = sortedOptions(panel.bodyDetailMenu.options, panel.bodyDetailMenu.lockedOptionsVisible)
     if #dets > 0 then
-        head(getText("UI_characreation_bodydetail"))
-        for _, o in ipairs(dets) do
-            local opt = o
-            rows[#rows + 1] = { kind = "tick", label = tostring(opt.display or opt.name), tickNoText = true,
-                control = fakeTick(panel.bodyDetailMenu.selectedOptions[opt.name] ~= nil, function()
-                    panel.bodyDetailMenu:setSelected(opt); update()
-                end) }
+        local picked = panel.bodyDetailMenu.selectedOptions
+        local n = 0
+        for _, o in ipairs(dets) do if picked[o.name] ~= nil then n = n + 1 end end
+        local name = getText("UI_characreation_bodydetail")
+        local shut = S.closed.looks == true
+        rows[#rows + 1] = { kind = "header", text = name, count = n, shut = shut,
+            onFold = function() S.closed.looks = not S.closed.looks end,
+            control = { tooltip = ZeD.tr(shut and "UI_ZeD_ETW_HelpCatShow" or "UI_ZeD_ETW_HelpCatHide", name) } }
+        if not shut then
+            for _, o in ipairs(dets) do
+                local opt = o
+                rows[#rows + 1] = { kind = "tick", label = tostring(opt.display or opt.name), tickNoText = true,
+                    control = fakeTick(picked[opt.name] ~= nil, function()
+                        panel.bodyDetailMenu:setSelected(opt); update()
+                    end) }
+            end
         end
     end
 end

@@ -594,7 +594,7 @@ function ZeD_MMLooks:getFooterPrompts()
     local t = {}
     local r = self:focusedRow()
     if r and (r.kind == "combo" or r.kind == "cloth" or r.kind == "swatch" or r.kind == "slider") then t[#t + 1] = { glyph = "<>", label = ZeD.tr("UI_ZeD_Options_PromptChange") } end
-    t[#t + 1] = { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }
+    t[#t + 1] = { glyph = "A", label = ZeD.tr((r and r.onFold) and "UI_ZeD_Options_PromptToggle" or "UI_ZeD_MainMenu_PromptSelect") }
     t[#t + 1] = { glyph = "LB", label = "" }
     t[#t + 1] = { glyph = "RB", label = ZeD.tr("UI_ZeD_Looks_PromptTurn") }
     t[#t + 1] = { glyph = "X", label = getText("UI_mapspawn_random") }

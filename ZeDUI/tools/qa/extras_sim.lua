@@ -121,11 +121,12 @@ local function newVehicle(id, sql, x, y, script)
         links = {}, shut = 0, broke = 0, md = {} }
     function v.getId(self) touch(); return self.id end
     function v.getModData(self) touch(); return self.md end
+    function v.transmitModData(self) self.transmits = (self.transmits or 0) + 1 end
     function v.isStarting(self) touch(); return self.starting == true end
     function v.getSqlId(self) touch(); return self.sql end
     function v.getX(self) touch(); return self.x end
     function v.getY(self) touch(); return self.y end
-    function v.getKeyId(self) return self.keyId end
+    function v.getKeyId(self) touch(); return self.keyId end
     function v.getScript(self)
         local name = self.script
         return { getName = function() return name end, getCarModelName = function() return nil end }
@@ -1284,6 +1285,116 @@ do
     check("the same car holds its claim", act("ISUninstallVehiclePart", { character = b, vehicle = van }) == false)
     local other = newVehicle(10, 4021, 102, 101, "Base.Van")
     check("after a restart a new car still isn't it", act("ISUninstallVehiclePart", { character = b, vehicle = other }) == true)
+end
+
+-- what a client's vehicle:transmitModData() does to the server's copy (ObjectModDataPacket.parse): the same table, wiped by
+-- KahluaTableImpl.load, then the client's rows; an empty table is sent as no data, and takes the wipe branch
+local function clientSendsModData(v, rows)
+    for k in pairs(v.md) do v.md[k] = nil end
+    for k, x in pairs(rows or {}) do v.md[k] = x end
+end
+local function claimRow(v)
+    for _, md in pairs(W.moddata) do
+        if md.claims then return md.claims[W.server.ZeD.Ex.keyOf(v.sql)] end
+    end
+end
+
+section("a client's send of the car's mod data doesn't lose the claim")
+do
+    local a, o, b, ca, co, cb = claimsWorld()
+    local v = newVehicle(7, 4021, 102, 100)
+    claim(co, v)
+    local c = claimRow(v)
+    check("the claim keeps the car's key number", c.kid == v.keyId and c.tok ~= nil)
+    W.logs = {}
+    -- a dashboard mod on someone's client, which never had the stamp
+    clientSendsModData(v, { RetroDash = { odometer = 12 } })
+    check("the stamp is gone", v.md.ZeDClaim == nil)
+    check("the car stays claimed", act("ISUninstallVehiclePart", { character = b, vehicle = v }) == false)
+    check("no claim gone line", not logHas("claim gone"))
+    check("the stamp is back", v.md.ZeDClaim == c.tok)
+    check("the client's rows stay", v.md.RetroDash.odometer == 12)
+    advance(200)
+    check("the owner's list is untouched", co.E.mineRows == nil or #co.E.mineRows == 1)
+    check("the count is untouched", claimRow(v) == c and W.server.ZeD.Srv.X.counts.Aretha == 1)
+    -- a send with nothing in it, the same again, and a restart on top
+    clientSendsModData(v, nil)
+    W.server = nil
+    serverStart()
+    check("a wiped car holds its claim over a restart", act("ISUninstallVehiclePart", { character = b, vehicle = v }) == false)
+    check("no claim gone line after the restart", not logHas("claim gone"))
+    check("the put-back stamp isn't sent to the clients", v.transmits == nil, v.transmits)
+end
+
+section("the reused number stays handled, with a client's send in the way")
+do
+    local a, o, b, ca, co, cb = claimsWorld()
+    local old = newVehicle(7, 4021, 102, 100)
+    claim(co, old)
+    W.logs = {}
+    W.vehicles[7] = nil
+    local van = newVehicle(9, 4021, 102, 101, "Base.Van")
+    clientSendsModData(van, { RetroDash = { odometer = 1 } })
+    check("a new car with a client's rows is anyone's", act("ISUninstallVehiclePart", { character = b, vehicle = van }) == true)
+    check("the line", logHas("claim gone: that car is gone"))
+    check("the new car gets no stamp", van.md.ZeDClaim == nil)
+end
+
+section("a new lock on a claimed car")
+do
+    local a, o, b, ca, co, cb = claimsWorld()
+    local v = newVehicle(7, 4021, 102, 100)
+    claim(co, v)
+    local c = claimRow(v)
+    W.logs = {}
+    -- (Locksmith, on the server: vehicle:setKeyId)
+    v.keyId = 55555
+    check("the stamp holds it", act("ISUninstallVehiclePart", { character = b, vehicle = v }) == false)
+    check("the claim takes the new number", c.kid == 55555)
+    clientSendsModData(v, nil)
+    check("and the new number holds it from then on", act("ISUninstallVehiclePart", { character = b, vehicle = v }) == false)
+    check("no claim gone line", not logHas("claim gone"))
+    -- both between two looks at the car: nothing is left to tell it by. The claim goes, as a lost car's does
+    v.keyId = 66666
+    clientSendsModData(v, nil)
+    check("both lost at once: the claim goes", act("ISUninstallVehiclePart", { character = b, vehicle = v }) == true)
+    check("and says so", logHas("claim gone: that car is gone"))
+end
+
+section("a claim from before the key number")
+do
+    local a, o, b, ca, co, cb = claimsWorld()
+    local v = newVehicle(7, 4021, 102, 100)
+    claim(co, v)
+    local c = claimRow(v)
+    c.kid = nil
+    check("its stamp still proves it", act("ISUninstallVehiclePart", { character = b, vehicle = v }) == false)
+    check("and it takes the number", c.kid == v.keyId)
+    clientSendsModData(v, nil)
+    check("so a send can't lose it now", act("ISUninstallVehiclePart", { character = b, vehicle = v }) == false)
+    local v2 = newVehicle(8, 4022, 102, 101)
+    claim(co, v2)
+    local c2 = claimRow(v2)
+    c2.kid = nil
+    W.logs = {}
+    clientSendsModData(v2, nil)
+    check("one that lost its stamp first can't be told: it goes", act("ISUninstallVehiclePart", { character = b, vehicle = v2 }) == true)
+    check("the line", logHas("claim gone: that car is gone"))
+end
+
+section("a client's send with claims stored and every extra off")
+do
+    local a, o, b, ca, co, cb = claimsWorld()
+    local v = newVehicle(7, 4021, 102, 100)
+    claim(co, v)
+    settings(ca, function(s) s.vc.on = false end)
+    W.logs, W.touched = {}, 0
+    clientSendsModData(v, nil)
+    check("the game's function runs", act("ISUninstallVehiclePart", { character = b, vehicle = v }) == true)
+    advance(5000)
+    check("nothing touched the car", W.touched == 0, W.touched)
+    check("nothing put the stamp back", v.md.ZeDClaim == nil)
+    check("no line", not logHas("claim gone"))
 end
 
 section("a wreck cleared away takes its claim")

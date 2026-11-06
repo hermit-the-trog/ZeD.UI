@@ -1396,6 +1396,26 @@ function ZeD_MMOptions:rowHeight(r, cw)
     return T.px(ROW_H)
 end
 
+-- A head that folds (r.onFold: the Looks screen's add-on details, ModSupport/SPNCC.lua; r.shut, r.count): a stop of its own in
+-- reading order, where A or a click opens and shuts it. Left and right aren't its business: nudge answers no and the D-pad moves on.
+function ZeD_MMOptions:foldRow(r)
+    r.onFold()
+    MM.clickSound()
+end
+
+-- returns whether the pointer is on it
+function ZeD_MMOptions:drawFoldHead(r, rowId, x, y, w, focused)
+    local T = ZeD.T
+    local bleed, hh = T.px(11), T.px(HEAD_H)
+    local id = self.kind .. ":" .. rowId .. ":fold"
+    local hot = self:pctx().hot == id and not MM.gamepad()
+    ZeD.Molecules.drawSectionHeader(self, x, y, w, tostring(r.text), r.count, not r.shut, hot, T.fontF1, true, bleed, hh, false,
+        focused and { focus = MM.focusOpts() } or nil)
+    self._hits[#self._hits + 1] = { id = id, x = self:getAbsoluteX() + x - bleed, y = self:getAbsoluteY() + y, w = w + bleed, h = hh,
+        sound = true, fn = function() self:foldRow(r) end }
+    return hot
+end
+
 function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
     local T = ZeD.T
     local bs = T.borderS
@@ -1437,7 +1457,16 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
         if r.kind == "header" then
             -- (the library's head claims its place in the window body: only a head wholly inside the list, so a
             -- half-scrolled one never leaves a hole above the pane)
-            if visible and ry + T.px(3) >= vy and ry + T.px(3) + T.px(HEAD_H) <= vy + vh then
+            local whole = visible and ry + T.px(3) >= vy and ry + T.px(3) + T.px(HEAD_H) <= vy + vh
+            if r.onFold then
+                idx = idx + 1
+                local fid = "orow:" .. idx
+                self._specs[#self._specs + 1] = { id = fid, listRow = true, row = idx, col = 1, rowRef = r, ry = ry + self.scroll - vy, rh = rh,
+                    fn = function() self:foldRow(r) end }
+                local isFoc = gp and self.focusId == fid
+                if isFoc then focusRow = r end
+                if whole and self:drawFoldHead(r, "r" .. i, x + T.px(12), ry + T.px(3), inner - T.px(12), isFoc) then hovered = r end
+            elseif whole then
                 ZeD.Molecules.drawSectionHeader(self, x + T.px(12), ry + T.px(3), inner - T.px(12), tostring(r.text), nil, true, false, T.fontF1, false, T.px(11), T.px(HEAD_H), true)
             end
         elseif r.kind == "note" or r.kind == "desc" then

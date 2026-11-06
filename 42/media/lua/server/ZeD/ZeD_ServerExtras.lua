@@ -46,7 +46,7 @@ local L = Ex.L
 local PREFIX = "ZeD_EX_"
 local SCHEMA = 1
 local MIGRATE = {}                   -- MIGRATE[1] = function(md) ... end   moves 1 to 2; adds or reshapes, never drops
-local STAMP = "ZeDClaim"             -- in the car's own mod data: which claim this car is (F.claimOf). Not a secret
+local STAMP = "ZeDClaim"             -- in the car's own mod data: half of how a claim knows its car (F.sameCar). Not a secret
 
 -- (a capability a later game renamed would be nil, and hasCapability(nil) matches no overload: the extras stay off)
 local CAP = {}
@@ -96,7 +96,7 @@ function F.open()
     local md = ModData.getOrCreate(name)
     md.schema = md.schema or SCHEMA
     md.set = md.set or Ex.defaults()
-    md.claims = md.claims or {}          -- key -> { owner, at, name, x, y, tok }
+    md.claims = md.claims or {}          -- key -> { owner, at, name, x, y, tok, kid }
     md.seen = md.seen or {}              -- username -> when a claim's owner was last on
     if md.schema > SCHEMA then
         T.frozen = true                  -- data from a newer ZeD: read it, never change it
@@ -152,16 +152,33 @@ function F.drop(md, key, c)
     if o then F.sendMine(md, o) end
 end
 
--- this car's claim. The game gives a removed car's number to the next new car, so a claim proves it's this car by the stamp
--- it left in the car's own mod data, which is saved with the car and goes when the car goes. A burnt car is a wreck: the
--- claim goes with the car it was on
+-- is this the car the claim was made on? The game gives a removed car's number to the next new car, so the number can't say.
+-- Two things can, and each stands in for the other:
+--   the stamp the claim left in the car's own mod data, saved with the car, gone when the car goes. A client can lose it: any
+--     mod's vehicle:transmitModData() on a client replaces the server's copy with the client's, and nobody but this server has
+--     the stamp (ObjectModDataPacket.parse; KahluaTableImpl.load wipes first; it asks only LoginOnServer)
+--   the car's key number (keyId, IsoObject): random when the car is made, saved with it, and no packet writes it. A mod that
+--     cuts new locks changes it, on the server (Locksmith's vehicle:setKeyId)
+-- So a lost stamp on a car with the right key number is put back, and a new key number on a car with its stamp is noted. With
+-- neither it's another car. (Not getMechanicalID: createPhysics rolls that again each time a car loads.) Neither write goes to
+-- the clients: sending the table would overwrite whatever a client's mod just sent
+function F.sameCar(c, v)
+    local vmd, kid = v:getModData(), v:getKeyId()
+    local stamped, keyed = vmd[STAMP] == c.tok, kid == c.kid
+    if not stamped and not keyed then return false end
+    if not stamped then vmd[STAMP] = c.tok end
+    if not keyed then c.kid = kid end
+    return true
+end
+
+-- this car's claim, if it's the car (F.sameCar). A burnt car is a wreck: the claim goes with the car it was on
 function F.claimOf(v)
     local md = T.md
     if not md then return nil end
     local key = Ex.keyOf(v:getSqlId())
     local c = md.claims[key]
     if not c then return nil end
-    if c.tok ~= v:getModData()[STAMP] then
+    if not F.sameCar(c, v) then
         F.drop(md, key, c)
         Srv.action("vehicle", c.owner, "claim gone: that car is gone", nil, c.name, c.x, c.y, nil, { car = c.name })
         return nil
@@ -587,7 +604,7 @@ reg("x_claim", { limit = L.CLAIM_MS }, function(p, a, rid)
     local tok = getRandomUUID()
     local car = F.carName(v)
     v:getModData()[STAMP] = tok
-    md.claims[Ex.keyOf(sql)] = { owner = u, at = getTimestamp(), name = car, x = x, y = y, tok = tok }
+    md.claims[Ex.keyOf(sql)] = { owner = u, at = getTimestamp(), name = car, x = x, y = y, tok = tok, kid = v:getKeyId() }
     T.counts[u] = F.count(u) + 1
     md.seen[u] = getTimestamp()
     Srv.action("vehicle", u, "claim", nil, car, x, y, nil, { car = car })
