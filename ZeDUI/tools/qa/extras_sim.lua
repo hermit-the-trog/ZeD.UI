@@ -118,8 +118,10 @@ local function touch() W.touched = W.touched + 1 end
 
 local function newVehicle(id, sql, x, y, script)
     local v = { id = id, sql = sql, x = x, y = y, script = script or "Base.PickUpTruck", running = false, burnt = false, keyId = 100 + id,
-        links = {}, shut = 0, broke = 0 }
+        links = {}, shut = 0, broke = 0, md = {} }
     function v.getId(self) touch(); return self.id end
+    function v.getModData(self) touch(); return self.md end
+    function v.isStarting(self) touch(); return self.starting == true end
     function v.getSqlId(self) touch(); return self.sql end
     function v.getX(self) touch(); return self.x end
     function v.getY(self) touch(); return self.y end
@@ -205,7 +207,18 @@ local function weapon(n) return { getDoorDamage = function() return n end } end
 -- the game's classes: each complete() counts, and says it ran. An action instance reads its class through the metatable, as
 -- NetTimedAction's rawget does (KahluaTableImpl.rawget walks the metatable)
 local ACTIONS = { "ISUninstallVehiclePart", "ISTakeEngineParts", "ISTakeGasolineFromVehicle", "ISStartVehicleEngine", "ISHotwireVehicle",
-    "ISDismantleAction", "ISMoveablesAction", "ISUnbarricadeAction", "ISDestroyStuffAction" }
+    "ISDismantleAction", "ISMoveablesAction", "ISUnbarricadeAction", "ISDestroyStuffAction", "ISRemoveBurntVehicle" }
+
+-- what the game's getVehicleById finds: Double.intValue, then i2s (javap: LuaManager$GlobalObject.getVehicleById)
+local function javaShort(d)
+    if d ~= d then return 0 end
+    if d > 2147483647 then d = 2147483647 elseif d < -2147483648 then d = -2147483648 end
+    d = (d < 0) and math.ceil(d) or math.floor(d)
+    local low = math.fmod(d, 65536)
+    if low < 0 then low = low + 65536 end
+    if low >= 32768 then low = low - 65536 end
+    return low
+end
 
 local function installGame(env)
     env.originals = {}
@@ -219,9 +232,17 @@ local function installGame(env)
         env[name] = cls
         env.originals[name] = cls.complete
     end
+    -- the game's siphon: an "update" event every second moves the gas, on the server, long before complete()
+    env.ISTakeGasolineFromVehicle.animEvent = function(self, event)
+        if event == "update" and self.tank then
+            self.tank.litres = self.tank.litres - 1
+            self.tank.can = self.tank.can + 1
+        end
+    end
+    env.originals.siphon = env.ISTakeGasolineFromVehicle.animEvent
     env.getVehicleById = function(id)
         if type(id) ~= "number" then error("No implementation found: getVehicleById") end
-        return W.vehicles[id]
+        return W.vehicles[javaShort(id)]
     end
     env.SafeHouse = { getSafehouseList = function() touch(); return jlist(W.safes) end }
     env.WarManager = { isWarStarted = function(id, user)
@@ -303,7 +324,11 @@ local function serverStart()
     -- the game's own handler for vehicle commands, first in line as it is on a server
     env.Events.OnClientCommand.Add(function(module, command, p, args)
         if module == "vehicle" and command == "attachTrailer" then
-            W.vehicles[args.vehicleA]:addPointConstraint(p, W.vehicles[args.vehicleB], args.attachmentA, args.attachmentB)
+            env.getVehicleById(args.vehicleA):addPointConstraint(p, env.getVehicleById(args.vehicleB), args.attachmentA, args.attachmentB)
+        elseif module == "vehicle" and command == "startEngine" then
+            -- (the game's: vehicle:tryStartEngine, with no capability test and no action around it)
+            local v = p.vehicle
+            if v and v.driver == p then v.starting = true end
         end
     end)
     requireIn(env, "ZeD/ZeD_ServerCore")
@@ -467,8 +492,11 @@ local function everything(v, d, h, p)
     act("ISMoveablesAction", { character = p, square = d.sq, mode = "scrap" })
     act("ISUnbarricadeAction", { character = p, item = d })
     act("ISDestroyStuffAction", { character = p, item = d })
+    act("ISRemoveBurntVehicle", { character = p, vehicle = v })
+    setmetatable({ character = p, vehicle = v }, W.server.ISTakeGasolineFromVehicle):animEvent("update")
     W.server.Events.OnWeaponHitThumpable.fire(p, weapon(10), d)
     W.server.Events.OnClientCommand.fire("vehicle", "attachTrailer", p, { vehicleA = v.id, vehicleB = v.id, attachmentA = "a", attachmentB = "b" })
+    W.server.Events.OnClientCommand.fire("vehicle", "startEngine", p, {})
 end
 
 section("every extra off: nothing is wrapped, added or touched")
@@ -478,6 +506,7 @@ do
     for _, name in ipairs(ACTIONS) do
         check("no wrap on " .. name, srv[name].complete == srv.originals[name])
     end
+    check("no wrap on the siphon's event", srv.ISTakeGasolineFromVehicle.animEvent == srv.originals.siphon)
     check("no clock", #srv.Events.OnTickEvenPaused.list == 0, #srv.Events.OnTickEvenPaused.list)
     check("no swing listener", #srv.Events.OnWeaponHitThumpable.list == 0)
     check("two command listeners: the game's and the core's", #srv.Events.OnClientCommand.list == 2, #srv.Events.OnClientCommand.list)
@@ -532,6 +561,7 @@ do
     for _, name in ipairs(ACTIONS) do
         check("a wrap on " .. name, srv[name].complete ~= srv.originals[name])
     end
+    check("a wrap on the siphon's event", srv.ISTakeGasolineFromVehicle.animEvent ~= srv.originals.siphon)
     check("the client's wrap is on", cb.env.ISInventoryTransferAction.perform ~= cb.perform)
     local clocks = #srv.Events.OnTickEvenPaused.list
     check("one clock", clocks == 1, clocks)
@@ -584,7 +614,7 @@ do
     check("the admin line", logHas("admin | server extras | Hermit") and logHas("claims on"))
     r = press(ca, function(k) ca.E.request("x_save", {}, k) end)
     check("no settings at all: refused", r and r.ok == false and r.err == "text")
-    ca.E.request("x_save", { set = { vc = { on = true, per = 500 }, sp = { on = 1 }, tp = "x" } }, function() end)
+    ca.E.request("x_save", { set = { vc = { on = true, per = 500 }, sp = { on = 1 }, tp = "x" }, was = ca.E.set }, function() end)
     advance(1200)
     check("the server cleans what it's sent", ca.E.set.vc.per == 5 and ca.E.set.sp.on == false and ca.E.set.tp.on == false)
     local late = player("Late", "user")
@@ -1062,7 +1092,7 @@ do
     check("a burst waits", not logHas("container | took"))
     advance(3000)
     check("one line for the burst", logCount("container | took") == 1, logCount("container | took"))
-    check("who took what, and whose word it is", logHas("3 x Nails, 1 x Hammer (reported by their game)"))
+    check("who took what, and whose word it is", logHas("3 x Nails, 1 x Hammer from crate (reported by their game)"))
     check("where, and from what", logHas("crate") and logHas("503,503,0"))
     W.logs = {}
     cb.sent = {}
@@ -1100,6 +1130,294 @@ end
 -- ---------------------------------------------------------------------------
 -- THE REST
 -- ---------------------------------------------------------------------------
+-- ---------------------------------------------------------------------------
+-- THE REVIEW'S CASES
+-- ---------------------------------------------------------------------------
+section("siphoning: no gas moves for someone a claim stops")
+do
+    local a, o, b, ca, co, cb = claimsWorld()
+    local v = newVehicle(7, 4021, 102, 100)
+    claim(co, v)
+    local cls = W.server.ISTakeGasolineFromVehicle
+    local function siphon(chr)
+        local tank = { litres = 20, can = 0 }
+        local act1 = setmetatable({ character = chr, vehicle = v, tank = tank }, cls)
+        for _ = 1, 9 do act1:animEvent("update") end
+        act1:animEvent("somethingElse")
+        return tank, act1
+    end
+    W.logs = {}
+    local tank, act1 = siphon(b)
+    check("the tank keeps its gas", tank.litres == 20, tank.litres)
+    check("the can stays empty", tank.can == 0, tank.can)
+    check("complete() refuses too", act1:complete() == false)
+    check("one line for the whole action", logCount("refused: parts") == 1, logCount("refused: parts"))
+    advance(200)
+    check("the player is told", haloHas(cb, "UI_ZeD_Ex_No_parts:Aretha"))
+    tank = siphon(o)
+    check("the owner siphons", tank.litres == 11 and tank.can == 9, tank.litres)
+    tank = siphon(a)
+    check("staff siphon", tank.litres == 11)
+    settings(ca, function(s) s.vc.parts = false end)
+    tank = siphon(b)
+    check("the tick off lets the game's event run", tank.litres == 11)
+end
+
+section("a tow can't hide behind a number the game accepts")
+do
+    local a, o, b, ca, co, cb = claimsWorld(function(s) s.vc.tow = true end)
+    local Ex = W.server.ZeD.Ex
+    check("a whole id", Ex.vehId(17) == 17)
+    check("past the short", Ex.vehId(17 + 65536) == 17)
+    check("below it", Ex.vehId(17 - 65536) == 17)
+    check("a fraction truncates", Ex.vehId(17.9) == 17 and Ex.vehId(-1.9) == -1)
+    check("the top of the short wraps", Ex.vehId(65535) == -1 and Ex.vehId(32768) == -32768)
+    check("past the int", Ex.vehId(1e300) == -1 and Ex.vehId(-1e300) == 0)
+    check("not a number", Ex.vehId(0 / 0) == 0)
+    check("a word isn't a number", Ex.vehId("7") == nil and Ex.vehId(nil) == nil)
+    local v = newVehicle(7, 4021, 102, 100)
+    local truck = newVehicle(8, 4022, 100, 100)
+    claim(co, v)
+    for _, id in ipairs({ 7 + 65536, 7 + 131072, 7 - 65536, 7.5 }) do
+        truck.towed, truck.broke = nil, 0
+        cb.env.sendClientCommand(b, "vehicle", "attachTrailer", { vehicleA = truck.id, vehicleB = id, attachmentA = "trailer", attachmentB = "trailerfront" })
+        advance(200)
+        check("the game's hitch on " .. tostring(id) .. " comes off", truck.towed == nil and truck.broke == 1, truck.broke)
+    end
+end
+
+section("vehicle.startEngine, with no action around it")
+do
+    local a, o, b, ca, co, cb = claimsWorld()
+    local v = newVehicle(7, 4021, 102, 100)
+    claim(co, v)
+    b.vehicle, v.driver = v, b
+    W.logs = {}
+    local function start(c, p)
+        v.starting, v.shut = false, 0
+        c.env.sendClientCommand(p, "vehicle", "startEngine", {})
+        advance(150)
+    end
+    start(cb, b)
+    check("shut off at once, not at the next poll", v.shut == 1, v.shut)
+    check("said and logged", logCount("refused: drive") == 1)
+    v.driver, b.vehicle = o, nil
+    o.vehicle = v
+    start(co, o)
+    check("the owner's starts", v.starting == true and v.shut == 0)
+    o.vehicle, v.driver = nil, b
+    b.vehicle = v
+    settings(ca, function(s) s.vc.drive = false end)
+    start(cb, b)
+    check("the tick off leaves it", v.starting == true and v.shut == 0)
+end
+
+section("a scrap is judged by the object, not the square a client names")
+do
+    local a, o, m, b, ca, co, cm, cb, h = safeWorld()
+    local d = thing(503, 503)
+    local free = square(600, 600)
+    W.ran = {}
+    check("in the house, from a square outside", act("ISMoveablesAction", { character = b, square = free, mode = "scrap", object = d, moveProps = { object = d } }) == false)
+    check("moveProps with no object falls back", act("ISMoveablesAction", { character = b, square = free, mode = "scrap", object = d, moveProps = {} }) == false)
+    check("no object at all", act("ISMoveablesAction", { character = b, square = free, mode = "scrap" }) == false)
+    check("the game's function did not run", W.ran.ISMoveablesAction == nil)
+    check("outside, named from inside", act("ISMoveablesAction", { character = b, square = d.sq, mode = "scrap", object = thing(600, 600) }) == true)
+end
+
+section("a neighbor's lot doesn't open another house's walls")
+do
+    local a, o, m, b, ca, co, cm, cb, h = safeWorld()
+    newSafe(513, 500, 10, 10, "Kade")    -- (three tiles off: its lot covers Aretha's east side)
+    W.server.ZeD.Srv.X.swing(b, weapon(10), thing(509, 505))
+    check("inside her walls, on his lot", act("ISDestroyStuffAction", { character = b, item = thing(509, 505) }) == false)
+    check("nor dismantled", act("ISDismantleAction", { character = b, thumpable = thing(509, 505) }) == false)
+    check("nor his neighbor's door by the swing", (function()
+        local d = thing(509, 505)
+        W.server.Events.OnWeaponHitThumpable.fire(b, weapon(10), d)
+        return d.health > 500
+    end)())
+    check("between the houses he passes", act("ISDestroyStuffAction", { character = b, item = thing(511, 505) }) == true)
+    check("and she passes too", act("ISDestroyStuffAction", { character = o, item = thing(511, 505) }) == true)
+    check("in his own walls he passes", act("ISDestroyStuffAction", { character = b, item = thing(515, 505) }) == true)
+    check("she can't come in", act("ISDestroyStuffAction", { character = o, item = thing(515, 505) }) == false)
+    advance(200)
+end
+
+section("no claim on a car at someone else's safehouse")
+do
+    local a, o, b, ca, co, cb = claimsWorld()
+    newSafe(100, 100, 10, 10, "Aretha", { "Rosa" })
+    b.x, b.y = 97, 97
+    local inside = newVehicle(7, 4021, 101, 101)
+    local yard = newVehicle(8, 4022, 96, 96)
+    local street = newVehicle(9, 4023, 94, 94)
+    local r = claim(cb, inside)
+    check("inside the walls", r and r.ok == false and r.err == "house", r and r.err)
+    r = claim(cb, yard)
+    check("on the lot, with protection off", r and r.ok == false and r.err == "house", r and r.err)
+    check("past the lot is the street", (claim(cb, street) or {}).ok == true)
+    o.x, o.y = 100, 100
+    check("the owner claims her own", (claim(co, inside) or {}).ok == true)
+    local r2 = player("Rosa", "user", 100, 100)
+    local cr = clientJoin(r2)
+    check("a member too", (claim(cr, yard) or {}).ok == true)
+end
+
+section("a number the game gave to a new car isn't the old claim")
+do
+    local a, o, b, ca, co, cb = claimsWorld()
+    local old = newVehicle(7, 4021, 102, 100)
+    claim(co, old)
+    W.logs = {}
+    W.vehicles[7] = nil
+    local van = newVehicle(9, 4021, 102, 101, "Base.Van")
+    check("the new car is anyone's", act("ISUninstallVehiclePart", { character = b, vehicle = van }) == true)
+    check("the line", logHas("claim gone: that car is gone"))
+    advance(200)
+    check("the owner's list follows", co.E.mineRows ~= nil and #co.E.mineRows == 0)
+    check("the slot is back", (claim(co, van) or {}).ok == true)
+    check("and it can be claimed", act("ISUninstallVehiclePart", { character = b, vehicle = van }) == false)
+    -- the stamp lives on the car, so a restart keeps a claim on the same car
+    W.server = nil
+    serverStart()
+    check("the same car holds its claim", act("ISUninstallVehiclePart", { character = b, vehicle = van }) == false)
+    local other = newVehicle(10, 4021, 102, 101, "Base.Van")
+    check("after a restart a new car still isn't it", act("ISUninstallVehiclePart", { character = b, vehicle = other }) == true)
+end
+
+section("a wreck cleared away takes its claim")
+do
+    local a, o, b, ca, co, cb = claimsWorld()
+    local v = newVehicle(7, 4021, 102, 100)
+    claim(co, v)
+    v.burnt = true
+    W.ran = {}
+    check("the game's clearing runs", act("ISRemoveBurntVehicle", { character = b, vehicle = v }) == true and W.ran.ISRemoveBurntVehicle == 1)
+    check("the line", logHas("claim gone: burnt"))
+    advance(200)
+    check("off the owner's list", co.E.mineRows ~= nil and #co.E.mineRows == 0)
+end
+
+section("staff release a claim: the owner's list follows")
+do
+    local a, o, b, ca, co, cb = claimsWorld()
+    local v = newVehicle(7, 4021, 102, 100)
+    claim(co, v)
+    co.E.mineRows = nil
+    co.E.mine()
+    advance(1200)
+    check("held", #co.E.mineRows == 1)
+    press(ca, function(k) ca.E.release("v4021", k) end)
+    check("the owner hears", #co.E.mineRows == 0)
+end
+
+section("two swings in a tick")
+do
+    local a, o, m, b, ca, co, cm, cb, h = safeWorld()
+    local hit = function(chr, n, obj)
+        W.server.Events.OnWeaponHitThumpable.fire(chr, weapon(n), obj)
+        obj.health = obj.health - n * 2
+    end
+    local d = thing(503, 503)
+    for _ = 1, 5 do
+        hit(b, 30, d)
+        hit(b, 30, d)
+        advance(200)
+    end
+    check("the door comes back to its health", d.health == 500, d.health)
+    local big = thing(503, 504)
+    hit(b, 1, big)
+    W.server.Events.OnWeaponHitThumpable.fire(b, weapon(100), big)
+    check("a heavier second swing gets its own room", big.health >= 500 + 100, big.health)
+    advance(200)
+    check("and it comes back too", big.health == 500, big.health)
+end
+
+section("the container log: an honest game's lines reach the log")
+do
+    world()
+    local a = player("Hermit", "admin", 900, 900)
+    local b = player("Kade", "user", 503, 503)
+    local ca, cb = clientJoin(a), clientJoin(b)
+    newSafe(500, 500, 10, 10, "Aretha")
+    settings(ca, function(s) s.cl.on = true end)
+    W.logs = {}
+    take(cb, b, square(503, 503), { "Rifle", "Ammo" })
+    for _ = 1, 40 do
+        b.x = b.x + 0.5
+        advance(100)
+    end
+    check("grab and run: the line lands", logHas("1 x Rifle, 1 x Ammo"), b.x)
+    W.logs = {}
+    b.x, b.y = 503, 503
+    local kinds = {}
+    for i = 1, 20 do kinds[i] = "Kind" .. i end
+    take(cb, b, square(503, 503), kinds)
+    advance(8000)
+    check("twenty kinds at once: nothing dropped", logHas("1 x Kind1") and logHas("1 x Kind13") and logHas("1 x Kind20"))
+    check("in two reports", logCount("container | took") == 2, logCount("container | took"))
+    -- an honest burst from six squares, the reports arriving with a network's jitter
+    W.logs = {}
+    W.server.ZeD.Srv.mem = {}
+    for i = 1, 6 do take(cb, b, square(503, 500 + i), { "Item" .. i }) end
+    local gate = cb.env.sendClientCommand
+    local beat = 0
+    cb.env.sendClientCommand = function(...)
+        beat = beat + 1
+        local args = { ... }
+        local late = (beat % 2 == 0) and 0 or 300
+        W.later = W.later or {}
+        W.later[#W.later + 1] = { at = W.clock + late, run = function() gate(unpack(args)) end }
+    end
+    for _ = 1, 150 do
+        step(100)
+        for i = #(W.later or {}), 1, -1 do
+            local e = W.later[i]
+            if e.at <= W.clock then
+                table.remove(W.later, i)
+                e.run()
+            end
+        end
+    end
+    cb.env.sendClientCommand = gate
+    check("six squares, six lines", logCount("container | took") == 6, logCount("container | took"))
+    -- a client's word: nothing odd reaches the line
+    W.logs = {}
+    W.server.ZeD.Srv.mem = {}
+    local function report(args) cb.env.sendClientCommand(b, "ZeDX", "x_took", args); advance(700) end
+    b.x, b.y, b.z = 503, 503, 0
+    report({ x = 505, y = 505, z = 1e300, rows = { { name = "Lies", n = 1 } } })
+    report({ x = 505, y = 505, z = 0.5, rows = { { name = "Lies", n = 1 } } })
+    report({ x = 505, y = 505, z = 9, rows = { { name = "Lies", n = 1 } } })
+    report({ x = 505, y = 505, z = 0 / 0, rows = { { name = "Lies", n = 1 } } })
+    check("a floor that can't be right is dropped", not logHas("Lies"))
+    report({ x = 505, y = 505, z = 0, from = "not | a type!", rows = { { name = "Odd", n = 1 } } })
+    check("a container's word that isn't a type is left out", logHas("1 x Odd (reported") and not logHas("not"))
+    report({ x = 505, y = 505, z = 0, from = "Dave", rows = { { name = "Named", n = 1 } } })
+    check("the word stays in the text, never the target", logHas("container | took | Kade | - |") and logHas("1 x Named from Dave (reported"))
+    b.x, b.y = 503 + 500, 503
+    report({ x = 505, y = 505, z = 0, rows = { { name = "Far", n = 1 } } })
+    check("a report from the far side of town is dropped", not logHas("Far"))
+end
+
+section("two admins at the card")
+do
+    world()
+    local a = player("Hermit", "admin")
+    local a2 = player("Second", "admin")
+    local ca, c2 = clientJoin(a), clientJoin(a2)
+    local mine = c2.env.ZeD.Ex.clean(c2.E.set)
+    mine.vc.on = true
+    local was = c2.E.set
+    settings(ca, function(s) s.cl.on, s.tp.on = true, true end)
+    local r = press(c2, function(k) c2.E.save(mine, k, was) end)
+    check("a save made on an old set is refused", r and r.ok == false and r.err == "changed", r and r.err)
+    check("the other admin's save stands", ca.E.set.cl.on == true and ca.E.set.vc.on == false)
+    r = press(c2, function(k) c2.E.save(mine, k) end)
+    check("made on the current one, it goes", r and r.ok == true)
+end
+
 section("a table from a newer ZeD")
 do
     world()

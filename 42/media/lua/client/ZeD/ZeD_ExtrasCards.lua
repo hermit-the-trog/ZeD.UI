@@ -158,7 +158,7 @@ end
 
 function P.saveBtn(win, st, t, card)
     local b = D.btn("xsave", getText("IGUI_RolesList_Save"), function(ww)
-        F.act(ww, st, function(cb) E.save(card.d, cb) end, tr("UI_ZeD_Ex_SavedFlash"))
+        F.act(ww, st, function(cb) E.save(card.d, cb, card.base) end, tr("UI_ZeD_Ex_SavedFlash"), nil, E.errText)
     end, "primary", tr("UI_ZeD_Ex_HelpSave"))
     local why = P.editWhy()
     if why then D.disable(b, why)
@@ -167,19 +167,28 @@ function P.saveBtn(win, st, t, card)
     return b
 end
 
--- another admin saved while this card was open: a card with nothing changed follows, and one with changes keeps them
-function P.follow(card)
+-- another admin saved while this card was open: the card takes their set, with this card's own changes on top. Save
+-- replaces the whole set, so a card that kept its old copy would undo theirs unseen
+function P.follow(card, t)
     if card.base == E.set then return end
-    if card.base and E.set and Ex.same(card.d, card.base) then
-        card.d = Ex.clean(E.set)
+    if card.base and E.set then
+        local now = Ex.clean(E.set)
+        for group, fields in pairs(Ex.defaults()) do
+            for k in pairs(fields) do
+                if card.d[group][k] ~= card.base[group][k] then now[group][k] = card.d[group][k] end
+            end
+        end
+        card.d = now
         P.changed(card)
+        -- (the card's own save comes back the same as the card: nothing to say)
+        if t and not Ex.same(now, E.set) then D.flash(t, tr("UI_ZeD_Ex_Merged")) end
     end
     card.base = E.set
 end
 
 TC.kinds.extras = {
     data = function(card) return card.d end,
-    tick = function(win, st, t, card) P.follow(card) end,
+    tick = function(win, st, t, card) P.follow(card, t) end,
     key = function(t, card) return tostring(E.seq) .. ":" .. tostring(card.rev) end,
     title = function() return tr("UI_ZeD_Ex_Title") end,
     help = function() return tr("UI_ZeD_Ex_Help") end,
@@ -250,9 +259,9 @@ function P.tabItems(win, st)
         end
     end
     if E.set.vc.on then
-        local rows = E.mine()
-        local n = rows and #rows or 0
-        out[#out + 1] = CC._X.sumItem(st, "xclaims", tr("UI_ZeD_Ex_YourClaims"), tr("UI_ZeD_Ex_NOfM", n, E.set.vc.per), nil, nil,
+        -- (no count until the server has said: EC.blocks keeps asking)
+        local rows = E.mineRows
+        out[#out + 1] = CC._X.sumItem(st, "xclaims", tr("UI_ZeD_Ex_YourClaims"), rows and tr("UI_ZeD_Ex_NOfM", #rows, E.set.vc.per) or tr("UI_ZeD_Ex_ClaimsWait"), nil, nil,
             tr("UI_ZeD_Ex_HelpClaims"), function(ww) EC.openClaims(ww, st) end)
     end
     return out
@@ -261,6 +270,7 @@ end
 -- under the Server block, over Tickets, as drawn. Nothing without the server part
 function EC.blocks(L2, win, st)
     if not (E.live() and E.set) then return end
+    E.mine()
     local t = TC.qaState(st)
     local key = tostring(E.seq)
     if t.exKey ~= key or not t.exItems then
@@ -283,7 +293,7 @@ function P.claimItems(win, st, t, card)
     local items = {}
     local rows = E.mineRows
     if not rows then
-        B.sub(items, tr("UI_ZeD_Ex_ClaimsWait"))
+        B.sub(items, tr(E.claimsOn() and "UI_ZeD_Ex_ClaimsWait" or "UI_ZeD_Ex_Err_off"))
         return items
     end
     B.sub(items, tr((#rows == 0) and "UI_ZeD_Ex_ClaimsNone" or "UI_ZeD_Ex_ClaimsTop"))
@@ -326,7 +336,7 @@ TC.kinds.xclaims = {
             D.btn("xrelyes", tr("UI_ZeD_Ex_Release"), function(ww)
                 local key = card.ask.key
                 t.confirm, card.ask = nil, nil
-                F.act(ww, st, function(cb) E.release(key, cb) end, tr("UI_ZeD_Ex_Released"))
+                F.act(ww, st, function(cb) E.release(key, cb) end, tr("UI_ZeD_Ex_Released"), nil, E.errText)
             end, "danger", tr("UI_ZeD_Ex_HelpRelease")) } }
     end,
     cancel = function(win, st, t, card)
@@ -362,12 +372,16 @@ function EC.claimWhy(view)
     return nil
 end
 
--- the footer's own button, with no part chosen
+-- the footer's own button, with no part chosen. s.xbar goes into MT.focusKey: a stop's press is held from the frame it was
+-- built, so the ring must be rebuilt when this button changes. Press reads the car again, and a gray one says why, for the
+-- controller as much as the mouse
 function EC.vehicleBar(list, s, win, v)
+    s.xbar = nil
     if not E.claimsOn() then return end
     local view = E.car(v)
     if view and view.owner then
         if not (view.mine or view.staff) then return end
+        s.xbar = "xrelease"
         list[#list + 1] = { id = "xrelease", label = tr("UI_ZeD_Ex_Release"), variant = "danger", help = tr("UI_ZeD_Ex_HelpRelease"),
             fn = function()
                 s.confirm = "xrelease"
@@ -376,9 +390,14 @@ function EC.vehicleBar(list, s, win, v)
         return
     end
     local why = EC.claimWhy(view)
+    s.xbar = "xclaim:" .. tostring(why ~= nil)
     list[#list + 1] = { id = "xclaim", label = tr("UI_ZeD_Ex_Claim"), disabled = why ~= nil, help = why or tr("UI_ZeD_Ex_HelpClaim"),
         fn = function()
-            if why then return end
+            local now = EC.claimWhy(E.car(v))
+            if now then
+                E.say(now)
+                return
+            end
             E.claim(v, function(a)
                 if a.ok then E.say(tr("UI_ZeD_Ex_ClaimedNow"), true) else E.say(E.errText(a)) end
             end)
@@ -393,7 +412,10 @@ function EC.releaseBand(panel, win, s, x, y, w, v, h)
     local _, cancelR, verbR = Mo.drawQuestionBand(panel, x, y, w, tr("UI_ZeD_Ex_ReleaseAskCar"), tr("UI_ZeD_Ex_Release"), { win = win, danger = true,
         cancelFocus = h.focusFor(s, "mech:confirm:no"), verbFocus = h.focusFor(s, "mech:confirm:yes"),
         cancelHelp = tr("UI_ZeD_Ex_HelpKeep"), verbHelp = tr("UI_ZeD_Ex_HelpRelease") })
-    h.stamp(s, "mech:confirm:no", cancelR.x, cancelR.y, cancelR.w, cancelR.h, function() s.confirm = nil end, { footer = true })
+    h.stamp(s, "mech:confirm:no", cancelR.x, cancelR.y, cancelR.w, cancelR.h, function()
+        s.confirm = nil
+        win._mechFocusTarget = "mech:xrelease"
+    end, { footer = true })
     h.stamp(s, "mech:confirm:yes", verbR.x, verbR.y, verbR.w, verbR.h, function()
         s.confirm = nil
         if key then
@@ -413,7 +435,7 @@ end
 
 function EC.mapGo(mp, win, x, y)
     local wx, wy = math.floor(mp.mapAPI:uiToWorldX(x, y)), math.floor(mp.mapAPI:uiToWorldY(x, y))
-    if not getWorld():getMetaGrid():isValidChunk(math.floor(wx / 10), math.floor(wy / 10)) then
+    if not getWorld():getMetaGrid():isValidSquare(wx, wy) then
         E.say(tr("UI_ZeD_Ex_MapOff"))
         return
     end

@@ -691,6 +691,7 @@ S.routes[Ex.MOD]("x_set", { set = Ex.clean(sent("x_save").set) })
 draw()
 draw()
 check("saved", hasDrawn("Saved.") and grayWhy("tk:xsave") == getText("UI_ZeD_Adm_NothingToSave"))
+check("the card's own save isn't another admin's", flash() == getText("UI_ZeD_Ex_SavedFlash"), flash())
 -- another admin saves: a clean card follows, a changed one keeps its changes
 do
     local other = Ex.clean(E.set)
@@ -706,7 +707,24 @@ do
     S.routes[Ex.MOD]("x_set", { set = again })
     draw()
     draw()
-    check("a changed card keeps its changes", st().card.d.tp.on == true and st().card.d.cl.on == true and hasDrawn("Not saved yet."))
+    check("a changed card keeps its changes", st().card.d.tp.on == true and hasDrawn("Not saved yet."))
+    check("and takes the other admin's", st().card.d.cl.on == false)
+    check("and says so", flash() == getText("UI_ZeD_Ex_Merged"))
+    local third = Ex.clean(E.set)
+    third.tp.on = true
+    S.routes[Ex.MOD]("x_set", { set = third })
+    draw()
+    draw()
+    check("the same change from both isn't a change any more", hasDrawn("Saved."))
+    press("tk:xvc")
+    press("tk:xsave")
+    check("the save names the set it was made on", sent("x_save").was ~= nil and sent("x_save").was.tp.on == true)
+    nak("x_save", "changed")
+    check("the extras' own word for that", flash() == getText("UI_ZeD_Ex_Err_changed"))
+    st().tk.flashText = nil
+    press("tk:xsave")
+    ack("x_save", { ok = false, err = "wait", left = 2 })
+    check("a limit's word has no talk of text", flash() == ZeD.tr("UI_ZeD_Ex_Err_wait", 2) and not string.find(flash(), "text", 1, true), flash())
 end
 TC.back(win(), st())
 draw()
@@ -768,6 +786,26 @@ S.routes[Ex.MOD]("x_mine", { rows = { { key = "v4021", name = "PickUpTruck", x =
 draw()
 draw()
 check("n of m", string.find(words(), "1 of 2", 1, true) ~= nil)
+do
+    -- no answer yet: no number made up, and the tab goes on asking
+    local held = E.mineRows
+    E.mineRows = nil
+    E.bump()
+    draw()
+    draw()
+    check("no count till the server says", string.find(words(), "0 of 2", 1, true) == nil and hasDrawn(getText("UI_ZeD_Ex_ClaimsWait")))
+    local asks = 0
+    for _, m in ipairs(SENT) do if m.c == "x_mine" then asks = asks + 1 end end
+    nowMs = nowMs + 5000
+    draw()
+    local after = 0
+    for _, m in ipairs(SENT) do if m.c == "x_mine" then after = after + 1 end end
+    check("it asks again", after == asks + 1, after)
+    E.mineRows = held
+    E.bump()
+    draw()
+    draw()
+end
 press("srv:tk:sum:xclaims")
 check("the card", st().card ~= nil and st().card.kind == "xclaims")
 check("the car's name, the game's word", hasDrawn("Chevalier D6"))
@@ -788,6 +826,21 @@ press("tk:xrelyes")
 check("Release sends the key", sent("x_release") ~= nil and sent("x_release").key == "v4021")
 ack("x_release")
 check("the answer", flash() == getText("UI_ZeD_Ex_Released"))
+S.routes[Ex.MOD]("x_mine", { rows = { { key = "v4021", name = "PickUpTruck", x = 6402, y = 5410 } }, n = 1, per = 2 })
+draw()
+draw()
+press("tk:xrel:1")
+press("tk:xrelyes")
+nak("x_release", "wait")
+check("a limit's words here have no talk of text", not string.find(flash(), "text", 1, true), flash())
+-- claims turned off while the card is open
+E.set.vc.on = false
+E.mineRows = nil
+E.bump()
+draw()
+draw()
+check("claims off: the card says so, and asks nothing", hasDrawn(getText("UI_ZeD_Ex_Err_off")) and not hasDrawn(getText("UI_ZeD_Ex_ClaimsWait")))
+E.set.vc.on = true
 TC.back(win(), st())
 draw()
 
@@ -812,8 +865,29 @@ b1 = barOf({ n = 0, per = 2 })
 check("free: Claim", b1[1].id == "xclaim" and not b1[1].disabled)
 b1 = barOf({ n = 2, per = 2 })
 check("full: gray, and why", b1[1].disabled == true and string.find(b1[1].help, "limit", 1, true) ~= nil)
-b1[1].fn()
+do
+    local said = nil
+    local keep = E.say
+    E.say = function(text) said = text end
+    b1[1].fn()
+    E.say = keep
+    check("a gray press says why, for the controller too", said == b1[1].help, said)
+end
 check("gray sends nothing", sent("x_claim") == nil)
+do
+    -- the ring holds a press from the frame it was built: gray then, lit by the time it's pressed
+    local stale = barOf(nil)
+    local bar = E.cars[7]
+    bar.view = { n = 0, per = 2 }
+    stale[1].fn()
+    check("a press reads the car again, not its frame", sent("x_claim") ~= nil and sent("x_claim").veh == 7)
+    SENT[#SENT] = nil
+    local _, s4 = barOf(nil)
+    local a1 = s4.xbar
+    local _, s5 = barOf({ n = 0, per = 2 })
+    local _, s6 = barOf({ n = 0, per = 2, owner = "Aretha", mine = true, key = "v1" })
+    check("the ring's key moves with the button", a1 ~= s5.xbar and s5.xbar ~= s6.xbar and a1 ~= nil)
+end
 b1 = barOf({ n = 1, per = 2 })
 b1[1].fn()
 check("Claim sends", sent("x_claim") ~= nil and sent("x_claim").veh == 7)
@@ -838,8 +912,11 @@ do
     EC.releaseBand(panel, {}, q, 0, 100, 480, VEH, h)
     check("the band's two answers", z["mech:confirm:no"] ~= nil and z["mech:confirm:yes"] ~= nil)
     q.confirm = "xrelease"
+    local w2 = {}
+    EC.releaseBand(panel, w2, q, 0, 100, 480, VEH, h)
     z["mech:confirm:no"]()
     check("Keep shuts it", q.confirm == nil)
+    check("and the controller is back on Release", w2._mechFocusTarget == "mech:xrelease")
     q.confirm = "xrelease"
     z["mech:confirm:yes"]()
     check("Release sends", q.confirm == nil and sent("x_release") ~= nil and sent("x_release").key == "v1")
@@ -864,7 +941,11 @@ ZeD.MapsTab.putDownTool = function(w) w.putDown = true end
 btn.activate(mw)
 check("armed, and ZeD's mark tool down", def.armed(mw) == true and mw.putDown == true)
 check("the banner says what to do", def.banner(mw) ~= nil)
-function getWorld() return { getMetaGrid = function() return { isValidChunk = function(_, x, y) return x >= 0 end } end } end
+-- (IsoMetaGrid.isValidSquare: cells 0 to 77 by 0 to 62, 256 squares each; the bounds from the game's own bytecode)
+function getWorld() return { getMetaGrid = function() return { isValidSquare = function(_, x, y)
+    if x ~= math.floor(x) or y ~= math.floor(y) then error("No implementation found: isValidSquare") end
+    return x >= 0 and x < 78 * 256 and y >= 0 and y < 63 * 256
+end } end } end
 local mp = { mapAPI = { uiToWorldX = function(_, x) return x + 0.7 end, uiToWorldY = function(_, _, y) return 5410.2 end } }
 mp.mapAPI.uiToWorldY = function(_, x, y) return y + 0.2 end
 def.mouseDown(mp, mw, 6402, 5410)
@@ -880,6 +961,13 @@ check("A held does nothing", def.armed(mw) == true)
 mp.mapAPI.uiToWorldX = function() return -40 end
 def.padA(mp, mw, 100, 200, "down")
 check("off the map: stays armed, nothing sent", def.armed(mw) == true)
+do
+    local n = #SENT
+    mp.mapAPI.uiToWorldX = function() return 22000 end
+    def.padA(mp, mw, 100, 200, "down")
+    check("past the east edge too", def.armed(mw) == true and #SENT == n)
+    mp.mapAPI.uiToWorldX = function(_, x) return x + 0.7 end
+end
 def.putDown(mw)
 check("ZeD's mark tool puts it down", def.armed(mw) == false)
 btn = def.button(mw)

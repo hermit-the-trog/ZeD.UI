@@ -1379,6 +1379,27 @@ do
     end
     check("one account holds its share and no more", mine == 400, mine)
     check("another's line stays", kept)
+    -- a client's own reports (the container log) have a smaller share, and push out nothing the server saw
+    local Srv = W.server.ZeD.Srv
+    for i = 1, 300 do Srv.actionStore("container", "Rosa", "took", nil, "report " .. i) end
+    local told, proved = 0, 0
+    log = md().log
+    for i = 1, log.n do
+        if log[i].who == "Rosa" then
+            if log[i].kind == "container" then told = told + 1 else proved = proved + 1 end
+        end
+    end
+    check("a player with a full share adds no reports over what the server saw", told == 0 and proved == 400, told .. ", " .. proved)
+    for i = 1, 300 do Srv.actionStore("container", "Newcomer", "took", nil, "report " .. i) end
+    Srv.actionStore("admin", "Newcomer", "kick", "x", "proved")
+    told, proved = 0, 0
+    log = md().log
+    for i = 1, log.n do
+        if log[i].who == "Newcomer" then
+            if log[i].kind == "container" then told = told + 1 else proved = proved + 1 end
+        end
+    end
+    check("reports hold their own smaller share", told == 100 and proved == 1, told .. ", " .. proved)
     nolimit(m)
     W.clock = W.clock + 2000
     say(m, "a_power", { id = "x on Hermit", on = true })
