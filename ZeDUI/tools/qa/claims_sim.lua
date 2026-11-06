@@ -1072,6 +1072,7 @@ do
     c.C.createFaction("Riverside", function() end)
     advance(6000)
     check("a faction", logHas("faction | create | Aretha | Riverside"))
+    check("with the place of the one named, who is on", logHas("faction | create | Aretha | Riverside | " .. math.floor(a:getX()) .. "," .. math.floor(a:getY()) .. " |"))
     W.factions[1].name = "Riverfolk"
     advance(6000)
     check("a rename is one line", logHas("faction | name from Riverside | Aretha | Riverfolk") and not logHas("faction | disband"))

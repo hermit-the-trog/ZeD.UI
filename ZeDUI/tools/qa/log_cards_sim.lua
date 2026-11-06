@@ -764,6 +764,20 @@ later(450)
 later(600)
 check("then asks", sent("l_query") and sent("l_query").find == "Chevalier", sent("l_query") and sent("l_query").find)
 answer(Q.page(getTimestamp()))
+-- a second log card over this one shares the field: coming back brings this card's words back
+do
+    local first = st.card
+    SENT = {}
+    LC.openAround(win, st, 14)
+    draw()
+    check("a card on top starts empty", win._tkFields.lfind.input:getText() == "")
+    TC.back(win, st)
+    draw()
+    later()
+    check("back on the first, its Find is in the box", st.card == first and win._tkFields.lfind.input:getText() == "Chevalier", win._tkFields.lfind.input:getText())
+    check("and its read goes out again", sent("l_query") and sent("l_query").find == "Chevalier")
+    answer(Q.page(getTimestamp()))
+end
 win._tkFields.lfind.input:setText("")
 win._tkFields.lfind:update()
 draw()
@@ -859,7 +873,55 @@ do
     Lm.bump()
     draw()
     draw()
-    check("no place: Go there gray, with why", grayWhy("tk:lgo:80") == tr("UI_ZeD_Log_NoPlaceLine"), grayWhy("tk:lgo:80"))
+    check("no place: Go there gray, with why", grayWhy("tk:lgo:80") == tr("UI_ZeD_Log_NoPlaceHeld"), grayWhy("tk:lgo:80"))
+    -- a place a role above yours keeps
+    page = Q.page(now, { { s = 81, t = now, day = 12, k = "admin", who = "Hermit", what = "mute", target = "x", hid = true } })
+    page.qid = Lm.qid
+    S.routes[Lg.MOD]("l_page", page)
+    st.card.sel = 81
+    Lm.bump()
+    draw()
+    draw()
+    check("a hidden place: Go there gray, with its own why", grayWhy("tk:lgo:81") == tr("UI_ZeD_Log_NoPlaceLine"), grayWhy("tk:lgo:81"))
+    -- a place only a line claims
+    page = Q.page(now, { { s = 82, t = now, day = 12, k = "other", who = "Griefer", what = "ISThing", src = "tap", lg = "Other", by = "griefer", x = 12000, y = 3000, z = 7 } })
+    page.qid = Lm.qid
+    S.routes[Lg.MOD]("l_page", page)
+    st.card.sel = 82
+    Lm.bump()
+    draw()
+    draw()
+    check("a tapped line: Go there gray, with why", grayWhy("tk:lgo:82") == tr("UI_ZeD_Log_NoGoTap"), grayWhy("tk:lgo:82"))
+    -- the server's own line
+    page = Q.page(now, { { s = 83, t = now, day = 12, k = "admin", who = Tk.SYS, what = "ban lifted", target = "lootdrop99" } })
+    page.qid = Lm.qid
+    S.routes[Lg.MOD]("l_page", page)
+    st.card.sel = 83
+    Lm.bump()
+    draw()
+    draw()
+    check("the server's line reads as the server's", drewAll("Server: the ban on lootdrop99 ran out"))
+    check("with no card of its own", stopOf("tk:lpc:83") == nil)
+end
+
+-- a read that goes unanswered is asked again, on any page
+do
+    fresh()
+    press("adm:tk:sum:log")
+    draw()
+    later()
+    answer(Q.page(getTimestamp()))
+    st.card.page = 2
+    SENT = {}
+    later()
+    local a = sent("l_query")
+    check("page two is asked", a and a.page == 2)
+    S.routes[Tk.MOD]("t_ack", { ok = false, err = "fail", rid = a.rid })
+    SENT = {}
+    later()
+    check("a read that failed goes out again", sent("l_query") and sent("l_query").page == 2)
+    answer(Q.page(getTimestamp()))
+    st.card.page = 1
 end
 
 -- leaving the card

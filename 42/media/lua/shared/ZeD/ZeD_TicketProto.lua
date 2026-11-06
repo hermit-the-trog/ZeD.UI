@@ -12,6 +12,9 @@ local Tk = ZeD.Tk
 Tk.MOD_LINK = "ZeD"         -- the link: hello
 Tk.MOD = "ZeDT"             -- tickets
 Tk.PROTO = 1
+-- who the server's own lines are by. The game refuses a username holding @ (ServerWorldDatabase.isValidUserName), so no account
+-- can pass for it
+Tk.SYS = "@server"
 Tk.NEAR = 30                -- tiles, on any floor (settled, the director, Nov 5 2026)
 
 -- TWO OF THE DIRECTOR'S QUESTIONS, each kept to this one switch (Part E).

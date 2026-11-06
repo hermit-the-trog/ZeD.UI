@@ -1,4 +1,5 @@
 -- ZeDUI/tools/qa/log_sim.lua  (Nov 6 2026, QA): the log's server side and client model with no game running.
+-- (the review's fixes added: who owns a car, the tow's look, a stopped siphon, the fallback's test, what a tapped line can't carry)
 -- The harness is admin_sim.lua's: Lua 5.1 stubs of the game and the real files run against them, ZeD_TicketProto, ZeD_AdminProto,
 -- ZeD_LogProto, ZeD_ServerCore, ZeD_ServerTickets, ZeD_ServerAdmin, ZeD_ServerLog, and on each simulated client ZeD_ServerLink,
 -- ZeD_Tickets, ZeD_Admin and ZeD_Log. The seven timed actions are small classes of the game's shape, and a stub of
@@ -211,6 +212,7 @@ do
     for k, v in s:gmatch('"([%w_]+)": "(.-)",?%s*\n') do WORDS[k] = v end
     WORDS.IGUI_VehicleNameCarNormal = "Chevalier D6"
     WORDS.IGUI_VehiclePartBattery = "Battery"
+    WORDS.IGUI_CheatPanel_GodMod = "God Mode"
 end
 
 -- classes of the game's shape: new(self, character, part ...), a metatable to the class, complete answering true or false
@@ -222,15 +224,20 @@ ACTIONS = {
         return true
     end },
     ISTakeEngineParts = { complete = function() return true end },
-    ISTakeGasolineFromVehicle = { complete = function() return true end },
+    ISTakeGasolineFromVehicle = { complete = function() return true end, serverStop = function() W.gasStops = (W.gasStops or 0) + 1 end },
     ISRemoveBurntVehicle = { complete = function(self) self.vehicle.gone = true; self.vehicle.script = nil; return true end },
-    ISStartVehicleEngine = { complete = function(self) self.character:getVehicle().engine = true; return true end },
+    -- (the game's answers true whether or not the engine caught)
+    ISStartVehicleEngine = { complete = function(self)
+        if not W.noStart then self.character:getVehicle().engine = true end
+        return true
+    end },
     ISHotwireVehicle = { complete = function(self) self.character:getVehicle().wired = not W.wireFails; return true end },
 }
 function actionClass(name, shape)
     local C = { Type = name }
     C.__index = C
     C.complete = shape.complete
+    C.serverStop = shape.serverStop
     function C.new(self, character, part)
         local o = { character = character, part = part }
         if part and not part.isCar then o.vehicle = part:getVehicle() end
@@ -253,8 +260,17 @@ local function perform(p, name, arg)
     return fn(act)
 end
 
+-- what the game does to a cancelled action: serverStop by the same road, if there is one
+function cancel(act)
+    local fn = rawget(act, "serverStop") or rawget(getmetatable(act), "serverStop")
+    if fn then fn(act) end
+end
+
 local function car(id, sql, x)
-    local v = { isCar = true, id = id, sql = sql, script = { name = x or "CarNormal" }, parts = {} }
+    local v = { isCar = true, id = id, sql = sql, script = { name = x or "CarNormal" }, parts = {}, x = 6283, y = 5352 }
+    function v.getX(self) return self.x end
+    function v.getY(self) return self.y end
+    function v.getVehicleTowedBy(self) return self.towedBy end
     function v.getSqlId(self) return self.sql end
     function v.getScript(self)
         local s = self.script
@@ -271,6 +287,7 @@ local function part(v, id, item, door)
     function q.getVehicle(self) return self.v end
     function q.getId(self) return self.id end
     function q.getInventoryItem(self) return self.item end
+    function q.getContainerContentAmount(self) return self.amount or 0 end
     function q.getParent(self) return door and { getDoor = function() return door end } or nil end
     return q
 end
@@ -305,6 +322,7 @@ local function baseEnv()
     env.Capability = CAPS
     env.loaded = {}
     env.getRoles = function() return jlist(ROLE_LIST) end
+    env.getItemNameFromFullType = function(t) return (t == "Base.Bandage") and "Bandage" or error("no such item") end
     return env
 end
 local function runFile(env, rel)
@@ -335,6 +353,7 @@ local function serverStart()
     env.isClient = function() return false end
     env.require = function(n) requireIn(env, n) end
     env.getOnlinePlayers = function() return jlist(W.online) end
+    env.getTextOrNull = function(k) return WORDS[k] end
     env.getGameTime = function() return { getWorldAgeHours = function() return W.hours end } end
     env.getRandomUUID = function()
         W.uuid = W.uuid + 1
@@ -601,6 +620,13 @@ local function rowWith(rows, what)
     end
     return nil
 end
+local function countBy(rows, what, who)
+    local n = 0
+    for _, r in ipairs(rows or {}) do
+        if r.what == what and r.who == who then n = n + 1 end
+    end
+    return n
+end
 local function countWhat(rows, what)
     local n = 0
     for _, r in ipairs(rows or {}) do
@@ -632,7 +658,7 @@ do
             check("a ZeD line has seven fields: " .. l.line, n == 6, n)
         end
     end
-    check("the load line has the shape", logHas("admin | server part up | server | - | - | protocol 1 | day"))
+    check("the load line has the shape", logHas("admin | server part up | @server | - | - | protocol 1 | day"))
     local k = player("Kade_R", "user")
     local id = file(k)
     check("a ticket's line is on the one log", logHas("ticket | filed | Kade_R | #" .. id .. " | 6280,5350,0 | GRIEF | day 13"))
@@ -651,7 +677,7 @@ do
     rows = rowsOf(a)
     check("those read in the view", rowWith(rows, "bad arguments") ~= nil and rowWith(rows, "refused") ~= nil)
     -- every kind reaches the file through the one road
-    W.server.ZeD.Srv.action("claims", "server", "3 changes not logged")
+    W.server.ZeD.Srv.action("claims", W.server.ZeD.Tk.SYS, "3 changes not logged")
     rows = rowsOf(a, { kind = "safehouse" })
     check("the log's own word shows under Safehouse", #rows == 1 and rows[1].k == "safehouse", #rows)
 end
@@ -680,7 +706,7 @@ do
     ask(m, {})
     check("a demoted moderator reads no more", page(m) == nil and errOf(m) == "perm")
     -- the rows are the allowlist
-    local allow = { s = 1, t = 1, day = 1, k = 1, who = 1, what = 1, target = 1, text = 1, x = 1, y = 1, z = 1, car = 1, part = 1, locked = 1, src = 1, lg = 1, by = 1 }
+    local allow = { s = 1, t = 1, day = 1, k = 1, who = 1, what = 1, target = 1, text = 1, x = 1, y = 1, z = 1, car = 1, part = 1, locked = 1, src = 1, lg = 1, by = 1, hid = 1 }
     local rows = rowsOf(a)
     for _, r in ipairs(rows) do
         for key in pairs(r) do check("a row holds only what is on the list: " .. tostring(key), allow[key] ~= nil) end
@@ -775,7 +801,7 @@ do
     local _, p4 = rowsOf(a, { kind = "admin", when = "hour", page = 99 })
     check("a page past the end lands on the last", p4.page == p4.pages and #p4.rows > 0)
     check("names on the first page, sorted, no server", p2.names[1] ~= nil and (function()
-        for _, n in ipairs(p2.names) do if n == "server" then return false end end
+        for _, n in ipairs(p2.names) do if n == "@server" then return false end end
         return true
     end)())
     check("a message stays small", W.biggest == nil or W.biggest < 200000)
@@ -820,59 +846,68 @@ do
     rows = rowsOf(a, { kind = "vehicle" })
     check("engine parts and gas", rowWith(rows, "eparts") ~= nil and rowWith(rows, "siphon") ~= nil)
     -- driven off: the engine started, then on by the look; the owner moves
+    local d3 = { kind = "vehicle", when = "d3" }
     drive(v, mike)
     perform(mike, "ISStartVehicleEngine")
-    rows = rowsOf(a, { kind = "vehicle" })
+    rows = rowsOf(a, d3)
     r = rowWith(rows, "drive")
     check("a start by someone else drives it off", r and r.who == "mike_d" and r.target == "Kade_R")
     check("the words", L(ca).lineText(r) == "drove off in Kade_R's Chevalier D6", L(ca).lineText(r))
     perform(mike, "ISStartVehicleEngine")
     tick()
-    rows = rowsOf(a, { kind = "vehicle" })
-    check("once: the same driver again is no line", countWhat(rows, "drive") == 1)
-    -- own car: no lines
-    local n = #W.logs
+    rows = rowsOf(a, d3)
+    check("once: the same driver again is no line", countBy(rows, "drive", "mike_d") == 1)
+    -- held for the settling time: their own car, no lines
+    W.clock = W.clock + (Lg_L().SETTLE_S + 1) * 1000
+    local n = countWhat(rows, "part")
     perform(mike, "ISUninstallVehiclePart", part(v, "Battery", { item = 1 }))
-    rows = rowsOf(a, { kind = "vehicle" })
-    check("your own car, no line (OWN_CAR_LINES)", countWhat(rows, "part") == 1)
+    rows = rowsOf(a, d3)
+    check("your own car, no line (OWN_CAR_LINES)", countWhat(rows, "part") == n)
     -- a car already running: the look catches it
     leave(v, mike)
     v.engine = true
     drive(v, kade)
     tick()
-    rows = rowsOf(a, { kind = "vehicle" })
-    check("into a running car: the 10 second look", countWhat(rows, "drive") == 2)
+    rows = rowsOf(a, d3)
+    check("into a running car: the 10 second look", countBy(rows, "drive", "Kade_R") == 2, countBy(rows, "drive", "Kade_R"))
     -- engine off: not driving
     leave(v, kade)
     v.engine = false
+    W.clock = W.clock + (Lg_L().SETTLE_S + 1) * 1000
     drive(v, mike)
     tick()
-    rows = rowsOf(a, { kind = "vehicle" })
-    check("sat in it with the engine off: no line", countWhat(rows, "drive") == 2)
+    rows = rowsOf(a, d3)
+    check("sat in it with the engine off: no line", countBy(rows, "drive", "mike_d") == 1)
     -- hotwire
     leave(v, mike)
     W.wireFails = true
     drive(v, mike)
     perform(mike, "ISHotwireVehicle")
-    rows = rowsOf(a, { kind = "vehicle" })
+    rows = rowsOf(a, d3)
     check("a failed hotwire is no line", rowWith(rows, "hotwire") == nil)
     W.wireFails = nil
     perform(mike, "ISHotwireVehicle")
-    rows = rowsOf(a, { kind = "vehicle" })
+    rows = rowsOf(a, d3)
     r = rowWith(rows, "hotwire")
     check("hotwired, with the owner", r and r.target == "Kade_R", r and r.target)
-    check("and driven off", countWhat(rows, "drive") == 3)
+    check("hotwired is not driven off: the engine isn't on", countBy(rows, "drive", "mike_d") == 1)
+    v.engine = true
+    tick()
+    rows = rowsOf(a, d3)
+    check("and driven off once it runs", countBy(rows, "drive", "mike_d") == 2, countBy(rows, "drive", "mike_d"))
+    leave(v, mike)
+    v.engine = false
     -- a car nobody has driven: logged, with no owner
     local w2 = car(6, 88)
     perform(mike, "ISUninstallVehiclePart", part(w2, "Battery", { item = 1 }))
-    rows = rowsOf(a, { kind = "vehicle" })
+    rows = rowsOf(a, d3)
     r = nil
     for _, x in ipairs(rows) do if x.what == "part" and x.target == nil then r = x end end
     check("no driver on record: a line with no owner", r ~= nil and L(ca).lineText(r) == "removed the Battery from a Chevalier D6", r and L(ca).lineText(r))
     -- a wreck is read before it goes
     local w3 = car(7, 89, "Burnt")
     perform(mike, "ISRemoveBurntVehicle", w3)
-    rows = rowsOf(a, { kind = "vehicle" })
+    rows = rowsOf(a, d3)
     r = rowWith(rows, "strip")
     check("a stripped wreck keeps its name", r and r.car == "Burnt" and w3.gone == true)
     -- a car with no id yet
@@ -882,28 +917,12 @@ do
     tick()
     check("no sqlId yet: nothing kept", Srv().A.md.drivers[-1] == nil)
     leave(w4, kade)
-    -- the tow
-    say(a, "x", {})
-    local function tow(args)
-        local aa = wire(args)
-        net(function() W.server.Events.OnClientCommand.fire("vehicle", "attachTrailer", kade, aa) end)
-        drain()
-    end
-    tow({ vehicleA = 8, vehicleB = 5 })
-    rows = rowsOf(a, { kind = "vehicle" })
-    r = rowWith(rows, "tow")
-    check("a tow", r and r.who == "Kade_R" and r.target == "mike_d", r and r.target)
-    local before = countWhat(rows, "tow")
-    for _, args in ipairs({ { vehicleA = 1, vehicleB = 1.5 }, { vehicleA = "x", vehicleB = {} }, { vehicleB = 5 }, { vehicleA = 1, vehicleB = 99 } }) do tow(args) end
-    net(function() W.server.Events.OnClientCommand.fire("vehicle", "attachTrailer", kade, nil) end)
-    drain()
-    rows = rowsOf(a, { kind = "vehicle" })
-    check("hostile tows: no line, no slip", countWhat(rows, "tow") == before and not logHas("log hook failed"))
     -- pace
+    tick(61)
     for i = 1, 80 do perform(mike, "ISTakeEngineParts", part(w2, "Engine", nil)) end
     rows = rowsOf(a, { kind = "vehicle" })
     local n2 = 0
-    for _, l in ipairs(Srv().A.md.log) do if l.what == "eparts" then n2 = n2 + 1 end end
+    for _, l in ipairs(Srv().A.md.world) do if l.what == "eparts" then n2 = n2 + 1 end end
     check("one player's lines are paced", n2 <= Lg_L().VEH_PER_MIN + 1, n2)
     -- the cap, oldest out
     for i = 1, 3100 do
@@ -932,12 +951,12 @@ do
     perform(kade, "ISTakeEngineParts", part(v, "Engine", nil))
     local P0 = Srv().L.P
     check("the class wrap was reached", P0.hooks.ISTakeEngineParts.done == 1 and P0.hooks.ISTakeEngineParts.new == 1)
-    check("one line says so", logHas("vehicle hook reached | server | ISTakeEngineParts"))
+    check("one line says so", logHas("vehicle hook reached | @server | ISTakeEngineParts"))
     check("no fallback needed", P0.hooks.ISTakeEngineParts.fallback == nil)
     for i = 1, 5 do perform(kade, "ISTakeEngineParts", part(v, "Engine", nil)) end
     check("a line once", (function()
         local n = 0
-        for _, l in ipairs(W.logs) do if string.find(l.line, "hook reached | server | ISTakeEngineParts", 1, true) then n = n + 1 end end
+        for _, l in ipairs(W.logs) do if string.find(l.line, "hook reached | @server | ISTakeEngineParts", 1, true) then n = n + 1 end end
         return n
     end)() == 1)
     again(a)
@@ -956,9 +975,10 @@ do
     perform(k2, "ISUninstallVehiclePart", bat())
     perform(k2, "ISUninstallVehiclePart", bat())
     check("the class wrap is missed, no line", #(rowsOf(a2, { kind = "vehicle" })) == 0)
+    W.clock = W.clock + Lg_L().HOOK_WAIT_S * 1000
     perform(k2, "ISUninstallVehiclePart", bat())
     check("the third turns the fallback on", Srv().L.P.hooks.ISUninstallVehiclePart.fallback == true)
-    check("and says so", logHas("vehicle hook fallback on | server | ISUninstallVehiclePart"))
+    check("and says so", logHas("vehicle hook fallback on | @server | ISUninstallVehiclePart"))
     local rows = rowsOf(a2, { kind = "vehicle" })
     check("the action that turned it on is caught", countWhat(rows, "part") == 1)
     perform(k2, "ISUninstallVehiclePart", bat())
@@ -1084,11 +1104,11 @@ do
     check("it has no chip of its own", r and r.k == "other")
     local rows2 = rowsOf(a, { kind = "admin" })
     check("and shows under no chip", rowWith(rows2, "ISTakeSomething") == nil)
-    client(u, "ClientActionLog", "[1][ISEnterVehicle][Kade_R][1,2,0][Base.Car]")
+    client(u, "Vehicle", "[1][ISEnterVehicle][Kade_R][1,2,0][Base.Car]")
     rows = rowsOf(a, { kind = "vehicle" })
     r = rowWith(rows, "ISEnterVehicle")
     check("a claim about someone else names who sent it", r and r.who == "Kade_R" and r.by == "griefer", r and r.by)
-    check("the words say so", r and L(ca).sourceText(r) == "from the log ClientActionLog, sent by griefer, not proved", r and L(ca).sourceText(r))
+    check("the words say so", r and L(ca).sourceText(r) == "from the log Vehicle, sent by griefer, not proved", r and L(ca).sourceText(r))
     -- what a client can't do
     W.logs = {}
     for _, name in ipairs({ "ZeD", "zed", "Ze-D", "z_e_d" }) do client(u, name, "ticket | filed | Hermit | #1 | 1,1,0 | GRIEF | day 1") end
@@ -1173,7 +1193,7 @@ do
     ask(a, { rid = 4, id = id, s = r.s }, "l_tonote")
     check("Add to ticket", got(a, "t_ack").ok == true, errOf(a))
     local rec = W.server.ZeD.Srv.T.md.tickets[id]
-    check("as an admin note, with the line and its place", rec.notes.n == 1 and string.find(rec.notes[1].text, "mike_d eparts", 1, true) ~= nil and string.find(rec.notes[1].text, "at 6283 x 5352", 1, true) ~= nil, rec.notes[1] and rec.notes[1].text)
+    check("as an admin note, with the line and its place", rec.notes.n == 1 and string.find(rec.notes[1].text, "mike_d took engine parts from", 1, true) ~= nil and string.find(rec.notes[1].text, "at 6283 x 5352", 1, true) ~= nil, rec.notes[1] and rec.notes[1].text)
     check("the note's writer is the server's word for it", rec.notes[1].who == "Hermit")
     again(a)
     ask(a, { rid = 5, id = id, s = r.s }, "l_tonote")
@@ -1243,8 +1263,25 @@ do
     local v = car(5, 77)
     perform(a, "ISTakeEngineParts", part(v, "Engine", nil))
     check("frozen: nothing is written", Srv().A.md.log.n == n and Srv().A.md.tap.n == 0)
+    check("frozen: the line still reaches the file", logHas("vehicle | eparts | Hermit |"))
     local rows = rowsOf(a)
     check("frozen: reads work", rowWith(rows, "mute") ~= nil)
+    -- frozen, the wheel: one line in the file, and no write to the table
+    local kade = player("Kade_R", "user", 6283, 5352)
+    local bob = player("Bob", "user", 6283, 5352)
+    local w = car(6, 78)
+    drive(w, kade)
+    w.engine = true
+    tick()
+    leave(w, kade)
+    drive(w, bob)
+    tick()
+    tick()
+    local c = 0
+    for _, l in ipairs(W.logs) do if string.find(l.line, "vehicle | drive | Bob | Kade_R |", 1, true) then c = c + 1 end end
+    check("frozen: drove off once, with the owner", c == 1, c)
+    check("frozen: the record isn't touched", (Srv().A.md.drivers or {})[78] == nil)
+    leave(w, bob)
     Srv().A.frozen = nil
 end
 
@@ -1322,9 +1359,19 @@ do
         { "the ban on x ran out", "admin", "ban lifted", "x", "the time ran out" },
         { 'sent a server message: "Restart soon"', "admin", "server message", nil, "Restart soon" },
         { "set a repeating message, 15 min: x", "admin", "repeating message", nil, "15 min: x" },
-        { "spawned 10 x Base.Bandage to Rosa", "admin", "spawn", "Rosa", "10 x Base.Bandage to Rosa" },
-        { "power on: GodMod", "admin", "power on: GodMod" },
-        { "rate limit: over it", "admin", "rate limit", nil, "over it" },
+        { "spawned 10 x Bandage to Rosa", "admin", "spawn", "Rosa", "10 x Base.Bandage to Rosa" },
+        { "spawned 2 x Bandage to themselves", "admin", "spawn", nil, "2 x Base.Bandage to me" },
+        { "spawned 1 x Bandage on the ground", "admin", "spawn", nil, "1 x Base.Bandage to ground" },
+        { "spawned 1 x Base.Gone to Rosa", "admin", "spawn", "Rosa", "1 x Base.Gone to Rosa" },
+        { "turned on God Mode", "admin", "power on: GodMod" },
+        { "turned off God Mode", "admin", "power off: GodMod" },
+        { "turned on Invisible", "admin", "power on: Invisible" },
+        { "added the role helper", "admin", "roles: add", "helper" },
+        { "moved the role helper up", "admin", "roles: up", "helper" },
+        { "tried a command they have no right to (a_ban)", "admin", "refused", nil, "has no right to a_ban" },
+        { "went over the rate limit, 4 commands dropped so far", "admin", "rate limit", nil, "over the general limit, 4 dropped so far" },
+        { "sent arguments no ZeD client sends (a_card)", "admin", "bad arguments", nil, "a_card" },
+        { "server part up: protocol 1", "admin", "server part up", nil, "protocol 1" },
         { "claimed a safehouse", "safehouse", "claim" },
         { "released a safehouse", "safehouse", "release" },
         { "joined the safehouse", "safehouse", "member in" },
@@ -1348,7 +1395,7 @@ do
     local kinds = { filed = "filed #14 Griefing", answered = "answered #14 Griefing", closed = "closed #14 Griefing", reopened = "reopened #14 Griefing",
         taken = "took #14 Griefing", seen = "saw #14 Griefing", ["note added"] = "added a note to #14 Griefing", deleted = "deleted #14 Griefing",
         ["marked spam"] = "marked #14 Griefing as spam", ["not spam"] = "marked #14 Griefing as not spam",
-        ["player added to it"] = "added to #14 Griefing", ["adopted from the game's window"] = "filed #14 Griefing on the game's window",
+        ["player added to it"] = "added to #14 Griefing",
         ["removed on the game's window"] = "removed #14 Griefing on the game's window" }
     for what, want in pairs(kinds) do
         check("words: " .. want, words("ticket", what, "#14", "GRIEF") == want, words("ticket", what, "#14", "GRIEF"))
@@ -1360,6 +1407,593 @@ do
     check("no card for a ticket's number", Lm.otherName({ k = "ticket", target = "#14" }) == nil)
     check("no card for a faction", Lm.otherName({ k = "faction", target = "Farmers" }) == nil)
     check("no card for a mod's word", Lm.otherName({ k = "pvp", target = "x", src = "tap" }) == nil)
+end
+
+section("a car's owner")
+do
+    local a, ca = boot()
+    local kade = player("Kade_R", "user", 6283, 5352)
+    local bob = player("Bob", "user", 6283, 5352)
+    local v = car(5, 77)
+    local d3 = { kind = "vehicle", when = "d3" }
+    drive(v, kade)
+    v.engine = true
+    tick()
+    leave(v, kade)
+    v.engine = false
+    W.clock = W.clock + (Lg_L().SETTLE_S + 1) * 1000
+    -- a turned key that starts nothing
+    W.noStart = true
+    drive(v, bob)
+    perform(bob, "ISStartVehicleEngine")
+    tick()
+    local rows = rowsOf(a, d3)
+    check("a failed start: no line", countBy(rows, "drive", "Bob") == 0, countBy(rows, "drive", "Bob"))
+    check("and the owner stays", Srv().A.md.drivers[77].u == "Kade_R", Srv().A.md.drivers[77].u)
+    leave(v, bob)
+    W.noStart = nil
+    perform(bob, "ISUninstallVehiclePart", part(v, "Battery", { item = 1 }))
+    rows = rowsOf(a, d3)
+    local r = rowWith(rows, "part")
+    check("so the strip after it is a line, on the owner's car", r and r.who == "Bob" and r.target == "Kade_R", r and r.target)
+    -- a theft: the thief strips it around the corner
+    drive(v, bob)
+    v.engine = true
+    tick()
+    leave(v, bob)
+    v.engine = false
+    rows = rowsOf(a, d3)
+    r = rowWith(rows, "drive")
+    check("driven off, naming the owner", countBy(rows, "drive", "Bob") == 1)
+    perform(bob, "ISTakeEngineParts", part(v, "Engine", nil))
+    perform(bob, "ISTakeGasolineFromVehicle", part(v, "GasTank", nil))
+    rows = rowsOf(a, d3)
+    r = rowWith(rows, "eparts")
+    check("the thief's work still writes, with the owner's name", r and r.who == "Bob" and r.target == "Kade_R", r and r.target)
+    check("the gas too", rowWith(rows, "siphon") ~= nil and rowWith(rows, "siphon").target == "Kade_R")
+    -- the owner comes back in the settling time: no line accuses them
+    drive(v, kade)
+    v.engine = true
+    tick()
+    leave(v, kade)
+    v.engine = false
+    rows = rowsOf(a, d3)
+    check("the owner takes it back: no drove off", countBy(rows, "drive", "Kade_R") == 1, countBy(rows, "drive", "Kade_R"))
+    check("and it is theirs again at once", Srv().A.md.drivers[77].u == "Kade_R" and Srv().A.md.drivers[77].at == nil)
+    perform(kade, "ISUninstallVehiclePart", part(v, "Muffler", { item = 1 }))
+    rows = rowsOf(a, d3)
+    check("their own work: no line", countBy(rows, "part", "Kade_R") == 0)
+    -- a third party inside the settling time names the same owner
+    drive(v, bob)
+    v.engine = true
+    tick()
+    leave(v, bob)
+    local rosa = player("Rosa", "user", 6283, 5352)
+    drive(v, rosa)
+    tick()
+    leave(v, rosa)
+    v.engine = false
+    rows = rowsOf(a, d3)
+    r = nil
+    for _, x in ipairs(rows) do if x.what == "drive" and x.who == "Rosa" then r = x end end
+    check("the next taker: the owner stays the one on record", r and r.target == "Kade_R", r and r.target)
+    -- settled: it is the new driver's
+    W.clock = W.clock + (Lg_L().SETTLE_S + 1) * 1000
+    local n = countBy(rowsOf(a, d3), "part", "Rosa")
+    perform(rosa, "ISUninstallVehiclePart", part(v, "Hood", { item = 1 }))
+    check("held for the settling time: their own", countBy(rowsOf(a, d3), "part", "Rosa") == n)
+    -- a car on no record, taken for the first time
+    local w = car(6, 88)
+    drive(w, bob)
+    w.engine = true
+    tick()
+    leave(w, bob)
+    w.engine = false
+    rows = rowsOf(a, d3)
+    r = nil
+    for _, x in ipairs(rows) do if x.what == "drive" and x.target == nil and x.who == "Bob" then r = x end end
+    check("a car with no record, first taken: a line", r and L(ca).lineText(r) == "drove off in a Chevalier D6", r and r.who)
+    local parts0 = Srv().A.md.world.n
+    perform(bob, "ISUninstallVehiclePart", part(w, "Battery", { item = 1 }))
+    check("their work on it writes, as a car with no owner", Srv().A.md.world.n == parts0 + 1)
+    rows = rowsOf(a, d3)
+    r = nil
+    for _, x in ipairs(rows) do if x.what == "part" and x.who == "Bob" and x.target == nil then r = x end end
+    check("not 'Bob's car' to Bob", r ~= nil)
+    perform(kade, "ISSmashVehicleWindow", part(w, "WindowFrontLeft", nil))
+    rows = rowsOf(a, d3)
+    r = rowWith(rows, "smash")
+    check("a stranger's work names that first driver", r and r.target == "Bob", r and r.target)
+    -- scavenging stays in its own ring
+    local logN = Srv().A.md.log.n
+    Srv().action("admin", "Hermit", "mute", "x")
+    local keep = Srv().A.md.log.at
+    for i = 1, 1200 do
+        W.clock = W.clock + 3000
+        perform(rosa, "ISTakeEngineParts", part(car(2000 + i, 5000 + i), "Engine", nil))
+    end
+    check("work on cars with no owner stays off the one ring", Srv().A.md.log.n <= logN + 2 and Srv().A.md.log.at == keep, Srv().A.md.log.n)
+    check("its ring is capped", Srv().A.md.world.n == Lg_L().VEH_MAX, Srv().A.md.world.n)
+    check("and the file has them all", (function()
+        local c = 0
+        for _, l in ipairs(W.logs) do if string.find(l.line, "vehicle | eparts | Rosa | - |", 1, true) then c = c + 1 end end
+        return c
+    end)() == 1200)
+    rows = rowsOf(a, { kind = "vehicle", when = "hour" })
+    check("the Vehicle chip reads them", rowWith(rows, "eparts") ~= nil)
+end
+
+section("the pace on vehicle lines")
+do
+    local a = boot()
+    local kade = player("Kade_R", "user", 6283, 5352)
+    local bob = player("Bob", "user", 6283, 5352)
+    local v = car(5, 77)
+    drive(v, kade)
+    v.engine = true
+    tick()
+    leave(v, kade)
+    v.engine = false
+    W.clock = W.clock + (Lg_L().SETTLE_S + 1) * 1000
+    for i = 1, 40 do perform(bob, "ISTakeEngineParts", part(v, "Engine", nil)) end
+    -- the wheel changes hands past the pace: that line is never dropped
+    drive(v, bob)
+    v.engine = true
+    tick()
+    leave(v, bob)
+    v.engine = false
+    local rows = rowsOf(a, { kind = "vehicle", when = "d3" })
+    check("a drove off past the pace still writes", countBy(rows, "drive", "Bob") == 1, countBy(rows, "drive", "Bob"))
+    tick(61)
+    rows = rowsOf(a, { kind = "vehicle", when = "d3" })
+    local r = rowWith(rows, "dropped")
+    check("the lines over the pace are said", r and r.who == "Bob" and r.text == "10", r and r.text)
+    check("in words", WORDS and L(select(2, boot())).lineText({ k = "vehicle", what = "dropped", text = "10" }) == "had 10 more vehicle lines not kept, over the limit for one minute")
+end
+
+section("a tow")
+do
+    local a, ca = boot()
+    local kade = player("Kade_R", "user", 6283, 5352)
+    local mike = player("mike_d", "user", 6283, 5352)
+    local truck = car(5, 77)
+    local victim = car(6, 78)
+    truck.x, truck.y, victim.x, victim.y = 6281, 5350, 6285, 5354
+    drive(truck, mike)
+    truck.engine = true
+    tick()
+    leave(truck, mike)
+    truck.engine = false
+    drive(victim, kade)
+    victim.engine = true
+    tick()
+    leave(victim, kade)
+    victim.engine = false
+    W.clock = W.clock + (Lg_L().SETTLE_S + 1) * 1000
+    -- the game's own command, then the game's own listener
+    local function tow(p, args, formed)
+        local aa = wire(args)
+        net(function()
+            W.server.Events.OnClientCommand.fire("vehicle", "attachTrailer", p, aa)
+            local x, y = W.cars[args.vehicleA], W.cars[args.vehicleB]
+            if formed ~= false and x and y then y.towedBy = x end
+        end)
+        drain()
+    end
+    local d3 = { kind = "vehicle", when = "d3" }
+    tow(mike, { vehicleA = 5, vehicleB = 6 })
+    check("no line yet: it may be cancelled", countWhat(rowsOf(a, d3), "tow") == 0)
+    tick()
+    tick()
+    local r = rowWith(rowsOf(a, d3), "tow")
+    check("once it took: a line, on the other's car", r and r.who == "mike_d" and r.target == "Kade_R", r and r.target)
+    victim.towedBy = nil
+    W.clock = W.clock + 301000
+    -- the menu can put the victim's car in either slot
+    tow(mike, { vehicleA = 6, vehicleB = 5 })
+    tick()
+    tick()
+    local rows = rowsOf(a, d3)
+    check("either slot: the same line", countBy(rows, "tow", "mike_d") == 2, countBy(rows, "tow", "mike_d"))
+    check("naming the other's car", rows[1].what == "tow" and rows[1].target == "Kade_R", rows[1].target)
+    truck.towedBy = nil
+    -- a cancelled hookup
+    W.clock = W.clock + 301000
+    tow(mike, { vehicleA = 5, vehicleB = 6 })
+    victim.towedBy = nil
+    tick()
+    tick()
+    check("cancelled before the look: no line", countBy(rowsOf(a, d3), "tow", "mike_d") == 2)
+    -- no tow formed, and a car out of reach
+    W.clock = W.clock + 61000
+    tow(mike, { vehicleA = 5, vehicleB = 6 }, false)
+    tick()
+    tick()
+    check("no tow formed: no line", countBy(rowsOf(a, d3), "tow", "mike_d") == 2)
+    W.clock = W.clock + 301000
+    victim.x = 7000
+    tow(mike, { vehicleA = 5, vehicleB = 6 })
+    tick()
+    tick()
+    check("a car out of reach: no line", countBy(rowsOf(a, d3), "tow", "mike_d") == 2)
+    victim.x, victim.towedBy = 6285, nil
+    -- one line per pair
+    W.clock = W.clock + 61000
+    for _ = 1, 3 do
+        tow(mike, { vehicleA = 5, vehicleB = 6 })
+        tick()
+        tick()
+    end
+    check("the same pair again: one line", countBy(rowsOf(a, d3), "tow", "mike_d") == 3, countBy(rowsOf(a, d3), "tow", "mike_d"))
+    -- a flood can't take the other lines' budget or fill anything
+    W.clock = W.clock + 301000
+    local logN = Srv().A.md.log.n
+    for i = 1, 40 do tow(mike, { vehicleA = 5, vehicleB = 6 }) end
+    check("a flood of commands waits on a small list", #Srv().L.tows <= Lg_L().TOW_PER_MIN, #Srv().L.tows)
+    for i = 1, 30 do perform(mike, "ISTakeEngineParts", part(victim, "Engine", nil)) end
+    rows = rowsOf(a, { kind = "vehicle", when = "hour" })
+    local n = 0
+    for _, l in ipairs(Srv().A.md.log) do if l.what == "eparts" and l.who == "mike_d" then n = n + 1 end end
+    check("and costs the real lines nothing", n == 30, n)
+    -- hostile
+    for _, args in ipairs({ { vehicleA = 1, vehicleB = 1.5 }, { vehicleA = "x", vehicleB = {} }, { vehicleB = 5 }, { vehicleA = 1, vehicleB = 99 } }) do tow(mike, args) end
+    net(function() W.server.Events.OnClientCommand.fire("vehicle", "attachTrailer", mike, nil) end)
+    drain()
+    check("hostile tows: no slip", not logHas("log hook failed"))
+    -- a kill stays through a run of lesser lines
+    local world2 = boot()
+    local k = player("griefer", "user")
+    Srv().action("pvp", "griefer", "kill", "Rosa", nil, 1, 2, 0)
+    for i = 1, 500 do Srv().action("admin", "griefer", "bad arguments", nil, "x") end
+    local found = false
+    for i = 1, Srv().A.md.log.n do
+        local l = Srv().A.md.log[i]
+        if l and l.what == "kill" then found = true end
+    end
+    check("an account's own lines can't write its kill off the ring", found)
+end
+
+section("a siphon stopped early")
+do
+    local a = boot()
+    local mike = player("mike_d", "user", 6283, 5352)
+    local v = car(5, 77)
+    local tank = part(v, "GasTank", nil)
+    tank.amount = 40
+    check("the wrap is on the class", W.server.ISTakeGasolineFromVehicle.serverStop ~= nil)
+    local act = W.server.ISTakeGasolineFromVehicle.new(W.server.ISTakeGasolineFromVehicle, mike, tank)
+    act.tankStart = 40
+    tank.amount = 12                -- (the action's update ran on the server, and took this much)
+    cancel(act)
+    local rows = rowsOf(a, { kind = "vehicle" })
+    check("fuel left: a line", countWhat(rows, "siphon") == 1, countWhat(rows, "siphon"))
+    local act2 = W.server.ISTakeGasolineFromVehicle.new(W.server.ISTakeGasolineFromVehicle, mike, tank)
+    act2.tankStart = 12
+    cancel(act2)
+    rows = rowsOf(a, { kind = "vehicle" })
+    check("stopped at once: none", countWhat(rows, "siphon") == 1)
+    check("the game's own serverStop still runs", W.gasStops == 2, W.gasStops)
+    local S0 = W.server.ISTakeGasolineFromVehicle
+    local act4 = S0.new(S0, mike, tank)
+    act4.tankStart = 40
+    S0.complete(act4)
+    cancel(act4)
+    rows = rowsOf(a, { kind = "vehicle" })
+    check("a finished one the game then stops: one line", countWhat(rows, "siphon") == 2, countWhat(rows, "siphon"))
+    local act3 = W.server.ISTakeGasolineFromVehicle.new(W.server.ISTakeGasolineFromVehicle, mike, tank)
+    check("a cancel with no fuel field does no harm", pcall(cancel, act3) and not logHas("log hook failed"))
+end
+
+section("the fallback waits for a real miss")
+do
+    local a = boot()
+    local k = player("mike_d", "user")
+    local v = car(5, 77)
+    local S = W.server
+    -- three cancels prove the road: the fallback stays off
+    for i = 1, 3 do
+        W.clock = W.clock + 60000
+        cancel(S.ISUninstallVehiclePart.new(S.ISUninstallVehiclePart, k, part(v, "Battery", { item = 1 })))
+    end
+    W.clock = W.clock + 200000
+    perform(k, "ISUninstallVehiclePart", part(v, "Hood", { item = 1 }))
+    check("cancels don't turn it on", Srv().L.P.hooks.ISUninstallVehiclePart.fallback == nil)
+    check("and the probe says the class", logHas("vehicle hook reached | @server | ISUninstallVehiclePart | - | by the class"))
+    -- actions under way have reached nothing yet
+    world()
+    local k2 = player("mike_d", "user")
+    local v2 = car(5, 77)
+    S = W.server
+    for i = 1, 5 do S.ISTakeEngineParts.new(S.ISTakeEngineParts, k2, part(v2, "Engine", nil)) end
+    check("a few under way, no time gone: off", Srv().L.P.hooks.ISTakeEngineParts.fallback == nil)
+    -- on: a later mod's wrap and a subclass stay in the chain
+    world({ classMiss = true, raw = {} })
+    for name, shape in pairs(ACTIONS) do W.raw[name] = shape.complete end
+    local k3 = player("mike_d", "user")
+    local v3 = car(5, 77)
+    S = W.server
+    local h = Srv().L.P.hooks.ISTakeEngineParts
+    h.fallback = true
+    local C = S.ISTakeEngineParts
+    local sub = setmetatable({}, { __index = C })
+    sub.__index = sub
+    local o1 = C.new(sub, k3, part(v3, "Engine", nil))
+    check("a subclass keeps its own road", rawget(o1, "complete") == nil)
+    local ran = 0
+    local ours = C.complete
+    C.complete = function(self)
+        ran = ran + 1
+        return ours(self)
+    end
+    local o2 = C.new(C, k3, part(v3, "Engine", nil))
+    check("a mod's later wrap isn't shadowed", rawget(o2, "complete") == nil)
+    C.complete = ours
+    local o3 = C.new(C, k3, part(v3, "Engine", nil))
+    check("the class's own action, with ZeD's wrap still on: it carries it", rawget(o3, "complete") == ours)
+end
+
+section("what a tapped line can't carry")
+do
+    local a, ca = boot()
+    local m = player("Rosa", "moderator", 10650, 9970)
+    local up = player("TopDog", "admin", 6280, 5350)
+    local u = player("griefer", "user", 100, 200)
+    local function client(p, logger, text)
+        local aa = wire({ loggerName = logger, logText = text })
+        net(function() W.server.ISLogSystem.writeLog(p, aa) end)
+        drain()
+    end
+    -- a line of brackets costs its length, no more
+    for _, text in ipairs({ string.rep("[", 32000), string.rep("[]", 16000), string.rep("[1,1,1", 5000) }) do
+        W.clock = W.clock + 61000
+        local t0 = os.clock()
+        client(u, "Slow", text)
+        check("a hostile line reads in no time", os.clock() - t0 < 0.05, os.clock() - t0)
+    end
+    W.logs = {}
+    -- the game's own chatter
+    W.clock = W.clock + 61000
+    local n0 = Srv().A.md.tap.n
+    client(u, "ClientActionLog", "[76561198000000003][ISEnterVehicle][griefer][6280,5350,0][Base.CarNormal]")
+    client(u, "PerkLog", "[76561198000000003][griefer][6280,5350,0][Login][Hours Survived: 0]")
+    check("the game's chatter stays out of the Log", Srv().A.md.tap.n == n0, Srv().A.md.tap.n)
+    check("and stays in the game's files", #W.logs == 2, #W.logs)
+    -- a Steam ID: no field of it reaches a reader
+    W.clock = W.clock + 61000
+    client(u, "LogExtender", "[76561198000000003][griefer][6280,5350,0][Login]")
+    client(u, "LogExtender", "[76561198000000003] said hello")
+    local rows = rowsOf(m, { when = "hour" })
+    for _, r in ipairs(rows) do
+        for k, v in pairs(r) do check("no Steam ID in a row: " .. tostring(k), not string.find(tostring(v), "7656119", 1, true), tostring(v)) end
+    end
+    rows = rowsOf(m, { when = "hour", find = "7656119" })
+    check("Find can't reach one", #rows == 0, #rows)
+    -- a higher role's place, on a tapped line
+    W.clock = W.clock + 61000
+    client(u, "LogExtender", "[1][ISEnterVehicle][TopDog][6280,5350,0][Base.CarNormal]")
+    rows = rowsOf(m, { when = "hour" })
+    local r = rowWith(rows, "ISEnterVehicle")
+    check("a higher role's tapped line reads", r ~= nil)
+    check("with no place", r and r.x == nil and r.hid == true, r and r.x)
+    check("and none in its words", r and not string.find(tostring(r.text), "6280", 1, true), r and r.text)
+    check("Find can't reach it", #(rowsOf(m, { when = "hour", find = "6280,5350" })) == 0)
+    rows = rowsOf(up, { when = "hour", find = "ISEnterVehicle" })
+    check("the role itself reads the place", rows[1] and rows[1].x == 6280, rows[1] and rows[1].x)
+    local kade = player("Kade_R", "user", 6280, 5350)
+    local id = file(kade)
+    again(m)
+    rows = rowsOf(m, { when = "hour", find = "ISEnterVehicle" })
+    again(m)
+    ask(m, { rid = 1, id = id, s = rows[1].s }, "l_tonote")
+    local rec = W.server.ZeD.Srv.T.md.tickets[id]
+    check("nor in a note", rec.notes.n == 1 and not string.find(rec.notes[1].text, "6280", 1, true), rec.notes[1] and rec.notes[1].text)
+    check("the note keeps who really sent it", string.find(rec.notes[1].text, "from the log LogExtender, sent by griefer, not proved", 1, true) ~= nil, rec.notes[1] and rec.notes[1].text)
+    -- a place past the map
+    W.clock = W.clock + 61000
+    client(u, "LogExtender", "[1][ISThing][griefer][99999999,3,0]")
+    client(u, "LogExtender", "[1][ISThing2][griefer][" .. string.rep("9", 400) .. ",3,0]")
+    rows = rowsOf(a, { when = "hour" })
+    check("a place off the map is no place", rowWith(rows, "ISThing") and rowWith(rows, "ISThing").x == nil)
+    -- the Who list: forged names can't push real ones off
+    W.clock = W.clock + 61000
+    for i = 1, 20 do client(u, "LogExtender", string.format("[1][T][!%03d][1,1,0]", i)) end
+    local _, pg = rowsOf(a, { when = "hour" })
+    check("no forged name on the list", not has(pg.names, "!001"))
+    check("the sender is", has(pg.names, "griefer"))
+    rows = rowsOf(a, { when = "hour", who = "griefer", find = "!001" })
+    check("Who finds what they sent", #rows == 1, #rows)
+end
+
+section("the server's own lines")
+do
+    local a, ca = boot()
+    local fake = player("server", "user", 700, 800)
+    local kade = player("Kade_R", "user", 700, 800)
+    local v = car(5, 77)
+    perform(fake, "ISTakeEngineParts", part(v, "Engine", nil))
+    kade.x, kade.y = 5, 5
+    local _, pg = rowsOf(a, {})
+    check("an account called server is on the Who list", has(pg.names, "server"), table.concat(pg.names, ","))
+    check("the server's own mark isn't", not has(pg.names, "@server"))
+    Srv().action("admin", W.server.ZeD.Tk.SYS, "ban lifted", "x", "the time ran out")
+    local rows = rowsOf(a, { kind = "admin" })
+    local r = rowWith(rows, "ban lifted")
+    check("a server line reads as the server's", L(ca).whoText(r) == "Server:", L(ca).whoText(r))
+    r = rowWith(rowsOf(a, { kind = "vehicle" }), "eparts")
+    check("a player so named reads as themselves", L(ca).whoText(r) == "server")
+    -- the QA lines stay in the file
+    check("the hook's line is in the file", logHas("vehicle hook reached"))
+    check("and not on staff's chip", rowWith(rowsOf(a, { kind = "admin" }), "vehicle hook reached") == nil)
+end
+
+section("IP addresses and Steam IDs on ban lines")
+do
+    local a, ca = boot()
+    ROLES.helper = role("helper", 2, all({ "AnswerTickets" }))
+    local h = player("Helper", "helper", 10, 10)
+    local S0 = Srv()
+    S0.action("admin", "Hermit", "ban", "203.0.113.7", "permanent: spam", 1, 2, 0)
+    S0.action("admin", "Hermit", "ban", "76561198000000001", "d3: spam", 1, 2, 0)
+    S0.action("admin", "Hermit", "unban", "203.0.113.7", nil, 1, 2, 0)
+    S0.action("admin", "Hermit", "game ban", "76561198000000001", "reason", 1, 2, 0)
+    S0.action("admin", W.server.ZeD.Tk.SYS, "ban lifted", "76561198000000001", "the time ran out")
+    S0.action("admin", "Hermit", "ban", "lootdrop99", "permanent: scam", 1, 2, 0)
+    local rows = rowsOf(h, { kind = "admin" })
+    for _, r in ipairs(rows) do
+        check("no address in a row", not string.find(tostring(r.target), "203.0", 1, true) and not string.find(tostring(r.target), "7656", 1, true), r.target)
+    end
+    local named = nil
+    for _, r in ipairs(rows) do if r.target == "lootdrop99" then named = r end end
+    check("a username stays", named ~= nil)
+    local r = nil
+    for _, x in ipairs(rows) do if x.what == "ban" and x.target == nil and x.text == "d3: spam" then r = x end end
+    check("the words stand in for it", r and L(ca).lineText(r) == 'banned a hidden address (3 days): "spam"', r and L(ca).lineText(r))
+    check("Find can't reach it", #(rowsOf(h, { find = "203.0.113" })) == 0)
+    check("Who can't either", #(rowsOf(h, { who = "203.0.113.7" })) == 0)
+    rows = rowsOf(a, { find = "203.0.113" })
+    check("a reader with BanUnbanUser sees it", #rows == 2 and rows[1].target == "203.0.113.7", #rows)
+    check("and no card is offered on an address", L(ca).otherName(rows[1]) == nil)
+    check("nor on a Steam ID", L(ca).otherName({ k = "admin", what = "unban", target = "76561198000000001" }) == nil)
+    check("a name still has one", L(ca).otherName({ k = "admin", what = "ban", target = "lootdrop99" }) == "lootdrop99")
+    -- a note from a helper
+    local k = player("Kade_R", "user")
+    local id = file(k)
+    local line
+    for i = 1, S0.A.md.log.n do
+        local l = S0.A.md.log[i]
+        if l and l.target == "203.0.113.7" then line = l end
+    end
+    again(h)
+    ask(h, { rid = 1, id = id, s = line.s }, "l_tonote")
+    local rec = W.server.ZeD.Srv.T.md.tickets[id]
+    check("a note holds no address", rec.notes.n == 1 and not string.find(rec.notes[1].text, "203.0", 1, true), rec.notes[1] and rec.notes[1].text)
+    check("the file keeps it", logHas("admin | ban | Hermit | 203.0.113.7 |"))
+end
+
+section("a higher role in a fight")
+do
+    local a = boot()
+    local m = player("Rosa", "moderator", 10, 10)
+    Srv().action("pvp", "Griefer", "kill", "Hermit", nil, 777, 888, 0)
+    local rows = rowsOf(m, { kind = "pvp" })
+    check("the victim's place stays out", rows[1] and rows[1].x == nil and rows[1].hid == true, rows[1] and rows[1].x)
+    rows = rowsOf(a, { kind = "pvp" })
+    check("an admin reads it", rows[1] and rows[1].x == 777)
+end
+
+section("Find reads what the card shows")
+do
+    local a, ca = boot()
+    local kade = player("Kade_R", "user", 6283, 5352)
+    local mike = player("mike_d", "user", 6283, 5352)
+    local v = car(5, 77)
+    drive(v, kade)
+    v.engine = true
+    tick()
+    leave(v, kade)
+    v.engine = false
+    W.clock = W.clock + (Lg_L().SETTLE_S + 1) * 1000
+    perform(mike, "ISSmashVehicleWindow", part(v, "WindowFrontLeft", nil))
+    Srv().action("admin", "Hermit", "ban", "lootdrop99", "permanent: Scam spam", 1, 2, 0)
+    Srv().action("faction", "Rosa", "member in", "Riverside Farmers")
+    for _, w in ipairs({ "smashed", "Chevalier", "window of Kade_R's", "banned", "joined" }) do
+        check("Find: " .. w, #(rowsOf(a, { find = w })) >= 1, w)
+    end
+    check("what isn't there isn't found", #(rowsOf(a, { find = "nothing like this" })) == 0)
+    Srv().action("ticket", "Rosa", "filed", "#9", "GRIEF")
+    check("a ticket's kind as the card says it", #(rowsOf(a, { find = "griefing" })) == 1)
+    check("the server's words are the EN file's", (function()
+        for k, v2 in pairs(W.server.ZeD.Lg.EN) do
+            if WORDS[k] ~= v2 then return false, k end
+        end
+        return true
+    end)())
+    -- a client in another language: its words come as codes
+    local Lg0 = ca.env.ZeD.Lg
+    local codes = Lg0.findCodes("zerschlug", function(k) return (k == "UI_ZeD_Log_V_Smash") and "zerschlug ein Fenster" or "x" end)
+    check("the viewer's words give the codes", codes and #codes == 1 and codes[1] == "smash", codes and codes[1])
+    check("no words, no codes", Lg0.findCodes("qqqq", function() return "x" end) == nil)
+    local rows = rowsOf(a, { find = "zerschlug", codes = codes })
+    check("the server takes them", #rows == 1 and rows[1].what == "smash", #rows)
+    check("only with a Find", #(rowsOf(a, { codes = { "smash" }, kind = "faction" })) == 1)
+    for i, bad in ipairs({ "smash", { 1 }, { {} }, { string.rep("x", 99) } }) do
+        again(a)
+        ask(a, { rid = 70 + i, find = "x", codes = bad })
+        local ack = got(a, "t_ack")
+        check("a bad list " .. i .. " refused", ack ~= nil and ack.ok == false, tostring(ack and ack.err))
+    end
+    local many = {}
+    for i = 1, 40 do many[i] = "c" .. i end
+    again(a)
+    ask(a, { rid = 80, find = "x", codes = many })
+    check("too many refused", got(a, "t_ack") ~= nil and got(a, "t_ack").ok == false)
+end
+
+section("a note says what the card says")
+do
+    local a = boot()
+    local kade = player("Kade_R", "user", 6283, 5352)
+    local mike = player("mike_d", "user", 6283, 5352)
+    local v = car(5, 77)
+    drive(v, kade)
+    v.engine = true
+    tick()
+    leave(v, kade)
+    v.engine = false
+    W.clock = W.clock + (Lg_L().SETTLE_S + 1) * 1000
+    perform(mike, "ISUninstallVehiclePart", part(v, "Battery", { item = 1 }))
+    local id = file(kade)
+    local r = rowWith(rowsOf(a, { kind = "vehicle" }), "part")
+    again(a)
+    ask(a, { rid = 1, id = id, s = r.s }, "l_tonote")
+    local rec = W.server.ZeD.Srv.T.md.tickets[id]
+    local text = rec.notes[1].text
+    check("the line's own words", string.find(text, "mike_d removed the Battery from Kade_R's Chevalier D6, at 6283 x 5352", 1, true) ~= nil, text)
+    check("nothing twice", not string.find(text, "CarNormal/Battery", 1, true), text)
+end
+
+section("who Around names")
+do
+    local a = boot()
+    local m = player("ModAnn", "moderator", 9000, 9000)
+    local kade = player("Kade_R", "user", 6280, 5350)
+    local rosa = player("Rosa", "user", 6280, 5350)
+    local one = file(kade)
+    tk(m, "t_seen", { id = one })
+    nolimit(m)
+    tk(m, "t_note", { id = one, text = "on it" })
+    W.clock = W.clock + 3600 * 1000
+    local two = file(rosa)
+    Srv().action("safehouse", "Aretha", "member out", nil, nil, 6280, 5350)
+    local _, p1 = rowsOf(a, { around = two })
+    for _, e in ipairs(p1.around.missed) do
+        check("a ticket's or a safehouse's line says nothing of who stood there: " .. e.who, e.who ~= "ModAnn" and e.who ~= "Aretha", e.who)
+    end
+end
+
+section("a game row taken in")
+do
+    local a, ca = boot()
+    local S0 = Srv()
+    S0.action("ticket", W.server.ZeD.Tk.SYS, "adopted from the game's window", "#31", "GRIEF: Alice")
+    local _, pg = rowsOf(a, {})
+    local r = rowWith(pg.rows, "adopted from the game's window")
+    check("the server's line", r and r.who == W.server.ZeD.Tk.SYS, r and r.who)
+    check("it says not proved", L(ca).lineText(r) == "took in #31 GRIEF from the game's window, filed in the name of Alice, not proved", L(ca).lineText(r))
+    check("not on the claimed name's list", not has(pg.names, "Alice"))
+end
+
+section("the Container chip")
+do
+    local a = boot()
+    local Lg0 = W.server.ZeD.Lg
+    check("off by default", page(a) == nil or page(a).opt == nil)
+    Lg0.CONTAINER_LOG = true
+    local _, pg = rowsOf(a, {})
+    check("the switch alone shows no chip: nothing writes the lines", pg.opt == nil)
+    Lg0.containerWriter = function() end
+    _, pg = rowsOf(a, {})
+    check("with a writer it does", pg.opt == true)
 end
 
 section("the queue's line when the game's list stops answering")

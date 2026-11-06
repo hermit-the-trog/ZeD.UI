@@ -49,10 +49,10 @@ end
 -- THE ACTION LOG, what the Log view reads. Everything the server part has to say comes through Srv.action, each as one line
 -- of seven fields, "-" for an empty one:
 --   kind | what | who | target | where | detail | day N
--- kind: admin (the server part's own lines are here, who "server"), safehouse, faction, vehicle, pvp, ticket, or claims for
+-- kind: admin (the server part's own lines are here, who Tk.SYS), safehouse, faction, vehicle, pvp, ticket, or claims for
 -- the log's own word. A field has no line break and its | is turned to /, so a split on " | " always gives seven.
 -- Srv.actionStore (ZeD_ServerAdmin.lua) keeps the same line for the Log view; without the admin table the line still reaches
--- the ZeD log. ex: what a vehicle line's words need (car, part, locked), kept in the ring and not in the file.
+-- the ZeD log. ex: what a line's words need (car, part, locked), kept in the ring and not in the file.
 local function logField(v)
     if v == nil then return "-" end
     local s = string.gsub(Tk.clean(tostring(v)) or "", "\n", " ")
@@ -220,7 +220,7 @@ end)
 if not (CAP_STAFF and CAP_ADMIN) then
     Srv.off = true
     print("[ZeD] server part off: this game has no AnswerTickets or RolesWrite capability")
-    Srv.action("admin", "server", "server part off", nil, "a capability is missing from this game version")
+    Srv.action("admin", Tk.SYS, "server part off", nil, "a capability is missing from this game version")
     return
 end
 Srv.off = nil
@@ -251,6 +251,6 @@ if not Srv.logClosed and ISLogSystem and ISLogSystem.writeLog then
 end
 
 print("[ZeD] server part up, protocol " .. tostring(Tk.PROTO))
-Srv.action("admin", "server", "server part up", nil, "protocol " .. tostring(Tk.PROTO))
+Srv.action("admin", Tk.SYS, "server part up", nil, "protocol " .. tostring(Tk.PROTO))
 
 return Srv
