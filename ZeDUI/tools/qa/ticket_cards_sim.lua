@@ -710,15 +710,17 @@ clearSent()
 press("admin", "tk:ans")
 check("Answer goes", lastSent("t_answer") and lastSent("t_answer").text == "On my way")
 ackLast("t_answer", { first = false })
+Tk.REPLY_AT_ANSWERED = false   -- the drawing's way, kept behind the switch
 REC.status = "Answered"
 REC.thread = { n = 2, REC.thread[1], { who = "Aretha", t = 2, text = "On my way", staff = true } }
 deliver("t_card", REC)
 draw("admin")
-check("Answered offers Reopen, no field (E12 as drawn)", stopOf("admin", "tk:reopen") ~= nil and stopOf("admin", "tk:f:answer") == nil and stopOf("admin", "tk:close") == nil)
+check("switch off: Answered offers Reopen, no field", stopOf("admin", "tk:reopen") ~= nil and stopOf("admin", "tk:f:answer") == nil and stopOf("admin", "tk:close") == nil)
 clearSent()
 press("admin", "tk:reopen")
 check("Reopen goes", lastSent("t_reopen") ~= nil)
 ackLast("t_reopen")
+Tk.REPLY_AT_ANSWERED = true
 REC.status = "Progress"
 deliver("t_card", REC)
 draw("admin")
@@ -899,7 +901,6 @@ check("frozen: Send goes by the game", GAME[1] and GAME[1][1] == "add" and lastS
 S.frozen = false
 
 -- E12 flipped: Answered stays open to more words
-Tk.REPLY_AT_ANSWERED = true
 REC.status = "Answered"
 C.card = REC
 ad.tk.qaFresh = true
@@ -907,7 +908,6 @@ TC.qaOpen(WINS.admin, ad, "staff", 14)
 draw("admin")
 check("E12 on: an Answered ticket takes another answer", stopOf("admin", "tk:ans") ~= nil and stopOf("admin", "tk:close") ~= nil and stopOf("admin", "tk:reopen") == nil)
 TC.back(WINS.admin, ad)
-Tk.REPLY_AT_ANSWERED = false
 
 -- what the review found ------------------------------------------------------------------
 do
