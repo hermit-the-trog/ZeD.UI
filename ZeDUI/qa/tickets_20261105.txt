@@ -1,0 +1,195 @@
+23:03:08 mods: ZeD_UI;ZeDQAShim
+23:03:08 started the server, PID 34420; waiting for it to be ready
+23:03:42 ready after 34 s
+23:07:05 tickets : 0/1 pass, 1 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tickets.md
+23:07:05 stopped PID 34420
+23:07:05 closed
+23:11:34 mods: ZeD_UI;ZeDQAShim
+23:11:34 started the server, PID 6664; waiting for it to be ready
+23:12:07 ready after 32 s
+23:12:07 tickets2","mp_tk_a.txt : zedqa_run: not starting: manifest not found: C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\tools\qa\"mp_tickets.txt
+23:12:07 stopped PID 6664
+23:12:07 closed
+23:13:05 mods: ZeD_UI;ZeDQAShim
+23:13:05 started the server, PID 5684; waiting for it to be ready
+23:13:37 ready after 32 s
+23:17:00 tickets2 : 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tickets2.md
+23:22:36 tk_a : 0/1 pass, 1 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_a.md
+23:22:36 stopped PID 5684
+23:22:36 closed
+23:23:50 closed
+23:24:30 closed
+23:25:27 mods: ZeD_UI;ZeDQAShim
+23:25:27 started the server, PID 33588; waiting for it to be ready
+23:25:59 ready after 32 s
+23:27:45 phase 1 : 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_b1.md
+23:27:45 stopped PID 33588
+23:27:53 mods: ZeD_UI;ZeDQAShim
+23:27:53 started the server, PID 2416; waiting for it to be ready
+23:28:25 ready after 32 s
+23:30:09 phase 2 : 0/1 pass, 1 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_b2.md
+23:31:41 phase 3 : 0/1 pass, 1 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_b3.md
+23:31:41 stopped PID 2416
+23:31:48 mods: ZeD_UI;ZeDQAShim
+23:31:48 started the server, PID 20348; waiting for it to be ready
+23:32:20 ready after 32 s
+23:34:09 phase 4 : 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_b4.md
+23:34:09 stopped PID 20348
+23:34:16 mods: ZeD_UI;ZeDQAShim
+23:34:16 started the server, PID 32292; waiting for it to be ready
+23:34:48 ready after 32 s
+23:36:44 phase 5 : 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_b5.md
+23:39:05 big list : 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_big.md
+23:39:05 stopped PID 32292
+23:39:05 closed
+23:40:31 mods: ZeD_UI;ZeDQAShim
+23:40:31 started the server, PID 16520; waiting for it to be ready
+23:41:09 mods: ZeD_UI;ZeDQAShim
+23:41:09 started the server, PID 7872; waiting for it to be ready
+23:41:44 ready after 34 s
+23:43:30 phase 1 : 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_b1.md
+23:43:30 stopped PID 7872
+23:43:38 mods: ZeD_UI;ZeDQAShim
+23:43:38 started the server, PID 25440; waiting for it to be ready
+23:44:12 ready after 34 s
+23:46:32 phase 2 : 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_b2.md
+23:48:05 phase 3 : 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_b3.md
+23:48:05 stopped PID 25440
+23:48:13 mods: ZeD_UI;ZeDQAShim
+23:48:13 started the server, PID 31488; waiting for it to be ready
+23:48:45 ready after 32 s
+23:51:03 phase 4 : 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_b4.md
+23:51:03 stopped PID 31488
+23:51:07 zedqa.db removed
+23:51:15 mods: ZeD_UI;ZeDQAShim
+23:51:15 started the server, PID 28344; waiting for it to be ready
+23:51:49 ready after 34 s
+23:53:47 phase 5 : 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_b5.md
+23:53:47 stopped PID 28344
+23:53:47 closed
+23:53:54 mods: ZeD_UI;ZeDQAShim
+23:53:54 started the server, PID 20092; waiting for it to be ready
+23:54:27 ready after 32 s
+23:56:46 tk_pad : 0/1 pass, 1 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_pad.md
+23:56:46 stopped PID 20092
+23:56:46 closed
+23:56:53 mods: ZeD_UI;ZeDQAShim
+23:56:53 started the server, PID 28808; waiting for it to be ready
+23:57:23 ready after 30 s
+00:00:32 tk_cards_4k : 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_cards_4k.md
+00:00:32 stopped PID 28808
+00:00:32 closed
+00:00:39 mods: ZeD_UI;ZeDQAShim
+00:00:39 started the server, PID 26156; waiting for it to be ready
+00:01:11 ready after 32 s
+00:04:00 tk_cards_deck : 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_cards_deck.md
+00:04:00 stopped PID 26156
+00:04:00 closed
+00:04:07 mods: ZeD_UI;ZeDQAShim
+00:04:07 started the server, PID 34008; waiting for it to be ready
+00:04:37 ready after 30 s
+00:07:30 tk_cards_deck_large : 2/2 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_cards_deck_large.md
+00:07:30 stopped PID 34008
+00:07:30 closed
+00:07:38 mods: ZeD_UI;ZeDQAShim
+00:07:38 started the server, PID 13564; waiting for it to be ready
+00:08:08 ready after 30 s
+00:10:57 tk_cards_720 : 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_cards_720.md
+00:10:57 stopped PID 13564
+00:10:57 closed
+00:11:04 mods: ZeD_UI;ZeDQAShim
+00:11:04 started the server, PID 2552; waiting for it to be ready
+00:11:36 ready after 32 s
+00:14:29 tk_cards_720_large : 2/2 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_cards_720_large.md
+00:14:29 stopped PID 2552
+00:14:29 closed
+00:15:35 mods: ZeD_UI;ZeDQAShim
+00:15:35 started the server, PID 30696; waiting for it to be ready
+00:16:07 ready after 32 s
+00:18:32 tk_pad2 : 1/2 pass, 1 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_pad2.md
+00:18:32 stopped PID 30696
+00:18:32 closed
+00:19:03 mods: ZeD_UI;ZeDQAShim
+00:19:03 started the server, PID 6344; waiting for it to be ready
+00:19:34 ready after 30 s
+00:22:49 tk_cards_4k : 2/2 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_cards_4k.md
+00:22:49 stopped PID 6344
+00:22:49 closed
+00:22:56 mods: ZeD_UI;ZeDQAShim
+00:22:56 started the server, PID 31288; waiting for it to be ready
+00:23:26 ready after 30 s
+00:26:19 tk_cards_deck : 2/2 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_cards_deck.md
+00:26:19 stopped PID 31288
+00:26:19 closed
+00:26:26 mods: ZeD_UI;ZeDQAShim
+00:26:26 started the server, PID 22776; waiting for it to be ready
+00:26:57 ready after 30 s
+00:29:54 tk_cards_deck_large : 3/3 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_cards_deck_large.md
+00:29:54 stopped PID 22776
+00:29:54 closed
+00:30:02 mods: ZeD_UI;ZeDQAShim
+00:30:02 started the server, PID 10672; waiting for it to be ready
+00:30:34 ready after 32 s
+00:33:27 tk_cards_720 : 2/2 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_cards_720.md
+00:33:27 stopped PID 10672
+00:33:27 closed
+00:33:34 mods: ZeD_UI;ZeDQAShim
+00:33:34 started the server, PID 25512; waiting for it to be ready
+00:34:06 ready after 32 s
+00:37:03 tk_cards_720_large : 3/3 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_cards_720_large.md
+00:37:04 stopped PID 25512
+00:37:04 closed
+00:37:11 mods: ZeD_UI;ZeDQAShim
+00:37:11 started the server, PID 26284; waiting for it to be ready
+00:37:44 ready after 32 s
+00:40:11 tk_pad_720_large : 2/3 pass, 1 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_pad_720_large.md
+00:40:11 stopped PID 26284
+00:40:11 closed
+00:41:49 mods: ZeD_UI;ZeDQAShim
+00:41:49 started the server, PID 31128; waiting for it to be ready
+00:42:21 ready after 32 s
+00:45:24 tk_look : 1/2 pass, 1 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_look.md
+00:45:24 stopped PID 31128
+00:45:24 closed
+00:45:49 mods: ZeD_UI;ZeDQAShim
+00:45:49 started the server, PID 4052; waiting for it to be ready
+00:46:21 ready after 32 s
+00:47:56 tk_off_forced : 2/2 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_off_forced.md
+00:47:56 stopped PID 4052
+00:47:56 closed
+00:48:03 no server part, the Lua checksum off
+00:48:03 mods: ZeD_UI;ZeDQAShim
+00:48:03 started the server, PID 18260; waiting for it to be ready
+00:48:36 ready after 32 s
+00:50:54 tk_off_real : 2/2 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_off_real.md
+00:50:54 stopped PID 18260
+00:51:13 mods: ZeD_UI;ZeDQAShim
+00:51:13 started the server, PID 20808; waiting for it to be ready
+00:51:47 ready after 34 s
+00:53:56 tk_look : 1/2 pass, 1 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_look.md
+00:53:56 stopped PID 20808
+00:53:56 closed
+00:54:16 mods: ZeD_UI;ZeDQAShim
+00:54:16 started the server, PID 34712; waiting for it to be ready
+00:54:48 ready after 32 s
+00:56:33 tk_off_forced : 2/2 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_off_forced.md
+00:56:33 stopped PID 34712
+00:56:33 closed
+00:56:41 no server part, the Lua checksum off
+00:56:41 mods: ZeD_UI;ZeDQAShim
+00:56:41 started the server, PID 2152; waiting for it to be ready
+00:57:15 ready after 34 s
+00:59:44 tk_off_real : 2/2 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_off_real.md
+00:59:44 stopped PID 2152
+01:00:01 mods: ZeD_UI;ZeDQAShim
+01:00:01 started the server, PID 30896; waiting for it to be ready
+01:00:33 ready after 32 s
+01:03:52 tk_mouse : 1/2 pass, 1 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_mouse.md
+01:03:52 stopped PID 30896
+01:03:52 closed
+01:04:21 mods: ZeD_UI;ZeDQAShim
+01:04:21 started the server, PID 11172; waiting for it to be ready
+01:04:53 ready after 32 s
+01:08:12 tk_mouse : 2/2 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_mouse.md
+01:08:12 stopped PID 11172
+01:08:12 closed

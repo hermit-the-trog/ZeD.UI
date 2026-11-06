@@ -1,0 +1,3 @@
+zedqa_pin_windows.lua | pnw | timeout=30
+zedqa_large_text.lua | ltx | timeout=30
+mp_tk_pad.lua | mtp | timeout=240
