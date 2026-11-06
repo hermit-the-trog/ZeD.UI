@@ -241,8 +241,9 @@ if not Srv.logClosed and ISLogSystem and ISLogSystem.writeLog then
     ISLogSystem.writeLog = function(who, packet)
         local name = packet and packet.loggerName
         if type(name) == "string" then
+            -- (the whole name, as ZeD_ServerLog's tap: a mod's ZedTracker is not ZeD's log)
             local plain = string.gsub(string.lower(name), "[^%a]", "")
-            if string.find(plain, "zed", 1, true) then return end
+            if plain == "zed" then return end
         end
         Srv.tapBy = who and who:getUsername() or nil
         local ok, err = pcall(base, who, packet)

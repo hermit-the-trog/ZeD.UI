@@ -164,14 +164,26 @@ function ZeD_Window:_autoCollapse()
     local pn = self.playerNum or 0
     local pad = JoypadState and JoypadState.players and JoypadState.players[pn + 1] ~= nil
     local now = getTimestampMs()
-    -- (an item dragged in either window: the windows stay as they are until it is dropped)
-    local dragging = self.moving
+    -- (an item dragged in either window: the windows stay as they are until it is dropped, but for one: Nov 6 2026,
+    -- FAIV's report, a rolled window took no drop, its lists hidden, and the hover below never ran with the button held.
+    -- An item held over a rolled window's title bar rolls that window down, once, so its list shows (the bar itself takes the
+    -- drop as that list, rolled or not: InventoryRenderer.handleDrop). The game rolls every page down at any drag, ISInventoryPage:update; here only the window aimed at: a window that opens at
+    -- every drag covers the world a floor drop was aimed at, and a release over a window never drops to the floor.)
+    local itemDrag = false
     for _, get in ipairs({ ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow, ZeD_WorldWindow and ZeD_WorldWindow.getWindow }) do
         local w = get and get()
         local c = w and w._mainContent
-        if c and c._drag and c._drag:isActive() then dragging = true end
+        if c and c._drag and c._drag:isActive() then itemDrag = true end
+        if w and w._equipDrag and w._equipDrag:isActive() then itemDrag = true end   -- an Equip row's drag
     end
-    if pad or self.pinned or dragging or isMouseButtonDown(0) or isMouseButtonDown(1) then
+    if itemDrag and self.windowShaded and not (pad or self.pinned) then
+        local dx, dy = getMouseX() - self:getAbsoluteX(), getMouseY() - self:getAbsoluteY()
+        if dx >= 0 and dx <= self:getWidth() and dy >= 0 and dy < self:titleBarHeight() then
+            self._autoShaded = false
+            self:setWindowShaded(false)
+        end
+    end
+    if pad or self.pinned or itemDrag or self.moving or isMouseButtonDown(0) or isMouseButtonDown(1) then
         self._outSince = nil
         return
     end

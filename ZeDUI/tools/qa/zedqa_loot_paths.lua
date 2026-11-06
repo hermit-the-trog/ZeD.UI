@@ -32,8 +32,11 @@ local function stand() p:setX(cand.adj:getX() + 0.5); p:setY(cand.adj:getY() + 0
 local plan, i, t0 = {}, 1, getTimestampMs()
 local function add(ms, fn) plan[#plan + 1] = { ms = ms, fn = fn } end
 local function check(tag) add(1500, function()
-    local ok = ZeD_WorldWindow.isOpen() and not vl():getIsVisible() and selInv() == inv
-    say((ok and "PASS " or "FAIL ") .. tag .. ": World open " .. tostring(ZeD_WorldWindow.isOpen()) .. ", game page " .. tostring(vl():getIsVisible()) .. ", the container shown " .. tostring(selInv() == inv))
+    -- (the list that shows too, not only the selection: FAIV's stale list, Nov 6 2026)
+    local w = ZeD_WorldWindow.getWindow()
+    local listed = w ~= nil and w._mainContent ~= nil and w._mainContent._inventory == inv
+    local ok = ZeD_WorldWindow.isOpen() and not vl():getIsVisible() and selInv() == inv and listed
+    say((ok and "PASS " or "FAIL ") .. tag .. ": World open " .. tostring(ZeD_WorldWindow.isOpen()) .. ", game page " .. tostring(vl():getIsVisible()) .. ", the container selected " .. tostring(selInv() == inv) .. ", listed " .. tostring(listed))
 end) end
 -- the menu's way
 add(300, function() closeAll(); stand() end)

@@ -470,6 +470,7 @@ local function exitMultiContainer(win, content)
     win._mcSelected = {}
     win._mcColStates = {}
     win._mainVisible = true
+    win._activeContainer = 1   -- (main shows, so main is the selection: FAIV's report, Nov 6 2026; a pad tap sets its own after)
     content._colStates = nil
     content._selectedContainers = nil
     if win._drawerMode ~= "tab" and win._drawerMode ~= "item" then
@@ -519,6 +520,14 @@ local function mcToggleContainer(win, content, cIdx)
             end
         else
             win._mainVisible = true
+            -- (main lit means main is listed: a bag the pad showed stayed the list under it, FAIV's report, Nov 6 2026;
+            -- what was selected there does not stay selected unseen)
+            if #win._mcSelected == 0 and (win._viewedContainer or win._activeContainer ~= 1) then
+                content._selectedItems = {}
+                content._lastClickedItem = nil
+            end
+            win._viewedContainer = nil
+            win._activeContainer = 1
         end
         -- Rebuild columns with updated main visibility (fall through to rebuild below)
         local selected = win._mcSelected
@@ -5608,6 +5617,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     win._lastSetX = snapX
                 else
                     win._viewedContainer = nil  -- show main
+                    win._activeContainer = 1
+                    win._mainVisible = true
                     win._invDrawerOpen = true
                     local drawerW = math.floor(win._drawerEffW or 0)
                     local baseInv = T.px(win._baseInvW or 372)
@@ -6037,6 +6048,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     local geo = tostring(self._scroll and self._scroll.scrollPos) .. ":" .. tostring(self._gridCell)
                         .. ":" .. tostring(self._renderW or self:getWidth()) .. ":" .. #(self._viewToggleRects or {})
                     if win._lastInvRowGeo ~= geo then win._lastInvRowGeo = geo; dirty = true end
+                    -- (the container shown is part of what these rows are, by the object: FAIV's report, Nov 6 2026)
+                    if win._lastInvRowInv ~= self._inventory then win._lastInvRowInv = self._inventory; dirty = true end
 
                     if dirty then
                         -- Snapshot: copy item refs into a separate table so the

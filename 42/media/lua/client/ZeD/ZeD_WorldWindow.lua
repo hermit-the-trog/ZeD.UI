@@ -398,6 +398,7 @@ _buildWorldLootFocusables = function(win)
                     exitWorldMC(w, c)
                 end
                 w._activeContainer = el.containerIdx
+                w._viewedContainer = nil
                 w._mainVisible     = isFloor
                 -- Oct 23 2026: the pad goes on to the container's first item
                 -- (once its rows have drawn); an empty one keeps the focus here
@@ -416,6 +417,7 @@ _buildWorldLootFocusables = function(win)
                     end
                 else
                     w._activeContainer = el.containerIdx
+                    w._viewedContainer = nil
                 end
             end,
         }
@@ -458,6 +460,7 @@ _buildWorldLootFocusables = function(win)
                     exitWorldMC(w, c)
                 end
                 w._activeContainer = el.containerIdx
+                w._viewedContainer = nil
                 w._mainVisible     = isFloor
                 -- Oct 23 2026: the pad goes on to the container's first item
                 -- (once its rows have drawn); an empty one keeps the focus here
@@ -476,6 +479,7 @@ _buildWorldLootFocusables = function(win)
                     end
                 else
                     w._activeContainer = el.containerIdx
+                    w._viewedContainer = nil
                 end
             end,
             -- S113c: HOLD X + D-pad UP/DOWN = reorder this container in the
@@ -2241,6 +2245,24 @@ _switchWorldTabForNav = function(win, content, tabId)
     return true
 end
 
+-- Snap window width for the column count
+local function snapWorldColumns(win)
+    local T = ZeD.T
+    local colCount = #win._mcSelected + (win._mainVisible and 1 or 0)
+    local baseInv = T.px(win._baseInvW or 372)
+    local drawerW = math.floor(win._drawerEffW or 0)   -- (an open card keeps its width, as exitWorldMC)
+    if colCount >= 2 then
+        local _, idealInvW = mcComputeTargetWidthWorld(win, colCount)
+        local snapW = T.px(CONTAINER_STRIP_W) + idealInvW + drawerW + T.px(ACTION_TAB_STRIP_W)
+        local maxW = getCore():getScreenWidth() - win:getX() - T.px(10)
+        snapW = math.min(snapW, maxW)
+        win:setWidth(snapW)
+    else
+        local snapW = T.px(CONTAINER_STRIP_W) + baseInv + drawerW + T.px(ACTION_TAB_STRIP_W)
+        win:setWidth(snapW)
+    end
+end
+
 mcToggleWorldContainer = function(win, content, cIdx)
     -- MC only allowed on Loot tab
     if win._activeTab ~= "loot" then return end
@@ -2259,7 +2281,10 @@ mcToggleWorldContainer = function(win, content, cIdx)
     -- entry, with no way to add more (subsequent toggles just flipped
     -- _mainVisible).
     if containers[cIdx].isFloor then
-        if win._mainVisible then
+        -- (Nov 6 2026, FAIV's report: the floor lit means the floor is listed, as main is in the Character window. A world
+        -- click, a pad tap or a view come back to Loot leaves a crate the selection, so the branches here took a crate's
+        -- list for the floor's and the floor could not be brought back; a press on a floor that does not show shows it.)
+        if win._mainVisible and win._activeContainer == cIdx then
             if #(win._mcSelected) > 0 then
                 -- MC active: just hide floor
                 win._mainVisible = false
@@ -2278,7 +2303,14 @@ mcToggleWorldContainer = function(win, content, cIdx)
                 end
             end
         else
+            if #(win._mcSelected) == 0 then
+                content._inventory = containers[cIdx].inventory
+                content._selectedItems = {}
+                content._lastClickedItem = nil
+            end
             win._mainVisible = true
+            win._activeContainer = cIdx
+            win._viewedContainer = nil
         end
         local selected = win._mcSelected
         if #selected == 0 and win._mainVisible then
@@ -2344,20 +2376,7 @@ mcToggleWorldContainer = function(win, content, cIdx)
         content._activeCol = #colSel
     end
 
-    -- Snap window width for new column count
-    local T = ZeD.T
-    local colCount = #selected + (win._mainVisible and 1 or 0)
-    local baseInv = T.px(win._baseInvW or 372)
-    if colCount >= 2 then
-        local _, idealInvW = mcComputeTargetWidthWorld(win, colCount)
-        local snapW = T.px(CONTAINER_STRIP_W) + idealInvW + T.px(ACTION_TAB_STRIP_W)
-        local maxW = getCore():getScreenWidth() - win:getX() - T.px(10)
-        snapW = math.min(snapW, maxW)
-        win:setWidth(snapW)
-    else
-        local snapW = T.px(CONTAINER_STRIP_W) + baseInv + T.px(ACTION_TAB_STRIP_W)
-        win:setWidth(snapW)
-    end
+    snapWorldColumns(win)
 
     -- S98: MC selection mutated — refresh ring (worldLootMCColumns focusability
     -- + element list reflect new _mcSelected). Stub returns {} until S99 wires
@@ -2741,6 +2760,31 @@ end
 -- Active container pinned top, scrollable list below.
 -- ============================================================================
 
+-- Nov 6 2026 (FAIV's report, a list stale until the window closed): a container viewed from another tab (the strip's click
+-- there, win._viewedContainer) wins over the selection in the list, and nothing but that strip ever set it back, so the
+-- title and the rows stayed on it after any other selection. It holds only over the selected container it was picked on, by
+-- the object (win._viewedOver), and ends with that selection, however the selection moved. Coming back to Loot, where the
+-- strip selects, the list stays where it is and the viewed container becomes the selection, so the strip lights one.
+local function _holdWorldView(win)
+    local view = win._viewedContainer
+    if not view then return end
+    local list = win._containers
+    local viewed, active = list[view], list[win._activeContainer]
+    if viewed and win._activeTab == "loot" then
+        win._activeContainer = view
+        win._mainVisible = viewed.isFloor and true or false
+        win._viewedContainer, win._viewedOver = nil, nil
+    elseif not viewed or not active or active.inventory ~= win._viewedOver then
+        win._viewedContainer, win._viewedOver = nil, nil
+        -- (the list moves off the view's container: nothing stays selected there, unseen)
+        local content = win._mainContent
+        if content and not (viewed and active and viewed.inventory == active.inventory) then
+            content._selectedItems = {}
+            content._lastClickedItem = nil
+        end
+    end
+end
+
 local function drawWorldContainerStrip(self, win, content)
     local T  = ZeD.T
     local A  = ZeD.Atoms
@@ -2748,6 +2792,7 @@ local function drawWorldContainerStrip(self, win, content)
     local h  = self:getHeight()
 
     self:clearHitZones()
+    _holdWorldView(win)
 
     -- The controller's focus on the strip: the button the ring focuses in this
     -- zone, only while this window has the focus and the controller is in use
@@ -2777,10 +2822,12 @@ local function drawWorldContainerStrip(self, win, content)
         -- Remap _activeContainer by inventory identity (not raw index)
         local oldActive = oldContainers and oldContainers[win._activeContainer]
         local newActiveIdx = #win._containers  -- default to floor
+        local activeGone = oldActive ~= nil
         if oldActive then
             for i, c in ipairs(win._containers) do
                 if c.inventory == oldActive.inventory then
                     newActiveIdx = i
+                    activeGone = false
                     break
                 end
             end
@@ -2801,6 +2848,29 @@ local function drawWorldContainerStrip(self, win, content)
             end
         end
         win._mcSelected = newSelected
+
+        -- The selected container out of reach with no column open: the floor it fell back to lists, so it is the one lit
+        if activeGone and #newSelected == 0 then
+            win._mainVisible = true
+            content._selectedItems = {}
+            content._lastClickedItem = nil
+        end
+
+        -- The list viewed from another tab stays on its container too, by the object; a container gone ends the view
+        local oldView = oldContainers and win._viewedContainer and oldContainers[win._viewedContainer]
+        win._viewedContainer = nil
+        if oldView then
+            for i, c in ipairs(win._containers) do
+                if c.inventory == oldView.inventory then
+                    win._viewedContainer = i
+                    break
+                end
+            end
+            if not win._viewedContainer then
+                content._selectedItems = {}
+                content._lastClickedItem = nil
+            end
+        end
 
         -- Re-sync active inventory
         local activeCnt = win._containers[win._activeContainer]
@@ -3002,7 +3072,8 @@ local function drawWorldContainerStrip(self, win, content)
     for _, ci in ipairs(listEntries) do
         local cnt = containers[ci]
         local isMC = mcSet[ci]
-        local isActive = (ci == win._activeContainer)
+        -- (with columns open and the anchor column hidden, the selection does not show, so it is not lit)
+        local isActive = (ci == win._activeContainer) and (#(win._mcSelected or {}) == 0 or win._mainVisible)
         local isViewed = (ci == win._viewedContainer)
         local isOn = isMC or isActive or isViewed
         if cnt and drawY + T.px(CONTAINER_BTN_SZ) > listStartY and drawY < listStartY + listAreaH then
@@ -3134,6 +3205,17 @@ end
 --- Returns the virtual floor container (for identity checks from other modules).
 function ZeD_WorldWindow.getFloorContainer()
     return _floorContainer
+end
+
+--- Is this container in reach now? The list rebuilds as the strip draws, so a rolled window's is as old as the roll-up, and
+--- the game's transfer checks no reach of its own. Read once per drop (InventoryRenderer.handleDrop), never per frame.
+function ZeD_WorldWindow.inReach(inv)
+    local win = _worldWin
+    if not (win and inv) then return false end
+    for _, c in ipairs(buildWorldContainers(win._playerObj)) do
+        if c.inventory == inv then return not c.locked end
+    end
+    return false
 end
 
 --- Take one ground item into destInv (the player's inventory, a bag, or a
@@ -3575,6 +3657,7 @@ function ZeD_WorldWindow.toggle(playerNum)
                     elseif not win._invDrawerOpen then
                         -- Inventory closed: open showing this container (snap)
                         win._viewedContainer = (zid ~= win._activeContainer) and zid or nil
+                        win._viewedOver = (win._containers[win._activeContainer] or {}).inventory
                         win._invDrawerOpen = true
                         local drawerW = math.floor(win._drawerEffW or 0)
                         local baseInv = T.px(win._baseInvW or 372)
@@ -3584,6 +3667,7 @@ function ZeD_WorldWindow.toggle(playerNum)
                     else
                         -- Different container: just switch
                         win._viewedContainer = (zid ~= win._activeContainer) and zid or nil
+                        win._viewedOver = (win._containers[win._activeContainer] or {}).inventory
                     end
                     if win._invDrawerOpen then
                         content._inventory = win._containers[win._viewedContainer or win._activeContainer].inventory
@@ -4471,6 +4555,15 @@ function ZeD_WorldWindow.toggle(playerNum)
 
         closeCardIfItemGone(win, self)
 
+        -- what the list shows follows the selection, by the container object (FAIV's report, Nov 6 2026): the view, a
+        -- last column whose container left reach, and below the columns themselves (InventoryRenderer's syncColStates)
+        _holdWorldView(win)
+        if #(win._mcSelected or {}) == 0 and self._colStates then
+            exitWorldMC(win, self)
+            if _syncWorldRingZones then _syncWorldRingZones(win, self) end
+        end
+        local colsBefore = self._colStates
+
         local mcSel = win._mcSelected or {}
         local colCount = #mcSel + (win._mainVisible and 1 or 0)
 
@@ -4503,6 +4596,9 @@ function ZeD_WorldWindow.toggle(playerNum)
             local viewIdx
             if #mcSel > 0 and not win._mainVisible then
                 viewIdx = mcSel[1]
+                -- (one column left: this list, and the pointer's and the drop's column state follows it)
+                self._selectedContainers, self._containers = { viewIdx }, win._containers
+                r.syncColStates(self)
             else
                 viewIdx = win._viewedContainer or win._activeContainer
             end
@@ -4536,6 +4632,14 @@ function ZeD_WorldWindow.toggle(playerNum)
             end
             self._ccEntry = cnt
             r.renderItemList(self)
+        end
+        -- (the columns were rebuilt above: a column gone snaps the width, as a click on the strip does, and the
+        -- controller's stops take the new columns. A container that only changed place keeps the width and the
+        -- controller's focus: the sync is a mode's reset, and the per-frame _worldMCSlotStale follows the new place.)
+        if colsBefore and self._colStates ~= colsBefore and #self._colStates ~= #colsBefore then
+            snapWorldColumns(win)
+            self._activeCol = #self._colStates
+            if _syncWorldRingZones then _syncWorldRingZones(win, self) end
         end
         if ZeD.ContainerControls then
             local okF, eF = pcall(ZeD.ContainerControls.syncFocus, win, self)
@@ -4621,6 +4725,8 @@ function ZeD_WorldWindow.toggle(playerNum)
                     local geo = tostring(self._scroll and self._scroll.scrollPos) .. ":" .. tostring(self._gridCell)
                         .. ":" .. tostring(self._renderW or self:getWidth()) .. ":" .. #(self._viewToggleRects or {})
                     if win._lastInvRowGeo ~= geo then win._lastInvRowGeo = geo; dirty = true end
+                    -- (the container shown is part of what these rows are, by the object: FAIV's report, Nov 6 2026)
+                    if win._lastInvRowInv ~= self._inventory then win._lastInvRowInv = self._inventory; dirty = true end
                     local keepId = nil
                     for _, z in ipairs(win._focusRing or {}) do
                         if z.zone == "worldMainInv" then
@@ -5672,7 +5778,7 @@ end
 function ZeD_WorldWindow.selectContainer(inv, tries)
     local win = _worldWin
     if not (win and inv) then return false end
-    local n = 0
+    local n, paused = 0, 0
     local function attempt()
         if win ~= _worldWin then return true end
         for i, c in ipairs(win._containers or {}) do
@@ -5680,6 +5786,7 @@ function ZeD_WorldWindow.selectContainer(inv, tries)
                 local content = win._mainContent
                 if content and #(win._mcSelected or {}) > 0 and exitWorldMC then exitWorldMC(win, content) end
                 win._activeContainer = i
+                win._viewedContainer = nil
                 win._mainVisible = c.isFloor and true or false
                 if content then
                     content._inventory = inv
@@ -5693,17 +5800,23 @@ function ZeD_WorldWindow.selectContainer(inv, tries)
                 return true
             end
         end
-        if n % 20 == 0 then win._containerTimer = 30 end
+        if (n + paused) % 20 == 0 then win._containerTimer = 30 end
         return false
     end
     if attempt() then return true end
+    -- (OnTickEvenPaused: a click while the game is paused is looked for while it is paused, not from the unpause on.
+    -- `tries` counts live ticks, a walk's worth, so a pause spends none of it: the game frozen, 120 frames of looking,
+    -- then the rest wait for the unpause, MechTrailer's walk to the trailer among them.)
+    local ev = Events.OnTickEvenPaused or Events.OnTick
     local function tick()
-        n = n + 1
+        local live = getGameSpeed() > 0
+        if live then n = n + 1 else paused = paused + 1 end
+        if not live and paused > 120 then return end
         -- an error in attempt() ends the retries too (the tick never outlives it)
         local ok, done = pcall(attempt)
-        if not ok or done or n >= (tries or 60) then Events.OnTick.Remove(tick) end
+        if not ok or done or n >= (tries or 60) then ev.Remove(tick) end
     end
-    Events.OnTick.Add(tick)
+    ev.Add(tick)
     return false
 end
 
@@ -5850,6 +5963,25 @@ local function _lootPadToWorld()
         pcall(F.claimFocus, win)
     end
 end
+-- THE PAGE IS NEVER DRAWN (Nov 6 2026, FAIV's report: the game's page flashing; a flash is an access problem too, not
+-- only a look). The click that shows the page runs in the engine's UIManager.update, OnTick after it, the drawing after
+-- that; but OnTick does not run while the game is paused, so a paused click reached the drawing with the page showing:
+-- one UI frame behind ZeD's windows (their prerender then hid it and lost the request), or the whole pause with both
+-- windows closed or rolled up. So the watch runs on OnTickEvenPaused too (each frame, paused or not, after the click and
+-- before the drawing; OnTick stays, a trunk's timed action runs after OnTickEvenPaused has fired), and the last look
+-- below runs on OnPreUIDraw, the engine's last step before it walks the UI list: whatever showed the page by whatever
+-- way, it never reaches a draw. The last look only hides (a window built inside the drawing pass is no good): _lootAsked
+-- keeps the request for the next watch.
+local _lootAsked = false
+local function _lootPageLastLook()
+    if not getSpecificPlayer(0) or ZeD.Safe.on("windows") then return end
+    local vi, vl = getPlayerInventory(0), getPlayerLoot(0)
+    if vi and vi:getIsVisible() then vi:setVisible(false) end
+    if vl and vl:getIsVisible() then
+        vl:setVisible(false)
+        _lootAsked = true
+    end
+end
 local function _lootPageWatch()
     if not getSpecificPlayer(0) or ZeD.Safe.on("windows") then return end
     local vi = getPlayerInventory(0)
@@ -5859,10 +5991,11 @@ local function _lootPageWatch()
     local jp = JoypadState and JoypadState.players and JoypadState.players[1]
     local padOnPage = jp ~= nil and jp.focus ~= nil and (jp.focus == vl or jp.focus == vi)
     if vi and vi:getIsVisible() then vi:setVisible(false) end
-    if not (vl and vl:getIsVisible()) then
+    if not (vl and (_lootAsked or vl:getIsVisible())) then
         if padOnPage and getTimestampMs() >= _lootGraceUntil then _lootPadToWorld() end
         return
     end
+    _lootAsked = false
     vl:setVisible(false)
     local p = getSpecificPlayer(0)
     local now = getTimestampMs()
@@ -5884,6 +6017,8 @@ local function _lootPageWatch()
     if inv then ZeD_WorldWindow.selectContainer(inv, 60) end
 end
 Events.OnTick.Add(_lootPageWatch)
+if Events.OnTickEvenPaused then Events.OnTickEvenPaused.Add(_lootPageWatch) end
+if Events.OnPreUIDraw then Events.OnPreUIDraw.Add(_lootPageLastLook) end
 if Events.OnGameStart then Events.OnGameStart.Add(_lootGrace) end
 if Events.OnCreatePlayer then Events.OnCreatePlayer.Add(_lootGrace) end
 if Events.OnResolutionChange then Events.OnResolutionChange.Add(_lootGrace) end
