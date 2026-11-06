@@ -520,7 +520,12 @@ local function mcToggleContainer(win, content, cIdx)
             end
         else
             win._mainVisible = true
-            -- (main lit means main is listed: a bag the pad showed stayed the list under it, FAIV's report, Nov 6 2026)
+            -- (main lit means main is listed: a bag the pad showed stayed the list under it, FAIV's report, Nov 6 2026;
+            -- what was selected there does not stay selected unseen)
+            if #win._mcSelected == 0 and (win._viewedContainer or win._activeContainer ~= 1) then
+                content._selectedItems = {}
+                content._lastClickedItem = nil
+            end
             win._viewedContainer = nil
             win._activeContainer = 1
         end
