@@ -1559,6 +1559,64 @@ do
     check("the hand lands on Accept", hit)
 end
 
+-- the Admin tab keeps every safehouse and faction: the cards read only your own, which opens its card
+do
+    clearWorld()
+    local mine = newSafe(10, 10, 10, 10, "Aretha")
+    newSafe(40, 40, 10, 10, "Rosa")
+    newFaction("Riverside", "Aretha")
+    newFaction("Mall", "Rosa")
+    K.dirty = true
+    settle()
+    check("yours is yours", K.safe and K.safe.obj == mine and K.fac ~= nil)
+    ZEDQA_CAPS.CanSetupSafehouses, ZEDQA_CAPS.FactionCheat = true, true
+    local openedTab, gameWin = nil, nil
+    ZeD_CharacterWindow.openTab = function(_, id) openedTab = id; return true end
+    local oldS, oldF = ISSafehouseUI, ISFactionUI
+    local function game(name)
+        return { new = function()
+            gameWin = name
+            return { initialise = function() end, addToUIManager = function() end }
+        end }
+    end
+    ISSafehouseUI, ISFactionUI = game("safehouse"), game("faction")
+    local function adminStop(id)
+        frame("admin", panel, W, H)
+        for _, e in ipairs(stops("admin")) do if e.id == id then return e end end
+        check("the Admin tab's stop is there: " .. id, false)
+        return nil
+    end
+    local function open(row, btn)
+        openedTab, gameWin = nil, nil
+        local e = adminStop(row)
+        if e then e.onActivate(WINS.admin) end
+        local b = adminStop(btn)
+        if b then b.onActivate(WINS.admin) end
+        local help = b and b.help
+        adminStop(row).onActivate(WINS.admin)     -- (the row again: nothing stays picked)
+        return help
+    end
+    local own = ZeD.tr("UI_ZeD_Adm_HelpOpenOwn")
+    check("the help says your own opens its card", open("adm:h:0", "adm:b:safehouse") == own)
+    check("your safehouse goes to the Server tab", openedTab == "server" and gameWin == nil and K.openNext == "safe")
+    draw()
+    check("and its card opens", st.card and st.card.kind == "safe" and K.openNext == nil)
+    TC.back(win, st)
+    draw()
+    check("the help names the game's window", open("adm:h:1", "adm:b:safehouse") == ZeD.tr("UI_ZeD_Adm_HelpOpenSafehouse"))
+    check("someone else's safehouse: the game's window", gameWin == "safehouse" and openedTab == nil and K.openNext == nil)
+    check("the help says your own opens its card", open("adm:f:0", "adm:b:faction") == own)
+    check("your faction goes to the Server tab", openedTab == "server" and gameWin == nil and K.openNext == "faction")
+    draw()
+    check("and its card opens", st.card and st.card.kind == "faction" and K.openNext == nil)
+    TC.back(win, st)
+    draw()
+    check("the help names the game's window", open("adm:f:1", "adm:b:faction") == ZeD.tr("UI_ZeD_Adm_HelpOpenFaction"))
+    check("someone else's faction: the game's window", gameWin == "faction" and openedTab == nil and K.openNext == nil)
+    ISSafehouseUI, ISFactionUI = oldS, oldF
+    ZEDQA_CAPS.CanSetupSafehouses, ZEDQA_CAPS.FactionCheat = nil, nil
+end
+
 -- the HUD's war icon
 do
     clearWorld()
