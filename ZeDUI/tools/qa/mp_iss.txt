@@ -1,0 +1,3 @@
+# the license on a server (Nov 5 2026)
+zedqa_pin_windows.lua | pnw | timeout=30
+mp_iss.lua | mis | timeout=60
