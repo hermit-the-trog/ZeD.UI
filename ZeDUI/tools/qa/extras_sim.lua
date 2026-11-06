@@ -1361,6 +1361,74 @@ do
     check("and says so", logHas("claim gone: that car is gone"))
 end
 
+section("a car parked after its driver's send")
+do
+    local a, o, b, ca, co, cb = claimsWorld()
+    local v = newVehicle(7, 4021, 102, 100)
+    claim(co, v)
+    local c = claimRow(v)
+    local T = W.server.ZeD.Srv.X
+    W.logs = {}
+    o.vehicle, v.driver = v, o
+    advance(2100)
+    check("a driven car is on the list", T.driven[W.server.ZeD.Ex.keyOf(v.sql)] ~= nil)
+    -- RetroDashboardDigital's setVehicle(nil): the send comes as the driver gets out, and it lands after the last look at them
+    o.vehicle, v.driver = nil, nil
+    advance(2100)
+    clientSendsModData(v, { RetroDash = { odometer = 13 } })
+    check("the send took the stamp", v.md.ZeDClaim == nil)
+    advance(2100)
+    check("with no driver and no tab the stamp is back", v.md.ZeDClaim == c.tok)
+    check("the client's rows stay", v.md.RetroDash.odometer == 13)
+    check("not sent to the clients", v.transmits == nil, v.transmits)
+    -- a new lock from outside, with nobody looking at the car (Locksmith's repinVehicle, on the server)
+    v.keyId = 77777
+    advance(30000)
+    check("the claim stays through a new lock", act("ISUninstallVehiclePart", { character = b, vehicle = v }) == false)
+    check("it takes the new number", c.kid == 77777)
+    check("no claim gone line", not logHas("claim gone"))
+    check("the list empties", T.driven[W.server.ZeD.Ex.keyOf(v.sql)] == nil)
+    -- past the looks a send and a new lock together are the known limit: nothing can tell the car
+    clientSendsModData(v, { RetroDash = { odometer = 14 } })
+    advance(4000)
+    check("no look past the last poll", v.md.ZeDClaim == nil)
+    v.keyId = 88888
+    check("the limit: both lost on a parked car, the claim goes", act("ISUninstallVehiclePart", { character = b, vehicle = v }) == true)
+    check("and says so", logHas("claim gone: that car is gone"))
+end
+
+section("the list after a claim goes, and with every extra off")
+do
+    local a, o, b, ca, co, cb = claimsWorld()
+    local old = newVehicle(7, 4021, 102, 100)
+    claim(co, old)
+    local T = W.server.ZeD.Srv.X
+    o.vehicle, old.driver = old, o
+    advance(2100)
+    o.vehicle, old.driver = nil, nil
+    -- the car is removed and its number reused, and the new car is claimed, inside the looks
+    W.vehicles[7] = nil
+    local van = newVehicle(9, 4021, 102, 101, "Base.Van")
+    local r = claimRow(old)
+    r.tok, r.kid = "the van's", van.keyId
+    van.md.ZeDClaim = r.tok
+    W.logs = {}
+    -- (the old object, with nothing of the claim on it: only the entry's token stops the look from reading it as that car)
+    old.keyId, old.md = -1, {}
+    advance(2100)
+    check("the look at the old car leaves the new claim alone", not logHas("claim gone") and claimRow(van) == r)
+    check("and the entry goes", T.driven[W.server.ZeD.Ex.keyOf(old.sql)] == nil)
+    local v = newVehicle(8, 4022, 102, 100)
+    claim(co, v)
+    o.vehicle, v.driver = v, o
+    advance(2100)
+    o.vehicle, v.driver = nil, nil
+    settings(ca, function(s) s.vc.on = false end)
+    W.touched = 0
+    advance(5000)
+    check("every extra off: the look stops too", W.touched == 0, W.touched)
+end
+
 section("a claim from before the key number")
 do
     local a, o, b, ca, co, cb = claimsWorld()

@@ -1418,13 +1418,21 @@ judged by the object it scraps, whatever square it names. A tow by the car the g
 **A claim proves its car.** `getSqlId` outlives a restart, but the game gives a removed car's number to the next new car (`VehiclesDB2`: `allocateID` hands out the lowest free id). So a claim leaves a stamp in the
 car's own mod data (`IsoMovingObject.save` writes it with the car). A burnt car's claim goes when anything reads the car, and when the wreck is cleared (`ISRemoveBurntVehicle`). An owner who is on hears of any claim that goes.
 
-**The stamp alone wasn't enough** (Nov 6 2026, after the phase). The stamp is on the server and never sent, and `ObjectModDataPacket.parse` replaces the server's copy of a car's mod data with whatever a client sends, asking only
+**The stamp alone wasn't enough** (Nov 6 2026, after the phase). ZeD never sends the stamp to a client that already has the car, and `ObjectModDataPacket.parse` replaces the server's copy of a car's mod data with whatever a client sends, asking only
 `LoginOnServer`: `KahluaTableImpl.load` wipes first, and an empty send takes the `wipe` branch. `RetroDashboardDigital` calls `vehicle:transmitModData()` on the client, so one player with that mod dropped the claim as "that car is gone", and a
 modified client could drop anyone's on purpose. So `F.sameCar` asks two things that each stand in for the other: the stamp, and the car's key number, kept in the claim as `kid`. `keyId` is `Rand.Next(100000000)` in the `BaseVehicle` constructor,
-saved and loaded with the car, and no network class in the jar names `setKeyId`, so a client can't touch it. A lost stamp on a car with the right number is put back on the server's copy; a new number on a car with its stamp (Locksmith's
-`vehicle:setKeyId`, on the server) goes into the claim; with neither, it's another car and the claim goes. The reused number stays handled: a new car has neither. What's left: both lost between two looks at the car, a client's send and a new lock together, drops the
-claim as before; and a new car has 1 chance in 100 million of the old key number. `getMechanicalID` looks the better number and isn't: `createPhysics` rolls it again every time a car loads, outside its `created` test. The stamp is still
-never transmitted: the server sending the table would overwrite whatever a client's mod had just sent.
+saved and loaded with the car, and no network class in the jar names `setKeyId`, so a client can't touch it (`VehicleFullUpdatePacket` carries it, with the stamp, but its `handlingType` is 2, client only). A lost stamp on a car with the right number is put back on the server's copy; a new number on a car with its stamp (Locksmith's
+`vehicle:setKeyId`, on the server) goes into the claim; with neither, it's another car and the claim goes. The reused number stays handled: a new car has neither.
+
+The stamp isn't a secret. `VehicleFullUpdatePacket.write` calls `BaseVehicle.save`, so a client that loads the car after the claim holds the stamp (a car the client already has is read into `tempVehicle`, so its own copy stays without). `RetroDashboardDigital` sends on every exit (`setVehicle(nil)`),
+and nothing looks at a parked car, so `F.poll` keeps a claimed car on a list for `LEFT_POLLS` polls after its driver goes, and puts the stamp back. What's left:
+
+- A client's send on a parked car after those polls, by a mod that sends from outside the car, then a new lock before anything looks at it: both are lost, and the claim goes as "that car is gone".
+- A new car has 1 chance in 100 million of the old key number by luck, but Locksmith's `repinVehicle` sets a car's `keyId` to the number of any vehicle key the player carries, so two cars can share one on purpose. A new car on a reused number, not yet looked at, re-pinned to a copy of the old car's key takes the old claim without `x_claim`'s tests. Keeping the car's script in the claim wouldn't stop a same-model reuse, so it isn't done.
+- A modified client can copy the stamp from a full update and send it onto a new car on a reused number before anything looks at that car, which takes the old claim the same way.
+
+`getMechanicalID` looks the better number and isn't: `createPhysics` rolls it again every time a car loads, outside its `created` test. The server still never transmits the table:
+that would overwrite whatever a client's mod had just sent.
 
 **A save can't undo another's.** `x_save` replaces the whole set, so it carries the set the card's changes were made on, and the server answers `changed` if that isn't the set it holds. A card that hears
 another admin's save takes it, with its own changes on top, and says so.
@@ -1479,7 +1487,7 @@ Not settled, for QA on the local server (`mp_extras.lua`, `mp_extras_two.lua`, P
 | G6.6 | `/teleportto` with z 0 from a click on a roof or a basement, as the game's own map does | a spot under a building's second floor |
 | G6.7 | That `isInCharacterInventory` is true of the player's main inventory (the container log's test) | take from a crate in a safehouse; the line appears |
 | G6.8 | That the `Transactions.scrapMoveable` route is dead: `TransactionProcessor` is local, and nothing in vanilla's Lua sends it, so the wrap is on `ISMoveablesAction` alone | the disassembly menu on furniture in another's safehouse |
-| G6.9 | That a car's stamp and key number outlive a restart on a real server (the bytecode says `save` writes both), and that a server that crashes between the two saves costs at most that claim | claim a car, `/save`, restart: "taken", and the owner still holds it. Then with `RetroDashboardDigital` on a client: drive the claimed car, and the owner still holds it, with no "claim gone" line |
+| G6.9 | That a car's stamp and key number outlive a restart on a real server (the bytecode says `save` writes both), and that a server that crashes between the two saves costs at most that claim | Before any restart or relog, so the client has no stamp to send back: a client with `RetroDashboardDigital` that had the car in view before the claim reads `getModData().ZeDClaim` as nil, drives the claimed car, gets out, and waits ten seconds. The owner still holds it, no "claim gone" line. A relog then reads `retroDashOdometer` and `ZeDClaim` both on the car: the server took the client's table, wiped its own, and put the stamp back. With Locksmith, a re-pin from outside: still held. Then claim a car, `/save`, restart: "taken", and the owner still holds it |
 | G6.10 | That siphoning with the `animEvent` wrap leaves the tank and the can as they were, and the bar ends cleanly | bob siphons a claimed car past the gray; the tank's level before and after |
 | G6.11 | That `shutOff` during `Starting` (right after `vehicle.startEngine`) leaves the engine off on every client | send the command from a blocked driver's client |
 | G6.12 | The Vehicle tab under the controller, which no sim loads: Claim going from gray to lit, Claim to Release, a gray Claim's reason in the help band and on A, Keep and B landing on Release | walk the footer with the pad |

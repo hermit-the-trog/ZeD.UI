@@ -59,7 +59,7 @@ end
 
 ZeD_ScrollbarState = { new = function()
     return { scrollPos = 0, visible = false, x = 0, y = 0, width = 12, height = 0,
-        setScrollPos = function(self, v) self.scrollPos = v end, setBarSize = noop, draw = noop, handleMouseDown = noop }
+        setScrollPos = function(self, v) self.scrollPos = math.max(0, math.min(1, v)) end, setBarSize = noop, draw = noop, handleMouseDown = noop }
 end }
 
 local tabs = {}
@@ -301,6 +301,140 @@ st = draw(empty)
 ids, at = stops(empty)
 check("no details: the head stays still", head(DET).noArrow == true and at["spn:fold:det"] == nil)
 detDict = keepDets
+
+-- the tab holds its scroll as a share of its height, and a fold changes the height: the head has to stay where it was pressed
+section("the tab: a fold keeps its head where it was pressed")
+local keepFaces, keepDet2 = faceDict, detDict
+faceDict, detDict = dict("Face", 12), dict("Det", 60)
+local function drawAt(w, h)
+    heads, helped = {}, {}
+    S.render(panel, w, 0, 0, 480, h)
+    return w._spncc
+end
+local function inView(name, h, text)
+    local hd = head(text)
+    local top, bot = 30, h - 40
+    check(name, hd ~= nil and hd.y >= top and hd.y + 20 <= bot, hd and hd.y)
+end
+local function stays(name, y, text)
+    local hd = head(text)
+    check(name, hd ~= nil and math.abs(hd.y - y) <= 1, hd and hd.y)
+end
+local Fo = ZeD.Input.Focus
+-- the pad: the head under the bottom edge, the D-pad onto it, A
+do
+    S.closed.face, S.closed.det = false, true
+    local w = newWin()
+    st = drawAt(w, 500)
+    check("the head starts under the view", head(DET) == nil)
+    local _, a2 = stops(w)
+    local el = a2["spn:fold:det"]
+    Fo.getFocusedWindow, Fo.getFocusedElement = function() return w end, function() return el end
+    drawAt(w, 500)
+    drawAt(w, 500)
+    inView("the D-pad brings it in", 500, DET)
+    local y0 = head(DET).y
+    el.onActivate(w, el)
+    drawAt(w, 500)
+    check("it opened", head(DET) and head(DET).expanded == true)
+    stays("A: the head stays put", y0, DET)
+    drawAt(w, 500)
+    stays("and the next frame", y0, DET)
+    check("the anchor is spent", w._spncc.foldAnchor == nil)
+    el.onActivate(w, el)
+    drawAt(w, 500)
+    check("it shut", head(DET) and head(DET).expanded == false)
+    inView("A again: still in view", 500, DET)
+    Fo.getFocusedWindow, Fo.getFocusedElement = nil, nil
+end
+-- the mouse, wheeled to the bottom with both lists as they start
+do
+    S.closed.face, S.closed.det = false, true
+    local w = newWin()
+    st = drawAt(w, 600)
+    st.scroll:setScrollPos(1)
+    drawAt(w, 600)
+    local dh = head(DET)
+    check("the head is there at the bottom", dh ~= nil)
+    local y0 = dh.y
+    S.onClick(w, dh.x + 5, dh.y + 5)
+    st = drawAt(w, 600)
+    check("a click opens it", head(DET) and head(DET).expanded == true)
+    stays("the head stays put, not at the list's end", y0, DET)
+    check("the scroll holds", st.scroll.scrollPos < 1, st.scroll.scrollPos)
+    -- and shut again, from a little way down an open list
+    S.onClick(w, dh.x + 5, y0 + 5)
+    st = drawAt(w, 600)
+    check("a click shuts it", head(DET) and head(DET).expanded == false)
+    stays("shut, it hasn't moved", y0, DET)
+end
+-- shutting Details from the top of an open list
+do
+    S.closed.face, S.closed.det = false, false
+    local w = newWin()
+    st = drawAt(w, 500)
+    st.scroll:setScrollPos(0.05)
+    drawAt(w, 500)
+    local dh = head(DET)
+    check("the head is in view", dh ~= nil)
+    local y0 = dh.y
+    S.onClick(w, dh.x + 5, dh.y + 5)
+    drawAt(w, 500)
+    stays("shutting: it doesn't drop down the view", y0, DET)
+end
+-- shut with the head at the very top: the list ends sooner than the place it was, and the head still shows
+do
+    S.closed.face, S.closed.det = false, false
+    local w = newWin()
+    st = drawAt(w, 600)
+    local _, a3 = stops(w)
+    local cy = a3["spn:fold:det"].cy
+    local L = st.scroll
+    local maxOff = cy / 0.5
+    for _ = 1, 40 do
+        L:setScrollPos(math.min(1, (cy - 2) / maxOff))
+        drawAt(w, 600)
+        if head(DET) then break end
+        maxOff = maxOff * 1.25
+    end
+    local dh = head(DET)
+    check("the head is near the top", dh ~= nil)
+    S.onClick(w, dh.x + 5, dh.y + 5)
+    drawAt(w, 600)
+    inView("the end of the list comes up to it, in view", 600, DET)
+end
+-- Face, with Details open below it
+do
+    S.closed.face, S.closed.det = false, false
+    local w = newWin()
+    st = drawAt(w, 500)
+    st.scroll:setScrollPos(0.005)
+    drawAt(w, 500)
+    local fh = head(FACE)
+    check("Face's head shows", fh ~= nil)
+    local y0 = fh.y
+    S.onClick(w, fh.x + 5, fh.y + 5)
+    drawAt(w, 500)
+    check("Face shut", head(FACE) and head(FACE).expanded == false)
+    stays("Face stays put too", y0, FACE)
+end
+-- a tab that doesn't scroll, before and after
+do
+    S.closed.face, S.closed.det = true, true
+    local w = newWin()
+    drawAt(w, 500)
+    local fh = head(FACE)
+    local y0 = fh.y
+    S.onClick(w, head(DET).x + 5, head(DET).y + 5)
+    st = drawAt(w, 500)
+    stays("from the top, the top stays", y0, FACE)
+    check("no anchor left", st.foldAnchor == nil)
+    S.onClick(w, head(DET).x + 5, head(DET).y + 5)
+    st = drawAt(w, 500)
+    check("shut, back at the top", st.off == 0 and st.scroll.scrollPos == 0, st.off)
+end
+faceDict, detDict = keepFaces, keepDet2
+S.closed.face, S.closed.det = nil, true
 
 -- ---------------------------------------------------------------------------
 -- THE LOOKS SCREEN: the rows
