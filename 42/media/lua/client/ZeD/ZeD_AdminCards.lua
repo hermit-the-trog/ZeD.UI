@@ -282,7 +282,11 @@ TC.items.arow = {
         local f3y = dy + math.floor((topH - ZeD.TM:getFontHeight(T.fontF3)) / 2)
         if it.chev then
             local tc = onF and T.textOnFocus or T.textDim
-            A.drawTriangleRight(panel, rx - px(6), dy + math.floor(topH / 2) - px(3), px(6), tc)
+            if it.open then
+                A.drawTriangleDown(panel, rx - px(6), dy + math.floor(topH / 2) - px(3), px(6), tc)
+            else
+                A.drawTriangleRight(panel, rx - px(6), dy + math.floor(topH / 2) - px(3), px(6), tc)
+            end
             rx = rx - px(14)
         end
         if it.ctl then
@@ -606,15 +610,16 @@ function P.powers(out, win, p)
             end
             local c = { id = "pw:" .. o.id, help = getTextOrNull("IGUI_CheatPanel_" .. o.id .. "_tooltip"),
                 live = function(cc)
-                    o.player = p
+                    o.player = getPlayer()
                     local ok, v = pcall(function() return o:getValue() end)
                     cc.on = ok and v and true or false
                 end,
                 run = function()
-                    o.player = p
+                    local pl = getPlayer()     -- (the object from before a death is not the one to tell the server about)
+                    o.player = pl
                     local was = o:getValue() and true or false
                     o:setValue(not was)
-                    sendPlayerExtraInfo(p)
+                    sendPlayerExtraInfo(pl)
                     M.powerLog(o.id, not was)
                 end }
             c.live(c)
@@ -650,9 +655,8 @@ function P.message(out, win, st, t)
         run = function(ww)
             local text = F.text(ww, "msg")
             local every = (st.msgRepeat and M.live()) and (st.msgEvery or 60) or nil
-            F.act(ww, st, function(cb) M.message(text, every, cb) end, tr(every and "UI_ZeD_Adm_SentRepeat" or "UI_ZeD_Adm_SentOnce", every), function()
-                D.setField(ww, "msg", "")
-            end)
+            local okText = every and tr("UI_ZeD_Adm_SentRepeat", every) or tr("UI_ZeD_Adm_SentOnce")
+            F.act(ww, st, function(cb) M.message(text, every, cb) end, okText, function() D.setField(ww, "msg", "") end)
         end }, nil, function()
             if F.text(win, "msg") == "" then return tr("UI_ZeD_Adm_WriteMsg") end
             return nil
@@ -728,6 +732,11 @@ function AC.openPlayer(win, st, user, from)
     M.loadLog(user)
 end
 
+-- the ticket card's Player card: this card over that one
+function AC.openFromTicket(win, st, user)
+    AC.openPlayer(win, st, user, "tk:pcard")
+end
+
 function P.rolePick(win, st, card, row, view, self)
     local name = (view and view.role) or row.role or "user"
     if self then
@@ -793,7 +802,7 @@ function P.acts(items, win, st, card, row, view, t)
     end
     local notOn = P.notOn(user, isOn)
     local ctls = {}
-    ctls[1] = F.gate({ id = "tp", text = getText("UI_Scoreboard_Teleport"), help = tr("UI_ZeD_Adm_HelpTp"),
+    ctls[1] = F.gate({ id = "tp", land = true, text = getText("UI_Scoreboard_Teleport"), help = tr("UI_ZeD_Adm_HelpTp"),
         run = function(ww) F.act(ww, st, function(cb) M.teleport(user, cb) end, tr("UI_ZeD_Adm_Teleported", user)) end }, "TeleportToPlayer", notOn)
     ctls[2] = F.gate({ id = "tpme", text = getText("UI_Scoreboard_TeleportToYou"), help = tr("UI_ZeD_Adm_HelpBring"),
         run = function(ww) F.act(ww, st, function(cb) M.bring(user, cb) end, tr("UI_ZeD_Adm_Brought", user)) end }, "TeleportPlayerToAnotherPlayer", notOn)
@@ -889,6 +898,8 @@ function P.banPart(items, win, st, card, sid)
         local ip = F.gate({ id = "banip", on = card.banIp, help = tr("UI_ZeD_Adm_BanIpLine"),
             run = function() card.banIp = not card.banIp; M.bump() end }, nil, function()
                 if Adm.LENGTH[card.len].sec and not Adm.TIMED_IP then return tr("UI_ZeD_Adm_IpPermOnly") end
+                local r = M.row(user)
+                if not (r and r.on) then return getText("IGUI_UserList_BanIPNotOnline") end
                 return nil
             end)
         items[#items + 1] = { k = "atick", text = tr("UI_ZeD_Adm_BanIp"), sub = tr("UI_ZeD_Adm_BanIpLine"), c = ip }
@@ -1189,7 +1200,7 @@ function P.capRows(items, card)
         total, on = total + #list, on + n
         local shut = card.closed[g.id] == true
         local gid = g.id
-        items[#items + 1] = { k = "arow", left = tr(g.key), leftMin = 300, right = tr("UI_ZeD_Adm_NOfM", n, #list), chev = true, on = false,
+        items[#items + 1] = { k = "arow", left = tr(g.key), leftMin = 300, right = tr("UI_ZeD_Adm_NOfM", n, #list), chev = true, open = not shut,
             c = { id = "g:" .. gid, help = tr("UI_ZeD_Adm_HelpGroup"), run = function() card.closed[gid] = not shut or nil; M.bump() end } }
         if not shut then
             for _, c in ipairs(list) do
@@ -1356,6 +1367,12 @@ TC.kinds.role = {
         local b = P.roleSaveBtn(win, st, t, card)
         return { label = b.label, run = b.run, disabled = b.disabled, why = b.why }
     end,
+    cancel = function(win, st, t, card)
+        if not t.confirm then return false end
+        t.confirm = nil
+        D.focusId(win, st, "tk:rdel")
+        return true
+    end,
 }
 
 -- ---------------------------------------------------------------------------
@@ -1453,6 +1470,12 @@ TC.kinds.bans = {
                 t.confirm = nil
                 F.act(ww, st, function(cb) M.unban(row, cb) end, tr("UI_ZeD_Adm_Unbanned", P.banName(row)))
             end, "primary", tr("UI_ZeD_Adm_HelpUnban")) } }
+    end,
+    cancel = function(win, st, t, card)
+        if not t.confirm then return false end
+        t.confirm = nil
+        D.focusId(win, st, "tk:bgo")
+        return true
     end,
 }
 

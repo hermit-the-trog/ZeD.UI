@@ -5165,5 +5165,7 @@
     "UI_ZeD_Cap_ReloadLuaFiles": "Reload Lua files",
     "UI_ZeD_Cap_BypassLuaChecksum": "Skip the Lua checksum",
     "UI_ZeD_Cap_RolesWrite": "Edit roles",
-    "UI_ZeD_Cap_ConnectWithDebug": "Connect in debug mode"
+    "UI_ZeD_Cap_ConnectWithDebug": "Connect in debug mode",
+    "UI_ZeD_Adm_NeedCapOnly": "%1 needs the %2 capability.",
+    "UI_ZeD_Adm_NoteSpawn": "An admin spawned %1 x %2 to you."
 }

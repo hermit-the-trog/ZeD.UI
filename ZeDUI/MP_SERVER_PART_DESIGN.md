@@ -1196,3 +1196,59 @@ Where B2, B4, B6, B8 and B9 now differ, and why.
     card's place reads name and coordinates (`Tk.whereFull`). The adopted card's caveat is a line on the card. The wheel over a
     field scrolls the card, the hint is drawn by the card, wrapped, and the keyboard's key reads Accept (`setSingleLine`). It still
     sits at the screen's foot, not under the field.
+
+# Build's changes (Nov 5 2026, Phase 2, admin tools)
+
+The files: `shared/ZeD/ZeD_AdminProto.lua` (`ZeD.Adm`), `server/ZeD/ZeD_ServerAdmin.lua`, `client/ZeD/ZeD_Admin.lua` (the model),
+`client/ZeD/ZeD_AdminCards.lua` (the cards, on the ticket cards' engine, which gained `TC.kinds`, `TC.items` and pick lists over a
+card). Module `ZeDA`; every answer comes back as `t_ack`. The table is `ZeD_AD_` plus a UUID, as B2. The sims are `admin_sim.lua` and
+`admin_cards_sim.lua`; the bridge is `mp_admin.lua` and `mp_admin_cards.lua`. Where it differs from Part A, E7 or the drawing, and why.
+
+1. **A7 said a staff client makes the game's call. Two kinds now do.** Kick, warn, teleport, mute, role and Level Up go from the
+   client that pressed, on the ack. Ban calls go through `md.owed`: the server holds each one (`act`, `target`, `reason`, `at`) and
+   sends it to the actor or any staff member online until one answers `a_done`. That is what lets a player read the reason first
+   (the game's ban waits `LEAVE_S`, 12 seconds), an unban survive the actor leaving, and a timed ban's `Kick` back up the client's
+   own leaving. A modified client that ignores `a_leave` is kicked by the server's game call when it is banned online.
+2. **E7 as settled, with one edge.** Timed bans are ZeD's, permanent ones the game's. Server Lua sees no IP (`UdpConnection.getIP` is
+   not reachable) and `IsoPlayer.getSteamID` is a long past what a Lua number holds, so a client names its own Steam ID in `a_hi`. A
+   timed ban on a Steam ID is client-claimed, like the rest of a timed ban. A timed ban on an IP is refused (`TIMED_IP`, below). A
+   ban row can gain the game's ban (`a_gameban`) when a client stayed, and that comes off when the timed ban ends.
+3. **Mute.** The game's mute is voice only (`/voiceban`, `BanUnbanUser`). `IsoPlayer.setAllChatMuted` is set by the words filter and
+   read by nothing in the chat path of 42.22. So Mute is the server's list (`md.mutes`, `a_mutes` to everyone): each ZeD client hides
+   those lines and the muted client will not send. It is client enforced. A client without ZeD's chat is not stopped.
+4. **Repeating messages do not go through `/servermsg`.** Server Lua cannot reach `ChatServer`, and `ChatManager` is not exposed. A
+   repeat is `a_srvmsg` to every connection, and `ZeD.Chat.serverLine` adds it with the server alerts. The first send is the game's.
+   It reaches only clients with ZeD's chat, and it has no alert over the screen. The clock skips an empty server instead of bursting.
+5. **The powers.** `GameServer.changeRole` switches on three, not the drawing's five: Invisible, No Clip, God Mode, each only when the
+   old role lacked it. The server watches for the role to land (`ROLE_WATCH_S`), turns off what was not ticked on its own object and
+   tells the player's client, which uses the game's setter and `sendPlayerExtraInfo` (client only).
+6. **Capabilities.** The drawing's 23 are the game's 97: all sit in the five groups, with short words (`UI_ZeD_Cap_*`) and the game's
+   tooltip in the help band. Each group folds, or a controller would walk a hundred stops. X is Save on this card and Spawn on the
+   spawn card (the drawing's START), since START is the game's.
+7. **A role's name cannot change.** The game's `setupRole` has no name, so the field shows only for a new role. Up and Down are added
+   to a role's card, or moving roles would have left with the Roles List window.
+8. **The Bans card gains a reason field and the lengths** for a ban on someone offline: the drawing has none, and each ban shows a
+   reason. A row can come from the game's own lists (`getBannedSteamIDs`, `getBannedIPs`, a `banned` role) with no ZeD record: it says so,
+   and Unban goes through the server for the log.
+9. **Manage Inventory opens the game's window,** not the ground pane as drawn: that pane is ZeD's world window and reading another
+   player's items into it is a job of its own.
+10. **Offline players come from `md.players`,** kept by the server's walk (`POLL_S`, a copy every `SNAP_S`), capped at 2000 oldest out,
+    merged with the game's `getUsers` on the client, which alone has warning points, kicks and Steam names. Without `SeeNetworkUsers` those
+    read 0. Kick counts are the game's.
+11. **The Tickets queue moved behind the summary,** on a screen of its own (`st.screen`). `TC.queueWatch` keeps it read while the tab
+    shows, so the sync with the game's list runs as before. `tally` gained `kinds` for the summary, staff only.
+12. **User Logs are the game's** (`requestUserlog`), each as a message stop. `getLastUpdate` is the date; the drawing's "Day 9" is not stored.
+13. **`Srv.adminLog`** writes every action to the ZeD log and to `md.log`, a ring of 2000 lines (who, what, target, text, place, real
+    time, day) for Phase 4. Reasons are in those lines; a ticket's words are not.
+14. **Safehouses and Factions stay in the tab,** under Spawn items, until Phase 3 replaces them. The drawing leaves them out.
+15. **The ban screen** is `ZeD_LeaveScreen`, over the game for 12 seconds with Leave. Phase 5 sets `ZeD.Admin.leaveScreen(info)`, and
+    `info.appeal` already has its line.
+16. **The director's questions, each answered the careful way behind one switch in `ZeD_AdminProto.lua`:** `TIMED_IP = false` (Ban IP too
+    goes with Permanent alone, since only a staff client could lift it); `RANK_GUARD = true` (nobody kicks, bans, warns, mutes, brings or
+    levels a role above theirs; the game asks that only of a role change); `MUTE_STAFF_SEES = true` (staff still read a muted player, marked);
+    `SPAWN_TELLS = false` (a player is not told, as `/additem`).
+
+**Part E gains:** E15, whether `getRoles` holds every role on a client without `RolesRead` (a gray then names no role); E16, whether `getUsers`
+fills on `requestUsers` alone (the game's own list reads it in `populateList`, with no event: ZeD reads it every second while the tab shows);
+E17, whether a `/banuser` from `a_owed` shows staff the game's answer; E18, whether a player reads the 12-second screen before the game's
+ban lands on a slow client. Each needs a second client on the local server (`mp_admin.lua` prints them as TODO lines).
