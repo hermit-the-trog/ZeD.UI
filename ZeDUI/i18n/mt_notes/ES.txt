@@ -9,3 +9,18 @@ Tiles = "baldosas" (game glossary; "casillas" is more natural in Spain), shorten
 The About text (1408) is rewritten in the same messy voice with deliberate missing accents and vosotros ("Chupaos", "podeis"); a LatAm version needs ustedes.
 Key names: "Escape" kept as the English writes it; Return is written "Intro"; Up/Down in Ctrl+Up are "Arriba/Abajo". Flyer = "Folleto", Brochure = "Tríptico" not used (only Flyer appears).
 Several narrow labels were cut to fit: Prog. 1:30, Desconoc., Sig. nivel, %1/%2 sabidas, Cint. I/D, Princ./Secund., Ext., Cond.
+
+Beta 6 words (Nov 6 2026):
+Spain, informal tu, as the earlier drafts. Same terms as before: rueda, ficha, cinturón, Completo/Simple untouched (no new uses), D-pad kept as written.
+Ticket kept as "ticket" (game: Tickets). Admin / admins kept short; staff = "equipo" or "personal".
+Kick = Expulsar, Ban = Banear (game). Mute = Silenciar; the Unmute button is "Reactivar" (game's "Quitar silencio" does not fit 14).
+Capability = "permiso", power = "poder" (Roles page = Permisos; "Poderes de admin"). Tick = "marca".
+Claim (car or safehouse) = "reclamo" / Reclamar, Release = Liberar (game: Reclamar refugio, Liberar refugio). "Tus reclamos" may sound odd in Spain; "reclamaciones" is a complaint.
+Safehouse = Refugio (game). Disband = Disolver. Dismantle = desarmar (game). Sledgehammer = almádena (game). Hotwire = puentear.
+Warning points = "puntos de aviso". Log = Registro. News = Noticias. Message of the day = Mensaje del día. Appeal line = "vía de apelación".
+Spawn = Generar (game). Tiles = baldosas, as before.
+Log lines (931-996, 1104-1115) are written as verb phrases after the name, in the past tense (mató a, golpeó a, se le negó...).
+Spawned "to %3" lines use a parenthesis "(%3)" because %3 can be "tú" or "el suelo".
+Short labels cut to fit: Cualq. jugador, Reg. de botín, Mov. rápido, Todas las hab., TP por mapa (personal), Color etiqueta.
+License card caps: PORTE OCULTO, N.º CARNÉ, VENCE, EXPED., SOBREVIVIÓ; "BARBA" for FACIAL, "MUERTES" for KILLS.
+Griefing kept in English (players say it).

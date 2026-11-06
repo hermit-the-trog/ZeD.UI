@@ -10,3 +10,18 @@ Dashboard = "Tablero" (game), Ignition = "Encendido", Signal = "Luz de giro", Dr
 About text (1408) rewritten with ustedes and "che", "papas", "buena onda", "anti escuchas telefonicas"; accents still deliberately missing.
 The Spain draft had broken accents (mojibake) in 550, 551, 658, 659, 1134, 1884, 1885, 2259, 2474; fixed here. 
 Left as Spain: "sitio" in many lines, "Sustituir", "Refrescar", "surtidor" (all understood in Argentina). Pen/lighter-style words only changed where they appear.
+
+Beta 6 words (Nov 6 2026):
+AR (Argentine Spanish) beta 6 words: multiplayer staff tools. Voseo as in the earlier AR notes (tenés, podés, Hacé clic, Elegí, Presioná, Escribí).
+Ticket = ticket (game AR: Crear ticket). Admin = administrador (admin where tight), moderator = moderador, staff = personal.
+Role = rol, capability/power = permiso/poder, safehouse = refugio (game), faction = facción, war = guerra.
+Ban = banear / baneo (game glossary: Banear), kick = expulsar, warning points = puntos de advertencia, Log = registro.
+Admin mute = silenciar; the same word is used for a player's own mute in chat. Unmute = desilenciar where short (a made-up word; check).
+Take a ticket = Tomar; claim a car or safehouse = Reclamar; Release = Soltar. "Car" = auto (the game's glossary says coche).
+Wheel = rueda, belt = cinturón, card = ficha, Full/Simple = Completa/Simple (43-44 "Immersive" written as Completa).
+D-pad = cruceta, stick = stick, dead zone = zona muerta, Tap/Hold = Tocar/Mantener.
+Licence card labels (21-41, capitals): OPERADOR, PORTE OCULTO, N° LIC, EMIT., BAJAS (kills), SOBREVIVIÓ. Check they fit the printed card.
+Dates 90/91: %1 expected to be a short month name, written "%2 %1 %3". 88/89 keep AM/PM. 3 (main menu clock) is %1:%2 %3.
+Log lines (854 on) follow a player's name as a verb in the third person: mató a %1, baneó a %1, se unió a %1.
+Shortened to fit: Herram. pincel, TP del personal en mapa, Todas las hab., Banear con IP, Vía de apelación, %1 noticias (English "posts").
+Lines 347 and "%1 %2" shapes (253, 900, 1102) keep the English shape; what the slots hold is not visible.

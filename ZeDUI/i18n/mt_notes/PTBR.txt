@@ -1,0 +1,13 @@
+
+Beta 6 words (Nov 6 2026):
+PTBR new-in-beta-6 words. Address: "voce" with imperatives (Escolha, Marque), as the game's own PTBR.
+Ticket = Chamado (game: Chamados); staff = a equipe; admin kept short as "admin"; Role = Cargo; Capability = capacidade; powers = poderes.
+Safehouse = Base (game word); Faction = Facção; Kick = Expulsar; Ban = Banir; Warning points = Pontos de aviso.
+Wheel = roda; belt = cinto; card = ficha; tab = aba; Wars = guerras; tag kept as "tag" (faction tag).
+Take (a ticket) = Assumir; Claim (a car or building) = Reivindicar; Release = Liberar; Greifing = Vandalismo; Stuck = Preso.
+Appeal = Recurso; Spam kept; Log kept as "Log" (Registro where room allows).
+Carry permit card: Licença de porte, Porte oculto, HAB. Nº, VAL., EMIS.; check the Kentucky license wording.
+Log lines are past-tense phrases after a name ("matou %1", "bateu em %1"); line 976 reads "o banimento de %1 acabou".
+Tiles = blocos; Sandbox kept in "Mudar opções Sandbox"; "Truque de ..." for cheat powers.
+Line 1101 "Sobre %1: " keeps the English trailing space.
+Tight spots: 344 "Ver todas" (16 limit), 970 "deu voz a %1" (unmute log), 1012 "%1 pode falar." (unmute toast).

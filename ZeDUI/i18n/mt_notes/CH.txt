@@ -15,3 +15,17 @@ Doubtful: 網戀詐騙 (Catfish), 烘焙義賣, 迪克西木屋, 巫師城堡 (p
 Proofread (Fable, 115 fixes) left for a checker: SELECT = 選擇 (pad button name); radio brand-bar words and every
 pixel-face line on screen; item and skill names not checked against the game's CH file: 電工, 電子廢料, 耕作, 小鏟,
 密碼鎖 / 掛鎖, 斯皮福; PAINTING 粉刷 vs PLASTERING 抹灰 (Taiwan may say 上漆 / 批土); "One wash" = 一抹.
+
+Beta 6 words (Nov 6 2026):
+CH (Traditional Chinese, Taiwan usage) beta 6 words: multiplayer staff tools. Terms kept from the earlier CH notes.
+Informal 你. Ticket = 工單 (the game's ticket window uses it, though the glossary lists 投訴). Admin = 管理員, moderator = 版主 (game).
+Role = 角色, capability = 權限, safehouse = 安全屋, faction = 陣營, ban = 封禁 (game), kick = 踢出, warning points = 警告點數.
+Admin mute = 禁言; a player's own mute in the chat window = 靜音 (game uses 遮蔽 for chat muted).
+Take a ticket = 接手; claim a car or safehouse = 認領; Release = 釋放.
+Wheel = 輪盤, belt = 腰帶, Full/Simple = 完整/簡易; "Immersive" (43) written as 完整 to match Full.
+Licence card labels (17-40): OPERATOR = 駕駛人, CARRY PERMIT = 持槍許可, FACIAL = 面部, ISS = 簽發.
+Dates 89/90: %1 expected to be a month with its 月, order 年月日. 87/88 = 上午/下午 before the time.
+Log lines (853 on) start straight after a player's name, no space added: 殺死了 %1, 封禁了 %1.
+Log (card name, 853) = 日誌 as in the game's user logs; single records = 紀錄.
+Doubtful: 故障 for Bug, 惡意破壞 for Griefing, 拆零件 for take parts, 隱蔽攜帶 for Concealed carry, 垃圾 for Spam.
+Lines 346 and the "%1 %2" shapes (252, 899, 1101) keep the English shape; what the slots hold is not visible.

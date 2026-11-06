@@ -12,3 +12,17 @@ Ranch = "Gård", Hutch = "Bur", Trough = "Trug", nest box = "rede"; "tiles" = "f
 Sandbox/Journal etc: "Sandkasse", "Journal"; Catfish (origin) = "Havkat" is a guess.
 Joke "About" text keeps its misspellings in Danish ("kærnel", missing commas).
 Date lines use Danish order ("3. nov 1993") via the %n order.
+
+Beta 6 words (Nov 6 2026):
+Address: informal du, as in the game's DA text; buttons are imperatives.
+Safehouse = tilflugtssted (the game's word); claim = gøre krav på / krav (Krævet, Køretøjskrav).
+Kick = Spark / sparkede (the game's scoreboard word), also "smidt ud" in prose; ban = bandlys / bandlysning (the game's word), unban = Ophæv.
+Ticket = sag (the game's own "Sager"); Taken = Taget; admin kept short as "admin" (the game's long form is administrator).
+Wheel = hjul, belt = bæltet, card = datablad (the license card is "kort"), Full/Simple = Fuld/Simpel (Identity card: Immersiv/Simpel).
+Mute = Sluk for lyd / Tænd for lyd (the game's), "stum" in short sentences; capability = beføjelse, powers = magter.
+Spawn kept as a verb (spawne), items = genstande; staff = holdet; tiles = felter.
+Tag (faction, admin) = mærke; Appeal = Anke / Ankelinje.
+Identity card: KK NR, UDSTEDT, DRAB for KILLS, SKÆG for FACIAL, FAVORIT for FAV (check what FAV shows).
+Vehicle-claim verbs (494-499) go inside sentences: "må så ikke køre den / tage dele", "kan ikke nedtage eller ødelægge det".
+Log lines follow a name in simple past: "dræbte %1", "fik afslag på at køre %1". Lines 976 and 996 read loosely.
+Dates 90-91 reordered to day before month (%2. %1).
