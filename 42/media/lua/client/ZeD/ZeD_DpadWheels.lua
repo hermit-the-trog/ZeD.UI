@@ -8,12 +8,14 @@
 --   Right World         the World window's things and what is in reach
 --   Up    Social        gestures, shout; on a server chat, safety, players
 --   Down  Here and now  stance and movement, time and view, help, the light
--- They open only when no window has the pad (in the world). Hold the D-pad,
--- point with the right stick (ZeD.Wheel.sliceFromJoypad), let go to take.
--- A slice with the corner triangle swaps the ring in place to its wheel and
--- keeps it open: the stick points, A takes, B backs out one level (Back is
--- the inner wheel's last slice). Every top-level slice keeps its place: one
--- that can't be done now is added off, and the bubble gives the reason.
+-- They open only when no window has the pad (in the world). Tap the D-pad and
+-- the wheel stays up, the left stick still walking; the right stick points and
+-- letting it go takes (ZeD_WheelGesture.lua works all of that, and the other
+-- ways of working it from ZeD setup; RADIAL_WHEELS_SPEC.md). A slice with the
+-- corner triangle swaps the ring in place to its wheel and keeps it open: B
+-- backs out one level (Back is the inner wheel's last slice). Every top-level
+-- slice keeps its place: one that can't be done now is added off, and the
+-- bubble gives the reason.
 --
 -- The shared getPlayerRadialMenu wheel is filled (ZeD_Wheel.lua draws it),
 -- so mods see vanilla's object API. Where the game fills a wheel itself
@@ -26,6 +28,7 @@
 require "ISUI/ISDPadWheels"
 require "ISUI/ISRadialMenu"
 require "ZeD/ZeD_Wheel"
+require "ZeD/ZeD_WheelGesture"
 require "ZeD/ZeD_QuickWheel"
 require "ZeD/Tr"
 require "ZeD/SafeMode"
@@ -34,6 +37,7 @@ ZeD = ZeD or {}
 ZeD.DpadWheels = ZeD.DpadWheels or {}
 local D = ZeD.DpadWheels
 local W = ZeD.Wheel
+local G = ZeD.WheelGesture
 
 local MAX_INNER = 11                      -- an inner wheel's items (Back is the 12th; paging is out of scope for v1)
 local BACK_TEX = "media/ui/emotes/back.png"
@@ -51,6 +55,7 @@ D.DIRS = {
 D.B = D.B or {}                           -- the wheels' builders (filled below): player, pn -> entries
 
 -- per player: { dir = "left", path = { level, ... } }; a level = { title, entries, fill }
+-- (and how the wheel is being worked: ZeD_WheelGesture.lua)
 D.state = D.state or {}
 
 local function safe(fn, ...) local ok, v = pcall(fn, ...); if ok then return v end; return nil end
@@ -97,16 +102,37 @@ local function prompts(st)
     local d = D.DIRS[st.dir]
     local g = d.arrow or ZeD.tr(d.glyph)
     local gp = (not d.arrow) and { "SEL" } or nil   -- (the Select button's picture; its name is translated)
-    if #st.path <= 1 and st.held then
-        return { { glyph = g, pad = gp, label = ZeD.tr("UI_ZeD_Wheel_PromptHold") }, { glyph = "RS", label = ZeD.tr("UI_ZeD_Wheel_PromptPoint") },
-                 { glyph = g, pad = gp, label = ZeD.tr("UI_ZeD_Wheel_PromptLetGo") }, { glyph = "B", label = ZeD.tr("UI_ZeD_Wheel_PromptClose") } }
+    local point = { glyph = "RS", label = ZeD.tr("UI_ZeD_Wheel_PromptPoint") }
+    local b = { glyph = "B", label = ZeD.tr(#st.path > 1 and "UI_ZeD_Prompt_Back" or "UI_ZeD_Wheel_PromptClose") }
+    if st.mode == "toggle" then
+        return { point, { glyph = "D-PAD", label = ZeD.tr("UI_ZeD_Wheel_PromptMove") }, { glyph = "A", label = ZeD.tr("UI_ZeD_Wheel_PromptTake") }, b }
     end
-    return { { glyph = "RS", label = ZeD.tr("UI_ZeD_Wheel_PromptPoint") }, { glyph = "A", label = ZeD.tr("UI_ZeD_Wheel_PromptTake") },
-             { glyph = "B", label = ZeD.tr(#st.path > 1 and "UI_ZeD_Prompt_Back" or "UI_ZeD_Wheel_PromptClose") } }
+    if st.mode == "hold" then
+        local out
+        if #st.path <= 1 and st.held then
+            out = { { glyph = g, pad = gp, label = ZeD.tr("UI_ZeD_Wheel_PromptHold") }, point,
+                    { glyph = g, pad = gp, label = ZeD.tr("UI_ZeD_Wheel_PromptLetGo") } }
+        else
+            out = { point, { glyph = "A", label = ZeD.tr("UI_ZeD_Wheel_PromptTake") } }
+        end
+        if st.commit == "click" then out[#out + 1] = { glyph = "R3", label = ZeD.tr("UI_ZeD_Wheel_PromptTake") } end
+        out[#out + 1] = b
+        return out
+    end
+    -- (tap) the same direction closes all of it; in an inner wheel B only backs out, so the direction is shown
+    local out = { point }
+    if st.commit == "click" then
+        out[2] = { glyph = "R3", label = ZeD.tr("UI_ZeD_Wheel_PromptTake") }
+    else
+        out[2] = { glyph = "RS", label = ZeD.tr("UI_ZeD_Wheel_PromptLetGo") }
+    end
+    if #st.path > 1 then out[3] = { glyph = g, pad = gp, label = ZeD.tr("UI_ZeD_Wheel_PromptClose") } end
+    out[#out + 1] = b
+    return out
 end
 
--- the wheel on the player's screen and the pad on it; held = the D-pad is down
--- (letting go takes), else A takes
+-- the wheel on the player's screen and the pad on it; held = Hold, the D-pad is
+-- down and letting go takes
 local function present(menu, pn, st)
     menu._zedCrumb = crumb(st)
     menu._zedPrompts = prompts(st)
@@ -238,8 +264,9 @@ local function showFilled(pn, st)
     local menu = getPlayerRadialMenu(pn)   -- (the game's fillers fill the shared wheel)
     if st.menu ~= menu and st.menu and st.menu.removeFromUIManager then st.menu:removeFromUIManager() end
     -- (the vehicle and animal fillers close the shared wheel instead of filling
-    -- it when it is on screen: off the screen first)
-    if menu:isReallyVisible() then menu:removeFromUIManager() end
+    -- it when it reads as on the screen, and a removal lands only on the game's
+    -- next update: hidden for the filler, present shows it again)
+    if menu.setVisible then menu:setVisible(false) end
     st.menu = menu
     local p = getSpecificPlayer(pn)
     local ok, err = pcall(lv.fill, p, pn)
@@ -270,9 +297,10 @@ function D.close(pn)
     D.state[pn] = nil
     local menu = st and st.menu
     if menu and menu._zedDpad then menu:undisplay() end
+    G.finish(pn, st)
 end
 
--- a slice that opens a wheel: it swaps in place and stays open (A takes)
+-- a slice that opens a wheel: it swaps in place and stays open
 function D.enter(pn, e)
     local st = D.state[pn]
     if not st then return end
@@ -288,6 +316,7 @@ function D.enter(pn, e)
     end
     st.path[#st.path + 1] = lv
     st.held = false
+    G.level(st)
     show(pn)
 end
 
@@ -298,6 +327,7 @@ function D.back(pn)
     local was = st.menu
     st.path[#st.path] = nil
     st.held = false
+    G.level(st)
     -- the top level is built again: what is live may have changed
     if #st.path == 1 then
         local p = getSpecificPlayer(pn)
@@ -312,7 +342,7 @@ end
 
 -- a slice that does something: the wheel is gone first, then the game's own action
 function D.take(pn, e)
-    D.state[pn] = nil
+    G.finish(pn, D.state[pn])
     local p = getSpecificPlayer(pn)
     if not (p and e and e.run) then return end
     local ok, err = pcall(e.run, p, pn)
@@ -326,6 +356,7 @@ local function paused()
     local sc = UIManager.getSpeedControls()
     return sc ~= nil and sc:getCurrentGameSpeed() == 0
 end
+D.paused = paused
 
 -- a ZeD window holding the pad (a menu or prompt let the focus go): the press
 -- is that window's, never a wheel (Oct 23 2026, from the belt's D-pad Left)
@@ -348,7 +379,8 @@ function D.open(dir, joypadData, menu, engineShows)
     if not p or p:isDead() then return end
     local d = D.DIRS[dir]
     menu = menu or getPlayerRadialMenu(pn)
-    local st = { dir = dir, held = true, path = {}, menu = menu, home = menu, engineShows = engineShows }
+    local st = { dir = dir, path = {}, menu = menu, home = menu, engineShows = engineShows }
+    G.begin(pn, st, menu)
     st.path[1] = { title = ZeD.tr(d.title), entries = safe(D.B[d.build], p, pn) or {} }
     D.state[pn] = st
     show(pn)
@@ -374,6 +406,7 @@ local function apply()
         ISDPadWheels[fn] = function(joypadData)
             if D.gameWheels() then return orig(joypadData) end
             if windowTakes(dir, joypadData) then return end
+            if not G.freshPress(dir, joypadData) then return end   -- (the game's repeat of a held direction)
             -- paused: only Here and now opens (Game speed, Play stays in reach)
             if dir ~= "down" and paused() then return end
             local ok, err = pcall(D.open, dir, joypadData)
@@ -387,7 +420,10 @@ local function apply()
         local origAdd = ISBackButtonWheel.addCommands
         D.orig.select = origAdd
         function ISBackButtonWheel:addCommands()
-            if D.gameWheels() then return origAdd(self) end
+            if D.gameWheels() then
+                self:setHideWhenButtonReleased(Joypad.Back)   -- (a ZeD wheel on this object may have cleared it)
+                return origAdd(self)
+            end
             local ok, err = pcall(D.open, "select", { player = self.playerNum }, self, true)
             if not ok then
                 print("[ZeD] DpadWheels: open select: " .. tostring(err))
@@ -395,7 +431,7 @@ local function apply()
             end
         end
     end
-    -- an open inner wheel (or the top level after Back): A takes, B backs out
+    -- the buttons on an open wheel (what each does: ZeD_WheelGesture, by how the wheel is worked)
     local R = ISRadialMenu
     if R and not R._zedDpadKeys then
         R._zedDpadKeys = true
@@ -408,28 +444,13 @@ local function apply()
                 local face = ({ [Joypad.AButton] = "A", [Joypad.BButton] = "B", [Joypad.XButton] = "X", [Joypad.YButton] = "Y",
                                 [Joypad.LStickButton] = "L3", [Joypad.RStickButton] = "R3" })[button]
                 local jid = joypadData and joypadData.id
-                if face and jid then
-                    local lb, rb = JoypadButton.LeftBump:isDown(jid), JoypadButton.RightBump:isDown(jid)
-                    if lb ~= rb then D.assign(pn, self, (lb and "LB" or "RB") .. "+" .. face); return end
-                end
-                if button == Joypad.AButton then
-                    local id = self.joyfocus and self.joyfocus.id or (joypadData and joypadData.id)
-                    local i = W.sliceFromJoypad(self, id)
-                    local cmd = i > 0 and self:getSliceCommand(i)
-                    if cmd and cmd[1] then
-                        if cmd[1] ~= D.enter and cmd[1] ~= D.back then D.state[pn] = nil; self:undisplay() end
-                        W.noteChoice(self, self.slices[i])
-                        cmd[1](cmd[2], cmd[3], cmd[4], cmd[5], cmd[6], cmd[7])
-                    end
-                    return
-                elseif button == Joypad.BButton then
-                    D.back(pn)
-                    return
-                elseif button == Joypad.XButton then
-                    D.close(pn)
+                local bump = face and G.heldBumper(st, jid)
+                if bump then
+                    D.assign(pn, self, bump .. "+" .. face)
+                    G.noteAssign(st)
                     return
                 end
-                return
+                return G.onButton(pn, st, self, button, joypadData)
             end
             return origDown(self, button, joypadData)
         end
