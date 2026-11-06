@@ -550,10 +550,51 @@ end
 --
 -- We PRESERVE a reference to the underlying vanilla option table so that:
 --   - onSelect can dispatch through the original function
---   - onHighlight callbacks (used by some mods for server-side gating) can
+--   - onHighlight callbacks (the game's own outline on what an option acts on, and
+--     some mods' server-side gating) can
 --     still fire ? the organism calls vanillaRef.onHighlight on selection change
 --   - notAvailable / isDisabled / badColor flags stay live if mods mutate them
 -- ============================================================================
+
+-- The row a menu of ours has selected, told to the game's menu: the game's own
+-- checkHighlightedOption, so the option's onHighlight gets what the game gives it
+-- (option, menu, on/off, its params), the last row is let go first, and the animal
+-- rows that ask to be called every frame are. holder is the strip or the list; a nil
+-- def lets go of whatever is lit (a menu closing must, or the outline stays on the
+-- world object). A row of a submenu lives on that submenu's menu, so leaving one lets
+-- the old menu go. (Nov 6 2026: this called onHighlight(option, true), so the object
+-- came through nil: no outline in ZeD, and an exception on the rows that index it.)
+local function tellMenu(menu, opt)
+    -- an option that throws while it is let go would stay held and every row after it
+    -- would throw too: forget it and light the new one
+    if not pcall(menu.checkHighlightedOption, menu, opt) and menu.highlightedOption ~= opt then
+        menu.highlightedOption = nil
+        pcall(menu.checkHighlightedOption, menu, opt)
+    end
+end
+
+function Registry.highlight(holder, def)
+    local opt = def and def.vanillaRef or nil
+    local menu = opt and def._vanillaMenu or nil
+    if menu and not menu.checkHighlightedOption then menu = nil end
+    local was = holder._hlMenu
+    if was and was ~= menu then tellMenu(was, nil) end
+    holder._hlMenu = menu
+    if menu then tellMenu(menu, opt) end
+end
+
+-- The game's highlight functions end by telling the inventory pages, which then light
+-- their own open container. With ZeD's windows up those pages are hidden and their
+-- update never runs, so nothing would ever put that outline out: a page that isn't
+-- showing has nothing to light. (Safe mode's pages show, and go on as the game does.)
+require "ISUI/ISInventoryPage"
+local origObjHl = ISInventoryPage.OnObjectHighlighted
+function ISInventoryPage.OnObjectHighlighted(playerNum, object, isHighlighted)
+    local vi, vl = getPlayerInventory(playerNum), getPlayerLoot(playerNum)
+    if (vi and vi:getIsVisible()) or (vl and vl:getIsVisible()) then
+        return origObjHl(playerNum, object, isHighlighted)
+    end
+end
 
 -- Derive a stable id from the option name. Collisions between sibling entries
 -- resolve via "_<index>" suffix.
