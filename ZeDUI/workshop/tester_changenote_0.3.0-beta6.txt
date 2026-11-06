@@ -38,4 +38,5 @@ Mod support
 - Mods that publish through Vehicle Kit Library: the dash reads their temperature, lamps and odometer. That's how Roadworthy shows up.
 
 Known issues
+- Spongie's Character Customization: the folds on the Appearance tab haven't been played with the mod on yet. The Looks screen has. If the tab misbehaves, say so in Bug reports.
 - The join rules and timed bans are enforced by the player's own game, so a modified game can get past them.
