@@ -2682,6 +2682,35 @@ item says so.
     `ZeDUI/workshop/license_block.bbcode` ("[h2]Licence[/h2]"; the live page already says License). The game's own
     keys (IGUI_char_Favourite_Weapon) stay as they are. Every change note and description from here on: American.
 
+91. **The radial wheels redesign, for beta 6 (the director, Nov 5 2026, through QA: "Yes, add it").** The spec is the Claude
+    doc "ZeD-GUI Radial Wheels: Build & QA Handoff" (https://claude.ai/artifact/4HtFjQfJExmaMQaQcJ8Yj3). Tap a D-pad
+    direction to open, the left stick keeps walking, the right stick picks by angle, flick-release takes, the same
+    direction or B cancels, four settings (Wheel open, Wheel commit, Wheel toggle mode, Wheel stick dead zone).
+    - **Read against what's built, Nov 5 (Build). Held until the director answers the open questions.**
+      - The doc's "October mapping" is not what shipped. Shipped: GAMEPAD_SPEC (A left click, X right click, B back, Y
+        windows, LB and RB the windows). The doc's QA line "A left-clicks, B right-clicks" and its paste-in section get
+        corrected to that. "S119 lock" means the same current map.
+      - Left and Right are the windows' tabs in the doc. Built: the action wheels of DPAD_WHEELS_SPEC (Character: Tabs,
+        Weapons, Eat, Drink, Medicine, Sleep, Clothing, Use; World: Tabs, Map, Vehicle, Animal, Craft and build, Search,
+        Lights and power, Zones). Those wheels are the only controller way to much of this: entering a vehicle among it.
+      - Tabs do not fit eight slots: Character has 10 (8 + Cooking + Server on a server), World 10 (9 + Admin).
+      - "No nesting" removes today's inner wheels: all of Social's gestures, Sit, Game speed, Zoom, View, Help, and every
+        list of carried things.
+      - Quick action chords (spread 44, QUICK_CHORDS_SPEC.md) find their action by wheel and place ("character:3" is
+        Eat), and the default twelve use those places; players' saved chords in ZeD_chords.txt too.
+      - Here and Now's open question is already answered by what's built: "Places never move" (DPAD_WHEELS_SPEC 2.6):
+        every slice always there, off with its reason when it can't be done.
+      - Hold is today's behavior; the setting keeps today's code path.
+      - Haptics can't be done: the game has no rumble call and no haptics setting (checked in the game's code).
+      - "Stick click" as a commit touches the standing rule that nothing in the world binds to L3 or R3.
+      - The Select (ZeD) wheel is not in the doc: it follows the same settings (Build's call).
+      - Walking with a wheel up: not yet known if the game itself stops the left stick while a wheel holds the pad.
+        QA to settle on a pad. If it does, the wheel stops taking the pad and reads the stick itself.
+      - The look isn't changing (the approved wheel, ZeD_Wheel.lua, stays, so mods that add slices keep working), so the
+        doc's "mockup before code" step is skipped; the constants get a debug block for tuning on a real pad.
+    - **QA:** the doc's checklist, corrected; then spreads 43 and 44 and the controller map if they change. Toggle mode
+      goes on the Workshop page's Access list.
+
 ## Test process
 
 - **QA, Nov 2 2026, the t16 pre-upload pass (the mod code at 361d0b6; nothing in 42/ changed after it).** Full 4K
