@@ -403,8 +403,8 @@ do
     check("the server logs that the part is up", logHas("server part up"))
     check("the 42.22 kinds are six", #Tk.KINDS == 6)
     check("nearby is 30 tiles", Tk.NEAR == 30)
-    check("E12 is as drawn", Tk.REPLY_AT_ANSWERED == false)
-    check("E13 is filed in full", Tk.FILE_FULL_TEXT == true)
+    check("E12, the director: replies stay open at Answered", Tk.REPLY_AT_ANSWERED == true)
+    check("E13, the director: the game holds a stub", Tk.FILE_FULL_TEXT == false)
 
     local admin = player("zedqa", "admin")
     local c = clientJoin(admin)
@@ -556,7 +556,7 @@ do
     local id = newTicket(p, "GRIEF", "  my truck  ", true)
     local a = got(p, "t_ack")
     local r = rec(id)
-    check("t_new: ok, with the id and the file text", a.ok and a.id == 1 and a.file == "[GRIEF #1] my truck", a.file)
+    check("t_new: ok, with the id and the file text", a.ok and a.id == 1 and a.file == "[GRIEF #1] see the Tickets queue", a.file)
     check("trimmed", r.thread[1].text == "my truck")
     check("stamped by the server", r.author == "kade" and r.day == 13 and r.filed == math.floor(W.clock / 1000))
     check("place from the server", r.place.x == 6280 and r.place.y == 5350 and r.place.z == 1)
@@ -706,7 +706,8 @@ do
     advance(10000)
     rec(tid).status = "Answered"
     tk(o, "t_reply", { id = tid, text = "after the answer" })
-    check("E12 as drawn: no reply at Answered", errOf(o) == "state")
+    check("E12: a reply at Answered goes back to Progress", rec(tid).status == "Progress")
+    advance(10000)
     rec(tid).status = "Closed"
     advance(10000)
     tk(o, "t_reply", { id = tid, text = "x" })
@@ -738,7 +739,6 @@ do
     local admin2 = player("zedqa", "admin")
     local eid = newTicket(e, "QUESTION", "q")
     tk(admin2, "t_answer", { id = eid, text = "a" })
-    W.server.ZeD.Tk.REPLY_AT_ANSWERED = true
     check("E12 on: can at Answered", W.server.ZeD.Tk.canReply("Answered"))
     tk(e, "t_one", { id = eid })
     check("E12 on: the view says so", got(e, "t_one").can == true)
@@ -750,7 +750,6 @@ do
     check("E12 on: staff answer twice", got(admin2, "t_ack").ok == true and rec(eid).thread.n == 5)
     tk(admin2, "t_close", { id = eid })
     check("E12 on: Close at Answered", rec(eid).status == "Closed")
-    W.server.ZeD.Tk.REPLY_AT_ANSWERED = false
 end
 
 -- ---------------------------------------------------------------------------
@@ -767,7 +766,7 @@ do
     check("sent", res == "sent")
     advance(300)
     check("done with the ack", done and done.ok == true)
-    check("the game holds the tagged text", W.game[1] and W.game[1].msg == "[GRIEF #1] the truck" and W.game[1].author == "kade")
+    check("the game holds the tagged text", W.game[1] and W.game[1].msg == "[GRIEF #1] see the Tickets queue" and W.game[1].author == "kade")
     check("t_filed came back", rec(1).gameFiled == true)
     check("filed once", W.calls.addTicket == 1)
     advance(100000)
@@ -794,7 +793,7 @@ do
     check("no game row yet", #W.game == 0 and rec(id).gameFiled == nil)
     local c2 = clientJoin(q)
     advance(300)
-    check("rejoin: filed once", #W.game == 1 and W.game[1].msg == "[STUCK #" .. id .. "] under the floor")
+    check("rejoin: filed once", #W.game == 1 and W.game[1].msg == "[STUCK #" .. id .. "] see the Tickets queue")
     check("rejoin: confirmed", rec(id).gameFiled == true)
     c2.up = false
     advance(6000)
@@ -806,7 +805,7 @@ do
     world()
     local l = player("lost")
     local id2 = newTicket(l, "BUG", "x")
-    gameAdd("lost", "[BUG #" .. id2 .. "] x")
+    gameAdd("lost", "[BUG #" .. id2 .. "] see the Tickets queue")
     clientJoin(l)
     advance(300)
     check("a lost reply: not filed a second time", #W.game == 1)
@@ -848,8 +847,8 @@ do
     local ALL = { "Open", "Seen", "Progress", "Answered", "Closed", "Spam" }
     local RULES = {
         t_take =   { Open = "Progress", Seen = "Progress", Progress = "Progress" },
-        t_answer = { Open = "Answered", Seen = "Answered", Progress = "Answered" },
-        t_close =  { Open = "Closed", Seen = "Closed", Progress = "Closed" },
+        t_answer = { Open = "Answered", Seen = "Answered", Progress = "Answered", Answered = "Answered" },
+        t_close =  { Open = "Closed", Seen = "Closed", Progress = "Closed", Answered = "Closed" },
         t_reopen = { Answered = "Progress", Closed = "Progress" },
         t_spam =   { Open = "Spam", Seen = "Spam", Progress = "Spam", Answered = "Spam", Closed = "Spam" },
         t_unspam = { Spam = "Open" },
@@ -1783,7 +1782,7 @@ do
         local leaked = false
         for _, r in ipairs(W.game) do if string.find(r.msg, "truck", 1, true) or string.find(r.msg, "private", 1, true) then leaked = true end end
         check("E13 off: the answer is a stub too", not leaked and #W.game == 2 and W.game[2].msg == W.server.ZeD.Tk.FILE_STUB)
-        W.server.ZeD.Tk.FILE_FULL_TEXT = true
+        W.server.ZeD.Tk.FILE_FULL_TEXT = false
     end
 
     -- an empty proof is no replaced database
@@ -1931,7 +1930,7 @@ do
         advance(6000)
         check("linked", rec(1).gameId == 1)
         check("viewed in the game", W.game[1].viewed == true)
-        check("the first answer reached the game", #W.game == 2 and W.game[2].msg == "answered before the link" and rec(1).gameAns == true, #W.game)
+        check("the first answer reached the game", #W.game == 2 and W.game[2].msg == "see the Tickets queue" and rec(1).gameAns == true, #W.game)
         openQ(T)
         check("once", #W.game == 2)
     end

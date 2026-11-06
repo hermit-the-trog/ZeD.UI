@@ -18,11 +18,11 @@ Tk.NEAR = 30                -- tiles, on any floor (settled, the director, Nov 5
 -- E12: may a ticket take more words once it is Answered? false is the mockup: the player's field closes at Answered,
 -- staff press Reopen to reply again. true: the field stays open, a player's reply puts it back at Progress so it
 -- re-enters the queue, and staff can Answer and Close an Answered ticket.
-Tk.REPLY_AT_ANSWERED = false
+Tk.REPLY_AT_ANSWERED = true
 -- E13: what goes in the game's own ticket. true is the scope: the player's words in full, as public as the game makes
 -- them (any logged-in client reads every game ticket). false files only "[GRIEF #14] see the Tickets queue", and the
 -- staff's first answer goes to the game as that same stub.
-Tk.FILE_FULL_TEXT = true
+Tk.FILE_FULL_TEXT = false
 Tk.FILE_STUB = "see the Tickets queue"
 
 Tk.KINDS = { "BUG", "GRIEF", "STUCK", "QUESTION", "APPEAL", "OTHER" }
