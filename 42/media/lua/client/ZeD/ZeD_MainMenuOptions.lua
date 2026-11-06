@@ -313,11 +313,13 @@ end
 -- Oct 30 2026: Restock needs Loadouts and outfits): true while that switch's live pick, Apply or not, is Off. Such a row
 -- dims, takes no click or press, and the controller passes over it; its pick is kept for when the switch comes on.
 local function needsOff(r)
-    if not r.zedNeeds then return false end
+    local id = r.zedNeeds or r.zedNeedsNot   -- (needsNot: the same row, dim while that switch is On)
+    if not id then return false end
     local zo = PZAPI and PZAPI.ModOptions and PZAPI.ModOptions:getOptions("ZeD_UI")
-    local o = zo and zo:getOption(r.zedNeeds)
+    local o = zo and zo:getOption(id)
     if not o then return false end
     local el = o.element
+    if r.zedNeedsNot then return ((el and el.selected) or o:getValue()) == 2 end
     return ((el and el.selected) or o:getValue() or 2) ~= 2
 end
 
@@ -981,6 +983,7 @@ end
 local function scaleReadout(r)
     local c = r.control
     if isSeeRow(r) then return seeText(c.selected or 2) end
+    if r.labelKey == "UI_ZeD_Settings_WheelDeadZone" then return comboText(c, c.selected) end   -- (no Auto: the number)
     if (c.selected or 1) == 1 then
         local root = ZeD.Scale and ZeD.Scale.root and ZeD.Scale.root() or 1
         return ZeD.tr("UI_ZeD_Options_ScaleAutoNow", scaleText(root))

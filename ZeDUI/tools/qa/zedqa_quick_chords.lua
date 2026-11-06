@@ -11,7 +11,10 @@
 --   * the press is swallowed: the game's prompts never see it;
 --   * from a wheel: point at Crouch, RB + Y assigns it, the bubble says so,
 --     and the wheel shows the chord when it opens again; a slice of a wheel
---     the game fills says it can't.
+--     the game fills says it can't;
+--   * the same by the wheel's own buttons with the gesture (punch list 91): the
+--     bumper held keeps the slice lit once the stick is let go, the face button
+--     assigns, nothing opens and nothing is taken.
 -- The chords file is put back as it was; the flashlight is taken away.
 -- Run on the deep-run character. grep "ZEDQA qc".
 local p = getPlayer()
@@ -263,6 +266,39 @@ step(5, function()
     if st and st.menu then pcall(st.menu.undisplay, st.menu) end
     D.state[pn] = nil
     W.qaPoint = nil
+end)
+
+-- the same with the gesture: the stick pointing, the bumper held, the thumb off the stick, the button
+step(10, function()
+    Qc.set("RB+Y", wasRBY or "now:3", { "x" })
+    local JD = { player = pn }
+    p:setSneaking(false)
+    D.qaSettings = { open = "tap", commit = "flick", toggle = false, deadZone = 0.35 }
+    D.qaTrigger(pn, false)
+    D.tune.OPEN_DEBOUNCE_MS = 0
+    D.qaStick(pn, 0, 0)
+    ISDPadWheels.onDisplayDown(JD)
+    D.qaStep(pn)
+    local menu = D.state[pn].menu
+    local n = #menu.slices
+    local a = math.rad(-90 + 360 / n)
+    D.qaStick(pn, math.cos(a) * 0.9, math.sin(a) * 0.9)
+    D.qaStep(pn)
+    check(D.gesture(pn).point == 2, "the stick lights Crouch")
+    menu:onJoypadDown(Joypad.RBumper, JD)
+    D.qaStick(pn, 0, 0)
+    D.qaStep(pn)
+    check(D.state[pn] ~= nil and D.gesture(pn).point == 2 and not p:isSneaking(), "a bumper held: the stick let go takes nothing and the slice stays lit")
+    menu:onJoypadDown(Joypad.YButton, JD)
+    check(Qc.get("RB+Y") == "now:2", "the button assigns the lit slice: " .. tostring(Qc.get("RB+Y")))
+    menu:onJoypadButtonReleased(Joypad.RBumper, JD)
+    check(D.state[pn] ~= nil and ZeD.Input.Focus.getFocusedWindow() == nil, "the bumper let go after a chord: no close, no windows")
+    menu:onJoypadDown(Joypad.BButton, JD)
+    check(D.state[pn] == nil and not p:isSneaking(), "B closes it, nothing taken")
+    D.qaStick(pn, nil)
+    D.qaTrigger(pn, nil)
+    D.qaSettings = nil
+    D.tune.OPEN_DEBOUNCE_MS = 150
 end)
 
 -- ZeD setup on the pause screen: the Quick actions rows, a chord's help, its list of actions

@@ -463,6 +463,31 @@ ZeD.Settings.focusStyle = function()
     local ok, i = pcall(liveIdx, focusStyle)
     return (ok and focusKeys[tonumber(i) or 1]) or "hand"
 end
+-- How the controller's wheels are worked (punch list 91, RADIAL_WHEELS_SPEC.md; ZeD_WheelGesture.lua reads these
+-- as a wheel opens, the dead zone every frame). Wheel open: Tap, the wheel stays up; Hold, up while the direction is
+-- held. Wheel commit: Flick-release, letting the stick go takes; Stick click, R3 takes. Wheel toggle mode: the stick
+-- or the D-pad moves the highlight, A takes; it overrides the other two. The dead zone is the stick's magnitude for
+-- a slice to highlight; release is 60% of it. The items are numbers, like See-through's.
+local wheelZones = { 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50, 0.55, 0.60 }
+local wheelOpen = opts:addComboBox("wheelOpen", ZeD.tr("UI_ZeD_Settings_WheelOpen"), ZeD.tr("UI_ZeD_Settings_WheelOpenTip"))
+wheelOpen:addItem(ZeD.tr("UI_ZeD_Settings_WheelTap"), true)   -- default
+wheelOpen:addItem(ZeD.tr("UI_ZeD_Settings_WheelHold"), false)
+local wheelCommit = opts:addComboBox("wheelCommit", ZeD.tr("UI_ZeD_Settings_WheelCommit"), ZeD.tr("UI_ZeD_Settings_WheelCommitTip"))
+wheelCommit:addItem(ZeD.tr("UI_ZeD_Settings_WheelFlick"), true)   -- default
+wheelCommit:addItem(ZeD.tr("UI_ZeD_Settings_WheelClick"), false)
+local wheelToggle = opts:addComboBox("wheelToggle", ZeD.tr("UI_ZeD_Settings_WheelToggle"), ZeD.tr("UI_ZeD_Settings_WheelToggleTip"))
+wheelToggle:addItem(getText("UI_Off"), true)   -- default
+wheelToggle:addItem(getText("UI_On"), false)
+local wheelDeadZone = opts:addComboBox("wheelDeadZone", ZeD.tr("UI_ZeD_Settings_WheelDeadZone"), ZeD.tr("UI_ZeD_Settings_WheelDeadZoneTip"))
+for _, v in ipairs(wheelZones) do wheelDeadZone:addItem(string.format("%.2f", v), v == 0.35) end   -- default: 0.35
+ZeD.Settings.wheelOpenOption = wheelOpen
+ZeD.Settings.wheelCommitOption = wheelCommit
+ZeD.Settings.wheelToggleOption = wheelToggle
+ZeD.Settings.wheelDeadZoneOption = wheelDeadZone
+ZeD.Settings.wheelOpen = function() return ((liveIdx(wheelOpen) or 1) == 2) and "hold" or "tap" end
+ZeD.Settings.wheelCommit = function() return ((liveIdx(wheelCommit) or 1) == 2) and "click" or "flick" end
+ZeD.Settings.wheelToggle = function() return (liveIdx(wheelToggle) or 1) == 2 end
+ZeD.Settings.wheelDeadZone = function() return wheelZones[liveIdx(wheelDeadZone) or 4] or 0.35 end
 -- Hidden actions (director, Oct 26 2026): the actions that cannot be taken right now, folded
 -- under a hint row that opens, all shown greyed, or hidden. On ZeD setup only: never asked in
 -- a pop-up ("Interruptions in this game can quickly get you killed").
@@ -636,6 +661,8 @@ do
         screenCharInfo = "UI_ZeD_Settings_ScreenCharInfo", beltStyle = "UI_ZeD_Settings_Belt",
         devicesStyle = "UI_ZeD_Settings_Devices", watchStyle = "UI_ZeD_Settings_WatchStyle", dashStyle = "UI_ZeD_Settings_Dash",
         guideStyle = "UI_ZeD_Settings_Guide", modsStyle = "UI_ZeD_Settings_Mods", identityStyle = "UI_ZeD_Settings_Identity",
+        wheelOpen = "UI_ZeD_Settings_WheelOpen", wheelCommit = "UI_ZeD_Settings_WheelCommit",
+        wheelToggle = "UI_ZeD_Settings_WheelToggle", wheelDeadZone = "UI_ZeD_Settings_WheelDeadZone",
     }
     for id, key in pairs(nameKeys) do
         local o = opts.dict and opts.dict[id]

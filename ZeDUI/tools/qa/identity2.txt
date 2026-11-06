@@ -1,0 +1,4 @@
+# Identity after e453aab6 (Nov 5 2026)
+zedqa_prelude.lua | pre
+zedqa_pin_windows.lua | pnw | timeout=30
+zedqa_identity2.lua | id2 | timeout=60

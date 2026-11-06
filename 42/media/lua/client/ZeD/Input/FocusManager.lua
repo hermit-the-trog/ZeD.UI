@@ -1026,6 +1026,19 @@ local function _focusWindow(side)
     Focus.claimFocus(target)
 end
 
+-- A bumper tapped with a D-pad wheel up (RADIAL_WHEELS_SPEC.md, the director: the bumpers close it and open
+-- the windows): the pair open and showing, the pad on that bumper's window. side: "char" or "world".
+function Focus.openSide(side)
+    if ZeD_CharacterWindow and ZeD_CharacterWindow.ensureBothOpenForGamepad then
+        pcall(ZeD_CharacterWindow.ensureBothOpenForGamepad, 0)
+    end
+    for _, M in ipairs({ ZeD_CharacterWindow or {}, ZeD_WorldWindow or {} }) do
+        local w = M.getWindow and M.getWindow()
+        if w and w.windowShaded and w.setWindowShaded then w:setWindowShaded(false) end
+    end
+    _focusWindow(side)
+end
+
 -- A button (tap): fire the focused element's onActivate (= LMB).
 local function _handleConfirm(w)
     local el = Focus.getFocusedElement(w)
@@ -1787,7 +1800,9 @@ local function _holdTicks(jid)
         local yNow = _btnDown("Y", jid)
         -- (Oct 24 2026: with a bumper held, Y is a quick action chord, ZeD_QuickChords.lua, never the windows)
         local bumper = _btnDown("LeftBump", jid) or _btnDown("RightBump", jid)
-        if yNow and (not _prevYPressedUnfocused) and (not _yHeld) and not bumper then
+        -- (a D-pad wheel up: Y does nothing, RADIAL_WHEELS_SPEC.md. This is the one button polled past the wheel's pad focus.)
+        local wheel = ZeD.DpadWheels and ZeD.DpadWheels.state and ZeD.DpadWheels.state[0]
+        if yNow and (not _prevYPressedUnfocused) and (not _yHeld) and not bumper and not wheel then
             _yHeld      = true
             _yStartMs   = getTimestampMs()
             _yConsumed  = false

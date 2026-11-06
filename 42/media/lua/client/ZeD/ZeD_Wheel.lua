@@ -261,7 +261,7 @@ function W.sliceAt(menu, dx, dy)
     if n == 0 then return -1 end
     local step = 360 / math.max(n, 2)
     local deg = math.deg(math.atan2(dy, dx))
-    local a = (deg + 90 + step / 2) % 360
+    local a = (deg + 90 + step / 2 + 360) % 360   -- (the 360 first: Kahlua's % keeps the sign, and the top left came out dead)
     local i = math.floor(a / step) + 1
     if i < 1 or i > n or W.isPlace(menu.slices[i]) then return -1 end
     return i
@@ -445,6 +445,8 @@ end
 -- the pointed slice, from the stick (a controller holds the wheel) or the mouse
 function W.update(menu)
     if W.qaPoint then menu._zedPoint = W.qaPoint; return end   -- QA: a pointed slice without a pointer (zedqa_wheels.lua)
+    local st = menu._zedDpad
+    if st and st.driven then return end   -- (a D-pad wheel on a stick: ZeD_WheelGesture points it, every frame)
     if menu.joyfocus then
         menu._zedPoint = W.sliceFromJoypad(menu, menu.joyfocus.id)
     else

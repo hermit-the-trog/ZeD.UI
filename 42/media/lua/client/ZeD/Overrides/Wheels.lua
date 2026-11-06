@@ -170,11 +170,15 @@ local function hookRadial()
     end
 
     -- the controller: letting go of the button that opened it takes the slice the stick points at
+    -- (a bumper on a D-pad wheel is the gesture's; that wheel's slice is the one on the screen)
     function R:onJoypadButtonReleased(button, joypadData)
         if not self._zed then return O.onJoypadButtonReleased(self, button, joypadData) end
+        local G = ZeD.WheelGesture
+        if G and G.onRelease(self, button) then return end
         if button == self.hideWhenButtonReleased then
             local id = self.joyfocus and self.joyfocus.id or (joypadData and joypadData.id)
-            local i = W.sliceFromJoypad(self, id)
+            local st = self._zedDpad
+            local i = (st and G) and G.pointed(st, self, id) or W.sliceFromJoypad(self, id)
             self:undisplay()
             if i > 0 then run(self, i) end
         end

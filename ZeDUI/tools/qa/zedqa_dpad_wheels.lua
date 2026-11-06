@@ -12,7 +12,13 @@
 --   * paused: only Here and now and ZeD open; a ZeD window holding the pad:
 --     the D-pad stays the window's;
 --   * screenshots of the five top levels and their inner wheels (foot), the
---     windows reset, each with a slice pointed (the bubble shows).
+--     windows reset, each with a slice pointed (the bubble shows);
+--   * the gesture (punch list 91, ZeD_WheelGesture.lua): tap, flick, cancels,
+--     swap, timeout, A X Y, aim and attack, bumpers, inner wheels, Select,
+--     Stick click, Hold, Toggle mode, the dead zone, with D.qaStick;
+--   * the UI queue: a wheel stepped on the frame it opens, a game-filled wheel
+--     entered a frame after the open, the UI hidden with a wheel up; a spring-
+--     back frame, a pad at rest between the radii, the bumpers while paused.
 -- Run on the deep-run character (zedqa_deep_run.lua). grep "ZEDQA dw".
 local p = getPlayer()
 local pn = p:getPlayerNum()
@@ -407,6 +413,524 @@ end)
 step(20, function()
     if spawned then pcall(function() spawned:removeFromWorld() end); pcall(function() spawned:removeFromSquare() end) end
     if home then pcall(function() p:teleportTo(home.x, home.y, 0) end) end
+end)
+
+-- THE GESTURE (punch list 91, RADIAL_WHEELS_SPEC.md): every way of working a wheel, no pad needed. The stick is
+-- D.qaStick, a frame is D.qaStep, the triggers are D.qaTrigger, and the buttons are sent to the wheel the way the
+-- game sends them with the wheel holding the pad (onJoypadDown, onJoypadButtonReleased). D.qaSettings stands in for
+-- ZeD setup, so nothing the player saved is touched. Here and now's Crouch is the slice taken: it shows at once.
+local G = ZeD.WheelGesture
+local JD = { player = pn }
+local keepTune = {}
+local function stick(x, y) D.qaStick(pn, x, y); D.qaStep(pn) end
+local function press(button) local st = D.state[pn]; st.menu:onJoypadDown(button, JD) end
+local function release(button) local st = D.state[pn]; st.menu:onJoypadButtonReleased(button, JD) end
+-- the stick at slice i of n, at a magnitude, turned by degrees
+local function at(i, n, mag, turn)
+    local a = math.rad(-90 + (i - 1) * 360 / n + (turn or 0))
+    return math.cos(a) * mag, math.sin(a) * mag
+end
+local function point(i, turn)
+    local g = D.gesture(pn)
+    local n = #D.state[pn].menu.slices
+    local x, y = at(i, n, 0.9, turn)
+    if g and g.needCenter then stick(0, 0) end
+    stick(x, y)
+end
+local function fresh(settings)
+    closeAll()
+    D.qaSettings = settings
+    D.qaTrigger(pn, false)
+    D.qaStick(pn, 0, 0)
+    p:setSneaking(false)
+end
+local function openDown() ISDPadWheels.onDisplayDown(JD) end
+
+step(10, function()
+    for k, v in pairs(D.tune) do keepTune[k] = v end
+    D.tune.OPEN_DEBOUNCE_MS = 0
+    closeAll()
+end)
+
+-- Tap and flick, the default
+step(5, function()
+    fresh({ open = "tap", commit = "flick", toggle = false, deadZone = 0.35 })
+    openDown()
+    local g = D.gesture(pn)
+    check(g and g.mode == "tap" and g.commit == "flick" and g.held == false, "tap: the wheel opens and stays up (held is false)")
+    check(D.state[pn].menu.hideWhenButtonReleased == nil, "tap: letting go of the D-pad does nothing")
+    local n = #D.state[pn].menu.slices
+    stick(0, 0)
+    local x, y = at(2, n, 0.30)
+    stick(x, y)
+    check(D.gesture(pn).point == -1, "below engage nothing lights")
+    for i = 1, n do
+        x, y = at(i, n, 0.9)
+        stick(x, y)
+        check(D.gesture(pn).point == i, "slice " .. i .. " of " .. n .. " lights at its angle (" .. tostring(D.gesture(pn).point) .. ")")
+    end
+    -- resting on the boundary between 1 and 2: the 7 degrees hold it, past them it moves
+    point(1)
+    local half = 180 / n
+    for _ = 1, 4 do
+        stick(at(1, n, 0.9, half + 5))
+        check(D.gesture(pn).point == 1, "past the boundary by 5 degrees: still slice 1")
+        stick(at(1, n, 0.9, half - 5))
+    end
+    stick(at(1, n, 0.9, half + 9))
+    check(D.gesture(pn).point == 2, "past it by 9: slice 2")
+    stick(at(2, n, 0.9, -half - 5))
+    check(D.gesture(pn).point == 2, "and back by 5: still slice 2, no flicker")
+    -- a wheel of twenty: the hysteresis never over a quarter of a slice
+    local many = { slices = {} }
+    for i = 1, 20 do many.slices[i] = { text = "x" } end
+    local ax, ay = at(1, 20, 0.9, 9 + 5)
+    check(G.sector(many, { latch = 1 }, ax, ay) == 2, "twenty slices: 5 degrees past a boundary moves (a quarter of 18 is 4.5)")
+    ax, ay = at(1, 20, 0.9, 9 + 4)
+    check(G.sector(many, { latch = 1 }, ax, ay) == 1, "twenty slices: 4 degrees past holds")
+    closeAll()
+end)
+
+-- commit: the latch, whichever way the stick comes home
+step(5, function()
+    fresh({ open = "tap", commit = "flick", toggle = false, deadZone = 0.35 })
+    openDown()
+    point(2)
+    stick(0, 0)
+    check(D.state[pn] == nil and p:isSneaking(), "a fast flick takes Crouch and the wheel closes")
+    fresh(D.qaSettings)
+    openDown()
+    point(2)
+    local n = #D.state[pn].menu.slices
+    for _, m in ipairs({ 0.8, 0.6, 0.45, 0.3, 0.25 }) do
+        stick(at(2, n, m))
+        check(D.state[pn] ~= nil, "easing down at " .. m .. ": not yet")
+    end
+    stick(at(6, n, 0.15))    -- (the release frame: the stick through the center, reading the opposite way)
+    check(D.state[pn] == nil and p:isSneaking(), "a slow ease takes the same slice, not the one the last frame read")
+    p:setSneaking(false)
+end)
+
+-- cancels
+step(5, function()
+    fresh({ open = "tap", commit = "flick", toggle = false, deadZone = 0.35 })
+    openDown()
+    point(2)
+    press(Joypad.DPadDown)
+    check(D.state[pn] == nil and not p:isSneaking(), "the same direction closes it, nothing taken")
+    fresh(D.qaSettings)
+    openDown()
+    point(2)
+    press(Joypad.BButton)
+    check(D.state[pn] == nil and not p:isSneaking(), "B closes it, nothing taken")
+    fresh(D.qaSettings)
+    openDown()
+    point(2)
+    press(Joypad.DPadLeft)
+    local g = D.gesture(pn)
+    check(g and g.dir == "left" and g.point == -1 and not p:isSneaking(), "another direction swaps, nothing taken")
+    press(Joypad.Back)
+    g = D.gesture(pn)
+    check(g and g.dir == "select" and D.state[pn].menu == getPlayerBackButtonWheel(pn), "Select swaps to the ZeD wheel")
+    press(Joypad.DPadRight)
+    g = D.gesture(pn)
+    check(g and g.dir == "right" and D.state[pn].menu == getPlayerRadialMenu(pn), "and a direction swaps back off it")
+    fresh(D.qaSettings)
+    D.tune.OPEN_DEBOUNCE_MS = 150
+    openDown()
+    press(Joypad.DPadDown)
+    check(D.state[pn] ~= nil, "a second tap straight after opening is ignored")
+    D.state[pn].openedAt = getTimestampMs() - 200
+    press(Joypad.DPadDown)
+    check(D.state[pn] == nil, "a tap after the debounce closes it")
+    D.tune.OPEN_DEBOUNCE_MS = 0
+    openDown()
+    stick(0, 0)
+    D.state[pn].lastActive = getTimestampMs() - 3100
+    stick(0, 0)
+    check(D.state[pn] == nil, "no engage for 3 seconds: it closes itself")
+    openDown()
+    point(2)
+    D.state[pn].lastActive = getTimestampMs() - 3100
+    D.qaStep(pn)
+    check(D.state[pn] ~= nil, "a slice lit: the timer waits")
+    closeAll()
+end)
+
+-- A, X, Y; aim and attack; the bumpers
+step(5, function()
+    fresh({ open = "tap", commit = "flick", toggle = false, deadZone = 0.35 })
+    openDown()
+    point(2)
+    press(Joypad.AButton); press(Joypad.XButton); press(Joypad.YButton)
+    check(D.state[pn] ~= nil and D.gesture(pn).point == 2 and not p:isSneaking(), "A, X and Y do nothing with a wheel up")
+    D.qaTrigger(pn, true)
+    D.qaStep(pn)
+    check(D.state[pn] == nil and not p:isSneaking(), "a trigger closes the wheel, nothing taken")
+    fresh(D.qaSettings)
+    D.qaTrigger(pn, true)
+    openDown()
+    stick(0, 0)
+    check(D.state[pn] ~= nil, "a trigger already down when it opened is no press")
+    D.qaTrigger(pn, false)
+    stick(0, 0)
+    D.qaTrigger(pn, true)
+    stick(0, 0)
+    check(D.state[pn] == nil, "let go and pressed again, it is")
+end)
+step(5, function()
+    fresh({ open = "tap", commit = "flick", toggle = false, deadZone = 0.35 })
+    local F = ZeD.Input.Focus
+    openDown()
+    press(Joypad.LBumper)
+    check(D.state[pn] ~= nil, "a bumper down: nothing yet")
+    release(Joypad.LBumper)
+    check(D.state[pn] == nil and F.getFocusedWindow() == ZeD_CharacterWindow.getWindow(), "LB tapped: the wheel closes, the Character window has the pad")
+end)
+step(30, function()
+    local F = ZeD.Input.Focus
+    F.releaseFocus()
+    openDown()
+    press(Joypad.RBumper)
+    release(Joypad.RBumper)
+    check(D.state[pn] == nil and F.getFocusedWindow() == ZeD_WorldWindow.getWindow(), "RB tapped: the wheel closes, the World window has the pad")
+end)
+step(30, function()
+    local F = ZeD.Input.Focus
+    F.releaseFocus()
+    if ZeD_CharacterWindow.isOpen() and ZeD_CharacterWindow.toggleBothPaired then ZeD_CharacterWindow.toggleBothPaired(pn) end
+    openDown()
+    press(Joypad.LBumper); press(Joypad.RBumper)
+    release(Joypad.RBumper); release(Joypad.LBumper)
+    check(D.state[pn] ~= nil and F.getFocusedWindow() == nil, "both bumpers (the zoom): the wheel stays, no windows")
+    closeAll()
+end)
+
+-- inner wheels by flick
+step(5, function()
+    fresh({ open = "tap", commit = "flick", toggle = false, deadZone = 0.35 })
+    openDown()
+    local name = ZeD.tr("UI_ZeD_Wheel_Zoom")
+    local idx
+    for i, e in ipairs(D.state[pn].path[1].entries) do if tostring(e.name):find(name, 1, true) then idx = i end end
+    point(idx)
+    stick(0, 0)
+    local g = D.gesture(pn)
+    check(g and g.level == 2, "a flick onto Zoom opens its ring in place")
+    check(g and g.needCenter, "the new ring waits for the stick to come back")
+    local n = #D.state[pn].menu.slices
+    stick(at(n, n, 0.9))
+    check(D.gesture(pn).point == -1, "not centered yet: nothing lights")
+    point(n)
+    stick(0, 0)
+    g = D.gesture(pn)
+    check(g and g.level == 1, "a flick onto Back is back on the top level")
+    point(idx)
+    stick(0, 0)
+    press(Joypad.BButton)
+    g = D.gesture(pn)
+    check(g and g.level == 1, "B backs out one level")
+    point(idx)
+    stick(0, 0)
+    check(D.gesture(pn).level == 2, "in again")
+    press(Joypad.DPadDown)
+    check(D.state[pn] == nil, "the same direction closes all of it")
+    closeAll()
+end)
+
+-- the Select wheel: the engine shows it, then it is worked the same
+step(5, function()
+    fresh({ open = "tap", commit = "flick", toggle = false, deadZone = 0.35 })
+    open("select")
+    local g = D.gesture(pn)
+    check(g and g.mode == "tap" and g.held == false and D.state[pn].menu.hideWhenButtonReleased == nil, "the Select wheel opens by a tap too")
+    point(1)
+    stick(0, 0)
+    check(D.gesture(pn).level == 2, "a flick on its Theme opens the ring")
+    press(Joypad.Back)
+    check(D.state[pn] == nil, "Select again closes all of it")
+    closeAll()
+end)
+
+-- an off slice (Here and now's Light, with the lights taken away it may be live: the top level's own off slices are looked for)
+step(5, function()
+    fresh({ open = "tap", commit = "flick", toggle = false, deadZone = 0.35 })
+    ISDPadWheels.onDisplayLeft(JD)
+    local off
+    for i, s in ipairs(D.state[pn].menu.slices) do if W.isOff(s) then off = i; break end end
+    if off then
+        point(off)
+        check(D.gesture(pn).point == off, "an off slice lights")
+        stick(0, 0)
+        check(D.state[pn] == nil, "letting go on it at the top level closes the wheel, as letting go always did")
+    else
+        say("no off slice on Character for this character: skipped")
+    end
+    closeAll()
+end)
+
+-- Stick click
+step(5, function()
+    fresh({ open = "tap", commit = "click", toggle = false, deadZone = 0.35 })
+    openDown()
+    local m = D.state[pn].menu
+    point(2)
+    stick(0, 0)
+    check(D.state[pn] ~= nil and D.gesture(pn).point == 2, "Stick click: letting go keeps the slice lit")
+    press(Joypad.RStickButton)
+    check(D.state[pn] == nil and p:isSneaking(), "R3 takes the lit slice, stick at rest")
+    p:setSneaking(false)
+    fresh(D.qaSettings)
+    openDown()
+    press(Joypad.RStickButton)
+    check(D.state[pn] ~= nil, "R3 with nothing lit does nothing")
+    closeAll()
+end)
+
+-- Hold: today's path, plus letting the stick go
+step(5, function()
+    fresh({ open = "hold", commit = "flick", toggle = false, deadZone = 0.35 })
+    openDown()
+    local g = D.gesture(pn)
+    check(g and g.mode == "hold" and g.held and D.state[pn].menu.hideWhenButtonReleased == Joypad.DPadDown, "Hold: up while the direction is held")
+    point(2)
+    release(Joypad.DPadDown)
+    D.qaStep(pn)
+    check(D.state[pn] == nil and p:isSneaking(), "letting go of the D-pad takes the lit slice")
+    p:setSneaking(false)
+    fresh(D.qaSettings)
+    openDown()
+    point(2)
+    stick(0, 0)
+    check(D.state[pn] == nil and p:isSneaking(), "letting the stick go first takes it too")
+    p:setSneaking(false)
+    fresh({ open = "hold", commit = "click", toggle = false, deadZone = 0.35 })
+    openDown()
+    point(2)
+    stick(0, 0)
+    check(D.state[pn] ~= nil and not p:isSneaking(), "Hold with Stick click: letting the stick go does not take")
+    press(Joypad.XButton)
+    check(D.state[pn] == nil, "Hold: X closes, as it did")
+    closeAll()
+end)
+
+-- Toggle mode
+step(5, function()
+    fresh({ open = "hold", commit = "click", toggle = true, deadZone = 0.35 })
+    openDown()
+    local g = D.gesture(pn)
+    check(g and g.mode == "toggle" and g.held == false, "Toggle mode forces Tap and overrides the commit")
+    stick(0, 0)
+    press(Joypad.DPadUp)
+    check(D.gesture(pn).point == 1, "D-pad Up lights the top slice")
+    press(Joypad.DPadRight)
+    check(D.gesture(pn).point == 2, "D-pad Right walks the ring to slice 2")
+    D.state[pn].lastActive = getTimestampMs() - 60000
+    stick(0, 0)
+    check(D.state[pn] ~= nil and D.gesture(pn).point == 2, "no timer in Toggle mode, and the highlight stays")
+    press(Joypad.AButton)
+    check(D.state[pn] == nil and p:isSneaking(), "A takes it")
+    p:setSneaking(false)
+    fresh(D.qaSettings)
+    openDown()
+    point(2)
+    stick(0, 0)
+    check(D.state[pn] ~= nil and not p:isSneaking(), "the stick moves the highlight and letting go takes nothing")
+    press(Joypad.BButton)
+    check(D.state[pn] == nil, "B closes it")
+    closeAll()
+end)
+
+-- the dead zone, live; the prompts; tune
+step(5, function()
+    fresh({ open = "tap", commit = "flick", toggle = false, deadZone = 0.50 })
+    openDown()
+    local n = #D.state[pn].menu.slices
+    stick(0, 0)
+    stick(at(2, n, 0.45))
+    check(D.gesture(pn).point == -1, "dead zone 0.50: 0.45 lights nothing")
+    D.qaSettings.deadZone = 0.40
+    stick(at(2, n, 0.45))
+    check(D.gesture(pn).point == 2, "the dead zone is read live: at 0.40 it lights")
+    closeAll()
+    fresh({ open = "tap", commit = "flick", toggle = false, deadZone = 0.35 })
+    D.tune.ENGAGE_RADIUS = 0.8
+    openDown()
+    stick(0, 0)
+    stick(at(2, n, 0.7))
+    check(D.gesture(pn).point == -1, "tune.ENGAGE_RADIUS wins over the setting")
+    D.tune.ENGAGE_RADIUS = false
+    closeAll()
+    local count = {}
+    for _, s in ipairs({ { "tap", "flick", false, 3 }, { "tap", "click", false, 3 }, { "hold", "flick", false, 4 }, { "hold", "click", false, 5 }, { "tap", "flick", true, 4 } }) do
+        fresh({ open = s[1], commit = s[2], toggle = s[3], deadZone = 0.35 })
+        openDown()
+        local prompts = D.state[pn].menu._zedPrompts
+        local parts = {}
+        for _, q in ipairs(prompts) do parts[#parts + 1] = tostring(q.glyph) .. " " .. tostring(q.label) end
+        say("prompts " .. s[1] .. " " .. s[2] .. " " .. tostring(s[3]) .. ": " .. table.concat(parts, " | "))
+        check(#prompts == s[4], "prompts for " .. s[1] .. ", " .. s[2] .. (s[3] and ", toggle" or ""))
+        closeAll()
+    end
+end)
+
+-- the UI queue: a wheel opened from OnRenderTick is stepped on that same frame, before the game has it in its UI list
+local coldTick
+step(5, function()
+    fresh({ open = "tap", commit = "flick", toggle = false, deadZone = 0.35 })
+    coldTick = function()
+        Events.OnRenderTick.Remove(coldTick)
+        ISDPadWheels.onDisplayLeft(JD)
+        check(D.state[pn] ~= nil, "cold open: the state is up")
+        check(not D.state[pn].menu:isReallyVisible(), "cold open: the wheel is still in the UI queue")
+        D.qaStep(pn)
+        check(D.state[pn] ~= nil, "cold open: a frame on the opening tick leaves it open")
+    end
+    Events.OnRenderTick.Add(coldTick)
+end)
+step(10, function()
+    check(D.state[pn] ~= nil and D.state[pn].menu:isReallyVisible(), "cold open: a few frames on it is on the screen, still working")
+    closeAll()
+end)
+
+-- a wheel on the screen for a frame or more, then a filler that behaves like the vehicle wheel's: it bails on a
+-- wheel it finds visible, and a removal does not count until the game's next update
+local filled = { name = "QA filled", fill = function(pl, n)
+    local m = getPlayerRadialMenu(n)
+    m:clear()
+    if m:isReallyVisible() then m:undisplay(); return end
+    m:addSlice("QA one", nil, function() end)
+end }
+step(5, function()
+    fresh({ open = "tap", commit = "flick", toggle = false, deadZone = 0.35 })
+    ISDPadWheels.onDisplayRight(JD)
+end)
+step(5, function()
+    D.enter(pn, filled)
+    local m = D.state[pn] and D.state[pn].menu
+    check(m and #m.slices == 2 and tostring(m.slices[1].text) == "QA one", "a filler a frame after the open fills the ring, Back after it")
+    closeAll()
+end)
+
+-- the UI hidden with a wheel up (the pause menu, Esc): the wheel ends and comes off the saved focus
+step(5, function()
+    fresh({ open = "tap", commit = "flick", toggle = false, deadZone = 0.35 })
+    openDown()
+end)
+step(5, function()
+    local m = D.state[pn].menu
+    D.qaStep(pn)
+    m:setVisible(false)
+    D.qaStep(pn)
+    check(D.state[pn] == nil, "the UI hidden: the wheel's state ends")
+    check(m:isVisible() and m._zedDpad == nil, "and the wheel is left visible for its next show, no dead state on it")
+end)
+step(5, function()
+    check(not getPlayerRadialMenu(pn):isReallyVisible(), "and it is off the screen")
+    closeAll()
+end)
+
+-- a spring-back frame above engage, far side of the highlight: the highlight stays, the slice taken is the one lit
+step(5, function()
+    fresh({ open = "tap", commit = "flick", toggle = false, deadZone = 0.35 })
+    openDown()
+    local n = #D.state[pn].menu.slices
+    point(2)
+    stick(at(2, n, 0.95))
+    stick(at(2, n, 0.40, 180))
+    check(D.gesture(pn).point == 2, "a spring-back frame on the far side: the highlight stays")
+    stick(at(2, n, 0.10, 180))
+    check(D.state[pn] == nil and p:isSneaking(), "and the slice taken is the lit one, never the opposite one")
+    p:setSneaking(false)
+    fresh(D.qaSettings)
+    openDown()
+    point(2)
+    stick(at(2, n, 0.9, 180))
+    check(D.gesture(pn).point == 2, "the far side: the first frame waits")
+    D.state[pn].farSince = getTimestampMs() - 100
+    stick(at(2, n, 0.9, 180))
+    check(D.gesture(pn).point ~= 2, "a stick that stays there moves it")
+    closeAll()
+end)
+
+-- a pad at rest between the radii
+step(5, function()
+    fresh({ open = "tap", commit = "flick", toggle = false, deadZone = 0.35 })
+    D.qaStick(pn, 0.25, 0)
+    openDown()
+    local n = #D.state[pn].menu.slices
+    stick(0.25, 0)
+    stick(at(2, n, 0.9))
+    check(D.gesture(pn).point == 2, "resting at 0.25 at the open: a push still picks")
+    stick(0.25, 0)
+    check(D.state[pn] ~= nil and D.gesture(pn).point == 2, "settling back at 0.25: not a let go, the slice stays lit")
+    D.state[pn].lastActive = getTimestampMs() - 3100
+    stick(0.25, 0)
+    check(D.state[pn] == nil and not p:isSneaking(), "left there for 3 seconds: it closes, nothing taken")
+    fresh(D.qaSettings)
+    openDown()
+    local idx
+    local name = ZeD.tr("UI_ZeD_Wheel_Zoom")
+    for i, e in ipairs(D.state[pn].path[1].entries) do if tostring(e.name):find(name, 1, true) then idx = i end end
+    point(idx)
+    stick(0, 0)
+    stick(0.25, 0)
+    stick(0.30, 0)
+    check(D.gesture(pn).needCenter, "a new ring: passing through the band is not centered")
+    D.state[pn].restSince = getTimestampMs() - 200
+    stick(0.25, 0)
+    check(not D.gesture(pn).needCenter, "sitting in it is")
+    closeAll()
+end)
+
+-- Stick click: a lit slice waits for the click, past the timer
+step(5, function()
+    fresh({ open = "tap", commit = "click", toggle = false, deadZone = 0.35 })
+    openDown()
+    point(2)
+    stick(0, 0)
+    D.state[pn].lastActive = getTimestampMs() - 3100
+    stick(0, 0)
+    check(D.state[pn] ~= nil and D.gesture(pn).point == 2, "Stick click: the timer leaves a lit slice")
+    closeAll()
+end)
+
+-- Toggle: the press that opens is not a move
+step(5, function()
+    fresh({ open = "tap", commit = "flick", toggle = true, deadZone = 0.35 })
+    D.tune.OPEN_DEBOUNCE_MS = 150
+    openDown()
+    press(Joypad.DPadDown)
+    check(D.gesture(pn).point == -1 or D.gesture(pn).point == nil, "Toggle: the opening press lights nothing")
+    D.state[pn].openedAt = getTimestampMs() - 200
+    press(Joypad.DPadDown)
+    check((D.gesture(pn).point or -1) > 0, "the next press does")
+    D.tune.OPEN_DEBOUNCE_MS = 0
+    closeAll()
+end)
+
+-- a bumper tapped on a paused wheel: it closes, the windows stay shut and the pad stays free
+step(5, function()
+    fresh({ open = "tap", commit = "flick", toggle = false, deadZone = 0.35 })
+    local F = ZeD.Input.Focus
+    F.releaseFocus()
+    UIManager.getSpeedControls():ButtonClicked("Pause")
+    openDown()
+    check(D.state[pn] ~= nil, "paused: Here and now opens")
+    press(Joypad.LBumper)
+    release(Joypad.LBumper)
+    check(D.state[pn] == nil and F.getFocusedWindow() == nil, "paused: a bumper closes the wheel and no window takes the pad")
+    UIManager.getSpeedControls():ButtonClicked("Play")
+    closeAll()
+end)
+step(5, function()
+    closeAll()
+    D.qaStick(pn, nil)
+    D.qaTrigger(pn, nil)
+    D.qaSettings = nil
+    for k, v in pairs(keepTune) do D.tune[k] = v end
+    p:setSneaking(false)
+    say("gesture settings put back")
 end)
 step(10, function()
     closeAll()
