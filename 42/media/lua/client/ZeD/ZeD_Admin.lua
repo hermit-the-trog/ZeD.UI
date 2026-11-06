@@ -98,7 +98,7 @@ end
 function M.roles()
     if M.qaRoles then return M.qaRoles end
     local t = now()
-    if M.rolesAt and t - M.rolesAt < READ_EVERY_MS and M.roleList then return M.roleList end
+    if M.rolesAt and t - M.rolesAt < USERS_EVERY_MS and M.roleList then return M.roleList end
     M.rolesAt = t
     local out = {}
     local ok = pcall(function()
@@ -132,6 +132,7 @@ end
 
 -- what a grayed control says: the capability it needs, and the role that has it
 function M.why(capName)
+    if #M.roles() == 0 then return tr("UI_ZeD_Adm_NeedCapOnly", M.capWord(capName), capName) end
     local r = M.roleWith(capName)
     if r then return tr("UI_ZeD_Adm_NeedCap", M.capWord(capName), capName, r) end
     return tr("UI_ZeD_Adm_NeedCapNone", M.capWord(capName), capName)
@@ -205,10 +206,17 @@ function M.refreshRows()
     sortRows(out)
     M.rows = out
     M.onlineN = 0
-    for _, r in ipairs(out) do
+    local sig = {}
+    for i, r in ipairs(out) do
         if r.on then M.onlineN = M.onlineN + 1 end
+        sig[i] = table.concat({ r.user, tostring(r.on), tostring(r.role), tostring(r.warn), tostring(r.kicks), tostring(r.lastT) }, ",")
     end
-    M.bump()
+    -- (read every second while the tab shows: the cards rebuild only for a real change)
+    sig = table.concat(sig, ";")
+    if sig ~= M.rowsSig then
+        M.rowsSig = sig
+        M.bump()
+    end
 end
 
 function M.row(user)
@@ -643,6 +651,8 @@ end
 function on.a_note(a)
     if a.kind == "stay" and ZeD.Messages and ZeD.Messages.adminNote then
         ZeD.Messages.adminNote(tr("UI_ZeD_Adm_NoteStay", tostring(a.user)))
+    elseif a.kind == "spawn" and ZeD.Messages and ZeD.Messages.adminNote then
+        ZeD.Messages.adminNote(tr("UI_ZeD_Adm_NoteSpawn", tostring(a.n), tostring(a.item)))
     end
     if M.live() then S.send(Adm.MOD, "a_bans", {}) end
 end

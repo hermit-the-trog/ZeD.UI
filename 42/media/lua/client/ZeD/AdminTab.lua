@@ -285,7 +285,7 @@ function A.render(panel, win, x, y, w, h)
         headH = M.getTabHeaderH()
     end
     -- with the controller the help band holds the prompts: a grayed stop's reason and a press's answer get a line here
-    local words = TC.padWords(win, st)
+    local words = (not onQueue) and TC.padWords(win, st) or nil   -- (the queue says these in its own list)
     local lineH, lineWords = TC._D.footLine({}, w, words, 0)
     local sy, sh = y + headH, h - headH - lineH
     local listH = measure(L, w - T.sp.scrollbarW)

@@ -136,6 +136,12 @@ local function roleNamed(name)
     return nil
 end
 
+-- (A3: the field may be null)
+local function roleName(o)
+    local r = o:getRole()
+    return r and r:getName() or nil
+end
+
 -- the target's role as far as the server can tell: online, the role they hold; offline, the one last seen
 local function roleOf(md, user)
     local o = Srv.player(user)
@@ -144,12 +150,20 @@ local function roleOf(md, user)
     return rec and rec.role and roleNamed(rec.role) or nil
 end
 
+local function position(o)
+    local r = o:getRole()
+    return r and r:getPosition() or -1
+end
+
 -- nil when p may act on this target, else the error word
-local function guard(md, p, user, protect)
-    if user == p:getUsername() then return "self" end
+local function guard(md, p, user, protect, allowSelf)
+    if user == p:getUsername() then
+        if allowSelf then return nil end
+        return "self"
+    end
     local r = roleOf(md, user)
     if r and protect and r:hasCapability(protect) then return "protected" end
-    if r and Adm.RANK_GUARD and r:getPosition() > p:getRole():getPosition() then return "rank" end
+    if r and Adm.RANK_GUARD and r:getPosition() > position(p) then return "rank" end
     return nil
 end
 
@@ -209,7 +223,7 @@ local function cardView(md, user)
     if o then
         local r = readPlayer(o, true)
         v.prof, v.traits, v.skills = r.prof, r.traits, r.skills
-        v.role = o:getRole():getName()
+        v.role = roleName(o)
         v.x, v.y, v.z = math.floor(o:getX()), math.floor(o:getY()), math.floor(o:getZ())
         v.oid = o:getOnlineID()
     elseif rec then
@@ -351,7 +365,7 @@ local function snap(md, o, user, now)
         md.players[user] = rec
     end
     rec.t = now
-    rec.role = o:getRole():getName()
+    rec.role = roleName(o)
     if not rec.snapAt or now - rec.snapAt >= AL.SNAP_S then
         rec.snapAt = now
         local r = readPlayer(o, false)
@@ -402,7 +416,7 @@ local function runWatch(now)
     local done = nil
     for user, w in pairs(T.watch) do
         local o = Srv.player(user)
-        if o and o:getRole():getName() == w.role then
+        if o and roleName(o) == w.role then
             for _, id in ipairs(w.off) do
                 if id == "Invisible" then o:setGhostMode(false)
                 elseif id == "NoClip" then o:setNoClip(false)
@@ -462,7 +476,7 @@ reg("a_players", { cap = CAP.SeePlayersConnected, limit = AL.PLAYERS_MS }, funct
         local u = o:getUsername()
         seen[u] = true
         n = n + 1
-        rows[n] = { u = u, on = true, role = o:getRole():getName() }
+        rows[n] = { u = u, on = true, role = roleName(o) }
     end)
     local off, c = {}, 0
     for u, r in pairs(md.players) do
@@ -491,7 +505,7 @@ reg("a_card", { cap = CAP.CanSeePlayersStats, limit = AL.CARD_MS, mark = true },
 end)
 
 -- the checks every act on a player shares; the target's name, or nil with the answer sent
-local function onUser(p, a, rid, protect)
+local function onUser(p, a, rid, protect, allowSelf)
     if not okUser(a.user) then
         Srv.bad(p, "admin target")
         Srv.ack(p, rid, false, "gone")
@@ -499,7 +513,7 @@ local function onUser(p, a, rid, protect)
     end
     local md = open()
     if frozen(p, rid) then return nil end
-    local err = guard(md, p, a.user, protect)
+    local err = guard(md, p, a.user, protect, allowSelf)
     if err then
         Srv.ack(p, rid, false, err)
         return nil
@@ -571,7 +585,7 @@ reg("a_role", { cap = CAP.ChangeAccessLevel }, function(p, a, rid)
     if a.user == p:getUsername() then Srv.ack(p, rid, false, "self"); return end
     local new = roleNamed(a.role)
     if not new then Srv.ack(p, rid, false, "gone"); return end
-    local mine = p:getRole():getPosition()
+    local mine = position(p)
     local old = roleOf(md, a.user)
     if new:getPosition() > mine or (old and old:getPosition() > mine) then Srv.ack(p, rid, false, "rank"); return end
     local keep = {}
@@ -589,7 +603,7 @@ reg("a_role", { cap = CAP.ChangeAccessLevel }, function(p, a, rid)
 end)
 
 reg("a_skill", { cap = CAP.AddXP }, function(p, a, rid)
-    local user = onUser(p, a, rid)
+    local user = onUser(p, a, rid, nil, true)
     if not user then return end
     local o = online(p, rid, user)
     if not o then return end
@@ -811,6 +825,7 @@ reg("a_spawn", { cap = CAP.AddItem, limit = AL.SPAWN_MS }, function(p, a, rid)
     local other = nil
     if to ~= "me" and to ~= "ground" then other = to end
     logAt(p, "spawn", other, tostring(n) .. " x " .. item .. " to " .. to)
+    if Adm.SPAWN_TELLS and other then Srv.to(Srv.player(other), Adm.MOD, "a_note", { kind = "spawn", n = n, item = item }) end
     Srv.ack(p, rid, true, nil, { n = n })
 end)
 
@@ -831,7 +846,8 @@ end)
 
 -- your own powers, for the log (the game's own setter already ran; a client that sends this proves nothing but that it did)
 reg("a_power", { limit = AL.POWER_MS }, function(p, a, rid)
-    if type(a.id) ~= "string" or #a.id > AL.TARGET_MAX or not p:getRole():hasAdminPower() then return end
+    local role = p:getRole()
+    if type(a.id) ~= "string" or #a.id > AL.TARGET_MAX or not (role and role:hasAdminPower()) then return end
     logAt(p, ((a.on == true) and "power on: " or "power off: ") .. Tk.name(a.id))
 end)
 

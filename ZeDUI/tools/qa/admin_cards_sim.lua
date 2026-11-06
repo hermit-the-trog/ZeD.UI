@@ -744,6 +744,13 @@ check("Manage Inventory opens the game's window", ISPlayerStatsManageInvUI.opene
 TC.qaHold = true
 press("tk:tkt:14")
 check("a ticket opens over the card", st.card.kind == "staff" and st.card.parent ~= nil)
+C.card = { id = 14, source = "zed", kind = "GRIEF", author = "Kade_R", status = "Open", thread = { n = 1, { who = "Kade_R", text = "Words" } }, notes = { n = 0 } }
+C.seq = C.seq + 1
+draw()
+press("tk:pcard")
+check("the ticket's Player card is this card", st.card.kind == "player" and st.card.parent.kind == "staff")
+TC.back(win, st)
+check("back to the ticket", st.card.kind == "staff")
 C.card = nil
 TC.back(win, st)
 check("back to the player card", st.card and st.card.kind == "player")

@@ -1558,8 +1558,12 @@ function D.goThere(st, place)
     D.flash(ts(st), tr("UI_ZeD_Tk_Going", Tk.whereText(place) or ""))
 end
 
--- until Phase 2's player card: the game's stats window, as the Admin tab's Check stats opens it
+-- the Player card; without the server part, the game's stats window, as the Admin tab's Check stats opened it
 function D.playerCard(win, author)
+    if ZeD.AdminCards and ZeD.Admin.live() and win._tkSt and win._tkSt.card then
+        ZeD.AdminCards.openFromTicket(win, win._tkSt, author)
+        return
+    end
     local who = getPlayerFromUsername(author)
     local p = win._playerObj or getPlayer()
     if not (who and p) then return end
@@ -1582,7 +1586,9 @@ end
 
 function D.livePlayerCard(c)
     local why = nil
-    if TC.qaStats ~= nil then
+    if ZeD.AdminCards and ZeD.Admin.live() and TC.qaStats == nil then
+        if not D.cap("CanSeePlayersStats") then why = tr("UI_ZeD_Tk_NoStats") end
+    elseif TC.qaStats ~= nil then
         if not TC.qaStats then why = tr("UI_ZeD_Tk_NoStats") end
     elseif not D.cap("CanSeePlayersStats") then why = tr("UI_ZeD_Tk_NoStats")
     elseif not getPlayerFromUsername(c.author) then why = tr(D.onServer(c.author) and "UI_ZeD_Adm_NotSeen" or "UI_ZeD_Tk_NotOnline") end
