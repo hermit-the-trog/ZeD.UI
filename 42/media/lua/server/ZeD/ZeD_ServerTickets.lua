@@ -90,6 +90,8 @@ local function textOf(rec)
     local n = 0
     for i = 1, rec.thread.n do n = n + #rec.thread[i].text end
     for i = 1, rec.notes.n do n = n + #rec.notes[i].text end
+    local rep = rec.report
+    for i = 1, (rep and rep.n or 0) do n = n + #rep[i].text end
     return n
 end
 
@@ -239,10 +241,22 @@ local function threadCopy(list)
     return out
 end
 
+-- a report from chat (Phase 5): who it names, and the chat as the reporter's client held it
+local function reportCopy(rep)
+    if not rep then return nil end
+    local out = { who = rep.who, n = rep.n }
+    for i = 1, rep.n do
+        local l = rep[i]
+        out[i] = { who = l.who, text = l.text, t = l.t, mark = l.mark }
+    end
+    return out
+end
+
 local function playerView(rec)
     return {
         id = rec.id, kind = rec.kind, st = Tk.PLAYER_ST[rec.status], day = rec.day, filed = rec.filed,
         place = placeCopy(rec.place), thread = threadCopy(rec.thread), can = Tk.canReply(rec.status) and true or false,
+        report = reportCopy(rec.report),
     }
 end
 
@@ -256,7 +270,7 @@ local function staffView(rec)
         id = rec.id, source = rec.source, kind = rec.kind, author = rec.author, status = rec.status, day = rec.day,
         filed = rec.filed, updated = rec.updated, place = placeCopy(rec.place), near = near, assignee = rec.assignee,
         spamBy = rec.spamBy, gameId = rec.gameId, gameFiled = rec.gameFiled, gameAns = rec.gameAns, gameGone = rec.gameGone,
-        unread = rec.unread, thread = threadCopy(rec.thread), notes = threadCopy(rec.notes),
+        unread = rec.unread, thread = threadCopy(rec.thread), notes = threadCopy(rec.notes), report = reportCopy(rec.report),
     }
 end
 
@@ -372,6 +386,38 @@ local function goodText(s)
     return text
 end
 
+-- what a report from chat may hold: a name and the chat around the line, each cut to size. The server hears no chat (server
+-- Lua cannot reach ChatServer), so all of it is the reporter's word, and says so on the card. nil for none, false when bad
+local function goodReport(p, r)
+    if r == nil then return nil end
+    if type(r) ~= "table" or type(r.who) ~= "string" or Tk.name(r.who) == "" then
+        Srv.bad(p, "t_new report")
+        return false
+    end
+    local n = r.n
+    if not (n == 0 or Tk.whole(n)) or n > L.REPORT_LINES then
+        Srv.bad(p, "t_new report")
+        return false
+    end
+    local out = { who = Tk.name(r.who), n = n }
+    for i = 1, n do
+        local l = r[i]
+        if type(l) ~= "table" or type(l.who) ~= "string" or type(l.text) ~= "string" then
+            Srv.bad(p, "t_new report")
+            return false
+        end
+        out[i] = { who = Tk.name(l.who), text = string.sub(string.gsub(Tk.clean(l.text) or "", "\n", " "), 1, L.REPORT_TEXT),
+            mark = l.mark == true and true or nil, t = type(l.t) == "string" and string.sub(Tk.name(l.t), 1, 16) or nil }
+    end
+    return out
+end
+
+local function reportSize(rep)
+    local n = 0
+    for i = 1, (rep and rep.n or 0) do n = n + #rep[i].text end
+    return n
+end
+
 -- one line a minute for the whole server, with how many were refused: a refused t_new starts no limit
 local function fullLine(md, open, who)
     local t = getTimestampMs()
@@ -386,7 +432,8 @@ reg("t_new", { limit = L.NEW_MS, mark = false }, function(p, a, rid)
     local md = open()
     if frozen(p, rid) then return end
     local text = goodText(a.text)
-    if not Tk.isKind(a.kind) or not text then
+    local report = goodReport(p, a.report)
+    if not Tk.isKind(a.kind) or not text or report == false then
         if not Tk.isKind(a.kind) then Srv.bad(p, "t_new") end
         Srv.ack(p, rid, false, "text")
         return
@@ -397,7 +444,7 @@ reg("t_new", { limit = L.NEW_MS, mark = false }, function(p, a, rid)
         Srv.ack(p, rid, false, "many")
         return
     end
-    if c.open >= L.OPEN_ALL or not playerRoom(md, #text) then
+    if c.open >= L.OPEN_ALL or not playerRoom(md, #text + reportSize(report)) then
         fullLine(md, c.open, me)
         Srv.ack(p, rid, false, "full")
         return
@@ -408,6 +455,8 @@ reg("t_new", { limit = L.NEW_MS, mark = false }, function(p, a, rid)
         thread = { n = 0 }, notes = { n = 0 } }
     stamp(p, rec, a.here == true)
     line(md, rec.thread, me, text)
+    rec.report = report or nil
+    md.chars = md.chars + reportSize(report)
     md.tickets[id] = rec
     Srv.mark(p, "t_new")
     Srv.ack(p, rid, true, nil, { id = id, file = Tk.fileText(rec.kind, id, text) })

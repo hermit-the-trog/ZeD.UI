@@ -522,8 +522,8 @@ function AC.leaveLines(info)
     return out
 end
 
--- the screen a banned client shows, until Phase 5's own takes over (M.leaveScreen). It covers the game, the words wrap,
--- and Leave ends it early; the model's clock ends it anyway.
+-- the screen a banned client shows. Phase 5 sets M.leaveScreen, which fills in the appeal line and calls this. It covers the
+-- game, the words wrap, and Leave ends it early; the model's clock ends it anyway.
 ZeD_LeaveScreen = ISPanel:derive("ZeD_LeaveScreen")
 
 function ZeD_LeaveScreen:new(info)
@@ -716,7 +716,7 @@ function AC.homeItems(out, win, st, p)
     local t = TC.qaState(st)
     local me = M.me()
     local key = table.concat({ tostring(M.seq), tostring(C.seq), tostring(st.pfind), tostring(st.ponly), tostring(st.msgRepeat), tostring(st.msgEvery),
-        tostring(M.live()), tostring(#M.repeats), tostring(M.qaCaps) }, ":")
+        tostring(M.live()), tostring(#M.repeats), tostring(M.qaCaps), AC.homeKey and AC.homeKey() or "" }, ":")
     if st.homeKey ~= key or not st.homeItems then
         st.homeKey = key
         t.listGen = t.listGen + 1
@@ -748,6 +748,8 @@ function AC.homeItems(out, win, st, p)
         P.summary(L, "sum:bans", tr("UI_ZeD_Adm_BansSum"), nil, "BanUnbanUser", function(ww) AC.openBans(ww, st) end)
         L[#L + 1] = { k = "head", text = tr("UI_ZeD_Adm_Spawn") }
         P.summary(L, "sum:spawn", tr("UI_ZeD_Adm_SpawnSum"), nil, "AddItem", function(ww) AC.openSpawn(ww, st) end)
+        -- RULES AND NEWS (Phase 5: ZeD_CommunityCards.lua, on a server with that part)
+        if AC.homeExtra then AC.homeExtra(L, win, st) end
         for _, it in ipairs(L) do it.win = win end
         st.homeItems = L
     end
@@ -777,6 +779,13 @@ end
 
 -- once a frame on the tab, card or list
 function AC.frame(win, st)
+    if M.openPlayerNext then           -- (chat's Player card)
+        local user = M.openPlayerNext
+        M.openPlayerNext = nil
+        st.card, st.screen = nil, nil
+        AC.openPlayer(win, st, user, "adm:tk:p:" .. user)
+        return
+    end
     if not M.openBansNext then return end
     M.openBansNext = nil
     if not M.can("BanUnbanUser") then return end
@@ -1590,7 +1599,8 @@ function P.bansItems(win, st, t, card)
     B.label(items, tr("UI_ZeD_Adm_WhatTheySee"))
     F.inset(items, nil, function()
         local sample = rows[1] or { reason = tr("UI_ZeD_Adm_ReasonHint"), untilT = getTimestamp() + 259200 }
-        for _, s in ipairs(AC.leaveLines({ kind = "ban", reason = sample.reason or tr("UI_ZeD_Adm_ReasonHint"), untilT = sample.untilT })) do B.sub(items, s) end
+        local appeal = ZeD.Community and ZeD.Community.appeal() or nil
+        for _, s in ipairs(AC.leaveLines({ kind = "ban", reason = sample.reason or tr("UI_ZeD_Adm_ReasonHint"), untilT = sample.untilT, appeal = appeal })) do B.sub(items, s) end
     end)
     B.sub(items, tr("UI_ZeD_Adm_SeeGameLine"))
     return items

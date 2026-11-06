@@ -16,7 +16,8 @@
 --
 -- The admin tools (ZeD_AdminCards.lua) and the safehouse and faction cards (ZeD_ClaimCards.lua) push their cards on this
 -- same engine: TC.kinds holds a card kind's parts (data, items, foot, title, help, key, tick, back, gone, cancel, flag,
--- padX) and TC.items a new item's (gap, layout, draw, stops), in a card or a tab's list alike.
+-- padX, noBack) and TC.items a new item's (gap, layout, draw, stops), in a card or a tab's list alike. The join screen
+-- (ZeD_CommunityCards.lua) draws one such card in a window of its own, with its own pad: win._padId names the stop it holds.
 --
 -- All player text is drawn with drawText, never through the game's rich text, which would act on <LINE> or <IMAGE:...>.
 -- Kind and status always carry their word, never color alone.
@@ -93,7 +94,8 @@ TC._D, TC._B = D, B
 -- TC.kinds: kind -> { data(card), items(win, st, t, card, data), foot(win, st, t, card, data), title(card, data),
 --   help(t, card, data), key(t, card), tick(win, st, t, card), back(win, st, t, card), gone(card),
 --   flag(panel, win, t, card, data, x, y, w, bar), padX(win, st, t, card),
---   cancel(win, st, t, card): true when it answered B, or the frame's own answer runs }
+--   cancel(win, st, t, card): true when it answered B, or the frame's own answer runs,
+--   noBack: true leaves out the back bar (a card with nowhere to go back to) }
 -- TC.items: k -> { gap: design units above it, layout(win, it, w, sh), draw(panel, win, t, it, x, dy, w, mx, my, ctx),
 --   stops(it, x0, dy, w, add) }, in a card or a tab's list alike. ctx: hits, prefix, viewY, viewH, covered.
 --   stops may be left out: nothing to press. add returns the stop.
@@ -172,9 +174,15 @@ end
 
 local _fo = {}
 function D.focusOf(win, id, solid)
+    -- (a window with its own pad: the mark's own test passes, as ZeD_Prompt's does)
+    if win._padId then
+        if win._padId ~= id then return nil end
+        _fo.win, _fo.solid, _fo.focused, _fo.pad = win, solid, true, true
+        return _fo
+    end
     local Fo = ZeD.Input and ZeD.Input.Focus
     if Fo and Fo.isFocused and Fo.isFocused(win, nil, id) then
-        _fo.win, _fo.solid = win, solid
+        _fo.win, _fo.solid, _fo.focused, _fo.pad = win, solid, nil, nil
         return _fo
     end
     return nil
@@ -213,6 +221,13 @@ function D.realDate(sec)
     local clock, d = D.clock(sec)
     if not clock then return nil end
     return tr(DATE_SAYS_UTC and "UI_ZeD_Tk_WhenUtc" or "UI_ZeD_Tk_When", tr(MONTHS[d.month or 1] or MONTHS[1]), d.day or 1, clock)
+end
+
+-- "Nov 5", for what happened on a day
+function D.shortDate(sec)
+    local _, d = D.clock(sec)
+    if not d then return nil end
+    return tr("UI_ZeD_Tk_ShortDate", tr(MONTHS[d.month or 1] or MONTHS[1]), d.day or 1)
 end
 
 function D.replies(n)
@@ -782,6 +797,12 @@ end
 -- once a frame on the Server tab, card or list: a note's Open, and my list without the server part
 function TC.frameServer(win, st)
     local t = ts(st)
+    if TC.reportNext then
+        local r = TC.reportNext
+        TC.reportNext = nil
+        st.card = nil
+        TC.openReport(win, st, r)
+    end
     if TC.qaHold then return end
     if C.openId then
         local id = C.openId
@@ -1256,6 +1277,27 @@ function TC.openAsk(win, st)
     D.push(win, st, { kind = "ask", from = "srv:ask" })
 end
 
+-- from chat: Ask the admins with that player named and the chat around the line. The kind is a start: the player can change
+-- it. Without the server part only the name goes, in the words: the game's tickets are public and hold no more (B9)
+function TC.openReport(win, st, r)
+    local t = ts(st)
+    local ask = { kind = "GRIEF", here = true }
+    if D.link() == "on" then
+        ask.report = r
+    else
+        ask.seed = tr("UI_ZeD_Tk_ReportSeed", r.who)
+    end
+    t.ask = ask
+    D.setField(win, "ask", ask.seed or "")
+    D.push(win, st, { kind = "ask", from = "srv:ask" })
+end
+
+-- chat asks for it: the Server tab opens, and its next frame opens the card
+function TC.reportFromChat(playerNum, r)
+    TC.reportNext = r
+    if ZeD_CharacterWindow and ZeD_CharacterWindow.openTab then ZeD_CharacterWindow.openTab(playerNum or 0, "server") end
+end
+
 function TC.openMine(win, st, id, game)
     local t = ts(st)
     D.setField(win, "reply", "")
@@ -1332,9 +1374,25 @@ function B.field(items, key, rows, hint, land, max)
         c = { id = "f:" .. key, land = land, run = function(ww) D.useField(ww, key) end } }
 end
 
+-- a report from chat on a card. Every word is what the reporter's client held: the server hears no chat
+function B.reportChat(items, rep)
+    if not rep or (rep.n or 0) == 0 then return end
+    B.label(items, tr("UI_ZeD_Tk_ChatAround"))
+    for i = 1, rep.n do
+        local l = rep[i]
+        if l then
+            local head = (l.t and l.t ~= "") and (l.t .. " ") or ""
+            local who = (l.who and l.who ~= "") and (l.who .. ": ") or ""
+            items[#items + 1] = { k = "chatline", text = head .. who .. tostring(l.text), mark = l.mark, c = { id = "chat:" .. tostring(i) } }
+        end
+    end
+    B.sub(items, tr("UI_ZeD_Tk_ChatWhose"))
+end
+
 function B.ask(st, t)
     local items = {}
     local ask = t.ask
+    if ask.report then B.fact(items, tr("UI_ZeD_Tk_FactReported"), ask.report.who) end
     B.label(items, tr("UI_ZeD_Tk_AskAbout"))
     local chips = {}
     for i, k in ipairs(Tk.KINDS) do
@@ -1356,6 +1414,8 @@ function B.ask(st, t)
         c = { id = "here", on = ask.here, run = function() ask.here = not ask.here end } }
     B.label(items, tr("UI_ZeD_Tk_AskWhat"))
     B.field(items, "ask", 6, tr("UI_ZeD_Tk_AskHint"))
+    items[#items].seed = ask.seed
+    B.reportChat(items, ask.report)
     return items
 end
 
@@ -1390,7 +1450,9 @@ function B.mine(win, card, data)
     if real then sent[#sent + 1] = real end
     B.fact(items, tr("UI_ZeD_Tk_FactSent"), (#sent > 0) and table.concat(sent, ", ") or tr("UI_ZeD_Tk_NotRecorded"))
     B.fact(items, tr("UI_ZeD_Tk_FactWhere"), Tk.whereFull(data.place) or tr("UI_ZeD_Tk_NotIncluded"))
+    if data.report then B.fact(items, tr("UI_ZeD_Tk_FactReported"), tostring(data.report.who)) end
     B.thread(items, data.thread)
+    B.reportChat(items, data.report)
     if card.game then
         B.sub(items, tr("UI_ZeD_Tk_OneAnswer"))
     elseif data.can then
@@ -1425,6 +1487,12 @@ function B.staffFacts(items, st, data)
         B.fact(items, tr("UI_ZeD_Tk_FactNear"), tr("UI_ZeD_Tk_NotRecorded"))
     end
     if data.gameGone then B.fact(items, tr("UI_ZeD_Tk_FactGame"), tr("UI_ZeD_Tk_RemovedGame")) end
+    if data.report then
+        local who = tostring(data.report.who)
+        B.fact(items, tr("UI_ZeD_Tk_FactReported"), who, { id = "pcard2", text = tr("UI_ZeD_Tk_PlayerCard"),
+            help = tr("UI_ZeD_Tk_HelpPlayerCard"), live = D.livePlayerCard, author = who,
+            run = function(ww) D.playerCard(ww, who) end })
+    end
 end
 
 function B.staff(win, st, card, data)
@@ -1436,6 +1504,7 @@ function B.staff(win, st, card, data)
     B.staffFacts(items, st, data)
     if data.source == "game" and not card.game then B.sub(items, tr("UI_ZeD_Tk_HelpGameCard")) end
     B.thread(items, data.thread)
+    B.reportChat(items, data.report)
     local notes = data.notes
     for i = 1, (notes and (notes.n or #notes) or 0) do
         local e = notes[i]
@@ -1527,7 +1596,7 @@ function D.send(win, st)
         D.setField(win, "ask", "")
         D.flash(t, a.fallback and tr("UI_ZeD_Tk_SentGame") or tr("UI_ZeD_Tk_Sent", a.id))
         TC.back(win, st)
-    end)
+    end, ask.report)
     if r ~= "sent" then
         t.busy = nil
         D.flash(t, (r == "wait") and tr("UI_ZeD_Tk_LinkWait") or C.errText("text"))
@@ -1826,8 +1895,9 @@ end
 function D.bandSpec(win, list)
     local out = {}
     for i, b in ipairs(list or {}) do
+        local f = D.focusOf(win, "tk:" .. b.id)
         out[i] = { label = b.label, variant = b.variant, disabled = b.disabled, help = b.why or b.help, id = b.id,
-            focus = D.focusOf(win, "tk:" .. b.id) and { win = win } or nil }
+            focus = f and { win = win, focused = f.focused, pad = f.pad } or nil }
     end
     return out
 end
@@ -2204,9 +2274,14 @@ function TC.renderCard(panel, win, st, x, y, w, h)
     ZeD.Help.set(win, D.cardHelp(t, card, data))
     -- the back bar and the flags
     t.barRects = t.barRects or {}
-    local bar = M.drawCardBackBar(panel, x, y, w, D.cardTitle(card, data), nil, false, false, t.barRects,
-        { win = win, focusParts = { back = D.focusOf(win, "tk:back") },
-          backHelp = D.backHelp(st, card) })
+    local bar = 0
+    if K and K.noBack then
+        t.barRects.back = nil
+    else
+        bar = M.drawCardBackBar(panel, x, y, w, D.cardTitle(card, data), nil, false, false, t.barRects,
+            { win = win, focusParts = { back = D.focusOf(win, "tk:back") },
+              backHelp = D.backHelp(st, card) })
+    end
     local flagH = 0
     if K then
         if K.flag then flagH = K.flag(panel, win, t, card, data, x, y + bar, w, bar) end
@@ -2255,6 +2330,27 @@ function TC.renderCard(panel, win, st, x, y, w, h)
     local s = D.flashNow(t)
     if s and not D.padOn() then ZeD.Help.set(win, s) end
 end
+
+-- a line of chat on a report: the picked line in the accent, and a stop so the controller can step down and read it
+TC.items.chatline = {
+    layout = function(win, it, w)
+        if it.wrapW ~= w then
+            it.wrapW = w
+            it.lines = D.wrap(it.text, ZeD.T.fontF2, math.max(1, w))
+        end
+        return #it.lines * ZeD.TM:getFontHeight(ZeD.T.fontF2) + px(2)
+    end,
+    draw = function(panel, win, t, it, x, dy, w, mx, my, ctx)
+        local T = ZeD.T
+        local onF = D.mark(panel, x, dy, w, it.h, D.focusOf(win, ctx.prefix .. it.c.id))
+        local c = (onF and T.textOnFocus) or (it.mark and T.accent) or T.text
+        local f2h = ZeD.TM:getFontHeight(T.fontF2)
+        for i, s in ipairs(it.lines or {}) do
+            panel:drawText(s, x, dy + (i - 1) * f2h, c.r, c.g, c.b, c.a or 1, T.fontF2)
+        end
+    end,
+    stops = function(it, x0, dy, w, add) add(it.c, x0, dy, w, it.h, it.y).promptA = false end,
+}
 
 -- ---------------------------------------------------------------------------
 -- A CARD'S INPUT
