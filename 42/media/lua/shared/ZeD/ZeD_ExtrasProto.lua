@@ -117,7 +117,7 @@ end
 
 -- a claim's key: the car's number in the game's vehicle database, which outlives a restart and goes where the car goes. The
 -- game gives a removed car's number to the next new car, so the number alone doesn't prove the car: the server's F.claimOf
--- tests the stamp the claim left on it. A string, so the table's keys are one type whatever the save does with numbers
+-- tests the car itself (F.sameCar). A string, so the table's keys are one type whatever the save does with numbers
 function Ex.keyOf(sql) return "v" .. tostring(sql) end
 function Ex.okKey(s) return type(s) == "string" and #s <= 16 and string.match(s, "^v%d+$") ~= nil end
 

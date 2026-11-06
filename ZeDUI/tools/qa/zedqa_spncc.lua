@@ -4,7 +4,8 @@
 -- Retexture add-on's faces, SPNRetextureCustom) on. Run with spncc_manifest.txt
 -- through zedqa_mods_run.ps1 -ModList spncc_mods.txt -Mode fullscreen4k.
 --   1. the mod's window at game start (an old save): ZeD's tab instead, paused, Save only
---   2. picks (a face, a detail), Not saved, Save through the mod: its data has them
+--   2. the folds: Details shut, Face open; picks (a face, a detail), Details folded again, Not saved, Save
+--      through the mod: its data has them
 --   3. List view; Cancel puts picks back
 --   4. the mod's default (no changes in game): read-only, Shave still there; the
 --      Appearance Changing Spiffo opens it; player choice shows Muscle / Body Hair Growth
@@ -75,7 +76,32 @@ step(90, function()
 end)
 step(30, function() shot("first") end)
 
--- 2. pick the third face (or the last) and the first detail, then Save
+-- 2. the folds: Details start shut with no stops of their own, A on the head opens them
+local function fold(key)
+    local h = el("spn:fold:" .. key)
+    check(h ~= nil, "the fold's head is a stop: " .. key)
+    if h then h.onActivate(win(), h) end
+end
+step(10, function()
+    local s = st()
+    check(S.closed.det == true and not S.closed.face, "Details start shut, Face open")
+    check(firstId("spn:det:") == nil, "a shut fold has no stops")
+    shot("fold_shut")
+    if s.dets[1] then fold("det") end
+end)
+step(20, function()
+    local s = st()
+    check(not s.dets[1] or firstId("spn:det:") ~= nil, "open, its tiles are stops")
+    shot("fold_open")
+    fold("face")
+end)
+step(20, function()
+    check(firstId("spn:face:") == nil, "Face folds too")
+    shot("fold_face_shut")
+    fold("face")
+end)
+
+-- pick the third face (or the last) and the first detail, fold Details again, then Save
 local pickedFace, pickedDet
 step(10, function()
     local s = st()
@@ -94,6 +120,13 @@ step(60, function()
     local s = st()
     check(s.face == pickedFace, "the face pick is held")
     shot("picked")
+    if pickedDet then fold("det") end
+end)
+step(20, function()
+    local s = st()
+    check(firstId("spn:det:") == nil, "folded again: no detail stops")
+    check(not pickedDet or s.det[pickedDet] == true, "the detail pick is held while folded")
+    shot("picked_folded")
     local e = el("spn:save")
     if e then e.onActivate(win(), e) end
 end)
@@ -181,6 +214,21 @@ step(30, function()
     pcall(F.claimFocus, w)
     local e = F.focusWhere(w, "charTabContent", function(x) return x.id and x.id:sub(1, 9) == "spn:face:" end)
     check(e ~= nil, "focus lands on a face")
+end)
+step(20, function()
+    local w = win()
+    if not st().dets[1] then return end
+    local e = F.focusWhere(w, "charTabContent", function(x) return x.id == "spn:fold:det" end)
+    check(e ~= nil, "focus lands on Details' head")
+    local was = S.closed.det
+    F.dispatchJoypadDir(w, "right")
+    check(S.closed.det == was, "D-pad right doesn't fold")
+    F.dispatchJoypadDir(w, "left")
+    check(S.closed.det == was, "D-pad left doesn't fold")
+end)
+step(20, function()
+    local w = win()
+    F.focusWhere(w, "charTabContent", function(x) return x.id == "spn:face:" .. tostring(st().face) end)
 end)
 step(20, function()
     local w = win()
