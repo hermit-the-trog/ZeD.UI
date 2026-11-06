@@ -8,6 +8,10 @@
 --     admins). When idle it dims where it is; a new line brings it back to full strength. No fading out.
 --   * the game's chat key (T) opens it with the line to type in; on a controller the chat key opens it to read,
 --     and the pad keyboard opens only when you pick the line (A on it).
+--   * pick a line for what you can do about its sender (MP_ADMIN_SCOPE.md, Phase 5, as drawn in
+--     mockups/zed_community_v1.html): Report to the admins, Mute (for you, kept in Lua/ZeD_chatmute.txt, nobody told), and for
+--     admins Player card and Teleport. The buttons sit in the list under the line. On a controller Up and Down step through the
+--     lines with a sender in view and scroll on past them, A picks, Left and Right walk the buttons, B goes back.
 -- The game's chat stays the engine and is never shown: every line still arrives through the game's OnAddMessage,
 -- and what you type goes out through the game's own calls for each channel (processSayMessage, proceedPM ...),
 -- with the game's slash commands (/all /s /y /w /f /sh /a, and the rest to the server) and its slow mode.
@@ -19,6 +23,7 @@ require "ZeD/Tokens"
 require "ZeD/Atoms"
 require "ZeD/Molecules"
 require "ZeD/Organisms"
+require "ZeD/ZeD_TicketProto"
 require "Chat/ISChat"
 
 ZeD = ZeD or {}
@@ -29,6 +34,9 @@ local MAX_LINES = 300            -- the oldest go first (FIFO)
 local IDLE_MS = 12000            -- no new line, no typing, no pointer for this long: the window dims
 local DIM_A = 0.35               -- the dimmed window's surfaces and words
 local U = { W = 440, H = 260, MIN_W = 300, MIN_H = 160, PAD = 8, GAP = 6, LINE_GAP = 2 }   -- design units
+local MUTE_FILE = "ZeD_chatmute.txt"
+local MUTE_MAX = 200             -- names kept for one server, oldest out
+local NOTE_MS = 6000             -- a press's answer stays in the help line this long
 
 C.lines = C.lines or {}
 C.unreadN = C.unreadN or 0
@@ -118,10 +126,12 @@ function C.onMessage(message)
         time = safe(function() return message:getDatetimeStr() end, ""),
     }
     while #L > MAX_LINES do table.remove(L, 1) end
-    C.lastLineAt = getTimestampMs()
     local win = C.win
-    if not (win and win:getIsVisible()) then C.unreadN = C.unreadN + 1 end
     if win then win._dirty = true end
+    -- (muted by you: the line is kept for Unmute, and wakes nothing)
+    if author and C.mutedByMe(author) then return end
+    C.lastLineAt = getTimestampMs()
+    if not (win and win:getIsVisible()) then C.unreadN = C.unreadN + 1 end
 end
 
 -- a repeating server message (ZeD_ServerAdmin.lua): server Lua cannot reach the game's chat, so it arrives here and goes
@@ -135,6 +145,203 @@ function C.serverLine(text)
     local win = C.win
     if not (win and win:getIsVisible()) then C.unreadN = C.unreadN + 1 end
     if win then win._dirty = true end
+end
+
+-- ---------------------------------------------------------------------------
+-- YOUR OWN MUTE: on this computer, for this server. Nobody is told, and the server never hears of it. Their lines stay in the list
+-- as a word, so Unmute gives them back. It covers this window; the words over a head are the game's.
+-- ---------------------------------------------------------------------------
+C.muteSeq = C.muteSeq or 0
+local function muteKey()
+    return safe(function() return tostring(getServerIP()) .. ":" .. tostring(getServerPort()) end, "")
+end
+-- every line of the file: { key, name }
+local function readMutes()
+    local out = {}
+    local r = getFileReader(MUTE_FILE, false)
+    if not r then return out end
+    local l = r:readLine()
+    while l do
+        local at = string.find(l, "|", 1, true)
+        if at then out[#out + 1] = { string.sub(l, 1, at - 1), string.sub(l, at + 1) } end
+        l = r:readLine()
+    end
+    r:close()
+    return out
+end
+local function loadMutes()
+    C.myMutes = {}
+    local key = muteKey()
+    local ok, list = pcall(readMutes)
+    if not ok then return end
+    for _, e in ipairs(list) do
+        if e[1] == key then C.myMutes[e[2]] = true end
+    end
+end
+function C.mutedByMe(name)
+    if type(name) ~= "string" then return false end
+    if not C.myMutes then loadMutes() end
+    return C.myMutes[string.lower(name)] == true
+end
+function C.setMuted(name, on)
+    if not C.myMutes then loadMutes() end
+    local low = string.lower(name)
+    C.myMutes[low] = on and true or nil
+    C.muteSeq = C.muteSeq + 1
+    local ok, err = pcall(function()
+        local key = muteKey()
+        local list, mine = {}, 0
+        for _, e in ipairs(readMutes()) do
+            if not (e[1] == key and e[2] == low) then
+                list[#list + 1] = e
+                if e[1] == key then mine = mine + 1 end
+            end
+        end
+        if on then
+            list[#list + 1] = { key, low }
+            mine = mine + 1
+        end
+        for i = 1, #list do
+            if mine <= MUTE_MAX then break end
+            if list[i] and list[i][1] == key then
+                C.myMutes[list[i][2]] = nil
+                list[i] = false
+                mine = mine - 1
+            end
+        end
+        local f = getFileWriter(MUTE_FILE, true, false)
+        for _, e in ipairs(list) do
+            if e then f:write(e[1] .. "|" .. e[2] .. "\n") end
+        end
+        f:close()
+    end)
+    if not ok then ZeD.logOnce("chat mute", err) end
+end
+
+-- ---------------------------------------------------------------------------
+-- PICKING A LINE: what you can do about its sender
+-- ---------------------------------------------------------------------------
+function C.isAdmin()
+    if C.qaAdmin ~= nil then return C.qaAdmin end
+    return safe(function() return getPlayer():getRole():hasAdminTool() end, false) == true
+end
+
+-- a line with someone else behind it
+function C.canPick(ln, me)
+    return ln.author ~= nil and ln.author ~= me and ln.kind ~= "server"
+end
+
+-- a press's answer, for the help line
+function C.note(text) C._note, C._noteAt = text, getTimestampMs() end
+function C.noteNow()
+    if C._note and getTimestampMs() - C._noteAt < NOTE_MS then return C._note end
+    C._note = nil
+    return nil
+end
+
+-- the lines around one in the open tab, for a report: the name, and what its reporter's screen held
+function C.around(ln)
+    local tab = tabOf(C.tab)
+    local shown, at = {}, nil
+    for _, l in ipairs(C.lines) do
+        if tab.kinds[l.kind] then
+            shown[#shown + 1] = l
+            if l == ln then at = #shown end
+        end
+    end
+    local r = { who = ln.author, n = 0 }
+    if not at then return r end
+    local reach = ZeD.Tk.REPORT_AROUND
+    for i = math.max(1, at - reach), math.min(#shown, at + reach) do
+        local l = shown[i]
+        r.n = r.n + 1
+        r[r.n] = { who = l.author or "", text = l.text, t = l.time or "", mark = (l == ln) and true or nil }
+    end
+    return r
+end
+
+-- a press in chat that opened a card in a window: the pad goes with it. openTab only presses the tab, and chat let go of the pad
+function C.padTo(mod)
+    local Fo = ZeD.Input and ZeD.Input.Focus
+    if ZeD_CharacterWindow and ZeD_CharacterWindow.ensureBothOpenForGamepad then pcall(ZeD_CharacterWindow.ensureBothOpenForGamepad, 0) end
+    local win = mod and mod.getWindow and mod.getWindow()
+    if not (win and Fo and Fo.claimFocus) then return end
+    if Fo.getFocusedWindow() == win then Fo.reclaimEngineFocus() else Fo.claimFocus(win) end
+end
+
+-- the buttons under a picked line. live: why it is gray, read as it draws
+function C.actions(ln)
+    local who = ln.author
+    local list = {
+        { id = "report", text = tr("UI_ZeD_Chat_Report"), help = tr("UI_ZeD_Chat_HelpReport"), run = function(win)
+            local r = C.around(ln)
+            local pn = win.playerNum or 0
+            local pad = win.joyfocus ~= nil
+            if pad then win:close() end
+            if ZeD.TicketCards and ZeD.TicketCards.reportFromChat then ZeD.TicketCards.reportFromChat(pn, r) end
+            if pad then C.padTo(ZeD_CharacterWindow) end
+        end },
+        { id = "mute", text = tr(C.mutedByMe(who) and "UI_ZeD_Chat_Unmute" or "UI_ZeD_Chat_MuteYou"), help = tr("UI_ZeD_Chat_HelpMute"), run = function()
+            local on = not C.mutedByMe(who)
+            C.setMuted(who, on)
+            C.note(tr(on and "UI_ZeD_Chat_MuteDone" or "UI_ZeD_Chat_UnmuteDone", who))
+        end },
+    }
+    if C.isAdmin() then
+        local Ad = ZeD.Admin
+        list[3] = { id = "card", text = tr("UI_ZeD_Tk_PlayerCard"), help = tr("UI_ZeD_Tk_HelpPlayerCard"),
+            live = function(c)
+                -- (the game's own window, with no server part: it opens only on someone this client can see)
+                if not (Ad and Ad.live()) and ZeD.TicketCards then
+                    c.author = who
+                    ZeD.TicketCards._D.livePlayerCard(c)
+                    return
+                end
+                c.why = (Ad and not Ad.can("CanSeePlayersStats")) and Ad.why("CanSeePlayersStats") or nil
+                c.disabled = c.why ~= nil
+            end,
+            run = function(win)
+                local pad = win.joyfocus ~= nil
+                if pad then win:close() end
+                if Ad and Ad.live() then
+                    Ad.openPlayerNext = who
+                    if ZeD_WorldWindow and ZeD_WorldWindow.openTab then ZeD_WorldWindow.openTab(0, "admin") end
+                    if pad then C.padTo(ZeD_WorldWindow) end
+                elseif ZeD.TicketCards then
+                    ZeD.TicketCards._D.playerCard(win, who)
+                end
+            end }
+        list[4] = { id = "tp", text = getText("UI_Scoreboard_Teleport"), help = tr("UI_ZeD_Adm_HelpTp"),
+            live = function(c)
+                c.why = (Ad and not Ad.can("TeleportToPlayer")) and Ad.why("TeleportToPlayer") or nil
+                c.disabled = c.why ~= nil
+            end,
+            run = function()
+                if not Ad then return end
+                Ad.teleport(who, function(a)
+                    if a.ok == false then C.note(ZeD.AdminCards and ZeD.AdminCards._F.errOf(a) or tostring(a.err))
+                    else C.note(tr("UI_ZeD_Adm_Teleported", who)) end
+                end)
+            end }
+    end
+    return list
+end
+
+-- the buttons in rows across width w: each gets dx, dy, w, h. Returns the height
+function C.flowActions(list, w)
+    local T, M = ZeD.T, ZeD.Molecules
+    local gap = px(U.GAP)
+    local bx, by = 0, 0
+    for _, b in ipairs(list) do
+        b.w, b.h = math.min(w, M.buttonW(b.text)), T.buttonH
+        if bx > 0 and bx + b.w > w then
+            bx = 0
+            by = by + T.buttonH + gap
+        end
+        b.dx, b.dy = bx, by
+        bx = bx + b.w + gap
+    end
+    return by + T.buttonH + px(U.LINE_GAP)
 end
 
 -- ---------------------------------------------------------------------------
@@ -307,7 +514,10 @@ function ZeD_ChatWindow:new(x, y, w, h)
     o.moveWithMouse = false
     o.playerNum = 0
     o.scroll = 0           -- px up from the newest line (0: at the bottom)
-    o.zone = "lines"       -- controller: "tabs" | "lines" | "input"
+    o.zone = "lines"       -- controller: "tabs" | "lines" | "acts" | "input"
+    o.picked = nil         -- the line whose buttons are open
+    o.cur = nil            -- controller: the line under the cursor
+    o.actI = 1             -- controller: the button under the cursor
     o._dirty = true
     o._usedAt = getTimestampMs()
     o.extraMenu = function() return C.menuItems() end
@@ -370,25 +580,43 @@ end
 -- the lines of the open tab, wrapped to the width (built again when the lines, the tab or the width change)
 function ZeD_ChatWindow:_wrapped(w)
     local T = ZeD.T
-    local key = tostring(#C.lines) .. ":" .. tostring(C.lines[#C.lines]) .. ":" .. C.tab .. ":" .. w .. ":" .. tostring(T)
+    local key = tostring(#C.lines) .. ":" .. tostring(C.lines[#C.lines]) .. ":" .. C.tab .. ":" .. w .. ":" .. tostring(T) .. ":" .. tostring(self.picked) .. ":" .. C.muteSeq
     if self._wrapKey == key and self._wrap then return self._wrap end
     local tab = tabOf(C.tab)
     local out = {}
     local f = T.fontF2
+    local lh = ZeD.TM:getFontHeight(f) + px(U.LINE_GAP)
+    local found = false
     for _, ln in ipairs(C.lines) do
         if tab.kinds[ln.kind] then
             local head = ln.author and (ln.author .. ": ") or ""
             if ln.kind == "whisper" and ln.author then head = tr("UI_ZeD_Chat_From", ln.author) .. " " end
             if ln.kind == "shout" then head = ln.author and tr("UI_ZeD_Chat_Shouts", ln.author) .. " " or "" end
-            local parts = ZeD.Atoms.wrapText(head .. ln.text, f, w)
+            local quiet = C.mutedByMe(ln.author)
+            local parts = ZeD.Atoms.wrapText(head .. (quiet and tr("UI_ZeD_Chat_MutedByYou") or ln.text), f, w)
             -- (the head's width with its space: MeasureStringX does not count a trailing space)
             local hw = 0
             if head ~= "" then
                 local sp = ZeD.TM:MeasureStringX(f, "a a") - ZeD.TM:MeasureStringX(f, "aa")
                 hw = ZeD.TM:MeasureStringX(f, (head:gsub("%s+$", ""))) + math.max(sp, px(3))
             end
-            for i, s in ipairs(parts) do out[#out + 1] = { s = s, ln = ln, first = i == 1, headW = (i == 1) and hw or 0, head = head } end
+            for i, s in ipairs(parts) do out[#out + 1] = { s = s, ln = ln, first = i == 1, headW = (i == 1) and hw or 0, head = head, quiet = quiet } end
+            -- the picked line's buttons take as many rows of the list as they need
+            if ln == self.picked then
+                found = true
+                self._acts = C.actions(ln)
+                local h = C.flowActions(self._acts, w)
+                local rows = math.ceil(h / lh)
+                self._actRows = rows
+                for i = 1, rows do out[#out + 1] = { s = "", ln = ln, first = false, headW = 0, head = "", acts = i == 1 } end
+            end
         end
+    end
+    -- (the line went off the top, or into another tab)
+    if self.picked and not found then
+        self.picked, self._acts = nil, nil
+        if self.zone == "acts" then self.zone = "lines" end
+        key = key .. ":gone"
     end
     self._wrap, self._wrapKey = out, key
     return out
@@ -481,22 +709,61 @@ function ZeD_ChatWindow:_drawLines(x, y, w, h)
     if self.scroll > maxS then self.scroll = maxS end
     if self.scroll < 0 then self.scroll = 0 end
     self._maxScroll = maxS
+    self._rowHits, self._actHits = {}, {}
     if #rows == 0 then
         ZeD.Molecules.drawEmptyLine(self, x, y, w, tr("UI_ZeD_Chat_Nothing"))
         return
+    end
+    -- the line the controller moved to is brought into view
+    if self.seek then
+        local first, last = nil, nil
+        for i, r in ipairs(rows) do
+            if r.ln == self.seek then
+                first = first or i
+                last = i
+            end
+        end
+        self.seek = nil
+        if first then
+            local foot = (#rows - last) * lh
+            local head = (#rows - first) * lh + lh
+            if foot < self.scroll then self.scroll = foot
+            elseif head > self.scroll + h then self.scroll = head - h end
+            self.scroll = math.max(0, math.min(maxS, self.scroll))
+        end
     end
     self:setStencilRect(x, y, w, h)
     -- the bottom row sits at the foot; scroll moves the list down
     local by = y + h - lh + self.scroll
     local tc, hd, ac = T.text, T.textHead, T.accent
+    local mx, my = self:getMouseX(), self:getMouseY()
+    local Fo = ZeD.Input and ZeD.Input.Focus
+    if Fo and Fo.cuesVisible and Fo.cuesVisible() then mx, my = nil, nil end
+    local me = safe(function() return getPlayer():getUsername() end, nil)
+    local actY = nil
     for i = #rows, 1, -1 do
         local ry = by - (#rows - i) * lh
         if ry + lh < y then break end
         if ry <= y + h then
             local r = rows[i]
             local c = r.ln.color or ((r.ln.kind == "server" or r.ln.kind == "admin") and ac) or tc
+            if r.quiet then c = T.textDim end
+            local can = C.canPick(r.ln, me)
+            local onF = false
+            if r.ln == self.picked then
+                self:drawRect(x, ry, w, lh, 0.25, ac.r, ac.g, ac.b)
+            elseif can and mx ~= nil and mx >= x and mx < x + w and my >= ry and my < ry + lh and my >= y and my < y + h then
+                local hv = T.hover
+                self:drawRect(x, ry, w, lh, hv.a or 1, hv.r, hv.g, hv.b)
+            end
+            if can and self.joyfocus and self.zone == "lines" and self.cur == r.ln and ZeD.Focus and ZeD.Focus.mark then
+                onF = ZeD.Focus.mark(self, x, ry, w, lh, { win = self, focused = true, pad = true }) and true or false
+            end
+            if onF then c = T.textOnFocus end
+            if r.acts then actY = ry end
+            if can and not r.acts and r.s ~= "" then self._rowHits[#self._rowHits + 1] = { y = ry, h = lh, ln = r.ln } end
             if r.first and r.headW > 0 then
-                local nc = C.nameInk(r.ln.author) or hd
+                local nc = onF and T.textOnFocus or C.nameInk(r.ln.author) or hd
                 self:drawText((r.head:gsub("%s+$", "")), x, ry, nc.r, nc.g, nc.b, nc.a or 1, f)
                 self:drawText(r.s:sub(#r.head + 1), x + r.headW, ry, c.r, c.g, c.b, c.a or 1, f)
             else
@@ -504,6 +771,7 @@ function ZeD_ChatWindow:_drawLines(x, y, w, h)
             end
         end
     end
+    if actY and self._acts then self:_drawActions(x, actY, y, h, mx, my) end
     self:clearStencilRect()
     -- (scrolled up: a mark at the foot that newer lines are below)
     if self.scroll > 0 then
@@ -511,12 +779,33 @@ function ZeD_ChatWindow:_drawLines(x, y, w, h)
     end
 end
 
+-- the picked line's buttons, in the rows kept for them
+function ZeD_ChatWindow:_drawActions(x, ay, viewY, viewH, mx, my)
+    local M = ZeD.Molecules
+    for i, b in ipairs(self._acts) do
+        if b.live then b.live(b) end
+        local bx, by = x + b.dx, ay + b.dy
+        local hov = mx ~= nil and mx >= bx and mx < bx + b.w and my >= by and my < by + b.h and my >= viewY and my < viewY + viewH
+        local foc = (self.joyfocus and self.zone == "acts" and self.actI == i) and { win = self, focused = true, pad = true } or nil
+        M.drawButton(self, bx, by, b.w, b.h, b.text, "default", hov and isMouseButtonDown(0), nil,
+            { hover = hov, disabled = b.disabled, help = b.why or b.help, win = self, focus = foc })
+        -- (half under the fold: not a press)
+        if by >= viewY and by + b.h <= viewY + viewH then
+            self._actHits[#self._actHits + 1] = { x = bx, y = by, w = b.w, h = b.h, b = b }
+        end
+    end
+end
+
 function ZeD_ChatWindow:render() ZeD_Window.render(self) end
 
 -- the help line's words for what the pointer is over (the window's footer)
 function ZeD_ChatWindow:getStatusLine()
+    local note = C.noteNow()
+    if note then return note end
     if C.slowLeft() > 0 then return tr("UI_ZeD_Chat_Slow", C.slowLeft()) end
+    if self.picked then return tr("UI_ZeD_Chat_HelpMute") end
     if self.scroll > 0 then return tr("UI_ZeD_Chat_Older") end
+    if #(self._rowHits or {}) > 0 then return tr("UI_ZeD_Chat_HelpPick") end
     return tr("UI_ZeD_Chat_Help")
 end
 
@@ -539,6 +828,7 @@ function ZeD_ChatWindow:pickTab(id)
     if C.tab == id then return end
     C.tab = id
     self.scroll = 0
+    self.picked, self.cur = nil, nil
     pcall(function() getSoundManager():playUISound("UISelectListItem") end)
 end
 
@@ -556,8 +846,35 @@ function ZeD_ChatWindow:onMouseDown(x, y)
         return true
     end
     if inRect(self._inputRect, x, y) then self.input:focus(); return true end
+    if self:_pressLines(x, y) then return true end
     -- anywhere else: the title bar drags (ZeD_Window), the rest does nothing
     return ZeD_Window.onMouseDown(self, x, y)
+end
+
+-- a press in the list: a button under the picked line, or a line to pick, or a second press to let it go
+function ZeD_ChatWindow:_pressLines(x, y)
+    for _, h in ipairs(self._actHits or {}) do
+        if inRect(h, x, y) then
+            if not h.b.disabled then self:_runAction(h.b) end
+            return true
+        end
+    end
+    local r = self._linesRect
+    if not inRect(r, x, y) then return false end
+    for _, h in ipairs(self._rowHits or {}) do
+        if y >= h.y and y < h.y + h.h then
+            self.picked = (self.picked ~= h.ln) and h.ln or nil
+            pcall(function() getSoundManager():playUISound("UISelectListItem") end)
+            return true
+        end
+    end
+    return false
+end
+
+function ZeD_ChatWindow:_runAction(b)
+    pcall(function() getSoundManager():playUISound("UIActivateButton") end)
+    local ok, err = pcall(b.run, self)
+    if not ok then ZeD.logOnce("chat action " .. tostring(b.id), err) end
 end
 
 function ZeD_ChatWindow:onMouseWheel(del)
@@ -582,11 +899,30 @@ function ZeD_ChatWindow:onKeyPress(key)
     if key == Keyboard.KEY_ESCAPE then self:close(); GameKeyboard.eatKeyPress(key) end
 end
 
--- the controller: the tabs (left / right), the lines (up / down scroll), the line to type in (A: the pad keyboard)
+-- the controller: the tabs (left / right), the lines (up / down: step, then scroll), the line to type in (A: the pad keyboard)
 function ZeD_ChatWindow:onGainJoypadFocus(jd) self.joyfocus = jd end
 function ZeD_ChatWindow:onLoseJoypadFocus(jd) self.joyfocus = nil end
 function ZeD_ChatWindow:onJoypadDown(button, jd)
-    if button == Joypad.BButton then self:close(); return end
+    if button == Joypad.BButton then
+        if self.zone == "acts" then
+            self.zone, self.picked = "lines", nil
+            return
+        end
+        self:close()
+        return
+    end
+    if button == Joypad.AButton and self.zone == "lines" and self.cur then
+        self.picked, self.zone, self.actI = self.cur, "acts", 1
+        self.seek = self.cur
+        return
+    end
+    if button == Joypad.AButton and self.zone == "acts" then
+        local b = self._acts and self._acts[self.actI]
+        if not b then return end
+        if b.live then b.live(b) end
+        if b.disabled then C.note(b.why) else self:_runAction(b) end
+        return
+    end
     if button == Joypad.AButton and self.zone == "input" then
         if OnScreenKeyboard and OnScreenKeyboard.Show then
             local ok = pcall(OnScreenKeyboard.Show, self.playerNum, self.input, jd)
@@ -596,8 +932,58 @@ function ZeD_ChatWindow:onJoypadDown(button, jd)
         end
     end
 end
+-- the lines the cursor can land on in view, oldest first (the rows the last frame drew, foot first, a wrapped line once)
+function ZeD_ChatWindow:_inView()
+    local out, seen = {}, {}
+    local hits = self._rowHits or {}
+    for i = #hits, 1, -1 do
+        local ln = hits[i].ln
+        if not seen[ln] then
+            seen[ln] = true
+            out[#out + 1] = ln
+        end
+    end
+    return out
+end
+
+-- Up and Down among those lines: only what is in view, so no line in between is ever jumped past. Coming from outside, the
+-- nearest end: the newest from the line to type in, the oldest from the tabs. False when none is left that way: the list
+-- scrolls, and at its end the cursor goes on to the tabs or the line to type in (_padStep)
+function ZeD_ChatWindow:_padLines(dir)
+    local list = self:_inView()
+    local at = nil
+    for i, ln in ipairs(list) do
+        if ln == self.cur then at = i end
+    end
+    local to = nil
+    if at then to = list[at + ((dir == "up") and -1 or 1)]
+    else to = list[(dir == "up") and #list or 1] end
+    if not to then
+        if not at then self.cur = nil end
+        return false
+    end
+    self.cur, self.seek = to, to
+    return true
+end
+
 function ZeD_ChatWindow:_padStep(dir)
     local tabs = C.tabsShown()
+    if self.zone == "acts" then
+        if dir == "left" or dir == "right" then
+            local n = #(self._acts or {})
+            local j = self.actI + ((dir == "right") and 1 or -1)
+            if j >= 1 and j <= n then self.actI = j end
+        else
+            self.zone, self.picked = "lines", nil
+            self:_padLines(dir)
+        end
+        pcall(function() getSoundManager():playUISound("UISelectListItem") end)
+        return
+    end
+    if self.zone == "lines" and (dir == "up" or dir == "down") and self:_padLines(dir) then
+        pcall(function() getSoundManager():playUISound("UISelectListItem") end)
+        return
+    end
     if self.zone == "tabs" and (dir == "left" or dir == "right") then
         for i, t in ipairs(tabs) do
             if t.id == C.tab then
@@ -609,13 +995,17 @@ function ZeD_ChatWindow:_padStep(dir)
     end
     local lh = ZeD.TM:getFontHeight(ZeD.T.fontF2) + px(U.LINE_GAP)
     if dir == "up" then
-        if self.zone == "input" then self.zone = "lines"
+        if self.zone == "input" then
+            self.zone = "lines"
+            self:_padLines("up")
         elseif self.zone == "lines" and self.scroll < (self._maxScroll or 0) then self.scroll = math.min(self._maxScroll or 0, self.scroll + lh * 3)
-        elseif self.zone == "lines" then self.zone = "tabs" end
+        elseif self.zone == "lines" then self.zone, self.cur = "tabs", nil end
     elseif dir == "down" then
-        if self.zone == "tabs" then self.zone = "lines"
+        if self.zone == "tabs" then
+            self.zone = "lines"
+            self:_padLines("down")
         elseif self.zone == "lines" and self.scroll > 0 then self.scroll = math.max(0, self.scroll - lh * 3)
-        elseif self.zone == "lines" then self.zone = "input" end
+        elseif self.zone == "lines" then self.zone, self.cur = "input", nil end
     end
     pcall(function() getSoundManager():playUISound("UISelectListItem") end)
 end
@@ -626,10 +1016,18 @@ function ZeD_ChatWindow:onJoypadDirRight() self:_padStep("right") end
 function ZeD_ChatWindow:getFooterPrompts()
     if not self.joyfocus then return nil end
     local Pr = ZeD.Prompt
-    local move = tr(self.zone == "tabs" and "UI_ZeD_Chat_PadTabs" or "UI_ZeD_Chat_PadMove")
+    local move = tr((self.zone == "tabs" and "UI_ZeD_Chat_PadTabs") or (self.zone == "acts" and "UI_ZeD_Chat_PadActs") or "UI_ZeD_Chat_PadMove")
     local P = { (Pr and Pr.padNote) and Pr.padNote(move) or move }
+    -- (the help line holds the prompts: a press's answer and why a button is gray go first here)
+    local note = C.noteNow()
+    if not note and self.zone == "acts" then
+        local b = self._acts and self._acts[self.actI]
+        note = b and b.why or nil
+    end
+    if note then P[1] = note end
     if self.zone == "input" then P[#P + 1] = { glyph = "A", label = tr("UI_ZeD_Chat_PadType") } end
-    P[#P + 1] = { glyph = "B", label = getText("UI_Close") }
+    if (self.zone == "lines" and self.cur) or self.zone == "acts" then P[#P + 1] = { glyph = "A", label = tr("UI_ZeD_Chat_PadPick") } end
+    P[#P + 1] = { glyph = "B", label = self.zone == "acts" and tr("UI_ZeD_Tk_PromptBack") or getText("UI_Close") }
     return P
 end
 

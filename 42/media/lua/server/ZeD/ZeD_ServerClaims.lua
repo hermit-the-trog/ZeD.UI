@@ -153,6 +153,11 @@ local function line(kind, what, who, target, x, y)
         return
     end
     W.lines = W.lines + 1
+    -- (a faction has no place of its own: where the person named stood, if they are on)
+    if not x then
+        local o = Srv.player(who)
+        if o then x, y = math.floor(o:getX()), math.floor(o:getY()) end
+    end
     Srv.action(kind, who, what, target, nil, x, y)
 end
 
@@ -234,7 +239,7 @@ function Srv.claimsWatch()
     if W.safes then compareSafe(W.safes, safes) end
     if W.factions then compareFaction(W.factions, factions) end
     W.safes, W.factions = safes, factions
-    if W.dropped > 0 then Srv.action("claims", "server", tostring(W.dropped) .. " changes not logged") end
+    if W.dropped > 0 then Srv.action("claims", Tk.SYS, tostring(W.dropped) .. " changes not logged") end
 end
 
 if not W.watching then
@@ -244,7 +249,7 @@ if not W.watching then
         if not ok and not W.failed then
             W.failed = true
             print("[ZeD] server: the claims log failed: " .. tostring(err))
-            Srv.log("claims log failed: " .. tostring(err))
+            Srv.action("admin", Tk.SYS, "claims log failed", nil, err)
         end
     end)
 end

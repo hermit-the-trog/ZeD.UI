@@ -763,6 +763,7 @@ function TR.drawSummary(panel, win, s, sx, sy, sw, v, chr, inspected)
         yy = yy + srh
     end
     yy = yy + TR.drawTowRow(panel, s, sx, yy, sw, v)
+    if ZeD.ExtrasCards then yy = yy + ZeD.ExtrasCards.statRow(panel, sx, yy, sw, v) end
     if inspected then
         local h = H()
         local ov = h.overallCond(v)

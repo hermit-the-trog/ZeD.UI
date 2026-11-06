@@ -2,11 +2,14 @@
 -- ============================================================================
 -- THE SERVER TAB (the director's multiplayer decisions, Nov 5 2026: ZeDUI/MP_DECISIONS.md, section 1)
 -- "You on this server", in the Character window, only on a server (in single player the tab is not there):
---   SERVER     the server's name, the players on it, your role; the server options to read (the game's window)
+--   SERVER     the server's name, the message of the day and The rules (a row that opens their card, ZeD_CommunityCards.lua, on
+--              a server with that part), the players on it, your role; the server options to read (the game's window)
 --   PVP        while the server's safety system is on: PvP on or off, the seconds left while it switches, a
 --              non-PvP zone; the switch (the game's own toggle, ISEquippedItem:toggleSafety, with its log line)
 --   PLAYERS    who is on the server (the game's scoreboard, asked again every few seconds while the tab shows)
 --   NOTES      an invitation to a faction or a safehouse waits here, under the Server block, with Decline and Accept
+--   NEWS       the server's posts, pinned first (ZeD_CommunityCards.lua)
+--   EXTRAS     this server's extras in plain words, and your vehicle claims (ZeD_ExtrasCards.lua), with the server part
 --   TICKETS    after the Server block, as drawn: N open, Ask the admins, my tickets (ZeD_TicketCards.lua: the block and
 --              its two cards, Ask the admins and my ticket, pushed on top of this list behind st.card)
 --   FACTION    yours as a row that opens its card; or Create Faction where the server allows
@@ -25,6 +28,7 @@ require "ZeD/ZeD_CharacterWindow"
 require "ZeD/ZeD_Claims"
 require "ZeD/ZeD_TicketCards"
 require "ZeD/ZeD_ClaimCards"
+require "ZeD/ZeD_CommunityCards"
 
 ZeD = ZeD or {}
 local S = {}
@@ -154,6 +158,7 @@ local function build(p, win, st)
     local name = safe(function() return so:getOption("PublicName") end, "")
     if name == "" then name = safe(function() return getServerName() end, "") end
     if name ~= "" then row(L, tr("UI_ZeD_Srv_Name"), name) end
+    ZeD.CommunityCards.serverItems(L, win, st)
     row(L, tr("UI_ZeD_Srv_Online"), tostring(#S.players))
     local role = safe(function() return p:getRole():getName() end, nil)
     if role then row(L, tr("UI_ZeD_Srv_Role"), role) end
@@ -161,6 +166,9 @@ local function build(p, win, st)
     btn(L, "options", getText("IGUI_AdminPanel_SeeServerOptions"), tr("UI_ZeD_Srv_HelpOptions"), not seeOpts)
     -- INVITATIONS
     ZeD.ClaimCards.notes(L, win, st)
+    -- NEWS, then THIS SERVER'S EXTRAS, as drawn
+    ZeD.CommunityCards.newsItems(L, win, st)
+    if ZeD.ExtrasCards then ZeD.ExtrasCards.blocks(L, win, st) end
     -- TICKETS
     local function btnItem(id, text, help) return { k = "btn", id = id, text = S.btnWords(text), help = help } end
     ZeD.TicketCards.playerItems(L, win, st, btnItem)

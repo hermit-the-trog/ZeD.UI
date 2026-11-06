@@ -761,7 +761,7 @@ end
 -- ---------------------------------------------------------------------------
 function on.a_leave(a)
     if M.leaveAt then return end         -- (the server says it again: the clock already runs)
-    M.leave = { kind = a.kind, reason = a.reason, untilT = a.untilT, hold = a.hold == true, at = now() }
+    M.leave = { kind = a.kind, reason = a.reason, untilT = a.untilT, hold = a.hold == true, appeal = a.appeal, at = now() }
     M.leaveAt = now() + AL.LEAVE_S * (a.hold and 2000 or 1000)
     local show = M.leaveScreen or M.defaultLeave
     if show then

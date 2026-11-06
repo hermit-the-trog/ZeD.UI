@@ -4,11 +4,14 @@
 -- In the World window, for admins only (the game's own test: the role has an admin tool), on a server only. One list:
 --   TICKETS        the summary, as drawn; its row opens the queue (ZeD_TicketCards.lua: filters, Find, rows, pages) on a
 --                  screen of its own behind st.screen, and a ticket card on top of that behind st.card
+--   LOG            its row opens the Log card (ZeD_LogCards.lua)
 --   PLAYERS        the one list, online and offline, with role, last seen, warning points and Find; a row opens the
 --                  Player card
 --   ADMIN POWERS   your own powers, the game's list (ISAdminPowerUI.OptionList), with a line on what each does
 --   SERVER MESSAGE typed in place, Repeat every 15, 30, 60, 120 min, and the Stop list
 --   ROLES, BANS, SPAWN ITEMS   a row each, opening their cards
+--   RULES AND NEWS  a row that opens its card (ZeD_CommunityCards.lua), on a server with that part
+--   SERVER EXTRAS  a row that opens its card (ZeD_ExtrasCards.lua)
 --   SAFEHOUSES     every safehouse and FACTIONS every faction. The Server tab's cards (ZeD_ClaimCards.lua) hold only your
 --                  own, so staff see everyone else's here: pick one to open it in the game's own window. Your own opens its
 --                  card
@@ -26,6 +29,9 @@ require "ZeD/ZeD_WorldWindow"
 require "ZeD/ZeD_TicketCards"
 require "ZeD/ZeD_Admin"
 require "ZeD/ZeD_AdminCards"
+require "ZeD/ZeD_ExtrasCards"
+require "ZeD/ZeD_LogCards"
+require "ZeD/ZeD_CommunityCards"
 
 ZeD = ZeD or {}
 local A = {}
