@@ -166,6 +166,7 @@ end
 function ZeD_ContextList:close()
     if not self._ctx.open then return end
     self._ctx.open = false
+    ZeD.ContextMenu.Registry.highlight(self, nil)   -- the outline goes with the menu
     if self._joyfocus and setJoypadFocus then pcall(setJoypadFocus, self.player, nil) end
     self._joyfocus = false
     if ZeD and ZeD.Input and ZeD.Input.Focus and ZeD.Input.Focus.reclaimEngineFocus then
@@ -251,6 +252,15 @@ local _focus, _dim = { focused = true, pad = true }, {}
 function ZeD_ContextList:prerender()
     if not self._ctx.open then return end
     self:clearHitZones()
+    -- the selected row of the deepest level that has one, told to the game's menu every
+    -- frame as its render does (a submenu with nothing picked yet leaves its parent lit)
+    local hl = nil
+    for li = #self._levels, 1, -1 do
+        local lv = self._levels[li]
+        local row = lv.sel and lv.rows and lv.rows[lv.sel]
+        if row and live(row.def) then hl = row.def; break end
+    end
+    ZeD.ContextMenu.Registry.highlight(self, hl)
     local A = ZeD.Atoms
     local T, tm = ZeD.T, ZeD.TM
     local f1, f2 = T.fontF1, T.fontF2
