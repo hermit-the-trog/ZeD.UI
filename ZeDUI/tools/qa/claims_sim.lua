@@ -113,6 +113,8 @@ local ROLES = {
 -- ---------------------------------------------------------------------------
 local function colorInfo(r, g, b) return { getR = function() return r end, getG = function() return g end, getB = function() return b end } end
 
+local cheat
+
 local function newSafe(x, y, w, h, owner)
     W.safeN = W.safeN + 1
     local s = { x = x, y = y, w = w, h = h, owner = owner, title = owner, players = { owner }, respawn = {}, invites = {},
@@ -134,6 +136,10 @@ local function newSafe(x, y, w, h, owner)
         return self.owner == who
     end
     function s.isRespawnInSafehouse(self, who) return self.respawn[who] == true end
+    function s.playerAllowed(self, who)
+        for _, n in ipairs(self.players) do if n == who:getUsername() then return true end end
+        return cheat(who, "CanGoInsideSafehouses")
+    end
     function s.alreadyHaveSafehouse(self, who)
         for _, o in ipairs(W.safes) do
             for _, n in ipairs(o.players) do if n == who then return o end end
@@ -204,7 +210,7 @@ local function square(p, inside, building)
     return { player = p, getBuilding = function() return inside and (building or {}) or nil end, getX = function() return p.x end, getY = function() return p.y end }
 end
 
-local function cheat(p, cap) return p.role.caps[cap] == true end
+function cheat(p, cap) return p.role.caps[cap] == true end
 
 -- SafeHouse.canBeSafehouse, its reasons in its order
 local function canBe(sq, p)
@@ -227,6 +233,20 @@ end
 local function hurt(c, what)
     c.refused = c.refused or {}
     c.refused[#c.refused + 1] = what
+end
+
+-- AntiCheatSafeHouseOwner and AntiCheatSafeHouseMember: these do not just drop a packet. The counter acts at 1 and
+-- AntiCheatSafeHouse defaults to 2, so the first one kicks.
+local function ownerCheck(c, p, s)
+    if s.owner == p.name or cheat(p, "CanSetupSafehouses") then return true end
+    hurt(c, "KICK owner not found")
+    return false
+end
+local function memberCheck(c, p, s, who)
+    if cheat(p, "CanSetupSafehouses") then return true end
+    if who ~= p.name and s.owner ~= p.name then hurt(c, "KICK player not found and sender is not owner"); return false end
+    if safeOfName(who) ~= s then hurt(c, "KICK player is not member or owner of safehouse"); return false end
+    return true
 end
 
 local function syncAll()
@@ -311,7 +331,7 @@ local function installGame(env, c, p)
     env.sendSafehouseChangeTitle = function(s, title)
         packet(function()
             if title == nil or title == "" then return hurt(c, "title empty") end
-            if s.owner ~= p.name and not cheat(p, "CanSetupSafehouses") then return hurt(c, "anti-cheat: not the owner") end
+            if not ownerCheck(c, p, s) then return end
             s.title = title
             syncAll()
         end)
@@ -321,6 +341,7 @@ local function installGame(env, c, p)
     end
     env.sendSafehouseInvite = function(s, host, who)
         packet(function()
+            if not ownerCheck(c, p, s) then return end
             if safeOfName(who) then return hurt(c, "already in one") end
             s.invites[who] = true
             local to = W.clients[who]
@@ -338,6 +359,7 @@ local function installGame(env, c, p)
     end
     env.sendSafehouseChangeMember = function(s, who)
         packet(function()
+            if not memberCheck(c, p, s, who) then return end
             if s.owner == who then return hurt(c, "player is owner") end
             for i = #s.players, 1, -1 do if s.players[i] == who then table.remove(s.players, i) end end
             syncAll()
@@ -345,6 +367,7 @@ local function installGame(env, c, p)
     end
     env.sendSafehouseChangeOwner = function(s, who)
         packet(function()
+            if not ownerCheck(c, p, s) then return end
             local t = W.players[who]
             if not t then return hurt(c, "player is not found") end
             if env.SafeHouse.hasNotSurvivedEnoughToClaim(t) then return hurt(c, "player is not survived enough") end
@@ -360,6 +383,7 @@ local function installGame(env, c, p)
     end
     env.sendSafehouseRelease = function(s)
         packet(function()
+            if not ownerCheck(c, p, s) then return end
             for i = #W.safes, 1, -1 do if W.safes[i] == s then table.remove(W.safes, i) end end
             syncAll()
         end)
@@ -381,12 +405,15 @@ local function installGame(env, c, p)
             syncFaction(name)
         end)
     end
+    -- (what FactionTag copies off the object as it sends. Only the server's FactionSync writes it to the clients, the sender too)
     env.sendFactionChangeTag = function(f)
-        local tag = f.tag
+        local tag, color = f.tag, f.color
         packet(function()
             if tag == nil then return hurt(c, "tag is null") end
+            if env.Faction.tagExist(tag) and f.owner ~= p.name then return hurt(c, "tag already exists") end
             if #tag < 1 or #tag > 4 then return hurt(c, "tag length is incorrect") end
             if not f:canCreateTag() then return hurt(c, "no enough players") end
+            f.tag, f.color = tag, color
             syncFaction(f.name)
         end)
     end
@@ -672,10 +699,15 @@ do
     ans = c.C.claimCheck()
     check("every reason on a line", #ans.lines == 2 and ans.lines[1] == "occupied" and ans.lines[2] == "not house")
     W.someoneInside, W.notHome = nil, nil
-    W.claimedHere = { getOwner = function() return "Mags_77" end }
+    local allowed = false
+    W.claimedHere = { getOwner = function() return "Mags_77" end, playerAllowed = function() return allowed end }
     advance(2100)
     ans = c.C.claimCheck()
-    check("someone's claim names them", ans.lines[1] == "UI_ZeD_Cl_ClaimTaken:Mags_77", ans.lines[1])
+    check("someone's claim: a stranger is not told whose", ans.lines[1] == "UI_ZeD_Cl_ClaimHeld", ans.lines[1])
+    allowed = true
+    advance(2100)
+    ans = c.C.claimCheck()
+    check("someone let in there is", ans.lines[1] == "UI_ZeD_Cl_ClaimTaken:Mags_77", ans.lines[1])
     W.claimedHere = nil
     W.opts.PlayerSafehouse = false
     advance(2100)
@@ -751,11 +783,11 @@ do
     check("removed", not has(W.safes[1].players, "Mags_77") and rem == true)
     -- quit, then release
     local q = nil
-    cb.C.quit(function(ok) q = ok end)
+    cb.C.quit(cb.C.safe, function(ok) q = ok end)
     advance(1200)
     check("quit", not has(W.safes[1].players, "Rosa") and q == true and cb.C.safe == nil)
     local rel = nil
-    ca.C.release(function(ok) rel = ok end)
+    ca.C.release(ca.C.safe, function(ok) rel = ok end)
     advance(1200)
     check("released", #W.safes == 0 and rel == true and ca.C.safe == nil)
     check("nothing refused", ca.refused == nil and cb.refused == nil and cm.refused == nil, ca.refused and ca.refused[1])
@@ -860,7 +892,7 @@ do
     cb.env.ZeD.logOnce = logged
     check("a failure falls to the game's modal", cb.modals[1] == "fac")
     -- the safehouse goes
-    ca.C.release()
+    ca.C.release(ca.C.safe)
     advance(1200)
     check("a released safehouse takes its note", #cb.C.invites == 1 and cb.C.invites[1].kind == "fac")
     W.factions = {}
@@ -931,6 +963,9 @@ do
     check("c_info holds an allowlist", (function()
         for k in pairs(rep) do
             if k ~= "safe" and k ~= "fac" and k ~= "invites" and k ~= "rid" then return false end
+        end
+        for k in pairs(rep.invites or {}) do
+            if type(k) ~= "number" and k ~= "n" and k ~= "live" then return false end
         end
         for k in pairs(rep.safe or {}) do
             if k ~= "visitedH" and k ~= "invited" then return false end
@@ -1090,6 +1125,254 @@ do
     check("the time bumps the card", ca.C.seq > seq)
     cadm.C.war(cadm.C.wars[1], "Ended")
     check("End", W.warCalls[2].state == "Ended")
+end
+
+section("the review: a host's name is a client's word")
+do
+    world()
+    local a, b = player("Aretha"), player("Rosa")
+    local ca, cb = clientJoin(a), clientJoin(b)
+    local f = newFaction("Riverside", "Aretha")
+    advance(1200)
+    for i = 1, 30 do cb.env.Events.ReceiveFactionInvite.fire(f, "Admin_" .. i, "Rosa") end
+    check("one faction, one note, whatever names it sends", #cb.C.invites == 1 and #cb.notes == 1, #cb.C.invites)
+    check("the note says who owns it", cb.C.invites[1].host == "Aretha", cb.C.invites[1].host)
+    cb.env.Events.ReceiveFactionInvite.fire(f, string.rep("x", 60000), "Rosa")
+    check("and no text of the sender's reaches it", #cb.C.inviteText(cb.C.invites[1]) < 200)
+    cb.C.answer(cb.C.invites[1], false)
+    cb.env.Events.ReceiveFactionInvite.fire(f, "Aretha", "Rosa")
+    check("declined, then asked again: a note again", #cb.C.invites == 1)
+    cb.C.invites = {}
+    f.name = string.rep("n", 60000)
+    cb.env.Events.ReceiveFactionInvite.fire(f, "Aretha", "Rosa")
+    check("a faction's name is cut too (the game's rename does not test it)", #cb.C.invites[1].name <= 64, #cb.C.invites[1].name)
+    f.name = "Riverside"
+    cb.C.invites = {}
+    for i = 1, 14 do
+        local g = newFaction("Spam" .. i, "Own" .. i)
+        cb.env.Events.ReceiveFactionInvite.fire(g, "x", "Rosa")
+    end
+    check("the list has a cap, the oldest goes", #cb.C.invites == 10 and cb.C.invites[10].name == "Spam14" and cb.C.invites[1].name == "Spam5", #cb.C.invites)
+end
+
+section("the review: one house, one note, and it goes when the host takes it back")
+do
+    world()
+    local bob, adm, cara = player("Bob"), player("Adm", "admin"), player("Cara")
+    local cbob, cadm, cc = clientJoin(bob), clientJoin(adm), clientJoin(cara)
+    local s = newSafe(100, 100, 10, 10, "Bob")
+    s.players[#s.players + 1] = "Adm"
+    advance(1200)
+    check("staff, a member, may invite", cadm.C.safe and cadm.C.safe.manage == true)
+    cadm.C.invite("safe", "Cara")
+    advance(300)
+    check("a note from staff, naming the owner", #cc.C.invites == 1 and cc.C.invites[1].host == "Bob")
+    advance(6000)
+    cc.C.ask()
+    advance(300)
+    check("the server's list adds no second note", #cc.C.invites == 1, #cc.C.invites)
+    -- the host takes it back, and the note stays a poll at most
+    local ans = nil
+    cbob.C.sent.safe.Cara = W.clock
+    cbob.C.cancelInvite("safe", "Cara", function(x) ans = x end)
+    advance(300)
+    check("taken back", s.invites.Cara == nil and ans and ans.ok == true)
+    advance(7000)
+    cc.C.ask()
+    advance(300)
+    check("the note goes at the next answer", #cc.C.invites == 0, #cc.C.invites)
+    check("nobody was refused", cc.refused == nil and cbob.refused == nil and cadm.refused == nil, cbob.refused and cbob.refused[1])
+    -- a note newer than the answer stays
+    cadm.C.invite("safe", "Cara")
+    advance(300)
+    s.invites.Cara = nil
+    advance(5500)
+    cc.C.ask()
+    advance(300)
+    s.invites.Cara = true
+    check("not yet settled: a note a moment old stays", #cc.C.invites == 1)
+    -- if Lua cannot read invitations the server says so, and nothing is taken away
+    advance(6000)
+    local read = s.hasInvite
+    s.hasInvite = nil
+    cc.C.ask()
+    advance(300)
+    s.hasInvite = read
+    check("no sight of them: the note stays", #cc.C.invites == 1)
+end
+
+section("the review: Cancel on a name not invited writes no line")
+do
+    world()
+    local a = player("Aretha")
+    local c = clientJoin(a)
+    newSafe(100, 100, 10, 10, "Aretha")
+    advance(1200)
+    c.C.sent.safe.an_admin = W.clock
+    W.logs = {}
+    local ans = nil
+    c.C.cancelInvite("safe", "an_admin", function(x) ans = x end)
+    advance(300)
+    check("said no", ans and ans.ok == false and ans.err == "gone", ans and ans.err)
+    check("no false line", not logHas("invite cancelled"))
+    check("the row goes: there was nothing to wait for", c.C.sent.safe.an_admin == nil)
+end
+
+section("the review: the log")
+do
+    world()
+    local a = player("Aretha")
+    local c = clientJoin(a)
+    local s = newSafe(100, 100, 10, 10, "Aretha")
+    local f1 = newFaction("Riverside", "Rosa")
+    local f2 = newFaction("Other", "Hostile")
+    advance(6000)
+    W.logs = {}
+    s.title = "x | release | Admin | 1,1 | day 1"
+    advance(6000)
+    local fields = 0
+    for _, l in ipairs(W.logs) do
+        if string.find(l.line, "safehouse | title", 1, true) then
+            local _, n = string.gsub(l.line, " | ", "")
+            fields = n
+        end
+    end
+    check("a title cannot pass for fields", fields == 4, fields)
+    W.logs = {}
+    f2.name = "Riverside"
+    advance(6000)
+    check("a stolen name is a rename, of the one who did it", logHas("faction | name from Other | Hostile | Riverside"))
+    check("and no takeover of the other", not logHas("owner from Rosa") and not logHas("member in") and not logHas("member out"))
+    W.logs = {}
+    for i = #W.factions, 1, -1 do if W.factions[i] == f2 then table.remove(W.factions, i) end end
+    newFaction("Bravo", "Hostile")
+    advance(6000)
+    check("a disband and a create are two lines", logHas("faction | disband | Hostile") and logHas("faction | create | Hostile | Bravo"))
+    check("not a rename", not logHas("name from"))
+    for i = 1, 45 do newSafe(1000 + i * 20, 1000, 10, 10, "p" .. i) end
+    W.logs = {}
+    advance(6000)
+    check("past the page it says how many went unwritten", logHas("claims | 5 changes not logged"))
+end
+
+section("the review: a house at a time, for staff with two")
+do
+    world()
+    local adm = player("Hermit", "admin")
+    local c = clientJoin(adm)
+    local s1 = newSafe(100, 100, 10, 10, "Hermit")
+    local s2 = newSafe(200, 200, 10, 10, "Hermit")
+    advance(1200)
+    check("the first reads", c.C.safe.id == s1.id)
+    local r = nil
+    c.C.release(c.C.safe, function(ok) r = ok end)
+    advance(1200)
+    check("it goes, and that is what done means", r == true and #W.safes == 1 and W.safes[1] == s2)
+    check("the other is left", c.C.safe.id == s2.id)
+    -- quit, with a house still held
+    local s3 = newSafe(300, 300, 10, 10, "Rosa")
+    s3.players[#s3.players + 1] = "Hermit"
+    table.remove(W.safes, 1)
+    W.safes[#W.safes + 1] = s2
+    advance(1200)
+    check("now in Rosa's first", c.C.safe.id == s3.id)
+    local q = nil
+    c.C.quit(c.C.safe, function(ok) q = ok end)
+    advance(1200)
+    check("quit is done when off that house", q == true and c.C.safe.id == s2.id)
+end
+
+section("the review: a tag the server refuses is not saved")
+do
+    world()
+    local adm = player("Hermit", "admin")
+    local c = clientJoin(adm)
+    local f = newFaction("Small", "Hermit")
+    advance(1200)
+    check("too few members: no field, even for FactionCheat", c.C.fac.canTag == false and c.C.fac.hasRoom == false)
+    local got = nil
+    c.C.setTag("AB", function(ok) got = ok end)
+    advance(9500)
+    check("the server refused", c.refused and c.refused[1] == "no enough players")
+    check("said so", got == false)
+    check("this client holds what the server does", f.tag == nil and c.C.fac.tag == nil, f.tag)
+    W.opts.FactionPlayersRequiredForTag = 1
+    advance(1200)
+    got = nil
+    c.C.setTag("AB", function(ok) got = ok end)
+    advance(1200)
+    check("taken, it arrives by the server's sync", f.tag == "AB" and c.C.fac.tag == "AB" and got == true)
+    local Cl = c.env.ZeD.Cl
+    got = nil
+    c.C.setColor(Cl.COLORS[2], function(ok) got = ok end)
+    check("a color waits for the server too", c.C.fac.color == nil or not Cl.sameColor(c.C.fac.color, Cl.COLORS[2]))
+    advance(1200)
+    check("then shows", Cl.sameColor(c.C.fac.color, Cl.COLORS[2]) and got == true)
+    -- staff who are not the owner: the tag exists, so the game refuses a color
+    f.owner, f.players = "Rosa", { "Hermit" }
+    advance(1200)
+    got = nil
+    c.refused = nil
+    c.C.setColor(Cl.COLORS[3], function(ok) got = ok end)
+    advance(9500)
+    check("refused: told, and the color stands", got == false and Cl.sameColor(c.C.fac.color, Cl.COLORS[2]), tostring(got))
+end
+
+section("the review: invited, waiting has an end")
+do
+    world(true)
+    local a, b = player("Aretha"), player("Rosa")
+    local ca, cb = clientJoin(a), clientJoin(b)
+    newSafe(100, 100, 10, 10, "Aretha")
+    advance(1200)
+    ca.C.invite("safe", "Rosa")
+    advance(300)
+    cb.C.answer(cb.C.invites[1], false)
+    advance(44000)
+    check("the game tells the host nothing", ca.C.sent.safe.Rosa ~= nil)
+    check("no server's word for it", not ca.C.sentSure.safe)
+    advance(260000)
+    check("it ends by itself", ca.C.sent.safe.Rosa == nil)
+end
+do
+    world()
+    local a, b = player("Aretha"), player("Rosa")
+    local ca, cb = clientJoin(a), clientJoin(b)
+    newSafe(100, 100, 10, 10, "Aretha")
+    advance(1200)
+    ca.C.invite("safe", "Rosa")
+    ca.C.askSoon()
+    advance(7000)
+    check("the server's list is heard", ca.C.sentSure.safe == true and ca.C.sent.safe.Rosa ~= nil)
+    advance(330000)
+    check("it keeps a name past the time, while it holds one", ca.C.sent.safe.Rosa ~= nil)
+    cb.C.answer(cb.C.invites[1], false)
+    advance(40000)
+    check("and lets it go the moment it does not", ca.C.sent.safe.Rosa == nil)
+end
+
+section("the review: the belt keeps the newest invitations, and nothing else goes")
+do
+    world()
+    local env = baseEnv()
+    env.require = function() end
+    env.ZeD = { tr = function(k, a) return k .. (a ~= nil and (":" .. tostring(a)) or "") end }
+    env.getGameTime = function() return nil end
+    env.getText = function(k) return k end
+    runFile(env, "42/media/lua/client/ZeD/ZeD_Messages.lua")
+    local M = env.ZeD.Messages
+    local name = "UI_ZeD_Char_TabServer"
+    M.add(name, "mods", { k = "note", text = "keep me" })
+    for i = 1, 25 do M.invite("invitation " .. i) end
+    local items = M.sources[name].items
+    local n, kept = 0, false
+    for _, it in ipairs(items) do
+        if it.k == "invite" then n = n + 1 end
+        if it.text == "keep me" then kept = true end
+    end
+    check("ten invitation notes at most", n == 10, n)
+    check("the newest stays", items[1].text == "invitation 25", items[1].text)
+    check("another mod's note is not touched", kept)
 end
 
 print("claims_sim: " .. checks .. " checks, " .. failed .. " failed")

@@ -130,6 +130,8 @@ end
 -- ---------------------------------------------------------------------------
 -- the store
 -- ---------------------------------------------------------------------------
+local INVITE_NOTES_MAX = 10      -- invitation notes on the belt
+
 local function source(name, kind)
     local s = M.sources[name]
     if not s then
@@ -228,6 +230,19 @@ end
 function M.invite(text)
     local name = ZeD.tr("UI_ZeD_Char_TabServer")
     local it = M.add(name, "mods", { k = "invite", text = text })
+    -- (any player can send these: the oldest goes past the cap, and only these)
+    local items = M.sources[name].items
+    local n = 0
+    for _, x in ipairs(items) do
+        if x.k == "invite" then n = n + 1 end
+    end
+    for i = #items, 1, -1 do
+        if n <= INVITE_NOTES_MAX then break end
+        if items[i].k == "invite" then
+            table.remove(items, i)
+            n = n - 1
+        end
+    end
     toast("warn", ZeD.tr("UI_ZeD_Cl_ToastHead"), name, text)
     return it
 end

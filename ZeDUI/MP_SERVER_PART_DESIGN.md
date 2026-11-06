@@ -1240,9 +1240,19 @@ Where the build differs from `mockups/zed_safehouse_faction_v1.html` and `MP_ADM
 15. **A claim's title is the username,** as the game's context menu sends it, not "Riverside house", until E3 gives a place name. The
     title field takes the caret when the card opens; under the controller the card lands on it.
 16. **The game's 15 and its words' 14:** its code takes a 15-character faction name, its text says 3-14. ZeD holds to 14 (`Cl.NAME_MAX`).
-17. **A title needs `hasNotSurvivedEnoughToClaim` false,** which the game tests on rename and the drawing does not mention: an owner on a
-    new character cannot rename until they pass the claim day. Save says so, in the game's words.
-18. **`ISWarManagerUI` still opens** from the HUD's war icon. The right-click menu's Claim war stays the game's: the card says how.
+17. **A rename has no claim-day test.** `SafehouseChangeTitlePacket` extends `SafehouseID` and tests only that the title is not empty; the
+    survival test is in `SafeHouseTitle`, the claim packet's parent. So an owner on a new character can rename, as the game's window lets them.
+18. **The HUD's war icon opens the wars card** (`ISEquippedItem:onOptionMouseDown`, wrapped as `ZeD_ClaimCards.lua` loads, because the button
+    keeps the function it was built with). `ISWarManagerUI` runs only if the tab cannot open. The right-click menu's Claim war stays the game's:
+    the card says how.
+19. **A tag's Save waits for the server.** `sendFactionChangeTag` reads the tag and color off the client's object, so ZeD sets them, sends, and
+    puts them straight back; a tag the server takes reaches every client in a `FactionSync`, the sender too. The tag field is for an owner or
+    FactionCheat with enough members: `FactionChangeTagPacket` has no exception for any role. One the game does not fix: with a tag that exists,
+    the packet refuses anyone but the owner, so FactionCheat staff who are not the owner cannot change a color alone, and the card says nothing changed.
+20. **The log compares the game's lists every 5 seconds,** which is the limit of what Phase 4 can read from it. A change undone between two passes
+    leaves no line (an owner hands the house over and takes it back; someone joins and quits). A pass writes at most `LOG_PER_SCAN` lines and then one
+    `claims | N changes not logged` line. Player text in a line has its `|` turned to `/`, so a split on ` | ` gives five fields. Factions are compared
+    by the object: two can share a name, because the game's rename does not test for one.
 
 Not settled, for QA on the local server (`mp_claims.lua` prints these as PROBE lines):
 
@@ -1250,6 +1260,6 @@ Not settled, for QA on the local server (`mp_claims.lua` prints these as PROBE l
 |---|---|---|
 | F1 | Whether Lua sees `hasInvite` and `removeInvite`: they live on `Invite`, which is not in `LuaManager$Exposer`. Absent, `c_cancel` answers `fail` and waiting invitations are not raised | PROBE line. Two clients for the real run |
 | F2 | Whether `IsoPlayer.updateInternal2` reaches `setLastVisited` on the server's copy of a player, as the bytecode reads | PROBE line: hours ago near 0 while standing in it |
-| F3 | Whether a refused packet does more than drop. `SafehouseChangeTitlePacket` carries `AntiCheat.SafeHouseOwner`, so ZeD sends nothing a non-owner may not; a stale list could still | Rename after losing the owner's place, on two clients; watch for a kick |
+| F3 | **Settled by the jar: one refused safehouse packet kicks by default.** `SafehouseRelease`, `ChangeOwner`, `ChangeTitle` and `Invite` carry `AntiCheat.SafeHouseOwner`, `ChangeMember` carries `SafeHouseMember`. Both are built with `maxSuspiciousCounter` 1, `AntiCheatSafeHouse` defaults to 2 (kick; 1 bans), and `SuspiciousActivity.report` returns 1 on the first hit. Roles with `CantBeKickedByAnticheat` and debug servers are spared. So each confirm remembers the house it was opened on and is checked in the foot and on the press (`X.stillTrue`), and Save and Invite read the game's lists first | Two clients: a confirm open while the other removes or transfers. Expect the foot to close with no kick |
 | F4 | `onCommandEntered` on `ZeD_TextEntry` with `setMultipleLine(false)`, and the one-line box's height at each text size | Type a title on the local server; `mp_claim_cards.lua` at each size |
 | F5 | E8 again: that `OnTickEvenPaused` fires on the server. The log rests on it | The `safehouse | claim` line appears within 5 seconds |

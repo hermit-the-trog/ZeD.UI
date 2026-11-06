@@ -50,6 +50,7 @@ function getServerName() return "Knox" end
 function scoreboardUpdate() end
 -- the game's lists, and its calls: each logged in CALLS and done at once, unless REFUSE says the game said no
 GS, GF, WARS, CALLS, OTHER, NOTES, INSIDE = {}, {}, {}, {}, {}, {}, true
+SYNCS = {}   -- what the server's FactionSync will write, the next tick
 local function jlist(t)
     return { size = function() return #t end, get = function(_, i) return t[i + 1] end,
         contains = function(_, v) for _, x in ipairs(t) do if x == v then return true end end return false end }
@@ -69,6 +70,10 @@ function newSafe(x, y, w, h, owner)
     function s.getPlayers(self) return jlist(self.players) end
     function s.isOwner(self, who) return self.owner == who:getUsername() end
     function s.isRespawnInSafehouse(self, who) return self.respawn[who] == true end
+    function s.playerAllowed(self, who)
+        for _, n in ipairs(self.players) do if n == who:getUsername() then return true end end
+        return false
+    end
     function s.alreadyHaveSafehouse(self, who)
         if OTHER[who] then return { getTitle = function() return "Their place" end } end
         return nil
@@ -155,7 +160,10 @@ call("sendSafehouseChangeOwner", function(s, who) s.owner = who end)
 call("sendSafehouseRelease", function(s) for i = #GS, 1, -1 do if GS[i] == s then table.remove(GS, i) end end end)
 call("sendFactionCreate", function(name, who) newFaction(name, who) end)
 call("sendFactionChangeTitle", function(f, name) f.name = name end)
-call("sendFactionChangeTag")
+call("sendFactionChangeTag", function(f)
+    local tag, color = f.tag, f.color
+    SYNCS[#SYNCS + 1] = function() f.tag, f.color = tag, color end
+end)
 call("sendFactionInvite")
 call("acceptFactionInvite")
 call("sendFactionChangeOwner", function(f, who)
@@ -575,6 +583,7 @@ for _, prof in ipairs(PROFILES) do
                 if Q.typed then CC.qaType(win, Q.typed[1], Q.typed[2]) end
                 frame(s.tab, p, prof.w, prof.h)
                 local list = verify(name, s.tab, p, prof.w, prof.h)
+                if string.find(s.name, "confirm", 1, true) then check(name .. ": the confirm stands", st.tk.confirm ~= nil) end
                 -- a box half under a fold must not show: a child is not cut by the stencil
                 local t = st.tk
                 if st.card and t.scroll.visible then
@@ -633,6 +642,8 @@ ZeD.applyTheme("dark", "orange", "small")
 local function draw() frame("server", panel, W, H) end
 local function tick(ms)
     nowMs = nowMs + (ms or 1100)
+    for _, fn in ipairs(SYNCS) do fn() end
+    SYNCS = {}
     for _, fn in ipairs(EVENTS.OnTick.list) do fn() end
 end
 local function settle() tick(); draw(); draw() end
@@ -754,10 +765,10 @@ check("and the words stay", field("safeTitle"):getText() == "Refused")
 press("tk:ecancel")
 draw()
 
--- a character too new to rename (the game's SafeHouseTitle refuses it) ------------------------
+-- a new character can rename: SafehouseChangeTitlePacket tests only that a title is there ---------
 PLAYER.hours = 10
 typeIn("safeTitle", "Too early")
-check("too few days: Save says why, in the game's words", footOf("save").disabled and footOf("save").why == gt("IGUI_Safehouse_DaysSurvivedToClaim", 5), footOf("save").why)
+check("too few days: Save still goes, as the game's window", footOf("save") and not footOf("save").disabled, footOf("save") and footOf("save").why)
 PLAYER.hours = 300
 press("tk:ecancel")
 
@@ -956,14 +967,16 @@ check("5: the game's words", footOf("save").why == gt("IGUI_FactionUI_TagTooLong
 typeIn("facTag", "rvf")
 CALLS = {}
 press("tk:save")
-check("set, then sent, as the game's window does", GF[1].tag == "RVF" and called("sendFactionChangeTag") ~= nil)
+check("sent, and only the server's answer writes it here", GF[1].tag == nil and called("sendFactionChangeTag") ~= nil, GF[1].tag)
 settle()
-check("in capitals", K.fac.tag == "RVF")
+check("in capitals", K.fac.tag == "RVF" and GF[1].tag == "RVF")
+check("it says so when it has come back", ZeD.Help.last == ZeD.tr("UI_ZeD_Cl_TagSet"), ZeD.Help.last)
 check("the preview shows", textDrawn(ZeD.tr("UI_ZeD_Cl_OverHead")))
 CALLS = {}
 press("tk:col:Green")
-check("a color is the game's call", called("sendFactionChangeTag") ~= nil and math.abs(GF[1].color:getG() - 0.604) < 0.01)
+check("a color is the game's call", called("sendFactionChangeTag") ~= nil)
 settle()
+check("and it comes back", math.abs(GF[1].color:getG() - 0.604) < 0.01)
 CALLS = {}
 press("tk:showtag")
 check("show tag: the player's, the game's call", PLAYER.showTag == false and called("sendFactionStatsChange") ~= nil)
@@ -1216,6 +1229,450 @@ do
     draw()
     ISWorldObjectContextMenu.onViewSafeHouse(nil, { other = true }, PLAYER)
     check("someone else's is the game's window", got == "game")
+end
+
+-- the review's cases ------------------------------------------------------------------------
+local function stale() return ZeD.tr("UI_ZeD_Cl_AskStale") end
+local function clearWorld()
+    if st.card then TC.back(win, st) end
+    GS, GF, WARS = {}, {}, {}
+    K.dirty = true
+    K.invites, K.sent, K.sentSure = {}, { safe = {}, fac = {} }, {}
+    settle()
+end
+local function home(names)
+    clearWorld()
+    local s = newSafe(10, 10, 10, 10, "Aretha")
+    s.title = "Home"
+    for _, n in ipairs(names or {}) do s.players[#s.players + 1] = n end
+    K.dirty = true
+    settle()
+    press("srv:tk:sum:safe")
+    return s
+end
+local function drop(s, name)
+    for i = #s.players, 1, -1 do if s.players[i] == name then table.remove(s.players, i) end end
+end
+
+-- a confirm left open: the game's anti-cheat kicks on the first refused safehouse packet
+do
+    local s = home({ "Rosa" })
+    press("tk:m:Rosa")
+    press("tk:rem:Rosa")
+    check("Remove is up", t.confirm ~= nil and footOf("yes") ~= nil)
+    drop(s, "Rosa")
+    settle()
+    check("she quit: it closes by itself", t.confirm == nil and footOf("yes") == nil)
+    check("and says so", ZeD.Help.last == stale(), ZeD.Help.last)
+    s.players[#s.players + 1] = "Rosa"
+    settle()
+    press("tk:m:Rosa")
+    press("tk:rem:Rosa")
+    drop(s, "Rosa")
+    CALLS = {}
+    press("tk:yes")
+    check("she quit in the last second: the press reads the game first and sends nothing", #CALLS == 0 and t.confirm == nil, #CALLS)
+    settle()
+    press("tk:release")
+    s.owner = "Rosa"
+    s.players = { "Aretha", "Rosa" }
+    settle()
+    check("the house went to someone else: Release closes", t.confirm == nil and footOf("yes") == nil)
+    check("nothing to release now", footOf("release") == nil and footOf("quit") ~= nil)
+    s.owner = "Aretha"
+    settle()
+    press("tk:release")
+    s.owner = "Rosa"
+    CALLS = {}
+    press("tk:yes")
+    check("and in the last second", called("sendSafehouseRelease") == nil)
+    s.owner = "Aretha"
+    s.players = { "Aretha", "Rosa", "Kade_R" }
+    settle()
+    press("tk:m:Kade_R")
+    press("tk:own:Kade_R")
+    drop(s, "Kade_R")
+    settle()
+    check("Change Owner on someone who quit closes", t.confirm == nil and footOf("yes") == nil)
+    s.players[#s.players + 1] = "Kade_R"
+    settle()
+    press("tk:m:Kade_R")
+    press("tk:own:Kade_R")
+    local online = ZeD.ServerTab.players
+    ZeD.ServerTab.players = { { user = "Rosa", name = "Rosa" } }
+    settle()
+    check("Change Owner on someone gone offline closes", t.confirm == nil)
+    ZeD.ServerTab.players = online
+    settle()
+    -- Keep goes back to the button pressed
+    press("tk:m:Kade_R")
+    press("tk:own:Kade_R")
+    FOCUS.soon = {}
+    press("tk:no")
+    local hit, wrong = false, false
+    for _, x in ipairs(FOCUS.soon) do
+        if x.pred({ id = "tk:own:Kade_R" }) then hit = true end
+        if x.pred({ id = "tk:rem:Kade_R" }) then wrong = true end
+    end
+    check("Keep on Change Owner lands on Change Owner", hit and not wrong)
+end
+do
+    clearWorld()
+    local s = newSafe(10, 10, 10, 10, "Aretha")
+    s.title = "Motel"
+    WARS[1] = newWar(s, "Kade_R", "Claimed", "00:09:00")
+    K.dirty = true
+    settle()
+    check("the row's second line is the nearest countdown", textDrawn(gt("IGUI_WarManager_TimeToAccept", "00:09:00")))
+    press("srv:tk:sum:wars")
+    local id = "tk:w:" .. tostring(s.onlineId) .. ":Kade_R:Accepted"
+    press(id)
+    check("Accept is up", t.confirm ~= nil)
+    WARS[1].state = "Canceled"
+    settle()
+    check("the war moved on: Accept closes", t.confirm == nil and footOf("yes") == nil)
+    WARS[1].state = "Claimed"
+    settle()
+    press(id)
+    WARS[1] = nil
+    K.dirty = true
+    settle()
+    check("the war left the list: the same", t.confirm == nil)
+    TC.back(win, st)
+    draw()
+end
+
+-- staff with two safehouses
+do
+    ZEDQA_CAPS.CanSetupSafehouses = true
+    local a = home()
+    local b = newSafe(30, 30, 10, 10, "Aretha")
+    K.dirty = true
+    settle()
+    press("tk:release")
+    for i = #GS, 1, -1 do if GS[i] == a then table.remove(GS, i) end end
+    settle()
+    check("the house went: its confirm does not move to the other", t.confirm == nil and footOf("yes") == nil and #GS == 1)
+    TC.back(win, st)
+    draw()
+    GS = { a, b }
+    K.dirty = true
+    settle()
+    press("srv:tk:sum:safe")
+    press("tk:release")
+    CALLS = {}
+    press("tk:yes")
+    check("the one asked about goes", called("sendSafehouseRelease").a[1] == a)
+    settle()
+    settle()
+    check("told it went, not told it failed", ZeD.Help.last == ZeD.tr("UI_ZeD_Cl_Released"), ZeD.Help.last)
+    check("the other is not put in front of Release", st.card == nil and #GS == 1 and GS[1] == b)
+    ZEDQA_CAPS.CanSetupSafehouses = nil
+end
+
+-- staff who are members, not owners
+do
+    clearWorld()
+    ZEDQA_CAPS.CanSetupSafehouses, ZEDQA_CAPS.FactionCheat = true, true
+    local s = newSafe(10, 10, 10, 10, "Rosa")
+    s.players = { "Rosa", "Aretha" }
+    local f = newFaction("Theirs", "Rosa")
+    f.players = { "Aretha", "Kade_R" }
+    K.dirty = true
+    settle()
+    press("srv:tk:sum:safe")
+    check("staff, a member: Quit and Release", footOf("quit") ~= nil and footOf("release") ~= nil)
+    press("tk:release")
+    CALLS = {}
+    press("tk:yes")
+    check("Release is the game's call", called("sendSafehouseRelease") ~= nil)
+    settle()
+    press("srv:tk:sum:fac")
+    check("staff, a member: Leave and Disband", footOf("leave") ~= nil and footOf("disband") ~= nil)
+    TC.back(win, st)
+    draw()
+    ZEDQA_CAPS.CanSetupSafehouses, ZEDQA_CAPS.FactionCheat = nil, nil
+end
+
+-- what the game holds that ZeD would have typed differently is not an edit
+do
+    clearWorld()
+    OPTS.FactionPlayersRequiredForTag = 1
+    local f = newFaction("Ours", "Aretha")
+    f.tag = "mg"
+    K.dirty = true
+    settle()
+    press("srv:tk:sum:fac")
+    draw()
+    check("a lower-case tag from the game's window: the quiet foot", footOf("disband") ~= nil and footOf("save") == nil)
+    check("shown as stored", field("facTag"):getText() == "mg")
+    stopOf("tk:disband").onCancel(win)
+    draw()
+    check("B leaves the card", st.card == nil)
+    press("srv:tk:sum:fac")
+    typeIn("facTag", "mgr")
+    check("an edit is one", footOf("save") ~= nil)
+    press("tk:ecancel")
+    check("Cancel puts it back as stored", field("facTag"):getText() == "mg" and footOf("disband") ~= nil)
+    OPTS.FactionPlayersRequiredForTag = 3
+    local s = home()
+    s.title = "Home "
+    K.dirty = true
+    settle()
+    draw()
+    check("a title with a space on the end: Release stays", footOf("release") ~= nil and footOf("save") == nil)
+    check("too few for a tag, staff or not", (function()
+        clearWorld()
+        ZEDQA_CAPS.FactionCheat = true
+        newFaction("Small", "Aretha")
+        K.dirty = true
+        settle()
+        press("srv:tk:sum:fac")
+        local gray = stopOf("tk:f:facTag") == nil and stopOf("tk:col:Green") == nil
+        ZEDQA_CAPS.FactionCheat = nil
+        return gray
+    end)())
+end
+
+-- the fields, as drawn
+do
+    local s = home()
+    field("safeTitle")._entry:focus()
+    draw()
+    draw()
+    check("typing: the count", textDrawn(ZeD.tr("UI_ZeD_Cl_Count", 4, 30)))
+    check("not pick to rename", not textDrawn(ZeD.tr("UI_ZeD_Cl_PickRename")))
+    check("the drawing's line under it", textDrawn(ZeD.tr("UI_ZeD_Cl_TitleSub")))
+    typeIn("safeTitle", "")
+    draw()
+    check("a problem takes its place", textDrawn(ZeD.tr("UI_ZeD_Cl_TitleEmpty")) and not textDrawn(ZeD.tr("UI_ZeD_Cl_TitleSub")))
+    press("tk:ecancel")
+    field("safeTitle")._entry:unfocus()
+    draw()
+    draw()
+    check("left alone: pick to rename, and no line", textDrawn(ZeD.tr("UI_ZeD_Cl_PickRename")) and not textDrawn(ZeD.tr("UI_ZeD_Cl_TitleSub")))
+    check("one name reads as one", (function()
+        TC.back(win, st)
+        draw()
+        return textDrawn(ZeD.tr("UI_ZeD_Cl_OnePlayer")) and not textDrawn("1 players")
+    end)())
+end
+
+-- Enter and Escape in Create Faction
+do
+    clearWorld()
+    press("srv:faction")
+    draw()
+    typeIn("newFac", "Enterprise")
+    CALLS = {}
+    field("newFac")._entry.onCommandEntered()
+    check("Enter creates", called("sendFactionCreate") and called("sendFactionCreate").a[1] == "Enterprise")
+    settle()
+    settle()
+    clearWorld()
+    press("srv:faction")
+    draw()
+    typeIn("newFac", "x")
+    CALLS = {}
+    field("newFac")._entry.onCommandEntered()
+    check("Enter on a bad name does nothing", #CALLS == 0 and st.card ~= nil)
+    field("newFac")._entry.onOtherKey(nil, Keyboard.KEY_ESCAPE)
+    draw()
+    check("Escape backs out", st.card == nil)
+end
+
+-- the server's rules
+do
+    OPTS.SafeHouseRemovalTime = 0
+    clearWorld()
+    tick(2100)
+    draw()
+    draw()
+    check("no expiry on this server: it says so", textDrawn(ZeD.tr("UI_ZeD_Cl_RuleRemovalOff")) and not textDrawn("real hours"))
+    OPTS.SafeHouseRemovalTime = 72
+    settle()
+    check("the tab's rules are stops", stopOf("srv:tk:rule:1") ~= nil and stopOf("srv:tk:rule:1").promptA == false and stopOf("srv:tk:rule:8") ~= nil)
+    do
+        local e = stopOf("srv:tk:rule:8")
+        check("each knows where it sits", type(e.cy) == "number")
+        FOCUS.id, FOCUS.el, FOCUS.win = e.id, e, win
+        draw()
+        FOCUS.id, FOCUS.el, FOCUS.win = nil, nil, nil
+    end
+    press("srv:faction")
+    draw()
+    do
+        local n = 0
+        for _, e in ipairs(stops("server")) do
+            if string.find(e.id, "tk:rule:", 1, true) then
+                n = n + 1
+                check("nothing to press on a rule", e.promptA == false and e.onCancel ~= nil)
+            end
+        end
+        check("Create Faction's lines are stops", n >= 2, n)
+    end
+    TC.back(win, st)
+    draw()
+    home()
+    do
+        local n = 0
+        for _, e in ipairs(stops("server")) do
+            if string.find(e.id, "tk:rule:", 1, true) then n = n + 1 end
+        end
+        check("the card's rules are stops", n == 8, n)
+    end
+    TC.back(win, st)
+    draw()
+end
+
+-- a player passes the day to create a faction with nothing else changing
+do
+    clearWorld()
+    newSafe(10, 10, 10, 10, "Aretha")
+    PLAYER.hours = 10
+    K.dirty = true
+    settle()
+    check("day 1: gray", stopOf("srv:faction") and stopOf("srv:faction").help == gt("IGUI_FactionUI_FactionSurvivalDay", 3))
+    PLAYER.hours = 100
+    settle()
+    settle()
+    check("day 4: it opens by itself", stopOf("srv:faction").help ~= gt("IGUI_FactionUI_FactionSurvivalDay", 3), stopOf("srv:faction").help)
+    PLAYER.hours = 300
+end
+
+-- the note's Open with a card left open over it
+do
+    local s = home()
+    local f = newFaction("Mall", "Mags_77")
+    K.addInvite("fac", f, "Aretha")
+    settle()
+    check("the card is up", st.card ~= nil)
+    FOCUS.soon = {}
+    K.openNext = "invite"
+    draw()
+    draw()
+    check("Open leaves the card, for the note", st.card == nil and textDrawn(ZeD.tr("UI_ZeD_Cl_NoteSub")))
+    local hit = false
+    for _, x in ipairs(FOCUS.soon) do
+        if x.pred({ id = "srv:tk:inv:yes:1" }) then hit = true end
+    end
+    check("the hand lands on Accept", hit)
+end
+
+-- the HUD's war icon
+do
+    clearWorld()
+    local got, opened = nil, true
+    ISEquippedItem = { onOptionMouseDown = function(_, button) got = button.internal end }
+    CC.hookWarIcon()
+    ZeD_CharacterWindow.openTab = function(_, id) return opened and id == "server" end
+    ISEquippedItem.onOptionMouseDown({ chr = PLAYER }, { internal = "WARMANAGERPANEL" })
+    draw()
+    check("the war icon opens the wars card", got == nil and st.card and st.card.kind == "wars")
+    TC.back(win, st)
+    draw()
+    ISEquippedItem.onOptionMouseDown({ chr = PLAYER }, { internal = "ADMINPANEL" })
+    check("the column's other buttons are the game's", got == "ADMINPANEL")
+    opened, got = false, nil
+    ISEquippedItem.onOptionMouseDown({ chr = PLAYER }, { internal = "WARMANAGERPANEL" })
+    check("no tab: the game's window", got == "WARMANAGERPANEL")
+end
+
+-- a claim in flight is one claim, whatever card opens meanwhile
+do
+    clearWorld()
+    tick(2100)
+    draw()
+    draw()
+    REFUSE = true
+    CALLS = {}
+    press("srv:claim")
+    press("srv:tk:sum:wars")
+    TC.back(win, st)
+    draw()
+    check("Claim stays gray", (function()
+        for _, it in ipairs(st.items) do
+            if it.k == "btn" and it.id == "claim" then return it.disabled == true end
+        end
+        return false
+    end)())
+    press("srv:claim")
+    local n = 0
+    for _, c in ipairs(CALLS) do if c.name == "sendSafehouseClaim" then n = n + 1 end end
+    check("one claim sent", n == 1, n)
+    tick(9000)
+    REFUSE = nil
+    draw()
+    draw()
+    check("no answer frees it", K.claiming == nil and ZeD.Help.last == ZeD.tr("UI_ZeD_Cl_NoAnswer"), ZeD.Help.last)
+end
+
+-- Add Player with no server part: the game takes a second invitation, so ZeD does too
+do
+    home()
+    S.forceOff = true
+    press("tk:add")
+    press("tk:pick:Rosa")
+    settle()
+    press("tk:add")
+    check("still pickable, and says she was asked", stopOf("tk:pick:Rosa") ~= nil and textDrawn(ZeD.tr("UI_ZeD_Cl_InvitedWaiting")))
+    CALLS = {}
+    press("tk:pick:Rosa")
+    check("asked again", called("sendSafehouseInvite") ~= nil)
+    K.sentSure.safe = true
+    S.forceOff = nil
+    settle()
+    press("tk:add")
+    check("with the server's list she is off the drawer", stopOf("tk:pick:Rosa") == nil)
+    K.sentSure = {}
+    TC.back(win, st)
+    draw()
+end
+
+-- the rules under the controller at the small sizes: stepping to each one brings it on screen
+do
+    local function reach(name)
+        local list = stops("server")
+        for _, e in ipairs(list) do
+            if string.find(e.id, "tk:rule:", 1, true) then
+                FOCUS.id, FOCUS.el, FOCUS.win = e.id, e, win
+                draw()
+                draw()
+                draw()
+                local now = stopOf(e.id)
+                local sy, sh = t.sy, t.sh
+                if st.card then sy, sh = t.csy, t.csh end
+                check(name .. ": " .. e.id .. " comes on screen", now and now.y >= sy - 1 and now.y + now.h <= sy + sh + 1,
+                    now and (now.y .. "+" .. now.h .. " in " .. sy .. "+" .. sh))
+            end
+        end
+        FOCUS.id, FOCUS.el, FOCUS.win = nil, nil, nil
+    end
+    for _, size in ipairs({ { 360, 500, "small", false }, { 414, 560, "large", true } }) do
+        ZEDQA_ROOT, ZEDQA_LARGE = 0.75, size[4]
+        ZeD.applyTheme("dark", "orange", size[3])
+        W, H = size[1], size[2]
+        panel = newPanel(W, H)
+        win._tkFields = nil
+        FOCUS.pad = true
+        clearWorld()
+        draw()
+        draw()
+        reach("the tab at " .. W)
+        home({ "Rosa" })
+        draw()
+        reach("the safehouse card at " .. W)
+        TC.back(win, st)
+        draw()
+        press("srv:tk:sum:wars")
+        draw()
+        reach("the wars card at " .. W)
+        TC.back(win, st)
+        draw()
+    end
+    FOCUS.pad = false
+    ZEDQA_ROOT, ZEDQA_LARGE = 1, false
+    ZeD.applyTheme("dark", "orange", "small")
 end
 
 print("claim_cards_sim: " .. checks .. " checks, " .. failed .. " failed")

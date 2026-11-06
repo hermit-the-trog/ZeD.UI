@@ -68,10 +68,15 @@ local function invited(o)
     return out
 end
 
--- every invitation waiting for this player
+-- every invitation waiting for this player. live: the server could read them, so one missing here has gone
 local function waiting(p)
     local me = p:getUsername()
     local out, n = { n = 0 }, 0
+    local function holds(o)
+        if not o.hasInvite then return false end
+        out.live = true
+        return o:hasInvite(me)
+    end
     local function add(kind, key, name, host)
         if n < L.INVITES_MAX then
             n = n + 1
@@ -81,12 +86,12 @@ local function waiting(p)
     end
     if not safeOf(p) then
         each(SafeHouse.getSafehouseList(), function(h)
-            if h.hasInvite and h:hasInvite(me) then add("safe", h:getId(), h:getTitle(), h:getOwner()) end
+            if holds(h) then add("safe", h:getId(), h:getTitle(), h:getOwner()) end
         end)
     end
     if not factionOf(p) then
         each(Faction.getFactions(), function(f)
-            if f.hasInvite and f:hasInvite(me) then add("fac", f:getName(), f:getName(), f:getOwner()) end
+            if holds(f) then add("fac", f:getName(), f:getName(), f:getOwner()) end
         end)
     end
     return out
@@ -126,6 +131,8 @@ Srv.register(Cl.MOD, "c_cancel", { limit = L.CANCEL_MS, ackModule = Cl.MOD, ackC
         return ack(p, rid, false, "perm")
     end
     if not o.removeInvite then return ack(p, rid, false, "fail") end
+    -- (no invitation, no line: the log says what happened)
+    if o.hasInvite and not o:hasInvite(who) then return ack(p, rid, false, "gone") end
     o:removeInvite(who)
     Srv.log("invite cancelled: " .. a.kind .. " by " .. tostring(p:getUsername()) .. " to " .. Tk.name(who))
     ack(p, rid, true)
@@ -133,16 +140,21 @@ end)
 
 -- ---------------------------------------------------------------------------
 -- THE LOG: the game's lists compared with what they held last time. Every line says what changed and where; a change that
--- names no doer (a member gone) says whom it touched. Titles and names are players' words, so each is cut to one short line.
+-- names no doer (a member gone) says whom it touched. Titles and names are players' words, so each is cut to one short line,
+-- with no | to pass for a field of the line. A change undone between two passes leaves no line, which is the limit of
+-- comparing lists: ZeDUI/MP_SERVER_PART_DESIGN.md says so for Phase 4.
 -- ---------------------------------------------------------------------------
-local function short(s) return string.sub(Tk.name(s or ""), 1, L.LOG_TEXT) end
+local function short(s) return (string.gsub(string.sub(Tk.name(s or ""), 1, L.LOG_TEXT), "|", "/")) end
 
 local function day()
     return math.floor(getGameTime():getWorldAgeHours() / 24) + 1
 end
 
 local function line(kind, what, who, where)
-    if W.lines >= L.LOG_PER_SCAN then return end
+    if W.lines >= L.LOG_PER_SCAN then
+        W.dropped = W.dropped + 1
+        return
+    end
     W.lines = W.lines + 1
     Srv.log(kind .. " | " .. what .. " | " .. who .. " | " .. where .. " | day " .. tostring(day()))
 end
@@ -172,11 +184,12 @@ local function readSafe()
     return out
 end
 
+-- (by the object: the game's rename has no test for a name already taken, and the object is what a rename leaves alone)
 local function readFaction()
     local out = {}
     each(Faction.getFactions(), function(f)
         local owner = f:getOwner()
-        out[f:getName()] = { owner = owner, tag = f:getTag(), members = membersOf(f:getPlayers(), owner) }
+        out[f] = { name = f:getName(), owner = owner, tag = f:getTag(), members = membersOf(f:getPlayers(), owner) }
     end)
     return out
 end
@@ -199,29 +212,20 @@ local function compareSafe(was, now)
 end
 
 local function compareFaction(was, now)
-    local gone = {}
-    for name, f in pairs(was) do
-        if not now[name] then gone[f.owner] = name end
-    end
-    for name, f in pairs(now) do
-        local o = was[name]
+    for key, f in pairs(now) do
+        local o = was[key]
+        local name = short(f.name)
         if not o then
-            local old = gone[f.owner]
-            if old then
-                gone[f.owner] = nil
-                was[old] = nil
-                line("faction", "name from " .. short(old), short(f.owner), short(name))
-            else
-                line("faction", "create", short(f.owner), short(name))
-            end
+            line("faction", "create", short(f.owner), name)
         else
-            if o.owner ~= f.owner then line("faction", "owner from " .. short(o.owner), short(f.owner), short(name)) end
-            if o.tag ~= f.tag then line("faction", "tag " .. short(f.tag), short(f.owner), short(name)) end
-            compareMembers("faction", short(name), o.members, f.members)
+            if o.name ~= f.name then line("faction", "name from " .. short(o.name), short(f.owner), name) end
+            if o.owner ~= f.owner then line("faction", "owner from " .. short(o.owner), short(f.owner), name) end
+            if o.tag ~= f.tag then line("faction", "tag " .. short(f.tag), short(f.owner), name) end
+            compareMembers("faction", name, o.members, f.members)
         end
     end
-    for name, f in pairs(was) do
-        if not now[name] then line("faction", "disband", short(f.owner), short(name)) end
+    for key, f in pairs(was) do
+        if not now[key] then line("faction", "disband", short(f.owner), short(f.name)) end
     end
 end
 
@@ -230,10 +234,11 @@ function Srv.claimsWatch()
     if W.at and t - W.at < L.WATCH_MS then return end
     W.at = t
     local safes, factions = readSafe(), readFaction()
-    W.lines = 0
+    W.lines, W.dropped = 0, 0
     if W.safes then compareSafe(W.safes, safes) end
     if W.factions then compareFaction(W.factions, factions) end
     W.safes, W.factions = safes, factions
+    if W.dropped > 0 then Srv.log("claims | " .. tostring(W.dropped) .. " changes not logged | - | - | day " .. tostring(day())) end
 end
 
 if not W.watching then

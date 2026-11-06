@@ -25,16 +25,20 @@ ZeD.Claims = ZeD.Claims or {}
 local C = ZeD.Claims
 local S = ZeD.ServerPart
 local Cl = ZeD.Cl
+local Tk = ZeD.Tk
 
 local REFRESH_MS = 1000       -- the game's objects read this often
 local CHECK_MS = 2000         -- "Can I claim this?" asked this often while it shows; the game's check walks the cell's objects
 local INFO_MS = 30000         -- the server part asked this often while the link is up
 local INFO_SOON_MS = 6000     -- after a change, this soon (its limit is 5 s)
 local EXPECT_MS = 8000        -- the game gives no answer: past this, what was asked has not happened
+local SENT_MS = 300000        -- "invited, waiting" ends after this unless the server's list still holds the name: the game tells the host nothing of a no
+local INVITE_GRACE_MS = 6000  -- a note this new stays, whatever a c_info sent before it arrived says
 
 C.seq = C.seq or 0            -- bumps when anything below changes
-C.invites = C.invites or {}   -- invitations waiting: { kind = "safe" | "fac", obj, host, user, name }
+C.invites = C.invites or {}   -- invitations waiting: { kind = "safe" | "fac", key, obj, host, user, name, at }
 C.sent = C.sent or { safe = {}, fac = {} }   -- who I invited and has not answered: name -> when
+C.sentSure = C.sentSure or {} -- kind -> true while the server part's list is what C.sent holds, not only what this client sent
 C.info = C.info or {}         -- what the server part last said
 C.declined = C.declined or {} -- invitations answered this session, so a late c_info does not raise them again
 
@@ -123,7 +127,8 @@ function C.readFaction(p)
     local col = f:getTagColor()
     return {
         obj = f, name = f:getName() or "", tag = f:getTag(), owner = owner, isOwner = mine, manage = mine or cheat,
-        canTag = (mine or cheat) and (f:canCreateTag() or cheat), hasRoom = f:canCreateTag(),
+        -- (FactionChangeTagPacket tests canCreateTag with no exception for any role, so a role does not open the field)
+        canTag = (mine or cheat) and f:canCreateTag(), hasRoom = f:canCreateTag(),
         color = col and { r = col:getR(), g = col:getG(), b = col:getB() } or nil,
         names = C.names(owner, f:getPlayers()),
         showTag = p:isShowTag(), pvp = p:isFactionPvp(),
@@ -172,7 +177,11 @@ function C.signature()
     for _, w in ipairs(C.wars or {}) do
         parts[#parts + 1] = table.concat({ tostring(w.id), tostring(w.attacker), tostring(w.state), tostring(w.time) }, "|")
     end
-    for _, i in ipairs(C.invites) do parts[#parts + 1] = i.kind .. tostring(i.host) end
+    if not f then
+        -- (nothing else changes when a player passes the day to create one)
+        parts[#parts + 1] = tostring(safe(C.canCreateFaction, false)) .. tostring(math.floor(safe(C.hoursSurvived, 0) / 24))
+    end
+    for _, i in ipairs(C.invites) do parts[#parts + 1] = i.key end
     for _, kind in ipairs({ "safe", "fac" }) do
         for n in pairs(C.sent[kind]) do parts[#parts + 1] = kind .. n end
     end
@@ -212,11 +221,15 @@ function C.prune()
     C.invites = kept
     for _, kind in ipairs({ "safe", "fac" }) do
         local v = (kind == "safe") and C.safe or C.fac
+        local keep = {}
         if v then
-            for _, n in ipairs(v.names) do C.sent[kind][n] = nil end
-        else
-            C.sent[kind] = {}
+            local t = now()
+            for n, at in pairs(C.sent[kind]) do
+                if t - at < SENT_MS then keep[n] = at end
+            end
+            for _, n in ipairs(v.names) do keep[n] = nil end
         end
+        C.sent[kind] = keep
     end
 end
 
@@ -269,6 +282,7 @@ local function noteInfo(a)
     C.info = { at = now(), safe = a.safe, fac = a.fac }
     for _, kind in ipairs({ "safe", "fac" }) do
         local list = a[kind] and a[kind].invited
+        C.sentSure[kind] = type(list) == "table"
         if type(list) == "table" then
             -- (the server's word for who is waiting; one sent since it answered stays)
             local keep = {}
@@ -280,6 +294,8 @@ local function noteInfo(a)
         end
     end
     local list = a.invites
+    -- (list.live: the server can read invitations. A full list may have left one out, so it takes nothing away)
+    if list and list.live and (list.n or 0) < Cl.LIMITS.INVITES_MAX then C.dropGone(list) end
     for i = 1, (list and list.n or 0) do
         local e = list[i]
         if type(e) == "table" then C.recover(e) end
@@ -287,24 +303,49 @@ local function noteInfo(a)
     C.dirty = true
 end
 
+-- what identifies an invitation: the safehouse or the faction. The event's host is a client's word (the game tests only
+-- that it is not empty), and staff can send for an owner, so one house gives one note whoever sent it
+function C.inviteKey(kind, obj)
+    if kind == "safe" then return "safe|" .. tostring(obj:getId()) end
+    return "fac|" .. tostring(obj:getName())
+end
+
+function C.findHouse(id)
+    local all = SafeHouse.getSafehouseList()
+    for n = 0, all:size() - 1 do
+        local h = all:get(n)
+        if h:getId() == id then return h end
+    end
+    return nil
+end
+
+-- the host took an invitation back: the note goes, or Accept would wait to be told it no longer stands
+function C.dropGone(list)
+    local held = {}
+    for n = 1, (list.n or 0) do
+        local e = list[n]
+        if type(e) == "table" then held[e.kind .. "|" .. tostring(e.key)] = true end
+    end
+    local kept = {}
+    local t = now()
+    for _, i in ipairs(C.invites) do
+        local key = safe(function() return C.inviteKey(i.kind, i.obj) end, i.key)
+        if held[key] or t - i.at < INVITE_GRACE_MS then kept[#kept + 1] = i end
+    end
+    if #kept ~= #C.invites then
+        C.invites = kept
+        C.bump()
+    end
+end
+
 -- an invitation the server still holds and this client has no note of (it joined after it was sent)
 function C.recover(e)
-    local key = e.kind .. "|" .. tostring(e.host)
-    if C.declined[key] then return end
-    for _, i in ipairs(C.invites) do
-        if i.kind == e.kind and i.host == e.host then return end
-    end
     local obj
-    if e.kind == "safe" then
-        local all = SafeHouse.getSafehouseList()
-        for n = 0, all:size() - 1 do
-            local h = all:get(n)
-            if h:getId() == e.key then obj = h; break end
-        end
-    elseif e.kind == "fac" then
-        obj = Faction.getFaction(e.key)
-    end
-    if obj then C.addInvite(e.kind, obj, e.host, C.me(), e.name) end
+    if e.kind == "safe" then obj = C.findHouse(e.key)
+    elseif e.kind == "fac" then obj = Faction.getFaction(e.key) end
+    if not obj or C.declined[C.inviteKey(e.kind, obj)] then return end
+    if #C.invites >= Cl.LIMITS.INVITES_MAX then return end
+    C.addInvite(e.kind, obj, C.me())
 end
 
 S.on(Cl.MOD, function(command, args)
@@ -319,13 +360,17 @@ end)
 -- ---------------------------------------------------------------------------
 -- INVITATIONS: a note in the Server tab, never the game's modal
 -- ---------------------------------------------------------------------------
-function C.addInvite(kind, obj, host, user, name)
+function C.addInvite(kind, obj, user)
     for _, i in ipairs(C.invites) do
-        if i.kind == kind and i.host == host then i.obj, i.user, i.name = obj, user, name; return i end
+        if i.obj == obj then i.user = user; return i end
     end
-    local it = { kind = kind, obj = obj, host = host, user = user, name = name }
+    -- (the owner and the name from the object, cut: both can be any length of a client's text)
+    local host = Tk.name(obj:getOwner())
+    local name = (kind == "safe") and obj:getTitle() or obj:getName()
+    local it = { kind = kind, key = C.inviteKey(kind, obj), obj = obj, host = host, user = user, name = Tk.name(name or ""), at = now() }
     C.invites[#C.invites + 1] = it
-    C.declined[kind .. "|" .. tostring(host)] = nil
+    while #C.invites > Cl.LIMITS.INVITES_MAX do table.remove(C.invites, 1) end
+    C.declined[it.key] = nil
     C.bump()
     if Cl.INVITE_NOTE and ZeD.Messages and ZeD.Messages.invite then
         ZeD.Messages.invite(C.inviteText(it))
@@ -341,12 +386,12 @@ end
 -- as the game's handlers: no invitation for someone who already has one
 function C.onSafeInvite(h, host, username)
     if SafeHouse.hasSafehouse(getPlayer()) then return end
-    C.addInvite("safe", h, host, username, safe(function() return h:getTitle() end, ""))
+    C.addInvite("safe", h, username)
 end
 
 function C.onFactionInvite(f, host, username)
     if Faction.getPlayerFaction(getPlayer()) then return end
-    C.addInvite("fac", f, host, username, safe(function() return f:getName() end, ""))
+    C.addInvite("fac", f, username)
 end
 
 function C.answer(inv, yes, done)
@@ -355,7 +400,7 @@ function C.answer(inv, yes, done)
         if i ~= inv then list[#list + 1] = i end
     end
     C.invites = list
-    C.declined[inv.kind .. "|" .. tostring(inv.host)] = true
+    C.declined[inv.key] = true
     if inv.kind == "safe" then acceptSafehouseInvite(inv.obj, inv.host, inv.user, yes == true)
     else acceptFactionInvite(inv.obj, inv.host, inv.user, yes == true) end
     C.bump()
@@ -382,7 +427,11 @@ function C.claimAnswer(p)
     -- (the context menu asks only with a building under the square: canBeSafehouse reads it without a test)
     if not sq:getBuilding() then return { lines = { getText("IGUI_Safehouse_NotInside") }, x = x, y = y } end
     local held = SafeHouse.getSafeHouse(sq)
-    if held then return { lines = { tr("UI_ZeD_Cl_ClaimTaken", tostring(held:getOwner())) }, x = x, y = y } end
+    if held then
+        -- (a stranger learns that it is claimed, not whom to look for; playerAllowed holds its members and staff)
+        local words = held:playerAllowed(p) and tr("UI_ZeD_Cl_ClaimTaken", tostring(held:getOwner())) or tr("UI_ZeD_Cl_ClaimHeld")
+        return { lines = { words }, x = x, y = y }
+    end
     local s = SafeHouse.canBeSafehouse(sq, p)
     if s == nil then
         return { lines = { r.admin and getText("UI_ServerOption_AdminSafehouse_tooltip") or tr("UI_ZeD_Cl_ClaimsOff") }, x = x, y = y }
@@ -456,7 +505,7 @@ end
 function C.cancelInvite(kind, who, done)
     C.ackRid = (C.ackRid or 0) + 1
     C.ackFn = function(a)
-        if a.ok ~= false then
+        if a.ok ~= false or a.err == "gone" then
             C.sent[kind][who] = nil
             C.bump()
         end
@@ -490,14 +539,20 @@ function C.remove(kind, who, done)
     end
 end
 
-function C.release(done)
-    sendSafehouseRelease(C.safe.obj)
-    C.expect(function() return SafeHouse.hasSafehouse(getPlayer()) == nil end, done)
+-- h: the card's read of the safehouse. hasSafehouse answers the first match and staff can hold two: done is "this one has
+-- gone", not "I have none"
+function C.release(h, done)
+    sendSafehouseRelease(h.obj)
+    C.expect(function() return C.findHouse(h.id) == nil end, done)
 end
 
-function C.quit(done)
-    sendSafehouseChangeMember(C.safe.obj, C.me())
-    C.expect(function() return SafeHouse.hasSafehouse(getPlayer()) == nil end, done)
+function C.quit(h, done)
+    local me = C.me()
+    sendSafehouseChangeMember(h.obj, me)
+    C.expect(function()
+        local o = C.findHouse(h.id)
+        return o == nil or not o:getPlayers():contains(me)
+    end, done)
 end
 
 function C.createFaction(name, done)
@@ -510,19 +565,27 @@ function C.renameFaction(name, done)
     C.expect(function() return C.fac and C.fac.name == name end, done)
 end
 
+-- sendFactionChangeTag reads the tag and color off the object as it sends (ISCreateFactionTagUI sets them first). They go
+-- back straight after: a tag the server takes comes to every client in a FactionSync, this one too, so the object here only
+-- ever holds what the server does and C.expect proves something
 function C.setTag(tag, done)
     local f = C.fac
-    f.obj:setTag(tag)                                -- (ISCreateFactionTagUI: set here, then sent)
+    local was = f.obj:getTag()
+    f.obj:setTag(tag)
     sendFactionChangeTag(f.obj)
+    f.obj:setTag(was)
     C.expect(function() return C.fac and C.fac.tag == tag end, done)
 end
 
-function C.setColor(c)
+function C.setColor(c, done)
     local f = C.fac
+    local was = f.obj:getTagColor()
     f.obj:setTagColor(ColorInfo.new(c.r, c.g, c.b, 1))
     sendFactionChangeTag(f.obj)
-    f.color = { r = c.r, g = c.g, b = c.b }
-    C.bump()
+    f.obj:setTagColor(was)
+    C.colorAsked = c
+    -- (a later press takes over: only the last color asked can be missing)
+    C.expect(function() return C.colorAsked ~= c or (C.fac and Cl.sameColor(C.fac.color, c)) end, done)
 end
 
 function C.showTag(on)
@@ -569,11 +632,6 @@ function C.canCreateFaction()
     if C.qaCanCreate ~= nil then return C.qaCanCreate end
     local p = getPlayer()
     return p ~= nil and Faction.canCreateFaction(p)
-end
-function C.survivedToClaim()
-    if C.qaHold then return true end
-    local p = getPlayer()
-    return p ~= nil and not SafeHouse.hasNotSurvivedEnoughToClaim(p)
 end
 function C.hoursSurvived()
     if C.qaHours then return C.qaHours end

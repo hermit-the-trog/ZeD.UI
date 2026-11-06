@@ -487,6 +487,8 @@ function ZeD_MessagesWindow:pressCard(b)
     end
     if b.invite then
         if ZeD_CharacterWindow and ZeD_CharacterWindow.openTab then ZeD_CharacterWindow.openTab(0, "server") end
+        -- (the notes draw in the tab's list: a card left open there would hide them)
+        if ZeD.Claims then ZeD.Claims.openNext = "invite" end
         b.card.it.read = true
         return
     end

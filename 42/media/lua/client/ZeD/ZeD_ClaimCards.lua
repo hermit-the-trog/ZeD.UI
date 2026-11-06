@@ -28,6 +28,7 @@ require "ZeD/ZeD_ClaimProto"
 require "ZeD/ZeD_ServerLink"
 require "ZeD/ZeD_Claims"
 require "ZeD/ZeD_TicketCards"
+require "ISUI/ISEquippedItem"
 
 ZeD = ZeD or {}
 ZeD.ClaimCards = ZeD.ClaimCards or {}
@@ -92,16 +93,20 @@ function CC.ruleLines(r)
     if r.loot then add(false, "UI_ZeD_Cl_RuleLootYes") else add(true, "UI_ZeD_Cl_RuleLootNo") end
     if r.fire then add(false, "UI_ZeD_Cl_RuleFireYes") else add(true, "UI_ZeD_Cl_RuleFireNo") end
     if r.respawn then add(true, "UI_ZeD_Cl_RuleRespawnYes") else add(false, "UI_ZeD_Cl_RuleRespawnNo") end
-    add(true, "UI_ZeD_Cl_RuleRemoval", r.removal or 0)
+    -- (at 0 SafeHouse.update stops before it looks at any safehouse)
+    if (r.removal or 0) > 0 then add(true, "UI_ZeD_Cl_RuleRemoval", r.removal) else add(true, "UI_ZeD_Cl_RuleRemovalOff") end
     if r.ownerOff then add(false, "UI_ZeD_Cl_RuleProtectOffline") else add(true, "UI_ZeD_Cl_RuleProtectAlways") end
     return out
 end
 
-function X.addRules(items, kindRule)
+-- a rule line is a stop with nothing to press: the controller steps down to read it, and the list follows the stop
+function X.rule(items, ok, text)
+    items[#items + 1] = { k = "rule", ok = ok, text = text, c = { id = "rule:" .. tostring(#items + 1) } }
+end
+
+function X.addRules(items)
     items[#items + 1] = { k = "label", text = tr("UI_ZeD_Cl_Rules") }
-    for _, l in ipairs(CC.ruleLines(C.rules or {})) do
-        items[#items + 1] = { k = kindRule, ok = l.ok, text = l.text }
-    end
+    for _, l in ipairs(CC.ruleLines(C.rules or {})) do X.rule(items, l.ok, l.text) end
 end
 
 -- what the server part knows of the time left, in words; nil without it
@@ -129,9 +134,6 @@ X.FIELDS = {
             local p = Cl.titleProblem(s)
             if p == "empty" then return tr("UI_ZeD_Cl_TitleEmpty") end
             if p == "long" then return tr("UI_ZeD_Cl_TitleLong", Cl.TITLE_MAX) end
-            if not C.survivedToClaim() then
-                return getText("IGUI_Safehouse_DaysSurvivedToClaim", (C.rules and C.rules.claimDay) or 0)
-            end
             return nil
         end,
         save = function(s, done) C.rename(s, done) end, done = "UI_ZeD_Cl_Renamed",
@@ -170,11 +172,19 @@ function X.text(win, key)
     return f.clean(D.fieldText(win, key))
 end
 
--- the box holds words the game does not. (Nothing before its first frame, when the box has not been seeded.)
+-- the box holds words the game does not. (Nothing before its first frame, when the box has not been seeded.) Both sides
+-- cleaned: a tag the game's window left in lower case, or a title with a space on the end, is not an edit
 function X.dirty(win, key)
     local box = D.fieldOf(win, key)
     if not box or box._tkSeed == nil then return false end
-    return X.text(win, key) ~= box._tkSeed
+    return X.text(win, key) ~= X.FIELDS[key].clean(box._tkSeed)
+end
+
+function X.editing(win, key)
+    if X.dirty(win, key) then return true end
+    local inner = D.fieldInner(D.fieldOf(win, key))
+    if inner and inner:isFocused() then return true end
+    return D.focusOf(win, "tk:f:" .. key) ~= nil
 end
 
 function X.resetField(win, key)
@@ -206,22 +216,30 @@ function X.keysOf(card)
     return out
 end
 
-function X.field(items, st, key, seed, hint, land)
+-- hint: what the empty box says. sub: the line under the box while it is being typed in; a problem takes its place
+function X.field(items, st, key, seed, hint, land, sub)
     local f = X.FIELDS[key]
     items[#items + 1] = { k = "field", key = key, rows = 1, one = true, max = f.max, hint = hint, seed = seed,
         enter = function()
             local win = st.tkWin
-            if win then X.pressSave(win, st) end
+            if not win then return end
+            if st.card and st.card.kind == "newfac" then X.create(win, st, st_t(st), st.card) else X.pressSave(win, st) end
         end,
         esc = function()
             local win = st.tkWin
-            if win then X.revert(win, st) end
+            if not win then return end
+            if st.card and st.card.kind == "newfac" then TC.back(win, st) else X.revert(win, st) end
         end,
         c = { id = "f:" .. key, land = land, help = hint, run = function(ww) D.useField(ww, key) end } }
-    items[#items + 1] = { k = "sub", tone = "danger", text = "", liveText = function()
+    local line = { k = "sub", text = "" }
+    line.liveText = function()
         local win = st.tkWin
-        return win and X.problemFor(win, key) or ""
-    end }
+        if not win then return "" end
+        local why = X.problemFor(win, key)
+        line.tone = why and "danger" or nil
+        return why or (X.editing(win, key) and sub) or ""
+    end
+    items[#items + 1] = line
 end
 
 function X.count(st, key)
@@ -233,11 +251,22 @@ function X.count(st, key)
     end
 end
 
+-- the label's right end: the count while the field is being typed in, else idle
+function X.fieldRight(st, key, idle)
+    local count = X.count(st, key)
+    return function()
+        local win = st.tkWin
+        if win and X.editing(win, key) then return count() end
+        return idle
+    end
+end
+
 -- Save: each changed field in turn. The game does not answer, so each waits to see its change arrive
 function X.pressSave(win, st)
     local t = st_t(st)
     local card = st.card
     if not card or t.busy then return end
+    if not C.qaHold then C.refresh() end     -- (a title from someone no longer the owner is a kick: see X.stillTrue)
     local keys = {}
     for _, k in ipairs(X.keysOf(card)) do
         if X.dirty(win, k) then
@@ -345,8 +374,12 @@ function X.addDrawer(items, st, t, kind, v)
     items[#items + 1] = { k = "dhead", text = tr("UI_ZeD_Cl_PlayersOnline"), right = tr("UI_ZeD_Cl_PickInvite") }
     local n = 0
     local isIn = {}
+    local sent = C.sent[kind] or {}
     for _, m in ipairs(v.names) do isIn[m] = true end
-    for m in pairs(C.sent[kind] or {}) do isIn[m] = true end
+    -- (only the server's list knows who still holds one: without it a name stays pickable, the game takes a second invitation)
+    if C.sentSure[kind] then
+        for m in pairs(sent) do isIn[m] = true end
+    end
     for _, pl in ipairs(X.players()) do
         if not isIn[pl.user] then
             n = n + 1
@@ -361,6 +394,7 @@ function X.addDrawer(items, st, t, kind, v)
                 word = other and tr("UI_ZeD_Cl_InFaction", other) or tr("UI_ZeD_Cl_NoFactionYet")
                 if other then why = getText("IGUI_FactionUI_AlreadyHaveFaction") end
             end
+            if sent[user] and not why then word = tr("UI_ZeD_Cl_InvitedWaiting") end
             items[#items + 1] = { k = "pick", name = pl.name, word = word,
                 c = { id = "pick:" .. user, help = tr("UI_ZeD_Cl_HelpPick", pl.name), disabled = why ~= nil, why = why,
                       run = function(ww) X.invite(ww, st, t, kind, user) end } }
@@ -374,7 +408,15 @@ end
 function X.invite(win, st, t, kind, user)
     X.cl(t).drawer = nil
     t.items = nil
-    if not C.qaHold then C.invite(kind, user) end
+    if not C.qaHold then
+        C.refresh()
+        local v = (kind == "safe") and C.safe or C.fac
+        if not (v and v.manage) then
+            D.flash(t, tr("UI_ZeD_Cl_AskStale"))
+            return
+        end
+        C.invite(kind, user)
+    end
     D.flash(t, tr("UI_ZeD_Cl_Sent", user))
     D.focusId(win, st, "tk:add")
 end
@@ -382,7 +424,7 @@ end
 function X.uninvite(win, st, t, kind, n)
     if C.qaHold then return end
     C.cancelInvite(kind, n, function(a)
-        if a.ok == false then D.flash(t, tr("UI_ZeD_Cl_NoAnswer"))
+        if a.ok == false then D.flash(t, tr((a.err == "gone") and "UI_ZeD_Cl_InviteGone" or "UI_ZeD_Cl_NoAnswer"))
         else D.flash(t, tr("UI_ZeD_Cl_Uninvited", n)) end
     end)
 end
@@ -408,16 +450,70 @@ function X.askWords(c)
     return "", keep, ""
 end
 
+-- what a confirm was opened on, so it can tell if that has changed under it
+function X.stamp(c)
+    if c.act == "war" then c.canEnd = C.cap("CanGoInsideSafehouses")
+    elseif X.askOnSafe(c) then c.house = C.safe
+    else c.fac = C.fac end
+    return c
+end
+
+function X.askOnSafe(c) return c.act == "release" or c.act == "quit" or c.kind == "safe" end
+
+function X.hasName(v, who)
+    for _, n in ipairs(v.names) do
+        if n == who then return true end
+    end
+    return false
+end
+
+-- is what this confirm says still so? A refused safehouse packet is not only dropped: SafehouseRelease, ChangeOwner, ChangeTitle,
+-- Invite and ChangeMember carry AntiCheat.SafeHouseOwner or SafeHouseMember, whose counter acts at 1, and AntiCheatSafeHouse
+-- defaults to 2, a kick. So nothing goes that the game would refuse, checked in the foot and again on the press.
+function X.stillTrue(c)
+    if c.act == "war" then
+        for _, w in ipairs(C.wars or {}) do
+            if w.id == c.row.id and w.attacker == c.row.attacker then
+                for _, state in ipairs(Cl.warActions(w.state, w.attacker, w.defender, C.me(), c.canEnd)) do
+                    if state == c.state then return true end
+                end
+            end
+        end
+        return false
+    end
+    local v = C.fac
+    if X.askOnSafe(c) then
+        v = C.safe
+        if not (v and c.house and v.id == c.house.id) then return false end
+    elseif not (v and c.fac and v.obj == c.fac.obj) then
+        return false
+    end
+    if c.act == "release" or c.act == "disband" then return v.manage == true end
+    if c.act == "quit" or c.act == "leave" then return not v.isOwner end
+    if not v.manage or c.who == v.owner or not X.hasName(v, c.who) then return false end
+    return c.act ~= "owner" or X.online(c.who)
+end
+
 function X.ask(win, st, t, c)
-    t.confirm = c
+    t.confirm = X.stamp(c)
     D.focusId(win, st, "tk:no")
+end
+
+-- the confirm no longer holds: it closes, and says so
+function X.dropAsk(win, st, t)
+    t.confirm = nil
+    X.cl(t).row = nil
+    t.items = nil
+    D.flash(t, tr("UI_ZeD_Cl_AskStale"))
+    D.focusNext(win, st, function(e) return e.tkLand == true end)
 end
 
 function X.closeAsk(win, st, t)
     local c = t.confirm
     t.confirm = nil
     if not c then return end
-    if c.act == "remove" or c.act == "owner" then D.focusId(win, st, "tk:rem:" .. tostring(c.who))
+    if c.act == "owner" then D.focusId(win, st, "tk:own:" .. tostring(c.who))
+    elseif c.act == "remove" then D.focusId(win, st, "tk:rem:" .. tostring(c.who))
     elseif c.act == "war" then D.focusId(win, st, c.from)
     else D.focusId(win, st, "tk:" .. c.act) end
 end
@@ -433,6 +529,12 @@ function X.runAsk(win, st, t, c)
     X.cl(t).row = nil
     t.items = nil
     if C.qaHold then return end
+    C.refresh()
+    if c.act == "war" then c.canEnd = C.cap("CanGoInsideSafehouses") end
+    if not X.stillTrue(c) then
+        X.dropAsk(win, st, t)
+        return
+    end
     if c.act == "war" then
         C.war(c.row, c.state)
         return
@@ -445,11 +547,15 @@ function X.runAsk(win, st, t, c)
             if not ok then
                 card.goneText = nil
                 D.flash(t, tr("UI_ZeD_Cl_NoAnswer"))
+            elseif st.card == card and TC.kinds[card.kind].data() then
+                -- (staff can hold a second safehouse, and the card would go on to show that one)
+                D.flash(t, words)
+                TC.back(win, st)
             end
         end
     end
-    if c.act == "release" then C.release(left(tr("UI_ZeD_Cl_Released")))
-    elseif c.act == "quit" then C.quit(left(tr("UI_ZeD_Cl_Quit")))
+    if c.act == "release" then C.release(c.house, left(tr("UI_ZeD_Cl_Released")))
+    elseif c.act == "quit" then C.quit(c.house, left(tr("UI_ZeD_Cl_Quit")))
     elseif c.act == "disband" then C.disband(left(tr("UI_ZeD_Cl_Disbanded")))
     elseif c.act == "leave" then C.leave(left(tr("UI_ZeD_Cl_Left")))
     elseif c.act == "remove" then C.remove(c.kind, c.who, function(ok) X.answered(t, ok, tr("UI_ZeD_Cl_Removed", c.who)) end)
@@ -457,7 +563,14 @@ function X.runAsk(win, st, t, c)
     end
 end
 
-function X.footAsk(win, st, t, c)
+-- the foot while a confirm is up; nil when none is, or the one that was no longer holds
+function X.footAsk(win, st, t)
+    local c = t.confirm
+    if not c then return nil end
+    if not X.stillTrue(c) then
+        X.dropAsk(win, st, t)
+        return nil
+    end
     local q, keep, go = X.askWords(c)
     return { line = q, tone = "dangerText", main = {
         D.btn("no", keep, function(ww) X.closeAsk(ww, st, t) end, nil, tr("UI_ZeD_Cl_HelpKeep")),
@@ -484,10 +597,15 @@ function X.footEdit(win, st, t, card)
         D.btn("ecancel", getText("UI_Cancel"), function(ww) X.revert(ww, st) end, nil, tr("UI_ZeD_Cl_HelpRevert")), save } }
 end
 
-function X.footEnd(st, t, act, label, help)
-    local b = D.btn(act, X.word(label), function(ww) X.ask(ww, st, t, { act = act }) end, "danger", help)
-    if t.busy then D.disable(b, tr("UI_ZeD_Tk_Busy")) end
-    return { main = { b } }
+-- ends: { act, label, help } in reading order
+function X.footEnd(st, t, ends)
+    local main = {}
+    for i, e in ipairs(ends) do
+        local b = D.btn(e[1], X.word(e[2]), function(ww) X.ask(ww, st, t, { act = e[1] }) end, "danger", e[3])
+        if t.busy then D.disable(b, tr("UI_ZeD_Tk_Busy")) end
+        main[i] = b
+    end
+    return { main = main }
 end
 
 -- ---------------------------------------------------------------------------
@@ -503,8 +621,9 @@ end
 function X.itemsSafe(win, st, t, card, h)
     local items = {}
     local r = C.rules or {}
-    items[#items + 1] = { k = "label", text = X.plain("IGUI_SafehouseUI_Title"), right = h.manage and tr("UI_ZeD_Cl_PickRename") or nil }
-    if h.manage then X.field(items, st, "safeTitle", h.title, tr("UI_ZeD_Cl_TitleHint"), true)
+    items[#items + 1] = { k = "label", text = X.plain("IGUI_SafehouseUI_Title"),
+        rightFn = h.manage and X.fieldRight(st, "safeTitle", tr("UI_ZeD_Cl_PickRename")) or nil }
+    if h.manage then X.field(items, st, "safeTitle", h.title, tr("UI_ZeD_Cl_TitleHint"), true, tr("UI_ZeD_Cl_TitleSub"))
     else items[#items + 1] = { k = "value", text = h.title } end
     X.fact(items, "IGUI_SafehouseUI_Owner", h.owner)
     X.fact(items, "IGUI_SafehouseUI_Location", h.location or (tostring(h.x) .. " x " .. tostring(h.y)))
@@ -520,19 +639,20 @@ function X.itemsSafe(win, st, t, card, h)
     items[#items + 1] = { k = "label", text = X.plain("IGUI_SafehouseUI_Players"), right = tostring(#h.names) }
     X.memberRows(items, st, t, "safe", h)
     if h.manage then X.addDrawer(items, st, t, "safe", h) end
-    X.addRules(items, "rule")
+    X.addRules(items)
     return items
 end
 
 function X.itemsFaction(win, st, t, card, f)
     local items = {}
     local r = C.rules or {}
-    items[#items + 1] = { k = "label", text = X.plain("IGUI_FactionUI_FactionName"), right = f.manage and tr("UI_ZeD_Cl_PickRename") or nil }
-    if f.manage then X.field(items, st, "facName", f.name, tr("UI_ZeD_Cl_NameHint"), true)
+    items[#items + 1] = { k = "label", text = X.plain("IGUI_FactionUI_FactionName"),
+        rightFn = f.manage and X.fieldRight(st, "facName", tr("UI_ZeD_Cl_PickRename")) or nil }
+    if f.manage then X.field(items, st, "facName", f.name, tr("UI_ZeD_Cl_NameHint"), true, getText("IGUI_FactionUI_FactionNameTooLongShort"))
     else items[#items + 1] = { k = "value", text = f.name } end
     items[#items + 1] = { k = "label", text = X.plain("IGUI_FactionUI_Tag"), rightFn = f.canTag and X.count(st, "facTag") or nil }
     if f.canTag then
-        X.field(items, st, "facTag", f.tag or "", tr("UI_ZeD_Cl_TagHint"))
+        X.field(items, st, "facTag", f.tag or "", tr("UI_ZeD_Cl_TagHint"), nil, getText("IGUI_FactionUI_TagTooLongShort"))
     elseif f.hasRoom or f.tag then
         items[#items + 1] = { k = "value", text = f.tag or tr("UI_ZeD_Cl_NoTag"), tagColor = f.color }
     else
@@ -545,7 +665,10 @@ function X.itemsFaction(win, st, t, card, f)
         for i, col in ipairs(Cl.COLORS) do
             ctls[i] = { id = "col:" .. col.id, color = col, on = Cl.sameColor(f.color, col), boxW = D.chipH(),
                 help = tr("UI_ZeD_Cl_ColorHelp", tr("UI_ZeD_Cl_Color" .. col.id)), disabled = noTag, why = noTag and tr("UI_ZeD_Cl_TagFirst") or nil,
-                run = function() if C.qaHold then return end; C.setColor(col) end }
+                run = function()
+                    if C.qaHold then return end
+                    C.setColor(col, function(ok) if not ok then D.flash(t, tr("UI_ZeD_Cl_NoAnswer")) end end)
+                end }
         end
         items[#items + 1] = { k = "swatches", ctls = ctls }
     end
@@ -564,14 +687,12 @@ function X.itemsNew(win, st, t, card)
     local items = {}
     local r = C.rules or {}
     items[#items + 1] = { k = "label", text = X.plain("IGUI_FactionUI_FactionName"), rightFn = X.count(st, "newFac") }
-    X.field(items, st, "newFac", "", tr("UI_ZeD_Cl_NewHint"), true)
+    X.field(items, st, "newFac", "", tr("UI_ZeD_Cl_NewHint"), true, tr("UI_ZeD_Cl_NewSub"))
     items[#items + 1] = { k = "label", text = tr("UI_ZeD_Cl_ComesNext") }
     local days = math.floor(C.hoursSurvived() / 24)
-    if (r.factionDay or 0) > 0 then
-        items[#items + 1] = { k = "rule", ok = days >= r.factionDay, text = tr("UI_ZeD_Cl_NextDays", days, r.factionDay) }
-    end
-    items[#items + 1] = { k = "rule", ok = true, text = tr("UI_ZeD_Cl_NextInvite") }
-    items[#items + 1] = { k = "rule", ok = true, text = tr("UI_ZeD_Cl_NextTag", r.tagNeeds or 1) }
+    if (r.factionDay or 0) > 0 then X.rule(items, days >= r.factionDay, tr("UI_ZeD_Cl_NextDays", days, r.factionDay)) end
+    X.rule(items, true, tr("UI_ZeD_Cl_NextInvite"))
+    X.rule(items, true, tr("UI_ZeD_Cl_NextTag", r.tagNeeds or 1))
     return items
 end
 
@@ -614,10 +735,10 @@ function X.itemsWars(win, st, t)
         if #ctls > 0 then items[#items + 1] = { k = "acts", ctls = ctls } end
     end
     items[#items + 1] = { k = "label", text = tr("UI_ZeD_Cl_WarRules") }
-    items[#items + 1] = { k = "rule", ok = r.war == true, text = tr(r.war and "UI_ZeD_Cl_WarOn" or "UI_ZeD_Cl_WarOff") }
+    X.rule(items, r.war == true, tr(r.war and "UI_ZeD_Cl_WarOn" or "UI_ZeD_Cl_WarOff"))
     if r.war then
-        items[#items + 1] = { k = "rule", ok = true, text = tr("UI_ZeD_Cl_WarTimes", r.warDelay or 0, r.warLength or 0) }
-        items[#items + 1] = { k = "rule", ok = true, text = tr("UI_ZeD_Cl_WarHow", getText("ContextMenu_WarClaim")) }
+        X.rule(items, true, tr("UI_ZeD_Cl_WarTimes", r.warDelay or 0, r.warLength or 0))
+        X.rule(items, true, tr("UI_ZeD_Cl_WarHow", getText("ContextMenu_WarClaim")))
     end
     return items
 end
@@ -653,11 +774,13 @@ TC.kinds.safe = {
     end,
     foot = function(win, st, t, card, h)
         if not h then return { main = {} } end
-        if t.confirm then return X.footAsk(win, st, t, t.confirm) end
-        local edit = X.footEdit(win, st, t, card)
-        if edit then return edit end
-        if h.isOwner then return X.footEnd(st, t, "release", getText("IGUI_SafehouseUI_Release"), tr("UI_ZeD_Cl_HelpRelease")) end
-        return X.footEnd(st, t, "quit", getText("IGUI_SafehouseUI_QuitSafehouse"), tr("UI_ZeD_Cl_HelpQuit"))
+        local foot = X.footAsk(win, st, t) or X.footEdit(win, st, t, card)
+        if foot then return foot end
+        -- (the game's window: Release for the owner and CanSetupSafehouses, Quit for a member who is not the owner)
+        local ends = {}
+        if not h.isOwner then ends[1] = { "quit", getText("IGUI_SafehouseUI_QuitSafehouse"), tr("UI_ZeD_Cl_HelpQuit") } end
+        if h.manage then ends[#ends + 1] = { "release", getText("IGUI_SafehouseUI_Release"), tr("UI_ZeD_Cl_HelpRelease") } end
+        return X.footEnd(st, t, ends)
     end,
     key = X.cardKey, cancel = X.cancelCard,
     gone = function(card) return card.goneText or tr("UI_ZeD_Cl_SafeGone") end,
@@ -672,12 +795,13 @@ TC.kinds.faction = {
     end,
     foot = function(win, st, t, card, f)
         if not f then return { main = {} } end
-        if t.confirm then return X.footAsk(win, st, t, t.confirm) end
-        local edit = X.footEdit(win, st, t, card)
-        if edit then return edit end
+        local foot = X.footAsk(win, st, t) or X.footEdit(win, st, t, card)
+        if foot then return foot end
         -- (the game's window: Disband for the owner and FactionCheat, Leave for a member of it who is not the owner)
-        if f.isOwner then return X.footEnd(st, t, "disband", getText("IGUI_FactionUI_Remove"), tr("UI_ZeD_Cl_HelpDisband")) end
-        return X.footEnd(st, t, "leave", getText("IGUI_SafehouseUI_QuitFaction"), tr("UI_ZeD_Cl_HelpLeave"))
+        local ends = {}
+        if not f.isOwner then ends[1] = { "leave", getText("IGUI_SafehouseUI_QuitFaction"), tr("UI_ZeD_Cl_HelpLeave") } end
+        if f.manage then ends[#ends + 1] = { "disband", getText("IGUI_FactionUI_Remove"), tr("UI_ZeD_Cl_HelpDisband") } end
+        return X.footEnd(st, t, ends)
     end,
     key = X.cardKey, cancel = X.cancelCard,
     gone = function(card) return card.goneText or tr("UI_ZeD_Cl_FacGone") end,
@@ -703,10 +827,7 @@ TC.kinds.wars = {
     items = X.itemsWars,
     title = function() return getText("IGUI_AdminPanel_SeeWars") end,
     help = function(t, card) return X.helpFor(t, card, tr("UI_ZeD_Cl_HelpWars")) end,
-    foot = function(win, st, t, card)
-        if t.confirm then return X.footAsk(win, st, t, t.confirm) end
-        return { main = {} }
-    end,
+    foot = function(win, st, t, card) return X.footAsk(win, st, t) or { main = {} } end,
     key = X.cardKey,
     cancel = function(win, st, t, card)
         if t.confirm then X.closeAsk(win, st, t) else TC.back(win, st) end
@@ -715,7 +836,7 @@ TC.kinds.wars = {
 
 function X.create(win, st, t, card)
     local name = X.text(win, "newFac")
-    if X.FIELDS.newFac.problem(name) or C.qaHold then return end
+    if t.busy or X.FIELDS.newFac.problem(name) or C.qaHold then return end
     t.busy = true
     C.createFaction(name, function(ok)
         t.busy = nil
@@ -759,15 +880,15 @@ end
 
 function CC.openWars(win, st) return X.push(win, st, "wars", "srv:tk:sum:wars") end
 
--- Claim Safehouse: the game's call, then its card with the title ready to type
+-- Claim Safehouse: the game's call, then its card with the title ready to type. (C.claiming: a card opened meanwhile must
+-- not free the button)
 function CC.claim(win, st)
     local t = st_t(st)
-    local cl = X.cl(t)
-    if cl.claiming or C.qaHold then return end
-    cl.claiming = true
+    if C.claiming or C.qaHold then return end
+    C.claiming = true
     C.bump()
     if not C.doClaim(function(ok)
-        cl.claiming = nil
+        C.claiming = nil
         C.bump()
         if not ok then
             D.flash(t, tr("UI_ZeD_Cl_NoAnswer"))
@@ -778,7 +899,7 @@ function CC.claim(win, st)
         D.flash(tt, tr("UI_ZeD_Cl_Claimed"))
         if not D.padOn() then tt.wantField = "safeTitle" end
     end) then
-        cl.claiming = nil
+        C.claiming = nil
         C.bump()
     end
 end
@@ -788,8 +909,10 @@ function CC.frame(win, st)
     if C.openNext then
         local kind = C.openNext
         C.openNext = nil
-        st.card = nil
-        if kind == "safe" and C.safe then CC.openSafe(win, st) end
+        if st.card then TC.back(win, st) end
+        if kind == "safe" and C.safe then CC.openSafe(win, st)
+        elseif kind == "wars" then CC.openWars(win, st)
+        elseif kind == "invite" and C.invites[1] then D.focusId(win, st, st_t(st).prefix .. "inv:yes:1") end
     end
     if not st.card and not C.safe and not C.qaHold then C.claimCheck() end
 end
@@ -839,11 +962,16 @@ function CC.notes(L, win, st)
     for _, it in ipairs(cl.notes) do L[#L + 1] = it end
 end
 
+function X.nPlayers(n)
+    if n == 1 then return tr("UI_ZeD_Cl_OnePlayer") end
+    return tr("UI_ZeD_Cl_NPlayers", n)
+end
+
 function X.factionBlock(st, t, btnItem)
     local out = {}
     local f = C.fac
     local r = C.rules or {}
-    out[#out + 1] = { k = "head", text = getText("UI_userpanel_factionpanel"), right = f and tr("UI_ZeD_Cl_NPlayers", #f.names) or nil }
+    out[#out + 1] = { k = "head", text = getText("UI_userpanel_factionpanel"), right = f and X.nPlayers(#f.names) or nil }
     if f then
         out[#out + 1] = X.sumItem(st, "fac", f.name, tr("UI_ZeD_Cl_OwnerIs", tostring(f.owner)), (f.tag ~= "") and f.tag or nil, f.color,
             tr("UI_ZeD_Cl_HelpOpenFac"), function(ww) CC.openFaction(ww, st) end)
@@ -862,8 +990,7 @@ end
 function X.safeBlock(st, t, btnItem)
     local out = {}
     local h = C.safe
-    local cl = X.cl(t)
-    out[#out + 1] = { k = "head", text = getText("IGUI_SafehouseUI_Safehouse"), right = h and tr("UI_ZeD_Cl_NPlayers", #h.names) or nil }
+    out[#out + 1] = { k = "head", text = getText("IGUI_SafehouseUI_Safehouse"), right = h and X.nPlayers(#h.names) or nil }
     if h then
         out[#out + 1] = X.sumItem(st, "safe", h.title, tr("UI_ZeD_Cl_OwnerAt", tostring(h.x) .. " x " .. tostring(h.y), tostring(h.owner)), nil, nil,
             tr("UI_ZeD_Cl_HelpOpenSafe"), function(ww) CC.openSafe(ww, st) end)
@@ -875,14 +1002,25 @@ function X.safeBlock(st, t, btnItem)
     out[#out + 1] = { k = "cl", t = "label", text = tr("UI_ZeD_Cl_CanClaim") }
     local ans = C.claim or { lines = { tr("UI_ZeD_Cl_ClaimWait") } }
     for _, s in ipairs(ans.lines) do out[#out + 1] = { k = "cl", t = "rule", ok = ans.ok == true, text = s } end
-    local why = (not ans.ok) and (ans.lines[1] or tr("UI_ZeD_Cl_ClaimWait")) or (cl.claiming and tr("UI_ZeD_Tk_Busy")) or nil
+    local why = (not ans.ok) and (ans.lines[1] or tr("UI_ZeD_Cl_ClaimWait")) or (C.claiming and tr("UI_ZeD_Tk_Busy")) or nil
     local b = btnItem("claim", getText("ContextMenu_SafehouseClaim"), why or tr("UI_ZeD_Cl_HelpClaim"))
     b.disabled, b.variant = why ~= nil, "primary"
     out[#out + 1] = b
     out[#out + 1] = { k = "tk", t = "wrap", text = tr("UI_ZeD_Cl_ClaimSub") }
     out[#out + 1] = { k = "cl", t = "label", text = tr("UI_ZeD_Cl_Rules") }
-    for _, l in ipairs(CC.ruleLines(C.rules or {})) do out[#out + 1] = { k = "cl", t = "rule", ok = l.ok, text = l.text } end
+    for i, l in ipairs(CC.ruleLines(C.rules or {})) do
+        out[#out + 1] = { k = "cl", t = "rule", ok = l.ok, text = l.text, c = { id = "rule:" .. tostring(i) } }
+    end
     return out
+end
+
+-- the row's second line: the nearest countdown
+function X.warMeta(wars)
+    local best = nil
+    for _, w in ipairs(wars) do
+        if Cl.warClock(w.state) and (not best or tostring(w.time) < tostring(best.time)) then best = w end
+    end
+    return best and getText(Cl.warClock(best.state), tostring(best.time)) or ""
 end
 
 function X.warBlock(st, t)
@@ -891,7 +1029,7 @@ function X.warBlock(st, t)
     local wars = C.wars or {}
     if not r.war and #wars == 0 then return out end
     out[#out + 1] = { k = "head", text = getText("IGUI_AdminPanel_SeeWars"), count = #wars }
-    out[#out + 1] = X.sumItem(st, "wars", (#wars > 0) and tr("UI_ZeD_Cl_NWars", #wars) or tr("UI_ZeD_Cl_NoWars"), tr("UI_ZeD_Cl_WarsMeta"), nil, nil,
+    out[#out + 1] = X.sumItem(st, "wars", (#wars > 0) and tr("UI_ZeD_Cl_NWars", #wars) or tr("UI_ZeD_Cl_NoWars"), X.warMeta(wars), nil, nil,
         tr("UI_ZeD_Cl_HelpOpenWars"), function(ww) CC.openWars(ww, st) end)
     return out
 end
@@ -973,8 +1111,9 @@ function CC.drawItem(panel, win, st, it, x, dy, cw, mx, my)
         local c = T.textHead
         panel:drawText(it.text, x + pad, dy + px(6), c.r, c.g, c.b, c.a or 1, T.fontF1)
     elseif it.t == "rule" then
+        local onF = it.c and D.mark(panel, x + pad, dy, cw - 2 * pad, it.h, D.focusOf(win, t.prefix .. it.c.id))
         X.drawRuleMark(panel, x + pad, dy + px(4), it.ok)
-        X.drawLines(panel, it.lines, x + pad + px(14), dy, T.fontF2, T.text)
+        X.drawLines(panel, it.lines, x + pad + px(14), dy, T.fontF2, onF and T.textOnFocus or T.text)
     elseif it.t == "sum" then
         local hov = inside(mx, my, x, dy, cw, it.h)
         if hov then
@@ -1024,9 +1163,12 @@ function CC.itemStops(out, st, it, x0, dy, cw, flag)
         e[flag] = true
         e.tkWhy = function() return c.why end
         out[#out + 1] = e
+        return e
     end
     if it.t == "sum" then
         add(it.c, x0, dy, cw - 2 * pad, it.h, it.y)
+    elseif it.t == "rule" then
+        if it.c then add(it.c, x0, dy, cw - 2 * pad, it.h, it.y).promptA = false end
     elseif it.t == "note" then
         for _, c in ipairs(it.ctls) do add(c, x0 + c.dx, dy + c.dy, c.w, c.h, it.y + c.dy) end
     end
@@ -1059,10 +1201,14 @@ TC.itemKinds.rule = {
         local T = ZeD.T
         return #X.wrapOf(it, T.fontF2, w - px(14)) * ZeD.TM:getFontHeight(T.fontF2) + px(3)
     end,
-    draw = function(panel, win, t, it, x, dy)
+    draw = function(panel, win, t, it, x, dy, w)
         local T = ZeD.T
+        local onF = it.c and D.mark(panel, x, dy, w, it.h, D.focusOf(win, "tk:" .. it.c.id))
         X.drawRuleMark(panel, x, dy + px(4), it.ok)
-        X.drawLines(panel, it.lines, x + px(14), dy, T.fontF2, T.text)
+        X.drawLines(panel, it.lines, x + px(14), dy, T.fontF2, onF and T.textOnFocus or T.text)
+    end,
+    stops = function(add, it, x0, dy, w)
+        if it.c then add(it.c, x0, dy, w, it.h, it.y).promptA = false end
     end,
 }
 
@@ -1301,6 +1447,25 @@ end
 if Events and Events.OnGameStart then Events.OnGameStart.Add(CC.hookWorld) end
 
 -- ---------------------------------------------------------------------------
+-- THE HUD'S WAR ICON opens the wars card. Wrapped as this file loads: ISEquippedItem's button keeps the function it is built
+-- with. The game's window stays behind it if the tab cannot open.
+-- ---------------------------------------------------------------------------
+function CC.hookWarIcon()
+    if CC.warHooked or not ISEquippedItem or not ISEquippedItem.onOptionMouseDown then return end
+    CC.warHooked = true
+    local base = ISEquippedItem.onOptionMouseDown
+    ISEquippedItem.onOptionMouseDown = function(self, button, x, y)
+        if button and button.internal == "WARMANAGERPANEL" and ZeD_CharacterWindow and ZeD_CharacterWindow.openTab
+            and ZeD_CharacterWindow.openTab(self.chr and self.chr:getPlayerNum() or 0, "server") then
+            C.openNext = "wars"
+            return
+        end
+        return base(self, button, x, y)
+    end
+end
+CC.hookWarIcon()
+
+-- ---------------------------------------------------------------------------
 -- QA
 -- ---------------------------------------------------------------------------
 function CC.qaOpen(win, st, kind)
@@ -1312,7 +1477,7 @@ function CC.qaOpen(win, st, kind)
         X.push(win, st, "newfac", "srv:faction")
     else CC.openWars(win, st) end
 end
-function CC.qaConfirm(st, c) st_t(st).confirm = c end
+function CC.qaConfirm(st, c) st_t(st).confirm = X.stamp(c) end
 function CC.qaRow(st, kind, name)
     local t = st_t(st)
     X.cl(t).row = kind .. ":" .. name
