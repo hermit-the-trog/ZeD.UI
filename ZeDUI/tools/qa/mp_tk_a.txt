@@ -1,0 +1,1 @@
+mp_tk_a.lua | mta | timeout=600

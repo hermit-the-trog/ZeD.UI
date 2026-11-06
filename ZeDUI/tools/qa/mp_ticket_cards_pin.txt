@@ -1,0 +1,2 @@
+zedqa_pin_windows.lua | pnw | timeout=30
+mp_ticket_cards.lua | mtc | timeout=300
