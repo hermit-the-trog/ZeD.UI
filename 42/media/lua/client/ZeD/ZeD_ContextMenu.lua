@@ -94,9 +94,8 @@ function ZeD_ContextMenu:new(player, anchorMode, anchorX, anchorY, target, actio
     -- _positionAssembly based on cursor Y vs bubble max height.
     o._flipped = false
 
-    -- Onhighlight tracking — invoked whenever selected changes (mirrors vanilla
-    -- ISContextMenu.checkHighlightedOption). Some mods use this for server gating.
-    o._lastHighlightedVanilla = nil
+    -- The game's menu whose option is lit (Registry.highlight)
+    o._hlMenu = nil
 
     -- Input state
     o._hoveredId     = nil    -- for visual hover (currently tracks last moved-over zone)
@@ -148,6 +147,7 @@ end
 
 function ZeD_ContextMenu:close()
     self._ctx.open = false
+    ZeD.ContextMenu.Registry.highlight(self, nil)   -- the outline goes with the menu
     -- Release gamepad focus
     if self._joyfocus and setJoypadFocus then
         pcall(setJoypadFocus, self.player, nil)
@@ -455,18 +455,8 @@ function ZeD_ContextMenu:prerender()
     cache.balloonH = balH
     cache.cardX, cache.cardW, cache.cardH = 0, 0, 0   -- card removed
 
-    -- Dispatch onHighlight to the vanilla option whenever selection changes
-    if def and def.vanillaRef and def.vanillaRef ~= self._lastHighlightedVanilla then
-        -- Leave previous
-        if self._lastHighlightedVanilla and self._lastHighlightedVanilla.onHighlight then
-            pcall(self._lastHighlightedVanilla.onHighlight, self._lastHighlightedVanilla, false)
-        end
-        -- Enter new
-        if def.vanillaRef.onHighlight then
-            pcall(def.vanillaRef.onHighlight, def.vanillaRef, true)
-        end
-        self._lastHighlightedVanilla = def.vanillaRef
-    end
+    -- The selected option, told to the game's menu every frame, as its render does
+    ZeD.ContextMenu.Registry.highlight(self, def)
 end
 
 -- ============================================================================
