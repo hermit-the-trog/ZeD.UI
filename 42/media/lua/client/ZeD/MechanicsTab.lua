@@ -1919,6 +1919,8 @@ local function renderFooter(panel, win, s, x, y, w, v, chr, inspected, cm, barSh
                 if not isGamepad() and hit(r, panel:getMouseX(), panel:getMouseY()) then s.verb = verb end
             else
                 stamp(s, "mech:" .. b.id, r.x, r.y, r.w, r.h, b.fn, { footer = true, disabled = b.disabled })
+                -- (a button's help comes under the mouse; a gray one says why under the controller's mark too)
+                if b.disabled and s.gpId == "mech:" .. b.id then ZeD.Help.set(panel, b.help) end
             end
         end
     end
@@ -2217,6 +2219,7 @@ function MT.buildFocusables(win)
                 el.onCancel = function() s.sortOpen = nil; win._mechFocusTarget = "mech:sortMenu"; return true end
             elseif s.confirm or s.card then
                 el.onCancel = function()
+                    if s.confirm == "xrelease" then win._mechFocusTarget = "mech:xrelease" end
                     if s.confirm then s.confirm = nil else closeCard(win, s) end
                     return true
                 end
@@ -2245,7 +2248,7 @@ function MT.focusKey(win)
     if not s then return "none" end
     return tostring(s.view) .. ":" .. tostring(s.card) .. ":" .. tostring(math.floor(s.scrollY or 0)) .. ":"
         .. tostring(math.floor(s.cardScroll or 0)) .. ":" .. tostring(s.confirm) .. ":" .. tostring(#s.zones) .. ":" .. tostring(s.idx)
-        .. ":" .. tostring(s.animalId) .. ":" .. tostring(s.sortOpen) .. ":" .. tostring(s.verb)
+        .. ":" .. tostring(s.animalId) .. ":" .. tostring(s.sortOpen) .. ":" .. tostring(s.verb) .. ":" .. tostring(s.xbar)
 end
 
 -- Focus target after a change (card opened -> its first lit verb; card closed -> its row;

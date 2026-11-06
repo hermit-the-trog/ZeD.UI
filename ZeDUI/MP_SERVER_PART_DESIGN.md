@@ -1399,16 +1399,28 @@ touch, and the count stays 0 through every action, swing and tow with claims sto
 
 | Act | Path | Refused how | Enforced by |
 |---|---|---|---|
-| Uninstall, engine parts, siphon | timed actions; `NetTimedAction.perform` calls Lua `complete` on the server | `complete` answers false | **server** |
+| Uninstall, engine parts | timed actions; `NetTimedAction.perform` calls Lua `complete` on the server | `complete` answers false | **server** |
+| Siphon | the same, but the gas moves before `complete`: `serverStart` emulates an `update` anim event each second, and `animEvent` runs `update` on the server | `animEvent` is wrapped, so no event moves gas for a player a claim stops, and `complete` answers false | **server** |
 | Dismantle, scrap furniture, pry a barricade, sledgehammer | timed actions | the same. The game's `SledgehammerOnlyInSafehouse` refuses this way | **server** |
 | Start the engine, hotwire | timed actions | the same | **server** |
+| `vehicle.startEngine` | a client command with no action around it: the game's handler calls `tryStartEngine`, with no test. The game's client sends it when a running car loads | can't be refused. This file's listener runs after the handler and shuts the engine off at once | **server**, after the fact |
 | Sit in the driver's seat | `VehicleEnterPacket`, no Lua hook | can't be refused. A 2-second clock shuts off a running engine under anyone a claim stops: at most 2 seconds of driving | **server**, after the fact |
 | Tow | client command run by the game's local handler, which nothing can stop | this file's listener runs after it and calls `breakConstraint`, as `detachTrailer` does | **server**, after the fact |
 | Axe at a door, built wall, barricade | `PlayerHitObjectPacket`, Java; no refusal. `OnWeaponHitThumpable` fires on the server before the damage | the object gets room for the swing, and its old health back next tick | **server**, unproved until QA (G4) |
-| Take from a container | `ItemTransactionPacket`, `TransactionManager`: Java, no Lua on the server at all | not refused: logged only, and only from **the player's own client**. The server tests that the report could be true. The card says a modified game can leave lines out, and the line says "reported by their game" | **client** |
+| Take from a container | `ItemTransactionPacket`, `TransactionManager`: Java, no Lua on the server at all | not refused: logged only, and only from **the player's own client**. The server tests that the report could be true. The card says a modified game can leave lines out and any game that drops off loses its last ones, and the line says "reported by their game". A player's reports hold 100 lines of the Log's ring and replace only each other (`LOG_TOLD_MAX`), and the container's word stays in the line's text | **client** |
 | The Vehicle tab graying Uninstall and Take Parts | a courtesy: the refusal otherwise comes at the end of the wait | the server refuses anyway | client, never relied on |
 
-Not stopped at all, and said on the card: looting a trunk, breaking a car window, ramming; windows on a house, fire, cars, zombies.
+Not stopped at all, and said on the card: looting a trunk, deflating a tire, breaking a car window, ramming; windows on a house, fire, cars, zombies.
+
+**What a refused action is judged by.** The server runs no Lua `isValid` (Java `NetTimedAction.isValid` answers false and `perform` calls only `complete`), so anything a client names is its word. A scrap is
+judged by the object it scraps, whatever square it names. A tow by the car the game finds: `getVehicleById` truncates the number and narrows it to a short, so `Ex.vehId` does the same, and 65553 is car 17.
+
+**A claim proves its car.** `getSqlId` outlives a restart, but the game gives a removed car's number to the next new car (`VehiclesDB2`: `allocateID` hands out the lowest free id). So a claim leaves a stamp in the
+car's own mod data (`IsoMovingObject.save` writes it with the car), and a car without the claim's stamp isn't that car: the claim goes. A burnt car's claim goes when anything reads the car, and when the wreck is
+cleared (`ISRemoveBurntVehicle`). An owner who is on hears of any claim that goes.
+
+**A save can't undo another's.** `x_save` replaces the whole set, so it carries the set the card's changes were made on, and the server answers `changed` if that isn't the set it holds. A card that hears
+another admin's save takes it, with its own changes on top, and says so.
 
 **The anti-cheat.** `complete` answering false reaches `ActionManager.update`, which marks the action Reject and sends it; the client's `LuaTimedActionNew.update` sees `isRejected` and
 stops. `NetTimedActionPacket` carries no `AntiCheat` interface and no `SuspiciousActivity` is touched, unlike the safehouse packets of F3. Nothing here sends the game a packet it would
@@ -1433,9 +1445,12 @@ Where the build differs from `mockups/zed_community_v1.html`, and why.
 10. **Vehicle tab:** Claim and Release are in the footer with no part chosen; a part's card keeps its own verbs. Claimed by is a row of the summary, under the key.
 11. **The map:** Teleport Here on the Maps tab's band (`ZeD.MapsTab.addExtension`), the game's own word; the band's button arms it, as a mark tool arms, then a click or A goes. Vanilla has
     it on a right-click menu that ZeD's map doesn't draw.
-12. **A burnt car's claim goes** the moment anything looks at it, and frees the slot. A wreck is nobody's.
+12. **A burnt car's claim goes** the next time anything looks at the car or clears the wreck, and frees the slot. A wreck is nobody's.
 13. **Taking parts covers siphoning gas.** Tires deflated, trunks and windows are not covered.
 14. **A table from a newer ZeD turns every extra off,** where tickets go on reading: enforcing means writing (a lapse, a position), and frozen means no writes.
+15. **A car at someone else's safehouse can't be claimed,** inside the walls or on the lot, whether or not protection is on. Not drawn. Without it a stranger by the fence could lock a member out of their own car. The
+    careful answer, for the director: the drawing has standing by the car as enough, and `Ex.CLAIM_NEEDS_KEY` is still the stricter choice.
+16. **The Server tab's protection line says "what's built there",** not the drawing's "anything": windows, fire, cars and zombies aren't stopped, and the card says so. Words for the director to look at.
 
 The director's questions, answered the careful way, each behind one switch in `ZeD_ExtrasProto.lua`:
 
@@ -1457,3 +1472,7 @@ Not settled, for QA on the local server (`mp_extras.lua`, `mp_extras_two.lua`, P
 | G6 | `/teleportto` with z 0 from a click on a roof or a basement, as the game's own map does | a spot under a building's second floor |
 | G7 | That `isInCharacterInventory` is true of the player's main inventory (the container log's test) | take from a crate in a safehouse; the line appears |
 | G8 | That the `Transactions.scrapMoveable` route is dead: `TransactionProcessor` is local, and nothing in vanilla's Lua sends it, so the wrap is on `ISMoveablesAction` alone | the disassembly menu on furniture in another's safehouse |
+| G9 | That a car's stamp outlives a restart on a real server (the bytecode says `IsoMovingObject.save` writes the mod data), and that a server that crashes between the two saves costs at most that claim | claim a car, `/save`, restart: "taken", and the owner still holds it |
+| G10 | That siphoning with the `animEvent` wrap leaves the tank and the can as they were, and the bar ends cleanly | bob siphons a claimed car past the gray; the tank's level before and after |
+| G11 | That `shutOff` during `Starting` (right after `vehicle.startEngine`) leaves the engine off on every client | send the command from a blocked driver's client |
+| G12 | The Vehicle tab under the controller, which no sim loads: Claim going from gray to lit, Claim to Release, a gray Claim's reason in the help band and on A, Keep and B landing on Release | walk the footer with the pad |

@@ -10,10 +10,14 @@
 --                   is the game's own refusal: ActionManager marks the action rejected, the client's action stops, and no
 --                   anti-cheat counts it. The game's SledgehammerOnlyInSafehouse rule refuses this way. It comes at the end
 --                   of the wait, so the Vehicle tab grays what it knows will be refused.
+--   Siphoning       the one wrapped action that does its work before complete(): serverStart emulates an "update" anim event
+--                   every second, and each one moves gas. So its animEvent is wrapped too, and a refused player moves none.
 --   Engine, driving ISStartVehicleEngine and ISHotwireVehicle are timed actions. Climbing in is VehicleEnterPacket, with no Lua
 --                   hook, so a driver who isn't allowed gets the seat and no engine: a clock shuts a running engine off.
---   Tow             vehicle.attachTrailer is a client command the game's local handler runs, which nothing can stop. This
---                   file's listener comes after it and breaks the link straight away, as vehicle.detachTrailer does.
+--                   vehicle.startEngine is a client command with no action around it (the game's client sends it when a
+--                   running car loads): this file's listener comes after the game's handler and shuts the engine off at once.
+--   Tow             vehicle.attachTrailer is a client command the game's local handler runs, which nothing can stop. The
+--                   same listener breaks the link straight away, as vehicle.detachTrailer does.
 --   Axe swings      a swing at a door, a built wall or a barricade reaches the server as PlayerHitObjectPacket. Nothing refuses
 --                   it, but OnWeaponHitThumpable fires before the damage, so the object is given room for the swing and
 --                   put back at its old health on the next tick.
@@ -37,6 +41,7 @@ local L = Ex.L
 local PREFIX = "ZeD_EX_"
 local SCHEMA = 1
 local MIGRATE = {}                   -- MIGRATE[1] = function(md) ... end   moves 1 to 2; adds or reshapes, never drops
+local STAMP = "ZeDClaim"             -- in the car's own mod data: which claim this car is (F.claimOf). Not a secret
 
 -- (a capability a later game renamed would be nil, and hasCapability(nil) matches no overload: the extras stay off)
 local CAP = {}
@@ -85,7 +90,7 @@ function F.open()
     local md = ModData.getOrCreate(name)
     md.schema = md.schema or SCHEMA
     md.set = md.set or Ex.defaults()
-    md.claims = md.claims or {}          -- key -> { owner, at, name, x, y }
+    md.claims = md.claims or {}          -- key -> { owner, at, name, x, y, tok }
     md.seen = md.seen or {}              -- username -> when a claim's owner was last on
     if md.schema > SCHEMA then
         T.frozen = true                  -- data from a newer ZeD: read it, never change it
@@ -115,6 +120,20 @@ end
 -- ---------------------------------------------------------------------------
 -- WHOSE CAR, WHOSE HOUSE
 -- ---------------------------------------------------------------------------
+-- what one player holds, sent to them
+function F.sendMine(md, p)
+    local u = p:getUsername()
+    local rows, n = {}, 0
+    for key, c in pairs(md.claims) do
+        if c.owner == u then
+            n = n + 1
+            rows[n] = { key = key, name = c.name, x = c.x, y = c.y }
+        end
+    end
+    Srv.to(p, Ex.MOD, "x_mine", { rows = rows, n = n, per = T.set.vc.per })
+end
+
+-- (an owner who is on hears of it: staff released the car, or the car is gone)
 function F.drop(md, key, c)
     md.claims[key] = nil
     local n = (T.counts[c.owner] or 1) - 1
@@ -123,15 +142,24 @@ function F.drop(md, key, c)
     else
         T.counts[c.owner], md.seen[c.owner] = nil, nil
     end
+    local o = Srv.player(c.owner)
+    if o then F.sendMine(md, o) end
 end
 
--- this car's claim. A burnt car is a wreck: the claim goes with the car it was on
+-- this car's claim. The game gives a removed car's number to the next new car, so a claim proves it's this car by the stamp
+-- it left in the car's own mod data, which is saved with the car and goes when the car goes. A burnt car is a wreck: the
+-- claim goes with the car it was on
 function F.claimOf(v)
     local md = T.md
     if not md then return nil end
     local key = Ex.keyOf(v:getSqlId())
     local c = md.claims[key]
     if not c then return nil end
+    if c.tok ~= v:getModData()[STAMP] then
+        F.drop(md, key, c)
+        Srv.action("vehicle", c.owner, "claim gone: that car is gone", nil, c.name, c.x, c.y)
+        return nil
+    end
     if v:isBurnt() then
         F.drop(md, key, c)
         Srv.action("vehicle", c.owner, "claim gone: burnt", nil, c.name, math.floor(v:getX()), math.floor(v:getY()))
@@ -155,20 +183,31 @@ function F.carBlock(p, v)
     return c
 end
 
--- every safehouse this square is in, or on the lot of. Any that lets the player in lets them through, or two lots that
--- touch would stop a member at their own fence; a war the game has started lets the attacker through, as its own tests do
-function F.houseBlock(p, x, y)
+-- the safehouse that stops this player on this square, or nil. Inside walls, only the house with those walls decides. On a
+-- lot, inside no walls, any house that lets the player in lets them through, or two lots that touch would stop a member at
+-- their own fence. A war the game has started lets the attacker through, as its own tests do. grow: how far past the walls
+-- a house reaches; by default the card's own tick
+function F.houseBlock(p, x, y, grow)
     local list = SafeHouse.getSafehouseList()
-    local grow = On.lot and Ex.LOT_TILES or 0
-    local stop = nil
+    grow = grow or (On.lot and Ex.LOT_TILES or 0)
+    local wallStop, lotStop, lotOk = nil, nil, false
     for i = 0, list:size() - 1 do
         local h = list:get(i)
-        local hx, hy = h:getX(), h:getY()
-        if x >= hx - grow and x < hx + h:getW() + grow and y >= hy - grow and y < hy + h:getH() + grow then
-            if h:playerAllowed(p) or WarManager.isWarStarted(h:getOnlineID(), p:getUsername()) then return nil end
-            stop = h
+        local hx, hy, hw, hh = h:getX(), h:getY(), h:getW(), h:getH()
+        if x >= hx - grow and x < hx + hw + grow and y >= hy - grow and y < hy + hh + grow then
+            local open = h:playerAllowed(p) or WarManager.isWarStarted(h:getOnlineID(), p:getUsername())
+            if x >= hx and x < hx + hw and y >= hy and y < hy + hh then
+                if open then return nil end
+                wallStop = h
+            elseif open then
+                lotOk = true
+            else
+                lotStop = h
+            end
         end
     end
+    local stop = wallStop
+    if not stop and not lotOk then stop = lotStop end
     if stop and Srv.can(p, CAP[Ex.CAP_HOUSE]) then return nil end
     return stop
 end
@@ -211,23 +250,26 @@ end
 -- ---------------------------------------------------------------------------
 -- THE WRAPS. Each is put on the first time its system is on, and never before
 -- ---------------------------------------------------------------------------
--- complete() on the server; false is the game's own refusal (the head of this file). A test that fails lets the game's
--- function run: a bug here must not stop a game action
-function F.wrapDone(name, cls, test)
-    Tests[name] = test
-    if Srv.exWrapped[name] then return end
-    if not (cls and cls.complete) then
-        Srv.log("server extras: no " .. name .. " in this game; that part of the extras does nothing")
+-- one function of a class. A test that fails lets the game's function run: a bug here must not stop a game action
+function F.wrap(name, cls, method, test)
+    local id = name .. "." .. method
+    Tests[id] = test
+    if Srv.exWrapped[id] then return end
+    if not (cls and cls[method]) then
+        Srv.log("server extras: no " .. id .. " in this game; that part of the extras does nothing")
         return
     end
-    Srv.exWrapped[name] = true
-    local base = cls.complete
-    cls.complete = function(self)
-        local ok, no = pcall(Tests[name], self)
+    Srv.exWrapped[id] = true
+    local base = cls[method]
+    cls[method] = function(self, a, b)
+        local ok, no = pcall(Tests[id], self, a)
         if ok and no then return false end
-        return base(self)
+        return base(self, a, b)
     end
 end
+
+-- complete() on the server; false is the game's own refusal (the head of this file)
+function F.wrapDone(name, cls, test) F.wrap(name, cls, "complete", test) end
 
 function F.armParts()
     local function test(self)
@@ -236,7 +278,19 @@ function F.armParts()
     end
     F.wrapDone("ISUninstallVehiclePart", ISUninstallVehiclePart, test)
     F.wrapDone("ISTakeEngineParts", ISTakeEngineParts, test)
-    F.wrapDone("ISTakeGasolineFromVehicle", ISTakeGasolineFromVehicle, test)
+    -- gas moves on each "update" event, not in complete() (the head of this file). The first one refused says so, and marks
+    -- the action: the rest of it moves nothing, and its complete() has nothing more to say
+    F.wrapDone("ISTakeGasolineFromVehicle", ISTakeGasolineFromVehicle, function(self)
+        if not On.parts then return false end
+        if self.zedNo then return true end
+        return F.refuseCar(self.character, self.vehicle, "parts")
+    end)
+    F.wrap("ISTakeGasolineFromVehicle", ISTakeGasolineFromVehicle, "animEvent", function(self, event)
+        if not On.parts or event ~= "update" then return false end
+        if self.zedNo then return true end
+        self.zedNo = F.refuseCar(self.character, self.vehicle, "parts")
+        return self.zedNo
+    end)
 end
 
 function F.armDrive()
@@ -249,12 +303,13 @@ function F.armDrive()
     F.wrapDone("ISHotwireVehicle", ISHotwireVehicle, test)
 end
 
--- after the game's own handler: the listeners run in the order they were added, and the game's file loads first
-function F.towWatch(module, command, player, args)
-    if not On.tow or module ~= "vehicle" or command ~= "attachTrailer" or type(args) ~= "table" then return end
-    -- (a client's word: anything but a number here matches no overload of getVehicleById)
-    if not (Ex.okVeh(args.vehicleA) and Ex.okVeh(args.vehicleB)) then return end
-    local a, b = getVehicleById(args.vehicleA), getVehicleById(args.vehicleB)
+function F.towWatch(player, args)
+    if not On.tow or type(args) ~= "table" then return end
+    -- (a client's word, read as the game reads it: anything but a number matches no overload of getVehicleById, and the
+    -- game's own call failed on that too)
+    local ida, idb = Ex.vehId(args.vehicleA), Ex.vehId(args.vehicleB)
+    if not (ida and idb) then return end
+    local a, b = getVehicleById(ida), getVehicleById(idb)
     if not (a and b) then return end
     local c = F.carBlock(player, a) or F.carBlock(player, b)
     if not c then return end
@@ -262,13 +317,38 @@ function F.towWatch(module, command, player, args)
     F.refused(player, "tow", "vehicle", c.owner, a:getX(), a:getY())
 end
 
-function F.armTow()
-    if Srv.exTowHooked then return end
-    Srv.exTowHooked = true
+function F.startWatch(p)
+    if not On.drive then return end
+    local v = p:getVehicle()
+    if not (v and v:isDriver(p) and (v:isStarting() or v:isEngineRunning())) then return end
+    local c = F.carBlock(p, v)
+    if not c then return end
+    v:shutOff()
+    F.refused(p, "drive", "vehicle", c.owner, v:getX(), v:getY())
+end
+
+-- after the game's own handler: the listeners run in the order they were added, and the game's file loads first
+function F.cmdWatch(module, command, player, args)
+    if module ~= "vehicle" then return end
+    if command == "attachTrailer" then F.towWatch(player, args)
+    elseif command == "startEngine" then F.startWatch(player) end
+end
+
+function F.armWatch()
+    if Srv.exWatchHooked then return end
+    Srv.exWatchHooked = true
     -- (looked up at each call, so a reload of this file takes effect)
     Events.OnClientCommand.Add(function(module, command, player, args)
-        local ok, err = pcall(function() ZeD.Srv.X.towWatch(module, command, player, args) end)
-        if not ok then Srv.log("tow watch failed: " .. tostring(err)) end
+        local ok, err = pcall(function() ZeD.Srv.X.cmdWatch(module, command, player, args) end)
+        if not ok then Srv.log("vehicle command watch failed: " .. tostring(err)) end
+    end)
+end
+
+-- a wreck cleared away takes its claim with it (claimOf reads a burnt car's as gone). Never refuses
+function F.armClaims()
+    F.wrapDone("ISRemoveBurntVehicle", ISRemoveBurntVehicle, function(self)
+        if On.claims and self.vehicle then F.claimOf(self.vehicle) end
+        return false
     end)
 end
 
@@ -279,7 +359,10 @@ function F.armDismantle()
     end)
     F.wrapDone("ISMoveablesAction", ISMoveablesAction, function(self)
         if not On.dismantle or self.mode ~= "scrap" then return false end
-        return F.refuseHouse(self.character, self.square, "dismantle")
+        -- (the object is what gets scrapped, wherever the client says it stands; the server runs no isValid)
+        local obj = (self.moveProps and self.moveProps.object) or self.object
+        if not obj then return true end
+        return F.refuseHouse(self.character, obj:getSquare(), "dismantle")
     end)
     F.wrapDone("ISUnbarricadeAction", ISUnbarricadeAction, function(self)
         if not On.dismantle then return false end
@@ -287,13 +370,23 @@ function F.armDismantle()
     end)
 end
 
--- a swing: the room goes on before the damage, and the old health comes back on the next tick (the head of this file)
+-- a swing: the room goes on before the damage, and the old health comes back on the next tick (the head of this file). A
+-- second swing in the tick keeps the first's old health, or the room itself would come back as the object's health. A
+-- barricade's getHealth is its planks' average and its setHealth writes that to every plank, so uneven planks even out
 function F.swing(chr, weapon, obj)
     if not On.destroy then return end
     if not (instanceof(chr, "IsoPlayer") and (instanceof(obj, "IsoDoor") or instanceof(obj, "IsoThumpable") or instanceof(obj, "IsoBarricade"))) then return end
     if not F.refuseHouse(chr, obj:getSquare(), "destroy") then return end
+    local room = math.max(1, weapon:getDoorDamage()) * L.HIT_ROOM
+    for i = 1, T.pendN do
+        local e = T.pending[i]
+        if e.obj == obj then
+            if obj:getHealth() < e.health + room then obj:setHealth(e.health + room) end
+            return
+        end
+    end
     local was = obj:getHealth()
-    obj:setHealth(was + math.max(1, weapon:getDoorDamage()) * L.HIT_ROOM)
+    obj:setHealth(was + room)
     T.pendN = T.pendN + 1
     T.pending[T.pendN] = { obj = obj, health = was }
 end
@@ -333,7 +426,8 @@ function F.apply(set)
     On.dismantle, On.destroy, On.lot = s.on and s.dismantle, s.on and s.destroy, s.on and s.lot
     if On.parts then F.armParts() end
     if On.drive then F.armDrive() end
-    if On.tow then F.armTow() end
+    if On.tow or On.drive then F.armWatch() end
+    if On.claims then F.armClaims() end
     if On.dismantle then F.armDismantle() end
     if On.destroy then F.armDestroy() end
     if On.claims or On.destroy then F.armClock() end
@@ -401,7 +495,7 @@ function T.tick()
         F.lapse(md, now)
     end
 end
-T.towWatch, T.swing = F.towWatch, F.swing
+T.cmdWatch, T.swing = F.cmdWatch, F.swing
 
 -- ---------------------------------------------------------------------------
 -- THE COMMANDS: every one takes its player from the event
@@ -421,6 +515,9 @@ reg("x_save", { cap = CAP[Ex.CAP_EDIT], limit = L.SAVE_MS }, function(p, a, rid)
     end
     local set = Ex.clean(a.set)
     local was = T.set
+    -- (a.was: the set the card's changes were made on. This replaces the whole set, so saving over another admin's save would
+    -- undo it unseen. Their save is on its way to this card, which keeps its own changes on top)
+    if not Ex.same(Ex.clean(a.was), was) then return Srv.ack(p, rid, false, "changed") end
     -- (a claim held while the system was off has not been away: its time starts again now)
     if set.vc.on and not was.vc.on then
         local now = getTimestamp()
@@ -464,13 +561,17 @@ reg("x_claim", { limit = L.CLAIM_MS }, function(p, a, rid)
     if d and d ~= p then return Srv.ack(p, rid, false, "driven") end
     if sql < 0 then return Srv.ack(p, rid, false, "soon") end
     if F.claimOf(v) then return Srv.ack(p, rid, false, "taken") end
+    -- (a car parked at someone's safehouse is theirs to keep: the lot counts here whatever protection's tick says)
+    if F.houseBlock(p, v:getX(), v:getY(), Ex.LOT_TILES) then return Srv.ack(p, rid, false, "house") end
     if F.count(u) >= vc.per then return Srv.ack(p, rid, false, "many") end
     if Ex.CLAIM_NEEDS_KEY and not p:getInventory():haveThisKeyId(v:getKeyId()) then return Srv.ack(p, rid, false, "key") end
     local total = 0
     for _ in pairs(md.claims) do total = total + 1 end
     if total >= L.CLAIMS_MAX then return Srv.ack(p, rid, false, "full") end
     local x, y = math.floor(v:getX()), math.floor(v:getY())
-    md.claims[Ex.keyOf(sql)] = { owner = u, at = getTimestamp(), name = F.carName(v), x = x, y = y }
+    local tok = getRandomUUID()
+    v:getModData()[STAMP] = tok
+    md.claims[Ex.keyOf(sql)] = { owner = u, at = getTimestamp(), name = F.carName(v), x = x, y = y, tok = tok }
     T.counts[u] = F.count(u) + 1
     md.seen[u] = getTimestamp()
     Srv.action("vehicle", u, "claim", nil, F.carName(v), x, y)
@@ -515,16 +616,7 @@ end)
 
 -- my own claims, wherever the cars are
 reg("x_mine", { limit = L.MINE_MS }, function(p, a, rid)
-    local md = F.open()
-    local u = p:getUsername()
-    local rows, n = {}, 0
-    for key, c in pairs(md.claims) do
-        if c.owner == u then
-            n = n + 1
-            rows[n] = { key = key, name = c.name, x = c.x, y = c.y }
-        end
-    end
-    Srv.to(p, Ex.MOD, "x_mine", { rows = rows, n = n, per = T.set.vc.per })
+    F.sendMine(F.open(), p)
 end)
 
 -- the map's click. The game's /teleportto does the going and asks its own capability again: this says the setting is on,
@@ -541,7 +633,8 @@ reg("x_tp", { cap = CAP[Ex.CAP_MAP], limit = L.TP_MS }, function(p, a, rid)
 end)
 
 -- a client's report of what it took. Item transfers are Java here, so this is the player's word: the line says so, and the
--- server only tests that it could be true (the setting is on, the square is inside a safehouse, the player is by it)
+-- server only tests that it could be true (the setting is on, the square is inside a safehouse, the player can have come
+-- from it since). Which container is the client's word too, so it stays in the line's text, never its target
 function F.tookText(rows)
     if type(rows) ~= "table" then return nil end
     local parts, n = {}, 0
@@ -560,13 +653,16 @@ end
 reg("x_took", { limit = L.TOOK_MS }, function(p, a, rid)
     F.open()
     if not T.set.cl.on then return end
-    if not (Ex.okCoord(a.x) and Ex.okCoord(a.y)) or type(a.z) ~= "number" then return Srv.bad(p, "x_took") end
+    if not (Ex.okCoord(a.x) and Ex.okCoord(a.y)) or type(a.z) ~= "number" or a.z ~= math.floor(a.z) then return Srv.bad(p, "x_took") end
     local text = F.tookText(a.rows)
     if not text then return Srv.bad(p, "x_took") end
     if math.abs(p:getX() - a.x) > L.TOOK_REACH or math.abs(p:getY() - a.y) > L.TOOK_REACH then return Srv.bad(p, "x_took") end
+    if not (math.abs(p:getZ() - a.z) <= L.TOOK_FLOORS) then return Srv.bad(p, "x_took") end
     if not F.insideHouse(a.x, a.y) then return Srv.bad(p, "x_took") end
-    local from = (type(a.from) == "string") and string.sub(Tk.name(a.from), 1, L.TOOK_NAME) or nil
-    Srv.action("container", p:getUsername(), "took", from, text .. " (reported by their game)", a.x, a.y, a.z)
+    if type(a.from) == "string" and #a.from <= L.TOOK_NAME and string.match(a.from, "^[%w_]+$") then
+        text = text .. " from " .. a.from
+    end
+    Srv.action("container", p:getUsername(), "took", nil, text .. " (reported by their game)", a.x, a.y, a.z)
 end)
 
 -- ---------------------------------------------------------------------------

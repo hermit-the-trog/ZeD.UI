@@ -7,8 +7,9 @@
 -- of them to fall back on. With every extra off nothing is wrapped and nothing is asked.
 --
 -- One thing only a client can do: item transfers are Java on the server, with no Lua at all, so the container log is this
--- client reporting its own takes from containers inside a safehouse (x_took). A modified client can stay silent, and the
--- card and the log's line say so. The wrap goes on the first time the server says the log is on, never before.
+-- client reporting its own takes from containers inside a safehouse (x_took). A modified client can stay silent and a client
+-- that drops off loses what it held, and the card and the log's line say so. The wrap goes on the first time the server says
+-- the log is on, never before.
 --
 -- QA, read at call time (the ticket cards' style):
 --   E.qaHold   true: no traffic. The screen shows only what the QA script put in the model
@@ -48,10 +49,12 @@ function E.claimsOn() return E.live() and E.set ~= nil and E.set.vc.on end
 
 -- the server's word for a refusal: its own errors first, then the tickets' shared ones
 local ERR = { off = true, far = true, burnt = true, driven = true, soon = true, taken = true, many = true, key = true, gone = true,
-    full = true, frozen = true, text = true }
+    full = true, frozen = true, text = true, house = true, changed = true, fail = true }
 function E.errText(a)
-    if ERR[a.err] then return tr("UI_ZeD_Ex_Err_" .. a.err) end
-    return K.errText(a.err, a.left)
+    local err = a.err or "fail"
+    if err == "wait" then return tr("UI_ZeD_Ex_Err_wait", a.left or 1) end
+    if ERR[err] then return tr("UI_ZeD_Ex_Err_" .. err) end
+    return K.errText(err, a.left)
 end
 
 function E.request(cmd, args, cb)
@@ -61,7 +64,8 @@ function E.request(cmd, args, cb)
     end)
 end
 
-function E.save(set, cb) E.request("x_save", { set = set }, cb) end
+-- was: the set the changes were made on (the server refuses a save that would undo another admin's)
+function E.save(set, cb, was) E.request("x_save", { set = set, was = was or E.set }, cb) end
 
 -- a line over the player's head, as the map's ink refusals have
 function E.say(text, good)
@@ -140,6 +144,10 @@ end
 -- ---------------------------------------------------------------------------
 -- THE CONTAINER LOG: this client's report of its own takes
 -- ---------------------------------------------------------------------------
+local function newBatch(sq, src)
+    return { x = sq:getX(), y = sq:getY(), z = sq:getZ(), from = src:getType(), at = now(), names = {}, rows = {} }
+end
+
 function E.noteTake(self)
     if not (E.set and E.set.cl.on and E.live()) then return end
     local src, dest, chr = self.srcContainer, self.destContainer, self.character
@@ -152,26 +160,33 @@ function E.noteTake(self)
     local key = tostring(sq:getX()) .. "," .. tostring(sq:getY()) .. "," .. tostring(sq:getZ())
     local e = E.took[key]
     if not e then
-        e = { x = sq:getX(), y = sq:getY(), z = sq:getZ(), from = src:getType(), at = now(), names = {}, rows = {} }
+        e = newBatch(sq, src)
         E.took[key] = e
         E.tookAny = true
     end
     for _, it in ipairs(items) do
         local name = it:getDisplayName()
         local r = e.names[name]
-        if not r and #e.rows < L.TOOK_ROWS then
+        if not r then
+            if #e.rows >= L.TOOK_ROWS then
+                -- a full report goes as it is, under a name of its own, and a new one opens
+                E.tookSeq = (E.tookSeq or 0) + 1
+                E.took[key .. ":" .. tostring(E.tookSeq)] = e
+                e = newBatch(sq, src)
+                E.took[key] = e
+            end
             r = { name = name, n = 0 }
             e.names[name] = r
             e.rows[#e.rows + 1] = r
         end
-        if r then r.n = r.n + 1 end
+        r.n = r.n + 1
     end
 end
 
 function E.tookTick()
     if not E.tookAny then return end
     local t = now()
-    if E.tookSent and t - E.tookSent < L.TOOK_MS then return end   -- (the server takes one in this long)
+    if E.tookSent and t - E.tookSent < L.TOOK_SEND_MS then return end
     E.tookAny = false
     for key, e in pairs(E.took) do
         E.tookAny = true

@@ -72,6 +72,7 @@ Adm.L = {
     PLAYERS_ROWS = 500,                 -- rows in one a_players
     LOG_MAX = 2000,                     -- admin actions kept for Phase 4's Log view, oldest out
     LOG_ACTOR_MAX = 400,                -- past this share one account's new lines replace its own oldest
+    LOG_TOLD_MAX = 100,                 -- the same for lines a client reports of itself (the container log)
     OWED_MAX = 200,                     -- game calls waiting for a staff client
     TICKETS_ROWS = 10,                  -- tickets on a player card
     TARGET_MAX = 64,                    -- a name, a Steam ID or an IP

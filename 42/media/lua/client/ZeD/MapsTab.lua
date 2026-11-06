@@ -2012,6 +2012,10 @@ function ZeD.MapsTab.buildFocusables(win)
                     w._mapEdit = nil
                     return true
                 end
+                if Ext.anyArmed(w) then
+                    Ext.putDownAll(w)
+                    return true
+                end
                 if w._focusRing then
                     for zi, z in ipairs(w._focusRing) do
                         if z.zone == "worldTabContent" and z.focusable

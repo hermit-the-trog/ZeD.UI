@@ -34,12 +34,15 @@ Ex.L = {
     LAPSE_MIN = 1, LAPSE_MAX = 30,      -- real days away, as drawn
     CLAIMS_MAX = 5000,                  -- claims on the server
     REACH_TILES = 6,                    -- how near a car a player stands to claim it: the tab's own limit
-    TOOK_REACH = 8,                     -- how far from a container a report of a take may come from
+    TOOK_REACH = 150,                   -- how far from a container a player can be by the time the report lands: reports
+                                        -- wait for the batch and each other, and a player can have run or driven off
+    TOOK_FLOORS = 2,                    -- the same, in floors
     TOOK_ROWS = 12,                     -- kinds of item in one report
     TOOK_NAME = 40,                     -- characters of an item's name in a line
     TOOK_MAX = 9999,                    -- items of one kind in a report
     TOOK_BATCH_MS = 3000,               -- a client gathers its takes this long and sends them as one
-    TOOK_MS = 1000,
+    TOOK_SEND_MS = 1500,                -- a client leaves this long between reports
+    TOOK_MS = 500,                      -- the server takes one in this long: well under that, or the network's jitter loses reports
     SAVE_MS = 1000,
     CLAIM_MS = 1000,
     VEH_MS = 300,
@@ -112,13 +115,25 @@ function Ex.summary(s)
         .. ", map " .. word(s.tp.on) .. ", containers " .. word(s.cl.on)
 end
 
--- a claim's key: the car's number in the game's vehicle database, which outlives a restart and goes where the car goes.
--- A string, so the table's keys are one type whatever the save does with numbers
+-- a claim's key: the car's number in the game's vehicle database, which outlives a restart and goes where the car goes. The
+-- game gives a removed car's number to the next new car, so the number alone doesn't prove the car: the server's F.claimOf
+-- tests the stamp the claim left on it. A string, so the table's keys are one type whatever the save does with numbers
 function Ex.keyOf(sql) return "v" .. tostring(sql) end
 function Ex.okKey(s) return type(s) == "string" and #s <= 16 and string.match(s, "^v%d+$") ~= nil end
 
 -- a vehicle's short number as a client names it
 function Ex.okVeh(n) return type(n) == "number" and n == math.floor(n) and n >= -32768 and n <= 65535 end
+-- the vehicle the game's getVehicleById finds for a number: Kahlua's Double.intValue truncates, stops at the int's ends and
+-- makes NaN 0, and getVehicleById narrows that to a short. nil for anything but a number (no % here: Kahlua's keeps the sign)
+function Ex.vehId(n)
+    if type(n) ~= "number" then return nil end
+    if not (n > 0 or n <= 0) then return 0 end
+    if n > 2147483647 then n = 2147483647 elseif n < -2147483648 then n = -2147483648 end
+    local i = (n < 0) and math.ceil(n) or math.floor(n)
+    local low = i - math.floor(i / 65536) * 65536
+    if low >= 32768 then return low - 65536 end
+    return low
+end
 function Ex.okCoord(n) return type(n) == "number" and n == math.floor(n) and n >= 0 and n <= Ex.L.WORLD_MAX end
 
 return Ex

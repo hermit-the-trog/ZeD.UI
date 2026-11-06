@@ -107,8 +107,8 @@ function F.errOf(a)
 end
 
 -- a command from a card: one at a time, its answer in the help band, and the words stay on a refusal. okText may be a
--- function of the answer
-function F.act(win, st, send, okText, after)
+-- function of the answer; errOf: a card's own words for the server's refusals
+function F.act(win, st, send, okText, after, errOf)
     local t = TC.qaState(st)
     if t.busy then return end
     F.t = t
@@ -116,7 +116,7 @@ function F.act(win, st, send, okText, after)
     send(function(a)
         t.busy = nil
         if a.ok == false then
-            D.flash(t, F.errOf(a))
+            D.flash(t, (errOf or F.errOf)(a))
             return
         end
         if type(okText) == "function" then okText = okText(a) end

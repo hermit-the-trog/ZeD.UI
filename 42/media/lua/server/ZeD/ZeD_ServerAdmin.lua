@@ -111,16 +111,23 @@ end
 local function today() return Srv.day() end
 
 -- where a new line goes. A ring of AL.LOG_MAX, oldest out, but one account never pushes out another's: past its share a
--- new line takes the place of that account's own oldest (s says the order; Phase 4 sorts by it)
-local function ringSlot(log, who)
-    local mine, oldest = 0, nil
+-- new line takes the place of that account's own oldest (s says the order; Phase 4 sorts by it). A container line is the
+-- player's own game talking, so it has a smaller share and replaces only its own kind: no client's reports push out what the
+-- server saw. nil: there's no room for it
+local function ringSlot(log, who, kind)
+    local mine, oldest, told, oldestTold = 0, nil, 0, nil
     for i = 1, log.n do
         local l = log[i]
         if l and l.who == who then
             mine = mine + 1
             if not oldest or (l.s or 0) < (log[oldest].s or 0) then oldest = i end
+            if l.kind == "container" then
+                told = told + 1
+                if not oldestTold or (l.s or 0) < (log[oldestTold].s or 0) then oldestTold = i end
+            end
         end
     end
+    if kind == "container" and (told >= AL.LOG_TOLD_MAX or mine >= AL.LOG_ACTOR_MAX) then return oldestTold end
     if mine >= AL.LOG_ACTOR_MAX then return oldest end
     log.at = (log.at >= AL.LOG_MAX) and 1 or (log.at + 1)
     log.n = math.min(log.n + 1, AL.LOG_MAX)
@@ -131,8 +138,10 @@ function Srv.actionStore(kind, who, what, target, detail, x, y, z)
     local md = open()
     if T.frozen then return end
     local log = md.log
+    local slot = ringSlot(log, who, kind)
+    if not slot then return end
     log.s = (log.s or 0) + 1
-    log[ringSlot(log, who)] = { s = log.s, t = getTimestamp(), day = today(), kind = kind, who = who, what = what, target = target, text = detail, x = x, y = y, z = z }
+    log[slot] = { s = log.s, t = getTimestamp(), day = today(), kind = kind, who = who, what = what, target = target, text = detail, x = x, y = y, z = z }
 end
 
 function Srv.adminLog(who, what, target, detail, x, y, z) Srv.action("admin", who, what, target, detail, x, y, z) end
