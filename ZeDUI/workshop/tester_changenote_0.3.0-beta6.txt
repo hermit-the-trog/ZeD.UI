@@ -31,7 +31,6 @@ Fixes
 - Dash Elite: at night the LCD glass lights only with the panel lights on, in its backlight color.
 - Right-click menus outline what an option acts on, where the game does: corpses, animals and Disassemble.
 - On 42.21 the Survival Guide didn't open when a game started.
-- ZeD's Tutorial checks work again on 42.22.
 - An animal under a roof no longer reads as stressed by rain.
 
 Mod support
