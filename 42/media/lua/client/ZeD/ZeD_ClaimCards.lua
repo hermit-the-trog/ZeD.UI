@@ -119,7 +119,7 @@ function CC.keepWords()
     if left < 0 then left = 0 end
     local h = math.ceil(left)
     if left < 1 then return tr("UI_ZeD_Cl_KeepSoon"), left end
-    if left >= DAYS_FROM_H then return tr("UI_ZeD_Cl_KeepDays", math.floor(left / 24)), left end
+    if left >= DAYS_FROM_H then return tr("UI_ZeD_Cl_KeepDays", math.floor((left + 1) / 24)), left end   -- (a fresh claim reads the rule's whole days, and never promises more than an hour too many)
     return tr("UI_ZeD_Cl_KeepHours", h), left
 end
 
