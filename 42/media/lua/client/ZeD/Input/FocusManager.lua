@@ -348,9 +348,17 @@ end
 -- FOCUS CLAIM / RELEASE / READ
 -- ---------------------------------------------------------------------------
 
+-- a window that keeps the pad to itself is up (the join screen, ZeD_CommunityCards.lua): nothing here opens a window or takes the
+-- pad under it. It holds the pad itself (ZeD_JoinWindow:update) and hands it back when it closes
+function Focus.held()
+    local CM = ZeD.CommunityCards
+    return CM ~= nil and CM.joinWin ~= nil
+end
+
 function Focus.claimFocus(w)
     if not w then return end
     if _focusedWindow == w then return end
+    if Focus.held() then return end
 
     local old = _focusedWindow
     _focusedWindow = w
@@ -1796,6 +1804,11 @@ end
 -- the Y, A and X holds: a tap on release, the hold at 350 ms. jid may be nil (no pad bound):
 -- the holds still run so QA's hook can drive them; a nil pad reads as every button up.
 local function _holdTicks(jid)
+    if Focus.held() then
+        _yHeld, _yConsumed = false, false
+        _prevYPressedUnfocused = _btnDown("Y", jid)
+        return
+    end
     if not _focusedWindow then
         local yNow = _btnDown("Y", jid)
         -- (Oct 24 2026: with a bumper held, Y is a quick action chord, ZeD_QuickChords.lua, never the windows)

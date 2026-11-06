@@ -49,8 +49,8 @@ end
 -- THE ACTION LOG, what the Log view reads. Everything the server part has to say comes through Srv.action, each as one line
 -- of seven fields, "-" for an empty one:
 --   kind | what | who | target | where | detail | day N
--- kind: admin (the server part's own lines are here, who Tk.SYS), safehouse, faction, vehicle, pvp, ticket, container (a
--- player's own game reporting, and the only kind that isn't the server's word), or claims for the log's own word. A field
+-- kind: admin (the server part's own lines are here, who Tk.SYS), safehouse, faction, vehicle, pvp, ticket, community, container
+-- (a player's own game reporting, and the only kind that isn't the server's word), or claims for the log's own word. A field
 -- has no line break and its | is turned to /, so a split on " | " always gives seven.
 -- Srv.actionStore (ZeD_ServerAdmin.lua) keeps the same line for the Log view; without the admin table the line still reaches
 -- the ZeD log. ex: what a line's words need (car, part, locked), kept in the ring and not in the file.

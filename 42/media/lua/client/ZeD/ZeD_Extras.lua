@@ -254,7 +254,14 @@ end)
 
 function E.onHello(a)
     E.frozen = a.exFrozen == true
-    if a.ex then heardSet(a.ex) end
+    if a.ex then
+        heardSet(a.ex)
+    elseif E.set then
+        -- (a server without the extras: what the last server said goes with it)
+        E.set, E.mineRows = nil, nil
+        E.cars = {}
+        E.bump()
+    end
 end
 
 return E

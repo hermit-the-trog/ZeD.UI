@@ -122,6 +122,7 @@ end
 function Lm.otherName(r)
     if r.src == "tap" or not r.target then return nil end
     if r.k == "pvp" or r.k == "vehicle" then return r.target end
+    if r.k == "ticket" and Lg.REPORT[r.what] then return r.target end
     if r.k == "admin" and Lg.ADMIN[r.what] and r.what ~= "repeating message stopped" and ZeD.Adm.targetKind(r.target) == "user" then return r.target end
     return nil
 end
@@ -134,6 +135,8 @@ function Lm.kindColor(k)
     if k == "vehicle" then return T.warning end
     if k == "ticket" then return T.info end
     if k == "container" then return T.violet or T.info end
+    -- (the status colors are spoken for, and the tag carries the word: plain text, brighter than Other's)
+    if k == "community" then return T.text end
     return T.textDim
 end
 

@@ -629,8 +629,8 @@ local function badText(s, max)
 end
 
 -- the kinds whose place is where the one who did it stood. A ticket's line has the ticket's place and a safehouse's the house's,
--- so neither says who was there
-local PROVES_PLACE = { admin = true, vehicle = true, pvp = true }
+-- so neither says who was there. A community line has the place of whoever wrote the rules or a post, or was asked to agree
+local PROVES_PLACE = { admin = true, vehicle = true, pvp = true, community = true }
 -- (a claim's lines carry the car's place, with its owner anywhere or off the server: Lg.NOT_THERE)
 
 -- who the Around line names: anyone seen here up to the filing whom the ticket's nearby list did not hold

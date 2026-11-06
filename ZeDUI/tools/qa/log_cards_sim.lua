@@ -1102,6 +1102,36 @@ M.qaCaps = { AnswerTickets = true }
 M.bump()
 draw()
 
+-- community's lines: a word, a chip, a tag that says it
+fresh()
+do
+    local Lp = ZeD.LogCards._P
+    ZEDQA_CAPS.AnswerTickets = true
+    M.bump()
+    ZeD.LogCards.qaOpen(win, st)
+    Lm.qaHold = true
+    Lm.page = { rows = { { s = 900, t = getTimestamp(), day = 12, k = "community", who = "Rosa", what = "news posted", text = "#3: Trader at noon", x = 6280, y = 5350, z = 0 },
+        { s = 901, t = getTimestamp(), day = 12, k = "ticket", who = "Hermit", what = "report closed", target = "mike_d", text = "ticket 14" } }, n = 2, all = 2, page = 1, pages = 1 }
+    Lm.bump()
+    draw()
+    draw()
+    check("the Community chip", stopOf("tk:lk:community") ~= nil)
+    check("ahead of Container", ZeD.Lg.KINDS[#ZeD.Lg.KINDS] == "container")
+    check("the tag says its word", Lp.tagText({ k = "community" }) == string.upper(tr("UI_ZeD_Log_Kind_community")) and tr("UI_ZeD_Log_Kind_community") == "Community")
+    check("a color of its own, not Other's", Lm.kindColor("community") ~= Lm.kindColor("other") and Lm.kindColor("community") == ZeD.T.text)
+    check("the line in words", drewAll("posted news #3"), ZeD.Help.last)
+    check("the report's line too", drewAll("closed the report on mike_d"), ZeD.Help.last)
+    ZeD.LogCards.qaPick(st, 901)
+    draw()
+    draw()
+    check("a report's line offers the reported player's card", stopOf("tk:lpo:901") ~= nil)
+    press("tk:lk:community")
+    check("the chip filters", st.card.kindF == "community")
+    Lm.qaHold = nil
+    TC.back(win, st)
+    draw()
+end
+
 -- the queue's line
 fresh()
 st.screen = "tickets"

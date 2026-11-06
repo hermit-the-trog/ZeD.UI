@@ -6853,6 +6853,7 @@ end
 -- this helper is gamepad-only and is gated by callers, not internally.
 function ZeD_CharacterWindow.ensureBothOpenForGamepad(playerNum)
     playerNum = playerNum or 0
+    if ZeD.Input and ZeD.Input.Focus and ZeD.Input.Focus.held and ZeD.Input.Focus.held() then return end   -- (the join screen)
     if not getSpecificPlayer(playerNum) then return end
     if getSpecificPlayer(playerNum):isDead() then return end
     if getGameSpeed() <= 0 then return end
