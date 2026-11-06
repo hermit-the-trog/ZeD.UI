@@ -16,7 +16,7 @@
 --
 -- The table has a secret random name, as the tickets' does (A2), and is never transmitted. Views are allowlists. Every
 -- action goes through Srv.adminLog into the server part's one log (Srv.action): a line in the ZeD log and a line in md.log,
--- which Phase 4's Log view reads. The ring here also holds the claim and faction lines from ZeD_ServerClaims.lua.
+-- which the Log view reads (ZeD_ServerLog.lua). The ring here holds every kind of line, not only these.
 -- ============================================================================
 if not isServer() then return end
 
@@ -40,7 +40,7 @@ local CAP = {}
 for _, name in ipairs(Adm.SERVER_CAPS) do
     CAP[name] = Capability and Capability[name]
     if not CAP[name] then
-        Srv.log("admin tools off: this game has no " .. name .. " capability")
+        Srv.action("admin", Tk.SYS, "admin tools off", nil, "this game has no " .. name .. " capability")
         print("[ZeD] admin tools off: no " .. name)
         return
     end
@@ -63,7 +63,7 @@ local function findName()
             if not best or n < best then best = n end
         end
     end
-    if found > 1 then Srv.log("found " .. found .. " admin tables; using the first by name") end
+    if found > 1 then Srv.fileLine("admin", Tk.SYS, "admin tables", nil, "found " .. found .. "; using the first by name") end
     return best
 end
 
@@ -95,7 +95,7 @@ local function open()
         end
         md.schema = md.schema + 1
     end
-    if T.frozen then Srv.log("the admin table is frozen: schema " .. tostring(md.schema) .. ", this ZeD knows " .. SCHEMA) end
+    if T.frozen then Srv.fileLine("admin", Tk.SYS, "admin table frozen", nil, "schema " .. tostring(md.schema) .. ", this ZeD knows " .. SCHEMA) end
     T.md = md
     return md
 end
@@ -111,16 +111,21 @@ end
 local function today() return Srv.day() end
 
 -- where a new line goes. A ring of AL.LOG_MAX, oldest out, but one account never pushes out another's: past its share a
--- new line takes the place of that account's own oldest (s says the order; Phase 4 sorts by it). A container line is the
--- player's own game talking, so it has a smaller share and replaces only its own kind: no client's reports push out what the
--- server saw. nil: there's no room for it
+-- new line takes the place of that account's own oldest (s says the order; Phase 4 sorts by it). A kill goes last, so an
+-- account can't write its own evidence off the ring with a run of lesser lines. A container line is the player's own game
+-- talking, so it has a smaller share and replaces only its own kind: no client's reports push out what the server saw.
+-- nil: there's no room for it
 local function ringSlot(log, who, kind)
-    local mine, oldest, told, oldestTold = 0, nil, 0, nil
+    local mine, oldest, oldestKill, told, oldestTold = 0, nil, nil, 0, nil
     for i = 1, log.n do
         local l = log[i]
         if l and l.who == who then
             mine = mine + 1
-            if not oldest or (l.s or 0) < (log[oldest].s or 0) then oldest = i end
+            if l.kind == "pvp" then
+                if not oldestKill or (l.s or 0) < (log[oldestKill].s or 0) then oldestKill = i end
+            elseif not oldest or (l.s or 0) < (log[oldest].s or 0) then
+                oldest = i
+            end
             if l.kind == "container" then
                 told = told + 1
                 if not oldestTold or (l.s or 0) < (log[oldestTold].s or 0) then oldestTold = i end
@@ -128,21 +133,27 @@ local function ringSlot(log, who, kind)
         end
     end
     if kind == "container" and (told >= AL.LOG_TOLD_MAX or mine >= AL.LOG_ACTOR_MAX) then return oldestTold end
-    if mine >= AL.LOG_ACTOR_MAX then return oldest end
+    if mine >= AL.LOG_ACTOR_MAX then return oldest or oldestKill end
     log.at = (log.at >= AL.LOG_MAX) and 1 or (log.at + 1)
     log.n = math.min(log.n + 1, AL.LOG_MAX)
     return log.at
 end
 
-function Srv.actionStore(kind, who, what, target, detail, x, y, z)
+function Srv.actionStore(kind, who, what, target, detail, x, y, z, ex)
     local md = open()
     if T.frozen then return end
     local log = md.log
     local slot = ringSlot(log, who, kind)
     if not slot then return end
     log.s = (log.s or 0) + 1
-    log[slot] = { s = log.s, t = getTimestamp(), day = today(), kind = kind, who = who, what = what, target = target, text = detail, x = x, y = y, z = z }
+    local row = { s = log.s, t = getTimestamp(), day = today(), kind = kind, who = who, what = what, target = target, text = detail, x = x, y = y, z = z }
+    if ex then row.car, row.part, row.locked = ex.car, ex.part, ex.locked end
+    log[slot] = row
 end
+
+-- what the Log view reads the ring through
+function Srv.logTable() return open() end
+function Srv.logFrozen() return T.frozen == true end
 
 function Srv.adminLog(who, what, target, detail, x, y, z) Srv.action("admin", who, what, target, detail, x, y, z) end
 
@@ -187,6 +198,12 @@ local function rank(r)
     if not r then return -1 end
     local plain = roleNamed("user")
     return math.max(r:getPosition(), plain and plain:getPosition() or 0)
+end
+
+-- is this name's role above p's? The Log view keeps such a player's places to themselves, as the Player card does. A name
+-- with no role to read is not above anyone
+function Srv.outranks(p, user)
+    return rank(roleOf(open(), user)) > rank(p:getRole())
 end
 
 -- nil when p may act on this target, else the error word. A name nobody online holds and the server has never seen has
@@ -399,7 +416,7 @@ local function owe(md, act, target, reason, delay, by, opts)
         if e.act == "Kick" and (not low or id < low) then low = id end
     end
     if n >= AL.OWED_MAX and low then
-        Srv.log("owed game calls full: dropped Kick on " .. tostring(md.owed[low].target))
+        Srv.adminLog(Tk.SYS, "owed game calls full", md.owed[low].target, "dropped a Kick")
         md.owed[low] = nil
     end
     local id = md.nextOwe
@@ -439,7 +456,7 @@ end
 local function ipRefused(md, b)
     if not (b and b.banIp) then return end
     b.banIp = nil
-    Srv.adminLog("server", "ip ban not made", b.user, "the plain ban stands")
+    Srv.adminLog(Tk.SYS, "ip ban not made", b.user, "the plain ban stands")
     noteStaff({ kind = "ipfail", user = b.user })
     pushBans(md)
 end
@@ -493,7 +510,7 @@ local function sendOwed(md, now)
             local gone = not Srv.player(e.target)
             if stale then
                 md.owed[id] = nil
-                Srv.adminLog("server", "game call dropped", e.target, e.act .. ": " .. stale)
+                Srv.adminLog(Tk.SYS, "game call dropped", e.target, e.act .. ": " .. stale)
             elseif e.act == "Kick" and gone then
                 md.owed[id] = nil    -- (they went on their own: a kick now would only add to their record)
             elseif e.act == "BanIP" and gone then
@@ -530,7 +547,7 @@ end
 local function reportStay(md, user, b, told, now)
     told.noted = now
     b.stay, b.stayUser = now, user
-    Srv.log("a banned client has not left: " .. tostring(user))
+    Srv.adminLog(Tk.SYS, "a banned client has not left", user)
     noteStaff({ kind = "stay", user = user, id = b.id })
 end
 
@@ -540,7 +557,7 @@ local function checkBan(md, o, user, now)
     if b and not bindsRole(b, o:getRole()) then
         if not b.noBind then
             b.noBind = true
-            Srv.adminLog("server", "ban does not bind", user, "their role is above the one who made it")
+            Srv.adminLog(Tk.SYS, "ban does not bind", user, "their role is above the one who made it")
         end
         b = nil
     end
@@ -570,7 +587,7 @@ local function liftDue(md, now)
         undoGame(md, b, nil)         -- (the clock's own act: no author to lose the power)
         md.bans[id] = nil
         release(b)
-        Srv.adminLog("server", "ban lifted", b.user or b.sid, "the time ran out")
+        Srv.adminLog(Tk.SYS, "ban lifted", b.user or b.sid, "the time ran out")
     end
 end
 
@@ -912,7 +929,7 @@ local function banRoom(md)
     end
     if n < AL.BANS_MAX then return true end
     if not oldest then return false end
-    Srv.log("ban list full: dropped row " .. tostring(oldest) .. ", the game still holds that ban")
+    Srv.adminLog(Tk.SYS, "ban list full", nil, "dropped row " .. tostring(oldest) .. ", the game still holds that ban")
     md.bans[oldest] = nil
     return true
 end
@@ -1181,7 +1198,7 @@ if Srv.adminHooked == nil then
         local ok, err = pcall(function() ZeD.Srv.adminTick() end)
         if not ok then
             print("[ZeD] server: admin clock failed: " .. tostring(err))
-            ZeD.Srv.log("admin clock failed: " .. tostring(err))
+            ZeD.Srv.action("admin", Tk.SYS, "admin clock failed", nil, err)
         end
     end
     if Events.OnTickEvenPaused then Events.OnTickEvenPaused.Add(safeTick) end

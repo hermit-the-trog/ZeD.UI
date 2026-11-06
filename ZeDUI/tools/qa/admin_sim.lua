@@ -735,7 +735,7 @@ do
     W.clock = W.clock + 21000
     W.server.Events.OnTickEvenPaused.fire()
     check("lifted with nobody on", next(md().bans) == nil)
-    check("the lift is logged", logHas("admin | ban lifted | server | Torch |"))
+    check("the lift is logged", logHas("admin | ban lifted | @server | Torch |"))
 end
 
 section("a client that does not leave")

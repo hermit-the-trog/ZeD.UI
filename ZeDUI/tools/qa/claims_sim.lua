@@ -1016,7 +1016,7 @@ do
     raw(a, "c_info", nil)
     advance(1200)
     check("nothing failed", not logHas("handler failed"))
-    check("a bad-argument line", logHas("bad arguments: Aretha on c_cancel"))
+    check("a bad-argument line", logHas("bad arguments | Aretha | - | - | c_cancel"))
     -- the limit
     advance(6000)
     ca.C.ask()
@@ -1072,6 +1072,7 @@ do
     c.C.createFaction("Riverside", function() end)
     advance(6000)
     check("a faction", logHas("faction | create | Aretha | Riverside"))
+    check("with the place of the one named, who is on", logHas("faction | create | Aretha | Riverside | " .. math.floor(a:getX()) .. "," .. math.floor(a:getY()) .. " |"))
     W.factions[1].name = "Riverfolk"
     advance(6000)
     check("a rename is one line", logHas("faction | name from Riverside | Aretha | Riverfolk") and not logHas("faction | disband"))
