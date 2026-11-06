@@ -15,7 +15,7 @@
     pwsh -File ZeDUI/tools/qa/mp_server.ps1 -Start
 #>
 param([switch]$Start, [switch]$Stop, [switch]$Status,
-    [ValidateSet("ZeD_UI", "ZeDQAShim")][string]$Mods = "ZeD_UI")   # (-Mods ZeDQAShim: the game's own windows, for the benchmark's comparison)
+    [ValidateSet("ZeD_UI", "ZeDQAShim", "ZeD_UI;ZeDQAShim")][string]$Mods = "ZeD_UI")   # (-Mods ZeDQAShim: the game's own windows, for the benchmark's comparison; -Mods "ZeD_UI;ZeDQAShim": ZeD plus the shim's ZeDQA.role, for mp_tickets.lua)
 $ErrorActionPreference = "Stop"
 $GameDir  = "E:\Project Zomboid\steamapps\common\ProjectZomboid"
 $Cache    = "C:\Users\danie\Zomboid\zedqa_mp"
@@ -58,8 +58,17 @@ Copy-Item (Join-Path $ModSrc "42") (Join-Path $dst "42") -Recurse
 Copy-Item (Join-Path $ModSrc "common") (Join-Path $dst "common") -Recurse
 # the QA-only stand-in with the bridge and no ZeD (the comparison runs)
 $shimDst = Join-Path $Cache "mods\ZeDQAShim"
+$shimSrc = "C:\Users\danie\Zomboid\mods\ZeDQAShim"
 if (Test-Path $shimDst) { Remove-Item $shimDst -Recurse -Force }
-Copy-Item "C:\Users\danie\Zomboid\mods\ZeDQAShim" $shimDst -Recurse
+# (the shim's server file is kept in the repo; the shim on this machine takes it first, so the client's Lua checksum
+# and the server's agree)
+$roleSrc = Join-Path $ModSrc "ZeDUI\tools\qa\shim\42\media\lua\server\ZeDQAShim\QARole.lua"
+if (Test-Path $roleSrc) {
+    $roleDir = Join-Path $shimSrc "42\media\lua\server\ZeDQAShim"
+    New-Item -ItemType Directory -Force $roleDir | Out-Null
+    Copy-Item $roleSrc $roleDir -Force
+}
+Copy-Item $shimSrc $shimDst -Recurse
 # the admin password (made once)
 if (-not (Test-Path $PwFile)) {
     $pw = -join ((48..57) + (97..122) | Get-Random -Count 16 | ForEach-Object { [char]$_ })

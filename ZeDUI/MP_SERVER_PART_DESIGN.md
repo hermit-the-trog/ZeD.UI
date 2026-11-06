@@ -1110,3 +1110,23 @@ name and not traced.
 
 30. E12 (replies at Answered, as drawn in the mockup), E13 (the first message is public), E14 (`sendTickets` past 1 MB).
     E10 widened with a kill test for the host. The status table in B4 is unchanged: it matches the mockup.
+
+# Build's changes (Nov 5 2026, Part D steps 1 to 7)
+
+Where the build differs from Part B, and why. Everything else is as written.
+
+1. **A replaced database (B8) needed a second test.** A list's `top` also falls below `gameMax` when the newest ticket is
+   removed, by Delete or on the game's window. With `top` alone that reset every link, and each adopted record was adopted a
+   second time. Now the `t_sync` with `reset = true` carries up to 20 rows that sit under a linked id. The server resets only
+   if none of them still matches its record, and `t_syncd` says `reset` or `same`, with `gameMax`.
+2. **The text cap holds when history is gone.** 300 open tickets can reach 18,000,000 characters, past the 4,000,000 in B2.
+   With no history left to evict, a write answers `full`.
+3. **A filing from a `t_mine` row reads `getTickets(me)` first,** so a filing whose reply was lost is confirmed and not filed
+   twice. The record still decides: nothing is filed once `gameFiled` is set.
+4. **Small additions to B6:** a command with a `rid` always gets a `t_ack`, success included, so a card never waits on
+   silence. `t_queue` also carries `noSave` (the server's own value of `SaveWorldEveryMinutes`, for B10's line). A player's
+   `t_row` carries `pv = true`, because staff who filed a ticket receive both kinds. A bad `kind` answers `text`, a bad `id`
+   answers `gone`. Bad-argument lines are held to 6 a minute per player.
+5. **QA:** `QARole.lua` is kept in the repo at `ZeDUI/tools/qa/shim/...`, since the shim is outside it. `mp_server.ps1 -Start`
+   copies it into the shim on both sides, or the Lua checksum refuses the join, and takes `-Mods "ZeD_UI;ZeDQAShim"`, because
+   the server did not load the shim before. It also answers `ZeDQA.nolimits`, so a run need not wait out five 60-second limits.

@@ -201,6 +201,39 @@ function M.list()
 end
 
 -- ---------------------------------------------------------------------------
+-- tickets (ZeDUI/MP_SERVER_PART_DESIGN.md, B7): a note when an admin answers. One item per ticket: a fresh answer on it
+-- marks it unread again, and the list the server repeats at each hello (who is nil) adds nothing to it. Only an answer
+-- makes a note; status changes appear in the ticket list.
+-- ---------------------------------------------------------------------------
+function M.ticket(id, who)
+    local name = getText("UI_userpanel_tickets")
+    local text = who and ZeD.tr("UI_ZeD_Tk_NoteAnswered", id, who) or ZeD.tr("UI_ZeD_Tk_NoteAway", id)
+    local s = M.sources[name]
+    for _, it in ipairs(s and s.items or {}) do
+        if it.k == "ticket" and it.id == id then
+            if not who then return it end
+            it.text, it.read = text, false
+            it.when = when()
+            toast("warn", ZeD.tr("UI_ZeD_Tk_ToastHead"), name, text)
+            bump()
+            return it
+        end
+    end
+    local it = M.add(name, "mods", { k = "ticket", id = id, text = text })
+    toast("warn", ZeD.tr("UI_ZeD_Tk_ToastHead"), name, text)
+    return it
+end
+
+-- for staff, in place of the game's modal: a ticket came in
+function M.ticketNew()
+    local name = getText("UI_userpanel_tickets")
+    local text = ZeD.tr("UI_ZeD_Tk_NoteNew")
+    local it = M.add(name, "mods", { k = "ticketnew", text = text })
+    toast("warn", ZeD.tr("UI_ZeD_Tk_ToastHead"), name, text)
+    return it
+end
+
+-- ---------------------------------------------------------------------------
 -- the notes over your head (the director, Nov 4 2026: "a running log", so a note you missed can be read later;
 -- ZeD_HaloText.lua). One source, newest first, already read (they never raise the unread count or a toast), the
 -- oldest dropped past HALO_KEEP. The same line again on top counts up instead of adding a card. An XP line adds to

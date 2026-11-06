@@ -21,6 +21,7 @@ require "ZeD/Molecules"
 require "ZeD/Tr"
 require "ZeD/ServerTab"
 require "ZeD/ZeD_WorldWindow"
+require "ZeD/ZeD_Tickets"
 
 ZeD = ZeD or {}
 local A = {}
@@ -28,7 +29,6 @@ ZeD.AdminTab = A
 
 local TAB_ID = "admin"
 local PAD, ROW_GAP, BTN_GAP, SEC_GAP = 10, 4, 6, 8   -- design units
-local TICKETS_EVERY = 10000
 
 local function tr(k, ...) return ZeD.tr(k, ...) end
 local function safe(fn, d) local ok, v = pcall(fn); if ok and v ~= nil then return v end; return d end
@@ -43,32 +43,11 @@ function A.visible()
 end
 
 -- ---------------------------------------------------------------------------
--- THE TICKETS (the reply comes as an event)
+-- THE TICKETS. Not every ViewTickets reply is the whole list (the design's A4), so ZeD_Tickets.lua reads them all and
+-- keeps the latest full list; with the server part this no longer polls. The ticket cards replace this section.
 -- ---------------------------------------------------------------------------
-A.tickets = {}
-A.askedAt = 0
-function A.onTickets(list)
-    local out = {}
-    pcall(function()
-        for i = 0, list:size() - 1 do
-            local t = list:get(i)
-            local ans = safe(function() return t:getAnswer() end, nil)
-            out[#out + 1] = {
-                id = safe(function() return t:getTicketID() end, 0),
-                author = safe(function() return t:getAuthor() end, ""),
-                text = safe(function() return t:getMessage() end, ""),
-                answer = ans and (safe(function() return ans:getAuthor() end, "") .. ": " .. safe(function() return ans:getMessage() end, "")) or nil,
-            }
-        end
-    end)
-    A.tickets = out
-end
-if Events and Events.ViewTickets then Events.ViewTickets.Add(A.onTickets) end
 local function askTickets(force)
-    local now = getTimestampMs()
-    if not force and now - A.askedAt < TICKETS_EVERY then return end
-    A.askedAt = now
-    if getTickets then pcall(getTickets, nil) end
+    if ZeD.Tickets then ZeD.Tickets.adminAsk(force) end
 end
 
 -- ---------------------------------------------------------------------------
@@ -115,16 +94,14 @@ function DO.answer(p, st)
     local t = st.ticket
     if not t then return end
     textPrompt(tr("UI_ZeD_Adm_AnswerAsk", t.author), "", function(text)
-        addTicket(p:getUsername(), text, t.id)
-        askTickets(true)
+        ZeD.Tickets.gameAnswer(t.id, text)
     end)
 end
 function DO.remove(p, st)
     local t = st.ticket
     if not t then return end
-    removeTicket(t.id)
+    ZeD.Tickets.gameRemove(t.id)
     st.ticket = nil
-    askTickets(true)
 end
 function DO.safehouse(p, st)
     local h = st.house
@@ -249,9 +226,10 @@ local function build(p, st)
     -- TICKETS
     if cap(p, "AnswerTickets") then
         askTickets()
-        head(L, getText("IGUI_AdminPanel_SeeTickets"), #A.tickets)
-        if #A.tickets == 0 then line(L, tr("UI_ZeD_Adm_NoTickets")) end
-        for _, t in ipairs(A.tickets) do
+        local tickets = ZeD.Tickets and ZeD.Tickets.adminRows() or {}
+        head(L, getText("IGUI_AdminPanel_SeeTickets"), #tickets)
+        if #tickets == 0 then line(L, tr("UI_ZeD_Adm_NoTickets")) end
+        for _, t in ipairs(tickets) do
             local on = st.ticket and st.ticket.id == t.id
             pick(L, "t:" .. tostring(t.id), t.author, t.answer and tr("UI_ZeD_Adm_Answered") or nil, on)
             L[#L].ticket = t
