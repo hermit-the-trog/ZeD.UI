@@ -139,6 +139,10 @@ function C.onViewTickets(list)
     local ok, rows, byId, top = pcall(readList, list)
     local b = busy
     busy = nil
+    if b and b.full and C.gameSilent then
+        C.gameSilent = nil
+        bump()
+    end
     if ok and b and b.got then
         local okGot, err = pcall(b.got, rows, byId, top)
         if not okGot then ZeD.logOnce("tickets: the game's reply", err) end
@@ -168,6 +172,7 @@ end
 
 local function askFull(after)
     gameCall({
+        full = true,
         run = function() getTickets(nil) end,
         got = function(rows, byId, top)
             fullList(rows, byId, top)
@@ -254,12 +259,13 @@ end
 
 -- Send. Answers "wait" while the link is unknown and "text" for words the server would refuse, both with the typed
 -- text kept; otherwise "sent", with done(ack) to come. Keeps the fallback's path for frozen, as B9 says.
-function C.ask(kind, here, text, done)
+-- report: from chat (Phase 5), the name and the lines around it. Only the server part keeps it: a game ticket is public
+function C.ask(kind, here, text, done, report)
     if S.present == nil and not S.forceOff then return "wait" end
     local clean = Tk.clean(text)
     if not Tk.isKind(kind) or not clean or #clean < 1 or #clean > L.TEXT_MAX then return "text" end
     if S.available() and not S.frozen then
-        C.request("t_new", { kind = kind, here = here == true, text = clean }, function(a)
+        C.request("t_new", { kind = kind, here = here == true, text = clean, report = report }, function(a)
             if a.ok then fileGame(a.id, a.file) end
             if done then done(a) end
             bump()
@@ -808,6 +814,11 @@ local function tick()
     local t = now()
     expire(t)
     if busy and t - busy.at >= REPLY_MS then
+        -- (past about 1 MB the game never answers getTickets: staff get a line, and nothing here tries to mend it)
+        if busy.full and not C.gameSilent then
+            C.gameSilent = true
+            bump()
+        end
         busy = nil
         pump()
     end

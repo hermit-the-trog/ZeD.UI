@@ -12,6 +12,9 @@ local Tk = ZeD.Tk
 Tk.MOD_LINK = "ZeD"         -- the link: hello
 Tk.MOD = "ZeDT"             -- tickets
 Tk.PROTO = 1
+-- who the server's own lines are by. The game refuses a username holding @ (ServerWorldDatabase.isValidUserName), so no account
+-- can pass for it
+Tk.SYS = "@server"
 Tk.NEAR = 30                -- tiles, on any floor (settled, the director, Nov 5 2026)
 
 -- TWO OF THE DIRECTOR'S QUESTIONS, each kept to this one switch (Part E).
@@ -35,6 +38,10 @@ Tk.PLAYER_ST = { Open = "Sent", Seen = "Seen", Progress = "Progress", Answered =
 Tk.QUEUE_ST = { Open = true, Answered = true, Closed = true, All = true, Spam = true }
 
 -- every limit in one place, so they can become server settings later
+-- How many chat lines go with a report, each side of the picked line. (MP_ADMIN_SCOPE.md, Phase 5.) One switch: what the client
+-- sends and what the server allows both come from it.
+Tk.REPORT_AROUND = 5
+
 Tk.LIMITS = {
     GENERAL_N = 10, GENERAL_MS = 5000,          -- commands in any 5 s, per username; past that dropped with no reply
     HELLO_MS = 5000,
@@ -67,6 +74,8 @@ Tk.LIMITS = {
     DIFF_ROWS = 50,
     SYNC_CUT = 1100,                            -- a game row's strings, cut on the client
     NAME_MAX = 64,
+    REPORT_LINES = 2 * Tk.REPORT_AROUND + 1,    -- chat lines on a report from chat: the picked line and those around it
+    REPORT_TEXT = 300,                          -- each, cut to this
 }
 
 function Tk.isKind(k) return type(k) == "string" and Tk.KIND[k] == true end

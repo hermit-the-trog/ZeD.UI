@@ -1385,3 +1385,274 @@ Both phases grew the ticket frame at once. What the merge settled:
    way staff see anyone else's. Your own row opens its card; anyone else's opens the game's window, until a staff card holds them.
 4. **Two answers to a command stay.** Admin commands answer on the tickets' `t_ack`, and claims on their own `c_ack` through `ackModule`, since
    those cards work without the tickets' model. `Srv.ack` carries both.
+
+# Build's changes (Nov 6 2026, Phase 6: server extras)
+
+Files: `ZeD_ExtrasProto.lua` (shared), `ZeD_ServerExtras.lua` (server), `ZeD_Extras.lua` (the model), `ZeD_ExtrasCards.lua` (the cards, the Vehicle tab's
+pieces, the map's button). `extras_sim.lua`, `extras_cards_sim.lua`, `mp_extras.lua`, `mp_extras_two.lua`, `mp_extras_cards.lua`. The table is `ZeD_EX_<uuid>`, never transmitted.
+
+**Off means off.** Until a system is on, the file wraps nothing, adds no listener and no clock: the game's own functions are in place. `Srv.exOn` holds what the wraps test.
+Once on, a wrap stays (a later mod may have wrapped over it) and starts with one test of a boolean. `extras_sim.lua` proves both: a stub vehicle and safehouse count every
+touch, and the count stays 0 through every action, swing and tow with claims stored. A failed test lets the game's function run.
+
+**What the server can refuse, and what it can't.** From the bytecode; each row is 42.22.
+
+| Act | Path | Refused how | Enforced by |
+|---|---|---|---|
+| Uninstall, engine parts | timed actions; `NetTimedAction.perform` calls Lua `complete` on the server | `complete` answers false | **server** |
+| Siphon | the same, but the gas moves before `complete`: `serverStart` emulates an `update` anim event each second, and `animEvent` runs `update` on the server | `animEvent` is wrapped, so no event moves gas for a player a claim stops, and `complete` answers false | **server** |
+| Dismantle, scrap furniture, pry a barricade, sledgehammer | timed actions | the same. The game's `SledgehammerOnlyInSafehouse` refuses this way | **server** |
+| Start the engine, hotwire | timed actions | the same | **server** |
+| `vehicle.startEngine` | a client command with no action around it: the game's handler calls `tryStartEngine`, with no test. The game's client sends it when a running car loads | can't be refused. This file's listener runs after the handler and shuts the engine off at once | **server**, after the fact |
+| Sit in the driver's seat | `VehicleEnterPacket`, no Lua hook | can't be refused. A 2-second clock shuts off a running engine under anyone a claim stops: at most 2 seconds of driving | **server**, after the fact |
+| Tow | client command run by the game's local handler, which nothing can stop | this file's listener runs after it and calls `breakConstraint`, as `detachTrailer` does | **server**, after the fact |
+| Axe at a door, built wall, barricade | `PlayerHitObjectPacket`, Java; no refusal. `OnWeaponHitThumpable` fires on the server before the damage | the object gets room for the swing, and its old health back next tick | **server**, unproved until QA (G6.4) |
+| Take from a container | `ItemTransactionPacket`, `TransactionManager`: Java, no Lua on the server at all | not refused: logged only, and only from **the player's own client**. The server tests that the report could be true. The card says a modified game can leave lines out and any game that drops off loses its last ones, and the line says "reported by their game". A player's reports hold 100 lines of the Log's ring and replace only each other (`LOG_TOLD_MAX`), and the container's word stays in the line's text | **client** |
+| The Vehicle tab graying Uninstall and Take Parts | a courtesy: the refusal otherwise comes at the end of the wait | the server refuses anyway | client, never relied on |
+
+Not stopped at all, and said on the card: looting a trunk, deflating a tire, breaking a car window, ramming; windows on a house, fire, cars, zombies.
+
+**What a refused action is judged by.** The server runs no Lua `isValid` (Java `NetTimedAction.isValid` answers false and `perform` calls only `complete`), so anything a client names is its word. A scrap is
+judged by the object it scraps, whatever square it names. A tow by the car the game finds: `getVehicleById` truncates the number and narrows it to a short, so `Ex.vehId` does the same, and 65553 is car 17.
+
+**A claim proves its car.** `getSqlId` outlives a restart, but the game gives a removed car's number to the next new car (`VehiclesDB2`: `allocateID` hands out the lowest free id). So a claim leaves a stamp in the
+car's own mod data (`IsoMovingObject.save` writes it with the car), and a car without the claim's stamp isn't that car: the claim goes. A burnt car's claim goes when anything reads the car, and when the wreck is
+cleared (`ISRemoveBurntVehicle`). An owner who is on hears of any claim that goes.
+
+**A save can't undo another's.** `x_save` replaces the whole set, so it carries the set the card's changes were made on, and the server answers `changed` if that isn't the set it holds. A card that hears
+another admin's save takes it, with its own changes on top, and says so.
+
+**The anti-cheat.** `complete` answering false reaches `ActionManager.update`, which marks the action Reject and sends it; the client's `LuaTimedActionNew.update` sees `isRejected` and
+stops. `NetTimedActionPacket` carries no `AntiCheat` interface and no `SuspiciousActivity` is touched, unlike the safehouse packets of F3. Nothing here sends the game a packet it would
+refuse: tow and swings are repaired after the game's own handling, and a claim is ZeD's own command.
+
+**Why a class wrap works.** `NetTimedAction.perform` does `action.rawget("complete")`, and `KahluaTableImpl.rawget` walks the metatable, so an action reads its class's function at that
+moment. The class table is the place to wrap (E2's question, answered in the bytecode).
+
+Where the build differs from `mockups/zed_community_v1.html`, and why.
+
+1. **The teleport is `TeleportToCoordinates`,** not the drawing's "Teleport to a player": that is what the game's `/teleportto` asks for, and what Go there already reads. The Who line is
+   built from the game's roles and shows the capability's own word.
+2. **Your claims is new.** Not drawn. A claim lapses only while its owner is away, so a player who lost a car would hold the slot for ever without it: a row in the Server tab, under the
+   extras, opens a card with each car and Release behind a foot confirm.
+3. **The steppers' number is plain text** between two buttons, not the drawing's boxed value; `aflow` has no boxed item and a new one for one number earns nothing. Each end is gray and says why.
+4. **Save is X under the controller,** as on the Role card, not the drawing's START: the frame has one slot for it (`padX`).
+5. **Each system says what it can't stop,** under its ticks. The drawing has no such lines; the job asks for them.
+6. **Drive it has a line of its own:** "They can still sit in the seat." The drawing says only "Drive it".
+7. **The Server tab shows the extras block with the server part alone.** Without it there is nothing to say, and the block is gone.
+8. **Your claims' rows show where the car was last driven by you,** which is all the server can know of a car nobody has touched.
+9. **The extras block sits over Tickets,** as this drawing has it. Phase 5's Rules and News go above it when that merges.
+10. **Vehicle tab:** Claim and Release are in the footer with no part chosen; a part's card keeps its own verbs. Claimed by is a row of the summary, under the key.
+11. **The map:** Teleport Here on the Maps tab's band (`ZeD.MapsTab.addExtension`), the game's own word; the band's button arms it, as a mark tool arms, then a click or A goes. Vanilla has
+    it on a right-click menu that ZeD's map doesn't draw.
+12. **A burnt car's claim goes** the next time anything looks at the car or clears the wreck, and frees the slot. A wreck is nobody's.
+13. **Taking parts covers siphoning gas.** Tires deflated, trunks and windows are not covered.
+14. **A table from a newer ZeD turns every extra off,** where tickets go on reading: enforcing means writing (a lapse, a position), and frozen means no writes.
+15. **A car at someone else's safehouse can't be claimed,** inside the walls or on the lot, whether or not protection is on. Not drawn. Without it a stranger by the fence could lock a member out of their own car. The
+    careful answer, for the director: the drawing has standing by the car as enough, and `Ex.CLAIM_NEEDS_KEY` is still the stricter choice.
+16. **The Server tab's protection line says "what's built there",** not the drawing's "anything": windows, fire, cars and zombies aren't stopped, and the card says so. Words for the director to look at.
+
+The director's questions, answered the careful way, each behind one switch in `ZeD_ExtrasProto.lua`:
+
+| Switch | Answer | What the other answer does |
+|---|---|---|
+| `Ex.LOT_TILES` = 5 | The game has no lot lines a server can read, so the lot is 5 tiles past the walls. Small, so it rarely reaches a neighbor or the road | Larger takes in more yard, and more of the street |
+| `Ex.CLAIM_NEEDS_KEY` = false | As drawn: standing by the car is enough | true: the key in the inventory, which keeps a hotwired car out of a claim |
+| `Ex.CLAIM_SHARE_FACTION` = false | "Others" is everyone but the owner | true: the owner's faction passes |
+
+Not settled, for QA on the local server (`mp_extras.lua`, `mp_extras_two.lua`, PROBE and TODO lines):
+
+| # | Unknown | How it settles |
+|---|---|---|
+| G6.1 | That a rejected action really only stops on the client: no kick, no suspicion, the bar goes away, the queue clears | bob's uninstall past the gray; he stays on, the part stays |
+| G6.2 | That `getSqlId` outlives a restart, and is set by the time a player can reach a car (`sql < 0` answers "soon") | `/save`, restart, claim again: "taken" |
+| G6.3 | That `breakConstraint` straight after `addPointConstraint` leaves both cars clean on every client | hitch a claimed car with two clients watching |
+| G6.4 | That `OnWeaponHitThumpable` fires on the server, and that `setHealth` on all three objects takes (a door has no sync of its own). Only the bytecode says so | an axe at a door in another's safehouse; the door's health over 20 swings |
+| G6.5 | That `shutOff` from the clock stops a car with a driver cleanly, sound included | get in a running claimed car |
+| G6.6 | `/teleportto` with z 0 from a click on a roof or a basement, as the game's own map does | a spot under a building's second floor |
+| G6.7 | That `isInCharacterInventory` is true of the player's main inventory (the container log's test) | take from a crate in a safehouse; the line appears |
+| G6.8 | That the `Transactions.scrapMoveable` route is dead: `TransactionProcessor` is local, and nothing in vanilla's Lua sends it, so the wrap is on `ISMoveablesAction` alone | the disassembly menu on furniture in another's safehouse |
+| G6.9 | That a car's stamp outlives a restart on a real server (the bytecode says `IsoMovingObject.save` writes the mod data), and that a server that crashes between the two saves costs at most that claim | claim a car, `/save`, restart: "taken", and the owner still holds it |
+| G6.10 | That siphoning with the `animEvent` wrap leaves the tank and the can as they were, and the bar ends cleanly | bob siphons a claimed car past the gray; the tank's level before and after |
+| G6.11 | That `shutOff` during `Starting` (right after `vehicle.startEngine`) leaves the engine off on every client | send the command from a blocked driver's client |
+| G6.12 | The Vehicle tab under the controller, which no sim loads: Claim going from gray to lit, Claim to Release, a gray Claim's reason in the help band and on A, Keep and B landing on Release | walk the footer with the pad |
+
+# Build's changes (Nov 6 2026, Phase 4: logs and accountability)
+
+Files: `ZeD_LogProto.lua` (shared, `ZeD.Lg`), `ZeD_ServerLog.lua` (server), `ZeD_Log.lua` (the model, `ZeD.Logs`), `ZeD_LogCards.lua` (the card). Module `ZeDL`; answers
+come back on the tickets' `t_ack`. `log_sim.lua`, `log_cards_sim.lua`, `mp_log.lua`, `mp_log_cards.lua`. Where the build differs from A5, A6, the scope and
+`mockups/zed_logs_v1.html`, and why.
+
+1. **Everything is on `Srv.action` now.** Tickets are kind `ticket` (`ticket | filed | Kade_R | #14 | 6280,5350,0 | GRIEF | day 12`: the record's kind in `detail`, never its words).
+   The core's lines (refused, bad arguments, rate limit, handler failed, up and off) and the admin clock's are kind `admin`, who `Tk.SYS` (`@server`: the game refuses `@` in a username, `ServerWorldDatabase.isValidUserName`, so no account can pass for it) or the player. The ring holds them, so
+   a refused command reads in the Log view. Only a table's own opening, the hook's QA lines and work on a car with no owner write through `Srv.fileLine`.
+   `Srv.log` is the writer behind both and nothing else calls it. Existing outside parsers of the old free-text ticket line have to change.
+2. **Three rings beside `md.log`.** The game's PvP hits go in `md.pvp` (`PVP_MAX`, 400), other mods' lines in `md.tap` (`TAP_MAX`, 300) and work on a car nobody has on record in `md.world` (`VEH_MAX`, 1000), all in the same secret table. A fight fills a
+   10-hit buffer every few seconds and any client can write a tapped line, so neither may push out ZeD's evidence. All three share the order `s`. Scavenging world cars would otherwise fill the 2000-line ring in hours; `md.world` lines still read under Vehicle and in Around, and reach the file. Hits and tapped lines are not
+   written to the ZeD log: they are already in the game's `pvp` file and the mod's own. Kills are ZeD's own lines (kind `pvp`) and are in the ZeD log.
+3. **E2 reads settled in the bytecode; the probe stays.** `NetTimedAction.parse` runs `<Type>.new` by name with the class first. `perform` takes `complete` with
+   `KahluaTable.rawget`, and `KahluaTableImpl.rawget` does not stop at the table: a key it lacks goes to the metatable's `rawget`, and so up the classes. So the class wrap is what
+   runs, and it is what ships. `.new` is wrapped too, to count. `serverStop` goes the same road, and every class gets one (the game calls it if it finds one), so a cancelled action proves the road as well. A class that makes `HOOK_MISS` (3) actions with neither reached, `HOOK_WAIT_S` (2 minutes) after the first, turns the fallback on
+   by itself, with one line in the ZeD log: each new action of exactly that class carries the wrap as its own `complete`, while the class's own is still ZeD's, so a mod that wrapped or replaced `complete` later, or a subclass with its own, stays in the chain.
+   `.new` must be wrapped on the server only: `NetTimedAction.set` on the client reads the closure's parameter names.
+4. **The game's PvP log has no weapon and no usable time.** `PVPEvent` keeps wielder, target and place; `getText` gives `[dd-MM-yy HH:mm:ss.SSS] "a" hit "b"`, and its fields aren't reachable
+   as methods. It holds the last ten hits. So `PVPLogTool.getEvents` is read every `POLL_S`, a line takes the time it was read (at most 10 seconds late), and more than ten hits between
+   two reads are lost. The drawing's "with a Baseball Bat" comes from `OnWeaponHitCharacter`, read beside it and lost if it does not fire on the server; the line then just says "hit Mags_77".
+   Reading needs `PVPLogTool`, the game's own test. The drawing's "a Baseball Bat" reads "with Baseball Bat": the article can't be chosen for every item name.
+5. **Kills come from `OnCharacterDeath`,** which `IsoGameCharacter.DoDeath` fires just before it reads `getAttackedBy` for the game's own kill line. Animals are left out. The kill line in the
+   game's `pvp` file is not read: `logKill` keeps nothing in `events`.
+6. **Other mods' lines.** The global `writeLog` is wrapped; A5's first path needs nothing more, since `ISLogSystem.writeLog` looks the global up. `Srv.tapBy` carries who sent a line through
+   `ISLogSystem`, so a line claiming to be someone else's reads "from the log X, sent by griefer, not proved". The ZeD log's name stays closed, in any case and punctuation. The game's own `ClientActionLog` and `PerkLog` are left out of the view: they are its chatter, two lines a car trip, and they open with the Steam ID. A line is cut to `2 * TAP_TEXT` and read with plain finds in one pass, since any client can send one and it runs on the main loop. What is kept is what follows the place, with no leading digits, so a place lives in `x`, `y`, `z` alone, a Steam ID goes nowhere, and a place past the map is no place. Go there is gray on these lines with why: one press must not take staff to a spot a griefer chose. The Who list takes a tapped line's proved sender, never the name it claims. `TAP_PER_MIN` per
+   sender limits what is kept; the game's file gets every line regardless. A logger named `pvp` shows under the PvP chip with its own source, never as the game's. A logger that fits no chip
+   shows as Other under All: the drawing has no such chip.
+7. **One reading of the codes, three readers.** A row holds `what`, `target`, `text` and the vehicle's `car`, `part` and `locked`; `Lg.lineWords` (`ZeD_LogProto.lua`) reads them, through the viewer's language on the card and through `Lg.EN`, the EN file's words held to it by `log_sim.lua`, on the server. So Find looks through what the card
+   shows as well as the codes, and a note says what the line says. A code with no words reads as the server wrote it, which is how a later ZeD's lines and the server's own reports show, after "Server:". A client in another language sends the codes its words came to with the Find (`Lg.findCodes`); a car's name in another language stays out of reach. Nothing in the file changes for outside tools.
+8. **A place name is coordinates.** E3 is still open, so no line says "Riverside farm". The car's name is the game's `IGUI_VehicleName`, the part's `IGUI_VehiclePart`.
+9. **The owner is the last driver,** as A6 says, and a claimed car's is the claimer (the section after this one). The name moves only on a running engine and settles slowly. `ISStartVehicleEngine.complete` answers true for a key that did nothing, so a start or a hotwire moves it only if `isEngineRunning`; otherwise the 10 second look does. A new driver holds the car for `SETTLE_S` (a day) before it counts as theirs (`prev` and `at` on the record): until then a thief's strip job writes lines naming
+   the owner, and the owner taking it back writes no line. A first driver has no one before them: the name is theirs, but their own work on it still writes, as a car with no owner. `Lg.OWN_CAR_LINES` is false, so a settled car of your own writes no lines. "Drove off" is never dropped by the pace; a car with no record first taken writes one. The drawing's "parked and locked his Chevalier D6" is not built: getting out and locking
+   have no server event. Two friends sharing a car write a "drove off" line when the wheel changes hands, and none coming back. A line waits for `sqlId` to be 0 or more; a car with none has no owner. Frozen, the record is a copy in memory, and the file still gets its lines. A siphon stopped early has moved fuel with no `complete`, so `serverStop` compares the tank. Past `VEH_PER_MIN` a player's other lines are dropped, with one "not kept" line for the minute. Kills are the last of an account's lines to go at its share.
+10. **Who reads it.** `Lg.VIEW_CAP` is `AnswerTickets`. The Log's row is under Tickets at the top of the tab, since the drawing doesn't place it. A role above yours keeps its place out of your view, as on the Player card: the
+    line stays, its place goes, Around and Find can't reach it, and a note added from it has none either. A fight's place counts for both people in it. An IP address or Steam ID on a ban line needs `BanUnbanUser`, as the Bans card does: without it the line reads "a hidden address", and Find, Who and a note can't reach the value. The ring and the file keep it. Go there says which: a place held back, or none on record.
+11. **Today is the UTC date,** as every date on these cards is until E5 is settled, and the card's last line says "Times are UTC".
+12. **Around ticket.** The server finds the ticket's place and time itself, from the number. Who the nearby list missed is a line in the band, not the help band as drawn: with a controller the help band holds the prompts. It names up to three: anyone with an admin, vehicle or PvP line there up to the filing (a ticket's line has the ticket's place and a safehouse's the house's, so they say nothing of who stood there), not a tapped line, not the author, not on the list. "missed him" reads "missed them". Add to ticket is on every line, not only vehicle lines as drawn: a PvP hit at the scene answers a griefing ticket too. Its note is written by the
+    server, in the card's English words, with the line's time and place and, on a tapped line, who sent it; the same line can't go on twice. A game row taken in is the server's line, with the author in its detail and "not proved" in its words: that name came through a staff client.
+13. **Parts of the card.** `lfilt` and `lfind` are the list's filter items without their fill, so the label sits at the left as drawn. The count sits on the back bar through `flag`. The name is struck twice, since the fonts have no bold.
+    A name on a card button is cut to 16 characters. Clear sits under the band's words, not beside them: there is no room at Deck. `Y Filters` is not built, as on the Tickets card. Pages are new: the drawing has 16 lines. The first page reads itself again every 10 seconds; a later page stays put.
+14. **Without the server part** the row reads "The game's PvP log" and opens that window; gray with the capability's reason if the role lacks it.
+15. **The ticket queue's line.** `gameCall` marks `getTickets(nil)` as `full`. No answer in `REPLY_MS` raises `C.gameSilent`, and a line in the queue; an answer clears it. Nothing asks again on its account.
+
+**Container.** `ISInventoryTransferAction` is a client file and the transfer is Java (`ItemTransactionPacket`), so server Lua has no hook and no event for a take. The only route is the taker's own client reporting it, which a modified client can skip. Phase 6 built that route and owns the setting and the player's notice. The chip and the lines are joined in the next section.
+
+**A tow** is noted only with both cars within `TOW_REACH` of the sender, at `TOW_PER_MIN`, since the game limits nothing and only warns about distance. It sends the command as the action starts and takes it back on a cancel, so the line waits for the next look to see `getVehicleTowedBy`, up to 20 seconds late. It reads both cars, the menu can put either first, and names the one that isn't the sender's; one line a pair in `TOW_REPEAT_S`. Faction lines take the place of the person named while they are on.
+
+**Director's questions, each answered the careful way behind one switch in `ZeD_LogProto.lua`:** `VIEW_CAP` (who reads the log), `OWN_CAR_LINES` (your own car), `SETTLE_S` (how long before a new driver's car is theirs). `LOG_MAX` stays 2000 lines; a busy server may want more, and it is `Adm.L.LOG_MAX`.
+
+Not settled, for QA on the local server (`mp_log.lua` prints these as PROBE and TODO lines):
+
+| # | Unknown | How it settles |
+|---|---|---|
+| E2 | The class wrap reaching `complete` on a real server, though the bytecode says so | PROBE E2: `done` 1 with no fallback. Otherwise three smashes turn the fallback on, and the next line lands |
+| E1 | Whether Log Extender writes through either path. Still not on this machine | Subscribe it on the QA rig; its lines show as Other or under their logger's chip |
+| G4.1 | That `OnCharacterDeath` fires on the server for a player, with `getAttackedBy` set. The bytecode reads so; `IsoPlayer.OnDeath`'s other event, `OnPlayerDeath`, is for local players only | Two clients, PvP on: a `pvp \| kill` line |
+| G4.2 | That `isEngineRunning` reads true on the server for a car being driven, and that `getVehicleTowedBy` does after a hitch. The bytecode reads so (`VehicleEngine.isRunning`; `addPointConstraint` calls `setVehicleTowedBy` on the server) | Two clients: a "drove off" line, and a tow's line from the game's menu |
+| G4.3 | That `serverStop` reaches a siphon stopped early, as `complete` reaches a finished one | Cancel a siphon part way: a "siphoned" line, and `stopped` on the probe |
+| G4.4 | The car's name in a note and in Find: `getTextOrNull` on a dedicated server | Add to ticket on a vehicle line: the game's name, or the script name if the server has no words |
+| G4.5 | That `OnWeaponHitCharacter` fires on the server, from `Hit.process`. Without it lines have no weapon, nothing else changes | PROBE weapons rises with a hit |
+| G4.6 | That `PVPLogTool.getEvents` holds the hits on a dedicated server and that `getX` reads through the exposer: the class and `PVPEvent` are both exposed, vanilla calls it only on a client | Two clients, PvP on: a hit reads in the view |
+| G4.7 | That replacing the global `writeLog` holds under `ISLogSystem` on a real server | PASS "the tap took a client's line" |
+| G4.8 | What `getSqlId` holds on a car spawned this session. Below 0 means no owner is kept | PROBE car |
+| G4.9 | Whether a tow reaches `vehicle.attachTrailer` as read, from the game's menu | TODO: a "hooked up" line |
+
+# Build's changes (Nov 6 2026, Phases 4 and 6 joined)
+
+The two phases were built side by side on one base, each without the other. What the join settled. `log_sim.lua`'s last sections run `ZeD_ServerExtras.lua` beside `ZeD_ServerLog.lua`, on the same classes, in the game's load order, which nothing had done.
+
+1. **The wraps' order.** The Log wraps its seven classes as its file loads. The extras wrap when a system is first on, which is `OnInitGlobalModData` at the earliest, after every file has loaded. So on a class both wrap, the extras' wrap is the outer one, always. Refused, it answers false and the Log's wrap never runs: the action's one line is `refused: parts`, `refused: drive` and so on, never "removed" or "hotwired". Not refused, it calls the Log's wrap, and the action's one line is the Log's. The other order would work too, since the Log writes nothing when `complete` answers false.
+2. **A refusal proves the road.** A refused action reaches no wrap of the Log's, so three refusals in a row looked like E2 failing and would have turned the fallback on. `Srv.L.refused` counts them (`ref`, on `l_probe` and PROBE E2), and the fallback waits for that too.
+3. **The fallback carries the whole chain.** `Lo.made` used to shadow the class with the Log's wrap only, and only while the class held exactly that, so with the extras' wrap on top it shadowed nothing. Now `Srv.exTop` holds each extras wrap as it stands, an action carries whichever of the two is on top, and a siphon's `animEvent` goes on with it. **What this doesn't cover, plainly:** in the world the fallback exists for, where a class wrap isn't reached at all, a refusal on those classes starts only once the fallback is on (the third action, two minutes after the first; that action is refused). An action already made when a system is turned on keeps what it carried and finishes. And `ISDismantleAction`, `ISMoveablesAction`, `ISUnbarricadeAction` and `ISDestroyStuffAction` have no `.new` wrap and no fallback: in that world Safehouse protection's timed actions refuse nothing. Both phases read the bytecode the same way (E2), so this is the case QA's E2 and G6.1 rule out, not one expected.
+4. **Off still means off.** `Srv.exOwner`, `Srv.exDriveStops` and `Srv.exTowStops` test one boolean before they look at a car. With every extra off nothing is wrapped, and `log_sim.lua` calls them with a stub that errors on any touch. `extras_sim.lua`'s proof runs unchanged.
+5. **Whose car.** A claimed car's owner is the claimer: `carFacts` asks `Srv.exOwner` first, a claim counts as settled, and the last-driver record answers for every other car. So the claimer's own work writes no lines, taking the wheel writes no "drove off", and a window smashed on a claimed car names the claimer whoever drove it last. A claim that goes (released, lapsed, burnt, or claims off) hands the car back to the record. A wreck's claim goes when anything reads the car, so a line for stripping one names the last driver.
+6. **A driver a claim stops is no driver.** The Log's 10 second look can land in the 2 seconds before the clock shuts a stopped driver's engine off. It now skips them, so no "drove off" and no move of the record, and the refusal is the line. With Drive it unticked nothing is stopped, and the line names the claimer.
+7. **One tow, one line.** Both listeners stay, the game's handler running first. A tow a claim stops is taken straight off by the extras' listener, which writes `refused: tow`. The Log's listener asks `Srv.exTowStops` and doesn't note it, so no "hooked up" can follow whatever `getVehicleTowedBy` then reads (`breakConstraint` clears it on both cars). A tow a claim lets by, or with Towing unticked, is the Log's one line, naming the claimer. Refusals are paced per sort, not per player, or a tow refused just after a part would have left no line at all.
+8. **The Container chip and its lines are one.** `Lg.CONTAINER_LOG`, `Lg.containerOn` and `Lg.containerWriter` are gone. `l_query` sends `opt` from `Srv.exContainerLog`, which reads the server's Container log setting, so the chip shows with it on. With it off, lines already kept stay under All, and a chip in use stays until it is left, so a setting turned off can't strand the filter. `WHAT.container` reads `took`: the file's detail ends "(reported by their game)", and the words on the card, in a note and in Find say the same in the viewer's language (`UI_ZeD_Log_Took`). A container line counts for nobody on Around's list, since it is a client's word. Go there stays lit on these lines, unlike a tapped line's: the server has tested that the place is inside a safehouse and near the player, so a griefer can't choose it freely.
+9. **Words for Phase 6's lines.** A code with no words reads as the server wrote it, which is how `refused: tow` would have read. `Lg.CLAIM` and `Lg.HOUSE_NO` hold them, and Phase 6's lines carry the car through `ex`, so "Rosa was refused towing Kade_R's Chevalier D6" reads like any other line. `claim` and `release` are words for a safehouse and for a car: the kind picks which, and a Find in another language reaches both. Lines that carry a car's place with its owner anywhere (a release, a lapse, a claim gone) are `Lg.NOT_THERE`, so they put nobody on Around's list. A line's car is the game's `getCarModelName`, then `getName`, on both sides, as vanilla's own windows read it.
+10. **One writer.** Phase 4 made `Srv.action` the one log, with `Srv.fileLine` for what the ring can't hold, and Phase 6 was still calling `Srv.log` with free text. Its lines now have the seven fields too. Those at load and at a table's opening go through `Srv.fileLine`, since nothing may open the admin table before the game has loaded it.
+11. **`Srv.action`'s arguments agree everywhere:** `kind, who, what, target, detail, x, y, z, ex`, checked at every call in the server files. Phase 6 only changed `ZeD_ServerAdmin.lua`'s ring; `ZeD_ServerCore.lua` is Phase 4's alone, plus comments here. The ring keeps both phases' rules: a kill goes last, and a player's reports hold their own smaller share and replace only each other.
+12. **Numbering.** Phase 4's and Phase 6's tables each ran from G1, and Phase 4's used G3, G4 and G5 twice. Each row now says its phase: G4.1 to G4.9, G5.1 to G5.9, G6.1 to G6.12, numbered down each table. No QA script prints them; `mp_log.lua` prints E1 and E2.
+
+Not settled, for QA on the local server:
+
+| # | Unknown | How it settles |
+|---|---|---|
+| H1 | That on a real server the extras' wrap is outside the Log's and one refused action writes one line. The load order and the bytecode say so; only `log_sim.lua` has run it | bob's uninstall past the gray with Parts on: "was refused taking parts" in the Log view, no "removed the", PROBE E2's `refused` up by one |
+| H2 | That a tow refused on two clients leaves no "hooked up" line (G6.3 for the cars themselves) | hitch a claimed car with Towing on: one "was refused towing" line after 20 seconds |
+| H3 | A container line from a real take, under the chip, with the words | Container log on, take from a crate in a safehouse: the chip, the line, and the same line after Add to ticket |
+
+# Build's changes (Nov 6 2026, Phase 5: community)
+
+Files: `ZeD_CommunityProto.lua` (shared, `ZeD.Cm`), `ZeD_ServerCommunity.lua` (server), `ZeD_Community.lua` (the model), `ZeD_CommunityCards.lua` (the cards, the
+join window, the leaving screens). `community_sim.lua`, `community_cards_sim.lua`, `mp_community.lua`, `mp_community_cards.lua`. Module `ZeDM`; every answer comes back as
+`t_ack`. The table is `ZeD_CM_` plus a UUID, as B2. The view goes out with the hello (`r.cm`) and again as `m_view` at every change. Where it differs from the drawing or the
+scope, and why.
+
+1. **The screen asks once in a connection, on the hello.** Nobody is asked mid-play: a rule changed while you are on waits for your next join, a respawn is not a join. The
+   drawing's Saved line says the same.
+2. **A rule changed or added asks again; a rule moved or taken away does not** (`Cm.ASK_ON_REMOVE`). Each rule keeps the revision it last changed at, `md.rev` is the highest,
+   and a player who agreed at less is asked, with the rules past their revision marked NEW. The message of the day and the appeal line never ask again. "Changed Nov 5" moves
+   for any change to the list. With no rules the tick does not hold: there is nothing to agree to.
+3. **I agree closes the screen at once and tells the server after.** Nothing waits on an answer, so no server can hold anyone there. A lost answer means being asked again next
+   join. Agreeing is to the words on screen: the window keeps the view it opened with, and a push while reading changes nothing. A frozen table asks nobody, because it could
+   not keep the answer.
+4. **Enforced by the client, as the timed ban is.** Server Lua cannot remove a player (A7). A modified client can skip the screen; the agreement is a record of what a client
+   said. It is a line in the ZeD log, not in `md.log`: agreements would crowd out the ring on a busy server, and only a player who is being asked writes one. As the ban has its stay
+   note, a player asked at joining and still on with no answer after `Cm.L.ASKED_MS` gets one `Srv.action` line, "rules not answered", so a skipped screen is seen though it cannot be
+   stopped. Leave is not recorded: the player is simply gone. Every edit is `Srv.action("community", ...)`, so Phase 4's Log needs a word for that kind when the two meet. A post
+   pushed off the board is logged with its words, and acts on a report from chat go through `Srv.action("ticket", ...)` for the same reason.
+5. **The join screen holds the keys, not the character.** `doKeyPress(false)` stops the game's key events; only a focused text box stops `GameKeyboard.isKeyDown`, so WASD still
+   walks behind the cover. The pad's focus is the window's, so a pad does not walk. The world runs on: a player reading on a hot spawn can be bitten, and Lua has nothing to
+   stop that. The cover is 0.94 opaque.
+6. **The join window is not a Focus Manager window, and the manager knows it is up.** The manager polls Y past engine focus and opens the pair on the first pad press, so while the
+   window stands `Focus.held()` stops Y, `claimFocus` and `ensureBothOpenForGamepad`. The window also takes the pad back in its own `update` from anything else (a death's panel, a pad
+   that arrives after it opened), and hands it back at the end. Up and Down scroll, Left and Right pick, A presses, B answers nothing, and focus never leaves the two buttons, so
+   reading never loses the button. It lands on I agree. No close box: closing would have to mean something. It is the same card as the rest, on the ticket frame, through two small
+   hooks: `K.noBack`, and `win._padId` for a window with its own pad, in `D.focusOf`.
+7. **Nothing can trap a player.** It goes up only on a view that says so. The window is built before the cover, so a build that fails leaves nothing up. A failed draw closes it
+   (`ZeD.Safe.guard`), as does safe mode (piece `community`), a ban, and the connection ending. `ISServerDisconnectUI_OnServerDisconnectUI` is wrapped for that last one, or the cover would stand over the game's Exit and Quit. The same wrap clears `Admin.leave`, which
+   closes the ban screen for the same reason.
+8. **The appeal line reaches a removed player three ways.** On the ban screen with the reason, from the server (`leaveView`, since their client may never have heard it). Under the
+   game's own words on a kick: the game draws the reason in Java on its disconnect screen, so ZeD adds one line under it, for a removal only (`M.isRemoved`, the game's own keys). On
+   ZeD's connect screen when a banned login is refused, from `Lua/ZeD_appeal.txt`, kept per server (A7: they cannot log in to ask). Always `drawText`, never a link.
+9. **Two capabilities, not one** (`Cm.CAP_RULES`, `Cm.CAP_NEWS`). The game has none for this. Rules, message, appeal and the ticks need `ChangeAndReloadServerOptions`, the one that
+   changes the server's welcome message; moderators lack it. News needs `DisplayServerMessage`, as the drawing's post by Rosa has it. Each half of the card grays with its reason.
+   `Adm.RANK_GUARD` covers news as it covers acts on people: a post keeps its writer's rank, and a lower role can't pin or delete it.
+10. **Save is stopped on an older copy.** `base` counts the saves; a Save from before someone else's answers `stale`, the foot names who, and a second press replaces it. A card nobody
+    has typed in takes their words at once. The whole board is pushed at most once in `Cm.L.PUSH_MS`, and whoever pressed gets it at once.
+11. **A report's chat is the reporter's word.** Server Lua cannot reach `ChatServer`, so the server hears none of it. `rec.report` is kept on the ticket (name, up to 11 lines, each cut to
+    300), counted in `md.chars`, shown to staff and the reporter with that said on the card, and never put in the game's ticket, which is public. The kind starts at Griefing with
+    Include where I am ticked, the card's own rule for that kind; the player can change both. The words are still the player's to write. A staff member a report names can't answer,
+    close, or mark it spam (`named`); an admin can. A forged name stops one person handling one ticket, no more.
+12. **Without the server part** chat still picks: Mute and an admin's two need nothing from it, and Report opens the game's fallback card with "About mike_d: " typed, and no chat. The
+    same goes for a frozen ticket table and a server part from before this phase. Rules, news and the join screen do not exist there. Mute covers ZeD's window on this computer; the words over a head are the game's.
+13. **The fields.** A rule's box wraps and grows, where the drawing has one line: a one-line box cannot show a rule of 200 characters at Deck width. Enter makes a line break and Save
+    flattens it. Up, Down and Remove are icon buttons with ZeD's own triangles and cross (the fonts have neither), and move under the field when they will not fit beside it. They take
+    effect on Save, as drawn. A field not yet scrolled to has no box, so the card reads its seed until it does.
+14. **Small changes from the drawing.** The foot's "Not saved yet." alone, since the band cut the rest; the sentence is in Save's help. Delete asks in the foot (`Cm.DELETE_ASKS`): it sits
+    beside Pin and a post is public. PINNED sits in its own column, not inline. Pin it to the top starts unticked (the drawing's sample has it ticked, and everything would pin). The Server
+    block keeps Online and Your role after the message and The rules row. News and The rules row go when there is nothing in them. A long list of new rules goes on the line over the
+    band and reads "3 rules are new". Your own lines and server lines cannot be picked: nothing to do about them. On the pad a picked line's buttons are walked with Left and Right.
+15. **The director's questions, each answered the careful way behind one switch in `ZeD_CommunityProto.lua`:** `CAP_RULES`, `CAP_NEWS`, `ASK_ON_REMOVE = false`, `DELETE_ASKS = true`, and
+    `Tk.REPORT_AROUND = 5` in `ZeD_TicketProto.lua`, where the server's limit is worked out from it. Staff are asked like everyone: "everyone" is the tick's word.
+
+Not settled, for QA on the local server (`mp_community.lua` prints these as PROBE and TODO lines):
+
+| # | Unknown | How it settles |
+|---|---|---|
+| G5.1 | That `doKeyPress(false)` stops I, T and Esc while the screen is up, read from `GameKeyboard.update` only | Press them with the screen up |
+| G5.2 | When the hello lands against the game's "click to start" and a new character's screens. The screen waits for `getPlayer()`; `UIManager` must be drawing | Join with a new account, and with a saved one |
+| G5.3 | That `getServerIP` in game is the string `server:getIp` gives the connect screen. `GameClient.ip` is set from the connect call, as far as the bytecode goes. If they differ a banned player sees no line | PROBE prints the key; compare it with the file after a ban |
+| G5.4 | That a panel added from the wrapped `ISServerDisconnectUI_OnServerDisconnectUI` draws in `ServerDisconnectState`, whose `ResetCallbacks` has just run. `UIManager.render` is called there | A kick on a second client |
+| G5.5 | That `LuaManager.call` finds the wrapped global. The name is looked up in the Lua environment at the call | The same kick |
+| G5.6 | `getAuthor` on a chat line: the username or a display name. Mute, Report, Player card and Teleport all take it as the username | A second client, with a name set apart from the username if the server allows it |
+| G5.7 | What `getDatetimeStr` holds. A report's time is cut to 16 characters | Read a report's lines on the local server |
+| G5.8 | That `OnGameStart` runs before the hello's answer on a fresh join, or the first answer would be read as a repeat. Harmless the other way | The join screen shows on the first join of a connection |
+| G5.9 | E5 again: the dates read in the viewer's zone or UTC. A post's short date carries no UTC word | Compare a post's date near midnight |
+
+# Build's changes (Nov 6 2026, Phases 4, 5 and 6 joined)
+
+Phase 5 was built on the same base as the other two, and met them here. What the join settled. The last sections of `log_sim.lua` and `log_cards_sim.lua` run community's lines through the Log's server side and its card, and the last of `community_cards_sim.lua` holds both tabs' order, the home key, and a report with Around.
+
+1. **The Log's word for community.** `Lg.KINDS` holds `community`, so a chip reads it and `l_query` accepts it; the chip always shows, ahead of Container, which is the one that comes and goes. The tag says COMMUNITY in plain text color (`Lm.kindColor`): the status colors are all spoken for, and the word carries the kind, never the color. `Lg.COMMUNITY` holds the codes and `WHAT.community` their words, in the viewer's language on the card and in `Lg.EN` for Find and notes. A post's words go on one line in quotes. A code with no words reads as the server wrote it.
+2. **A report's lines have words too.** `logReport` writes `report answered`, `closed`, `marked spam` and `deleted` under the Ticket kind. `Lg.REPORT` reads them, the reported player is the line's target, so Who finds them, and a picked line offers that player's card.
+3. **Around.** A community line's place is where the writer stood, or the one asked to agree, so it is in `PROVES_PLACE` and can put them on Around's list. A report is a ticket like any other: Ask the admins starts with Include where I am ticked, and the staff card holds the Reported row, then the Log row. Unticked, the Log row is gray with its reason, as on any ticket with no place. The Reported row's Player card and the Log row are stops of their own, and Add to ticket stays open to staff a report names: a note handles nothing.
+4. **The Admin tab's order.** Tickets, Log, Players, Admin powers, Server message, Roles, Bans, Spawn items, Rules and news, Server extras, Safehouses, Factions, More tools. The admin tools drawing has Tickets through Spawn items and More tools. `zed_community_v1.html` lists Rules and news before Server extras. No drawing places the Log's row: it stays under Tickets, which it answers. The home key holds all three parts' state: `ZeD.Logs.live()`, `AC.homeKey`, `AC.extrasKey`.
+5. **The Server tab's order.** Server (with the message and The rules), invitations, News, This server's extras with Your claims, Tickets, Faction, Safehouse, Wars, PvP, Players. Each is flat items in the tab's one list: no block holds a scroll of its own. The cards that open from them scroll as one card.
+6. **The hello.** `S.lg` and `S.cm` both land, and each module reads its own part of the same reply. `Srv.helloAdds` are separate, so a part that stayed off at load simply leaves its key out, and each client surface stands on its own test. One slip fixed: `E.onHello` kept the last server's extras when a hello came with none. It now drops them, as `M.onHello` does.
+7. **One writer, again.** Phase 5 was built before Phase 4's seven fields, and called `Srv.log` with free text. Those lines now go through `Srv.fileLine`, and the agreement, which stays out of the ring on purpose, reads `community | agreed to the rules | Aretha | - | - | revision 3 | day 12`.
+8. **`rec.report` is counted.** `reportSize` goes on `md.chars` at `t_new`, `playerRoom` asks for it first, and `textOf` takes it off with the ticket, so the room check, the eviction and the delete all agree. Phase 4 changed none of that.
+
+Not settled, for QA on the local server:
+
+| # | Unknown | How it settles |
+|---|---|---|
+| H4 | A real report through to Around | Report a line in chat with Include where I am ticked; on the staff card, the Reported row, the Log row, and a line of the card's with Add to ticket |
+| H5 | Community's lines on the Log card with a real server's words: nine chips wrapping at Deck width and at Large text | Save the rules, post, pin, delete; the Community chip; each line's words |

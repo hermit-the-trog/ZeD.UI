@@ -7,6 +7,10 @@
 --   v         the server's protocol, so later phases can test v >= n. Each side ignores commands it does not know.
 --   staff     AnswerTickets; admin: RolesWrite. The server decides every command regardless; these only draw buttons.
 --   adm       the server part holds the admin tools (Phase 2)
+--   lg        the server part holds the log (Phase 4)
+--   cm        the server part holds community (Phase 5): the rules, the news. A server without it shows none of this
+-- The hello's a.ex, the server extras (Phase 6), goes to ZeD_Extras.lua, and a.cm to ZeD_Community.lua; each part of the
+-- server's is on its own, so any of them can be missing from a hello.
 --   frozen    the server part is up and refuses writes (its data is from a newer ZeD)
 --   forceOff  QA: behave as if no server part answered
 -- Hello goes out at every OnCreatePlayer, a respawn included. send reads getPlayer() at each call: the object from
@@ -53,8 +57,12 @@ local function heard(a)
     S.admin = a.admin == true
     S.frozen = a.frozen == true
     S.adm = a.adm == 1
+    S.lg = a.lg == 1
+    S.cm = type(a.cm) == "table"
     if ZeD.Tickets and ZeD.Tickets.onHello then ZeD.Tickets.onHello(a) end
     if ZeD.Admin and ZeD.Admin.onHello then ZeD.Admin.onHello(a) end
+    if ZeD.Extras and ZeD.Extras.onHello then ZeD.Extras.onHello(a) end
+    if ZeD.Community and ZeD.Community.onHello then ZeD.Community.onHello(a) end
 end
 
 local function onServerCommand(module, command, args)
