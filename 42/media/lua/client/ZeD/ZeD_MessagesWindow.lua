@@ -150,6 +150,9 @@ function ZeD_MessagesWindow:buildCards(g, cur, areaX, areaW)
             for _, f in ipairs(it.firsts or {}) do
                 for _, l in ipairs(ZeD.Atoms.wrapText(f, T.fontF1, inner)) do lines[#lines + 1] = { text = l, font = T.fontF1, mono = true } end
             end
+        elseif it.k == "ticket" or it.k == "ticketnew" then
+            -- (a ticket's note carries a username: drawn plain, never read for markup)
+            for _, l in ipairs(ZeD.Atoms.wrapText(tostring(it.text or ""), T.fontF2, inner)) do lines[#lines + 1] = { text = l, font = T.fontF2 } end
         else
             for bi, bl in ipairs(blocksOf(it)) do
                 if bl.kind ~= "image" then
@@ -172,6 +175,8 @@ function ZeD_MessagesWindow:buildCards(g, cur, areaX, areaW)
             for bi, b in ipairs(it.buttons or {}) do btns[#btns + 1] = { label = btnLabel(tostring(b.title or "")), i = bi, primary = bi == #it.buttons } end
         elseif it.k == "err" then
             btns[#btns + 1] = { label = btnLabel(tr("UI_ZeD_Msg_CopyAll")), copy = true, primary = true }
+        elseif it.k == "ticket" then
+            btns[#btns + 1] = { label = btnLabel(tr("UI_ZeD_Tk_NoteOpen")), ticket = true, primary = true }
         end
         -- (the card and its buttons, placed; shared by the per-error cards below)
         local function place(cit, clines, cbtns, cTextH)
@@ -373,7 +378,7 @@ function ZeD_MessagesWindow:prerender()
             -- the head: kind (a tag), source, when
             local tagH = px(16)
             local hy = c.y + math.floor((px(U.CARD_HEAD_H) - tagH) / 2)
-            local kindKey = ({ note = "UI_ZeD_Msg_KindNote", ask = "UI_ZeD_Msg_KindAnswered", err = "UI_ZeD_Msg_KindError" })[it.k] or "UI_ZeD_Msg_KindNote"
+            local kindKey = ({ note = "UI_ZeD_Msg_KindNote", ask = "UI_ZeD_Msg_KindAnswered", err = "UI_ZeD_Msg_KindError", ticket = "UI_ZeD_Tk_KindTicket", ticketnew = "UI_ZeD_Tk_KindTicket" })[it.k] or "UI_ZeD_Msg_KindNote"
             local kcol = (it.k == "err" and T.danger) or (it.k == "ask" and (T.warning or ac)) or (T.info or ac)
             -- (a note over your head: good news, bad news or plain, as its mark over the head said)
             if it.k == "halo" then
@@ -400,7 +405,7 @@ function ZeD_MessagesWindow:prerender()
                 local hov = (not joy) and self._hover and self._hover.btn == b
                 local o = _cardBtn
                 o.hover, o.focus, o.win = hov, focused and focusOpts(self) or nil, self
-                o.help = b.copy and tr("UI_ZeD_Msg_HelpCopy") or tr("UI_ZeD_Msg_HelpCardButton", b.label)
+                o.help = (b.ticket and tr("UI_ZeD_Tk_NoteOpenHelp")) or (b.copy and tr("UI_ZeD_Msg_HelpCopy")) or tr("UI_ZeD_Msg_HelpCardButton", b.label)
                 Mo.drawButton(self, b.x, b.y, b.w, b.h, b.label, b.primary and "primary" or "default", self._down == b, nil, o)
             end
         end
@@ -472,6 +477,10 @@ function ZeD_MessagesWindow:pressCard(b)
         local text = b.idx and MS.reportOne(self.sel, b.idx) or MS.report(self.sel)
         pcall(function() Clipboard.setClipboard(text) end)
         b.label = btnLabel(tr("UI_ZeD_Msg_Copied"))
+        return
+    end
+    if b.ticket then
+        if ZeD.Tickets and ZeD.Tickets.openNote then ZeD.Tickets.openNote(b.card.it) end
         return
     end
     MS.press(b.card.it, b.i)

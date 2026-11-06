@@ -4645,5 +4645,21 @@
     "UI_ZeD_Identity_TagSurvived": "SURVIVED",
     "UI_ZeD_Settings_Identity": "Identity card",
     "UI_ZeD_Settings_IdentityTip": "The Identity tab's card. Immersive: the Kentucky license. Simple: ZeD's own rows with the same facts.",
-    "UI_ZeD_Settings_Immersive": "Immersive"
+    "UI_ZeD_Settings_Immersive": "Immersive",
+    "UI_ZeD_Tk_KindTicket": "Ticket",
+    "UI_ZeD_Tk_ToastHead": "Ticket",
+    "UI_ZeD_Tk_NoteAnswered": "%2 answered your ticket #%1.",
+    "UI_ZeD_Tk_NoteAway": "Ticket #%1 was answered while you were away.",
+    "UI_ZeD_Tk_NoteNew": "A new ticket",
+    "UI_ZeD_Tk_NoteOpen": "Open",
+    "UI_ZeD_Tk_NoteOpenHelp": "Open this ticket in the Server tab.",
+    "UI_ZeD_Tk_Err_perm": "Your role can't do this on this server.",
+    "UI_ZeD_Tk_Err_wait": "Wait %1 seconds, then try again. Your text is kept.",
+    "UI_ZeD_Tk_Err_many": "You already have %1 open tickets. Add to one of those instead.",
+    "UI_ZeD_Tk_Err_full": "The server can't take more tickets for now. Your text is kept.",
+    "UI_ZeD_Tk_Err_gone": "That ticket is gone.",
+    "UI_ZeD_Tk_Err_state": "That ticket has changed. Look at it again.",
+    "UI_ZeD_Tk_Err_text": "Write between 1 and %1 characters.",
+    "UI_ZeD_Tk_Err_frozen": "This server's tickets come from a newer ZeD, so they can't be changed here.",
+    "UI_ZeD_Tk_Err_fail": "No answer from the server. Your text is kept."
 }
