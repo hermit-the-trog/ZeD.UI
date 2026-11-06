@@ -9,7 +9,9 @@
 --   ADMIN POWERS   your own powers, the game's list (ISAdminPowerUI.OptionList), with a line on what each does
 --   SERVER MESSAGE typed in place, Repeat every 15, 30, 60, 120 min, and the Stop list
 --   ROLES, BANS, SPAWN ITEMS   a row each, opening their cards
---   SAFEHOUSES     every safehouse and FACTIONS every faction; pick one to open it in the game's own window (Phase 3)
+--   SAFEHOUSES     every safehouse and FACTIONS every faction. The Server tab's cards (ZeD_ClaimCards.lua) hold only your
+--                  own, so staff see everyone else's here: pick one to open it in the game's own window. Your own opens its
+--                  card
 --   MORE TOOLS     the game's remaining windows
 -- The list's parts above Safehouses and every card are in ZeD_AdminCards.lua. A control this role cannot use stays on
 -- the list, gray, and the help band says the capability it needs and the role that has it.
@@ -49,10 +51,21 @@ end
 local function openUI(ui) ui:initialise(); ui:addToUIManager(); if ui.setVisible then ui:setVisible(true) end end
 local function closeOld(cls, how) if cls and cls.instance then pcall(function() cls.instance[how or "close"](cls.instance) end) end end
 
+-- your own safehouse or faction: its card in the Server tab. False if the tab cannot open
+local function ownCard(p, kind)
+    if not (ZeD_CharacterWindow and ZeD_CharacterWindow.openTab) then return false end
+    if not ZeD_CharacterWindow.openTab(p:getPlayerNum(), "server") then return false end
+    ZeD.Claims.openNext = kind
+    return true
+end
+local function isOwnHouse(h) local C = ZeD.Claims; return C ~= nil and C.safe ~= nil and C.safe.obj == h end
+local function isOwnFaction(f) local C = ZeD.Claims; return C ~= nil and C.fac ~= nil and C.fac.obj == f end
+
 local DO = {}
 function DO.safehouse(p, st)
     local h = st.house
     if not h then return end
+    if isOwnHouse(h) and ownCard(p, "safe") then return end
     closeOld(ISSafehouseUI)
     local width = 500 + getCore():getOptionFontSizeReal() * 30
     openUI(ISSafehouseUI:new((getCore():getScreenWidth() - width) / 2, getCore():getScreenHeight() / 2 - 225, width, 450, h, p))
@@ -60,6 +73,7 @@ end
 function DO.faction(p, st)
     local f = st.faction
     if not f then return end
+    if isOwnFaction(f) and ownCard(p, "faction") then return end
     closeOld(ISFactionUI)
     openUI(ISFactionUI:new(getCore():getScreenWidth() / 2 - 250, getCore():getScreenHeight() / 2 - 225, 500, 450, f, p))
 end
@@ -110,7 +124,7 @@ end
 local function build(p, st, win)
     local L = {}
     ZeD.AdminCards.homeItems(L, win, st, p)
-    -- SAFEHOUSES
+    -- SAFEHOUSES: every one. The Server tab's cards hold only your own
     if cap(p, "CanSetupSafehouses") then
         local list = safe(function() return SafeHouse.getSafehouseList() end, nil)
         local n = list and safe(function() return list:size() end, 0) or 0
@@ -123,10 +137,10 @@ local function build(p, st, win)
             local on = st.house == h
             pick(L, "h:" .. i, (title ~= "" and title) or owner, tr("UI_ZeD_Adm_OwnedBy", owner), on)
             L[#L].house = h
-            if on then btns(L, { B("safehouse", tr("UI_ZeD_Adm_Open"), tr("UI_ZeD_Adm_HelpOpenSafehouse")) }) end
+            if on then btns(L, { B("safehouse", tr("UI_ZeD_Adm_Open"), tr(isOwnHouse(h) and "UI_ZeD_Adm_HelpOpenOwn" or "UI_ZeD_Adm_HelpOpenSafehouse")) }) end
         end
     end
-    -- FACTIONS
+    -- FACTIONS: every one, the same
     if cap(p, "FactionCheat") then
         local list = safe(function() return Faction.getFactions() end, nil)
         local n = list and safe(function() return list:size() end, 0) or 0
@@ -137,7 +151,7 @@ local function build(p, st, win)
             local on = st.faction == f
             pick(L, "f:" .. i, safe(function() return f:getName() end, ""), tr("UI_ZeD_Adm_OwnedBy", safe(function() return f:getOwner() end, "")), on)
             L[#L].faction = f
-            if on then btns(L, { B("faction", tr("UI_ZeD_Adm_Open"), tr("UI_ZeD_Adm_HelpOpenFaction")) }) end
+            if on then btns(L, { B("faction", tr("UI_ZeD_Adm_Open"), tr(isOwnFaction(f) and "UI_ZeD_Adm_HelpOpenOwn" or "UI_ZeD_Adm_HelpOpenFaction")) }) end
         end
     end
     -- MORE TOOLS: the game's own windows
