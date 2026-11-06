@@ -205,6 +205,11 @@ function ZeD_MMJoin:refreshWait()
     return math.max(0, wait - since)
 end
 
+-- which server: a banned player's appeal line is kept under it (ZeD_Community.lua)
+function MM.noteServer(server)
+    MM.connectKey = ZeD.Community and ZeD.Community.keyOf(server:getIp(), tostring(server:getPort())) or nil
+end
+
 -- connecting: a saved account, or a public server (its password first, then an account)
 function ZeD_MMJoin:connect()
     local m = mp()
@@ -244,6 +249,7 @@ end
 function ZeD_MMJoin:connectAccount(server, account)
     local m = mp()
     if not m or not server or not account then return end
+    MM.noteServer(server)
     MM.clickSound()
     getCore():setAccountUsed(account)
     if not account:isSavePwd() then
@@ -470,6 +476,7 @@ function ZeD_MMJoin:saveAccountForm()
     self:closeForm()
     self.sel = "a:" .. keyOf(server) .. ":" .. user
     if connectAfter then
+        MM.noteServer(server)
         if f.remember then m:connectToServer(server, acc) else self:connectWithPassword(server, acc, pwd) end
     else
         MM.clickSound()
@@ -1105,6 +1112,17 @@ function ZeD_MMConnect:prerender()
         end
     end
     cy = math.max(sy, cy + MM.fontH(f2)) + T.px(14)
+    -- banned: the owner's appeal line, kept from the last time on this server. As text, never a link
+    if failed and ZeD.Community and ZeD.Community.isRemoved(status) then
+        local appeal = ZeD.Community.kept(MM.connectKey)
+        if appeal then
+            for _, l in ipairs(ZeD.Atoms.wrapText(ZeD.tr("UI_ZeD_Adm_SeeAppeal", appeal), f2, iw)) do
+                self:drawText(l, ix, cy, tcol.r, tcol.g, tcol.b, tcol.a or 1, f2)
+                cy = cy + MM.fontH(f2) + T.px(3)
+            end
+            cy = cy + T.px(11)
+        end
+    end
     -- the authenticator code, when the server asks for it
     local codeOn = c.googleAuthPopup and c.googleAuthPopup:isVisible()
     if codeOn then

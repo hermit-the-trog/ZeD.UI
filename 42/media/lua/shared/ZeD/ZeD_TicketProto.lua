@@ -67,6 +67,8 @@ Tk.LIMITS = {
     DIFF_ROWS = 50,
     SYNC_CUT = 1100,                            -- a game row's strings, cut on the client
     NAME_MAX = 64,
+    REPORT_LINES = 11,                          -- chat lines on a report from chat
+    REPORT_TEXT = 300,                          -- each, cut to this
 }
 
 function Tk.isKind(k) return type(k) == "string" and Tk.KIND[k] == true end

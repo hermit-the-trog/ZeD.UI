@@ -294,9 +294,11 @@ local function banRow(b)
         untilT = b.untilT, banIp = b.banIp, stay = b.stay, gameBan = b.gameBan }
 end
 
--- what the player's own screen gets: no name of who banned them. hold: a game call must land while they are still on
+-- what the player's own screen gets: no name of who banned them. hold: a game call must land while they are still on. The
+-- appeal line goes with it (ZeD_ServerCommunity.lua): a banned player's client may never have heard it
 local function leaveView(b)
-    return { kind = "ban", reason = b.reason, untilT = b.untilT, hold = (b.banIp and not b.made) and true or nil }
+    return { kind = "ban", reason = b.reason, untilT = b.untilT, hold = (b.banIp and not b.made) and true or nil,
+        appeal = Srv.appealLine and Srv.appealLine() or nil }
 end
 
 local function banRows(md)
