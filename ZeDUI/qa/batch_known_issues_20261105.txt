@@ -56,3 +56,6 @@
 16:58 multiplayer pictures: 1/2 pass, 0 warn, 1 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_mp_gallery2.md
 16:58 regression start
 18:11 regression: 100/101 pass, 1 warn, 0 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_after_known_issues_4k.md
+18:39 bars game done, save put back
+18:39 staged: WARNING: The staged copy now shadows the dev mod in the game: remove C:/Users/you/Zomboid/Workshop/ZeD-UI/Contents after the upload, or the game loads the staged copy.
+18:41 release check: 3/3 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_beta5_release_check_staged.md | no report at C:\Users\you\Zomboid\mods\ZeD-UI\C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_beta5_release_check_staged.md

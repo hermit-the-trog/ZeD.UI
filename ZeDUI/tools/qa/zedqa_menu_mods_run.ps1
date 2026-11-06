@@ -60,7 +60,7 @@ try {
         $out = (& (Join-Path $PSScriptRoot "pzlaunchwin.ps1") -MainMenu -Width $Width -Height $Height 2>&1 | Out-String).Trim()
         Write-Output "pzlaunchwin.ps1: $out"
     } else {
-        Start-Process -FilePath (Join-Path $GameDir "ProjectZomboid64.exe") -ArgumentList "-debug" -WorkingDirectory $GameDir | Out-Null
+        Start-Process -FilePath (Join-Path $GameDir "ProjectZomboid64.exe") -ArgumentList $(if ($env:ZEDQA_NOSTEAM) { "-debug -nosteam" } else { "-debug" }) -WorkingDirectory $GameDir | Out-Null
     }
     Start-Sleep -Seconds 10
     $t0 = Get-Date

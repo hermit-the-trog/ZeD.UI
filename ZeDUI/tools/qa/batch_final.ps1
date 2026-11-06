@@ -1,24 +1,35 @@
 #Requires -Version 7.0
-# ZeDUI/tools/qa/batch_final.ps1  (Nov 5 2026, QA): after batch_verify: Hair and beard with the bridge's pcall watch on, Hands-On + ZeD
-# and then Hands-On + the shim with ZeD off; the Ranch page's controller check; the server's second pass.
+# ZeDUI/tools/qa/batch_final.ps1  (Nov 6 2026, QA): the last stretch before beta 6's upload, one after the other: the German cards again, the mods panes with the three mods they name
+# copied in (with no Steam the Workshop folder isn't read), then the last full regression. Everything copied comes back out, and the director's options.ini goes back.
 $Qa = $PSScriptRoot
-$Out = [IO.Path]::GetFullPath("$Qa\..\..\qa\batch_known_issues_20261105.txt")
-$Pcw = [IO.Path]::GetFullPath("$Qa\..\..\qa\pcallwatch_20261105.txt")
-$Flag = "C:\Users\you\Zomboid\Lua\zedqa_pcallwatch.txt"
-function Note($s) { "$(Get-Date -Format HH:mm) $s" | Add-Content $Out }
-Set-Content $Flag "on"
+$env:ZEDQA_NOSTEAM = "1"
+$Out = [IO.Path]::GetFullPath("$Qa\..\..\qa\tickets_20261105.txt")
+function Note($s) { "$(Get-Date -Format HH:mm:ss) $s" | Add-Content $Out }
+$Opt = "C:\Users\you\Zomboid\options.ini"
+$Keep = Join-Path $env:TEMP "options_lang_keep.ini"
+$Shots = "C:\Users\you\Zomboid\Screenshots"
+Note "final start"
+Copy-Item $Opt $Keep -Force
 try {
-    & "$Qa\hb_bisect.ps1" -Sets @("HandsOnInteractionsIso")
-    "== Hands-On + ZeD_UI" | Add-Content $Pcw
-    Select-String -Path "C:\Users\you\Zomboid\console.txt" -Pattern "pcw " -SimpleMatch | ForEach-Object { $_.Line } | Add-Content $Pcw
-    Set-Content "$env:TEMP\hands_only.txt" @("ZeDQAShim", "HandsOnInteractionsIso") -Encoding utf8NoBOM
-    $o = & pwsh -NoProfile -File "$Qa\zedqa_off_run.ps1" -ModList "$env:TEMP\hands_only.txt" -Script "$Qa\zedqa_hands_off.lua" -Tag hof -TimeoutSec 60 2>&1
-    $o | Set-Content ([IO.Path]::GetFullPath("$Qa\..\..\qa\hands_off_20261105.log"))
-    "== Hands-On + shim, ZeD off" | Add-Content $Pcw
-    Select-String -Path "C:\Users\you\Zomboid\console.txt" -Pattern "pcw " -SimpleMatch | ForEach-Object { $_.Line } | Add-Content $Pcw
-    Note "pcall watch done: $(@(Get-Content $Pcw).Count) lines"
+    (Get-Content $Opt) -replace '^language=.*$', "language=DE" | Set-Content $Opt -Encoding ascii
+    & "$Qa\batch_tickets.ps1" -Runs "mp_lang.txt:lang_DE:1280:800" | Out-Null
+    New-Item -ItemType Directory -Force "$Shots\lang_DE" | Out-Null
+    foreach ($p in "mtc_", "mac_", "zqa_id2_") { Get-ChildItem $Shots -Filter "$p*.png" | Move-Item -Destination "$Shots\lang_DE" -Force }
 }
-finally { Remove-Item $Flag -ErrorAction SilentlyContinue }
-$o = & pwsh -NoProfile -File "$Qa\zedqa_mods_run.ps1" -ModList "$Qa\mods_none.txt" -Mode fullscreen4k -Manifest "$Qa\ranch_pad.txt" 2>&1
-Note "ranch pad: $(($o | Select-Object -Last 2) -join ' | ')"
-& "$Qa\batch_mp.ps1"
+finally { Copy-Item $Keep $Opt -Force }
+Note "german cards done"
+$Wk = "E:\Project Zomboid\steamapps\workshop\content\108600"
+$Mods = "C:\Users\you\Zomboid\mods"
+$Copied = @()
+foreach ($d in "3480990544\mods\Constown", "3616176188\mods\GaelGunStore", "3494108029\mods\SmartRadialMenu") {
+    $to = Join-Path $Mods (Split-Path $d -Leaf)
+    if (-not (Test-Path $to)) { Copy-Item "$Wk\$d" $to -Recurse; $Copied += $to }
+}
+try {
+    $o = & "$Qa\zedqa_mods_panes_run.ps1" 2>&1
+    Note "gallery panes : $(($o | Select-Object -Last 1) -join ' ')"
+}
+finally { foreach ($c in $Copied) { Remove-Item $c -Recurse -Force } }
+Note "the copied mods taken out"
+& "$Qa\batch_regression.ps1" -Tag "beta6_last" | Out-Null
+Note "last regression done"

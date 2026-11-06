@@ -55,7 +55,7 @@ add(1200, function()
     local e = worldRow()
     if not check(e ~= nil, "a row in the World window's list") then return end
     local cc = w._mainContent
-    startX = math.floor(cc:getAbsoluteX() + e.x + math.min(60, (e.w or 100) / 3))
+    startX = math.floor(cc:getAbsoluteX() + e.x + 170)   -- (on the name: the row's left end holds a stack's arrow)
     startY = math.floor(cc:getAbsoluteY() + e.y + (e.h or 20) / 2)
     say("press at " .. startX .. "," .. startY)
     req("down " .. startX .. " " .. startY)

@@ -1,0 +1,5 @@
+mp_open.lua | mop | timeout=60
+zedqa_pin_windows.lua | pnw | timeout=30
+mp_ticket_cards.lua | mtc | timeout=300
+mp_admin_cards.lua | mac | timeout=300
+zedqa_identity2.lua | id2 | timeout=120
