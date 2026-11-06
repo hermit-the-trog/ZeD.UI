@@ -7,6 +7,7 @@
 --              non-PvP zone; the switch (the game's own toggle, ISEquippedItem:toggleSafety, with its log line)
 --   PLAYERS    who is on the server (the game's scoreboard, asked again every few seconds while the tab shows)
 --   NOTES      an invitation to a faction or a safehouse waits here, under the Server block, with Decline and Accept
+--   EXTRAS     this server's extras in plain words, and your vehicle claims (ZeD_ExtrasCards.lua), with the server part
 --   TICKETS    after the Server block, as drawn: N open, Ask the admins, my tickets (ZeD_TicketCards.lua: the block and
 --              its two cards, Ask the admins and my ticket, pushed on top of this list behind st.card)
 --   FACTION    yours as a row that opens its card; or Create Faction where the server allows
@@ -161,6 +162,8 @@ local function build(p, win, st)
     btn(L, "options", getText("IGUI_AdminPanel_SeeServerOptions"), tr("UI_ZeD_Srv_HelpOptions"), not seeOpts)
     -- INVITATIONS
     ZeD.ClaimCards.notes(L, win, st)
+    -- THIS SERVER'S EXTRAS
+    if ZeD.ExtrasCards then ZeD.ExtrasCards.blocks(L, win, st) end
     -- TICKETS
     local function btnItem(id, text, help) return { k = "btn", id = id, text = S.btnWords(text), help = help } end
     ZeD.TicketCards.playerItems(L, win, st, btnItem)

@@ -17,6 +17,9 @@
 -- the card); destructive verbs confirm in it. X / right-click on a part opens vanilla's
 -- own part menu, which ZeD's context-menu hook renders.
 --
+-- On a server with vehicle claims on (ZeD_ExtrasCards.lua): who holds the car in the
+-- summary, Claim or Release in the footer, Uninstall and Take Parts grayed on another's.
+--
 -- Entry: Overrides/VehicleMechanics.lua routes ISOpenMechanicsUIAction:perform
 -- (right-click Mechanics, the hood, the mechanics key) to MT.openFromAction.
 -- Before an inspection the tab shows only what can be seen from outside and an
@@ -745,6 +748,12 @@ needsCompute = function(s, part, verb, chr, v)
     else
         rows[#rows + 1] = { ok = true, label = ZeD.tr("UI_ZeD_Veh_NothingNeeded"), value = "" }
     end
+    -- a server's vehicle claims: the server refuses this at the end of the wait, so it grays here first (ZeD_Extras.lua)
+    local claimed = (verb == "uninstall" or verb == "takeParts") and ZeD.Extras and ZeD.Extras.partsBlock(v) or nil
+    if claimed then
+        rows[#rows + 1] = { ok = false, label = ZeD.tr("UI_ZeD_Ex_ClaimedBy", claimed), value = "" }
+        ok = false
+    end
     local blocker = nil
     for _, r in ipairs(rows) do if not r.ok and not r.soft then blocker = r; break end end
     return { rows = rows, chance = { success, failure }, ok = ok, blocker = blocker }
@@ -1116,6 +1125,7 @@ local function drawSummary(panel, s, sx, sy, sw, v, chr, parts, hl)
     local ks, kc = keyState(v, chr)
     yy = yy + M.drawStatRowDot(panel, sx, yy, sw, getText("IGUI_ItemType_Key"), ks, kc == "pos" and T.positive or T.warning)
     yy = yy + ZeD.MechTrailer.drawTowRow(panel, s, sx, yy, sw, v)
+    if ZeD.ExtrasCards then yy = yy + ZeD.ExtrasCards.statRow(panel, sx, yy, sw, v) end
     return yy
 end
 
@@ -1576,6 +1586,7 @@ local function renderDiagram(panel, win, s, x, top, w, bodyH, v, chr, inspected,
         local ks, kc = keyState(v, chr)
         yy = yy + M.drawStatRowDot(panel, sx, yy, sw, getText("IGUI_ItemType_Key"), ks, kc == "pos" and T.positive or T.warning)
         yy = yy + ZeD.MechTrailer.drawTowRow(panel, s, sx, yy, sw, v)
+        if ZeD.ExtrasCards then yy = yy + ZeD.ExtrasCards.statRow(panel, sx, yy, sw, v) end
         cy = yy
     end
     panel:clearStencilRect()
@@ -1822,6 +1833,10 @@ local function renderFooter(panel, win, s, x, y, w, v, chr, inspected, cm, barSh
     local bh = T.buttonH
     local gap, edge = T.px(8), T.px(8)
 
+    if s.confirm == "xrelease" then
+        ZeD.ExtrasCards.releaseBand(panel, win, s, x, y, w, v, MT._h)
+        return
+    end
     if s.confirm and cm then
         local verb = s.confirm
         local q = (verb == "takeParts") and ZeD.tr("UI_ZeD_Veh_ConfirmTakeParts")
@@ -1854,7 +1869,7 @@ local function renderFooter(panel, win, s, x, y, w, v, chr, inspected, cm, barSh
         end
     else
         for _, bv in ipairs(barShown) do
-            _footBtns[#_footBtns + 1] = { label = bv.label, id = bv.id, variant = bv.variant, help = bv.help,
+            _footBtns[#_footBtns + 1] = { label = bv.label, id = bv.id, variant = bv.variant, help = bv.help, disabled = bv.disabled,
                                           focus = focusFor(s, "mech:" .. bv.id), fn = bv.fn }
         end
     end
@@ -1903,7 +1918,7 @@ local function renderFooter(panel, win, s, x, y, w, v, chr, inspected, cm, barSh
                       { verb = verb, footer = true, disabled = b.disabled })
                 if not isGamepad() and hit(r, panel:getMouseX(), panel:getMouseY()) then s.verb = verb end
             else
-                stamp(s, "mech:" .. b.id, r.x, r.y, r.w, r.h, b.fn, { footer = true })
+                stamp(s, "mech:" .. b.id, r.x, r.y, r.w, r.h, b.fn, { footer = true, disabled = b.disabled })
             end
         end
     end
@@ -2005,6 +2020,7 @@ local function renderSplit(panel, win, s, x, y, w, h, v, chr, inspected)
           end },
     }
     local barShown = ZeD.Disclose.split(barVerbs)
+    if ZeD.ExtrasCards then ZeD.ExtrasCards.vehicleBar(barShown, s, win, v) end   -- (a server's vehicle claims)
     local hasFooter = inspected or cm ~= nil or #barShown > 0
     local bandH = hasFooter and M.bandH() or 0
 

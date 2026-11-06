@@ -55,6 +55,7 @@ local function heard(a)
     S.adm = a.adm == 1
     if ZeD.Tickets and ZeD.Tickets.onHello then ZeD.Tickets.onHello(a) end
     if ZeD.Admin and ZeD.Admin.onHello then ZeD.Admin.onHello(a) end
+    if ZeD.Extras and ZeD.Extras.onHello then ZeD.Extras.onHello(a) end
 end
 
 local function onServerCommand(module, command, args)

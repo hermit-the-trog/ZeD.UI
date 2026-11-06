@@ -1385,3 +1385,75 @@ Both phases grew the ticket frame at once. What the merge settled:
    way staff see anyone else's. Your own row opens its card; anyone else's opens the game's window, until a staff card holds them.
 4. **Two answers to a command stay.** Admin commands answer on the tickets' `t_ack`, and claims on their own `c_ack` through `ackModule`, since
    those cards work without the tickets' model. `Srv.ack` carries both.
+
+# Build's changes (Nov 6 2026, Phase 6: server extras)
+
+Files: `ZeD_ExtrasProto.lua` (shared), `ZeD_ServerExtras.lua` (server), `ZeD_Extras.lua` (the model), `ZeD_ExtrasCards.lua` (the cards, the Vehicle tab's
+pieces, the map's button). `extras_sim.lua`, `extras_cards_sim.lua`, `mp_extras.lua`, `mp_extras_two.lua`, `mp_extras_cards.lua`. The table is `ZeD_EX_<uuid>`, never transmitted.
+
+**Off means off.** Until a system is on, the file wraps nothing, adds no listener and no clock: the game's own functions are in place. `Srv.exOn` holds what the wraps test.
+Once on, a wrap stays (a later mod may have wrapped over it) and starts with one test of a boolean. `extras_sim.lua` proves both: a stub vehicle and safehouse count every
+touch, and the count stays 0 through every action, swing and tow with claims stored. A failed test lets the game's function run.
+
+**What the server can refuse, and what it can't.** From the bytecode; each row is 42.22.
+
+| Act | Path | Refused how | Enforced by |
+|---|---|---|---|
+| Uninstall, engine parts, siphon | timed actions; `NetTimedAction.perform` calls Lua `complete` on the server | `complete` answers false | **server** |
+| Dismantle, scrap furniture, pry a barricade, sledgehammer | timed actions | the same. The game's `SledgehammerOnlyInSafehouse` refuses this way | **server** |
+| Start the engine, hotwire | timed actions | the same | **server** |
+| Sit in the driver's seat | `VehicleEnterPacket`, no Lua hook | can't be refused. A 2-second clock shuts off a running engine under anyone a claim stops: at most 2 seconds of driving | **server**, after the fact |
+| Tow | client command run by the game's local handler, which nothing can stop | this file's listener runs after it and calls `breakConstraint`, as `detachTrailer` does | **server**, after the fact |
+| Axe at a door, built wall, barricade | `PlayerHitObjectPacket`, Java; no refusal. `OnWeaponHitThumpable` fires on the server before the damage | the object gets room for the swing, and its old health back next tick | **server**, unproved until QA (G4) |
+| Take from a container | `ItemTransactionPacket`, `TransactionManager`: Java, no Lua on the server at all | not refused: logged only, and only from **the player's own client**. The server tests that the report could be true. The card says a modified game can leave lines out, and the line says "reported by their game" | **client** |
+| The Vehicle tab graying Uninstall and Take Parts | a courtesy: the refusal otherwise comes at the end of the wait | the server refuses anyway | client, never relied on |
+
+Not stopped at all, and said on the card: looting a trunk, breaking a car window, ramming; windows on a house, fire, cars, zombies.
+
+**The anti-cheat.** `complete` answering false reaches `ActionManager.update`, which marks the action Reject and sends it; the client's `LuaTimedActionNew.update` sees `isRejected` and
+stops. `NetTimedActionPacket` carries no `AntiCheat` interface and no `SuspiciousActivity` is touched, unlike the safehouse packets of F3. Nothing here sends the game a packet it would
+refuse: tow and swings are repaired after the game's own handling, and a claim is ZeD's own command.
+
+**Why a class wrap works.** `NetTimedAction.perform` does `action.rawget("complete")`, and `KahluaTableImpl.rawget` walks the metatable, so an action reads its class's function at that
+moment. The class table is the place to wrap (E2's question, answered in the bytecode).
+
+Where the build differs from `mockups/zed_community_v1.html`, and why.
+
+1. **The teleport is `TeleportToCoordinates`,** not the drawing's "Teleport to a player": that is what the game's `/teleportto` asks for, and what Go there already reads. The Who line is
+   built from the game's roles and shows the capability's own word.
+2. **Your claims is new.** Not drawn. A claim lapses only while its owner is away, so a player who lost a car would hold the slot for ever without it: a row in the Server tab, under the
+   extras, opens a card with each car and Release behind a foot confirm.
+3. **The steppers' number is plain text** between two buttons, not the drawing's boxed value; `aflow` has no boxed item and a new one for one number earns nothing. Each end is gray and says why.
+4. **Save is X under the controller,** as on the Role card, not the drawing's START: the frame has one slot for it (`padX`).
+5. **Each system says what it can't stop,** under its ticks. The drawing has no such lines; the job asks for them.
+6. **Drive it has a line of its own:** "They can still sit in the seat." The drawing says only "Drive it".
+7. **The Server tab shows the extras block with the server part alone.** Without it there is nothing to say, and the block is gone.
+8. **Your claims' rows show where the car was last driven by you,** which is all the server can know of a car nobody has touched.
+9. **The extras block sits over Tickets,** as this drawing has it. Phase 5's Rules and News go above it when that merges.
+10. **Vehicle tab:** Claim and Release are in the footer with no part chosen; a part's card keeps its own verbs. Claimed by is a row of the summary, under the key.
+11. **The map:** Teleport Here on the Maps tab's band (`ZeD.MapsTab.addExtension`), the game's own word; the band's button arms it, as a mark tool arms, then a click or A goes. Vanilla has
+    it on a right-click menu that ZeD's map doesn't draw.
+12. **A burnt car's claim goes** the moment anything looks at it, and frees the slot. A wreck is nobody's.
+13. **Taking parts covers siphoning gas.** Tires deflated, trunks and windows are not covered.
+14. **A table from a newer ZeD turns every extra off,** where tickets go on reading: enforcing means writing (a lapse, a position), and frozen means no writes.
+
+The director's questions, answered the careful way, each behind one switch in `ZeD_ExtrasProto.lua`:
+
+| Switch | Answer | What the other answer does |
+|---|---|---|
+| `Ex.LOT_TILES` = 5 | The game has no lot lines a server can read, so the lot is 5 tiles past the walls. Small, so it rarely reaches a neighbor or the road | Larger takes in more yard, and more of the street |
+| `Ex.CLAIM_NEEDS_KEY` = false | As drawn: standing by the car is enough | true: the key in the inventory, which keeps a hotwired car out of a claim |
+| `Ex.CLAIM_SHARE_FACTION` = false | "Others" is everyone but the owner | true: the owner's faction passes |
+
+Not settled, for QA on the local server (`mp_extras.lua`, `mp_extras_two.lua`, PROBE and TODO lines):
+
+| # | Unknown | How it settles |
+|---|---|---|
+| G1 | That a rejected action really only stops on the client: no kick, no suspicion, the bar goes away, the queue clears | bob's uninstall past the gray; he stays on, the part stays |
+| G2 | That `getSqlId` outlives a restart, and is set by the time a player can reach a car (`sql < 0` answers "soon") | `/save`, restart, claim again: "taken" |
+| G3 | That `breakConstraint` straight after `addPointConstraint` leaves both cars clean on every client | hitch a claimed car with two clients watching |
+| G4 | That `OnWeaponHitThumpable` fires on the server, and that `setHealth` on all three objects takes (a door has no sync of its own). Only the bytecode says so | an axe at a door in another's safehouse; the door's health over 20 swings |
+| G5 | That `shutOff` from the clock stops a car with a driver cleanly, sound included | get in a running claimed car |
+| G6 | `/teleportto` with z 0 from a click on a roof or a basement, as the game's own map does | a spot under a building's second floor |
+| G7 | That `isInCharacterInventory` is true of the player's main inventory (the container log's test) | take from a crate in a safehouse; the line appears |
+| G8 | That the `Transactions.scrapMoveable` route is dead: `TransactionProcessor` is local, and nothing in vanilla's Lua sends it, so the wrap is on `ISMoveablesAction` alone | the disassembly menu on furniture in another's safehouse |
