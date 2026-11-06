@@ -14,6 +14,31 @@
 -- would rather not ship it.
 -- ============================================================================
 
+-- QA PROBE (Nov 5 2026, the hair trim's "Cannot assign field callFrame because a is null"): the game's overload
+-- dispatcher (Kahlua's MultiLuaJavaInvoker) releases its call record twice when a Lua call matches none of a Java
+-- method's overloads, so that record sits in the pool twice and a later nested call of the same size fails, far from
+-- the cause. A pcall hides the mismatch itself. With Lua/zedqa_pcallwatch.txt present (and -debug), every pcall is
+-- watched and each such failure prints once: grep "[ZeD.QA] pcw". Dev only: this file is never staged.
+do
+    local flag = isDebugEnabled and isDebugEnabled() and getFileReader("zedqa_pcallwatch.txt", false)
+    if flag then
+        flag:close()
+        local seen, orig = {}, pcall
+        local function after(f, ok, ...)
+            if not ok then
+                local m = tostring((...))
+                if m:find("No implementation found", 1, true) and not seen[m] then
+                    seen[m] = true
+                    print("[ZeD.QA] pcw " .. m .. " | called " .. tostring(f))
+                end
+            end
+            return ok, ...
+        end
+        pcall = function(f, ...) return after(f, orig(f, ...)) end
+        print("[ZeD.QA] pcw watching every pcall for an overload mismatch")
+    end
+end
+
 ZeD = ZeD or {}
 ZeD.QABridge = ZeD.QABridge or {}
 local B = ZeD.QABridge

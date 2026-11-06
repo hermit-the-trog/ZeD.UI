@@ -14,6 +14,6 @@ Animals
 
 Fixes
 - Less lag: the Animals tab's check walked 22,801 squares about every 4 seconds, on every save, and was behind the slow frames at 4K. It asks the game for its animals now.
-- A rare fault after loading a game: ZeD asked Steam about Workshop items from the main menu, and a reply landing during a load could break later actions in unrelated places, such as a haircut or a beard trim. ZeD asks only while the Mods screen is open now.
+- ZeD asks Steam about Workshop items only while the Mods screen is open. It used to ask from the main menu, and a reply could land while a game was loading.
 - On a server with the safety system on, the blank square at the left edge of the screen is gone.
 - This Is Your Life has been played through with the mod on: a hometown and a poster story both start as they should.
