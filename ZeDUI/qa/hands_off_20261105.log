@@ -1,0 +1,16 @@
+start click: clicked
+in game after 54 s (ZeD off)
+ZEDQA hof razor in the bag true
+ZEDQA hof transfer queued: true 
+ZEDQA hof razor in the bag true
+ZEDQA hof transfer queued: true 
+ZEDQA hof the razor is in the main inventory
+ZEDQA hof the game's onTrimBeard: false Cannot assign field "callFrame" because "a" is null java.lang.NullPointerException
+ZEDQA hof the razor is in the main inventory
+ZEDQA hof the game's onTrimBeard: false Cannot assign field "callFrame" because "a" is null java.lang.NullPointerException
+ZEDQA hof the beard now: Chops
+ZEDQA hof DONE
+ZEDQA hof the beard now: Chops
+ZEDQA hof DONE
+ZeD-QA put back
+console kept: C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\modload\2026-11-05_1636_hof_console.txt

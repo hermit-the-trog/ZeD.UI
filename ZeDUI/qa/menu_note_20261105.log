@@ -1,0 +1,73 @@
+== 0x0
+ZEDQA nte heading of '0.3.0-beta4': BETA 4
+ZEDQA nte heading of '0.3.0-beta3a': BETA 3A
+ZEDQA nte heading of '1.0.0': V1.0
+ZEDQA nte heading of '0.3.0-t2': DEV
+ZEDQA nte heading of '1242300k': DEV
+ZEDQA nte heading of '': DEV
+ZEDQA nte this copy reads DEV (version 0.1.1242300k)
+ZEDQA nte the desk at multiple 8, origin 0,0, screen 3840x2160, lean nil
+ZEDQA nte the note's left edge on screen 416, right edge 736
+ZEDQA nte a lamp dip caught
+ZEDQA nte DONE
+default.txt, ModOptions.ini and autoload put back
+== 1920x1080
+pzlaunchwin.ps1: launched windowed; at the main menu
+ZEDQA nte heading of '0.3.0-beta4': BETA 4
+ZEDQA nte heading of '0.3.0-beta3a': BETA 3A
+ZEDQA nte heading of '1.0.0': V1.0
+ZEDQA nte heading of '0.3.0-t2': DEV
+ZEDQA nte heading of '1242300k': DEV
+ZEDQA nte heading of '': DEV
+ZEDQA nte this copy reads DEV (version 0.1.1242300k)
+ZEDQA nte the desk at multiple 4, origin 0,0, screen 1920x1080, lean nil
+ZEDQA nte the note's left edge on screen 208, right edge 368
+ZEDQA nte a lamp dip caught
+ZEDQA nte DONE
+pzrestorewin.ps1: fullScreen=true height=2160 width=3840
+default.txt, ModOptions.ini and autoload put back
+== 1280x800
+pzlaunchwin.ps1: launched windowed; at the main menu
+ZEDQA nte heading of '0.3.0-beta4': BETA 4
+ZEDQA nte heading of '0.3.0-beta3a': BETA 3A
+ZEDQA nte heading of '1.0.0': V1.0
+ZEDQA nte heading of '0.3.0-t2': DEV
+ZEDQA nte heading of '1242300k': DEV
+ZEDQA nte heading of '': DEV
+ZEDQA nte this copy reads DEV (version 0.1.1242300k)
+ZEDQA nte the desk at multiple 3, origin -80,-5, screen 1280x800, lean nil
+ZEDQA nte the note's left edge on screen 76, right edge 196
+ZEDQA nte a lamp dip caught
+ZEDQA nte DONE
+pzrestorewin.ps1: fullScreen=true height=2160 width=3840
+default.txt, ModOptions.ini and autoload put back
+== 1280x720
+pzlaunchwin.ps1: launched windowed; at the main menu
+ZEDQA nte heading of '0.3.0-beta4': BETA 4
+ZEDQA nte heading of '0.3.0-beta3a': BETA 3A
+ZEDQA nte heading of '1.0.0': V1.0
+ZEDQA nte heading of '0.3.0-t2': DEV
+ZEDQA nte heading of '1242300k': DEV
+ZEDQA nte heading of '': DEV
+ZEDQA nte this copy reads DEV (version 0.1.1242300k)
+ZEDQA nte the desk at multiple 3, origin -80,-45, screen 1280x720, lean nil
+ZEDQA nte the note's left edge on screen 76, right edge 196
+ZEDQA nte a lamp dip caught
+ZEDQA nte DONE
+pzrestorewin.ps1: fullScreen=true height=2160 width=3840
+default.txt, ModOptions.ini and autoload put back
+== 2560x1080
+pzlaunchwin.ps1: launched windowed; at the main menu
+ZEDQA nte heading of '0.3.0-beta4': BETA 4
+ZEDQA nte heading of '0.3.0-beta3a': BETA 3A
+ZEDQA nte heading of '1.0.0': V1.0
+ZEDQA nte heading of '0.3.0-t2': DEV
+ZEDQA nte heading of '1242300k': DEV
+ZEDQA nte heading of '': DEV
+ZEDQA nte this copy reads DEV (version 0.1.1242300k)
+ZEDQA nte the desk at multiple 5, origin 80,-135, screen 2560x1080, lean nil
+ZEDQA nte the note's left edge on screen 340, right edge 540
+ZEDQA nte a lamp dip caught
+ZEDQA nte DONE
+pzrestorewin.ps1: fullScreen=true height=2160 width=3840
+default.txt, ModOptions.ini and autoload put back

@@ -1,0 +1,47 @@
+ERROR: General      f:0 at AngelCodeFont.parseFnt              > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont_0.png
+ERROR: General      f:0 at AngelCodeFont.parseFnt              > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont2_0.png
+ERROR: General      f:0 at AngelCodeFont.parseFnt              > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/fonts/zomboidDialogue.bmfc_0.png
+ERROR: General      f:0 at FluidContainerScript.load           > Sanitizing container name 'Large Bucket', name may not contain whitespaces.
+ERROR: General      f:0 at FluidContainerScript.load           > Sanitizing container name 'Fuel Pump', name may not contain whitespaces.
+LOG  : Lua          f:0> [This Is Your Life] Character-creation flow loaded.
+LOG  : Lua          f:0> [This Is Your Life] Origin runtime effects loaded.
+LOG  : Lua          f:0> [ZeD] This Is Your Life support loaded
+LOG  : Lua          f:0> ZEDQA tym TIYL loaded true, pick story bakesale
+LOG  : Lua          f:0> [This Is Your Life] Spawn region registered.
+LOG  : Lua          f:0> ZEDQA tym town list (12): This Is Your Life, Muldraugh, KY, Brandenburg, KY, Echo Creek, KY, Ekron, KY, Fallas Lake, KY, Irvington, KY, March Ridge, KY, Riverside, KY, Rosewood, KY, Valley Station, KY, West Point, KY
+LOG  : Lua          f:0> ZEDQA tym PASS the mod's town is in ZeD's list at 1
+LOG  : Lua          f:0> ZEDQA tym shot tiyl_storybakesale_1_towns.png
+LOG  : Lua          f:0> ZEDQA tym Hometown page (17): 1:Riverside[origin:riverside], 2:Muldraugh[origin:muldraugh], 3:West Point[origin:westpoint], 4:Rosewood[origin:rosewood], 5:Dixie[origin:dixie], 6:Ekron[origin:ekron], 7:Fallas Lake[origin:fallaslake], 8:Irvington[origin:irvington], 9:Louisville[origin:louisville], 10:Brandenburg[origin:brandenburg], 11:Echo Creek[origin:echocreek], 12:Knox Country[origin:random], 13:Wizard's keep | poster story[story:wizardskeep], 14:Bake sale | poster story[story:bakesale], 15:Car fixation | poster story[story:carfixation], 16:Catfish | poster story[story:catfish], 17:Dixie cabin | poster story[story:dixiecabin]
+LOG  : Lua          f:0> ZEDQA tym PASS the pick is row 14
+LOG  : Lua          f:0> ZEDQA tym shot tiyl_storybakesale_2_hometown.png
+LOG  : Lua          f:0> ZEDQA tym desc: A poster story: you start as Marianne Cole, with a set job, traits and clothes, in the middle of what happened.<LINE>"...Okay. Okay. They don't know I'm in here."
+LOG  : Lua          f:0> [This Is Your Life] Poster spawn configured: bakesale
+LOG  : Lua          f:0> [ZeD] This Is Your Life: story bakesale
+LOG  : Lua          f:0> ZEDQA tym pending origin nil, story bakesale
+LOG  : Lua          f:0> ZEDQA tym shot tiyl_storybakesale_3_after_hometown.png
+LOG  : Lua          f:0> ZEDQA tym the world loads next
+LOG  : Lua          f:0> ZEDQA tym DONE
+ERROR: General      f:0 at CraftRecipeComponentScript.getIconTexture> CraftRecipeComponentScript: Recipe Piano missing UiConfigScript - falling back to SpriteConfigScript first world object face for recipe icon.
+ERROR: Lua          f:0 at Lua(Vanilla).handleMannequinZone    > ERROR: Mannequin zone missing properties in media/maps/Muldraugh, KY/objects.lua coords: 13583, 1299, 0
+LOG  : General      f:0> 111ERROR: not adding suspicious zone "" "Nav" 8343,12316,0 2244x18
+ERROR: General      f:0 at Basements.mergeRoomsOntoMetaCell    > duplicate RoomDef.metaID for room at 10707,9484,0
+LOG  : Lua          f:0> [This Is Your Life] Spawn region registered.
+ERROR: General      f:0 at CellLoader.DoTileObjectCreation     > CellLoader> missing tile vegetation_groundcover_01_22
+ERROR: General      f:0 at CellLoader.DoTileObjectCreation     > CellLoader> missing tile vegetation_groundcover_01_18
+ERROR: General      f:0 at CellLoader.DoTileObjectCreation     > CellLoader> missing tile vegetation_groundcover_01_21
+ERROR: General      f:0 at CellLoader.DoTileObjectCreation     > CellLoader> missing tile vegetation_groundcover_01_23
+ERROR: General      f:0 at CellLoader.DoTileObjectCreation     > CellLoader> missing tile vegetation_groundcover_01_19
+ERROR: General      f:0 at CellLoader.DoTileObjectCreation     > CellLoader> missing tile vegetation_groundcover_01_20
+LOG  : Lua          f:0> [This Is Your Life] Poster story 'bakesale' attached to Bob
+WARN : General      f:1 at Lua((MOD:This Is Your Life)).spawnBodies> Spawning corpse.
+WARN : General      f:1 at Lua((MOD:This Is Your Life)).spawnBodies> Spawning corpse.
+WARN : General      f:1 at Lua((MOD:This Is Your Life)).spawnStoryZombie> Spawning new Female Zed, Dressed in No Outfit, isFallOnFront:false, isFakeDead:false, isKnockedDown:false, isSitting:false, isAnimRecording:false, heightOffset:0.000000, isRagdolling:false, onFire:false
+WARN : General      f:1 at Lua((MOD:This Is Your Life)).spawnStoryZombie> Spawning new Female Zed, Dressed in No Outfit, isFallOnFront:false, isFakeDead:false, isKnockedDown:false, isSitting:false, isAnimRecording:false, heightOffset:0.000000, isRagdolling:false, onFire:false
+WARN : General      f:1 at Lua((MOD:This Is Your Life)).spawnStoryZombie> Spawning new Female Zed, Dressed in No Outfit, isFallOnFront:false, isFakeDead:false, isKnockedDown:false, isSitting:false, isAnimRecording:false, heightOffset:0.000000, isRagdolling:false, onFire:false
+LOG  : Lua          f:1> [This Is Your Life] Granted a survivor's journal to MarianneCole (single-player).
+LOG  : Lua          f:1154> ZEDQA tyg at 10754,10168,0, Marianne Cole
+LOG  : Lua          f:1154> ZEDQA tyg occupation base:unemployed
+LOG  : Lua          f:1154> ZEDQA tyg traits: base:cowardly, base:inconspicuous
+LOG  : Lua          f:1154> ZEDQA tyg modData TIYL = table 0x2053736882{ milestones=table 0x1228906224, journal=table 0x1113836986, schemaVersion=2, posterStoryId=bakesale, lastOriginStress=0, lastOriginUnhappiness=0, posterZombiesSpawned=table 0x1328285074, posterStoryInstanceId=bakesale:2.0003700256347656:MarianneCole, posterStoryState=breakin_active, posterStorySetupAtMs=1793918627862, journalItemGranted=true, journalLifeId=1793918627863-706481 }
+LOG  : Lua          f:1154> ZEDQA tyg in a vehicle: nil
+LOG  : Lua          f:1454> ZEDQA tyg DONE
