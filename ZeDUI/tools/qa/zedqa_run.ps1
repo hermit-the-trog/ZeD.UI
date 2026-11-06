@@ -551,11 +551,17 @@ function Wait-BridgeInGame($Prelude = $null, $PreludeRes = $null) {
         if ($all -match '\[ZeD\.QA\] autoload: no Continue') { throw "the main menu had no Continue for the autoload" }
         if (-not (Test-GameAlive)) { throw "the game closed while loading" }
         $el = ((Get-Date) - $t0).TotalSeconds
-        if ($el -ge 30 * $clicks -and $clicks -lt 3) {
+        if ($el -ge 30 * $clicks -and $clicks -lt 5) {
             $at = Invoke-StartClick; $clicks++
             Add-Note "clicked again at $at (the bridge had not armed in game after $([int]$el) s)"
         }
-        if ($el -ge $(if ($Mp) { 900 } else { 120 })) { throw "the bridge never armed in game (no '[ZeD.QA] bridge armed (in game' in console.txt)" }
+        # (Nov 6 2026: a character left dead on the server stops the join at the new character's screens, after the join's Lua reset: press through them)
+        if ($Mp -and $el -ge 25 -and -not $script:NewCharRan) {
+            $script:NewCharRan = $true
+            Write-Text $BridgeLua (Get-Content (Join-Path $PSScriptRoot $(if ($env:ZEDQA_JOINSCRIPT) { $env:ZEDQA_JOINSCRIPT } else { 'mp_newchar.lua' })) -Raw)
+            $null = Invoke-Bump
+        }
+        if ($el -ge $(if ($Mp) { 240 } else { 120 })) { throw "the bridge never armed in game (no '[ZeD.QA] bridge armed (in game' in console.txt)" }
     }
     Start-Sleep -Seconds 3
     $null = Update-Log

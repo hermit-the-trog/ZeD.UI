@@ -51,7 +51,8 @@ end
 local plan, i, t0 = {}, 1, getTimestampMs()
 local function add(ms, fn) plan[#plan + 1] = { ms = ms, fn = fn } end
 
-add(1500, function()
+add(300, function() requestRoles() end)   -- (QA, Nov 6 2026: the list fills on this; the tab asks when it opens)
+add(2000, function()
     pass("the tools are here", S.adm == true and M.live(), S.adm)
     local names = ModData.getTableNames()
     local leak = false
@@ -174,10 +175,11 @@ add(2500, function()
     pass("the owed ban arrived", last("a_owed") ~= nil and last("a_owed").act == "Ban", last("a_owed") and last("a_owed").act)
     say("TODO the game's user list shows zedqa_ghost2 banned, if the account exists; the server's log says so")
     nolimits()
-    for _, b in ipairs(M.bans) do
-        local row = b
-        M.unban(row)
-    end
+    M.unban(M.bans[1])
+end)
+add(2500, function()   -- (QA, Nov 6 2026: a_unban is paced, so one at a time)
+    nolimits()
+    if M.bans[1] then M.unban(M.bans[1]) end
 end)
 add(2500, function()
     pass("the list is empty again", #M.bans == 0, #M.bans)

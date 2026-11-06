@@ -27,6 +27,8 @@ local function role(name) sendClientCommand(p, "ZeDQA", "role", { name = name })
 local function nolimits() sendClientCommand(p, "ZeDQA", "nolimits", {}) end
 local function goTo(x, y) SendCommandToServer("/teleportto " .. tostring(x) .. "," .. tostring(y) .. ",0") end
 
+-- (QA, Nov 6 2026: most of Muldraugh is a spawn point, a shop, or holds zombies: several buildings at each of several places, each tried once)
+TRIED = {}
 -- the nearest square indoors, read from the cell the game has loaded
 local function indoors(r)
     local cx, cy = math.floor(p:getX()), math.floor(p:getY())
@@ -36,7 +38,10 @@ local function indoors(r)
             for dy = -d, d do
                 if math.abs(dx) == d or math.abs(dy) == d then
                     local sq = cell:getGridSquare(cx + dx, cy + dy, 0)
-                    if sq and sq:getBuilding() and not SafeHouse.getSafeHouse(sq) then return cx + dx, cy + dy end
+                    if sq and sq:getBuilding() and not SafeHouse.getSafeHouse(sq) and not TRIED[sq:getBuilding():getID()] then
+                    TRIED[sq:getBuilding():getID()] = true
+                    return cx + dx, cy + dy
+                end
                 end
             end
         end
@@ -44,11 +49,12 @@ local function indoors(r)
     return nil
 end
 
-local SPOTS = { { 10737, 10234 }, { 10650, 10267 }, { 10815, 10037 } }
-local spot = 1
+local SPOTS = { { 10795, 10030 }, { 10737, 10234 }, { 10650, 10267 }, { 10815, 10037 }, { 11900, 6900 }, { 8100, 11500 }, { 6300, 5300 }, { 10300, 12700 }, { 10000, 9000 } }
+local spot, claimed = nil, nil
 local plan, i, t0 = {}, 1, getTimestampMs()
 local function add(ms, fn) plan[#plan + 1] = { ms = ms, fn = fn } end
 
+add(800, function() SendCommandToServer('/godmod "' .. me .. '" -true') end)   -- (QA, Nov 6 2026: the walk to the houses crosses Muldraugh; a dead character stops the next join)
 add(3000, function()
     pass("the link is up", S.available())
     C.refresh()
@@ -62,31 +68,29 @@ add(3000, function()
     local a = C.claimCheck()
     say("the checker here: " .. tostring(a and a.lines[1]))
 end)
-add(500, function() goTo(SPOTS[1][1], SPOTS[1][2]) end)
 for n = 1, #SPOTS do
-    add(6000, function()
-        local x, y = indoors(30)
-        say("spot " .. n .. ": indoors at " .. tostring(x) .. "," .. tostring(y))
-        if x then goTo(x, y) end
-    end)
-    add(3000, function()
-        C.claim = nil
-        local a = C.claimCheck()
-        for _, s in ipairs(a and a.lines or {}) do say("the checker: " .. tostring(s)) end
-        if a and a.ok then
-            spot = n
-        elseif SPOTS[n + 1] then
-            goTo(SPOTS[n + 1][1], SPOTS[n + 1][2])
-        end
-    end)
+    add(500, function() if not spot then goTo(SPOTS[n][1], SPOTS[n][2]) end end)
+    add(7000, function() end)
+    for try = 1, 4 do
+        add(300, function()
+            if spot then return end
+            local x, y = indoors(40)
+            say("spot " .. n .. ", building " .. try .. ": indoors at " .. tostring(x) .. "," .. tostring(y))
+            if x then goTo(x, y) end
+        end)
+        add(3500, function()
+            if spot then return end
+            C.claim = nil
+            local a = C.claimCheck()
+            say("the checker: " .. tostring(a and a.lines[1]))
+            if a and a.ok then            -- (claimed on the spot: zombies wander in, and the answer changes)
+                spot = n
+                C.doClaim(function(ok) claimed = ok end)
+            end
+        end)
+    end
 end
-local claimed = nil
-add(1000, function()
-    C.claim = nil
-    local a = C.claimCheck()
-    pass("a building to claim", a and a.ok == true, a and a.lines[1])
-    C.doClaim(function(ok) claimed = ok end)
-end)
+add(1000, function() pass("a building to claim", spot ~= nil, spot) end)
 add(9000, function()
     pass("Claim Safehouse", claimed == true and C.safe ~= nil, C.safe and C.safe.title)
     local h = C.safe
@@ -157,7 +161,7 @@ add(2000, function()
     C.disband(function(ok) pass("Disband", ok == true) end)
 end)
 add(9000, function()
-    C.release(C.safe, function(ok) pass("Release", ok == true) end)
+    if C.safe then C.release(C.safe, function(ok) pass("Release", ok == true) end) end
 end)
 add(9000, function()
     pass("nothing left", C.safe == nil and C.fac == nil)

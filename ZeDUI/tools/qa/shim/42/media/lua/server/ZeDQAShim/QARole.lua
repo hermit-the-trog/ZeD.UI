@@ -10,9 +10,26 @@
 -- ============================================================================
 if not isServer() then return; end;
 
+-- (Nov 6 2026, QA: E8) a line every 20 s from OnTickEvenPaused, so the server's log shows it fires with nobody on
+local tickSeen, tickN = 0, 0
+if Events.OnTickEvenPaused then
+    Events.OnTickEvenPaused.Add(function()
+        tickN = tickN + 1
+        local t = getTimestamp()
+        if t - tickSeen >= 20 then
+            tickSeen = t
+            print("[ZeDQA] paused tick " .. tickN .. ", players " .. tostring(getOnlinePlayers():size()))
+        end
+    end)
+end
+
 Events.OnClientCommand.Add(function(module, command, player, args)
     if module ~= "ZeDQA" or not player then return end
-    if command == "nolimits" then
+    if command == "shortban" then
+        -- (Nov 6 2026, QA: E8) the 1 hour length made short on this server, so a timed ban runs out inside a test
+        if ZeD and ZeD.Adm and ZeD.Adm.LENGTH then ZeD.Adm.LENGTH.h1.sec = tonumber(args and args.sec) or 45 end
+        print("[ZeDQA] h1 is now " .. tostring(ZeD and ZeD.Adm and ZeD.Adm.LENGTH.h1.sec) .. " s")
+    elseif command == "nolimits" then
         if ZeD and ZeD.Srv and ZeD.Srv.mem then ZeD.Srv.mem[player:getUsername()] = nil end
         sendServerCommand(player, "ZeDQA", "nolimits", { ok = true })
     elseif command == "role" then

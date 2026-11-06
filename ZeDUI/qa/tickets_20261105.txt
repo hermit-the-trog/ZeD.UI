@@ -193,3 +193,88 @@
 01:08:12 tk_mouse : 2/2 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_mouse.md
 01:08:12 stopped PID 11172
 01:08:12 closed
+01:12:53 mods: ZeD_UI;ZeDQAShim
+01:12:53 started the server, PID 19884; waiting for it to be ready
+01:13:23 ready after 30 s
+01:15:24 adm_1 : 0/1 pass, 1 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_adm_1.md
+01:18:43 clm_1 : 0/1 pass, 0 warn, 1 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_clm_1.md
+01:18:43 stopped PID 19884
+01:18:43 closed
+01:19:39 set PlayerSafehouse=true
+01:19:39 set AdminSafehouse=true
+01:19:39 set War=true
+01:19:39 mods: ZeD_UI;ZeDQAShim
+01:19:39 started the server, PID 25476; waiting for it to be ready
+01:20:42 ready after 62 s
+01:36:13 adm_2 : 0/1 pass, 0 warn, 0 fail, 0 timeout, 1 not run -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_adm_2.md
+01:51:43 clm_2 : 0/1 pass, 0 warn, 0 fail, 0 timeout, 1 not run -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_clm_2.md
+01:51:43 stopped PID 25476
+01:51:43 closed
+01:52:00 mods: ZeD_UI;ZeDQAShim
+01:52:00 started the server, PID 24128; waiting for it to be ready
+01:53:15 set PlayerSafehouse=true
+01:53:15 set AdminSafehouse=true
+01:53:15 set War=true
+01:53:15 mods: ZeD_UI;ZeDQAShim
+01:53:16 started the server, PID 27304; waiting for it to be ready
+01:53:48 ready after 32 s
+02:09:15 adm_2 : 0/1 pass, 0 warn, 0 fail, 0 timeout, 1 not run -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_adm_2.md
+02:24:39 clm_2 : 0/1 pass, 0 warn, 0 fail, 0 timeout, 1 not run -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_clm_2.md
+02:24:39 stopped PID 27304
+02:24:39 closed
+02:25:26 set PlayerSafehouse=true
+02:25:26 set AdminSafehouse=true
+02:25:26 set War=true
+02:25:26 mods: ZeD_UI;ZeDQAShim
+02:25:26 started the server, PID 11456; waiting for it to be ready
+02:25:58 ready after 32 s
+02:30:25 adm_2 : 0/1 pass, 0 warn, 0 fail, 0 timeout, 1 not run -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_adm_2.md
+02:34:50 clm_2 : 0/1 pass, 0 warn, 0 fail, 0 timeout, 1 not run -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_clm_2.md
+02:34:50 stopped PID 11456
+02:34:50 closed
+02:35:36 set PlayerSafehouse=true
+02:35:36 set AdminSafehouse=true
+02:35:36 set War=true
+02:35:36 mods: ZeD_UI;ZeDQAShim
+02:35:36 started the server, PID 5068; waiting for it to be ready
+02:36:08 ready after 32 s
+02:40:35 adm_look : 0/1 pass, 0 warn, 0 fail, 0 timeout, 1 not run -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_adm_look.md
+02:40:35 stopped PID 5068
+02:40:35 closed
+02:41:22 set PlayerSafehouse=true
+02:41:22 set AdminSafehouse=true
+02:41:22 set War=true
+02:41:22 mods: ZeD_UI;ZeDQAShim
+02:41:22 started the server, PID 30052; waiting for it to be ready
+02:41:52 ready after 30 s
+02:44:22 adm_2 : 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_adm_2.md
+02:47:22 clm_2 : 0/1 pass, 0 warn, 1 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_clm_2.md
+02:47:22 stopped PID 30052
+02:47:22 closed
+02:48:09 set PlayerSafehouse=true
+02:48:09 set AdminSafehouse=true
+02:48:09 set War=true
+02:48:09 mods: ZeD_UI;ZeDQAShim
+02:48:09 started the server, PID 19540; waiting for it to be ready
+02:48:41 ready after 32 s
+02:54:47 clm_3 : 0/1 pass, 0 warn, 1 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_clm_3.md
+02:54:47 stopped PID 19540
+02:54:47 closed
+02:55:15 set PlayerSafehouse=true
+02:55:15 set AdminSafehouse=true
+02:55:15 set War=true
+02:55:15 mods: ZeD_UI;ZeDQAShim
+02:55:15 started the server, PID 11192; waiting for it to be ready
+02:55:47 ready after 32 s
+03:02:18 clm_3 : 0/1 pass, 0 warn, 1 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_clm_3.md
+03:02:18 stopped PID 11192
+03:02:19 closed
+03:02:46 set PlayerSafehouse=true
+03:02:46 set AdminSafehouse=true
+03:02:46 set War=true
+03:02:46 mods: ZeD_UI;ZeDQAShim
+03:02:46 started the server, PID 33020; waiting for it to be ready
+03:03:18 ready after 32 s
+03:09:19 clm_3 : 0/1 pass, 0 warn, 1 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_clm_3.md
+03:09:19 stopped PID 33020
+03:09:19 closed

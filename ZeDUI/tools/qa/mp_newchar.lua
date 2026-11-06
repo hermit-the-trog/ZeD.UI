@@ -9,6 +9,20 @@ local function tick()
     n = n + 1
     if n % 60 ~= 0 then return end
     local ok, e = pcall(function()
+        -- (Nov 6 2026: ZeD's own screens stand in for these while ZeD is on: map, traits, looks)
+        local MM = ZeD and ZeD.MainMenu
+        if MM and MM.root then
+            for _, rv in ipairs(MM.views or {}) do
+                if rv.view == MM.view and (rv.view == "spawn" or rv.view == "traits" or rv.view == "looks") then
+                    local w = MM.root[rv.field]
+                    say("ZeD's " .. tostring(rv.view) .. ": Next")
+                    pressed = pressed + 1
+                    if w and w.play then w:play() elseif w and w.next then w:next() end
+                    if rv.view == "looks" then Events.OnFETick.Remove(tick); say("DONE") end
+                    return
+                end
+            end
+        end
         local sp = MapSpawnSelect and MapSpawnSelect.instance
         if vis(sp) then say("spawn region: Next"); sp:onOptionMouseDown({ internal = "NEXT" }, 0, 0); pressed = pressed + 1; return end
         local prof = MS and MS.charCreationProfession

@@ -1,0 +1,3 @@
+zedqa_pin_windows.lua | pnw | timeout=30
+mp_admin_cards.lua | mac | timeout=300
+mp_claim_cards.lua | mcc | timeout=420

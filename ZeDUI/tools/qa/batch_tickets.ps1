@@ -2,7 +2,7 @@
 # ZeDUI/tools/qa/batch_tickets.ps1  (Nov 5 2026, QA): Part D's ticket runs on the local server with the shim loaded. -Runs names manifests as
 # "manifest:tag:width:height:keep" (0 x 0 = fullscreen 4K). The server's ticket database and settings go back after, so each pass starts from a known state
 # unless -KeepDb. Results land in ZeDUI/qa/tickets_20261105.txt, the reports in ZeDUI/qa/regression/.
-param([string]$Runs = "mp_tickets.txt:tickets", [switch]$KeepDb)   # (one string, runs parted by commas: an array does not pass through pwsh -File)
+param([string]$Runs = "mp_tickets.txt:tickets", [switch]$KeepDb, [string]$Set = "")   # (one string, runs parted by commas: an array does not pass through pwsh -File)
 $Qa = $PSScriptRoot
 $Out = [IO.Path]::GetFullPath("$Qa\..\..\qa\tickets_20261105.txt")
 $Rep = [IO.Path]::GetFullPath("$Qa\..\..\qa\regression")
@@ -14,7 +14,7 @@ if (Test-Path "$Cache\db\zedqa.db") { Copy-Item "$Cache\db\zedqa.db" "$Keep\zedq
 Copy-Item "$Cache\Server\zedqa.ini" "$Keep\zedqa.ini" -Force
 $MO = "C:\Users\danie\Zomboid\Lua\ModOptions.ini"; Copy-Item $MO "$Keep\ModOptions.ini" -Force
 try {
-    & "$Qa\mp_server.ps1" -Start -Mods "ZeD_UI;ZeDQAShim" | ForEach-Object { Note $_ }
+    & "$Qa\mp_server.ps1" -Start -Mods "ZeD_UI;ZeDQAShim" -Set $Set | ForEach-Object { Note $_ }
     foreach ($r in ($Runs -split ",")) {
         $f = $r -split ":"
         $a = @{ Manifest = "$Qa\$($f[0])"; Mp = $true; Report = (Join-Path $Rep "2026-11-05_$($f[1]).md") }
