@@ -6,13 +6,15 @@
 --   PVP        while the server's safety system is on: PvP on or off, the seconds left while it switches, a
 --              non-PvP zone; the switch (the game's own toggle, ISEquippedItem:toggleSafety, with its log line)
 --   PLAYERS    who is on the server (the game's scoreboard, asked again every few seconds while the tab shows)
---   FACTION    yours (name, tag, members) and the game's faction window; or Create faction where the server allows
---   SAFEHOUSE  yours (title, owner, members) and the game's safehouse window
+--   NOTES      an invitation to a faction or a safehouse waits here, under the Server block, with Decline and Accept
 --   TICKETS    after the Server block, as drawn: N open, Ask the admins, my tickets (ZeD_TicketCards.lua: the block and
 --              its two cards, Ask the admins and my ticket, pushed on top of this list behind st.card)
--- The game's user panel (ISUserPanelUI) is a set of buttons that open those same windows; this tab shows what they
--- hold at a glance and opens them for the changes (adding a player, a faction's tag). Redrawing those
--- windows in ZeD is a later pass. Wording is the game's own (MP_DECISIONS.md, section 6).
+--   FACTION    yours as a row that opens its card; or Create Faction where the server allows
+--   SAFEHOUSE  yours as a row that opens its card; or Can I claim this?, the server's rules and Claim Safehouse
+--   WARS       on a server with wars: a row that opens their card
+-- The game's user panel (ISUserPanelUI) is a set of buttons that open windows; this tab and its cards replace those for
+-- players. Faction, safehouse and wars are ZeD_ClaimCards.lua, on the same frame as the ticket cards. Wording is the game's
+-- own (MP_DECISIONS.md, section 6).
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -20,7 +22,9 @@ require "ZeD/Atoms"
 require "ZeD/Molecules"
 require "ZeD/Tr"
 require "ZeD/ZeD_CharacterWindow"
+require "ZeD/ZeD_Claims"
 require "ZeD/ZeD_TicketCards"
+require "ZeD/ZeD_ClaimCards"
 
 ZeD = ZeD or {}
 local S = {}
@@ -56,9 +60,6 @@ function S.btnWords(s)
     end)
     return out
 end
-
--- the server's word for a thing, from the game's own keys where it has them
-local function gt(key, fallbackKey) local t = getTextOrNull and getTextOrNull(key); return t or tr(fallbackKey) end
 
 -- ---------------------------------------------------------------------------
 -- THE PLAYERS: the game's scoreboard (the reply comes as an event)
@@ -109,45 +110,8 @@ local function pvpState(p)
 end
 S.pvpState = pvpState
 
--- the owner and the players, each once (the game keeps the owner apart from the list in a faction, and in it in
--- some safehouses)
-local function memberCount(owner, list)
-    local seen, n = {}, 0
-    if owner and owner ~= "" then seen[owner] = true; n = 1 end
-    pcall(function()
-        for i = 0, list:size() - 1 do
-            local u = tostring(list:get(i))
-            if not seen[u] then seen[u] = true; n = n + 1 end
-        end
-    end)
-    return math.max(n, 1)
-end
-
-local function faction(p)
-    local f = safe(function() return Faction.getPlayerFaction(p) end, nil)
-    if not f then return nil end
-    return {
-        obj = f,
-        name = safe(function() return f:getName() end, ""),
-        tag = safe(function() return f:getTag() end, nil),
-        owner = safe(function() return f:getOwner() end, ""),
-        members = memberCount(safe(function() return f:getOwner() end, ""), safe(function() return f:getPlayers() end, nil)),
-    }
-end
-
-local function safehouse(p)
-    local h = safe(function() return SafeHouse.hasSafehouse(p) end, nil)
-    if not h then return nil end
-    return {
-        obj = h,
-        title = safe(function() return h:getTitle() end, ""),
-        owner = safe(function() return h:getOwner() end, ""),
-        members = memberCount(safe(function() return h:getOwner() end, ""), safe(function() return h:getPlayers() end, nil)),
-    }
-end
-
 -- ---------------------------------------------------------------------------
--- THE GAME'S WINDOWS, opened as its user panel opens them (ISUserPanelUI:onOptionMouseDown)
+-- WHAT THE TAB'S BUTTONS OPEN: the game's options window, as its user panel opens it, and ZeD's cards
 -- ---------------------------------------------------------------------------
 local OPEN = {}
 function OPEN.options(p)
@@ -155,24 +119,8 @@ function OPEN.options(p)
     local ui = ISServerOptions:new(50, 50, 800, 800, p)
     ui:initialise(); ui:addToUIManager()
 end
-function OPEN.faction(p)
-    if ISFactionUI.instance then ISFactionUI.instance:close() end
-    if ISCreateFactionUI.instance then ISCreateFactionUI.instance:close() end
-    local f = Faction.getPlayerFaction(p)
-    local sw, sh = getCore():getScreenWidth(), getCore():getScreenHeight()
-    local modal
-    if f then modal = ISFactionUI:new(sw / 2 - 250, sh / 2 - 225, 500, 450, f, p)
-    else modal = ISCreateFactionUI:new(sw / 2 - 225, sh / 2 - 125, 450, 250, p) end
-    modal:initialise(); modal:addToUIManager()
-end
-function OPEN.safehouse(p)
-    local h = SafeHouse.hasSafehouse(p)
-    if not h then return end
-    if ISSafehouseUI.instance then ISSafehouseUI.instance:close() end
-    local width = 500 + getCore():getOptionFontSizeReal() * 30
-    local modal = ISSafehouseUI:new((getCore():getScreenWidth() - width) / 2, getCore():getScreenHeight() / 2 - 225, width, 450, h, p)
-    modal:initialise(); modal:addToUIManager()
-end
+function OPEN.faction(p, win) ZeD.ClaimCards.openFaction(win, win._serverTab) end
+function OPEN.claim(p, win) ZeD.ClaimCards.claim(win, win._serverTab) end
 function OPEN.ask(p, win) ZeD.TicketCards.openAsk(win, win._serverTab) end
 function OPEN.pvp()
     if ISEquippedItem and ISEquippedItem.toggleSafety then ISEquippedItem.toggleSafety(nil) end
@@ -211,8 +159,13 @@ local function build(p, win, st)
     if role then row(L, tr("UI_ZeD_Srv_Role"), role) end
     local seeOpts = safe(function() return p:getRole():hasCapability(Capability.SeePublicServerOptions) end, false)
     btn(L, "options", getText("IGUI_AdminPanel_SeeServerOptions"), tr("UI_ZeD_Srv_HelpOptions"), not seeOpts)
+    -- INVITATIONS
+    ZeD.ClaimCards.notes(L, win, st)
     -- TICKETS
-    ZeD.TicketCards.playerItems(L, win, st, function(id, text, help) return { k = "btn", id = id, text = S.btnWords(text), help = help } end)
+    local function btnItem(id, text, help) return { k = "btn", id = id, text = S.btnWords(text), help = help } end
+    ZeD.TicketCards.playerItems(L, win, st, btnItem)
+    -- FACTION, SAFEHOUSE, WARS
+    ZeD.ClaimCards.blocks(L, win, st, btnItem)
     -- PVP (only while the server's safety system is on)
     local pv = pvpState(p)
     if pv then
@@ -230,35 +183,6 @@ local function build(p, win, st)
     local me = safe(function() return p:getUsername() end, "")
     for _, pl in ipairs(S.players) do
         add(L, { k = "player", text = pl.name, me = (pl.user == me) })
-    end
-    -- FACTION
-    head(L, gt("UI_userpanel_factionpanel", "UI_ZeD_Srv_Faction"))
-    local f = faction(p)
-    if f then
-        row(L, tr("UI_ZeD_Srv_Name"), f.name)
-        if f.tag and f.tag ~= "" then row(L, tr("UI_ZeD_Srv_Tag"), f.tag) end
-        row(L, tr("UI_ZeD_Srv_Owner"), f.owner)
-        row(L, tr("UI_ZeD_Srv_Members"), tostring(f.members))
-        btn(L, "faction", gt("UI_userpanel_factionpanel", "UI_ZeD_Srv_Faction"), tr("UI_ZeD_Srv_HelpFaction"))
-    else
-        line(L, tr("UI_ZeD_Srv_NoFaction"))
-        local allowed = safe(function() return so:getBoolean("Faction") end, false)
-        local days = safe(function() return so:getInteger("FactionDaySurvivedToCreate") end, 0)
-        local lived = safe(function() return p:getHoursSurvived() / 24 end, 0)
-        local help = (not allowed) and getText("IGUI_FactionUI_Disabled")
-            or ((lived < days) and getText("IGUI_FactionUI_FactionSurvivalDay", days)) or tr("UI_ZeD_Srv_HelpCreateFaction")
-        btn(L, "faction", getText("IGUI_FactionUI_CreateFaction"), help, not allowed or lived < days)
-    end
-    -- SAFEHOUSE
-    head(L, getText("IGUI_SafehouseUI_Safehouse"))
-    local h = safehouse(p)
-    if h then
-        if h.title ~= "" then row(L, tr("UI_ZeD_Srv_Name"), h.title) end
-        row(L, tr("UI_ZeD_Srv_Owner"), h.owner)
-        row(L, tr("UI_ZeD_Srv_Members"), tostring(h.members))
-        btn(L, "safehouse", getText("IGUI_SafehouseUI_Safehouse"), tr("UI_ZeD_Srv_HelpSafehouse"))
-    else
-        line(L, tr("UI_ZeD_Srv_NoSafehouse"))
     end
     return L
 end
@@ -282,6 +206,8 @@ local function measure(L, w)
             it.w = math.min(w - 2 * px(PAD), ZeD.Molecules.buttonW(it.text))
         elseif it.k == "tk" then
             it.h = ZeD.TicketCards.itemH(it, w - 2 * px(PAD))
+        elseif it.k == "cl" then
+            it.h = ZeD.ClaimCards.itemH(it, w - 2 * px(PAD))
         end
         it.y = y
         y = y + it.h
@@ -308,6 +234,7 @@ function S.render(panel, win, x, y, w, h)
     local TC = ZeD.TicketCards
     TC.bind(win, st, "srv:tk:", "charTabContent")
     TC.frameServer(win, st)
+    ZeD.ClaimCards.frame(win, st)
     askPlayers()
     if st.card then
         TC.renderCard(panel, win, st, x, y, w, h)
@@ -346,7 +273,7 @@ function S.render(panel, win, x, y, w, h)
     local pad = px(PAD)
     local btns = {}
     st.btns = btns
-    TC.beginList(win, st, sy, sh, TC.mineHelp())
+    TC.beginList(win, st, sy, sh, ZeD.ClaimCards.listHelp())
     panel:setStencilRect(x, sy, w, sh)
     for _, it in ipairs(L) do
         local dy = sy + it.y - off
@@ -358,6 +285,8 @@ function S.render(panel, win, x, y, w, h)
                 end
             elseif it.k == "tk" then
                 TC.drawItem(panel, win, st, it, x, dy, cw, mx, my)
+            elseif it.k == "cl" then
+                ZeD.ClaimCards.drawItem(panel, win, st, it, x, dy, cw, mx, my)
             elseif it.k == "row" then
                 if it.dot then M.drawStatRowDot(panel, x + pad, dy, cw - 2 * pad, it.label, it.value, it.dot)
                 else M.drawStatRow(panel, x + pad, dy, cw - 2 * pad, it.label, it.value) end
@@ -369,7 +298,7 @@ function S.render(panel, win, x, y, w, h)
             elseif it.k == "btn" then
                 local bx = x + pad
                 local hov = mx ~= nil and mx >= bx and mx < bx + it.w and my >= dy and my < dy + it.h
-                M.drawButton(panel, bx, dy, it.w, it.h, it.text, "default", hov and isMouseButtonDown(0), nil,
+                M.drawButton(panel, bx, dy, it.w, it.h, it.text, it.variant or "default", hov and isMouseButtonDown(0), nil,
                     { hover = hov, disabled = it.disabled, help = it.help, win = win, focus = focusOf(win, "srv:" .. it.id) })
                 btns[#btns + 1] = { x = bx, y = dy, w = it.w, h = it.h, cy = it.y, id = it.id, disabled = it.disabled }
             end
@@ -431,6 +360,8 @@ function S.buildFocusables(win)
                 onActivate = function(w) if not dis then press(w, id) end end }
         elseif it.k == "tk" then
             ZeD.TicketCards.itemStops(out, st, it, (st.x or 0) + px(PAD), sy + it.y - off, st.w or 0, "srv")
+        elseif it.k == "cl" then
+            ZeD.ClaimCards.itemStops(out, st, it, (st.x or 0) + px(PAD), sy + it.y - off, st.w or 0, "srv")
         end
     end
     return out
@@ -442,7 +373,7 @@ function S.scrollKey(win)
     if st.card then return ZeD.TicketCards.cardKey(st) end
     local n = 0
     for _, it in ipairs(st.items or {}) do if it.k == "btn" then n = n + 1 end end
-    return tostring(st.off or 0) .. ":" .. n .. ":" .. #S.players .. ":" .. ZeD.TicketCards.listKey(st)
+    return tostring(st.off or 0) .. ":" .. n .. ":" .. #S.players .. ":" .. ZeD.TicketCards.listKey(st) .. ":" .. ZeD.ClaimCards.listKey(st)
 end
 
 -- ---------------------------------------------------------------------------

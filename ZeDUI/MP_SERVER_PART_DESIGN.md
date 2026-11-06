@@ -1196,3 +1196,60 @@ Where B2, B4, B6, B8 and B9 now differ, and why.
     card's place reads name and coordinates (`Tk.whereFull`). The adopted card's caveat is a line on the card. The wheel over a
     field scrolls the card, the hint is drawn by the card, wrapped, and the keyboard's key reads Accept (`setSingleLine`). It still
     sits at the screen's foot, not under the field.
+
+# Build's changes (Nov 5 2026, Phase 3: safehouses and factions)
+
+Files: `ZeD_ClaimProto.lua` (shared), `ZeD_ServerClaims.lua` (server), `ZeD_Claims.lua` (the model), `ZeD_ClaimCards.lua` (the cards).
+`claims_sim.lua`, `claim_cards_sim.lua`, `mp_claims.lua`, `mp_claim_cards.lua`. Nothing is stored: no table, so no secret name.
+Where the build differs from `mockups/zed_safehouse_faction_v1.html` and `MP_ADMIN_SCOPE.md`, and why.
+
+1. **Expiry is the safehouse's, not a member's.** The game's tooltip says players are removed; its code does not. `SafeHouse.update`
+   releases the whole safehouse once `lastVisited + SafeHouseRemovalTime` hours has passed, and any allowed player standing in it
+   resets `lastVisited` (`IsoPlayer.updateInternal2`). So the drawing's "away 61 h: removed in 11 h" on a member's row is gone, and
+   the card says "Keep it by visiting within 3 days", as the scope has it. A member's row says online or offline.
+2. **The time left needs the server part.** `SafehouseSyncPacket` carries no `lastVisited`, so a client's copy is only the moment it
+   first heard of the safehouse. `c_info` sends hours ago, so no client clock enters the sum. Without the server part the rule shows
+   and the countdown does not.
+3. **Faction PvP and Show Tag are each player's own,** in the game (`IsoPlayer.setFactionPvp`, `setShowTag`, `FactionStatsPacket`),
+   not the owner's as drawn. Both ticks show for every member, and a line says so.
+4. **An invitation has no take-back call,** and only the server holds the list. Cancel on a pending row goes through `c_cancel`
+   (`Invite.removeInvite`, reached through `SafeHouse` and `Faction`). Without the server part it is gray and says why, and "invited,
+   waiting" is this client's memory for this session.
+5. **Invitations the client has no note of** (it joined after one was sent) are raised from `c_info`, which reads `hasInvite` on the
+   game's lists. The game sends an invitation once, to a player online, so with no server part one sent before a relog is gone, as
+   in the game.
+6. **The log compares the game's lists every 5 seconds** on `OnTickEvenPaused`, so a change from any window or the game's own expiry
+   is logged and none rests on a client's word. It writes `kind | what | who | where | day N`. It names who a change touched, not always
+   who made it: the game keeps no doer. At most 40 lines a pass.
+7. **Fields sit in the cards through two small additions to the ticket frame:** `TC.kinds` and `TC.itemKinds`. A field's `one` makes it
+   a line that Enter saves and Escape puts back. `seed` keeps the box with what the game holds unless someone typed over it. A long
+   confirm is `foot.line`, on the line over the bands with mouse or pad, because the game's confirm words outrun a band at Deck width.
+8. **Save has no answer to wait for.** The game's calls send nothing back, so `C.expect` watches for the change for 8 seconds, then says
+   "Nothing changed. The server may have refused it." and keeps the words.
+9. **Member rows pick to a second line** when the buttons will not fit beside the name, as at Deck and 720. Drawn beside it.
+10. **Marks for a rule are ZeD's squares,** solid and hollow, not the drawing's check and cross: the fonts have neither, and each rule's
+    words say it anyway. The drawing's pointing hand is ZeD's focus mark. **The pad keyboard sits at the screen's foot,** not under
+    the field, as for tickets. After typing, focus goes to Save.
+11. **The place reads coordinates and the game's `getLocation`,** not a town: E3 is still open. The checker says "at 6402 x 5410".
+12. **Wars have no drawing.** Built as a card of the same parts. Refuse and Cancel go at once, as in the game's window. Accept and End ask
+    in the foot (`Cl.WAR_CONFIRM`), which the game does not do.
+13. **The rules show in the Server tab too** when you have no safehouse, under Can I claim this?, because that is when they matter. The
+    drawing has them only in the card.
+14. **The Tickets block stays directly under the Server block,** as its drawing has it, then Faction, Safehouse, Wars. The order in this
+    drawing has no Tickets block.
+15. **A claim's title is the username,** as the game's context menu sends it, not "Riverside house", until E3 gives a place name. The
+    title field takes the caret when the card opens; under the controller the card lands on it.
+16. **The game's 15 and its words' 14:** its code takes a 15-character faction name, its text says 3-14. ZeD holds to 14 (`Cl.NAME_MAX`).
+17. **A title needs `hasNotSurvivedEnoughToClaim` false,** which the game tests on rename and the drawing does not mention: an owner on a
+    new character cannot rename until they pass the claim day. Save says so, in the game's words.
+18. **`ISWarManagerUI` still opens** from the HUD's war icon. The right-click menu's Claim war stays the game's: the card says how.
+
+Not settled, for QA on the local server (`mp_claims.lua` prints these as PROBE lines):
+
+| # | Unknown | How it settles |
+|---|---|---|
+| F1 | Whether Lua sees `hasInvite` and `removeInvite`: they live on `Invite`, which is not in `LuaManager$Exposer`. Absent, `c_cancel` answers `fail` and waiting invitations are not raised | PROBE line. Two clients for the real run |
+| F2 | Whether `IsoPlayer.updateInternal2` reaches `setLastVisited` on the server's copy of a player, as the bytecode reads | PROBE line: hours ago near 0 while standing in it |
+| F3 | Whether a refused packet does more than drop. `SafehouseChangeTitlePacket` carries `AntiCheat.SafeHouseOwner`, so ZeD sends nothing a non-owner may not; a stale list could still | Rename after losing the owner's place, on two clients; watch for a kick |
+| F4 | `onCommandEntered` on `ZeD_TextEntry` with `setMultipleLine(false)`, and the one-line box's height at each text size | Type a title on the local server; `mp_claim_cards.lua` at each size |
+| F5 | E8 again: that `OnTickEvenPaused` fires on the server. The log rests on it | The `safehouse | claim` line appears within 5 seconds |
