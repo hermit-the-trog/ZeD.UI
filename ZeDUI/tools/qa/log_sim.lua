@@ -1157,10 +1157,28 @@ do
     check("the words say so", r and L(ca).sourceText(r) == "from the log Vehicle, sent by griefer, not proved", r and L(ca).sourceText(r))
     -- what a client can't do
     W.logs = {}
-    for _, name in ipairs({ "ZeD", "zed", "Ze-D", "z_e_d" }) do client(u, name, "ticket | filed | Hermit | #1 | 1,1,0 | GRIEF | day 1") end
+    for _, name in ipairs({ "ZeD", "zed", "Ze-D", "z_e_d", "ZED", " Z.e.D ", "Z3e4D", "z e d" }) do client(u, name, "ticket | filed | Hermit | #1 | 1,1,0 | GRIEF | day 1") end
     check("the ZeD log stays closed", #W.logs == 0, #W.logs)
     rows = rowsOf(a)
     check("and those are not tapped", rowWith(rows, "filed") == nil)
+    -- only ZeD's own name is closed: a mod's logger that holds the letters is a mod's logger
+    W.clock = W.clock + 61000
+    W.server.writeLog("ZedTracker", "[1][ZedSpotted][Kade_R][6281,5351,0][from the server]")
+    r = rowWith(rowsOf(a), "ZedSpotted")
+    check("a mod's ZedTracker shows", r ~= nil and r.lg == "ZedTracker" and r.src == "tap", r and r.lg)
+    client(u, "Zed_Tracker", "[1][ZedSeen][griefer][6282,5352,0][from a client]")
+    r = rowWith(rowsOf(a), "ZedSeen")
+    check("and sent by a client too", r ~= nil and r.lg == "Zed_Tracker", r and r.lg)
+    check("and reaches the game's file", (function()
+        for _, l in ipairs(W.logs) do if l.name == "Zed_Tracker" then return true end end
+        return false
+    end)())
+    W.logs = {}
+    local keepTap = Srv().A.md.tap.n
+    W.server.writeLog("ZeD", "ticket | filed | Hermit | #1 | 1,1,0 | GRIEF | day 1")
+    W.server.writeLog("zE-d", "ticket | filed | Hermit | #1 | 1,1,0 | GRIEF | day 1")
+    check("ZeD's own lines, or a server mod's forgery of the name, are not tapped", Srv().A.md.tap.n == keepTap, Srv().A.md.tap.n - keepTap)
+    W.logs = {}
     client(u, "pvp", "[x][kill][Hermit][1,2,0]")
     rows = rowsOf(a, { kind = "pvp" })
     r = rows[1]
