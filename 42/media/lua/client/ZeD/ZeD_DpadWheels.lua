@@ -108,11 +108,16 @@ local function prompts(st)
         return { point, { glyph = "D-PAD", label = ZeD.tr("UI_ZeD_Wheel_PromptMove") }, { glyph = "A", label = ZeD.tr("UI_ZeD_Wheel_PromptTake") }, b }
     end
     if st.mode == "hold" then
+        local out
         if #st.path <= 1 and st.held then
-            return { { glyph = g, pad = gp, label = ZeD.tr("UI_ZeD_Wheel_PromptHold") }, point,
-                     { glyph = g, pad = gp, label = ZeD.tr("UI_ZeD_Wheel_PromptLetGo") }, b }
+            out = { { glyph = g, pad = gp, label = ZeD.tr("UI_ZeD_Wheel_PromptHold") }, point,
+                    { glyph = g, pad = gp, label = ZeD.tr("UI_ZeD_Wheel_PromptLetGo") } }
+        else
+            out = { point, { glyph = "A", label = ZeD.tr("UI_ZeD_Wheel_PromptTake") } }
         end
-        return { point, { glyph = "A", label = ZeD.tr("UI_ZeD_Wheel_PromptTake") }, b }
+        if st.commit == "click" then out[#out + 1] = { glyph = "R3", label = ZeD.tr("UI_ZeD_Wheel_PromptTake") } end
+        out[#out + 1] = b
+        return out
     end
     -- (tap) the same direction closes all of it; in an inner wheel B only backs out, so the direction is shown
     local out = { point }
@@ -259,8 +264,9 @@ local function showFilled(pn, st)
     local menu = getPlayerRadialMenu(pn)   -- (the game's fillers fill the shared wheel)
     if st.menu ~= menu and st.menu and st.menu.removeFromUIManager then st.menu:removeFromUIManager() end
     -- (the vehicle and animal fillers close the shared wheel instead of filling
-    -- it when it is on screen: off the screen first)
-    if menu:isReallyVisible() then menu:removeFromUIManager() end
+    -- it when it reads as on the screen, and a removal lands only on the game's
+    -- next update: hidden for the filler, present shows it again)
+    if menu.setVisible then menu:setVisible(false) end
     st.menu = menu
     local p = getSpecificPlayer(pn)
     local ok, err = pcall(lv.fill, p, pn)

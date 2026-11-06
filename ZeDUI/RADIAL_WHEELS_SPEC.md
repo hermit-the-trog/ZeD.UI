@@ -24,7 +24,8 @@ DPAD_WHEELS_SPEC.md are worked. It does not change what is on them.
 5. **Cancel:** the same D-pad direction again, or B (at the top level), nothing fires. A different direction swaps wheels,
    nothing fires. With no engage after opening (or after entering an inner wheel), the wheel closes by itself.
 6. **Face buttons:** A, X and Y do nothing with a wheel up, and don't reach the game. On close the shipped map is back,
-   whichever way it closed (commit, cancel, timeout, swap, attack).
+   whichever way it closed (commit, cancel, timeout, swap, attack). Start closes the wheel and pauses, as it does with
+   no wheel up.
 7. **Aim or attack with a wheel up (the director):** the wheel closes, takes nothing, and the attack happens. The press
    must not be swallowed.
 8. **Bumpers (the director):** close the wheel and open the windows. The chord assign still works: a bumper held and a
@@ -39,8 +40,10 @@ DPAD_WHEELS_SPEC.md are worked. It does not change what is on them.
 | ENGAGE_RADIUS | 0.35 | stick magnitude above which a slice highlights |
 | RELEASE_RADIUS | 0.60 x engage (0.21) | magnitude below which the highlighted slice commits |
 | SECTOR_HYST_DEG | 7 | degrees past a boundary before the highlight moves; the wheel keeps lastSector |
-| DISMISS_TIMEOUT_S | 3.0 | no engage: closes |
+| DISMISS_TIMEOUT_S | 3.0 | no engage, or a stick left sitting under engage with a slice lit: closes, nothing taken (Stick click's lit slice waits for the click) |
 | OPEN_DEBOUNCE_MS | 150 | a second tap this soon after open is ignored |
+| FAR_HOLD_MS | 60 | a stick that jumps past a quarter turn from the highlight has to stay there this long: a spring-back frame is not a pick |
+| REST_MS | 150 | a stick sitting under engage this long counts as centered, so a pad that rests above release can still pick |
 
 Inner wheels can have up to 12 slices: sector width is 360 / slice count, and the hysteresis never exceeds a quarter of it.
 

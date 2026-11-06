@@ -15,7 +15,10 @@
 --     windows reset, each with a slice pointed (the bubble shows);
 --   * the gesture (punch list 91, ZeD_WheelGesture.lua): tap, flick, cancels,
 --     swap, timeout, A X Y, aim and attack, bumpers, inner wheels, Select,
---     Stick click, Hold, Toggle mode, the dead zone, with D.qaStick.
+--     Stick click, Hold, Toggle mode, the dead zone, with D.qaStick;
+--   * the UI queue: a wheel stepped on the frame it opens, a game-filled wheel
+--     entered a frame after the open, the UI hidden with a wheel up; a spring-
+--     back frame, a pad at rest between the radii, the bumpers while paused.
 -- Run on the deep-run character (zedqa_deep_run.lua). grep "ZEDQA dw".
 local p = getPlayer()
 local pn = p:getPlayerNum()
@@ -759,7 +762,7 @@ step(5, function()
     D.tune.ENGAGE_RADIUS = false
     closeAll()
     local count = {}
-    for _, s in ipairs({ { "tap", "flick", false, 3 }, { "tap", "click", false, 3 }, { "hold", "flick", false, 4 }, { "tap", "flick", true, 4 } }) do
+    for _, s in ipairs({ { "tap", "flick", false, 3 }, { "tap", "click", false, 3 }, { "hold", "flick", false, 4 }, { "hold", "click", false, 5 }, { "tap", "flick", true, 4 } }) do
         fresh({ open = s[1], commit = s[2], toggle = s[3], deadZone = 0.35 })
         openDown()
         local prompts = D.state[pn].menu._zedPrompts
@@ -769,6 +772,156 @@ step(5, function()
         check(#prompts == s[4], "prompts for " .. s[1] .. ", " .. s[2] .. (s[3] and ", toggle" or ""))
         closeAll()
     end
+end)
+
+-- the UI queue: a wheel opened from OnRenderTick is stepped on that same frame, before the game has it in its UI list
+local coldTick
+step(5, function()
+    fresh({ open = "tap", commit = "flick", toggle = false, deadZone = 0.35 })
+    coldTick = function()
+        Events.OnRenderTick.Remove(coldTick)
+        ISDPadWheels.onDisplayLeft(JD)
+        check(D.state[pn] ~= nil, "cold open: the state is up")
+        check(not D.state[pn].menu:isReallyVisible(), "cold open: the wheel is still in the UI queue")
+        D.qaStep(pn)
+        check(D.state[pn] ~= nil, "cold open: a frame on the opening tick leaves it open")
+    end
+    Events.OnRenderTick.Add(coldTick)
+end)
+step(10, function()
+    check(D.state[pn] ~= nil and D.state[pn].menu:isReallyVisible(), "cold open: a few frames on it is on the screen, still working")
+    closeAll()
+end)
+
+-- a wheel on the screen for a frame or more, then a filler that behaves like the vehicle wheel's: it bails on a
+-- wheel it finds visible, and a removal does not count until the game's next update
+local filled = { name = "QA filled", fill = function(pl, n)
+    local m = getPlayerRadialMenu(n)
+    m:clear()
+    if m:isReallyVisible() then m:undisplay(); return end
+    m:addSlice("QA one", nil, function() end)
+end }
+step(5, function()
+    fresh({ open = "tap", commit = "flick", toggle = false, deadZone = 0.35 })
+    ISDPadWheels.onDisplayRight(JD)
+end)
+step(5, function()
+    D.enter(pn, filled)
+    local m = D.state[pn] and D.state[pn].menu
+    check(m and #m.slices == 2 and tostring(m.slices[1].text) == "QA one", "a filler a frame after the open fills the ring, Back after it")
+    closeAll()
+end)
+
+-- the UI hidden with a wheel up (the pause menu, Esc): the wheel ends and comes off the saved focus
+step(5, function()
+    fresh({ open = "tap", commit = "flick", toggle = false, deadZone = 0.35 })
+    openDown()
+end)
+step(5, function()
+    local m = D.state[pn].menu
+    D.qaStep(pn)
+    m:setVisible(false)
+    D.qaStep(pn)
+    check(D.state[pn] == nil, "the UI hidden: the wheel's state ends")
+    check(m:isVisible() and m._zedDpad == nil, "and the wheel is left visible for its next show, no dead state on it")
+end)
+step(5, function()
+    check(not getPlayerRadialMenu(pn):isReallyVisible(), "and it is off the screen")
+    closeAll()
+end)
+
+-- a spring-back frame above engage, far side of the highlight: the highlight stays, the slice taken is the one lit
+step(5, function()
+    fresh({ open = "tap", commit = "flick", toggle = false, deadZone = 0.35 })
+    openDown()
+    local n = #D.state[pn].menu.slices
+    point(2)
+    stick(at(2, n, 0.95))
+    stick(at(2, n, 0.40, 180))
+    check(D.gesture(pn).point == 2, "a spring-back frame on the far side: the highlight stays")
+    stick(at(2, n, 0.10, 180))
+    check(D.state[pn] == nil and p:isSneaking(), "and the slice taken is the lit one, never the opposite one")
+    p:setSneaking(false)
+    fresh(D.qaSettings)
+    openDown()
+    point(2)
+    stick(at(2, n, 0.9, 180))
+    check(D.gesture(pn).point == 2, "the far side: the first frame waits")
+    D.state[pn].farSince = getTimestampMs() - 100
+    stick(at(2, n, 0.9, 180))
+    check(D.gesture(pn).point ~= 2, "a stick that stays there moves it")
+    closeAll()
+end)
+
+-- a pad at rest between the radii
+step(5, function()
+    fresh({ open = "tap", commit = "flick", toggle = false, deadZone = 0.35 })
+    D.qaStick(pn, 0.25, 0)
+    openDown()
+    local n = #D.state[pn].menu.slices
+    stick(0.25, 0)
+    stick(at(2, n, 0.9))
+    check(D.gesture(pn).point == 2, "resting at 0.25 at the open: a push still picks")
+    stick(0.25, 0)
+    check(D.state[pn] ~= nil and D.gesture(pn).point == 2, "settling back at 0.25: not a let go, the slice stays lit")
+    D.state[pn].lastActive = getTimestampMs() - 3100
+    stick(0.25, 0)
+    check(D.state[pn] == nil and not p:isSneaking(), "left there for 3 seconds: it closes, nothing taken")
+    fresh(D.qaSettings)
+    openDown()
+    local idx
+    local name = ZeD.tr("UI_ZeD_Wheel_Zoom")
+    for i, e in ipairs(D.state[pn].path[1].entries) do if tostring(e.name):find(name, 1, true) then idx = i end end
+    point(idx)
+    stick(0, 0)
+    stick(0.25, 0)
+    stick(0.30, 0)
+    check(D.gesture(pn).needCenter, "a new ring: passing through the band is not centered")
+    D.state[pn].restSince = getTimestampMs() - 200
+    stick(0.25, 0)
+    check(not D.gesture(pn).needCenter, "sitting in it is")
+    closeAll()
+end)
+
+-- Stick click: a lit slice waits for the click, past the timer
+step(5, function()
+    fresh({ open = "tap", commit = "click", toggle = false, deadZone = 0.35 })
+    openDown()
+    point(2)
+    stick(0, 0)
+    D.state[pn].lastActive = getTimestampMs() - 3100
+    stick(0, 0)
+    check(D.state[pn] ~= nil and D.gesture(pn).point == 2, "Stick click: the timer leaves a lit slice")
+    closeAll()
+end)
+
+-- Toggle: the press that opens is not a move
+step(5, function()
+    fresh({ open = "tap", commit = "flick", toggle = true, deadZone = 0.35 })
+    D.tune.OPEN_DEBOUNCE_MS = 150
+    openDown()
+    press(Joypad.DPadDown)
+    check(D.gesture(pn).point == -1 or D.gesture(pn).point == nil, "Toggle: the opening press lights nothing")
+    D.state[pn].openedAt = getTimestampMs() - 200
+    press(Joypad.DPadDown)
+    check((D.gesture(pn).point or -1) > 0, "the next press does")
+    D.tune.OPEN_DEBOUNCE_MS = 0
+    closeAll()
+end)
+
+-- a bumper tapped on a paused wheel: it closes, the windows stay shut and the pad stays free
+step(5, function()
+    fresh({ open = "tap", commit = "flick", toggle = false, deadZone = 0.35 })
+    local F = ZeD.Input.Focus
+    F.releaseFocus()
+    setGameSpeed(0)
+    openDown()
+    check(D.state[pn] ~= nil, "paused: Here and now opens")
+    press(Joypad.LBumper)
+    release(Joypad.LBumper)
+    check(D.state[pn] == nil and F.getFocusedWindow() == nil, "paused: a bumper closes the wheel and no window takes the pad")
+    setGameSpeed(1)
+    closeAll()
 end)
 step(5, function()
     closeAll()
