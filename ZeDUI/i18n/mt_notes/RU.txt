@@ -16,3 +16,15 @@ Hair colour words (Тёмный шатен, Рыжеватый) and the genetics
 Proofread (Fable, 132 fixes) left for a checker: Farming skill = Земледелие (the game may say Фермерство); Papers
 tab Бумаги; "отошёл в сторону" for Safe mode; Допы for taxi Extras; Отбеливатель / Электронный лом / Точильный
 камень; "Создать игру" for Host; ЗВОНОК for the watch alarm; the full-month date order.
+
+Beta 6 words (Nov 6 2026):
+Form of address: formal "вы", as the game. Ticket = билет (game word); staff = администрация; admin = админ.
+Wheel = колесо; slice = сектор; card = карточка; drawer = ящик; belt = ремень (as earlier drafts); Full = Полная; Simple = Простая.
+Vehicle claim = заявка / "занять" (a car "Занял %1"); safehouse claim = "занять"; check these read as one idea.
+Capabilities = права. Warning points = очки предупреждений. Kick = выгнать (game's word); Ban = бан/забанить.
+Log lines are verb phrases in past tense, masculine ("убил %1"); gender of the actor is not known.
+Spawn items = Создать предметы (not the game's "спавн"). Grief = грифинг, Bug = Баг (loan words).
+God Mode, No Clip left in English (game's own debug terms); LootZed kept.
+Singular count lines (%1 запись, %1 правило) are singular-only variants; plural lines use "Записей: %1" patterns.
+License card labels are capitals without Ё; "№ ПРАВ" for DL NO, "СРОК" for EXP.
+Most doubtful: "Освободить/Распустить/Выйти" for Release/Disband/Leave/Quit; "Мёртвая зона стика"; "Заглушить/Вернуть речь" for mute/unmute.

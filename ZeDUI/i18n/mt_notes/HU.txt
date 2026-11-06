@@ -12,3 +12,16 @@ Pixel-face capitals use accents (the ext glyph set has Á É Ő Ű).
 Action bar verbs are verbal nouns (EVÉS, IVÁS); a few shortened to fit 14 (CSALI FELRAKÁS, PALACK KIVÉTEL).
 "Help line" phrases "With %1 you could %2" = "%1 esetén %2." with the %2 parts as -hat/-het forms.
 Sandbox/mod-manager texts were long: a native pass over 2931-3064 and 3951-4205 would help most.
+
+Beta 6 words (Nov 6 2026):
+Hungarian (HU) b6 notes. Informal "te", as the game. Names are not suffixed: log lines use "verb: %1" (megolte: %1) to avoid case endings.
+ticket = jegy (game's Jegyek); report from chat = jelentes; staff = stab / adminok; admin, moderator kept; Ask the admins = Kerdezd az adminokat.
+Kick = Kirugas; ban = kitiltas, unban = feloldas (Feloldas); mute = nemit; role = szerepkor; capability = jogosultsag; power = kepesseg.
+safehouse = menedekhaz (game: Menedekhaz / Vedett Haz); faction = frakcio; war = haboru; claim = lefoglal / foglalas; Release = Elengedes.
+wheel = kormenu (Tap = Koppintas, Hold = Tartas, Flick-release = Poccintes elengedessel, Stick click = Karkattintas); belt = ov.
+Identity card: Immersive = Teljes, Simple = Sima; licence labels shortened (ENG. SZ., FOGLALK., ARCSZOR).
+Spawn = "elohivas" (items, zombies, vehicles): no game word (game's Spawn = Ujraeledes means respawn); respawn in safehouse = ujraeles.
+Line 90/91 date order year. month day. assuming %1 = month, %2 = day, %3 = year.
+Line 918 hotwired = "rovidre zarta"; 1101 prefix "Ugy: %1: " is a guess (unsure what it precedes).
+Heading/limit shortenings: Szerepkor-lista (621), Szerepkor-szerk. (662), 1 figyelm. (256), Jegyzet hozza (186).
+Counts: "%1 nyitott", "%1 jatekos" with a number need no plural ending in Hungarian.

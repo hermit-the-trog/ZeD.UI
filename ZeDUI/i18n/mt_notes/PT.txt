@@ -10,3 +10,14 @@ Weekday chips (SX SG SA DO QI TE QA) were left as in PTBR; SA for sábado may wa
 Cruise "Piloto" and 2-way "rádios de comunicação" left as in PTBR; Meter (taxi) left "Medidor" (limit).
 Presets kept as "Presets" at 14 letters (Predefinições does not fit); "Link" kept as the loanword.
 Chip texts near their limit (CORT. CABELO, A VER ARMAD., REM. REMENDO, Cast. escuro, Transf. na fila) are the ones to eyeball on screen.
+
+Beta 6 words (Nov 6 2026):
+PT-PT adapted from PTBR; informal "tu" (Escolhe, Marca, Espera); gerunds -> "A + infinitivo" (A perguntar, A ir para).
+Game words kept: Asilo (safehouse), Função (role), Fação, Bilhete (ticket), Apagar, Titular (owner), Mosaicos (tiles), Jogo Aberto (sandbox).
+Staff = equipa; cheats = "Batota"; skills = Competências; stick = manípulo; D-pad kept as "D-pad"; tab = separador; screen = ecrã.
+Claim = Reivindicar / Libertar (release); Take a ticket = Levar; Warning points = Pontos de aviso; Capability = capacidade.
+Faction tag = "etiqueta" in sentences, TAG on the chip; "post" kept as loanword (Publicar for the button).
+Log kept as "Log" where the limit is tight; Registo elsewhere.
+Licence card: Licença de porte, CARTA Nº, VAL., EMIS.
+Log lines are past-tense phrases after a name; 976 reads "o banimento de %1 acabou".
+Tight: 344 "Ver todas", 575/576 "Ir até um jogador / um local", 970 "deu voz a %1".

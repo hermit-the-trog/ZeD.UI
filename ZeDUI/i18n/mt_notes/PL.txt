@@ -12,3 +12,15 @@ Line 1408 (About text): kept the run-on and typos in Polish (jondro, zlamiecie);
 Line 2155/2156 radio brand bar: "* RADIO BAZOWE 2-WAY"; 2157 TX OK = NAD OK.
 Moodle kept as "moodle" (the game's PL uses it in options).
 Formal address is not used: the game's PL speaks to the player with "ty" forms (Weź, Zapisz).
+
+Beta 6 words (Nov 6 2026):
+Form of address: informal "ty", as the game (Wybierz, Napisz). Ticket = Ticket / Tickety (game word, left uninflected).
+Safehouse = Schronienie (game); faction = Frakcja; admin = admin; staff = administracja; kick = wyrzuć; ban = zbanuj.
+Wheel = koło; slice = wycinek; belt = pasek; card = karta; Full = Pełny/Pełna; Simple = Prosty (as earlier drafts).
+Vehicle claim = Zajmij / zajęcie (cars: "Zajął: %1"); safehouse claim also "zająć", one verb for both on purpose.
+Role names after "rolę:" and in colon patterns to avoid inflecting names ("Zmienić rolę %1 na: %2?").
+Capabilities = uprawnienia. Warning points = punkty ostrzeżeń. Spawn items = Twórz przedmioty / Stwórz (game: Stwórz).
+Log lines are past-tense masculine verb phrases ("zabił: %1"); the actor's gender is unknown.
+God Mode, No Clip left in English; LootZed kept. Grifing and Błąd (Bug) chosen as the player-facing words.
+Singular count lines (%1 wpis, %1 zasada) are singular-only variants; plurals use "Wpisów: %1" patterns.
+Most doubtful: "Odwołanie" for Appeal, "Newsy" for News, "Zwolnij" for Release (claim), "Utknięcie" for Stuck.

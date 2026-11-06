@@ -12,3 +12,15 @@ Finnish (FI) notes for the native checker
 11. Date lines use "%2. %1 %3, %4" with a short month, no case endings.
 12. Shortened for limits: Heikko hedelm., Latausjärj., Karttajärj., Päivitä (for Reload), Seur. lataus, Käsiv., Vedenkest., Seur. taso.
 13. Doubtful: Hinaaja / Hinaa (Towed by / Towing), Kehä (circular rule), "mukaan siirretty" (carried, mod manager pins), Ruudukko for Grid.
+
+Beta 6 words (Nov 6 2026):
+Finnish (FI) b6 notes. Imperative / informal, as the game's FI menus. Names and numbers carry no case endings: log lines use "verbed: %1".
+ticket = lippu (game's Liput); report from chat = ilmoitus; staff = ylläpito; "admin" used throughout (game's word Järjestelmänvalvoja is too long for tags and buttons).
+ban = kielto (verb: estä, Estetty); Unban = Poista kielto; Kick = Potkaise; mute = mykistä; role = rooli; capability = oikeus; power = valtuus.
+safehouse = turvatalo; faction = fraktio; war = sota; claim = varaa / varaus; Release = Vapauta; owner = omistaja.
+Wheel = pyörä (Tap = Napautus, Hold = Pito, Flick-release = Näpäytys ja vapautus, Stick click = Sauvan painallus); slice = lohko; belt = vyö; card = kortti.
+Identity card: Immersive = Täysi, Simple = Yksinkertainen; licence labels shortened (AJOK. NRO, MYÖNNETTY).
+Spawn = Luo (game's word); item = esine; container = säilö; Admin chat = Admin-chat.
+Line 90/91 date order "%2. %1 %3" assuming %1 = month, %2 = day.
+Doubtful: 918 hotwired = "oikosulki"; 1101 "Aiheesta %1: " (unsure what it precedes); 970 "vapautti: %1" (unmute) vs 975 "poisti eston: %1" (unban).
+Casing: 790/791 offline/online = poissa / paikalla; 771 "Pelaajan %1 pitää olla paikalla." avoids a case ending on a name.

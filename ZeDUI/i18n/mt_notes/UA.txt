@@ -16,3 +16,15 @@ Unsure: dash/appliance labels in pack 2 and 3 (lines 607-648, 1198-1244) had no 
 Proofread (Fable, 162 fixes) left for a checker: Повний / Простий / Докладний do not agree with the feminine Панель
 дій; Значки стану for moodles; Клітки for hutches; Кадастр for Survey; зерно for the world seed; "%1 помер(-ла)";
 pixel-face РУХ СКЛА and the microwave Сер-вис / Сер-низ.
+
+Beta 6 words (Nov 6 2026):
+Form of address: formal "Ви" where needed, mostly impersonal. Ticket = Повідомлення (the game's own word; check it does not read as chat message).
+Safehouse = Прихисток (game); faction = Фракція; admin = адмін; staff = адміністрація; kick = вигнати; ban = забанити/бан.
+Wheel = колесо; slice = сектор; belt = пояс; card = картка; Full = Повна; Simple = Проста (as earlier drafts).
+Vehicle claim = закріплення / "закріпив"; safehouse claim = "зайняти" (two verbs on purpose).
+Capabilities = права. Warning points = бали попереджень. Spawn items = Створити предмети.
+Log lines are past-tense masculine verb phrases ("вбив %1"); the actor's gender is unknown.
+God Mode, No Clip left in English; LootZed kept. Грифінг and Баг are loan words.
+Singular count lines (%1 запис, %1 правило) are singular-only variants; plurals use "Записів: %1" patterns.
+License card labels in capitals: "№ ПОСВІД." for DL NO, "ДІЙСНЕ ДО" for EXP.
+Most doubtful: Повідомлення for tickets; "Закріпити" for vehicle Claim; "Заглушити / Повернути мову" for mute/unmute.

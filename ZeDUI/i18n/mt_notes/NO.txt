@@ -11,3 +11,13 @@ Male/female badges (378/379) = Hu / Ha because the limit is 2 letters and H woul
 Menu title "Settings" = Oppsett (limit 12); Options screen = Alternativer; ZeD setup = ZeD-oppsett.
 The About-block rant (1408) keeps lower-case sentences and a few misspellings (kjærne) on purpose.
 "Hastighet | %1x" (456) sits right at the 14 limit; Fart would be safer if it clips.
+
+Beta 6 words (Nov 6 2026):
+Ticket = Billett (game word); staff = staben; admin/moderator kept as in game; kick = kaste ut / Kast ut; ban = Utesteng (game).
+Safehouse = tilfluktshus (game); faction = fraksjon; claim (car/safehouse) = kreve / Krev.
+Spawn = Generer (game); Spawn items shortened to "Generer ting" (limit 17).
+Wheel toggle mode = Hjul-vekslemodus; wheel slice = felt; stick = spak; Chat = nettprat (game).
+Log lines are verb phrases after a name (kastet ut, la til, genererte ...); 910 "%2 på %1" and 911 "en %1" guess gender.
+Cheats named "juks" (Dyrkingsjuks, Byggjuksmodus); Warning points = advarselspoeng.
+Appeal = Anke; Griefing = Hærverk; Bug = Feil; Unmute (1012) "%1 uten demping" is clumsy.
+Kicks count (300) = "Utkast" - check.

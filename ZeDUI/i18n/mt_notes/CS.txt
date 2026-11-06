@@ -12,3 +12,16 @@ The About paragraph (line 1408) is a deliberately rough draft with misspellings 
 Setting names inside Sandbox help text use the game's own CS names (Hodiny do obnovy koristi, Mesice od apokalypsy, ...).
 Dates: month abbreviations lower case (dub, srp, ...); date order changed to day. month year.
 Line 342 keeps its leading "| " exactly as the English has it.
+
+Beta 6 words (Nov 6 2026):
+Czech (CS) b6 notes. Informal address (tykani), as in earlier drafts. Written with full diacritics, UTF-8.
+ticket = hlaseni (game's "Hlaseni pro admina"); report from chat = nahlaseni; staff = sprava / admini; admin and moderator kept.
+claim (vehicle, safehouse) = zabrat / zabor; Release = Uvolnit; Keep = Udrzet / Ponechat.
+safehouse = ukryt (game also has Bezpecny dum); faction = frakce; war = valka; wheel = kolo; belt = pasek.
+Powers (God Mode etc.) = pravomoci; capability = opravneni; Kick = Vyhodit; ban kept: Zabanovat / Odbanovat / Bany.
+Log lines use masculine past tense after the name ("zabil %1", "vzal dily"): gender-neutral form was not possible.
+Line 918 hotwired = "nastartoval %1" (hotwire lost for the 17-char limit); 910 "%2 hrace %1" assumes %1 = owner, %2 = thing.
+Line 90/91 date order set to "%2. %1 %3" assuming %1 = month, %2 = day.
+Action wheel: Tap = Klepnuti, Hold = Drzeni, Flick-release = Svih a pustit, Stick click = Stisk packy.
+Traits kept as "traity" (line 350). Immersive = Plna on the Identity card.
+Counts: where %1 can be 1, 2 or 5 I used "Label: %1" forms (Hracu: %1, Otevreno: %1); seconds as "%1 s".

@@ -10,3 +10,15 @@ Weekday LCD pairs are DL DM DC DJ DV DS DG; compass W = O, NW = NO, SW = SO (Cat
 Action bar uses gerunds, capitals with accents (pixel face has them); some shortened to fit 14: AFEGINT COMB., COMPR. TRAMPA, TREIENT TANC.
 Item 1408 (the prepper's draft) written with dropped accents and a run-on on purpose, as the English keeps its slips.
 Dash lines 657 keep "D-pad" (English does).
+
+Beta 6 words (Nov 6 2026):
+Address: tu, standard Catalan (not the game's Valencian forms: "aquest", "teu", "vénen").
+Kept: cinturó (belt), fitxa (card), roda (wheel), Simple. Immersive (new English word for Full) = Immersiu; check against Complet.
+Kick = Expulsar; ban = Vetar / veto (game word), unban = Desvetar; mute = Silenciar / Deixar parlar.
+Claim (car, safehouse) = Reclamar / reclamació; safehouse = Refugi; owner = Propietari; faction = Facció; tag kept as "tag".
+Ticket = Tíquet (game word); Griefing = Vandalisme; Appeal = Apel·lació; Bug = Error; spam = Brossa.
+News post = anunci, News = Notícies; Spawn = Generar; Whitelist kept in English as in earlier drafts; Log = Registre.
+License card labels (24-41) use abbreviations: CAD, EXPED, SOBREV, PREF, PROF; check they read as printed labels.
+Log lines are perfect-tense phrases after a name; refusals "se li ha rebutjat conduir ...". Teleport "a %1" = to that player.
+Gender of %1 car/part unknown: "un %1", "(tancat)". Line 760 assumes %2 is the faction's name.
+Line 797 "Prop.:" and 498 "agafar peces" are terse; 1012 "%1 pot parlar." for unmute.

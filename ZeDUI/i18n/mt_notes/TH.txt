@@ -16,3 +16,15 @@ Address form: plain คุณ, no ครับ/ค่ะ.
 Proofread (Fable, 166 fixes) left for a checker: F / M as ม / ผ (limit 2); the Fuel tag ฟืน (6) vs เชื้อเพลิง (8);
 stubble ตอเครา / ตอผม; erosion ความรกร้าง; dashboard Signal สัญญาณ (may be the turn signal); the Loot tab หยิบของ;
 the doll view ตุ๊กตา; the LCD weekday codes.
+
+Beta 6 words (Nov 6 2026):
+TH b6 notes: plain คุณ, no ครับ/ค่ะ. Kept earlier terms: เข็มขัด (belt), การ์ด, วงล้อ, แบบเต็ม / แบบง่าย.
+Immersive = แบบสมจริง (new, distinct from แบบเต็ม). Ticket = คำร้อง (game's word); staff = ทีมงาน; admin = แอดมิน; role = บทบาท; capability = สิทธิ์.
+Open/Seen/Answered/Closed = เปิดอยู่/เห็นแล้ว/ตอบแล้ว/ปิดแล้ว; Take it = รับเรื่อง (Taken by = รับเรื่องโดย).
+Claim (car and safehouse) = จอง / จับจอง; Release = ปล่อย. Check this reads well for a safehouse.
+Ban = แบน (game's word), Kick = เตะ, Mute = ปิดเสียง, Griefing = ป่วนเกม, Appeal = อุทธรณ์.
+Wheel slice = ช่อง; Flick-release = ดีดแล้วปล่อย; Stick click = กดสติ๊ก; dead zone = เดดโซน.
+Log lines are bare verb phrases after a name (kills = ฆ่า, hotwired = ต่อสายติด, claimed = จอง).
+Dates written day, month, year (%2 %1 %3); AM / PM kept in English as in the main menu clock.
+Licence labels: KILLS = สังหาร, FAV = ชอบ, ISS = ออกเมื่อ, STYLE = ทรง (pixel face widths).
+Unsure: God Mode = โหมดพระเจ้า, No Clip = ทะลุสิ่งกีดขวาง, Invincible = อมตะ, News = ข่าว, LootZed kept in English.

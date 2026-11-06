@@ -15,3 +15,15 @@ Place names: Knox Country = 녹스 카운티, Kentucky = 켄터키.
 Proofread (Fable, 186 fixes) left for a checker: foraging Search is 검색 in places and 탐색 in others (match the
 game's word); Combination Padlock = 숫자 자물쇠 while the code is 번호; the trait "ladder" is 단계, the same word as
 level; Restless = 안절부절 and Weak birth = 약한 출산 are weak badge names.
+
+Beta 6 words (Nov 6 2026):
+KO b6 notes: sentences in 합니다 (instructions 하십시오), buttons as noun forms; particles written (이)가 / 을(를) / (으)로.
+Kept earlier terms: 휠, 카드, 벨트, 서랍, 실물 / 간단; Immersive = 몰입형 (new, distinct from 실물).
+Ban = 차단 (the game's 영구 추방 means permanent, wrong for timed bans); permanent = 영구 차단. Kick = 추방 (game's word).
+Ticket = 티켓; Open/Seen/Answered/Closed = 열림/확인됨/답변됨/닫힘; Take it = 맡기 (Taken by = 담당).
+Claim: cars = 등록 (해제), safehouse = 설정 (the game's own 은신처 설정) / 해제. Check these read right.
+Staff = 스태프; admin = 관리자; capability = 권한; moderator = 운영자; wheel slice = 칸; Griefing = 그리핑.
+Log lines end in -습니다 past forms after a name (kills = 처치했습니다, hotwired = 시동을 직결했습니다).
+Dates %3년 %1 %2일; clock written 오전 / 오후 first.
+Licence labels: FAV = 즐겨찾기, ISS = 발급, KILLS = 처치 (pixel face may lack Hangul).
+Unsure: 소식 for News, 오늘의 메시지 for message of the day, 갓 모드 / 노클립 for admin powers, LootZed kept in English.
