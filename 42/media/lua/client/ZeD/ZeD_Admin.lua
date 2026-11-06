@@ -126,8 +126,12 @@ function M.roleWith(capName)
     return nil
 end
 
+-- (a capability a later game added has no words yet: its own name)
 function M.capWord(name)
-    return getTextOrNull and getTextOrNull("UI_ZeD_Cap_" .. name) or tr("UI_ZeD_Cap_" .. name)
+    local key = "UI_ZeD_Cap_" .. name
+    local s = tr(key)
+    if s == key then return name end
+    return s
 end
 
 -- what a grayed control says: the capability it needs, and the role that has it
@@ -353,7 +357,7 @@ function M.skill(user, perk, dir, cb)
 end
 
 function M.loadCard(user, force)
-    if M.qaHold or not M.live() then return end
+    if M.qaHold or not M.live() or not M.can("CanSeePlayersStats") then return end
     local t = now()
     if not force and M.cardAskAt and M.cardAskUser == user and t - M.cardAskAt < 3000 then return end
     M.cardAskAt, M.cardAskUser = t, user
