@@ -115,9 +115,9 @@ the Full or simple group.
 ### On a controller
 
 Every mouse action has a button. **A** is a left click, **X** a right click and **B** backs out. With no window
-open, hold a **D-pad** direction for a wheel: Left for Character, Right for World, Up for Social, Down for Here and
-now. Point with the right stick and let go to take. Hold **LB** or **RB** and press another button for one of twelve
-quick actions you set in ZeD setup.
+open, tap a **D-pad** direction for a wheel: Left for Character, Right for World, Up for Social, Down for Here and
+now. The left stick keeps walking. Point with the right stick and let go to take; the same direction or **B** closes
+it. Hold **LB** or **RB** and press another button for one of twelve quick actions you set in ZeD setup.
 
 ---
 

@@ -180,7 +180,11 @@ G.ZED_GROUPS = {
         { "restock", "radio", needs = "loadouts", needsWhy = "UI_ZeD_Options_NeedsLoadouts" } } },
     { "UI_ZeD_Options_ZedWindows", { { "inventoryView", "radio" }, { "charAccent", "swatch" }, { "worldAccent", "swatch" }, { "hiddenActions" } } },
     { "UI_ZeD_Options_ZedHud", { { "moodlePlace", "radio", short = { "UI_ZeD_Options_MoodlesRight", "UI_ZeD_Options_MoodlesLeft", "UI_ZeD_Options_MoodlesBottom" } }, { "watchPlace", "radio" } } },
-    { "UI_ZeD_Options_ZedControls", { { "focusStyle" }, { "glyphDisplay" }, { "inputModeLock" } } },
+    -- (punch list 91: how the wheels are worked; Toggle mode overrides open and commit, so they dim while it is on)
+    { "UI_ZeD_Options_ZedControls", { { "focusStyle" }, { "glyphDisplay" }, { "inputModeLock" },
+        { "wheelOpen", "radio", needsNot = "wheelToggle", needsWhy = "UI_ZeD_Options_NeedsNoToggle" },
+        { "wheelCommit", "radio", needsNot = "wheelToggle", needsWhy = "UI_ZeD_Options_NeedsNoToggle" },
+        { "wheelToggle", "onoff" }, { "wheelDeadZone", "scale" } } },
     -- (Oct 24 2026, mockup zed_quick_chords_v1: the twelve chords, ZeD_QuickChords; not ModOptions: rows of their own)
     { "UI_ZeD_Options_ZedChords", {}, chords = true },
     -- (director, Nov 2 2026, punch list 55: one screen at a time steps aside, under Safe mode and read as it is:
@@ -325,7 +329,7 @@ function G.build(pages, rowsOf)
             local c = zrow[e[1]]
             if c and not placed[e[1]] then
                 c.zedStyle, c.under, c.zedShort = e[2], e.under, e.short
-                c.zedNeeds, c.zedNeedsWhy = e.needs, e.needsWhy
+                c.zedNeeds, c.zedNeedsWhy, c.zedNeedsNot = e.needs, e.needsWhy, e.needsNot
                 list[#list + 1] = c
                 placed[e[1]] = true
             end
