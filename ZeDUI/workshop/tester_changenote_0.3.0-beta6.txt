@@ -1,0 +1,30 @@
+0.3.0-beta6: multiplayer and admin tools in ZeD's own cards, a server part, new radial wheels on the controller and a new Identity tab.
+
+Multiplayer
+- ZeD now runs on the server too, official Lua only. A server without it falls back to the game's own windows.
+- Tickets: Ask the admins from the Server tab, with a kind, your place and a reply thread. Staff get a queue, notes the player never sees, Take it, Spam and Close. Reports stay private: the game's own list holds only a stub.
+- Admin tab: one Players list, the Player card (kick, ban, warning points, role, skills), Roles as ticks, Bans, Spawn items and repeating server messages. Every grayed control says why.
+- Timed bans lift themselves on time. A ban's reason reaches the banned player.
+- Safehouses, factions and wars live in cards. Can I claim this? gives the game's exact reason. Names are typed in the card. Invitations wait as a note in the Server tab.
+- The Log card: admin, safehouse, faction, vehicle, PvP and ticket lines, with Go there and "around this ticket".
+- Rules and the message of the day on joining, with I agree. News in the Server tab. The appeal line on the ban and kick screen.
+- In chat, pick a line to report it or mute that player for yourself.
+- Server extras, all off by default: vehicle claims, safehouse protection, staff map teleport and a container log. Each card says what it can't stop.
+
+Controller
+- The wheels open with a tap. The left stick keeps walking, the right stick picks by angle, and letting go of the stick takes the slice. The same direction or B cancels.
+- New settings in ZeD setup, Controls: Wheel open (Tap or Hold), Wheel commit (Flick-release or Stick click), Wheel toggle mode and Wheel stick dead zone.
+- Toggle mode needs no held input and no stick: tap to open, D-pad to move, A to confirm, B to close.
+
+Identity
+- The Identity tab is redrawn: Immersive (the license) and Simple, wide and narrow. Pick one in ZeD setup, Look.
+- Your weight is as large as your name, with + gaining, ++ gaining fast and - losing.
+- Some professions carry a concealed carry permit. One has it revoked.
+
+Fixes
+- Both male and female skeletons have had their elbows surgically repaired. Both are expected to make full recoveries.
+- American spelling in the last few lines that didn't have it.
+- On an 8-slice wheel, slice 8 and half of slice 7 could read as nothing, for the stick and the mouse.
+
+Known issues
+- The join rules and timed bans are enforced by the player's own game, so a modified game can get past them.
