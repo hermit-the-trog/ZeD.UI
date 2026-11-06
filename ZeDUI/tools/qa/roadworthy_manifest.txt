@@ -1,0 +1,3 @@
+# ZeDUI/tools/qa/roadworthy_manifest.txt  (Nov 6 2026)
+# ZeD's dash reading Vehicle Kit Library and Roadworthy: zedqa_mods_run.ps1 -ModList roadworthy_mods.txt -Mode fullscreen4k -Manifest .../roadworthy_manifest.txt
+zedqa_roadworthy.lua | rw | timeout=300                   # needles, LCD, hot lamp amber to red to blinking, stall, Simple's list, a provider that throws

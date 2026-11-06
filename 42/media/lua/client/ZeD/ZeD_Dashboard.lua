@@ -302,17 +302,20 @@ end
 
 -- The values the parts read (ZeDUI/tools/dashpx/live.py derives the same for the previews).
 function D.derive(st, mem, dtMs)
-    local live = st.running or st.keysIn or st.hotwired
+    -- (st.pub: what a mod on Vehicle Kit Library publishes, ModSupport/VSKDash.lua; nil, every value is ZeD's own. Its
+    -- lamps, gear and odometer come after the design is known, D.applyPublished)
+    local pub = st.pub
+    local live = st.running or st.keysIn or st.hotwired or (pub and pub.stalled)
     local batt = st.battRaw or 0
     st.power = (live and batt > 0.02) and true or false
     local v = {}
-    v.speed_kmh = st.power and st.speed or 0
+    v.speed_kmh = st.power and st.speed * (pub and pub.speedK or 1) or 0
     v.speed_mph = v.speed_kmh * 0.6214
     v.rpm   = st.running and st.rpmRaw or 0
     v.fuel  = st.power and clamp01(st.fuelRaw) or 0
     v.batt  = st.power and clamp01(batt) or 0
-    v.temp  = st.running and (st.engWarn and 0.82 or 0.5) or (st.power and 0.12 or 0)
-    v.oil   = st.running and (0.45 + 0.35 * math.min(1, v.rpm / 6000)) or 0
+    v.temp  = pub and pub.temp or (st.running and (st.engWarn and 0.82 or 0.5) or (st.power and 0.12 or 0))
+    v.oil   = pub and pub.oil or (st.running and (0.45 + 0.35 * math.min(1, v.rpm / 6000)) or 0)
     v.volts = st.power and (st.running and 0.75 or (0.35 + 0.25 * batt)) or 0
     v.tempF = clamp01(((st.heaterTemp or 0) + 25) / 50)
     v.fanF  = (st.fan or 0) / 3
@@ -1011,7 +1014,8 @@ end
 --   heading   the car's name (Passenger at the right for a passenger)
 --   readouts  speed and RPM in large type over their bars; fuel, temperature, oil and volts as bars; gear,
 --             odometer, clock and the climate; in the taxi the fare and the extras
---   lamps     the warning lamps this car's dash has, as status dots with their names
+--   lamps     the warning lamps this car's dash has, as status dots with their names, then every lamp a mod publishes
+--             that has no dot here (ModSupport/VSKDash.lua; its readouts get a row of their own)
 --   controls  rows of plain buttons: the car and the climate (each in the plate's left-to-right order), then the
 --             fitted radio (its face's order) with its display as words before them
 -- Every button carries the plate's own control id (ZeD_Dashboard:_plainControl -> _element), so a click, the right
@@ -1033,6 +1037,7 @@ ZeD.trDefaults({
     UI_ZeD_DashPlain_Cruise = "Cruise", UI_ZeD_DashPlain_Meter = "Meter", UI_ZeD_DashPlain_AshTray = "Ash tray",
     UI_ZeD_DashPlain_SetTemp = "Temp", UI_ZeD_DashPlain_Fan = "Fan", UI_ZeD_DashPlain_Tune = "Tune", UI_ZeD_DashPlain_Power = "Power",
     UI_ZeD_DashPlain_Signal = "Signal", UI_ZeD_DashPlain_Disc = "Disc in", UI_ZeD_DashPlain_Lights = "Lights",
+    UI_ZeD_DashPlain_Trip = "Trip", UI_ZeD_DashPlain_Readouts = "Readouts",
 })
 
 local PLAIN_W, PLAIN_PAD, PLAIN_GAP, PLAIN_BIG_W, PLAIN_ROW_W, PLAIN_BIG_SEGS = 800, 8, 6, 120, 64, 12
@@ -1088,16 +1093,55 @@ local function _plainPlan(des)
     local has, sp, rp = {}, false, false
     for _, p in ipairs(des.parts or {}) do
         if p.t == "lamp" and p.src then has[p.src] = true end
+        if p.t == "gear" then pl.gearLetters = p.letters end
         if (p.t == "needle" or p.t == "ribbon") and p.max then
             if p.src == "speed_mph" and not sp then pl.speedMax, sp = p.max, true
             elseif p.src == "rpm" and not rp then pl.rpmMax, rp = p.max, true end
         end
     end
     for _, src in ipairs(LAMP_ORDER) do if has[src] then pl.lamps[#pl.lamps + 1] = src end end
+    pl.has = has
     des._plainPlan = pl
     return pl
 end
 D._plainPlan = _plainPlan   -- (QA probes)
+
+-- a published lamp's state this frame, as the plate's lamps take it: amber or red as published, dark in a blink's dark
+-- half, true (the lamp's own color) for an indicator that is on with nothing wrong
+local function _pubState(l, phase)
+    if l.blink and phase == 1 then return false end
+    if l.rank >= 3 then return D.LAMP_COLOR.poor end
+    if l.rank >= 2 then return D.LAMP_COLOR.worn end
+    return true
+end
+
+-- what a mod published onto this design's parts (ModSupport/VSKDash.lua), run over ZeD's own reading: a lit lamp takes
+-- the plate's lamp, a dark one leaves ZeD's own (Roadworthy's charge lamp knows nothing of a flat battery). A lamp this
+-- plate has no spot for lights nothing here (V.BORROW_UNPAINTED) and is listed on the simple strip. The gear letter
+-- moves only to a letter the plate has. The LCD holds four figures: it rolls over like the number it replaces.
+function D.applyPublished(st, pub, des)
+    local pl = _plainPlan(des)
+    local phase = clockStep(getTimestampMs(), D.BLINK_MS, 2)
+    for src, l in pairs(pub.lamps) do st[src] = _pubState(l, phase) end
+    local worst = nil
+    for _, e in ipairs(pub.list) do
+        e.state = e.on and _pubState(e, phase) or false
+        if e.on and not (e.role and pl.has[e.role]) and (not worst or e.rank > worst.rank) then worst = e end
+    end
+    local V = ZeD.ModSupport.VSKDash
+    if worst and V.BORROW_UNPAINTED then
+        local src = pl.has.engLamp and "engLamp" or (pl.has.genLamp and "genLamp" or nil)
+        if src and not pub.lamps[src] then st[src] = worst.state end
+    end
+    st.gearPub = pub.gear
+    st.gearSel = V.gearLetter(pl.gearLetters, pub.gear) or st.gearSel
+    if pub.odoMiles then
+        local miles = math.floor(pub.odoMiles)
+        st.odoMiles = miles
+        st.odo = miles - math.floor(miles / 10000) * 10000
+    end
+    st.tripMiles = pub.tripMiles
+end
 
 local function _pair(a, b) return ZeD.tr("UI_ZeD_DashPlain_Pair", a, b) end
 
@@ -1226,14 +1270,15 @@ local function _plainCells(st, pl, out)
     local T = ZeD.T
     local n = 0
     n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Fuel"), st.power and _pct((st.fuel or 0) * 100) or "--", st.fuel or 0, st.fuelLamp and T.danger or T.accent)
-    n = _cell(out, n, ZeD.tr("IGUI_Temperature"), nil, st.temp or 0, st.tempLamp and T.danger or T.accent)
+    n = _cell(out, n, ZeD.tr("IGUI_Temperature"), nil, st.temp or 0, (st.tempLamp == D.LAMP_COLOR.worn) and T.warning or (st.tempLamp and T.danger or T.accent))
     n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Oil"), nil, st.oil or 0, T.accent)
     n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Volts"), nil, st.volts or 0, T.accent)
     local g = tostring(st.gear or "")
     local gear = st.gearSel or ""
     if gear == "D" and st.running and g:match("^%d$") then gear = gear .. " " .. g end
-    n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Gear"), gear)
-    n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Odometer"), ZeD.tr("UI_ZeD_DashPlain_Miles", tostring(st.odo or 0)))
+    n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Gear"), st.gearPub or gear)
+    n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Odometer"), ZeD.tr("UI_ZeD_DashPlain_Miles", tostring(st.odoMiles or st.odo or 0)))
+    if st.tripMiles then n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Trip"), ZeD.tr("UI_ZeD_DashPlain_Miles", string.format("%.1f", st.tripMiles))) end
     n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Clock"), _clockText(st))
     if st.hasHeater then n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Climate"), _climateText(st)) end
     if pl.meter then
@@ -1396,15 +1441,16 @@ function ZeD_Dashboard:_plainLamps(items, st, zones)
     local fh2 = ZeD.TM:getFontHeight(T.fontF2)
     local tc = T.text
     for _, it in ipairs(items) do
-        local v = st[it.src]
+        local v = nil
+        if it.pub then v = it.pub.state else v = st[it.src] end
         local col = nil
         if type(v) == "string" then col = (v == D.LAMP_COLOR.worn) and T.warning or T.danger
-        elseif v then col = T[LAMP_TOKEN[it.src] or "danger"] end
+        elseif v then col = it.pub and T.info or T[LAMP_TOKEN[it.src] or "danger"] end
         local dy = it.y + math.floor((fh2 - ds) / 2)
         if col then ZeD.Atoms.drawStatusDot(self, it.x, dy, col, ds)
         else ZeD.Atoms.drawStatusHollow(self, it.x, dy, T.textDim, ds) end
         self:drawText(it.text, it.x + ds + px(4), it.y, tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
-        local zid = PLAIN_LAMP_ZONE[it.src]
+        local zid = it.src and PLAIN_LAMP_ZONE[it.src]
         if zid then zones[#zones + 1] = { id = zid, x = it.x, y = it.y, w = it.w, h = fh2 } end
     end
 end
@@ -1455,9 +1501,19 @@ function ZeD_Dashboard:_plain(des, st, k)
     -- the rows below the readouts, laid out first: their wrapping sets the strip's height
     local y = pad + fh1 + gap + readH + gap
     local lamps = {}
+    local pub = st.pub
     for _, src in ipairs(pl.lamps) do
-        local text = ZeD.tr(LAMP_WORD[src])
+        local lit = pub and pub.lamps[src]
+        local text = lit and lit.name or ZeD.tr(LAMP_WORD[src])
         lamps[#lamps + 1] = { src = src, text = text, w = px(7) + px(4) + tm:MeasureStringX(f2, text) + px(8) }
+    end
+    -- everything a mod published: the lamps with no dot of their own here, by the mod's own name, then its readouts
+    if pub then
+        local taken = {}
+        for _, e in ipairs(pub.list) do
+            if e.role and pl.has[e.role] and not taken[e.role] then taken[e.role] = true
+            else lamps[#lamps + 1] = { pub = e, text = e.name, w = px(7) + px(4) + tm:MeasureStringX(f2, e.name) + px(8) } end
+        end
     end
     local lampY = y
     if #lamps > 0 then y = y + _flow(lamps, rowX, rowMax, y, fh2, px(4)) + gap end
@@ -1468,6 +1524,11 @@ function ZeD_Dashboard:_plain(des, st, k)
     if #clim > 0 then sections[#sections + 1] = { name = ZeD.tr("UI_ZeD_DashPlain_Climate"), items = clim } end
     local radio = _radioItems(st)
     if radio then sections[#sections + 1] = { name = ZeD.tr("Tooltip_Dashboard_Radio"), items = radio } end
+    if pub and #pub.cells > 0 then
+        local items = {}
+        for _, c in ipairs(pub.cells) do items[#items + 1] = { text = _pair(c.name, c.text or _pct(c.share * 100)) } end
+        sections[#sections + 1] = { name = ZeD.tr("UI_ZeD_DashPlain_Readouts"), items = items }
+    end
     for _, sec in ipairs(sections) do
         for _, it in ipairs(sec.items) do
             if it.id then it.w = ZeD.Molecules.buttonW(it.text)
@@ -1565,11 +1626,13 @@ function ZeD_Dashboard:prerender()
     local now = getTimestampMs()
     local dt = self._lastMs and math.max(0, math.min(250, now - self._lastMs)) or 0
     self._lastMs = now
+    self._driver = _safe(function() return vehicle:isDriver(chr) end, false)
     local st = _state(vehicle, chr)
+    local pubV = ZeD.ModSupport and ZeD.ModSupport.VSKDash
+    st.pub = (pubV and self._driver) and pubV.read(vehicle, chr, self._mem) or nil
     D.derive(st, self._mem, dt)
     self:_trip(vehicle, st, dt)
     self._st = st
-    self._driver = _safe(function() return vehicle:isDriver(chr) end, false)
     local scriptName = _safe(function() return tostring(vehicle:getScriptName() or "") end, "")
     self._scriptLow = scriptName:lower()
     -- the design and the badge lines, worked out again only for another car or language (Oct 22 2026, the
@@ -1591,6 +1654,10 @@ function ZeD_Dashboard:prerender()
         self._badgeKey = { v = vehicle, s = scriptName, gen = ZeD._trGen, on = trOn, des = des, id = designId, own = ownFamily }
     end
     self._designId = designId
+    if st.pub then
+        local okP, eP = pcall(D.applyPublished, st, st.pub, des)
+        if not okP then ZeD.logOnce("dash published", tostring(eP)) end
+    end
     st.brand = self._badge and self._badge.brand      -- the console's mark: the sprite and its model line show by it
     st.keyPos = self:_keyPos(st, now)
     self:_tray(vehicle, des, designId, st, scriptName)
