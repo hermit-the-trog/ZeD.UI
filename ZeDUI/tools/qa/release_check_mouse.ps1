@@ -24,7 +24,7 @@ while ((Get-Date) -lt $until -and -not (Test-Path $stop)) {
     if (Test-Path $req) {
         $line = (Get-Content $req -Raw).Trim()
         Remove-Item $req -Force
-        if ($line -match '^(right|left|move)\s+(\d+)\s+(\d+)$') {
+        if ($line -match '^(right|left|move|down|up)\s+(\d+)\s+(\d+)$') {   # (down, up: Nov 6 2026, the left button held for a real drag)
             $btn, $x, $y = $Matches[1], [int]$Matches[2], [int]$Matches[3]
             if (Test-Path $front) { & $front | Out-Null }
             Start-Sleep -Milliseconds 300
@@ -38,7 +38,9 @@ while ((Get-Date) -lt $until -and -not (Test-Path $stop)) {
             }
             [ZedQA.Mouse]::SetCursorPos($x, $y) | Out-Null
             Start-Sleep -Milliseconds 250   # (the game reads the cursor every frame: let it see the move first)
-            if ($btn -ne "move") {
+            if ($btn -eq "down") { [ZedQA.Mouse]::mouse_event(0x2, 0, 0, 0, [UIntPtr]::Zero) }
+            elseif ($btn -eq "up") { [ZedQA.Mouse]::mouse_event(0x4, 0, 0, 0, [UIntPtr]::Zero) }
+            elseif ($btn -ne "move") {
                 $down, $up = if ($btn -eq "right") { 0x8, 0x10 } else { 0x2, 0x4 }
                 [ZedQA.Mouse]::mouse_event($down, 0, 0, 0, [UIntPtr]::Zero)
                 Start-Sleep -Milliseconds 120   # (held past one 100 ms UI update)

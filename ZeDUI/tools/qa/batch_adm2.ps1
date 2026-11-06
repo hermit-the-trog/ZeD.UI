@@ -1,5 +1,6 @@
 #Requires -Version 7.0
 # ZeDUI/tools/qa/batch_adm2.ps1  (Nov 6 2026, QA): mp_adm2.lua's three phases: a short ban left to lift on an empty server (E8), then the admin table across a restart.
+param([switch]$From2)
 $Qa = $PSScriptRoot
 $Out = [IO.Path]::GetFullPath("$Qa\..\..\qa\tickets_20261105.txt")
 $Rep = [IO.Path]::GetFullPath("$Qa\..\..\qa\regression")
@@ -17,10 +18,12 @@ function Up { & "$Qa\mp_server.ps1" -Start -Mods "ZeD_UI;ZeDQAShim" | ForEach-Ob
 function Down { & "$Qa\mp_server.ps1" -Stop | ForEach-Object { Note $_ } }
 try {
     Up
-    Phase 1
-    Note "the server empty, waiting 80 s"
-    Start-Sleep 80
-    Copy-Item "$Cache\server-stdout.txt" "$Keep\server_e8.txt" -Force
+    if (-not $From2) {
+        Phase 1
+        Note "the server empty, waiting 80 s"
+        Start-Sleep 80
+        Copy-Item "$Cache\server-stdout.txt" "$Keep\server_e8.txt" -Force
+    }
     Phase 2
     Down
     Up

@@ -278,3 +278,116 @@
 03:09:19 clm_3 : 0/1 pass, 0 warn, 1 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_clm_3.md
 03:09:19 stopped PID 33020
 03:09:19 closed
+07:40:43 set PlayerSafehouse=true
+07:40:43 set AdminSafehouse=true
+07:40:43 set War=true
+07:40:43 mods: ZeD_UI;ZeDQAShim
+07:40:43 started the server, PID 34608; waiting for it to be ready
+07:41:57 ready after 74 s
+07:44:20 log_1 : 0/1 pass, 1 warn, 0 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_log_1.md
+07:45:58 com_1 : 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_com_1.md
+07:47:39 ext_1 : 0/1 pass, 1 warn, 0 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_ext_1.md
+07:47:39 stopped PID 34608
+07:47:39 closed
+07:48:34 set PlayerSafehouse=true
+07:48:34 set AdminSafehouse=true
+07:48:34 set War=true
+07:48:34 mods: ZeD_UI;ZeDQAShim
+07:48:34 started the server, PID 21544; waiting for it to be ready
+07:49:06 ready after 32 s
+07:51:54 srv_2 : 4/4 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_srv_2.md
+07:51:54 stopped PID 21544
+07:51:54 closed
+07:53:07 mods: ZeD_UI;ZeDQAShim
+07:53:07 started the server, PID 20316; waiting for it to be ready
+07:53:40 ready after 32 s
+07:55:51 adm2 phase 1 : 3/3 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_adm2_1.md
+07:55:51 the server empty, waiting 80 s
+08:00:04 adm2 phase 2 : 3/3 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_adm2_2.md
+08:00:04 stopped PID 20316
+08:00:12 mods: ZeD_UI;ZeDQAShim
+08:00:12 started the server, PID 23820; waiting for it to be ready
+08:00:44 ready after 32 s
+08:02:55 adm2 phase 3 : 1/3 pass, 2 warn, 0 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_adm2_3.md
+08:02:55 stopped PID 23820
+08:02:58 closed
+08:03:06 set PlayerSafehouse=true
+08:03:06 set AdminSafehouse=true
+08:03:06 set War=true
+08:03:06 mods: ZeD_UI;ZeDQAShim
+08:03:06 started the server, PID 27568; waiting for it to be ready
+08:03:38 ready after 32 s
+08:13:29 adm_cards_deck_large : 7/7 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_adm_cards_deck_large.md
+08:13:29 stopped PID 27568
+08:13:29 closed
+08:13:40 set PlayerSafehouse=true
+08:13:40 set AdminSafehouse=true
+08:13:40 set War=true
+08:13:40 mods: ZeD_UI;ZeDQAShim
+08:13:40 started the server, PID 32604; waiting for it to be ready
+08:14:14 ready after 34 s
+08:24:04 adm_cards_720_large : 7/7 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_adm_cards_720_large.md
+08:24:04 stopped PID 32604
+08:24:04 closed
+08:24:12 set PlayerSafehouse=true
+08:24:12 set AdminSafehouse=true
+08:24:12 set War=true
+08:24:12 mods: ZeD_UI;ZeDQAShim
+08:24:12 started the server, PID 22040; waiting for it to be ready
+08:24:44 ready after 32 s
+08:35:37 adm_cards_4k : 6/6 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_adm_cards_4k.md
+08:35:37 stopped PID 22040
+08:35:37 closed
+08:35:45 set PlayerSafehouse=true
+08:35:45 set AdminSafehouse=true
+08:35:45 set War=true
+08:35:45 mods: ZeD_UI;ZeDQAShim
+08:35:45 started the server, PID 27632; waiting for it to be ready
+08:36:17 ready after 32 s
+08:38:40 tk_pad3 : 1/2 pass, 1 warn, 0 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_pad3.md
+08:38:40 stopped PID 27632
+08:38:40 closed
+08:39:40 mods: ZeD_UI;ZeDQAShim
+08:39:40 started the server, PID 19536; waiting for it to be ready
+08:40:14 ready after 34 s
+08:42:40 adm2 phase 2 : 2/3 pass, 1 warn, 0 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_adm2_2.md
+08:42:40 stopped PID 19536
+08:42:48 mods: ZeD_UI;ZeDQAShim
+08:42:48 started the server, PID 29536; waiting for it to be ready
+08:43:20 ready after 32 s
+08:46:03 adm2 phase 3 : 3/3 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_adm2_3.md
+08:46:03 stopped PID 29536
+08:46:06 closed
+08:46:14 mods: ZeD_UI;ZeDQAShim
+08:46:14 started the server, PID 8188; waiting for it to be ready
+08:46:46 ready after 32 s
+08:49:09 tk_pad3 : 1/2 pass, 0 warn, 1 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_pad3.md
+08:49:09 stopped PID 8188
+08:49:09 closed
+09:32:21 drag : 1/2 pass, 1 warn, 0 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-06_drag_real.md
+09:32:29 mods: ZeD_UI;ZeDQAShim
+09:32:29 started the server, PID 15436; waiting for it to be ready
+09:33:01 ready after 32 s
+09:35:25 tk_pad4 : 1/2 pass, 0 warn, 1 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_pad4.md
+09:35:25 stopped PID 15436
+09:35:26 closed
+09:44:13 spncc in game : zedqa_mods_run: ZeD-QA put back (its mod list is ZeD_UI only again)
+09:45:00 spncc menu : default.txt, ModOptions.ini and autoload put back
+09:49:49 faiv : 2/2 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-06_faiv2.md
+09:51:37 drag : 1/2 pass, 1 warn, 0 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-06_drag_real.md
+09:51:45 mods: ZeD_UI;ZeDQAShim
+09:51:45 started the server, PID 4996; waiting for it to be ready
+09:52:17 ready after 32 s
+09:55:45 tk_pad4 : 2/3 pass, 0 warn, 1 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_tk_pad4.md
+09:55:45 stopped PID 4996
+09:55:45 closed
+09:58:14 spncc in game : zedqa_mods_run: ZeD-QA put back (its mod list is ZeD_UI only again)
+09:59:41 mods: ZeD_UI;ZeDQAShim
+09:59:41 started the server, PID 7440; waiting for it to be ready
+10:00:14 ready after 32 s
+10:02:20 win_look : 2/2 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_win_look.md
+10:02:20 stopped PID 7440
+10:02:20 closed
+11:16:40 autocollapse : zedqa_run: not starting: ProjectZomboid64.exe is running
+11:16:40 cx_again : zedqa_run: not starting: ProjectZomboid64.exe is running
+11:16:41 drag : zedqa_run: not starting: ProjectZomboid64.exe is running

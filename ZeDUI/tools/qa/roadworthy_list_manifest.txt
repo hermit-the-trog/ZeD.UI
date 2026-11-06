@@ -1,0 +1,2 @@
+zedqa_modlist.lua | mls | timeout=30
+zedqa_roadworthy.lua | rw | timeout=300

@@ -1,0 +1,3 @@
+zedqa_modlist.lua | mls | timeout=30
+zedqa_spncc.lua | spn | timeout=400
+zedqa_spncc_figs.lua | spf | timeout=120

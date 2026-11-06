@@ -243,3 +243,12 @@ Round 5, the same night (new trending Build 42 mods on ZeD's screens; no Java or
 | 3829619974 | Immersive Sleep | round 5 |
 
 Not subscribed (ZombieBuddy): Tarkov Style (3830796987), PZ Custom Intros (3830292718), Check Yourself (3829214172).
+
+## Nov 6 2026, for Build to read (Roadworthy dash support, Spongie's fold)
+
+| Id | Name | Why |
+|---|---|---|
+| 3828608843 | Roadworthy [BETA] (RealisticDrivingOverhaul) | where it keeps its values, for ZeD's gauges and lamps |
+| 3828607335 | Vehicle Kit Library (VehicleSwissKnife) | required by Roadworthy, pure Lua by its page |
+| 3414634809 | Spongie's Character Customisation (SPNCC, SPNCCDetails, SPNCCDetailsHD, SPNCCFaces) | a long list to prove the fold |
+| 3814843526 | Spongie's Character Customisation - Extras (SPNCCExtras, SPNCCExtrasTomb) | more rows for the fold |
