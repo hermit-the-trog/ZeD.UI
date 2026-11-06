@@ -111,7 +111,7 @@ PL.frac = frac
 --           light in that cell. Without it every cell takes tint.
 --   needleOwn  a needle keeps its own colour and takes only the level (as if
 --           light-piped): the director's pick for needles on green gauges
---   glass   the backlit LCD glass: { color, r = rects } redrawn while st.power
+--   glass   the backlit LCD glass: { color, r = rects } redrawn while st.power, with the lights on
 -- A part that makes no light (needles, pointers, tabs, the key, badges, the
 -- clock's hands, the radio's face) takes its colour times the multiplier of
 -- the map's level under it, in the colour of the light there; lamps, LEDs and
@@ -764,7 +764,7 @@ function PL.draw(cv, des, st, ctx, w, h)
         local a = L.n8 / 8
         local over = L.over and ctx.tex(L.over)
         if over then P.image(cv, over, 0, 0, w, h, a) end
-        if st.power and L.glass then
+        if st.power and L.lit and L.glass then
             for i = 1, #L.glass do local g = L.glass[i]; P.rects(cv, g.r, P.color(g.color), a) end
         end
     end
