@@ -77,7 +77,7 @@ function SI.inferSources(animal, player)
     -- Environment: rain without shelter
     local square = animal.getCurrentSquare and animal:getCurrentSquare()
     if square then
-        local roofed = square.isRoofed and square:isRoofed()
+        local roofed = square.haveRoofFull and square:haveRoofFull()
         if not roofed then
             local climate = getClimateManager()
             if climate and climate:getPrecipitationIntensity() > 0 then

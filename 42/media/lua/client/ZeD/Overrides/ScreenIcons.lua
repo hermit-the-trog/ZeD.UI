@@ -55,7 +55,7 @@ local function apply()
     function ISEquippedItem:prerender()
         origPrerender(self)
         -- the Tutorial's first lesson blinks the heart button: vanilla's column stays
-        if ZeD.Safe.on("belt") or getCore():getGameMode() == "Tutorial" then return end
+        if ZeD.Safe.on("belt") or tostring(getCore():getGameMode()) == "Tutorial" then return end
         if self.invBtn ~= nil and not self._zedIconsHidden then hideButtons(self) end
         -- vanilla's prerender re-shows the furniture button every frame (and its
         -- mode hint and pop-up while the furniture cursor is up): keep all three

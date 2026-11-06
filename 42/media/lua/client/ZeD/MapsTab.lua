@@ -77,7 +77,7 @@ end
 -- (ISWorldMap.IsAllowed).
 function ZeD.MapsTab.isAllowed()
     if ISWorldMap and ISWorldMap.IsAllowed then return ISWorldMap.IsAllowed() == true end
-    if getCore():getGameMode() == "Tutorial" then return false end
+    if tostring(getCore():getGameMode()) == "Tutorial" then return false end
     return SandboxVars.Map ~= nil and SandboxVars.Map.AllowWorldMap == true
 end
 

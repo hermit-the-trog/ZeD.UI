@@ -6837,7 +6837,7 @@ function ZeD_CharacterWindow.toggleBothPaired(playerNum)
     if getSpecificPlayer(playerNum):isDead() then return end
     if getGameSpeed() <= 0 then return end
     if not getPlayerInventory(playerNum) then return end
-    if getCore():getGameMode() == "Tutorial" then return end
+    if tostring(getCore():getGameMode()) == "Tutorial" then return end
     -- safe mode: the game's own inventory answers (its key handler, its Y prompt)
     if ZeD.Safe.on("windows") then return end
 
@@ -6871,7 +6871,7 @@ function ZeD_CharacterWindow.ensureBothOpenForGamepad(playerNum)
     if getSpecificPlayer(playerNum):isDead() then return end
     if getGameSpeed() <= 0 then return end
     if not getPlayerInventory(playerNum) then return end
-    if getCore():getGameMode() == "Tutorial" then return end
+    if tostring(getCore():getGameMode()) == "Tutorial" then return end
     if ZeD.Safe.on("windows") then return end   -- safe mode: no ZeD windows (SafeMode.lua)
 
     if not ZeD_CharacterWindow.isOpen() then
