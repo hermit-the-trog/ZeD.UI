@@ -1,12 +1,20 @@
 -- ZeD-UI/42/media/lua/client/ZeD/IdentityTab.lua
 -- ============================================================================
--- IDENTITY TAB — KY driver's license card + character traits.
---   Zone A: License card (bust portrait left, data fields right)
---   Zone B: Traits (positive/negative badges, two-column grid with icons)
--- Fixed KY color palette for the license. Traits use ZeD theme tokens.
+-- IDENTITY TAB: the character's card + traits, two styles at two widths.
+--   Immersive: the Kentucky operator's license, wide (photo left, fields right)
+--     or narrow (laid out like Tennessee's vertical card).
+--   Simple: ZeD components on the theme's surface, wide or narrow.
+--   Under the card: the Hair and beard fold, then the traits (two columns wide,
+--     one narrow).
+-- The style is the ZeD setup choice identityStyle (ZeD.Settings.identitySimple),
+-- read at every render; the width picks wide or narrow (isTall).
+-- The license keeps a fixed palette; its colored words are the player's accent
+-- darkened for the cream (kyAccent). Simple and the traits use ZeD theme tokens.
 --
--- Reference: Late-1980s Indiana operator's license layout.
--- Code ported from CharInfoOverhaul/CharInfoPanel.lua.
+-- Design: ZeDUI/mockups/zed_identity_v2.html (punch list 89). The art comes from
+-- ZeDUI/tools/identity/ky_header.py.
+-- QA: ZeD.IdentityTab.qaLayout "tall" / "wide", qaStyle "immersive" / "simple",
+-- qaTrend "steady" / "up" / "upup" / "down", qaProf a profession id ("base:burglar").
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -20,29 +28,72 @@ ZeD = ZeD or {}
 ZeD.IdentityTab = {}
 
 -- ============================================================================
+-- THE CONCEALED CARRY PERMIT, by the game's profession id (CharacterProfession
+-- toString). "yes" carries one, "revoked" has it stamped REVOKED, anyone else has
+-- none. Wide: a rubber stamp over the seal. Narrow: a box under CLASS D. Simple: a
+-- Carry permit row.
+-- ============================================================================
+
+local CARRY_PERMIT = {
+    ["base:policeofficer"]  = "yes",
+    ["base:veteran"]        = "yes",
+    ["base:securityguard"]  = "yes",
+    ["base:parkranger"]     = "yes",
+    ["base:burgerflipper"]  = "yes",
+    ["base:burglar"]        = "revoked",
+}
+
+-- ============================================================================
 -- KY LICENSE COLOR PALETTE (constant, theme-independent)
 -- ============================================================================
 
 local KY = {
     blue    = { r = 27/255,  g = 28/255,  b = 146/255, a = 1.0 },
+    ruleHi  = { r = 64/255,  g = 66/255,  b = 190/255, a = 1.0 },   -- the band's top rule (#4042be)
+    ruleLo  = { r = 13/255,  g = 14/255,  b = 92/255,  a = 1.0 },   -- the band's bottom rule (#0d0e5c)
     cardBg  = { r = 232/255, g = 228/255, b = 218/255, a = 1.0 },
     skyBlue = { r = 140/255, g = 195/255, b = 232/255, a = 1.0 },
-    ink     = { r = 30/255,  g = 50/255,  b = 80/255,  a = 1.0 },
-    inkDim  = { r = 30/255,  g = 50/255,  b = 80/255,  a = 0.65 },
+    red     = { r = 179/255, g = 18/255,  b = 46/255,  a = 1.0 },   -- REVOKED (#b3122e)
+    name    = { r = 0.07,    g = 0.07,    b = 0.07,    a = 1.0 },   -- the name and the weight
+    value   = { r = 0.1,     g = 0.1,     b = 0.1,     a = 1.0 },   -- the values
     laminate = { r = 210/255, g = 206/255, b = 198/255, a = 1.0 },
 }
 
 -- ============================================================================
--- LAYOUT CONSTANTS
+-- LAYOUT CONSTANTS (design units)
 -- ============================================================================
 
 local CARD_PAD   = 8     -- padding inside drawer to card edge
 local LAMINATE_W = 8     -- clear laminate border around perimeter
-local PHOTO_W    = 150   -- width of the left column (photo + padding)
+local PHOTO_W    = 150   -- width of the wide license's left column
 local PHOTO_SIZE = 120   -- 120x120 square photo frame
-local FIELD_PAD  = 16    -- inner padding within card body for text fields
-local TRAIT_ROW_H = 28   -- height of each trait row in the grid
-local TRAIT_ICON_SZ = 18 -- trait icon size
+local PHOTO_FULL = 250   -- the wide license's full-body photo, tall
+local BODY_TOP   = 14    -- the wide license: the body's padding above the columns
+local BODY_BOT   = 12    --   and below them
+local BODY_GAP   = 14    --   the gap between the columns, and the right column's right padding
+local SEAL_WIDE  = 96    -- the seal under the wide license's photo
+local SEAL_TALL  = 56    -- the seal at the narrow license's foot
+local TALL_PAD   = 12    -- the narrow license's side padding
+local TALL_FULL  = 560   -- the narrow license's full-body photo, tall
+local TALL_MODEL = 540   --   and the model in it, at its foot
+local NAME_WIDE  = 18    -- the name's size (px), Simple's too
+local NAME_TALL  = 20    -- the narrow license's surname and weight
+local FORE_TALL  = 16    -- the narrow license's forename
+local BIG_TALL   = 19    -- the narrow license's survived time
+local BIG_SMALL  = 16    --   a step down, when a line won't fit its column
+local PLAIN_PAD  = 12    -- Simple's side margin
+local PLAIN_TOP  = 10    -- Simple's top and bottom margin
+local PLAIN_BUST = 88    -- Simple's narrow bust box
+local PLAIN_FULL_WIDE = 230  -- Simple's full-body box, wide
+local PLAIN_FULL_TALL = 420  --   and narrow
+local PLAIN_MODEL = 400      --   and the narrow model in it, at its foot
+local BAND_UNITS = 48    -- the header band's design height
+local BAND_ART   = 24    -- the header band's height in art pixels
+local SHEET_W    = 256   -- ky_bg_sheet.png, the security pattern pre-tiled, in art pixels
+local SHEET_H    = 128
+local TRAIT_ROW_H = 23   -- least height of a trait row
+local TRAIT_GAP  = 4     -- between the trait rows
+local TRAIT_COL_GAP = 12 -- between the two columns of traits
 
 -- ============================================================================
 -- LICENSE CARD ROUNDED RECT (10px bevel — larger than ZeD's standard 2px)
@@ -126,7 +177,7 @@ local function getHairColorName(char)
     if not hc then return ZeD.tr("UI_ZeD_Identity_Unknown") end
     local r, g, b = hc:getRedFloat(), hc:getGreenFloat(), hc:getBlueFloat()
     local brightness = r * 0.299 + g * 0.587 + b * 0.114
-    -- vanilla's paint-colour words where it has them (ContextMenu_*), else ZeD's
+    -- vanilla's paint-color words where it has them (ContextMenu_*), else ZeD's
     if brightness > 0.75 then
         if r > 0.85 and g > 0.85 then return getText("ContextMenu_White") end
         return ZeD.tr("UI_ZeD_Identity_HairBlonde")
@@ -209,7 +260,6 @@ local function getCharacterTraitsSorted(char)
                 name    = traitDef:getLabel() or traitId,
                 desc    = traitDef:getDescription() or "",
                 cost    = traitDef:getCost(),
-                texture = traitDef:getTexture(),
             }
             if entry.cost >= 0 then
                 table.insert(positive, entry)
@@ -225,6 +275,92 @@ local function getCharacterTraitsSorted(char)
 end
 
 -- ============================================================================
+-- THE LICENSE'S OWN FACTS
+-- ============================================================================
+
+-- the weight's sign, from the game's Nutrition: + gaining, ++ gaining fast, - losing, nothing steady
+local TREND_SIGN = { steady = "", up = "+", upup = "++", down = "-" }
+local function weightTrend(nutrition)
+    local q = ZeD.IdentityTab.qaTrend
+    if q and TREND_SIGN[q] then return TREND_SIGN[q] end
+    if not nutrition then return "" end
+    if nutrition:isIncWeightLot() then return "++" end
+    if nutrition:isIncWeight() then return "+" end
+    if nutrition:isDecWeight() then return "-" end
+    return ""
+end
+
+-- The game's start date and the same date four years on, MM/DD/YYYY, from the sandbox options:
+-- each is the option's value from 1, and year 1 is 1993 (SandboxOptions.getFirstYear). GameTime's
+-- start fields won't do: a multiplayer client's GameTime keeps its constructor's date in 2012.
+local function licenseDates()
+    local sv = SandboxVars
+    local m, d, y = sv and sv.StartMonth, sv and sv.StartDay, sv and sv.StartYear
+    if not (m and d and y) then return "--", "--" end
+    y = 1992 + y
+    return string.format("%02d/%02d/%04d", m, d, y), string.format("%02d/%02d/%04d", m, d, y + 4)
+end
+
+-- The DL number: the surname's first letter, then eight digits in the 2-3-3 shape, the same
+-- for a name every time. Two hashes under 10000 keep every step far under 2^31 (Kahlua's %
+-- breaks past it); together they make the eight digits.
+local function dlNumber(sur, fore)
+    local s = tostring(sur) .. "|" .. tostring(fore)
+    local a, b = 7, 11
+    for i = 1, #s do
+        local c = string.byte(s, i) or 0
+        a = (a * 31 + c) % 9973
+        b = (b * 37 + c) % 9967
+    end
+    local n = a * 10000 + b
+    local first = ZeD.upper(string.sub(tostring(sur), 1, 1))
+    if first == "" then first = "X" end
+    return string.format("%s%02d-%03d-%03d", first, math.floor(n / 1000000), math.floor(n / 1000) % 1000, n % 1000)
+end
+
+-- the survived time as lines, split at its commas (the narrow license)
+local function splitSurvived(s)
+    local out = {}
+    for part in string.gmatch(s, "[^,]+") do
+        out[#out + 1] = string.match(part, "^%s*(.-)%s*$") or part
+    end
+    if #out == 0 then out[1] = s end
+    return out
+end
+
+-- the profession's definition by id (qaProf, nil when the game has no such profession)
+local function profDefById(id)
+    local list = CharacterProfessionDefinition.getProfessions()
+    for i = 0, list:size() - 1 do
+        local d = list:get(i)
+        if d:getType():toString() == id then return d end
+    end
+    return nil
+end
+
+-- the profession's display name (Title Case: Kahlua2 doesn't support gsub function
+-- replacement, so iterate words manually instead), and its id
+local function professionOf(desc)
+    local prof = desc and desc:getCharacterProfession() or nil
+    local id = prof and prof:toString() or nil
+    -- CharacterProfessionDefinition.getCharacterProfessionDefinition() gives the Lua-side
+    -- definition object which has getUIName() — the translated display string
+    local def = prof and CharacterProfessionDefinition.getCharacterProfessionDefinition(prof) or nil
+    local q = ZeD.IdentityTab.qaProf
+    if q then
+        id = string.find(q, ":", 1, true) and q or ("base:" .. q)
+        def = profDefById(id) or def
+    end
+    local raw = (def and def:getUIName()) or (prof and prof:getName()) or nil
+    if not raw then return "--", id end
+    local words = {}
+    for word in raw:gmatch("%S+") do
+        words[#words + 1] = ZeD.upper(word:sub(1, 1)) .. word:sub(2):lower()
+    end
+    return #words > 0 and table.concat(words, " ") or raw, id
+end
+
+-- ============================================================================
 -- DATA AGGREGATION
 -- ============================================================================
 
@@ -233,8 +369,10 @@ function ZeD.IdentityTab.gatherData(playerObj)
         surname    = ZeD.tr("UI_ZeD_Identity_Unknown"),
         forename   = "",
         weightStr  = ZeD.tr("UI_ZeD_Identity_WeightKg", "--"),
+        trend      = "",
         sexStr     = "--",
         profession = "--",
+        permit     = nil,
         hairStyle  = "--",
         bodyHair   = "--",
         facialHair = "--",
@@ -242,54 +380,316 @@ function ZeD.IdentityTab.gatherData(playerObj)
         timeSurv   = "--",
         favWeapon  = getText("IGUI_None"),
         zKills     = "0",
+        dlNo       = "--",
+        issStr     = "--",
+        expStr     = "--",
         posTraits  = {},
         negTraits  = {},
     }
 
-    if not playerObj then return data end
-
-    local desc = playerObj:getDescriptor()
-    if desc then
-        data.surname  = desc:getSurname()  or ZeD.tr("UI_ZeD_Identity_Unknown")
-        data.forename = desc:getForename() or ""
-    end
-
-    local weight = math.floor(playerObj:getNutrition():getWeight())
-    data.weightStr  = ZeD.tr("UI_ZeD_Identity_WeightKg", weight)
-    data.sexStr     = playerObj:isFemale() and getText("IGUI_char_Female") or getText("IGUI_char_Male")
-    if desc and desc:getCharacterProfession() then
-        local prof    = desc:getCharacterProfession()
-        -- CharacterProfessionDefinition.getCharacterProfessionDefinition() gives the Lua-side
-        -- definition object which has getUIName() — the translated display string
-        local profDef = CharacterProfessionDefinition.getCharacterProfessionDefinition(prof)
-        local raw = (profDef and profDef:getUIName()) or prof:getName() or "--"
-        -- Title Case: Kahlua2 doesn't support gsub function replacement,
-        -- so iterate words manually instead
-        local words = {}
-        for word in raw:gmatch("%S+") do
-            words[#words + 1] = ZeD.upper(word:sub(1, 1)) .. word:sub(2):lower()
+    if playerObj then
+        local desc = playerObj:getDescriptor()
+        if desc then
+            data.surname  = desc:getSurname()  or ZeD.tr("UI_ZeD_Identity_Unknown")
+            data.forename = desc:getForename() or ""
         end
-        data.profession = #words > 0 and table.concat(words, " ") or raw
-    end
-    data.hairStyle  = getHairStyleName(playerObj)
-    data.bodyHair   = getBodyHairName(playerObj)
-    data.facialHair = getBeardStyleName(playerObj)
-    data.hairColor  = getHairColorName(playerObj)
-    data.zKills     = tostring(playerObj:getZombieKills())
-    data.favWeapon  = getFavouriteWeapon(playerObj)
 
-    if instanceof(playerObj, "IsoPlayer") then
-        data.timeSurv = playerObj:getTimeSurvived() or "--"
+        local nutrition = playerObj:getNutrition()
+        data.weightStr  = ZeD.tr("UI_ZeD_Identity_WeightKg", math.floor(nutrition:getWeight()))
+        data.trend      = weightTrend(nutrition)
+        data.sexStr     = playerObj:isFemale() and getText("IGUI_char_Female") or getText("IGUI_char_Male")
+        local profName, profId = professionOf(desc)
+        data.profession = profName
+        data.permit     = profId and CARRY_PERMIT[profId] or nil
+        data.hairStyle  = getHairStyleName(playerObj)
+        data.bodyHair   = getBodyHairName(playerObj)
+        data.facialHair = getBeardStyleName(playerObj)
+        data.hairColor  = getHairColorName(playerObj)
+        data.zKills     = tostring(playerObj:getZombieKills())
+        data.favWeapon  = getFavouriteWeapon(playerObj)
+        data.dlNo       = dlNumber(data.surname, data.forename)
+        data.issStr, data.expStr = licenseDates()
+
+        if instanceof(playerObj, "IsoPlayer") then
+            data.timeSurv = playerObj:getTimeSurvived() or "--"
+        end
+
+        data.posTraits, data.negTraits = getCharacterTraitsSorted(playerObj)
     end
 
-    data.posTraits, data.negTraits = getCharacterTraitsSorted(playerObj)
+    -- what the cards draw, made once here and not each frame; the separator only between two names
+    local sur, fore = tostring(data.surname), tostring(data.forename)
+    if sur == "" and fore == "" then
+        sur = ZeD.tr("UI_ZeD_Identity_Unknown")
+        data.surname = sur
+    end
+    local both = sur ~= "" and fore ~= ""
+    data.nameComma = both and (sur .. ", " .. fore) or (sur .. fore)
+    data.nameFull  = both and (fore .. " " .. sur) or (sur .. fore)
+    data.surUp     = ZeD.upper(data.surname)
+    data.foreUp    = ZeD.upper(data.forename)
+    data.survLines = splitSurvived(tostring(data.timeSurv))
+    data.small = {
+        sex    = ZeD.upper(string.sub(tostring(data.sexStr), 1, 1)),
+        hair   = ZeD.upper(data.hairColor),
+        style  = ZeD.upper(data.hairStyle),
+        facial = ZeD.upper(data.facialHair),
+        body   = ZeD.upper(data.bodyHair),
+        prof   = ZeD.upper(data.profession),
+        kills  = data.zKills,
+        fav    = ZeD.upper(data.favWeapon),
+    }
 
     return data
 end
 
 -- ============================================================================
--- ZONE A HEIGHT — license card (header + body)
+-- THE ART
 -- ============================================================================
+
+-- the license's pixel art, nearest filtering (3 = Atoms' pxTex), each loaded once
+local _art = {}
+local function kyArt(name)
+    local t = _art[name]
+    if t == nil then
+        t = Texture.getSharedTexture("media/textures/ZeD/identity/" .. name .. ".png", 3) or false
+        _art[name] = t
+    end
+    return t or nil
+end
+
+local _seal = nil
+local function sealTex()
+    if not _seal then _seal = getTexture("media/textures/ZeD/KY-seal.png") end
+    return _seal
+end
+
+-- The whole number the art draws at: the band's design height over its 24 art pixels, rounded
+-- down, so no art pixel blurs at 1.75x. The band is exactly this x 24 tall.
+local function artScale()
+    return math.max(1, math.floor(ZeD.T.px(BAND_UNITS) / BAND_ART))
+end
+local function bandH() return artScale() * BAND_ART end
+
+-- the donor pill's whole number, for its 30 design units over 10 art pixels
+local function donorScale()
+    return math.max(1, math.floor(ZeD.T.px(30) / 10))
+end
+
+-- a piece of art at whole-number scale s (no aspect to keep at a whole number)
+local function drawArt(panel, tex, x, y, s, a)
+    panel:drawTextureScaled(tex, x, y, tex:getWidth() * s, tex:getHeight() * s, a or 1, 1, 1, 1)
+end
+
+-- The header band: the blue, its two rules one art pixel each, the art pinned to the ends
+-- (narrow, or a card narrower than the left piece: the three lines centered). The right piece
+-- drops before the two would touch.
+local function drawBand(panel, x, y, w, tall)
+    local T = ZeD.T
+    local s, h = artScale(), bandH()
+    panel:drawRect(x, y, w, h, 1, KY.blue.r, KY.blue.g, KY.blue.b)
+    panel:drawRect(x, y, w, s, 1, KY.ruleHi.r, KY.ruleHi.g, KY.ruleHi.b)
+    panel:drawRect(x, y + h - s, w, s, 1, KY.ruleLo.r, KY.ruleLo.g, KY.ruleLo.b)
+    local l, r = kyArt("ky_head_left"), kyArt("ky_head_right")
+    local lw = l and l:getWidth() * s or 0
+    if tall or lw > w then
+        local t = kyArt("ky_head_tall")
+        if not t then return end
+        local tw = t:getWidth()
+        while s > 1 and tw * s > w do s = s - 1 end
+        drawArt(panel, t, x + math.floor((w - tw * s) / 2), y + math.floor((h - BAND_ART * s) / 2), s)
+        return
+    end
+    if l then drawArt(panel, l, x, y, s) end
+    if r then
+        local rw = r:getWidth() * s
+        if lw + T.px(8) + rw <= w then drawArt(panel, r, x + w - rw, y, s) end
+    end
+end
+
+-- The security pattern over the cream, at the art's whole number. ky_bg_sheet.png is the 16 x 8
+-- tile pre-tiled, so a card takes a few draws and not hundreds a frame. A stencil can't nest in
+-- the tab's, so each sheet is cut at the card's edge by its source rect (DrawTextureTiled draws
+-- at 1:1; this is the call it makes, with the size). Rows outside the tab's view are skipped.
+local function drawTiles(panel, win, x, y, w, h)
+    local tex = kyArt("ky_bg_sheet")
+    local jo = panel.javaObject
+    if not (tex and jo) or w <= 0 or h <= 0 then return end
+    local s = artScale()
+    local tw, th = SHEET_W * s, SHEET_H * s
+    local view = win._idView
+    local right, bottom = x + w, y + h
+    local vTop, vBot = view and view.y or y, view and (view.y + view.h) or bottom
+    local ty = y
+    while ty < bottom do
+        local dh = math.min(th, bottom - ty)
+        if ty + dh > vTop and ty < vBot then
+            local tx = x
+            while tx < right do
+                local dw = math.min(tw, right - tx)
+                jo:DrawSubTextureRGBA(tex, 0, 0, dw / s, dh / s, tx, ty, dw, dh, 1, 1, 1, 1)
+                tx = tx + tw
+            end
+        end
+        ty = ty + th
+    end
+end
+
+-- the laminate, the band, the cream body (bare: no pattern, the full body covers it).
+-- Returns the printed area: its left, the body's top, the width and the body's height.
+local function drawCardShell(panel, win, x, y, w, h, tall, bare)
+    local T = ZeD.T
+    local pad, lam = T.px(CARD_PAD), T.px(LAMINATE_W)
+    local cardX, cardW = x + pad, w - pad * 2
+    fillRoundedCard(panel, cardX, y + pad, cardW, h, KY.laminate.r, KY.laminate.g, KY.laminate.b, KY.laminate.a)
+    local ix, iy, iw = cardX + lam, y + pad + lam, cardW - lam * 2
+    local band = bandH()
+    local bodyY, bodyH = iy + band, h - lam * 2 - band
+    drawBand(panel, ix, iy, iw, tall)
+    panel:drawRect(ix, bodyY, iw, bodyH, 1.0, KY.cardBg.r, KY.cardBg.g, KY.cardBg.b)
+    if not bare then drawTiles(panel, win, ix, bodyY, iw, bodyH) end
+    borderRoundedCard(panel, cardX, y + pad, cardW, h, KY.blue.r, KY.blue.g, KY.blue.b, 0.3)
+    return ix, bodyY, iw, bodyH
+end
+
+-- ============================================================================
+-- THE WORDS: colors, free sizes and fits
+-- ============================================================================
+
+-- every colored word on the license: the player's accent, 62% accent and 38% black so pale
+-- accents read on the cream, read fresh (one table, no churn). The card is the same cream in
+-- every theme, so it takes the accent's dark variant whatever the theme (T.accent is the light
+-- one under Light); a window with its own accent keeps it.
+local _acc = { r = 0, g = 0, b = 0, a = 1 }
+local function kyAccent(win)
+    local key = win and win._accentKey
+    local set = key and ZeD.AccentColors[key] or ZeD.AccentColors[ZeD.currentAccent]
+    local a = set and set.dark.accent or ZeD.T.accent
+    _acc.r, _acc.g, _acc.b = a.r * 0.62, a.g * 0.62, a.b * 0.62
+    return _acc
+end
+
+-- the zoom for px design pixels on a free-size face, the text size included (Large grows it)
+local function freeZoom(px)
+    local T = ZeD.T
+    return ZeD.Text.zoomPx(px * T.scale / (T.root or 1))
+end
+
+-- What the free-size words measure, kept per font and zoom while the game's measures are
+-- (ZeD.Text.measureEpoch), so nothing is measured every frame.
+local _fc = { ep = false, w = {}, fit = {}, lh = {}, n = 0 }
+local function freeCache()
+    local X = ZeD.Text
+    local ep = X.measureEpoch and X.measureEpoch() or nil
+    if ep == nil or ep ~= _fc.ep or _fc.n > 1000 then
+        _fc.ep, _fc.w, _fc.fit, _fc.lh, _fc.n = ep, {}, {}, {}, 0
+    end
+    return _fc
+end
+local function sub2(t, a, b)
+    local ta = t[a]
+    if not ta then ta = {}; t[a] = ta end
+    local tb = ta[b]
+    if not tb then tb = {}; ta[b] = tb end
+    return tb
+end
+
+local function freeW(f, s, zoom)
+    local fc = freeCache()
+    local c = sub2(fc.w, f, zoom)
+    local v = c[s]
+    if not v then
+        v = ZeD.Text.width(f, s, zoom)
+        c[s] = v
+        fc.n = fc.n + 1
+    end
+    return v
+end
+
+-- a free-size line's height, whole px
+local function freeLineH(f, px)
+    local zoom = freeZoom(px)
+    local fc = freeCache()
+    local c = sub2(fc.lh, f, zoom)
+    local v = c.h
+    if not v then
+        v = math.ceil(ZeD.Text.height(f, zoom))
+        c.h = v
+    end
+    return v
+end
+
+local function fitRaw(f, s, room, zoom)
+    if freeW(f, s, zoom) <= room then return s end
+    local target = room - freeW(f, "...", zoom)
+    if target <= 0 then return "" end
+    local lo, hi = 0, #s
+    while lo < hi do
+        local mid = math.floor((lo + hi + 1) / 2)
+        if ZeD.Text.width(f, string.sub(s, 1, mid), zoom) <= target then lo = mid else hi = mid - 1 end
+    end
+    if lo == 0 then return "" end
+    return string.sub(s, 1, lo) .. "..."
+end
+
+-- free-size words cut to their room with "..." (nothing when not even a letter fits), kept
+local function fitFree(f, s, room, zoom)
+    s = tostring(s or "")
+    if room <= 0 then return "" end
+    local fc = freeCache()
+    local byRoom = sub2(fc.fit, f, zoom)
+    local c = byRoom[room]
+    if not c then c = {}; byRoom[room] = c end
+    local out = c[s]
+    if out == nil then
+        out = fitRaw(f, s, room, zoom)
+        c[s] = out
+        fc.n = fc.n + 1
+    end
+    return out
+end
+
+-- the name cut to its room with "..." on the distance-field face
+local function fitName(name, room, zoom)
+    return fitFree(ZeD.Font.sdf.head, name, room, zoom)
+end
+
+-- the weight's width at the name's size, its sign included
+local function weightW(data, zoom)
+    local f = ZeD.Font.sdf.head
+    local w = freeW(f, data.weightStr, zoom)
+    if data.trend ~= "" then w = w + ZeD.T.px(3) + freeW(f, data.trend, zoom) end
+    return w
+end
+
+-- the weight at x, its sign after it (ink: the number's color, sign: the sign's)
+local function drawWeight(panel, data, x, y, zoom, ink, sign)
+    local X, f = ZeD.Text, ZeD.Font.sdf.head
+    X.draw(panel, f, data.weightStr, x, y, zoom, ink.r, ink.g, ink.b, ink.a or 1, "l")
+    if data.trend ~= "" then
+        X.draw(panel, f, data.trend, x + freeW(f, data.weightStr, zoom) + ZeD.T.px(3), y, zoom,
+            sign.r, sign.g, sign.b, 1, "l")
+    end
+end
+
+-- The name row: the weight at the right, as large and as heavy as the name, the name in the
+-- room left. The name is the card's: the weight gives way before the name keeps less than
+-- a few letters, and it is never drawn over the name.
+local function drawNameRow(panel, data, name, x, y, w, px, ink, sign)
+    local T, X = ZeD.T, ZeD.Text
+    local zoom = freeZoom(px)
+    local wt = weightW(data, zoom)
+    local room = w - wt - T.px(8)
+    if room < T.px(48) then
+        room = w
+    else
+        drawWeight(panel, data, x + w - wt, y, zoom, ink, sign)
+    end
+    local s = fitName(name, room, zoom)
+    if s ~= "" then
+        X.draw(panel, ZeD.Font.sdf.head, s, x, y, zoom, ink.r, ink.g, ink.b, ink.a or 1, "l")
+    end
+end
 
 -- A field's two lines: the label (F1) and the value (F4), each at least the body
 -- line, so a larger text never draws a value over its label (Oct 31 2026, break-it E5)
@@ -299,241 +699,152 @@ local function fieldLineHs()
     return math.max(bodyFH, tm:getFontHeight(T.fontF1)), math.max(bodyFH, tm:getFontHeight(T.fontF4))
 end
 
--- the name's line (the card measured it in F1 and drew it in F2: the taller of the two)
-local function nameRowH()
-    local T = ZeD.T
-    return math.max(ZeD.TM:getFontHeight(T.fontF1), ZeD.TM:getFontHeight(T.fontF2))
+-- where the window puts the model (win._identityPhotoRect, the same frame as the draw) and
+-- what picks the photo (the zone: the frame, with the model's margins). One table each.
+local function setPhoto(win, x, y, w, h, expanded, zx, zy, zw, zh)
+    local pr = win._idPhotoR or {}
+    win._idPhotoR = pr
+    pr.x, pr.y, pr.w, pr.h, pr.expanded = x, y, w, h, expanded or nil
+    win._identityPhotoRect = pr
+    local z = win._idPhotoZ or {}
+    win._idPhotoZ = z
+    z.x, z.y, z.w, z.h = zx or x, zy or y, zw or w, zh or h
+    win._identityPhotoZone = z
 end
 
-local function measureZoneAH()
+-- ============================================================================
+-- THE WIDE LICENSE (mockup licenseWide)
+-- ============================================================================
+
+local function wideRightH()
     local T = ZeD.T
-    local secFH  = ZeD.TM:getFontHeight(T.fontF1)
-    local bodyFH = ZeD.TM:getFontHeight(T.fontF2)
     local lblH, valH = fieldLineHs()
-    local headerH = secFH + bodyFH + T.px(20)
-    local bodyH  = T.px(FIELD_PAD)                          -- top padding
-    bodyH = bodyH + nameRowH() + T.px(12)                   -- name row + gap
-    bodyH = bodyH + (lblH + valH + T.px(10)) * 3            -- 3 field rows
-    bodyH = bodyH + T.px(4) + lblH + T.px(1) + valH + T.px(10)      -- time survived
-    bodyH = bodyH + T.px(4) + lblH + T.px(1) + valH               -- weapon + kills
-    bodyH = bodyH + T.px(FIELD_PAD)                          -- bottom padding
-    return T.px(CARD_PAD) + T.px(LAMINATE_W) + headerH + bodyH + T.px(LAMINATE_W) + T.px(CARD_PAD)
+    return freeLineH(ZeD.Font.sdf.head, NAME_WIDE) + T.px(10)
+        + (lblH + T.px(1) + valH) * 5 + (T.px(6) * 2 + T.px(1)) * 4
 end
 
--- ============================================================================
--- ZONE B HEIGHT — traits section
--- ============================================================================
-
-local function measureZoneBH(data)
+local function wideLeftH(expanded)
     local T = ZeD.T
-    local pad   = T.sp.sm
-    local h = pad + T.px(20) + T.sp.afterGroove  -- section head (20u, its line under it)
-
-    -- Positive traits
-    if #data.posTraits > 0 then
-        h = h + T.px(15) + T.sp.xs  -- "Positive" category row (15u)
-        local rows = math.ceil(#data.posTraits / 2)
-        h = h + rows * (T.px(TRAIT_ROW_H) + T.px(2))
-        h = h + T.sp.sm
-    end
-
-    -- Negative traits
-    if #data.negTraits > 0 then
-        h = h + T.px(15) + T.sp.xs  -- "Negative" category row (15u)
-        local rows = math.ceil(#data.negTraits / 2)
-        h = h + rows * (T.px(TRAIT_ROW_H) + T.px(2))
-        h = h + T.sp.sm
-    end
-
-    return h
+    if expanded then return T.px(PHOTO_FULL) end
+    return T.px(PHOTO_SIZE) + T.px(10) + T.px(SEAL_WIDE)
 end
 
--- ============================================================================
--- RENDERER — ZONE A: License card background
--- ============================================================================
-
-local function renderLicenseBackground(panel, win, x, drawY, w)
-    local A   = ZeD.Atoms
-    local T   = ZeD.T
-    local pad = T.px(CARD_PAD)
-    local lam = T.px(LAMINATE_W)
-    local secFH  = ZeD.TM:getFontHeight(T.fontF1)
-    local bodyFH = ZeD.TM:getFontHeight(T.fontF2)
-    local headerH = secFH + bodyFH + T.px(20)
-
-    -- Outer laminate shell (rounded corners)
-    local cardX = x + pad
-    local cardW = w - pad * 2
-    local cardBodyH = measureZoneAH() - T.px(CARD_PAD) * 2 - T.px(LAMINATE_W) * 2 - headerH
-    local totalH = lam * 2 + headerH + cardBodyH
-
-    fillRoundedCard(panel, cardX, drawY + pad, cardW, totalH,
-        KY.laminate.r, KY.laminate.g, KY.laminate.b, KY.laminate.a)
-
-    -- Inner printed area (square corners, inset by laminate width)
-    local innerX = cardX + lam
-    local innerY = drawY + pad + lam
-    local innerW = cardW - lam * 2
-
-    -- KY header strip (blue rect + texture overlay)
-    panel:drawRect(innerX, innerY, innerW, headerH,
-        1.0, KY.blue.r, KY.blue.g, KY.blue.b)
-    local headerTex = getTexture("media/textures/ZeD/Kentucky-dl-head.png")
-    if headerTex then
-        panel:drawTextureScaledAspect(headerTex, innerX, innerY, innerW, headerH, 1.0, 1.0, 1.0, 1.0)
-    end
-
-    -- Card body (cream rect)
-    local innerCardY = innerY + headerH
-    panel:drawRect(innerX, innerCardY, innerW, cardBodyH,
-        1.0, KY.cardBg.r, KY.cardBg.g, KY.cardBg.b)
-
-    -- Sky blue photo frame (120x120 bust or full left column expanded)
-    -- Coords hoisted so we can publish to win for avatar overlay positioning (Q52)
-    local photoX = innerX + math.floor((T.px(PHOTO_W) - T.px(PHOTO_SIZE)) / 2)
-    local photoY = innerCardY + T.px(FIELD_PAD)
-    if win._identityPhotoExpanded then
-        panel:drawRect(innerX, innerCardY, T.px(PHOTO_W), cardBodyH,
-            1.0, KY.skyBlue.r, KY.skyBlue.g, KY.skyBlue.b)
-        win._identityPhotoRect = { x = innerX, y = innerCardY, w = T.px(PHOTO_W), h = cardBodyH, expanded = true }
-    else
-        A.fillRounded(panel, photoX, photoY, T.px(PHOTO_SIZE), T.px(PHOTO_SIZE),
-            KY.skyBlue.r, KY.skyBlue.g, KY.skyBlue.b, 1.0)
-        win._identityPhotoRect = { x = photoX, y = photoY, w = T.px(PHOTO_SIZE), h = T.px(PHOTO_SIZE) }
-    end
-    -- Click zone for toggle (covers the left photo column area)
-    win._identityPhotoZone = { x = innerX, y = innerCardY, w = T.px(PHOTO_W), h = cardBodyH }
-
-    -- Thin border around the outer laminate edge (10px bevel)
-    borderRoundedCard(panel, cardX, drawY + pad, cardW, totalH,
-        KY.blue.r, KY.blue.g, KY.blue.b, 0.3)
-end
-
--- ============================================================================
--- RENDERER — ZONE A: License card text overlay
--- ============================================================================
-
--- the name cut to its room with "..." on the distance-field face; kept per name,
--- room and zoom (no measuring every frame)
-local _nameFit = {}
-local function fitName(sur, fore, room, zoom)
-    local c = _nameFit
-    local X = ZeD.Text
-    local ep = X.measureEpoch and X.measureEpoch() or nil
-    if c.sur == sur and c.fore == fore and c.room == room and c.zoom == zoom and c.ep == ep then return c.out end
-    local f = ZeD.Font.sdf.head
-    local s = tostring(sur) .. ", " .. tostring(fore)
-    if room <= 0 then
-        s = ""
-    elseif X.width(f, s, zoom) > room then
-        local n = #s
-        while n > 0 and X.width(f, string.sub(s, 1, n) .. "...", zoom) > room do n = n - 1 end
-        s = (n > 0) and (string.sub(s, 1, n) .. "...") or ""
-    end
-    c.sur, c.fore, c.room, c.zoom, c.ep, c.out = sur, fore, room, zoom, ep, s
-    return s
+local function measureWideH(expanded)
+    local T = ZeD.T
+    return T.px(CARD_PAD) * 2 + T.px(LAMINATE_W) * 2 + bandH()
+        + T.px(BODY_TOP) + math.max(wideLeftH(expanded), wideRightH()) + T.px(BODY_BOT)
 end
 
 -- one field in its own box: the label and the value each cut to the box's width
 -- (nothing when not even "..." fits), never drawn over the next box
-local function drawField(panel, label, value, fx, fy, fw, lblH)
+local function drawField(panel, acc, label, value, fx, fy, fw, lblH)
     local T, A = ZeD.T, ZeD.Atoms
     if fw <= ZeD.TM:MeasureStringX(T.fontF1, "...") then return end
-    panel:drawText(A.truncateText(tostring(label or ""), T.fontF1, fw), fx, fy,
-        KY.inkDim.r, KY.inkDim.g, KY.inkDim.b, KY.inkDim.a, T.fontF1)
+    panel:drawText(A.truncateText(tostring(label or ""), T.fontF1, fw), fx, fy, acc.r, acc.g, acc.b, 1, T.fontF1)
     if fw <= ZeD.TM:MeasureStringX(T.fontF4, "...") then return end
     panel:drawText(A.truncateText(tostring(value or ""), T.fontF4, fw), fx, fy + lblH + T.px(1),
-        0.1, 0.1, 0.1, 1.0, T.fontF4)
+        KY.value.r, KY.value.g, KY.value.b, 1, T.fontF4)
 end
 
-local function renderLicenseText(panel, win, data, x, drawY, w)
-    local T    = ZeD.T
-    local pad  = T.px(CARD_PAD)
-    local lam  = T.px(LAMINATE_W)
-    local secFH  = ZeD.TM:getFontHeight(T.fontF1)
-    local bodyFH = ZeD.TM:getFontHeight(T.fontF2)
-    local lblH, valH = fieldLineHs()
-    local headerH = secFH + bodyFH + T.px(20)
+-- a row of one or two fields and, unless it is the last, the faint rule under it; the next row's y
+local function fieldRow(panel, acc, x, w, y, lblH, valH, l1, v1, l2, v2, last)
+    local T = ZeD.T
+    local gap = T.px(10)
+    local cw = l2 and math.floor((w - gap) / 2) or w
+    drawField(panel, acc, l1, v1, x, y, cw, lblH)
+    if l2 then drawField(panel, acc, l2, v2, x + cw + gap, y, cw, lblH) end
+    y = y + lblH + T.px(1) + valH
+    if last then return y end
+    panel:drawRect(x, y + T.px(6), w, T.px(1), 0.08, KY.blue.r, KY.blue.g, KY.blue.b)
+    return y + T.px(6) * 2 + T.px(1)
+end
 
-    local cardY = drawY + pad + lam + headerH
-    local dataX = x + pad + lam + T.px(PHOTO_W) + T.px(FIELD_PAD)
-    local dataW = w - pad * 2 - lam * 2 - T.px(PHOTO_W) - T.px(FIELD_PAD) * 2
-    local rowY  = cardY + T.px(FIELD_PAD)
-    local tm = ZeD.TM
+-- The rubber stamp over the seal: a double-ruled box in the accent, the cream washed behind
+-- it, centered on (cx, cy). Plain text can't turn, so it is set square. REVOKED is red.
+local function drawStamp(panel, data, acc, cx, cy, maxW)
+    if not data.permit then return end
+    local T, A, X, f = ZeD.T, ZeD.Atoms, ZeD.Text, ZeD.Font.sdf.sec
+    local zoom, lh = freeZoom(13), freeLineH(f, 13)
+    local t = T.hair
+    local frame = t * 3                      -- rule, gap, rule
+    local padX, padY = T.px(8), T.px(3)
+    local room = maxW - (frame + padX) * 2
+    local rv = (data.permit == "revoked") and ZeD.tr("UI_ZeD_Identity_Revoked") or nil
+    local sp = rv and freeW(f, " ", zoom) or 0
+    local rw = rv and freeW(f, rv, zoom) or 0
+    local l1 = fitFree(f, ZeD.tr("UI_ZeD_Identity_StampLine1"), room, zoom)
+    local l2 = fitFree(f, ZeD.tr("UI_ZeD_Identity_StampLine2"), room - sp - rw, zoom)
+    local l2w = freeW(f, l2, zoom) + sp + rw
+    local bw = math.max(freeW(f, l1, zoom), l2w) + (frame + padX) * 2
+    local bh = lh * 2 + (frame + padY) * 2
+    local bx, by = math.floor(cx - bw / 2), math.floor(cy - bh / 2)
+    panel:drawRect(bx, by, bw, bh, 0.55, KY.cardBg.r, KY.cardBg.g, KY.cardBg.b)
+    A.frame(panel, bx, by, bw, bh, acc, 1, t)
+    A.frame(panel, bx + t * 2, by + t * 2, bw - t * 4, bh - t * 4, acc, 1, t)
+    local ty = by + frame + padY
+    X.draw(panel, f, l1, cx, ty, zoom, acc.r, acc.g, acc.b, 1, "c")
+    local lx = math.floor(cx - l2w / 2)
+    if l2 ~= "" then X.draw(panel, f, l2, lx, ty + lh, zoom, acc.r, acc.g, acc.b, 1, "l") end
+    if rv then
+        X.draw(panel, f, rv, lx + l2w - rw, ty + lh, zoom, KY.red.r, KY.red.g, KY.red.b, 1, "l")
+    end
+end
 
-    -- Weight pill, at the name row's right; it gives way when it would leave the name
-    -- less than a few letters (the name is the card's)
-    local wtW = tm:MeasureStringX(T.fontF2, data.weightStr)
-    local pillX = dataX + dataW - wtW - T.px(12)
-    local nameRoom = pillX - T.px(6) - dataX
-    if nameRoom < T.px(48) then
-        nameRoom = dataW
+local function renderLicenseWide(panel, win, data, x, drawY, w)
+    local A, T = ZeD.Atoms, ZeD.T
+    local expanded = win._identityPhotoExpanded and true or false
+    local ix, bodyY, iw = drawCardShell(panel, win, x, drawY, w, measureWideH(expanded) - T.px(CARD_PAD) * 2, false)
+    local top = bodyY + T.px(BODY_TOP)
+    local colW = T.px(PHOTO_W)
+    local acc = kyAccent(win)
+
+    -- the left column: the bust and the seal under it, or the full body across the column
+    if expanded then
+        local ph = T.px(PHOTO_FULL)
+        panel:drawRect(ix, top, colW, ph, 1.0, KY.skyBlue.r, KY.skyBlue.g, KY.skyBlue.b)
+        setPhoto(win, ix, top, colW, ph, true)
     else
-        local pillY = rowY + T.px(2)
-        panel:drawRect(pillX, pillY, wtW + T.px(10), bodyFH + T.px(4),
-            0.1, KY.blue.r, KY.blue.g, KY.blue.b)
-        panel:drawText(data.weightStr, pillX + T.px(5), pillY + T.px(2),
-            KY.ink.r, KY.ink.g, KY.ink.b, 0.85, T.fontF2)
-    end
-    -- Name row: cut with "..." to its room (Oct 31 2026, break-it E5)
-    local zoom = ZeD.Text.zoomPx(17)
-    local displayName = fitName(data.surname, data.forename, nameRoom, zoom)
-    if displayName ~= "" then
-        ZeD.Text.draw(panel, ZeD.Font.sdf.head, displayName, dataX, rowY, zoom, 0.07, 0.07, 0.07, 1.0, "l")   -- S124: 17 px design heading on the distance-field face
-    end
-    rowY = rowY + nameRowH() + T.px(12)
-
-    -- Two-column data grid: each field in its own box (a small gap between the boxes)
-    local colW = math.floor(dataW / 2)
-    local cellW = colW - T.px(6)
-    local fields = win._idFields
-    if not fields then
-        fields = { {}, {}, {} }
-        win._idFields = fields
-    end
-    local f1, f2, f3 = fields[1], fields[2], fields[3]
-    f1[1], f1[2], f1[3], f1[4] = getText("IGUI_char_Sex"),            data.sexStr,    ZeD.tr("UI_ZeD_Identity_Profession"), data.profession
-    f2[1], f2[2], f2[3], f2[4] = ZeD.tr("UI_ZeD_Identity_HairStyle"), data.hairStyle, ZeD.tr("UI_ZeD_Identity_BodyHair"),   data.bodyHair
-    f3[1], f3[2], f3[3], f3[4] = ZeD.tr("UI_ZeD_Identity_HairColor"), data.hairColor, ZeD.tr("UI_ZeD_Identity_FacialHair"), data.facialHair
-    for i = 1, 3 do
-        local row = fields[i]
-        drawField(panel, row[1], row[2], dataX, rowY, cellW, lblH)
-        drawField(panel, row[3], row[4], dataX + colW, rowY, cellW, lblH)
-        rowY = rowY + lblH + valH + T.px(10)
-        panel:drawRect(dataX, rowY - T.px(4), dataW, T.px(1),
-            0.08, KY.blue.r, KY.blue.g, KY.blue.b)
+        local ps = T.px(PHOTO_SIZE)
+        local photoX = ix + math.floor((colW - ps) / 2)
+        A.fillRounded(panel, photoX, top, ps, ps, KY.skyBlue.r, KY.skyBlue.g, KY.skyBlue.b, 1.0)
+        setPhoto(win, photoX, top, ps, ps, false)
+        local sz = T.px(SEAL_WIDE)
+        local cx, sealY = ix + math.floor(colW / 2), top + ps + T.px(10)
+        local seal = sealTex()
+        if seal then panel:drawTextureScaledAspect(seal, cx - math.floor(sz / 2), sealY, sz, sz, 0.45, 1, 1, 1) end
+        drawStamp(panel, data, acc, cx, sealY + math.floor(sz / 2), colW)
     end
 
-    -- Time Survived
-    rowY = rowY + T.px(4)
-    drawField(panel, ZeD.tr("IGUI_char_Survived_For"), data.timeSurv, dataX, rowY, dataW, lblH)
-    rowY = rowY + lblH + T.px(1) + valH + T.px(10)
-    panel:drawRect(dataX, rowY - T.px(4), dataW, T.px(1),
-        0.08, KY.blue.r, KY.blue.g, KY.blue.b)
-
-    -- Favorite Weapon | Zombies Killed
-    rowY = rowY + T.px(4)
-    drawField(panel, getText("IGUI_char_Favourite_Weapon"), data.favWeapon, dataX, rowY, cellW, lblH)
-    drawField(panel, getText("IGUI_char_Zombies_Killed"), data.zKills, dataX + colW, rowY, cellW, lblH)
+    -- the right column: the name row, then the fields
+    local dataX = ix + colW + T.px(BODY_GAP)
+    local dataW = iw - colW - T.px(BODY_GAP) * 2
+    drawNameRow(panel, data, data.nameComma, dataX, top, dataW, NAME_WIDE, KY.name, acc)
+    local y = top + freeLineH(ZeD.Font.sdf.head, NAME_WIDE) + T.px(10)
+    local lblH, valH = fieldLineHs()
+    y = fieldRow(panel, acc, dataX, dataW, y, lblH, valH, getText("IGUI_char_Sex"), data.sexStr,
+        ZeD.tr("UI_ZeD_Identity_Profession"), data.profession)
+    y = fieldRow(panel, acc, dataX, dataW, y, lblH, valH, ZeD.tr("UI_ZeD_Identity_HairStyle"), data.hairStyle,
+        ZeD.tr("UI_ZeD_Identity_BodyHair"), data.bodyHair)
+    y = fieldRow(panel, acc, dataX, dataW, y, lblH, valH, ZeD.tr("UI_ZeD_Identity_HairColor"), data.hairColor,
+        ZeD.tr("UI_ZeD_Identity_FacialHair"), data.facialHair)
+    y = fieldRow(panel, acc, dataX, dataW, y, lblH, valH, getText("IGUI_char_Survived_For"), data.timeSurv)
+    fieldRow(panel, acc, dataX, dataW, y, lblH, valH, getText("IGUI_char_Favourite_Weapon"), data.favWeapon,
+        getText("IGUI_char_Zombies_Killed"), data.zKills, true)
 end
 
 -- ============================================================================
--- THE PORTRAIT CARD (Oct 31 2026, punch list 36, the director: "make a vertical version
--- of the ID"). Below a width the side-by-side card's two-column fields are narrower than
--- their longest label (they would read "..."); there the card stands up: the header band
--- on top, the photo centred under it, the name, the fields as full-width label / value
--- rows, then the seal. The same laminate, header, inks, fonts and seal.
+-- WIDE OR NARROW (Oct 31 2026, punch list 36, the director: "make a vertical version of
+-- the ID"). Below a width the wide card's two-column fields are narrower than their longest
+-- label (they would read "..."); there the card stands up. Simple follows the same width.
 -- QA: ZeD.IdentityTab.qaLayout = "tall" or "wide" forces one (nil: by the width);
 -- win._idTall says which one drew.
 -- ============================================================================
 
-local TALL_PHOTO_H = 240   -- design units: the full-body photo's band in the portrait card
-local TALL_SEAL    = 96    -- design units: the seal at the portrait card's foot
-
--- the field labels, in the order the portrait card lists them (the name is its own row)
+-- the labels of Simple's rows, in order (the name is its own row); the widest one
+-- also decides the width
 local TALL_LABELS = {
     { "v", "IGUI_char_Sex" }, { "z", "UI_ZeD_Identity_Profession" }, { "z", "UI_ZeD_Identity_HairStyle" },
-    { "z", "UI_ZeD_Identity_BodyHair" }, { "z", "UI_ZeD_Identity_HairColor" }, { "z", "UI_ZeD_Identity_FacialHair" },
+    { "z", "UI_ZeD_Identity_HairColor" }, { "z", "UI_ZeD_Identity_FacialHair" }, { "z", "UI_ZeD_Identity_BodyHair" },
     { "v", "IGUI_char_Survived_For" }, { "v", "IGUI_char_Favourite_Weapon" }, { "v", "IGUI_char_Zombies_Killed" },
 }
 local function tallLabel(i)
@@ -553,144 +864,528 @@ local function labelNeed()
     return m
 end
 
--- the portrait card at content width w? (the side-by-side card's field box against the
--- widest label)
+-- the narrow card at content width w? (the wide card's field box against the widest label)
 local function isTall(w)
     local q = ZeD.IdentityTab.qaLayout
     if q == "tall" then return true elseif q == "wide" then return false end
     local T = ZeD.T
-    local dataW = w - T.px(CARD_PAD) * 2 - T.px(LAMINATE_W) * 2 - T.px(PHOTO_W) - T.px(FIELD_PAD) * 2
-    local cellW = math.floor(dataW / 2) - T.px(6)
+    local dataW = w - T.px(CARD_PAD) * 2 - T.px(LAMINATE_W) * 2 - T.px(PHOTO_W) - T.px(BODY_GAP) * 2
+    local cellW = math.floor((dataW - T.px(10)) / 2)
     return cellW < labelNeed()
 end
 ZeD.IdentityTab.isTall = isTall
 
--- one portrait row's height (the label and the value on one line)
-local function tallRowH()
-    local lblH, valH = fieldLineHs()
-    return math.max(lblH, valH) + ZeD.T.px(10)
+-- ============================================================================
+-- THE NARROW LICENSE (mockup licenseNarrow, Tennessee's layout)
+-- ============================================================================
+
+-- the small rows: { label key, field of data.small [, second label key, second field] }
+local TALL_SMALL = {
+    { "UI_ZeD_Identity_TagSex", "sex" },
+    { "UI_ZeD_Identity_TagHair", "hair", "UI_ZeD_Identity_TagStyle", "style" },
+    { "UI_ZeD_Identity_TagFacial", "facial", "UI_ZeD_Identity_TagBody", "body" },
+    { "UI_ZeD_Identity_TagProf", "prof" },
+    { "UI_ZeD_Identity_TagKills", "kills" },
+    { "UI_ZeD_Identity_TagFav", "fav" },
+}
+
+-- Every height of the narrow card, one place for the measure and the draw. w is the width the
+-- tab measures at (as if a scroll bar shows), so the height never hangs on the bar. The photo
+-- is 44% of the width and 3:4, stretched to the column beside it when that is taller (as the
+-- mockup draws it), up to 1:2, the model's own shape (renderLicenseTall). The half card is
+-- narrower than the mockup's window, so what the wider card sets on one line stacks there: ISS
+-- and EXP over their dates, the small rows' pairs one to a row. One table, refilled at each call.
+local _tm = {}
+local function tallMetrics(data, w)
+    local T, tm = ZeD.T, ZeD.TM
+    local sec, head = ZeD.Font.sdf.sec, ZeD.Font.sdf.head
+    local m = _tm
+    local lblH = tm:getFontHeight(T.fontF1)
+    local dw = w - T.px(CARD_PAD) * 2 - T.px(LAMINATE_W) * 2 - T.px(TALL_PAD) * 2
+    local photoW = math.floor(dw * 0.44)
+    local sideW = dw - photoW - T.px(10)
+    m.lblH = lblH
+    m.l10, m.l11, m.l12, m.l13 = freeLineH(sec, 10), freeLineH(sec, 11), freeLineH(sec, 12), freeLineH(sec, 13)
+    m.boxH = m.l12 * 2 + (T.line(2) + T.px(2)) * 2
+    -- REVOKED hangs off the permit box's corner; where it would reach the DL NO label it sits in the box
+    m.tagW = freeW(sec, ZeD.tr("UI_ZeD_Identity_Revoked"), freeZoom(10)) + (T.line(2) + T.px(4)) * 2
+    m.tagH = m.l10 + T.line(2) * 2
+    m.tagIn = data.permit == "revoked"
+        and sideW + T.px(8) - m.tagW < tm:MeasureStringX(T.fontF1, ZeD.tr("UI_ZeD_Identity_TagDl")) + T.px(4)
+    m.permitH = data.permit and (m.l11 * 2 + T.px(3) * 2 + (m.tagIn and (m.tagH + T.px(3)) or 0)) or 0
+    m.bigH = freeLineH(head, BIG_TALL)
+    local lblW = math.max(tm:MeasureStringX(T.fontF1, ZeD.tr("UI_ZeD_Identity_TagIss")),
+        tm:MeasureStringX(T.fontF1, ZeD.tr("UI_ZeD_Identity_TagExp")))
+    m.dateStack = lblW + T.px(4) + freeW(sec, data.issStr, freeZoom(11)) > sideW
+    m.dateH = m.dateStack and (lblH + m.l11) or math.max(lblH, m.l11)
+    local gap = T.px(3)
+    local side = m.boxH + gap + (data.permit and (m.permitH + gap) or 0) + T.px(2)
+        + lblH + m.l13 + gap + lblH + m.bigH * math.max(2, #data.survLines) + gap + m.dateH + gap + m.dateH
+    m.rowH = math.max(math.floor(photoW * 4 / 3), side)
+    m.surH, m.foreH = freeLineH(head, NAME_TALL), freeLineH(head, FORE_TALL)
+    m.smallH = math.max(lblH, m.l13)
+    -- the small rows' grid: the label columns as wide as their widest, the values sharing the rest
+    local c1, c3 = 0, 0
+    for i = 1, #TALL_SMALL do
+        local r = TALL_SMALL[i]
+        c1 = math.max(c1, tm:MeasureStringX(T.fontF1, ZeD.tr(r[1])))
+        if r[3] then c3 = math.max(c3, tm:MeasureStringX(T.fontF1, ZeD.tr(r[3]))) end
+    end
+    local sg = T.px(6)
+    local half = math.floor((dw - c1 - c3 - sg * 3) / 2)
+    m.pairs = half >= freeW(sec, "0000000", freeZoom(13))
+    m.c1, m.c3, m.half = m.pairs and c1 or math.max(c1, c3), c3, half
+    m.smallN = m.pairs and #TALL_SMALL or (#TALL_SMALL + 2)
+    m.smallTotal = m.smallH * m.smallN + gap * (m.smallN - 1)
+    m.footH = math.max(T.px(SEAL_TALL), donorScale() * 10)
+    m.bodyH = T.px(10) + m.rowH + T.px(10) + m.surH + m.foreH + T.px(8)
+        + m.smallTotal + T.px(8) + m.footH + T.px(BODY_BOT)
+    return m
 end
 
-local function tallPhotoH(expanded)
+local function measureTallH(data, w, expanded)
     local T = ZeD.T
-    return expanded and T.px(TALL_PHOTO_H) or (T.px(FIELD_PAD) + T.px(PHOTO_SIZE))
+    local bodyH = expanded and T.px(TALL_FULL) or tallMetrics(data, w).bodyH
+    return T.px(CARD_PAD) * 2 + T.px(LAMINATE_W) * 2 + bandH() + bodyH
 end
 
-local function measureTallH(expanded)
+-- a centered free-size mono line, cut to its room
+local function boxLine(panel, s, cx, y, px, room, c)
+    local f, zoom = ZeD.Font.sdf.sec, freeZoom(px)
+    s = fitFree(f, s, room, zoom)
+    if s ~= "" then ZeD.Text.draw(panel, f, s, cx, y, zoom, c.r, c.g, c.b, 1, "c") end
+end
+
+-- a mono value at 13 px, or 11 when that does not fit, then cut, in a line h tall
+local function drawMono(panel, s, x, y, room, h)
+    local X, f = ZeD.Text, ZeD.Font.sdf.sec
+    local px = (freeW(f, s, freeZoom(13)) > room) and 11 or 13
+    local zoom = freeZoom(px)
+    s = fitFree(f, s, room, zoom)
+    if s ~= "" then
+        X.draw(panel, f, s, x, y + math.floor((h - freeLineH(f, px)) / 2), zoom, KY.value.r, KY.value.g, KY.value.b, 1, "l")
+    end
+end
+
+-- a small accent label and its date, side by side or the date under it (ISS, EXP)
+local function dateRow(panel, acc, m, label, value, x, y, w)
+    local T, tm = ZeD.T, ZeD.TM
+    local sec, zoom = ZeD.Font.sdf.sec, freeZoom(11)
+    label = ZeD.Atoms.truncateText(label, T.fontF1, w)
+    local vx, vy = x, y + m.lblH
+    if m.dateStack then
+        panel:drawText(label, x, y, acc.r, acc.g, acc.b, 1, T.fontF1)
+    else
+        panel:drawText(label, x, y + math.floor((m.dateH - m.lblH) / 2), acc.r, acc.g, acc.b, 1, T.fontF1)
+        vx, vy = x + tm:MeasureStringX(T.fontF1, label) + T.px(4), y + math.floor((m.dateH - m.l11) / 2)
+    end
+    local s = fitFree(sec, value, x + w - vx, zoom)
+    if s ~= "" then ZeD.Text.draw(panel, sec, s, vx, vy, zoom, KY.value.r, KY.value.g, KY.value.b, 1, "l") end
+end
+
+-- REVOKED, a small red tag at the permit box's lower right, reaching past the box's corner,
+-- or centered in the box's foot (square, as plain text can't turn)
+local function drawRevokedTag(panel, x, w, bottom, m)
+    local T, f = ZeD.T, ZeD.Font.sdf.sec
+    local bt = T.line(2)
+    local bx, by = x + w + T.px(8) - m.tagW, bottom + T.px(10) - m.tagH
+    if m.tagIn then bx, by = x + math.floor((w - m.tagW) / 2), bottom - T.px(3) - m.tagH end
+    panel:drawRect(bx, by, m.tagW, m.tagH, 0.85, KY.cardBg.r, KY.cardBg.g, KY.cardBg.b)
+    ZeD.Atoms.frame(panel, bx, by, m.tagW, m.tagH, KY.red, 1, bt)
+    ZeD.Text.draw(panel, f, ZeD.tr("UI_ZeD_Identity_Revoked"), bx + bt + T.px(4), by + bt, freeZoom(10),
+        KY.red.r, KY.red.g, KY.red.b, 1, "l")
+end
+
+-- the column beside the photo: OPERATOR / CLASS D, the permit, DL NO, SURVIVED, ISS, EXP
+local function drawTallSide(panel, data, m, acc, x, y, w)
+    local T, A, X = ZeD.T, ZeD.Atoms, ZeD.Text
+    local head = ZeD.Font.sdf.head
+    local cx = x + math.floor(w / 2)
+    local gap = T.px(3)
+    local bt = T.line(2)
+    local room = w - (bt + T.px(4)) * 2
+
+    A.frame(panel, x, y, w, m.boxH, acc, 1, bt)
+    boxLine(panel, ZeD.tr("UI_ZeD_Identity_Operator"), cx, y + bt + T.px(2), 12, room, acc)
+    boxLine(panel, ZeD.tr("UI_ZeD_Identity_ClassD"), cx, y + bt + T.px(2) + m.l12, 12, room, acc)
+    y = y + m.boxH + gap
+
+    local permitBottom = nil
+    if data.permit then
+        panel:drawRect(x, y, w, m.permitH, 1, acc.r, acc.g, acc.b)
+        local line = w - T.px(4) * 2
+        boxLine(panel, ZeD.tr("UI_ZeD_Identity_PermitLine1"), cx, y + T.px(3), 11, line, KY.cardBg)
+        boxLine(panel, ZeD.tr("UI_ZeD_Identity_PermitLine2"), cx, y + T.px(3) + m.l11, 11, line, KY.cardBg)
+        y = y + m.permitH + gap
+        permitBottom = y - gap
+    end
+    y = y + T.px(2)
+
+    panel:drawText(A.truncateText(ZeD.tr("UI_ZeD_Identity_TagDl"), T.fontF1, w), x, y, acc.r, acc.g, acc.b, 1, T.fontF1)
+    y = y + m.lblH
+    drawMono(panel, data.dlNo, x, y, w, m.l13)
+    y = y + m.l13 + gap
+
+    panel:drawText(A.truncateText(ZeD.tr("UI_ZeD_Identity_TagSurvived"), T.fontF1, w), x, y, acc.r, acc.g, acc.b, 1, T.fontF1)
+    y = y + m.lblH
+    -- every line a step down when one won't fit, then cut; the lines keep the same pitch
+    local lines = data.survLines
+    local px = BIG_TALL
+    for i = 1, #lines do
+        if freeW(head, lines[i], freeZoom(BIG_TALL)) > w then px = BIG_SMALL end
+    end
+    local zBig = freeZoom(px)
+    local inset = math.floor((m.bigH - freeLineH(head, px)) / 2)
+    for i = 1, #lines do
+        local s = fitFree(head, lines[i], w, zBig)
+        if s ~= "" then X.draw(panel, head, s, x, y + (i - 1) * m.bigH + inset, zBig, KY.name.r, KY.name.g, KY.name.b, 1, "l") end
+    end
+    y = y + m.bigH * math.max(2, #lines) + gap
+
+    dateRow(panel, acc, m, ZeD.tr("UI_ZeD_Identity_TagIss"), data.issStr, x, y, w)
+    dateRow(panel, acc, m, ZeD.tr("UI_ZeD_Identity_TagExp"), data.expStr, x, y + m.dateH + gap, w)
+
+    if permitBottom and data.permit == "revoked" then drawRevokedTag(panel, x, w, permitBottom, m) end
+end
+
+-- one small row: the label, the value in room
+local function smallRow(panel, acc, m, label, value, x, vx, y, room)
     local T = ZeD.T
-    local secFH  = ZeD.TM:getFontHeight(T.fontF1)
-    local bodyFH = ZeD.TM:getFontHeight(T.fontF2)
-    local headerH = secFH + bodyFH + T.px(20)
-    local bodyH = tallPhotoH(expanded) + T.px(12)           -- the photo (its top pad) + gap
-    bodyH = bodyH + nameRowH() + T.px(12)                     -- the name + gap
-    bodyH = bodyH + tallRowH() * #TALL_LABELS                 -- the fields
-    bodyH = bodyH + T.px(8) + T.px(TALL_SEAL) + T.px(FIELD_PAD)   -- the seal + bottom pad
-    return T.px(CARD_PAD) + T.px(LAMINATE_W) + headerH + bodyH + T.px(LAMINATE_W) + T.px(CARD_PAD)
+    panel:drawText(ZeD.tr(label), x, y + math.floor((m.smallH - m.lblH) / 2), acc.r, acc.g, acc.b, 1, T.fontF1)
+    drawMono(panel, value, vx, y, room, m.smallH)
 end
 
-local function renderLicenseTall(panel, win, data, x, drawY, w)
-    local A, T, tm = ZeD.Atoms, ZeD.T, ZeD.TM
-    local pad, lam = T.px(CARD_PAD), T.px(LAMINATE_W)
-    local secFH  = tm:getFontHeight(T.fontF1)
-    local bodyFH = tm:getFontHeight(T.fontF2)
-    local headerH = secFH + bodyFH + T.px(20)
+-- the small rows: label, value, and on two of them a second label and value beside the first
+-- (or under it, on a card too narrow for the pair)
+local function drawSmallRows(panel, data, acc, m, x, y, w)
+    local T = ZeD.T
+    local gap = T.px(6)
+    local step = m.smallH + T.px(3)
+    local vx = x + m.c1 + gap
+    for i = 1, #TALL_SMALL do
+        local r = TALL_SMALL[i]
+        if r[3] and m.pairs then
+            local lx = vx + m.half + gap
+            smallRow(panel, acc, m, r[1], data.small[r[2]], x, vx, y, m.half)
+            smallRow(panel, acc, m, r[3], data.small[r[4]], lx, lx + m.c3 + gap, y, m.half)
+        else
+            smallRow(panel, acc, m, r[1], data.small[r[2]], x, vx, y, x + w - vx)
+            if r[3] then
+                y = y + step
+                smallRow(panel, acc, m, r[3], data.small[r[4]], x, vx, y, x + w - vx)
+            end
+        end
+        y = y + step
+    end
+end
+
+-- the state, large and faint, behind the fields: 64 design units over the body's foot,
+-- at the art's whole number, or the next one down while it is wider than the card
+local function drawWatermark(panel, ix, iw, bottom)
+    local tex = kyArt("ky_watermark")
+    if not tex then return end
+    local s = artScale()
+    local tw = tex:getWidth()
+    while s > 1 and tw * s > iw do s = s - 1 end
+    if tw * s > iw then return end
+    drawArt(panel, tex, ix + math.floor((iw - tw * s) / 2), bottom - ZeD.T.px(64) - tex:getHeight() * s, s, 0.9)
+end
+
+-- the foot: the faded seal at the left, the donor pill at the right, on the same bottom line
+local function drawTallFoot(panel, m, x, y, w)
+    local T = ZeD.T
+    local bottom = y + m.footH
+    local sz = T.px(SEAL_TALL)
+    local seal = sealTex()
+    if seal then panel:drawTextureScaledAspect(seal, x, bottom - sz, sz, sz, 0.4, 1, 1, 1) end
+    local donor = kyArt("ky_donor")
+    if not donor then return end
+    local ds, dw = donorScale(), donor:getWidth()
+    while ds > 1 and sz + T.px(8) + dw * ds > w do ds = ds - 1 end
+    if sz + T.px(8) + dw * ds <= w then
+        drawArt(panel, donor, x + w - dw * ds, bottom - donor:getHeight() * ds, ds)
+    end
+end
+
+local function renderLicenseTall(panel, win, data, x, drawY, w, layoutW)
+    local A, T = ZeD.Atoms, ZeD.T
     local expanded = win._identityPhotoExpanded and true or false
+    local totalH = measureTallH(data, layoutW, expanded) - T.px(CARD_PAD) * 2
+    local m = tallMetrics(data, layoutW)
+    local ix, bodyY, iw, bodyH = drawCardShell(panel, win, x, drawY, w, totalH, true, expanded)
 
-    -- the laminate, the header band, the cream body (as the side-by-side card)
-    local cardX, cardW = x + pad, w - pad * 2
-    local totalH = measureTallH(expanded) - pad * 2
-    local cardBodyH = totalH - lam * 2 - headerH
-    fillRoundedCard(panel, cardX, drawY + pad, cardW, totalH, KY.laminate.r, KY.laminate.g, KY.laminate.b, KY.laminate.a)
-    local innerX, innerY, innerW = cardX + lam, drawY + pad + lam, cardW - lam * 2
-    panel:drawRect(innerX, innerY, innerW, headerH, 1.0, KY.blue.r, KY.blue.g, KY.blue.b)
-    local headerTex = getTexture("media/textures/ZeD/Kentucky-dl-head.png")
-    if headerTex then
-        panel:drawTextureScaledAspect(headerTex, innerX, innerY, innerW, headerH, 1.0, 1.0, 1.0, 1.0)
-    end
-    local bodyY = innerY + headerH
-    panel:drawRect(innerX, bodyY, innerW, cardBodyH, 1.0, KY.cardBg.r, KY.cardBg.g, KY.cardBg.b)
-
-    -- the photo, centred: the bust's square, or the full body's band across the card
-    -- (the window places the model in win._identityPhotoRect and keeps it in the view)
-    local pr = win._idTallPhoto or {}
-    win._idTallPhoto = pr
+    -- the full body: the whole card under the header, the model at its foot
     if expanded then
-        local ph = tallPhotoH(true)
-        panel:drawRect(innerX, bodyY, innerW, ph, 1.0, KY.skyBlue.r, KY.skyBlue.g, KY.skyBlue.b)
-        pr.x, pr.y, pr.w, pr.h, pr.expanded = innerX, bodyY, innerW, ph, true
-    else
-        local ps = math.min(T.px(PHOTO_SIZE), math.max(T.px(20), innerW - T.px(FIELD_PAD) * 2))
-        local px = innerX + math.floor((innerW - ps) / 2)
-        local py = bodyY + T.px(FIELD_PAD)
-        A.fillRounded(panel, px, py, ps, ps, KY.skyBlue.r, KY.skyBlue.g, KY.skyBlue.b, 1.0)
-        pr.x, pr.y, pr.w, pr.h, pr.expanded = px, py, ps, ps, nil
+        panel:drawRect(ix, bodyY, iw, bodyH, 1.0, KY.skyBlue.r, KY.skyBlue.g, KY.skyBlue.b)
+        local mh = T.px(TALL_MODEL)
+        setPhoto(win, ix, bodyY + bodyH - mh, iw, mh, true, ix, bodyY, iw, bodyH)
+        return
     end
-    win._identityPhotoRect = pr
-    win._identityPhotoZone = { x = innerX, y = bodyY, w = innerW, h = tallPhotoH(expanded) }
-    local rowY = bodyY + tallPhotoH(expanded) + T.px(12)
 
-    -- the name, full width, the weight pill at its right while the name keeps room
-    local dataX = innerX + T.px(FIELD_PAD)
-    local dataW = innerW - T.px(FIELD_PAD) * 2
-    local wtW = tm:MeasureStringX(T.fontF2, data.weightStr)
-    local pillX = dataX + dataW - wtW - T.px(10)
-    local nameRoom = pillX - T.px(6) - dataX
-    if nameRoom < T.px(48) then
-        nameRoom = dataW
-    else
-        local pillY = rowY + T.px(2)
-        panel:drawRect(pillX, pillY, wtW + T.px(10), bodyFH + T.px(4), 0.1, KY.blue.r, KY.blue.g, KY.blue.b)
-        panel:drawText(data.weightStr, pillX + T.px(5), pillY + T.px(2), KY.ink.r, KY.ink.g, KY.ink.b, 0.85, T.fontF2)
-    end
-    local zoom = ZeD.Text.zoomPx(17)
-    local displayName = fitName(data.surname, data.forename, nameRoom, zoom)
-    if displayName ~= "" then
-        ZeD.Text.draw(panel, ZeD.Font.sdf.head, displayName, dataX, rowY, zoom, 0.07, 0.07, 0.07, 1.0, "l")
-    end
-    rowY = rowY + nameRowH() + T.px(12)
-    panel:drawRect(dataX, rowY - T.px(6), dataW, T.px(1), 0.08, KY.blue.r, KY.blue.g, KY.blue.b)
+    drawWatermark(panel, ix, iw, bodyY + bodyH)
+    local acc = kyAccent(win)
+    local dx, dw = ix + T.px(TALL_PAD), iw - T.px(TALL_PAD) * 2
+    local y = bodyY + T.px(10)
 
-    -- the fields: the label at the left (F1, the dim ink), the value at the right (F4),
-    -- each cut with "..." to its own room; a faint line under each row
-    local vals = win._idTallVals or {}
-    win._idTallVals = vals
-    vals[1], vals[2], vals[3], vals[4], vals[5] = data.sexStr, data.profession, data.hairStyle, data.bodyHair, data.hairColor
-    vals[6], vals[7], vals[8], vals[9] = data.facialHair, data.timeSurv, data.favWeapon, data.zKills
-    local lblH, valH = fieldLineHs()
-    local rh = tallRowH()
-    local gap = T.px(8)
-    local dots = tm:MeasureStringX(T.fontF1, "...")
-    for i = 1, #TALL_LABELS do
-        local line = math.max(lblH, valH)
-        local label = tallLabel(i)
-        local value = tostring(vals[i] or "")
-        local valNeed = tm:MeasureStringX(T.fontF4, value)
-        -- the label keeps at least half the row, the value what is left of it
-        local lblRoom = math.max(math.floor(dataW / 2), dataW - valNeed - gap)
-        local lblS = A.truncateText(label, T.fontF1, lblRoom)
-        local lblW = tm:MeasureStringX(T.fontF1, lblS)
-        if lblRoom > dots then
-            panel:drawText(lblS, dataX, rowY + math.floor((line - lblH) / 2),
-                KY.inkDim.r, KY.inkDim.g, KY.inkDim.b, KY.inkDim.a, T.fontF1)
+    -- the photo, and the column beside it. The model scales with its rect's height (AnimatedModel's
+    -- camera) and past 1:2 would show only the middle of the face, so the frame stops at 1:2, the
+    -- row's top; where the column runs longer (the half card) the cream shows under the photo.
+    local pw = math.floor(dw * 0.44)
+    local ph = math.min(m.rowH, pw * 2)
+    A.fillRounded(panel, dx, y, pw, ph, KY.skyBlue.r, KY.skyBlue.g, KY.skyBlue.b, 1.0)
+    setPhoto(win, dx, y, pw, ph, false)
+    drawTallSide(panel, data, m, acc, dx + pw + T.px(10), y, dw - pw - T.px(10))
+    y = y + m.rowH + T.px(10)
+
+    -- the name big, the surname over the forename; the weight beside the surname
+    drawNameRow(panel, data, data.surUp, dx, y, dw, NAME_TALL, KY.name, acc)
+    y = y + m.surH
+    local zoom = freeZoom(FORE_TALL)
+    local fore = fitName(data.foreUp, dw, zoom)
+    if fore ~= "" then
+        ZeD.Text.draw(panel, ZeD.Font.sdf.head, fore, dx, y, zoom, KY.name.r, KY.name.g, KY.name.b, 1, "l")
+    end
+    y = y + m.foreH + T.px(8)
+
+    drawSmallRows(panel, data, acc, m, dx, y, dw)
+    drawTallFoot(panel, m, dx, y + m.smallTotal + T.px(8), dw)
+end
+
+-- ============================================================================
+-- SIMPLE, WIDE AND NARROW (mockup plainWide, plainNarrow): ZeD's own components on the
+-- theme's surface; label / value rows, labels in the accent, no rules
+-- ============================================================================
+
+local function simpleRowH()
+    local T, tm = ZeD.T, ZeD.TM
+    return math.max(tm:getFontHeight(T.fontF1), tm:getFontHeight(T.fontF2)) + T.px(8)
+end
+
+-- the width of Simple's rows at the width the tab measures at, so the wrapping never hangs on
+-- the scroll bar
+local function simpleRowW(layoutW, tall)
+    local T = ZeD.T
+    local w = layoutW - T.px(PLAIN_PAD) * 2
+    if tall then return w end
+    return w - T.px(PHOTO_SIZE) - T.px(BODY_GAP)
+end
+
+-- The label of Simple's row i. The game's English writes its three (TALL_LABELS' "v") in title
+-- case and the card reads in sentence case, so English lowers all but the first letter; the
+-- other languages keep the game's words (German's nouns keep their capitals).
+local _rowLabel = {}
+local function simpleLabel(i)
+    local s = tallLabel(i)
+    if TALL_LABELS[i][1] ~= "v" then return s end
+    local c = _rowLabel[s]
+    if not c then
+        local ok, lang = pcall(function() return Translator.getLanguage():name() end)
+        c = (ok and lang == "EN") and (string.sub(s, 1, 1) .. string.lower(string.sub(s, 2))) or s
+        _rowLabel[s] = c
+    end
+    return c
+end
+
+-- a value's lines under its label: split at its commas, as many parts to a line as fit, a part
+-- too wide for the row cut with "..."
+local function valueLines(value, w)
+    local T, tm, A = ZeD.T, ZeD.TM, ZeD.Atoms
+    local f = T.fontF2
+    local parts = splitSurvived(value)
+    local out, cur = {}, parts[1]
+    for i = 2, #parts do
+        local joined = cur .. ", " .. parts[i]
+        if tm:MeasureStringX(f, joined .. ",") <= w then
+            cur = joined
+        else
+            out[#out + 1] = A.truncateText(cur .. ",", f, w)
+            cur = parts[i]
         end
-        local valRoom = dataW - lblW - gap
-        if valRoom > tm:MeasureStringX(T.fontF4, "...") then
-            local s = A.truncateText(value, T.fontF4, valRoom)
-            local sw = tm:MeasureStringX(T.fontF4, s)
-            panel:drawText(s, dataX + dataW - sw, rowY + math.floor((line - valH) / 2), 0.1, 0.1, 0.1, 1.0, T.fontF4)
+    end
+    out[#out + 1] = A.truncateText(cur, f, w)
+    return out
+end
+
+-- Simple's rows at width w, one place for the measure and the draw: { label, lines, lineW, beside }
+-- and h, the rows' whole height. A row is the label with the value beside it while the two fit;
+-- else the value goes under the label, right-aligned (the half card). Kept with the data, which
+-- is made anew every half second, so nothing is measured every frame.
+local function simpleRows(data, w)
+    local T, tm, A = ZeD.T, ZeD.TM, ZeD.Atoms
+    local c = data._rows
+    if c and c.w == w and c.scale == T.scale and c.f1 == T.fontF1 and c.f2 == T.fontF2 then return c end
+    c = { w = w, scale = T.scale, f1 = T.fontF1, f2 = T.fontF2, h = 0 }
+    data._rows = c
+    local gap, rh, valH = T.px(8), simpleRowH(), tm:getFontHeight(T.fontF2)
+    local function add(label, value)
+        value = tostring(value or "")
+        local r = { label = A.truncateText(label, T.fontF1, w) }
+        r.beside = tm:MeasureStringX(T.fontF1, label) + gap + tm:MeasureStringX(T.fontF2, value) <= w
+        r.lines = r.beside and { value } or valueLines(value, w)
+        r.lineW = {}
+        for i = 1, #r.lines do r.lineW[i] = tm:MeasureStringX(T.fontF2, r.lines[i]) end
+        c[#c + 1] = r
+        c.h = c.h + rh + (r.beside and 0 or valH * #r.lines)
+    end
+    local vals = { data.sexStr, data.profession, data.hairStyle, data.hairColor, data.facialHair,
+        data.bodyHair, data.timeSurv, data.favWeapon, data.zKills }
+    for i = 1, #TALL_LABELS do add(simpleLabel(i), vals[i]) end
+    if data.permit then
+        add(ZeD.tr("UI_ZeD_Identity_CarryPermit"),
+            ZeD.tr(data.permit == "revoked" and "UI_ZeD_Identity_CarryRevoked" or "UI_ZeD_Identity_CarryYes"))
+    end
+    return c
+end
+
+local function measureSimpleH(data, tall, expanded, layoutW)
+    local T = ZeD.T
+    local nameH = freeLineH(ZeD.Font.sdf.head, NAME_WIDE)
+    local margins = T.px(PLAIN_TOP) * 2
+    local rowsH = simpleRows(data, simpleRowW(layoutW, tall)).h
+    if not tall then
+        local ph = T.px(expanded and PLAIN_FULL_WIDE or PHOTO_SIZE)
+        return margins + math.max(ph, nameH + T.px(6) + rowsH)
+    end
+    if expanded then
+        return margins + T.px(PLAIN_FULL_TALL) + T.px(8) + nameH + T.px(6) + rowsH
+    end
+    return margins + math.max(T.px(PLAIN_BUST), nameH * 3) + T.px(8) + rowsH
+end
+
+-- the avatar's box: surface-2 with the strong border, the model inside the border at the box's
+-- foot, modelH tall (nil: the whole box)
+local function drawSimplePhoto(panel, win, x, y, w, h, expanded, modelH)
+    local T = ZeD.T
+    local s = T.surf2
+    panel:drawRect(x, y, w, h, s.a or 1, s.r, s.g, s.b)
+    ZeD.Atoms.frame(panel, x, y, w, h, T.borderS)
+    local t = T.hair
+    local mh = math.min(modelH or h, h - t * 2)
+    setPhoto(win, x + t, y + h - t - mh, w - t * 2, mh, expanded, x, y, w, h)
+end
+
+-- the rows: the label at the left (F1, the accent as text), the value at the right (F2),
+-- beside the label or under it (simpleRows)
+local function drawSimpleRows(panel, data, x, y, w, rowW)
+    local T, tm = ZeD.T, ZeD.TM
+    local rows = simpleRows(data, rowW)
+    local rh = simpleRowH()
+    local lblH, valH = tm:getFontHeight(T.fontF1), tm:getFontHeight(T.fontF2)
+    local lc, vc = T.accentText, T.text
+    for i = 1, #rows do
+        local r = rows[i]
+        if r.label ~= "" then
+            panel:drawText(r.label, x, y + math.floor((rh - lblH) / 2), lc.r, lc.g, lc.b, lc.a or 1, T.fontF1)
         end
-        rowY = rowY + rh
-        panel:drawRect(dataX, rowY - T.px(5), dataW, T.px(1), 0.08, KY.blue.r, KY.blue.g, KY.blue.b)
+        local vy = r.beside and (y + math.floor((rh - valH) / 2)) or (y + rh - T.px(4))
+        for j = 1, #r.lines do
+            if r.lines[j] ~= "" then
+                panel:drawText(r.lines[j], x + w - r.lineW[j], vy, vc.r, vc.g, vc.b, vc.a or 1, T.fontF2)
+            end
+            vy = vy + valH
+        end
+        y = y + rh + (r.beside and 0 or valH * #r.lines)
+    end
+end
+
+-- the narrow bust: the box beside the name, the weight and the profession, the block at the
+-- box's foot. On the half card the name takes two lines when one would cut it, and the
+-- profession its own line when it won't fit beside the weight, in F5 when F3 won't fit that.
+local function drawSimpleBust(panel, win, data, x, y, w)
+    local T, tm, X, head = ZeD.T, ZeD.TM, ZeD.Text, ZeD.Font.sdf.head
+    local box = T.px(PLAIN_BUST)
+    local nameH = freeLineH(head, NAME_WIDE)
+    local topH = math.max(box, nameH * 3)
+    drawSimplePhoto(panel, win, x, y, box, box, false)
+    local tx = x + box + T.px(12)
+    local tw = w - box - T.px(12)
+    local zoom = freeZoom(NAME_WIDE)
+    local tc, sc = T.text, T.textSec
+    local twoLines = freeW(head, data.nameFull, zoom) > tw and data.forename ~= "" and data.surname ~= ""
+    local wt = weightW(data, zoom)
+    local profF = T.fontF3
+    local profW = tm:MeasureStringX(profF, data.profession)
+    local profBeside = wt + T.px(8) + profW <= tw
+    if not profBeside and profW > tw then
+        profF = T.fontF5
+        profW = tm:MeasureStringX(profF, data.profession)
+    end
+    local profH = tm:getFontHeight(profF)
+    local ty = y + topH - nameH * (twoLines and 3 or 2) - (profBeside and 0 or profH)
+    if twoLines then
+        X.draw(panel, head, fitName(data.forename, tw, zoom), tx, ty, zoom, tc.r, tc.g, tc.b, tc.a or 1, "l")
+        ty = ty + nameH
+        X.draw(panel, head, fitName(data.surname, tw, zoom), tx, ty, zoom, tc.r, tc.g, tc.b, tc.a or 1, "l")
+    else
+        X.draw(panel, head, fitName(data.nameFull, tw, zoom), tx, ty, zoom, tc.r, tc.g, tc.b, tc.a or 1, "l")
+    end
+    ty = ty + nameH
+    if wt <= tw then drawWeight(panel, data, tx, ty, zoom, tc, T.accentText) end
+    if profBeside then
+        panel:drawText(data.profession, tx + tw - profW, ty + nameH - profH, sc.r, sc.g, sc.b, sc.a or 1, profF)
+    else
+        panel:drawText(ZeD.Atoms.truncateText(data.profession, profF, tw), tx, ty + nameH, sc.r, sc.g, sc.b, sc.a or 1, profF)
+    end
+    return topH
+end
+
+local function renderSimple(panel, win, data, x, drawY, w, tall, layoutW)
+    local T = ZeD.T
+    local rowW = simpleRowW(layoutW, tall)
+    local expanded = win._identityPhotoExpanded and true or false
+    local px, pw = x + T.px(PLAIN_PAD), w - T.px(PLAIN_PAD) * 2
+    local y = drawY + T.px(PLAIN_TOP)
+    local nameH = freeLineH(ZeD.Font.sdf.head, NAME_WIDE)
+    if not tall then
+        local box = T.px(PHOTO_SIZE)
+        drawSimplePhoto(panel, win, px, y, box, T.px(expanded and PLAIN_FULL_WIDE or PHOTO_SIZE), expanded)
+        local tx, tw = px + box + T.px(BODY_GAP), pw - box - T.px(BODY_GAP)
+        drawNameRow(panel, data, data.nameFull, tx, y, tw, NAME_WIDE, T.text, T.accentText)
+        drawSimpleRows(panel, data, tx, y + nameH + T.px(6), tw, rowW)
+    elseif expanded then
+        local fh = T.px(PLAIN_FULL_TALL)
+        drawSimplePhoto(panel, win, px, y, pw, fh, true, T.px(PLAIN_MODEL))
+        y = y + fh + T.px(8)
+        drawNameRow(panel, data, data.nameFull, px, y, pw, NAME_WIDE, T.text, T.accentText)
+        drawSimpleRows(panel, data, px, y + nameH + T.px(6), pw, rowW)
+    else
+        y = y + drawSimpleBust(panel, win, data, px, y, pw)
+        drawSimpleRows(panel, data, px, y + T.px(8), pw, rowW)
+    end
+end
+
+-- ============================================================================
+-- ZONE B HEIGHT — traits section
+-- ============================================================================
+
+-- a trait row's height: the line and 3 units over and under it, at least TRAIT_ROW_H
+local function traitRowH()
+    local T = ZeD.T
+    return math.max(T.px(TRAIT_ROW_H), ZeD.TM:getFontHeight(T.fontF2) + T.px(6))
+end
+
+local function measureZoneBH(data, cols)
+    local T = ZeD.T
+    local pad   = T.sp.sm
+    local h = pad + T.px(20) + T.sp.afterGroove  -- section head (20u, its line under it)
+
+    -- Positive traits
+    if #data.posTraits > 0 then
+        h = h + T.px(15) + T.sp.xs  -- "Positive" category row (15u)
+        local rows = math.ceil(#data.posTraits / cols)
+        h = h + rows * (traitRowH() + T.px(TRAIT_GAP))
+        h = h + T.sp.sm
     end
 
-    -- the seal, centred at the foot
-    local sealTex = getTexture("media/textures/ZeD/KY-seal.png")
-    if sealTex then
-        local sz = T.px(TALL_SEAL)
-        panel:drawTextureScaledAspect(sealTex, innerX + math.floor((innerW - sz) / 2), rowY + T.px(8), sz, sz, 0.5, 1, 1, 1)
+    -- Negative traits
+    if #data.negTraits > 0 then
+        h = h + T.px(15) + T.sp.xs  -- "Negative" category row (15u)
+        local rows = math.ceil(#data.negTraits / cols)
+        h = h + rows * (traitRowH() + T.px(TRAIT_GAP))
+        h = h + T.sp.sm
     end
 
-    borderRoundedCard(panel, cardX, drawY + pad, cardW, totalH, KY.blue.r, KY.blue.g, KY.blue.b, 0.3)
+    return h
 end
 
 -- ============================================================================
@@ -708,7 +1403,7 @@ end
 local function renderTraitRow(panel, win, trait, tx, ty, tw, color)
     local T = ZeD.T
     local A = ZeD.Atoms
-    local rh = T.px(TRAIT_ROW_H)
+    local rh = traitRowH()
     local bodyH = ZeD.TM:getFontHeight(T.fontF2)
 
     -- its description on hover and on controller focus (mockup zed_traits_tab_v1: the
@@ -717,8 +1412,7 @@ local function renderTraitRow(panel, win, trait, tx, ty, tw, color)
     local zones = win._idTraitZones
     zones[#zones + 1] = { x = tx, y = ty, w = tw, h = rh, id = key, name = trait.name, desc = trait.desc }
 
-    -- the cell: a content line round it, the hover wash, the controller's mark
-    -- under the words (no tinted fill: the square at the right carries good or bad)
+    -- the hover wash and the controller's mark under the words
     local hover = A.mouseIn(panel, tx, ty, tw, rh, win._idView)   -- (the tab's view bounds the hover)
     if hover then
         local hv = T.hover
@@ -729,48 +1423,41 @@ local function renderTraitRow(panel, win, trait, tx, ty, tw, color)
     if F and F.isFocused and F.isFocused(win, nil, key) then
         focused = ZeD.Focus.mark(panel, tx, ty, tw, rh, { win = win })
     end
-    A.frame(panel, tx, ty, tw, rh, T.border)
 
-    -- Icon
-    if trait.texture then
-        local iconPad = math.floor((rh - T.px(TRAIT_ICON_SZ)) / 2)
-        panel:drawTextureScaledAspect(trait.texture, tx + iconPad, ty + iconPad, T.px(trait.texture:getWidth()), T.px(trait.texture:getHeight()), 1.0, 1.0, 1.0, 1.0)
-    end
-
-    -- the status square (good or bad), then the name
-    local sq = T.px(6)
-    local markX = tx + tw - sq - T.px(8)
-    A.drawStatusDot(panel, markX, ty + math.floor((rh - sq) / 2), color, sq)
-    local nameX = tx + T.px(TRAIT_ICON_SZ) + T.px(12)
+    -- the dot (good or bad), then the name
+    local sq = T.px(8)
+    panel:drawRect(tx, ty + math.floor((rh - sq) / 2), sq, sq, color.a or 1, color.r, color.g, color.b)
+    local nameX = tx + sq + T.px(8)
     local nameY = ty + math.floor((rh - bodyH) / 2)
     local nc = focused and T.textOnFocus or T.text
-    panel:drawText(A.truncateText(trait.name, T.fontF2, markX - nameX - T.px(6)), nameX, nameY,
+    panel:drawText(A.truncateText(trait.name, T.fontF2, tx + tw - nameX), nameX, nameY,
         nc.r, nc.g, nc.b, nc.a or 1, T.fontF2)
 end
 
-local function renderTraitGroup(panel, win, traits, label, x, curY, contentW, color)
+local function renderTraitGroup(panel, win, traits, label, x, curY, contentW, color, cols)
     local T    = ZeD.T
 
     -- Category row ("Positive (3)": the count is in the label), not folding
     curY = curY + ZeD.Molecules.drawCategoryRow(panel, x, curY, contentW, label, nil, true, { noArrow = true, inset = 0 }) + T.sp.xs
 
-    -- Two-column grid
-    local gap = T.sp.sm
-    local colW = math.floor((contentW - gap) / 2)
+    -- The grid: two columns wide, one narrow
+    local gap = T.px(TRAIT_COL_GAP)
+    local pitch = traitRowH() + T.px(TRAIT_GAP)
+    local colW = (cols > 1) and math.floor((contentW - gap * (cols - 1)) / cols) or contentW
     for i, trait in ipairs(traits) do
-        local col = (i - 1) % 2
-        local row = math.floor((i - 1) / 2)
+        local col = (i - 1) % cols
+        local row = math.floor((i - 1) / cols)
         local tx = x + col * (colW + gap)
-        local ty = curY + row * (T.px(TRAIT_ROW_H) + T.px(2))
+        local ty = curY + row * pitch
         renderTraitRow(panel, win, trait, tx, ty, colW, color)
     end
 
-    local rows = math.ceil(#traits / 2)
-    curY = curY + rows * (T.px(TRAIT_ROW_H) + T.px(2)) + T.sp.sm
+    local rows = math.ceil(#traits / cols)
+    curY = curY + rows * pitch + T.sp.sm
     return curY
 end
 
-local function renderZoneB(panel, win, data, x, drawY, w)
+local function renderZoneB(panel, win, data, x, drawY, w, cols)
     local T    = ZeD.T
     local A    = ZeD.Atoms
     local pad  = T.sp.sm
@@ -778,11 +1465,11 @@ local function renderZoneB(panel, win, data, x, drawY, w)
 
     local curY = drawY + pad
 
-    -- Section head (20u, sentence case, the content line under it); not folding
-    curY = curY + ZeD.Molecules.drawSectionHeader(panel, x + pad, curY, contentW, getText("IGUI_char_Traits"),
-        nil, true, false, nil, nil, nil, nil, true) + T.sp.afterGroove
-
     local totalCount = #data.posTraits + #data.negTraits
+
+    -- Section head (20u, sentence case, the total at the right, the content line under it); not folding
+    curY = curY + ZeD.Molecules.drawSectionHeader(panel, x + pad, curY, contentW, getText("IGUI_char_Traits"),
+        totalCount > 0 and totalCount or nil, true, false, nil, nil, nil, nil, true) + T.sp.afterGroove
 
     if totalCount == 0 then
         ZeD.Molecules.drawEmptyLine(panel, x + pad, curY, contentW, ZeD.tr("UI_ZeD_Identity_NoTraits"))
@@ -793,14 +1480,14 @@ local function renderZoneB(panel, win, data, x, drawY, w)
     if #data.posTraits > 0 then
         curY = renderTraitGroup(panel, win, data.posTraits,
             ZeD.tr("UI_ZeD_Identity_TraitsPositive", #data.posTraits),
-            x + pad, curY, contentW, T.positive)
+            x + pad, curY, contentW, T.positive, cols)
     end
 
     -- Negative traits
     if #data.negTraits > 0 then
         curY = renderTraitGroup(panel, win, data.negTraits,
             ZeD.tr("UI_ZeD_Identity_TraitsNegative", #data.negTraits),
-            x + pad, curY, contentW, T.danger)
+            x + pad, curY, contentW, T.danger, cols)
     end
 end
 
@@ -808,16 +1495,43 @@ end
 -- MAIN RENDERER
 -- ============================================================================
 
+-- Simple or Immersive, read fresh (ZeD setup; QA: qaStyle)
+local function useSimple()
+    local q = ZeD.IdentityTab.qaStyle
+    if q == "simple" then return true elseif q == "immersive" then return false end
+    local S = ZeD.Settings
+    return (S and S.identitySimple and S.identitySimple()) and true or false
+end
+
+local function measureZoneA(data, tall, simple, expanded, layoutW)
+    if simple then return measureSimpleH(data, tall, expanded, layoutW) end
+    if tall then return measureTallH(data, layoutW, expanded) end
+    return measureWideH(expanded)
+end
+
+local function renderZoneA(panel, win, data, x, drawY, w, tall, simple, layoutW)
+    if simple then
+        renderSimple(panel, win, data, x, drawY, w, tall, layoutW)
+    elseif tall then
+        renderLicenseTall(panel, win, data, x, drawY, w, layoutW)
+    else
+        renderLicenseWide(panel, win, data, x, drawY, w)
+    end
+end
+
 function ZeD.IdentityTab.render(panel, win, x, y, w, h)
     local T    = ZeD.T
     local A    = ZeD.Atoms
     local M    = ZeD.Molecules
+    local I    = ZeD.IdentityTab
 
-    -- Throttled data refresh
+    -- Throttled data refresh (QA's forced trend and profession show at once)
     win._identityTimer = (win._identityTimer or 0) + 1
-    if win._identityTimer >= 30 or not win._identityCache then
+    if win._identityTimer >= 30 or not win._identityCache
+       or win._idQaTrend ~= I.qaTrend or win._idQaProf ~= I.qaProf then
         win._identityTimer = 0
-        win._identityCache = ZeD.IdentityTab.gatherData(win._playerObj)
+        win._idQaTrend, win._idQaProf = I.qaTrend, I.qaProf
+        win._identityCache = I.gatherData(win._playerObj)
     end
     local data = win._identityCache
 
@@ -844,11 +1558,15 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
     local hbL = HB and HB.layout(win, w - T.sp.scrollbarW) or nil
     local zoneHH = hbL and hbL.h or 0
 
-    -- the portrait card below a width (punch list 36), measured as if a scroll bar shows
-    local tall = isTall(w - T.sp.scrollbarW)
-    win._idTall = tall
-    local zoneAH = tall and measureTallH(win._identityPhotoExpanded) or measureZoneAH()
-    local zoneBH = measureZoneBH(data)
+    -- wide or narrow by the width (punch list 36), measured as if a scroll bar shows; the
+    -- heights hang on this width alone, so they agree with the draw with or without the bar
+    local layoutW = w - T.sp.scrollbarW
+    local tall = isTall(layoutW)
+    local simple = useSimple()
+    win._idTall, win._idSimple = tall, simple
+    local traitCols = tall and 1 or 2
+    local zoneAH = measureZoneA(data, tall, simple, win._identityPhotoExpanded, layoutW)
+    local zoneBH = measureZoneBH(data, traitCols)
     local totalContentH = zoneAH + zoneHH + zoneBH
 
     local scrollY = y + tabHeaderH
@@ -893,31 +1611,15 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
     local drawY = scrollY - scrollOff
 
     -- ================================================================
-    -- ZONE A: License Card
+    -- ZONE A: the card
     -- ================================================================
-    if tall then
-        renderLicenseTall(panel, win, data, x, drawY, contentW)
-    else
-        renderLicenseBackground(panel, win, x, drawY, contentW)
-    end
+    renderZoneA(panel, win, data, x, drawY, contentW, tall, simple, layoutW)
 
-    -- KY seal — below bust in non-expanded, hidden in expanded (full-body covers area)
-    if not tall and not win._identityPhotoExpanded then
-        local secFH  = ZeD.TM:getFontHeight(T.fontF1)
-        local bodyFH = ZeD.TM:getFontHeight(T.fontF2)
-        local cardHeaderH = secFH + bodyFH + T.px(20)
-        local cardY = drawY + T.px(CARD_PAD) + T.px(LAMINATE_W) + cardHeaderH
-        local sealTex = getTexture("media/textures/ZeD/KY-seal.png")
-        if sealTex then
-            -- Below the 120x120 photo frame
-            local sealSz = T.px(PHOTO_SIZE)  -- 120x120, same as photo frame
-            local sealX = x + T.px(CARD_PAD) + T.px(LAMINATE_W) + math.floor((T.px(PHOTO_W) - sealSz) / 2)
-            local sealY = cardY + T.px(FIELD_PAD) + T.px(PHOTO_SIZE) + T.px(8)
-            panel:drawTextureScaledAspect(sealTex, sealX, sealY, sealSz, sealSz, 0.5, 1, 1, 1)
-        end
+    -- the help band over the photo (the model on it takes the click, the hover reads here)
+    local pz = win._identityPhotoZone
+    if pz and ZeD.Help and A.mouseIn(panel, pz.x, pz.y, pz.w, pz.h, win._idView) then
+        ZeD.Help.set(win, ZeD.tr(win._identityPhotoExpanded and "UI_ZeD_Identity_HelpPhotoBack" or "UI_ZeD_Identity_HelpPhoto"))
     end
-
-    if not tall then renderLicenseText(panel, win, data, x, drawY, contentW) end
 
     -- ================================================================
     -- ZONE H: Hair and beard
@@ -928,7 +1630,7 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
     -- ZONE B: Traits
     -- ================================================================
     win._idTraitZones = {}
-    renderZoneB(panel, win, data, x, drawY + zoneAH + zoneHH, contentW)
+    renderZoneB(panel, win, data, x, drawY + zoneAH + zoneHH, contentW, traitCols)
 
     panel:clearStencilRect()
 
@@ -1010,9 +1712,19 @@ function ZeD.IdentityTab.focusables(win)
     return out
 end
 
--- a click in the tab's content (the hair rows, the switch, Out of reach, Cut)
+-- a click in the tab's content (the hair rows, the switch, Out of reach, Cut); the photo's
+-- frame around the model picks the photo as the model does
 function ZeD.IdentityTab.onClick(win, x, y)
-    return ZeD.HairBeard ~= nil and ZeD.HairBeard.onClick(win, x, y)
+    if ZeD.HairBeard ~= nil and ZeD.HairBeard.onClick(win, x, y) then return true end
+    local z, v = win._identityPhotoZone, win._idView
+    if z and x >= z.x and x < z.x + z.w and y >= z.y and y < z.y + z.h
+       and (not v or (y >= v.y and y < v.y + v.h)) then
+        win._identityPhotoExpanded = not win._identityPhotoExpanded
+        win._identityCustomZoom = 0
+        if win._identityScroll then win._identityScroll:setScrollPos(0) end
+        return true
+    end
+    return false
 end
 
 -- what moves the stops, for the window's rebuild check
@@ -1020,6 +1732,7 @@ function ZeD.IdentityTab.scrollKey(win)
     local sc = win._identityScroll
     return tostring(sc and sc.scrollPos or 0) .. ":" .. (ZeD.HairBeard and ZeD.HairBeard.key(win) or "")
         .. ":" .. tostring(#(win._idTraitZones or {}))
+        .. ":" .. tostring(win._identityPhotoExpanded) .. tostring(win._idTall) .. tostring(win._idSimple)
 end
 
 -- ============================================================================
