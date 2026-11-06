@@ -476,7 +476,7 @@ function Start-GameWindowed {
     $global:LASTEXITCODE = 0
     $script:Launched = $true   # (pzlaunchwin.ps1 changes options.ini first thing)
     # (Nov 5 2026: -Mp windowed, the Deck on the test server: stop at the main menu without Steam, then join)
-    $out = $(if ($Mp) { (& $LaunchWin -MainMenu -NoSteam -Width $Width -Height $Height 2>&1 | Out-String).Trim() } else { (& $LaunchWin -Width $Width -Height $Height 2>&1 | Out-String).Trim() })
+    $out = $(if ($Mp) { (& $LaunchWin -MainMenu -NoSteam -Width $Width -Height $Height 2>&1 | Out-String).Trim() } elseif ($env:ZEDQA_NOSTEAM) { (& $LaunchWin -NoSteam -Width $Width -Height $Height 2>&1 | Out-String).Trim() } else { (& $LaunchWin -Width $Width -Height $Height 2>&1 | Out-String).Trim() })
     $code = $LASTEXITCODE
     Add-Note "pzlaunchwin.ps1: $($out -replace '\s*\r?\n\s*', ' / ')"
     if ($code -ne 0 -or $out -match 'never reached') { throw "the game did not finish loading (pzlaunchwin.ps1 exit $code)" }
@@ -494,7 +494,8 @@ function Start-Game4K {
     $old = Read-Text $ConsoleFile
     $oldText = $(if ($old) { $old -replace "`0", "" } else { "" })
     $launchAt = (Get-Date).AddSeconds(-2)
-    $gameArgs = $(if ($Mp) { "-debug -nosteam" } else { "-debug" })
+    # (Nov 6 2026: ZEDQA_NOSTEAM: with the Steam account subscribed to ZeD itself, Steam's copy shadows the dev mod, which alone has the bridge)
+$gameArgs = $(if ($Mp -or $env:ZEDQA_NOSTEAM) { "-debug -nosteam" } else { "-debug" })
     Start-Process -FilePath $GameExe -ArgumentList $gameArgs -WorkingDirectory $GameDir | Out-Null
     Add-Note "started ProjectZomboid64.exe $gameArgs (fullscreen, the director's options.ini)"
     Start-Sleep -Seconds 10   # the game moves the old console.txt to Logs/ as it starts
@@ -561,8 +562,8 @@ function Wait-BridgeInGame($Prelude = $null, $PreludeRes = $null) {
             Add-Note "clicked again at $at (the bridge had not armed in game after $([int]$el) s)"
         }
         # (Nov 6 2026: a character left dead on the server stops the join at the new character's screens, after the join's Lua reset: press through them)
-        if ($Mp -and $el -ge 25 -and -not $script:NewCharRan) {
-            $script:NewCharRan = $true
+        if ($Mp -and (($el -ge 25 -and -not $script:NewCharRan) -or ($el -ge 75 -and $script:NewCharRan -eq 1))) {
+            $script:NewCharRan = $(if ($script:NewCharRan) { 2 } else { 1 })
             Write-Text $BridgeLua (Get-Content (Join-Path $PSScriptRoot $(if ($env:ZEDQA_JOINSCRIPT) { $env:ZEDQA_JOINSCRIPT } else { 'mp_newchar.lua' })) -Raw)
             $null = Invoke-Bump
         }

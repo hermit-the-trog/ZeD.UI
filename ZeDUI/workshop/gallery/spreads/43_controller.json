@@ -9,13 +9,13 @@
    {"chapter": ["43", "On a Controller"]},
    {"at": 632},
    {"caption": ["Figure 43-1", "The Character wheel, left, and the Here and now wheel."]},
-   {"p": "With no window holding the controller, each direction of the D-pad holds open a wheel of actions; Table 43-1 lists the four. To take an action from a wheel:"},
+   {"p": "With no window holding the controller, a tap on each direction of the D-pad opens a wheel of actions; Table 43-1 lists the four. The left stick keeps walking while a wheel is open. To take an action from a wheel:"},
    {"list": [
-     "Hold a direction of the D-pad. Its wheel opens.",
+     "Tap a direction of the D-pad. Its wheel opens.",
      "Point at a slice with the right stick.",
-     "Let go of the D-pad. The slice you point at runs."
+     "Let go of the right stick. The slice you pointed at runs."
     ], "numbered": true},
-   {"note": "A slice put on a chord runs without opening its wheel. Chapter 44 describes the chords."}
+   {"note": "The same direction or *B* closes a wheel. A slice put on a chord runs without opening its wheel. Chapter 44 describes the chords."}
   ],
   "prints": [
    {"src": "zqa_g3_wheel_character_eat.png", "box": [1690, 870, 2150, 1305], "scale": 0.64, "at": [258, 300], "tape": ["tl", "b"]},
@@ -25,14 +25,14 @@
    {"text": "LB + A eats without opening the wheel. A slice on a chord shows it.", "pen": "blu", "at": [262, 228], "maxw": 310, "to": [0, 1921, 937]},
    {"text": "Under the pointer: the slice's name, its chord and what it does.", "pen": "blu", "at": [584, 228], "maxw": 310, "to": [1, 1860, 914]}
   ],
-  "sticky": {"at": [584, 912], "w": 290, "h": 104, "text": "Hold a D-pad direction for a wheel."}
+  "sticky": {"at": [600, 956], "w": 290, "h": 72, "text": "Tap for a wheel."}
  },
  "right": {
   "kind": "taped",
   "head": "On a Controller",
   "blocks": [
    {"h2": "Wheels Inside Wheels"},
-   {"p": "A slice with a mark in its corner holds a wheel of its own. Let go of the D-pad on it and the ring changes in place to the inner wheel, which stays open: there the right stick points, *A* takes and *B* backs out one level. The line under the ring names where you are, such as *Character + Use*. A slice that cannot be done now stays in its place, stippled, and its bubble gives the reason."},
+   {"p": "A slice with a mark in its corner holds a wheel of its own. Let go of the right stick on it and the ring changes in place to the inner wheel, which stays open: there the right stick points, letting go takes and *B* backs out one level. The line under the ring names where you are, such as *Character + Use*. A slice that cannot be done now stays in its place, stippled, and its bubble gives the reason."},
    {"table": {
      "label": "Table 43-1",
      "title": "The four wheels",

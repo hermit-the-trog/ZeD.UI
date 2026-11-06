@@ -1,0 +1,6 @@
+exceptions: 0
+ZeD lines after the start: 0
+LOG  : Lua          f:0> [ZeD.QA] bridge armed (main menu, poll every 30 ticks)
+LOG  : Lua          f:0> ZEDQA tut starting the Tutorial
+WARN : Lua          f:0 at Lua(Vanilla).doMapZones             > can't find map objects file: media/maps/challengemaps/Tutorial/objects.lua
+mod list and lock put back

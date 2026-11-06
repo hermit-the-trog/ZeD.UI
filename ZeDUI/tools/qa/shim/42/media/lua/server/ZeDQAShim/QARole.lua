@@ -25,7 +25,11 @@ end
 
 Events.OnClientCommand.Add(function(module, command, player, args)
     if module ~= "ZeDQA" or not player then return end
-    if command == "shortban" then
+    if command == "god" then
+        -- (Nov 6 2026, QA) the /godmod command stopped taking on 42.22.2 and test characters died: set on the server object
+        pcall(function() player:setGodMod(true) end)
+        print("[ZeDQA] god mode for " .. tostring(player:getUsername()) .. ": " .. tostring(player:isGodMod()))
+    elseif command == "shortban" then
         -- (Nov 6 2026, QA: E8) the 1 hour length made short on this server, so a timed ban runs out inside a test
         if ZeD and ZeD.Adm and ZeD.Adm.LENGTH then ZeD.Adm.LENGTH.h1.sec = tonumber(args and args.sec) or 45 end
         print("[ZeDQA] h1 is now " .. tostring(ZeD and ZeD.Adm and ZeD.Adm.LENGTH.h1.sec) .. " s")

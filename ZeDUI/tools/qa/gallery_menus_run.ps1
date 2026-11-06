@@ -97,7 +97,7 @@ try {
     $opt = Get-Content $kept["options.ini"] -Raw
     Set-Content -Path $kept["options.ini"] -Value ($opt -replace "doVideoEffects=false", "doVideoEffects=true") -NoNewline
     $dir = "E:\Project Zomboid\SteamApps\common\ProjectZomboid"
-    $p = Start-Process -FilePath "$dir\ProjectZomboid64.exe" -ArgumentList "-debug" -WorkingDirectory $dir -PassThru
+    $p = Start-Process -FilePath "$dir\ProjectZomboid64.exe" -ArgumentList $(if ($env:ZEDQA_NOSTEAM) { "-debug -nosteam" } else { "-debug" }) -WorkingDirectory $dir -PassThru
     "started the game (process $($p.Id))"
     Start-Sleep -Seconds 15
     if (-not (Wait-Log 'bridge armed \(main menu' 600 0)) { "never reached the main menu"; $fails++; return }
