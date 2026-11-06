@@ -259,6 +259,9 @@ function ZeD_Window:setWindowShaded(shaded)
         self.minimumHeight = T.minWinH
         self:clearMaxDrawHeight()
         self:setHeight(self.preShadeHeight or T.px(300))
+        -- (Nov 6 2026, FAIV's report: a rolled window draws no strip, so its container list is as old as the roll-up. The
+        -- first frame down reads it afresh, not the next count of 30: no rows of a container left behind, no drop into one.)
+        self._containerTimer = 30
         local children = self:getChildren()
         if children then
             for _, child in pairs(children) do

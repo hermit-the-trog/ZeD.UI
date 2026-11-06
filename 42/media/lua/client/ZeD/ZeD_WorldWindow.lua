@@ -5800,7 +5800,16 @@ function ZeD_WorldWindow.selectContainer(inv, tries)
                 return true
             end
         end
-        if (n + paused) % 20 == 0 then win._containerTimer = 30 end
+        if (n + paused) % 20 == 0 then
+            win._containerTimer = 30
+            -- (a rolled window draws no strip, so the line above never reaches it and the list stays as old as the roll-up:
+            -- MechTrailer's walk with the pointer gone ran out its tries. It comes down once the container is in reach.)
+            if win.windowShaded and ZeD_WorldWindow.inReach(inv) then
+                win._autoShaded = false
+                win:setWindowShaded(false)
+                win._outSince = getTimestampMs() + 500
+            end
+        end
         return false
     end
     if attempt() then return true end
