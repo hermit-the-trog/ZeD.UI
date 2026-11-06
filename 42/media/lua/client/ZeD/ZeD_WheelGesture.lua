@@ -52,6 +52,11 @@
 --     binding is the right stick itself, so it can't count as aiming with a
 --     wheel up. The triggers are read through the game's bindings, so a preset
 --     that moves them moves them here too.
+--   * addToUIManager only queues the wheel. It joins the UI list on the game's
+--     next update, and until then isReallyVisible is false; the press and this
+--     file's tick are one OnRenderTick, so a wheel just opened reads as not on
+--     the screen. removeFromUIManager is queued the same way: gone, it still
+--     reads as visible for the rest of the frame.
 --
 -- Commit reads the latch, never the stick: on the release frame the stick is
 -- springing through the center and its angle is noise. The latch is also what
@@ -74,6 +79,8 @@ D.tune = D.tune or {
     SECTOR_HYST_DEG = 7,        -- degrees past a boundary before the highlight moves; never over a quarter of a slice
     DISMISS_TIMEOUT_S = 3.0,    -- nothing pointed at for this long: the wheel closes
     OPEN_DEBOUNCE_MS = 150,     -- a second tap this soon after opening is ignored
+    FAR_HOLD_MS = 60,           -- the highlight crosses to the far side of the wheel only if the stick stays there this long
+    REST_MS = 150,              -- a stick sitting under engage this long counts as centered (a drifting pad)
 }
 local RELEASE_SHARE = 0.60
 
@@ -122,6 +129,7 @@ function G.begin(pn, st, menu)
     -- a stick already over (aiming when the D-pad was tapped) has to come back first. With Hold the
     -- wheel is today's: the stick can be out before the wheel is up.
     st.needCenter = not st.held
+    st.restSince = 0       -- (no flick to spring back from yet: a stick under engage at the open is already home)
     local jd = JoypadState.players[pn + 1]
     if jd then
         st.pad = true
@@ -135,6 +143,8 @@ end
 function G.level(st)
     st.latch, st.engaged = nil, false
     st.needCenter = true
+    st.farSince, st.restSince = nil, nil
+    st.seen = nil          -- (the ring may be going back through the UI queue)
     st.lastActive = getTimestampMs()
 end
 
@@ -149,6 +159,10 @@ function G.finish(pn, st)
     if jd and st.pad then jd.activeWhilePaused = st.pausedWas end
     -- (undisplay clears the focus through menu.joyfocus, which the game sets a frame late)
     if jd and menu and jd.focus == menu and not menu:isReallyVisible() then setJoypadFocus(pn, nil) end
+    -- (a wheel that gets the pad back later, from a window's setPrevFocusForPlayer or the like, is a plain
+    -- wheel, the game's own B and X close it; a dead state on it would take its buttons and do nothing)
+    if menu and menu._zedDpad == st then menu._zedDpad = nil end
+    if jd and menu and jd.prevfocus == menu then jd.prevfocus = nil end
     -- (setJoypadIgnoreAimUntilCentered stays as the wheel set it: the game clears it itself once the
     -- stick is centered, which is what keeps a flick from turning into a swing. G.attack clears it at once.)
 end
@@ -184,19 +198,28 @@ end
 -- (ZeD.Wheel's geometry). The last slice keeps the highlight until the stick is
 -- past its boundary by the hysteresis. -1: nothing there.
 -- ---------------------------------------------------------------------------
+local function clock(ax, ay)
+    -- clockwise from 12 o'clock, 0 to 360 (the 360 first: Kahlua's % keeps the sign)
+    return (math.deg(math.atan2(ay, ax)) + 90 + 360) % 360
+end
+
+-- degrees from the angle a to the middle of slice i
+local function awayFrom(i, a, width)
+    local off = math.abs(a - (i - 1) * width)
+    if off > 180 then off = 360 - off end
+    return off
+end
+
 function G.sector(menu, st, ax, ay)
     local slices = menu.slices or {}
     local n = #slices
     if n == 0 then return -1 end
     local width = 360 / math.max(n, 2)
     local hyst = math.min(D.tune.SECTOR_HYST_DEG or 0, width / 4)
-    -- clockwise from 12 o'clock, 0 to 360 (the 360 first: Kahlua's % keeps the sign)
-    local a = (math.deg(math.atan2(ay, ax)) + 90 + 360) % 360
+    local a = clock(ax, ay)
     local last = st.latch
     if last and last >= 1 and last <= n then
-        local off = math.abs(a - (last - 1) * width)
-        if off > 180 then off = 360 - off end
-        if off <= width / 2 + hyst then return last end
+        if awayFrom(last, a, width) <= width / 2 + hyst then return last end
     end
     local i = math.floor(((a + width / 2) % 360) / width) + 1
     if i > n or W.isPlace(slices[i]) then return -1 end
@@ -285,7 +308,9 @@ function G.swap(pn, dir, jd)
 end
 
 -- the windows behind a bumper: LB the Character window, RB the World window, as in a window
-local function openWindows(name)
+-- (the window pair is player 1's: another player's bumper only closes that player's wheel)
+local function openWindows(pn, name)
+    if pn ~= 0 then return end
     local F = ZeD.Input and ZeD.Input.Focus
     if F and F.openSide then F.openSide((name == "LB") and "char" or "world") end
 end
@@ -332,6 +357,16 @@ function G.pointed(st, menu, id)
     return W.sliceFromJoypad(menu, id)
 end
 
+-- X held at the wheel of a car: D-pad Up and Down stay the cruise control. True when it took the press.
+-- (The regulator polls X by the pad's id, so no id, no call.)
+local function cruise(dir, jd)
+    local R = ISVehicleRegulator
+    if not (R and jd and jd.id) then return false end
+    if dir == "up" then return R.onJoypadPressUp(jd) end
+    if dir == "down" then return R.onJoypadPressDown(jd) end
+    return false
+end
+
 -- Hold is today's: A takes, B backs out, X closes, the D-pad does nothing. Stick click adds R3.
 local function holdButton(pn, st, menu, button, jd)
     if button == Joypad.BButton then return D.back(pn) end
@@ -354,13 +389,22 @@ function G.onButton(pn, st, menu, button, jd)
         return
     end
     if st.mode == "hold" then return holdButton(pn, st, menu, button, jd) end
+    if button == Joypad.Start then
+        -- the game stays live, so the pause does: the wheel closes and the press goes where it goes with no
+        -- wheel up. (Opening the pause menu hides the UI, this wheel too, in the frame before it leaves.)
+        D.close(pn)
+        if jd and jd.controller then jd.controller:onPauseButtonPressed() end
+        if menu.setVisible then menu:setVisible(true) end
+        return
+    end
     local dir = dirOf(button)
     if dir then
+        if cruise(dir, jd) then return end
+        if getTimestampMs() - st.openedAt < (D.tune.OPEN_DEBOUNCE_MS or 0) then return end   -- (the press that opened it lands here too)
         if st.mode == "toggle" and dir ~= "select" then
             G.move(st, menu, dir)
             return
         end
-        if getTimestampMs() - st.openedAt < (D.tune.OPEN_DEBOUNCE_MS or 0) then return end   -- (the press that opened it lands here too)
         if dir == st.dir then return D.close(pn) end
         return G.swap(pn, dir, jd)
     end
@@ -385,8 +429,10 @@ function G.onRelease(menu, button)
     st.bump = nil
     if st.mode == "hold" or b.both or b.used then return true end
     -- a bumper tapped: the wheel closes and the windows open
-    D.close(menu.playerNum or 0)
-    openWindows(name)
+    -- (paused: the windows stay shut, as Y keeps them. A window with the pad on a paused game drops every press.)
+    local pn = menu.playerNum or 0
+    D.close(pn)
+    if not D.paused() then openWindows(pn, name) end
     return true
 end
 
@@ -402,16 +448,39 @@ end
 -- ---------------------------------------------------------------------------
 -- one frame of one player's wheel
 -- ---------------------------------------------------------------------------
+-- a stick let go can swing past the center and read above engage on the far side of the wheel, with no frame
+-- under release in between. True while this frame may be that: the highlight stays. A slice within a quarter turn
+-- of the highlight is the stick moving round the rim, and moves at once.
+local function springingBack(menu, st, i, ax, ay, now)
+    if not st.latch or i == st.latch then st.farSince = nil; return false end
+    local width = 360 / math.max(#(menu.slices or {}), 2)
+    if awayFrom(st.latch, clock(ax, ay), width) <= 90 then st.farSince = nil; return false end
+    st.farSince = st.farSince or now
+    return now - st.farSince < (D.tune.FAR_HOLD_MS or 0)
+end
+
 local function pick(pn, st, menu, ax, ay)
     local engage, release = G.radii()
     local mag = math.sqrt(ax * ax + ay * ay)
     local now = getTimestampMs()
+    if mag <= engage then st.farSince = nil end
     if st.needCenter then
-        if mag < release then st.needCenter = false end
+        -- (a pad resting between the radii never gets under release: sitting there is its center. Only sitting:
+        -- passing through on the way to an overshoot must not count.)
+        if mag < release then
+            st.needCenter = false
+        elseif mag < engage then
+            st.restSince = st.restSince or now
+            if now - st.restSince >= (D.tune.REST_MS or 0) then st.needCenter = false end
+        else
+            st.restSince = nil
+        end
     elseif mag > engage then
         local i = G.sector(menu, st, ax, ay)
-        st.latch = (i > 0) and i or nil
-        st.engaged = i > 0
+        if not springingBack(menu, st, i, ax, ay, now) then
+            st.latch = (i > 0) and i or nil
+            st.engaged = i > 0
+        end
         st.lastActive = now
     elseif mag < release and st.engaged then
         st.engaged = false
@@ -424,18 +493,42 @@ local function pick(pn, st, menu, ax, ay)
         end
     end
     menu._zedPoint = st.latch or -1
-    if st.mode == "tap" and not st.engaged and not st.bump
+    -- the timer: nothing pointed at, or a stick left sitting under engage with a slice lit (a pad that rests above
+    -- release never lets go, and nothing is taken for it). Stick click's lit slice waits for the click.
+    if st.mode == "tap" and (not st.engaged or mag <= engage) and not st.bump
+       and not (st.commit == "click" and st.latch)
        and now - st.lastActive > (D.tune.DISMISS_TIMEOUT_S or 3) * 1000 then
         D.close(pn)
     end
+end
+
+-- off the screen with no close of ours: Hold's letting go, a click, a slice's own close, or the whole UI hidden
+-- (the pause menu, Esc, the Toggle UI key). Removed, never undisplayed: that clears whatever focus the pad has now,
+-- and it can be the pause menu's.
+local function gone(pn, st, menu)
+    menu:removeFromUIManager()
+    G.finish(pn, st)
+    -- the game would bring a hidden wheel back with the pad on it: this one is over, so it leaves the saved focus,
+    -- and it can't stay hidden, the game's own fillers show the shared wheel without setting that
+    local saved = JoypadState.saveFocus
+    if saved then
+        for i, f in pairs(saved) do
+            if f == menu then saved[i] = nil; break end
+        end
+    end
+    if menu.setVisible then menu:setVisible(true) end
 end
 
 local function step(pn, st)
     local menu = st.menu
     local p = getSpecificPlayer(pn)
     if not menu or not p or p:isDead() then return D.close(pn) end
-    -- (Hold's letting go, a click, a slice's own close)
-    if not menu:isReallyVisible() then return G.finish(pn, st) end
+    -- (a wheel just opened is still in the UI queue: only one seen on the screen can have left it)
+    if menu:isReallyVisible() then
+        st.seen = menu
+    elseif st.seen == menu then
+        return gone(pn, st, menu)
+    end
     local jd = JoypadState.players[pn + 1]
     if st.pad and (not jd or jd.focus ~= menu) then
         -- a window or a prompt took the pad (or it is gone): the wheel goes and the focus stays where it went
