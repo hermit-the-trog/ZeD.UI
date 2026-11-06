@@ -1,0 +1,355 @@
+{
+ "id": "ranching",
+ "n": 59,
+ "pages": [
+  138,
+  139
+ ],
+ "left": {
+  "kind": "taped",
+  "head": "Bitchin' znix Programs  \u00b7  Doidbros & Buzzlord",
+  "blocks": [
+   {
+    "chapter": [
+     "59",
+     "Ranching"
+    ]
+   },
+   {
+    "p": "A pasture is a zone drawn on the ground. Its card, in the *World* window at the upper left of the screen, lists its henhouses, its feeding troughs and its animals."
+   },
+   {
+    "at": 968
+   },
+   {
+    "caption": [
+     "Figure 59-1",
+     "The pasture on the ground, top, and its card, bottom."
+    ]
+   }
+  ],
+  "prints": [
+   {
+    "src": "gfr_zone.png",
+    "box": [
+     1300,
+     810,
+     3700,
+     2000
+    ],
+    "scale": 0.27,
+    "at": [
+     270,
+     300
+    ],
+    "tape": [
+     "tl",
+     "r"
+    ]
+   },
+   {
+    "src": "gfr_zone.png",
+    "box": [
+     790,
+     100,
+     1760,
+     660
+    ],
+    "scale": 0.5,
+    "at": [
+     270,
+     646
+    ],
+    "tape": [
+     "t",
+     "br"
+    ]
+   }
+  ],
+  "marks": [
+   {
+    "text": "The pasture is drawn in teal on the ground.",
+    "pen": "blu",
+    "at": [
+     62,
+     470
+    ],
+    "maxw": 186,
+    "to": [
+     0,
+     3100,
+     1750
+    ]
+   },
+   {
+    "text": "Its henhouse and its trough stand in it.",
+    "pen": "blu",
+    "at": [
+     62,
+     320
+    ],
+    "maxw": 186,
+    "to": [
+     [
+      0,
+      2800,
+      1062
+     ],
+     [
+      0,
+      1815,
+      1110
+     ]
+    ]
+   },
+   {
+    "circle": {
+     "print": 1,
+     "box": [
+      820,
+      245,
+      1000,
+      290
+     ]
+    },
+    "pen": "grn"
+   },
+   {
+    "text": "Home Pasture: 14 animals, 624 sq.",
+    "pen": "blu",
+    "at": [
+     62,
+     660
+    ],
+    "maxw": 186,
+    "to": [
+     1,
+     1532,
+     263
+    ]
+   },
+   {
+    "text": "The henhouse row gives its birds and its eggs.",
+    "pen": "blu",
+    "at": [
+     62,
+     770
+    ],
+    "maxw": 186,
+    "to": [
+     1,
+     900,
+     460
+    ]
+   }
+  ],
+  "sticky": {
+   "at": [
+    62,
+    890
+   ],
+   "w": 196,
+   "h": 134,
+   "text": "A pasture with its animals in it."
+  }
+ },
+ "right": {
+  "kind": "taped",
+  "head": "Ranching",
+  "blocks": [
+   {
+    "h2": "The Henhouse"
+   },
+   {
+    "p": "The card of a henhouse sets out its egg laying boxes and the hens roosting in it. Its buttons are *Grab Eggs*, *Clean*, *Close Door* and *Close hatch*."
+   },
+   {
+    "at": 944
+   },
+   {
+    "caption": [
+     "Figure 59-2",
+     "The henhouse card and three pages."
+    ]
+   }
+  ],
+  "prints": [
+   {
+    "src": "gfr_hutch_open.png",
+    "box": [
+     2630,
+     40,
+     3520,
+     740
+    ],
+    "scale": 0.56,
+    "at": [
+     1036,
+     300
+    ],
+    "tape": [
+     "tl",
+     "tr"
+    ]
+   },
+   {
+    "src": "gfr_ranch.png",
+    "box": [
+     2640,
+     60,
+     3540,
+     420
+    ],
+    "scale": 0.3,
+    "at": [
+     1566,
+     300
+    ],
+    "tape": [
+     "t",
+     "br"
+    ]
+   },
+   {
+    "src": "gfr_animal.png",
+    "box": [
+     800,
+     100,
+     1740,
+     560
+    ],
+    "scale": 0.3,
+    "at": [
+     1556,
+     418
+    ],
+    "tape": [
+     "t",
+     "r"
+    ]
+   },
+   {
+    "src": "gfr_butcher.png",
+    "box": [
+     800,
+     100,
+     1740,
+     560
+    ],
+    "scale": 0.3,
+    "at": [
+     1556,
+     566
+    ],
+    "tape": [
+     "tl",
+     "b"
+    ]
+   }
+  ],
+  "marks": [
+   {
+    "text": "Nine eggs in four boxes. Each box has its own Grab.",
+    "pen": "blu",
+    "at": [
+     1036,
+     770
+    ],
+    "maxw": 190,
+    "to": [
+     2,
+     2721,
+     447
+    ]
+   },
+   {
+    "circle": {
+     "print": 2,
+     "box": [
+      2680,
+      250,
+      3480,
+      280
+     ]
+    },
+    "pen": "grn"
+   },
+   {
+    "circle": {
+     "print": 2,
+     "box": [
+      2655,
+      125,
+      3260,
+      162
+     ]
+    },
+    "pen": "grn"
+   },
+   {
+    "text": "Two of twenty hens roost in the coop.",
+    "pen": "blu",
+    "at": [
+     1236,
+     770
+    ],
+    "maxw": 170,
+    "to": [
+     2,
+     3404,
+     511
+    ]
+   },
+   {
+    "text": "The Butcher page has a Leather and a Bone button.",
+    "pen": "blu",
+    "at": [
+     1416,
+     770
+    ],
+    "maxw": 190,
+    "to": [
+     5,
+     1457,
+     422
+    ]
+   },
+   {
+    "text": "The Ranch page lists alerts. Each lamb is tagged Orphan.",
+    "pen": "blu",
+    "at": [
+     1616,
+     770
+    ],
+    "maxw": 240,
+    "to": [
+     3,
+     3375,
+     167
+    ]
+   },
+   {
+    "text": "An animal shows its vitals.",
+    "pen": "blu",
+    "at": [
+     1490,
+     870
+    ],
+    "maxw": 150,
+    "to": [
+     4,
+     834,
+     425
+    ]
+   }
+  ],
+  "sticky": {
+   "at": [
+    1650,
+    870
+   ],
+   "w": 200,
+   "text": "A henhouse, its eggs and its hens."
+  }
+ }
+}
