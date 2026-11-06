@@ -809,7 +809,6 @@ draw("admin")
 check("deleted while open: back, with the words", ad.card == nil and ad.tk.flashText == ZeD.tr("UI_ZeD_Tk_Err_gone"))
 -- leaving the tab closes the queue
 nowMs = nowMs + 3000
-EVENTS.OnTick.list[#EVENTS.OnTick.list]()
 for _, fn in ipairs(EVENTS.OnTick.list) do fn() end
 check("no frames: the queue closes", C.queueOpen == false)
 draw("admin")
