@@ -2615,6 +2615,11 @@ item says so.
     - **Settled by the director, Nov 5 (the design's E12, E13, E7):** a ticket stays open for replies after it's answered,
       and a player's reply moves it back to In progress. The game's own ticket holds only a stub ("[GRIEF #14] see the
       Tickets queue"), so reports stay private. Timed bans are ZeD's own ban; permanent bans are the game's.
+    - **QA on the real server, Nov 5 (settled E5, E6, E11, E14):** dates are UTC, labeled so. Past about 1 MB the game's
+      getTickets never replies: any client can cause that with raw addTicket calls (a game fault; ZeD's own filing can't, it
+      files stubs). ZeD's queue keeps working, the link to the game's list stops. **To do:** a line for staff when the
+      game's list stops answering; add it to the notes for The Indie Stone. Known cost of the stub: a ticket lost in a crash
+      with no save comes back with its kind but the words "see the Tickets queue".
 
 88. **The male skeleton's right arm (the director, Nov 5 2026: the lower arm, the wrist, the forearm, where the
     elbow joint is, "it's either dislocated or very broken. A doctor would probably want to get that person into
