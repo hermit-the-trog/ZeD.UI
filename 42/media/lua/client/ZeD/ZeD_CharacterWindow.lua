@@ -4402,6 +4402,45 @@ function ZeD_CharacterWindow.toggle(playerNum)
     identityModel._characterBound = false
     identityModel._didDrag = false
     win._identityModel = identityModel
+
+    -- The model in its photo frame, for this frame's rect; true when it shows. Run here from the
+    -- drawer's prerender, and again from IdentityTab.render once the card has published its rect,
+    -- so a change of style or photo moves the model in the same frame as the card.
+    win._placeIdentityModel = function(drawerW)
+        local T = ZeD.T
+        local pr = win._identityPhotoRect
+        if not (pr and drawerW > 0 and win._drawerMode == "tab" and win._activeTab == "identity"
+                and not win._drawerItem) then
+            return false
+        end
+        -- A model can't be clipped (its own UI element; stencils don't reach it), so clamp it
+        -- to the card's scroll view: top below the pinned tab header, bottom above the view's
+        -- end (else it draws over the status line at small sizes). _idView is the view
+        -- IdentityTab.render publishes, in the same frame as pr.
+        local view = win._idView
+        local top, bot = pr.y, pr.y + pr.h
+        if view then
+            top = math.max(top, view.y)
+            bot = math.min(bot, view.y + view.h)
+        else
+            top = math.max(top, ZeD.Molecules.getTabHeaderH())
+        end
+        local avH = bot - top
+        if avH <= T.px(20) then return false end   -- hide only if clipped to nothing
+        identityModel:setX(T.px(TAB_STRIP_W) + pr.x)
+        identityModel:setY(win:getBodyY() + top)
+        identityModel:setWidth(pr.w)
+        identityModel:setHeight(avH)
+        -- the bust's crop or the whole body
+        if pr.expanded then
+            identityModel:setZoom(win._identityCustomZoom)
+            identityModel:setYOffset(0)
+        else
+            identityModel:setZoom(BUST_ZOOM)
+            identityModel:setYOffset(BUST_Y_OFFSET)
+        end
+        return true
+    end
     win._identityCustomZoom = 0  -- scroll wheel zoom for expanded mode
 
     -- Click-to-toggle: detect click (non-drag) in onMouseUp
@@ -4764,51 +4803,15 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     model._characterBound = true
                 end
 
-                local showAvatar = false
-                local pr = win._identityPhotoRect
-
-                if pr
-                    and effectiveW > 0
-                    and win._drawerMode == "tab"
-                    and win._activeTab == "identity"
-                    and not win._drawerItem
-                then
-                    -- Convert drawer-relative photo rect to window coords
-                    local bY = win:getBodyY()
-                    local avatarX = T.px(TAB_STRIP_W) + pr.x
-
-                    -- A model can't be clipped (its own UI element; stencils don't
-                    -- reach it), so clamp it to the card's scroll view: top below the
-                    -- pinned tab header, bottom above the view's end (else it draws
-                    -- over the status line at small sizes). _idView is the view
-                    -- IdentityTab.render publishes, in the same frame as pr.
-                    local view = win._idView
-                    local top, bot = pr.y, pr.y + pr.h
-                    if view then
-                        top = math.max(top, view.y)
-                        bot = math.min(bot, view.y + view.h)
-                    else
-                        top = math.max(top, ZeD.Molecules.getTabHeaderH())
-                    end
-                    local avH = bot - top
-
-                    showAvatar = avH > T.px(20)  -- hide only if clipped to nothing
-                    if showAvatar then
-                        model:setX(avatarX)
-                        model:setY(bY + top)
-                        model:setWidth(pr.w)
-                        model:setHeight(avH)
-
-                        -- Switch camera between bust crop and full-body
-                        if pr.expanded then
-                            model:setZoom(win._identityCustomZoom)
-                            model:setYOffset(0)
-                        else
-                            model:setZoom(BUST_ZOOM)
-                            model:setYOffset(BUST_Y_OFFSET)
-                        end
-                    end
+                -- the license photo holds still (an idle's bowed head leaves a bust frame); the Equip
+                -- doll, the same model, keeps its idles
+                local still = win._activeTab == "identity"
+                if model._zedStill ~= still then
+                    model._zedStill = still
+                    model:setDoRandomExtAnimations(not still)
                 end
+
+                local showAvatar = win._placeIdentityModel(effectiveW)
 
                 -- The Equip tab's doll (EquipDoll.lua): the same model, full body, in the
                 -- doll's photo frame. A model can't be clipped, so a frame partly

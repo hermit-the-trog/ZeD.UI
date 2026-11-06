@@ -1634,6 +1634,9 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
 
     panel:clearStencilRect()
 
+    -- the model joins the card in this frame, not the next (its rect was just published)
+    if win._placeIdentityModel then win._placeIdentityModel(w) end
+
     -- Pinned tab header: the disclosure arrow turns with _identityPhotoExpanded
     -- (collapsed = bust, right-pointing; expanded = full body, down). L/R tree-nav
     -- (gamepad), the header click (mouse) and a click on the photo all toggle it.
