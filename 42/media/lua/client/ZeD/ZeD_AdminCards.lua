@@ -716,7 +716,7 @@ function AC.homeItems(out, win, st, p)
     local t = TC.qaState(st)
     local me = M.me()
     local key = table.concat({ tostring(M.seq), tostring(C.seq), tostring(st.pfind), tostring(st.ponly), tostring(st.msgRepeat), tostring(st.msgEvery),
-        tostring(M.live()), tostring(#M.repeats), tostring(M.qaCaps) }, ":")
+        tostring(M.live()), tostring(#M.repeats), tostring(M.qaCaps), AC.extrasKey and AC.extrasKey() or "" }, ":")
     if st.homeKey ~= key or not st.homeItems then
         st.homeKey = key
         t.listGen = t.listGen + 1
@@ -748,6 +748,7 @@ function AC.homeItems(out, win, st, p)
         P.summary(L, "sum:bans", tr("UI_ZeD_Adm_BansSum"), nil, "BanUnbanUser", function(ww) AC.openBans(ww, st) end)
         L[#L + 1] = { k = "head", text = tr("UI_ZeD_Adm_Spawn") }
         P.summary(L, "sum:spawn", tr("UI_ZeD_Adm_SpawnSum"), nil, "AddItem", function(ww) AC.openSpawn(ww, st) end)
+        if AC.extrasHome then AC.extrasHome(L, win, st) end
         for _, it in ipairs(L) do it.win = win end
         st.homeItems = L
     end
