@@ -943,6 +943,22 @@ local function followFocus(win, st, viewH, maxOff)
     if newOff ~= off and maxOff > 0 then st.scroll:setScrollPos(newOff / maxOff) end
 end
 
+-- a fold keeps its head where it was pressed. The scroll is a share of the height the fold just changed, so the same share
+-- lands somewhere else: this sets it again from the head's place in the view, before anything reads the scroll
+local function holdFold(st, L, maxOff)
+    local a = st.foldAnchor
+    st.foldAnchor = nil
+    if maxOff <= 0 then return end
+    for _, it in ipairs(L.items) do
+        if it.fold == a.fold then
+            local off = math.max(0, math.min(maxOff, it.y - a.y))
+            st.scroll:setScrollPos(off / maxOff)
+            st.off = off
+            return
+        end
+    end
+end
+
 local function buildZones(win, st, L, sy, sh, off)
     local zones, els = {}, {}
     st.tiles = {}
@@ -994,6 +1010,7 @@ function S.render(panel, win, x, y, w, h)
     else
         scroll:setScrollPos(0)
     end
+    if st.foldAnchor then holdFold(st, L, maxOff) end
     followFocus(win, st, sh, maxOff)
     local off = needs and math.floor(scroll.scrollPos * maxOff) or 0
     st.off = off
@@ -1056,9 +1073,10 @@ function S.activate(win, st, it)
         st[it.key] = not st[it.key]
         getSoundManager():playUISound("UIActivateButton")
     elseif k == "subh" then
-        -- (a tile under the pointer goes with the fold, and the head stays in view for the controller)
+        -- (a tile under the pointer goes with the fold, and the head stays where it is, holdFold, for the mouse and the controller)
         S.closed[it.fold] = not S.closed[it.fold]
         st.hover, st.lastPinned = nil, nil
+        st.foldAnchor = { fold = it.fold, y = it.y - (st.off or 0) }
         getSoundManager():playUISound("UIActivateButton")
     end
 end

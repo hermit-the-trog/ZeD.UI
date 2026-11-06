@@ -50,6 +50,7 @@ Ex.L = {
     TP_MS = 1000,
     NOTE_MS = 5000,                     -- one refusal said and logged in this long, per player
     POLL_MS = 2000,                     -- how often the server looks at who is driving
+    LEFT_POLLS = 5,                     -- and for how many polls it goes on looking at a claimed car once its driver has gone
     LAPSE_EVERY_S = 300,                -- how often claims are tested for lapsing
     WORLD_MAX = 60000,                  -- past any map's edge
     HIT_ROOM = 20,                      -- a swing's door damage times this, and no swing can land more

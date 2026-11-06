@@ -291,6 +291,7 @@ local function car(id, sql, x)
     -- what the server extras call
     v.md = {}
     function v.getModData(self) return self.md end
+    function v.getKeyId(self) return 100 + self.id end
     function v.getDriver(self) return self.driver end
     function v.isBurnt(self) return self.burnt == true end
     function v.isStarting(self) return self.starting == true end

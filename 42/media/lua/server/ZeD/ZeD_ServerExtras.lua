@@ -60,7 +60,7 @@ for _, name in ipairs(Ex.SERVER_CAPS) do
 end
 
 -- memory only: a /reloadlua of this file leaves it empty and open() fills it again
-local T = { pending = {}, pendN = 0 }
+local T = { pending = {}, pendN = 0, driven = {}, pollN = 0 }
 Srv.X = T
 
 -- what the wraps read. These outlive a /reloadlua, so a wrap already on the game's class reads the new file's tests
@@ -155,10 +155,11 @@ end
 -- is this the car the claim was made on? The game gives a removed car's number to the next new car, so the number can't say.
 -- Two things can, and each stands in for the other:
 --   the stamp the claim left in the car's own mod data, saved with the car, gone when the car goes. A client can lose it: any
---     mod's vehicle:transmitModData() on a client replaces the server's copy with the client's, and nobody but this server has
---     the stamp (ObjectModDataPacket.parse; KahluaTableImpl.load wipes first; it asks only LoginOnServer)
---   the car's key number (keyId, IsoObject): random when the car is made, saved with it, and no packet writes it. A mod that
---     cuts new locks changes it, on the server (Locksmith's vehicle:setKeyId)
+--     mod's vehicle:transmitModData() on a client replaces the server's copy with the client's (ObjectModDataPacket.parse;
+--     KahluaTableImpl.load wipes first; it asks only LoginOnServer), and a client that had the car before the claim has no
+--     stamp to send. It isn't a secret: a client that loads the car later gets it (VehicleFullUpdatePacket writes save())
+--   the car's key number (keyId, IsoObject): random when the car is made, saved with it, and no client's packet writes it (the
+--     full update only goes to clients). A mod that cuts new locks changes it, on the server (Locksmith's vehicle:setKeyId)
 -- So a lost stamp on a car with the right key number is put back, and a new key number on a car with its stamp is noted. With
 -- neither it's another car. (Not getMechanicalID: createPhysics rolls that again each time a car loads.) Neither write goes to
 -- the clients: sending the table would overwrite whatever a client's mod just sent
@@ -490,8 +491,28 @@ function F.lapse(md, now)
     end
 end
 
+-- a claimed car stays on the list for a few polls after its driver goes. A client's mod can send the car's mod data on the
+-- way out (RetroDashboardDigital's setVehicle(nil)), and nothing else looks at a parked car: without this look it would stay
+-- with no stamp, one new lock from losing its claim (F.sameCar)
+function F.lookLeft(md)
+    local gone, n = {}, 0
+    for key, e in pairs(T.driven) do
+        if e.poll ~= T.pollN then
+            local c = md.claims[key]
+            if not c or c.tok ~= e.tok or T.pollN - e.poll > L.LEFT_POLLS then
+                n = n + 1
+                gone[n] = key
+            else
+                F.claimOf(e.v)
+            end
+        end
+    end
+    for i = 1, n do T.driven[gone[i]] = nil end
+end
+
 -- who is on, and who is driving: one pass over the players, no scan of vehicles
 function F.poll(md, now)
+    T.pollN = T.pollN + 1
     Srv.eachOnline(function(o)
         local u = o:getUsername()
         if T.counts[u] then md.seen[u] = now end
@@ -499,6 +520,7 @@ function F.poll(md, now)
         if v and v:isDriver(o) then
             local c = F.claimOf(v)
             if c then
+                T.driven[Ex.keyOf(v:getSqlId())] = { v = v, tok = c.tok, poll = T.pollN }
                 if c.owner == u then
                     c.x, c.y = math.floor(v:getX()), math.floor(v:getY())
                 elseif On.drive and v:isEngineRunning() and F.carBlock(o, v) then
@@ -508,6 +530,7 @@ function F.poll(md, now)
             end
         end
     end)
+    F.lookLeft(md)
 end
 
 function T.tick()
