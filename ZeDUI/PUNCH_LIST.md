@@ -2620,6 +2620,9 @@ item says so.
       files stubs). ZeD's queue keeps working, the link to the game's list stops. **To do:** a line for staff when the
       game's list stops answering; add it to the notes for The Indie Stone. Known cost of the stub: a ticket lost in a crash
       with no save comes back with its kind but the words "see the Tickets queue".
+    - **E2 settled on the real server, Nov 6:** a wrapped complete runs by the class, no fallback, so refusals work.
+      **To do after the regression:** Lo.tap drops any logger whose plain name holds "zed", so "ZedTracker" never shows:
+      match the exact plain name instead.
 
 88. **The male skeleton's right arm (the director, Nov 5 2026: the lower arm, the wrist, the forearm, where the
     elbow joint is, "it's either dislocated or very broken. A doctor would probably want to get that person into
