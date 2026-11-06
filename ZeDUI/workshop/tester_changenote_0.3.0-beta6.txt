@@ -25,6 +25,14 @@ Fixes
 - Both male and female skeletons have had their elbows surgically repaired. Both are expected to make full recoveries.
 - American spelling in the last few lines that didn't have it.
 - On an 8-slice wheel, slice 8 and half of slice 7 could read as nothing, for the stick and the mouse.
+- The game's loot window could flash up when you clicked a container, or stay up through a pause. It no longer draws at all, and a click while paused opens the World window.
+- An item held over a rolled-up window's title bar now rolls that window down, once, so the drop lands.
+- The list could show the wrong container's items after a container left reach or the view changed. The columns are now checked against the selected container before each draw. A window rolled down reads its list straight away.
+- Dash Elite: at night the LCD glass lights only with the panel lights on, in its backlight color.
+
+Mod support
+- Spongie's Character Customization: Details folds in place, shut to begin with, on the Looks screen and the Appearance tab. Face folds on the tab, open to begin with.
+- Mods that publish through Vehicle Kit Library: the dash reads their temperature, lamps and odometer. That's how Roadworthy shows up.
 
 Known issues
 - The join rules and timed bans are enforced by the player's own game, so a modified game can get past them.
