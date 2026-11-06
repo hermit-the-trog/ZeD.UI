@@ -225,6 +225,14 @@ function M.ticket(id, who)
 end
 
 -- for staff, in place of the game's modal: a ticket came in
+-- a word from the admin tools for staff (a banned client that has not left)
+function M.adminNote(text)
+    local name = getText("UI_userpanel_tickets")
+    local it = M.add(name, "mods", { k = "ticketnew", text = text })
+    toast("warn", ZeD.tr("UI_ZeD_Adm_NoteHead"), name, text)
+    return it
+end
+
 function M.ticketNew()
     local name = getText("UI_userpanel_tickets")
     local text = ZeD.tr("UI_ZeD_Tk_NoteNew")

@@ -14,6 +14,10 @@
 -- Without the server part (B9) the same cards read the game's list: one question and one answer, the help line saying
 -- what is left out. Simple mode draws these same cards: they are already plain.
 --
+-- The admin tools (ZeD_AdminCards.lua) push their cards on this same engine: TC.kinds holds a card kind's parts (data,
+-- items, foot, title, help, key, tick, back, cancel, flag, padX) and TC.items a new item's (layout, draw, stops), in a
+-- card or a tab's list alike.
+--
 -- All player text is drawn with drawText, never through the game's rich text, which would act on <LINE> or <IMAGE:...>.
 -- Kind and status always carry their word, never color alone.
 --
@@ -84,7 +88,9 @@ local MONTHS = {
 
 local D = {}     -- the file's helpers (a table: Kahlua counts every local in the chunk)
 local B = {}     -- what each card holds
-TC._D = D
+TC._D, TC._B = D, B
+TC.kinds = TC.kinds or {}    -- a card kind another file adds
+TC.items = TC.items or {}    -- an item another file adds
 
 local function tr(k, ...) return ZeD.tr(k, ...) end
 local function px(n) return ZeD.T.px(n) end
@@ -244,6 +250,7 @@ function D.wrap(text, font, maxW)
     return lines
 end
 
+function TC.kindWord(k) return tr(KIND_WORD[k] or KIND_WORD.NONE) end
 function D.stWord(st) return tr(ST_WORD[st] or ST_WORD.Open) end
 function D.staffSt(st) if st == "Seen" then return "Open" end return st or "Open" end
 
@@ -377,13 +384,13 @@ function D.gate(box)
     end
 end
 
-function D.makeField(win, panel, key, multi, hint)
+function D.makeField(win, panel, key, multi, hint, max)
     win._tkFields = win._tkFields or {}
     local box
     if multi then
         box = ZeD_TextEntry:new(0, 0, px(200), px(48), hint)
         box.maxLines = FIELD_LINES
-        box.maxLength = L.TEXT_MAX
+        box.maxLength = max or L.TEXT_MAX
     else
         box = ZeD_SearchField:new(0, 0, px(200), hint)
     end
@@ -462,7 +469,11 @@ end
 
 function D.drawField(panel, win, t, it, x, y, w, h, viewY, viewH, covered)
     local T, A = ZeD.T, ZeD.Atoms
-    local box = D.fieldOf(win, it.key) or D.makeField(win, panel, it.key, true, it.hint)
+    local box = D.fieldOf(win, it.key)
+    if not box then
+        box = D.makeField(win, panel, it.key, true, it.hint, it.max)
+        if it.start then D.setField(win, it.key, it.start) end
+    end
     box.placeholder = ""             -- (the box draws one line and nothing cuts it: the hint is drawn here, wrapped)
     local inner = D.fieldInner(box)
     local focused = inner and inner:isFocused()
@@ -531,6 +542,8 @@ end
 function TC.itemH(it, w)
     local T = ZeD.T
     local tt = it.t
+    local ext = TC.items[tt]
+    if ext then return ext.layout(it.win, it, w, nil) end
     if tt == "row" then return D.rowH() end
     if tt == "wrap" then
         if it.wrapW ~= w then
@@ -634,7 +647,11 @@ function TC.drawItem(panel, win, st, it, x, dy, cw, mx, my)
     local T = ZeD.T
     local t = ts(st)
     local tt = it.t
-    if tt == "row" then
+    local ext = TC.items[tt]
+    if ext then
+        local ctx = { hits = t.listHits, prefix = t.prefix, viewY = t.sy, viewH = t.sh, covered = t.popup ~= nil or win._drawerItem ~= nil }
+        ext.draw(panel, win, t, it, x + px(PAD), dy, cw - 2 * px(PAD), mx, my, ctx)
+    elseif tt == "row" then
         D.drawRow(panel, win, t, it, x, dy, cw, mx, my)
     elseif tt == "wrap" then
         local c = T.textDim
@@ -669,7 +686,10 @@ function TC.itemStops(out, st, it, x0, dy, cw, flag)
         e.tkWhy = function() return c.why end
         out[#out + 1] = e
     end
-    if tt == "row" then
+    local ext = TC.items[tt]
+    if ext then
+        ext.stops(it, x0, dy, cw - 2 * pad, add)
+    elseif tt == "row" then
         add(it.c, x0, dy, cw - 2 * pad, it.h, it.y)
     elseif tt == "chips" then
         for _, c in ipairs(it.ctls) do add(c, x0 + c.dx, dy + px(4) + c.dy, c.w, c.h, it.y + c.dy) end
@@ -767,6 +787,13 @@ function D.padWhy(win)
     local Fo = ZeD.Input and ZeD.Input.Focus
     local el = Fo and Fo.getFocusedElement and Fo.getFocusedElement(win)
     return el and el.tkWhy and el.tkWhy() or nil
+end
+
+-- a tab's own words under the controller: a press's answer, or why the stop is gray
+function TC.padWords(win, st)
+    if not D.padOn() then return nil end
+    local t = ts(st)
+    return D.flashNow(t) or D.padWhy(win)
 end
 
 function D.whyItem(t, s)
@@ -1011,6 +1038,11 @@ function TC.queueItems(out, win, st)
     t.helpNow = notes[1] or D.queueHelp(t, mode, t.queuePageNow)
 end
 
+-- the queue kept open while its summary shows, so counts and the game's list stay read (the Admin tab's Tickets row)
+function TC.queueWatch(st)
+    D.queueTick(st, ts(st))
+end
+
 function TC.queueHelp(st)
     local t = st.tk
     return t and t.helpNow or nil
@@ -1046,6 +1078,7 @@ function D.popupModes(t, key)
 end
 
 function D.popupActive(t, key)
+    if t.popup and t.popup.active ~= nil then return t.popup.active end
     local q = t.q
     if key == "kind" then return q.kind or "ALL" end
     if key == "who" then return q.who or "ALL" end
@@ -1059,15 +1092,28 @@ function D.openPopup(st, t, key)
 end
 
 function D.closePopup(st, t)
-    local key = t.popup and t.popup.key
+    local pop = t.popup
     t.popup = nil
-    if key then D.focusId(st.tkWin, st, t.prefix .. "pop:" .. key) end
+    if pop and pop.from then D.focusId(st.tkWin, st, pop.from)
+    elseif pop and pop.key then D.focusId(st.tkWin, st, t.prefix .. "pop:" .. pop.key) end
+end
+
+-- a list of picks over a card: box is the control it opens from, modes its rows, pick what a row does
+function TC.openPicker(win, st, box, modes, active, pick)
+    local t = ts(st)
+    t.popup = { key = box.id, modes = modes, box = box, active = active, pick = pick, from = "tk:" .. box.id }
+    D.focusNext(win, st, function(e) return e.tkPop == active end)
 end
 
 function D.popupPick(st, t, id)
-    local key = t.popup and t.popup.key
+    local pop = t.popup
+    local key = pop and pop.key
     D.closePopup(st, t)
     if not key or id == "MORE" then return end
+    if pop.pick then
+        pop.pick(id)
+        return
+    end
     if id == "ALL" then id = nil end
     D.setQ(t, key, id)
 end
@@ -1076,10 +1122,12 @@ end
 function D.drawPopup(panel, win, t, top, bottom)
     local M = ZeD.Molecules
     local pop = t.popup
-    local box = nil
-    for _, it in ipairs(t.queueList or {}) do
-        for _, c in ipairs(it.ctls or {}) do
-            if c.id == "pop:" .. pop.key then box = c end
+    local box = pop.box
+    if not box then
+        for _, it in ipairs(t.queueList or {}) do
+            for _, c in ipairs(it.ctls or {}) do
+                if c.id == "pop:" .. pop.key then box = c end
+            end
         end
     end
     if not (box and box.bx) then
@@ -1214,8 +1262,11 @@ function TC.back(win, st)
     local t = ts(st)
     local card = st.card
     if not card then return end
-    st.card = nil
-    t.items, t.confirm = nil, nil
+    st.card = card.parent
+    t.items, t.confirm, t.popup = nil, nil, nil
+    t.itemsKey = nil
+    local K = TC.kinds[card.kind]
+    if K and K.back then K.back(win, st, t, card) end
     if card.kind == "staff" then
         t.queueKey = nil
         if not card.game and not TC.qaHold then
@@ -1247,15 +1298,15 @@ end
 -- ---------------------------------------------------------------------------
 -- WHAT EACH CARD HOLDS. Built once per change; words wrapped once per width.
 -- ---------------------------------------------------------------------------
-function B.label(items, text) items[#items + 1] = { k = "label", text = text } end
+function B.label(items, text, right) items[#items + 1] = { k = "label", text = text, right = right } end
 function B.sub(items, text) items[#items + 1] = { k = "sub", text = text } end
 function B.msg(items, who, text, tone)
     local n = #items + 1
     items[n] = { k = "msg", who = who, text = text, tone = tone, stop = "tk:m:" .. tostring(n) }
 end
 function B.fact(items, label, value, c) items[#items + 1] = { k = "fact", label = label, value = value, c = c } end
-function B.field(items, key, rows, hint, land)
-    items[#items + 1] = { k = "field", key = key, rows = rows, hint = hint,
+function B.field(items, key, rows, hint, land, max)
+    items[#items + 1] = { k = "field", key = key, rows = rows, hint = hint, max = max,
         c = { id = "f:" .. key, land = land, run = function(ww) D.useField(ww, key) end } }
 end
 
@@ -1396,6 +1447,8 @@ end
 
 -- the data behind a card, or nil
 function D.cardData(card)
+    local K = TC.kinds[card.kind]
+    if K then return K.data(card) end
     if card.kind == "mine" then
         if card.game then
             for _, r in ipairs(C.mine or {}) do
@@ -1429,6 +1482,8 @@ function D.cardData(card)
 end
 
 function D.cardItems(win, st, t, card, data)
+    local K = TC.kinds[card.kind]
+    if K then return K.items(win, st, t, card, data) end
     if card.kind == "ask" then return B.ask(st, t) end
     if card.kind == "mine" then return B.mine(win, card, data) end
     return B.staff(win, st, card, data)
@@ -1681,6 +1736,8 @@ function D.footStaff(win, st, t, card, data)
 end
 
 function D.footOf(win, st, t, card, data)
+    local K = TC.kinds[card.kind]
+    if K then return K.foot and K.foot(win, st, t, card, data) or { main = {} } end
     if card.kind == "ask" then return D.footAsk(win, st, t) end
     if card.kind == "mine" then return D.footMine(win, st, t, card, data) end
     return D.footStaff(win, st, t, card, data)
@@ -1782,17 +1839,30 @@ function D.factLabelW(items)
     return w
 end
 
-function D.layout(win, items, w, sh)
+function D.layout(win, items, wAll, sh)
     local T, A, M, tm = ZeD.T, ZeD.Atoms, ZeD.Molecules, ZeD.TM
     local f2h, f3h, f1h = tm:getFontHeight(T.fontF2), tm:getFontHeight(T.fontF3), tm:getFontHeight(T.fontF1)
     local y = px(10)
     local lw = D.factLabelW(items)
     local last = nil
+    local top = nil      -- the inset being measured
     for _, it in ipairs(items) do
         local k = it.k
-        if k == "label" then
+        local w = it.ind and (wAll - 2 * px(it.ind)) or wAll
+        local ext = TC.items[k]
+        if ext then
+            y = y + px(ext.gap or 0)
+            it.h = ext.layout(win, it, w, sh)
+        elseif k == "insetTop" then
+            y = y + px(8)
+            it.h = px(8)
+            top = it
+        elseif k == "insetEnd" then
+            it.h = px(8)
+        elseif k == "label" then
             if last and last ~= "label" then y = y + px(12) end
-            it.h = f1h + px(6)
+            if it.wrapW ~= w then it.wrapW, it.lines = w, D.wrap(it.text, T.fontF1, math.max(1, w)) end
+            it.h = #it.lines * f1h + px(6)
         elseif k == "sub" then
             y = y + px(4)
             if it.wrapW ~= w then it.wrapW, it.lines = w, D.wrap(it.text, T.fontF2, math.max(1, w)) end
@@ -1809,6 +1879,7 @@ function D.layout(win, items, w, sh)
             local btnW = 0
             if it.c then
                 it.c.w, it.c.h = M.buttonW(it.c.text), T.buttonH - px(4)
+                if it.c.box then it.c.w = M.popupMenuW(it.c.text, true) end
                 btnW = it.c.w + px(8)
             end
             local vw = math.max(px(40), w - lw - px(FACT_GAP) - btnW)
@@ -1827,6 +1898,10 @@ function D.layout(win, items, w, sh)
         end
         it.y = y
         y = y + it.h
+        if k == "insetEnd" and top then
+            top.spanH = y - top.y
+            top = nil
+        end
         last = k
     end
     return y + px(14)
@@ -1836,8 +1911,14 @@ function D.drawInline(panel, win, t, c, x, y, mx, my)
     local M = ZeD.Molecules
     if c.live then c.live(c) end
     local hov = mx ~= nil and mx >= x and mx < x + c.w and my >= y and my < y + c.h
-    M.drawButton(panel, x, y, c.w, c.h, c.text, "default", hov and isMouseButtonDown(0), nil,
-        { hover = hov, disabled = c.disabled, help = c.why or c.help, win = win, focus = D.focusOf(win, "tk:" .. c.id) })
+    if c.box then
+        M.drawPopupMenu(panel, x, y, c.w, c.h, c.text, hov, D.focusOf(win, "tk:" .. c.id), c.disabled, nil, true)
+        c.bx, c.by = x, y
+        if hov and (c.why or c.help) then ZeD.Help.set(win, c.why or c.help) end
+    else
+        M.drawButton(panel, x, y, c.w, c.h, c.text, "default", hov and isMouseButtonDown(0), nil,
+            { hover = hov, disabled = c.disabled, help = c.why or c.help, win = win, focus = D.focusOf(win, "tk:" .. c.id) })
+    end
     c.sx = x
     t.hits[#t.hits + 1] = { x = x, y = y, w = c.w, h = c.h, c = c }
 end
@@ -1883,11 +1964,28 @@ function D.drawCardItem(panel, win, t, it, x, dy, w, mx, my, viewY, viewH, cover
     local T = ZeD.T
     local k = it.k
     local f2h = ZeD.TM:getFontHeight(T.fontF2)
-    if k == "label" then
+    if it.ind then
+        x = x + px(it.ind)
+        w = w - 2 * px(it.ind)
+    end
+    local ext = TC.items[k]
+    if ext then
+        ext.draw(panel, win, t, it, x, dy, w, mx, my, { hits = t.hits, prefix = "tk:", viewY = viewY, viewH = viewH, covered = covered })
+    elseif k == "insetTop" then
+        local bg = T.surf1
+        panel:drawRect(x, dy, w, it.spanH or it.h, bg.a or 1, bg.r, bg.g, bg.b)
+        ZeD.Atoms.frame(panel, x, dy, w, it.spanH or it.h, T[it.tone or "borderS"] or T.borderS)
+    elseif k == "label" then
         local c = T.textHead
-        panel:drawText(it.text, x, dy, c.r, c.g, c.b, c.a or 1, T.fontF1)
+        for i, s in ipairs(it.lines or {}) do
+            panel:drawText(s, x, dy + (i - 1) * ZeD.TM:getFontHeight(T.fontF1), c.r, c.g, c.b, c.a or 1, T.fontF1)
+        end
+        if it.right then
+            local room = w - ZeD.TM:MeasureStringX(T.fontF1, (it.lines and it.lines[1]) or it.text) - px(8)
+            ZeD.Atoms.drawTextRight(panel, ZeD.Atoms.truncateText(it.right, T.fontF3, math.max(0, room)), x + w, dy, T.fontF3, T.textDim)
+        end
     elseif k == "sub" then
-        local c = T.textDim
+        local c = it.tone and (T[it.tone] or T.textDim) or T.textDim
         for i, s in ipairs(it.lines or {}) do
             panel:drawText(s, x, dy + (i - 1) * f2h, c.r, c.g, c.b, c.a or 1, T.fontF2)
         end
@@ -1910,7 +2008,7 @@ function D.drawCardItem(panel, win, t, it, x, dy, w, mx, my, viewY, viewH, cover
         for i, s in ipairs(it.lines or {}) do
             panel:drawText(s, vx, dy + (i - 1) * f2h, vc.r, vc.g, vc.b, vc.a or 1, T.fontF2)
         end
-        if it.c then D.drawInline(panel, win, t, it.c, x + w - it.c.w, dy, mx, my) end
+        if it.c then D.drawInline(panel, win, t, it.c, it.c.box and vx or (x + w - it.c.w), dy, mx, my) end
     elseif k == "msg" then
         D.drawMsg(panel, win, it, x, dy, w)
     elseif k == "btn" then
@@ -1919,6 +2017,8 @@ function D.drawCardItem(panel, win, t, it, x, dy, w, mx, my, viewY, viewH, cover
 end
 
 function D.cardTitle(card, data)
+    local K = TC.kinds[card.kind]
+    if K then return K.title(card, data) end
     if card.kind == "ask" then return tr("UI_ZeD_Srv_AskAdmins") end
     if card.kind == "mine" then return tr("UI_ZeD_Tk_CardMine", card.id) end
     return tr("UI_ZeD_Tk_CardStaff", card.id, tostring(data and data ~= true and data.author or ""))
@@ -1949,6 +2049,8 @@ function D.drawFlag(panel, card, data, x, y, w)
 end
 
 function D.cardHelp(t, card, data)
+    local K = TC.kinds[card.kind]
+    if K then return K.help(t, card, data) end
     if card.kind == "ask" then
         return t.ask.kind and tr(KIND_HELP[t.ask.kind]) or tr("UI_ZeD_Tk_HelpAsk")
     elseif card.kind == "mine" then
@@ -1971,6 +2073,8 @@ function D.cardKey(t, card, inner)
     if card.kind == "ask" and t.ask.here and p then
         parts[#parts + 1] = tostring(math.floor(p:getX())) .. "," .. tostring(math.floor(p:getY()))
     end
+    local K = TC.kinds[card.kind]
+    if K and K.key then parts[#parts + 1] = K.key(card) end
     return table.concat(parts, ":")
 end
 
@@ -2020,6 +2124,8 @@ function TC.renderCard(panel, win, st, x, y, w, h)
     local t = ts(st)
     local card = st.card
     if card.kind == "staff" then D.queueTick(st, t) end
+    local K = TC.kinds[card.kind]
+    if K and K.tick then K.tick(win, st, t, card) end
     local data = D.cardData(card)
     if data then
         if card.waited then
@@ -2049,7 +2155,11 @@ function TC.renderCard(panel, win, st, x, y, w, h)
         { win = win, focusParts = { back = D.focusOf(win, "tk:back") },
           backHelp = tr((st.tkZone == "worldTabContent") and "UI_ZeD_Tk_BackQueue" or "UI_ZeD_Tk_BackServer") })
     local flagH = 0
-    if card.kind ~= "ask" and data then flagH = D.drawFlag(panel, card, data, x, y + bar, w) end
+    if K then
+        if K.flag then flagH = K.flag(panel, win, t, card, data, x, y + bar, w, bar) end
+    elseif card.kind ~= "ask" and data then
+        flagH = D.drawFlag(panel, card, data, x, y + bar, w)
+    end
     -- the foot, measured first: the body takes what is left
     local foot = D.footOf(win, st, t, card, data)
     local bandsH, two = D.footH(foot, w)
@@ -2071,17 +2181,18 @@ function TC.renderCard(panel, win, st, x, y, w, h)
     t.listH, t.off, t.csy, t.csh, t.cx, t.cpad, t.cin = listH, off, sy, sh, x, pad, inner
     local mx, my = panel:getMouseX(), panel:getMouseY()
     if not (mx >= x and mx < x + w and my >= sy and my < sy + sh) or D.padOn() then mx, my = nil, nil end
-    local covered = win._drawerItem ~= nil
+    local covered = win._drawerItem ~= nil or t.popup ~= nil
     panel:setStencilRect(x, sy, w, sh)
     for _, it in ipairs(items) do
         local dy = sy + it.y - off
-        if dy + it.h >= sy and dy <= sy + sh then
+        if dy + (it.spanH or it.h) >= sy and dy <= sy + sh then
             D.drawCardItem(panel, win, t, it, x + pad, dy, inner, mx, my, sy, sh, covered)
         end
     end
     panel:clearStencilRect()
     panel:setStencilRect(0, 0, panel:getWidth(), panel:getHeight())
     if needs then t.scroll:draw(panel) end
+    if t.popup then D.drawPopup(panel, win, t, sy, sy + sh) end
     if lineH > 0 then D.drawFootLine(panel, x, y + h - footH, w, lineH, lineWords) end
     if bandsH > 0 then
         D.drawFoot(panel, win, t, foot, x, y + h - bandsH, w, two, (lineH == 0) and words or nil, lineH > 0)
@@ -2113,6 +2224,10 @@ end
 
 function TC.cardClick(win, st, x, y)
     local t = ts(st)
+    if t.popup then
+        D.popupClick(st, t, x, y)
+        return
+    end
     local sc = t.scroll
     if sc.visible and x >= sc.x and x < sc.x + sc.width and y >= sc.y and y < sc.y + sc.height then
         sc:handleMouseDown(y - sc.y)
@@ -2149,6 +2264,8 @@ end
 -- B: out of the confirm, else off the card
 function D.cancel(win, st)
     local t = ts(st)
+    local K = st.card and TC.kinds[st.card.kind]
+    if K and K.cancel and K.cancel(win, st, t, st.card) then return end
     if t.confirm then
         t.confirm = nil
         D.focusId(win, st, "tk:del")
@@ -2169,6 +2286,14 @@ function D.dress(win, st, t, e, c, place)
             if D.canGo() then D.goThere(st, place) else D.flash(t, tr("UI_ZeD_Tk_NoGo")) end
         end
     end
+    local K = st.card and TC.kinds[st.card.kind]
+    if K and K.padX then
+        local b = K.padX(win, st, t, st.card)
+        if b then
+            e.promptX = b.label
+            e.onContextMenu = function() if not b.disabled then b.run(win) else D.flash(t, b.why) end end
+        end
+    end
     return e
 end
 
@@ -2177,6 +2302,7 @@ function TC.cardStops(win, st)
     local out = {}
     local card = st.card
     if not card or not t.items then return out end
+    if t.popup and TC.popupStops(st, out) then return out end
     local sy, off = t.csy or 0, t.off or 0
     local x0 = (t.cx or 0) + (t.cpad or 0)
     local inner = t.cin or px(300)
@@ -2201,12 +2327,19 @@ function TC.cardStops(win, st)
     for _, it in ipairs(t.items) do
         local dy = sy + it.y - off
         local k = it.k
-        if k == "chips" then
-            for _, c in ipairs(it.ctls) do add(c, x0 + c.dx, dy + c.dy, c.w, c.h, it.y + c.dy) end
+        local xi, wi = x0, inner
+        if it.ind then
+            xi, wi = x0 + px(it.ind), inner - 2 * px(it.ind)
+        end
+        local ext = TC.items[k]
+        if ext then
+            ext.stops(it, xi, dy, wi, add)
+        elseif k == "chips" then
+            for _, c in ipairs(it.ctls) do add(c, xi + c.dx, dy + c.dy, c.w, c.h, it.y + c.dy) end
         elseif k == "check" then
             add(it.c, x0, dy, inner, it.h, it.y)
         elseif k == "field" then
-            add(it.c, x0, dy, inner, it.h, it.y)
+            add(it.c, xi, dy, wi, it.h, it.y)
         elseif k == "fact" and it.c then
             add(it.c, it.c.sx or (x0 + px(200)), dy, it.c.w, it.c.h, it.y)
         elseif k == "btn" then
@@ -2237,7 +2370,8 @@ end
 function TC.cardKey(st)
     local t = st.tk
     if not t then return "" end
-    local parts = { tostring(t.off or 0), tostring(st.card and st.card.kind), tostring(t.itemsKey), tostring(t.confirm) }
+    local parts = { tostring(t.off or 0), tostring(st.card and st.card.kind), tostring(t.itemsKey), tostring(t.confirm),
+        (t.popup and ("p" .. tostring(t.popup.key)) or "") }
     for _, r in ipairs(t.footRects or {}) do
         parts[#parts + 1] = r.b.id
         parts[#parts + 1] = tostring(r.b.disabled)

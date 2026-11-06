@@ -20,6 +20,9 @@ local L = Tk.LIMITS
 
 Srv.handlers = Srv.handlers or {}
 Srv.mem = Srv.mem or {}          -- username -> the limits' memory; a restart clears it
+Srv.modules = Srv.modules or {}  -- the modules this part answers; a later phase adds its own
+Srv.modules[Tk.MOD_LINK], Srv.modules[Tk.MOD] = true, true
+Srv.helloAdds = Srv.helloAdds or {}   -- more for the hello reply: a later phase keeps its own under a name
 
 -- Both are in the 42.22 enum. If a game update renames one the local is nil, and hasCapability(nil) would match no
 -- overload, which corrupts the game's call pool even inside pcall. So a missing one leaves the part off (below).
@@ -146,7 +149,7 @@ local function run(h, p, a, rid)
 end
 
 function Srv.onCommand(module, command, player, args)
-    if module ~= Tk.MOD_LINK and module ~= Tk.MOD then return end
+    if not Srv.modules[module] then return end
     if Srv.off or not player then return end
     if not general(player:getUsername(), getTimestampMs()) then return end
     local h = Srv.handlers[module .. "." .. tostring(command)]
@@ -167,6 +170,7 @@ end
 Srv.register(Tk.MOD_LINK, "hello", { limit = L.HELLO_MS }, function(p, a, rid)
     local r = { v = Tk.PROTO, staff = Srv.can(p, CAP_STAFF), admin = Srv.can(p, CAP_ADMIN) }
     if Srv.helloFill then Srv.helloFill(p, r) end   -- (ZeD_ServerTickets.lua: frozen, unread, the counts for staff)
+    for _, fn in pairs(Srv.helloAdds) do fn(p, r) end
     Srv.to(p, Tk.MOD_LINK, "hello", r)
 end)
 

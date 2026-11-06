@@ -124,6 +124,7 @@ function Q.bind(TC, C, S, me)
     local function reset(win, st)
         TC.qaHold, TC.qaRole, TC.qaGo, TC.qaStats, TC.qaLink = true, "admin", true, true, nil
         st.card = nil
+        st.screen = "tickets"      -- (the Admin tab holds the queue on its own screen since Phase 2)
         local t = TC.qaState(st)
         t.popup, t.confirm, t.flashText, t.busy = nil, nil, nil, nil
         t.q.status, t.q.kind, t.q.who, t.q.mine, t.q.find, t.q.newest, t.q.page = "Open", nil, nil, nil, "", true, 1
