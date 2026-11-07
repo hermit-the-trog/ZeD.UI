@@ -2790,6 +2790,14 @@ item says so.
 
 97. **After the beta 6a hot fix: what the outside review left (Build, Nov 6 2026).** All of 96 went in on main at a60c4472 except these. Too big for a hot fix: split-screen positioning and per-player server state; Death then Restart on ZeD's own windows; the getTextManager proxy. Narrowed: the Steam ID check still lets about 15 neighbors through. Code nothing calls: formatWeaponMeta and formatFluidMeta in ContextMenuRegistry. Small follow-ups: the Character window has coverClear and no drain, so Journal > Recipes under a card may lose its list; send every correctAndSaveModOrder through one filtered helper (Undo changes and Load after throw with an uninstalled mod listed, as in beta 6); clear KillTracker deadLog once a weapon kill counts, as a reused zombie can read as a fire kill; RADIAL_WHEELS_SPEC.md line 58 needs the centered start for Hold with Flick-release. Second-player checks are in the merge note to QA.
 
+98. **After beta 6: the survival guide's ads (the director, Nov 6 2026: "And with that, the ads are done. We can build
+    a handoff").** 34 ads for the Full look's left-over pages and fillers (3 full, 7 half, 12 third, 12 quarter; the
+    house ad joins the full-page rotation), each at most once per book, the NOTES block when they run out; Simple gets
+    none. The handoff: HANDOFF_design_guide_ads_20261106.md (the Lua list, the slot changes in
+    ZeD_SurvivalGuideBook.lua, the seeded deal, QA). The art: ZeD_design_refs/ads/final/ (2x PNGs, ink on
+    transparent), to 42/media/textures/ZeD/guide/ads/. The plan and every round of notes: GUIDE_ADS_PLAN.md. Open for
+    QA: whether 34 ads cover every slot at each text size.
+
 99. **For the next beta: two small faults (the director, Nov 6 2026: "Wait for the next one. I really want to get this thing uploaded").** Not in beta 6a, as either would want a regression. Locks: padlocks and combination locks open in a full card; they should open in a half card. The Z menu: on the main menu, Z in the toolbar still shows version 0.1.1-something; it should show the current version.
 
 100. **For later: EquipPacket in the server log (QA, Nov 6 2026).** "Wrong player connection index" repeats during multiplayer runs: 505 lines in one beta 6a run, mostly while teleporting, 302 in one run on Nov 5, so it predates the hot fix. Not looked into yet. It may come from the QA kit's teleports rather than from ZeD. See qa/QA_BETA6A_20261106.md.
@@ -2849,3 +2857,9 @@ Items QA has confirmed in the game in full (their history stays in place above; 
 2, 3 (one gap: the ham at 1.5), 18, 19, 21, 22, 23, 24, 25, 27, 28, 30, 31, 32, 33, 34, 35, 36 (its first fixes), 37 and
 41 (by script; hand checks open), 39, 40, 42 (its a-f), 43, 44 (but the column rule), 45, 46, 48, 49, 50, 52, 53, 55, 56,
 65, 67, 69, 70, 77. The beta items' states are on each item under "## Beta".
+
+101. **After beta 6a: the second outside review (QA, Nov 7 2026; qa/REVIEW_BETA6A_EXTERNAL_20261107.md).** Medium: every weapon
+    kill filed as an explosion and the Journal header counting it twice (KillTracker.lua:154, JournalTab.lua:393; checked by
+    bytecode on 42.22.2). Low: firearm facts throw in formatFirearm (ItemCard.lua:86, AmmoType object); ZeD picks left off
+    when ZeD-GUI is switched off and on; a held second Accept says the invitation is gone; a release plus re-claim logged as
+    an owner change. Design for the director: Check stats and the Admin tab's other game windows are still the game's UI.
