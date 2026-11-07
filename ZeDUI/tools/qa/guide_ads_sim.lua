@@ -910,6 +910,7 @@ local function faults(L, u)
     if L.price.x + L.price.w > ix + iw + 0.01 then no("the price box past the frame's padding") end
     for _, o in ipairs(L.ops) do
         if o.k == "t" and o.box == "price" and L.price.pad < o.px * 0.5 - 0.01 then no("the price's padding under half its size") end
+        if o.k == "r" and o.role == "write" and o.w < 40 * u - 0.01 then no(string.format("a writing line %.1f wide, under 40", o.w)) end
     end
     if not L.coupon then no("no coupon")
     elseif L.lines ~= 2 then no("the coupon lost its Name or Address") end
@@ -946,9 +947,10 @@ for _, code in ipairs(LANGS) do
                 local deckN = 0
                 for _, o in ipairs(L.ops) do if o.k == "t" and o.f.slot == "SdfBold" and o.box == "inner" then deckN = deckN + 1 end end
                 local down = {}
-                for _, k in ipairs({ "deck", "items", "coupon", "body" }) do
-                    if L.sz[k] < ({ deck = 14, items = 12.5, coupon = 11, body = 12.5 })[k] * m[1] * Ufix - 0.001 then down[#down + 1] = k end
+                for _, k in ipairs({ "deck", "items", "coupon", "body", "head" }) do
+                    if L.sz[k] < ({ deck = 14, items = 12.5, coupon = 11, body = 12.5, head = 30 })[k] * m[1] * Ufix - 0.001 then down[#down + 1] = k end
                 end
+                if L.headPx < 30 * m[1] * Ufix - 0.001 and L.sz.head >= 30 * m[1] * Ufix - 0.001 then down[#down + 1] = "head (a word)" end
                 row[#row + 1] = string.format("%s deck %d line%s%s%s", m[2], deckN, deckN == 1 and "" or "s",
                     (L.g < 1) and string.format(", gaps %d%%", L.g * 100) or "", (#down > 0) and (", down: " .. table.concat(down, "+")) or "")
                 if L.g < 1 or #down > 0 then worst[#worst + 1] = code .. " " .. m[2] end
@@ -1110,8 +1112,9 @@ do
 end
 
 -- ---------------------------------------------------------------------------
--- words too long for any line: cut between characters, nothing lost, never a line on a Thai mark; and a page of
--- words far too long closes its gaps, steps parts down and still keeps inside the frame
+-- words too long for any line: cut between characters, nothing lost, Thai at a syllable's edge; a page of words
+-- far too long closes its gaps, steps parts down and still keeps inside the frame; a headline word too wide takes
+-- the headline a size down; long Name and Address wrap; a page flooded past the frame leaves a box out whole
 -- ---------------------------------------------------------------------------
 do
     setText(1.15)
@@ -1126,19 +1129,45 @@ do
     check("cut between characters, nothing lost", table.concat(deck) == long.UI_ZeD_Guide_Ad1_Deck)
     local bad = faults(L, 1)
     check("a long Japanese deck keeps inside the frame", #bad == 0, bad[1])
-    -- Thai: no line starts on a mark
-    cur = LANG.TH
-    local onMark = nil
+    -- Thai: no line starts on a mark, a vowel that follows its consonant, the repeat or abbreviation mark; none ends
+    -- on a vowel written before its consonant; a cut inside a word falls where a syllable surely starts or ends
+    -- (before a leading vowel, after sara a or sara am, or beside a letter that is not Thai)
+    local function thNoStart(c) return c and ((c >= 0x0E2F and c <= 0x0E3A) or (c >= 0x0E45 and c <= 0x0E4E)) end
+    local function thLead(c) return c and c >= 0x0E40 and c <= 0x0E44 end
+    local function thai(c) return c and c >= 0x0E00 and c <= 0x0E7F end
+    local thSrc = {}
+    for k, v in pairs(LANG.TH) do if k:find("^UI_ZeD_Guide_Ad1_") then thSrc[#thSrc + 1] = v end end
+    local onMark, onLead, badCut, cuts = nil, nil, nil, 0
     for _, m in ipairs({ 1, 1.15, 1.6 }) do
         setText(m)
-        for _, o in ipairs(B.houseAdLayout(PW, 1).ops) do
-            if o.k == "t" then
-                local c1 = cps(o.s)[1]
-                if c1 == 0x0E31 or (c1 and c1 >= 0x0E34 and c1 <= 0x0E3A) or (c1 and c1 >= 0x0E47 and c1 <= 0x0E4E) then onMark = o.s end
+        local ops = {}
+        cur = LANG.TH
+        for _, o in ipairs(B.houseAdLayout(PW, 1).ops) do if o.k == "t" then ops[#ops + 1] = o end end
+        for i, o in ipairs(ops) do
+            local c = cps(o.s)
+            if thNoStart(c[1]) then onMark = o.s end
+            if thLead(c[#c]) then onLead = o.s end
+            local n = ops[i + 1]
+            if n and n.box == o.box and n.f == o.f then
+                -- (a cut inside a word: the two lines' ends meet with no space in the source)
+                local joined = o.s .. n.s
+                for _, src in ipairs(thSrc) do
+                    if src:find(joined, 1, true) then
+                        cuts = cuts + 1
+                        local a, b = c[#c], cps(n.s)[1]
+                        if thai(a) and thai(b) and not (thLead(b) or a == 0x0E30 or a == 0x0E33) then badCut = o.s .. " / " .. n.s end
+                        break
+                    end
+                end
             end
         end
     end
-    check("no Thai line starts on a mark", onMark == nil, onMark)
+    check("no Thai line starts on a mark or a following vowel", onMark == nil, onMark)
+    check("no Thai line ends on a leading vowel", onLead == nil, onLead)
+    check("Thai cut inside words (at 1.6 at least)", cuts > 0, cuts)
+    check("every Thai cut inside a word falls at a syllable's edge", badCut == nil, badCut)
+    realPrint(string.format("  Thai: %d cuts inside a word at Small, Large and 1.6, each at a syllable's edge", cuts))
+    cur = LANG.TH
     -- far too many words: the gaps close, the parts that wrapped step down, nothing past the frame
     local huge = {}
     for k, v in pairs(LANG.DE) do huge[k] = v end
@@ -1169,6 +1198,86 @@ do
     check("a long price a size down", pls[1] and pls[1].px < 14 - 0.001, pls[1] and pls[1].px)
     local badD = faults(D, 1)
     check("a long price keeps inside its box", #badD == 0, badD[1])
+
+    -- a headline word too wide for the frame, in a language that spaces its words: the headline a size down (22 at
+    -- Small), the word whole; a Chinese or Japanese headline too long for a line wraps at its own size instead
+    local wideHead = {}
+    for k, v in pairs(LANG.EN) do wideHead[k] = v end
+    wideHead.UI_ZeD_Guide_Ad1_Head = "The Uberlebenshandbuchregal"
+    cur = wideHead
+    setText(1)
+    local WH = B.houseAdLayout(PW, 1)
+    local whole, headN = false, 0
+    for _, o in ipairs(WH.ops) do
+        if o.k == "t" and o.f.slot == "SdfRobertoSans" then
+            headN = headN + 1
+            if o.s:find("UBERLEBENSHANDBUCHREGAL", 1, true) then whole = true end
+        end
+    end
+    check("a headline word too wide at 30 is wider than the frame (the test is real)", simW(F_.head, "UBERLEBENSHANDBUCHREGAL", 30) > WH.inner.w, simW(F_.head, "UBERLEBENSHANDBUCHREGAL", 30))
+    check("a headline word too wide: the headline a size down", math.abs(WH.headPx - 22) < 0.001, WH.headPx)
+    check("a headline word too wide: the word kept whole", whole, headN)
+    local badWH = faults(WH, 1)
+    check("a headline word too wide keeps inside the frame", #badWH == 0, badWH[1])
+    local jpHead = {}
+    for k, v in pairs(LANG.JP) do jpHead[k] = v end
+    jpHead.UI_ZeD_Guide_Ad1_Head = string.rep(LANG.JP.UI_ZeD_Guide_Ad1_Head, 3)
+    cur = jpHead
+    local JH = B.houseAdLayout(PW, 1)
+    local jpN = 0
+    for _, o in ipairs(JH.ops) do if o.k == "t" and o.f.slot == "SdfRobertoSans" then jpN = jpN + 1 end end
+    check("a long Japanese headline wraps at its own size", math.abs(JH.headPx - 30) < 0.001 and jpN > 1, JH.headPx .. " / " .. jpN)
+    local badJH = faults(JH, 1)
+    check("a long Japanese headline keeps inside the frame", #badJH == 0, badJH[1])
+
+    -- Name and Address wider than the coupon: wrapped, a writing line of at least 40 after each, both kept
+    local longLab = {}
+    for k, v in pairs(LANG.DE) do longLab[k] = v end
+    longLab.UI_ZeD_Guide_Ad1_Name = "Vor- und Nachname des Empfaengers, wie er auf dem Briefkasten steht"
+    longLab.UI_ZeD_Guide_Ad1_Address = "Vollstaendige Anschrift mit Strasse, Hausnummer, Postleitzahl und Ort, bitte in Druckbuchstaben"
+    cur = longLab
+    for _, m in ipairs({ 1, 1.15 }) do
+        setText(m)
+        local LL = B.houseAdLayout(PW, 1)
+        local labN = 0
+        for _, o in ipairs(LL.ops) do if o.k == "t" and o.f.slot == "SdfBold" and o.box == "coupon" then labN = labN + 1 end end
+        check("long Name and Address wrap (" .. m .. ")", labN > 2, labN)
+        local badLL = faults(LL, 1)
+        check("long Name and Address keep inside the coupon, both with a writing line (" .. m .. ")", #badLL == 0, badLL[1])
+    end
+
+    -- words so many the smallest try still runs past the frame: what is left out goes with its box, never a box
+    -- without its words or words without their box
+    local flood = {}
+    for k, v in pairs(LANG.DE) do flood[k] = v end
+    flood.UI_ZeD_Guide_Ad1_Body = string.rep(LANG.DE.UI_ZeD_Guide_Ad1_Body .. " ", 6)
+    for i = 1, 5 do flood["UI_ZeD_Guide_Ad1_T" .. i] = string.rep(LANG.DE["UI_ZeD_Guide_Ad1_T" .. i] .. " ", 3) end
+    cur = flood
+    setText(1.15)
+    local FL = B.houseAdLayout(PW, 1)
+    local dropped = {}
+    for k in pairs(FL.dropped or {}) do dropped[#dropped + 1] = k end
+    table.sort(dropped)
+    check("flooded: the last try runs past the frame (the test is real)", #dropped > 0)
+    local has = { priceBox = false, priceText = false, listBox = false, listText = false, tick = false }
+    for _, o in ipairs(FL.ops) do
+        if o.k == "r" and math.abs(o.x - FL.price.x) < 0.001 and math.abs(o.w - FL.price.w) < 0.001 then has.priceBox = true end
+        if o.k == "t" and o.box == "price" then has.priceText = true end
+        if o.k == "b" and math.abs(o.x - FL.list.x) < 0.001 and math.abs(o.w - FL.list.w) < 0.001 then has.listBox = true end
+        if o.k == "b" and o.w < 20 then has.tick = true end
+        if o.k == "t" and o.box == "list" then has.listText = true end
+    end
+    check("flooded: the price box and its words together", has.priceBox == has.priceText)
+    check("flooded: the titles' box, its tick boxes and its titles together", has.listBox == has.listText and has.tick == has.listText)
+    local inBotF = FL.frame.y + FL.frame.h - FL.frame.lw
+    local pastF = nil
+    for i, o in ipairs(FL.ops) do
+        local b = (o.k == "t") and (o.y + o.px * 0.3) or (o.y + o.h)
+        if i > FL.frame.lw and b > inBotF + 0.01 then pastF = o.s or o.k end
+    end
+    check("flooded: nothing past the frame's bottom", pastF == nil, pastF)
+    realPrint("  flooded (German, six times the paragraph, three times the titles, Large): left out " .. table.concat(dropped, ", ")
+        .. string.format("; price %s, titles %s", has.priceText and "kept" or "left out", has.listText and "kept" or "left out"))
     cur = EN
     setText(1)
 end
