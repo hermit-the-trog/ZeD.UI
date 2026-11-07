@@ -12,6 +12,10 @@
 --           :start asks it), not only the list's cached answer: a stale "craftable" leaves Craft off; the check is
 --           asked again when the containers are gathered again; a press the start check refuses queues nothing and
 --           counts nothing; a batch past the most it can make is cut to that most
+--   BENCH   the start check with distance (a fake HandcraftLogic that models the 3-tile workbench reach): a bench
+--           bound out past it (ZeD's 4.5-tile leash, more from a right-click) leaves Craft on and the press walks
+--           there, when the materials are there; short of them (Required 1/4) Craft is off near or far and a press
+--           walks nowhere; an any-surface recipe in Hand mode is checked and made on the table found in reach
 --   SCAN    a vanilla scan that throws drops the answers it held (fromLogic), so they don't carry on
 -- A last section puts the old code's shape back (no bandRoom; no start check) and shows the sim catches both.
 -- What it can't show is how it looks: an item card over the Journal's question band, in the game.
@@ -231,23 +235,28 @@ local CC = {
     incrementCraftCount = function() counted = counted + 1 end,
 }
 local gatherDetail
-local function loadCraft(src)
+local lastAction
+-- opts (the BENCH section): HandcraftLogic, Stations, ISEntityUI, boundBench, recipes (by name)
+local function loadCraft(src, opts)
+    opts = opts or {}
     local a = string.find(src, "function ZeD.CraftingTab.startCheck(", 1, true)
     local e = string.find(src, "-- CONFIG TABLE", a or 1, true)
     check("CraftingTab.lua's start check to startCraft is found", a ~= nil and e ~= nil)
     if not (a and e) then return end
     local env = {
-        ZeD = { CraftingTab = {}, Stations = nil },
-        HandcraftLogic = HandcraftLogic, pcall = pcall, math = math, tostring = tostring, ipairs = ipairs,
+        ZeD = { CraftingTab = {}, Stations = opts.Stations },
+        HandcraftLogic = opts.HandcraftLogic or HandcraftLogic, pcall = pcall, math = math, tostring = tostring,
+        ipairs = ipairs,
         ISBaseTimedAction = { new = function() return {} end }, ISHandcraftAction = {},
-        ISTimedActionQueue = { add = function() queued = queued + 1 end },
-        CharacterTrait = { ALL_THUMBS = 1 }, ISEntityUI = nil,
+        ISTimedActionQueue = { add = function(act) queued = queued + 1; lastAction = act end },
+        CharacterTrait = { ALL_THUMBS = 1 }, ISEntityUI = opts.ISEntityUI,
     }
     local chunk = assert(loadstring("local CC, _recipeByName, boundBench = ...\n" .. string.sub(src, a, e - 1)
         .. "\nreturn gatherDetail"))
     setfenv(chunk, env)
-    gatherDetail = chunk(CC, { [entry.name] = entry }, function() return nil end)
-    return env.ZeD.CraftingTab
+    local g = chunk(CC, opts.recipes or { [entry.name] = entry }, opts.boundBench or function() return nil end)
+    if not opts.Stations then gatherDetail = g end
+    return env.ZeD.CraftingTab, g
 end
 local CT = loadCraft(readFile("42/media/lua/client/ZeD/CraftingTab.lua"))
 
@@ -316,6 +325,133 @@ if not (CT and gatherDetail) then check("the Craft tab's start check loads", fal
     CT.startCraft(w3, st)
     check("accepted batch of 2: two queued", queued == 2, queued)
     check("accepted batch of 2: counted", counted == 1, counted)
+end
+
+-- ---------------------------------------------------------------------------
+section("BENCH")
+-- ---------------------------------------------------------------------------
+-- A HandcraftLogic that models distance as the game's does (42.21 / 42.22 bytecode):
+-- isCharacterInRangeOfWorkbench is the bench's (or surface's) square under 3 tiles from the
+-- player, false with none; canPerformCurrentRecipe is the materials, then false for an
+-- any-surface recipe out of that range and for a station recipe out of it (hasRequiredWorkstation);
+-- getPossibleCraftCount counts the materials only. ZeD keeps a bench bound to 4.5 tiles and
+-- Craft walks there: a recipe the player can make at the bench stays on and walks; one short
+-- of materials is off, near or far; an any-surface recipe in Hand mode goes by the table found.
+do
+    local W = { px = 0, py = 0, have = 4 }
+    local function dist(o) return math.sqrt((o.x - W.px) ^ 2 + (o.y - W.py) ^ 2) end
+    local DistLogic = { new = function(_, comp, iso)
+        local l = { comp = comp, iso = iso }
+        function l:setContainers() end
+        function l:setRecipe(r) self.r = r end
+        function l:isCharacterInRangeOfWorkbench() return self.iso ~= nil and dist(self.iso) < 3 end
+        function l:getPossibleCraftCount() return math.floor(W.have / self.r.need) end
+        function l:canPerformCurrentRecipe()
+            local ok = W.have >= self.r.need
+            if self.r.anySurface and not self:isCharacterInRangeOfWorkbench() then ok = false end
+            if self.r.specific and not (self:isCharacterInRangeOfWorkbench() and self.comp ~= nil) then ok = false end
+            return ok
+        end
+        return l
+    end }
+    local function mkRecipe(name, need, flags)
+        local r = { name = name, need = need, anySurface = flags.anySurface, specific = flags.specific }
+        r.getName = function() return name end
+        r.getTimedActionScript = function() return "x" end
+        r.isCanWalk = function() return false end
+        r.getTime = function() return 10 end
+        return r
+    end
+    local frame = { name = "MakeAdvancedFramepackFrame", allowBatch = true, stationInfo = {},
+                    recipe = mkRecipe("MakeAdvancedFramepackFrame", 4, { specific = true }) }
+    local onTable = { name = "MakeOnTable", allowBatch = false, needSurface = true,
+                      recipe = mkRecipe("MakeOnTable", 1, { anySurface = true }) }
+    local benchObj = { x = 10, y = 10 }
+    local bench = { kind = "bench", obj = benchObj, comp = {} }
+    local bound = bench
+    local walks, surfaceAt = {}, nil
+    local Stations = {
+        validate = function() return bound end,
+        recipeSet = function() return { [frame.name] = true } end,
+    }
+    local Entity = {
+        WalkToEntity = function(_, obj) walks[#walks + 1] = obj; return true end,
+        FindCraftSurface = function() return surfaceAt end,
+    }
+    local CT2, gd = loadCraft(readFile("42/media/lua/client/ZeD/CraftingTab.lua"), {
+        HandcraftLogic = DistLogic, Stations = Stations, ISEntityUI = Entity,
+        boundBench = function() return bound end,
+        recipes = { [frame.name] = frame, [onTable.name] = onTable },
+    })
+    if not (CT2 and gd) then check("the Craft tab loads with a bench", false) else
+        local function craftState(e)
+            local win = { _playerObj = player }
+            local rd = { entry = e, status = "craftable", learned = true }
+            gatherCont = {}
+            gd(rd, player, win)
+            return rd, win
+        end
+        local function press(win, e, qty)
+            queued, counted, walks, lastAction = 0, 0, {}, nil
+            local st = { selected = e.name, qty = qty or 1 }
+            CT2.startCraft(win, st)
+            return st
+        end
+
+        -- bound at 4 tiles (inside the 4.5 leash, past the check's 3), the materials there: on, and walks
+        W.px, W.py, W.have = 6, 10, 4
+        local rd, win = craftState(frame)
+        check("bench 4 tiles off, materials there: canStart", rd.canStart == true, rd.canStart)
+        check("bench 4 tiles off, materials there: Craft on", canCraftOf(rd, 1) == true)
+        press(win, frame)
+        check("bench 4 tiles off: walks to the bench", walks[1] == benchObj, #walks)
+        check("bench 4 tiles off: queued and counted", queued == 1 and counted == 1, queued .. "," .. counted)
+        check("bench 4 tiles off: the action carries the bench", lastAction and lastAction.isoObject == benchObj
+            and lastAction.craftBench == bench.comp)
+
+        -- a batch from far: the most is what the materials make
+        W.have = 8
+        rd, win = craftState(frame)
+        check("bench 4 tiles off, materials for 2: the batch's most is 2", rd.maxBatchQty == 2, rd.maxBatchQty)
+        press(win, frame, 2)
+        check("bench 4 tiles off, batch of 2: two queued", queued == 2, queued)
+
+        -- bound far from a right-click across the room (the leash: distance + 1)
+        W.px, W.have = 3, 4
+        rd = craftState(frame)
+        check("bench 7 tiles off, materials there: Craft on", rd.canStart == true and canCraftOf(rd, 1) == true)
+
+        -- short of materials (Required 1/4): off near or far, and a press walks nowhere
+        W.px, W.have = 6, 1
+        rd, win = craftState(frame)
+        check("bench 4 tiles off, Required 1/4: canStart false", rd.canStart == false, rd.canStart)
+        check("bench 4 tiles off, Required 1/4: Craft off", canCraftOf(rd, 1) == false)
+        press(win, frame)
+        check("bench 4 tiles off, Required 1/4: no walk, nothing queued or counted",
+            #walks == 0 and queued == 0 and counted == 0)
+        W.px = 9
+        rd, win = craftState(frame)
+        check("bench 1 tile off, Required 1/4: Craft off", rd.canStart == false and canCraftOf(rd, 1) == false)
+
+        -- at the bench with the materials: on, as before
+        W.have = 4
+        rd = craftState(frame)
+        check("bench 1 tile off, materials there: Craft on", rd.canStart == true)
+
+        -- Hand mode, an any-surface recipe: a table 1 tile off makes it; none in reach refuses
+        bound = nil
+        W.px, W.py, W.have = 0, 0, 1
+        surfaceAt = { x = 1, y = 0 }
+        rd, win = craftState(onTable)
+        check("Hand, a table in reach: Craft on", rd.canStart == true and canCraftOf(rd, 1) == true, rd.canStart)
+        press(win, onTable)
+        check("Hand, a table in reach: walks to it and the action carries it",
+            walks[1] == surfaceAt and lastAction and lastAction.isoObject == surfaceAt and lastAction.craftBench == nil)
+        surfaceAt = nil
+        rd = craftState(onTable)
+        check("Hand, no table in reach: Craft off", rd.canStart == false, rd.canStart)
+        bound = bench
+    end
 end
 
 -- ---------------------------------------------------------------------------
