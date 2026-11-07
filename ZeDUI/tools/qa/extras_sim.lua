@@ -1413,7 +1413,8 @@ do
 end
 
 -- ZeD's own dash (ZeD_Dashboard:_odoSend, punch list 94): the driver's client sends a command with the car's figures, never
--- the car's mod data, and the server writes the three keys into its own copy and sends it out from there
+-- the car's mod data, and the server writes the three keys into its own copy, sends the three figures to the other seats
+-- and sends the car out only at the coarse moments
 local function odoSend(c, args)
     c.env.ZeD.ServerPart.send(c.env.ZeD.DashProto.MOD, c.env.ZeD.DashProto.ODO, args)
     advance(600)                                       -- (under the general limit: ten commands in 5 s)
@@ -1513,6 +1514,40 @@ do
     -- the engine off seen by the server, the flag lost
     odoSend(co, { veh = 7, odo = 41000.75, trip = 0.1, show = true })
     check("the engine off, no flag: the server sees it, sent out", v.transmits == n + 4, v.transmits - n)
+    -- a passenger's ask as they sit down (DP.ASK, ZeD_Dashboard:_odoAsk): a car stopped with its engine on sends no
+    -- figures, so the server answers with its own, to the asker alone
+    local function ask(c, args)
+        c.env.ZeD.ServerPart.send(c.env.ZeD.DashProto.MOD, c.env.ZeD.DashProto.ASK, args)
+        advance(600)
+    end
+    advance(1000)
+    local k0, tx0 = figsTo("Kade"), v.transmits
+    ask(cb, { veh = 7 })
+    nb, fb = figsTo("Kade")
+    check("a passenger's ask: the server's figures, to them", nb == k0 + 1 and fb.veh == 7 and fb.odo == v.md.ZeD_odo
+        and fb.trip == v.md.ZeD_trip and fb.show == v.md.ZeD_odoTrip, nb - k0)
+    check("an ask: the three figures and the car only", fb and fb.Roadworthy == nil and fb.ZeDClaim == nil and fb.save == nil)
+    check("an ask sends the car out to nobody", v.transmits == tx0 and figsTo("Aretha") == 0 and figsTo("Hermit") == 0,
+        v.transmits - tx0)
+    ask(cb, { veh = 7 })
+    check("a second ask inside a second: no answer", figsTo("Kade") == k0 + 1, figsTo("Kade") - k0)
+    advance(1000)
+    ask(co, { veh = 7 })
+    ask(ca, { veh = 7 })
+    check("the driver's ask, a bystander's: no answer", figsTo("Aretha") == 0 and figsTo("Hermit") == 0)
+    advance(1000)
+    ask(cb, { veh = 9 })
+    check("an ask for a car that isn't there: no answer", figsTo("Kade") == k0 + 1, figsTo("Kade") - k0)
+    local bare = newVehicle(8, 4022, 104, 100)
+    b.vehicle, bare.seats[1] = bare, b
+    advance(1000)
+    ask(cb, { veh = 8 })
+    check("an ask in a car with no figures yet: no answer", figsTo("Kade") == k0 + 1 and bare.md.ZeD_odo == nil,
+        figsTo("Kade") - k0)
+    b.vehicle, bare.seats[1] = v, nil
+    advance(1000)
+    ask(cb, { veh = 7 })
+    check("back in the car, asked again: answered", figsTo("Kade") == k0 + 2, figsTo("Kade") - k0)
     v.running = true
     b.vehicle, v.seats[1] = nil, nil
     nb = figsTo("Kade")
@@ -1521,6 +1556,11 @@ do
     check("no bad-arguments line for any of it", not logHas("bad arguments"))
     odoSend(co, { veh = 7, odo = 41000.8, trip = 0.15, show = true, save = "yes" })
     check("junk: the save flag not a boolean", v.md.ZeD_odo == 41000.76 and logHas("bad arguments"))
+    W.logs = {}
+    nb = figsTo("Hermit")
+    advance(1000)
+    ask(ca, { veh = "seven" })
+    check("junk: an ask without a car's number", logHas("bad arguments") and figsTo("Hermit") == nb)
     W.logs = {}
 
     -- refused: the odometer going back, a trip going further than the odometer, or down further than a reset allows

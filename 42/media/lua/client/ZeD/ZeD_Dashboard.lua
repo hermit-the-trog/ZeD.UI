@@ -470,8 +470,9 @@ ACT.lights = function(chr, v) ISVehicleMenu.onToggleHeadlights(chr) end
 -- the ash tray: open or shut (a car the dash has not touched shows its own default). Single player keeps it on the car's
 -- modData, so it stays with the save. On a server it stays in this game's memory, per car (D._ash, by the car's
 -- number): a key only the client writes into the car's modData goes each time the server sends the car out (the
--- odometer does, every tenth of a mile; the client's copy is wiped and replaced), and the client never sends the whole
--- table back (punch list 94). The other seats see their own tray: it is only a look.
+-- odometer's coarse moments: a first mileage, a press, the engine off, the driver leaving; the client's copy is wiped
+-- and replaced), and the client never sends the whole table back (punch list 94). The other seats see their own tray:
+-- it is only a look.
 D._ash = D._ash or {}
 ACT.ash    = function(chr, v, st)
     if isClient and isClient() then D._ash[_get(v, "getId", 0)] = not st.ashIsOpen; return end
@@ -829,8 +830,10 @@ end
 -- so a car ZeD has not seen before gets one, once, from its id and its engine's condition (a wreck has gone further):
 -- the same figure for a given car on every machine. Only the driver counts, only while the engine runs; on a server
 -- the driver's client asks the server to write the three keys (ZeD_DashProto.lua, ZeD_ServerDash.lua) at most every
--- tenth of a mile, at once after a press, and as a drive stops or ends; the server writes only those and sends the car
--- out from there. Never the client's transmitModData: it replaces the server's whole copy of the car's modData, and a
+-- tenth of a mile, at once after a press, and as a drive stops or ends; the server writes only those, sends the three
+-- figures to the other seats (a passenger's dash also asks for them as it sits down: ZeD_Dashboard:_odoAsk), and sends
+-- the car's whole modData out only at the coarse moments (a first mileage, a press, the engine off, the driver
+-- leaving). Never the client's transmitModData: it replaces the server's whole copy of the car's modData, and a
 -- key another mod keeps only there (Roadworthy's) would be lost (punch list 94). The taxi's fare keeps its own counter
 -- (_trips[id].fareMiles).
 -- ROADWORTHY HOOK: a mod that keeps its own odometer and trip (on Vehicle Kit Library: VSKDash's pub.odoMiles and
@@ -843,6 +846,7 @@ local ODO_SEND_MILES = 0.1                                   -- the driver's cli
 -- a last send later than this after the driver's dash last saw the car is dropped, not sent: the server takes a send
 -- from the car's last driver for a moment once they are out of the seat (DashProto GRACE_MS), and no longer
 local ODO_LATE_MS = 3000
+local ODO_ASK_MS, ODO_ASK_TRIES = 2000, 3                    -- a passenger's dash asks again this often, this many times
 local ODO_STOP_KMH = 0.8                                     -- stopped, as the game's BaseVehicle.isStopped (and no
                                                              -- one gets out of a car that isn't): the miles go then
 local ODO_STOP_MILES = 0.01                                  -- but only this many or more: stop-and-go traffic that
@@ -964,7 +968,28 @@ function ZeD_Dashboard:_odometer(vehicle, st, miles, id)
         if not st.running then flush = 0 elseif stopNow then flush = ODO_STOP_MILES end
         self:_odoSend(vehicle, id, odo, first, flush)
     end
+    self:_odoAsk(vehicle, id)
     D.odoShow(st)
+end
+
+-- a passenger's dash asks the server for the car's figures as it sits down (ZeD_ServerDash.lua answers with DP.FIG, to
+-- this player alone): a car stopped with its engine on sends none, so until it moves a tenth or stops its engine this
+-- dash would read the car as the server's last coarse send left it, maybe a whole drive behind. Again every ODO_ASK_MS
+-- until figures come (D.odoFig marks them), at most ODO_ASK_TRIES times: the server may not have this player in the
+-- seat yet, or holds no figures for the car. At the wheel it forgets, so the next passenger seat asks again.
+-- (The answer comes to the first local player, as every ZeD command does: split-screen's second player doesn't ask)
+function ZeD_Dashboard:_odoAsk(vehicle, id)
+    if self._driver then self._odoAsking = nil; return end
+    if not (isClient and isClient()) or self.playerNum ~= 0 then return end
+    local a = self._odoAsking
+    if not a or a.car ~= vehicle then a = { car = vehicle, n = 0, at = 0 }; self._odoAsking = a end
+    if a.got or a.n >= ODO_ASK_TRIES then return end
+    local now = getTimestampMs()
+    if a.n > 0 and now - a.at < ODO_ASK_MS then return end
+    local S, Pr = ZeD.ServerPart, ZeD.DashProto
+    if not (S and S.send and Pr and Pr.ASK) then return end
+    a.n, a.at = a.n + 1, now
+    S.send(Pr.MOD, Pr.ASK, { veh = id })
 end
 
 -- the driver left the seat or the car (or the car is another): the miles it hasn't sent go now. D.hide calls it as
@@ -1027,7 +1052,8 @@ function ZeD_Dashboard:_odoSync(a)
 end
 
 -- the figures the server took from the driver of the car this player rides in (ZeD_ServerDash.lua sends them to the
--- other seats at each send it takes, and sends the car's whole modData out only at the coarse moments). Checked as the
+-- other seats at each send it takes and to a passenger who asks, ZeD_Dashboard:_odoAsk, and sends the car's whole
+-- modData out only at the coarse moments). Checked as the
 -- server checks a send, then written to this client's copy of the car only, never sent on: the dash reads them there
 -- next frame. A driver's dash keeps its own (the server sends these to the other seats; a late one is dropped here).
 -- a: { veh, odo, trip, show }
@@ -1041,6 +1067,9 @@ function D.odoFig(a)
     local md = _get(car, "getModData", nil)
     if not md then return end
     md.ZeD_odo, md.ZeD_trip, md.ZeD_odoTrip = a.odo, a.trip, a.show
+    local inst = D._instance
+    local asking = inst and inst._odoAsking
+    if asking and asking.car == car then asking.got = true end    -- (the passenger's ask is answered: no more)
 end
 
 -- the server part's answers on the dash's module (ZeD_ServerLink.lua routes them here)
@@ -1935,7 +1964,7 @@ function ZeD_Dashboard:prerender()
     -- (the car lost some way other than getting out: let go of the controller and the focus
     -- ring too, so an unseen dash keeps neither; code audit Oct 17 2026)
     if not chr or not vehicle then
-        self:setVisible(false); self.vehicle = nil; self:_release(); self:_unregister()
+        self:setVisible(false); self.vehicle = nil; self._odoAsking = nil; self:_release(); self:_unregister()
         return
     end
     if ISUIHandler and ISUIHandler.allUIVisible == false then
@@ -2217,7 +2246,7 @@ function D.hide(character)
     if not (character and instanceof(character, "IsoPlayer") and character:isLocalPlayer()) then return end
     local pn = character.getPlayerNum and character:getPlayerNum() or 0
     if pn ~= inst.playerNum then return end
-    inst.vehicle = nil
+    inst.vehicle, inst._odoAsking = nil, nil          -- (back in the same car later: a passenger asks again)
     -- (the driver got out: the miles not sent yet go now, while the car is still beside them and the server still
     -- looks after it; once hidden, this dash gets no prerender to send them from. ZeD_Dashboard:_odoLeave)
     if inst._odoCar then pcall(inst._odoLeave, inst) end

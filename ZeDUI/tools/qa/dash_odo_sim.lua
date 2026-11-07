@@ -21,7 +21,8 @@
 --           ask the server to save (send the car out), the tenths and a stop don't, and the engine off with nothing new
 --           since a tenth asks once; stopped, an older copy at the same odometer never undoes a press; the driver's
 --           figures the server sends the other seats go on their copy only, junk and another car's dropped, and a
---           driver keeps their own; the ash tray on a server stays in the game's memory, never on
+--           driver keeps their own; a passenger asks for them as it sits down, again every 2 s until they come,
+--           three times at most, and the driver never asks; the ash tray on a server stays in the game's memory, never on
 --           the car's modData (the server's sends wipe what only the client wrote), and single player keeps it there
 --   HOT     the hot lamp lights in the key-on bulb check; the Simple dash's Temperature bar goes red only when hot
 --   SIMPLE  the Trip cell beside Odometer, in the player's units, one decimal; A on it zeroes the trip; the units
@@ -167,13 +168,13 @@ require = function(name)
         dofile(SHARED .. name .. ".lua")
     end
 end
--- the link to the server part (ZeD_ServerLink.lua's S.send): each command is written down, and counted on its car
--- and the routes the dash hands the server's answers to (S.on)
+-- the link to the server part (ZeD_ServerLink.lua's S.send): each command is written down, and a send of the figures
+-- (DP.ODO, not a passenger's ask) counted on its car; and the routes the dash hands the server's answers to (S.on)
 local CARS, SENT, ROUTES = {}, {}, {}
 ZeD.ServerPart = { send = function(module, command, args)
     SENT[#SENT + 1] = { module = module, command = command, args = args }
     local car = CARS[args and args.veh]
-    if car then car.sent = car.sent + 1 end
+    if car and command == ZeD.DashProto.ODO then car.sent = car.sent + 1 end
     return true
 end, on = function(module, fn) ROUTES[module] = fn end }
 dofile(CLIENT .. "ZeD/ZeD_Dashboard.lua")
@@ -595,7 +596,10 @@ do
     env.client = true
     -- the save flag on the last command sent: true at a coarse moment (a press, a first mileage, the engine off, the
     -- driver leaving), when the server sends the car's whole modData out; false for the tenths and a stop
-    local function lastSave() return SENT[#SENT] and SENT[#SENT].args.save end
+    local function lastSave()
+        for i = #SENT, 1, -1 do if SENT[i].command == ZeD.DashProto.ODO then return SENT[i].args.save end end
+        return nil
+    end
     local s0 = #SENT
     local car = drive("d6", { keysIn = true, running = true, kmh = 0, md = { ZeD_odo = 1000, ZeD_trip = 0 } })
     frames(4, 250)
@@ -705,7 +709,7 @@ do
     -- a passenger sends nothing
     local pc = drive("d6", { keysIn = true, running = true, kmh = 100, passenger = true, md = { ZeD_odo = 1, ZeD_trip = 0 } })
     frames(200, 250)
-    check("a passenger sends nothing", pc.sent == 0, pc.sent)
+    check("a passenger sends no figures (its asks aside)", pc.sent == 0, pc.sent)
     -- no link to the server part (it failed to load): no error, still counting
     local link = ZeD.ServerPart
     ZeD.ServerPart = nil
@@ -859,8 +863,21 @@ do
     frame(250)
     check("another car's answer, junk or another command: nothing", near(st().odo, O, 1e-9) and #env.errors == 0, st().odo - O)
     -- another seat: the dash reads the car as it comes (a passenger's figures are the server's)
+    local function asks()
+        local n, last = 0, nil
+        for _, c in ipairs(SENT) do if c.command == ZeD.DashProto.ASK then n, last = n + 1, c.args end end
+        return n, last
+    end
+    check("the driver's dash never asks for the figures", asks() == 0, asks())
     cc.passenger = true
     frame(250)
+    local nA, lastA = asks()
+    local keysA = 0
+    for _ in pairs(lastA or {}) do keysA = keysA + 1 end
+    check("a passenger's dash asks the server for the car's figures as it sits down", nA == 1 and lastA.veh == 21
+        and keysA == 1, nA)
+    frame(250)
+    check("and not again a moment later", asks() == 1, asks())
     cc.md = { ZeD_odo = 600, ZeD_trip = 1, ZeD_odoTrip = false }
     frame(250)
     check("a passenger takes the server's figures as they come", st().odo == 600 and st().trip == 1, st().odo)
@@ -880,12 +897,43 @@ do
     check("another car's figures, a trip past the odometer, junk: nothing", cc.md.ZeD_odo == 610 and cc.md.ZeD_trip == 2
         and #env.errors == 0, cc.md.ZeD_odo)
     check("a passenger sends nothing for them", #SENT == nSent, #SENT - nSent)
+    frames(12, 250)
+    check("the figures came: the passenger asks no more", asks() == 1, asks())
     cc.passenger = nil
     frame(250)
     local O2 = st().odo
     route(ZeD.DashProto.FIG, { veh = 21, odo = O2 + 100, trip = 0, show = false })
     frame(250)
     check("at the wheel: the dash keeps its own figures", st().odo == O2 and cc.md.ZeD_odo == O2, st().odo - O2)
+    -- a passenger whose ask goes unanswered (the server doesn't see them seated yet, or holds no figures): again every
+    -- 2 s, three times at most; out and back in, it asks again
+    local a0 = asks()
+    local pq = drive("nyala", { keysIn = true, running = true, kmh = 0, id = 41, passenger = true,
+        md = { ZeD_odo = 900, ZeD_trip = 3 } })
+    check("a new passenger asks at once", asks() == a0 + 1, asks() - a0)
+    frames(7, 250)
+    check("no answer: not again inside 2 s", asks() == a0 + 1, asks() - a0)
+    frames(2, 250)
+    check("no answer after 2 s: asked again", asks() == a0 + 2, asks() - a0)
+    frames(40, 250)
+    check("three asks at most", asks() == a0 + 3, asks() - a0)
+    local _, la = asks()
+    check("each ask names the car", la.veh == 41, la.veh)
+    out()
+    seat(pq)
+    frame(250)
+    check("out and back in: asks again", asks() == a0 + 4, asks() - a0)
+    pq.passenger = nil
+    frames(12, 250)
+    check("at the wheel: no ask", asks() == a0 + 4, asks() - a0)
+    pq.passenger = true
+    frame(250)
+    check("back to a passenger seat: asks again", asks() == a0 + 5, asks() - a0)
+    env.client = false
+    drive("nyala", { keysIn = true, running = true, kmh = 0, id = 42, passenger = true, md = { ZeD_odo = 900, ZeD_trip = 3 } })
+    frames(12, 250)
+    check("single player: a passenger never asks", asks() == a0 + 5, asks() - a0)
+    env.client = true
 
     -- the ash tray on a server: in this game's memory, never the car's modData, so the server's sends can't undo it
     local ac = drive("luxury", { keysIn = true, running = true, kmh = 0, id = 31, md = { ZeD_odo = 10, ZeD_trip = 0 } })
@@ -914,8 +962,10 @@ do
     local junk = 0
     for _, c in ipairs(SENT) do
         local a = c.args
-        if not (ZeD.DashProto.okVeh(a.veh) and ZeD.DashProto.okMiles(a.odo) and ZeD.DashProto.okMiles(a.trip)
-            and type(a.show) == "boolean" and a.trip <= a.odo) then junk = junk + 1 end
+        if c.command == ZeD.DashProto.ASK then
+            if not ZeD.DashProto.okVeh(a.veh) then junk = junk + 1 end
+        elseif not (c.command == ZeD.DashProto.ODO and ZeD.DashProto.okVeh(a.veh) and ZeD.DashProto.okMiles(a.odo)
+            and ZeD.DashProto.okMiles(a.trip) and type(a.show) == "boolean" and a.trip <= a.odo) then junk = junk + 1 end
     end
     check("every command sent is one the server takes the shape of", #SENT > 0 and junk == 0, junk)
     env.client = false
