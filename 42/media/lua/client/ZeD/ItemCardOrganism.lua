@@ -600,7 +600,14 @@ local function topStatsForItem(item)
         end
     elseif cat == "Literature" then
         local pages   = safeGet(item, "getNumberOfPages") or 0
-        local already = safeGet(item, "getAlreadyReadPages") or 0
+        -- Pages read live on the character, per book type (the game's tooltip and
+        -- Reading Facts read them there). The copy's own count is only that copy's,
+        -- so another copy of a half-read book would show 0. Fall back to it when the
+        -- character has no count to give.
+        local player   = getPlayer and getPlayer()
+        local fullType = safeGet(item, "getFullType")
+        local already  = player and fullType and safeGet(player, "getAlreadyReadPages", fullType)
+            or safeGet(item, "getAlreadyReadPages") or 0
         if pages > 0 then
             local r = math.max(0, math.min(1, already / pages))
             rows[#rows + 1] = {label = ZeD.tr("UI_ZeD_Card_Progress"),
