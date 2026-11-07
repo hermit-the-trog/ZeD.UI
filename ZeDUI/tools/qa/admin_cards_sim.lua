@@ -1178,18 +1178,19 @@ M.bump()
 press("adm:tk:p:Away")
 draw()
 local netWhy, sawProf, sawStatus, sawLoading = M.why("SeeNetworkUsers"), false, false, false
-local roleBox = nil
+local roleBox, roleText = nil, nil
 local netWhyN, sawNoSkills = 0, false
 for _, it in ipairs(st.tk.items or {}) do
     if it.text == netWhy then sawProf = true; netWhyN = netWhyN + 1 end
     if it.text == ZeD.tr("UI_ZeD_Adm_NoSkills") then sawNoSkills = true end
-    if it.k == "fact" and it.label == ZeD.tr("UI_ZeD_Adm_Role") then roleBox = it.c end
+    if it.k == "fact" and it.label == ZeD.tr("UI_ZeD_Adm_Role") then roleBox, roleText = it.c, it.value end
     if it.text == ZeD.tr("UI_ZeD_Tk_Loading") then sawLoading = true end
     if it.k == "fact" and it.label == ZeD.tr("UI_ZeD_Adm_Status") and it.value == netWhy then sawStatus = true end
 end
 check("a closed card says which power its record takes", sawProf and not sawLoading)
 check("a closed card's status says it too", sawStatus)
-check("a closed card's role says it too, never \"user\"", roleBox ~= nil and roleBox.text == netWhy)
+-- (as wrapped text like Status, no box: a one-line box ran past the card's edge at 1280x800, QA Nov 7 2026)
+check("a closed card's role says it too, never \"user\"", roleBox == nil and roleText == netWhy)
 -- (the skills were kept back too: the card names the power, never "no skill above 0" for an account it cannot see)
 check("a closed card's skills say it too, never \"no skill above 0\"", (not sawNoSkills) and netWhyN >= 2)
 TC.back(win, st)
@@ -1198,15 +1199,14 @@ M.qaCaps = { CanSeePlayersStats = true, RolesRead = true, ChangeAccessLevel = tr
 M.bump()
 press("adm:tk:p:Away")
 draw()
-check("a closed card offers no role change", grayWhy("tk:role") == netWhy, tostring(grayWhy("tk:role")))
+check("a closed card offers no role change", stopOf("tk:role") == nil)
 -- (the card closed while an ask was open: no ask, so no confirm that says they lose nothing)
 st.card.newRole, st.card.open, st.card.keep = "user", "role", {}
 M.bump()
 draw()
 check("a closed card shows no role ask", stopOf("tk:rno") == nil and stopOf("tk:ryes") == nil)
 st.card.newRole, st.card.open = nil, nil
-press("tk:role")
-check("pressing it opens no pick", st.tk.popup == nil)
+check("nothing to press, no pick", stopOf("tk:role") == nil and st.tk.popup == nil)
 TC.back(win, st)
 M.cards.Away = nil
 M.qaCaps = {}
