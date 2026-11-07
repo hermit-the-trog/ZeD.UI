@@ -56,7 +56,8 @@ Inner wheels can have up to 12 slices: sector width is 360 / slice count, and th
 | Wheel stick dead zone | 0.20 to 0.60 | 0.35 (sets engage; release is 60% of it) |
 
 - **Hold** is today's behavior: up while the direction is held, letting go takes. With Flick-release, releasing either the
-  D-pad or the stick commits, whichever comes first.
+  D-pad or the stick commits, whichever comes first. The stick has to start centered: a stick already pushed when the
+  wheel opens chooses nothing until it has come back to center (since beta 6a, so a flick can't fire an unchosen slice).
 - **Stick click:** flick-release no longer commits, R3 does, and the click doesn't move the highlight. An exception to
   the rule that nothing in the world binds to a stick click: it counts only with a wheel open and this setting chosen
   (the director).
