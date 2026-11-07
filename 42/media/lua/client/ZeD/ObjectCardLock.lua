@@ -48,7 +48,11 @@ local CHEV_H = 15
 local LOCK_W, LOCK_H = 236, 214
 local FLASH_MS = 6000
 
-local def = { id = "lock", leash = 4 }
+-- half = true: the half card (220), like the recipe preview, not the full object card (480) every
+-- kind gets by default (ZeD_WorldWindow reads def.half; punch list 99). The padlock's own shape spans
+-- 186 of LOCK_W's 236 units (the rest is margin), so it fits the half card's body (200, or 186 beside
+-- a scrollbar); the facts truncate and the verbs wrap to a second row as on any card.
+local def = { id = "lock", leash = 4, half = true }
 
 -- ----------------------------------------------------------------------------
 -- The object and its locks

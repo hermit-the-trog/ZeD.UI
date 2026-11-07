@@ -20,6 +20,34 @@ function ZeD.Atoms.safeGet(item, m, ...)
     local ok, r = pcall(fn, item, ...); if ok then return r end; return nil
 end
 
+--- The ammo a gun (or magazine) takes: its full type ("Base.Bullets9mm") and the
+--- name a player reads ("9mm Rounds"), or nil when it takes none. getAmmoType()
+--- returns an AmmoType object on 42.22.2 (javap; the outside review saw the same on
+--- 42.21), whose getItemKey() is the full type; should a build hand back the full
+--- type as a plain string, that is read too.
+--- The name is the ammo item's own display name, as the belt's ammo pouch shows it.
+function ZeD.Atoms.ammoOf(item)
+    if not item then return nil end
+    local at = ZeD.Atoms.safeGet(item, "getAmmoType")
+    if at == nil then return nil end
+    local key
+    if type(at) == "string" then
+        key = at
+    else
+        -- (safeGet returns nil where the object has no getItemKey; tostring is the last resort)
+        key = ZeD.Atoms.safeGet(at, "getItemKey") or tostring(at)
+    end
+    if type(key) ~= "string" or key == "" then return nil end
+    local si = getScriptManager and getScriptManager():FindItem(key)
+    local name = si and ZeD.Atoms.safeGet(si, "getDisplayName")
+    if type(name) ~= "string" or name == "" then
+        -- no script item: the part after the module's dot ("Base.Bullets9mm" -> "Bullets9mm"),
+        -- or after a registry id's colon ("base:bullets_9mm" -> "bullets_9mm")
+        name = key:match("[%.:]([^%.:]+)$") or key
+    end
+    return key, name
+end
+
 -- ============================================================================
 -- 00. SHARED PIECES (cohesion pass)
 -- Small helpers every look below leans on: the one hover delay, a window surface

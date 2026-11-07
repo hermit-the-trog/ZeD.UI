@@ -476,7 +476,8 @@ function B.ammo(playerObj)
     local gun = playerObj and playerObj:getPrimaryHandItem()
     if not (gun and instanceof(gun, "HandWeapon") and call(gun, "isRanged")) then return nil end
     local at = call(gun, "getAmmoType")
-    local key = at and call(at, "getItemKey")
+    -- an AmmoType object (its getItemKey is the round's full type); an older build's plain string is the full type
+    local key = (type(at) == "string" and at ~= "") and at or (at and call(at, "getItemKey"))
     if not key then return nil end
     local inv = playerObj:getInventory()
     local a = { gun = gun, name = gun:getDisplayName(), key = key }

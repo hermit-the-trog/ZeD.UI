@@ -83,7 +83,8 @@ local function formatFirearm(item)
     local c = safeGet(item,"getCriticalChance"); if c and c>0 then table.insert(s,{label="Crit",value=math.floor(c).."%"}) end
     local cur,mx2 = safeGet(item,"getCurrentAmmoCount"),safeGet(item,"getMaxAmmo")
     if mx2 and mx2>0 then table.insert(s,{label="Ammo",value=(cur or 0).."/"..mx2}) end
-    local at = safeGet(item,"getAmmoType"); if at and at~="" then table.insert(s,{label="Ammo type",value=at:match("%.(.+)") or at}) end
+    -- (getAmmoType is an AmmoType object, not a string: ammoOf reads it and finds the ammo's own name)
+    local _, an = ZeD.Atoms.ammoOf(item); if an then table.insert(s,{label="Ammo type",value=an}) end
     return s
 end
 local function formatFood(item)
