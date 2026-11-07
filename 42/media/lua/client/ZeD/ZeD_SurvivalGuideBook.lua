@@ -273,7 +273,8 @@ end
 -- ---------------------------------------------------------------------------
 -- THE ADS (design, Nov 6 2026, punch list 98; ZeDUI/HANDOFF_design_guide_ads_20261106.md): the back pages of a 1987
 -- paperback. A whole page the layout leaves over takes a full-page ad (the publisher's house ad, drawn in Lua and
--- translated, is one of them); a flow page a third or more empty takes the largest that fits. Each ad at most once
+-- translated, is one of them), and when they have run out the smaller ads as a filler over its text block; a flow
+-- page a third or more empty takes the largest that fits. Each ad at most once
 -- a book: a slot with no ad left falls through to the next step, and at the end comes the ruled NOTES block.
 -- The deal is made once each time the pages are laid out (B.paginate), never while drawing, so turning the pages
 -- never reshuffles; a new layout (text size, pad or keyboard wording, language) deals again from the same seed, so
@@ -414,8 +415,11 @@ local function planFiller(d, y0, y1, u, checkH, st)
     return plan
 end
 
--- The deal, in page order: a whole page its full ad (p.ad: a name, "house", or false for NOTES), each filler its
--- plan (it.ads on a flow page's filler item, p.filler.ads at a rules page's foot). textW_ the text block's width.
+-- The deal, in page order: a whole page its full ad (p.ad: a name or "house"; false when they have run out, and the
+-- page is then a filler over its whole text block, p.filler), each filler its plan (it.ads on a flow page's filler
+-- item, p.filler.ads at a rules page's foot or on a whole page). textW_ the text block's width.
+-- (a whole page's text block runs from the top margin to where a full ad ends, 6 over the foot)
+local WHOLE_FOOT = U.PH - U.FOOT - 6
 -- The feet of rules pages behind a spoiler bar are dealt last, from what is left: their ads stay hidden until the
 -- reader shows the numbers, so they never take an ad a page in plain sight would then go without. (Whether a table
 -- is a spoiler is fixed by the layout, not by whether its numbers are shown now, so showing them never deals again.)
@@ -427,8 +431,16 @@ function B.dealAds(bk, pages, u, textW_)
         if p.kind == "ad" then
             local a = deal(d, "full")
             p.ad = a and a[1] or false
+            p.filler = nil
             st.full = st.full + 1
-            if not a then st.fullMiss = st.fullMiss + 1 end
+            if not a then
+                st.fullMiss = st.fullMiss + 1
+                -- (no full ad left: the whole text block as a filler, the smaller ads before NOTES. QA, Nov 7 2026:
+                -- at Large text with pad wording 6 whole pages had 4 full ads, and 2 printed NOTES while halves and
+                -- quarters went unused)
+                p.filler = { y = U.MT * u, y1 = WHOLE_FOOT * u }
+                p.filler.ads = planFiller(d, p.filler.y, p.filler.y1, u, nil, st)
+            end
         elseif p.kind == "flow" then
             for _, it in ipairs(p.items) do
                 if it.k == "filler" then
@@ -459,7 +471,7 @@ function B.adReport(bk)
     local st = bk and bk.adStats
     if not st then return "no deal" end
     local A = ZeD.GuideAds
-    return string.format("ZeD guide ads (text x%.2f, %s): full pages %d (%d NOTES); 310 slots %d (%d with no half or pair left);"
+    return string.format("ZeD guide ads (text x%.2f, %s): full pages %d (%d with no full ad left); 310 slots %d (%d with no half or pair left);"
         .. " 205 slots %d (%d with no third left); NOTES blocks %d; dealt full %d/%d, half %d/%d, quarter %d/%d, third %d/%d",
         TM_, bk._joyRead and "pad" or "keyboard", st.full, st.fullMiss, st.ask310, st.miss310, st.ask205, st.miss205, st.notes,
         st.at.full, #A.full + 1, st.at.half, #A.half, st.at.quarter, #A.quarter, st.at.third, #A.third)
@@ -513,6 +525,23 @@ function B.paginate(bk, u)
     local clipH = { [true] = math.floor(textW_ / 2), [false] = math.floor(textW_ / 3) }
     local page, y = nil, 0
     bk.sectionPage, bk.pageOf = {}, {}
+    -- (the publisher fills its pages, the director, Nov 4 2026: "publishers [don't] like printing blank pages. It
+    -- costs more money, so they generally fill the content"): a flow page a third or more empty takes a filler, from
+    -- 16 under where its text ends to the foot. fillerRoom: that filler's height for a page ending at endY, or nil.
+    local room = bottom - px(U.MT)
+    local function fillerRoom(endY)
+        if bottom - endY >= room / 3 then return bottom - (endY + px(16)) end
+        return nil
+    end
+    -- THE FIRST DAYS CHECKLIST prints once, in its chapter (the director, Nov 7 2026: "I want the text to print"):
+    -- at the head of the first of the chapter's fillers with the room for it, as before; when none has the room
+    -- (Small text: QA, Nov 7 2026), as a block of its own at the chapter's end, on a new page if the last has no
+    -- room, so it is never split, never over the text and never twice. Decided when the chapter is done (below).
+    -- (measured in a pcall: if it throws, the book lays out without the checklist block, it never closes)
+    local checkOk, checkH = pcall(bk.drawChecklist, bk, 0, textW_, 0, u, true)
+    if not checkOk then ZeD.logOnce("survival guide checklist", checkH); checkH = nil end
+    if type(checkH) ~= "number" then checkH = nil end
+    local checkPage = nil   -- (the flow page whose filler opens with it)
 
     local function newPage(si, s, opener)
         if page then page.endY = y end
@@ -671,18 +700,26 @@ function B.paginate(bk, u)
                 page = nil
             end
         end
+        if checkH and s.id == "zedch:firstdays" and bk.sectionPage[s.id] then
+            -- (the chapter is done: its last page ends at y, the next chapter opens a page of its own)
+            for i = bk.sectionPage[s.id], #pages do
+                local pg = pages[i]
+                local endY = (pg == page) and y or pg.endY
+                local h = pg.kind == "flow" and pg.section == s and endY and fillerRoom(endY)
+                if h and h >= checkH then checkPage = pg; break end
+            end
+            if not checkPage then
+                if not page or y + px(16) + checkH > bottom then newPage(si, s, false) end
+                add({ k = "check", y = y + px(16) })
+                y = y + px(16) + checkH
+            end
+        end
     end
     if page then page.endY = y end
-    -- (the publisher fills its pages, the director, Nov 4 2026: "publishers [don't] like printing blank pages. It
-    -- costs more money, so they generally fill the content"): a flow page a third or more empty takes a filler
-    local room = bottom - px(U.MT)
-    local checkDone = false
     for _, pg in ipairs(pages) do
-        if pg.kind == "flow" and pg.endY and bottom - pg.endY >= room / 3 then
-            -- (the First Days checklist once, on the first of its pages with the room)
-            local check = (not checkDone) and pg.section and pg.section.id == "zedch:firstdays"
-            if check then checkDone = true end
-            pg.items[#pg.items + 1] = { k = "filler", y = pg.endY + px(16), y1 = bottom, check = check }
+        local fh = pg.kind == "flow" and pg.endY and fillerRoom(pg.endY)
+        if fh then
+            pg.items[#pg.items + 1] = { k = "filler", y = pg.endY + px(16), y1 = bottom, check = (pg == checkPage) }
         elseif pg.kind == "rules" then
             -- (a rules page's foot: the page measured now, drawn dry, so its filler is dealt with the rest; the
             -- numbers counted as shown even behind a spoiler bar, so showing them never deals again)
@@ -874,6 +911,9 @@ function ZeD_GuideBook:drawFlowPage(p, x, y, w, u)
             end
         elseif k == "filler" then
             self:drawFiller(tx, tw_, y, it, u)
+        elseif k == "check" then
+            -- (the First Days checklist in the chapter's flow, where no filler had the room: B.paginate)
+            self:drawChecklist(tx, tw_, y + it.y, u)
         elseif k == "caption" then
             drawCentre(self, F.sansI, it.text, cx, y + it.y, U.CAP * u, INK)
         elseif k == "deck" then
@@ -1122,12 +1162,13 @@ end
 
 -- A WHOLE PAGE the layout leaves over (before a topic that faces its rules, the last page): the full-page ad dealt
 -- for it (p.ad), at the text block; the publisher's house ad (below) is one of them; when they have run out, the
--- ruled NOTES block over the whole text block
+-- filler dealt over the whole text block (a half or a pair, a third, then NOTES: B.dealAds), drawn as every filler
 function ZeD_GuideBook:drawFullAd(p, x, y, w, u)
     if p.ad == nil or p.ad == HOUSE then self:drawAdPage(x, y, w, u); return end
     local tx, top = x + U.M * u, y + U.MT * u
     if p.ad then drawAd(self, p.ad, "full", tx, top, u); return end
-    drawNotes(self, tx, w - U.M * u * 2, top, y + (U.PH - U.FOOT - 6) * u, u)
+    if p.filler then self:drawFiller(tx, w - U.M * u * 2, y, p.filler, u); return end
+    drawNotes(self, tx, w - U.M * u * 2, top, y + WHOLE_FOOT * u, u)
 end
 
 -- THE PUBLISHER'S HOUSE AD: a full-page mail-order ad in the 1980s survival magazines' manner, for the publisher's

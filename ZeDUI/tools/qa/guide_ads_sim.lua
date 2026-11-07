@@ -1,9 +1,11 @@
 -- ZeDUI/tools/qa/guide_ads_sim.lua  (Nov 7 2026, Build): the survival guide's ads (punch list 98) with no game running.
 -- The real ZeD_SurvivalGuideBook.lua runs on Lua 5.1 stubs of the game. A made-up book is laid out and dealt: no ad
--- twice, half and pair alternate, a slot with no ad left falls through (third, then NOTES; a whole page to NOTES),
--- the same seed deals the same book, another seed another order, and a new layout (text size, pad wording) keeps
--- the order. Then every page is drawn on a recording panel: the textures load only when their page draws, at their
--- design size times u, in the text block, inside the page.
+-- twice, half and pair alternate, a slot with no ad left falls through (third, then NOTES; a whole page past the
+-- full ads to the smaller ads, then NOTES), the same seed deals the same book, another seed another order, and a new
+-- layout (text size, pad wording) keeps the order. The First Days checklist prints exactly once, in its chapter, at
+-- Small and Large, keyboard and pad (in a filler with the room, else a block of its own at the chapter's end). Then
+-- every page is drawn on a recording panel: the textures load only when their page draws, at their design size times
+-- u, in the text block, inside the page. Last of all, the checklist once in the real book in every language.
 -- Last, THE COUNT: an estimate of how many slots the real book asks for at Small and Large text, keyboard and pad,
 -- from the game's English text (SurvivalGuide.json, ZeD's UI.json), the faces' own widths (the game's .fnt files)
 -- and modeled rules tables (their rows come from the game's data at run time: rows guessed, see ROWS below). It is an
@@ -210,7 +212,7 @@ local function dealt(bk)
         end
         local fills = {}
         if p.kind == "flow" then for _, it in ipairs(p.items) do if it.k == "filler" then fills[#fills + 1] = it end end end
-        if p.kind == "rules" and p.filler then fills[#fills + 1] = p.filler end
+        if (p.kind == "rules" or p.kind == "ad") and p.filler then fills[#fills + 1] = p.filler end
         for _, f in ipairs(fills) do
             for _, b in ipairs(f.ads or {}) do sig[#sig + 1] = i .. ":" .. b.k .. "=" .. table.concat(b.names or {}, "+") end
             if p.kind == "rules" and p.rules and p.rules.spoiler then later[#later + 1] = { i, f } else take(i, f, false) end
@@ -218,6 +220,57 @@ local function dealt(bk)
     end
     for _, l in ipairs(later) do take(l[1], l[2], true) end
     return names, table.concat(sig, " "), blocks
+end
+-- THE FIRST DAYS CHECKLIST in a laid-out book: every place it prints (a filler's "check" block or a flow page's
+-- "check" item), and what is wrong with each: off its chapter, past the text's foot, over the text above it, under
+-- a filler that starts inside it, or taller than its filler
+local function checklists(bk, u)
+    u = u or 1
+    local out, bad = {}, {}
+    local bottom = (U_.PH - U_.FOOT - U_.MT) * u
+    local h = bk:drawChecklist(0, (U_.PW - U_.M * 2) * u, 0, u, true)
+    for i, p in ipairs(bk.pages) do
+        local fills = {}
+        if p.kind == "flow" then for _, it in ipairs(p.items) do if it.k == "filler" then fills[#fills + 1] = it end end end
+        if (p.kind == "rules" or p.kind == "ad") and p.filler then fills[#fills + 1] = p.filler end
+        for _, f in ipairs(fills) do
+            for _, b in ipairs(f.ads or {}) do
+                if b.k == "check" then
+                    out[#out + 1] = { page = i, how = "filler", y = b.y, h = h }
+                    if b.y + h > f.y1 + 0.001 then bad[#bad + 1] = "page " .. i .. ": taller than its filler" end
+                end
+            end
+        end
+        if p.kind == "flow" then
+            local above = nil
+            for j, it in ipairs(p.items) do
+                if it.k == "check" then
+                    out[#out + 1] = { page = i, how = "flow", y = it.y, h = h }
+                    -- (the text above it ends at a baseline: its descenders reach 0.3 of the text size under it)
+                    if above and it.y < above + 12.5 * 0.3 * u * 1.15 then bad[#bad + 1] = "page " .. i .. ": over the text above it" end
+                    if it.y + h > bottom + 0.001 then bad[#bad + 1] = "page " .. i .. ": past the foot" end
+                    if (p.endY or 0) < it.y + h - 0.001 then bad[#bad + 1] = "page " .. i .. ": the page ends inside it" end
+                    for k = j + 1, #p.items do
+                        local nx = p.items[k]
+                        if nx.k ~= "filler" then bad[#bad + 1] = "page " .. i .. ": text after it on its page"
+                        elseif nx.y < it.y + h then bad[#bad + 1] = "page " .. i .. ": its filler starts inside it" end
+                    end
+                elseif it.k ~= "filler" then
+                    above = math.max(above or 0, it.y + (it.h or 0))
+                end
+            end
+        end
+    end
+    for _, c in ipairs(out) do
+        local p = bk.pages[c.page]
+        if not (p.section and p.section.id == "zedch:firstdays") then bad[#bad + 1] = "page " .. c.page .. ": outside First Days" end
+    end
+    return out, bad
+end
+local function where(cs)
+    local o = {}
+    for _, c in ipairs(cs) do o[#o + 1] = c.how .. " p" .. c.page end
+    return #o > 0 and table.concat(o, ", ") or "nowhere"
 end
 -- the names of one size in the order a book dealt them
 local function orderOf(names, prefix)
@@ -323,7 +376,7 @@ do
     for i, v in ipairs(fullSeq) do
         if i <= #d.full then inOrder = inOrder and v == d.full[i] else inOrder = inOrder and v == false end
     end
-    check("whole pages take the full deck in order, then NOTES", inOrder, table.concat((function() local o = {} for i, v in ipairs(fullSeq) do o[i] = tostring(v) end return o end)(), ","))
+    check("whole pages take the full deck in order, then none", inOrder, table.concat((function() local o = {} for i, v in ipairs(fullSeq) do o[i] = tostring(v) end return o end)(), ","))
     -- each size dealt in its deck's order
     check("halves in deck order", isPrefix(orderOf(names, "half_"), d.half))
     check("thirds in deck order", isPrefix(orderOf(names, "third_"), d.third))
@@ -351,7 +404,7 @@ do
     for _, p in ipairs(bk.pages) do
         local fills = {}
         if p.kind == "flow" then for _, it in ipairs(p.items) do if it.k == "filler" then fills[#fills + 1] = it end end end
-        if p.kind == "rules" and p.filler then fills[#fills + 1] = p.filler end
+        if (p.kind == "rules" or p.kind == "ad") and p.filler then fills[#fills + 1] = p.filler end
         for _, f in ipairs(fills) do
             local ads = f.ads or {}
             for i = 2, #ads do
@@ -378,6 +431,9 @@ do
         local wantCheck = firstFD.y1 - firstFD.y >= ch
         check("the checklist first when it fits", (not wantCheck) or (firstFD.ads[1] and firstFD.ads[1].k == "check"))
     end
+    local cs, cbad = checklists(bk)
+    check("the made-up book prints the checklist once", #cs == 1, where(cs))
+    check("the made-up book's checklist in place", #cbad == 0, cbad[1])
     -- a rules page's foot is dealt too
     local rulesFill = 0
     for _, p in ipairs(bk.pages) do if p.kind == "rules" and p.filler and p.filler.ads and #p.filler.ads > 0 then rulesFill = rulesFill + 1 end end
@@ -467,6 +523,223 @@ do
 end
 
 -- ---------------------------------------------------------------------------
+section("the First Days checklist: once, in its chapter, at every size and wording (QA, Nov 7 2026)")
+-- ---------------------------------------------------------------------------
+-- At Small text no First Days page had a filler with the room, so it never printed. Now: the first filler with the
+-- room as before, else a block of its own at the chapter's end (on a new page when the last has no room). The
+-- chapter's last topic is run at 40 lengths and the checklist's lines at 1 to 3 times their length, at Small and
+-- Large, keyboard and pad, so every way it can land is seen: in a filler, at the end of the last page, on a page of
+-- its own.
+do
+    local saved = {}
+    for i = 1, 7 do saved[i] = EN["UI_ZeD_Guide_Check" .. i] end
+    local last = SECTIONS[4].topics[#SECTIONS[4].topics]
+    local savedText = last.text
+    local seen, fails, n = { filler = 0, flow = 0, newPage = 0 }, {}, 0
+    for _, m in ipairs({ 1, 1.15 }) do
+        for _, pd in ipairs({ false, true }) do
+            setText(m)
+            onPad = pd
+            for rep = 1, 3 do
+                for i = 1, 7 do EN["UI_ZeD_Guide_Check" .. i] = string.rep((saved[i] or ("Item " .. i)) .. " ", rep) end
+                for len = 1, 40 do
+                    last.text = text(len * 9, len)
+                    local b = newBook()
+                    b:readTopics(1)
+                    n = n + 1
+                    local cs, cbad = checklists(b)
+                    local tag = string.format("%s %s x%d len %d", m == 1 and "Small" or "Large", pd and "pad" or "keyboard", rep, len)
+                    if #cs ~= 1 then fails[#fails + 1] = tag .. ": " .. where(cs) end
+                    if cbad[1] then fails[#fails + 1] = tag .. ": " .. cbad[1] end
+                    if cs[1] then
+                        seen[cs[1].how] = seen[cs[1].how] + 1
+                        local p = b.pages[cs[1].page]
+                        if cs[1].how == "flow" and p.items[2] and p.items[2].k == "check" then seen.newPage = seen.newPage + 1 end
+                    end
+                end
+            end
+        end
+    end
+    for i = 1, 7 do EN["UI_ZeD_Guide_Check" .. i] = saved[i] end
+    last.text = savedText
+    onPad = false
+    setText(1)
+    check("the checklist prints exactly once, in its chapter, never split or over text (" .. n .. " layouts)", #fails == 0, fails[1])
+    check("some layouts print it in a filler (as before)", seen.filler > 0, seen.filler)
+    check("some layouts print it on a page of its own", seen.newPage > 0, seen.newPage)
+    realPrint(string.format("  %d layouts: in a filler %d, after the chapter's text %d, on a new page %d", n, seen.filler, seen.flow - seen.newPage, seen.newPage))
+    -- (the real checklist is taller than a third of a page, so a last page with room for it always has a filler
+    -- that takes it: under the chapter's text on the same page only happens for a shorter one. Run with a
+    -- checklist measured 60 tall so that way is seen too)
+    local realCheck = ZeD_GuideBook.drawChecklist
+    ZeD_GuideBook.drawChecklist = function(self, tx, tw_, by, u, measureOnly)
+        if measureOnly then return 60 * u end
+        return realCheck(self, tx, tw_, by, u, measureOnly)
+    end
+    local short = { filler = 0, flow = 0, newPage = 0 }
+    local shortFails = {}
+    -- (a small book of three one-topic chapters, First Days the second, its topic at 60 lengths)
+    local savedSecs = SECTIONS
+    local fd = { id = "zedch:firstdays", title = "First Days", titleKey = "T_fd", topics = {} }
+    local one = { id = "zedch:firstdays:1", section = fd, title = "Topic", titleKey = "T_fd_1", text = "" }
+    fd.topics[1] = one
+    local function chap(id, k)
+        local s = { id = id, title = "Chapter " .. id, titleKey = "T_" .. id, topics = {} }
+        s.topics[1] = { id = id .. ":1", section = s, title = "Topic " .. id, titleKey = "T_" .. id .. "_1", text = text(120, k) }
+        return s
+    end
+    SECTIONS = { chap("a", 1), fd, chap("b", 2) }
+    for len = 1, 60 do
+        one.text = text(len * 9, len)
+        local b = newBook()
+        b:readTopics(1)
+        local cs, cbad = checklists(b)
+        if #cs ~= 1 or cbad[1] then shortFails[#shortFails + 1] = "len " .. len .. ": " .. where(cs) .. " " .. tostring(cbad[1]) end
+        if cs[1] then
+            local p = b.pages[cs[1].page]
+            local own = cs[1].how == "flow" and p.items[2] and p.items[2].k == "check"
+            short[own and "newPage" or cs[1].how] = short[own and "newPage" or cs[1].how] + 1
+        end
+    end
+    ZeD_GuideBook.drawChecklist = realCheck
+    SECTIONS = savedSecs
+    check("a short checklist: once, in place (60 layouts)", #shortFails == 0, shortFails[1])
+    check("a short checklist: some layouts print it under the chapter's text", short.flow > 0, short.flow)
+    -- drawn: the book draws it once, wherever it landed
+    for _, rep in ipairs({ 1, 3 }) do
+        for i = 1, 7 do EN["UI_ZeD_Guide_Check" .. i] = string.rep((saved[i] or ("Item " .. i)) .. " ", rep) end
+        local b = newBook()
+        b:readTopics(1)
+        local drawn = 0
+        local P = {}
+        for k, v in pairs(b) do P[k] = v end
+        setmetatable(P, { __index = function(_, k)
+            if k == "drawChecklist" then
+                return function(self, tx, tw_, by, u, measureOnly)
+                    if not measureOnly then drawn = drawn + 1 end
+                    return ZeD_GuideBook.drawChecklist(self, tx, tw_, by, u, true)
+                end
+            end
+            if ZeD_GuideBook[k] then return ZeD_GuideBook[k] end
+            if k:find("^get") then return function() return 0 end end
+            if k:find("^draw") then return noop end
+            return nil
+        end })
+        for i = 1, #b.pages do P:drawPage(i, 0, 0, U_.PW, 1) end
+        check("drawn once (checklist lines x" .. rep .. ", " .. where((checklists(b))) .. ")", drawn == 1, drawn)
+    end
+    for i = 1, 7 do EN["UI_ZeD_Guide_Check" .. i] = saved[i] end
+end
+
+-- ---------------------------------------------------------------------------
+section("a checklist that throws: the book still lays out, without it, and logs once")
+-- ---------------------------------------------------------------------------
+do
+    local realCheck = ZeD_GuideBook.drawChecklist
+    ZeD_GuideBook.drawChecklist = function() error("checklist boom") end
+    local nLogs = #logs
+    local b = newBook()
+    local ok, err = pcall(b.readTopics, b, 1)
+    local ok2, err2 = ok and pcall(b.readTopics, b, 1)
+    ZeD_GuideBook.drawChecklist = realCheck
+    check("a throwing checklist does not stop the layout", ok and ok2, tostring(err) .. " " .. tostring(err2))
+    check("the book is laid out", b.pages and #b.pages > 0, b.pages and #b.pages)
+    local found = 0
+    for _, p in ipairs(b.pages or {}) do
+        for _, it in ipairs(p.items or {}) do
+            if it.k == "check" or (it.k == "filler" and it.check) then found = found + 1 end
+            for _, a in ipairs(it.ads or {}) do if a.k == "check" then found = found + 1 end end
+        end
+        for _, a in ipairs((p.filler and p.filler.ads) or {}) do if a.k == "check" then found = found + 1 end end
+    end
+    check("no checklist block in that layout", found == 0, found)
+    local hits = 0
+    for i = nLogs + 1, #logs do if logs[i]:find("^survival guide checklist") then hits = hits + 1 end end
+    check("the failure is logged (by logOnce)", hits >= 1, table.concat(logs, " | ", nLogs + 1))
+    for i = #logs, nLogs + 1, -1 do logs[i] = nil end   -- (the planted failure is not a real one: the count below wants none)
+    local b2 = newBook()
+    b2:readTopics(1)
+    check("the checklist is back once it measures again", #(checklists(b2)) == 1, where((checklists(b2))))
+end
+
+-- ---------------------------------------------------------------------------
+section("a whole page with no full ad left: the smaller ads, then NOTES (QA, Nov 7 2026)")
+-- ---------------------------------------------------------------------------
+-- At Large text with pad wording the real book has more whole pages than full ads; the ones past them took NOTES
+-- while halves and quarters went unused. Now such a page is a filler over its whole text block.
+do
+    local saved = A.full
+    A.full = {}   -- (the house ad alone: every whole page past the first runs out)
+    local b = newBook()
+    b:readTopics(1)
+    local whole, withAds, notesOnly, firstOk, inBlock = 0, 0, 0, true, true
+    for _, p in ipairs(b.pages) do
+        if p.kind == "ad" and p.ad == false then
+            whole = whole + 1
+            local ads = p.filler and p.filler.ads or {}
+            if ads[1] and ads[1].k ~= "notes" then withAds = withAds + 1 end
+            if #ads == 1 and ads[1].k == "notes" then notesOnly = notesOnly + 1 end
+            -- (from the top of the text block: a half or pair first while they last)
+            if ads[1] and math.abs(ads[1].y - U_.MT) > 0.001 then firstOk = false end
+            for _, bl in ipairs(ads) do
+                local hh = (bl.k == "half" or bl.k == "pair") and S.half[2] or (bl.k == "third" and S.third[2]) or 0
+                if bl.y < U_.MT - 0.001 or bl.y + hh > p.filler.y1 + 0.001 or p.filler.y1 > U_.PH - U_.FOOT then inBlock = false end
+            end
+        end
+    end
+    check("the made-up book has whole pages past the full ads", whole >= 1, whole)
+    check("each takes the smaller ads before NOTES", withAds == whole, withAds .. "/" .. whole)
+    check("from the top of the text block", firstOk)
+    check("inside the text block, over the foot", inBlock)
+    local first = nil
+    for _, p in ipairs(b.pages) do if p.kind == "ad" and p.ad == false and not first then first = p end end
+    if first then
+        local k = {}
+        for _, bl in ipairs(first.filler.ads) do k[#k + 1] = bl.k end
+        check("the first such page: a half or a pair, then a third", (k[1] == "half" or k[1] == "pair") and k[2] == "third", table.concat(k, ","))
+        realPrint("  a whole page with no full ad left: " .. table.concat(k, ", "))
+    end
+    -- still no repeats, the house ad still a whole page of its own, in page order
+    local nms = dealt(b)
+    local seenN, dup = {}, nil
+    for _, nm in ipairs(nms) do if seenN[nm] then dup = nm end; seenN[nm] = true end
+    check("no repeats with whole pages taking the smaller ads", dup == nil, dup)
+    local houses = 0
+    for _, p in ipairs(b.pages) do if p.kind == "ad" and p.ad == "house" then houses = houses + 1; if p.filler then houses = 99 end end end
+    check("the house ad as before: one whole page, no filler on it", houses == 1, houses)
+    -- the whole pages dealt in page order with the fillers: a later page never holds an earlier ad of a size
+    local d = B.adDeck(b._adSeed)
+    local _, _, bl = dealt(b)
+    local pos, okOrder, lastPos = {}, true, {}
+    for _, kk in ipairs({ "half", "third", "quarter" }) do for j, nm in ipairs(d[kk]) do pos[nm] = j end end
+    for _, x in ipairs(bl) do
+        if not x.spoil then
+            for _, nm in ipairs(x.names or {}) do
+                local size = nm:match("^(%a+)_")
+                if pos[nm] < (lastPos[size] or 0) then okOrder = false end
+                lastPos[size] = pos[nm]
+            end
+        end
+    end
+    check("whole pages and fillers dealt together in page order", okOrder)
+    -- with nothing smaller left either, the page is NOTES over the whole block, as before
+    local sh, st_, sq = A.half, A.third, A.quarter
+    A.half, A.third, A.quarter = {}, {}, {}
+    local e = newBook()
+    e:readTopics(1)
+    local allNotes = true
+    for _, p in ipairs(e.pages) do
+        if p.kind == "ad" and p.ad == false then
+            local ads = p.filler and p.filler.ads or {}
+            if not (#ads == 1 and ads[1].k == "notes" and math.abs(ads[1].y - U_.MT) < 0.001) then allNotes = false end
+        end
+    end
+    check("nothing left at all: NOTES over the whole text block", allNotes)
+    A.half, A.third, A.quarter = sh, st_, sq
+    A.full = saved
+end
+
+-- ---------------------------------------------------------------------------
 section("too few ads: a slot falls through, never a repeat")
 -- ---------------------------------------------------------------------------
 do
@@ -479,7 +752,7 @@ do
     for _, nm in ipairs(n) do if seen[nm] then dup = nm end; seen[nm] = true end
     check("no repeat with 5 ads", dup == nil, dup)
     local st = few.adStats
-    check("whole pages past the house ad and the one full ad are NOTES", st.fullMiss == math.max(0, st.full - 2), st.full .. "/" .. st.fullMiss)
+    check("whole pages past the house ad and the one full ad have no full ad", st.fullMiss == math.max(0, st.full - 2), st.full .. "/" .. st.fullMiss)
     check("310 slots with nothing left are counted", st.miss310 == st.ask310 - 2, st.ask310 .. "/" .. st.miss310)
     local kinds = {}
     for _, b in ipairs(bl) do kinds[b.k] = (kinds[b.k] or 0) + 1 end
@@ -573,7 +846,7 @@ do
         if p.kind == "ad" and p.ad and p.ad ~= "house" then want[1] = p.ad end
         local fills = {}
         if p.kind == "flow" then for _, it in ipairs(p.items) do if it.k == "filler" then fills[#fills + 1] = it end end end
-        if p.kind == "rules" and p.filler then fills[#fills + 1] = p.filler end
+        if (p.kind == "rules" or p.kind == "ad") and p.filler then fills[#fills + 1] = p.filler end
         for _, f in ipairs(fills) do for _, b in ipairs(f.ads or {}) do for _, nm in ipairs(b.names or {}) do want[#want + 1] = nm end end end
         check("page " .. i .. " draws what was dealt to it", table.concat(want, ",") == table.concat(adOf[i] or {}, ","), table.concat(want, ",") .. " / " .. table.concat(adOf[i] or {}, ","))
     end
@@ -665,7 +938,9 @@ local ROWS = {
 }
 -- (the world's settings, behind a spoiler bar in the game: their feet are dealt last)
 local SPOILER = { SurvivalGuide_treat_water_title = true, SurvivalGuide_zombie_attacks_title = true }
-local function realBook(pad)
+-- (pad: the pad wording; lang: the game's language folder for its SurvivalGuide.json, English where it lacks a key;
+-- TX: ZeD's words in that language, English where it lacks one)
+local function realBook(pad, lang, TX)
     local SG = {}
     local order = {}
     local f = io.open(PZ .. "lua/shared/Translate/EN/SurvivalGuide.json", "r")
@@ -675,6 +950,17 @@ local function realBook(pad)
         if k then SG[k] = v:gsub('\\"', '"'); order[#order + 1] = k end
     end
     f:close()
+    if lang and lang ~= "EN" then
+        local fl = io.open(PZ .. "lua/shared/Translate/" .. lang .. "/SurvivalGuide.json", "r")
+        if fl then
+            for line in fl:lines() do
+                local k, v = line:match('^%s*"([^"]+)"%s*:%s*"(.*)"%s*,?%s*$')
+                if k and SG[k] and v ~= "" then SG[k] = v:gsub('\\"', '"') end
+            end
+            fl:close()
+        end
+    end
+    local EN = TX or EN
     local stills = {}
     local secs, cur = {}, nil
     local function keyMarks(s, n)
@@ -752,11 +1038,15 @@ do
             local b = newBook()
             b:readTopics(1)
             local st = b.adStats
-            local line = string.format("  %s text, %s: %d pages; whole pages %d (%d NOTES); 310 slots %d (%d with nothing left); 205 slots %d (%d with nothing left); NOTES blocks %d; dealt full %d/4, half %d/7, quarter %d/12, third %d/12",
+            local line = string.format("  %s text, %s: %d pages; whole pages %d (%d with no full ad left); 310 slots %d (%d with nothing left); 205 slots %d (%d with nothing left); NOTES blocks %d; dealt full %d/4, half %d/7, quarter %d/12, third %d/12",
                 m[2], pd and "pad" or "keyboard", #b.pages, st.full, st.fullMiss, st.ask310, st.miss310, st.ask205, st.miss205, st.notes,
                 st.at.full, st.at.half, st.at.quarter, st.at.third)
+            local cs, cbad = checklists(b)
+            line = line .. "; First Days checklist: " .. where(cs)
             realPrint(line)
             results[#results + 1] = st
+            check("the real book (" .. m[2] .. ", " .. (pd and "pad" or "keyboard") .. "): the checklist prints once", #cs == 1, where(cs))
+            check("the real book (" .. m[2] .. ", " .. (pd and "pad" or "keyboard") .. "): the checklist in place", #cbad == 0, cbad[1])
             -- (no repeats in the real book either)
             local n = dealt(b)
             local seen, dup = {}, nil
@@ -1323,6 +1613,49 @@ do
     local ok = L and #rec == #L.ops
     if ok then for i, o in ipairs(L.ops) do if rec[i].k ~= o.k or math.abs(rec[i].x - (700 + o.x)) > 0.001 then ok = false end end end
     check("drawn: the kept list, at the page's corner", ok, #rec)
+end
+
+-- ---------------------------------------------------------------------------
+-- THE FIRST DAYS CHECKLIST IN EVERY LANGUAGE: the real book (the game's SurvivalGuide.json in that language, ZeD's
+-- UI.json in that language, English where either lacks a key; the faces' widths as the house ad's, by character)
+-- at Small and Large text, keyboard and pad: the checklist prints once, in its chapter, in place.
+-- ---------------------------------------------------------------------------
+section("the First Days checklist in every language: once, at Small and Large, keyboard and pad")
+do
+    local bad, n, how = {}, 0, { filler = 0, flow = 0 }
+    local maxH, maxAt = 0, ""
+    for _, code in ipairs(LANGS) do
+        local L = LANG[code] or readLang(code)
+        if L then
+            cur = L
+            local TX = setmetatable({}, { __index = function(_, k) return L[k] or EN[k] end })
+            for _, m in ipairs({ 1, 1.15 }) do
+                for _, pd in ipairs({ false, true }) do
+                    local secs = realBook(pd, code, TX)
+                    if secs then
+                        SECTIONS = secs
+                        onPad = pd
+                        setText(m)
+                        local b = newBook()
+                        b:readTopics(1)
+                        n = n + 1
+                        local cs, cbad = checklists(b)
+                        local tag = string.format("%s %s %s", code, m == 1 and "Small" or "Large", pd and "pad" or "keyboard")
+                        if #cs ~= 1 then bad[#bad + 1] = tag .. ": " .. where(cs) end
+                        if cbad[1] then bad[#bad + 1] = tag .. ": " .. cbad[1] end
+                        if cs[1] then how[cs[1].how] = how[cs[1].how] + 1 end
+                        if cs[1] and cs[1].h > maxH then maxH, maxAt = cs[1].h, tag end
+                    end
+                end
+            end
+        end
+    end
+    cur = EN
+    onPad = false
+    setText(1)
+    check("the checklist prints once and in place in every language (" .. n .. " books)", #bad == 0 and n > 0, bad[1] or n)
+    realPrint(string.format("  %d books: in a filler %d, its own block %d; the tallest checklist %.0f (%s), the page's text %d",
+        n, how.filler, how.flow, maxH, maxAt, U_.PH - U_.FOOT - U_.MT * 2))
 end
 
 ZeD.tr, ZeD.upper, getTextManager = savedTr, savedUpper, savedTM
