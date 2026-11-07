@@ -4129,7 +4129,8 @@ function ZeD_WorldWindow.toggle(playerNum)
                     end
                     -- (a tab that throws must not repeat its error every frame or leave its own clip
                     -- set: log once, put the drawer's clip back, draw on; code audit Oct 17 2026)
-                    -- (a tab may leave a clip set, as the Admin tab and its cards do, and under a card every
+                    -- (a tab may leave a clip set, as the Admin tab and its cards did until each ended level
+                    -- itself (punch list 95; this stays as the safety net for any other), and under a card every
                     -- clear of any tab leaves one, coverClear sets it again: one left on hides everything drawn
                     -- after the drawer, the card, the tab strip and the help line with it. A tab that ends level
                     -- with no card over it clears nothing here. The director, Nov 6 2026.)

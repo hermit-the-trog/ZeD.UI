@@ -340,6 +340,8 @@ function A.render(panel, win, x, y, w, h)
         if dy + it.h >= sy and dy <= sy + sh then drawItem(panel, win, st, it, x, dy, cw, mx, my) end
     end
     panel:clearStencilRect()
+    -- (PZ clips do not nest: the list's rect, once cleared, stays shut to what draws next, so the
+    -- whole tab is opened again for the scrollbar and the pop-up over the list...)
     panel:setStencilRect(0, 0, panel:getWidth(), panel:getHeight())
     if not onQueue then
         M.drawTabHeader(panel, x, y, w, TC.tabLabel(tr("UI_ZeD_World_TabAdmin")), false, false, true)
@@ -348,6 +350,9 @@ function A.render(panel, win, x, y, w, h)
     if needs then scroll:draw(panel) end
     if lineH > 0 then TC._D.drawFootLine(panel, x, y + h - lineH, w, lineH, lineWords) end
     TC.endList(panel, win, st, sy, sy + sh)
+    -- (...and that clip comes off here: the tab ends with the clips it started with. One left on
+    -- hid the window's tab strip and footer, as the Ranch page did; punch list 95)
+    panel:clearStencilRect()
 end
 
 -- ---------------------------------------------------------------------------

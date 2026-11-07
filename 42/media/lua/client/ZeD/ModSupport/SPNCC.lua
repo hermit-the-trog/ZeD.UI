@@ -1025,6 +1025,8 @@ function S.render(panel, win, x, y, w, h)
         if dy + (it.h or T.px(30)) >= sy and dy <= sy + sh then drawItem(panel, win, st, it, dy, w) end
     end
     panel:clearStencilRect()
+    -- (PZ clips do not nest: the list's rect, once cleared, stays shut to what draws next, so the
+    -- whole tab is opened again; that clip comes off at the end)
     panel:setStencilRect(0, 0, panel:getWidth(), panel:getHeight())
     -- the big figure sits over its frame only when the whole frame shows
     local fi = st.figItem
@@ -1039,6 +1041,9 @@ function S.render(panel, win, x, y, w, h)
     st.btns = nil
     if showStrip then drawStrip(panel, win, st, x, y + h - stripH, w, stripH) end
     if needs then scroll:draw(panel) end
+    -- (the tab ends with the clips it started with: one left on hides the window's tab strip and
+    -- footer; punch list 95)
+    panel:clearStencilRect()
     st.rendered = true
 end
 

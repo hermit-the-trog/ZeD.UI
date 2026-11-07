@@ -799,8 +799,8 @@ function P.classes()
 
     function ZeD_JoinWindow:_body()
         local top = self:titleBarHeight()
+        -- (the card takes off every clip it sets, so nothing is cleared after it here; punch list 95)
         TC.renderCard(self, self, self.joinSt, 0, top, self.width, self.height - self:footerHeight() - top)
-        self:clearStencilRect()
     end
 
     function ZeD_JoinWindow:prerender()

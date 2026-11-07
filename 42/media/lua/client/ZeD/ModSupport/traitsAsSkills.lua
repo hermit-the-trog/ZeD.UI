@@ -639,8 +639,8 @@ local function drawDetail(panel, win, st, x, y, w, h)
     local ix, iw = x + pad, w - pad * 2
     local dim, tc = T.toneLo or T.textDim, T.text
     local innerH = h - T.px(1)
-    panel:setStencilRect(x, y + T.px(1), w, innerH)
     if not r or not p then
+        panel:setStencilRect(x, y + T.px(1), w, innerH)
         local lines = A.wrapText(tr("UI_ZeD_TAS_Pick"), T.fontF2, iw)
         for i, l in ipairs(lines) do panel:drawText(l, ix, y + T.px(12) + (i - 1) * F(2), dim.r, dim.g, dim.b, dim.a or 1, T.fontF2) end
         panel:clearStencilRect()
@@ -663,10 +663,13 @@ local function drawDetail(panel, win, st, x, y, w, h)
         sc.x, sc.y, sc.height = x + w - sbW, y + T.px(1), innerH
         sc:setBarSize(innerH / contentH)
         off = math.floor(sc.scrollPos * (contentH - innerH))
-        panel:setStencilRect(x, y + T.px(1), w - sbW, innerH)
     else
         sc:setScrollPos(0)
     end
+    -- one clip, set once the width is known: a second one set inside the first was never cleared
+    -- and hid the tab's header and scrollbar drawn after it (punch list 95). With a scrollbar the
+    -- clip stops short of it, so the bar, drawn once the clip is off, still shows.
+    panel:setStencilRect(x, y + T.px(1), needs and (w - sbW) or w, innerH)
     local cy = y + T.px(8) - off
     -- the title row
     local th = T.textHead or tc
@@ -816,6 +819,8 @@ function S.render(panel, win, x, y, w, h)
         end
     end
     panel:clearStencilRect()
+    -- (PZ clips do not nest: the list's rect, once cleared, stays shut to what draws next, so the
+    -- whole tab is opened again; that clip comes off at the end)
     panel:setStencilRect(0, 0, panel:getWidth(), panel:getHeight())
     drawDetail(panel, win, st, x, y + h - detH, w, detH)
     -- the header: the tab's name; Find at its right (a text box placed by onWindowFrame)
@@ -845,6 +850,9 @@ function S.render(panel, win, x, y, w, h)
         ZeD.HairBeard.hoverCard(panel, win, "tas:step:" .. tostring(sh2.row.id) .. ":" .. tostring(sh2.L),
             tr("UI_ZeD_TAS_StepTitle", sh2.row.name, sh2.L), lines, sh2, false)
     end
+    -- (the tab ends with the clips it started with: one left on hides the window's tab strip and
+    -- footer; punch list 95)
+    panel:clearStencilRect()
     st.rendered = true
 end
 
