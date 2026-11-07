@@ -179,6 +179,8 @@ local function madeUpBook()
                 ZeD.Guide.Rules[t.titleKey] = function() end
                 t._rules = { { title = "Numbers " .. n, cols = { "Thing", "Value", "More" }, rows = rows(3 + (n % 5) * 4, 3), notes = { "A note." } } }
                 if n % 2 == 0 then t._rules[2] = { title = "Long " .. n, cols = { "Item", "Days" }, rows = rows(30, 2), notes = { "One.", "Two." } } end
+                -- (two topics' tables behind a spoiler bar, as the game's world settings: their feet are dealt last)
+                if n % 14 == 7 then t._rules[1].spoiler = true end
             end
             s.topics[#s.topics + 1] = t
         end
@@ -187,9 +189,17 @@ local function madeUpBook()
     return secs
 end
 
--- every ad a laid-out book shows, in page order; and a signature of the whole deal
+-- every ad a laid-out book shows, in the order it was dealt (page order, the feet of spoiler rules pages last, as
+-- B.dealAds deals them); and a signature of the whole deal, in page order
 local function dealt(bk)
     local names, sig, blocks = {}, {}, {}
+    local later = {}
+    local function take(i, f, spoil)
+        for _, b in ipairs(f.ads or {}) do
+            blocks[#blocks + 1] = { page = i, k = b.k, y = b.y, y1 = f.y1, names = b.names, spoil = spoil }
+            for _, nm in ipairs(b.names or {}) do names[#names + 1] = nm end
+        end
+    end
     for i, p in ipairs(bk.pages) do
         if p.kind == "ad" then
             sig[#sig + 1] = i .. ":full=" .. tostring(p.ad)
@@ -200,13 +210,11 @@ local function dealt(bk)
         if p.kind == "flow" then for _, it in ipairs(p.items) do if it.k == "filler" then fills[#fills + 1] = it end end end
         if p.kind == "rules" and p.filler then fills[#fills + 1] = p.filler end
         for _, f in ipairs(fills) do
-            for _, b in ipairs(f.ads or {}) do
-                blocks[#blocks + 1] = { page = i, k = b.k, y = b.y, y1 = f.y1, names = b.names }
-                sig[#sig + 1] = i .. ":" .. b.k .. "=" .. table.concat(b.names or {}, "+")
-                for _, nm in ipairs(b.names or {}) do names[#names + 1] = nm end
-            end
+            for _, b in ipairs(f.ads or {}) do sig[#sig + 1] = i .. ":" .. b.k .. "=" .. table.concat(b.names or {}, "+") end
+            if p.kind == "rules" and p.rules and p.rules.spoiler then later[#later + 1] = { i, f } else take(i, f, false) end
         end
     end
+    for _, l in ipairs(later) do take(l[1], l[2], true) end
     return names, table.concat(sig, " "), blocks
 end
 -- the names of one size in the order a book dealt them
@@ -372,6 +380,29 @@ do
     local rulesFill = 0
     for _, p in ipairs(bk.pages) do if p.kind == "rules" and p.filler and p.filler.ads and #p.filler.ads > 0 then rulesFill = rulesFill + 1 end end
     check("rules pages' feet take fillers", rulesFill >= 1, rulesFill)
+    -- the feet of spoiler rules pages are dealt after every other slot: for each size, every ad on a hidden foot
+    -- sits later in the deck than every ad in plain sight (and the alternation above runs across both passes)
+    local pos = {}
+    for _, k in ipairs({ "half", "third", "quarter" }) do for j, nm in ipairs(d[k]) do pos[nm] = j end end
+    local plainMax, spoilMin, spoilAds = {}, {}, 0
+    for _, b in ipairs(blocks) do
+        for _, nm in ipairs(b.names or {}) do
+            local size = nm:match("^(%a+)_")
+            if b.spoil then
+                spoilAds = spoilAds + 1
+                spoilMin[size] = math.min(spoilMin[size] or 99, pos[nm])
+            else
+                plainMax[size] = math.max(plainMax[size] or 0, pos[nm])
+            end
+        end
+    end
+    local spoilFirst = true
+    for size, m in pairs(spoilMin) do if m <= (plainMax[size] or 0) then spoilFirst = false end end
+    check("the made-up book deals ads to a spoiler page's foot", spoilAds >= 1, spoilAds)
+    local spoilFoot = false
+    for _, p in ipairs(bk.pages) do if p.kind == "rules" and p.rules.spoiler and p.filler then spoilFoot = true end end
+    check("the made-up book has a spoiler rules page with a foot", spoilFoot)
+    check("spoiler pages' feet dealt after every slot in plain sight", spoilFirst)
 end
 
 -- ---------------------------------------------------------------------------
@@ -452,6 +483,10 @@ do
     for _, b in ipairs(bl) do kinds[b.k] = (kinds[b.k] or 0) + 1 end
     check("one half and one pair, no more", kinds.half == 1 and kinds.pair == 1, tostring(kinds.half) .. "/" .. tostring(kinds.pair))
     check("one third, no more", kinds.third == 1, kinds.third)
+    -- with one of each, a page in plain sight gets it before any foot behind a spoiler bar
+    local hidden = nil
+    for _, b in ipairs(bl) do if b.spoil and b.k ~= "notes" then hidden = b.k end end
+    check("too few ads: a foot behind a spoiler bar gets none while plain pages ask", hidden == nil, hidden)
     -- a 310 slot with neither left falls to the third or to NOTES, in the same filler
     local fell = false
     for _, p in ipairs(few.pages) do
@@ -500,7 +535,8 @@ do
     P:drawPage(2, X0 + W, Y0, W, u)
     check("the front matter loads no ad", #loads == before, #loads - before)
     local sigBefore = select(2, dealt(book))
-    local okAll, outside, wrongSize, wrongX, white = true, nil, nil, nil, true
+    local okAll, outside, wrongSize, wrongX, white, whole = true, nil, nil, nil, true, true
+    local function rnd(v) return math.floor(v + 0.5) end
     local adOf = {}   -- the texture path each draw used, per page
     for i = 1, #book.pages do
         local x = (i % 2 == 1) and X0 or X0 + W
@@ -513,16 +549,20 @@ do
             local name = d.tex.path:match("([^/]+)%.png$")
             local size = name:match("^(%a+)_")
             local s = S[size]
-            if math.abs(d.w - s[1] * u) > 0.001 or math.abs(d.h - s[2] * u) > 0.001 then wrongSize = name end
+            -- (design size times u, rounded to whole pixels)
+            if d.w ~= rnd(s[1] * u) or d.h ~= rnd(s[2] * u) then wrongSize = name end
+            for _, v in ipairs({ d.x, d.y, d.w, d.h }) do if v ~= math.floor(v) then whole = false end end
             if d.c ~= 4 then white = false end
             local tx = x + U_.M * u
+            -- (a pair's second quarter: the first's rounded right edge plus the rounded 10 gutter)
+            local q2 = rnd(tx) + rnd(S.quarter[1] * u) + rnd(10 * u)
             if size == "full" then
-                if math.abs(d.x - tx) > 0.001 or math.abs(d.y - (Y0 + U_.MT * u)) > 0.001 then wrongX = name end
-            elseif not (math.abs(d.x - tx) < 0.001 or (size == "quarter" and math.abs(d.x - (tx + 225 * u)) < 0.001)) then
+                if d.x ~= rnd(tx) or d.y ~= rnd(Y0 + U_.MT * u) then wrongX = name end
+            elseif not (d.x == rnd(tx) or (size == "quarter" and d.x == q2)) then
                 wrongX = name
             end
-            -- inside the page's text block: never under the foot's folio line (PH - 12 its baseline)
-            if d.x < x + U_.M * u - 0.001 or d.x + d.w > x + (U_.PW - U_.M) * u + 0.001 or d.y + d.h > Y0 + (U_.PH - U_.FOOT) * u + 0.001 or d.y < Y0 + U_.MT * u - 0.001 then outside = name end
+            -- inside the page's text block (to the rounding, 1.5 px): never under the foot's folio line
+            if d.x < x + U_.M * u - 1.5 or d.x + d.w > x + (U_.PW - U_.M) * u + 1.5 or d.y + d.h > Y0 + (U_.PH - U_.FOOT) * u + 1.5 or d.y < Y0 + U_.MT * u - 1.5 then outside = name end
             adOf[i] = adOf[i] or {}
             adOf[i][#adOf[i] + 1] = name
         end
@@ -536,29 +576,36 @@ do
         check("page " .. i .. " draws what was dealt to it", table.concat(want, ",") == table.concat(adOf[i] or {}, ","), table.concat(want, ",") .. " / " .. table.concat(adOf[i] or {}, ","))
     end
     check("every page draws without an error", okAll)
-    check("every ad at its design size times u", wrongSize == nil, wrongSize)
-    check("full ads at the text block's corner, fillers at its left (a pair's second at 225)", wrongX == nil, wrongX)
+    check("every ad at its design size times u, rounded", wrongSize == nil, wrongSize)
+    check("every ad on whole pixels (x, y, width, height)", whole)
+    check("full ads at the text block's corner, fillers at its left (a pair's second after a 10 gutter)", wrongX == nil, wrongX)
     check("every ad inside the text block", outside == nil, outside)
     check("drawn untinted (1, 1, 1, 1)", white)
-    -- a pair's two quarters level
-    local level = true
+    -- a pair's two quarters level, the gutter between them the rounded 10
+    local level, pairsDrawn, gutterOk = true, 0, true
     for i = 2, #draws do
         local a, b = draws[i - 1], draws[i]
-        if a.tex.path:find("/quarter_") and b.tex.path:find("/quarter_") and math.abs(b.x - a.x - 225 * u) < 0.001 and a.y ~= b.y then level = false end
+        if a.tex.path:find("/quarter_") and b.tex.path:find("/quarter_") and b.x > a.x then
+            pairsDrawn = pairsDrawn + 1
+            if a.y ~= b.y then level = false end
+            if b.x - (a.x + a.w) ~= rnd(10 * u) then gutterOk = false end
+        end
     end
+    check("the drawn book has a pair", pairsDrawn >= 1, pairsDrawn)
     check("a pair's two quarters level", level)
-    -- each texture loaded once, flags 0 (linear, uncompressed), from the ads' folder
+    check("a pair's gutter the rounded 10", gutterOk)
+    -- each texture loaded once, flags 2 (crisp when enlarged, linear when shrunk, uncompressed), from the ads' folder
     local count, flagsOk, dirOk = {}, true, true
     for j = before + 1, #loads do
         local l = loads[j]
         count[l.path] = (count[l.path] or 0) + 1
-        if l.flags ~= 0 then flagsOk = false end
+        if l.flags ~= 2 then flagsOk = false end
         if not l.path:find("^media/textures/ZeD/guide/ads/") then dirOk = false end
     end
     local once = true
     for _, c in pairs(count) do if c > 1 then once = false end end
     check("each texture loaded once", once)
-    check("loaded with flags 0", flagsOk)
+    check("loaded with flags 2", flagsOk)
     check("loaded from media/textures/ZeD/guide/ads/", dirOk)
     -- drawing changes nothing about the deal
     check("turning the pages never deals again", select(2, dealt(book)) == sigBefore)
@@ -614,6 +661,8 @@ local ROWS = {
     SurvivalGuide_treat_water_title = { { 3, 2, 12 } },
     SurvivalGuide_zombie_attacks_title = { { 3, 2, 12 } },
 }
+-- (the world's settings, behind a spoiler bar in the game: their feet are dealt last)
+local SPOILER = { SurvivalGuide_treat_water_title = true, SurvivalGuide_zombie_attacks_title = true }
 local function realBook(pad)
     local SG = {}
     local order = {}
@@ -659,7 +708,8 @@ local function realBook(pad)
                                 for c = 2, r[2] do row[c] = (c == r[2]) and string.rep("x", r[3]) or tostring(i * 10) end
                                 rr[i] = row
                             end
-                            t._rules[ri] = { title = "Table " .. ri, cols = cols, rows = rr, notes = { "A note on the numbers, a line or two long, as the game's own notes run.", "Another note." } }
+                            t._rules[ri] = { title = "Table " .. ri, cols = cols, rows = rr, notes = { "A note on the numbers, a line or two long, as the game's own notes run.", "Another note." },
+                                             spoiler = SPOILER[k] }
                         end
                     end
                     cur.topics[#cur.topics + 1] = t
