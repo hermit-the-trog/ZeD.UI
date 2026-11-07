@@ -88,6 +88,10 @@ Both are pad-reachable like every other hit (the focus walk picks them up from t
   driver's client sends a ZeD command with the three figures; the server checks it is the driver and the numbers are
   sane, writes only `ZeD_odo`, `ZeD_trip`, `ZeD_odoTrip` and sends the car out itself. `ZeD_DashProto.lua`,
   `ZeD_ServerDash.lua`. The miles not sent yet also go when the car stops, while the driver is still at the wheel.)
+  (Later on Nov 7: when the server refuses its driver's figures as behind its own, it answers with them and the dash
+  goes on from there. On a server the ash tray stays in the game's memory per car, not on the car's modData: the
+  server's sends replace the client's copy, so a key only the client wrote is gone at the next one. Single player keeps
+  it on the car as before. A stop sends the last miles only when there's a hundredth of a mile or more.)
 - **With Roadworthy:** if it keeps its own odometer and trip, read those instead of ZeD's, so its dash and ours agree.
   QA finds the names once it's running Roadworthy.
 

@@ -15,7 +15,10 @@
 --           car (OnExitVehicle's D.hide, on a panel that gets no prerender once hidden), takes another, or safe mode or
 --           the hidden UI takes the dash; a last send more than 3 s late is dropped, never sent from a parked car;
 --           single player and a passenger send nothing; no link to the server part is no error; the server's copy
---           coming back after a send never winds the driver's figures back
+--           coming back after a send never winds the driver's figures back, nor a press made just before it lands;
+--           the server's answer to a refused send (sync) puts the driver on its figures, a stale one is dropped;
+--           stop-and-go traffic sends no more often; the ash tray on a server stays in the game's memory, never on
+--           the car's modData (the server's sends wipe what only the client wrote), and single player keeps it there
 --   HOT     the hot lamp lights in the key-on bulb check; the Simple dash's Temperature bar goes red only when hot
 --   SIMPLE  the Trip cell beside Odometer, in the player's units, one decimal; A on it zeroes the trip; the units
 --           option is read at most once a second
@@ -161,13 +164,14 @@ require = function(name)
     end
 end
 -- the link to the server part (ZeD_ServerLink.lua's S.send): each command is written down, and counted on its car
-local CARS, SENT = {}, {}
+-- and the routes the dash hands the server's answers to (S.on)
+local CARS, SENT, ROUTES = {}, {}, {}
 ZeD.ServerPart = { send = function(module, command, args)
     SENT[#SENT + 1] = { module = module, command = command, args = args }
     local car = CARS[args and args.veh]
     if car then car.sent = car.sent + 1 end
     return true
-end }
+end, on = function(module, fn) ROUTES[module] = fn end }
 dofile(CLIENT .. "ZeD/ZeD_Dashboard.lua")
 local D = ZeD.Dashboard
 local P = ZeD.Px
@@ -749,6 +753,67 @@ do
     cc.md = { ZeD_odo = s1.odo, ZeD_trip = s1.trip, ZeD_odoTrip = true }
     frame(250)
     check("an old echo after the reset doesn't bring the trip back", st().trip < 0.02 and st().trip >= tReset, st().trip)
+    -- a press, and an older send's echo landing before the next frame: the press stands
+    frames(8, 250)
+    inst:_fire("odoButton", false)                     -- (A: the window back to the odometer)
+    cc.md = { ZeD_odo = s1.odo, ZeD_trip = s1.trip, ZeD_odoTrip = true }
+    frame(250)
+    check("a switch, then an old echo before the next frame: the switch stands", st().odoTrip == false
+        and cc.md.ZeD_odoTrip == false, tostring(st().odoTrip))
+    inst:_fire("odoButton", false)                     -- (the trip again)
+    frames(8, 250)
+    inst:_fire("odoButton", true)                      -- (zero)
+    cc.md = { ZeD_odo = s1.odo, ZeD_trip = s1.trip, ZeD_odoTrip = true }
+    frame(250)
+    check("a reset, then an old echo before the next frame: the trip stays zeroed", st().trip < 0.02 and st().odoTrip == true, st().trip)
+    check("and the press's send carried the reset", SENT[#SENT].args.trip < 0.02, SENT[#SENT].args.trip)
+
+    -- stop-and-go traffic: crossing the stopped line again and again sends no more than the tenths do
+    inst:_fire("tripReset", false)                     -- (from a send)
+    local before = cc.sent
+    for i = 1, 40 do cc.kmh = (i % 2 == 1) and 1.2 or 0; frame(250) end
+    check("creeping in and out of a stop: no send for each crossing", cc.sent == before, cc.sent - before)
+    cc.kmh = 30
+    frames(8, 250)                                     -- (0.01 mi and more)
+    cc.kmh = 0
+    frame(250)
+    check("a real stop after that: the rest goes", cc.sent == before + 1, cc.sent - before)
+
+    -- the server refused this driver's figures as behind its own (ZeD_ServerDash.lua): its answer puts them on its figures
+    local route = ROUTES[ZeD.DashProto.MOD]
+    check("the dash takes the server's answers", type(route) == "function")
+    local X = st().odo
+    before = cc.sent
+    route(ZeD.DashProto.SYNC, { veh = 21, odo = X + 50, trip = 3, sent = X - 0.05 })
+    frame(250)
+    check("the server's odometer was ahead: on from it, plus the miles since the refused send",
+        near(st().odo, X + 50.05, 1e-6) and near(cc.md.ZeD_odo, X + 50.05, 1e-6), st().odo - X)
+    check("and the trip from the server's, plus the same", near(st().trip, 3.05, 1e-6), st().trip)
+    check("the window keeps the driver's switch", st().odoTrip == true)
+    check("nothing sent until a tenth past the server's", cc.sent == before, cc.sent - before)
+    route(ZeD.DashProto.SYNC, { veh = 21, odo = X + 80, trip = 1, sent = X - 0.1 })
+    frame(250)
+    check("an answer to a send from before that one: dropped", near(st().odo, X + 50.05, 1e-6), st().odo - X)
+    -- the trip too far (another driver zeroed it, and this copy never heard): the odometer stands, the trip is the server's
+    local Y = st().odo
+    route(ZeD.DashProto.SYNC, { veh = 21, odo = Y - 0.3, trip = 0.5, sent = Y })
+    frame(250)
+    check("the trip refused: the odometer stands", near(st().odo, Y, 1e-6), st().odo - Y)
+    check("the trip is the server's, plus the miles past its figure", near(st().trip, 0.8, 1e-6), st().trip)
+    cc.kmh = 50
+    frame(250)
+    local sy = SENT[#SENT].args
+    check("the next send goes at once, in step with the server", cc.sent == before + 1
+        and near(sy.trip - 0.5, sy.odo - (Y - 0.3), 1e-6), cc.sent - before)
+    cc.kmh = 0
+    frame(250)
+    local O = st().odo
+    route(ZeD.DashProto.SYNC, { veh = 99, odo = O + 10, trip = 0, sent = O })
+    route(ZeD.DashProto.SYNC, { veh = 21, odo = "lots", trip = 0, sent = O })
+    route(ZeD.DashProto.SYNC, { veh = 21, odo = 0 / 0, trip = 0, sent = O })
+    route("nonsense", { veh = 21, odo = O + 10, trip = 0, sent = O })
+    frame(250)
+    check("another car's answer, junk or another command: nothing", near(st().odo, O, 1e-9) and #env.errors == 0, st().odo - O)
     -- another seat: the dash reads the car as it comes (a passenger's figures are the server's)
     cc.passenger = true
     frame(250)
@@ -756,6 +821,26 @@ do
     frame(250)
     check("a passenger takes the server's figures as they come", st().odo == 600 and st().trip == 1, st().odo)
     cc.passenger = nil
+
+    -- the ash tray on a server: in this game's memory, never the car's modData, so the server's sends can't undo it
+    local ac = drive("luxury", { keysIn = true, running = true, kmh = 0, id = 31, md = { ZeD_odo = 10, ZeD_trip = 0 } })
+    frame(250)
+    local ash0 = st().ashIsOpen
+    inst:_fire("ash", false)
+    frame(250)
+    check("on a server the ash tray opens or shuts", st().ashIsOpen == not ash0, tostring(st().ashIsOpen))
+    check("and stays off the car's modData", ac.md.ZeD_ash == nil)
+    ac.md = { ZeD_odo = 10, ZeD_trip = 0 }                -- (the server sends the car: the client's copy replaced)
+    frame(250)
+    check("the server's send doesn't put it back", st().ashIsOpen == not ash0)
+    env.client = false
+    local sc = drive("luxury", { keysIn = true, running = true, kmh = 0, id = 32, md = { ZeD_odo = 10, ZeD_trip = 0 } })
+    frame(250)
+    local ash1 = st().ashIsOpen
+    inst:_fire("ash", false)
+    frame(250)
+    check("single player keeps the tray on the car's modData", sc.md.ZeD_ash == (not ash1) and st().ashIsOpen == not ash1)
+    env.client = true
 
     -- across every case above: the client never sent the car's modData itself
     local tx = 0
