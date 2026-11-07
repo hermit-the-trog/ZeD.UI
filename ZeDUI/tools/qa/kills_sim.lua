@@ -10,6 +10,8 @@
 --     from a new Base.Axe
 -- The weapon stub's isInstantExplosion() is the bytecode's (no timer, no sensor, no remote: true),
 -- so the old check would pass it for a bat; the tracker must not use it.
+-- Also loads IdentityTab.lua: its kill count must be the Journal's total (KillTracker.total), and
+-- an older save's rows are rebuilt from the game's own count at load.
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/kills_sim.lua
 -- It prints FAIL lines and a last line "kills_sim: N checks, M failed", and exits 1 if any failed.
 
@@ -111,23 +113,56 @@ local function fresh() P.md = {}; P.kills = 0 end
 -- ---------------------------------------------------------------------------
 -- LOAD the real files
 -- ---------------------------------------------------------------------------
--- an older save: the old explosion test had filed weapon kills under explosion
+-- an older save (beta 6 and before): the weapon and explosion rows counted hits, not kills, and
+-- the old explosion test filed every bat and gun hit under explosion; the game's count is 30
 P.md.ZeD_Kills = { weapon = { Blunt = 2 }, fire = 1, vehicle = 4, explosion = 40 }
+P.kills = 30
 dofile(ROOT .. "42/media/lua/client/ZeD/KillTracker.lua")
 events.OnGameStart.fire()
 check("the tracker listens", #events.OnHitZombie.list == 1 and #events.OnZombieDead.list == 1)
-check("old save: its explosion count moves to Other at load", kd().explosion == 0 and kd().weapon.Other == 40,
-    tostring(kd().explosion) .. " / " .. tostring(kd().weapon.Other))
-check("old save: the rest stays", kd().weapon.Blunt == 2 and kd().fire == 1 and kd().vehicle == 4)
+check("old save: rebuilt at load, the game's count less car kills under Other", kd().weapon.Other == 26,
+    kd().weapon.Other)
+check("old save: its explosion row goes", kd().explosion == 0, kd().explosion)
+check("old save: its hit-count weapon rows go", kd().weapon.Blunt == nil, kd().weapon.Blunt)
+check("old save: fire and vehicle stay", kd().fire == 1 and kd().vehicle == 4)
 check("old save: marked fixed", kd().v == 2, kd().v)
 
--- JournalTab reads ZeD.Atoms at load and requires the drawing modules; none of that is under test
+-- JournalTab and IdentityTab read ZeD.Atoms at load and require the drawing modules; none of that is under test
 local realRequire = require
 require = function() end
 ZeD.Atoms = ZeD.Atoms or {}
-ZeD.tr = function(k) return k end
+ZeD.tr = function(k, a) return a ~= nil and (k .. ":" .. tostring(a)) or k end
+ZeD.upper = string.upper
+function getText(k) return k end
 dofile(ROOT .. "42/media/lua/client/ZeD/JournalTab.lua")
+dofile(ROOT .. "42/media/lua/client/ZeD/IdentityTab.lua")
 require = realRequire
+
+-- what IdentityTab.gatherData reads off the player besides the kills: a plain, empty character
+P._is.IsoPlayer = true
+function P:getDescriptor()
+    return { getSurname = function() return "Finnegan" end, getForename = function() return "Glen" end,
+             getCharacterProfession = function() return nil end }
+end
+function P:getNutrition()
+    local f = function() return false end
+    return { getWeight = function() return 80 end, isIncWeightLot = f, isIncWeight = f, isDecWeight = f }
+end
+function P:isFemale() return false end
+function P:getHumanVisual()
+    return { getHairColor = function() return nil end, getHairModel = function() return "" end,
+             getBeardModel = function() return "" end, getBodyHairIndex = function() return 0 end }
+end
+function P:getCharacterTraits() return { getKnownTraits = function() return nil end } end
+
+--- The Identity tab's kill count and the Journal's total, as each tab gathers them.
+local function bothTotals()
+    return ZeD.IdentityTab.gatherData(P).zKills, ZeD.JournalTab.gatherData(P).totalKills
+end
+local id0, jr0 = bothTotals()
+check("old save: the rows add up to the Journal's total", jr0 == 31 and kd().weapon.Other + kd().vehicle + kd().fire == jr0,
+    jr0)
+check("old save: the Identity tab shows the same", id0 == tostring(jr0), id0)
 
 -- ---------------------------------------------------------------------------
 section("weapon kills land under their weapon, not explosion")
@@ -275,6 +310,80 @@ engineKill(zombie(50), BAT)
 check("a fixed table is not fixed again: Other and explosion stay",
     kd().weapon.Other == 40 and kd().explosion == 2 and kd().weapon.Blunt == 1,
     tostring(kd().weapon.Other) .. " / " .. tostring(kd().explosion))
+
+-- ---------------------------------------------------------------------------
+section("the Identity tab's count is the Journal's total")
+-- ---------------------------------------------------------------------------
+fresh()
+local id, jr = bothTotals()
+check("no kill table, no kills: both 0", id == "0" and jr == 0, tostring(id) .. " / " .. tostring(jr))
+P.kills = 12
+id, jr = bothTotals()
+check("no kill table: both the game's count", id == "12" and jr == 12, tostring(id) .. " / " .. tostring(jr))
+P.md.ZeD_Kills = { weapon = { Blunt = 9 }, fire = 0, vehicle = 3, explosion = 0, v = 2 }
+id, jr = bothTotals()
+check("no fire kills: both the game's count", id == "12" and jr == 12, tostring(id) .. " / " .. tostring(jr))
+P.md.ZeD_Kills.fire = 5
+id, jr = bothTotals()
+check("with fire kills: both the game's count + fire", id == "17" and jr == 17, tostring(id) .. " / " .. tostring(jr))
+check("the shared total is what both show", ZeD.KillTracker.total(P) == 17, ZeD.KillTracker.total(P))
+-- through the tracker: a bat kill (the game counts it) and a fire kill (it does not)
+fresh()
+engineKill(zombie(60), BAT)
+local zb = zombie(61, { onFire = true }); burns(zb); wait(2000); dies(zb)
+id, jr = bothTotals()
+check("a bat kill and a fire kill: both 2", id == "2" and jr == 2, tostring(id) .. " / " .. tostring(jr))
+-- the game's count cannot be read: the fire kills still show on both
+local realGZK = P.getZombieKills
+P.getZombieKills = function() error("no count") end
+id, jr = bothTotals()
+check("no game count: both the fire kills alone", id == "1" and jr == 1, tostring(id) .. " / " .. tostring(jr))
+P.getZombieKills = realGZK
+check("no player: a total of 0", ZeD.KillTracker.total(nil) == 0)
+
+-- ---------------------------------------------------------------------------
+section("an older save's rows, rebuilt from the game's count")
+-- ---------------------------------------------------------------------------
+-- beta 6a: kills, but bats, guns and thrown bombs under explosion, timed bombs under Other
+fresh()
+P.md.ZeD_Kills = { weapon = { Other = 3 }, fire = 2, vehicle = 1, explosion = 20 }
+P.kills = 24
+ZeD.KillTracker.data(P)
+check("beta 6a table: Other = the game's count less car kills", kd().weapon.Other == 23 and kd().explosion == 0,
+    tostring(kd().weapon.Other) .. " / " .. tostring(kd().explosion))
+check("beta 6a table: fire and vehicle stay", kd().fire == 2 and kd().vehicle == 1)
+id, jr = bothTotals()
+check("beta 6a table: rows add up to the total both tabs show", jr == 26 and id == "26"
+    and kd().weapon.Other + kd().vehicle + kd().fire == jr, tostring(id) .. " / " .. tostring(jr))
+-- more car kills than the game's count holds (it counts every car kill): capped to it
+fresh()
+P.md.ZeD_Kills = { weapon = {}, fire = 0, vehicle = 9, explosion = 5 }
+P.kills = 6
+ZeD.KillTracker.data(P)
+check("car kills past the game's count: capped to it", kd().vehicle == 6 and kd().weapon.Other == nil,
+    tostring(kd().vehicle) .. " / " .. tostring(kd().weapon.Other))
+-- the game's count cannot be read: the old sums stay, explosion moved to Other
+fresh()
+P.md.ZeD_Kills = { weapon = { Blunt = 2 }, fire = 1, vehicle = 4, explosion = 40 }
+P.getZombieKills = function() error("no count") end
+ZeD.KillTracker.data(P)
+P.getZombieKills = realGZK
+check("no game count: explosion moves to Other, the rest stays",
+    kd().weapon.Other == 40 and kd().weapon.Blunt == 2 and kd().explosion == 0 and kd().v == 2)
+-- a count of 0 under old rows has not arrived yet: the fix waits, then runs
+fresh()
+P.md.ZeD_Kills = { weapon = {}, fire = 0, vehicle = 0, explosion = 7 }
+ZeD.KillTracker.data(P)
+check("count 0 under old rows: not fixed yet", kd().v == nil and kd().explosion == 7, kd().v)
+P.kills = 8
+ZeD.KillTracker.data(P)
+check("then, once the count reads: fixed", kd().v == 2 and kd().weapon.Other == 8 and kd().explosion == 0,
+    kd().weapon.Other)
+-- an old table with nothing in it, on a character with no kills: fixed, nothing to rebuild
+fresh()
+P.md.ZeD_Kills = { weapon = {}, fire = 0, vehicle = 0, explosion = 0 }
+ZeD.KillTracker.data(P)
+check("an empty old table: marked fixed, empty", kd().v == 2 and next(kd().weapon) == nil)
 
 print("kills_sim: " .. checks .. " checks, " .. failed .. " failed")
 os.exit(failed == 0 and 0 or 1)
