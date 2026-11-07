@@ -401,8 +401,10 @@ end
 -- toggle remembers the mod that took ZeD picks off (self._picksOffWith). That memory holds only
 -- while that mod and picks are both still off: once either came on another way (a profile with
 -- ZeD-GUI on and picks off, Turn all, a separator or folder box, a mod that needs ZeD-GUI), that
--- choice stands and turning the mod off and on again must not overrule it. A change that left
--- both off (the Load order page's Back, which sets the same mods again) keeps it (review Nov 7 2026)
+-- choice stands and turning the mod off and on again must not overrule it. A set the player
+-- picked as a whole (Turn all off, a profile, No mods, Undo changes) stands too, even with both
+-- off: setAll, loadProfile and revert forget it. Only a restore inside the visit that left both
+-- off (the Load order page's Back or Undo, which set the same mods again) keeps it (review Nov 7 2026)
 local function checkPicksOffWith(self, m)
     local id = self._picksOffWith
     if not id then return end
@@ -633,6 +635,7 @@ end
 function ZeD_MMMods:revert()
     local m = model()
     if not m then return end
+    self._picksOffWith = nil   -- (the set the screen opened with stands, picks included)
     self:applyOnSet(self:defaultOnSet(), true)
     local order, seen = {}, {}
     for _, id in ipairs(jlist(getActivatedMods())) do
@@ -753,6 +756,7 @@ end
 function ZeD_MMMods:setAll(on)
     local m = model()
     if not m then return end
+    self._picksOffWith = nil   -- (a whole set picked: its picks on or off stands, see checkPicksOffWith)
     -- (one batch: on, the first in the list wins a conflict; the template mod asks on its own row)
     if on then
         local ids = {}
@@ -770,6 +774,7 @@ end
 function ZeD_MMMods:loadProfile(p)
     local m = model()
     if not (m and p) then return end
+    self._picksOffWith = nil   -- (the profile's own picks on or off stands, see checkPicksOffWith)
     local diff = self:profileDiff(p)
     MM.clickSound()
     if not p.name then
