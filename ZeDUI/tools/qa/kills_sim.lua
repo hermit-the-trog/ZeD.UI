@@ -268,6 +268,13 @@ data = ZeD.JournalTab.gatherData(P)
 check("four kills, four in the total", data.totalKills == 4, data.totalKills)
 check("one of each", kd().weapon.Blunt == 1 and kd().explosion == 1 and kd().vehicle == 1 and kd().fire == 1)
 check("a new kill table is born fixed: its bomb kill stays explosion", kd().v == 2 and kd().weapon.Other == nil)
+-- the one-time fix runs once: a table already marked fixed (or seeded by QA with v = 2) keeps its rows
+fresh()
+P.md.ZeD_Kills = { weapon = { Other = 40 }, fire = 0, vehicle = 0, explosion = 2, v = 2 }
+engineKill(zombie(50), BAT)
+check("a fixed table is not fixed again: Other and explosion stay",
+    kd().weapon.Other == 40 and kd().explosion == 2 and kd().weapon.Blunt == 1,
+    tostring(kd().weapon.Other) .. " / " .. tostring(kd().explosion))
 
 print("kills_sim: " .. checks .. " checks, " .. failed .. " failed")
 os.exit(failed == 0 and 0 or 1)
