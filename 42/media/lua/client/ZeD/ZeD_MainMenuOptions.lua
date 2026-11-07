@@ -848,21 +848,11 @@ function ZeD_MMOptions:prerender()
     -- which rows: the page's, or everything matching Find
     local rows
     if q ~= "" then
-        rows = {}
-        for _, p in ipairs(pages) do
-            local hits = {}
-            -- (ZeD setup's rows are copies of rows in the other groups: found there)
-            for _, r in ipairs(p.setup and {} or self:rowsFor(p)) do
-                if r.kind ~= "header" and r.kind ~= "note" and r.kind ~= "desc" then
-                    local hay = string.lower(tostring(r.label or "") .. " " .. tostring(help(r) or ""))
-                    if hay:find(q, 1, true) then hits[#hits + 1] = r end
-                end
-            end
-            if #hits > 0 then
-                rows[#rows + 1] = { kind = "header", text = p.title }
-                for _, r in ipairs(hits) do rows[#rows + 1] = r end
-            end
-        end
+        -- (ZeD's own options found on ZeD setup with ZeD's controls; the game's settings in their own groups)
+        rows = MM.optionGroups.findRows(pages, function(p) return self:rowsFor(p) end, q, function(r)
+            local name = r.labelKey and ZeD.tr(r.labelKey) or ""
+            return string.lower(tostring(r.label or "") .. " " .. name .. " " .. tostring(help(r) or ""))
+        end)
         self._findCounts = true
     else
         rows = self:rowsFor(page)

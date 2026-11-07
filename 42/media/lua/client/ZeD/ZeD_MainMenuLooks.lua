@@ -478,6 +478,7 @@ function ZeD_MMLooks:setConfirm(mode)
         self.field:setText(tostring(text))
         self.field:setVisible(true)
         self.field:focus()
+        if ZeD.selectDefault then ZeD.selectDefault(self.field) end   -- (typing replaces the name offered)
     else
         self.field:setVisible(false)
         if self.field:isFocused() then self.field:unfocus() end
