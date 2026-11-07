@@ -3119,6 +3119,8 @@
     "UI_ZeD_Belt_AmmoCarried": "攜帶：%1",
     "UI_ZeD_Belt_AmmoCarriedNone": "攜帶：沒有 %1",
     "UI_ZeD_Belt_AmmoCountOf": "%1 %2",
+    "UI_ZeD_Belt_MaskLeft": "剩餘 %1%%",
+    "UI_ZeD_Belt_MaskSpares": "備用：%1",
     "UI_ZeD_Dash_LampCond": "耐久 %1",
     "UI_ZeD_Dash_LampCharge": "電量 %1",
     "UI_ZeD_Dash_LampLeft": "左 %1",

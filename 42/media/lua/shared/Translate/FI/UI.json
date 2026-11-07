@@ -3119,6 +3119,8 @@
     "UI_ZeD_Belt_AmmoCarried": "Mukana: %1",
     "UI_ZeD_Belt_AmmoCarriedNone": "Ei mukana: %1",
     "UI_ZeD_Belt_AmmoCountOf": "%1 %2",
+    "UI_ZeD_Belt_MaskLeft": "%1%% jäljellä",
+    "UI_ZeD_Belt_MaskSpares": "varalla: %1",
     "UI_ZeD_Dash_LampCond": "kunto %1",
     "UI_ZeD_Dash_LampCharge": "lataus %1",
     "UI_ZeD_Dash_LampLeft": "vasen %1",

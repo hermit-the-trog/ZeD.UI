@@ -3119,6 +3119,8 @@
     "UI_ZeD_Belt_AmmoCarried": "Con te: %1",
     "UI_ZeD_Belt_AmmoCarriedNone": "Con te: nessun %1",
     "UI_ZeD_Belt_AmmoCountOf": "%1 %2",
+    "UI_ZeD_Belt_MaskLeft": "%1%% rimasto",
+    "UI_ZeD_Belt_MaskSpares": "ricambi: %1",
     "UI_ZeD_Dash_LampCond": "condizione %1",
     "UI_ZeD_Dash_LampCharge": "carica %1",
     "UI_ZeD_Dash_LampLeft": "sinistro %1",
