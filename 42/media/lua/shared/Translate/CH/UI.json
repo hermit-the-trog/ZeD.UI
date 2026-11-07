@@ -646,6 +646,7 @@
     "UI_ZeD_DashPlain_Ignition": "點火開關",
     "UI_ZeD_DashPlain_KeyOut": "鑰匙已拔",
     "UI_ZeD_DashPlain_Km": "%1 公里",
+    "UI_ZeD_DashPlain_Kmh": "公里/時",
     "UI_ZeD_DashPlain_Lamps": "指示燈",
     "UI_ZeD_DashPlain_Lights": "車燈",
     "UI_ZeD_DashPlain_Meter": "計費表",

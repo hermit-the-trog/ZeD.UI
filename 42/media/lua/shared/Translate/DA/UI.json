@@ -646,6 +646,7 @@
     "UI_ZeD_DashPlain_Ignition": "Tænding",
     "UI_ZeD_DashPlain_KeyOut": "Nøgle ude",
     "UI_ZeD_DashPlain_Km": "%1 km",
+    "UI_ZeD_DashPlain_Kmh": "km/h",
     "UI_ZeD_DashPlain_Lamps": "Lamper",
     "UI_ZeD_DashPlain_Lights": "Lys",
     "UI_ZeD_DashPlain_Meter": "Taksameter",

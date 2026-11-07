@@ -646,6 +646,7 @@
     "UI_ZeD_DashPlain_Ignition": "Accensione",
     "UI_ZeD_DashPlain_KeyOut": "Senza chiave",
     "UI_ZeD_DashPlain_Km": "%1 km",
+    "UI_ZeD_DashPlain_Kmh": "km/h",
     "UI_ZeD_DashPlain_Lamps": "Lampade",
     "UI_ZeD_DashPlain_Lights": "Luci",
     "UI_ZeD_DashPlain_Meter": "Tassametro",

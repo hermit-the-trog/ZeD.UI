@@ -646,6 +646,7 @@
     "UI_ZeD_DashPlain_Ignition": "점화",
     "UI_ZeD_DashPlain_KeyOut": "키 뺌",
     "UI_ZeD_DashPlain_Km": "%1 km",
+    "UI_ZeD_DashPlain_Kmh": "km/h",
     "UI_ZeD_DashPlain_Lamps": "램프",
     "UI_ZeD_DashPlain_Lights": "라이트",
     "UI_ZeD_DashPlain_Meter": "미터기",

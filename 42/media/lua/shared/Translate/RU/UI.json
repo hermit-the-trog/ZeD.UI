@@ -646,6 +646,7 @@
     "UI_ZeD_DashPlain_Ignition": "Зажигание",
     "UI_ZeD_DashPlain_KeyOut": "Ключа нет",
     "UI_ZeD_DashPlain_Km": "%1 км",
+    "UI_ZeD_DashPlain_Kmh": "км/ч",
     "UI_ZeD_DashPlain_Lamps": "Лампы",
     "UI_ZeD_DashPlain_Lights": "Свет",
     "UI_ZeD_DashPlain_Meter": "Счётчик",
