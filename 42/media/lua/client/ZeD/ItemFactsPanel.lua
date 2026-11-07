@@ -217,7 +217,15 @@ function M.CombatFacts(item)
     local cond      = safeGet(item, "getCondition")
     local condMax   = safeGet(item, "getConditionMax")
     local critChance= safeGet(item, "getCriticalChance")
-    local ammoType  = safeGet(item, "getAmmoType")
+    -- the ammo's own name ("9mm Rounds"); getAmmoType is an AmmoType object, which tostring
+    -- would print as its registry id ("base:bullets_9mm")
+    local ammoType
+    if ZeD.Atoms and ZeD.Atoms.ammoOf then
+        local _, an = ZeD.Atoms.ammoOf(item)
+        ammoType = an
+    else
+        ammoType = safeGet(item, "getAmmoType")
+    end
 
     local panel = {
         title         = ZeD.tr("UI_ZeD_Card_FactsCombat"),
