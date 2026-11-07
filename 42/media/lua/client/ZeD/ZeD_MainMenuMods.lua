@@ -153,6 +153,7 @@ function ZeD_MMMods:onShow()
     ZeD.ModPicks.reset()
     if ZeD.ModReset then ZeD.ModReset.forget() end
     self._resetPending = nil
+    self._picksOffWith = nil   -- (toggle: the mod that took ZeD picks off on this visit)
     self._optSeen, self._optKept, self._palette = {}, {}, nil
     local wrote = 0
     pcall(function() wrote = ZeD.ModPicks.sync(jlist(getActivatedMods())) end)
@@ -396,6 +397,33 @@ end
 -- state): two of them that conflict go on together; otherwise the first wins, and a mod on
 -- already counts as first. opts.exact: the template mod too (else it asks on its own row).
 -- opts.why: id -> the reason a mod stayed off. Returns the mods set on and the names left off.
+
+-- toggle remembers the mod that took ZeD picks off (self._picksOffWith). That memory holds only
+-- while that mod and picks are both still off: once either came on another way (a profile with
+-- ZeD-GUI on and picks off, Turn all, a separator or folder box, a mod that needs ZeD-GUI), that
+-- choice stands and turning the mod off and on again must not overrule it. A set the player
+-- picked as a whole (Turn all off, a profile, No mods, Undo changes) stands too, even with both
+-- off: setAll, loadProfile and revert forget it. The Load order page's Back and Undo set an
+-- earlier set of this visit's mods again, so they put back the memory that went with that set
+-- (restorePicksOffWith), even when a separator box on that page had cleared it (review Nov 7 2026)
+local function checkPicksOffWith(self, m)
+    local id = self._picksOffWith
+    if not id then return end
+    local helper = ZeD.ModPicks and ZeD.ModPicks.HELPER
+    local r = m.mods[id]
+    local h = helper and m.mods[helper]   -- (nil when picks is not installed)
+    if not (r and h) or r.isActive or h.isActive then self._picksOffWith = nil end
+end
+
+-- the Load order page's Back and Undo: id is the memory kept with the set they just put back
+-- (nil when there was none). It is checked again, so it holds only while that mod and picks are
+-- both off now.
+function ZeD_MMMods:restorePicksOffWith(id)
+    self._picksOffWith = id
+    local m = model()
+    if m then checkPicksOffWith(self, m) end
+end
+
 function ZeD_MMMods:modsOnBatch(ids, opts)
     local m = model()
     local go, goSet, cannot, seen = {}, {}, {}, {}
@@ -434,6 +462,8 @@ function ZeD_MMMods:modsOnBatch(ids, opts)
         end
     end
     if #go > 0 then m:refreshMods() end
+    -- (applyOnSet always ends here, after its mods went off, so this sees the whole set change)
+    checkPicksOffWith(self, m)
     return go, cannot
 end
 
@@ -476,6 +506,24 @@ function ZeD_MMMods:toggle(d, confirmed)
     if turnOn and d.modId == "ModTemplate" and not confirmed then self._templateFor = d; self:setConfirm("template"); return end
     local before = activeSet(m)
     m:forceActivateMods(d.modInfo, turnOn)
+    -- ZeD picks needs ZeD-GUI (require=\ZeD_UI in its mod.info), so turning ZeD-GUI off takes picks
+    -- off with it, and vanilla's cascade only brings requirements back on, never dependants. Picks
+    -- that went off that way come back with the mod that took them (review Nov 7 2026, #4), the way
+    -- the screen turns the helper on by itself once picks apply (afterPicks)
+    local helper = ZeD.ModPicks and ZeD.ModPicks.HELPER
+    if helper then
+        local h = m.mods[helper]
+        if d.modId == helper then
+            self._picksOffWith = nil   -- the player set picks themselves: their choice stands
+        elseif not turnOn and before[helper] and h and not h.isActive then
+            self._picksOffWith = d.modId   -- remember which mod took picks off (until the screen closes)
+        elseif turnOn and self._picksOffWith == d.modId and d.isActive and h and not h.isActive then
+            self._picksOffWith = nil
+            m:forceActivateMods(h.modInfo, true)   -- (it checks the helper can run, as for any mod)
+        end
+        -- (another mod turned on may have brought the remembered one back as its requirement)
+        checkPicksOffWith(self, m)
+    end
     -- (the list's pins and rules lay the order out again: ZeD_MainMenuModsOrder)
     if turnOn and self.relayoutList then self:relayoutList() end
     self:dirty()
@@ -579,18 +627,32 @@ function ZeD_MMMods:reordered()
     return r
 end
 
+-- every load order the screen writes goes through here (punch list 97). Vanilla's
+-- correctAndSaveModOrder reads each id's record (self.mods[id].modInfo), and the list can still
+-- name a mod that is no longer installed: that id has no record, so the call threw (Undo changes
+-- and Load after, beta 6). Such ids are left out first; Accept's checkMissingMods drops them anyway
+function ZeD_MMMods:saveOrder(ids)
+    local m = model()
+    if not m then return end
+    local out = {}
+    -- (m.mods is keyed by mod id: no record = not installed)
+    for _, id in ipairs(ids or {}) do if m.mods[id] then out[#out + 1] = id end end
+    m:correctAndSaveModOrder(out)
+end
+
 -- the band's Undo changes while changes wait: every mod back to how it loaded, the load order
 -- too, and the screen stays
 function ZeD_MMMods:revert()
     local m = model()
     if not m then return end
+    self._picksOffWith = nil   -- (the set the screen opened with stands, picks included)
     self:applyOnSet(self:defaultOnSet(), true)
     local order, seen = {}, {}
     for _, id in ipairs(jlist(getActivatedMods())) do
         if m.mods[id] and m.mods[id].isActive then order[#order + 1] = id; seen[id] = true end
     end
     for _, id in ipairs(jlist(m:getActiveMods():getMods())) do if not seen[id] then order[#order + 1] = id end end
-    m:correctAndSaveModOrder(order)
+    self:saveOrder(order)
     self:dirty()
     MM.clickSound()
     self:say(ZeD.tr("UI_ZeD_Mods_SayDiscarded"))
@@ -605,7 +667,7 @@ function ZeD_MMMods:loadAfter(id, afterId)
     local pos = #out + 1
     for i, x in ipairs(out) do if x == afterId then pos = i + 1 end end
     table.insert(out, pos, id)
-    m:correctAndSaveModOrder(out)
+    self:saveOrder(out)
     self:dirty()
     MM.clickSound()
     self:say(ZeD.tr("UI_ZeD_Mods_SayLoadAfter", MS.modName(id), MS.modName(afterId)))
@@ -704,6 +766,7 @@ end
 function ZeD_MMMods:setAll(on)
     local m = model()
     if not m then return end
+    self._picksOffWith = nil   -- (a whole set picked: its picks on or off stands, see checkPicksOffWith)
     -- (one batch: on, the first in the list wins a conflict; the template mod asks on its own row)
     if on then
         local ids = {}
@@ -721,6 +784,7 @@ end
 function ZeD_MMMods:loadProfile(p)
     local m = model()
     if not (m and p) then return end
+    self._picksOffWith = nil   -- (the profile's own picks on or off stands, see checkPicksOffWith)
     local diff = self:profileDiff(p)
     MM.clickSound()
     if not p.name then
@@ -748,7 +812,7 @@ function ZeD_MMMods:loadProfile(p)
     if #order == 0 then order = O.ruleOrder(I, active) end
     local lo = O.getLo(p.name)
     order = O.layout(order, I, lo, false)
-    if #order > 0 then m:correctAndSaveModOrder(order) end
+    if #order > 0 then self:saveOrder(order) end
     O.putLo(O.listKey(m), lo, false)
     e = e or { order = {} }
     e.used = stamp()

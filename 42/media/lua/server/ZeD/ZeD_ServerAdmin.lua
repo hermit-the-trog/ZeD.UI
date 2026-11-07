@@ -293,17 +293,22 @@ local function skillsCopy(list)
     return out
 end
 
--- what the server reads of a player: their profession, traits and skills, at the moment of asking
+-- what the server reads of a player: their profession, traits and skills, at the moment of asking.
+-- The names are in the server's language (a dedicated server's is English), so the ids go too: profId, traitIds (in
+-- step with traits) and each skill's id. The viewer's client looks the game's own names up from them in its language.
 local function readPlayer(o, all)
-    local out = { traits = {}, skills = {} }
+    local out = { traits = {}, traitIds = {}, skills = {} }
     local d = o:getDescriptor()
     local prof = d and d:getCharacterProfession()
     local def = prof and CharacterProfessionDefinition.getCharacterProfessionDefinition(prof)
-    if def then out.prof = def:getUIName() end
+    if def then out.prof, out.profId = def:getUIName(), tostring(prof) end   -- (tostring: "base:farmer")
     local known = o:getCharacterTraits():getKnownTraits()
     for i = 0, known:size() - 1 do
         local tr = CharacterTraitDefinition.getCharacterTraitDefinition(known:get(i))
-        if tr then out.traits[#out.traits + 1] = tr:getLabel() end
+        if tr then
+            out.traits[#out.traits + 1] = tr:getLabel()
+            out.traitIds[#out.traits] = tostring(known:get(i))
+        end
     end
     for i = 0, Perks.getMaxIndex() - 1 do
         local perk = Perks.fromIndex(i)
@@ -352,10 +357,21 @@ end
 local function cardView(md, user, p)
     local o = Srv.player(user)
     local rec = md.players[user]
+    -- an account that is off shows only to a role with the game's power for the full list, as in a_players (the director,
+    -- Nov 6 2026). Guarded the same way: a game without the power shows no one who is off
+    local closed = false
+    if not o then
+        local allCap = Capability and Capability.SeeNetworkUsers
+        closed = not (allCap and Srv.can(p, allCap))
+    end
+    -- (closed, the saved record stays here, whether there is one or not; the card says which power it takes)
+    if closed then rec = nil end
     local v = { user = user, on = o ~= nil, muted = md.mutes[string.lower(user)] ~= nil, last = rec and rec.t or nil }
+    if closed then v.closed = true end
     if o then
         local r = readPlayer(o, true)
         v.prof, v.traits, v.skills = r.prof, r.traits, r.skills
+        v.profId, v.traitIds = r.profId, r.traitIds
         v.role = roleName(o)
         if Adm.RANK_GUARD and rank(o:getRole()) > rank(p:getRole()) then
             v.hidden = true
@@ -365,10 +381,12 @@ local function cardView(md, user, p)
         end
     elseif rec then
         v.prof, v.traits, v.skills, v.role = rec.prof, listCopy(rec.traits), skillsCopy(rec.skills), rec.role
+        v.profId, v.traitIds = rec.profId, listCopy(rec.traitIds)   -- (nil and {} on a record kept before the ids were)
     end
     if Srv.ticketsOf and Srv.can(p, Srv.CAP_STAFF) then v.tickets, v.ticketN = Srv.ticketsOf(user, AL.TICKETS_ROWS) end
+    -- (closed, a ban would tell that the name is a real account: it goes only to a role that reads the bans, as a_bans)
     local b = rowFor(md, user)
-    if b then v.banId, v.banUntil = b.id, b.untilT end
+    if b and (not closed or Srv.can(p, CAP.BanUnbanUser)) then v.banId, v.banUntil = b.id, b.untilT end
     return v
 end
 
@@ -609,6 +627,7 @@ local function snap(md, o, user, now)
         rec.snapAt = now
         local r = readPlayer(o, false)
         rec.prof, rec.traits, rec.skills = r.prof, r.traits, r.skills
+        rec.profId, rec.traitIds = r.profId, r.traitIds
     end
 end
 
@@ -879,6 +898,12 @@ reg("a_role", { cap = CAP.ChangeAccessLevel }, function(p, a, rid)
     local md = open()
     if frozen(p, rid) then return end
     if a.user == p:getUsername() then Srv.ack(p, rid, false, "self"); return end
+    -- an account that is off takes the game's power for every account, as its card does (the director, Nov 6 2026).
+    -- Asked before "unknown", so the answer is the same whether the name is an account or not
+    if not Srv.player(a.user) then
+        local allCap = Capability and Capability.SeeNetworkUsers
+        if not (allCap and Srv.can(p, allCap)) then Srv.ack(p, rid, false, "perm"); return end
+    end
     if not Srv.player(a.user) and not md.players[a.user] then Srv.ack(p, rid, false, "unknown"); return end
     local new = roleNamed(a.role)
     if not new then Srv.ack(p, rid, false, "gone"); return end

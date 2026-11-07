@@ -265,8 +265,9 @@ local function newPanel(w, h)
     function p:drawTexture() end
     function p:drawTextureScaled() end
     function p:drawTextureScaledAspect() end
-    function p:setStencilRect(x, y, ww, hh) self.st = { x = x, y = y, w = ww, h = hh } end
-    function p:clearStencilRect() self.st = nil end
+    -- (clips counts the clips on, as the game's own count does: a tab must end with the count it began with)
+    function p:setStencilRect(x, y, ww, hh) self.st = { x = x, y = y, w = ww, h = hh }; self.clips = (self.clips or 0) + 1 end
+    function p:clearStencilRect() self.st = nil; self.clips = (self.clips or 0) - 1 end
     function p:addChild(c)
         self.kids[#self.kids + 1] = c
         if c.createChildren then c:createChildren() end
@@ -277,6 +278,21 @@ end
 local WINS = { server = { _playerObj = PLAYER, playerNum = 0 }, admin = { _playerObj = PLAYER, playerNum = 0 } }
 local function stOf(tab)
     return (tab == "server") and WINS.server._serverTab or WINS.admin._adminTab
+end
+
+-- each drawn frame of a tab, and the ones that ended with more or fewer clips than they began with (punch list 95: one
+-- left on hides the window's tab strip and footer)
+local clipFrames, clipLeft = 0, {}
+local function renderTab(tab, panel, w, h)
+    local c0 = panel.clips or 0
+    TABS[tab].render(panel, WINS[tab], 0, 0, w, h)
+    clipFrames = clipFrames + 1
+    local d = (panel.clips or 0) - c0
+    if d ~= 0 then
+        local st = stOf(tab)
+        clipLeft[#clipLeft + 1] = tab .. ((st and st.card) and (" card " .. tostring(st.card.kind)) or " list") .. " " .. d
+        panel.clips = c0
+    end
 end
 
 -- ZEDQA_SVG=<folder>: each state of a profile named in ZEDQA_SVG_ONLY is written as a picture, to read against the mockup
@@ -322,7 +338,7 @@ end
 local function frame(tab, panel, w, h)
     panel.texts = {}
     panel.ops = {}
-    TABS[tab].render(panel, WINS[tab], 0, 0, w, h)
+    renderTab(tab, panel, w, h)
     for _, c in ipairs(panel.kids) do
         if c.visible then c:prerender() end
     end
@@ -333,7 +349,7 @@ local function frame(tab, panel, w, h)
         TC._D.openPopup(stOf(tab), t, k)
         panel.texts = {}
         panel.ops = {}
-        TABS[tab].render(panel, WINS[tab], 0, 0, w, h)
+        renderTab(tab, panel, w, h)
     end
     return panel
 end
@@ -1203,6 +1219,71 @@ ad.tk.q = { status = "Open", newest = true, page = 1, find = "" }
         TC.back(WINS.admin, ad)
         C.onViewTickets(jlist({}))
         S.forceOff = nil
+    end
+end
+
+-- every frame drawn above, lists and cards, Admin and Server tabs, ended with the clips it began with
+check("each tab and card ends its draw with the clips it began with (" .. clipFrames .. " frames)",
+    clipFrames > 0 and #clipLeft == 0, clipLeft[1] and (#clipLeft .. " frames, first: " .. clipLeft[1]) or nil)
+
+-- punch list 95: the time follows the game's 24-hour clock option in other languages; English keeps "9:42 PM"
+do
+    local D = TC._D
+    local sec = os.time({ year = 2026, month = 11, day = 5, hour = 21, min = 42 })
+    local core0, lang0 = getCore, Translator
+    local function setUp(h24, lang)
+        getCore = function() return { getOptionClock24Hour = function() return h24 end } end
+        Translator = { getLanguage = function() return { name = function() return lang end } end, getAvailableLanguage = function() return nil end }
+        nowMs = nowMs + 1001      -- (past the second the option is kept for)
+    end
+    setUp(true, "EN")
+    check("English keeps the 12-hour clock", D.clock(sec) == ZeD.tr("UI_ZeD_Tk_TimePm", 9, "42"), D.clock(sec))
+    setUp(true, "DE")
+    check("German with the game's 24-hour clock", D.clock(sec) == "21:42", D.clock(sec))
+    setUp(false, "DE")
+    check("German with the 12-hour clock", D.clock(sec) == ZeD.tr("UI_ZeD_Tk_TimePm", 9, "42"), D.clock(sec))
+    getCore = function() return {} end   -- (a game without the option: as before)
+    nowMs = nowMs + 1001
+    check("no clock option: 12-hour", D.clock(sec) == ZeD.tr("UI_ZeD_Tk_TimePm", 9, "42"), D.clock(sec))
+    getCore, Translator = core0, lang0
+    nowMs = nowMs + 1001
+end
+
+-- punch list 95: a heading's hint at its right never runs into a long heading; it goes under it instead
+do
+    local D = TC._D
+    local function one(text, right, w)
+        local items = { { k = "label", text = text, right = right } }
+        D.layout(WINS.admin, items, w, 400)
+        return items[1]
+    end
+    local short = one("Ban", "a username, a Steam ID or an IP", 480)
+    check("a hint that fits stays beside its heading", short.below == nil)
+    local tm, T = ZeD.TM, ZeD.T
+    local head, hint = "Jemanden offline bannen", "ein Benutzername, eine Steam-ID oder eine IP"
+    local edge = tm:MeasureStringX(T.fontF1, head) + T.px(8) + tm:MeasureStringX(T.fontF3, hint)   -- both, with the gap
+    check("just wide enough: beside it", one(head, hint, edge).below == nil)
+    local long = one(head, hint, edge - 1)
+    check("a pixel less: under it", long.below ~= nil and #long.lines == 1, long.below and #long.below)
+    check("and the heading grows by its lines", long.h == tm:getFontHeight(T.fontF1) + #long.below * tm:getFontHeight(T.fontF3) + T.px(6), long.h)
+    local narrow = one("Jemanden offline bannen", "ein Benutzername, eine Steam-ID oder eine IP", 120)
+    check("a narrow card always puts it under", narrow.below ~= nil)
+    -- a typing counter on the edge: "10/30" pushes it under, and "9/30" must not pull it back up while the width holds
+    local cHead = "Reason"
+    local cEdge = tm:MeasureStringX(T.fontF1, cHead) + T.px(8) + tm:MeasureStringX(T.fontF3, "9/30")
+    local n = "9/30"
+    local items = { { k = "label", text = cHead, rightFn = function() return n end } }
+    if tm:MeasureStringX(T.fontF3, "10/30") > tm:MeasureStringX(T.fontF3, "9/30") then
+        D.layout(WINS.admin, items, cEdge, 400)
+        check("counter 9/30 on the edge: beside", items[1].below == nil)
+        n = "10/30"; D.layout(WINS.admin, items, cEdge, 400)
+        check("counter 10/30: under", items[1].below ~= nil)
+        local h10 = items[1].h
+        n = "9/30"; D.layout(WINS.admin, items, cEdge, 400)
+        check("back to 9/30: stays under, the field below doesn't move", items[1].below ~= nil and items[1].h == h10, items[1].h)
+        check("and shows the new count", items[1].below and items[1].below[1] == "9/30", items[1].below and items[1].below[1])
+        D.layout(WINS.admin, items, cEdge + 40, 400)
+        check("a wider card: beside again", items[1].below == nil)
     end
 end
 

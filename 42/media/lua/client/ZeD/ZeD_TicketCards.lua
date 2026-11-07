@@ -208,11 +208,32 @@ end
 -- ---------------------------------------------------------------------------
 function D.day(n) return n and tr("UI_ZeD_Tk_Day", n) or nil end
 
--- "9:42 PM", and the date's table
+-- true for "21:42": the game's own clock option (24-hour clock) is on and the game's language isn't English. English
+-- keeps the "9:42 PM" the cards were drawn with. Read at most once a second, as a list asks once per row.
+local _h24 = { at = -1, on = false }
+function D.clock24()
+    local t = now()
+    if t >= _h24.at and t - _h24.at < 1000 then return _h24.on end
+    _h24.at = t
+    local on = false
+    pcall(function()
+        local core = getCore and getCore()
+        local lang = Translator and Translator.getLanguage and Translator.getLanguage()
+        -- (each method checked before it is called: another build of the game may lack one)
+        if core and core.getOptionClock24Hour and lang and lang.name then
+            on = core:getOptionClock24Hour() == true and tostring(lang:name()) ~= "EN"
+        end
+    end)
+    _h24.on = on
+    return on
+end
+
+-- "9:42 PM" (or "21:42", D.clock24), and the date's table
 function D.clock(sec)
     if type(sec) ~= "number" then return nil end
     local ok, d = pcall(os.date, "*t", sec)
     if not ok or type(d) ~= "table" then return nil end
+    if D.clock24() then return string.format("%02d:%02d", d.hour or 0, d.min or 0), d end
     local h, pm = d.hour or 0, (d.hour or 0) >= 12
     if h > 12 then h = h - 12 elseif h == 0 then h = 12 end
     return tr(pm and "UI_ZeD_Tk_TimePm" or "UI_ZeD_Tk_TimeAm", h, string.format("%02d", d.min or 0)), d
@@ -1997,7 +2018,26 @@ function D.layout(win, items, wAll, sh)
         elseif k == "label" then
             if last and last ~= "label" then y = y + px(12) end
             if it.wrapW ~= w then it.wrapW, it.lines = w, D.wrap(it.text, T.fontF1, math.max(1, w)) end
-            it.h = #it.lines * f1h + px(6)
+            -- the hint (a count, a short note) sits at the right of the heading's first line when both fit with a gap;
+            -- when they don't (a long heading in some language), it goes on its own lines under the heading instead
+            local right = it.right or (it.rightFn and it.rightFn())
+            it.below = nil
+            if right and right ~= "" then
+                local head = it.lines[1] or ""
+                local headW = tm:MeasureStringX(T.fontF1, head)
+                -- once a hint has gone under, it stays there while the width and heading stay the same: a typing
+                -- counter ("9/30" to "10/30") would otherwise hop up and down, moving the field under it as the player types
+                local stuck = it.stuckW == w and it.stuckHead == head
+                if stuck or headW + px(8) + tm:MeasureStringX(T.fontF3, right) > w then
+                    it.stuckW, it.stuckHead = w, head
+                    -- (wrapped again only when the hint or the width changed)
+                    if it.belowText ~= right or it.belowW ~= w then
+                        it.belowText, it.belowW, it.belowLines = right, w, D.wrap(right, T.fontF3, math.max(1, w))
+                    end
+                    it.below = it.belowLines
+                end
+            end
+            it.h = #it.lines * f1h + (it.below and #it.below * f3h or 0) + px(6)
         elseif k == "sub" then
             y = y + px(4)
             if it.liveText then
@@ -2127,7 +2167,15 @@ function D.drawCardItem(panel, win, t, it, x, dy, w, mx, my, viewY, viewH, cover
             panel:drawText(s, x, dy + (i - 1) * ZeD.TM:getFontHeight(T.fontF1), c.r, c.g, c.b, c.a or 1, T.fontF1)
         end
         local right = it.right or (it.rightFn and it.rightFn())
-        if right then
+        if it.below then
+            -- the hint didn't fit beside the heading (D.layout): its lines go under it, at the left
+            local f1h, f3h = ZeD.TM:getFontHeight(T.fontF1), ZeD.TM:getFontHeight(T.fontF3)
+            local by = dy + #(it.lines or {}) * f1h
+            local dc = T.textDim
+            for i, s in ipairs(it.below) do
+                panel:drawText(s, x, by + (i - 1) * f3h, dc.r, dc.g, dc.b, dc.a or 1, T.fontF3)
+            end
+        elseif right then
             local room = w - ZeD.TM:MeasureStringX(T.fontF1, (it.lines and it.lines[1]) or it.text) - px(8)
             ZeD.Atoms.drawTextRight(panel, ZeD.Atoms.truncateText(right, T.fontF3, math.max(0, room)), x + w, dy, T.fontF3, T.textDim)
         end
@@ -2360,6 +2408,8 @@ function TC.renderCard(panel, win, st, x, y, w, h)
         end
     end
     panel:clearStencilRect()
+    -- (PZ clips do not nest: the list's rect, once cleared, stays shut to what draws next, so the
+    -- whole card is opened again for the scrollbar and the pop-up over the list...)
     panel:setStencilRect(0, 0, panel:getWidth(), panel:getHeight())
     if needs then t.scroll:draw(panel) end
     if t.popup then D.drawPopup(panel, win, t, sy, sy + sh) end
@@ -2369,6 +2419,9 @@ function TC.renderCard(panel, win, st, x, y, w, h)
     else
         t.footRects = {}
     end
+    -- (...and that clip comes off here: a card ends with the clips it started with, in a window's
+    -- tab and on the join screen alike; punch list 95)
+    panel:clearStencilRect()
     local s = D.flashNow(t)
     if s and not D.padOn() then ZeD.Help.set(win, s) end
 end

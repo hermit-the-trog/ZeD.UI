@@ -1188,9 +1188,9 @@ function SRC.drawDetail(panel, win, id, x, y, w, h, sc)
     local ix, iw = x + pad, w - pad * 2
     local dim, tc = T.toneLo or T.textDim, T.text
     local innerH = h - T.px(1)
-    panel:setStencilRect(x, y + T.px(1), w, innerH)
     if sc then sc.visible = false end
     if not r then
+        panel:setStencilRect(x, y + T.px(1), w, innerH)
         local lines = A.wrapText(tr("UI_ZeD_ETW_Pick"), T.fontF2, iw)
         for i, l in ipairs(lines) do panel:drawText(l, ix, y + T.px(12) + (i - 1) * F(2), dim.r, dim.g, dim.b, dim.a or 1, T.fontF2) end
         panel:clearStencilRect()
@@ -1215,10 +1215,13 @@ function SRC.drawDetail(panel, win, id, x, y, w, h, sc)
         sc.x, sc.y, sc.height = x + w - sbW, y + T.px(1), innerH
         sc:setBarSize(innerH / contentH)
         off = math.floor(sc.scrollPos * (contentH - innerH))
-        panel:setStencilRect(x, y + T.px(1), w - sbW, innerH)
     elseif sc then
         sc:setScrollPos(0)
     end
+    -- one clip, set once the width is known: a second one set inside the first was never cleared
+    -- and hid the tab's header and scrollbar drawn after it (punch list 95). With a scrollbar the
+    -- clip stops short of it, so the bar, drawn once the clip is off, still shows.
+    panel:setStencilRect(x, y + T.px(1), needs and (w - sbW) or w, innerH)
     local cy = y + T.px(8) - off
     -- the title row: the name, and at the right where the mod's page keeps it
     local th = T.textHead or tc
@@ -1433,6 +1436,8 @@ function S.render(panel, win, x, y, w, h)
         end
     end
     panel:clearStencilRect()
+    -- (PZ clips do not nest: the list's rect, once cleared, stays shut to what draws next, so the
+    -- whole tab is opened again; that clip comes off at the end)
     panel:setStencilRect(0, 0, panel:getWidth(), panel:getHeight())
     -- the details at the foot (the hovered row, else the picked one)
     local dY = y + h - detH
@@ -1450,6 +1455,9 @@ function S.render(panel, win, x, y, w, h)
         ZeD.Focus.mark(panel, f.x, f.y, f.w, f.h, findFocus)
     end
     if needs then scroll:draw(panel) end
+    -- (the tab ends with the clips it started with: one left on hides the window's tab strip and
+    -- footer; punch list 95)
+    panel:clearStencilRect()
     hs.rendered = true
 end
 

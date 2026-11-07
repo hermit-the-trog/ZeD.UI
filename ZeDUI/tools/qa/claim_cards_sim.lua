@@ -1075,8 +1075,18 @@ do
     CALLS = {}
     press("srv:tk:inv:yes:1")
     check("Accept: the game's answer", called("acceptSafehouseInvite") and called("acceptSafehouseInvite").a[4] == true)
+    -- the review, Nov 7: a second Accept while the first is on its way says to wait, not that it is gone
+    local s2 = newSafe(40, 40, 10, 10, "Kade_R")
+    EVENTS.ReceiveSafehouseInvite.list[#EVENTS.ReceiveSafehouseInvite.list](s2, "Kade_R", "Aretha")
+    settle()
+    CALLS = {}
+    press("srv:tk:inv:yes:1")
+    check("a held Accept sends nothing", called("acceptSafehouseInvite") == nil)
+    check("and says to wait", ZeD.Help.last == ZeD.tr("UI_ZeD_Cl_AnswerWait"), ZeD.Help.last)
     table.insert(s.players, "Aretha")
     settle()
+    check("the first lands", ZeD.Help.last == ZeD.tr("UI_ZeD_Cl_Joined", gt("IGUI_SafehouseUI_Safehouse")), ZeD.Help.last)
+    check("and the waiting note goes with it", #K.invites == 0, #K.invites)
     check("the summary row opens the card", stopOf("srv:tk:sum:safe") ~= nil)
     press("srv:tk:sum:safe")
     check("the card", st.card and st.card.kind == "safe")

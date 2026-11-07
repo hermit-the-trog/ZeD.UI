@@ -677,12 +677,13 @@ do
     say(a, "a_card", { user = "Kade" })
     local c = got(a, "a_card")
     check("the offline card comes from the last look", c and c.on == false and c.prof == "Carpenter" and c.traits[1] == "Handy" and c.skills[1].lv == 3)
+    check("the ids go with the names, for the viewer's own language", c.profId == "carpenter" and c.traitIds[1] == "Handy", tostring(c.profId))
     check("no place when they are off the map", c.x == nil)
     nolimit(a)
     say(a, "a_card", { user = "Hermit" })
     c = got(a, "a_card")
     check("online: where, and every skill", c.x == 6280 and #c.skills == 2, c.x)
-    local allowed = { user = 1, on = 1, muted = 1, last = 1, prof = 1, traits = 1, skills = 1, role = 1, x = 1, y = 1, z = 1, oid = 1, tickets = 1, ticketN = 1, banId = 1, banUntil = 1, hidden = 1, id = 1, name = 1, lv = 1 }
+    local allowed = { user = 1, on = 1, muted = 1, last = 1, prof = 1, profId = 1, traits = 1, traitIds = 1, skills = 1, role = 1, x = 1, y = 1, z = 1, oid = 1, tickets = 1, ticketN = 1, banId = 1, banUntil = 1, hidden = 1, closed = 1, id = 1, name = 1, lv = 1 }
     for k in pairs(keysIn(c)) do
         if type(k) == "string" then check("the card is an allowlist: " .. k, allowed[k] ~= nil) end
     end
@@ -1579,6 +1580,72 @@ do
     local ap, aOff = got(a, "a_players"), 0
     for _, r in ipairs(ap.rows) do if r.on == false then aOff = aOff + 1 end end
     check("staff with it still see them", aOff >= 1)
+    -- the offline card follows the same rule: a role with the player stats power but not See every account gets no record
+    ROLES.gm.caps.CanSeePlayersStats = true
+    nolimit(g)
+    say(g, "a_card", { user = "Kade" })
+    local gc = got(g, "a_card")
+    check("an offline card without See every account: no record", gc and gc.on == false and gc.closed == true
+        and gc.prof == nil and gc.traits == nil and gc.skills == nil and gc.role == nil and gc.last == nil)
+    nolimit(g)
+    say(g, "a_card", { user = "Nobody" })
+    gc = got(g, "a_card")
+    check("a name never seen reads the same, so the card tells no one an account exists", gc and gc.closed == true)
+    nolimit(g)
+    say(g, "a_card", { user = "Hermit" })
+    gc = got(g, "a_card")
+    check("an online card is not closed", gc and gc.on == true and gc.closed == nil)
+    -- a ban on the offline name: a closed card keeps it from a role that does not read the bans
+    nolimit(a)
+    say(a, "a_ban", { user = "Kade", reason = "Griefing", len = "w1" })
+    drain()
+    nolimit(a)
+    say(a, "a_card", { user = "Kade" })
+    local ab = got(a, "a_card")
+    check("the ban is on the record (staff card)", ab and ab.banId ~= nil)
+    nolimit(g)
+    say(g, "a_card", { user = "Kade" })
+    gc = got(g, "a_card")
+    check("a closed card keeps a ban from a role without the ban power", gc and gc.closed == true
+        and gc.banId == nil and gc.banUntil == nil)
+    ROLES.gm.caps.BanUnbanUser = true
+    nolimit(g)
+    say(g, "a_card", { user = "Kade" })
+    gc = got(g, "a_card")
+    check("a role that reads the bans still sees it on a closed card", gc and gc.closed == true and gc.banId == ab.banId)
+    ROLES.gm.caps.BanUnbanUser = nil
+    -- a role change on a closed card: refused, with the same answer for an account and a name never seen
+    ROLES.gm.caps.ChangeAccessLevel, ROLES.gm.caps.ModifyNetworkUsers = true, true
+    nolimit(g)
+    say(g, "a_role", { user = "Kade", role = "user" })
+    check("no role change for an offline account without See every account", errOf(g) == "perm", tostring(errOf(g)))
+    nolimit(g)
+    say(g, "a_role", { user = "Nobody", role = "user" })
+    check("a name never seen gets the same answer", errOf(g) == "perm", tostring(errOf(g)))
+    check("and nothing waits for the game", md().watch.Kade == nil and md().watch.Nobody == nil)
+    local t = player("Tom", "user")
+    clientJoin(t)
+    advance(6000)
+    nolimit(g)
+    say(g, "a_role", { user = "Tom", role = "user" })
+    check("an online player's role still changes", okOf(g))
+    ROLES.gm.caps.ChangeAccessLevel, ROLES.gm.caps.ModifyNetworkUsers = nil, nil
+    ROLES.gm.caps.CanSeePlayersStats = nil
+    nolimit(a)
+    say(a, "a_card", { user = "Kade" })
+    local ac = got(a, "a_card")
+    check("staff with it still read the offline record", ac and ac.closed == nil and ac.prof ~= nil and ac.last ~= nil)
+    -- a game without the power: the offline card stays closed even for staff, as the list does
+    local savedCap = CAPS.SeeNetworkUsers
+    CAPS.SeeNetworkUsers = nil
+    nolimit(a)
+    say(a, "a_card", { user = "Kade" })
+    ac = got(a, "a_card")
+    check("no SeeNetworkUsers in the game: closed, and no error", ac and ac.closed == true and ac.prof == nil)
+    nolimit(a)
+    say(a, "a_role", { user = "Kade", role = "user" })
+    check("and no offline role change either", errOf(a) == "perm", tostring(errOf(a)))
+    CAPS.SeeNetworkUsers = savedCap
 end
 
 print("admin_sim: " .. checks .. " checks, " .. failed .. " failed")
