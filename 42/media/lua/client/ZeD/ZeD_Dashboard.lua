@@ -357,8 +357,10 @@ function D.derive(st, mem, dtMs)
     st.brakeLamp  = check
     st.beltLamp   = check
     st.fuelLamp   = st.power and v.fuel < 0.15
-    -- the hot lamp bulb-checks with the rest (Nov 6 2026; the race car's WATER jewel is this lamp too)
-    st.tempLamp   = check or (st.power and v.temp > 0.8)
+    -- the hot lamp bulb-checks with the rest (Nov 6 2026; the race car's WATER jewel is this lamp too). st.hot is the
+    -- engine really running hot, without the bulb check: the Simple dash's Temperature bar reads that (_plainCells)
+    st.hot        = st.power and v.temp > 0.8 or false
+    st.tempLamp   = check or st.hot
     st.hiBeam     = st.power and st.lights or false
     st.lightsLamp = st.hiBeam
     st.turnL, st.turnR, st.fourWD = false, false, false
@@ -825,6 +827,10 @@ end
 local ODO_BASE, ODO_SPREAD, ODO_WORN = 20000, 60000, 60000   -- a found car: 20000 miles, up to 60000 more by its id,
                                                              -- up to 60000 more for a worn-out engine
 local ODO_SEND_MILES = 0.1                                   -- the driver's client sends no more often than this
+-- a last send later than this after the driver's dash last saw the car is dropped, not sent: the server looks after a
+-- claimed car for 10 s once its driver leaves (ZeD_ServerExtras F.lookLeft), and a send from a parked car after that
+-- would wipe its claim stamp, or push this client's stale copy over a newer one
+local ODO_LATE_MS = 3000
 local KM_PER_MILE = 1.609344
 
 -- a remainder by floor (Kahlua's % keeps the sign and goes wrong past 2^31)
@@ -903,15 +909,20 @@ function ZeD_Dashboard:_odometer(vehicle, st, miles, id)
     st.odo, st.trip = odo, trip
     if self._driver and md then
         self._odoCar = vehicle                                  -- the car this driver counts in (ZeD_Dashboard:_odoLeave)
+        self._odoAt = getTimestampMs()                          -- and when the dash last saw it from the driver's seat
         self:_odoSend(vehicle, id, odo, first, not st.running)  -- (engine off: the miles not sent yet go now)
     end
     D.odoShow(st)
 end
 
--- the driver left the seat or the car (or the car is another): the miles it hasn't sent go now (prerender)
+-- the driver left the seat or the car (or the car is another): the miles it hasn't sent go now. D.hide calls it as
+-- the driver gets out (a hidden dash gets no prerender), and so do safe mode and the UI hiding; prerender calls it for
+-- a seat change or another car. Only while the driver is still at the car: a late one is dropped (ODO_LATE_MS)
 function ZeD_Dashboard:_odoLeave()
     local car = self._odoCar
     self._odoCar = nil
+    if not car then return end
+    if getTimestampMs() - (self._odoAt or 0) > ODO_LATE_MS then return end    -- (too late: those miles stay unsent)
     local md = _get(car, "getModData", nil)
     local odo = md and tonumber(md.ZeD_odo)
     if odo then self:_odoSend(car, _get(car, "getId", 0), odo, false, true) end
@@ -1450,7 +1461,10 @@ local function _plainCells(st, pl, out)
     local T = ZeD.T
     local n = 0
     n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Fuel"), st.power and _pct((st.fuel or 0) * 100) or "--", st.fuel or 0, st.fuelLamp and T.danger or T.accent)
-    n = _cell(out, n, ZeD.tr("IGUI_Temperature"), nil, st.temp or 0, (st.tempLamp == D.LAMP_COLOR.worn) and T.warning or (st.tempLamp and T.danger or T.accent))
+    -- (the bar goes red for a hot engine, not for the key-on bulb check that lights the hot lamp: st.hot is ZeD's own
+    -- reading, and a lamp a mod publishes counts once the engine runs, when st.check is false)
+    local hot = st.hot or (st.tempLamp and not st.check)
+    n = _cell(out, n, ZeD.tr("IGUI_Temperature"), nil, st.temp or 0, (st.tempLamp == D.LAMP_COLOR.worn) and T.warning or (hot and T.danger or T.accent))
     n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Oil"), nil, st.oil or 0, T.accent)
     n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Volts"), nil, st.volts or 0, T.accent)
     local g = tostring(st.gear or "")
@@ -1804,7 +1818,8 @@ end
 function ZeD_Dashboard:prerender()
     local chr = getSpecificPlayer(self.playerNum)
     local vehicle = chr and chr:getVehicle()
-    -- (out of the car the driver counted in, or in another: its last miles go to the server now, before anything returns)
+    -- (in another car than the one the driver counted in: its last miles go to the server now, before anything returns.
+    -- Getting out sends them in D.hide, since this dash is hidden then; _odoLeave drops a send that comes too late)
     if self._odoCar and self._odoCar ~= vehicle then self:_odoLeave() end
     -- (the car lost some way other than getting out: let go of the controller and the focus
     -- ring too, so an unseen dash keeps neither; code audit Oct 17 2026)
@@ -1812,7 +1827,10 @@ function ZeD_Dashboard:prerender()
         self:setVisible(false); self.vehicle = nil; self:_release(); self:_unregister()
         return
     end
-    if ISUIHandler and ISUIHandler.allUIVisible == false then self:setVisible(false); return end
+    if ISUIHandler and ISUIHandler.allUIVisible == false then
+        if self._odoCar then self:_odoLeave() end              -- (hidden, the dash stops counting: what it counted goes now)
+        self:setVisible(false); return
+    end
     if self.vehicle ~= vehicle then                            -- a new car: its needles start from rest
         self._mem = {}
         self._keyShown, self._keyWant, self._keyTurn, self._hulaS = nil, nil, nil, nil
@@ -2065,6 +2083,7 @@ function D.show(character)
         -- (the driver's seat leaves the D-pad with the wheels: Vehicle > Dashboard hands it over)
         if not vehicle:isDriver(character) then inst:_release(); inst:_unregister() end
     else
+        if inst._odoCar then pcall(inst._odoLeave, inst) end    -- (the last miles first: a hidden dash draws nothing)
         inst:setVisible(false); inst:_release(); inst:_unregister()
     end
 end
@@ -2088,6 +2107,9 @@ function D.hide(character)
     local pn = character.getPlayerNum and character:getPlayerNum() or 0
     if pn ~= inst.playerNum then return end
     inst.vehicle = nil
+    -- (the driver got out: the miles not sent yet go now, while the car is still beside them and the server still
+    -- looks after it; once hidden, this dash gets no prerender to send them from. ZeD_Dashboard:_odoLeave)
+    if inst._odoCar then pcall(inst._odoLeave, inst) end
     inst:setVisible(false); inst:_release(); inst:_unregister()
 end
 
@@ -2099,6 +2121,7 @@ ZeD.Safe.register("dashboard", {
     leave = function()
         local inst = D._instance
         if inst then
+            if inst._odoCar then pcall(inst._odoLeave, inst) end    -- (the last miles first, as D.hide)
             inst:setVisible(false)
             pcall(inst._release, inst)
             pcall(inst._unregister, inst)
