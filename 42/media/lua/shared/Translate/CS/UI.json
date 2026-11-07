@@ -3119,6 +3119,8 @@
     "UI_ZeD_Belt_AmmoCarried": "Neseš: %1",
     "UI_ZeD_Belt_AmmoCarriedNone": "Neseš: žádné %1",
     "UI_ZeD_Belt_AmmoCountOf": "%1 %2",
+    "UI_ZeD_Belt_MaskLeft": "zbývá %1%%",
+    "UI_ZeD_Belt_MaskSpares": "náhradní: %1",
     "UI_ZeD_Dash_LampCond": "stav %1",
     "UI_ZeD_Dash_LampCharge": "nabití %1",
     "UI_ZeD_Dash_LampLeft": "levý %1",

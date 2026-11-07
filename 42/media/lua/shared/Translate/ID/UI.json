@@ -3119,6 +3119,8 @@
     "UI_ZeD_Belt_AmmoCarried": "Dibawa: %1",
     "UI_ZeD_Belt_AmmoCarriedNone": "Dibawa: tanpa %1",
     "UI_ZeD_Belt_AmmoCountOf": "%1 %2",
+    "UI_ZeD_Belt_MaskLeft": "sisa %1%%",
+    "UI_ZeD_Belt_MaskSpares": "cadangan: %1",
     "UI_ZeD_Dash_LampCond": "kondisi %1",
     "UI_ZeD_Dash_LampCharge": "daya %1",
     "UI_ZeD_Dash_LampLeft": "kiri %1",
