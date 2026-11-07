@@ -632,6 +632,37 @@ do
 end
 
 -- ---------------------------------------------------------------------------
+section("a checklist that throws: the book still lays out, without it, and logs once")
+-- ---------------------------------------------------------------------------
+do
+    local realCheck = ZeD_GuideBook.drawChecklist
+    ZeD_GuideBook.drawChecklist = function() error("checklist boom") end
+    local nLogs = #logs
+    local b = newBook()
+    local ok, err = pcall(b.readTopics, b, 1)
+    local ok2, err2 = ok and pcall(b.readTopics, b, 1)
+    ZeD_GuideBook.drawChecklist = realCheck
+    check("a throwing checklist does not stop the layout", ok and ok2, tostring(err) .. " " .. tostring(err2))
+    check("the book is laid out", b.pages and #b.pages > 0, b.pages and #b.pages)
+    local found = 0
+    for _, p in ipairs(b.pages or {}) do
+        for _, it in ipairs(p.items or {}) do
+            if it.k == "check" or (it.k == "filler" and it.check) then found = found + 1 end
+            for _, a in ipairs(it.ads or {}) do if a.k == "check" then found = found + 1 end end
+        end
+        for _, a in ipairs((p.filler and p.filler.ads) or {}) do if a.k == "check" then found = found + 1 end end
+    end
+    check("no checklist block in that layout", found == 0, found)
+    local hits = 0
+    for i = nLogs + 1, #logs do if logs[i]:find("^survival guide checklist") then hits = hits + 1 end end
+    check("the failure is logged (by logOnce)", hits >= 1, table.concat(logs, " | ", nLogs + 1))
+    for i = #logs, nLogs + 1, -1 do logs[i] = nil end   -- (the planted failure is not a real one: the count below wants none)
+    local b2 = newBook()
+    b2:readTopics(1)
+    check("the checklist is back once it measures again", #(checklists(b2)) == 1, where((checklists(b2))))
+end
+
+-- ---------------------------------------------------------------------------
 section("a whole page with no full ad left: the smaller ads, then NOTES (QA, Nov 7 2026)")
 -- ---------------------------------------------------------------------------
 -- At Large text with pad wording the real book has more whole pages than full ads; the ones past them took NOTES
