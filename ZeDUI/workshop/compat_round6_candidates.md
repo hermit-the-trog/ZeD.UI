@@ -12,6 +12,17 @@ Survey date: Nov 7 2026, signed out, read-only.
 
 The mods were downloaded with SteamCMD's `workshop_download_item`, so the director's Workshop subscriptions don't change. No mod in the test sets ships Java (.jar, .dll or .class files checked).
 
+**Where the copies are:** `C:\steamcmd\steamapps\workshop\content\108600\<id>\mods\<folder>`. Keep them. The seven mods to support (the director, Nov 7) are in these folders:
+- 3835479468 `AutoHideHotbar`;
+- 3832759095 `MaskFilterIndicator`;
+- 3834708364 `ItemConditionRestored`;
+- 3830103302 `BetterItemTransfer`;
+- 3834856444 `Clear_SkillSheet`;
+- 3834889317 `VIF_DualRender_B42` (Better Folders);
+- 3834902827 `BetterModExperience`.
+
+`batch_compat_r6.ps1` copies them into `Zomboid\mods` for a run and removes them after.
+
 ## Tested in game (round 6, `ZeDUI/tools/qa/batch_compat_r6.ps1`)
 
 **Set A**, with a real following:
