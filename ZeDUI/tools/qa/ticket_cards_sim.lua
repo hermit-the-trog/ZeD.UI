@@ -1248,6 +1248,23 @@ do
     check("and the heading grows by its lines", long.h == tm:getFontHeight(T.fontF1) + #long.below * tm:getFontHeight(T.fontF3) + T.px(6), long.h)
     local narrow = one("Jemanden offline bannen", "ein Benutzername, eine Steam-ID oder eine IP", 120)
     check("a narrow card always puts it under", narrow.below ~= nil)
+    -- a typing counter on the edge: "10/30" pushes it under, and "9/30" must not pull it back up while the width holds
+    local cHead = "Reason"
+    local cEdge = tm:MeasureStringX(T.fontF1, cHead) + T.px(8) + tm:MeasureStringX(T.fontF3, "9/30")
+    local n = "9/30"
+    local items = { { k = "label", text = cHead, rightFn = function() return n end } }
+    if tm:MeasureStringX(T.fontF3, "10/30") > tm:MeasureStringX(T.fontF3, "9/30") then
+        D.layout(WINS.admin, items, cEdge, 400)
+        check("counter 9/30 on the edge: beside", items[1].below == nil)
+        n = "10/30"; D.layout(WINS.admin, items, cEdge, 400)
+        check("counter 10/30: under", items[1].below ~= nil)
+        local h10 = items[1].h
+        n = "9/30"; D.layout(WINS.admin, items, cEdge, 400)
+        check("back to 9/30: stays under, the field below doesn't move", items[1].below ~= nil and items[1].h == h10, items[1].h)
+        check("and shows the new count", items[1].below and items[1].below[1] == "9/30", items[1].below and items[1].below[1])
+        D.layout(WINS.admin, items, cEdge + 40, 400)
+        check("a wider card: beside again", items[1].below == nil)
+    end
 end
 
 print("ticket_cards_sim: " .. checks .. " checks, " .. failed .. " failed")

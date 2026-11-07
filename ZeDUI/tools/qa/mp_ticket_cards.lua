@@ -257,7 +257,7 @@ function Q.bind(TC, C, S, me)
         C.card = r
         TC.qaOpen(win, st, "staff", 14)
     end)
-    S1("card-flash", "admin", function(win, st) queue(st, "Open"); card(win, st, 14); TC.qaFlash(st, "Answered. Kade_R gets a note on the belt.") end)
+    S1("card-flash", "admin", function(win, st) queue(st, "Open"); card(win, st, 14); TC.qaFlash(st, ZeD.tr("UI_ZeD_Tk_Answered", "Kade_R")) end)   -- (the card's own words, as for server-flash)
     S1("card-long", "admin", function(win, st)
         queue(st, "Open")
         local r = { id = 31, source = "zed", kind = "BUG", author = "Rosa", day = 3, filed = FILED, status = "Progress", assignee = "Hermit", thread = { n = 40 }, notes = { n = 20 } }

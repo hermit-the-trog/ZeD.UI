@@ -5715,7 +5715,7 @@
     "UI_ZeD_Cm_Frozen": "Die Regeln und News dieses Servers stammen von einem neueren ZeD und lassen sich hier nicht ändern.",
     "UI_ZeD_Tk_FactReported": "Gemeldet",
     "UI_ZeD_Tk_ReportSeed": "Zu %1:",
-    "UI_ZeD_Tk_ShortDate": "%1 %2",
+    "UI_ZeD_Tk_ShortDate": "%2. %1",
     "UI_ZeD_Log_Kind_community": "Community",
     "UI_ZeD_Log_C_Saved": "speicherte die Regeln: %1 insgesamt, %2 neu oder geändert",
     "UI_ZeD_Log_C_SavedMsg": "%1, und die Nachricht des Tages oder die Einspruchszeile",

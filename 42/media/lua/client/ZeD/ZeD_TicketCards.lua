@@ -2023,8 +2023,13 @@ function D.layout(win, items, wAll, sh)
             local right = it.right or (it.rightFn and it.rightFn())
             it.below = nil
             if right and right ~= "" then
-                local headW = tm:MeasureStringX(T.fontF1, it.lines[1] or "")
-                if headW + px(8) + tm:MeasureStringX(T.fontF3, right) > w then
+                local head = it.lines[1] or ""
+                local headW = tm:MeasureStringX(T.fontF1, head)
+                -- once a hint has gone under, it stays there while the width and heading stay the same: a typing
+                -- counter ("9/30" to "10/30") would otherwise hop up and down, moving the field under it as the player types
+                local stuck = it.stuckW == w and it.stuckHead == head
+                if stuck or headW + px(8) + tm:MeasureStringX(T.fontF3, right) > w then
+                    it.stuckW, it.stuckHead = w, head
                     -- (wrapped again only when the hint or the width changed)
                     if it.belowText ~= right or it.belowW ~= w then
                         it.belowText, it.belowW, it.belowLines = right, w, D.wrap(right, T.fontF3, math.max(1, w))
