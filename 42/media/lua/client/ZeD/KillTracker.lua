@@ -13,8 +13,16 @@
 --                arrives from the server a moment later (a local server runs no
 --                client Lua and has no player 0, so it counts nothing here).
 --                OnWeaponHitXp is no use: it fires per hit, and never on a client.
---   Fire kill:   OnZombieDead fires twice within 20s for same zombie
+--   Fire kill:   OnZombieDead fires twice within 20s for same zombie: once when
+--                the burn takes its last health (the zombie is still on fire),
+--                once more when the game lays the body down
 --   Vehicle kill: OnZombieDead + zombie on ground + target in vehicle
+--   Explosion:   a thrown or placed bomb hits each zombie in range with itself as
+--                the weapon and its thrower as the wielder (IsoTrap.explosion), so
+--                it arrives here like a weapon kill
+--
+-- The game's own count (getZombieKills) takes weapon, vehicle and explosion kills
+-- already; a fire death clears the attacker, so only fire kills are missing from it.
 -- ============================================================================
 
 ZeD = ZeD or {}
@@ -26,6 +34,8 @@ ZeD.KillTracker = {}
 
 local STALE_TIMEOUT   = 20000  -- 20s max memory for hit/death tracking
 local CLEANUP_EVERY   = 300    -- clean stale entries every 300 frames (~5s at 60fps)
+local BOMB_HOLD       = 250    -- ms a bomb's hit outranks a plain hit on the same zombie
+local KILLS_VERSION   = 2      -- ZeD_Kills.v: 2 = old explosion counts moved to Other
 
 -- ============================================================================
 -- TRANSIENT STATE (not saved — rebuilt each session)
@@ -95,6 +105,44 @@ local function getWeaponCategory(weapon)
     return "Other"
 end
 
+--- True only for a real explosive (pipe bomb, aerosol bomb and the like).
+-- Not isInstantExplosion(): that is true for any weapon with no timer, sensor or
+-- remote, so a bat or bare hands pass it. Not isExplosive() either: 42.21 may not
+-- have it. Both getters here return a whole number, 0 for a weapon that is no bomb.
+local function isRealExplosive(weapon)
+    if not weapon then return false end
+    local power = weapon.getExplosionPower and weapon:getExplosionPower() or 0
+    local range = weapon.getExplosionRange and weapon:getExplosionRange() or 0
+    return power > 0 or range > 0
+end
+
+--- True when this death can be the first of a fire kill's two.
+-- A fire kill's first death always comes from the burn itself (the game's
+-- ReduceHealthWhenBurning). That runs only while the zombie is on fire, and it
+-- clears the zombie's attacker on every tick just before it checks for death.
+-- A weapon, bomb or car kill reaches OnZombieDead with the attacker still set
+-- (the game's Kill sets it first), even when the zombie was burning.
+-- A build without one of the calls skips that test (old behavior).
+local function mayBeFireDeath(zombie)
+    if zombie.isOnFire and not zombie:isOnFire() then return false end
+    if zombie.getAttackedBy and zombie:getAttackedBy() ~= nil then return false end
+    return true
+end
+
+--- One-time fix for kill tables saved before KILLS_VERSION.
+-- The old explosion test passed any weapon with no timer, sensor or remote, so
+-- nearly every weapon kill went under explosion. The real weapon cannot be told
+-- now, so those kills move to Other; the Journal's rows still add up the same.
+local function migrateKillData(kd)
+    if kd.v == KILLS_VERSION then return end
+    local old = kd.explosion or 0
+    if old > 0 then
+        kd.weapon.Other = (kd.weapon.Other or 0) + old
+    end
+    kd.explosion = 0
+    kd.v = KILLS_VERSION
+end
+
 --- Ensure modData structure exists and return it.
 local function getKillData(playerObj)
     local md = playerObj:getModData()
@@ -104,11 +152,13 @@ local function getKillData(playerObj)
             fire      = 0,
             vehicle   = 0,
             explosion = 0,
+            v         = KILLS_VERSION,  -- a new table needs no fixing
         }
     end
     if not md.ZeD_Kills.weapon then
         md.ZeD_Kills.weapon = {}
     end
+    migrateKillData(md.ZeD_Kills)
     return md.ZeD_Kills
 end
 
@@ -150,12 +200,18 @@ local function onHitZombie(victim, wielder, bodyPart, weapon)
     if not isLocalPlayer(wielder) then return end
 
     local key = zombieKey(victim)
-    local cat = getWeaponCategory(weapon)
-    local explosive = weapon and weapon.isInstantExplosion and weapon:isInstantExplosion() or false
+    local t   = now()
+    local explosive = isRealExplosive(weapon)
+
+    -- On a multiplayer client the game follows a bomb's hit on a zombie another
+    -- machine runs with a stand-in hit from a new axe (IsoTrap.explosion). Keep the
+    -- bomb: a plain hit a moment after a bomb's does not replace it.
+    local prev = hitLog[key]
+    if prev and prev.isExplosion and not explosive and (t - prev.ts) < BOMB_HOLD then return end
 
     hitLog[key] = {
-        category    = cat,
-        ts          = now(),
+        category    = getWeaponCategory(weapon),
+        ts          = t,
         isExplosion = explosive,
     }
 end
@@ -193,8 +249,17 @@ local function onZombieDead(zombie)
         return
     end
 
-    -- First death for this zombie — store timestamp for fire detection
-    deadLog[key] = t
+    -- First death for this zombie: remember it for fire detection, but only when
+    -- the burn itself killed it. The game reuses zombie objects, so a key kept
+    -- after a weapon or car kill would make the next zombie with that key read as
+    -- a fire kill. A hit then burn keeps it (the burn clears the attacker), so
+    -- the weapon credit given just below rolls back at the second death.
+    local fireMaybe = mayBeFireDeath(zombie)
+    if fireMaybe then
+        deadLog[key] = t
+    else
+        deadLog[key] = nil
+    end
 
     -- Weapon kill: a recent hit of ours, unless the game names someone else as
     -- the killer (another player's blow, on a server). No such call: no veto.
@@ -202,7 +267,14 @@ local function onZombieDead(zombie)
         local killer = zombie.getAttackedBy and zombie:getAttackedBy()
         if not killer or killer == player then
             tally(kd, hit, 1)
-            hit.counted = true   -- kept until stale, for the fire rollback above
+            if fireMaybe then
+                hit.counted = true   -- kept until stale, for the fire rollback above
+            else
+                -- No second death can follow, so nothing to roll back. Forget the
+                -- hit, or a reused object that burns to death within 20 s would
+                -- take this real kill back off the rows.
+                hitLog[key] = nil
+            end
             return
         end
     end
@@ -214,7 +286,9 @@ local function onZombieDead(zombie)
             local vehicle = target:getVehicle()
             if vehicle and vehicle:getDriver() == player then
                 kd.vehicle = kd.vehicle + 1
-                carLog[key] = t
+                -- kept only for a death that may be a burn's first, for the
+                -- fire rollback above; same reason as the weapon kill
+                if fireMaybe then carLog[key] = t end
             end
         end
     end
@@ -239,6 +313,11 @@ end
 -- ============================================================================
 
 local function onGameStart()
+    -- Fix an older save's kill table now, so the Journal shows it right before
+    -- the first kill of this session (getKillData runs the one-time fix).
+    local player = getSpecificPlayer(0)
+    if player and player:getModData().ZeD_Kills then getKillData(player) end
+
     Events.OnHitZombie.Add(onHitZombie)
     Events.OnZombieDead.Add(onZombieDead)
     Events.OnTick.Add(onTick)

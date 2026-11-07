@@ -390,7 +390,10 @@ function ZeD.JournalTab.gatherData(playerObj)
         end
     end
 
-    local totalKills = zombieKills + fireKills + carKills + explosionKills
+    -- The game's count already takes weapon, vehicle and explosion kills (it adds one
+    -- to the attacker in hitConsequences and onHitByVehicleApplyDamage). A fire death
+    -- clears the attacker first, so fire kills are the only ones it leaves out.
+    local totalKills = zombieKills + fireKills
 
     local journalEntries = {}
     if md and md.ZeD_Journal and md.ZeD_Journal.entries then
