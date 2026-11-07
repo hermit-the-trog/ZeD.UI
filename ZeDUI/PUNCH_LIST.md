@@ -2792,6 +2792,8 @@ item says so.
 
 99. **For the next beta: two small faults (the director, Nov 6 2026: "Wait for the next one. I really want to get this thing uploaded").** Not in beta 6a, as either would want a regression. Locks: padlocks and combination locks open in a full card; they should open in a half card. The Z menu: on the main menu, Z in the toolbar still shows version 0.1.1-something; it should show the current version.
 
+100. **For later: EquipPacket in the server log (QA, Nov 6 2026).** "Wrong player connection index" repeats during multiplayer runs: 505 lines in one beta 6a run, mostly while teleporting, 302 in one run on Nov 5, so it predates the hot fix. Not looked into yet. It may come from the QA kit's teleports rather than from ZeD. See qa/QA_BETA6A_20261106.md.
+
 ## Test process
 
 - **QA, Nov 2 2026, the t16 pre-upload pass (the mod code at 361d0b6; nothing in 42/ changed after it).** Full 4K
