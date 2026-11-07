@@ -403,8 +403,9 @@ end
 -- ZeD-GUI on and picks off, Turn all, a separator or folder box, a mod that needs ZeD-GUI), that
 -- choice stands and turning the mod off and on again must not overrule it. A set the player
 -- picked as a whole (Turn all off, a profile, No mods, Undo changes) stands too, even with both
--- off: setAll, loadProfile and revert forget it. Only a restore inside the visit that left both
--- off (the Load order page's Back or Undo, which set the same mods again) keeps it (review Nov 7 2026)
+-- off: setAll, loadProfile and revert forget it. The Load order page's Back and Undo set an
+-- earlier set of this visit's mods again, so they put back the memory that went with that set
+-- (restorePicksOffWith), even when a separator box on that page had cleared it (review Nov 7 2026)
 local function checkPicksOffWith(self, m)
     local id = self._picksOffWith
     if not id then return end
@@ -412,6 +413,15 @@ local function checkPicksOffWith(self, m)
     local r = m.mods[id]
     local h = helper and m.mods[helper]   -- (nil when picks is not installed)
     if not (r and h) or r.isActive or h.isActive then self._picksOffWith = nil end
+end
+
+-- the Load order page's Back and Undo: id is the memory kept with the set they just put back
+-- (nil when there was none). It is checked again, so it holds only while that mod and picks are
+-- both off now.
+function ZeD_MMMods:restorePicksOffWith(id)
+    self._picksOffWith = id
+    local m = model()
+    if m then checkPicksOffWith(self, m) end
 end
 
 function ZeD_MMMods:modsOnBatch(ids, opts)

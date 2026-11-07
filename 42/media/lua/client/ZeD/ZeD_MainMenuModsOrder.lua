@@ -127,6 +127,8 @@ function ZeD_MMMods:enterOrder(page)
     self.oSepSel, self.oHeldSel, self.oOffHere = nil, nil, {}
     self._oActive0 = {}
     for _, id in ipairs(page == "order" and self.order or EMPTY) do self._oActive0[id] = true end
+    -- (and which mod took ZeD picks off, if one did: Back puts that memory back with the set)
+    self._oPicksOffWith0 = self._picksOffWith
     self._orderStart = table.concat(self.order, ";")
     self.page = page
     self.oSel = 1
@@ -152,6 +154,8 @@ function ZeD_MMMods:leaveOrder(keep)
     elseif m and self.page == "order" and self.sepMatchActive then
         -- (Back: a separator's box turned mods on or off here; they go back as they were)
         self:sepMatchActive(self._oActive0)
+        -- (a separator box here may have cleared the ZeD picks memory: it goes back with the set)
+        if self.restorePicksOffWith then self:restorePicksOffWith(self._oPicksOffWith0) end
     end
     self.oSepSel, self.oHeldSel = nil, nil
     MM.clickSound()
@@ -221,7 +225,8 @@ function ZeD_MMMods:orderSnap()
     local u = self.oUndo
     if not u then u = {}; self.oUndo = u end
     u[#u + 1] = { order = copyArr(self.order), lo = O.copyLo(self.oLo), zone = copyMap(self.oZone), carried = copyMap(self.oCarried), sel = self.oSel,
-                  sec = copyMap(self.oSec), offHere = copyMap(self.oOffHere), sepSel = self.oSepSel }
+                  sec = copyMap(self.oSec), offHere = copyMap(self.oOffHere), sepSel = self.oSepSel,
+                  picksOffWith = self._picksOffWith }   -- (which mod took ZeD picks off, for Undo)
     if #u > UNDO_MAX then table.remove(u, 1) end
 end
 
@@ -236,6 +241,8 @@ function ZeD_MMMods:orderUndo()
         local want = {}
         for _, id in ipairs(s.order) do want[id] = true end
         self:sepMatchActive(want)
+        -- (the ZeD picks memory kept with that step comes back with its mods)
+        if self.restorePicksOffWith then self:restorePicksOffWith(s.picksOffWith) end
     end
     self:orderChanged()
     self:orderSelectAt(s.sel or 1, false)

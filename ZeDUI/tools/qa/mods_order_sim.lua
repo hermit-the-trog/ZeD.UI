@@ -235,6 +235,37 @@ do
     check("Undo changes forgets which mod took picks off", s._picksOffWith == nil, tostring(s._picksOffWith))
     s:toggle(m.mods.ZeD_UI)
     check("Undo changes, then ZeD-GUI on: picks stay off", m.mods.ZeD_UI.isActive and not m.mods.ZeD_Picks.isActive)
+    -- the Load order page: a separator box turns ZeD-GUI back on (the memory goes), then Back
+    -- puts both off again and the memory with them, so ZeD-GUI back on still brings picks. The
+    -- steps are leaveOrder's own: sepMatchActive (applyOnSet) then restorePicksOffWith (review
+    -- Nov 7 2026, third pass)
+    m, s = setup({ "ZeD_UI", "ZeD_Picks", "Other" })
+    s:onShow()
+    s:toggle(m.mods.ZeD_UI)
+    local kept = s._picksOffWith       -- (enterOrder's _oPicksOffWith0)
+    s:modsOnBatch({ "ZeD_UI" })        -- (the separator box)
+    check("the separator box cleared the memory", s._picksOffWith == nil, tostring(s._picksOffWith))
+    s:applyOnSet({ Other = true }, true)
+    s:restorePicksOffWith(kept)
+    check("Back puts the memory back with the set", s._picksOffWith == "ZeD_UI", tostring(s._picksOffWith))
+    s:toggle(m.mods.ZeD_UI)
+    check("after Back, ZeD-GUI on: picks back on", m.mods.ZeD_UI.isActive and m.mods.ZeD_Picks.isActive)
+    -- a memory put back while ZeD-GUI is on does not hold (it is checked again)
+    m, s = setup({ "ZeD_UI", "ZeD_Picks", "Other" })
+    s:onShow()
+    s:restorePicksOffWith("ZeD_UI")
+    check("a memory put back with ZeD-GUI on is dropped", s._picksOffWith == nil, tostring(s._picksOffWith))
+    -- the wiring: leaveOrder (Back) and orderUndo call restorePicksOffWith, enterOrder and
+    -- orderSnap keep the memory (ZeD_MainMenuModsOrder.lua is not loaded here: read its source)
+    do
+        local h = io.open(ROOT .. "42/media/lua/client/ZeD/ZeD_MainMenuModsOrder.lua", "rb")
+        local src = h and h:read("*a") or ""
+        if h then h:close() end
+        local _, nRestore = src:gsub("self:restorePicksOffWith%(", "")
+        check("Back and Undo on the Load order page put the memory back", nRestore == 2, nRestore)
+        check("the Load order page keeps the memory it opened with", src:find("self._oPicksOffWith0 = self._picksOffWith", 1, true) ~= nil)
+        check("each Load order Undo step keeps its memory", src:find("picksOffWith = self._picksOffWith", 1, true) ~= nil)
+    end
     -- other mods keep vanilla's rule: a dependant stays off
     m, s = setup({ "Other", "Needs_Other" })
     s:onShow()
