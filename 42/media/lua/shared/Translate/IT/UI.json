@@ -3714,6 +3714,8 @@
     "UI_ZeD_Map_HelpInk": "%1: segni e note in questo colore.",
     "UI_ZeD_Map_HelpKey": "Mostra o nascondi la legenda della mappa: cosa significano i colori della mappa Rilievo.",
     "UI_ZeD_Map_HelpKeyClose": "Chiudi la legenda della mappa.",
+    "UI_ZeD_Map_PaperFind": "Trova sulla mappa",
+    "UI_ZeD_Map_HelpPaperFind": "Trova sulla tua mappa del mondo il luogo mostrato da questa mappa.",
     "UI_ZeD_Map_HelpMark": "%1: prendi questo segno, poi clicca la mappa per posarlo.",
     "UI_ZeD_Map_HelpMarkGrid": "%1: prendi questo segno. Un clic destro lo fissa alla barra o lo toglie.",
     "UI_ZeD_Map_HelpMarksClose": "Comprimi l'insieme completo di segni.",

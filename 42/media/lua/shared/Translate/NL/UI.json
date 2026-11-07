@@ -3714,6 +3714,8 @@
     "UI_ZeD_Map_HelpInk": "%1: markeringen en notities in deze kleur.",
     "UI_ZeD_Map_HelpKey": "Toon of verberg de legenda: wat de kleuren op de kaart Opmeting betekenen.",
     "UI_ZeD_Map_HelpKeyClose": "Sluit de legenda.",
+    "UI_ZeD_Map_PaperFind": "Zoek op kaart",
+    "UI_ZeD_Map_HelpPaperFind": "Zoek de plek die deze kaart toont op je wereldkaart.",
     "UI_ZeD_Map_HelpMark": "%1: pak deze markering op en klik dan op de kaart om hem neer te zetten.",
     "UI_ZeD_Map_HelpMarkGrid": "%1: pak deze markering op. Rechtsklikken zet hem vast op de werkbalk of haalt hem eraf.",
     "UI_ZeD_Map_HelpMarksClose": "Klap de volledige set markeringen in.",

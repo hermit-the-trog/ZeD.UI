@@ -3714,6 +3714,8 @@
     "UI_ZeD_Map_HelpInk": "%1: 이 색의 표시와 메모.",
     "UI_ZeD_Map_HelpKey": "범례 표시 또는 숨기기: 측량 지도의 색이 뜻하는 것.",
     "UI_ZeD_Map_HelpKeyClose": "범례를 닫습니다.",
+    "UI_ZeD_Map_PaperFind": "지도에서 찾기",
+    "UI_ZeD_Map_HelpPaperFind": "이 지도가 보여주는 장소를 월드 맵에서 찾습니다.",
     "UI_ZeD_Map_HelpMark": "%1: 이 표시를 집은 뒤 지도를 클릭해 놓습니다.",
     "UI_ZeD_Map_HelpMarkGrid": "%1: 이 표시를 집습니다. 오른쪽 클릭으로 도구 모음에 고정하거나 뺍니다.",
     "UI_ZeD_Map_HelpMarksClose": "전체 표시 모음을 접습니다.",

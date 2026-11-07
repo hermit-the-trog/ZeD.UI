@@ -42,6 +42,8 @@ local function _zedOpenUnfolded(playerNum)
     end
     local win = ZeD_WorldWindow.getWindow()
     if not win then return false end
+    -- a paper map in the unfolded window (PaperMap.lua) is put away for the world map
+    if win._mapPopout and win._mapPaperItem then ZeD.MapsTab.closePopout(win) end
 
     -- The tab strip stamps its hit zones during render, so a freshly opened
     -- window has none yet. Try now, then retry for a handful of ticks.
@@ -100,7 +102,7 @@ end
 function ISWorldMap.HideWorldMap(playerNum)
     if ZeD.Safe.on() then return _origHide(playerNum) end
     local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
-    if win and win._mapPopout and ZeD.MapsTab and ZeD.MapsTab.closePopout then
+    if win and win._mapPopout and not win._mapPaperItem and ZeD.MapsTab and ZeD.MapsTab.closePopout then
         ZeD.MapsTab.closePopout(win)
         return
     end
@@ -110,10 +112,12 @@ end
 function ISWorldMap.ToggleWorldMap(playerNum)
     if ZeD.Safe.on() then return _origToggle(playerNum) end
     local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
-    if win and win._mapPopout then   -- (closing never waits on the light, as in vanilla)
+    if win and win._mapPopout and not win._mapPaperItem then   -- (closing never waits on the light, as in vanilla)
         ZeD.MapsTab.closePopout(win)
         return
     end
+    -- (a paper map open: the Map key reads the world map, as in vanilla, where it opens over
+    -- the paper; ZeD's puts the paper away when the world map opens: _zedOpenUnfolded)
     -- Opening is vanilla's: its Allow / light / post-death checks, then the
     -- map-reading action, which ends in ShowWorldMap above and so in ZeD's map.
     return _origToggle(playerNum)

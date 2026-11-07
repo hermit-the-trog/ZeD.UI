@@ -3714,6 +3714,8 @@
     "UI_ZeD_Map_HelpInk": "%1: jelek és jegyzetek ebben a színben.",
     "UI_ZeD_Map_HelpKey": "A térkép jelmagyarázatának mutatása vagy elrejtése: mit jelentenek a színek a Felmérés térképen.",
     "UI_ZeD_Map_HelpKeyClose": "A jelmagyarázat bezárása.",
+    "UI_ZeD_Map_PaperFind": "Keresés a térképen",
+    "UI_ZeD_Map_HelpPaperFind": "A térkép által mutatott hely megkeresése a világtérképeden.",
     "UI_ZeD_Map_HelpMark": "%1: vedd fel ezt a jelet, majd kattints a térképre a lerakásához.",
     "UI_ZeD_Map_HelpMarkGrid": "%1: vedd fel ezt a jelet. A jobb kattintás kitűzi az eszköztárra, vagy leveszi onnan.",
     "UI_ZeD_Map_HelpMarksClose": "Az összes jel összecsukása.",

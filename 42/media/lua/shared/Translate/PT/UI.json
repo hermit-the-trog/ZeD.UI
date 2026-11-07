@@ -3714,6 +3714,8 @@
     "UI_ZeD_Map_HelpInk": "%1: marcas e notas nesta cor.",
     "UI_ZeD_Map_HelpKey": "Mostrar ou ocultar a legenda do mapa: o que significam as cores do mapa Cadastro.",
     "UI_ZeD_Map_HelpKeyClose": "Fechar a legenda do mapa.",
+    "UI_ZeD_Map_PaperFind": "Procurar no mapa",
+    "UI_ZeD_Map_HelpPaperFind": "Procurar no teu mapa do mundo o lugar que este mapa mostra.",
     "UI_ZeD_Map_HelpMark": "%1: pegar nesta marca e depois clicar no mapa para a pôr.",
     "UI_ZeD_Map_HelpMarkGrid": "%1: pegar nesta marca. Um clique com o botão direito fixa-a na barra ou tira-a.",
     "UI_ZeD_Map_HelpMarksClose": "Recolher o conjunto completo de marcas.",

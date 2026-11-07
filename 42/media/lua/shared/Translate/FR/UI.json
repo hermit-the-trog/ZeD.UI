@@ -3714,6 +3714,8 @@
     "UI_ZeD_Map_HelpInk": "%1 : marques et notes de cette couleur.",
     "UI_ZeD_Map_HelpKey": "Afficher ou masquer la légende : ce que signifient les couleurs de la carte Relevé.",
     "UI_ZeD_Map_HelpKeyClose": "Fermer la légende.",
+    "UI_ZeD_Map_PaperFind": "Trouver sur la carte",
+    "UI_ZeD_Map_HelpPaperFind": "Trouver sur votre carte du monde le lieu que montre cette carte.",
     "UI_ZeD_Map_HelpMark": "%1 : prenez cette marque, puis cliquez sur la carte pour la poser.",
     "UI_ZeD_Map_HelpMarkGrid": "%1 : prenez cette marque. Un clic droit l'épingle à la barre d'outils ou la retire.",
     "UI_ZeD_Map_HelpMarksClose": "Replier l'ensemble des marques.",
