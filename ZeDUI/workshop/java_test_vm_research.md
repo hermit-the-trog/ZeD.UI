@@ -44,6 +44,26 @@ Sources:
 - VMware's guest OpenGL: Broadcom techdocs for Workstation 17.
 - GPU-P: https://github.com/l3rd/easy-gpu-pv
 
+## Result, Nov 7 2026: Windows Sandbox can't run the game
+
+The director turned Windows Sandbox on and QA built the setup:
+- the copy is at `E:\ZeDSandbox`: `game` (the copy, with Zombie Buddy's two files and its flag in `ProjectZomboid64.json`), `user` (-cachedir, with ZombieBuddy and Viewpoint in `mods`), `zbconfig`, `logs`, `scripts\start.cmd` and `ZeD_Viewpoint.wsb`;
+- vGPU on, networking off;
+- the mods were downloaded with SteamCMD as anonymous, with no subscription;
+- the real install's `ProjectZomboid64.json` was checked untouched.
+
+Four runs:
+1. Fullscreen, 16 GB, with Zombie Buddy.
+2. The same again.
+3. Windowed 1280x720, 8 GB, with Zombie Buddy.
+4. Windowed 1280x720, 8 GB, Zombie Buddy off.
+
+Every run reached the same point. The game sees the RTX 4090 through the sandbox (OpenGL 4.6.0 NVIDIA 617.42), opens its window and starts the sound system. With Zombie Buddy on, the agent loads (`agents=1`) and patches `GameWindow`. Then the whole sandbox dies with "The Windows Sandbox environment unexpectedly terminated. The virtual machine or container exited unexpectedly. (0x80370106)". The last log line is always `FMOD_System_Set3DSettings`. On the real install, the next step is loading the font textures, the first big upload to the GPU. Run 4 fails the same way, so the sandbox's GPU sharing is the fault, not Zombie Buddy.
+
+**Also:** Viewpoint 0.1.6.1's `mod.info` says `versionMin=42.21` and `versionMax=42.21`. The director's game is 42.22.2, so the game may refuse Viewpoint even on a machine that runs it.
+
+What's left: VMware Workstation Pro (free for personal use). It's an install, so it needs the director's go, and the game isn't known to run there either. Viewpoint also needs a 42.22 build from its author, or a 42.21 copy of the game.
+
 ## Recommendation, for the beta 9 or 10 list
 
 Try **Windows Sandbox** first: a copy of the game, run with `-nosteam`, networking off, and ZombieBuddy's config folder pointed inside the mapped area. If the game or Viewpoint won't draw there, the next step is VMware Workstation Pro.
