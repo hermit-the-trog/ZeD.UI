@@ -2922,4 +2922,7 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     (Build's search, Nov 7: nearest are in-world note mods, a mod-update alert on the main menu, an answering-machine
     mod); design is the director's own either way. The director's picks (Nov 7): notes as both, one sticky note
     always on the desktop plus a notepad whose files sit as icons on the desktop; mail as described (server-kept,
-    read on the desk, replies sent on the next join).
+    read on the desk, replies sent on the next join). The director: "email back then, you would dial in to connect,
+    to send and receive. So most of it was done offline." So joining a server is the dial-in: the outbox goes and the
+    inbox comes on connect (a modem-style send/receive moment is the design's to decide); reading and writing are
+    offline on the desk.
