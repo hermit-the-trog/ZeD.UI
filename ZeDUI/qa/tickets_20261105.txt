@@ -568,3 +568,6 @@
 20:48:08 rail_deck : 3/3 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_rail_deck.md
 20:48:08 stopped PID 34340
 20:48:08 closed
+23:45:27 staged 0.3.0-beta6a
+23:48:05 true staged check: 4/4 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-06_beta6a_release_check_true.md | no report at C:\Users\you\Zomboid\mods\ZeD-UI\C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-06_beta6a_release_check_true.md
+23:48:05 true check done
