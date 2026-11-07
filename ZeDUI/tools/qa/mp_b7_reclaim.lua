@@ -2,7 +2,7 @@
 -- the moment the game lets him (the admin releases it, mp_b7_release.lua), within 90 s. grep "ZEDQA brc".
 local function say(s) print("ZEDQA brc " .. tostring(s)) end
 local C = ZeD.Claims
-local t0, last, done_ = getTimestampMs(), 0, false
+local t0, last, done_, told = getTimestampMs(), 0, false, 0
 local function tick()
     local now = getTimestampMs()
     if done_ then return end
@@ -11,6 +11,8 @@ local function tick()
     last = now
     C.claim = nil
     local ok, a = pcall(C.claimCheck)
+    if ok and a and not a.ok and now - told > 5000 then told = now; say("not yet: " .. table.concat(a.lines or {}, " | ")) end
+    if not ok then say("check error: " .. tostring(a)) end
     if ok and a and a.ok then
         say("free: claiming (clock " .. now .. ")")
         C.doClaim(function(r) say("claim done: " .. tostring(r) .. " (clock " .. getTimestampMs() .. ")"); say("DONE") end)

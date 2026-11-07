@@ -1,0 +1,48 @@
+== 2026-11-07 04:59 next beta merge 1, two players, the admin in German
+04:59:57 set PlayerSafehouse=true
+04:59:57 set AdminSafehouse=true
+04:59:57 set DoLuaChecksum=false
+04:59:57 set SafehouseAllowNonResidential=true
+05:00:29 server up
+05:01:36 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-07_two_b7_start.md
+05:04:51 ZEDQA acm PASS a safehouse held (zedqa)
+05:04:51 ZEDQA acm DONE
+05:05:32 second client joining as bob
+05:07:54 TIMEOUT
+05:08:03 bob in game
+05:08:13 ZEDQA fbb bob sent to zedqa at 10794,10030
+05:08:13 ZEDQA fbb house zedqa; bob at 10794,10030
+05:08:13 ZEDQA fbb DONE
+05:08:53 ZEDQA arl the admin steps out to 10839,10030
+05:08:53 ZEDQA arl releasing zedqa at 10784,10027 (clock 1794056916370)
+05:08:53 ZEDQA arl release done: true (clock 1794056916398)
+05:08:53 ZEDQA arl after: admin holds nil
+05:08:53 ZEDQA arl bob at 10794,10030; the house corner 10784,10027
+05:08:53 ZEDQA arl DONE
+05:08:53 ZEDQA brc watching from 10794,10030
+05:08:53 ZEDQA brc not yet: This building is already claimed.
+05:08:53 ZEDQA brc not yet: This building is already claimed.
+05:08:53 ZEDQA brc not yet: This building is already claimed.
+05:08:53 ZEDQA brc not yet: This building is already claimed.
+05:08:53 ZEDQA brc not yet: This building is already claimed.
+05:08:53 ZEDQA brc free: claiming (clock 1794056916450)
+05:08:53 ZEDQA brc claim done: true (clock 1794056916490)
+05:08:53 ZEDQA brc DONE
+05:09:04 ZEDQA bia bob holds bob; inviting zedqa
+05:09:04 ZEDQA bia DONE
+05:09:40 ZEDQA adb PASS bob's invitation shows (1)
+05:09:40 ZEDQA adb second Accept answered: ok false, why wait
+05:09:40 ZEDQA adb the wait message reads: Deine Antwort ist unterwegs. Warte einen Moment.
+05:09:40 ZEDQA adb PASS the second Accept says to wait (false/wait)
+05:09:40 ZEDQA adb PASS the first Accept joins (true)
+05:09:40 ZEDQA adb PASS still on the server (no kick) (true)
+05:09:40 ZEDQA adb member of bob
+05:09:40 ZEDQA adb DONE
+05:09:42 second client stopped
+05:09:44 server ZeD log C:\Users\you\Zomboid\zedqa_mp\Logs\2026-11-07_04-59_ZeD.txt:
+05:09:44   [07-11-26 05:01:51.600] safehouse | claim | zedqa | - | 10784,10027 | - | day 1.
+05:09:44   [07-11-26 05:08:40.697] safehouse | release | zedqa | - | 10784,10027 | - | day 1.
+05:09:44   [07-11-26 05:08:40.697] safehouse | claim | bob | - | 10784,10027 | - | day 1.
+05:09:44   [07-11-26 05:09:26.100] safehouse | member in | zedqa | - | 10784,10027 | - | day 1.
+05:09:44 language put back to EN
+05:09:44 closed

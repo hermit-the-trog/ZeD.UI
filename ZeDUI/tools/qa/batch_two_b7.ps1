@@ -4,6 +4,7 @@
 # it the moment the admin releases it (the server's ZeD log should read two lines); bob invites the admin and the admin presses
 # Accept twice (the second must say to wait); then the Admin and ticket cards with their clips counted, at Normal and Large text.
 # Results in ZeDUI/qa/two_players_b7.txt; pictures in the scratchpad. Both clients and the server close after.
+param([switch]$ClaimsOnly)
 $Qa = $PSScriptRoot
 $Root = "C:\Users\you\Zomboid\mods\ZeD-UI"
 $Log = "$Root\ZeDUI\qa\two_players_b7.txt"
@@ -60,8 +61,14 @@ try {
         Main "mp_b7_release.lua" "arl" 90
         Receive-Job -Job $job -Wait | ForEach-Object { Note $_ }
         Remove-Job $job
-        Bob "mp_b7_invite_admin.lua" "bia" 60
-        Main "mp_b7_double.lua" "adb" 90
+        if ((Get-Content $Log -Raw) -match "brc claim done: true") {
+            Bob "mp_b7_invite_admin.lua" "bia" 60
+            Main "mp_b7_double.lua" "adb" 90
+        } else {
+            Main "mp_b6a_invite.lua" "ain" 60
+            Bob "mp_b7_double.lua" "adb" 90
+        }
+        if (-not $ClaimsOnly) {
         Main "mp_clip_hook.lua" "mch" 30
         Main "mp_admin_cards.lua" "mac" 300
         Main "mp_ticket_cards.lua" "mtc" 300
@@ -71,6 +78,7 @@ try {
         Main "mp_admin_cards.lua" "mac" 300
         Main "mp_clip_report.lua" "mcr" 30
         Shots "large"
+        }
     }
 }
 finally {
