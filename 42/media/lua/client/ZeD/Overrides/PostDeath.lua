@@ -15,6 +15,10 @@
 -- asks "Are you sure?" in the same alert. Vanilla's rules stay: Restart only
 -- when the game allows a respawn (greyed in the challenge mode), Main menu
 -- and Shut down only when every player on this screen is dead.
+-- Restart is vanilla's respawn (CoopCharacterCreation); Overrides/Respawn.lua
+-- puts the desk up over the world for it, and the next survivor is made in
+-- ZeD's Spawn, Traits and Looks windows (director, Nov 7 2026: "back to the
+-- desk"). Back from the first of them comes back here.
 -- Controller: A Restart, X Main menu, B Shut down (vanilla's own mapping);
 -- asking, A Shut down, B Cancel. Return presses the default.
 -- While ZeD's safe mode is on, the screen is vanilla's again: its three

@@ -546,7 +546,7 @@ function ZeD_MMLooks:activateRow(r)
     local T = ZeD.T
     local anchor = { x = self:getAbsoluteX() + self.width / 2, y = self:getAbsoluteY() + self.height / 3, w = T.px(280), h = T.px(24) }
     if r.kind == "name" then
-        local jd = MM.gamepad() and JoypadState and JoypadState.getMainMenuJoypad and JoypadState.getMainMenuJoypad()
+        local jd = MM.gamepad() and MM.joypad()
         if jd and OnScreenKeyboard and OnScreenKeyboard.Show then
             local osk = OnScreenKeyboard.Show(jd.player or 0, r.entry, jd)
             if osk then osk.prevFocus = jd.focus; jd.focus = osk; updateJoypadFocus(jd); return end

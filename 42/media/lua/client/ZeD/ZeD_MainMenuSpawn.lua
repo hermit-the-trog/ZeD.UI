@@ -248,6 +248,22 @@ function ZeD_MMSpawn:next()
     self:syncToVanilla()
     v.listbox.selected = self.sel
     MM.toVanilla()
+    if MM.respawn then
+        -- after a death (Overrides/Respawn.lua): the game's respawn spawn screen, CoopMapSpawnSelect,
+        -- goes on to occupation and traits. Its clickNext has no Random (the main menu's rolls one):
+        -- Random picks a town here, never a "with player" place.
+        if self:isRandom(items[self.sel]) then
+            local towns = {}
+            for i, it in ipairs(items) do
+                local key = it.region and tostring(it.region.key or "") or ""
+                if it.region and key:sub(1, 10) ~= "WithPlayer" then towns[#towns + 1] = i end
+            end
+            if #towns == 0 then return end
+            v.listbox.selected = towns[ZombRand(#towns) + 1]
+        end
+        v:clickNext()
+        return
+    end
     MapSpawnSelect.clickNext(v)
 end
 
@@ -255,6 +271,8 @@ end
 function ZeD_MMSpawn:back()
     MM.clickSound()
     local v = vanilla()
+    -- (after a death: the respawn screen's own clickBack, back to the death screen; Overrides/Respawn.lua)
+    if v and MM.respawn then v:clickBack(); return end
     if not v or not v.previousScreen then MM.showView("newgame"); return end
     self:syncToVanilla()
     MM.toVanilla()
@@ -519,7 +537,7 @@ end
 
 -- a field with the controller: vanilla's on-screen keyboard; with the mouse / keys: the caret
 function ZeD_MMSpawn:edit(entry)
-    local jd = MM.gamepad() and JoypadState and JoypadState.getMainMenuJoypad and JoypadState.getMainMenuJoypad()
+    local jd = MM.gamepad() and MM.joypad()
     if jd and OnScreenKeyboard and OnScreenKeyboard.Show then
         local osk = OnScreenKeyboard.Show(jd.player or 0, entry, jd)
         if osk then
