@@ -2769,6 +2769,13 @@ item says so.
     that fixed; the unlit marks should be four 8s, and QA's picture (ZeDUI/qa/dash_elite_odometer_b_20261106.jpg) shows
     five figure spaces. Look at it with item 92's Dash Elite LCD odometer, which draws six figures, so the figure count
     is settled once.
+95. **After beta 6: German cards and clips left over (QA, Nov 6 2026, 101 pictures, no layout breakage).** "Sent as #16.
+    You'll see when an admin opens it." is untranslated; "1 x Axe an du" should be "an dich"; the item search says
+    "Keine passenden Tickets"; the Bans heading "Jemanden offline bannen" runs into its hint; the player card shows
+    English occupation, trait and skill names; dates stay "Nov, 9:14 PM". Also: the Server tab and the ticket cards end
+    their draw with one clip more than they start, as the Admin tab did (AdminTab.lua:337-343, ZeD_TicketCards.lua:2331-2339,
+    ServerTab.lua:285-316). The World window now clears it for added tabs; move the clear to the tabs themselves and find
+    out why the Character window survives it.
 
 ## Test process
 
