@@ -1109,16 +1109,18 @@ end
 
 -- ---------------------------------------------------------------------------
 -- the key in the lock (director, Oct 24 2026: "key needs turning animation
--- when starting"): OFF with the key in, START while the starter turns, ON while
--- the engine runs. It travels OFF - ON - START and rests a step on ON between
--- the ends: a start shows ON, then START; a start that does not catch steps back
--- through ON to OFF; shutting off holds ON a step, then OFF. From the click
--- the hand holds the key at START until the engine answers (KEY_REACH_MS).
--- Hotwired, there is no key to draw.
+-- when starting"): ACC with the key in (director, Nov 7 2026: the key in the
+-- ignition lights every lamp, so "it should be in accessory mode"; ACC sits left
+-- of OFF), START while the starter turns, ON while the engine runs. It travels
+-- ACC - OFF - ON - START a step at a time and rests a step on ON between the
+-- ends: a start shows OFF, ON, then START; a start that does not catch steps
+-- back through ON and OFF to ACC; shutting off holds ON a step, then OFF, then
+-- ACC. From the click the hand holds the key at START until the engine answers
+-- (KEY_REACH_MS). Hotwired, there is no key to draw.
 -- ---------------------------------------------------------------------------
 local KEY_STEP_MS, KEY_REACH_MS = 120, 600
-local KEY_ORDER = { off = 1, on = 2, start = 3 }
-local KEY_AT = { "off", "on", "start" }
+local KEY_ORDER = { acc = 1, off = 2, on = 3, start = 4 }
+local KEY_AT = { "acc", "off", "on", "start" }
 function ZeD_Dashboard:_keyPos(st, now)
     if st.cranking or st.running then self._keyTurn = nil end
     local want = nil
@@ -1126,7 +1128,7 @@ function ZeD_Dashboard:_keyPos(st, now)
         if st.cranking then want = "start"
         elseif st.running then want = "on"
         elseif self._keyTurn and now - self._keyTurn < KEY_REACH_MS then want = "start"
-        else want = "off" end
+        else want = "acc" end
     end
     local cur = self._keyShown
     if want == nil or cur == nil then
@@ -1334,6 +1336,7 @@ ZeD.trDefaults({
     UI_ZeD_DashPlain_SetTemp = "Temp", UI_ZeD_DashPlain_Fan = "Fan", UI_ZeD_DashPlain_Tune = "Tune", UI_ZeD_DashPlain_Power = "Power",
     UI_ZeD_DashPlain_Signal = "Signal", UI_ZeD_DashPlain_Disc = "Disc in", UI_ZeD_DashPlain_Lights = "Lights",
     UI_ZeD_DashPlain_Trip = "Trip", UI_ZeD_DashPlain_Readouts = "Readouts", UI_ZeD_DashPlain_Km = "%1 km",
+    UI_ZeD_DashPlain_Acc = "ACC",
 })
 
 local PLAIN_W, PLAIN_PAD, PLAIN_GAP, PLAIN_BIG_W, PLAIN_ROW_W, PLAIN_BIG_SEGS = 800, 8, 6, 120, 64, 12
@@ -1459,12 +1462,14 @@ local function _heatTemp(st)
     return tostring(math.floor(t + 0.5)) .. string.char(176) .. "C"
 end
 
--- the key in the lock, as the plate draws it (its OFF - ON - START steps, ZeD_Dashboard:_keyPos)
+-- the key in the lock, as the plate draws it (its ACC - OFF - ON - START steps, ZeD_Dashboard:_keyPos). A dash with
+-- no ACC on its lock (the race car's IGN toggle, st.keyAcc false) says Off there, as its plate shows
 local function _ignitionWord(st)
     if st.keysIn and not st.hotwired then
         if st.keyPos == "start" then return ZeD.tr("UI_ZeD_Dash_PromptStart") end
         if st.keyPos == "on" then return ZeD.tr("UI_On") end
-        return ZeD.tr("UI_Off")
+        if st.keyPos == "off" or not st.keyAcc then return ZeD.tr("UI_Off") end
+        return ZeD.tr("UI_ZeD_DashPlain_Acc")
     end
     if st.hotwired then return ZeD.tr("UI_ZeD_DashPlain_Hotwired") end
     if st.running then return ZeD.tr("UI_On") end
@@ -2025,6 +2030,7 @@ function ZeD_Dashboard:prerender()
     end
     st.brand = self._badge and self._badge.brand      -- the console's mark: the sprite and its model line show by it
     st.keyPos = self:_keyPos(st, now)
+    st.keyAcc = des.sprites ~= nil and des.sprites["key_acc_" .. tostring(designId)] ~= nil     -- a lock with ACC printed on it
     self:_tray(vehicle, des, designId, st, scriptName)
     if designId == "taxi" then self:_hula(vehicle, st, now, dt) else st.hula = 0 end
     local Focus = ZeD.Input and ZeD.Input.Focus

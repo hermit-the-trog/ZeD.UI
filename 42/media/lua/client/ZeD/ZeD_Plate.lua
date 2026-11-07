@@ -17,7 +17,7 @@
 --   sprite       a state picture (a key held down, a cord plugged in), drawn
 --                while st[src] reads p.when: a flag (true unless p.when is
 --                false), or one value of several when p.when is a string or a
---                number (the key's "off" / "on" / "start", a frame number)
+--                number (the key's "acc" / "off" / "on" / "start", a frame number)
 --   needle       a gauge needle (lit side, shaded side, its shadow) at
 --                a0 + (a1 - a0) * st[src] / max; st[low_src] turns it red
 --   ptr          a knob's pointer line: angles[st[src] + 1] for a switch with

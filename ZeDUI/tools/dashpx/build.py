@@ -25,7 +25,7 @@ os.makedirs(OUT, exist_ok=True)
 STATES = {
     "off": dict(keysIn=False, keyPos=None, ashOpen=False, meterOn=False, hula=0, running=False, lights=False, speed_kmh=0, rpm=0, fuel=0.6, battery=0.8, heaterOn=False, heaterTemp=0, fan=0,
                 gear="P", hour=10, minute=8),
-    "keyon": dict(keysIn=True, keyPos="off", ashOpen=False, meterOn=False, hula=0, running=False, lights=False, speed_kmh=0, rpm=0, fuel=0.62, battery=0.9, heaterOn=False, heaterTemp=0,
+    "keyon": dict(keysIn=True, keyPos="acc", ashOpen=False, meterOn=False, hula=0, running=False, lights=False, speed_kmh=0, rpm=0, fuel=0.62, battery=0.9, heaterOn=False, heaterTemp=0,
                   fan=0, radio=None, radioOn=False, gear="P", anyLocked=False, hour=10, minute=8),
     "drive": dict(keysIn=True, keyPos="on", meterOn=True, hula=1, fare=12.80, fareExtra=0.5, running=True, lights=True, speed_kmh=72, rpm=2600, fuel=0.62, battery=0.9, heaterOn=True, heaterTemp=17,
                   fan=2, ac=False, radio="valutech", radioOn=True, radioFreq="98.4", gear="D", anyLocked=True, cruise=True,
@@ -137,6 +137,21 @@ def _rect_hits(mask, x, y, w, h):
     return x1 > x0 and y1 > y0 and bool(mask[y0:y1, x0:x1].any())
 
 
+LEGEND_GAP = 3       # the least clear pixels between two legends on the same rows (one word's letters are 1 apart)
+
+
+def legend_check(b):
+    """Nov 7 2026 (the ambulance's switch legends ran together at a 22 px pitch): no two printed legends (b.inks) closer
+    than LEGEND_GAP on rows they share, nor meeting corner to corner"""
+    inks = [k for k in b.inks if k[2] > 1 and k[3] > 1]
+    for i, (x, y, w, h, a) in enumerate(inks):
+        for (X, Y, W_, H_, c) in inks[i + 1:]:
+            gx = max(X - (x + w), x - (X + W_))         # clear columns between them (negative: they overlap)
+            gy = max(Y - (y + h), y - (Y + H_))         # clear rows between them
+            if (gy < 0 and gx < LEGEND_GAP) or (gy == 0 and gx < 1):
+                b.warn(f"{a} at {x},{y} and {c} at {X},{Y} run together ({gx} px apart)")
+
+
 def mover_check(b):
     """Oct 29 2026: the key in each position, its ring and its fob (b.movers) sit over no printed legend or mark; and
     the column's shroud (b.shroud) is clear of every printed mark, live part, click area and the key"""
@@ -188,6 +203,7 @@ def build_one(did, verbose=True):
             if ix < rx1 and ix + iw > rx0 and iy < ry1 and iy + ih > ry0:
                 b.warn(f"{what} at {ix},{iy} lies under the {p['src']} tab's travel ({rx0},{ry0} to {rx1},{ry1})")
     mover_check(b)
+    legend_check(b)
     needle_check(b)
     ddir = os.path.join(OUT, did); os.makedirs(ddir, exist_ok=True)
     base.save(os.path.join(ddir, f"dash_{did}.png"))

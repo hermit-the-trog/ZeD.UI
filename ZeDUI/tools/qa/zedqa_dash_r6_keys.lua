@@ -1,9 +1,10 @@
 -- ZeD QA (Oct 24 2026): dashboards round 6 on all 19 designs. Per car (a fresh spawn beside the character, seated once
--- it is really in the world): the key in (OFF), a start by a click on the key (OFF - ON - START while the starter turns -
--- ON once it runs), the lights on, screenshots at k = 2 and k = 1 (D.scale), the ash tray opened and shut by clicks (or,
--- on the emergency designs, no tray at all), shutting off (ON a step, then OFF), a start on an empty tank that does not
--- catch (back through ON to OFF), the key out (no key). Every key move is logged by the dash itself, with its time from
--- the click; a sequence that differs from the handoff's is an ERR. Screenshots: Zomboid/Screenshots/zqa_r6_<n>_<case>.png.
+-- it is really in the world): the key in (ACC; Nov 7 2026), a start by a click on the key (ACC - OFF - ON - START while
+-- the starter turns - ON once it runs), the lights on, screenshots at k = 2 and k = 1 (D.scale), the ash tray opened and
+-- shut by clicks (or, on the emergency designs, no tray at all), shutting off (ON a step, then OFF, then ACC), a start on
+-- an empty tank that does not catch (back through ON and OFF to ACC), the key out (no key). Every key move is logged by
+-- the dash itself, with its time from the click; a sequence that differs from the handoff's is an ERR. Screenshots:
+-- Zomboid/Screenshots/zqa_r6_<n>_<case>.png.
 -- grep "ZEDQA r6k".
 local p = getPlayer(); local D = ZeD.Dashboard
 local TAG = "r6k"
@@ -58,7 +59,7 @@ local function mark(name)
     local k0 = tostring(d and d._keyShown)
     W = { name = name, t0 = now(), k = { { k0, 0 } }, lk = k0, e = {} }
 end
--- the moves as "off@0 on@0 start@121 ...", the positions alone, and how long each held
+-- the moves as "acc@0 off@16 on@137 ...", the positions alone, and how long each held
 local function moves()
     local s, seq, held = {}, {}, {}
     for i, m in ipairs(W.k) do
@@ -69,7 +70,8 @@ local function moves()
     return table.concat(s, " "), table.concat(seq, " "), held
 end
 -- want: the positions in order; steps: the indices of the ON steps between the ends (each ~120 ms); stopStep: the
--- index of the OFF that follows the engine stopping (ON rests ~120 ms after the engine stops)
+-- index of the OFF that follows the engine stopping (ON rests ~120 ms after the engine stops). The key steps
+-- ACC - OFF - ON - START (ZeD_Dashboard:_keyPos)
 local function report(tag, want, steps, stopStep)
     if not W then return end
     local s, seq, held = moves()
@@ -214,15 +216,15 @@ local function startEngine(n)
     waitFor(function()
         local s = st()
         if s and s.running and s.keyPos == "on" then return true end
-        -- (a start that gave up: the key back at OFF and the engine idle; log it and turn again)
-        if W and s and s.keyPos == "off" and not s.cranking and now() - W.t0 > 1500 then
+        -- (a start that gave up: the key back at ACC and the engine idle; log it and turn again)
+        if W and s and s.keyPos == "acc" and not s.cranking and now() - W.t0 > 1500 then
             report(n, nil); tries_ = tries_ + 1
             if tries_ >= 4 then return true end
             mark("start (again)"); click("ignition")
         end
         return false
     end, 20000, function() err(n .. " engine never ran") end)
-    act(function() report(n, "off on start on", { 2 }) end)
+    act(function() report(n, "acc off on start on", { 3 }) end)
 end
 
 -- open ground (director, Oct 24 2026: "You are spawning cars in the forest with rocks all over. Go to a large parking
@@ -275,7 +277,7 @@ for _, e in ipairs(LIST) do
         mark("insert"); click("ignition")
     end)
     waitMs(500)
-    act(function() if ok() then report(n, "nil off") end end)
+    act(function() if ok() then report(n, "nil acc") end end)
     startEngine(n)
     act(function() if ok() then local s = st(); if s and not s.lights then click("lights") end end end)
     waitMs(900)
@@ -319,31 +321,32 @@ for _, e in ipairs(LIST) do
         if s.ashIsOpen ~= d0.open or s.ashOpen ~= d0.lv then err(n .. " the tray did not come back on click 2") end
         if s.ashIsOpen then shot(n, "tray_open") end
     end)
-    -- shut off: ON a step, then OFF
+    -- shut off: ON a step, then OFF, then ACC
     act(function() if ok() then mark("shutoff"); click("ignition") end end)
-    waitFor(function() local s = st(); return not ok() or (s and not s.running and s.keyPos == "off" and now() - W.t0 > 300) end, 6000,
+    waitFor(function() local s = st(); return not ok() or (s and not s.running and s.keyPos == "acc" and now() - W.t0 > 300) end, 6000,
         function() err(n .. " never shut off") end)
-    act(function() if ok() then report(n, "on off", nil, 2) end end)
+    act(function() if ok() then report(n, "on off acc", nil, 2) end end)
     -- a start on an empty tank: it does not catch (once the engine has wound down: a start while it reads
     -- ShuttingDown is ignored by the game)
     waitFor(function() local s = st(); return not ok() or (s and s.engState == "Idle") end, 8000,
         function() err(n .. " engine never went Idle after shutting off") end)
     act(function() if ok() then fuel(cur, 0); mark("dry start"); click("ignition") end end)
-    waitMs(250)
+    -- (the key passes ACC, OFF and ON first: about 260 ms to START, so wait for it, as keys_edge does)
+    waitFor(function() local s = st(); return not ok() or (s and s.keyPos == "start") end, 2000)
     act(function() if ok() and W and st() and st().keyPos == "start" then shot(n, "key_start") end end)
-    waitFor(function() local s = st(); return not ok() or (s and not s.running and not s.cranking and s.keyPos == "off" and now() - W.t0 > 1200) end, 15000,
+    waitFor(function() local s = st(); return not ok() or (s and not s.running and not s.cranking and s.keyPos == "acc" and now() - W.t0 > 1200) end, 15000,
         function() err(n .. " dry start never settled") end)
     act(function()
         if not ok() then return end
         local s = st()
         if s.running then err(n .. " ran on an empty tank") end
-        report(n, "off on start on off", { 2, 4 })
+        report(n, "acc off on start on off acc", { 3, 5 })
         fuel(cur, 1)
     end)
     -- the key out
     act(function() if ok() then mark("key out"); click("ignition", true) end end)
     waitMs(300)
-    act(function() if ok() then report(n, "off nil") end end)
+    act(function() if ok() then report(n, "acc nil") end end)
     act(leave)
     waitMs(300)
 end

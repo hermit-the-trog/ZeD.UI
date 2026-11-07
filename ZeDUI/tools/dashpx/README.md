@@ -8,7 +8,7 @@ The 19 vehicle dashboards are painted here and read by the game from data. Nothi
 
 Depth is one rule for every dash: dash top 0 (far), brow lip 11 (nearest), lower dash and console 5, cluster face −6 (sunk in the binnacle), dial faces −8.5. The binnacle's side walls and sill show, never its ceiling; the brow's shadow lies across the top of the dials. Every placed piece is checked against the one flat surface it sits on: a label, knob, dial or lamp that would cross a bezel or a seam stops the export.
 
-Two more checks stop the export. Nothing that moves may travel over print: every lever tab and slider knob sweeps its whole travel, and a legend or tick mark anywhere under that sweep is a placement error (the legends under a slot start a clear pixel below the tab). Every needle, swept through its whole travel, must stay on its dial: on the face, on the face's print (a needle over a legend is allowed; real gauges do it) or on its own hub (the dome on its pivot, or a shroud the design registers with `Build.hub`, the D6's fan speedometer). It may not cross another needle's sweep or another live part. A miss stops the export (`build.needle_check`, Oct 29 2026). And the right end of the dash's top edge (`HINT_X0`..`HINT_X1` in `dashlib.py`) stays plain on every plate, because the game prints the gamepad hint there; the defroster grille stops short of it.
+Three more checks stop the export. Nothing that moves may travel over print: every lever tab and slider knob sweeps its whole travel, and a legend or tick mark anywhere under that sweep is a placement error (the legends under a slot start a clear pixel below the tab). Every needle, swept through its whole travel, must stay on its dial: on the face, on the face's print (a needle over a legend is allowed; real gauges do it) or on its own hub (the dome on its pivot, or a shroud the design registers with `Build.hub`, the D6's fan speedometer). It may not cross another needle's sweep or another live part. A miss stops the export (`build.needle_check`, Oct 29 2026). No two printed legends may stand closer than 3 clear pixels on rows they share, nor meet corner to corner (`build.legend_check`, Nov 7 2026: the ambulance's switch legends ran together at a 22 px pitch). And the right end of the dash's top edge (`HINT_X0`..`HINT_X1` in `dashlib.py`) stays plain on every plate, because the game prints the gamepad hint there; the defroster grille stops short of it.
 
 ## The pipeline
 
@@ -67,9 +67,10 @@ tray (`ZeD_Dashboard.lua`, `_vanRight`).
 ## Round 6 in the game (Oct 24 2026)
 
 - **Sprites with a value:** a sprite part shows while `st[src]` equals `when` when `when` is a string or a number (the
-  key's `keyPos` "off" / "on" / "start", `ashOpen` 1..3, `hula` 0..2, `vanRight`), or as a flag otherwise.
-- **The key:** OFF with the key in, START while the starter turns (the engine's state reads Starting or
-  RetryingStarting), ON while it runs; it rests 120 ms on ON between the ends.
+  key's `keyPos` "acc" / "off" / "on" / "start", `ashOpen` 1..3, `hula` 0..2, `vanRight`), or as a flag otherwise.
+- **The key:** ACC with the key in (Nov 7 2026), START while the starter turns (the engine's state reads Starting or
+  RetryingStarting), ON while it runs; it moves a step at a time (ACC - OFF - ON - START, 120 ms a step) and rests
+  120 ms on ON between the ends.
 - **Ash trays:** shut on 6 cars in 10, the rest open at one of the design's levels, from the car's key number; a click
   opens or shuts it (`modData.ZeD_ash`).
 - **The taxi's meter:** the fares are ZeD sandbox options (`SandboxVars.ZeD.TaxiFlagDrop`, `TaxiPerFifthMile`,
@@ -87,6 +88,15 @@ tray (`ZeD_Dashboard.lua`, `_vanRight`).
   along the slot, bare nickel on the wagon, the Lang 4000 and the Horizon, glossy black elsewhere (their lock face
   aluminium). A 10 px chrome ring hangs from the middle of its near edge, and from the ring a teardrop leather fob
   (tan, or cocoa on the light cabins), drawn on the plate in each key sprite so the engine casts its shadow.
+- **ACC** (director, Nov 7 2026: a key in the ignition lights every lamp, so "it should be in accessory mode. ACC
+  ... to the left of off"): a fourth legend, ACC, at 220 degrees round the ring (the mirror of ON's), and a fourth
+  key sprite turned back 40 degrees (`v6.KEY_ANGLES`, `KEY_LABEL_AT`). The curved dashes print ACC left of their
+  LOCK (2 px further out than the ring puts it, LOCK being wider than OFF; ON 1 px further out). The lower row's key
+  block grows to 54 px (46 on the curved dashes) so ACC clears its neighbor. The ambulance's switches stay 24 px
+  apart (at 22 their legends ran together): their plate keeps 3 px either side (4 before), which sets it 3 px
+  nearer the column and the key 3 px further right, ACC 4 px clear of the plate. The Simple dash says ACC
+  (`UI_ZeD_DashPlain_Acc`) on every dash with a key; the race car's IGN toggle has no ACC and says Off, as its plate
+  shows.
 - **The column's shroud** (`v6.column_shroud`): a 100 × 46 half squircle in the cabin's vinyl standing on the last
   row at `COLUMN_X`, after the lower row; the lower rows keep 104 px clear for it (`LEFT_SPAN`, `RIGHT_SPAN`). Where
   the right side has no room left for the wiper (the ambulance's switch panel) the wiper moves left of the column.

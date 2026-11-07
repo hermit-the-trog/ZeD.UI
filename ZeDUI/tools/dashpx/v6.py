@@ -2,8 +2,8 @@
 ZeDUI/HANDOFF_dashboards_r6_20261024.md.
 
   The lower row: left of the steering column (COLUMN_X) the lights, lock and trunk; right of it the wiper, cruise
-  and the key, the key right-most; each side spread with equal gaps; no vent down here. The key turns OFF, ON,
-  START (three sprites, src keyPos).
+  and the key, the key right-most; each side spread with equal gaps; no vent down here. The key turns ACC, OFF,
+  ON, START (four sprites, src keyPos; ACC added Nov 7 2026).
   The console: larger vents built like vents (louvers, the tab, vanes behind, a thumbwheel; eyeballs for the round
   ones); the radio against the left edge, the ash tray and lighter right of it (open as sprites, src ashOpen = 1,
   2, 3: two, four, six butts); the hazard switch under the ash tray where there is room; NO SMOKING plates on the
@@ -95,6 +95,12 @@ def vent_eyeball(b, cx, cy, r, bezel="chrome", on=Z_FACE, check=True):
 # head swept from the lock face to that edge (the face toward the eye a dark sliver, the near edge the brightest line).
 # A 10 px chrome ring hangs from the hole in the middle of the near edge, and from it a teardrop leather fob, face on.
 # Bare nickel on the wood-and-chrome cars, glossy black on the rest (their lock face turns aluminium behind it).
+# ACC (director, Nov 7 2026: a key in the ignition lights every lamp, so "it should be in accessory mode. ACC ... to
+# the left of off"): the key turned back 40 degrees, its legend the mirror of ON's (220 degrees round the ring). The
+# game shows ACC whenever the key is in and the engine is not running or cranking; OFF is only passed through.
+KEY_ANGLES = (("acc", -40), ("off", 0), ("on", 40), ("start", 80))
+KEY_LABEL_AT = (220, 270, 320, 0)       # the legends round the ring, screen degrees, in KEY_ANGLES' order
+KEY_BLOCK, KEY_BLOCK_CX = 54, 22        # the key's block in the lower row, ACC to START (44 and 12 before ACC)
 KEY_VP = (250.0, 60.0)
 KEY_DEPTH_PX = 2.5
 KEY_HALF_L, KEY_HALF_T = 8.5, 1.2       # 17 x about 3 px. At START it clears the START label (and the curved dashes'
@@ -157,8 +163,8 @@ def fob(d, ox, oy, body, leather, on=Z_FACE):
     return drop | tab_round | snap
 
 
-def key_turn_variants(b, cx, cy, style=None, angles=(("off", 0), ("on", 40), ("start", 80))):
-    """three key sprites: the key at OFF, ON and START (src keyPos), its ring and fob hanging straight down in each.
+def key_turn_variants(b, cx, cy, style=None, angles=KEY_ANGLES):
+    """four key sprites: the key at ACC, OFF, ON and START (src keyPos), its ring and fob hanging straight down in each.
     Each records what moves in b.movers (the key, its ring, its fob): the build's travel check keeps print out from
     under them. style is no longer used (the key's material follows the car: KEY_NICKEL)"""
     nickel = b.id in KEY_NICKEL
@@ -188,8 +194,10 @@ def key_turn_variants(b, cx, cy, style=None, angles=(("off", 0), ("on", 40), ("s
         b.movers.append((name, fn(DL.Dash(W, H, seed=0))))     # what moves (geometry only, on a scratch canvas)
 
 
-def ignition(b, cx, cy, met="chrome", labels=("OFF", "ON", "START"), style=None):
-    """the lock cylinder in its chrome ring, the three positions printed round it (OFF up, ON up-right, START right)"""
+def ignition(b, cx, cy, met="chrome", labels=("ACC", "OFF", "ON", "START"), style=None):
+    """the lock cylinder in its chrome ring, the four positions printed round it (ACC up-left, OFF up, ON up-right,
+    START right). ACC reaches 20 px left of the center, START 33 right of it: the lower row gives the key a block
+    KEY_BLOCK wide, its center KEY_BLOCK_CX in from the block's left"""
     d = b.d
     b.check_flat(cx - 12, cy - 12, 25, 25, "ignition")
     d.torus(cx, cy, 7, 10, 2.2, met, polish=1.0, on=Z_FACE)
@@ -199,7 +207,7 @@ def ignition(b, cx, cy, met="chrome", labels=("OFF", "ON", "START"), style=None)
     if b.id not in KEY_NICKEL:      # the black key needs something to stand against: the cylinder's face turns aluminium
         cyl = (np.hypot(d.XX + 0.5 - (cx + 0.5), d.YY + 0.5 - (cy + 0.5)) < 6.5) & (d.mat == d.mid("blackp"))
         d.mat[cyl] = d.mid("alu"); d.polish[cyl] = 0.8
-    for t, a in zip(labels, (270, 320, 0)):
+    for t, a in zip(labels, KEY_LABEL_AT):
         if not t: continue
         DL.ring_label(b, cx + 0.5, cy + 0.5, 11, a, t, gap=2)
     key_turn_variants(b, cx, cy)
@@ -280,7 +288,7 @@ def lower_boxy6(b, y0=118, chrome=True, trunk_label="TRUNK", trunk_sub=None, cru
     right = [("wiper", 22)]
     if right_panel: right.append(("panel", right_panel))
     elif cruise: right.append(("cruise", 34))
-    right.append(("key", 44))
+    right.append(("key", KEY_BLOCK))
     if sum(w for _, w in right) + MIN_GAP * (len(right) + 1) > RIGHT_SPAN[1] - RIGHT_SPAN[0]:
         left.append(right.pop(0))
     for (kind, bw), x in zip(left, spread(*LEFT_SPAN, [w for _, w in left])):
@@ -314,7 +322,7 @@ def lower_boxy6(b, y0=118, chrome=True, trunk_label="TRUNK", trunk_sub=None, cru
             b.led(x + 28, y0 + 16, 3, 2, "cruiseLamp", "#ffb02e")
             b.hit("cruise", x, y0 + 14, 34, 13, needs="running")
         else:
-            ignition(b, x + 12, y0 + 22, met=met, style=key_style)
+            ignition(b, x + KEY_BLOCK_CX, y0 + 22, met=met, style=key_style)
     column_shroud(b)
     return panel_x
 
@@ -340,7 +348,7 @@ def lower_curvy6(b, y0=122):
     x = xs[2]
     b.check_flat(x - 2, y0 + 9, 38, 18, "trunk button")
     button(d, x, y0 + 11, 34, 14, "TRUNK", mat="blackp", on=Z_FACE, r=3); b.hit("trunk", x, y0 + 11, 34, 14, needs="hasTrunk")
-    xs = spread(*RIGHT_SPAN, [36, 40, 36])
+    xs = spread(*RIGHT_SPAN, [36, 40, 46])      # the key's block: ACC to ST (36 before ACC)
     for i, (ic, up) in enumerate((("wiper", True), ("defrost", False))):
         b.check_flat(xs[0] + i * 20 - 2, y0 + 6, 20, 26, f"rocker {ic}")
         DL.rocker(d, xs[0] + i * 20, y0 + 8, 16, 22, on=Z_FACE, up=up, icon=ic, icon_mat="paint_w")
@@ -348,14 +356,16 @@ def lower_curvy6(b, y0=122):
     b.check_flat(x - 2, y0 + 9, 44, 18, "cruise button")
     button(d, x, y0 + 11, 40, 14, "CRUISE", mat="blackp", on=Z_FACE, r=3)
     b.led(x + 34, y0 + 13, 3, 2, "cruiseLamp", "#7aff6a"); b.hit("cruise", x, y0 + 11, 40, 14, needs="running")
-    kx = xs[2] + 12
+    kx = xs[2] + 22
     b.check_flat(kx - 12, y0 + 6, 25, 25, "ignition")
     d.torus(kx, y0 + 18, 7, 9.5, 1.6, "blackp", polish=0.6, on=Z_FACE)
     ig = np.hypot(d.XX + 0.5 - kx, d.YY + 0.5 - (y0 + 18)) < 7
     d.h[ig] = Z_FACE + 0.6; d.mat[ig] = d.mid("alu"); d.polish[ig] = 0.8; d.tex[ig] = 0
     d.seam(box(kx - 1, y0 + 14, 2, 9), 0.8)
-    for t, a in (("LOCK", 270), ("ON", 320), ("ST", 0)):
-        DL.ring_label(b, kx + 0.5, y0 + 18.5, 10.5, a, t, gap=2)
+    # LOCK is these locks' OFF. LOCK is wider than OFF, so ACC sits 2 px further left and ON 1 px further right: ACC
+    # 4 px clear of LOCK, as of OFF on the boxy dashes, ON 3 px (Nov 7 2026; 2 and 2 before)
+    for t, a in zip(("ACC", "LOCK", "ON", "ST"), KEY_LABEL_AT):
+        DL.ring_label(b, kx + 0.5 + {"ACC": -2, "ON": 1}.get(t, 0), y0 + 18.5, 10.5, a, t, gap=2)
     key_turn_variants(b, kx, y0 + 18)
     b.hit("ignition", kx - 10, y0 + 8, 21, 21)
     column_shroud(b)

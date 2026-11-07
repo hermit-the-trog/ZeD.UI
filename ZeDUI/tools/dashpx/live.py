@@ -444,7 +444,7 @@ def render_live(plate, design, st, k=1, sprites=None, heads=None, night=None):
             val = st.get(p["src"])
             key = p.get("when", True)
             # a sprite shows while its state reads `when`: a flag (true / false) or one value of several
-            # (the key's position "off" / "on" / "start", a frame number)
+            # (the key's position "acc" / "off" / "on" / "start", a frame number)
             hit_ = (val == key) if isinstance(key, (str, int)) and not isinstance(key, bool) else (bool(val) == bool(key))
             if hit_ and sprites and p["sprite"] in sprites:
                 im = sprites[p["sprite"]]

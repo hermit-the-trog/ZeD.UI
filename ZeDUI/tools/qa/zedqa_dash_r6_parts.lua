@@ -157,7 +157,7 @@ local function startEngine(n)
     waitFor(function()
         local s = st()
         if s and s.running then return true end
-        if s and s.keyPos == "off" and not s.cranking and now() - t0 > 1500 then
+        if s and s.keyPos == "acc" and not s.cranking and now() - t0 > 1500 then
             tries_ = tries_ + 1
             if tries_ >= 5 then return true end
             t0 = now(); click("ignition")
@@ -466,7 +466,7 @@ waitMs(400)
 act(function() shot("taxi_night_dark"); D.qaNight = nil; D.qaLit = nil end)
 -- the key out: the flag goes up, the meter clears
 act(function() if ok() then click("ignition") end end)                  -- shut off
-waitFor(function() local s = st(); return s and not s.running and s.keyPos == "off" end, 6000)
+waitFor(function() local s = st(); return s and not s.running and s.keyPos == "acc" end, 6000)
 waitMs(300)
 act(function() if ok() then click("ignition", true) end end)            -- the key out
 waitMs(400)
