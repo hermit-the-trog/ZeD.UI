@@ -2890,6 +2890,13 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       game's own kill count (as vanilla's Character Info), which leaves out fire kills; the Journal adds them. (5) The dashes draw the key at OFF while it sits in the lock, but a key in the lock powers the
       electrics (the game has no separate ON), so every lamp lights in the bulb check with the key drawn at OFF (QA, Nov 7):
       draw the key at ON whenever it powers the dash?
+    - **The director's answers (Nov 7, morning):** (1) "Sure, use more third size ads": 32 more thirds, lineup in
+      GUIDE_ADS_PLAN.md (Batch 5); whole pages with no full ad left now take a half or quarters and a third before NOTES.
+      The director also asked whether the contents page runs too long or needs more than one page (measured, see below).
+      (2) "I want the text to print": the First Days checklist prints once at every text size. (3) "Do the most
+      accurate thing" on old Explosion counts. (4) Identity and Journal kill counts "should match". (5) The key in
+      the lock, engine off, is in accessory mode: an ACC position to the left of OFF, the key drawn there; ON when
+      running.
     - **Known gaps:** ZeD picks come back only when ZeD-GUI is turned on by its own row, not through a folder or
       separator box or Turn all off; split-screen's second player doesn't save dash miles on a server; on a server the
       dash ash tray is per player and session; FR and HU month words keep a capital (shared Journal keys; native pass).
