@@ -5513,7 +5513,7 @@
     "UI_ZeD_Log_OneLine": "1 Zeile. Jede Zeile geht auch in die eigenen Logdateien des Servers, für externe Werkzeuge.",
     "UI_ZeD_Log_NoContainer": "Entnahmen aus Behältern werden auf diesem Server nicht protokolliert (optional, aus).",
     "UI_ZeD_Log_TimesUtc": "Zeiten sind UTC.",
-    "UI_ZeD_Log_MonthDay": "%1 %2",
+    "UI_ZeD_Log_MonthDay": "%2. %1",
     "UI_ZeD_Log_PlayerCard": "Karte von %1",
     "UI_ZeD_Log_AddTo": "Zu Ticket #%1 hinzufügen",
     "UI_ZeD_Log_Added": "Als Admin-Notiz zu Ticket #%1 hinzugefügt, mit der Zeile und ihrem Ort.",

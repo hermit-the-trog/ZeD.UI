@@ -11,6 +11,8 @@
 -- It prints FAIL lines and a last line "admin_cards_sim: N checks, M failed", and exits 1 if any failed.
 
 local ROOT = string.gsub(arg and arg[0] or "", "ZeDUI[/\\]tools[/\\]qa[/\\]admin_cards_sim%.lua$", "")
+-- Kahlua has no next() (KB Q221): take it away here too, so a file that calls it fails in the sim as it would in the game
+next = nil
 
 local checks, failed = 0, 0
 local function check(name, ok, detail)
@@ -986,6 +988,15 @@ st.card.to = "me"
 check("the line, to you", spawnLine() == "51 x Baseball Bat to you", spawnLine())
 st.card.to = "Rosa"
 check("the line, to a player", spawnLine() == "51 x Baseball Bat to Rosa", spawnLine())
+-- the four whole-sentence keys are written out in the file, so the translation guard sees them (not glued from parts)
+do
+    local f = assert(io.open(ROOT .. "42/media/lua/client/ZeD/ZeD_AdminCards.lua", "rb"))
+    local src = f:read("*a")
+    f:close()
+    for _, k in ipairs({ "UI_ZeD_Adm_SpawnLineMe", "UI_ZeD_Adm_SpawnLineGround", "UI_ZeD_Adm_SpawnedMe", "UI_ZeD_Adm_SpawnedGround" }) do
+        check("spawn key written whole: " .. k, string.find(src, '"' .. k .. '"', 1, true) ~= nil)
+    end
+end
 st.card.to = "ground"
 st.card.n = 100
 M.bump()
