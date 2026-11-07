@@ -25,7 +25,7 @@ rows = [("appid", "108600"), ("publishedfileid", "3824968485"),
         ("contentfolder", "C:/Users/danie/Zomboid/Workshop/ZeD-UI/Contents"),
         ("previewfile", "C:/Users/danie/Zomboid/mods/ZeD-UI/ZeDUI/workshop/thumbnail/year_1993_animated.gif"),
         ("description", esc(d)), ("changenote", esc(c))]
-if len(sys.argv) > 2 and sys.argv[2] == "--note-only":   # the change note alone: no files, no page text, no preview
+if len(sys.argv) > 2 and sys.argv[2] == "--note-only":   # (Nov 6 2026: Steam accepted this and posted no entry. A note only lands with a content upload.)
     rows = [r for r in rows if r[0] in ("appid", "publishedfileid", "changenote")]
 out = Q + "workshopitem" + Q + "\n{\n" + "".join("\t%s%s%s\t\t%s%s%s\n" % (Q, k, Q, Q, val, Q) for k, val in rows) + "}\n"
 p = os.path.join(os.environ["TEMP"], "zed_note_3824968485.vdf" if len(sys.argv) > 2 else "zed_upload_3824968485.vdf")
