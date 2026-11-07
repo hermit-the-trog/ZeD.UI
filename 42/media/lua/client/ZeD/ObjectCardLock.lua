@@ -51,7 +51,7 @@ local FLASH_MS = 6000
 -- half = true: the half card (220), like the recipe preview, not the full object card (480) every
 -- kind gets by default (ZeD_WorldWindow reads def.half; punch list 99). The padlock's own shape spans
 -- 186 of LOCK_W's 236 units (the rest is margin), so it fits the half card's body (200, or 186 beside
--- a scrollbar); the facts truncate and the verbs wrap to a second row as on any card.
+-- a scrollbar); the facts stack (fact below) and the verbs wrap to a second row as on any card.
 local def = { id = "lock", leash = 4, half = true }
 
 -- ----------------------------------------------------------------------------
@@ -531,7 +531,6 @@ local function band(card, x, y, w, t, player)
     A.frame(card, x, y, w, h, T.borderS)
     local f1 = T.fontF1
     local busyText = A.textCase(d.busyText or "")
-    card:drawText(busyText, x + T.px(8), y + math.floor((h - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
     local stop = getText("IGUI_media_stop")
     local bw = UI.buttonW(stop)
     local bh = T.buttonH - T.px(4)
@@ -544,6 +543,10 @@ local function band(card, x, y, w, t, player)
     local f3 = T.fontF3
     local sw = tm:MeasureStringX(f3, s)
     card:drawText(s, bx - T.px(10) - sw, y + math.floor((h - tm:getFontHeight(f3)) / 2), T.text.r, T.text.g, T.text.b, 1, f3)
+    -- the busy words, cut to the room left of the percent (the half card, punch list 99: at 220 they ran
+    -- under it)
+    busyText = A.truncateText(busyText, f1, bx - T.px(10) - sw - T.px(10) - (x + T.px(8)))
+    card:drawText(busyText, x + T.px(8), y + math.floor((h - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
     local barX = x + T.px(8) + tm:MeasureStringX(f1, busyText) + T.px(12)
     local barW = bx - T.px(10) - sw - T.px(10) - barX
     if barW > T.px(20) then
@@ -553,12 +556,33 @@ local function band(card, x, y, w, t, player)
     return h
 end
 
+-- One fact: the label in the accent, its value beside it. In the half card (220; punch list 99) a
+-- value column 96 in is too narrow for most values, so there the label sits on its own row and the
+-- value wraps under it across the whole body. Returns the height drawn.
 local function fact(card, x, y, w, label, value, dotC)
     local T, tm = ZeD.T, ZeD.TM
     local h = T.px(20)
     local ac = T.accent
     local f1, f2 = T.fontF1, T.fontF2
     card:drawText(ZeD.textCase(label), x, y + math.floor((h - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
+    if w < T.px(300) then
+        -- stacked: the value's lines under the label, the status dot (if any) before the first line
+        local vx = x
+        local lh = tm:getFontHeight(f2) + T.px(2)   -- (one wrapped line's height, with a little leading)
+        local vy = y + h
+        if dotC then
+            ZeD.Atoms.drawStatusDot(card, vx, vy + math.floor((tm:getFontHeight(f2) - T.px(6)) / 2), dotC, T.px(6))
+            vx = vx + T.px(12)
+        end
+        local lines = ZeD.Atoms.wrapText(value, f2, x + w - vx)
+        local tc = T.text
+        for _, ln in ipairs(lines) do
+            -- (a single word wider than the body is still cut, never drawn past the edge)
+            card:drawText(ZeD.CraftingCore.truncText(ln, f2, x + w - vx), vx, vy, tc.r, tc.g, tc.b, tc.a or 1, f2)
+            vy = vy + lh
+        end
+        return (vy - y) + T.px(4)
+    end
     local vx = x + T.px(96)
     if dotC then
         ZeD.Atoms.drawStatusDot(card, vx, y + math.floor((h - T.px(6)) / 2), dotC, T.px(6))
