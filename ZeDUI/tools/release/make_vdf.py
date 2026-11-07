@@ -13,8 +13,10 @@ def read(name):
     return open(os.path.join(w, name), encoding="utf8").read().replace("\r\n", "\n").strip()
 
 
+# (Nov 6 2026: SteamCMD reads no escapes in an item file: a backslash and quote ended beta 6's change note at its first quote mark.
+# Double quotes become single ones.)
 def esc(s):
-    return s.replace(BS, BS + BS).replace(Q, BS + Q)
+    return s.replace(Q, "'")
 
 
 d = read("tester_description_%s.bbcode" % v)
@@ -23,7 +25,9 @@ rows = [("appid", "108600"), ("publishedfileid", "3824968485"),
         ("contentfolder", "C:/Users/danie/Zomboid/Workshop/ZeD-UI/Contents"),
         ("previewfile", "C:/Users/danie/Zomboid/mods/ZeD-UI/ZeDUI/workshop/thumbnail/year_1993_animated.gif"),
         ("description", esc(d)), ("changenote", esc(c))]
+if len(sys.argv) > 2 and sys.argv[2] == "--note-only":   # the change note alone: no files, no page text, no preview
+    rows = [r for r in rows if r[0] in ("appid", "publishedfileid", "changenote")]
 out = Q + "workshopitem" + Q + "\n{\n" + "".join("\t%s%s%s\t\t%s%s%s\n" % (Q, k, Q, Q, val, Q) for k, val in rows) + "}\n"
-p = os.path.join(os.environ["TEMP"], "zed_upload_3824968485.vdf")
+p = os.path.join(os.environ["TEMP"], "zed_note_3824968485.vdf" if len(sys.argv) > 2 else "zed_upload_3824968485.vdf")
 open(p, "w", encoding="utf8", newline="\n").write(out)
 print("description", len(d), "escaped", len(esc(d)), "changenote", len(c), "->", p)
