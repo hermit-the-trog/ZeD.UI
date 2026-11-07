@@ -17,3 +17,9 @@ RT to run closes a tap/toggle wheel (beta 6 #11, not fixed). Offline Player card
 
 ## Confirmed fixed on the Mac (42.21) that QA saw here too
 Server fonts, safehouse invitations online and offline, mute on every stream, tow refusal, Check stats stacking, ticket Back, clothing values, Ranch page. The review also confirms on 42.21: breakConstraint(ZZ) is the only overload there, and every engine call the hot fix added exists with the right arity.
+
+## QA, Nov 7 2026 early: beta 6a's untested items (qa/regression/2026-11-07_b6a_left_4k.md, _deck.md)
+- Radio tab, Character (walkie in hand) and World (ham set beside): rail and footer draw at 4K and Deck.
+- Journal > Recipes with an item card over it, Character window: the list stays, the rail and footer draw, the list is whole after X. (The Deck run's press on the card's X landed on its name and opened the rename box: the test's place for the X, not the card.)
+- Cooking tab (regression pictures of Nov 6 22:05): rail and footer draw.
+- **New, low: the book card shows two progress figures.** With half a carpentry book read (the game's own count, player:getAlreadyReadPages), the card's top facts say "Progress 0 / 220" and its Reading Facts say "110 / 220"; the game's tooltip says "Pages: 110 of 220". ItemCardOrganism.lua:603 reads the copy's own count (item:getAlreadyReadPages); ItemFactsPanel.lua:319 reads the player's first. The game keeps both while you read one copy, so the two agree for that copy; any other copy of the same book shows 0 on top. The top line should read the player's count, as the Reading Facts do.

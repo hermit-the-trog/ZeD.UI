@@ -1,0 +1,3 @@
+# which row a kill lands in (Nov 7 2026, punch list 101)
+zedqa_prelude.lua | pre
+zedqa_kills_kind.lua | kk | timeout=90

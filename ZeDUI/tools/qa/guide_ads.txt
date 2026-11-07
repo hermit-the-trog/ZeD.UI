@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/guide_ads.txt  (Nov 7 2026): punch list 98, the survival guide's ads (batch_guide_ads.ps1)
+zedqa_prelude.lua | pre | timeout=120
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_guide_ads.lua | gad | timeout=1200

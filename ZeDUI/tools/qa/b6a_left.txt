@@ -1,0 +1,4 @@
+# what beta 6a left untested (Nov 7 2026)
+zedqa_prelude.lua | pre
+zedqa_pin_windows.lua | pnw | timeout=60
+zedqa_b6a_left.lua | b6l | timeout=150
