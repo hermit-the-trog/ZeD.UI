@@ -2,7 +2,9 @@
 -- Loads the real KillTracker.lua and JournalTab.lua against Lua 5.1 stubs of the game and fires the
 -- two events the tracker listens to (OnHitZombie, OnZombieDead) the way the 42.22.2 bytecode does:
 --   a weapon kill: one hit, then one death
---   a fire kill: two deaths of a burning zombie (the burn's, then the body's)
+--   a fire kill: two deaths of a burning zombie (the burn's, then the body's); the burn clears the
+--     zombie's attacker every tick before its death check (ReduceHealthWhenBurning), while a weapon,
+--     bomb or car kill dies with the attacker set (IsoGameCharacter.Hit and Kill set it)
 --   a bomb: IsoTrap.explosion hits each zombie with the bomb as the weapon and the thrower as the
 --     wielder; on a multiplayer client a zombie another machine runs then takes a stand-in hit
 --     from a new Base.Axe
@@ -98,17 +100,26 @@ local function zombie(id, o)
     return z
 end
 
-local function hit(z, w) events.OnHitZombie.fire(z, P, "Head", w) end
+-- IsoGameCharacter.Hit fires OnHitZombie first, then sets the attacker
+local function hit(z, w) events.OnHitZombie.fire(z, P, "Head", w); z.attackedBy = P end
 local function dies(z) events.OnZombieDead.fire(z) end
+-- the burn's death: ReduceHealthWhenBurning clears the attacker, then fires OnZombieDead
+local function burns(z) z.attackedBy = nil; dies(z) end
 local function kd() return P.md.ZeD_Kills end
 local function fresh() P.md = {}; P.kills = 0 end
 
 -- ---------------------------------------------------------------------------
 -- LOAD the real files
 -- ---------------------------------------------------------------------------
+-- an older save: the old explosion test had filed weapon kills under explosion
+P.md.ZeD_Kills = { weapon = { Blunt = 2 }, fire = 1, vehicle = 4, explosion = 40 }
 dofile(ROOT .. "42/media/lua/client/ZeD/KillTracker.lua")
 events.OnGameStart.fire()
 check("the tracker listens", #events.OnHitZombie.list == 1 and #events.OnZombieDead.list == 1)
+check("old save: its explosion count moves to Other at load", kd().explosion == 0 and kd().weapon.Other == 40,
+    tostring(kd().explosion) .. " / " .. tostring(kd().weapon.Other))
+check("old save: the rest stays", kd().weapon.Blunt == 2 and kd().fire == 1 and kd().vehicle == 4)
+check("old save: marked fixed", kd().v == 2, kd().v)
 
 -- JournalTab reads ZeD.Atoms at load and requires the drawing modules; none of that is under test
 local realRequire = require
@@ -165,11 +176,11 @@ section("fire kills, and a reused zombie object")
 fresh()
 -- a fire death: two deaths of a burning zombie, nobody's hit
 z = zombie(20, { onFire = true })
-dies(z); wait(3000); dies(z)
+burns(z); wait(3000); dies(z)
 check("a burning zombie's two deaths are one fire kill", kd().fire == 1, kd().fire)
 -- hit, then the fire takes it: the weapon credit at the first death is taken back
 z = zombie(21, { onFire = true })
-hit(z, BAT); wait(500); dies(z)
+hit(z, BAT); wait(500); burns(z)
 check("hit then burn: the bat counts at the first death", kd().weapon.Blunt == 1)
 wait(4000); dies(z)
 check("hit then burn: the second death makes it a fire kill", kd().fire == 2, kd().fire)
@@ -191,8 +202,18 @@ dies(z3)
 check("reused object, no hit: no fire kill", kd().fire == 2, kd().fire)
 -- a build without isOnFire keeps the old double-death rule
 z = zombie(23, { noFireCall = true })
-dies(z); wait(2000); dies(z)
+burns(z); wait(2000); dies(z)
 check("no isOnFire call: two deaths still read as fire", kd().fire == 3, kd().fire)
+-- a burning zombie killed by a bat (the bat's blow, not the burn): then the game reuses the object
+z = zombie(24, { onFire = true })
+hit(z, BAT); wait(300); dies(z)
+check("burning, killed by a bat: the bat counts", kd().weapon.Blunt == 2, kd().weapon.Blunt)
+wait(4000)
+z2 = zombie(24)                  -- the same key, a new zombie, not burning
+hit(z2, AXE); wait(300); dies(z2)
+check("burning bat kill, reused object: no fire kill", kd().fire == 3, kd().fire)
+check("burning bat kill, reused object: the axe kill counts", kd().weapon.Axe == 2, kd().weapon.Axe)
+check("burning bat kill, reused object: the bat kill stays", kd().weapon.Blunt == 2, kd().weapon.Blunt)
 
 -- ---------------------------------------------------------------------------
 section("vehicle kills")
@@ -227,10 +248,11 @@ P.car = { getDriver = function() return P end }
 local zc = zombie(42, { state = "onground" }); zc.target = P
 P.kills = P.kills + 1; dies(zc)                                                            -- onHitByVehicleApplyDamage adds 1
 P.car = nil
-local zf = zombie(43, { onFire = true }); dies(zf); wait(2000); dies(zf)                   -- a fire death adds nothing
+local zf = zombie(43, { onFire = true }); burns(zf); wait(2000); dies(zf)                   -- a fire death adds nothing
 data = ZeD.JournalTab.gatherData(P)
 check("four kills, four in the total", data.totalKills == 4, data.totalKills)
 check("one of each", kd().weapon.Blunt == 1 and kd().explosion == 1 and kd().vehicle == 1 and kd().fire == 1)
+check("a new kill table is born fixed: its bomb kill stays explosion", kd().v == 2 and kd().weapon.Other == nil)
 
 print("kills_sim: " .. checks .. " checks, " .. failed .. " failed")
 os.exit(failed == 0 and 0 or 1)
