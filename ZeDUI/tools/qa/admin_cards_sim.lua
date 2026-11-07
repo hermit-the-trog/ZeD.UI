@@ -1110,8 +1110,10 @@ press("adm:tk:p:Away")
 draw()
 local netWhy, sawProf, sawStatus, sawLoading = M.why("SeeNetworkUsers"), false, false, false
 local roleBox = nil
+local netWhyN, sawNoSkills = 0, false
 for _, it in ipairs(st.tk.items or {}) do
-    if it.text == netWhy then sawProf = true end
+    if it.text == netWhy then sawProf = true; netWhyN = netWhyN + 1 end
+    if it.text == ZeD.tr("UI_ZeD_Adm_NoSkills") then sawNoSkills = true end
     if it.k == "fact" and it.label == ZeD.tr("UI_ZeD_Adm_Role") then roleBox = it.c end
     if it.text == ZeD.tr("UI_ZeD_Tk_Loading") then sawLoading = true end
     if it.k == "fact" and it.label == ZeD.tr("UI_ZeD_Adm_Status") and it.value == netWhy then sawStatus = true end
@@ -1119,6 +1121,8 @@ end
 check("a closed card says which power its record takes", sawProf and not sawLoading)
 check("a closed card's status says it too", sawStatus)
 check("a closed card's role says it too, never \"user\"", roleBox ~= nil and roleBox.text == netWhy)
+-- (the skills were kept back too: the card names the power, never "no skill above 0" for an account it cannot see)
+check("a closed card's skills say it too, never \"no skill above 0\"", (not sawNoSkills) and netWhyN >= 2)
 TC.back(win, st)
 M.cards.Away = nil
 M.qaCaps = {}

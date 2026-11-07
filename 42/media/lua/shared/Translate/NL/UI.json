@@ -5306,6 +5306,7 @@
     "UI_ZeD_Adm_HelpLeaveRole": "Weggaan zonder op te slaan.",
     "UI_ZeD_Adm_NoteSpawn": "Een admin heeft %1 x %2 bij je gespawnd.",
     "UI_ZeD_Adm_HelpOpenOwn": "Van jou: de kaart op het tabblad Server.",
+    "UI_ZeD_Cl_AnswerWait": "Je antwoord is onderweg. Wacht even.",
     "UI_ZeD_Cl_AskStale": "Dat veranderde terwijl dit open stond. Er is niets verstuurd.",
     "UI_ZeD_Cl_CanClaim": "Kan ik dit claimen?",
     "UI_ZeD_Cl_ClaimSub": "Niet hier? Het zegt waarom: andermans claim, te vroeg, geen woning of je hebt er al een.",

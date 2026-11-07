@@ -5306,6 +5306,7 @@
     "UI_ZeD_Adm_HelpLeaveRole": "保存せずに戻ります。",
     "UI_ZeD_Adm_NoteSpawn": "管理者があなたに%1 x %2をスポーンしました。",
     "UI_ZeD_Adm_HelpOpenOwn": "自分のもの: サーバータブのカード。",
+    "UI_ZeD_Cl_AnswerWait": "返事を送信中です。少々お待ちください。",
     "UI_ZeD_Cl_AskStale": "開いている間に変更されました。何も送信されていません。",
     "UI_ZeD_Cl_CanClaim": "確保できますか?",
     "UI_ZeD_Cl_ClaimSub": "ここでは無理? 理由が出ます: 他人の確保、早すぎる、家ではない、すでに持っている。",

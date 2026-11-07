@@ -5306,6 +5306,7 @@
     "UI_ZeD_Adm_HelpLeaveRole": "不保存，直接离开。",
     "UI_ZeD_Adm_NoteSpawn": "管理员向你生成了 %1 x %2。",
     "UI_ZeD_Adm_HelpOpenOwn": "属于你：见服务器页签中的卡片。",
+    "UI_ZeD_Cl_AnswerWait": "你的回复正在发送。请稍候。",
     "UI_ZeD_Cl_AskStale": "打开期间内容已变动。什么都没有发送。",
     "UI_ZeD_Cl_CanClaim": "我能认领这里吗？",
     "UI_ZeD_Cl_ClaimSub": "不行？它会说明原因：别人的认领、太早、不是住宅，或你已经有一个。",

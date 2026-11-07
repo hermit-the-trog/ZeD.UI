@@ -5306,6 +5306,7 @@
     "UI_ZeD_Adm_HelpLeaveRole": "Ieși fără salvare.",
     "UI_ZeD_Adm_NoteSpawn": "Un admin ți-a creat %1 x %2.",
     "UI_ZeD_Adm_HelpOpenOwn": "Al tău: fișa lui în fila Server.",
+    "UI_ZeD_Cl_AnswerWait": "Răspunsul tău e pe drum. Așteaptă puțin.",
     "UI_ZeD_Cl_AskStale": "Asta s-a schimbat cât era deschis. Nu s-a trimis nimic.",
     "UI_ZeD_Cl_CanClaim": "Pot revendica asta?",
     "UI_ZeD_Cl_ClaimSub": "Nu aici? Spune de ce: revendicarea altcuiva, prea devreme, nu e locuință, sau ai deja una.",
