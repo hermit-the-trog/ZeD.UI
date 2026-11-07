@@ -1,0 +1,206 @@
+== 2026-11-07 09:42 next beta: the three two-player cases left from the night
+09:43:09 set PlayerSafehouse=true
+09:43:09 set AdminSafehouse=true
+09:43:09 set DoLuaChecksum=false
+09:43:10 set SafehouseAllowNonResidential=true
+09:44:26 server up
+09:45:33 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-07_two_b7_rest_start.md
+09:48:49 ZEDQA acm PASS a safehouse held (zedqa)
+09:48:49 ZEDQA acm DONE
+09:49:32 second client joining as bob
+09:51:38 TIMEOUT
+09:51:38 ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown
+09:51:38 ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown
+09:51:38 ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown
+09:51:38 ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown
+09:51:38 ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown
+09:51:38 ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown
+09:51:38 ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown
+09:51:38 ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown
+09:51:48 bob in game
+09:51:54 == 1 an invitation while a yes is on its way, safe mode on
+09:52:04 ZEDQA ain bob online: true, safehouse zedqa
+09:52:04 ZEDQA ain invite sent
+09:52:04 ZEDQA ain DONE
+09:52:40 ZEDQA bsj safe mode false, bob has a house false
+09:52:40 ZEDQA bsj PASS the admin's invitation is a note in ZeD (zedqa)
+09:52:40 ZEDQA bsj PASS the Safe mode switch is there
+09:52:40 ZEDQA bsj safe mode now true; bob has a house false
+09:52:40 ZEDQA bsj A raised: notes 1, a game pop-up false
+09:52:40 ERROR: General      f:1736 st:35,144,073> Lua(Vanilla).onSafeInvite> Exception thrown
+09:52:40 ZEDQA bsj B raised: a game pop-up false; bob has a house false
+09:52:40 ZEDQA bsj PASS both arrived while the yes was still on its way (no house yet)
+09:52:40 ZEDQA bsj PASS A waits as a note while the yes is on its way, not as the game's pop-up (1)
+09:52:40 ZEDQA bsj the yes: true nil after 39 ms
+09:52:40 ZEDQA bsj PASS the yes landed: bob joined the house (39 ms)
+09:52:40 ZEDQA bsj PASS bob holds the house
+09:52:40 ZEDQA bsj PASS no game invitation pop-up at any moment (the second answer, the kick, never offered)
+09:52:40 ZEDQA bsj PASS the held note is gone once the yes landed (the game's handler dropped it: bob has a house) (0)
+09:52:40 ZEDQA bsj PASS bob still on the server 25 s later, still a member
+09:52:40 ZEDQA bsj safe mode put back: false
+09:52:40 ZEDQA bsj 9 passed, 0 failed
+09:52:40 ZEDQA bsj DONE
+09:52:40 == 2 the dash with two players
+09:52:52 ZEDQA dsg from 10794,10030
+09:52:52 ZEDQA dsg at 925,13040
+09:52:52 ZEDQA dsg carspawn: true id 247
+09:52:52 ZEDQA dsg car 247 at 930.0,13040.0, forward 0.18,0.00
+09:52:52 ZEDQA dsg carprep: true, hotwired true
+09:52:52 ZEDQA dsg in the driver's seat: true
+09:52:52 ZEDQA dsg engine running true; dash shown true; odo 55993.1 trip 0
+09:52:52 ZEDQA dsg bob at 5.0 squares from the car
+09:52:52 ZEDQA dsg DONE
+09:52:53 -- dash phase: watch
+09:53:43 ZEDQA ddr driver true, engine true, rider nil, forward
+09:53:43 ZEDQA ddr before: the dash odo 55993.10002022713 trip 2.022713389496237E-5; the server odo 55993.1 trip 0 other kept on the server
+09:53:43 ZEDQA ddr t=3 kmh=0.1 path=0.0 odo=55993.100 trip=0.000
+09:53:43 ZEDQA ddr t=6 kmh=0.0 path=0.1 odo=55993.100 trip=0.000
+09:53:43 ZEDQA ddr t=9 kmh=25.7 path=7.7 odo=55993.105 trip=0.005
+09:53:43 ZEDQA ddr t=12 kmh=30.2 path=32.6 odo=55993.120 trip=0.020
+09:53:43 ZEDQA ddr t=15 kmh=29.8 path=57.6 odo=55993.136 trip=0.036
+09:53:43 ZEDQA ddr t=18 kmh=30.2 path=82.7 odo=55993.151 trip=0.051
+09:53:43 ZEDQA ddr t=21 kmh=0.1 path=98.0 odo=55993.161 trip=0.061
+09:53:43 ZEDQA ddr stopped at 947.4,12943.7: path 98.1 squares = 0.0610 mi; the dash odo +0.0610, trip 0.0610; top 30.7 km/h
+09:53:43 ZEDQA ddr PASS the driver's odometer counts the distance (100%)
+09:53:43 ZEDQA ddr the server once stopped: odo 55993.16083719405 trip 0.06083719391888645 show false other kept on the server driver zedqa
+09:53:43 ZEDQA ddr PASS the server took the driver's figures (the send as the car stops) (55993.16083719405 against 55993.1609936821)
+09:53:43 ZEDQA ddr PASS another mod's key in the server's copy is still there (kept on the server)
+09:53:43 ZEDQA ddr 3 passed, 0 failed
+09:53:43 ZEDQA ddr DONE
+09:53:43 ZEDQA dbb phase watch, car 247, counts so far fig 0 odo 0 ask 0
+09:53:43 ZEDQA dbb bob outside, 5.0 squares from the car; in a car: false
+09:53:43 ZEDQA dbb t=5s 5.0 squares from the car; figures to me 0; my copy odo 55993.1
+09:53:43 ZEDQA dbb t=10s 5.0 squares from the car; figures to me 0; my copy odo 55993.1
+09:53:43 ZEDQA dbb t=15s 6.8 squares from the car; figures to me 0; my copy odo 55993.1
+09:53:43 ZEDQA dbb t=20s 45.1 squares from the car; figures to me 0; my copy odo 55993.1
+09:53:43 ZEDQA dbb t=25s -1.0 squares from the car; figures to me 0; my copy odo nil
+09:53:43 ZEDQA dbb t=30s -1.0 squares from the car; figures to me 0; my copy odo nil
+09:53:43 ZEDQA dbb t=35s -1.0 squares from the car; figures to me 0; my copy odo nil
+09:53:43 ZEDQA dbb t=40s -1.0 squares from the car; figures to me 0; my copy odo nil
+09:53:43 ZEDQA dbb t=45s -1.0 squares from the car; figures to me 0; my copy odo nil
+09:53:43 ZEDQA dbb PASS a player outside the car is sent no figures while it drives (0)
+09:53:43 ZEDQA dbb PASS and his client sends nothing on the dash's module (0 odo, 0 ask)
+09:53:43 ZEDQA dbb PASS no dash on his screen
+09:53:43 ZEDQA dbb 3 passed, 0 failed
+09:53:43 ZEDQA dbb DONE
+09:53:47 ZEDQA fbb bob sent to zedqa at 947,12943
+09:53:47 ZEDQA fbb house zedqa; bob at 946,12943
+09:53:47 ZEDQA fbb DONE
+09:53:47 -- dash phase: board
+09:54:00 ZEDQA dbb phase board, car 247, counts so far fig 0 odo 0 ask 0
+09:54:00 ZEDQA dbb the car 1.0 squares away
+09:54:00 ZEDQA dbb in the car: true, seat 1, at the wheel false
+09:54:00 ZEDQA dbb the server: odo 55993.16083719405 trip 0.06083719391888645; my copy: odo 55993.16083719405 trip 0.06083719391888645; my dash: shown true odo 55993.16083719405 trip 0.06083719391888645
+09:54:00 ZEDQA dbb PASS his dash asks as he sits down (1)
+09:54:00 ZEDQA dbb PASS the server answers him (1)
+09:54:00 ZEDQA dbb PASS his copy reads the server's figures
+09:54:00 ZEDQA dbb PASS his dash shows them (55993.16083719405)
+09:54:00 ZEDQA dbb PASS a passenger sends no figures (0)
+09:54:00 ZEDQA dbb 5 passed, 0 failed
+09:54:00 ZEDQA dbb DONE
+09:54:00 -- dash phase: ride
+09:54:50 ZEDQA ddr driver true, engine true, rider bob, in reverse
+09:54:50 ZEDQA ddr before: the dash odo 55993.1609936821 trip 0.0609936819545639; the server odo 55993.16083719405 trip 0.06083719391888645 other kept on the server
+09:54:50 ZEDQA ddr t=3 kmh=0.0 path=0.1 odo=55993.161 trip=0.061
+09:54:50 ZEDQA ddr t=6 kmh=0.0 path=0.1 odo=55993.161 trip=0.061
+09:54:50 ZEDQA ddr t=9 kmh=26.2 path=7.8 odo=55993.166 trip=0.066
+09:54:50 ZEDQA ddr t=12 kmh=0.6 path=14.0 odo=55993.170 trip=0.070
+09:54:50 ZEDQA ddr t=15 kmh=1.2 path=16.5 odo=55993.171 trip=0.071
+09:54:50 ZEDQA ddr t=18 kmh=0.3 path=17.5 odo=55993.172 trip=0.072
+09:54:50 ZEDQA ddr t=21 kmh=0.1 path=17.7 odo=55993.172 trip=0.072
+09:54:50 ZEDQA ddr stopped at 946.7,12962.4: path 22.6 squares = 0.0141 mi; the dash odo +0.0139, trip 0.0749; top 65.2 km/h
+09:54:50 ZEDQA ddr FAIL the driver's odometer counts the distance (99%)
+09:54:50 ZEDQA ddr the server once stopped: odo 55993.17157404758 trip 0.07157404735044266 show false other kept on the server driver zedqa
+09:54:50 ZEDQA ddr FAIL the server took the driver's figures (the send as the car stops) (55993.17157404758 against 55993.17493246496)
+09:54:50 ZEDQA ddr PASS another mod's key in the server's copy is still there (kept on the server)
+09:54:50 ZEDQA ddr engine false
+09:54:50 ZEDQA ddr the server after the engine off: odo 55993.17493246496 trip 0.07493246472574872 other kept on the server running false
+09:54:50 ZEDQA ddr PASS the engine is off
+09:54:50 ZEDQA ddr PASS another mod's key survived both drives and the coarse send (kept on the server)
+09:54:50 ZEDQA ddr 3 passed, 2 failed
+09:54:50 ZEDQA ddr DONE
+09:54:54 ZEDQA dbb phase ride, car 247, counts so far fig 1 odo 0 ask 1
+09:54:54 ZEDQA dbb riding: true
+09:54:54 ZEDQA dbb t=5s figures to me 0 (last odo 55993.16083719405); my copy odo 55993.16083719405 trip 0.06083719391888645; my dash odo 55993.16083719405
+09:54:54 ZEDQA dbb t=10s figures to me 0 (last odo 55993.16083719405); my copy odo 55993.16083719405 trip 0.06083719391888645; my dash odo 55993.16083719405
+09:54:54 ZEDQA dbb t=15s figures to me 0 (last odo 55993.16083719405); my copy odo 55993.16083719405 trip 0.06083719391888645; my dash odo 55993.16083719405
+09:54:54 ZEDQA dbb t=20s figures to me 0 (last odo 55993.16083719405); my copy odo 55993.16083719405 trip 0.06083719391888645; my dash odo 55993.16083719405
+09:54:54 ZEDQA dbb t=25s figures to me 1 (last odo 55993.17157404758); my copy odo 55993.17157404758 trip 0.07157404735044266; my dash odo 55993.17157404758
+09:54:54 ZEDQA dbb t=30s figures to me 1 (last odo 55993.17157404758); my copy odo 55993.17157404758 trip 0.07157404735044266; my dash odo 55993.17157404758
+09:54:54 ZEDQA dbb t=35s figures to me 1 (last odo 55993.17157404758); my copy odo 55993.17157404758 trip 0.07157404735044266; my dash odo 55993.17157404758
+09:54:54 ZEDQA dbb t=40s figures to me 1 (last odo 55993.17157404758); my copy odo 55993.17157404758 trip 0.07157404735044266; my dash odo 55993.17157404758
+09:54:54 ZEDQA dbb t=45s figures to me 2 (last odo 55993.17493246496); my copy odo 55993.17493246496 trip 0.07493246472574872; my dash odo 55993.17493246496
+09:54:55 ZEDQA dbb the server: odo 55993.17493246496 trip 0.07493246472574872 other kept on the server running false; my copy: odo 55993.17493246496 trip 0.07493246472574872 other kept on the server
+09:54:55 ZEDQA dbb PASS the figures reach the passenger while the car drives (2)
+09:54:55 ZEDQA dbb PASS the passenger sends nothing on (0)
+09:54:55 ZEDQA dbb PASS after the engine off his copy is the server's
+09:54:55 ZEDQA dbb PASS another mod's key: on the server, and on his copy after the engine-off send (kept on the server / kept on the server)
+09:54:55 ZEDQA dbb 4 passed, 0 failed
+09:54:55 ZEDQA dbb DONE
+09:54:55 == 3 the offline Player card's role box
+09:55:13 ZEDQA rsu role made: true; moderator true
+09:55:13 ZEDQA rsu PASS qa_nosee changes roles and cannot see every account
+09:55:13 ZEDQA rsu bob's role as this client sees it: qa_nosee
+09:55:13 ZEDQA rsu the admin's card for carl: on false closed nil role nil
+09:55:13 ZEDQA rsu PASS the admin, who can see every account, gets carl's card open
+09:55:13 ZEDQA rsu 2 passed, 0 failed
+09:55:13 ZEDQA rsu DONE
+09:55:29 ZEDQA bcc bob's role: qa_nosee
+09:55:29 ZEDQA bcc the tools: live true; ChangeAccessLevel true, SeeNetworkUsers false, CanSeePlayersStats true
+09:55:29 ZEDQA bcc PASS bob may change roles and cannot see every account
+09:55:29 ZEDQA bcc carl: closed true; role box "See every account needs the SeeNetworkUsers capability. The gm role has it."; status "See every account needs the SeeNetworkUsers capability. The gm role has it."; the power named 2 times; role stop reason "See every account needs the SeeNetworkUsers capability. The gm role has it."
+09:55:29 ZEDQA bcc PASS carl: the server keeps the card closed
+09:55:29 ZEDQA bcc PASS carl: the role box names the power, never "user"
+09:55:29 ZEDQA bcc PASS carl: the status names it too, not "never seen"
+09:55:29 ZEDQA bcc PASS carl: profession and skills name it, never "no skill" or "loading" (2)
+09:55:29 ZEDQA bcc PASS carl: the role box is grayed with that reason
+09:55:29 ZEDQA bcc PASS carl: pressing it opens no pick
+09:55:29 ZEDQA bcc carl: the server's answer to a role change: ok false, perm
+09:55:29 ZEDQA bcc PASS carl: the server refuses it (perm) (perm)
+09:55:29 ZEDQA bcc nobody_qa: closed nil; role box "nil"; status "nil"; the power named 0 times; role stop reason "nil"
+09:55:29 ZEDQA bcc FAIL nobody_qa: the server keeps the card closed
+09:55:29 ZEDQA bcc FAIL nobody_qa: the role box names the power, never "user"
+09:55:29 ZEDQA bcc FAIL nobody_qa: the status names it too, not "never seen"
+09:55:29 ZEDQA bcc FAIL nobody_qa: profession and skills name it, never "no skill" or "loading" (0)
+09:55:29 ZEDQA bcc FAIL nobody_qa: the role box is grayed with that reason
+09:55:29 ZEDQA bcc PASS nobody_qa: pressing it opens no pick
+09:55:29 ZEDQA bcc nobody_qa: the server's answer to a role change: ok false, perm
+09:55:29 ZEDQA bcc PASS nobody_qa: the server refuses it (perm) (perm)
+09:55:29 ZEDQA bcc FAIL a real account and no account read exactly the same
+09:55:29 ZEDQA bcc 10 passed, 6 failed
+09:55:29 ZEDQA bcc DONE
+09:55:31 second client stopped
+09:55:34 server ZeD log C:\Users\you\Zomboid\zedqa_mp\Logs\2026-11-07_09-43_ZeD.txt:
+09:55:34   [07-11-26 09:45:53.801] safehouse | claim | zedqa | - | 10784,10027 | - | day 1.
+09:55:34   [07-11-26 09:52:12.227] safehouse | member in | bob | - | 10784,10027 | - | day 1.
+09:55:34   server: LOG  : Lua          f:618 st:34,799,857> [ZeDQA] paused tick 1189, players 1
+09:55:34   server: LOG  : Lua          f:818 st:34,819,857> [ZeDQA] paused tick 1389, players 1
+09:55:34   server: LOG  : Lua          f:1018 st:34,839,857> [ZeDQA] paused tick 1589, players 1
+09:55:34   server: LOG  : Lua          f:1218 st:34,859,855> [ZeDQA] paused tick 1789, players 1
+09:55:34   server: LOG  : Lua          f:1418 st:34,879,855> [ZeDQA] paused tick 1989, players 1
+09:55:34   server: LOG  : Lua          f:1618 st:34,899,856> [ZeDQA] paused tick 2189, players 1
+09:55:34   server: LOG  : Lua          f:1818 st:34,919,856> [ZeDQA] paused tick 2389, players 1
+09:55:34   server: LOG  : Lua          f:2018 st:34,939,857> [ZeDQA] paused tick 2589, players 1
+09:55:34   server: LOG  : Lua          f:2218 st:34,959,858> [ZeDQA] paused tick 2789, players 1
+09:55:34   server: LOG  : Lua          f:2418 st:34,979,856> [ZeDQA] paused tick 2989, players 1
+09:55:34   server: LOG  : Lua          f:2618 st:35,000,077> [ZeDQA] paused tick 3189, players 1
+09:55:34   server: LOG  : Lua          f:2816 st:35,019,879> [ZeDQA] paused tick 3387, players 1
+09:55:34   server: LOG  : Lua          f:3016 st:35,039,879> [ZeDQA] paused tick 3587, players 1
+09:55:34   server: LOG  : Lua          f:3216 st:35,059,880> [ZeDQA] paused tick 3787, players 1
+09:55:34   server: LOG  : Lua          f:3416 st:35,079,881> [ZeDQA] paused tick 3987, players 1
+09:55:34   server: LOG  : Lua          f:3616 st:35,099,882> [ZeDQA] paused tick 4187, players 1
+09:55:34   server: LOG  : Lua          f:3816 st:35,119,879> [ZeDQA] paused tick 4387, players 2
+09:55:34   server: LOG  : Lua          f:4016 st:35,139,882> [ZeDQA] paused tick 4587, players 2
+09:55:34   server: LOG  : Lua          f:4216 st:35,159,881> [ZeDQA] paused tick 4787, players 2
+09:55:34   server: LOG  : Lua          f:4369 st:35,175,217> [ZeDQA] carspawn at 930,13040: 247
+09:55:34   server: LOG  : Lua          f:4372 st:35,175,707> [ZeDQA] carprep 247: true
+09:55:34   server: LOG  : Lua          f:4399 st:35,179,935> [ZeDQA] paused tick 4970, players 2
+09:55:34   server: LOG  : Lua          f:4599 st:35,199,936> [ZeDQA] paused tick 5170, players 2
+09:55:34   server: LOG  : Lua          f:4799 st:35,219,936> [ZeDQA] paused tick 5370, players 2
+09:55:34   server: LOG  : Lua          f:4999 st:35,239,933> [ZeDQA] paused tick 5570, players 2
+09:55:34   server: LOG  : Lua          f:5199 st:35,260,117> [ZeDQA] paused tick 5770, players 2
+09:55:34   server: LOG  : Lua          f:5399 st:35,279,934> [ZeDQA] paused tick 5970, players 2
+09:55:34   server: LOG  : Lua          f:5599 st:35,299,935> [ZeDQA] paused tick 6170, players 2
+09:55:34   server: LOG  : Lua          f:5790 st:35,319,931> [ZeDQA] paused tick 6361, players 2
+09:55:34   server: LOG  : Lua          f:5990 st:35,339,935> [ZeDQA] paused tick 6561, players 2
+09:55:34 closed
