@@ -2050,5 +2050,59 @@ do
     reset()
 end
 
+-- a whisper: the line empties once it went, and "/w name " comes back when the line is opened again in that tab,
+-- as the game's chat does (ISChat:onCommandEntered keeps it, ISChat:focus gives it back; the outside review of beta 7)
+do
+    local PM = {}
+    local was = proceedPM
+    proceedPM = function(t)
+        PM[#PM + 1] = t
+        local q = t:match('^%s*"([^"]+)"')
+        return q or t:match("^%s*(%S+)") or ""
+    end
+    local cw = chatDraw(chatWin(440, 400))
+    Ch.tab, Ch.keep = "general", nil
+    local function send(text)
+        Ch.slowUntil = 0
+        cw.input:setText(text)
+        cw.input:focus()
+        cw:submit()
+    end
+    send("/w mike_d you there?")
+    check("the whisper went", PM[#PM] == "mike_d you there?", PM[#PM])
+    check("the line is empty once it went", cw.input:getText() == "", cw.input:getText())
+    cw:update()
+    check("and stays empty while you are out of it", cw.input:getText() == "")
+    cw:onMouseDown(cw._inputRect.x + 1, cw._inputRect.y + 1)
+    check("opened again: the whisper's start comes back", cw.input:getText() == "/w mike_d " and cw.input:isFocused(), cw.input:getText())
+    cw.input:unfocus()
+    cw:update()
+    check("left untouched: the line empties again", cw.input:getText() == "")
+    send('/whisper "Big Mags" ok')
+    check("the long command and a quoted name, by the game's answer", Ch.keep and Ch.keep.text == "/whisper Big Mags ", Ch.keep and Ch.keep.text)
+    cw:pickTab("private")
+    cw:onMouseDown(cw._inputRect.x + 1, cw._inputRect.y + 1)
+    check("another tab keeps its own line", cw.input:getText() == "", cw.input:getText())
+    cw.input:unfocus()
+    cw:pickTab("general")
+    cw.input:setText("half a thought")
+    cw:onMouseDown(cw._inputRect.x + 1, cw._inputRect.y + 1)
+    check("a line being written is left alone", cw.input:getText() == "half a thought")
+    cw.input:setText("")
+    send("hello all")
+    check("a plain line leaves the whisper be, as the game's does", Ch.keep and Ch.keep.text == "/whisper Big Mags ")
+    cw:onMouseDown(cw._inputRect.x + 1, cw._inputRect.y + 1)
+    check("so the line still opens on it", cw.input:getText() == "/whisper Big Mags ", cw.input:getText())
+    cw.input:unfocus()
+    cw:update()
+    send("/s hello all")
+    check("another stream's command lets the whisper go", Ch.keep == nil)
+    cw:onMouseDown(cw._inputRect.x + 1, cw._inputRect.y + 1)
+    check("so the line opens empty", cw.input:getText() == "")
+    cw.input:unfocus()
+    proceedPM = was
+    Ch.keep, Ch.win = nil, nil
+end
+
 print("community_cards_sim: " .. checks .. " checks, " .. failed .. " failed")
 if failed > 0 then os.exit(1) end

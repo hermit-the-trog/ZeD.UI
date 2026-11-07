@@ -800,6 +800,19 @@ M.qaHold = true
 press("adm:tk:p:tjk")
 check("an offline player can't be kicked", grayWhy("tk:kick") == ZeD.tr("UI_ZeD_Adm_NotOnline", "tjk"))
 check("but can be banned", grayWhy("tk:ban") == nil)
+-- a press on the gray Mute says why in the card's line, and sends nothing (the outside review of beta 7: it read as doing nothing)
+do
+    local n0 = #SENT
+    st.tk.flashText = nil
+    click("tk:mute")
+    check("a gray Mute pressed says why", flash() == ZeD.tr("UI_ZeD_Adm_NotOnline", "tjk"), flash())
+    check("and asks the server nothing", #SENT == n0)
+    st.tk.flashText = nil
+    press("tk:mute")
+    check("the pad's A on it says the same", flash() == ZeD.tr("UI_ZeD_Adm_NotOnline", "tjk"), flash())
+    check("and asks the server nothing either", #SENT == n0)
+    st.tk.flashText = nil
+end
 TC.back(win, st)
 -- a moderator: every gray says the capability and the role
 fresh()
