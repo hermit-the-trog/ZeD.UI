@@ -2,10 +2,11 @@
 -- ZeD_Dashboard.lua, ZeD_Plate.lua, ZeD_PixelParts.lua, DashPx.lua and VSKDash.lua run on Lua 5.1 stubs of the library, a car
 -- and a panel that writes down every draw. Vehicle Kit Library is a stub of its published shape (register, poll, gearLabel,
 -- odometer, stalled, Scale), written here from its reference page, with providers shaped like Roadworthy's.
---   SAME    with no such mod every dash is exactly today's: the dash as it stood before this work (git show BASE) and the dash
---           now, frame by frame over every design, every car state, Full and Simple, lamps setting on and off: every reading and
---           every draw call equal. Then again with the library there and nobody publishing, and with the library holding a
---           stall that no mod has anything to say about.
+--   SAME    with no such mod every dash is exactly today's: the dash with no ModSupport/VSKDash.lua loaded (until Nov 7 2026
+--           the dash as it stood before this work, git show BASE) and the dash with it, frame by frame over every design,
+--           every car state, Full and Simple, lamps setting on and off: every reading and every draw call equal. Then again
+--           with the library there and nobody publishing, and with the library holding a stall that no mod has anything to
+--           say about.
 --   NEEDLES the temperature and oil needles follow the published gauges and hand back when they go
 --   LAMPS   amber, red, blink; each role on each plate: on a plate with the lamp it lights, on one without nothing is drawn and
 --           the Simple strip lists it; dark leaves ZeD's own lamp; check engine; the named constant
@@ -395,10 +396,12 @@ end
 local nowSource = readFile(CLIENT .. "ZeD/ZeD_Dashboard.lua")
 local oldSource = nil
 do
-    local pipe = io.popen('git -C "' .. (ROOT == "" and "." or ROOT) .. '" show ' .. BASE .. ":42/media/lua/client/ZeD/ZeD_Dashboard.lua 2>NUL")
-    if pipe then oldSource = pipe:read("*a"); pipe:close() end
+    -- (Nov 7 2026, punch list 92: ZeD's own dash changed on purpose (the hot lamp's bulb check, the odometers), so
+    -- "today's dash" is the dash now with no ModSupport/VSKDash.lua loaded at all: boot(oldSource, false) below. The
+    -- git BASE above is the dash this work was first proved against, kept for the record.)
+    oldSource = nowSource
 end
-check("the dash as it stood is readable from git", oldSource and #oldSource > 10000 and oldSource ~= nowSource)
+check("the dash is readable", oldSource and #oldSource > 10000)
 if oldSource and #oldSource > 10000 then
     boot(oldSource, false)
     local today = sweep()
