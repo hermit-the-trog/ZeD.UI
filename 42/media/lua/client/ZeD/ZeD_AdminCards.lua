@@ -831,11 +831,15 @@ function AC.openFromTicket(win, st, user)
 end
 
 function P.rolePick(win, st, card, row, view, self)
-    local name = (view and view.role) or row.role or "user"
+    -- closed: the server kept the saved role of an account that is off, so "user" would be a wrong fact. name stays nil
+    -- and the box names the power it takes (false, not nil, for the picker: no row is marked and nil means "use the
+    -- ticket filter" there)
+    local closed = view and view.closed and not row.role
+    local name = (view and view.role) or row.role or ((not closed) and "user") or nil
     if self then
-        return { label = tr("UI_ZeD_Adm_Role"), value = tr("UI_ZeD_Adm_OwnRole", name) }
+        return { label = tr("UI_ZeD_Adm_Role"), value = tr("UI_ZeD_Adm_OwnRole", name or "user") }
     end
-    local c = F.gate({ id = "role", box = true, text = card.newRole or name, help = tr("UI_ZeD_Adm_HelpRolePick") }, "ChangeAccessLevel", function()
+    local c = F.gate({ id = "role", box = true, text = card.newRole or name or M.why("SeeNetworkUsers"), help = tr("UI_ZeD_Adm_HelpRolePick") }, "ChangeAccessLevel", function()
         if not M.can("ModifyNetworkUsers") then return M.why("ModifyNetworkUsers") end
         return nil
     end)
@@ -845,7 +849,7 @@ function P.rolePick(win, st, card, row, view, self)
         for _, r in ipairs(M.roles()) do
             if not mine or r.pos <= mine.pos then modes[#modes + 1] = { id = r.name, label = r.name } end
         end
-        TC.openPicker(ww, st, c, modes, card.newRole or name, function(id)
+        TC.openPicker(ww, st, c, modes, card.newRole or name or false, function(id)
             if id == name then
                 card.newRole, card.open = nil, nil
             else
