@@ -276,21 +276,32 @@ end
 
 section("every order write goes through saveOrder")
 do
-    local direct = {}
+    -- the one call allowed is the helper's own: inside "function ZeD_MMMods:saveOrder(" in ZeD_MainMenuMods.lua, up to
+    -- the function's closing "end" at the start of a line. Any other call, in any form, fails, whatever its argument
+    local direct, inHelper, helperCalls, helperSeen = {}, false, 0, false
     for _, f in ipairs({ "ZeD_MainMenuMods.lua", "ZeD_MainMenuModsOrder.lua", "ZeD_MainMenuModsPanes.lua", "ZeD_MainMenuModsSeps.lua", "ZeD_MainMenuModsFolders.lua" }) do
         local h = io.open(ROOT .. "42/media/lua/client/ZeD/" .. f, "rb")
+        check("the order file is there: " .. f, h ~= nil)
         if h then
             local n = 0
             for line in h:lines() do
                 n = n + 1
-                -- (the one call allowed is the helper's own: m:correctAndSaveModOrder(out))
-                if line:find(":correctAndSaveModOrder(", 1, true) and not line:find("correctAndSaveModOrder(out)", 1, true) and not line:match("^%s*%-%-") then
-                    direct[#direct + 1] = f .. ":" .. n
+                line = line:gsub("\r$", "")
+                local code = line:gsub("%-%-.*$", "")       -- (a comment may name the call)
+                if f == "ZeD_MainMenuMods.lua" and code:match("^function%s+ZeD_MMMods:saveOrder%s*%(") then
+                    inHelper, helperSeen = true, true
+                elseif inHelper and code:match("^end%f[%W]") then
+                    inHelper = false
+                end
+                if code:find("correctAndSaveModOrder%s*%(") then
+                    if inHelper then helperCalls = helperCalls + 1 else direct[#direct + 1] = f .. ":" .. n end
                 end
             end
             h:close()
         end
     end
+    check("the saveOrder helper is where the guard looks", helperSeen)
+    check("the helper makes the one call", helperCalls == 1, helperCalls)
     check("no direct correctAndSaveModOrder outside saveOrder", #direct == 0, table.concat(direct, ", "))
 end
 

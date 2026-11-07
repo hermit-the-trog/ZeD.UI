@@ -137,7 +137,7 @@ function Q.bind(TC, LC, Lm, M, C, S)
             end
         end
     end)
-    S1("log-flash", function(win, st) log(win, st); TC.qaFlash(st, "Going to 6283 x 5352.") end)
+    S1("log-flash", function(win, st) log(win, st); TC.qaFlash(st, ZeD.tr("UI_ZeD_Tk_Going", ZeD.Tk.whereText({ x = 6283, y = 5352 }))) end)
     S1("log-pages", function(win, st)
         local now = getTimestamp()
         local rows = {}

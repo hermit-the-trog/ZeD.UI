@@ -1614,6 +1614,22 @@ do
     gc = got(g, "a_card")
     check("a role that reads the bans still sees it on a closed card", gc and gc.closed == true and gc.banId == ab.banId)
     ROLES.gm.caps.BanUnbanUser = nil
+    -- a role change on a closed card: refused, with the same answer for an account and a name never seen
+    ROLES.gm.caps.ChangeAccessLevel, ROLES.gm.caps.ModifyNetworkUsers = true, true
+    nolimit(g)
+    say(g, "a_role", { user = "Kade", role = "user" })
+    check("no role change for an offline account without See every account", errOf(g) == "perm", tostring(errOf(g)))
+    nolimit(g)
+    say(g, "a_role", { user = "Nobody", role = "user" })
+    check("a name never seen gets the same answer", errOf(g) == "perm", tostring(errOf(g)))
+    check("and nothing waits for the game", md().watch.Kade == nil and md().watch.Nobody == nil)
+    local t = player("Tom", "user")
+    clientJoin(t)
+    advance(6000)
+    nolimit(g)
+    say(g, "a_role", { user = "Tom", role = "user" })
+    check("an online player's role still changes", okOf(g))
+    ROLES.gm.caps.ChangeAccessLevel, ROLES.gm.caps.ModifyNetworkUsers = nil, nil
     ROLES.gm.caps.CanSeePlayersStats = nil
     nolimit(a)
     say(a, "a_card", { user = "Kade" })
@@ -1626,6 +1642,9 @@ do
     say(a, "a_card", { user = "Kade" })
     ac = got(a, "a_card")
     check("no SeeNetworkUsers in the game: closed, and no error", ac and ac.closed == true and ac.prof == nil)
+    nolimit(a)
+    say(a, "a_role", { user = "Kade", role = "user" })
+    check("and no offline role change either", errOf(a) == "perm", tostring(errOf(a)))
     CAPS.SeeNetworkUsers = savedCap
 end
 

@@ -134,7 +134,7 @@ function Q.bind(TC, AC, M, Adm)
     S1("home-gm", function() M.qaCaps = caps(GM); M.bump() end)
     S1("home-nothing", function() M.qaCaps = {}; M.bump() end)
     S1("home-no-part", function() M.qaLink = false; TC.qaLink = "off"; M.repeats = {}; M.bump() end)
-    S1("home-flash", function(win, st) TC.qaFlash(st, "Sent. Every player sees it in chat.") end)
+    S1("home-flash", function(win, st) TC.qaFlash(st, ZeD.tr("UI_ZeD_Adm_SentOnce")) end)   -- (the card's own words, in the game's language)
     S1("tickets-screen", function(win, st) st.screen = "tickets" end)
 
     -- the player card
@@ -156,7 +156,7 @@ function Q.bind(TC, AC, M, Adm)
     S1("player-role-powers", function(win, st) player("Kade_R", win, st); AC.qaPart(st, "role", "GM") end)
     S1("player-role-kept", function(win, st) player("Kade_R", win, st); AC.qaPart(st, "role", "GM"); st.card.keep.GodMod = true end)
     S1("player-role-down", function(win, st) player("Rosa", win, st); AC.qaPart(st, "role", "user") end)
-    S1("player-flash", function(win, st) player("Kade_R", win, st); TC.qaFlash(st, "Kade_R kicked.") end)
+    S1("player-flash", function(win, st) player("Kade_R", win, st); TC.qaFlash(st, ZeD.tr("UI_ZeD_Adm_Kicked", "Kade_R")) end)
 
     -- roles
     S1("roles", function(win, st) AC.qaOpen(win, st, "roles") end)
