@@ -5305,6 +5305,8 @@
     "UI_ZeD_Adm_HelpMuteVoice": "Uten ZeDs serverdel stopper dette bare stemmen deres. Nettpraten forblir åpen.",
     "UI_ZeD_Adm_VoiceMuted": "%1 kan ikke bruke stemme før du opphever dempingen.",
     "UI_ZeD_Adm_VoiceUnmuted": "%1 kan bruke stemme igjen.",
+    "UI_ZeD_Adm_HelpMuteOff": "%1 er ikke pålogget. Demp stopper chatten fra nå av, til noen opphever det. Stemmen kan bare dempes mens %1 er pålogget.",
+    "UI_ZeD_Adm_VoiceNeedsOn": "%1 er ikke pålogget. Uten ZeDs serverdel demper Demp bare stemmen, og bare mens %1 er pålogget.",
     "UI_ZeD_Adm_PowersStayOn": "Uten ZeDs serverdel lar spillet disse stå på, og de slår dem av selv.",
     "UI_ZeD_Adm_WarnDone1": "1 advarselspoeng lagt til. %1 ser årsaken.",
     "UI_ZeD_Adm_HelpKeepRole": "Behold rollen.",

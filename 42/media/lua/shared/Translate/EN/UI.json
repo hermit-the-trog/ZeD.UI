@@ -5305,6 +5305,8 @@
     "UI_ZeD_Adm_HelpMuteVoice": "Without ZeD's server part this stops their voice only. Their chat stays open.",
     "UI_ZeD_Adm_VoiceMuted": "%1 can't use voice until you unmute them.",
     "UI_ZeD_Adm_VoiceUnmuted": "%1 can use voice again.",
+    "UI_ZeD_Adm_HelpMuteOff": "%1 isn't online. Mute stops their chat now, until someone unmutes them. Their voice can only be muted while they're on.",
+    "UI_ZeD_Adm_VoiceNeedsOn": "%1 isn't online. Without ZeD's server part Mute stops voice only, and voice can only be muted while they're on.",
     "UI_ZeD_Adm_PowersStayOn": "Without ZeD's server part the game leaves these on, and they switch them off themselves.",
     "UI_ZeD_Adm_WarnDone1": "1 warning point added. %1 sees the reason.",
     "UI_ZeD_Adm_HelpKeepRole": "Keep the role.",

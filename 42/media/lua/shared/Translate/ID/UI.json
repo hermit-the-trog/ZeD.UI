@@ -5305,6 +5305,8 @@
     "UI_ZeD_Adm_HelpMuteVoice": "Tanpa bagian server ZeD, ini hanya menghentikan suara mereka. Obrolan mereka tetap terbuka.",
     "UI_ZeD_Adm_VoiceMuted": "%1 tidak bisa memakai suara sampai Anda membuka bisunya.",
     "UI_ZeD_Adm_VoiceUnmuted": "%1 bisa memakai suara lagi.",
+    "UI_ZeD_Adm_HelpMuteOff": "%1 tidak online. Bisukan menghentikan obrolannya mulai sekarang, sampai ada yang membukanya. Suaranya hanya bisa dibisukan saat dia online.",
+    "UI_ZeD_Adm_VoiceNeedsOn": "%1 tidak online. Tanpa bagian server ZeD, Bisukan hanya menghentikan suara, dan hanya saat dia online.",
     "UI_ZeD_Adm_PowersStayOn": "Tanpa bagian server ZeD, game membiarkan ini menyala, dan mereka mematikannya sendiri.",
     "UI_ZeD_Adm_WarnDone1": "1 poin peringatan ditambahkan. %1 melihat alasannya.",
     "UI_ZeD_Adm_HelpKeepRole": "Pertahankan peran.",

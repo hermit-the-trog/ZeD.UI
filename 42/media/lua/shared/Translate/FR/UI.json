@@ -5305,6 +5305,8 @@
     "UI_ZeD_Adm_HelpMuteVoice": "Sans la partie serveur de ZeD, cela ne coupe que sa voix. Son chat reste ouvert.",
     "UI_ZeD_Adm_VoiceMuted": "%1 ne peut pas parler en vocal jusqu'à ce que vous le réactiviez.",
     "UI_ZeD_Adm_VoiceUnmuted": "%1 peut reparler en vocal.",
+    "UI_ZeD_Adm_HelpMuteOff": "%1 n'est pas en ligne. Muet coupe son chat dès maintenant, jusqu'à ce que quelqu'un le rétablisse. Sa voix ne peut être coupée que lorsqu'il est en ligne.",
+    "UI_ZeD_Adm_VoiceNeedsOn": "%1 n'est pas en ligne. Sans la partie serveur de ZeD, Muet ne coupe que la voix, et seulement lorsqu'il est en ligne.",
     "UI_ZeD_Adm_PowersStayOn": "Sans la partie serveur de ZeD, le jeu les laisse activés, et le joueur les désactive lui-même.",
     "UI_ZeD_Adm_WarnDone1": "1 point d'avertissement ajouté. %1 voit la raison.",
     "UI_ZeD_Adm_HelpKeepRole": "Garder le rôle.",

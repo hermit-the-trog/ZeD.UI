@@ -5305,6 +5305,8 @@
     "UI_ZeD_Adm_HelpMuteVoice": "Fără partea de server a ZeD, asta oprește doar vocea. Chatul rămâne deschis.",
     "UI_ZeD_Adm_VoiceMuted": "%1 nu poate folosi vocea până nu îi scoți mutul.",
     "UI_ZeD_Adm_VoiceUnmuted": "%1 poate folosi vocea din nou.",
+    "UI_ZeD_Adm_HelpMuteOff": "%1 nu este online. Dezactivarea îi oprește chatul de acum, până când cineva o anulează. Vocea poate fi oprită doar cât este online.",
+    "UI_ZeD_Adm_VoiceNeedsOn": "%1 nu este online. Fără partea de server a ZeD, dezactivarea oprește doar vocea, și doar cât este online.",
     "UI_ZeD_Adm_PowersStayOn": "Fără partea de server a ZeD, jocul le lasă pornite, iar ei le opresc singuri.",
     "UI_ZeD_Adm_WarnDone1": "1 punct de avertisment adăugat. %1 vede motivul.",
     "UI_ZeD_Adm_HelpKeepRole": "Păstrează rolul.",
