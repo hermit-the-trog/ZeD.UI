@@ -348,6 +348,26 @@ def _steps(v, thr):
     return np.where(v * 3.0 + thr < 3.0, lo, hi).astype(int)
 
 
+def _ghosts_even(d, v, idx, tpx):
+    """the unlit figures printed on an LCD's glass ('segoff': the Dash Elite's six ghost 8s) take one light and one
+    tint per window, with no dither (Nov 7 2026, punch list 94: the falloff and the checker running across the window
+    left the fifth and sixth 8s with strokes at half strength or gone). The light is the mean over the window's
+    figures, so the 8s sit where the falloff puts them on average, every stroke the same. Changes idx (and tpx, a
+    copy) in place; -> tpx"""
+    if "segoff" not in d.names: return tpx
+    sm = d.solid & (d.mat == d.names.index("segoff"))
+    if not sm.any(): return tpx
+    win = sm.copy()
+    if "lcd" in d.names: win |= d.solid & (d.mat == d.names.index("lcd"))
+    lab = _label(win)
+    if tpx is not None: tpx = tpx.copy()
+    for li in np.unique(lab[sm]):
+        g = sm & (lab == li)
+        idx[g] = int(_steps(np.array([[float(v[g].mean())]], np.float32), np.array([[0.5]], np.float32))[0, 0])
+        if tpx is not None: tpx[g] = tpx[g].mean(axis=0)
+    return tpx
+
+
 def relight(d, day_img, spec, seed=0, lights_on=True, parts=()):
     """the night plate (lights_on) or the dark one, as an RGBA image on the day plate's grid"""
     terms = d.lit_terms
@@ -380,6 +400,7 @@ def relight(d, day_img, spec, seed=0, lights_on=True, parts=()):
         idx[cm] = _steps(vc, np.where(E + S > DITHER_FROM, thr, 0.5))[cm]
     for (x, y), val in d.lock.items():
         idx[y, x] = int(_steps(np.array([[val * (AMB + float(E[y, x]) * K_LIT / DAY_FLAT)]]), np.array([[0.5]]))[0, 0])
+    tpx = _ghosts_even(d, v, idx, tpx)
     out = np.zeros((H, W, 4), np.uint8)
     for mi, name in enumerate(d.names):
         sel = d.solid & (d.mat == mi)
