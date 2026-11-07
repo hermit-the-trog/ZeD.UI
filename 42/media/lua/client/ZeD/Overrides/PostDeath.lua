@@ -26,6 +26,7 @@
 require "ISUI/ISPostDeathUI"
 require "ZeD/SafeMode"
 require "ZeD/Tr"
+require "ZeD/KillTracker"
 
 if not ISPostDeathUI then return end
 
@@ -139,7 +140,15 @@ function D.capture(playerObj)
         string.format("%02d:%02d", gt:getHour(), math.floor((gt:getTimeOfDay() % 1) * 60)))
     rec.lines = {}
     pcall(function() rec.lines[#rec.lines + 1] = gt:getDeathString(playerObj) end)
-    pcall(function() local s = gt:getZombieKilledText(playerObj); if s then rec.lines[#rec.lines + 1] = s end end)
+    -- an old save's kill rows still waiting on the game's count are settled now, so the
+    -- kinds below add up to the total (KillTracker's own death hook may not have run yet)
+    pcall(function() ZeD.KillTracker.settle(playerObj) end)
+    -- the game's "You killed N zombies." (GameTime.getZombieKilledText), with the Journal's
+    -- total: the game's own count leaves out fire kills, which the kinds below list
+    pcall(function()
+        local n = ZeD.KillTracker.total(playerObj)
+        rec.lines[#rec.lines + 1] = ZeD.tr(n == 1 and "IGUI_Gametime_zombieCount" or "IGUI_Gametime_zombiesCount", n)
+    end)
     pcall(function() local s = gt:getGameModeText(); if s then rec.lines[#rec.lines + 1] = s end end)
     rec.kills = killsLine(playerObj)
     rec.skills = bestSkills(playerObj)
