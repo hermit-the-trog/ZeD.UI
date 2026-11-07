@@ -352,7 +352,17 @@ end
 local function cardView(md, user, p)
     local o = Srv.player(user)
     local rec = md.players[user]
+    -- an account that is off shows only to a role with the game's power for the full list, as in a_players (the director,
+    -- Nov 6 2026). Guarded the same way: a game without the power shows no one who is off
+    local closed = false
+    if not o then
+        local allCap = Capability and Capability.SeeNetworkUsers
+        closed = not (allCap and Srv.can(p, allCap))
+    end
+    -- (closed, the saved record stays here, whether there is one or not; the card says which power it takes)
+    if closed then rec = nil end
     local v = { user = user, on = o ~= nil, muted = md.mutes[string.lower(user)] ~= nil, last = rec and rec.t or nil }
+    if closed then v.closed = true end
     if o then
         local r = readPlayer(o, true)
         v.prof, v.traits, v.skills = r.prof, r.traits, r.skills

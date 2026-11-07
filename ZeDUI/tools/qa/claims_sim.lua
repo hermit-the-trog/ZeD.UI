@@ -1088,6 +1088,24 @@ do
     table.remove(W.safes)
     advance(6000)
     check("a release, or the game's own expiry", logHas("safehouse | release"))
+    -- the review, Nov 7: a release, then another player's claim of the same building inside one pass (same corner, so the
+    -- same key) is two lines, not an owner change
+    local s9 = newSafe(700, 700, 10, 10, "Aretha")
+    advance(6000)
+    W.logs = {}
+    for i = #W.safes, 1, -1 do if W.safes[i] == s9 then table.remove(W.safes, i) end end
+    -- (the game's online id is made from the corner: the new object carries the old one's)
+    newSafe(700, 700, 10, 10, "Kade_R").onlineId = s9.onlineId
+    advance(6000)
+    check("a release and a claim of one building: two lines", logHas("safehouse | release | Aretha") and logHas("safehouse | claim | Kade_R"))
+    check("not an owner change", not logHas("owner from"))
+    -- a transfer keeps the object: still one owner line
+    W.logs = {}
+    W.safes[#W.safes].owner = "Rosa"
+    advance(6000)
+    check("a transfer is still an owner change", logHas("safehouse | owner from Kade_R | Rosa") and not logHas("safehouse | release"))
+    table.remove(W.safes)
+    advance(6000)
     -- a flood stops at the page
     for i = 1, 100 do newSafe(1000 + i * 20, 1000, 10, 10, "p" .. i) end
     W.logs = {}
@@ -1525,9 +1543,11 @@ do
     local i1, i2 = cb.C.invites[1], cb.C.invites[2]
     local j1, j2 = nil, nil
     cb.C.answer(i1, true, function(ok) j1 = ok end)
-    cb.C.answer(i2, true, function(ok) j2 = ok end)
+    local why2 = nil
+    cb.C.answer(i2, true, function(ok, why) j2 = ok; why2 = why end)
     check("the second yes does not go", #sent == 1, #sent)
     check("and says so at once", j2 == false)
+    check("as a wait, not as gone (the review, Nov 7)", why2 == "wait", why2)
     check("its note stays while the first is out", #cb.C.invites == 1)
     cb.C.answer(i1, true, function(ok) j2 = "again" end)
     check("a double press does not go either", #sent == 1, #sent)
@@ -1537,6 +1557,9 @@ do
     check("it ends the note", #cb.C.invites == 0 and d == true)
     advance(1500)
     check("the first lands", j1 == true and cb.C.safe ~= nil)
+    local j3, why3 = nil, nil
+    cb.C.answer(i2, true, function(ok, why) j3 = ok; why3 = why end)
+    check("landed: a yes after it says gone", j3 == false and why3 == "gone" and #sent == 1, why3)
     -- the first fails: the other can still be answered
     world()
     local a2, r2, b2 = player("Aretha"), player("Kade_R"), player("Rosa")
@@ -1592,6 +1615,42 @@ do
     up = false
     advance(40000)
     check("gone unanswered: the note comes", #cb.C.invites == 1, #cb.C.invites)
+end
+
+section("the review, Nov 7: safe mode holds a safehouse note while a yes is on its way")
+do
+    world()
+    local a, r, b = player("Aretha"), player("Kade_R"), player("Rosa")
+    local ca, cr, cb = clientJoin(a), clientJoin(r), clientJoin(b)
+    local s1 = newSafe(100, 100, 10, 10, "Aretha")
+    local s2 = newSafe(300, 300, 10, 10, "Kade_R")
+    advance(1200)
+    ca.C.invite("safe", "Rosa")
+    cr.C.invite("safe", "Rosa")
+    advance(300)
+    check("two notes", #cb.C.invites == 2, #cb.C.invites)
+    -- the first yes goes and never lands, so the join stays on its way until it is given up on
+    local acc = cb.env.acceptSafehouseInvite
+    cb.env.acceptSafehouseInvite = function() end
+    local j1 = nil
+    cb.C.answer(cb.C.invites[1], true, function(ok) j1 = ok end)
+    cb.safeMode = true
+    advance(1200)
+    check("no pop-up while the yes is on its way", #cb.modals == 0, #cb.modals)
+    check("the note waits", #cb.C.invites == 1, #cb.C.invites)
+    -- a new invitation in that window waits too, as a note
+    local s3 = newSafe(500, 500, 10, 10, "Mags_77")
+    cb.env.Events.ReceiveSafehouseInvite.fire(s3, "Mags_77", "Rosa")
+    advance(300)
+    check("a new one in the window: no pop-up", #cb.modals == 0, #cb.modals)
+    check("and kept", #cb.C.invites == 2, #cb.C.invites)
+    advance(8000)
+    check("the first gives up", j1 == false)
+    advance(1200)
+    check("then the game's pop-ups, once each", #cb.modals == 2 and #cb.C.invites == 0, #cb.modals)
+    cb.env.acceptSafehouseInvite = acc
+    advance(40000)
+    check("no more", #cb.modals == 2, #cb.modals)
 end
 
 print("claims_sim: " .. checks .. " checks, " .. failed .. " failed")

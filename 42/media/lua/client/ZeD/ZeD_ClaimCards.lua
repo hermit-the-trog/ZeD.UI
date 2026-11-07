@@ -945,8 +945,10 @@ end
 function X.answer(win, st, t, inv, yes)
     if C.qaHold then return end
     local who, name = tostring(inv.host), tostring(inv.name)
-    C.answer(inv, yes, function(ok)
-        if yes then D.flash(t, ok and tr("UI_ZeD_Cl_Joined", (inv.kind == "safe") and getText("IGUI_SafehouseUI_Safehouse") or name) or tr("UI_ZeD_Cl_InviteGone"))
+    -- (why: "wait" when an earlier yes is still on its way, so this invitation still stands)
+    C.answer(inv, yes, function(ok, why)
+        local no = (why == "wait") and tr("UI_ZeD_Cl_AnswerWait") or tr("UI_ZeD_Cl_InviteGone")
+        if yes then D.flash(t, ok and tr("UI_ZeD_Cl_Joined", (inv.kind == "safe") and getText("IGUI_SafehouseUI_Safehouse") or name) or no)
         else D.flash(t, tr("UI_ZeD_Cl_Declined", who)) end
     end)
 end

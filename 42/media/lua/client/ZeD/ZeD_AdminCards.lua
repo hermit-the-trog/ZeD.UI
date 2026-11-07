@@ -871,7 +871,10 @@ function P.facts(items, win, st, card, row, view, self)
     B.fact(items, tr("UI_ZeD_Adm_SteamName"), (row.steam ~= nil and row.steam ~= "" and row.steam) or tr(M.onSteam() and "UI_ZeD_Adm_SteamUnknown" or "UI_ZeD_Adm_NoSteam"))
     local rp = P.rolePick(win, st, card, row, view, self)
     B.fact(items, rp.label, rp.value, rp.c)
-    B.fact(items, tr("UI_ZeD_Adm_Status"), on and tr("UI_ZeD_Adm_Online") or tr("UI_ZeD_Adm_LastHere", F.ago(view and view.last) or row.lastText or tr("UI_ZeD_Adm_NeverSeen")))
+    -- (closed: the server kept the record of an account that is off, so "not seen yet" would be wrong)
+    local lastHere = (view and view.closed and not row.lastText) and M.why("SeeNetworkUsers")
+        or tr("UI_ZeD_Adm_LastHere", F.ago(view and view.last) or row.lastText or tr("UI_ZeD_Adm_NeverSeen"))
+    B.fact(items, tr("UI_ZeD_Adm_Status"), on and tr("UI_ZeD_Adm_Online") or lastHere)
     local where = tr("UI_ZeD_Adm_NotOnMap")
     if view and view.x then where = Tk.whereText({ x = view.x, y = view.y })
     elseif view and view.hidden then where = tr("UI_ZeD_Adm_WhereHidden") end
@@ -1204,6 +1207,9 @@ function P.playerItems(win, st, t, card, data)
         for _, s in ipairs(view and view.traits or {}) do list[#list + 1] = s end
         if view and view.prof then
             B.sub(items, (#list > 0) and tr("UI_ZeD_Adm_ProfWith", view.prof, table.concat(list, ", ")) or view.prof)
+        elseif view and view.closed then
+            -- (an account that is off: the server keeps its record from a role without the power for every account)
+            B.sub(items, M.why("SeeNetworkUsers"))
         else
             B.sub(items, (M.can("CanSeePlayersStats") and tr("UI_ZeD_Tk_Loading")) or M.why("CanSeePlayersStats"))
         end
