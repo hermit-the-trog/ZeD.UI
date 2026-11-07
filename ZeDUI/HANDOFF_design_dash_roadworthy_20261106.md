@@ -99,6 +99,10 @@ Both are pad-reachable like every other hit (the focus walk picks them up from t
   at the coarse moments: a car's first mileage, a trip reset or an ODO / TRIP press, the engine off, the driver leaving
   the seat or the car, so the saved figures still reach a player who loads the car later. The driver's dash also
   keeps a press made while stopped when an older copy of the car comes back at the same odometer.)
+  (Nov 7, second review: a passenger who gets into a car stopped with its engine running heard nothing until the car
+  moved a tenth of a mile or the engine stopped, so their dash could read a whole drive behind. Now a passenger's dash
+  asks the server for the figures as it sits down, again every 2 seconds until they come, three times at most; the
+  server answers with its own figures to that passenger only, and only someone in that car and not at the wheel.)
 - **Known limit, split-screen on a server:** the dash's sends go as the first local player, so when a second
   split-screen player drives, the server refuses every send (it takes only the driver's). Their dash counts on their
   screen but the miles aren't saved. Not built for now: split-screen already shares the first player's windows, a

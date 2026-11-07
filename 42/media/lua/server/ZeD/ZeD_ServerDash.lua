@@ -5,7 +5,8 @@
 -- drive ends: the server writes ZeD_odo, ZeD_trip and ZeD_odoTrip into its own copy of the car's mod data, and nothing
 -- else, so a key another mod keeps only here (Roadworthy's, the extras' claim stamp) stays. Then it sends the three
 -- figures (DP.FIG) to the car's other occupants, the only players who see this car's dash; their dashes write them to
--- their own copy and send nothing on.
+-- their own copy and send nothing on. A passenger's dash asks for the figures as it sits down (DP.ASK; a car stopped with
+-- its engine on sends none): the server answers with its own, to them alone.
 -- The car's whole mod data goes out (transmitModData, to every client near the car) only at the coarse moments, and only
 -- when figures were taken since the last time: a first mileage, a press (the trip reset, the ODO / TRIP switch), the
 -- engine off, the driver gone from the seat (DP.ODO's save, or what the server sees itself), and a driver forgotten
@@ -122,6 +123,20 @@ Srv.register(DP.MOD, DP.ODO, {}, function(p, a)
         tellRiders(v, p, { veh = a.veh, odo = a.odo, trip = a.trip, show = a.show })
     end
     if save and r.dirty then sendOut(v, r) end
+end)
+
+-- a passenger's ask (ZeD_Dashboard:_odoAsk): the server's figures for the car, to the asker alone. Only from someone in that
+-- car and not at the wheel (IsoGameCharacter.getVehicle, BaseVehicle.getDriver, checked on 42.22.2); a car with no figures
+-- yet answers nothing. One a player each DP.ASK_MS, refused silently (the dash asks again)
+Srv.register(DP.MOD, DP.ASK, {}, function(p, a)
+    if not DP.okVeh(a.veh) then return Srv.bad(p, "dash ask") end
+    if Srv.left(p, "dash ask", DP.ASK_MS) then return end
+    Srv.mark(p, "dash ask")
+    local v = getVehicleById(a.veh)
+    if not v or p:getVehicle() ~= v or v:getDriver() == p then return end
+    local vmd = v:getModData()
+    local f = { veh = a.veh, odo = tonumber(vmd.ZeD_odo), trip = tonumber(vmd.ZeD_trip) or 0, show = vmd.ZeD_odoTrip == true }
+    if DP.okFigs(f) then Srv.to(p, DP.MOD, DP.FIG, f) end
 end)
 
 return M
