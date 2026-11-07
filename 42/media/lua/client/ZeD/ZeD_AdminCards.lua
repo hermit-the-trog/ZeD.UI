@@ -1121,6 +1121,8 @@ end
 -- in the player's language, once per language (ZeD._trGen moves when the language changes). Every call is guarded:
 -- a method that isn't there (another build of the game) leaves that kind of name to the server's.
 local _gameNames, _gameNamesGen = nil, nil
+-- any key in a table (Kahlua has no next(), so ask pairs for a first key)
+function P.hasAny(t) for _ in pairs(t) do return true end return false end
 function P.gameNames()
     if _gameNames and _gameNamesGen == ZeD._trGen then return _gameNames end
     local n = { prof = {}, trait = {}, skill = {} }
@@ -1145,7 +1147,7 @@ function P.gameNames()
         end
     end)
     -- kept only once the game had something to give: lists still empty are asked again next time
-    if next(n.prof) ~= nil or next(n.skill) ~= nil then _gameNames, _gameNamesGen = n, ZeD._trGen end
+    if P.hasAny(n.prof) or P.hasAny(n.skill) then _gameNames, _gameNamesGen = n, ZeD._trGen end
     return n
 end
 
@@ -1712,11 +1714,17 @@ function AC.openSpawn(win, st)
 end
 
 -- "1 x Axe to you" / "to the ground" / "to lootdrop99": base is the key for a player ("%1 x %2 to %3"); you and the
--- ground have whole sentences of their own (base .. "Me", base .. "Ground"), never a pronoun glued in for %3, so each
--- language gives them its own preposition and case (German: "an dich", "auf den Boden", "an lootdrop99")
+-- ground have whole sentences of their own (P.SPAWN_KEYS), never a pronoun glued in for %3, so each language gives
+-- them its own preposition and case (German: "an dich", "auf den Boden", "an lootdrop99"). The keys are written out
+-- whole so the translation guard can find them.
+P.SPAWN_KEYS = {
+    UI_ZeD_Adm_SpawnLine = { me = "UI_ZeD_Adm_SpawnLineMe", ground = "UI_ZeD_Adm_SpawnLineGround" },
+    UI_ZeD_Adm_Spawned = { me = "UI_ZeD_Adm_SpawnedMe", ground = "UI_ZeD_Adm_SpawnedGround" },
+}
 function P.spawnText(base, n, name, to)
-    if to == "me" then return tr(base .. "Me", n, name) end
-    if to == "ground" then return tr(base .. "Ground", n, name) end
+    -- whole-sentence key for "me" or "ground", if this base has one
+    local own = P.SPAWN_KEYS[base] and P.SPAWN_KEYS[base][to]
+    if own then return tr(own, n, name) end
     return tr(base, n, name, to)
 end
 
