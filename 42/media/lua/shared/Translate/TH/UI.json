@@ -5735,5 +5735,9 @@
     "UI_ZeD_Log_T_RepAnswered": "ตอบรายงานเรื่อง %1 คำร้อง #%2",
     "UI_ZeD_Log_T_RepClosed": "ปิดรายงานเรื่อง %1 คำร้อง #%2",
     "UI_ZeD_Log_T_RepSpam": "ทำเครื่องหมายรายงานเรื่อง %1 เป็นสแปม คำร้อง #%2",
-    "UI_ZeD_Log_T_RepDeleted": "ลบรายงานเรื่อง %1 คำร้อง #%2"
+    "UI_ZeD_Log_T_RepDeleted": "ลบรายงานเรื่อง %1 คำร้อง #%2",
+    "UI_ZeD_CSS_Tag": "XP x%1",
+    "UI_ZeD_CSS_TagBook": "XP x%1, หนังสือ x%2",
+    "UI_ZeD_BME_SortsOnAccept": "%1 จะจัดลำดับการโหลดเมื่อกดยอมรับ",
+    "UI_ZeD_BME_NotStarted": "ไม่ได้เริ่ม: %1 พบปัญหาในรายการม็อด"
 }

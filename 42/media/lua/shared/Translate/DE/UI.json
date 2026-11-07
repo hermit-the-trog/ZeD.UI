@@ -5735,5 +5735,9 @@
     "UI_ZeD_Log_T_RepAnswered": "beantwortete die Meldung zu %1, Ticket #%2",
     "UI_ZeD_Log_T_RepClosed": "schloss die Meldung zu %1, Ticket #%2",
     "UI_ZeD_Log_T_RepSpam": "markierte die Meldung zu %1 als Spam, Ticket #%2",
-    "UI_ZeD_Log_T_RepDeleted": "löschte die Meldung zu %1, Ticket #%2"
+    "UI_ZeD_Log_T_RepDeleted": "löschte die Meldung zu %1, Ticket #%2",
+    "UI_ZeD_CSS_Tag": "EP x%1",
+    "UI_ZeD_CSS_TagBook": "EP x%1, Buch x%2",
+    "UI_ZeD_BME_SortsOnAccept": "%1 sortiert die Ladefolge beim Übernehmen.",
+    "UI_ZeD_BME_NotStarted": "Nicht gestartet: %1 hat ein Problem in der Modliste gefunden."
 }

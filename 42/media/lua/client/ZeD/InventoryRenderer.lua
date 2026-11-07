@@ -18,6 +18,7 @@ require "ZeD/Organisms"
 require "ZeD/ZeD_Panel"
 require "ZeD/ReadMarks"
 require "ZeD/ContainerGates"   -- (a mod that hides a container's things until searched: ModSupport files)
+require "ZeD/ContainerGroups"  -- (a mod that files things into groups of its own: ModSupport files)
 
 ZeD = ZeD or {}
 
@@ -44,6 +45,9 @@ end
 local _catLbl, _catGen = {}, -1
 function ZeD.InventoryRenderer.catLabel(key)
     key = tostring(key)
+    -- a mod's group (ContainerGroups.lua): its words, asked fresh (a folder can be renamed)
+    local own = ZeD.ContainerGroups.label(key)
+    if own then return own end
     if _catGen ~= ZeD._trGen then _catLbl, _catGen = {}, ZeD._trGen end
     local s = _catLbl[key]
     if s == nil then
@@ -1117,7 +1121,8 @@ local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, col
             local item = items:get(i)
             if item and not item:isHidden() and not (isPlayerInv and heldByPlayer(playerObj, item))
                and (not gate or ZeD.ContainerGates.keeps(gate, item)) then
-                local cat = ZeD.InventoryRenderer.catKey(item)
+                -- a mod's group first (ContainerGroups.lua: a folder the player filed it in), else its category
+                local cat = ZeD.ContainerGroups.groupOf(item, inv, playerObj, isPlayerInv) or ZeD.InventoryRenderer.catKey(item)
                 catOf[item] = cat
                 if not groups[cat] then
                     groups[cat] = {}
@@ -1176,11 +1181,8 @@ local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, col
     local stackedGroups = {}
     local catRowCount = {}  -- cat → rendered row count (stacks + expanded children)
     if useGroups then
-        if sortCol == "cat" and not sortAsc then
-            table.sort(catOrder, function(a, b) return a > b end)
-        else
-            table.sort(catOrder)
-        end
+        -- (a mod's ranked groups first, ContainerGroups.lua; then the categories, either way)
+        ZeD.ContainerGroups.sortKeys(catOrder, not (sortCol == "cat" and not sortAsc))
         for _, cat in ipairs(catOrder) do
             table.sort(groups[cat], sorter)
             if not (collapsed and collapsed[cat]) then
@@ -1232,6 +1234,8 @@ local function itemModel(self, inv, playerObj, isPlayerInv, sortCol, sortAsc, co
     -- a mod's gate: its signature changes as it lets more show (ContainerGates.lua)
     local gate = ZeD.ContainerGates.get(inv, playerObj)
     local gs = gate and (gate.sig or true) or false
+    -- a mod's groups: their signature changes as things are filed (ContainerGroups.lua)
+    local gg = ZeD.ContainerGroups.sig(inv, playerObj, isPlayerInv)
     local cache = self._modelCache
     if not cache then
         cache = {}
@@ -1241,7 +1245,7 @@ local function itemModel(self, inv, playerObj, isPlayerInv, sortCol, sortAsc, co
     local c = cache[key]
     if c and c.age < MODEL_REFRESH and c.n == n and c.w == w and c.sortCol == sortCol
        and c.sortAsc == sortAsc and c.cf == cf and c.ef == ef and c.ph == ph and c.sh == sh
-       and c.isP == isPlayerInv and c.gs == gs then
+       and c.isP == isPlayerInv and c.gs == gs and c.gg == gg then
         c.age = c.age + 1
         return c.m
     end
@@ -1257,7 +1261,7 @@ local function itemModel(self, inv, playerObj, isPlayerInv, sortCol, sortAsc, co
         cache[key] = c
     end
     c.age, c.n, c.w, c.sortCol, c.sortAsc = 0, n, w, sortCol, sortAsc
-    c.cf, c.ef, c.ph, c.sh, c.isP, c.gs = cf, ef, ph, sh, isPlayerInv, gs
+    c.cf, c.ef, c.ph, c.sh, c.isP, c.gs, c.gg = cf, ef, ph, sh, isPlayerInv, gs, gg
     c.m = buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, collapsed, expandedStacks)
     return c.m
 end
