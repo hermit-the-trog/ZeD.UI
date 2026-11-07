@@ -547,9 +547,13 @@ def book(d, cx, cy, L, Wd, T, ang, front="spine", cover="d", title=None, title_m
         for lo_, hi_, k in ((-1, 0.1, 2), (0.1, 0.3, 3), (0.3, 0.55, 4), (0.55, 0.82, 5), (0.82, 2, 6)):
             tone(fr & (t >= lo_) & (t < hi_), cover, k)
         # the bands near its ends and the title stamped on it
-        for aa in (a0 + 7, a0 + 9, a1 - 9, a1 - 7):
+        # each pair two one-pixel rules with a clear pixel column between (review, Nov 7: they ran together into a
+        # block): the outer rule snapped to a whole pixel, the inner one two pixels further in
+        for aa, inward in ((a0 + 6, 1), (a1 - 6, -1)):
             p, q = P(aa, b1, 1.5), P(aa, b1, T - 1.5)
-            d.paint(Mask(d.W, d.H).line([p, q], 0.9).get() & fr, title_mat)
+            for k in (0, 2):
+                x = math.floor(p[0]) + 0.5 + inward * k
+                d.paint(Mask(d.W, d.H).line([(x, p[1]), (x, q[1])], 0.9).get() & fr, title_mat)
         if title:
             mx, my = P(0, b1, T / 2 + 2.5)
             g = type_at(d, title, int(round(mx)), int(round(my)), "35")
