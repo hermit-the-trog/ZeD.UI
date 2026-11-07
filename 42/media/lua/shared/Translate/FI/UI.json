@@ -5306,6 +5306,7 @@
     "UI_ZeD_Adm_HelpLeaveRole": "Poistu tallentamatta.",
     "UI_ZeD_Adm_NoteSpawn": "Admin loi sinulle %1 x %2.",
     "UI_ZeD_Adm_HelpOpenOwn": "Sinun: sen kortti Palvelin-välilehdellä.",
+    "UI_ZeD_Cl_AnswerWait": "Vastauksesi on matkalla. Odota hetki.",
     "UI_ZeD_Cl_AskStale": "Se muuttui, kun tämä oli auki. Mitään ei lähetetty.",
     "UI_ZeD_Cl_CanClaim": "Voinko varata tämän?",
     "UI_ZeD_Cl_ClaimSub": "Ei täällä? Se kertoo syyn: jonkun varaus, liian aikaisin, ei koti, tai sinulla on jo yksi.",

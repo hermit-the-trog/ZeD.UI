@@ -5306,6 +5306,7 @@
     "UI_ZeD_Adm_HelpLeaveRole": "Kaydetmeden çık.",
     "UI_ZeD_Adm_NoteSpawn": "Bir yönetici sana %1 x %2 oluşturdu.",
     "UI_ZeD_Adm_HelpOpenOwn": "Seninki: Sunucu sekmesindeki kartı.",
+    "UI_ZeD_Cl_AnswerWait": "Cevabın yolda. Biraz bekle.",
     "UI_ZeD_Cl_AskStale": "Bu açıkken değişti. Hiçbir şey gönderilmedi.",
     "UI_ZeD_Cl_CanClaim": "Bunu sahiplenebilir miyim?",
     "UI_ZeD_Cl_ClaimSub": "Burada değil mi? Nedenini söyler: başkasının sahipliği, çok erken, ev değil ya da zaten bir tane var.",

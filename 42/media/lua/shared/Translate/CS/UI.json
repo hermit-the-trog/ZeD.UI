@@ -5306,6 +5306,7 @@
     "UI_ZeD_Adm_HelpLeaveRole": "Odejít bez uložení.",
     "UI_ZeD_Adm_NoteSpawn": "Admin ti vytvořil %1 x %2.",
     "UI_ZeD_Adm_HelpOpenOwn": "Tvoje: karta na záložce Server.",
+    "UI_ZeD_Cl_AnswerWait": "Tvoje odpověď je na cestě. Chvíli počkej.",
     "UI_ZeD_Cl_AskStale": "To se změnilo, když bylo okno otevřené. Nic se neodeslalo.",
     "UI_ZeD_Cl_CanClaim": "Můžu to zabrat?",
     "UI_ZeD_Cl_ClaimSub": "Tady ne? Řekne proč: něčí zábor, příliš brzy, není to domov, nebo už jeden máš.",

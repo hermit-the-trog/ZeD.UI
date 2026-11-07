@@ -4780,6 +4780,7 @@ Limits here are estimates from the English: the cards wrap, buttons and tags do 
 | `UI_ZeD_Adm_HelpLeaveRole` | `Leave without saving.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 31 |
 | `UI_ZeD_Adm_NoteSpawn` | `An admin spawned %1 x %2 to you.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 46 |
 | `UI_ZeD_Adm_HelpOpenOwn` | `Yours: its card in the Server tab.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 48 |
+| `UI_ZeD_Cl_AnswerWait` | `Your answer is on its way. Wait a moment.` | Safehouse, faction and war cards on a multiplayer server | 47 |
 | `UI_ZeD_Cl_AskStale` | `That changed while this was open. Nothing was sent.` | Safehouse, faction and war cards on a multiplayer server | - |
 | `UI_ZeD_Cl_CanClaim` | `Can I claim this?` | Safehouse, faction and war cards on a multiplayer server | 27 |
 | `UI_ZeD_Cl_ClaimSub` | `Not here? It says why: someone's claim, too early, not a home, or you have one already.` | Safehouse, faction and war cards on a multiplayer server | - |

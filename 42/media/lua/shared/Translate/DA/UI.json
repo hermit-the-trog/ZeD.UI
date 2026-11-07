@@ -5306,6 +5306,7 @@
     "UI_ZeD_Adm_HelpLeaveRole": "Gå uden at gemme.",
     "UI_ZeD_Adm_NoteSpawn": "En admin har spawnet %1 x %2 til dig.",
     "UI_ZeD_Adm_HelpOpenOwn": "Din: dens datablad på fanen Server.",
+    "UI_ZeD_Cl_AnswerWait": "Dit svar er på vej. Vent et øjeblik.",
     "UI_ZeD_Cl_AskStale": "Det ændrede sig, mens dette var åbent. Intet blev sendt.",
     "UI_ZeD_Cl_CanClaim": "Kan jeg gøre krav på dette?",
     "UI_ZeD_Cl_ClaimSub": "Ikke her? Den siger hvorfor: en andens krav, for tidligt, ikke et hjem eller du har allerede et.",
