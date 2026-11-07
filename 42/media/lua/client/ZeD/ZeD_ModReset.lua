@@ -96,17 +96,21 @@ local function listing(dir)
     return t
 end
 
--- the lines of Zomboid/Lua/<path>; nil when it is not there
+-- the lines of Zomboid/Lua/<path>; nil when it is not there, or did not read to its end (a part
+-- of a file must not pass for the whole: the reset empties what it read)
 local function readLua(path)
     local r = safe(getFileReader, path, false)
     if not r then return nil end
     local t = {}
-    local l = safe(function() return r:readLine() end)
-    while l do
-        t[#t + 1] = l
-        l = safe(function() return r:readLine() end)
-    end
+    local ok = pcall(function()
+        local l = r:readLine()
+        while l do
+            t[#t + 1] = l
+            l = r:readLine()
+        end
+    end)
     pcall(function() r:close() end)
+    if not ok then return nil end
     return t
 end
 R.readLua = readLua

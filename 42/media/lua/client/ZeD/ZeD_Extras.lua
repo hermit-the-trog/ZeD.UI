@@ -34,7 +34,7 @@ local ASK_MS = 3000                   -- a car on the Vehicle tab is asked about
 
 E.seq = E.seq or 0                    -- bumps on every change (the cards re-read)
 E.cars = E.cars or {}                 -- vehicle id -> { at, view }
-E.took = E.took or {}                 -- "x,y,z" -> what this client has taken there, on its way to the server
+E.took = E.took or {}                 -- player, square and container kind -> what was taken there, on its way to the server
 
 local function now() return getTimestampMs() end
 local function tr(k, ...) return ZeD.tr(k, ...) end
@@ -144,8 +144,8 @@ end
 -- ---------------------------------------------------------------------------
 -- THE CONTAINER LOG: this client's report of its own takes
 -- ---------------------------------------------------------------------------
-local function newBatch(sq, src)
-    return { x = sq:getX(), y = sq:getY(), z = sq:getZ(), from = src:getType(), at = now(), names = {}, rows = {} }
+local function newBatch(sq, src, chr)
+    return { who = chr, x = sq:getX(), y = sq:getY(), z = sq:getZ(), from = src:getType(), at = now(), names = {}, rows = {} }
 end
 
 function E.noteTake(self)
@@ -157,10 +157,12 @@ function E.noteTake(self)
     if not (sq and SafeHouse.getSafeHouse(sq)) then return end
     local q = self.queueList and self.queueList[1]
     local items = q and q.items or { self.item }
-    local key = tostring(sq:getX()) .. "," .. tostring(sq:getY()) .. "," .. tostring(sq:getZ())
+    -- a report names one container kind and speaks for one player, so each pair gets its own
+    local key = tostring(chr:getUsername()) .. ":" .. tostring(sq:getX()) .. "," .. tostring(sq:getY()) .. "," .. tostring(sq:getZ())
+        .. ":" .. tostring(src:getType())
     local e = E.took[key]
     if not e then
-        e = newBatch(sq, src)
+        e = newBatch(sq, src, chr)
         E.took[key] = e
         E.tookAny = true
     end
@@ -172,7 +174,7 @@ function E.noteTake(self)
                 -- a full report goes as it is, under a name of its own, and a new one opens
                 E.tookSeq = (E.tookSeq or 0) + 1
                 E.took[key .. ":" .. tostring(E.tookSeq)] = e
-                e = newBatch(sq, src)
+                e = newBatch(sq, src, chr)
                 E.took[key] = e
             end
             r = { name = name, n = 0 }
@@ -193,7 +195,8 @@ function E.tookTick()
         if t - e.at >= L.TOOK_BATCH_MS then
             E.took[key] = nil
             E.tookSent = t
-            S.send(Ex.MOD, "x_took", { x = e.x, y = e.y, z = e.z, from = e.from, rows = e.rows })
+            -- as the player who took (S.send speaks for the first player, and the server tests reach from the sender)
+            if isClient() then sendClientCommand(e.who, Ex.MOD, "x_took", { x = e.x, y = e.y, z = e.z, from = e.from, rows = e.rows }) end
             return
         end
     end

@@ -51,25 +51,30 @@ end
 
 local function loadPopups()
     M.popups = {}
-    local r = getFileReader(FILE, false)
-    if not r then return end
-    local l = r:readLine()
-    while l do
-        local name = l:match("^popup=(.+)$")
-        if name then M.popups[name] = true end
-        l = r:readLine()
-    end
-    r:close()
+    local ok, r = pcall(function() return getFileReader(FILE, false) end)
+    if not (ok and r) then return end
+    pcall(function()
+        local l = r:readLine()
+        while l do
+            local name = l:match("^popup=(.+)$")
+            if name then M.popups[name] = true end
+            l = r:readLine()
+        end
+    end)
+    pcall(function() r:close() end)
 end
+-- (Lua here can neither rename nor delete a file, so no swap: all the words are ready before the file is opened, and a
+-- failed write costs this list and no more)
 local function savePopups()
-    local w = getFileWriter(FILE, true, false)
-    if not w then return end
-    w:write("ZeD-UI Messages: the mods whose notes still show as pop-ups\n")
     local names = {}
     for n in pairs(M.popups or {}) do names[#names + 1] = n end
     table.sort(names)
-    for _, n in ipairs(names) do w:write("popup=" .. n .. "\n") end
-    w:close()
+    local lines = { "ZeD-UI Messages: the mods whose notes still show as pop-ups\n" }
+    for _, n in ipairs(names) do lines[#lines + 1] = "popup=" .. n .. "\n" end
+    local ok, w = pcall(function() return getFileWriter(FILE, true, false) end)
+    if not (ok and w) then return end
+    pcall(function() w:write(table.concat(lines)) end)
+    pcall(function() w:close() end)
 end
 function M.popupsFor(name)
     if not M.popups then loadPopups() end
@@ -131,6 +136,7 @@ end
 -- the store
 -- ---------------------------------------------------------------------------
 local INVITE_NOTES_MAX = 10      -- invitation notes on the belt
+local TICKET_NOTES_MAX = 10      -- "a ticket came in" notes, for staff
 
 local function source(name, kind)
     local s = M.sources[name]
@@ -234,23 +240,27 @@ function M.adminNote(text, bans)
     return it
 end
 
--- in place of the game's two invitation modals (ZeD_Claims.lua): the invitation itself waits in the Server tab
-function M.invite(text)
-    local name = ZeD.tr("UI_ZeD_Char_TabServer")
-    local it = M.add(name, "mods", { k = "invite", text = text })
-    -- (any player can send these: the oldest goes past the cap, and only these)
+-- notes any player can cause: the oldest of this kind goes past its cap, and only that kind
+local function capKind(name, k, max)
     local items = M.sources[name].items
     local n = 0
     for _, x in ipairs(items) do
-        if x.k == "invite" then n = n + 1 end
+        if x.k == k then n = n + 1 end
     end
     for i = #items, 1, -1 do
-        if n <= INVITE_NOTES_MAX then break end
-        if items[i].k == "invite" then
+        if n <= max then break end
+        if items[i].k == k then
             table.remove(items, i)
             n = n - 1
         end
     end
+end
+
+-- in place of the game's two invitation modals (ZeD_Claims.lua): the invitation itself waits in the Server tab
+function M.invite(text)
+    local name = ZeD.tr("UI_ZeD_Char_TabServer")
+    local it = M.add(name, "mods", { k = "invite", text = text })
+    capKind(name, "invite", INVITE_NOTES_MAX)
     toast("warn", ZeD.tr("UI_ZeD_Cl_ToastHead"), name, text)
     return it
 end
@@ -260,6 +270,7 @@ function M.ticketNew()
     local name = getText("UI_userpanel_tickets")
     local text = ZeD.tr("UI_ZeD_Tk_NoteNew")
     local it = M.add(name, "mods", { k = "ticketnew", text = text })
+    capKind(name, "ticketnew", TICKET_NOTES_MAX)
     toast("warn", ZeD.tr("UI_ZeD_Tk_ToastHead"), name, text)
     return it
 end

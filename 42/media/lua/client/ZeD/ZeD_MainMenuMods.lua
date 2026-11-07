@@ -516,6 +516,14 @@ function ZeD_MMMods:accept()
     if self.find:isFocused() then self.find:unfocus() end
     local server = m.isServerSettingsMods
     local inst = ModSelector.instance
+    -- ZeD picks' copies for the list about to run, not the one the screen opened with: a picked mod
+    -- switched off here must not keep running from the helper (a server's, a save's or a new game's
+    -- list runs elsewhere, and the copies are one set: Back on those must not rewrite it)
+    if not (server or m.isNewGame or m.loadGameFolder) then
+        local wrote = 0
+        pcall(function() wrote = ZeD.ModPicks.sync(jlist(m:getActiveMods():getMods())) end)
+        if wrote > 0 then self._picksRefreshed = true end
+    end
     -- a mod Steam updated while the game ran needs the reload vanilla would not run (no list change)
     local force = false
     if not (server or m.isNewGame or m.loadGameFolder) and #MS.updatedLoaded() > 0 then

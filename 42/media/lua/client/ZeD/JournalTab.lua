@@ -274,11 +274,15 @@ local function buildJournalRecipeCatalog(playerObj)
         local iconTex = nil
         pcall(function() iconTex = recipe:getIconTexture() end)
 
+        -- the recipe's Tooltip: a translation key, read as the Crafting tab and the game's info box read it
         local description = nil
-        if recipe.getDescription then
+        if recipe.getTooltip then
             pcall(function()
-                local d = recipe:getDescription()
-                if d and d ~= "" then description = tostring(d) end
+                local k = recipe:getTooltip()
+                if k and k ~= "" then
+                    local d = getText(k)
+                    if d and d ~= "" and d ~= k then description = tostring(d):gsub("<br>", " ") end
+                end
             end)
         end
 

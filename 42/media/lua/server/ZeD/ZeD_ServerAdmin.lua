@@ -712,15 +712,15 @@ local function reg(command, opts, fn)
     end)
 end
 
--- the Steam ID a client names, when the server's own number agrees. IsoPlayer.getSteamID is a long and a Lua number only
--- holds it to within SID_ROUND, so this can't stand in for the string, but nobody passes it with an ID that isn't theirs.
--- 0 or nothing there: not a Steam server, and no ID stands.
+-- the Steam ID a client names, when the server's own number agrees. IsoPlayer.getSteamID is a long, and server Lua only ever
+-- has it as a double, which holds a Steam ID to the nearest 16. The client's true string rounds to that same double
+-- (Long.doubleValue, Double.parseDouble), so the two must be equal: that leaves about 16 IDs around their own, and nothing
+-- here can tell those apart. 0 or nothing there: not a Steam server, and no ID stands.
 local function sidOf(p, claim)
     if type(claim) ~= "string" or Adm.targetKind(claim) ~= "sid" then return nil end
     local real = p:getSteamID()
     if type(real) ~= "number" then real = tonumber(tostring(real)) end
-    local said = tonumber(claim)
-    if not real or real == 0 or not said or math.abs(real - said) > AL.SID_ROUND then return nil end
+    if not real or real == 0 or tonumber(claim) ~= real then return nil end
     return claim
 end
 

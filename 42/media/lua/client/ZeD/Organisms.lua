@@ -1103,8 +1103,9 @@ function ZeD_Window:_resizeStep()
     local minW = self.minimumWidth or T.px(200)
     local minH = self.minimumHeight or T.px(120)
     if mode == "s" or mode == "se" or mode == "sw" then
-        local newH = math.max(my - ay, minH)
-        newH = math.min(newH, getCore():getScreenHeight() - self:getY())
+        -- (the screen's edge first, the minimum last: a window parked within its minimum of the bottom)
+        local newH = math.min(my - ay, getCore():getScreenHeight() - self:getY())
+        newH = math.max(newH, minH)
         if newH ~= self:getHeight() then self:setHeight(newH) end
     end
     if mode == "se" or mode == "e" then
@@ -1648,6 +1649,12 @@ function ZeD_ScrollList:render()
     local maxScroll = math.max(0, totalH - h)
     if self.scrollPixels > maxScroll then self.scrollPixels = maxScroll end
     if self.scrollPixels < 0 then self.scrollPixels = 0 end
+    -- The thumb follows a change in the list's length: at the bottom, an added row left it at 1, and
+    -- the wheel and down arrow had nowhere to go (setScrollPos stops on an unchanged position)
+    if maxScroll ~= self._sbMax then
+        self._sbMax = maxScroll
+        self.sb.scrollPos = maxScroll > 0 and self.scrollPixels / maxScroll or 0
+    end
 
     -- Stencil clipping — prevents rows from drawing outside panel bounds.
     -- This is how vanilla ISScrollingListBox does it.

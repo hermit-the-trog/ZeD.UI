@@ -398,18 +398,24 @@ local function mine(p, md, id)
     return nil
 end
 
--- the cleaned text, or nil
+-- the cleaned text, or nil. The length comes first: cleaning walks every byte, and a modified client can send 32K. (A ZeD
+-- client cleans before it sends, so cleaning here never shortens what it sent, and the test refuses nothing that once passed.)
 local function goodText(s)
+    if type(s) ~= "string" or #s > L.TEXT_MAX then return nil end
     local text = Tk.clean(s)
-    if not text or #text < 1 or #text > L.TEXT_MAX then return nil end
+    if #text < 1 then return nil end
     return text
 end
+
+-- a string in a report, cut before it is cleaned. A chat line's length is not ours to refuse, so a long one is cut as ever,
+-- and cleaning walks a few times what it keeps, whatever is sent
+local function rawCut(s, keep) return string.sub(s, 1, 4 * keep) end
 
 -- what a report from chat may hold: a name and the chat around the line, each cut to size. The server hears no chat (server
 -- Lua cannot reach ChatServer), so all of it is the reporter's word, and says so on the card. nil for none, false when bad
 local function goodReport(p, r)
     if r == nil then return nil end
-    if type(r) ~= "table" or type(r.who) ~= "string" or Tk.name(r.who) == "" then
+    if type(r) ~= "table" or type(r.who) ~= "string" or Tk.name(rawCut(r.who, L.NAME_MAX)) == "" then
         Srv.bad(p, "t_new report")
         return false
     end
@@ -418,15 +424,15 @@ local function goodReport(p, r)
         Srv.bad(p, "t_new report")
         return false
     end
-    local out = { who = Tk.name(r.who), n = n }
+    local out = { who = Tk.name(rawCut(r.who, L.NAME_MAX)), n = n }
     for i = 1, n do
         local l = r[i]
         if type(l) ~= "table" or type(l.who) ~= "string" or type(l.text) ~= "string" then
             Srv.bad(p, "t_new report")
             return false
         end
-        out[i] = { who = Tk.name(l.who), text = string.sub(string.gsub(Tk.clean(l.text) or "", "\n", " "), 1, L.REPORT_TEXT),
-            mark = l.mark == true and true or nil, t = type(l.t) == "string" and string.sub(Tk.name(l.t), 1, 16) or nil }
+        out[i] = { who = Tk.name(rawCut(l.who, L.NAME_MAX)), text = string.sub(string.gsub(Tk.clean(rawCut(l.text, L.REPORT_TEXT)) or "", "\n", " "), 1, L.REPORT_TEXT),
+            mark = l.mark == true and true or nil, t = type(l.t) == "string" and string.sub(Tk.name(rawCut(l.t, L.NAME_MAX)), 1, 16) or nil }
     end
     return out
 end
@@ -437,7 +443,7 @@ local function reportSize(rep)
     return n
 end
 
--- one line a minute for the whole server, with how many were refused: a refused t_new starts no limit
+-- one line a minute for the whole server, with how many were refused: a t_new refused for room starts no limit
 local function fullLine(md, open, who)
     local t = getTimestampMs()
     T.fullN = (T.fullN or 0) + 1
@@ -449,10 +455,15 @@ end
 reg("t_new", { limit = L.NEW_MS, mark = false }, function(p, a, rid)
     local md = open()
     if frozen(p, rid) then return end
-    local text = goodText(a.text)
-    local report = goodReport(p, a.report)
-    if not Tk.isKind(a.kind) or not text or report == false then
-        if not Tk.isKind(a.kind) then Srv.bad(p, "t_new") end
+    -- the cheap tests first, and nothing is cleaned past a failed one. No ZeD client gets this far with any of these (C.ask and
+    -- the chat's report test them), so a refusal here starts the limit. many and full below can happen to anyone: they do not
+    local kindOk = Tk.isKind(a.kind)
+    local text = kindOk and goodText(a.text) or nil
+    local report = nil
+    if text then report = goodReport(p, a.report) end
+    if not text or report == false then
+        if not kindOk then Srv.bad(p, "t_new") end
+        Srv.mark(p, "t_new")
         Srv.ack(p, rid, false, "text")
         return
     end
@@ -634,6 +645,7 @@ reg("t_queue", { cap = STAFF, limit = L.QUEUE_MS }, function(p, a, rid)
         for i = 1, math.min(an, L.AUTHORS_MAX) do out[i] = authors[i] end
         r.authors = out
     end
+    r.rid = rid                 -- so the client can drop a reply to a filter it has left
     Srv.to(p, Tk.MOD, "t_queue", r)
 end)
 
@@ -988,7 +1000,9 @@ reg("t_gamediff", { cap = STAFF, limit = L.DIFF_MS }, function(p, a, rid)
                 rec.gameId = nil
                 rec.gameGone = true
                 rec.updated = getTimestamp()
-                logTk(rec, "removed on the game's window", p:getUsername())
+                -- (this client only saw the row go, not who took it: the line is the server's, and the file keeps who said so)
+                logTk(rec, "removed on the game's window", Tk.SYS)
+                Srv.fileLine("ticket", p:getUsername(), "saw the game's row gone", "#" .. tostring(rec.id), tostring(rec.kind))
                 pushCard(rec)
             end
         end

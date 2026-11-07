@@ -658,7 +658,8 @@ function X.itemsFaction(win, st, t, card, f)
     else
         items[#items + 1] = { k = "sub", text = tr("UI_ZeD_Cl_TagNeeds", getText("IGUI_FactionUI_TagMembersIncorrect", r.tagNeeds or 1), #f.names) }
     end
-    if f.canTag then
+    -- (a color resends the tag, and the game takes that from the owner alone)
+    if f.canTag and f.isOwner then
         items[#items + 1] = { k = "label", text = tr("UI_ZeD_Cl_TagColor") }
         local ctls = {}
         local noTag = (f.tag == nil or f.tag == "")

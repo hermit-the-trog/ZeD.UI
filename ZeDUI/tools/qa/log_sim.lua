@@ -297,9 +297,11 @@ local function car(id, sql, x)
     function v.isStarting(self) return self.starting == true end
     function v.shutOff(self) self.engine = false; self.shut = (self.shut or 0) + 1 end
     function v.addPointConstraint(self, p, other) other.towedBy = self end
-    -- (breakConstraint(IsoPlayer, boolean, boolean): the game's clears the other car's vehicleTowedBy)
+    -- (breakConstraint(IsoPlayer, boolean, boolean) and (boolean, boolean): the game's clears the other car's vehicleTowedBy)
     function v.breakConstraint(self, p, a, b)
-        if type(a) ~= "boolean" or type(b) ~= "boolean" then error("No implementation found: breakConstraint") end
+        local twoArg = b == nil and type(p) == "boolean" and type(a) == "boolean"
+        local threeArg = type(a) == "boolean" and type(b) == "boolean"
+        if not (twoArg or threeArg) then error("No implementation found: breakConstraint") end
         self.broke = (self.broke or 0) + 1
         for _, c in pairs(W.cars) do if c.towedBy == self then c.towedBy = nil end end
     end

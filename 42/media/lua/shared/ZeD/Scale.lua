@@ -330,7 +330,9 @@ local function entryFaces()
             end
         end
     end
-    _entryFaces = faces
+    -- (kept only once the fonts have loaded: a slot still loading reports no height, and a list made
+    -- then would leave every text box on the fallback face for the session)
+    if #faces > 0 and X._fontsSettled then _entryFaces = faces end
     return faces
 end
 
@@ -345,7 +347,7 @@ function X.entryFont()
         local d = math.abs(f.px - target)
         if not bestD or d < bestD then best, bestD = f.font, d end
     end
-    _entryTarget, _entryFont = target, best
+    if _entryFaces then _entryTarget, _entryFont = target, best end
     return best
 end
 
@@ -406,6 +408,11 @@ X.fallback = X.fallback or false        -- true while the game's fonts stand in
 X.freeFace = X.freeFace or nil          -- the default face for zoomPx while they do
 X._fontsSettled = X._fontsSettled or false
 X._fontsLogged = X._fontsLogged or false
+-- A server process draws nothing and never loads a font: the TextManager is there, its slots are
+-- empty and getFontHeight throws. isServer() is true in a dedicated server and in the separate
+-- server process a hosted game starts; the host's own game is a client and reads false, as does
+-- single player. So font work stops only where there are no fonts. Set before any Lua loads.
+X.noFonts = (isServer and isServer()) and true or false
 local ROLE_KEYS = { "sec", "body", "stat", "head", "title" }
 
 -- true = the slot holds ZeD's atlas, false = something else, nil = not loaded yet.
@@ -458,7 +465,7 @@ end
 -- the role fonts; the tick below repeats it until the fonts have loaded.
 function X.checkRoleFonts()
     local F = ZeD.Font and ZeD.Font.sdf
-    if not (F and UIFont) then return X.fallback end
+    if X.noFonts or not (F and UIFont) then return X.fallback end
     local tm = X.realTM()
     local foreign, unknown = false, false
     for _, k in ipairs(ROLE_KEYS) do
@@ -837,7 +844,7 @@ end
 -- The role-font check runs again until the fonts have loaded; if the answer changes, the theme
 -- is re-applied so the roles move to (or off) the game's fonts.
 local function fontsSettle()
-    if X._fontsSettled or not (ZeD.T and ZeD.applyTheme) or S._reapplying then return end
+    if X.noFonts or X._fontsSettled or not (ZeD.T and ZeD.applyTheme) or S._reapplying then return end
     local was = X.fallback
     X.checkRoleFonts()
     if X.fallback ~= was then

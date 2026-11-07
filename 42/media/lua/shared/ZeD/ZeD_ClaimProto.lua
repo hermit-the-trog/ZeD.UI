@@ -55,6 +55,15 @@ Cl.LIMITS = {
     LOG_TEXT = 64,               -- a title or a name in a log line
 }
 
+-- what names a safehouse on every machine and past a restart: the online id the game's own packets carry, made from its
+-- corner. (getId holds a timestamp from the constructor and load does not restore it, so it differs by machine and by
+-- restart.) A whole number under 2^31 prints the same through tostring on both sides. Nothing here shows the call on 42.21,
+-- so it is guarded: x,y is the same identity, and a client and its server run one build, so both take the same branch
+function Cl.houseKey(h)
+    if h.getOnlineID then return h:getOnlineID() end
+    return tostring(h:getX()) .. "," .. tostring(h:getY())
+end
+
 -- is this color the one drawn? (the game keeps a tag color as three floats)
 function Cl.sameColor(a, b)
     if not (a and b) then return false end
