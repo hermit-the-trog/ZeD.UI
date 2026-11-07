@@ -1658,5 +1658,50 @@ do
     check("no more", #cb.modals == 2, #cb.modals)
 end
 
+section("the review, Nov 7: a note that fails while a yes is on its way does not raise the pop-up then")
+do
+    world()
+    local a, r, b = player("Aretha"), player("Kade_R"), player("Rosa")
+    local ca, cr, cb = clientJoin(a), clientJoin(r), clientJoin(b)
+    local s1 = newSafe(100, 100, 10, 10, "Aretha")
+    advance(1200)
+    ca.C.invite("safe", "Rosa")
+    advance(300)
+    local acc = cb.env.acceptSafehouseInvite
+    cb.env.acceptSafehouseInvite = function() end
+    local j1 = nil
+    cb.C.answer(cb.C.invites[1], true, function(ok) j1 = ok end)
+    cb.safeMode = true
+    advance(300)
+    -- ZeD's note breaks: the game's handler is the fallback, but not while the yes is on its way
+    local onSafe = cb.C.onSafeInvite
+    local logged, logs = cb.env.ZeD.logOnce, 0
+    cb.env.ZeD.logOnce = function() logs = logs + 1 end
+    cb.C.onSafeInvite = function() error("broken note") end
+    local s3 = newSafe(500, 500, 10, 10, "Mags_77")
+    cb.env.Events.ReceiveSafehouseInvite.fire(s3, "Mags_77", "Rosa")
+    advance(300)
+    check("a broken note in the window: no pop-up yet", #cb.modals == 0, #cb.modals)
+    advance(9000)
+    check("the first gives up", j1 == false)
+    advance(1200)
+    local late = false
+    for _, m in ipairs(cb.modals) do late = late or m == "safe" end
+    check("then the game's pop-up, with the invitation", late and cb.modalArgs and cb.modalArgs[1] == s3
+        and cb.modalArgs[2] == "Mags_77" and cb.modalArgs[3] == "Rosa", #cb.modals)
+    local n = #cb.modals
+    advance(40000)
+    check("once", #cb.modals == n, #cb.modals)
+    -- outside the window a broken note still falls back to the game's pop-up at once
+    cb.safeMode = false
+    local s4 = newSafe(700, 700, 10, 10, "Kade_R")
+    cb.env.Events.ReceiveSafehouseInvite.fire(s4, "Kade_R", "Rosa")
+    check("no yes on its way: the pop-up at once", #cb.modals == n + 1 and cb.modalArgs[1] == s4, #cb.modals)
+    cb.C.onSafeInvite = onSafe
+    cb.env.ZeD.logOnce = logged
+    check("each break is logged", logs == 2, logs)
+    cb.env.acceptSafehouseInvite = acc
+end
+
 print("claims_sim: " .. checks .. " checks, " .. failed .. " failed")
 if failed > 0 then os.exit(1) end
