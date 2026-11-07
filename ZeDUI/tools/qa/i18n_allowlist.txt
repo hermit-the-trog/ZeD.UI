@@ -46,8 +46,10 @@ ItemCard.lua|Damage
 ItemCard.lua|Speed
 ItemCard.lua|Range
 ItemCard.lua|Crit
+ItemCard.lua|Knockback
 ItemCard.lua|Tree dmg
 ItemCard.lua|Ammo
+ItemCard.lua|Ammo type
 ItemCard.lua|Hunger
 ItemCard.lua|Thirst
 ItemCard.lua|Boredom
