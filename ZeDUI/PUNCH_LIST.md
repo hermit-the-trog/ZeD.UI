@@ -2877,3 +2877,17 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     when ZeD-GUI is switched off and on; a held second Accept says the invitation is gone; a release plus re-claim logged as
     an owner change. Design for the director: Check stats and the Admin tab's other game windows are still the game's UI.
     The director, Nov 7 2026: "Next beta" (no beta 6b for these).
+
+102. **The next beta, built overnight Nov 7 2026 (Build, while the director slept; QA testing each merge).** On main:
+    the ads (98) at 9f0c211b; the fixes at a60a0399 (101 in full, 99, 97's leftovers, 95, the book card's Progress row from
+    QA); the dashes (92, 94) and the house ad fit at 44df3931. Each part reviewed by separate reviewers; all 20 sims pass.
+    Not built: Check stats on a ZeD card (the director's call), police radar (93), Roadworthy wiring (QA hasn't run it).
+    - **For the director:** (1) the guide's thirds run short: 19 to 30 third-size feet per book get NOTES, and at Large
+      text some halves and quarters go unused and two whole pages get NOTES (QA's counts, 4K, Nov 7): more thirds, or
+      let the smaller feet take halves or quarters? (2) The First Days checklist never prints at Small text (no First
+      Days page has a third free), as before the ads. (3) Old characters' Explosion kill count (mostly mis-filed melee and
+      gun kills from beta 6a) moves to Other once; easy to drop before upload if not wanted. (4) The Identity tab shows the
+      game's own kill count (as vanilla's Character Info), which leaves out fire kills; the Journal adds them.
+    - **Known gaps:** ZeD picks come back only when ZeD-GUI is turned on by its own row, not through a folder or
+      separator box or Turn all off; split-screen's second player doesn't save dash miles on a server; on a server the
+      dash ash tray is per player and session; FR and HU month words keep a capital (shared Journal keys; native pass).
