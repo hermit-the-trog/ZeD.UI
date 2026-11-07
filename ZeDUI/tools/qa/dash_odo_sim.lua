@@ -9,11 +9,13 @@
 --           dash (a reload) reads the same figures; the taxi's fare keeps its own counter
 --   SHOW    the VFD and LCD readings, ODO / TRIP, the words lit with the key
 --   VERBS   the stem zeroes the trip; the window's A switches, its X zeroes only while the trip shows; both on the pad
---   SERVER  the driver's client sends the car's modData no more than every tenth of a mile, and at once after a press;
---           the miles not sent yet go when the engine stops, the driver leaves the seat or the car (OnExitVehicle's
---           D.hide, on a panel that gets no prerender once hidden), takes another, or safe mode or the hidden UI takes
---           the dash; a last send more than 3 s late is dropped, never sent from a parked car; single player and a
---           passenger send nothing; a build without transmitModData is no error
+--   SERVER  the driver's client sends the server a command with the car's figures (never the car's modData: the
+--           client never calls transmitModData, punch list 94) no more than every tenth of a mile, and at once after
+--           a press; the miles not sent yet go when the car stops, the engine stops, the driver leaves the seat or the
+--           car (OnExitVehicle's D.hide, on a panel that gets no prerender once hidden), takes another, or safe mode or
+--           the hidden UI takes the dash; a last send more than 3 s late is dropped, never sent from a parked car;
+--           single player and a passenger send nothing; no link to the server part is no error; the server's copy
+--           coming back after a send never winds the driver's figures back
 --   HOT     the hot lamp lights in the key-on bulb check; the Simple dash's Temperature bar goes red only when hot
 --   SIMPLE  the Trip cell beside Odometer, in the player's units, one decimal; A on it zeroes the trip; the units
 --           option is read at most once a second
@@ -22,6 +24,7 @@
 
 local ROOT = string.gsub(arg and arg[0] or "", "ZeDUI[/\\]tools[/\\]qa[/\\]dash_odo_sim%.lua$", "")
 local CLIENT = ROOT .. "42/media/lua/client/"
+local SHARED = ROOT .. "42/media/lua/shared/"
 
 local checks, failed = 0, 0
 local function check(name, ok, detail)
@@ -152,8 +155,19 @@ require = function(name)
     if REAL[name] and not loaded[name] then
         loaded[name] = true
         dofile(CLIENT .. name .. ".lua")
+    elseif name == "ZeD/ZeD_DashProto" and not loaded[name] then
+        loaded[name] = true
+        dofile(SHARED .. name .. ".lua")
     end
 end
+-- the link to the server part (ZeD_ServerLink.lua's S.send): each command is written down, and counted on its car
+local CARS, SENT = {}, {}
+ZeD.ServerPart = { send = function(module, command, args)
+    SENT[#SENT + 1] = { module = module, command = command, args = args }
+    local car = CARS[args and args.veh]
+    if car then car.sent = car.sent + 1 end
+    return true
+end }
 dofile(CLIENT .. "ZeD/ZeD_Dashboard.lua")
 local D = ZeD.Dashboard
 local P = ZeD.Px
@@ -194,11 +208,15 @@ function Car:getPartById(id)
     if id == "Battery" then return part(90) end
     return nil
 end
+-- (the car's transmitModData is there, as on the game's cars, and counts: the dash must never call it)
+local ALLCARS = {}
 local function newCar(t)
     t = t or {}
     t.md = t.md or {}
-    t.sent = 0
-    if not t.noTransmit then t.transmitModData = function(self) self.sent = self.sent + 1 end end
+    t.sent, t.transmits = 0, 0
+    t.transmitModData = function(self) self.transmits = self.transmits + 1 end
+    CARS[t.id or 7] = t
+    ALLCARS[#ALLCARS + 1] = t
     return setmetatable(t, Car)
 end
 local SCRIPT = { d6 = "Base.PickUpTruck", dashelite = "Base.ModernCar", cossette = "Base.SportsCar", luxury = "Base.CarLuxury",
@@ -668,15 +686,89 @@ do
     local pc = drive("d6", { keysIn = true, running = true, kmh = 100, passenger = true, md = { ZeD_odo = 1, ZeD_trip = 0 } })
     frames(200, 250)
     check("a passenger sends nothing", pc.sent == 0, pc.sent)
-    -- a build without transmitModData: no error
-    local old = drive("d6", { keysIn = true, running = true, kmh = 100, noTransmit = true })
+    -- no link to the server part (it failed to load): no error, still counting
+    local link = ZeD.ServerPart
+    ZeD.ServerPart = nil
+    local old = drive("d6", { keysIn = true, running = true, kmh = 100 })
     frames(100, 250)
-    check("no transmitModData on the car: no error, still counting", #env.errors == 0 and st().odo > D.odoSeed(7, 90), env.errors[1])
+    check("no link to the server part: no error, still counting", #env.errors == 0 and st().odo > D.odoSeed(7, 90), env.errors[1])
+    ZeD.ServerPart = link
     -- single player sends nothing
     env.client = false
     local sp = drive("d6", { keysIn = true, running = true, kmh = 100 })
     frames(200, 250)
     check("single player sends nothing", sp.sent == 0, sp.sent)
+    env.client = true
+
+    -- what goes: one command, the car's number and its three figures, nothing else
+    SENT = {}
+    local cc = drive("dashelite", { keysIn = true, running = true, kmh = 0, id = 21, md = { ZeD_odo = 500, ZeD_trip = 12.5, Roadworthy = { odo = 3 } } })
+    frame(250)
+    inst:_fire("odoButton", false)                     -- (A: the window shows the trip; a press sends at once)
+    local c1 = SENT[#SENT]
+    check("a press sends one command", #SENT == 1 and cc.sent == 1, #SENT)
+    check("on the dash's module", c1 and c1.module == ZeD.DashProto.MOD and c1.command == ZeD.DashProto.ODO, c1 and c1.module)
+    local keys = 0
+    for _ in pairs(c1 and c1.args or {}) do keys = keys + 1 end
+    check("with the car's number and its three figures only", c1 and keys == 4 and c1.args.veh == 21 and c1.args.odo == 500
+        and c1.args.trip == 12.5 and c1.args.show == true, keys)
+    check("the other mod's key never goes", c1 and c1.args.Roadworthy == nil)
+    -- the car stops: the miles not sent yet go while the driver is still at the wheel (the game lets no one out of a
+    -- car that isn't stopped, and its exit lands on the server before the dash's last send)
+    cc.kmh = 100
+    frames(12, 250)
+    local before = cc.sent
+    cc.kmh = 0
+    frame(250)
+    check("the car stops: the rest goes at once", cc.sent == before + 1, cc.sent - before)
+    frames(40, 250)
+    check("and once while it stays stopped", cc.sent == before + 1, cc.sent - before)
+    cc.kmh = 0.5                                       -- (creeping under the game's stopped speed: no send each frame)
+    frames(40, 250)
+    check("creeping at a stop sends nothing more", cc.sent == before + 1, cc.sent - before)
+    cc.kmh = 0
+    frames(4, 250)
+    check("stopped from a creep: nothing new to send", cc.sent == before + 1, cc.sent - before)
+    -- the server's copy comes back after a send, as it was when sent: the driver's figures stand
+    cc.kmh = 100
+    frames(30, 250)
+    local s1 = SENT[#SENT].args
+    frames(6, 250)
+    local odoNow, tripNow = st().odo, st().trip
+    check("still counting past the last send", odoNow > s1.odo, odoNow - s1.odo)
+    cc.md = { ZeD_odo = s1.odo, ZeD_trip = s1.trip, ZeD_odoTrip = s1.show, Roadworthy = { odo = 3 } }   -- (wiped, then the server's)
+    frame(250)
+    check("the echo doesn't wind the odometer back", st().odo > odoNow and cc.md.ZeD_odo > odoNow, st().odo - odoNow)
+    check("nor the trip", st().trip > tripNow, st().trip - tripNow)
+    check("the window stays on the trip", st().odoTrip == true and cc.md.ZeD_odoTrip == true)
+    -- a reset, with an older send's echo landing after it: the trip stays at what was driven since the reset
+    inst:_fire("odoButton", true)                      -- (X while the trip shows: zero)
+    frames(2, 250)
+    local tReset = st().trip
+    check("the reset holds", tReset < 0.02, tReset)
+    cc.md = { ZeD_odo = s1.odo, ZeD_trip = s1.trip, ZeD_odoTrip = true }
+    frame(250)
+    check("an old echo after the reset doesn't bring the trip back", st().trip < 0.02 and st().trip >= tReset, st().trip)
+    -- another seat: the dash reads the car as it comes (a passenger's figures are the server's)
+    cc.passenger = true
+    frame(250)
+    cc.md = { ZeD_odo = 600, ZeD_trip = 1, ZeD_odoTrip = false }
+    frame(250)
+    check("a passenger takes the server's figures as they come", st().odo == 600 and st().trip == 1, st().odo)
+    cc.passenger = nil
+
+    -- across every case above: the client never sent the car's modData itself
+    local tx = 0
+    for _, car in ipairs(ALLCARS) do tx = tx + car.transmits end
+    check("the client never calls transmitModData", tx == 0, tx)
+    local junk = 0
+    for _, c in ipairs(SENT) do
+        local a = c.args
+        if not (ZeD.DashProto.okVeh(a.veh) and ZeD.DashProto.okMiles(a.odo) and ZeD.DashProto.okMiles(a.trip)
+            and type(a.show) == "boolean" and a.trip <= a.odo) then junk = junk + 1 end
+    end
+    check("every command sent is one the server takes the shape of", #SENT > 0 and junk == 0, junk)
+    env.client = false
 end
 
 -- ---------------------------------------------------------------------------

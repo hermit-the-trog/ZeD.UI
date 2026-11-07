@@ -83,6 +83,11 @@ Both are pad-reachable like every other hit (the focus walk picks them up from t
   more for low condition. Trip starts at 0. Build's call; whatever it is, it's stable for a given car.
 - On a server: the driver's client writes modData and sends it (`transmitModData`), no more than every tenth of a mile
   so it isn't chatty. QA to test with two players in one car.
+  (Build, Nov 7, punch list 94: not `transmitModData` from the client after all. That sends the whole table and the
+  server's copy is wiped and replaced, so a key another mod keeps only on the server, Roadworthy's, would be lost. The
+  driver's client sends a ZeD command with the three figures; the server checks it is the driver and the numbers are
+  sane, writes only `ZeD_odo`, `ZeD_trip`, `ZeD_odoTrip` and sends the car out itself. `ZeD_DashProto.lua`,
+  `ZeD_ServerDash.lua`. The miles not sent yet also go when the car stops, while the driver is still at the wheel.)
 - **With Roadworthy:** if it keeps its own odometer and trip, read those instead of ZeD's, so its dash and ours agree.
   QA finds the names once it's running Roadworthy.
 

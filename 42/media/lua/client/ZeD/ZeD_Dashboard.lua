@@ -37,6 +37,7 @@ require "ZeD/DashPx"
 require "ZeD/ZeD_PixelParts"
 require "ZeD/ZeD_RadioOps"
 require "ZeD/ZeD_Plate"
+require "ZeD/ZeD_DashProto"
 
 ZeD = ZeD or {}
 ZeD.Dashboard = ZeD.Dashboard or {}
@@ -818,8 +819,11 @@ end
 -- the trip), so they survive sessions and every player in the car reads the same figures. The game keeps no mileage,
 -- so a car ZeD has not seen before gets one, once, from its id and its engine's condition (a wreck has gone further):
 -- the same figure for a given car on every machine. Only the driver counts, only while the engine runs; on a server
--- the driver's client sends the car's modData (IsoObject.transmitModData) at most every tenth of a mile, and at once
--- after a press. The taxi's fare keeps its own counter (_trips[id].fareMiles).
+-- the driver's client asks the server to write the three keys (ZeD_DashProto.lua, ZeD_ServerDash.lua) at most every
+-- tenth of a mile, at once after a press, and as a drive stops or ends; the server writes only those and sends the car
+-- out from there. Never the client's transmitModData: it replaces the server's whole copy of the car's modData, and a
+-- key another mod keeps only there (Roadworthy's) would be lost (punch list 94). The taxi's fare keeps its own counter
+-- (_trips[id].fareMiles).
 -- ROADWORTHY HOOK: a mod that keeps its own odometer and trip (on Vehicle Kit Library: VSKDash's pub.odoMiles and
 -- pub.tripMiles) is read over these in D.applyPublished, so its dash and ours agree; when QA has Roadworthy running,
 -- a direct read of its figures goes there too.
@@ -827,10 +831,11 @@ end
 local ODO_BASE, ODO_SPREAD, ODO_WORN = 20000, 60000, 60000   -- a found car: 20000 miles, up to 60000 more by its id,
                                                              -- up to 60000 more for a worn-out engine
 local ODO_SEND_MILES = 0.1                                   -- the driver's client sends no more often than this
--- a last send later than this after the driver's dash last saw the car is dropped, not sent: the server looks after a
--- claimed car for 10 s once its driver leaves (ZeD_ServerExtras F.lookLeft), and a send from a parked car after that
--- would wipe its claim stamp, or push this client's stale copy over a newer one
+-- a last send later than this after the driver's dash last saw the car is dropped, not sent: the server takes a send
+-- from the car's last driver for a moment once they are out of the seat (DashProto GRACE_MS), and no longer
 local ODO_LATE_MS = 3000
+local ODO_STOP_KMH = 0.8                                     -- stopped, as the game's BaseVehicle.isStopped (and no
+                                                             -- one gets out of a car that isn't): the miles go then
 local KM_PER_MILE = 1.609344
 
 -- a remainder by floor (Kahlua's % keeps the sign and goes wrong past 2^31)
@@ -867,9 +872,10 @@ function D.odoShow(st)
     st.tripMode = st.power and onTrip
 end
 
--- the driver's client sends the car's modData to the server (and so to the other players in the car): no more than
+-- the driver's client sends the car's figures to the server (and so to the other players in the car): no more than
 -- every ODO_SEND_MILES, or now (force: a press, a first mileage), or now if some miles haven't gone yet (flush: the
--- engine stopped, or the driver left the seat or the car), so a drive's last tenth isn't lost. Single player sends nothing.
+-- car stopped, the engine stopped, or the driver left the seat or the car), so a drive's last tenth isn't lost.
+-- Single player sends nothing: the car's modData is the game's own there
 function ZeD_Dashboard:_odoSend(vehicle, id, odo, force, flush)
     if not (isClient and isClient()) then return end
     local at = self._odoSentAt
@@ -880,8 +886,11 @@ function ZeD_Dashboard:_odoSend(vehicle, id, odo, force, flush)
     -- (a flush with nothing new sends nothing, so calling it every frame the engine is off costs one compare)
     if force or odo - last >= ODO_SEND_MILES or (flush and odo > last) then
         at[id] = odo
-        -- (IsoObject.transmitModData(), no arguments: checked on 42.22.2; looked up first in case a build lacks it)
-        if vehicle.transmitModData then pcall(vehicle.transmitModData, vehicle) end
+        local md = _get(vehicle, "getModData", nil)
+        local S, Pr = ZeD.ServerPart, ZeD.DashProto
+        if not (md and S and S.send and Pr) then return end
+        -- (the server writes these three and nothing else: ZeD_ServerDash.lua)
+        S.send(Pr.MOD, Pr.ODO, { veh = id, odo = odo, trip = tonumber(md.ZeD_trip) or 0, show = md.ZeD_odoTrip == true })
     end
 end
 
@@ -889,7 +898,15 @@ end
 function ZeD_Dashboard:_odometer(vehicle, st, miles, id)
     local md = _get(vehicle, "getModData", nil)
     local odo, trip, first = nil, 0, false
+    local mine = self._odoMine
+    if mine and (mine.car ~= vehicle or not self._driver) then mine = nil; self._odoMine = nil end
     if md then
+        -- (on a server the car's modData comes back from the server after each send, as it was when sent, and over
+        -- what this driver has counted since. Only this driver writes the figures while they drive, so a lower
+        -- odometer is that echo: this driver's own figures stand. A press is in them: it writes the car first)
+        if mine and (tonumber(md.ZeD_odo) or -1) < mine.odo then
+            md.ZeD_odo, md.ZeD_trip, md.ZeD_odoTrip = mine.odo, mine.trip, mine.show
+        end
         odo = tonumber(md.ZeD_odo)
         trip = tonumber(md.ZeD_trip) or 0
         st.odoTrip = md.ZeD_odoTrip == true
@@ -910,7 +927,13 @@ function ZeD_Dashboard:_odometer(vehicle, st, miles, id)
     if self._driver and md then
         self._odoCar = vehicle                                  -- the car this driver counts in (ZeD_Dashboard:_odoLeave)
         self._odoAt = getTimestampMs()                          -- and when the dash last saw it from the driver's seat
-        self:_odoSend(vehicle, id, odo, first, not st.running)  -- (engine off: the miles not sent yet go now)
+        if not mine then mine = {}; self._odoMine = mine end
+        mine.car, mine.odo, mine.trip, mine.show = vehicle, odo, trip, st.odoTrip
+        -- (the car just stopped, or the engine is off: the miles not sent yet go now, while this is still the driver)
+        local stopped = (st.speed or 0) < ODO_STOP_KMH
+        local stopNow = stopped and self._odoRolling == true
+        self._odoRolling = not stopped
+        self:_odoSend(vehicle, id, odo, first, stopNow or not st.running)
     end
     D.odoShow(st)
 end
@@ -920,7 +943,7 @@ end
 -- a seat change or another car. Only while the driver is still at the car: a late one is dropped (ODO_LATE_MS)
 function ZeD_Dashboard:_odoLeave()
     local car = self._odoCar
-    self._odoCar = nil
+    self._odoCar, self._odoMine, self._odoRolling = nil, nil, nil
     if not car then return end
     if getTimestampMs() - (self._odoAt or 0) > ODO_LATE_MS then return end    -- (too late: those miles stay unsent)
     local md = _get(car, "getModData", nil)
