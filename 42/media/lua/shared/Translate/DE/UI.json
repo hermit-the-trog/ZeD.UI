@@ -5306,6 +5306,7 @@
     "UI_ZeD_Adm_HelpLeaveRole": "Verlassen ohne zu speichern.",
     "UI_ZeD_Adm_NoteSpawn": "Ein Admin hat dir %1 x %2 gespawnt.",
     "UI_ZeD_Adm_HelpOpenOwn": "Deine: ihre Karte im Server-Tab.",
+    "UI_ZeD_Cl_AnswerWait": "Deine Antwort ist unterwegs. Warte einen Moment.",
     "UI_ZeD_Cl_AskStale": "Das hat sich geändert, während dies offen war. Nichts wurde gesendet.",
     "UI_ZeD_Cl_CanClaim": "Kann ich das beanspruchen?",
     "UI_ZeD_Cl_ClaimSub": "Nicht hier? Es sagt, warum: Anspruch eines anderen, zu früh, kein Wohnhaus oder du hast schon eines.",

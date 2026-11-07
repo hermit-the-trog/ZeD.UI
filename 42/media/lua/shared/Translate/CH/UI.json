@@ -5306,6 +5306,7 @@
     "UI_ZeD_Adm_HelpLeaveRole": "不儲存，直接離開。",
     "UI_ZeD_Adm_NoteSpawn": "管理員向你生成了 %1 x %2。",
     "UI_ZeD_Adm_HelpOpenOwn": "屬於你：見伺服器分頁中的卡片。",
+    "UI_ZeD_Cl_AnswerWait": "你的回覆正在送出。請稍候。",
     "UI_ZeD_Cl_AskStale": "開啟期間內容已變動。什麼都沒有送出。",
     "UI_ZeD_Cl_CanClaim": "我能認領這裡嗎？",
     "UI_ZeD_Cl_ClaimSub": "不行？它會說明原因：別人的認領、太早、不是住宅，或你已經有一個。",

@@ -5306,6 +5306,7 @@
     "UI_ZeD_Adm_HelpLeaveRole": "Keluar tanpa menyimpan.",
     "UI_ZeD_Adm_NoteSpawn": "Admin men-spawn %1 x %2 ke Anda.",
     "UI_ZeD_Adm_HelpOpenOwn": "Milik Anda: kartunya di tab Server.",
+    "UI_ZeD_Cl_AnswerWait": "Jawaban Anda sedang dikirim. Tunggu sebentar.",
     "UI_ZeD_Cl_AskStale": "Itu berubah saat ini terbuka. Tidak ada yang dikirim.",
     "UI_ZeD_Cl_CanClaim": "Bisakah saya claim ini?",
     "UI_ZeD_Cl_ClaimSub": "Tidak di sini? Akan dijelaskan alasannya: claim orang lain, terlalu awal, bukan rumah, atau Anda sudah punya satu.",

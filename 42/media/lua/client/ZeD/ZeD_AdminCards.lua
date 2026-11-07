@@ -1152,7 +1152,12 @@ function P.skills(items, win, st, card, view)
             } }
         end
     end
-    if shown == 0 then B.sub(items, tr("UI_ZeD_Adm_NoSkills")) end
+    if view and view.closed and #list == 0 then
+        -- (the server kept this account's skills back, so "no skill above 0" would be a guess: name the power instead)
+        B.sub(items, M.why("SeeNetworkUsers"))
+    elseif shown == 0 then
+        B.sub(items, tr("UI_ZeD_Adm_NoSkills"))
+    end
     if #list > 0 then
         F.flow(items, { { id = "allskills", style = "chip", text = tr("UI_ZeD_Adm_AllSkills"), on = card.allSkills, help = tr("UI_ZeD_Adm_HelpAllSkills"),
             run = function() card.allSkills = not card.allSkills; M.bump() end } })

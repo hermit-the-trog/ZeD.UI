@@ -5306,6 +5306,7 @@
     "UI_ZeD_Adm_HelpLeaveRole": "Wyjdź bez zapisu.",
     "UI_ZeD_Adm_NoteSpawn": "Admin stworzył dla ciebie %1 x %2.",
     "UI_ZeD_Adm_HelpOpenOwn": "Twoje: jego karta na zakładce Serwer.",
+    "UI_ZeD_Cl_AnswerWait": "Twoja odpowiedź jest w drodze. Poczekaj chwilę.",
     "UI_ZeD_Cl_AskStale": "Zmieniło się, gdy to było otwarte. Nic nie wysłano.",
     "UI_ZeD_Cl_CanClaim": "Czy mogę to zająć?",
     "UI_ZeD_Cl_ClaimSub": "Nie tu? Podaje powód: czyjeś zajęcie, za wcześnie, to nie dom albo już jedno masz.",

@@ -5306,6 +5306,7 @@
     "UI_ZeD_Adm_HelpLeaveRole": "Kilépés mentés nélkül.",
     "UI_ZeD_Adm_NoteSpawn": "Egy admin előhívott neked %1 x %2.",
     "UI_ZeD_Adm_HelpOpenOwn": "Tiéd: a kártyája a Szerver lapon.",
+    "UI_ZeD_Cl_AnswerWait": "A válaszod úton van. Várj egy kicsit.",
     "UI_ZeD_Cl_AskStale": "Ez megváltozott, amíg nyitva volt. Semmi nem lett elküldve.",
     "UI_ZeD_Cl_CanClaim": "Lefoglalhatom ezt?",
     "UI_ZeD_Cl_ClaimSub": "Nem itt? Megmondja, miért: valaki foglalása, túl korai, nem lakás, vagy már van egyed.",

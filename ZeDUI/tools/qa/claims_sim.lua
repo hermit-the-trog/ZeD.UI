@@ -1104,6 +1104,11 @@ do
     W.safes[#W.safes].owner = "Rosa"
     advance(6000)
     check("a transfer is still an owner change", logHas("safehouse | owner from Kade_R | Rosa") and not logHas("safehouse | release"))
+    -- a /reloadlua keeps the log's memory, whose houses were read before they kept their object: not a release of every house
+    W.logs = {}
+    for _, h in pairs(W.server.ZeD.Srv.claims.safes or {}) do h.obj = nil end
+    advance(6000)
+    check("an old snapshot without objects logs nothing", not logHas("safehouse | release") and not logHas("safehouse | claim"))
     table.remove(W.safes)
     advance(6000)
     -- a flood stops at the page

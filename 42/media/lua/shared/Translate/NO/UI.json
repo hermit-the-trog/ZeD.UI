@@ -5306,6 +5306,7 @@
     "UI_ZeD_Adm_HelpLeaveRole": "Gå ut uten å lagre.",
     "UI_ZeD_Adm_NoteSpawn": "En admin genererte %1 x %2 til deg.",
     "UI_ZeD_Adm_HelpOpenOwn": "Dine: kortet i Server-fanen.",
+    "UI_ZeD_Cl_AnswerWait": "Svaret ditt er på vei. Vent litt.",
     "UI_ZeD_Cl_AskStale": "Det ble endret mens dette var åpent. Ingenting ble sendt.",
     "UI_ZeD_Cl_CanClaim": "Kan jeg kreve dette?",
     "UI_ZeD_Cl_ClaimSub": "Ikke her? Den sier hvorfor: noens krav, for tidlig, ikke et hjem, eller du har allerede ett.",

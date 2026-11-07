@@ -5306,6 +5306,7 @@
     "UI_ZeD_Adm_HelpLeaveRole": "Leave without saving.",
     "UI_ZeD_Adm_NoteSpawn": "An admin spawned %1 x %2 to you.",
     "UI_ZeD_Adm_HelpOpenOwn": "Yours: its card in the Server tab.",
+    "UI_ZeD_Cl_AnswerWait": "Your answer is on its way. Wait a moment.",
     "UI_ZeD_Cl_AskStale": "That changed while this was open. Nothing was sent.",
     "UI_ZeD_Cl_CanClaim": "Can I claim this?",
     "UI_ZeD_Cl_ClaimSub": "Not here? It says why: someone's claim, too early, not a home, or you have one already.",
