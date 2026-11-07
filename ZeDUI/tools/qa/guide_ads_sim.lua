@@ -8,6 +8,8 @@
 -- from the game's English text (SurvivalGuide.json, ZeD's UI.json), the faces' own widths (the game's .fnt files)
 -- and modeled rules tables (their rows come from the game's data at run time: rows guessed, see ROWS below). It is an
 -- estimate; the -debug console line "ZeD guide ads (...)" (B.adReport) gives the real count in the game.
+-- Then THE HOUSE AD (Nov 7 2026): the publisher's ad laid out in every language's UI.json at Small and Large text,
+-- every line measured again and kept inside the frame (see that section); HOUSEAD_DUMP=<code> lists a language's lines.
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/guide_ads_sim.lua
 -- It prints FAIL lines and a last line "guide_ads_sim: N checks, M failed", and exits 1 if any failed.
 
@@ -766,6 +768,456 @@ do
     setText(1)
     check("no error logged in the count", #logs == 0, logs[1])
 end
+
+-- ---------------------------------------------------------------------------
+-- THE HOUSE AD (QA, Nov 7 2026: its deck ran past the frame at Large text and in German at Small; its price touched
+-- its box at Large). Laid out in every language at Small and Large text with the faces' own widths (the game's .fnt
+-- files, by character; a character the faces lack is taken wide: Chinese, Japanese and Korean a full em and a bit,
+-- Thai 0.7 em with its marks 0.15, anything else the face's widest), every line is measured again here and must sit
+-- inside its part of the frame (the frame's padding, the titles' box, the price box less half the price's size each
+-- side, the coupon's 10) and nothing may pass the frame's bottom; the coupon keeps its Name and Address.
+-- English at Small text draws as it did before the fix (it fit then), and the old layout is run beside it to show
+-- the sim sees what QA saw.
+-- ---------------------------------------------------------------------------
+section("the house ad: every language at Small and Large text, inside its frame")
+local LANGS = { "AR", "CA", "CH", "CN", "CS", "DA", "DE", "EN", "ES", "ES_CL", "ES_MX", "FI", "FR", "HU", "ID", "IT",
+                "JP", "KO", "NL", "NO", "PL", "PT", "PTBR", "RO", "RU", "TH", "TR", "UA" }
+local AD1 = { "Head", "Deck", "Body", "T1", "T2", "T3", "T4", "T5", "Price", "Coupon", "Name", "Address" }
+do
+    -- (every language folder is on the list)
+    local listed = {}
+    for _, l in ipairs(LANGS) do listed[l] = true end
+    local okLs, pipe = pcall(io.popen, 'dir /b /ad "' .. (ROOT ~= "" and ROOT or ".\\") .. '42\\media\\lua\\shared\\Translate"')
+    if okLs and pipe then
+        local extra = nil
+        for d in pipe:lines() do if d:match("^%u[%u_]*$") and not listed[d] then extra = d end end
+        pipe:close()
+        check("every Translate folder is on the house ad's list", extra == nil, extra)
+    end
+end
+
+-- UTF-8 into code points
+local function cps(s)
+    local out, i = {}, 1
+    while i <= #s do
+        local b = s:byte(i)
+        local n = (b >= 0xF0 and 3) or (b >= 0xE0 and 2) or (b >= 0xC0 and 1) or 0
+        local cp = (n == 0) and b or ((n == 1 and b - 0xC0) or (n == 2 and b - 0xE0) or (b - 0xF0))
+        for k = 1, n do cp = cp * 64 + ((s:byte(i + k) or 0x80) - 0x80) end
+        out[#out + 1] = cp
+        i = i + n + 1
+    end
+    return out
+end
+local function utf8(cp)
+    if cp < 0x80 then return string.char(cp) end
+    if cp < 0x800 then return string.char(0xC0 + math.floor(cp / 64), 0x80 + cp % 64) end
+    if cp < 0x10000 then return string.char(0xE0 + math.floor(cp / 4096), 0x80 + math.floor(cp / 64) % 64, 0x80 + cp % 64) end
+    return string.char(0xF0 + math.floor(cp / 262144), 0x80 + math.floor(cp / 4096) % 64, 0x80 + math.floor(cp / 64) % 64, 0x80 + cp % 64)
+end
+local SIZE = { SdfRobertoSans = 48 }
+local WIDEST = {}
+for slot, t in pairs(ADV) do
+    local mx = 16
+    for id, a in pairs(t) do if id < 0x2000 and a > mx then mx = a end end
+    WIDEST[slot] = mx
+end
+local function advOf(font, cp)
+    local t, size = ADV[font] or {}, SIZE[font] or 32
+    if t[cp] then return t[cp] end
+    if cp >= 0x2E80 then return size * 1.05 end
+    if cp >= 0x0E00 and cp <= 0x0E7F then
+        if cp == 0x0E31 or (cp >= 0x0E34 and cp <= 0x0E3A) or (cp >= 0x0E47 and cp <= 0x0E4E) then return size * 0.15 end
+        return size * 0.7
+    end
+    return WIDEST[font] or 32
+end
+local function measureCp(font, s)
+    local w = 0
+    for _, cp in ipairs(cps(s)) do w = w + advOf(font, cp) end
+    return w
+end
+-- the sim's own width of a drawn line: the whole string, or its words and spaces as the book spaces them, the wider
+local function simW(f, s, px)
+    local size = SIZE[f.slot] or 32
+    local sp = math.max(measureCp(f.slot, "a a") - measureCp(f.slot, "aa"), size * 0.25)
+    local nat, n = 0, 0
+    for wd in s:gmatch("%S+") do nat = nat + measureCp(f.slot, wd); n = n + 1 end
+    nat = nat + math.max(0, n - 1) * sp
+    return math.max(nat, measureCp(f.slot, s)) * px / size
+end
+-- capitals as the game's ZeD.upper makes them (Latin-1 and Latin Extended-A, Greek, Cyrillic; sharp s to SS)
+local function upperU(s)
+    local out = {}
+    for _, cp in ipairs(cps(s)) do
+        local u = cp
+        if cp >= 97 and cp <= 122 then u = cp - 32
+        elseif cp == 0xDF then out[#out + 1] = "SS"; u = nil
+        elseif (cp >= 0xE0 and cp <= 0xFE and cp ~= 0xF7) then u = cp - 32
+        elseif cp == 0xFF then u = 0x178
+        elseif cp >= 0x100 and cp <= 0x17F and cp % 2 == 1 then u = cp - 1
+        elseif cp >= 0x3B1 and cp <= 0x3C9 and cp ~= 0x3C2 then u = cp - 32
+        elseif cp >= 0x430 and cp <= 0x44F then u = cp - 32
+        elseif cp >= 0x450 and cp <= 0x45F then u = cp - 80 end
+        if u then out[#out + 1] = utf8(u) end
+    end
+    return table.concat(out)
+end
+
+local LANG = {}
+local function readLang(code)
+    local t = {}
+    if not readJson(ROOT .. "42/media/lua/shared/Translate/" .. code .. "/UI.json", t) then return nil end
+    return t
+end
+local savedTr, savedUpper, savedTM = ZeD.tr, ZeD.upper, getTextManager
+local cur = EN
+ZeD.tr = function(k) return cur[k] or EN[k] or k end
+ZeD.upper = upperU
+getTextManager = function() return { MeasureStringX = function(_, font, s) return measureCp(font, tostring(s)) end } end
+
+local PW, Ufix = 520, 1
+-- every check of one layout; returns a list of what is wrong
+local function faults(L, u)
+    local bad = {}
+    local function no(msg) bad[#bad + 1] = msg end
+    local fr = L.frame
+    local inTop, inBot = fr.y + fr.lw, fr.y + fr.h - fr.lw
+    local ix, iw = U_.M * u + 14 * u, PW * u - U_.M * u * 2 - 28 * u
+    if math.abs(L.inner.x - ix) > 0.01 or math.abs(L.inner.w - iw) > 0.01 then no("the inner width is not the frame's less its 14 each side") end
+    local last = { t = -1 }
+    for _, o in ipairs(L.ops) do
+        local bottom = (o.k == "t") and (o.y + o.px * 0.3) or (o.y + o.h)
+        local topY = (o.k == "t") and (o.y - o.px * 0.8) or o.y
+        if bottom > inBot + 0.01 and not (o.k == "b" and o.y < inTop) then no("past the frame's bottom: " .. tostring(o.s or o.k)) end
+        if topY < fr.y - 0.01 then no("above the frame: " .. tostring(o.s or o.k)) end
+        if o.k == "t" then
+            local w = simW(o.f, o.s, o.px)
+            if o.w + 0.01 < w then no("the layout measured narrower than the sim: " .. o.s) end
+            local x0, x1
+            if o.box == "inner" then x0, x1 = ix, ix + iw
+            elseif o.box == "list" then x0, x1 = L.list.x + L.list.pad, L.list.x + L.list.w - L.list.pad
+            elseif o.box == "price" then x0, x1 = L.price.x + L.price.pad, L.price.x + L.price.w - L.price.pad
+            elseif o.box == "coupon" then x0, x1 = L.coupon.x + L.coupon.pad, L.coupon.x + L.coupon.w - L.coupon.pad end
+            if not x0 or o.x < x0 - 0.01 or o.x + w > x1 + 0.01 then
+                no(string.format("%s past its %s: %.1f..%.1f in %.1f..%.1f", o.s, tostring(o.box), o.x, o.x + w, x0 or -1, x1 or -1))
+            end
+            local box = (o.box == "list" and L.list) or (o.box == "price" and L.price) or (o.box == "coupon" and L.coupon) or nil
+            if box and (o.y - o.px * 0.75 < box.y - 0.01 or o.y + o.px * 0.25 > box.y + box.h + 0.01) then no("outside its box, up or down: " .. o.s) end
+        end
+    end
+    if L.list.x < ix - 0.01 or L.list.x + L.list.w + 10 * u > L.price.x + 0.01 then no("the titles' box runs into the price") end
+    if L.price.x + L.price.w > ix + iw + 0.01 then no("the price box past the frame's padding") end
+    for _, o in ipairs(L.ops) do
+        if o.k == "t" and o.box == "price" and L.price.pad < o.px * 0.5 - 0.01 then no("the price's padding under half its size") end
+    end
+    if not L.coupon then no("no coupon")
+    elseif L.lines ~= 2 then no("the coupon lost its Name or Address") end
+    return bad
+end
+local F_ = { head = { slot = "SdfRobertoSans" }, sansB = { slot = "SdfBold" }, text = { slot = "SdfOldRegular" }, textB = { slot = "SdfOldBold" } }
+
+local summary = {}
+local worst = {}
+for _, code in ipairs(LANGS) do
+    local t = readLang(code)
+    check("the house ad's words in " .. code, t ~= nil)
+    if t then
+        local missing = nil
+        for _, k in ipairs(AD1) do if not t["UI_ZeD_Guide_Ad1_" .. k] then missing = k end end
+        check(code .. " has every UI_ZeD_Guide_Ad1_ key", missing == nil, missing)
+        cur = t
+        LANG[code] = t
+        local row = { code }
+        for _, m in ipairs({ { 1, "Small" }, { 1.15, "Large" } }) do
+            setText(m[1])
+            local okL, L = pcall(B.houseAdLayout, PW, Ufix)
+            check(code .. " " .. m[2] .. ": the house ad lays out", okL, L)
+            if okL then
+                -- (HOUSEAD_DUMP=DE in the environment lists DE's layouts, line by line)
+                if os.getenv("HOUSEAD_DUMP") == code then
+                    realPrint(string.format("  %s %s (gaps %.2f, inner %.1f..%.1f, price box %.1f wide at %.1f, pad %.1f):", code, m[2], L.g, L.inner.x, L.inner.x + L.inner.w, L.price.w, L.price.x, L.price.pad))
+                    for _, o in ipairs(L.ops) do
+                        if o.k == "t" then realPrint(string.format("    %-6s x %6.1f..%6.1f  y %6.1f  %5.2f px  %s", o.box, o.x, o.x + o.w, o.y, o.px, o.s)) end
+                    end
+                end
+                local bad = faults(L, Ufix)
+                check(code .. " " .. m[2] .. ": every line inside the frame, nothing past its bottom", #bad == 0, bad[1])
+                local deckN = 0
+                for _, o in ipairs(L.ops) do if o.k == "t" and o.f.slot == "SdfBold" and o.box == "inner" then deckN = deckN + 1 end end
+                local down = {}
+                for _, k in ipairs({ "deck", "items", "coupon", "body" }) do
+                    if L.sz[k] < ({ deck = 14, items = 12.5, coupon = 11, body = 12.5 })[k] * m[1] * Ufix - 0.001 then down[#down + 1] = k end
+                end
+                row[#row + 1] = string.format("%s deck %d line%s%s%s", m[2], deckN, deckN == 1 and "" or "s",
+                    (L.g < 1) and string.format(", gaps %d%%", L.g * 100) or "", (#down > 0) and (", down: " .. table.concat(down, "+")) or "")
+                if L.g < 1 or #down > 0 then worst[#worst + 1] = code .. " " .. m[2] end
+            end
+        end
+        summary[#summary + 1] = "  " .. table.concat(row, "; ")
+    end
+end
+cur = EN
+setText(1)
+for _, l in ipairs(summary) do realPrint(l) end
+realPrint("  (closed up or a size down: " .. ((#worst > 0) and table.concat(worst, ", ") or "none") .. ")")
+
+-- ---------------------------------------------------------------------------
+-- the old layout (the drawAdPage of Nov 6), run in the same model: what QA saw, and English at Small as it was
+-- ---------------------------------------------------------------------------
+local function oldAd(u, m)
+    local ops = {}
+    local function tw(f, s, px) return measureCp(f.slot, s) * px / (SIZE[f.slot] or 32) end
+    local function spw(f, px) local size = SIZE[f.slot] or 32; return math.max(measureCp(f.slot, "a a") - measureCp(f.slot, "aa"), size * 0.25) * px / size end
+    local function wrap(s, f, px, lim)
+        local lines, curL, cw = {}, nil, 0
+        local sp = spw(f, px)
+        for wd in s:gmatch("%S+") do
+            local ww = tw(f, wd, px)
+            if curL and cw + sp + ww > lim then lines[#lines + 1] = curL; curL, cw = nil, 0 end
+            if curL then curL, cw = curL .. " " .. wd, cw + sp + ww else curL, cw = wd, ww end
+        end
+        if curL then lines[#lines + 1] = curL end
+        return lines
+    end
+    local TEXT, DECK, OPEN, CAP, LEAD = 12.5 * m, 14 * m, 30 * m, 10 * m, 1.42
+    local function T(k) return cur["UI_ZeD_Guide_Ad1_" .. k] or EN["UI_ZeD_Guide_Ad1_" .. k] end
+    local function add(o) ops[#ops + 1] = o end
+    local function centre(f, s, cx, y, px, box) local w = tw(f, s, px); add({ k = "t", s = s, x = cx - w / 2, y = y, px = px, w = w, f = f, box = box }) end
+    local w = PW * u
+    local mm = U_.M * u
+    local tx, tw_ = mm, w - mm * 2
+    local cx = w / 2
+    local top, bot = U_.MT * u, (U_.PH - U_.FOOT - 6) * u
+    local ix, iw = tx + 14 * u, tw_ - 28 * u
+    local yy = top + 16 * u + OPEN * u
+    centre(F_.head, upperU(T("Head")), cx, yy, OPEN * u, "inner")
+    yy = yy + DECK * u * 1.6
+    centre(F_.sansB, T("Deck"), cx, yy, DECK * u, "inner")
+    yy = yy + TEXT * u * 0.8
+    add({ k = "r", x = ix, y = yy, w = iw, h = math.max(1, u) })
+    local px = TEXT * u
+    local lineH = px * LEAD
+    for _, l in ipairs(wrap(T("Body"), F_.text, px, iw)) do yy = yy + lineH; add({ k = "t", s = l, x = ix, y = yy, px = px, f = F_.text, box = "inner" }) end
+    yy = yy + lineH * 0.8
+    local boxY = yy
+    local priceW = 92 * u
+    local listW = iw - priceW - 10 * u
+    local sq = math.floor(px * 0.8)
+    for i = 1, 5 do
+        yy = yy + lineH * 1.15
+        add({ k = "b", x = ix + 8 * u, y = yy - sq, w = sq, h = sq })
+        add({ k = "t", s = T("T" .. i), x = ix + 8 * u + sq + 8 * u, y = yy, px = px, f = F_.textB, box = "list" })
+    end
+    yy = yy + lineH * 0.6
+    add({ k = "b", x = ix, y = boxY, w = listW, h = yy - boxY })
+    local pY, pH = boxY + 10 * u, 70 * u
+    add({ k = "r", x = ix + iw - priceW, y = pY, w = priceW, h = pH })
+    local pc = ix + iw - priceW / 2
+    local pw = {}
+    for wd in T("Price"):gmatch("%S+") do pw[#pw + 1] = wd end
+    local half = math.ceil(#pw / 2)
+    centre(F_.sansB, upperU(table.concat(pw, " ", 1, half)), pc, pY + pH * 0.42, DECK * u, "price")
+    if #pw > half then centre(F_.sansB, upperU(table.concat(pw, " ", half + 1)), pc, pY + pH * 0.78, DECK * u, "price") end
+    yy = yy + 16 * u
+    local cY = yy
+    local cH = bot - 14 * u - cY
+    if cH > 60 * u then
+        local dash, gapD = 6 * u, 4 * u
+        local xx = ix
+        while xx < ix + iw do
+            local dw = math.min(dash, ix + iw - xx)
+            add({ k = "r", x = xx, y = cY, w = dw, h = math.max(1, u) })
+            add({ k = "r", x = xx, y = cY + cH, w = dw, h = math.max(1, u) })
+            xx = xx + dash + gapD
+        end
+        local yy2 = cY
+        while yy2 < cY + cH do
+            local dh = math.min(dash, cY + cH - yy2)
+            add({ k = "r", x = ix, y = yy2, w = math.max(1, u), h = dh })
+            add({ k = "r", x = ix + iw, y = yy2, w = math.max(1, u), h = dh })
+            yy2 = yy2 + dash + gapD
+        end
+        local cy2 = cY + 6 * u
+        local cpx = CAP * u * 1.1
+        for _, l in ipairs(wrap(T("Coupon"), F_.text, cpx, iw - 20 * u)) do cy2 = cy2 + cpx * 1.35; add({ k = "t", s = l, x = ix + 10 * u, y = cy2, px = cpx, f = F_.text, box = "coupon" }) end
+        for _, k in ipairs({ "Name", "Address" }) do
+            cy2 = cy2 + cpx * 2.2
+            if cy2 > cY + cH - 4 * u then break end
+            local lab = T(k)
+            add({ k = "t", s = lab, x = ix + 10 * u, y = cy2, px = cpx, f = F_.sansB, box = "coupon" })
+            local lx = ix + 10 * u + tw(F_.sansB, lab, cpx) + 8 * u
+            add({ k = "r", x = lx, y = cy2 + 2 * u, w = ix + iw - 10 * u - lx, h = math.max(1, u) })
+        end
+    end
+    return ops, { ix = ix, iw = iw, priceX = ix + iw - priceW, priceW = priceW }
+end
+-- the widest the old layout drew a line past its frame's padding (or its price past the box), in px
+local function oldOver(code, m)
+    cur = LANG[code] or EN
+    local ops, g = oldAd(1, m)
+    local over = { deck = 0, price = 9999 }
+    for _, o in ipairs(ops) do
+        if o.k == "t" and o.f == F_.sansB and o.box == "inner" then
+            local w = simW(o.f, o.s, o.px)
+            over.deck = math.max(g.ix - o.x, o.x + w - (g.ix + g.iw))
+        end
+        if o.k == "t" and o.box == "price" then
+            local w = simW(o.f, o.s, o.px)
+            over.price = math.min(over.price, o.x - g.priceX, g.priceX + g.priceW - (o.x + w))
+        end
+    end
+    cur = EN
+    return over
+end
+do
+    local enS, enL, deS = oldOver("EN", 1), oldOver("EN", 1.15), oldOver("DE", 1)
+    check("the old layout: English at Small fit (its deck inside the padding)", enS.deck <= 0, enS.deck)
+    check("the old layout: English at Large ran its deck past the padding, as QA saw", enL.deck > 14, enL.deck)
+    check("the old layout: German at Small ran its deck past the padding, as QA saw", deS.deck > 14, deS.deck)
+    check("the old layout: English at Large left the price under 2 px clear, as QA saw", enL.price < 2, enL.price)
+    realPrint(string.format("  old layout: EN Small deck %.1f px inside, price %.1f px clear; EN Large deck %.1f px over, price %.1f clear; DE Small deck %.1f px over",
+        -enS.deck, enS.price, enL.deck, enL.price, deS.deck))
+    local oldBad = {}
+    for _, code in ipairs(LANGS) do
+        for _, m in ipairs({ 1, 1.15 }) do if oldOver(code, m).deck > 0 then oldBad[#oldBad + 1] = code .. (m == 1 and " S" or " L") end end
+    end
+    realPrint("  old layout, deck past the padding: " .. table.concat(oldBad, ", "))
+
+    -- English at Small: the new layout draws what the old one drew, the same draws (in another order: the price box
+    -- now before the titles), every rule and box to the thousandth, every line at its place (a centered line may move
+    -- under a pixel: it now centers on its words and spaces as the pages space them, when that is the wider)
+    setText(1)
+    local L = B.houseAdLayout(PW, 1)
+    local old = oldAd(1, 1)
+    local missing, moved = nil, 0
+    for _, o in ipairs(old) do
+        local hit = false
+        for j = L.frame.lw + 1, #L.ops do
+            local n = L.ops[j]
+            if n.k == o.k and (o.s == nil or n.s == o.s) and math.abs(n.x - o.x) <= ((o.k == "t") and 1 or 0.001) and math.abs(n.y - o.y) <= 0.001
+               and (o.k == "t" or (math.abs(n.w - o.w) <= 0.001 and math.abs(n.h - o.h) <= 0.001)) then
+                hit = true
+                moved = math.max(moved, math.abs(n.x - o.x))
+                break
+            end
+        end
+        if not hit then missing = string.format("%s %s at %.2f,%.2f", o.k, tostring(o.s), o.x, o.y) end
+    end
+    check("English at Small draws as before the fix", missing == nil and #L.ops == #old + L.frame.lw, missing or (#L.ops .. " / " .. (#old + L.frame.lw)))
+    check("English at Small: nothing closed up or a size down", L.g == 1 and L.sz.deck == 14 and L.sz.items == 12.5)
+    realPrint(string.format("  English at Small against the old layout: the same %d draws, the most a line moved %.2f px", #old, moved))
+end
+
+-- ---------------------------------------------------------------------------
+-- words too long for any line: cut between characters, nothing lost, never a line on a Thai mark; and a page of
+-- words far too long closes its gaps, steps parts down and still keeps inside the frame
+-- ---------------------------------------------------------------------------
+do
+    setText(1.15)
+    local long = {}
+    for k, v in pairs(LANG.JP) do long[k] = v end
+    long.UI_ZeD_Guide_Ad1_Deck = string.rep(LANG.JP.UI_ZeD_Guide_Ad1_Deck, 3)
+    cur = long
+    local L = B.houseAdLayout(PW, 1)
+    local deck = {}
+    for _, o in ipairs(L.ops) do if o.k == "t" and o.f.slot == "SdfBold" and o.box == "inner" then deck[#deck + 1] = o.s end end
+    check("a Japanese deck three times over wraps to lines", #deck >= 3, #deck)
+    check("cut between characters, nothing lost", table.concat(deck) == long.UI_ZeD_Guide_Ad1_Deck)
+    local bad = faults(L, 1)
+    check("a long Japanese deck keeps inside the frame", #bad == 0, bad[1])
+    -- Thai: no line starts on a mark
+    cur = LANG.TH
+    local onMark = nil
+    for _, m in ipairs({ 1, 1.15, 1.6 }) do
+        setText(m)
+        for _, o in ipairs(B.houseAdLayout(PW, 1).ops) do
+            if o.k == "t" then
+                local c1 = cps(o.s)[1]
+                if c1 == 0x0E31 or (c1 and c1 >= 0x0E34 and c1 <= 0x0E3A) or (c1 and c1 >= 0x0E47 and c1 <= 0x0E4E) then onMark = o.s end
+            end
+        end
+    end
+    check("no Thai line starts on a mark", onMark == nil, onMark)
+    -- far too many words: the gaps close, the parts that wrapped step down, nothing past the frame
+    local huge = {}
+    for k, v in pairs(LANG.DE) do huge[k] = v end
+    huge.UI_ZeD_Guide_Ad1_Deck = string.rep(LANG.DE.UI_ZeD_Guide_Ad1_Deck .. " ", 4)
+    huge.UI_ZeD_Guide_Ad1_Body = string.rep(LANG.DE.UI_ZeD_Guide_Ad1_Body .. " ", 2)
+    for i = 1, 5 do huge["UI_ZeD_Guide_Ad1_T" .. i] = LANG.DE["UI_ZeD_Guide_Ad1_T" .. i] .. " " .. LANG.DE.UI_ZeD_Guide_Ad1_T1 end
+    cur = huge
+    setText(1.15)
+    local H = B.houseAdLayout(PW, 1)
+    check("too many words: the gaps close up", H.g < 1, H.g)
+    check("too many words: the deck a size down", H.sz.deck < 14 * 1.15 - 0.001, H.sz.deck)
+    local inBot = H.frame.y + H.frame.h - H.frame.lw
+    local past = nil
+    for i, o in ipairs(H.ops) do
+        local b = (o.k == "t") and (o.y + o.px * 0.3) or (o.y + o.h)
+        if i > H.frame.lw and b > inBot + 0.01 then past = o.s or o.k end
+    end
+    check("too many words: nothing past the frame's bottom", past == nil, past)
+    -- a price too long for two lines in the box: a size down
+    local dear = {}
+    for k, v in pairs(LANG.EN) do dear[k] = v end
+    dear.UI_ZeD_Guide_Ad1_Price = "Only $4.95 each or three for $12.95 postage paid anywhere in Kentucky"
+    cur = dear
+    setText(1)
+    local D = B.houseAdLayout(PW, 1)
+    local pls = {}
+    for _, o in ipairs(D.ops) do if o.k == "t" and o.box == "price" then pls[#pls + 1] = o end end
+    check("a long price a size down", pls[1] and pls[1].px < 14 - 0.001, pls[1] and pls[1].px)
+    local badD = faults(D, 1)
+    check("a long price keeps inside its box", #badD == 0, badD[1])
+    cur = EN
+    setText(1)
+end
+
+-- ---------------------------------------------------------------------------
+-- the layout kept: laid out once while nothing changes; again for a new text size, language or measure epoch
+-- ---------------------------------------------------------------------------
+do
+    local epoch = 1
+    ZeD.Text = { measureEpoch = function() return epoch end }
+    local bk2 = newBook()
+    setText(1)
+    local a = bk2:houseAd(PW, 1)
+    check("kept: the same layout the next frame", bk2:houseAd(PW, 1) == a)
+    setText(1.15)
+    local b = bk2:houseAd(PW, 1)
+    check("kept: a new text size lays it out again", b ~= a)
+    cur = LANG.DE
+    local c = bk2:houseAd(PW, 1)
+    check("kept: a new language lays it out again", c ~= b)
+    epoch = 2
+    local d = bk2:houseAd(PW, 1)
+    check("kept: a new measure epoch lays it out again", d ~= c)
+    check("kept: a new unit lays it out again", bk2:houseAd(PW, 1.75) ~= d)
+    epoch = nil
+    local e1 = bk2:houseAd(PW, 1)
+    check("kept: no epoch (the fonts loading), laid out each frame", bk2:houseAd(PW, 1) ~= e1)
+    ZeD.Text = nil
+    -- drawn: one draw per item of the list, at the page's corner
+    local rec = {}
+    local P = setmetatable({}, { __index = function(_, k)
+        if k == "drawTextZoomed" then return function(_, s, x, y) rec[#rec + 1] = { k = "t", s = s, x = x } end end
+        if k == "drawRect" then return function(_, x, y) rec[#rec + 1] = { k = "r", x = x } end end
+        if k == "drawRectBorder" then return function(_, x, y) rec[#rec + 1] = { k = "b", x = x } end end
+        if ZeD_GuideBook[k] then return ZeD_GuideBook[k] end
+        if k:find("^get") then return function() return 0 end end
+        return nil
+    end })
+    setText(1)
+    cur = EN
+    P:drawAdPage(700, 40, PW, 1)
+    local L = P._houseAd and P._houseAd.L
+    local ok = L and #rec == #L.ops
+    if ok then for i, o in ipairs(L.ops) do if rec[i].k ~= o.k or math.abs(rec[i].x - (700 + o.x)) > 0.001 then ok = false end end end
+    check("drawn: the kept list, at the page's corner", ok, #rec)
+end
+
+ZeD.tr, ZeD.upper, getTextManager = savedTr, savedUpper, savedTM
+setText(1)
 
 realPrint(string.format("guide_ads_sim: %d checks, %d failed", checks, failed))
 if failed > 0 then os.exit(1) end
