@@ -153,12 +153,10 @@ end)
 -- Fallback path: poll IsoPlayer state for reading specifically. Some read
 -- mechanisms in PZ Build 42 may not go through ISTimedActionQueue (e.g.
 -- the per-character reading-handler in IsoGameCharacter). Detect via
--- :isReading() and resolve the book via :getReadingItem() / :getReadBook().
+-- :isReading() and resolve the book from the read action, else by a search.
 local _readActiveItem = {}  -- pn → item currently being read
 local _readScanTick = {}    -- pn → ticks since the inventory was last scanned for the book
 local READ_RESCAN = 30      -- the book found is trusted this many ticks before looking again
-local READ_PROBES = { "getReadingItem", "getReadBook", "getCurrentReadingItem",
-                      "getLastReadBook", "getReadCharacter" }
 
 local function _pollReadingFallback(p)
     if not p or not p.isReading then return end
@@ -168,16 +166,17 @@ local function _pollReadingFallback(p)
 
     if reading then
         -- Multi-probe for the book the player is reading.
-        -- 1. Try common method names on IsoPlayer / IsoGameCharacter.
+        -- 1. The read action at the head of the queue holds it. The game has no getter for
+        --    it on the player, and the search below can only guess with two books carried.
         -- 2. Fallback: any Literature item in primary/secondary hand.
         --    (Reading actions equip the book to a hand for the duration.)
         local book = nil
         local probeName = nil
-        for _, method in ipairs(READ_PROBES) do
-            if not book and p[method] then
-                local ok2, b = pcall(p[method], p)
-                if ok2 and b then book = b; probeName = method end
-            end
+        local q = ISTimedActionQueue and ISTimedActionQueue.queues and ISTimedActionQueue.queues[p]
+        local head = q and q.queue and q.queue[1]
+        local headItem = _actionItem(head)
+        if headItem and instanceof and instanceof(headItem, "Literature") and _classifyAction(head) == "reading" then
+            book = headItem; probeName = "queue"
         end
         if not book and p.getPrimaryHandItem then
             local ok2, h = pcall(p.getPrimaryHandItem, p)

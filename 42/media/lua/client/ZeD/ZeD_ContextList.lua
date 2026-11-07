@@ -252,15 +252,7 @@ local _focus, _dim = { focused = true, pad = true }, {}
 function ZeD_ContextList:prerender()
     if not self._ctx.open then return end
     self:clearHitZones()
-    -- the selected row of the deepest level that has one, told to the game's menu every
-    -- frame as its render does (a submenu with nothing picked yet leaves its parent lit)
-    local hl = nil
-    for li = #self._levels, 1, -1 do
-        local lv = self._levels[li]
-        local row = lv.sel and lv.rows and lv.rows[lv.sel]
-        if row and live(row.def) then hl = row.def; break end
-    end
-    ZeD.ContextMenu.Registry.highlight(self, hl)
+    local hl = nil   -- the row that lights the game's outline, found while the rows draw
     local A = ZeD.Atoms
     local T, tm = ZeD.T, ZeD.TM
     local f1, f2 = T.fontF1, T.fontF2
@@ -317,6 +309,10 @@ function ZeD_ContextList:prerender()
                 local over = mx >= x and mx < x + w and my >= cy and my < cy + rowH
                 local isSel = (lv.sel == ri)
                 local openParent = self._levels[li + 1] and self._levels[li + 1].parentRow == ri
+                -- the row the cue is on, the deepest level's winning (a submenu with nothing picked
+                -- yet leaves its parent lit). For the mouse lv.sel outlives the pointer, so it counts
+                -- only on the row the mouse is on, or one whose submenu is open.
+                if isSel and (nav ~= "mouse" or over or openParent) then hl = def end
                 -- the row whose submenu is open is selected: the one accent wash
                 if openParent then
                     self:drawRect(x + u, cy, w - 2 * u, rowH, T.selectionA, ac.r, ac.g, ac.b)
@@ -390,6 +386,7 @@ function ZeD_ContextList:prerender()
         -- the level's frame, last: nothing of its own covers it
         A.frame(self, x, y, w, h, bs)
     end
+    ZeD.ContextMenu.Registry.highlight(self, hl)   -- every frame, as the game's menu render does
     -- the pointed row's tooltip, in a balloon beside its menu (System 7's Balloon Help): at
     -- once for the pad and the keys, after the shared hover delay for the mouse
     local ready = A.hoverReady(self._hv, balloon and balloon.key or nil)

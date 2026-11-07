@@ -48,6 +48,11 @@ local function _pct(n, withSign)
     return tostring(n) .. "%"
 end
 
+-- A 0..1 value as whole hundredths, rounded: these are floats, and 0.35 reads back as 0.34999...
+local function _hundredths(n)
+    return math.floor(n * 100 + 0.5)
+end
+
 -- Color class from a 0..1 ratio (warn at <0.6, bad at <0.3, good at >=0.6, dim at 0)
 local function _condClass(ratio)
     if not ratio or ratio <= 0 then return "dim" end
@@ -69,16 +74,26 @@ function M.DefenseFacts(item)
 
     -- Defense values (per-zone aggregated to "for any zone covered" - the
     -- exact aggregation lives in the organism; the factory just shows the
-    -- representative max defense from the script item).
-    local script = safeGet(item, "getScriptItem")
-    local biteDef    = script and safeGet(script, "getBiteDefense")
-    local scratchDef = script and safeGet(script, "getScratchDefense")
-    local bulletDef  = script and safeGet(script, "getBulletDefense")
-    local insulation = script and safeGet(script, "getInsulation")        -- Q125 probe
-    local windRes    = script and safeGet(script, "getWindResistance")     -- Q126 probe
-    local waterRes   = script and safeGet(script, "getWaterResistance")
-    local neckProt   = script and safeGet(script, "getNeckProtectionModifier")
-    local condLoss   = script and safeGet(script, "getConditionLowerChanceOneIn")
+    -- representative max defense). Read from the clothing itself: of these
+    -- the script item has only insulation and getConditionLowerChance. Same
+    -- scales as the game's tooltip: defense 0..100, the thermal three 0..1.
+    local biteDef    = safeGet(item, "getBiteDefense")
+    local scratchDef = safeGet(item, "getScratchDefense")
+    local bulletDef  = safeGet(item, "getBulletDefense")
+    local insulation = safeGet(item, "getInsulation")
+    local windRes    = safeGet(item, "getWindresistance")
+    local waterRes   = safeGet(item, "getWaterResistance")
+    -- A multiplier on defense at the neck, and the game ignores it at 1 (every
+    -- item that sets none): only a value under 1 says anything.
+    local neckProt   = safeGet(item, "getNeckProtectionModifier")
+    if neckProt and neckProt >= 1 then neckProt = nil end
+    -- The game rolls this 1-in-N only for clothing that cannot get holes; the
+    -- rest lose condition per hole, whatever the script says. An explicit
+    -- false: a build without the call shows "-", never a wrong figure.
+    local condLoss   = nil
+    if safeGet(item, "getCanHaveHoles") == false then
+        condLoss = safeGet(item, "getConditionLowerChance")
+    end
 
     local panel = {
         title         = ZeD.tr("UI_ZeD_Card_FactsDefense"),
@@ -104,16 +119,16 @@ function M.DefenseFacts(item)
     -- Group 2: thermal + water + neck
     panel.groups[#panel.groups + 1] = {
         rows = {
-            {label = getText("Tooltip_item_Insulation"), value = insulation and string.format("%d / 100", insulation * 100) or "-",
+            {label = getText("Tooltip_item_Insulation"), value = insulation and string.format("%d / 100", _hundredths(insulation)) or "-",
              valueClass = (not insulation) and "dim" or nil, needsProbe = insulation == nil},
             {label = getText("IGUI_Temp_WindResistance"), short = ZeD.tr("UI_ZeD_Card_ShortWind"),
-             value = windRes and string.format("%d / 100", windRes * 100) or "-",
+             value = windRes and string.format("%d / 100", _hundredths(windRes)) or "-",
              valueClass = (not windRes) and "dim" or nil, needsProbe = windRes == nil},
             {label = getText("Tooltip_item_Waterresist"), short = ZeD.tr("UI_ZeD_Card_ShortWaterRes"),
-             value = waterRes and string.format("%d / 100", waterRes * 100) or "-",
+             value = waterRes and string.format("%d / 100", _hundredths(waterRes)) or "-",
              valueClass = "dim"},
             {label = ZeD.tr("UI_ZeD_Card_NeckProt"), short = ZeD.tr("UI_ZeD_Card_ShortNeckProt"),
-             value = neckProt and string.format("%d%%", neckProt * 100) or "-",
+             value = neckProt and string.format("%d%%", _hundredths(neckProt)) or "-",
              valueClass = "dim"},
         },
     }
@@ -292,12 +307,29 @@ function M.ReadingFacts(item)
     local lvlMin       = safeGet(item, "getLvlSkillTrained")
     local lvlMax       = safeGet(item, "getMaxLevelTrained")
     local pages        = safeGet(item, "getNumberOfPages")
-    local pagesRead    = safeGet(item, "getNumberOfPagesToRead")  -- progress
-    local recipeCount  = safeGet(item, "getNumberOfMappedRecipes")
-    local alreadyRead  = safeGet(item, "isAlreadyReadByPlayer")
+    local recipes      = safeGet(item, "getLearnedRecipes")
+    local recipeCount  = recipes and safeGet(recipes, "size")
 
-    local readRatio = (pages and pages > 0 and pagesRead)
-        and ((pages - pagesRead) / pages) or nil
+    -- The pages read live on the character (the game's tooltip reads them there);
+    -- a book with none, such as a magazine, has no progress to show.
+    local player       = getPlayer and getPlayer()
+    local fullType     = safeGet(item, "getFullType")
+    local pagesRead    = nil
+    if pages and pages > 0 then
+        pagesRead = player and fullType and safeGet(player, "getAlreadyReadPages", fullType)
+            or safeGet(item, "getAlreadyReadPages")
+    end
+
+    -- ReadMarks holds the game's own test (a skill book past your level counts as
+    -- read). compute, not state: state stays off while read marks are off in setup.
+    local alreadyRead  = false
+    local marks = ZeD.ReadMarks
+    if player and marks and marks.compute then
+        local ok, status = pcall(marks.compute, player, item)
+        alreadyRead = ok and status ~= nil and status.st == "r"
+    end
+
+    local readRatio = pagesRead and (pagesRead / pages) or nil
 
     local panel = {
         title         = ZeD.tr("UI_ZeD_Card_FactsReading"),
@@ -316,8 +348,8 @@ function M.ReadingFacts(item)
 
     panel.groups[#panel.groups + 1] = {
         rows = {
-            {label = ZeD.tr("UI_ZeD_Card_Progress"), value = (pages and pagesRead) and string.format("%d / %d", pages - pagesRead, pages) or "-",
-             valueClass = readRatio and (readRatio >= 1 and "good" or "warn") or nil},
+            {label = ZeD.tr("UI_ZeD_Card_Progress"), value = pagesRead and string.format("%d / %d", pagesRead, pages) or "-",
+             valueClass = readRatio and (readRatio >= 1 and "good" or (readRatio > 0 and "warn" or "dim")) or nil},
             {label = ZeD.tr("UI_ZeD_Card_Read"),     value = alreadyRead and getText("IGUI_Yes") or getText("IGUI_No"),
              valueClass = alreadyRead and "dim" or nil},
         },

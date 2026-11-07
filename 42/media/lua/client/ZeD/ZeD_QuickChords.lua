@@ -73,13 +73,58 @@ Q.DEFAULTS = {
 -- ---------------------------------------------------------------------------
 local FILE = "ZeD_chords.txt"
 local store = nil   -- chord -> { path = string|nil, words = { ... } }  (nil path = cleared)
+local unread = false   -- the file did not read: a save must not write this short list over it
+
+-- Lua has no rename and the game's writer cuts a file the moment it opens, so a save goes through a
+-- spare file: the text and a last line saying it is whole go there and are read back, then the real
+-- file is written and the spare emptied. A whole spare found on load is a save that did not finish; a
+-- disk that cannot hold the text stops at the spare, with the real file as it was.
+local SPARE = "ZeD_chords_spare.txt"
+local WHOLE = "-- whole"
+
+-- a file's lines (nil: no file, false: it did not read to its end)
+local function readAll(file)
+    local r = nil
+    pcall(function() r = getFileReader(file, false) end)
+    if not r then return nil end
+    local t = {}
+    local ok = pcall(function()
+        local l = r:readLine()
+        while l do t[#t + 1] = l; l = r:readLine() end
+    end)
+    pcall(function() r:close() end)
+    if not ok then return false end
+    return t
+end
+
+local function writeAll(file, text)
+    local w = nil
+    pcall(function() w = getFileWriter(file, true, false) end)
+    if not w then return false end
+    local ok = pcall(function() w:write(text) end)
+    pcall(function() w:close() end)
+    return ok
+end
+
+local function keepFile(text)
+    local n = 0
+    for _ in text:gmatch("\n") do n = n + 1 end
+    if not writeAll(SPARE, text .. WHOLE .. "\n") then return false end
+    local back = readAll(SPARE)
+    if not back or #back ~= n + 1 or back[n + 1] ~= WHOLE then return false end
+    if not writeAll(FILE, text) then return false end
+    local done = readAll(FILE)
+    if done and #done == n then writeAll(SPARE, "") end
+    return true
+end
 
 local function load()
     store = {}
-    local r = getFileReader(FILE, false)
-    if not r then return end
-    local line = r:readLine()
-    while line do
+    local lines = readAll(SPARE)
+    if lines and lines[#lines] == WHOLE then lines[#lines] = nil else lines = readAll(FILE) end
+    unread = lines == false
+    if not lines then return end
+    for _, line in ipairs(lines) do
         local chord, rest = line:match("^([LR]B%+[ABXYLR3]+)=(.*)$")
         if chord then
             local path, words = rest:match("^([^|]*)|?(.*)$")
@@ -87,20 +132,20 @@ local function load()
             for s in (words or ""):gmatch("[^\t]+") do w[#w + 1] = s end
             store[chord] = { path = (path and path ~= "") and path or nil, words = w }
         end
-        line = r:readLine()
     end
-    r:close()
 end
 
 local function save()
-    local w = getFileWriter(FILE, true, false)
-    if not w then return end
+    if unread then return end
+    -- (the whole text first: a Lua error on the way leaves the file as it was)
+    local buf = {}
+    local w = { write = function(_, s) buf[#buf + 1] = s end }
     w:write("ZeD-UI quick action chords: chord=wheel path|the wheel's words (an empty path is a chord cleared on purpose)\n")
     for _, c in ipairs(Q.CHORDS) do
         local s = store[c]
         if s then w:write(c .. "=" .. (s.path or "") .. "|" .. table.concat(s.words or {}, "\t") .. "\n") end
     end
-    w:close()
+    keepFile(table.concat(buf))
 end
 
 -- the chord's path (nil = nothing) and its words, for showing

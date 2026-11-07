@@ -23,8 +23,9 @@
 --   * else the copy load order would pick (the last mod that is on and ships it),
 --     so an undone pick changes nothing;
 --   * else a line that does nothing (no mod that is on ships the file).
--- The copies are rebuilt when the Mods screen opens and when picks change, so a
--- picked mod's update reaches its copy (the next reload runs it).
+-- The copies are rebuilt when the Mods screen opens, when picks change and on
+-- Accept, so a picked mod's update reaches its copy (the next reload runs it) and
+-- a mod switched off takes its picks out of the list that runs next.
 --
 -- The list: Zomboid/Lua/ZeD_picks.txt ("pick=<path>|<mod id>", "held=<path>").
 -- ============================================================================

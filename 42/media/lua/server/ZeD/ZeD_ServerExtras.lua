@@ -351,7 +351,9 @@ function F.towWatch(player, args)
     local c, car = F.carBlock(player, a), a
     if not c then c, car = F.carBlock(player, b), b end
     if not c then return end
-    a:breakConstraint(player, true, false)
+    -- (the two-argument call: it is the same call with no player, and the player one is 42.22 only. No player
+    -- also leaves a parked car with the server, not with the one being refused)
+    a:breakConstraint(true, false)
     F.refused(player, "tow", "vehicle", c.owner, a:getX(), a:getY(), F.carName(car))
 end
 

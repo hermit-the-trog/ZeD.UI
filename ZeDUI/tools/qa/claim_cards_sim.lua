@@ -297,7 +297,7 @@ ISAdminMessage = { AddAdminMessage = function() end }
 
 -- the files --------------------------------------------------------------------------------
 local LOADED = {}
-local STUBBED = { ["ZeD/ZeD_CharacterWindow"] = true, ["ZeD/ZeD_WorldWindow"] = true, ["ZeD/ZeD_TabPx"] = true, ["ZeD/ZeD_Messages"] = true }
+local STUBBED = { ["ZeD/ZeD_CharacterWindow"] = true, ["ZeD/ZeD_WorldWindow"] = true, ["ZeD/ZeD_TabPx"] = true, ["ZeD/ZeD_Messages"] = true, ["ZeD/SafeMode"] = true }
 function require(name)
     if LOADED[name] then return end
     LOADED[name] = true
@@ -331,6 +331,7 @@ ZeD.TM = {
 }
 ZeD.Scale = { root = function() return ZEDQA_ROOT or 1 end }
 ZeD.Help = { set = function(_, s) ZeD.Help.last = s end }
+ZeD.Safe = { on = function() return false end }   -- (SafeMode.lua is stubbed: no safe mode, every screen ZeD's)
 ZeD.Surface = nil
 ZeD.Focus = { mark = function(panel, x, y, w, h, f) ZEDQA_MARKS = (ZEDQA_MARKS or 0) + 1; return true end }
 ZeD.Messages = { ticket = function() end, ticketNew = function() end, invite = function(text) NOTES[#NOTES + 1] = text end }

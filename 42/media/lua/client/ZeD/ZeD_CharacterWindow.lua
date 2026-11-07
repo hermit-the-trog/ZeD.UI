@@ -501,7 +501,10 @@ local function mcToggleContainer(win, content, cIdx)
 
     -- Clicking the main (on-person) container: toggle its visibility
     if containers[cIdx].isMain then
-        if win._mainVisible then
+        -- (a bag viewed from another tab stays the list on Loot: main does not show then, so a
+        -- press shows it, as the World window's floor, and opens no other bag as a column)
+        local view = win._viewedContainer
+        if win._mainVisible and (view == nil or view == 1) then
             if #(win._mcSelected) > 0 then
                 -- MC active: just hide main
                 win._mainVisible = false
@@ -3423,7 +3426,8 @@ local function drawContainerStrip(self, win, content)
         -- Zone 1 is "on" when: main visible (loot MC), or inventory open showing main (non-loot)
         local mainVis
         if win._activeTab == "loot" then
-            mainVis = win._mainVisible
+            -- (lit means listed: a bag's view over main lights the bag alone)
+            mainVis = win._mainVisible and (win._viewedContainer == nil or win._viewedContainer == 1)
         else
             mainVis = win._invDrawerOpen and (win._viewedContainer == nil)
         end
@@ -3860,13 +3864,13 @@ function ZeD_CharacterWindow.toggle(playerNum)
     -- the game's own roll-up when not in use (ZeD_Window:_autoCollapse); the pin kept with the character
     win.autoCollapse = true
     pcall(function()
-        local md = getSpecificPlayer(0):getModData()
+        local md = getSpecificPlayer(playerNum):getModData()
         md.ZeD_WinPinned = md.ZeD_WinPinned or {}
         win.pinned = md.ZeD_WinPinned.char == true
     end)
     win.onPinChange = function(_, on)
         pcall(function()
-            local md = getSpecificPlayer(0):getModData()
+            local md = getSpecificPlayer(playerNum):getModData()
             md.ZeD_WinPinned = md.ZeD_WinPinned or {}
             md.ZeD_WinPinned.char = on
         end)
@@ -4746,7 +4750,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
             local evicted = false
             while perCol < minColW and #win._mcSelected > 0 do
                 table.remove(win._mcSelected, 1)
-                totalCols = #win._mcSelected + 1
+                totalCols = #win._mcSelected + (win._mainVisible and 1 or 0)   -- (a hidden main takes no column: one extra stays)
                 xferW = T.px(R.getXferW and R.getXferW(totalCols) or 32)
                 usable = invW - (totalCols - 1) * xferW
                 perCol = totalCols > 0 and (usable / totalCols) or invW
@@ -6953,6 +6957,17 @@ function ZeD_CharacterWindow._onKeyPressed(key)
     _vanillaInvKeyPressed(key)
 end
 Events.OnKeyPressed.Add(ZeD_CharacterWindow._onKeyPressed)
+
+-- A mod loaded after this file may hang its own wrap of the game's handler on the event, and the
+-- inventory key would flip the game's pages behind ZeD's windows. Every mod has loaded by now: that
+-- wrap comes off the same way and takes the pass-through above, so the mod's other keys still arrive.
+Events.OnGameStart.Add(function()
+    local cur = ISInventoryPage.onKeyPressed
+    if cur and cur ~= _vanillaInvKeyPressed then
+        Events.OnKeyPressed.Remove(cur)
+        _vanillaInvKeyPressed = cur
+    end
+end)
 
 -- Safe mode's hand-back (SafeMode.lua): both windows close, even one that broke
 -- halfway through opening, and the game's own inventory and loot pages show.

@@ -9,7 +9,8 @@
 -- if anything changed. The cards draw those tables and never touch a Java object in a frame.
 --
 -- The game's two invitation modals are taken off their events and an invitation waits in C.invites, as a note in the
--- Server tab. The game has no answer to most calls: C.expect watches for the change to arrive and reports if it does not.
+-- Server tab; while that tab is away (safe mode) ZeD calls the modals itself. The game has no answer to most calls:
+-- C.expect watches for the change to arrive and reports if it does not.
 -- ============================================================================
 
 require "ZeD/ZeD_TicketProto"
@@ -17,6 +18,7 @@ require "ZeD/ZeD_ClaimProto"
 require "ZeD/ZeD_ServerLink"
 require "ZeD/Tr"
 require "ZeD/ZeD_Messages"
+require "ZeD/SafeMode"
 require "ISUI/UserPanel/ISSafehouseUI"
 require "ISUI/UserPanel/ISFactionUI"
 
@@ -34,6 +36,8 @@ local INFO_SOON_MS = 6000     -- after a change, this soon (its limit is 5 s)
 local EXPECT_MS = 8000        -- the game gives no answer: past this, what was asked has not happened
 local SENT_MS = 300000        -- "invited, waiting" ends after this unless the server's list still holds the name: the game tells the host nothing of a no
 local INVITE_GRACE_MS = 6000  -- a note this new stays, whatever a c_info sent before it arrived says
+local CANCEL_GAP_MS = Cl.LIMITS.CANCEL_MS + 100   -- between two taken back (the margin: packets do not land evenly spaced)
+local CANCEL_TRIES = 3        -- a take-back the limit refused anyway goes again, this many times in all
 
 C.seq = C.seq or 0            -- bumps when anything below changes
 C.invites = C.invites or {}   -- invitations waiting: { kind = "safe" | "fac", key, obj, host, user, name, at }
@@ -43,11 +47,19 @@ C.info = C.info or {}         -- what the server part last said
 C.declined = C.declined or {} -- invitations answered this session, so a late c_info does not raise them again
 
 local waits = {}              -- what the game has been asked and has not shown yet
+local joining = nil           -- when a yes to a safehouse went, until it lands or is given up on
+local cancels = {}            -- invitations being taken back, oldest first; the first is the one on the wire
+local cancelAt = 0            -- when the first went
 local doneTick = 0
 
 local function now() return getTimestampMs() end
 local function tr(k, ...) return ZeD.tr(k, ...) end
 local function safe(fn, d) local ok, v = pcall(fn); if ok and v ~= nil then return v end; return d end
+
+-- a note is answered in the Server tab of ZeD's Character window. While that window is away (safe mode, or Windows given
+-- back in ZeD setup) the game's pop-ups answer instead. Asked each time: the option reads Off at load (SafeMode.lua), and
+-- a player or the watchdog can change it at any point in a session
+local function gamePopups() return ZeD.Safe.on("windows") end
 
 function C.bump() C.seq = C.seq + 1 end
 
@@ -109,7 +121,7 @@ function C.readSafe(p)
     local owner = h:getOwner()
     local mine = h:isOwner(p)
     return {
-        obj = h, id = h:getId(), title = h:getTitle() or "", owner = owner, x = h:getX(), y = h:getY(),
+        obj = h, id = Cl.houseKey(h), title = h:getTitle() or "", owner = owner, x = h:getX(), y = h:getY(),
         location = safe(function() return h:getLocation() end, nil),
         created = safe(function() return h:getDatetimeCreatedStr() end, nil),
         respawn = h:isRespawnInSafehouse(me), isOwner = mine, manage = mine or C.cap("CanSetupSafehouses"),
@@ -262,7 +274,9 @@ function C.tick()
         doneTick = t
         C.refresh()
         runWaits()
+        if #C.invites > 0 and gamePopups() then C.handBack() end
     end
+    C.cancelTurn(t)
     if S.available() and (not C.infoAt or t - C.infoAt >= (C.infoEvery or INFO_MS)) then C.ask() end
 end
 
@@ -306,7 +320,7 @@ end
 -- what identifies an invitation: the safehouse or the faction. The event's host is a client's word (the game tests only
 -- that it is not empty), and staff can send for an owner, so one house gives one note whoever sent it
 function C.inviteKey(kind, obj)
-    if kind == "safe" then return "safe|" .. tostring(obj:getId()) end
+    if kind == "safe" then return "safe|" .. tostring(Cl.houseKey(obj)) end
     return "fac|" .. tostring(obj:getName())
 end
 
@@ -314,7 +328,7 @@ function C.findHouse(id)
     local all = SafeHouse.getSafehouseList()
     for n = 0, all:size() - 1 do
         local h = all:get(n)
-        if h:getId() == id then return h end
+        if Cl.houseKey(h) == id then return h end
     end
     return nil
 end
@@ -340,6 +354,8 @@ end
 
 -- an invitation the server still holds and this client has no note of (it joined after it was sent)
 function C.recover(e)
+    -- (no note while the tab is away: nothing shows it, and the game's pop-up may already hold this one)
+    if gamePopups() then return end
     local obj
     if e.kind == "safe" then obj = C.findHouse(e.key)
     elseif e.kind == "fac" then obj = Faction.getFaction(e.key) end
@@ -358,12 +374,25 @@ S.on(Cl.MOD, function(command, args)
 end)
 
 -- ---------------------------------------------------------------------------
--- INVITATIONS: a note in the Server tab, never the game's modal
+-- INVITATIONS: a note in the Server tab; the game's modal only while that tab is away
 -- ---------------------------------------------------------------------------
+-- the game's pop-up for this one is still up (the option turned back while it showed): a note beside it would be a second
+-- way to answer, and a second answer to a safehouse is the kick C.answer guards against
+local function popupHolds(kind, obj)
+    local ui = (kind == "safe") and ISSafehouseUI or ISFactionUI
+    local key = C.inviteKey(kind, obj)
+    for _, d in pairs(ui and ui.inviteDialogs or {}) do
+        local held = d.safehouse or d.faction
+        if held and C.inviteKey(kind, held) == key and safe(function() return d:isReallyVisible() end, false) then return true end
+    end
+    return false
+end
+
 function C.addInvite(kind, obj, user)
     for _, i in ipairs(C.invites) do
         if i.obj == obj then i.user = user; return i end
     end
+    if popupHolds(kind, obj) then return nil end
     -- (the owner and the name from the object, cut: both can be any length of a client's text)
     local host = Tk.name(obj:getOwner())
     local name = (kind == "safe") and obj:getTitle() or obj:getName()
@@ -394,22 +423,44 @@ function C.onFactionInvite(f, host, username)
     C.addInvite("fac", f, username)
 end
 
+-- the game's accept packet goes through its safehouse anti-cheat, which tests "already has a safehouse" and never reads the
+-- answer: a yes or a no landing after a yes has landed is a kick at the default setting (SafehouseAcceptPacket,
+-- AntiCheatSafeHouseNotMember). The note goes only when the client hears, so the gap is a press away. A faction has no such test
+local function houseAnswerClosed()
+    if joining and now() - joining < EXPECT_MS then return true end
+    local p = getPlayer()
+    return not p or SafeHouse.hasSafehouse(p) ~= nil
+end
+
 function C.answer(inv, yes, done)
+    local closed = inv.kind == "safe" and houseAnswerClosed()
+    -- (a yes keeps its note: if the first fails, this one still stands)
+    if closed and yes then
+        if done then done(false) end
+        return
+    end
     local list = {}
     for _, i in ipairs(C.invites) do
         if i ~= inv then list[#list + 1] = i end
     end
     C.invites = list
     C.declined[inv.key] = true
-    if inv.kind == "safe" then acceptSafehouseInvite(inv.obj, inv.host, inv.user, yes == true)
-    else acceptFactionInvite(inv.obj, inv.host, inv.user, yes == true) end
+    -- (a no that cannot go ends here: the note goes, and one left on the server's list harms nothing)
+    if not closed then
+        if inv.kind == "safe" then acceptSafehouseInvite(inv.obj, inv.host, inv.user, yes == true)
+        else acceptFactionInvite(inv.obj, inv.host, inv.user, yes == true) end
+    end
     C.bump()
     if yes then
+        if inv.kind == "safe" then joining = now() end
         C.expect(function()
             local p = getPlayer()
             if inv.kind == "safe" then return SafeHouse.hasSafehouse(p) ~= nil end
             return Faction.getPlayerFaction(p) ~= nil
-        end, function(ok) if done then done(ok) end end)
+        end, function(ok)
+            if inv.kind == "safe" then joining = nil end
+            if done then done(ok) end
+        end)
     elseif done then
         done(true)
     end
@@ -501,17 +552,43 @@ function C.invite(kind, who)
     C.askSoon()
 end
 
--- an invitation back: only the server holds the list (the game has no call)
-function C.cancelInvite(kind, who, done)
-    C.ackRid = (C.ackRid or 0) + 1
-    C.ackFn = function(a)
-        if a.ok ~= false or a.err == "gone" then
-            C.sent[kind][who] = nil
-            C.bump()
-        end
-        if done then done(a) end
+local function cancelled(c, a)
+    if a.err == "wait" and c.tries < CANCEL_TRIES then return end   -- (it stays first and goes again)
+    table.remove(cancels, 1)
+    if a.ok ~= false or a.err == "gone" then
+        C.sent[c.kind][c.who] = nil
+        C.bump()
     end
-    S.send(Cl.MOD, "c_cancel", { kind = kind, who = who, rid = C.ackRid })
+    if c.done then c.done(a) end
+end
+
+function C.cancelTurn(t)
+    local c = cancels[1]
+    if not c then return end
+    if C.ackFn then
+        -- (the answer never came: said so, and the next one is not held up by it)
+        if t - cancelAt >= EXPECT_MS then
+            C.ackFn = nil
+            cancelled(c, { ok = false, err = "lost" })
+        end
+        return
+    end
+    if t - cancelAt < CANCEL_GAP_MS then return end
+    C.ackRid = (C.ackRid or 0) + 1
+    c.tries = c.tries + 1
+    cancelAt = t
+    C.ackFn = function(a) cancelled(c, a) end
+    S.send(Cl.MOD, "c_cancel", { kind = c.kind, who = c.who, rid = C.ackRid })
+end
+
+-- an invitation back: only the server holds the list (the game has no call). It takes one a second from a player and one
+-- answer is listened for at a time, and presses come faster than that: they go in turn, so each gets its own answer
+function C.cancelInvite(kind, who, done)
+    for _, c in ipairs(cancels) do
+        if c.kind == kind and c.who == who then return end
+    end
+    cancels[#cancels + 1] = { kind = kind, who = who, done = done, tries = 0 }
+    C.cancelTurn(now())
 end
 
 function C.changeOwner(kind, who, done)
@@ -567,7 +644,8 @@ end
 
 -- sendFactionChangeTag reads the tag and color off the object as it sends (ISCreateFactionTagUI sets them first). They go
 -- back straight after: a tag the server takes comes to every client in a FactionSync, this one too, so the object here only
--- ever holds what the server does and C.expect proves something
+-- ever holds what the server does and C.expect proves something. (A color alone resends the tag the faction already holds,
+-- and FactionChangeTagPacket.isConsistent takes that only from the owner's connection, whatever the role.)
 function C.setTag(tag, done)
     local f = C.fac
     local was = f.obj:getTag()
@@ -660,9 +738,32 @@ end
 -- ---------------------------------------------------------------------------
 local function refreshSoon() C.dirty = true end
 
--- if ZeD's note fails, the game's modal runs, so an invitation is never lost
+local gameInvite = {
+    safe = ISSafehouseUI and ISSafehouseUI.ReceiveSafehouseInvite,
+    fac = ISFactionUI and ISFactionUI.ReceiveFactionInvite,
+}
+
+-- the Server tab has gone with notes still waiting: each goes to the game's modal, once. One left unanswered there is
+-- still on the server's list, so it comes back as a note when the tab does
+function C.handBack()
+    local list = C.invites
+    C.invites = {}
+    for _, i in ipairs(list) do
+        local game = gameInvite[i.kind]
+        local ok, err = pcall(function() if game then game(i.obj, i.host, i.user) end end)
+        if not ok then ZeD.logOnce("claims invite", err) end
+    end
+    C.bump()
+end
+
+-- if ZeD's note fails, the game's modal runs, so an invitation is never lost. The game's handlers stay off the event in
+-- safe mode too, and run from here: the event can then only raise one or the other, whichever way the option turns
 local function guarded(fn, game)
     return function(...)
+        if gamePopups() then
+            if game then game(...) end
+            return
+        end
         local ok, err = pcall(fn, ...)
         if not ok then
             ZeD.logOnce("claims invite", err)
@@ -673,14 +774,10 @@ end
 
 if not C.hooked then
     C.hooked = true
-    if ISSafehouseUI and ISSafehouseUI.ReceiveSafehouseInvite then
-        Events.ReceiveSafehouseInvite.Remove(ISSafehouseUI.ReceiveSafehouseInvite)
-    end
-    if ISFactionUI and ISFactionUI.ReceiveFactionInvite then
-        Events.ReceiveFactionInvite.Remove(ISFactionUI.ReceiveFactionInvite)
-    end
-    Events.ReceiveSafehouseInvite.Add(guarded(function(...) C.onSafeInvite(...) end, ISSafehouseUI and ISSafehouseUI.ReceiveSafehouseInvite))
-    Events.ReceiveFactionInvite.Add(guarded(function(...) C.onFactionInvite(...) end, ISFactionUI and ISFactionUI.ReceiveFactionInvite))
+    if gameInvite.safe then Events.ReceiveSafehouseInvite.Remove(gameInvite.safe) end
+    if gameInvite.fac then Events.ReceiveFactionInvite.Remove(gameInvite.fac) end
+    Events.ReceiveSafehouseInvite.Add(guarded(function(...) C.onSafeInvite(...) end, gameInvite.safe))
+    Events.ReceiveFactionInvite.Add(guarded(function(...) C.onFactionInvite(...) end, gameInvite.fac))
     Events.OnSafehousesChanged.Add(refreshSoon)
     Events.SyncFaction.Add(refreshSoon)
     Events.AcceptedSafehouseInvite.Add(refreshSoon)

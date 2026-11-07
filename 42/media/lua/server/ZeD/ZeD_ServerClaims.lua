@@ -86,7 +86,7 @@ local function waiting(p)
     end
     if not safeOf(p) then
         each(SafeHouse.getSafehouseList(), function(h)
-            if holds(h) then add("safe", h:getId(), h:getTitle(), h:getOwner()) end
+            if holds(h) then add("safe", Cl.houseKey(h), h:getTitle(), h:getOwner()) end
         end)
     end
     if not factionOf(p) then
@@ -181,7 +181,7 @@ local function readSafe()
     local out = {}
     each(SafeHouse.getSafehouseList(), function(h)
         local owner = h:getOwner()
-        out[h:getId()] = { owner = owner, title = h:getTitle(), x = h:getX(), y = h:getY(), members = membersOf(h:getPlayers(), owner) }
+        out[Cl.houseKey(h)] = { owner = owner, title = h:getTitle(), x = h:getX(), y = h:getY(), members = membersOf(h:getPlayers(), owner) }
     end)
     return out
 end

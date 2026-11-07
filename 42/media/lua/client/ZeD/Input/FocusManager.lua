@@ -214,9 +214,9 @@ local function _maybeIgnoreAim()
     local mode = ZeD.Input.Detector and ZeD.Input.Detector.getMode
                  and ZeD.Input.Detector.getMode()
     if mode ~= "gamepad" then return end
-    local jd = getJoypadData and getJoypadData(0)
-    if jd and jd.setJoypadIgnoreAimUntilCentered then
-        pcall(function() jd:setJoypadIgnoreAimUntilCentered(true) end)
+    -- (the setter is the game's global, by player number; getJoypadData is a plain Lua table without it)
+    if setJoypadIgnoreAimUntilCentered and getSpecificPlayer(0) then
+        pcall(setJoypadIgnoreAimUntilCentered, 0, true)
     end
 end
 

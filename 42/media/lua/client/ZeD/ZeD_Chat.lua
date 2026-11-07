@@ -456,6 +456,14 @@ local SEND = {
     general = function(t) processGeneralMessage(t) end,
     admin = function(t) processAdminChatMessage(t) end,
 }
+-- typed as commands, but the server hands the answer to every player as a line authored "Server", so the receiving side's
+-- mute, which goes by author, cannot catch it (GameServer.receiveReceiveCommand tests these two prefixes as typed;
+-- "/cardHello there" comes back to everyone as "Unknown command cardHello there"). The other commands an ordinary player
+-- can run answer the sender alone, /r and /radio among them: they only name a channel for checkPlayerCanUseChat.
+local function toldToAll(text)
+    local head = text:sub(1, 5)
+    return head == "/roll" or head == "/card"
+end
 
 -- seconds left of the server's slow mode (0: you may send)
 function C.slowLeft()
@@ -469,16 +477,19 @@ function C.send(text)
     local p = getPlayer()
     if not p then return false end
     local cap = function(name) return safe(function() return p:getRole():hasCapability(Capability[name]) end, false) end
-    -- (a slash command still goes: it may be staff's, and the mute is about chat)
-    if ZeD.Admin and ZeD.Admin.isMuted and ZeD.Admin.isMuted(p:getUsername()) and tostring(text or ""):sub(1, 1) ~= "/" then return false, "muted" end
-    if not cap("IgnoreChatSlowMode") and C.slowLeft() > 0 then return false, "slow" end
-    if not cap("EmptyLinesInChat") then text = tostring(text or ""):gsub("[\n\r]", " ") end
-    if not text or text:gsub("%s", "") == "" then return false end
+    -- (the strip comes before the parse: a pasted newline is what makes "/s\nhi" into "/s hi")
+    text = tostring(text or "")
+    if not cap("EmptyLinesInChat") then text = text:gsub("[\n\r]", " ") end
     local stream, body = nil, text
     for _, s in ipairs(STREAMS) do
         local cmd = (text:sub(1, #s[1]) == s[1] and s[1]) or (s[2] and text:sub(1, #s[2]) == s[2] and s[2]) or nil
         if cmd then stream, body = s[3], text:sub(#cmd + 1); break end
     end
+    -- (the mute is about chat: any other slash command still goes, it may be staff's)
+    local isChat = stream or text:sub(1, 1) ~= "/" or toldToAll(text)
+    if isChat and ZeD.Admin and ZeD.Admin.isMuted and ZeD.Admin.isMuted(p:getUsername()) then return false, "muted" end
+    if not cap("IgnoreChatSlowMode") and C.slowLeft() > 0 then return false, "slow" end
+    if text:gsub("%s", "") == "" then return false end
     if not stream then
         if text:sub(1, 1) == "/" then
             -- any other command goes to the server as typed (the game's /help, an admin's commands)
@@ -587,6 +598,7 @@ function ZeD_ChatWindow:_wrapped(w)
     local f = T.fontF2
     local lh = ZeD.TM:getFontHeight(f) + px(U.LINE_GAP)
     local found = false
+    self._actAt = nil
     for _, ln in ipairs(C.lines) do
         if tab.kinds[ln.kind] then
             local head = ln.author and (ln.author .. ": ") or ""
@@ -608,6 +620,7 @@ function ZeD_ChatWindow:_wrapped(w)
                 local h = C.flowActions(self._acts, w)
                 local rows = math.ceil(h / lh)
                 self._actRows = rows
+                self._actAt = #out + 1
                 for i = 1, rows do out[#out + 1] = { s = "", ln = ln, first = false, headW = 0, head = "", acts = i == 1 } end
             end
         end
@@ -740,7 +753,9 @@ function ZeD_ChatWindow:_drawLines(x, y, w, h)
     local Fo = ZeD.Input and ZeD.Input.Focus
     if Fo and Fo.cuesVisible and Fo.cuesVisible() then mx, my = nil, nil end
     local me = safe(function() return getPlayer():getUsername() end, nil)
-    local actY = nil
+    -- (from the row's place, not from reaching it: the loop stops at the top edge, and the buttons' first row can be over it
+    -- with the rest in view)
+    local actY = self._actAt and (by - (#rows - self._actAt) * lh) or nil
     for i = #rows, 1, -1 do
         local ry = by - (#rows - i) * lh
         if ry + lh < y then break end
@@ -760,7 +775,6 @@ function ZeD_ChatWindow:_drawLines(x, y, w, h)
                 onF = ZeD.Focus.mark(self, x, ry, w, lh, { win = self, focused = true, pad = true }) and true or false
             end
             if onF then c = T.textOnFocus end
-            if r.acts then actY = ry end
             if can and not r.acts and r.s ~= "" then self._rowHits[#self._rowHits + 1] = { y = ry, h = lh, ln = r.ln } end
             if r.first and r.headW > 0 then
                 local nc = onF and T.textOnFocus or C.nameInk(r.ln.author) or hd
@@ -771,7 +785,9 @@ function ZeD_ChatWindow:_drawLines(x, y, w, h)
             end
         end
     end
-    if actY and self._acts then self:_drawActions(x, actY, y, h, mx, my) end
+    if actY and self._acts and actY <= y + h and actY + (self._actRows or 1) * lh >= y then
+        self:_drawActions(x, actY, y, h, mx, my)
+    end
     self:clearStencilRect()
     -- (scrolled up: a mark at the foot that newer lines are below)
     if self.scroll > 0 then

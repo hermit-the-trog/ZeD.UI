@@ -142,7 +142,9 @@ local function newVehicle(id, sql, x, y, script)
     end
     -- breakConstraint(IsoPlayer, boolean, boolean) and (boolean, boolean): nothing else
     function v.breakConstraint(self, a, b, c)
-        if type(b) ~= "boolean" or type(c) ~= "boolean" then error("No implementation found: breakConstraint") end
+        local twoArg = c == nil and type(a) == "boolean" and type(b) == "boolean"
+        local threeArg = type(b) == "boolean" and type(c) == "boolean"
+        if not (twoArg or threeArg) then error("No implementation found: breakConstraint") end
         self.broke = self.broke + 1
         self.towed = nil
     end

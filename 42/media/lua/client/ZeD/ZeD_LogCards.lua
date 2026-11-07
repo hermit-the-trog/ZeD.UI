@@ -129,6 +129,9 @@ end
 
 -- the words after the tag: the first line beside it, the rest under it
 function P.wrapAfter(text, font, w1, w2)
+    -- (the wrap keeps one space between words: the rest is cut from the same words, or a double space repeats the line's end)
+    text = string.gsub(text, "[ \t]+", " ")
+    if string.sub(text, 1, 1) == " " then text = string.sub(text, 2) end
     local first = D.wrap(text, font, math.max(1, w1))
     if #first <= 1 then return first end
     local head = first[1]

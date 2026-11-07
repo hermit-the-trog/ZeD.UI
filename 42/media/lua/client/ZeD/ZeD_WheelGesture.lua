@@ -126,9 +126,10 @@ function G.begin(pn, st, menu)
     st.held = (mode == "hold")
     st.openedAt = getTimestampMs()
     st.lastActive = st.openedAt
-    -- a stick already over (aiming when the D-pad was tapped) has to come back first. With Hold the
-    -- wheel is today's: the stick can be out before the wheel is up.
-    st.needCenter = not st.held
+    -- a stick already over (aiming when the D-pad was tapped) has to come back first. Hold with Flick-release
+    -- too: a slice lit on the first frame would fire as that stick went home, with nobody choosing it. Hold with
+    -- Stick click is today's: the stick can be out before the wheel is up.
+    st.needCenter = (not st.held) or commit == "flick"
     st.restSince = 0       -- (no flick to spring back from yet: a stick under engage at the open is already home)
     local jd = JoypadState.players[pn + 1]
     if jd then

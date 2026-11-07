@@ -1212,7 +1212,7 @@ card). Module `ZeDA`; every answer comes back as `t_ack`. The table is `ZeD_AD_`
 2. **E7 as settled, with one edge.** Timed bans are ZeD's, permanent ones the game's. Server Lua sees no IP (`UdpConnection.getIP` is
    not reachable) and `IsoPlayer.getSteamID` is a long past what a Lua number holds, so a client names its own Steam ID in `a_hi`. A
    timed ban on a Steam ID is client-claimed, like the rest of a timed ban, but the claim is checked: `IsoPlayer.getSteamID` read as
-   a Lua number is the real ID to within `SID_ROUND`, so a client can't name someone else's, and a server without Steam takes none.
+   a Lua number must equal the claim read the same way, which narrows a client to the few IDs sharing that double, and a server without Steam takes none.
    A timed ban on an IP is refused (`TIMED_IP`, below). A ban row can gain the game's ban (`a_gameban`) when a client stayed, and that
    comes off when the timed ban ends.
 3. **Mute.** The game's mute is voice only (`/voiceban`, `BanUnbanUser`). `IsoPlayer.setAllChatMuted` is set by the words filter and

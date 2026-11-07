@@ -474,6 +474,15 @@ function ZeD_MessagesWindow:render() ZeD_Window.render(self) end
 -- ---------------------------------------------------------------------------
 -- ACTIONS
 -- ---------------------------------------------------------------------------
+-- a note's Open goes to a card in a window. Under a controller the pad goes with it, as from chat's buttons, and Messages
+-- closes; with the mouse Messages stays open beside it
+local function openThere(self, mod, open)
+    local pad = self.joyfocus ~= nil
+    if pad then self:close() end
+    open()
+    if pad and ZeD.Chat and ZeD.Chat.padTo then ZeD.Chat.padTo(mod) end
+end
+
 function ZeD_MessagesWindow:pressCard(b)
     if not b then return end
     sound("UIActivateButton")
@@ -484,18 +493,24 @@ function ZeD_MessagesWindow:pressCard(b)
         return
     end
     if b.ticket then
-        if ZeD.Tickets and ZeD.Tickets.openNote then ZeD.Tickets.openNote(b.card.it) end
+        openThere(self, ZeD_CharacterWindow, function()
+            if ZeD.Tickets and ZeD.Tickets.openNote then ZeD.Tickets.openNote(b.card.it) end
+        end)
         return
     end
     if b.bans then
-        if ZeD.AdminCards and ZeD.AdminCards.openNote then ZeD.AdminCards.openNote(b.card.it) end
+        openThere(self, ZeD_WorldWindow, function()
+            if ZeD.AdminCards and ZeD.AdminCards.openNote then ZeD.AdminCards.openNote(b.card.it) end
+        end)
         return
     end
     if b.invite then
-        if ZeD_CharacterWindow and ZeD_CharacterWindow.openTab then ZeD_CharacterWindow.openTab(0, "server") end
-        -- (the notes draw in the tab's list: a card left open there would hide them)
-        if ZeD.Claims then ZeD.Claims.openNext = "invite" end
-        b.card.it.read = true
+        openThere(self, ZeD_CharacterWindow, function()
+            if ZeD_CharacterWindow and ZeD_CharacterWindow.openTab then ZeD_CharacterWindow.openTab(0, "server") end
+            -- (the notes draw in the tab's list: a card left open there would hide them)
+            if ZeD.Claims then ZeD.Claims.openNext = "invite" end
+            b.card.it.read = true
+        end)
         return
     end
     MS.press(b.card.it, b.i)

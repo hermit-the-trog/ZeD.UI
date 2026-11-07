@@ -7,7 +7,12 @@
 -- No external mod dependencies — uses vanilla PZ events only.
 --
 -- Event flow:
---   Weapon kill: OnWeaponHitCharacter → OnZombieDead → OnWeaponHitXp
+--   Weapon kill: OnHitZombie → OnZombieDead. OnHitZombie runs at the top of the
+--                game's Hit on single player and on a multiplayer client alike.
+--                Alone, the game kills inside that same Hit; on a client the death
+--                arrives from the server a moment later (a local server runs no
+--                client Lua and has no player 0, so it counts nothing here).
+--                OnWeaponHitXp is no use: it fires per hit, and never on a client.
 --   Fire kill:   OnZombieDead fires twice within 20s for same zombie
 --   Vehicle kill: OnZombieDead + zombie on ground + target in vehicle
 -- ============================================================================
@@ -26,9 +31,9 @@ local CLEANUP_EVERY   = 300    -- clean stale entries every 300 frames (~5s at 6
 -- TRANSIENT STATE (not saved — rebuilt each session)
 -- ============================================================================
 
-local hitLog    = {}  -- zombie str → {category, timestamp, isExplosion}
-local deadLog   = {}  -- zombie str → first OnZombieDead timestamp
-local carLog    = {}  -- zombie str → timestamp (pending vehicle kill)
+local hitLog    = {}  -- zombie key → {category, ts, isExplosion, counted}
+local deadLog   = {}  -- zombie key → first OnZombieDead timestamp
+local carLog    = {}  -- zombie key → timestamp (pending vehicle kill)
 local frameCount = 0
 
 -- ============================================================================
@@ -44,25 +49,48 @@ local function isLocalPlayer(char)
     return p and p == char
 end
 
+-- One zombie's key across its hits and its death. Not tostring alone: that string
+-- carries the Crawling and CanWalk flags, which a hit can change.
+local function zombieKey(zombie)
+    return zombie.getID and zombie:getID() or tostring(zombie)
+end
+
+-- WeaponCategory constant -> the name kept in ZeD_Kills.weapon (JournalTab reads these keys).
+-- The script item's getWeaponCategories() is an unordered Set, so each one is asked about in turn.
+-- Improvised stays out, as it always has: it says nothing about the skill. In the game's own
+-- items it only ever comes with one other category, so this order decides nothing there; a
+-- modded weapon in two lands in the first, in the order vanilla's XP code asks.
+local WEAPON_CATS = {
+    { java = "AXE",         key = "Axe" },
+    { java = "BLUNT",       key = "Blunt" },
+    { java = "SPEAR",       key = "Spear" },
+    { java = "LONG_BLADE",  key = "LongBlade" },
+    { java = "SMALL_BLADE", key = "SmallBlade" },
+    { java = "SMALL_BLUNT", key = "SmallBlunt" },
+    { java = "UNARMED",     key = "Unarmed" },
+}
+
 --- Get weapon category from a HandWeapon.
--- Checks getCategories() first (skips "Improvised"), falls back to
--- getSubCategory() for firearms, then special-cases BareHands.
+-- Special-cases BareHands, asks the script item as vanilla's XP code does, then falls
+-- back to getSubCategory() for firearms. A build without one of these names lands on
+-- the fallback instead of raising an error on every hit.
 local function getWeaponCategory(weapon)
     if not weapon then return "Other" end
 
     local wtype = weapon:getType()
     if wtype == "BareHands" then return "Unarmed" end
 
-    local cats = weapon:getCategories()
-    if cats then
-        for i = 0, cats:size() - 1 do
-            local cat = cats:get(i)
-            if cat ~= "Improvised" then return cat end
+    local script = weapon.getScriptItem and weapon:getScriptItem()
+    if WeaponCategory and script and script.containsWeaponCategory then
+        for _, def in ipairs(WEAPON_CATS) do
+            local cat = WeaponCategory[def.java]
+            if cat and script:containsWeaponCategory(cat) then return def.key end
         end
     end
 
-    local sub = weapon:getSubCategory()
-    if sub and sub ~= "" then return sub end
+    -- (only names the journal shows: Swinging and Stab would hide an Improvised-only kill)
+    local sub = weapon.getSubCategory and weapon:getSubCategory()
+    if sub == "Firearm" or sub == "Spear" then return sub end
 
     return "Other"
 end
@@ -84,6 +112,17 @@ local function getKillData(playerObj)
     return md.ZeD_Kills
 end
 
+--- Add a logged hit to the tally, or take it back off (delta -1).
+local function tally(kd, hit, delta)
+    if hit.isExplosion then
+        kd.explosion = math.max(0, kd.explosion + delta)
+    else
+        local cat = hit.category or "Other"
+        local n = (kd.weapon[cat] or 0) + delta
+        kd.weapon[cat] = n > 0 and n or nil
+    end
+end
+
 --- Remove entries older than STALE_TIMEOUT from a timestamp table.
 local function clearStale(tbl)
     local t = now()
@@ -101,17 +140,16 @@ local function clearStale(tbl)
 end
 
 -- ============================================================================
--- EVENT: OnWeaponHitCharacter
+-- EVENT: OnHitZombie
 -- Fires on every weapon hit (killing or not). We log the hit so that when
--- OnZombieDead + OnWeaponHitXp confirm the kill, we know the weapon category.
+-- OnZombieDead confirms the kill, we know the weapon category.
 -- ============================================================================
 
-local function onWeaponHitCharacter(wielder, victim, weapon, damage)
+local function onHitZombie(victim, wielder, bodyPart, weapon)
     if not wielder or not victim then return end
-    if not instanceof(victim, "IsoZombie") then return end
     if not isLocalPlayer(wielder) then return end
 
-    local key = tostring(victim)
+    local key = zombieKey(victim)
     local cat = getWeaponCategory(weapon)
     local explosive = weapon and weapon.isInstantExplosion and weapon:isInstantExplosion() or false
 
@@ -125,7 +163,8 @@ end
 -- ============================================================================
 -- EVENT: OnZombieDead
 -- Fires when a zombie dies. May fire twice for fire kills (within 20s).
--- Also detects vehicle kills via action state + target checks.
+-- The player's last hit, if recent, names the weapon. Also detects vehicle
+-- kills via action state + target checks.
 -- ============================================================================
 
 local function onZombieDead(zombie)
@@ -133,9 +172,10 @@ local function onZombieDead(zombie)
     local player = getSpecificPlayer(0)
     if not player then return end
 
-    local key = tostring(zombie)
+    local key = zombieKey(zombie)
     local t   = now()
     local kd  = getKillData(player)
+    local hit = hitLog[key]
 
     -- Check for double-fire (fire kill): same zombie died twice within 20s
     if deadLog[key] and (t - deadLog[key]) < STALE_TIMEOUT then
@@ -146,12 +186,26 @@ local function onZombieDead(zombie)
             kd.vehicle = math.max(0, kd.vehicle - 1)
             carLog[key] = nil
         end
+        -- Likewise a weapon credited at the first death: one zombie counts once
+        if hit and hit.counted then tally(kd, hit, -1) end
+        hitLog[key] = nil
         deadLog[key] = nil
         return
     end
 
     -- First death for this zombie — store timestamp for fire detection
     deadLog[key] = t
+
+    -- Weapon kill: a recent hit of ours, unless the game names someone else as
+    -- the killer (another player's blow, on a server). No such call: no veto.
+    if hit and not hit.counted and (t - hit.ts) < STALE_TIMEOUT then
+        local killer = zombie.getAttackedBy and zombie:getAttackedBy()
+        if not killer or killer == player then
+            tally(kd, hit, 1)
+            hit.counted = true   -- kept until stale, for the fire rollback above
+            return
+        end
+    end
 
     -- Check vehicle kill: zombie on ground + target is player in vehicle
     if zombie.getActionStateName and zombie:getActionStateName() == "onground" then
@@ -164,46 +218,6 @@ local function onZombieDead(zombie)
             end
         end
     end
-end
-
--- ============================================================================
--- EVENT: OnWeaponHitXp
--- Fires when XP is awarded for a weapon kill — confirms the kill was by weapon.
--- This is the authoritative "weapon kill" signal.
--- ============================================================================
-
-local function onWeaponHitXp(wielder, weapon, victim, damage)
-    if not wielder or not victim then return end
-    if not instanceof(victim, "IsoZombie") then return end
-    if not isLocalPlayer(wielder) then return end
-
-    local player = wielder
-    local key = tostring(victim)
-    local kd  = getKillData(player)
-    local hit = hitLog[key]
-
-    -- Rollback vehicle kill if this was actually a weapon kill
-    if carLog[key] then
-        kd.vehicle = math.max(0, kd.vehicle - 1)
-        carLog[key] = nil
-    end
-
-    if hit then
-        if hit.isExplosion then
-            kd.explosion = kd.explosion + 1
-        else
-            local cat = hit.category or "Other"
-            kd.weapon[cat] = (kd.weapon[cat] or 0) + 1
-        end
-        hitLog[key] = nil
-    else
-        -- No hit log (edge case) — use weapon directly
-        local cat = getWeaponCategory(weapon)
-        kd.weapon[cat] = (kd.weapon[cat] or 0) + 1
-    end
-
-    -- Clear dead log since this kill is accounted for
-    deadLog[key] = nil
 end
 
 -- ============================================================================
@@ -225,9 +239,8 @@ end
 -- ============================================================================
 
 local function onGameStart()
-    Events.OnWeaponHitCharacter.Add(onWeaponHitCharacter)
+    Events.OnHitZombie.Add(onHitZombie)
     Events.OnZombieDead.Add(onZombieDead)
-    Events.OnWeaponHitXp.Add(onWeaponHitXp)
     Events.OnTick.Add(onTick)
 end
 

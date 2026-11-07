@@ -45,7 +45,7 @@ Tk.REPORT_AROUND = 5
 Tk.LIMITS = {
     GENERAL_N = 10, GENERAL_MS = 5000,          -- commands in any 5 s, per username; past that dropped with no reply
     HELLO_MS = 5000,
-    NEW_MS = 60000,                             -- starts at an accepted ticket
+    NEW_MS = 60000,                             -- starts at an accepted ticket or a forged refusal
     MINE_MS = 5000,
     REPLY_MS = 10000,
     QUEUE_MS = 1000,
