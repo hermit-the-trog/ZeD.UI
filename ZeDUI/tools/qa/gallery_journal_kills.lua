@@ -105,6 +105,7 @@ local function seed()
             Spear = 11, Firearm = 52, Unarmed = 6, Other = 3,
         },
         fire = 4, vehicle = 6, explosion = 2,
+        v = 2,   -- KillTracker's KILLS_VERSION: keeps its one-time fix off the seed
     }
     local sum = 0
     for _, n in pairs(kills.weapon) do sum = sum + n end

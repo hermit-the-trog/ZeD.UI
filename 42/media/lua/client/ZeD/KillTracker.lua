@@ -35,6 +35,7 @@ ZeD.KillTracker = {}
 local STALE_TIMEOUT   = 20000  -- 20s max memory for hit/death tracking
 local CLEANUP_EVERY   = 300    -- clean stale entries every 300 frames (~5s at 60fps)
 local BOMB_HOLD       = 250    -- ms a bomb's hit outranks a plain hit on the same zombie
+local KILLS_VERSION   = 2      -- ZeD_Kills.v: 2 = old explosion counts moved to Other
 
 -- ============================================================================
 -- TRANSIENT STATE (not saved — rebuilt each session)
@@ -115,12 +116,31 @@ local function isRealExplosive(weapon)
     return power > 0 or range > 0
 end
 
---- True while the zombie burns. A fire death always starts on a burning zombie,
--- so only a burning zombie's death can be the first of a fire kill's two.
--- A build without the call keeps the old behavior (every death may be the first).
-local function isBurning(zombie)
-    if not zombie.isOnFire then return true end
-    return zombie:isOnFire() == true
+--- True when this death can be the first of a fire kill's two.
+-- A fire kill's first death always comes from the burn itself (the game's
+-- ReduceHealthWhenBurning). That runs only while the zombie is on fire, and it
+-- clears the zombie's attacker on every tick just before it checks for death.
+-- A weapon, bomb or car kill reaches OnZombieDead with the attacker still set
+-- (the game's Kill sets it first), even when the zombie was burning.
+-- A build without one of the calls skips that test (old behavior).
+local function mayBeFireDeath(zombie)
+    if zombie.isOnFire and not zombie:isOnFire() then return false end
+    if zombie.getAttackedBy and zombie:getAttackedBy() ~= nil then return false end
+    return true
+end
+
+--- One-time fix for kill tables saved before KILLS_VERSION.
+-- The old explosion test passed any weapon with no timer, sensor or remote, so
+-- nearly every weapon kill went under explosion. The real weapon cannot be told
+-- now, so those kills move to Other; the Journal's rows still add up the same.
+local function migrateKillData(kd)
+    if kd.v == KILLS_VERSION then return end
+    local old = kd.explosion or 0
+    if old > 0 then
+        kd.weapon.Other = (kd.weapon.Other or 0) + old
+    end
+    kd.explosion = 0
+    kd.v = KILLS_VERSION
 end
 
 --- Ensure modData structure exists and return it.
@@ -132,11 +152,13 @@ local function getKillData(playerObj)
             fire      = 0,
             vehicle   = 0,
             explosion = 0,
+            v         = KILLS_VERSION,  -- a new table needs no fixing
         }
     end
     if not md.ZeD_Kills.weapon then
         md.ZeD_Kills.weapon = {}
     end
+    migrateKillData(md.ZeD_Kills)
     return md.ZeD_Kills
 end
 
@@ -227,11 +249,12 @@ local function onZombieDead(zombie)
         return
     end
 
-    -- First death for this zombie: remember it for fire detection, but only while
-    -- it burns. The game reuses zombie objects, so a key kept for a zombie that did
-    -- not burn (a weapon kill, say) would make the next zombie with that key read
-    -- as a fire kill. A burning one keeps it, so a hit then burn rolls back below.
-    if isBurning(zombie) then
+    -- First death for this zombie: remember it for fire detection, but only when
+    -- the burn itself killed it. The game reuses zombie objects, so a key kept
+    -- after a weapon or car kill would make the next zombie with that key read as
+    -- a fire kill. A hit then burn keeps it (the burn clears the attacker), so
+    -- the weapon credit given just below rolls back at the second death.
+    if mayBeFireDeath(zombie) then
         deadLog[key] = t
     else
         deadLog[key] = nil
@@ -280,6 +303,11 @@ end
 -- ============================================================================
 
 local function onGameStart()
+    -- Fix an older save's kill table now, so the Journal shows it right before
+    -- the first kill of this session (getKillData runs the one-time fix).
+    local player = getSpecificPlayer(0)
+    if player and player:getModData().ZeD_Kills then getKillData(player) end
+
     Events.OnHitZombie.Add(onHitZombie)
     Events.OnZombieDead.Add(onZombieDead)
     Events.OnTick.Add(onTick)
