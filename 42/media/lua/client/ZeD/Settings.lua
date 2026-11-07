@@ -816,9 +816,34 @@ local function setUpAdditions()
         if want == CUSTOM then saveCustom(stored) end
     end
 
+    -- Once (the director, Nov 6 2026): beta 6 added the Identity row with no line for it, so a player on Vanilla Access
+    -- who ran beta 6 was moved to Custom with the Immersive card. Those values, Vanilla Access in every row but that one,
+    -- go back to the preset. The file says it was done, so a later pick of Immersive stays; a new player gets the file too.
+    local REPAIR_FILE = "ZeD_presetRepair.txt"
+    local repairSeen = false
+    local function repairVanillaAccess()
+        if repairSeen then return end
+        repairSeen = true
+        local okR, r = pcall(function() return getFileReader(REPAIR_FILE, false) end)
+        if okR and r then pcall(function() r:close() end); return end
+        local okW, w = pcall(function() return getFileWriter(REPAIR_FILE, true, false) end)
+        if not (okW and w) then return end      -- no mark, no repair: it must never run twice
+        local wrote = pcall(function() w:write("beta 6 Identity row repaired\n"); w:close() end)
+        if not wrote then return end
+        if additionsPreset:getValue() ~= CUSTOM then return end
+        local set = PRESETS[3]
+        for id, v in pairs(set) do
+            local want = (id == "identityStyle") and 1 or v
+            if stored(id) ~= want then return end
+        end
+        local o = opt("identityStyle")
+        if o then o:setValue(set.identityStyle) end
+    end
+
     -- the stored values read (the main menu, a game start): the preset set to what they make, and saved
     function ZeD.Settings.reconcileAdditions()
         held = nil
+        pcall(repairVanillaAccess)
         local want = presetOf(stored)
         if additionsPreset:getValue() == want then return end
         additionsPreset:setValue(want)

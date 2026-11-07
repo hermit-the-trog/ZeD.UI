@@ -756,11 +756,16 @@ reg("a_players", { cap = CAP.SeePlayersConnected, limit = AL.PLAYERS_MS }, funct
         n = n + 1
         rows[n] = { u = u, on = true, role = roleName(o) }
     end)
+    -- offline accounts take the game's own power for the full list (the director, Nov 6 2026), so a role that sees who is
+    -- connected sees no more here than in the game's window
     local off, c = {}, 0
-    for u, r in pairs(md.players) do
-        if not seen[u] then
-            c = c + 1
-            off[c] = { u = u, on = false, role = r.role, last = r.t }
+    local allCap = Capability and Capability.SeeNetworkUsers
+    if allCap and Srv.can(p, allCap) then
+        for u, r in pairs(md.players) do
+            if not seen[u] then
+                c = c + 1
+                off[c] = { u = u, on = false, role = r.role, last = r.t }
+            end
         end
     end
     table.sort(off, function(x, y) return (x.last or 0) > (y.last or 0) end)

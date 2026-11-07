@@ -101,18 +101,18 @@ function M.DefenseFacts(item)
         groups        = {},
     }
 
-    -- Group 1: bite/scratch/bullet
+    -- Group 1: bite/scratch/bullet (the director, Nov 6 2026: no mark on these; protection is good news and a number says it)
     panel.groups[#panel.groups + 1] = {
         rows = {
             {label = getText("Tooltip_BiteDefense"),    short = ZeD.tr("IGUI_health_Bite"),
              value = biteDef    and _pct(biteDef)    or "0%",
-             valueClass = (biteDef    or 0) > 0 and "warn" or "dim"},
+             valueClass = not ((biteDef    or 0) > 0) and "dim" or nil},
             {label = getText("Tooltip_ScratchDefense"), short = ZeD.tr("IGUI_health_Scratch"),
              value = scratchDef and _pct(scratchDef) or "0%",
-             valueClass = (scratchDef or 0) > 0 and "warn" or "dim"},
+             valueClass = not ((scratchDef or 0) > 0) and "dim" or nil},
             {label = getText("Tooltip_BulletDefense"),  short = ZeD.tr("IGUI_health_Bullet"),
              value = bulletDef  and _pct(bulletDef)  or "0%",
-             valueClass = (bulletDef  or 0) > 0 and "warn" or "dim"},
+             valueClass = not ((bulletDef  or 0) > 0) and "dim" or nil},
         },
     }
 
