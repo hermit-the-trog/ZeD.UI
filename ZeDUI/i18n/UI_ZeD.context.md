@@ -4090,6 +4090,8 @@ Limits here are estimates from the English: the cards wrap, buttons and tags do 
 |---|---|---|---|
 | `UI_ZeD_DashPlain_Readouts` | `Readouts` | Simple dash: a cell's small head | 14 |
 | `UI_ZeD_DashPlain_Trip` | `Trip` | Simple dash: a cell's small head | 14 |
+| `UI_ZeD_DashPlain_Km` | `%1 km` | Simple dash: the Odometer and Trip cells in metric. %1 the distance in kilometers (1,234.5) | 14 |
+| `UI_ZeD_Dash_PromptTripReset` | `Reset trip` | Dashboard controller prompt: what the button does on the trip stem, the Simple dash's Trip cell and the electronic odometer window while it shows the trip. Sets the trip meter back to zero | 16 |
 | `UI_ZeD_MainMenu_Clock12` | `%1:%2 %3` | Main menu clock: %1 hour, %2 minutes, %3 AM or PM. Korean, Japanese and Chinese put AM/PM first | 14 |
 | `UI_ZeD_Options_NeedsNoToggle` | `Wheel toggle mode decides this while it is on.` | ZeD setup: the line under a grayed setting | - |
 | `UI_ZeD_Wheel_PromptMove` | `Move` | Controller prompt under a wheel | 14 |
