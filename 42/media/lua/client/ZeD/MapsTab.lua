@@ -366,6 +366,9 @@ end
 function ZeD_WorldMap:instantiate()
     self.javaObject = UIWorldMap.new(self)
     self.mapAPI = self.javaObject:getAPIv3()
+    -- a paper map (a map item read from the inventory): bound to that item, as
+    -- vanilla's ISMap is, with none of the world map's settings (PaperMap.lua)
+    if self._paperItem and ZeD.PaperMap then return ZeD.PaperMap.instantiate(self, MAP_ICONS) end
     -- the world map's own item, as vanilla's map binds it (ISWorldMap:instantiate):
     -- the engine then draws vanilla's store of marks and notes on this map
     -- (MapNotes.lua). First, before anything asks the map for its symbols.
@@ -438,6 +441,7 @@ local function scaleLabels(mp)
         end
     end)
 end
+ZeD.MapsTab.scaleLabels = scaleLabels   -- (a paper map's labels too: PaperMap.lua)
 
 -- Over a picture (Color, Paper) the map still needs vanilla's text layers: the
 -- player's notes are written in "text-note" (vanilla's hand) and the map's own
@@ -653,6 +657,8 @@ local function _placeAnnotationAt(mp, uiX, uiY)
     end
     local colorIdx = _inkColor(win, ink) or 1
     local N = ZeD.MapNotes
+    -- (a paper map's marks go on that paper, as vanilla's ISMap puts them; else the world's store)
+    local api = mp._paperItem and N.panelAPI(mp) or nil
 
     -- into vanilla's store, through vanilla's calls (MapNotes.lua)
     local done = false
@@ -671,12 +677,12 @@ local function _placeAnnotationAt(mp, uiX, uiY)
             win._mapActiveTool = nil
             if N.contains(ed.api, ed.sym) then done = N.setText(ed.sym, noteText, ed.api) end
         else
-            done = N.addNote(noteText, worldX, worldY, colorIdx) ~= nil
+            done = N.addNote(noteText, worldX, worldY, colorIdx, api) ~= nil
         end
     else
         -- A mark: the tool stays up, so a string of the same mark can be
         -- dropped without picking it again.
-        done = N.addSymbol(N.SYMBOL_BY_ICON[toolId], worldX, worldY, colorIdx) ~= nil
+        done = N.addSymbol(N.SYMBOL_BY_ICON[toolId], worldX, worldY, colorIdx, api) ~= nil
     end
     if done then mp.playerObj:playSoundLocal(toolId == "text" and "MapAddNote" or "MapAddSymbol") end
     return true
@@ -761,7 +767,7 @@ local function _openAnnotContextMenu(mp, absX, absY, sym, api, fromPad)
     if not canEdit then _optionNeeds(optCol, editWhy) end
 
     -- multiplayer: vanilla's sharing panel for this mark (vanilla's own word for it)
-    if _canShare(sym) then
+    if _canShare(sym) and not mp._paperItem then
         ctx:addOption(getText("IGUI_Map_Sharing"), mp, function(self2)
             if N.contains(api, sym) then _openSharing(self2, sym, fromPad) end
         end)
@@ -1122,8 +1128,12 @@ function ZeD_WorldMap:render()
     -- the toolbar or the tab strip (Oct 27 2026). One clip, set and cleared here:
     -- nothing inside sets its own (stencils do not nest).
     self:setStencilRect(0, 0, self:getWidth(), self:getHeight())
-    self:renderStashMaps()
-    self:renderFlyerMarkers()
+    if self._paperItem then
+        ZeD.PaperMap.frame(self)   -- (a paper map shows its own marks only, as vanilla's ISMap)
+    else
+        self:renderStashMaps()
+        self:renderFlyerMarkers()
+    end
     self:renderAnnotations()
     self:renderToolCursor()
     self:renderGamepadCursor()
@@ -1310,7 +1320,8 @@ end
 local function _styleChoice(panel, win, leftX, maxX, by, bs, focId, hov)
     win._mapStyleZones = {}
     win._mapStyleMenuZone, win._mapStyleMenuGeo = nil, nil
-    if not ZeD.MapsTab.hasPaper() then win._mapStyleMenuOpen = nil; return end
+    -- (none on a paper map: it is drawn as the paper is printed)
+    if win._mapPaperItem or not ZeD.MapsTab.hasPaper() then win._mapStyleMenuOpen = nil; return end
     local T, A, tm = ZeD.T, ZeD.Atoms, ZeD.TM
     local f1 = T.fontF1
     local mp = win._worldMapPanel
@@ -1511,7 +1522,7 @@ local _bandSpec = {}
 local function _bandH(panel, win, w)
     local askH = Ext.askH(win, w)
     if askH > 0 then return askH end
-    if ZeD.MapsTab.hasPaper() or Ext.buttonsW(win, panel, ZeD.T.buttonH, true) > 0 then
+    if (ZeD.MapsTab.hasPaper() and not win._mapPaperItem) or Ext.buttonsW(win, panel, ZeD.T.buttonH, true) > 0 then
         return ZeD.Molecules.bandH()
     end
     return 0
@@ -1557,6 +1568,8 @@ end
 local _light = { t = -1 }
 local function _mapBlocked(panel, win, x, y, w, h)
     local msg = nil
+    -- a paper map is read wherever the game let it be (its own light check, at the menu)
+    if win._mapPaperItem and win._mapPopout then win._mapBlocked = false; return false end
     if not ZeD.MapsTab.isAllowed() then
         msg = ZeD.tr("UI_ZeD_Map_Unavailable")
     else
@@ -1641,11 +1654,12 @@ function ZeD.MapsTab.render(panel, win, x, y, w, h)
     end
 
     -- Lazy-create the world map panel
-    if not win._worldMapPanel and not win._worldMapFailed then
+    if not win._worldMapPanel and (win._mapPaperItem or not win._worldMapFailed) then
         local ok, err = pcall(function()
             local mp = ZeD_WorldMap:new(x, mapY, w, mapH, win._playerObj)
             mp._parentWin = win
             mp._isPopoutMap = Ext.isPopout(win, panel)
+            if mp._isPopoutMap then mp._paperItem = win._mapPaperItem end   -- (a paper map: PaperMap.lua)
             mp:initialise()
             mp:instantiate()
             panel:addChild(mp)
@@ -1653,7 +1667,8 @@ function ZeD.MapsTab.render(panel, win, x, y, w, h)
             Ext.mapMade(mp, win)
         end)
         if not ok then
-            win._worldMapFailed = true
+            -- a paper map that cannot be shown goes to the game's window (PaperMap.lua)
+            if win._mapPaperItem and ZeD.PaperMap then ZeD.PaperMap.failed(win, err) else win._worldMapFailed = true end
         end
     end
 
@@ -2284,7 +2299,7 @@ function ZeD.MapsTab._renderPopout(content, win, pop)
             e.onCancel = function(_, ee) return el.onCancel(win, ee) end
         else
             e.onCancel = function(_, _ee) ZeD.MapsTab.closePopout(win) end
-            e.promptB  = ZeD.tr("UI_ZeD_Map_PadFold")
+            e.promptB  = win._mapPaperItem and ZeD.tr("UI_Close") or ZeD.tr("UI_ZeD_Map_PadFold")
         end
         wrapped[#wrapped + 1] = e
     end
@@ -2306,14 +2321,17 @@ function ZeD.MapsTab._renderPopout(content, win, pop)
     Focus.setZoneFocusable(pop, "popMapContent", #wrapped > 0)
 end
 
-function ZeD.MapsTab.openPopout(win)
+-- paperItem: a map item read from the inventory (PaperMap.lua) is shown in the
+-- window in place of the world map, under its own name.
+function ZeD.MapsTab.openPopout(win, paperItem)
     local T = ZeD.T
     if not win or win._mapPopout then return end
     local sw = getCore():getScreenWidth()
     local sh = getCore():getScreenHeight()
     local pw = math.max(T.px(600), math.floor(sw * 0.72))
     local ph = math.max(T.px(400), math.floor(sh * 0.78))
-    local pop = ZeD_Window:new(math.floor((sw - pw) / 2), math.floor((sh - ph) / 2), pw, ph, getText("IGUI_ItemType_Map"))
+    local title = paperItem and paperItem:getName() or getText("IGUI_ItemType_Map")
+    local pop = ZeD_Window:new(math.floor((sw - pw) / 2), math.floor((sh - ph) / 2), pw, ph, title)
     pop:initialise()
     pop:addToUIManager()
     pop._zedLabel     = "MapPopout"
@@ -2378,6 +2396,8 @@ function ZeD.MapsTab.openPopout(win)
     win._mapTextEntry = nil
     win._mapDragging = false
     win._mapStyleMenuOpen = nil   -- (the style list belongs to the toolbar it hung from)
+    win._mapPaperItem = paperItem
+    if paperItem then win._mapActiveTool, win._mapEdit = nil, nil end   -- (no world map tool carries onto the paper)
     win._mapPopout = pop
 
     -- Gamepad registration: one content zone, elements rebuilt per frame.
@@ -2393,15 +2413,22 @@ function ZeD.MapsTab.openPopout(win)
         Focus.registerWindow(pop)
         Focus.claimFocus(pop)
     end
-    pcall(function() getSoundManager():playUISound("UIActivateTab") end)
+    if paperItem then
+        pcall(function() win._playerObj:playSoundLocal("MapOpen") end)   -- (vanilla's paper map sound: ISMapWrapper)
+    else
+        pcall(function() getSoundManager():playUISound("UIActivateTab") end)
+    end
 end
 
 function ZeD.MapsTab.closePopout(win)
     local pop = win and win._mapPopout
     if not pop then return end
+    local paper = win._mapPaperItem ~= nil
     win._mapPopout = nil
+    win._mapPaperItem = nil
     win._mapDragging = false
     win._mapStyleMenuOpen = nil
+    if paper then win._mapActiveTool, win._mapEdit = nil, nil end   -- (a paper map's tool stays with it)
 
     -- Drop the pop-out's map and text entry (children of the pop-out), then
     -- restore the drawer's parked ones.
@@ -2417,6 +2444,13 @@ function ZeD.MapsTab.closePopout(win)
     local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
     if Focus then Focus.unregisterWindow(pop) end   -- hands focus back to the last registered window
     pcall(function() pop:removeFromUIManager() end)
+    if paper then
+        -- the paper map is put away: vanilla's sound, and the controller goes back
+        -- to the window it read the map from (PaperMap.lua)
+        pcall(function() win._playerObj:playSoundLocal("MapClose") end)
+        if ZeD.PaperMap and ZeD.PaperMap.returnFocus then pcall(ZeD.PaperMap.returnFocus, win, pop) end
+        return
+    end
     pcall(function() getSoundManager():playUISound("UIActivateTab") end)
     -- the controller lands back on the unfold button it left from (Oct 19 2026
     -- nav audit: it landed on the tab column)

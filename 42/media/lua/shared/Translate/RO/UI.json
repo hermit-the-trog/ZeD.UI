@@ -3714,6 +3714,8 @@
     "UI_ZeD_Map_HelpInk": "%1: semne și note în această culoare.",
     "UI_ZeD_Map_HelpKey": "Arată sau ascunde legenda hărții: ce înseamnă culorile de pe harta Cadastru.",
     "UI_ZeD_Map_HelpKeyClose": "Închide legenda hărții.",
+    "UI_ZeD_Map_PaperFind": "Caută pe hartă",
+    "UI_ZeD_Map_HelpPaperFind": "Caută pe harta lumii locul pe care îl arată această hartă.",
     "UI_ZeD_Map_HelpMark": "%1: ia acest semn, apoi fă clic pe hartă ca să-l pui.",
     "UI_ZeD_Map_HelpMarkGrid": "%1: ia acest semn. Un clic dreapta îl fixează pe bara de unelte sau îl scoate.",
     "UI_ZeD_Map_HelpMarksClose": "Strânge setul complet de semne.",

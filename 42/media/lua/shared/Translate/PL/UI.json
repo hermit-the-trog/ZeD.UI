@@ -3714,6 +3714,8 @@
     "UI_ZeD_Map_HelpInk": "%1: znaczniki i notatki w tym kolorze.",
     "UI_ZeD_Map_HelpKey": "Pokaż lub ukryj legendę mapy: co znaczą kolory na mapie Plan.",
     "UI_ZeD_Map_HelpKeyClose": "Zamknij legendę mapy.",
+    "UI_ZeD_Map_PaperFind": "Znajdź na mapie",
+    "UI_ZeD_Map_HelpPaperFind": "Znajdź na mapie świata miejsce, które pokazuje ta mapa.",
     "UI_ZeD_Map_HelpMark": "%1: weź ten znacznik, potem kliknij mapę, by go położyć.",
     "UI_ZeD_Map_HelpMarkGrid": "%1: weź ten znacznik. Prawy przycisk przypina go do paska narzędzi albo go zdejmuje.",
     "UI_ZeD_Map_HelpMarksClose": "Zwiń pełny zestaw znaczników.",

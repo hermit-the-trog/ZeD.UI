@@ -3714,6 +3714,8 @@
     "UI_ZeD_Map_HelpInk": "%1: この色の印と書き込みにします。",
     "UI_ZeD_Map_HelpKey": "凡例を表示/非表示: 測量図の色の意味を示します。",
     "UI_ZeD_Map_HelpKeyClose": "凡例を閉じます。",
+    "UI_ZeD_Map_PaperFind": "地図で探す",
+    "UI_ZeD_Map_HelpPaperFind": "この地図が示す場所をワールドマップで探します。",
     "UI_ZeD_Map_HelpMark": "%1: この印を選び、地図をクリックして置きます。",
     "UI_ZeD_Map_HelpMarkGrid": "%1: この印を選びます。右クリックでツールバーにピン留め/解除できます。",
     "UI_ZeD_Map_HelpMarksClose": "すべての印を折りたたみます。",

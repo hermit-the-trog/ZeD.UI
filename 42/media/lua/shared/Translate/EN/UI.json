@@ -3714,6 +3714,8 @@
     "UI_ZeD_Map_HelpInk": "%1: marks and notes in this color.",
     "UI_ZeD_Map_HelpKey": "Show or hide the map key: what the colors on the Survey map mean.",
     "UI_ZeD_Map_HelpKeyClose": "Close the map key.",
+    "UI_ZeD_Map_PaperFind": "Find on map",
+    "UI_ZeD_Map_HelpPaperFind": "Find the place this map shows on your world map.",
     "UI_ZeD_Map_HelpMark": "%1: pick this mark up, then click the map to put it down.",
     "UI_ZeD_Map_HelpMarkGrid": "%1: pick this mark up. A right-click pins it to the toolbar or takes it off.",
     "UI_ZeD_Map_HelpMarksClose": "Fold the full set of marks away.",
