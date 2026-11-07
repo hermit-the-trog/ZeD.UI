@@ -5305,6 +5305,8 @@
     "UI_ZeD_Adm_HelpMuteVoice": "ZeDのサーバー側がないと、止められるのは音声だけです。チャットは使えたままです。",
     "UI_ZeD_Adm_VoiceMuted": "ミュートを解除するまで、%1は音声を使えません。",
     "UI_ZeD_Adm_VoiceUnmuted": "%1は音声を使えるようになりました。",
+    "UI_ZeD_Adm_HelpMuteOff": "%1はオンラインではありません。ミュートすると、解除されるまで今からチャットを使えなくなります。音声はオンライン中にしかミュートできません。",
+    "UI_ZeD_Adm_VoiceNeedsOn": "%1はオンラインではありません。ZeDのサーバー側がないとミュートは音声だけで、オンライン中にしかできません。",
     "UI_ZeD_Adm_PowersStayOn": "ZeDのサーバー側がないと、ゲームはこれらをオンのままにし、本人がオフにします。",
     "UI_ZeD_Adm_WarnDone1": "警告ポイントを1追加しました。%1に理由が表示されます。",
     "UI_ZeD_Adm_HelpKeepRole": "ロールを残します。",

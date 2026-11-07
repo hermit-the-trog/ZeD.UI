@@ -207,7 +207,9 @@ function ZeD.Molecules.drawButton(panel, x, y, w, h, text, variant, pressed, col
     local th = ZeD.TM:getFontHeight(font)
     local tx = x + math.floor((w - tw) / 2)
     local ty = y + math.floor((h - th) / 2)
-    if pressed then tx = tx + T.px(1); ty = ty + T.px(1) end
+    -- (a gray button does not go down under the pointer: its label dipped and came back on a press that did nothing,
+    -- the outside review of beta 7's Mute on an offline player's card)
+    if pressed and not opts.disabled then tx = tx + T.px(1); ty = ty + T.px(1) end
     panel:drawText(text, tx, ty, textColor.r, textColor.g, textColor.b, (textColor.a or 1) * alpha, font)
 
     if opts.hover then giveHelp(panel, opts) end

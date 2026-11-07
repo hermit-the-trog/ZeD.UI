@@ -5305,6 +5305,8 @@
     "UI_ZeD_Adm_HelpMuteVoice": "Sense la part de servidor de ZeD això només atura la seva veu. El seu xat es manté obert.",
     "UI_ZeD_Adm_VoiceMuted": "%1 no pot usar la veu fins que el deixis parlar.",
     "UI_ZeD_Adm_VoiceUnmuted": "%1 pot usar la veu una altra vegada.",
+    "UI_ZeD_Adm_HelpMuteOff": "%1 no està connectat. Silenciar li talla el xat des d'ara, fins que algú el reactivi. La seva veu només es pot silenciar mentre estigui connectat.",
+    "UI_ZeD_Adm_VoiceNeedsOn": "%1 no està connectat. Sense la part de servidor de ZeD, Silenciar només talla la veu, i només mentre estigui connectat.",
     "UI_ZeD_Adm_PowersStayOn": "Sense la part de servidor de ZeD el joc els deixa activats, i ell mateix els apaga.",
     "UI_ZeD_Adm_WarnDone1": "1 punt d'avís afegit. %1 veu la raó.",
     "UI_ZeD_Adm_HelpKeepRole": "Mantenir el rol.",

@@ -5305,6 +5305,8 @@
     "UI_ZeD_Adm_HelpMuteVoice": "沒有 ZeD 的伺服器端部分時，這只會停止其語音。聊天仍然開放。",
     "UI_ZeD_Adm_VoiceMuted": "在你解除禁言之前，%1 無法使用語音。",
     "UI_ZeD_Adm_VoiceUnmuted": "%1 可以再次使用語音。",
+    "UI_ZeD_Adm_HelpMuteOff": "%1 不在線。禁言會從現在起禁止其聊天，直到有人解除。語音只能在其在線時禁止。",
+    "UI_ZeD_Adm_VoiceNeedsOn": "%1 不在線。沒有 ZeD 的伺服器部分時，禁言只禁止語音，而且只能在其在線時進行。",
     "UI_ZeD_Adm_PowersStayOn": "沒有 ZeD 的伺服器端部分時，遊戲會讓這些保持開啟，他們自己可以關閉。",
     "UI_ZeD_Adm_WarnDone1": "已新增 1 個警告點數。%1 會看到原因。",
     "UI_ZeD_Adm_HelpKeepRole": "保留角色。",

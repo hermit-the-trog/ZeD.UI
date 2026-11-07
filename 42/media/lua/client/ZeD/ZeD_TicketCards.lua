@@ -136,7 +136,11 @@ function D.flash(t, text) t.flashText, t.flashAt = text, now() end
 -- a press on a gray control: why it is gray, as the answer in the card's line (hover alone said it before, and a press
 -- read as doing nothing: the outside review of beta 7, Mute on an offline player's card)
 function D.grayPress(t, c)
-    if c and c.why then D.flash(t, c.why) end
+    if c and c.why then
+        D.flash(t, c.why)
+        -- (a card that has its own line for answers takes it there too: the help band is where hover said it already)
+        if c.onGray then c.onGray(c.why) end
+    end
 end
 function D.flashNow(t)
     if t.flashText and now() - t.flashAt < FLASH_MS then return t.flashText end

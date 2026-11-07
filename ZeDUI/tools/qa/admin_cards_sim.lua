@@ -800,20 +800,83 @@ M.qaHold = true
 press("adm:tk:p:tjk")
 check("an offline player can't be kicked", grayWhy("tk:kick") == ZeD.tr("UI_ZeD_Adm_NotOnline", "tjk"))
 check("but can be banned", grayWhy("tk:ban") == nil)
--- a press on the gray Mute says why in the card's line, and sends nothing (the outside review of beta 7: it read as doing nothing)
+-- Mute on an offline player (the outside review of beta 7: the label dipped and came back, nothing went, no line said why).
+-- With the server part the mute is its list of names, which a_mute keeps for an account that is off: Mute works and the card
+-- says so in its own line, under the acts (the help band is where hover said things already)
+local function cardLine()
+    draw()
+    for _, it in ipairs(st.tk.items or {}) do if it.k == "aline" then return it.text end end
+    return nil
+end
+local function hoverHelp(id)
+    draw()
+    for _, it in ipairs(st.tk.items or {}) do
+        for _, c in ipairs(it.k == "aflow" and it.ctls or {}) do if c.id == id then return c.help end end
+    end
+    return nil
+end
 do
-    local n0 = #SENT
+    check("no answer line before a press", cardLine() == nil, cardLine())
+    check("Mute is not gray for an offline player with the server part", grayWhy("tk:mute") == nil, grayWhy("tk:mute"))
+    check("before the press it says what Mute does to someone who is off", hoverHelp("mute") == ZeD.tr("UI_ZeD_Adm_HelpMuteOff", "tjk"), hoverHelp("mute"))
+    clear()
     st.tk.flashText = nil
     click("tk:mute")
-    check("a gray Mute pressed says why", flash() == ZeD.tr("UI_ZeD_Adm_NotOnline", "tjk"), flash())
-    check("and asks the server nothing", #SENT == n0)
-    st.tk.flashText = nil
+    local a = sent("a_mute")
+    check("a click asks the server to mute tjk", a ~= nil and a.user == "tjk" and a.on == true)
+    ack("a_mute")
+    check("the answer is a line on the card", cardLine() == ZeD.tr("UI_ZeD_Adm_Muted", "tjk"), cardLine())
+    check("the game's voice ban is not sent for someone who is off (it finds only a player who is on)", not hasS("/voiceban"))
+    -- a refusal is a line on the card too
+    clear()
+    M.mutes = {}
+    M.bump()
     press("tk:mute")
-    check("the pad's A on it says the same", flash() == ZeD.tr("UI_ZeD_Adm_NotOnline", "tjk"), flash())
-    check("and asks the server nothing either", #SENT == n0)
+    nak("a_mute", "full")
+    check("a refusal is the card's line", cardLine() == ZeD.tr("UI_ZeD_Adm_Err_full"), cardLine())
+    -- a gray act pressed: its why as the card's line, and nothing asked
+    clear()
+    st.tk.flashText = nil
+    click("tk:kick")
+    check("a gray Kick pressed says why in the card's line", cardLine() == ZeD.tr("UI_ZeD_Adm_NotOnline", "tjk"), cardLine())
+    check("and in the help band as before", flash() == ZeD.tr("UI_ZeD_Adm_NotOnline", "tjk"), flash())
+    check("and asks the server nothing", #SENT == 0)
+    st.tk.flashText = nil
+    -- without the server part Mute is the game's voice ban, which finds only a player who is on: gray, saying so before
+    -- the press, and the press says it in the card's line
+    M.qaLink = false
+    M.voice = {}
+    M.bump()
+    check("without the part: gray, and why", grayWhy("tk:mute") == ZeD.tr("UI_ZeD_Adm_VoiceNeedsOn", "tjk"), grayWhy("tk:mute"))
+    clear()
+    click("tk:mute")
+    check("a click says it in the card's line", cardLine() == ZeD.tr("UI_ZeD_Adm_VoiceNeedsOn", "tjk"), cardLine())
+    check("and sends nothing", #SENT == 0 and not hasS("/voiceban"))
+    st.card.said = nil
+    M.bump()
+    press("tk:mute")
+    check("the pad's A says the same in the card's line", cardLine() == ZeD.tr("UI_ZeD_Adm_VoiceNeedsOn", "tjk"), cardLine())
+    check("and sends nothing either", #SENT == 0 and not hasS("/voiceban"))
+    M.qaLink = true
+    M.mutes = {}
+    M.bump()
     st.tk.flashText = nil
 end
 TC.back(win, st)
+-- a gray button does not go down under the pointer (its label dipped and came back on a press that did nothing)
+do
+    local xs = {}
+    local p = { drawText = function(_, s, x, y) xs[#xs + 1] = x .. "," .. y end, drawRect = function() end, drawRectBorder = function() end,
+        drawTextureScaled = function() end, drawTexture = function() end, drawTextureScaledAspect = function() end }
+    local Mo = ZeD.Molecules
+    local function at(pressed, disabled)
+        xs = {}
+        pcall(Mo.drawButton, p, 10, 10, 80, 20, "Mute", "default", pressed, nil, { disabled = disabled })
+        return xs[#xs]
+    end
+    check("a gray button's label stays put when pressed", at(true, true) ~= nil and at(true, true) == at(false, true), tostring(at(true, true)) .. " " .. tostring(at(false, true)))
+    check("a live one still goes down", at(true, false) ~= at(false, false))
+end
 -- a moderator: every gray says the capability and the role
 fresh()
 M.qaHold = true
