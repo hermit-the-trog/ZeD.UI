@@ -1,0 +1,7 @@
+# the beta 6a regression's misses, again, on a clean save (Nov 6 2026)
+zedqa_prelude.lua | pre
+zedqa_pin_windows.lua | pnw | timeout=60
+zedqa_ctx_icons.lua | cx | timeout=300
+zedqa_world_pad_take.lua | wpt | timeout=900
+zedqa_food_verbs.lua | fv | timeout=120
+zedqa_seat_lightbar_vanilla.lua | sl | expect=FBORenderLevels.getNLevels

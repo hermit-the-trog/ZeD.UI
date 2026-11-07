@@ -47,6 +47,8 @@ for n, t in ipairs(ZeD_WorldWindow.TABS or {}) do
         add(1300, function() if shown then nums("tab " .. id); shot(string.format("1%d_tab_%s", n, id)) end end)
     end
 end
+add(300, function() ZeD_CharacterWindow.openTab(0, "server") end)
+add(1500, function() local c = ZeD_CharacterWindow.getWindow(); say("Character server tab: active=" .. tostring(c and c._activeTab) .. " footer=" .. tostring(c and c.footerHeight and c:footerHeight())); shot("20_char_server") end)
 add(300, function() ZeD_WorldWindow.openTab(0, "loot"); say("DONE") end)
 local function drive()
     local p = plan[i]

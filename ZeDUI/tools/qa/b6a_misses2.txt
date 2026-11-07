@@ -1,0 +1,4 @@
+zedqa_prelude.lua | pre
+zedqa_pin_windows.lua | pnw | timeout=60
+zedqa_ctx_icons.lua | cx | timeout=300
+zedqa_world_pad_take.lua | wpt | timeout=900

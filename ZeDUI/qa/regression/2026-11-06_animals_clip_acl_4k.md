@@ -1,9 +1,9 @@
-# ZeD-UI regression - 2026-11-06 19:27 - fullscreen4k (3840x2160 fullscreen)
+# ZeD-UI regression - 2026-11-06 20:36 - fullscreen4k (3840x2160 fullscreen)
 
 | | |
 |---|---|
-| Started | 2026-11-06 19:27:11 |
-| Finished | 2026-11-06 19:29:44 (2 min 33 s) |
+| Started | 2026-11-06 20:36:40 |
+| Finished | 2026-11-06 20:38:33 (1 min 52 s) |
 | Mode | fullscreen4k (3840x2160 fullscreen) |
 | Display | fullScreen=true height=2160 width=3840 |
 | Game build | 42.22.2 3d39148846 |
@@ -11,7 +11,7 @@
 | Save | Saves/Sandbox/ZeD-QA |
 | Manifest | C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\tools\qa\animals_clip.txt (4 scripts) |
 | Result | **3/4 pass**, 0 warn, 1 fail, 0 timeout |
-| Go numbers | 22561 to 22566 |
+| Go numbers | 22585 to 22590 |
 
 Screenshots are in `C:/Users/you/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
 
@@ -22,7 +22,7 @@ Screenshots are in `C:/Users/you/Zomboid/Screenshots` (the next run overwrites t
 - started ProjectZomboid64.exe -debug -nosteam (fullscreen, the director's options.ini)
 - loaded; clicked the screen centre (1920,1080) to pass 'click to start'
 - the bridge armed in game on Saves/Sandbox/ZeD-QA
-- quit: quit to the main menu, then to the desktop (go 22565, 22566)
+- quit: quit to the main menu, then to the desktop (go 22589, 22590)
 - ZeD settings: the director's ModOptions.ini put back
 
 ## Results
@@ -38,7 +38,7 @@ Screenshots are in `C:/Users/you/Zomboid/Screenshots` (the next run overwrites t
 
 ### 1. zedqa_prelude.lua (`ZEDQA pre`) - PASS, 2 s
 
-- go 22561 at 19:28:44
+- go 22585 at 20:37:35
 
 ```text
 [ZeD.QA] state #1 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=35 missing=get
@@ -52,7 +52,7 @@ ZEDQA pre DONE
 
 ### 2. zedqa_pin_windows.lua (`ZEDQA pnw`) - PASS, 1 s
 
-- go 22562 at 19:28:50
+- go 22586 at 20:37:40
 
 ```text
 [ZeD.QA] state #2 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=35 missing=get
@@ -64,7 +64,7 @@ ZEDQA pnw DONE
 
 ### 3. zedqa_animals.lua (`ZEDQA an`) - FAIL, 2 s
 
-- go 22563 at 19:28:54
+- go 22587 at 20:37:44
 - 1 Java exception(s) in the log
 
 ```text
@@ -73,9 +73,9 @@ ZEDQA pnw DONE
 [ZeD.QA] run #3 ok=true
 ZEDQA an found hutch=true trough=true hook=true
 ZEDQA an hutch birds=4 dirt=46
-ERROR: General f:1072 at KahluaThread.flushErrorMessage > -------------------------------------------------------------
+ERROR: General f:844 at KahluaThread.flushErrorMessage > -------------------------------------------------------------
     attempted index: addItems of non-table: null
-ERROR: General f:1072> Lua(Vanilla).onAddFoodDebug> Exception thrown
+ERROR: General f:844> Lua(Vanilla).onAddFoodDebug> Exception thrown
     java.lang.RuntimeException: attempted index: addItems of non-table: null at KahluaThread.tableget(KahluaThread.java:1430).
     Lua(Vanilla).onAddFoodDebug(ISFeedingTroughMenu.lua:174)
     Lua(Vanilla).tick(spawnpoints.lua:103)
@@ -87,24 +87,24 @@ ZEDQA an setup done
 
 ### 4. zedqa_animals_clip.lua (`ZEDQA acl`) - PASS, 20 s
 
-- go 22564 at 19:28:59
+- go 22588 at 20:37:50
 - screenshots: zqa_acl_01_ranch.png, zqa_acl_02_ranch_foot.png, zqa_acl_03_zone.png, zqa_acl_04_animal.png, zqa_acl_05_butcher.png, zqa_acl_06_item_over_ranch.png, zqa_acl_07_item_closed.png, zqa_acl_08_loot_control.png
 
 ```text
 [ZeD.QA] state #4 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=35 missing=get
 [ZeD.QA] windows reset (R)
 [ZeD.QA] run #4 ok=true
-ZEDQA acl animals 38, zones 2, alerts 44
-ZEDQA acl ranch: tab=animals mode=tab view=overview clips left by the tab=1 win 1617x735 footer=39 strip vis=true zones=7
-ZEDQA acl ranch foot: tab=animals mode=tab view=overview clips left by the tab=1 win 1617x735 footer=39 strip vis=true zones=7
-ZEDQA acl zone QA Yard
+ZEDQA acl animals 37, zones 2, alerts 44
+ZEDQA acl ranch: tab=animals mode=tab view=overview clips left by the tab=0 win 1617x735 footer=39 strip vis=true zones=7
+ZEDQA acl ranch foot: tab=animals mode=tab view=overview clips left by the tab=0 win 1617x735 footer=39 strip vis=true zones=7
+ZEDQA acl zone Home Pasture
 ZEDQA acl zone: tab=animals mode=tab view=zone clips left by the tab=0 win 1617x735 footer=39 strip vis=true zones=7
 ZEDQA acl animal: tab=animals mode=tab view=animal clips left by the tab=0 win 1617x735 footer=39 strip vis=true zones=7
 ZEDQA acl butcher: tab=animals mode=tab view=overview clips left by the tab=0 win 1617x735 footer=39 strip vis=true zones=7
 ZEDQA acl item card over Ranch: T-shirt
-ZEDQA acl item card: tab=animals mode=tab view=overview clips left by the tab=1 win 1617x735 footer=39 strip vis=true zones=7
-ZEDQA acl item closed: tab=animals mode=tab view=overview clips left by the tab=1 win 1617x735 footer=39 strip vis=true zones=7
-ZEDQA acl loot: tab=loot mode=nil view=overview clips left by the tab=1 win 777x735 footer=39 strip vis=true zones=7
+ZEDQA acl item card: tab=animals mode=tab view=overview clips left by the tab=0 win 1617x735 footer=39 strip vis=true zones=7
+ZEDQA acl item closed: tab=animals mode=tab view=overview clips left by the tab=0 win 1617x735 footer=39 strip vis=true zones=7
+ZEDQA acl loot: tab=loot mode=nil view=overview clips left by the tab=0 win 777x735 footer=39 strip vis=true zones=7
 ZEDQA acl DONE
 ```
 

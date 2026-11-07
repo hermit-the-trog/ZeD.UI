@@ -638,7 +638,7 @@ local function auditTab(done)
     walk = { w = w, zn = zn, tag = tag, presses = 0, last = first and first.id, same = 0, done = done }
     local function press()
         local _, z, e = cur()
-        if walk.presses >= 45 or not z or z.zone ~= walk.zn or walk.same >= 2 then
+        if walk.presses >= 90 or not z or z.zone ~= walk.zn or walk.same >= 2 then   -- (Nov 6 2026: 45 stopped short of a Ranch page with 44 alerts)
             -- back on the last control reached in the tab, let the scroll follow it, then look
             local lastId = walk.last
             Focus.focusWhere(walk.w, walk.zn, function(x) return x.id == lastId end)

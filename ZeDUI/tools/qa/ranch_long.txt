@@ -1,0 +1,4 @@
+# a long Ranch page and the floor menu on the save the regression ran on (Nov 6 2026)
+zedqa_prelude.lua | pre
+zedqa_pin_windows.lua | pnw | timeout=60
+zedqa_ranch_long.lua | rlg | timeout=200

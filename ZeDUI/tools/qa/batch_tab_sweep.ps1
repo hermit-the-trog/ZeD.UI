@@ -14,7 +14,7 @@ Copy-Item $Save $KeepSave -Recurse
 Copy-Item $Opt $KeepOpt -Force
 try {
     foreach ($r in @(@{ n = "tsw_4k"; a = @("-Mode", "fullscreen4k") })) {
-        & pwsh -NoProfile -File "$Qa\zedqa_run.ps1" -Manifest "$Qa\tab_sweep.txt" -Report "$Rep\2026-11-06_tab_sweep_$($r.n).md" @($r.a)
+        & pwsh -NoProfile -File "$Qa\zedqa_run.ps1" -Manifest "$Qa\tab_sweep.txt" -Report "$Rep\2026-11-06_hotfix_tab_sweep_$($r.n).md" @($r.a)
         Copy-Item "$Z\console.txt" "$Shots\$($r.n)_console.txt" -Force
         New-Item -ItemType Directory -Force "$Shots\$($r.n)" | Out-Null
         Get-ChildItem $Shots -Filter "zqa_tsw_*.png" | Move-Item -Destination "$Shots\$($r.n)" -Force

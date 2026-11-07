@@ -146,7 +146,7 @@ for style = 1, 2 do
     at(n, function()
         local sq = p:getCurrentSquare()
         local objs = {}
-        if sq then for i = 0, sq:getObjects():size() - 1 do objs[#objs + 1] = sq:getObjects():get(i) end end
+        if sq then for i = 0, sq:getObjects():size() - 1 do local o = sq:getObjects():get(i); if not instanceof(o, "IsoWorldInventoryObject") then objs[#objs + 1] = o end end end   -- (Nov 6 2026: a dropped item in this list throws in the game's Java (spriteName null); a real right click never hands one over)
         ISWorldObjectContextMenu.createMenu(0, objs, mx, my)
     end)
     at(n + 30, function() report(sname .. " floor"); shot(sname .. "_floor") end)
