@@ -1101,6 +1101,22 @@ end
 check("the tickets say why", saw)
 check("warning points say why", sawWarn)
 TC.back(win, st)
+-- an offline card the server keeps closed (no See every account): the power, never "loading" or "not seen yet"
+M.rows = { { user = "Away", on = false, role = "user" } }
+M.cards.Away = { user = "Away", on = false, closed = true }
+M.bump()
+press("adm:tk:p:Away")
+draw()
+local netWhy, sawProf, sawStatus, sawLoading = M.why("SeeNetworkUsers"), false, false, false
+for _, it in ipairs(st.tk.items or {}) do
+    if it.text == netWhy then sawProf = true end
+    if it.text == ZeD.tr("UI_ZeD_Tk_Loading") then sawLoading = true end
+    if it.k == "fact" and it.label == ZeD.tr("UI_ZeD_Adm_Status") and it.value == netWhy then sawStatus = true end
+end
+check("a closed card says which power its record takes", sawProf and not sawLoading)
+check("a closed card's status says it too", sawStatus)
+TC.back(win, st)
+M.cards.Away = nil
 M.qaCaps = {}
 M.bump()
 

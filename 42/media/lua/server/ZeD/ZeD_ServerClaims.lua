@@ -181,7 +181,9 @@ local function readSafe()
     local out = {}
     each(SafeHouse.getSafehouseList(), function(h)
         local owner = h:getOwner()
-        out[Cl.houseKey(h)] = { owner = owner, title = h:getTitle(), x = h:getX(), y = h:getY(), members = membersOf(h:getPlayers(), owner) }
+        -- (obj: the game's own object. A claim makes a new one and a transfer keeps it, while the key is the corner, which
+        -- a release and a new claim of the same building share)
+        out[Cl.houseKey(h)] = { obj = h, owner = owner, title = h:getTitle(), x = h:getX(), y = h:getY(), members = membersOf(h:getPlayers(), owner) }
     end)
     return out
 end
@@ -199,6 +201,11 @@ end
 local function compareSafe(was, now)
     for id, h in pairs(now) do
         local o = was[id]
+        -- (the same corner on a new object: released, then claimed again between two passes, so two lines, not an owner change)
+        if o and o.obj ~= h.obj then
+            line("safehouse", "release", short(o.owner), nil, o.x, o.y)
+            o = nil
+        end
         if not o then
             line("safehouse", "claim", short(h.owner), nil, h.x, h.y)
         else
