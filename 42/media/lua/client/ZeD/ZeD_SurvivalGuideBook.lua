@@ -9,7 +9,8 @@
 -- The same topics, text, clips and numbers as the window (ZeD_SurvivalGuide.lua, which opens this one when ZeD
 -- setup's Survival guide row is Full). One topic a page, two a spread; a topic with The Rules in Numbers has them on
 -- the page after it; a topic too long for its page runs on to the next. Before the chapters: the title page, then
--- the contents facing the introduction with the author's photo.
+-- the contents over as many pages as it needs, the last facing the introduction with the author's photo (a blank
+-- left-hand page between them when the contents takes an even count).
 --
 -- Faces: the game's own distance-field faces, drawn at any size with drawTextZoomed (as ZeD_PrintPage.lua):
 -- Old Standard TT for the text, Roberto Sans Bold Italic for the headings, Open Sans for the small sans lines.
@@ -501,8 +502,11 @@ end
 -- heading, clip and three lines still fit, else on the next; a long topic runs on. A topic with The Rules in Numbers
 -- starts a left page and its rules page faces it. Each page is a list of placed items (baselines and tops in px).
 local RULE_ROWS = 22   -- a rules page's rows at most (a longer table runs on)
+-- the printed number of the page at index i (the title page is the first right-hand page, ii)
+local function printed(i) return i + 1 end
 function B.paginate(bk, u)
     local px = function(n) return n * u end
+    -- (the front matter as the chapters are laid out: the contents' own pages are counted after them, below)
     local pages = { { kind = "blank" }, { kind = "title" }, { kind = "contents" }, { kind = "intro" } }
     local textW_ = px(U.PW - U.M * 2)
     local lineH = px(U.TEXT) * U.LEAD
@@ -673,6 +677,34 @@ function B.paginate(bk, u)
         end
     end
     if page then page.endY = y end
+    -- THE CONTENTS, now the chapters' pages are known (B.contentsLayout): as many pages as its rows need after the
+    -- title page, then the introduction on a right-hand page, facing the last contents page when their count is odd
+    -- and after a blank left-hand page when it is even (as a printer would). The front matter is always an even
+    -- count, so the chapters keep their sides; every page moves on by what the contents added (shift), and the rows
+    -- print the numbers of the pages as they end up (laid out again while the shift grows: a wider number can wrap).
+    local shift, cpages = 0, nil
+    for _ = 1, 8 do
+        cpages = B.contentsLayout(bk, u, function(s)
+            local i = bk.sectionPage[s.id]
+            return i and tostring(printed(i + shift)) or nil
+        end)
+        local n = #cpages
+        local want = n + ((n % 2 == 0) and 1 or 0) - 1
+        if want == shift then break end
+        shift = want
+    end
+    local front = { pages[1], pages[2] }
+    for _, cp in ipairs(cpages) do front[#front + 1] = cp end
+    if #cpages % 2 == 0 then front[#front + 1] = { kind = "blank" } end
+    front[#front + 1] = pages[4]
+    bk.contentsPage, bk.contentsPages, bk.introPage = 3, #cpages, #front
+    for i = 5, #pages do front[#front + 1] = pages[i] end
+    pages = front
+    for k, i in pairs(bk.sectionPage) do bk.sectionPage[k] = i + shift end
+    for k, i in pairs(bk.pageOf) do bk.pageOf[k] = i + shift end
+    for _, cp in ipairs(cpages) do
+        for _, r in ipairs(cp.rows) do r.page = bk.sectionPage[r.sid] end
+    end
     -- (the publisher fills its pages, the director, Nov 4 2026: "publishers [don't] like printing blank pages. It
     -- costs more money, so they generally fill the content"): a flow page a third or more empty takes a filler
     local room = bottom - px(U.MT)
@@ -698,9 +730,6 @@ function B.paginate(bk, u)
     local ok, err = pcall(B.dealAds, bk, pages, u, textW_)
     if not ok then ZeD.logOnce("survival guide ads", err) end
 end
-
--- the printed number of the page at index i (the title page is the first right-hand page, ii)
-local function printed(i) return i + 1 end
 
 -- ---------------------------------------------------------------------------
 -- THE PANEL: the dimmed game, the open book, the strip under it
@@ -1083,40 +1112,40 @@ function ZeD_GuideBook:drawTitlePage(x, y, w, u)
     drawCentre(self, F.sans, "1987", cx, by + 33 * u, 11 * u, INK)
 end
 
-function ZeD_GuideBook:drawContentsPage(x, y, w, u, hover)
+-- a contents page p (B.contentsLayout) at index pi: its heading and rows as laid out; each row drawn goes on the
+-- list the mouse picks from (_contentsRows, made again each frame), with the page it sits on
+function ZeD_GuideBook:drawContentsPage(p, x, y, w, u, hover, pi)
     local m = U.M * u
     local tx, tw_ = x + m, w - m * 2
-    local yy = y + U.MT * u + 28 * u
-    drawAt(self, F.head, upper(tr("UI_ZeD_Guide_BookContents")), tx, yy, 28 * u, INK)
-    yy = yy + 18 * u
-    local cu = u * TM_   -- (the contents' type and rows, at the text size)
-    self._contentsRows = {}
-    for si, s in ipairs(self.sections) do
-        local pg = self.sectionPage[s.id]
-        local rowTop = yy
-        yy = yy + 13 * cu
-        local num = tostring(si) .. "."
+    drawAt(self, F.head, p.head or upper(tr("UI_ZeD_Guide_BookContents")), tx, y + U.MT * u + 28 * u, p.headPx or 28 * u, INK)
+    local cu = p.cu or (u * TM_)   -- (the contents' type and rows, at the text size it was laid out at)
+    self._contentsRows = self._contentsRows or {}
+    for _, r in ipairs(p.rows or {}) do
+        local rowTop = y + r.y
+        local yy = rowTop + 13 * cu
+        local num = tostring(r.si) .. "."
         drawAt(self, F.sansB, num, tx + 18 * cu - textW(F.sansB, num, 10 * cu), yy, 10 * cu, INK)
-        drawAt(self, F.sansB, upper(s.title), tx + 24 * cu, yy, 10 * cu, INK)
-        yy = yy + 12 * cu
-        local b = blurb(s)
-        local bw = textW(F.sans, b, 9.5 * cu)
-        drawAt(self, F.sans, b, tx + 24 * cu, yy, 9.5 * cu, INK)
-        local ptxt = pg and tostring(printed(pg)) or ""
-        local pw = textW(F.sansB, ptxt, 10 * cu)
-        drawAt(self, F.sansB, ptxt, tx + tw_ - pw, yy, 10 * cu, INK)
-        -- the dotted leader
-        local dx = tx + 24 * cu + bw + 4 * u
+        for k, l in ipairs(r.titles) do
+            if k > 1 then yy = yy + 12 * cu end
+            drawAt(self, F.sansB, l.s, tx + 24 * cu, yy, 10 * cu, INK)
+        end
+        for _, l in ipairs(r.blurbs) do
+            yy = yy + 12 * cu
+            if l.s ~= "" then drawAt(self, F.sans, l.s, tx + 24 * cu, yy, 9.5 * cu, INK) end
+        end
+        -- the page number and the dotted leader, on the blurb's last line
+        local pw = textW(F.sansB, r.num, 10 * cu)
+        drawAt(self, F.sansB, r.num, tx + tw_ - pw, yy, 10 * cu, INK)
+        local dx = tx + 24 * cu + r.blurbs[#r.blurbs].w + 4 * u
         while dx < tx + tw_ - pw - 4 * u do
             self:drawRect(dx, yy - 1.5 * u, math.max(1, u), math.max(1, u), 1, INK.r, INK.g, INK.b)
             dx = dx + 4 * u
         end
-        local row = { x = tx, y = rowTop, w = tw_, h = yy - rowTop + 4 * cu, page = pg }
+        local row = { x = tx, y = rowTop, w = tw_, h = r.h, page = r.page, si = r.si, onPage = pi }
         if hover and inRect(row, hover.x, hover.y) then
             self:drawRect(row.x - 4 * u, row.y + 2 * u, row.w + 8 * u, row.h, 0.08, INK.r, INK.g, INK.b)
         end
         self._contentsRows[#self._contentsRows + 1] = row
-        yy = yy + 6 * cu
     end
 end
 
@@ -1277,6 +1306,52 @@ local function adWrapEven(text, f, px, maxW)
         if #adWrap(text, f, px, mid) == #lines then hi = mid else lo = mid end
     end
     return adWrap(text, f, px, hi)
+end
+
+-- THE CONTENTS (the director, Nov 7 2026: "2-3 pages, however many pages it needs. I'm sure it'll expand"): the
+-- sections come from the game's guide and ZeD's chapters at run time, so their count is not fixed. A row for each
+-- section that has a page (numOf(s), its printed number, or nil for none), laid out at the text size and in the
+-- wording into as many pages as it needs, whole rows only, none past the body text's bottom. A row: the chapter's
+-- number and title (wrapped to the text block), its blurb wrapped to the room before its page number (QA, Nov 7
+-- 2026: at Large text some languages' blurbs ran into their numbers), the dotted leader and the number on the
+-- blurb's last line. A later page heads with the contents title and the book's "continued", as the rules pages do.
+-- Places in px at u from the page's top; B.paginate places the pages, drawContentsPage draws them.
+function B.contentsLayout(bk, u, numOf)
+    local cu = u * TM_
+    local tw_ = (U.PW - U.M * 2) * u
+    local bottom = (U.PH - U.FOOT - U.MT) * u
+    local top = (U.MT + 28 + 18) * u
+    local pages = {}
+    local page, y = nil, top
+    local function newPage()
+        local h = upper(tr("UI_ZeD_Guide_BookContents"))
+        if #pages > 0 then h = h .. " " .. upper(tr("UI_ZeD_Guide_BookContinued")) end
+        -- (a heading wider than the text block comes down to fit it)
+        local hp = 28 * u
+        local hw = textW(F.head, h, hp)
+        if hw > tw_ then hp = hp * tw_ / hw end
+        page = { kind = "contents", head = h, headPx = hp, cu = cu, rows = {}, part = #pages + 1 }
+        pages[#pages + 1] = page
+        y = top
+    end
+    newPage()
+    for si, s in ipairs(bk.sections or {}) do
+        local num = numOf(s)
+        if num then
+            local titles = adWrap(upper(s.title or ""), F.sansB, 10 * cu, tw_ - 24 * cu)
+            if #titles == 0 then titles = { { s = "", w = 0 } } end
+            local room = tw_ - 24 * cu - textW(F.sansB, num, 10 * cu) - 16 * u
+            local b = blurb(s)
+            local blurbs = (b ~= "") and adWrap(b, F.sans, 9.5 * cu, room) or {}
+            if #blurbs == 0 then blurbs = { { s = "", w = 0 } } end
+            local h = 13 * cu + (#titles - 1 + #blurbs) * 12 * cu + 4 * cu
+            -- (a row that would pass the bottom starts the next page; one row always goes on a page)
+            if y + h > bottom and #page.rows > 0 then newPage() end
+            page.rows[#page.rows + 1] = { si = si, sid = s.id, num = num, titles = titles, blurbs = blurbs, y = y, h = h, room = room }
+            y = y + h + 2 * cu
+        end
+    end
+    return pages
 end
 
 -- the price's lines: its words in two halves (the first the longer) when both fit maxW, else wrapped to maxW
@@ -1558,7 +1633,7 @@ function ZeD_GuideBook:drawPage(i, x, y, w, u, hover)
     local p = self.pages[i]
     if not p then return end
     if p.kind == "title" then self:drawTitlePage(x, y, w, u); return end
-    if p.kind == "contents" then self:drawContentsPage(x, y, w, u, hover)
+    if p.kind == "contents" then self:drawContentsPage(p, x, y, w, u, hover, i)
     elseif p.kind == "intro" then self:drawIntroPage(x, y, w, u)
     elseif p.kind == "flow" then self:drawFlowPage(p, x, y, w, u)
     elseif p.kind == "rules" then self:drawRulesPage(p, x, y, w, u)
@@ -1598,6 +1673,7 @@ function ZeD_GuideBook:prerender()
     local mx, my = self:getMouseX(), self:getMouseY()
     local hover = { x = mx, y = my }
     local li = self.spread * 2 - 1
+    self._contentsRows = {}   -- (the contents rows on this spread, as its pages draw them)
     self:drawPage(li, g.left.x, g.left.y, g.left.w, u, hover)
     self:drawPage(li + 1, g.right.x, g.right.y, g.right.w, u, hover)
     -- the thumb index: a printed block for each chapter on the right page's edge, the open one dark
@@ -1663,7 +1739,7 @@ function ZeD_GuideBook:press(id)
         core:saveOptions()
     elseif id == "prev" then self:turn(-1)
     elseif id == "next" then self:turn(1)
-    elseif id == "toc" then self:goToPage(3) end
+    elseif id == "toc" then self:goToPage(self.contentsPage or 3) end
 end
 
 function ZeD_GuideBook:stripHit(x, y)
@@ -1684,10 +1760,10 @@ function ZeD_GuideBook:onMouseDown(x, y)
         if inRect(r, x, y) then ZeD.Guide.spoil[ZeD.Guide.spoilKey(r.topic, r.ri)] = true; sound("UIActivateButton"); return true end
     end
     local g = self._g
-    if g and self.pages[self.spread * 2 - 1] and self.pages[self.spread * 2 - 1].kind == "contents" then
-        for _, row in ipairs(self._contentsRows or {}) do
-            if inRect(row, x, y) and row.page then self:goToPage(row.page); return true end
-        end
+    -- (a contents row on either page of the open spread opens its chapter)
+    local li = self.spread * 2 - 1
+    for _, row in ipairs(self._contentsRows or {}) do
+        if (row.onPage == li or row.onPage == li + 1) and row.page and inRect(row, x, y) then self:goToPage(row.page); return true end
     end
     -- a click on a page turns it: the left page back, the right page on
     if g and inRect(g.left, x, y) then self:turn(-1); return true end
@@ -1713,7 +1789,7 @@ function ZeD_GuideBook:onKeyPress(key)
     if key == Keyboard.KEY_ESCAPE then B.close(self.playerNum); GameKeyboard.eatKeyPress(key)
     elseif key == Keyboard.KEY_LEFT or key == Keyboard.KEY_PRIOR then self:turn(-1)
     elseif key == Keyboard.KEY_RIGHT or key == Keyboard.KEY_NEXT then self:turn(1)
-    elseif key == Keyboard.KEY_HOME then self:goToPage(3) end
+    elseif key == Keyboard.KEY_HOME then self:goToPage(self.contentsPage or 3) end
 end
 
 -- the controller: LB, RB and the D-pad's left and right turn the pages; Y the contents; Down to the strip
@@ -1724,7 +1800,7 @@ function ZeD_GuideBook:onJoypadDown(button, jd)
     if button == Joypad.BButton then B.close(self.playerNum)
     elseif button == Joypad.LBumper then self:turn(-1)
     elseif button == Joypad.RBumper then self:turn(1)
-    elseif button == Joypad.YButton then self:goToPage(3)
+    elseif button == Joypad.YButton then self:goToPage(self.contentsPage or 3)
     elseif button == Joypad.AButton and self.footFocus then
         self:press(({ "startup", "prev", "toc", "next" })[self.footFocus])
     elseif button == Joypad.AButton then

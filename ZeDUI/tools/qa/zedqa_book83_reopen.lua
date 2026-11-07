@@ -1,6 +1,6 @@
 -- ZeDUI/tools/qa/zedqa_book83_reopen.lua  (Nov 3 2026, QA; punch list 83, Build's da1a99cf: reopens and Aiming after jumps)
 -- Video effects on. The book opened and closed 4 times, a picture after the last; Simple (the window) opened and
--- closed, then Full again, a picture. Then every spread visited in turn (a clip for each topic), Aiming's spread last:
+-- closed, then Full again, a picture (on the first chapter's spread). Then every spread visited in turn (a clip for each topic), Aiming's spread last:
 -- its clip's isValid() and width, the count of clips made, a picture; closed and reopened on Aiming, again.
 -- Settings put back. Shots zqa_b8r_*.png; grep "ZEDQA b8r".
 local function say(s) print("ZEDQA b8r " .. tostring(s)) end
@@ -22,13 +22,13 @@ local function aimInfo(tag)
 end
 step(30, function() core:setOptionDoVideoEffects(true); opt:setValue(1) end)
 for k = 1, 4 do
-    step(20, function() B.open(0); Bk().spread = 3 end)
+    step(20, function() B.open(0); local b = Bk(); b.spread = math.floor((b.sectionPage[b.sections[1].id] + 1) / 2) end)
     step(20, function() if k < 4 then B.close(0) end end)
 end
 step(40, function() shot("1_after_4_opens") ; B.close(0) end)
 step(20, function() opt:setValue(2); G.open(0) end)
 step(30, function() G.get(0):close(); opt:setValue(1) end)
-step(20, function() B.open(0); Bk().spread = 3 end)
+step(20, function() B.open(0); local b = Bk(); b.spread = math.floor((b.sectionPage[b.sections[1].id] + 1) / 2) end)
 step(40, function() shot("2_after_simple_round_trip") end)
 -- every spread, Aiming's last
 local N = 0
