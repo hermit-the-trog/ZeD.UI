@@ -48,7 +48,12 @@ local CHEV_H = 15
 local LOCK_W, LOCK_H = 236, 214
 local FLASH_MS = 6000
 
-local def = { id = "lock", leash = 4 }
+-- half = true: the half card (220), like the recipe preview, not the full object card (480) every
+-- kind gets by default (ZeD_WorldWindow reads def.half; punch list 99). The padlock's own shape spans
+-- 186 of LOCK_W's 236 units (the rest is margin), so it fits the half card's body (200, or 186 beside
+-- a scrollbar); the facts stack (fact below), the busy band puts its words on a row of their own, and
+-- the card's header and verbs fit themselves to the half card (ObjectCards drawHeader / drawVerbs).
+local def = { id = "lock", leash = 4, half = true }
 
 -- ----------------------------------------------------------------------------
 -- The object and its locks
@@ -522,39 +527,82 @@ local function band(card, x, y, w, t, player)
     local A = ZeD.Atoms
     local d = t.d
     local ac = T.accent
-    local h = math.max(T.px(32), T.buttonH + T.px(8))
-    UI.fill(card, x, y, w, h, "surf2")
-    A.frame(card, x, y, w, h, T.borderS)
     local f1 = T.fontF1
     local busyText = A.textCase(d.busyText or "")
-    card:drawText(busyText, x + T.px(8), y + math.floor((h - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
+    -- the row with the bar, the percent and Stop; in the half card (punch list 99) the busy words get rows
+    -- of their own above it, wrapped to the band, so neither the words nor the bar is squeezed out at 220
+    local rowH = math.max(T.px(32), T.buttonH + T.px(8))
+    local stacked = w < T.px(300)
+    local lines = stacked and A.wrapText(busyText, f1, w - T.px(16)) or nil
+    local lh = tm:getFontHeight(f1) + T.px(2)   -- (one wrapped line's height)
+    local wordsH = stacked and (#lines * lh + T.px(4)) or 0
+    local h = rowH + wordsH
+    local ry = y + wordsH   -- (the row's top)
+    UI.fill(card, x, y, w, h, "surf2")
+    A.frame(card, x, y, w, h, T.borderS)
     local stop = getText("IGUI_media_stop")
     local bw = UI.buttonW(stop)
     local bh = T.buttonH - T.px(4)
     local bx = x + w - T.px(6) - bw
-    UI.button(card, bx, y + math.floor((h - bh) / 2), stop, { w = bw, h = bh, fid = "lk:stop", body = true, focus = card:focusOf("lk:stop"),
+    UI.button(card, bx, ry + math.floor((rowH - bh) / 2), stop, { w = bw, h = bh, fid = "lk:stop", body = true, focus = card:focusOf("lk:stop"),
         help = ZeD.tr("UI_ZeD_Lock_HelpStop"), run = function() pcall(function() ISTimedActionQueue.clear(player) end) end })
     local pct = 0
     if d.busyLabel ~= "walking" then pcall(function() pct = d.busy:getJobDelta() end) end
     local s = tostring(math.floor(pct * 100 + 0.5)) .. "%"
     local f3 = T.fontF3
     local sw = tm:MeasureStringX(f3, s)
-    card:drawText(s, bx - T.px(10) - sw, y + math.floor((h - tm:getFontHeight(f3)) / 2), T.text.r, T.text.g, T.text.b, 1, f3)
-    local barX = x + T.px(8) + tm:MeasureStringX(f1, busyText) + T.px(12)
+    card:drawText(s, bx - T.px(10) - sw, ry + math.floor((rowH - tm:getFontHeight(f3)) / 2), T.text.r, T.text.g, T.text.b, 1, f3)
+    local barX
+    if stacked then
+        -- the words' lines across the band's top, then the bar from the left edge
+        local ty = y + T.px(6)
+        for _, ln in ipairs(lines) do
+            -- (a single word wider than the band is still cut, never drawn past the edge)
+            card:drawText(A.truncateText(ln, f1, w - T.px(16)), x + T.px(8), ty, ac.r, ac.g, ac.b, 1, f1)
+            ty = ty + lh
+        end
+        barX = x + T.px(8)
+    else
+        -- the words, cut to the room left of the percent, then the bar after them
+        busyText = A.truncateText(busyText, f1, bx - T.px(10) - sw - T.px(10) - (x + T.px(8)))
+        card:drawText(busyText, x + T.px(8), ry + math.floor((rowH - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
+        barX = x + T.px(8) + tm:MeasureStringX(f1, busyText) + T.px(12)
+    end
     local barW = bx - T.px(10) - sw - T.px(10) - barX
     if barW > T.px(20) then
         local bar = A.fillBarCompactH()
-        A.drawSmoothBar(card, barX, y + math.floor((h - bar) / 2), barW, math.max(0, math.min(1, pct)), false, ac, bar)   -- (a timed action's progress: smooth)
+        A.drawSmoothBar(card, barX, ry + math.floor((rowH - bar) / 2), barW, math.max(0, math.min(1, pct)), false, ac, bar)   -- (a timed action's progress: smooth)
     end
     return h
 end
 
+-- One fact: the label in the accent, its value beside it. In the half card (220; punch list 99) a
+-- value column 96 in is too narrow for most values, so there the label sits on its own row and the
+-- value wraps under it across the whole body. Returns the height drawn.
 local function fact(card, x, y, w, label, value, dotC)
     local T, tm = ZeD.T, ZeD.TM
     local h = T.px(20)
     local ac = T.accent
     local f1, f2 = T.fontF1, T.fontF2
     card:drawText(ZeD.textCase(label), x, y + math.floor((h - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
+    if w < T.px(300) then
+        -- stacked: the value's lines under the label, the status dot (if any) before the first line
+        local vx = x
+        local lh = tm:getFontHeight(f2) + T.px(2)   -- (one wrapped line's height, with a little leading)
+        local vy = y + h
+        if dotC then
+            ZeD.Atoms.drawStatusDot(card, vx, vy + math.floor((tm:getFontHeight(f2) - T.px(6)) / 2), dotC, T.px(6))
+            vx = vx + T.px(12)
+        end
+        local lines = ZeD.Atoms.wrapText(value, f2, x + w - vx)
+        local tc = T.text
+        for _, ln in ipairs(lines) do
+            -- (a single word wider than the body is still cut, never drawn past the edge)
+            card:drawText(ZeD.CraftingCore.truncText(ln, f2, x + w - vx), vx, vy, tc.r, tc.g, tc.b, tc.a or 1, f2)
+            vy = vy + lh
+        end
+        return (vy - y) + T.px(4)
+    end
     local vx = x + T.px(96)
     if dotC then
         ZeD.Atoms.drawStatusDot(card, vx, y + math.floor((h - T.px(6)) / 2), dotC, T.px(6))

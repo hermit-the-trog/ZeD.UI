@@ -319,9 +319,11 @@ do
     for k, _ in pairs(OC.kinds) do cardKinds[#cardKinds + 1] = k end
     table.sort(cardKinds)
 end
--- an object card needs its object near the character: a kind with none is skipped and named at the end
+-- an object card needs its object near the character: a kind with none is skipped and named at the end.
+-- A kind whose def sets half (the lock card, the recipe preview) opens in the half card; the rest are full.
 for _, kind in ipairs(cardKinds) do
-    extra[#extra + 1] = { name = "World object card " .. kind, acted = "w", want = "full",
+    local want = (OC.kinds[kind] and OC.kinds[kind].half) and "half" or "full"
+    extra[#extra + 1] = { name = "World object card " .. kind, acted = "w", want = want,
         open = function() return openCard(kind) end,
         close = function() if ZeD_WorldWindow.closeObjectCard then ZeD_WorldWindow.closeObjectCard() end end }
 end
