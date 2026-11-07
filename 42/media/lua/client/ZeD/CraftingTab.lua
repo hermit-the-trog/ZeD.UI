@@ -286,23 +286,46 @@ end
 -- DETAIL GATHERING — container scan + batch qty via HandcraftLogic
 -- ============================================================================
 
--- The check the craft itself makes when it starts (ISHandcraftAction:start: a HandcraftLogic
--- with the bench, the containers, then the recipe, canPerformCurrentRecipe). The list's
--- craftable answer is vanilla's per-recipe cache (CC.logicScan), refreshed every 1.2 s and
--- checked less strictly (no surface in reach for an any-surface recipe, among others): Craft
--- stood enabled on a recipe the start then refused, at Required 1/4, and the press counted it
--- as made (the outside review of beta 7, item 8). Returns true / false, or nil when the game
--- would not answer (the button then goes by the list's answer, as before); and the batch's most.
-function ZeD.CraftingTab.startCheck(playerObj, bench, containers, recipe, allowBatch)
+-- The check vanilla's HandcraftStart makes before it queues a craft (a HandcraftLogic with the
+-- bench, the containers, then the recipe, canPerformCurrentRecipe). ISHandcraftAction:start asks
+-- it again only for hand-picked inputs; ZeD's actions have none, so a craft the check would
+-- refuse ran its time, made nothing (performCurrentRecipe failed) and was counted at the press.
+-- The list's craftable answer is vanilla's per-recipe cache (CC.logicScan), refreshed every
+-- 1.2 s: Craft stood enabled on a stale answer, at Required 1/4 (the outside review of beta 7,
+-- item 8). Returns true / false, or nil when the game would not answer (the button then goes
+-- by the list's answer, as before); and the batch's most.
+-- The check also wants the player within 3 tiles of the bench (isCharacterInRangeOfWorkbench,
+-- for a station recipe and an any-surface one), but ZeD keeps a bench bound out to its leash
+-- (Stations.lua: 4.5 tiles, more from a right-click across the room) and Craft walks there
+-- first (WalkToEntity). Out of that reach, the craft is judged as it will be at the bench:
+-- by what the recipe takes (getPossibleCraftCount; the list's answer already holds the skill
+-- and the recipe known, and the bench's recipe set the station). surface: an any-surface
+-- recipe's table in Hand mode (craftSurface), as vanilla's craft window passes it.
+function ZeD.CraftingTab.startCheck(playerObj, bench, containers, recipe, allowBatch, surface)
     local ok, most = nil, 1
     pcall(function()
-        local l = HandcraftLogic.new(playerObj, bench and bench.comp or nil, bench and bench.obj or nil)
+        local l = HandcraftLogic.new(playerObj, bench and bench.comp or nil, bench and bench.obj or surface or nil)
         l:setContainers(containers)
         l:setRecipe(recipe)
         ok = l:canPerformCurrentRecipe() and true or false
+        if not ok and bench and not l:isCharacterInRangeOfWorkbench() then
+            ok = l:getPossibleCraftCount(true) > 0
+        end
         if ok and allowBatch then most = l:getPossibleCraftCount(true) end
     end)
     return ok, most
+end
+
+-- An any-surface recipe in Hand mode: the table or counter it is made on, found as vanilla's
+-- craft window finds it (ISEntityUI.FindCraftSurface, 2 squares). nil when there is none (the
+-- start check then refuses, as vanilla's does), at a bench (the bench is the surface) or for
+-- a recipe that needs no surface. Before, ZeD passed no surface, so the start check refused
+-- every any-surface recipe in Hand mode.
+local function craftSurface(playerObj, entry, bench)
+    if bench or not entry.needSurface then return nil end
+    if not (ISEntityUI and ISEntityUI.FindCraftSurface) then return nil end
+    local ok, obj = pcall(ISEntityUI.FindCraftSurface, playerObj, 2)
+    return ok and obj or nil
 end
 
 local function gatherDetail(rd, playerObj, win)
@@ -320,7 +343,8 @@ local function gatherDetail(rd, playerObj, win)
         chk = { name = entry.name, cont = containers, bench = benchKey, status = rd.status, learned = rd.learned, ok = nil, most = 1 }
         win._craftStartChk = chk
         if entry.recipe and rd.status == "craftable" then
-            chk.ok, chk.most = ZeD.CraftingTab.startCheck(playerObj, bench, containers, entry.recipe, entry.allowBatch)
+            chk.ok, chk.most = ZeD.CraftingTab.startCheck(playerObj, bench, containers, entry.recipe, entry.allowBatch,
+                craftSurface(playerObj, entry, bench))
         end
     end
     rd.canStart = chk.ok
@@ -360,8 +384,10 @@ function ZeD.CraftingTab.startCraft(win, state)
 
     -- The craft's own start check, now, as vanilla's HandcraftStart asks it before it queues:
     -- refused, nothing is queued or counted, and the tab asks again from the containers as they
-    -- are (the button and the list catch up the same frame)
-    local canStart, most = ZeD.CraftingTab.startCheck(playerObj, bench, containers, recipe, qty > 1)
+    -- are (the button and the list catch up the same frame). A bench out of the check's reach
+    -- is judged from the bench, and the walk below takes the player there.
+    local surface = craftSurface(playerObj, entry, bench)
+    local canStart, most = ZeD.CraftingTab.startCheck(playerObj, bench, containers, recipe, qty > 1, surface)
     if canStart == false or (canStart and qty > 1 and most < qty) then
         win._craftStartChk = nil
         win["_craftLogicAt"] = nil
@@ -371,7 +397,9 @@ function ZeD.CraftingTab.startCraft(win, state)
         return
     end
 
-    if bench and ISEntityUI and ISEntityUI.WalkToEntity and not ISEntityUI.WalkToEntity(playerObj, bench.obj) then return end
+    -- walk to the bench, or to an any-surface recipe's table (as vanilla's HandcraftStart does)
+    local at = bench and bench.obj or surface
+    if at and ISEntityUI and ISEntityUI.WalkToEntity and not ISEntityUI.WalkToEntity(playerObj, at) then return end
 
     -- Build actions directly — ISHandcraftAction:new calls
     -- convertToPZNetTable(manualInputs) which crashes on nil AND false.
@@ -383,7 +411,7 @@ function ZeD.CraftingTab.startCraft(win, state)
             local action = ISBaseTimedAction.new(ISHandcraftAction, playerObj)
             action.stopOnAim    = false
             action.character    = playerObj
-            action.isoObject    = bench and bench.obj or nil
+            action.isoObject    = at
             action.craftBench   = bench and bench.comp or nil
             action.containers   = containers
             action.manualInputs = nil  -- falsy → :start() auto-resolves inputs
