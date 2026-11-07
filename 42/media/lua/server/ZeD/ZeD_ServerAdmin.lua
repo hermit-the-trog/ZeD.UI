@@ -377,8 +377,9 @@ local function cardView(md, user, p)
         v.prof, v.traits, v.skills, v.role = rec.prof, listCopy(rec.traits), skillsCopy(rec.skills), rec.role
     end
     if Srv.ticketsOf and Srv.can(p, Srv.CAP_STAFF) then v.tickets, v.ticketN = Srv.ticketsOf(user, AL.TICKETS_ROWS) end
+    -- (closed, a ban would tell that the name is a real account: it goes only to a role that reads the bans, as a_bans)
     local b = rowFor(md, user)
-    if b then v.banId, v.banUntil = b.id, b.untilT end
+    if b and (not closed or Srv.can(p, CAP.BanUnbanUser)) then v.banId, v.banUntil = b.id, b.untilT end
     return v
 end
 

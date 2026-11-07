@@ -1594,6 +1594,25 @@ do
     say(g, "a_card", { user = "Hermit" })
     gc = got(g, "a_card")
     check("an online card is not closed", gc and gc.on == true and gc.closed == nil)
+    -- a ban on the offline name: a closed card keeps it from a role that does not read the bans
+    nolimit(a)
+    say(a, "a_ban", { user = "Kade", reason = "Griefing", len = "w1" })
+    drain()
+    nolimit(a)
+    say(a, "a_card", { user = "Kade" })
+    local ab = got(a, "a_card")
+    check("the ban is on the record (staff card)", ab and ab.banId ~= nil)
+    nolimit(g)
+    say(g, "a_card", { user = "Kade" })
+    gc = got(g, "a_card")
+    check("a closed card keeps a ban from a role without the ban power", gc and gc.closed == true
+        and gc.banId == nil and gc.banUntil == nil)
+    ROLES.gm.caps.BanUnbanUser = true
+    nolimit(g)
+    say(g, "a_card", { user = "Kade" })
+    gc = got(g, "a_card")
+    check("a role that reads the bans still sees it on a closed card", gc and gc.closed == true and gc.banId == ab.banId)
+    ROLES.gm.caps.BanUnbanUser = nil
     ROLES.gm.caps.CanSeePlayersStats = nil
     nolimit(a)
     say(a, "a_card", { user = "Kade" })
