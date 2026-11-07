@@ -239,11 +239,13 @@ part("recipes", function()
 end)
 part("time", function()
     pcall(function() p:setHoursSurvived(24 * 96 + 7) end)
-    pcall(function() p:setZombieKills(318) end)
+    -- the game's count holds weapon (318), vehicle (23) and explosion (3) kills, not fire
+    pcall(function() p:setZombieKills(344) end)
     local kd = md.ZeD_Kills or {}
     md.ZeD_Kills = kd
     kd.weapon = { Blunt = 74, SmallBlunt = 31, LongBlade = 22, SmallBlade = 40, Axe = 88, Spear = 12, Firearm = 37, Unarmed = 6, Other = 8 }
     kd.fire, kd.vehicle, kd.explosion = 14, 23, 3
+    kd.v = 2   -- KillTracker's KILLS_VERSION: keeps its one-time fix off the seed
     md.ZeD_Journal = md.ZeD_Journal or { entries = {} }
     local texts = {
         "found the gas station empty. took the map and two cans of beans",
@@ -267,7 +269,7 @@ part("time", function()
                 minute = (i * 13) % 60, survivalDay = i * 8, text = t })
         end
     end
-    return true, "96 days, 318 kills, " .. #md.ZeD_Journal.entries .. " journal entries"
+    return true, "96 days, 358 kills, " .. #md.ZeD_Journal.entries .. " journal entries"
 end)
 part("flyers", function()
     local n = 0
