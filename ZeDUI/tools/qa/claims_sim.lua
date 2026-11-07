@@ -119,7 +119,8 @@ local function newSafe(x, y, w, h, owner)
     W.safeN = W.safeN + 1
     local s = { x = x, y = y, w = w, h = h, owner = owner, title = owner, players = { owner }, respawn = {}, invites = {},
         id = "safe" .. W.safeN, onlineId = 1000 + W.safeN, visited = W.clock, created = "Nov 5", location = "Riverside" }
-    function s.getId(self) return self.id end
+    -- (the game's is built from a timestamp in the constructor: every machine and every restart holds its own)
+    function s.getId(self) W.idN = (W.idN or 0) + 1; return self.id .. "@" .. W.idN end
     function s.getOwner(self) return self.owner end
     function s.getTitle(self) return self.title end
     function s.getX(self) return self.x end
@@ -556,10 +557,11 @@ local function clientJoin(p)
         end,
         logOnce = function(k, m) check("no client error", false, tostring(k) .. ": " .. tostring(m)) end,
         Messages = { invite = function(text) c.notes[#c.notes + 1] = text end },
+        Safe = { on = function(name) return c.safeMode == true or (name == "windows" and c.windowsBack == true) end },
     }
     c.modals = {}
-    env.ISSafehouseUI = { ReceiveSafehouseInvite = function() c.modals[#c.modals + 1] = "safe" end }
-    env.ISFactionUI = { ReceiveFactionInvite = function() c.modals[#c.modals + 1] = "fac" end }
+    env.ISSafehouseUI = { ReceiveSafehouseInvite = function(...) c.modals[#c.modals + 1] = "safe"; c.modalArgs = { ... } end }
+    env.ISFactionUI = { ReceiveFactionInvite = function(...) c.modals[#c.modals + 1] = "fac"; c.modalArgs = { ... } end }
     env.Events.ReceiveSafehouseInvite.Add(env.ISSafehouseUI.ReceiveSafehouseInvite)
     env.Events.ReceiveFactionInvite.Add(env.ISFactionUI.ReceiveFactionInvite)
     env.sendClientCommand = function(pl, module, command, args)
@@ -1264,23 +1266,23 @@ do
     local s1 = newSafe(100, 100, 10, 10, "Hermit")
     local s2 = newSafe(200, 200, 10, 10, "Hermit")
     advance(1200)
-    check("the first reads", c.C.safe.id == s1.id)
+    check("the first reads", c.C.safe.id == s1.onlineId)
     local r = nil
     c.C.release(c.C.safe, function(ok) r = ok end)
     advance(1200)
     check("it goes, and that is what done means", r == true and #W.safes == 1 and W.safes[1] == s2)
-    check("the other is left", c.C.safe.id == s2.id)
+    check("the other is left", c.C.safe.id == s2.onlineId)
     -- quit, with a house still held
     local s3 = newSafe(300, 300, 10, 10, "Rosa")
     s3.players[#s3.players + 1] = "Hermit"
     table.remove(W.safes, 1)
     W.safes[#W.safes + 1] = s2
     advance(1200)
-    check("now in Rosa's first", c.C.safe.id == s3.id)
+    check("now in Rosa's first", c.C.safe.id == s3.onlineId)
     local q = nil
     c.C.quit(c.C.safe, function(ok) q = ok end)
     advance(1200)
-    check("quit is done when off that house", q == true and c.C.safe.id == s2.id)
+    check("quit is done when off that house", q == true and c.C.safe.id == s2.onlineId)
 end
 
 section("the review: a tag the server refuses is not saved")
@@ -1374,6 +1376,222 @@ do
     check("ten invitation notes at most", n == 10, n)
     check("the newest stays", items[1].text == "invitation 25", items[1].text)
     check("another mod's note is not touched", kept)
+end
+
+section("the review: one key for a safehouse on every machine")
+do
+    world()
+    local a, b = player("Aretha"), player("Rosa")
+    local ca, cb = clientJoin(a), clientJoin(b)
+    local Cl = ca.env.ZeD.Cl
+    local s = newSafe(100, 100, 10, 10, "Aretha")
+    advance(1200)
+    check("the key is the game's online id", Cl.houseKey(s) == s.onlineId)
+    check("and the same each time", ca.C.inviteKey("safe", s) == "safe|" .. tostring(s.onlineId))
+    check("an object without the call falls back to its corner",
+        Cl.houseKey({ getX = function() return 100 end, getY = function() return 200 end }) == "100,200")
+    ca.C.invite("safe", "Rosa")
+    advance(300)
+    check("a note waits", #cb.C.invites == 1)
+    local rsk = cb.C.invites[1].key
+    advance(40000)
+    check("the server's answers leave it there", #cb.C.invites == 1 and cb.C.invites[1].key == rsk, #cb.C.invites)
+    check("the house is found by the key the server sent", cb.C.findHouse(s.onlineId) == s)
+    -- a player who was away when it was sent
+    s.invites["Mags_77"] = true
+    local cm = clientJoin(player("Mags_77"))
+    advance(40000)
+    check("an offline invitation shows", #cm.C.invites == 1 and cm.C.invites[1].host == "Aretha", #cm.C.invites)
+    advance(40000)
+    check("and stays", #cm.C.invites == 1, #cm.C.invites)
+    -- taken back: the note goes on the server's word
+    ca.C.cancelInvite("safe", "Rosa")
+    advance(40000)
+    check("one taken back goes", #cb.C.invites == 0, #cb.C.invites)
+    -- the card's "this one has gone" and the log still follow the house
+    local d = nil
+    ca.C.release(ca.C.safe, function(ok) d = ok end)
+    advance(7000)
+    check("release is reported by the key", d == true and W.safes[1] == nil)
+    check("the log has the release", logHas("release"))
+end
+
+section("the review: while the Server tab is away, the game's pop-ups answer")
+do
+    world()
+    local a, b, m, w = player("Aretha"), player("Rosa"), player("Mags_77"), player("Kade_R")
+    local ca, cb, cm, cw = clientJoin(a), clientJoin(b), clientJoin(m), clientJoin(w)
+    local s = newSafe(100, 100, 10, 10, "Aretha")
+    ca.C.createFaction("Riverside")
+    advance(1200)
+    cb.safeMode, cm.safeMode = true, true
+    ca.C.invite("safe", "Rosa")
+    ca.C.invite("fac", "Mags_77")
+    advance(300)
+    check("safehouse: the game's pop-up", #cb.modals == 1 and cb.modals[1] == "safe")
+    check("safehouse: no note beside it", #cb.C.invites == 0 and #cb.notes == 0)
+    check("faction: the game's pop-up", #cm.modals == 1 and cm.modals[1] == "fac")
+    check("faction: no note beside it", #cm.C.invites == 0 and #cm.notes == 0)
+    advance(40000)
+    check("the server's list raises nothing more", #cb.modals == 1 and #cb.C.invites == 0 and #cm.modals == 1 and #cm.C.invites == 0)
+    -- the option goes Off: a note again, for what the server still holds
+    cb.safeMode = false
+    advance(40000)
+    check("the note is back with the tab", #cb.C.invites == 1 and #cb.modals == 1, #cb.C.invites)
+    -- on again, a note waiting (the watchdog can do this at any moment)
+    cb.safeMode = true
+    advance(1200)
+    check("the waiting note goes to the game's pop-up", #cb.modals == 2 and #cb.C.invites == 0, #cb.modals)
+    check("with what the game's handler is given", cb.modalArgs[1] == s and cb.modalArgs[2] == "Aretha" and cb.modalArgs[3] == "Rosa")
+    advance(40000)
+    check("once", #cb.modals == 2 and #cb.C.invites == 0, #cb.modals)
+    -- a live invitation with the option Off stays a note
+    ca.C.invite("safe", "Kade_R")
+    advance(300)
+    check("no safe mode: a note, no pop-up", #cw.C.invites == 1 and #cw.modals == 0)
+    -- Windows given back in ZeD setup: no window, no tab
+    cw.windowsBack = true
+    advance(1200)
+    check("Windows given back: the game's pop-up", #cw.modals == 1 and #cw.C.invites == 0)
+end
+
+
+section("g3: two taken back inside a second")
+do
+    world()
+    local a, b, m = player("Aretha"), player("Rosa"), player("Mags_77")
+    local ca, cb, cm = clientJoin(a), clientJoin(b), clientJoin(m)
+    local s = newSafe(100, 100, 10, 10, "Aretha")
+    advance(1200)
+    ca.C.invite("safe", "Rosa")
+    ca.C.invite("safe", "Mags_77")
+    advance(300)
+    check("both wait", s.invites.Rosa and s.invites.Mags_77)
+    local r1, r2, wire = nil, nil, 0
+    local send = ca.env.sendClientCommand
+    ca.env.sendClientCommand = function(p, mod, cmd, args) if cmd == "c_cancel" then wire = wire + 1 end; return send(p, mod, cmd, args) end
+    ca.C.cancelInvite("safe", "Rosa", function(x) r1 = x end)
+    ca.C.cancelInvite("safe", "Mags_77", function(x) r2 = x end)
+    ca.C.cancelInvite("safe", "Mags_77", function(x) r2 = "twice" end)
+    advance(300)
+    check("the first is answered", r1 and r1.ok == true and ca.C.sent.safe.Rosa == nil)
+    check("the second waits its turn", r2 == nil and wire == 1, wire)
+    advance(1200)
+    check("the second is answered too", r2 and r2.ok == true and ca.C.sent.safe.Mags_77 == nil, r2 and r2.err)
+    check("both gone on the server", s.invites.Rosa == nil and s.invites.Mags_77 == nil)
+    check("each sent once", wire == 2, wire)
+    -- refused by the limit all the same: goes again
+    ca.C.invite("safe", "Rosa")
+    advance(300)
+    local r3 = nil
+    local mem = W.server.ZeD.Srv
+    mem.mark(a, "c_cancel")
+    ca.C.cancelInvite("safe", "Rosa", function(x) r3 = x end)
+    advance(300)
+    check("a wait is not reported", r3 == nil, r3 and r3.err)
+    advance(2000)
+    check("and it lands", r3 and r3.ok == true, r3 and r3.err)
+    -- no answer at all
+    ca.C.invite("safe", "Rosa")
+    advance(1500)
+    local r4, r5 = nil, nil
+    ca.env.sendClientCommand = function() end
+    ca.C.cancelInvite("safe", "Rosa", function(x) r4 = x end)
+    ca.C.cancelInvite("safe", "Mags_77", function(x) r5 = x end)
+    advance(7000)
+    check("still listening", r4 == nil)
+    advance(1500)
+    check("no answer is reported", r4 and r4.ok == false and r4.err == "lost", r4 and r4.err)
+    ca.env.sendClientCommand = send
+    advance(9500)
+    check("the next is not held up", r5 ~= nil, r5 and r5.err)
+end
+
+section("g3: a second safehouse answer never reaches the anti-cheat")
+do
+    world()
+    local a, r, b = player("Aretha"), player("Kade_R"), player("Rosa")
+    local ca, cr, cb = clientJoin(a), clientJoin(r), clientJoin(b)
+    local s1 = newSafe(100, 100, 10, 10, "Aretha")
+    local s2 = newSafe(300, 300, 10, 10, "Kade_R")
+    local s3 = newSafe(500, 500, 10, 10, "Aretha2")
+    advance(1200)
+    ca.C.invite("safe", "Rosa")
+    cr.C.invite("safe", "Rosa")
+    advance(300)
+    check("two notes", #cb.C.invites == 2, #cb.C.invites)
+    local sent, acc = {}, cb.env.acceptSafehouseInvite
+    cb.env.acceptSafehouseInvite = function(h, host, who, yes) sent[#sent + 1] = h; return acc(h, host, who, yes) end
+    local i1, i2 = cb.C.invites[1], cb.C.invites[2]
+    local j1, j2 = nil, nil
+    cb.C.answer(i1, true, function(ok) j1 = ok end)
+    cb.C.answer(i2, true, function(ok) j2 = ok end)
+    check("the second yes does not go", #sent == 1, #sent)
+    check("and says so at once", j2 == false)
+    check("its note stays while the first is out", #cb.C.invites == 1)
+    cb.C.answer(i1, true, function(ok) j2 = "again" end)
+    check("a double press does not go either", #sent == 1, #sent)
+    local d = nil
+    cb.C.answer(i2, false, function(ok) d = ok end)
+    check("a no does not go", #sent == 1, #sent)
+    check("it ends the note", #cb.C.invites == 0 and d == true)
+    advance(1500)
+    check("the first lands", j1 == true and cb.C.safe ~= nil)
+    -- the first fails: the other can still be answered
+    world()
+    local a2, r2, b2 = player("Aretha"), player("Kade_R"), player("Rosa")
+    local ca2, cr2, cb2 = clientJoin(a2), clientJoin(r2), clientJoin(b2)
+    local h1 = newSafe(100, 100, 10, 10, "Aretha")
+    local h2 = newSafe(300, 300, 10, 10, "Kade_R")
+    advance(1200)
+    ca2.C.invite("safe", "Rosa")
+    cr2.C.invite("safe", "Rosa")
+    advance(300)
+    local first, second = cb2.C.invites[1], cb2.C.invites[2]
+    local fail = nil
+    local acc2 = cb2.env.acceptSafehouseInvite
+    cb2.env.acceptSafehouseInvite = function() end
+    cb2.C.answer(first, true, function(ok) fail = ok end)
+    advance(8500)
+    check("the first gives up", fail == false)
+    cb2.env.acceptSafehouseInvite = acc2
+    local ok2 = nil
+    cb2.C.answer(second, true, function(ok) ok2 = ok end)
+    advance(1500)
+    check("the other still works", ok2 == true and cb2.C.safe ~= nil, ok2)
+    -- a faction has no such test
+    world()
+    local a3, b3 = player("Aretha"), player("Rosa")
+    local ca3, cb3 = clientJoin(a3), clientJoin(b3)
+    ca3.C.createFaction("Riverside")
+    advance(1200)
+    ca3.C.invite("fac", "Rosa")
+    advance(300)
+    local jf = nil
+    cb3.C.answer(cb3.C.invites[1], true, function(ok) jf = ok end)
+    advance(1500)
+    check("a faction yes goes as before", jf == true and cb3.C.fac ~= nil, jf)
+end
+
+section("g3: no note beside the game's pop-up")
+do
+    world()
+    local a, b = player("Aretha"), player("Rosa")
+    local ca, cb = clientJoin(a), clientJoin(b)
+    local s = newSafe(100, 100, 10, 10, "Aretha")
+    advance(1200)
+    cb.safeMode = true
+    ca.C.invite("safe", "Rosa")
+    advance(300)
+    check("the pop-up shows", #cb.modals == 1)
+    local up = true
+    cb.env.ISSafehouseUI.inviteDialogs = { Aretha = { safehouse = s, isReallyVisible = function() return up end } }
+    cb.safeMode = false
+    advance(40000)
+    check("the option goes Off: no note while it shows", #cb.C.invites == 0, #cb.C.invites)
+    up = false
+    advance(40000)
+    check("gone unanswered: the note comes", #cb.C.invites == 1, #cb.C.invites)
 end
 
 print("claims_sim: " .. checks .. " checks, " .. failed .. " failed")

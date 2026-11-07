@@ -357,7 +357,7 @@ ISAdminMessage = { AddAdminMessage = function() end }
 
 -- the files --------------------------------------------------------------------------------
 local LOADED = {}
-local STUBBED = { ["ZeD/Organisms"] = true, ["ZeD/ZeD_CharacterWindow"] = true, ["ZeD/ZeD_WorldWindow"] = true, ["ZeD/ZeD_TabPx"] = true, ["ZeD/ZeD_Messages"] = true }
+local STUBBED = { ["ZeD/Organisms"] = true, ["ZeD/ZeD_CharacterWindow"] = true, ["ZeD/ZeD_WorldWindow"] = true, ["ZeD/ZeD_TabPx"] = true, ["ZeD/ZeD_Messages"] = true, ["ZeD/SafeMode"] = true }
 function require(name)
     if LOADED[name] then return end
     LOADED[name] = true
