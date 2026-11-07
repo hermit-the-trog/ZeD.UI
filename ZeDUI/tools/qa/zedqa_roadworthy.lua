@@ -125,7 +125,7 @@ local function startEngine(n)
     waitFor(function()
         local s = st()
         if s and s.running then return true end
-        if s and s.keyPos == "off" and not s.cranking and now() - t0 > 1500 then
+        if s and s.keyPos == "acc" and not s.cranking and now() - t0 > 1500 then
             n_ = n_ + 1
             if n_ >= 5 then return true end
             t0 = now(); click("ignition")

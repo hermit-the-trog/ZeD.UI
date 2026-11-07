@@ -88,6 +88,8 @@ getPlayerScreenHeight = function() return py_screen()[2] end
 instanceof = function() return true end
 getGameSpeed = function() return 1 end
 setGameSpeed = function() end
+isClient = function() return false end       -- single player (the odometer asks, Nov 7 2026)
+isServer = function() return false end
 getGameTime = function() return { getHour = function() return 10 end, getMinutes = function() return 8 end } end
 getPlayerVehicleDashboard = function() return nil end
 getZomboidRadio = function() return nil end
