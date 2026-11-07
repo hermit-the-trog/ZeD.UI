@@ -98,7 +98,7 @@ param(
 # ============================================================================
 # Places (fixed: the director's machine)
 # ============================================================================
-$ZomboidDir  = "C:\Users\danie\Zomboid"
+$ZomboidDir  = $(if ($env:ZEDQA_ZDIR) { $env:ZEDQA_ZDIR } else { "C:\Users\danie\Zomboid" })   # (Nov 6 2026) ZEDQA_ZDIR: a separate game folder, -cachedir
 $LuaDir      = Join-Path $ZomboidDir "Lua"
 $LockFile    = Join-Path $LuaDir "zedqa.lock"
 $GoFile      = Join-Path $LuaDir "zedqa.go"
@@ -114,7 +114,7 @@ $ResetPrefix = 'pcall(function() if ZeD_Window and ZeD_Window.resetLayout then Z
 $VersionTxt  = Join-Path $ZomboidDir "version.txt"
 $QaDir       = "C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\tools\qa"
 $ReportDir   = "C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression"
-$ModInfo     = "C:\Users\danie\Zomboid\mods\ZeD-UI\42\mod.info"
+$ModInfo     = Join-Path $ZomboidDir "mods\ZeD-UI\42\mod.info"
 $GameDir     = "E:\Project Zomboid\SteamApps\common\ProjectZomboid"
 $GameExe     = Join-Path $GameDir "ProjectZomboid64.exe"
 $LaunchWin   = Join-Path $QaDir "pzlaunchwin.ps1"
@@ -496,6 +496,7 @@ function Start-Game4K {
     $launchAt = (Get-Date).AddSeconds(-2)
     # (Nov 6 2026: ZEDQA_NOSTEAM: with the Steam account subscribed to ZeD itself, Steam's copy shadows the dev mod, which alone has the bridge)
 $gameArgs = $(if ($Mp -or $env:ZEDQA_NOSTEAM) { "-debug -nosteam" } else { "-debug" })
+if ($env:ZEDQA_ZDIR) { $gameArgs += " -cachedir=$env:ZEDQA_ZDIR" }
     Start-Process -FilePath $GameExe -ArgumentList $gameArgs -WorkingDirectory $GameDir | Out-Null
     Add-Note "started ProjectZomboid64.exe $gameArgs (fullscreen, the director's options.ini)"
     Start-Sleep -Seconds 10   # the game moves the old console.txt to Logs/ as it starts
@@ -993,6 +994,7 @@ if ($Check) {
 $staged = @(Get-ChildItem -Path "C:/Users/danie/Zomboid/Workshop/*/Contents/mods/*/42/mod.info", "C:/Users/danie/Zomboid/Workshop/*/Contents/mods/*/common/mod.info", "C:/Users/danie/Zomboid/Workshop/*/Contents/mods/*/mod.info" -ErrorAction SilentlyContinue |
     Where-Object { Select-String -LiteralPath $_.FullName -Pattern '^\s*id=ZeD_UI\s*$' -Quiet -ErrorAction SilentlyContinue } |
     ForEach-Object { $_.FullName -replace '[\\/]mods[\\/].*$', '' } | Select-Object -Unique)
+if ($env:ZEDQA_ZDIR) { $staged = @() }   # (a separate game folder never reads the real Workshop folder)
 if ($staged.Count -gt 0 -and $StagedCopy) {
     # -StagedCopy (release_check.ps1 -Staged): run against the staged copy on purpose; it needs the bridge put in for the run
     foreach ($folder in $staged) {

@@ -8,7 +8,7 @@
 param([string]$Report = "release_check", [int]$Width = 0, [int]$Height = 0, [switch]$Staged, [string]$Manifest = "release_check.txt")   # -Manifest (Nov 3 2026): another manifest that needs the real mouse
 $ErrorActionPreference = "Stop"
 $here = $PSScriptRoot
-$lua = "C:\Users\danie\Zomboid\Lua"
+$lua = $(if ($env:ZEDQA_ZDIR) { Join-Path $env:ZEDQA_ZDIR "Lua" } else { "C:\Users\danie\Zomboid\Lua" })
 foreach ($f in "zedqa_click.txt", "zedqa_click_done.txt", "zedqa_click_stop.txt") { $p = Join-Path $lua $f; if (Test-Path $p) { Remove-Item $p -Force } }
 $size = if ($Width -gt 0) { @("-Mode", "windowed", "-Width", $Width, "-Height", $Height) } else { @("-Mode", "fullscreen4k") }
 $helper = Start-Process pwsh -ArgumentList @("-NoProfile", "-File", (Join-Path $here "release_check_mouse.ps1")) -WindowStyle Hidden -PassThru

@@ -1,0 +1,4 @@
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=30
+zedqa_release_check.lua | rel | timeout=240
+zedqa_staged_ver.lua | sv | timeout=30
