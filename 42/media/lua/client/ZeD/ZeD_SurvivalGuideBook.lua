@@ -55,6 +55,22 @@ local function applyType()
     for k, v in pairs(BASE_TYPE) do U[k] = v * m end
     return m
 end
+B.applyType = applyType   -- (for ZeDUI/tools/qa/guide_ads_sim.lua: the text size without the panel)
+
+-- the guide's ads (design, Nov 6 2026): media/textures/ZeD/guide/ads/<name>.png, 2x art; sizes in design px
+ZeD.GuideAds = {
+    size = { full = { 440, 628 }, half = { 440, 310 }, third = { 440, 205 }, quarter = { 215, 310 } },
+    full = { "full_ready_prep", "full_greenes_grocery", "full_crossroads_mall" },
+    half = { "half_well_regulated_militia", "half_better_bed_than_dead", "half_zacs_hardware", "half_body_chisel",
+             "half_jamieton_army_surplus", "half_mccoys_lumber", "half_pharmahug" },
+    third = { "third_maps_unlimited", "third_salt_river_bait", "third_pioneer_girls", "third_knob_creek_hunting",
+              "third_aa_ron_hunting", "third_west_point_range", "third_nails_and_nuts", "third_time_4_sport",
+              "third_zippee_market", "third_phils_pawn", "third_hit_vids", "third_rolling_fork_camp" },
+    quarter = { "quarter_xray_specs", "quarter_iron_mike", "quarter_safari_club", "quarter_brine_buddies",
+                "quarter_learn_magic", "quarter_kentucky_seed_co", "quarter_kitten_knives",
+                "quarter_purrfect_barkner", "quarter_motorbikes_and_more", "quarter_wizards_keep",
+                "quarter_juke_box_bowling", "quarter_seat_yourself_furniture" },
+}
 -- the room left at the top of the screen for the game's "Game Paused" box (QA: it sat over the book at the Deck)
 local TOP = 34
 
@@ -254,6 +270,231 @@ local function bodyLines(t, f, px, w)
     return out
 end
 
+-- ---------------------------------------------------------------------------
+-- THE ADS (design, Nov 6 2026, punch list 98; ZeDUI/HANDOFF_design_guide_ads_20261106.md): the back pages of a 1987
+-- paperback. A whole page the layout leaves over takes a full-page ad (the publisher's house ad, drawn in Lua and
+-- translated, is one of them); a flow page a third or more empty takes the largest that fits. Each ad at most once
+-- a book: a slot with no ad left falls through to the next step, and at the end comes the ruled NOTES block.
+-- The deal is made once each time the pages are laid out (B.paginate), never while drawing, so turning the pages
+-- never reshuffles; a new layout (text size, pad or keyboard wording, language) deals again from the same seed, so
+-- the order stays and only how far down each list the book gets moves.
+-- ---------------------------------------------------------------------------
+local AD_DIR = "media/textures/ZeD/guide/ads/"
+local AD_GAP = 18        -- design px after each ad
+local HOUSE = "house"    -- the publisher's own full-page ad in the full-page shuffle (drawAdPage draws it)
+
+-- A seeded generator (Park and Miller's "minimal standard", stepped by Schrage's method): every value it makes or
+-- multiplies stays below 2^31. Kahlua needs that (its % goes wrong past 2^31), and math.random is one stream for
+-- the whole game, so it could not give the same book twice. Here math.floor does the modulo.
+local PM_M, PM_A, PM_Q, PM_R = 2147483647, 16807, 127773, 2836
+local function pmNext(x)
+    local hi = math.floor(x / PM_Q)      -- x = hi * Q + lo
+    local lo = x - hi * PM_Q
+    x = PM_A * lo - PM_R * hi            -- (A * x) mod M without ever making A * x (at most 2147463604)
+    if x <= 0 then x = x + PM_M end
+    return x                             -- 1 .. M - 1
+end
+B.pmNext = pmNext
+
+-- a string to a seed: each character folded in, kept below 2^24 so the next h * 33 stays below 2^31
+function B.hashSeed(s)
+    s = tostring(s or "")
+    local h = 5381
+    for i = 1, #s do
+        h = h * 33 + (s:byte(i) or 0)
+        h = h - math.floor(h / 16777213) * 16777213   -- (h mod 16777213, without Kahlua's %)
+    end
+    return pmNext(h + 1)                 -- (+1: the generator's seed must not be 0)
+end
+
+-- WHAT "A BOOK" IS. The Full look's book is the F1 guide, one panel a player (B.books[pn]); no guide item lies in
+-- the world to carry an ID in its modData. So a book is a character in a save: the seed is the save's name and the
+-- character's name, hashed. It needs nothing written (player modData written by a client may not last in
+-- multiplayer), reads the same after a reload, and a new character or another save prints other back pages.
+function B.adSeed(pn)
+    local parts = {}
+    pcall(function() parts[#parts + 1] = tostring(getWorld():getWorld()) end)
+    pcall(function()
+        local d = getSpecificPlayer(pn or 0):getDescriptor()
+        parts[#parts + 1] = tostring(d:getForename()) .. " " .. tostring(d:getSurname())
+    end)
+    if #parts == 0 then parts[1] = "player " .. tostring(pn or 0) end
+    return B.hashSeed(table.concat(parts, "|"))
+end
+
+-- a copy of `list` shuffled by the generator from state x (Fisher-Yates); returns it and the generator's state
+local function shuffled(list, x)
+    local out = {}
+    for i, v in ipairs(list) do out[i] = v end
+    for i = #out, 2, -1 do
+        x = pmNext(x)
+        local j = math.floor((x - 1) / (PM_M - 1) * i) + 1   -- 1 .. i (a fraction below 1, times i)
+        out[i], out[j] = out[j], out[i]
+    end
+    return out, x
+end
+
+-- the book's deck: each size's list shuffled from the seed (the house ad among the full pages); `at` counts what
+-- each list has dealt
+function B.adDeck(seed)
+    local A = ZeD.GuideAds
+    local x = pmNext(pmNext(seed or 1))   -- (two steps in: neighboring seeds part ways)
+    local d = { at = { full = 0, half = 0, third = 0, quarter = 0 }, halfNext = true }
+    local full = { HOUSE }
+    for _, n in ipairs(A.full) do full[#full + 1] = n end
+    d.full, x = shuffled(full, x)
+    d.half, x = shuffled(A.half, x)
+    d.third, x = shuffled(A.third, x)
+    d.quarter, x = shuffled(A.quarter, x)
+    return d
+end
+
+-- the next n ads of a size (a list), or nil when fewer than n are left: never a repeat
+local function deal(d, size, n)
+    n = n or 1
+    local at = d.at[size]
+    if at + n > #d[size] then return nil end
+    local out = {}
+    for k = 1, n do out[k] = d[size][at + k] end
+    d.at[size] = at + n
+    return out
+end
+
+-- A filler's plan (y0 and y1 from the page's top, screen px): blocks { k, y, names } drawn by drawFiller.
+-- 1. The First Days checklist when it fits (checkH its height, nil on other pages).
+-- 2. Room for 310: a half, or a pair of quarters side by side (215 + 10 + 215); the book alternates, a half then a
+--    pair, and takes the other when one runs out (a pair needs two quarters left).
+-- 3. Room for 205: a third.  4. What is left: the ruled NOTES block.  18 after each ad.
+-- st counts the slots asked for and missed (B.adReport).
+local function planFiller(d, y0, y1, u, checkH, st)
+    local plan = {}
+    local S = ZeD.GuideAds.size
+    local h = y1 - y0
+    if h < 60 * u then return plan end
+    if checkH and h >= checkH then
+        plan[#plan + 1] = { k = "check", y = y0 }
+        y0 = y0 + checkH + AD_GAP * u
+        h = y1 - y0
+        if h < 80 * u then return plan end
+    end
+    if h >= S.half[2] * u then
+        st.ask310 = st.ask310 + 1
+        local half, pair
+        if d.halfNext then
+            half = deal(d, "half")
+            if not half then pair = deal(d, "quarter", 2) end
+        else
+            pair = deal(d, "quarter", 2)
+            if not pair then half = deal(d, "half") end
+        end
+        if half or pair then
+            plan[#plan + 1] = { k = half and "half" or "pair", y = y0, names = half or pair }
+            d.halfNext = not half            -- (after a half a pair, after a pair a half)
+            y0 = y0 + (S.half[2] + AD_GAP) * u
+            h = y1 - y0
+            if h < 80 * u then return plan end
+        else
+            st.miss310 = st.miss310 + 1      -- (no ad of that height left: on to the third)
+        end
+    end
+    if h >= S.third[2] * u then
+        st.ask205 = st.ask205 + 1
+        local third = deal(d, "third")
+        if third then
+            plan[#plan + 1] = { k = "third", y = y0, names = third }
+            y0 = y0 + (S.third[2] + AD_GAP) * u
+            h = y1 - y0
+            if h < 80 * u then return plan end
+        else
+            st.miss205 = st.miss205 + 1
+        end
+    end
+    plan[#plan + 1] = { k = "notes", y = y0 }
+    st.notes = st.notes + 1
+    return plan
+end
+
+-- The deal, in page order: a whole page its full ad (p.ad: a name, "house", or false for NOTES), each filler its
+-- plan (it.ads on a flow page's filler item, p.filler.ads at a rules page's foot). textW_ the text block's width.
+-- The feet of rules pages behind a spoiler bar are dealt last, from what is left: their ads stay hidden until the
+-- reader shows the numbers, so they never take an ad a page in plain sight would then go without. (Whether a table
+-- is a spoiler is fixed by the layout, not by whether its numbers are shown now, so showing them never deals again.)
+function B.dealAds(bk, pages, u, textW_)
+    local d = B.adDeck(bk._adSeed or 1)
+    local st = { full = 0, fullMiss = 0, ask310 = 0, miss310 = 0, ask205 = 0, miss205 = 0, notes = 0 }
+    local later = {}   -- (the spoiler pages' feet, kept for the second pass)
+    for _, p in ipairs(pages) do
+        if p.kind == "ad" then
+            local a = deal(d, "full")
+            p.ad = a and a[1] or false
+            st.full = st.full + 1
+            if not a then st.fullMiss = st.fullMiss + 1 end
+        elseif p.kind == "flow" then
+            for _, it in ipairs(p.items) do
+                if it.k == "filler" then
+                    local ch = it.check and bk:drawChecklist(0, textW_, 0, u, true) or nil
+                    it.ads = planFiller(d, it.y, it.y1, u, ch, st)
+                end
+            end
+        elseif p.kind == "rules" and p.filler then
+            if p.rules and p.rules.spoiler then
+                later[#later + 1] = p
+            else
+                p.filler.ads = planFiller(d, p.filler.y, p.filler.y1, u, nil, st)
+            end
+        end
+    end
+    -- the second pass: the hidden feet, in page order, take what the rest of the book left
+    for _, p in ipairs(later) do
+        p.filler.ads = planFiller(d, p.filler.y, p.filler.y1, u, nil, st)
+    end
+    st.at = d.at
+    bk.adStats = st
+    return st
+end
+
+-- one line on how far the ads went at this layout (QA's count: whether 34 ads cover every slot). Logged in -debug
+-- each time it changes, so a text size or wording change shows its own count in console.txt.
+function B.adReport(bk)
+    local st = bk and bk.adStats
+    if not st then return "no deal" end
+    local A = ZeD.GuideAds
+    return string.format("ZeD guide ads (text x%.2f, %s): full pages %d (%d NOTES); 310 slots %d (%d with no half or pair left);"
+        .. " 205 slots %d (%d with no third left); NOTES blocks %d; dealt full %d/%d, half %d/%d, quarter %d/%d, third %d/%d",
+        TM_, bk._joyRead and "pad" or "keyboard", st.full, st.fullMiss, st.ask310, st.miss310, st.ask205, st.miss205, st.notes,
+        st.at.full, #A.full + 1, st.at.half, #A.half, st.at.quarter, #A.quarter, st.at.third, #A.third)
+end
+
+-- the textures, each loaded the first time a page draws it (all 34 at 2x are about 60 MB once loaded).
+-- Flags 2 (the engine's TextureID reads them as bits when it uploads the texture): 2 = point filtering when the
+-- texture is drawn LARGER than its PNG (u above 2), so the pixel pictures stay crisp there. Bit 1 (point filtering
+-- when drawn smaller) stays off: at u 2 and below (1080p, 4K at 1.75x) the art is shrunk, and point sampling would
+-- drop whole art pixels from the thin strokes of its type, so shrinking stays linear (smooth). Bit 4 (texture
+-- compression) stays off too, so the game's compression option cannot blotch the fine print.
+local AD_TEX_FLAGS = 2
+local _adTex = {}
+local function adTex(name)
+    local t = _adTex[name]
+    if t == nil then
+        local path = AD_DIR .. name .. ".png"
+        t = (Texture and Texture.getSharedTexture and Texture.getSharedTexture(path, AD_TEX_FLAGS)) or getTexture(path) or false
+        _adTex[name] = t
+    end
+    return t or nil
+end
+-- a whole screen pixel: v rounded to the nearest (half up), so the art never sits between pixels, where linear
+-- filtering would smear it further
+local function snap(v) return math.floor(v + 0.5) end
+-- an ad at its design size times u, top left at (x, y), on whole pixels; returns its right edge (the pair's second
+-- quarter starts from it)
+local function drawAd(panel, name, size, x, y, u)
+    local s = ZeD.GuideAds.size[size]
+    local x0, w = snap(x), snap(s[1] * u)
+    local tex = adTex(name)
+    if tex then panel:drawTextureScaled(tex, x0, snap(y), w, snap(s[2] * u), 1, 1, 1, 1) end
+    return x0 + w
+end
+
 -- the page list for a reading of the topics (front matter, then a page a topic and its rules page)
 -- The pages, as a flow (the director, Nov 3 2026: topics share a page): a chapter opens on a fresh page with its
 -- heading, the clip and the line under it; each later topic follows on the same page under its own heading when its
@@ -360,8 +601,9 @@ function B.paginate(bk, u)
             local first = ti == 1
             local rf = ZeD.Guide.Rules and ZeD.Guide.Rules[t.titleKey]
             if rf then
-                -- (the page that makes room is the publisher's house ad, never a blank page: the director, Nov 4
-                -- 2026, "options for callouts and advertisement styling. Look more built by a large publisher")
+                -- (the page that makes room is a full-page ad, never a blank page: the director, Nov 4 2026,
+                -- "options for callouts and advertisement styling. Look more built by a large publisher"; which
+                -- ad is dealt when the pages are done, B.dealAds)
                 if (#pages + 1) % 2 == 0 then pages[#pages + 1] = { kind = "ad" } end
                 -- a fresh left page (a blank before it if need be), so the rules page faces it
                 newPage(si, s, first)
@@ -435,16 +677,26 @@ function B.paginate(bk, u)
     -- costs more money, so they generally fill the content"): a flow page a third or more empty takes a filler
     local room = bottom - px(U.MT)
     local checkDone = false
-    for i, pg in ipairs(pages) do
+    for _, pg in ipairs(pages) do
         if pg.kind == "flow" and pg.endY and bottom - pg.endY >= room / 3 then
             -- (the First Days checklist once, on the first of its pages with the room)
             local check = (not checkDone) and pg.section and pg.section.id == "zedch:firstdays"
             if check then checkDone = true end
-            pg.items[#pg.items + 1] = { k = "filler", y = pg.endY + px(16), y1 = bottom, seed = i, check = check }
+            pg.items[#pg.items + 1] = { k = "filler", y = pg.endY + px(16), y1 = bottom, check = check }
+        elseif pg.kind == "rules" then
+            -- (a rules page's foot: the page measured now, drawn dry, so its filler is dealt with the rest; the
+            -- numbers counted as shown even behind a spoiler bar, so showing them never deals again)
+            local ok, endY = pcall(bk.drawRulesPage, bk, pg, 0, 0, px(U.PW), u, true)
+            if ok and endY and bottom - endY >= px(U.PH - U.MT - U.FOOT) / 3 then
+                pg.filler = { y = endY + px(16), y1 = bottom }
+            end
         end
     end
     if #pages % 2 == 1 then pages[#pages + 1] = { kind = "ad" } end
     bk.pages = pages
+    -- the ads, dealt for this layout (THE ADS, above)
+    local ok, err = pcall(B.dealAds, bk, pages, u, textW_)
+    if not ok then ZeD.logOnce("survival guide ads", err) end
 end
 
 -- the printed number of the page at index i (the title page is the first right-hand page, ii)
@@ -472,7 +724,15 @@ function ZeD_GuideBook:readTopics(u)
     self._joyRead = joy
     self.sections, self.byId, self.flat = ZeD.Guide.readTopicList(joy)
     self._u = u
+    -- (the ads' seed: this character in this save, read again each time since a split-screen seat can change hands)
+    self._adSeed = B.adSeed(self.playerNum)
     B.paginate(self, u)
+    -- (in -debug, the ads' count for this layout when it changes: QA's question of whether 34 ads cover the book)
+    local ok, dbg = pcall(isDebugEnabled)
+    if ok and dbg then
+        local okR, line = pcall(B.adReport, self)
+        if okR and line ~= self._adLine then self._adLine = line; print(line) end
+    end
 end
 
 -- the unit (screen px per design unit): the UI scale, smaller when the book would not fit the screen
@@ -613,7 +873,7 @@ function ZeD_GuideBook:drawFlowPage(p, x, y, w, u)
                 end
             end
         elseif k == "filler" then
-            self:drawFiller(tx, tw_, y + it.y, y + it.y1, u, it.seed, it.check)
+            self:drawFiller(tx, tw_, y, it, u)
         elseif k == "caption" then
             drawCentre(self, F.sansI, it.text, cx, y + it.y, U.CAP * u, INK)
         elseif k == "deck" then
@@ -624,19 +884,24 @@ function ZeD_GuideBook:drawFlowPage(p, x, y, w, u)
     end
 end
 
-function ZeD_GuideBook:drawRulesPage(p, x, y, w, u)
+-- dry: measure only (B.paginate, for the page's filler): nothing drawn, the numbers counted as shown even behind a
+-- spoiler; returns where the text ends, from the page's top
+function ZeD_GuideBook:drawRulesPage(p, x, y, w, u, dry)
+    local draw = not dry
     local m = U.M * u
     local tx, tw_ = x + m, w - m * 2
     local yy = y + U.MT * u
     -- the grey bar
     local barH = U.BAR * u * 1.9
-    self:drawRect(tx, yy, tw_, barH, 1, TINT.r, TINT.g, TINT.b)
-    self:drawRectBorder(tx, yy, tw_, barH, 1, INK.r, INK.g, INK.b)
-    drawCentre(self, F.sansB, upper(p.rules.title or tr("UI_ZeD_Guide_Rules")), x + w / 2, yy + barH * 0.68, U.BAR * u, INK)
+    if draw then
+        self:drawRect(tx, yy, tw_, barH, 1, TINT.r, TINT.g, TINT.b)
+        self:drawRectBorder(tx, yy, tw_, barH, 1, INK.r, INK.g, INK.b)
+        drawCentre(self, F.sansB, upper(p.rules.title or tr("UI_ZeD_Guide_Rules")), x + w / 2, yy + barH * 0.68, U.BAR * u, INK)
+    end
     yy = yy + barH + U.TEXT * u
     local r = p.rules
     -- a spoiler (the director, Nov 4 2026): a grey bar to show the numbers, and a line on why they are hidden
-    if ZeD.Guide.spoilHidden(p.topic, p.ri or 1, r) then
+    if draw and ZeD.Guide.spoilHidden(p.topic, p.ri or 1, r) then
         local bh = U.TEXT * u * 2.2
         yy = yy + U.TEXT * u
         self:drawRect(tx, yy, tw_, bh, 1, TINT.r, TINT.g, TINT.b)
@@ -657,7 +922,7 @@ function ZeD_GuideBook:drawRulesPage(p, x, y, w, u)
     local function para(text)
         for _, l in ipairs(wrapWords(wordsOf(text), F.text, px, function() return tw_ end, 1, 0)) do
             yy = yy + lineH
-            drawLine(self, F.text, px, l, tx, yy, INK)
+            if draw then drawLine(self, F.text, px, l, tx, yy, INK) end
         end
         yy = yy + lineH * 0.35
     end
@@ -692,7 +957,7 @@ function ZeD_GuideBook:drawRulesPage(p, x, y, w, u)
         xx = xx + wc + gap
     end
     local y0 = boxY + pad
-    for c = 1, ncol do
+    for c = 1, draw and ncol or 0 do   -- (no columns to draw when dry)
         for li, l in ipairs(heads[c]) do
             local words = {}
             for _, it in ipairs(l.items) do words[#words + 1] = it.word or "" end
@@ -700,39 +965,32 @@ function ZeD_GuideBook:drawRulesPage(p, x, y, w, u)
         end
     end
     local ry = y0 + hl * cpx * 1.25 + 5 * u
-    self:drawRect(tx + pad, ry, inner, math.max(1, 1.5 * u), 1, INK.r, INK.g, INK.b)
+    if draw then self:drawRect(tx + pad, ry, inner, math.max(1, 1.5 * u), 1, INK.r, INK.g, INK.b) end
     -- (the last column wraps in the room left; the row takes its lines: QA, the Deck ran them off the page)
     local lastW = math.max(40 * u, tx + pad + inner - colX[ncol])
     for _, row in ipairs(r.rows) do
         ry = ry + cpx * 1.5
-        for c = 1, ncol - 1 do drawAt(self, F.text, row[c] or "", colX[c], ry, cpx, INK) end
         local lines = wrapWords(wordsOf(tostring(row[ncol] or "")), F.text, cpx, function() return lastW end, 1, 0)
-        for li, l in ipairs(lines) do drawLine(self, F.text, cpx, l, colX[ncol], ry + (li - 1) * cpx * 1.3, INK) end
+        if draw then
+            for c = 1, ncol - 1 do drawAt(self, F.text, row[c] or "", colX[c], ry, cpx, INK) end
+            for li, l in ipairs(lines) do drawLine(self, F.text, cpx, l, colX[ncol], ry + (li - 1) * cpx * 1.3, INK) end
+        end
         if #lines > 1 then ry = ry + (#lines - 1) * cpx * 1.3 end
-        self:drawRect(tx + pad, ry + cpx * 0.45, inner, math.max(1, u * 0.6), 0.3, INK.r, INK.g, INK.b)
+        if draw then self:drawRect(tx + pad, ry + cpx * 0.45, inner, math.max(1, u * 0.6), 0.3, INK.r, INK.g, INK.b) end
     end
     ry = ry + cpx * 1.8
-    drawCentre(self, F.textB, r.title or p.topic.title, x + w / 2, ry, cpx, INK)
+    if draw then drawCentre(self, F.textB, r.title or p.topic.title, x + w / 2, ry, cpx, INK) end
     local boxH = ry + pad - boxY
-    self:drawRectBorder(tx, boxY, tw_, boxH, 1, INK.r, INK.g, INK.b)
+    if draw then self:drawRectBorder(tx, boxY, tw_, boxH, 1, INK.r, INK.g, INK.b) end
     yy = boxY + boxH + 6 * u
     for i = 2, #(r.notes or {}) do para(r.notes[i]) end
-    local bot = y + (U.PH - U.FOOT - U.MT) * u
-    if bot - yy >= (U.PH - U.MT - U.FOOT) * u / 3 then self:drawFiller(tx, tw_, yy + 16 * u, bot, u, (p.ri or 1) + #r.rows) end
+    if dry then return yy - y end
+    -- its foot, when a third or more is left: the filler measured and dealt with the layout (B.paginate)
+    if p.filler then self:drawFiller(tx, tw_, y, p.filler, u) end
 end
 
--- A FILLER (what the publisher prints where the text leaves room): a quarter-page house ad box when it fits, else a
--- ruled NOTES block as a real manual leaves for its owner. The ad's titles rotate by the page.
--- the price in its black box, its words over two lines
-function ZeD_GuideBook:drawPriceBox(pX, pY, pW, pH, u)
-    self:drawRect(pX, pY, pW, pH, 1, INK.r, INK.g, INK.b)
-    local pw = {}
-    for wd in tr("UI_ZeD_Guide_Ad1_Price"):gmatch("%S+") do pw[#pw + 1] = wd end
-    local half = math.ceil(#pw / 2)
-    local pc = pX + pW / 2
-    drawCentre(self, F.sansB, upper(table.concat(pw, " ", 1, half)), pc, pY + pH * 0.42, U.CAP * u * 1.2, PAPER)
-    if #pw > half then drawCentre(self, F.sansB, upper(table.concat(pw, " ", half + 1)), pc, pY + pH * 0.8, U.CAP * u * 1.2, PAPER) end
-end
+-- A FILLER (what the publisher prints where the text leaves room): the shops' ads dealt for it (THE ADS, above),
+-- then a ruled NOTES block as a real manual leaves for its owner.
 
 -- the First Days checklist (the director, Nov 4 2026: tick-box checklists, the FEMA pamphlets' way): a framed box, its
 -- head, the items each with an empty tick box; returns its height
@@ -766,93 +1024,9 @@ function ZeD_GuideBook:drawChecklist(tx, tw_, by, u, measureOnly)
     return h
 end
 
--- the half-page house ad: the frame, headline, deck, the paragraph, the five titles with tick boxes, the price box
-local function drawHalfAd(self, tx, tw_, by, u, adH)
-    local px = U.TEXT * u
-    local lineH = px * U.LEAD
-    local lw = math.max(1, math.floor(2 * u))
-    for i = 0, lw - 1 do self:drawRectBorder(tx + i, by + i, tw_ - i * 2, adH - i * 2, 1, INK.r, INK.g, INK.b) end
-    local ix, iw = tx + 14 * u, tw_ - 28 * u
-    local cx = tx + tw_ / 2
-    local yy = by + 14 * u + U.OPEN * u * 0.8
-    drawCentre(self, F.head, upper(tr("UI_ZeD_Guide_Ad1_Head")), cx, yy, U.OPEN * u * 0.8, INK)
-    yy = yy + U.DECK * u * 1.5
-    drawCentre(self, F.sansB, tr("UI_ZeD_Guide_Ad1_Deck"), cx, yy, U.DECK * u * 0.9, INK)
-    yy = yy + 6 * u
-    self:drawRect(ix, yy, iw, math.max(1, u), 1, INK.r, INK.g, INK.b)
-    for _, l in ipairs(wrapWords(wordsOf(tr("UI_ZeD_Guide_Ad1_Body")), F.text, px, function() return iw end, 1, 0)) do
-        yy = yy + lineH
-        drawLine(self, F.text, px, l, ix, yy, INK)
-    end
-    yy = yy + 6 * u
-    local sq = math.floor(px * 0.75)
-    local priceW = 90 * u
-    for t = 1, 5 do
-        yy = yy + lineH * 1.08
-        self:drawRectBorder(ix, yy - sq, sq, sq, 1, INK.r, INK.g, INK.b)
-        drawAt(self, F.textB, tr("UI_ZeD_Guide_Ad1_T" .. t), ix + sq + 8 * u, yy, px, INK)
-    end
-    self:drawPriceBox(tx + tw_ - 14 * u - priceW, by + adH - 14 * u - 62 * u, priceW, 62 * u, u)
-end
-
-function ZeD_GuideBook:drawFiller(tx, tw_, y0, y1, u, seed, check)
-    local h = y1 - y0
-    if h < 60 * u then return end
-    local px = U.TEXT * u
-    local lineH = px * U.LEAD
-    -- (the First Days pages: the checklist first, when it fits)
-    if check then
-        local ch = self:drawChecklist(tx, tw_, y0, u, true)
-        if h >= ch then
-            self:drawChecklist(tx, tw_, y0, u)
-            y0 = y0 + ch + 18 * u
-            h = y1 - y0
-            if h < 80 * u then return end
-        end
-    end
-    -- (the largest ad that fits: half a page, then the quarter-page box)
-    local halfH = 330 * u
-    if h >= halfH then
-        drawHalfAd(self, tx, tw_, y0, u, halfH)
-        y0 = y0 + halfH + 18 * u
-        h = y1 - y0
-        if h < 80 * u then return end
-    end
-    local adH = 186 * u
-    if h >= adH then
-        local by = y0 + math.floor((h - adH) / 2)
-        if h < adH + 120 * u then by = y0 end
-        local lw = math.max(1, math.floor(2 * u))
-        for i = 0, lw - 1 do self:drawRectBorder(tx + i, by + i, tw_ - i * 2, adH - i * 2, 1, INK.r, INK.g, INK.b) end
-        local ix, iw = tx + 12 * u, tw_ - 24 * u
-        local yy = by + 12 * u + U.TITLE * u
-        drawAt(self, F.head, upper(tr("UI_ZeD_Guide_Ad1_Head")), ix, yy, U.TITLE * u, INK)
-        yy = yy + U.DECK * u * 1.4
-        drawAt(self, F.sansB, tr("UI_ZeD_Guide_Ad1_Deck"), ix, yy, U.CAP * u * 1.15, INK)
-        local priceW = 82 * u
-        local sq = math.floor(px * 0.75)
-        local n = 5
-        local first = ((seed or 1) % n)
-        for j = 0, 2 do
-            yy = yy + lineH * 1.12
-            local t = ((first + j) % n) + 1
-            self:drawRectBorder(ix, yy - sq, sq, sq, 1, INK.r, INK.g, INK.b)
-            drawAt(self, F.textB, tr("UI_ZeD_Guide_Ad1_T" .. t), ix + sq + 8 * u, yy, px, INK)
-        end
-        local pY, pH = by + adH - 12 * u - 56 * u, 56 * u
-        local pX = tx + tw_ - 12 * u - priceW
-        self:drawRect(pX, pY, priceW, pH, 1, INK.r, INK.g, INK.b)
-        local pw = {}
-        for wd in tr("UI_ZeD_Guide_Ad1_Price"):gmatch("%S+") do pw[#pw + 1] = wd end
-        local half = math.ceil(#pw / 2)
-        local pc = pX + priceW / 2
-        drawCentre(self, F.sansB, upper(table.concat(pw, " ", 1, half)), pc, pY + pH * 0.42, U.CAP * u * 1.2, PAPER)
-        if #pw > half then drawCentre(self, F.sansB, upper(table.concat(pw, " ", half + 1)), pc, pY + pH * 0.8, U.CAP * u * 1.2, PAPER) end
-        y0 = by + adH + 18 * u
-        h = y1 - y0
-        if h < 80 * u then return end
-    end
-    -- NOTES: the word, a rule, then ruled lines to the foot
+-- NOTES: the word, a rule, then ruled lines down to y1
+local function drawNotes(self, tx, tw_, y0, y1, u)
+    local lineH = U.TEXT * u * U.LEAD
     local yy = y0 + U.CAP * u
     drawAt(self, F.sansB, upper(tr("UI_ZeD_Guide_Notes")), tx, yy, U.CAP * u * 1.1, INK)
     yy = yy + 5 * u
@@ -862,6 +1036,28 @@ function ZeD_GuideBook:drawFiller(tx, tw_, y0, y1, u, seed, check)
     while yy < y1 - 4 * u do
         self:drawRect(tx, yy, tw_, math.max(1, math.floor(u * 0.6)), 0.45, INK.r, INK.g, INK.b)
         yy = yy + gapL
+    end
+end
+
+-- a filler f ({ y, y1, ads }, from the page's top at y) as dealt: the checklist, the ads, NOTES (planFiller)
+function ZeD_GuideBook:drawFiller(tx, tw_, y, f, u)
+    local S = ZeD.GuideAds.size
+    for _, b in ipairs(f.ads or {}) do
+        local by = y + b.y
+        if b.k == "check" then
+            self:drawChecklist(tx, tw_, by, u)
+        elseif b.k == "half" then
+            drawAd(self, b.names[1], "half", tx, by, u)
+        elseif b.k == "pair" then
+            -- (two quarters side by side, tops level: 215, a 10 gutter, 215. The second starts at the first's rounded
+            -- right edge plus the rounded gutter, so both sit on whole pixels and the gutter stays even)
+            local right = drawAd(self, b.names[1], "quarter", tx, by, u)
+            drawAd(self, b.names[2], "quarter", right + math.floor((S.half[1] - S.quarter[1] * 2) * u + 0.5), by, u)
+        elseif b.k == "third" then
+            drawAd(self, b.names[1], "third", tx, by, u)
+        elseif b.k == "notes" then
+            drawNotes(self, tx, tw_, by, y + f.y1, u)
+        end
     end
 end
 
@@ -924,9 +1120,19 @@ function ZeD_GuideBook:drawContentsPage(x, y, w, u, hover)
     end
 end
 
--- THE PUBLISHER'S HOUSE AD (a page the layout leaves over: before a topic that faces its rules, the last page): a
--- full-page mail-order ad in the 1980s survival magazines' manner, for the publisher's own (fictional) titles. A heavy
--- frame, the headline, a deck, a paragraph, the titles with tick boxes, a price box and a coupon with a dashed edge.
+-- A WHOLE PAGE the layout leaves over (before a topic that faces its rules, the last page): the full-page ad dealt
+-- for it (p.ad), at the text block; the publisher's house ad (below) is one of them; when they have run out, the
+-- ruled NOTES block over the whole text block
+function ZeD_GuideBook:drawFullAd(p, x, y, w, u)
+    if p.ad == nil or p.ad == HOUSE then self:drawAdPage(x, y, w, u); return end
+    local tx, top = x + U.M * u, y + U.MT * u
+    if p.ad then drawAd(self, p.ad, "full", tx, top, u); return end
+    drawNotes(self, tx, w - U.M * u * 2, top, y + (U.PH - U.FOOT - 6) * u, u)
+end
+
+-- THE PUBLISHER'S HOUSE AD: a full-page mail-order ad in the 1980s survival magazines' manner, for the publisher's
+-- own (fictional) titles, in the game's language. A heavy frame, the headline, a deck, a paragraph, the titles with
+-- tick boxes, a price box and a coupon with a dashed edge.
 function ZeD_GuideBook:drawAdPage(x, y, w, u)
     local m = U.M * u
     local tx, tw_ = x + m, w - m * 2
@@ -1049,7 +1255,7 @@ function ZeD_GuideBook:drawPage(i, x, y, w, u, hover)
     elseif p.kind == "intro" then self:drawIntroPage(x, y, w, u)
     elseif p.kind == "flow" then self:drawFlowPage(p, x, y, w, u)
     elseif p.kind == "rules" then self:drawRulesPage(p, x, y, w, u)
-    elseif p.kind == "ad" then self:drawAdPage(x, y, w, u)
+    elseif p.kind == "ad" then self:drawFullAd(p, x, y, w, u)
     else return end
     folio(self, p, x, y, w, u, printed(i), i % 2 == 1)
 end
