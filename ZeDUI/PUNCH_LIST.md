@@ -2863,3 +2863,4 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     bytecode on 42.22.2). Low: firearm facts throw in formatFirearm (ItemCard.lua:86, AmmoType object); ZeD picks left off
     when ZeD-GUI is switched off and on; a held second Accept says the invitation is gone; a release plus re-claim logged as
     an owner change. Design for the director: Check stats and the Admin tab's other game windows are still the game's UI.
+    The director, Nov 7 2026: "Next beta" (no beta 6b for these).
