@@ -7,8 +7,8 @@
 --      scroll place, the theme (base / accent / size), the windows open or shut
 --   2. seed believable kills: ZeD_Kills in KillTracker's structure
 --      { weapon = { <category> = n }, fire, vehicle, explosion }, and
---      player:setZombieKills(n) = the weapon total (the Journal adds fire,
---      vehicle and explosion to the game's own count: 200 + 12 = 212)
+--      player:setZombieKills(n) = weapon + vehicle + explosion, as the game
+--      counts them (the Journal adds only fire: 208 + 4 = 212)
 --   3. high contrast + PZ Teal (ZeD.applyTheme, in memory only), World window
 --      shut for the shot, Character window on the Journal tab (Journal
 --      sub-tab), disclosure expanded
@@ -109,9 +109,11 @@ local function seed()
     local sum = 0
     for _, n in pairs(kills.weapon) do sum = sum + n end
     md.ZeD_Kills = kills
-    p:setZombieKills(sum)
-    say(string.format("seeded: game count %d + fire %d + vehicle %d + explosion %d = %d",
-        sum, kills.fire, kills.vehicle, kills.explosion, sum + kills.fire + kills.vehicle + kills.explosion))
+    -- the game's own count holds vehicle and explosion kills too, but not fire
+    local game = sum + kills.vehicle + kills.explosion
+    p:setZombieKills(game)
+    say(string.format("seeded: game count %d (weapon %d + vehicle %d + explosion %d) + fire %d = %d",
+        game, sum, kills.vehicle, kills.explosion, kills.fire, game + kills.fire))
 end
 local function restoreAll()
     for _, c in ipairs(climWas) do pcall(function() c.v:setAdminValue(c.val); c.v:setEnableAdmin(c.en) end) end
