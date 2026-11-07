@@ -204,15 +204,31 @@ function F.readLines(file)
     return t
 end
 
+-- The writer cuts a file the moment it opens and Lua has no rename, so the other mod's file is not
+-- opened until ZeD's own spare has held the same text: a disk that cannot hold it stops there, with
+-- their file as it was. (Emptied after; one left full is the text of a write that did not finish.)
+local SPARE = "ZeD_modfolders_spare.txt"
+
+-- the text in the file, in one write, and read back: n lines
+local function putText(file, text, n)
+    local w = nil
+    pcall(function() w = getFileWriter(file, true, false) end)
+    if not w then return false end
+    local ok = pcall(function() w:write(text) end)
+    pcall(function() w:close() end)
+    if not ok then return false end
+    local back = F.readLines(file)
+    return back ~= nil and #back == n
+end
+
 -- writes lines, each ended by "\n" as the mod writes them; true when written
 function F.writeLines(lines, file)
-    local ok = pcall(function()
-        local w = getFileWriter(file or F.FILE, true, false)
-        if not w then error("no writer") end
-        for _, l in ipairs(lines) do w:write(l .. "\n") end
-        w:close()
-    end)
-    return ok
+    local text = (#lines > 0) and (table.concat(lines, "\n") .. "\n") or ""
+    if file then return putText(file, text, #lines) end
+    if not putText(SPARE, text, #lines) then return false end
+    if not putText(F.FILE, text, #lines) then return false end
+    putText(SPARE, "", 0)
+    return true
 end
 
 function F.read() return F.parse(F.readLines()) end

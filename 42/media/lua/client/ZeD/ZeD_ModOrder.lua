@@ -50,6 +50,49 @@ local HEADER = "ZeD-UI mod profiles: the load order and dates kept with each mod
 -- name -> { order, first, last, rules, saved, used, keep = { lines it does not know } }
 local Store = { loaded = false, t = {}, pre = {} }
 
+-- Lua has no rename and the game's writer cuts a file the moment it opens, so a save goes through a
+-- spare file: the text and a last line saying it is whole go there and are read back, then the real
+-- file is written and the spare emptied. A whole spare found on load is a save that did not finish; a
+-- disk that cannot hold the text stops at the spare, with the real file as it was.
+local SPARE = "ZeD_modprofiles_spare.txt"
+local WHOLE = "-- whole"
+
+-- a file's lines (nil: no file, false: it did not read to its end)
+local function readAll(file)
+    local r = nil
+    pcall(function() r = getFileReader(file, false) end)
+    if not r then return nil end
+    local t = {}
+    local ok = pcall(function()
+        local l = r:readLine()
+        while l do t[#t + 1] = l; l = r:readLine() end
+    end)
+    pcall(function() r:close() end)
+    if not ok then return false end
+    return t
+end
+
+local function writeAll(file, text)
+    local w = nil
+    pcall(function() w = getFileWriter(file, true, false) end)
+    if not w then return false end
+    local ok = pcall(function() w:write(text) end)
+    pcall(function() w:close() end)
+    return ok
+end
+
+local function keepFile(text)
+    local n = 0
+    for _ in text:gmatch("\n") do n = n + 1 end
+    if not writeAll(SPARE, text .. WHOLE .. "\n") then return false end
+    local back = readAll(SPARE)
+    if not back or #back ~= n + 1 or back[n + 1] ~= WHOLE then return false end
+    if not writeAll(FILE, text) then return false end
+    local done = readAll(FILE)
+    if done and #done == n then writeAll(SPARE, "") end
+    return true
+end
+
 local function splitIds(v)
     local t = {}
     for id in tostring(v or ""):gmatch("[^;]+") do t[#t + 1] = id end
@@ -95,11 +138,13 @@ end
 function O.load()
     O.gen = O.gen + 1
     Store.t, Store.pre, Store.loaded = {}, {}, true
-    local r = getFileReader(FILE, false)
-    if not r then return end
+    local lines = readAll(SPARE)
+    if lines and lines[#lines] == WHOLE then lines[#lines] = nil else lines = readAll(FILE) end
+    -- (a file that did not read: a save must not write this empty list over it)
+    Store.unread = lines == false
+    if not lines then return end
     local cur
-    local line = r:readLine()
-    while line do
+    for _, line in ipairs(lines) do
         local name = line:match("^%[(.+)%]$")
         if name then
             cur = { order = {}, first = {}, last = {}, rules = {}, keep = {}, seps = {}, top = {} }
@@ -123,9 +168,7 @@ function O.load()
         elseif line ~= "" and line ~= HEADER then
             Store.pre[#Store.pre + 1] = line
         end
-        line = r:readLine()
     end
-    r:close()
 end
 
 local function isList(name) return tostring(name):sub(1, 1) == "@" end
@@ -138,8 +181,10 @@ end
 function O.save()
     if not Store.loaded then O.load() end
     O.gen = O.gen + 1
-    local w = getFileWriter(FILE, true, false)
-    if not w then return end
+    if Store.unread then return end
+    -- (the whole text first: a Lua error on the way leaves the file as it was)
+    local buf = {}
+    local w = { write = function(_, s) buf[#buf + 1] = s end }
     w:write(HEADER .. "\n")
     for _, l in ipairs(Store.pre) do w:write(l .. "\n") end
     local names = {}
@@ -167,7 +212,7 @@ function O.save()
             for _, l in ipairs(e.keep or EMPTY) do w:write(l .. "\n") end
         end
     end
-    w:close()
+    keepFile(table.concat(buf))
 end
 
 -- the file's sections (name -> entry); profiles and lists alike

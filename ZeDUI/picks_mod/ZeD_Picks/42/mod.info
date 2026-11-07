@@ -1,5 +1,6 @@
 name=ZeD picks
 id=ZeD_Picks
+require=\ZeD_UI
 description=Holds the files you pick one by one in the Mods screen of ZeD-GUI. ZeD turns it on, keeps it last in the load order and fills it. Empty until you pick a file. Single player only.
 modversion=1.0
 versionMin=42.17.0
