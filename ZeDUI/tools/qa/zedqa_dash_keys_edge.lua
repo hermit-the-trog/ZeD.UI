@@ -187,7 +187,7 @@ for _, e in ipairs(CARS) do
                 moving = true; err(n .. " parked car moving at " .. tostring(s.speed) .. " km/h (fell through the ground?): rejected")
                 return
             end
-            if s.keyPos ~= "off" then err(n .. " key reads " .. tostring(s.keyPos) .. " with the key in, engine off; want off") end
+            if s.keyPos ~= "acc" then err(n .. " key reads " .. tostring(s.keyPos) .. " with the key in, engine off; want acc") end
             shot(n, "off")
         end)
         -- START: a turn on an empty tank holds the starter (the key at START) without catching
@@ -205,7 +205,7 @@ for _, e in ipairs(CARS) do
             if s.keyPos ~= "start" then say(n .. " (START gone before the shot: " .. tostring(s.keyPos) .. ")") end
             shot(n, "start")
         end)
-        waitFor(function() local s = st(); return not okM() or (s and not s.running and not s.cranking and s.keyPos == "off") end, 15000,
+        waitFor(function() local s = st(); return not okM() or (s and not s.running and not s.cranking and s.keyPos == "acc") end, 15000,
             function() err(n .. " dry start never settled") end)
         waitFor(function() local s = st(); return not okM() or (s and s.engState == "Idle") end, 8000)
         -- ON: fill the tank and start it
@@ -215,7 +215,7 @@ for _, e in ipairs(CARS) do
             if not okM() then return true end
             local s = st()
             if s and s.running and s.keyPos == "on" then return true end
-            if s and s.keyPos == "off" and not s.cranking and now() - t0 > 1500 then
+            if s and s.keyPos == "acc" and not s.cranking and now() - t0 > 1500 then
                 tries_ = tries_ + 1
                 if tries_ >= 5 then return true end
                 t0 = now(); click("ignition")

@@ -215,7 +215,7 @@ local function startEngine(n)
         local s = st()
         if s and s.running and s.keyPos == "on" then return true end
         -- (a start that gave up: the key back at OFF and the engine idle; log it and turn again)
-        if W and s and s.keyPos == "off" and not s.cranking and now() - W.t0 > 1500 then
+        if W and s and s.keyPos == "acc" and not s.cranking and now() - W.t0 > 1500 then
             report(n, nil); tries_ = tries_ + 1
             if tries_ >= 4 then return true end
             mark("start (again)"); click("ignition")
@@ -321,7 +321,7 @@ for _, e in ipairs(LIST) do
     end)
     -- shut off: ON a step, then OFF
     act(function() if ok() then mark("shutoff"); click("ignition") end end)
-    waitFor(function() local s = st(); return not ok() or (s and not s.running and s.keyPos == "off" and now() - W.t0 > 300) end, 6000,
+    waitFor(function() local s = st(); return not ok() or (s and not s.running and s.keyPos == "acc" and now() - W.t0 > 300) end, 6000,
         function() err(n .. " never shut off") end)
     act(function() if ok() then report(n, "on off", nil, 2) end end)
     -- a start on an empty tank: it does not catch (once the engine has wound down: a start while it reads
@@ -331,7 +331,7 @@ for _, e in ipairs(LIST) do
     act(function() if ok() then fuel(cur, 0); mark("dry start"); click("ignition") end end)
     waitMs(250)
     act(function() if ok() and W and st() and st().keyPos == "start" then shot(n, "key_start") end end)
-    waitFor(function() local s = st(); return not ok() or (s and not s.running and not s.cranking and s.keyPos == "off" and now() - W.t0 > 1200) end, 15000,
+    waitFor(function() local s = st(); return not ok() or (s and not s.running and not s.cranking and s.keyPos == "acc" and now() - W.t0 > 1200) end, 15000,
         function() err(n .. " dry start never settled") end)
     act(function()
         if not ok() then return end

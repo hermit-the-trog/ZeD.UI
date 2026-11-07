@@ -67,9 +67,10 @@ tray (`ZeD_Dashboard.lua`, `_vanRight`).
 ## Round 6 in the game (Oct 24 2026)
 
 - **Sprites with a value:** a sprite part shows while `st[src]` equals `when` when `when` is a string or a number (the
-  key's `keyPos` "off" / "on" / "start", `ashOpen` 1..3, `hula` 0..2, `vanRight`), or as a flag otherwise.
-- **The key:** OFF with the key in, START while the starter turns (the engine's state reads Starting or
-  RetryingStarting), ON while it runs; it rests 120 ms on ON between the ends.
+  key's `keyPos` "acc" / "off" / "on" / "start", `ashOpen` 1..3, `hula` 0..2, `vanRight`), or as a flag otherwise.
+- **The key:** ACC with the key in (Nov 7 2026), START while the starter turns (the engine's state reads Starting or
+  RetryingStarting), ON while it runs; it moves a step at a time (ACC - OFF - ON - START, 120 ms a step) and rests
+  120 ms on ON between the ends.
 - **Ash trays:** shut on 6 cars in 10, the rest open at one of the design's levels, from the car's key number; a click
   opens or shuts it (`modData.ZeD_ash`).
 - **The taxi's meter:** the fares are ZeD sandbox options (`SandboxVars.ZeD.TaxiFlagDrop`, `TaxiPerFifthMile`,
@@ -87,6 +88,12 @@ tray (`ZeD_Dashboard.lua`, `_vanRight`).
   along the slot, bare nickel on the wagon, the Lang 4000 and the Horizon, glossy black elsewhere (their lock face
   aluminium). A 10 px chrome ring hangs from the middle of its near edge, and from the ring a teardrop leather fob
   (tan, or cocoa on the light cabins), drawn on the plate in each key sprite so the engine casts its shadow.
+- **ACC** (director, Nov 7 2026: a key in the ignition lights every lamp, so "it should be in accessory mode. ACC
+  ... to the left of off"): a fourth legend, ACC, at 220 degrees round the ring (the mirror of ON's), and a fourth
+  key sprite turned back 40 degrees (`v6.KEY_ANGLES`, `KEY_LABEL_AT`). The curved dashes print ACC left of their
+  LOCK. The lower row's key block grows to 54 px (46 on the curved dashes) so ACC clears its neighbor; the
+  ambulance's switches close up to 22 px apart to give it the room. The Simple dash says ACC
+  (`UI_ZeD_DashPlain_Acc`).
 - **The column's shroud** (`v6.column_shroud`): a 100 × 46 half squircle in the cabin's vinyl standing on the last
   row at `COLUMN_X`, after the lower row; the lower rows keep 104 px clear for it (`LEFT_SPAN`, `RIGHT_SPAN`). Where
   the right side has no room left for the wiper (the ambulance's switch panel) the wiper moves left of the column.

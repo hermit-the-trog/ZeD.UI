@@ -25,7 +25,7 @@ os.makedirs(OUT, exist_ok=True)
 STATES = {
     "off": dict(keysIn=False, keyPos=None, ashOpen=False, meterOn=False, hula=0, running=False, lights=False, speed_kmh=0, rpm=0, fuel=0.6, battery=0.8, heaterOn=False, heaterTemp=0, fan=0,
                 gear="P", hour=10, minute=8),
-    "keyon": dict(keysIn=True, keyPos="off", ashOpen=False, meterOn=False, hula=0, running=False, lights=False, speed_kmh=0, rpm=0, fuel=0.62, battery=0.9, heaterOn=False, heaterTemp=0,
+    "keyon": dict(keysIn=True, keyPos="acc", ashOpen=False, meterOn=False, hula=0, running=False, lights=False, speed_kmh=0, rpm=0, fuel=0.62, battery=0.9, heaterOn=False, heaterTemp=0,
                   fan=0, radio=None, radioOn=False, gear="P", anyLocked=False, hour=10, minute=8),
     "drive": dict(keysIn=True, keyPos="on", meterOn=True, hula=1, fare=12.80, fareExtra=0.5, running=True, lights=True, speed_kmh=72, rpm=2600, fuel=0.62, battery=0.9, heaterOn=True, heaterTemp=17,
                   fan=2, ac=False, radio="valutech", radioOn=True, radioFreq="98.4", gear="D", anyLocked=True, cruise=True,

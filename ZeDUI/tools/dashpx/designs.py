@@ -676,9 +676,10 @@ def ambulance(b):
     """Ambulance: a Valuline made plain, medic grey; the emergency switches on the lower dash"""
     shell_boxy(b, trim="rubber")
     cl_van(b, bz="blackp", nd="#ff7a2a")
-    px_ = lower_boxy6(b, y0=118, chrome=False, cruise=False, trunk_label="REAR", trunk_sub="DOORS", right_panel=128)
+    # (Nov 7 2026: the switches 22 apart, 24 before, so the key's ACC legend has the room the panel gave up)
+    px_ = lower_boxy6(b, y0=118, chrome=False, cruise=False, trunk_label="REAR", trunk_sub="DOORS", right_panel=118)
     rocker_panel(b, px_, 122, [("LIGHT", "lbarLamp", "lbar"), ("SIREN", "sirenLamp", "siren"), ("FLOOD", None, None),
-                              ("SCENE", None, None), ("DOME", None, None)])
+                              ("SCENE", None, None), ("DOME", None, None)], pitch=22)
     console_vents(b, 26, chrome=False, w=88, h=30)
     badge(b, 602, 35, 86, 12, style="stencil", role="unit", font="35", color="#e8e8e0", plate="stencil")
     headunit_slot(b, *HU6, frame="bezel")
