@@ -396,10 +396,10 @@ local function tick()
     if wait > 0 then wait = wait - 1; return end
     qi = qi + 1
     local s = Q[qi]
-    if not s then Events.OnTick.Remove(tick); return end
+    if not s then Events.OnRenderTick.Remove(tick); return end
     local ok, e = pcall(s.fn)
     if not ok then say("ERR step " .. qi .. " " .. tostring(e)) end
     wait = s.n
 end
 say("start")
-Events.OnTick.Add(tick)
+Events.OnRenderTick.Add(tick)  -- (render frames: the open book pauses the game, and OnTick stops with it)
