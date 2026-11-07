@@ -1115,6 +1115,47 @@ function P.warnPart(items, win, st, card, row)
     end)
 end
 
+-- The game's own names for professions, traits and skills, in this client's language, by id: { prof = {}, trait = {},
+-- skill = {} }. The server sends the names in its own language with the ids beside them (ZeD_ServerAdmin.lua,
+-- readPlayer); the card shows these instead where the id is known. Read from the game's definitions, which it builds
+-- in the player's language, once per language (ZeD._trGen moves when the language changes). Every call is guarded:
+-- a method that isn't there (another build of the game) leaves that kind of name to the server's.
+local _gameNames, _gameNamesGen = nil, nil
+function P.gameNames()
+    if _gameNames and _gameNamesGen == ZeD._trGen then return _gameNames end
+    local n = { prof = {}, trait = {}, skill = {} }
+    -- each definition list: its type's tostring ("base:farmer", as the server sends it) -> its label
+    local function defs(class, listFn, out)
+        local list = class and class[listFn] and class[listFn]()
+        if not list then return end
+        for i = 0, list:size() - 1 do
+            local d = list:get(i)
+            if d and d.getType and d.getUIName then out[tostring(d:getType())] = d:getUIName() end
+        end
+    end
+    pcall(defs, CharacterProfessionDefinition, "getProfessions", n.prof)
+    pcall(defs, CharacterTraitDefinition, "getTraits", n.trait)
+    -- skills: the same walk the server makes (Perks by index), the id being the perk's tostring
+    pcall(function()
+        if not (Perks and Perks.getMaxIndex and Perks.fromIndex and PerkFactory and PerkFactory.getPerk) then return end
+        for i = 0, Perks.getMaxIndex() - 1 do
+            local perk = Perks.fromIndex(i)
+            local pf = perk and PerkFactory.getPerk(perk)
+            if pf and pf.getName then n.skill[tostring(perk)] = pf:getName() end
+        end
+    end)
+    -- kept only once the game had something to give: lists still empty are asked again next time
+    if next(n.prof) ~= nil or next(n.skill) ~= nil then _gameNames, _gameNamesGen = n, ZeD._trGen end
+    return n
+end
+
+-- one name from the game's list (kind: "prof", "trait" or "skill"), else the server's
+function P.gameName(kind, id, fallback)
+    local s = id and P.gameNames()[kind][id]
+    if type(s) == "string" and s ~= "" then return s end
+    return fallback
+end
+
 function P.skills(items, win, st, card, view)
     local user = card.user
     local list = view and view.skills or {}
@@ -1131,14 +1172,15 @@ function P.skills(items, win, st, card, view)
     for _, s in ipairs(list) do
         if s.lv > 0 or card.allSkills then
             local id = s.id
-            items[#items + 1] = { k = "askill", name = s.name, lv = s.lv, ctls = {
+            local name = P.gameName("skill", id, s.name)   -- (the game's name in this player's language)
+            items[#items + 1] = { k = "askill", name = name, lv = s.lv, ctls = {
                 F.gate({ id = "sd:" .. id, text = "-", help = getText("IGUI_PlayerStats_LevelDown"),
-                    run = function(ww) F.act(ww, st, function(cb) M.skill(user, id, -1, cb) end, tr("UI_ZeD_Adm_SkillDone", s.name)) end }, "AddXP", function()
+                    run = function(ww) F.act(ww, st, function(cb) M.skill(user, id, -1, cb) end, tr("UI_ZeD_Adm_SkillDone", name)) end }, "AddXP", function()
                         if s.lv <= 0 then return tr("UI_ZeD_Adm_SkillLeast") end
                         return notOn()
                     end),
                 F.gate({ id = "su:" .. id, text = "+", help = getText("IGUI_PlayerStats_LevelUp"),
-                    run = function(ww) F.act(ww, st, function(cb) M.skill(user, id, 1, cb) end, tr("UI_ZeD_Adm_SkillDone", s.name)) end }, "AddXP", function()
+                    run = function(ww) F.act(ww, st, function(cb) M.skill(user, id, 1, cb) end, tr("UI_ZeD_Adm_SkillDone", name)) end }, "AddXP", function()
                         if s.lv >= 10 then return tr("UI_ZeD_Adm_SkillMost") end
                         return notOn()
                     end),
@@ -1201,9 +1243,12 @@ function P.playerItems(win, st, t, card, data)
     if M.live() then
         B.label(items, tr("UI_ZeD_Adm_ProfTraits"))
         local list = {}
-        for _, s in ipairs(view and view.traits or {}) do list[#list + 1] = s end
+        -- (the game's names in this player's language where the server sent the ids; its own words otherwise)
+        local ids = view and view.traitIds or {}
+        for i, s in ipairs(view and view.traits or {}) do list[#list + 1] = P.gameName("trait", ids[i], s) end
         if view and view.prof then
-            B.sub(items, (#list > 0) and tr("UI_ZeD_Adm_ProfWith", view.prof, table.concat(list, ", ")) or view.prof)
+            local prof = P.gameName("prof", view.profId, view.prof)
+            B.sub(items, (#list > 0) and tr("UI_ZeD_Adm_ProfWith", prof, table.concat(list, ", ")) or prof)
         else
             B.sub(items, (M.can("CanSeePlayersStats") and tr("UI_ZeD_Tk_Loading")) or M.why("CanSeePlayersStats"))
         end
@@ -1666,10 +1711,13 @@ function AC.openSpawn(win, st)
     t.spawnGen = (t.spawnGen or 0) + 1
 end
 
-function P.toWord(to)
-    if to == "me" then return tr("UI_ZeD_Adm_ToYou") end
-    if to == "ground" then return tr("UI_ZeD_Adm_ToGround") end
-    return to
+-- "1 x Axe to you" / "to the ground" / "to lootdrop99": base is the key for a player ("%1 x %2 to %3"); you and the
+-- ground have whole sentences of their own (base .. "Me", base .. "Ground"), never a pronoun glued in for %3, so each
+-- language gives them its own preposition and case (German: "an dich", "auf den Boden", "an lootdrop99")
+function P.spawnText(base, n, name, to)
+    if to == "me" then return tr(base .. "Me", n, name) end
+    if to == "ground" then return tr(base .. "Ground", n, name) end
+    return tr(base, n, name, to)
 end
 
 function P.spawnItems(win, st, t, card)
@@ -1697,7 +1745,7 @@ function P.spawnItems(win, st, t, card)
                     M.bump()
                 end } }
     end
-    if #list == 0 then B.sub(items, tr("UI_ZeD_Tk_NoMatch")) end
+    if #list == 0 then B.sub(items, tr("UI_ZeD_Adm_NoItemMatch")) end   -- (items' own words: the tickets' said "No tickets match")
     if pages > 1 then
         local n = card.page
         F.flow(items, {
@@ -1750,7 +1798,7 @@ function P.spawnBtn(win, st, t, card)
     local it = card.item
     if not it then return nil end
     local b = D.btn("spawnb", tr("UI_ZeD_Adm_SpawnBtn"), function(ww)
-        F.act(ww, st, function(cb) M.spawn(it.full, card.n, card.to, cb) end, tr("UI_ZeD_Adm_Spawned", card.n, it.name, P.toWord(card.to)))
+        F.act(ww, st, function(cb) M.spawn(it.full, card.n, card.to, cb) end, P.spawnText("UI_ZeD_Adm_Spawned", card.n, it.name, card.to))
     end, "primary", tr("UI_ZeD_Adm_HelpSpawnBtn"))
     if not M.can("AddItem") then D.disable(b, M.why("AddItem"))
     elseif card.to == "ground" and not M.live() then D.disable(b, tr("UI_ZeD_Adm_NeedPart"))
@@ -1768,7 +1816,7 @@ TC.kinds.spawn = {
     foot = function(win, st, t, card)
         local b = P.spawnBtn(win, st, t, card)
         if not b then return { main = {} } end
-        return { status = tr("UI_ZeD_Adm_SpawnLine", card.n, card.item.name, P.toWord(card.to)), main = { b } }
+        return { status = P.spawnText("UI_ZeD_Adm_SpawnLine", card.n, card.item.name, card.to), main = { b } }
     end,
     padX = function(win, st, t, card)
         local b = P.spawnBtn(win, st, t, card)

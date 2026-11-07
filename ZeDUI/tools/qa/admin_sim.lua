@@ -677,12 +677,13 @@ do
     say(a, "a_card", { user = "Kade" })
     local c = got(a, "a_card")
     check("the offline card comes from the last look", c and c.on == false and c.prof == "Carpenter" and c.traits[1] == "Handy" and c.skills[1].lv == 3)
+    check("the ids go with the names, for the viewer's own language", c.profId == "carpenter" and c.traitIds[1] == "Handy", tostring(c.profId))
     check("no place when they are off the map", c.x == nil)
     nolimit(a)
     say(a, "a_card", { user = "Hermit" })
     c = got(a, "a_card")
     check("online: where, and every skill", c.x == 6280 and #c.skills == 2, c.x)
-    local allowed = { user = 1, on = 1, muted = 1, last = 1, prof = 1, traits = 1, skills = 1, role = 1, x = 1, y = 1, z = 1, oid = 1, tickets = 1, ticketN = 1, banId = 1, banUntil = 1, hidden = 1, id = 1, name = 1, lv = 1 }
+    local allowed = { user = 1, on = 1, muted = 1, last = 1, prof = 1, profId = 1, traits = 1, traitIds = 1, skills = 1, role = 1, x = 1, y = 1, z = 1, oid = 1, tickets = 1, ticketN = 1, banId = 1, banUntil = 1, hidden = 1, id = 1, name = 1, lv = 1 }
     for k in pairs(keysIn(c)) do
         if type(k) == "string" then check("the card is an allowlist: " .. k, allowed[k] ~= nil) end
     end

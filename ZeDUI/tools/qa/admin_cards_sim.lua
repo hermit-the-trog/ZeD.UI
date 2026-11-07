@@ -77,7 +77,13 @@ TEXT.IGUI_AdminPanel_SeeServerOptions, TEXT.IGUI_AdminPanel_SandboxOptions, TEXT
 TEXT.IGUI_AdminPanel_NonPvpZone, TEXT.IGUI_AdminPanel_Safezone, TEXT.IGUI_AdminPanel_ShowStatistics, TEXT.IGUI_Adm_Weather_ClimateControl = "Non PVP Zone", "Add Safezone", "Show Statistics", "Climate Control"
 TEXT.IGUI_CheatPanel_Invisible, TEXT.IGUI_CheatPanel_GodMod, TEXT.IGUI_CheatPanel_NoClip = "Invisible", "God Mode", "No Clip"
 TEXT.IGUI_CheatPanel_Invisible_tooltip, TEXT.IGUI_CheatPanel_GodMod_tooltip, TEXT.IGUI_CheatPanel_NoClip_tooltip = "Can't be seen or heard by other players.", "Makes you immune to all damage.", "Move through walls and collision tiles."
-TEXT.IGUI_CapabilitiesTooltips_KickUser = "Player can kick other players from the server. Use /kick or /kickuser console commands."
+TEXT.IGUI_CapabilitiesTooltips_KickUser = "Player can kick other players from the server. Use /kick or /kickuser console commands."
+-- punch list 95's new keys, until UI.json carries them (the same English)
+TEXT.UI_ZeD_Adm_SpawnLineMe = TEXT.UI_ZeD_Adm_SpawnLineMe or "%1 x %2 to you"
+TEXT.UI_ZeD_Adm_SpawnLineGround = TEXT.UI_ZeD_Adm_SpawnLineGround or "%1 x %2 to the ground"
+TEXT.UI_ZeD_Adm_SpawnedMe = TEXT.UI_ZeD_Adm_SpawnedMe or "%1 x %2 spawned to you. Logged."
+TEXT.UI_ZeD_Adm_SpawnedGround = TEXT.UI_ZeD_Adm_SpawnedGround or "%1 x %2 spawned to the ground. Logged."
+TEXT.UI_ZeD_Adm_NoItemMatch = TEXT.UI_ZeD_Adm_NoItemMatch or "No items match."
 function getText(k, ...)
     local s = TEXT[k] or k
     return s
@@ -726,6 +732,37 @@ check("Level Up asks the server", sent("a_skill") and sent("a_skill").dir == 1)
 ack("a_skill", { perk = "Farming", amount = 750.5 })
 check("then /addxp", hasS('/addxp "Kade_R" Farming=750.5 -false'))
 check("the top of a skill grays", grayWhy("tk:su:Sprinting") == ZeD.tr("UI_ZeD_Adm_SkillMost"))
+-- the server's names are in its language; with the ids, the card shows the game's own in the viewer's (punch list 95)
+do
+    local function jl(t) return { size = function() return #t end, get = function(_, i) return t[i + 1] end } end
+    local function def(id, label) return { getType = function() return id end, getUIName = function() return label end } end
+    local function perk(id) return setmetatable({}, { __tostring = function() return id end }) end
+    local PERKS = { perk("Farming"), perk("Woodwork") }
+    local NAMES = { Farming = "Landwirtschaft", Woodwork = "Tischlerei" }
+    CharacterProfessionDefinition = { getProfessions = function() return jl({ def("base:farmer", "Landwirt") }) end }
+    CharacterTraitDefinition = { getTraits = function() return jl({ def("base:strong", "Stark") }) end }
+    Perks = { getMaxIndex = function() return #PERKS end, fromIndex = function(i) return PERKS[i + 1] end }
+    PerkFactory = { getPerk = function(p) return { getName = function() return NAMES[tostring(p)] end } end }
+    local v = M.cards.Kade_R
+    v.profId, v.traitIds = "base:farmer", { "base:strong", "base:gardener" }   -- (no game name for the second: the server's stays)
+    ZeD._trGen = ZeD._trGen + 1
+    M.bump()
+    draw()
+    draw()
+    local line, farming, wood = nil, nil, nil
+    for _, it in ipairs(st.tk.items or {}) do
+        if it.k == "sub" and it.text and string.find(it.text, "Landwirt", 1, true) then line = it.text end
+        if it.k == "askill" and it.lv == 5 then farming = it.name end
+        if it.k == "askill" and it.lv == 2 then wood = it.name end
+    end
+    check("the profession and traits in the viewer's language", line == ZeD.tr("UI_ZeD_Adm_ProfWith", "Landwirt", "Stark, Gardener, Smoker"), line)
+    check("the skills too", farming == "Landwirtschaft" and wood == "Tischlerei", tostring(farming) .. " " .. tostring(wood))
+    v.profId, v.traitIds = nil, nil
+    CharacterProfessionDefinition, CharacterTraitDefinition, Perks, PerkFactory = nil, nil, nil, nil
+    ZeD._trGen = ZeD._trGen + 1
+    M.bump()
+    draw()
+end
 clear()
 press("tk:mute")
 ack("a_mute")
@@ -918,6 +955,19 @@ win._tkFields.ifind:update()
 draw()
 draw()
 check("Find keeps what matches", stopOf("tk:it:Base.BaseballBat") ~= nil and stopOf("tk:it:Base.Axe") == nil)
+local function subSays(s)
+    for _, it in ipairs(st.tk.items or {}) do if it.k == "sub" and it.text == s then return true end end
+    return false
+end
+win._tkFields.ifind.input:setText("zzqx")
+win._tkFields.ifind:update()
+draw()
+draw()
+check("no item: the items' own words, not the tickets'", subSays("No items match.") and not subSays(ZeD.tr("UI_ZeD_Tk_NoMatch")))
+win._tkFields.ifind.input:setText("bat")
+win._tkFields.ifind:update()
+draw()
+draw()
 press("tk:it:Base.BaseballBat")
 check("a pick opens How many", stopOf("tk:nm") ~= nil)
 press("tk:n50")
@@ -928,7 +978,15 @@ press("tk:spawnb")
 local sp = sent("a_spawn")
 check("the spawn goes", sp and sp.item == "Base.BaseballBat" and sp.n == 51 and sp.to == "ground")
 ack("a_spawn", { n = 51 })
-check("the answer", flash() == ZeD.tr("UI_ZeD_Adm_Spawned", 51, "Baseball Bat", ZeD.tr("UI_ZeD_Adm_ToGround")))
+check("the answer", flash() == "51 x Baseball Bat spawned to the ground. Logged.", flash())
+-- a whole sentence per target, so each language gives it its own case (QA's German "an du", punch list 95)
+local function spawnLine() return TC.kinds.spawn.foot(win, st, st.tk, st.card).status end
+check("the line, to the ground", spawnLine() == "51 x Baseball Bat to the ground", spawnLine())
+st.card.to = "me"
+check("the line, to you", spawnLine() == "51 x Baseball Bat to you", spawnLine())
+st.card.to = "Rosa"
+check("the line, to a player", spawnLine() == "51 x Baseball Bat to Rosa", spawnLine())
+st.card.to = "ground"
 st.card.n = 100
 M.bump()
 draw()
