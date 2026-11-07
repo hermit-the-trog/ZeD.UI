@@ -1731,7 +1731,11 @@ from server Lua (it changes the player object's field, not the connection's role
    says hello is caught all the same. After `ASKED_MS` (5 minutes) unanswered: one line, and a Kick owed with no reason (the
    game's own words; an empty quoted reason makes the game refuse the whole command line, so `ZeD_Admin.lua` leaves `-r` off). A
    Kick still waiting when they agree is dropped ("the rules were answered"). A role the game will not kick
-   (`CantBeKickedByUser`) is only written down. Nobody is asked mid-play, as before. A modified client can still send `m_agree`
+   (`CantBeKickedByUser`) is only written down. Nobody is asked mid-play, as before. A split-screen guest (a second to fourth
+  player on one connection, `getPlayerNum() > 0`; the server sets it from the connect packet in `GameServer.receivePlayerConnect`)
+  gets no record: ZeD's client speaks only for its first player, so a guest could never answer, and the game's kick by name
+  (`KickUserCommand`) drops the whole connection with `forceDisconnect`, the first player with it. The first player's answer
+  stands for the screen. A modified client can still send `m_agree`
    without showing the screen: the agreement is the server's record of what a client said, and nothing on the server can tell.
 7. **Safe mode asks too.** Safe mode used to skip the join screen, which with the gate would leave an unmodified client refused and
    kicked. It now asks the same question in the game's own yes/no box (`ISModalDialog`): the rules as plain lines of at most 70
@@ -1762,13 +1766,18 @@ only). It talks to the game's own remote console and makes the owed calls itself
 - **The files.** Server Lua writes `Zomboid/Lua/ZeD_helper/queue.txt` with `getFileWriter(path, true, false)` (one overload; the
   path is under `LuaManager.getLuaCacheDir()`, the server's own Zomboid folder or its `-cachedir`; txt is an allowed extension) and
   reads `answers.txt` with `getFileReader(path, false)` and `readLine`, every `HELPER_POLL_S`. Queue: `ZEDQ 1 <epoch>`, then
-  `id, try, act, target, reason`, tab-separated, every owed call the helper holds; rewritten only when it changes. Answers:
-  `ZEDA 1 <epoch> <unix seconds>`, then `id, try, result, text`; the helper rewrites it every pass through a temporary file and
-  `os.replace`. The epoch is `md.helperEpoch`, a random word in the admin table, so a helper never takes another world's numbers, or
-  a table a crash lost, for these.
+  `id, try, act, target, reason`, tab-separated, every owed call the helper holds, then `ZEDQ end`; rewritten only when it
+  changes. The game's writer is not atomic (it truncates the file, then writes it in pieces of about 8 KB), so the helper takes a
+  queue only when its last line is `ZEDQ end` with its line break, and only call lines of exactly five fields: a file read
+  mid-write is left for the next pass, and a line cut inside a name is never made as a shorter name. Answers:
+  `ZEDA 1 <epoch> <unix seconds>`, then `id, try, result, text`, the newest try of each call only; the helper rewrites it every
+  pass through a temporary file and `os.replace`. The epoch is a random word made at each server start and never saved
+  (`H.epoch`), so a helper never takes another world's numbers, nor the old answers of ids a crash rolled back.
 - **Who makes a call.** With the helper on, a call its allow-list takes goes in the queue first. A staff client gets it as well
-  in four cases: the helper has not answered in `HELPER_WAIT_S`; it answered "failed" (it gets a new try with the next retry); it
-  answered "refused" (off the queue for good); its answers file is older than `HELPER_ALIVE_S` (not running). Either
+  in four cases: the helper has not answered in `HELPER_WAIT_S`; it answered "failed" (it gets a new try `HELPER_WAIT_S` later,
+  `HELPER_TRIES` (3) tries in all, then the call is staff clients' only); it answered "refused" (off the queue for good); its
+  answers file is older than `HELPER_ALIVE_S` (not running). Failures write one line every `HELPER_LOG_S` (a minute) at most, with
+  a count of the ones held back, so a console the helper cannot reach never floods the log ring. Either
   answer counts; the call is judged the same way afterwards (item 5). IP calls (`BanIP`, `BanIPOnly`, `UnBanIP`, `UnBanIPOnly`)
   are never the helper's: the game's IP ban needs the player's own connection. Nor a name outside the helper's patterns.
 - **Security.** The helper sends nothing but those five commands, built from targets it checks itself: a name of 2 to 32 ASCII
@@ -1776,8 +1785,10 @@ only). It talks to the game's own remote console and makes the owed calls itself
   before it queues a call (`H.okTarget`). A reason is the only typed text: the server takes out its tabs and line breaks, the
   helper keeps printable ASCII, turns `"` into `'` and caps it at 200, so it can never close its quotes. Anything else is refused,
   answered "refused" and given to a staff client. The password comes from the server's settings or `ZED_RCON_PASSWORD` and is
-  never printed or written. It is the owner's program on the owner's machine: only someone who can already write the server's
-  files can write the queue.
+  never printed or written. It is the owner's program on the owner's machine. The epoch is not a secret: anything that can
+  write `Lua/ZeD_helper/queue.txt` gets those five commands, and that includes any other server-side Lua mod and, on a machine
+  where the owner also plays from the same Zomboid folder, client Lua from another server's mods. The README asks for a separate
+  `-cachedir` for the server when the helper runs, and one server per Zomboid folder (two servers there share one queue).
 - **Where it lives.** In the repository only (`ZeDUI/` is never staged: `stage_workshop.ps1` ships the version folders and
   `common/`, and leaves out `.py` anywhere). Owners download it from the public repository; the README says how, for Windows and
   Linux hosts.

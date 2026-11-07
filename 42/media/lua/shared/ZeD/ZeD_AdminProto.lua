@@ -94,6 +94,8 @@ Adm.L = {
     HELPER_POLL_S = 2,                  -- how often the server reads the host helper's answers and writes its queue
     HELPER_ALIVE_S = 30,                -- the helper counts as running while its last answers file is this fresh
     HELPER_WAIT_S = 30,                 -- a call the helper has not answered in this long goes to a staff client as well
+    HELPER_TRIES = 3,                   -- a call the helper failed this many times is left to staff clients
+    HELPER_LOG_S = 60,                  -- the helper's failures make one log line this often at most, with a count
     ROLE_WATCH_S = 30,                  -- a role change waits this long for the game to apply it
     ROLE_WATCH_KEEP_S = 86400,          -- and this long for a player who is not on
 }

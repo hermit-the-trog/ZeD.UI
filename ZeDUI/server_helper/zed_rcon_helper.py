@@ -7,7 +7,8 @@ console (RCON) instead, so they land with no staff online. It is optional: turn 
 (ZeD.HostHelper) and run this next to the server.
 
 How the two talk (both files under <Zomboid>/Lua/ZeD_helper/, the server's own Lua folder):
-  queue.txt    written by the server: "ZEDQ 1 <epoch>", then one call a line: id, try, act, target, reason (tab-separated)
+  queue.txt    written by the server: "ZEDQ 1 <epoch>", then one call a line: id, try, act, target, reason (tab-separated),
+               then "ZEDQ end". The game writes it in pieces, so a queue without that last line is left for the next pass
   answers.txt  written here: "ZEDA 1 <epoch> <unix seconds>", then one answer a line: id, try, result, text
 
 Security. The queue is only ever read as data. This helper sends nothing but a fixed allow-list of five console commands
@@ -41,6 +42,7 @@ EPOCH_RE = re.compile(r"[0-9A-Za-z-]{1,64}", re.ASCII)
 NUM_RE = re.compile(r"[0-9]{1,9}", re.ASCII)
 REASON_MAX = 200
 QUEUE_MAX = 500          # lines read from the queue at most
+QUEUE_END = "ZEDQ end"   # the queue's last line: without it the file was read while the server was writing it
 TEXT_MAX = 200           # the console's answer, as written back
 
 
@@ -206,25 +208,32 @@ class Rcon:
 # The two files
 # ---------------------------------------------------------------------------
 def read_queue(path):
-    """(epoch, [call]) or (None, []) when there is no good queue. Each call: id, try, act, target, reason."""
+    """(epoch, [call]) or (None, []) when there is no whole queue. Each call: id, try, act, target, reason.
+
+    Whole means its last line is QUEUE_END followed by a line break: the server rewrites the file in place and the game's writer
+    sends it in pieces, so a file read mid-write lacks that line and is left for the next pass. Every call line has exactly five
+    fields, so a line cut short (a name cut to a shorter name) is never made even if the end check were fooled."""
     try:
         with open(path, "r", encoding="utf-8", errors="replace", newline="") as f:
-            lines = f.read().split("\n")
+            text = f.read()
     except OSError:
         return None, []
-    head = lines[0].strip() if lines else ""
+    lines = text.split("\n")
+    if len(lines) < 3 or lines[-1] != "" or lines[-2].rstrip("\r") != QUEUE_END:
+        return None, []
+    head = lines[0].strip()
     parts = head.split(" ")
     if len(parts) != 3 or parts[0] != "ZEDQ" or parts[1] != "1" or not EPOCH_RE.fullmatch(parts[2]):
         return None, []
     calls = []
-    for raw in lines[1:QUEUE_MAX + 1]:
+    for raw in lines[1:-2][:QUEUE_MAX]:
         line = raw.rstrip("\r")
         if not line:
             continue
         f = line.split("\t")
-        if len(f) < 4 or not NUM_RE.fullmatch(f[0]) or not NUM_RE.fullmatch(f[1]):
+        if len(f) != 5 or not NUM_RE.fullmatch(f[0]) or not NUM_RE.fullmatch(f[1]):
             continue
-        calls.append({"id": int(f[0]), "try": int(f[1]), "act": f[2], "target": f[3], "reason": f[4] if len(f) > 4 else ""})
+        calls.append({"id": int(f[0]), "try": int(f[1]), "act": f[2], "target": f[3], "reason": f[4]})
     return parts[2], calls
 
 
@@ -244,6 +253,15 @@ def read_answers(path, epoch):
         if len(f) >= 3 and NUM_RE.fullmatch(f[0]) and NUM_RE.fullmatch(f[1]):
             out[(int(f[0]), int(f[1]))] = (f[2], f[3] if len(f) > 3 else "")
     return out
+
+
+def latest_tries(answers):
+    """Only the newest try of each call: a call that keeps failing holds one line, never one a try."""
+    best = {}
+    for (cid, ctry) in answers:
+        if cid not in best or ctry > best[cid]:
+            best[cid] = ctry
+    return {(cid, ctry): answers[(cid, ctry)] for cid, ctry in best.items()}
 
 
 def write_answers(path, epoch, answers, now=None):
@@ -306,7 +324,7 @@ def run_once(folder, host, port, password, timeout=5.0, now=None):
                     made[key] = ("failed", "the console could not be reached: %s" % e)
             log("the console could not be reached at %s:%d (%s)" % (host, port, e))
     keep.update(made)
-    write_answers(answers_path, epoch, keep, now)
+    write_answers(answers_path, epoch, latest_tries(keep), now)
     return made
 
 

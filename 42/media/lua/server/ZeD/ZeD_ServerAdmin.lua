@@ -87,7 +87,6 @@ local function open()
     md.mutes = md.mutes or {}        -- lower-case username -> who muted them
     md.watch = md.watch or {}        -- username -> the powers to switch off when a role lands
     md.log = md.log or { n = 0, at = 0, s = 0 }
-    md.helperEpoch = md.helperEpoch or getRandomUUID()   -- (this world's word for the host helper's files)
     -- (a watch back from a restart waits for that player's hello, when their client can hear it)
     for _, w in pairs(md.watch) do w.hi = true end
     if md.schema > SCHEMA then
@@ -491,7 +490,7 @@ end
 -- lifts both, or the Steam ID would keep every account on it out
 local function undoGame(md, b, by)
     local sent = cancelOwed(md, b.id)
-    if not (b.made or sent or b.ipSent) then return end
+    if not (b.made or b.everMade or sent or b.ipSent) then return end   -- (everMade: a round reOwe asked again may have half taken)
     if b.user then owe(md, b.banIp and "UnBanIP" or "UnBan", b.user, "", 0, by) end
     if b.sid then owe(md, "UnBanSteamID", b.sid, "", 0, by) end
     if not (b.user or b.sid) then owe(md, "UnBanIPOnly", b.ip, "", 0, by) end
@@ -543,8 +542,12 @@ local function toHelper(e, now)
         return true
     end
     if e.helperFailed then
-        e.try, e.helperFailed, e.helperAt = (e.try or 1) + 1, nil, now   -- (a new try: the helper makes it again)
-        return false
+        -- (a staff client may take it meanwhile; the helper's next try waits HELPER_WAIT_S, so a console it cannot reach
+        -- costs one try a call every half minute, never one every pass)
+        if now - (e.failedAt or 0) < AL.HELPER_WAIT_S then return false end
+        e.try, e.helperFailed, e.failedAt, e.helperAt = (e.try or 1) + 1, nil, nil, now
+        e.sent = now
+        return true
     end
     if H.alive(now) and now - (e.helperAt or 0) < AL.HELPER_WAIT_S then
         e.sent = now
@@ -634,7 +637,7 @@ local function doneOwed(md, e, now)
     md.owed[e.id] = nil
     local b = e.banId and md.bans[e.banId] or nil
     if b and GAME_BAN[e.act] then
-        b.made, b.madeAt = true, now
+        b.made, b.madeAt, b.everMade = true, now, true
         if e.act == "BanSteamID" and gameHoldsSid(e.target) == false then reOwe(md, b, "the Steam ID is not on the game's list") end
     end
     if e.act == "BanIP" then
@@ -828,6 +831,20 @@ local function runWatch(md, now)
     for _, d in ipairs(done or {}) do applyWatch(md, d[1], d[2], d[3]) end
 end
 
+-- a call the helper failed: one log line every HELPER_LOG_S at most, counting the ones it held back, so a console the helper
+-- cannot reach never floods the log ring
+local function helperFailLine(e, text, now, last)
+    T.helperFails = (T.helperFails or 0) + 1
+    if T.helperFailAt and now - T.helperFailAt < AL.HELPER_LOG_S then return end
+    T.helperFailAt = now
+    local more = T.helperFails - 1
+    T.helperFails = 0
+    local note = e.act .. ": " .. tostring(text)
+    if last then note = note .. "; tried " .. tostring(e.try or 1) .. " times, staff only now" end
+    if more > 0 then note = note .. " (and " .. tostring(more) .. " more since the last line)" end
+    Srv.adminLog(Tk.SYS, "host helper failed", e.target, note)
+end
+
 -- the host helper: its answers read, its queue written, every HELPER_POLL_S
 local function runHelper(md, now)
     local H = Srv.H
@@ -851,9 +868,12 @@ local function runHelper(md, now)
                 if a.res == "refused" then
                     e.noHelper, e.helper, e.sent = true, nil, nil
                     Srv.adminLog(Tk.SYS, "host helper refused", e.target, e.act .. ": " .. tostring(a.text))
+                elseif (e.try or 1) >= AL.HELPER_TRIES then
+                    e.noHelper, e.helper, e.sent = true, nil, nil      -- (tried enough: staff clients only from here)
+                    helperFailLine(e, a.text, now, true)
                 else
-                    e.helperFailed, e.sent = true, nil
-                    Srv.adminLog(Tk.SYS, "host helper failed", e.target, e.act .. ": " .. tostring(a.text))
+                    e.helperFailed, e.failedAt, e.sent = true, now, nil
+                    helperFailLine(e, a.text, now, false)
                 end
             end
         end

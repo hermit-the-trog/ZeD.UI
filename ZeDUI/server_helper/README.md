@@ -16,6 +16,17 @@ Without it nothing breaks: those calls wait for the next staff member to log in,
 - IP bans are never the helper's: the game's IP ban needs the player's own connection, which only a staff member's game has.
 - Mutes are not the helper's either. The server cannot reach the game's chat; ZeD's mute is kept by each player's ZeD.
 - It never prints or writes the RCON password.
+- A call the console fails is tried again half a minute later, three times in all, then left to a staff member. ZeD writes
+  one log line a minute at most about failures, with a count.
+
+## Before you turn it on
+
+- **Anything that can write the queue file can kick, ban and unban.** The helper trusts the file. Any other server-side Lua
+  mod can write it, and so can client-side Lua from another server's mods if you also play on this machine from the same
+  Zomboid folder. Start the server with its own folder (`-cachedir=...`, for example `-cachedir=C:\PZServer` or
+  `-cachedir=/home/pzserver/pzdata`) and point `--zomboid` there.
+- **One server per Zomboid folder.** Two servers sharing one folder share one queue, so one world's bans would run on the
+  other's console.
 
 ## You need
 

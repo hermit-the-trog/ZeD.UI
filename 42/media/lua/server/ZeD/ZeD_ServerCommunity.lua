@@ -424,15 +424,27 @@ Srv.gates.rules = function(p, module, command)
     return nil
 end
 
+-- a split-screen guest: a second, third or fourth player on someone's connection (getPlayerNum is the index the client gave
+-- that player when it joined; the server sets it from the connect packet, GameServer.receivePlayerConnect). ZeD's client
+-- speaks only for the connection's first player, so a guest can never answer, and the game's kick by name drops the whole
+-- connection (KickUserCommand: forceDisconnect), the first player with it. The first player's answer stands for the screen
+local function isGuest(o)
+    local ok, n = pcall(function() return o:getPlayerNum() end)
+    return ok and type(n) == "number" and n > 0
+end
+
 -- who was asked at joining and is still on with no answer: one line for a connection, and a Kick owed (reason "": the game's
 -- own words). A role the game will not kick is only written down. Leave needs nothing, the player is gone. The walk itself
--- makes the record for anyone online without one, so a client that never says hello is asked all the same
+-- makes the record for anyone online without one, so a client that never says hello is asked all the same. A split-screen
+-- guest gets no record: their connection's first player has one
 local function lookAtAsked(md, t)
-    Srv.eachOnline(function(o) hereOf(md, o:getUsername(), t) end)
+    Srv.eachOnline(function(o) if not isGuest(o) then hereOf(md, o:getUsername(), t) end end)
     for low, e in pairs(T.here) do
         local o = Srv.player(e.user)
         if not o then
             T.here[low] = nil
+        elseif isGuest(o) then
+            T.here[low] = nil        -- (a record a guest's own command made: the gate still asks them, nothing is owed)
         elseif e.ask and not asked(md, e.user) then
             e.ask = false
         elseif e.ask and not e.noted and t - e.at >= CL.ASKED_MS then

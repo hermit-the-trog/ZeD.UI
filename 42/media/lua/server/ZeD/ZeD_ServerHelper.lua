@@ -7,15 +7,16 @@
 -- console itself (A7), so the two talk through two files in Zomboid/Lua/ZeD_helper/ on the server (getFileWriter and
 -- getFileReader both work under the server's own Lua folder):
 --
---   queue.txt    this file writes it: "ZEDQ 1 <epoch>", then one call a line: id, try, act, target, reason (tab-separated)
+--   queue.txt    this file writes it: "ZEDQ 1 <epoch>", then one call a line: id, try, act, target, reason (tab-separated),
+--                then "ZEDQ end". The game's file writer is not atomic, so the helper takes a queue only with its last line
 --   answers.txt  the helper writes it: "ZEDA 1 <epoch> <unix seconds>", then one answer a line: id, try, result, text
 --
--- The epoch is this world's own random word, kept in the admin table, so the helper never takes another world's numbers (or
--- a table lost in a crash) for these. Only the calls on the helper's own allow-list go in the queue, with targets already
+-- The epoch is a random word made at each server start (never saved), so the helper never takes another world's numbers, or
+-- the numbers of a table a crash rolled back, for these. Only the calls on the helper's own allow-list go in the queue, with targets already
 -- checked against the same patterns it checks them against again. A ban's reason is the only typed text: it loses its tabs and
 -- line breaks here, its quotes and anything past plain ASCII in the helper. Results: ok, gone (a Kick on someone not on),
 -- refused (the game or the helper said no: the call goes to a staff client), failed (it goes to a staff client too, and the
--- helper tries again).
+-- helper tries again HELPER_WAIT_S later, HELPER_TRIES tries in all).
 -- ============================================================================
 if not isServer() then return end
 
@@ -32,6 +33,7 @@ Srv.H = H
 H.QUEUE = "ZeD_helper/queue.txt"
 H.ANSWERS = "ZeD_helper/answers.txt"
 H.READ_MAX = 1000                     -- answer lines read at most, so a runaway file costs nothing
+H.END = "ZEDQ end"                     -- the queue's last line: a file without it was read mid-write
 
 -- the calls the helper makes, and the kind of target each takes. Never an IP: the game's IP ban needs the player's
 -- connection, which only a staff client's call has
@@ -55,7 +57,11 @@ function H.can(e)
     return kind ~= nil and H.okTarget(kind, e.target)
 end
 
-function H.epoch(md) return tostring(md.helperEpoch) end
+-- this start's word: new at every server start, so ids a crash rolled back never meet the answers they had before
+function H.epoch()
+    if not H.word then H.word = tostring(getRandomUUID()) end
+    return H.word
+end
 
 -- running: its last answers file is fresh (H.seen is that file's own time)
 function H.alive(now) return H.seen ~= nil and now - H.seen <= ZeD.Adm.L.HELPER_ALIVE_S end
@@ -72,8 +78,9 @@ function H.write(md)
         if e.helper and H.can(e) then ids[#ids + 1] = id end
     end
     table.sort(ids)
-    local out = { "ZEDQ 1 " .. H.epoch(md) }
+    local out = { "ZEDQ 1 " .. H.epoch() }
     for _, id in ipairs(ids) do out[#out + 1] = line(md.owed[id]) end
+    out[#out + 1] = H.END
     local text = table.concat(out, "\n") .. "\n"
     if text == H.wrote then return true end
     local w = getFileWriter(H.QUEUE, true, false)
@@ -92,7 +99,7 @@ function H.read(md)
     local head = r:readLine()
     local epoch, at = nil, nil
     if head then epoch, at = string.match(head, "^ZEDA 1 (%S+) (%d+)$") end
-    if epoch == H.epoch(md) then
+    if epoch == H.epoch() then
         H.seen = tonumber(at)
         for _ = 1, H.READ_MAX do
             local l = r:readLine()

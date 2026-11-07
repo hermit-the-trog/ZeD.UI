@@ -1885,6 +1885,15 @@ do
     check("the second one holds: no more", md().bans[1].made == true and W.sidList["76561198000000700"] == true)
     advance(30000)
     check("and nothing more is asked", md().bans[1].reowe == 1 and next(md().owed) == nil)
+    -- a round asked again whose calls have not gone yet (made is cleared), then lifted: the first round's game ban may hold,
+    -- so the unban is still owed
+    local b1 = md().bans[1]
+    check("a ban the game was told of remembers it", b1.everMade == true)
+    b1.made = nil
+    nolimit(a)
+    say(a, "a_unban", { id = 1 })
+    advance(3000)
+    check("lifted with made cleared: the game's unban still goes", has(ca.game, "UnBanSteamID:76561198000000700"), ca.game)
     -- a game that never takes it: the cap, then a line
     W.refuse = { ["76561198000000701"] = true }
     nolimit(a)
@@ -1908,6 +1917,13 @@ do
 end
 
 section("the host helper: the queue it reads and the answers it writes")
+local function failLines()
+    local n = 0
+    for _, l in ipairs(W.logs) do
+        if string.find(l.line, "host helper failed", 1, true) then n = n + 1 end
+    end
+    return n
+end
 do
     W = W or {}
     W.sandboxNext = { HostHelper = true }
@@ -1918,8 +1934,9 @@ do
     check("the setting turns it on", H.on() == true)
     offline(a)
     md().players.Kade = { t = 1, role = "user" }
-    local epoch = md().helperEpoch
-    check("the world has its own word for the helper", type(epoch) == "string" and #epoch > 8)
+    local epoch = H.epoch()
+    check("this start has its own word for the helper", type(epoch) == "string" and #epoch > 8)
+    check("and it is never saved, so a table a crash rolled back never meets its old answers", md().helperEpoch == nil)
     -- a permanent ban with nobody on: the calls go to the queue
     W.server.ZeD.Srv.mem.Hermit = nil
     a.box = {}
@@ -1931,6 +1948,7 @@ do
     local q = W.files["ZeD_helper/queue.txt"] or ""
     check("the queue names this world", string.find(q, "ZEDQ 1 " .. epoch, 1, true) == 1, q)
     check("the call is in it, its reason on one line", string.find(q, "\tBan\tKade\tGrief and lies\n", 1, true) ~= nil, q)
+    check("the queue ends with its end line, so a file read mid-write is never taken", string.sub(q, -9) == "ZEDQ end\n", q)
     -- the helper answers ok: done, and judged as any other
     local e = owedOf("Ban", "Kade")
     W.files["ZeD_helper/answers.txt"] = "ZEDA 1 " .. epoch .. " " .. tostring(math.floor(W.clock / 1000)) .. "\n" .. tostring(e.id) .. "\t1\tok\tSystem banned user Kade\n"
@@ -1981,9 +1999,42 @@ do
     e = owedOf("Ban", "Bo")
     W.files["ZeD_helper/answers.txt"] = "ZEDA 1 " .. epoch .. " " .. tostring(math.floor(W.clock / 1000)) .. "\n" .. tostring(e.id) .. "\t1\tfailed\tno answer from the console\n"
     advance(3000)
-    check("failed: written down", logHas("host helper failed"))
+    check("failed: written down", logHas("host helper failed") and failLines() == 1)
     advance(16000)
-    check("and tried again under a new try", string.find(W.files["ZeD_helper/queue.txt"], tostring(e.id) .. "\t2\tBan\tBo", 1, true) ~= nil, W.files["ZeD_helper/queue.txt"])
+    check("no new try before HELPER_WAIT_S: a console it cannot reach is not asked every pass", string.find(W.files["ZeD_helper/queue.txt"], tostring(e.id) .. "\t1\tBan\tBo", 1, true) ~= nil, W.files["ZeD_helper/queue.txt"])
+    advance(16000)
+    check("then tried again under a new try", string.find(W.files["ZeD_helper/queue.txt"], tostring(e.id) .. "\t2\tBan\tBo", 1, true) ~= nil, W.files["ZeD_helper/queue.txt"])
+    -- it fails again: no second line inside HELPER_LOG_S, only a count
+    W.files["ZeD_helper/answers.txt"] = "ZEDA 1 " .. epoch .. " " .. tostring(math.floor(W.clock / 1000)) .. "\n" .. tostring(e.id) .. "\t2\tfailed\tno answer from the console\n"
+    advance(3000)
+    check("a second failure inside a minute: no new line", failLines() == 1)
+    advance(31000)
+    check("a third try", string.find(W.files["ZeD_helper/queue.txt"], tostring(e.id) .. "\t3\tBan\tBo", 1, true) ~= nil, W.files["ZeD_helper/queue.txt"])
+    W.files["ZeD_helper/answers.txt"] = "ZEDA 1 " .. epoch .. " " .. tostring(math.floor(W.clock / 1000)) .. "\n" .. tostring(e.id) .. "\t3\tfailed\tno answer from the console\n"
+    advance(3000)
+    check("HELPER_TRIES failures: left to staff clients, off the queue", owedOf("Ban", "Bo").noHelper == true and not string.find(W.files["ZeD_helper/queue.txt"], "\tBo\t", 1, true))
+    check("and one line says so, with the count it held back", failLines() == 2 and logHas("tried 3 times, staff only now") and logHas("(and 1 more since the last line)"))
+    advance(60000)
+    check("then nothing more: no tries, no lines", failLines() == 2 and owedOf("Ban", "Bo").try == 3)
+    -- many calls failing at once: one line, not one a call
+    local many = {}
+    for _, n in ipairs({ "Fi", "Gus", "Hal", "Ivy" }) do
+        md().players[n] = { t = 1, role = "user" }
+        W.online[#W.online + 1] = back
+        nolimit(back)
+        say(back, "a_ban", { user = n, reason = "x", len = "perm" })
+        offline(back)
+    end
+    advance(3000)
+    local text = "ZEDA 1 " .. epoch .. " " .. tostring(math.floor(W.clock / 1000)) .. "\n"
+    for _, n in ipairs({ "Fi", "Gus", "Hal", "Ivy" }) do
+        many[#many + 1] = owedOf("Ban", n)
+        text = text .. tostring(many[#many].id) .. "\t1\tfailed\tno answer from the console\n"
+    end
+    W.files["ZeD_helper/answers.txt"] = text
+    advance(3000)
+    check("four failures in one pass: one line, the other three held for the next line", failLines() == 3 and A().helperFails == 3)
+    W.files["ZeD_helper/answers.txt"] = nil
     -- a helper that stopped writing: staff are not kept waiting
     md().players.Cy = { t = 1, role = "user" }
     W.online[#W.online + 1] = back
