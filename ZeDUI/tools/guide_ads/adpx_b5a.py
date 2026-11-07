@@ -67,10 +67,21 @@ def spline(ctrl, n=10):
     return pts
 
 
+def tube(d, pts, w, z, mat, polish=0.6, on=0.0, clip=None):
+    """a round bar along pts, `on` px above the ground, drawn over whatever is there (it lies in front of it)"""
+    m = Mask(d.W, d.H).line(pts, w).get()
+    if clip is not None: m &= clip
+    dist = E.edt(m); r = w / 2
+    prof = on + np.sqrt(np.clip(1 - ((r - np.minimum(dist, r)) / r) ** 2, 0, 1)) * z
+    d.h = np.where(m, prof, d.h).astype(np.float32)
+    d.mat[m] = d.mid(mat); d.solid |= m; d.polish[m] = polish; d.tex[m] = 0
+    return m
+
+
 # ------------------------------------------------------------------ 1. Gas-2-Go
 @b5a(124, 118)
 def gas_2_go(d):
-    # a 5-gallon steel jerry can standing, its flat side to us with the stamped X; the three handles across the top;
+    # a 5-gallon steel jerry can standing, its flat side to us with the stamped X; the one carry handle on the top;
     # the spout and its clamped cap on the near top corner; a tin funnel lying on its side in front
     X = d.XX + 0.5; Y = d.YY + 0.5
     x0, x1, y0, y1 = 8, 80, 32, 112
@@ -88,9 +99,9 @@ def gas_2_go(d):
         m = Mask(d.W, d.H).line([a, b], 6).get() & pn
         dd = E.edt(m)
         d.h = np.where(m, d.h + np.minimum(dd / 2.5, 1.0) * 2.6, d.h).astype(np.float32)   # the X's ridges
-    # the three handles standing on the top, each a loop of tube; the spout behind them on the near corner
-    for hx in (35, 52, 69):
-        loop = Mask(d.W, d.H).rrect(hx - 8, 14, 16, 15, 5).get() & ~Mask(d.W, d.H).rrect(hx - 5, 17, 10, 6, 2).get()
+    # the one carry handle standing on the middle of the top, a loop of tube; the spout on the near corner
+    for hx in (47,):
+        loop = Mask(d.W, d.H).rrect(hx - 15, 11, 30, 18, 6).get() & ~Mask(d.W, d.H).rrect(hx - 11, 15, 22, 7, 3).get()
         loop &= Y < 28
         dd = E.edt(loop)
         d.h = np.where(loop, 16 + np.sqrt(np.clip(dd / 1.6, 0, 1)) * 4, d.h).astype(np.float32)
@@ -119,9 +130,11 @@ def nolans_used_cars(d):
     # a car key on a split ring, hanging; a round paper price tag tied to the ring by a string, turned a little, AS IS
     # written on it by hand
     X = d.XX + 0.5; Y = d.YY + 0.5
-    rcx, rcy = 34, 18
-    d.torus(rcx, rcy, 10, 14, 4, "chrome", polish=1.0)                                        # the split ring
+    rcx, rcy = 34, 23
     rr = np.hypot(X - rcx, Y - rcy)
+    # the split ring, threaded through the key's hole: its right side drawn now (the head hides it below the hole),
+    # its left side drawn after the head, in front of it, running down into the hole
+    d.torus(rcx, rcy, 10.5, 13.5, 4, "chrome", polish=1.0)
     d.seam((np.abs(rr - 12) < 0.5) & (X > rcx + 2) & (Y < rcy + 4), 0.35)                    # its second turn
     # the key, hanging from the ring: the black head with its hole, the blade below
     ang = math.radians(6)
@@ -130,7 +143,12 @@ def nolans_used_cars(d):
                                 ((24, 30), (44, 30), (49, 36), (49, 50), (43, 58), (25, 58), (19, 50), (19, 36))]).get()
     d.slab(head, 8, "k", bevel=3, polish=0.6)
     hx, hy = R(34, 36)
-    d.well(Mask(d.W, d.H).ellipse(hx, hy, 3, 3).get(), 6, bevel=1)
+    d.well(Mask(d.W, d.H).ellipse(hx, hy, 3.6, 3.6).get(), 6, bevel=1)
+    # the ring's front side over the head, from its top edge down into the hole
+    fr = (rr >= 10.5) & (rr <= 13.5) & (X <= hx + 0.5) & head & (Y <= hy + 1)
+    tt = (rr - 12) / 1.5
+    d.h = np.where(fr, 9 + np.sqrt(np.clip(1 - tt ** 2, 0, 1)) * 4, d.h).astype(np.float32)
+    d.mat[fr] = d.mid("chrome"); d.solid |= fr; d.polish[fr] = 1.0; d.tex[fr] = 0
     d.seam(Mask(d.W, d.H).poly([R(25, 46), R(43, 46), R(43, 47), R(25, 47)]).get(), 0.3)     # the head's grip line
     shoulder = Mask(d.W, d.H).poly([R(x, y) for x, y in ((28, 57), (40, 57), (40, 62), (38, 64), (30, 64), (28, 62))]).get()
     d.slab(shoulder, 5, "chrome", bevel=1, polish=1.0)
@@ -143,7 +161,7 @@ def nolans_used_cars(d):
     # the string, from the ring out to the tag's hole
     tcx, tcy, ta, tb, tang = 80, 70, 25, 21, -14
     hole = (tcx - 6, tcy - 19)
-    inkline(d, spline([(rcx + 12, rcy + 6), (52, 30), (62, 40), (hole[0] - 1, hole[1] + 1)], 8), 1.0)
+    inkline(d, spline([(rcx + 12, rcy - 3), (54, 28), (63, 40), (hole[0] - 1, hole[1] + 1)], 8), 1.0)
     inkline(d, [(hole[0] - 1, hole[1] + 1), (hole[0] + 1, hole[1] - 2), (hole[0] + 3, hole[1])], 1.0)
     tag = rot_ellipse(d, tcx, tcy, ta, tb, tang)
     d.slab(tag, 3, "w", bevel=1.2, polish=0.15)
@@ -231,11 +249,6 @@ def louisville_motorshop(d):
     X = d.XX + 0.5; Y = d.YY + 0.5
     x0, x1 = 14, 122
     yt0, yt1, yb = 26, 42, 92                                         # the lid's back edge, its front edge, the foot
-    # the carry strap, arching over the lid from end to end (behind the posts and caps)
-    strap = spline([(x0 + 3, 36), (32, 12), (68, 4), (104, 12), (x1 - 3, 36)], 10)
-    capsule(d, strap, 3.6, 4, "k", polish=0.5)
-    for ex in (x0 + 2, x1 - 2):
-        d.slab(Mask(d.W, d.H).rrect(ex - 3, 32, 6, 10, 2).get(), 6, "k", bevel=1, polish=0.6)   # its end clips
     lid = Mask(d.W, d.H).rect(x0, yt0, x1 - x0, yt1 - yt0).get()
     d.ramp_h(lid, 8, 14, axis="y", mat="d", polish=0.4); d.tex[lid] = 0.08
     face = Mask(d.W, d.H).rect(x0, yt1, x1 - x0, yb - yt1).get()
@@ -262,6 +275,13 @@ def louisville_motorshop(d):
         d.flat(top, 19, "m", polish=0.8)
     d.paint(Mask(d.W, d.H).rect(32, 38, 3, 1).get() | Mask(d.W, d.H).rect(33, 37, 1, 3).get(), "w")
     d.paint(Mask(d.W, d.H).rect(102, 38, 3, 1).get(), "w")
+    # the carry strap, clipped to the lid's two ends at the front and arching up over the top, in front of it all
+    for ex in (x0 + 4, x1 - 4):
+        d.slab(Mask(d.W, d.H).rrect(ex - 3, 31, 6, 12, 2).get(), 6, "k", bevel=1, polish=0.6, on=17)   # its end clips
+    strap = spline([(x0 + 4, 38), (x0 + 5, 24), (36, 10), (68, 5), (100, 10), (x1 - 5, 24), (x1 - 4, 38)], 10)
+    tube(d, strap, 3.6, 4, "k", polish=0.5, on=20)
+    for ex in (x0 + 4, x1 - 4):
+        d.dome(ex, 39, 1.4, 1.4, 2, "chrome", polish=1.0, on=23)                                 # the clips' pins
     # the jumper-cable clamps, side on: the sleeved handles spread behind the pivot, the toothed jaws shut, the
     # cable out of the lower handle's end
     def clamp(ox, oy, flip, grip):
@@ -387,15 +407,19 @@ def thumbs_of_green(d):
     X = d.XX + 0.5; Y = d.YY + 0.5
     cx, rx, y0, y1 = 70, 30, 44, 102
     # the spout first (the body stands in front of its root), a brace from the body to its middle
-    cone_seg(d, (90, 92), (140, 40), 6.0, 3.4, 7, "chrome", polish=0.9)
+    cone_seg(d, (90, 92), (137, 45), 6.0, 3.4, 7, "chrome", polish=0.9)
     capsule(d, [(98, 62), (112, 70)], 2.4, 3, "chrome", polish=0.9)
-    # the rose: a short flare, its face turned up the spout and a little toward us, pierced
-    cone_seg(d, (138, 42), (145, 35), 3.6, 7.0, 8, "chrome", polish=0.9)
-    rose = rot_ellipse(d, 145.5, 34.5, 10.5, 4.6, -45)
-    d.flat(rose, 12, "chrome", polish=0.9); d.ramp_h(rose, 10, 14, axis="y")
-    for (u, v) in ((-6, 0), (-3, -1.5), (0, 0), (3, 1.5), (6, 0), (-3, 1.5), (3, -1.5), (0, 3), (0, -3)):
-        a = math.radians(-45); px_, py_ = 145.5 + u * math.cos(a) - v * math.sin(a) * 0.9, 34.5 + u * math.sin(a) + v * math.cos(a) * 0.9
-        d.seam((np.hypot(X - px_, Y - py_) < 0.8) & rose, 0.5)
+    # the rose: the spout's end turns level and flares out to the right, its pierced face looking outward along it,
+    # turned a little toward us
+    cone_seg(d, (134, 47), (139, 43), 3.6, 3.6, 7, "chrome", polish=0.9)
+    cone_seg(d, (138, 43), (146, 43), 3.6, 7.6, 8, "chrome", polish=0.9)
+    fcx, fcy = 146.5, 43
+    rose = rot_ellipse(d, fcx, fcy, 8.4, 3.6, -84)
+    d.flat(rose, 12, "chrome", polish=0.9); d.ramp_h(rose, 11, 13, axis="y")
+    for (u, v) in ((-5.5, 0), (-2.8, -1.4), (0, 0), (2.8, 1.4), (5.5, 0), (-2.8, 1.4), (2.8, -1.4), (-5.5, 0), (0, -1.6),
+                   (0, 1.6)):
+        a = math.radians(-84); px_, py_ = fcx + u * math.cos(a) - v * math.sin(a), fcy + u * math.sin(a) + v * math.cos(a)
+        d.paint((np.hypot((X - px_) * 1.6, Y - py_) < 0.9) & rose, "k")
     # the body: an upright round can, the beads round it bowing with the view
     body, top = cyl_v(d, cx - rx, cx + rx, y0, y1, 20, "chrome", polish=0.85, top_ry=rx * VIEW, bot_ry=rx * VIEW)
     c = Cyl(d, cx - rx, cx + rx, rx * VIEW)
@@ -410,8 +434,11 @@ def thumbs_of_green(d):
     hole = ellipse_m(d, cx - 10, y0 - 4, 9.5, 9.5 * VIEW)
     d.flat(hole, 14, "k", polish=0.1); d.dark[hole] = 0.3
     # the handle: a flat strap arching over the top from back to front, and the rear handle down the back
-    arch = spline([(cx - 26, y0 + 2), (cx - 22, 18), (cx, 8), (cx + 20, 16), (cx + 24, y0 + 1)], 10)
-    capsule(d, arch, 4, 5, "chrome", polish=0.9)
+    arch = spline([(cx - 24, y0 + 4), (cx - 22, 18), (cx, 8), (cx + 20, 16), (cx + 22, y0 + 4)], 10)
+    tube(d, arch, 4, 4, "chrome", polish=0.9, on=24)                                         # over the top, in front
+    for fx in (cx - 24, cx + 22):
+        d.slab(Mask(d.W, d.H).rrect(fx - 4, y0 + 2, 8, 5, 2).get(), 3, "chrome", bevel=1, polish=0.9, on=24)  # its feet
+        d.dome(fx, y0 + 4.5, 1.2, 1.2, 2, "chrome", polish=1.0, on=27)
     rear = spline([(cx - rx + 1, 56), (cx - rx - 9, 62), (cx - rx - 10, 76), (cx - rx + 1, 86)], 8)
     capsule(d, rear, 4, 5, "chrome", polish=0.9)
     d.grain_pebble(body | top, 0.06, seed=17)
@@ -438,7 +465,7 @@ def thumbs_of_green(d):
 # ------------------------------------------------------------------ 8. Five Alarm Firehouse Chili
 @b5a(132, 118)
 def five_alarm_chili(d):
-    # a cast-iron pot on three stubby legs, its rim a level ellipse, chili in it with a ladle standing in it, the lid
+    # a cast-iron pot on three stubby legs, its rim a level ellipse, chili in it with a ladle resting on the rim, the lid
     # leaning against the pot's side, a wisp of steam rising
     X = d.XX + 0.5; Y = d.YY + 0.5
     cx, ry0 = 54, 44
@@ -470,10 +497,16 @@ def five_alarm_chili(d):
         if ((bx - cx) / 30) ** 2 + ((by - ry0 - 3) / 7) ** 2 < 1:
             m = ellipse_m(d, bx, by, 2.2, 1.3) & chili
             d.h[m] += 1.4; d.mat[m] = d.mid(("m", "k", "d")[_ % 3])
-    # the ladle, standing in the chili and leaning on the rim, its hooked end up at the right
-    capsule(d, [(cx + 10, ry0 + 2), (cx + 30, 10), (cx + 33, 4)], 3.6, 6, "chrome", polish=1.0)
-    capsule(d, [(cx + 33, 4), (cx + 37, 4), (cx + 38, 8)], 2.6, 5, "chrome", polish=1.0)
-    d.flat(ellipse_m(d, cx + 10, ry0 + 2.5, 5, 2) & chili, 23, "d", polish=0.3)               # where it goes in
+    # the ladle, its bowl down in the chili behind the near lip, its handle resting on the rim's right side and out
+    # over it, the hooked end up at the right
+    ex_, ey_ = cx + 16, ry0 + 8                                                                # where it goes in
+    rx_, ry_ = cx + 36.5, ry0 - 2                                                              # where it rests on the rim
+    ux, uy = rx_ - ex_, ry_ - ey_; L = math.hypot(ux, uy); ux, uy = ux / L, uy / L
+    tip = (rx_ + ux * 28, ry_ + uy * 28)
+    tube(d, [(ex_, ey_), (rx_, ry_), tip], 3.6, 3, "chrome", polish=1.0, on=29)
+    tube(d, [tip, (tip[0] + 4, tip[1] - 1), (tip[0] + 5, tip[1] + 3)], 2.6, 3, "chrome", polish=1.0, on=29)
+    d.flat(ellipse_m(d, ex_, ey_ + 0.5, 4, 1.6) & chili & ~Mask(d.W, d.H).line([(ex_ + ux * 1.5, ey_ + uy * 1.5), (rx_, ry_)], 3.6).get(),
+           23, "d", polish=0.3)                                                                # the chili round it
     # steam, rising off the pot
     for (sx, ph, h) in ((cx - 10, 0.0, 30), (cx - 22, 1.7, 22)):
         pts = [(sx + 3.0 * math.sin(ph + k * 0.45), ry0 - 4 - k * 1.0) for k in range(h)]
