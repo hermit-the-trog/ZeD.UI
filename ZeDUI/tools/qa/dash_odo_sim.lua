@@ -10,9 +10,11 @@
 --   SHOW    the VFD and LCD readings, ODO / TRIP, the words lit with the key
 --   VERBS   the stem zeroes the trip; the window's A switches, its X zeroes only while the trip shows; both on the pad
 --   SERVER  the driver's client sends the car's modData no more than every tenth of a mile, and at once after a press;
---           the miles not sent yet go when the engine stops, the driver leaves the seat or the car, or takes another;
---           single player and a passenger send nothing; a build without transmitModData is no error
---   HOT     the hot lamp lights in the key-on bulb check
+--           the miles not sent yet go when the engine stops, the driver leaves the seat or the car (OnExitVehicle's
+--           D.hide, on a panel that gets no prerender once hidden), takes another, or safe mode or the hidden UI takes
+--           the dash; a last send more than 3 s late is dropped, never sent from a parked car; single player and a
+--           passenger send nothing; a build without transmitModData is no error
+--   HOT     the hot lamp lights in the key-on bulb check; the Simple dash's Temperature bar goes red only when hot
 --   SIMPLE  the Trip cell beside Odometer, in the player's units, one decimal; A on it zeroes the trip; the units
 --           option is read at most once a second
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/dash_odo_sim.lua
@@ -104,8 +106,9 @@ function ZeD_Panel:setHeight(v) self._h = v end
 function ZeD_Panel:getMouseX() return -1 end
 function ZeD_Panel:getMouseY() return -1 end
 function ZeD_Panel:isMouseOver() return false end
-function ZeD_Panel:setVisible() end
-function ZeD_Panel:isVisible() return true end
+-- (shown or hidden as the game would: a hidden panel gets no prerender, see frame below)
+function ZeD_Panel:setVisible(v) self._hidden = not v end
+function ZeD_Panel:isVisible() return not self._hidden end
 
 ZeD = { _trGen = 0 }
 local defaults = {}
@@ -117,7 +120,7 @@ ZeD.tr = function(key, ...)
 end
 ZeD.upper, ZeD.textCase = string.upper, function(s) return s end
 ZeD.logOnce = function(key, msg) env.errors[#env.errors + 1] = tostring(key) .. ": " .. tostring(msg) end
-ZeD.Safe = { on = function() return false end, register = noop }
+ZeD.Safe = { on = function() return false end, register = function(name, t) env.safe = env.safe or {}; env.safe[name] = t end }
 ZeD.Settings = { dashSimple = function() return env.simple end, dashLampsOn = function() return false end }
 ZeD.RadioOps = { read = function() return nil end }
 ZeD.Input = { Detector = { getMode = function() return env.pad and "gamepad" or "mouse" end } }
@@ -202,20 +205,29 @@ local SCRIPT = { d6 = "Base.PickUpTruck", dashelite = "Base.ModernCar", cossette
     taxi = "Base.CarTaxi", race = "Base.RaceCar", nyala = "Base.CarNormal" }
 
 local inst, curCar
+local CHR = { getVehicle = function() return curCar end, getPlayerNum = function() return 0 end,
+    isLocalPlayer = function() return true end,
+    getInventory = function() return { haveThisKeyId = function() return true end } end }
+getSpecificPlayer = function() return CHR end
+-- into a car (OnEnterVehicle shows the dash), or out of it with seat(nil): a bare seat(nil) is the car lost some
+-- other way; getting out is out() below, which fires OnExitVehicle's D.hide as the game does
 local function seat(car)
     curCar = car
-    local chr = { getVehicle = function() return curCar end, getPlayerNum = function() return 0 end,
-        getInventory = function() return { haveThisKeyId = function() return true end } end }
-    getSpecificPlayer = function() return chr end
+    if car and inst then inst:setVisible(true) end
 end
+local function out()
+    curCar = nil
+    D.hide(CHR)
+end
+-- one frame: the UI manager calls prerender only on a shown panel
 local function frame(ms)
     clock = clock + (ms or 100)
     LOG = {}
-    inst:prerender()
+    if inst:isVisible() then inst:prerender() end
     return LOG
 end
 local function frames(n, ms) for _ = 1, n do frame(ms) end end
-local function newDash() inst = ZeD_Dashboard:new(0); return inst end
+local function newDash() inst = ZeD_Dashboard:new(0); D._instance = inst; return inst end
 local function st() return inst._st end
 local function drive(design, t)
     t = t or {}
@@ -579,9 +591,9 @@ do
     inst:_fire("tripReset", false)                     -- (each case starts from a send: a press sends at once)
     before = car.sent
     frames(12, 250)
-    seat(nil)
-    frame(250)
+    out()                                              -- (OnExitVehicle: D.hide, the engine still running)
     check("the driver gets out: the rest goes at once", car.sent == before + 1, car.sent - before)
+    check("and the dash is hidden: no prerender after", not inst:isVisible())
     frames(10, 250)
     check("and nothing more after", car.sent == before + 1, car.sent - before)
     seat(car)
@@ -602,9 +614,53 @@ do
     frame(250)
     check("the driver takes another car: the first one's rest goes", car.sent == before + 1, car.sent - before)
     check("and the other car sends nothing on first sight", other.sent == 0, other.sent)
-    seat(nil)
-    frame(250)
+    out()
     check("out of a car with nothing new: nothing sent", other.sent == 0, other.sent)
+    -- a dash hidden some way that sent nothing, the driver gone, and the dash drawn again long after (the next car):
+    -- the old car's miles are dropped, never sent from a parked car the server no longer looks after
+    seat(car)
+    frame(250)
+    inst:_fire("tripReset", false)
+    before = car.sent
+    frames(12, 250)
+    inst:setVisible(false)                             -- (no hide path: nothing sent)
+    curCar = nil
+    clock = clock + 20000
+    seat(other)
+    frame(250)
+    check("a last send 20 s late is dropped", car.sent == before, car.sent - before)
+    check("and nothing is left waiting to send", inst._odoCar == other, tostring(inst._odoCar))
+    -- the UI hidden mid-drive (the hide-UI key): the dash stops counting, so its miles go first
+    seat(car)
+    frame(250)
+    inst:_fire("tripReset", false)
+    before = car.sent
+    frames(12, 250)
+    ISUIHandler = { allUIVisible = false }
+    frame(250)
+    check("the UI hidden while driving: the rest goes", car.sent == before + 1, car.sent - before)
+    check("and the dash is hidden", not inst:isVisible())
+    ISUIHandler = nil
+    -- safe mode taking the dash away mid-drive sends the rest the same way as D.hide
+    getPlayerVehicleDashboard = nil
+    seat(car)
+    frame(250)
+    inst:_fire("tripReset", false)
+    before = car.sent
+    frames(12, 250)
+    env.safe.dashboard.leave()
+    check("safe mode takes the dash mid-drive: the rest goes", car.sent == before + 1 and not inst:isVisible(), car.sent - before)
+    -- D.show (entering or changing seats) with no car hides the dash: the rest goes there too
+    seat(car)
+    frame(250)
+    inst:_fire("tripReset", false)
+    before = car.sent
+    frames(12, 250)
+    D.show(CHR)                                        -- (still in the car: shown, nothing sent)
+    check("shown again in the same car: nothing sent", car.sent == before, car.sent - before)
+    curCar = nil
+    D.show(CHR)                                        -- (D.show with no car: hidden, the rest goes)
+    check("D.show with no car hides and sends the rest", car.sent == before + 1 and not inst:isVisible(), car.sent - before)
     -- a car never seen: its new mileage goes out at once, so the other seats read the same
     local fresh = drive("d6", { keysIn = true, running = true, kmh = 0 })
     check("a first mileage goes out at once", fresh.sent == 1, fresh.sent)
@@ -645,6 +701,21 @@ do
     local dartTemp = false
     for _, p in ipairs(ZeD.DashPx.designs.dart.parts) do if p.t == "needle" and p.src == "temp" then dartTemp = true end end
     check("the Dart's new gauge reads the temperature every gauge reads", dartTemp)
+    -- the Simple dash's Temperature bar: red for a hot engine, not for the bulb check (review, Nov 7 2026)
+    env.simple = true
+    local function barIn(log, col)
+        for _, l in ipairs(log) do if l:find("drawFillBar", 1, true) and l:find(col, 1, true) then return true end end
+        return false
+    end
+    drive("d6", { keysIn = true, running = false })
+    local log = frame(100)
+    check("Simple, key on and cold: the hot lamp is in the bulb check", st().tempLamp == true)
+    check("Simple, key on and cold: no red bar", barIn(log, "accent") and not barIn(log, "danger"))
+    drive("d6", { keysIn = true, running = true, engine = 20 })
+    frames(4, 250)
+    log = frame(100)
+    check("Simple, running hot: the Temperature bar is red", barIn(log, "danger"))
+    env.simple = false
 end
 
 -- ---------------------------------------------------------------------------

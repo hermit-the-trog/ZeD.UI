@@ -154,7 +154,11 @@ act(function()
     if check(type(km) == "number", "Roadworthy's odometer is published: " .. tostring(km) .. " km") then
         local miles = math.floor(km / 1.609344)
         check(math.abs(s.odoMiles - miles) <= 1, "Simple's figure is the odometer: " .. tostring(s.odoMiles))
-        check(math.abs(s.odo - (miles - math.floor(miles / 10000) * 10000)) <= 1, "the LCD is its last four figures: " .. tostring(s.odo))
+        -- (Nov 7 2026: st.odo is the whole mileage now, with its tenths; the LCD prints six figures, odoShownT)
+        check(math.abs(s.odo - km / 1.609344) <= 1, "the dash's odometer is Roadworthy's: " .. tostring(s.odo))
+        -- (the window shows the odometer unless someone switched it to the trip; floor, not %, for the last six figures)
+        local six = miles - math.floor(miles / 1000000) * 1000000
+        check(math.abs((tonumber(s.odoShownT) or -9) - six) <= 1, "the LCD is its last six figures: " .. tostring(s.odoShownT))
     end
     local label = VD.gearLabel(cur)
     say("gear label " .. tostring(label) .. ", plate letter " .. tostring(s.gearSel))
