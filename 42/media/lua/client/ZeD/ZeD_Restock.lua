@@ -863,12 +863,24 @@ local function noticeFor(p, run, jobs)
     if #parts > 0 then notice(p, run, table.concat(parts, " | ")) end
 end
 
+-- the pad's buttons, read by name as BumperChord and FocusManager read theirs: isJoypadPressed is gone, and
+-- isJoypadDown is the D-pad now. A name this game version doesn't have reads as up.
+local PAD_BUTTONS = { "A", "B", "X", "Y", "LeftStick", "RightStick", "LeftBump", "RightBump", "Back", "Start",
+                      "DPadLeft", "DPadRight", "DPadUp", "DPadDown" }
+
+local function padRead(s, id)
+    for b, name in ipairs(PAD_BUTTONS) do
+        local button = JoypadButton[name]
+        s[b] = (button ~= nil and button:isDown(id)) and true or false
+    end
+end
+
 local function padState(pn)
     local jp = JoypadState and JoypadState.players and JoypadState.players[pn + 1]
-    if not jp then return nil end
-    local id = jp.id
+    local id = jp and jp.id
+    if not id or id < 0 or not JoypadButton then return nil end
     local s = {}
-    for b = 0, 15 do s[b] = (isJoypadPressed and isJoypadPressed(id, b)) and true or false end
+    pcall(padRead, s, id)
     return s
 end
 
@@ -1011,6 +1023,22 @@ local function tickCasual(p, run)
     touch()
 end
 
+-- any button on the pad, read every tick: a tap is shorter than tickRun's 10. A press is a button down now and up
+-- at the last read, so the one that started the run never counts. With a window or a wheel holding the pad, now or
+-- at the last read (B closing one has already let go of the focus), the press is theirs: A on the Stop button fires
+-- on its release, and a run stopped on the press would start again there.
+local function padTick(p, run)
+    local was, now = run.pads, padState(run.pn)
+    run.pads = now
+    local jp = JoypadState.players[run.pn + 1]
+    local held, heldBefore = jp ~= nil and jp.focus ~= nil, run.padHeld
+    run.padHeld = held
+    if held or heldBefore or not (was and now) then return end
+    for b = 1, #PAD_BUTTONS do
+        if now[b] and not was[b] then R.onKey(p); return end
+    end
+end
+
 -- one run's tick (every 10 ticks)
 local function tickRun(p, run)
     -- a zombie coming into view, getting hurt
@@ -1018,14 +1046,6 @@ local function tickRun(p, run)
     if zv > (run.z0 or 0) then R.stop(p, "zombie"); return end
     run.z0 = math.min(run.z0 or 0, zv)
     if hpOf(p) < (run.hp0 or 100) - 0.5 then R.stop(p, "hurt"); return end
-    -- any button on the pad
-    local ps = padState(run.pn)
-    if ps and run.pads then
-        for b = 0, 15 do
-            if ps[b] and not run.pads[b] then run.pads = ps; R.onKey(p); return end
-        end
-    end
-    run.pads = ps
     local busy = R.pending(p, run) > 0 or ISTimedActionQueue.isPlayerDoingAction(p)
     if run.mode == "casual" then
         if not busy then tickCasual(p, run) end
@@ -1214,6 +1234,13 @@ end
 local _tick, _inHome = 0, {}
 local function onTick()
     _tick = _tick + 1
+    for pn, run in pairs(R.runs) do
+        local p = getSpecificPlayer(pn)
+        if p and not run.done then
+            local ok, err = pcall(padTick, p, run)
+            if not ok then ZeD.logOnce("Restock pad", err) end
+        end
+    end
     if _tick % 10 ~= 0 then return end
     -- Loadouts and outfits off: a run going stops (its queue cancelled), and nothing else is watched
     if not L.on() then
@@ -1246,7 +1273,10 @@ end
 
 if not _G._zedRestockHooked then
     _G._zedRestockHooked = true
-    Events.OnTick.Add(function() ZeD.Restock._onTick() end)
+    Events.OnTick.Add(function()
+        local ok, err = pcall(ZeD.Restock._onTick)
+        if not ok then ZeD.logOnce("Restock tick", err) end
+    end)
     Events.OnKeyPressed.Add(function(key)
         for pn, run in pairs(ZeD.Restock.runs) do
             local p = getSpecificPlayer(pn)
