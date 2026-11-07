@@ -1408,6 +1408,39 @@ do
     check("a rule added while on: still open", got(v, "t_mine") ~= nil)
 end
 
+section("the join rules answered: every part asks again for what the gate refused")
+do
+    local a = boot()
+    save(a, { ask = true, rules = rulesOf("One") })
+    local Srv = W.server.ZeD.Srv
+    -- (a handler runs only past the gates and its limit: what ran for this player is what the server answered)
+    local ran = {}
+    for _, h in pairs(Srv.handlers) do
+        local fn, name = h.fn, h.name
+        h.fn = function(p, ...)
+            if p:getUsername() == "Rae" then ran[name] = (ran[name] or 0) + 1 end
+            return fn(p, ...)
+        end
+    end
+    local u = player("Rae", "user")
+    local cu = clientJoin(u)
+    advance(600)
+    check("asked at joining: the hello was answered", ran.hello == 1 and Mo(cu).view ~= nil and Mo(cu).view.ask == true)
+    check("meanwhile the gate refused my tickets (admin's hello is left open)", ran.t_mine == nil and ran.a_hi == 1)
+    Mo(cu).agree(Mo(cu).view.rev)
+    advance(600)
+    check("the agreement is taken", cmd().agreed.rae ~= nil and ran.m_agree == 1)
+    check("the client counts it", cu.env.ZeD.ServerPart.agreedN == 1)
+    check("the hello waits out its limit rather than be refused", ran.hello == 1 and cu.env.ZeD.ServerPart.helloDue ~= nil)
+    advance(W.server.ZeD.Tk.LIMITS.HELLO_MS)
+    check("then the hello goes again and is answered", ran.hello == 2)
+    check("tickets asked again: my tickets come", ran.t_mine == 1)
+    check("admin's hello again, past its own limit", ran.a_hi == 2)
+    check("the view comes again: nothing left to ask", Mo(cu).view ~= nil and Mo(cu).view.ask ~= true)
+    advance(20000)
+    check("and nothing asks twice", ran.hello == 2 and ran.t_mine == 1 and ran.a_hi == 2)
+end
+
 section("the join rules: five minutes unanswered owes a Kick")
 do
     local a, ca = boot()

@@ -2741,5 +2741,34 @@ do
     check("and the rest runs", cb3.env.ZeD.ServerPart.cm == false and cb3.env.ZeD.ServerPart.lg == true)
 end
 
+section("the join rules answered: the Log asks again for what the gate refused")
+do
+    local a, ca = boot()
+    local Lm = L(ca)
+    Srv().action("admin", "Hermit", "mute", "x")
+    Srv().gates.qa = function(p, module) if W.shut and module ~= "ZeD" then return "has not agreed to the rules" end end
+    W.shut = true
+    local said
+    Lm.ask({ when = "today" }, function(r) said = r end)
+    advance(1)
+    check("refused by the gate: no page", Lm.page == nil and said ~= nil and said.ok == false)
+    W.shut = nil
+    nolimit(a)
+    ca.env.ZeD.ServerPart.agreed()
+    advance(1)
+    check("agreed: the read asked again and the page comes", Lm.page ~= nil and Lm.page.qid == Lm.qid)
+    Lm.close()
+    W.shut = true
+    Lm.ask({ when = "today" })
+    advance(1)
+    Lm.close()
+    W.shut = nil
+    local q = Lm.qid
+    ca.env.ZeD.ServerPart.agreed()
+    advance(1)
+    check("a read closed meanwhile is not asked again", Lm.qid == q and Lm.page == nil)
+    Srv().gates.qa = nil
+end
+
 print("log_sim: " .. checks .. " checks, " .. failed .. " failed")
 os.exit(failed == 0 and 0 or 1)

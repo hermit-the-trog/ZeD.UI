@@ -72,8 +72,18 @@ local function findName()
     return best
 end
 
+-- the rows from before this build brought up to it, once a start (Srv.upgradeBans; never a frozen table)
+local function upgrade(md)
+    if T.upgraded or T.frozen or not Srv.upgradeBans then return end
+    T.upgraded = true
+    Srv.upgradeBans(md)
+end
+
 local function open()
-    if T.md then return T.md end
+    if T.md then
+        upgrade(T.md)
+        return T.md
+    end
     local name = findName() or (PREFIX .. getRandomUUID())
     local md = ModData.getOrCreate(name)
     md.schema = md.schema or SCHEMA
@@ -102,6 +112,7 @@ local function open()
     end
     if T.frozen then Srv.fileLine("admin", Tk.SYS, "admin table frozen", nil, "schema " .. tostring(md.schema) .. ", this ZeD knows " .. SCHEMA) end
     T.md = md
+    upgrade(md)
     return md
 end
 
@@ -486,13 +497,14 @@ local function cancelOwed(md, banId)
     return sent
 end
 
--- what lifting a ban owes the game: nothing, unless the game's ban was made or may have been. A name banned with its Steam ID
--- lifts both, or the Steam ID would keep every account on it out
+-- what lifting a ban owes the game: nothing, unless the game's ban was made or may have been. A Steam ID the game was given is
+-- lifted with the name, or it would keep every account on it out; a Steam ID only matched, never given, is not touched
 local function undoGame(md, b, by)
     local sent = cancelOwed(md, b.id)
     if not (b.made or b.everMade or sent or b.ipSent) then return end   -- (everMade: a round reOwe asked again may have half taken)
     if b.user then owe(md, b.banIp and "UnBanIP" or "UnBan", b.user, "", 0, by) end
-    if b.sid then owe(md, "UnBanSteamID", b.sid, "", 0, by) end
+    local lift = b.sidGame or b.sidLift
+    if lift then owe(md, "UnBanSteamID", lift, "", 0, by) end
     if not (b.user or b.sid) then owe(md, "UnBanIPOnly", b.ip, "", 0, by) end
 end
 
@@ -536,6 +548,8 @@ end
 local function toHelper(e, now)
     local H = Srv.H
     if not (H and H.on()) or e.noHelper or not H.can(e) then return false end
+    -- (never handed to a helper not known to be running: until it has answered once this start, staff clients make the calls)
+    if not H.alive(now) then return false end
     if not e.helper then
         e.helper, e.try, e.helperAt = true, 1, now
         e.sent = now
@@ -629,7 +643,22 @@ local function reOwe(md, b, why)
     Srv.adminLog(Tk.SYS, "game ban did not take", who, why .. "; asked again, " .. tostring(b.reowe) .. " of " .. tostring(AL.REOWE_MAX))
     local first = nil
     if b.user then first = owe(md, "Ban", b.user, b.reason, 0, nil, { banId = b.id }) end
-    if b.sid then owe(md, "BanSteamID", b.sid, b.reason, 0, nil, { banId = b.id, after = first }) end
+    if b.sidGame then owe(md, "BanSteamID", b.sidGame, b.reason, 0, nil, { banId = b.id, after = first }) end
+end
+
+-- an unban by Steam ID the game says did not take (its list, read back, still holds the ID): asked again, REOWE_MAX times, each
+-- with a line; never while a row of ours bans that ID again
+local function reOweUnban(md, e)
+    for _, b in pairs(md.bans) do
+        if b.sidGame == e.target then return end
+    end
+    local n = e.n or 0
+    if n >= AL.REOWE_MAX then
+        Srv.adminLog(Tk.SYS, "game unban did not take", e.target, "the Steam ID is still on the game's list; asked " .. tostring(n) .. " times")
+        return
+    end
+    Srv.adminLog(Tk.SYS, "game unban did not take", e.target, "the Steam ID is still on the game's list; asked again, " .. tostring(n + 1) .. " of " .. tostring(AL.REOWE_MAX))
+    owe(md, "UnBanSteamID", e.target, "", 0, e.by, { n = n + 1 })
 end
 
 -- a call is done: by the staff client it went to, or by the host helper
@@ -640,6 +669,7 @@ local function doneOwed(md, e, now)
         b.made, b.madeAt, b.everMade = true, now, true
         if e.act == "BanSteamID" and gameHoldsSid(e.target) == false then reOwe(md, b, "the Steam ID is not on the game's list") end
     end
+    if e.act == "UnBanSteamID" and gameHoldsSid(e.target) == true then reOweUnban(md, e) end
     if e.act == "BanIP" then
         local at = now + AL.IP_GAP_S
         for _, other in pairs(md.owed) do
@@ -717,6 +747,46 @@ local function liftDue(md, now)
         md.bans[id] = nil
         release(b)
         Srv.adminLog(Tk.SYS, "ban lifted", b.user or b.sid, "the time ran out")
+    end
+end
+
+-- rows made before this build, brought up to it at every load of the table (never a frozen one: open() asks first).
+--   v 2: the Steam ID the game is given is only one staff typed (sidGame). A name's row kept its player's client's word in sid,
+--        and beta 7 named it to the game too: that is never asked for again (a pending call for it goes), and one that may have
+--        gone is still lifted with the row (sidLift), as it was made
+--   a standing timed row without the game's ban (beta 7 made timed bans ZeD's alone) owes the game's ban now, as one made
+--   today does, so the old bans hold too: the name, the typed Steam ID. Never the IP: that needs the player on
+function Srv.upgradeBans(md)
+    local now = getTimestamp()
+    local ids = {}
+    for id in pairs(md.bans) do ids[#ids + 1] = id end
+    table.sort(ids)
+    for _, id in ipairs(ids) do
+        local b = md.bans[id]
+        if not b.v then
+            b.v = 2
+            if b.sid and not b.user then
+                b.sidGame = b.sid
+            elseif b.sid then
+                local sent = false
+                for oid, e in pairs(md.owed) do
+                    if e.banId == id and e.act == "BanSteamID" then
+                        if e.sent then sent = true end
+                        md.owed[oid] = nil
+                    end
+                end
+                if sent or (not b.untilT and (b.made or b.everMade)) then b.sidLift = b.sid end
+            end
+        end
+        if b.untilT and b.untilT > now and not b.gameBan then
+            local first = nil
+            if b.user then first = owe(md, "Ban", b.user, b.reason, 0, nil, { banId = id }) end
+            if b.sidGame then owe(md, "BanSteamID", b.sidGame, b.reason, 0, nil, { banId = id, after = first }) end
+            if b.user or b.sidGame then
+                b.gameBan = true
+                Srv.adminLog(Tk.SYS, "game ban owed", b.user or b.sidGame, "a timed ban from before this build: the game's ban holds it too")
+            end
+        end
     end
 end
 
@@ -1168,7 +1238,9 @@ end
 
 -- what a ban owes the game. With the IP, the game's call needs the player on, so it goes first, once they have read the
 -- reason; the plain ban always follows, since the game can refuse the IP and ban nobody (BanSystem.BanUserByIP).
--- A Steam ID goes too when the server has one: it is the only one of these that keeps the reason for their next try.
+-- A ban on a name names no Steam ID to the game: the only exact Steam ID the server has for a player is their client's word
+-- (sidOf: the server's own number is a double, about 16 IDs wide), and a modified client could steer it onto a neighbor's
+-- account. The row still matches the player's Steam ID on the server's own number (standingFor).
 local function oweBan(md, b, target, kind, wait, me)
     local opts = { banId = b.id }
     local first = nil
@@ -1181,8 +1253,7 @@ local function oweBan(md, b, target, kind, wait, me)
         return
     end
     if b.banIp then first = owe(md, "BanIP", target, b.reason, wait, me, opts) end
-    local plain = owe(md, "Ban", target, b.reason, wait, me, { banId = b.id, after = first })
-    if b.sid then owe(md, "BanSteamID", b.sid, b.reason, wait, me, { banId = b.id, after = plain }) end
+    owe(md, "Ban", target, b.reason, wait, me, { banId = b.id, after = first })
 end
 
 -- a_ban: user (a name from a row), or target (a username, Steam ID or IP, typed on the Bans card)
@@ -1221,7 +1292,9 @@ reg("a_ban", { cap = CAP.BanUnbanUser, limit = AL.BAN_MS, mark = false }, functi
     local me = p:getUsername()
     local id = md.nextBan
     md.nextBan = id + 1
-    local b = { id = id, reason = reason, by = me, byPos = rank(p:getRole()), at = getTimestamp(), day = today(), untilT = untilT, banIp = banIp or nil, sid = sid }
+    local b = { id = id, reason = reason, by = me, byPos = rank(p:getRole()), at = getTimestamp(), day = today(), untilT = untilT, banIp = banIp or nil, sid = sid, v = 2 }
+    -- (the Steam ID the game is given: only one staff typed. sid is what the row matches, on the server's own number)
+    if kind == "sid" then b.sidGame = target end
     if kind == "user" then b.user = target elseif kind == "ip" then b.ip = target end
     md.bans[id] = b
     local wait = o and AL.LEAVE_S or 0
@@ -1288,7 +1361,7 @@ reg("a_gameban", { cap = CAP.BanUnbanUser }, function(p, a, rid)
     if owedRoom(md) < 1 then Srv.ack(p, rid, false, "full"); return end
     local me = p:getUsername()
     if b.user then owe(md, "Ban", b.user, b.reason, 0, me, { banId = b.id })
-    elseif b.sid then owe(md, "BanSteamID", b.sid, b.reason, 0, me, { banId = b.id })
+    elseif b.sidGame then owe(md, "BanSteamID", b.sidGame, b.reason, 0, me, { banId = b.id })
     else Srv.ack(p, rid, false, "gone"); return end
     b.gameBan = true
     logAt(p, "game ban", b.user or b.sid, b.reason)

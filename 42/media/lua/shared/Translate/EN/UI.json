@@ -5704,6 +5704,7 @@
     "UI_ZeD_Cm_RulesNews": "Rules and news",
     "UI_ZeD_Cm_RulesNewsSum": "The message of the day, the rules, news",
     "UI_ZeD_Cm_SafeAsk": "Do you agree to these rules? No leaves the server.",
+    "UI_ZeD_Cm_SafeMore": "Lines %1 to %2 of %3. Mouse wheel or D-pad Up and Down for the rest.",
     "UI_ZeD_Cm_Save": "Save",
     "UI_ZeD_Cm_Saved": "Saved.",
     "UI_ZeD_Cm_SavedAsk": "Saved. Everyone is asked to agree again when they next join.",

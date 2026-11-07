@@ -5704,6 +5704,7 @@
     "UI_ZeD_Cm_RulesNews": "Pravidla a novinky",
     "UI_ZeD_Cm_RulesNewsSum": "Zpráva dne, pravidla, novinky",
     "UI_ZeD_Cm_SafeAsk": "Souhlasíš s těmito pravidly? Ne tě odpojí ze serveru.",
+    "UI_ZeD_Cm_SafeMore": "Řádky %1 až %2 z %3. Zbytek kolečkem myši nebo D-padem nahoru a dolů.",
     "UI_ZeD_Cm_Save": "Uložit",
     "UI_ZeD_Cm_Saved": "Uloženo.",
     "UI_ZeD_Cm_SavedAsk": "Uloženo. Všichni budou při dalším připojení znovu žádáni o souhlas.",

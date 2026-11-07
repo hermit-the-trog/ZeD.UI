@@ -5704,6 +5704,7 @@
     "UI_ZeD_Cm_RulesNews": "규칙과 소식",
     "UI_ZeD_Cm_RulesNewsSum": "오늘의 메시지, 규칙, 소식",
     "UI_ZeD_Cm_SafeAsk": "이 규칙에 동의합니까? 아니요를 누르면 서버에서 나갑니다.",
+    "UI_ZeD_Cm_SafeMore": "%3줄 중 %1~%2줄. 나머지는 마우스 휠이나 십자키 위아래로.",
     "UI_ZeD_Cm_Save": "저장",
     "UI_ZeD_Cm_Saved": "저장했습니다.",
     "UI_ZeD_Cm_SavedAsk": "저장했습니다. 다음에 접속할 때 모두에게 다시 동의를 요청합니다.",

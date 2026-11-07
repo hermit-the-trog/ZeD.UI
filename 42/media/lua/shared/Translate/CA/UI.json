@@ -5704,6 +5704,7 @@
     "UI_ZeD_Cm_RulesNews": "Regles i notícies",
     "UI_ZeD_Cm_RulesNewsSum": "El missatge del dia, les regles, les notícies",
     "UI_ZeD_Cm_SafeAsk": "Acceptes aquestes regles? No et desconnecta del servidor.",
+    "UI_ZeD_Cm_SafeMore": "Línies %1 a %2 de %3. Roda del ratolí o D-pad amunt i avall per a la resta.",
     "UI_ZeD_Cm_Save": "Desar",
     "UI_ZeD_Cm_Saved": "Desat.",
     "UI_ZeD_Cm_SavedAsk": "Desat. Es demanarà a tothom que hi estigui d'acord de nou la propera vegada que entri.",

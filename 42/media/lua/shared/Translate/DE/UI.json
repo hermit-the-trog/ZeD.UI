@@ -5704,6 +5704,7 @@
     "UI_ZeD_Cm_RulesNews": "Regeln und News",
     "UI_ZeD_Cm_RulesNewsSum": "Nachricht des Tages, Regeln, News",
     "UI_ZeD_Cm_SafeAsk": "Stimmst du diesen Regeln zu? Nein verlässt den Server.",
+    "UI_ZeD_Cm_SafeMore": "Zeilen %1 bis %2 von %3. Mausrad oder D-Pad hoch und runter für den Rest.",
     "UI_ZeD_Cm_Save": "Speichern",
     "UI_ZeD_Cm_Saved": "Gespeichert.",
     "UI_ZeD_Cm_SavedAsk": "Gespeichert. Alle werden beim nächsten Beitritt erneut um Zustimmung gebeten.",

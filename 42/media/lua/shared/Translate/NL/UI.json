@@ -5704,6 +5704,7 @@
     "UI_ZeD_Cm_RulesNews": "Regels en nieuws",
     "UI_ZeD_Cm_RulesNewsSum": "Het bericht van de dag, de regels, nieuws",
     "UI_ZeD_Cm_SafeAsk": "Ga je akkoord met deze regels? Nee verlaat de server.",
+    "UI_ZeD_Cm_SafeMore": "Regels %1 tot %2 van %3. Muiswiel of D-pad omhoog en omlaag voor de rest.",
     "UI_ZeD_Cm_Save": "Opslaan",
     "UI_ZeD_Cm_Saved": "Opgeslagen.",
     "UI_ZeD_Cm_SavedAsk": "Opgeslagen. Iedereen wordt opnieuw gevraagd akkoord te gaan als hij weer meedoet.",

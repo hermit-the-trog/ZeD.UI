@@ -1298,6 +1298,57 @@ do
     for l in string.gmatch(modals[3].text .. "\n", "([^\n]*)\n") do widest = math.max(widest, #l) end
     check("the plain box stays narrow: no line past 70 characters", modals[3] and widest <= 70, widest)
     modals[3].onclick(nil, { internal = "YES" })
+    -- (Nov 7 review) a long list on a short screen: the box is sized as the game sizes it (ISModalDialog.CalcSize, UIFont.Small)
+    -- and must stay on screen at every resolution and text size, its rules scrolling, Yes and No in reach by mouse and pad
+    local realFH, realMX = ZeD.TM.getFontHeight, ZeD.TM.MeasureStringX
+    local function calc(text)
+        local fh = ZeD.TM:getFontHeight(UIFont.Small)
+        local n, wid = 0, 0
+        for l in string.gmatch(text .. "\n", "([^\n]*)\n") do n = n + 1; wid = math.max(wid, ZeD.TM:MeasureStringX(UIFont.Small, l)) end
+        return math.max(wid + 10, 232), 20 + n * fh + 20 + 25 + 10, n
+    end
+    local longRules = { n = 40 }
+    for i = 1, 40 do longRules[i] = { id = i, rev = 1, text = "Rule " .. i .. ": " .. string.rep("keep the roads clear and the gates shut ", 3) } end
+    local P = CM._P
+    for _, scr in ipairs({ { 1280, 720 }, { 1280, 800 }, { 1920, 1080 }, { 3840, 2160 }, { 800, 600 } }) do
+        for _, fh in ipairs({ 14, 19, 26 }) do
+            local name = "safe box " .. scr[1] .. "x" .. scr[2] .. " small font " .. fh .. ": "
+            coreOf(scr[1], scr[2])
+            ZeD.TM.getFontHeight = function(self, font) if font == UIFont.Small then return fh end return realFH(self, font) end
+            ZeD.TM.MeasureStringX = function(self, font, s) if font == UIFont.Small then return math.ceil(#tostring(s) * fh * 0.5) end return realMX(self, font, s) end
+            local before = #modals
+            view({ ask = true, rules = longRules })
+            M.joinScreen()
+            local md = modals[before + 1]
+            check(name .. "asked", md ~= nil)
+            if md then
+                local w, h, n0 = calc(md.text)
+                md.w, md.h = w, h
+                check(name .. "the box fits the screen's height", h <= scr[2], h)
+                check(name .. "and its width", w <= scr[1], w)
+                local st = CM.safeState
+                local full = table.concat(st.tail, "\n")
+                check(name .. "the question and Yes/No always show", string.sub(md.text, -#full) == full)
+
+                -- scrolled to the end by the wheel: the last rule shows, the box never grows
+                local guard = 0
+                local lastWords = string.sub(P.plainWrap("40. " .. longRules[40].text, st.n)[#P.plainWrap("40. " .. longRules[40].text, st.n)], 1, 10)
+                while guard < 200 and not string.find(md.text, lastWords, 1, true) do md.onMouseWheel(md, 1); guard = guard + 1 end
+                check(name .. "the wheel reaches the last rule", string.find(md.text, lastWords, 1, true) ~= nil)
+                local _, h2 = calc(md.text)
+                check(name .. "scrolling never grows the box", h2 == h, h2)
+                for _ = 1, 100 do md.onJoypadDirUp(md) end
+                check(name .. "the D-pad brings the first rule back", string.find(md.text, "1. " .. "Rule 1:", 1, true) ~= nil)
+                md.onJoypadDirDown(md)
+                if st.rows then check(name .. "the D-pad scrolls down", st.top > 1) end
+                if scr[2] <= 800 then check(name .. "40 rules do not all fit a short screen: they scroll", st.rows ~= nil) end
+                md.onclick(nil, { internal = "YES" })
+                check(name .. "Yes still agrees", lastCmd("m_agree") ~= nil)
+            end
+        end
+    end
+    ZeD.TM.getFontHeight, ZeD.TM.MeasureStringX = realFH, realMX
+    coreOf(1280, 800)
     ISModalDialog = realModal
     SAFE = nil
     M.joinScreen()

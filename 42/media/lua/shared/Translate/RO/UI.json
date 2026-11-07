@@ -5704,6 +5704,7 @@
     "UI_ZeD_Cm_RulesNews": "Reguli și știri",
     "UI_ZeD_Cm_RulesNewsSum": "Mesajul zilei, regulile, știrile",
     "UI_ZeD_Cm_SafeAsk": "Ești de acord cu aceste reguli? Nu părăsește serverul.",
+    "UI_ZeD_Cm_SafeMore": "Rândurile %1-%2 din %3. Restul cu rotița mouse-ului sau D-pad sus și jos.",
     "UI_ZeD_Cm_Save": "Salvează",
     "UI_ZeD_Cm_Saved": "Salvat.",
     "UI_ZeD_Cm_SavedAsk": "Salvat. Toți sunt rugați să fie din nou de acord la următoarea intrare.",

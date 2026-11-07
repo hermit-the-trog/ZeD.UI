@@ -44,9 +44,31 @@ end
 function S.available() return S.present == true and not S.forceOff end
 
 -- the same question again, now (a perm answer: this player's role may have changed)
-function S.hello() return S.send(Tk.MOD_LINK, "hello", { v = Tk.PROTO }) end
+function S.hello()
+    local ok = S.send(Tk.MOD_LINK, "hello", { v = Tk.PROTO })
+    if ok then S.helloAt = now() end
+    return ok
+end
 
 function S.on(module, fn) S.routes[module] = fn end
+
+-- THE JOIN RULES ANSWERED. Until a player asked at joining agrees, the server refuses every ZeD command but the hello (Srv.gates.rules),
+-- so whatever a part asked for meanwhile came back "perm" or not at all. Once the server takes the agreement, each part asks again:
+-- the hello goes out (tickets, admin, extras and community fill from it) and every part's own hook runs (S.onAgreed). agreedN counts
+-- the agreements, for a part that keeps no hook (a dash per car compares it)
+S.agreeHooks = S.agreeHooks or {}
+S.agreedN = S.agreedN or 0
+function S.onAgreed(name, fn) S.agreeHooks[name] = fn end
+function S.agreed()
+    S.agreedN = S.agreedN + 1
+    -- (the server answers one hello a HELLO_MS: one sent sooner after the last is refused, so it waits for its turn, the tick sends it)
+    local due = S.helloAt and (S.helloAt + Tk.LIMITS.HELLO_MS + 250) or 0
+    if now() >= due then S.hello() else S.helloDue = due end
+    for name, fn in pairs(S.agreeHooks) do
+        local ok, err = pcall(fn)
+        if not ok and ZeD.logOnce then ZeD.logOnce("agreed " .. tostring(name), err) end
+    end
+end
 
 local function heard(a)
     a = a or {}
@@ -81,6 +103,10 @@ local function onServerCommand(module, command, args)
 end
 
 local function tick()
+    if S.helloDue and now() >= S.helloDue then
+        S.helloDue = nil
+        S.hello()
+    end
     if not round then return end
     local gone = now() - round.at
     local nextAt = ASK_AT[round.sent + 1]

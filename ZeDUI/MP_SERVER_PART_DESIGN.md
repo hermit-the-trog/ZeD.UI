@@ -1688,7 +1688,9 @@ The director's decisions of Nov 7 2026 (multiple choice), built. Files: `ZeD_Ser
 `ZeD_ServerCommunity.lua`, the new `ZeD_ServerHelper.lua`, `ZeD_AdminProto.lua` and `ZeD_CommunityProto.lua` (limits), `ZeD_Admin.lua`
 (an empty reason), `ZeD_CommunityCards.lua` (the plain question in safe mode), `sandbox-options.txt` (`ZeD.HostHelper`), and
 `ZeDUI/server_helper/`. Sims: `admin_sim.lua`, `community_sim.lua`, `community_cards_sim.lua`; the helper's own test is
-`ZeDUI/server_helper/test_zed_rcon_helper.py`.
+`ZeDUI/server_helper/test_zed_rcon_helper.py`. The second review pass (items 4, 5, 7, 9, 10 and the helper's start) adds
+`ZeD_ServerLink.lua`, `ZeD_Community.lua`, `ZeD_Tickets.lua`, `ZeD_Claims.lua`, `ZeD_Extras.lua`, `ZeD_Log.lua` and `ZeD_Dashboard.lua`,
+with sections in `claims_sim.lua`, `extras_sim.lua`, `log_sim.lua`, `tickets_sim.lua` and `dash_odo_sim.lua`.
 
 **Settled facts this rests on** (bytecode, 42.22.2): server Lua cannot kick, ban, unban or set one player's role. `GameServer`,
 `ServerWorldDatabase` and `UdpConnection` are not exposed, and the `GlobalObject` admin calls only act on a client. The game's own
@@ -1696,14 +1698,14 @@ ban is enforced by the server at login (`ServerWorldDatabase.authClient`). `dele
 `checkPlayerExistsInDatabase` are never called (they delete an account and its character), and `IsoPlayer:setRole` is never used
 from server Lua (it changes the player object's field, not the connection's role the game checks).
 
-1. **Every ban is the game's ban too.** A timed ban owes the game's ban at once: the name, plus `BanSteamID` when the server has a
-   checked Steam ID, plus the IP while the player is on (as a permanent ban does, under `TIMED_IP`). Online, it waits `LEAVE_S`
+1. **Every ban is the game's ban too.** A timed ban owes the game's ban at once: the name, plus `BanSteamID` for a Steam ID staff
+   typed (never one a client named, item 4), plus the IP while the player is on (as a permanent ban does, under `TIMED_IP`). Online, it waits `LEAVE_S`
    so the reason shows first; the game's ban kicks them, so no Kick goes with it. At the end the row goes and the unban is owed
-   (`UnBan`, and `UnBanSteamID` when the row has a Steam ID: lifting one without the other would leave every account on that Steam
-   ID out). It goes to the next staff client or the host helper, so **a timed ban may run past its time while nobody can lift it,
+   (`UnBan`, and `UnBanSteamID` when the game was given that Steam ID: lifting one without the other would leave every account on
+   it out). It goes to the next staff client or the host helper, so **a timed ban may run past its time while nobody can lift it,
    never short.** ZeD's row stays the record (reason, end, who), still shows the leave screen with the time left and has
-   `gameBan` set, so Use the game's ban no longer shows on the Bans card. An unban of a permanent ban with a Steam ID now lifts
-   both halves too (it lifted only the name before).
+   `gameBan` set, so Use the game's ban no longer shows on the Bans card. An unban of a permanent ban whose Steam ID the game was given now
+   lifts both halves too (it lifted only the name before).
 2. **A standing ban shuts its holder out of everything.** `Srv.gates` (`ZeD_ServerCore.lua`) run before any command's own power,
    for every module: tickets, claims, community, extras, log, dash, admin. The ban gate refuses all of them but the hello and
    `a_hi`, so the client still hears why. A refusal answers `perm` and writes one line a minute ("refused", "under a ban: ...").
@@ -1713,12 +1715,20 @@ from server Lua (it changes the player object's field, not the connection's role
    before and owes a Kick (once while one waits), on every connection and again each `STAY_EVERY_S`.
 4. **Steam IDs match on the server's own number.** `standingFor` compares the row's Steam ID with `p:getSteamID()` as numbers
    (`tonumber(b.sid) == real`), whatever the client claims or leaves out. A Lua number holds a Steam ID to about 16, so a ban on one
-   ID also matches the few IDs that share its double; staff see that as a ban on the player it finds. The exact string is still
-   the one `a_hi` checked, and it is only what the game's `BanSteamID` call is given.
+   ID also matches the few IDs that share its double; staff see that as a ban on the player it finds. **The game's `BanSteamID` is given only a Steam ID staff typed**
+   (`b.sidGame`). A ban by name names no Steam ID to the game: the exact string the server has for a player is their client's
+   word in `a_hi`, and a modified client could name a neighbor inside the same double and steer the game's ban onto that account.
+   No exact server-side path exists in 42.22.2 (javap): `IsoPlayer.getSteamID` and `UdpConnection.getSteamId` return a long, which
+   Kahlua hands Lua as a double (a Steam ID from 7656119 is past 2^56, so the double is 16 IDs wide); `SteamUtils.convertSteamIDToString`
+   takes that long back, already rounded; the only String path, `getSteamIDFromUsername`, returns nil unless `GameClient.client`.
+   So a name ban holds by the name (`authClient`) and by the row's match on the server's number; the player's other accounts on
+   that Steam ID are not banned by the game unless staff ban the Steam ID itself on the Bans card.
 5. **A client's "done" is not proof.** `a_done` (and the helper's "ok") only says the call went without an error. After it:
    - a `BanSteamID` is read back from the game's own table: `NetworkUser.new():isSteamIdBanned(sid)` (an exposed class; the method
      is a read-only `SELECT steamid FROM bannedid` on `ServerWorldDatabase.instance`, one overload taking a String, the ID back or
      null). Not on the list: asked for again.
+   - an `UnBanSteamID` is read back the same way: still on the list, it is asked for again (`reOweUnban`), `REOWE_MAX` times with a
+     line ("game unban did not take"), never while a row of ours bans that ID again.
    - a name ban has no read-only lookup in reach (`getFirstBannedIPForUser` is the IP's), so the proof is that the player is gone:
      found on past `VERIFY_S` with the row made, the ban is asked for again.
    - a Kick: still on past `VERIFY_S` while its reason holds (the row binds or the rules are still unanswered), asked for again.
@@ -1740,10 +1750,27 @@ from server Lua (it changes the player object's field, not the connection's role
 7. **Safe mode asks too.** Safe mode used to skip the join screen, which with the gate would leave an unmodified client refused and
    kicked. It now asks the same question in the game's own yes/no box (`ISModalDialog`): the rules as plain lines of at most 70
    characters, then `UI_ZeD_Cm_SafeAsk`. Yes agrees to those words, No leaves. Turning safe mode on with the screen up asks it there.
+   The box sizes itself to its text (`ISModalDialog.CalcSize`: 75 pixels of frame and buttons plus a `UIFont.Small` line each), so
+   `P.safeFit` sizes it to the screen first: lines cut 10 characters narrower until the widest fits the width, and when every line
+   will not fit the height (720p, the Deck, Large text, a long list) the box holds only as many rule lines as fit, with a line
+   `UI_ZeD_Cm_SafeMore` ("Lines 1 to 12 of 40. Mouse wheel or D-pad Up and Down for the rest.") above the question. The rules
+   scroll inside it (the mouse wheel, the D-pad up and down, 3 lines a step); the box never grows, and the question, Yes and No
+   (A and B on the pad) stay on screen at every resolution and text size.
 8. **Mutes stay client-kept.** The server cannot reach the game's chat (`ChatServer` is not exposed, and `IsoPlayer.setAllChatMuted`
    is read by nothing in the chat path). ZeD's mute is the server's list, kept by each player's ZeD chat; a modified client, or the
    game's own chat box under safe mode, is not stopped, and the words over a player's head are the game's. The voice mute is the
    game's own (`/voiceban`).
+9. **What the rules gate refused comes back.** Every request a part made before the player agreed came back `perm`. When the
+   server takes `m_agree`, the client runs `S.agreed` (`ZeD_ServerLink.lua`): the hello goes again (tickets, admin's `a_hi`,
+   extras' settings and the community view fill from it; a hello inside `HELLO_MS` of the last would be refused, so it waits its
+   turn on the tick), and each part's own hook (`S.onAgreed`) asks again: claims its `c_info`, extras my claims, the Log the read
+   still open, tickets an open queue and its sync. The dash keeps no hook: it compares `S.agreedN`, so a passenger's spent asks
+   start again and a driver's figures go at once.
+10. **Bans from before this build hold too.** At every load of the admin table (each server start, and a reload; never a frozen
+   table) `Srv.upgradeBans` brings beta 7's rows up: a standing timed row without the game's ban owes it now (the name, a typed
+   Steam ID; never the IP, which needs the player on) with a line ("game ban owed"), and is marked `gameBan` so a second start owes
+   nothing again. A name's row that kept a client's Steam ID never names it to the game again (a call still waiting for it goes);
+   one the game may already hold is lifted with the row (`sidLift`). Rows carry `v = 2`.
 
 **The host helper** (optional, off by default; the sandbox option `ZeD.HostHelper`, "Host Helper (RCON)" on the ZeD-GUI page).
 A small program the server's owner runs on the server machine (`ZeDUI/server_helper/zed_rcon_helper.py`, Python 3 standard library
@@ -1773,7 +1800,10 @@ only). It talks to the game's own remote console and makes the owed calls itself
   `ZEDA 1 <epoch> <unix seconds>`, then `id, try, result, text`, the newest try of each call only; the helper rewrites it every
   pass through a temporary file and `os.replace`. The epoch is a random word made at each server start and never saved
   (`H.epoch`), so a helper never takes another world's numbers, nor the old answers of ids a crash rolled back.
-- **Who makes a call.** With the helper on, a call its allow-list takes goes in the queue first. A staff client gets it as well
+- **Who makes a call.** With the helper on, a call its allow-list takes goes in the queue first, once the helper is known to be
+  running: until it has answered at least once this server start (`H.alive`: an answers file with this start's word, fresh within
+  `HELPER_ALIVE_S`) every owed call goes straight to staff clients. The queue the server writes at a start holds nothing, and the
+  helper answers an empty queue too, so it counts as running within one pass. A staff client gets it as well
   in four cases: the helper has not answered in `HELPER_WAIT_S`; it answered "failed" (it gets a new try `HELPER_WAIT_S` later,
   `HELPER_TRIES` (3) tries in all, then the call is staff clients' only); it answered "refused" (off the queue for good); its
   answers file is older than `HELPER_ALIVE_S` (not running). Failures write one line every `HELPER_LOG_S` (a minute) at most, with
@@ -1801,7 +1831,8 @@ only). It talks to the game's own remote console and makes the owed calls itself
 | A timed ban ends | `liftDue` on `OnTickEvenPaused`, then the owed unban | the row goes to the second; the game's ban comes off when a staff client or the helper makes the call | **server** (ZeD); late, never early, with nobody to make the call |
 | A banned player still on | the server's walk (`POLL_S`) | told to leave; the game's ban asked for again past `VERIFY_S`; a Kick owed on each stay | **server**, through a staff client or the helper |
 | A banned player's ZeD commands | `Srv.gates.ban` in the one listener | refused, every module | **server** |
-| A Steam ID ban | `p:getSteamID()` against the row, as numbers | the server's own ID, whatever the client claims (to about 16 IDs) | **server** |
+| A Steam ID ban | `p:getSteamID()` against the row, as numbers; the game's `BanSteamID` only for an ID staff typed | the server's own ID, whatever the client claims (to about 16 IDs); a client's claim never reaches the game | **server** |
+| The game's unban took | `isSteamIdBanned` read back after `UnBanSteamID` | asked again, `REOWE_MAX` times | **server** |
 | The game's call took | `isSteamIdBanned` read back; presence past `VERIFY_S` for a name or a Kick | asked again, `REOWE_MAX` times | **server** |
 | The join rules: commands before agreeing | `Srv.gates.rules` | refused, every module but hello, `a_hi`, `m_get`, `m_agree` | **server** |
 | The join rules: no answer | the server's walk and `ASKED_MS` | a Kick owed | **server**, through a staff client or the helper |
@@ -1813,9 +1844,9 @@ only). It talks to the game's own remote console and makes the owed calls itself
 
 **What still gets through.** A modified client can agree to the rules without reading them, and can ignore a mute. Until the
 game's call lands (no staff online and no helper) a banned modified client can stay; it is refused every ZeD command meanwhile and
-a Kick waits for the first staff client. The Steam ID a client names in `a_hi` is the exact string the game's `BanSteamID` gets: a
-client can name a neighbor within the same double, and that ID is the one the game bans (the server's own match is unaffected). A
-staff client could check it against the game's `getUsers()` before the call; not built. With the default `SaveWorldEveryMinutes =
+a Kick waits for the first staff client. A ban by name does not reach the player's other accounts on the same
+Steam ID (the server has no exact Steam ID of its own to give the game, item 4); staff ban the Steam ID itself for that. A staff
+client's `getSteamIDFromUsername` (the server's number, copied to it exactly) could supply one while the player is on; not built. With the default `SaveWorldEveryMinutes =
 0` a crash still loses rows and owed calls since the last save. New server lines ("game ban did not take", "kick did not take",
 "host helper ...", "refused ... under a ban") read on the Log card as the server wrote them, like the other server-only lines.
 
@@ -1827,5 +1858,5 @@ staff client could check it against the game's `getUsers()` before the call; not
 | E22 | That `getFileWriter("ZeD_helper/queue.txt", true, false)` lands in the dedicated server's own `Zomboid/Lua/` (or its `-cachedir`), with the folder made | Turn the option on, ban an offline name, look for the file |
 | E23 | The helper against the real console: login, `banuser "x" -r "y"`, `kickuser "x"` with no reason, `banid`, the answers as read from the bytecode | Run it beside the local server with `RCONPort`, `RCONPassword` and `-Drconlo=true` |
 | E24 | That `-Drconlo=true` reaches `System.getProperty` from `StartServer64.bat` and from `ProjectZomboid64.json` | `netstat` on the RCON port after a start |
-| E25 | The safe mode question in game: the game's box sizes itself to 70-character lines at Deck width and Large text | Safe mode on, join a server that asks |
+| E25 | The safe mode question in game: the box stays on screen at 720p, the Deck and Large text, and the wheel and the D-pad scroll it (the sim sizes it as `CalcSize` does) | Safe mode on, join a server that asks with a long list |
 
