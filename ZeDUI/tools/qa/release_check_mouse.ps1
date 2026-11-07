@@ -6,7 +6,7 @@
 # director uses the machine.
 param([int]$MaxMinutes = 15)
 $ErrorActionPreference = "Stop"
-$lua = "C:\Users\you\Zomboid\Lua"
+$lua = $(if ($env:ZEDQA_ZDIR) { Join-Path $env:ZEDQA_ZDIR "Lua" } else { "C:\Users\you\Zomboid\Lua" })
 $req = Join-Path $lua "zedqa_click.txt"
 $done = Join-Path $lua "zedqa_click_done.txt"
 $stop = Join-Path $lua "zedqa_click_stop.txt"
