@@ -84,6 +84,7 @@ end
 local function coverClear(p)
     local n = p._zedStencilN
     if n and n > 0 then p._zedStencilN = n - 1 end
+    p._coverClears = (p._coverClears or 0) + 1   -- (it sets one again: one more on than the count says)
     ISPanel.clearStencilRect(p)
     return ISPanel.setStencilRect(p, 0, 0, p._coverX or p:getWidth(), p:getHeight())
 end
@@ -4942,8 +4943,18 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     end
                     -- (a tab that throws must not repeat its error every frame or leave its own clip
                     -- set: log once, put the drawer's clip back, draw on; code audit Oct 17 2026)
+                    -- (as in the World window: under a card every clear of any tab leaves one clip on,
+                    -- since coverClear sets the card's cut again, and a tab may leave one of its own.
+                    -- The inventory list's own clear (content._onPrerender) took off one, no more, so a
+                    -- tab with two clips under a card, Journal > Recipes with a recipe picked, hid the
+                    -- inventory list and all drawn after it. Whatever is left on comes off here; a
+                    -- level tab with no card clears nothing. Punch list 97)
+                    local clipsBefore = self._zedStencilN or 0   -- (the count ZeD_Panel keeps)
+                    self._coverClears = 0
                     local okR, errR = pcall(renderer, self, win, 0, 0, targetW, dh)
                     if coverX then setTabCover(self, nil) end
+                    -- (the tab's own leftovers, by the count, and coverClear's, which the count misses)
+                    for _ = 1, (self._zedStencilN or 0) - clipsBefore + self._coverClears do self:clearStencilRect() end
                     if not okR then
                         self:clearStencilRect()
                         self:setStencilRect(0, 0, effectiveW, dh)
