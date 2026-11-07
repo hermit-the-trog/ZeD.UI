@@ -1168,7 +1168,7 @@ ZeD.trDefaults({
     UI_ZeD_DashPlain_Cruise = "Cruise", UI_ZeD_DashPlain_Meter = "Meter", UI_ZeD_DashPlain_AshTray = "Ash tray",
     UI_ZeD_DashPlain_SetTemp = "Temp", UI_ZeD_DashPlain_Fan = "Fan", UI_ZeD_DashPlain_Tune = "Tune", UI_ZeD_DashPlain_Power = "Power",
     UI_ZeD_DashPlain_Signal = "Signal", UI_ZeD_DashPlain_Disc = "Disc in", UI_ZeD_DashPlain_Lights = "Lights",
-    UI_ZeD_DashPlain_Trip = "Trip", UI_ZeD_DashPlain_Readouts = "Readouts",
+    UI_ZeD_DashPlain_Trip = "Trip", UI_ZeD_DashPlain_Readouts = "Readouts", UI_ZeD_DashPlain_Km = "%1 km",
 })
 
 local PLAIN_W, PLAIN_PAD, PLAIN_GAP, PLAIN_BIG_W, PLAIN_ROW_W, PLAIN_BIG_SEGS = 800, 8, 6, 120, 64, 12
@@ -1177,6 +1177,8 @@ local PLAIN_W, PLAIN_PAD, PLAIN_GAP, PLAIN_BIG_W, PLAIN_ROW_W, PLAIN_BIG_SEGS = 
 local PLAIN_STATIC = { hasTrunk = true, hasHeater = true, hasLightbar = true, vanTray = true }
 local CLIMATE_IDS = { temp = true, tempup = true, tempdn = true, heat = true, fan = true, fanup = true, fandn = true,
                       ac = true, def = true, off = true, mode = true }
+-- the plate's controls the strip shows as a readout instead (Nov 7 2026: the Trip cell zeroes the trip)
+local PLAIN_CELL_IDS = { tripReset = true, odoButton = true }
 -- the warning lamps in the strip's order, their names and their colours (theme tokens: never the plate's own colours)
 local LAMP_ORDER = { "genLamp", "engLamp", "oilLamp", "brakeLamp", "beltLamp", "fuelLamp", "tempLamp", "shiftLamp",
                      "hiBeam", "turnL", "turnR", "fourWD" }
@@ -1218,8 +1220,11 @@ local function _plainPlan(des)
         return a.y < b.y
     end)
     for _, hz in ipairs(list) do
-        local row = CLIMATE_IDS[hz.id] and pl.climate or pl.car
-        row[#row + 1] = hz
+        -- (the trip stem and the electronic odometer's window are the Trip cell here, not buttons: ZeD_Dashboard:_plainReadouts)
+        if not PLAIN_CELL_IDS[hz.id] then
+            local row = CLIMATE_IDS[hz.id] and pl.climate or pl.car
+            row[#row + 1] = hz
+        end
     end
     pl.meter = seen.meter == true
     local has, sp, rp = {}, false, false
@@ -1392,13 +1397,31 @@ local function _climateText(st)
         .. " | " .. ZeD.tr("UI_ZeD_DashPlain_FanN", tostring(st.fan or 0))
 end
 
--- the readings beside the two big ones, in columns of three: { label, value (or nil), bar share (or nil), bar colour }
-local function _cell(out, n, label, value, bar, col)
+-- the readings beside the two big ones, in columns of three: { label, value (or nil), bar share (or nil), bar colour,
+-- id: the plate control it also is (the Trip: "tripReset"), else nil }
+local function _cell(out, n, label, value, bar, col, id)
     n = n + 1
     local c = out[n]
     if not c then c = {}; out[n] = c end
-    c.label, c.value, c.bar, c.col = label, value, bar, col
+    c.label, c.value, c.bar, c.col, c.id = label, value, bar, col, id
     return n
+end
+
+-- the player's distance units: the game's measurement option ("Imperial" or "Metric"; looked up first, as a build
+-- may lack it: then miles, the cars being American)
+local function _metric()
+    local ok, v = pcall(function()
+        local core = getCore()
+        return core.getOptionMeasurementFormat and core:getOptionMeasurementFormat() or nil
+    end)
+    return ok and v == "Metric"
+end
+-- miles as the strip shows them, in the player's units: whole, or to the tenth (the trip; cut, not rounded, as the
+-- wheels turn)
+local function _distText(miles, tenths, metric)
+    local v = (tonumber(miles) or 0) * (metric and KM_PER_MILE or 1)
+    local s = tenths and string.format("%.1f", math.floor(v * 10) / 10) or tostring(math.floor(v))
+    return ZeD.tr(metric and "UI_ZeD_DashPlain_Km" or "UI_ZeD_DashPlain_Miles", s)
 end
 local function _plainCells(st, pl, out)
     local T = ZeD.T
@@ -1411,8 +1434,10 @@ local function _plainCells(st, pl, out)
     local gear = st.gearSel or ""
     if gear == "D" and st.running and g:match("^%d$") then gear = gear .. " " .. g end
     n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Gear"), st.gearPub or gear)
-    n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Odometer"), ZeD.tr("UI_ZeD_DashPlain_Miles", tostring(math.floor(st.odo or 0))))
-    if st.tripMiles then n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Trip"), ZeD.tr("UI_ZeD_DashPlain_Miles", string.format("%.1f", st.tripMiles))) end
+    -- the odometer and the trip (Nov 7 2026, punch list 92): the plate's figures, in the player's units; A on Trip zeroes it
+    local metric = _metric()
+    n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Odometer"), _distText(st.odo, false, metric))
+    n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Trip"), _distText(st.trip, true, metric), nil, nil, "tripReset")
     n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Clock"), _clockText(st))
     if st.hasHeater then n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Climate"), _climateText(st)) end
     if pl.meter then
@@ -1516,7 +1541,27 @@ function ZeD_Dashboard:_plainReadouts(st, pl, cells, n, y, W, big, rows, cellH)
             local cell = (i <= n) and cells[i]
             if cell then
                 local cy = y + (r - 1) * cellH
-                self:drawText(cell.label, cx, cy + math.floor((fh2 - fh1) / 2), td.r, td.g, td.b, td.a or 1, f1)
+                local vc, lc = tc, td        -- the value's and the name's colours (the focus ink on the mark)
+                if cell.id then
+                    -- a reading that is also a control (the Trip): the pointer's wash or the controller's mark under
+                    -- it, its click area and its focus element (ZeD_Dashboard:_plainControl, the plate's ids)
+                    local hx, hy, hw, hh = cx - px(2), cy - px(1), cw + px(4), fh2 + px(2)
+                    if self._driver then
+                        local focused = self._focEl and self._focEl.id == "dash:" .. cell.id
+                        if focused and ZeD.Focus and ZeD.Focus.mark and ZeD.Focus.mark(self, hx, hy, hw, hh, self._markOpts, true) then
+                            vc = T.textOnFocus
+                            lc = vc
+                        elseif self:isMouseOver() then
+                            local mx, my = self:getMouseX(), self:getMouseY()
+                            if mx >= hx and mx < hx + hw and my >= hy and my < hy + hh then
+                                local hv = T.hover
+                                self:drawRect(hx, hy, hw, hh, hv.a or 0.1, hv.r, hv.g, hv.b)
+                            end
+                        end
+                    end
+                    self:_plainControl(cell.id, hx, hy, hw, hh, st, true)
+                end
+                self:drawText(cell.label, cx, cy + math.floor((fh2 - fh1) / 2), lc.r, lc.g, lc.b, lc.a or 1, f1)
                 local vx = cx + lw
                 if cell.bar then
                     local vw = cell.value and math.max(px(32), tm:MeasureStringX(f2, cell.value)) or 0
@@ -1526,7 +1571,7 @@ function ZeD_Dashboard:_plainReadouts(st, pl, cells, n, y, W, big, rows, cellH)
                         self:drawText(cell.value, cx + cw - tm:MeasureStringX(f2, cell.value), cy, tc.r, tc.g, tc.b, tc.a or 1, f2)
                     end
                 elseif cell.value then
-                    self:drawText(cell.value, vx, cy, tc.r, tc.g, tc.b, tc.a or 1, f2)
+                    self:drawText(cell.value, vx, cy, vc.r, vc.g, vc.b, vc.a or 1, f2)
                 end
             end
         end
