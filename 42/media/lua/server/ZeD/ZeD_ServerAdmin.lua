@@ -898,6 +898,12 @@ reg("a_role", { cap = CAP.ChangeAccessLevel }, function(p, a, rid)
     local md = open()
     if frozen(p, rid) then return end
     if a.user == p:getUsername() then Srv.ack(p, rid, false, "self"); return end
+    -- an account that is off takes the game's power for every account, as its card does (the director, Nov 6 2026).
+    -- Asked before "unknown", so the answer is the same whether the name is an account or not
+    if not Srv.player(a.user) then
+        local allCap = Capability and Capability.SeeNetworkUsers
+        if not (allCap and Srv.can(p, allCap)) then Srv.ack(p, rid, false, "perm"); return end
+    end
     if not Srv.player(a.user) and not md.players[a.user] then Srv.ack(p, rid, false, "unknown"); return end
     local new = roleNamed(a.role)
     if not new then Srv.ack(p, rid, false, "gone"); return end

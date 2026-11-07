@@ -840,6 +840,9 @@ function P.rolePick(win, st, card, row, view, self)
         return { label = tr("UI_ZeD_Adm_Role"), value = tr("UI_ZeD_Adm_OwnRole", name or "user") }
     end
     local c = F.gate({ id = "role", box = true, text = card.newRole or name or M.why("SeeNetworkUsers"), help = tr("UI_ZeD_Adm_HelpRolePick") }, "ChangeAccessLevel", function()
+        -- (closed: an account that is off takes the game's power for every account, the director's ruling; with no role
+        -- to read, the confirm could not say what they lose, and the server refuses it too)
+        if view and view.closed then return M.why("SeeNetworkUsers") end
         if not M.can("ModifyNetworkUsers") then return M.why("ModifyNetworkUsers") end
         return nil
     end)
@@ -1253,7 +1256,10 @@ function P.playerItems(win, st, t, card, data)
     if card.open == "kick" then P.kickPart(items, win, st, card)
     elseif card.open == "ban" then P.banPart(items, win, st, card)
     elseif card.open == "warn" then P.warnPart(items, win, st, card, row)
-    elseif card.open == "role" and card.newRole then P.rolePart(items, win, st, card, (view and view.role) or row.role) end
+    elseif card.open == "role" and card.newRole and not (view and view.closed) then
+        -- (no role on the record reads as "user", as the role box says; a card that closed while the ask was open shows none)
+        P.rolePart(items, win, st, card, (view and view.role) or row.role or "user")
+    end
     if M.live() then
         B.label(items, tr("UI_ZeD_Adm_ProfTraits"))
         local list = {}

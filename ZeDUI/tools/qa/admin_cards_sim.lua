@@ -1193,6 +1193,21 @@ check("a closed card's role says it too, never \"user\"", roleBox ~= nil and rol
 -- (the skills were kept back too: the card names the power, never "no skill above 0" for an account it cannot see)
 check("a closed card's skills say it too, never \"no skill above 0\"", (not sawNoSkills) and netWhyN >= 2)
 TC.back(win, st)
+-- a role that may change roles still gets no role change on a closed card: there is no role to say what they lose
+M.qaCaps = { CanSeePlayersStats = true, RolesRead = true, ChangeAccessLevel = true, ModifyNetworkUsers = true }
+M.bump()
+press("adm:tk:p:Away")
+draw()
+check("a closed card offers no role change", grayWhy("tk:role") == netWhy, tostring(grayWhy("tk:role")))
+-- (the card closed while an ask was open: no ask, so no confirm that says they lose nothing)
+st.card.newRole, st.card.open, st.card.keep = "user", "role", {}
+M.bump()
+draw()
+check("a closed card shows no role ask", stopOf("tk:rno") == nil and stopOf("tk:ryes") == nil)
+st.card.newRole, st.card.open = nil, nil
+press("tk:role")
+check("pressing it opens no pick", st.tk.popup == nil)
+TC.back(win, st)
 M.cards.Away = nil
 M.qaCaps = {}
 M.bump()
