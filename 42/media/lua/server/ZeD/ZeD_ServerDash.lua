@@ -12,6 +12,9 @@
 --   the car's number, the miles and the switch are numbers and a boolean in range, and the trip is no more than the odometer
 --   the odometer only goes forward. The trip goes forward by no more than the odometer did, or back down as far as the miles
 --     since the server's figure (a reset, then what was driven after it)
+-- A refusal of the car's driver on those last two (not junk, not someone else) answers them with the server's figures
+-- (DP.SYNC; ZeD_Dashboard:_odoSync): their copy of the car is behind this one, say a trip another driver zeroed that never
+-- reached them, and it would be refused for the whole drive.
 -- No clock and no listener of its own: the server part's one OnClientCommand listener hands the command here, and the car
 -- is only read when a command comes.
 -- ============================================================================
@@ -64,8 +67,12 @@ Srv.register(DP.MOD, DP.ODO, {}, function(p, a)
     local vmd = v:getModData()
     local was = tonumber(vmd.ZeD_odo)
     local wasTrip = tonumber(vmd.ZeD_trip) or 0
-    if was and a.odo < was then return end
-    if not tripOk(a.trip, a.odo, was, wasTrip) then return end
+    if was and (a.odo < was or not tripOk(a.trip, a.odo, was, wasTrip)) then
+        if d == p then
+            Srv.to(p, DP.MOD, DP.SYNC, { veh = a.veh, odo = was, trip = wasTrip, sent = a.odo })
+        end
+        return
+    end
     if d == p then
         if not M.by[a.veh] then M.n = M.n + 1 end
         M.by[a.veh] = { u = u, at = now }

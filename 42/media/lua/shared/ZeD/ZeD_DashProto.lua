@@ -15,6 +15,8 @@ local DP = ZeD.DashProto
 
 DP.MOD = "ZeDDash"
 DP.ODO = "odo"           -- { veh = the car's short id, odo = miles, trip = miles, show = the electronic window shows the trip }
+DP.SYNC = "sync"         -- server -> the driver, when it refuses their figures as behind its own (the odometer went back,
+                         -- or the trip further than it allows): { veh, odo, trip = the server's, sent = the refused odo }
 
 DP.ODO_MAX = 10000000    -- miles: no odometer reads this far (a found car starts under 140000)
 DP.GRACE_MS = 10000      -- a driver's last send can land after they got out or moved seats (the game's exit packet goes

@@ -1468,8 +1468,25 @@ do
         check(name, v.md.ZeD_odo == o0 and v.md.ZeD_trip == t0 and v.md.ZeD_odoTrip == s0 and v.transmits == n0
             and sameRows(was, others(v.md)), tostring(v.md.ZeD_odo) .. " / " .. tostring(v.md.ZeD_trip))
     end
+    -- the server's answer to its driver (DP.SYNC): heard on the client, through the link's route for the dash's module
+    local syncs = {}
+    co.env.ZeD.ServerPart.on(co.env.ZeD.DashProto.MOD, function(command, a) syncs[#syncs + 1] = { command = command, a = a } end)
+    cb.env.ZeD.ServerPart.on(cb.env.ZeD.DashProto.MOD, function(command, a) syncs[#syncs + 1] = { command = command, a = a, b = true } end)
     refused({ veh = 7, odo = 41000.2, trip = 0.05, show = true }, "the odometer never goes back")
+    local s1 = syncs[1]
+    check("the driver refused as behind: the server's figures go back to them", #syncs == 1 and s1.command == "sync"
+        and s1.a.veh == 7 and s1.a.odo == 41000.7 and s1.a.trip == 0.05 and s1.a.sent == 41000.2, #syncs)
     refused({ veh = 7, odo = 41000.8, trip = 3, show = true }, "the trip can't count more than the odometer did")
+    local s2 = syncs[2]
+    check("a trip the server can't take: its figures go back too", #syncs == 2 and s2.a.odo == 41000.7
+        and s2.a.trip == 0.05 and s2.a.sent == 41000.8, #syncs)
+    -- the driver's next send from the server's figures (ZeD_Dashboard:_odoSync: the trip from the server's, plus the miles)
+    odoSend(co, { veh = 7, odo = 41000.9, trip = 0.05 + (41000.9 - 41000.7), show = true })
+    check("the send after that answer is taken", v.md.ZeD_odo == 41000.9 and math.abs(v.md.ZeD_trip - 0.25) < 1e-6, v.md.ZeD_trip)
+    check("no answer for a send that's taken", #syncs == 2, #syncs)
+    -- someone not at the wheel is refused without an answer
+    odoSend(cb, { veh = 7, odo = 41000.1, trip = 0, show = true })
+    check("a send from someone not driving: refused, no answer", v.md.ZeD_odo == 41000.9 and #syncs == 2, #syncs)
     W.logs = {}
     refused({ veh = 7, odo = "41001", trip = 0, show = true }, "junk: a string for the miles")
     refused({ veh = 7, odo = 0 / 0, trip = 0, show = true }, "junk: not a number")
@@ -1481,6 +1498,7 @@ do
     refused({ veh = 7.5, odo = 41001, trip = 0.3, show = true }, "junk: a car's number not whole")
     refused({ odo = 41001, trip = 0.3, show = true }, "junk: no car")
     check("junk is logged as bad arguments", logHas("bad arguments"))
+    check("junk gets no answer", #syncs == 2, #syncs)
     odoSend(co, { veh = 99, odo = 41001, trip = 0.3, show = true })
     check("a car that isn't there: nothing, no error", not logHas("handler failed"))
 
