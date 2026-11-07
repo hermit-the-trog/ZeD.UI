@@ -275,6 +275,7 @@ function C.tick()
         C.refresh()
         runWaits()
         if #C.invites > 0 and gamePopups() then C.handBack() end
+        C.runLate()
     end
     C.cancelTurn(t)
     if S.available() and (not C.infoAt or t - C.infoAt >= (C.infoEvery or INFO_MS)) then C.ask() end
@@ -774,6 +775,22 @@ function C.handBack()
     if #keep < #list then C.bump() end
 end
 
+-- game handlers whose note failed while a yes to a safehouse was on its way: each waits here, as {game, args}, so its
+-- pop-up cannot send the second answer (the kick). The tick runs them once the yes lands (the game's handler then drops
+-- the invitation, as the player has a safehouse) or is given up on
+local lateGame = {}
+
+function C.runLate()
+    if #lateGame == 0 or joinInFlight() then return end
+    local list = lateGame
+    lateGame = {}
+    for _, l in ipairs(list) do
+        -- (unpack spreads the saved arguments back out, as the event passed them; n keeps a nil one in its place)
+        local ok, err = pcall(function() l.game(unpack(l.args, 1, l.n)) end)
+        if not ok then ZeD.logOnce("claims invite", err) end
+    end
+end
+
 -- if ZeD's note fails, the game's modal runs, so an invitation is never lost. The game's handlers stay off the event in
 -- safe mode too, and run from here: the event can then only raise one or the other, whichever way the option turns.
 -- kind: "safe" for a safehouse invitation, which waits as a note while a yes is on its way (see C.handBack)
@@ -786,7 +803,12 @@ local function guarded(fn, game, kind)
         local ok, err = pcall(fn, ...)
         if not ok then
             ZeD.logOnce("claims invite", err)
-            if game then game(...) end
+            -- (while a yes is on its way the game's pop-up waits too: answering it would be the second answer)
+            if game and kind == "safe" and joinInFlight() then
+                lateGame[#lateGame + 1] = { game = game, args = { ... }, n = select("#", ...) }
+            elseif game then
+                game(...)
+            end
         end
     end
 end
