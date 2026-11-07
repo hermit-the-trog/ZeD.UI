@@ -125,3 +125,12 @@ These don't need new designs. Each one opens the game's window if ZeD's version 
 10. Admin scope: player stats and inventory, other players' claims, users, PvP log and zones (C6 to C10, C14).
 11. Should the kicked screen become ZeD's (C17).
 12. What to do with the Tutorial menu item (D1).
+
+## The director's decisions (Nov 7 2026, multiple choice)
+
+- Start with everyday play (group B).
+- B3 respawn after death: back to the desk; the next survivor is built in ZeD's own Looks, Traits and Spawn screens, as a new game.
+- B2 paper map: opens ZeD's map view on the area that paper map shows, with ZeD's marking tools.
+- B1 TV and house radio: every route opens ZeD's existing radio card now; the dedicated TV and house radio faces come when design draws them.
+- Bans: when staff lift a ban with the game's own admin panel, the game's unban wins; ZeD closes its row and logs who did it.
+- Mod support next: Auto-Hide Hotbar, Mask Filter Indicator, Item Condition Restored, the Better Item Transfer menu-style fix, Clear Skill Sheet, Better Folders, Better Mod Experience.
