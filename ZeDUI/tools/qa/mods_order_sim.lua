@@ -89,7 +89,7 @@ end
 local function setup(onIds)
     active = newActive(onIds)
     local m = ModSelector.Model:new({ updateView = noop })
-    for _, spec in ipairs({ { "ZeD_UI" }, { "ZeD_Picks", { "ZeD_UI" } }, { "Other" }, { "Needs_Other", { "Other" } } }) do
+    for _, spec in ipairs({ { "ZeD_UI" }, { "ZeD_Picks", { "ZeD_UI" } }, { "Other" }, { "Needs_Other", { "Other" } }, { "Needs_ZeD", { "ZeD_UI" } } }) do
         local id = spec[1]
         local d = { modId = id, modInfo = modInfo(id, spec[2]), name = id }
         d.defaultActive = active:isModActive(id)
@@ -191,6 +191,24 @@ do
     s:toggle(m.mods.ZeD_UI)
     s:modsOnBatch({ "ZeD_UI" })
     check("a batch forgets which mod took picks off", s._picksOffWith == nil)
+    -- the Load order page's Back sets the mods that were on again (nothing changes): it keeps the
+    -- memory, so ZeD-GUI back on still brings picks (review Nov 7 2026)
+    m, s = setup({ "ZeD_UI", "ZeD_Picks", "Other" })
+    s:onShow()
+    s:toggle(m.mods.ZeD_UI)
+    s:applyOnSet({ Other = true }, true)
+    check("a set change that changes nothing keeps the memory", s._picksOffWith == "ZeD_UI", tostring(s._picksOffWith))
+    s:toggle(m.mods.ZeD_UI)
+    check("after Back, ZeD-GUI back on: picks back on", m.mods.ZeD_Picks.isActive)
+    -- a mod that needs ZeD-GUI turned on brings ZeD-GUI back without picks: that stands
+    m, s = setup({ "ZeD_UI", "ZeD_Picks", "Other" })
+    s:onShow()
+    s:toggle(m.mods.ZeD_UI)
+    s:toggle(m.mods.Needs_ZeD)
+    check("ZeD-GUI back as a requirement: the memory goes", m.mods.ZeD_UI.isActive and s._picksOffWith == nil, tostring(s._picksOffWith))
+    s:toggle(m.mods.ZeD_UI)
+    s:toggle(m.mods.ZeD_UI)
+    check("then ZeD-GUI off and on leaves picks off", not m.mods.ZeD_Picks.isActive)
     -- other mods keep vanilla's rule: a dependant stays off
     m, s = setup({ "Other", "Needs_Other" })
     s:onShow()

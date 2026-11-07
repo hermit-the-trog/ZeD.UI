@@ -397,11 +397,22 @@ end
 -- state): two of them that conflict go on together; otherwise the first wins, and a mod on
 -- already counts as first. opts.exact: the template mod too (else it asks on its own row).
 -- opts.why: id -> the reason a mod stayed off. Returns the mods set on and the names left off.
+
+-- toggle remembers the mod that took ZeD picks off (self._picksOffWith). That memory holds only
+-- while that mod and picks are both still off: once either came on another way (a profile with
+-- ZeD-GUI on and picks off, Turn all, a separator or folder box, a mod that needs ZeD-GUI), that
+-- choice stands and turning the mod off and on again must not overrule it. A change that left
+-- both off (the Load order page's Back, which sets the same mods again) keeps it (review Nov 7 2026)
+local function checkPicksOffWith(self, m)
+    local id = self._picksOffWith
+    if not id then return end
+    local helper = ZeD.ModPicks and ZeD.ModPicks.HELPER
+    local r = m.mods[id]
+    local h = helper and m.mods[helper]   -- (nil when picks is not installed)
+    if not (r and h) or r.isActive or h.isActive then self._picksOffWith = nil end
+end
+
 function ZeD_MMMods:modsOnBatch(ids, opts)
-    -- a set of mods changed at once (Undo, Discard, a profile, Turn all, a separator or folder box;
-    -- applyOnSet always ends here): forget which mod took ZeD picks off, so turning that mod back
-    -- on later can't overrule a set that left picks off on purpose (see toggle)
-    self._picksOffWith = nil
     local m = model()
     local go, goSet, cannot, seen = {}, {}, {}, {}
     if not m then return go, cannot end
@@ -439,6 +450,8 @@ function ZeD_MMMods:modsOnBatch(ids, opts)
         end
     end
     if #go > 0 then m:refreshMods() end
+    -- (applyOnSet always ends here, after its mods went off, so this sees the whole set change)
+    checkPicksOffWith(self, m)
     return go, cannot
 end
 
@@ -496,6 +509,8 @@ function ZeD_MMMods:toggle(d, confirmed)
             self._picksOffWith = nil
             m:forceActivateMods(h.modInfo, true)   -- (it checks the helper can run, as for any mod)
         end
+        -- (another mod turned on may have brought the remembered one back as its requirement)
+        checkPicksOffWith(self, m)
     end
     -- (the list's pins and rules lay the order out again: ZeD_MainMenuModsOrder)
     if turnOn and self.relayoutList then self:relayoutList() end
