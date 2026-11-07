@@ -1086,7 +1086,8 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
     -- Set the active palette
     ZeD.T = T
     -- Cached font heights, zoomed (ZeD.Text.zoomOf reads ZeD.T, so this runs after the palette is live)
-    if getTextManager then
+    -- (a server has no fonts, and nothing there reads these heights)
+    if getTextManager and not (ZeD.Text and ZeD.Text.noFonts) then
         local tm = ZeD.TM
         T.fontF1H = tm:getFontHeight(T.fontF1)
         T.fontF2H = tm:getFontHeight(T.fontF2)
