@@ -556,3 +556,15 @@
 16:51:17 staged 0.3.0-beta6
 16:53:42 true staged check: 4/4 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-06_beta6_release_check_true.md | no report at C:\Users\danie\Zomboid\mods\ZeD-UI\C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-06_beta6_release_check_true.md
 16:53:42 true check done
+20:41:05 mods: ZeD_UI;ZeDQAShim
+20:41:05 started the server, PID 19548; waiting for it to be ready
+20:41:47 ready after 42 s
+20:44:47 rail_4k : 3/3 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_rail_4k.md
+20:44:47 stopped PID 19548
+20:44:47 closed
+20:44:55 mods: ZeD_UI;ZeDQAShim
+20:44:55 started the server, PID 34340; waiting for it to be ready
+20:45:27 ready after 32 s
+20:48:08 rail_deck : 3/3 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_rail_deck.md
+20:48:08 stopped PID 34340
+20:48:08 closed

@@ -1,0 +1,4 @@
+# a real right click on dropped items (Nov 6 2026)
+zedqa_prelude.lua | pre
+zedqa_pin_windows.lua | pnw | timeout=60
+zedqa_floor_rclick.lua | frc | timeout=60

@@ -1,0 +1,3 @@
+# the once-only Vanilla Access repair (Nov 6 2026)
+zedqa_prelude.lua | pre
+zedqa_repair_check.lua | rpc | timeout=30

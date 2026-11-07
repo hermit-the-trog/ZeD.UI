@@ -1,0 +1,162 @@
+22:24:29 server up
+22:25:36 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-06_hotfix_two_start.md
+22:28:52 ZEDQA acm FAIL a safehouse held
+22:28:52 ZEDQA acm DONE
+22:30:20 second client joining as bob
+22:32:04 ZEDQA pnc start
+22:32:04 ZEDQA pnc view connect
+22:32:04 ZEDQA pnc gave up on view connect
+22:32:04 ZEDQA pnc DONE
+22:37:09 bob never reached the game
+22:37:11 second client stopped
+22:37:13 closed
+22:39:28 server up
+22:40:35 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-06_hotfix_two_start.md
+22:43:51 ZEDQA acm FAIL a safehouse held
+22:43:51 ZEDQA acm DONE
+22:44:34 second client joining as bob
+22:46:47 TIMEOUT
+22:51:51 bob never reached the game
+22:51:53 second client stopped
+22:51:55 closed
+22:56:51 set PlayerSafehouse=true
+22:56:51 set AdminSafehouse=true
+22:57:25 server up
+22:58:32 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-06_hotfix_two_start.md
+23:01:48 ZEDQA acm no claim: Occupied building. Cannot be claimed until empty.
+23:01:48 ZEDQA acm no claim: Spawn location. Cannot be claimed.
+23:01:48 ZEDQA acm no claim: Occupied building. Cannot be claimed until empty.
+23:01:48 ZEDQA acm no claim: Occupied building. Cannot be claimed until empty.
+23:01:48 ZEDQA acm no claim: Occupied building. Cannot be claimed until empty.
+23:01:48 ZEDQA acm no claim: Non-residential building. Cannot be claimed.
+23:01:48 ZEDQA acm no claim: Occupied building. Cannot be claimed until empty.
+23:01:48 ZEDQA acm no claim: Spawn location. Cannot be claimed.
+23:01:48 ZEDQA acm no claim: Occupied building. Cannot be claimed until empty. | Non-residential building. Cannot be claimed.
+23:01:48 ZEDQA acm no claim: Spawn location. Cannot be claimed.
+23:01:48 ZEDQA acm no claim: Occupied building. Cannot be claimed until empty.
+23:01:48 ZEDQA acm no claim: Occupied building. Cannot be claimed until empty.
+23:01:48 ZEDQA acm no claim: Non-residential building. Cannot be claimed.
+23:01:48 ZEDQA acm no claim: Spawn location. Cannot be claimed.
+23:01:48 ZEDQA acm no claim: Spawn location. Cannot be claimed.
+23:01:48 ZEDQA acm no claim: Occupied building. Cannot be claimed until empty.
+23:01:48 ZEDQA acm no claim: Occupied building. Cannot be claimed until empty. | Non-residential building. Cannot be claimed.
+23:01:48 ZEDQA acm no claim: Occupied building. Cannot be claimed until empty. | Non-residential building. Cannot be claimed.
+23:01:48 ZEDQA acm no claim: Occupied building. Cannot be claimed until empty. | Non-residential building. Cannot be claimed.
+23:01:48 ZEDQA acm no claim: Occupied building. Cannot be claimed until empty. | Non-residential building. Cannot be claimed.
+23:01:48 ZEDQA acm no claim: Occupied building. Cannot be claimed until empty. | Non-residential building. Cannot be claimed.
+23:01:48 ZEDQA acm no claim: Occupied building. Cannot be claimed until empty. | Non-residential building. Cannot be claimed.
+23:01:48 ZEDQA acm no claim: Spawn location. Cannot be claimed.
+23:01:48 ZEDQA acm no claim: Occupied building. Cannot be claimed until empty. | Non-residential building. Cannot be claimed.
+23:01:48 ZEDQA acm no claim: Occupied building. Cannot be claimed until empty. | Non-residential building. Cannot be claimed.
+23:01:48 ZEDQA acm no claim: Non-residential building. Cannot be claimed.
+23:01:48 ZEDQA acm no claim: Occupied building. Cannot be claimed until empty. | Non-residential building. Cannot be claimed.
+23:01:48 ZEDQA acm no claim: Non-residential building. Cannot be claimed.
+23:01:48 ZEDQA acm no claim: Occupied building. Cannot be claimed until empty.
+23:01:48 ZEDQA acm no claim: Occupied building. Cannot be claimed until empty.
+23:01:48 ZEDQA acm no claim: Occupied building. Cannot be claimed until empty.
+23:01:48 ZEDQA acm no claim: Occupied building. Cannot be claimed until empty.
+23:01:48 ZEDQA acm FAIL a safehouse held
+23:01:48 ZEDQA acm DONE
+23:02:31 second client joining as bob
+23:02:58 ZEDQA pnc start
+23:02:58 ZEDQA pnc view spawn
+23:02:58 ZEDQA pnc view traits
+23:02:58 ZEDQA pnc view looks
+23:02:58 ZEDQA pnc Play pressed
+23:02:58 ZEDQA pnc DONE
+23:08:03 bob never reached the game
+23:09:03 second client stopped
+23:09:05 closed
+23:09:58 set PlayerSafehouse=true
+23:09:58 set AdminSafehouse=true
+23:09:58 set DoLuaChecksum=false
+23:09:58 set SafehouseAllowNonResidential=true
+23:10:33 server up
+23:11:40 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-06_hotfix_two_start.md
+23:14:55 ZEDQA acm PASS a safehouse held (zedqa)
+23:14:55 ZEDQA acm DONE
+23:15:35 second client joining as bob
+23:16:03 ZEDQA pnc start
+23:16:03 ZEDQA pnc view spawn
+23:16:03 ZEDQA pnc view traits
+23:16:03 ZEDQA pnc view looks
+23:16:03 ZEDQA pnc Play pressed
+23:16:03 ZEDQA pnc DONE
+23:16:28 bob in game
+23:16:42 ZEDQA ain bob online: true, safehouse zedqa
+23:16:42 ERROR: General      f:35719 st:188,195,170> Lua(Vanilla).add> Exception thrown
+23:16:42 ZEDQA ain ERR step 2: Not enough arguments java.lang.RuntimeException
+23:16:42 ZEDQA ain DONE
+23:18:45 ZEDQA anb PASS the note is up (1)
+23:18:45 ZEDQA anb PASS at 23 s (1)
+23:18:45 ZEDQA anb PASS at 48 s (1)
+23:18:45 ZEDQA anb PASS at 80 s (1)
+23:18:45 ZEDQA anb PASS Decline clears it (0)
+23:18:45 ZEDQA anb PASS it stays declined past a server reply (0)
+23:18:45 ZEDQA anb DONE
+23:18:47 second client stopped
+23:19:02 ZEDQA ain bob online: false, safehouse zedqa
+23:19:02 ERROR: General      f:52278 st:188,333,217> Lua(Vanilla).add> Exception thrown
+23:19:02 ZEDQA ain ERR step 2: Not enough arguments java.lang.RuntimeException
+23:19:02 ZEDQA ain DONE
+23:19:43 second client joining as bob
+23:24:59 bob never reached the game
+23:25:59 second client stopped
+23:26:01 closed
+23:26:34 set PlayerSafehouse=true
+23:26:34 set AdminSafehouse=true
+23:26:34 set DoLuaChecksum=false
+23:26:34 set SafehouseAllowNonResidential=true
+23:27:06 server up
+23:28:44 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-06_hotfix_two_start.md
+23:31:59 ZEDQA acm PASS a safehouse held (zedqa)
+23:31:59 ZEDQA acm DONE
+23:32:40 second client joining as bob
+23:35:02 TIMEOUT
+23:35:11 bob in game
+23:35:23 ZEDQA amon answer table 0x1328511487{ ok=true, rid=1 }
+23:35:23 ZEDQA amon PASS the admin's list
+23:35:23 ZEDQA amon DONE
+23:35:29 ZEDQA amd PASS bob reads himself muted
+23:35:29 ZEDQA amd PASS refused: plain line (false,muted)
+23:35:29 ZEDQA amd PASS refused: /all hi (false,muted)
+23:35:29 ZEDQA amd PASS refused: /s hi (false,muted)
+23:35:29 ZEDQA amd PASS refused: /y hi (false,muted)
+23:35:29 ZEDQA amd PASS refused: /w zedqa hi (false,muted)
+23:35:29 ZEDQA amd PASS refused: /safehouse hi (false,muted)
+23:35:29 ZEDQA amd PASS refused: /roll 6 (false,muted)
+23:35:29 ZEDQA amd DONE
+23:35:35 ZEDQA amoff answer table 0x1672449076{ ok=true, rid=2 }
+23:35:35 ZEDQA amoff PASS the admin's list
+23:35:35 ZEDQA amoff DONE
+23:35:42 ZEDQA aum PASS bob reads himself clear
+23:35:42 ZEDQA aum PASS /all goes (true,nil)
+23:35:42 ZEDQA aum DONE
+23:35:56 ZEDQA ast bob seen: true
+23:35:56 ZEDQA ast stats entry: true
+23:35:56 ZEDQA ast PASS the game's stats window is open
+23:35:56 ZEDQA ast DONE
+23:36:06 ZEDQA ain bob online: true, safehouse zedqa
+23:36:06 ZEDQA ain invite sent
+23:36:06 ZEDQA ain DONE
+23:38:08 ZEDQA anb PASS the note is up (1)
+23:38:08 ZEDQA anb PASS at 23 s (1)
+23:38:08 ZEDQA anb PASS at 48 s (1)
+23:38:08 ZEDQA anb PASS at 80 s (1)
+23:38:08 ZEDQA anb PASS Decline clears it (0)
+23:38:09 ZEDQA anb PASS it stays declined past a server reply (0)
+23:38:09 ZEDQA anb DONE
+23:38:11 second client stopped
+23:38:26 ZEDQA ain bob online: false, safehouse zedqa
+23:38:26 ZEDQA ain invite sent
+23:38:26 ZEDQA ain DONE
+23:39:09 second client joining as bob
+23:39:56 TIMEOUT
+23:40:05 bob in game
+23:41:05 ZEDQA aof PASS the invitation sent while offline shows (1)
+23:41:05 ZEDQA aof from zedqa: zedqa
+23:41:05 ZEDQA aof PASS Accept: bob holds the house (zedqa)
+23:41:05 ZEDQA aof PASS no note left (0)
+23:41:05 ZEDQA aof DONE
+23:41:07 second client stopped
+23:41:09 closed

@@ -1,0 +1,5 @@
+# a real card over the World tabs, the real mouse (Nov 6 2026)
+zedqa_prelude.lua | pre
+zedqa_pin_windows.lua | pnw | timeout=60
+zedqa_animals.lua | an | timeout=60 | end=setup done
+zedqa_card_real.lua | crr | timeout=150

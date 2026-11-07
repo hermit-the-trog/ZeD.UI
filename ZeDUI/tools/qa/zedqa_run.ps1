@@ -185,6 +185,7 @@ function Reset-ZeDSettings([string]$RunMode, [string]$Keep) {
     if ($null -eq $t) { $t = "" }
     $script:ModOptionsSaved = $t
     Write-Text $Keep $t
+    if ($env:ZEDQA_KEEP_ADDITIONS) { Add-Note "ZeD settings: left as the caller wrote them"; return }   # (Nov 6 2026: the Vanilla Access repair check brings its own)
     # the UI scale: 1.75x at 4K, ZeD's default (Auto) in the 1080p window; the look stays the director's
     # The additions (ammo on the belt, read marks, loadouts, restock ...) start off for a new player since Oct 30 2026
     # (the Vanilla preset), and the test scripts were written with them on: every run sets the Vanilla Plus preset and

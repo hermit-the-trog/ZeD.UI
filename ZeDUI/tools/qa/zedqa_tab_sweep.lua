@@ -34,15 +34,47 @@ add(300, function()
     if not CWm.isOpen() then CWm.toggleBothPaired(0) end
 end)
 add(2000, function() hook(CWm.getWindow(), "char"); hook(WWm.getWindow(), "world"); say("hooked") end)
+-- (a tab this character isn't offered is forced on, so its draw still runs: it says FORCED, with no data in it)
+local function force(w, id)
+    if w and w._activeTab ~= id then
+        w._activeTab, w._drawerMode, w._drawerOpen = id, "tab", true
+        say("FORCED " .. id)
+    end
+end
+-- a real item card over a tab, as a click on a row makes it: the row's item selected, then the window's own update
+local function firstItem(w)
+    for _, c in ipairs(w._containers or {}) do
+        for _, v in pairs(c) do
+            if instanceof(v, "ItemContainer") and v:getItems():size() > 0 then return v:getItems():get(0) end
+        end
+    end
+    local items = getPlayer():getInventory():getItems()
+    return items:size() > 0 and items:get(0) or nil
+end
+local function pick(w, item)
+    local sel = w._mainContent._selectedItems
+    for k in pairs(sel) do sel[k] = nil end
+    if item then sel[item] = true end
+    w._updateDrawer()
+end
 for _, t in ipairs(CWm.TABS or {}) do
     local id = t.id
     add(300, function() CWm.openTab(0, id) end)
-    add(1300, function() nums("char", CWm.getWindow(), id); shot("char_" .. tostring(id)) end)
+    add(600, function() force(CWm.getWindow(), id) end)
+    add(1000, function() nums("char", CWm.getWindow(), id); shot("char_" .. tostring(id)) end)
 end
 for _, t in ipairs(WWm.TABS or {}) do
     local id = t.id
     add(300, function() WWm.openTab(0, id) end)
-    add(1300, function() nums("world", WWm.getWindow(), id); shot("world_" .. tostring(id)) end)
+    add(600, function() force(WWm.getWindow(), id) end)
+    add(1000, function() nums("world", WWm.getWindow(), id); shot("world_" .. tostring(id)) end)
+end
+for _, c in ipairs({ { "world", WWm, "craft" }, { "world", WWm, "animals" }, { "world", WWm, "build" }, { "world", WWm, "maps" }, { "world", WWm, "forage" }, { "char", CWm, "journal" }, { "char", CWm, "skills" }, { "char", CWm, "health" } }) do
+    local key, M, id = c[1], c[2], c[3]
+    add(300, function() M.openTab(0, id); if id == "journal" then pcall(function() ZeD.JournalTab.setPage(M.getWindow(), "recipes") end) end end)
+    add(1000, function() local w = M.getWindow(); local it = firstItem(w); say("card over " .. id .. ": " .. tostring(it and it:getDisplayName())); pick(w, it) end)
+    add(1500, function() local w = M.getWindow(); say("card up " .. tostring(w._drawerItem ~= nil)); nums(key, w, id); shot("card_" .. key .. "_" .. id); pick(w, nil) end)
+    add(1200, function() nums(key, M.getWindow(), id); shot("after_" .. key .. "_" .. id) end)
 end
 add(300, function() unhook(CWm.getWindow()); unhook(WWm.getWindow()); WWm.openTab(0, "loot"); say("DONE") end)
 local function drive()
