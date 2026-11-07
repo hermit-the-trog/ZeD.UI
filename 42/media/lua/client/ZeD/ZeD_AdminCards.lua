@@ -839,6 +839,9 @@ function P.rolePick(win, st, card, row, view, self)
     if self then
         return { label = tr("UI_ZeD_Adm_Role"), value = tr("UI_ZeD_Adm_OwnRole", name or "user") }
     end
+    -- (closed with no role on the record: the power's sentence as plain text that wraps, like the Status row; in a
+    -- one-line box it ran past the card's edge at 1280x800, QA Nov 7 2026. The box was grayed and refused anyway.)
+    if closed then return { label = tr("UI_ZeD_Adm_Role"), value = M.why("SeeNetworkUsers") } end
     local c = F.gate({ id = "role", box = true, text = card.newRole or name or M.why("SeeNetworkUsers"), help = tr("UI_ZeD_Adm_HelpRolePick") }, "ChangeAccessLevel", function()
         -- (closed: an account that is off takes the game's power for every account, the director's ruling; with no role
         -- to read, the confirm could not say what they lose, and the server refuses it too)
