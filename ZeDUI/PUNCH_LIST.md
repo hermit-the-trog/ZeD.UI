@@ -2910,3 +2910,15 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     - **Known gaps:** ZeD picks come back only when ZeD-GUI is turned on by its own row, not through a folder or
       separator box or Turn all off; split-screen's second player doesn't save dash miles on a server; on a server the
       dash ash tray is per player and session; FR and HU month words keep a capital (shared Journal keys; native pass).
+104. **The desk's notes and mail (the director, Nov 7 2026, for later, not beta 7).** Two apps on the main menu's desk
+    computer. (1) **Notes:** a sticky note on the desktop the player can edit, or text files they make that save on the
+    desktop. Doable in Lua alone: ZeD already writes its own files under Zomboid/Lua (getFileWriter), so notes would
+    live there, per player, and survive updates. Uses: server addresses and passwords' hints, seeds and sandbox picks,
+    mod lists, a run's plan. (2) **Mail, for multiplayer:** players and admins write to each other outside a world.
+    Engine limit: Lua has no network of its own, and at the main menu the game is connected to no server, so nothing
+    can be sent or fetched from the desk itself. What can work: mail kept on the server, sent from inside the world
+    (also to offline players) and handed over when they join; the desk shows the mail last received from each server
+    (a copy saved on the player's PC) and queues replies that go out on the next join. Nobody found doing either
+    (Build's search, Nov 7: nearest are in-world note mods, a mod-update alert on the main menu, an answering-machine
+    mod); design is the director's own either way. Open for the director: sticky note, text files or both; mail as
+    described or not at all.
