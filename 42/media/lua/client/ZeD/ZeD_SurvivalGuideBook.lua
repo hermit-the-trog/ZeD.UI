@@ -416,9 +416,13 @@ end
 
 -- The deal, in page order: a whole page its full ad (p.ad: a name, "house", or false for NOTES), each filler its
 -- plan (it.ads on a flow page's filler item, p.filler.ads at a rules page's foot). textW_ the text block's width.
+-- The feet of rules pages behind a spoiler bar are dealt last, from what is left: their ads stay hidden until the
+-- reader shows the numbers, so they never take an ad a page in plain sight would then go without. (Whether a table
+-- is a spoiler is fixed by the layout, not by whether its numbers are shown now, so showing them never deals again.)
 function B.dealAds(bk, pages, u, textW_)
     local d = B.adDeck(bk._adSeed or 1)
     local st = { full = 0, fullMiss = 0, ask310 = 0, miss310 = 0, ask205 = 0, miss205 = 0, notes = 0 }
+    local later = {}   -- (the spoiler pages' feet, kept for the second pass)
     for _, p in ipairs(pages) do
         if p.kind == "ad" then
             local a = deal(d, "full")
@@ -433,8 +437,16 @@ function B.dealAds(bk, pages, u, textW_)
                 end
             end
         elseif p.kind == "rules" and p.filler then
-            p.filler.ads = planFiller(d, p.filler.y, p.filler.y1, u, nil, st)
+            if p.rules and p.rules.spoiler then
+                later[#later + 1] = p
+            else
+                p.filler.ads = planFiller(d, p.filler.y, p.filler.y1, u, nil, st)
+            end
         end
+    end
+    -- the second pass: the hidden feet, in page order, take what the rest of the book left
+    for _, p in ipairs(later) do
+        p.filler.ads = planFiller(d, p.filler.y, p.filler.y1, u, nil, st)
     end
     st.at = d.at
     bk.adStats = st
@@ -453,26 +465,34 @@ function B.adReport(bk)
         st.at.full, #A.full + 1, st.at.half, #A.half, st.at.quarter, #A.quarter, st.at.third, #A.third)
 end
 
--- the textures, each loaded the first time a page draws it (all 34 at 2x are about 60 MB once loaded). Flags 0:
--- linear filtering, no texture compression (the game's compression option would blotch the fine print). Not point
--- filtering (3, as the pixel icons): the art is mostly antialiased type at 2x, drawn smaller than that below 4K,
--- and point sampling there drops whole art pixels from the strokes.
+-- the textures, each loaded the first time a page draws it (all 34 at 2x are about 60 MB once loaded).
+-- Flags 2 (the engine's TextureID reads them as bits when it uploads the texture): 2 = point filtering when the
+-- texture is drawn LARGER than its PNG (u above 2), so the pixel pictures stay crisp there. Bit 1 (point filtering
+-- when drawn smaller) stays off: at u 2 and below (1080p, 4K at 1.75x) the art is shrunk, and point sampling would
+-- drop whole art pixels from the thin strokes of its type, so shrinking stays linear (smooth). Bit 4 (texture
+-- compression) stays off too, so the game's compression option cannot blotch the fine print.
+local AD_TEX_FLAGS = 2
 local _adTex = {}
 local function adTex(name)
     local t = _adTex[name]
     if t == nil then
         local path = AD_DIR .. name .. ".png"
-        t = (Texture and Texture.getSharedTexture and Texture.getSharedTexture(path, 0)) or getTexture(path) or false
+        t = (Texture and Texture.getSharedTexture and Texture.getSharedTexture(path, AD_TEX_FLAGS)) or getTexture(path) or false
         _adTex[name] = t
     end
     return t or nil
 end
--- an ad at its design size times u, top left at (x, y)
+-- a whole screen pixel: v rounded to the nearest (half up), so the art never sits between pixels, where linear
+-- filtering would smear it further
+local function snap(v) return math.floor(v + 0.5) end
+-- an ad at its design size times u, top left at (x, y), on whole pixels; returns its right edge (the pair's second
+-- quarter starts from it)
 local function drawAd(panel, name, size, x, y, u)
-    local tex = adTex(name)
-    if not tex then return end
     local s = ZeD.GuideAds.size[size]
-    panel:drawTextureScaled(tex, x, y, s[1] * u, s[2] * u, 1, 1, 1, 1)
+    local x0, w = snap(x), snap(s[1] * u)
+    local tex = adTex(name)
+    if tex then panel:drawTextureScaled(tex, x0, snap(y), w, snap(s[2] * u), 1, 1, 1, 1) end
+    return x0 + w
 end
 
 -- the page list for a reading of the topics (front matter, then a page a topic and its rules page)
@@ -1029,9 +1049,10 @@ function ZeD_GuideBook:drawFiller(tx, tw_, y, f, u)
         elseif b.k == "half" then
             drawAd(self, b.names[1], "half", tx, by, u)
         elseif b.k == "pair" then
-            -- (two quarters side by side, tops level: 215, a 10 gutter, 215; the second at 440 - 215)
-            drawAd(self, b.names[1], "quarter", tx, by, u)
-            drawAd(self, b.names[2], "quarter", tx + (S.half[1] - S.quarter[1]) * u, by, u)
+            -- (two quarters side by side, tops level: 215, a 10 gutter, 215. The second starts at the first's rounded
+            -- right edge plus the rounded gutter, so both sit on whole pixels and the gutter stays even)
+            local right = drawAd(self, b.names[1], "quarter", tx, by, u)
+            drawAd(self, b.names[2], "quarter", right + math.floor((S.half[1] - S.quarter[1] * 2) * u + 0.5), by, u)
         elseif b.k == "third" then
             drawAd(self, b.names[1], "third", tx, by, u)
         elseif b.k == "notes" then
