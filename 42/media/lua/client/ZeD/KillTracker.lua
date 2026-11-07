@@ -336,9 +336,10 @@ local function onZombieDead(zombie)
     if hit and not hit.counted and (t - hit.ts) < STALE_TIMEOUT then
         local killer = zombie.getAttackedBy and zombie:getAttackedBy()
         if not killer or killer == player then
-            -- the game counted it when we are the attacker (or no call can say);
-            -- a burn's first death clears the attacker, and the game counts none
-            local counted = (killer == player or not zombie.getAttackedBy) and 1 or 0
+            -- the game counted it when we are the attacker (or no call can say), and
+            -- for a death with no attacker that is not burning (a server client's
+            -- late attacker); a burn's first death clears the attacker and counts none
+            local counted = (killer == player or not zombie.getAttackedBy or not fireMaybe) and 1 or 0
             local kd = getKillData(player, counted)
             tally(kd, hit, 1)
             if fireMaybe then
@@ -359,8 +360,10 @@ local function onZombieDead(zombie)
         if target and instanceof(target, "IsoGameCharacter") then
             local vehicle = target:getVehicle()
             if vehicle and vehicle:getDriver() == player then
-                -- onHitByVehicleApplyDamage has counted it: one pending
-                local kd = getKillData(player, 1)
+                -- onHitByVehicleApplyDamage has counted it: one pending; a burning
+                -- zombie on the ground that dies here with no attacker died of the burn,
+                -- which the game does not count (review, Nov 7)
+                local kd = getKillData(player, fireMaybe and 0 or 1)
                 kd.vehicle = kd.vehicle + 1
                 -- kept only for a death that may be a burn's first, for the
                 -- fire rollback above; same reason as the weapon kill
