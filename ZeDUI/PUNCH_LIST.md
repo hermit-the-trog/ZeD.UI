@@ -2763,6 +2763,12 @@ item says so.
     yourself: the game won't stop a reading through a building. Proposed: cars within sight and a short fixed range only
     (the director hasn't ruled on it; reaching past what the player sees would remove the game's stakes). The director
     still decides where the readout sits (on the dash or above the siren controls). Needs two players on a server.
+94. **The Dash Elite odometer's unlit figures, after beta 6 (the director, Nov 6 2026: "That's a little problem"; okay
+    for this release, no QA round for it now).** At night with the panel lights off, the window's unlit marks read as what
+    looks like an E, a single quote, two half pipes, another single quote and another E, in the dark. The director wants
+    that fixed; the unlit marks should be four 8s, and QA's picture (ZeDUI/qa/dash_elite_odometer_b_20261106.jpg) shows
+    five figure spaces. Look at it with item 92's Dash Elite LCD odometer, which draws six figures, so the figure count
+    is settled once.
 
 ## Test process
 
