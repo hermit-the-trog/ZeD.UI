@@ -140,6 +140,9 @@ function D.capture(playerObj)
         string.format("%02d:%02d", gt:getHour(), math.floor((gt:getTimeOfDay() % 1) * 60)))
     rec.lines = {}
     pcall(function() rec.lines[#rec.lines + 1] = gt:getDeathString(playerObj) end)
+    -- an old save's kill rows still waiting on the game's count are settled now, so the
+    -- kinds below add up to the total (KillTracker's own death hook may not have run yet)
+    pcall(function() ZeD.KillTracker.settle(playerObj) end)
     -- the game's "You killed N zombies." (GameTime.getZombieKilledText), with the Journal's
     -- total: the game's own count leaves out fire kills, which the kinds below list
     pcall(function()
