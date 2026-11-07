@@ -537,7 +537,10 @@ function B.paginate(bk, u)
     -- at the head of the first of the chapter's fillers with the room for it, as before; when none has the room
     -- (Small text: QA, Nov 7 2026), as a block of its own at the chapter's end, on a new page if the last has no
     -- room, so it is never split, never over the text and never twice. Decided when the chapter is done (below).
-    local checkH = bk:drawChecklist(0, textW_, 0, u, true)
+    -- (measured in a pcall: if it throws, the book lays out without the checklist block, it never closes)
+    local checkOk, checkH = pcall(bk.drawChecklist, bk, 0, textW_, 0, u, true)
+    if not checkOk then ZeD.logOnce("survival guide checklist", checkH); checkH = nil end
+    if type(checkH) ~= "number" then checkH = nil end
     local checkPage = nil   -- (the flow page whose filler opens with it)
 
     local function newPage(si, s, opener)
@@ -697,7 +700,7 @@ function B.paginate(bk, u)
                 page = nil
             end
         end
-        if s.id == "zedch:firstdays" and bk.sectionPage[s.id] then
+        if checkH and s.id == "zedch:firstdays" and bk.sectionPage[s.id] then
             -- (the chapter is done: its last page ends at y, the next chapter opens a page of its own)
             for i = bk.sectionPage[s.id], #pages do
                 local pg = pages[i]
