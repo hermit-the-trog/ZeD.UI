@@ -11,7 +11,11 @@
 --   each row's page number the page its chapter really starts on (printed = index + 1), that page the chapter's own;
 --   a blurb wider than its room wrapped (every line inside the room before the page number), a title inside the
 --   text block, a later page's heading with "continued", inside the text block;
---   the introduction on a right-hand page, facing the last contents page (or after one blank left-hand page);
+--   the introduction on a right-hand page, facing the last contents page (or after one left-hand page);
+--   that left-hand page, when there is one, the publisher's house ad (the director, Nov 7 2026) and no text page (no
+--   chapter, topic or row on it, no section for the thumbs); the house ad once in the book either way (a book with
+--   no front page deals it among the whole pages, as before, when they reach its place in the deck); every other ad
+--   dealt as it was with that page blank (the whole pages the same order with the house ad left out, every filler the same);
 --   the strip's Contents button, Home and the pad's Y on the first contents page;
 --   drawn: every word above the bottom, the number clear of the blurb, and a click on each row opening its chapter.
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/guide_contents_sim.lua   (CONTENTS_DUMP=<code> lists a language's rows)
@@ -300,6 +304,76 @@ local LANGS = { "AR", "CA", "CH", "CN", "CS", "DA", "DE", "EN", "ES", "ES_CL", "
                 "JP", "KO", "NL", "NO", "PL", "PT", "PTBR", "RO", "RU", "TH", "TR", "UA" }
 local function spreadOf(i) return math.floor((i + 1) / 2) end
 
+-- the deal of a page list: the whole pages' ads in page order (the front page left out) and a signature of every
+-- filler's ads
+local function dealOf(P)
+    local full, fill = {}, {}
+    for i, p in ipairs(P) do
+        if p.kind == "ad" and not p.front then full[#full + 1] = tostring(p.ad) end
+        local fs = {}
+        if p.kind == "flow" then for _, it in ipairs(p.items) do if it.k == "filler" then fs[#fs + 1] = it end end end
+        if p.kind == "rules" and p.filler then fs[#fs + 1] = p.filler end
+        for _, f in ipairs(fs) do
+            for _, b in ipairs(f.ads or {}) do fill[#fill + 1] = i .. ":" .. b.k .. "=" .. table.concat(b.names or {}, "+") end
+        end
+    end
+    return full, table.concat(fill, " ")
+end
+
+-- THE HOUSE AD UP FRONT (the director, Nov 7 2026): the page before the introduction, when the contents takes an
+-- even count, is the house ad and no text page; the house ad once in the book; every other ad as it was dealt with
+-- that page blank (the deal before Nov 7)
+local function houseFaults(bk, u, no)
+    local P, n = bk.pages, bk.contentsPages or 0
+    local fp = (n % 2 == 0) and P[3 + n] or nil
+    if fp and not (fp.kind == "ad" and fp.front and fp.ad == "house") then no("the page before the introduction is not the house ad") end
+    local fronts, houses = 0, 0
+    for i, p in ipairs(P) do
+        if p.front then
+            fronts = fronts + 1
+            if p ~= fp then no("a front house ad page at " .. i .. ", not before the introduction") end
+        end
+        if p.kind == "ad" and p.ad == "house" then houses = houses + 1 end
+        for _, b in ipairs((p.kind == "rules" and p.filler and p.filler.ads) or {}) do
+            for _, nm in ipairs(b.names or {}) do if nm == "house" then houses = houses + 1 end end
+        end
+    end
+    if fronts ~= (fp and 1 or 0) then no("front house ad pages: " .. fronts) end
+    if fp then
+        local at = 3 + n
+        if fp.si or fp.section or fp.items then no("the house ad page has a section or text") end
+        for k, i in pairs(bk.sectionPage) do if i == at then no("chapter " .. tostring(k) .. " starts on the house ad page") end end
+        for k, i in pairs(bk.pageOf) do if i == at then no("topic " .. tostring(k) .. " is on the house ad page") end end
+    end
+    -- once: up front, or (no front page) dealt among the whole pages when they reach its place in the deck
+    local deck = B.adDeck(bk._adSeed or 1)
+    local place = 99
+    for j, v in ipairs(deck.full) do if v == "house" then place = j end end
+    local wantH = (fp or place <= ((bk.adStats and bk.adStats.full) or 0)) and 1 or 0
+    if houses ~= wantH then no(string.format("the house ad %d times in the book (%d wanted)", houses, wantH)) end
+    if not fp then return end
+    -- the rest as dealt with that page blank: the fillers the same, the whole pages the same order less the house ad
+    local textW_ = (U_.PW - U_.M * 2) * u
+    local full, fill = dealOf(P)
+    local today = {}
+    for i, p in ipairs(P) do today[i] = (p == fp) and { kind = "blank" } or p end
+    local okT = pcall(B.dealAds, bk, today, u, textW_)
+    local wasFull, wasFill = dealOf(today)
+    pcall(B.dealAds, bk, P, u, textW_)   -- (the book's own deal back)
+    local reFull, reFill = dealOf(P)
+    if not okT then no("the deal with that page blank fails") end
+    if table.concat(reFull, ",") ~= table.concat(full, ",") or reFill ~= fill then no("dealing again changes the deal") end
+    if wasFill ~= fill then no("a filler's ads differ from the deal with that page blank") end
+    local less = {}
+    for _, v in ipairs(wasFull) do if v ~= "house" then less[#less + 1] = v end end
+    local same = #full == #wasFull
+    for i, v in ipairs(less) do if full[i] ~= v then same = false end end
+    -- (and from there on, the deck less the house ad, then NOTES)
+    local rest = B.adDeck(bk._adSeed or 1, true).full
+    for i = 1, #full do if full[i] ~= tostring(rest[i] or false) then same = false end end
+    if not same then no("the whole pages are not the old order less the house ad: " .. table.concat(full, ",") .. " / " .. table.concat(wasFull, ",")) end
+end
+
 local function faults(bk, u, m)
     local bad = {}
     local function no(msg) if #bad < 6 then bad[#bad + 1] = msg end end
@@ -323,9 +397,10 @@ local function faults(bk, u, m)
     else
         if ip % 2 ~= 0 then no("the introduction on a left-hand page (" .. ip .. ")") end
         if n % 2 == 1 and ip ~= 3 + n then no("the introduction does not face the last contents page") end
-        if n % 2 == 0 and not (ip == 4 + n and P[3 + n].kind == "blank") then no("an even contents count without its one blank left-hand page") end
+        if n % 2 == 0 and not (ip == 4 + n and P[3 + n].kind == "ad" and P[3 + n].front) then no("an even contents count without its one left-hand page") end
     end
     if #P % 2 ~= 0 then no("an odd page count") end
+    houseFaults(bk, u, no)
     -- the rows
     local rows = {}
     for i = 3, 2 + n do
@@ -489,6 +564,7 @@ end
 section("every language, Small and Large text, keyboard and pad, 20, 30 and 45 sections")
 -- ---------------------------------------------------------------------------
 local summary = {}
+local fronts, books = 0, 0   -- (layouts with the house ad up front, of all laid out)
 do
     if not haveGame then print("  (no game files: the real books are skipped)") end
     local folders = {}
@@ -521,6 +597,8 @@ do
                     check(name .. ": lays out", ok and #logs == nLogs, err or logs[#logs])
                     if ok then
                         local bad, rows = faults(bk, 1, m[1])
+                        books = books + 1
+                        if bk.pages[3 + bk.contentsPages] and bk.pages[3 + bk.contentsPages].front then fronts = fronts + 1 end
                         check(name .. ": the contents", #bad == 0, table.concat(bad, "; "))
                         local okD, bad2 = pcall(drawCheck, bk, 1, m[1])
                         check(name .. ": drawn and clicked", okD and #bad2 == 0, okD and table.concat(bad2, "; ") or bad2)
@@ -545,6 +623,10 @@ do
     onPad = false
     cur = EN
     setText(1)
+end
+if books > 0 then
+    print(string.format("-- the house ad up front in %d of %d layouts (the rest: an odd contents count, the house ad dealt as before)", fronts, books))
+    check("both front matters among the layouts (with and without the house ad up front)", fronts > 0 and fronts < books, fronts .. "/" .. books)
 end
 print("-- rows on each contents page, keyboard (wrap = rows that took a second line)")
 for _, l in ipairs(summary) do print(l) end

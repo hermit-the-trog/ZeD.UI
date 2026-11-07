@@ -163,10 +163,10 @@ local function rows(n, cols)
     end
     return r
 end
-local function madeUpBook()
+local function madeUpBook(nSec)   -- (9 chapters: one contents page; 25: two, so the house ad up front)
     local secs = {}
     local n = 0
-    for si = 1, 9 do
+    for si = 1, nSec or 9 do
         local id = (si == 4) and "zedch:firstdays" or ("s" .. si)
         local s = { id = id, title = "Chapter " .. si, titleKey = "T_s" .. si, topics = {} }
         for ti = 1, 6 do
@@ -291,6 +291,19 @@ do
         for j, v in ipairs(dd.full) do if v == "house" then at[j] = true end end
     end
     check("the house ad takes every place in the full-page order", at[1] and at[2] and at[3] and at[4])
+    -- with the house ad up front (Nov 7 2026): the same deck less the house ad, every other list as it was
+    local okLess = true
+    for i = 1, 40 do
+        local s0 = B.hashSeed("book " .. i)
+        local dd, df = B.adDeck(s0), B.adDeck(s0, true)
+        local less = {}
+        for _, v in ipairs(dd.full) do if v ~= "house" then less[#less + 1] = v end end
+        if table.concat(df.full, ",") ~= table.concat(less, ",") then okLess = false end
+        for _, k in ipairs({ "half", "third", "quarter" }) do
+            if table.concat(df[k], ",") ~= table.concat(dd[k], ",") then okLess = false end
+        end
+    end
+    check("the house ad up front: the deck less the house ad, the rest in its order, every other list the same", okLess)
 end
 
 -- ---------------------------------------------------------------------------
@@ -315,10 +328,13 @@ do
     local st = bk.adStats
     check("the made-up book has whole-page slots", st.full >= 2, st.full)
     check("the made-up book has 310 slots", st.ask310 >= 3, st.ask310)
-    -- full pages in the deck's order
-    local d = B.adDeck(bk._adSeed)
+    -- full pages in the deck's order (the front matter's house ad, when there is one, aside: THE HOUSE AD UP FRONT)
+    local front = false
+    for _, p in ipairs(bk.pages) do if p.front then front = true end end
+    check("the 9-chapter book: one contents page, no house ad up front", bk.contentsPages == 1 and not front, tostring(bk.contentsPages))
+    local d = B.adDeck(bk._adSeed, front)
     local fullSeq = {}
-    for _, p in ipairs(bk.pages) do if p.kind == "ad" then fullSeq[#fullSeq + 1] = p.ad end end
+    for _, p in ipairs(bk.pages) do if p.kind == "ad" and not p.front then fullSeq[#fullSeq + 1] = p.ad end end
     local inOrder = true
     for i, v in ipairs(fullSeq) do
         if i <= #d.full then inOrder = inOrder and v == d.full[i] else inOrder = inOrder and v == false end
@@ -438,6 +454,113 @@ do
 end
 
 -- ---------------------------------------------------------------------------
+section("the house ad up front: the page before the introduction, the house ad once in the book")
+-- ---------------------------------------------------------------------------
+-- (the director, Nov 7 2026: old paperbacks ran an "also from this publisher" ad up front. When the contents takes
+-- an even count the left-hand page before the introduction is the house ad, drawn as on any whole page; it is no
+-- text page; the house ad leaves the deal; every other ad is dealt as it was with that page blank.)
+do
+    local textW_ = U_.PW - U_.M * 2   -- (u 1)
+    local function wholes(pages)
+        local o = {}
+        for _, p in ipairs(pages) do if p.kind == "ad" and not p.front then o[#o + 1] = tostring(p.ad) end end
+        return o
+    end
+    local function fills(b)   -- the deal's signature without the whole pages
+        local o = {}
+        for tok in select(2, dealt(b)):gmatch("%S+") do if not tok:find(":full=", 1, true) then o[#o + 1] = tok end end
+        return table.concat(o, " ")
+    end
+    local function houses(b)
+        local n = 0
+        for _, nm in ipairs((dealt(b))) do if nm == "house" then n = n + 1 end end
+        return n
+    end
+    local CHARS = { "Kate", "Baldspot", "Ann", "Bob", "Cy", "Di", "Ed", "Flo" }
+    SECTIONS = madeUpBook(25)
+    local okFront, okOnce, okText, okFill, okWhole, okDraw, okBack = true, true, true, true, true, true, true
+    local detail = nil
+    for _, who in ipairs(CHARS) do
+        FORE = who
+        local b = newBook()
+        b:readTopics(1)
+        local n = b.contentsPages or 0
+        local at = 3 + n
+        local fp = b.pages[at]
+        if not (n == 2 and fp and fp.kind == "ad" and fp.front and fp.ad == "house" and b.introPage == at + 1) then
+            okFront = false; detail = who .. ": contents " .. n .. ", page " .. at .. " " .. tostring(fp and fp.kind)
+        end
+        if houses(b) ~= 1 then okOnce = false; detail = who .. ": the house ad " .. houses(b) .. " times" end
+        -- no text page: no chapter, topic or contents row on it, no section for the thumbs
+        if fp and (fp.si or fp.section or fp.items) then okText = false end
+        for _, i in pairs(b.sectionPage) do if i == at then okText = false end end
+        for _, i in pairs(b.pageOf) do if i == at then okText = false end end
+        for i = 3, 2 + n do for _, r in ipairs(b.pages[i].rows or {}) do if r.page == at then okText = false end end end
+        -- every other ad as dealt with that page blank (the deal before Nov 7), then the book's own deal back
+        if fp then
+            local sigNow, fillNow, wholeNow = select(2, dealt(b)), fills(b), wholes(b.pages)
+            local today = {}
+            for i, p in ipairs(b.pages) do today[i] = (p == fp) and { kind = "blank" } or p end
+            B.dealAds(b, today, 1, textW_)
+            local fillWas, wholeWas = fills(b), wholes(today)
+            B.dealAds(b, b.pages, 1, textW_)
+            if select(2, dealt(b)) ~= sigNow then okBack = false end
+            if fillWas ~= fillNow then okFill = false; detail = who .. ": " .. fillWas .. " / " .. fillNow end
+            local rest = B.adDeck(b._adSeed, true).full
+            local less = {}
+            for _, v in ipairs(wholeWas) do if v ~= "house" then less[#less + 1] = v end end
+            local same = #wholeNow == #wholeWas
+            for i, v in ipairs(less) do if wholeNow[i] ~= v then same = false end end
+            for i = 1, #wholeNow do if wholeNow[i] ~= tostring(rest[i] or false) then same = false end end
+            if not same then okWhole = false; detail = who .. ": " .. table.concat(wholeNow, ",") .. " / " .. table.concat(wholeWas, ",") end
+            -- drawn: the house ad (drawAdPage, at the page's corner and width, as on any whole page), no texture
+            local calls, texs = {}, 0
+            local savedAd = ZeD_GuideBook.drawAdPage
+            ZeD_GuideBook.drawAdPage = function(_, x, y, w, u) calls[#calls + 1] = { x, y, w, u } end
+            local P = {}
+            for k, v in pairs(b) do P[k] = v end
+            setmetatable(P, { __index = function(_, k)
+                if k == "drawTextureScaled" then return function() texs = texs + 1 end end
+                if ZeD_GuideBook[k] then return ZeD_GuideBook[k] end
+                if k:find("^get") then return function() return 0 end end
+                if k:find("^draw") then return noop end
+                return nil
+            end })
+            local okD = pcall(P.drawPage, P, at, 100, 50, U_.PW, 1)
+            ZeD_GuideBook.drawAdPage = savedAd
+            local c = calls[1]
+            if not (okD and #calls == 1 and texs == 0 and c[1] == 100 and c[2] == 50 and c[3] == U_.PW and c[4] == 1) then okDraw = false end
+        end
+    end
+    check("25 chapters: two contents pages, the house ad on the left-hand page before the introduction", okFront, detail)
+    check("the house ad once in the book with it up front (8 characters)", okOnce, detail)
+    check("the house ad page is no text page (no chapter, topic or contents row on it, no section)", okText)
+    check("every filler dealt as it was with that page blank", okFill, detail)
+    check("the whole pages: the old order less the house ad, then the next in the deck", okWhole, detail)
+    check("dealing again gives the book's own deal back", okBack)
+    check("the page draws the house ad as on any whole page, no texture", okDraw)
+    -- no page up front (one contents page): the house ad dealt among the whole pages as before, never twice
+    SECTIONS = madeUpBook()
+    local okNo, dealtOnce = true, 0
+    for _, who in ipairs(CHARS) do
+        FORE = who
+        local b = newBook()
+        b:readTopics(1)
+        local front = false
+        for _, p in ipairs(b.pages) do if p.front then front = true end end
+        local place = 99
+        for j, v in ipairs(B.adDeck(b._adSeed).full) do if v == "house" then place = j end end
+        local want = (place <= b.adStats.full) and 1 or 0
+        if front or houses(b) ~= want then okNo = false; detail = who .. ": " .. houses(b) .. " (" .. want .. " wanted)" end
+        if houses(b) == 1 then dealtOnce = dealtOnce + 1 end
+    end
+    check("9 chapters: no page up front, the house ad once when the whole pages reach its place in the deck", okNo, detail)
+    check("9 chapters: some characters' books deal the house ad", dealtOnce >= 1, dealtOnce)
+    FORE = "Kate"
+    check("no error logged with the house ad up front", #logs == 0, logs[1])
+end
+
+-- ---------------------------------------------------------------------------
 section("a new layout deals again from the same seed: the order stays")
 -- ---------------------------------------------------------------------------
 do
@@ -461,8 +584,9 @@ do
         check("keyboard and pad keep the " .. pre .. " order", isPrefix(orderOf(nS, pre), orderOf(nP, pre)))
     end
     local fS, fL = {}, {}
-    for _, p in ipairs(small.pages) do if p.kind == "ad" then fS[#fS + 1] = tostring(p.ad) end end
-    for _, p in ipairs(large.pages) do if p.kind == "ad" then fL[#fL + 1] = tostring(p.ad) end end
+    -- (the front matter's house ad aside: whether it is up front follows the contents' page count)
+    for _, p in ipairs(small.pages) do if p.kind == "ad" and not p.front then fS[#fS + 1] = tostring(p.ad) end end
+    for _, p in ipairs(large.pages) do if p.kind == "ad" and not p.front then fL[#fL + 1] = tostring(p.ad) end end
     check("Small and Large keep the full-page order", isPrefix(fS, fL), table.concat(fS, ",") .. " / " .. table.concat(fL, ","))
 end
 
@@ -752,9 +876,10 @@ do
             local b = newBook()
             b:readTopics(1)
             local st = b.adStats
-            local line = string.format("  %s text, %s: %d pages; whole pages %d (%d NOTES); 310 slots %d (%d with nothing left); 205 slots %d (%d with nothing left); NOTES blocks %d; dealt full %d/4, half %d/7, quarter %d/12, third %d/12",
-                m[2], pd and "pad" or "keyboard", #b.pages, st.full, st.fullMiss, st.ask310, st.miss310, st.ask205, st.miss205, st.notes,
-                st.at.full, st.at.half, st.at.quarter, st.at.third)
+            local line = string.format("  %s text, %s: %d pages; whole pages %d (%d NOTES)%s; 310 slots %d (%d with nothing left); 205 slots %d (%d with nothing left); NOTES blocks %d; dealt full %d/4, half %d/7, quarter %d/12, third %d/12",
+                m[2], pd and "pad" or "keyboard", #b.pages, st.full, st.fullMiss, ((st.frontHouse or 0) > 0) and ", the house ad up front" or "",
+                st.ask310, st.miss310, st.ask205, st.miss205, st.notes,
+                st.at.full + (st.frontHouse or 0), st.at.half, st.at.quarter, st.at.third)
             realPrint(line)
             results[#results + 1] = st
             -- (no repeats in the real book either)

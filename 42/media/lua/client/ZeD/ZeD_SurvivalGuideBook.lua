@@ -10,7 +10,8 @@
 -- setup's Survival guide row is Full). One topic a page, two a spread; a topic with The Rules in Numbers has them on
 -- the page after it; a topic too long for its page runs on to the next. Before the chapters: the title page, then
 -- the contents over as many pages as it needs, the last facing the introduction with the author's photo (a blank
--- left-hand page between them when the contents takes an even count).
+-- left-hand page between them when the contents takes an even count: the publisher's house ad, as old paperbacks ran
+-- up front).
 --
 -- Faces: the game's own distance-field faces, drawn at any size with drawTextZoomed (as ZeD_PrintPage.lua):
 -- Old Standard TT for the text, Roberto Sans Bold Italic for the headings, Open Sans for the small sans lines.
@@ -336,8 +337,9 @@ local function shuffled(list, x)
 end
 
 -- the book's deck: each size's list shuffled from the seed (the house ad among the full pages); `at` counts what
--- each list has dealt
-function B.adDeck(seed)
+-- each list has dealt. houseUpFront: the house ad already has its page in the front matter (B.paginate), so it
+-- leaves the full pages' list after the shuffle; the others keep their order and every other list is as it was.
+function B.adDeck(seed, houseUpFront)
     local A = ZeD.GuideAds
     local x = pmNext(pmNext(seed or 1))   -- (two steps in: neighboring seeds part ways)
     local d = { at = { full = 0, half = 0, third = 0, quarter = 0 }, halfNext = true }
@@ -347,6 +349,10 @@ function B.adDeck(seed)
     d.half, x = shuffled(A.half, x)
     d.third, x = shuffled(A.third, x)
     d.quarter, x = shuffled(A.quarter, x)
+    if houseUpFront then
+        for i = #d.full, 1, -1 do if d.full[i] == HOUSE then table.remove(d.full, i) end end
+        d.houseUpFront = true
+    end
     return d
 end
 
@@ -420,12 +426,18 @@ end
 -- The feet of rules pages behind a spoiler bar are dealt last, from what is left: their ads stay hidden until the
 -- reader shows the numbers, so they never take an ad a page in plain sight would then go without. (Whether a table
 -- is a spoiler is fixed by the layout, not by whether its numbers are shown now, so showing them never deals again.)
+-- The front matter's left-hand page before the introduction (p.front, B.paginate) is the house ad already: it is
+-- not dealt, and the house ad leaves the deck so no later page repeats it.
 function B.dealAds(bk, pages, u, textW_)
-    local d = B.adDeck(bk._adSeed or 1)
-    local st = { full = 0, fullMiss = 0, ask310 = 0, miss310 = 0, ask205 = 0, miss205 = 0, notes = 0 }
+    local front = false
+    for _, p in ipairs(pages) do if p.front then front = true; break end end
+    local d = B.adDeck(bk._adSeed or 1, front)
+    local st = { full = 0, fullMiss = 0, ask310 = 0, miss310 = 0, ask205 = 0, miss205 = 0, notes = 0, frontHouse = front and 1 or 0 }
     local later = {}   -- (the spoiler pages' feet, kept for the second pass)
     for _, p in ipairs(pages) do
-        if p.kind == "ad" then
+        if p.front then
+            p.ad = HOUSE                     -- (placed by B.paginate, never dealt)
+        elseif p.kind == "ad" then
             local a = deal(d, "full")
             p.ad = a and a[1] or false
             st.full = st.full + 1
@@ -460,10 +472,12 @@ function B.adReport(bk)
     local st = bk and bk.adStats
     if not st then return "no deal" end
     local A = ZeD.GuideAds
-    return string.format("ZeD guide ads (text x%.2f, %s): full pages %d (%d NOTES); 310 slots %d (%d with no half or pair left);"
+    local fh = st.frontHouse or 0
+    return string.format("ZeD guide ads (text x%.2f, %s): full pages %d (%d NOTES)%s; 310 slots %d (%d with no half or pair left);"
         .. " 205 slots %d (%d with no third left); NOTES blocks %d; dealt full %d/%d, half %d/%d, quarter %d/%d, third %d/%d",
-        TM_, bk._joyRead and "pad" or "keyboard", st.full, st.fullMiss, st.ask310, st.miss310, st.ask205, st.miss205, st.notes,
-        st.at.full, #A.full + 1, st.at.half, #A.half, st.at.quarter, #A.quarter, st.at.third, #A.third)
+        TM_, bk._joyRead and "pad" or "keyboard", st.full, st.fullMiss, (fh > 0) and ", the house ad up front" or "",
+        st.ask310, st.miss310, st.ask205, st.miss205, st.notes,
+        st.at.full + fh, #A.full + 1, st.at.half, #A.half, st.at.quarter, #A.quarter, st.at.third, #A.third)
 end
 
 -- the textures, each loaded the first time a page draws it (all 34 at 2x are about 60 MB once loaded).
@@ -679,7 +693,10 @@ function B.paginate(bk, u)
     if page then page.endY = y end
     -- THE CONTENTS, now the chapters' pages are known (B.contentsLayout): as many pages as its rows need after the
     -- title page, then the introduction on a right-hand page, facing the last contents page when their count is odd
-    -- and after a blank left-hand page when it is even (as a printer would). The front matter is always an even
+    -- and after a left-hand page when it is even (as a printer would). That left-hand page is the publisher's house ad
+    -- (the director, Nov 7 2026: old paperbacks ran an "also from this publisher" ad up front; p.front, so the deal
+    -- leaves it be and never repeats the house ad later, B.dealAds). It is no text page: no chapter, topic or contents
+    -- row points at it, and it has no section for the thumbs. The front matter is always an even
     -- count, so the chapters keep their sides; every page moves on by what the contents added (shift), and the rows
     -- print the numbers of the pages as they end up (laid out again while the shift grows: a wider number can wrap).
     local shift, cpages = 0, nil
@@ -695,7 +712,7 @@ function B.paginate(bk, u)
     end
     local front = { pages[1], pages[2] }
     for _, cp in ipairs(cpages) do front[#front + 1] = cp end
-    if #cpages % 2 == 0 then front[#front + 1] = { kind = "blank" } end
+    if #cpages % 2 == 0 then front[#front + 1] = { kind = "ad", ad = HOUSE, front = true } end
     front[#front + 1] = pages[4]
     bk.contentsPage, bk.contentsPages, bk.introPage = 3, #cpages, #front
     for i = 5, #pages do front[#front + 1] = pages[i] end
@@ -1150,8 +1167,9 @@ function ZeD_GuideBook:drawContentsPage(p, x, y, w, u, hover, pi)
 end
 
 -- A WHOLE PAGE the layout leaves over (before a topic that faces its rules, the last page): the full-page ad dealt
--- for it (p.ad), at the text block; the publisher's house ad (below) is one of them; when they have run out, the
--- ruled NOTES block over the whole text block
+-- for it (p.ad), at the text block; the publisher's house ad (below) is one of them, or has the front matter's page
+-- before the introduction (p.front) and is then never dealt again; when they have run out, the ruled NOTES block over
+-- the whole text block
 function ZeD_GuideBook:drawFullAd(p, x, y, w, u)
     if p.ad == nil or p.ad == HOUSE then self:drawAdPage(x, y, w, u); return end
     local tx, top = x + U.M * u, y + U.MT * u
