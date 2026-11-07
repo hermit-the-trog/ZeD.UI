@@ -319,7 +319,7 @@ Rye (woodtype) and Yellowtail (brush script). Clip art in SVG, shading in halfto
 
 The director, Nov 7: "Sure, use more third size ads." QA counted up to 30 third-size spaces a book that fall back to the
 ruled NOTES block once the 12 thirds run out (`qa/QA_GUIDE_ADS_20261107.md`); 32 more thirds cover every reading. Lineup and
-copy only, nothing drawn yet. Same rules as above: names from the game's lists, our own copy, 1987, evergreen, no flyer or
+copy first; drawn the same day (Batch 5 (drawn), below). Same rules as above: names from the game's lists, our own copy, 1987, evergreen, no flyer or
 newspaper text ("flyers" below means the name also appears there). 27 real, 5 invented.
 
 | Ad | Real? | Where | The pitch | Picture | Phone |
@@ -394,3 +394,13 @@ The copy, as printed (bar line, deck, list line, foot):
 
 Picture briefs follow the one view (front and a little from above, a level circle an ellipse 0.26 as tall as wide),
 about 120 x 118, one ink, no people, no real logos. Phones checked against every `src/*.html` (29 in use).
+
+### Batch 5 (drawn)
+
+Nov 7: all 32 drawn, in four sets of eight in lineup order (batch 5a to 5d): the HTML in `tools/guide_ads/src/third_<name>.html`,
+the pixel pictures from `tools/guide_ads/adpx_b5a.py` to `adpx_b5d.py` into `tools/guide_ads/px/`, the ship art at 2x in
+`42/media/textures/ZeD/guide/ads/third_<name>.png`. All 32 are on `ZeD.GuideAds.third` after the first 12, in the order
+above: 44 thirds, 66 ads in all with the house ad's page (4 full, 7 half, 44 third, 12 quarter). `guide_ads_sim.lua` now
+checks that every listed ad has its PNG and every PNG is listed. In the sim's real book no third-size slot falls back to
+NOTES at Small or Large, keyboard or pad (35, 31, 34 and 37 thirds dealt of 44); the NOTES blocks left are the spaces
+too short for a third.
