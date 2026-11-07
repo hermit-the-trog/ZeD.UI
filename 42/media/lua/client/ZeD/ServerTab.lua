@@ -313,10 +313,14 @@ function S.render(panel, win, x, y, w, h)
         end
     end
     panel:clearStencilRect()
+    -- (PZ clips do not nest: the list's rect, once cleared, stays shut to what draws next, so the
+    -- whole tab is opened again for the scrollbar and the pop-up over the list...)
     panel:setStencilRect(0, 0, panel:getWidth(), panel:getHeight())
     M.drawTabHeader(panel, x, y, w, tr("UI_ZeD_Char_TabServer"), false, false, true)
     if needs then scroll:draw(panel) end
     TC.endList(panel, win, st, sy, sy + sh)
+    -- (...and that clip comes off here: the tab ends with the clips it started with; punch list 95)
+    panel:clearStencilRect()
 end
 
 -- ---------------------------------------------------------------------------

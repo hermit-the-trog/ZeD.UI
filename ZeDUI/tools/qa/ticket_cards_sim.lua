@@ -265,8 +265,9 @@ local function newPanel(w, h)
     function p:drawTexture() end
     function p:drawTextureScaled() end
     function p:drawTextureScaledAspect() end
-    function p:setStencilRect(x, y, ww, hh) self.st = { x = x, y = y, w = ww, h = hh } end
-    function p:clearStencilRect() self.st = nil end
+    -- (clips counts the clips on, as the game's own count does: a tab must end with the count it began with)
+    function p:setStencilRect(x, y, ww, hh) self.st = { x = x, y = y, w = ww, h = hh }; self.clips = (self.clips or 0) + 1 end
+    function p:clearStencilRect() self.st = nil; self.clips = (self.clips or 0) - 1 end
     function p:addChild(c)
         self.kids[#self.kids + 1] = c
         if c.createChildren then c:createChildren() end
@@ -277,6 +278,21 @@ end
 local WINS = { server = { _playerObj = PLAYER, playerNum = 0 }, admin = { _playerObj = PLAYER, playerNum = 0 } }
 local function stOf(tab)
     return (tab == "server") and WINS.server._serverTab or WINS.admin._adminTab
+end
+
+-- each drawn frame of a tab, and the ones that ended with more or fewer clips than they began with (punch list 95: one
+-- left on hides the window's tab strip and footer)
+local clipFrames, clipLeft = 0, {}
+local function renderTab(tab, panel, w, h)
+    local c0 = panel.clips or 0
+    TABS[tab].render(panel, WINS[tab], 0, 0, w, h)
+    clipFrames = clipFrames + 1
+    local d = (panel.clips or 0) - c0
+    if d ~= 0 then
+        local st = stOf(tab)
+        clipLeft[#clipLeft + 1] = tab .. ((st and st.card) and (" card " .. tostring(st.card.kind)) or " list") .. " " .. d
+        panel.clips = c0
+    end
 end
 
 -- ZEDQA_SVG=<folder>: each state of a profile named in ZEDQA_SVG_ONLY is written as a picture, to read against the mockup
@@ -322,7 +338,7 @@ end
 local function frame(tab, panel, w, h)
     panel.texts = {}
     panel.ops = {}
-    TABS[tab].render(panel, WINS[tab], 0, 0, w, h)
+    renderTab(tab, panel, w, h)
     for _, c in ipairs(panel.kids) do
         if c.visible then c:prerender() end
     end
@@ -333,7 +349,7 @@ local function frame(tab, panel, w, h)
         TC._D.openPopup(stOf(tab), t, k)
         panel.texts = {}
         panel.ops = {}
-        TABS[tab].render(panel, WINS[tab], 0, 0, w, h)
+        renderTab(tab, panel, w, h)
     end
     return panel
 end
@@ -1205,6 +1221,10 @@ ad.tk.q = { status = "Open", newest = true, page = 1, find = "" }
         S.forceOff = nil
     end
 end
+
+-- every frame drawn above, lists and cards, Admin and Server tabs, ended with the clips it began with
+check("each tab and card ends its draw with the clips it began with (" .. clipFrames .. " frames)",
+    clipFrames > 0 and #clipLeft == 0, clipLeft[1] and (#clipLeft .. " frames, first: " .. clipLeft[1]) or nil)
 
 print("ticket_cards_sim: " .. checks .. " checks, " .. failed .. " failed")
 if failed > 0 then os.exit(1) end
