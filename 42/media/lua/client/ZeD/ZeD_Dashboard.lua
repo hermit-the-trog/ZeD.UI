@@ -465,6 +465,18 @@ end
 ACT.lights = function(chr, v) ISVehicleMenu.onToggleHeadlights(chr) end
 -- the ash tray: open or shut, kept in the car's modData (a car the dash has not touched shows its own default)
 ACT.ash    = function(chr, v, st) v:getModData().ZeD_ash = not st.ashIsOpen end
+-- the odometers (Nov 6 2026, punch list 92): the stem by the trip wheels zeroes the trip; the electronic dashes' window
+-- (cossette, luxury, dashelite) switches ODO / TRIP, and its second verb zeroes the trip, only while the trip shows
+-- (so a stray X on the odometer does nothing). dash: the ZeD_Dashboard (_fire hands it over)
+ACT.tripReset = function(chr, v, st, secondary, dash) if dash then dash:_tripZero(v) end end
+ACT.odoButton = function(chr, v, st, secondary, dash)
+    if not dash then return end
+    if secondary then
+        if st.odoTrip then dash:_tripZero(v) end
+        return
+    end
+    dash:_odoShowTrip(v, not st.odoTrip)
+end
 -- the taxi's meter: the flag down starts it from the flag drop, up stops it (the dash keeps it, per car)
 ACT.meter  = function(chr, v, st, secondary, dash) if st.power then dash:_meterFlag(v, not st.meterOn) end end
 ACT.lock   = function(chr, v) ISVehiclePartMenu.onLockDoors(chr, v, not v:isAnyDoorLocked()) end
@@ -531,6 +543,9 @@ local function _promptKey(id, st)
     if id == "cruise" then return st.cruise and "UI_ZeD_Dash_PromptCruiseOff" or "UI_ZeD_Dash_PromptCruiseSet" end
     if id == "ash" then return st.ashIsOpen and "UI_ZeD_Dash_AshClose" or "UI_ZeD_Dash_AshOpen" end
     if id == "meter" then return st.meterOn and "UI_ZeD_Dash_MeterOff" or "UI_ZeD_Dash_MeterOn" end
+    if id == "tripReset" then return "UI_ZeD_Dash_PromptTripReset" end
+    -- (the window shows the other one on A: the word names what A brings up)
+    if id == "odoButton" then return st.odoTrip and "UI_ZeD_DashPlain_Odometer" or "UI_ZeD_DashPlain_Trip" end
     if id == "heat" then return st.heaterOn and "UI_ZeD_Dash_PromptHeaterOff" or "UI_ZeD_Dash_PromptHeaterOn" end
     if id == "ac" then return st.ac and "UI_ZeD_Dash_PromptAcOff" or "UI_ZeD_Dash_PromptAc" end
     if id == "vol" and st.radio and ROCKER[st.radio.kind] then return "UI_ZeD_Dash_PromptVolumePlus" end
@@ -562,8 +577,10 @@ end
 local SECONDARY = { ignition = "UI_ZeD_Dash_PromptRemoveKey", vol = "IGUI_RadioVolume", tune = "UI_ZeD_Dash_PromptTuneMinus",
     temp = "UI_ZeD_Dash_PromptCooler", fan = "UI_ZeD_Dash_PromptFanMinus", seek = "UI_ZeD_Dash_PromptSeekBack",
     preset1 = "UI_ZeD_Dash_PromptStore", preset2 = "UI_ZeD_Dash_PromptStore", preset3 = "UI_ZeD_Dash_PromptStore",
-    preset4 = "UI_ZeD_Dash_PromptStore", preset5 = "UI_ZeD_Dash_PromptStore", preset6 = "UI_ZeD_Dash_PromptStore" }
+    preset4 = "UI_ZeD_Dash_PromptStore", preset5 = "UI_ZeD_Dash_PromptStore", preset6 = "UI_ZeD_Dash_PromptStore",
+    odoButton = "UI_ZeD_Dash_PromptTripReset" }
 ZeD.trDefaults({
+    UI_ZeD_Dash_PromptTripReset = "Reset trip",
     UI_ZeD_Dash_PromptStart = "Start", UI_ZeD_Dash_PromptInsertKey = "Insert key", UI_ZeD_Dash_PromptNoKey = "No key",
     UI_ZeD_Dash_PromptLightsOff = "Lights off", UI_ZeD_Dash_PromptLightsOn = "Lights on", UI_ZeD_Dash_PromptUnlock = "Unlock",
     UI_ZeD_Dash_PromptLock = "Lock",
@@ -735,6 +752,7 @@ function ZeD_Dashboard:_element(id, hr, st)
     -- X offers the secondary verb only when it can happen: "Remove key" needs a key in the lock
     local secondary = SECONDARY[id]
     if id == "ignition" and not st.keysIn then secondary = nil end
+    if id == "odoButton" and not st.odoTrip then secondary = nil end     -- (zeroing waits for the trip to show)
     self._elements[#self._elements + 1] = {
         x = hr.x, y = hr.y, w = hr.w, h = hr.h, id = "dash:" .. id,
         promptA = self._pad and ZeD.tr(_promptKey(id, st)) or nil,
@@ -788,8 +806,117 @@ end
 function ZeD_Dashboard:_tripOf(vehicle)
     local id = _get(vehicle, "getId", 0)
     local t = self._trips[id]
-    if not t then t = { miles = 0, fareMiles = 0, waitMs = 0, meterOn = false }; self._trips[id] = t end
+    if not t then t = { fareMiles = 0, waitMs = 0, meterOn = false }; self._trips[id] = t end
     return t, id
+end
+
+-- ---------------------------------------------------------------------------
+-- the odometer and the trip odometer (Nov 6 2026, punch list 92; ZeDUI/HANDOFF_design_dash_roadworthy_20261106.md):
+-- miles with decimals, kept on the car's modData (ZeD_odo, ZeD_trip; ZeD_odoTrip: the electronic dashes are showing
+-- the trip), so they survive sessions and every player in the car reads the same figures. The game keeps no mileage,
+-- so a car ZeD has not seen before gets one, once, from its id and its engine's condition (a wreck has gone further):
+-- the same figure for a given car on every machine. Only the driver counts, only while the engine runs; on a server
+-- the driver's client sends the car's modData (IsoObject.transmitModData) at most every tenth of a mile, and at once
+-- after a press. The taxi's fare keeps its own counter (_trips[id].fareMiles).
+-- ROADWORTHY HOOK: a mod that keeps its own odometer and trip (on Vehicle Kit Library: VSKDash's pub.odoMiles and
+-- pub.tripMiles) is read over these in D.applyPublished, so its dash and ours agree; when QA has Roadworthy running,
+-- a direct read of its figures goes there too.
+-- ---------------------------------------------------------------------------
+local ODO_BASE, ODO_SPREAD, ODO_WORN = 20000, 60000, 60000   -- a found car: 20000 miles, up to 60000 more by its id,
+                                                             -- up to 60000 more for a worn-out engine
+local ODO_SEND_MILES = 0.1                                   -- the driver's client sends no more often than this
+local KM_PER_MILE = 1.609344
+
+-- a remainder by floor (Kahlua's % keeps the sign and goes wrong past 2^31)
+local function _floorMod(a, m) return a - math.floor(a / m) * m end
+
+-- a found car's starting mileage: stable for a given id and condition (0..100)
+function D.odoSeed(id, cond)
+    -- (a vehicle id is a short; brought into 0..65535 anyway, so id * 7919 stays far under 2^31)
+    local i = _floorMod(math.abs(math.floor(tonumber(id) or 0)), 65536)
+    local c = tonumber(cond) or 100
+    if c < 0 then c = 0 elseif c > 100 then c = 100 end
+    local miles = ODO_BASE + _floorMod(i * 7919, ODO_SPREAD) + math.floor((100 - c) / 100 * ODO_WORN)
+    return miles + _floorMod(i * 3, 10) / 10      -- and a tenth, so not every car's tenths wheel sits at 0
+end
+
+-- the readings the parts show, from st.odo, st.trip and st.odoTrip (the wheels read odo and trip themselves):
+--   odoShown   the VFD figures (cossette, luxury): the trip's whole miles while it shows, else the odometer's
+--   odoShownT  the Dash Elite's LCD, six characters: "t" and the trip's miles ("t  128"), else the odometer, zero padded
+--   odoMode, tripMode   the ODO and TRIP words, lit with the key on
+function D.odoShow(st)
+    local odo, trip = tonumber(st.odo) or 0, tonumber(st.trip) or 0
+    local onTrip = st.odoTrip and true or false
+    st.odoShown = math.floor(onTrip and trip or odo)
+    local s
+    if onTrip then
+        s = tostring(_floorMod(math.floor(trip), 100000))      -- five figures after the "t"
+        s = "t" .. string.rep(" ", 5 - #s) .. s
+    else
+        s = tostring(_floorMod(math.floor(odo), 1000000))      -- six figures, rolled over past 999999
+        s = string.rep("0", 6 - #s) .. s
+    end
+    st.odoShownT = s
+    st.odoMode = st.power and not onTrip
+    st.tripMode = st.power and onTrip
+end
+
+-- the driver's client sends the car's modData to the server (and so to the other players in the car): no more than
+-- every ODO_SEND_MILES, or now (force: a press, a first mileage). Single player sends nothing.
+function ZeD_Dashboard:_odoSend(vehicle, id, odo, force)
+    if not (isClient and isClient()) then return end
+    local at = self._odoSentAt
+    if not at then at = {}; self._odoSentAt = at end
+    local last = at[id]
+    if last == nil and not force then at[id] = odo; return end      -- (first sight: what the car has is what was sent)
+    if not force and odo < last then at[id] = odo; return end       -- (the server's figure came in lower: count from it)
+    if force or odo - last >= ODO_SEND_MILES then
+        at[id] = odo
+        -- (IsoObject.transmitModData(), no arguments: checked on 42.22.2; looked up first in case a build lacks it)
+        if vehicle.transmitModData then pcall(vehicle.transmitModData, vehicle) end
+    end
+end
+
+-- this frame's odometer and trip (miles: the distance driven since the last frame)
+function ZeD_Dashboard:_odometer(vehicle, st, miles, id)
+    local md = _get(vehicle, "getModData", nil)
+    local odo, trip, first = nil, 0, false
+    if md then
+        odo = tonumber(md.ZeD_odo)
+        trip = tonumber(md.ZeD_trip) or 0
+        st.odoTrip = md.ZeD_odoTrip == true
+    else
+        st.odoTrip = false
+    end
+    if not odo then
+        odo = D.odoSeed(id, st.engineCond)
+        first = true
+        if md then md.ZeD_odo = odo end
+    end
+    -- (a car whose modData can't be read keeps still at its seed: there is nowhere to count to)
+    if self._driver and st.running and miles > 0 and md then
+        odo, trip = odo + miles, trip + miles
+        md.ZeD_odo, md.ZeD_trip = odo, trip
+    end
+    st.odo, st.trip = odo, trip
+    if self._driver and md then self:_odoSend(vehicle, id, odo, first) end
+    D.odoShow(st)
+end
+
+-- the trip back to 0 (the stem, or X on the electronic window while it shows the trip)
+function ZeD_Dashboard:_tripZero(vehicle)
+    local md = _get(vehicle, "getModData", nil)
+    if not md then return end
+    md.ZeD_trip = 0
+    self:_odoSend(vehicle, _get(vehicle, "getId", 0), tonumber(md.ZeD_odo) or 0, true)
+end
+
+-- the electronic dashes' window: the trip (on) or the odometer
+function ZeD_Dashboard:_odoShowTrip(vehicle, on)
+    local md = _get(vehicle, "getModData", nil)
+    if not md then return end
+    md.ZeD_odoTrip = on and true or false
+    self:_odoSend(vehicle, _get(vehicle, "getId", 0), tonumber(md.ZeD_odo) or 0, true)
 end
 
 function ZeD_Dashboard:_meterFlag(vehicle, down)
@@ -802,13 +929,12 @@ function ZeD_Dashboard:_trip(vehicle, st, dtMs)
     local t, id = self:_tripOf(vehicle)
     local moving = getGameSpeed() > 0
     local miles = moving and (st.speed or 0) * 0.6214 * dtMs / 3600000 or 0
-    if st.running then t.miles = t.miles + miles end
     if not (st.keysIn or st.running or st.hotwired) then t.meterOn, t.fareMiles, t.waitMs = false, 0, 0 end
     if t.meterOn and st.running and moving then
         t.fareMiles = t.fareMiles + miles
         if (st.speed or 0) < WAIT_KMH then t.waitMs = t.waitMs + dtMs end
     end
-    st.odo = (1000 + (id * 37) % 8000 + math.floor(t.miles)) % 10000
+    self:_odometer(vehicle, st, miles, id)
     st.meterOn = t.meterOn
     if t.meterOn then
         st.fare = _fare("TaxiFlagDrop") + _fare("TaxiPerFifthMile") * math.floor(t.fareMiles * 5)
@@ -1072,6 +1198,7 @@ local function _hitEnabled(hz, st)
     if hz.needs then en = st[hz.needs] and true or false end
     if hz.id == "ignition" then en = st.hasKey or st.keysIn or st.hotwired or st.running end
     if hz.id == "meter" then en = st.power end
+    if hz.id == "odoButton" then en = st.power end      -- (the electronic odometer's button needs the key; the stem doesn't)
     return en and true or false
 end
 
@@ -1123,7 +1250,7 @@ end
 -- what a mod published onto this design's parts (ModSupport/VSKDash.lua), run over ZeD's own reading: a lit lamp takes
 -- the plate's lamp, a dark one leaves ZeD's own (Roadworthy's charge lamp knows nothing of a flat battery). A lamp this
 -- plate has no spot for lights nothing here (V.BORROW_UNPAINTED) and is listed on the simple strip. The gear letter
--- moves only to a letter the plate has. The LCD holds four figures: it rolls over like the number it replaces.
+-- moves only to a letter the plate has. The odometers show the mod's figures, rolled over past their last wheel.
 function D.applyPublished(st, pub, des)
     local pl = _plainPlan(des)
     local phase = clockStep(getTimestampMs(), D.BLINK_MS, 2)
@@ -1140,12 +1267,14 @@ function D.applyPublished(st, pub, des)
     end
     st.gearPub = pub.gear
     st.gearSel = V.gearLetter(pl.gearLetters, pub.gear) or st.gearSel
-    if pub.odoMiles then
-        local miles = math.floor(pub.odoMiles)
-        st.odoMiles = miles
-        st.odo = miles - math.floor(miles / 10000) * 10000
+    -- (the odometers: the mod's own figures over ZeD's, so its dash and ours agree; the wheels, the VFD and the LCD
+    -- all read st.odo and st.trip. The trip stem still zeroes ZeD's own trip, which shows again without the mod.)
+    if pub.odoMiles or pub.tripMiles then
+        if pub.odoMiles then st.odo = pub.odoMiles end
+        if pub.tripMiles then st.trip = pub.tripMiles end
+        D.odoShow(st)
     end
-    st.tripMiles = pub.tripMiles
+    st.odoMiles, st.tripMiles = pub.odoMiles, pub.tripMiles
 end
 
 local function _pair(a, b) return ZeD.tr("UI_ZeD_DashPlain_Pair", a, b) end
@@ -1282,7 +1411,7 @@ local function _plainCells(st, pl, out)
     local gear = st.gearSel or ""
     if gear == "D" and st.running and g:match("^%d$") then gear = gear .. " " .. g end
     n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Gear"), st.gearPub or gear)
-    n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Odometer"), ZeD.tr("UI_ZeD_DashPlain_Miles", tostring(st.odoMiles or st.odo or 0)))
+    n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Odometer"), ZeD.tr("UI_ZeD_DashPlain_Miles", tostring(math.floor(st.odo or 0))))
     if st.tripMiles then n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Trip"), ZeD.tr("UI_ZeD_DashPlain_Miles", string.format("%.1f", st.tripMiles))) end
     n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Clock"), _clockText(st))
     if st.hasHeater then n = _cell(out, n, ZeD.tr("UI_ZeD_DashPlain_Climate"), _climateText(st)) end
