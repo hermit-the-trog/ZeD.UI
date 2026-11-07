@@ -1,6 +1,6 @@
 # Outside review of 0.3.0-beta6: QA's check against our code (Nov 6 2026)
 
-A tester's code review and in-game QA of beta 6, run on 42.21 on a Mac with no Steam, sent in by the director. QA checked it against main at e3da245f and the 42.22.2 jar, reading code only: no game run.
+A code review and in-game QA of beta 6 by Claude on the director's Mac, under a different Claude account, run on 42.21 with no Steam. "The tester" below is that session; there's no one to credit. QA checked it against main at e3da245f and the 42.22.2 jar, reading code only: no game run.
 Paths are under 42/media/lua. **Seen** = QA saw it in our code, jar or logs. **Reported** = line matches, but it rests on the tester's review.
 
 ## High
@@ -20,9 +20,9 @@ Paths are under 42/media/lua. **Seen** = QA saw it in our code, jar or logs. **R
 | 8 | "Check stats" on a Player card stacks copies of the card | client/ZeD/ZeD_AdminCards.lua:1201, ZeD_TicketCards.lua:1665 | **Seen** in the code path; not run | Open ISPlayerStatsUI directly from here |
 | 9 | A ticket opened from a Player card wipes the first ticket card | client/ZeD/ZeD_TicketCards.lua:1580 | Reported, seen in the tester's game. C.card holds one card. | Keep the card per id, or refetch on Back |
 | 10 | Pad, Hold + flick-release: a slice fires without being chosen | client/ZeD/ZeD_WheelGesture.lua:131 | **Seen** as designed: needCenter is off for Hold. Needs a real pad. | Keep needCenter for Hold + flick |
-| 11 | Pad, Original preset: pulling RT to run closes a tap or toggle wheel | client/ZeD/ZeD_WheelGesture.lua:183, :545 | **Seen**, and the director's call: their ruling is "aim or attack closes the wheel", and the code can't tell run from attack on RT | Director's ruling needed |
+| 11 | Pad, Original preset: pulling RT to run closes a tap or toggle wheel | client/ZeD/ZeD_WheelGesture.lua:183, :545 | **Settled, no change**: the director, Nov 6: "if that's what they have run map to, it's fine." | None |
 | 12 | Clothing cards show 0% bite, scratch and bullet protection | client/ZeD/ItemFactsPanel.lua:74-81 | **Seen, and wider**: the script item has only getInsulation. Neck, water and condition are lost the same way. Wind is getWindresistance on the instance, a name no probe here uses. | Read from the clothing item |
-| 13 | Animals tab leaves one clip set | client/ZeD/ZeD_WorldWindow.lua:4152, AnimalsTab.lua:1474 | **Open**: the same family as the Admin bug. The Nov 6 rail check saw no break on Animals, but may not have reached the overview. Needs one in-game look with animals in a pen. | Run the cleanup for all tabs if it shows |
+| 13 | Animals tab, Ranch page: no tab icons and no footer | client/ZeD/ZeD_WorldWindow.lua:4152, AnimalsTab.lua:1411, :1473-1474 | **Seen in game, 4K and Deck**, and worse than reported: the Ranch page, where the Animals tab opens, draws with no tab icons on the right and no footer line. Its draw ends with one clip more than it starts (count 1); Zone and Butcher end at 0 and draw both. In since f59ffdc8, Nov 5: beta 5 and beta 6 both have it. Picture: qa/animals_ranch_rail_deck_20261106.jpg. The script that sets an item card over the page proves nothing, as the card does not draw that way. | Run the cleanup at ZeD_WorldWindow.lua:4152 for every tab, or end the Ranch page level; Build's call |
 
 ## Low
 **Seen in the 42.22.2 jar** (all fail silently):
