@@ -822,4 +822,87 @@ function P.text(cv, str, x, y, c, font, scale, align, style, shadow, mul)
     return w
 end
 
+-- ---------------------------------------------------------------------------
+-- odometer drums (Nov 6 2026, punch list 92; ZeDUI/tools/dashpx/live.py draw_drums is the reference): a row of n
+-- wheels, each cw wide (cw - 1 painted on the plate, a 1 px gap) and ch tall, the figures in the 3 x 5 face centred in
+-- each. The first n - 1 wheels are whole miles in fg, the last the tenths in last_fg (dark on its white wheel). The
+-- tenths wheel holds its figure for the first 80% of each tenth and turns over in the last 20%, the next figure coming
+-- up from below, clipped to the wheel: a figure caught halfway is two half figures, and at 5 pixels that reads as
+-- neither, so it never sits there. The plate prints the wheels; these are only the figures.
+-- `text = true` is the LCD kind (the Dash Elite): its reading is a string, right-aligned to n characters, no roll.
+-- ---------------------------------------------------------------------------
+-- the figures n wheels show for a reading (miles with decimals): n - 1 whole miles, zero padded and rolled over past
+-- the last wheel as a real counter does, then the tenths; and how far the tenths wheel has turned (0 .. 1)
+function P.drumFigures(value, n)
+    local v = tonumber(value) or 0
+    if v < 0 then v = 0 end
+    local tenths = math.floor(v * 10)                     -- whole tenths of a mile gone by
+    local into = v * 10 - tenths                           -- how far into the tenth now turning (0 .. 1)
+    local whole = math.floor(tenths / 10)
+    local top = 10 ^ (n - 1)                               -- what the whole-mile wheels can count to
+    -- (the remainders by floor, not %: Kahlua's % keeps the sign and goes wrong past 2^31)
+    whole = whole - math.floor(whole / top) * top
+    local last = tenths - math.floor(tenths / 10) * 10
+    local s = tostring(math.floor(whole))
+    if #s < n - 1 then s = string.rep("0", n - 1 - #s) .. s end
+    local roll = (into - 0.8) / 0.2                        -- held at 0 for the first 80% of the tenth
+    if roll < 0 then roll = 0 elseif roll > 1 then roll = 1 end
+    return s .. tostring(math.floor(last)), roll
+end
+
+-- the LCD kind's characters: the reading as text, its last n characters, spaces in front to make n
+local function drumText(value, n)
+    local s = tostring(value or "")
+    if #s > n then s = s:sub(#s - n + 1) end
+    if #s < n then s = string.rep(" ", n - #s) .. s end
+    return s
+end
+P.drumText = drumText
+
+-- one figure of the 3 x 5 face at (gx, gy + dy), only its rows inside the wheel's window (y0 .. y0 + ch - 1); each
+-- run in the light where it sits (L, dimFn: ZeD_Plate's night light and its dim; nil by day)
+local function drumGlyph(cv, ch, gx, gy, dy, y0, wh, c, L, dimFn)
+    local F = ZeD.PixelFonts and ZeD.PixelFonts["35"]
+    if not F then return end
+    local key = faceKey(F, ch, false) or " "              -- a lower-case letter falls back to its capital ("t" -> "T")
+    local g = glyph("35", key)
+    if not g then return end
+    for i = 1, #g.runs do
+        local r = g.runs[i]
+        local yy = gy + r[2] + dy
+        if yy >= y0 and yy < y0 + wh then
+            local cc = c
+            if L then cc = dimFn(L, c, gx + r[1] + r[3] / 2, yy + 0.5) end
+            P.rect(cv, gx + r[1], yy, r[3], 1, cc)
+        end
+    end
+end
+
+-- p: the part { x, y, n, cw, ch, fg, last_fg, tenths, text }; value: the reading (miles, or the LCD's string)
+function P.drums(cv, p, value, L, dimFn)
+    local n, cw, wh, x0, y0 = p.n or 6, p.cw or 6, p.ch or 8, p.x, p.y
+    local figs, roll
+    if p.text then figs, roll = drumText(value, n), 0
+    else figs, roll = P.drumFigures(value, n) end
+    local fg, lastFg = P.color(p.fg or "#e8e4d8"), P.color(p.last_fg or p.fg or "#1a1a1a")
+    local gy = y0 + math.floor((wh - 5) / 2)
+    for i = 1, n do
+        local last = i == n
+        local c = last and lastFg or fg
+        local gx = x0 + (i - 1) * cw + math.floor((cw - 4) / 2)
+        local s = figs:sub(i, i)
+        if last and p.tenths and not p.text and roll > 0.05 then
+            -- the tenths wheel turning over: this figure going up and out, the next one coming up from below
+            local off = math.floor(roll * wh + 0.5)
+            local d = tonumber(s) or 0
+            local nxt = d + 1
+            if nxt >= 10 then nxt = 0 end
+            drumGlyph(cv, s, gx, gy, -off, y0, wh, c, L, dimFn)
+            drumGlyph(cv, tostring(nxt), gx, gy, wh - off, y0, wh, c, L, dimFn)
+        elseif s ~= " " then
+            drumGlyph(cv, s, gx, gy, 0, y0, wh, c, L, dimFn)
+        end
+    end
+end
+
 return P

@@ -639,6 +639,10 @@ function PL.drawParts(cv, parts, st, ctx)
                 else txt = tostring(math.floor(v + 0.5)) end
                 P.digits(cv, txt, p.x, p.y, p.cw, p.ch, p.pitch, p.st or 1, P.color(p.color), p.ghost and P.color(p.ghost) or nil, p.align or "r", p.n)
             end
+        elseif t == "drums" then
+            -- the odometers (Nov 6 2026, punch list 92): mechanical wheels turn with or without power and sit in the
+            -- light of the print around them; the LCD kind (p.text, the Dash Elite) shows only with the key on
+            if st.power or not p.text then P.drums(cv, p, st[p.src], L, dim) end
         elseif t == "ptr" then
             local a
             if p.angles then

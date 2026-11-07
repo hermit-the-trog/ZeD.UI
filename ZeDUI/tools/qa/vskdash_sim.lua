@@ -717,8 +717,11 @@ do
     local made = st().odo
     K.km, K.tripKm = 123513.5 * 1.609344, 5.15   -- trip 3.2 mi
     frames(2, 200)
-    check("the LCD shows the last four of the real figure", st().odo == 3513, st().odo)
-    check("it is not the made-up number", st().odo ~= made)
+    -- (Nov 7 2026, punch list 92: the odometers read miles with decimals; the Dash Elite's LCD shows six figures)
+    check("the odometer is the real figure", near(st().odo, 123513.5, 0.001), st().odo)
+    check("the LCD shows its six figures", st().odoShownT == "123513", st().odoShownT)
+    check("the trip is the real figure", near(st().trip, 5.15 / 1.609344, 0.001), st().trip)
+    check("it is not ZeD's own number", st().odo ~= made)
     local digits = false
     for _, l in ipairs(frame(0)) do digits = digits or l:find("drawRect", 1, true) ~= nil end
     check("the LCD draws", digits)
@@ -729,7 +732,7 @@ do
     K.km = nil
     env.simple = false
     frames(2, 200)
-    check("nothing published: the made-up number stays", st().odo == made or st().odo ~= 3513, st().odo)
+    check("nothing published: ZeD's own number again", near(st().odo, made, 0.01), st().odo)
 end
 
 -- ---------------------------------------------------------------------------
@@ -800,7 +803,7 @@ do
     local made = st().odo
     K.km, K.tripKm = 123513.5 * 1.609344, 5.15
     frames(2, 200)
-    check("a passenger's Dash Elite shows Roadworthy's odometer", st().odo == 3513 and st().odo ~= made, st().odo)
+    check("a passenger's Dash Elite shows Roadworthy's odometer", st().odoShownT == "123513" and st().odo ~= made, st().odoShownT)
     env.simple = true
     check("and a passenger's Simple dash", drewText(frame(0), "123513 mi"))
     env.simple = false
