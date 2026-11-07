@@ -64,7 +64,11 @@ Every run reached the same point. The game sees the RTX 4090 through the sandbox
 
 What's left: VMware Workstation Pro (free for personal use). It's an install, so it needs the director's go, and the game isn't known to run there either. Viewpoint also needs a 42.22 build from its author, or a 42.21 copy of the game.
 
-## Recommendation, for the beta 9 or 10 list
+## Decision, Nov 7 2026: shelved
+
+The director won't make a Broadcom account for VMware: "Someone else can report to us if it works. I'm not wasting time on this right now." Viewpoint and ZombieBuddy are off the beta 9/10 test list. Compatibility rests on player reports, taken through the Compatibility thread. Don't use third-party VMware mirrors (vmwaredesktop.com is one; it isn't affiliated with Broadcom). The 42.22 test copy stays at `E:\ZeDSandbox` (about 10 GB) until someone clears it. Windows Sandbox is still turned on in Windows features.
+
+## Recommendation, for the beta 9 or 10 list (superseded by the decision above)
 
 Try **Windows Sandbox** first: a copy of the game, run with `-nosteam`, networking off, and ZombieBuddy's config folder pointed inside the mapped area. If the game or Viewpoint won't draw there, the next step is VMware Workstation Pro.
 
