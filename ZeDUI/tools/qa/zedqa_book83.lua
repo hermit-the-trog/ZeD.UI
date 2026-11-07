@@ -164,13 +164,19 @@ step(20, function() f1() end)
 step(30, function()
     local b = Bk()
     -- (Nov 7: the contents runs over as many pages as it needs from page 3; the introduction on a right-hand page,
-    -- facing the last contents page, or after a blank left-hand page when the contents takes an even count)
+    -- facing the last contents page, or after a left-hand page when the contents takes an even count; that page the
+    -- publisher's house ad, the director's Nov 7 ruling, and the house ad nowhere else in the book)
     local n, ip = b.contentsPages or 1, b.introPage or 4
     say(string.format("contents: %d page%s from page %s; introduction page %s", n, n == 1 and "" or "s", tostring(b.contentsPage), tostring(ip)))
+    local fp = pageAt(3 + n)
     local frontOk = b.contentsPage == 3 and ip % 2 == 0 and pageAt(ip) and pageAt(ip).kind == "intro"
-        and ((n % 2 == 1 and ip == 3 + n) or (n % 2 == 0 and ip == 4 + n and pageAt(3 + n).kind == "blank"))
+        and ((n % 2 == 1 and ip == 3 + n) or (n % 2 == 0 and ip == 4 + n and fp and fp.kind == "ad" and fp.front and fp.ad == "house"))
     for i = 3, 2 + n do frontOk = frontOk and pageAt(i) and pageAt(i).kind == "contents" end
     check(frontOk, "the contents from page 3, the introduction on a right-hand page after it")
+    local houses = 0
+    for _, p in ipairs(b.pages) do if p.kind == "ad" and p.ad == "house" then houses = houses + 1 end end
+    say("house ad pages: " .. houses .. ((n % 2 == 0) and " (one up front)" or ""))
+    check(houses <= 1 and (n % 2 == 1 or houses == 1), "the house ad once in the book (" .. houses .. ")")
     b:press("next"); check(b.spread == 2 and pageAt(3).kind == "contents", "Next page: the first contents page (" .. spreadKinds() .. ")")
     b:press("next"); local s3 = b.spread
     b:press("prev"); check(b.spread == 2, "Previous page turns back")
