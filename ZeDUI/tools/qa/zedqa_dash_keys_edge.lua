@@ -2,12 +2,12 @@
 -- (HANDOFF_dash_keys_edge_20261029.md). Built on zedqa_dash_green.lua (staging) and zedqa_dash_r6_keys.lua (the dry start
 -- that holds the key at START).
 --   per design, all 19: a fresh car beside the character, the windows' layout reset first; then
---     off     the key in, the engine off: the key reads OFF, the fob hangs whole, the dash flush on the screen's bottom
+--     acc     the key in, the engine off: the key reads ACC (Nov 7 2026), the fob hangs whole, the dash flush on the screen's bottom
 --             edge (its rect's bottom = the player's screen bottom), the shroud meeting the edge
 --     start   an empty tank and a turn of the key: the starter turns and the key reads START
 --     on      the tank filled, the engine started: the key reads ON
 --   A parked car that moves (> 3 km/h) fell through the ground: that design is rejected (ERR), not judged.
--- Screenshots: Zomboid/Screenshots/zqa_dke_<design>_<off|start|on>.png; each shot logs the dash's screen rect. Leaves no car,
+-- Screenshots: Zomboid/Screenshots/zqa_dke_<design>_<acc|start|on>.png; each shot logs the dash's screen rect. Leaves no car,
 -- no key and the windows reset. grep "ZEDQA dke".
 if ZEDQA_HOME then ZEDQA_HOME("dke") end   -- (punch list 47: open ground first; an earlier script can leave the character indoors)
 local p = getPlayer(); local D = ZeD.Dashboard
@@ -187,8 +187,8 @@ for _, e in ipairs(CARS) do
                 moving = true; err(n .. " parked car moving at " .. tostring(s.speed) .. " km/h (fell through the ground?): rejected")
                 return
             end
-            if s.keyPos ~= "off" then err(n .. " key reads " .. tostring(s.keyPos) .. " with the key in, engine off; want off") end
-            shot(n, "off")
+            if s.keyPos ~= "acc" then err(n .. " key reads " .. tostring(s.keyPos) .. " with the key in, engine off; want acc") end
+            shot(n, "acc")
         end)
         -- START: a turn on an empty tank holds the starter (the key at START) without catching
         act(function() if okM() then fuel(cur, 0); click("ignition") end end)
@@ -205,7 +205,7 @@ for _, e in ipairs(CARS) do
             if s.keyPos ~= "start" then say(n .. " (START gone before the shot: " .. tostring(s.keyPos) .. ")") end
             shot(n, "start")
         end)
-        waitFor(function() local s = st(); return not okM() or (s and not s.running and not s.cranking and s.keyPos == "off") end, 15000,
+        waitFor(function() local s = st(); return not okM() or (s and not s.running and not s.cranking and s.keyPos == "acc") end, 15000,
             function() err(n .. " dry start never settled") end)
         waitFor(function() local s = st(); return not okM() or (s and s.engState == "Idle") end, 8000)
         -- ON: fill the tank and start it
@@ -215,7 +215,7 @@ for _, e in ipairs(CARS) do
             if not okM() then return true end
             local s = st()
             if s and s.running and s.keyPos == "on" then return true end
-            if s and s.keyPos == "off" and not s.cranking and now() - t0 > 1500 then
+            if s and s.keyPos == "acc" and not s.cranking and now() - t0 > 1500 then
                 tries_ = tries_ + 1
                 if tries_ >= 5 then return true end
                 t0 = now(); click("ignition")
