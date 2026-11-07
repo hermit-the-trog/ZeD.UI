@@ -1,0 +1,3 @@
+# merge 1, German leftovers (Nov 7 2026): the Player card's names by id (lang_run.ps1 -Lang DE -Manifest this)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_de_names.lua | den | timeout=60
