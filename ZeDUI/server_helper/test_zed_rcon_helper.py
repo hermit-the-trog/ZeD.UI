@@ -174,6 +174,20 @@ def run(folder, password=PASSWORD, port=None, now=1793913240):
 EPOCH = "11111111-2222-3333-4444-000000000003"
 
 # ---------------------------------------------------------------------------
+# An empty queue is answered: the server counts the helper as running only once it has answered this start (H.alive),
+# and until then hands every call to staff clients, so the queue it writes at a start holds nothing
+# ---------------------------------------------------------------------------
+with tempfile.TemporaryDirectory() as d:
+    GAME.reset()
+    queue(d, EPOCH, [])
+    made, out = run(d, now=1793913250)
+    check("an empty queue: no call, no login", made == {} and GAME.commands == [] and GAME.logins == 0, (made, GAME.commands))
+    check("an empty queue is answered with this start's word and the time", answers(d) == "ZEDA 1 %s 1793913250\n" % EPOCH, answers(d))
+    queue(d, "11111111-2222-3333-4444-000000000004", [])
+    made, out = run(d, now=1793913260)
+    check("a new start's word: answered with it at the next pass", answers(d).startswith("ZEDA 1 11111111-2222-3333-4444-000000000004 1793913260\n"), answers(d))
+
+# ---------------------------------------------------------------------------
 # Login, and the five calls
 # ---------------------------------------------------------------------------
 with tempfile.TemporaryDirectory() as d:

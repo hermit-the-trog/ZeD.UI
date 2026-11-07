@@ -913,8 +913,15 @@ function P.plainWrap(s, n)
     for word in string.gmatch(s, "%S+") do
         while #word > n do
             if line ~= "" then out[#out + 1] = line; line = "" end
-            out[#out + 1] = string.sub(word, 1, n)
-            word = string.sub(word, n + 1)
+            -- (never inside a character: a UTF-8 byte string backs off to its start; the game's strings count characters)
+            local cut = n
+            while cut > 1 do
+                local c = string.byte(word, cut + 1)
+                if not c or c < 128 or c > 191 then break end
+                cut = cut - 1
+            end
+            out[#out + 1] = string.sub(word, 1, cut)
+            word = string.sub(word, cut + 1)
         end
         if line == "" then line = word
         elseif #line + 1 + #word <= n then line = line .. " " .. word
@@ -924,31 +931,94 @@ function P.plainWrap(s, n)
     return out
 end
 
--- the plain version, for safe mode: the game's own yes/no box with the rules as lines. Yes agrees to these words, No leaves
-function P.safeAsk()
-    local v = M.view
-    if CM.safeAsk or not (v and v.ask) or A2.leave or not ISModalDialog then return end
-    local lines = { tr("UI_ZeD_Cm_Rules"), "" }
+-- the plain version, for safe mode: the game's own yes/no box with the rules as lines. Yes agrees to these words, No leaves.
+-- The box sizes itself to its text (ISModalDialog.CalcSize), so on a short screen (720p, the Deck) or with Large text a long list
+-- of rules would run it past the bottom, Yes and No with it. So the box holds as many lines as the screen does: past that the
+-- rules scroll inside it (the mouse wheel, the D-pad up and down) under a line that says which ones show, and the question and
+-- Yes and No stay put. A and B answer it as before. Its lines are cut narrower too when the screen is narrow
+P.SAFE_MARGIN = 20           -- pixels kept clear above, below and beside the box
+P.SAFE_CHROME = 75           -- ISModalDialog.CalcSize: 20 over the text, 20 under it, a 25 button row, 10 under that
+P.SAFE_WIDE = 70             -- characters a line, at most
+function P.safeLines(v, n)
+    local body = { tr("UI_ZeD_Cm_Rules"), "" }
     local rules = v.rules or {}
     for i = 1, (rules.n or 0) do
         local r = rules[i]
         if r then
-            for _, s in ipairs(P.plainWrap(tostring(i) .. ". " .. tostring(r.text), 70)) do lines[#lines + 1] = s end
+            for _, s in ipairs(P.plainWrap(tostring(i) .. ". " .. tostring(r.text), n)) do body[#body + 1] = s end
         end
     end
-    lines[#lines + 1] = ""
-    lines[#lines + 1] = tr("UI_ZeD_Cm_SafeAsk")
+    local tail = { "" }
+    for _, s in ipairs(P.plainWrap(tr("UI_ZeD_Cm_SafeAsk"), n)) do tail[#tail + 1] = s end
+    return body, tail
+end
+
+-- what the box shows now: every line, or the rows from st.top with the line that says where they are
+function P.safeText(st)
+    if not st.rows then return table.concat(st.body, "\n") .. "\n" .. table.concat(st.tail, "\n") end
+    local out = {}
+    for i = st.top, st.top + st.rows - 1 do out[#out + 1] = st.body[i] or "" end
+    out[#out + 1] = ""
+    local more = P.plainWrap(tr("UI_ZeD_Cm_SafeMore", st.top, st.top + st.rows - 1, #st.body), st.n)
+    for i = 1, st.moreN do out[#out + 1] = more[i] or "" end
+    for _, s in ipairs(st.tail) do out[#out + 1] = s end
+    return table.concat(out, "\n")
+end
+
+-- the box's size for this screen and text size: the widest line it may hold, and the rows of rules when they do not all fit
+function P.safeFit(v)
+    local core, tm = getCore(), ZeD.TM
+    local sw, sh = core:getScreenWidth(), core:getScreenHeight()
+    local fh = math.max(1, tm:getFontHeight(UIFont.Small))
+    local st = { n = P.SAFE_WIDE, top = 1 }
+    while true do
+        st.body, st.tail = P.safeLines(v, st.n)
+        local widest = 0
+        for _, s in ipairs(st.body) do widest = math.max(widest, tm:MeasureStringX(UIFont.Small, s)) end
+        for _, s in ipairs(st.tail) do widest = math.max(widest, tm:MeasureStringX(UIFont.Small, s)) end
+        if widest + 10 <= sw - 2 * P.SAFE_MARGIN or st.n <= 20 then break end
+        st.n = st.n - 10
+    end
+    local fit = math.floor((sh - 2 * P.SAFE_MARGIN - P.SAFE_CHROME) / fh)
+    if #st.body + #st.tail <= fit then return st end
+    -- (the line that says where they are, cut as its longest form would be)
+    st.moreN = #P.plainWrap(tr("UI_ZeD_Cm_SafeMore", #st.body, #st.body, #st.body), st.n)
+    st.rows = math.max(3, fit - #st.tail - st.moreN - 1)
+    if st.rows >= #st.body then st.rows = nil end
+    return st
+end
+
+function P.safeScroll(st, modal, d)
+    if not st.rows then return end
+    local top = math.max(1, math.min(#st.body - st.rows + 1, st.top + d))
+    if top == st.top then return end
+    st.top = top
+    modal.text = P.safeText(st)
+end
+
+function P.safeAsk()
+    local v = M.view
+    if CM.safeAsk or not (v and v.ask) or A2.leave or not ISModalDialog then return end
+    local st = P.safeFit(v)
     local rev = v.rev
     local function onAnswer(_, button)
         CM.safeAsk = nil
         if button and button.internal == "YES" then M.agree(rev) else M.leave() end
     end
-    local modal = ISModalDialog:new(0, 0, 350, 150, table.concat(lines, "\n"), true, nil, onAnswer, 0)
+    local modal = ISModalDialog:new(0, 0, 350, 150, P.safeText(st), true, nil, onAnswer, 0)
     modal:initialise()
     modal:addToUIManager()
+    CM.safeState = st
+    -- (the rules scroll inside the box; Yes, No, A and B are the game's own and never move)
+    modal.onMouseWheel = function(self, del)
+        P.safeScroll(st, self, del * PAD_SCROLL_LINES)
+        return true
+    end
+    modal.onJoypadDirUp = function(self) P.safeScroll(st, self, -PAD_SCROLL_LINES) end
+    modal.onJoypadDirDown = function(self) P.safeScroll(st, self, PAD_SCROLL_LINES) end
     local core = getCore()
-    modal:setX(math.floor((core:getScreenWidth() - modal:getWidth()) / 2))
-    modal:setY(math.floor((core:getScreenHeight() - modal:getHeight()) / 2))
+    modal:setX(math.max(0, math.floor((core:getScreenWidth() - modal:getWidth()) / 2)))
+    modal:setY(math.max(0, math.floor((core:getScreenHeight() - modal:getHeight()) / 2)))
     CM.safeAsk = modal
     local jd = JoypadState and JoypadState.players and JoypadState.players[1]
     if jd then setJoypadFocus(0, modal) end

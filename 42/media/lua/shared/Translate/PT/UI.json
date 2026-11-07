@@ -5704,6 +5704,7 @@
     "UI_ZeD_Cm_RulesNews": "Regras e notícias",
     "UI_ZeD_Cm_RulesNewsSum": "A mensagem do dia, as regras, notícias",
     "UI_ZeD_Cm_SafeAsk": "Aceitas estas regras? Não sai do servidor.",
+    "UI_ZeD_Cm_SafeMore": "Linhas %1 a %2 de %3. Roda do rato ou D-pad para cima e para baixo para o resto.",
     "UI_ZeD_Cm_Save": "Guardar",
     "UI_ZeD_Cm_Saved": "Guardado.",
     "UI_ZeD_Cm_SavedAsk": "Guardado. Todos têm de concordar outra vez ao entrar.",

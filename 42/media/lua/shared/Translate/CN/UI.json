@@ -5704,6 +5704,7 @@
     "UI_ZeD_Cm_RulesNews": "规则与新闻",
     "UI_ZeD_Cm_RulesNewsSum": "每日消息、规则、新闻",
     "UI_ZeD_Cm_SafeAsk": "你同意这些规则吗？选“否”会离开服务器。",
+    "UI_ZeD_Cm_SafeMore": "第 %1 至 %2 行，共 %3 行。用鼠标滚轮或十字键上下查看其余部分。",
     "UI_ZeD_Cm_Save": "保存",
     "UI_ZeD_Cm_Saved": "已保存。",
     "UI_ZeD_Cm_SavedAsk": "已保存。所有人下次加入时会被要求再次同意。",

@@ -5704,6 +5704,7 @@
     "UI_ZeD_Cm_RulesNews": "Kurallar ve haberler",
     "UI_ZeD_Cm_RulesNewsSum": "Günün iletisi, kurallar, haberler",
     "UI_ZeD_Cm_SafeAsk": "Bu kuralları kabul ediyor musun? Hayır sunucudan çıkarır.",
+    "UI_ZeD_Cm_SafeMore": "%3 satırdan %1-%2. Gerisi için fare tekerleği veya D-Pad yukarı ve aşağı.",
     "UI_ZeD_Cm_Save": "Kaydet",
     "UI_ZeD_Cm_Saved": "Kaydedildi.",
     "UI_ZeD_Cm_SavedAsk": "Kaydedildi. Herkesten bir sonraki katılışında yeniden kabul etmesi istenir.",

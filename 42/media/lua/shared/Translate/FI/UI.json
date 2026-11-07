@@ -5704,6 +5704,7 @@
     "UI_ZeD_Cm_RulesNews": "Säännöt ja uutiset",
     "UI_ZeD_Cm_RulesNewsSum": "Päivän viesti, säännöt, uutiset",
     "UI_ZeD_Cm_SafeAsk": "Hyväksytkö nämä säännöt? Ei poistuu palvelimelta.",
+    "UI_ZeD_Cm_SafeMore": "Rivit %1-%2 / %3. Loput hiiren rullalla tai D-padilla ylös ja alas.",
     "UI_ZeD_Cm_Save": "Tallenna",
     "UI_ZeD_Cm_Saved": "Tallennettu.",
     "UI_ZeD_Cm_SavedAsk": "Tallennettu. Kaikilta pyydetään hyväksyntä uudelleen, kun he seuraavan kerran liittyvät.",

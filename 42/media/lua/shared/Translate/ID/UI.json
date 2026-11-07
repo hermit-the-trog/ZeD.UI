@@ -5704,6 +5704,7 @@
     "UI_ZeD_Cm_RulesNews": "Aturan dan berita",
     "UI_ZeD_Cm_RulesNewsSum": "Pesan hari ini, aturan, berita",
     "UI_ZeD_Cm_SafeAsk": "Kamu setuju dengan aturan ini? Tidak akan keluar dari server.",
+    "UI_ZeD_Cm_SafeMore": "Baris %1 sampai %2 dari %3. Roda mouse atau D-pad atas dan bawah untuk sisanya.",
     "UI_ZeD_Cm_Save": "Simpan",
     "UI_ZeD_Cm_Saved": "Tersimpan.",
     "UI_ZeD_Cm_SavedAsk": "Tersimpan. Semua orang diminta setuju lagi saat bergabung berikutnya.",

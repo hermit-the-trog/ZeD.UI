@@ -5704,6 +5704,7 @@
     "UI_ZeD_Cm_RulesNews": "Règles et nouvelles",
     "UI_ZeD_Cm_RulesNewsSum": "Le message du jour, les règles, les nouvelles",
     "UI_ZeD_Cm_SafeAsk": "Acceptez-vous ces règles ? Non quitte le serveur.",
+    "UI_ZeD_Cm_SafeMore": "Lignes %1 à %2 sur %3. Molette ou croix haut et bas pour la suite.",
     "UI_ZeD_Cm_Save": "Enregistrer",
     "UI_ZeD_Cm_Saved": "Enregistré.",
     "UI_ZeD_Cm_SavedAsk": "Enregistré. Tous devront accepter à nouveau à leur prochaine connexion.",

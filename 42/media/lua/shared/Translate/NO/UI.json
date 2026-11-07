@@ -5704,6 +5704,7 @@
     "UI_ZeD_Cm_RulesNews": "Regler og nyheter",
     "UI_ZeD_Cm_RulesNewsSum": "Dagens melding, reglene, nyheter",
     "UI_ZeD_Cm_SafeAsk": "Godtar du disse reglene? Nei forlater serveren.",
+    "UI_ZeD_Cm_SafeMore": "Linje %1 til %2 av %3. Musehjul eller D-pad opp og ned for resten.",
     "UI_ZeD_Cm_Save": "Lagre",
     "UI_ZeD_Cm_Saved": "Lagret.",
     "UI_ZeD_Cm_SavedAsk": "Lagret. Alle blir bedt om å godta på nytt når de neste gang blir med.",
