@@ -378,7 +378,7 @@ def oldmill(d):
     mouth = ellipse_m(d, 29, 57.6, 4.4, 4.4 * VIEW + 0.6)                                          # the flared lip
     d.slab(mouth, 10.5, "k", bevel=0.8, polish=0.6)
     # the pail: a galvanized bucket, tapered, the bail leaning back over the far rim, the ears on its sides
-    pcx, yt, yb, rt, rb = 28.5, 79.0, 103.0, 15.0, 12.0
+    pcx, yt, yb, rt, rb = 28.5, 78.0, 103.0, 16.5, 13.0
     bail = Mask(d.W, d.H).arc(pcx, yt + 3.2, rt + 0.6, 15, 180, 360, 1.6).get()
     d.slab(bail, 9, "d", bevel=0.7, polish=0.9)
     frac = np.clip((Y - yt) / (yb - yt), 0, 1)
@@ -392,20 +392,33 @@ def oldmill(d):
         rib = pbody & (np.abs(Y - (v0 + ryv * c)) < 0.9)
         d.h[rib] += 0.9
     rim = (ellipse_m(d, pcx, yt + 0.9, rt + 1.0, (rt + 1.0) * VIEW) | ellipse_m(d, pcx, yt - 0.9, rt + 1.0, (rt + 1.0) * VIEW))
-    opening = ellipse_m(d, pcx, yt - 0.9, rt - 0.9, (rt - 0.9) * VIEW)
+    opening = ellipse_m(d, pcx, yt - 0.3, rt - 0.6, (rt - 0.6) * VIEW)
     d.slab(rim & ~opening, 12.5, "m", bevel=1.1, polish=0.9)                                       # the rolled rim
-    d.flat(opening, 10, "d", polish=0.2)                                                           # the inside wall
-    wat = opening & ellipse_m(d, pcx, yt + 0.9, rt - 2.8, (rt - 2.8) * VIEW)
-    d.flat(wat, 10.2, "l", polish=1.0)                                                             # the water in it
-    d.dark[opening & ~wat] = 0.3
+    # inside the rim: the far inside wall standing above the water line, in shadow, and the water a little below the
+    # rim, dark and glassy, so the top reads as an open pail of water and not a lid
+    oy = yt - 0.3
+    wy, wrx = oy + 2.0, rt - 1.6                                                                   # the water line
+    d.flat(opening, 11, "l", polish=0.0)                                                           # the inside wall
+    d.flatlight |= opening; d.noshadow |= opening
+    d.dark[opening] = -0.12
+    wat = opening & ellipse_m(d, pcx, wy, wrx, wrx * VIEW)
+    d.flat(wat, 11, "k", polish=0.0)                                                               # the water
+    d.dark[wat] = 0.2
+    d.seam(opening & ~wat & ellipse_m(d, pcx, wy, wrx + 0.8, (wrx + 0.8) * VIEW), 0.35)            # the water line
     for sx in (-1, 1):
         ex = pcx + sx * (rt + 0.6)
         d.slab(Mask(d.W, d.H).rect(ex - 1.5, yt + 1.5, 3, 4).get(), 12, "m", bevel=0.8, polish=0.9)  # the ears
         d.dome(ex, yt + 3.2, 1.0, 1.0, 1.5, "d", on="add")
-    # the water falling from the mouth into the pail, into the water
-    stream = Mask(d.W, d.H).line([(29, 58.5), (29, 70), (28.8, yt + 0.6)], 2.2).get()
+    # the water falling from the mouth into the pail, into the water; a ripple ring round where it lands
+    sx_ = 28.8
+    stream = Mask(d.W, d.H).line([(29, 58.5), (29, 70), (sx_, wy)], 2.2).get()
     d.slab(stream, 14, "l", bevel=0.9, polish=1.0)
     d.noshadow |= stream
+    ra = 6.0
+    ring = [(sx_ + ra * math.cos(math.radians(t)), wy + ra * VIEW * math.sin(math.radians(t))) for t in range(0, 361, 10)]
+    rip = Mask(d.W, d.H).line(ring, 1.0).get() & wat & ~(stream & (Y < wy))
+    d.flat(rip, 11, "w", polish=0.0); d.flatlight |= rip; d.dark[rip] = -0.2
+    d.noshadow |= rip
 
 
 # ------------------------------------------------------------------ Restwell & Sons: the wreath on its stand

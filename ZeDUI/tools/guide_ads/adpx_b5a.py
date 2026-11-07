@@ -130,26 +130,32 @@ def nolans_used_cars(d):
     # a car key on a split ring, hanging; a round paper price tag tied to the ring by a string, turned a little, AS IS
     # written on it by hand
     X = d.XX + 0.5; Y = d.YY + 0.5
-    rcx, rcy = 34, 23
-    rr = np.hypot(X - rcx, Y - rcy)
-    # the split ring, threaded through the key's hole: its right side drawn now (the head hides it below the hole),
-    # its left side drawn after the head, in front of it, running down into the hole
-    d.torus(rcx, rcy, 10.5, 13.5, 4, "chrome", polish=1.0)
-    d.seam((np.abs(rr - 12) < 0.5) & (X > rcx + 2) & (Y < rcy + 4), 0.35)                    # its second turn
-    # the key, hanging from the ring: the black head with its hole, the blade below
+    # the key's head and the hole punched through it (the paper shows in the hole round the ring's wire)
     ang = math.radians(6)
     def R(x, y, cx=34, cy=32): x -= cx; y -= cy; return (cx + x * math.cos(ang) - y * math.sin(ang), cy + x * math.sin(ang) + y * math.cos(ang))
+    hx, hy = R(34, 39.5)
+    hole_r = 6.2
+    # the split ring, threaded through the key's hole: its bottom runs across the hole's middle, its left side in
+    # front of the head down into the hole, its right side coming up out of the hole behind the head
+    rcx, rcy, rring, wr = hx, hy - 12.0, 12.0, 1.3
+    rr = np.hypot(X - rcx, Y - rcy)
+    d.torus(rcx, rcy, rring - wr, rring + wr, 4, "chrome", polish=1.0)
+    d.seam((np.abs(rr - rring) < 0.5) & (X > rcx + 2) & (Y < rcy + 4), 0.35)                  # its second turn
+    before = {k: getattr(d, k).copy() for k in ("h", "mat", "solid", "polish", "tex", "dark")}
+    # the key, hanging from the ring: the black head with its hole, the blade below
     head = Mask(d.W, d.H).poly([R(x, y) for x, y in
                                 ((24, 30), (44, 30), (49, 36), (49, 50), (43, 58), (25, 58), (19, 50), (19, 36))]).get()
     d.slab(head, 8, "k", bevel=3, polish=0.6)
-    hx, hy = R(34, 36)
-    d.well(Mask(d.W, d.H).ellipse(hx, hy, 3.6, 3.6).get(), 6, bevel=1)
+    hole = ellipse_m(d, hx, hy, hole_r, hole_r)
+    for k_, v_ in before.items():
+        getattr(d, k_)[hole] = v_[hole]                                                          # punched through
+    d.seam(hole & ~ellipse_m(d, hx, hy, hole_r - 0.8, hole_r - 0.8) & ~(np.abs(rr - rring) <= wr), 0.35)  # its edge
     # the ring's front side over the head, from its top edge down into the hole
-    fr = (rr >= 10.5) & (rr <= 13.5) & (X <= hx + 0.5) & head & (Y <= hy + 1)
-    tt = (rr - 12) / 1.5
+    fr = (np.abs(rr - rring) <= wr) & (X <= hx) & head & ~hole
+    tt = (rr - rring) / wr
     d.h = np.where(fr, 9 + np.sqrt(np.clip(1 - tt ** 2, 0, 1)) * 4, d.h).astype(np.float32)
     d.mat[fr] = d.mid("chrome"); d.solid |= fr; d.polish[fr] = 1.0; d.tex[fr] = 0
-    d.seam(Mask(d.W, d.H).poly([R(25, 46), R(43, 46), R(43, 47), R(25, 47)]).get(), 0.3)     # the head's grip line
+    d.seam(Mask(d.W, d.H).poly([R(25, 47), R(43, 47), R(43, 48), R(25, 48)]).get(), 0.3)     # the head's grip line
     shoulder = Mask(d.W, d.H).poly([R(x, y) for x, y in ((28, 57), (40, 57), (40, 62), (38, 64), (30, 64), (28, 62))]).get()
     d.slab(shoulder, 5, "chrome", bevel=1, polish=1.0)
     # the blade: cut along its right edge, the tip rounded off, a groove down its length
