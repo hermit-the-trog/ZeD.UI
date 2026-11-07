@@ -4613,11 +4613,10 @@ Limits here are estimates from the English: the cards wrap, buttons and tags do 
 | `UI_ZeD_Adm_UnbanAsk` | `Unban %1? They can join again right away.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
 | `UI_ZeD_Adm_KeepBan` | `Keep the ban` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 18 |
 | `UI_ZeD_Adm_Unbanned` | `%1 unbanned.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 18 |
-| `UI_ZeD_Adm_ToYou` | `you` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
-| `UI_ZeD_Adm_ToGround` | `the ground` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 16 |
 | `UI_ZeD_Adm_ItemHint` | `Find an item: a name or Module.Type` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 49 |
 | `UI_ZeD_Adm_HelpItemFind` | `Finds items as you type.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 34 |
 | `UI_ZeD_Adm_ItemCount` | `%1 of %2` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
+| `UI_ZeD_Adm_NoItemMatch` | `No items match.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 25 |
 | `UI_ZeD_Adm_HelpItem` | `Picks this item.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 26 |
 | `UI_ZeD_Adm_HowMany` | `How many` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
 | `UI_ZeD_Adm_UpTo` | `up to %1` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
@@ -4627,10 +4626,14 @@ Limits here are estimates from the English: the cards wrap, buttons and tags do 
 | `UI_ZeD_Adm_GroundHere` | `The ground here` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 25 |
 | `UI_ZeD_Adm_SpawnBtn` | `Spawn` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
 | `UI_ZeD_Adm_Spawned` | `%1 x %2 spawned to %3. Logged.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 44 |
+| `UI_ZeD_Adm_SpawnedMe` | `%1 x %2 spawned to you. Logged.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 47 |
+| `UI_ZeD_Adm_SpawnedGround` | `%1 x %2 spawned to the ground. Logged.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 56 |
 | `UI_ZeD_Adm_HelpSpawnBtn` | `Makes the items now. It goes in the admin log.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
 | `UI_ZeD_Adm_HelpSpawnLog` | `Every spawn goes in the admin log, with who and where.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
 | `UI_ZeD_Adm_HelpSpawn` | `Find an item, pick it, then how many and where.` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | - |
 | `UI_ZeD_Adm_SpawnLine` | `%1 x %2 to %3` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 23 |
+| `UI_ZeD_Adm_SpawnLineMe` | `%1 x %2 to you` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 24 |
+| `UI_ZeD_Adm_SpawnLineGround` | `%1 x %2 to the ground` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 31 |
 | `UI_ZeD_Adm_MoreLine` | `the game's own windows` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 32 |
 | `UI_ZeD_Adm_Len1h` | `1 hour` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
 | `UI_ZeD_Adm_Len1d` | `1 day` | Admin tab, staff only: player list, player card (kick, ban, warning points, role, skills), roles, bans, spawn items, repeating server messages | 14 |
