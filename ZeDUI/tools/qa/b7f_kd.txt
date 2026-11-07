@@ -1,0 +1,6 @@
+# ZeDUI/tools/qa/b7f_kd.txt  (Nov 7 2026, QA): the release check, the kill counts matching, the ACC key on all 19 designs
+zedqa_prelude.lua | pre | timeout=120
+zedqa_release_check.lua | rel | timeout=240
+zedqa_kills_kind.lua | kk | timeout=90
+zedqa_kills_match.lua | kmt | timeout=60
+zedqa_dash_r6_keys.lua | r6k | timeout=1500 | expect=FBORenderCell

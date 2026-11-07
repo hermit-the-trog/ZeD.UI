@@ -1,0 +1,10 @@
+# ZeDUI/tools/qa/b7f_book.txt  (Nov 7 2026, QA): the next beta's last merges (c8bfd10b), the book at 4K: every reading's ads, the
+# First Days checklist once, whole pages past the full ads; the contents over its pages, the house ad up front once, every row
+# and click, navigation; the gallery look for the contents captures; reopen
+zedqa_prelude.lua | pre | timeout=120
+gallery_t14_look.lua | g14l | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_guide_ads.lua | gad | timeout=1200
+zedqa_book83.lua | b83 | timeout=900
+gallery_t14_end.lua | g14e | timeout=60
+zedqa_book83_reopen.lua | b8r | timeout=300

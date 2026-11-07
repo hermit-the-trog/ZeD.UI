@@ -1,0 +1,5 @@
+# ZeDUI/tools/qa/b7f_lang.txt  (Nov 7 2026, QA): the contents at Large text in the game's language (set per run by batch_b7_final.ps1)
+zedqa_prelude.lua | pre | timeout=120
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_textlarge.lua | txl | timeout=60
+zedqa_book83_lang.lua | b8l | timeout=300
