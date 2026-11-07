@@ -387,6 +387,11 @@ function A.onClick(win, x, y)
         TC.cardClick(win, st, x, y)
         return
     end
+    -- (the filters' list is modal, as on a card: this press answers it, or it stays open over the Admin home)
+    if st.tk and st.tk.popup then
+        TC.listClick(win, st, x, y)
+        return
+    end
     local r = st.barRects and st.barRects.back
     if st.screen == "tickets" and r and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h then
         sound()

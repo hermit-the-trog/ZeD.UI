@@ -477,10 +477,19 @@ end
 
 local function sendQueue()
     local q = C.q or {}
-    C.queueRid = C.request("t_queue", { status = q.status, kind = q.kind, who = q.who, mine = q.mine, find = q.find,
+    local rid
+    rid = C.request("t_queue", { status = q.status, kind = q.kind, who = q.who, mine = q.mine, find = q.find,
         newest = q.newest, page = q.page }, function(a)
-        if a.ok == false and a.err == "wait" then C.queueAgainAt = now() + BATCH_MS end
+        if a.ok ~= false then return end
+        if a.err == "wait" then
+            C.queueAgainAt = now() + BATCH_MS
+        elseif a.err == "fail" and not a.rid and rid and rid == C.queueRid then
+            -- (no answer at all: the server's limit drops a command with no word, and a queue with no page has no Refresh)
+            C.queueRid = nil
+            if C.queueOpen then C.queueAgainAt = now() + BATCH_MS end
+        end
     end)
+    C.queueRid = rid
 end
 
 -- the queue opens, or Refresh. q: status, kind, who, mine, find, newest, page
@@ -703,13 +712,19 @@ function on.t_row(a)
 end
 
 function on.t_queue(a)
+    C.counts = { open = a.open or 0, spam = a.spam or 0, kinds = a.kinds }
+    C.gameMax = a.gameMax or 0
+    -- (a reply to a request since replaced: the last one asked is yet to come, and only the counts are news)
+    if a.rid and C.queueRid and a.rid ~= C.queueRid then
+        C.pend[a.rid] = nil
+        bump()
+        return
+    end
     if C.queueRid then
         C.pend[C.queueRid] = nil
         C.queueRid = nil
     end
     C.queue = a
-    C.counts = { open = a.open or 0, spam = a.spam or 0, kinds = a.kinds }
-    C.gameMax = a.gameMax or 0
     if C.wantSync and not S.frozen then
         C.wantSync = nil
         syncList()
