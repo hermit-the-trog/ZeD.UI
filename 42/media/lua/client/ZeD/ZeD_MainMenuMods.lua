@@ -398,6 +398,10 @@ end
 -- already counts as first. opts.exact: the template mod too (else it asks on its own row).
 -- opts.why: id -> the reason a mod stayed off. Returns the mods set on and the names left off.
 function ZeD_MMMods:modsOnBatch(ids, opts)
+    -- a set of mods changed at once (Undo, Discard, a profile, Turn all, a separator or folder box;
+    -- applyOnSet always ends here): forget which mod took ZeD picks off, so turning that mod back
+    -- on later can't overrule a set that left picks off on purpose (see toggle)
+    self._picksOffWith = nil
     local m = model()
     local go, goSet, cannot, seen = {}, {}, {}, {}
     if not m then return go, cannot end

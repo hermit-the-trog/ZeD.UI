@@ -176,6 +176,21 @@ do
     s:onShow()
     s:toggle(m.mods.ZeD_UI)
     check("a new visit forgets which mod took picks off", not m.mods.ZeD_Picks.isActive)
+    -- a set changed at once in between (here a profile with ZeD-GUI on and picks off): its choice stands
+    m, s = setup({ "ZeD_UI", "ZeD_Picks" })
+    s:onShow()
+    s:toggle(m.mods.ZeD_UI)
+    s:applyOnSet({ ZeD_UI = true }, true)
+    check("the set put ZeD-GUI on and left picks off", m.mods.ZeD_UI.isActive and not m.mods.ZeD_Picks.isActive)
+    s:toggle(m.mods.ZeD_UI)
+    s:toggle(m.mods.ZeD_UI)
+    check("after a set change, ZeD-GUI off and on leaves picks off", not m.mods.ZeD_Picks.isActive)
+    -- Turn all on (no applyOnSet, straight to the batch) forgets too
+    m, s = setup({ "ZeD_UI", "ZeD_Picks", "Other" })
+    s:onShow()
+    s:toggle(m.mods.ZeD_UI)
+    s:modsOnBatch({ "ZeD_UI" })
+    check("a batch forgets which mod took picks off", s._picksOffWith == nil)
     -- other mods keep vanilla's rule: a dependant stays off
     m, s = setup({ "Other", "Needs_Other" })
     s:onShow()
