@@ -2788,6 +2788,8 @@ item says so.
     Ranch page has no tab icons and no footer, the Admin bug again, since f59ffdc8 (beta 5 and 6). ZeD_WorldWindow.lua:4152
     clears extra clips for added tabs only. Picture: qa/animals_ranch_rail_deck_20261106.jpg.
 
+97. **After the beta 6a hot fix: what the outside review left (Build, Nov 6 2026).** All of 96 went in on main at a60c4472 except these. Too big for a hot fix: split-screen positioning and per-player server state; Death then Restart on ZeD's own windows; the getTextManager proxy. Narrowed: the Steam ID check still lets about 15 neighbors through. Code nothing calls: formatWeaponMeta and formatFluidMeta in ContextMenuRegistry. Small follow-ups: the Character window has coverClear and no drain, so Journal > Recipes under a card may lose its list; send every correctAndSaveModOrder through one filtered helper (Undo changes and Load after throw with an uninstalled mod listed, as in beta 6); clear KillTracker deadLog once a weapon kill counts, as a reused zombie can read as a fire kill; RADIAL_WHEELS_SPEC.md line 58 needs the centered start for Hold with Flick-release. Second-player checks are in the merge note to QA.
+
 ## Test process
 
 - **QA, Nov 2 2026, the t16 pre-upload pass (the mod code at 361d0b6; nothing in 42/ changed after it).** Full 4K
