@@ -266,7 +266,7 @@ def rusty_rifle(d):
     flap = Mask(d.W, d.H).poly([(x0 + 10, 12), (x1 - 10, 12), (x1 - 16, 5), (x0 + 16, 5)]).get()
     d.ramp_h(flap, 3, 4, axis="y", mat="l", polish=0.3)
     d.seam(Mask(d.W, d.H).rect(x0 + 10, 12, x1 - x0 - 20, 1).get(), 0.3)                    # the flap's fold
-    for t, y, font, sc in (("30-30 WIN", 17, "57", 1), ("150 GR", 27, "35", 1), ("20 CENTERFIRE", 34, "35", 1)):
+    for t, y, font, sc in (("30-30", 17, "57", 1), ("150 GR", 27, "35", 1), ("20 CENTERFIRE", 34, "35", 1)):
         d.paint(type_at(d, t, 62, y, font, scale=sc), "p")
     d.paint(Mask(d.W, d.H).rect(x0 + 8, 42, x1 - x0 - 16, 1).get(), "p")
     # the rounds: brass cases, a shoulder and neck, the copper bullet, its soft lead tip
@@ -495,84 +495,112 @@ def plugged_in_electrics(d):
         d.slab(Mask(d.W, d.H).rrect(fx - 6, 101, 12, 7, 2).get(), 9, "k", bevel=2, polish=0.4)
 
 
-def book(d, cx, cy, L, Wd, T, ang, front="spine", cover="d", title=None, title_mat="pw"):
-    """a hardback lying flat, turned `ang` in the table's plane: its top seen from a little above (its depth by VIEW),
-    the face toward us (the spine, or the page edges between the boards) and the end that turns toward us. cy is the
-    screen y of its middle at its foot. Returns (top, front, end) masks and the front's corners"""
+def book(d, cx, cy, L, Wd, T, ang, front="spine", cover="d", title=None, title_mat="pw", under=None):
+    """a hardback lying flat, turned `ang` in the table's plane, each face a clean flat plane in its own tone (review,
+    Nov 7: the ends read notchy): its top seen from a little above (its depth by VIEW), the face toward us (the rounded
+    spine, or the page edges between the boards) and the end that turns toward us. cy is the screen y of its middle at
+    its foot. `under`: the books already drawn below it, to ink the edge between and lay this one's shadow on them.
+    Returns (top, front, end, all) masks, the front's corners and the placer P(a, b, h)"""
     ca, sa = math.cos(ang), math.sin(ang)
     def P(a, b, h):                                                       # a: along it, b: toward us, h: up
         return (cx + a * ca - b * sa, cy + (a * sa + b * ca) * VIEW - h)
     a0, a1, b1 = -L / 2, L / 2, Wd / 2
+    aE = a1 if sa > 0 else a0                                             # the end that turns toward us
     frontp = [P(a0, b1, 0), P(a1, b1, 0), P(a1, b1, T), P(a0, b1, T)]
-    endp = [P(a1, b1, 0), P(a1, -b1, 0), P(a1, -b1, T), P(a1, b1, T)] if sa > 0 else \
-           [P(a0, -b1, 0), P(a0, b1, 0), P(a0, b1, T), P(a0, -b1, T)]
+    endp = [P(aE, b1, 0), P(aE, -b1, 0), P(aE, -b1, T), P(aE, b1, T)]
     topp = [P(a0, -b1, T), P(a1, -b1, T), P(a1, b1, T), P(a0, b1, T)]
-    top = Mask(d.W, d.H).poly(topp).get(); fr = Mask(d.W, d.H).poly(frontp).get(); en = Mask(d.W, d.H).poly(endp).get()
-    zb = 20.0
-    d.ramp_h(en, zb - 2, zb - 6, axis="x", mat="w" if front == "spine" else "w", polish=0.2) if sa > 0 else \
-        d.ramp_h(en, zb - 6, zb - 2, axis="x", mat="w", polish=0.2)
-    d.ramp_h(top, zb - 5, zb, axis="y", mat=cover, polish=0.35)
-    d.dark[en | top | fr] = 0
-    # the page block's lines on the end, between its boards
-    def lines_on(mask, pts, n, mat_board):
-        (x0, y0), (x1, y1), (x2, y2), (x3, y3) = pts                     # bottom l, bottom r, top r, top l
-        for k in range(n + 1):
-            h = k / n
-            q0 = (x0 + (x3 - x0) * h, y0 + (y3 - y0) * h); q1 = (x1 + (x2 - x1) * h, y1 + (y2 - y1) * h)
-            if k in (0, n):
-                d.paint(Mask(d.W, d.H).line([q0, q1], 1.6).get() & mask, mat_board)
-            elif k % 2 == 0:
-                d.seam(Mask(d.W, d.H).line([q0, q1], 0.7).get() & mask, 0.10)
-    lines_on(en, [endp[0], endp[1], endp[2], endp[3]], max(4, int(T // 2)), cover)
+    M = lambda pts: Mask(d.W, d.H).poly(pts).get()
+    top, fr, en = M(topp), M(frontp), M(endp)
+    fr &= ~top; en &= ~(top | fr)
+    allm = top | fr | en
+    X = d.XX + 0.5; Y = d.YY + 0.5
+
+    def tone(m, mat, k):                                                  # flat-lit, ramp step k (0 dark .. 7 light)
+        d.h[m] = 0; d.mat[m] = d.mid(mat); d.solid |= m; d.polish[m] = 0; d.tex[m] = 0
+        d.flatlight |= m; d.noshadow |= m; d.dark[m] = 0.52 - k / 7.0
+
+    def across(p_lo0, p_lo1, p_hi):
+        """0 on the line p_lo0 -> p_lo1 (a face's bottom edge) .. 1 at p_hi (on its top edge), straight across"""
+        (x0, y0), (x1, y1), (x2, y2) = p_lo0, p_lo1, p_hi
+        ex, ey = x1 - x0, y1 - y0; n = math.hypot(ex, ey); ex, ey = ex / n, ey / n
+        nx, ny = -ey, ex
+        if (x2 - x0) * nx + (y2 - y0) * ny < 0: nx, ny = -nx, -ny
+        full = (x2 - x0) * nx + (y2 - y0) * ny
+        return ((X - x0) * nx + (Y - y0) * ny) / full
+
+    def pages(m, t, thick, base):
+        """a page block between two boards: the boards a line of the cover each, the pages' fine lines between"""
+        tone(m, "w", base)
+        board = m & ((t < 1.5 / thick) | (t > 1 - 1.5 / thick))
+        tone(board, cover, 4 if base >= 5 else 3)
+        for k in range(1, int(thick // 2)):
+            tone(m & ~board & (np.abs(t - k * 2.0 / thick) < 0.5 / thick), "w", base - 2)
+
+    # the top board: lit from above, its edge toward us a step lighter
+    tone(top, cover, 5)
+    tone(top & (across(topp[3], topp[2], topp[0]) < 0.07), cover, 6)
+    # the end toward us: the page block, in shade
+    pages(en, across(endp[0], endp[1], endp[3]), T, 3)
     if front == "spine":
-        # the spine, rounded: lit along its top, in shade below; the bands near its ends; the title stamped on it
-        (x0, y0), (x1, y1) = frontp[0], frontp[1]
-        mid_y = lambda X_: y0 + (y1 - y0) * (X_ - x0) / (x1 - x0)
-        tt = (d.YY + 0.5 - (mid_y(d.XX + 0.5) - T / 2)) / (T / 2)
-        hh = zb - 4 + np.sqrt(np.clip(1 - tt ** 2, 0, 1)) * 4
-        d.h = np.where(fr, hh, d.h).astype(np.float32)
-        d.mat[fr] = d.mid(cover); d.solid |= fr; d.polish[fr] = 0.5; d.tex[fr] = 0
-        for a in (a0 + 7, a0 + 9, a1 - 9, a1 - 7):
-            p, q = P(a, b1, 1), P(a, b1, T - 1)
+        # the spine, rounded: in shade along its foot, lit along its top, in clean bands along its length
+        t = across(frontp[0], frontp[1], frontp[3])
+        for lo_, hi_, k in ((-1, 0.1, 2), (0.1, 0.3, 3), (0.3, 0.55, 4), (0.55, 0.82, 5), (0.82, 2, 6)):
+            tone(fr & (t >= lo_) & (t < hi_), cover, k)
+        # the bands near its ends and the title stamped on it
+        for aa in (a0 + 7, a0 + 9, a1 - 9, a1 - 7):
+            p, q = P(aa, b1, 1.5), P(aa, b1, T - 1.5)
             d.paint(Mask(d.W, d.H).line([p, q], 0.9).get() & fr, title_mat)
         if title:
             mx, my = P(0, b1, T / 2 + 2.5)
             g = type_at(d, title, int(round(mx)), int(round(my)), "35")
-            d.paint(on_plane(g, int(mx), L, (y1 - y0)) & fr, title_mat)
+            d.paint(on_plane(g, int(mx), L * ca, L * sa * VIEW) & fr, title_mat)
     else:
-        # the page edges toward us, between the boards (the boards a hair proud)
-        d.ramp_h(fr, zb - 3, zb - 3, axis="y", mat="w", polish=0.2)
-        lines_on(fr, frontp, max(4, int(T // 2)), cover)
-    return top, fr, en, frontp, P
+        pages(fr, across(frontp[0], frontp[1], frontp[3]), T, 5)
+    if under is not None:
+        # the edge between this book and the ones below: inked; its shadow a step down on what shows below it
+        ring = np.zeros_like(allm)
+        ring[1:, :] |= allm[:-1, :]; ring[:-1, :] |= allm[1:, :]; ring[:, 1:] |= allm[:, :-1]; ring[:, :-1] |= allm[:, 1:]
+        ring &= under & ~allm
+        sh = np.zeros_like(allm)
+        for k in (2, 3):
+            sh[k:, :] |= allm[:-k, :]
+        sh[:, 1:] |= sh[:, :-1].copy()                                     # the light from up and a little left
+        sh &= under & ~allm & ~ring
+        d.dark[sh] += 2 / 7.0
+        tone(ring, "p", 0)
+    return top, fr, en, allm, frontp, P
 
 
 @mine(136, 92)
 def worm_of_books(d):
-    # three hardbacks stacked flat, each a little askew: the two below with their spines toward us and their titles,
-    # the top one with its page edges toward us; the top cover's stamped rule in its own plane; the top book's pale
-    # ribbon marker out from between its pages and hanging down over the spines below
+    # three hardbacks stacked flat, each turned its own way so the stack sits plainly askew: the two below with their
+    # spines toward us and their titles, the top one with its page edges toward us; the top cover's stamped rule in its
+    # own plane; the top book's pale ribbon marker out from between its pages and hanging down over the spines below
     X = d.XX + 0.5; Y = d.YY + 0.5
-    base = 80
-    book(d, 66, base, 108, 70, 15, math.radians(-2.0), front="spine", cover="m", title="FIRST AID", title_mat="p")
-    book(d, 64, base - 15, 100, 66, 15, math.radians(3.5), front="spine", cover="d", title="WESTERNS", title_mat="pw")
-    L3, W3, T3, a3, c3, y3 = 92, 60, 13, math.radians(-4.0), 69, base - 30
-    top, fr, en, fp, P = book(d, c3, y3, L3, W3, T3, a3, front="pages", cover="k")
+    base = 82
+    b1m = book(d, 64, base, 104, 66, 15, math.radians(-6.0), front="spine", cover="m", title="FIRST AID",
+               title_mat="p")[3]
+    b2m = book(d, 70, base - 15, 96, 62, 15, math.radians(8.0), front="spine", cover="d", title="WESTERNS",
+               title_mat="pw", under=b1m)[3]
+    L3, W3, T3, a3, c3, y3 = 88, 58, 13, math.radians(-13.0), 63, base - 30
+    top, fr, en, b3m, fp, P = book(d, c3, y3, L3, W3, T3, a3, front="pages", cover="k", under=b1m | b2m)
     # the stamped rule round the top cover, laid in the cover's plane (a line across the depth is 1/VIEW thick there)
     ca, sa = math.cos(a3), math.sin(a3)
     z = (Y + T3 - y3) / VIEW
     A = (X - c3) * ca + z * sa; B = -(X - c3) * sa + z * ca
     ia, ib = L3 / 2 - 6, W3 / 2 - 6 / VIEW * 0.45
     rule = ((np.abs(np.abs(A) - ia) < 0.6) & (np.abs(B) <= ib)) | ((np.abs(np.abs(B) - ib) < 0.6 / VIEW) & (np.abs(A) <= ia))
-    d.paint(rule & top, "m")
+    rule &= top
+    d.mat[rule] = d.mid("m"); d.dark[rule] = 0.52 - 3 / 7.0
     # the ribbon: out from between the top book's pages, down the spines below, its tail cut in a V
-    (rx0, ry0) = P(24, W3 / 2, T3 / 2)
-    yb = base + 8
+    (rx0, ry0) = P(20, W3 / 2, T3 / 2)
+    yb = base + 7
     rib = Mask(d.W, d.H).poly([(rx0 - 2, ry0), (rx0 + 2, ry0), (rx0 + 2.6, yb), (rx0 + 0.3, yb - 3), (rx0 - 2, yb + 0.5)]).get()
-    d.h = np.where(rib, 22, d.h).astype(np.float32)
-    d.mat[rib] = d.mid("l"); d.solid |= rib; d.polish[rib] = 0.9; d.tex[rib] = 0; d.dark[rib] = 0
+    d.h[rib] = 0; d.mat[rib] = d.mid("l"); d.solid |= rib; d.polish[rib] = 0; d.tex[rib] = 0
+    d.flatlight |= rib; d.noshadow |= rib; d.dark[rib] = 0.52 - 6 / 7.0
     edge = rib & ~Mask(d.W, d.H).poly([(rx0 - 1, ry0), (rx0 + 1, ry0), (rx0 + 1.6, yb - 1), (rx0 - 1, yb - 1)]).get()
-    d.dark[edge & (Y > ry0 + 1)] = 0.45
-    d.seam(Mask(d.W, d.H).line([(rx0 - 2, ry0 + 0.5), (rx0 + 2, ry0 + 0.5)], 1).get(), 0.4)
+    d.dark[edge & (Y > ry0 + 1)] = 0.52 - 3 / 7.0
+    d.dark[Mask(d.W, d.H).line([(rx0 - 2, ry0 + 0.5), (rx0 + 2, ry0 + 0.5)], 1).get() & rib] = 0.52 - 2 / 7.0
 
 
 if __name__ == "__main__":
