@@ -23,6 +23,7 @@ require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
 require "ZeD/Tr"
 require "ZeD/ZeD_HairBeard"
+require "ZeD/KillTracker"
 
 ZeD = ZeD or {}
 ZeD.IdentityTab = {}
@@ -405,7 +406,7 @@ function ZeD.IdentityTab.gatherData(playerObj)
         data.bodyHair   = getBodyHairName(playerObj)
         data.facialHair = getBeardStyleName(playerObj)
         data.hairColor  = getHairColorName(playerObj)
-        data.zKills     = tostring(playerObj:getZombieKills())
+        data.zKills     = tostring(ZeD.KillTracker.total(playerObj))   -- the Journal's total, fire kills in
         data.favWeapon  = getFavouriteWeapon(playerObj)
         data.dlNo       = dlNumber(data.surname, data.forename)
         data.issStr, data.expStr = licenseDates()

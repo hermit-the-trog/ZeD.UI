@@ -23,6 +23,8 @@
 --
 -- The game's own count (getZombieKills) takes weapon, vehicle and explosion kills
 -- already; a fire death clears the attacker, so only fire kills are missing from it.
+-- ZeD.KillTracker.total(player) is that count plus the fire kills: the one total the
+-- Identity tab, the Journal and the death record all show.
 -- ============================================================================
 
 ZeD = ZeD or {}
@@ -35,7 +37,7 @@ ZeD.KillTracker = {}
 local STALE_TIMEOUT   = 20000  -- 20s max memory for hit/death tracking
 local CLEANUP_EVERY   = 300    -- clean stale entries every 300 frames (~5s at 60fps)
 local BOMB_HOLD       = 250    -- ms a bomb's hit outranks a plain hit on the same zombie
-local KILLS_VERSION   = 2      -- ZeD_Kills.v: 2 = old explosion counts moved to Other
+local KILLS_VERSION   = 2      -- ZeD_Kills.v: 2 = an older table's rows rebuilt from the game's count
 
 -- ============================================================================
 -- TRANSIENT STATE (not saved — rebuilt each session)
@@ -129,15 +131,38 @@ local function mayBeFireDeath(zombie)
     return true
 end
 
+--- The game's own kill count (getZombieKills), or nil when it cannot be read.
+local function gameKills(playerObj)
+    if not playerObj then return nil end
+    local ok, n = pcall(function() return playerObj:getZombieKills() end)
+    return ok and tonumber(n) or nil
+end
+
 --- One-time fix for kill tables saved before KILLS_VERSION.
--- The old explosion test passed any weapon with no timer, sensor or remote, so
--- nearly every weapon kill went under explosion. The real weapon cannot be told
--- now, so those kills move to Other; the Journal's rows still add up the same.
-local function migrateKillData(kd)
+-- Up to beta 6 the weapon and explosion rows counted hits, not kills (OnWeaponHitXp
+-- fires on every hit), and bombs never reached them. Beta 6a counted kills, but its
+-- explosion test passed any weapon with no timer, sensor or remote, so a bat, a gun
+-- and a thrown pipe bomb all went under explosion, and a timed bomb under Other.
+-- The table keeps only the sums, so no kill's weapon can be told now. The game's own
+-- count is exact for every kill but fire, so the rows are rebuilt from it: fire stays,
+-- vehicle stays (no more than the game's count, which holds car kills), and the rest
+-- of the game's count goes under Other. The rows then add up to the total.
+-- A count that cannot be read keeps the old sums, moved to Other. A count of 0 under
+-- old rows may not have arrived yet (a server's player): the fix waits for the next call.
+local function migrateKillData(kd, playerObj)
     if kd.v == KILLS_VERSION then return end
-    local old = kd.explosion or 0
-    if old > 0 then
-        kd.weapon.Other = (kd.weapon.Other or 0) + old
+    local game = gameKills(playerObj)
+    if game == nil then
+        local old = kd.explosion or 0
+        if old > 0 then kd.weapon.Other = (kd.weapon.Other or 0) + old end
+    else
+        local had = (kd.explosion or 0) + (kd.vehicle or 0)
+        for _, n in pairs(kd.weapon) do had = had + (tonumber(n) or 0) end
+        if game <= 0 and had > 0 then return end
+        local veh = math.min(math.max(kd.vehicle or 0, 0), game)
+        kd.vehicle = veh
+        kd.weapon = {}
+        if game - veh > 0 then kd.weapon.Other = game - veh end
     end
     kd.explosion = 0
     kd.v = KILLS_VERSION
@@ -158,8 +183,24 @@ local function getKillData(playerObj)
     if not md.ZeD_Kills.weapon then
         md.ZeD_Kills.weapon = {}
     end
-    migrateKillData(md.ZeD_Kills)
+    migrateKillData(md.ZeD_Kills, playerObj)
     return md.ZeD_Kills
+end
+
+--- The character's whole zombie kill count: the game's own count, which leaves out
+-- only fire kills (the burn clears the attacker), plus the fire kills counted here.
+-- The Identity tab, the Journal and the death record all show this one number.
+function ZeD.KillTracker.total(playerObj)
+    local n = gameKills(playerObj) or 0
+    local md = playerObj and playerObj.getModData and playerObj:getModData()
+    local zk = md and md.ZeD_Kills
+    return n + ((zk and tonumber(zk.fire)) or 0)
+end
+
+--- The character's kill table, made if missing and fixed if old (QA and sims).
+function ZeD.KillTracker.data(playerObj)
+    if not playerObj then return nil end
+    return getKillData(playerObj)
 end
 
 --- Add a logged hit to the tally, or take it back off (delta -1).

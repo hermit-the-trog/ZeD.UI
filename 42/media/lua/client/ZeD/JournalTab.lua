@@ -18,6 +18,7 @@ require "ZeD/Molecules"
 require "ZeD/CraftingCore"
 require "ZeD/ZeD_JournalReaders"
 require "ZeD/ZeD_JournalLists"
+require "ZeD/KillTracker"
 
 ZeD = ZeD or {}
 ZeD.JournalTab = {}
@@ -365,7 +366,6 @@ end
 
 function ZeD.JournalTab.gatherData(playerObj)
     local survived = playerObj:getTimeSurvived() or "Unknown"
-    local zombieKills = playerObj:getZombieKills() or 0
 
     local md = playerObj:getModData()
     local fireKills = 0
@@ -393,7 +393,8 @@ function ZeD.JournalTab.gatherData(playerObj)
     -- The game's count already takes weapon, vehicle and explosion kills (it adds one
     -- to the attacker in hitConsequences and onHitByVehicleApplyDamage). A fire death
     -- clears the attacker first, so fire kills are the only ones it leaves out.
-    local totalKills = zombieKills + fireKills
+    -- KillTracker adds them, for the Identity tab and the death record too.
+    local totalKills = ZeD.KillTracker.total(playerObj)
 
     local journalEntries = {}
     if md and md.ZeD_Journal and md.ZeD_Journal.entries then
