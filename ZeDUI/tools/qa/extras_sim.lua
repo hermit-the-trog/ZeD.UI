@@ -133,6 +133,15 @@ local function newVehicle(id, sql, x, y, script)
         return { getName = function() return name end, getCarModelName = function() return nil end }
     end
     function v.getDriver(self) touch(); return self.driver end
+    -- (BaseVehicle.getMaxPassengers, getCharacter(int): the seats, the driver's 0; nothing but a number takes)
+    v.seats = {}
+    function v.getMaxPassengers(self) touch(); return 4 end
+    function v.getCharacter(self, i)
+        touch()
+        if type(i) ~= "number" then error("No implementation found: getCharacter") end
+        if i == 0 then return self.driver end
+        return self.seats[i]
+    end
     function v.isDriver(self, chr) touch(); return self.driver == chr end
     function v.isBurnt(self) touch(); return self.burnt end
     function v.isEngineRunning(self) touch(); return self.running end
@@ -1432,33 +1441,87 @@ do
     v.md.Roadworthy = rw                               -- (a key another mod keeps only on the server's copy)
     local keep = others(v.md)
     W.logs = {}
+    -- what each client hears on the dash's module: the figures to the car's other seats (DP.FIG)
+    local heard = {}
+    for _, cl in ipairs({ ca, co, cb }) do
+        local who = cl.p.name
+        cl.env.ZeD.ServerPart.on(cl.env.ZeD.DashProto.MOD, function(command, a) heard[#heard + 1] = { who = who, command = command, a = a } end)
+    end
+    local function figsTo(who)
+        local n, last = 0, nil
+        for _, h in ipairs(heard) do if h.who == who and h.command == "fig" then n, last = n + 1, h.a end end
+        return n, last
+    end
     o.vehicle, v.driver = v, o
-    odoSend(co, { veh = 7, odo = 41000.1, trip = 0.1, show = false })
+    b.vehicle, v.seats[1] = v, b                       -- (a passenger: the only other player who sees this dash)
+    v.running = true
+    odoSend(co, { veh = 7, odo = 41000.1, trip = 0.1, show = false, save = true })
     check("the driver's command: the odometer written", v.md.ZeD_odo == 41000.1 and v.md.ZeD_trip == 0.1 and v.md.ZeD_odoTrip == false)
-    check("sent out from the server", v.transmits == 1, v.transmits)
+    check("a first mileage: sent out from the server", v.transmits == 1, v.transmits)
     check("the claim's stamp stays", v.md.ZeDClaim == c.tok)
     check("the other mod's key stays, the same table", v.md.Roadworthy == rw and rw.odo == 812.4)
     check("nothing but the three keys changed", sameRows(keep, others(v.md)))
+    local nb, fb = figsTo("Kade")
+    check("the passenger gets the figures", nb == 1 and fb.veh == 7 and fb.odo == 41000.1 and fb.trip == 0.1 and fb.show == false, nb)
+    check("only the three figures and the car", fb and fb.Roadworthy == nil and fb.ZeDClaim == nil and fb.save == nil)
+    check("the driver gets no figures back", figsTo("Aretha") == 0, figsTo("Aretha"))
+    check("someone not in the car gets none", figsTo("Hermit") == 0, figsTo("Hermit"))
     for i = 2, 5 do
-        odoSend(co, { veh = 7, odo = 41000 + i / 10, trip = i / 10, show = false })
+        odoSend(co, { veh = 7, odo = 41000 + i / 10, trip = i / 10, show = false, save = false })
         check("driving, send " .. i .. ": written, the stamp and the other key stay",
             v.md.ZeD_odo == 41000 + i / 10 and v.md.ZeDClaim == c.tok and v.md.Roadworthy == rw)
     end
+    check("driving: no transmitModData every tenth of a mile", v.transmits == 1, v.transmits)
+    nb, fb = figsTo("Kade")
+    check("driving: the passenger gets each tenth", nb == 5 and fb.odo == 41000.5 and fb.trip == 0.5, nb)
+    check("driving: still nothing to the driver or the bystander", figsTo("Aretha") == 0 and figsTo("Hermit") == 0)
     local n = v.transmits
     odoSend(co, { veh = 7, odo = 41000.5, trip = 0.5, show = false })
-    check("the same figures again: nothing to send out", v.transmits == n, v.transmits - n)
-    -- the switch and a reset
-    odoSend(co, { veh = 7, odo = 41000.5, trip = 0.5, show = true })
-    check("the window's switch", v.md.ZeD_odoTrip == true and v.transmits == n + 1)
-    odoSend(co, { veh = 7, odo = 41000.5, trip = 0, show = true })
-    check("a trip reset", v.md.ZeD_trip == 0 and v.md.ZeD_odo == 41000.5)
+    check("the same figures again: nothing to send out", v.transmits == n and figsTo("Kade") == 5, v.transmits - n)
+    -- the switch and a reset: presses, sent out
+    odoSend(co, { veh = 7, odo = 41000.5, trip = 0.5, show = true, save = true })
+    check("the window's switch: sent out", v.md.ZeD_odoTrip == true and v.transmits == n + 1, v.transmits - n)
+    nb, fb = figsTo("Kade")
+    check("and the passenger's window follows", nb == 6 and fb.show == true, nb)
+    odoSend(co, { veh = 7, odo = 41000.5, trip = 0, show = true, save = true })
+    check("a trip reset: sent out", v.md.ZeD_trip == 0 and v.md.ZeD_odo == 41000.5 and v.transmits == n + 2, v.transmits - n)
     odoSend(co, { veh = 7, odo = 41000.6, trip = 0.1, show = true })
-    check("and the trip counts on from 0", v.md.ZeD_trip == 0.1 and v.md.ZeD_odo == 41000.6)
+    check("and the trip counts on from 0, not sent out", v.md.ZeD_trip == 0.1 and v.md.ZeD_odo == 41000.6 and v.transmits == n + 2)
+    -- a press whose save flag was lost: the server sees the switch move itself
+    odoSend(co, { veh = 7, odo = 41000.6, trip = 0.1, show = false })
+    check("a switch with no save flag: sent out all the same", v.md.ZeD_odoTrip == false and v.transmits == n + 3, v.transmits - n)
+    odoSend(co, { veh = 7, odo = 41000.65, trip = 0.15, show = true, save = true })
     -- a reset whose command was lost, then the next send: the trip back down, no further than the miles since
     v.md.ZeD_trip = 5
+    n = v.transmits
     odoSend(co, { veh = 7, odo = 41000.7, trip = 0.05, show = true })
     check("a reset in between: taken", v.md.ZeD_trip == 0.05 and v.md.ZeD_odo == 41000.7)
+    check("and sent out (the trip went down)", v.transmits == n + 1, v.transmits - n)
+    -- the engine stops: the last miles, sent out; a second save with nothing new isn't
+    v.running = false
+    odoSend(co, { veh = 7, odo = 41000.72, trip = 0.07, show = true, save = true })
+    check("the engine off: sent out", v.md.ZeD_odo == 41000.72 and v.transmits == n + 2, v.transmits - n)
+    odoSend(co, { veh = 7, odo = 41000.72, trip = 0.07, show = true, save = true })
+    check("the same again: nothing new to send out", v.transmits == n + 2, v.transmits - n)
+    -- the car stopped with the engine on, figures taken; then the engine off with no new miles: what was taken goes out
+    v.running = true
+    odoSend(co, { veh = 7, odo = 41000.74, trip = 0.09, show = true })
+    check("a stop with the engine on: not sent out", v.transmits == n + 2, v.transmits - n)
+    v.running = false
+    odoSend(co, { veh = 7, odo = 41000.74, trip = 0.09, show = true, save = true })
+    check("the engine off, nothing new since: the taken figures go out", v.transmits == n + 3, v.transmits - n)
+    -- the engine off seen by the server, the flag lost
+    odoSend(co, { veh = 7, odo = 41000.75, trip = 0.1, show = true })
+    check("the engine off, no flag: the server sees it, sent out", v.transmits == n + 4, v.transmits - n)
+    v.running = true
+    b.vehicle, v.seats[1] = nil, nil
+    nb = figsTo("Kade")
+    odoSend(co, { veh = 7, odo = 41000.76, trip = 0.11, show = true })
+    check("out of the car: the old passenger hears no more", figsTo("Kade") == nb, figsTo("Kade") - nb)
     check("no bad-arguments line for any of it", not logHas("bad arguments"))
+    odoSend(co, { veh = 7, odo = 41000.8, trip = 0.15, show = true, save = "yes" })
+    check("junk: the save flag not a boolean", v.md.ZeD_odo == 41000.76 and logHas("bad arguments"))
+    W.logs = {}
 
     -- refused: the odometer going back, a trip going further than the odometer, or down further than a reset allows
     local function refused(args, name)
@@ -1475,13 +1538,13 @@ do
     refused({ veh = 7, odo = 41000.2, trip = 0.05, show = true }, "the odometer never goes back")
     local s1 = syncs[1]
     check("the driver refused as behind: the server's figures go back to them", #syncs == 1 and s1.command == "sync"
-        and s1.a.veh == 7 and s1.a.odo == 41000.7 and s1.a.trip == 0.05 and s1.a.sent == 41000.2, #syncs)
+        and s1.a.veh == 7 and s1.a.odo == 41000.76 and s1.a.trip == 0.11 and s1.a.sent == 41000.2, #syncs)
     refused({ veh = 7, odo = 41000.8, trip = 3, show = true }, "the trip can't count more than the odometer did")
     local s2 = syncs[2]
-    check("a trip the server can't take: its figures go back too", #syncs == 2 and s2.a.odo == 41000.7
-        and s2.a.trip == 0.05 and s2.a.sent == 41000.8, #syncs)
+    check("a trip the server can't take: its figures go back too", #syncs == 2 and s2.a.odo == 41000.76
+        and s2.a.trip == 0.11 and s2.a.sent == 41000.8, #syncs)
     -- the driver's next send from the server's figures (ZeD_Dashboard:_odoSync: the trip from the server's, plus the miles)
-    odoSend(co, { veh = 7, odo = 41000.9, trip = 0.05 + (41000.9 - 41000.7), show = true })
+    odoSend(co, { veh = 7, odo = 41000.9, trip = 0.11 + (41000.9 - 41000.76), show = true })
     check("the send after that answer is taken", v.md.ZeD_odo == 41000.9 and math.abs(v.md.ZeD_trip - 0.25) < 1e-6, v.md.ZeD_trip)
     check("no answer for a send that's taken", #syncs == 2, #syncs)
     -- someone not at the wheel is refused without an answer
@@ -1510,20 +1573,24 @@ do
     local v = newVehicle(7, 4021, 102, 100)
     v.md.Roadworthy = { odo = 3 }
     o.vehicle, v.driver = v, o
+    v.running = true                                   -- (the engine on: only a coarse moment sends the car out)
     odoSend(co, { veh = 7, odo = 500.1, trip = 0.1, show = false })
     check("the driver's first send", v.md.ZeD_odo == 500.1)
+    odoSend(co, { veh = 7, odo = 500.15, trip = 0.15, show = false })
     local n = v.transmits
+    check("a first mileage sent out, the next tenth not", n == 1, n)
     -- someone standing by, and a passenger
     odoSend(cb, { veh = 7, odo = 900, trip = 0.2, show = true })
-    check("someone not in the car: refused", v.md.ZeD_odo == 500.1 and v.transmits == n)
+    check("someone not in the car: refused", v.md.ZeD_odo == 500.15 and v.transmits == n)
     b.vehicle = v
     odoSend(cb, { veh = 7, odo = 900, trip = 0.2, show = true })
-    check("a passenger: refused", v.md.ZeD_odo == 500.1 and v.md.ZeD_odoTrip == false and v.transmits == n)
+    check("a passenger: refused", v.md.ZeD_odo == 500.15 and v.md.ZeD_odoTrip == false and v.transmits == n)
     b.vehicle = nil
     -- the driver gets out; the game's exit lands first, the dash's last send just after
     o.vehicle, v.driver = nil, nil
     odoSend(co, { veh = 7, odo = 500.17, trip = 0.17, show = false })
-    check("the driver's last send just after getting out: taken", v.md.ZeD_odo == 500.17 and v.transmits == n + 1)
+    check("the driver's last send just after getting out: taken, and sent out (the driver left)",
+        v.md.ZeD_odo == 500.17 and v.transmits == n + 1, v.transmits - n)
     odoSend(cb, { veh = 7, odo = 900, trip = 0.2, show = true })
     check("but not from anyone else at the empty car", v.md.ZeD_odo == 500.17)
     advance(11000)
@@ -1554,6 +1621,31 @@ do
     odoSend(co, { veh = 7, odo = 123.4, trip = 0, show = false })
     check("the odometer works with every extra off", v.md.ZeD_odo == 123.4 and v.transmits == 1)
     check("no claim stamp is made", v.md.ZeDClaim == nil)
+end
+
+section("ZeD's own dash: a driver gone with figures not sent out")
+do
+    local a, o, b, ca, co, cb = claimsWorld()
+    local DPs = W.server.ZeD.DashProto
+    local at = DPs.PRUNE_AT
+    DPs.PRUNE_AT = 1                                   -- (the server forgets drivers past their grace at once)
+    local v = newVehicle(7, 4021, 102, 100)
+    local w = newVehicle(8, 4022, 104, 100)
+    v.running, w.running = true, true
+    o.vehicle, v.driver = v, o
+    odoSend(co, { veh = 7, odo = 700, trip = 0, show = false, save = true })
+    odoSend(co, { veh = 7, odo = 700.1, trip = 0.1, show = false })
+    check("a tenth taken, not sent out", v.md.ZeD_odo == 700.1 and v.transmits == 1, v.transmits)
+    -- the driver's connection drops: no coarse send ever comes
+    o.vehicle, v.driver = nil, nil
+    advance(11000)
+    b.vehicle, w.driver = w, b
+    odoSend(cb, { veh = 8, odo = 900, trip = 0, show = false, save = true })
+    check("forgotten past the grace: what was taken goes out", v.transmits == 2, v.transmits)
+    advance(11000)
+    odoSend(cb, { veh = 8, odo = 900.1, trip = 0.1, show = false })
+    check("and only once", v.transmits == 2, v.transmits)
+    DPs.PRUNE_AT = at
 end
 
 section("the list after a claim goes, and with every extra off")
