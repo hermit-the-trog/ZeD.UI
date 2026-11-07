@@ -84,7 +84,8 @@ local function formatFirearm(item)
     local cur,mx2 = safeGet(item,"getCurrentAmmoCount"),safeGet(item,"getMaxAmmo")
     if mx2 and mx2>0 then table.insert(s,{label="Ammo",value=(cur or 0).."/"..mx2}) end
     -- (getAmmoType is an AmmoType object, not a string: ammoOf reads it and finds the ammo's own name;
-    -- the label is the game's own "Ammo Type", translated in every language)
+    -- the label is the game's own "Ammo Type", translated in every language; its Title Case is
+    -- kept on purpose, since game wording wins and lowercasing would break German nouns)
     local _, an = ZeD.Atoms.ammoOf(item); if an then table.insert(s,{label=getText("ContextMenu_AmmoType"),value=an}) end
     return s
 end
