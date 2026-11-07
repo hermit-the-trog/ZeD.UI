@@ -1,0 +1,5 @@
+# every tab with data in it, the rail and footer (Nov 6 2026)
+zedqa_prelude.lua | pre
+zedqa_pin_windows.lua | pnw | timeout=60
+zedqa_animals.lua | an | timeout=60 | end=setup done
+zedqa_tab_sweep.lua | tsw | timeout=120
