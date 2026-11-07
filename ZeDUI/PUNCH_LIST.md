@@ -2925,4 +2925,6 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     read on the desk, replies sent on the next join). The director: "email back then, you would dial in to connect,
     to send and receive. So most of it was done offline." So joining a server is the dial-in: the outbox goes and the
     inbox comes on connect (a modem-style send/receive moment is the design's to decide); reading and writing are
-    offline on the desk.
+    offline on the desk. The notepad's name (the director, Nov 7): **CletusWorks**, after ClarisWorks (1991, the
+    all-in-one on every school Mac in 1993): the desktop icon reads CletusWorks with a page-with-writing picture, the
+    window title "CletusWorks Notepad", so the joke is there for those who know and the plain word for everyone.
