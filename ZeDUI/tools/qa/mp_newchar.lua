@@ -17,6 +17,18 @@ local function tick()
                     local w = MM.root[rv.field]
                     say("ZeD's " .. tostring(rv.view) .. ": Next")
                     pressed = pressed + 1
+                    -- (Nov 6 2026) the list sorts by language, and Next waits while the points are short: in German the first
+                    -- occupation may be one that costs. The one with the most points to spare, then Next.
+                    local pr = MainScreen and MainScreen.instance and MainScreen.instance.charCreationProfession
+                    if rv.view == "traits" and pr and pr:PointToSpend() < 0 then
+                        local best, bestI, bestC = nil, nil, -999
+                        for k, it in ipairs(pr.listboxProf.items) do
+                            local okc, c = pcall(function() return it.item:getCost() end)
+                            if okc and c and c > bestC then best, bestI, bestC = it.item, k, c end
+                        end
+                        say("points short " .. tostring(pr:PointToSpend()) .. ", occupation " .. tostring(bestI) .. " of cost " .. tostring(bestC))
+                        if best then pr.listboxProf.selected = bestI; pr:onSelectProf(best) end
+                    end
                     if w and w.play then w:play() elseif w and w.next then w:next() end
                     if rv.view == "looks" then Events.OnFETick.Remove(tick); say("DONE") end
                     return

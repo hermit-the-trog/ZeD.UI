@@ -478,3 +478,45 @@
 15:09:02 stopped PID 14764
 15:09:02 closed
 15:09:02 mp surfaces done
+15:18:00 spncc in game : zedqa_mods_run: ZeD-QA put back (its mod list is ZeD_UI only again)
+15:18:00 the copied mods taken out
+15:18:08 mods: ZeD_UI;ZeDQAShim
+15:18:08 started the server, PID 33996; waiting for it to be ready
+15:18:42 ready after 34 s
+15:23:09 lang_DE : 0/5 pass, 0 warn, 0 fail, 0 timeout, 5 not run -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_lang_DE.md
+15:23:09 stopped PID 33996
+15:23:09 closed
+15:23:09 german cards done
+15:23:10 staged: 
+15:23:45 release check: 0/3 pass, 0 warn, 0 fail, 0 timeout, 3 not run -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-06_beta6_release_check_staged.md | no report at C:\Users\you\Zomboid\mods\ZeD-UI\C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-06_beta6_release_check_staged.md
+15:23:45 stage done, bridge out
+15:24:15 dash odo : 0/8 pass, 0 warn, 0 fail, 0 timeout, 8 not run -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qaegression6-11-06_dash_odo.md
+15:42:59 gallery pinned : 37/38 pass, 1 warn, 0 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-06_gallery_b6b.md
+15:42:59 the staged copy is back
+15:58:29 dash odo : 8/8 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-06_dash_odo.md
+15:58:51 mods: ZeD_UI;ZeDQAShim
+15:58:51 started the server, PID 31380; waiting for it to be ready
+15:59:23 ready after 32 s
+16:05:45 lang_DE : 4/5 pass, 1 warn, 0 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_lang_DE.md
+16:05:45 stopped PID 31380
+16:05:45 closed
+16:05:45 german cards done
+16:05:53 mods: ZeD_UI;ZeDQAShim
+16:05:53 started the server, PID 31020; waiting for it to be ready
+16:06:25 ready after 32 s
+16:09:35 mps_b6 : 2/3 pass, 0 warn, 1 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_mps_b6.md
+16:09:35 stopped PID 31020
+16:09:35 closed
+16:09:35 mp surfaces done
+16:09:48 staged: REFUSED: -Description: C:\Users\you\Zomboid\mods\ZeD-UI\C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\workshop\tester_description_0.3.0-beta6.bbcode not found
+16:10:46 release check: 0/3 pass, 0 warn, 1 fail, 0 timeout, 2 not run -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-06_beta6_release_check_staged.md | no report at C:\Users\you\Zomboid\mods\ZeD-UI\C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-06_beta6_release_check_staged.md
+16:10:46 stage done, bridge out
+16:10:52 staged: WARNING: The staged copy now shadows the dev mod in the game: remove C:/Users/you/Zomboid/Workshop/ZeD-UI/Contents after the upload, or the game loads the staged copy.
+16:12:41 release check: 3/3 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-06_beta6_release_check_staged.md | no report at C:\Users\you\Zomboid\mods\ZeD-UI\C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-06_beta6_release_check_staged.md
+16:12:41 stage done, bridge out
+16:17:55 mods: ZeD_UI;ZeDQAShim
+16:17:55 started the server, PID 15272; waiting for it to be ready
+16:18:28 ready after 32 s
+16:20:53 rail : 3/3 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-05_rail.md
+16:20:53 stopped PID 15272
+16:20:53 closed

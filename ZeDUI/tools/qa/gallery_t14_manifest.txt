@@ -8,6 +8,7 @@
 #
 # -- the look first: Debug menu, position readout and left-edge column off; Dark + Orange in the options; still-waits on
 zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
 gallery_t14_look.lua | g14l | timeout=60
 gallery_daylight.lua | day | timeout=120
 #

@@ -16,10 +16,10 @@
     ]
    },
    {
-    "p": "Next to a car, the *Vehicle* tab of the *World* window shows its parts in two columns. On the left, the parts by section, each with its condition; on the right, the car seen from above, every part in its condition colour."
+    "p": "Next to a car, the *Vehicle* tab of the *World* window shows its parts in two columns. On the left, the parts by section, each with its condition; on the right, the car seen from above, every part in its condition color."
    },
    {
-    "p": "Point at a part in the list and it lights on the car, with an outline, so the highlight never rests on colour alone. Point at a part on the car and its row is marked in the list. Click either one to open the part's card."
+    "p": "Point at a part in the list and it lights on the car, with an outline, so the highlight never rests on color alone. Point at a part on the car and its row is marked in the list. Click either one to open the part's card."
    },
    {
     "at": 772
