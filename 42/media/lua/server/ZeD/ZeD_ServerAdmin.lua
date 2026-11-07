@@ -293,17 +293,22 @@ local function skillsCopy(list)
     return out
 end
 
--- what the server reads of a player: their profession, traits and skills, at the moment of asking
+-- what the server reads of a player: their profession, traits and skills, at the moment of asking.
+-- The names are in the server's language (a dedicated server's is English), so the ids go too: profId, traitIds (in
+-- step with traits) and each skill's id. The viewer's client looks the game's own names up from them in its language.
 local function readPlayer(o, all)
-    local out = { traits = {}, skills = {} }
+    local out = { traits = {}, traitIds = {}, skills = {} }
     local d = o:getDescriptor()
     local prof = d and d:getCharacterProfession()
     local def = prof and CharacterProfessionDefinition.getCharacterProfessionDefinition(prof)
-    if def then out.prof = def:getUIName() end
+    if def then out.prof, out.profId = def:getUIName(), tostring(prof) end   -- (tostring: "base:farmer")
     local known = o:getCharacterTraits():getKnownTraits()
     for i = 0, known:size() - 1 do
         local tr = CharacterTraitDefinition.getCharacterTraitDefinition(known:get(i))
-        if tr then out.traits[#out.traits + 1] = tr:getLabel() end
+        if tr then
+            out.traits[#out.traits + 1] = tr:getLabel()
+            out.traitIds[#out.traits] = tostring(known:get(i))
+        end
     end
     for i = 0, Perks.getMaxIndex() - 1 do
         local perk = Perks.fromIndex(i)
@@ -356,6 +361,7 @@ local function cardView(md, user, p)
     if o then
         local r = readPlayer(o, true)
         v.prof, v.traits, v.skills = r.prof, r.traits, r.skills
+        v.profId, v.traitIds = r.profId, r.traitIds
         v.role = roleName(o)
         if Adm.RANK_GUARD and rank(o:getRole()) > rank(p:getRole()) then
             v.hidden = true
@@ -365,6 +371,7 @@ local function cardView(md, user, p)
         end
     elseif rec then
         v.prof, v.traits, v.skills, v.role = rec.prof, listCopy(rec.traits), skillsCopy(rec.skills), rec.role
+        v.profId, v.traitIds = rec.profId, listCopy(rec.traitIds)   -- (nil and {} on a record kept before the ids were)
     end
     if Srv.ticketsOf and Srv.can(p, Srv.CAP_STAFF) then v.tickets, v.ticketN = Srv.ticketsOf(user, AL.TICKETS_ROWS) end
     local b = rowFor(md, user)
@@ -609,6 +616,7 @@ local function snap(md, o, user, now)
         rec.snapAt = now
         local r = readPlayer(o, false)
         rec.prof, rec.traits, rec.skills = r.prof, r.traits, r.skills
+        rec.profId, rec.traitIds = r.profId, r.traitIds
     end
 end
 
