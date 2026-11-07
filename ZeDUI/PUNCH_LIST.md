@@ -2777,14 +2777,16 @@ item says so.
     ServerTab.lua:285-316). The World window now clears it for added tabs; move the clear to the tabs themselves and find
     out why the Character window survives it.
 
-96. **After beta 6: an outside code review and in-game QA of beta 6 (a tester on 42.21 on a Mac, sent in by the director,
+96. **After beta 6: a code review and in-game QA of beta 6 (Claude on the director's Mac, on 42.21, another account,
     Nov 6 2026).** Every finding, with file, line, QA's check and a fix idea: qa/REVIEW_BETA6_EXTERNAL_20261106.md. QA read
-    the code and the 42.22.2 jar, no game run. Waiting on the director for what goes in which build. First in line: a
+    the code and the 42.22.2 jar, no game run. The director's order for the next build, Nov 6: the first seven below. A
     dedicated server throws a font exception about three times a second for as long as it runs (in our own server log);
     safehouse invitations vanish, as the game's safehouse id differs by machine; every armed hit logs a Lua error; muted
     players still talk with /all, /s, /y and /w; safe mode leaves invitations with no answer; clothing cards read 0%
     protection. "Others can't tow" works on 42.22.2 and fails on 42.21: the two-argument call suits both. Any fix must run
-    on both versions. Wheel RT: the director's ruling needed. Animals tab clip: one in-game look with animals in a pen.
+    on both versions. Wheel RT: the director is fine with it, no change. Animals tab, confirmed in game at 4K and Deck: the
+    Ranch page has no tab icons and no footer, the Admin bug again, since f59ffdc8 (beta 5 and 6). ZeD_WorldWindow.lua:4152
+    clears extra clips for added tabs only. Picture: qa/animals_ranch_rail_deck_20261106.jpg.
 
 ## Test process
 
