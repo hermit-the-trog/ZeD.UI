@@ -2897,6 +2897,16 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       accurate thing" on old Explosion counts. (4) Identity and Journal kill counts "should match". (5) The key in
       the lock, engine off, is in accessory mode: an ACC position to the left of OFF, the key drawn there; ON when
       running.
+    - **Built and on main (Nov 7, 352d9df3), each reviewed twice, all sims pass:** the thirds' pictures wait for
+      another day (the director: "Gaps can print as notes as before"). The First Days checklist prints once (a filler
+      with room, else its own block at the chapter's end); whole pages past the full ads take a half or pair and a
+      third. The contents runs onto as many pages as it needs ("2-3 pages, however many pages it needs"), whole rows,
+      long blurbs wrap; with an even count the page before the introduction is the publisher's house ad (the
+      director's pick), never dealt again. One total (KillTracker.total) for the Identity tab, the Journal and the
+      death screen; old saves' rows rebuilt from the game's count (the old weapon rows were hits, not kills) so they
+      add up to it. ACC on all 18 key dashes, the key at ACC with the engine off, ON running, START cranking; the
+      Simple dash says ACC (the race car's switch still says Off). The offline card's role row wraps (296d3a91).
+      Gallery spread 46 needs a new capture (the contents spread changed). Not yet run in game.
     - **Known gaps:** ZeD picks come back only when ZeD-GUI is turned on by its own row, not through a folder or
       separator box or Turn all off; split-screen's second player doesn't save dash miles on a server; on a server the
       dash ash tray is per player and session; FR and HU month words keep a capital (shared Journal keys; native pass).
