@@ -862,15 +862,17 @@ function D.odoShow(st)
 end
 
 -- the driver's client sends the car's modData to the server (and so to the other players in the car): no more than
--- every ODO_SEND_MILES, or now (force: a press, a first mileage). Single player sends nothing.
-function ZeD_Dashboard:_odoSend(vehicle, id, odo, force)
+-- every ODO_SEND_MILES, or now (force: a press, a first mileage), or now if some miles haven't gone yet (flush: the
+-- engine stopped, or the driver left the seat or the car), so a drive's last tenth isn't lost. Single player sends nothing.
+function ZeD_Dashboard:_odoSend(vehicle, id, odo, force, flush)
     if not (isClient and isClient()) then return end
     local at = self._odoSentAt
     if not at then at = {}; self._odoSentAt = at end
     local last = at[id]
     if last == nil and not force then at[id] = odo; return end      -- (first sight: what the car has is what was sent)
     if not force and odo < last then at[id] = odo; return end       -- (the server's figure came in lower: count from it)
-    if force or odo - last >= ODO_SEND_MILES then
+    -- (a flush with nothing new sends nothing, so calling it every frame the engine is off costs one compare)
+    if force or odo - last >= ODO_SEND_MILES or (flush and odo > last) then
         at[id] = odo
         -- (IsoObject.transmitModData(), no arguments: checked on 42.22.2; looked up first in case a build lacks it)
         if vehicle.transmitModData then pcall(vehicle.transmitModData, vehicle) end
@@ -899,8 +901,20 @@ function ZeD_Dashboard:_odometer(vehicle, st, miles, id)
         md.ZeD_odo, md.ZeD_trip = odo, trip
     end
     st.odo, st.trip = odo, trip
-    if self._driver and md then self:_odoSend(vehicle, id, odo, first) end
+    if self._driver and md then
+        self._odoCar = vehicle                                  -- the car this driver counts in (ZeD_Dashboard:_odoLeave)
+        self:_odoSend(vehicle, id, odo, first, not st.running)  -- (engine off: the miles not sent yet go now)
+    end
     D.odoShow(st)
+end
+
+-- the driver left the seat or the car (or the car is another): the miles it hasn't sent go now (prerender)
+function ZeD_Dashboard:_odoLeave()
+    local car = self._odoCar
+    self._odoCar = nil
+    local md = _get(car, "getModData", nil)
+    local odo = md and tonumber(md.ZeD_odo)
+    if odo then self:_odoSend(car, _get(car, "getId", 0), odo, false, true) end
 end
 
 -- the trip back to 0 (the stem, or X on the electronic window while it shows the trip)
@@ -1397,7 +1411,7 @@ local function _climateText(st)
         .. " | " .. ZeD.tr("UI_ZeD_DashPlain_FanN", tostring(st.fan or 0))
 end
 
--- the readings beside the two big ones, in columns of three: { label, value (or nil), bar share (or nil), bar colour,
+-- the readings beside the two big ones, in columns of three: { label, value (or nil), bar share (or nil), bar color,
 -- id: the plate control it also is (the Trip: "tripReset"), else nil }
 local function _cell(out, n, label, value, bar, col, id)
     n = n + 1
@@ -1408,13 +1422,22 @@ local function _cell(out, n, label, value, bar, col, id)
 end
 
 -- the player's distance units: the game's measurement option ("Imperial" or "Metric"; looked up first, as a build
--- may lack it: then miles, the cars being American)
+-- may lack it: then miles, the cars being American). Read again at most once a second (the strip draws every frame;
+-- an option changed in the Options screen shows within the second), and with no closure made per read.
+local UNITS_MS = 1000
+local _unitsAt, _unitsMetric = nil, false
+local function _readMetric()
+    local core = getCore()
+    return core.getOptionMeasurementFormat ~= nil and core:getOptionMeasurementFormat() == "Metric"
+end
 local function _metric()
-    local ok, v = pcall(function()
-        local core = getCore()
-        return core.getOptionMeasurementFormat and core:getOptionMeasurementFormat() or nil
-    end)
-    return ok and v == "Metric"
+    local now = getTimestampMs()
+    if _unitsAt == nil or now - _unitsAt >= UNITS_MS or now < _unitsAt then
+        _unitsAt = now
+        local ok, v = pcall(_readMetric)
+        _unitsMetric = ok and v == true
+    end
+    return _unitsMetric
 end
 -- miles as the strip shows them, in the player's units: whole, or to the tenth (the trip; cut, not rounded, as the
 -- wheels turn)
@@ -1541,7 +1564,7 @@ function ZeD_Dashboard:_plainReadouts(st, pl, cells, n, y, W, big, rows, cellH)
             local cell = (i <= n) and cells[i]
             if cell then
                 local cy = y + (r - 1) * cellH
-                local vc, lc = tc, td        -- the value's and the name's colours (the focus ink on the mark)
+                local vc, lc = tc, td        -- the value's and the name's colors (the focus ink on the mark)
                 if cell.id then
                     -- a reading that is also a control (the Trip): the pointer's wash or the controller's mark under
                     -- it, its click area and its focus element (ZeD_Dashboard:_plainControl, the plate's ids)
@@ -1781,6 +1804,8 @@ end
 function ZeD_Dashboard:prerender()
     local chr = getSpecificPlayer(self.playerNum)
     local vehicle = chr and chr:getVehicle()
+    -- (out of the car the driver counted in, or in another: its last miles go to the server now, before anything returns)
+    if self._odoCar and self._odoCar ~= vehicle then self:_odoLeave() end
     -- (the car lost some way other than getting out: let go of the controller and the focus
     -- ring too, so an unseen dash keeps neither; code audit Oct 17 2026)
     if not chr or not vehicle then
@@ -1806,6 +1831,7 @@ function ZeD_Dashboard:prerender()
     local dt = self._lastMs and math.max(0, math.min(250, now - self._lastMs)) or 0
     self._lastMs = now
     self._driver = _safe(function() return vehicle:isDriver(chr) end, false)
+    if self._odoCar and not self._driver then self:_odoLeave() end    -- (moved out of the driver's seat)
     local st = _state(vehicle, chr)
     local pubV = ZeD.ModSupport and ZeD.ModSupport.VSKDash
     if pubV then

@@ -1399,6 +1399,36 @@ do
     check("and says so", logHas("claim gone: that car is gone"))
 end
 
+section("ZeD's own dash: the driver's odometer sends while driving and as they get out")
+do
+    -- (ZeD_Dashboard:_odoSend: the driver's client sends the car's mod data every tenth of a mile, and once more as the
+    -- engine stops or the driver leaves. A client that loaded the car before the claim has no stamp to send back)
+    local a, o, b, ca, co, cb = claimsWorld()
+    local v = newVehicle(7, 4021, 102, 100)
+    claim(co, v)
+    local c = claimRow(v)
+    W.logs = {}
+    o.vehicle, v.driver = v, o
+    for i = 1, 5 do
+        clientSendsModData(v, { ZeD_odo = 41000 + i / 10, ZeD_trip = i / 10 })
+        advance(2100)
+        check("driving, send " .. i .. ": the stamp is back by the next look", v.md.ZeDClaim == c.tok)
+    end
+    -- the last miles go as the driver gets out, after the server's last look at them as the driver
+    o.vehicle, v.driver = nil, nil
+    clientSendsModData(v, { ZeD_odo = 41000.57, ZeD_trip = 0.57 })
+    check("the send on the way out took the stamp", v.md.ZeDClaim == nil)
+    advance(2100)
+    check("the next look puts it back", v.md.ZeDClaim == c.tok)
+    check("the odometer's rows stay", v.md.ZeD_odo == 41000.57 and v.md.ZeD_trip == 0.57)
+    check("not sent to the clients", v.transmits == nil, v.transmits)
+    -- parked, then a new lock: the stamp holds the claim
+    advance(30000)
+    v.keyId = 99999
+    check("a new lock on the parked car: the claim holds", act("ISUninstallVehiclePart", { character = b, vehicle = v }) == false)
+    check("no claim gone line", not logHas("claim gone"))
+end
+
 section("the list after a claim goes, and with every extra off")
 do
     local a, o, b, ca, co, cb = claimsWorld()

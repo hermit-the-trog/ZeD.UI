@@ -10,9 +10,11 @@
 --   SHOW    the VFD and LCD readings, ODO / TRIP, the words lit with the key
 --   VERBS   the stem zeroes the trip; the window's A switches, its X zeroes only while the trip shows; both on the pad
 --   SERVER  the driver's client sends the car's modData no more than every tenth of a mile, and at once after a press;
+--           the miles not sent yet go when the engine stops, the driver leaves the seat or the car, or takes another;
 --           single player and a passenger send nothing; a build without transmitModData is no error
 --   HOT     the hot lamp lights in the key-on bulb check
---   SIMPLE  the Trip cell beside Odometer, in the player's units, one decimal; A on it zeroes the trip
+--   SIMPLE  the Trip cell beside Odometer, in the player's units, one decimal; A on it zeroes the trip; the units
+--           option is read at most once a second
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/dash_odo_sim.lua
 -- It prints FAIL lines and a last line "dash_odo_sim: N checks, M failed", and exits 1 if any failed.
 
@@ -76,7 +78,7 @@ getPlayerScreenLeft, getPlayerScreenTop = function() return 0 end, function() re
 getPlayerScreenWidth, getPlayerScreenHeight = function() return 1920 end, function() return 1080 end
 getCell = function() return nil end
 getCore = function() return { getOptionTemperatureDisplayCelsius = function() return true end,
-    getOptionClock24Hour = function() return true end, getOptionMeasurementFormat = function() return env.units end } end
+    getOptionClock24Hour = function() return true end, getOptionMeasurementFormat = function() env.unitReads = (env.unitReads or 0) + 1; return env.units end } end
 isClient = function() return env.client end
 instanceof = function() return true end
 isMouseButtonDown = function() return false end
@@ -284,7 +286,7 @@ do
         miny, maxy = math.min(miny, r.y), math.max(maxy, r.y + r.h - 1)
         if r.r == last.r and r.g == last.g then lastN = lastN + r.w elseif r.r == fg.r then fgN = fgN + r.w end
     end
-    check("the figures sit in the 3 x 5 face, centred in their wheels", miny == 51 and maxy == 55, miny .. ".." .. maxy)
+    check("the figures sit in the 3 x 5 face, centered in their wheels", miny == 51 and maxy == 55, miny .. ".." .. maxy)
     check("the first figure at the wheel's left (cw 5: (5 - 4) // 2 = 0)", minx == 100, minx)
     check("the last figure in the last wheel", maxx == 100 + 5 * 5 + 2, maxx)
     check("an 8 is 13 pixels: five in fg, one in last_fg", fgN == 65 and lastN == 13, fgN .. " / " .. lastN)
@@ -325,7 +327,7 @@ do
     check("the spaces are empty", not cols[235] and not cols[240])
     local miny2 = 1e9
     for _, r in ipairs(RECTS) do miny2 = math.min(miny2, r.y) end
-    check("centred in the LCD's 10 rows", miny2 == 95, miny2)
+    check("centered in the LCD's 10 rows", miny2 == 95, miny2)
 end
 
 -- ---------------------------------------------------------------------------
@@ -356,7 +358,7 @@ do
     PL.drawParts(canvas(), { parts[1] }, { power = false, odo = 88888.8 }, {})
     local day = false
     for _, r in ipairs(RECTS) do if math.abs(r.r - fg.r) < 0.0001 then day = true end end
-    check("by day, their own colour", day)
+    check("by day, their own color", day)
     -- every dash with a speedo dial carries the wheels; the electronic ones their windows (the export, DashPx.lua)
     local drumDash, elec = 0, {}
     for id, des in pairs(ZeD.DashPx.designs) do
@@ -564,6 +566,45 @@ do
     local before = car.sent
     inst:_fire("tripReset", false)
     check("a press sends at once", car.sent == before + 1, car.sent - before)
+    -- the miles under a tenth that a drive ends on: they go when it ends (12 frames at 100 km/h: 0.052 mi)
+    before = car.sent
+    frames(12, 250)
+    check("under a tenth since the last send: nothing yet", car.sent == before, car.sent - before)
+    car.running = false
+    frame(250)
+    check("the engine stops: the rest goes at once", car.sent == before + 1, car.sent - before)
+    frames(40, 250)
+    check("and only once while it stays off", car.sent == before + 1, car.sent - before)
+    car.running = true
+    inst:_fire("tripReset", false)                     -- (each case starts from a send: a press sends at once)
+    before = car.sent
+    frames(12, 250)
+    seat(nil)
+    frame(250)
+    check("the driver gets out: the rest goes at once", car.sent == before + 1, car.sent - before)
+    frames(10, 250)
+    check("and nothing more after", car.sent == before + 1, car.sent - before)
+    seat(car)
+    frame(250)
+    inst:_fire("tripReset", false)
+    before = car.sent
+    frames(12, 250)
+    car.passenger = true
+    frame(250)
+    check("the driver moves to another seat: the rest goes", car.sent == before + 1, car.sent - before)
+    car.passenger = nil
+    frame(250)
+    inst:_fire("tripReset", false)
+    before = car.sent
+    frames(12, 250)
+    local other = newCar({ script = SCRIPT.d6, keysIn = true, running = true, kmh = 0, id = 8, md = { ZeD_odo = 50, ZeD_trip = 0 } })
+    seat(other)
+    frame(250)
+    check("the driver takes another car: the first one's rest goes", car.sent == before + 1, car.sent - before)
+    check("and the other car sends nothing on first sight", other.sent == 0, other.sent)
+    seat(nil)
+    frame(250)
+    check("out of a car with nothing new: nothing sent", other.sent == 0, other.sent)
     -- a car never seen: its new mileage goes out at once, so the other seats read the same
     local fresh = drive("d6", { keysIn = true, running = true, kmh = 0 })
     check("a first mileage goes out at once", fresh.sent == 1, fresh.sent)
@@ -620,10 +661,15 @@ do
     check("Odometer in miles", drew(log, "41837 mi"))
     check("Trip in miles, one decimal", drew(log, "Trip") and drew(log, "128.6 mi"))
     env.units = "Metric"
-    log = frame(100)
+    log = frame(1000)                                  -- (the option is read again within a second)
     check("Odometer in km", drew(log, "67330 km"), "41837.36 mi")
     check("Trip in km, one decimal", drew(log, "207.0 km"))
     env.units = "Imperial"
+    env.unitReads = 0
+    frames(10, 100)                                    -- one second of frames
+    check("the units option is read at most twice a second, not every frame", env.unitReads <= 2, env.unitReads)
+    log = frame(1000)
+    check("back to miles", drew(log, "41837 mi"))
     local e = element("tripReset")
     check("the Trip cell is on the pad's walk", e ~= nil)
     check("its A says Reset trip", e and e.promptA == "Reset trip", e and e.promptA)

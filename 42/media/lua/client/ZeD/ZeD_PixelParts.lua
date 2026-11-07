@@ -824,7 +824,7 @@ end
 
 -- ---------------------------------------------------------------------------
 -- odometer drums (Nov 6 2026, punch list 92; ZeDUI/tools/dashpx/live.py draw_drums is the reference): a row of n
--- wheels, each cw wide (cw - 1 painted on the plate, a 1 px gap) and ch tall, the figures in the 3 x 5 face centred in
+-- wheels, each cw wide (cw - 1 painted on the plate, a 1 px gap) and ch tall, the figures in the 3 x 5 face centered in
 -- each. The first n - 1 wheels are whole miles in fg, the last the tenths in last_fg (dark on its white wheel). The
 -- tenths wheel holds its figure for the first 80% of each tenth and turns over in the last 20%, the next figure coming
 -- up from below, clipped to the wheel: a figure caught halfway is two half figures, and at 5 pixels that reads as
