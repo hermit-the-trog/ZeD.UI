@@ -571,6 +571,9 @@ do
     local t = player("len")
     tk(t, "t_new", { kind = "BUG", text = string.rep("a", 1001) })
     check("1001 characters refused", errOf(t) == "text")
+    tk(t, "t_new", { kind = "BUG", text = "next" })
+    check("a refused forgery starts the limit", errOf(t) == "wait")
+    advance(60000)
     tk(t, "t_new", { kind = "BUG", text = string.rep("a", 1000) })
     check("1000 characters taken", got(t, "t_ack").ok == true)
     tk(t, "t_new", { kind = "BUG", text = "again" })
@@ -582,15 +585,55 @@ do
     advance(1000)
     tk(t, "t_new", { kind = "BUG", text = "  \n  " })
     check("nothing but spaces: text", errOf(t) == "text")
+    advance(60000)
     tk(t, "t_new", { kind = "BUG", text = "a bad ticket does not start the 60 s" })
     check("the 60 s starts at an accepted ticket", got(t, "t_ack").ok == true)
     tk(t, "t_new", { kind = "SPAM", text = "x" })
     advance(61000)
     tk(t, "t_new", { kind = "SPAM", text = "x" })
     check("a kind outside the six", errOf(t) == "text")
+    advance(61000)
     tk(t, "t_new", { kind = { 1 }, text = { 1 } })
     check("tables for kind and text", errOf(t) == "text")
     check("a control character goes, a line break stays", W.server.ZeD.Tk.clean("a\1b\nc\r\t") == "ab\nc")
+
+    -- b7 review: the door
+    world()
+    do
+        local tkT = W.server.ZeD.Tk
+        local real, calls, walked = tkT.clean, 0, 0
+        tkT.clean = function(x) calls = calls + 1; if type(x) == "string" then walked = walked + #x end; return real(x) end
+        local big = string.rep("a", 32000)
+        local f = player("forger")
+        local report = { who = big, n = 11 }
+        for i = 1, 11 do report[i] = { who = big, text = big, t = big } end
+        tk(f, "t_new", { kind = "SPAM", text = big, report = report })
+        check("a bad kind cleans nothing", errOf(f) == "text" and walked < 100, walked)
+        advance(60000)
+        tk(f, "t_new", { kind = "BUG", text = big, report = report })
+        check("long text cleans nothing", errOf(f) == "text" and walked < 100, walked)
+        tk(f, "t_new", { kind = "BUG", text = big, report = report })
+        check("and the next waits", errOf(f) == "wait")
+        advance(60000)
+        walked = 0
+        tk(f, "t_new", { kind = "BUG", text = string.rep("b", 1000), report = report })
+        check("a report of 32K strings costs little", got(f, "t_ack").ok == true and walked < 30000, walked)
+        local md = W.server.ZeD.Srv.T.md
+        local r = nil
+        for _, x in pairs(md.tickets) do if x.author == "forger" then r = x end end
+        check("its strings are cut as ever", r and r.report and #r.report.who == 64 and #r.report[1].who == 64 and #r.report[1].text == 300 and #r.report[1].t == 16)
+        tkT.clean = real
+        -- a true long chat line with a true name: the same as the old path
+        local n = player("honest")
+        local line = "  " .. string.rep("w", 250) .. " " .. string.rep("v", 400) .. "  "
+        tk(n, "t_new", { kind = "GRIEF", text = "he took it", here = true, report = { who = "mike_d", n = 2,
+            { who = "mike_d", text = line, t = "9:32", mark = true }, { who = "", text = "short", t = "" } } })
+        check("a normal report is taken", got(n, "t_ack").ok == true)
+        local h = nil
+        for _, x in pairs(md.tickets) do if x.author == "honest" then h = x end end
+        local old = string.sub(string.gsub(real(line), "\n", " "), 1, 300)
+        check("a long line reads as before", h and h.report[1].text == old and h.report[1].mark == true and h.report[2].text == "short" and h.report[2].who == "")
+    end
 
     world()
     local m = player("many")
@@ -1238,6 +1281,14 @@ do
         check("one list is not enough", rec(1).gameId == g and rec(1).gameGone == nil)
         advance(9000)
         check("two lists 10 s apart: gameGone", rec(1).gameGone == true and rec(1).gameId == nil, rec(1).gameId)
+        do local a, b = nil, nil
+            for _, l in ipairs(W.logs) do
+                if string.find(l.line, "removed on the game", 1, true) then a = l.line end
+                if string.find(l.line, "saw the game", 1, true) then b = l.line end
+            end
+            check("the removal is the server's line", a and string.find(a, "@server", 1, true))
+            check("the file keeps who saw it", b ~= nil)
+        end
         check("the record stays, with its status", rec(1).status == "Open" and rec(1).gameFiled == true)
         check("a moderator's Remove does not delete", rec(1) ~= nil)
         T.answer(1, "later")

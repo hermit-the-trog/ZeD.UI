@@ -125,8 +125,20 @@ function F.act(win, st, send, okText, after, errOf)
     end)
 end
 
-function F.field(items, key, rows, hint, land, max) B.field(items, key, rows, hint, land, max) end
-function F.text(win, key) return Tk.clean(D.fieldText(win, key)) or "" end
+F.oneLine = {}
+function F.field(items, key, rows, hint, land, max)
+    B.field(items, key, rows, hint, land, max)
+    -- (one row is a name or an address: Enter puts no line break in it)
+    if rows == 1 then
+        items[#items].one = true
+        F.oneLine[key] = true
+    end
+end
+function F.text(win, key)
+    local s = Tk.clean(D.fieldText(win, key)) or ""
+    if F.oneLine[key] then s = string.gsub(s, "\n", " ") end    -- (a paste can still bring one in)
+    return s
+end
 
 function F.inset(items, tone, fn)
     items[#items + 1] = { k = "insetTop", tone = tone }
@@ -1198,7 +1210,7 @@ function P.playerItems(win, st, t, card, data)
         P.skills(items, win, st, card, view)
     end
     -- (add XP, a trait, a profession: the game's window has them until they are ZeD's)
-    F.flow(items, { F.gate({ id = "stats", text = tr("UI_ZeD_Adm_Stats"), help = tr("UI_ZeD_Adm_HelpStats"), run = function(ww) D.playerCard(ww, card.user) end },
+    F.flow(items, { F.gate({ id = "stats", text = tr("UI_ZeD_Adm_Stats"), help = tr("UI_ZeD_Adm_HelpStats"), run = function(ww) D.statsWindow(ww, card.user) end },
         "CanSeePlayersStats", function()
             if not getPlayerFromUsername(card.user) then return tr("UI_ZeD_Adm_NotSeen") end
             return nil
@@ -1495,7 +1507,9 @@ TC.kinds.role = {
                 end, nil, tr("UI_ZeD_Adm_HelpKeepRole")),
                 D.btn("cyes", getText("IGUI_RolesList_DeleteRole"), function(ww)
                     t.confirm = nil
-                    F.act(ww, st, function(cb) M.deleteRole(card.name, cb) end, tr("UI_ZeD_Adm_RoleDeleted"), function() TC.back(ww, st) end)
+                    F.act(ww, st, function(cb) M.deleteRole(card.name, cb) end, tr("UI_ZeD_Adm_RoleDeleted"), function()
+                        if st.card == card then TC.back(ww, st) end      -- (a late answer: never a card opened since)
+                    end)
                 end, "danger", tr("UI_ZeD_Adm_HelpDeleteRole")) } }
         end
         local lead = {}

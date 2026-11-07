@@ -1042,7 +1042,10 @@ function D.queueTick(st, t)
     local mode = D.link()
     local settled = t.findAt and now() - t.findAt >= FIND_MS
     if mode == "on" then
-        if not C.queueOpen then C.openQueue(D.qArgs(t)) end
+        if not C.queueOpen then
+            C.openQueue(D.qArgs(t))
+            t.rowSeq, t.liveAt = C.rowSeq, now()      -- (that ask is this frame's: no second one behind it)
+        end
         if C.queue and C.queue.page and C.queue.page ~= t.q.page and not settled and not C.queueRid then t.q.page = C.queue.page end
         if settled then
             t.findAt = nil
@@ -1350,22 +1353,31 @@ function TC.back(win, st)
     else
         t.mineKey = nil
     end
+    -- back onto a ticket that another took the one staff card from: this client and the server hold one each, so it is
+    -- asked for again. What it held stays on screen until the answer
+    local under = st.card
+    if under and under.kind == "staff" and not under.game and not TC.qaHold and not (C.card and C.card.id == under.id) then
+        under.again = true
+        C.openCard(under.id, function(a) D.loadAnswer(win, st, under, a) end)
+    end
     D.focusId(win, st, card.from)
 end
 
 -- a command sent from a card: its buttons wait, the answer goes in the help line, typed words stay on a refusal
 function D.act(win, st, send, okText, after)
     local t = ts(st)
+    local card = st.card
     t.busy = true
     send(function(a)
         t.busy = nil
         if a.ok == false then
             D.flash(t, C.errText(a.err, a.left))
-            if a.err == "gone" and st.card then TC.back(win, st) end
+            if a.err == "gone" and st.card == card then TC.back(win, st) end
             return
         end
         if okText then D.flash(t, okText) end
-        if after then after(a) end
+        -- (a late answer acts on the card that sent it, never on one opened since)
+        if after and st.card == card then after(a) end
     end)
 end
 
@@ -1577,8 +1589,11 @@ function D.cardData(card)
             end
             return { id = r.id, kind = r.kind, author = r.author, status = r.st, st = r.st, thread = th, notes = { n = 0 }, source = "game" }
         end
-        if C.card and C.card.id == card.id then return C.card end
-        return nil
+        if C.card and C.card.id == card.id then
+            card.held, card.again = C.card, nil
+            return C.card
+        end
+        return card.again and card.held or nil
     end
     return true
 end
@@ -1597,6 +1612,7 @@ end
 function D.send(win, st)
     local t = ts(st)
     local ask = t.ask
+    local card = st.card
     t.busy = true
     local r = C.ask(ask.kind, ask.here, D.fieldText(win, "ask"), function(a)
         t.busy = nil
@@ -1604,9 +1620,12 @@ function D.send(win, st)
             D.flash(t, C.errText(a.err, a.left))
             return
         end
-        D.setField(win, "ask", "")
         D.flash(t, a.fallback and tr("UI_ZeD_Tk_SentGame") or tr("UI_ZeD_Tk_Sent", a.id))
-        TC.back(win, st)
+        -- (Cancel stays live while it goes: a late answer closes this card, never one opened since)
+        if st.card == card then
+            D.setField(win, "ask", "")
+            TC.back(win, st)
+        end
     end, ask.report)
     if r ~= "sent" then
         t.busy = nil
@@ -1660,12 +1679,17 @@ function D.goThere(st, place)
     D.flash(ts(st), tr("UI_ZeD_Tk_Going", Tk.whereText(place) or ""))
 end
 
--- the Player card; without the server part, the game's stats window, as the Admin tab's Check stats opened it
+-- the Player card; without the server part, the game's stats window
 function D.playerCard(win, author)
     if ZeD.AdminCards and ZeD.Admin.live() and win._tkSt and win._tkSt.card then
         ZeD.AdminCards.openFromTicket(win, win._tkSt, author)
         return
     end
+    D.statsWindow(win, author)
+end
+
+-- the game's stats window, as the Admin tab's Check stats opened it
+function D.statsWindow(win, author)
     local who = getPlayerFromUsername(author)
     local p = win._playerObj or getPlayer()
     if not (who and p) then return end

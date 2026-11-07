@@ -91,7 +91,6 @@ Adm.L = {
     OWED_RETRY_S = 15,                  -- a game call with no word back goes again
     ROLE_WATCH_S = 30,                  -- a role change waits this long for the game to apply it
     ROLE_WATCH_KEEP_S = 86400,          -- and this long for a player who is not on
-    SID_ROUND = 64,                     -- a Steam ID in a Lua number is this near the real one (a double, past 2^53)
 }
 
 -- the five groups, as drawn; every capability the game has (getCapabilities) sits in one. One this list has not met yet
