@@ -1,0 +1,48 @@
+/* the survival guide's ads (ZeD-GUI, Nov 6 2026): 1987 newsprint, ink on the book's paper. One design px = one
+   screen px at 1080p; rendered at 2x. Sizes: full 440x628, half 440x310, third 440x205, quarter 215x310 */
+@font-face{font-family:OST;src:url(../fonts/old-standard-tt-latin-400-normal.woff2)}
+@font-face{font-family:OST;font-style:italic;src:url(../fonts/old-standard-tt-latin-400-italic.woff2)}
+@font-face{font-family:OST;font-weight:700;src:url(../fonts/old-standard-tt-latin-700-normal.woff2)}
+@font-face{font-family:OS;src:url(../fonts/open-sans-latin-400-normal.woff2)}
+@font-face{font-family:OS;font-weight:700;src:url(../fonts/open-sans-latin-700-normal.woff2)}
+@font-face{font-family:OS;font-weight:700;font-style:italic;src:url(../fonts/open-sans-latin-700-italic.woff2)}
+@font-face{font-family:OS;font-weight:800;src:url(../fonts/open-sans-latin-800-normal.woff2)}
+@font-face{font-family:OS;font-weight:800;font-style:italic;src:url(../fonts/open-sans-latin-800-italic.woff2)}
+@font-face{font-family:CV;font-weight:700;src:url(../fonts/caveat-latin-700-normal.woff2)}
+@font-face{font-family:OSW;font-weight:500;src:url(../fonts/oswald-latin-500-normal.woff2)}
+@font-face{font-family:OSW;font-weight:600;src:url(../fonts/oswald-latin-600-normal.woff2)}
+@font-face{font-family:OSW;font-weight:700;src:url(../fonts/oswald-latin-700-normal.woff2)}
+@font-face{font-family:SLAB;src:url(../fonts/alfa-slab-one-latin-400-normal.woff2)}
+@font-face{font-family:RYE;src:url(../fonts/rye-latin-400-normal.woff2)}
+@font-face{font-family:BRUSH;src:url(../fonts/yellowtail-latin-400-normal.woff2)}
+:root{--ink:#232a3a;--paper:#f5ecd2}
+html,body{margin:0;background:var(--paper)}
+html.final,html.final body{background:transparent}
+*{box-sizing:border-box}
+.ad{position:relative;color:var(--ink);overflow:hidden;font:12px/1.35 OST}
+.full{width:440px;height:628px}.half{width:440px;height:310px}.third{width:440px;height:205px}.quarter{width:215px;height:310px}
+.abs{position:absolute}
+.c{text-align:center}.r{text-align:right}
+.f2{border:3px solid var(--ink)}.f2:before{content:"";position:absolute;inset:3px;border:1px solid var(--ink);pointer-events:none;z-index:5}
+.f1{border:1px solid var(--ink)}
+.f4{border:4px solid var(--ink)}
+.fdash{border:1.5px dashed var(--ink)}
+.inv{background:var(--ink);color:var(--paper)}
+.rule{position:absolute;height:0;border-top:1px solid var(--ink)}
+.rule2{position:absolute;height:3px;border-top:1px solid var(--ink);border-bottom:1px solid var(--ink)}
+.os{font-family:OS}.ost{font-family:OST}.cv{font-family:CV;font-weight:700}.osw{font-family:OSW}.slab{font-family:SLAB}.rye{font-family:RYE}.brush{font-family:BRUSH}
+.b7{font-weight:700}.b8{font-weight:800}.it{font-style:italic}
+.caps{text-transform:uppercase}
+.track{letter-spacing:2px}
+.dots li{list-style:none;padding-left:11px;position:relative}
+.dots li:before{content:"";position:absolute;left:0;top:.5em;width:5px;height:5px;background:var(--ink)}
+.dots{margin:0;padding:0}
+.foot{position:absolute;left:4px;right:4px;bottom:4px;background:var(--ink);color:var(--paper);display:flex;align-items:center;justify-content:space-between;padding:0 11px}
+.foot .l{font:700 8.5px/1.3 OS;letter-spacing:.8px;white-space:nowrap}
+.foot .ph{font:800 15px/1 OS;letter-spacing:.4px;text-align:right;white-space:nowrap}
+.foot .ph span{display:block;font:700 7.5px/1.4 OS;letter-spacing:1.3px}
+.coupon{position:absolute;border:1.5px dashed var(--ink)}
+.coupon .sc{position:absolute;top:-9px;left:10px;width:18px;height:16px;background:var(--paper)}
+.line{border-bottom:1px solid var(--ink);height:14px;font:700 7px/14px OS;letter-spacing:1px}
+
+.px{position:absolute;image-rendering:pixelated;image-rendering:crisp-edges}
