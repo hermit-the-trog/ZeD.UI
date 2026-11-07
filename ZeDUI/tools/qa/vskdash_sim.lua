@@ -2,10 +2,11 @@
 -- ZeD_Dashboard.lua, ZeD_Plate.lua, ZeD_PixelParts.lua, DashPx.lua and VSKDash.lua run on Lua 5.1 stubs of the library, a car
 -- and a panel that writes down every draw. Vehicle Kit Library is a stub of its published shape (register, poll, gearLabel,
 -- odometer, stalled, Scale), written here from its reference page, with providers shaped like Roadworthy's.
---   SAME    with no such mod every dash is exactly today's: the dash as it stood before this work (git show BASE) and the dash
---           now, frame by frame over every design, every car state, Full and Simple, lamps setting on and off: every reading and
---           every draw call equal. Then again with the library there and nobody publishing, and with the library holding a
---           stall that no mod has anything to say about.
+--   SAME    with no such mod every dash is exactly today's: the dash with no ModSupport/VSKDash.lua loaded (until Nov 7 2026
+--           the dash as it stood before this work, git show BASE) and the dash with it, frame by frame over every design,
+--           every car state, Full and Simple, lamps setting on and off: every reading and every draw call equal. Then again
+--           with the library there and nobody publishing, and with the library holding a stall that no mod has anything to
+--           say about.
 --   NEEDLES the temperature and oil needles follow the published gauges and hand back when they go
 --   LAMPS   amber, red, blink; each role on each plate: on a plate with the lamp it lights, on one without nothing is drawn and
 --           the Simple strip lists it; dark leaves ZeD's own lamp; check engine; the named constant
@@ -395,10 +396,12 @@ end
 local nowSource = readFile(CLIENT .. "ZeD/ZeD_Dashboard.lua")
 local oldSource = nil
 do
-    local pipe = io.popen('git -C "' .. (ROOT == "" and "." or ROOT) .. '" show ' .. BASE .. ":42/media/lua/client/ZeD/ZeD_Dashboard.lua 2>NUL")
-    if pipe then oldSource = pipe:read("*a"); pipe:close() end
+    -- (Nov 7 2026, punch list 92: ZeD's own dash changed on purpose (the hot lamp's bulb check, the odometers), so
+    -- "today's dash" is the dash now with no ModSupport/VSKDash.lua loaded at all: boot(oldSource, false) below. The
+    -- git BASE above is the dash this work was first proved against, kept for the record.)
+    oldSource = nowSource
 end
-check("the dash as it stood is readable from git", oldSource and #oldSource > 10000 and oldSource ~= nowSource)
+check("the dash is readable", oldSource and #oldSource > 10000)
 if oldSource and #oldSource > 10000 then
     boot(oldSource, false)
     local today = sweep()
@@ -714,8 +717,11 @@ do
     local made = st().odo
     K.km, K.tripKm = 123513.5 * 1.609344, 5.15   -- trip 3.2 mi
     frames(2, 200)
-    check("the LCD shows the last four of the real figure", st().odo == 3513, st().odo)
-    check("it is not the made-up number", st().odo ~= made)
+    -- (Nov 7 2026, punch list 92: the odometers read miles with decimals; the Dash Elite's LCD shows six figures)
+    check("the odometer is the real figure", near(st().odo, 123513.5, 0.001), st().odo)
+    check("the LCD shows its six figures", st().odoShownT == "123513", st().odoShownT)
+    check("the trip is the real figure", near(st().trip, 5.15 / 1.609344, 0.001), st().trip)
+    check("it is not ZeD's own number", st().odo ~= made)
     local digits = false
     for _, l in ipairs(frame(0)) do digits = digits or l:find("drawRect", 1, true) ~= nil end
     check("the LCD draws", digits)
@@ -726,7 +732,7 @@ do
     K.km = nil
     env.simple = false
     frames(2, 200)
-    check("nothing published: the made-up number stays", st().odo == made or st().odo ~= 3513, st().odo)
+    check("nothing published: ZeD's own number again", near(st().odo, made, 0.01), st().odo)
 end
 
 -- ---------------------------------------------------------------------------
@@ -797,7 +803,7 @@ do
     local made = st().odo
     K.km, K.tripKm = 123513.5 * 1.609344, 5.15
     frames(2, 200)
-    check("a passenger's Dash Elite shows Roadworthy's odometer", st().odo == 3513 and st().odo ~= made, st().odo)
+    check("a passenger's Dash Elite shows Roadworthy's odometer", st().odoShownT == "123513" and st().odo ~= made, st().odoShownT)
     env.simple = true
     check("and a passenger's Simple dash", drewText(frame(0), "123513 mi"))
     env.simple = false
