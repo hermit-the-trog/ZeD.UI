@@ -3308,13 +3308,13 @@ function ZeD_WorldWindow.toggle(playerNum)
     -- the game's own roll-up when not in use (ZeD_Window:_autoCollapse); the pin kept with the character
     win.autoCollapse = true
     pcall(function()
-        local md = getSpecificPlayer(0):getModData()
+        local md = getSpecificPlayer(playerNum):getModData()
         md.ZeD_WinPinned = md.ZeD_WinPinned or {}
         win.pinned = md.ZeD_WinPinned.world == true
     end)
     win.onPinChange = function(_, on)
         pcall(function()
-            local md = getSpecificPlayer(0):getModData()
+            local md = getSpecificPlayer(playerNum):getModData()
             md.ZeD_WinPinned = md.ZeD_WinPinned or {}
             md.ZeD_WinPinned.world = on
         end)
@@ -4003,7 +4003,7 @@ function ZeD_WorldWindow.toggle(playerNum)
             local evicted = false
             while perCol < minColW and #win._mcSelected > 0 do
                 table.remove(win._mcSelected, 1)
-                totalCols = #win._mcSelected + 1
+                totalCols = #win._mcSelected + (win._mainVisible and 1 or 0)   -- (a hidden floor takes no column: one extra stays)
                 xferW = T.px(R.getXferW and R.getXferW(totalCols) or 32)
                 usable = invW - (totalCols - 1) * xferW
                 perCol = totalCols > 0 and (usable / totalCols) or invW
@@ -4129,9 +4129,10 @@ function ZeD_WorldWindow.toggle(playerNum)
                     end
                     -- (a tab that throws must not repeat its error every frame or leave its own clip
                     -- set: log once, put the drawer's clip back, draw on; code audit Oct 17 2026)
-                    -- (a tab another file adds may leave a clip set, as the Admin tab and its cards do: one
-                    -- left on hides everything drawn after the drawer, the tab strip and the help line with
-                    -- it. The director, Nov 6 2026.)
+                    -- (a tab may leave a clip set, as the Admin tab and its cards do, and under a card every
+                    -- clear of any tab leaves one, coverClear sets it again: one left on hides everything drawn
+                    -- after the drawer, the card, the tab strip and the help line with it. A tab that ends level
+                    -- with no card over it clears nothing here. The director, Nov 6 2026.)
                     local clipsBefore = self._zedStencilN or 0
                     self._coverClears = 0
                     local okR, errR = pcall(renderer, self, win, 0, 0, targetW, dh)
@@ -4149,9 +4150,7 @@ function ZeD_WorldWindow.toggle(playerNum)
                             if c and c.parent == self and c:isVisible() and c:getX() < coverL then c:setVisible(false) end
                         end
                     end
-                    if ZeD_WorldWindow._extTabs[win._activeTab] then
-                        for _ = 1, (self._zedStencilN or 0) - clipsBefore + self._coverClears do self:clearStencilRect() end
-                    end
+                    for _ = 1, (self._zedStencilN or 0) - clipsBefore + self._coverClears do self:clearStencilRect() end
                     if not okR then
                         self:clearStencilRect()
                         self:setStencilRect(0, 0, effectiveW, dh)

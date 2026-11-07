@@ -1470,8 +1470,9 @@ local function renderRanchOverview(panel, win, x, y, w, h)
     end
 
     win._animalsOvH = curY - top
+    -- (the bar lies outside the page's clip, so the drawer's clip is all it needs; a clip set
+    -- again here stayed on and hid the window's tab strip and footer, the game counts its clips)
     panel:clearStencilRect()
-    panel:setStencilRect(0, 0, panel:getWidth(), panel:getHeight())
     if needs then
         -- (the drawer hands a press to onClick; the hover, the drag and the release are kept here)
         local mx, my = panel:getMouseX(), panel:getMouseY()
