@@ -1404,7 +1404,7 @@ function H.switchInReach(p)
     if o then return o end
     for _, d in ipairs({ { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } }) do
         local s2 = getCell():getGridSquare(sq:getX() + d[1], sq:getY() + d[2], sq:getZ())
-        if s2 and (s2:getRoom() == sq:getRoom() or safe(function() return s2:Is(IsoFlagType.solidtrans) end)) then
+        if s2 and (s2:getRoom() == sq:getRoom() or safe(function() return s2:getRoom() ~= nil and not s2:isSomethingTo(sq) and s2:has(IsoFlagType.solidtrans) end)) then
             o = find(s2)
             if o then return o end
         end
