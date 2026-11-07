@@ -2887,7 +2887,9 @@ Items QA has confirmed in the game in full (their history stays in place above; 
       let the smaller feet take halves or quarters? (2) The First Days checklist never prints at Small text (no First
       Days page has a third free), as before the ads. (3) Old characters' Explosion kill count (mostly mis-filed melee and
       gun kills from beta 6a) moves to Other once; easy to drop before upload if not wanted. (4) The Identity tab shows the
-      game's own kill count (as vanilla's Character Info), which leaves out fire kills; the Journal adds them.
+      game's own kill count (as vanilla's Character Info), which leaves out fire kills; the Journal adds them. (5) The dashes draw the key at OFF while it sits in the lock, but a key in the lock powers the
+      electrics (the game has no separate ON), so every lamp lights in the bulb check with the key drawn at OFF (QA, Nov 7):
+      draw the key at ON whenever it powers the dash?
     - **Known gaps:** ZeD picks come back only when ZeD-GUI is turned on by its own row, not through a folder or
       separator box or Turn all off; split-screen's second player doesn't save dash miles on a server; on a server the
       dash ash tray is per player and session; FR and HU month words keep a capital (shared Journal keys; native pass).
