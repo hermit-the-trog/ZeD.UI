@@ -616,6 +616,12 @@ function ZeD_Prompt:addToUIManager()
         local n = self:pnum()
         local p = n and getSpecificPlayer(n)
         if not (p and p:getJoypadBind() ~= -1) then self.entry:focus() end
+        -- a one-line field's default (a list's name, a mod's question) is selected: typing replaces it, from the
+        -- keys or the controller's keyboard (ZeD.selectDefault; the outside review, Nov 7 2026). A note on several
+        -- lines keeps its caret at the end.
+        local multi = false
+        pcall(function() multi = self.entry.javaObject ~= nil and self.entry:isMultipleLine() end)
+        if not multi and ZeD.selectDefault then ZeD.selectDefault(self.entry) end
     end
 end
 

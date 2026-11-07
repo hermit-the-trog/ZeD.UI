@@ -689,6 +689,7 @@ local function renameZone(win)
     entry:setText(zone:getName())
     entry:setVisible(true)
     entry:focus()
+    if ZeD.selectDefault then ZeD.selectDefault(entry) end   -- (typing replaces the name offered)
 end
 
 local function commitRename(win)
