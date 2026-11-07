@@ -53,3 +53,9 @@ ZeD_Restock.lua:871 (isJoypadPressed), non-atomic writes in ZeD_ModOrder.lua:141
 
 ## What the tester covered that we have not
 A real ticket round trip with two accounts through ZeD's windows on a server, and forged commands against the server part (no authorization or validation hole found). No second player online at once, no pad, no right-click menus and no Steam on their rig, so those findings rest on code review.
+
+## Tab sweep, Nov 6 2026, before the hot fix
+Every tab with data on the QA save, at 4K, rail and footer read in crops of the full-size pictures (tools/qa/batch_tab_sweep.ps1). The Animals tab's Ranch page is the only one that fails.
+- World: Build, Craft, Forage, Furniture and Maps draw both, clips level. Loot draws both.
+- Character: Equipment, Health, Thermal, Identity, Journal and Skills draw both, clips level. Loot read from the overview sheet only.
+- Not opened on this save, as the tab isn't offered there: Character Cooking, Radio and Server; World Radio, Vehicle and Admin. The first run's FAIL lines for those are the Animals tab still on screen; the script now says SKIP. They need their own conditions: a stove, a radio, a car, a server.
