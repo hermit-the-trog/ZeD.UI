@@ -1,0 +1,14 @@
+VERSION = 1,
+
+mods
+{
+    mod = PassItOver,
+    mod = Stockroom,
+    mod = CustomGamepadUI,
+    mod = GamepadQoLSuite,
+    mod = ZeD_UI,
+}
+
+maps
+{
+}
