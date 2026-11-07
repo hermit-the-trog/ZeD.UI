@@ -2776,6 +2776,19 @@ item says so.
     their draw with one clip more than they start, as the Admin tab did (AdminTab.lua:337-343, ZeD_TicketCards.lua:2331-2339,
     ServerTab.lua:285-316). The World window now clears it for added tabs; move the clear to the tabs themselves and find
     out why the Character window survives it.
+    **Build, Nov 7 2026: the clip half is done, for QA (the German half is still open).** The Admin tab, the Server tab and
+    the ticket cards each clear their last clip at the end of their draw, and so do the Evolving Traits World, Appearance
+    (SPNCC) and Traits as Skills tabs; the join screen's extra clear after a card is gone. The Evolving Traits World and
+    Traits as Skills details set one clip, not a second one inside the first, when they scroll. The World window's clear
+    after every tab stays as a safety net. Why the Character window got by: the inventory list it draws after the drawer
+    starts with one clear of its own, which took off one leftover clip; two would have hidden it (see 97). QA reads, at 4K
+    1.75x and Deck 1280x800 Auto: World window > Admin tab (home list, Tickets, an open ticket, a player-list pop-up) and
+    Character window > Server tab (list, an open ticket, typing in a card's field), each with and without an item card
+    open, for the tab icons on the right, the help line, the inventory list and the footer; the join screen's community
+    card, its scrollbar and buttons; in the compat rig, the Evolving Traits World, Appearance and Traits as Skills tabs
+    with a row whose details scroll (tab header, Find mark, both scrollbars, tab strip, footer); the Ranch page as a
+    regression check. Sims: ticket_cards_sim (every Admin and Server frame ends with the clips it began with),
+    tab_drain_sim.
 
 96. **After beta 6: a code review and in-game QA of beta 6 (Claude on the director's Mac, on 42.21, another account,
     Nov 6 2026).** Every finding, with file, line, QA's check and a fix idea: qa/REVIEW_BETA6_EXTERNAL_20261106.md. QA read
@@ -2788,7 +2801,7 @@ item says so.
     Ranch page has no tab icons and no footer, the Admin bug again, since f59ffdc8 (beta 5 and 6). ZeD_WorldWindow.lua:4152
     clears extra clips for added tabs only. Picture: qa/animals_ranch_rail_deck_20261106.jpg.
 
-97. **After the beta 6a hot fix: what the outside review left (Build, Nov 6 2026).** All of 96 went in on main at a60c4472 except these. Too big for a hot fix: split-screen positioning and per-player server state; Death then Restart on ZeD's own windows; the getTextManager proxy. Narrowed: the Steam ID check still lets about 15 neighbors through. Code nothing calls: formatWeaponMeta and formatFluidMeta in ContextMenuRegistry. Small follow-ups: the Character window has coverClear and no drain, so Journal > Recipes under a card may lose its list; send every correctAndSaveModOrder through one filtered helper (Undo changes and Load after throw with an uninstalled mod listed, as in beta 6); clear KillTracker deadLog once a weapon kill counts, as a reused zombie can read as a fire kill; RADIAL_WHEELS_SPEC.md line 58 needs the centered start for Hold with Flick-release. Second-player checks are in the merge note to QA.
+97. **After the beta 6a hot fix: what the outside review left (Build, Nov 6 2026).** All of 96 went in on main at a60c4472 except these. Too big for a hot fix: split-screen positioning and per-player server state; Death then Restart on ZeD's own windows; the getTextManager proxy. Narrowed: the Steam ID check still lets about 15 neighbors through. Code nothing calls: formatWeaponMeta and formatFluidMeta in ContextMenuRegistry. Small follow-ups: the Character window has coverClear and no drain, so Journal > Recipes under a card may lose its list; send every correctAndSaveModOrder through one filtered helper (Undo changes and Load after throw with an uninstalled mod listed, as in beta 6); clear KillTracker deadLog once a weapon kill counts, as a reused zombie can read as a fire kill; RADIAL_WHEELS_SPEC.md line 58 needs the centered start for Hold with Flick-release. Second-player checks are in the merge note to QA. Build, Nov 7 2026, for QA: the Character window now clears what a tab leaves on after it draws, as the World window does, counting the clips an item card's cover puts back. The fault was real: under a card, Journal > Recipes with a recipe picked left two clips on and the inventory list's one clear took off only one, so the list and all drawn after it would vanish. tab_drain_sim runs both windows' real drain over tabs with 0 to 3 clip pairs, a leftover clip and a throw, with and without a card. QA reads, at 4K 1.75x and Deck 1280x800 Auto: Character window > Journal > Recipes with a recipe picked and an item card open, category dropdown open too (inventory list, container strip and card stay); then Health, Skills, the Journal sub-tabs, Identity, Equip, Radio and Cooking with a card open (nothing beside the drawer flickers or stays gone).
 
 98. **After beta 6: the survival guide's ads (the director, Nov 6 2026: "And with that, the ads are done. We can build
     a handoff").** 34 ads for the Full look's left-over pages and fillers (3 full, 7 half, 12 third, 12 quarter; the
