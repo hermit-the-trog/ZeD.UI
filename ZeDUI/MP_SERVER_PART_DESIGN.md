@@ -15,7 +15,8 @@ be read off the code is in Part E, each with how QA settles it. Nothing here is 
    nothing on a server: each is guarded by `GameClient.client`. All game-side ticket work is done by a client, the
    player's or a staff member's (A4, B8).
 3. **Server Lua cannot kick, ban or unban.** No Lua path reaches `BanSystem` or `GameServer.kick`. A temp ban cannot lift
-   itself from a server timer alone (A7). This one needs a design decision before Phase 2.
+   itself from a server timer alone (A7). This one needs a design decision before Phase 2. (Settled Nov 7 2026: every ban
+   is the game's, made by a staff client or the optional host helper; see "Rules that hold" at the end.)
 4. **`OnTick` and the game clock stop on a server with `PauseEmpty` (default true).** `OnTickEvenPaused` does not. Any
    server timer that must run with nobody on uses `OnTickEvenPaused` and `getTimestamp` (A1, A7).
 5. **`SaveWorldEveryMinutes` defaults to 0.** On a default server global mod data is written only by `/save`, by `/quit`
@@ -379,7 +380,9 @@ public static void banUnbanUserAction(String, String, String);   // action, targ
 | `sendServerCommand(staffPlayer, ...)` | needs a staff member online | ask their client to run `banUnbanUserAction("UnBan", user, "")` |
 | `sendServerCommand(bannedPlayer, ...)` | that player online | tell their client to show the reason and run `forceDisconnect()` (a global, client side, `connection.forceDisconnect("lua-force-disconnect")`) |
 
-The two ways to build it are in E7. They need the director's decision before Phase 2.
+The two ways to build it are in E7. They need the director's decision before Phase 2. (Nov 7 2026: a third tool, the game's
+own remote console driven by the optional host helper on the server machine, makes these calls with nobody on. See "Rules
+that hold" at the end.)
 
 **How a reason reaches the player:**
 
@@ -973,6 +976,8 @@ A host's server is not in the host's game. In 42.22 they never share a process, 
 | `42/media/lua/client/ZeD/ZeD_TicketCards.lua` | Drawing and input for the four cards: render, hit zones, pad stops, the text fields |
 | `ZeDUI/tools/qa/tickets_sim.lua` | Lua 5.1 stubs of `getOnlinePlayers`, `ModData`, `sendServerCommand`, `Capability`, and the server files run against them: permissions, limits, views, caps. Needs no game |
 | `ZeDUI/tools/qa/mp_tickets.lua`, `mp_tickets.txt` | The bridge script and manifest for the local server |
+| `42/media/lua/server/ZeD/ZeD_ServerHelper.lua` | (Nov 7 2026) Guard. `Srv.H`: the host helper's queue and answers files under `Zomboid/Lua/ZeD_helper/`, its allow-list and target patterns, `on`, `alive`, `read`, `write` |
+| `ZeDUI/server_helper/zed_rcon_helper.py`, `README.md`, `test_zed_rcon_helper.py` | (Nov 7 2026) The optional host helper, Python 3 standard library only, run by a server's owner on the server machine; not in the Workshop item |
 | `ZeDQAShim/42/media/lua/server/ZeDQAShim/QARole.lua` | Guard. QA only, in the shim, never in the mod: command `ZeDQA.role {name}` runs `player:setRole(role)` on the sender's server object, from `getRoles()`. It is what makes the server's own permission tests possible (Part D) |
 
 **Changed:** `ServerTab.lua`, `AdminTab.lua`, `ZeD_Messages.lua` (`M.ticket`), `ZeD_MessagesWindow.lua` (the `ticket`
@@ -1041,6 +1046,9 @@ the `-debug` client stays on. `mp_server.ps1` already copies the shim to the ser
 
 **Recommended:** ZeD's own ban for timed bans, since "lift themselves" is what was asked and only this does; the game's
 ban for permanent ones.
+
+**Superseded Nov 7 2026 (the director):** a timed ban is the game's ban too, owed at once, and its unban is owed at its end.
+It may run past its time while nobody can make that call, never short. See "Rules that hold" at the end.
 
 ---
 
@@ -1209,7 +1217,8 @@ card). Module `ZeDA`; every answer comes back as `t_ack`. The table is `ZeD_AD_`
    sends it to the actor or any staff member online until one answers `a_done`. That is what lets a player read the reason first
    (the game's ban waits `LEAVE_S`, 12 seconds), an unban survive the actor leaving, and a timed ban's `Kick` back up the client's
    own leaving. A modified client that ignores `a_leave` is kicked by the server's game call when it is banned online.
-2. **E7 as settled, with one edge.** Timed bans are ZeD's, permanent ones the game's. Server Lua sees no IP (`UdpConnection.getIP` is
+2. **E7 as settled, with one edge.** (Superseded Nov 7 2026: every ban is the game's too, and a Steam ID matches on the
+   server's own number; see "Rules that hold".) Timed bans are ZeD's, permanent ones the game's. Server Lua sees no IP (`UdpConnection.getIP` is
    not reachable) and `IsoPlayer.getSteamID` is a long past what a Lua number holds, so a client names its own Steam ID in `a_hi`. A
    timed ban on a Steam ID is client-claimed, like the rest of a timed ban, but the claim is checked: `IsoPlayer.getSteamID` read as
    a Lua number must equal the claim read the same way, which narrows a client to the few IDs sharing that double, and a server without Steam takes none.
@@ -1598,7 +1607,8 @@ scope, and why.
 3. **I agree closes the screen at once and tells the server after.** Nothing waits on an answer, so no server can hold anyone there. A lost answer means being asked again next
    join. Agreeing is to the words on screen: the window keeps the view it opened with, and a push while reading changes nothing. A frozen table asks nobody, because it could
    not keep the answer.
-4. **Enforced by the client, as the timed ban is.** Server Lua cannot remove a player (A7). A modified client can skip the screen; the agreement is a record of what a client
+4. **Enforced by the client, as the timed ban is.** (Superseded Nov 7 2026: until a player agrees every ZeD command is refused,
+   and five minutes unanswered owes a Kick; see "Rules that hold".) Server Lua cannot remove a player (A7). A modified client can skip the screen; the agreement is a record of what a client
    said. It is a line in the ZeD log, not in `md.log`: agreements would crowd out the ring on a busy server, and only a player who is being asked writes one. As the ban has its stay
    note, a player asked at joining and still on with no answer after `Cm.L.ASKED_MS` gets one `Srv.action` line, "rules not answered", so a skipped screen is seen though it cannot be
    stopped. Leave is not recorded: the player is simply gone. Every edit is `Srv.action("community", ...)`, so Phase 4's Log needs a word for that kind when the two meet. A post
@@ -1671,3 +1681,140 @@ Not settled, for QA on the local server:
 |---|---|---|
 | H4 | A real report through to Around | Report a line in chat with Include where I am ticked; on the staff card, the Reported row, the Log row, and a line of the card's with Add to ticket |
 | H5 | Community's lines on the Log card with a real server's words: nine chips wrapping at Deck width and at Large text | Save the rules, post, pin, delete; the Community chip; each line's words |
+
+# Build's changes (Nov 7 2026, rules that hold)
+
+The director's decisions of Nov 7 2026 (multiple choice), built. Files: `ZeD_ServerCore.lua` (the gates), `ZeD_ServerAdmin.lua`,
+`ZeD_ServerCommunity.lua`, the new `ZeD_ServerHelper.lua`, `ZeD_AdminProto.lua` and `ZeD_CommunityProto.lua` (limits), `ZeD_Admin.lua`
+(an empty reason), `ZeD_CommunityCards.lua` (the plain question in safe mode), `sandbox-options.txt` (`ZeD.HostHelper`), and
+`ZeDUI/server_helper/`. Sims: `admin_sim.lua`, `community_sim.lua`, `community_cards_sim.lua`; the helper's own test is
+`ZeDUI/server_helper/test_zed_rcon_helper.py`.
+
+**Settled facts this rests on** (bytecode, 42.22.2): server Lua cannot kick, ban, unban or set one player's role. `GameServer`,
+`ServerWorldDatabase` and `UdpConnection` are not exposed, and the `GlobalObject` admin calls only act on a client. The game's own
+ban is enforced by the server at login (`ServerWorldDatabase.authClient`). `deletePlayerFromDatabase` and
+`checkPlayerExistsInDatabase` are never called (they delete an account and its character), and `IsoPlayer:setRole` is never used
+from server Lua (it changes the player object's field, not the connection's role the game checks).
+
+1. **Every ban is the game's ban too.** A timed ban owes the game's ban at once: the name, plus `BanSteamID` when the server has a
+   checked Steam ID, plus the IP while the player is on (as a permanent ban does, under `TIMED_IP`). Online, it waits `LEAVE_S`
+   so the reason shows first; the game's ban kicks them, so no Kick goes with it. At the end the row goes and the unban is owed
+   (`UnBan`, and `UnBanSteamID` when the row has a Steam ID: lifting one without the other would leave every account on that Steam
+   ID out). It goes to the next staff client or the host helper, so **a timed ban may run past its time while nobody can lift it,
+   never short.** ZeD's row stays the record (reason, end, who), still shows the leave screen with the time left and has
+   `gameBan` set, so Use the game's ban no longer shows on the Bans card. An unban of a permanent ban with a Steam ID now lifts
+   both halves too (it lifted only the name before).
+2. **A standing ban shuts its holder out of everything.** `Srv.gates` (`ZeD_ServerCore.lua`) run before any command's own power,
+   for every module: tickets, claims, community, extras, log, dash, admin. The ban gate refuses all of them but the hello and
+   `a_hi`, so the client still hears why. A refusal answers `perm` and writes one line a minute ("refused", "under a ban: ...").
+   A row stands whatever the game holds: a permanent ban the game made should have kept the player from logging in, so one found
+   on the server did not take. The admin part asks the gates before it hands anyone a game call (`mayCall`).
+3. **A stay owes a Kick, on every stay.** When a banned client is still on `STAY_S` after being told, the server reports it as
+   before and owes a Kick (once while one waits), on every connection and again each `STAY_EVERY_S`.
+4. **Steam IDs match on the server's own number.** `standingFor` compares the row's Steam ID with `p:getSteamID()` as numbers
+   (`tonumber(b.sid) == real`), whatever the client claims or leaves out. A Lua number holds a Steam ID to about 16, so a ban on one
+   ID also matches the few IDs that share its double; staff see that as a ban on the player it finds. The exact string is still
+   the one `a_hi` checked, and it is only what the game's `BanSteamID` call is given.
+5. **A client's "done" is not proof.** `a_done` (and the helper's "ok") only says the call went without an error. After it:
+   - a `BanSteamID` is read back from the game's own table: `NetworkUser.new():isSteamIdBanned(sid)` (an exposed class; the method
+     is a read-only `SELECT steamid FROM bannedid` on `ServerWorldDatabase.instance`, one overload taking a String, the ID back or
+     null). Not on the list: asked for again.
+   - a name ban has no read-only lookup in reach (`getFirstBannedIPForUser` is the IP's), so the proof is that the player is gone:
+     found on past `VERIFY_S` with the row made, the ban is asked for again.
+   - a Kick: still on past `VERIFY_S` while its reason holds (the row binds or the rules are still unanswered), asked for again.
+   Each is asked again `REOWE_MAX` (3) times with a log line ("game ban did not take", "kick did not take"), then one line says
+   so. The row still keeps them out (the leave screen, a Kick on a stay). **A ban lifted in the game's own window but left on
+   ZeD's Bans card is put back** by this: the Bans card is the record, and Unban there lifts both.
+6. **The join rules hold.** Until a player asked at joining agrees, every ZeD command from them is refused (the rules gate); only
+   the hello, `a_hi`, `m_get` and `m_agree` stay open. The record of who was asked is made at the first word from them (the hello or
+   any command) or at the server's own walk of the players online (`lookAtAsked`, every `ASKED_LOOK_MS`), so a client that never
+   says hello is caught all the same. After `ASKED_MS` (5 minutes) unanswered: one line, and a Kick owed with no reason (the
+   game's own words; an empty quoted reason makes the game refuse the whole command line, so `ZeD_Admin.lua` leaves `-r` off). A
+   Kick still waiting when they agree is dropped ("the rules were answered"). A role the game will not kick
+   (`CantBeKickedByUser`) is only written down. Nobody is asked mid-play, as before. A modified client can still send `m_agree`
+   without showing the screen: the agreement is the server's record of what a client said, and nothing on the server can tell.
+7. **Safe mode asks too.** Safe mode used to skip the join screen, which with the gate would leave an unmodified client refused and
+   kicked. It now asks the same question in the game's own yes/no box (`ISModalDialog`): the rules as plain lines of at most 70
+   characters, then `UI_ZeD_Cm_SafeAsk`. Yes agrees to those words, No leaves. Turning safe mode on with the screen up asks it there.
+8. **Mutes stay client-kept.** The server cannot reach the game's chat (`ChatServer` is not exposed, and `IsoPlayer.setAllChatMuted`
+   is read by nothing in the chat path). ZeD's mute is the server's list, kept by each player's ZeD chat; a modified client, or the
+   game's own chat box under safe mode, is not stopped, and the words over a player's head are the game's. The voice mute is the
+   game's own (`/voiceban`).
+
+**The host helper** (optional, off by default; the sandbox option `ZeD.HostHelper`, "Host Helper (RCON)" on the ZeD-GUI page).
+A small program the server's owner runs on the server machine (`ZeDUI/server_helper/zed_rcon_helper.py`, Python 3 standard library
+only). It talks to the game's own remote console and makes the owed calls itself, so the rules hold with no staff online.
+
+- **The game's console, from the bytecode.** `GameServer.startServer` starts `RCONServer` when the server's settings have `RCONPort`
+  and `RCONPassword`; with the Java property `rconlo` set (`-Drconlo=true`) it binds 127.0.0.1, otherwise every address (or
+  `-ip`). Source RCON over TCP, little-endian: login is type 3, answered by an empty type 0 and then type 2 with the id, or -1 for
+  a wrong password (the connection then closes); a command is type 2, its answer type 0 with the same id, cut at 4086 bytes a
+  packet. A packet under 10 or over 4096 bytes closes the connection. The body is decoded with the platform's default charset, so
+  the helper sends ASCII only. A command runs as `GameServer.rcon` then `handleServerCommand(line, null)`: user "admin" with the
+  default admin role and no connection, so `BanSystem` acts as "System".
+- **The commands** (`zombie.commands.serverCommands`, their `@CommandName` and `@CommandArgs`): `kickuser` (alias `kick`)
+  `"(.+)"` or `"(.+)" -r "(.+)"`; `banuser` `"(.+)"` with `-ip` and/or `-r "(.+)"`; `unbanuser "(.+)"`; `banid (.+)` (Steam mode
+  only, a valid Steam ID; the reason is not stored by this path); `unbanid (.+)`. Each needs `BanUnbanUser` (kick `KickUser`). The
+  line is read by `([^"]\S*|".*?")\s*` with every `"` removed, so a quoted argument can hold spaces but never a quote. Answers:
+  "User X kicked.", "User X doesn't exist.", "This user can't be kicked.", "System banned user X", "System unbanned user X",
+  "This user can't be banned.", "System banned SteamID X(...", "SteamID X is now unbanned", "Server is not in Steam mode",
+  "Expected SteamID but got ...". The kick compares names with `String.equals`, exactly.
+- **The files.** Server Lua writes `Zomboid/Lua/ZeD_helper/queue.txt` with `getFileWriter(path, true, false)` (one overload; the
+  path is under `LuaManager.getLuaCacheDir()`, the server's own Zomboid folder or its `-cachedir`; txt is an allowed extension) and
+  reads `answers.txt` with `getFileReader(path, false)` and `readLine`, every `HELPER_POLL_S`. Queue: `ZEDQ 1 <epoch>`, then
+  `id, try, act, target, reason`, tab-separated, every owed call the helper holds; rewritten only when it changes. Answers:
+  `ZEDA 1 <epoch> <unix seconds>`, then `id, try, result, text`; the helper rewrites it every pass through a temporary file and
+  `os.replace`. The epoch is `md.helperEpoch`, a random word in the admin table, so a helper never takes another world's numbers, or
+  a table a crash lost, for these.
+- **Who makes a call.** With the helper on, a call its allow-list takes goes in the queue first. A staff client gets it as well
+  in four cases: the helper has not answered in `HELPER_WAIT_S`; it answered "failed" (it gets a new try with the next retry); it
+  answered "refused" (off the queue for good); its answers file is older than `HELPER_ALIVE_S` (not running). Either
+  answer counts; the call is judged the same way afterwards (item 5). IP calls (`BanIP`, `BanIPOnly`, `UnBanIP`, `UnBanIPOnly`)
+  are never the helper's: the game's IP ban needs the player's own connection. Nor a name outside the helper's patterns.
+- **Security.** The helper sends nothing but those five commands, built from targets it checks itself: a name of 2 to 32 ASCII
+  letters, digits, `_`, `-` or inner spaces, quoted; a Steam ID of 17 digits from 7656119. The server checks the same patterns
+  before it queues a call (`H.okTarget`). A reason is the only typed text: the server takes out its tabs and line breaks, the
+  helper keeps printable ASCII, turns `"` into `'` and caps it at 200, so it can never close its quotes. Anything else is refused,
+  answered "refused" and given to a staff client. The password comes from the server's settings or `ZED_RCON_PASSWORD` and is
+  never printed or written. It is the owner's program on the owner's machine: only someone who can already write the server's
+  files can write the queue.
+- **Where it lives.** In the repository only (`ZeDUI/` is never staged: `stage_workshop.ps1` ships the version folders and
+  `common/`, and leaves out `.py` anywhere). Owners download it from the public repository; the README says how, for Windows and
+  Linux hosts.
+
+**Enforcement, bans and rules.** From the bytecode; each row is 42.22.2.
+
+| Rule | Path | Held how | Enforced by |
+|---|---|---|---|
+| A ban (timed or permanent) keeps a player out | the game's ban, made by a staff client or the helper | `ServerWorldDatabase.authClient` refuses the login; `BanSteamID` covers every account on that Steam ID | **server**, once the call lands |
+| A timed ban ends | `liftDue` on `OnTickEvenPaused`, then the owed unban | the row goes to the second; the game's ban comes off when a staff client or the helper makes the call | **server** (ZeD); late, never early, with nobody to make the call |
+| A banned player still on | the server's walk (`POLL_S`) | told to leave; the game's ban asked for again past `VERIFY_S`; a Kick owed on each stay | **server**, through a staff client or the helper |
+| A banned player's ZeD commands | `Srv.gates.ban` in the one listener | refused, every module | **server** |
+| A Steam ID ban | `p:getSteamID()` against the row, as numbers | the server's own ID, whatever the client claims (to about 16 IDs) | **server** |
+| The game's call took | `isSteamIdBanned` read back; presence past `VERIFY_S` for a name or a Kick | asked again, `REOWE_MAX` times | **server** |
+| The join rules: commands before agreeing | `Srv.gates.rules` | refused, every module but hello, `a_hi`, `m_get`, `m_agree` | **server** |
+| The join rules: no answer | the server's walk and `ASKED_MS` | a Kick owed | **server**, through a staff client or the helper |
+| The join rules: the agreement itself | `m_agree` | the server's record of what a client said | **client** (a modified client can agree without reading) |
+| The reason screen, the 12 seconds to read it | `a_leave` | the client shows it and leaves | client, never relied on: the game's ban follows |
+| The IP part of a ban | `BanIP` from a staff client while the player is on | the game refuses an offline player or a Steam relay | **server** when made; dodged by leaving first, as before |
+| A mute | `md.mutes`, each ZeD chat | the muted client will not send; other ZeD chats hide the lines | **client** |
+| Staff using the game's own window or `/banuser` | the game's packet | the game checks `BanUnbanUser` and `CantBeBannedByUser` only | server (the game's), outside ZeD's rank guard and log |
+
+**What still gets through.** A modified client can agree to the rules without reading them, and can ignore a mute. Until the
+game's call lands (no staff online and no helper) a banned modified client can stay; it is refused every ZeD command meanwhile and
+a Kick waits for the first staff client. The Steam ID a client names in `a_hi` is the exact string the game's `BanSteamID` gets: a
+client can name a neighbor within the same double, and that ID is the one the game bans (the server's own match is unaffected). A
+staff client could check it against the game's `getUsers()` before the call; not built. With the default `SaveWorldEveryMinutes =
+0` a crash still loses rows and owed calls since the last save. New server lines ("game ban did not take", "kick did not take",
+"host helper ...", "refused ... under a ban") read on the Log card as the server wrote them, like the other server-only lines.
+
+**Part E gains**, each for the local server:
+
+| # | Unknown | How it settles |
+|---|---|---|
+| E21 | That `NetworkUser.new():isSteamIdBanned(sid)` runs from server Lua (the bytecode says the constructor and the method are exposed, and the method reads `ServerWorldDatabase.instance`). If it throws, `gameHoldsSid` answers nil and only presence judges a Steam ID ban | `BanSteamID` on a Steam server, then a print of the call |
+| E22 | That `getFileWriter("ZeD_helper/queue.txt", true, false)` lands in the dedicated server's own `Zomboid/Lua/` (or its `-cachedir`), with the folder made | Turn the option on, ban an offline name, look for the file |
+| E23 | The helper against the real console: login, `banuser "x" -r "y"`, `kickuser "x"` with no reason, `banid`, the answers as read from the bytecode | Run it beside the local server with `RCONPort`, `RCONPassword` and `-Drconlo=true` |
+| E24 | That `-Drconlo=true` reaches `System.getProperty` from `StartServer64.bat` and from `ProjectZomboid64.json` | `netstat` on the RCON port after a start |
+| E25 | The safe mode question in game: the game's box sizes itself to 70-character lines at Deck width and Large text | Safe mode on, join a server that asks |
+

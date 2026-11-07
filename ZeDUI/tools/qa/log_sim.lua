@@ -361,6 +361,7 @@ local FILES = {
     ["ZeD/ZeD_AdminProto"] = "42/media/lua/shared/ZeD/ZeD_AdminProto.lua",
     ["ZeD/ZeD_ServerCore"] = "42/media/lua/server/ZeD/ZeD_ServerCore.lua",
     ["ZeD/ZeD_ServerTickets"] = "42/media/lua/server/ZeD/ZeD_ServerTickets.lua",
+    ["ZeD/ZeD_ServerHelper"] = "42/media/lua/server/ZeD/ZeD_ServerHelper.lua",
     ["ZeD/ZeD_LogProto"] = "42/media/lua/shared/ZeD/ZeD_LogProto.lua",
     ["ZeD/ZeD_ExtrasProto"] = "42/media/lua/shared/ZeD/ZeD_ExtrasProto.lua",
     ["ZeD/ZeD_ServerAdmin"] = "42/media/lua/server/ZeD/ZeD_ServerAdmin.lua",

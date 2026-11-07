@@ -7,5 +7,7 @@
     "Sandbox_ZeD_TaxiPerMinuteWaiting": "Taxametr: za minutu čekání",
     "Sandbox_ZeD_TaxiPerMinuteWaiting_tooltip": "Dolary, které taxametr přidá za každou minutu reálného času, kdy taxi čeká (pod 5 km/h, motor běží) se staženou vlajkou.",
     "Sandbox_ZeD_TaxiPerExtraPassenger": "Taxametr: za dalšího cestujícího",
-    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "Dolary ukázané pod EXTRA za každého cestujícího po prvním. Řidič se nepočítá."
+    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "Dolary ukázané pod EXTRA za každého cestujícího po prvním. Řidič se nepočítá.",
+    "Sandbox_ZeD_HostHelper": "Pomocník hostitele (RCON)",
+    "Sandbox_ZeD_HostHelper_tooltip": "Zapnuto: bany, zrušení banů a vyhození, které ZeD dluží hře, se zapisují také do Zomboid/Lua/ZeD_helper/ pro pomocníka hostitele ZeD, samostatný program, který majitel spouští na počítači serveru. Provede je přes vzdálenou konzoli serveru (RCONPort a RCONPassword v nastavení serveru), takže platí i bez správce online. Vypnuto: čekají, až se připojí někdo z týmu."
 }
