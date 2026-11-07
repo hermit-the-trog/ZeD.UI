@@ -155,7 +155,7 @@ function Q.bind(TC, C, S, me)
     -- the Server tab
     S1("server-list", "server", function() end)
     S1("server-empty", "server", function() C.mine = {}; C.seq = C.seq + 1 end)
-    S1("server-flash", "server", function(win, st) TC.qaFlash(st, "Sent as #16. You'll see when an admin opens it.") end)
+    S1("server-flash", "server", function(win, st) TC.qaFlash(st, ZeD.tr("UI_ZeD_Tk_Sent", 16)) end)   -- (the card's own words, in the game's language)
     S1("ask-blank", "server", function(win, st) TC.qaOpen(win, st, "ask") end)
     S1("ask-griefing", "server", function(win, st) TC.qaOpen(win, st, "ask"); TC.qaAsk(st, "GRIEF", true) end)
     S1("ask-off", "server", function(win, st) TC.qaOpen(win, st, "ask"); TC.qaAsk(st, "QUESTION", false) end)
@@ -257,7 +257,7 @@ function Q.bind(TC, C, S, me)
         C.card = r
         TC.qaOpen(win, st, "staff", 14)
     end)
-    S1("card-flash", "admin", function(win, st) queue(st, "Open"); card(win, st, 14); TC.qaFlash(st, "Answered. Kade_R gets a note on the belt.") end)
+    S1("card-flash", "admin", function(win, st) queue(st, "Open"); card(win, st, 14); TC.qaFlash(st, ZeD.tr("UI_ZeD_Tk_Answered", "Kade_R")) end)   -- (the card's own words, as for server-flash)
     S1("card-long", "admin", function(win, st)
         queue(st, "Open")
         local r = { id = 31, source = "zed", kind = "BUG", author = "Rosa", day = 3, filed = FILED, status = "Progress", assignee = "Hermit", thread = { n = 40 }, notes = { n = 20 } }

@@ -137,7 +137,7 @@ function Q.bind(TC, LC, Lm, M, C, S)
             end
         end
     end)
-    S1("log-flash", function(win, st) log(win, st); TC.qaFlash(st, "Going to 6283 x 5352.") end)
+    S1("log-flash", function(win, st) log(win, st); TC.qaFlash(st, ZeD.tr("UI_ZeD_Tk_Going", ZeD.Tk.whereText({ x = 6283, y = 5352 }))) end)
     S1("log-pages", function(win, st)
         local now = getTimestamp()
         local rows = {}
@@ -199,7 +199,7 @@ function Q.bind(TC, LC, Lm, M, C, S)
         around(win, st, near(getTimestamp()), missed(getTimestamp()))
         LC.qaPick(st, 494)
         st.card.added[494] = true
-        TC.qaFlash(st, "Added to ticket #14 as an admin note, with the line and its place.")
+        TC.qaFlash(st, ZeD.tr("UI_ZeD_Log_Added", 14))   -- (the card's own words, in the game's language)
     end)
     S1("around-cleared", function(win, st)
         around(win, st, near(getTimestamp()), {})

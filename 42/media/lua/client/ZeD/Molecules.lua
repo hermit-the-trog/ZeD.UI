@@ -4884,7 +4884,7 @@ end
 -- "<Verb> the <thing>? <What is lost>." with a red square mark, then Cancel and
 -- the verb's own word (danger when it can't be undone, primary otherwise).
 -- opts = { danger = true (default) / false, cancelFocus / verbFocus (mark opts),
---          cancelHelp, verbHelp, win }
+--          cancelHelp, verbHelp, win, noLine (the band's spec.noLine: a band right under its own strip) }
 -- @return height, cancelRect, verbRect
 local _qButtons = { {}, {} }
 local _qSpec = { buttons = _qButtons }
@@ -4894,7 +4894,8 @@ function ZeD.Molecules.drawQuestionBand(panel, x, y, w, question, verb, opts)
     c.label, c.variant, c.focus, c.help, c.id = ZeD.tr("UI_Cancel"), "default", opts.cancelFocus, opts.cancelHelp, "cancel"
     v.label, v.focus, v.help, v.id = verb, opts.verbFocus, opts.verbHelp, "verb"
     v.variant = (opts.danger == false) and "primary" or "danger"
-    _qSpec.question, _qSpec.win = question, opts.win
+    -- (set on every call, nil when not asked: _qSpec is one table shared by every question band)
+    _qSpec.question, _qSpec.win, _qSpec.noLine = question, opts.win, opts.noLine
     local H, out = ZeD.Molecules.drawBand(panel, x, y, w, _qSpec)
     return H, out.buttons[1], out.buttons[2]
 end

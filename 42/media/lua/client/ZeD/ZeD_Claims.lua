@@ -275,6 +275,7 @@ function C.tick()
         C.refresh()
         runWaits()
         if #C.invites > 0 and gamePopups() then C.handBack() end
+        C.runLate()
     end
     C.cancelTurn(t)
     if S.available() and (not C.infoAt or t - C.infoAt >= (C.infoEvery or INFO_MS)) then C.ask() end
@@ -425,18 +426,27 @@ end
 
 -- the game's accept packet goes through its safehouse anti-cheat, which tests "already has a safehouse" and never reads the
 -- answer: a yes or a no landing after a yes has landed is a kick at the default setting (SafehouseAcceptPacket,
--- AntiCheatSafeHouseNotMember). The note goes only when the client hears, so the gap is a press away. A faction has no such test
-local function houseAnswerClosed()
-    if joining and now() - joining < EXPECT_MS then return true end
-    local p = getPlayer()
-    return not p or SafeHouse.hasSafehouse(p) ~= nil
+-- AntiCheatSafeHouseNotMember). The note goes only when the client hears, so the gap is a press away. A faction has no such test.
+-- joinInFlight: is a yes to a safehouse on its way, not landed and not given up on?
+local function joinInFlight()
+    return joining ~= nil and now() - joining < EXPECT_MS
 end
 
+-- why a safehouse answer cannot go now: "wait" while a yes is on its way, "gone" once the player has a safehouse, nil if
+-- it can go
+local function houseAnswerClosed()
+    if joinInFlight() then return "wait" end
+    local p = getPlayer()
+    if not p or SafeHouse.hasSafehouse(p) ~= nil then return "gone" end
+    return nil
+end
+
+-- done(ok, why): why is "wait" when a yes was held back because an earlier one is still on its way
 function C.answer(inv, yes, done)
     local closed = inv.kind == "safe" and houseAnswerClosed()
     -- (a yes keeps its note: if the first fails, this one still stands)
     if closed and yes then
-        if done then done(false) end
+        if done then done(false, closed) end
         return
     end
     local list = {}
@@ -744,30 +754,61 @@ local gameInvite = {
 }
 
 -- the Server tab has gone with notes still waiting: each goes to the game's modal, once. One left unanswered there is
--- still on the server's list, so it comes back as a note when the tab does
+-- still on the server's list, so it comes back as a note when the tab does. While a yes to a safehouse is on its way, a
+-- safehouse note stays here, as C.answer holds a second answer: the game's pop-up would take one, which is the kick. The
+-- tick hands it over once the yes lands (the game's handler then drops it, as the player has a safehouse) or is given up on
 function C.handBack()
     local list = C.invites
-    C.invites = {}
+    local keep = {}
+    local hold = joinInFlight()
     for _, i in ipairs(list) do
-        local game = gameInvite[i.kind]
-        local ok, err = pcall(function() if game then game(i.obj, i.host, i.user) end end)
+        if hold and i.kind == "safe" then
+            keep[#keep + 1] = i
+        else
+            local game = gameInvite[i.kind]
+            local ok, err = pcall(function() if game then game(i.obj, i.host, i.user) end end)
+            if not ok then ZeD.logOnce("claims invite", err) end
+        end
+    end
+    C.invites = keep
+    -- (nothing handed over, nothing changed: the tick asks again while notes wait)
+    if #keep < #list then C.bump() end
+end
+
+-- game handlers whose note failed while a yes to a safehouse was on its way: each waits here, as {game, args}, so its
+-- pop-up cannot send the second answer (the kick). The tick runs them once the yes lands (the game's handler then drops
+-- the invitation, as the player has a safehouse) or is given up on
+local lateGame = {}
+
+function C.runLate()
+    if #lateGame == 0 or joinInFlight() then return end
+    local list = lateGame
+    lateGame = {}
+    for _, l in ipairs(list) do
+        -- (unpack spreads the saved arguments back out, as the event passed them; n keeps a nil one in its place)
+        local ok, err = pcall(function() l.game(unpack(l.args, 1, l.n)) end)
         if not ok then ZeD.logOnce("claims invite", err) end
     end
-    C.bump()
 end
 
 -- if ZeD's note fails, the game's modal runs, so an invitation is never lost. The game's handlers stay off the event in
--- safe mode too, and run from here: the event can then only raise one or the other, whichever way the option turns
-local function guarded(fn, game)
+-- safe mode too, and run from here: the event can then only raise one or the other, whichever way the option turns.
+-- kind: "safe" for a safehouse invitation, which waits as a note while a yes is on its way (see C.handBack)
+local function guarded(fn, game, kind)
     return function(...)
-        if gamePopups() then
+        if gamePopups() and not (kind == "safe" and joinInFlight()) then
             if game then game(...) end
             return
         end
         local ok, err = pcall(fn, ...)
         if not ok then
             ZeD.logOnce("claims invite", err)
-            if game then game(...) end
+            -- (while a yes is on its way the game's pop-up waits too: answering it would be the second answer)
+            if game and kind == "safe" and joinInFlight() then
+                lateGame[#lateGame + 1] = { game = game, args = { ... }, n = select("#", ...) }
+            elseif game then
+                game(...)
+            end
         end
     end
 end
@@ -776,7 +817,7 @@ if not C.hooked then
     C.hooked = true
     if gameInvite.safe then Events.ReceiveSafehouseInvite.Remove(gameInvite.safe) end
     if gameInvite.fac then Events.ReceiveFactionInvite.Remove(gameInvite.fac) end
-    Events.ReceiveSafehouseInvite.Add(guarded(function(...) C.onSafeInvite(...) end, gameInvite.safe))
+    Events.ReceiveSafehouseInvite.Add(guarded(function(...) C.onSafeInvite(...) end, gameInvite.safe, "safe"))
     Events.ReceiveFactionInvite.Add(guarded(function(...) C.onFactionInvite(...) end, gameInvite.fac))
     Events.OnSafehousesChanged.Add(refreshSoon)
     Events.SyncFaction.Add(refreshSoon)
