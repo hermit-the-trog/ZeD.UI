@@ -168,11 +168,40 @@ end
 -- opts: cap (the capability it needs), limit (ms between runs), mark = false when the handler marks an accepted run itself,
 -- ackModule and ackCommand when refusals answer on a phase's own module
 function Srv.register(module, command, opts, fn)
-    Srv.handlers[module .. "." .. command] = { name = command, cap = opts.cap, limit = opts.limit, mark = opts.mark, fn = fn,
+    Srv.handlers[module .. "." .. command] = { module = module, name = command, cap = opts.cap, limit = opts.limit, mark = opts.mark, fn = fn,
         ackModule = opts.ackModule, ackCommand = opts.ackCommand }
 end
 
+-- THE GATES: a rule that shuts a player out of every ZeD command, whatever the module (a ban that stands, the join rules not
+-- answered). Each is fn(p, module, command), the word for the log when it shuts, or nil; each names the few commands it leaves
+-- open itself. They run before a command's own power, so a shut player learns nothing more from a refusal than "perm".
+Srv.gates = Srv.gates or {}
+
+-- one line a minute per player, as Srv.deny
+function Srv.shut(p, why, what)
+    local m = memOf(p:getUsername())
+    local now = getTimestampMs()
+    if m.shutLog and now - m.shutLog < L.MINUTE_MS then return end
+    m.shutLog = now
+    Srv.action("admin", p:getUsername(), "refused", nil, tostring(why) .. ": " .. tostring(what))
+end
+
+-- the word a gate shuts this player out of this command with, or nil (the admin part asks it before it hands anyone a game call)
+function Srv.gated(p, module, command)
+    for _, g in pairs(Srv.gates) do
+        local why = g(p, module, command)
+        if why then return why end
+    end
+    return nil
+end
+
 local function run(h, p, a, rid)
+    local why = Srv.gated(p, h.module, h.name)
+    if why then
+        Srv.shut(p, why, h.name)
+        Srv.ack(p, rid, false, "perm", nil, h.ackModule, h.ackCommand)
+        return
+    end
     if h.cap and not Srv.can(p, h.cap) then
         Srv.deny(p, h.name)
         Srv.ack(p, rid, false, "perm", nil, h.ackModule, h.ackCommand)

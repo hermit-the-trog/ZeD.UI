@@ -5703,6 +5703,7 @@
     "UI_ZeD_Cm_RulesFull": "已達上限：%1 條規則。",
     "UI_ZeD_Cm_RulesNews": "規則與新聞",
     "UI_ZeD_Cm_RulesNewsSum": "每日訊息、規則、新聞",
+    "UI_ZeD_Cm_SafeAsk": "你同意這些規則嗎？選「否」會離開伺服器。",
     "UI_ZeD_Cm_Save": "儲存",
     "UI_ZeD_Cm_Saved": "已儲存。",
     "UI_ZeD_Cm_SavedAsk": "已儲存。所有人下次加入時會被要求再次同意。",

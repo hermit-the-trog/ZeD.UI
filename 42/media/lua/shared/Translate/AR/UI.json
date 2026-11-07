@@ -5703,6 +5703,7 @@
     "UI_ZeD_Cm_RulesFull": "Ese es el máximo: %1 reglas.",
     "UI_ZeD_Cm_RulesNews": "Reglas y noticias",
     "UI_ZeD_Cm_RulesNewsSum": "El mensaje del día, las reglas, noticias",
+    "UI_ZeD_Cm_SafeAsk": "¿Aceptás estas reglas? No te desconecta del servidor.",
     "UI_ZeD_Cm_Save": "Guardar",
     "UI_ZeD_Cm_Saved": "Guardado.",
     "UI_ZeD_Cm_SavedAsk": "Guardado. A todos se les pide aceptar de nuevo cuando entren otra vez.",

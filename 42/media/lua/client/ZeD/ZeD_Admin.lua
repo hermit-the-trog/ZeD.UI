@@ -526,10 +526,17 @@ function M.banOf(user)
     return nil
 end
 
+-- " -r <reason>", or nothing: the game's commands read an empty quoted reason as a missing argument and refuse the whole line
+-- (CommandArgs "(.+)"), and with no -r they use their own words (a Kick for the join rules goes that way)
+local function rArg(reason)
+    if type(reason) == "string" and reason ~= "" then return " -r " .. Q(reason) end
+    return ""
+end
+
 local OWED = {
-    Ban = function(a) SendCommandToServer("/banuser " .. Q(a.target) .. " -r " .. Q(a.reason or "")) end,
-    BanIP = function(a) SendCommandToServer("/banuser " .. Q(a.target) .. " -ip -r " .. Q(a.reason or "")) end,
-    Kick = function(a) SendCommandToServer("/kickuser " .. Q(a.target) .. " -r " .. Q(a.reason or "")) end,
+    Ban = function(a) SendCommandToServer("/banuser " .. Q(a.target) .. rArg(a.reason)) end,
+    BanIP = function(a) SendCommandToServer("/banuser " .. Q(a.target) .. " -ip" .. rArg(a.reason)) end,
+    Kick = function(a) SendCommandToServer("/kickuser " .. Q(a.target) .. rArg(a.reason)) end,
     BanSteamID = function(a) banUnbanUserAction("BanSteamID", a.target, a.reason or "") end,
     BanIPOnly = function(a) SendCommandToServer("/banip " .. a.target) end,
     UnBan = function(a) banUnbanUserAction("UnBan", a.target, "") end,

@@ -5703,6 +5703,7 @@
     "UI_ZeD_Cm_RulesFull": "上限です: %1件。",
     "UI_ZeD_Cm_RulesNews": "ルールとニュース",
     "UI_ZeD_Cm_RulesNewsSum": "今日のメッセージ、ルール、ニュース",
+    "UI_ZeD_Cm_SafeAsk": "これらのルールに同意しますか？「いいえ」でサーバーから退出します。",
     "UI_ZeD_Cm_Save": "保存",
     "UI_ZeD_Cm_Saved": "保存しました。",
     "UI_ZeD_Cm_SavedAsk": "保存しました。次回参加時に全員が再度同意を求められます。",

@@ -741,10 +741,15 @@ end
 function P.classes()
     if ZeD_JoinWindow then return end
 
-    -- safe mode: the join screen goes, and is not put up
+    -- safe mode: the join screen goes, and is not put up. The question still stands (the server refuses every ZeD command
+    -- until it is answered), so the game's own yes/no box asks it instead
     ZeD.Safe.register("community", {
         leave = function()
-            if CM.joinWin then CM.joinWin:finish() end
+            if CM.joinWin then
+                CM.joinWin:finish()
+                local ok, err = pcall(P.safeAsk)
+                if not ok then ZeD.logOnce("community: the plain question", err) end
+            end
         end,
     })
 
@@ -902,9 +907,56 @@ function P.classes()
     end
 end
 
+-- a line cut into pieces of at most n characters, at spaces where it can be: the game's box sizes itself to its longest line
+function P.plainWrap(s, n)
+    local out, line = {}, ""
+    for word in string.gmatch(s, "%S+") do
+        while #word > n do
+            if line ~= "" then out[#out + 1] = line; line = "" end
+            out[#out + 1] = string.sub(word, 1, n)
+            word = string.sub(word, n + 1)
+        end
+        if line == "" then line = word
+        elseif #line + 1 + #word <= n then line = line .. " " .. word
+        else out[#out + 1] = line; line = word end
+    end
+    if line ~= "" then out[#out + 1] = line end
+    return out
+end
+
+-- the plain version, for safe mode: the game's own yes/no box with the rules as lines. Yes agrees to these words, No leaves
+function P.safeAsk()
+    local v = M.view
+    if CM.safeAsk or not (v and v.ask) or A2.leave or not ISModalDialog then return end
+    local lines = { tr("UI_ZeD_Cm_Rules"), "" }
+    local rules = v.rules or {}
+    for i = 1, (rules.n or 0) do
+        local r = rules[i]
+        if r then
+            for _, s in ipairs(P.plainWrap(tostring(i) .. ". " .. tostring(r.text), 70)) do lines[#lines + 1] = s end
+        end
+    end
+    lines[#lines + 1] = ""
+    lines[#lines + 1] = tr("UI_ZeD_Cm_SafeAsk")
+    local rev = v.rev
+    local function onAnswer(_, button)
+        CM.safeAsk = nil
+        if button and button.internal == "YES" then M.agree(rev) else M.leave() end
+    end
+    local modal = ISModalDialog:new(0, 0, 350, 150, table.concat(lines, "\n"), true, nil, onAnswer, 0)
+    modal:initialise()
+    modal:addToUIManager()
+    local core = getCore()
+    modal:setX(math.floor((core:getScreenWidth() - modal:getWidth()) / 2))
+    modal:setY(math.floor((core:getScreenHeight() - modal:getHeight()) / 2))
+    CM.safeAsk = modal
+    local jd = JoypadState and JoypadState.players and JoypadState.players[1]
+    if jd then setJoypadFocus(0, modal) end
+end
+
 function M.joinScreen()
     if CM.joinWin or not M.view or A2.leave then return end
-    if ZeD.Safe and ZeD.Safe.on("community") then return end
+    if ZeD.Safe and ZeD.Safe.on("community") then return P.safeAsk() end
     P.classes()
     -- the window first. If it cannot be built there is nothing up to cover the game, and past this point it can always be answered
     local win = ZeD_JoinWindow:new(M.view)

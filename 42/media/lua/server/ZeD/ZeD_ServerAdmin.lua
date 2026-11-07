@@ -9,10 +9,14 @@
 -- md.owed and go to a staff client online until that client says it is done. Each is tied to its ban: unbanned or lifted,
 -- the call goes with it, and one whose author lost the power or whose target rose above it is dropped at send time.
 --
--- Timed bans are ZeD's own (E7, settled): the server keeps the list and lifts each to the second, with nobody on. On
--- joining, the server tells the client to show the reason and leave; a client that stays is reported to staff, who can
--- use the game's ban. Permanent bans are the game's; until the game's call is made, the row keeps them out as a timed one
--- does. Repeating messages run here too, on OnTickEvenPaused (A1): the game clock stops on an empty server.
+-- Every ban is the game's ban too (the director, Nov 7 2026): the game's own ban, enforced by the server at login, is owed
+-- at once, timed or not, and a timed one's unban is owed at its end. A timed ban may run past its time while nobody can make
+-- that call, never short. ZeD's row stays the record (reason, end, who) and still shows the leave screen. A client's "done"
+-- is not proof: a banned player the server still finds on after VERIFY_S means the ban did not take, and it is asked for
+-- again (REOWE_MAX times, each with a log line); a Steam ID ban is read back from the game's own list. A banned client that
+-- stays is reported and a Kick is owed, on every stay. A standing ban shuts its holder out of every ZeD command (Srv.gates).
+-- With the host helper on (ZeD_ServerHelper.lua) the calls it can make go to it as well, so they land with no staff online.
+-- Repeating messages run here too, on OnTickEvenPaused (A1): the game clock stops on an empty server.
 --
 -- The table has a secret random name, as the tickets' does (A2), and is never transmitted. Views are allowlists. Every
 -- action goes through Srv.adminLog into the server part's one log (Srv.action): a line in the ZeD log and a line in md.log,
@@ -24,6 +28,7 @@ require "ZeD/ZeD_TicketProto"
 require "ZeD/ZeD_AdminProto"
 require "ZeD/ZeD_ServerCore"
 require "ZeD/ZeD_ServerTickets"
+require "ZeD/ZeD_ServerHelper"
 
 local Srv = ZeD.Srv
 local Tk = ZeD.Tk
@@ -47,7 +52,7 @@ for _, name in ipairs(Adm.SERVER_CAPS) do
 end
 
 -- memory only: a /reloadlua of this file leaves it empty and open() fills it again
-local T = { told = {}, seen = {} }
+local T = { told = {}, seen = {}, kicked = {} }
 Srv.A = T
 
 -- ---------------------------------------------------------------------------
@@ -82,6 +87,7 @@ local function open()
     md.mutes = md.mutes or {}        -- lower-case username -> who muted them
     md.watch = md.watch or {}        -- username -> the powers to switch off when a role lands
     md.log = md.log or { n = 0, at = 0, s = 0 }
+    md.helperEpoch = md.helperEpoch or getRandomUUID()   -- (this world's word for the host helper's files)
     -- (a watch back from a restart waits for that player's hello, when their client can hear it)
     for _, w in pairs(md.watch) do w.hi = true end
     if md.schema > SCHEMA then
@@ -240,14 +246,22 @@ local function bindsRole(b, r)
     return not (Adm.RANK_GUARD and b.byPos and rank(r) > b.byPos)
 end
 
--- the row that keeps this player out now: a timed ban, or a permanent one the game has not been told of yet. The game's
--- login matches names in any case, so these do too
-local function standingFor(md, user, sid)
+-- the server's own Steam ID for a player, as a Lua number. IsoPlayer.getSteamID is a long and Lua holds it as a double, so
+-- about 16 IDs share one number. 0 or nothing: not a Steam server
+local function sidNum(o)
+    local real = o and o:getSteamID()
+    if type(real) ~= "number" then real = tonumber(tostring(real)) end
+    if not real or real == 0 then return nil end
+    return real
+end
+
+-- the row that keeps this player out now: any ban on their name, or on a Steam ID that is the server's own number for them,
+-- whatever their client claims. A permanent ban the game holds should have kept them from logging in at all, so one that finds
+-- them here did not take. The game's login matches names in any case, so these do too
+local function standingFor(md, user, real)
     local low = string.lower(user)
     for _, b in pairs(md.bans) do
-        if (b.user and string.lower(b.user) == low) or (sid and b.sid == sid) then
-            if b.untilT or not b.made then return b end
-        end
+        if (b.user and string.lower(b.user) == low) or (real and b.sid and tonumber(b.sid) == real) then return b end
     end
     return nil
 end
@@ -444,8 +458,17 @@ local function owe(md, act, target, reason, delay, by, opts)
     md.nextOwe = id + 1
     opts = opts or {}
     md.owed[id] = { id = id, act = act, target = target, reason = reason, at = getTimestamp() + (delay or 0), by = by,
-        banId = opts.banId, after = opts.after }
+        banId = opts.banId, after = opts.after, why = opts.why, n = opts.n }
     return id
+end
+
+-- a Kick for this name, unless one already waits. opts: banId, or why = "rules"; n, how many times it was asked before
+local function oweKick(md, user, reason, opts)
+    local low = string.lower(user)
+    for _, e in pairs(md.owed) do
+        if e.act == "Kick" and string.lower(tostring(e.target)) == low then return nil end
+    end
+    return owe(md, "Kick", user, reason or "", 0, nil, opts)
 end
 
 local function owedCap(act) if act == "Kick" then return CAP.KickUser end return CAP.BanUnbanUser end
@@ -464,13 +487,14 @@ local function cancelOwed(md, banId)
     return sent
 end
 
--- what lifting a ban owes the game: nothing, unless the game's ban was made or may have been
+-- what lifting a ban owes the game: nothing, unless the game's ban was made or may have been. A name banned with its Steam ID
+-- lifts both, or the Steam ID would keep every account on it out
 local function undoGame(md, b, by)
     local sent = cancelOwed(md, b.id)
     if not (b.made or sent or b.ipSent) then return end
-    if b.user then owe(md, b.banIp and "UnBanIP" or "UnBan", b.user, "", 0, by)
-    elseif b.sid then owe(md, "UnBanSteamID", b.sid, "", 0, by)
-    else owe(md, "UnBanIPOnly", b.ip, "", 0, by) end
+    if b.user then owe(md, b.banIp and "UnBanIP" or "UnBan", b.user, "", 0, by) end
+    if b.sid then owe(md, "UnBanSteamID", b.sid, "", 0, by) end
+    if not (b.user or b.sid) then owe(md, "UnBanIPOnly", b.ip, "", 0, by) end
 end
 
 -- the game keeps no IP ban here: it needs the player on, and not on a Steam connection (BanSystem.BanUserByIP)
@@ -485,27 +509,53 @@ end
 -- a call that no longer stands: the words for the log, or nil
 local function owedStale(md, e, b)
     if e.banId and not b then return "its ban is gone" end
+    if e.why == "rules" and not (Srv.rulesUnanswered and Srv.rulesUnanswered(e.target)) then return "the rules were answered" end
     local r = e.by and roleOf(md, e.by) or nil
     if r and not r:hasCapability(CAP.BanUnbanUser) then return "its author lost the power" end
     if b and b.user and not bindsRole(b, roleOf(md, b.user)) then return "its target's role is above it" end
     return nil
 end
 
--- never the target of the call, and never someone a ban keeps out
+-- never the target of the call, and never someone a gate shuts out (a ban, the join rules unanswered)
 local function mayCall(md, o, e, cap)
     local user = o:getUsername()
     local rec = md.players[user]
     if not Srv.can(o, cap) then return false end
     if ON_SID[e.act] then
         if rec and rec.sid == e.target then return false end
+        local real = sidNum(o)
+        if real and tonumber(e.target) == real then return false end
     elseif string.lower(user) == string.lower(tostring(e.target)) then
         return false
     end
-    return standingFor(md, user, rec and rec.sid) == nil
+    return Srv.gated(o, Adm.MOD, "a_done") == nil
+end
+
+-- the host helper first, when it is on and its allow-list takes the call: it goes in the helper's queue and stays there until
+-- answered. A staff client gets it too once the helper has not answered in HELPER_WAIT_S, has failed or refused it or is not
+-- running. True when the helper holds it for now
+local function toHelper(e, now)
+    local H = Srv.H
+    if not (H and H.on()) or e.noHelper or not H.can(e) then return false end
+    if not e.helper then
+        e.helper, e.try, e.helperAt = true, 1, now
+        e.sent = now
+        return true
+    end
+    if e.helperFailed then
+        e.try, e.helperFailed, e.helperAt = (e.try or 1) + 1, nil, now   -- (a new try: the helper makes it again)
+        return false
+    end
+    if H.alive(now) and now - (e.helperAt or 0) < AL.HELPER_WAIT_S then
+        e.sent = now
+        return true
+    end
+    return false
 end
 
 -- to the one who asked if they are on, else any staff member with the power; the one sent to is the one who may answer
 local function deliver(md, e, b, now)
+    if toHelper(e, now) then return end
     local cap = owedCap(e.act)
     local who = e.by and Srv.player(e.by)
     if not (who and mayCall(md, who, e, cap)) then
@@ -546,6 +596,59 @@ local function sendOwed(md, now)
 end
 
 -- ---------------------------------------------------------------------------
+-- DID THE GAME'S CALL TAKE? A client's "done" only says it made the call without a Lua error
+-- ---------------------------------------------------------------------------
+-- the game's own list, read back: true or false for a Steam ID, nil when it cannot be read (NetworkUser.isSteamIdBanned is a
+-- read-only SELECT on the server's ban table; one overload, a String)
+local function gameHoldsSid(sid)
+    if type(sid) ~= "string" or not NetworkUser then return nil end
+    local ok, r = pcall(function() return NetworkUser.new():isSteamIdBanned(sid) end)
+    if not ok then return nil end
+    return r ~= nil
+end
+
+-- the game's ban did not take: asked for again, REOWE_MAX times, each with a line. After that the row still keeps them out
+-- (the leave screen, the Kick on a stay) and the log says the game's ban is not holding
+local function reOwe(md, b, why)
+    for _, e in pairs(md.owed) do
+        if e.banId == b.id and GAME_BAN[e.act] then return end     -- (one still waits: nothing to judge yet)
+    end
+    local who = b.user or b.sid
+    if (b.reowe or 0) >= AL.REOWE_MAX then
+        if not b.gaveUp then
+            b.gaveUp = true
+            Srv.adminLog(Tk.SYS, "game ban did not take", who, why .. "; asked " .. tostring(b.reowe) .. " times, the row still keeps them out")
+        end
+        return
+    end
+    b.reowe = (b.reowe or 0) + 1
+    b.made, b.madeAt = nil, nil
+    Srv.adminLog(Tk.SYS, "game ban did not take", who, why .. "; asked again, " .. tostring(b.reowe) .. " of " .. tostring(AL.REOWE_MAX))
+    local first = nil
+    if b.user then first = owe(md, "Ban", b.user, b.reason, 0, nil, { banId = b.id }) end
+    if b.sid then owe(md, "BanSteamID", b.sid, b.reason, 0, nil, { banId = b.id, after = first }) end
+end
+
+-- a call is done: by the staff client it went to, or by the host helper
+local function doneOwed(md, e, now)
+    md.owed[e.id] = nil
+    local b = e.banId and md.bans[e.banId] or nil
+    if b and GAME_BAN[e.act] then
+        b.made, b.madeAt = true, now
+        if e.act == "BanSteamID" and gameHoldsSid(e.target) == false then reOwe(md, b, "the Steam ID is not on the game's list") end
+    end
+    if e.act == "BanIP" then
+        local at = now + AL.IP_GAP_S
+        for _, other in pairs(md.owed) do
+            if other.after == e.id then other.at = at end
+        end
+    end
+    if e.act == "Kick" then
+        T.kicked[string.lower(tostring(e.target))] = { user = e.target, at = now, n = e.n or 0, reason = e.reason, banId = e.banId, why = e.why }
+    end
+end
+
+-- ---------------------------------------------------------------------------
 -- THE TIMED BANS
 -- ---------------------------------------------------------------------------
 local function tellLeave(o, b, now)
@@ -564,17 +667,17 @@ local function release(b)
     end
 end
 
--- a banned client still here: staff are told, and it is written on the ban
+-- a banned client still here: staff are told, it is written on the ban, and a Kick is owed (each stay, not only at the ban)
 local function reportStay(md, user, b, told, now)
     told.noted = now
     b.stay, b.stayUser = now, user
     Srv.adminLog(Tk.SYS, "a banned client has not left", user)
     noteStaff({ kind = "stay", user = user, id = b.id })
+    oweKick(md, user, b.reason, { banId = b.id })
 end
 
 local function checkBan(md, o, user, now)
-    local rec = md.players[user]
-    local b = standingFor(md, user, rec and rec.sid)
+    local b = standingFor(md, user, sidNum(o))
     if b and not bindsRole(b, o:getRole()) then
         if not b.noBind then
             b.noBind = true
@@ -586,6 +689,8 @@ local function checkBan(md, o, user, now)
         T.told[user] = nil
         return
     end
+    -- (the game's ban should have kept them from logging in, or kicked them when it was made)
+    if b.made and now - (b.madeAt or 0) >= AL.VERIFY_S then reOwe(md, b, "they are still on") end
     local told = T.told[user]
     if not told or told.id ~= b.id then
         tellLeave(o, b, now)
@@ -640,6 +745,34 @@ local function trimPlayers(md)
     if n > AL.PLAYERS_MAX and oldest then md.players[oldest] = nil end
 end
 
+-- a Kick the game was asked for, and the player still on past VERIFY_S: asked again while its reason holds, REOWE_MAX times
+local function checkKicks(md, now)
+    local done = nil
+    for low, k in pairs(T.kicked) do
+        if now - k.at >= AL.VERIFY_S then
+            done = done or {}
+            done[#done + 1] = low
+            local o = Srv.player(k.user)
+            local holds = false
+            if o and k.banId then
+                local b = md.bans[k.banId]
+                holds = b ~= nil and standingFor(md, k.user, sidNum(o)) == b and bindsRole(b, o:getRole())
+            elseif o and k.why == "rules" then
+                holds = Srv.rulesUnanswered ~= nil and Srv.rulesUnanswered(k.user) == true
+            end
+            if holds then
+                if k.n + 1 <= AL.REOWE_MAX then
+                    Srv.adminLog(Tk.SYS, "kick did not take", k.user, "asked again, " .. tostring(k.n + 1) .. " of " .. tostring(AL.REOWE_MAX))
+                    oweKick(md, k.user, k.reason, { banId = k.banId, why = k.why, n = k.n + 1 })
+                else
+                    Srv.adminLog(Tk.SYS, "kick did not take", k.user, "asked " .. tostring(k.n) .. " times")
+                end
+            end
+        end
+    end
+    for _, low in ipairs(done or {}) do T.kicked[low] = nil end
+end
+
 local function walkPlayers(md, now)
     local seen = {}
     local list = getOnlinePlayers()
@@ -655,6 +788,7 @@ local function walkPlayers(md, now)
     end
     T.seen = seen
     trimPlayers(md)
+    checkKicks(md, now)
 end
 
 local function runRepeats(md, now)
@@ -694,6 +828,43 @@ local function runWatch(md, now)
     for _, d in ipairs(done or {}) do applyWatch(md, d[1], d[2], d[3]) end
 end
 
+-- the host helper: its answers read, its queue written, every HELPER_POLL_S
+local function runHelper(md, now)
+    local H = Srv.H
+    if not (H and H.on()) then return end
+    if T.helperAt and now - T.helperAt < AL.HELPER_POLL_S then return end
+    T.helperAt = now
+    local ok, list = pcall(H.read, md)
+    if not ok then
+        if not T.helperErr then
+            T.helperErr = true
+            Srv.adminLog(Tk.SYS, "host helper", nil, "its answers could not be read: " .. tostring(list))
+        end
+        list = nil
+    end
+    for _, a in ipairs(list or {}) do
+        local e = md.owed[a.id]
+        if e and e.helper then
+            if a.res == "ok" or (a.res == "gone" and e.act == "Kick") then
+                doneOwed(md, e, now)
+            elseif a.try == e.try and not e.helperFailed and not e.noHelper then
+                if a.res == "refused" then
+                    e.noHelper, e.helper, e.sent = true, nil, nil
+                    Srv.adminLog(Tk.SYS, "host helper refused", e.target, e.act .. ": " .. tostring(a.text))
+                else
+                    e.helperFailed, e.sent = true, nil
+                    Srv.adminLog(Tk.SYS, "host helper failed", e.target, e.act .. ": " .. tostring(a.text))
+                end
+            end
+        end
+    end
+    local wok, err = pcall(H.write, md)
+    if not (wok and err) and not T.helperWriteErr then
+        T.helperWriteErr = true
+        Srv.adminLog(Tk.SYS, "host helper", nil, "its queue could not be written: " .. tostring(err))
+    end
+end
+
 function Srv.adminTick()
     local now = getTimestamp()
     if T.at == now then return end
@@ -708,28 +879,23 @@ function Srv.adminTick()
     runRepeats(md, now)
     runWatch(md, now)
     sendOwed(md, now)
+    runHelper(md, now)
 end
 
 -- ---------------------------------------------------------------------------
 -- THE COMMANDS: every one takes its player from the event, and only an ack's ok lets a client make the game's call
 -- ---------------------------------------------------------------------------
--- someone a ban keeps out asks for nothing here: they are on their way out, and that goes for banned staff too
-local function reg(command, opts, fn)
-    Srv.register(Adm.MOD, command, opts, function(p, a, rid)
-        if command ~= "a_hi" then
-            local user = p:getUsername()
-            local md = open()
-            local rec = md.players[user]
-            local b = standingFor(md, user, rec and rec.sid)
-            if b and bindsRole(b, p:getRole()) then
-                Srv.deny(p, command)
-                Srv.ack(p, rid, false, "perm")
-                return
-            end
-        end
-        fn(p, a, rid)
-    end)
+-- someone a ban keeps out asks for nothing anywhere in ZeD, not only here: they are on their way out, and that goes for banned
+-- staff too. The hello and a_hi stay open, so their client still hears why (Srv.gates, ZeD_ServerCore.lua)
+Srv.gates.ban = function(p, module, command)
+    if module == Tk.MOD_LINK or (module == Adm.MOD and command == "a_hi") then return nil end
+    local md = open()
+    local b = standingFor(md, p:getUsername(), sidNum(p))
+    if b and bindsRole(b, p:getRole()) then return "under a ban" end
+    return nil
 end
+
+local function reg(command, opts, fn) Srv.register(Adm.MOD, command, opts, fn) end
 
 -- the Steam ID a client names, when the server's own number agrees. IsoPlayer.getSteamID is a long, and server Lua only ever
 -- has it as a double, which holds a Steam ID to the nearest 16. The client's true string rounds to that same double
@@ -1040,12 +1206,10 @@ reg("a_ban", { cap = CAP.BanUnbanUser, limit = AL.BAN_MS, mark = false }, functi
     md.bans[id] = b
     local wait = o and AL.LEAVE_S or 0
     if o then tellLeave(o, b, getTimestamp()) end
-    if not untilT then
-        oweBan(md, b, target, kind, wait, me)
-    elseif o then
-        -- (past the client's own clock: one that leaves as told needs no kick on its record)
-        owe(md, "Kick", target, reason, wait + AL.IP_GAP_S, me, { banId = id })
-    end
+    -- the game's ban, timed or not (the director, Nov 7 2026): enforced by the server at login. A timed one is lifted at its end
+    -- (liftDue). Online, it waits LEAVE_S so they read the reason first; the game's ban kicks them, so no Kick goes with it
+    oweBan(md, b, target, kind, wait, me)
+    if untilT then b.gameBan = true end
     logAt(p, "ban", target, (untilT and (tostring(a.len) .. ": ") or "permanent: ") .. reason)
     Srv.ack(p, rid, true, nil, { id = id, untilT = untilT, unknown = (kind == "user" and not rec and not o) or nil })
     pushBans(md)
@@ -1057,7 +1221,7 @@ reg("a_unban", { cap = CAP.BanUnbanUser, limit = AL.BAN_MS, mark = false }, func
     if frozen(p, rid) then return end
     local me = p:getUsername()
     local mine = md.players[me]
-    if owedRoom(md) < 1 then Srv.ack(p, rid, false, "full"); return end
+    if owedRoom(md) < 2 then Srv.ack(p, rid, false, "full"); return end
     if Tk.whole(a.id) then
         local b = md.bans[a.id]
         if not b then Srv.ack(p, rid, false, "gone"); return end
@@ -1085,21 +1249,14 @@ reg("a_unban", { cap = CAP.BanUnbanUser, limit = AL.BAN_MS, mark = false }, func
     pushBans(md)
 end)
 
--- the staff client a call went to made it. Only that client: anyone else's word would clear a ban nobody made
+-- the staff client a call went to made it. Only that client: anyone else's word would clear a ban nobody made. Even then it
+-- only says the call went without a Lua error: the ban is judged again (reOwe, checkKicks)
 reg("a_done", {}, function(p, a, rid)
     local md = open()
     if T.frozen or not Tk.whole(a.id) then return end
     local e = md.owed[a.id]
     if not (e and e.sentTo == p:getUsername() and Srv.can(p, owedCap(e.act))) then return end
-    md.owed[a.id] = nil
-    local b = e.banId and md.bans[e.banId] or nil
-    if b and GAME_BAN[e.act] then b.made = true end
-    if e.act == "BanIP" then
-        local at = getTimestamp() + AL.IP_GAP_S
-        for _, other in pairs(md.owed) do
-            if other.after == e.id then other.at = at end
-        end
-    end
+    doneOwed(md, e, getTimestamp())
 end)
 
 -- a client that did not leave: staff reach for the game's ban. It lifts with the timed ban, through a staff client
@@ -1218,6 +1375,13 @@ end)
 -- ---------------------------------------------------------------------------
 -- OPENING
 -- ---------------------------------------------------------------------------
+-- a Kick owed for another part (the join rules): reason "" is the game's own words. nil when one already waits or the table is frozen
+function Srv.oweKick(user, reason, why)
+    local md = open()
+    if T.frozen then return nil end
+    return oweKick(md, user, reason, { why = why })
+end
+
 Srv.modules[Adm.MOD] = true
 Srv.helloAdds.admin = function(p, r)
     open()

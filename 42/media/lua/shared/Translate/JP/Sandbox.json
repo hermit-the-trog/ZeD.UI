@@ -7,5 +7,7 @@
     "Sandbox_ZeD_TaxiPerMinuteWaiting": "タクシーメーター: 待機1分ごと",
     "Sandbox_ZeD_TaxiPerMinuteWaiting_tooltip": "旗を下ろした状態でタクシーが待機する(時速5km未満、エンジン作動中)実時間1分ごとにメーターが加算するドル額です。",
     "Sandbox_ZeD_TaxiPerExtraPassenger": "タクシーメーター: 追加乗客1人ごと",
-    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "最初の乗客を除く乗客1人ごとに、「割増」の下に表示されるドル額です。運転手は数えません。"
+    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "最初の乗客を除く乗客1人ごとに、「割増」の下に表示されるドル額です。運転手は数えません。",
+    "Sandbox_ZeD_HostHelper": "ホストヘルパー（RCON）",
+    "Sandbox_ZeD_HostHelper_tooltip": "オン：ZeD がゲームに対して保留している BAN、BAN 解除、キックを Zomboid/Lua/ZeD_helper/ にも書き出し、ZeD ホストヘルパーに渡します。これはサーバーの所有者がサーバーマシンで実行する別のプログラムです。サーバーのリモートコンソール（サーバー設定の RCONPort と RCONPassword）で実行するので、スタッフがいなくても反映されます。オフ：スタッフがログインするまで待ちます。"
 }

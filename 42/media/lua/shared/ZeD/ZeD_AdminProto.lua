@@ -89,6 +89,11 @@ Adm.L = {
     STAY_S = 20,                        -- past this, a banned client that has not left is reported to staff
     STAY_EVERY_S = 300,                 -- and again this often
     OWED_RETRY_S = 15,                  -- a game call with no word back goes again
+    VERIFY_S = 10,                      -- a client's "done" is not proof: past this, a banned player still on means the ban did not take
+    REOWE_MAX = 3,                      -- a game ban that did not take is asked for again this many times, then a log line
+    HELPER_POLL_S = 2,                  -- how often the server reads the host helper's answers and writes its queue
+    HELPER_ALIVE_S = 30,                -- the helper counts as running while its last answers file is this fresh
+    HELPER_WAIT_S = 30,                 -- a call the helper has not answered in this long goes to a staff client as well
     ROLE_WATCH_S = 30,                  -- a role change waits this long for the game to apply it
     ROLE_WATCH_KEEP_S = 86400,          -- and this long for a player who is not on
 }

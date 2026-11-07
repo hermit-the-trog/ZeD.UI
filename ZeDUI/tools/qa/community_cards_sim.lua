@@ -1259,6 +1259,46 @@ do
     SAFE = "community"
     M.joinScreen()
     check("safe mode: no screen", CM.joinWin == nil and KEYS_ON == true)
+    -- (Nov 7) asked in safe mode: the game's own yes/no box, since the server refuses every command until it is answered
+    local modals = {}
+    local realModal = ISModalDialog
+    ISModalDialog = { new = function(_, x, y, w, h, text, yesno, target, onclick, pn)
+        local m = { text = text, yesno = yesno, onclick = onclick, w = 400, h = 300, inUI = false }
+        function m.initialise() end
+        function m.addToUIManager(self) self.inUI = true end
+        function m.getWidth(self) return self.w end
+        function m.getHeight(self) return self.h end
+        function m.setX(self, v) self.x = v end
+        function m.setY(self, v) self.y = v end
+        modals[#modals + 1] = m
+        return m
+    end }
+    view({ ask = true })
+    CLIENT = {}
+    M.joinScreen()
+    local md1 = modals[1]
+    check("safe mode and asked: the plain question instead", CM.joinWin == nil and md1 ~= nil and md1.yesno == true and md1.inUI)
+    check("it holds every rule and the question", md1 and string.find(md1.text, "1. " .. Q.RULES[1], 1, true) ~= nil
+        and string.find(md1.text, "UI_ZeD_Cm_SafeAsk", 1, true) == nil and string.find(md1.text, "\n", 1, true) ~= nil, md1 and md1.text)
+    M.joinScreen()
+    check("asked once", #modals == 1)
+    md1.onclick(nil, { internal = "YES" })
+    check("Yes agrees to these words", lastCmd("m_agree") ~= nil and lastCmd("m_agree").rev == 2)
+    LEFT = 0
+    M.joinScreen()
+    modals[2].onclick(nil, { internal = "NO" })
+    check("No leaves", LEFT == 1)
+    view()
+    M.joinScreen()
+    check("not asked: no question", #modals == 2)
+    -- a rule longer than a line is cut at its spaces, and a word longer than a line is cut too
+    view({ ask = true, rules = { n = 1, { id = 1, rev = 1, text = string.rep("word ", 30) .. string.rep("x", 90) } } })
+    M.joinScreen()
+    local widest = 0
+    for l in string.gmatch(modals[3].text .. "\n", "([^\n]*)\n") do widest = math.max(widest, #l) end
+    check("the plain box stays narrow: no line past 70 characters", modals[3] and widest <= 70, widest)
+    modals[3].onclick(nil, { internal = "YES" })
+    ISModalDialog = realModal
     SAFE = nil
     M.joinScreen()
     w0 = CM.joinWin
