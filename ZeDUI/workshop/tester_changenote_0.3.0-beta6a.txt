@@ -1,0 +1,40 @@
+0.3.0-beta6a: hotfix for 0.3.0-beta6.
+
+Servers
+- A dedicated server no longer writes a font error to its log every few seconds.
+- Safehouse invitations stay until they're answered, and one sent while you were offline now shows.
+- A muted player can no longer talk through /all, /s, /y or /w. A mute also stops /roll and /card.
+- In safe mode, safehouse and faction invitations can be answered in the game's own pop-ups.
+- Others can't tow now works on 42.21 as well.
+- Check stats on a Player card opens the game's stats window, and a ticket opened from a Player card no longer wipes the ticket you came from.
+- Role names and ban targets take one line. The ticket queue keeps a Refresh if an answer is lost.
+- Answering a second safehouse invitation while the first is on its way now waits, so it can't trip the game's anti-cheat.
+- Tag colors show only to the faction's owner, the one person the game takes them from.
+
+Cards
+- Clothing cards show the real bite, scratch and bullet protection, neck, water, wind and condition.
+- Book cards show Read and Progress, and the Reading band follows the book you're reading.
+- The Surface badge is back on Crafting and Building. Journal recipes show their description again.
+- Kills by weapon count in the Journal again, one for each kill.
+- Pens show their roof percentage.
+
+Windows
+- The Animals tab's Ranch page keeps its tab icons and footer.
+- Bags and columns: Main on Loot after viewing a bag from another tab shows the main list. Shrinking a window with main hidden keeps a column.
+- A picked chat line keeps its buttons while any of the line is in view.
+- Vanilla Access: anyone coming straight from beta 5 stays on the preset.
+
+Controller
+- With Hold and Flick-release, a slice no longer fires without being chosen. The stick has to start centered.
+- A pad button aborts a Restock run.
+- The light switch search looks through windows and glass doors.
+
+Mods screen
+- A mod switched off on the default list stops running through ZeD Picks at Accept.
+- Load orders and chords are checked as they're written, with a spare kept. ZeD Picks now requires ZeD.
+
+Known issues
+- Spongie's Character Customization: the folds on the Appearance tab haven't been played with the mod on yet. The Looks screen has. If the tab misbehaves, say so in Bug reports.
+- The join rules and timed bans are enforced by the player's own game, so a modified game can get past them.
+- Split-screen: a second local player shares the first player's windows.
+- Death then Restart uses the game's character screens.
