@@ -197,26 +197,12 @@ local function computeZoneSummary(zone, animals)
     if feedMax > 0 then summary.food = math.min(100, math.floor(feed / feedMax * 100)) end
     if summary.waterMax > 0 then summary.water = math.min(100, math.floor(summary.waterL / summary.waterMax * 100)) end
 
-    -- Roof percentage: sample zone squares
-    if zone.getX and zone.getY and zone.getWidth and zone.getHeight then
-        local ok1, zx = pcall(zone.getX, zone)
-        local ok2, zy = pcall(zone.getY, zone)
-        local ok3, zw = pcall(zone.getWidth, zone)
-        local ok4, zh = pcall(zone.getHeight, zone)
-        if ok1 and ok2 and ok3 and ok4 then
-            local cell = getCell()
-            local roofed, total = 0, 0
-            for x = zx, zx + zw - 1 do
-                for y = zy, zy + zh - 1 do
-                    local gs = cell and cell:getGridSquare(x, y, 0)
-                    if gs then
-                        total = total + 1
-                        if gs.haveRoofFull and gs:haveRoofFull() then roofed = roofed + 1 end
-                    end
-                end
-            end
-            if total > 0 then summary.roof = math.floor((roofed / total) * 100) end
-        end
+    -- Roof percentage: the game keeps the zone's roofed squares in a list, rebuilt every few seconds (the count
+    -- its own zone window shows), so this is one size() a minute and no walk over the zone's squares. A new roof
+    -- is added to that list on top of what it holds until the next rebuild, so it can pass the area for a moment.
+    if zone.getRoofAreas and zone.getW and zone.getH then
+        local ok, roofed, area = pcall(function() return zone:getRoofAreas():size(), zone:getW() * zone:getH() end)
+        if ok and area > 0 then summary.roof = math.min(100, math.floor((roofed / area) * 100)) end
     end
 
     -- Male-on-male warnings: count adult males per species

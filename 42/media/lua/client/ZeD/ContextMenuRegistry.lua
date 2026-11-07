@@ -578,9 +578,29 @@ function Registry.highlight(holder, def)
     local menu = opt and def._vanillaMenu or nil
     if menu and not menu.checkHighlightedOption then menu = nil end
     local was = holder._hlMenu
-    if was and was ~= menu then tellMenu(was, nil) end
+    if was and was ~= menu then
+        was._zedLit = nil
+        tellMenu(was, nil)
+    end
     holder._hlMenu = menu
-    if menu then tellMenu(menu, opt) end
+    if menu then
+        menu._zedLit = true
+        tellMenu(menu, opt)
+    end
+end
+
+-- The game's menu stays in the UI, parked off screen, so every mouse move lands outside it
+-- and the game's handler puts its lit option out. ZeD lights it again only at the next
+-- prerender, after the world has drawn, so the outline flickered while the mouse moved.
+-- While ZeD holds the menu its option stays lit; the rest of the game's handler still runs.
+require "ISUI/ISContextMenu"
+local origMoveOutside = ISContextMenu.onMouseMoveOutside
+function ISContextMenu:onMouseMoveOutside(dx, dy)
+    if not self._zedLit then return origMoveOutside(self, dx, dy) end
+    local lit = self.highlightedOption
+    self.highlightedOption = nil
+    origMoveOutside(self, dx, dy)
+    self.highlightedOption = lit
 end
 
 -- The game's highlight functions end by telling the inventory pages, which then light
@@ -899,7 +919,7 @@ local function formatFluidMeta(item)
     local fluidPart = ""
     local primary = safeCall(fc, "getPrimaryFluid")
     if primary then
-        fluidPart = safeCall(primary, "getTranslatedFluidName") or ""
+        fluidPart = safeCall(primary, "getTranslatedName") or ""
     end
     if capacity > 0 then
         local txt = ZeD.tr("UI_ZeD_Meta_FluidAmount", string.format("%.1f", amount), string.format("%.1f", capacity))
@@ -931,9 +951,14 @@ local function formatFoodMeta(item)
 end
 
 local function formatWeaponMeta(item)
-    local cond = safeCall(item, "getConditionPercent")
     local parts = {}
-    if cond then parts[#parts + 1] = ZeD.tr("UI_ZeD_Meta_Condition", tostring(cond)) end
+    -- weapons only: every item has a condition, and a clothing item must fall through to its own meta below
+    if instanceof(item, "HandWeapon") then
+        local c, m = safeCall(item, "getCondition"), safeCall(item, "getConditionMax")
+        if c and m and m > 0 then
+            parts[#parts + 1] = ZeD.tr("UI_ZeD_Meta_Condition", tostring(math.floor(c / m * 100 + 0.5)))
+        end
+    end
     local current = safeCall(item, "getCurrentAmmoCount")
     local max = safeCall(item, "getMaxAmmo")
     if current and max and max > 0 then
