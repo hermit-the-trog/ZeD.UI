@@ -71,7 +71,7 @@ local function formatWeapon(item)
     if sp then local l="Normal"; if sp<1 then l="Fast" elseif sp>2 then l="Slow" end; table.insert(s,{label="Speed",value=l}) end
     local r = safeGet(item,"getMaxRange"); if r and r>0 then table.insert(s,{label="Range",value=string.format("%.1f",r)}) end
     local c = safeGet(item,"getCriticalChance"); if c and c>0 then table.insert(s,{label="Crit",value=math.floor(c).."%"}) end
-    local k = safeGet(item,"getKnockbackPower"); if k and k>0 then table.insert(s,{label="Knockback",value=string.format("%.1f",k)}) end
+    local k = safeGet(item,"getPushBackMod"); if k and k>0 then table.insert(s,{label=ZeD.tr("UI_ZeD_Card_Knockback"),value=string.format("%.2f",k)}) end
     local t = safeGet(item,"getTreeDamage"); if t and t>0 then table.insert(s,{label="Tree dmg",value=string.format("%.0f",t)}) end
     return s
 end
@@ -116,7 +116,7 @@ local function formatFluid(item)
     local T=ZeD.T; local s={}
     local fc=safeGet(item,"getFluidContainer"); if not fc then return s end
     local fluid=safeGet(fc,"getPrimaryFluid")
-    if fluid then local fn=safeGet(fluid,"getTranslatedFluidName") or safeGet(fluid,"getFluidTypeString"); if fn and tostring(fn)~="" then table.insert(s,{label="Contents",value=tostring(fn)}) end end
+    if fluid then local fn=safeGet(fluid,"getTranslatedName") or safeGet(fluid,"getFluidTypeString"); if fn and tostring(fn)~="" then table.insert(s,{label="Contents",value=tostring(fn)}) end end
     local amt,cap=safeGet(fc,"getAmount"),safeGet(fc,"getCapacity")
     if amt and cap and cap>0 then local str=cap<1 and string.format("%.0f / %.0f mL",amt*1000,cap*1000) or string.format("%.1f / %.1f L",amt,cap); table.insert(s,{label="Amount",value=str}) end
     local props=safeGet(fc,"getProperties")

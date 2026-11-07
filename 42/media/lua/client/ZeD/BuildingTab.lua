@@ -137,8 +137,8 @@ local function buildBuildCatalog(playerObj)
 
             -- Pre-bake surface requirement (same guard)
             local needSurface = false
-            if recipe.isNeedSurface then
-                pcall(function() if recipe:isNeedSurface() then needSurface = true end end)
+            if recipe.isAnySurfaceCraft then
+                pcall(function() if recipe:isAnySurfaceCraft() then needSurface = true end end)
             end
 
             local entry = {

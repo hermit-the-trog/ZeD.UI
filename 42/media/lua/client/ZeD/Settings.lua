@@ -737,12 +737,16 @@ local function setUpAdditions()
     local function saveCustom(read)
         local ok, w = pcall(function() return getFileWriter(CUSTOM_FILE, true, false) end)
         if not (ok and w) then return end
-        w:write("ZeD-UI: the additions' Custom set (ZeD setup, Preset); <option id>=<item>\n")
-        for _, id in ipairs(IDS) do
-            local v = read(id)
-            if v then w:write(id .. "=" .. tostring(v) .. "\n") end
-        end
-        w:close()
+        -- (a failed write must not stop Apply, and the writer closes either way. No temp-file swap: the game's
+        -- Lua has no rename. Losing this file costs only the Custom memory: the values live in ModOptions.ini.)
+        pcall(function()
+            w:write("ZeD-UI: the additions' Custom set (ZeD setup, Preset); <option id>=<item>\n")
+            for _, id in ipairs(IDS) do
+                local v = read(id)
+                if v then w:write(id .. "=" .. tostring(v) .. "\n") end
+            end
+        end)
+        pcall(function() w:close() end)
     end
     -- nil when there is no file or it cannot be read (Custom then keeps the values as they are)
     local function loadCustom()
@@ -847,9 +851,10 @@ local function setUpAdditions()
                 if o and not has[id] then o:setValue(ON) end
             end
             -- (beta, Nov 2 2026: the Full or simple rows joined the presets. A player on Vanilla Access, preset item 3,
-            -- from before them gets them Simple, as the preset now asks, instead of the preset reading Custom.)
+            -- from before them gets them Simple, as the preset now asks, instead of the preset reading Custom. The Identity
+            -- row joined in beta 6.)
             if val.additionsPreset == 3 then
-                for _, id in ipairs({ "devicesStyle", "watchStyle", "dashStyle" }) do
+                for _, id in ipairs({ "devicesStyle", "watchStyle", "dashStyle", "identityStyle" }) do
                     local o = opt(id)
                     if o and not has[id] then o:setValue(2) end
                 end
