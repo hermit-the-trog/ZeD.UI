@@ -646,6 +646,7 @@
     "UI_ZeD_DashPlain_Ignition": "Zapłon",
     "UI_ZeD_DashPlain_KeyOut": "Brak kluczyka",
     "UI_ZeD_DashPlain_Km": "%1 km",
+    "UI_ZeD_DashPlain_Kmh": "km/h",
     "UI_ZeD_DashPlain_Lamps": "Lampy",
     "UI_ZeD_DashPlain_Lights": "Światła",
     "UI_ZeD_DashPlain_Meter": "Taksometr",

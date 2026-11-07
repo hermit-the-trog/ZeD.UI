@@ -1033,6 +1033,20 @@ do
     check("the units option is read at most twice a second, not every frame", env.unitReads <= 2, env.unitReads)
     log = frame(1000)
     check("back to miles", drew(log, "41837 mi"))
+    -- the speed in the same units as the Odometer and Trip (review of beta 7: "0 mph" beside "95507 km")
+    car.kmh = 100
+    frames(20, 250)                                    -- (the needle settles)
+    log = frame(100)
+    check("Simple speed in mph with Imperial", drew(log, "drawText 62 ") and drew(log, "drawText mph "))
+    env.units = "Metric"
+    log = frame(1000)
+    check("Simple speed in km/h with Metric", drew(log, "drawText 100 ") and drew(log, "drawText km/h "))
+    check("no mph beside km", not drew(log, "drawText mph ") and drew(log, " km "))
+    env.units = "Imperial"
+    log = frame(1000)
+    check("back to mph", drew(log, "drawText 62 ") and drew(log, "drawText mph ") and not drew(log, "km/h"))
+    car.kmh = 0
+    frames(20, 250)
     local e = element("tripReset")
     check("the Trip cell is on the pad's walk", e ~= nil)
     check("its A says Reset trip", e and e.promptA == "Reset trip", e and e.promptA)

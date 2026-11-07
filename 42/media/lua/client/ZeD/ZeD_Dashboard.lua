@@ -1335,7 +1335,7 @@ ZeD.trDefaults({
     UI_ZeD_DashPlain_Cruise = "Cruise", UI_ZeD_DashPlain_Meter = "Meter", UI_ZeD_DashPlain_AshTray = "Ash tray",
     UI_ZeD_DashPlain_SetTemp = "Temp", UI_ZeD_DashPlain_Fan = "Fan", UI_ZeD_DashPlain_Tune = "Tune", UI_ZeD_DashPlain_Power = "Power",
     UI_ZeD_DashPlain_Signal = "Signal", UI_ZeD_DashPlain_Disc = "Disc in", UI_ZeD_DashPlain_Lights = "Lights",
-    UI_ZeD_DashPlain_Trip = "Trip", UI_ZeD_DashPlain_Readouts = "Readouts", UI_ZeD_DashPlain_Km = "%1 km",
+    UI_ZeD_DashPlain_Trip = "Trip", UI_ZeD_DashPlain_Readouts = "Readouts", UI_ZeD_DashPlain_Km = "%1 km", UI_ZeD_DashPlain_Kmh = "km/h",
     UI_ZeD_DashPlain_Acc = "ACC",
 })
 
@@ -1602,6 +1602,13 @@ local function _distText(miles, tenths, metric)
     local s = tenths and string.format("%.1f", math.floor(v * 10) / 10) or tostring(math.floor(v))
     return ZeD.tr(metric and "UI_ZeD_DashPlain_Km" or "UI_ZeD_DashPlain_Miles", s)
 end
+-- the speed as the strip shows it, in the same units as its Odometer and Trip (review of beta 7: it showed mph beside
+-- km): the figure, whole, and its unit's key. (The bar under it is a share of the plate's dial, the same either way.
+-- The plates themselves stay in miles: their dials and wheels are printed in mph and miles, as the car was built.)
+function D.plainSpeed(st, metric)
+    local v = metric and (st.speed_kmh or 0) or (st.speed_mph or 0)
+    return tostring(math.floor(v + 0.5)), metric and "UI_ZeD_DashPlain_Kmh" or "UI_ZeD_DashPlain_Mph"
+end
 local function _plainCells(st, pl, out)
     local T = ZeD.T
     local n = 0
@@ -1696,8 +1703,8 @@ function ZeD_Dashboard:_plainReadouts(st, pl, cells, n, y, W, big, rows, cellH)
     local px, tm = T.px, ZeD.TM
     local pad, gap = px(PLAIN_PAD), px(PLAIN_GAP)
     local bigW = px(PLAIN_BIG_W)
-    local mph = math.floor((st.speed_mph or 0) + 0.5)
-    self:_plainBig(pad, y, bigW, ZeD.tr("UI_ZeD_DashPlain_Speed"), tostring(mph), ZeD.tr("UI_ZeD_DashPlain_Mph"),
+    local spd, unitKey = D.plainSpeed(st, _metric())
+    self:_plainBig(pad, y, bigW, ZeD.tr("UI_ZeD_DashPlain_Speed"), spd, ZeD.tr(unitKey),
         (st.speed_mph or 0) / pl.speedMax, T.accent, big)
     local rpm = math.floor((st.rpm or 0) / 50 + 0.5) * 50
     self:_plainBig(pad + bigW + gap * 2, y, bigW, ZeD.tr("UI_ZeD_DashPlain_Rpm"), tostring(rpm), nil,

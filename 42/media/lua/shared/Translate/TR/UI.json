@@ -646,6 +646,7 @@
     "UI_ZeD_DashPlain_Ignition": "Kontak",
     "UI_ZeD_DashPlain_KeyOut": "Anahtar çıkarıldı",
     "UI_ZeD_DashPlain_Km": "%1 km",
+    "UI_ZeD_DashPlain_Kmh": "km/sa",
     "UI_ZeD_DashPlain_Lamps": "Lambalar",
     "UI_ZeD_DashPlain_Lights": "Farlar",
     "UI_ZeD_DashPlain_Meter": "Taksimetre",
