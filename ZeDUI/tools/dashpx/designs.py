@@ -464,6 +464,11 @@ def dashelite(b):
     window(d, 226, 92, 38, 12, 0.6, bezel=None, face="lcd", r=1, on=Z_CL, lens=False)
     # (Nov 6, review: six seven-segment figures at 4 pixels were a row of ghosts; the 3x5 face in black reads)
     b.part("drums", src="odoShownT", x=230, y=93, n=6, cw=5, ch=10, fg="#1c2418", last_fg="#1c2418", text=True)
+    # the unlit marks under them (Nov 7 2026, punch list 94: in the dark they read as "E ' | | ' E" over four figures
+    # in a window that holds five; the director: they should be 8s): one 3x5 "8" in each of the six places the figures
+    # take (live.draw_drums: x + i*cw + (cw - 4) // 2, y + (ch - 5) // 2), printed like the old segments' ghosts
+    for i in range(6):
+        d.text("8", 230 + i * 5 + (5 - 4) // 2, 93 + (10 - 5) // 2, "segoff", flatlight=True)
     b.hit("odoButton", 224, 90, 42, 16)
     lower_curvy6(b, y0=122)
     cf = Mask(W, H).rrect(508, 34, 278, 128, 10).get()

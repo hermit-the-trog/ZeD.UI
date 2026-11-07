@@ -83,6 +83,30 @@ Both are pad-reachable like every other hit (the focus walk picks them up from t
   more for low condition. Trip starts at 0. Build's call; whatever it is, it's stable for a given car.
 - On a server: the driver's client writes modData and sends it (`transmitModData`), no more than every tenth of a mile
   so it isn't chatty. QA to test with two players in one car.
+  (Build, Nov 7, punch list 94: not `transmitModData` from the client after all. That sends the whole table and the
+  server's copy is wiped and replaced, so a key another mod keeps only on the server, Roadworthy's, would be lost. The
+  driver's client sends a ZeD command with the three figures; the server checks it is the driver and the numbers are
+  sane, writes only `ZeD_odo`, `ZeD_trip`, `ZeD_odoTrip` and sends the car out itself. `ZeD_DashProto.lua`,
+  `ZeD_ServerDash.lua`. The miles not sent yet also go when the car stops, while the driver is still at the wheel.)
+  (Later on Nov 7: when the server refuses its driver's figures as behind its own, it answers with them and the dash
+  goes on from there. On a server the ash tray stays in the game's memory per car, not on the car's modData: the
+  server's sends replace the client's copy, so a key only the client wrote is gone at the next one. Single player keeps
+  it on the car as before. A stop sends the last miles only when there's a hundredth of a mile or more.)
+  (Nov 7, review: the server no longer sends the car's whole modData out every tenth of a mile. That send replaces the
+  copy on every client near the car, so a key another mod keeps only on a client's copy was wiped each time. Now, at
+  each send it takes, the server sends just the three figures to the car's other occupants, the only players who see
+  this dash, and their dashes write them to their own copy without sending anything on. The whole modData goes out only
+  at the coarse moments: a car's first mileage, a trip reset or an ODO / TRIP press, the engine off, the driver leaving
+  the seat or the car, so the saved figures still reach a player who loads the car later. The driver's dash also
+  keeps a press made while stopped when an older copy of the car comes back at the same odometer.)
+  (Nov 7, second review: a passenger who gets into a car stopped with its engine running heard nothing until the car
+  moved a tenth of a mile or the engine stopped, so their dash could read a whole drive behind. Now a passenger's dash
+  asks the server for the figures as it sits down, again every 2 seconds until they come, three times at most; the
+  server answers with its own figures to that passenger only, and only someone in that car and not at the wheel.)
+- **Known limit, split-screen on a server:** the dash's sends go as the first local player, so when a second
+  split-screen player drives, the server refuses every send (it takes only the driver's). Their dash counts on their
+  screen but the miles aren't saved. Not built for now: split-screen already shares the first player's windows, a
+  listed known issue.
 - **With Roadworthy:** if it keeps its own odometer and trip, read those instead of ZeD's, so its dash and ours agree.
   QA finds the names once it's running Roadworthy.
 
