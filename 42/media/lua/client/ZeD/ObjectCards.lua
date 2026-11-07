@@ -1094,6 +1094,50 @@ function ZeD_ObjectCard:drawVerbs(e, y, win)
     return cy + T.hair
 end
 
+-- A half card's foot line that will not fit the band (Nov 7 2026, punch list 99: the padlock card at
+-- 220 cut "Lock the container? It shuts to everyone." to a word): its words wrapped into a strip above
+-- the band instead. Only half cards do this, so a full card's foot is unchanged. The room is reckoned
+-- as M.drawBand reckons it: the edges, the band's buttons and their gaps, and the dot before the words.
+-- Returns the wrapped lines, or nil when the line fits the band.
+local NO_LABELS = {}   -- (a state line's band: no buttons)
+local function footLines(self, w, text, labels)
+    if not (text and text ~= "") then return nil end
+    local T = ZeD.T
+    local f2 = T.fontF2
+    local edge, gap, dotW = T.px(8), T.px(8), T.px(12)
+    local room = w - edge * 2 - dotW
+    for _, l in ipairs(labels) do room = room - M.buttonW(l) - gap end
+    if ZeD.TM:MeasureStringX(f2, text) <= room then return nil end
+    -- (kept between frames: the same words at the same width wrap the same way)
+    local c = self._footWrap
+    if c and c.text == text and c.w == w then return c.lines end
+    local lines = A.wrapText(text, f2, w - edge * 2 - dotW)
+    self._footWrap = { text = text, w = w, lines = lines }
+    return lines
+end
+-- The strip's height for these lines.
+local function footStripH(lines)
+    local T = ZeD.T
+    return #lines * (ZeD.TM:getFontHeight(T.fontF2) + T.px(2)) + T.px(12)
+end
+-- Draw the strip: the band's own fill and line, the dot, then the lines.
+local function drawFootStrip(self, fy, w, lines, dotC)
+    local T, tm = ZeD.T, ZeD.TM
+    local f2 = T.fontF2
+    local h = footStripH(lines)
+    A.surfaceFill(self, 0, fy, w, h, "surf2")
+    A.drawDividerH(self, 0, fy, w, true)
+    local edge, sq = T.px(8), T.px(6)
+    local ty = fy + T.px(6)
+    if dotC then A.drawStatusDot(self, edge, ty + math.floor((tm:getFontHeight(f2) - sq) / 2), dotC, sq) end
+    local tc = T.text
+    for _, ln in ipairs(lines) do
+        self:drawText(A.truncateText(ln, f2, w - edge * 2 - T.px(12)), edge + T.px(12), ty, tc.r, tc.g, tc.b, tc.a or 1, f2)
+        ty = ty + tm:getFontHeight(f2) + T.px(2)
+    end
+    return h
+end
+
 function ZeD_ObjectCard:prerender()
     local e = self.entry
     if not e then return end
@@ -1133,12 +1177,22 @@ function ZeD_ObjectCard:prerender()
 
     -- BODY (one scrolling unit); the band at the foot holds a question, or the kind's state line
     local footH, status = 0, nil
+    local fLines = nil   -- (a half card's foot words, wrapped into a strip when the band cannot hold them)
     local cf = self._confirm
     if cf then
         footH = M.bandH()
+        -- (the question band's two buttons: Cancel, then the verb's own word)
+        if def.half then fLines = footLines(self, w, cf.text, { ZeD.tr("UI_Cancel"), cf.yes }) end
+        if fLines then footH = footH + footStripH(fLines) end
     elseif def.status then
         local sok, st = pcall(def.status, t)
-        if sok and st and st.text then status = st; footH = M.bandH() end
+        if sok and st and st.text then
+            status = st
+            footH = M.bandH()
+            if def.half then fLines = footLines(self, w, st.text, NO_LABELS) end
+            -- (a state line has no buttons, so the strip stands in for the band)
+            if fLines then footH = footStripH(fLines) end
+        end
     end
     local viewY, viewH = y, h - y - footH
     self._viewY, self._viewH = viewY, viewH
@@ -1197,7 +1251,11 @@ function ZeD_ObjectCard:prerender()
     local fy = h - footH
     if cf then
         UI.claim(self, 0, fy, w, footH)
-        local _, cr, vr = M.drawQuestionBand(self, 0, fy, w, cf.text, cf.yes, { danger = cf.danger, win = win,
+        -- (a half card's long question: its words in the strip, red-marked as the band marks a question, and
+        -- the band under it with the buttons alone; "" draws no words there)
+        local qy = fy
+        if fLines then qy = fy + drawFootStrip(self, fy, w, fLines, T.danger) end
+        local _, cr, vr = M.drawQuestionBand(self, 0, qy, w, fLines and "" or cf.text, cf.yes, { danger = cf.danger, win = win,
             cancelFocus = self:focusOf("oc:confirm:no"), verbFocus = self:focusOf("oc:confirm:yes"), verbHelp = cf.help,
             cancelHelp = ZeD.tr("UI_ZeD_ObjCard_HelpCancel") })
         self:zone({ fid = "oc:confirm:no", x = cr.x, y = cr.y, w = cr.w, h = cr.h, foot = true,
@@ -1214,7 +1272,11 @@ function ZeD_ObjectCard:prerender()
             end })
     elseif status then
         UI.claim(self, 0, fy, w, footH)
-        M.drawBand(self, 0, fy, w, { status = { text = status.text, color = status.c }, win = win })
+        if fLines then
+            drawFootStrip(self, fy, w, fLines, status.c)
+        else
+            M.drawBand(self, 0, fy, w, { status = { text = status.text, color = status.c }, win = win })
+        end
     end
 end
 
