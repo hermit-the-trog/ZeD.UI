@@ -1558,5 +1558,28 @@ do
     CAPS.AddItem = saved
 end
 
+-- a role that sees who is connected, without the game's power for every account, sees no offline rows
+do
+    local a = boot()
+    local u = player("Kade", "user")
+    clientJoin(u)
+    advance(6000)
+    offline(u)
+    advance(6000)
+    local g = player("Gia", "gm")
+    clientJoin(g)
+    advance(6000)
+    nolimit(g)
+    say(g, "a_players", {})
+    local gp, gOff = got(g, "a_players"), 0
+    for _, r in ipairs(gp.rows) do if r.on == false then gOff = gOff + 1 end end
+    check("no offline rows without See every account", #gp.rows > 0 and gOff == 0)
+    nolimit(a)
+    say(a, "a_players", {})
+    local ap, aOff = got(a, "a_players"), 0
+    for _, r in ipairs(ap.rows) do if r.on == false then aOff = aOff + 1 end end
+    check("staff with it still see them", aOff >= 1)
+end
+
 print("admin_sim: " .. checks .. " checks, " .. failed .. " failed")
 os.exit(failed == 0 and 0 or 1)
