@@ -1133,81 +1133,317 @@ end
 -- THE PUBLISHER'S HOUSE AD: a full-page mail-order ad in the 1980s survival magazines' manner, for the publisher's
 -- own (fictional) titles, in the game's language. A heavy frame, the headline, a deck, a paragraph, the titles with
 -- tick boxes, a price box and a coupon with a dashed edge.
-function ZeD_GuideBook:drawAdPage(x, y, w, u)
-    local m = U.M * u
-    local tx, tw_ = x + m, w - m * 2
-    local cx = x + w / 2
-    local top, bot = y + U.MT * u, y + (U.PH - U.FOOT - 6) * u
-    local lw = math.max(1, math.floor(2 * u))
-    for i = 0, lw - 1 do self:drawRectBorder(tx + i, top + i, tw_ - i * 2, bot - top - i * 2, 1, INK.r, INK.g, INK.b) end
-    local ix, iw = tx + 14 * u, tw_ - 28 * u
-    local yy = top + 16 * u
-    yy = yy + U.OPEN * u
-    drawCentre(self, F.head, upper(tr("UI_ZeD_Guide_Ad1_Head")), cx, yy, U.OPEN * u, INK)
-    yy = yy + U.DECK * u * 1.6
-    drawCentre(self, F.sansB, tr("UI_ZeD_Guide_Ad1_Deck"), cx, yy, U.DECK * u, INK)
-    yy = yy + U.TEXT * u * 0.8
-    self:drawRect(ix, yy, iw, math.max(1, u), 1, INK.r, INK.g, INK.b)
-    local px = U.TEXT * u
-    local lineH = px * U.LEAD
-    for _, l in ipairs(wrapWords(wordsOf(tr("UI_ZeD_Guide_Ad1_Body")), F.text, px, function() return iw end, 1, 0)) do
-        yy = yy + lineH
-        drawLine(self, F.text, px, l, ix, yy, INK)
+-- Every line keeps inside the frame (QA, Nov 7 2026: the deck ran past both sides at Large text and in German at
+-- Small, and the price filled its box edge to edge at Large): each part wraps to the frame's inner width (the titles
+-- to their box, the price to its own), centered parts in even lines; the price box is its words plus half the price's
+-- size each side (never under its old 92). When the wrapped words would push the coupon past the frame, the gaps
+-- close up first (the same proportions, down to 55%); then a part that wrapped steps down one size (the deck, the
+-- titles, the coupon, the paragraph, in that order). Laid out once for a width, unit, text size, wording and
+-- measure epoch (ZeD_GuideBook:houseAd) and drawn from that list each frame.
+
+-- one character from i: its last index (a UTF-8 run in plain Lua; in the game a string is characters, so i itself)
+local function adCharEnd(s, i)
+    local b = s:byte(i)
+    if not b or b < 0xC0 or b > 0xF7 then return i end
+    local j = i
+    while true do
+        local c = s:byte(j + 1)
+        if c and c >= 0x80 and c <= 0xBF then j = j + 1 else break end
     end
-    -- the titles, each with its tick box, in a ruled box; the price in a black box at its right
-    yy = yy + lineH * 0.8
-    local boxY = yy
-    local priceW = 92 * u
-    local listW = iw - priceW - 10 * u
-    local sq = math.floor(px * 0.8)
-    for i = 1, 5 do
-        yy = yy + lineH * 1.15
-        self:drawRectBorder(ix + 8 * u, yy - sq, sq, sq, 1, INK.r, INK.g, INK.b)
-        drawAt(self, F.textB, tr("UI_ZeD_Guide_Ad1_T" .. i), ix + 8 * u + sq + 8 * u, yy, px, INK)
+    return j
+end
+-- may a line start at the character at i: never on a Thai mark that sits on the letter before it, or on a Chinese
+-- or Japanese comma, stop or closing bracket
+local AD_NOSTART = { [0x3001] = true, [0x3002] = true, [0x300D] = true, [0x300F] = true, [0xFF01] = true, [0xFF09] = true,
+                     [0xFF0C] = true, [0xFF0E] = true, [0xFF1A] = true, [0xFF1B] = true, [0xFF1F] = true }
+local function adMayStart(s, i)
+    local e = adCharEnd(s, i)
+    local cp = s:byte(i)
+    if not cp then return true end
+    if e > i then
+        cp = (e - i == 1) and (cp - 0xC0) or ((e - i == 2) and (cp - 0xE0) or (cp - 0xF0))
+        for k = i + 1, e do cp = cp * 64 + (s:byte(k) - 0x80) end
     end
-    yy = yy + lineH * 0.6
-    self:drawRectBorder(ix, boxY, listW, yy - boxY, 1, INK.r, INK.g, INK.b)
-    local pY, pH = boxY + 10 * u, 70 * u
-    self:drawRect(ix + iw - priceW, pY, priceW, pH, 1, INK.r, INK.g, INK.b)
-    local pc = ix + iw - priceW / 2
+    if AD_NOSTART[cp] then return false end
+    return not (cp == 0x0E31 or (cp >= 0x0E34 and cp <= 0x0E3A) or (cp >= 0x0E47 and cp <= 0x0E4E))
+end
+
+-- words into lines no wider than maxW: { { s = the line, w = its width } }. A word wider than a line (Chinese,
+-- Japanese and Thai run without spaces) is cut between characters, its first piece filling the line it starts on.
+-- A line's width is the larger of its words and spaces (as the pages measure them) and the whole string measured.
+local function adWrap(text, f, px, maxW)
+    local lines = {}
+    local sp = spaceW(f, px)
+    local cur, cw = nil, 0
+    for wd in tostring(text or ""):gmatch("%S+") do
+        local ww = textW(f, wd, px)
+        if cur and cw + sp + ww <= maxW then
+            cur, cw = cur .. " " .. wd, cw + sp + ww
+        elseif ww <= maxW then
+            if cur then lines[#lines + 1] = { s = cur, w = cw } end
+            cur, cw = wd, ww
+        else
+            local i, n = 1, #wd
+            while i <= n do
+                local room = cur and (maxW - cw - sp) or maxW
+                local j, cut = i, nil
+                while j <= n do
+                    local e = adCharEnd(wd, j)
+                    if textW(f, wd:sub(i, e), px) > room then break end
+                    if e >= n or adMayStart(wd, e + 1) then cut = e end
+                    j = e + 1
+                end
+                if not cut and cur then
+                    lines[#lines + 1] = { s = cur, w = cw }
+                    cur, cw = nil, 0
+                else
+                    if not cut then
+                        -- (not one character fits a whole line: the smallest piece that may end one)
+                        cut = adCharEnd(wd, i)
+                        while cut < n and not adMayStart(wd, cut + 1) do cut = adCharEnd(wd, cut + 1) end
+                    end
+                    local piece = wd:sub(i, cut)
+                    local pw = textW(f, piece, px)
+                    if cur then cur, cw = cur .. " " .. piece, cw + sp + pw else cur, cw = piece, pw end
+                    i = cut + 1
+                    if i <= n then
+                        lines[#lines + 1] = { s = cur, w = cw }
+                        cur, cw = nil, 0
+                    end
+                end
+            end
+        end
+    end
+    if cur then lines[#lines + 1] = { s = cur, w = cw } end
+    for _, l in ipairs(lines) do l.w = math.max(l.w, textW(f, l.s, px)) end
+    return lines
+end
+
+-- a centered part's lines, evened out: as few lines as at maxW, at the narrowest width that keeps that many (a
+-- headline's manner: two even lines rather than a full one and a word)
+local function adWrapEven(text, f, px, maxW)
+    local lines = adWrap(text, f, px, maxW)
+    if #lines < 2 then return lines end
+    local lo, hi = 0, maxW
+    for _ = 1, 10 do
+        local mid = (lo + hi) / 2
+        if #adWrap(text, f, px, mid) == #lines then hi = mid else lo = mid end
+    end
+    return adWrap(text, f, px, hi)
+end
+
+-- the price's lines: its words in two halves (the first the longer) when both fit maxW, else wrapped to maxW
+local function adPriceLines(s, px, maxW)
     local pw = {}
-    for wd in tr("UI_ZeD_Guide_Ad1_Price"):gmatch("%S+") do pw[#pw + 1] = wd end
+    for wd in s:gmatch("%S+") do pw[#pw + 1] = wd end
     local half = math.ceil(#pw / 2)
-    drawCentre(self, F.sansB, upper(table.concat(pw, " ", 1, half)), pc, pY + pH * 0.42, U.DECK * u, PAPER)
-    if #pw > half then drawCentre(self, F.sansB, upper(table.concat(pw, " ", half + 1)), pc, pY + pH * 0.78, U.DECK * u, PAPER) end
+    local out = {}
+    for part = 1, 2 do
+        local a, b = (part == 1) and 1 or (half + 1), (part == 1) and half or #pw
+        if a <= b then
+            local l = adWrap(table.concat(pw, " ", a, b), F.sansB, px, 1e9)[1]
+            if not l or l.w > maxW then return adWrap(s, F.sansB, px, maxW) end
+            out[#out + 1] = l
+        end
+    end
+    return out
+end
+
+-- one try at the ad, its parts at the sizes in sz (screen px) and its gaps times g, from the page's corner; .fits when
+-- the coupon has room for its words, Name and Address
+local function houseAdTry(w, u, g, sz)
+    local ops, wrapped = {}, {}
+    local L = { ops = ops, wrapped = wrapped, g = g }
+    local function text(f, s, x, y, px, c, wd, box)
+        ops[#ops + 1] = { k = "t", f = f, s = s, x = x, y = y, px = px, c = c, w = wd, box = box }
+    end
+    local function rect(x, y, rw, rh, c) ops[#ops + 1] = { k = "r", x = x, y = y, w = rw, h = rh, c = c } end
+    local function border(x, y, rw, rh) ops[#ops + 1] = { k = "b", x = x, y = y, w = rw, h = rh } end
+    local m = U.M * u
+    local tx, tw_ = m, w - m * 2
+    local cx = w / 2
+    local top, bot = U.MT * u, (U.PH - U.FOOT - 6) * u
+    local lw = math.max(1, math.floor(2 * u))
+    local hair = math.max(1, u)
+    L.frame = { x = tx, y = top, w = tw_, h = bot - top, lw = lw }
+    for i = 0, lw - 1 do border(tx + i, top + i, tw_ - i * 2, bot - top - i * 2) end
+    local ix, iw = tx + 14 * u, tw_ - 28 * u
+    L.inner = { x = ix, w = iw }
+    -- the headline and the deck, centered, line by line
+    local yy = top + 16 * u * g
+    local hp, dp = sz.head, sz.deck
+    local hl = adWrapEven(upper(tr("UI_ZeD_Guide_Ad1_Head")), F.head, hp, iw)
+    for i, l in ipairs(hl) do
+        yy = yy + ((i == 1) and hp or hp * 1.05)
+        text(F.head, l.s, cx - l.w / 2, yy, hp, INK, l.w, "inner")
+    end
+    local dl = adWrapEven(tr("UI_ZeD_Guide_Ad1_Deck"), F.sansB, dp, iw)
+    wrapped.deck = #dl > 1
+    for i, l in ipairs(dl) do
+        yy = yy + ((i == 1) and dp * (1 + 0.6 * g) or dp * 1.3)
+        text(F.sansB, l.s, cx - l.w / 2, yy, dp, INK, l.w, "inner")
+    end
+    yy = yy + U.TEXT * u * 0.8 * g
+    rect(ix, yy, iw, hair, INK)
+    -- the paragraph
+    local bp = sz.body
+    local bl = adWrap(tr("UI_ZeD_Guide_Ad1_Body"), F.text, bp, iw)
+    wrapped.body = #bl > 1
+    for _, l in ipairs(bl) do
+        yy = yy + bp * U.LEAD
+        text(F.text, l.s, ix, yy, bp, INK, l.w, "inner")
+    end
+    -- the price in a black box at the right: its words, half its size clear on each side
+    yy = yy + bp * U.LEAD * 0.8 * g
+    local boxY = yy
+    local pp = sz.price
+    local pls = adPriceLines(upper(tr("UI_ZeD_Guide_Ad1_Price")), pp, iw * 0.4 - pp)
+    if #pls > 2 then
+        -- (more than two lines: the price a size down)
+        pp = U.TEXT * u
+        pls = adPriceLines(upper(tr("UI_ZeD_Guide_Ad1_Price")), pp, iw * 0.4 - pp)
+    end
+    local pTextW = 0
+    for _, l in ipairs(pls) do pTextW = math.max(pTextW, l.w) end
+    local priceW = math.max(92 * u, pTextW + pp)
+    local pY = boxY + 10 * u * g
+    local unit5 = pp * 5   -- (the box's height for two lines: 70 at the Small deck size)
+    local pH = unit5 * (0.64 + 0.36 * (math.max(#pls, 2) - 1))
+    local px0 = ix + iw - priceW
+    L.price = { x = px0, y = pY, w = priceW, h = pH, pad = pp * 0.5 }
+    rect(px0, pY, priceW, pH, INK)
+    local pc = px0 + priceW / 2
+    for i, l in ipairs(pls) do
+        local by = (#pls == 1) and (pY + pH * 0.6) or (pY + unit5 * (0.42 + 0.36 * (i - 1)))
+        text(F.sansB, l.s, pc - l.w / 2, by, pp, PAPER, l.w, "price")
+    end
+    -- the titles, each with its tick box, in a ruled box at the left
+    local listW = iw - priceW - 10 * u
+    local ip = sz.items
+    local ilh = ip * U.LEAD
+    local sq = math.floor(ip * 0.8)
+    local itx = ix + 8 * u + sq + 8 * u
+    local itw = ix + listW - 8 * u - itx
+    for i = 1, 5 do
+        local tl = adWrap(tr("UI_ZeD_Guide_Ad1_T" .. i), F.textB, ip, itw)
+        if #tl > 1 then wrapped.items = true end
+        for j, l in ipairs(tl) do
+            yy = yy + ((j == 1) and ilh * (1 + 0.15 * g) or ilh)
+            if j == 1 then border(ix + 8 * u, yy - sq, sq, sq) end
+            text(F.textB, l.s, itx, yy, ip, INK, l.w, "list")
+        end
+    end
+    yy = yy + ilh * 0.6 * g
+    L.list = { x = ix, y = boxY, w = listW, h = yy - boxY, pad = 8 * u }
+    border(ix, boxY, listW, yy - boxY)
+    yy = math.max(yy, pY + pH + 10 * u * g)
     -- the coupon: a dashed edge, the words, lines to write on
-    yy = yy + 16 * u
+    yy = yy + 16 * u * g
     local cY = yy
     local cH = bot - 14 * u - cY
+    local cp = sz.coupon
+    local cl = adWrap(tr("UI_ZeD_Guide_Ad1_Coupon"), F.text, cp, iw - 20 * u)
+    wrapped.coupon = #cl > 1
+    local step = cp * (1 + 1.2 * g)
+    L.fits = cH > 60 * u and 6 * u + #cl * cp * 1.35 + 2 * step + 6 * u <= cH
     if cH > 60 * u then
+        L.coupon = { x = ix, y = cY, w = iw, h = cH, pad = 10 * u }
         local dash, gapD = 6 * u, 4 * u
         local xx = ix
         while xx < ix + iw do
             local dw = math.min(dash, ix + iw - xx)
-            self:drawRect(xx, cY, dw, math.max(1, u), 1, INK.r, INK.g, INK.b)
-            self:drawRect(xx, cY + cH, dw, math.max(1, u), 1, INK.r, INK.g, INK.b)
+            rect(xx, cY, dw, hair, INK)
+            rect(xx, cY + cH, dw, hair, INK)
             xx = xx + dash + gapD
         end
         local yy2 = cY
         while yy2 < cY + cH do
             local dh = math.min(dash, cY + cH - yy2)
-            self:drawRect(ix, yy2, math.max(1, u), dh, 1, INK.r, INK.g, INK.b)
-            self:drawRect(ix + iw, yy2, math.max(1, u), dh, 1, INK.r, INK.g, INK.b)
+            rect(ix, yy2, hair, dh, INK)
+            rect(ix + iw, yy2, hair, dh, INK)
             yy2 = yy2 + dash + gapD
         end
         local cy2 = cY + 6 * u
-        local cpx = U.CAP * u * 1.1
-        for _, l in ipairs(wrapWords(wordsOf(tr("UI_ZeD_Guide_Ad1_Coupon")), F.text, cpx, function() return iw - 20 * u end, 1, 0)) do
-            cy2 = cy2 + cpx * 1.35
-            drawLine(self, F.text, cpx, l, ix + 10 * u, cy2, INK)
+        for _, l in ipairs(cl) do
+            cy2 = cy2 + cp * 1.35
+            if cy2 + cp * 0.3 > cY + cH then break end
+            text(F.text, l.s, ix + 10 * u, cy2, cp, INK, l.w, "coupon")
         end
+        L.lines = 0
         for _, k in ipairs({ "UI_ZeD_Guide_Ad1_Name", "UI_ZeD_Guide_Ad1_Address" }) do
-            cy2 = cy2 + cpx * 2.2
+            cy2 = cy2 + step
             if cy2 > cY + cH - 4 * u then break end
             local lab = tr(k)
-            drawAt(self, F.sansB, lab, ix + 10 * u, cy2, cpx, INK)
-            local lx = ix + 10 * u + textW(F.sansB, lab, cpx) + 8 * u
-            self:drawRect(lx, cy2 + 2 * u, ix + iw - 10 * u - lx, math.max(1, u), 1, INK.r, INK.g, INK.b)
+            local labW = adWrap(lab, F.sansB, cp, 1e9)[1]
+            labW = labW and labW.w or 0
+            text(F.sansB, lab, ix + 10 * u, cy2, cp, INK, labW, "coupon")
+            local lx = ix + 10 * u + labW + 8 * u
+            rect(lx, cy2 + 2 * u, ix + iw - 10 * u - lx, hair, INK)
+            L.lines = L.lines + 1
+        end
+    end
+    -- (whatever is left past the frame's inside, in the last and smallest try, is left out)
+    local inBot = bot - lw
+    for i = #ops, 1, -1 do
+        local o = ops[i]
+        local b = (o.k == "t") and (o.y + o.px * 0.3) or (o.y + o.h)
+        if b > inBot + 0.01 and not (o.k == "b" and i <= lw) then table.remove(ops, i) end
+    end
+    return L
+end
+
+-- the ad's layout at page width w and unit u: the list of what to draw, from the page's corner
+local AD_DOWN = { "deck", "items", "coupon", "body" }
+function B.houseAdLayout(w, u)
+    local sz = { head = U.OPEN * u, deck = U.DECK * u, body = U.TEXT * u, items = U.TEXT * u, coupon = U.CAP * u * 1.1, price = U.DECK * u }
+    local down = { deck = U.TEXT * u, items = U.CAP * u * 1.1, coupon = U.CAP * u, body = U.CAP * u * 1.1 }
+    local L
+    for s = 0, #AD_DOWN do
+        local part = AD_DOWN[s]
+        if s == 0 or (L and L.wrapped[part]) then
+            if part then sz[part] = down[part] end
+            for _, g in ipairs({ 1, 0.85, 0.7, 0.55 }) do
+                L = houseAdTry(w, u, g, sz)
+                if L.fits then L.sz = sz; return L end
+            end
+        end
+    end
+    L.sz = sz
+    return L
+end
+
+local AD_KEYS = { "UI_ZeD_Guide_Ad1_Head", "UI_ZeD_Guide_Ad1_Deck", "UI_ZeD_Guide_Ad1_Body", "UI_ZeD_Guide_Ad1_T1",
+                  "UI_ZeD_Guide_Ad1_T2", "UI_ZeD_Guide_Ad1_T3", "UI_ZeD_Guide_Ad1_T4", "UI_ZeD_Guide_Ad1_T5",
+                  "UI_ZeD_Guide_Ad1_Price", "UI_ZeD_Guide_Ad1_Coupon", "UI_ZeD_Guide_Ad1_Name", "UI_ZeD_Guide_Ad1_Address" }
+-- the layout kept on the panel: laid out again when the width, unit, text size, words or measure epoch change (no
+-- epoch while the fonts load: laid out each frame until they settle)
+function ZeD_GuideBook:houseAd(w, u)
+    local X = ZeD.Text
+    local ep = X and X.measureEpoch and X.measureEpoch() or nil
+    local c = self._houseAd
+    local same = c ~= nil and ep ~= nil and c.ep == ep and c.w == w and c.u == u and c.m == TM_
+    if same then
+        for i, k in ipairs(AD_KEYS) do
+            if c.words[i] ~= tr(k) then same = false; break end
+        end
+    end
+    if same then return c.L end
+    local words = {}
+    for i, k in ipairs(AD_KEYS) do words[i] = tr(k) end
+    c = { ep = ep, w = w, u = u, m = TM_, words = words, L = B.houseAdLayout(w, u) }
+    self._houseAd = c
+    return c.L
+end
+
+function ZeD_GuideBook:drawAdPage(x, y, w, u)
+    local L = self:houseAd(w, u)
+    for _, o in ipairs(L.ops) do
+        if o.k == "t" then
+            drawAt(self, o.f, o.s, x + o.x, y + o.y, o.px, o.c)
+        elseif o.k == "r" then
+            self:drawRect(x + o.x, y + o.y, o.w, o.h, 1, o.c.r, o.c.g, o.c.b)
+        else
+            self:drawRectBorder(x + o.x, y + o.y, o.w, o.h, 1, INK.r, INK.g, INK.b)
         end
     end
 end
