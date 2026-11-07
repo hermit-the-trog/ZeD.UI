@@ -74,3 +74,26 @@ Not checked in game:
 
 - **The dash with two or three players:** the passenger's figures, a third player getting nothing per tenth, and another mod's key on the car surviving a drive. Build's dash_odo_sim covers the traffic.
 - **The pad route to the stem and the window:** only the mouse path was pressed.
+
+## The three two-player cases, run on the director's word (Nov 7, morning)
+
+`batch_two_b7_rest.ps1` on the local test server, the admin and bob at 1280x800. Logs: `qa/two_players_b7_rest_run1.txt` (all three), `_run2.txt` and `two_players_b7_rest.txt` (the role box again). The server's database, its ini and both clients' ZeD settings were put back after each run.
+
+| Item | Result | How |
+|---|---|---|
+| A safehouse invitation arriving while bob's yes is on its way, safe mode switched on in that moment | PASS, 9 of 9 | `mp_b7_safe_join.lua`. Bob pressed Accept in ZeD's note; in the same frame Safe mode went on and two more invitations came through the game's own event, one taken by ZeD's note and one whose note failed (made to throw). Bob had no house yet, so before the fix the game's pop-up would have shown. Both waited, the yes landed in 39 ms, no game pop-up showed at any moment, no note was left, and bob was still on the server and a member 25 s later. |
+| The dash: a player outside the car gets nothing | PASS | `mp_b7_dash_bob.lua` watch: bob 5 squares from the car as the admin drove off, 0 figures to him and 0 sends from him; no dash on his screen. |
+| The dash: a passenger sitting down | PASS | His dash asked once, the server answered, and his copy and his dash read the server's figures (55993.1608). He sent no figures. |
+| The dash: a passenger on the drive | PASS | Two sends reached him, one at each figure the server took. After the engine stopped, his copy was the server's, 55993.1749. |
+| Another mod's key kept on the server's copy of the car | PASS | The shim wrote `QA_otherMod` into the server's copy only. It was there after both drives and the engine-off send, and on bob's copy after that send. |
+| The driver's odometer, two players | PASS | Up the strip, 98.1 squares = 0.0610 mi; the odometer counted 0.0610 (100%). Back in reverse, 0.0141 against 0.0139 (99%); the check called it short only because that drive ran under its 0.02 mi floor. |
+| The server's figure once the car stopped | as designed | After the reverse drive the server held 0.0034 mi less than the dash until the engine went off. That's the dash's rule: a stop sends only once 0.01 mi has gone by since the last send. The engine-off send brought the server level with the dash. |
+| The offline Player card, a role that changes roles but cannot see every account | PASS, 16 of 16 | `mp_b7_role_setup.lua` made qa_nosee the game's way: the moderator's powers without SeeNetworkUsers. None of the game's own roles has the one power without the other. `/adduser` made carl, an account never on. `mp_b7_closed_card.lua`: for carl and for nobody_qa (no account), the server kept the card closed. The role box, Status, profession and skills each name the power, never "user" or "never seen". The role box is grayed with that reason, a press opens no pick, and a role change sent past the card is refused "perm" for both names alike. The admin, who has the power, gets carl's card open. |
+| The role box's look on a closed card | FAULT, small | At 1280x800, Normal text, the grayed role box with the power's sentence runs past the card's right edge, under the scroll bar, and its text is cut at "capability." See `two_b7_rest_20261107/closed_card_carl.png`. |
+
+Notes from the runs:
+
+- The first two role runs failed for test reasons, not faults. In run 1 the second card wasn't asked for; in run 2 the World window rolled itself up because no mouse was over it (the hover close). The third run held the window down and passed.
+- Bob's new character opens the survival guide on startup, over everything, so the scripts close it first.
+- The server's world keeps a car and its passenger across a restart. Bob sat down again in the third run, and his passenger dash read 55993 at once (`passenger_dash_after_restart.png`).
+- On a closed card, Ban stays live for a role with the ban power (qa_nosee has the moderator's). That follows the server's rule, which shows a ban only to a role that reads the bans. It is not a QA call.

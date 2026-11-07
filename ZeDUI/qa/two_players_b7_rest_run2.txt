@@ -1,0 +1,93 @@
+== 2026-11-07 09:56 next beta: the three two-player cases left from the night
+09:57:07 set PlayerSafehouse=true
+09:57:07 set AdminSafehouse=true
+09:57:07 set DoLuaChecksum=false
+09:57:07 set SafehouseAllowNonResidential=true
+09:57:41 server up
+09:58:50 admin in: 1/1 pass, 0 warn, 0 fail, 0 timeout -> C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-07_two_b7_rest_start.md
+09:59:32 second client joining as bob
+10:01:39 TIMEOUT
+10:01:39 ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown
+10:01:39 ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown
+10:01:39 ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown
+10:01:39 ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown
+10:01:39 ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown
+10:01:39 ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown
+10:01:39 ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown
+10:01:39 ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown
+10:01:48 bob in game
+10:01:54 == 3 the offline Player card's role box
+10:02:12 ZEDQA rsu role made: true; moderator true
+10:02:12 ZEDQA rsu PASS qa_nosee changes roles and cannot see every account
+10:02:12 ZEDQA rsu bob's role as this client sees it: qa_nosee
+10:02:12 ZEDQA rsu the admin's card for carl: on false closed nil role nil
+10:02:12 ZEDQA rsu PASS the admin, who can see every account, gets carl's card open
+10:02:12 ZEDQA rsu 2 passed, 0 failed
+10:02:12 ZEDQA rsu DONE
+10:02:24 ZEDQA bcc bob's role: qa_nosee
+10:02:24 ZEDQA bcc the tools: live true; ChangeAccessLevel true, SeeNetworkUsers false, CanSeePlayersStats true
+10:02:24 ZEDQA bcc PASS bob may change roles and cannot see every account
+10:02:24 ZEDQA bcc the guide was open: closed
+10:02:24 ZEDQA bcc nobody_qa: opening, live true
+10:02:24 ZEDQA bcc   sent a_card for nobody_qa (live true)
+10:02:24 ZEDQA bcc   heard a_card for nobody_qa, closed true
+10:02:24 ZEDQA bcc nobody_qa: the card's answer came true
+10:02:24 ZEDQA bcc nobody_qa: closed true; role box "nil"; status "nil"; the power named 0 times; role stop reason "nil"
+10:02:24 ZEDQA bcc PASS nobody_qa: the server keeps the card closed
+10:02:24 ZEDQA bcc FAIL nobody_qa: the role box names the power, never "user"
+10:02:24 ZEDQA bcc FAIL nobody_qa: the status names it too, not "never seen"
+10:02:24 ZEDQA bcc FAIL nobody_qa: profession and skills name it, never "no skill" or "loading" (0)
+10:02:24 ZEDQA bcc FAIL nobody_qa: the role box is grayed with that reason
+10:02:24 ZEDQA bcc PASS nobody_qa: pressing it opens no pick
+10:02:24 ZEDQA bcc   sent a_role for nobody_qa (live true)
+10:02:24 ZEDQA bcc   heard a refusal: perm
+10:02:24 ZEDQA bcc nobody_qa: the server's answer to a role change: ok false, perm
+10:02:24 ZEDQA bcc PASS nobody_qa: the server refuses it (perm) (perm)
+10:02:24 ZEDQA bcc carl: opening, live true
+10:02:24 ZEDQA bcc   sent a_card for carl (live true)
+10:02:24 ZEDQA bcc   heard a_card for carl, closed true
+10:02:24 ZEDQA bcc carl: the card's answer came true
+10:02:24 ZEDQA bcc carl: closed true; role box "nil"; status "nil"; the power named 0 times; role stop reason "nil"
+10:02:24 ZEDQA bcc PASS carl: the server keeps the card closed
+10:02:24 ZEDQA bcc FAIL carl: the role box names the power, never "user"
+10:02:24 ZEDQA bcc FAIL carl: the status names it too, not "never seen"
+10:02:24 ZEDQA bcc FAIL carl: profession and skills name it, never "no skill" or "loading" (0)
+10:02:24 ZEDQA bcc FAIL carl: the role box is grayed with that reason
+10:02:24 ZEDQA bcc PASS carl: pressing it opens no pick
+10:02:24 ZEDQA bcc   sent a_role for carl (live true)
+10:02:24 ZEDQA bcc   heard a refusal: perm
+10:02:24 ZEDQA bcc carl: the server's answer to a role change: ok false, perm
+10:02:24 ZEDQA bcc PASS carl: the server refuses it (perm) (perm)
+10:02:24 ZEDQA bcc PASS a real account and no account read exactly the same
+10:02:24 ZEDQA bcc 8 passed, 8 failed
+10:02:24 ZEDQA bcc DONE
+10:02:27 second client stopped
+10:02:31 server ZeD log C:\Users\danie\Zomboid\zedqa_mp\Logs\2026-11-07_09-57_ZeD.txt:
+10:02:31   server: LOG  : General      f:0 st:35,441,185> server name is "zedqa"
+10:02:31   server: LOG  : Mod          f:0 st:35,449,437> loading ZeDQAShim
+10:02:31   server: 	java.nio.file.NoSuchFileException: C:\Users\danie\Zomboid\zedqa_mp\mods\ZeD-UI\common\media\AnimSets at WindowsException.translateToIOException(null:-1).
+10:02:31   server: 	java.nio.file.NoSuchFileException: C:\Users\danie\Zomboid\zedqa_mp\mods\ZeD-UI\common\media\actiongroups at WindowsException.translateToIOException(null:-1).
+10:02:31   server: 	java.nio.file.NoSuchFileException: C:\Users\danie\Zomboid\zedqa_mp\mods\ZeD-UI\42\media\AnimSets at WindowsException.translateToIOException(null:-1).
+10:02:31   server: 	java.nio.file.NoSuchFileException: C:\Users\danie\Zomboid\zedqa_mp\mods\ZeD-UI\42\media\actiongroups at WindowsException.translateToIOException(null:-1).
+10:02:31   server: 	java.nio.file.NoSuchFileException: C:\Users\danie\Zomboid\zedqa_mp\mods\ZeDQAShim\common\media\AnimSets at WindowsException.translateToIOException(null:-1).
+10:02:31   server: 	java.nio.file.NoSuchFileException: C:\Users\danie\Zomboid\zedqa_mp\mods\ZeDQAShim\common\media\actiongroups at WindowsException.translateToIOException(null:-1).
+10:02:31   server: 	java.nio.file.NoSuchFileException: C:\Users\danie\Zomboid\zedqa_mp\mods\ZeDQAShim\42\media\AnimSets at WindowsException.translateToIOException(null:-1).
+10:02:31   server: 	java.nio.file.NoSuchFileException: C:\Users\danie\Zomboid\zedqa_mp\mods\ZeDQAShim\42\media\actiongroups at WindowsException.translateToIOException(null:-1).
+10:02:31   server: LOG  : General      f:0 st:35,467,417> writing C:\Users\danie\Zomboid\zedqa_mp\Server\zedqa_SandboxVars.lua
+10:02:31   server: LOG  : General      f:0 st:35,469,762> Loading WorldDictionary:C:\Users\danie\Zomboid\zedqa_mp\Saves\Multiplayer\zedqa\WorldDictionary.bin
+10:02:31   server: LOG  : Lua          f:0 st:35,475,871> [ZeDQA] paused tick 1, players 0
+10:02:31   server: LOG  : Lua          f:0 st:35,495,871> [ZeDQA] paused tick 201, players 0
+10:02:31   server: LOG  : Lua          f:0 st:35,515,875> [ZeDQA] paused tick 401, players 0
+10:02:31   server: LOG  : Lua          f:9 st:35,535,950> [ZeDQA] paused tick 599, players 1
+10:02:31   server: LOG  : Lua          f:208 st:35,555,855> [ZeDQA] paused tick 798, players 1
+10:02:31   server: LOG  : Lua          f:408 st:35,575,854> [ZeDQA] paused tick 998, players 1
+10:02:31   server: LOG  : Lua          f:609 st:35,595,954> [ZeDQA] paused tick 1199, players 1
+10:02:31   server: LOG  : Lua          f:803 st:35,615,887> [ZeDQA] paused tick 1393, players 1
+10:02:31   server: LOG  : Lua          f:1003 st:35,635,885> [ZeDQA] paused tick 1593, players 1
+10:02:31   server: LOG  : Lua          f:1203 st:35,655,887> [ZeDQA] paused tick 1793, players 1
+10:02:31   server: LOG  : Lua          f:1403 st:35,675,886> [ZeDQA] paused tick 1993, players 1
+10:02:31   server: LOG  : Lua          f:1603 st:35,695,887> [ZeDQA] paused tick 2193, players 1
+10:02:31   server: LOG  : Lua          f:1803 st:35,715,886> [ZeDQA] paused tick 2393, players 2
+10:02:31   server: LOG  : Lua          f:1991 st:35,735,948> [ZeDQA] paused tick 2581, players 2
+10:02:31   server: LOG  : Lua          f:2191 st:35,755,947> [ZeDQA] paused tick 2781, players 2
+10:02:31 closed

@@ -43,6 +43,8 @@ Nothing was posted or uploaded.
 
 Build's own test simulations cover these. QA can run them in game when you want them before the upload.
 
+**Run in game later that morning, on your word: all three pass.** The second invitation waits instead of raising the game's pop-up, so the kick can't happen. The passenger gets the driver's figures, and a bystander gets nothing. The offline card names the power it takes, and the server refuses the role change the same way for a real account and for no account. One small look fault: that grayed role box runs under the card's scroll bar with its sentence cut off. Details are in `QA_NEXT_BETA_20261107.md`.
+
 ## Two of mine to own
 
 - The first ads run hung, because my script waited while the open book paused the game.

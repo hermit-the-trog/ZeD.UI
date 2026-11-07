@@ -50,5 +50,49 @@ Events.OnClientCommand.Add(function(module, command, player, args)
         end
         print("[ZeDQA] no role named " .. tostring(want))
         sendServerCommand(player, "ZeDQA", "role", { name = "none" })
+    elseif command == "carspawn" then
+        -- (Nov 7 2026, QA) a car {script} facing north on the square {x, y, z}, made by the server, so it runs up the drag
+        -- strip (/addvehicle gives no heading)
+        local sq = getCell():getGridSquare(tonumber(args.x) or 0, tonumber(args.y) or 0, tonumber(args.z) or 0)
+        local v = nil
+        if sq then pcall(function() v = addVehicleDebug(args.script or "Base.CarNormal", IsoDirections.N, nil, sq) end) end
+        print("[ZeDQA] carspawn at " .. tostring(args.x) .. "," .. tostring(args.y) .. ": " .. tostring(v and v:getId()))
+        sendServerCommand(player, "ZeDQA", "carspawn", { ok = v ~= nil, veh = v and v:getId(), sq = sq ~= nil })
+    elseif command == "carprep" then
+        -- (Nov 7 2026, QA: the dash with two players) the car {veh} made ready on the server: repaired, a full tank, a full
+        -- battery, hotwired so ISStartVehicleEngine starts it with no key, and a key of "another mod" written into the
+        -- server's copy of its mod data only (never transmitted here), to see it survive the drive
+        local v = getVehicleById(tonumber(args and args.veh) or -1)
+        local out = { veh = args and args.veh, ok = v ~= nil }
+        if v then
+            pcall(function() v:repair() end)
+            for i = 0, v:getPartCount() - 1 do
+                local part = v:getPartByIndex(i)
+                pcall(function() v:transmitPartCondition(part) end)
+                pcall(function() v:transmitPartItem(part) end)
+            end
+            pcall(function() local g = v:getPartById("GasTank"); g:setContainerContentAmount(g:getContainerCapacity()); v:transmitPartModData(g) end)
+            pcall(function()
+                local b = v:getPartById("Battery"); local it = b and b:getInventoryItem()
+                if it then pcall(function() it:setCurrentUsesFloat(1.0) end); v:transmitPartItem(b) end
+            end)
+            pcall(function() v:setHotwired(true) end)
+            v:getModData().QA_otherMod = "kept on the server"
+            out.hot = v:isHotwired()
+        end
+        print("[ZeDQA] carprep " .. tostring(out.veh) .. ": " .. tostring(out.ok))
+        sendServerCommand(player, "ZeDQA", "carprep", out)
+    elseif command == "carread" then
+        -- the server's own copy of the car's figures and the other mod's key
+        local v = getVehicleById(tonumber(args and args.veh) or -1)
+        local out = { veh = args and args.veh, ok = v ~= nil }
+        if v then
+            local md = v:getModData()
+            out.odo, out.trip, out.show, out.other = md.ZeD_odo, md.ZeD_trip, md.ZeD_odoTrip, md.QA_otherMod
+            out.running = v:isEngineRunning()
+            local d = v:getDriver()
+            out.driver = d and d:getUsername() or "none"
+        end
+        sendServerCommand(player, "ZeDQA", "carread", out)
     end
 end)
