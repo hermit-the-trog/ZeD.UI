@@ -45,6 +45,7 @@ if not ISUIElement._zedTextScalePatched then
         local z = X.zoomOf(font)
         if z == 1 then return origDrawText(self, str, x, y, r, g, b, a, font) end
         if self.javaObject ~= nil then
+            if self.isCollapsed then return end   -- (as ISUIElement's own)
             roleDraw(self.javaObject, font, tostring(str), x, y, z, r, g, b, a)
         end
     end
@@ -54,6 +55,7 @@ if not ISUIElement._zedTextScalePatched then
         local z = X.zoomOf(font)
         if z == 1 then return origDrawTextRight(self, str, x, y, r, g, b, a, font) end
         if self.javaObject ~= nil then
+            if self.isCollapsed then return end
             str = tostring(str)
             local w = X.roleWidth(font, str, z)
             roleDraw(self.javaObject, font, str, x - w, y, z, r, g, b, a)
@@ -65,6 +67,7 @@ if not ISUIElement._zedTextScalePatched then
         local z = X.zoomOf(font)
         if z == 1 then return origDrawTextCentre(self, str, x, y, r, g, b, a, font) end
         if self.javaObject ~= nil then
+            if self.isCollapsed then return end
             str = tostring(str)
             local w = X.roleWidth(font, str, z)
             roleDraw(self.javaObject, font, str, x - w / 2, y, z, r, g, b, a)
@@ -166,7 +169,7 @@ function LEAN.drawText(self, str, x, y, r, g, b, a, font)
         end
         return
     end
-    if jo ~= nil then roleDraw(jo, font, tostring(str), x, y, z, r, g, b, a) end
+    if jo ~= nil and not self.isCollapsed then roleDraw(jo, font, tostring(str), x, y, z, r, g, b, a) end
 end
 function LEAN.drawTextureScaled(self, texture, x, y, w, h, a, r, g, b)
     local jo = self.javaObject

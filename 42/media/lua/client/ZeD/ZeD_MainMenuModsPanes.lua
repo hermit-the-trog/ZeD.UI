@@ -672,7 +672,10 @@ end
 function ZeD_MMMods:helperLast()
     local m = model()
     if not m then return end
-    local order = jlist(m:getActiveMods():getMods())
+    -- (the mods that are there: the list can still name one uninstalled, and the game's
+    -- correctAndSaveModOrder indexes each id; Accept's own checkMissingMods runs after this)
+    local order = {}
+    for _, id in ipairs(jlist(m:getActiveMods():getMods())) do if m.mods[id] then order[#order + 1] = id end end
     local at = nil
     for i, id in ipairs(order) do if id == P.HELPER then at = i end end
     if not at or at == #order then return end
