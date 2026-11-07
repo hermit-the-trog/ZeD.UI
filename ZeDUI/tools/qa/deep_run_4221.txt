@@ -1,0 +1,4 @@
+# Nov 7 2026: the deep-run fixture on the 42.21 QA save (idempotent; reports what each part found)
+zedqa_prelude.lua | pre | timeout=120
+zedqa_deep_run.lua | deep | timeout=420
+
