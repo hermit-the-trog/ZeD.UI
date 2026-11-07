@@ -1,0 +1,5 @@
+# merge 1 of the next beta (Nov 7 2026): kills, then firearm facts (a FAIL there stops the run)
+zedqa_prelude.lua | pre
+zedqa_pin_windows.lua | pnw | timeout=60
+zedqa_kills_kind.lua | kk | timeout=120
+zedqa_firearm_facts.lua | ff | timeout=30
