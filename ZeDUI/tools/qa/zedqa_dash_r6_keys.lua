@@ -331,7 +331,8 @@ for _, e in ipairs(LIST) do
     waitFor(function() local s = st(); return not ok() or (s and s.engState == "Idle") end, 8000,
         function() err(n .. " engine never went Idle after shutting off") end)
     act(function() if ok() then fuel(cur, 0); mark("dry start"); click("ignition") end end)
-    waitMs(250)
+    -- (the key passes ACC, OFF and ON first: about 260 ms to START, so wait for it, as keys_edge does)
+    waitFor(function() local s = st(); return not ok() or (s and s.keyPos == "start") end, 2000)
     act(function() if ok() and W and st() and st().keyPos == "start" then shot(n, "key_start") end end)
     waitFor(function() local s = st(); return not ok() or (s and not s.running and not s.cranking and s.keyPos == "acc" and now() - W.t0 > 1200) end, 15000,
         function() err(n .. " dry start never settled") end)

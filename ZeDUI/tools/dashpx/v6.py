@@ -196,8 +196,8 @@ def key_turn_variants(b, cx, cy, style=None, angles=KEY_ANGLES):
 
 def ignition(b, cx, cy, met="chrome", labels=("ACC", "OFF", "ON", "START"), style=None):
     """the lock cylinder in its chrome ring, the four positions printed round it (ACC up-left, OFF up, ON up-right,
-    START right). ACC reaches 20 px left of the centre, START 33 right of it: the lower row gives the key a block
-    KEY_BLOCK wide, its centre KEY_BLOCK_CX in from the block's left"""
+    START right). ACC reaches 20 px left of the center, START 33 right of it: the lower row gives the key a block
+    KEY_BLOCK wide, its center KEY_BLOCK_CX in from the block's left"""
     d = b.d
     b.check_flat(cx - 12, cy - 12, 25, 25, "ignition")
     d.torus(cx, cy, 7, 10, 2.2, met, polish=1.0, on=Z_FACE)
