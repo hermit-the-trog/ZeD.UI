@@ -5306,6 +5306,7 @@
     "UI_ZeD_Adm_HelpLeaveRole": "Quitter sans enregistrer.",
     "UI_ZeD_Adm_NoteSpawn": "Un admin vous a créé %1 x %2.",
     "UI_ZeD_Adm_HelpOpenOwn": "À vous : sa fiche dans l'onglet Serveur.",
+    "UI_ZeD_Cl_AnswerWait": "Votre réponse est en route. Attendez un instant.",
     "UI_ZeD_Cl_AskStale": "Cela a changé pendant que ceci était ouvert. Rien n'a été envoyé.",
     "UI_ZeD_Cl_CanClaim": "Puis-je le revendiquer ?",
     "UI_ZeD_Cl_ClaimSub": "Pas ici ? Il dit pourquoi : la revendication de quelqu'un, trop tôt, pas une habitation, ou vous en avez déjà un.",

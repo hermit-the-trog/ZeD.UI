@@ -5306,6 +5306,7 @@
     "UI_ZeD_Adm_HelpLeaveRole": "Sortir sense desar.",
     "UI_ZeD_Adm_NoteSpawn": "Un admin t'ha generat %1 x %2.",
     "UI_ZeD_Adm_HelpOpenOwn": "Teus: la seva fitxa a la pestanya Servidor.",
+    "UI_ZeD_Cl_AnswerWait": "La teva resposta ja és en camí. Espera un moment.",
     "UI_ZeD_Cl_AskStale": "Això ha canviat mentre era obert. No s'ha enviat res.",
     "UI_ZeD_Cl_CanClaim": "Ho puc reclamar?",
     "UI_ZeD_Cl_ClaimSub": "No aquí? Diu per què: la reclamació d'algú, massa d'hora, no és una llar, o ja en tens un.",

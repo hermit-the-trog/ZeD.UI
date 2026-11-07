@@ -5306,6 +5306,7 @@
     "UI_ZeD_Adm_HelpLeaveRole": "Salir sin guardar.",
     "UI_ZeD_Adm_NoteSpawn": "Un administrador te generó %1 x %2.",
     "UI_ZeD_Adm_HelpOpenOwn": "Tuyo: su ficha en la pestaña Servidor.",
+    "UI_ZeD_Cl_AnswerWait": "Tu respuesta ya está en camino. Esperá un momento.",
     "UI_ZeD_Cl_AskStale": "Eso cambió mientras estaba abierto. No se envió nada.",
     "UI_ZeD_Cl_CanClaim": "¿Puedo reclamar esto?",
     "UI_ZeD_Cl_ClaimSub": "¿Acá no? Te dice por qué: el reclamo de otro, muy temprano, no es una casa, o ya tenés uno.",

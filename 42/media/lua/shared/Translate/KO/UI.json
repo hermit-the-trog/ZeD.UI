@@ -5306,6 +5306,7 @@
     "UI_ZeD_Adm_HelpLeaveRole": "저장하지 않고 나갑니다.",
     "UI_ZeD_Adm_NoteSpawn": "관리자가 %1 x %2을(를) 내게 생성했습니다.",
     "UI_ZeD_Adm_HelpOpenOwn": "내 것: 서버 탭의 카드.",
+    "UI_ZeD_Cl_AnswerWait": "답변을 보내는 중입니다. 잠시 기다리십시오.",
     "UI_ZeD_Cl_AskStale": "열려 있는 동안 바뀌었습니다. 아무것도 전송되지 않았습니다.",
     "UI_ZeD_Cl_CanClaim": "은신처로 설정할 수 있습니까?",
     "UI_ZeD_Cl_ClaimSub": "여기는 안 됩니까? 이유가 나옵니다: 남의 은신처, 너무 이름, 집이 아님, 이미 하나 있음.",

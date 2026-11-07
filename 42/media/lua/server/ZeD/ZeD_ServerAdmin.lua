@@ -352,7 +352,17 @@ end
 local function cardView(md, user, p)
     local o = Srv.player(user)
     local rec = md.players[user]
+    -- an account that is off shows only to a role with the game's power for the full list, as in a_players (the director,
+    -- Nov 6 2026). Guarded the same way: a game without the power shows no one who is off
+    local closed = false
+    if not o then
+        local allCap = Capability and Capability.SeeNetworkUsers
+        closed = not (allCap and Srv.can(p, allCap))
+    end
+    -- (closed, the saved record stays here, whether there is one or not; the card says which power it takes)
+    if closed then rec = nil end
     local v = { user = user, on = o ~= nil, muted = md.mutes[string.lower(user)] ~= nil, last = rec and rec.t or nil }
+    if closed then v.closed = true end
     if o then
         local r = readPlayer(o, true)
         v.prof, v.traits, v.skills = r.prof, r.traits, r.skills
@@ -367,8 +377,9 @@ local function cardView(md, user, p)
         v.prof, v.traits, v.skills, v.role = rec.prof, listCopy(rec.traits), skillsCopy(rec.skills), rec.role
     end
     if Srv.ticketsOf and Srv.can(p, Srv.CAP_STAFF) then v.tickets, v.ticketN = Srv.ticketsOf(user, AL.TICKETS_ROWS) end
+    -- (closed, a ban would tell that the name is a real account: it goes only to a role that reads the bans, as a_bans)
     local b = rowFor(md, user)
-    if b then v.banId, v.banUntil = b.id, b.untilT end
+    if b and (not closed or Srv.can(p, CAP.BanUnbanUser)) then v.banId, v.banUntil = b.id, b.untilT end
     return v
 end
 

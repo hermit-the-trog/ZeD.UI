@@ -5306,6 +5306,7 @@
     "UI_ZeD_Adm_HelpLeaveRole": "Esci senza salvare.",
     "UI_ZeD_Adm_NoteSpawn": "Un admin ti ha generato %1 x %2.",
     "UI_ZeD_Adm_HelpOpenOwn": "Tuoi: la loro scheda nella scheda Server.",
+    "UI_ZeD_Cl_AnswerWait": "La tua risposta è in arrivo. Aspetta un momento.",
     "UI_ZeD_Cl_AskStale": "Qualcosa è cambiato mentre questo era aperto. Non è stato inviato nulla.",
     "UI_ZeD_Cl_CanClaim": "Posso rivendicarlo?",
     "UI_ZeD_Cl_ClaimSub": "Non qui? Dice perché: la rivendicazione di qualcuno, troppo presto, non una casa, o ne hai già uno.",
