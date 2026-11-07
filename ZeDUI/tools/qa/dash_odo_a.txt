@@ -1,0 +1,4 @@
+# punch list 92 and 94 (Nov 7 2026): the odometers, the trip, night, the Simple dash (batch_b7.ps1; the reload is dash_odo_b.txt)
+zedqa_prelude.lua | pre | timeout=120
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_dash_odo.lua | dod | timeout=600

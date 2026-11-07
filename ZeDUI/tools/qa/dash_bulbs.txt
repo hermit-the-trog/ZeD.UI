@@ -1,0 +1,4 @@
+# punch list 92 (Nov 7 2026): every dash design at key off, START (the bulb check) and running
+zedqa_prelude.lua | pre | timeout=120
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_dash_keys_edge.lua | dke | timeout=1500 | expect=FBORenderCell

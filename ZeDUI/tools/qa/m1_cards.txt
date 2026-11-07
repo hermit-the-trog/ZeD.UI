@@ -1,0 +1,6 @@
+# merge 1 of the next beta (Nov 7 2026): lock cards, item cards, tabs with a card open (batch_m1.ps1)
+zedqa_prelude.lua | pre
+zedqa_pin_windows.lua | pnw | timeout=60
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_padlock.lua | pl | timeout=60 | end=setup done
+zedqa_m1_cards.lua | m1c | timeout=300
