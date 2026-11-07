@@ -1,0 +1,216 @@
+# ZeD-UI regression - 2026-11-07 03:57 - fullscreen4k (3840x2160 fullscreen)
+
+| | |
+|---|---|
+| Started | 2026-11-07 03:57:49 |
+| Finished | 2026-11-07 04:01:12 (3 min 23 s) |
+| Mode | fullscreen4k (3840x2160 fullscreen) |
+| Display | fullScreen=true height=2160 width=3840 |
+| Game build | 42.22.2 3d39148846 |
+| Mod version | 0.3.0-beta6a |
+| Save | Saves/Sandbox/ZeD-QA |
+| Manifest | C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\tools\qa\m1_cards_large.txt (6 scripts) |
+| Result | **6/6 pass**, 0 warn, 0 fail, 0 timeout |
+| Go numbers | 22880 to 22887 |
+
+Screenshots are in `C:/Users/danie/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
+
+## Run notes
+
+- ZeD settings: UI scale 1.75x (4K), additions Vanilla Plus (all on, Restock Casual) (the director's ModOptions.ini kept aside)
+- pzrestorewin.ps1 (before a fullscreen run): no backup
+- started ProjectZomboid64.exe -debug -nosteam (fullscreen, the director's options.ini)
+- loaded; clicked the screen centre (1920,1080) to pass 'click to start'
+- the bridge armed in game on Saves/Sandbox/ZeD-QA
+- quit: quit to the main menu, then to the desktop (go 22886, 22887)
+- ZeD settings: the director's ModOptions.ini put back
+
+## Results
+
+| # | Script | Tag | Status | Seconds | Screenshots | Notes |
+|---:|---|---|---|---:|---|---|
+| 1 | zedqa_prelude.lua | pre | PASS | 2 |  |  |
+| 2 | zedqa_pin_windows.lua | pnw | PASS | 1 |  |  |
+| 3 | gallery_hidecon.lua | hcn | PASS | 1 |  |  |
+| 4 | zedqa_textlarge.lua | txl | PASS | 1 |  |  |
+| 5 | zedqa_padlock.lua | pl | PASS | 1 |  |  |
+| 6 | zedqa_m1_cards.lua | m1c | PASS | 106 | zqa_m1c_lock_locker.png, zqa_m1c_lock_keyed.png, zqa_m1c_lock_crate.png, zqa_m1c_card_book.png, zqa_m1c_card_pistol.png, zqa_m1c_card_steak.png, zqa_m1c_card_padlock.png, zqa_m1c_card_combo.png, zqa_m1c_tab_equip_card.png, zqa_m1c_tab_equip_after.png, zqa_m1c_tab_health_card.png, zqa_m1c_tab_health_after.png, zqa_m1c_tab_skills_card.png, zqa_m1c_tab_skills_after.png, zqa_m1c_tab_identity_card.png, zqa_m1c_tab_identity_after.png, zqa_m1c_tab_journal_journal_card.png, zqa_m1c_tab_journal_journal_after.png, zqa_m1c_tab_journal_notebooks_card.png, zqa_m1c_tab_journal_notebooks_after.png, zqa_m1c_tab_journal_papers_card.png, zqa_m1c_tab_journal_papers_after.png, zqa_m1c_tab_journal_recipes_card.png, zqa_m1c_tab_journal_recipes_after.png, zqa_m1c_tab_journal_loadouts_card.png, zqa_m1c_tab_journal_loadouts_after.png, zqa_m1c_tab_radio_card.png, zqa_m1c_tab_radio_after.png, zqa_m1c_tab_ranch_card.png, zqa_m1c_tab_ranch_after.png |  |
+
+## Scripts
+
+### 1. zedqa_prelude.lua (`ZEDQA pre`) - PASS, 2 s
+
+- go 22880 at 03:58:41
+
+```text
+[ZeD.QA] state #1 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=35 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA pre start
+[ZeD.QA] run #1 ok=true
+ZEDQA pre char true world true speed 1 ticks 60 frames 61
+ZEDQA pre search overlay: enabled false, override false, manager false
+ZEDQA pre DONE
+```
+
+### 2. zedqa_pin_windows.lua (`ZEDQA pnw`) - PASS, 1 s
+
+- go 22881 at 03:58:47
+
+```text
+[ZeD.QA] state #2 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=35 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA pnw pinned both windows
+[ZeD.QA] run #2 ok=true
+ZEDQA pnw DONE
+```
+
+### 3. gallery_hidecon.lua (`ZEDQA hcn`) - PASS, 1 s
+
+- go 22882 at 03:58:51
+
+```text
+[ZeD.QA] state #3 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=35 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA hcn the debug console kept hidden
+[ZeD.QA] run #3 ok=true
+ZEDQA hcn DONE
+```
+
+### 4. zedqa_textlarge.lua (`ZEDQA txl`) - PASS, 1 s
+
+- go 22883 at 03:58:55
+
+```text
+[ZeD.QA] state #4 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=35 missing=get
+[ZeD.QA] windows reset (R)
+[ZeD.QA] run #4 ok=true
+ZEDQA txl size large
+ZEDQA txl DONE
+```
+
+### 5. zedqa_padlock.lua (`ZEDQA pl`) - PASS, 1 s
+
+- go 22884 at 03:58:59
+
+```text
+[ZeD.QA] state #5 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=35 missing=get
+[ZeD.QA] windows reset (R)
+[ZeD.QA] run #5 ok=true
+ZEDQA pl build Base.Wood_Crate_Lvl1 at 926,13039 valid=true
+ZEDQA pl build Base.Metal_LockerSmall_Lvl1 at 924,13039 valid=true
+ZEDQA pl build Base.Wood_Crate_Lvl1 at 926,13041 valid=true
+ZEDQA pl crate=Wood_Crate_Lvl1 locker=Metal_LockerSmall_Lvl1 keyed=Wood_Crate_Lvl1
+ZEDQA pl locker code=319 keyed=true combos=2
+ZEDQA pl setup done
+```
+
+### 6. zedqa_m1_cards.lua (`ZEDQA m1c`) - PASS, 106 s
+
+- go 22885 at 03:59:04
+- screenshots: zqa_m1c_lock_locker.png, zqa_m1c_lock_keyed.png, zqa_m1c_lock_crate.png, zqa_m1c_card_book.png, zqa_m1c_card_pistol.png, zqa_m1c_card_steak.png, zqa_m1c_card_padlock.png, zqa_m1c_card_combo.png, zqa_m1c_tab_equip_card.png, zqa_m1c_tab_equip_after.png, zqa_m1c_tab_health_card.png, zqa_m1c_tab_health_after.png, zqa_m1c_tab_skills_card.png, zqa_m1c_tab_skills_after.png, zqa_m1c_tab_identity_card.png, zqa_m1c_tab_identity_after.png, zqa_m1c_tab_journal_journal_card.png, zqa_m1c_tab_journal_journal_after.png, zqa_m1c_tab_journal_notebooks_card.png, zqa_m1c_tab_journal_notebooks_after.png, zqa_m1c_tab_journal_papers_card.png, zqa_m1c_tab_journal_papers_after.png, zqa_m1c_tab_journal_recipes_card.png, zqa_m1c_tab_journal_recipes_after.png, zqa_m1c_tab_journal_loadouts_card.png, zqa_m1c_tab_journal_loadouts_after.png, zqa_m1c_tab_radio_card.png, zqa_m1c_tab_radio_after.png, zqa_m1c_tab_ranch_card.png, zqa_m1c_tab_ranch_after.png
+
+```text
+[ZeD.QA] state #6 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=35 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA m1c start
+[ZeD.QA] run #6 ok=true
+ZEDQA m1c screen 3840x2160, text large, half 443 px, full 966 px
+ZEDQA m1c book pages 220, the character has read 110, this copy 0
+ZEDQA m1c lock card on the locker: open true
+ZEDQA m1c PASS the locker's lock card is the half card (width 443, half 443)
+ZEDQA m1c PASS lock card locker: clips left 0 (tab loot, footer 44, strip true, zones 7)
+ZEDQA m1c lock card on the keyed: open true
+ZEDQA m1c PASS the keyed's lock card is the half card (width 443, half 443)
+ZEDQA m1c PASS lock card keyed: clips left 0 (tab loot, footer 44, strip true, zones 7)
+ZEDQA m1c lock card on the crate: open true
+ZEDQA m1c PASS the crate's lock card is the half card (width 443, half 443)
+ZEDQA m1c PASS lock card crate: clips left 0 (tab loot, footer 44, strip true, zones 7)
+ZEDQA m1c card book: up true, width 443
+ZEDQA m1c PASS card book: clips left 0 (tab loot, footer 44, strip nil, zones nil)
+ZEDQA m1c card pistol: up true, width 443
+ZEDQA m1c PASS pistol facts without an error (Ammo Type = 9x19mm Round)
+ZEDQA m1c PASS card pistol: clips left 0 (tab loot, footer 44, strip nil, zones nil)
+ZEDQA m1c card steak: up true, width 443
+ZEDQA m1c PASS card steak: clips left 0 (tab loot, footer 44, strip nil, zones nil)
+ZEDQA m1c card padlock: up true, width 443
+ZEDQA m1c PASS card padlock: clips left 0 (tab loot, footer 44, strip nil, zones nil)
+ZEDQA m1c card combo: up true, width 443
+ZEDQA m1c PASS card combo: clips left 0 (tab loot, footer 44, strip nil, zones nil)
+ZEDQA m1c PASS equip is open (equip)
+ZEDQA m1c PASS equip alone: clips left 0 (tab equip, footer 44, strip nil, zones nil)
+ZEDQA m1c equip card up true
+ZEDQA m1c PASS equip with a card: clips left 0 (tab equip, footer 44, strip nil, zones nil)
+ZEDQA m1c PASS equip after the card: clips left 0 (tab equip, footer 44, strip nil, zones nil)
+ZEDQA m1c PASS health is open (health)
+ZEDQA m1c PASS health alone: clips left 0 (tab health, footer 44, strip nil, zones nil)
+ZEDQA m1c health card up true
+ZEDQA m1c PASS health with a card: clips left 0 (tab health, footer 44, strip nil, zones nil)
+ZEDQA m1c PASS health after the card: clips left 0 (tab health, footer 44, strip nil, zones nil)
+ZEDQA m1c PASS skills is open (skills)
+ZEDQA m1c PASS skills alone: clips left 0 (tab skills, footer 44, strip nil, zones nil)
+ZEDQA m1c skills card up true
+ZEDQA m1c PASS skills with a card: clips left 0 (tab skills, footer 44, strip nil, zones nil)
+ZEDQA m1c PASS skills after the card: clips left 0 (tab skills, footer 44, strip nil, zones nil)
+ZEDQA m1c PASS identity is open (identity)
+ZEDQA m1c PASS identity alone: clips left 0 (tab identity, footer 44, strip nil, zones nil)
+ZEDQA m1c identity card up true
+ZEDQA m1c PASS identity with a card: clips left 0 (tab identity, footer 44, strip nil, zones nil)
+ZEDQA m1c PASS identity after the card: clips left 0 (tab identity, footer 44, strip nil, zones nil)
+ZEDQA m1c PASS journal journal is open (journal)
+ZEDQA m1c PASS journal journal alone: clips left 0 (tab journal, footer 44, strip nil, zones nil)
+ZEDQA m1c journal journal card up true
+ZEDQA m1c PASS journal journal with a card: clips left 0 (tab journal, footer 44, strip nil, zones nil)
+ZEDQA m1c PASS journal journal after the card: clips left 0 (tab journal, footer 44, strip nil, zones nil)
+ZEDQA m1c PASS journal notebooks is open (journal)
+ZEDQA m1c PASS journal notebooks alone: clips left 0 (tab journal, footer 44, strip nil, zones nil)
+ZEDQA m1c journal notebooks card up true
+ZEDQA m1c PASS journal notebooks with a card: clips left 0 (tab journal, footer 44, strip nil, zones nil)
+ZEDQA m1c PASS journal notebooks after the card: clips left 0 (tab journal, footer 44, strip nil, zones nil)
+ZEDQA m1c PASS journal papers is open (journal)
+ZEDQA m1c PASS journal papers alone: clips left 0 (tab journal, footer 44, strip nil, zones nil)
+ZEDQA m1c journal papers card up true
+ZEDQA m1c PASS journal papers with a card: clips left 0 (tab journal, footer 44, strip nil, zones nil)
+ZEDQA m1c PASS journal papers after the card: clips left 0 (tab journal, footer 44, strip nil, zones nil)
+ZEDQA m1c PASS journal recipes is open (journal)
+ZEDQA m1c PASS journal recipes alone: clips left 0 (tab journal, footer 44, strip nil, zones nil)
+ZEDQA m1c journal recipes card up true
+ZEDQA m1c PASS journal recipes with a card: clips left 0 (tab journal, footer 44, strip nil, zones nil)
+ZEDQA m1c PASS journal recipes after the card: clips left 0 (tab journal, footer 44, strip nil, zones nil)
+ZEDQA m1c PASS journal loadouts is open (journal)
+ZEDQA m1c PASS journal loadouts alone: clips left 0 (tab journal, footer 44, strip nil, zones nil)
+ZEDQA m1c journal loadouts card up true
+ZEDQA m1c PASS journal loadouts with a card: clips left 0 (tab journal, footer 44, strip nil, zones nil)
+ZEDQA m1c PASS journal loadouts after the card: clips left 0 (tab journal, footer 44, strip nil, zones nil)
+ZEDQA m1c PASS radio is open (radio)
+ZEDQA m1c PASS radio alone: clips left 0 (tab radio, footer 44, strip nil, zones nil)
+ZEDQA m1c radio card up true
+ZEDQA m1c PASS radio with a card: clips left 0 (tab radio, footer 44, strip nil, zones nil)
+ZEDQA m1c PASS radio after the card: clips left 0 (tab radio, footer 44, strip nil, zones nil)
+ZEDQA m1c PASS ranch is open (animals)
+ZEDQA m1c PASS ranch alone: clips left 0 (tab animals, footer 44, strip true, zones 7)
+ZEDQA m1c ranch card up true
+ZEDQA m1c PASS ranch with a card: clips left 0 (tab animals, footer 44, strip true, zones 7)
+ZEDQA m1c PASS ranch after the card: clips left 0 (tab animals, footer 44, strip true, zones 7)
+ZEDQA m1c 56 passed, 0 failed
+ZEDQA m1c DONE
+```
+
+## Console errors outside scripts
+
+ERROR lines from launch to quit that fall in no script's window, once each (count first).
+
+```text
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont_0.png
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont2_0.png
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/fonts/zomboidDialogue.bmfc_0.png
+    2x ERROR: General f:N at FluidContainerScript.load > Sanitizing container name 'Large Bucket', name may not contain whitespaces.
+    2x ERROR: General f:N at FluidContainerScript.load > Sanitizing container name 'Fuel Pump', name may not contain whitespaces.
+    1x ERROR: General f:N at CraftRecipeComponentScript.getIconTexture> CraftRecipeComponentScript: Recipe Piano missing UiConfigScript - falling back to SpriteConfigScript first world object face for recipe icon.
+    1x ERROR: Lua f:N at Lua(Vanilla).handleMannequinZone > ERROR: Mannequin zone missing properties in media/maps/Muldraugh, KY/objects.lua coords: 13583, 1299, 0
+    1x ERROR: General f:N at Basements.mergeRoomsOntoMetaCell > duplicate RoomDef.metaID for room at 10707,9484,0
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #231 in cell 25,33 while reading map_meta.bin
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #327914 in cell 25,33 while reading map_meta.bin
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #327911 in cell 25,33 while reading map_meta.bin
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #655594 in cell 25,33 while reading map_meta.bin
+    1x ERROR: General f:N at LuaManager.getFunctionObject > no such function "Vehicles.Init.Radio"
+```

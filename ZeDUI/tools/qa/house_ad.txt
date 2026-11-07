@@ -1,0 +1,4 @@
+# the guide's house ad fit (Nov 7 2026; batch_b7.ps1 runs it per language)
+zedqa_prelude.lua | pre | timeout=120
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_house_ad.lua | had | timeout=120

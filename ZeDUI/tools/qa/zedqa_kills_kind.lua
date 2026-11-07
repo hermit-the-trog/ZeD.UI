@@ -7,7 +7,11 @@ local p = getPlayer()
 local md = p:getModData()
 local function copy(t) if type(t) ~= "table" then return t end local o = {} for k, v in pairs(t) do o[k] = copy(v) end return o end
 local keepKills, keepKd = p:getZombieKills(), copy(md.ZeD_Kills)
-local WEAPONS = { "Base.BaseballBat", "Base.Axe", "Base.HuntingKnife", "Base.Pistol", "Base.Hammer", "BARE", "Base.PipeBomb" }
+local WEAPONS = { "Base.BaseballBat", "Base.Axe", "Base.HuntingKnife", "Base.Pistol", "Base.Hammer", "BARE", "Base.PipeBomb", "Base.Aerosolbomb", "Base.Molotov" }
+-- (merge 1, Nov 7 2026: each weapon its own row; only a real explosive under Explosion; a Molotov is no explosion)
+local WANT = { ["Base.BaseballBat"] = "Blunt", ["Base.Axe"] = "Axe", ["Base.HuntingKnife"] = "SmallBlade", ["Base.Pistol"] = "Firearm",
+               ["Base.Hammer"] = "SmallBlunt", BARE = "Unarmed" }
+local BOMB = { ["Base.PipeBomb"] = true, ["Base.Aerosolbomb"] = true }
 local function weapon(ft)
     if ft == "BARE" then return instanceItem("Base.BareHands") end
     return instanceItem(ft)
@@ -16,7 +20,7 @@ local function snap()
     local kd = md.ZeD_Kills or {}
     local w = {}
     for k, v in pairs(kd.weapon or {}) do w[k] = v end
-    return { explosion = kd.explosion or 0, fire = kd.fire or 0, vehicle = kd.vehicle or 0, weapon = w, engine = p:getZombieKills() }
+    return { explosion = kd.explosion or 0, fire = kd.fire or 0, vehicle = kd.vehicle or 0, weapon = w, engine = p:getZombieKills(), v = kd.v }
 end
 local before, wi, z, hits, nPass, nFail = nil, 0, nil, 0, 0, 0
 local log = {}
@@ -25,7 +29,9 @@ local Q, qi, wait = {}, 0, 0
 local function step(n, fn) Q[#Q + 1] = { n = n, fn = fn } end
 step(30, function()
     before = snap()
-    say("before: engine " .. before.engine .. ", explosion " .. before.explosion .. ", fire " .. before.fire .. ", vehicle " .. before.vehicle)
+    local d0 = ZeD.JournalTab.gatherData(p)
+    before.header = d0 and d0.totalKills
+    say("before: engine " .. before.engine .. ", explosion " .. before.explosion .. ", fire " .. before.fire .. ", vehicle " .. before.vehicle .. ", Other " .. tostring(before.weapon.Other) .. ", version " .. tostring(before.v) .. ", Journal header " .. tostring(before.header))
 end)
 for n, ft in ipairs(WEAPONS) do
     step(10, function()
@@ -57,10 +63,28 @@ for n, ft in ipairs(WEAPONS) do
         if s1.explosion ~= l.s0.explosion then moved[#moved + 1] = "explosion+" .. (s1.explosion - l.s0.explosion) end
         if s1.fire ~= l.s0.fire then moved[#moved + 1] = "fire+" .. (s1.fire - l.s0.fire) end
         say(l.ft .. ": dead " .. tostring(l.dead) .. " after " .. hits .. " hits, instant " .. tostring(l.instant) .. ", power " .. tostring(l.power) .. ", engine +" .. (s1.engine - l.s0.engine) .. ", ZeD " .. (#moved > 0 and table.concat(moved, " ") or "nothing"))
+        if n == 1 then
+            -- the one-time save fix, on the first death this build sees (the QA save was saved on beta 6a)
+            local old = before.v ~= 2 and before.explosion or 0
+            local otherWas = (before.weapon.Other or 0)
+            check(s1.v == 2, "the save fix stamps version 2 (was " .. tostring(before.v) .. ")")
+            check(before.v == 2 or ((s1.weapon.Other or 0) - otherWas == old and l.s0.explosion == before.explosion), "the save fix moves the old Explosion count (" .. before.explosion .. ") into Other once (Other " .. otherWas .. " -> " .. tostring(s1.weapon.Other) .. ")")
+            local d1 = ZeD.JournalTab.gatherData(p)
+            check(d1 and before.header and d1.totalKills - before.header == s1.engine - before.engine, "the save fix leaves the header alone (header " .. tostring(before.header) .. " -> " .. tostring(d1 and d1.totalKills) .. ", this kill +" .. (s1.engine - before.engine) .. ")")
+            -- (this kill's own row, measured past the fix)
+            l.s0.explosion = 0
+            if before.v ~= 2 then l.s0.weapon.Other = (l.s0.weapon.Other or 0) + old end
+        end
         if l.dead then
             local expl = s1.explosion - l.s0.explosion
-            if l.ft == "Base.PipeBomb" then check(expl <= 1, l.ft .. " may count as an explosion")
-            else check(expl == 0, l.ft .. " is not filed as an explosion") end
+            local fire = s1.fire - l.s0.fire
+            if BOMB[l.ft] then check(expl == 1, l.ft .. " counts as an explosion (+" .. expl .. ")")
+            else check(expl == 0, l.ft .. " is not filed as an explosion (+" .. expl .. ")") end
+            check(fire == 0, l.ft .. " makes no fire row (+" .. fire .. ")")
+            if WANT[l.ft] then
+                local got = (s1.weapon[WANT[l.ft]] or 0) - (l.s0.weapon[WANT[l.ft]] or 0)
+                check(got == 1, l.ft .. " goes under " .. WANT[l.ft] .. " (+" .. got .. ")")
+            end
         end
     end)
 end

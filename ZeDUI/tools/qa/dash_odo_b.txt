@@ -1,0 +1,4 @@
+# punch list 92 (Nov 7 2026): after dash_odo_a.txt and a relaunch on the same save
+zedqa_prelude.lua | pre | timeout=120
+gallery_hidecon.lua | hcn | timeout=60
+zedqa_dash_odo_reload.lua | dor | timeout=120
