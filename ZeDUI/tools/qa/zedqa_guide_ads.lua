@@ -60,6 +60,8 @@ local function plan(bk)
     for i, p in ipairs(bk.pages or {}) do
         if p.kind == "ad" then
             out[#out + 1] = { page = i, k = "full", names = { p.ad == nil and "house" or (p.ad or "NOTES") }, whole = true }
+            -- (no full ad left: the smaller ads dealt over its whole text block, B.dealAds)
+            for _, b in ipairs(p.filler and p.filler.ads or {}) do out[#out + 1] = { page = i, k = b.k, names = b.names } end
         elseif p.kind == "flow" then
             for _, it in ipairs(p.items) do
                 if it.k == "filler" then for bi, b in ipairs(it.ads or {}) do out[#out + 1] = { page = i, k = b.k, names = b.names, check = it.check, first = bi == 1 } end end
@@ -147,14 +149,21 @@ local function reading(name, shootAll, shootSome)
                 end
             end
             check(#turnBad == 0, name .. ": half and pair take turns down the book (" .. hU .. " halves, " .. (qU / 2) .. " pairs" .. (#turnBad > 0 and ("; same twice at " .. table.concat(turnBad, ", ")) or "") .. ")")
-            -- the First Days checklist first on its page
+            -- the First Days checklist once: first on its filler page, or (no filler with the room) a block of its own
+            -- at the chapter's end
             local ck
             for _, b in ipairs(pl) do if b.check and b.first then ck = b; break end end
-            check(ck ~= nil and ck.k == "check", name .. ": the First Days checklist comes first on its filler page (" .. (ck and ("page " .. ck.page .. ", first block " .. ck.k) or "no checklist page") .. ")")
+            local own = {}
+            for i, p in ipairs(bk.pages or {}) do
+                if p.kind == "flow" then for _, it in ipairs(p.items) do if it.k == "check" then own[#own + 1] = i end end end
+            end
+            local inFiller = ck ~= nil and ck.k == "check"
+            check((inFiller and #own == 0) or (not inFiller and #own == 1), name .. ": the First Days checklist prints once ("
+                .. (inFiller and ("first on its filler, page " .. ck.page) or (#own > 0 and ("its own block, page " .. table.concat(own, ", ")) or "nowhere")) .. ")")
             -- the deck's order
             orders[#orders + 1] = { name = name, o = dealOrder(pl) }
             local st = bk.adStats or {}
-            say(string.format("%s thirds: 205 slots asked %s, no third left %s, thirds dealt %s of %d; NOTES blocks %s; full pages %s (%s NOTES)", name,
+            say(string.format("%s thirds: 205 slots asked %s, no third left %s, thirds dealt %s of %d; NOTES blocks %s; full pages %s (%s with no full ad left)", name,
                 tostring(st.ask205), tostring(st.miss205), tostring(st.at and st.at.third), #A.third, tostring(st.notes), tostring(st.full), tostring(st.fullMiss)))
             -- the spreads with something dealt
             adSpreads = {}
