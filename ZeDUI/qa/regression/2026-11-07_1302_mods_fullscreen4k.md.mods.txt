@@ -1,0 +1,11 @@
+VERSION = 1,
+
+mods
+{
+    mod = YouAreHere1993,
+    mod = ZeD_UI,
+}
+
+maps
+{
+}

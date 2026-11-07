@@ -1,0 +1,24 @@
+VERSION = 1,
+
+mods
+{
+    mod = MinidoracatUIFor42,
+    mod = MinidoracatBuilderFor42,
+    mod = NeatUI_Framework,
+    mod = NeatUI_Mechanics,
+    mod = MinidoracatMiniMapFor42,
+    mod = MinidoracatMiniMapWatchFor42,
+    mod = ShiftWorldSmartWatch,
+    mod = YouAreHere1993,
+    mod = MaskFilterIndicator,
+    mod = BetterItemTransfer,
+    mod = PassItOver,
+    mod = Stockroom,
+    mod = CustomGamepadUI,
+    mod = GamepadQoLSuite,
+    mod = ZeD_UI,
+}
+
+maps
+{
+}

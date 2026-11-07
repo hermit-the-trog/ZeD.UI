@@ -1,0 +1,14 @@
+VERSION = 1,
+
+mods
+{
+    mod = ShiftWorldSmartWatch,
+    mod = YouAreHere1993,
+    mod = MaskFilterIndicator,
+    mod = BetterItemTransfer,
+    mod = ZeD_UI,
+}
+
+maps
+{
+}

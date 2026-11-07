@@ -1,0 +1,16 @@
+VERSION = 1,
+
+mods
+{
+    mod = MinidoracatUIFor42,
+    mod = MinidoracatBuilderFor42,
+    mod = MinidoracatMiniMapFor42,
+    mod = MinidoracatMiniMapWatchFor42,
+    mod = NeatUI_Framework,
+    mod = NeatUI_Mechanics,
+    mod = ZeD_UI,
+}
+
+maps
+{
+}

@@ -1,0 +1,17 @@
+VERSION = 1,
+
+mods
+{
+    mod = AutoHideHotbar,
+    mod = NoVanillaMoodles,
+    mod = BetterModExperience,
+    mod = Clear_SkillSheet,
+    mod = VIF_DualRender_B42,
+    mod = ItemConditionRestored,
+    mod = PZDeckInputBridge,
+    mod = ZeD_UI,
+}
+
+maps
+{
+}

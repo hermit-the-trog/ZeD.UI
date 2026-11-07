@@ -1,0 +1,18 @@
+VERSION = 1,
+
+mods
+{
+    mod = ShiftWorldSmartWatch,
+    mod = YouAreHere1993,
+    mod = MaskFilterIndicator,
+    mod = BetterItemTransfer,
+    mod = PassItOver,
+    mod = Stockroom,
+    mod = CustomGamepadUI,
+    mod = GamepadQoLSuite,
+    mod = ZeD_UI,
+}
+
+maps
+{
+}
