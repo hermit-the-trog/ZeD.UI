@@ -1138,8 +1138,9 @@ end
 -- to their box, the price to its own), centered parts in even lines; the price box is its words plus half the price's
 -- size each side (never under its old 92). When the wrapped words would push the coupon past the frame, the gaps
 -- close up first (the same proportions, down to 55%); then a part that wrapped steps down one size (the deck, the
--- titles, the coupon, the paragraph, in that order). Laid out once for a width, unit, text size, wording and
--- measure epoch (ZeD_GuideBook:houseAd) and drawn from that list each frame.
+-- titles, the coupon, the paragraph, the headline, in that order). Name and Address wrap to leave a writing line;
+-- a headline word too wide for the frame takes the headline a size down before it is cut. Laid out once for a
+-- width, unit, text size, wording and measure epoch (ZeD_GuideBook:houseAd) and drawn from that list each frame.
 
 -- one character from i: its last index (a UTF-8 run in plain Lua; in the game a string is characters, so i itself)
 local function adCharEnd(s, i)
@@ -1152,24 +1153,56 @@ local function adCharEnd(s, i)
     end
     return j
 end
--- may a line start at the character at i: never on a Thai mark that sits on the letter before it, or on a Chinese
--- or Japanese comma, stop or closing bracket
-local AD_NOSTART = { [0x3001] = true, [0x3002] = true, [0x300D] = true, [0x300F] = true, [0xFF01] = true, [0xFF09] = true,
-                     [0xFF0C] = true, [0xFF0E] = true, [0xFF1A] = true, [0xFF1B] = true, [0xFF1F] = true }
-local function adMayStart(s, i)
+-- the character at i: its code point and its last index
+local function adCp(s, i)
     local e = adCharEnd(s, i)
     local cp = s:byte(i)
-    if not cp then return true end
-    if e > i then
+    if cp and e > i then
         cp = (e - i == 1) and (cp - 0xC0) or ((e - i == 2) and (cp - 0xE0) or (cp - 0xF0))
         for k = i + 1, e do cp = cp * 64 + (s:byte(k) - 0x80) end
     end
-    if AD_NOSTART[cp] then return false end
-    return not (cp == 0x0E31 or (cp >= 0x0E34 and cp <= 0x0E3A) or (cp >= 0x0E47 and cp <= 0x0E4E))
+    return cp, e
+end
+-- may a line break between two characters (code points): never before a Thai mark that sits on the letter before
+-- it, a Thai vowel that follows its consonant (sara a, aa, am, lakkhangyao), the repeat mark or the abbreviation
+-- mark, or a Chinese or Japanese comma, stop or closing bracket; never after a Thai vowel written before its
+-- consonant (sara e, ae, o, ai maimuan, ai maimalai)
+local AD_NOSTART = { [0x3001] = true, [0x3002] = true, [0x300D] = true, [0x300F] = true, [0xFF01] = true, [0xFF09] = true,
+                     [0xFF0C] = true, [0xFF0E] = true, [0xFF1A] = true, [0xFF1B] = true, [0xFF1F] = true,
+                     [0x0E2F] = true, [0x0E30] = true, [0x0E31] = true, [0x0E32] = true, [0x0E33] = true,
+                     [0x0E45] = true, [0x0E46] = true }
+local function adThLead(cp) return cp ~= nil and cp >= 0x0E40 and cp <= 0x0E44 end
+local function adMayBreak(cp, ncp)
+    if not cp or not ncp then return true end
+    if adThLead(cp) or AD_NOSTART[ncp] then return false end
+    return not ((ncp >= 0x0E34 and ncp <= 0x0E3A) or (ncp >= 0x0E47 and ncp <= 0x0E4E))
+end
+-- a break Thai prefers (Thai runs without spaces and the book has no dictionary): where a syllable surely starts or
+-- ends, before a vowel written before its consonant or after sara a or sara am; any break that may be is good
+-- elsewhere (Chinese and Japanese break between any two characters)
+local function adThai(cp) return cp ~= nil and cp >= 0x0E00 and cp <= 0x0E7F end
+local function adGoodBreak(cp, ncp)
+    if not (adThai(cp) or adThai(ncp)) then return true end
+    return adThLead(ncp) or cp == 0x0E30 or cp == 0x0E33 or not adThai(cp) or not adThai(ncp)
+end
+-- the widest word that must not be cut (one with no Thai, Chinese, Japanese or Korean in it), or 0
+local function adWidestWhole(text, f, px)
+    local mx = 0
+    for wd in tostring(text or ""):gmatch("%S+") do
+        local whole, i = true, 1
+        while i <= #wd do
+            local cp, e = adCp(wd, i)
+            if adThai(cp) or (cp and cp >= 0x2E80) then whole = false; break end
+            i = e + 1
+        end
+        if whole then mx = math.max(mx, textW(f, wd, px)) end
+    end
+    return mx
 end
 
 -- words into lines no wider than maxW: { { s = the line, w = its width } }. A word wider than a line (Chinese,
--- Japanese and Thai run without spaces) is cut between characters, its first piece filling the line it starts on.
+-- Japanese and Thai run without spaces) is cut between characters, its first piece filling the line it starts on
+-- (Thai at the last break it prefers, when that fills at least half the room).
 -- A line's width is the larger of its words and spaces (as the pages measure them) and the whole string measured.
 local function adWrap(text, f, px, maxW)
     local lines = {}
@@ -1186,21 +1219,35 @@ local function adWrap(text, f, px, maxW)
             local i, n = 1, #wd
             while i <= n do
                 local room = cur and (maxW - cw - sp) or maxW
-                local j, cut = i, nil
+                local j, cut, good = i, nil, nil
                 while j <= n do
-                    local e = adCharEnd(wd, j)
+                    local cp, e = adCp(wd, j)
                     if textW(f, wd:sub(i, e), px) > room then break end
-                    if e >= n or adMayStart(wd, e + 1) then cut = e end
+                    if e >= n then
+                        cut, good = e, e
+                    else
+                        local ncp = adCp(wd, e + 1)
+                        if adMayBreak(cp, ncp) then
+                            cut = e
+                            if adGoodBreak(cp, ncp) then good = e end
+                        end
+                    end
                     j = e + 1
                 end
+                if good and cut and good < cut and textW(f, wd:sub(i, good), px) >= room * 0.5 then cut = good end
                 if not cut and cur then
                     lines[#lines + 1] = { s = cur, w = cw }
                     cur, cw = nil, 0
                 else
                     if not cut then
                         -- (not one character fits a whole line: the smallest piece that may end one)
-                        cut = adCharEnd(wd, i)
-                        while cut < n and not adMayStart(wd, cut + 1) do cut = adCharEnd(wd, cut + 1) end
+                        local cp
+                        cp, cut = adCp(wd, i)
+                        while cut < n do
+                            local ncp, ne = adCp(wd, cut + 1)
+                            if adMayBreak(cp, ncp) then break end
+                            cp, cut = ncp, ne
+                        end
                     end
                     local piece = wd:sub(i, cut)
                     local pw = textW(f, piece, px)
@@ -1250,15 +1297,16 @@ local function adPriceLines(s, px, maxW)
 end
 
 -- one try at the ad, its parts at the sizes in sz (screen px) and its gaps times g, from the page's corner; .fits when
--- the coupon has room for its words, Name and Address
-local function houseAdTry(w, u, g, sz)
+-- the coupon has room for its words, Name and Address. A draw in a group (a box and what is in it) is kept or left
+-- out with its group.
+local function houseAdTry(w, u, g, sz, down)
     local ops, wrapped = {}, {}
     local L = { ops = ops, wrapped = wrapped, g = g }
-    local function text(f, s, x, y, px, c, wd, box)
-        ops[#ops + 1] = { k = "t", f = f, s = s, x = x, y = y, px = px, c = c, w = wd, box = box }
+    local function text(f, s, x, y, px, c, wd, box, grp)
+        ops[#ops + 1] = { k = "t", f = f, s = s, x = x, y = y, px = px, c = c, w = wd, box = box, grp = grp }
     end
-    local function rect(x, y, rw, rh, c) ops[#ops + 1] = { k = "r", x = x, y = y, w = rw, h = rh, c = c } end
-    local function border(x, y, rw, rh) ops[#ops + 1] = { k = "b", x = x, y = y, w = rw, h = rh } end
+    local function rect(x, y, rw, rh, c, grp, role) ops[#ops + 1] = { k = "r", x = x, y = y, w = rw, h = rh, c = c, grp = grp, role = role } end
+    local function border(x, y, rw, rh, grp) ops[#ops + 1] = { k = "b", x = x, y = y, w = rw, h = rh, grp = grp } end
     local m = U.M * u
     local tx, tw_ = m, w - m * 2
     local cx = w / 2
@@ -1266,13 +1314,18 @@ local function houseAdTry(w, u, g, sz)
     local lw = math.max(1, math.floor(2 * u))
     local hair = math.max(1, u)
     L.frame = { x = tx, y = top, w = tw_, h = bot - top, lw = lw }
-    for i = 0, lw - 1 do border(tx + i, top + i, tw_ - i * 2, bot - top - i * 2) end
+    for i = 0, lw - 1 do border(tx + i, top + i, tw_ - i * 2, bot - top - i * 2, "frame") end
     local ix, iw = tx + 14 * u, tw_ - 28 * u
     L.inner = { x = ix, w = iw }
-    -- the headline and the deck, centered, line by line
+    -- the headline and the deck, centered, line by line (a headline word too wide for the frame, in a language that
+    -- spaces its words, takes the headline a size down before it is ever cut)
     local yy = top + 16 * u * g
     local hp, dp = sz.head, sz.deck
-    local hl = adWrapEven(upper(tr("UI_ZeD_Guide_Ad1_Head")), F.head, hp, iw)
+    local head = upper(tr("UI_ZeD_Guide_Ad1_Head"))
+    if hp > down.head and adWidestWhole(head, F.head, hp) > iw then hp = down.head end
+    L.headPx = hp
+    local hl = adWrapEven(head, F.head, hp, iw)
+    wrapped.head = #hl > 1
     for i, l in ipairs(hl) do
         yy = yy + ((i == 1) and hp or hp * 1.05)
         text(F.head, l.s, cx - l.w / 2, yy, hp, INK, l.w, "inner")
@@ -1311,11 +1364,11 @@ local function houseAdTry(w, u, g, sz)
     local pH = unit5 * (0.64 + 0.36 * (math.max(#pls, 2) - 1))
     local px0 = ix + iw - priceW
     L.price = { x = px0, y = pY, w = priceW, h = pH, pad = pp * 0.5 }
-    rect(px0, pY, priceW, pH, INK)
+    rect(px0, pY, priceW, pH, INK, "price")
     local pc = px0 + priceW / 2
     for i, l in ipairs(pls) do
         local by = (#pls == 1) and (pY + pH * 0.6) or (pY + unit5 * (0.42 + 0.36 * (i - 1)))
-        text(F.sansB, l.s, pc - l.w / 2, by, pp, PAPER, l.w, "price")
+        text(F.sansB, l.s, pc - l.w / 2, by, pp, PAPER, l.w, "price", "price")
     end
     -- the titles, each with its tick box, in a ruled box at the left
     local listW = iw - priceW - 10 * u
@@ -1329,13 +1382,13 @@ local function houseAdTry(w, u, g, sz)
         if #tl > 1 then wrapped.items = true end
         for j, l in ipairs(tl) do
             yy = yy + ((j == 1) and ilh * (1 + 0.15 * g) or ilh)
-            if j == 1 then border(ix + 8 * u, yy - sq, sq, sq) end
-            text(F.textB, l.s, itx, yy, ip, INK, l.w, "list")
+            if j == 1 then border(ix + 8 * u, yy - sq, sq, sq, "list") end
+            text(F.textB, l.s, itx, yy, ip, INK, l.w, "list", "list")
         end
     end
     yy = yy + ilh * 0.6 * g
     L.list = { x = ix, y = boxY, w = listW, h = yy - boxY, pad = 8 * u }
-    border(ix, boxY, listW, yy - boxY)
+    border(ix, boxY, listW, yy - boxY, "list")
     yy = math.max(yy, pY + pH + 10 * u * g)
     -- the coupon: a dashed edge, the words, lines to write on
     yy = yy + 16 * u * g
@@ -1345,22 +1398,31 @@ local function houseAdTry(w, u, g, sz)
     local cl = adWrap(tr("UI_ZeD_Guide_Ad1_Coupon"), F.text, cp, iw - 20 * u)
     wrapped.coupon = #cl > 1
     local step = cp * (1 + 1.2 * g)
-    L.fits = cH > 60 * u and 6 * u + #cl * cp * 1.35 + 2 * step + 6 * u <= cH
+    -- Name and Address: each wrapped to leave a writing line of at least 40 after its last line
+    local labs, labH = {}, 0
+    for li, k in ipairs({ "UI_ZeD_Guide_Ad1_Name", "UI_ZeD_Guide_Ad1_Address" }) do
+        local ll = adWrap(tr(k), F.sansB, cp, iw - 20 * u - 8 * u - 40 * u)
+        if #ll == 0 then ll = { { s = "", w = 0 } } end
+        if #ll > 1 then wrapped.coupon = true end
+        labs[li] = ll
+        labH = labH + step + (#ll - 1) * cp * 1.3
+    end
+    L.fits = cH > 60 * u and 6 * u + #cl * cp * 1.35 + labH + 6 * u <= cH
     if cH > 60 * u then
         L.coupon = { x = ix, y = cY, w = iw, h = cH, pad = 10 * u }
         local dash, gapD = 6 * u, 4 * u
         local xx = ix
         while xx < ix + iw do
             local dw = math.min(dash, ix + iw - xx)
-            rect(xx, cY, dw, hair, INK)
-            rect(xx, cY + cH, dw, hair, INK)
+            rect(xx, cY, dw, hair, INK, "coupon")
+            rect(xx, cY + cH, dw, hair, INK, "coupon")
             xx = xx + dash + gapD
         end
         local yy2 = cY
         while yy2 < cY + cH do
             local dh = math.min(dash, cY + cH - yy2)
-            rect(ix, yy2, hair, dh, INK)
-            rect(ix + iw, yy2, hair, dh, INK)
+            rect(ix, yy2, hair, dh, INK, "coupon")
+            rect(ix + iw, yy2, hair, dh, INK, "coupon")
             yy2 = yy2 + dash + gapD
         end
         local cy2 = cY + 6 * u
@@ -1370,40 +1432,49 @@ local function houseAdTry(w, u, g, sz)
             text(F.text, l.s, ix + 10 * u, cy2, cp, INK, l.w, "coupon")
         end
         L.lines = 0
-        for _, k in ipairs({ "UI_ZeD_Guide_Ad1_Name", "UI_ZeD_Guide_Ad1_Address" }) do
-            cy2 = cy2 + step
-            if cy2 > cY + cH - 4 * u then break end
-            local lab = tr(k)
-            local labW = adWrap(lab, F.sansB, cp, 1e9)[1]
-            labW = labW and labW.w or 0
-            text(F.sansB, lab, ix + 10 * u, cy2, cp, INK, labW, "coupon")
-            local lx = ix + 10 * u + labW + 8 * u
-            rect(lx, cy2 + 2 * u, ix + iw - 10 * u - lx, hair, INK)
+        for li, ll in ipairs(labs) do
+            -- (a label with its writing line, whole or not at all)
+            local endY = cy2 + step + (#ll - 1) * cp * 1.3
+            if endY > cY + cH - 4 * u then break end
+            local grp = "label" .. li
+            for j, l in ipairs(ll) do
+                cy2 = cy2 + ((j == 1) and step or cp * 1.3)
+                text(F.sansB, l.s, ix + 10 * u, cy2, cp, INK, l.w, "coupon", grp)
+            end
+            local lx = ix + 10 * u + ll[#ll].w + 8 * u
+            rect(lx, cy2 + 2 * u, ix + iw - 10 * u - lx, hair, INK, grp, "write")
             L.lines = L.lines + 1
         end
     end
-    -- (whatever is left past the frame's inside, in the last and smallest try, is left out)
+    -- (whatever is left past the frame's inside, in the last and smallest try, is left out: a box with all it holds)
     local inBot = bot - lw
+    local past = {}
+    for _, o in ipairs(ops) do
+        local b = (o.k == "t") and (o.y + o.px * 0.3) or (o.y + o.h)
+        o.past = b > inBot + 0.01 and o.grp ~= "frame"
+        if o.past and o.grp then past[o.grp] = true end
+    end
     for i = #ops, 1, -1 do
         local o = ops[i]
-        local b = (o.k == "t") and (o.y + o.px * 0.3) or (o.y + o.h)
-        if b > inBot + 0.01 and not (o.k == "b" and i <= lw) then table.remove(ops, i) end
+        if o.past or (o.grp and past[o.grp]) then table.remove(ops, i) end
+        o.past = nil
     end
+    L.dropped = past
     return L
 end
 
 -- the ad's layout at page width w and unit u: the list of what to draw, from the page's corner
-local AD_DOWN = { "deck", "items", "coupon", "body" }
+local AD_DOWN = { "deck", "items", "coupon", "body", "head" }
 function B.houseAdLayout(w, u)
     local sz = { head = U.OPEN * u, deck = U.DECK * u, body = U.TEXT * u, items = U.TEXT * u, coupon = U.CAP * u * 1.1, price = U.DECK * u }
-    local down = { deck = U.TEXT * u, items = U.CAP * u * 1.1, coupon = U.CAP * u, body = U.CAP * u * 1.1 }
+    local down = { head = U.TITLE * u, deck = U.TEXT * u, items = U.CAP * u * 1.1, coupon = U.CAP * u, body = U.CAP * u * 1.1 }
     local L
     for s = 0, #AD_DOWN do
         local part = AD_DOWN[s]
         if s == 0 or (L and L.wrapped[part]) then
             if part then sz[part] = down[part] end
             for _, g in ipairs({ 1, 0.85, 0.7, 0.55 }) do
-                L = houseAdTry(w, u, g, sz)
+                L = houseAdTry(w, u, g, sz, down)
                 if L.fits then L.sz = sz; return L end
             end
         end
