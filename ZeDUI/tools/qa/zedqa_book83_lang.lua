@@ -39,7 +39,10 @@ step(10, function()
     if book then B.books[0].spread = 2
     else local w = G.get(0); w.scroll = w._maxS or 0 end
 end)
-step(60, function() shot(book and "2_contents_intro" or "2_window_rules") end)
+step(60, function() shot(book and (((B.books[0].introPage or 4) <= 4) and "2_contents_intro" or "2_contents") or "2_window_rules") end)
+-- (Nov 7: a contents of two or more pages: its last page and the introduction on their own spread)
+step(10, function() if book then local b = B.books[0]; b.spread = math.floor(((b.introPage or 4) + 1) / 2) end end)
+step(60, function() if book and (B.books[0].introPage or 4) > 4 then shot("2b_contents_end_intro") end end)
 step(10, function()
     if book then local b = B.books[0]; b.spread = math.floor((b.sectionPage[b.sections[4].id] + 1) / 2) end
 end)

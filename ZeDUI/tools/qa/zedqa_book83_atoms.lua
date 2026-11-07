@@ -47,7 +47,7 @@ step(60, function()
 end)
 step(30, function() Bk().spread = 2 end)
 -- a contents row (chapter 5), clicked over its words
-click("contents row 5", function(b) local r = b._contentsRows[5]; return r.x + 40, r.y + r.h * 0.45 end, function(b)
+click("contents row 5", function(b) local r; for _, x in ipairs(b._contentsRows) do if x.si == 5 then r = x end end; return r.x + 40, r.y + r.h * 0.45 end, function(b)
     local want = spreadOf(b.sectionPage[b.sections[5].id])
     check(b.spread == want, "a click on a contents row's words opens its chapter (spread " .. b.spread .. ", want " .. want .. ")")
 end)

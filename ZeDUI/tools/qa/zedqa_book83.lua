@@ -1,6 +1,6 @@
 -- ZeDUI/tools/qa/zedqa_book83.lua  (Nov 3 2026, QA; punch list 83, the survival guide's Full look: the book, Build's b1fae517)
 -- With ZeD setup's Survival guide row on Full: F1 opens the book, Escape and F1 close it, Simple opens the window; the
--- pages (title, contents, introduction, a topic a page, Skill Books' rules page after it); the strip's Previous page,
+-- pages (title, the contents over its pages, introduction, a topic a page, Skill Books' rules page after it); the strip's Previous page,
 -- Contents, Next page and start-up box; a click on the left page turns back, on the right on; the wheel, the arrow
 -- keys, Page Up / Down and Home; every contents row and thumb jumps to its chapter, with matching page numbers; F1 on
 -- the Skills tab opens the spread with Skill Books and its rules; clips on the page (effects on) and stills (off); the
@@ -163,7 +163,21 @@ end)
 step(20, function() f1() end)
 step(30, function()
     local b = Bk()
-    b:press("next"); check(b.spread == 2 and spreadKinds() == "contents+intro", "Next page: the contents facing the introduction (" .. spreadKinds() .. ")")
+    -- (Nov 7: the contents runs over as many pages as it needs from page 3; the introduction on a right-hand page,
+    -- facing the last contents page, or after a left-hand page when the contents takes an even count; that page the
+    -- publisher's house ad, the director's Nov 7 ruling, and the house ad nowhere else in the book)
+    local n, ip = b.contentsPages or 1, b.introPage or 4
+    say(string.format("contents: %d page%s from page %s; introduction page %s", n, n == 1 and "" or "s", tostring(b.contentsPage), tostring(ip)))
+    local fp = pageAt(3 + n)
+    local frontOk = b.contentsPage == 3 and ip % 2 == 0 and pageAt(ip) and pageAt(ip).kind == "intro"
+        and ((n % 2 == 1 and ip == 3 + n) or (n % 2 == 0 and ip == 4 + n and fp and fp.kind == "ad" and fp.front and fp.ad == "house"))
+    for i = 3, 2 + n do frontOk = frontOk and pageAt(i) and pageAt(i).kind == "contents" end
+    check(frontOk, "the contents from page 3, the introduction on a right-hand page after it")
+    local houses = 0
+    for _, p in ipairs(b.pages) do if p.kind == "ad" and p.ad == "house" then houses = houses + 1 end end
+    say("house ad pages: " .. houses .. ((n % 2 == 0) and " (one up front)" or ""))
+    check(houses <= 1 and (n % 2 == 1 or houses == 1), "the house ad once in the book (" .. houses .. ")")
+    b:press("next"); check(b.spread == 2 and pageAt(3).kind == "contents", "Next page: the first contents page (" .. spreadKinds() .. ")")
     b:press("next"); local s3 = b.spread
     b:press("prev"); check(b.spread == 2, "Previous page turns back")
     b:onKeyPress(Keyboard.KEY_RIGHT); check(b.spread == 3, "the right arrow turns on")
@@ -192,17 +206,21 @@ end)
 -- ---- the contents rows and the thumbs
 step(30, function()
     local b = Bk()
-    local rows = b._contentsRows or {}
-    local ok, bad = 0, {}
-    for si, row in ipairs(rows) do
-        b.spread = 2
-        local want = b.sectionPage[b.sections[si].id]
-        b:goToPage(row.page)
-        local i = b.spread * 2 - 1
-        local hit = (i == want) or (i + 1 == want)
-        if row.page == want and hit then ok = ok + 1 else bad[#bad + 1] = tostring(si) end
+    -- (every contents page's rows, as laid out: each section with a page once, its printed number its chapter's)
+    local ok, bad, nRows, want = 0, {}, 0, 0
+    for _, s in ipairs(b.sections) do if b.sectionPage[s.id] then want = want + 1 end end
+    for i = 3, 2 + (b.contentsPages or 1) do
+        for _, row in ipairs(pageAt(i) and pageAt(i).rows or {}) do
+            nRows = nRows + 1
+            local wp = b.sectionPage[b.sections[row.si].id]
+            b.spread = 2
+            b:goToPage(row.page)
+            local j = b.spread * 2 - 1
+            local hit = (j == wp) or (j + 1 == wp)
+            if row.page == wp and hit and row.num == tostring(wp + 1) then ok = ok + 1 else bad[#bad + 1] = tostring(row.si) end
+        end
     end
-    check(#rows == #b.sections and ok == #rows, "every contents row opens its chapter's first page (" .. ok .. " of " .. #b.sections .. (#bad > 0 and ("; not: " .. table.concat(bad, ", ")) or "") .. ")")
+    check(nRows == want and ok == nRows, "every contents row opens its chapter's first page, its number that page's (" .. ok .. " of " .. want .. (#bad > 0 and ("; not: " .. table.concat(bad, ", ")) or "") .. ")")
     local tok, tbad = 0, {}
     for _, r in ipairs(b._thumbs or {}) do
         b.spread = 2
@@ -213,6 +231,30 @@ step(30, function()
         if wp == i or wp == i + 1 then tok = tok + 1 else tbad[#tbad + 1] = tostring(r.si) end
     end
     check(#(b._thumbs or {}) == #b.sections and tok == #b.sections, "every thumb opens its chapter (" .. tok .. " of " .. #b.sections .. (#tbad > 0 and ("; not: " .. table.concat(tbad, ", ")) or "") .. ")")
+    b.spread = 2
+end)
+-- (each contents spread drawn, then a click on each of its rows as drawn: every page's rows take the click)
+local clickRows = { ok = 0, n = 0, bad = {} }
+for k = 0, 3 do
+    step(20, function() local b = Bk(); local last = math.floor(((b.introPage or 4) + 1) / 2); if 2 + k <= last then b.spread = 2 + k end end)
+    step(20, function()
+        local b = Bk()
+        if b.spread ~= 2 + k then return end
+        local rows = {}
+        for _, r in ipairs(b._contentsRows or {}) do rows[#rows + 1] = r end
+        for _, r in ipairs(rows) do
+            b.spread = 2 + k
+            clickRows.n = clickRows.n + 1
+            b:onMouseDown(r.x + 10, r.y + r.h / 2)
+            if b.spread == math.floor((r.page + 1) / 2) then clickRows.ok = clickRows.ok + 1 else clickRows.bad[#clickRows.bad + 1] = tostring(r.si) end
+        end
+        b.spread = 2 + k
+    end)
+end
+step(10, function()
+    local b = Bk(); local want = 0
+    for _, s in ipairs(b.sections) do if b.sectionPage[s.id] then want = want + 1 end end
+    check(clickRows.n == want and clickRows.ok == want, "a click on every drawn contents row opens its chapter (" .. clickRows.ok .. " of " .. want .. (#clickRows.bad > 0 and ("; not: " .. table.concat(clickRows.bad, ", ")) or "") .. ")")
     b.spread = 2
 end)
 -- ---- the controller
@@ -270,7 +312,10 @@ end
 step(10, function() Bk().spread = 1 end)
 step(40, function() shot("D1_title") end)
 step(10, function() Bk().spread = 2 end)
-step(40, function() shot("D2_contents_intro") end)
+step(40, function() shot((Bk().introPage or 4) <= 4 and "D2_contents_intro" or "D2_contents") end)
+-- (a contents of two or more pages: its last page and the introduction, on their own spread)
+step(10, function() local b = Bk(); b.spread = math.floor(((b.introPage or 4) + 1) / 2) end)
+step(40, function() if (Bk().introPage or 4) > 4 then shot("D2b_contents_end_intro") end end)
 step(10, function() local b = Bk(); b.spread = math.floor((b.sectionPage[b.sections[4].id] + 1) / 2); say("chapter opener: " .. tostring(b.sections[4].title)) end)
 step(150, function() shot("D3_chapter_opener_clip") end)
 step(10, function() local b = Bk(); for _, t in ipairs(b.flat) do if t.titleKey == "SurvivalGuide_skill_books_title" then b:goToTopic(t.id) end end end)
