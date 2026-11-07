@@ -332,8 +332,10 @@ def ustore(d):
 @mine(124, 122)
 def oldmill(d):
     # a cast-iron pitcher pump on a short pipe stand over a concrete pad: the barrel with its beads, the round cap on
-    # top (an ellipse 0.26), the plunger rod up to the handle, raised; the spout out toward us and to the left; a tin
-    # cup on the pad under the spout, a drop on its way down
+    # top (an ellipse 0.26) with the ear and link the handle pivots on, the plunger rod up to the handle's short end,
+    # the handle raised up and out to the right; the spout out of the barrel's left, its mouth turned down; a
+    # galvanized pail on the pad under the spout (its rim an ellipse 0.26, the bail leaning back), the water falling
+    # into it (the director, Nov 7: "why is it pumping into a coffee mug? Not a bucket.")
     X = d.XX + 0.5; Y = d.YY + 0.5
     # the pad
     pad_f = Mask(d.W, d.H).rect(4, 108, 108, 11).get()
@@ -343,40 +345,67 @@ def oldmill(d):
     d.grain_pebble(pad_f | pad_t, 0.08, seed=3)
     d.seam(Mask(d.W, d.H).rect(4, 108, 108, 1).get(), 0.15)
     # the pipe stand on its floor flange
-    disc(d, 64, 103, 12, 12 * VIEW, 3, "k", polish=0.4, on=7)
-    cyl_v(d, 58, 70, 76, 103, 8, "d", polish=0.7, on=6)
+    disc(d, 66, 103, 12, 12 * VIEW, 3, "k", polish=0.4, on=7)
+    cyl_v(d, 60, 72, 76, 103, 8, "d", polish=0.7, on=6)
+    cy_p = Cyl(d, 60, 72, 6 * VIEW)
     # the barrel on its base flange
-    cyl_v(d, 46, 82, 72, 78, 12, "k", polish=0.5, top_ry=18 * VIEW, bot_ry=18 * VIEW, on=6)
-    body, top = cyl_v(d, 50, 78, 30, 72, 12, "k", polish=0.55, top_ry=14 * VIEW, bot_ry=14 * VIEW, on=8)
-    cy = Cyl(d, 50, 78, 14 * VIEW)
-    for vv in (36, 66):
+    cyl_v(d, 48, 84, 72, 78, 12, "k", polish=0.5, top_ry=18 * VIEW, bot_ry=18 * VIEW, on=6)
+    body, top = cyl_v(d, 52, 80, 32, 72, 12, "k", polish=0.55, top_ry=14 * VIEW, bot_ry=14 * VIEW, on=8)
+    cy = Cyl(d, 52, 80, 14 * VIEW)
+    for vv in (38, 66):
         r = band_v(d, body, cy, vv, vv + 2); d.h[r] += 1.2                                        # the cast beads
     d.grain_pebble(body, 0.05, seed=6)
-    # the cap: a round lid over the barrel, a boss in the middle with the rod's hole
-    capb, capt = cyl_v(d, 48, 80, 26, 30, 13, "k", polish=0.5, top_ry=16 * VIEW, bot_ry=16 * VIEW, on=9)
-    disc(d, 64, 26, 6, 6 * VIEW + 1, 2, "k", polish=0.6, on=22)
-    d.well(Mask(d.W, d.H).ellipse(64, 25.6, 1.8, 1.0).get(), 1, mat="k")
-    # the fulcrum post on the cap's right, the handle raised up and out to the right, the rod from its short end
-    capsule(d, [(76, 27), (78, 16)], 3.2, 3, "k", polish=0.5)
-    capsule(d, [(64, 25), (64, 16)], 2.4, 3, "chrome", polish=1.0)                              # the plunger rod
-    capsule(d, [(64, 16), (78, 15), (100, 8), (118, 4)], 4.2, 4, "k", polish=0.6)
-    d.dome(118, 4, 3.2, 3.2, 4, "k", on="add")
-    d.dome(78, 15, 2.0, 2.0, 2, "chrome", on="add")                                             # the pins
-    d.dome(64, 16, 1.6, 1.6, 2, "chrome", on="add")
-    # the spout: out of the barrel's front-left, toward us and down, its lip open
-    capsule(d, [(54, 46), (40, 50), (30, 55)], 9, 10, "k", polish=0.55)
-    capsule(d, [(30, 55), (25, 60)], 7, 9, "k", polish=0.55)
-    d.slab(Mask(d.W, d.H).ellipse(24, 62, 5, 2.4).get(), 2, "k", bevel=0.6, on=9)
-    d.well(Mask(d.W, d.H).ellipse(23.5, 62.5, 3, 1.3).get(), 2, mat="k")
-    # the drop and the cup
-    d.dome(23, 74, 1.6, 2.4, 2, "l", polish=1.0)
-    cbody, ctop = cyl_v(d, 14, 32, 88, 104, 6, "chrome", polish=0.9, top_ry=9 * VIEW, bot_ry=9 * VIEW, on=6)
-    d.flat(ellipse_m(d, 23, 88.5, 7.2, 7.2 * VIEW), 6, "l", polish=1.0)                          # the water in it
-    rim = ctop & ~ellipse_m(d, 23, 88.5, 7.2, 7.2 * VIEW); d.h[rim] += 0.8
-    m = Mask(d.W, d.H).arc(14, 95, 4.5, 5, 90, 270, 1.8).get() & ~cbody
-    d.slab(m, 3, "chrome", bevel=0.8, polish=0.9, on=6)                                          # its handle
-    for vv in (93,):
-        r = band_v(d, cbody, Cyl(d, 14, 32, 9 * VIEW), vv, vv + 1); d.dark[r] = 0.2
+    # the cap: a round lid with its rim over the barrel, a low crown, the boss in the middle with the rod's gland
+    capb, capt = cyl_v(d, 50, 82, 28, 32, 13, "k", polish=0.5, top_ry=16 * VIEW, bot_ry=16 * VIEW, on=9)
+    disc(d, 66, 28.4, 12, 12 * VIEW, 1.6, "k", polish=0.5, on=float(d.h[28, 66]))                  # the crown
+    cyl_v(d, 62, 70, 24, 28, 4, "k", polish=0.6, top_ry=4 * VIEW, bot_ry=4 * VIEW, on=22)          # the boss
+    d.well(Mask(d.W, d.H).ellipse(66, 24.2, 1.6, 0.6).get(), 1, mat="k")
+    # the ear on the cap's right, the link standing up from it to the handle's pivot
+    d.slab(Mask(d.W, d.H).rect(78, 23, 6, 6).get(), 23, "k", bevel=1.2, polish=0.5)
+    d.slab(Mask(d.W, d.H).line([(81, 25), (82, 13)], 3.0).get(), 24, "k", bevel=1.0, polish=0.6)
+    capsule(d, [(66, 24), (66, 17)], 2.4, 25, "chrome", polish=1.0)                              # the plunger rod
+    # the handle: its short end over the rod, the pivot on the link, the long arm raised out to the right, the grip
+    capsule(d, [(63, 18.5), (66, 17.5), (82, 13), (96, 8.5)], 4.6, 27, "k", polish=0.6)
+    capsule(d, [(96, 8.5), (108, 5.5), (114, 5.5), (118, 7.5)], 3.8, 27, "k", polish=0.6)
+    d.dome(118.5, 8, 2.6, 2.6, 3, "k", on="add")
+    d.dome(82, 13, 1.7, 1.7, 2, "chrome", on="add")                                             # the pins
+    d.dome(81, 25.5, 1.4, 1.4, 2, "chrome", on="add")
+    d.dome(66, 17.5, 1.5, 1.5, 2, "chrome", on="add")
+    # the spout: out of the barrel's left a little toward us, tapering, its end turned down to a flared mouth
+    capsule(d, [(56, 45), (46, 46), (38, 48)], 8.4, 10, "k", polish=0.55)
+    capsule(d, [(38, 48), (32, 50.5), (29.5, 54)], 7.0, 10, "k", polish=0.55)
+    d.slab(Mask(d.W, d.H).line([(29.5, 53), (29, 57)], 6.4).get(), 10, "k", bevel=1.6, polish=0.55)
+    mouth = ellipse_m(d, 29, 57.6, 4.4, 4.4 * VIEW + 0.6)                                          # the flared lip
+    d.slab(mouth, 10.5, "k", bevel=0.8, polish=0.6)
+    # the pail: a galvanized bucket, tapered, the bail leaning back over the far rim, the ears on its sides
+    pcx, yt, yb, rt, rb = 28.5, 79.0, 103.0, 15.0, 12.0
+    bail = Mask(d.W, d.H).arc(pcx, yt + 3.2, rt + 0.6, 15, 180, 360, 1.6).get()
+    d.slab(bail, 9, "d", bevel=0.7, polish=0.9)
+    frac = np.clip((Y - yt) / (yb - yt), 0, 1)
+    hw = rt + (rb - rt) * frac
+    pbody = (Y >= yt) & (Y <= yb) & (np.abs(X - pcx) <= hw)
+    pbody |= ellipse_m(d, pcx, yb, rb, rb * VIEW) & (Y > yb)
+    t = np.clip((X - pcx) / hw, -1, 1); c = np.sqrt(1 - t ** 2)
+    d.h = np.where(pbody, 4 + c * 7, d.h).astype(np.float32)
+    d.mat[pbody] = d.mid("m"); d.solid |= pbody; d.polish[pbody] = 0.7; d.tex[pbody] = 0
+    for v0, ryv in ((87.0, rt * VIEW), (96.0, rb * VIEW)):                                          # the pressed rings
+        rib = pbody & (np.abs(Y - (v0 + ryv * c)) < 0.9)
+        d.h[rib] += 0.9
+    rim = (ellipse_m(d, pcx, yt + 0.9, rt + 1.0, (rt + 1.0) * VIEW) | ellipse_m(d, pcx, yt - 0.9, rt + 1.0, (rt + 1.0) * VIEW))
+    opening = ellipse_m(d, pcx, yt - 0.9, rt - 0.9, (rt - 0.9) * VIEW)
+    d.slab(rim & ~opening, 12.5, "m", bevel=1.1, polish=0.9)                                       # the rolled rim
+    d.flat(opening, 10, "d", polish=0.2)                                                           # the inside wall
+    wat = opening & ellipse_m(d, pcx, yt + 0.9, rt - 2.8, (rt - 2.8) * VIEW)
+    d.flat(wat, 10.2, "l", polish=1.0)                                                             # the water in it
+    d.dark[opening & ~wat] = 0.3
+    for sx in (-1, 1):
+        ex = pcx + sx * (rt + 0.6)
+        d.slab(Mask(d.W, d.H).rect(ex - 1.5, yt + 1.5, 3, 4).get(), 12, "m", bevel=0.8, polish=0.9)  # the ears
+        d.dome(ex, yt + 3.2, 1.0, 1.0, 1.5, "d", on="add")
+    # the water falling from the mouth into the pail, into the water
+    stream = Mask(d.W, d.H).line([(29, 58.5), (29, 70), (28.8, yt + 0.6)], 2.2).get()
+    d.slab(stream, 14, "l", bevel=0.9, polish=1.0)
+    d.noshadow |= stream
 
 
 # ------------------------------------------------------------------ Restwell & Sons: the wreath on its stand
@@ -453,7 +482,21 @@ def restwell(d):
 # ------------------------------------------------------------------ Knox Lock & Key: a ring of keys
 # each key is drawn in its own frame: the hole at the origin (where the ring runs through it), the blade down +y;
 # rot() turns it out from the ring's middle so the five fan out round the ring's foot
-def key_house(d, o, ang, mat, z, cut, L=46):
+LAYERS = ("h", "mat", "solid", "polish", "tex", "dark")
+
+
+def snap(d):
+    return {k: getattr(d, k).copy() for k in LAYERS}
+
+
+def through(d, hole, before):
+    """a hole punched through what was just drawn: what was there before (a key behind, or the paper) shows in it"""
+    for k in LAYERS:
+        getattr(d, k)[hole] = before[k][hole]
+
+
+def key_house(d, o, ang, mat, z, cut, L=46, hole_r=4.4, hole_y=-2.0):
+    before = snap(d)
     bow = [(-8, -5), (-4.5, -8.5), (4.5, -8.5), (8, -5), (8, 7), (5, 10), (-5, 10), (-8, 7)]
     sh = [(-6.5, 9), (6.5, 9), (6.5, 12), (-6.5, 12)]
     cuts = []; yy = 15
@@ -466,13 +509,15 @@ def key_house(d, o, ang, mat, z, cut, L=46):
     bl = Mask(d.W, d.H).poly(rot(blade, ang, o)).get() & ~head
     d.slab(bl, z - 0.6, mat, bevel=1.2, polish=0.9)
     d.seam(Mask(d.W, d.H).line(rot([(-1.5, 15), (-1.5, L - 1)], ang, o), 0.8).get() & bl, 0.3)    # the keyway
-    hx, hy = rot([(0, -3.5)], ang, o)[0]
-    d.well(Mask(d.W, d.H).ellipse(hx, hy, 2.4, 2.4).get(), 3, mat="k")
-    return head | bl
+    hx, hy = rot([(0, hole_y)], ang, o)[0]
+    hole = ellipse_m(d, hx, hy, hole_r, hole_r)
+    through(d, hole, before)                                                                    # the ring's hole
+    return head | bl, head, hole
 
 
-def key_car(d, o, ang, z, L=44):
+def key_car(d, o, ang, z, L=44, hole_r=4.4, hole_y=-3.0):
     # a car key of the day: the black plastic head with its grip lines, the nickel blade cut on both edges
+    before = snap(d)
     hd = [(-9, -6), (-6, -9), (6, -9), (9, -6), (9, 9), (6, 12), (-6, 12), (-9, 9)]
     head = Mask(d.W, d.H).poly(rot(hd, ang, o)).get()
     d.slab(head, z, "k", bevel=3.0, polish=0.6)
@@ -486,9 +531,10 @@ def key_car(d, o, ang, z, L=44):
         for sgn in (-1, 1):
             q = rot([(sgn * 3.6, y0), (sgn * 1.8, y0 + 2), (sgn * 1.8, y0 + 3.5), (sgn * 3.6, y0 + 5)], ang, o)
             d.well(Mask(d.W, d.H).poly(q).get() & bl, 1.0)
-    hx, hy = rot([(0, -4)], ang, o)[0]
-    d.well(Mask(d.W, d.H).ellipse(hx, hy, 2.4, 2.4).get(), 3, mat="k")
-    return head | bl
+    hx, hy = rot([(0, hole_y)], ang, o)[0]
+    hole = ellipse_m(d, hx, hy, hole_r, hole_r)
+    through(d, hole, before)
+    return head | bl, head, hole
 
 
 def key_skeleton(d, o, ang, z):
@@ -503,27 +549,50 @@ def key_skeleton(d, o, ang, z):
     sh = capsule(d, rot([(0, 15), (0, 62)], ang, o), 3.4, z - 1, "d", polish=0.8)
     bit = Mask(d.W, d.H).poly(rot([(1, 50), (10, 50), (10, 53), (7, 53), (7, 55.5), (10, 55.5), (10, 60), (1, 60)], ang, o)).get()
     d.slab(bit, z - 1, "d", bevel=1.0, polish=0.7)
-    return bowm | sh | bit
+    return bowm | sh | bit, bowm, np.zeros_like(bowm)
 
 
 @mine(132, 116)
 def knoxlock(d):
     # a split ring of keys, face on, the five hanging fanned out round its foot: a brass house key, a car key with its
-    # black head, the old iron skeleton key in the middle, a nickel house key, a short brass padlock key
-    cx, cy, rr = 66.0, 18.0, 14.0
+    # black head, the old iron skeleton key in the middle, a nickel house key, a short brass padlock key. Each key
+    # hangs by its hole on the ring's wire: the wire runs in front of the key on one side of the hole, through the
+    # hole, and on behind it (the director, Nov 7: "the key ring is not threaded through the keyholes")
+    X = d.XX + 0.5; Y = d.YY + 0.5
+    cx, cy, rr, wr = 66.0, 26.0, 22.0, 1.2
     def at(ang, push=0.0):
         a = math.radians(ang)
         return (cx - (rr + push) * math.sin(a), cy + (rr + push) * math.cos(a))
-    # back to front: the skeleton key behind (its long shank shows down the middle), the car key's black head in front
-    key_skeleton(d, at(0, 0.5), 0, 6)
-    key_house(d, at(64, 3.5), 64, "m", 7, (2, 1, 3, 2, 1, 3, 2), L=48)
-    key_house(d, at(-64, 3.5), -64, "m", 7, (1, 3, 2, 3, 1, 2), L=36)
-    key_house(d, at(-32, 3.5), -32, "chrome", 9, (3, 1, 2, 1, 3, 2, 1), L=48)
-    key_car(d, at(32, 4), 32, 11, L=46)
-    # the split ring over them all, its double coil
-    d.torus(cx, cy, rr - 2.0, rr + 2.0, 5, "chrome", on=11)
-    d.seam(Mask(d.W, d.H).arc(cx, cy, rr, rr, 200, 320, 0.8).get(), 0.35)
-    d.seam(Mask(d.W, d.H).line([(cx - 13.6, cy - 4.2), (cx - 10.2, cy - 9.6)], 0.8).get(), 0.4)
+    owner = np.full((d.H, d.W), -1, np.int16)
+    keys = []
+    def hang(k, ang, res):
+        allm, head, hole = res
+        prev = owner.copy()
+        owner[allm] = k; owner[hole] = prev[hole]
+        keys.append((ang, head, hole))
+    # back to front: the skeleton key behind (its long shank shows down the middle), the car key's black head in front;
+    # each hole's center on the wire, so the wire shows across it with the paper above and below
+    hang(0, 0, key_skeleton(d, at(0, 1.3), 0, 6))
+    hang(1, 68, key_house(d, at(68, 2.0), 68, "m", 7, (2, 1, 3, 2, 1, 3), L=34))
+    hang(2, -68, key_house(d, at(-68, 2.0), -68, "m", 7, (1, 3, 2, 3, 1, 2), L=30))
+    hang(3, -35, key_house(d, at(-35, 2.0), -35, "chrome", 9, (3, 1, 2, 1, 3, 2, 1), L=42))
+    hang(4, 35, key_car(d, at(35, 3.0), 35, 11, L=40))
+    # the split ring: where a key owns the pixel, the wire is in front on the hole's near side (counterclockwise of
+    # it) and behind on the far side; in each hole it shows across the middle, a step down
+    rho = np.hypot(X - cx, Y - cy)
+    wire = np.abs(rho - rr) <= wr
+    phi = np.degrees(np.arctan2(-(X - cx), Y - cy))
+    hidden = np.zeros_like(wire); sunk = np.zeros_like(wire)
+    for k, (ang, head, hole) in enumerate(keys):
+        hidden |= (owner == k) & head & (phi > ang)
+        sunk |= hole & (owner < k)                                                               # the hole still in view
+    show = wire & (~hidden | sunk)
+    prof = np.sqrt(np.clip(1 - ((rho - rr) / wr) ** 2, 0, 1)) * 3
+    base = np.where(sunk, 8.0, 12.0)
+    d.h = np.where(show, base + prof, d.h).astype(np.float32)
+    d.mat[show] = d.mid("chrome"); d.solid |= show; d.polish[show] = 1.0; d.tex[show] = 0
+    # the split ring's second coil showing at the top, where its end laps over
+    d.seam(Mask(d.W, d.H).line([(cx - 2.0, cy - rr - 1.6), (cx + 2.5, cy - rr + 1.6)], 0.8).get() & show, 0.45)
 
 
 # ------------------------------------------------------------------ Throw Your Voice: the booklet and the thrower

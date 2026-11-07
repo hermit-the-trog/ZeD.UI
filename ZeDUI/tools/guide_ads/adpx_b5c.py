@@ -258,33 +258,38 @@ def optima_eyes(d):
 
 @design(120, 118)
 def family_dentistry(d):
-    # a big molar standing up: the crown with its four cusps (the chewing face seen a little from above, the grooves
-    # between the cusps), the neck, the two roots tapering to their tips; a toothbrush lying in front, bristles up
+    # a big healthy molar standing up (the director, Nov 7: "that tooth. Is infested with four parasitic eggs. And
+    # it's made out of metal?"): one soft white body, the crown's top two gentle bumps with a shallow dip between, the
+    # sides easing in to the neck, the two roots tapering to round tips; matte enamel, no seams, no blobs on the top;
+    # a toothbrush lying in front, bristles up
     X = d.XX + 0.5; Y = d.YY + 0.5
     cx = 60
-    tooth = Mask(d.W, d.H).rrect(cx - 36, 18, 72, 40, 16).ellipse(cx - 17, 21, 19, 12).ellipse(cx + 17, 21, 19, 12)
-    tooth.poly([(cx - 32, 52), (cx + 32, 52), (cx + 28, 64), (cx - 28, 64)])
-    # the roots, each a tapering curve to a round tip, the right one splaying a little more
-    tooth.poly([(cx - 30, 58), (cx - 6, 58), (cx - 10, 76), (cx - 15, 92), (cx - 21, 92), (cx - 27, 78)])
-    tooth.ellipse(cx - 18, 91, 4, 4)
-    tooth.poly([(cx + 6, 58), (cx + 30, 58), (cx + 28, 78), (cx + 23, 92), (cx + 17, 92), (cx + 10, 76)])
-    tooth.ellipse(cx + 20, 91, 4, 4)
-    tm = tooth.get()
-    gap = Mask(d.W, d.H).poly([(cx - 8, 92), (cx - 6, 70), (cx, 64), (cx + 6, 70), (cx + 8, 92)]).get()
-    tm &= ~gap
-    d.slab(tm, 22, "w", bevel=15, polish=0.9, power=0.55)
-    root = tm & (Y > 60)
-    d.mat[root] = d.mid("l")                                                                        # the roots, duller
-    d.polish[root] = 0.4
-    d.seam(Mask(d.W, d.H).line([(cx - 31, 58), (cx - 10, 61.5), (cx, 60.5), (cx + 10, 61.5), (cx + 31, 58)], 1).get() & tm, 0.15)
-    # the chewing face: a level oval on top, the four cusps raised on it, the grooves between them
-    oc = ellipse_m(d, cx, 22, 31, 31 * VIEW + 2) & tm
-    d.h = np.where(oc, 20 + (Y - 14) * 0.5, d.h).astype(np.float32)
-    for (ux, uy, r) in ((-15, 17, 12), (15, 17, 12), (-15, 26, 12), (15, 26, 12)):
-        d.dome(cx + ux, uy, r, r * 0.45, 4, "w", polish=0.9, on="add")
-    groove = Mask(d.W, d.H).line([(cx - 27, 22), (cx - 10, 21), (cx, 22.5), (cx + 10, 21), (cx + 27, 22)], 1.2).get()
-    groove |= Mask(d.W, d.H).line([(cx, 14), (cx - 1, 22.5), (cx + 1, 30)], 1.2).get()
-    d.seam(groove & oc, 0.35)
+    def sde(ex, ey, rx, ry): return (np.hypot((X - ex) / rx, (Y - ey) / ry) - 1) * min(rx, ry)
+    def sbox(bx, by, hx, hy, r):
+        qx = np.abs(X - bx) - hx + r; qy = np.abs(Y - by) - hy + r
+        return np.hypot(np.maximum(qx, 0), np.maximum(qy, 0)) + np.minimum(np.maximum(qx, qy), 0) - r
+    def sroot(ax, ay, bx, by, ra, rb):                     # a tapering round bar, ra at a to rb at b
+        px, py = X - ax, Y - ay; vx, vy = bx - ax, by - ay
+        t = np.clip((px * vx + py * vy) / (vx * vx + vy * vy), 0, 1)
+        return np.hypot(px - vx * t, py - vy * t) - (ra + (rb - ra) * t)
+    def smin(a, b, k):
+        h = np.clip(0.5 + 0.5 * (b - a) / k, 0, 1); return b * (1 - h) + a * h - k * h * (1 - h)
+    crown = sbox(cx, 42, 33, 18, 12)
+    crown = smin(crown, smin(sde(cx - 16, 27, 19, 13), sde(cx + 16, 27, 19, 13), 3), 6)   # the two cusps' bumps
+    neck = sbox(cx, 62, 27, 6, 5)
+    roots = np.minimum(sroot(cx - 18, 62, cx - 17, 92, 10, 4.5), sroot(cx + 18, 62, cx + 19, 92, 10, 4.5))
+    sd = smin(smin(crown, neck, 6), roots, 5)
+    tm = sd <= 0
+    dist = E.edt(tm)
+    from scipy.ndimage import gaussian_filter                                 # a smooth body, no ridges down its middle
+    hh = gaussian_filter(np.sqrt(np.clip(dist / 9.0, 0, 1)) * 16, 2.0)
+    hh += 3 * np.clip(1 - ((X - cx) / 38) ** 2, 0, 1)                                  # its front a touch rounded
+    d.h = np.where(tm, hh + 6, d.h).astype(np.float32)
+    d.mat[tm] = d.mid("w"); d.solid |= tm; d.polish[tm] = 0.15
+    d.tex[tm] = 0.26                                                       # enamel: two steps toward the paper, matte
+    # the shallow groove where the two cusps meet, fading down the crown
+    fis = Mask(d.W, d.H).line([(cx, 19), (cx, 25)], 1).get() & tm
+    d.dark[fis] = np.maximum(d.dark[fis], 0.12)
     # the toothbrush, lying in front: the handle with its ribbed grip, the neck, the head with its tufts standing up
     m, u = lathe(d, (6, 110), (112, 103), [(0, 2.6), (0.03, 3.6), (0.45, 3.4), (0.62, 2.2), (0.72, 2.0), (0.76, 3.0),
                                           (0.99, 3.0), (1.0, 1.0)], 5, "m", polish=0.8, on=8)

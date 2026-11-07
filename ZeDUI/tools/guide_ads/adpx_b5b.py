@@ -438,30 +438,40 @@ def electron_house(d):
 def plugged_in_electrics(d):
     # a portable gas generator in its frame of steel tube, front-on and a little from above: the fuel tank on top with
     # its round cap (a level circle) and gauge; the engine on the left, its pull-start cover facing us, the T-grip on
-    # its rope; the outlet panel on the right; rubber feet. The frame's back loop shows above the tank (its depth by
-    # VIEW), the front loop in front of everything
+    # its rope; the outlet panel on the right; rubber feet. One-point perspective (review, Nov 7: the back handles read
+    # as big as the front): everything at the back is drawn toward one vanishing point above the middle, so the frame's
+    # back loop is smaller and narrower than the front one and joined to it by short rails at its top corners; the
+    # tank's top is a trapezoid narrowing back the same way, and the tank is as wide as the body it caps
     X = d.XX + 0.5; Y = d.YY + 0.5
-    def loop(top, bot, z, w=4.2):
-        r = 8
-        pts = [(8, bot)] + [(8 + r - r * math.cos(math.radians(a)), top + r - r * math.sin(math.radians(a))) for a in range(0, 91, 10)] \
-            + [(124 - r + r * math.sin(math.radians(a)), top + r - r * math.cos(math.radians(a))) for a in range(0, 91, 10)] + [(124, bot)]
+    VPX, VPY = 66.0, -89.8                                                                    # the vanishing point
+    def back(x, y, s): return (VPX + s * (x - VPX), VPY + s * (y - VPY))
+    SB = 0.862                                                                                # the back loop's scale
+    def loop(s, z, w):
+        x0, x1 = back(8, 0, s)[0], back(124, 0, s)[0]
+        top, bot = back(0, 16, s)[1], back(0, 100, s)[1]; r = 8 * s
+        pts = [(x0, bot)] + [(x0 + r - r * math.cos(math.radians(a)), top + r - r * math.sin(math.radians(a))) for a in range(0, 91, 10)]             + [(x1 - r + r * math.sin(math.radians(a)), top + r - r * math.cos(math.radians(a))) for a in range(0, 91, 10)] + [(x1, bot)]
         capsule(d, pts, w, z, "chrome", polish=0.9)
-        capsule(d, [(8, bot), (124, bot)], w, z, "chrome", polish=0.9)
-    dep = 56 * VIEW
-    loop(16 - dep, 100 - dep, 6)                                                              # the back loop
+        capsule(d, [(x0, bot), (x1, bot)], w, z, "chrome", polish=0.9)
+    loop(SB, 6, 3.6)                                                                          # the back loop, farther off
+    for cx_, sg in ((16, -1), (116, 1)):                                                      # the top rails, front to back
+        fx, fy = cx_ + sg * 8 * math.cos(math.radians(45)), 24 - 8 * math.sin(math.radians(45))
+        capsule(d, [back(fx, fy, SB), (fx, fy)], 3.9, 13, "chrome", polish=0.9)
     d.dark[d.solid] = 0.12
     inside = Mask(d.W, d.H).rect(12, 44, 108, 54).get()
     d.flat(inside, 3, "k", polish=0.2); d.dark[inside] = 0.25                                  # the works, in shade
-    # the tank: its top lit, its front face; the cap and the gauge on top; its print
-    ttop = Mask(d.W, d.H).rrect(22, 20, 88, 16, 6).get()
+    # the tank: as wide as the body below it (it caps the works edge to edge); its top a trapezoid narrowing back to the
+    # vanishing point, lit; its front face; the cap and the gauge on top; its print
+    ST = 0.877
+    (bl, bt), (br, _) = back(11, 33, ST), back(121, 33, ST)
+    ttop = Mask(d.W, d.H).poly([(bl + 3, bt), (br - 3, bt), (br, bt + 3), (121, 33), (11, 33), (bl, bt + 3)]).get()
     d.ramp_h(ttop, 10, 16, axis="y", mat="m", polish=0.6)
-    tfr = Mask(d.W, d.H).rrect(20, 31, 92, 17, 4).get()
+    tfr = Mask(d.W, d.H).rrect(11, 31, 110, 17, 4).get()
     d.slab(tfr, 16, "m", bevel=4, polish=0.6); d.dark[ttop | tfr] = 0
-    cyl_v(d, 79, 93, 22, 27, 4, "d", polish=0.6, top_ry=7 * VIEW, bot_ry=7 * VIEW, on=14)      # the cap's collar
-    cb, ct = cyl_v(d, 81, 91, 20, 24, 3, "k", polish=0.7, top_ry=5 * VIEW, bot_ry=5 * VIEW, on=17)
+    cyl_v(d, 81, 95, 22, 27, 4, "d", polish=0.6, top_ry=7 * VIEW, bot_ry=7 * VIEW, on=14)      # the cap's collar
+    cb, ct = cyl_v(d, 83, 93, 20, 24, 3, "k", polish=0.7, top_ry=5 * VIEW, bot_ry=5 * VIEW, on=17)
     d.seam(cb & (np.mod(X, 2) < 1), 0.3)                                                        # its ribs
-    d.flat(ellipse_m(d, 42, 26, 7, 7 * VIEW + 0.6), 15, "l", polish=1.0)                      # the gauge, under glass
-    d.paint(Mask(d.W, d.H).line([(42, 26.5), (46, 24.8)], 0.9).get(), "p")
+    d.flat(ellipse_m(d, 40, 26, 7, 7 * VIEW + 0.6), 15, "l", polish=1.0)                      # the gauge, under glass
+    d.paint(Mask(d.W, d.H).line([(40, 26.5), (44, 24.8)], 0.9).get(), "p")
     d.paint(type_at(d, "5000 WATTS", 66, 37, "35"), "p")
     # the engine: its pull-start cover facing us, vented in rings, the hub; the air cleaner over it
     d.slab(Mask(d.W, d.H).rrect(14, 50, 30, 12, 3).get(), 10, "d", bevel=2, polish=0.4)       # the air cleaner
@@ -490,7 +500,7 @@ def plugged_in_electrics(d):
     d.slab(Mask(d.W, d.H).rrect(100, 87, 12, 8, 1).get(), 1.5, "d", bevel=0.6, on=13)           # the switch
     d.slab(Mask(d.W, d.H).rrect(102, 88, 4, 6, 1).get(), 3, "w", bevel=0.8, polish=0.6, on=14)
     # the front loop of the frame, then its feet
-    loop(16, 100, 20)
+    loop(1.0, 20, 4.2)
     for fx in (16, 116):
         d.slab(Mask(d.W, d.H).rrect(fx - 6, 101, 12, 7, 2).get(), 9, "k", bevel=2, polish=0.4)
 
