@@ -156,6 +156,7 @@ def queue(folder, epoch, rows):
         f.write("ZEDQ 1 %s\n" % epoch)
         for r in rows:
             f.write("\t".join(str(x) for x in r) + "\n")
+        f.write("ZEDQ end\n")
 
 
 def answers(folder):
@@ -238,7 +239,7 @@ with tempfile.TemporaryDirectory() as d:
     # a line break can only end a queue line: what follows it is not a call
     GAME.reset()
     with open(os.path.join(d, "queue.txt"), "w", encoding="utf-8", newline="\n") as f:
-        f.write("ZEDQ 1 %s\n90\t1\tKick\tTorch\nquit\tx\n91\t1\tBan\tKade\r\n" % EPOCH)
+        f.write("ZEDQ 1 %s\n90\t1\tKick\tTorch\t\nquit\tx\n91\t1\tBan\tKade\t\r\nZEDQ end\n" % EPOCH)
     made, out = run(d)
     check("a broken line is not obeyed", GAME.commands == ['kickuser "Torch"', 'banuser "Kade"'], GAME.commands)
     for t in ["Kade\nquit", "Kade\rquit", "Kade\x00", "Kade\tx", 'Ka"de', "Ka\\de", "Kade;quit", "", None, 5]:
@@ -256,12 +257,52 @@ with tempfile.TemporaryDirectory() as d:
     # the queue as data: a bad header or a bad line is skipped, not obeyed
     GAME.reset()
     with open(os.path.join(d, "queue.txt"), "w", encoding="utf-8") as f:
-        f.write("ZEDQ 1 ../../etc\n1\t1\tBan\tKade\tx\n")
+        f.write("ZEDQ 1 ../../etc\n1\t1\tBan\tKade\tx\nZEDQ end\n")
     made, out = run(d)
     check("a queue with a bad header is not read", made == {} and GAME.commands == [])
     queue(d, EPOCH, [("1x", 1, "Ban", "Kade", "x"), (40, 1, "Ban")])
     made, out = run(d)
     check("lines that are not calls are skipped", made == {} and GAME.commands == [], made)
+
+# ---------------------------------------------------------------------------
+# A queue read while the server writes it (the game's writer sends it in pieces, in place)
+# ---------------------------------------------------------------------------
+with tempfile.TemporaryDirectory() as d:
+    GAME.reset()
+    whole = "ZEDQ 1 %s\n7\t1\tKick\tTorch\t\n8\t1\tKick\tDaniel\t\nZEDQ end\n" % EPOCH
+    cut_at = whole.index("Daniel") + 3              # the reader lands inside "Daniel"
+    for name, text in [("cut inside a name", whole[:cut_at]), ("cut after a whole line", whole[:whole.index("8\t")]),
+                       ("empty, just truncated", ""), ("the end line without its line break", whole[:-1]),
+                       ("only the head", "ZEDQ 1 %s\n" % EPOCH)]:
+        with open(os.path.join(d, "queue.txt"), "w", encoding="utf-8", newline="") as f:
+            f.write(text)
+        made, out = run(d)
+        check("a queue %s is left for the next pass" % name, made == {} and GAME.commands == [], (made, GAME.commands))
+    # a cut line can never be made as a shorter name, even with an end line after it: every call has exactly five fields
+    with open(os.path.join(d, "queue.txt"), "w", encoding="utf-8", newline="") as f:
+        f.write("ZEDQ 1 %s\n8\t1\tKick\tDan\nZEDQ end\n" % EPOCH)
+    made, out = run(d)
+    check("a call line of four fields is never made", made == {} and GAME.commands == [], (made, GAME.commands))
+    with open(os.path.join(d, "queue.txt"), "w", encoding="utf-8", newline="") as f:
+        f.write(whole)
+    made, out = run(d)
+    check("the whole queue: both made", GAME.commands == ['kickuser "Torch"', 'kickuser "Daniel"'], GAME.commands)
+
+# ---------------------------------------------------------------------------
+# Tries: only the newest of each call is kept, so a call that keeps failing never grows the answers file
+# ---------------------------------------------------------------------------
+with tempfile.TemporaryDirectory() as d:
+    GAME.reset()
+    s = socket.socket()
+    s.bind(("127.0.0.1", 0))
+    dead = s.getsockname()[1]
+    s.close()
+    for t in range(1, 6):
+        queue(d, EPOCH, [(60, t, "Ban", "Kade", "x"), (61, t, "Kick", "Torch", "")])
+        run(d, port=dead)
+    a = answers(d)
+    check("one line a call, its newest try", a.count("\n60\t") == 1 and "\n60\t5\tfailed\t" in a and a.count("\n61\t") == 1, a)
+    check("latest_tries keeps the highest try", H.latest_tries({(1, 1): ("failed", ""), (1, 3): ("ok", ""), (1, 2): ("failed", ""), (2, 1): ("ok", "")}) == {(1, 3): ("ok", ""), (2, 1): ("ok", "")})
 
 # ---------------------------------------------------------------------------
 # What the game says no to, and a console that is down

@@ -160,6 +160,7 @@ local function player(name, roleName, x, y, z)
     function p.getZ(self) return self.z end
     function p.getOnlineID(self) return 7 end
     function p.getSteamID(self) return self.steamNum or 0 end
+    function p.getPlayerNum(self) return self.num or 0 end       -- (the server's index for a split-screen player: 0 the first)
     function p.getDescriptor(self)
         return { getCharacterProfession = function() return "carpenter" end }
     end
@@ -1469,6 +1470,25 @@ do
     nolimit(r)
     sayT(r, "t_mine", {})
     check("the first word makes the record", errOf(r) == "perm" and CT().here.rush ~= nil)
+    -- split screen: a guest on someone's connection can never answer (ZeD's client speaks for its first player only) and the
+    -- game's kick by name drops the whole connection, so nothing is owed for a guest and the first player is not kicked
+    local host = player("Host", "user")
+    clientJoin(host)
+    nolimit(host)
+    sayM(host, "m_agree", { rev = 1 })
+    local guest = player("Guest", "user")
+    guest.num = 1
+    advance(L.ASKED_LOOK_MS + 1000)
+    check("split screen: the first player answered", CT().here.host ~= nil and not W.server.ZeD.Srv.rulesUnanswered("Host"))
+    check("split screen: the walk makes no record for the guest", CT().here.guest == nil)
+    nolimit(guest)
+    sayT(guest, "t_mine", {})
+    advance(L.ASKED_MS + L.ASKED_LOOK_MS + 2000)
+    check("split screen: no line and no Kick for the guest", not logHas("rules not answered | Guest") and not has(ca.slash, '/kickuser "Guest"'))
+    check("split screen: nor for the first player", not has(ca.slash, '/kickuser "Host"'))
+    local owedGuest = false
+    for _, e in pairs(md().owed) do if e.target == "Guest" or e.target == "Host" then owedGuest = true end end
+    check("split screen: nothing owed on that connection", not owedGuest)
 end
 
 print("community_sim: " .. checks .. " checks, " .. failed .. " failed")
