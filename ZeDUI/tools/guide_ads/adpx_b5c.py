@@ -98,9 +98,21 @@ def awl_work_sew_play(d):
     d.grain_wood(fb | ft, scale=0.5, seed=7)
     body, _ = cyl_v(d, cx - RT, cx + RT, 24, 76, 14, "m", polish=0.55, bot_ry=RT * VIEW, on=5)
     cy = Cyl(d, cx - RT, cx + RT, RT * VIEW)
-    for v in range(25, 76, 2):
-        d.dark[band_v(d, body, cy, v, v + 1)] = 0.10                                            # the turns of thread
+    # the turns of thread: shallow grooves round the spool, each one riding the 0.26 ellipse (bowing down through the
+    # middle, closing up toward the sides) as the feeder hopper's beads do
+    for v in range(18, 76, 3):
+        g = band_v(d, body, cy, v, v + 1); d.h[g] -= 0.7; d.dark[g] = 0.16
+    tq = np.clip((d.XX + 0.5 - cx) / RT, -1, 1)
+    d.dark[body] += (0.22 * np.clip(tq, 0, 1) ** 1.5)[body]                                       # round, away from the light
     tb, tt = cyl_v(d, cx - RF, cx + RF, 16, 24, 10, "l", polish=0.4, top_ry=RF * VIEW, bot_ry=RF * VIEW, on=20)
+    # the top flange's shadow on the thread: a soft band under its rim, following the rim's curve (the cast shadow's
+    # hard wedge is off here)
+    X = d.XX + 0.5; Y = d.YY + 0.5
+    rim = 24 + RF * VIEW * np.sqrt(np.clip(1 - ((X - cx) / RF) ** 2, 0, 1))
+    d.noshadow |= body
+    for k, a in enumerate((0.30, 0.22, 0.14, 0.07)):
+        s_ = body & ~(tb | tt) & (Y >= rim + k) & (Y < rim + k + 1)
+        d.dark[s_] = np.maximum(d.dark[s_], a)
     d.grain_wood(tb | tt, scale=0.5, seed=8)
     lab = ellipse_m(d, cx, 16, 16, 16 * VIEW + 0.6) & tt
     d.paint(lab, "w")                                                                           # the end label
