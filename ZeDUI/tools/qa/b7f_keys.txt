@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/b7f_keys.txt  (Nov 7 2026, QA): the release check again, then the ACC key on all 19 designs
+zedqa_prelude.lua | pre | timeout=120
+zedqa_release_check.lua | rel | timeout=240
+zedqa_dash_r6_keys.lua | r6k | timeout=1500 | expect=FBORenderCell
