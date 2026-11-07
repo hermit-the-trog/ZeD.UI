@@ -2920,5 +2920,6 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     (also to offline players) and handed over when they join; the desk shows the mail last received from each server
     (a copy saved on the player's PC) and queues replies that go out on the next join. Nobody found doing either
     (Build's search, Nov 7: nearest are in-world note mods, a mod-update alert on the main menu, an answering-machine
-    mod); design is the director's own either way. Open for the director: sticky note, text files or both; mail as
-    described or not at all.
+    mod); design is the director's own either way. The director's picks (Nov 7): notes as both, one sticky note
+    always on the desktop plus a notepad whose files sit as icons on the desktop; mail as described (server-kept,
+    read on the desk, replies sent on the next join).
