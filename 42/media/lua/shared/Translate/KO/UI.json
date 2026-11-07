@@ -5735,5 +5735,9 @@
     "UI_ZeD_Log_T_RepAnswered": "%1에 대한 신고에 답변했습니다, 티켓 #%2",
     "UI_ZeD_Log_T_RepClosed": "%1에 대한 신고를 닫았습니다, 티켓 #%2",
     "UI_ZeD_Log_T_RepSpam": "%1에 대한 신고를 스팸으로 표시했습니다, 티켓 #%2",
-    "UI_ZeD_Log_T_RepDeleted": "%1에 대한 신고를 삭제했습니다, 티켓 #%2"
+    "UI_ZeD_Log_T_RepDeleted": "%1에 대한 신고를 삭제했습니다, 티켓 #%2",
+    "UI_ZeD_CSS_Tag": "XP x%1",
+    "UI_ZeD_CSS_TagBook": "XP x%1, 책 x%2",
+    "UI_ZeD_BME_SortsOnAccept": "%1이(가) 수락할 때 로드 순서를 정렬합니다.",
+    "UI_ZeD_BME_NotStarted": "시작되지 않음: %1이(가) 모드 목록에서 문제를 찾았습니다."
 }

@@ -5735,5 +5735,9 @@
     "UI_ZeD_Log_T_RepAnswered": "answered the report on %1, ticket #%2",
     "UI_ZeD_Log_T_RepClosed": "closed the report on %1, ticket #%2",
     "UI_ZeD_Log_T_RepSpam": "marked the report on %1 as spam, ticket #%2",
-    "UI_ZeD_Log_T_RepDeleted": "deleted the report on %1, ticket #%2"
+    "UI_ZeD_Log_T_RepDeleted": "deleted the report on %1, ticket #%2",
+    "UI_ZeD_CSS_Tag": "XP x%1",
+    "UI_ZeD_CSS_TagBook": "XP x%1, book x%2",
+    "UI_ZeD_BME_SortsOnAccept": "%1 sorts the load order on Accept.",
+    "UI_ZeD_BME_NotStarted": "Not started: %1 found a problem with the mod list."
 }

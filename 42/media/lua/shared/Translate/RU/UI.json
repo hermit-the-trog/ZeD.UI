@@ -5735,5 +5735,9 @@
     "UI_ZeD_Log_T_RepAnswered": "ответил на жалобу на %1, билет №%2",
     "UI_ZeD_Log_T_RepClosed": "закрыл жалобу на %1, билет №%2",
     "UI_ZeD_Log_T_RepSpam": "отметил жалобу на %1 как спам, билет №%2",
-    "UI_ZeD_Log_T_RepDeleted": "удалил жалобу на %1, билет №%2"
+    "UI_ZeD_Log_T_RepDeleted": "удалил жалобу на %1, билет №%2",
+    "UI_ZeD_CSS_Tag": "Опыт x%1",
+    "UI_ZeD_CSS_TagBook": "Опыт x%1, книга x%2",
+    "UI_ZeD_BME_SortsOnAccept": "%1 сортирует порядок загрузки при нажатии «Принять».",
+    "UI_ZeD_BME_NotStarted": "Не запущено: %1 нашёл проблему в списке модов."
 }

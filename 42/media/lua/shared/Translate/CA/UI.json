@@ -5735,5 +5735,9 @@
     "UI_ZeD_Log_T_RepAnswered": "ha respost a l'informe sobre %1, tíquet n. %2",
     "UI_ZeD_Log_T_RepClosed": "ha tancat l'informe sobre %1, tíquet n. %2",
     "UI_ZeD_Log_T_RepSpam": "ha marcat l'informe sobre %1 com a brossa, tíquet n. %2",
-    "UI_ZeD_Log_T_RepDeleted": "ha eliminat l'informe sobre %1, tíquet n. %2"
+    "UI_ZeD_Log_T_RepDeleted": "ha eliminat l'informe sobre %1, tíquet n. %2",
+    "UI_ZeD_CSS_Tag": "XP x%1",
+    "UI_ZeD_CSS_TagBook": "XP x%1, llibre x%2",
+    "UI_ZeD_BME_SortsOnAccept": "%1 ordena l'ordre de càrrega en Acceptar.",
+    "UI_ZeD_BME_NotStarted": "No s'ha iniciat: %1 ha trobat un problema a la llista de mods."
 }

@@ -5735,5 +5735,9 @@
     "UI_ZeD_Log_T_RepAnswered": "odpověděl na nahlášení %1, hlášení #%2",
     "UI_ZeD_Log_T_RepClosed": "zavřel nahlášení %1, hlášení #%2",
     "UI_ZeD_Log_T_RepSpam": "označil nahlášení %1 jako spam, hlášení #%2",
-    "UI_ZeD_Log_T_RepDeleted": "smazal nahlášení %1, hlášení #%2"
+    "UI_ZeD_Log_T_RepDeleted": "smazal nahlášení %1, hlášení #%2",
+    "UI_ZeD_CSS_Tag": "XP x%1",
+    "UI_ZeD_CSS_TagBook": "XP x%1, kniha x%2",
+    "UI_ZeD_BME_SortsOnAccept": "%1 při Přijmout seřadí pořadí načítání.",
+    "UI_ZeD_BME_NotStarted": "Nespuštěno: %1 našel problém v seznamu modů."
 }

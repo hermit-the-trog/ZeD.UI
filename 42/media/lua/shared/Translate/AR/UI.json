@@ -5735,5 +5735,9 @@
     "UI_ZeD_Log_T_RepAnswered": "respondió la denuncia sobre %1, ticket #%2",
     "UI_ZeD_Log_T_RepClosed": "cerró la denuncia sobre %1, ticket #%2",
     "UI_ZeD_Log_T_RepSpam": "marcó la denuncia sobre %1 como spam, ticket #%2",
-    "UI_ZeD_Log_T_RepDeleted": "borró la denuncia sobre %1, ticket #%2"
+    "UI_ZeD_Log_T_RepDeleted": "borró la denuncia sobre %1, ticket #%2",
+    "UI_ZeD_CSS_Tag": "EXP x%1",
+    "UI_ZeD_CSS_TagBook": "EXP x%1, libro x%2",
+    "UI_ZeD_BME_SortsOnAccept": "%1 ordena el orden de carga al Aceptar.",
+    "UI_ZeD_BME_NotStarted": "No se inició: %1 encontró un problema en la lista de mods."
 }
