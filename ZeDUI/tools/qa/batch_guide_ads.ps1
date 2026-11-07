@@ -1,6 +1,8 @@
 #Requires -Version 7.0
 # ZeDUI/tools/qa/batch_guide_ads.ps1  (Nov 7 2026, QA; punch list 98): guide_ads.txt at 4K 1.75x, at 1080p windowed,
 # then in German at 4K (options.ini's language set for the run and put back). The QA save is put back after.
+# -Only1080: the 1080p pass alone.
+param([switch]$Only1080)
 $Qa = $PSScriptRoot
 $env:ZEDQA_NOSTEAM = "1"
 $Z = "C:\Users\danie\Zomboid"
@@ -13,13 +15,23 @@ New-Item -ItemType Directory -Force $Out | Out-Null
 if (Test-Path $KeepSave) { Write-Output "keep folder exists, stop"; exit 1 }
 Copy-Item $Save $KeepSave -Recurse
 $ini = "$Z\options.ini"
+function Put-SaveBack {
+    # (never while a game is open: it holds the save's files, and a half-deleted save would take the copy inside it)
+    if (Get-Process ProjectZomboid64 -ErrorAction SilentlyContinue) { Write-Output "the game is still running: the save is left alone, the copy stays at $KeepSave"; exit 1 }
+    Remove-Item $Save -Recurse -Force
+    if (Test-Path $Save) { Write-Output "the save could not be removed; the copy stays at $KeepSave"; exit 1 }
+    Copy-Item $KeepSave $Save -Recurse
+}
 try {
-    & pwsh -NoProfile -File "$Qa\zedqa_run.ps1" -Manifest "$Qa\guide_ads.txt" -Report "$Reg\2026-11-07_guide_ads_4k.md" -Mode fullscreen4k 2>&1 | Select-Object -Last 1
-    Copy-Item "$Shots\zqa_gad_*.png" $Out -Force; Copy-Item "$Z\console.txt" "$Out\console_4k.txt" -Force
-    Remove-Item $Save -Recurse -Force; Copy-Item $KeepSave $Save -Recurse
-    & pwsh -NoProfile -File "$Qa\zedqa_run.ps1" -Manifest "$Qa\guide_ads.txt" -Report "$Reg\2026-11-07_guide_ads_1080.md" 2>&1 | Select-Object -Last 1
+    if (-not $Only1080) {
+        & pwsh -NoProfile -File "$Qa\zedqa_run.ps1" -Manifest "$Qa\guide_ads.txt" -Report "$Reg\2026-11-07_guide_ads_4k.md" -Mode fullscreen4k 2>&1 | Select-Object -Last 1
+        Copy-Item "$Shots\zqa_gad_*.png" $Out -Force; Copy-Item "$Z\console.txt" "$Out\console_4k.txt" -Force
+        Put-SaveBack
+    }
+    & pwsh -NoProfile -File "$Qa\zedqa_run.ps1" -Manifest "$Qa\guide_ads.txt" -Report "$Reg\2026-11-07_guide_ads_1080.md" -Mode windowed -Width 1920 -Height 1080 2>&1 | Select-Object -Last 1
     Copy-Item "$Shots\zqa_gad_*.png" $Out -Force; Copy-Item "$Z\console.txt" "$Out\console_1080.txt" -Force
-    Remove-Item $Save -Recurse -Force; Copy-Item $KeepSave $Save -Recurse
+    if ($Only1080) { return }
+    Put-SaveBack
     $text = Get-Content -Raw $ini
     $was = if ($text -match '(?m)^language=(.*)$') { $Matches[1].Trim() } else { "EN" }
     try {
@@ -33,5 +45,5 @@ try {
         Write-Output "language put back to $was"
     }
 }
-finally { Remove-Item $Save -Recurse -Force -ErrorAction SilentlyContinue; Copy-Item $KeepSave $Save -Recurse; Remove-Item $KeepSave -Recurse -Force }
+finally { Put-SaveBack; Remove-Item $KeepSave -Recurse -Force }
 Write-Output "batch done"
