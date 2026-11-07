@@ -1708,6 +1708,7 @@ end
 local function coverClear(p)
     local n = p._zedStencilN
     if n and n > 0 then p._zedStencilN = n - 1 end
+    p._coverClears = (p._coverClears or 0) + 1   -- (it sets one again: one more on than the count says)
     ISPanel.clearStencilRect(p)
     local cl = p._coverL or 0
     return ISPanel.setStencilRect(p, cl, 0, math.max(0, (p._coverR or p:getWidth()) - cl), p:getHeight())
@@ -4128,6 +4129,11 @@ function ZeD_WorldWindow.toggle(playerNum)
                     end
                     -- (a tab that throws must not repeat its error every frame or leave its own clip
                     -- set: log once, put the drawer's clip back, draw on; code audit Oct 17 2026)
+                    -- (a tab another file adds may leave a clip set, as the Admin tab and its cards do: one
+                    -- left on hides everything drawn after the drawer, the tab strip and the help line with
+                    -- it. The director, Nov 6 2026.)
+                    local clipsBefore = self._zedStencilN or 0
+                    self._coverClears = 0
                     local okR, errR = pcall(renderer, self, win, 0, 0, targetW, dh)
                     if coverL then
                         setTabCover(self, nil)
@@ -4142,6 +4148,9 @@ function ZeD_WorldWindow.toggle(playerNum)
                             local c = kids[i]
                             if c and c.parent == self and c:isVisible() and c:getX() < coverL then c:setVisible(false) end
                         end
+                    end
+                    if ZeD_WorldWindow._extTabs[win._activeTab] then
+                        for _ = 1, (self._zedStencilN or 0) - clipsBefore + self._coverClears do self:clearStencilRect() end
                     end
                     if not okR then
                         self:clearStencilRect()
