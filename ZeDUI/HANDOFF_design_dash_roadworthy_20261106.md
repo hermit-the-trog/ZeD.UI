@@ -92,6 +92,17 @@ Both are pad-reachable like every other hit (the focus walk picks them up from t
   goes on from there. On a server the ash tray stays in the game's memory per car, not on the car's modData: the
   server's sends replace the client's copy, so a key only the client wrote is gone at the next one. Single player keeps
   it on the car as before. A stop sends the last miles only when there's a hundredth of a mile or more.)
+  (Nov 7, review: the server no longer sends the car's whole modData out every tenth of a mile. That send replaces the
+  copy on every client near the car, so a key another mod keeps only on a client's copy was wiped each time. Now, at
+  each send it takes, the server sends just the three figures to the car's other occupants, the only players who see
+  this dash, and their dashes write them to their own copy without sending anything on. The whole modData goes out only
+  at the coarse moments: a car's first mileage, a trip reset or an ODO / TRIP press, the engine off, the driver leaving
+  the seat or the car, so the saved figures still reach a player who loads the car later. The driver's dash also
+  keeps a press made while stopped when an older copy of the car comes back at the same odometer.)
+- **Known limit, split-screen on a server:** the dash's sends go as the first local player, so when a second
+  split-screen player drives, the server refuses every send (it takes only the driver's). Their dash counts on their
+  screen but the miles aren't saved. Not built for now: split-screen already shares the first player's windows, a
+  listed known issue.
 - **With Roadworthy:** if it keeps its own odometer and trip, read those instead of ZeD's, so its dash and ours agree.
   QA finds the names once it's running Roadworthy.
 

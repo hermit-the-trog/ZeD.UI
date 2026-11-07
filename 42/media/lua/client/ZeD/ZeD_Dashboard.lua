@@ -886,7 +886,12 @@ end
 -- the driver's client sends the car's figures to the server (and so to the other players in the car): no more than
 -- every ODO_SEND_MILES, or now (force: a press, a first mileage), or now if at least flush miles haven't gone yet
 -- (0, any: the engine stopped, or the driver left the seat or the car; ODO_STOP_MILES: the car stopped), so a drive's
--- last tenth isn't lost. Single player sends nothing: the car's modData is the game's own there
+-- last tenth isn't lost. A press, a first mileage and a flush of 0 are the coarse moments: the send says save, and the
+-- server sends the car's whole modData out then, not every tenth (ZeD_ServerDash.lua). A coarse moment with no new miles
+-- still goes once when the last send wasn't one, so what the server took reaches the clients near the car.
+-- Single player sends nothing: the car's modData is the game's own there.
+-- KNOWN LIMIT: ZeD.ServerPart.send sends as the first local player, so on a server a second split-screen player at the
+-- wheel has every send refused (the server takes only the driver's); their miles count on their screen and aren't saved
 function ZeD_Dashboard:_odoSend(vehicle, id, odo, force, flush)
     if not (isClient and isClient()) then return end
     local at = self._odoSentAt
@@ -894,14 +899,20 @@ function ZeD_Dashboard:_odoSend(vehicle, id, odo, force, flush)
     local last = at[id]
     if last == nil and not force then at[id] = odo; return end      -- (first sight: what the car has is what was sent)
     if not force and odo < last then at[id] = odo; return end       -- (the server's figure came in lower: count from it)
-    -- (a flush with nothing new sends nothing, so calling it every frame the engine is off costs one compare)
-    if force or odo - last >= ODO_SEND_MILES or (flush and odo > last and odo - last >= flush) then
+    local save = force or flush == 0
+    local unsaved = self._odoUnsaved
+    if not unsaved then unsaved = {}; self._odoUnsaved = unsaved end
+    -- (a flush with nothing new sends nothing, unless the last send wasn't a coarse one: so calling it every frame the
+    -- engine is off costs a compare or two)
+    if force or odo - last >= ODO_SEND_MILES or (flush and odo > last and odo - last >= flush) or (save and unsaved[id]) then
         at[id] = odo
+        unsaved[id] = (not save) or nil
         local md = _get(vehicle, "getModData", nil)
         local S, Pr = ZeD.ServerPart, ZeD.DashProto
         if not (md and S and S.send and Pr) then return end
         -- (the server writes these three and nothing else: ZeD_ServerDash.lua)
-        S.send(Pr.MOD, Pr.ODO, { veh = id, odo = odo, trip = tonumber(md.ZeD_trip) or 0, show = md.ZeD_odoTrip == true })
+        S.send(Pr.MOD, Pr.ODO, { veh = id, odo = odo, trip = tonumber(md.ZeD_trip) or 0, show = md.ZeD_odoTrip == true,
+            save = save and true or false })
     end
 end
 
@@ -912,11 +923,15 @@ function ZeD_Dashboard:_odometer(vehicle, st, miles, id)
     local mine = self._odoMine
     if mine and (mine.car ~= vehicle or not self._driver) then mine = nil; self._odoMine = nil end
     if md then
-        -- (on a server the car's modData comes back from the server after each send, as it was when sent, and over
-        -- what this driver has counted since. Only this driver writes the figures while they drive, so a lower
-        -- odometer is that echo: this driver's own figures stand. A press is in them: it writes the car and these.
-        -- When the server holds other figures, it says so (ZeD_Dashboard:_odoSync), and only that moves these)
-        if mine and (tonumber(md.ZeD_odo) or -1) < mine.odo then
+        -- (on a server the car's modData comes back from the server at a coarse moment, as it was when sent, and over
+        -- what this driver has counted or pressed since. Only this driver's sends move the server's figures while they
+        -- drive, so an odometer no higher than theirs is that echo: this driver's own figures stand, the trip and the
+        -- switch too. An equal one counts: stopped, a press after the last send, then that send's echo, would undo the
+        -- press. A press is in these figures: it writes the car and them. When the server holds other figures, it says
+        -- so (ZeD_Dashboard:_odoSync), and only that moves these. Single player has no echo: there an equal odometer
+        -- with another trip or switch is the car's own, and is read as it is)
+        local mdOdo = tonumber(md.ZeD_odo) or -1
+        if mine and (mdOdo < mine.odo or (mdOdo == mine.odo and isClient())) then
             md.ZeD_odo, md.ZeD_trip, md.ZeD_odoTrip = mine.odo, mine.trip, mine.show
         end
         odo = tonumber(md.ZeD_odo)
@@ -1011,10 +1026,30 @@ function ZeD_Dashboard:_odoSync(a)
     if self._odoSentAt then self._odoSentAt[id] = a.odo end
 end
 
+-- the figures the server took from the driver of the car this player rides in (ZeD_ServerDash.lua sends them to the
+-- other seats at each send it takes, and sends the car's whole modData out only at the coarse moments). Checked as the
+-- server checks a send, then written to this client's copy of the car only, never sent on: the dash reads them there
+-- next frame. A driver's dash keeps its own (the server sends these to the other seats; a late one is dropped here).
+-- a: { veh, odo, trip, show }
+function D.odoFig(a)
+    local Pr = ZeD.DashProto
+    if not (Pr and Pr.okFigs and Pr.okFigs(a)) then return end
+    local p = getSpecificPlayer and getSpecificPlayer(0)
+    local car = p and _get(p, "getVehicle", nil)
+    if not car or _get(car, "getId", nil) ~= a.veh then return end
+    if _safe(function() return car:isDriver(p) end, false) then return end
+    local md = _get(car, "getModData", nil)
+    if not md then return end
+    md.ZeD_odo, md.ZeD_trip, md.ZeD_odoTrip = a.odo, a.trip, a.show
+end
+
 -- the server part's answers on the dash's module (ZeD_ServerLink.lua routes them here)
 function D.onServer(command, a)
+    local Pr = ZeD.DashProto
+    if not Pr then return end
+    if command == Pr.FIG then return D.odoFig(a) end
     local inst = D._instance
-    if inst and command == (ZeD.DashProto and ZeD.DashProto.SYNC) then inst:_odoSync(a) end
+    if inst and command == Pr.SYNC then inst:_odoSync(a) end
 end
 
 function ZeD_Dashboard:_meterFlag(vehicle, down)

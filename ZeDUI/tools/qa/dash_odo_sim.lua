@@ -17,7 +17,11 @@
 --           single player and a passenger send nothing; no link to the server part is no error; the server's copy
 --           coming back after a send never winds the driver's figures back, nor a press made just before it lands;
 --           the server's answer to a refused send (sync) puts the driver on its figures, a stale one is dropped;
---           stop-and-go traffic sends no more often; the ash tray on a server stays in the game's memory, never on
+--           stop-and-go traffic sends no more often; a press, a first mileage, the engine off and the driver leaving
+--           ask the server to save (send the car out), the tenths and a stop don't, and the engine off with nothing new
+--           since a tenth asks once; stopped, an older copy at the same odometer never undoes a press; the driver's
+--           figures the server sends the other seats go on their copy only, junk and another car's dropped, and a
+--           driver keeps their own; the ash tray on a server stays in the game's memory, never on
 --           the car's modData (the server's sends wipe what only the client wrote), and single player keeps it there
 --   HOT     the hot lamp lights in the key-on bulb check; the Simple dash's Temperature bar goes red only when hot
 --   SIMPLE  the Trip cell beside Odometer, in the player's units, one decimal; A on it zeroes the trip; the units
@@ -589,6 +593,10 @@ section("SERVER")
 -- ---------------------------------------------------------------------------
 do
     env.client = true
+    -- the save flag on the last command sent: true at a coarse moment (a press, a first mileage, the engine off, the
+    -- driver leaving), when the server sends the car's whole modData out; false for the tenths and a stop
+    local function lastSave() return SENT[#SENT] and SENT[#SENT].args.save end
+    local s0 = #SENT
     local car = drive("d6", { keysIn = true, running = true, kmh = 0, md = { ZeD_odo = 1000, ZeD_trip = 0 } })
     frames(4, 250)
     check("first sight of a car with figures: nothing sent", car.sent == 0, car.sent)
@@ -597,9 +605,13 @@ do
     local ms = 3600 / 62.14 * 1000
     for _ = 1, math.floor(ms / 250) do frame(250) end
     check("a mile driven: sent about ten times", car.sent >= 9 and car.sent <= 10, car.sent)
+    local saves = 0
+    for i = s0 + 1, #SENT do if SENT[i].args.save ~= false then saves = saves + 1 end end
+    check("the tenths: none asks the server to send the car out", saves == 0, saves)
     local before = car.sent
     inst:_fire("tripReset", false)
     check("a press sends at once", car.sent == before + 1, car.sent - before)
+    check("a press: save", lastSave() == true, tostring(lastSave()))
     -- the miles under a tenth that a drive ends on: they go when it ends (12 frames at 100 km/h: 0.052 mi)
     before = car.sent
     frames(12, 250)
@@ -607,6 +619,7 @@ do
     car.running = false
     frame(250)
     check("the engine stops: the rest goes at once", car.sent == before + 1, car.sent - before)
+    check("the engine stops: save", lastSave() == true, tostring(lastSave()))
     frames(40, 250)
     check("and only once while it stays off", car.sent == before + 1, car.sent - before)
     car.running = true
@@ -615,6 +628,7 @@ do
     frames(12, 250)
     out()                                              -- (OnExitVehicle: D.hide, the engine still running)
     check("the driver gets out: the rest goes at once", car.sent == before + 1, car.sent - before)
+    check("the driver gets out: save", lastSave() == true, tostring(lastSave()))
     check("and the dash is hidden: no prerender after", not inst:isVisible())
     frames(10, 250)
     check("and nothing more after", car.sent == before + 1, car.sent - before)
@@ -626,6 +640,7 @@ do
     car.passenger = true
     frame(250)
     check("the driver moves to another seat: the rest goes", car.sent == before + 1, car.sent - before)
+    check("another seat: save", lastSave() == true, tostring(lastSave()))
     car.passenger = nil
     frame(250)
     inst:_fire("tripReset", false)
@@ -686,6 +701,7 @@ do
     -- a car never seen: its new mileage goes out at once, so the other seats read the same
     local fresh = drive("d6", { keysIn = true, running = true, kmh = 0 })
     check("a first mileage goes out at once", fresh.sent == 1, fresh.sent)
+    check("a first mileage: save", lastSave() == true, tostring(lastSave()))
     -- a passenger sends nothing
     local pc = drive("d6", { keysIn = true, running = true, kmh = 100, passenger = true, md = { ZeD_odo = 1, ZeD_trip = 0 } })
     frames(200, 250)
@@ -714,8 +730,8 @@ do
     check("on the dash's module", c1 and c1.module == ZeD.DashProto.MOD and c1.command == ZeD.DashProto.ODO, c1 and c1.module)
     local keys = 0
     for _ in pairs(c1 and c1.args or {}) do keys = keys + 1 end
-    check("with the car's number and its three figures only", c1 and keys == 4 and c1.args.veh == 21 and c1.args.odo == 500
-        and c1.args.trip == 12.5 and c1.args.show == true, keys)
+    check("with the car's number, its three figures and the save flag only", c1 and keys == 5 and c1.args.veh == 21
+        and c1.args.odo == 500 and c1.args.trip == 12.5 and c1.args.show == true and c1.args.save == true, keys)
     check("the other mod's key never goes", c1 and c1.args.Roadworthy == nil)
     -- the car stops: the miles not sent yet go while the driver is still at the wheel (the game lets no one out of a
     -- car that isn't stopped, and its exit lands on the server before the dash's last send)
@@ -725,6 +741,7 @@ do
     cc.kmh = 0
     frame(250)
     check("the car stops: the rest goes at once", cc.sent == before + 1, cc.sent - before)
+    check("a stop with the engine on: no save", lastSave() == false, tostring(lastSave()))
     frames(40, 250)
     check("and once while it stays stopped", cc.sent == before + 1, cc.sent - before)
     cc.kmh = 0.5                                       -- (creeping under the game's stopped speed: no send each frame)
@@ -778,6 +795,33 @@ do
     cc.kmh = 0
     frame(250)
     check("a real stop after that: the rest goes", cc.sent == before + 1, cc.sent - before)
+    -- the engine off with nothing new since that send: the same figures go once more, with save, so the server sends
+    -- out what it took
+    local so = SENT[#SENT].args.odo
+    cc.running = false
+    frame(250)
+    check("the engine off, nothing new: one send with save", cc.sent == before + 2 and lastSave() == true
+        and SENT[#SENT].args.odo == so, cc.sent - before)
+    frames(10, 250)
+    check("and only one", cc.sent == before + 2, cc.sent - before)
+    cc.running = true
+    frame(250)
+    -- stopped, the engine on: a press, then an older copy of the car at the same odometer (the server's send of the
+    -- figures before the press): the press stands
+    local E = { odo = cc.md.ZeD_odo, trip = cc.md.ZeD_trip, show = cc.md.ZeD_odoTrip }
+    check("the trip shows, and isn't zero", E.show == true and E.trip > 0, E.trip)
+    inst:_fire("odoButton", true)                      -- (X while the trip shows: zero)
+    check("a press while stopped: saved at once", lastSave() == true and SENT[#SENT].args.trip == 0)
+    cc.md = { ZeD_odo = E.odo, ZeD_trip = E.trip, ZeD_odoTrip = E.show }
+    frame(250)
+    check("stopped: an older copy at the same odometer doesn't bring the trip back", st().trip == 0 and cc.md.ZeD_trip == 0
+        and st().odo == E.odo, st().trip)
+    inst:_fire("odoButton", false)                     -- (A: the window to the odometer)
+    cc.md = { ZeD_odo = E.odo, ZeD_trip = 0, ZeD_odoTrip = true }
+    frame(250)
+    check("stopped: nor the switch", st().odoTrip == false and cc.md.ZeD_odoTrip == false, tostring(st().odoTrip))
+    inst:_fire("odoButton", false)                     -- (back to the trip)
+    frame(250)
 
     -- the server refused this driver's figures as behind its own (ZeD_ServerDash.lua): its answer puts them on its figures
     local route = ROUTES[ZeD.DashProto.MOD]
@@ -820,7 +864,28 @@ do
     cc.md = { ZeD_odo = 600, ZeD_trip = 1, ZeD_odoTrip = false }
     frame(250)
     check("a passenger takes the server's figures as they come", st().odo == 600 and st().trip == 1, st().odo)
+    -- the figures the server took from the driver, sent to the other seats (DP.FIG): onto this copy of the car only
+    local nSent = #SENT
+    route(ZeD.DashProto.FIG, { veh = 21, odo = 610, trip = 2, show = true })
+    frame(250)
+    check("a passenger: the driver's figures from the server go on this copy of the car", cc.md.ZeD_odo == 610
+        and cc.md.ZeD_trip == 2 and cc.md.ZeD_odoTrip == true and st().odo == 610 and st().odoTrip == true, st().odo)
+    route(ZeD.DashProto.FIG, { veh = 99, odo = 620, trip = 2, show = true })
+    route(ZeD.DashProto.FIG, { veh = 21, odo = 620, trip = 700, show = true })
+    route(ZeD.DashProto.FIG, { veh = 21, odo = "lots", trip = 2, show = true })
+    route(ZeD.DashProto.FIG, { veh = 21, odo = 0 / 0, trip = 2, show = true })
+    route(ZeD.DashProto.FIG, { veh = 21, odo = 620, trip = 2, show = 1 })
+    route(ZeD.DashProto.FIG, nil)
+    frame(250)
+    check("another car's figures, a trip past the odometer, junk: nothing", cc.md.ZeD_odo == 610 and cc.md.ZeD_trip == 2
+        and #env.errors == 0, cc.md.ZeD_odo)
+    check("a passenger sends nothing for them", #SENT == nSent, #SENT - nSent)
     cc.passenger = nil
+    frame(250)
+    local O2 = st().odo
+    route(ZeD.DashProto.FIG, { veh = 21, odo = O2 + 100, trip = 0, show = false })
+    frame(250)
+    check("at the wheel: the dash keeps its own figures", st().odo == O2 and cc.md.ZeD_odo == O2, st().odo - O2)
 
     -- the ash tray on a server: in this game's memory, never the car's modData, so the server's sends can't undo it
     local ac = drive("luxury", { keysIn = true, running = true, kmh = 0, id = 31, md = { ZeD_odo = 10, ZeD_trip = 0 } })
