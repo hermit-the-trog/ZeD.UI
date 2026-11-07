@@ -17,7 +17,10 @@
 --   no front page deals it among the whole pages, as before, when they reach its place in the deck); every other ad
 --   dealt as it was with that page blank (the whole pages the same order with the house ad left out, every filler the same);
 --   the strip's Contents button, Home and the pad's Y on the first contents page;
---   drawn: every word above the bottom, the number clear of the blurb, and a click on each row opening its chapter.
+--   drawn: every word above the bottom, the number clear of the blurb, and a click on each row opening its chapter;
+--   page 1 the copyright page (punch list 103): its block in the body face at U.CAP, every word of its keys, inside
+--   the text block's sides, bottom-aligned to the text foot and never past it, under the top margin, no folio; the
+--   title page's division with its LLC; and every other page as it is laid out with page 1 blank (the book before).
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/guide_contents_sim.lua   (CONTENTS_DUMP=<code> lists a language's rows)
 -- It prints FAIL lines and a last line "guide_contents_sim: N checks, M failed", and exits 1 if any failed.
 
@@ -187,8 +190,25 @@ ZeD.Guide = {
     end,
 }
 
+-- (the book as it was before its copyright page, page 1 blank: its own copy of the file with that one page changed,
+-- loaded first under its own tables, so each layout can be laid out both ways and compared page for page)
+local BLANK_BOOK, BLANK_B = nil, nil
+do
+    local f = io.open(ROOT .. "42/media/lua/client/ZeD/ZeD_SurvivalGuideBook.lua", "rb")
+    local src = f and f:read("*a") or ""
+    if f then f:close() end
+    local patched, n = src:gsub('{ kind = "copyright" }, { kind = "title" }', '{ kind = "blank" }, { kind = "title" }')
+    local chunk = (n == 1) and loadstring(patched, "=ZeD_SurvivalGuideBook (page 1 blank)") or nil
+    if chunk then
+        chunk()
+        BLANK_BOOK, BLANK_B = ZeD_GuideBook, ZeD.GuideBook
+    end
+    ZeD.GuideBook, ZeD_GuideBook = nil, nil
+end
+
 dofile(ROOT .. "42/media/lua/client/ZeD/ZeD_SurvivalGuideBook.lua")
 local B = ZeD.GuideBook
+check("the book with page 1 blank loads beside it (the copyright page's control)", BLANK_BOOK ~= nil and BLANK_B ~= B and BLANK_BOOK ~= ZeD_GuideBook)
 check("the book file loads and lays out its contents", B and B.paginate and B.contentsLayout and ZeD_GuideBook and ZeD_GuideBook.drawContentsPage)
 check("the faces' widths come from the game's .fnt files", realFonts)
 
@@ -388,7 +408,7 @@ local function faults(bk, u, m)
     local top = (U_.MT + 28 + 18) * u
     local n = bk.contentsPages or 0
     -- the front matter
-    if not (P[1] and P[1].kind == "blank" and P[2] and P[2].kind == "title") then no("the blank page and the title page do not lead") end
+    if not (P[1] and P[1].kind == "copyright" and P[2] and P[2].kind == "title") then no("the copyright page and the title page do not lead") end
     if bk.contentsPage ~= 3 then no("the first contents page is not page 3: " .. tostring(bk.contentsPage)) end
     if n < 1 then no("no contents page") end
     for i = 3, 2 + n do
@@ -541,6 +561,143 @@ local function drawCheck(bk, u, m)
 end
 
 -- ---------------------------------------------------------------------------
+-- THE COPYRIGHT PAGE (punch list 103, ZeDUI/HANDOFF_design_guide_copyright_20261107.md): page 1, drawn on a
+-- recording book. Its block in the body face at U.CAP (times the text size), every line inside the text block's
+-- sides (measured with the face's own widths), the block bottom-aligned to the text block's foot (its last line's
+-- descender, the face's deepest of g, j, p, q and y from its .fnt, never past the foot; the book's own quarter-size
+-- descender on it) and its top under the top margin; the lines in order, never closer than their lead; every word of
+-- the keys drawn, in order, nothing else; no folio. The title page beside it names the division with its " LLC".
+-- ---------------------------------------------------------------------------
+local OLD_DESC = 0    -- (the face's descender in atlas px, from SdfOldRegular.fnt: below the baseline)
+do
+    local f = io.open(PZ .. "fonts/SdfOldRegular.fnt", "r")
+    if f then
+        local base, padB = 25, 0
+        for line in f:lines() do
+            local pb = line:match("padding=%d+,%d+,(%d+),%d+")
+            if pb then padB = tonumber(pb) end
+            local b = line:match("^common .-base=(%d+)")
+            if b then base = tonumber(b) end
+            local id = line:match("^char id=(%d+)")
+            if id and ({ [103] = true, [106] = true, [112] = true, [113] = true, [121] = true })[tonumber(id)] then
+                local h, yo = tonumber(line:match("height=(%d+)")), tonumber(line:match("yoffset=(%-?%d+)"))
+                OLD_DESC = math.max(OLD_DESC, yo + h - padB - base)
+            end
+        end
+        f:close()
+    end
+end
+local BOOK_DESC = 0.25   -- (the book's COPY_DESC)
+local function squash(s) return (tostring(s):gsub("%s+", "")) end
+local function copyrightCheck(bk, u, m)
+    local bad = {}
+    local function no(msg) if #bad < 6 then bad[#bad + 1] = msg end end
+    local W, X0, Y0 = U_.PW * u, 100, 50
+    local texts = {}
+    bk.drawTextZoomed = function(_, s, x, y, z, r, g, b, a, font)
+        local fb = ({ SdfRobertoSans = 56, SdfRegular = 35, SdfBold = 35, SdfItalic = 35 })[font] or 25
+        texts[#texts + 1] = { s = s, x = x, base = y + fb * z, z = z, font = font }
+    end
+    bk.drawRect, bk.drawRectBorder, bk.drawTextureScaled, bk.drawTextureScaledAspect = noop, noop, noop, noop
+    bk.getAbsoluteX, bk.getAbsoluteY = function() return 0 end, function() return 0 end
+    bk:drawPage(1, X0, Y0, W, u)
+    local px = 10 * m * u
+    local tx0, tx1 = X0 + U_.M * u, X0 + W - U_.M * u
+    local foot = Y0 + (U_.PH - U_.FOOT) * u
+    local info = { lines = #texts, px = px }
+    if #texts == 0 then no("nothing drawn on page 1"); return bad, info end
+    local prev = nil
+    for i, t in ipairs(texts) do
+        if t.font ~= "SdfOldRegular" then no("line " .. i .. " in " .. tostring(t.font) .. ", not the body face: " .. t.s) end
+        local tpx = t.z * 32
+        if math.abs(tpx - px) > 0.001 then no(string.format("line %d at %.2f px, not U.CAP %.2f", i, tpx, px)) end
+        local w = measureCp("SdfOldRegular", t.s) * t.z
+        if t.x < tx0 - 0.01 then no(string.format("line %d starts at %.1f, left of the text block %.1f", i, t.x, tx0)) end
+        if math.abs(t.x - tx0) > 0.01 then no(string.format("line %d not left aligned (%.1f, %.1f)", i, t.x, tx0)) end
+        if t.x + w > tx1 + 0.01 then no(string.format("line %d ends at %.1f, past the text block %.1f: %s", i, t.x + w, tx1, t.s)) end
+        if t.base > foot - OLD_DESC * t.z + 0.01 then no(string.format("line %d's descender at %.1f, past the foot %.1f", i, t.base + OLD_DESC * t.z, foot)) end
+        if prev and t.base < prev.base + tpx * 1.2 - 0.01 then no(string.format("line %d %.1f under the line before (lead %.1f)", i, t.base - prev.base, tpx * 1.2)) end
+        prev = t
+    end
+    local first, last = texts[1], texts[#texts]
+    info.top, info.bottom = first.base - px - Y0, last.base + BOOK_DESC * px - Y0
+    if math.abs(last.base + BOOK_DESC * px - foot) > 0.01 then no(string.format("the block's foot at %.2f, not on the text foot %.2f", last.base + BOOK_DESC * px, foot)) end
+    if first.base - px < Y0 + U_.MT * u - 0.01 then no(string.format("the block's top at %.1f, over the top margin %.1f", first.base - px, Y0 + U_.MT * u)) end
+    if last.s ~= "10 9 8 7 6 5 4 3 2 1" then no("the printing line is not last: " .. last.s) end
+    -- every word, in order, nothing else (the wrap only adds line breaks)
+    local want = ZeD.tr("UI_ZeD_Guide_BookTitle") .. ": " .. ZeD.tr("UI_ZeD_Guide_BookSub1") .. " " .. ZeD.tr("UI_ZeD_Guide_BookSub2")
+        .. ZeD.tr("UI_ZeD_Guide_BookEdition") .. ZeD.tr("UI_ZeD_Guide_CopyBy")
+    for k = 1, 5 do want = want .. ZeD.tr("UI_ZeD_Guide_Copy" .. k) end
+    want = want .. "10 9 8 7 6 5 4 3 2 1"
+    local got = {}
+    for _, t in ipairs(texts) do got[#got + 1] = t.s end
+    if squash(table.concat(got)) ~= squash(want) then no("the drawn words are not the keys' words") end
+    for k = 1, 5 do
+        if ZeD.tr("UI_ZeD_Guide_Copy" .. k) == "UI_ZeD_Guide_Copy" .. k then no("UI_ZeD_Guide_Copy" .. k .. " has no text") end
+    end
+    if not ZeD.tr("UI_ZeD_Guide_Copy1"):find("\194\169 1984, 1987", 1, true) then no("the copyright line lacks the (c) and both years") end
+    -- no folio: nothing in the folio's face, nothing under the text foot
+    for _, t in ipairs(texts) do
+        if t.font == "SdfBold" or t.base > foot + 0.01 then no("a folio on the copyright page: " .. t.s) end
+    end
+    -- the title page: the division with its LLC
+    texts = {}
+    bk:drawPage(2, X0 + W, Y0, W, u)
+    local div = ZeD.tr("UI_ZeD_Guide_BookDivision")
+    local found = false
+    for _, t in ipairs(texts) do if t.s == div then found = true end end
+    if not found then no("the title page does not draw the division") end
+    if not div:find(" LLC$") then no("the division has no LLC: " .. div) end
+    return bad, info
+end
+
+-- the page list as a string, page by page (page 1 left out): every page's kind, chapter, part, ad and items with
+-- their places and ads, every contents row with its number; the chapters' and topics' pages; the deal's count
+local function pagesSig(bk)
+    local out = {}
+    local function r2(v) return v and string.format("%.3f", v) or "-" end
+    for i = 2, #bk.pages do
+        local p = bk.pages[i]
+        local s = { i, p.kind, tostring(p.si), tostring(p.part), tostring(p.ad), tostring(p.front) }
+        for _, it in ipairs(p.items or {}) do
+            local a = {}
+            for _, b in ipairs(it.ads or {}) do a[#a + 1] = b.k .. "=" .. table.concat(b.names or {}, "+") .. "@" .. r2(b.y) end
+            s[#s + 1] = tostring(it.k) .. "@" .. r2(it.y) .. "/" .. r2(it.y1) .. "[" .. table.concat(a, ",") .. "]"
+        end
+        if p.filler then
+            local a = {}
+            for _, b in ipairs(p.filler.ads or {}) do a[#a + 1] = b.k .. "=" .. table.concat(b.names or {}, "+") .. "@" .. r2(b.y) end
+            s[#s + 1] = "filler@" .. r2(p.filler.y) .. "[" .. table.concat(a, ",") .. "]"
+        end
+        for _, r in ipairs(p.rows or {}) do s[#s + 1] = "row" .. r.si .. "@" .. r2(r.y) .. "=" .. tostring(r.num) end
+        out[#out + 1] = table.concat(s, " ")
+    end
+    local keys = {}
+    for k, v in pairs(bk.sectionPage) do keys[#keys + 1] = "s:" .. tostring(k) .. "=" .. v end
+    for k, v in pairs(bk.pageOf) do keys[#keys + 1] = "t:" .. tostring(k) .. "=" .. v end
+    table.sort(keys)
+    out[#out + 1] = table.concat(keys, " ")
+    out[#out + 1] = string.format("n%d c%s/%s i%s", #bk.pages, tostring(bk.contentsPage), tostring(bk.contentsPages), tostring(bk.introPage))
+    if bk.adStats then out[#out + 1] = B.adReport(bk) end
+    return out
+end
+-- the same layout with page 1 blank (the book before the copyright page): nothing but page 1 differs
+local function sameAsBlank(bk)
+    if not BLANK_BOOK then return false, "no blank-page book" end
+    BLANK_B.applyType()   -- (its own copy of the type sizes: at this layout's text size)
+    local bb = setmetatable({ playerNum = 0, _clips = {} }, BLANK_BOOK)
+    local ok, err = pcall(bb.readTopics, bb, bk._u or 1)
+    if not ok then return false, "the blank-page book does not lay out: " .. tostring(err) end
+    if not (bb.pages[1] and bb.pages[1].kind == "blank") then return false, "the control's page 1 is not blank" end
+    local a, b = pagesSig(bk), pagesSig(bb)
+    if #a ~= #b then return false, string.format("%d page lines against %d", #a, #b) end
+    for i = 1, #a do
+        if a[i] ~= b[i] then return false, "differs at line " .. i .. ": " .. a[i]:sub(1, 160) .. " / " .. b[i]:sub(1, 160) end
+    end
+    return true
+end
+
+-- ---------------------------------------------------------------------------
 section("the old measure: EN at Small fits 18 rows a page, at Large 15 (one-line rows)")
 -- ---------------------------------------------------------------------------
 do
@@ -569,6 +726,7 @@ section("every language, Small and Large text, keyboard and pad, 20, 30 and 45 s
 -- ---------------------------------------------------------------------------
 local summary = {}
 local fronts, books = 0, 0   -- (layouts with the house ad up front, of all laid out)
+local copy = { n = 0, top = math.huge, at = "" }   -- (the copyright pages checked, and the tallest block's top)
 do
     if not haveGame then print("  (no game files: the real books are skipped)") end
     local folders = {}
@@ -606,6 +764,14 @@ do
                         check(name .. ": the contents", #bad == 0, table.concat(bad, "; "))
                         local okD, bad2 = pcall(drawCheck, bk, 1, m[1])
                         check(name .. ": drawn and clicked", okD and #bad2 == 0, okD and table.concat(bad2, "; ") or bad2)
+                        local okC, bad3, ci = pcall(copyrightCheck, bk, 1, m[1])
+                        check(name .. ": the copyright page", okC and #bad3 == 0, okC and table.concat(bad3, "; ") or bad3)
+                        if okC and ci.top then
+                            copy.n = copy.n + 1
+                            if ci.top < copy.top then copy.top, copy.at = ci.top, string.format("%s %s %s, %d lines", code, m[2], pd and "pad" or "keyboard", ci.lines) end
+                        end
+                        local okS, why = sameAsBlank(bk)
+                        check(name .. ": nothing but page 1 differs from the book with page 1 blank", okS, why)
                         local per, wraps = {}, 0
                         for i = 3, 2 + bk.contentsPages do per[#per + 1] = #bk.pages[i].rows end
                         for _, r in ipairs(rows) do if #r.blurbs > 1 or #r.titles > 1 then wraps = wraps + 1 end end
@@ -631,6 +797,10 @@ end
 if books > 0 then
     print(string.format("-- the house ad up front in %d of %d layouts (the rest: an odd contents count, the house ad dealt as before)", fronts, books))
     check("both front matters among the layouts (with and without the house ad up front)", fronts > 0 and fronts < books, fronts .. "/" .. books)
+end
+if copy.n > 0 then
+    print(string.format("-- the copyright page in %d layouts: the tallest block's top %.1f from the page's top (%s; the top margin %d, the foot %d)",
+        copy.n, copy.top, copy.at, U_.MT, U_.PH - U_.FOOT))
 end
 print("-- rows on each contents page, keyboard (wrap = rows that took a second line)")
 for _, l in ipairs(summary) do print(l) end

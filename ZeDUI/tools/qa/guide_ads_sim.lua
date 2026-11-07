@@ -932,7 +932,7 @@ do
         if k:find("^draw") then return noop end
         return nil
     end })
-    -- draw the first spread only (the blank page and the title page): no ad loads
+    -- draw the first spread only (the copyright page and the title page): no ad loads
     local W, X0, Y0 = U_.PW * u, 100, 50
     P:drawPage(1, X0, Y0, W, u)
     P:drawPage(2, X0 + W, Y0, W, u)

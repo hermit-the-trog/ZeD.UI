@@ -11,7 +11,7 @@
 -- the page after it; a topic too long for its page runs on to the next. Before the chapters: the title page, then
 -- the contents over as many pages as it needs, the last facing the introduction with the author's photo (a blank
 -- left-hand page between them when the contents takes an even count: the publisher's house ad, as old paperbacks ran
--- up front).
+-- up front). The title page faces the copyright page, the publisher's small print (punch list 103).
 --
 -- Faces: the game's own distance-field faces, drawn at any size with drawTextZoomed (as ZeD_PrintPage.lua):
 -- Old Standard TT for the text, Roberto Sans Bold Italic for the headings, Open Sans for the small sans lines.
@@ -533,7 +533,8 @@ local function printed(i) return i + 1 end
 function B.paginate(bk, u)
     local px = function(n) return n * u end
     -- (the front matter as the chapters are laid out: the contents' own pages are counted after them, below)
-    local pages = { { kind = "blank" }, { kind = "title" }, { kind = "contents" }, { kind = "intro" } }
+    -- (the first left-hand page, facing the title page, is the copyright page: drawCopyrightPage)
+    local pages = { { kind = "copyright" }, { kind = "title" }, { kind = "contents" }, { kind = "intro" } }
     local textW_ = px(U.PW - U.M * 2)
     local lineH = px(U.TEXT) * U.LEAD
     local bottom = px(U.PH - U.FOOT - U.MT)
@@ -1367,6 +1368,76 @@ local function adWrapEven(text, f, px, maxW)
     return adWrap(text, f, px, hi)
 end
 
+-- THE COPYRIGHT PAGE (design, Nov 7 2026, punch list 103; ZeDUI/HANDOFF_design_guide_copyright_20261107.md): the
+-- first left-hand page, facing the title page, set as the znix manual's (ZeDUI/workshop/gallery/title_spread.py) in
+-- the publisher's dry register. The small print sits low, as copyright pages set it: one block in the body face a
+-- step under the body size (U.CAP), left aligned and ragged over the full text-block width, its last line's
+-- descender on the text block's foot (U.PH - U.FOOT), so Large text grows it upward and never past the foot. The
+-- znix page's spacing: 1 after the title and the edition, 9 after the "by" line, 7 between paragraphs, 4 more
+-- before "Printed in" and the printing line straight under it (all times the text size). Wrapped with adWrap, which
+-- cuts Chinese, Japanese and Thai between characters. No folio (drawPage returns before it, as for the title page).
+local COPY_KEYS = { "UI_ZeD_Guide_BookTitle", "UI_ZeD_Guide_BookSub1", "UI_ZeD_Guide_BookSub2", "UI_ZeD_Guide_BookEdition",
+                    "UI_ZeD_Guide_CopyBy", "UI_ZeD_Guide_Copy1", "UI_ZeD_Guide_Copy2", "UI_ZeD_Guide_Copy3",
+                    "UI_ZeD_Guide_Copy4", "UI_ZeD_Guide_Copy5" }
+local COPY_DESC = 0.25   -- (the face's descender, a quarter of its size: the block's bottom under its last baseline)
+-- the block at page width w and unit u: { lines = { { s, w, y = baseline from the page's top } }, px, top, bottom }
+-- (in the improbable case the block would rise over the top margin, its size steps down until it fits)
+function B.copyrightLayout(w, u)
+    local t = {}
+    for i, k in ipairs(COPY_KEYS) do t[i] = tr(k) end
+    local paras = {
+        { t[1] .. ": " .. t[2] .. " " .. t[3], 1 }, { t[4], 1 }, { t[5], 9 },
+        { t[6], 7 }, { t[7], 7 }, { t[8], 7 }, { t[9], 7 + 4 },
+        { t[10], 0 }, { "10 9 8 7 6 5 4 3 2 1", 0 },   -- (the printing line is no key, as the title page's "1987")
+    }
+    local tw_ = w - U.M * u * 2
+    local foot = (U.PH - U.FOOT) * u
+    local L
+    for step = 0, 6 do
+        local px = U.CAP * u * (0.92 ^ step)
+        local lead, g = px * 1.2, px / 10
+        local lines, y = {}, 0
+        for _, p in ipairs(paras) do
+            for _, l in ipairs(adWrap(p[1], F.text, px, tw_)) do
+                lines[#lines + 1] = { s = l.s, w = l.w, y = y }
+                y = y + lead
+            end
+            y = y + p[2] * g
+        end
+        local shift = foot - (lines[#lines].y + px * COPY_DESC)
+        for _, l in ipairs(lines) do l.y = l.y + shift end
+        L = { lines = lines, px = px, top = lines[1].y - px, bottom = foot }
+        if L.top >= U.MT * u then break end
+    end
+    return L
+end
+
+-- the block kept on the panel: laid out again when the width, unit, text size, words or measure epoch change (as
+-- the house ad, ZeD_GuideBook:houseAd)
+function ZeD_GuideBook:copyrightPage(w, u)
+    local X = ZeD.Text
+    local ep = X and X.measureEpoch and X.measureEpoch() or nil
+    local c = self._copyright
+    local same = c ~= nil and ep ~= nil and c.ep == ep and c.w == w and c.u == u and c.m == TM_
+    if same then
+        for i, k in ipairs(COPY_KEYS) do
+            if c.words[i] ~= tr(k) then same = false; break end
+        end
+    end
+    if same then return c.L end
+    local words = {}
+    for i, k in ipairs(COPY_KEYS) do words[i] = tr(k) end
+    c = { ep = ep, w = w, u = u, m = TM_, words = words, L = B.copyrightLayout(w, u) }
+    self._copyright = c
+    return c.L
+end
+
+function ZeD_GuideBook:drawCopyrightPage(x, y, w, u)
+    local L = self:copyrightPage(w, u)
+    local tx = x + U.M * u
+    for _, l in ipairs(L.lines) do drawAt(self, F.text, l.s, tx, y + l.y, L.px, INK) end
+end
+
 -- THE CONTENTS (the director, Nov 7 2026: "2-3 pages, however many pages it needs. I'm sure it'll expand"): the
 -- sections come from the game's guide and ZeD's chapters at run time, so their count is not fixed. A row for each
 -- section that has a page (numOf(s), its printed number, or nil for none), laid out at the text size and in the
@@ -1692,6 +1763,7 @@ function ZeD_GuideBook:drawPage(i, x, y, w, u, hover)
     local p = self.pages[i]
     if not p then return end
     if p.kind == "title" then self:drawTitlePage(x, y, w, u); return end
+    if p.kind == "copyright" then self:drawCopyrightPage(x, y, w, u); return end
     if p.kind == "contents" then self:drawContentsPage(p, x, y, w, u, hover, i)
     elseif p.kind == "intro" then self:drawIntroPage(x, y, w, u)
     elseif p.kind == "flow" then self:drawFlowPage(p, x, y, w, u)
