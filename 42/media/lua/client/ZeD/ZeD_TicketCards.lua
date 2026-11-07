@@ -2360,6 +2360,8 @@ function TC.renderCard(panel, win, st, x, y, w, h)
         end
     end
     panel:clearStencilRect()
+    -- (PZ clips do not nest: the list's rect, once cleared, stays shut to what draws next, so the
+    -- whole card is opened again for the scrollbar and the pop-up over the list...)
     panel:setStencilRect(0, 0, panel:getWidth(), panel:getHeight())
     if needs then t.scroll:draw(panel) end
     if t.popup then D.drawPopup(panel, win, t, sy, sy + sh) end
@@ -2369,6 +2371,9 @@ function TC.renderCard(panel, win, st, x, y, w, h)
     else
         t.footRects = {}
     end
+    -- (...and that clip comes off here: a card ends with the clips it started with, in a window's
+    -- tab and on the join screen alike; punch list 95)
+    panel:clearStencilRect()
     local s = D.flashNow(t)
     if s and not D.padOn() then ZeD.Help.set(win, s) end
 end
