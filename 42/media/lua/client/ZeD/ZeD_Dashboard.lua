@@ -350,10 +350,15 @@ function D.derive(st, mem, dtMs)
         st.genLamp = check or (st.power and batt < 0.2)
         st.engLamp = check or (st.running and st.engWarn) or false
     end
+    -- (Nov 6 2026, punch list 92: the brake, belt and oil lamps have nothing to show yet, so they stay dark but for the
+    -- bulb check. ROADWORTHY HOOK: when its states can be read (QA hasn't run it yet), the coolant, seat belt, oil and
+    -- high beam lamps take them here, over ZeD's own; a mod on Vehicle Kit Library already reaches them through
+    -- D.applyPublished)
     st.brakeLamp  = check
     st.beltLamp   = check
     st.fuelLamp   = st.power and v.fuel < 0.15
-    st.tempLamp   = st.power and v.temp > 0.8
+    -- the hot lamp bulb-checks with the rest (Nov 6 2026; the race car's WATER jewel is this lamp too)
+    st.tempLamp   = check or (st.power and v.temp > 0.8)
     st.hiBeam     = st.power and st.lights or false
     st.lightsLamp = st.hiBeam
     st.turnL, st.turnR, st.fourWD = false, false, false
