@@ -522,6 +522,26 @@ end
 -- ----------------------------------------------------------------------------
 -- Body
 -- ----------------------------------------------------------------------------
+-- A wrap kept between frames on the card, one per slot ("busy", "note", "f:" .. a fact's label), as
+-- the foot strip's is: the same words at the same width in the same font wrap the same way. The measure
+-- epoch (it moves when the text size, UI scale or language changes) starts the store over; while the
+-- fonts are still loading there is no epoch, and the words are wrapped fresh each frame.
+local function wrapKept(card, key, text, font, maxW)
+    local X = ZeD.Text
+    local ep = X and X.measureEpoch and X.measureEpoch() or nil
+    local store = card._lkWrap
+    if not store or ep == nil or card._lkWrapEp ~= ep then
+        store = {}
+        card._lkWrap = store
+        card._lkWrapEp = ep
+    end
+    local c = store[key]
+    if ep ~= nil and c and c.text == text and c.w == maxW and c.font == font then return c.lines end
+    local lines = ZeD.Atoms.wrapText(text, font, maxW)
+    store[key] = { text = text, w = maxW, font = font, lines = lines }
+    return lines
+end
+
 local function band(card, x, y, w, t, player)
     local T, tm = ZeD.T, ZeD.TM
     local A = ZeD.Atoms
@@ -533,7 +553,7 @@ local function band(card, x, y, w, t, player)
     -- of their own above it, wrapped to the band, so neither the words nor the bar is squeezed out at 220
     local rowH = math.max(T.px(32), T.buttonH + T.px(8))
     local stacked = w < T.px(300)
-    local lines = stacked and A.wrapText(busyText, f1, w - T.px(16)) or nil
+    local lines = stacked and wrapKept(card, "busy", busyText, f1, w - T.px(16)) or nil
     local lh = tm:getFontHeight(f1) + T.px(2)   -- (one wrapped line's height)
     local wordsH = stacked and (#lines * lh + T.px(4)) or 0
     local h = rowH + wordsH
@@ -594,7 +614,7 @@ local function fact(card, x, y, w, label, value, dotC)
             ZeD.Atoms.drawStatusDot(card, vx, vy + math.floor((tm:getFontHeight(f2) - T.px(6)) / 2), dotC, T.px(6))
             vx = vx + T.px(12)
         end
-        local lines = ZeD.Atoms.wrapText(value, f2, x + w - vx)
+        local lines = wrapKept(card, "f:" .. tostring(label), value, f2, x + w - vx)
         local tc = T.text
         for _, ln in ipairs(lines) do
             -- (a single word wider than the body is still cut, never drawn past the edge)
@@ -651,7 +671,7 @@ function def.body(card, x, y, w, t, player)
         local f2 = T.fontF2
         local dc = T.textDim
         local lh = tm:getFontHeight(f2) + T.px(2)
-        for _, ln in ipairs(ZeD.Atoms.wrapText(note, f2, w) or { note }) do
+        for _, ln in ipairs(wrapKept(card, "note", note, f2, w) or { note }) do
             local lw2 = tm:MeasureStringX(f2, ln)
             card:drawText(ln, x + math.max(0, math.floor((w - lw2) / 2)), y, dc.r, dc.g, dc.b, dc.a or 1, f2)
             y = y + lh
