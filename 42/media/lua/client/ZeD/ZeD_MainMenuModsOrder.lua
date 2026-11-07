@@ -93,7 +93,7 @@ function ZeD_MMMods:relayoutList()
     if O.isEmpty(lo) then return end
     local ids = jlist(m:getActiveMods():getMods())
     local order = O.layout(O.seqFrom(lo, ids), self:infoFor(m, ids), lo, false)
-    m:correctAndSaveModOrder(order)
+    self:saveOrder(order)
 end
 
 -- stage 3 (separators): a separator's heading goes into the list before place i; while Find
@@ -141,7 +141,7 @@ function ZeD_MMMods:leaveOrder(keep)
     local m = model()
     if keep and m then
         if self.page == "order" then
-            m:correctAndSaveModOrder(self.order)
+            self:saveOrder(self.order)
             O.putLo(self.oKey or O.listKey(m), self.oLo, true)
         else
             local mo = m:getActiveMods():getMapOrder()
