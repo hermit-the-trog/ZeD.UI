@@ -373,8 +373,10 @@ function ZeD.JournalTab.gatherData(playerObj)
     local explosionKills = 0
     local weaponCats = {}
 
-    if md and md.ZeD_Kills then
-        local zk = md.ZeD_Kills
+    -- through KillTracker: it runs (or retries) an old save's fix, and its rows add up
+    -- to the total below even while that fix waits
+    local zk = ZeD.KillTracker.data(playerObj)
+    if zk then
         fireKills = zk.fire or 0
         carKills = zk.vehicle or 0
         explosionKills = zk.explosion or 0
