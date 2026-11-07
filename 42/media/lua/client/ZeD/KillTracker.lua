@@ -254,7 +254,8 @@ local function onZombieDead(zombie)
     -- after a weapon or car kill would make the next zombie with that key read as
     -- a fire kill. A hit then burn keeps it (the burn clears the attacker), so
     -- the weapon credit given just below rolls back at the second death.
-    if mayBeFireDeath(zombie) then
+    local fireMaybe = mayBeFireDeath(zombie)
+    if fireMaybe then
         deadLog[key] = t
     else
         deadLog[key] = nil
@@ -266,7 +267,14 @@ local function onZombieDead(zombie)
         local killer = zombie.getAttackedBy and zombie:getAttackedBy()
         if not killer or killer == player then
             tally(kd, hit, 1)
-            hit.counted = true   -- kept until stale, for the fire rollback above
+            if fireMaybe then
+                hit.counted = true   -- kept until stale, for the fire rollback above
+            else
+                -- No second death can follow, so nothing to roll back. Forget the
+                -- hit, or a reused object that burns to death within 20 s would
+                -- take this real kill back off the rows.
+                hitLog[key] = nil
+            end
             return
         end
     end
@@ -278,7 +286,9 @@ local function onZombieDead(zombie)
             local vehicle = target:getVehicle()
             if vehicle and vehicle:getDriver() == player then
                 kd.vehicle = kd.vehicle + 1
-                carLog[key] = t
+                -- kept only for a death that may be a burn's first, for the
+                -- fire rollback above; same reason as the weapon kill
+                if fireMaybe then carLog[key] = t end
             end
         end
     end

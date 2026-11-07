@@ -83,7 +83,7 @@ end
 local BAT   = weapon({ type = "BaseballBat", cats = { "BLUNT" } })
 local AXE   = weapon({ type = "Axe", cats = { "AXE" } })
 local HANDS = weapon({ type = "BareHands", cats = { "UNARMED" } })
-local PIPE  = weapon({ type = "PipeBomb", power = 70, range = 6 })   -- weapon.txt: ExplosionPower 70, ExplosionRange 6
+local PIPE  = weapon({ type = "PipeBomb", power = 90, range = 7 })   -- weapon.txt: ExplosionPower 90, ExplosionRange 7
 local RING  = weapon({ type = "RangeOnly", range = 3 })              -- a modded bomb with range and no power
 
 --- A zombie. id is its key; a reused object keeps it. onFire as IsoGameCharacter.isOnFire.
@@ -214,6 +214,15 @@ hit(z2, AXE); wait(300); dies(z2)
 check("burning bat kill, reused object: no fire kill", kd().fire == 3, kd().fire)
 check("burning bat kill, reused object: the axe kill counts", kd().weapon.Axe == 2, kd().weapon.Axe)
 check("burning bat kill, reused object: the bat kill stays", kd().weapon.Blunt == 2, kd().weapon.Blunt)
+-- a bat kill, then the game reuses the object for a zombie that burns to death within 20 s
+z = zombie(25)
+hit(z, BAT); wait(300); dies(z)
+check("bat kill before a reused object burns: the bat counts", kd().weapon.Blunt == 3, kd().weapon.Blunt)
+wait(2000)
+z2 = zombie(25, { onFire = true })   -- the same key, a new zombie, on fire
+burns(z2); wait(3000); dies(z2)
+check("reused object burns: one fire kill", kd().fire == 4, kd().fire)
+check("reused object burns: the first life's bat kill stays", kd().weapon.Blunt == 3, kd().weapon.Blunt)
 
 -- ---------------------------------------------------------------------------
 section("vehicle kills")
@@ -225,6 +234,12 @@ z.target = P
 dies(z)
 check("a zombie run down counts as a vehicle kill", kd().vehicle == 1)
 P.car = nil
+-- the game reuses that object for a zombie that burns to death within 20 s
+wait(2000)
+z = zombie(30, { onFire = true })   -- the same key, a new zombie, on fire
+burns(z); wait(3000); dies(z)
+check("reused object burns after a car kill: one fire kill", kd().fire == 1, kd().fire)
+check("reused object burns after a car kill: the car kill stays", kd().vehicle == 1, kd().vehicle)
 
 -- ---------------------------------------------------------------------------
 section("the Journal's total: the game's count plus only what it leaves out")
