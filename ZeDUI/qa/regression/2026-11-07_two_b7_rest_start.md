@@ -1,9 +1,9 @@
-# ZeD-UI regression - 2026-11-07 10:04 - windowed (1280x800 window)
+# ZeD-UI regression - 2026-11-07 10:13 - windowed (1280x800 window)
 
 | | |
 |---|---|
-| Started | 2026-11-07 10:04:21 |
-| Finished | 2026-11-07 10:05:59 (1 min 37 s) |
+| Started | 2026-11-07 10:13:09 |
+| Finished | 2026-11-07 10:14:16 (1 min 6 s) |
 | Mode | windowed (1280x800 window) |
 | Display | fullScreen=false height=800 width=1280 |
 | Game build | 42.22.2 3d39148846 |
@@ -11,7 +11,7 @@
 | Save | Saves/Sandbox/ZeD-QA |
 | Manifest | C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\tools\qa\mp_pin_only.txt (1 scripts) |
 | Result | **1/1 pass**, 0 warn, 0 fail, 0 timeout |
-| Go numbers | 22984 to 22986 |
+| Go numbers | 22989 to 22991 |
 
 Screenshots are in `C:/Users/you/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
 
@@ -20,8 +20,7 @@ Screenshots are in `C:/Users/you/Zomboid/Screenshots` (the next run overwrites t
 - ZeD settings: UI scale Auto (1280x800 window), additions Vanilla Plus (all on, Restock Casual) (the director's ModOptions.ini kept aside)
 - pzlaunchwin.ps1: launched windowed; at the main menu
 - multiplayer: at the main menu, joining 127.0.0.1:16261 as the test server's admin
-- clicked again at 1929,1118 (the bridge had not armed in game after 30 s)
-- clicked again at 1929,1118 (the bridge had not armed in game after 62 s)
+- clicked again at 1929,1118 (the bridge had not armed in game after 31 s)
 - the bridge armed in game on the multiplayer server ()
 - -KeepOpen: the game was left running; run pzrestorewin.ps1 after closing it
 - -KeepOpen: ZeD settings are still the test's; the director's file is C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression\2026-11-07_two_b7_rest_start.md.modoptions.ini
@@ -36,14 +35,14 @@ Screenshots are in `C:/Users/you/Zomboid/Screenshots` (the next run overwrites t
 
 ### 1. zedqa_pin_windows.lua (`ZEDQA pnw`) - PASS, 1 s
 
-- go 22986 at 10:05:54
+- go 22991 at 10:14:12
 
 ```text
-LOG : Lua f:257 st:35,967,659> [ZeD.QA] state #2 speed=1 paused=false player=946,12962 grid=15 inCar=Base.CarNormal vehicles=1 missing=get
-LOG : Lua f:257 st:35,967,661> [ZeD.QA] windows reset (R)
-LOG : Lua f:257 st:35,967,661> ZEDQA pnw pinned both windows
-LOG : Lua f:257 st:35,967,663> [ZeD.QA] run #2 ok=true
-LOG : Lua f:277 st:35,967,826> ZEDQA pnw DONE
+LOG : Lua f:258 st:36,464,944> [ZeD.QA] state #2 speed=1 paused=false player=946,12962 grid=15 inCar=Base.CarNormal vehicles=1 missing=get
+LOG : Lua f:258 st:36,464,945> [ZeD.QA] windows reset (R)
+LOG : Lua f:258 st:36,464,946> ZEDQA pnw pinned both windows
+LOG : Lua f:258 st:36,464,946> [ZeD.QA] run #2 ok=true
+LOG : Lua f:278 st:36,465,114> ZEDQA pnw DONE
 ```
 
 ## Console errors outside scripts

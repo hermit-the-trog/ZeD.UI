@@ -68,10 +68,10 @@ local function look(user)
         local v = M.cards[user]
         local netWhy = M.why("SeeNetworkUsers")
         local t = TC.qaState(win()._adminTab)
-        local roleBox, status, nWhy, noSkills, loading, user_ = nil, nil, 0, false, false, false
+        local roleBox, roleText, status, nWhy, noSkills, loading, user_ = nil, nil, nil, 0, false, false, false
         for _, it in ipairs(t.items or {}) do
             if it.text == netWhy then nWhy = nWhy + 1 end
-            if it.k == "fact" and it.label == ZeD.tr("UI_ZeD_Adm_Role") then roleBox = it.c end
+            if it.k == "fact" and it.label == ZeD.tr("UI_ZeD_Adm_Role") then roleBox = it.c; roleText = it.value end
             if it.k == "fact" and it.label == ZeD.tr("UI_ZeD_Adm_Status") then status = it.value end
             if it.text == ZeD.tr("UI_ZeD_Adm_NoSkills") then noSkills = true end
             if it.text == ZeD.tr("UI_ZeD_Tk_Loading") then loading = true end
@@ -80,13 +80,13 @@ local function look(user)
         say(string.format("the window: shown %s, rolled up %s, the Admin tab showing %s, items %d", tostring(w0:isVisible()), tostring(w0.windowShaded), tostring(ZeD_WorldWindow.isTabShowing("admin")), #(t.items or {})))
         local e = stopOf("tk:role")
         local why = e and e.tkWhy and e.tkWhy() or nil
-        seen[user] = { closed = v and v.closed, role = roleBox and roleBox.text, status = status, nWhy = nWhy, why = why, ban = v and v.banId }
-        say(string.format('%s: closed %s; role box "%s"; status "%s"; the power named %d times; role stop reason "%s"', user, tostring(v and v.closed), tostring(roleBox and roleBox.text), tostring(status), nWhy, tostring(why)))
+        seen[user] = { closed = v and v.closed, role = roleBox and roleBox.text or roleText, status = status, nWhy = nWhy, why = why, ban = v and v.banId }
+        say(string.format('%s: closed %s; role box "%s"; status "%s"; the power named %d times; role stop reason "%s"', user, tostring(v and v.closed), tostring(roleBox and roleBox.text or roleText) .. (roleBox and " (a box)" or " (plain text)"), tostring(status), nWhy, tostring(why)))
         check(v and v.closed == true, user .. ": the server keeps the card closed")
-        check(roleBox ~= nil and roleBox.text == netWhy, user .. ": the role box names the power, never \"user\"")
+        check(roleBox == nil and roleText == netWhy, user .. ": the Role row names the power as plain text (296d3a91), never \"user\"")
         check(status == netWhy, user .. ": the status names it too, not \"never seen\"")
         check(nWhy >= 2 and not noSkills and not loading, user .. ": profession and skills name it, never \"no skill\" or \"loading\"", nWhy)
-        check(why == netWhy, user .. ": the role box is grayed with that reason")
+        check(e == nil, user .. ": no role box to press")
         if e and e.onActivate then pcall(function() e.onActivate(win()) end) end
         check(t.popup == nil, user .. ": pressing it opens no pick")
         pcall(function() getCore():TakeFullScreenshot("bcc_" .. user .. ".png") end)
