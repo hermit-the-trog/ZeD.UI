@@ -1,0 +1,43 @@
+0.3.0-beta7
+
+Survival guide
+- Ads from Knox County shops fill the book's empty spaces in the Full look, in 1987 print: no two alike in a book, and NOTES once they run out.
+- The contents runs onto a second page when it needs one, instead of off the bottom. The publisher's own ad faces the introduction.
+- The First Days checklist prints at every text size.
+- The publisher's ad keeps every line inside its frame, in every language.
+
+Dashboards
+- Real odometers and trip odometers, saved on the car. Reset the trip on the dash; the Simple dash has a Trip cell.
+- The key has an ACC position, left of OFF: a key in with the engine off sits at ACC, and ON while the engine runs.
+- On a server the odometer reaches every seat.
+- The Dash Elite's unlit odometer marks are whole at night.
+
+Kills
+- The Identity tab, the Journal and the death screen show the same number, fire kills included.
+- Only real bombs count as explosions. Bats and guns count as what they are.
+- Older characters' kill rows are rebuilt from the game's own count, once, so they add up to the total.
+
+Cards
+- Padlocks and combination locks open in the half card.
+- Firearm cards show their ammo type again.
+- Book cards show your progress through that book.
+
+Servers
+- A safehouse claim that's waiting says so. Releasing and claiming again shows as two lines in the Log.
+- In safe mode, a safehouse note that arrives while you're joining waits until you're in.
+- An offline player's card shows only what the server keeps: no made-up role and no role change.
+- Spawn items reads as whole sentences in every language.
+
+Mods screen
+- ZeD picks comes back on when ZeD-GUI is turned back on.
+- The Z menu shows the right version.
+
+Windows
+- Tabs and cards no longer clip the next thing drawn.
+- Dates follow each language's own order.
+
+Known issues
+- ZeD picks comes back only when ZeD-GUI is turned on by its own row, not through a folder box or Turn all off.
+- Split-screen: a second local player shares the first player's windows, and doesn't save dash miles on a server.
+- The join rules and timed bans are enforced by the player's own game, so a modified game can get past them.
+- Death then Restart uses the game's character screens.
