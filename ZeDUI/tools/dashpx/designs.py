@@ -85,18 +85,20 @@ def clock(b, cx, cy, r, bezel="chrome", nd="#f4f4f0"):
     b.part("clock", cx=cx, cy=cy, rh=r * 0.5, rm=r - 3, color=nd)
 
 
-def rocker_panel(b, x, y, items, title="EMERGENCY", pitch=24):
-    """a black switch plate: rockers that show the lightbar and siren state, the rest the crew's own"""
+def rocker_panel(b, x, y, items, title="EMERGENCY", pitch=24, margin=4):
+    """a black switch plate: rockers that show the lightbar and siren state, the rest the crew's own. margin: the plate
+    either side of the outer switches' pitch"""
     d = b.d
-    w = len(items) * pitch + 8
+    w = len(items) * pitch + 2 * margin
     b.check_flat(x - 1, y - 1, w + 2, 42, "switch panel")
     d.slab(box(x, y, w, 40), 2.0, "blackp", bevel=1.0, polish=0.3, on=Z_FACE)
     zt = Z_FACE + 2.0
     d.text(title, x + w // 2, y + 3, "paint_c", align="c")
     for i, (lab, src, hid) in enumerate(items):
-        rx = x + 4 + (pitch - 16) // 2 + i * pitch
+        rx = x + margin + (pitch - 16) // 2 + i * pitch
         rocker(d, rx, y + 11, 16, 20, on=zt, up=False)
         d.text(lab, rx + 8, y + 33, "paint_w", align="c")
+        b.ink_rect(rx + 8 - text_w(lab) // 2, y + 33, text_w(lab), 5, f"label '{lab}'")     # (the build's checks see it)
         if src:
             def fn(dd, rx=rx): rocker(dd, rx, y + 11, 16, 20, on=zt, up=True)
             b.variant(f"rock_{src}_{b.id}", src, fn)
@@ -676,10 +678,12 @@ def ambulance(b):
     """Ambulance: a Valuline made plain, medic grey; the emergency switches on the lower dash"""
     shell_boxy(b, trim="rubber")
     cl_van(b, bz="blackp", nd="#ff7a2a")
-    # (Nov 7 2026: the switches 22 apart, 24 before, so the key's ACC legend has the room the panel gave up)
-    px_ = lower_boxy6(b, y0=118, chrome=False, cruise=False, trunk_label="REAR", trunk_sub="DOORS", right_panel=118)
+    # (Nov 7 2026: room for the key's ACC legend. The switches stay 24 apart, their legends a clear 4 px between; the
+    # plate trims a pixel of margin either side (3, 4 before) and the lower row's spread sets it 3 px nearer the
+    # column, and the key 3 px further right: ACC 4 px clear of the plate, as of OFF on the other dashes)
+    px_ = lower_boxy6(b, y0=118, chrome=False, cruise=False, trunk_label="REAR", trunk_sub="DOORS", right_panel=5 * 24 + 6)
     rocker_panel(b, px_, 122, [("LIGHT", "lbarLamp", "lbar"), ("SIREN", "sirenLamp", "siren"), ("FLOOD", None, None),
-                              ("SCENE", None, None), ("DOME", None, None)], pitch=22)
+                              ("SCENE", None, None), ("DOME", None, None)], pitch=24, margin=3)
     console_vents(b, 26, chrome=False, w=88, h=30)
     badge(b, 602, 35, 86, 12, style="stencil", role="unit", font="35", color="#e8e8e0", plate="stencil")
     headunit_slot(b, *HU6, frame="bezel")

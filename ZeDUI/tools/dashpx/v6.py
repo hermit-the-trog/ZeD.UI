@@ -362,8 +362,10 @@ def lower_curvy6(b, y0=122):
     ig = np.hypot(d.XX + 0.5 - kx, d.YY + 0.5 - (y0 + 18)) < 7
     d.h[ig] = Z_FACE + 0.6; d.mat[ig] = d.mid("alu"); d.polish[ig] = 0.8; d.tex[ig] = 0
     d.seam(box(kx - 1, y0 + 14, 2, 9), 0.8)
-    for t, a in zip(("ACC", "LOCK", "ON", "ST"), KEY_LABEL_AT):      # LOCK is these locks' OFF
-        DL.ring_label(b, kx + 0.5, y0 + 18.5, 10.5, a, t, gap=2)
+    # LOCK is these locks' OFF. LOCK is wider than OFF, so ACC sits 2 px further left and ON 1 px further right: ACC
+    # 4 px clear of LOCK, as of OFF on the boxy dashes, ON 3 px (Nov 7 2026; 2 and 2 before)
+    for t, a in zip(("ACC", "LOCK", "ON", "ST"), KEY_LABEL_AT):
+        DL.ring_label(b, kx + 0.5 + {"ACC": -2, "ON": 1}.get(t, 0), y0 + 18.5, 10.5, a, t, gap=2)
     key_turn_variants(b, kx, y0 + 18)
     b.hit("ignition", kx - 10, y0 + 8, 21, 21)
     column_shroud(b)
