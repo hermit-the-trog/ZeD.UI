@@ -85,8 +85,19 @@ step(20, function()
     check(not CW.isOpen() and not WW.isOpen(), "the windows start shut")
     CW.toggleBothPaired(pn)
 end)
+-- (Nov 7 2026) the hover roll-up shades a window while the desktop mouse is away from it, and a shaded window drops its
+-- rows from the focus ring: hold both down for the test, as zedqa_mp scripts do, and say whether either was rolled up
+local function keepDown(w)
+    if not w then return end
+    local was = w.windowShaded == true
+    w._autoShaded = false
+    if w.setWindowShaded then w:setWindowShaded(false) end
+    w._outSince = getTimestampMs() + 600000
+    return was
+end
 step(40, function()
     check(CW.isOpen() and WW.isOpen() and cw():isVisible() and ww():isVisible(), "1: both windows open")
+    say("rolled up before the hold: Character " .. tostring(keepDown(cw())) .. ", World " .. tostring(keepDown(ww())))
     -- (a thing the character does not carry, so its row is its own and not a stack's)
     for _, ft in ipairs({ "Base.Spiffo", "Base.Rubberducky", "Base.Doll", "Base.Yoyo", "Base.Pinecone", "Base.Apple" }) do
         if not inv:containsTypeRecurse(ft) then apple = inv:AddItem(ft); if apple then break end end
@@ -113,6 +124,8 @@ step(200, function()
     end
 end)
 step(200, function()
+    say("rolled up now: Character " .. tostring(cw().windowShaded == true) .. ", World " .. tostring(ww().windowShaded == true))
+    keepDown(cw()); keepDown(ww())
     check(apple:getContainer() == inv, "2: it came back to the inventory")
     check(inList(cw(), "charMainInv"), "2: the Character window lists it again")
 end)
