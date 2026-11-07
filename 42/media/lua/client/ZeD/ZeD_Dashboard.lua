@@ -1336,6 +1336,7 @@ ZeD.trDefaults({
     UI_ZeD_DashPlain_SetTemp = "Temp", UI_ZeD_DashPlain_Fan = "Fan", UI_ZeD_DashPlain_Tune = "Tune", UI_ZeD_DashPlain_Power = "Power",
     UI_ZeD_DashPlain_Signal = "Signal", UI_ZeD_DashPlain_Disc = "Disc in", UI_ZeD_DashPlain_Lights = "Lights",
     UI_ZeD_DashPlain_Trip = "Trip", UI_ZeD_DashPlain_Readouts = "Readouts", UI_ZeD_DashPlain_Km = "%1 km",
+    UI_ZeD_DashPlain_Acc = "ACC",
 })
 
 local PLAIN_W, PLAIN_PAD, PLAIN_GAP, PLAIN_BIG_W, PLAIN_ROW_W, PLAIN_BIG_SEGS = 800, 8, 6, 120, 64, 12
@@ -1461,12 +1462,13 @@ local function _heatTemp(st)
     return tostring(math.floor(t + 0.5)) .. string.char(176) .. "C"
 end
 
--- the key in the lock, as the plate draws it (its ACC - OFF - ON - START steps, ZeD_Dashboard:_keyPos)
+-- the key in the lock, as the plate draws it (its ACC - OFF - ON - START steps, ZeD_Dashboard:_keyPos). A dash with
+-- no ACC on its lock (the race car's IGN toggle, st.keyAcc false) says Off there, as its plate shows
 local function _ignitionWord(st)
     if st.keysIn and not st.hotwired then
         if st.keyPos == "start" then return ZeD.tr("UI_ZeD_Dash_PromptStart") end
         if st.keyPos == "on" then return ZeD.tr("UI_On") end
-        if st.keyPos == "off" then return ZeD.tr("UI_Off") end
+        if st.keyPos == "off" or not st.keyAcc then return ZeD.tr("UI_Off") end
         return ZeD.tr("UI_ZeD_DashPlain_Acc")
     end
     if st.hotwired then return ZeD.tr("UI_ZeD_DashPlain_Hotwired") end
@@ -2028,6 +2030,7 @@ function ZeD_Dashboard:prerender()
     end
     st.brand = self._badge and self._badge.brand      -- the console's mark: the sprite and its model line show by it
     st.keyPos = self:_keyPos(st, now)
+    st.keyAcc = des.sprites ~= nil and des.sprites["key_acc_" .. tostring(designId)] ~= nil     -- a lock with ACC printed on it
     self:_tray(vehicle, des, designId, st, scriptName)
     if designId == "taxi" then self:_hula(vehicle, st, now, dt) else st.hula = 0 end
     local Focus = ZeD.Input and ZeD.Input.Focus
