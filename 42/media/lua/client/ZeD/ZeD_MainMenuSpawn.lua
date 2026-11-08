@@ -172,6 +172,29 @@ function ZeD_MMSpawn:isRandom(it)
     return it ~= nil and it.region == nil and it.name == getText("UI_mapspawn_random")
 end
 
+-- A town Random may land on back at the desk after a death: a real town, never a "with player" place
+-- (ModSupport/ThisIsYourLife.lua also leaves out the mod's hidden town).
+function ZeD_MMSpawn:randomPickable(it)
+    if not (it and it.region) then return false end
+    return tostring(it.region.key or ""):sub(1, 10) ~= "WithPlayer"
+end
+
+-- the list's places Random may land on (their indexes)
+function ZeD_MMSpawn:randomTowns(items)
+    local t = {}
+    for i, it in ipairs(items) do
+        if self:randomPickable(it) then t[#t + 1] = i end
+    end
+    return t
+end
+
+-- why Random cannot go on (back at the desk after a death, nothing it may land on), or nil
+function ZeD_MMSpawn:randomProblem(it, items)
+    if not (MM.respawn and self:isRandom(it)) then return nil end
+    if #self:randomTowns(items or self:items()) > 0 then return nil end
+    return ZeD.tr("UI_ZeD_Spawn_RandomNone")
+end
+
 -- the save name and seed show only while a world is being made (vanilla's hideOrShowSaveName)
 function ZeD_MMSpawn:hasDetails()
     local m = ms()
@@ -244,6 +267,8 @@ function ZeD_MMSpawn:next()
     local v = vanilla()
     local items = self:items()
     if not v or not items[self.sel] or self:nameProblem() then return end
+    -- (Random with nothing to land on: Next waits, the words under the map say why)
+    if self:randomProblem(items[self.sel], items) then return end
     MM.clickSound()
     self:syncToVanilla()
     v.listbox.selected = self.sel
@@ -251,14 +276,9 @@ function ZeD_MMSpawn:next()
     if MM.respawn then
         -- after a death (Overrides/Respawn.lua): the game's respawn spawn screen, CoopMapSpawnSelect,
         -- goes on to occupation and traits. Its clickNext has no Random (the main menu's rolls one):
-        -- Random picks a town here, never a "with player" place.
+        -- Random picks a town here (randomPickable: never a "with player" place).
         if self:isRandom(items[self.sel]) then
-            local towns = {}
-            for i, it in ipairs(items) do
-                local key = it.region and tostring(it.region.key or "") or ""
-                if it.region and key:sub(1, 10) ~= "WithPlayer" then towns[#towns + 1] = i end
-            end
-            if #towns == 0 then return end
+            local towns = self:randomTowns(items)
             v.listbox.selected = towns[ZombRand(#towns) + 1]
         end
         v:clickNext()
@@ -437,7 +457,7 @@ function ZeD_MMSpawn:prerender()
     -- the band at the foot
     UI.stripSpecs(self, stripY, w, 1000,
         { { "back", getText("UI_btn_back"), function() self:back() end } },
-        { { "next", getText("UI_btn_next"), function() self:next() end, "primary", (it == nil) or (self:nameProblem() ~= nil) } })
+        { { "next", getText("UI_btn_next"), function() self:next() end, "primary", (it == nil) or (self:nameProblem() ~= nil) or (self:randomProblem(it, items) ~= nil) } })
     self._cur = it
 end
 
@@ -641,12 +661,13 @@ function ZeD_MMSpawn:drawDesc(x, y, w, h, it)
     local lineH = MM.fontH(f2) + T.px(3)
     local sbW = T.sp.scrollbarW
     -- the lines, wrapped once per town and width
-    local key = tostring(it.name) .. ":" .. w .. ":" .. tostring(f2)
+    local none = self:randomProblem(it)
+    local key = tostring(it.name) .. ":" .. w .. ":" .. tostring(f2) .. (none and ":none" or "")
     if self._descFor ~= key then
         self._descFor = key
         self.descScroll = 0
         local paras = townParagraphs(it.desc)
-        if self:isRandom(it) then paras = { ZeD.tr("UI_ZeD_Spawn_RandomDesc") } end
+        if self:isRandom(it) then paras = { none or ZeD.tr("UI_ZeD_Spawn_RandomDesc") } end
         local lines, ch = {}, T.px(14) + bigH + T.px(6)
         for pi, p in ipairs(paras) do
             if pi > 1 then ch = ch + T.px(6) end

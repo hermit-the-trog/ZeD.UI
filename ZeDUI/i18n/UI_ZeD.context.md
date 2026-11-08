@@ -3419,6 +3419,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Spawn_NewSeed` | `New seed` | Spawn location screen (new game): button beside the seed field that makes a fresh seed | 14 |
 | `UI_ZeD_Spawn_PromptNewSeed` | `New seed` | Spawn location screen (new game): controller prompt (Y button) | 12 |
 | `UI_ZeD_Spawn_RandomDesc` | `A town picked at random when you press "Next".` | Spawn location screen (new game): description of the Random entry (Next is the name of the Next button) | - |
+| `UI_ZeD_Spawn_RandomNone` | `No town here for Random to pick. Choose one from the list.` | Spawn location screen (new character after a death): shown in place of the Random entry's description when Random has no town it may land on (only "with player" places or a mod's special town); Next waits. Random is the name of the list entry | - |
 | `UI_ZeD_Spawn_Title` | `Project Zomboid  +  Spawn location` | Spawn location screen (new game): title bar. The + is the ZeD title separator | - |
 
 ## SPNCC

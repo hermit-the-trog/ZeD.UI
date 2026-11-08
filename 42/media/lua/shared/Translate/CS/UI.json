@@ -2415,6 +2415,7 @@
     "UI_ZeD_Spawn_NewSeed": "Nový seed",
     "UI_ZeD_Spawn_PromptNewSeed": "Nový seed",
     "UI_ZeD_Spawn_RandomDesc": "Město vybrané náhodně, až stiskneš \"Další\".",
+    "UI_ZeD_Spawn_RandomNone": "Tady není žádné město, které by šlo vybrat náhodně. Vyber jedno ze seznamu.",
     "UI_ZeD_Spawn_Title": "Project Zomboid  +  Místo spawnu",
     "UI_ZeD_Station_AnySurface": "Kdekoli",
     "UI_ZeD_Station_Fallback": "Pracoviště",

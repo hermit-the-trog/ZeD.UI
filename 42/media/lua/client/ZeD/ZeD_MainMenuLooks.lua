@@ -99,8 +99,19 @@ function ZeD_MMLooks:createChildren()
     self.sur = UI.newEntry(self)
     for _, e in ipairs({ self.fore, self.sur }) do
         e:setVisible(false)
-        e.onCommandEntered = function() self._enterAt = MM.now(); e:unfocus() end
+        e.onCommandEntered = function() self:nameEntered(e) end
     end
+end
+
+-- Return in a name field: the typed name goes to vanilla's field before the caret leaves (syncNames
+-- copies ours over only while ours is focused; unfocused first, the old name came back over it), and
+-- the same Return does not also press Play
+function ZeD_MMLooks:nameEntered(e)
+    self._enterAt = MM.now()
+    local v = looks()
+    local theirs = v and ((e == self.fore and v.forenameEntry) or (e == self.sur and v.surnameEntry))
+    if theirs and theirs:getText() ~= e:getText() then theirs:setText(e:getText()) end
+    e:unfocus()
 end
 
 function ZeD_MMLooks:onShow()

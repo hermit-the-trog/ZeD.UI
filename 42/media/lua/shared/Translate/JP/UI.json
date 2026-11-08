@@ -2415,6 +2415,7 @@
     "UI_ZeD_Spawn_NewSeed": "新しいシード",
     "UI_ZeD_Spawn_PromptNewSeed": "新シード",
     "UI_ZeD_Spawn_RandomDesc": "「進む」を押すと、町がランダムに選ばれます。",
+    "UI_ZeD_Spawn_RandomNone": "ここにはランダムで選べる町がありません。リストから選んでください。",
     "UI_ZeD_Spawn_Title": "Project Zomboid  +  スポーン地点",
     "UI_ZeD_Station_AnySurface": "どの面でも",
     "UI_ZeD_Station_Fallback": "ステーション",

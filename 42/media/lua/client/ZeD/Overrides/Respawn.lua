@@ -28,11 +28,21 @@
 --
 -- The one step with no ZeD window, CoopUserName, shows as the game's over the
 -- world, and the desk comes back with the next step. Another mod that shows a
--- respawn screen of the game's own (MM.redirectPass) gets the same.
+-- respawn screen of the game's own (MM.redirectPass) gets the same. The
+-- respawning player's controller goes to that screen as it shows.
+--
+-- This Is Your Life (ModSupport/ThisIsYourLife.lua): its hidden town opens
+-- the Hometown window here too, as on a new game; Random never picks that
+-- town or a "with player" place, and says so when there is nothing to pick.
+--
+-- Play: the monitor switches off (the CRT's squeeze to a line and a dot, the
+-- same switch-off as starting a game from the main menu: MM.switchOff), and
+-- then the game makes the character and the desk goes.
 --
 -- Keys: the desk takes Escape (each window's Back) and Return (Next / Play)
 -- when the respawning player is on the mouse; a controller drives it the way
--- it drives the main menu (A, B, X, Y, the bumpers, the D-pad).
+-- it drives the main menu (A, B, X, Y, the bumpers, the D-pad). With no
+-- window on the monitor, Escape and B are the Spawn window's Back.
 --
 -- Safe mode: nothing here runs and the game's screens show. When safe mode
 -- comes on while the desk is up, the respawn steps back to the death screen
@@ -57,7 +67,8 @@ local MM = ZeD.MainMenu
 
 -- the game's respawn screens with a ZeD window, and the view each lands on
 local SCREENS = { { "mapSpawnSelect", "spawn" }, { "charCreationProfession", "traits" }, { "charCreationMain", "looks" } }
-local VIEWS = { spawn = true, traits = true, looks = true }
+-- (tiyl: This Is Your Life's Hometown window, there when that support is loaded)
+local VIEWS = { spawn = true, traits = true, looks = true, tiyl = true }
 -- every screen of the game's that can show (the one without a ZeD window first)
 local ALL = { "coopUserName", "mapSpawnSelect", "charCreationProfession", "charCreationMain" }
 local OFF = -20000   -- the game's panel waits here, off the screen, while the desk shows
@@ -123,17 +134,28 @@ function ZeD_MMRespawnDesk:update()
         local w = self[rv.field]
         if w and w:isVisible() ~= (v == rv.view) then w:setVisible(v == rv.view) end
     end
-    if not MM.waking and not MM.poweringOn() then MM.pointer(MM.ctx, { self.drop, MM.activeWindow(), self.bar, self }) end
+    if MM.powerOff then
+        MM.powerOffTick()   -- Play: the monitor switches off, then the game makes the character (R.accept)
+        if MM.respawn == nil then return end   -- (made: the desk is down)
+    elseif not MM.waking and not MM.poweringOn() then
+        MM.pointer(MM.ctx, { self.drop, MM.activeWindow(), self.bar, self })
+    end
     local open = MM.ctx.open ~= nil
     if self.drop and self.drop:isVisible() ~= open then self.drop:setVisible(open) end
 end
 
--- the respawning player's controller (the windows pick their own first focus as they show)
-function ZeD_MMRespawnDesk:onJoypadDown(button, joypadData) MM.joyDown(JOY, button) end
-function ZeD_MMRespawnDesk:onJoypadDirUp(joypadData) MM.joyDir(JOY, "up") end
-function ZeD_MMRespawnDesk:onJoypadDirDown(joypadData) MM.joyDir(JOY, "down") end
-function ZeD_MMRespawnDesk:onJoypadDirLeft(joypadData) MM.joyDir(JOY, "left") end
-function ZeD_MMRespawnDesk:onJoypadDirRight(joypadData) MM.joyDir(JOY, "right") end
+-- the respawning player's controller (the windows pick their own first focus as they show);
+-- nothing answers while the monitor switches off; with no window up, B is the Spawn window's Back
+function ZeD_MMRespawnDesk:onJoypadDown(button, joypadData)
+    if MM.powerOff then return end
+    if button == Joypad.BButton and not MM.ctx.open and not MM.activeWindow() then R.noWindowBack(); return end
+    MM.joyDown(JOY, button)
+end
+local function joyDir(dir) if not MM.powerOff then MM.joyDir(JOY, dir) end end
+function ZeD_MMRespawnDesk:onJoypadDirUp(joypadData) joyDir("up") end
+function ZeD_MMRespawnDesk:onJoypadDirDown(joypadData) joyDir("down") end
+function ZeD_MMRespawnDesk:onJoypadDirLeft(joypadData) joyDir("left") end
+function ZeD_MMRespawnDesk:onJoypadDirRight(joypadData) joyDir("right") end
 
 -- ============================================================================
 -- STARTING, KEEPING IN STEP, FINISHING
@@ -181,8 +203,19 @@ function R.finish()
     if r.joypadData and desk and r.joypadData.focus == desk then r.joypadData.focus = nil end
     MM.view = "main"
     MM.ctx.open, MM.ctx.hot, MM.ctx.press, MM.ctx.dragHit = nil, nil, nil, nil
-    MM._framing, MM._dip, MM.powerOn = nil, nil, nil
+    MM._framing, MM._dip, MM.powerOn, MM.powerOff = nil, nil, nil, nil
     MM.waking = false
+end
+
+-- No window on the monitor (a view this desk has no window for): back as the Spawn window's Back
+-- goes (the death screen, or the server name step), so there is always a way out.
+function R.noWindowBack()
+    local d = MM.root
+    local w = d and d.spawnWin
+    if w and w.back then w:back(); return true end
+    local r = MM.respawn
+    if r and r.coop then r.coop:cancel(); return true end
+    return false
 end
 
 -- Every frame of the game's panel: a screen of the game's own showing (the name step, or a
@@ -195,16 +228,24 @@ function R.sync(coop)
         if not r.cancelling then r.cancelling = true; coop:cancel() end
         return
     end
-    local up = false
+    local shown = nil
     for _, k in ipairs(ALL) do
         local s = coop[k]
-        if s and s:isVisible() then up = true end
+        if s and s:isVisible() then shown = s end
     end
-    if up then
+    if shown then
         if coop:getX() ~= 0 then coop:setX(0) end
         if r.desk and r.desk:isVisible() then r.desk:setVisible(false) end
-    elseif coop:getX() ~= OFF then
-        coop:setX(OFF)
+        -- the respawning player's controller goes to the screen as it shows (Back to the server name
+        -- step: the game's own clickBack shows it with no controller, which stayed on the hidden desk)
+        local jd = r.joypadData
+        if jd and r.shown ~= shown then
+            r.shown = shown
+            if jd.focus ~= shown then jd.focus = shown; updateJoypadFocus(jd) end
+        end
+    else
+        r.shown = nil
+        if coop:getX() ~= OFF then coop:setX(OFF) end
     end
 end
 
@@ -231,14 +272,31 @@ function CoopCharacterCreation:prerender()
     return ISPanelJoypad.prerender(self)
 end
 
+-- Play: with the desk up, the monitor switches off first (MM.switchOff, as a game starting from the
+-- main menu), then the game makes the character (R.accept). A mod's own screen pressing Play with the
+-- desk stepped back: at once.
 function CoopCharacterCreation:accept()
     local r = MM.respawn
     if not (r and r.coop == self) then return O.accept(self) end
-    local ok, err = pcall(O.accept, self)
+    if MM.powerOff then return end   -- (Play again, Return or A, while the monitor switches off)
+    local desk = r.desk
+    if desk and desk:isVisible() and MM.switchOff then
+        local coop = self
+        MM.switchOff({ run = function() R.accept(coop) end })
+        return
+    end
+    R.accept(self)
+end
+
+function R.accept(coop)
+    local r = MM.respawn
+    if not (r and r.coop == coop) then MM.powerOff = nil; return end   -- (gone back meanwhile)
+    local ok, err = pcall(O.accept, coop)
     if not ok then print("[ZeD] respawn: the game's accept failed (" .. tostring(err) .. ")") end
-    if CoopCharacterCreation.instance == self and MM.respawn == r then
+    if CoopCharacterCreation.instance == coop and MM.respawn == r then
         -- the game did not take the choices (its accept1: no spawn point for this occupation in the
-        -- town): its screens are all hidden by now, so the Looks window comes back to try again
+        -- town): its screens are all hidden by now, so the monitor switches back on to the Looks window
+        if MM.powerOff then MM.powerOff = nil; MM.powerOn = { t0 = getTimestampMs() } end
         MM.showView("looks")
         return
     end
@@ -262,21 +320,24 @@ local function deskKeys()
 end
 R.deskKeys = deskKeys
 
--- Escape: an open menu, then a question, then the window's Back. The desk keeps it either way:
--- the pause menu does not open over the desk (it opens again from the world or the death screen).
+-- Escape: an open menu, then a question, then the window's Back. The desk keeps it while a window
+-- shows: the pause menu does not open over the desk (it opens again from the world or the death
+-- screen). With no window on the monitor it is the Spawn window's Back, or the game's Escape.
 ZeD.EscapeTakers = ZeD.EscapeTakers or {}
 ZeD.EscapeTakers.respawn = function()
     if not deskKeys() then return false end
+    if MM.powerOff then return true end   -- (Play: the monitor switching off)
     if MM.ctx.open then MM.ctx.open = nil; return true end
     local w = MM.activeWindow()
-    if w and w.keyEscape and w:keyEscape() then return true end
-    if w and w.confirm then w:setConfirm(false) end
+    if not w then return R.noWindowBack() end
+    if w.keyEscape and w:keyEscape() then return true end
+    if w.confirm then w:setConfirm(false) end
     return true
 end
 
 -- Return (Next / Play) and the arrows, as at the main menu
 function R.onKey(key)
-    if key == Keyboard.KEY_ESCAPE or not deskKeys() or MM.ctx.open then return end
+    if key == Keyboard.KEY_ESCAPE or not deskKeys() or MM.ctx.open or MM.powerOff then return end
     local w = MM.activeWindow()
     if w and w.keyOther then pcall(w.keyOther, w, key) end
 end

@@ -697,11 +697,19 @@ function forceChangeState(state, ...)
     local m = ms()
     local root = MM.root
     if loading and not o and root and root:isVisible() and m and not m.inGame then
-        MM.powerOff = { t0 = now(), state = state }
-        MM.ctx.open, MM.ctx.hot, MM.ctx.press = nil, nil, nil
+        MM.switchOff({ state = state })
         return
     end
     return MM._origForceChangeState(state, ...)
+end
+
+-- The monitor switches off, and then what waits on it goes on: o.state, vanilla's start (the loading
+-- screen); o.run, a function (back at the desk after a death, Play: the game makes the character,
+-- Overrides/Respawn.lua; director, Nov 7 2026: "the same moment as starting a game").
+function MM.switchOff(o)
+    o.t0 = now()
+    MM.powerOff = o
+    MM.ctx.open, MM.ctx.hot, MM.ctx.press = nil, nil, nil
 end
 
 -- (the desk's update) the switch-off done: vanilla's start goes on to the loading screen
@@ -709,11 +717,11 @@ function MM.powerOffTick()
     local o = MM.powerOff
     if not o then return end
     local t = now()
-    if o.state and t - o.t0 >= OFF_TOTAL then
-        local st = o.state
-        o.state, o.firedAt = nil, t
-        MM._origForceChangeState(st)
-    elseif not o.state and o.firedAt and t - o.firedAt > 2000 then
+    if (o.state or o.run) and t - o.t0 >= OFF_TOTAL then
+        local st, run = o.state, o.run
+        o.state, o.run, o.firedAt = nil, nil, t
+        if run then run() else MM._origForceChangeState(st) end
+    elseif not o.state and not o.run and o.firedAt and t - o.firedAt > 2000 then
         MM.powerOff = nil   -- still on the menu (the start did not go through): the monitor comes back
     end
 end
@@ -1626,6 +1634,19 @@ function MM.openPopup(key, items, anchor, up)
     MM.ctx.dropScroll = 0
 end
 
+-- A pop-up's room (top, bottom, left, right): the monitor's screen on the desk (at the menu, and back
+-- at the desk after a death, where the game is loaded but the desk is up: Overrides/Respawn.lua; at
+-- Deck size the desk leans in and the room past the monitor is the desk's wood), the game screen in game.
+function MM.popRoom()
+    local T = ZeD.T
+    local m = ms()
+    if m and m.inGame and not MM.respawn then
+        return T.px(8), getCore():getScreenHeight() - T.px(8), 0, getCore():getScreenWidth()
+    end
+    local L = MM.layout()
+    return L.ty + T.px(4), L.ty + L.th - T.px(4), L.tx + T.px(4), L.tx + L.tw - T.px(4)
+end
+
 -- The live rows of the open menu (the controller walks these).
 function MM.dropLive()
     local items = MM.openItems()
@@ -1670,12 +1691,10 @@ function ZeD_MMDrop:prerender()
     -- room: the monitor's screen at the menu, the game screen in game. A list that does not
     -- fit below its box opens above it when there is more room there, else it is cut and scrolls.
     local full = h
+    local limL, limR = 0, getCore():getScreenWidth()
     if not pos then
-        local L = MM.layout()
-        local m = ms()
-        local inGame = m and m.inGame
-        local limTop = inGame and T.px(8) or (L.ty + T.px(4))
-        local limBot = inGame and (getCore():getScreenHeight() - T.px(8)) or (L.ty + L.th - T.px(4))
+        local limTop, limBot
+        limTop, limBot, limL, limR = MM.popRoom()
         local an = pop.anchor
         if not pop.up and y + h > limBot then
             local below, above = limBot - y, an.y - T.px(2) - limTop
@@ -1693,6 +1712,7 @@ function ZeD_MMDrop:prerender()
         w = w + dropBarW
         x = math.max(0, math.min(x, getCore():getScreenWidth() - w))
     end
+    if not pos then x = math.max(limL, math.min(x, limR - w)) end   -- (a pop-up stays on its room side to side too)
     MM.ctx.dropScrollMax = scrollMax
     MM.ctx.dropScroll = math.max(0, math.min(MM.ctx.dropScroll or 0, scrollMax))
     local off = MM.ctx.dropScroll
