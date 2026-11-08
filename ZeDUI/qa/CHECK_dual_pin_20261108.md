@@ -5,11 +5,12 @@ What changed (punch list 112, the director's rulings): each half of the Characte
 - **Character window:** the drawer's pin right after the close box (over the tabs), the inventory's pin where the window's single pin was (left of the window box).
 - **World window:** the containers' pin right after the close box (over the containers), the drawer's pin where the single pin was (left of the window box).
 - **A rolled inventory side** rolls under its rod, as the roll box has always done; its pin moves onto the rod (the Character rod's right end, the World rod after its close box).
-- **A rolled drawer side** folds in, as a second press of its tab does; it opens again on the same tab.
+- **A rolled drawer side** folds in, as a second press of its tab does, and opens again on the same tab exactly as it was left: the same scroll, the same Equip pick, the selection in the list kept. It never folds while an item card is over it, while Loot columns are open, or while the drawer is as wide as the window (no inventory list beside it). Opening Loot columns or an item card while it is folded makes that the drawer: the fold is forgotten.
+- **Coming back from a rolled window,** only the half brought back appears: the other is already folded or under its rod, with no flash of the whole window.
 - **Both halves rolled:** the whole window rolls to its title bar, as before.
 - A rolled half comes back when the pointer is over its part of the title bar (the inventory's: its rod). A side rolled by hand with the roll box stays rolled until its tab on the rod is pressed.
 
-Code: `ZeD/WindowHalves.lua` (new), `ZeD/Organisms.lua` (the title bar's pins, the window's roll hands over to the halves), `ZeD/WindowCurtain.lua` (the pin on the rod), `ZeD/ZeD_CharacterWindow.lua` and `ZeD/ZeD_WorldWindow.lua` (attach, the saved tab), `ZeD/Input/FocusManager.lua` (the pad's aiming escape and Y / bumpers). Sim: `lua51 ZeDUI/tools/qa/dual_pin_sim.lua` (87 checks, 0 failed at commit). Script: `ZeDUI/tools/qa/zedqa_dual_pin.lua` (the real mouse, as zedqa_autocollapse). Not run in game yet.
+Code: `ZeD/WindowHalves.lua` (new), `ZeD/Organisms.lua` (the title bar's pins, the window's roll hands over to the halves), `ZeD/WindowCurtain.lua` (the pin on the rod), `ZeD/ZeD_CharacterWindow.lua` and `ZeD/ZeD_WorldWindow.lua` (attach, the saved tab), `ZeD/Input/FocusManager.lua` (the pad's aiming escape and Y / bumpers). Sim: `lua51 ZeDUI/tools/qa/dual_pin_sim.lua` (125 checks, 0 failed at commit). Script: `ZeDUI/tools/qa/zedqa_dual_pin.lua` (the real mouse, as zedqa_autocollapse). Not run in game yet.
 
 ## Setup
 
@@ -33,10 +34,16 @@ Code: `ZeD/WindowHalves.lua` (new), `ZeD/Organisms.lua` (the title bar's pins, t
 | 2.1 | Nothing pinned. Character on Health. Rest the pointer on the drawer (the Health page) for 3 s. | The inventory side rolls up under its rod; the drawer stays open. |
 | 2.2 | Point at the rod's title. | The inventory comes back down. |
 | 2.3 | Rest the pointer on the inventory list for 3 s. | The drawer folds in (the window narrows from the left); the list does not move. |
-| 2.4 | Point at the title bar above the tabs. | The drawer opens again, on Health. |
+| 2.4 | Point at the title bar above the tabs. | The drawer opens again, on Health, scrolled where you left it. |
+| 2.4a | Equip tab: pick a slot, scroll down, select two items in the list. Rest the pointer on the list until the drawer folds, then point above the tabs. | The drawer comes back on Equip with the same slot picked and the same scroll; both items still selected. |
+| 2.4b | With an item card open over the drawer, rest the pointer on the list for 5 s. | The drawer does not fold while the card is open. |
+| 2.4c | Let the drawer fold, then open Loot columns (or click one item for its card). Point above the tabs. | The columns (or card) stay; the old tab does not reopen over them. |
 | 2.5 | Move the pointer off both windows for 3 s. | Each window rolls to its title bar, full width, as before. |
-| 2.6 | Point at the drawer's part of a rolled title bar. | The window comes down with the drawer open and the inventory rolled under its rod. Point at the rod: the inventory comes down. |
-| 2.7 | Roll the window up again, then point at the inventory's part of the bar. | The window comes down with the inventory open and the drawer folded. |
+| 2.6 | Point at the drawer's part of a rolled title bar. | The window comes down with the drawer open and the inventory already under its rod, the rod already up: no flash of the whole window, no roll-up to watch. Point at the rod: the inventory comes down. |
+| 2.7 | Roll the window up again, then point at the inventory's part of the bar. | The window comes down with the inventory open and the drawer already folded: no flash of the drawer, no fold to watch. |
+| 2.7a | A tab whose drawer is as wide as the window (no inventory list beside it). Move off for 3 s. | The bag strip never rolls under a rod; with nothing pinned the whole window rolls up, and its bar brings it back. |
+| 2.7b | Fold the drawer by itself, then window menu > Reset this window. Close and reopen the window. | It opens on Loot (the reset forgets the folded tab). |
+| 2.7c | Deck, Large text, Character on a tab: look at the roll box (the up triangle after the title). | It sits right after the title as drawn (cut short if need be) and never touches the stats or the right pin. |
 | 2.8 | On Loot (no drawer), move off for 3 s. | The whole window rolls up; any part of its bar brings it down. |
 | 2.9 | Press the roll box (the up triangle after the title). Then point at the rod. | Rolled by hand, it stays rolled with the pointer on the rod. Its tab on the rod brings it down. |
 | 2.10 | Hold the mouse button (drag the map, move a window) for more than 2 s away from a half. | Nothing rolls while the button is held. |
@@ -59,11 +66,11 @@ Code: `ZeD/WindowHalves.lua` (new), `ZeD/Organisms.lua` (the title bar's pins, t
 
 | # | How | What should show |
 |---|---|---|
-| 4.1 | Y to open both. In the Character window press Up from the top of the tab strip, then from the top of the container strip (the column of bags at the right). | Up from the tabs lands on the drawer's pin; Up from the container strip lands on the inventory's pin (each pin sits above its strip). The hand mark (or your highlight setting) shows on the pin. Up from the list itself stays in the list. |
+| 4.1 | Y to open both. In the Character window press Up from the top tab, then from the top bag (the column of bags at the right). Do it on the Deck at Large text too. | Up from the top tab lands on the drawer's pin; Up from the top bag lands on the inventory's pin (each pin is a stop as wide as its strip). The hand mark (or your highlight setting) shows on the pin box. Up from the list itself stays in the list. |
 | 4.2 | On a pin, press Left / Right. | Focus moves between the two pins along the title bar. Down goes back to the strip or list below. |
 | 4.3 | A on a pin. | The pin toggles; the prompt reads Pin or Unpin; focus stays on the pin. |
 | 4.4 | Pin the World drawer on Maps only. Flick the right stick (aim). | The World containers roll under their rod, the map stays open; the Character window rolls up whole (unless pinned). |
-| 4.5 | Then Y (or LB / RB). | Everything that rolled by itself comes back down. |
+| 4.5 | Then Y (or LB / RB). | One Y: everything that rolled by itself comes back down. The pinned map never rolls up on the way (Y counts a window with a half rolled by itself as rolled up). |
 | 4.6 | Same in the World window: Up from its container strip (left) and from its tab strip (right). | The containers' pin and the drawer's pin. With the containers rolled, the containers' pin is on the rod and still a stop, beside the rod's tab (Left from the tab). |
 | 4.7 | With a controller in use, leave the windows alone for 10 s. | Nothing rolls by itself (the game keeps its pages open for a controller). |
 

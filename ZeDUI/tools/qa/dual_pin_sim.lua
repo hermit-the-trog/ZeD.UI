@@ -19,6 +19,17 @@
 --            the pointer, the map stays open, aim too
 --   PAD      the pins are the title bar's stops (left to right; the rolled side's pin on its rod), A toggles
 --   SHADE    a shade or unshade from elsewhere (double-click, Y) rolls or brings down both halves
+--   KEEP     a fold and unfold bring the drawer back exactly as it was (pick, scroll, cache, selection), never through
+--            the strip's press; no fold over an item card; Loot columns or a card opened while folded forget the fold;
+--            a tab with no hit zone on the strip folds and unfolds all the same
+--   FLASH    from a rolled window only the half brought back shows, in the same update (the other already folded or
+--            under its rod, the rod already up)
+--   RESET    Reset this window forgets a folded drawer
+--   PADUP    Up from the top tab and the top bag land on the pins at Large text (the real SpatialNav)
+--   FULL     a drawer as wide as the window: the bag strip never rolls, the halves meet at it
+--   ROLLBOX  the roll box after the title as drawn, its room kept in the bar
+--   PADY     one Y after the pad's aim brings the rolled halves back and never rolls a pinned one (the real
+--            FocusManager.lua, its Y through Focus.qaButton)
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/dual_pin_sim.lua
 -- It prints FAIL lines and a last line "dual_pin_sim: N checks, M failed", and exits 1 if any failed.
 
@@ -156,6 +167,7 @@ end
 load("Organisms.lua")
 load("WindowCurtain.lua")
 load("WindowHalves.lua")
+load("Input/SpatialNav.lua")   -- (the D-pad's picker, for the pins' stops)
 local H, C = ZeD.Halves, ZeD.Curtain
 check("the files load", H and C and ZeD_Window and ZeD_Window.drawPinBox ~= nil)
 
@@ -170,35 +182,49 @@ local function layout(win)
     local L = win._lay
     local effW = (win._drawerOpen and win._drawerMode == "tab") and DRAWER or 0
     win._drawerEffW = effW
-    local invW = win._rolled and 0 or INV
+    -- (a drawer as wide as the window: the inventory list hidden, the bag strip still there)
+    local full = win._invDrawerOpen == false and effW > 0
+    local invW = (win._rolled or full) and 0 or INV
     L.content.width = invW
-    L.content.visible = not win._rolled and not win.windowShaded
-    local w = STRIP + effW + (win._rolled and 0 or (CSTRIP + INV))
+    if not win.windowShaded then L.content.visible = not win._rolled and not full end
+    local w = STRIP + effW + (win._rolled and 0 or (CSTRIP + invW))
     if win:getWidth() ~= w and not win.windowShaded then
         if L.side == "left" then win:setX(L.anchor - w) end   -- (the Character window grows to the left)
         win:setWidth(w)
     end
+    win._anchorRightEdge = L.anchor
     win._dividerX = (effW > 0 and invW > 0) and ((L.side == "left") and (STRIP + effW) or (CSTRIP + INV)) or nil
     L.strip.x = (L.side == "left") and 0 or (win:getWidth() - STRIP)
+    L.bags.x = (L.side == "left") and (win:getWidth() - CSTRIP) or 0
+    if not win.windowShaded then L.bags.visible = not win._rolled end
     -- the strip's tab hit zones, as the strips stamp them while drawing
     L.strip._hitZones = {}
     for i, id in ipairs(L.tabs) do L.strip._hitZones[i] = { id = "tab:" .. id, x = 2, y = (i - 1) * 40, w = 32, h = 36 } end
     C.sync(win)
 end
 
--- a press on a tab, as the real strips' handlers do
+-- a press on a tab, as the real strips' handlers do, with what each path wipes
+-- (ZeD_CharacterWindow / ZeD_WorldWindow strip.onMouseDown)
 local function stripPress(win, tabId)
+    local content = win._lay.content
     if tabId == "loot" then
         if win._rolled then C.finishUnroll(win) end
-        win._activeTab, win._drawerMode, win._drawerOpen = "loot", nil, false
+        win._activeTab, win._drawerMode, win._drawerOpen, win._drawerItem = "loot", nil, false, nil
+        content._selectedItems = {}
     elseif tabId == win._activeTab then
         if win._drawerOpen and win._drawerMode == "tab" then
             win._activeTab, win._drawerOpen, win._drawerMode = "loot", false, nil
+            if tabId == "equip" then win._equipSelected = nil end
         else
-            win._drawerMode, win._drawerOpen = "tab", true
+            win._drawerMode, win._drawerOpen, win._drawerItem = "tab", true, nil
         end
     else
-        win._activeTab, win._drawerMode, win._drawerOpen = tabId, "tab", true
+        -- the "new tab" path: Loot columns closed, the selection, the card, the scroll and the caches gone
+        win._mcSelected = {}
+        win._activeTab, win._drawerMode, win._drawerOpen, win._drawerItem = tabId, "tab", true, nil
+        content._selectedItems = {}
+        win._tabScroll.pos = 0
+        win._healthCache, win._equipCache, win._equipSelected = nil, nil, nil
     end
     win._stripPresses = (win._stripPresses or 0) + 1
 end
@@ -217,14 +243,20 @@ local function makeWindow(key)
     win:addChild(strip)
     local content = ISPanel:new(0, 26, INV, 360)
     win:addChild(content)
+    content._selectedItems = {}
+    local bags = ISPanel:new(0, 26, CSTRIP, 360)
+    win:addChild(bags)
+    win._containerStrip = bags
+    win._tabScroll = { pos = 0 }
+    win._mcSelected = {}
     strip.onMouseDown = function(self, sx, sy)
         for _, z in ipairs(self._hitZones or {}) do
             if sx >= z.x and sx < z.x + z.w and sy >= z.y and sy < z.y + z.h then stripPress(win, z.id:sub(5)); return true end
         end
         return true
     end
-    win._lay = { side = left and "left" or "right", anchor = x + 744, strip = strip, content = content,
-        tabs = left and { "loot", "health", "skills" } or { "loot", "maps", "vehicle" } }
+    win._lay = { side = left and "left" or "right", anchor = x + 744, strip = strip, content = content, bags = bags,
+        tabs = left and { "loot", "health", "skills", "equip" } or { "loot", "maps", "vehicle" } }
     win[left and "_tabStripPanel" or "_actionTabStrip"] = strip
     win._mainContent = content
     win._focusRing = { { zone = "list", focusable = true, elements = {}, focusedElementIdx = 1 } }
@@ -306,7 +338,7 @@ do
     tick(22)
     check("TIMERS: pointer in the inventory, past 2 s: the drawer folds in", w._halves.foldTab == "health" and not w._drawerOpen, tostring(w._halves.foldTab))
     check("TIMERS: ... the inventory stays, the window down", not w._rolled and not w.windowShaded)
-    check("TIMERS: ... through the strip's own press (as a second press of the tab)", (w._stripPresses or 0) == 1, w._stripPresses)
+    check("TIMERS: ... set straight, not through a press of the strip (which wipes the drawer)", (w._stripPresses or 0) == 0, w._stripPresses)
     pointAt(w, 10, 10)   -- the drawer's part of the title bar (the tab strip's end)
     tick(1)
     check("TIMERS: the pointer on the drawer's part of the bar opens it again on its tab", w._drawerOpen and w._activeTab == "health" and w._halves.foldTab == nil)
@@ -574,6 +606,211 @@ do
         #ce == 2 and ce[1].id == "halfpin:drawer" and ce[2].id == "halfpin:inv" and cz.focusable, #ce)
     away(); CW:setWindowShaded(true); tick(1)
     check("PAD: a rolled window offers no stops", cz and (#cz.elements == 0 and not cz.focusable))
+end
+
+-- ===========================================================================
+-- KEEP (review 1): a fold and unfold bring the drawer back exactly as it was
+-- ===========================================================================
+do
+    WW = nil
+    local w = fresh({ charInv = true })
+    stripPress(w, "equip"); layout(w)
+    local content = w._lay.content
+    w._equipSelected = "slot5"
+    w._tabScroll.pos = 120
+    w._equipCache = { built = true }
+    content._selectedItems = { a = true, b = true }
+    pointAt(w, 36 + 300 + 100, 200)   -- over the inventory
+    tick(22)
+    check("KEEP: (staged) the Equip drawer folded by its half", w._halves.foldTab == "equip" and not w._drawerOpen)
+    check("KEEP: the fold keeps the Equip pick", w._equipSelected == "slot5", w._equipSelected)
+    pointAt(w, 10, 10); tick(1)
+    check("KEEP: unfolded on Equip", w._drawerOpen and w._activeTab == "equip" and w._halves.foldTab == nil)
+    check("KEEP: ... its pick, scroll and cache as they were", w._equipSelected == "slot5" and w._tabScroll.pos == 120 and w._equipCache ~= nil,
+        tostring(w._equipSelected) .. " " .. tostring(w._tabScroll.pos))
+    local n = 0
+    for _ in pairs(content._selectedItems) do n = n + 1 end
+    check("KEEP: ... the list's selection kept", n == 2, n)
+    check("KEEP: ... and never through a press of the strip", (w._stripPresses or 0) == 1, w._stripPresses)   -- (the one press: Equip opened above)
+
+    -- no fold over an item card or with the inventory hidden; Loot columns or a card opened while folded take it over
+    w = fresh({ charInv = true })
+    w._drawerItem = { item = true }
+    pointAt(w, 36 + 300 + 100, 200); tick(25)
+    check("KEEP: an item card over the drawer: no fold", w._drawerOpen and w._halves.foldTab == nil and w._drawerItem ~= nil)
+    w._drawerItem = nil
+    tick(22)
+    check("KEEP: (staged) folded once the card closed", w._halves.foldTab == "health")
+    w._mcSelected = { "crate" }
+    tick(1)
+    check("KEEP: Loot columns opened while folded: the fold forgotten", w._halves.foldTab == nil and not w._halves.drawer.rolled)
+    pointAt(w, 10, 10); tick(2)
+    check("KEEP: ... and the drawer's bar leaves the columns alone", #w._mcSelected == 1 and w._activeTab == "loot")
+    w = fresh({ charInv = true })
+    pointAt(w, 36 + 300 + 100, 200); tick(22)
+    w._drawerItem, w._drawerMode, w._drawerOpen = { item = true }, "item", true
+    tick(1)
+    check("KEEP: an item card opened while folded: the fold forgotten", w._halves.foldTab == nil)
+
+    -- a tab scrolled out of the strip (no hit zone): the fold and unfold do not need the strip
+    w = fresh({ charInv = true })
+    w._lay.tabs = { "loot" }
+    pointAt(w, 36 + 300 + 100, 200); tick(22)
+    check("KEEP: a tab with no zone on the strip still folds", w._halves.foldTab == "health")
+    pointAt(w, 10, 10); tick(1)
+    check("KEEP: ... and unfolds", w._drawerOpen and w._activeTab == "health")
+end
+
+-- ===========================================================================
+-- FLASH (review 2): from a rolled window only the half brought back shows
+-- ===========================================================================
+do
+    local w = fresh()
+    away(); tick(22)
+    check("FLASH: (staged) both rolled", w.windowShaded)
+    pointAt(w, 600, 10)   -- the inventory's part of the bar
+    CLOCK = CLOCK + 100; w:update()
+    check("FLASH: the inventory's part: in the same update the window is down with the drawer already folded",
+        not w.windowShaded and w._halves.foldTab == "health" and not w._drawerOpen and (w._drawerEffW or 0) == 0)
+    layout(w)
+    w = fresh()
+    away(); tick(22)
+    pointAt(w, 100, 10)   -- the drawer's part
+    CLOCK = CLOCK + 100; w:update()
+    check("FLASH: the drawer's part: in the same update the inventory is already under its rod",
+        not w.windowShaded and w._rolled == true and w._drawerOpen)
+    check("FLASH: ... the rod already up (no roll-up to watch)", w._rod and w._rod:getHeight() == 26, w._rod and w._rod:getHeight())
+    layout(w)
+    -- drawer folded before the window rolled: the drawer's part brings it out with the inventory already rolled
+    w = fresh()
+    pointAt(w, 36 + 300 + 100, 200); tick(22)   -- the drawer folds
+    away(); tick(22)                              -- then the inventory: the window rolls
+    check("FLASH: (staged) folded, then rolled", w.windowShaded and w._halves.foldTab == "health")
+    pointAt(w, 10, 10)
+    CLOCK = CLOCK + 100; w:update()
+    check("FLASH: the drawer's part of that bar: down, the drawer open, the inventory already rolled",
+        not w.windowShaded and w._drawerOpen and w._rolled == true)
+    layout(w)
+end
+
+-- ===========================================================================
+-- RESET (review 3): Reset this window forgets a folded drawer
+-- ===========================================================================
+do
+    local w = fresh({ charInv = true })
+    pointAt(w, 36 + 300 + 100, 200); tick(22)
+    check("RESET: (staged) folded", H.foldedTab(w) == "health")
+    ZeD_Window.resetLayout("char")
+    check("RESET: the reset forgets the fold: the saved layout gets Loot", H.foldedTab(w) == nil and not w._halves.drawer.rolled and w._activeTab == "loot")
+end
+
+-- ===========================================================================
+-- PADUP (review 4): Up from the top tab and the top bag lands on the pins, Deck Large text
+-- ===========================================================================
+do
+    local keepBox = ZeD.T.closeBoxSz
+    ZeD.T.closeBoxSz = 27   -- (Large text: each pin overlaps its 36-unit strip by 1 unit)
+    local w = fresh()
+    tick(1)
+    local N = ZeD.SpatialNav
+    local zone
+    for _, z in ipairs(w._focusRing) do if z.zone == "charTitlePins" then zone = z end end
+    local els = zone and zone.elements or {}
+    local lp, rp = H.pinRect(w, "left"), H.pinRect(w, "right")
+    check("PADUP: (staged) the pins barely overlap their strips", lp and 36 - lp.x <= 1 and rp and rp.x + rp.w - (w:getWidth() - 36) <= 1)
+    local topTab = { x = 2, y = 26, w = 32, h = 36 }
+    local topBag = { x = w:getWidth() - 34, y = 26, w = 32, h = 36 }
+    local a, ta = N.pick(topTab, els, "up")
+    local b, tb = N.pick(topBag, els, "up")
+    check("PADUP: Up from the top tab: the drawer's pin, lined up", a and a.id == "halfpin:drawer" and ta == 0, a and a.id)
+    check("PADUP: Up from the top bag: the inventory's pin, lined up", b and b.id == "halfpin:inv" and tb == 0, b and b.id)
+    local d = els[1] and N.pick(els[1], { topTab, topBag }, "down")
+    check("PADUP: Down from the drawer's pin: the top tab", d == topTab)
+    ZeD.T.closeBoxSz = keepBox
+end
+
+-- ===========================================================================
+-- FULL (review 7): a drawer as wide as the window keeps its bag strip
+-- ===========================================================================
+do
+    local w = fresh({ charTabs = true })
+    w._invDrawerOpen = false; layout(w)
+    check("FULL: (staged) no list, the bag strip showing", w._dividerX == nil and w._lay.bags.visible)
+    away(); tick(30)
+    check("FULL: the bag strip never rolls under a rod", not w._rolled and not w.windowShaded and w._drawerOpen)
+    check("FULL: the halves meet at the bag strip, not the window's edge", H.split(w) == w:getWidth() - 36, H.split(w))
+    w = fresh({})
+    w._invDrawerOpen = false; layout(w)
+    away(); tick(25)
+    check("FULL: nothing pinned: the whole window rolls (no drawer fold, no rod)", w.windowShaded and not w._rolled and w._halves.foldTab == nil)
+    pointAt(w, 40, 10); tick(2)
+    check("FULL: its bar brings it back down", not w.windowShaded and w._drawerOpen)
+end
+
+-- ===========================================================================
+-- ROLLBOX (review 8): the roll box goes after the title as drawn
+-- ===========================================================================
+do
+    local w = fresh()
+    w.title = string.rep("Character window ", 6)
+    w._titleShownW = 70   -- (the title bar drew it cut short)
+    C.drawRollButton(w)
+    local r = w._rollBtn
+    check("ROLLBOX: right after the cut-short title", r and r.x == 4 + 14 + 8 + H.titleShift(w) + 70 + 4 + 2, r and r.x)
+    check("ROLLBOX: the bar keeps its room from the title and the stats", w._titleReserve == 14 + 4 + 2)
+    w._rolled = true; C.drawRollButton(w); w._rolled = false
+    check("ROLLBOX: no box, no room kept", w._titleReserve == nil)
+end
+
+-- ===========================================================================
+-- PADY (review 5): Y after aiming with a pinned half brings the halves back, never rolls the pinned one
+-- (the REAL FocusManager.lua, its Y tap through Focus.qaButton)
+-- ===========================================================================
+do
+    PLAYER.md = { ZeD_WinPinned = { charInv = false, charTabs = true, worldInv = false, worldTabs = true } }
+    CW = makeWindow("char")
+    WW = makeWindow("world")
+    local magicMT = {}
+    local function magic() return setmetatable({}, magicMT) end
+    magicMT.__index = function() return magic() end
+    magicMT.__call = function() return magic() end
+    local keepG = getmetatable(_G)
+    Events = setmetatable({}, { __index = function(t, k)
+        local e = { fns = {} }
+        e.Add = function(fn) e.fns[#e.fns + 1] = fn end
+        e.Remove = function() end
+        rawset(t, k, e); return e
+    end })
+    ZeD.Input.Detector = { getMode = function() return "gamepad" end }
+    ZeD_CharacterWindow.isOpen = function() return CW ~= nil end
+    ZeD_WorldWindow.isOpen = function() return WW ~= nil end
+    setmetatable(_G, { __index = function(_, k) return magic() end })
+    getJoypadData = function() return nil end
+    getControllerCount = function() return 0 end
+    local ok, err = pcall(load, "Input/FocusManager.lua")
+    setmetatable(_G, keepG)
+    check("PADY: the real FocusManager loads", ok, err)
+    local F = ZeD.Input.Focus
+    if ok and F.qaButton then
+        -- the pad's aiming escape, as the right stick fires it
+        JoypadState.players[1] = {}   -- (a controller plays: no pointer timers)
+        H.aim(CW); H.aim(WW); tick(3)
+        check("PADY: (staged) aim: the drawers pinned stay open, the inventories rolled", CW._rolled and WW._rolled and CW._drawerOpen and WW._drawerOpen and not CW.windowShaded,
+            string.format("c rolled %s shaded %s open %s inv %s | w rolled %s open %s", tostring(CW._rolled), tostring(CW.windowShaded), tostring(CW._drawerOpen),
+                tostring(CW._halves.inv.rolled), tostring(WW._rolled), tostring(WW._drawerOpen)) .. " pinned " .. tostring(H.isPinned(CW, "inv")) .. " " .. tostring(CW.pinned))
+        check("PADY: a window with a half rolled by itself counts as rolled", F.isRolled(CW) and F.isRolled(WW))
+        local function yTap()
+            F.qaButton("Y", true); for _, fn in ipairs(Events.OnTick.fns) do pcall(fn) end
+            F.qaButton("Y", false); for _, fn in ipairs(Events.OnTick.fns) do pcall(fn) end
+            F.qaButton("Y", nil)
+            tick(3)
+        end
+        if F.releaseFocus then pcall(F.releaseFocus) end
+        yTap()
+        check("PADY: one Y brings the rolled halves back", not CW._rolled and not WW._rolled and not CW.windowShaded and not WW.windowShaded)
+        check("PADY: ... and never rolled a pinned half", CW._drawerOpen and WW._drawerOpen)
+        JoypadState.players[1] = nil
+    end
 end
 
 print("dual_pin_sim: " .. checks .. " checks, " .. failed .. " failed")

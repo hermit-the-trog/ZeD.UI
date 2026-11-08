@@ -249,13 +249,19 @@ end
 -- an up triangle in it
 function C.drawRollButton(win)
     win._rollBtn = nil
-    if win._rolled or win.windowShaded or not (win._curtain and win._curtain.canRoll()) then return end
+    if win._rolled or win.windowShaded or not (win._curtain and win._curtain.canRoll()) then
+        win._titleReserve = nil
+        return
+    end
     local T = ZeD.T
     local tbH = T.titleBarH
     local tbp = T.sp.titleBoxPad
     local titleX = T.sp.sm + T.closeBoxSz + T.sp.md + ((win._halves and ZeD.Halves) and ZeD.Halves.titleShift(win) or 0)
-    local titleW = ZeD.TM:MeasureStringX(T.fontF3, tostring(win.title or ""))
+    -- right after the title as the title bar drew it (cut short at Large text on a narrow
+    -- window), and the bar keeps the box's room from the title and the stats (_titleReserve)
+    local titleW = win._titleShownW or ZeD.TM:MeasureStringX(T.fontF3, tostring(win.title or ""))
     local s = T.closeBoxSz
+    win._titleReserve = s + tbp + T.px(2)
     local r = { x = titleX + titleW + tbp + T.px(2), y = math.floor((tbH - s) / 2), w = s, h = s }
     win._rollBtn = r
     local over = win:isMouseOver() and ZeD.Atoms.mouseIn(win, r.x, r.y, r.w, r.h)
