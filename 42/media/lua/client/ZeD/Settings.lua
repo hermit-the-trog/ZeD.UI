@@ -263,7 +263,7 @@ ZeD.Settings.watchPlaceOption = watchPlace
 
 -- ----- ACTION BAR (Oct 19 2026, mockup ZeDUI/mockups/zed_action_bar_v2.html; director: "ship it") -----
 -- The bar over the character's head while an action runs (ZeD_ActionBar.lua reads this
--- every frame, so a change applies at once). Verbose is the default.
+-- every frame, so a change applies at once). Detailed is the default ("Verbose" until punch list 110).
 local actionBar = opts:addComboBox("actionBar", ZeD.tr("UI_ZeD_Settings_ActionBar"),
     ZeD.tr("UI_ZeD_Settings_ActionBarTip"))
 actionBar:addItem(ZeD.tr("UI_ZeD_Settings_ActionBarVerbose"), true)   -- default
@@ -550,20 +550,20 @@ for _, sc in ipairs({
 end
 
 -- ----- THE BELT'S FORM (director, Nov 2 2026, punch list 56: a full and a simple version, as for the action bar) -----
--- Full: the leather strap and the profession buckle. Simple: the same slots and hands with no strap or buckle.
--- ZeD_Belt.lua reads it as it lays out, so a change applies at once. Full is the default.
+-- Immersive: the leather strap and the profession buckle. Simple: the same slots and hands with no strap or buckle.
+-- ZeD_Belt.lua reads it as it lays out, so a change applies at once. Immersive is the default.
 local beltStyle = opts:addComboBox("beltStyle", ZeD.tr("UI_ZeD_Settings_Belt"), ZeD.tr("UI_ZeD_Settings_BeltTip"))
-beltStyle:addItem(ZeD.tr("UI_ZeD_Settings_BeltFull"), true)   -- default
+beltStyle:addItem(ZeD.tr("UI_ZeD_Settings_Immersive"), true)   -- default
 beltStyle:addItem(ZeD.tr("UI_ZeD_Settings_ActionBarSimple"), false)
 ZeD.Settings.beltStyleOption = beltStyle
 
 -- ----- THE DEVICES' FORM (the director, Oct 30 2026, punch list 17; the rules approved Nov 2 2026, punch list 60 and
 -- ZeDUI/SIMPLE_VERSIONS_PROPOSAL.md) -----
--- Full: each device drawn as its face (radios, TVs, two-way sets, ovens, microwaves, the fryer, the grill, generators,
--- washers and dryers). Simple: the same controls and readings as a plain ZeD card. Full is the default; Vanilla Plus
--- keeps Full, Vanilla Access picks Simple (the additions presets below).
+-- Immersive: each device drawn as its face (radios, TVs, two-way sets, ovens, microwaves, the fryer, the grill, generators,
+-- washers and dryers). Simple: the same controls and readings as a plain ZeD card. Immersive is the default; Vanilla Plus
+-- keeps Immersive, Vanilla Access picks Simple (the additions presets below).
 local devicesStyle = opts:addComboBox("devicesStyle", ZeD.tr("UI_ZeD_Settings_Devices"), ZeD.tr("UI_ZeD_Settings_DevicesTip"))
-devicesStyle:addItem(ZeD.tr("UI_ZeD_Settings_BeltFull"), true)   -- default
+devicesStyle:addItem(ZeD.tr("UI_ZeD_Settings_Immersive"), true)   -- default
 devicesStyle:addItem(ZeD.tr("UI_ZeD_Settings_ActionBarSimple"), false)
 ZeD.Settings.devicesStyleOption = devicesStyle
 -- true while the devices are drawn as simple cards (read as they draw, so a change applies at once)
@@ -573,10 +573,10 @@ function ZeD.Settings.devicesSimple()
 end
 
 -- ----- THE WATCH'S FORM (the director, Nov 2 2026, punch list 60: the watch is in the beta) -----
--- Full: the watch you wear, drawn as itself (and the tape deck keys with none). Simple: a plain clock box with the
+-- Immersive: the watch you wear, drawn as itself (and the tape deck keys with none). Simple: a plain clock box with the
 -- same readings and buttons, and a plain time box for the small one on the belt.
 local watchStyle = opts:addComboBox("watchStyle", ZeD.tr("UI_ZeD_Settings_WatchStyle"), ZeD.tr("UI_ZeD_Settings_WatchStyleTip"))
-watchStyle:addItem(ZeD.tr("UI_ZeD_Settings_BeltFull"), true)   -- default
+watchStyle:addItem(ZeD.tr("UI_ZeD_Settings_Immersive"), true)   -- default
 watchStyle:addItem(ZeD.tr("UI_ZeD_Settings_ActionBarSimple"), false)
 ZeD.Settings.watchStyleOption = watchStyle
 function ZeD.Settings.watchSimple()
@@ -585,10 +585,10 @@ function ZeD.Settings.watchSimple()
 end
 
 -- ----- THE DASHBOARD'S FORM (the director, Nov 2 2026, punch list 60: the dashboard is in the beta) -----
--- Full: each car's own pixel dash (and the taxi meter, the siren controller). Simple: a plain strip with the same
+-- Immersive: each car's own pixel dash (and the taxi meter, the siren controller). Simple: a plain strip with the same
 -- readings, lamps and switches.
 local dashStyle = opts:addComboBox("dashStyle", ZeD.tr("UI_ZeD_Settings_Dash"), ZeD.tr("UI_ZeD_Settings_DashTip"))
-dashStyle:addItem(ZeD.tr("UI_ZeD_Settings_BeltFull"), true)   -- default
+dashStyle:addItem(ZeD.tr("UI_ZeD_Settings_Immersive"), true)   -- default
 dashStyle:addItem(ZeD.tr("UI_ZeD_Settings_ActionBarSimple"), false)
 ZeD.Settings.dashStyleOption = dashStyle
 function ZeD.Settings.dashSimple()
@@ -597,10 +597,10 @@ function ZeD.Settings.dashSimple()
 end
 
 -- ----- THE SURVIVAL GUIDE'S FORM (the director, Nov 3 2026: "Both" looks; ZeDUI/SURVIVAL_GUIDE_DRAFT.md) -----
--- Full: the guide as a printed book, Survive the Apocalypse (ZeD_SurvivalGuideBook.lua). Simple: a ZeD window with the
+-- Immersive: the guide as a printed book, Survive the Apocalypse (ZeD_SurvivalGuideBook.lua). Simple: a ZeD window with the
 -- same topics, clips and numbers (ZeD_SurvivalGuide.lua).
 local guideStyle = opts:addComboBox("guideStyle", ZeD.tr("UI_ZeD_Settings_Guide"), ZeD.tr("UI_ZeD_Settings_GuideTip"))
-guideStyle:addItem(ZeD.tr("UI_ZeD_Settings_BeltFull"), true)   -- default
+guideStyle:addItem(ZeD.tr("UI_ZeD_Settings_Immersive"), true)   -- default
 guideStyle:addItem(ZeD.tr("UI_ZeD_Settings_ActionBarSimple"), false)
 ZeD.Settings.guideStyleOption = guideStyle
 function ZeD.Settings.guideSimple()
@@ -609,10 +609,10 @@ function ZeD.Settings.guideSimple()
 end
 
 -- ----- THE MODS SCREEN'S FORM (the director, Nov 4 2026: Workshop feedback, a Simple view for newcomers) -----
--- Full: the mods with their IDs, tags, folders, profiles and the load order. Simple: one line a mod (the box, the
+-- Detailed: the mods with their IDs, tags, folders, profiles and the load order. Simple: one line a mod (the box, the
 -- name, one mark when something is wrong), the tabs All, On, Off and Problems, and the info pane's About only.
 local modsStyle = opts:addComboBox("modsStyle", ZeD.tr("UI_ZeD_Settings_Mods"), ZeD.tr("UI_ZeD_Settings_ModsTip"))
-modsStyle:addItem(ZeD.tr("UI_ZeD_Settings_BeltFull"), true)   -- default
+modsStyle:addItem(ZeD.tr("UI_ZeD_Settings_ActionBarVerbose"), true)   -- default
 modsStyle:addItem(ZeD.tr("UI_ZeD_Settings_ActionBarSimple"), false)
 ZeD.Settings.modsStyleOption = modsStyle
 function ZeD.Settings.modsSimple()
