@@ -32,6 +32,7 @@ local _origToggle = ISWorldMap._zedOrigToggle
 -- Returns true when ZeD handled the request.
 local function _zedOpenUnfolded(playerNum)
     playerNum = playerNum or 0
+    if not ZeD.windowsFor(playerNum) then return false end   -- (split-screen: the game's own map, ZeD.windowsFor)
     if not (ZeD and ZeD.MapsTab and ZeD.MapsTab.openPopout) then return false end
     if not (ZeD_WorldWindow and ZeD_WorldWindow.open and ZeD_WorldWindow.getWindow) then return false end
     if not getSpecificPlayer(playerNum) then return false end
@@ -98,7 +99,8 @@ function ISWorldMap.ShowWorldMap(playerNum, centerX, centerY, zoom)
 end
 
 function ISWorldMap.HideWorldMap(playerNum)
-    if ZeD.Safe.on() then return _origHide(playerNum) end
+    -- (split-screen: another player's map is the game's own, ZeD.windowsFor)
+    if ZeD.Safe.on() or not ZeD.windowsFor(playerNum or 0) then return _origHide(playerNum) end
     local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
     if win and win._mapPopout and ZeD.MapsTab and ZeD.MapsTab.closePopout then
         ZeD.MapsTab.closePopout(win)
@@ -108,7 +110,7 @@ function ISWorldMap.HideWorldMap(playerNum)
 end
 
 function ISWorldMap.ToggleWorldMap(playerNum)
-    if ZeD.Safe.on() then return _origToggle(playerNum) end
+    if ZeD.Safe.on() or not ZeD.windowsFor(playerNum or 0) then return _origToggle(playerNum) end
     local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
     if win and win._mapPopout then   -- (closing never waits on the light, as in vanilla)
         ZeD.MapsTab.closePopout(win)

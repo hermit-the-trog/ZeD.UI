@@ -467,16 +467,19 @@ ACT.ignition = function(chr, v, st, secondary)
     if st.hasKey then v:setKeysInIgnition(true); return end
 end
 ACT.lights = function(chr, v) ISVehicleMenu.onToggleHeadlights(chr) end
--- the ash tray: open or shut (a car the dash has not touched shows its own default). Single player keeps it on the car's
--- modData, so it stays with the save. On a server it stays in this game's memory, per car (D._ash, by the car's
--- number): a key only the client writes into the car's modData goes each time the server sends the car out (the
--- odometer's coarse moments: a first mileage, a press, the engine off, the driver leaving; the client's copy is wiped
--- and replaced), and the client never sends the whole table back (punch list 94). The other seats see their own tray:
--- it is only a look.
-D._ash = D._ash or {}
+-- the ash tray: open or shut (a car the dash has not touched shows its own default), kept on the car's modData
+-- (ZeD_ash), one tray a car, saved with it. Single player writes it there. On a server the press is written to this
+-- client's copy at once (so it shows now) and asked of the server (DP.ASH, as the player who pressed), which writes its
+-- own copy, kept with the world, and sends the car out to the clients near it: the other seats see the same tray, and a
+-- copy the server sends out later still has it. The client never sends the whole table (punch list 94; known issue
+-- Nov 7 2026: before, each player's tray stayed in their own game's memory for the session)
 ACT.ash    = function(chr, v, st)
-    if isClient and isClient() then D._ash[_get(v, "getId", 0)] = not st.ashIsOpen; return end
-    v:getModData().ZeD_ash = not st.ashIsOpen
+    local open = not st.ashIsOpen
+    local md = _get(v, "getModData", nil)
+    if md then md.ZeD_ash = open end
+    if not (isClient and isClient()) then return end
+    local S, Pr = ZeD.ServerPart, ZeD.DashProto
+    if S and S.send and Pr and Pr.ASH then S.send(Pr.MOD, Pr.ASH, { veh = _get(v, "getId", 0), open = open }, chr) end
 end
 -- the odometers (Nov 6 2026, punch list 92): the stem by the trip wheels zeroes the trip; the electronic dashes' window
 -- (cossette, luxury, dashelite) switches ODO / TRIP, and its second verb zeroes the trip, only while the trip shows
@@ -894,8 +897,8 @@ end
 -- server sends the car's whole modData out then, not every tenth (ZeD_ServerDash.lua). A coarse moment with no new miles
 -- still goes once when the last send wasn't one, so what the server took reaches the clients near the car.
 -- Single player sends nothing: the car's modData is the game's own there.
--- KNOWN LIMIT: ZeD.ServerPart.send sends as the first local player, so on a server a second split-screen player at the
--- wheel has every send refused (the server takes only the driver's); their miles count on their screen and aren't saved
+-- Each dash sends as its own player (ZeD.ServerPart.send's player): the server takes only the driver's, so a second
+-- split-screen player at the wheel sends as themselves and their miles are kept (known issue Nov 7 2026)
 function ZeD_Dashboard:_odoSend(vehicle, id, odo, force, flush)
     if not (isClient and isClient()) then return end
     local at = self._odoSentAt
@@ -916,7 +919,7 @@ function ZeD_Dashboard:_odoSend(vehicle, id, odo, force, flush)
         if not (md and S and S.send and Pr) then return end
         -- (the server writes these three and nothing else: ZeD_ServerDash.lua)
         S.send(Pr.MOD, Pr.ODO, { veh = id, odo = odo, trip = tonumber(md.ZeD_trip) or 0, show = md.ZeD_odoTrip == true,
-            save = save and true or false })
+            save = save and true or false }, getSpecificPlayer(self.playerNum))
     end
 end
 
@@ -977,10 +980,11 @@ end
 -- dash would read the car as the server's last coarse send left it, maybe a whole drive behind. Again every ODO_ASK_MS
 -- until figures come (D.odoFig marks them), at most ODO_ASK_TRIES times: the server may not have this player in the
 -- seat yet, or holds no figures for the car. At the wheel it forgets, so the next passenger seat asks again.
--- (The answer comes to the first local player, as every ZeD command does: split-screen's second player doesn't ask)
+-- (Asked as this dash's player, so the server finds them in the seat; the answer comes to this client, and D.odoFig
+-- matches it to the players in that car)
 function ZeD_Dashboard:_odoAsk(vehicle, id)
     if self._driver then self._odoAsking = nil; return end
-    if not (isClient and isClient()) or self.playerNum ~= 0 then return end
+    if not (isClient and isClient()) then return end
     local a = self._odoAsking
     if not a or a.car ~= vehicle then a = { car = vehicle, n = 0, at = 0 }; self._odoAsking = a end
     if a.got or a.n >= ODO_ASK_TRIES then return end
@@ -989,7 +993,7 @@ function ZeD_Dashboard:_odoAsk(vehicle, id)
     local S, Pr = ZeD.ServerPart, ZeD.DashProto
     if not (S and S.send and Pr and Pr.ASK) then return end
     a.n, a.at = a.n + 1, now
-    S.send(Pr.MOD, Pr.ASK, { veh = id })
+    S.send(Pr.MOD, Pr.ASK, { veh = id }, getSpecificPlayer(self.playerNum))
 end
 
 -- the driver left the seat or the car (or the car is another): the miles it hasn't sent go now. D.hide calls it as
@@ -1057,28 +1061,44 @@ end
 -- server checks a send, then written to this client's copy of the car only, never sent on: the dash reads them there
 -- next frame. A driver's dash keeps its own (the server sends these to the other seats; a late one is dropped here).
 -- a: { veh, odo, trip, show }
+-- (The server's answers come to this client, not to one of its players: split-screen's players are matched by the car.
+-- Every local player in a car shares this client's one copy of it, so a car this client drives keeps its driver's
+-- figures, and the figures are written once.)
 function D.odoFig(a)
     local Pr = ZeD.DashProto
     if not (Pr and Pr.okFigs and Pr.okFigs(a)) then return end
-    local p = getSpecificPlayer and getSpecificPlayer(0)
-    local car = p and _get(p, "getVehicle", nil)
-    if not car or _get(car, "getId", nil) ~= a.veh then return end
-    if _safe(function() return car:isDriver(p) end, false) then return end
+    local car, riders = nil, {}
+    for pn = 0, 3 do
+        local p = getSpecificPlayer and getSpecificPlayer(pn)
+        local c = p and _get(p, "getVehicle", nil)
+        if c and _get(c, "getId", nil) == a.veh then
+            if _safe(function() return c:isDriver(p) end, false) then return end
+            car = c
+            riders[#riders + 1] = pn
+        end
+    end
+    if not car then return end
     local md = _get(car, "getModData", nil)
     if not md then return end
     md.ZeD_odo, md.ZeD_trip, md.ZeD_odoTrip = a.odo, a.trip, a.show
-    local inst = D._instance
-    local asking = inst and inst._odoAsking
-    if asking and asking.car == car then asking.got = true end    -- (the passenger's ask is answered: no more)
+    for _, pn in ipairs(riders) do
+        local inst = D._instances[pn]
+        local asking = inst and inst._odoAsking
+        if asking and asking.car == car then asking.got = true end    -- (the passenger's ask is answered: no more)
+    end
 end
 
--- the server part's answers on the dash's module (ZeD_ServerLink.lua routes them here)
+-- the server part's answers on the dash's module (ZeD_ServerLink.lua routes them here). A refusal (DP.SYNC) goes to
+-- the dash whose driver counts in that car
 function D.onServer(command, a)
     local Pr = ZeD.DashProto
     if not Pr then return end
     if command == Pr.FIG then return D.odoFig(a) end
-    local inst = D._instance
-    if inst and command == Pr.SYNC then inst:_odoSync(a) end
+    if command ~= Pr.SYNC or type(a) ~= "table" then return end
+    for _, inst in pairs(D._instances) do
+        local mine = inst._odoMine
+        if mine and inst._driver and _get(mine.car, "getId", nil) == a.veh then inst:_odoSync(a); return end
+    end
 end
 
 function ZeD_Dashboard:_meterFlag(vehicle, down)
@@ -1207,12 +1227,9 @@ function ZeD_Dashboard:_tray(vehicle, des, designId, st, scriptName)
     local lv = _ashLevels(des)
     st.ashIsOpen, st.ashOpen = false, 0
     if #lv == 0 or (designId == "van" and not st.vanTray) then return end
-    local open = D._ash[_get(vehicle, "getId", 0)]               -- (on a server: this game's memory, ACT.ash)
-    if open == nil then
-        local md = _get(vehicle, "getModData", nil)
-        open = md and md.ZeD_ash                                 -- (single player; or a car a server once sent with it)
-    end
-    if open == nil then open = (ck.h % 10) >= 6 end
+    local md = _get(vehicle, "getModData", nil)
+    local open = md and md.ZeD_ash                               -- (the car's own: ACT.ash)
+    if type(open) ~= "boolean" then open = (ck.h % 10) >= 6 end
     st.ashIsOpen = open and true or false
     if st.ashIsOpen then st.ashOpen = lv[1 + math.floor(ck.h / 10) % #lv] end
 end
@@ -2205,23 +2222,36 @@ end
 -- ---------------------------------------------------------------------------
 -- Lifecycle + hooks (contract unchanged from the S123 first cut)
 -- ---------------------------------------------------------------------------
-function D.install()
-    if D._instance then return D._instance end
-    local inst = ZeD_Dashboard:new(0)
+-- One dash a local player (split-screen, known issue Nov 7 2026: the second player had the game's own dash, with no
+-- miles): each placed on its player's screen (ZeD_Dashboard:_layout), each counting and sending its own driver's miles
+-- as that player (ZeD.ServerPart.send's player). D._instances by player number; D._instance stays the first player's,
+-- for the callers that know of one dash. The controller goes to a dash only for the first player: the focus
+-- (ZeD.Input.Focus) follows the first player's pad (D.canTakePad)
+D._instances = D._instances or {}
+function D.install(pn)
+    pn = pn or 0
+    local have = D._instances[pn]
+    if have then return have end
+    local inst = ZeD_Dashboard:new(pn)
     inst:initialise()
     inst:addToUIManager()
     inst:setVisible(false)
-    D._instance = inst
-    print("[ZeD] Dashboard: v6 pixel dashboard installed (vanilla parked)")
+    D._instances[pn] = inst
+    if pn == 0 then D._instance = inst end
+    print("[ZeD] Dashboard: v6 pixel dashboard installed for player " .. tostring(pn + 1) .. " (vanilla parked)")
     return inst
 end
-function D.getInstance() return D._instance end
+-- pn: the local player's number (nil: the first player's dash)
+function D.getInstance(pn) return D._instances[pn or 0] end
+-- every dash there is (safe mode, the server's answers)
+function D.eachInstance(fn)
+    for _, inst in pairs(D._instances) do fn(inst) end
+end
 function D.show(character)
     if ZeD.Safe.on("dashboard") then return end   -- safe mode: vanilla's dashboard stays (SafeMode.lua)
     if not (character and instanceof(character, "IsoPlayer") and character:isLocalPlayer()) then return end
-    local inst = D._instance or D.install()
     local pn = character.getPlayerNum and character:getPlayerNum() or 0
-    if pn ~= inst.playerNum then return end
+    local inst = D.install(pn)
     local vehicle = character:getVehicle()
     if vehicle then
         inst.vehicle = vehicle
@@ -2235,24 +2265,26 @@ function D.show(character)
 end
 -- the driver's dash, shown (the World wheel's Vehicle > Dashboard asks)
 function D.canTakePad(character)
-    local inst = D._instance
+    local pn = character and character.getPlayerNum and character:getPlayerNum() or 0
+    -- (the focus follows the first player's pad only: another player's dash is drawn and counts, its controls by mouse)
+    if pn ~= 0 then return false end
+    local inst = D._instances[pn]
     local vehicle = character and character:getVehicle()
-    if not (inst and inst:isVisible() and vehicle) or inst.playerNum ~= character:getPlayerNum() then return false end
+    if not (inst and inst:isVisible() and vehicle) then return false end
     return _safe(function() return vehicle:isDriver(character) end, false)
 end
 -- the controller on the dash's controls, until B (or LB / RB to a window)
 function D.takePad(character)
     if not D.canTakePad(character) then return false end
-    D._instance:_claim()
+    D._instances[character:getPlayerNum()]:_claim()
     return true
 end
 
 function D.hide(character)
-    local inst = D._instance; if not inst then return end
     if not (character and instanceof(character, "IsoPlayer") and character:isLocalPlayer()) then return end
     local pn = character.getPlayerNum and character:getPlayerNum() or 0
-    if pn ~= inst.playerNum then return end
-    inst.vehicle, inst._odoAsking = nil, nil          -- (back in the same car later: a passenger asks again)
+    local inst = D._instances[pn]; if not inst then return end
+    inst.vehicle, inst._odoAsking = nil, nil         -- (back in the same car later: a passenger asks again)
     -- (the driver got out: the miles not sent yet go now, while the car is still beside them and the server still
     -- looks after it; once hidden, this dash gets no prerender to send them from. ZeD_Dashboard:_odoLeave)
     if inst._odoCar then pcall(inst._odoLeave, inst) end
@@ -2265,19 +2297,21 @@ end
 -- its prerender hides vanilla's.
 ZeD.Safe.register("dashboard", {
     leave = function()
-        local inst = D._instance
-        if inst then
+        D.eachInstance(function(inst)
             if inst._odoCar then pcall(inst._odoLeave, inst) end    -- (the last miles first, as D.hide)
             inst:setVisible(false)
             pcall(inst._release, inst)
             pcall(inst._unregister, inst)
-        end
-        local vd = getSpecificPlayer(0) and getPlayerVehicleDashboard and getPlayerVehicleDashboard(0)
-        if vd and vd.vehicle and not (ISUIHandler and ISUIHandler.allUIVisible == false) then vd:setVisible(true) end
+            local pn = inst.playerNum
+            local vd = getSpecificPlayer(pn) and getPlayerVehicleDashboard and getPlayerVehicleDashboard(pn)
+            if vd and vd.vehicle and not (ISUIHandler and ISUIHandler.allUIVisible == false) then vd:setVisible(true) end
+        end)
     end,
     enter = function()
-        local p = getSpecificPlayer(0)
-        if p and p:getVehicle() then D.show(p) end
+        for pn = 0, 3 do
+            local p = getSpecificPlayer(pn)
+            if p and p:getVehicle() then D.show(p) end
+        end
     end,
 })
 
@@ -2287,7 +2321,17 @@ do
     if SP and SP.on and Pr then SP.on(Pr.MOD, function(command, a) ZeD.Dashboard.onServer(command, a) end) end
 end
 
-Events.OnGameStart.Add(function() D._instance = nil; D.install() end)
+-- (a game's start: the dashes of a game before go, any made as the game created its players taken off the screen first)
+Events.OnGameStart.Add(function()
+    for _, inst in pairs(D._instances) do pcall(inst.removeFromUIManager, inst) end
+    D._instance, D._instances = nil, {}
+    D.install(0)
+    -- (a player who starts the game seated: their dash, as getting in shows it)
+    for pn = 0, 3 do
+        local p = getSpecificPlayer(pn)
+        if p and p:getVehicle() then pcall(D.show, p) end
+    end
+end)
 Events.OnEnterVehicle.Add(function(character) pcall(D.show, character) end)
 Events.OnSwitchVehicleSeat.Add(function(character) pcall(D.show, character) end)
 Events.OnExitVehicle.Add(function(character) pcall(D.hide, character) end)

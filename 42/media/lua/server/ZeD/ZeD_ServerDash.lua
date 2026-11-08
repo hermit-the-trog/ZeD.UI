@@ -139,4 +139,23 @@ Srv.register(DP.MOD, DP.ASK, {}, function(p, a)
     if DP.okFigs(f) then Srv.to(p, DP.MOD, DP.FIG, f) end
 end)
 
+-- the ash tray (DP.ASH, ZeD_Dashboard's ACT.ash, the driver's dash): taken from anyone in the car (IsoGameCharacter.getVehicle,
+-- checked on 42.22.2). The server writes ZeD_ash on its own copy, kept with the world, and sends the car out to the
+-- clients near it, as at a press of the odometer's, so every seat and a later copy show the same tray. One press a
+-- player each DP.ASH_MS, refused silently; nothing written when the tray is already so
+Srv.register(DP.MOD, DP.ASH, {}, function(p, a)
+    if not DP.okAsh(a) then return Srv.bad(p, "dash ash") end
+    if Srv.left(p, "dash ash", DP.ASH_MS) then return end
+    Srv.mark(p, "dash ash")
+    local v = getVehicleById(a.veh)
+    if not v or p:getVehicle() ~= v then return end
+    local vmd = v:getModData()
+    if vmd.ZeD_ash == a.open then return end
+    vmd.ZeD_ash = a.open
+    -- (the figures taken since the last send go with it: that send is this one)
+    local r = M.by[a.veh]
+    if r then r.dirty = nil end
+    v:transmitModData()
+end)
+
 return M

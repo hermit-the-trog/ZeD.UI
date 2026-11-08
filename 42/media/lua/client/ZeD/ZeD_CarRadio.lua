@@ -183,7 +183,7 @@ end
 -- LAYOUT: the dash's own whole multiple; the right edge on the dash console's right edge
 -- ---------------------------------------------------------------------------
 function ZeD_CarRadio:scale()
-    local dash = ZeD.Dashboard and ZeD.Dashboard.getInstance and ZeD.Dashboard.getInstance()
+    local dash = ZeD.Dashboard and ZeD.Dashboard.getInstance and ZeD.Dashboard.getInstance(self.playerNum)
     if dash and dash._s then return dash._s end
     local Sc = ZeD.Scale
     return P.k(((Sc and Sc.root and Sc.root()) or 1) * ((ZeD.Dashboard and ZeD.Dashboard.scale) or 1))
@@ -192,7 +192,7 @@ end
 -- a w x h box (screen px) above the dash's console, its right edge on the console's (s: the dash's multiple)
 function ZeD_CarRadio:place(w, h, s)
     local pn = self.playerNum
-    local dash = ZeD.Dashboard and ZeD.Dashboard.getInstance and ZeD.Dashboard.getInstance()
+    local dash = ZeD.Dashboard and ZeD.Dashboard.getInstance and ZeD.Dashboard.getInstance(self.playerNum)
     local x, y
     if dash and dash:isVisible() and dash._consoleRect and dash.playerNum == pn then
         local cs, ds = dash._consoleRect, dash._s or s

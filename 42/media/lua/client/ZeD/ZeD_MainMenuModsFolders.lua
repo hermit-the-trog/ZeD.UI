@@ -505,6 +505,8 @@ function ZeD_MMMods:folderBox(fid)
             else m:forceActivateMods(d.modInfo, false) end
         end
     end
+    -- (ZeD-GUI off in the folder took ZeD picks with it: ZeD-GUI back on, any way, brings them)
+    if not turnOn and self.picksNoteOff then self:picksNoteOff(before) end
     if turnOn and self.relayoutList then self:relayoutList() end
     self:dirty()
     MM.clickSound()

@@ -207,6 +207,7 @@ end
 -- the Health tab in the Character window (the pair opens for the controller)
 local function treat(playerObj)
     local pn = playerObj:getPlayerNum()
+    if not ZeD.windowsFor(pn) then return end   -- (split-screen: ZeD's windows are the first player's)
     if not (ZeD_CharacterWindow and ZeD_CharacterWindow.ensureBothOpenForGamepad) then return end
     pcall(ZeD_CharacterWindow.ensureBothOpenForGamepad, pn)
     local tries = 0
