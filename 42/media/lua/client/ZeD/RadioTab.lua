@@ -1320,7 +1320,7 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
     local isTw = fDrv == ZeD.TwoWay
     if not twDes then win._radioTw, win._radioFullZone = nil, nil end
     if not isTw then win._radioFullZone = nil end
-    -- the width that fills the card (Oct 30 2026, HANDOFF_plates_fill_20261030.md): a walkie's for the half card
+    -- the width that fills the card: a walkie's for the half card
     -- (the drawer is that card wherever one fits; centred in the drawer, its margins its own); a ham set's for
     -- the drawer as a machine plate's. A ham set the tab cannot hold at the plates' whole zoom: its narrow face
     -- (the drawer is then a walkie's width). The ordinary radios and the TVs the same way (RtvFace.pickFace).
@@ -1411,7 +1411,7 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
 end
 
 -- ============================================================================
--- CLICK HANDLER (S115b)
+-- CLICK HANDLER
 -- ============================================================================
 
 -- Hit-test helper local to the module (mirrors AnimalsTab.lua:398 pattern).
@@ -1423,8 +1423,8 @@ end
 
 -- Seek step = 0.1 of the displayed unit, so every station tunable in PZ is
 -- reachable. AM-band radios display kHz → step 100 Hz (= 0.1 kHz). Higher-
--- band radios display MHz → step 100 kHz (= 0.1 MHz). User design ruling:
--- skipping in larger increments leaves stations unreachable.
+-- band radios display MHz → step 100 kHz (= 0.1 MHz). Skipping in larger
+-- steps would leave stations unreachable.
 local function _seekStep(dd)
     local maxHz = _safeGet(dd, "getMaxChannelRange", 1000000)
     if type(maxHz) ~= "number" or maxHz <= 1500000 then return 100 end
@@ -1717,7 +1717,7 @@ function ZeD.RadioTab.register(dispatchTable)
 end
 
 -- ============================================================================
--- FOCUSABLE BUILDER (S117) — ring elements for the host window's tab-content
+-- FOCUSABLE BUILDER — ring elements for the host window's tab-content
 -- ============================================================================
 -- Called each frame from the per-window panel-focusable dispatcher
 -- (_buildPanelFocusables in Char, _buildWorldPanelFocusables in World) when
@@ -1729,8 +1729,8 @@ end
 -- _radioSeekBtnZones, _radioPresetZones, etc.) populated by the chassis
 -- molecules each render — builder + render stay in lock-step.
 
--- An ordinary radio's or a TV's face (Oct 30 2026): its controls first, power first (where the controller lands on
--- the tab: the director's pad rules, land on the primary control), then the rest in reading order, then the header's
+-- An ordinary radio's or a TV's face: its controls first, power first (the pad rule: focus lands on
+-- the primary control), then the rest in reading order, then the header's
 -- browse keys. A presses (a list opens under the key, and the focus comes back to the key when it closes), held (or
 -- X) a preset stores; up / down on a knob turns it, left / right walk on. The focus stays on the key it pressed.
 local function _rtvFocusables(win, tw)
@@ -1944,8 +1944,8 @@ function ZeD.RadioTab.buildFocusables(win)
     end
 
     -- ---- Preset slots ----------------------------------------------------
-    -- Assign-mode-aware: store flips the mode off, otherwise apply. Mirrors
-    -- click-router behavior at RadioTab.lua:1351-1357. _presetApply and
+    -- Assign-mode-aware: store flips the mode off, otherwise apply — the
+    -- same branch the click router takes. _presetApply and
     -- _presetStore both handle empty-slot and out-of-bounds cases internally.
     if win._radioPresetZones then
         for i = 1, #win._radioPresetZones do
@@ -1984,7 +1984,7 @@ function ZeD.RadioTab.buildFocusables(win)
     end
 
     -- Seed gate — only writes on nil so D-pad onFocus updates are never
-    -- stomped between frames (memory: feedback_seed_stomp_race.md).
+    -- stomped between frames.
     if elements[1] and win._gpFocusedRadioCtl == nil then
         win._gpFocusedRadioCtl = elements[1].id
     end

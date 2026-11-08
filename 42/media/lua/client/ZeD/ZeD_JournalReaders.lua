@@ -633,6 +633,7 @@ function J.listOpen(win)
     local s = st(win)
     return s.showOpen == true and s.showZones ~= nil
 end
+--- Shut the band's Show list.
 function J.shutList(win)
     local s = st(win)
     s.showOpen, s.showZones = nil, nil

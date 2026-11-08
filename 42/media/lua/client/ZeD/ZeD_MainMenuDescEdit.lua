@@ -1,9 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MainMenuDescEdit.lua
 -- ============================================================================
--- THE DESCRIPTION EDITOR (director, Oct 16 2026: "edit descriptions with modern
--- layout controls for building communications that people will read cause
--- they can easily be worked on and made communicable and legible"; mockup
--- zed_mod_manager_v1, "boogie!")
+-- THE DESCRIPTION EDITOR. Client; an organism (a window on the desk, the
+-- "wsdesc" view). Block-based layout controls, so a Workshop description is
+-- easy to work on and comes out legible enough that people read it.
 --
 -- A Workshop description as blocks (ZeD_WorkshopText): add a heading, text,
 -- a list, a numbered list, a picture, a quote, code, a table, a divider, a

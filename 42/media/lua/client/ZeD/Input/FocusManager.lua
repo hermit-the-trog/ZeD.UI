@@ -813,8 +813,8 @@ local function _applyFlatLanding(w, locator, oldFlatIdx, newFlatIdx)
     if newEl and newEl.onFocus then
         _fireCb("element.onFocus", newEl.onFocus, w, newEl)
     end
-    -- S123: audible focus tick (vanilla list-select sound) so D-pad moves
-    -- are felt without looking for the cue. Mouse hover never routes here.
+    -- Audible focus tick (vanilla list-select sound) so D-pad moves are
+    -- felt without looking for the cue. Mouse hover never routes here.
     pcall(function() getSoundManager():playUISound("UISelectListItem") end)
 
     if newZoneIdx ~= oldZoneIdx and w.onFocusZoneChanged then
@@ -1042,8 +1042,9 @@ local function _focusWindow(side)
     Focus.claimFocus(target)
 end
 
--- A bumper tapped with a D-pad wheel up (RADIAL_WHEELS_SPEC.md, the director: the bumpers close it and open
--- the windows): the pair open and showing, the pad on that bumper's window. side: "char" or "world".
+--- A bumper tapped while a D-pad wheel is up (ZeD_WheelGesture): the bumpers
+--- close the wheel and open the windows — the pair open and showing, the pad
+--- on that bumper's window. side: "char" or "world".
 function Focus.openSide(side)
     if ZeD_CharacterWindow and ZeD_CharacterWindow.ensureBothOpenForGamepad then
         pcall(ZeD_CharacterWindow.ensureBothOpenForGamepad, 0)
@@ -1087,10 +1088,10 @@ local function _handleContextOrReset(w)
     end
 end
 
--- B button: pure contextual cancel. If focused element has onCancel, fire it.
--- If not, NO-OP (no shade-all fallback). S113 design ruling: B does nothing
--- when there's nothing to cancel; user must press Y to hide / RS to aiming-
--- escape if they want to dismiss the windows.
+-- B button: purely contextual cancel. If the focused element has onCancel,
+-- fire it. If not, NO-OP (no shade-all fallback): B does nothing when there's
+-- nothing to cancel; the player presses Y to hide, or flicks the right stick
+-- for the aiming escape, to dismiss the windows.
 local function _handleBContextual()
     local w = _focusedWindow
     if not w then return end
@@ -1098,7 +1099,7 @@ local function _handleBContextual()
     if not el or not el.onCancel then return end
     local took = _fireCbR("element.onCancel", el.onCancel, w, el)
     if took ~= false then pcall(function() getSoundManager():playUISound("UIToggleTickBox") end) end
-    -- Return value ignored — no fall-through path exists post-S113.
+    -- Beyond the sound, the return value is ignored — B has no fall-through path.
 end
 
 -- The registered window lying `dir` of w on screen (visible, not rolled up),

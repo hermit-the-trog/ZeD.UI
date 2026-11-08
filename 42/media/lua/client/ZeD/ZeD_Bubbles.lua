@@ -231,7 +231,7 @@ local function wedge(pts)
     end
     return cells
 end
--- where the rule above and the mockup's library part on an exact half (one cell, at these balloon
+-- where the rule above and bubbles.py's library part on an exact half (one cell, at these balloon
 -- places): the beside-the-thought tail by its balloon's left edge -> { x, y, in }
 local TAIL_FIX = {
     [41] = { { 34, -5, true } }, [46] = { { 18, 2, false } }, [65] = { { 52, -5, true } }, [82] = { { 27, 2, false } },
@@ -447,9 +447,9 @@ function B.drawSpeech(cv, T, L, a)
 end
 
 -- ---------------------------------------------------------------------------
--- OVERHEAD NOTES (the director, Nov 4 2026: the game's red and green lines over the head, "Too heavy", "Can't
--- reach", were nearly unreadable; "the same bubble plus a running log and messages"). ZeD_HaloText.lua hands each
--- line here. A note is the speech balloon without its tail: the line in the 5 x 7 face, a status mark before it
+-- OVERHEAD NOTES. The game's red and green lines over the head ("Too heavy", "Can't
+-- reach") were nearly unreadable: they become this same balloon, and the Messages window logs them too
+-- (ZeD_HaloText.lua hands each line to both). A note is the speech balloon without its tail: the line in the 5 x 7 face, a status mark before it
 -- (positive for good news, danger for bad, none for plain), never coloured text. Up to NOTE_N stack above whatever is
 -- over the head, the newest nearest; each holds NOTE_MS and fades over NOTE_FADE_MS. The same line again while it
 -- shows starts its clock again instead of stacking.
@@ -548,8 +548,8 @@ function B.drawNotes(cv, T, L)
 end
 
 -- ---------------------------------------------------------------------------
--- THE NOTICES (the director, Nov 7 2026: "All of these notices are speech bubbles or thought bubbles that pop up
--- out of the notification icon where we save errors and other mods pop-ups. Just all in one place."). ZeD's
+-- THE NOTICES. Every notice is a speech or thought bubble popping out of the one notification icon that keeps
+-- errors and other mods' pop-ups, so they all come from one place. ZeD's
 -- notices (ZeD_Messages' toasts: a mod's note kept, an error, a ticket, an invitation, a controller plugged in or
 -- unplugged) are speech balloons stacked over the Messages note on the belt, the newest nearest it with the tail
 -- down to the note; ZeD_MessagesWindow places and draws them. Units are the bubbles' own, from the anchor (the top
@@ -686,8 +686,8 @@ end
 -- display time (ChatElement.updateChatLines: clock / (lineDisplayTime / 2) >= 1) and draws the line until
 -- the end, fading it over the last quarter. So when isSpeaking() turns false after D ms, the balloon
 -- holds to 1.5 D and fades out by 2 D, as the engine's line would have (game speed included).
--- (isSpeaking() is read on the game tick, after the engine's update: read while drawing it lagged by a
--- second and more, seen in game Oct 25 2026)
+-- (isSpeaking() is read on the game tick, after the engine's update: read while drawing, it lagged by a
+-- second and more)
 function B.watch(pn, chr, ms)
     local sp = B._sp[pn]
     if not sp or sp.half then return end

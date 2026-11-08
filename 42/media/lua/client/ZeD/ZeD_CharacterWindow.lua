@@ -1235,9 +1235,9 @@ _buildLootFocusables = function(win)
                 containerIdx = ci,
                 inventory = win._containers[ci].inventory,
                 onFocus = function(w, el) end,
-                -- S107 QA: same tap-vs-hold model as the main container.
+                -- Same tap-vs-hold model as the main container.
                 -- Tap = switch active (no tab swap). Hold = MC toggle, with
-                -- S106 cross-tab snap to Loot baked in. _mainVisible mirrors
+                -- the cross-tab snap to Loot baked in. _mainVisible mirrors
                 -- "is main the displayed container?" — false here since this
                 -- closure is for non-main (idx != 1).
                 onActivate = function(w, el)
@@ -1262,7 +1262,7 @@ _buildLootFocusables = function(win)
                         mcToggleContainer(w, c, el.containerIdx)
                     end
                 end,
-                -- S113c: HOLD X + D-pad UP/DOWN = drag-reorder this container
+                -- HOLD X + D-pad UP/DOWN = drag-reorder this container
                 -- in the strip (mouse-drag parity). Each D-pad press while X
                 -- is held swaps the container with its neighbor in
                 -- _containerOrder; release X to commit (no rollback). Only
@@ -1282,10 +1282,9 @@ _buildLootFocusables = function(win)
     return elements
 end
 
--- Oct 23 2026 (director's pad test, World window parity): the strip's stops
--- were built at open and on a tab switch only, so a bag put on afterwards had
--- no stop. Rebuilt whenever the bag list, its order or its scroll changes;
--- the focus stays on the same bag (by inventory).
+-- The strip's stops used to be built at open and on a tab switch only, so a
+-- bag put on afterwards had no stop. Rebuilt whenever the bag list, its order
+-- or its scroll changes; the focus stays on the same bag (by inventory).
 local function _refreshCharStripFocus(win, Focus)
     local L = win._stripLay
     local cnts = win._containers
@@ -1331,17 +1330,17 @@ local function _charInvListLandOn(w, z, dir)
     return z.focusedElementIdx or 1
 end
 
--- S95 — Build Skills-tab focusables from the win._skillRowZones table that
+-- The Skills tab's stops, built from the win._skillRowZones table that
 -- SkillsTab.lua populates each frame. Snapshot the zones; if layout shifts
 -- on a later frame, a re-push will refresh.
 --
--- S103 — split into three builders + aggregator, mirroring the Thermal
--- structure. Disclosure FIRST (tree-nav semantics locked by S102). Skill
--- rows guard on _skillsGridExpanded because they only render when the
--- grid is open; training chevrons do NOT guard because the training
--- section always renders (collapsed-grid state still shows training).
--- Paint cue stays live-element-gated in SkillsTab.render so the state
--- field is written for scroll-follow keying only, not paint.
+-- Three builders + an aggregator, mirroring the Thermal structure.
+-- Disclosure FIRST (the tree-nav rule every tab follows). Skill rows guard
+-- on _skillsGridExpanded because they only render when the grid is open;
+-- training chevrons do NOT guard because the training section always renders
+-- (a collapsed grid still shows training). The paint cue stays
+-- live-element-gated in SkillsTab.render, so the state field is written for
+-- scroll-follow keying only, not paint.
 
 -- Skills disclosure — element[1] in charTabContent. Reuses _skillsGridZone
 -- which is stamped at the END of SkillsTab.render after drawTabHeader (so
@@ -1383,14 +1382,14 @@ local function _buildSkillRowFocusables(win)
             onFocus = function(w, el)
                 w._gpFocusedSkill = el.skillName
             end,
-            -- A or X: the row's menu, with Pin to title bar (Nov 4 2026; was A pins at once)
+            -- A or X: the row's menu, with Pin to title bar (A used to pin at once)
             onActivate = function(w, el)
                 if el.skillName then skillRowMenu(w, el.skillName, w:getAbsoluteX() + el.x + 40, w:getAbsoluteY() + el.y + el.h) end
             end,
             onContextMenu = function(w, el)
                 if el.skillName then skillRowMenu(w, el.skillName, w:getAbsoluteX() + el.x + 40, w:getAbsoluteY() + el.y + el.h) end
             end,
-            -- the one column (a narrow card, punch list 35): Left and Right do nothing;
+            -- the one column (a narrow card): Left and Right do nothing;
             -- Down and Up go through the column (cone-nav)
             onDpadDir = function(w, el, dir)
                 if w._skillsOneCol and (dir == "left" or dir == "right") then return true end
