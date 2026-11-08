@@ -6195,5 +6195,15 @@
     "UI_ZeD_Mail_NoReport": "Этот сервер не принимает жалобы на письма.",
     "UI_ZeD_Mail_Connecting": "Соединение... отправка %1, приём %2",
     "UI_ZeD_Tk_ReportedLetter": "Письмо, на которое пожаловались",
-    "UI_ZeD_Tk_LetterWhose": "В том виде, в каком игрок его получил."
+    "UI_ZeD_Tk_LetterWhose": "В том виде, в каком игрок его получил.",
+    "UI_ZeD_Card_MakesTitle": "Нужно для",
+    "UI_ZeD_Card_MakesHelp": "Открывает рецепт на вкладке «Создание» или «Стройка».",
+    "UI_ZeD_Card_MakesMore": "ещё %1",
+    "UI_ZeD_Card_MakesMoreHelp": "Открывает вкладку «Создание» с этим предметом в поиске.",
+    "UI_ZeD_Skills_UnlockHead": "Рецепты, которым нужен каждый уровень",
+    "UI_ZeD_Skills_UnlockLevel": "Уровень %1",
+    "UI_ZeD_Skills_UnlockMore": "и ещё %1",
+    "UI_ZeD_Settings_AutoLearn": "Рецепты от навыков",
+    "UI_ZeD_Settings_AutoLearnTip": "Карточка навыка также показывает рецепты, которым игра учит сама, когда навык достигает уровня. Выкл.: как в игре, которая об этом не говорит.",
+    "UI_ZeD_Skills_TaughtHead": "Изучаются сами на каждом уровне"
 }

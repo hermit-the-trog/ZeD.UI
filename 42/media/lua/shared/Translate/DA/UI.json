@@ -6195,5 +6195,15 @@
     "UI_ZeD_Mail_NoReport": "Denne server kan ikke modtage en anmeldelse af et brev.",
     "UI_ZeD_Mail_Connecting": "Forbinder... sender %1, modtager %2",
     "UI_ZeD_Tk_ReportedLetter": "Det anmeldte brev",
-    "UI_ZeD_Tk_LetterWhose": "Som spilleren modtog det."
+    "UI_ZeD_Tk_LetterWhose": "Som spilleren modtog det.",
+    "UI_ZeD_Card_MakesTitle": "Bruges til at lave",
+    "UI_ZeD_Card_MakesHelp": "Åbner opskriften på fanen Fremstil eller Byg.",
+    "UI_ZeD_Card_MakesMore": "%1 mere",
+    "UI_ZeD_Card_MakesMoreHelp": "Åbner fanen Fremstil med denne genstand i søgningen.",
+    "UI_ZeD_Skills_UnlockHead": "Opskrifter, der kræver hvert niveau",
+    "UI_ZeD_Skills_UnlockLevel": "Niveau %1",
+    "UI_ZeD_Skills_UnlockMore": "og %1 mere",
+    "UI_ZeD_Settings_AutoLearn": "Opskrifter, færdigheder lærer dig",
+    "UI_ZeD_Settings_AutoLearnTip": "Færdighedskortet viser også de opskrifter, spillet selv lærer dig, når en færdighed når et niveau. Fra: som spillet, der ikke siger det.",
+    "UI_ZeD_Skills_TaughtHead": "Læres af sig selv på hvert niveau"
 }

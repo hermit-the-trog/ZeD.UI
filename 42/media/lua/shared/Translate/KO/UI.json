@@ -6195,5 +6195,15 @@
     "UI_ZeD_Mail_NoReport": "이 서버는 편지 신고를 받을 수 없습니다.",
     "UI_ZeD_Mail_Connecting": "연결 중... 보내는 중 %1, 받는 중 %2",
     "UI_ZeD_Tk_ReportedLetter": "신고된 편지",
-    "UI_ZeD_Tk_LetterWhose": "플레이어가 받은 그대로입니다."
+    "UI_ZeD_Tk_LetterWhose": "플레이어가 받은 그대로입니다.",
+    "UI_ZeD_Card_MakesTitle": "이것으로 만들 수 있는 것",
+    "UI_ZeD_Card_MakesHelp": "제작 또는 건설 탭에서 레시피를 엽니다.",
+    "UI_ZeD_Card_MakesMore": "%1개 더",
+    "UI_ZeD_Card_MakesMoreHelp": "이 아이템으로 검색한 제작 탭을 엽니다.",
+    "UI_ZeD_Skills_UnlockHead": "레벨별로 필요한 레시피",
+    "UI_ZeD_Skills_UnlockLevel": "레벨 %1",
+    "UI_ZeD_Skills_UnlockMore": "외 %1개",
+    "UI_ZeD_Settings_AutoLearn": "기술이 가르치는 레시피",
+    "UI_ZeD_Settings_AutoLearnTip": "기술이 특정 레벨에 도달하면 게임이 자동으로 가르쳐 주는 레시피도 기술 카드에 표시합니다. 끔: 알려 주지 않는 게임과 같습니다.",
+    "UI_ZeD_Skills_TaughtHead": "레벨별 자동 습득"
 }

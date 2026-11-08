@@ -6195,5 +6195,15 @@
     "UI_ZeD_Mail_NoReport": "这台服务器无法接收信件举报。",
     "UI_ZeD_Mail_Connecting": "正在连接... 发送 %1，接收 %2",
     "UI_ZeD_Tk_ReportedLetter": "被举报的信",
-    "UI_ZeD_Tk_LetterWhose": "与玩家收到时一致。"
+    "UI_ZeD_Tk_LetterWhose": "与玩家收到时一致。",
+    "UI_ZeD_Card_MakesTitle": "可用于制作",
+    "UI_ZeD_Card_MakesHelp": "在制作或建造标签页中打开配方。",
+    "UI_ZeD_Card_MakesMore": "还有 %1 个",
+    "UI_ZeD_Card_MakesMoreHelp": "打开制作标签页并搜索此物品。",
+    "UI_ZeD_Skills_UnlockHead": "各等级所需的配方",
+    "UI_ZeD_Skills_UnlockLevel": "等级 %1",
+    "UI_ZeD_Skills_UnlockMore": "还有 %1 个",
+    "UI_ZeD_Settings_AutoLearn": "技能教会的配方",
+    "UI_ZeD_Settings_AutoLearnTip": "技能卡也会列出技能达到某等级时游戏自动教你的配方。关闭：与游戏相同，不会告诉你。",
+    "UI_ZeD_Skills_TaughtHead": "各等级自动学会"
 }
