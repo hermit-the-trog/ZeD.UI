@@ -543,6 +543,58 @@ function M.reportHeader()
     return table.concat(out, "\n")
 end
 
+-- ---------------------------------------------------------------------------
+-- NO ACCOUNT NAME IN A REPORT. An error's text carries file paths, and a Windows path names the account
+-- (C:\Users\<name>\...). Every copied report goes through M.scrub: the Zomboid folder (getMyDocumentFolder, either
+-- slash) becomes ~/Zomboid first, so its longer path wins, then any Windows user folder becomes ~\ or ~/, and the
+-- report ends with a line saying so. The game's own files (console.txt) still hold the name.
+-- ---------------------------------------------------------------------------
+M.SCRUB_NOTE = "Your user name is taken out of this report. Files like console.txt still have it: look them over before you post them."
+
+-- every copy of what in s, ASCII case ignored, swapped for with (a plain find: a path's dots and dashes are no pattern)
+local function swapAll(s, what, with)
+    if not what or what == "" then return s end
+    local hay, needle = string.lower(s), string.lower(what)
+    -- (a string.lower that changed a length would put the places out of step: then the case must match)
+    if #hay ~= #s or #needle ~= #what then hay, needle = s, what end
+    local out, i = {}, 1
+    while true do
+        local a, b = string.find(hay, needle, i, true)
+        if not a then break end
+        out[#out + 1] = string.sub(s, i, a - 1)
+        out[#out + 1] = with
+        i = b + 1
+    end
+    if i == 1 then return s end
+    out[#out + 1] = string.sub(s, i)
+    return table.concat(out)
+end
+
+-- a user folder written as C:\Users\<name> or C:/Users/<name>, any case, then its slash: ~ and that slash. (A name
+-- holds no colon, so a match never runs on into the next path on the line.)
+local USER_DIR = "%a:[/\\][Uu][Ss][Ee][Rr][Ss][/\\][^/\\:\r\n\"']+([/\\])"
+
+--- The report text with the account name taken out (the folders above), and the line saying so as its last line.
+function M.scrub(text)
+    local s = tostring(text or "")
+    local doc = safe(function() return tostring(getMyDocumentFolder() or "") end) or ""
+    if doc ~= "" then
+        local fwd = string.gsub(doc, "\\", "/")
+        local back = string.gsub(doc, "/", "\\")
+        s = swapAll(s, back, "~/Zomboid")
+        s = swapAll(s, fwd, "~/Zomboid")
+    end
+    s = string.gsub(s, USER_DIR, function(sep) return "~" .. sep end)
+    -- (this account's own folder with no slash after it: found from the Zomboid folder, never typed in)
+    local home = string.match(doc, "^%a:[/\\][Uu][Ss][Ee][Rr][Ss][/\\][^/\\]+")
+    if home then
+        s = swapAll(s, (string.gsub(home, "/", "\\")), "~")
+        s = swapAll(s, (string.gsub(home, "\\", "/")), "~")
+    end
+    if string.sub(s, -1) ~= "\n" then s = s .. "\n" end
+    return s .. M.SCRUB_NOTE
+end
+
 -- one source's errors, every kept one in full ("errors" is how many came; the newest 12 are kept)
 local function sourceBlock(name, it)
     local out = { name .. ": " .. it.count .. " errors, the newest " .. #it.texts .. " in full", "" }
@@ -559,7 +611,7 @@ function M.report(name)
     local s = M.sources[name]
     local it = s and s.items[1]
     if not it or it.k ~= "err" then return "" end
-    return M.reportHeader() .. "\n" .. sourceBlock(name, it)
+    return M.scrub(M.reportHeader() .. "\n" .. sourceBlock(name, it))
 end
 
 -- one kept error of a source (i: its place in the kept list), with the header
@@ -568,7 +620,7 @@ function M.reportOne(name, i)
     local it = s and s.items[1]
     local t = it and it.k == "err" and it.texts[i]
     if not t then return "" end
-    return M.reportHeader() .. "\n" .. name .. ": " .. tostring((it.whens and it.whens[i]) or "") .. "\n" .. t .. "\n"
+    return M.scrub(M.reportHeader() .. "\n" .. name .. ": " .. tostring((it.whens and it.whens[i]) or "") .. "\n" .. t .. "\n")
 end
 
 -- every error source's report in one text, and how many errors it holds
@@ -585,7 +637,7 @@ function M.reportAll()
         parts[#parts + 1] = sourceBlock(name, it)
     end
     if n == 0 then parts[#parts + 1] = "No errors were caught this session." end
-    return table.concat(parts, "\n"), n
+    return M.scrub(table.concat(parts, "\n")), n
 end
 
 -- The ZeD wheel's Bug report: every error, with the header, onto the clipboard, then a note saying so
