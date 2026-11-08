@@ -171,7 +171,7 @@ function Srv.actionStore(kind, who, what, target, detail, x, y, z, ex)
     if not slot then return end
     log.s = (log.s or 0) + 1
     local row = { s = log.s, t = getTimestamp(), day = today(), kind = kind, who = who, what = what, target = target, text = detail, x = x, y = y, z = z }
-    if ex then row.car, row.part, row.locked = ex.car, ex.part, ex.locked end
+    if ex then row.car, row.part, row.locked, row.via = ex.car, ex.part, ex.locked, ex.via end
     log[slot] = row
 end
 
@@ -463,24 +463,29 @@ end
 local GAME_BAN = { Ban = true, BanSteamID = true, BanIPOnly = true }
 local ON_SID = { BanSteamID = true, UnBanSteamID = true }
 
+-- the calls that give way when the table is full: a Kick is asked again on the next stay, a VoiceBan holds for one session
+-- only (a dropped one waits for their next session). Neither may crowd out a ban or an unban
+local GIVES_WAY = { Kick = true, VoiceBan = true }
+
 local function owedRoom(md)
-    local n, kicks = 0, 0
+    local n, soft = 0, 0
     for _, e in pairs(md.owed) do
         n = n + 1
-        if e.act == "Kick" then kicks = kicks + 1 end
+        if GIVES_WAY[e.act] then soft = soft + 1 end
     end
-    return AL.OWED_MAX - n + kicks
+    return AL.OWED_MAX - n + soft
 end
 
--- a command that can be refused asks owedRoom first; past the cap a Kick goes, the oldest, and a ban or an unban never does
+-- a command that can be refused asks owedRoom first; past the cap a Kick or a VoiceBan goes, the oldest, and a ban or an
+-- unban never does
 local function owe(md, act, target, reason, delay, by, opts)
     local n, low = 0, nil
     for id, e in pairs(md.owed) do
         n = n + 1
-        if e.act == "Kick" and (not low or id < low) then low = id end
+        if GIVES_WAY[e.act] and (not low or id < low) then low = id end
     end
     if n >= AL.OWED_MAX and low then
-        Srv.adminLog(Tk.SYS, "owed game calls full", md.owed[low].target, "dropped a Kick")
+        Srv.adminLog(Tk.SYS, "owed game calls full", md.owed[low].target, "dropped a " .. tostring(md.owed[low].act))
         md.owed[low] = nil
     end
     local id = md.nextOwe
@@ -770,8 +775,9 @@ end
 -- ---------------------------------------------------------------------------
 local CAP_LOOK = Capability and Capability.SeeNetworkUsers     -- (nil in a game without it: no looks, name rows stay as they are)
 
--- the row closes on the game's word. Nothing is lifted or owed; whoever was told to leave stays
-local function closeLifted(md, b, how)
+-- the row closes on the game's word. Nothing is lifted or owed; whoever was told to leave stays. via: the staff client whose
+-- look at the game's user list said so (a_looked), named on the line (its field via)
+local function closeLifted(md, b, how, via)
     cancelOwed(md, b.id)
     md.bans[b.id] = nil
     T.hold[b.id], T.lookedAt[b.id] = nil, nil
@@ -781,7 +787,9 @@ local function closeLifted(md, b, how)
     if b.sidLift and gameHoldsSid(b.sidLift) == true then still[#still + 1] = "its Steam ID" end
     if #still > 0 then how = how .. "; the game still holds " .. table.concat(still, " and ") end
     -- (the game tells server Lua nothing of who: its own user log names them, and only a client can ask for that)
-    Srv.adminLog(Tk.SYS, "ban lifted in the game", b.user or b.sid or b.ip, "lifted in the game: " .. how)
+    if via then how = how .. "; seen by " .. via end
+    Srv.action("admin", Tk.SYS, "ban lifted in the game", b.user or b.sid or b.ip, "lifted in the game: " .. how, nil, nil, nil,
+        via and { via = via } or nil)
     pushBans(md)
 end
 
@@ -1623,7 +1631,7 @@ reg("a_looked", {}, function(p, a, rid)
         if b and said[id] == true then
             if not b.nameSeen then b.nameSeen = cur.at end
         elseif b and said[id] == false and b.nameSeen and cur.at - b.nameSeen >= AL.LIFT_FRESH_S and not banOwed(md, b) then
-            closeLifted(md, b, "the game's user list no longer has the name banned")
+            closeLifted(md, b, "the game's user list no longer has the name banned", cur.to)
             h = nil
         end
         if h then h.done = true end      -- (answered: a held row's player is judged as before)

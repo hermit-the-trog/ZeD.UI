@@ -5612,6 +5612,7 @@
     "UI_ZeD_Log_A_Unban": "ปลดแบน %1",
     "UI_ZeD_Log_A_Lifted": "การแบน %1 หมดอายุ",
     "UI_ZeD_Log_A_LiftedGame": "การแบน %1 ถูกยกเลิกในเกม",
+    "UI_ZeD_Log_A_LiftedGameBy": "การแบน %1 ถูกยกเลิกในเกม (ตรวจพบโดย %2)",
     "UI_ZeD_Log_A_IpLiftedGame": "การแบน IP %1 ถูกยกเลิกในเกม",
     "UI_ZeD_Log_A_GameBan": "ใช้การแบนของเกมกับ %1: %2",
     "UI_ZeD_Log_A_Msg": "ส่งข้อความเซิร์ฟเวอร์: %1",

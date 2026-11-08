@@ -5612,6 +5612,7 @@
     "UI_ZeD_Log_A_Unban": "ha sbannato %1",
     "UI_ZeD_Log_A_Lifted": "il ban su %1 è scaduto",
     "UI_ZeD_Log_A_LiftedGame": "il ban su %1 è stato tolto nel gioco",
+    "UI_ZeD_Log_A_LiftedGameBy": "il ban su %1 è stato tolto nel gioco, visto da %2",
     "UI_ZeD_Log_A_IpLiftedGame": "il ban IP su %1 è stato tolto nel gioco",
     "UI_ZeD_Log_A_GameBan": "ha messo il ban del gioco su %1: %2",
     "UI_ZeD_Log_A_Msg": "ha inviato un messaggio del server: %1",

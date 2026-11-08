@@ -1471,6 +1471,8 @@ do
         check("words: " .. want, words("ticket", what, "#14", "GRIEF") == want, words("ticket", what, "#14", "GRIEF"))
     end
     check("a code from a later ZeD reads as written", words("vehicle", "ramp", "Rosa") == "ramp Rosa")
+    local lw = words("admin", "ban lifted in the game", "x", "lifted in the game: the game's user list no longer has the name banned; seen by Rosa", { via = "Rosa" })
+    check("words: a lift seen on the game's user list names the staff client that looked", lw == "the ban on x was lifted in the game, seen by Rosa", lw)
     check("a mod's line reads as written, never as ours", words("admin", "kick", "Rosa", "x", { src = "tap" }) == "kick Rosa: x")
     check("no place, no source: no second line", Lm.metaText({}) == "")
     check("the other name, on a vehicle", Lm.otherName({ k = "vehicle", target = "Kade_R" }) == "Kade_R")
@@ -1891,6 +1893,13 @@ do
     check("a server line reads as the server's", L(ca).whoText(r) == "Server:", L(ca).whoText(r))
     r = rowWith(rowsOf(a, { kind = "vehicle" }), "eparts")
     check("a player so named reads as themselves", L(ca).whoText(r) == "server")
+    Srv().action("admin", W.server.ZeD.Tk.SYS, "ban lifted in the game", "Lifty", "lifted in the game: the game's user list no longer has the name banned; seen by Lookr",
+        nil, nil, nil, { via = "Lookr" })
+    r = rowWith(rowsOf(a, { kind = "admin" }), "ban lifted in the game")
+    check("a lift seen by a staff client's look carries their name (via)", r and r.via == "Lookr", r and tostring(r.via))
+    check("its words name them", r and L(ca).lineText(r) == "the ban on Lifty was lifted in the game, seen by Lookr", r and L(ca).lineText(r))
+    check("Who finds the line by the staff client who looked", rowWith(rowsOf(a, { kind = "admin", who = "Lookr" }), "ban lifted in the game") ~= nil)
+    check("the file line names them too", logHas("seen by Lookr"))
     -- the QA lines stay in the file
     check("the hook's line is in the file", logHas("vehicle hook reached"))
     check("and not on staff's chip", rowWith(rowsOf(a, { kind = "admin" }), "vehicle hook reached") == nil)

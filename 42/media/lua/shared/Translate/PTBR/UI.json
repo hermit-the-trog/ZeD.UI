@@ -5612,6 +5612,7 @@
     "UI_ZeD_Log_A_Unban": "desbaniu %1",
     "UI_ZeD_Log_A_Lifted": "o banimento de %1 acabou",
     "UI_ZeD_Log_A_LiftedGame": "o banimento de %1 foi retirado no jogo",
+    "UI_ZeD_Log_A_LiftedGameBy": "o banimento de %1 foi retirado no jogo, visto por %2",
     "UI_ZeD_Log_A_IpLiftedGame": "o banimento de IP de %1 foi retirado no jogo",
     "UI_ZeD_Log_A_GameBan": "pôs o banimento do jogo em %1: %2",
     "UI_ZeD_Log_A_Msg": "enviou mensagem ao servidor: %1",

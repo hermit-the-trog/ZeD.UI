@@ -571,7 +571,8 @@ end
 -- ---------------------------------------------------------------------------
 local function rowView(l)
     return { s = l.s, t = l.t, day = l.day, k = Lg.kindOf(l.kind), who = l.who, what = l.what, target = l.target, text = l.text, x = l.x, y = l.y, z = l.z,
-        car = l.car, part = l.part, locked = l.locked, src = l.src, lg = l.lg, by = l.by, hid = l.hid }
+        car = l.car, part = l.part, locked = l.locked, src = l.src, lg = l.lg, by = l.by, hid = l.hid,
+        via = l.via }
 end
 
 local function copyOf(l)

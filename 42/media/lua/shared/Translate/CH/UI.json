@@ -5612,6 +5612,7 @@
     "UI_ZeD_Log_A_Unban": "解除了 %1 的封禁",
     "UI_ZeD_Log_A_Lifted": "%1 的封禁到期",
     "UI_ZeD_Log_A_LiftedGame": "%1 的封禁已在游戏中解除",
+    "UI_ZeD_Log_A_LiftedGameBy": "%1 的封禁已在游戏中解除（由 %2 查看）",
     "UI_ZeD_Log_A_IpLiftedGame": "%1 的 IP 封禁已在游戏中解除",
     "UI_ZeD_Log_A_GameBan": "對 %1 施加了遊戲的封禁：%2",
     "UI_ZeD_Log_A_Msg": "發送了伺服器訊息：%1",
