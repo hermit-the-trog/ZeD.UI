@@ -54,6 +54,15 @@ Run the commands below from `Zomboid/mods/ZeD-UI`.
     - The first time, on the unlisted test item (`-ItemId <id>`), checking its files and page text are untouched.
     - Check the item page, the Workshop grid and the Steam app show it moving; sign the Steam client back in.
 
+16c. **Start the next cycle** (director, Nov 8 2026: "create that note at the beginning of each build cycle instead
+    of doing it at the end ... when I open up the app, I can see the notes"). Right after the upload and the tag,
+    QA's first message to Build starts the next build:
+    - bump `42/mod.info`'s modversion to the next version (the corkboard heading reads it);
+    - set `42/media/lua/client/ZeD/MenuNote.lua`'s five lines (ten characters each, capitals) from the punch list and
+      the director's plan for that build, shown to the director for approval before they're committed.
+    The note can change during the cycle if the plan does; step 5's pre-staging check and the release check's picture
+    still confirm it before staging.
+
 17. **Pin a discussion** on the item page called "Bug reports" (Discussions > Start a new discussion, then Pin), and link it at the top of the description.
 18. **Add the gallery images.** The game uploads only preview.png. On the item page in Steam (the browser or the Steam client), choose Add/edit images & videos and add the JPGs from ZeDUI/workshop/shots/out in their numbered order (each is under 1 MB). Do this once per build that changes the screenshots.
 
