@@ -206,6 +206,8 @@ end
 -- the wheels' slices that open a window ZeD has replaced
 -- ---------------------------------------------------------------------------
 local function openPair(playerNum)
+    -- (split-screen: another player's Player Info is the game's own, ZeD.windowsFor)
+    if not ZeD.windowsFor(playerNum or 0) then return false end
     if not (ZeD_CharacterWindow and ZeD_CharacterWindow.ensureBothOpenForGamepad) then return false end
     local ok = pcall(ZeD_CharacterWindow.ensureBothOpenForGamepad, playerNum or 0)
     return ok and ZeD_CharacterWindow.isOpen and ZeD_CharacterWindow.isOpen() or false

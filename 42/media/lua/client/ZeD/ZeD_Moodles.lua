@@ -216,11 +216,11 @@ function ZeD_MoodleLayer:_rowY(size)
     local T = ZeD.T
     local pn = self.playerNum
     local top = getPlayerScreenTop(pn) + getPlayerScreenHeight(pn) - T.px(16)
-    local hud = pn == 0 and ZeD.Belt and ZeD.Belt.getHUD and ZeD.Belt.getHUD() or nil
+    local hud = ZeD.Belt and ZeD.Belt.getHUD and ZeD.Belt.getHUD(pn) or nil
     if hud and hud._drawn and hud:getIsVisible() then
         top = hud:getY()
     else
-        local dash = pn == 0 and ZeD.Dashboard and ZeD.Dashboard.getInstance and ZeD.Dashboard.getInstance() or nil
+        local dash = ZeD.Dashboard and ZeD.Dashboard.getInstance and ZeD.Dashboard.getInstance(pn) or nil
         if dash and dash:getIsVisible() then top = dash:getY() end
     end
     return top - T.px(12) - size

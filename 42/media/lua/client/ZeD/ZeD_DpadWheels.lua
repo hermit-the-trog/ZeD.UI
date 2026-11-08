@@ -361,6 +361,9 @@ D.paused = paused
 -- a ZeD window holding the pad (a menu or prompt let the focus go): the press
 -- is that window's, never a wheel (Oct 23 2026, from the belt's D-pad Left)
 local function windowTakes(dir, joypadData)
+    -- (only the first player's pad: ZeD's windows and their focus are theirs, ZeD.windowsFor. Another player's
+    -- D-pad moved the first player's window, split-screen, known issue Nov 7 2026)
+    if not ZeD.windowsFor(joypadData and joypadData.player or 0) then return false end
     local F = ZeD.Input and ZeD.Input.Focus
     local fw = F and F.getFocusedWindow and F.getFocusedWindow()
     if fw and fw:isVisible() and not fw.windowShaded then
@@ -404,7 +407,9 @@ local function apply()
         local orig = ISDPadWheels[fn]
         D.orig[dir] = orig
         ISDPadWheels[fn] = function(joypadData)
-            if D.gameWheels() then return orig(joypadData) end
+            -- (split-screen: the wheels' slices open ZeD's windows, which are the first player's: another player
+            -- has the game's own wheels, ZeD.windowsFor)
+            if D.gameWheels() or not ZeD.windowsFor(joypadData and joypadData.player or 0) then return orig(joypadData) end
             if windowTakes(dir, joypadData) then return end
             if not G.freshPress(dir, joypadData) then return end   -- (the game's repeat of a held direction)
             -- paused: only Here and now opens (Game speed, Play stays in reach)
@@ -420,7 +425,7 @@ local function apply()
         local origAdd = ISBackButtonWheel.addCommands
         D.orig.select = origAdd
         function ISBackButtonWheel:addCommands()
-            if D.gameWheels() then
+            if D.gameWheels() or not ZeD.windowsFor(self.playerNum or 0) then
                 self:setHideWhenButtonReleased(Joypad.Back)   -- (a ZeD wheel on this object may have cleared it)
                 return origAdd(self)
             end
@@ -652,6 +657,7 @@ local H = D.H
 
 -- the pair open on a Character tab, the pad in the Character window
 function H.charTab(p, pn, id)
+    if not ZeD.windowsFor(pn) then return end   -- (split-screen: ZeD's windows are the first player's)
     if not (ZeD_CharacterWindow and ZeD_CharacterWindow.ensureBothOpenForGamepad) then return end
     pcall(ZeD_CharacterWindow.ensureBothOpenForGamepad, pn)
     local tries = 0
@@ -677,6 +683,7 @@ end
 
 -- the pair open on a World tab, the pad in the World window
 function H.worldTab(p, pn, id)
+    if not ZeD.windowsFor(pn) then return end   -- (split-screen: ZeD's windows are the first player's)
     if ZeD_CharacterWindow and ZeD_CharacterWindow.ensureBothOpenForGamepad then pcall(ZeD_CharacterWindow.ensureBothOpenForGamepad, pn) end
     if ZeD_WorldWindow and ZeD_WorldWindow.openTab then pcall(ZeD_WorldWindow.openTab, pn, id) end
     local tries = 0

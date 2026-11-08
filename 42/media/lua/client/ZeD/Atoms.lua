@@ -1496,6 +1496,16 @@ function ZeD.playerNumOf(w)
     return p and p:getPlayerNum() or 0
 end
 
+-- Split-screen (known issue Nov 7 2026): ZeD's Character and World windows, and the focus that drives them by pad
+-- (Input/FocusManager.lua: one focused window, the first pad), are the first local player's. Another local player
+-- gets the game's own windows (inventory, loot, character info), their own, on their part of the screen and driven
+-- by their pad: every way into ZeD's windows asks this first and, for them, answers nothing, so the game's own
+-- answers (the callers fall back to the game's when ZeD returns false or nil). Before, their presses opened, moved and
+-- closed the first player's windows. nil: the first player.
+function ZeD.windowsFor(pn)
+    return pn == nil or pn == 0
+end
+
 -- Oct 19 2026 (the single-path audit): the no-craft chip is vanilla's own
 -- "Set to be Unusable in Recipes" (item:setNoRecipes), so vanilla's crafting
 -- honours it and the context menu shows it; the old ZeD-only mark

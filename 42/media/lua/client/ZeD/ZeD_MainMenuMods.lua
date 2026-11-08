@@ -398,30 +398,54 @@ end
 -- already counts as first. opts.exact: the template mod too (else it asks on its own row).
 -- opts.why: id -> the reason a mod stayed off. Returns the mods set on and the names left off.
 
--- toggle remembers the mod that took ZeD picks off (self._picksOffWith). That memory holds only
--- while that mod and picks are both still off: once either came on another way (a profile with
--- ZeD-GUI on and picks off, Turn all, a separator or folder box, a mod that needs ZeD-GUI), that
--- choice stands and turning the mod off and on again must not overrule it. A set the player
--- picked as a whole (Turn all off, a profile, No mods, Undo changes) stands too, even with both
--- off: setAll, loadProfile and revert forget it. The Load order page's Back and Undo set an
--- earlier set of this visit's mods again, so they put back the memory that went with that set
--- (restorePicksOffWith), even when a separator box on that page had cleared it (review Nov 7 2026)
-local function checkPicksOffWith(self, m)
+-- ZeD picks needs ZeD-GUI (require=\ZeD_UI in its mod.info), so ZeD-GUI going off takes picks off
+-- with it, and vanilla's cascade only brings requirements back on, never dependants. The screen
+-- remembers the mod whose going off took picks with it (self._picksOffWith), whichever way it
+-- went off: its own row, a folder or separator box, Turn all off or No mods (picksNoteOff). Every
+-- way that mod comes back on (its row, a box, Turn all on, a mod that needs it) brings picks back
+-- with it (picksSettle, act = true; the director, Nov 7 2026: before, only the row did). The
+-- memory goes once picks is on again, when the player sets picks on its own row and when a set
+-- the player kept comes back exactly (a profile, Undo changes, Discard: applyOnSet exact checks
+-- without acting). The Load order page's Back and Undo set an earlier set of this visit's mods
+-- again and put back the memory that went with it (restorePicksOffWith).
+local function picksHelper(m)
+    local helper = ZeD.ModPicks and ZeD.ModPicks.HELPER
+    return helper, helper and m.mods[helper]   -- (nil when picks is not installed)
+end
+
+-- act: bring picks back when the remembered mod is on again; otherwise only drop the memory
+local function picksSettle(self, m, act)
     local id = self._picksOffWith
     if not id then return end
-    local helper = ZeD.ModPicks and ZeD.ModPicks.HELPER
+    local _, h = picksHelper(m)
     local r = m.mods[id]
-    local h = helper and m.mods[helper]   -- (nil when picks is not installed)
-    if not (r and h) or r.isActive or h.isActive then self._picksOffWith = nil end
+    if not (r and h) or h.isActive then self._picksOffWith = nil; return end
+    if not r.isActive then return end
+    self._picksOffWith = nil
+    -- (vanilla's forceActivateMods checks the helper can run and conflicts nothing, as for any mod)
+    if act then m:forceActivateMods(h.modInfo, true) end
+end
+
+-- after mods went off (before: the set on before): picks was on and is off now because a mod it
+-- needs went off: remember that mod (the first of picks' own requirements that went off)
+function ZeD_MMMods:picksNoteOff(before)
+    local m = model()
+    if not (m and before) then return end
+    local helper, h = picksHelper(m)
+    if not (h and before[helper]) or h.isActive then return end
+    for _, r in ipairs(jlist(h.modInfo:getRequire())) do
+        local rd = m.mods[r]
+        if before[r] and rd and not rd.isActive then self._picksOffWith = r; return end
+    end
 end
 
 -- the Load order page's Back and Undo: id is the memory kept with the set they just put back
--- (nil when there was none). It is checked again, so it holds only while that mod and picks are
--- both off now.
+-- (nil when there was none). It is checked again (not acted on: the set put back stands), so it
+-- holds only while that mod and picks are both off now.
 function ZeD_MMMods:restorePicksOffWith(id)
     self._picksOffWith = id
     local m = model()
-    if m then checkPicksOffWith(self, m) end
+    if m then picksSettle(self, m, false) end
 end
 
 function ZeD_MMMods:modsOnBatch(ids, opts)
@@ -462,8 +486,9 @@ function ZeD_MMMods:modsOnBatch(ids, opts)
         end
     end
     if #go > 0 then m:refreshMods() end
-    -- (applyOnSet always ends here, after its mods went off, so this sees the whole set change)
-    checkPicksOffWith(self, m)
+    -- (applyOnSet always ends here, after its mods went off, so this sees the whole set change. A
+    -- set the player kept, put back exactly, stands: picks back only on a batch of new choices)
+    picksSettle(self, m, not opts.exact)
     return go, cannot
 end
 
@@ -506,23 +531,14 @@ function ZeD_MMMods:toggle(d, confirmed)
     if turnOn and d.modId == "ModTemplate" and not confirmed then self._templateFor = d; self:setConfirm("template"); return end
     local before = activeSet(m)
     m:forceActivateMods(d.modInfo, turnOn)
-    -- ZeD picks needs ZeD-GUI (require=\ZeD_UI in its mod.info), so turning ZeD-GUI off takes picks
-    -- off with it, and vanilla's cascade only brings requirements back on, never dependants. Picks
-    -- that went off that way come back with the mod that took them (review Nov 7 2026, #4), the way
-    -- the screen turns the helper on by itself once picks apply (afterPicks)
-    local helper = ZeD.ModPicks and ZeD.ModPicks.HELPER
-    if helper then
-        local h = m.mods[helper]
-        if d.modId == helper then
-            self._picksOffWith = nil   -- the player set picks themselves: their choice stands
-        elseif not turnOn and before[helper] and h and not h.isActive then
-            self._picksOffWith = d.modId   -- remember which mod took picks off (until the screen closes)
-        elseif turnOn and self._picksOffWith == d.modId and d.isActive and h and not h.isActive then
-            self._picksOffWith = nil
-            m:forceActivateMods(h.modInfo, true)   -- (it checks the helper can run, as for any mod)
-        end
-        -- (another mod turned on may have brought the remembered one back as its requirement)
-        checkPicksOffWith(self, m)
+    -- ZeD picks off with ZeD-GUI, and back with it (picksNoteOff, picksSettle above); the player
+    -- setting picks on its own row: their choice stands
+    if d.modId == (ZeD.ModPicks and ZeD.ModPicks.HELPER) then
+        self._picksOffWith = nil
+    else
+        if not turnOn then self:picksNoteOff(before) end
+        -- (a mod turned on may have brought ZeD-GUI back as its requirement: picks come too)
+        picksSettle(self, m, true)
     end
     -- (the list's pins and rules lay the order out again: ZeD_MainMenuModsOrder)
     if turnOn and self.relayoutList then self:relayoutList() end
@@ -645,7 +661,7 @@ end
 function ZeD_MMMods:revert()
     local m = model()
     if not m then return end
-    self._picksOffWith = nil   -- (the set the screen opened with stands, picks included)
+    self._picksOffWith = nil   -- (the set the screen opened with stands, picks included: see picksSettle)
     self:applyOnSet(self:defaultOnSet(), true)
     local order, seen = {}, {}
     for _, id in ipairs(jlist(getActivatedMods())) do
@@ -766,14 +782,16 @@ end
 function ZeD_MMMods:setAll(on)
     local m = model()
     if not m then return end
-    self._picksOffWith = nil   -- (a whole set picked: its picks on or off stands, see checkPicksOffWith)
-    -- (one batch: on, the first in the list wins a conflict; the template mod asks on its own row)
+    -- (one batch: on, the first in the list wins a conflict; the template mod asks on its own row.
+    -- Off: picks went off with ZeD-GUI, so ZeD-GUI back on later brings them, see picksNoteOff)
     if on then
         local ids = {}
         for _, d in ipairs(m.sortedMods or {}) do ids[#ids + 1] = d.modId end
         self:modsOnBatch(ids)
     else
+        local before = activeSet(m)
         self:applyOnSet({}, true)
+        self:picksNoteOff(before)
     end
     if on and self.relayoutList then self:relayoutList() end
     self.preset = nil
@@ -784,7 +802,7 @@ end
 function ZeD_MMMods:loadProfile(p)
     local m = model()
     if not (m and p) then return end
-    self._picksOffWith = nil   -- (the profile's own picks on or off stands, see checkPicksOffWith)
+    self._picksOffWith = nil   -- (a saved profile's own picks on or off stands; No mods is Turn all off)
     local diff = self:profileDiff(p)
     MM.clickSound()
     if not p.name then
