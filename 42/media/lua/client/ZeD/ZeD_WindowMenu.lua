@@ -68,6 +68,8 @@ function ZeD_WindowMenu:open()
     end
     self:setWantKeyEvents(true)
     self:addToUIManager()
+    -- a menu is above every window, the always-on-top ones too (the Lua console, the chat): one that was not drew beneath them
+    pcall(function() self:setAlwaysOnTop(true) end)
     pcall(function() self:bringToTop() end)
 end
 

@@ -203,7 +203,7 @@ function ISPanel:getIsVisible() return self.visible end
 function ISPanel:isReallyVisible() return self.visible and self.onUI end
 function ISPanel:addToUIManager() self.onUI = true end
 function ISPanel:removeFromUIManager() self.onUI = false end
-function ISPanel:setAlwaysOnTop() end
+function ISPanel:setAlwaysOnTop(v) self.onTop = v and true or false end
 function ISPanel:setWantKeyEvents() end
 function ISPanel:bringToTop() end
 function ISPanel:getX() return self.x end
@@ -298,11 +298,11 @@ function ZeD_Window:windowBoxRect() return { x = self.width - 16, y = 4, w = 12,
 function ZeD_Window:prerender() end
 function ZeD_Window:render() end
 function ZeD_Window:update() end
-function ZeD_Window:onMouseDown() self.moving = true; return true end
+function ZeD_Window:onMouseDown(x, y) self.moving = true; self.dragStarts = (self.dragStarts or 0) + 1 end   -- (as the real one: it may answer nothing)
 function ZeD_Window:onMouseUp() self.moving = false end
 function ZeD_Window:onMouseUpOutside() self.moving = false end
-function ZeD_Window:onMouseMove() end
-function ZeD_Window:onMouseMoveOutside() end
+function ZeD_Window:onMouseMove(dx, dy) if self.moving then self.x = self.x + dx; self.y = self.y + dy end end
+function ZeD_Window:onMouseMoveOutside(dx, dy) if self.moving then self.x = self.x + dx; self.y = self.y + dy end end
 function ZeD_Window:close() self:setVisible(false) end
 
 -- every draw of the window, checked against its edges
@@ -434,6 +434,45 @@ check("key: the line does not take the keyboard by itself", CORE.entry ~= win.in
 draw(win)
 win:onMouseDown(win._fieldRect.x + 3, win._fieldRect.y + 3)
 check("a click on the field: the line takes the keyboard", CORE.entry == win.input)
+do
+    -- the title bar press reaches ZeD_Window's drag start, then moves and releases follow it
+    local tb = win:titleBarHeight()
+    win.moving, win.dragStarts = false, 0
+    local r = win:onMouseDown(win.width / 2, math.floor(tb / 2))
+    check("title bar press: ZeD_Window's drag starts", win.dragStarts == 1 and win.moving == true)
+    check("title bar press: consumed", r == true)
+    local x0, y0 = win.x, win.y
+    win:onMouseMove(5, 7)
+    check("drag: the move carries the window", win.x == x0 + 5 and win.y == y0 + 7)
+    win:onMouseMoveOutside(3, 2)
+    check("drag: outside the window too", win.x == x0 + 8 and win.y == y0 + 9)
+    win._sb = win._sb or { dragging = true, y = 0, handleMouseMove = function() end, handleMouseUp = function() end }
+    local sbWas = win._sb.dragging
+    win._sb.dragging = true
+    win:onMouseMove(1, 1)
+    check("drag: a thumb drag does not stop the window's", win.x == x0 + 9 and win.y == y0 + 10)
+    win._sb.dragging = sbWas
+    check("drag: the move is consumed", win:onMouseMove(0, 0) == true and win:onMouseMoveOutside(0, 0) == true)
+    check("drag: release ends it", win:onMouseUp(0, 0) == true and win.moving == false)
+    win.moving = true
+    check("drag: a release outside ends it", win:onMouseUpOutside(0, 0) == true and win.moving == false)
+    win.moving = true; MOUSE_DOWN = false; win:update()
+    check("drag: a release the engine missed ends it in update", win.moving == false)
+    win.x, win.y = x0, y0
+    -- every click inside the window is taken, wherever it lands
+    local taken = true
+    for _, p in ipairs({ { 2, 2 }, { win.width - 10, 8 }, { win.width / 2, tb + 2 }, { win._fieldRect.x + 2, win._fieldRect.y + 2 },
+                         { win._listRect.x + 2, win._listRect.y + 2 }, { win.width / 2, win.height - 2 }, { 1, win.height / 2 } }) do
+        win.dragStarts = 0
+        if win:onMouseDown(p[1], p[2]) ~= true then taken = false end
+        win:onMouseUp(p[1], p[2])
+    end
+    check("every press inside the window is consumed", taken)
+    check("right click is consumed", win:onRightMouseDown(10, 10) == true and win:onRightMouseUp(10, 10) == true)
+    win.moving = false
+    -- the game's text box draws nothing and has no placeholder; ZeD's line draws the typed text once
+    check("the game's box has no placeholder of its own", win.input.placeholder == "" or win.input.placeholder == nil, win.input.placeholder)
+end
 check("key: on the screen", win.x >= 0 and win.y >= 0 and win.x + win.width <= SCREEN.w and win.y + win.height <= SCREEN.h, win.x .. "," .. win.y)
 local u1 = JC.updates
 frame(); frame()
@@ -763,7 +802,9 @@ for _, prof in ipairs(PROFILES) do
                 draw(w2)
                 check(name .. " " .. zone .. ": inside", #DRAW.outside == 0, DRAW.outside[1])
                 local inp = w2.input
-                check(name .. " " .. zone .. ": the line inside the field", inp.x >= w2._fieldRect.x and inp.x + inp.width <= w2._fieldRect.x + w2._fieldRect.w and inp.y == w2._fieldRect.y)
+                -- the game's box stands left of the window (its clip empty: it draws nothing of its own); ZeD's line is inside the field
+                check(name .. " " .. zone .. ": the game's box out of the window's clip", inp.x + inp.width <= 0 and inp.y == w2._fieldRect.y, inp.x)
+                check(name .. " " .. zone .. ": ZeD's line inside the field", w2._typeX ~= nil and w2._typeX >= w2._fieldRect.x and w2._typeX < w2._fieldRect.x + w2._fieldRect.w)
                 check(name .. " " .. zone .. ": the list above the field", w2._listRect.y + w2._listRect.h <= w2._fieldRect.y and w2._listRect.h > ZeD.T.px(60), w2._listRect.h)
                 for _, r in ipairs(w2._bandRects or {}) do
                     check(name .. ": band button inside", r.x >= 0 and r.x + r.w <= w2.width and r.y + r.h <= w2.height - w2:footerHeight() + 1, r.id)
@@ -895,6 +936,20 @@ do
     check("indented se.krka and java. lines are one block", n3 == 1 and s3[2].b == 1, n3)
 end
 
+do
+    -- the window menu pulled from a window that is always on top (the console) must draw above it: its open() sets the
+    -- menu always-on-top before bringToTop (the engine draws always-on-top elements last; read from the source here)
+    local f = io.open(ROOT .. "42/media/lua/client/ZeD/ZeD_WindowMenu.lua", "rb")
+    local src = f and f:read("*a") or ""
+    if f then f:close() end
+    local body = src:match("function ZeD_WindowMenu:open%(%)(.-)\nend") or ""
+    local a, b = body:find("setAlwaysOnTop(true)", 1, true), body:find("bringToTop", 1, true)
+    check("window menu: open() sets always-on-top, then brings it to the top", a ~= nil and b ~= nil and a < b)
+    local c = io.open(ROOT .. "42/media/lua/client/ZeD/ZeD_DebugConsole.lua", "rb")
+    local csrc = c and c:read("*a") or ""
+    if c then c:close() end
+    check("console: still always on top (in front of the game's debug windows)", csrc:find("win:setAlwaysOnTop(true)", 1, true) ~= nil)
+end
 check("the game's console never on the screen while ZeD's was open", onScreenWhileOpen == 0, onScreenWhileOpen)
 check("nothing logged", #LOGGED == 0, LOGGED[1])
 print(string.format("debug_console_sim: %d checks, %d failed", checks, failed))
