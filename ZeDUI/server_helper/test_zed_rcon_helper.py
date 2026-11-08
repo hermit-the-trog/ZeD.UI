@@ -54,6 +54,7 @@ class Game:
         self.online = {"Kade", "Torch", "Big Sam"}
         self.banned = set()
         self.sids = set()
+        self.voice = set()
         self.protected = {"Owner"}
         self.logins = 0
 
@@ -93,6 +94,19 @@ class Game:
             if name == "unbanid":
                 self.sids.discard(args[0])
                 return "SteamID %s is now unbanned" % args[0]
+            if name == "voiceban":
+                # (VoiceBanCommand: two arguments, or one that is not -true/-false, name the user; else the executor. The
+                # value is false only when the last argument is -false. The user must be on)
+                if len(args) > 2:
+                    return "UI_command_arg_parse_failed"
+                u = "admin"
+                if len(args) == 2 or (len(args) == 1 and args[0] not in ("-true", "-false")):
+                    u = args[0]
+                on = not (args and args[-1] == "-false")
+                if u not in self.online:
+                    return "User %s not found." % u
+                (self.voice.add if on else self.voice.discard)(u)
+                return "User %s voice is %s." % (u, "banned" if on else "unbanned")
             return "Unknown command " + name
 
 
@@ -277,6 +291,31 @@ with tempfile.TemporaryDirectory() as d:
     queue(d, EPOCH, [("1x", 1, "Ban", "Kade", "x"), (40, 1, "Ban")])
     made, out = run(d)
     check("lines that are not calls are skipped", made == {} and GAME.commands == [], made)
+
+# ---------------------------------------------------------------------------
+# The mute's voice ban: voiceban, -true only, its name checked and quoted, never one the console could read as -true or -false
+# ---------------------------------------------------------------------------
+with tempfile.TemporaryDirectory() as d:
+    GAME.reset()
+    queue(d, EPOCH, [(70, 1, "VoiceBan", "Kade", ""), (71, 1, "VoiceBan", "Big Sam", "ignored"), (72, 1, "VoiceBan", "Away", "")])
+    made, out = run(d)
+    check("voiceban goes as the console expects, -true, no reason", GAME.commands == ['voiceban "Kade" -true', 'voiceban "Big Sam" -true', 'voiceban "Away" -true'], GAME.commands)
+    check("the game reads the name and the value", GAME.parsed[0] == ["voiceban", "Kade", "-true"] and GAME.parsed[1] == ["voiceban", "Big Sam", "-true"], GAME.parsed)
+    check("both on: ok, and voice banned", made[(70, 1)][0] == "ok" and made[(71, 1)][0] == "ok" and GAME.voice == {"Kade", "Big Sam"}, (made, GAME.voice))
+    check("someone not on: gone", made[(72, 1)][0] == "gone", made)
+    check("classify: an unban answer is not taken as the ban", H.classify("VoiceBan", "User Kade voice is unbanned.") == "failed")
+    GAME.reset()
+    badv = [(73, 1, "VoiceBan", "-true", ""), (74, 1, "VoiceBan", "-false", ""), (75, 1, "VoiceBan", "-Kade", ""),
+            (76, 1, "VoiceBan", 'Kade" -false "', ""), (77, 1, "VoiceBan", "Kade -false", "x")]
+    queue(d, EPOCH, badv[:4])
+    made, out = run(d)
+    check("a voice ban name that starts with - or breaks its quotes never reaches the console", GAME.commands == [] and all(made[(r[0], 1)][0] == "refused" for r in badv[:4]), (GAME.commands, made))
+    queue(d, EPOCH, [badv[4]])
+    made, out = run(d)
+    check("a flag hidden in a name with a space stays one quoted name, and the value is -true", GAME.parsed == [["voiceban", "Kade -false", "-true"]], GAME.parsed)
+    for t in ["-true", "-false", "-", "Kade\nquit", 'Ka"de', "", None, 5, "x", "y" * 33]:
+        check("build_command refuses the voice ban of %r" % (t,), H.build_command("VoiceBan", t) is None)
+    check("an unmute is never the helper's", H.build_command("VoiceUnban", "Kade") is None and H.build_command("UnVoiceBan", "Kade") is None)
 
 # ---------------------------------------------------------------------------
 # A queue read while the server writes it (the game's writer sends it in pieces, in place)

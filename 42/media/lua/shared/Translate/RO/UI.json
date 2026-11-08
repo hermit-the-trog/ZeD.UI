@@ -5598,6 +5598,7 @@
     "UI_ZeD_Log_A_Unban": "a debanat pe %1",
     "UI_ZeD_Log_A_Lifted": "banul lui %1 a expirat",
     "UI_ZeD_Log_A_LiftedGame": "banul lui %1 a fost ridicat în joc",
+    "UI_ZeD_Log_A_IpLiftedGame": "banul de IP al lui %1 a fost ridicat în joc",
     "UI_ZeD_Log_A_GameBan": "a pus banul jocului pe %1: %2",
     "UI_ZeD_Log_A_Msg": "a trimis un mesaj de server: %1",
     "UI_ZeD_Log_A_Repeat": "a setat un mesaj repetat, %1",

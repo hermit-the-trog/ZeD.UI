@@ -5598,6 +5598,7 @@
     "UI_ZeD_Log_A_Unban": "%1のBANを解除した",
     "UI_ZeD_Log_A_Lifted": "%1のBANが期限切れになった",
     "UI_ZeD_Log_A_LiftedGame": "%1のBANはゲーム側で解除された",
+    "UI_ZeD_Log_A_IpLiftedGame": "%1のIP BANはゲーム側で解除された",
     "UI_ZeD_Log_A_GameBan": "%1にゲームのBANをかけた: %2",
     "UI_ZeD_Log_A_Msg": "サーバーメッセージを送った: %1",
     "UI_ZeD_Log_A_Repeat": "繰り返しメッセージを設定した、%1",

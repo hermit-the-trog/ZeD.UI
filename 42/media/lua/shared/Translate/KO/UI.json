@@ -5598,6 +5598,7 @@
     "UI_ZeD_Log_A_Unban": "%1의 차단을 해제했습니다",
     "UI_ZeD_Log_A_Lifted": "%1의 차단이 끝났습니다",
     "UI_ZeD_Log_A_LiftedGame": "%1의 차단이 게임에서 해제되었습니다",
+    "UI_ZeD_Log_A_IpLiftedGame": "%1의 IP 차단이 게임에서 해제되었습니다",
     "UI_ZeD_Log_A_GameBan": "%1에게 게임의 차단을 걸었습니다: %2",
     "UI_ZeD_Log_A_Msg": "서버 메시지를 보냈습니다: %1",
     "UI_ZeD_Log_A_Repeat": "반복 메시지를 설정했습니다, %1",

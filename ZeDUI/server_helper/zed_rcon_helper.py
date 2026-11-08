@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 """ZeD host helper (Nov 7 2026). Python 3 standard library only. Runs on the machine that runs the Project Zomboid server.
 
-ZeD-GUI's server part keeps its rules (bans, timed bans, the join rules) itself, but server Lua cannot ban, unban or kick a
-player: those are the game's own calls, made from a staff member's game. This helper makes them through the game's own remote
-console (RCON) instead, so they land with no staff online. It is optional: turn on the sandbox option "Host Helper (RCON)"
-(ZeD.HostHelper) and run this next to the server.
+ZeD-GUI's server part keeps its rules (bans, timed bans, the join rules, mutes) itself, but server Lua cannot ban, unban, kick
+or voice-ban a player: those are the game's own calls, made from a staff member's game. This helper makes them through the
+game's own remote console (RCON) instead, so they land with no staff online. It is optional: turn on the sandbox option "Host
+Helper (RCON)" (ZeD.HostHelper) and run this next to the server.
 
 How the two talk (both files under <Zomboid>/Lua/ZeD_helper/, the server's own Lua folder):
   queue.txt    written by the server: "ZEDQ 1 <epoch>", then one call a line: id, try, act, target, reason (tab-separated),
                then "ZEDQ end". The game writes it in pieces, so a queue without that last line is left for the next pass
   answers.txt  written here: "ZEDA 1 <epoch> <unix seconds>", then one answer a line: id, try, result, text
 
-Security. The queue is only ever read as data. This helper sends nothing but a fixed allow-list of five console commands
-(kickuser, banuser, unbanuser, banid, unbanid), each built here from a target it checks itself: a username of 2 to 32 ASCII
-letters, digits, _ - or inner spaces, quoted as the console expects; a Steam ID of 17 digits. A ban's reason is cut to plain
+Security. The queue is only ever read as data. This helper sends nothing but a fixed allow-list of six console commands
+(kickuser, banuser, unbanuser, banid, unbanid, and voiceban with -true only), each built here from a target it checks itself: a
+username of 2 to 32 ASCII letters, digits, _ - or inner spaces, quoted as the console expects (for voiceban never starting
+with "-", so it can't read as the command's own -true or -false); a Steam ID of 17 digits. A ban's reason is cut to plain
 printable ASCII with its double quotes turned to single ones, so it cannot end its own quotes. Anything else is refused and
 answered "refused", and ZeD gives that call to a staff member's game instead. The RCON password is read from the server's
 settings file or the ZED_RCON_PASSWORD environment variable and is never printed or written anywhere.
@@ -93,26 +94,35 @@ def build_command(act, target, reason=""):
     if act == "UnBanSteamID":
         s = _sid(target)
         return s and "unbanid " + s
+    if act == "VoiceBan":
+        # (VoiceBanCommand: the name, then -true or -false; a mute only ever bans, an unmute is a staff member's own call)
+        if not isinstance(target, str) or target.startswith("-"):
+            return None
+        q = _quoted_user(target)
+        return q and "voiceban " + q + " -true"
     return None
 
 
-# what the game answers (the strings in BanSystem, KickUserCommand, UnbanSteamIDCommand)
+# what the game answers (the strings in BanSystem, KickUserCommand, UnbanSteamIDCommand, VoiceBanCommand)
 _OK = {
     "Kick": re.compile(r"^User .+ kicked\.$"),
     "Ban": re.compile(r" banned user "),
     "UnBan": re.compile(r" unbanned user "),
     "BanSteamID": re.compile(r" banned SteamID "),
     "UnBanSteamID": re.compile(r"^SteamID [0-9]+ is now unbanned"),
+    "VoiceBan": re.compile(r"^User .+ voice is banned\.$"),
 }
 _REFUSED = re.compile(r"can't be (?:kicked|banned)|don't have capability|not in Steam mode|Expected SteamID")
 
 
 def classify(act, response):
-    """ok, gone (a Kick on someone not on), refused (the game said no) or failed."""
+    """ok, gone (a Kick or a voice ban on someone not on), refused (the game said no) or failed."""
     text = (response or "").strip()
     if act in _OK and _OK[act].search(text):
         return "ok"
     if act == "Kick" and "doesn't exist" in text:
+        return "gone"
+    if act == "VoiceBan" and re.fullmatch(r"User .+ not found\.", text):
         return "gone"
     if _REFUSED.search(text):
         return "refused"
@@ -345,7 +355,7 @@ def read_ini(path):
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="ZeD host helper: makes ZeD's owed bans, unbans and kicks through the server's RCON.")
+    ap = argparse.ArgumentParser(description="ZeD host helper: makes ZeD's owed bans, unbans, kicks and voice bans through the server's RCON.")
     ap.add_argument("--zomboid", default=os.path.join(os.path.expanduser("~"), "Zomboid"),
                     help="the server's Zomboid folder (the one holding Server/ and Lua/; the -cachedir if you set one)")
     ap.add_argument("--server", default="servertest", help="the server's name: its settings are Server/<name>.ini")

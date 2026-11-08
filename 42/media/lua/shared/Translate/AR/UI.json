@@ -5598,6 +5598,7 @@
     "UI_ZeD_Log_A_Unban": "desbaneó a %1",
     "UI_ZeD_Log_A_Lifted": "se terminó el baneo de %1",
     "UI_ZeD_Log_A_LiftedGame": "el baneo de %1 se levantó en el juego",
+    "UI_ZeD_Log_A_IpLiftedGame": "el baneo de IP de %1 se levantó en el juego",
     "UI_ZeD_Log_A_GameBan": "puso el baneo del juego a %1: %2",
     "UI_ZeD_Log_A_Msg": "envió un mensaje al servidor: %1",
     "UI_ZeD_Log_A_Repeat": "fijó un mensaje repetido, %1",

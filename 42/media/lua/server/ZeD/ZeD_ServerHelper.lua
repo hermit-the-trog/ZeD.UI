@@ -3,7 +3,7 @@
 -- THE HOST HELPER'S FILES (ZeDUI/MP_SERVER_PART_DESIGN.md, "Rules that hold", Nov 7 2026). Optional, off by default: the
 -- sandbox option ZeD.HostHelper turns it on. The helper is a small program the server's owner runs on the server machine
 -- (ZeDUI/server_helper/zed_rcon_helper.py, from the project's repository). It talks to the game's own remote console (RCON)
--- and makes the game calls ZeD owes (ban, unban, kick), so the rules hold with no staff online. Server Lua cannot reach the
+-- and makes the game calls ZeD owes (ban, unban, kick, a mute's voice ban), so the rules hold with no staff online. Server Lua cannot reach the
 -- console itself (A7), so the two talk through two files in Zomboid/Lua/ZeD_helper/ on the server (getFileWriter and
 -- getFileReader both work under the server's own Lua folder):
 --
@@ -15,7 +15,7 @@
 -- the numbers of a table a crash rolled back, for these. Only the calls on the helper's own allow-list go in the queue, with targets already
 -- checked against the same patterns it checks them against again. A ban's reason is the only typed text: it loses its tabs and
 -- line breaks here, its quotes and anything past plain ASCII in the helper. Results: ok, gone (a Kick on someone not on),
--- refused (the game or the helper said no: the call goes to a staff client), failed (it goes to a staff client too, and the
+-- refused (the game or the helper said no: the call goes to a staff client), gone (a voice ban on someone not on), failed (it goes to a staff client too, and the
 -- helper tries again HELPER_WAIT_S later, HELPER_TRIES tries in all).
 -- ============================================================================
 if not isServer() then return end
@@ -36,18 +36,21 @@ H.READ_MAX = 1000                     -- answer lines read at most, so a runaway
 H.END = "ZEDQ end"                     -- the queue's last line: a file without it was read mid-write
 
 -- the calls the helper makes, and the kind of target each takes. Never an IP: the game's IP ban needs the player's
--- connection, which only a staff client's call has
-H.ACTS = { Kick = "user", Ban = "user", UnBan = "user", BanSteamID = "sid", UnBanSteamID = "sid" }
+-- connection, which only a staff client's call has. VoiceBan is "voiceban <name> -true" (VoiceBanCommand: the name, then
+-- -true or -false), so its name may not start with "-", which the console could read as that word
+H.ACTS = { Kick = "user", Ban = "user", UnBan = "user", BanSteamID = "sid", UnBanSteamID = "sid", VoiceBan = "voice" }
 
 function H.on()
     local z = SandboxVars and SandboxVars.ZeD
     return z ~= nil and z.HostHelper == true
 end
 
--- the helper's own patterns: a name of 2 to 32 ASCII letters, digits, _ - or inner spaces; a Steam ID of 17 digits from 7656119
+-- the helper's own patterns: a name of 2 to 32 ASCII letters, digits, _ - or inner spaces; a Steam ID of 17 digits from 7656119;
+-- a voice ban's name as a name, never starting with "-"
 function H.okTarget(kind, s)
     if type(s) ~= "string" then return false end
     if kind == "sid" then return string.find(s, "^7656119%d%d%d%d%d%d%d%d%d%d$") ~= nil end
+    if kind == "voice" and string.sub(s, 1, 1) == "-" then return false end
     if #s < 2 or #s > 32 or string.find(s, "[^A-Za-z0-9_%- ]") then return false end
     return string.sub(s, 1, 1) ~= " " and string.sub(s, -1) ~= " "
 end
