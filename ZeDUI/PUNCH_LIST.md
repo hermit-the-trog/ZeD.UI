@@ -3037,3 +3037,11 @@ Items QA has confirmed in the game in full (their history stays in place above; 
     before copying. Ruled wording ("Plainer"), shown in both places, the copied report's last line and beside Copy:
     "Your user name is taken out of this report. Files like console.txt still have it: look them over before you post
     them." Every language as the project's labeled drafts.
+116. **Ellie's Tattoo Parlor V4 with ZeD's Make Up rows (Mac rig compat retest, Nov 8 2026; beta 10 unless the director
+    says sooner).** ZeD's Make Up rows read the mirror rule through the game's make-up menu; the mod's patch of that menu
+    (ETPMakeUpUIFix.lua:9) errors on ZeD's stand-in item, so ZeD falls back to "needs a mirror". From code reading. Give
+    the stand-in what the mod's patch reads, or read the mirror rule without the patched menu.
+117. **[B42] Custom Map Labels reads the game's map at start (Mac rig compat retest, Nov 8 2026; beta 10).** One error at
+    game start (CustomMapLabels.lua:93): it opens the game's map to read labels, ZeD opens its own map instead, so the
+    labels are never read. Let the game's map object exist for a mod that asks, or guard, and show its labels in ZeD's
+    map if possible.
