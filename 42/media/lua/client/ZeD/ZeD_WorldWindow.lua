@@ -2749,12 +2749,13 @@ end
 
 -- ============================================================================
 -- CONTAINER STRIP — LEFT EDGE (mirrored from character window's right edge)
--- Active container pinned top, scrollable list below.
+-- Floor pinned top, sort row, scrollable container list below.
 -- ============================================================================
 
--- Nov 6 2026 (FAIV's report, a list stale until the window closed): a container viewed from another tab (the strip's click
+-- A container viewed from another tab (the strip's click
 -- there, win._viewedContainer) wins over the selection in the list, and nothing but that strip ever set it back, so the
--- title and the rows stayed on it after any other selection. It holds only over the selected container it was picked on, by
+-- title and the rows once stayed on it after any other selection — a list stale until the window closed.
+-- It holds only over the selected container it was picked on, by
 -- the object (win._viewedOver), and ends with that selection, however the selection moved. Coming back to Loot, where the
 -- strip selects, the list stays where it is and the viewed container becomes the selection, so the strip lights one.
 local function _holdWorldView(win)

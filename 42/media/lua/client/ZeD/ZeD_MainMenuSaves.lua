@@ -1,15 +1,16 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MainMenuSaves.lua
 -- ============================================================================
--- LOAD GAME + NEW GAME ON THE MONITOR (HOOK_MAP row 26, phase 2; mockup
--- zed_main_menu_v9, approved Oct 14 2026)
+-- LOAD GAME + NEW GAME ON THE MONITOR. Client-side; two window organisms
+-- (ZeD_MMLoad, ZeD_MMNewGame), plus the MM.ui helpers (the band, entries,
+-- inset boxes) that the Mods and Options windows share.
 --
 -- Two more ZeD windows on the desk's screen, one view at a time with the
 -- Project Zomboid window (ZeD_MainMenu.lua: MM.showView).
 --
 -- LOAD GAME: the saves by mode under inventory category headers, newest
 -- first, a plain "Find:" field; the chosen save on the right, leading with
--- its character (director: "lead with the character name large, then the
--- save name in a medium heading"), then mode, map, played, mods, version and
+-- its character (the name large, the save name a medium heading under it),
+-- then mode, map, played, mods, version and
 -- PLAYING AS. BACK, Delete (asks in the band), More (Rename File,
 -- New Player, Choose Mods, Open File Location), PLAY. Every rule is vanilla's
 -- LoadGameScreen: what may be played, the player switch, rename, delete.
@@ -37,17 +38,17 @@ local ICON_W, ICON_H, ICON_COLS = 114, 128, 6
 
 local function ms() return MainScreen and MainScreen.instance end
 
--- strip a rich-text string ("<LINE>", "<RGB:1,0,0>") to plain words
+--- Strip a rich-text string ("<LINE>", "<RGB:1,0,0>") to plain words.
 local function plain(s) return (tostring(s or ""):gsub("<[^>]*>", " "):gsub("%s+", " "):gsub("^%s+", ""):gsub("%s+$", "")) end
 
 -- ---------------------------------------------------------------------------
--- shared: the band at the window's foot (spec 8), as the screens' specs
--- A screen names the buttons it has: the old left group and right group are one run of push
--- buttons now, right-aligned, the main one last (the band is MM.band, in ZeD_MainMenu.lua). Each
--- is { id, text, fn, variant, disabled, help }; ask is the band's left line (a question with a
--- red square, or with plain a label; statusColor gives a plain line its square). The band is
--- drawn here, in the window's prerender, so a field standing in it is a child that draws over it.
+-- shared: the band at the window's foot, as the screens' specs
 -- ---------------------------------------------------------------------------
+--- A screen names the buttons it has: the old left group and right group are one run of push
+--- buttons now, right-aligned, the main one last (the band is MM.band, in ZeD_MainMenu.lua). Each
+--- is { id, text, fn, variant, disabled, help }; ask is the band's left line (a question with a
+--- red square, or with plain a label; statusColor gives a plain line its square). The band is
+--- drawn here, in the window's prerender, so a field standing in it is a child that draws over it.
 local function stripSpecs(win, y, w, row, lefts, rights, ask, plain, statusColor)
     local btns = {}
     for _, group in ipairs({ lefts, rights }) do
