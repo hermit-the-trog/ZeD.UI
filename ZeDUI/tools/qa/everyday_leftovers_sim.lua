@@ -440,7 +440,7 @@ section("B12 B13 PADS: controllers join and leave through Messages")
 -- ===========================================================================
 do
     ZeD.Messages = {}
-    ZeD.Settings = { messagesToastOn = function() return true end, messagesCatchOn = function() return true end }
+    ZeD.Settings = { messagesToastOn = function() return false end, messagesCatchOn = function() return true end }   -- (the default)
     function getPlayer() return {} end
     function getGameTime() return nil end
     local okM, errM = loadZ("ZeD_Messages.lua")
@@ -462,6 +462,7 @@ do
     ISJoypadDisconnectedUI = { setKeyboardMouseActivated = function() invoked[#invoked + 1] = { kbm = true } end }
     ISJoypadDisconnectedUI.new = function() vanillaBanner = vanillaBanner + 1; return { vanilla = true } end
     MainScreen = { instance = nil }
+    ZeD.PadJoin = {}
     local okC, errC = loadZ("Overrides/Controllers.lua")
     check("Overrides/Controllers.lua loads", okC, errC)
     if type(M.pad) == "function" then
@@ -595,8 +596,10 @@ do
     local okS, errS = loadZ("Stations.lua")
     check("Stations.lua loads", okS, errS)
     local ST = ZeD.Stations
-    local function ent(comps)
+    local function ent(comps, mod, name)
         local o = { comps = comps }
+        local sc = { getModID = function() return mod == nil and "SomeMod" or mod end, getName = function() return name or "Still" end }
+        function o:getEntityScript() return sc end
         function o:getComponent(ct) return self.comps[ct] end
         function o:hasComponents() return next(self.comps) ~= nil end
         return o
@@ -613,6 +616,12 @@ do
     check("a store with no logic: a general station", k4 == "general" and c4 == nil, k4)
     check("a general station takes the game's lock", ST.isEntityKind("general"))
     check("nothing at all: no station", ST.classify(ent({}), true) == nil)
+    -- the game's own entities that open its station window keep what opened before (the review)
+    for _, nm in ipairs({ "Butcher Hook", "Log Bench", "Log Stool", "Log Table", "Other_Log_Stool" }) do
+        check("the game's " .. nm .. ": not a general station", ST.classify(ent({ RES = {} }, "SomeMod", nm), true) == nil)
+    end
+    check("an entity from the game itself: not a general station", ST.classify(ent({ RES = {} }, "pz-vanilla"), true) == nil)
+    check("an entity naming no mod: not a general station", ST.classify(ent({ RES = {} }, ""), true) == nil)
     local src = io.open(CLIENT .. "Overrides/Stations.lua"):read("*a")
     check("ISEntityUI.OpenWindow asks for general stations", src:find("ST.open(player, entity, true)", 1, true) ~= nil)
     local ct = io.open(CLIENT .. "CraftingTab.lua"):read("*a")
@@ -681,10 +690,13 @@ do
     ZeD.MiniMapOff = {}
     local shown = { true, false, false, false }
     local removed = 0
+    local mms = {}
     function getPlayerMiniMap(pn)
         if pn > 1 then return nil end
-        return { isReallyVisible = function() return shown[pn + 1] end,
-                 removeFromUIManager = function() removed = removed + 1; shown[pn + 1] = false end }
+        if mms[pn] then return mms[pn] end
+        mms[pn] = { isReallyVisible = function() return shown[pn + 1] end,
+                 setVisible = function(_, v) if not v then removed = removed + 1 end; shown[pn + 1] = v end }
+        return mms[pn]
     end
     local okM, errM = loadZ("Overrides/MiniMap.lua")
     check("Overrides/MiniMap.lua loads", okM, errM)
@@ -694,7 +706,11 @@ do
         check("nothing shown: nothing done", not MO.hide() and removed == 1)
         shown[1] = true
         SAFE.wheels = true
-        check("ZeD's wheels given back: the game's mini-map stays", not MO.hide() and removed == 1)
+        shown[1] = false
+        SAFE.wheels = true
+        MO.hide()
+        check("ZeD's wheels given back: the mini-map it hid shows again", shown[1] == true and removed == 1)
+        check("... and stays", not MO.hide() and removed == 1)
         SAFE.wheels = nil
     else
         check("ZeD.MiniMapOff.hide exists", false)
@@ -780,6 +796,76 @@ do
     else
         check("ZeD.PausedLook.worldRect exists", false)
     end
+end
+
+-- ===========================================================================
+section("ROUND 3 (the review, Nov 7 2026)")
+-- ===========================================================================
+do
+    local M = ZeD.Messages
+    -- 1. the controllers' balloons show whatever the notices setting says (Off by default)
+    M.toasts = {}
+    ZeD.PadJoin.unplugged(0)
+    check("notices Off: a controller unplugged still pops its balloon", #M.toasts == 1, #M.toasts)
+    M.toasts = {}
+    if M.adminNote then M.adminNote("x") end
+    check("notices Off: other notices still follow the setting", #M.toasts == 0, #M.toasts)
+
+    -- 2. the pad works in the paused windows
+    local PL = ZeD.PausedLook
+    local cw = ZeD_CharacterWindow.getWindow()
+    local jd = { focus = cw }
+    JoypadState.players[1] = jd
+    SPEED = 0
+    PL.frame()
+    check("paused, the Character window holding the pad: the pad works", jd.activeWhilePaused == true)
+    SPEED = 1
+    PL.frame()
+    check("playing: put back as it was", jd.activeWhilePaused == nil)
+    SPEED = 0
+    jd.focus = ZeD_WorldWindow.getWindow()
+    PL.frame()
+    check("paused, the World window: the pad works", jd.activeWhilePaused == true)
+    jd.focus = nil
+    PL.frame()
+    check("the window lets go: put back", jd.activeWhilePaused == nil)
+    SPEED = 1
+    JoypadState.players[1] = nil
+    local fm = io.open(CLIENT .. "Input/FocusManager.lua"):read("*a")
+    check("the pad's poll runs on drawn frames while paused", fm:find("if ok and sp == 0 then _onTick() end", 1, true) ~= nil)
+
+    -- 5. the guest window and player one's focus; a guest controller unplugged; keyboard and mouse
+    local W = ZeD.MessagesWindow
+    local cleared = 0
+    function setJoypadFocus() cleared = cleared + 1 end
+    local own = { focus = "player one's window" }
+    JoypadState.players[1] = own
+    local guest = {}
+    local win = { guestJoy = guest, playerNum = 0, setVisible = function() end, removeFromUIManager = function() end }
+    guest.focus = win
+    local close = ZeD_MessagesWindow and rawget(ZeD_MessagesWindow, "close")
+    if close then
+        close(win)
+        check("closing the guest window leaves player one's focus", cleared == 0 and guest.focus == nil, cleared)
+    else
+        check("ZeD_MessagesWindow:close loaded", false)
+    end
+    JoypadState.players[1] = nil
+    local closed = 0
+    local gwin = { guestJoy = guest, close = function() closed = closed + 1 end }
+    local realGet = W.get
+    W.get = function() return gwin end
+    JoypadState.controllers[7] = { joypad = guest }
+    ZeD.PadJoin.onDisconnect(7)
+    check("a guest controller unplugged: the window lets it go", closed == 1, closed)
+    W.get = realGet
+    local note = ZeD.PadJoin.unplugged(0)
+    JoypadState.joypads[1] = { disconnectedUI = {} }
+    note.padButtons[1].run()
+    check("Use keyboard and mouse: the disconnected marker cleared", JoypadState.joypads[1].disconnectedUI == nil)
+    M.toasts = {}
+    local back = ZeD.PadJoin.replugged(0)
+    check("... a later plug-in does not say player one's controller is back", back == nil and #M.toasts == 0)
 end
 
 print(string.format("everyday_leftovers_sim: %d checks, %d failed", checks, failed))

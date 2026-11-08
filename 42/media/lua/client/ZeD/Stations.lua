@@ -57,6 +57,22 @@ ST.isEntityKind = isEntityKind
 -- that is none of these is a "general" station, its working part the first cycle logic it has (FurnaceLogic,
 -- MashingLogic), or none (a tank, a store). Only the open route asks for it: the nearby scan and the STATION list
 -- keep to the kinds ZeD has known views for, so every barrel in reach does not join the list.
+-- the game's own entities that open its station window (the review, Nov 7 2026): they keep what opened before
+local VANILLA_ENTITY = { butcherhook = true, logbench = true, logstool = true, logtable = true, otherlogstool = true }
+local function squash(s) return string.lower((tostring(s or "")):gsub("[%s_%-]", "")) end
+-- a mod's entity: its script names a mod that is not the game's, and it is none of the game's own above. Anything
+-- unsure (no script, no mod named) stays the game's.
+function ST.isModEntity(obj)
+    local sc = call(obj, "getEntityScript")
+    local name = sc and (call(sc, "getName") or call(sc, "getScriptObjectName"))
+    if name and VANILLA_ENTITY[squash(name)] then return false end
+    if VANILLA_ENTITY[squash(call(obj, "getEntityFullTypeDebug"))] then return false end
+    local mod = sc and call(sc, "getModID")
+    if not mod or mod == "" then return false end
+    local m = string.lower(tostring(mod))
+    return m ~= "pz-vanilla" and m ~= "base" and m ~= "vanilla"
+end
+
 function ST.classify(obj, general)
     if not obj then return nil end
     if instanceof(obj, "IsoStove") then
@@ -71,7 +87,7 @@ function ST.classify(obj, general)
     -- any other craft machine on the same contract (DryingCraftLogic is one): StationMachine's view
     local logic = ComponentType.CraftLogic and call(obj, "getComponent", ComponentType.CraftLogic)
     if logic then return "machine", logic end
-    if general and call(obj, "hasComponents") then
+    if general and call(obj, "hasComponents") and ST.isModEntity(obj) then
         local comp = nil
         for _, name in ipairs({ "FurnaceLogic", "MashingLogic" }) do
             local ct = ComponentType[name]

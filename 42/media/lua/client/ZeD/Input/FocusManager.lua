@@ -2037,6 +2037,15 @@ if LuaEventManager and LuaEventManager.AddEvent then
 end
 
 Events.OnTick.Add(_onTick)
+-- (a paused game has no ticks: the pad's taps, holds and D-pad repeats are worked on the drawn frames then, so the
+-- Character and World windows answer the pad while paused; ZeD_PausedLook.lua holds their actions)
+Focus.tick = _onTick
+if Events.OnRenderTick then
+    Events.OnRenderTick.Add(function()
+        local ok, sp = pcall(getGameSpeed)
+        if ok and sp == 0 then _onTick() end
+    end)
+end
 if Events.OnRenderTick then Events.OnRenderTick.Add(_watchCueMouse) end
 
 -- S113: Window-pair invariant. On kbm→gamepad transition, ensure both windows

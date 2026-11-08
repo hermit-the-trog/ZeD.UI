@@ -163,8 +163,10 @@ local function when()
 end
 
 -- pn: the player the notice is for (its balloon comes out of that player's note; nil: player one)
-local function toast(kind, head, name, text, pn)
-    if not toastOn() then return end
+-- force: shown whatever ZeD setup's notices setting says (a controller plugged in or unplugged: they replace
+-- windows the game always showed)
+local function toast(kind, head, name, text, pn, force)
+    if not force and not toastOn() then return end
     local t = { kind = kind, head = head, source = name, text = text, untilMs = now() + TOAST_MS, pn = pn }
     for i = #M.toasts, 1, -1 do
         local o = M.toasts[i]
@@ -284,7 +286,7 @@ function M.pad(id, head, text, buttons, pn)
     end
     local it = M.add(name, "mods", { k = "pad", pad = id, head = head, text = text, padButtons = buttons })
     capKind(name, "pad", PAD_NOTES_MAX)
-    toast("warn", head, name, text, pn)
+    toast("warn", head, name, text, pn, true)
     return it
 end
 
