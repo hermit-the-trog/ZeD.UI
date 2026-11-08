@@ -173,9 +173,10 @@ Events.OnGameStart.Add(onGameStart)
 -- The recipe list and categories for a bench: the catalog entries the bench
 -- makes, in catalog order. Cached per station.
 local _benchSource = {}
+local ROWS_MS = 1000   -- the rows' refresh (was 30 frames: 2.4-4x as often at 144-240 Hz)
 local function benchSource(bench)
     local c = _benchSource[bench.key]
-    if c then return c.list, c.cats end
+    if c then return c.list, c.cats, c.short end
     local set = ZeD.Stations.recipeSet(bench)
     local list, counts, order = {}, {}, {}
     for _, entry in ipairs(_flatRecipes or {}) do
@@ -194,8 +195,13 @@ local function benchSource(bench)
     for _, o in ipairs(order) do
         cats[#cats + 1] = { id = o.id, label = o.label, full = o.label, count = counts[o.id] }
     end
-    _benchSource[bench.key] = { list = list, cats = cats }
-    return list, cats
+    -- (the bench's short name, for the rows of recipes that name no station: the first that does)
+    local short = nil
+    for _, e in ipairs(list) do
+        if e.stationInfo then short = e.stationInfo.short; break end
+    end
+    _benchSource[bench.key] = { list = list, cats = cats, short = short }
+    return list, cats, short
 end
 
 local function boundBench(playerObj)
@@ -215,22 +221,29 @@ function ZeD.CraftingTab.gatherData(playerObj, win)
         win._craftCacheKey = srcKey
     end
 
-    -- Throttled (every 30 frames)
-    win._craftTimer = (win._craftTimer or 0) + 1
-    if win._craftTimer < 30 and win._craftCache then
-        return win._craftCache
+    -- Throttled: every ROWS_MS (was 30 frames), at once when the cache was dropped
+    local prev = win._craftCache
+    if not CC.due(win, "_craftRowsAt", ROWS_MS, not prev) then
+        return prev
     end
-    win._craftTimer = 0
 
-    local recipes = {}
-    local source, categories = _flatRecipes, _categories
-    if bench then source, categories = benchSource(bench) end
-    local boundShort = nil
-    if bench then
-        for _, e in ipairs(source) do
-            if e.stationInfo then boundShort = e.stationInfo.short; break end
-        end
+    local source, categories, boundShort = _flatRecipes, _categories, nil
+    if bench then source, categories, boundShort = benchSource(bench) end
+    local boundCase = bench and ZeD.textCase(boundShort) or nil
+
+    -- The rows are rewritten in place (CC.refreshRow), one table per recipe kept for the tab, into one
+    -- data table kept while the cache stands (the review's item 3); a dropped cache starts a new one,
+    -- and nothing carries into it, as before.
+    local data = prev
+    if not data then
+        data = { recipes = {} }
     end
+    data.categories, data.flatRecipes = categories, source
+    local recipes = data.recipes
+    local pool, gen = CC.rowsBegin(win, "craft")
+    local prevGen = prev and prev.gen or nil
+    local levels = {}   -- (each skill's level asked once per refresh)
+    local n, changed = 0, prev == nil
 
     -- only the recipes the game would list for the character (RecipeIndex.visible: See Not Known Recipes off
     -- hides a must-learn recipe not learned; a failed OnAddToMenu check hides one; punch list 109 review)
@@ -241,18 +254,15 @@ function ZeD.CraftingTab.gatherData(playerObj, win)
         local hasSkill = true
         local playerLevel = 0
         if entry.skillName then
-            local perkType = CC.getPerkType(entry.skillName)
-            if perkType and perkType ~= Perks.None then
-                playerLevel = playerObj:getPerkLevel(perkType)
-            end
+            playerLevel = CC.perkLevelOf(levels, playerObj, entry.skillName)
             hasSkill = playerLevel >= entry.requiredLevel
         end
 
-        -- Learned check (force Lua boolean)
+        -- Learned check (force Lua boolean; pcall'd with its arguments, no closure)
         local learned = true
         if entry.needLearn then
-            learned = false
-            pcall(function() if playerObj:isRecipeKnown(entry.recipe) then learned = true end end)
+            local okK, known = pcall(playerObj.isRecipeKnown, playerObj, entry.recipe)
+            learned = (okK and known) and true or false
         end
 
         local status
@@ -266,23 +276,30 @@ function ZeD.CraftingTab.gatherData(playerObj, win)
         local needs = (not bench) and entry.stationInfo or nil
         if needs and status == "unlocked" then status = "station" end
 
-        recipes[#recipes + 1] = {
-            stationNeed = needs,
-            stationTag  = needs and ZeD.textCase(needs.short) or nil,   -- (a tag reads in sentence case)
-            boundShort  = bench and ZeD.textCase(entry.stationInfo and entry.stationInfo.short or boundShort) or nil,
-            entry       = entry,
-            status      = status,
-            hasSkill    = hasSkill,
-            learned     = learned,
-            playerLevel = playerLevel,
-            ingredients  = nil,
-            missingCount = 0,
-        }
+        -- the station's short name in sentence case, once per recipe (ZeD.textCase is a pure function of it;
+        -- false holds "none")
+        local shortCase = nil
+        if entry.stationInfo then
+            local sc = entry._shortCase
+            if sc == nil then
+                sc = ZeD.textCase(entry.stationInfo.short)
+                if sc == nil then sc = false end
+                entry._shortCase = sc
+            end
+            shortCase = sc or nil
+        end
+
+        local rd = CC.refreshRow(pool, entry, gen, prevGen, status, hasSkill, learned, playerLevel)
+        rd.stationNeed = needs
+        rd.stationTag  = needs and shortCase or nil   -- (a tag reads in sentence case)
+        rd.boundShort  = bench and (entry.stationInfo and shortCase or boundCase) or nil
+        n = n + 1
+        if recipes[n] ~= rd then recipes[n] = rd; changed = true end
       end
     end
 
-    local data = { recipes = recipes, categories = categories, flatRecipes = source }
-    CC.carryStatus(win._craftCache, data)
+    CC.rowsEnd(data, n, changed)
+    data.gen = gen
     win._craftCache = data
     return data
 end
@@ -396,7 +413,7 @@ function ZeD.CraftingTab.startCraft(win, state)
     if canStart == false or (canStart and qty > 1 and most < qty) then
         win._craftStartChk = nil
         win["_craftLogicAt"] = nil
-        win["_craftContainerTimer"] = 90
+        win["_craftContainerAt"] = nil
         win["_craftTypeCache"] = nil
         state.qty = canStart and math.max(1, most or 1) or 1
         return
@@ -443,7 +460,7 @@ function ZeD.CraftingTab.startCraft(win, state)
     state.qty = 1
     state.filterDirty = true
     win._craftCache = nil
-    win["_craftContainerTimer"] = 90  -- force container rescan
+    win["_craftContainerAt"] = nil  -- force container rescan
     win["_craftTypeCache"] = nil      -- invalidate type cache
 end
 
@@ -494,8 +511,7 @@ local function syncStation(win, state)
         CC.closeCraft(state)
     end
     if state.scroll then state.scroll:setScrollPos(0) end
-    win._craftCache = nil
-    win._craftTimer = 30
+    win._craftCache = nil   -- (the rows are gathered again at once)
 end
 
 -- The view that replaces the recipe list for a machine or an appliance.
@@ -533,21 +549,14 @@ function ZeD.CraftingTab.render(panel, win, x, y, w, h)
     if CC.logicScan(data, win, "craft", function()
         return HandcraftLogic.new(win._playerObj, bench and bench.comp or nil, bench and bench.obj or nil)
     end) then state.filterDirty = true end
-    win._craftScanTimer = (win._craftScanTimer or 300) + 1
-    if win._craftScanTimer >= 300 then
-        win._craftScanTimer = 0
+    -- (the quick scan: at once, then every 5 s; was 300 frames)
+    if CC.due(win, "_craftScanAt", 5000) then
         CC.backgroundIngredientScan(data, win, "craft")
     end
 
     -- Gather detail for selected recipe (expensive — full container scan)
     if state.selected then
-        local selRd = nil
-        for _, rd in ipairs(data.recipes) do
-            if rd.entry.name == state.selected then
-                selRd = rd
-                break
-            end
-        end
+        local selRd = data.byName and data.byName[state.selected] or nil
         if selRd then
             gatherDetail(selRd, win._playerObj, win)
         end
