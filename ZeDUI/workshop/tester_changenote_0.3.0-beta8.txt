@@ -42,7 +42,3 @@ Fixes
 - ZeD picks comes back with ZeD-GUI whichever way it's turned off and on.
 - Split-screen: a second local player gets the game's own windows plus their own belt and dash, and dash miles save on a server.
 - French and Hungarian month names are right.
-
-Known issues
-- Trading on a server: the offer list can show things you are wearing, holding or have marked as favorite.
-- Medical check on a server: after you bandage another player, your view of them may not show the bandage.
