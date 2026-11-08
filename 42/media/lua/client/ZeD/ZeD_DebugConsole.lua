@@ -421,7 +421,9 @@ function W:createChildren()
     ZeD_Window.createChildren(self)
     local T = ZeD.T
     local e = ISTextEntryBox:new("", 0, 0, 100, T.inputH)
-    e.font = T.fontF3
+    -- the game's text box draws a UIFont: the baked face nearest the F3 lines, kept current by ZeD.Text.fitEntry
+    e.zedEntryPx = (T.fontPx and T.fontPx[T.fontF3]) or 13
+    e.font = (ZeD.Text and ZeD.Text.entryFontAt) and ZeD.Text.entryFontAt(e.zedEntryPx) or UIFont.Small
     e:initialise()
     e:instantiate()
     e.zedEntry = true
@@ -594,7 +596,7 @@ function W:_drawBody()
     self:drawText(mark, mx0, iy + math.floor((ih - fh(f3)) / 2), td.r, td.g, td.b, td.a or 1, f3)
     local ex = mx0 + ZeD.TM:MeasureStringX(f3, mark) + px(4)
     if inp then
-        if inp.font ~= f3 then inp.font = f3; pcall(function() inp:setFont(f3) end) end
+        inp.zedEntryPx = (T.fontPx and T.fontPx[f3]) or 13   -- (fitEntry swaps the face when the text size or scale changes)
         if inp:getX() ~= ex then inp:setX(ex) end
         if inp:getY() ~= iy then inp:setY(iy) end
         local ew = fx + fw - px(4) - ex

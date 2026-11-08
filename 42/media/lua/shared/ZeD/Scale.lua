@@ -368,7 +368,8 @@ end
 -- Cheap enough to call every frame: it only touches Java on a change.
 function X.fitEntry(entry)
     if not (entry and entry.javaObject) then return end
-    local f = X.entryFont()
+    -- (zedEntryPx: an entry sized to another role than the body, e.g. the Lua console's F3 lines)
+    local f = entry.zedEntryPx and X.entryFontAt(entry.zedEntryPx) or X.entryFont()
     if f and entry._zedFont ~= f then
         entry._zedFont = f
         entry:setFont(f)
