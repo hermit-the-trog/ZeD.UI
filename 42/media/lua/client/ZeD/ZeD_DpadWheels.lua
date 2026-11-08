@@ -613,7 +613,7 @@ D.B.zed = function(p, pn)
     local tone = (ZeD.currentBase == "light") and "light" or "dark"
     local ac = ZeD.AccentColors and ZeD.AccentColors[ZeD.currentAccent]
     local function at(keys, labels, k) for i, x in ipairs(keys) do if x == k then return tr(labels[i]) end end return nil end
-    return {
+    local out = {
         { name = tr("UI_ZeD_Settings_BaseTheme"), icon = "theme", detail = at(S.baseKeys, S.baseLabels, ZeD.currentBase), sub = Z.themeWheel },
         { name = tr("UI_ZeD_Settings_AccentColor"), swatch = ac and ac[tone] and ac[tone].accent or nil,
           detail = at(S.accentKeys, S.accentLabels, ZeD.currentAccent), sub = Z.accentWheel },
@@ -642,6 +642,14 @@ D.B.zed = function(p, pn)
         { name = tr("UI_ZeD_Options_GroupZed"), icon = "gears", detail = tr("UI_ZeD_Wheel_ZeDSetupDetail"), run = function(pl, n) D.H.openSetup(pl, n) end },
         { name = tr("UI_ZeD_Settings_SafeMode"), icon = "safemode", detail = tr("UI_ZeD_Wheel_SafeModeDetail"), run = Z.safeMode },
     }
+    -- the Lua console (punch list 106): in debug mode only, while the game's console exists; the controller's way in
+    -- (the game's own way is a key)
+    local DCon = ZeD.DebugConsole
+    if DCon and DCon.exists and DCon.exists() then
+        out[#out + 1] = { name = tr("UI_ZeD_Console_Title"), icon = "bug", detail = tr("UI_ZeD_Console_WheelDetail"),
+                          run = function(pl, pn2) DCon.open(pn2) end }
+    end
+    return out
 end
 
 -- ============================================================================

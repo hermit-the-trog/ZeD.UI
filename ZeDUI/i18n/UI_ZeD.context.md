@@ -5209,3 +5209,28 @@ Limits here are estimates from the English: the cards wrap, buttons and tags do 
 | `UI_ZeD_Log_T_RepClosed` | `closed the report on %1, ticket #%2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 49 |
 | `UI_ZeD_Log_T_RepSpam` | `marked the report on %1 as spam, ticket #%2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | - |
 | `UI_ZeD_Log_T_RepDeleted` | `deleted the report on %1, ticket #%2` | The Log card, staff only. A_, P_, V_, S_, F_ lines are read straight after a player's name, so write a verb phrase: 'Pat killed %1'. Kind_ names a filter | 50 |
+
+## Lua console (debug mode only, punch list 106)
+
+The game's own Lua console rebuilt as a ZeD window; only players who start the game with -debug see it.
+
+| Key | English | Where | Max |
+|---|---|---|---|
+| `UI_ZeD_Console_Title` | `Lua console` | The Lua console window's title (debug mode only), and its slice on the ZeD wheel | 20 |
+| `UI_ZeD_Console_Run` | `Run` | Lua console: the band's main button | 14 |
+| `UI_ZeD_Console_Clear` | `Clear` | Lua console: the band's button that empties the list | 14 |
+| `UI_ZeD_Console_CopyAll` | `Copy all` | Lua console: the band's copy button when no line is picked (the picked: UI_ZeD_Msg_CopyOne) | 16 |
+| `UI_ZeD_Console_Type` | `Lua to run` | Lua console: the empty line to type in (placeholder) | 30 |
+| `UI_ZeD_Console_Empty` | `Nothing printed yet.` | Lua console: the list with nothing in it | - |
+| `UI_ZeD_Console_Errors` | `Errors: %1` | Lua console: the title bar's count of errors in the list | 16 |
+| `UI_ZeD_Console_Suggest` | `Tab: %1` | Lua console: the help line, the game's suggestion that Tab takes (%1 is a function name) | 20 |
+| `UI_ZeD_Console_Help` | `Enter runs the line. Up and Down step through the lines you ran.` | Lua console: the help line while typing | - |
+| `UI_ZeD_Console_HelpRun` | `Run the line as Lua, through the game's own console` | Lua console: help line over Run | - |
+| `UI_ZeD_Console_HelpClear` | `Empty the list, as the game's clear command does` | Lua console: help line over Clear (clear is the game's command word, keep it as is) | - |
+| `UI_ZeD_Console_HelpCopy` | `Copy the picked lines` | Lua console: help line over Copy with lines picked | - |
+| `UI_ZeD_Console_HelpCopyAll` | `Copy the whole list` | Lua console: help line over Copy all | - |
+| `UI_ZeD_Console_HelpPick` | `Pick a line to copy it. An error is picked whole.` | Lua console: help line over the list | - |
+| `UI_ZeD_Console_NotAllowed` | `This server does not let you run Lua` | Lua console on a server for a player whose role may not run Lua: help line and Run | - |
+| `UI_ZeD_Console_PadOlder` | `Older` | Lua console: controller prompt on LB, the line run before | 10 |
+| `UI_ZeD_Console_PadNewer` | `Newer` | Lua console: controller prompt on RB, the line run after | 10 |
+| `UI_ZeD_Console_WheelDetail` | `Run Lua, read the output and errors` | ZeD wheel (Select): the Lua console slice's small line | 40 |
