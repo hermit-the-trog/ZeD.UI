@@ -1,5 +1,6 @@
 # ZeDUI/tools/qa/b8_world_everyday.txt  (Nov 7 2026, QA): beta 8 in-game checks for the world devices, animals, paper maps, the everyday leftovers and the Lua console (CHECK_*_20261107.md). Run at 4K 1.75x, then again at Deck size for the shots.
 zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60   # pins both windows: unpinned ones roll up when the mouse is away (Nov 8 QA)
 zedqa_b8_respawn_smoke.lua | b8rs | timeout=60            # respawn: only the pieces in place (the real respawn is manual: it ends the QA character)
 zedqa_b8_world_devices.lua | b8wd | timeout=300          # radio window routes: TV, house radio, far TV pin, carried radio and walkie, car part, driver's seat
 zedqa_b8_animals.lua | b8an | timeout=240                # animal info and Check zone on the Animals tab, the zone note, the help button

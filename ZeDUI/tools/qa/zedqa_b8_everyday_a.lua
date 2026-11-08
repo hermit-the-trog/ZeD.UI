@@ -95,8 +95,10 @@ local function heaterOn()
 end
 local function dashInst() return ZeD.Dashboard.getInstance and ZeD.Dashboard.getInstance(pn) end
 local function pressHeater() local ok, e = pcall(ISVehicleMenu.onToggleHeater, p); if not ok then say("ERR heater: " .. tostring(e)) end end
+local carKey
 local ws = {}   -- makeup worn before we started, to leave it as it was
 onCleanup(function()
+    if carKey then pcall(function() p:getInventory():Remove(carKey) end) end
     closeAcui()
     if dashOpt and dashWas ~= nil then pcall(function() dashOpt:setValue(dashWas) end) end
     if p:getVehicle() then pcall(function() p:getVehicle():exit(p); triggerEvent("OnExitVehicle", p) end) end
@@ -253,12 +255,14 @@ step(50, function()
 end)
 step(60, function()
     if not car or p:getVehicle() ~= car then car = nil; return end
+    pcall(function() carKey = p:getInventory():AddItem(car:createVehicleKey()) end)   -- (Nov 8 QA: the game puts keys in the ignition only for a character who holds the car's key)
     pcall(function() car:setKeysInIgnition(true) end)
+    say("B6 diag: keys in ignition right after setting them: " .. tostring(car:isKeysInIgnition()) .. ", the character is in it: " .. tostring(p:getVehicle() == car))
     check(car:getPartById("Heater") ~= nil, "B6: the pickup has a heater part")
     check(dashInst() ~= nil, "B6: ZeD's dash is up for the driver")
 end)
 -- 1. the key
-step(20, function() if car then closeAcui(); pressHeater() end end)
+step(20, function() if car then say("B6 diag: keys in ignition before the press: " .. tostring(car:isKeysInIgnition()) .. ", engine " .. tostring(car:isEngineRunning())); closeAcui(); pressHeater() end end)
 step(6, function()
     if not car then return end
     local inst = dashInst()
@@ -269,6 +273,13 @@ step(10, function() if car then shot("heater_lit") end end)
 step(30, function()
     if not car then return end
     check(heaterOn(), "B6.1: the heater is on (part modData active " .. tostring(car:getPartById("Heater") and car:getPartById("Heater"):getModData().active) .. ")")
+end)
+-- (Nov 8 QA) when the press left the heater off: is it the press, or does the game's own command path not set it in single player here?
+step(5, function() if car and not heaterOn() then say("B6.1 diag: sending the game's own toggleHeater command by hand"); pcall(sendClientCommand, p, "vehicle", "toggleHeater", { on = true, temp = 0 }) end end)
+step(30, function()
+    if not car then return end
+    local pt = car:getPartById("Heater")
+    say("B6.1 diag: part modData active " .. tostring(pt and pt:getModData().active) .. ", engine " .. tostring(car:isEngineRunning()) .. ", keys " .. tostring(car:isKeysInIgnition()) .. ", battery " .. tostring(car:getBatteryCharge()))
 end)
 -- 2. again: off
 step(5, function() if car then pressHeater() end end)
@@ -285,6 +296,7 @@ step(40, function()
     check(not heaterOn(), "B6.3: with the key out nothing turns on")
     check(not acuiUp(), "B6.3: and no game window")
     pcall(function() car:setKeysInIgnition(true) end)
+    say("B6 diag: keys in ignition right after setting them: " .. tostring(car:isKeysInIgnition()) .. ", the character is in it: " .. tostring(p:getVehicle() == car))
 end)
 -- 8. the Dashboard switch on the game's own: the game's window
 step(5, function()

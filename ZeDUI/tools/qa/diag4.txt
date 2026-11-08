@@ -1,0 +1,6 @@
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+zedqa_b8_focus.lua | b8fo | timeout=180
+zedqa_b8_everyday_a.lua | b8ea | timeout=360
+zedqa_b8_paper_map.lua | b8pm | timeout=480
+zedqa_b8_console.lua | b8dc | timeout=240 | expect=console

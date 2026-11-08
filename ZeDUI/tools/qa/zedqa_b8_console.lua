@@ -141,6 +141,10 @@ step(45, function()
     DC.read()
     e1 = errCount()
     check(e1 >= e0 + 1, "4: a runtime error adds an error block (" .. e0 .. " then " .. e1 .. ")")
+    do -- (Nov 8 QA) what the box holds after a runtime error: the last lines, as the list reads them
+        local ls = DC.lines()
+        for i = math.max(1, #ls - 66), math.max(1, #ls - 40) do say("4 diag line " .. i .. (ls[i].err and " [err]" or "") .. ": " .. tostring(ls[i].s):sub(1, 110)) end
+    end
     check(textHas("attempted index") or textHas("non-table") or textHas("nil"), "4: its words are in the list")
     DC.run("this is not lua")
 end)
@@ -161,6 +165,13 @@ end)
 step(5, function() DC.mirror("getPl") end)
 step(35, function()
     local s = DC.suggestion()
+    do -- (Nov 8 QA) the game's suggestion box and its line
+        local P = DC.P
+        local ok1, v1 = pcall(function() return P.sug:isVisible() end)
+        local ok2, v2 = pcall(function() return P.sug:getText() end)
+        local ok3, v3 = pcall(function() return P.cmd:getText() end)
+        say("7 diag: suggestion visible " .. tostring(v1) .. ", text " .. tostring(v2) .. ", line " .. tostring(v3) .. " (ok " .. tostring(ok1) .. tostring(ok2) .. tostring(ok3) .. ")")
+    end
     check(s ~= nil and s:find("getPlayer", 1, true) ~= nil, "7: the game's suggestion for getPl names getPlayer (" .. tostring(s) .. ")")
     local t = DC.complete("getPl")
     check(t ~= nil and t:find("getPlayer", 1, true) == 1, "7: Tab turns the line into getPlayer() (" .. tostring(t) .. ")")

@@ -237,7 +237,7 @@ step(5, function()
     local ok = PM.revealOnWorldMap(w)
     check(ok == true, "2.3: Find on map starts the game's map-reading action")
 end)
-waitFor(900, function() return not findBusy or (not ISTimedActionQueue.isPlayerDoingAction(p) and noPaper()) end, function(t)
+waitFor(3000, function() return not findBusy or (paperOf() == nil and not ISTimedActionQueue.isPlayerDoingAction(p)) end, function(t)   -- (Nov 8 QA: the paper goes away when the reading ends and the world map unfolds, so noPaper() (no pop-out) never held)
     if not findBusy then return end
     keepDown(ww())
     check(not t, "2.3: the reading bar ended")

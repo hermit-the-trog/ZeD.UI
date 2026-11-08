@@ -214,7 +214,7 @@ at(420, function()
     S.box = nil
 end)
 at(440, function()
-    say("summary: " .. Q.pass .. " PASS, " .. Q.fail .. " FAIL")
+    say("summary: " .. Q.pass .. " PASS, " .. Q.fail .. (Q.fail > 0 and " FAIL" or " failures")  .. "")
     say("DONE")
 end)
 

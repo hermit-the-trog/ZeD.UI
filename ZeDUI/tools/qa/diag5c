@@ -1,0 +1,167 @@
+# ZeD-UI regression - 2026-11-08 00:24 - fullscreen4k (3840x2160 fullscreen)
+
+| | |
+|---|---|
+| Started | 2026-11-08 00:24:38 |
+| Finished | 2026-11-08 00:26:28 (1 min 50 s) |
+| Mode | fullscreen4k (3840x2160 fullscreen) |
+| Display | fullScreen=true height=2160 width=3840 |
+| Game build | 42.21.0 4a0e9546ec |
+| Mod version | 0.3.0-beta7 |
+| Save | Saves/Sandbox/ZeD-QA |
+| Manifest | C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\tools\qa\diag5.txt (4 scripts) |
+| Result | **4/4 pass**, 0 warn, 0 fail, 0 timeout |
+| Go numbers | 23571 to 23576 |
+
+Screenshots are in `C:/Users/danie/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
+
+## Run notes
+
+- ZeD settings: UI scale 1.75x (4K), additions Vanilla Plus (all on, Restock Casual) (the director's ModOptions.ini kept aside)
+- pzrestorewin.ps1 (before a fullscreen run): no backup
+- started ProjectZomboid64.exe -debug -nosteam (fullscreen, the director's options.ini)
+- loaded; clicked the screen centre (1920,1080) to pass 'click to start'
+- the bridge armed in game on Saves/Sandbox/ZeD-QA
+- quit: quit to the main menu, then to the desktop (go 23575, 23576)
+- ZeD settings: the director's ModOptions.ini put back
+
+## Results
+
+| # | Script | Tag | Status | Seconds | Screenshots | Notes |
+|---:|---|---|---|---:|---|---|
+| 1 | zedqa_prelude.lua | pre | PASS | 2 |  |  |
+| 2 | zedqa_pin_windows.lua | pnw | PASS | 1 |  |  |
+| 3 | zedqa_b8_focus.lua | b8fo | PASS | 8 |  |  |
+| 4 | zedqa_b8_focus2.lua | b8f2 | PASS | 9 |  |  |
+
+## Scripts
+
+### 1. zedqa_prelude.lua (`ZEDQA pre`) - PASS, 2 s
+
+- go 23571 at 00:25:35
+
+```text
+[ZeD.QA] state #1 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=37 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA pre start
+[ZeD.QA] run #1 ok=true
+ZEDQA pre char true world true speed 1 ticks 60 frames 61
+ZEDQA pre search overlay: enabled false, override false, manager false
+ZEDQA pre DONE
+```
+
+### 2. zedqa_pin_windows.lua (`ZEDQA pnw`) - PASS, 1 s
+
+- go 23572 at 00:25:40
+
+```text
+[ZeD.QA] state #2 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=37 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA pnw pinned both windows
+[ZeD.QA] run #2 ok=true
+ZEDQA pnw DONE
+```
+
+### 3. zedqa_b8_focus.lua (`ZEDQA b8fo`) - PASS, 8 s
+
+- go 23573 at 00:25:45
+
+```text
+[ZeD.QA] state #3 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=37 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA b8fo start
+[ZeD.QA] run #3 ok=true
+ZEDQA b8fo PASS single player (not a server's client)
+ZEDQA b8fo the game's Pause on Focus Loss reads: false
+ZEDQA b8fo PASS getOptionPauseOnFocusloss is readable
+ZEDQA b8fo PASS the game has speed controls
+ZEDQA b8fo speed controls: visible true, y -4000; clock: visible false, y -4000
+ZEDQA b8fo the watch screen switch reads item 1 (1 = ZeD's)
+ZEDQA b8fo a watch is installed: nil
+ZEDQA b8fo PASS Pause on Focus Loss set On by hand
+ZEDQA b8fo PASS option On: the speed controls stayed visible = true and parked over 6 frames
+ZEDQA b8fo PASS Pause on Focus Loss set Off by hand
+ZEDQA b8fo PASS option Off: the speed controls stayed visible = true and parked over 6 frames
+ZEDQA b8fo PASS ZeD left the option as set (Off)
+ZEDQA b8fo PASS ZeD left the option as set (On)
+ZEDQA b8fo PASS option On again: the speed controls stayed visible = true and parked over 60 frames
+ZEDQA b8fo watch switch On (the game's own): speed controls: visible true, y -4000; clock: visible false, y -4000
+ZEDQA b8fo diag poll 1: ms 1794126348758, value 2 (number)
+ZEDQA b8fo diag poll 2: ms 1794126349023, value 2 (number)
+ZEDQA b8fo diag poll 3: ms 1794126349264, value 2 (number)
+ZEDQA b8fo diag poll 4: ms 1794126349514, value 2 (number)
+ZEDQA b8fo diag poll 5: ms 1794126349773, value 2 (number)
+ZEDQA b8fo diag poll 6: ms 1794126350047, value 2 (number)
+ZEDQA b8fo diag poll 7: ms 1794126350294, value 2 (number)
+ZEDQA b8fo diag poll 8: ms 1794126350544, value 2 (number)
+ZEDQA b8fo a second later: speed controls: visible true, y 10; clock: visible false, y 10
+ZEDQA b8fo diag: Safe.on('watch') true, W._speedY 10, W._clockY 10, switch 2, same object as the Safe-mode switch: true, that one reads 2, ZeD.Safe.on()=false
+ZEDQA b8fo PASS watch handed back: the speed controls are on screen again (y 10)
+ZEDQA b8fo after taking the watch back: speed controls: visible true, y -4000; clock: visible false, y -4000
+ZEDQA b8fo PASS watch taken back: the speed controls parked again, flag still on
+ZEDQA b8fo PASS the game's option is back at false
+ZEDQA b8fo 13 passed, 0 failed
+ZEDQA b8fo DONE
+```
+
+### 4. zedqa_b8_focus2.lua (`ZEDQA b8f2`) - PASS, 9 s
+
+- go 23574 at 00:25:56
+
+```text
+[ZeD.QA] state #4 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=37 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA b8f2 start
+[ZeD.QA] run #4 ok=true
+ZEDQA b8f2 PASS single player (not a server's client)
+ZEDQA b8f2 the game's Pause on Focus Loss reads: false
+ZEDQA b8f2 PASS getOptionPauseOnFocusloss is readable
+ZEDQA b8f2 PASS the game has speed controls
+ZEDQA b8f2 speed controls: visible true, y -4000; clock: visible false, y -4000
+ZEDQA b8f2 the watch screen switch reads item 1 (1 = ZeD's)
+ZEDQA b8f2 a watch is installed: nil
+ZEDQA b8f2 PASS Pause on Focus Loss set On by hand
+ZEDQA b8f2 PASS option On: the speed controls stayed visible = true and parked over 6 frames
+ZEDQA b8f2 PASS Pause on Focus Loss set Off by hand
+ZEDQA b8f2 PASS option Off: the speed controls stayed visible = true and parked over 6 frames
+ZEDQA b8f2 PASS ZeD left the option as set (Off)
+ZEDQA b8f2 PASS ZeD left the option as set (On)
+ZEDQA b8f2 PASS option On again: the speed controls stayed visible = true and parked over 60 frames
+ZEDQA b8f2 watch switch On (the game's own): speed controls: visible true, y -4000; clock: visible false, y -4000
+ZEDQA b8f2 diag poll 1: ms 1794126360557, value 2 (number)
+ZEDQA b8f2 diag poll 2: ms 1794126360812, value 2 (number)
+ZEDQA b8f2 diag poll 3: ms 1794126361061, value 2 (number)
+ZEDQA b8f2 diag poll 4: ms 1794126361295, value 2 (number)
+ZEDQA b8f2 diag poll 5: ms 1794126361547, value 2 (number)
+ZEDQA b8f2 diag poll 6: ms 1794126361812, value 2 (number)
+ZEDQA b8f2 diag poll 7: ms 1794126362047, value 2 (number)
+ZEDQA b8f2 diag poll 8: ms 1794126362280, value 2 (number)
+ZEDQA b8f2 a second later: speed controls: visible true, y 10; clock: visible false, y 10
+ZEDQA b8f2 diag: Safe.on('watch') true, W._speedY 10, W._clockY 10, switch 2, same object as the Safe-mode switch: true, that one reads 2, ZeD.Safe.on()=false
+ZEDQA b8f2 PASS watch handed back: the speed controls are on screen again (y 10)
+ZEDQA b8f2 after taking the watch back: speed controls: visible true, y -4000; clock: visible false, y -4000
+ZEDQA b8f2 PASS watch taken back: the speed controls parked again, flag still on
+ZEDQA b8f2 PASS the game's option is back at false
+ZEDQA b8f2 13 passed, 0 failed
+ZEDQA b8f2 DONE
+```
+
+## Console errors outside scripts
+
+ERROR lines from launch to quit that fall in no script's window, once each (count first).
+
+```text
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont_0.png
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont2_0.png
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/fonts/zomboidDialogue.bmfc_0.png
+    2x ERROR: General f:N at FluidContainerScript.load > Sanitizing container name 'Large Bucket', name may not contain whitespaces.
+    2x ERROR: General f:N at FluidContainerScript.load > Sanitizing container name 'Fuel Pump', name may not contain whitespaces.
+    1x ERROR: General f:N at CraftRecipeComponentScript.getIconTexture> CraftRecipeComponentScript: Recipe Piano missing UiConfigScript - falling back to SpriteConfigScript first world object face for recipe icon.
+    1x ERROR: Lua f:N at Lua(Vanilla).handleMannequinZone > ERROR: Mannequin zone missing properties in media/maps/Muldraugh, KY/objects.lua coords: 13583, 1299, 0
+    1x ERROR: General f:N at Basements.mergeRoomsOntoMetaCell > duplicate RoomDef.metaID for room at 10707,9484,0
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #231 in cell 25,33 while reading map_meta.bin
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #327914 in cell 25,33 while reading map_meta.bin
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #327911 in cell 25,33 while reading map_meta.bin
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #655594 in cell 25,33 while reading map_meta.bin
+    2x ERROR: General f:N at LuaManager.getFunctionObject > no such function "Vehicles.Init.Radio"
+```

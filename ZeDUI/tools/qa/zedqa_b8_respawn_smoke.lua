@@ -67,7 +67,9 @@ step(1, function()
     check(R ~= nil and type(R.begin) == "function" and type(R.finish) == "function" and type(R.accept) == "function", "respawn: ZeD.Respawn has begin, finish and accept")
     check(R ~= nil and type(R.sync) == "function" and type(R.noWindowBack) == "function" and type(R.onKey) == "function", "respawn: sync, noWindowBack and onKey are there")
     check(MM ~= nil and MM.respawn == nil, "respawn: none is running now")
-    check(MM ~= nil and MM.root == nil, "respawn: no desk is up over the world")
+    local up = false
+    if MM and MM.root then pcall(function() up = MM.root:isVisible() and MainScreen and MainScreen.instance and MainScreen.instance:isVisible() end) end   -- (Nov 8 QA: MM.root outlives the game start, hidden with MainScreen)
+    check(MM ~= nil and not up, "respawn: no desk is up over the world")
     check(type(ZeD_MMRespawnDesk) == "table", "respawn: the respawn desk class exists")
     check(CoopCharacterCreation ~= nil and CoopCharacterCreation._zedOrig ~= nil, "respawn: the game's CoopCharacterCreation is hooked, its originals kept")
     local O = CoopCharacterCreation and CoopCharacterCreation._zedOrig

@@ -120,7 +120,8 @@ case("B1 Carried radio", "ZeD", "B1", function()
     if not item then say("B1 NOT RUN: no radio item could be made"); return "notrun" end
     made[#made + 1] = item
     say("B1 radio item: " .. tostring(item:getFullType()))
-    ISRadioWindow.activate(0, item)
+    p:setPrimaryHandItem(item)   -- (Nov 8 QA: the Radio tab lists radios in the hands or on the back, as the game's window does)
+    ISRadioWindow.activate(p, item)
 end)
 -- B2: a paper map
 case("B2 Paper map", "ZeD", "B2", function()
@@ -166,7 +167,7 @@ local function onTick()
             if mm then Q.fail = Q.fail + 1 else Q.pass = Q.pass + 1 end
             for _, it in ipairs(made) do pcall(function() p:getInventory():Remove(it) end) end
             ISUIElement.addToUIManager = realAdd
-            say("summary: " .. Q.pass .. " PASS, " .. Q.fail .. " FAIL, " .. Q.notrun .. " not run")
+            say("summary: " .. Q.pass .. " PASS, " .. Q.fail .. (Q.fail > 0 and " FAIL" or " failures")  .. ", " .. Q.notrun .. " not run")
             say("DONE")
             Events.OnTick.Remove(onTick)
             return

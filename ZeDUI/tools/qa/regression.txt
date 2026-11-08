@@ -20,6 +20,7 @@
 
 # ---- first: the pair open, unpaused, god mode
 zedqa_prelude.lua | pre                          # opens both windows, unpauses, god mode, ~60 ticks
+zedqa_pin_windows.lua | pnw | timeout=60   # pins both windows: unpinned ones roll up when the mouse is away (Nov 8 QA)
 
 # ---- the five suites (need both windows open; the prelude did that)
 suite_tabs.lua | tabs                            # every tab of both windows via the strip clicks; focusable census
