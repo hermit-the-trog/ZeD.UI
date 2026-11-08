@@ -1136,6 +1136,7 @@
     "UI_ZeD_Health_Overall": "Загалом",
     "UI_ZeD_Health_Qualified": "%1 (%2)",
     "UI_ZeD_Health_Start": "Почати",
+    "UI_ZeD_Health_Examine": "Оглянути",
     "UI_ZeD_Hook_BleedingOnGround": "Стікає кров на землю",
     "UI_ZeD_Hook_BleedOnGround": "Спускати кров на землю",
     "UI_ZeD_Hook_BloodLostHead": "Якщо зняти голову зараз, %1 крові, що ще в ній, розбризкається.",

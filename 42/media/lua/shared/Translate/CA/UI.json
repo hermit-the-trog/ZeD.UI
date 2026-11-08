@@ -1136,6 +1136,7 @@
     "UI_ZeD_Health_Overall": "Global",
     "UI_ZeD_Health_Qualified": "%1 (%2)",
     "UI_ZeD_Health_Start": "Inici",
+    "UI_ZeD_Health_Examine": "Examinar",
     "UI_ZeD_Hook_BleedingOnGround": "Sagnant al terra",
     "UI_ZeD_Hook_BleedOnGround": "Sagnar al terra",
     "UI_ZeD_Hook_BloodLostHead": "Si treus el cap ara, esquitxa els %1 de sang que encara conté.",

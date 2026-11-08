@@ -1136,6 +1136,7 @@
     "UI_ZeD_Health_Overall": "Ogółem",
     "UI_ZeD_Health_Qualified": "%1 (%2)",
     "UI_ZeD_Health_Start": "Start",
+    "UI_ZeD_Health_Examine": "Zbadaj",
     "UI_ZeD_Hook_BleedingOnGround": "Krew spływa na ziemię",
     "UI_ZeD_Hook_BleedOnGround": "Wypuść krew na ziemię",
     "UI_ZeD_Hook_BloodLostHead": "Odcięcie głowy teraz rozchlapie %1 krwi, która w niej została.",

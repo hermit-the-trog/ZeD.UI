@@ -1136,6 +1136,7 @@
     "UI_ZeD_Health_Overall": "Samlet",
     "UI_ZeD_Health_Qualified": "%1 (%2)",
     "UI_ZeD_Health_Start": "Start",
+    "UI_ZeD_Health_Examine": "Undersøg",
     "UI_ZeD_Hook_BleedingOnGround": "Bløder ud på jorden",
     "UI_ZeD_Hook_BleedOnGround": "Lad blodet løbe ud på jorden",
     "UI_ZeD_Hook_BloodLostHead": "Tages hovedet nu, sprøjter de %1 blod, der er i det.",

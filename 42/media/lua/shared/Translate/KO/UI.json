@@ -1136,6 +1136,7 @@
     "UI_ZeD_Health_Overall": "전체",
     "UI_ZeD_Health_Qualified": "%1 (%2)",
     "UI_ZeD_Health_Start": "시작",
+    "UI_ZeD_Health_Examine": "검사",
     "UI_ZeD_Hook_BleedingOnGround": "바닥에 피 흘리는 중",
     "UI_ZeD_Hook_BleedOnGround": "바닥에 피 빼기",
     "UI_ZeD_Hook_BloodLostHead": "지금 머리를 떼면 남은 피(%1)가 튑니다.",
