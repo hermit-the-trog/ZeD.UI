@@ -5312,6 +5312,8 @@
     "UI_ZeD_Adm_HelpMuteVoice": "Zonder het servergedeelte van ZeD stopt dit alleen de stem. De chat blijft open.",
     "UI_ZeD_Adm_VoiceMuted": "%1 kan geen stem gebruiken tot je het dempen opheft.",
     "UI_ZeD_Adm_VoiceUnmuted": "%1 kan weer stem gebruiken.",
+    "UI_ZeD_Adm_HelpMuteOff": "%1 is niet online. Dempen zet de chat nu stil, tot iemand het opheft. De stem kan alleen worden gedempt terwijl %1 online is.",
+    "UI_ZeD_Adm_VoiceNeedsOn": "%1 is niet online. Zonder het serverdeel van ZeD dempt Dempen alleen de stem, en alleen terwijl %1 online is.",
     "UI_ZeD_Adm_PowersStayOn": "Zonder het servergedeelte van ZeD laat het spel deze aan, en zetten spelers ze zelf uit.",
     "UI_ZeD_Adm_WarnDone1": "1 waarschuwingspunt toegevoegd. %1 ziet de reden.",
     "UI_ZeD_Adm_HelpKeepRole": "Houd de rol.",

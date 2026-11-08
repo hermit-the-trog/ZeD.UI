@@ -5312,6 +5312,8 @@
     "UI_ZeD_Adm_HelpMuteVoice": "Bez serverové části ZeD to zastaví jen hlas. Chat zůstane otevřený.",
     "UI_ZeD_Adm_VoiceMuted": "%1 nemůže používat hlas, dokud nezrušíš ztlumení.",
     "UI_ZeD_Adm_VoiceUnmuted": "%1 může zase používat hlas.",
+    "UI_ZeD_Adm_HelpMuteOff": "%1 není online. Ztlumení mu od teď zablokuje chat, dokud ho někdo nezruší. Hlas lze ztlumit jen ve chvíli, kdy je online.",
+    "UI_ZeD_Adm_VoiceNeedsOn": "%1 není online. Bez serverové části ZeD ztlumí jen hlas, a to jen ve chvíli, kdy je online.",
     "UI_ZeD_Adm_PowersStayOn": "Bez serverové části ZeD je hra nechává zapnuté a hráč si je vypne sám.",
     "UI_ZeD_Adm_WarnDone1": "Přidán 1 bod varování. %1 vidí důvod.",
     "UI_ZeD_Adm_HelpKeepRole": "Ponechat roli.",

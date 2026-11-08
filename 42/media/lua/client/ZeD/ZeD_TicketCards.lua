@@ -133,6 +133,15 @@ function TC.bind(win, st, prefix, zone)
 end
 
 function D.flash(t, text) t.flashText, t.flashAt = text, now() end
+-- a press on a gray control: why it is gray, as the answer in the card's line (hover alone said it before, and a press
+-- read as doing nothing: the outside review of beta 7, Mute on an offline player's card)
+function D.grayPress(t, c)
+    if c and c.why then
+        D.flash(t, c.why)
+        -- (a card that has its own line for answers takes it there too: the help band is where hover said it already)
+        if c.onGray then c.onGray(c.why) end
+    end
+end
 function D.flashNow(t)
     if t.flashText and now() - t.flashAt < FLASH_MS then return t.flashText end
     t.flashText = nil
@@ -788,6 +797,8 @@ function TC.listClick(win, st, x, y)
             if not h.c.disabled and h.c.run then
                 sound()
                 h.c.run(win)
+            elseif h.c.disabled then
+                D.grayPress(t, h.c)
             end
             return true
         end
@@ -2487,6 +2498,8 @@ function TC.cardClick(win, st, x, y)
             if not r.b.disabled then
                 sound()
                 r.b.run(win)
+            else
+                D.grayPress(t, r.b)
             end
             return
         end
@@ -2499,6 +2512,8 @@ function TC.cardClick(win, st, x, y)
             elseif not h.c.disabled and h.c.run then
                 sound("UISelectListItem")
                 h.c.run(win)
+            elseif h.c.disabled then
+                D.grayPress(t, h.c)
             end
             return
         end
@@ -2523,7 +2538,14 @@ function D.dress(win, st, t, e, c, place)
     e.tkc = true
     e.onCancel = function(ww) D.cancel(ww, st) end
     e.promptB = tr("UI_ZeD_Tk_PromptBack")
-    if c then e.tkWhy = function() return c.why end end
+    if c then
+        e.tkWhy = function() return c.why end
+        -- (A on a gray control: its why as the card's answer, as a click gives it)
+        local go = e.onActivate
+        e.onActivate = function(ww)
+            if c.disabled then D.grayPress(t, c) elseif go then go(ww) end
+        end
+    end
     if place then
         e.promptX = tr("UI_ZeD_Tk_GoThere")
         e.onContextMenu = function()

@@ -5312,6 +5312,8 @@
     "UI_ZeD_Adm_HelpMuteVoice": "Ilman ZeD:n palvelinosaa tämä pysäyttää vain heidän äänensä. Heidän chatinsa pysyy auki.",
     "UI_ZeD_Adm_VoiceMuted": "%1 ei voi käyttää ääntä, ennen kuin poistat mykistyksen.",
     "UI_ZeD_Adm_VoiceUnmuted": "%1 voi taas käyttää ääntä.",
+    "UI_ZeD_Adm_HelpMuteOff": "%1 ei ole paikalla. Mykistys estää chatin nyt, kunnes joku poistaa sen. Äänen voi mykistää vain, kun %1 on paikalla.",
+    "UI_ZeD_Adm_VoiceNeedsOn": "%1 ei ole paikalla. Ilman ZeD:n palvelinosaa mykistys estää vain äänen, ja vain kun %1 on paikalla.",
     "UI_ZeD_Adm_PowersStayOn": "Ilman ZeD:n palvelinosaa peli jättää nämä päälle, ja he kytkevät ne pois itse.",
     "UI_ZeD_Adm_WarnDone1": "1 varoituspiste lisätty. %1 näkee syyn.",
     "UI_ZeD_Adm_HelpKeepRole": "Pidä rooli.",

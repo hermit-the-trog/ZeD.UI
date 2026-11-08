@@ -5312,6 +5312,8 @@
     "UI_ZeD_Adm_HelpMuteVoice": "Sem a parte de servidor do ZeD, isto só impede a voz. O chat continua aberto.",
     "UI_ZeD_Adm_VoiceMuted": "%1 não pode usar a voz até tirares o mudo.",
     "UI_ZeD_Adm_VoiceUnmuted": "%1 pode usar a voz outra vez.",
+    "UI_ZeD_Adm_HelpMuteOff": "%1 não está online. Silenciar corta-lhe o chat a partir de agora, até alguém o reativar. A voz só pode ser silenciada enquanto estiver online.",
+    "UI_ZeD_Adm_VoiceNeedsOn": "%1 não está online. Sem a parte de servidor do ZeD, Silenciar só corta a voz, e só enquanto estiver online.",
     "UI_ZeD_Adm_PowersStayOn": "Sem a parte de servidor do ZeD, o jogo deixa estes ligados, e eles desligam-nos eles próprios.",
     "UI_ZeD_Adm_WarnDone1": "1 ponto de aviso adicionado. %1 vê o motivo.",
     "UI_ZeD_Adm_HelpKeepRole": "Manter a função.",

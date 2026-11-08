@@ -5312,6 +5312,8 @@
     "UI_ZeD_Adm_HelpMuteVoice": "Uden ZeDs serverdel stopper dette kun deres stemme. Deres chat forbliver åben.",
     "UI_ZeD_Adm_VoiceMuted": "%1 kan ikke bruge stemme, før du tænder for lyden.",
     "UI_ZeD_Adm_VoiceUnmuted": "%1 kan bruge stemme igen.",
+    "UI_ZeD_Adm_HelpMuteOff": "%1 er ikke online. Lydløs stopper chatten fra nu af, indtil nogen ophæver det. Stemmen kan kun gøres lydløs, mens %1 er online.",
+    "UI_ZeD_Adm_VoiceNeedsOn": "%1 er ikke online. Uden ZeD's serverdel stopper Lydløs kun stemmen, og kun mens %1 er online.",
     "UI_ZeD_Adm_PowersStayOn": "Uden ZeDs serverdel lader spillet disse være slået til, og de slår dem selv fra.",
     "UI_ZeD_Adm_WarnDone1": "1 advarselspoint tilføjet. %1 ser årsagen.",
     "UI_ZeD_Adm_HelpKeepRole": "Behold rollen.",

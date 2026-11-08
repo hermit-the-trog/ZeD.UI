@@ -906,6 +906,21 @@ function P.notOn(user, on)
     end
 end
 
+-- the card's own line under its acts: the last press's answer, or why a gray one is gray. The help band says it too, but
+-- that is where hover already said it, so a press read as doing nothing (the outside review of beta 7, Mute on tjk's card)
+function P.say(card, text)
+    card.said = text
+    M.bump()
+end
+function P.act(win, st, card, send, okText)
+    card.said = nil
+    F.act(win, st, send, okText, function() P.say(card, okText) end, function(a)
+        local s = F.errOf(a)
+        P.say(card, s)
+        return s
+    end)
+end
+
 function P.acts(items, win, st, card, row, view, t)
     local user = card.user
     local function isOn()
@@ -917,18 +932,23 @@ function P.acts(items, win, st, card, row, view, t)
     local notOn = P.notOn(user, isOn)
     local ctls = {}
     ctls[1] = F.gate({ id = "tp", land = true, text = getText("UI_Scoreboard_Teleport"), help = tr("UI_ZeD_Adm_HelpTp"),
-        run = function(ww) F.act(ww, st, function(cb) M.teleport(user, cb) end, tr("UI_ZeD_Adm_Teleported", user)) end }, "TeleportToPlayer", notOn)
+        run = function(ww) P.act(ww, st, card, function(cb) M.teleport(user, cb) end, tr("UI_ZeD_Adm_Teleported", user)) end }, "TeleportToPlayer", notOn)
     ctls[2] = F.gate({ id = "tpme", text = getText("UI_Scoreboard_TeleportToYou"), help = tr("UI_ZeD_Adm_HelpBring"),
-        run = function(ww) F.act(ww, st, function(cb) M.bring(user, cb) end, tr("UI_ZeD_Adm_Brought", user)) end }, "TeleportPlayerToAnotherPlayer", notOn)
+        run = function(ww) P.act(ww, st, card, function(cb) M.bring(user, cb) end, tr("UI_ZeD_Adm_Brought", user)) end }, "TeleportPlayerToAnotherPlayer", notOn)
     local muted = M.muted(user)
     local live = M.live()
+    local on = isOn() and true or false
     local muteWord = live and (muted and "UI_ZeD_Adm_Unmuted" or "UI_ZeD_Adm_Muted") or (muted and "UI_ZeD_Adm_VoiceUnmuted" or "UI_ZeD_Adm_VoiceMuted")
-    ctls[3] = F.gate({ id = "mute", text = getText(muted and "UI_Scoreboard_Unmute" or "UI_Scoreboard_Mute"), help = tr(live and "UI_ZeD_Adm_HelpMute" or "UI_ZeD_Adm_HelpMuteVoice"),
+    -- with the server part the mute is its list of names, which holds an account that is off as well (a_mute asks nothing of
+    -- them being on), so Mute works on tjk and says so; the game's voice ban needs them on, so it is left for when they are.
+    -- Without the part Mute is the game's voice ban alone, which finds only a player who is on: gray, saying that
+    local muteHelp = (live and not on and not muted) and tr("UI_ZeD_Adm_HelpMuteOff", user) or tr(live and "UI_ZeD_Adm_HelpMute" or "UI_ZeD_Adm_HelpMuteVoice")
+    ctls[3] = F.gate({ id = "mute", text = getText(muted and "UI_Scoreboard_Unmute" or "UI_Scoreboard_Mute"), help = muteHelp,
         run = function(ww)
-            F.act(ww, st, function(cb) M.mute(user, not muted, cb) end, tr(muteWord, user))
+            P.act(ww, st, card, function(cb) M.mute(user, not muted, cb, isOn() and true or false) end, tr(muteWord, user))
         end }, "BanUnbanUser", function()
-            if muted then return nil end     -- (Unmute works on someone who has gone)
-            return notOn()
+            if muted or live or isOn() then return nil end     -- (Unmute works on someone who has gone)
+            return tr("UI_ZeD_Adm_VoiceNeedsOn", user)
         end)
     ctls[4] = F.gate({ id = "warnb", text = getText("IGUI_UserList_AddWarningPoint"), help = tr("UI_ZeD_Adm_HelpWarn"),
         run = function(ww) P.openPart(ww, st, card, "warn", "tk:wp") end }, "AddUserlog")
@@ -946,7 +966,9 @@ function P.acts(items, win, st, card, row, view, t)
         ctls[6] = F.gate({ id = "ban", text = getText("IGUI_UserList_Ban"), danger = true, help = tr("UI_ZeD_Adm_HelpBan"),
             run = function(ww) P.openPart(ww, st, card, "ban", "tk:f:reason") end }, "BanUnbanUser")
     end
+    for _, c in pairs(ctls) do c.onGray = function(why) P.say(card, why) end end
     F.flow(items, ctls)
+    if card.said then items[#items + 1] = { k = "aline", text = card.said, tone = "text" } end
 end
 
 function P.openPart(win, st, card, part, focus)

@@ -5312,6 +5312,8 @@
     "UI_ZeD_Adm_HelpMuteVoice": "Sin la parte de servidor de ZeD esto solo corta su voz. Su chat sigue abierto.",
     "UI_ZeD_Adm_VoiceMuted": "%1 no puede usar la voz hasta que lo habilites.",
     "UI_ZeD_Adm_VoiceUnmuted": "%1 puede usar la voz de nuevo.",
+    "UI_ZeD_Adm_HelpMuteOff": "%1 غير متصل. الكتم يوقف دردشته من الآن حتى يلغيه أحد. لا يمكن كتم صوته إلا وهو متصل.",
+    "UI_ZeD_Adm_VoiceNeedsOn": "%1 غير متصل. بدون جزء الخادم من ZeD يوقف الكتم الصوت فقط، وفقط وهو متصل.",
     "UI_ZeD_Adm_PowersStayOn": "Sin la parte de servidor de ZeD el juego deja esto activado, y ellos lo apagan solos.",
     "UI_ZeD_Adm_WarnDone1": "1 punto de advertencia agregado. %1 ve el motivo.",
     "UI_ZeD_Adm_HelpKeepRole": "Mantener el rol.",

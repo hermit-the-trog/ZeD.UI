@@ -5312,6 +5312,8 @@
     "UI_ZeD_Adm_HelpMuteVoice": "Ohne den Server-Teil von ZeD stoppt das nur die Stimme. Der Chat bleibt offen.",
     "UI_ZeD_Adm_VoiceMuted": "%1 kann bis zur Freigabe keinen Sprachchat nutzen.",
     "UI_ZeD_Adm_VoiceUnmuted": "%1 hat wieder Sprachchat.",
+    "UI_ZeD_Adm_HelpMuteOff": "%1 ist nicht online. Stummschalten sperrt den Chat ab jetzt, bis jemand die Sperre aufhebt. Die Stimme lässt sich nur sperren, solange %1 online ist.",
+    "UI_ZeD_Adm_VoiceNeedsOn": "%1 ist nicht online. Ohne den Server-Teil von ZeD sperrt Stummschalten nur die Stimme, und das geht nur, solange %1 online ist.",
     "UI_ZeD_Adm_PowersStayOn": "Ohne den Server-Teil von ZeD lässt das Spiel diese an, und die Spieler schalten sie selbst aus.",
     "UI_ZeD_Adm_WarnDone1": "1 Verwarnpunkt hinzugefügt. %1 sieht den Grund.",
     "UI_ZeD_Adm_HelpKeepRole": "Rolle behalten.",
