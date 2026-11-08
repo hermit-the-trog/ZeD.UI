@@ -1240,6 +1240,17 @@ do
     draw()
     ISWorldObjectContextMenu.onViewSafeHouse(nil, { other = true }, PLAYER)
     check("someone else's is the game's window", got == "game")
+    -- staff: someone else's opens its card in the Admin tab
+    ZEDQA_CAPS.CanSetupSafehouses = true
+    ZeD_WorldWindow.openTab = function() return true end
+    local other = newSafe(40, 40, 10, 10, "Rosa")
+    got = nil
+    ISWorldObjectContextMenu.onViewSafeHouse(nil, other, PLAYER)
+    frame("admin", panel, W, H)
+    local ast = WINS.admin._adminTab
+    check("staff: its card in the Admin tab", got == nil and ast and ast.card and ast.card.kind == "osafe" and ast.card.obj == other)
+    TC.back(WINS.admin, ast)
+    ZEDQA_CAPS.CanSetupSafehouses = nil
 end
 
 -- the review's cases ------------------------------------------------------------------------
@@ -1614,16 +1625,89 @@ do
     check("and its card opens", st.card and st.card.kind == "safe" and K.openNext == nil)
     TC.back(win, st)
     draw()
-    check("the help names the game's window", open("adm:h:1", "adm:b:safehouse") == ZeD.tr("UI_ZeD_Adm_HelpOpenSafehouse"))
-    check("someone else's safehouse: the game's window", gameWin == "safehouse" and openedTab == nil and K.openNext == nil)
+    -- someone else's: its staff card on the Admin tab (C8), never the game's window
+    local ast = WINS.admin._adminTab
+    local function noStop(id)
+        frame("admin", panel, W, H)
+        for _, e in ipairs(stops("admin")) do if e.id == id then return false end end
+        return true
+    end
+    local function openOther(row, btn)
+        openedTab, gameWin = nil, nil
+        adminStop(row).onActivate(WINS.admin)
+        local b = adminStop(btn)
+        local help = b and b.help
+        if b then b.onActivate(WINS.admin) end
+        return help
+    end
+    check("the help names its card", openOther("adm:h:1", "adm:b:safehouse") == ZeD.tr("UI_ZeD_Adm_HelpOpenSafeCard"))
+    check("someone else's safehouse: its staff card here", gameWin == nil and openedTab == nil and ast.card and ast.card.kind == "osafe")
+    K.dirty = true
+    tick()
+    frame("admin", panel, W, H)
+    frame("admin", panel, W, H)
+    check("the model reads it while the card shows", K.other and K.other.owner == "Rosa" and K.other.manage == true and not K.other.member)
+    check("staff can rename it and release it", adminStop("tk:f:oSafeTitle") ~= nil and adminStop("tk:release") ~= nil and noStop("tk:quit"))
+    check("no respawn tick for a non-member", noStop("tk:respawn"))
+    -- the title, through the game's call on that house
+    CALLS = {}
+    ast.card.win = WINS.admin
+    TC._D.setField(WINS.admin, "oSafeTitle", "Rosa's Farm")
+    frame("admin", panel, W, H)
+    adminStop("tk:save").onActivate(WINS.admin)
+    tick()
+    check("Save renames that house, not yours", called("sendSafehouseChangeTitle") and called("sendSafehouseChangeTitle").a[1] == GS[2] and GS[2].title == "Rosa's Farm" and mine.title ~= "Rosa's Farm")
+    -- Add Player: staff invite to that house, as the game's window sends it
+    CALLS = {}
+    adminStop("tk:add").onActivate(WINS.admin)
+    adminStop("tk:pick:Kade_R").onActivate(WINS.admin)
+    local inv = called("sendSafehouseInvite")
+    check("invite on that house, from staff", inv and inv.a[1] == GS[2] and inv.a[2] == "Aretha" and inv.a[3] == "Kade_R")
+    check("staff are not in their own pick list", (function() adminStop("tk:add").onActivate(WINS.admin); for _, e in ipairs(stops("admin")) do if e.id == "tk:pick:Aretha" then return false end end; return true end)())
+    adminStop("tk:add").onActivate(WINS.admin)
+    -- a member: change owner and remove, behind the foot's ask, on that house
+    GS[2].players[#GS[2].players + 1] = "Kade_R"
+    K.dirty = true
+    tick()
+    adminStop("tk:m:Kade_R").onActivate(WINS.admin)
+    adminStop("tk:rem:Kade_R").onActivate(WINS.admin)
+    CALLS = {}
+    adminStop("tk:yes").onActivate(WINS.admin)
+    local rm = called("sendSafehouseChangeMember")
+    check("Remove on that house", rm and rm.a[1] == GS[2] and rm.a[2] == "Kade_R")
+    tick()
+    -- release: the house goes, the card says so and goes back
+    adminStop("tk:release").onActivate(WINS.admin)
+    CALLS = {}
+    adminStop("tk:yes").onActivate(WINS.admin)
+    check("Release sends that house", called("sendSafehouseRelease") and called("sendSafehouseRelease").a[1] ~= mine)
+    tick()
+    frame("admin", panel, W, H)
+    frame("admin", panel, W, H)
+    check("the card leaves once it has gone", ast.card == nil and K.safe and K.safe.obj == mine)
+    newSafe(40, 40, 10, 10, "Rosa")
+    K.dirty = true
+    settle()
     check("the help says your own opens its card", open("adm:f:0", "adm:b:faction") == own)
     check("your faction goes to the Server tab", openedTab == "server" and gameWin == nil and K.openNext == "faction")
     draw()
     check("and its card opens", st.card and st.card.kind == "faction" and K.openNext == nil)
     TC.back(win, st)
     draw()
-    check("the help names the game's window", open("adm:f:1", "adm:b:faction") == ZeD.tr("UI_ZeD_Adm_HelpOpenFaction"))
-    check("someone else's faction: the game's window", gameWin == "faction" and openedTab == nil and K.openNext == nil)
+    check("the help names its card", openOther("adm:f:1", "adm:b:faction") == ZeD.tr("UI_ZeD_Adm_HelpOpenFacCard"))
+    check("someone else's faction: its staff card here", gameWin == nil and ast.card and ast.card.kind == "ofac")
+    K.dirty = true
+    tick()
+    frame("admin", panel, W, H)
+    check("no ticks of your own on it", adminStop("tk:f:oFacName") ~= nil and noStop("tk:showtag") and noStop("tk:pvp") and adminStop("tk:disband") ~= nil)
+    adminStop("tk:disband").onActivate(WINS.admin)
+    CALLS = {}
+    adminStop("tk:yes").onActivate(WINS.admin)
+    check("Disband sends that faction, not yours", called("sendFactionDisband") and called("sendFactionDisband").a[1].name == "Mall" and K.fac and K.fac.name == "Riverside")
+    tick()
+    frame("admin", panel, W, H)
+    frame("admin", panel, W, H)
+    check("and it leaves with it", ast.card == nil and K.fac ~= nil)
     ISSafehouseUI, ISFactionUI = oldS, oldF
     ZEDQA_CAPS.CanSetupSafehouses, ZEDQA_CAPS.FactionCheat = nil, nil
 end
