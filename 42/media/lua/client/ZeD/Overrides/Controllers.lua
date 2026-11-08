@@ -131,23 +131,38 @@ end
 -- ---------------------------------------------------------------------------
 -- the stand-in for the game's "controller disconnected" banner
 -- ---------------------------------------------------------------------------
+-- the guest Messages window a controller drives lets it go (that controller unplugged)
+function PJ.dropGuest(jd)
+    local W = ZeD.MessagesWindow
+    local win = W and W.get and W.get(0)
+    if win and jd and win.guestJoy == jd then pcall(win.close, win) end
+end
+
 function PJ.unplugged(playerNum)
     local buttons = nil
     if playerNum == 0 and ISJoypadDisconnectedUI and ISJoypadDisconnectedUI.setKeyboardMouseActivated then
         buttons = { { label = getText("IGUI_Controller_Disconnected2"),
-                      run = function() ISJoypadDisconnectedUI.setKeyboardMouseActivated(); return true end } }
+                      run = function()
+                          ISJoypadDisconnectedUI.setKeyboardMouseActivated()
+                          -- (player one is on the mouse now: a later plug-in is a new controller, not one back)
+                          local jd = JoypadState and JoypadState.joypads and JoypadState.joypads[1]
+                          if jd then jd.disconnectedUI = nil end
+                          PJ._kbm = true
+                          return true
+                      end } }
     end
     return ZeD.Messages.pad("p" .. tostring(playerNum), ZeD.tr("UI_ZeD_Pad_Unplugged"),
         ZeD.tr("UI_ZeD_Pad_UnpluggedText", tostring((playerNum or 0) + 1)), buttons, playerNum)
 end
 function PJ.replugged(playerNum)
+    if playerNum == 0 and PJ._kbm then PJ._kbm = nil; return nil end
     return ZeD.Messages.pad("p" .. tostring(playerNum), ZeD.tr("UI_ZeD_Pad_PluggedIn"),
         ZeD.tr("UI_ZeD_Pad_BackText", tostring((playerNum or 0) + 1)), nil, playerNum)
 end
 function PJ.disconnectedStub(playerNum)
     local s = { playerNum = playerNum, _zedPadStub = true }
     s.setAlwaysOnTop, s.setVisible, s.initialise, s.instantiate = noop, noop, noop, noop
-    s.addToUIManager = function() PJ.unplugged(playerNum) end
+    s.addToUIManager = function() PJ._kbm = nil; PJ.unplugged(playerNum) end
     s.removeFromUIManager = function() PJ.replugged(playerNum) end
     s.isReallyVisible = function() return false end
     s.useKeyboardMouse = function() ISJoypadDisconnectedUI.setKeyboardMouseActivated() end
@@ -186,8 +201,17 @@ local function apply()
     print("[ZeD] Overrides/Controllers: controllers joining and leaving go to Messages")
 end
 
+function PJ.onDisconnect(id)
+    local c = JoypadState and JoypadState.controllers and JoypadState.controllers[id]
+    if c and c.joypad then PJ.dropGuest(c.joypad) end
+end
+
 if Events then
     if Events.OnGameBoot then Events.OnGameBoot.Add(apply) end
+    if Events.OnJoypadDeactivate and not PJ._dropHooked then
+        PJ._dropHooked = true
+        Events.OnJoypadDeactivate.Add(function(id) pcall(PJ.onDisconnect, id) end)
+    end
     if Events.OnGamepadConnect and not PJ._connectHooked then
         PJ._connectHooked = true
         Events.OnGamepadConnect.Add(function(id) pcall(PJ.onConnect, id) end)

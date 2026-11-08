@@ -100,6 +100,7 @@ function ZeD_MessagesWindow:createChildren()
 end
 
 function ZeD_MessagesWindow:close()
+    local wasGuest = self.guestJoy ~= nil
     -- (opened with a controller nobody plays with yet: it lets go, W.openGuest)
     local guest = self.guestJoy
     if guest then
@@ -109,7 +110,9 @@ function ZeD_MessagesWindow:close()
     end
     self:setVisible(false)
     self:removeFromUIManager()
-    if JoypadState.players[self.playerNum + 1] then setJoypadFocus(self.playerNum, nil) end
+    -- (a guest's window leaves player one's own focus where it is)
+    local own = JoypadState.players[self.playerNum + 1]
+    if own and (not wasGuest or own.focus == self) then setJoypadFocus(self.playerNum, nil) end
 end
 
 -- the sources in list order, and the chosen one (the first when none or gone)

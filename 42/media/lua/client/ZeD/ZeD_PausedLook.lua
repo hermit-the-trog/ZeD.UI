@@ -137,6 +137,28 @@ local SLOTS = { { key = "_glass", kids = "_kids", get = charWin, rect = function
                 { key = "_wglass", kids = "_wkids", get = worldWin, rect = function(w) return PL.worldRect(w) end } }
 function PL.frame()
     for _, s in ipairs(SLOTS) do PL.frameFor(s) end
+    PL.padHold()
+end
+
+-- the game ignores a controller while paused unless its focus says otherwise (activeWhilePaused): while ZeD's
+-- Character or World window holds a pad's focus in a pause, that pad works (the D-pad, B, LB, RB; A and X held by
+-- PL.blocks); it goes back to what it was when the window lets go or the game plays. Set every frame, so a wheel's
+-- own put-back (ZeD_WheelGesture) cannot leave it off.
+function PL.padHold()
+    local paused = PL.on()
+    local cw, ww = charWin(), worldWin()
+    for i = 1, 4 do
+        local jd = JoypadState and JoypadState.players and JoypadState.players[i]
+        if jd then
+            local held = paused and jd.focus ~= nil and (jd.focus == cw or jd.focus == ww)
+            if held then
+                if not jd._zedPausedHold then jd._zedPausedHold, jd._zedPausedWas = true, jd.activeWhilePaused end
+                jd.activeWhilePaused = true
+            elseif jd._zedPausedHold then
+                jd.activeWhilePaused, jd._zedPausedHold, jd._zedPausedWas = jd._zedPausedWas, nil, nil
+            end
+        end
+    end
 end
 function PL.frameFor(s)
     local win = s.get()

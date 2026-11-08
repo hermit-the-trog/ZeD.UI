@@ -24,7 +24,7 @@ Prep: a car with the key in it near the drag strip; a carried CD and a video tap
 1. Controller: D-pad Right (World) > Map. Should: one slice, World map, then Back. No Toggle mini-map, no Focus mini-map. The Map slice is still second on the World wheel.
 2. Hold the map key (keyboard) for the game's map wheel. Should: World map only.
 3. A quick action chord that was set on a mini-map slice before: should do nothing (no error in console.txt).
-4. A save that had the game's mini-map showing (or a mod that toggles it): load it. Should: no mini-map on the screen within half a second. Safe mode, or ZeD screens > Wheels given back: the game's mini-map shows again.
+4. A save that had the game's mini-map showing (or a mod that toggles it): load it. Should: no mini-map on the screen, not even for a moment at load. Turn safe mode on (or ZeD screens > Wheels given back): the mini-map it hid shows again; turn it off: hidden again.
 
 ## B8 Read label on a CD or a video tape
 
@@ -49,6 +49,8 @@ Prep: a car with the key in it near the drag strip; a carried CD and a video tap
 
 ## B12 and B13 Controllers joining and leaving, and every notice from the Messages note
 
+Do this section first with ZeD setup's notice pop-ups at their default (Off): the controller balloons must still show (they replace windows the game always showed); a mod's note or an error must not. Then once with them On.
+
 1. While playing with mouse and keyboard, plug in a controller.
    - Should: a speech balloon pops up out of the Messages note on the belt (the belt's right end), tail down to the note, in the balloons' capitals: CONTROLLER PLUGGED IN, then CONTROLLERS | PRESS A ON IT TO JOIN. The note's count goes up. Nothing in the middle of the screen.
    Press A on it. Should: still nothing in the middle; the balloon again, now PRESS A ON IT AGAIN TO CHOOSE HOW IT JOINS (the same note, replaced, not a second one).
@@ -58,6 +60,8 @@ Prep: a car with the key in it near the drag strip; a carried CD and a video tap
 5. Unplug player one's controller while playing with it. Should: no banner in the middle; a balloon CONTROLLER UNPLUGGED, then CONTROLLERS | PLAYER 1'S CONTROLLER WAS UNPLUGGED. PLUG IT BACK IN TO GO ON. Messages' note has the game's Use Keyboard and Mouse button; clicking it hands player one to the mouse.
 6. Plug it back in. Should: a balloon CONTROLLER PLUGGED IN ... PLAYER 1'S CONTROLLER IS BACK; the unplugged note is replaced, not added to.
 7. Split screen: unplug player two's controller. Should: the same note for player 2, without the keyboard button.
+7b. Open Messages with a new controller (A on it twice), then unplug that controller. Should: Messages closes, nothing stuck. Close the guest Messages window while player one plays on a pad: player one's pad keeps working where it was.
+7c. Player one: unplug, press Use Keyboard and Mouse, then plug a controller in later. Should: "Controller plugged in, press A on it to join", never "Player 1's controller is back".
 8. Every other ZeD notice comes the same way now: let a mod's note be caught, an error, a ticket answer, an invitation (MP rig). Should: each a balloon out of the note, newest lowest, at most three, gone after six seconds; nothing in the top right corner any more.
 9. In a vehicle seat (the belt hides), with anything kept in Messages: every dash, full and Simple, shows the Messages note at its top right (the belt's box, paper and count). Trigger a notice. Should: the balloons come out of that note, tail down to it. Click the note: Messages opens. With nothing kept, no note on the dash.
 9b. Split screen: unplug player two's controller. Should: the balloon comes out of player two's belt note when player two has a belt (the per-player belt branch), else player one's.
@@ -72,7 +76,7 @@ Prep: a car with the key in it near the drag strip; a carried CD and a video tap
 3. Unpause. Should: the veil goes the same frame; everything works again.
 4. The inventory key while paused: opens or closes the Character window alone.
 4b. Open the World window too, then pause. Should: the same veil and line over the World window between its bags (left) and its tab strip (right); its actions held, its tabs and bags free.
-5. Controller, paused: Back wheel > Player Info. Should: the Character window on its tab. A and X on items do nothing while paused (if the pad moves at all while paused: report what happens).
+5. Controller, paused: Back wheel > Player Info. Should: the Character window on its tab, and the pad works in it while paused: the D-pad moves, B backs out, LB and RB swap to the World window (same veil), the tabs change; A and X on items do nothing. Unpause: everything acts again. Open a D-pad wheel and close it while paused: the window still answers the pad.
 6. A dead character: as before (the windows close).
 - Deck: the line at the top of the veil fits or truncates cleanly.
 
@@ -81,6 +85,7 @@ Prep: a car with the key in it near the drag strip; a carried CD and a video tap
 1. With a mod that adds a station with its own logic (a furnace, a still, a tank): right-click > its station option, or the controller's Interact.
    - Should: no game entity window. The World window's Craft tab, bound to it: the STATION select and band (its name, distance, Station, Running or Idle), then Recipe, Start or Stop with the progress strip, each of its stores (Input, Output or Holds; items with Take, a fluid as "2.5 of 10 L" with a strip), and From your bags with Add for what its inputs take.
 2. Start, Take, Add: each walks to the station first and runs the game's action. B (pad) leaves the station.
+2b. The game's own Butcher Hook, Log Bench, Log Stool, Log Table: their station option opens what it opened before this work (the game's window), never the general card.
 3. A machine on the game's own craft logic that is not a drying rack (if a mod has one): it gets the drying rack's view; its empty bag line reads "Nothing you carry fits." (not "this rack").
 4. Safe mode: the game's window.
 
