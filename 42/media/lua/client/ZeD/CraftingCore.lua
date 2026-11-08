@@ -3178,7 +3178,7 @@ local function popRowFocusables(state, prefix, kind)
 end
 
 -- ============================================================================
--- GAMEPAD FOCUSABLES BUILDER (S107)
+-- GAMEPAD FOCUSABLES BUILDER
 -- ============================================================================
 -- Shared focusable-list builder for ALL CraftingCore-driven tabs:
 --   • Journal Recipes sub-tab on Character (readOnly, prefix="jrecipe")
@@ -3192,7 +3192,7 @@ end
 -- (Journal) has no recipeStar / action_* zones, so those branches never fire.
 -- An open list (category, station, the band's Sort / Show) is the explicit
 -- focus-lock case (matches CC.onClick, which hands it every click). Order:
--- the header strip, the body (list, card), the band (Oct 30 2026).
+-- the header strip, the body (list, card), the band.
 --
 -- Args:
 --   win        — the parent window (Char or World)
@@ -3207,9 +3207,9 @@ end
 -- is stable across frames (created once via CC.createState() per tab), so
 -- closures rebuilt each frame still target the same data.
 --
--- recipeStar zones intentionally NOT emitted as focusables — pin handled via
--- X (onContextMenu) on the recipeRow itself per S107 design ruling.
--- The recipe preview (punch list 49; ObjectCardPreview.lua): the picked recipe's card in the World window's
+-- recipeStar zones are deliberately NOT emitted as focusables — the pin is
+-- X (onContextMenu) on the recipeRow itself.
+-- The recipe preview (ObjectCardPreview.lua): the picked recipe's card in the World window's
 -- card drawer, opened from the header's icon. The Journal's recipes (the Character window) have no card
 -- drawer of their own yet, so they open none.
 function CC.openPreview(win, state, playerObj)
@@ -3287,16 +3287,15 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
                 journalKind = (prefix == "jrecipe") and "jrecipeRow" or nil,
                 recipeId = z.id,
                 onFocus = function(w, el)
-                    -- S107 QA: stash for L-from-card jump. Window-level
-                    -- dispatch reads this to restore the recipe-row focus
-                    -- when LEFT is pressed in the card pane (cone-nav alone
-                    -- can't reliably hop back across the wide y delta + 2x
-                    -- off-axis weight).
+                    -- stashed for the L-from-card jump: window-level dispatch
+                    -- reads this to restore the recipe-row focus when LEFT is
+                    -- pressed in the card pane (cone-nav alone can't reliably
+                    -- hop back across the wide y delta + 2x off-axis weight)
                     state._gpLastRecipeRowId = el.id
                 end,
                 onActivate = function(w, el)
                     CC.handleRecipeClick(state, el.recipeId)
-                    -- S107 QA: signal pending card-jump. The window's
+                    -- signal a pending card-jump. The window's
                     -- per-frame ring-zone refresh sees this flag and seeds
                     -- focusedElementIdx to the first card-area element
                     -- (cardSection or action_build) once card zones are
@@ -3308,7 +3307,7 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
                     end
                 end,
             }
-            -- X = pin/unpin (S107 design ruling). Skipped for readOnly journal.
+            -- X = pin/unpin; skipped for the read-only journal.
             -- Mirrors the right-click mouse path in CC.onRightClick.
             if pinKey then
                 el.onContextMenu = function(w, el)
@@ -3332,7 +3331,7 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
                 journalKind = (prefix == "jrecipe") and "jrecipeSection" or nil,
                 sectionId = z.id,
                 onFocus = function(w, el) end,
-                -- S113: A toggles expand/collapse (= LMB on header, mouse parity).
+                -- A toggles expand/collapse, as the mouse click on the header does
                 onActivate = function(w, el)
                     if el.sectionId == "pinned" then state.pinnedCollapsed = not state.pinnedCollapsed
                     elseif el.sectionId == "freq" then state.freqCollapsed  = not state.freqCollapsed
@@ -3412,7 +3411,7 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
                 journalKind = (prefix == "jrecipe") and "jrecipeCardSection" or nil,
                 cardSectionId = z.id,
                 onFocus = function(w, el) end,
-                -- S113: A toggles expand/collapse (= LMB on header, mouse parity).
+                -- A toggles expand/collapse, as the mouse click on the header does
                 onActivate = function(w, el)
                     if el.cardSectionId == "req" then state.reqCollapsed = not state.reqCollapsed
                     elseif el.cardSectionId == "out" then state.outCollapsed = not state.outCollapsed
@@ -3471,7 +3470,7 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
                 end,
             }
         elseif z.type == "action_dec" and z.single then
-            -- the one amount box (a band short of room, punch list 28): one stop; Left /
+            -- the one amount box (a band short of room): one stop; Left /
             -- Right step it and move on past its ends; A steps up, from the most back to 1
             elements[#elements + 1] = {
                 x = z.bx, y = z.y, w = z.bw, h = z.h,
@@ -3485,7 +3484,7 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
                     end
                 end,
                 onActivate = function(w, el)
-                    -- (the most is 1: nothing to step, the help line says so; punch list 28)
+                    -- (the most is 1: nothing to step, the help line says so)
                     local maxQ = state._maxQty or 99
                     if maxQ <= 1 then return end
                     local q = state.qty or 1

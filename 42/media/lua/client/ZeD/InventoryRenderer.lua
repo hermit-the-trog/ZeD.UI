@@ -958,8 +958,8 @@ local function drawColumnHeading(self, GV, xOff, colW, barH, hdrY, padX, secFH, 
     end
     -- Right: 2-row stack — weight (F1 hi) over count (F5 norm). The stack stays inside the
     -- heading's own row: where both lines do not fit (large text) the count goes, then the
-    -- weight (the window's foot line says both); centred, it ran up over the title bar's
-    -- own weight (Oct 31 2026, break-it E4)
+    -- weight (the window's foot line says both); centred, it would run up over the title
+    -- bar's own weight
     local stackH = secFH + gap + f5FH
     if stackH > infoAreaH then cntStr, cntW, stackH = nil, 0, secFH end
     if stackH > infoAreaH then wtStr, wtW, stackH = nil, 0, 0 end
@@ -1041,7 +1041,7 @@ local function gridSortDefs(padX, colW)
     return defs
 end
 
--- A readable item's hover card (mockup zed_read_marks_v1), the library's detail
+-- A readable item's hover card, the library's detail
 -- card: its name, its read status in the game's own words, and the next level a
 -- skill book suits. Asked of the window's overlay, which shows it after the
 -- shared pause, below-right of the pointer.
@@ -1051,7 +1051,7 @@ local function requestReadCard(self, hc)
     for _, l in ipairs(rs.lines or {}) do lines[#lines + 1] = l end
     if rs.next and ZeD.ReadMarks.nextOn() then lines[#lines + 1] = ZeD.tr("UI_ZeD_Read_NextFor", rs.next) end
     ZeD.Atoms.requestDetailCard(ZeD.Atoms.windowOf(self), hc.key, { title = hc.text, lines = lines }, self)
-    self._readHintAt = getTimestampMs()   -- (QA: when it was last asked for)
+    self._readHintAt = getTimestampMs()   -- (when the card was last asked for)
 end
 
 -- A list row's read mark (ReadMarks.lua): in the COND column a square mark and a word, or (the column hidden) the
@@ -1089,7 +1089,8 @@ end
 -- Built only when the container changes (its item count or weight, the sort,
 -- the folds, what the player holds), and every MODEL_REFRESH draws anyway for
 -- what changes nothing of those (a renamed item, a worn-down condition).
--- Each open column rebuilt and re-sorted its whole list every frame before.
+-- Without the cache each open column would rebuild and re-sort its whole
+-- list every frame.
 -- (Kept out of renderItemList, which sits near Kahlua's 200-local limit.)
 -- ============================================================================
 
@@ -1189,7 +1190,7 @@ local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, col
         end
     end
 
-    -- S100: stacked per-category iteration list for the useGroups draw path.
+    -- Stacked per-category iteration list for the useGroups draw path.
     -- The draw loop iterates per-cat; without this the original unstacked
     -- groups[cat] would be used, bypassing stacking entirely.
     local stackedGroups = {}
@@ -1384,16 +1385,16 @@ local function renderItemList(self)
     local colWData = self._colWidths
     local readOn = ZeD.ReadMarks.on()   -- (the read marks' room in COND only while they are on)
     if not colWData or self._colWidthsScale ~= scale or (colWData.readOn ~= nil and colWData.readOn ~= readOn) or not colWData.wtB then
-        -- measured, not guessed (Oct 19 2026, Large text audit): the longest
+        -- measured, not guessed: the longest
         -- common category ("Literature") and a weight in the columns' own
-        -- fonts, so Large shows "Literature" whole, not "Liter..."
+        -- fonts, so Large text shows "Literature" whole, not "Liter..."
         colWData = {
             cat  = math.ceil(math.min(ZeD.TM:MeasureStringX(T.fontF1, ZeD.InventoryRenderer.catLabel("Literature")), T.px(96)) + padX * 2),
-            -- (Oct 26 2026, mockup zed_read_marks_v1: a book's read status takes the column, a dot and a word; room
+            -- (a book's read status takes the column, a dot and a word; room
             -- for the one-word statuses, so the column still shows in the default window; longer ones shorten)
             cond = readOn and math.max(math.floor(50 * scale), ZeD.ReadMarks.wordRoom() + padX) or math.floor(50 * scale),
             readOn = readOn,
-            -- (Oct 29 2026: a stack's row shows its total in brackets, "(2.5)"; wtU is an item's
+            -- (a stack's row shows its total in brackets, "(2.5)"; wtU is an item's
             -- own, the width the bracket gives way to, see wtFit)
             wtB  = math.ceil(ZeD.TM:MeasureStringX(T.fontF3, "(88.8)") + padX * 2),
             wtU  = math.ceil(ZeD.TM:MeasureStringX(T.fontF3, "88.8") + padX * 2),

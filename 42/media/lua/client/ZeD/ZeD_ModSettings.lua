@@ -210,6 +210,7 @@ end
 local sb = {}      -- modId -> parsed (false: none)
 local trs = {}     -- modId -> { key -> text } from its own files
 
+--- A file inside a mod as an array of lines (nil when it is not there).
 local function readLines(modId, path)
     local r = safe(function() return getModFileReader(modId, path, false) end)
     if not r then return nil end
@@ -300,6 +301,8 @@ local function parse(modId)
     return out
 end
 
+--- A mod's sandbox settings, parsed once: { list = { setting, ... },
+--- pages = { name, ... } }, or nil for a mod that adds none.
 function S.sandbox(modId)
     if sb[modId] == nil then
         local ok, r = pcall(parse, modId)
@@ -308,6 +311,7 @@ function S.sandbox(modId)
     return sb[modId] or nil
 end
 
+--- How many sandbox settings a mod adds.
 function S.sandboxCount(modId)
     local s = S.sandbox(modId)
     return s and #s.list or 0

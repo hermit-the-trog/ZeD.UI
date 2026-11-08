@@ -1282,9 +1282,9 @@ local function _handleSpatialNav(w, dir)
 
     local newPickIdx, pass = _pickBestWithFallback(searchEls, fromIdx, dir)
     if not newPickIdx and searchEls ~= elements then
-        -- Oct 23 2026 (the pad map): then the rest of the same panel before
-        -- any other (Down from a list's last row reaches the container
-        -- buttons under it, not a control in the drawer beside it)
+        -- then the rest of the same panel before any other (Down from a
+        -- list's last row reaches the container buttons under it, not a
+        -- control in the drawer beside it)
         local fromLoc = locator[_findCurrentFlatIdx(w, locator) or 1]
         local fp = fromLoc and _zonePanel(w, w._focusRing[fromLoc.zoneIdx].zone)
         if fp then
@@ -1311,9 +1311,9 @@ local function _handleSpatialNav(w, dir)
         newPickIdx, pass = _pickBestWithFallback(searchEls, fromIdx, dir, dir == "up" or dir == "down")
     end
     if not newPickIdx then
-        -- Oct 23 2026: nothing more that way in this window: Left / Right go
-        -- on to the other window when it sits that way on screen (the pair
-        -- side by side), landing where Focus.ensureEntry puts it
+        -- nothing more that way in this window: Left / Right go on to the
+        -- other window when it sits that way on screen (the pair side by
+        -- side), landing where Focus.ensureEntry puts it
         if dir == "left" or dir == "right" then
             local other = _windowThatWay(w, dir)
             if other then
@@ -1345,11 +1345,11 @@ local function _handleSpatialNav(w, dir)
     -- Recover the original fromIdx in the unfiltered list for the log line.
     local logFromIdx = _findCurrentFlatIdx(w, locator) or 1
 
-    -- Oct 19 2026 (the nav audit): Left / Right with nothing level in this
-    -- panel go on to the next panel that way, never to a control above or
-    -- below in the same panel. (A row's Left went to the container buttons
-    -- under the list, not the tab column; its Right to the List | Grid
-    -- toggle over the list, not the container column.)
+    -- Left / Right with nothing level in this panel go on to the next panel
+    -- that way, never to a control above or below in the same panel. (A
+    -- row's Left went to the container buttons under the list, not the tab
+    -- column; its Right to the List | Grid toggle over the list, not the
+    -- container column.)
     if (dir == "left" or dir == "right") and pass == "half" then
         local fl, tl = locator[logFromIdx], locator[newFlatIdx]
         local fp = fl and _zonePanel(w, w._focusRing[fl.zoneIdx].zone)
@@ -1367,7 +1367,7 @@ local function _handleSpatialNav(w, dir)
         end
     end
 
-    -- Oct 17 2026: a move never jumps over a whole panel. The picker prefers a
+    -- A move never jumps over a whole panel. The picker prefers a
     -- control LINED UP with the focused one, so Left from an inventory row went
     -- straight past the open item card (its buttons sit at the card's top and
     -- bottom, rarely level with the row) to the tab column. When a panel with

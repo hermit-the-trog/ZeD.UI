@@ -11,11 +11,11 @@ local Ex = ZeD.Ex
 
 Ex.MOD = "ZeDX"
 
--- THE DIRECTOR'S QUESTIONS, answered the careful way, each kept to one switch (MP_SERVER_PART_DESIGN.md, the last section)
+-- DESIGN CHOICES that could go either way, answered the careful way, each kept to one switch
 -- LOT_TILES: how far past the walls a claim's lot reaches when "Claims cover the lot" is ticked. The game keeps no lot
 -- lines a server can read, so the lot is the safehouse's rectangle and this many tiles around it.
 Ex.LOT_TILES = 5
--- CLAIM_NEEDS_KEY: does claiming a car take its key? false: standing by it is enough, as drawn. true: the key in the
+-- CLAIM_NEEDS_KEY: does claiming a car take its key? false: standing by it is enough. true: the key in the
 -- player's inventory too.
 Ex.CLAIM_NEEDS_KEY = false
 -- CLAIM_SHARE_FACTION: does "others" leave out the owner's faction? false: others means everyone but the owner.
@@ -30,8 +30,8 @@ Ex.SERVER_CAPS = { Ex.CAP_EDIT, Ex.CAP_CAR, Ex.CAP_HOUSE, Ex.CAP_MAP }
 
 -- every limit in one place, so they can become server settings later
 Ex.L = {
-    PER_MIN = 1, PER_MAX = 5,           -- claims per player, as drawn
-    LAPSE_MIN = 1, LAPSE_MAX = 30,      -- real days away, as drawn
+    PER_MIN = 1, PER_MAX = 5,           -- claims per player
+    LAPSE_MIN = 1, LAPSE_MAX = 30,      -- real days away before a claim can lapse
     CLAIMS_MAX = 5000,                  -- claims on the server
     REACH_TILES = 6,                    -- how near a car a player stands to claim it: the tab's own limit
     TOOK_REACH = 150,                   -- how far from a container a player can be by the time the report lands: reports
