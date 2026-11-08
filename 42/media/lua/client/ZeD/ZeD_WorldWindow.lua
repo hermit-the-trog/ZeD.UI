@@ -55,6 +55,10 @@ end
 
 local CONTAINER_STRIP_W    = 36
 local CONTAINER_BTN_SZ     = 36
+-- The container list's refresh, in ms (Nov 8 2026, the performance review): every `ms` (the old 30 frames at 60 fps);
+-- a new square or a container change no sooner than `soonMs` after the last; the radios and vehicles with their tab
+-- closed every `sideMs`; `phaseMs` after the window opens, so it does not fall on the Character window's
+local WREF = { ms = 500, soonMs = 200, sideMs = 1000, phaseMs = 250 }
 local STRIP_SCROLL_ROW_H   = 16
 -- The drawer is one of two widths and no other (director, Oct 29 2026: "a full card and a half card"; a
 -- third width bumps the cards into each other). ITEM_CARD_W is the half card: the item card is drawn at it,
@@ -541,10 +545,12 @@ end
 -- moved), as the Character window's card does when an item leaves the
 -- character; focus then goes back to the list, on the row's neighbour.
 -- Checked every 10 frames.
+-- (Nov 8 2026, code flags: a count of its own. It shared win._goneTick with closeCardIfItemGone, the mouse's and the
+-- controller's check, and running later in the same frame it always reached 10 first and reset it, so that check never ran.)
 local function _closeCardIfItemGone(win)
-    win._goneTick = (win._goneTick or 0) + 1
-    if win._goneTick < 10 then return end
-    win._goneTick = 0
+    win._goneTickPad = (win._goneTickPad or 0) + 1
+    if win._goneTickPad < 10 then return end
+    win._goneTickPad = 0
     local di = win._drawerItem
     if not di or not win._updateDrawer then return end
     -- (the controller only: the mouse's card stays as it always has)
@@ -2831,10 +2837,24 @@ local function drawWorldContainerStrip(self, win, content)
     local stripFocus = { win = win, zone = "worldContainerStrip" }
     local selA = T.selectionA or 0.30
 
-    -- Periodic container refresh (~every 30 frames)
-    win._containerTimer = (win._containerTimer or 0) + 1
-    if win._containerTimer >= 30 then
+    -- Periodic container refresh. Nov 8 2026 (the performance review, 5 and 12): by the clock, not the frame count (30
+    -- frames ran it 2.4 times as often at 144 Hz as at 60): every WREF.ms (the old 30 frames at 60 fps), and
+    -- sooner (WREF.soonMs after the last) when the player's square changes or a container changed (OnContainerUpdate).
+    -- win._containerTimer stays the window's signal: others set it to 30 for a refresh on the next frame, and it is 0
+    -- on the frame the list was rebuilt (the strip's sort reads that).
+    local nowMs = getTimestampMs()
+    local plSq = win._playerObj and win._playerObj:getCurrentSquare()
+    local forced = (win._containerTimer or 0) >= 30
+    local due = forced or nowMs >= (win._containerDueMs or 0)
+    if not due and (plSq ~= win._containerSq or win._containersDirty) then
+        due = nowMs - (win._containerAtMs or 0) >= WREF.soonMs
+    end
+    if not due then
+        win._containerTimer = 1
+    else
         win._containerTimer = 0
+        win._containerAtMs, win._containerDueMs = nowMs, nowMs + WREF.ms
+        win._containerSq, win._containersDirty = plSq, nil
         local oldContainers = win._containers
         win._containers = buildWorldContainers(win._playerObj)
 
@@ -2900,9 +2920,22 @@ local function drawWorldContainerStrip(self, win, content)
         -- S115: refresh world radios in player range + clamp browse index.
         -- Wave cache prunes against the new key set (entry.cacheKey is built
         -- from world coords by RadioTab.buildWorldRadios — stable identity).
-        win._radios = ZeD.RadioTab.buildWorldRadios(win._playerObj)
-        -- S124: vehicles in reach for the Vehicle tab (same 30-frame timer)
-        if ZeD.MechanicsTab and ZeD.MechanicsTab.refresh then pcall(ZeD.MechanicsTab.refresh, win) end
+        -- Nov 8 2026 (the performance review, 5): the radios (the same 9 squares) are read with the list while the
+        -- Radio tab is open and on every new square, else every WREF.sideMs; the vehicles (every vehicle in the cell)
+        -- while the Vehicle tab is open, else every WREF.sideMs or WREF.ms after the last on a new square. Both tabs
+        -- show only while there is one (WORLD_TABS' visible), and the vehicle read ends inspections out of reach.
+        local sideAge = nowMs - (win._sideScanAtMs or 0)
+        local sideDue = forced or sideAge >= WREF.sideMs
+            or (plSq ~= win._sideScanSq and sideAge >= WREF.ms)
+        if sideDue then win._sideScanAtMs, win._sideScanSq = nowMs, plSq end
+        if sideDue or win._activeTab == "radio" or plSq ~= win._radioSq then
+            win._radioSq = plSq
+            win._radios = ZeD.RadioTab.buildWorldRadios(win._playerObj)
+        end
+        -- S124: vehicles in reach for the Vehicle tab
+        if (sideDue or win._activeTab == "vehicle") and ZeD.MechanicsTab and ZeD.MechanicsTab.refresh then
+            pcall(ZeD.MechanicsTab.refresh, win)
+        end
         if #win._radios == 0 then
             win._radioIdx = 1
         elseif win._radioIdx > #win._radios then
@@ -3383,6 +3416,11 @@ function ZeD_WorldWindow.toggle(playerNum)
     win._containers = buildWorldContainers(playerObj)
     win._activeContainer = #win._containers
     win._containerTimer = 0
+    do
+        local t0, sq0 = getTimestampMs(), playerObj:getCurrentSquare()
+        win._containerAtMs, win._containerDueMs, win._containerSq = t0, t0 + WREF.ms + WREF.phaseMs, sq0
+        win._sideScanAtMs, win._sideScanSq, win._radioSq, win._containersDirty = t0, sq0, sq0, nil
+    end
     win._stripScrollOffset = 0
     win._containerSortMode = "dist"  -- "dist" | "wt" | "type"
     win._baseInvW = invW             -- S124 scale: DESIGN UNITS (T.px() at every use; saved as-is)
@@ -4695,200 +4733,9 @@ function ZeD_WorldWindow.toggle(playerNum)
         end
     end
 
-    -- The World window's per-frame stop refresh (the container strip, the main list, the MC columns,
-    -- the tab's stops, the item card). Oct 31 2026 (punch list 28): moved out of the content's
-    -- prerender, which does not run while the content is hidden (the tab drawer takes the whole
-    -- window at 1280x720, UI scale 2.0): the Craft tab's stops then stayed as they were when
-    -- the tab opened (no card, no amount box, no Craft). The drawer's prerender runs it then.
-    content._focusRefresh = function(self)
-        local T = ZeD.T
-        -- --------------------------------------------------------
-        -- S99 RING MODEL: PER-FRAME WORLDMAININV REFRESH (World Window)
-        -- Unconditional — worldMainInv holds the active container's invrows
-        -- on ALL tabs, mirroring Character's charMainInv. Same dirty check,
-        -- identity preservation, container-change guard.
-        -- --------------------------------------------------------
-        local Focus = ZeD.Input and ZeD.Input.Focus
-        if Focus and win._focusRing then
-            _refreshWorldStripFocus(win, Focus)   -- (the container strip's stops)
-            _closeCardIfItemGone(win)
-
-            -- Guard: container source inventory still valid?
-            if not self._inventory then
-                Focus.setRingZoneElements(win, "worldMainInv", {})
-                Focus.setZoneFocusable   (win, "worldMainInv", false)
-                win._gpFocusedRowItem = nil
-                win._invRowsForContainer = nil
-                self._gpFocusedRowItem = nil
-                win._lastInvRowSnapshot = nil
-            else
-                -- Guard: active container changed since rows were last seeded?
-                if win._invRowsForContainer
-                   and win._invRowsForContainer ~= win._activeContainer then
-                    Focus.setRingZoneElements(win, "worldMainInv", {})
-                    Focus.setZoneFocusable   (win, "worldMainInv", false)
-                    win._gpFocusedRowItem = nil
-                    win._invRowsForContainer = nil
-                    self._gpFocusedRowItem = nil
-                    win._lastInvRowSnapshot = nil
-                else
-                    local oldSnap = win._lastInvRowSnapshot
-                    local newItems = self._invRowItems
-                    local oldN = oldSnap and #oldSnap or 0
-                    local newN = newItems and #newItems or 0
-                    local dirty = (oldN ~= newN)
-                    if not dirty and newN > 0 and oldSnap then
-                        dirty = (oldSnap[1] ~= newItems[1])
-                             or (oldSnap[newN] ~= newItems[newN])
-                    end
-                    if not oldSnap then dirty = true end
-                    -- S108 v2 QA: MC state transition forces rebuild even
-                    -- when item count is unchanged. The placeholder branch
-                    -- (mcActive + empty mainInv) needs to fire on MC enter
-                    -- even if mainInv was already empty before MC.
-                    local mcActive = win._mcSelected and #win._mcSelected > 0
-                    if win._lastMcActiveForMainInv ~= mcActive then
-                        dirty = true
-                        win._lastMcActiveForMainInv = mcActive
-                    end
-                    -- Oct 19 2026: rebuild on the rows' places too (scroll, List | Grid, width)
-                    local geo = tostring(self._scroll and self._scroll.scrollPos) .. ":" .. tostring(self._gridCell)
-                        .. ":" .. tostring(self._renderW or self:getWidth()) .. ":" .. #(self._viewToggleRects or {})
-                    if win._lastInvRowGeo ~= geo then win._lastInvRowGeo = geo; dirty = true end
-                    -- (the container shown is part of what these rows are, by the object: FAIV's report, Nov 6 2026)
-                    if win._lastInvRowInv ~= self._inventory then win._lastInvRowInv = self._inventory; dirty = true end
-                    local keepId = nil
-                    for _, z in ipairs(win._focusRing or {}) do
-                        if z.zone == "worldMainInv" then
-                            local fe = z.elements and z.elements[z.focusedElementIdx or 1]
-                            if fe and fe.isViewToggle then keepId = fe.id end
-                        end
-                    end
-
-                    if dirty then
-                        local snap = {}
-                        if newItems then
-                            for si = 1, #newItems do snap[si] = newItems[si] end
-                        end
-                        win._lastInvRowSnapshot = snap
-
-                        local newEls = _buildWorldInvRowFocusables(win)
-                        -- S108 v2 QA: when MC is active AND the last colState
-                        -- is already covered by a worldMC<N> zone (i.e. all
-                        -- MC selections are visible columns, no extra "main"
-                        -- column appended), worldMainInv would duplicate the
-                        -- last MC zone. In that case, force empty so the
-                        -- ring skips it (one bumper press from MC<N> → next
-                        -- focusable zone instead of two).
-                        local mcN  = win._mcSelected and #win._mcSelected or 0
-                        local colN = self._colStates and #self._colStates or 0
-                        local mainInvDuplicates = (mcN > 0 and colN <= mcN)
-                        if mainInvDuplicates then
-                            newEls = {}
-                        elseif #newEls == 0 and mcN > 0 then
-                            -- MC active, mainInv has its OWN unique column
-                            -- (e.g. floor when _activeContainer not in MC),
-                            -- but it's empty. Placeholder keeps zone reachable.
-                            local stripY = win:getBodyY()
-                            local rowH   = (T and T.rowH) or 26
-                            local colX, colW = 0, T.px(200)
-                            local cs = self._colStates and self._colStates[#self._colStates]
-                            if cs then
-                                colX = cs.renderX or 0
-                                colW = cs.renderW or T.px(200)
-                            end
-                            newEls = {{
-                                x = colX, y = stripY + rowH, w = colW, h = rowH,
-                                id = "maininv_empty",
-                                item = nil,
-                                isPlaceholder = true,
-                                onFocus    = function(w, el) end,
-                                onActivate = function(w, el) end,
-                            }}
-                        end
-                        if #newEls == 0 then
-                            Focus.setRingZoneElements(win, "worldMainInv", {})
-                            Focus.setZoneFocusable   (win, "worldMainInv", false)
-                            win._gpFocusedRowItem = nil
-                            win._invRowsForContainer = nil
-                            self._gpFocusedRowItem = nil
-                        else
-                            local preserveIdx = 1
-                            local focItem = win._gpFocusedRowItem
-                            if focItem then
-                                for i, el in ipairs(newEls) do
-                                    if el.item == focItem then
-                                        preserveIdx = i
-                                        break
-                                    end
-                                end
-                                if preserveIdx == 1 and focItem ~= (newEls[1] and newEls[1].item) then
-                                    local oldIdx = 1
-                                    if win._focusRing then
-                                        for _, z in ipairs(win._focusRing) do
-                                            if z.zone == "worldMainInv" then
-                                                oldIdx = z.focusedElementIdx or 1
-                                                break
-                                            end
-                                        end
-                                    end
-                                    -- (Oct 23 2026: the neighbouring ROW: the List | Grid
-                                    -- toggles come after the rows, never a stand-in for one)
-                                    local nRows = 0
-                                    for _, ne in ipairs(newEls) do if ne.item then nRows = nRows + 1 end end
-                                    preserveIdx = math.min(oldIdx, math.max(1, nRows))
-                                end
-                            end
-                            if keepId then
-                                for i, el in ipairs(newEls) do if el.id == keepId then preserveIdx = i end end
-                            end
-
-                            Focus.setRingZoneElements(win, "worldMainInv", newEls, preserveIdx)
-                            Focus.setZoneFocusable   (win, "worldMainInv", true)
-                            local resolvedEl = newEls[preserveIdx]
-                            if resolvedEl then
-                                win._gpFocusedRowItem = resolvedEl.item
-                                self._gpFocusedRowItem = resolvedEl.item
-                            end
-                        end
-                    end
-                end
-            end
-        end
-
-        -- --------------------------------------------------------
-        -- S108 v2 RING MODEL: PER-FRAME PER-COLUMN MC ZONE REFRESH
-        -- Each MC selection has its own ring zone (worldMC1..worldMCN).
-        -- Loop over slots and refresh each zone's elements independently.
-        -- Identity-preserve via _gpFocusedMCItem (per-zone idx tracked by
-        -- Focus.setRingZoneElements). When MC count or active tab changes,
-        -- the ring is restructured by _rebuildWorldMCRingZones (called from
-        -- mcToggleWorldContainer / _switchWorldTabForNav via _syncWorldRingZones).
-        -- --------------------------------------------------------
-        if Focus and win._focusRing and win._activeTab == "loot" then
-            local mcSel = win._mcSelected or {}
-            for slot = 1, #mcSel do
-                -- rebuilt only when the column changed (_worldMCSlotStale)
-                if _worldMCSlotStale(win, self, slot) then
-                    local zoneName = "worldMC" .. slot
-                    local newEls = _buildWorldMCColumnFocusables(win, slot) or {}
-                    local preserveIdx = 1
-                    if #newEls > 0 and win._gpFocusedMCItem then
-                        for i, el in ipairs(newEls) do
-                            if el.item == win._gpFocusedMCItem then
-                                preserveIdx = i
-                                break
-                            end
-                        end
-                    end
-                    Focus.setRingZoneElements(win, zoneName, newEls, preserveIdx)
-                    Focus.setZoneFocusable   (win, zoneName, #newEls > 0)
-                end
-            end
-        else
-            win._lastMCSnap = nil  -- the zones are rebuilt on the way back to Loot
-        end
-
+    -- The World window's tab stops, the per-frame refresh of the worldTabContent zone (moved out of
+    -- content._focusRefresh on Nov 8 2026 so the controller can ask for it between frames: win._focusFresh)
+    content._tabStopsRefresh = function(self, Focus)
         -- S98/S99 per-frame refresh for worldTabContent zone. Runs for
         -- tab-specific non-inv content only (forage stances, animals
         -- submodes, S107: craft + build CC zones, S112: maps toolbar +
@@ -5098,6 +4945,224 @@ function ZeD_WorldWindow.toggle(playerNum)
                         end
                     end
                 end
+            end
+        end
+    end
+
+    -- What the controller reads between frames (FocusManager calls it before a press is worked on, a landing is
+    -- looked for or the stops are listed): the tab's stops, when they waited for the mouse (Focus.stopsMayWait)
+    win._focusFresh = function(w)
+        local Focus = ZeD.Input and ZeD.Input.Focus
+        if w._tabStopsStale and Focus and w._focusRing then
+            w._tabStopsStale = nil
+            content._tabStopsRefresh(content, Focus)
+        end
+    end
+
+    -- The World window's per-frame stop refresh (the container strip, the main list, the MC columns,
+    -- the tab's stops, the item card). Oct 31 2026 (punch list 28): moved out of the content's
+    -- prerender, which does not run while the content is hidden (the tab drawer takes the whole
+    -- window at 1280x720, UI scale 2.0): the Craft tab's stops then stayed as they were when
+    -- the tab opened (no card, no amount box, no Craft). The drawer's prerender runs it then.
+    content._focusRefresh = function(self)
+        local T = ZeD.T
+        -- --------------------------------------------------------
+        -- S99 RING MODEL: PER-FRAME WORLDMAININV REFRESH (World Window)
+        -- Unconditional — worldMainInv holds the active container's invrows
+        -- on ALL tabs, mirroring Character's charMainInv. Same dirty check,
+        -- identity preservation, container-change guard.
+        -- --------------------------------------------------------
+        local Focus = ZeD.Input and ZeD.Input.Focus
+        if Focus and win._focusRing then
+            _refreshWorldStripFocus(win, Focus)   -- (the container strip's stops)
+            _closeCardIfItemGone(win)
+
+            -- Guard: container source inventory still valid?
+            if not self._inventory then
+                Focus.setRingZoneElements(win, "worldMainInv", {})
+                Focus.setZoneFocusable   (win, "worldMainInv", false)
+                win._gpFocusedRowItem = nil
+                win._invRowsForContainer = nil
+                self._gpFocusedRowItem = nil
+                win._lastInvRowSnapshot = nil
+            else
+                -- Guard: active container changed since rows were last seeded?
+                if win._invRowsForContainer
+                   and win._invRowsForContainer ~= win._activeContainer then
+                    Focus.setRingZoneElements(win, "worldMainInv", {})
+                    Focus.setZoneFocusable   (win, "worldMainInv", false)
+                    win._gpFocusedRowItem = nil
+                    win._invRowsForContainer = nil
+                    self._gpFocusedRowItem = nil
+                    win._lastInvRowSnapshot = nil
+                else
+                    local oldSnap = win._lastInvRowSnapshot
+                    local newItems = self._invRowItems
+                    local oldN = oldSnap and #oldSnap or 0
+                    local newN = newItems and #newItems or 0
+                    local dirty = (oldN ~= newN)
+                    if not dirty and newN > 0 and oldSnap then
+                        dirty = (oldSnap[1] ~= newItems[1])
+                             or (oldSnap[newN] ~= newItems[newN])
+                    end
+                    if not oldSnap then dirty = true end
+                    -- S108 v2 QA: MC state transition forces rebuild even
+                    -- when item count is unchanged. The placeholder branch
+                    -- (mcActive + empty mainInv) needs to fire on MC enter
+                    -- even if mainInv was already empty before MC.
+                    local mcActive = win._mcSelected and #win._mcSelected > 0
+                    if win._lastMcActiveForMainInv ~= mcActive then
+                        dirty = true
+                        win._lastMcActiveForMainInv = mcActive
+                    end
+                    -- Oct 19 2026: rebuild on the rows' places too (scroll, List | Grid, width)
+                    local geo = tostring(self._scroll and self._scroll.scrollPos) .. ":" .. tostring(self._gridCell)
+                        .. ":" .. tostring(self._renderW or self:getWidth()) .. ":" .. #(self._viewToggleRects or {})
+                    if win._lastInvRowGeo ~= geo then win._lastInvRowGeo = geo; dirty = true end
+                    -- (the container shown is part of what these rows are, by the object: FAIV's report, Nov 6 2026)
+                    if win._lastInvRowInv ~= self._inventory then win._lastInvRowInv = self._inventory; dirty = true end
+                    local keepId = nil
+                    for _, z in ipairs(win._focusRing or {}) do
+                        if z.zone == "worldMainInv" then
+                            local fe = z.elements and z.elements[z.focusedElementIdx or 1]
+                            if fe and fe.isViewToggle then keepId = fe.id end
+                        end
+                    end
+
+                    if dirty then
+                        local snap = {}
+                        if newItems then
+                            for si = 1, #newItems do snap[si] = newItems[si] end
+                        end
+                        win._lastInvRowSnapshot = snap
+
+                        local newEls = _buildWorldInvRowFocusables(win)
+                        -- S108 v2 QA: when MC is active AND the last colState
+                        -- is already covered by a worldMC<N> zone (i.e. all
+                        -- MC selections are visible columns, no extra "main"
+                        -- column appended), worldMainInv would duplicate the
+                        -- last MC zone. In that case, force empty so the
+                        -- ring skips it (one bumper press from MC<N> → next
+                        -- focusable zone instead of two).
+                        local mcN  = win._mcSelected and #win._mcSelected or 0
+                        local colN = self._colStates and #self._colStates or 0
+                        local mainInvDuplicates = (mcN > 0 and colN <= mcN)
+                        if mainInvDuplicates then
+                            newEls = {}
+                        elseif #newEls == 0 and mcN > 0 then
+                            -- MC active, mainInv has its OWN unique column
+                            -- (e.g. floor when _activeContainer not in MC),
+                            -- but it's empty. Placeholder keeps zone reachable.
+                            local stripY = win:getBodyY()
+                            local rowH   = (T and T.rowH) or 26
+                            local colX, colW = 0, T.px(200)
+                            local cs = self._colStates and self._colStates[#self._colStates]
+                            if cs then
+                                colX = cs.renderX or 0
+                                colW = cs.renderW or T.px(200)
+                            end
+                            newEls = {{
+                                x = colX, y = stripY + rowH, w = colW, h = rowH,
+                                id = "maininv_empty",
+                                item = nil,
+                                isPlaceholder = true,
+                                onFocus    = function(w, el) end,
+                                onActivate = function(w, el) end,
+                            }}
+                        end
+                        if #newEls == 0 then
+                            Focus.setRingZoneElements(win, "worldMainInv", {})
+                            Focus.setZoneFocusable   (win, "worldMainInv", false)
+                            win._gpFocusedRowItem = nil
+                            win._invRowsForContainer = nil
+                            self._gpFocusedRowItem = nil
+                        else
+                            local preserveIdx = 1
+                            local focItem = win._gpFocusedRowItem
+                            if focItem then
+                                for i, el in ipairs(newEls) do
+                                    if el.item == focItem then
+                                        preserveIdx = i
+                                        break
+                                    end
+                                end
+                                if preserveIdx == 1 and focItem ~= (newEls[1] and newEls[1].item) then
+                                    local oldIdx = 1
+                                    if win._focusRing then
+                                        for _, z in ipairs(win._focusRing) do
+                                            if z.zone == "worldMainInv" then
+                                                oldIdx = z.focusedElementIdx or 1
+                                                break
+                                            end
+                                        end
+                                    end
+                                    -- (Oct 23 2026: the neighbouring ROW: the List | Grid
+                                    -- toggles come after the rows, never a stand-in for one)
+                                    local nRows = 0
+                                    for _, ne in ipairs(newEls) do if ne.item then nRows = nRows + 1 end end
+                                    preserveIdx = math.min(oldIdx, math.max(1, nRows))
+                                end
+                            end
+                            if keepId then
+                                for i, el in ipairs(newEls) do if el.id == keepId then preserveIdx = i end end
+                            end
+
+                            Focus.setRingZoneElements(win, "worldMainInv", newEls, preserveIdx)
+                            Focus.setZoneFocusable   (win, "worldMainInv", true)
+                            local resolvedEl = newEls[preserveIdx]
+                            if resolvedEl then
+                                win._gpFocusedRowItem = resolvedEl.item
+                                self._gpFocusedRowItem = resolvedEl.item
+                            end
+                        end
+                    end
+                end
+            end
+        end
+
+        -- --------------------------------------------------------
+        -- S108 v2 RING MODEL: PER-FRAME PER-COLUMN MC ZONE REFRESH
+        -- Each MC selection has its own ring zone (worldMC1..worldMCN).
+        -- Loop over slots and refresh each zone's elements independently.
+        -- Identity-preserve via _gpFocusedMCItem (per-zone idx tracked by
+        -- Focus.setRingZoneElements). When MC count or active tab changes,
+        -- the ring is restructured by _rebuildWorldMCRingZones (called from
+        -- mcToggleWorldContainer / _switchWorldTabForNav via _syncWorldRingZones).
+        -- --------------------------------------------------------
+        if Focus and win._focusRing and win._activeTab == "loot" then
+            local mcSel = win._mcSelected or {}
+            for slot = 1, #mcSel do
+                -- rebuilt only when the column changed (_worldMCSlotStale)
+                if _worldMCSlotStale(win, self, slot) then
+                    local zoneName = "worldMC" .. slot
+                    local newEls = _buildWorldMCColumnFocusables(win, slot) or {}
+                    local preserveIdx = 1
+                    if #newEls > 0 and win._gpFocusedMCItem then
+                        for i, el in ipairs(newEls) do
+                            if el.item == win._gpFocusedMCItem then
+                                preserveIdx = i
+                                break
+                            end
+                        end
+                    end
+                    Focus.setRingZoneElements(win, zoneName, newEls, preserveIdx)
+                    Focus.setZoneFocusable   (win, zoneName, #newEls > 0)
+                end
+            end
+        else
+            win._lastMCSnap = nil  -- the zones are rebuilt on the way back to Loot
+        end
+
+        -- the tab's stops (content._tabStopsRefresh, above). Nov 8 2026 (the performance review, 14): rebuilt every
+        -- frame they cost the most on Craft (every recipe row). With the mouse and keyboard in use, no controller mark
+        -- showing and no landing waiting (Focus.stopsMayWait) they wait; the first frame after, and anything
+        -- the controller does first (FocusManager's win._focusFresh), rebuilds them from scratch.
+        if Focus and win._focusRing then
+            if not (Focus.stopsMayWait and Focus.stopsMayWait(win)) then
+                win._tabStopsStale = nil
+                content._tabStopsRefresh(self, Focus)
+            else
+                win._tabStopsStale, win._lastTabContentSnapshot = true, nil
             end
         end
 
@@ -5948,6 +6013,12 @@ end)
 -- A resolution change keeps the open window on the new screen (Oct 31 2026, break-it B3)
 if Events.OnResolutionChange then
     Events.OnResolutionChange.Add(function() if _worldWin then fitWorldToScreen(_worldWin) end end)
+end
+
+-- A container changed (an item moved, a container opened or emptied): the container list reads afresh on the next
+-- frame the strip draws, WREF.soonMs after its last read at the soonest (Nov 8 2026, the performance review)
+if Events.OnContainerUpdate then
+    Events.OnContainerUpdate.Add(function() if _worldWin then _worldWin._containersDirty = true end end)
 end
 
 -- ----------------------------------------------------------------------------
