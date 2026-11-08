@@ -46,11 +46,11 @@ CC.STRIP_H          = 20    -- a strip row's height (the alternatives strip is 2
 CC.MAX_PINS        = 8
 CC.ANIM_DURATION   = 0.28  -- pane split animation in seconds
 
--- Throttle intervals (ms; were 90 frames, Nov 7 2026)
+-- Throttle intervals (ms)
 local CONTAINER_MS = 1500
 
--- Time-based throttles (Nov 7 2026, the outside performance review, item 12): a frame count ran
--- 2.4-4x as often at 144-240 Hz, and timers made together fired together. CC.due(win, key, ms, force)
+-- Time-based throttles: a frame count runs
+-- 2.4-4x as often at 144-240 Hz, and timers made together would fire together. CC.due(win, key, ms, force)
 -- is true the first time, when forced, or once ms have passed since it was last true; win[key] holds
 -- the next time it is due (nil it to force the next call). The first wait is cut by a phase that steps
 -- with each new timer (golden-ratio spread, up to half the interval), so windows and tabs fall out of step.
@@ -270,7 +270,7 @@ end
 -- ============================================================================
 -- BACKGROUND SCANNER — checks ingredient availability a batch at a time.
 -- Each call checks the next BG_BATCH_SIZE recipes, round-robin, from the tab's
--- render (Build calls it every frame, Craft and the Journal every 300 frames).
+-- render (Build calls it every frame, Craft and the Journal every 5 seconds).
 -- Updates rd.status in place so the status dots reflect real craftability.
 -- ============================================================================
 
@@ -328,8 +328,8 @@ end
 local LOGIC_EVERY_MS = 1200
 local LOGIC_FULL_MS  = 6000
 
--- What the game's per-recipe answers rest on, read cheaply (Nov 7 2026, the outside performance review,
--- item 2): each container in reach with its item count and weight, the recipes known, every skill level,
+-- What the game's per-recipe answers rest on, read cheaply: each container in reach
+-- with its item count and weight, the recipes known, every skill level,
 -- the player's square. While it reads the same, setContainers / setRecipes (the game recomputes every
 -- recipe) are not called again; they still are every LOGIC_FULL_MS, for what it does not see (an item's
 -- condition, freshness or heat).
@@ -395,7 +395,7 @@ function CC.logicScan(data, win, prefix, makeLogic, always)
             win[dKey] = listId
             win[sKey] = nil
         end
-        -- (always: a bench bound, whose fuel, heat or fluid the signature cannot see; set every scan, as before)
+        -- (always: a bench bound, whose fuel, heat or fluid the signature cannot see; set every scan)
         local okS, sig, sq = false, nil, nil
         if not always then okS, sig, sq = pcall(logicSig, win._playerObj, containers) end
         if not okS then sig = nil end
@@ -439,7 +439,7 @@ end
 -- The tabs refresh their recipe rows every second (learned recipes, skills,
 -- the bench): the last craftable / missing answer carries over to the new rows
 -- until the next scan, so the list does not empty and refill between scans.
--- (Craft and Build now refresh their rows in place and carry the answer there,
+-- (Craft and Build refresh their rows in place and carry the answer there,
 -- CC.refreshRow; this stays for a caller with two lists.)
 function CC.carryStatus(oldData, newData)
     if not (oldData and newData and oldData.recipes and newData.recipes) then return end
@@ -455,13 +455,13 @@ function CC.carryStatus(oldData, newData)
 end
 
 -- ============================================================================
--- RECIPE ROWS IN PLACE (Nov 7 2026, the outside performance review, item 3)
--- Craft and Build rewrote a new table per recipe each refresh (with a closure
--- for isRecipeKnown, a perk lookup and two case conversions each, then a name
--- map to carry the game's answers). Each recipe now keeps one row table (a pool
--- per tab, keyed by the catalog entry), rewritten in place with what a new row
--- held; the game's craftable / missing answer carries exactly as carryStatus
--- carried it: only from the row as it stood in the last list.
+-- RECIPE ROWS IN PLACE
+-- A new table per recipe each refresh would cost a closure for isRecipeKnown, a
+-- perk lookup and two case conversions each, then a name map to carry the game's
+-- answers. So each recipe keeps one row table (a pool per tab, keyed by the
+-- catalog entry), rewritten in place with what a new row would hold; the game's
+-- craftable / missing answer carries exactly as carryStatus carries it: only
+-- from the row as it stood in the last list.
 -- ============================================================================
 
 -- The pool and this refresh's generation (rows stamped with the last one were in the last list).

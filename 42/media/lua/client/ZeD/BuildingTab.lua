@@ -203,20 +203,20 @@ end
 -- DATA GATHERING — cheap per-frame: skill checks only (no learned checks)
 -- ============================================================================
 
-local ROWS_MS = 1000   -- the rows' refresh (was 30 frames: 2.4-4x as often at 144-240 Hz)
+local ROWS_MS = 1000   -- the rows' refresh (once a second on the clock, not per frame)
 
 function ZeD.BuildingTab.gatherData(playerObj, win)
     buildBuildCatalog(playerObj)
     if not _flatRecipes then return { recipes = {}, categories = _categories, flatRecipes = _flatRecipes } end
 
-    -- Throttled: every ROWS_MS (was 30 frames), at once when the cache was dropped
+    -- Throttled: every ROWS_MS, at once when the cache was dropped
     local prev = win._buildCache
     if not CC.due(win, "_buildRowsAt", ROWS_MS, not prev) then
         return prev
     end
 
     -- The rows are rewritten in place (CC.refreshRow), as the Craft tab's are; a dropped cache
-    -- starts a new data table and nothing carries into it, as before.
+    -- starts a new data table and nothing carries into it.
     local data = prev
     if not data then
         data = { recipes = {} }
