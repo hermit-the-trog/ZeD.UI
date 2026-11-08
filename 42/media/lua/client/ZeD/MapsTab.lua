@@ -2347,7 +2347,13 @@ function ZeD.MapsTab.openPopout(win, paperItem)
     content:initialise()
     pop:addChild(content)
     pop._contentPanel = content
-    content._onPrerender = function(self) ZeD.MapsTab._renderPopout(self, win, pop) end
+    -- (the unfold is a press in the World window, which raises itself on that same press, after this: the pop-out
+    -- raises itself once on its first drawn frame, so it opens over the World window)
+    pop._raiseOnce = true
+    content._onPrerender = function(self)
+        if pop._raiseOnce then pop._raiseOnce = nil; pop:bringToTop() end
+        ZeD.MapsTab._renderPopout(self, win, pop)
+    end
 
     -- Mouse: same handlers the World drawer uses, routed through the shared
     -- MapsTab entry points. The flag tells onClick the click is the pop-out's.

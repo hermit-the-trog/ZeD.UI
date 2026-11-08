@@ -129,10 +129,22 @@ S.pvpState = pvpState
 -- ---------------------------------------------------------------------------
 --- By button id, each fn(player, win). Public so ZeD_MailCards.lua can add its Write a letter (mailwrite).
 local OPEN = {}
+--- Raise the game's window ui over ZeD's once it has drawn a frame: the press that opened it raises ZeD's window
+--- after the click's own work, which put the new window under it.
+function S.raiseOnce(ui)
+    local base = ui.prerender
+    ui.prerender = function(self, ...)
+        if self.prerender ~= base then self.prerender = base end
+        self:bringToTop()
+        return base(self, ...)
+    end
+end
+
 function OPEN.gameOptions(p)
     if ISServerOptions and ISServerOptions.instance then ISServerOptions.instance:close() end
     local ui = ISServerOptions:new(50, 50, 800, 800, p)
     ui:initialise(); ui:addToUIManager()
+    S.raiseOnce(ui)
 end
 function OPEN.options(p, win) S.openOptions(win, win._serverTab) end
 function OPEN.faction(p, win) ZeD.ClaimCards.openFaction(win, win._serverTab) end
