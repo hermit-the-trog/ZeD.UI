@@ -5,12 +5,16 @@
 -- the wheels' own icons, with vanilla's own pictures kept where they say more
 -- (PICTURES below). Overrides/Wheels.lua puts this in place of the engine's
 -- drawing for both vanilla wheels (getPlayerRadialMenu's ISRadialMenu and the
--- controller's ISBackButtonWheel).
+-- controller's ISBackButtonWheel). Not an organism: the wheel object stays
+-- vanilla's; this file is its drawing and its pick.
 --
 -- Geometry is the engine's (RadialMenu.class): slice 1 centred at
 -- 12 o'clock, the rest clockwise, each 360 / max(n, 2) degrees; a slice with
 -- no text and no picture is an empty place (kept, never drawn or picked). The
 -- pointer's direction (outside a small dead zone) or the right stick picks.
+-- Before touching it: W.draw's place, W.sliceAt and ZeD_WheelGesture's
+-- G.sector all follow that one rule; change one and change all three, or the
+-- slice drawn under the pointer is not the one that fires.
 --
 -- Drawn with the strip's own parts: ZeD.Molecules.drawContextCell (paper cell,
 -- ink icon, accent when pointed, stipple when off, corner triangle, back glyph)
@@ -62,11 +66,11 @@ local function zicon(name)
     return _icons[name] or nil
 end
 
--- a wheel icon by its id, for an icon box of `box` screen px: the largest of
--- its four drawings that fits, drawn at its own size (pixel for pixel, never
--- stretched); a box under 16 scales the 16 down. Returns texture, size.
--- (The lookup is the library's, ZeD.PxIcon in Atoms.lua, shared with the
--- container row, the item card's marks and the windows' small controls.)
+--- A wheel icon by its id, for an icon box of `box` screen px: the largest of
+--- its four drawings that fits, drawn at its own size (pixel for pixel, never
+--- stretched); a box under 16 scales the 16 down. Returns texture, size.
+--- (The lookup is the library's, ZeD.PxIcon in Atoms.lua, shared with the
+--- container row, the item card's marks and the windows' small controls.)
 function W.iconTex(id, box)
     return ZeD.PxIcon.tex(id, box)
 end
@@ -148,7 +152,7 @@ local TEX_ICONS = {
     { "emotes/crouch_off", "sneak_off" }, { "emotes/sit_on", "sit_ground" }, { "emotes/sit_off", "sit_ground_off" },
     { "emotes/autowalk_on", "autowalk" }, { "emotes/autowalk_off", "autowalk_off" },
 }
-W.TEXT_ICONS, W.KEEP, W.TEX_ICONS = TEXT_ICONS, KEEP, TEX_ICONS   -- (QA: zedqa_wheel_icons.lua)
+W.TEXT_ICONS, W.KEEP, W.TEX_ICONS = TEXT_ICONS, KEEP, TEX_ICONS   -- (for the icon check, ZeDUI/tools/qa/zedqa_wheel_icons.lua)
 -- the item and the words vanilla adds with no action carry no name of their own
 local OFF_NAMES = {
     { "vehicle_ignition", "IGUI_VehiclePartEngine" }, { "vehicle_sleep", "ContextMenu_Sleep" }, { "vehicle_repair", "ContextMenu_VehicleMechanics" },

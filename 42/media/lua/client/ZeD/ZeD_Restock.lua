@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_Restock.lua
 -- ============================================================================
--- RESTOCK AND UNPACK: THE ENGINE — client logic, no drawing (the Equip tab's
+-- RESTOCK AND UNPACK: THE ENGINE - client logic, no drawing (the Equip tab's
 -- bar and to-do are ZeD_EquipLoadout.lua, the pinned list ZeD_RestockPin.lua).
 -- What it does:
 --   * the lists applied (one outfit, one loadout, the days), kept with the

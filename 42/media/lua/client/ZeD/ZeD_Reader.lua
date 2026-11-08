@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_Reader.lua
 -- ============================================================================
--- THE READER — client organism (ZeD_Reader, a ZeD_Window): newspapers,
+-- THE READER - client organism (ZeD_Reader, a ZeD_Window): newspapers,
 -- flyers and brochures, a CD's or a tape's label, and the notebook's page for
 -- vanilla's write action (THE NOTEBOOK, below). The Journal tab's quick looks
 -- (ZeD_JournalReaders.lua) live beside it, never instead of it.

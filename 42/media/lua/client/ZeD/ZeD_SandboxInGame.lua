@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_SandboxInGame.lua
 -- ============================================================================
--- SANDBOX OPTIONS IN GAME — client organism (ZeD_MMSandboxIG, the new-game
+-- SANDBOX OPTIONS IN GAME - client organism (ZeD_MMSandboxIG, the new-game
 -- sandbox window ZeD_MMSandbox carried over the pause screen). For each
 -- setting it shows what it does, what changing it does to this save, and a tip.
 --

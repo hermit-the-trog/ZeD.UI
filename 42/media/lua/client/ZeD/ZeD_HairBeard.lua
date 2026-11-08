@@ -24,9 +24,9 @@
 -- it (no confirm).
 -- Each row, and the Now and After heads, show the game's own 3D figure of the
 -- character wearing that style (AVATARS below).
--- Make-up belongs with the hair, not in a window of its own: a third part,
--- Make Up, sits beside Hair and Beard while the
--- character carries or wears make-up. Its rows (ZeD_MakeUp.lua) are the spots
+-- Make-up belongs with the hair, not in a window of its own: a third part, Make
+-- Up, sits beside Hair and Beard while the character carries or wears
+-- make-up. Its rows (ZeD_MakeUp.lua) are the spots
 -- the carried make-up can do, by the game's categories, and the make-up worn
 -- under Remove; the figures wear the row's make-up; the verb button is Apply
 -- (the game's ISApplyMakeUp action) or Remove. The make-up item's Make Up option
@@ -46,10 +46,11 @@ ZeD = ZeD or {}
 ZeD.HairBeard = ZeD.HairBeard or {}
 local HB = ZeD.HairBeard
 
--- design units
+-- design units: a group's head row, one of the Now lines, the Now / After head frames, the Now
+-- lines' label column
 local GH_H, CUR_H, HEAD_W, HEAD_H, CUR_K = 15, 28, 68, 76, 56
 local THUMB, THUMB_PAD = 42, 6     -- a row's figure frame and its inset (the row is as tall as both)
-local REFRESH_FRAMES = 30
+local REFRESH_FRAMES = 30          -- frames between reads of the game's menus (the rows rebuilt)
 
 local function tr(k, ...) return ZeD.tr(k, ...) end
 local function F(n) return ZeD.TM:getFontHeight(ZeD.T["fontF" .. n]) end
@@ -651,8 +652,8 @@ function HB.setPart(win, part)
     end
 end
 
--- the make-up item's Make Up option (ZeD_MakeUp.open): this section on its make-up part, that item's spots first, and
--- the Identity tab scrolled to it (IdentityTab asks HB.takeScroll)
+--- The make-up item's Make Up option (ZeD_MakeUp.open): this section on its make-up part, that item's spots first, and
+--- the Identity tab scrolled to it (IdentityTab asks HB.takeScroll).
 function HB.showMakeUp(win, item)
     local st = state(win)
     st.mkPrefer = item
@@ -661,6 +662,7 @@ function HB.showMakeUp(win, item)
     st.part, st.sel, st.done = "makeup", nil, nil
     st.wantScroll = true
 end
+--- True once after HB.showMakeUp: the Identity tab then scrolls this section into view.
 function HB.takeScroll(win)
     local st = win._hb
     if not (st and st.wantScroll) then return false end
@@ -733,8 +735,8 @@ end
 -- are window children laid over the frames this section draws (a frame cut by
 -- the view's edge shows the part of its figure inside the view: the figure's
 -- own camera does the cut), from a small pool that grows to what shows. A layer
--- above them dims the greyed rows' figures. The
--- figures go (removed from the window) the first frame the section is not drawn.
+-- above them dims the greyed rows' figures. The figures go (removed from the
+-- window) the first frame the section is not drawn.
 -- ---------------------------------------------------------------------------
 local AV_ZOOM, AV_YOFF = 17, -0.86            -- head and shoulders: hair rows, Now and After
 local AV_ZOOM_BEARD, AV_YOFF_BEARD = 18.5, -0.83   -- beard rows: closer on the lower face, so the beard reads
@@ -827,7 +829,7 @@ local function makeModel()
     m.javaObject:setConsumeMouseEvents(false)
     m.onMouseDown, m.onMouseUp, m.onMouseMove, m.onMouseWheel = noMouse, noMouse, noMouse, noMouse
     m.onMouseUpOutside, m.onMouseMoveOutside = noMouse, noMouse
-    m.onRightMouseDown, m.onRightMouseUp = noMouse, noMouse   -- (42.22: a handler that returns nothing takes the click)
+    m.onRightMouseDown, m.onRightMouseUp = noMouse, noMouse   -- (B42.22: a handler that returns nothing takes the click)
     m._hbModel = true
     m:setVisible(false)
     m.javaObject:setVisible(false)
@@ -870,7 +872,8 @@ local function release(win, st)
 end
 HB.release = release
 
--- from ZeD_CharacterWindow.extFrame, each frame before the tab draws
+--- Every figure off. ZeD_CharacterWindow.extFrame calls it each frame before the tab draws;
+--- the drawing then shows the figures it uses.
 function HB.onWindowFrame(win)
     local st = win._hb
     if st and st.av then hideAll(st.av) end
@@ -1013,7 +1016,8 @@ local function placeFigures(panel, win, st, wants)
     end
 end
 
--- the figures showing now (for the QA script): { id, model, x, y, w, h } in window coordinates
+-- the figures showing now, for the test script: { id, model, x, y, w, h, look, cut, zoom, yoff }
+-- in window coordinates
 function HB.figures(win)
     local st = win and win._hb
     local out = {}
@@ -1026,6 +1030,7 @@ function HB.figures(win)
     end
     return out
 end
+-- how many figures the pool holds (for the test script too)
 function HB.poolSize(win)
     local st = win and win._hb
     return (st and st.av) and #st.av.pool or 0

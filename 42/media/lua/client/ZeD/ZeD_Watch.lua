@@ -2,7 +2,9 @@
 -- ============================================================================
 -- THE WATCH - client organism; a physical wristwatch at the top right, drawn as
 -- a pixel-art plate by the shared plate template (ZeD_Plate.lua). It replaces
--- the Java clock AND the Java speed controls.
+-- the Java clock AND the Java speed controls. Before touching it: those two are
+-- never removed, only parked off-screen every frame (prerender), and the speed
+-- controls stay the authority for the game's speed.
 --
 -- Two brands and the expensive one:
 --   CaZio  digital (black, gold): ALARM and SET keys on the face, SPEED and
@@ -74,7 +76,8 @@ local function _safe(fn, default) local ok, v = pcall(fn); if ok then return v e
 -- ---------------------------------------------------------------------------
 -- The registry
 -- ---------------------------------------------------------------------------
--- def = { plate = id, items = { full types }, design = data table or nil, texdir = folder or nil }
+--- Register a watch, ZeD-UI's own or an addon's (THE WATCH REGISTRY above):
+--- def = { plate = id, items = { full types }, design = data table or nil, texdir = folder or nil }
 function W.register(def)
     if type(def) ~= "table" or not def.plate then
         print("[ZeD] Watch.register: a watch needs at least a plate id"); return
@@ -118,8 +121,8 @@ local function _plateOf(def)
     return des, def._ctx
 end
 
--- whether a registration's plate (or a plate id) has a light: a Timez's glow or a CaZio's bulb (its
--- "light" control); asked once per registration
+--- Whether a registration's plate (or a plate id) has a light: a Timez's glow or a CaZio's bulb (its
+--- "light" control); asked once per registration.
 function W.hasLight(def)
     if type(def) == "string" then def = { plate = def } end
     if type(def) ~= "table" then return false end
@@ -195,7 +198,7 @@ local function _isDark(tod)
     end
     return tod < _sun.dawn or tod >= _sun.dusk
 end
-W._isDark = _isDark
+W._isDark = _isDark   -- (the two-way radios' faces ask it too: TwoWayFace.lua)
 
 -- the readout for the plate's display fields (a field draws only when its value is here),
 -- filled into rd (reused every frame, so nothing is allocated)
@@ -263,12 +266,13 @@ end
 -- ---------------------------------------------------------------------------
 W.POP_IDLE_MS = 6000     -- the full watch tucks back after this long untouched
 
+--- The "Watch" option says the belt (its first choice, the default; no option at all counts as the belt).
 function W.beltMode()
     local o = ZeD.Settings and ZeD.Settings.watchPlaceOption
     return not o or o:getValue() == 1
 end
 
--- the watch for the belt: item, plate, wrist ("left" / "right"), or nil
+--- The watch for the belt: item, plate, wrist ("left" / "right"), or nil.
 function W.beltWatch(player)
     if not (player and W.beltMode() and ZeD.WatchMini) then return nil end
     local item, loc = _wornWatch(player)
@@ -323,8 +327,8 @@ local function _alarmStep(item, dir)
 end
 W._alarmStep = _alarmStep
 
--- the small watch's reading (reused table)
 local _mini = {}
+--- The small watch's reading: hour, minute, fmt24, speed, armed, lit, night, dark (one reused table).
 function W.miniState(player, item)
     local gt = getGameTime()
     _mini.hour, _mini.minute = gt:getHour(), gt:getMinutes()
@@ -339,7 +343,7 @@ function W.miniState(player, item)
     return _mini
 end
 
--- a press on the small watch: its pushers act as the full watch's; the face pops it
+--- A press on the small watch: its pushers act as the full watch's; the face pops it.
 function W.act(id)
     local inst = W._instance
     if not inst then return end
@@ -348,6 +352,7 @@ function W.act(id)
     inst._popTouched = getTimestampMs()
 end
 
+--- Pop the full watch up over the belt (on = true), tuck it back (false), or flip it (nil).
 function W.togglePop(on)
     local inst = W._instance
     if not inst then return end
@@ -415,6 +420,7 @@ end
 -- Worn: the time large, the weekday and date, the temperature, the game's speed and the alarm, then Start or Pause,
 -- Speed, Alarm and Set; while setting, the alarm hour with - and + and Done. No watch: the four speed keys.
 -- ---------------------------------------------------------------------------
+--- The watchSimple setting is on.
 function W.simple() return ZeD.Settings and ZeD.Settings.watchSimple and ZeD.Settings.watchSimple() or false end
 
 local PLAIN_W, PLAIN_PAD, PLAIN_GAP = 150, 8, 4
@@ -643,7 +649,7 @@ function ZeD_Watch:prerender()
     if not okD then ZeD.logOnce("watch plate " .. tostring(def and def.id), eD); return end
     self:_hitsFrom(des, st, k)
 end
-function ZeD_Watch:render() end
+function ZeD_Watch:render() end   -- (everything draws in prerender)
 
 function ZeD_Watch:_act(id)
     local item = self._item
@@ -738,6 +744,7 @@ function ZeD_Watch:onMouseUpOutside(x, y) self:onMouseUp(x, y) end
 -- ---------------------------------------------------------------------------
 -- Lifecycle
 -- ---------------------------------------------------------------------------
+--- Make the one watch panel (the first player's) and put it on screen; a second call returns the same one.
 function W.install()
     if W._instance then return W._instance end
     local inst = ZeD_Watch:new(0)
@@ -748,6 +755,7 @@ function W.install()
     print("[ZeD] Watch: plate watch installed (Java clock + speed controls parked)")
     return inst
 end
+--- The watch panel, or nil before the game starts.
 function W.getInstance() return W._instance end
 
 -- Safe mode (SafeMode.lua): the Java clock and speed controls go back where they
@@ -780,7 +788,7 @@ Events.OnGameStart.Add(function() W._instance = nil; W.install() end)
 
 -- On a server the game's speed controls do nothing, yet they showed at the top right from the join until the
 -- watch's first drawing parked them: kept hidden there on every tick, whether a
--- watch is worn or not (not in safe mode, which hands them back)
+-- watch is worn or not. The tick stands down in safe mode, whose leave keeps them hidden on a server too
 Events.OnTick.Add(function()
     if not isClient() or ZeD.Safe.on("watch") then return end
     local sc = UIManager.getSpeedControls and UIManager.getSpeedControls()

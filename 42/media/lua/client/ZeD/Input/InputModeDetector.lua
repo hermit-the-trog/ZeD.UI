@@ -4,7 +4,8 @@
 -- Client. The ground floor of the controller stack: a singleton that polls
 -- raw input every tick and emits a single event when the active device
 -- changes. BumperChord gates its polling on the mode, FocusManager shows and
--- hides the focus marks with it, and the window chrome keys off it too.
+-- hides the focus marks with it, and context menus, the dash, the World
+-- window and several tabs read it to answer a pad and a mouse differently.
 --
 -- CORE RULE: mouse MOVEMENT does NOT count as KBM activity. Only mouse
 -- CLICKS and keyboard presses register. Without this, the cursor drifting
@@ -17,15 +18,16 @@
 -- Public interface:
 --   ZeD.Input.Detector.getMode()             -> "kbm" | "gamepad" | "unknown"
 --   ZeD.Input.Detector.getControllerType(i)  -> "xbox" | "playstation" | "nintendo" | "unknown"
---   ZeD.Input.Detector.setLockedMode(mode)   -> nil | "kbm" | "gamepad"
+--   ZeD.Input.Detector.setLockedMode(mode)   mode = nil (auto-detect) | "kbm" | "gamepad"
 --   ZeD.Input.Detector.msSinceMouseClick()   -> ms since a mouse button last went down
 --
 -- Event emitted (Add listener via standard PZ pattern):
 --   Events.ZeD_InputModeChanged.Add(function(newMode, oldMode) ... end)
 --
--- Tokens consumed (ZeD.T.gp — mirrored so they can be hot-tweaked via console):
+-- Tokens consumed (ZeD.T.gp — read on every poll, so they can be hot-tweaked
+-- via console; the defaults below are this file's fallbacks too):
 --   stickThresh    radial deadzone for stick magnitude (default 0.20)
---   triggerThresh  abs threshold for triggers          (default 0.15)
+--   triggerThresh  pull past rest, share of full travel (default 0.15)
 --   cooldownMs     minimum ms between mode switches    (default 200)
 -- ============================================================================
 
@@ -53,8 +55,8 @@ Detector.MODE_UNKNOWN = "unknown"
 -- ---------------------------------------------------------------------------
 -- INTERNAL STATE (file-local, not part of public API)
 -- ---------------------------------------------------------------------------
--- Current active mode. Starts unknown until we see any input, then sticks
--- with whichever side spoke first.
+-- Current active mode. Starts unknown until the first input, then follows
+-- whichever device spoke last.
 local _mode = Detector.MODE_UNKNOWN
 
 -- Manual lock from the ZeD setup (Settings.lua wires the input-mode choice
@@ -75,18 +77,19 @@ local _lastSwitchMs = 0
 local _mouseClickedThisTick = false
 local _keyPressedThisTick   = false
 -- Mouse buttons polled every render frame: Events.OnMouseDown misses clicks
--- on UI and every right-click, so a mouse player on a ZeD window never
--- flipped back from "gamepad". Last state per button + when one last
--- went down (menus opened by a click read it, see msSinceMouseClick).
+-- on UI and every right-click, so without the poll a mouse player on a ZeD
+-- window would never flip back from "gamepad". Last state per button + when
+-- one last went down (menus opened by a click read it, see msSinceMouseClick).
 local _mouseHeld = { false, false, false }
 local _lastMouseClickMs = 0
 
 -- ---------------------------------------------------------------------------
 -- SDL STANDARD CONTROLLER AXIS INDICES
--- PZ's getControllerAxisValue(controller, axisIdx) exposes the raw SDL axis
--- layout, which is standard across Xbox / PlayStation / Switch / Steam Deck.
--- Values are in [-1, 1] for sticks, [0, 1] (or [-1, 1] on some drivers) for
--- triggers — we abs() trigger reads defensively so both conventions work.
+-- PZ's getControllerAxisValue(controllerIdx, axisIdx) exposes the raw SDL
+-- axis layout, which is standard across Xbox / PlayStation / Switch / Steam
+-- Deck. Values are in [-1, 1] for sticks, [0, 1] (or [-1, 1] on some drivers)
+-- for triggers — triggerPulled below measures a pull from each trigger's
+-- rest, so both conventions work.
 -- ---------------------------------------------------------------------------
 local AXIS_LSTICK_X = 0
 local AXIS_LSTICK_Y = 1
@@ -195,14 +198,15 @@ end
 -- ---------------------------------------------------------------------------
 -- MODE SWITCHING
 -- Central gate: applies the 200ms cooldown and emits the public event.
--- All callers (onTick, setLockedMode, onGamepadDisconnect) route through here.
+-- Every switch routes through here: onTick (which also applies a manual lock
+-- set by setLockedMode) and onGamepadDisconnect.
 -- ---------------------------------------------------------------------------
 local function switchMode(newMode)
     -- No-op if we're already in that mode.
     if newMode == _mode then return end
     -- Cooldown: ignore switch requests within cooldownMs of the last one.
     -- Handles the "both devices fire in the same 200ms window" case — the
-    -- winner sticks and rapid alternation doesn't thrash. Note: first-ever
+    -- winner sticks and rapid alternation doesn't thrash. The first-ever
     -- switch always passes because _lastSwitchMs starts at 0.
     local cooldown = (ZeD.T and ZeD.T.gp and ZeD.T.gp.cooldownMs) or 200
     local t = getTimestampMs() or 0
@@ -224,7 +228,7 @@ local function switchMode(newMode)
 end
 
 -- ---------------------------------------------------------------------------
--- TICK POLL — called every frame by Events.OnTick
+-- TICK POLL — called every tick by Events.OnTick
 -- Evaluates detection probes and requests a mode switch. The manual lock
 -- short-circuits auto-detection but still consumes edge flags so they don't
 -- leak into auto mode when the lock is released later.
@@ -340,7 +344,8 @@ end
 
 -- Mouse CLICK activity only. OnMouseDown fires exactly when a mouse button
 -- goes down — movement doesn't trigger it. That's the whole point of using
--- this event instead of polling mouse position.
+-- this event instead of polling mouse position. It misses clicks on UI and
+-- right-clicks; pollMouseButtons below catches those.
 local function onMouseDown(_x, _y)
     _mouseClickedThisTick = true
 end
