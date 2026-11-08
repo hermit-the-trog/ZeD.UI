@@ -141,26 +141,25 @@ function TW.narrowOf(pid)
     if id and X.plates[id] then return id, X.plates[id] end
     return nil, nil
 end
--- the wide set a face belongs to (a narrow face's own set, a width's own face; any other face is its own)
+--- The wide set a face belongs to (a narrow face's own set, a width's own face; any other face is its own).
 function TW.basePid(pid)
     local X = ZeD.PhysPx
-    if type(pid) == "string" then pid = pid:gsub("@%d+$", "") end   -- "walkie_toy@180" (Oct 30 2026)
+    if type(pid) == "string" then pid = pid:gsub("@%d+$", "") end   -- a width variant's id: "walkie_toy@180"
     for wide, narrow in pairs((X and X.twoway and X.twoway.narrow) or {}) do if narrow == pid then return wide end end
     return pid
 end
 function TW.info(pid) return TW.INFO[TW.basePid(pid)] end
 
 function TW.isBase(pid) local i = TW.info(pid); return i and i.base == true end
--- the space a face takes in the tab (plate px): a walkie's panel (a width's own, `fill`; else the 220 one), a
--- ham set's own width
+--- The space a face takes in the tab (plate px): a walkie's panel (a width's own, `fill`; else the 220 one), a
+--- ham set's own width.
 function TW.slotW(des)
     if des.fill and des.fill >= des.w then return des.fill end
     return math.max(des.w, TW.PANEL_W)
 end
--- a walkie's face for the half card (Oct 30 2026, HANDOFF_plates_fill_20261030.md; punch list item 2: the tab was
--- designed half width): the widest of its widths whose PANEL at zoom k fits the half card's room (220 units less
--- the scrollbar). Returns its id, its plate and the panel's width (plate px); nil when none fits (the tab is then
--- the full card with today's face).
+--- A walkie's face for the half card (the tab is designed half width): the widest of its widths whose PANEL at
+--- zoom k fits the half card's room (220 units less the scrollbar). Returns its id, its plate and the panel's
+--- width (plate px); nil when none fits (the tab is then the full card with today's face).
 function TW.halfFace(pid, k)
     local T = ZeD.T
     local id, pw = P.pickWidth(pid, T.px(TW.HALF_W) - T.sp.scrollbarW, k)
@@ -200,7 +199,7 @@ end
 
 local function freq2(hz) return string.format("%.2f", (hz or 0) / 1000) end
 
--- the display's fields (ZeD_Plate's radioDisplay), nil while the set is off (the glass stays blank)
+--- The display's fields (ZeD_Plate's radioDisplay), nil while the set is off (the glass stays blank).
 function TW.reading(st, kind)
     if not (st and st.on) then return nil end
     local preset = st.presetIdx and st.presets[st.presetIdx]
@@ -235,7 +234,7 @@ local function isDark()
     return W._isDark(gt:getTimeOfDay() or 12) == true
 end
 
--- what the face's live parts read (the plate template's state)
+--- What the face's live parts read (the plate template's state).
 function TW.plateState(st, pid)
     local ps = {}
     local info = TW.info(pid) or TW.INFO.walkie_valutech
@@ -258,13 +257,13 @@ end
 -- ---------------------------------------------------------------------------
 -- ACTIONS (vanilla's radio code through ZeD_RadioOps; chr = the character, dev = the radio)
 -- ---------------------------------------------------------------------------
--- a knob turned one click (dir +1 / -1); mult = the fast-turn multiplier
+--- A knob turned one click (dir +1 / -1); mult = the fast-turn multiplier.
 function TW.turn(chr, dev, id, dir, mult)
     if id == "vol" then O.volStep(chr, dev, dir, false)
     elseif id == "tune" then O.tuneStep(chr, dev, dir, mult or 1) end
 end
 
--- the press (a click, A, the end of a short press); dx = where a knob was clicked (< 0: its left half)
+--- The press (a click, A, the end of a short press); dx = where a knob was clicked (< 0: its left half).
 function TW.press(chr, dev, id, dx)
     local st = TW.read(dev)
     if not st then return end
@@ -281,7 +280,7 @@ function TW.press(chr, dev, id, dx)
     elseif id == "lamp" then O.lamp(dev); pcall(function() getSoundManager():playUISound("UIActivateButton") end) end
 end
 
--- the second meaning (X, a hold, a right-click); owner = what the naming box answers to
+--- The second meaning (X, a hold, a right-click); owner = what the naming box answers to.
 function TW.secondary(chr, dev, id, owner)
     local st = TW.read(dev)
     if not st then return end

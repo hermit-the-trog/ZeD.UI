@@ -1513,7 +1513,7 @@ _buildWorldInvRowFocusables = function(win)
         }
     end
     -- seed only when nothing is remembered: a rebuild (scroll, an item gone) must not
-    -- send focus back to the first row (Oct 19 2026 nav audit; see the seed-stomp rule)
+    -- send focus back to the first row
     if elements[1] and elements[1].item and win._gpFocusedRowItem == nil then
         win._gpFocusedRowItem = elements[1].item
         local cnt = win._mainContent
@@ -1524,20 +1524,20 @@ _buildWorldInvRowFocusables = function(win)
     return elements
 end
 
--- S99 — World Window item card action strip focusables. Same shape as the
+-- World Window item card action strip focusables. Same shape as the
 -- Character window builder: delegates to the card organism, which stamps live
 -- toggle + verb button rects each frame. Returns {} when the card isn't
 -- visible. Note: on non-Loot tabs, the card OVERLAYS the tab drawer while
 -- `_drawerMode` stays "tab" — gate on `_drawerItem` presence instead.
 --
--- S113: Each card button gets:
+-- Each card button gets:
 --   * onDpadDir — D-pad U/D scrolls card content by disclosure (preserves
 --     focus); L/R falls through to flat cone-nav between buttons.
 --   * onCancel  — B closes the card drawer (mouse parity).
 local function _wireWorldCardButtonNav(els, win)
-    -- S113c: ItemCard returns ABSOLUTE screen coords. Convert to
+    -- ItemCard returns ABSOLUTE screen coords. Convert to
     -- itemDrawerPanel-local so _collectFlat's panel-offset translation
-    -- doesn't double-offset (mirror of Char window fix).
+    -- doesn't double-offset (the Character window converts the same way).
     local drawerPanel = win and win._itemDrawerPanel
     local panelAbsX = (drawerPanel and drawerPanel.getAbsoluteX
                        and drawerPanel:getAbsoluteX()) or 0
@@ -1547,7 +1547,7 @@ local function _wireWorldCardButtonNav(els, win)
         local el = els[i]
         el.x = el.x - panelAbsX
         el.y = el.y - panelAbsY
-        -- Oct 23 2026: Up = to the action strip, Down = next control, then
+        -- Up = to the action strip, Down = next control, then
         -- read on (ZeD_ItemCard:gpDpad, shared with the Character window)
         el.onDpadDir = function(w, e, dir)
             if w._itemCard and w._itemCard.gpDpad then
@@ -1571,7 +1571,7 @@ _buildWorldCardActionFocusables = function(win)
     if not (win and win._itemCard) then return {} end
     if win._drawerItem == nil then return {} end
     local els = win._itemCard:getActionStripElements() or {}
-    -- S118: append clothing detail-zone structural docks AFTER the action strip.
+    -- Append clothing detail-zone structural docks AFTER the action strip.
     -- Mirrors Character window. Wire helper runs on combined list so dock
     -- elements get the same onDpadDir / onCancel + abs→panel-local conversion.
     local dockEls = win._itemCard:getZoneDockElements() or {}
@@ -1584,9 +1584,9 @@ end
 -- window ref; callbacks look up `win._mainContent` at fire time.
 local function _attachWorldTabBarCallbacks(win, tabElements)
     for _, el in ipairs(tabElements) do
-        -- S113c (design director): A press is required to switch tabs. D-pad
-        -- focus on a tab no longer auto-switches — supersedes the S98 live-
-        -- switch ruling. Mirror of Character window's _attachTabBarCallbacks.
+        -- An A press is required to switch tabs; D-pad focus on a tab only
+        -- paints, never switches. Mirror of the Character window's
+        -- _attachTabBarCallbacks.
         el.onFocus = function(w, e) end
         el.onActivate = function(w, e)
             local c = w._mainContent
@@ -1597,8 +1597,8 @@ local function _attachWorldTabBarCallbacks(win, tabElements)
     end
 end
 
--- Per-tab drawer width — tabs not listed use default DRAWER_W.
--- All current world tabs use TAB_DRAWER_W; table exists for future tabs.
+-- Per-tab drawer width — tabs not listed use the default DRAWER_W.
+-- Every listed tab takes TAB_DRAWER_W today; the table lets one differ.
 local WORLD_TAB_DRAWER_WIDTHS = {
     craft = TAB_DRAWER_W,
     build = TAB_DRAWER_W,

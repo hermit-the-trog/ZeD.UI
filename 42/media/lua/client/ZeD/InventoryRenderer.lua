@@ -1,11 +1,15 @@
 -- ZeD-UI/42/media/lua/client/ZeD/InventoryRenderer.lua
 -- ============================================================================
--- INVENTORY RENDERER — shared module consumed by CharacterWindow + WorldWindow.
--- Extracted from TestInventory.lua.
---
--- 11 exports: renderItemList, renderMultiColumnContent, makeSorter, SORT_COLS,
--- countSelected, findIndex, collectSelectedItems, handleDrop, buildContainers,
--- rebuildColStates, toggleContainer
+-- INVENTORY RENDERER — client; shared module, no class of its own.
+-- The drawing and model engine behind every ZeD item list: the Character and
+-- World windows (and the Equip tab's drop path) hand it a content panel each
+-- frame and it draws the columns, rows, grid cells, headings and transfer
+-- strips, builds the sorted and stacked list model, and resolves what a drag
+-- lands on. Everything is published on ZeD.InventoryRenderer — the main
+-- export block sits at the end of the file, with more spread through it.
+-- One thing to know before touching it: renderItemList sits near Kahlua's
+-- 200-local limit, so new drawing goes in helpers outside it, fed through
+-- small state tables.
 -- ============================================================================
 
 require "ISUI/ISPanel"
@@ -30,7 +34,7 @@ ZeD = ZeD or {}
 -- ============================================================================
 
 local SORT_COLS = {"name", "cat", "cond", "wt"}
-ZeD.InventoryRenderer = {}  -- shared module, consumed by ZeD_CharacterWindow
+ZeD.InventoryRenderer = {}  -- shared module: both windows and the Equip tab read it
 
 -- An item's category as vanilla's inventory shows it: the display category set in the item
 -- script, else the Java category. This KEY groups, sorts and names the collapsed state;
@@ -124,8 +128,8 @@ local truncateText = ZeD.Atoms.truncateText
 
 -- ============================================================================
 -- CONTAINER ENUMERATION
--- Builds a table of player containers from main inventory + equipped bags.
--- Reused from ZeD_CharacterWindow pattern.
+-- Builds a table of the player's containers: the main inventory first, then
+-- equipped bags and key rings.
 -- ============================================================================
 
 local function buildContainers(playerObj)

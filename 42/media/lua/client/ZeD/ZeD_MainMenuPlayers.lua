@@ -1,6 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MainMenuPlayers.lua
 -- ============================================================================
--- THE PAUSE WINDOW'S PLAYERS AND INVITE PAGES (ZeDUI/VANILLA_WINDOWS_20261107.md, C1 and C3). In game, the pause
+-- THE PAUSE WINDOW'S PLAYERS AND INVITE PAGES. Client-side; two pages of the pause window
+-- (MM.pages; the window itself is ZeD_MainMenu.lua's). In game, the pause
 -- window's Players and Invite buttons (and the D-pad social wheel's Players) open these in the window itself, where
 -- the game opened ISScoreboard and InviteFriends over the screen.
 --

@@ -1,8 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_ModSettings.lua
 -- ============================================================================
--- A MOD'S OWN SETTINGS FOR ITS INFO PANE (director, Oct 24 2026: "can the mod
--- manager also show a mods individual settings in that mods info when selected
--- from the list of mods?"; mockup zed_mods_settings_picks_v1, approved)
+-- A MOD'S OWN SETTINGS FOR ITS INFO PANE — client; a data module the Mods
+-- screen reads: when a mod is selected in the list, its info pane shows the
+-- mod's own options and sandbox settings, read through here.
 --
 -- OPTIONS: the mod's PZAPI.ModOptions (which mod made which: shared/ZeD/
 -- ModOptionsOwners.lua). Vanilla's Options builds a control for every option on
@@ -59,6 +59,9 @@ end
 
 local SKIP_TYPE = { title = true, description = true, separator = true }
 
+--- A mod's options as the info pane lists them: { sections = { { title,
+--- entries } }, count }. An entry is a header, a note, or an option with the
+--- Options window's row behind it (entry.r), in the order the mod declared them.
 function S.optionRows(modId)
     local out = { sections = {}, count = 0 }
     if not (OW and PZAPI and PZAPI.ModOptions) then return out end

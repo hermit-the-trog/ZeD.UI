@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MainMenuHost.lua
 -- ============================================================================
--- HOST A GAME ON THE MONITOR (HOOK_MAP row 26; director, Oct 14 2026: menus
--- delegated, no mockups)
+-- HOST A GAME ON THE MONITOR: the main menu's co-op host screen. Client; an
+-- organism (a window on the desk, the "host" view, mirroring vanilla's screen).
 --
 -- Vanilla's CoopOptionsScreen launches a co-op server and follows it only
 -- while it is visible, so it stays shown but off the screen (MM.mirror) and
@@ -25,7 +25,7 @@ local UI = MM.ui
 local LABEL_W, ROW_H, BOX_W = 170, 40, 300
 
 -- (a clock in ms over a step: which of m steps it is on, 0 .. m-1. Not `math.floor(t / ms) % m`: the game's Lua gets
--- % wrong once the left side passes 2^31, and a clock in ms divided by a few hundred is far past it; Oct 31 2026)
+-- % wrong once the left side passes 2^31, and a clock in ms divided by a few hundred is far past it)
 local function clockStep(t, ms, m)
     local n = math.floor(t / ms)
     return n - math.floor(n / m) * m

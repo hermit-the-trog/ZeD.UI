@@ -1674,7 +1674,7 @@ function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
     local pinSet      = state._pinSet or {}
     local freqCounts  = state._freqCounts or {}
 
-    if not sections or state._sectionsStale or state._sectionsScale ~= T.scale then  -- S124 scale: totalH is screen px, rebuild when T.scale changes
+    if not sections or state._sectionsStale or state._sectionsScale ~= T.scale then  -- totalH is screen px: rebuilt when T.scale changes
         state._sectionsStale = false
 
         pinSet = {}
@@ -1772,9 +1772,9 @@ function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
         scroll:setScrollPos(0)
     end
 
-    -- S105 gamepad: expose list geometry for the render-level scroll-follow
-    -- pass (needs viewport bounds + totalH to translate screen-space zone
-    -- positions to content-space).
+    -- the controller's render-level scroll-follow pass reads this geometry
+    -- (viewport bounds + totalH translate screen-space zone positions to
+    -- content space)
     state._listGeo = { viewY = y, viewH = h, totalH = totalH }
 
     -- Stencil clip
@@ -1846,9 +1846,9 @@ function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
         zones[#zones + 1] = hz
         curY = curY + catHdrH
 
-        -- Rows: always stamp zones for cone-nav (S107 QA — scroll past
-        -- viewport requires off-screen rows be focusable so D-pad cone has a
-        -- target below the visible area; scroll-follow then brings it into
+        -- Rows: always stamp zones for cone-nav (scrolling past the viewport
+        -- needs off-screen rows focusable so the D-pad cone has a target below
+        -- the visible area; scroll-follow then brings it into
         -- view next frame). Draw only when within visible rect. Zone-only
         -- iteration cost: ~24 bytes/row table × ~500 rows ≈ 12KB/frame for
         -- the largest typical section, well within budget.
@@ -2282,7 +2282,7 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     local chipH = T.px(22)
     local inputsH = ROW_H + #(rd.ingredients or {}) * ROW_H  -- header + rows
     local outputsH = ROW_H + #(entry.outputDefs or {}) * ROW_H
-    local actionH = 0   -- (Oct 30 2026: the amount and Craft / Build moved to the card's band, CC.renderBand)
+    local actionH = 0   -- (the amount and Craft / Build live in the card's band, CC.renderBand)
     -- Learn info section height (readOnly + not accessible)
     local showLearnSection = config.readOnly and (not rd.learned or rd.hasSkill == false)
     local learnH = 0
@@ -2343,7 +2343,7 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     if entry.iconTex then
         panel:drawTextureScaledAspect(entry.iconTex, iconX + T.px(2), iconY + T.px(2), iconSz - 2 * T.px(2), iconSz - 2 * T.px(2), 1, 1, 1, 1)
     end
-    -- the preview (punch list 49): the icon is a click and a controller stop that opens the recipe's card
+    -- the preview: the icon is a click and a controller stop that opens the recipe's card
     state._rdLast = rd
     do
         local fid = tostring(config and config.prefix or "craft") .. ":icon"
@@ -2372,7 +2372,7 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
 
     curY = curY + headerH
 
-    -- Chip row: KNOWN/UNKNOWN, SURFACE, LIGHT, time
+    -- Chip row: KNOWN/UNKNOWN, SURFACE, the craft time, the station chip
     local chipX = x + T.px(6)
     -- In readOnly (Journal), show accessibility: learned AND has skill
     local isAccessible = rd.learned and (rd.hasSkill ~= false)
@@ -2436,7 +2436,7 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
 
     -- the card's section heads: the library's (20u, sentence case, the count dim)
     local catHdrH = T.px(20)
-    local mx, my = panel:getMouseX(), panel:getMouseY()   -- hoisted: the HOW TO LEARN hover test below used these before they were declared (nil globals)
+    local mx, my = panel:getMouseX(), panel:getMouseY()   -- hoisted above the HOW TO LEARN hover test, which reads them (undeclared, they would read as nil globals)
     if cuesOn() then mx, my = -1, -1 end
     local pfx = (config and config.prefix) or "jrecipe"
 
@@ -2576,7 +2576,7 @@ end
 
 -- ============================================================================
 -- MAIN ORCHESTRATOR — renders the full 480px drawer layout
--- Called by CraftingTab.render() and BuildingTab.render().
+-- Called by CraftingTab, BuildingTab and JournalTab's render.
 -- ============================================================================
 
 function CC.render(panel, win, x, y, w, h, state, config, data)

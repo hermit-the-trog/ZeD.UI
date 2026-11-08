@@ -1,15 +1,15 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_Watch.lua
 -- ============================================================================
--- THE WATCH (Oct 16 2026) - a physical wristwatch at the top right, drawn as a
--- pixel-art plate by the shared plate template (ZeD_Plate.lua). It replaces the
--- Java clock AND the Java speed controls.
+-- THE WATCH - client organism; a physical wristwatch at the top right, drawn as
+-- a pixel-art plate by the shared plate template (ZeD_Plate.lua). It replaces
+-- the Java clock AND the Java speed controls.
 --
--- Two brands and the expensive one (director's calls, Oct 16 2026):
+-- Two brands and the expensive one:
 --   CaZio  digital (black, gold): ALARM and SET keys on the face, SPEED and
 --          START metal keys below; the thermometer is its perk.
 --          classic (black, gold): hands + a small display; SET, ALARM, SPEED,
 --          START pushers, the crown opens the alarm's setting.
---          LIGHT (Oct 21 2026, director: "a crappy little yellow glowing bulb"):
+--          LIGHT: a small yellow glowing bulb, deliberately cheap-looking;
 --          a pusher high on the left (the digital) or at nine (the classic)
 --          lights a tiny bulb at the display's left edge for W.LIGHT_MS; the
 --          glass goes a little warmer and lighter by it, fading across; the
@@ -25,7 +25,7 @@
 -- art carries a "dark" picture and its live parts carry night colours.
 -- No watch worn: a boom box's tape deck keys set the game speed.
 --
--- ON THE BELT (Oct 19 2026, the "Watch" option, default): the worn watch shows
+-- ON THE BELT (the "Watch" option, default): the worn watch shows
 -- small on the belt (WatchMini.lua, laid out by ZeD_Belt.lua) and this panel
 -- stays tucked away (still parking the Java clock). Its face pops the full
 -- watch up above it, or where the player last dragged it (drag it by any part
@@ -284,8 +284,8 @@ end
 local function _speed() local sc = UIManager.getSpeedControls(); return sc and sc:getCurrentGameSpeed() or 1 end
 local SPEED_BUTTON = { [2] = "Fast Forward x 1", [3] = "Fast Forward x 2", [4] = "Wait" }
 local SPEED_MULT = { [2] = 5, [3] = 20, [4] = 40 }
--- On a server the server sets the time: Start and Speed do nothing there (QA's multiplayer check, Nov 5 2026:
--- the speed keys raised the client's own multiplier and its clock ran ahead of the server's), as the D-pad
+-- On a server the server sets the time: Start and Speed do nothing there (letting them through raised the
+-- client's own multiplier and its clock ran ahead of the server's), as the D-pad
 -- wheel's Game speed (ZeD_DpadWheels: UI_ZeD_Wheel_ServerTime)
 local function _serverTime() return isClient() end
 local function _setSpeed(n)
@@ -410,7 +410,7 @@ function ZeD_Watch:_hitsFrom(des, st, k)
 end
 
 -- ---------------------------------------------------------------------------
--- THE SIMPLE WATCH (the director, Nov 2 2026, punch list 60; ZeDUI/SIMPLE_VERSIONS_PROPOSAL.md): a plain clock box in
+-- THE SIMPLE WATCH (the "Simple watch" setting): a plain clock box in
 -- ZeD's own parts, with the same readings and the same buttons as the watch (their ids go to _act unchanged).
 -- Worn: the time large, the weekday and date, the temperature, the game's speed and the alarm, then Start or Pause,
 -- Speed, Alarm and Set; while setting, the alarm hour with - and + and Done. No watch: the four speed keys.
@@ -638,7 +638,7 @@ function ZeD_Watch:prerender()
     st.bulbNight = st.bulb and st.dark
     _reading(st.display, player, item, speed, self._setOpen, armed, alarmHour)
     -- (an add-on face with bad data logs once and is not drawn, rather than throwing every
-    -- frame on an always-visible prop; code audit Oct 17 2026)
+    -- frame on an always-visible prop)
     local okD, eD = pcall(PLT.draw, self:_canvas(k), des, st, ctx)
     if not okD then ZeD.logOnce("watch plate " .. tostring(def and def.id), eD); return end
     self:_hitsFrom(des, st, k)
