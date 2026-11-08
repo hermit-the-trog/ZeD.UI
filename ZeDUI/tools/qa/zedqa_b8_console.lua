@@ -14,6 +14,7 @@
 -- The error lines deliberately make the game log two Lua errors ("attempted index", "console:1:"): the manifest says expect=.
 -- Manual: typing by keyboard (the text box's own keys, Enter, Up, Down, Tab, Escape), picking and Copy to the clipboard, scrolling,
 -- resizing, dragging, rolling up, the Debug menu entry, the controller (part 2 of the check), sizes, the run WITHOUT -debug, a server.
+-- 3b (Nov 8): typed line drawn by ZeD: short, placeholder, long (scrolls), Home/End/arrows (cursor via Java), click placing the caret.
 -- grep "ZEDQA b8dc"; shots zqa_b8dc_*.png.
 local TAG = "b8dc"
 local function say(s) print("ZEDQA " .. TAG .. " " .. tostring(s)) end
@@ -131,27 +132,124 @@ step(10, function()
     check(#DC.history() == hist0, "6: the same line twice in a row keeps one history entry (" .. hist0 .. " then " .. #DC.history() .. ")")
 end)
 
--- ===== 3b. (Nov 8 QA, Build's 5ac83525) text typed in the input line, beside printed lines: the same size as the F3 lines above it
-step(5, function()
-    DC.run('print("a printed line above the typed one")')
-end)
+-- ===== 3b. (Nov 8 QA, Build's 80d07c55) the typed line is drawn by ZeD in F3; the game's box is keys only (its text alpha 0 by design)
+local LONG = "local longline = 'the quick brown fox jumps over the lazy dog'; for i = 1, 20 do print(i .. longline) end -- 0123456789 ABCDEFGHIJ end"
+local function inp() return DC.win and DC.win.input end
+local function curPos() local ok, c = pcall(function() return inp().javaObject:getCursorPos() end); return ok and c or nil end
+local function setCur(c) pcall(function() inp().javaObject:setCursorPos(c) end) end
+local function typed() local i = inp(); return i and tostring(i:getText() or "") or "" end
+local function geom(tag)
+    local w, i = DC.win, inp()
+    if not (w and i) then return end
+    local ok, ax, ay = pcall(function() return w:getAbsoluteX(), w:getAbsoluteY() end)
+    local fr = w._fieldRect or {}
+    say("3b geom " .. tag .. ": win abs " .. tostring(ax) .. "," .. tostring(ay) .. " size " .. tostring(w:getWidth()) .. "x" .. tostring(w:getHeight())
+        .. "; field " .. tostring(fr.x) .. "," .. tostring(fr.y) .. " " .. tostring(fr.w) .. "x" .. tostring(fr.h)
+        .. "; typeX " .. tostring(w._typeX) .. " cw " .. tostring(w._typeCw) .. " start " .. tostring(w._typeStart)
+        .. "; cursor " .. tostring(curPos()) .. " len " .. #typed() .. "; scale " .. tostring(ZeD.T.scale or (ZeD.T.getScale and ZeD.T.getScale())) .. " F3 px " .. tostring(ZeD.T.fontPx and ZeD.T.fontPx[ZeD.T.fontF3]))
+end
+local function fits() local w = DC.win; return w and w._typeCw and math.max(1, math.floor((((w._fieldRect and w._fieldRect.w) or 0) / w._typeCw))) end
+step(5, function() DC.run('print("a printed line above the typed one")') end)
+-- short text, focused: same size as the printed lines; the caret
 step(20, function()
-    local inp = DC.win and DC.win.input
-    if inp then pcall(function() inp:setText("typed text in the input line GgYy 0123") end) end
-    check(inp ~= nil, "3b: ZeD's input line exists")
+    local i = inp()
+    check(i ~= nil, "3b: ZeD's input line exists")
+    check(i ~= nil and i.zedDrawsText == true, "3b: the box is marked as drawn by ZeD (the game's own text is alpha 0 by design)")
+    if i then pcall(function() i:setText("typed text in the input line GgYy 0123"); i:focus() end) end
 end)
 step(30, function()
-    local inp = DC.win and DC.win.input
-    if inp then
-        local ok, f = pcall(function() return inp.font end)
-        say("3b typed line face " .. tostring(ok and f) .. ", entry px " .. tostring(inp.zedEntryPx) .. ", F3 px " .. tostring(ZeD.T.fontPx and ZeD.T.fontPx[ZeD.T.fontF3]))
-    end
+    check(inp() and inp():isFocused(), "3b: the input line is focused")
+    geom("short")
     shot("typed")
 end)
-step(5, function()
-    local inp = DC.win and DC.win.input
-    if inp then pcall(function() inp:setText("") end) end
+-- placeholder: empty and unfocused
+step(5, function() local i = inp(); if i then pcall(function() i:setText(""); i:unfocus() end) end end)
+step(25, function()
+    check(typed() == "" and not (inp() and inp():isFocused()), "3b: empty and unfocused")
+    geom("placeholder")
+    shot("placeholder")
 end)
+-- empty and focused: no placeholder, a caret
+step(5, function() local i = inp(); if i then pcall(function() i:focus() end) end end)
+step(25, function() geom("empty_focused"); shot("empty_focused") end)
+-- a line longer than the box
+step(5, function() local i = inp(); if i then pcall(function() i:setText(LONG); i:focus() end); setCur(#LONG) end end)
+step(30, function()
+    geom("long_end")
+    local w = DC.win
+    local n = fits()
+    check(#LONG > (n or 0), "3b: the typed line is longer than the box (" .. #LONG .. " chars, about " .. tostring(n) .. " fit)")
+    check(curPos() == #LONG, "3b: the cursor is at the end of the long line (" .. tostring(curPos()) .. ")")
+    check((w._typeStart or 0) > 0, "3b: the long line scrolled (first drawn char " .. tostring(w._typeStart) .. ")")
+    check(curPos() ~= nil and curPos() >= (w._typeStart or 0), "3b: the caret is in view at the end")
+    shot("long_end")
+    setCur(0)
+end)
+-- Home
+step(25, function()
+    geom("home")
+    check(curPos() == 0, "3b: Home puts the cursor at 0")
+    check((DC.win._typeStart or 0) == 0, "3b: and the line scrolled back to its start")
+    shot("home")
+    setCur(#LONG)
+end)
+-- End
+step(25, function()
+    geom("end")
+    check(curPos() == #LONG, "3b: End puts the cursor at the end")
+    check((DC.win._typeStart or 0) > 0, "3b: and the line scrolled to show it")
+    shot("end")
+    local c = curPos() or 0
+    for _ = 1, 3 do c = c - 1; setCur(c) end
+end)
+-- arrows: left three, then keep going left to walk past the left edge of the view
+step(20, function()
+    geom("left3")
+    check(curPos() == #LONG - 3, "3b: Left x3 from the end gives " .. (#LONG - 3) .. " (" .. tostring(curPos()) .. ")")
+    local n = fits() or 40
+    setCur(math.max(0, #LONG - n - 15))
+end)
+step(25, function()
+    local w, c = DC.win, curPos()
+    geom("left_far")
+    check(c ~= nil and c >= (w._typeStart or 0), "3b: walking left, the caret stays in view (cursor " .. tostring(c) .. ", first drawn char " .. tostring(w._typeStart) .. ")")
+    shot("left_far")
+    setCur((c or 0) + 1)
+end)
+step(20, function()
+    check(curPos() ~= nil, "3b: Right moves the cursor (" .. tostring(curPos()) .. ")")
+    geom("right1")
+    setCur(0)
+end)
+-- a click in the middle of the visible line
+step(25, function()
+    local w = DC.win
+    local fr, tx, cw = w._fieldRect, w._typeX, w._typeCw
+    if not (fr and tx and cw) then check(false, "3b: click: no geometry"); return end
+    local want = (w._typeStart or 0) + 12
+    local cx, cy = tx + 12 * cw + cw * 0.2, fr.y + fr.h / 2
+    w._qaWant = want
+    inp():unfocus()
+    local ok, e = pcall(w.onMouseDown, w, cx, cy)
+    say("3b click at " .. cx .. "," .. cy .. " ok " .. tostring(ok) .. " " .. (ok and "" or tostring(e)))
+end)
+step(25, function()
+    local w = DC.win
+    geom("click")
+    check(inp():isFocused(), "3b: a click in the line focuses it")
+    check(curPos() == w._qaWant, "3b: the click put the cursor at column " .. tostring(w._qaWant) .. " (" .. tostring(curPos()) .. ")")
+    shot("click")
+    -- a click past the end of a short line puts the cursor at its end
+    pcall(function() inp():setText("short"); end)
+    local fr = w._fieldRect
+    pcall(w.onMouseDown, w, fr.x + fr.w - 4, fr.y + fr.h / 2)
+end)
+step(20, function()
+    check(curPos() == 5, "3b: a click past the end of a short line puts the cursor at its end (" .. tostring(curPos()) .. ")")
+    shot("click_end")
+    pcall(function() inp():setText(""); inp():unfocus() end)
+end)
+
 
 -- ===== 4 / 5. errors
 step(5, function()
