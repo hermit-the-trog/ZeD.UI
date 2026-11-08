@@ -5753,5 +5753,8 @@
     "UI_ZeD_Console_NotAllowed": "Este servidor não deixa você executar Lua",
     "UI_ZeD_Console_PadOlder": "Anterior",
     "UI_ZeD_Console_PadNewer": "Próxima",
-    "UI_ZeD_Console_WheelDetail": "Executar Lua, ler a saída e os erros"
+    "UI_ZeD_Console_WheelDetail": "Executar Lua, ler a saída e os erros",
+    "UI_ZeD_Settings_ScreenConsole": "Modo seguro: Console Lua",
+    "UI_ZeD_Settings_ScreenConsoleTip": "Ligado: Console Lua, o resto do ZeD-GUI mantido.",
+    "UI_ZeD_Options_UnderScreenConsole": "Console Lua"
 }

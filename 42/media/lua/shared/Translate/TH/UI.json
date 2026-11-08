@@ -5753,5 +5753,8 @@
     "UI_ZeD_Console_NotAllowed": "เซิร์ฟเวอร์นี้ไม่อนุญาตให้คุณรัน Lua",
     "UI_ZeD_Console_PadOlder": "เก่ากว่า",
     "UI_ZeD_Console_PadNewer": "ใหม่กว่า",
-    "UI_ZeD_Console_WheelDetail": "รัน Lua อ่านผลลัพธ์และข้อผิดพลาด"
+    "UI_ZeD_Console_WheelDetail": "รัน Lua อ่านผลลัพธ์และข้อผิดพลาด",
+    "UI_ZeD_Settings_ScreenConsole": "โหมดปลอดภัย: คอนโซล Lua",
+    "UI_ZeD_Settings_ScreenConsoleTip": "เปิด: คอนโซล Lua ส่วนอื่นของ ZeD-GUI คงไว้",
+    "UI_ZeD_Options_UnderScreenConsole": "คอนโซล Lua"
 }

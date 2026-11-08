@@ -5753,5 +5753,8 @@
     "UI_ZeD_Console_NotAllowed": "This server does not let you run Lua",
     "UI_ZeD_Console_PadOlder": "Older",
     "UI_ZeD_Console_PadNewer": "Newer",
-    "UI_ZeD_Console_WheelDetail": "Run Lua, read the output and errors"
+    "UI_ZeD_Console_WheelDetail": "Run Lua, read the output and errors",
+    "UI_ZeD_Settings_ScreenConsole": "Safe mode: Lua console",
+    "UI_ZeD_Settings_ScreenConsoleTip": "On: the game's own Lua console (debug mode only), the rest of ZeD-GUI kept.",
+    "UI_ZeD_Options_UnderScreenConsole": "The game's own Lua console"
 }

@@ -5753,5 +5753,8 @@
     "UI_ZeD_Console_NotAllowed": "이 서버에서는 Lua를 실행할 수 없습니다",
     "UI_ZeD_Console_PadOlder": "이전",
     "UI_ZeD_Console_PadNewer": "다음",
-    "UI_ZeD_Console_WheelDetail": "Lua 실행, 출력과 오류 보기"
+    "UI_ZeD_Console_WheelDetail": "Lua 실행, 출력과 오류 보기",
+    "UI_ZeD_Settings_ScreenConsole": "안전 모드: Lua 콘솔",
+    "UI_ZeD_Settings_ScreenConsoleTip": "켜짐: Lua 콘솔, ZeD-GUI의 나머지는 유지.",
+    "UI_ZeD_Options_UnderScreenConsole": "Lua 콘솔"
 }

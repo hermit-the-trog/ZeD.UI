@@ -5753,5 +5753,8 @@
     "UI_ZeD_Console_NotAllowed": "Tento server vám nedovolí spouštět Lua",
     "UI_ZeD_Console_PadOlder": "Starší",
     "UI_ZeD_Console_PadNewer": "Novější",
-    "UI_ZeD_Console_WheelDetail": "Spouštět Lua, číst výstup a chyby"
+    "UI_ZeD_Console_WheelDetail": "Spouštět Lua, číst výstup a chyby",
+    "UI_ZeD_Settings_ScreenConsole": "Bezpečný režim: Konzole Lua",
+    "UI_ZeD_Settings_ScreenConsoleTip": "Zap: Konzole Lua, zbytek ZeD-GUI zůstává.",
+    "UI_ZeD_Options_UnderScreenConsole": "Konzole Lua"
 }

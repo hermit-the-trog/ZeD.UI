@@ -5753,5 +5753,8 @@
     "UI_ZeD_Console_NotAllowed": "Ez a szerver nem engedi, hogy Luát futtass",
     "UI_ZeD_Console_PadOlder": "Régebbi",
     "UI_ZeD_Console_PadNewer": "Újabb",
-    "UI_ZeD_Console_WheelDetail": "Lua futtatása, a kimenet és a hibák olvasása"
+    "UI_ZeD_Console_WheelDetail": "Lua futtatása, a kimenet és a hibák olvasása",
+    "UI_ZeD_Settings_ScreenConsole": "Biztonságos mód: Lua-konzol",
+    "UI_ZeD_Settings_ScreenConsoleTip": "Be: Lua-konzol, a ZeD-GUI többi része megmarad.",
+    "UI_ZeD_Options_UnderScreenConsole": "Lua-konzol"
 }

@@ -5753,5 +5753,8 @@
     "UI_ZeD_Console_NotAllowed": "Ce serveur ne vous laisse pas exécuter de Lua",
     "UI_ZeD_Console_PadOlder": "Plus ancienne",
     "UI_ZeD_Console_PadNewer": "Plus récente",
-    "UI_ZeD_Console_WheelDetail": "Exécuter du Lua, lire la sortie et les erreurs"
+    "UI_ZeD_Console_WheelDetail": "Exécuter du Lua, lire la sortie et les erreurs",
+    "UI_ZeD_Settings_ScreenConsole": "Mode sans échec : Console Lua",
+    "UI_ZeD_Settings_ScreenConsoleTip": "Activé : Console Lua, le reste de ZeD-GUI gardé.",
+    "UI_ZeD_Options_UnderScreenConsole": "Console Lua"
 }

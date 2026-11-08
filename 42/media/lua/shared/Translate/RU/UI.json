@@ -5753,5 +5753,8 @@
     "UI_ZeD_Console_NotAllowed": "Этот сервер не позволяет вам выполнять Lua",
     "UI_ZeD_Console_PadOlder": "Раньше",
     "UI_ZeD_Console_PadNewer": "Позже",
-    "UI_ZeD_Console_WheelDetail": "Выполнять Lua, читать вывод и ошибки"
+    "UI_ZeD_Console_WheelDetail": "Выполнять Lua, читать вывод и ошибки",
+    "UI_ZeD_Settings_ScreenConsole": "Безопасный режим: Консоль Lua",
+    "UI_ZeD_Settings_ScreenConsoleTip": "Вкл.: Консоль Lua, остальное в ZeD-GUI остаётся.",
+    "UI_ZeD_Options_UnderScreenConsole": "Консоль Lua"
 }

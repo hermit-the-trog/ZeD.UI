@@ -5753,5 +5753,8 @@
     "UI_ZeD_Console_NotAllowed": "Denne serveren lar deg ikke kjøre Lua",
     "UI_ZeD_Console_PadOlder": "Eldre",
     "UI_ZeD_Console_PadNewer": "Nyere",
-    "UI_ZeD_Console_WheelDetail": "Kjør Lua, les utdata og feil"
+    "UI_ZeD_Console_WheelDetail": "Kjør Lua, les utdata og feil",
+    "UI_ZeD_Settings_ScreenConsole": "Sikker modus: Lua-konsoll",
+    "UI_ZeD_Settings_ScreenConsoleTip": "På: Lua-konsoll, resten av ZeD-GUI beholdt.",
+    "UI_ZeD_Options_UnderScreenConsole": "Lua-konsoll"
 }
