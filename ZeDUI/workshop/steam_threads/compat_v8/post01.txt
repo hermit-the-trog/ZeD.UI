@@ -1,0 +1,41 @@
+[h2]⭐ Works well with ZeD[/h2]
+🍎 Retested Nov 8 2026 on macOS (Apple M4 Pro, 1920x1080, UI scale auto), Project Zomboid 42.21, ZeD-GUI 0.3.0-beta8, single player. ✔ after a mod = on this Mac it loaded with its group (12 to 50 mods at once, ZeD-GUI last), showed no errors of its own beyond any listed here, and every Character and World tab, the pause menu and Options opened. 🚗✔ = a car from the pack was spawned and ZeD's dashboard showed with the driver seated. No mark = not retested on this Mac.
+These fill a gap or show well in ZeD's windows. ZeD-GUI has no code of its own for them.
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3392699932]Auto Loot[/url] by Tchernobill: Its Auto Loot switch and Store All are buttons in the footer of ZeD's Inventory window, and its rows are in ZeD's item and container menus. ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3387539308]Auto Mechanics[/url] by Tchernobill: Train mechanics, Uninstall all and Continue are in the part menu of ZeD's Vehicle tab (X or right-click on a part). [i](by reading its code)[/i] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3635856965]Better Auto Mechanics [B42.20.4+ MP+SP][/url]: Its part actions are in the part menu of ZeD's Vehicle tab, and its mechanics window is the game's, which opens ZeD's Vehicle tab. [i](by reading its code)[/i] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3387957272]Detailed Descriptions for Occupations and Traits[/url] by Jetmax937: Its longer trait and occupation texts show on ZeD's Traits screen and, from 0.2.0-t6, on hover in the Identity tab. ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3617732907]Inspect Items Framework[/url]: Its Inspect item row is in ZeD's item menu, and its inspect window opens clear of ZeD's windows. ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2650547917]Manage Containers[/url] by Jeff: Its container rules run from the container buttons in ZeD's windows. ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3389003300][B42] Moodle Descriptions Expanded[/url]: Its longer moodle texts, with the numbers, are what ZeD's moodle notes show. ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=515555911]More Builds[/url]: Its build window opens from its row in ZeD's world menu and works beside ZeD's windows. ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3776531193]Palm Pilot[/url]: Its Palm Pilot screen opens beside ZeD's windows. ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3772979228][B42.20] Plain Moodles Redone[/url]: Its plain icons and level bars show in ZeD's moodle column at the right edge; above the belt, its icons without the bars. ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3470659758]The Shortcut[/url] by Rocco: Its shortcut bar sits just above ZeD's belt. ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2757712197]Vehicle Repair Overhaul[/url] by hehehemann: Its repairs (heater, lightbar, engine rebuild) are in the part menu of ZeD's Vehicle tab. [i](by reading its code)[/i] ✔
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3628835042]Workshop Update Checker[/url]: Its Mod Updates button shows at the bottom right of ZeD's main menu. ✔
+[/list]
+
+[h2]🧪 How the mods were tested[/h2]
+[list]
+[*]Project Zomboid 42.21 (42.22 from Oct 29), single player, ZeD-GUI loaded after the other mods. Every error in the game's log was checked for the mod that made it, with ZeD-GUI off as well when it might be ZeD's.
+[*]Oct 24 2026, ZeD-GUI 0.2.0-t3 and t4, a 1920x1080 window: 124 Workshop items (128 mods) on at once, then ZeD-GUI's own tests; 62 of the 66 that ran passed as they do without other mods.
+[*]Oct 25 2026, ZeD-GUI 0.2.0-t5, 3840x2160 at UI scale 1.75: 48 more mods on at once with ZeD-GUI's whole test run, and 37 vehicle packs, their cars spawned and driven one by one.
+[*]Oct 26 2026, ZeD-GUI 0.2.0-t6, 3840x2160: each mod ZeD-GUI supports, on by itself, with ZeD-GUI's tests for that support. Then 302 more mods in eight groups of 26 to 42, each group on at once with ZeD-GUI's tests for the screens it touches; the group's own windows opened, the item tooltip compared with and without ZeD-GUI, and new vehicle packs driven. Last, ZeD-GUI's whole test run with that round's Compatible and Works well mods, about 150 at a time.
+[*]Oct 29 2026, ZeD-GUI 0.2.0-t11, 3840x2160 at UI scale 1.75: 34 popular Build 42 mods not yet on the list were picked, and the first of them tested in groups, each group on at once with ZeD-GUI's tests for every window, the item menu, the controller, the dashboard, the map and the moodles. The seven mods that ZeD-GUI 0.2.0-t11 supports were each tested with a check of that support in ZeD's windows.
+[*]Nov 2 2026, ZeD-GUI 0.2.0-t15, 3840x2160: the rest of those mods, 20 on at once with the same tests, and the main menu walked through Mods, Options, Spawn, Sandbox, Traits and Looks.
+[*]Nov 2 2026, ZeD-GUI 0.2.0-t15: nine more mods from the Workshop's trending Build 42 lists since Oct 29, on at once with the same tests, twice.
+[*]Each mod's own features were [b]not[/b] tried one by one. A note marked [i](expected)[/i] comes from how the mod works, and one marked [i](by reading its code)[/i] from its code, not from a test.
+[/list]
+
+[h2]🧰 Help in ZeD-GUI for long mod lists[/h2]
+[list]
+[*]Notes and errors other mods show at game start go into ZeD-GUI's Messages window instead of covering the game.
+[*]In Mods, a mod's About tab says what turning it off does to a save. In a save's own mod list, turning off a mod that is not safe asks first.
+[*]When two mods ship the same code file, the Conflicts tab can pick whose copy the game runs, file by file (single player).
+[*]From 0.2.0-t15 the load order has Find, Load first and Load last, and Load after... and Load before... rules that Auto keeps; separators name and fold a block of mods. The Mods page has folders, shared with [B42]Mod Folders.
+[/list]
+
+[h2]📝 To add a mod to the list[/h2]
+Reply with the mod's name, its Workshop link, the ZeD-GUI version, and what happened: it works, part of it does not show (say which), or it does not work. For an error, the Bug reports thread says what to include.
