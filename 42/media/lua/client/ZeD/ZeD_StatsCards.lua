@@ -13,8 +13,9 @@
 -- CanModifyPlayerStatsInThePlayerStatsUI and the player is in the world with a role no higher than yours
 -- (ISPlayerStatsUI:updateButtons, canModifyThis). On top, the capability the game's packet asks for, so a press the server
 -- would drop is grayed with its reason: warning points and a new log AddUserlog, a log taken off WorkWithUserlog, reading
--- the logs ReadUserLog, XP and traits AddXP (the /addxp command) beside the window's own, the role ManipulateWhitelist (the
--- window's), the inventory InspectPlayerInventory.
+-- the logs ReadUserLog, XP AddXP (the /addxp command) beside the window's own, the role ManipulateWhitelist (the
+-- window's), the inventory InspectPlayerInventory. Traits need only the window's own: SyncXp's packet (PlayerXp) asks for
+-- CanModifyPlayerStatsInThePlayerStatsUI, the same capability.
 --
 -- The game's IsoPlayer is read into a plain table once a second (SC.read); the card draws that table. A player this client
 -- has not loaded has no stats to show, as the game's window cannot open on them: the card says so and keeps the logs.

@@ -227,7 +227,7 @@ end
 function ZeD_ControllerMap:onGainJoypadFocus(jd) self.joyfocus = jd end
 function ZeD_ControllerMap:onLoseJoypadFocus() self.joyfocus = nil end
 function ZeD_ControllerMap:onJoypadDown(button)
-    if button == Joypad.BButton or button == Joypad.AButton then self:close() end
+    if button == Joypad.BButton then self:close() end   -- (B only, as the foot says: A has no job here; Nov 8 2026)
 end
 function ZeD_ControllerMap:onJoypadDirUp() self:scrollBy(-ZeD.T.px(STEP_U)) end
 function ZeD_ControllerMap:onJoypadDirDown() self:scrollBy(ZeD.T.px(STEP_U)) end
