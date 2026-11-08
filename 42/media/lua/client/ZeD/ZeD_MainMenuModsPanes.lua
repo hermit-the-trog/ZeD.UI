@@ -645,7 +645,7 @@ function ZeD_MMMods:leavePicks()
     MM.clickSound()
 end
 
--- the draft differs from what is kept
+--- The draft differs from what is kept.
 function ZeD_MMMods:picksChanged()
     for _, path in ipairs(self.pickFiles or {}) do
         if self.pickDraft[path] ~= P.pickOf(path) then return true end
@@ -670,7 +670,7 @@ function ZeD_MMMods:afterPicks()
     self:dirty()
 end
 
--- ZeD picks loads after every other mod (its copies must win)
+--- ZeD picks loads after every other mod (its copies must win).
 function ZeD_MMMods:helperLast()
     local m = model()
     if not m then return end
@@ -696,7 +696,7 @@ function ZeD_MMMods:usePicks()
     if n > 0 and e then self:say(ZeD.tr("UI_ZeD_Mods_SayPicksKept", n)) end
 end
 
--- the picker's two columns
+--- The picker page's two columns: the shared files, then the chosen file's copies side by side.
 function ZeD_MMMods:drawPicker(x, y, w, h)
     local T = ZeD.T
     local e = self.pickFor
@@ -737,7 +737,7 @@ function ZeD_MMMods:drawPickFiles(x, y, w, h)
             local file = path:match("([^/]+)$") or path
             local dir = path:match("^media/lua/(.*)/[^/]+$") or ""
             local from = self.pickDraft[path]
-            -- the copy in use as a tag (spec 9): an outline, a green square when it was picked
+            -- the copy in use as a tag: an outline, a green square when it was picked
             local chipText = from and ZeD.tr("UI_ZeD_Mods_PickChipPicked", MS.modName(from)) or MS.modName(e.winner)
             local mark = from and T.positive or nil
             local extra = T.px(10) + (mark and T.px(10) or 0)
@@ -884,7 +884,7 @@ function ZeD_MMMods:drawCode(x, y, w, h, title, lines)
     self:clearStencilRect()
 end
 
--- the picker's band: how many files are picked, Cancel and Use picks
+--- The picker's band: how many files are picked, Cancel and Use picks.
 function ZeD_MMMods:pickStrip(stripY, w, row)
     local n = 0
     for _, p in ipairs(self.pickFiles or {}) do if self.pickDraft[p] then n = n + 1 end end
@@ -947,7 +947,7 @@ function ZeD_MMMods:drawTurnOff(d, ix, iw, cy, vy, vh)
     return cy + T.px(6)
 end
 
--- in a save's own list, turning off a mod that is not safe asks first (the band)
+--- In a save's own list, turning off a mod that is not safe asks first (the band).
 function ZeD_MMMods:askTurnOff(d)
     local m = model()
     if not (m and m.loadGameFolder and d and d.isActive) then return false end
@@ -959,7 +959,7 @@ function ZeD_MMMods:askTurnOff(d)
     return true
 end
 
--- Cancel (the controller lands here) and Turn off; the question names the mod and the save
+--- Cancel (the controller lands here) and Turn off; the question names the mod and the save.
 function ZeD_MMMods:turnOffStrip(stripY, w, row)
     local d = self._offFor
     local key = (self._offGrade == "unsafe") and "UI_ZeD_Mods_AskOffUnsafe" or ((self._offGrade == "unchecked") and "UI_ZeD_Mods_AskOffUnchecked" or "UI_ZeD_Mods_AskOffCareful")
