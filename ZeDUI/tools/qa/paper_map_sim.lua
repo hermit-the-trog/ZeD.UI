@@ -213,6 +213,7 @@ ZeD.T = { px = function(n) return n end, hair = 1 }
 ZeD.Molecules = { buttonW = function(text) return 10 * #text end }
 local SAFE = false
 ZeD.Safe = { on = function() return SAFE end }
+ZeD.windowsFor = function(pn) return pn == nil or pn == 0 end   -- (Atoms.lua: split-screen, the first player's windows)
 LOADED["ZeD/SafeMode"] = true
 
 -- ZeD's map window (MapsTab.lua's openPopout / closePopout, as far as the piece leans on them)

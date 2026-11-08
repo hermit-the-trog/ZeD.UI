@@ -326,7 +326,10 @@ end
 
 -- APPLY, UNDO, HISTORY --------------------------------------------------------------
 
+-- (on a server the History is this session's: a client's global ModData is not the server's save)
+local SERVER_HIST = {}
 local function history()
+    if MM.pauseSandbox and MM.pauseSandbox.server then return SERVER_HIST end
     local md = ModData.getOrCreate(MD_KEY)
     md.entries = md.entries or {}
     return md.entries
@@ -345,11 +348,18 @@ local function stampText(s)
     return ZeD.tr("UI_ZeD_Sbx_HistWhen", (mon and ZeD.tr(mon) or "") .. " " .. tostring(s.d or 1) .. ", " .. tostring(s.y or ""), clock)
 end
 
--- sets every changed option on the game's own options, as the admin editor does
+-- sets every changed option on the game's own options, as the admin editor does. On a server (self.server: opened from
+-- the Admin tab's More tools, C11) the changes go on a copy of the game's options and that copy goes to the server, as
+-- ISServerSandboxOptionsUI:onButtonApply sends it; the server sets them and sends them back to every client
 function ZeD_MMSandboxIG:applyNow()
     self:commitCell()
     self:refreshDiff(true)
     local opts = so()
+    if self.server then
+        local copy = SandboxOptions.new()
+        copy:copyValuesFrom(opts)
+        opts = copy
+    end
     local rows, dayLength = {}, false
     for _, r in ipairs(self:allRows()) do
         if self.diff[r.name] then
@@ -365,23 +375,40 @@ function ZeD_MMSandboxIG:applyNow()
         end
     end
     if #rows == 0 then self.confirm = false; return end
-    pcall(function() opts:toLua() end)
-    if dayLength then pcall(function() getGameTime():setMinutesPerDay(opts:getDayLengthMinutes()) end) end
+    if self.server then
+        local ok, err = pcall(function() opts:sendToServer() end)
+        if not ok then
+            ZeD.logOnce("sandbox: send to the server", err)
+            self.confirm = false
+            return
+        end
+        if self.serverSent then pcall(self.serverSent, rows) end   -- (QA)
+        -- (the client's own copy arrives back from the server: the window reads it when it next opens)
+    else
+        pcall(function() opts:toLua() end)
+    end
+    if dayLength and not self.server then pcall(function() getGameTime():setMinutesPerDay(opts:getDayLengthMinutes()) end) end
     -- the loot tables read the removal list and mods' settings (vanilla's admin editor does both)
     pcall(function() IsoWorld.parseDistributions() end)
     pcall(function() StoryClutter.Init() end)
     -- the Loot Rarity numbers are copied into the loot picker once, at world load (only IsoWorld
-    -- calls this): without it they would wait for the next load
-    pcall(function() ItemPickerJava.InitSandboxLootSettings() end)
+    -- calls this): without it they would wait for the next load (a single player's world only: on a
+    -- server the loot is the server's)
+    if not self.server then pcall(function() ItemPickerJava.InitSandboxLootSettings() end) end
     local h = history()
     h[#h + 1] = { at = stamp(), rows = rows }
     while #h > HIST_MAX do table.remove(h, 1) end
-    print("[ZeD] Sandbox in game: applied " .. #rows .. " change(s)")
+    print("[ZeD] Sandbox in game: " .. (self.server and "sent to the server " or "applied ") .. #rows .. " change(s)")
     if self.onApplied then pcall(self.onApplied, rows) end   -- (QA)
-    self:load()
+    if self.server then
+        -- the server's answer is the game's own copy: until it comes, the rows keep what was sent, the base moves to it
+        for _, r in ipairs(rows) do self.base[r.n] = r.to end
+    else
+        self:load()
+    end
     self:refreshDiff(true)
     self.confirm = false
-    self._note, self._noteAt = ZeD.tr("UI_ZeD_Sbx_Applied", count(#rows)), MM.now()
+    self._note, self._noteAt = ZeD.tr(self.server and "UI_ZeD_Sbx_SentServer" or "UI_ZeD_Sbx_Applied", count(#rows)), MM.now()
     MM.clickSound()
 end
 
@@ -430,7 +457,7 @@ function ZeD_MMSandboxIG:historyRows()
             end
         end
     end
-    if #out == 0 then out[1] = { kind = "note", text = ZeD.tr("UI_ZeD_Sbx_HistNone") } end
+    if #out == 0 then out[1] = { kind = "note", text = ZeD.tr(self.server and "UI_ZeD_Sbx_HistServer" or "UI_ZeD_Sbx_HistNone") } end
     return out
 end
 
@@ -457,6 +484,11 @@ function ZeD_MMSandboxIG:finish()
     self:endCell()
     self.confirm = false
     MM.pauseView = "pause"
+    -- (opened from the Admin tab on a server: Close goes back to the game, where the tab is)
+    if self.server then
+        self.server = false
+        if MM.act and MM.act.resume then pcall(MM.act.resume) end
+    end
 end
 
 -- Close: changes not applied ask first
@@ -496,7 +528,7 @@ function ZeD_MMSandboxIG:buildStrip(stripY, stripH, w)
             local k = N.risk(name)
             if k == "undo" then undo = undo + 1 elseif k == "care" then care = care + 1 end
         end
-        local ask = ZeD.tr("UI_ZeD_Sbx_AskApply", count(n))
+        local ask = ZeD.tr(self.server and "UI_ZeD_Sbx_AskServer" or "UI_ZeD_Sbx_AskApply", count(n))
         if undo > 0 then ask = ask .. " " .. ZeD.tr("UI_ZeD_Sbx_AskUndoN", tostring(undo))
         elseif care > 0 then ask = ask .. " " .. ZeD.tr("UI_ZeD_Sbx_AskCareN", tostring(care)) end
         UI.stripSpecs(self, stripY, w, row, {}, {
@@ -536,7 +568,7 @@ function ZeD_MMSandboxIG:prerender()
     local page = pages[self.pageIdx]
     local q = string.lower(tostring(self.find:getInternalText() or ""))
     self.title = ZeD.tr("UI_ZeD_Sandbox_Title")
-    local stat = ZeD.tr("UI_ZeD_Sbx_StatSave")
+    local stat = ZeD.tr(self.server and "UI_ZeD_Sbx_StatServer" or "UI_ZeD_Sbx_StatSave")
     if self.nDiff > 0 then stat = ZeD.tr("UI_ZeD_Sbx_StatChanged", tostring(self.nDiff)) end
     self.titleStats = { { text = stat, noMark = true } }
     ZeD_Window.prerender(self)
@@ -844,4 +876,33 @@ function MM.openSandboxIG()
     MM.pauseSandbox:onShow()
 end
 
-ZeD.SandboxIG = { history = history, stampText = stampText }   -- (QA)
+-- THE SERVER'S OPTIONS (C11: the Admin tab's More tools > Sandbox options, in place of ISServerSandboxOptionsUI). The same
+-- window over the pause screen, its Apply sending to the server. The role's SandboxOptions capability gates the tool's row.
+-- The pause screen opens first if it isn't up (as the D-pad wheels' Options does), and the window a few frames later.
+function MM.openSandboxServer()
+    if not isClient() then return false end
+    local function show()
+        local m = MainScreen and MainScreen.instance
+        if not (m and m.inGame and MM.pauseSandbox) then return false end
+        MM.ctx.open = nil
+        MM.pauseSandbox.server = true
+        MM.pauseView = "sandbox"
+        MM.pauseSandbox:onShow()
+        return true
+    end
+    local m = MainScreen and MainScreen.instance
+    if m and m:isVisible() then return show() end
+    local ok = pcall(function() ToggleEscapeMenu(getCore():getKey(KeybindId.MAIN_MENU)) end)
+    if not ok then return false end
+    local n = 0
+    local function tick()
+        n = n + 1
+        if n < 3 then return end
+        Events.OnTick.Remove(tick)
+        show()
+    end
+    Events.OnTick.Add(tick)
+    return true
+end
+
+ZeD.SandboxIG = { history = history, stampText = stampText, openServer = function() return MM.openSandboxServer() end }   -- (QA; the Admin tab)

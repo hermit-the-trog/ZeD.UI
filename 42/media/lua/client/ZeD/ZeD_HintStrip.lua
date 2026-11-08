@@ -204,8 +204,8 @@ function ZeD_HintStripHUD:prerender()
     local h = G.stripH()
     local x = getPlayerScreenLeft(pn) + math.floor((getPlayerScreenWidth(pn) - w) / 2)
     local y = getPlayerScreenTop(pn) + getPlayerScreenHeight(pn) - h - T.px(16)
-    local belt = ZeD.Belt and ZeD.Belt.getHUD and ZeD.Belt.getHUD()
-    if belt and belt._drawn and belt:getIsVisible() and pn == 0 then y = belt:getY() - h - T.px(6) end
+    local belt = ZeD.Belt and ZeD.Belt.getHUD and ZeD.Belt.getHUD(pn)
+    if belt and belt._drawn and belt:getIsVisible() then y = belt:getY() - h - T.px(6) end
     if self:getX() ~= x then self:setX(x) end
     if self:getY() ~= y then self:setY(y) end
     if self:getWidth() ~= w then self:setWidth(w) end

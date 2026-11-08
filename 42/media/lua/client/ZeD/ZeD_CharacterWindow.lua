@@ -3761,7 +3761,8 @@ end
 if ISButtonPrompt then
     local _vanillaOnYPress = ISButtonPrompt.onYPress
     ISButtonPrompt.onYPress = function(self)
-        if _vanillaOnYPress and ZeD.Safe.on("windows") then return _vanillaOnYPress(self) end
+        -- (and for split-screen's other players, whose pads FocusManager does not read: the game's inventory, ZeD.windowsFor)
+    if _vanillaOnYPress and (ZeD.Safe.on("windows") or not ZeD.windowsFor(self.player)) then return _vanillaOnYPress(self) end
     end
 end
 
@@ -3782,6 +3783,7 @@ end
 
 -- The window open on a tab (a ticket note's Open key), as ZeD_WorldWindow.openTab does for its side
 function ZeD_CharacterWindow.openTab(playerNum, tabId)
+    if not ZeD.windowsFor(playerNum) then return false end   -- (split-screen: the game's own, ZeD.windowsFor)
     if not _charWin then
         local ok = pcall(ZeD_CharacterWindow.toggle, playerNum or 0)
         if not ok then return false end
@@ -3823,6 +3825,8 @@ end
 
 function ZeD_CharacterWindow.toggle(playerNum)
     playerNum = playerNum or 0
+    -- (split-screen: another player's press never opens or closes the first player's window, ZeD.windowsFor)
+    if not ZeD.windowsFor(playerNum) then return end
 
     if _charWin then
         saveCharState(_charWin)
@@ -3878,6 +3882,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     end
     win.minimumHeight = T.px(220)
     win._maxWinW = maxWinW
+    win.playerNum = playerNum   -- (read as `win.playerNum or 0` by the doll, the equipment tab, the roll-up)
     _charWin = win
     _hideVanilla()
 
@@ -6851,14 +6856,21 @@ end
 --   One open        → open the missing one
 function ZeD_CharacterWindow.toggleBothPaired(playerNum)
     playerNum = playerNum or 0
+    if not ZeD.windowsFor(playerNum) then return end   -- (split-screen: the game's own, ZeD.windowsFor)
     if not getSpecificPlayer(playerNum) then return end
     -- (never for a dead character: the windows reopen for the next one; code audit Oct 17 2026)
     if getSpecificPlayer(playerNum):isDead() then return end
-    if getGameSpeed() <= 0 then return end
     if not getPlayerInventory(playerNum) then return end
     if tostring(getCore():getGameMode()) == "Tutorial" then return end
     -- safe mode: the game's own inventory answers (its key handler, its Y prompt)
     if ZeD.Safe.on("windows") then return end
+    -- paused (the director, Nov 7 2026, vanilla windows B14): the Character window alone, to look at; its
+    -- actions wait for the game to play again (ZeD_PausedLook.lua). It used to step aside to the game's own.
+    if getGameSpeed() <= 0 then
+        if ZeD_CharacterWindow.isOpen() then ZeD_CharacterWindow.toggle(playerNum)
+        else _openOrStepAside(ZeD_CharacterWindow.toggle, playerNum, "the Character window failed to open") end
+        return
+    end
 
     local charOpen  = ZeD_CharacterWindow.isOpen()
     local worldOpen = ZeD_WorldWindow.isOpen()
@@ -6886,6 +6898,7 @@ end
 function ZeD_CharacterWindow.ensureBothOpenForGamepad(playerNum)
     playerNum = playerNum or 0
     if ZeD.Input and ZeD.Input.Focus and ZeD.Input.Focus.held and ZeD.Input.Focus.held() then return end   -- (the join screen)
+    if not ZeD.windowsFor(playerNum) then return end   -- (split-screen: the game's own, ZeD.windowsFor)
     if not getSpecificPlayer(playerNum) then return end
     if getSpecificPlayer(playerNum):isDead() then return end
     if getGameSpeed() <= 0 then return end

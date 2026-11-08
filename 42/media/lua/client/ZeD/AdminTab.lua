@@ -12,10 +12,14 @@
 --   ROLES, BANS, SPAWN ITEMS   a row each, opening their cards
 --   RULES AND NEWS  a row that opens its card (ZeD_CommunityCards.lua), on a server with that part
 --   SERVER EXTRAS  a row that opens its card (ZeD_ExtrasCards.lua)
+--   USERS          a row that opens the users card: accounts, passwords, the whitelist (ZeD_AdminUsers.lua)
 --   SAFEHOUSES     every safehouse and FACTIONS every faction. The Server tab's cards (ZeD_ClaimCards.lua) hold only your
---                  own, so staff see everyone else's here: pick one to open it in the game's own window. Your own opens its
---                  card
---   MORE TOOLS     the game's remaining windows
+--                  own, so staff see everyone else's here: pick one to open its staff card on this tab (osafe, ofac). Your
+--                  own opens its card in the Server tab
+--   MORE TOOLS     the remaining tools: ZeD's cards (statistics, PvP log, climate, zones, server sandbox options), Check
+--                  your stats (the stats card, ZeD_StatsCards.lua) and the game's own server options window
+-- A.openNext(what) opens this tab from elsewhere (the right-click View safehouse and Check stats, chat, a ticket) and its
+-- next frame opens that card.
 -- The list's parts above Safehouses and every card are in ZeD_AdminCards.lua. A control this role cannot use stays on
 -- the list, gray, and the help band says the capability it needs and the role that has it.
 -- ============================================================================
@@ -32,6 +36,11 @@ require "ZeD/ZeD_AdminCards"
 require "ZeD/ZeD_ExtrasCards"
 require "ZeD/ZeD_LogCards"
 require "ZeD/ZeD_CommunityCards"
+require "ZeD/ZeD_ClaimCards"
+require "ZeD/ZeD_StatsCards"
+require "ZeD/ZeD_AdminUsers"
+require "ZeD/ZeD_AdminTools"
+require "ZeD/ZeD_AdminZones"
 
 ZeD = ZeD or {}
 local A = {}
@@ -68,44 +77,38 @@ local function isOwnHouse(h) local C = ZeD.Claims; return C ~= nil and C.safe ~=
 local function isOwnFaction(f) local C = ZeD.Claims; return C ~= nil and C.fac ~= nil and C.fac.obj == f end
 
 local DO = {}
-function DO.safehouse(p, st)
+-- someone else's opens its staff card here (ZeD_ClaimCards.lua, osafe and ofac); your own, its card in the Server tab
+function DO.safehouse(p, st, win)
     local h = st.house
     if not h then return end
     if isOwnHouse(h) and ownCard(p, "safe") then return end
-    closeOld(ISSafehouseUI)
-    local width = 500 + getCore():getOptionFontSizeReal() * 30
-    openUI(ISSafehouseUI:new((getCore():getScreenWidth() - width) / 2, getCore():getScreenHeight() / 2 - 225, width, 450, h, p))
+    ZeD.ClaimCards.openOther(win, st, "safe", h, "adm:b:safehouse")
 end
-function DO.faction(p, st)
+function DO.faction(p, st, win)
     local f = st.faction
     if not f then return end
     if isOwnFaction(f) and ownCard(p, "faction") then return end
-    closeOld(ISFactionUI)
-    openUI(ISFactionUI:new(getCore():getScreenWidth() / 2 - 250, getCore():getScreenHeight() / 2 - 225, 500, 450, f, p))
+    ZeD.ClaimCards.openOther(win, st, "faction", f, "adm:b:faction")
 end
--- the game's remaining windows, opened as its ISAdminPanelUI:onOptionMouseDown opens them
+-- the game's remaining windows, opened as its ISAdminPanelUI:onOptionMouseDown opens them; a row with card = true opens
+-- ZeD's own card instead (C10 to C14: ZeD_AdminTools.lua, ZeD_AdminZones.lua; server sandbox options in ZeD_SandboxInGame.lua).
+-- The users list is the Users row above (ZeD_AdminUsers.lua)
+local function card(id) return function(p, win, st) return ZeD.AdminTools.open(win, st, id) end end
 local MORE = {
     { id = "options", cap = "SeePublicServerOptions", key = "IGUI_AdminPanel_SeeServerOptions",
-      run = function(p) closeOld(ISServerOptions); openUI(ISServerOptions:new(50, 50, 900, 800, p)) end },
-    { id = "sandbox", cap = "SandboxOptions",      key = "IGUI_AdminPanel_SandboxOptions",
-      run = function(p) closeOld(ISServerSandboxOptionsUI); openUI(ISServerSandboxOptionsUI:new(150, 150, 800, 600)) end },
-    { id = "pvplog",  cap = "PVPLogTool",          key = "IGUI_AdminPanel_PVPLogTool",
-      run = function(p) closeOld(ISPVPLogToolUI); openUI(ISPVPLogToolUI:new(50, 50, 500, 700)) end },
-    { id = "zones",   cap = "CanSetupSafehouses", capAlt = "CanSetupNonPVPZone", key = "IGUI_AdminPanel_ZoneEditor",
-      run = function(p) ISMultiplayerZoneEditor.ToggleEditor() end },
-    { id = "nonpvp",  cap = "CanSetupNonPVPZone",  key = "IGUI_AdminPanel_NonPvpZone",
-      run = function(p) closeOld(ISPvpZonePanel); openUI(ISPvpZonePanel:new(50, 50, 600, 600, p)) end },
-    { id = "safezone", cap = "CanSetupSafehouses", key = "IGUI_AdminPanel_Safezone",
-      run = function(p) closeOld(ISAddSafeZoneUI); openUI(ISAddSafeZoneUI:new(getCore():getScreenWidth() / 2 - 210, getCore():getScreenHeight() / 2 - 200, 300 + getCore():getOptionFontSizeReal() * 50, 400, p)) end },
-    { id = "statistics", cap = "GetStatistic",     key = "IGUI_AdminPanel_ShowStatistics",
-      run = function(p) closeOld(ISStatisticsUI); openUI(ISStatisticsUI:new(50, 50, p)) end },
-    -- accounts, passwords and the whitelist, and the game's lists of banned IPs and Steam IDs, until cards hold them
-    { id = "users",   cap = "SeeNetworkUsers",     key = "IGUI_AdminPanel_SeeUsers",
-      run = function(p) requestUsers(); closeOld(ISUsersList, "closeModal"); openUI(ISUsersList:new(50, 50, 800 + getCore():getOptionFontSizeReal() * 50, 600, p)) end },
-    { id = "mystats", cap = "CanSeePlayersStats",  key = "IGUI_AdminPanel_CheckYourStats",
-      run = function(p) closeOld(ISPlayerStatsUI); openUI(ISPlayerStatsUI:new(50, 50, 800 + getCore():getOptionFontSizeReal() * 50, 800, p, p)) end },
-    { id = "climate", cap = "ClimateManager",      key = "IGUI_Adm_Weather_ClimateControl",
-      run = function(p) local ui = ISAdminWeather.OnOpenPanel(); if ui and ui.onMadeActive then ui:onMadeActive() end end },
+      -- (the Server tab's card, ServerTab.lua; it hands staff who change options on to the game's window)
+      run = function(p)
+          if ZeD.ServerTab and ZeD.ServerTab.openOptionsFor and ZeD.ServerTab.openOptionsFor(p) then return end
+          closeOld(ISServerOptions); openUI(ISServerOptions:new(50, 50, 900, 800, p))
+      end },
+    { id = "sandbox", cap = "SandboxOptions",      key = "IGUI_AdminPanel_SandboxOptions", card = true, run = card("sandbox") },
+    { id = "pvplog",  cap = "PVPLogTool",          key = "IGUI_AdminPanel_PVPLogTool", card = true, run = card("pvplog") },
+    { id = "zones",   cap = "CanSetupSafehouses", capAlt = "CanSetupNonPVPZone", key = "IGUI_AdminPanel_ZoneEditor", card = true, run = card("zones") },
+    { id = "statistics", cap = "GetStatistic",     key = "IGUI_AdminPanel_ShowStatistics", card = true, run = card("statistics") },
+    -- your own stats: ZeD's stats card (ZeD_StatsCards.lua), on this tab
+    { id = "mystats", cap = "CanSeePlayersStats",  key = "IGUI_AdminPanel_CheckYourStats", help = "UI_ZeD_Adm_HelpMyStats",
+      run = function(p, win, st) ZeD.StatsCards.openStats(win, st, p:getUsername(), "adm:b:more:mystats") end },
+    { id = "climate", cap = "ClimateManager",      key = "IGUI_Adm_Weather_ClimateControl", card = true, run = card("climate") },
 }
 A.MORE = MORE
 
@@ -130,6 +133,8 @@ end
 local function build(p, st, win)
     local L = {}
     ZeD.AdminCards.homeItems(L, win, st, p)
+    -- USERS: accounts, passwords and the whitelist (ZeD_AdminUsers.lua)
+    ZeD.AdminUsers.homeRow(L, st, win)
     -- SAFEHOUSES: every one. The Server tab's cards hold only your own
     if cap(p, "CanSetupSafehouses") then
         local list = safe(function() return SafeHouse.getSafehouseList() end, nil)
@@ -143,7 +148,7 @@ local function build(p, st, win)
             local on = st.house == h
             pick(L, "h:" .. i, (title ~= "" and title) or owner, tr("UI_ZeD_Adm_OwnedBy", owner), on)
             L[#L].house = h
-            if on then btns(L, { B("safehouse", tr("UI_ZeD_Adm_Open"), tr(isOwnHouse(h) and "UI_ZeD_Adm_HelpOpenOwn" or "UI_ZeD_Adm_HelpOpenSafehouse")) }) end
+            if on then btns(L, { B("safehouse", tr("UI_ZeD_Adm_Open"), tr(isOwnHouse(h) and "UI_ZeD_Adm_HelpOpenOwn" or "UI_ZeD_Adm_HelpOpenSafeCard")) }) end
         end
     end
     -- FACTIONS: every one, the same
@@ -157,7 +162,7 @@ local function build(p, st, win)
             local on = st.faction == f
             pick(L, "f:" .. i, safe(function() return f:getName() end, ""), tr("UI_ZeD_Adm_OwnedBy", safe(function() return f:getOwner() end, "")), on)
             L[#L].faction = f
-            if on then btns(L, { B("faction", tr("UI_ZeD_Adm_Open"), tr(isOwnFaction(f) and "UI_ZeD_Adm_HelpOpenOwn" or "UI_ZeD_Adm_HelpOpenFaction")) }) end
+            if on then btns(L, { B("faction", tr("UI_ZeD_Adm_Open"), tr(isOwnFaction(f) and "UI_ZeD_Adm_HelpOpenOwn" or "UI_ZeD_Adm_HelpOpenFacCard")) }) end
         end
     end
     -- MORE TOOLS: the game's own windows
@@ -165,7 +170,7 @@ local function build(p, st, win)
     local more = {}
     for _, m in ipairs(MORE) do
         local ok = M.can(m.cap) or (m.capAlt ~= nil and M.can(m.capAlt))
-        more[#more + 1] = B("more:" .. m.id, getText(m.key), ok and tr("UI_ZeD_Adm_HelpMore") or M.why(m.cap), not ok)
+        more[#more + 1] = B("more:" .. m.id, getText(m.key), ok and tr(m.help or (m.card and "UI_ZeD_Adm_HelpMoreCard" or "UI_ZeD_Adm_HelpMore")) or M.why(m.cap), not ok)
     end
     add(L, { k = "head", text = tr("UI_ZeD_Adm_MoreTools"), right = tr("UI_ZeD_Adm_MoreLine") })
     btns(L, more)
@@ -280,6 +285,36 @@ local function backToTab(win, st)
     ZeD.TicketCards._D.focusId(win, st, "adm:tk:sum:tickets")
 end
 
+-- a card asked for from outside the tab. what: { kind = "osafe" | "ofac", obj } or { kind = "pstats" | "pinv", user, oid }.
+-- True once the tab shows; false if it can't (not staff, the window away): the caller then opens the game's window
+function A.openNext(what, playerNum)
+    if not A.visible() or not (ZeD_WorldWindow and ZeD_WorldWindow.openTab) then return false end
+    A.next = what
+    local ok, shown = pcall(ZeD_WorldWindow.openTab, playerNum or 0, TAB_ID)
+    if not (ok and shown) then
+        A.next = nil
+        return false
+    end
+    return true
+end
+
+local function openWaiting(win, st)
+    local n = A.next
+    if not n then return end
+    A.next = nil
+    st.card, st.screen = nil, nil
+    local ok, err = pcall(function()
+        if n.kind == "osafe" or n.kind == "ofac" then
+            ZeD.ClaimCards.openOther(win, st, (n.kind == "osafe") and "safe" or "faction", n.obj, "adm:tk:sum:tickets")
+        elseif n.kind == "pstats" then
+            ZeD.StatsCards.openStats(win, st, n.user, "adm:tk:p:" .. tostring(n.user))
+        elseif n.kind == "pinv" then
+            ZeD.StatsCards.openInv(win, st, n.user, n.oid, "adm:tk:p:" .. tostring(n.user))
+        end
+    end)
+    if not ok then ZeD.logOnce("admin tab: open " .. tostring(n.kind), err) end
+end
+
 function A.render(panel, win, x, y, w, h)
     local T = ZeD.T
     local M = ZeD.Molecules
@@ -289,6 +324,7 @@ function A.render(panel, win, x, y, w, h)
     local TC = ZeD.TicketCards
     TC.bind(win, st, "adm:tk:", "worldTabContent")
     ZeD.AdminCards.frame(win, st)
+    openWaiting(win, st)
     if st.card then
         TC.renderCard(panel, win, st, x, y, w, h)
         return
@@ -378,9 +414,9 @@ local function press(win, st, b)
     local ok, err = true, nil
     if id:sub(1, 5) == "more:" then
         local want = id:sub(6)
-        for _, m in ipairs(MORE) do if m.id == want then ok, err = pcall(m.run, p) end end
+        for _, m in ipairs(MORE) do if m.id == want then ok, err = pcall(m.run, p, win, st) end end
     elseif DO[id] then
-        ok, err = pcall(DO[id], p, st)
+        ok, err = pcall(DO[id], p, st, win)
     end
     if not ok then ZeD.logOnce("admin tab " .. id, err) end
 end

@@ -699,6 +699,13 @@ end
 
 local function _openSharing(mp, sym, fromPad)
     if not _canShare(sym) then return end
+    -- ZeD's card for it (ZeD_MpLeftovers.lua, VANILLA_WINDOWS C5): Private, Everyone or Other, with Done; the game's
+    -- panel below only when the card can't open (safe mode)
+    local Lo = ZeD.MpLeftovers
+    if Lo and Lo.openSharing then
+        local ok, opened = pcall(Lo.openSharing, mp, sym, fromPad)
+        if ok and opened then return end
+    end
     local pn = (mp.playerObj and mp.playerObj:getPlayerNum()) or 0
     mp.playerNum = pn                           -- (the panel reads mapUI.playerNum)
     local jd = JoypadState and JoypadState.players and JoypadState.players[pn + 1] or nil
@@ -886,6 +893,9 @@ end
 
 -- Mouse wheel for zoom
 function ZeD_WorldMap:onMouseWheel(del)
+    -- the Sharing card in the drawer (ZeD_MpLeftovers.lua) takes the wheel under the pointer: it scrolls, the map stays
+    local card = ZeD.MpLeftovers and ZeD.MpLeftovers.shareCard
+    if card and not card._done and card.dockedIn and card:isMouseOver() then return card:onMouseWheel(del) end
     local win = self._parentWin
     if win and Ext.wheel(win, self:getMouseX() + self:getX(), self:getMouseY() + self:getY(), del) then return true end
     self.mapAPI:zoomAt(self:getMouseX(), self:getMouseY(), del)

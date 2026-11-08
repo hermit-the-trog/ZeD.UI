@@ -9,12 +9,15 @@
 --   adm       the server part holds the admin tools (Phase 2)
 --   lg        the server part holds the log (Phase 4)
 --   cm        the server part holds community (Phase 5): the rules, the news. A server without it shows none of this
+--   ml        the server part keeps mail (punch list 104); ZeD_Mail.lua reads it and dials in
 -- The hello's a.ex, the server extras (Phase 6), goes to ZeD_Extras.lua, and a.cm to ZeD_Community.lua; each part of the
 -- server's is on its own, so any of them can be missing from a hello.
 --   frozen    the server part is up and refuses writes (its data is from a newer ZeD)
 --   forceOff  QA: behave as if no server part answered
 -- Hello goes out at every OnCreatePlayer, a respawn included. send reads getPlayer() at each call: the object from
--- before a death is not the one to hand sendClientCommand.
+-- before a death is not the one to hand sendClientCommand. A caller acting for one split-screen player hands that
+-- player (send's fourth argument): the game sends the player's index with the command (GameClient.sendClientCommand,
+-- checked on 42.21), so the server sees that player, not the first (the dash's miles, known issue Nov 7 2026).
 -- ============================================================================
 
 require "ZeD/ZeD_TicketProto"
@@ -33,9 +36,10 @@ local round = nil                    -- { at = when it started, sent = how many 
 
 local function now() return getTimestampMs() end
 
-function S.send(module, command, args)
+function S.send(module, command, args, player)
     if not isClient() then return false end
-    local p = getPlayer()
+    local p = player
+    if not (p and p.isLocalPlayer and p:isLocalPlayer()) then p = getPlayer() end
     if not p then return false end
     sendClientCommand(p, module, command, args or {})
     return true
@@ -88,6 +92,7 @@ local function heard(a)
     if ZeD.Admin and ZeD.Admin.onHello then ZeD.Admin.onHello(a) end
     if ZeD.Extras and ZeD.Extras.onHello then ZeD.Extras.onHello(a) end
     if ZeD.Community and ZeD.Community.onHello then ZeD.Community.onHello(a) end
+    if ZeD.Mail and ZeD.Mail.onHello then ZeD.Mail.onHello(a) end      -- (a.ml: the server keeps mail; joining is the dial-in)
 end
 
 local function onServerCommand(module, command, args)

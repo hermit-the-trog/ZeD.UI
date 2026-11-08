@@ -1056,6 +1056,8 @@ end
 local function _handleConfirm(w)
     local el = Focus.getFocusedElement(w)
     if not el then return end
+    -- (the Character window while paused is for looking: ZeD_PausedLook.lua)
+    if ZeD.PausedLook and ZeD.PausedLook.blocks(w, el) then return end
     if el.onActivate then pcall(function() getSoundManager():playUISound("UIActivateButton") end) end
     _fireCb("element.onActivate", el.onActivate, w, el)
 end
@@ -1065,6 +1067,7 @@ end
 local function _handleHoldConfirm(w)
     local el = Focus.getFocusedElement(w)
     if not el or not el.onHoldActivate then return end
+    if ZeD.PausedLook and ZeD.PausedLook.blocks(w, el) then return end
     _fireCb("element.onHoldActivate", el.onHoldActivate, w, el)
 end
 
@@ -1073,6 +1076,7 @@ end
 local function _handleContextOrReset(w)
     local el = Focus.getFocusedElement(w)
     if not el then return end
+    if ZeD.PausedLook and ZeD.PausedLook.blocks(w, el) then return end
     if el.onContextMenu then
         _fireCb("element.onContextMenu", el.onContextMenu, w, el)
     elseif el.onReset then
@@ -2033,6 +2037,15 @@ if LuaEventManager and LuaEventManager.AddEvent then
 end
 
 Events.OnTick.Add(_onTick)
+-- (a paused game has no ticks: the pad's taps, holds and D-pad repeats are worked on the drawn frames then, so the
+-- Character and World windows answer the pad while paused; ZeD_PausedLook.lua holds their actions)
+Focus.tick = _onTick
+if Events.OnRenderTick then
+    Events.OnRenderTick.Add(function()
+        local ok, sp = pcall(getGameSpeed)
+        if ok and sp == 0 then _onTick() end
+    end)
+end
 if Events.OnRenderTick then Events.OnRenderTick.Add(_watchCueMouse) end
 
 -- S113: Window-pair invariant. On kbm→gamepad transition, ensure both windows

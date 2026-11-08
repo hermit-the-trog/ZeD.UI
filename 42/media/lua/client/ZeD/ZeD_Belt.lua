@@ -2165,7 +2165,7 @@ function ZeD_BeltHUD:onRightMouseDown(x, y) return self._drawn and self:boxAt(x,
 -- A drop from a ZeD inventory list over the belt (InventoryRenderer.handleDrop
 -- asks first): attach to a slot, or equip into a hand. True when taken.
 function B.takeDrop(playerNum, items)
-    local hud = B._hud
+    local hud = B._huds[playerNum or 0]
     if not (hud and hud._drawn and items and #items > 0) then return false end
     local mx, my = hud:getMouseX(), hud:getMouseY()
     if mx < 0 or my < 0 or mx >= hud:getWidth() or my >= hud:getHeight() then return false end
@@ -2183,9 +2183,10 @@ function B.takeDrop(playerNum, items)
 end
 
 -- Where the small watch sits on screen: x, y, w and the side its full watch opens to ("left": its left edges
--- line up, the full watch reaching right; both wrists are at the belt's left end since Oct 27 2026), or nil
-function B.watchScreen()
-    local hud = B._hud
+-- line up, the full watch reaching right; both wrists are at the belt's left end since Oct 27 2026), or nil.
+-- pn: whose belt (nil: the first player's)
+function B.watchScreen(pn)
+    local hud = B._huds[pn or 0]
     if not (hud and hud._drawn) then return nil end
     for _, b in ipairs(hud._boxes) do
         if b.kind == "watch" then
@@ -2195,9 +2196,9 @@ function B.watchScreen()
     return nil
 end
 
--- Where a slot's box sits on screen (the hold-a-key list opens above it)
-function B.boxScreen(i)
-    local hud = B._hud
+-- Where a slot's box sits on screen (the hold-a-key list opens above it). pn: whose belt (nil: the first player's)
+function B.boxScreen(i, pn)
+    local hud = B._huds[pn or 0]
     if not (hud and hud._drawn) then return nil end
     for _, b in ipairs(hud._boxes) do
         if b.kind == "slot" and b.i == i then
@@ -2217,7 +2218,7 @@ function ZeD_BeltHUD:_gpBox()
 end
 
 function B.focus(playerNum)
-    local hud = B._hud
+    local hud = B._huds[playerNum or 0]
     if not (hud and hud:wanted() and hud._drawn) then return false end
     local p = hud:player()
     -- start on the first slot (after the hands, their watch and the ammo tab)
@@ -2237,6 +2238,8 @@ end
 function ZeD_BeltHUD:_leavePad()
     self._gp = nil
     setJoypadFocus(self.playerNum, nil)
+    -- (ZeD's windows and their focus are the first player's: another player's pad goes back to their game)
+    if self.playerNum ~= 0 then return end
     local F = ZeD.Input and ZeD.Input.Focus
     local fw = F and F.getFocusedWindow and F.getFocusedWindow()
     if fw and fw:isVisible() and not fw.windowShaded then F.reclaimEngineFocus() end
@@ -2395,38 +2398,70 @@ function ZeD_BeltHUD:_drawPadList()
 end
 
 -- ----------------------------------------------------------------------------
--- Lifecycle: one belt for player one (vanilla's hotbar is player one only)
+-- Lifecycle: one belt a local player (split-screen, known issue Nov 7 2026: the game's hotbar is parked for every
+-- player, Overrides/Belt.lua, so the second player had none). Each sits on its player's screen (the HUD places itself
+-- by its playerNum); B._hud stays the first player's, for the callers that know of one belt
 -- ----------------------------------------------------------------------------
-function B.install()
-    if B._hud then return B._hud end
-    local hud = ZeD_BeltHUD:new(0)
+B._huds = B._huds or {}
+function B.install(pn)
+    pn = pn or 0
+    local have = B._huds[pn]
+    if have then return have end
+    local hud = ZeD_BeltHUD:new(pn)
     hud:initialise()
     hud:addToUIManager()
     hud:setVisible(true)
-    B._hud = hud
-    print("[ZeD] Belt: hands + hotbar belt installed")
+    B._huds[pn] = hud
+    if pn == 0 then B._hud = hud end
+    print("[ZeD] Belt: hands + hotbar belt installed for player " .. tostring(pn + 1))
     return hud
 end
-function B.getHUD() return B._hud end
+-- pn: the local player's number (nil: the first player's belt)
+function B.getHUD(pn) return B._huds[pn or 0] end
+
+-- Where ZeD's notices come out (the director, Nov 7 2026: "All of these notices are speech bubbles or thought
+-- bubbles that pop up out of the notification icon where we save errors and other mods pop-ups. Just all in one
+-- place."): the top middle of the Messages note on the belt, in screen pixels, while the belt and its note are on
+-- the screen; nil otherwise (in a vehicle seat, the UI hidden, safe mode, nothing kept: ZeD_MessagesWindow's
+-- bubbles then come from the bottom middle of the screen, above the dash when one shows).
+-- pn: the player the notice is for: that player's belt (B._huds[pn], a belt per player), else player one's
+function B.noteAnchor(pn)
+    local hud = B._huds and B._huds[pn or 0]
+    if not hud then hud = (B._huds and B._huds[0]) or B._hud end
+    if not (hud and hud._drawn and hud:getIsVisible()) then return nil end
+    for _, b in ipairs(hud._boxes or {}) do
+        if b.kind == "lamp" then return hud:getX() + b.x + math.floor(b.w / 2), hud:getY() + b.y end
+    end
+    return nil
+end
 
 -- hidden while it should not show (a top-level panel would still catch clicks)
 local function visibilityTick()
-    local hud = B._hud
-    if not hud then return end
-    local want = hud:wanted()
-    if want ~= hud:getIsVisible() then hud:setVisible(want) end
-    -- back home between frames (a mod that slides the belt while it draws: Auto-Hide Hotbar; _prerender)
-    if want and hud._homeX and (hud:getX() ~= hud._homeX or hud:getY() ~= hud._homeY) then
-        hud:setX(hud._homeX); hud:setY(hud._homeY)
-    end
-    if not want then
-        hud._drawn = false
-        if hud._tip then hud._tip:setVisible(false) end
-        if hud._gp then hud:_leavePad() end
+    for _, hud in pairs(B._huds) do
+        local want = hud:wanted()
+        if want ~= hud:getIsVisible() then hud:setVisible(want) end
+        -- back home between frames (a mod that slides the belt while it draws: Auto-Hide Hotbar; _prerender)
+        if want and hud._homeX and (hud:getX() ~= hud._homeX or hud:getY() ~= hud._homeY) then
+            hud:setX(hud._homeX); hud:setY(hud._homeY)
+        end
+        if not want then
+            hud._drawn = false
+            if hud._tip then hud._tip:setVisible(false) end
+            if hud._gp then hud:_leavePad() end
+        end
     end
 end
 
-Events.OnGameStart.Add(function() B._hud = nil; B.install() end)
+-- (a game's start: the belts of a game before go; one for each player there is. The game creates its players before
+-- OnGameStart, so a belt one of them got is taken off the screen first, never left drawing beside the new one)
+Events.OnGameStart.Add(function()
+    for _, hud in pairs(B._huds) do pcall(hud.removeFromUIManager, hud) end
+    B._hud, B._huds = nil, {}
+    B.install(0)
+    for pn = 1, 3 do if getSpecificPlayer(pn) then pcall(B.install, pn) end end
+end)
+-- (a player who joins split-screen gets a belt; a respawn keeps the one there is: it reads its player each frame)
+Events.OnCreatePlayer.Add(function(pn) if type(pn) == "number" and pn >= 0 and pn < 4 then pcall(B.install, pn) end end)
 Events.OnTick.Add(visibilityTick)
 
 print("[ZeD] Belt: module loaded")

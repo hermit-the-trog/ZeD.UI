@@ -96,6 +96,51 @@ function Q.items()
     return out
 end
 
+-- the stats card's reads (ZeD_StatsCards.lua, SC.read's shape), its pick lists and an inventory as the server sends it
+function Q.statsView(user, role)
+    local function sk(id, name, lv, xp, xpTo, boost, mult)
+        return { id = id, perk = id, name = name, lv = lv, xp = xp, xpTo = xpTo, boost = boost or "50%", mult = mult or 1 }
+    end
+    return { user = user, char = { stub = true }, display = user, fore = "Kade", sur = "Rourke", prof = "farmer", profName = "Farmer",
+        survived = "9 days, 4 hours", kills = 212, weight = 81, role = role or "user",
+        traits = { { id = "Strong", label = "Strong", desc = "+40% Melee knockback, +Carrying weight.", cost = 10 },
+            { id = "Gardener", label = "Gardener", desc = "Knows basic farming.", cost = 4 },
+            { id = "Smoker", label = "Smoker", desc = "Unhappiness and stress rise without tobacco.", cost = -4 } },
+        skills = { sk("Farming", "Agriculture (Farming)", 5, 112.5, 300, "125%", 2), sk("Strength", "Strength (Passive)", 7, 0, 1500),
+            sk("Woodwork", "Carpentry (Crafting)", 2, 40, 150), sk("Aiming", "Aiming (Firearm)", 1, 3.25, 75, "75%"),
+            sk("Cooking", "Cooking (Crafting)", 0, 0, 50), sk("Sprinting", "Sprinting (Agility)", 10, 0, -1) } }
+end
+
+function Q.statsLists()
+    local function rows(names, now)
+        local out = {}
+        for _, n in ipairs(names) do out[#out + 1] = { id = n, type = n, label = n, help = n .. ".", right = (n == now) and ZeD.tr("UI_ZeD_St_Now") or nil } end
+        return out
+    end
+    return { prof = rows({ "Unemployed", "Burglar", "Carpenter", "Chef", "Construction Worker", "Doctor", "Electrician", "Engineer", "Farmer", "Fire Officer",
+            "Fisherman", "Fitness Instructor", "Lumberjack", "Mechanic", "Nurse", "Park Ranger", "Police Officer", "Security Guard", "Veteran" }, "Farmer"),
+        role = rows({ "banned", "user", "priority", "observer", "GM", "moderator", "overseer", "admin" }, "user"),
+        good = rows({ "Athletic", "Brave", "Cat's Eyes", "Dextrous", "Eagle Eyed", "Fast Healer", "Fast Learner", "Fast Reader", "Graceful", "Inconspicuous",
+            "Iron Gut", "Keen Hearing", "Lucky", "Nutritionist", "Organized", "Outdoorsman", "Resilient", "Thick Skinned" }),
+        bad = rows({ "All Thumbs", "Clumsy", "Conspicuous", "Cowardly", "Hard of Hearing", "Hemophobic", "Pacifist", "Slow Learner" }) }
+end
+
+function Q.inventory()
+    local t = { capacityWeight = 12.34, maxWeight = 18 }
+    local function it(i, full, count, cat, extra)
+        local r = { itemId = 1000 + i, fullType = full, count = tostring(count), cat = cat, inInv = false, parrentId = -1, hasParrent = false, isEquip = false, var = 0 }
+        for k, v in pairs(extra or {}) do r[k] = v end
+        t[i] = r
+    end
+    it(1, "Base.Axe", 1, "Weapon", { var = 9, isEquip = true })
+    it(2, "Base.Bag_Schoolbag", 1, "Container", { isEquip = true })
+    it(3, "Base.Nails", 48, "Material", { inInv = true, parrentId = 1002, hasParrent = true, container = "School Bag" })
+    it(4, "Base.Plank", 4, "Material")
+    it(5, "Base.WaterBottleFull", 1, "Food")
+    it(6, "Base.Bandage", 3, "FirstAid", { inInv = true, parrentId = 1002, hasParrent = true, container = "School Bag" })
+    return t
+end
+
 -- every state of the Admin tab: run(win, st) puts it on screen
 function Q.bind(TC, AC, M, Adm)
     local ALL = {}
@@ -112,6 +157,11 @@ function Q.bind(TC, AC, M, Adm)
         M.cards, M.logs, M.bans, M.mutes = Q.cards(), Q.logs(), Q.bans(), {}
         M.repeats = { { id = 1, text = "Trading post Saturday at the Muldraugh church. Bring what you can spare.", every = 60 } }
         M.gameIps, M.gameSids = {}, {}
+        local SC = ZeD.StatsCards
+        if SC then
+            SC.qaView = { Kade_R = Q.statsView("Kade_R"), Hermit = Q.statsView("Hermit", "admin"), tjk = { user = "tjk" } }
+            SC.qaLists, SC.qaInv = Q.statsLists(), { Kade_R = Q.inventory(), Hermit = Q.inventory(), Rosa = { capacityWeight = 0, maxWeight = 15 } }
+        end
         M.bump()
     end
     local out = {}
@@ -196,6 +246,57 @@ function Q.bind(TC, AC, M, Adm)
     S1("spawn-to-player", function(win, st) AC.qaOpen(win, st, "spawn"); st.card.item = Q.items()[2]; st.card.to = "Kade_R" end)
     S1("spawn-no-part", function(win, st) M.qaLink = false; TC.qaLink = "off"; AC.qaOpen(win, st, "spawn"); st.card.item = Q.items()[1] end)
     S1("spawn-max", function(win, st) AC.qaOpen(win, st, "spawn"); st.card.item = Q.items()[1]; st.card.n = 100 end)
+
+    -- the stats card and the inventory card (ZeD_StatsCards.lua), over the player card as the Check stats press opens them
+    local SC = ZeD.StatsCards
+    local function stats(user, win, st, part, which)
+        player(user, win, st)
+        SC.qaOpen(win, st, "pstats", user)
+        if part then SC.qaPart(win, st, part, which) end
+    end
+    local function pick(st, list, i) st.card.pick = list[i]; M.bump() end
+    S1("stats", function(win, st) stats("Kade_R", win, st) end)
+    S1("stats-self", function(win, st) SC.qaOpen(win, st, "pstats", "Hermit") end)
+    S1("stats-not-seen", function(win, st) stats("tjk", win, st) end)
+    S1("stats-moderator", function(win, st) M.qaCaps = caps(MOD); stats("Kade_R", win, st) end)
+    S1("stats-rank", function(win, st) SC.qaView.Kade_R.rankWhy = ZeD.tr("UI_ZeD_St_RankAbove", "admin"); stats("Kade_R", win, st) end)
+    S1("stats-all-skills", function(win, st) stats("Kade_R", win, st); st.card.allSkills = true; M.bump() end)
+    S1("stats-name", function(win, st) stats("Kade_R", win, st, "name", "Forename") end)
+    S1("stats-display", function(win, st) stats("Kade_R", win, st, "name", "Display") end)
+    S1("stats-weight", function(win, st) stats("Kade_R", win, st, "weight") end)
+    S1("stats-prof", function(win, st) stats("Kade_R", win, st, "prof") end)
+    S1("stats-prof-page-2", function(win, st) stats("Kade_R", win, st, "prof"); st.card.page = 2; M.bump() end)
+    S1("stats-prof-picked", function(win, st) stats("Kade_R", win, st, "prof"); pick(st, SC.qaLists.prof, 3) end)
+    S1("stats-role", function(win, st) stats("Kade_R", win, st, "role"); pick(st, SC.qaLists.role, 5) end)
+    S1("stats-role-no-power", function(win, st) M.qaCaps = caps(MOD); stats("Kade_R", win, st, "role") end)
+    S1("stats-trait", function(win, st) stats("Kade_R", win, st, "trait") end)
+    S1("stats-trait-bad", function(win, st) stats("Kade_R", win, st, "trait"); st.card.good = false; pick(st, SC.qaLists.bad, 2) end)
+    S1("stats-trait-picked", function(win, st) stats("Kade_R", win, st, "trait"); pick(st, SC.qaLists.good, 1) end)
+    S1("stats-xp", function(win, st) stats("Kade_R", win, st, "xp") end)
+    S1("stats-xp-picked", function(win, st) stats("Kade_R", win, st, "xp"); st.card.pick = { id = "Aiming", label = "Aiming (Firearm)", perk = "Aiming" }; M.bump() end)
+    S1("stats-warn", function(win, st) stats("Kade_R", win, st, "warn") end)
+    S1("stats-log", function(win, st) stats("Kade_R", win, st, "log") end)
+    S1("stats-rm-trait", function(win, st)
+        stats("Kade_R", win, st)
+        TC.qaState(st).confirm = { act = "rmtrait", trait = SC.qaView.Kade_R.traits[3], from = "tk:tr:3" }
+    end)
+    S1("stats-rm-log", function(win, st)
+        stats("Kade_R", win, st)
+        TC.qaState(st).confirm = { act = "rmlog", log = M.logs.Kade_R[1], from = "tk:lg:1" }
+    end)
+    S1("inv", function(win, st) player("Kade_R", win, st); SC.qaOpen(win, st, "pinv", "Kade_R") end)
+    S1("inv-picked", function(win, st) player("Kade_R", win, st); SC.qaOpen(win, st, "pinv", "Kade_R"); st.card.sel = "1002"; M.bump() end)
+    S1("inv-confirm", function(win, st)
+        player("Kade_R", win, st)
+        SC.qaOpen(win, st, "pinv", "Kade_R")
+        st.card.sel = "1001"
+        TC.qaState(st).confirm = { act = "rminv", row = SC.inv.Kade_R.rows[1] }
+    end)
+    S1("inv-self", function(win, st) SC.qaOpen(win, st, "pinv", "Hermit") end)
+    S1("inv-empty", function(win, st) player("Rosa", win, st); SC.qaOpen(win, st, "pinv", "Rosa") end)
+    S1("inv-wait", function(win, st) SC.qaInv = {}; player("Kade_R", win, st); SC.qaOpen(win, st, "pinv", "Kade_R") end)
+    S1("inv-not-on", function(win, st) player("tjk", win, st); SC.qaOpen(win, st, "pinv", "tjk") end)
+    S1("inv-no-power", function(win, st) M.qaCaps = caps({ "CanSeePlayersStats" }); player("Kade_R", win, st); SC.qaOpen(win, st, "pinv", "Kade_R") end)
     return out
 end
 
@@ -228,6 +329,8 @@ end
 add(500, function()
     TC.qaHold, TC.qaRole, TC.qaGo, TC.qaStats, TC.qaLink = nil, nil, nil, nil, nil
     M.qaHold, M.qaLink, M.qaCaps, M.qaRoles, M.qaItems, M.qaAllCaps = nil, nil, nil, nil, nil, nil
+    local SC = ZeD.StatsCards
+    if SC then SC.qaView, SC.qaLists, SC.qaInv = nil, nil, nil end
     say("DONE")
 end)
 

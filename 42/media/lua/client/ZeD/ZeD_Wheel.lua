@@ -218,6 +218,11 @@ end
 function W.isPlace(slice) return slice and not slice.text and not slice.texture end
 function W.isOff(slice) return slice and not W.isPlace(slice) and not (slice.command and slice.command[1]) end
 function W.isBack(slice) return slice and texName(slice.texture):find("emotes/back", 1, true) ~= nil end
+-- the game's mini-map commands (the director, Nov 7 2026, B7: ZeD's wheels leave them out; looked up at call time)
+function W.isMiniMapCommand(command)
+    local M = ISMiniMap
+    return command ~= nil and M ~= nil and (command == M.ToggleMiniMap or command == M.FocusMiniMap)
+end
 function W.hasSub(slice)
     local c = slice and slice.command
     if slice and slice._zedSub then return true end   -- (ZeD_QuickWheel: Eat, Drink ... open a wheel of items)
