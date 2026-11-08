@@ -265,7 +265,7 @@ local function since(now, t)
 end
 R.since = since
 
--- The building's squares that hold a container or a tap (perf review, Nov 7 2026): the whole building is
+-- The building's squares that hold a container or a tap: the whole building is
 -- walked once, then only these squares are looked at again (their containers and taps afresh each time:
 -- what is in them, opened, locked, the water). Walked again after R.BUILDING_MS, when a run starts, or when
 -- something is built, placed, plumbed or taken away (R.forgetBuildings: the hooks at the end of the file).
@@ -1310,7 +1310,7 @@ end
 -- ---------------------------------------------------------------------------
 -- EVENTS: the runs' ticks, keys, hurt; stepping out of home
 -- ---------------------------------------------------------------------------
--- the runs' tick and the home check go by the clock, not by frames (the old 10 and 30 ticks at 60 a second)
+-- the runs' tick and the home check go by the clock, not by frames (10 and 30 ticks at 60 a second)
 R.RUN_TICK_MS = 167
 R.HOME_TICK_MS = 500
 local _runMs, _homeMs, _inHome = 0, 0, {}

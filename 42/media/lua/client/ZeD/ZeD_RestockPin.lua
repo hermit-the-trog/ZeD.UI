@@ -186,7 +186,7 @@ end
 -- swaps in the new code.
 if not _G._zedRestockPinHooked then
     _G._zedRestockPinHooked = true
-    -- by the clock, not by frames (the old 15 ticks at 60 a second)
+    -- by the clock, not by frames (15 ticks at 60 a second)
     local last = 0
     Events.OnTick.Add(function()
         local now = getTimestampMs()

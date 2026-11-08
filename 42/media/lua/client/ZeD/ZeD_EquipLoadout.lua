@@ -524,7 +524,7 @@ end
 -- the heading's words on its right while shut: the loadout and how ready it is, else the outfit.
 -- The ready count is the plan's when it is fresh (the doll's ghosts keep it so); else it is counted
 -- from what is on you alone (kept a second), the plan's own rule (a line is ready when it is on you in
--- its place), so the shut fold never walks the building (perf review, Nov 7 2026).
+-- its place), so the shut fold never walks the building.
 local function readyCount(win, p, o, lo, days)
     local s = st(win)
     local now = getTimestampMs()
