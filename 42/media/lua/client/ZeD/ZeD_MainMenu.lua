@@ -815,7 +815,7 @@ function MM.playedText(raw)
     return raw
 end
 
--- The latest save (vanilla's Continue), read once each time the menu shows.
+--- The latest save (vanilla's Continue), read once each time the menu shows.
 function MM.refresh()
     MM._cont = false
     local m = ms()
@@ -1199,15 +1199,15 @@ end
 -- driving (MM.gamepad). Everything below hands the library those two facts.
 -- ---------------------------------------------------------------------------
 local _focusO = { focused = true }
--- the ZeD.Focus.mark opts of the menu's focused element (win: the window, when the panel
--- drawing is not itself inside it; solid: the element is already solid accent)
+--- the ZeD.Focus.mark opts of the menu's focused element (win: the window, when the panel
+--- drawing is not itself inside it; solid: the element is already solid accent)
 function MM.focusOpts(win, solid)
     _focusO.win, _focusO.pad, _focusO.solid = win, MM.gamepad(), solid
     return _focusO
 end
 
--- A row, card or cell's wash (spec 5): the selected one at T.selectionA, a hovered one at
--- T.hover, never both. Drawn under the words.
+--- A row, card or cell's wash (spec 5): the selected one at T.selectionA, a hovered one at
+--- T.hover, never both. Drawn under the words.
 function MM.rowWash(p, x, y, w, h, selected, hot)
     local T = ZeD.T
     if selected then
@@ -1219,17 +1219,17 @@ function MM.rowWash(p, x, y, w, h, selected, hot)
     end
 end
 
--- A row's whole look: the wash, then the controller's mark when it has the focus. Returns
--- true when the row's words must switch to T.textOnFocus (the "wash" style).
+--- A row's whole look: the wash, then the controller's mark when it has the focus. Returns
+--- true when the row's words must switch to T.textOnFocus (the "wash" style).
 function MM.rowLook(p, x, y, w, h, selected, hot, focused, win)
     MM.rowWash(p, x, y, w, h, selected, hot)
     if focused then return ZeD.Focus.mark(p, x, y, w, h, MM.focusOpts(win)) end
     return false
 end
 
--- The closed box of a pop-up menu, in the library dropdown's look (ZeD_Dropdown): surface 2,
--- a 1u frame, the value in F2, the 5u triangle at the right. hot = the T.hover wash; focused =
--- the controller's mark. Returns true when the words are T.textOnFocus.
+--- The closed box of a pop-up menu, in the library dropdown's look (ZeD_Dropdown): surface 2,
+--- a 1u frame, the value in F2, the 5u triangle at the right. hot = the T.hover wash; focused =
+--- the controller's mark. Returns true when the words are T.textOnFocus.
 function MM.drawDropBox(p, x, y, w, h, text, hot, disabled, focused, win)
     local T = ZeD.T
     local A = ZeD.Atoms
@@ -1349,7 +1349,7 @@ function MM.band(win, y, w, row, buttons, ask, plain, statusColor)
     return H
 end
 
--- the band's height
+--- the band's height
 function MM.bandH() return ZeD.Molecules.bandH() end
 
 -- The footer line's plain words for the band's usual buttons, by id (a screen's own help, the sixth
@@ -1368,8 +1368,8 @@ function MM.helpFor(id)
     return k and ZeD.tr(k) or nil
 end
 
--- The room a band leaves its left line (a question's text) beside these buttons, in px: the band's
--- width less its edges, the buttons and their gaps, and the line's own mark.
+--- The room a band leaves its left line (a question's text) beside these buttons, in px: the band's
+--- width less its edges, the buttons and their gaps, and the line's own mark.
 function MM.bandRoom(w, labels)
     local T, M = ZeD.T, ZeD.Molecules
     local used = T.px(8) * 2 + T.px(12)
@@ -1377,13 +1377,13 @@ function MM.bandRoom(w, labels)
     return w - used
 end
 
--- Where a field standing in the band starts: after the band's label (its status line) and a gap.
+--- Where a field standing in the band starts: after the band's label (its status line) and a gap.
 function MM.bandFieldX(label)
     local T = ZeD.T
     return T.px(8) + textW(T.fontF2, label or "") + T.px(10)
 end
 
--- a window's band buttons answer here: their hit boxes, the pointer's side
+--- a window's band buttons answer here: their hit boxes, the pointer's side
 function MM.bandHits(win)
     local ax, ay = win:getAbsoluteX(), win:getAbsoluteY()
     for _, b in ipairs(win._specs) do
@@ -1645,7 +1645,7 @@ function MM.openItems()
     return nil
 end
 
--- Opens a pop-up menu at a button: anchor = { x, y, w, h } in screen px; up = above it, right-aligned.
+--- Opens a pop-up menu at a button: anchor = { x, y, w, h } in screen px; up = above it, right-aligned.
 function MM.openPopup(key, items, anchor, up)
     MM.popup = { key = key, items = items, anchor = anchor, up = up }
     MM.ctx.open = key
@@ -1819,7 +1819,7 @@ function ZeD_MMDrop:prerender()
     if gp then ZeD.Focus.drawOverlay(self, self) end
 end
 
--- the wheel over an open pull-down scrolls it
+--- the wheel over an open pull-down scrolls it
 function MM.dropWheel(del)
     if not MM.ctx.open or (MM.ctx.dropScrollMax or 0) <= 0 then return false end
     MM.ctx.dropScroll = (MM.ctx.dropScroll or 0) + del * ZeD.T.px(DROP_ROW_H) * 2
@@ -1963,8 +1963,8 @@ function ZeD_MMGlass:onRightMouseUp(x, y)
     return true
 end
 
--- Leaving a window lets go of its fields: a field stays focused while hidden, and the next window's
--- keys would type into it (the Workshop's title behind the description editor).
+--- Leaving a window lets go of its fields: a field stays focused while hidden, and the next window's
+--- keys would type into it (the Workshop's title behind the description editor).
 function MM.unfocusEntries(p)
     if not (p and p.children) then return end
     for _, c in pairs(p.children) do

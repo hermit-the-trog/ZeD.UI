@@ -190,8 +190,8 @@ end
 
 -- The window kept on the current screen: no taller than the screen (less 20 units), no wider,
 -- wholly on it, the half-screen width cap measured again. Run after a restore and on a
--- resolution change (Oct 31 2026, break-it B3: a layout saved on a bigger screen, or a screen
--- made smaller, left the window hanging off the bottom; a drag was clamped, these were not).
+-- resolution change — a layout saved on a bigger screen, or a screen made smaller, left the
+-- window hanging off the bottom; a drag was clamped, these two paths were not.
 local function fitCharToScreen(win)
     if not win then return end
     local T = ZeD.T
@@ -221,13 +221,13 @@ local function restoreCharState(win, playerObj)
     local T = ZeD.T
     local screenW = getCore():getScreenWidth()
     local screenH = getCore():getScreenHeight()
-    -- S124 scale: stored values are design units (see saveCharState). Scale to screen px,
+    -- Stored values are design units (see saveCharState). Scale to screen px,
     -- then clamp to the screen (a saved position can land off-screen after a root change).
     local minW = TAB_STRIP_W + 200 + CONTAINER_STRIP_W           -- design units
     local xU = cs.x or 0
     local yU = math.max(0, cs.y or 60)
     -- no wider than this screen's cap either (half the screen): a layout saved on a bigger
-    -- screen kept its inventory width (break-it B3)
+    -- screen used to keep that screen's inventory width
     local capU = math.floor((win._maxWinW or math.floor(screenW * 0.5)) / ((T and T.scale) or 1))
     local wU = math.max(minW, math.min(cs.w or 436, capU))
     local x = T.px(xU)
@@ -252,7 +252,7 @@ local function restoreCharState(win, playerObj)
     win._invDrawerTargetW = T.px(restoredInvW)
     win._baseInvW         = restoredInvW                        -- design units
     win._prevDesiredW     = nil  -- let first frame compute fresh
-    fitCharToScreen(win)         -- (and the window's own minimums against the screen, break-it B3)
+    fitCharToScreen(win)         -- (and the window's own minimums against the screen)
     -- Restore active tab
     if cs.activeTab then
         win._activeTab = cs.activeTab
@@ -280,7 +280,7 @@ local TAB_DRAWER_WIDTHS = {
     thermal  = SKILLS_DRAWER_W,
     identity = SKILLS_DRAWER_W,
     journal  = SKILLS_DRAWER_W,
-    radio    = SKILLS_DRAWER_W,  -- S115 — radio chassis needs the wider drawer
+    radio    = SKILLS_DRAWER_W,  -- the radio chassis needs the wider drawer
 }
 
 local function getTabDrawerW(tab)
@@ -289,7 +289,7 @@ end
 
 local function getTargetDrawerW(win)
     local T = ZeD.T
-    -- S124 scale: returns SCREEN px (compared against the animated _drawerEffW).
+    -- Returns SCREEN px (compared against the animated _drawerEffW).
     if win._drawerOpen then
         if win._drawerMode == "item" then return T.px(ITEM_CARD_W) end
         if win._drawerMode == "tab" then
@@ -310,9 +310,9 @@ local function getTargetDrawerW(win)
                 local maxW = win._maxWinW or math.floor(getCore():getScreenWidth() * 0.5)
                 heldIn = maxW - T.px(TAB_STRIP_W) - T.px(CONTAINER_STRIP_W) - T.px(INV_MIN_BESIDE_CARD) < full
             end
-            -- a two-way radio: a walkie's tab is the half card wherever one of its widths fits it (Oct 30 2026,
-            -- punch list item 2), else the full card; a ham set's is the full card, or the card a walkie's width
-            -- fits with the set's narrow face where the drawer is held in. Never a width between the two.
+            -- a two-way radio: a walkie's tab is the half card wherever one of its widths fits it, else the
+            -- full card; a ham set's is the full card, or the card a walkie's width fits with the set's
+            -- narrow face where the drawer is held in. Never a width between the two.
             if win._activeTab == "radio" and ZeD.RadioTab and ZeD.RadioTab.wantW then
                 local rw = ZeD.RadioTab.wantW(win, want, heldIn and half or full)
                 if rw then want = rw end
@@ -335,7 +335,7 @@ local function getMcCapacity(win)
     if win._activeTab ~= "loot" then return 0 end  -- MC only on Loot
     local R = getR()
     local T = ZeD.T
-    -- S124 scale: InventoryRenderer exports MIN_COL_W / COMFORT_COL_W / getXferW as design units
+    -- InventoryRenderer exports MIN_COL_W / COMFORT_COL_W / getXferW as design units
     local minColW = T.px(R.MIN_COL_W or 140)
     local screenW = getCore():getScreenWidth()
     -- Loot tab has no drawer, so full space is available
@@ -477,7 +477,7 @@ local function exitMultiContainer(win, content)
     win._mcSelected = {}
     win._mcColStates = {}
     win._mainVisible = true
-    win._activeContainer = 1   -- (main shows, so main is the selection: FAIV's report, Nov 6 2026; a pad tap sets its own after)
+    win._activeContainer = 1   -- (main shows, so main is the selection; a pad tap sets its own after)
     content._colStates = nil
     content._selectedContainers = nil
     if win._drawerMode ~= "tab" and win._drawerMode ~= "item" then

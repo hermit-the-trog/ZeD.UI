@@ -109,7 +109,7 @@ local AXIS_RSTICK_X = 2
 local AXIS_RSTICK_Y = 3
 
 -- Token readers. Triple-guard to tolerate T.gp not being populated at
--- file-load time (same pattern as InputModeDetector / BumperChord).
+-- file-load time (same pattern as InputModeDetector).
 local function _holdInitialMs()     return (ZeD.T and ZeD.T.gp and ZeD.T.gp.holdInitMs)        or 250 end
 local function _holdRepeatMs()      return (ZeD.T and ZeD.T.gp and ZeD.T.gp.holdRepeatMs)      or 120 end
 local function _holdMs()            return (ZeD.T and ZeD.T.gp and ZeD.T.gp.holdMs)            or 400 end
@@ -127,12 +127,12 @@ local _dpadHoldDir    = nil
 local _dpadHoldStart  = 0
 local _dpadLastRepeat = 0
 
--- Y hold-timer state (B no longer uses hold). Y is the only hold-armed button.
+-- Y hold-timer state (B has no hold). Y, A and X are the hold-armed buttons.
 local _yHeld         = false
 local _yStartMs      = 0
 local _yConsumed     = false
 
--- S99: A-button tap-vs-hold state. Press defers firing until release (tap →
+-- A-button tap-vs-hold state. Press defers firing until release (tap →
 -- onActivate) or threshold (hold → onHoldActivate, when defined). `_aWindow`
 -- captures which window owned focus at press time so the callback fires on
 -- the correct window even if focus moved (defensive).
@@ -142,7 +142,7 @@ local _aConsumed    = false
 local _aWindow      = nil
 local A_HOLD_MS     = 350
 
--- S113c: X-button tap-vs-hold state, mirror of A's. Tap (release before
+-- X-button tap-vs-hold state, mirror of A's. Tap (release before
 -- threshold) fires onContextMenu / onReset. Hold past threshold fires
 -- onHoldContextDrag with no dir on entry (signal "drag mode armed"); while
 -- X stays held, D-pad presses fire onHoldContextDrag(w, el, dir) instead
@@ -158,17 +158,16 @@ local X_HOLD_MS      = 350
 -- Rising-edge tracker for Y when no window is focused (global Y-to-open).
 local _prevYPressedUnfocused = false
 
--- Aiming-escape edge latch + grace period. (S113: _wsLocked retired since
--- Y-hold no longer toggles a lock.)
+-- Aiming-escape edge latch + grace period.
 local _wsLatched       = false
 local _wsGraceUntilMs  = 0
 
--- S113b: cone-nav debug overlay toggle. F9 toggles on. Paints the focused
--- element's bbox + half-plane regions for U/D/L/R + the per-direction picks
--- (cone winner cyan, half-plane winner magenta if cone missed). Throwaway
--- QA aid — strip after iteration converges.
+-- Cone-nav debug overlay toggle (F9, debug builds). Paints the focused
+-- element's bbox + the per-direction picks (cone winner cyan, half-plane
+-- winner magenta if cone missed). A QA aid — TODO: strip once cone-nav
+-- settles.
 local _debugOverlay    = false
--- Oct 19 2026: a dry run of a D-pad move (Focus.previewMove; the nav audit reads it)
+-- a dry run of a D-pad move (Focus.previewMove; the QA nav scripts read it)
 local _preview = nil
 -- Last-pick cache (per direction) so the overlay can highlight what
 -- _pickBestWithFallback would choose in that direction without re-running
@@ -178,7 +177,7 @@ local _debugLastPicks  = { up = nil, down = nil, left = nil, right = nil }
 local _debugFocusBox   = nil  -- focused element's translated bounds (cached for paint)
 
 -- ---------------------------------------------------------------------------
--- HELPERS (declared up-front so forward refs resolve — common mistake #16)
+-- HELPERS (declared up-front so forward references resolve)
 -- ---------------------------------------------------------------------------
 
 -- (a zone's source panel; assigned in the FLAT-NAV section below, read by

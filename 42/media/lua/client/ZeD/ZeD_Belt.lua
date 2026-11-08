@@ -899,15 +899,14 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp, ammo, two)
     local boxes = {}
     local hand, off, box = px(HAND), px(OFF_HAND), px(BOX)
     local x = 0
-    -- seen from behind, as the camera sees the character (director, Oct 25 2026: "Belt Left is on the
-    -- side of the Primary hand slot"): the off hand (the game's left) on the left of the main hand (the
-    -- right), the pair at the left end of the belt (Oct 27 2026), then the strap with the slots in key
+    -- seen from behind, as the camera sees the character: the off hand (the game's left) on the left of the main hand (the
+    -- right), the pair at the left end of the belt, then the strap with the slots in key
     -- order. Boxes go in left to right (the controller walks them in this order; the off hand stays
     -- before the main hand so the main hand draws over it while it peeks).
     -- the worn watch (the "Watch" option) beside its own hand: left wrist left of the off hand, right
     -- wrist right of the main hand (outside the ammo tab)
     -- (wItem, wPlate, wWrist: ZeD.Watch.beltWatch, asked by _layoutCached)
-    -- the box is the mini watch as drawn: its art at the whole zoom T.art (Oct 21 2026); where that is
+    -- the box is the mini watch as drawn: its art at the whole zoom T.art; where that is
     -- taller than the hands (1.5: 92 px art, 84 px hands) the belt grows to it and the rest centre on it
     local mw, mh = 44 * T.art, 46 * T.art
     if ZeD.WatchMini and ZeD.WatchMini.size then mw, mh = ZeD.WatchMini.size() end
@@ -956,7 +955,7 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp, ammo, two)
     x = x + px(END_GAP)
     if B.simple() then
         -- the Simple belt: the slots evenly spaced after the hands, no strap and no buckle. The middle of the slots
-        -- goes on the screen's centre, as Full's buckle does (QA, Nov 2 2026: centred on its own width, a second
+        -- goes on the screen's centre, as Full's buckle does (centred on its own width, a second
         -- item in the off hand moved every slot by half the hands' change)
         local slotsX = x
         for i = 1, n do
@@ -980,7 +979,7 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp, ammo, two)
     self._anchorX = nil
     local strapX = x
     x = x + px(PAD)                       -- the slots sit PAD in from the strap's end (the buckle's place counts it)
-    -- the buckle's place is its art at the whole zoom (58 x 40 texels at T.art; Oct 21 2026)
+    -- the buckle's place is its art at the whole zoom (58 x 40 texels at T.art)
     local buckW, buckH = BUCKLE_W * T.art, BUCKLE_H * T.art
     for i = 1, n do
         if i == k + 1 then
@@ -1112,15 +1111,15 @@ local function dashedBorder(p, x, y, w, h, c, t)
 end
 
 -- A filled circle in the box (x, y, s x s), made of one-pixel screen rows like ZeD.Atoms.drawStatusDot so its edge
--- is crisp at every scale; the hands are round (director, Oct 16 2026: "make primary and secondary circles not square").
+-- is crisp at every scale; the hands are round, never square.
 -- Its outline (ring), t screen pixels thick. The rows are worked out once per size (roundShape) and drawn as one
 -- ready-made picture of exactly those pixels (ZeDUI/tools/physpx/d_rounds.py, media/textures/ZeD/belt/round/),
--- tinted: one draw instead of a rectangle per row (Oct 22 2026, the drawing-cost work). A size with no picture
+-- tinted: one draw instead of a rectangle per row (a draw-cost saving). A size with no picture
 -- draws the rows, runs of equal rows merged into one rectangle.
 local ROUND_DIR = "media/textures/ZeD/belt/round/"
 local _round, _roundN = {}, 0
 -- is there a picture for this size (the ranges d_rounds.py makes: RING_SIZES there, thickness -> first and last size)
--- (Oct 27 2026: widened for the 56-unit main hand and the 44-unit off hand)
+-- (wide enough for the 56-unit main hand and the 44-unit off hand)
 local RING_BAKED = { [1] = { 15, 78 }, [2] = { 17, 120 }, [3] = { 31, 84 }, [4] = { 23, 132 }, [6] = { 25, 132 },
                      [8] = { 50, 116 }, [12] = { 54, 120 } }
 local function roundBaked(s, t)
@@ -1227,8 +1226,8 @@ local function roundDrawPart(p, x, y, e, a, c, rx, ry, rw, rh)
     end
 end
 -- A ring filled clockwise from twelve o'clock for f (0..1) of the way round: the hands' condition
--- (director, Oct 24 2026: "can those be ring indicator, the bar looks odd in the circle. a ring
--- slightly inset inside would be the better place for it"). Each quarter is the ring's picture cut
+-- (a straight bar looks odd in a circle; a ring slightly inset
+-- sits better in it). Each quarter is the ring's picture cut
 -- to that quarter; the last quarter is cut again where the fill ends, across the ring: down the
 -- ring where it runs flat (near twelve, three, six, nine), along it where it runs upright, so a
 -- thin ring ends square. Five draws at most, like the outline itself.
@@ -1266,7 +1265,7 @@ function ZeD_BeltHUD:_drawStrap()
     if strapTexture("mid") then
         -- the pixel-art straps: whole multiple k, centred on the strap's row; each run its own piece (its two
         -- cut ends and its middle repeated and clipped)
-        local k = T.art   -- the nearest whole zoom (Oct 21 2026; was the scale rounded down)
+        local k = T.art   -- the nearest whole zoom
         local th, ew, tw = STRAP_TEX_H * k, STRAP_END * k, STRAP_TILE * k
         local y = s.y + math.floor((s.h - th) / 2)
         for _, r in ipairs(runs) do
@@ -1288,7 +1287,7 @@ function ZeD_BeltHUD:_drawStrap()
         end
         return
     end
-    -- the art missing: the plain leather (no stitching since Oct 16 2026)
+    -- the art missing: the plain leather, no stitching
     local bands = 6
     for i = 0, bands - 1 do
         local f = i / (bands - 1)
@@ -1333,7 +1332,7 @@ function ZeD_BeltHUD:_drawBuckle()
     self:drawRect(b.x + b.w - t, b.y, t, half, 1, col(BRASS_A)); self:drawRect(b.x + b.w - t, b.y + half, t, b.h - half, 1, col(BRASS_B))
     self:drawRectBorder(b.x, b.y, b.w, b.h, 1, col(BRASS_C))
     self:drawRectBorder(b.x + t, b.y + t, b.w - t * 2, b.h - t * 2, 1, col(BRASS_C))
-    -- no bar across the middle (director: "doesnt work like that"); the
+    -- no bar across the middle (a buckle's frame is open); the
     -- strap shows through the open frame
 end
 

@@ -32,14 +32,14 @@
 -- the menu behind it: see below). An item that finishes an update while the game
 -- runs is remembered: its new code needs a reload and its pictures a restart.
 --
--- NEVER ASK STEAM OUTSIDE THE MODS SCREEN (QA Nov 5 2026, the hair trim that failed
--- with Hands-On Interactions: "Cannot assign field callFrame because a is null").
--- Steam's reply comes on the main thread and the game runs the Lua callback there
--- whatever else is running; Lua offers no way to cancel a query. This used to ask
--- every 30 s at the main menu, so a reply could land while a world loaded, with the
--- loading thread in Lua: two threads shared the game's pool of call records, one
--- record was handed out twice, and later calls failed in unrelated places, far from
--- here. It only showed with a Workshop mod in the list (nothing to ask otherwise).
+-- NEVER ASK STEAM OUTSIDE THE MODS SCREEN. Steam's reply comes on the main
+-- thread and the game runs the Lua callback there whatever else is running; Lua
+-- offers no way to cancel a query. This used to ask every 30 s at the main menu,
+-- so a reply could land while a world loaded, with the loading thread in Lua:
+-- two threads shared the game's pool of call records, one record was handed out
+-- twice, and later calls failed in unrelated places, far from here ("Cannot
+-- assign field callFrame because a is null", once from another mod's hair-trim
+-- action). It only showed with a Workshop mod in the list (nothing to ask otherwise).
 -- ============================================================================
 
 ZeD = ZeD or {}
@@ -63,12 +63,13 @@ local SCRIPT_KINDS = {
     { "getAllModelScripts", "model", "models", one = "UI_ZeD_ModScan_CountModel", many = "UI_ZeD_ModScan_CountModels", thing = "UI_ZeD_ModScan_ThingModel", same = "UI_ZeD_ModScan_SameModels", sameOne = "UI_ZeD_ModScan_SameModel" },
 }
 
--- a conflict's thing as words: a Lua file's path as it is, a script object as `item "Base.Axe"`
--- (MS.kindOf: the SCRIPT_KINDS row of a noun id such as "item")
+--- The SCRIPT_KINDS row of a noun id such as "item" (nil for any other word).
 function MS.kindOf(noun)
     for _, k in ipairs(SCRIPT_KINDS) do if k[2] == noun then return k end end
     return nil
 end
+--- A conflict's thing as words: a Lua file's path as it is, a script object
+--- as `item "Base.Axe"`.
 function MS.thingText(t)
     if type(t) ~= "table" then return tostring(t or "") end
     local k = MS.kindOf(t.kind)
@@ -85,6 +86,7 @@ local function jlist(l)
     return t
 end
 
+--- A mod's display name, or its id when it has none.
 local function modName(id)
     local m = getModInfoByID(id)
     local n = m and m:getName()
@@ -114,10 +116,12 @@ local function hiddenSave()
     wr:close()
 end
 
+--- Has "Fine, hide this" been pressed on this conflict?
 function MS.isHidden(e)
     if not hidden then hiddenLoad() end
     return hidden[e.key] == true
 end
+--- Hide a conflict (written to the file at once) and forget the per-mod counts.
 function MS.hide(e)
     if not hidden then hiddenLoad() end
     hidden[e.key] = true
@@ -292,9 +296,11 @@ function MS.start()
     job = coroutine.create(function() scanBody(res) end)
 end
 
--- slices of the scan for up to STEP_MS of a frame; the Mods screen calls this every frame it is up
+-- how much of a frame one MS.step call may take
 local STEP_MS = 6
 local errLogged = false
+--- Run slices of the scan for up to STEP_MS; the Mods screen calls this every
+--- frame its list page is up. The first call starts the scan itself.
 function MS.step()
     if not job then
         if not MS.res.startedAt then MS.start() else return end

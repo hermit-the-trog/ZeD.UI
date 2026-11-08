@@ -189,31 +189,30 @@ ZeD_WorldWindow.isTabVisible = isTabVisible
 -- ============================================================================
 
 -- Forward declaration — assigned inside toggle() after its upvalues (exitWorldMC,
--- getWorldActiveScroll) are in scope. Kahlua common mistake #16: closures cannot
--- capture locals declared below them, so we reserve the slot here then fill it
--- lower in the file.
+-- getWorldActiveScroll) are in scope. Kahlua closures cannot capture locals
+-- declared below them, so the slot is reserved here and filled lower in the
+-- file.
 local _switchWorldTabForNav
 
--- S96: forward-declare _buildWorldInvRowFocusables so container onConfirm can
--- reference it. Assigned below after the definition.
+-- Forward-declared so container onConfirm can reference it. Assigned below
+-- after the definition.
 local _buildWorldInvRowFocusables
 
--- S98: forward-declarations for ring-sync helpers + builders that
--- _syncWorldRingZones references. Each is assigned later (where its own
--- dependencies are in scope). Common mistake #16.
+-- Forward declarations for the ring-sync helpers and builders that
+-- _syncWorldRingZones references. Each is assigned later, where its own
+-- dependencies are in scope (the same Kahlua capture rule).
 local _buildWorldPanelFocusables
 local _buildWorldLootFocusables
 local _buildWorldMCColumnFocusables
 local _clearGpFocusState
 local _syncWorldRingZones
--- S99: worldItemCard zone builder — delegates to win._itemCard's shared API.
+-- worldItemCard zone builder — delegates to win._itemCard's shared API.
 local _buildWorldCardActionFocusables
--- S108 Q104 fix: `exitWorldMC` and `mcToggleWorldContainer` are consumed by
--- the onHoldActivate/onActivate closures inside `_buildWorldLootFocusables`
--- (line ~170+). Without hoisting, those closures capture the names as
--- globals at creation time — `if mcToggleWorldContainer then` silently
--- short-circuits, so hold-A on a container does nothing. Mirrors Char's
--- order (mcToggleContainer defined at line 303, above its consumers).
+-- `exitWorldMC` and `mcToggleWorldContainer` are consumed by the
+-- onHoldActivate/onActivate closures inside `_buildWorldLootFocusables`.
+-- Without hoisting, those closures capture the names as globals at creation
+-- time — `if mcToggleWorldContainer then` silently short-circuits, so hold-A
+-- on a container does nothing.
 local exitWorldMC
 local mcToggleWorldContainer
 
@@ -243,11 +242,6 @@ local function _buildWorldTabBarElements(win)
     return elements
 end
 
--- S95 — Build container strip focusables for World's Loot tab. Strip lives
--- on the LEFT edge of the window (x=0..CONTAINER_STRIP_W). Coordinates in
--- window-local space so the cone algorithm can traverse tabBar<->panel
--- without a frame mismatch.
--- S95 v3: onFocus auto-activates, matching the tab-strip behavior.
 -- The strip's non-floor container indices in display order, kept on the window.
 -- Sorted again only when forced (the container list just refreshed), when the
 -- list itself was replaced, or when the sort mode changed, not every frame.
@@ -279,18 +273,17 @@ local function _worldStripListOrder(win, force)
     return list
 end
 
--- S113c: shared gamepad-drag reorder for World container strip. Mirror of
--- _gpReorderCharContainer. World containers don't have a stable
--- _containerOrder structure equivalent to Char's — World uses listEntries
--- built per-frame and supports sort modes. The reorder mutates listEntries
--- (or the underlying container array) and forces sortMode = "dist" so the
--- manual order persists. Floor container is pinned and not reorderable.
+-- Gamepad-drag reorder for the World container strip (hold X + D-pad), the
+-- mirror of _gpReorderCharContainer: moves the container in
+-- win._containerOrder, forces sortMode = "dist", and rebuilds the strip's
+-- stops around the moved container. The floor container is pinned and not
+-- reorderable.
 local function _gpReorderWorldContainer(win, containerIdx, dir)
     if not win or not containerIdx then return end
     local containers = win._containers
     if not containers or #containers == 0 then return end
-    -- World stores order via _containerOrder same as Char (per S107+).
-    -- If absent, build identity order on the fly.
+    -- the stored order, kept the way the Character window keeps its own;
+    -- built as the identity order the first time
     local order = win._containerOrder
     if not order or #order == 0 then
         order = {}
@@ -338,34 +331,28 @@ local function _gpReorderWorldContainer(win, containerIdx, dir)
     end
 end
 
+-- The Loot strip's controller stops, one per container button.
 _buildWorldLootFocusables = function(win)
     if not win or not win._containers then return {} end
     local n = #win._containers
     if n == 0 then return {} end
     local T = ZeD.T
     local stripY = win:getBodyY()
-    -- S108: match the visual render layout of drawWorldContainerStrip exactly.
+    -- Match the visual render layout of drawWorldContainerStrip exactly.
     -- Strip visual order:
     --   Zone 1 (floor, pinned top) at y=stripY — containers[#containers]
     --   Zone 2 (sort row, NOT focusable) at y=stripY+CONTAINER_BTN_SZ+1, h=20
     --   Zone 3 (scrollable non-floor list) starts at zone3Y = stripY + 37 + 20
+    -- The floor is LAST in containers[] but draws at the TOP, and the list
+    -- below follows the sort order, so element.containerIdx must come from
+    -- listEntries, never from the raw container index.
     --
-    -- Prior (S98) builder stamped elements at (i-1)*36 with containerIdx=i,
-    -- which mis-mapped every row:
-    --   - floor (containers[n], rendered at TOP) got element position BOTTOM
-    --   - non-floor element 2 landed visually on the sort row
-    --   - element.containerIdx didn't track listEntries sort reorder
-    --
-    -- Also fixed: onActivate's `cnt.isMain` read returned nil on World (World
-    -- containers use `isFloor`, not `isMain`) — _mainVisible was always false,
-    -- floor button never painted active when re-selected.
-    --
-    -- Mirrors Char S106 _buildLootFocusables pattern exactly, inverted for
+    -- Mirrors the Character window's _buildLootFocusables, inverted for
     -- World's container layout (floor = last index, pinned top).
-    -- Oct 23 2026: panel-local, from the places the strip drew last
-    -- (win._stripLay). They were window-local, and the focus manager adds
-    -- the strip panel's own offset, so every button sat a body-height too
-    -- low for the D-pad's sums. The list scrolls: stops follow the scroll.
+    -- Coordinates are panel-local, from the places the strip drew last
+    -- (win._stripLay): the focus manager adds the strip panel's own offset,
+    -- so window-local numbers sat every button a body-height too low for
+    -- the D-pad's sums. The list scrolls: stops follow the scroll.
     local L = win._stripLay
     local colHdrH = T.px(20)
     local zone3Y = (L and L.listY) or (T.px(CONTAINER_BTN_SZ) + T.px(1) + colHdrH)

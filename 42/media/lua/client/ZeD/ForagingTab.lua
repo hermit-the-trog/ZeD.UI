@@ -1,9 +1,12 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ForagingTab.lua
 -- ============================================================================
--- FORAGING TAB — World Window standalone tab.
+-- FORAGING TAB — client; the World window's "forage" tab renderer.
 -- Surfaces vanilla foraging data: zone, radius, modifiers, categories in range,
 -- recent finds. Gameplay-neutral — never reveals pre-discovery spawns.
--- Design: zed-foraging-quiet-v5.html (S70 approved).
+-- A pinned header strip on top and the band at the foot; the body between them
+-- (hero band, More detail fold, Recent finds) scrolls as one. The chosen focus
+-- is written into vanilla's hidden search window, and ISSearchManager.spotIcon
+-- is wrapped to log finds.
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -43,7 +46,7 @@ local FINDS_PAD_X      = 12
 local FINDS_MAX        = 20      -- LIFO cap
 
 -- ============================================================================
--- LIVE DATA GETTERS (S72 — replaces mock data with vanilla API calls)
+-- LIVE DATA GETTERS — vanilla API reads, one helper per fact
 -- ============================================================================
 
 local ZONE_FRIENDLY_NAMES = {
@@ -102,9 +105,9 @@ local COMPASS = {
     "UI_ZeD_Forage_CompassS", "UI_ZeD_Forage_CompassSW", "UI_ZeD_Forage_CompassW", "UI_ZeD_Forage_CompassNW",
 }
 -- ============================================================================
--- S109b — GAMEPAD FOCUS CUE HELPERS (mirror of AnimalsTab pattern).
--- Paint gate reads live focused element from FocusManager; matcher closure
--- discriminates between element types (isSearch / isDropdown / isDisclosure).
+-- GAMEPAD FOCUS CUE HELPERS (the AnimalsTab pattern).
+-- Paint gate reads the live focused element from FocusManager; a matcher
+-- closure tells element types apart (isSearch / isDropdown / isDisclosure).
 -- ============================================================================
 
 -- (only while the mark may show: this window has the controller and the pad is in use)
@@ -126,7 +129,7 @@ end
 local function angleToBearing(rad)
     -- rad: the maths angle, 0 = east, pi/2 = north (PZ Y- is north). The COMPASS table starts at
     -- N and runs clockwise, so the angle is turned into a heading first: north 0, east 90, south
-    -- 180, west 270 (punch list 43, Nov 1 2026: a find due east read N and the ring ran backwards).
+    -- 180, west 270 — fed the angle raw, a find due east read N and the ring ran backwards.
     -- (+ 360 before the modulo: Kahlua's % keeps the sign of a negative number)
     local deg = math.deg(rad) % 360
     local heading = (90 - deg + 360) % 360
@@ -517,7 +520,8 @@ local function drawSkyArc(panel, x, y, w, h)
     -- Below horizon: dark ground tint
     panel:drawRect(x, y + horizY + T.px(1), w, h - horizY - T.px(1), 0.06, 0.03, 0.03, 0.03)
 
-    -- Arc path (column-by-column semicircle, 1px wide, above horizon only)  -- S124 scale: the loop walks screen px, so the 1 px column width stays; thickness scales
+    -- Arc path (column-by-column semicircle, 1px wide, above horizon only)
+    -- (the loop walks screen px, so the 1 px column width stays; the thickness scales)
     local arcColor = T.borderS
     local arcA = 0.35
     for col = 0, radius * 2 do
