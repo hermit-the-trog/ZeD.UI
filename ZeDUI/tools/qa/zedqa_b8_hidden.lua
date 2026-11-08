@@ -175,12 +175,12 @@ step(10, function()
         local sorted, within, fields = true, true, true
         for i, s in ipairs(sched) do
             if i > 1 and (sched[i - 1].at > s.at) then sorted = false end
-            if s.at + 1 < now or s.at > now + F.DAYS * 1440 + 1440 then within = false end
+            if s.at + 360 < now or s.at > now + F.DAYS * 1440 + 1440 then within = false end
             if not (s.channel and s.channel ~= "" and s.teaches and s.teaches ~= "" and s.day and s.mins and s.mins >= 0 and s.mins < 1440) then fields = false end
             if i <= 4 then say(string.format("  day +%d %02d:%02d  %s  teaches %s", s.day, math.floor(s.mins / 60), s.mins - math.floor(s.mins / 60) * 60, s.channel, s.teaches)) end
         end
         check(sorted, "the shows are sorted by start")
-        check(within, "every show ends after now and starts within " .. F.DAYS .. " days")
+        check(within, "every show is on now or ahead (the show list holds the one in progress: it started up to 6 hours back) and starts within " .. F.DAYS .. " days")
         check(fields, "every show has a day, a time, a channel and what it teaches")
         local pg = F.tvPage()
         if #sched > 0 then

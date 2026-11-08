@@ -232,6 +232,7 @@ add("wsitems open", 40, function()
     S.ws = scr
 end)
 add("wsitems check", 25, function()
+    if not S.ws then note("A1 NOT RUN: the game makes the server Workshop items screen only with Steam on, and QA runs -nosteam (Steam would load its own copy of ZeD). Check A1 by hand"); return end
     local w = field("wsItemsWin")
     if not w then note("no Workshop items window"); return end
     verdict(view() == "wsitems", "A1 the server's Workshop items show as ZeD's window (view " .. view() .. ")")

@@ -1,0 +1,7 @@
+zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60
+zedqa_b8_tvstamps.lua | tvst | timeout=120
+zedqa_b8_hidden.lua | b8hf | timeout=420
+zedqa_b8_guide.lua | b8gd | timeout=600
+zedqa_b8_console.lua | b8dc | timeout=240 | expect=console
+zedqa_dash_keys_edge.lua | dke | timeout=600

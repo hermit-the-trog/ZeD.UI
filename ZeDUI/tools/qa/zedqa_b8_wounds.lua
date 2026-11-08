@@ -86,8 +86,21 @@ end
 local function pick(sub)
     local m = getPlayerContextMenu(0)
     for _, o in ipairs(m and m.options or {}) do
-        if tostring(o.name):lower():find(sub:lower(), 1, true) and o.onSelect then
-            return pcall(o.onSelect, o.target, o.param1, o.param2, o.param3, o.param4, o.param5, o.param6, o.param7, o.param8, o.param9, o.param10)
+        if tostring(o.name):lower():find(sub:lower(), 1, true) then
+            if o.onSelect then
+                return pcall(o.onSelect, o.target, o.param1, o.param2, o.param3, o.param4, o.param5, o.param6, o.param7, o.param8, o.param9, o.param10)
+            end
+            -- (Nov 8 QA) the game's Bandage entry opens a sub menu (the bandage to use): take its first live entry
+            if o.subOption then
+                local sm = nil
+                pcall(function() sm = m:getSubMenu(o.subOption) end)
+                for _, so in ipairs(sm and sm.options or {}) do
+                    if so.onSelect and not so.notAvailable then
+                        return pcall(so.onSelect, so.target, so.param1, so.param2, so.param3, so.param4, so.param5, so.param6, so.param7, so.param8, so.param9, so.param10)
+                    end
+                end
+                return false, "the sub menu has no live entry"
+            end
         end
     end
     return false, "no such entry"
@@ -98,6 +111,11 @@ local function hideMenu()
 end
 local function click(figure)
     hideMenu()
+    if not CW.getWindow() then
+        -- (Nov 8 QA) the Character window was gone: say so, and open it so the click can run
+        say("NOTE the Character window was not open at the click on " .. figure .. "; opening it")
+        pcall(CW.toggle, 0)
+    end
     return pcall(HT._onPartClicked, CW.getWindow(), figure, nil, 10, 10)
 end
 local function queued()
@@ -224,6 +242,17 @@ step(20, function()
 end)
 step(25, function() shot("menu_examined") end)
 step(10, function()
+    do -- (Nov 8 QA) what the Bandage entry is: the fields the menu gave it
+        local m = getPlayerContextMenu(0)
+        for _, o in ipairs(m and m.options or {}) do
+            if tostring(o.name):lower():find("bandage", 1, true) then
+                local f = {}
+                for k, v in pairs(o) do f[#f + 1] = tostring(k) .. "=" .. type(v) end
+                table.sort(f)
+                say("Bandage entry fields: " .. table.concat(f, " ") .. "; notAvailable " .. tostring(o.notAvailable) .. "; subOption " .. tostring(o.subOption))
+            end
+        end
+    end
     local ok, e = pick("bandage")
     hideMenu()
     say("Bandage picked from the menu: " .. tostring(ok) .. " " .. tostring(ok and "" or e))

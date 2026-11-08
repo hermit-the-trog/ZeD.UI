@@ -282,7 +282,7 @@ step(10, function()
     if WW and WW.isOpen and WW.isOpen() then WW.toggleBothPaired(0) end
     pcall(A.reveal, 0, 0.5)
 end)
-step(45, function()
+step(15, function()   -- (Nov 8 QA: reveal(0, 0.5) lasts half a second at about 100 ticks a second and fades after; 45 ticks read it mid-fade)
     local v = vis()
     check(v ~= nil and v > 0.9, "revealed: the slots are shown (visibility " .. tostring(v) .. ")")
     shot("ahb_shown")

@@ -1,4 +1,4 @@
--- ZeDUI/tools/qa/zedqa_prelude2.lua (Nov 7 2026, QA): the prelude again under its own tag, for a manifest that needs the pair reopened mid-run (generated from zedqa_prelude.lua)
+-- ZeDUI/tools/qa/zedqa_prelude2.lua (Nov 7 2026, QA): zedqa_prelude.lua under the tag pre2 (made by b8_overnight.ps1)
 -- In game on the ZeD-QA save: the first line of the unattended regression
 -- (zedqa_run.ps1, regression.txt). Opens the window pair if it is shut (the
 -- suites need both windows), unpauses, turns on god mode (the QA character
@@ -7,6 +7,10 @@
 -- says so as an ERR line, so the run reads WARN instead of timing out.
 -- grep "ZEDQA pre".
 local function say(s) print("ZEDQA pre2 " .. tostring(s)) end
+
+-- Nov 8 2026: the windows let their controller stops wait while the mouse is in use (Focus.stopsMayWait);
+-- QA scripts read w._focusRing directly, so keep them fresh every frame. Set it to nil to test the waiting itself.
+ZEDQA_FRESH_STOPS = true
 
 -- (punch list 47, Nov 2 2026) the vehicle probe for the 1280x720 bisect: where the character stands, how wide
 -- the loaded chunk grid is and what it covers, and whether a spawn square and its car lie inside it. The
