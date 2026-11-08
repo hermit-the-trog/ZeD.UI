@@ -158,16 +158,17 @@ U.ACTS = {
     del = function(r) networkUserAction("Delete", r.user, "") end,
     pass = function(r) networkUserAction("ResetPassword", r.user, "") end,
     totp = function(r) networkUserAction("ResetTOTPSecret", r.user, "") end,
-    banip = function(r) banUnbanUserAction("BanIP", r.user, "") end,
+    -- (the bans' game calls are made here only without ZeD's server part: with it they go through ZeD's Bans, U.ban)
+    banip = function(r, reason) banUnbanUserAction("BanIP", r.user, reason or "") end,
     unbanip = function(r) banUnbanUserAction("UnBanIP", r.user, "") end,
-    bansid = function(r) banUnbanUserAction("BanSteamID", r.sid, "") end,
+    bansid = function(r, reason) banUnbanUserAction("BanSteamID", r.sid, reason or "") end,
     unbansid = function(r) banUnbanUserAction("UnBanSteamID", r.sid, "") end,
 }
 
-function U.act(kind, r)
+function U.act(kind, r, reason)
     local fn = U.ACTS[kind]
     if not fn then return false end
-    local ok, err = pcall(fn, r)
+    local ok, err = pcall(fn, r, reason)
     if not ok then ZeD.logOnce("users: " .. kind, err) end
     pcall(requestUsers)
     U.readAt = nil
@@ -176,6 +177,47 @@ function U.act(kind, r)
         if M.onSteam() then pcall(getBannedSteamIDs) end
     end
     return ok
+end
+
+-- THE BANS ON AN ACCOUNT (the director, Nov 7: one record for every ban). With ZeD's server part a ban by IP or by Steam ID is
+-- ZeD's ban of that kind, as the Bans card and the Player card make it: a reason, a length, a row in ZeD's Bans list, and the
+-- game's ban owed by the server (a_ban, a_owed). By IP: ZeD's ban on the name with its IP (M.ban, banIp). By Steam ID: the
+-- account's own Steam ID from the game's user list, which counts as typed by staff (MP_SERVER_PART_DESIGN.md, the rules that
+-- hold, item 4), so the game is given it (M.banTyped). Without the server part: the game's own calls, as before.
+function U.ban(kind, r, reason, len, cb)
+    if M.live() then
+        if kind == "banip" then M.ban(r.user, reason, len, true, cb) else M.banTyped(r.sid, reason, len, cb) end
+        return
+    end
+    local ok = U.act(kind, r, reason)
+    if cb then cb({ ok = ok, fallback = true }) end
+end
+
+-- ZeD's row for this account's IP or Steam ID ban, if it has one
+function U.banRow(kind, r)
+    for _, b in ipairs(M.banRows()) do
+        if kind == "unbanip" then
+            if (b.user == r.user and b.banIp) or (b.ip and r.ipBan ~= "" and b.ip == r.ipBan) then return b end
+        else
+            local sid = (r.sidBan ~= nil and r.sidBan ~= "") and r.sidBan or r.sid
+            if b.sid and sid and tostring(b.sid) == tostring(sid) then return b end
+        end
+    end
+    return nil
+end
+
+-- the unban through ZeD's Bans: its row, or the game's own entry named for what it is
+function U.unban(kind, r, cb)
+    if M.live() then
+        local row = U.banRow(kind, r)
+        if not row then
+            if kind == "unbanip" then row = { ip = r.ipBan, game = true } else row = { sid = (r.sidBan ~= "" and r.sidBan) or r.sid, game = true } end
+        end
+        M.unban(row, cb)
+        return
+    end
+    local ok = U.act(kind, r)
+    if cb then cb({ ok = ok, fallback = true }) end
 end
 
 function U.setPassword(user, text)
@@ -209,6 +251,8 @@ function P.whyBan(r, kind)
     if kind == "unbanip" or kind == "unbansid" then return nil end
     if r.user == M.me() then return getText("IGUI_UserList_BanHimself") end
     if U.roleHas(r, "CantBeBannedByUser") then return getText("IGUI_UserList_CantBeBanned") end
+    -- (a Steam ID ban through ZeD's Bans needs nobody online: the game's own call on its own does)
+    if kind == "bansid" and M.live() then return nil end
     if not r.on or r.role == "banned" then
         return getText((kind == "bansid") and "IGUI_UserList_BanSteamIdNotOnline" or "IGUI_UserList_BanIPNotOnline")
     end
@@ -369,9 +413,9 @@ P.ASK = {
     del = { ask = "UI_ZeD_Adm_UserDelAsk", btn = "IGUI_UserList_Delete", danger = true, help = "UI_ZeD_Adm_HelpUserDel" },
     pass = { ask = "UI_ZeD_Adm_UserPassAsk", btn = "IGUI_UserList_ResetPassword", help = "UI_ZeD_Adm_HelpUserPass" },
     totp = { ask = "UI_ZeD_Adm_UserTotpAsk", btn = "IGUI_UserList_ResetTOTPSecret", help = "UI_ZeD_Adm_HelpUserTotp" },
-    banip = { ask = "UI_ZeD_Adm_UserBanIpAsk", btn = "IGUI_UserList_BanIP", danger = true, help = "UI_ZeD_Adm_HelpUserBanIp" },
+    banip = { btn = "IGUI_UserList_BanIP", danger = true, help = "UI_ZeD_Adm_HelpAcctBanIp" },
     unbanip = { ask = "UI_ZeD_Adm_UserUnbanIpAsk", btn = "IGUI_UserList_UnBanIP", help = "UI_ZeD_Adm_HelpUserUnbanIp" },
-    bansid = { ask = "UI_ZeD_Adm_UserBanSidAsk", btn = "IGUI_UserList_BanBySteamID", danger = true, help = "UI_ZeD_Adm_HelpUserBanSid" },
+    bansid = { btn = "IGUI_UserList_BanBySteamID", danger = true, help = "UI_ZeD_Adm_HelpAcctBanSid" },
     unbansid = { ask = "UI_ZeD_Adm_UserUnbanSidAsk", btn = "IGUI_UserList_UnBanBySteamID", help = "UI_ZeD_Adm_HelpUserUnbanSid" },
 }
 
@@ -383,6 +427,68 @@ function P.askBtn(st, card, kind, gate)
             t.confirm = { kind = kind, from = "tk:ua:" .. kind }
             D.focusId(ww, st, "tk:cno")
         end }, nil, gate)
+end
+
+-- Ban by IP or by Steam ID: a part on the card, the reason and the length, as the Player card's Ban
+function P.banBtn(st, card, kind, gate)
+    local a = P.ASK[kind]
+    return F.gate({ id = "ua:" .. kind, text = words(getText(a.btn)), danger = true, help = tr(a.help),
+        run = function(ww)
+            D.setField(ww, "ureason", "")
+            card.open, card.len = kind, "perm"
+            U.bump()
+            D.focusId(ww, st, "tk:f:ureason")
+        end }, nil, gate)
+end
+
+function P.closeBan(win, st, card)
+    local kind = card.open
+    D.setField(win, "ureason", "")
+    card.open = nil
+    U.bump()
+    D.focusId(win, st, "tk:ua:" .. tostring(kind))
+end
+
+function P.banWhy(win, card, kind)
+    local now = U.row(card.user)
+    if not now then return tr("UI_ZeD_Adm_UserGone", card.user) end
+    local why = P.whyBan(now, kind)
+    if why then return why end
+    if ZeD.Adm.LENGTH[card.len].sec and not M.live() then return tr("UI_ZeD_Adm_NeedPart") end
+    if kind == "banip" and ZeD.Adm.LENGTH[card.len].sec and not ZeD.Adm.TIMED_IP then return tr("UI_ZeD_Adm_IpPermOnly") end
+    if F.text(win, "ureason") == "" then return tr("UI_ZeD_Adm_WriteReason") end
+    return nil
+end
+
+function P.banPart(items, win, st, card, r)
+    local kind = card.open
+    local AP = AC._P
+    F.inset(items, "danger", function()
+        B.label(items, words(getText(P.ASK[kind].btn)))
+        B.sub(items, tr(P.ASK[kind].help))
+        B.label(items, tr("UI_ZeD_Adm_Reason"), tr("UI_ZeD_Adm_TheySee", r.user))
+        F.field(items, "ureason", 2, tr("UI_ZeD_Adm_ReasonHint"), true, ZeD.Adm.L.REASON_MAX)
+        B.label(items, tr("UI_ZeD_Adm_For"))
+        F.flow(items, AP.lenChips(card, "ul:"))
+        B.sub(items, AP.banLine(card.len))
+        F.flow(items, {
+            { id = "ubno", text = getText("UI_Cancel"), help = tr("UI_ZeD_Adm_HelpKeepUser"), run = function(ww) P.closeBan(ww, st, card) end },
+            F.gate({ id = "ubyes", text = getText("IGUI_UserList_Ban"), danger = true, push = true, help = tr(P.ASK[kind].help),
+                run = function(ww)
+                    local why = P.banWhy(ww, card, kind)
+                    if why then
+                        D.flash(TC.qaState(st), why)
+                        return
+                    end
+                    local reason = F.text(ww, "ureason")
+                    local now = U.row(card.user)
+                    F.act(ww, st, function(cb) U.ban(kind, now, reason, card.len, cb) end, tr("UI_ZeD_Adm_Banned", card.user), function()
+                        P.closeBan(ww, st, card)
+                        U.readAt = nil
+                    end)
+                end }, nil, function() return P.banWhy(win, card, kind) end),
+        })
+    end)
 end
 
 function P.userItems(win, st, t, card, r)
@@ -414,25 +520,30 @@ function P.userItems(win, st, t, card, r)
             P.askBtn(st, card, "del", acct),
         })
     end
-    -- THE GAME'S BANS ON THIS ACCOUNT: by IP, by Steam ID
+    -- BANS ON THIS ACCOUNT: by IP, by Steam ID (ZeD's Bans with the server part, the game's own calls without)
+    if card.open == "banip" or card.open == "bansid" then
+        B.label(items, tr("UI_ZeD_Adm_GameBans"))
+        P.banPart(items, win, st, card, r)
+        return items
+    end
     local bans = {}
     local steam = M.onSteam()
     if steam then
         if r.sidBan and r.sidBan ~= "" then
             bans[#bans + 1] = P.askBtn(st, card, "unbansid", function() return P.whyBan(r, "unbansid") end)
         elseif r.sid and r.sid ~= "" then
-            bans[#bans + 1] = P.askBtn(st, card, "bansid", function() return P.whyBan(r, "bansid") end)
+            bans[#bans + 1] = P.banBtn(st, card, "bansid", function() return P.whyBan(r, "bansid") end)
         end
     end
     local hasIp = r.ipBan ~= nil and r.ipBan ~= ""
     if hasIp then
         bans[#bans + 1] = P.askBtn(st, card, "unbanip", function() return P.whyBan(r, "unbanip") end)
     elseif (not steam) or r.direct then
-        bans[#bans + 1] = P.askBtn(st, card, "banip", function() return P.whyBan(r, "banip") end)
+        bans[#bans + 1] = P.banBtn(st, card, "banip", function() return P.whyBan(r, "banip") end)
     end
     if #bans > 0 then
         B.label(items, tr("UI_ZeD_Adm_GameBans"))
-        B.sub(items, tr("UI_ZeD_Adm_GameBansLine"))
+        B.sub(items, tr(M.live() and "UI_ZeD_Adm_AcctBansLine" or "UI_ZeD_Adm_GameBansLine"))
         F.flow(items, bans)
     end
     return items
@@ -476,7 +587,7 @@ TC.kinds.user = {
             if ok then inner._zedMasked = true end
         end
     end,
-    key = function(t, card) return table.concat({ tostring(U.seq), tostring(M.seq), tostring(card.open) }, ":") end,
+    key = function(t, card) return table.concat({ tostring(U.seq), tostring(M.seq), tostring(card.open), tostring(card.len) }, ":") end,
     title = function(card) return card.user end,
     gone = function(card) return tr("UI_ZeD_Adm_UserGone", card.user) end,
     flag = function(panel, win, t, card, data, x, y, w, bar)
@@ -489,6 +600,7 @@ TC.kinds.user = {
     help = function(t, card)
         if t.confirm then return tr(P.ASK[t.confirm.kind].help) end
         if card.open == "pass" then return tr("UI_ZeD_Adm_HelpUserSetPass") end
+        if card.open == "banip" or card.open == "bansid" then return tr(P.ASK[card.open].help) end
         return tr("UI_ZeD_Adm_HelpUserCard", card.user)
     end,
     items = function(win, st, t, card, data) return P.userItems(win, st, t, card, data) end,
@@ -511,7 +623,11 @@ TC.kinds.user = {
                         D.flash(t, why or tr("UI_ZeD_Adm_UserGone", card.user))
                         return
                     end
-                    if U.act(c.kind, r) then D.flash(t, tr("UI_ZeD_Adm_UserSent")) end
+                    if c.kind == "unbanip" or c.kind == "unbansid" then
+                        F.act(ww, st, function(cb) U.unban(c.kind, r, cb) end, tr("UI_ZeD_Adm_Unbanned", card.user), function() U.readAt = nil end)
+                    elseif U.act(c.kind, r) then
+                        D.flash(t, tr("UI_ZeD_Adm_UserSent"))
+                    end
                     U.bump()
                     D.focusId(ww, st, c.from)
                 end, a.danger and "danger" or "primary", tr(a.help)) } }
@@ -535,6 +651,10 @@ TC.kinds.user = {
         end
         if card.open == "pass" then
             P.closePass(win, st, card)
+            return true
+        end
+        if card.open == "banip" or card.open == "bansid" then
+            P.closeBan(win, st, card)
             return true
         end
         return false
