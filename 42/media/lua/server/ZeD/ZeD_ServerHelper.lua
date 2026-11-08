@@ -3,13 +3,15 @@
 -- THE HOST HELPER'S FILES. Server only (the first line); pure Lua, pure ASCII. Optional, off by default: the sandbox option
 -- ZeD.HostHelper turns it on. The helper is a small program the server's owner runs on the server machine
 -- (ZeDUI/server_helper/zed_rcon_helper.py, from the project's repository). It talks to the game's own remote console (RCON)
--- and makes the game calls ZeD owes (ban, unban, kick, a mute's voice ban), so the rules hold with no staff online.
+-- and makes the game calls ZeD owes (ban, unban, kick, a mute's voice ban, the role a lifted ban gives back), so the rules
+-- hold with no staff online.
 -- Nothing here goes over the wire to a client: ZeD_ServerAdmin.lua decides what is owed and calls H.write and H.read. Server
 -- Lua cannot reach the console itself, so the two talk through two files in Zomboid/Lua/ZeD_helper/ on the server
 -- (getFileWriter and getFileReader both work under the server's own Lua folder):
 --
 --   queue.txt    this file writes it: "ZEDQ 1 <epoch>", then one call a line: id, try, act, target, reason (tab-separated),
---                then "ZEDQ end". The game's file writer is not atomic, so the helper takes a queue only with its last line
+--                then "ZEDQ end". The game's file writer is not atomic, so the helper takes a queue only with its last line.
+--                A lifted ban's role restore is "SetRole", the name, the role, then a sixth field "restore"
 --   answers.txt  the helper writes it: "ZEDA 1 <epoch> <unix seconds>", then one answer a line: id, try, result, text
 --
 -- The epoch is a random word made at each server start (never saved), so the helper never takes another world's numbers, or
@@ -57,8 +59,18 @@ function H.okTarget(kind, s)
     return string.sub(s, 1, 1) ~= " " and string.sub(s, -1) ~= " "
 end
 
---- The helper may make this owed call: its act is on the allow-list and its target has the right shape.
+-- a role name the console takes: SetAccessLevelCommand reads it as (\w+), so 1 to 32 ASCII letters, digits or _
+function H.okRole(s)
+    return type(s) == "string" and #s >= 1 and #s <= 32 and string.find(s, "[^A-Za-z0-9_]") == nil
+end
+
+--- The helper may make this owed call: its act is on the allow-list and its target has the right shape. A SetRole only
+--- when it is a lifted ban's restore (e.restore, set by the server in undoGame alone), with the role the server recorded
+--- at the ban in its reason; a role change staff ask for is never the helper's.
 function H.can(e)
+    if e.act == "SetRole" then
+        return e.restore == true and H.okTarget("user", e.target) and H.okRole(e.reason)
+    end
     local kind = H.ACTS[e.act]
     return kind ~= nil and H.okTarget(kind, e.target)
 end
@@ -74,7 +86,10 @@ function H.alive(now) return H.seen ~= nil and now - H.seen <= ZeD.Adm.L.HELPER_
 
 local function line(e)
     local reason = (string.gsub(tostring(e.reason or ""), "%c", " "))
-    return table.concat({ tostring(e.id), tostring(e.try or 1), e.act, e.target, reason }, "\t")
+    local f = { tostring(e.id), tostring(e.try or 1), e.act, e.target, reason }
+    -- (a restore's mark is the line's last field: a line cut short loses it first, and the helper refuses a bare SetRole)
+    if e.act == "SetRole" and e.restore == true then f[#f + 1] = "restore" end
+    return table.concat(f, "\t")
 end
 
 --- The queue, rewritten when what it holds changed: every owed call the helper holds. True when the file says what it
