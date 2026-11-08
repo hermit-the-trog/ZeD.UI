@@ -1692,6 +1692,8 @@ truncateRaw = function(text, font, maxW)
 end
 
 function ZeD.ActionStrip.setState(item, key, value, playerNum)
+    -- a mark set: the item card builds its model again (ItemCardOrganism.lua)
+    ZeD.ActionStrip.gen = (ZeD.ActionStrip.gen or 0) + 1
     if key == "fav" then
         _safeGet(item, "setFavorite", value, true)
     elseif key == "protect" then
