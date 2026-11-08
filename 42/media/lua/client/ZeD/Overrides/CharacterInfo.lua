@@ -18,7 +18,8 @@
 -- Vanilla runs when ZeD declines (no such tab, the windows cannot open: a dead
 -- character, the Tutorial) and always while safe mode is on. While the game is
 -- paused the Character window opens alone and is for looking until it plays
--- again (the director, Nov 7 2026, vanilla windows B14; ZeD_PausedLook.lua).
+-- again (ZeD_PausedLook.lua). The hooks keep the vanilla functions once
+-- (_zedOrig*), so a Lua reload never wraps the wrapper.
 -- ============================================================================
 
 require "ZeD/SafeMode"
@@ -68,7 +69,7 @@ function ZeD_CharacterWindow.openTab(playerNum, tabId, toggle)
     end
     local win = ZeD_CharacterWindow.getWindow()
     if not win then return false end
-    -- (rolled up by the hover roll-up: down first, its roll-up counted again from now, QA Nov 5 2026)
+    -- (rolled up by the hover roll-up: down first, its roll-up counted again from now)
     if win.windowShaded then
         win._autoShaded = false
         win:setWindowShaded(false)
@@ -91,7 +92,7 @@ function ZeD_CharacterWindow.openTab(playerNum, tabId, toggle)
     end
     if not attempt() then
         -- (the drawn frames, not the game's ticks: a paused game has no ticks, and the window opens while
-        -- paused now, B14)
+        -- paused now)
         local ev = Events.OnRenderTick or Events.OnTick
         local tries = 0
         local function tick()
@@ -125,17 +126,17 @@ function ISCharacterInfoWindow:toggleView(viewName)
     return _origToggleView(self, viewName)
 end
 
--- The game's window never shows at a game's start while ZeD is on (Oct 29 2026, the
--- small-screen pass). The game decides its start visibility from layout.ini, which is
+-- The game's window never shows at a game's start while ZeD is on.
+-- The game decides its start visibility from layout.ini, which is
 -- kept per screen size: on a screen size the player has not used before there is no
 -- entry, and the window keeps its default, visible (the game's own first-run look); on
 -- one they have, it comes back the way their last game without ZeD left it. Either way
 -- ISPlayerDataObject.createUI shows it when `visibleOnStartup` is true after initialise
 -- (where the game sets it from the restored state). So the flag is cleared after the
--- game's initialise while ZeD is on; in safe mode the game's rule stands. Seen in the
--- 1280x800 pass: the game's Info page sat under ZeD's windows the whole run.
--- Oct 30 2026, punch list 21 a-f (director: the game's Character Info panel stays hidden
--- while ZeD is on, whatever opened it): clearing the flag in initialise was too early.
+-- game's initialise while ZeD is on; in safe mode the game's rule stands. Without this,
+-- on a 1280x800 screen the game's Info page sat under ZeD's windows a whole run.
+-- The rule: the game's Character Info panel stays hidden while ZeD is on, whatever
+-- opened it — and clearing the flag in initialise alone was too early.
 -- The game sets it in createChildren (run by addToUIManager, after initialise), where it
 -- restores the saved layout first; layout.ini's "[1280x800] charinfowindow ... visible=true"
 -- shows the window there (ISLayoutManager.DefaultRestoreWindow) and the flag follows

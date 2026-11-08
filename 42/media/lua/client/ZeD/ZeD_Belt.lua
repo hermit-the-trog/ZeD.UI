@@ -1,17 +1,15 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_Belt.lua
 -- ============================================================================
--- THE BELT — HOOK_MAP rows 5 + 6 (mockup ZeDUI/mockups/zed_hands_belt_v3.html)
+-- THE BELT — HOOK_MAP rows 5 + 6. Client-only.
 --
 -- Vanilla shows what you hold as two circles in the top-left corner
 -- (ISEquippedItem) and what hangs on you as a bar of numbered squares at the
--- bottom (ISHotbar). Both become one HUD piece at the bottom centre, to the
--- director's sketch:
---     [Secondary hand] ==[1]=[2]={buckle}=[3]=[4]== [Main Hand]
--- (the sketch had the main hand on the left; since Oct 25 2026 the belt reads as seen from behind,
--- the left hand on the left, as the director asked; since Oct 27 2026 the two hands sit together
--- at the left end, the main hand the bigger: (off)(MAIN) ==[1]=[2]={buckle}=[3]=[4]==)
+-- bottom (ISHotbar). Both become one HUD piece at the bottom centre:
+--     (off)(MAIN) ==[1]=[2]={buckle}=[3]=[4]==
+-- The belt reads as seen from behind — the left hand on the left — and the two
+-- hands sit together at the left end, the main hand the bigger. The piece is
 -- a decorative leather strap with a buckle in the middle (decoration,
--- theme-neutral: since Oct 15 2026 the character's profession buckle, 25
+-- theme-neutral: the character's profession buckle, 25
 -- designs, the plain KENTUCKY plate for any other), the hotbar slots as ZeD boxes on the strap (a little taller
 -- than it) on either side of the buckle in key order, the hands as circles
 -- beside it. The boxes follow the ZeD base and accent.
@@ -22,10 +20,10 @@
 --   * ZeD.Belt — the belt API shared with the Equip tab (slots, keys, names,
 --     what fits, attach / detach / draw, the slot list menu, drops);
 --   * ZeD_BeltHUD — the organism (mouse, drag in / out, tooltips, controller).
--- Every layout number is a DESIGN UNIT and goes through T.px at use (S124).
+-- Every layout number is a DESIGN UNIT and goes through T.px at use.
 --
--- Two forms (the "Belt" option; director, Nov 2 2026, punch list 56: a full and a simple version, as for the
--- action bar and the context menu): Full, the leather strap with each slot's material and the profession buckle;
+-- Two forms (the "Belt" option, a full and a simple version, as the
+-- action bar and the context menu have): Full, the leather strap with each slot's material and the profession buckle;
 -- Simple, the same hands, slots, ammo tab, wrist watch and note with no strap and no buckle, the slots evenly
 -- spaced after the hands, the middle of the slots on the screen's centre (where Full puts its buckle, so the slots
 -- stay put while the hands change). Everything the belt does is the same in both.
@@ -44,35 +42,32 @@ local B = ZeD.Belt
 -- ----------------------------------------------------------------------------
 -- Constants (design units)
 -- ----------------------------------------------------------------------------
--- the hands side by side at the left end (director, Oct 27 2026: "I think the hands should move together on the belt",
--- "Put the hands together at the left end"), the main hand bigger, as vanilla draws them ("Can primary be a little
--- bigger than secondary, the way the vanilla game does it?": vanilla's off hand is three quarters of the main; here
+-- the hands side by side at the left end, the main hand bigger, as vanilla draws them
+-- (vanilla's off hand is three quarters of the main; here
 -- 56 and a slot's 44). One item in both hands keeps the main hand's circle; the off hand slides in under it and
--- shows PEEK units ("keeping the primary the circle, and having the secondary peeking from behind")
+-- shows PEEK units
 local BOX, HAND, OFF_HAND = 44, 56, 44
 local HAND_GAP, PEEK = 6, 14
 local HAND_PIC = 34        -- the main hand's picture; the off hand's is a slot's (SLOT_PIC)
-local GAP, SIDE_GAP, PAD, END_GAP = 11, 14, 12, 10   -- GAP 7 -> 11 (Oct 16 2026): each slot's strap material shows between the boxes
+local GAP, SIDE_GAP, PAD, END_GAP = 11, 14, 12, 10   -- GAP is wide enough that each slot's strap material shows between the boxes
 local BUCKLE_W, BUCKLE_H = 58, 40   -- the profession buckle's own size (58 x 40 texels, one a unit)
 local STRAP_H = 30
 local BOTTOM = 16          -- above the bottom of the screen
 local DRAG_PX = 5          -- design units before a press becomes a drag
-local WRIST = 8            -- the mini watch's gap from its hand circle (WatchMini.lua; Oct 19 2026)
+local WRIST = 8            -- the mini watch's gap from its hand circle (WatchMini.lua)
 local LAMP = 38            -- the Messages note (MESSAGES_SPEC.md), last on the right, while Messages keeps anything
--- on a server (MP_DECISIONS.md, Nov 5 2026): the chat key next to the Messages note (LAMP's size), and the PvP marker
+-- on a server: the chat key next to the Messages note (LAMP's size), and the PvP marker
 -- (a status dot and "PvP on" / "PvP off", the seconds left while it switches, an outline inside a non-PvP zone)
 local PVP_H, PVP_PAD = 26, 8
-local AMMO_W = 100         -- the ammo tab's words and rounds (mockup zed_belt_ammo_dash_v1, style B; approved Oct 26 2026;
-                           -- redrawn Oct 26 2026 to the director's "needs segments for each round ... a bit more polish").
-                           -- Since Oct 27 2026 a tab out from under the main hand, not a pouch on a strap (director: "I
-                           -- think the ammo should peek out from the gun/primary icon, rather than be on a belt. So it
-                           -- looks part of the gun. Right now it looks like a clip attached to the belt")
+local AMMO_W = 100         -- the ammo tab's words and rounds, one segment per round. The tab comes out from under the
+                           -- main hand rather than hanging on the strap, so it reads as part of the gun, not a clip
+                           -- attached to the belt
 local AMMO_ICON = 24       -- the ammo's picture in the tab
 local AMMO_MS = 250        -- how often the rounds and magazines carried are counted again
 local AMMO_CARD_W = 280      -- the widest the gun's detail card gets
 local LIST_ROW_H, LIST_W = 26, 290
 
-local DOT = "|"   -- the separator: ZeD OS's pipe (director, Oct 16 2026: no middle dots)
+local DOT = "|"   -- the separator: ZeD OS's pipe, never a middle dot
 local SIMPLE_GAP = 6   -- the Simple belt's gap between slots (no strap material to show between them)
 
 -- the Simple belt (the "Belt" option's second item), read as the belt lays out
@@ -90,7 +85,7 @@ local function hex(h)
 end
 local LEATHER_TOP, LEATHER_BOT, LEATHER_EDGE = hex("#5c4129"), hex("#3b2a1b"), hex("#1a1108")
 
--- The strap in lit pixel art (director, Oct 16 2026: no stitching, more material, a light creaser line along each
+-- The strap in lit pixel art (no stitching, a light creaser line along each
 -- edge; art by ZeDUI/tools/physpx/d_belt.py): the left end, a 64-pixel middle that repeats without a seam, the right
 -- end, 30 texels tall, drawn at a whole multiple (like the buckle) so the pixels stay square.
 local STRAP_DIR = "media/textures/ZeD/belt/strap_"
@@ -106,8 +101,8 @@ local function strapTexture(part)
 end
 
 -- ----------------------------------------------------------------------------
--- Each slot on its own attachment material (director, Oct 16 2026: "quick look you can see what is attached to
--- what"). Every hotbar slot in vanilla comes from something worn (its AttachmentsProvided; the back slot is the
+-- Each slot on its own attachment material: one look says what is attached to
+-- what. Every hotbar slot in vanilla comes from something worn (its AttachmentsProvided; the back slot is the
 -- body, or the bag on it): the strap behind a slot's box is that thing's material. The waist belt (whatever gives
 -- the belt slots) carries the buckle. Art: ZeDUI/tools/physpx/d_straps.py (the leather is d_belt.py's).
 -- B.MATERIALS is open: a mod's item adds its own line (full type -> material name).
@@ -143,8 +138,8 @@ B.SLOT_MATERIAL = B.SLOT_MATERIAL or {
     HolsterRight = "holster_brown", HolsterLeft = "holster_brown", HolsterShoulder = "holster_brown", HolsterAnkle = "holster_black",
     BedrollBottom = "pack", BedrollBottomBig = "pack", BedrollBottomALICE = "webbing_olive", Back = "sling",
 }
--- worn things that are not bags but put a harness over the back (director, Oct 16 2026: the breathing pack's back slot
--- is its harness, not the bare canvas sling); a bag on the back still wins. Open like B.MATERIALS.
+-- worn things that are not bags but put a harness over the back (the breathing pack's back slot
+-- shows its harness, not the bare canvas sling); a bag on the back still wins. Open like B.MATERIALS.
 B.BACK_WORN = B.BACK_WORN or {}
 for ft, m in pairs({ ["Base.SCBA"] = "harness", ["Base.SCBA_notank"] = "harness" }) do
     if B.BACK_WORN[ft] == nil then B.BACK_WORN[ft] = m end
@@ -163,9 +158,9 @@ local function matTexture(mat, part)
 end
 B._matTexture = matTexture
 
--- What closes the waist belt (director, Oct 16 2026: "rope is a knot. web/nylon belts get rectangle flat clip
--- closure"): the leather belt keeps the profession buckle; the rope belt is tied in a knot; webbing and the breathing
--- pack's nylon belt shut with the classic web-belt buckle (the director's references: GI brass on olive drab, black
+-- What closes the waist belt, by its material: the leather belt keeps the profession buckle; the rope belt is
+-- tied in a knot; webbing and the breathing
+-- pack's nylon belt shut with the classic flat web-belt clip (GI brass on olive drab, black
 -- on black nylon). Art: ZeDUI/tools/physpx/d_closures.py, 58 x 40 like the buckle.
 -- B.CLOSURE is open: a mod's material adds its own line (material -> "buckle" | "knot" | "clip_brass" | "clip_black" |
 -- "clip_chrome"); none = no closure.
@@ -191,8 +186,7 @@ local function closureTexture(kind)
 end
 
 -- The closure splits the slots evenly, half on each side in key order, an odd one out on the right, away from the
--- hands (director, Oct 27 2026: "split the attachments evenly around the buckle, two on each side"; until then it
--- sat between Belt L and Belt R, Oct 16 2026). Returns how many slots sit left of it.
+-- hands. Returns how many slots sit left of it.
 function B.closureAfter(slots)
     return math.floor(#slots / 2)
 end

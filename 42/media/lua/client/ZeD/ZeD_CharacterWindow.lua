@@ -1,11 +1,15 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_CharacterWindow.lua
 -- ============================================================================
--- CHARACTER WINDOW — real inventory window built on ZeD_Window + ZeD_Panel.
--- Shell assembly. All 7 proven layers from TestInventory.
--- "Toggle Inventory" keybind replaces F7. Vanilla windows hidden.
---
--- Does NOT touch ISInventoryPage. Does NOT register with Java UIManager.
--- Plain ZeD_Window shell with ZeD_Panel content area.
+-- CHARACTER WINDOW — the "me and my stuff" window: inventory, equipment,
+-- health, thermal, identity, journal, skills, radio. Client-side; an organism.
+-- One plain ZeD_Window, laid out left to right as tab strip | tab drawer |
+-- inventory columns | container strip, with the item card drawer over the top.
+-- Each tab lives in its own file and registers its renderer here; this file is
+-- the shell: layout, drawers, selection, controller focus ring, persistence.
+-- The one thing to know: never derive from ISInventoryPage or register with
+-- Java's UIManager — that pairing can't be undone from Lua. ZeD builds plain
+-- windows and hides the vanilla pages behind them; the game's own
+-- "Toggle Inventory" key opens this window instead.
 -- ============================================================================
 
 require "ISUI/ISPanel"
@@ -51,15 +55,16 @@ ZeD.RadioTab.register(TAB_RENDERERS)
 
 local _charWin = nil
 
--- S115b: expose the active Character Window instance to other modules
--- (e.g. Overrides/RadioWindow.lua's on-equip auto-tab-switch). Returns nil
--- when the window is closed.
+--- The open Character window, or nil while it is closed. Other files read it
+--- (Overrides/RadioWindow.lua switches to the Radio tab when a radio is
+--- equipped; ZeD_Reader checks whose window is up). Same as getWindow().
 function ZeD_CharacterWindow.getInstance()
     return _charWin
 end
 
--- Shared renderer functions
-local R = nil  -- lazy-init after TestInventory loads
+-- The shared list renderer (ZeD.InventoryRenderer), fetched on first use so
+-- nothing here cares when its file ran.
+local R = nil
 
 local function getR()
     if not R then R = ZeD.InventoryRenderer end
@@ -110,14 +115,14 @@ end
 
 -- ============================================================================
 -- TAB STRIP CONSTANTS
--- S124 scale: every constant below is a DESIGN UNIT (1 px at 1080p). Each use
--- goes through T.px(...) at call time; never add them to screen px unwrapped.
+-- Every constant below is a DESIGN UNIT (1 px at 1080p). Each use goes
+-- through T.px(...) at call time; never add one to screen px unwrapped.
 -- ============================================================================
 
 local TAB_STRIP_W  = 36
 local TAB_BTN_SZ   = 36
--- Group separator in the tab strip: off (director, Oct 22 2026: the tabs already
--- have borders between them, so the line was noise). Zero height and margin keep
+-- Group separator in the tab strip: off — the tabs already have borders
+-- between them, so the line read as noise. Zero height and margin keep
 -- layout, hit zones and drawing in step.
 local TAB_SEP_H    = 0
 local TAB_SEP_MAR  = 0

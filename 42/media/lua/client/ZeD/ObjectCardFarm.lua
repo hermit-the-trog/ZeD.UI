@@ -1,6 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ObjectCardFarm.lua
 -- ============================================================================
--- OBJECT CARD: FARM PLOTS (HOOK_MAP row 12; mockup zed_info_cards_v1.html)
+-- OBJECT CARD: FARM PLOTS (HOOK_MAP row 12)
+-- Client; one card kind for ZeD.ObjectCards (ObjectCards.lua draws the frame,
+-- this def fills it). The World window's card for a plot under the pointer.
 -- The plant card keeps vanilla's Farming-skill gates: the phase reads at
 -- Farming 2, pests at 3 (+2 with a magnifier in hand), the water bar at 4 and
 -- the next-stage timing at 6; health and fertilizer are never shown. A locked
@@ -137,7 +139,7 @@ local function targetFor(plant)
     return { obj = plant, sq = sq, key = OC.keyOf(sq, "plant") }
 end
 
--- obj: a CPlantGlobalObject, or anything with a square
+--- obj: a CPlantGlobalObject, or anything with a square.
 function def.resolve(player, obj)
     local sys = farmSys()
     if not (sys and obj) then return nil end
@@ -336,7 +338,7 @@ function def.icon(t)
     local tex = tile and getTexture(tile)
     return tex and (call(tex, "splitIcon") or tex) or nil
 end
--- the state tag: its words, and the colour of its square mark (none for a plain tag)
+--- The state tag: its words, and the colour of its square mark (none for a plain tag).
 function def.pill(t)
     local T = ZeD.T
     local d = t.d
@@ -373,9 +375,8 @@ end
 
 -- The stages as one framed strip (Seedling to Rotten, six equal steps) lit up to the current
 -- stage, with the stage names under it, the current one in the full text colour. Rotten fills
--- the whole strip red. Oct 30 2026 (punch list 22, the segmented bars): one segment per stage,
--- under its name (as Skills give one per level), not ten; pointing at it puts the stage's name
--- in the help line.
+-- the whole strip red. One segment per stage, under its name (as Skills give one per
+-- level), not ten; pointing at it puts the stage's name in the help line.
 local function drawPhaseStrip(card, x, y, w, d)
     local T, tm = ZeD.T, ZeD.TM
     local A = ZeD.Atoms

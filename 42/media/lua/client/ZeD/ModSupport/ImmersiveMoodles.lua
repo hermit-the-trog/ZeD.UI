@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/ImmersiveMoodles.lua
 -- ============================================================================
--- SUPPORT FOR IMMERSIVE MOODLES (mod id ImmersiveMoodles, Workshop 3830422267).
--- Client.
+-- SUPPORT FOR IMMERSIVE MOODLES (mod id ImmersiveMoodles, Workshop 3830422267,
+-- by Krovenox). Client.
 --
 -- The mod replaces the game's moodles with an animated column of its own (IMHud): its
 -- own icons and frames per level, level bars beside each tile, its own hover text, at

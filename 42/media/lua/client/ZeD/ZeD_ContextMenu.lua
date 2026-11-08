@@ -167,7 +167,7 @@ function ZeD_ContextMenu:close()
     -- CRITICAL: do NOT removeFromUIManager on the vanilla menu. It's a cached
     -- per-player singleton (getPlayerContextMenu); removing it breaks the
     -- clear() + prerender re-capture pipeline on every subsequent RMB. We
-    -- just hide it and clear our spawn marker so the next clear() cycle
+    -- hide it and clear our spawn marker so the next clear() cycle
     -- will trigger a fresh ZeD organism on the next prerender frame.
     if self.vanillaMenu then
         pcall(function() self.vanillaMenu:setVisible(false) end)
@@ -649,7 +649,7 @@ function ZeD_ContextMenu:update()
     end
 
     -- Mouse hover tracking — update _hoveredId so cells / bumpers can use it
-    -- (we already re-register hit zones each prerender; here we just probe)
+    -- (we already re-register hit zones each prerender; here we only probe)
     local mx = self:getMouseX()
     local my = self:getMouseY()
     local zone = self:hitZoneAt(mx, my)

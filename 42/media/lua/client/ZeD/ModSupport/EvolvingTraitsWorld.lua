@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/EvolvingTraitsWorld.lua
 -- ============================================================================
--- SUPPORT FOR EVOLVING TRAITS WORLD (mod id EvolvingTraitsWorld, Workshop 2914075159).
--- Client. Drawn in the Traits tab's own look (ModSupport/traitsAsSkills.lua).
+-- SUPPORT FOR EVOLVING TRAITS WORLD (mod id EvolvingTraitsWorld, Workshop 2914075159,
+-- by MusicManiac). Client. Drawn in the Traits tab's own look (ModSupport/traitsAsSkills.lua).
 --
 -- The mod makes traits change with play and puts its own "ETW" page in the game's
 -- Character window, which ZeD never shows (its UI/ETW_CharacterPage.lua: sub-tabs

@@ -663,8 +663,8 @@ local function drawDetail(panel, win, x, y, w)
 end
 
 -- ---------------------------------------------------------------------------
--- THE SEARCH (in the Journal's header strip: JournalTab places it) AND THE BAND
--- (Oct 30 2026, punch list 21): the filter (All, Loadouts, Outfits) as a System 7
+-- THE SEARCH (in the Journal's header strip: JournalTab places it) AND THE BAND:
+-- the filter (All, Loadouts, Outfits) as a System 7
 -- pop-up menu at the left, its list opening upward over the page; Save loadout,
 -- Save outfit and New list at the right (the long words are their help lines).
 -- ---------------------------------------------------------------------------
@@ -777,7 +777,7 @@ local function drawPageBand(panel, win, x, y, w)
     if hov then help(win, ZeD.tr("UI_ZeD_Lists_HelpFilter")) end
     local showName = filterLabel(s.filter)
     M.drawPopupMenu(panel, fx, by, fw, bh, ZeD.tr("UI_ZeD_Craft_ShowToggle", showName), hov or open,
-        focusOf(win, "filter"), false, showName)   -- (the choice alone when both do not fit, break-it B2)
+        focusOf(win, "filter"), false, showName)   -- (the choice alone when both do not fit)
     zone(win, { id = "filter", x = fx, y = by, w = fw, h = bh, fn = function() s.filterOpen = true; s.step = nil end })
     for i, d in ipairs(BAND_BTNS) do
         local id = d[1]
@@ -966,7 +966,7 @@ function JL.focusables(win)
         end
         if out._focusIdx or #out > 0 then s.land = nil end
     end
-    -- (Oct 30 2026, punch list 21 a-f: the open filter list is modal: Up / Down stop at its ends)
+    -- (the open filter list is modal: Up / Down stop at its ends)
     if rowsOnly and #out > 0 then out._menuRows = true end
     return out
 end
