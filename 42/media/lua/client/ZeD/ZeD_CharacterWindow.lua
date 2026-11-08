@@ -2281,13 +2281,13 @@ local function _buildHealthBandFocusables(win)
 end
 
 -- So that Down from the body figure always reaches the band, at every window size
--- and text size, a stop in a scrolling body counts only
--- where the body shows it, between the pinned header and the footer band (view =
--- the tab's { x, y, w, h }, stamped each frame). One part hidden is clipped to the
--- view; one wholly out of view is no stop, so nothing under the band is "below" the
--- lowest stop shown, and Down from it reaches the band. Focusing the lowest one
--- shown scrolls the body on (HealthTab's scroll-follow), and the stops under it come
--- into view. Returns y, h, or nil when the rect is out of view.
+-- and text size, a stop in a scrolling body counts only where the body shows it,
+-- between the pinned header and the footer band (view = the tab's { x, y, w, h },
+-- stamped each frame). A stop partly hidden is clipped to the view; one wholly out
+-- of view is no stop, so nothing under the band is "below" the lowest stop shown,
+-- and Down from it reaches the band. Focusing the lowest one shown scrolls the body
+-- on (HealthTab's scroll-follow), and the stops under it come into view. Returns
+-- y, h, or nil when the rect is out of view.
 local function _inBodyView(view, y, h)
     if not view then return y, h end
     local top, bot = math.max(y, view.y), math.min(y + h, view.y + view.h)
@@ -2879,11 +2879,11 @@ local function _findActiveTabIdx(tabEls, tabId)
 end
 
 -- An open list shuts only on a pick, B, a click outside it, or leaving the tab;
--- never on a hitch or with time passing. Here: every
--- pop-up list of the window's tabs but keepTab's (nil: all), shut through its owner,
--- so its rows and zones go with it and the focus lands on its box. Called on a tab
--- change (_clearGpFocusState) and each frame (the drawer folded, an item card over
--- it, the tab gone: keepTab nil).
+-- never on a hitch or with time passing. This shuts every pop-up list of the
+-- window's tabs but keepTab's (nil: all), through its owner, so its rows and zones
+-- go with it and the focus lands on its box. Called on a tab change
+-- (_clearGpFocusState) and each frame (the drawer folded, an item card over it,
+-- the tab gone: keepTab nil).
 local function _shutTabLists(w, keepTab)
     if w._healthMenuOpen and keepTab ~= "health" and ZeD.HealthTab then ZeD.HealthTab.closeMenu(w) end
     if w._thermalMenuOpen and keepTab ~= "thermal" and ZeD.ThermalTab then ZeD.ThermalTab.closeMenu(w) end
@@ -6202,8 +6202,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
             -- The Journal's Recipes page routes through CC.buildFocusables;
             -- its recipeRow zones shift screen-y on every scroll, and cone-nav
             -- must read fresh coords (else focus → wrong target). Rebuilding
-            -- every frame costs ~6 ms a frame (the list registers every recipe
-            -- row, 1177 on a large test save). Rows only move when the list
+            -- every frame cost ~6 ms a frame on a large test save (the list
+            -- registers every recipe row: 1177 there). Rows only move when the list
             -- scrolls, its geometry changes, or the category dropdown opens,
             -- so the rebuild is keyed on those (scrollKey) instead.
             local scrollKey = nil

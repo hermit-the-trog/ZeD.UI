@@ -44,8 +44,8 @@
 --       texdir = nil,   -- optional: where that plate's pictures live; default ZeD.PhysPx.texdir
 --   }
 -- A watch's features come from its plate: a thermometer field, a light key,
--- glowing hands are all in the art and data, so registering is just "this item
--- wears this plate". An item nobody registered borrows a CaZio (digital or not).
+-- glowing hands are all in the art and data, so registering says no more than
+-- "this item wears this plate". An item nobody registered borrows a CaZio (digital or not).
 --
 -- The controls every plate may carry (click area ids):
 --   speed  steps the game speed 1x 2x 3x 4x    start  pauses / runs

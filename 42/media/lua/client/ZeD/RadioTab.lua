@@ -1072,7 +1072,9 @@ end
 -- SET". The header's full view button (and a click on the face away from its
 -- controls) shows the face on its own (TwoWayFull.lua). The body (face and
 -- footer) scrolls as one unit when the window is shorter than the face.
--- win._radioTw = { dev, pid, des, k, hits, face rect, ... } while one is shown.
+-- win._radioTw = { dev, pid, des, k, hits, face rect, ... } while a face of any
+-- kind is shown (renderTwoWay draws the ordinary radios, the TVs and the plain
+-- card the same way).
 -- ============================================================================
 local FULL_ICON, FOLD_ICON = "expand", "contract"   -- ZeD pixel icons
 

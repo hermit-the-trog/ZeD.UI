@@ -78,7 +78,7 @@
 --   crosses a zone boundary, so chrome can refresh.
 --
 -- BUMPERCHORD INTEGRATION:
---   On claimFocus → Chord.setEnabled(false) so LB/RB route to window swap
+--   On claimFocus → Chord.setEnabled(false) so LB/RB pick a window
 --   On releaseFocus → Chord.setEnabled(true) so LB/RB route to zoom chord
 --
 -- Public interface:
