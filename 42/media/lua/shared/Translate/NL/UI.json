@@ -2415,6 +2415,7 @@
     "UI_ZeD_Spawn_NewSeed": "Nieuwe seed",
     "UI_ZeD_Spawn_PromptNewSeed": "Nieuwe seed",
     "UI_ZeD_Spawn_RandomDesc": "Een willekeurig gekozen stad zodra je op \"Volgende\" drukt.",
+    "UI_ZeD_Spawn_RandomNone": "Er is hier geen stad die willekeurig gekozen kan worden. Kies er een uit de lijst.",
     "UI_ZeD_Spawn_Title": "Project Zomboid  +  Startlocatie",
     "UI_ZeD_Station_AnySurface": "Elk oppervlak",
     "UI_ZeD_Station_Fallback": "Werkplek",

@@ -2415,6 +2415,7 @@
     "UI_ZeD_Spawn_NewSeed": "新種子",
     "UI_ZeD_Spawn_PromptNewSeed": "新種子",
     "UI_ZeD_Spawn_RandomDesc": "按「下一頁」時隨機選一個城鎮。",
+    "UI_ZeD_Spawn_RandomNone": "這裡沒有可供隨機選擇的城鎮。請從清單中選擇一個。",
     "UI_ZeD_Spawn_Title": "Project Zomboid  +  出生地點",
     "UI_ZeD_Station_AnySurface": "任意表面",
     "UI_ZeD_Station_Fallback": "工作站",

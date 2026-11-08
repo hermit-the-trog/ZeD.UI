@@ -5,8 +5,11 @@
 -- from the game's folder) over stubs of the UI classes and the engine. It walks Restart -> Spawn -> Traits -> Looks ->
 -- Play and every Back, a second controller's "Add new player", the server name step, Random, a refused spawn, safe mode
 -- before and during, the keys and the controller, and reads back what the game was asked to do (setPlayerMouse /
--- setPlayerJoypad, the spawn point, the death screen). What it can't show is the drawing, the 3D figure, the map, and
--- the engine's own focus and pause: CHECK_respawn_20261107.md, in the game.
+-- setPlayerJoypad, the spawn point, the death screen). Since the review (Nov 7): the controller on the server name step
+-- after Back, This Is Your Life's Hometown window on the respawn desk (ModSupport/ThisIsYourLife.lua over a stand-in of
+-- the mod), Escape and B with no window up, Random with nothing to land on, the CRT switch-off before the character is
+-- made, a name typed and entered on Looks, and the pop-ups' room. What it can't show is the drawing, the 3D figure, the
+-- map, and the engine's own focus and pause: CHECK_respawn_20261107.md, in the game.
 -- Run from the repo root:  lua51 ZeDUI/tools/qa/respawn_sim.lua
 -- Set PZ_LUA to the game's media/lua folder if it is not at E:/Project Zomboid/steamapps/common/ProjectZomboid/media/lua.
 -- It prints FAIL lines and a last line "respawn_sim: N checks, M failed", and exits 1 if any failed.
@@ -103,8 +106,12 @@ ISPanelJoypad = ISPanel:derive("ISPanelJoypad")
 ISButton = UIBase:derive("ISButton")
 ISTextEntryBox = UIBase:derive("ISTextEntryBox")
 function ISTextEntryBox:new(text, x, y, w, h) local o = UIBase.new(self, x, y, w, h); o._text = text; return o end
+function ISTextEntryBox:focus() self._focused = true end
+function ISTextEntryBox:unfocus() self._focused = false end
+function ISTextEntryBox:isFocused() return self._focused == true end
 ZeD_Window = ISPanel:derive("ZeD_Window")
 function ZeD_Window:new(x, y, w, h, title) local o = UIBase.new(self, x, y, w, h); o.title = title; return o end
+function ZeD_Window:createChildren() end
 MapSpawnSelectImage = UIBase:derive("MapSpawnSelectImage")
 
 -- ---------------------------------------------------------------------------
@@ -136,7 +143,8 @@ Events = setmetatable({}, { __index = function(t, k)
 end })
 require = function() return nil end
 getText = function(k) return k end
-getTimestampMs = function() return 1000 end
+local NOW = 1000   -- (the clock: the CRT switch-off waits on it)
+getTimestampMs = function() return NOW end
 getTimestamp = function() return 1 end
 ZombRand = function(n) return 0 end
 isClient = function() return CLIENT end
@@ -270,6 +278,10 @@ local MM = ZeD.MainMenu
 MM.ui = { placeOnTube = function(w) return w.width, w.height end, newEntry = function(p) return ISTextEntryBox:new("", 0, 0, 10, 10) end }
 dofile(ROOT .. "42/media/lua/client/ZeD/ZeD_MainMenuSpawn.lua")
 dofile(ROOT .. "42/media/lua/client/ZeD/ZeD_MainMenuTraits.lua")
+-- Looks, for its name fields (its Options base is the main menu's Options window; only the band's fields here)
+ZeD_MMOptions = ZeD_MMWindow:derive("ZeD_MMOptions")
+function ZeD_MMOptions:createChildren() self.find = MM.ui.newEntry(self); self.field = MM.ui.newEntry(self) end
+dofile(ROOT .. "42/media/lua/client/ZeD/ZeD_MainMenuLooks.lua")
 
 -- the windows on the desk: the real classes' Next and Back (what the respawn changed), on stand-in windows
 local shown = {}
@@ -305,7 +317,13 @@ local function spawnBack() local p = asSpawn(); ZeD_MMSpawn.back(p) end
 local function traitsNext() ZeD_MMTraits.next(setmetatable({}, { __index = ZeD_MMTraits })) end
 local function traitsBack() ZeD_MMTraits.back(setmetatable({}, { __index = ZeD_MMTraits })) end
 local function looks() return MainScreen.instance.charCreationMain end
-local function looksPlay() MM.toVanilla(); looks():onOptionMouseDown({ internal = "NEXT" }, 0, 0) end
+local function looksPlay() local l = looks(); if l then MM.toVanilla(); l:onOptionMouseDown({ internal = "NEXT" }, 0, 0) end end   -- (no looks screen: the desk is down)
+local frame
+-- Play, then the monitor's switch-off runs out (a second of frames) and the game makes the character
+local function playThrough()
+    looksPlay()
+    for _ = 1, 4 do NOW = NOW + 300; frame() end
+end
 local function looksBack() MM.toVanilla(); looks():onOptionMouseDown({ internal = "BACK" }, 0, 0) end
 
 -- the game's files
@@ -330,7 +348,7 @@ check("the desk class is the main menu's", getmetatable(ZeD_MMRespawnDesk).__ind
 -- HELPERS
 -- ---------------------------------------------------------------------------
 local function coop() return CoopCharacterCreation.instance end
-local function frame()   -- a frame: the game's panel and the desk update
+function frame()   -- a frame: the game's panel and the desk update
     local c = coop()
     if c and uiIndex(c) then c:prerender() end
     if MM.root and MM.root:isVisible() then MM.root:update() end
@@ -415,7 +433,20 @@ spawnNext(2)
 traitsNext()
 check("Looks", MM.view == "looks")
 looksPlay()
+-- (the director, Nov 7: Play switches the desk off with the CRT, as starting a game from the main menu does)
+check("Play: the monitor switches off first", MM.powerOff ~= nil and MM.powerOff.run ~= nil)
+check("Play: nothing made while it switches off", called("setPlayerMouse") == nil, table.concat(calls, ";"))
+check("Play: the desk stays up while it switches off", MM.root ~= nil and MM.root:isVisible() and MM.respawn ~= nil)
+looksPlay()
+R.onKey(KEY.RETURN)
+check("Play again meanwhile: still one switch-off", MM.powerOff ~= nil and called("setPlayerMouse") == nil)
+check("Escape meanwhile is kept and does nothing", ZeD.EscapeTakers.respawn() == true and MM.respawn ~= nil and MM.view == "looks")
+NOW = NOW + 200; frame()
+check("not yet made 200 ms in", called("setPlayerMouse") == nil)
+NOW = NOW + 600; frame()
 check("the game made the character on the mouse", called("setPlayerMouse nil") ~= nil, table.concat(calls, ";"))
+check("made once", (function() local n = 0; for _, s in ipairs(calls) do if s:sub(1, 14) == "setPlayerMouse" then n = n + 1 end end; return n == 1 end)())
+check("the switch-off is cleared", MM.powerOff == nil)
 check("in Riverside", WORLD.x == 6500 and WORLD.y == 5400, tostring(WORLD.x))
 check("with the looks' names", DESC and DESC.setForename == "Kate" and DESC.setSurname == "Bishop")
 check("with the traits", WORLD.traits[1] == "Brave")
@@ -455,10 +486,11 @@ traitsNext()
 DESC.prof = "nurse"
 local savedPts = TOWNS[1].points
 TOWNS[1].points = { carpenter = { { posX = 1, posY = 1 } } }
-looksPlay()
+playThrough()
 check("nothing was made", called("setPlayerMouse") == nil)
 check("the desk is still up", MM.root ~= nil and MM.respawn ~= nil)
 check("Looks again", MM.view == "looks" and shown[#shown] == "looks", MM.view)
+check("the monitor switches back on", MM.powerOff == nil and MM.powerOn ~= nil)
 TOWNS[1].points = savedPts
 c:cancel()
 
@@ -485,6 +517,10 @@ check("keys stay off the desk while a pad drives it", R.deskKeys() == false)
 spawnNext(1); traitsNext()
 check("the pad followed to Looks", MM.view == "looks" and jd.focus == MM.root)
 looksPlay()
+local deskNow = MM.root
+if deskNow then deskNow:onJoypadDown(Joypad.AButton, jd) end
+check("A while the monitor switches off: nothing", deskNow ~= nil and #deskNow.looksWin.joys == 0 and called("setPlayerJoypad") == nil)
+for _ = 1, 4 do NOW = NOW + 300; frame() end
 check("the game made player 2 on the pad", called("setPlayerJoypad 1 2") ~= nil, table.concat(calls, ";"))
 check("the game runs again", PAUSED_SPEED == 1)
 check("the desk is down", MM.root == nil and MM.respawn == nil and #UILIST == 0)
@@ -506,7 +542,18 @@ c.coopUserName:clickNext()
 frame()
 check("then Spawn on the desk", MM.view == "spawn" and MM.root:isVisible())
 check("the game's panel off the screen again", c:getX() <= -10000, c:getX())
-spawnNext(1); traitsNext(); looksPlay()
+check("the pad on the desk", jd.focus == MM.root, tostring(jd.focus))
+-- Back from Spawn: the game's clickBack shows the name step with no controller (its joyfocus is nil)
+spawnBack()
+frame()
+check("Back to the name step: it shows over the world", c.coopUserName:isVisible() and c:getX() == 0 and not MM.root:isVisible())
+check("Back to the name step: the pad is on it", jd.focus == c.coopUserName, tostring(jd.focus))
+frame()
+check("the pad stays where the name step put it", jd.focus == c.coopUserName)
+c.coopUserName:clickNext()
+frame()
+check("Next again: Spawn on the desk, the pad with it", MM.view == "spawn" and MM.root:isVisible() and jd.focus == MM.root)
+spawnNext(1); traitsNext(); playThrough()
 check("made with the server name", called("setPlayerJoypad 1 3 Kate2") ~= nil, table.concat(calls, ";"))
 CLIENT = false
 
@@ -520,7 +567,11 @@ check("Return reaches the window", MM.root.spawnWin.keys[1] == KEY.RETURN)
 check("Escape is the desk's", ZeD.EscapeTakers.respawn() == true and MM.root.spawnWin.esc == 1)
 MM.ctx.open = "zed"
 check("Escape closes an open menu first", ZeD.EscapeTakers.respawn() == true and MM.ctx.open == nil and MM.root.spawnWin.esc == 1)
-coop():cancel()
+-- a view this desk has no window for (an empty monitor): Escape is the Spawn window's Back, never kept for nothing
+MM.view = "credits"
+check("an empty monitor (no window for the view)", MM.activeWindow() == nil)
+check("Escape on an empty monitor goes back", ZeD.EscapeTakers.respawn() == true and MM.respawn == nil and MM.root == nil)
+check("back on the death screen", ISPostDeathUI.instance[0] and ISPostDeathUI.instance[0].visible == true)
 check("no desk: Escape is not taken", ZeD.EscapeTakers.respawn() == false)
 
 section("Safe mode")
@@ -558,6 +609,123 @@ check("no desk", MM.root == nil and MM.respawn == nil)
 check("the game's panel on the screen", c:getX() == 0)
 check("the game's spawn screen shows (no redirect without a desk)", c.mapSpawnSelect:isVisible())
 c:cancel()
+
+section("The Looks window's names: Return after typing keeps the typed name")
+do
+    local lw = ZeD_MMLooks:new()
+    lw:createChildren()
+    local cv = { forenameEntry = ISTextEntryBox:new("Kate", 0, 0, 1, 1), surnameEntry = ISTextEntryBox:new("Bishop", 0, 0, 1, 1) }
+    local saved = MainScreen.instance.charCreationMain
+    MainScreen.instance.charCreationMain = cv
+    lw.fore:focus()
+    lw.fore:setText("Zed")   -- (typed, and Return before a frame copied it over)
+    lw.fore.onCommandEntered()
+    check("Return: the field lets go", not lw.fore:isFocused())
+    lw:syncNames()
+    check("Return: the typed forename sticks", cv.forenameEntry:getText() == "Zed" and lw.fore:getText() == "Zed", cv.forenameEntry:getText() .. " / " .. lw.fore:getText())
+    lw.sur:focus(); lw.sur:setText("Zero"); lw.sur.onCommandEntered(); lw:syncNames()
+    check("Return: the typed surname sticks", cv.surnameEntry:getText() == "Zero")
+    check("the same Return does not play", lw:keyOther(KEY.RETURN) == true and called("setPlayerMouse") == nil)
+    MainScreen.instance.charCreationMain = saved
+end
+
+section("Pop-ups at Deck size: kept on the monitor on the respawn desk")
+reset()
+PLAYERS = { [0] = { dead = true } }
+restart(deathScreen(0))
+do
+    local savedLayout = MM.layout
+    MM.layout = function() return { tx = 200, ty = 100, tw = 800, th = 600, s = 1, ox = 0, oy = 0 } end
+    local popRoom = MM.popRoom or function() return nil end   -- (the old drop measured the game screen in game, inline)
+    local top, bot, left, right = popRoom()
+    check("a pop-up's room is the monitor, not the game screen", top == 104 and bot == 696 and left == 204 and right == 996,
+        tostring(top) .. "," .. tostring(bot) .. "," .. tostring(left) .. "," .. tostring(right))
+    coop():cancel()
+    top = popRoom()
+    check("in game with no desk: the game screen", top == 8, top)
+    MM.layout = savedLayout
+end
+
+section("Random with nothing to land on says so")
+reset()
+PLAYERS = { [0] = { dead = true }, [1] = { dead = false, x = 300, y = 400 } }
+restart(deathScreen(0))
+c = coop()
+do
+    -- only the players' places and Random left in the list
+    local keep = {}
+    for _, e in ipairs(c.mapSpawnSelect.listbox.items) do if e.item.region == nil or tostring(e.item.region.key or ""):sub(1, 10) == "WithPlayer" then keep[#keep + 1] = e end end
+    c.mapSpawnSelect.listbox.items = keep
+    local ri = 1
+    for i, e in ipairs(keep) do if e.item.name == "UI_mapspawn_random" then ri = i end end
+    local p = setmetatable({ sel = ri }, ZeD_MMSpawn)
+    check("the reason shows for Random", p.randomProblem ~= nil and p:randomProblem(keep[ri].item) == "UI_ZeD_Spawn_RandomNone")
+    SPAWN = nil
+    local ok, err = pcall(ZeD_MMSpawn.next, p)
+    check("Next on Random with nothing to pick: no error", ok, err)
+    check("Next waits on Spawn (no town handed over)", MM.view == "spawn" and SPAWN == nil, tostring(SPAWN))
+    check("a players' place has no such reason", keep[#keep].item.region ~= nil and p.randomProblem ~= nil and p:randomProblem(keep[#keep].item) == nil)
+    c:cancel()
+end
+
+section("This Is Your Life on Restart: the Hometown window, and Random never lands on the mod's town")
+-- the mod, as far as ModSupport/ThisIsYourLife.lua reads it (the real mod is Workshop 3773911887)
+getActivatedMods = function() return jlist({ "ThisIsYourLife" }) end
+local TIYL_REGION = { name = "This Is Your Life", points = { unemployed = { { posX = 7, posY = 7 } } } }
+TIYL = { REGION_NAME = "This Is Your Life", Origins = { { id = "riverside", name = "Riverside kid", blurb = "b", uniqueBenefit = "u", spawnPoints = { unemployed = { { posX = 6400, posY = 5300 } } } },
+    { id = "random", name = "Random", blurb = "b", uniqueBenefit = "u" } } }
+TIYL.Flow = {
+    completeOrigin = function(id)
+        local v = MapSpawnSelect.instance
+        if not (v and v.selectedRegion and v.selectedRegion.name == TIYL.REGION_NAME) then return end
+        v.selectedRegion.points = { unemployed = { { posX = 6400, posY = 5300, posZ = 0 } } }
+        TIYL.PendingOriginId = id
+    end,
+    completePosterStory = noop,
+    abandon = function() TIYL.PendingOriginId = nil end,
+}
+CORE.setSelectedMap = noop
+dofile(ROOT .. "42/media/lua/client/ZeD/ModSupport/ThisIsYourLife.lua")
+MM.addView("tiyl", "tiylWin", function() return View:new("tiyl") end)   -- (a stand-in window; the real page's Next and Back run below)
+TOWNS[#TOWNS + 1] = TIYL_REGION
+reset()
+PLAYERS = { [0] = { dead = true } }
+local dead2 = deathScreen(0)
+restart(dead2)
+c = coop()
+check("the respawn desk builds the Hometown window", MM.root and MM.root.tiylWin ~= nil)
+local ti
+for i, e in ipairs(c.mapSpawnSelect.listbox.items) do if e.item.region == TIYL_REGION then ti = i end end
+check("the mod's town is in the respawn list", ti ~= nil)
+-- Random: the last town the roll can give is never the mod's
+ZombRand = function(n) return n - 1 end
+local rIdx
+for i, e in ipairs(c.mapSpawnSelect.listbox.items) do if e.item.name == "UI_mapspawn_random" then rIdx = i end end
+SPAWN = nil
+ZeD_MMSpawn.next(setmetatable({ sel = rIdx }, ZeD_MMSpawn))
+check("Random never lands on the mod's town", SPAWN == "Riverside, KY", SPAWN)
+traitsBack()
+ZombRand = function(n) return 0 end
+check("back on Spawn", MM.view == "spawn", MM.view)
+-- the mod's town: the Hometown window on the monitor (it was an empty monitor with no way out)
+ZeD_MMSpawn.next(setmetatable({ sel = ti }, ZeD_MMSpawn))
+check("the mod's town opens the Hometown window", MM.view == "tiyl" and MM.activeWindow() == MM.root.tiylWin, MM.view)
+check("Escape there is the window's (a window shows)", R.deskKeys() and ZeD.EscapeTakers.respawn() == true and MM.root.tiylWin.esc == 1)
+-- the real Hometown page's Back, then its Next
+ZeD_MMHometown.back(setmetatable({ sel = 1 }, ZeD_MMHometown))
+check("Hometown's Back: the town list", MM.view == "spawn", MM.view)
+ZeD_MMSpawn.next(setmetatable({ sel = ti }, ZeD_MMSpawn))
+SPAWN = nil
+local okH, errH = pcall(ZeD_MMHometown.next, setmetatable({ sel = 1 }, ZeD_MMHometown))
+check("Hometown's Next: no error", okH, errH)
+check("the hometown was handed to the mod", TIYL.PendingOriginId == "riverside", tostring(TIYL.PendingOriginId))
+check("the respawn screen's own Next: the mod's town to the game", SPAWN == "This Is Your Life", tostring(SPAWN))
+check("Traits on the desk", MM.view == "traits", MM.view)
+traitsNext()
+playThrough()
+check("made in the hometown", WORLD.x == 6400 and WORLD.y == 5300 and called("setPlayerMouse nil") ~= nil, tostring(WORLD.x))
+check("the desk is down", MM.root == nil and MM.respawn == nil)
+TOWNS[#TOWNS] = nil
 
 print("respawn_sim: " .. checks .. " checks, " .. failed .. " failed")
 if failed > 0 then os.exit(1) end

@@ -2415,6 +2415,7 @@
     "UI_ZeD_Spawn_NewSeed": "Нове зерно",
     "UI_ZeD_Spawn_PromptNewSeed": "Нове зерно",
     "UI_ZeD_Spawn_RandomDesc": "Місто, обране випадково, коли ви натиснете «Далі».",
+    "UI_ZeD_Spawn_RandomNone": "Тут немає міста, яке можна вибрати випадково. Виберіть місто зі списку.",
     "UI_ZeD_Spawn_Title": "Project Zomboid  +  Місце появи",
     "UI_ZeD_Station_AnySurface": "Будь-де",
     "UI_ZeD_Station_Fallback": "Місце",

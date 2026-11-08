@@ -2415,6 +2415,7 @@
     "UI_ZeD_Spawn_NewSeed": "Nova semente",
     "UI_ZeD_Spawn_PromptNewSeed": "Nova semente",
     "UI_ZeD_Spawn_RandomDesc": "Uma cidade escolhida ao acaso quando você aperta \"Próximo\".",
+    "UI_ZeD_Spawn_RandomNone": "Não há nenhuma cidade aqui que possa ser escolhida aleatoriamente. Escolha uma da lista.",
     "UI_ZeD_Spawn_Title": "Project Zomboid  +  Local de início",
     "UI_ZeD_Station_AnySurface": "Qualquer lugar",
     "UI_ZeD_Station_Fallback": "Estação",

@@ -2415,6 +2415,7 @@
     "UI_ZeD_Spawn_NewSeed": "Autre graine",
     "UI_ZeD_Spawn_PromptNewSeed": "Autre graine",
     "UI_ZeD_Spawn_RandomDesc": "Une ville tirée au hasard quand vous appuyez sur \"Suivant\".",
+    "UI_ZeD_Spawn_RandomNone": "Aucune ville ne peut être tirée au hasard ici. Choisissez-en une dans la liste.",
     "UI_ZeD_Spawn_Title": "Project Zomboid  +  Lieu d'apparition",
     "UI_ZeD_Station_AnySurface": "Toute surface",
     "UI_ZeD_Station_Fallback": "Poste",

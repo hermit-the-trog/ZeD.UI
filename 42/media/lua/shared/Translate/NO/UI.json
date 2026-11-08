@@ -2415,6 +2415,7 @@
     "UI_ZeD_Spawn_NewSeed": "Nytt seed",
     "UI_ZeD_Spawn_PromptNewSeed": "Nytt seed",
     "UI_ZeD_Spawn_RandomDesc": "En tilfeldig valgt by når du trykker \"Neste\".",
+    "UI_ZeD_Spawn_RandomNone": "Her er det ingen by som kan velges tilfeldig. Velg en fra listen.",
     "UI_ZeD_Spawn_Title": "Project Zomboid  +  Startsted",
     "UI_ZeD_Station_AnySurface": "Alle flater",
     "UI_ZeD_Station_Fallback": "Stasjon",

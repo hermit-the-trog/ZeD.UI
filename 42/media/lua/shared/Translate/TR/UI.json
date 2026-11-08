@@ -2415,6 +2415,7 @@
     "UI_ZeD_Spawn_NewSeed": "Yeni tohum",
     "UI_ZeD_Spawn_PromptNewSeed": "Yeni tohum",
     "UI_ZeD_Spawn_RandomDesc": "\"İleri\" düğmesine bastığınızda rastgele seçilen bir kasaba.",
+    "UI_ZeD_Spawn_RandomNone": "Burada rastgele seçilebilecek bir kasaba yok. Listeden birini seç.",
     "UI_ZeD_Spawn_Title": "Project Zomboid  +  Doğma noktası",
     "UI_ZeD_Station_AnySurface": "Her yüzey",
     "UI_ZeD_Station_Fallback": "İstasyon",
