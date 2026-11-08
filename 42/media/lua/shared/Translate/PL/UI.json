@@ -6224,5 +6224,15 @@
     "UI_ZeD_Mail_NoReport": "Ten serwer nie przyjmuje zgłoszeń listów.",
     "UI_ZeD_Mail_Connecting": "Łączenie... wysyłanie %1, odbieranie %2",
     "UI_ZeD_Tk_ReportedLetter": "Zgłoszony list",
-    "UI_ZeD_Tk_LetterWhose": "Tak, jak gracz go otrzymał."
+    "UI_ZeD_Tk_LetterWhose": "Tak, jak gracz go otrzymał.",
+    "UI_ZeD_Card_MakesTitle": "Służy do zrobienia",
+    "UI_ZeD_Card_MakesHelp": "Otwiera przepis w karcie Wytwarzanie lub Budowa.",
+    "UI_ZeD_Card_MakesMore": "jeszcze %1",
+    "UI_ZeD_Card_MakesMoreHelp": "Otwiera kartę Wytwarzanie z tym przedmiotem w wyszukiwaniu.",
+    "UI_ZeD_Skills_UnlockHead": "Przepisy wymagające każdego poziomu",
+    "UI_ZeD_Skills_UnlockLevel": "Poziom %1",
+    "UI_ZeD_Skills_UnlockMore": "i jeszcze %1",
+    "UI_ZeD_Settings_AutoLearn": "Przepisy uczone przez umiejętności",
+    "UI_ZeD_Settings_AutoLearnTip": "Karta umiejętności pokazuje też przepisy, których gra uczy sama, gdy umiejętność osiągnie poziom. Wył.: jak w grze, która tego nie mówi.",
+    "UI_ZeD_Skills_TaughtHead": "Uczone samoczynnie na każdym poziomie"
 }

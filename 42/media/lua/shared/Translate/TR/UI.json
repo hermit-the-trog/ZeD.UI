@@ -6224,5 +6224,15 @@
     "UI_ZeD_Mail_NoReport": "Bu sunucu bir mektup bildirimi alamaz.",
     "UI_ZeD_Mail_Connecting": "Bağlanılıyor... %1 gönderiliyor, %2 alınıyor",
     "UI_ZeD_Tk_ReportedLetter": "Bildirilen mektup",
-    "UI_ZeD_Tk_LetterWhose": "Oyuncunun aldığı haliyle."
+    "UI_ZeD_Tk_LetterWhose": "Oyuncunun aldığı haliyle.",
+    "UI_ZeD_Card_MakesTitle": "Şunu yapmakta kullanılır",
+    "UI_ZeD_Card_MakesHelp": "Tarifi Üretim veya İnşa sekmesinde açar.",
+    "UI_ZeD_Card_MakesMore": "%1 tane daha",
+    "UI_ZeD_Card_MakesMoreHelp": "Üretim sekmesini aramada bu eşyayla açar.",
+    "UI_ZeD_Skills_UnlockHead": "Her seviyenin gerektirdiği tarifler",
+    "UI_ZeD_Skills_UnlockLevel": "Seviye %1",
+    "UI_ZeD_Skills_UnlockMore": "ve %1 tane daha",
+    "UI_ZeD_Settings_AutoLearn": "Becerilerin öğrettiği tarifler",
+    "UI_ZeD_Settings_AutoLearnTip": "Beceri kartı, bir beceri bir seviyeye ulaşınca oyunun kendiliğinden öğrettiği tarifleri de gösterir. Kapalı: söylemeyen oyun gibi.",
+    "UI_ZeD_Skills_TaughtHead": "Her seviyede kendiliğinden öğrenilir"
 }

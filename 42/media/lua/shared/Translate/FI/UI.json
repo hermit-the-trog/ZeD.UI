@@ -6224,5 +6224,15 @@
     "UI_ZeD_Mail_NoReport": "Tämä palvelin ei ota vastaan ilmoitusta kirjeestä.",
     "UI_ZeD_Mail_Connecting": "Yhdistetään... lähetetään %1, vastaanotetaan %2",
     "UI_ZeD_Tk_ReportedLetter": "Ilmoitettu kirje",
-    "UI_ZeD_Tk_LetterWhose": "Sellaisena kuin pelaaja sen sai."
+    "UI_ZeD_Tk_LetterWhose": "Sellaisena kuin pelaaja sen sai.",
+    "UI_ZeD_Card_MakesTitle": "Käytetään valmistamaan",
+    "UI_ZeD_Card_MakesHelp": "Avaa reseptin Valmista- tai Rakenna-välilehdellä.",
+    "UI_ZeD_Card_MakesMore": "%1 muuta",
+    "UI_ZeD_Card_MakesMoreHelp": "Avaa Valmista-välilehden tämä esine haussa.",
+    "UI_ZeD_Skills_UnlockHead": "Reseptit, jotka vaativat kunkin tason",
+    "UI_ZeD_Skills_UnlockLevel": "Taso %1",
+    "UI_ZeD_Skills_UnlockMore": "ja %1 muuta",
+    "UI_ZeD_Settings_AutoLearn": "Taitojen opettamat reseptit",
+    "UI_ZeD_Settings_AutoLearnTip": "Taitokortti näyttää myös reseptit, jotka peli opettaa itsestään, kun taito saavuttaa tason. Pois: kuten pelissä, joka ei kerro.",
+    "UI_ZeD_Skills_TaughtHead": "Opitaan itsestään kullakin tasolla"
 }
