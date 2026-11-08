@@ -1680,8 +1680,8 @@ W.inlineW = inlineW
 W.inlineDraw = inlineDraw
 W.entryText = entryText
 
--- The Immersive look is the book, "Survive the Apocalypse" (ZeD setup's Survival guide: Immersive or Simple). The book's
--- faces (the game's Old Standard TT, Roberto Sans, Open Sans) draw Latin, Greek and Cyrillic, so a game in
+-- The Immersive look is the book, "Survive the Apocalypse" (ZeD setup's Survival guide: Immersive or Simple). The
+-- book's faces (the game's Old Standard TT, Roberto Sans, Open Sans) draw Latin, Greek and Cyrillic, so a game in
 -- Chinese, Japanese, Korean, Thai or Arabic shows the window.
 local NO_BOOK_LANGS = { CN = true, CH = true, JP = true, KO = true, TH = true, AR = true }
 function W.useBook()

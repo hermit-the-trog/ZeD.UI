@@ -118,9 +118,9 @@ local function spaceW(f, px)
     return _spaces[k] * zoom(f, px)
 end
 -- THE TEXT LAYER. Lua's drawTextZoomed draws a distance-field face without the game's SDF shader, so the game's
--- faces come out soft with a dark halo. The game's own text atoms (PZAPI's
--- UI.Text, AtomUIText) draw through that shader, so the book's words are a pool of them, laid over the pages
--- each frame at screen positions, one for each run of words; the panel draws everything else.
+-- faces come out soft with a dark halo. The game's own text atoms (PZAPI's UI.Text, AtomUIText) draw through that
+-- shader, so the book's words are a pool of them, laid over the pages each frame at screen positions, one for each
+-- run of words; the panel draws everything else.
 local LAYER = { root = nil, pool = {}, n = 0, panel = nil }
 local function layerReady()
     if LAYER.root then return true end
@@ -1386,15 +1386,14 @@ local function adWrapEven(text, f, px, maxW)
     return adWrap(text, f, px, hi)
 end
 
--- THE COPYRIGHT PAGE: the first left-hand page, facing the title page, in the publisher's dry register, spaced as
--- the mock manual's copyright page in the mod's Workshop gallery (ZeDUI/workshop/gallery/title_spread.py). The
--- small print sits low, as copyright pages set it: one block in the body face a
--- step under the body size (U.CAP), left aligned and ragged over the full text-block width, its last line's
--- descender on the text block's foot (U.PH - U.FOOT), so Large text grows it upward and never past the foot. The
--- spacing: 1 after the title and the edition, 9 after the "by" line, 7 between paragraphs, 4 more
--- before "Printed in" and the printing line straight under it (in tenths of the type's size). Wrapped with adWrap,
--- which cuts Chinese, Japanese and Thai between characters. No folio (drawPage returns before it, as for the title
--- page).
+-- THE COPYRIGHT PAGE: the first left-hand page, facing the title page, in the publisher's dry register, spaced to
+-- match the copyright page in the mod's Workshop gallery pictures. The small print sits low, as copyright pages set
+-- it: one block in the body face a step under the body size (U.CAP), left aligned and ragged over the full
+-- text-block width, its last line's descender on the text block's foot (U.PH - U.FOOT), so Large text grows it
+-- upward and never past the foot. The spacing: 1 after the title and the edition, 9 after the "by" line, 7 between
+-- paragraphs, 4 more before "Printed in" and the printing line straight under it (in tenths of the type's size).
+-- Wrapped with adWrap, which cuts Chinese, Japanese and Thai between characters. No folio (drawPage returns before
+-- it, as for the title page).
 local COPY_KEYS = { "UI_ZeD_Guide_BookTitle", "UI_ZeD_Guide_BookSub1", "UI_ZeD_Guide_BookSub2", "UI_ZeD_Guide_BookEdition",
                     "UI_ZeD_Guide_CopyBy", "UI_ZeD_Guide_Copy1", "UI_ZeD_Guide_Copy2", "UI_ZeD_Guide_Copy3",
                     "UI_ZeD_Guide_Copy4", "UI_ZeD_Guide_Copy5" }

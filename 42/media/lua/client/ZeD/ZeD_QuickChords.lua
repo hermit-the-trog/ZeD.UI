@@ -1,9 +1,9 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_QuickChords.lua
 -- ============================================================================
--- QUICK ACTIONS ON BUMPER CHORDS (director, Oct 24 2026: "settings for
--- gamepad chords for quick actions. Bumpers + A, B, X, Y, L3, R3 -- 12 quick
--- action assignments possible"; QUICK_CHORDS_SPEC.md; mockup
--- ZeDUI/mockups/zed_quick_chords_v1.html, approved Oct 24 2026)
+-- QUICK ACTIONS ON BUMPER CHORDS: a bumper with A, B, X, Y, L3 or R3, twelve
+-- quick actions a player assigns. Client; an override of vanilla's
+-- JoypadControllerData (press and release) plus the chords' store, which the
+-- Options page at the main menu and the D-pad wheels edit.
 --
 -- In the world (no window has the pad, no wheel is open, not paused), hold LB
 -- or RB and press A, B, X, Y, L3 or R3: the action assigned to that chord
@@ -52,7 +52,7 @@ local function word(key)
     return getText(key)
 end
 
--- the starting layout (the mockup's, approved Oct 24 2026), with the words as keys
+-- the starting layout, with the words as translation keys
 Q.DEFAULTS = {
     ["LB+A"]  = { "character:3",   { "UI_ZeD_Wheel_Character", "ContextMenu_Eat" } },
     ["LB+B"]  = { "character:4",   { "UI_ZeD_Wheel_Character", "ContextMenu_Drink" } },
@@ -148,7 +148,7 @@ local function save()
     keepFile(table.concat(buf))
 end
 
--- the chord's path (nil = nothing) and its words, for showing
+--- The chord's path (nil = nothing) and its words, for showing.
 function Q.get(chord)
     if not store then load() end
     local s = store[chord]
@@ -160,6 +160,7 @@ function Q.get(chord)
     return d[1], w
 end
 
+--- Give a chord a path and the words to show for it; saved at once.
 function Q.set(chord, path, words)
     if not store then load() end
     local w = {}
@@ -167,12 +168,14 @@ function Q.set(chord, path, words)
     store[chord] = { path = path, words = w }
     save()
 end
+--- Clear a chord on purpose: it runs nothing (not the same as its default).
 function Q.clear(chord) Q.set(chord, nil, {}) end
--- the chord as it starts (no line of its own in the file)
+--- Is the chord as it starts (no line of its own in the file)?
 function Q.isDefault(chord)
     if not store then load() end
     return store[chord] == nil
 end
+--- The name of the chord's default action (the last of its words), or "None".
 function Q.defaultName(chord)
     local d = Q.DEFAULTS[chord]
     return d and word(d[2][#d[2]]) or ZeD.tr("UI_ZeD_Chord_None")
