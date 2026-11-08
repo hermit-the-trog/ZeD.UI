@@ -647,6 +647,10 @@ end
 -- anchor panel; with a controller it takes the focus as vanilla's does.
 function ZeD.HealthTab.treat(patient, doctor, bp, anchor, rx, ry, blocking)
     if not (patient and bp and anchor) then return end
+    -- no menu for the doctor's player (the character died: the game drops its UI data): nothing to open
+    local docPl = doctor or patient
+    local okN, dnum = pcall(function() return docPl:getPlayerNum() end)
+    if okN and getPlayerContextMenu and not getPlayerContextMenu(dnum) then return end
     local adapter = {
         character       = patient,
         otherPlayer     = (doctor ~= nil and doctor ~= patient) and doctor or nil,

@@ -119,11 +119,16 @@ function JC:update()
         self.out:SetText(s)
     end
     -- the suggestion: the nearest global function to the line's word
+    -- (as UIDebugConsole.update() in the jar: the suggestion is worked out only when the line's LENGTH differs from the one
+    -- it last worked on; an emptied line hides the box and leaves that length where it was. QA round 3.)
     local t = self.cmd.text
-    if t ~= "" and ("getPlayer"):sub(1, #t) == t then
-        self.sug.visible = true
-        self.sug:SetText("IsoPlayer getPlayer")
-        self.prevSuggestion = "getPlayer"
+    if #t ~= (self.inputlength or 0) and t ~= "" then
+        self.inputlength = #t
+        if ("getPlayer"):sub(1, #t) == t then
+            self.sug.visible = true
+            self.sug:SetText("IsoPlayer getPlayer")
+            self.prevSuggestion = "getPlayer"
+        end
     elseif t == "" then
         self.sug.visible = false
     end
@@ -832,12 +837,12 @@ do
     local before = JC.updates
     DC.mirror("getPl")
     check("mirror: the game's line holds the text", JC.cmd.text == "getPl")
-    check("mirror: the game's update ran for it", JC.updates == before + 1, JC.updates - before)
+    check("mirror: the game's update ran for it, twice (the line one longer first)", JC.updates == before + 2, JC.updates - before)
     check("mirror: the suggestion is there at once", DC.suggestion() == "IsoPlayer getPlayer", DC.suggestion())
     DC.mirror("getPl")
-    check("mirror: the same text again runs nothing", JC.updates == before + 1)
+    check("mirror: the same text again runs nothing", JC.updates == before + 2)
     DC.mirror("")
-    check("mirror: an empty line does not run update", JC.updates == before + 1)
+    check("mirror: an empty line does not run update", JC.updates == before + 2)
     -- round 2: the game's suggestion is its NEAREST function by edit distance, left standing when nothing is found;
     -- "getPl" got "getCell" on 42.21. Never taken as a completion, never shown as one.
     DC.mirror("getPl")
@@ -854,6 +859,29 @@ do
     check("fits: after a colon the word after it", DC.fits("void setX", { getText = function() return "a:setX" end }) == true
         and DC.fits("void setX", { getText = function() return "a:getY" end }) == false)
     check("fits: a line ending in a bracket takes any", DC.fits("void x", { getText = function() return "f(" end }) == true)
+    -- round 3: a line of the same length as the one the game last worked on got no suggestion (its length test), and the
+    -- emptied line in between hid the box without resetting it
+    DC.mirror("")
+    JC.sug.visible = false
+    JC.sug:SetText("")
+    JC.inputlength = 7                -- ("getPlay" was the last the game worked on)
+    DC.mirror("getPlay")
+    check("same length as the last the game worked on: the suggestion is still there", DC.suggestion() == "IsoPlayer getPlayer", DC.suggestion())
+    DC.mirror("")
+    JC.sug.visible = false
+    DC.mirror("getPlay")
+    check("the same word typed again after an emptied line: the suggestion is there", DC.suggestion() == "IsoPlayer getPlayer", DC.suggestion())
+    check("and the line is what was typed, with no space left on it", JC.cmd.text == "getPlay", JC.cmd.text)
+    -- an update that throws leaves the line as typed and says so once
+    local realUpdate, realLog, logged = JC.update, ZeD.logOnce, 0
+    ZeD.logOnce = function() logged = logged + 1 end
+    JC.update = function() error("boom") end
+    DC._mirrored = nil
+    DC.mirror("getP")
+    ZeD.logOnce = realLog
+    check("a failing game update leaves the line as typed and is logged", JC.cmd.text == "getP" and logged == 1, JC.cmd.text)
+    JC.update = realUpdate
+    DC.mirror("")
 end
 do
     -- the tab turned into four spaces by DC.parse: the frames still start and hold an error
