@@ -1,22 +1,25 @@
 -- ZeD-UI/42/media/lua/shared/ZeD/ZeD_CommunityProto.lua
 -- ============================================================================
--- COMMUNITY: WHAT BOTH SIDES AGREE ON. Shared protocol table for the community board (message of the day, rules,
--- news). The module, the two capabilities, the
--- questions kept to one switch, every limit, the checks on typed words, and what a player is asked. Pure Lua, ASCII,
--- nothing client-only at load: this file also runs on a dedicated server.
+-- COMMUNITY: WHAT BOTH SIDES AGREE ON, for the community board (the message of the day, the rules, the appeal line, the
+-- news). The module name, the two capabilities, the choices kept to one switch each, every limit, the checks on typed
+-- words, and which rules show as NEW to a player. Shared: this file loads on the client and on a dedicated server
+-- alike, so nothing client-only at file scope. Pure Lua, pure ASCII.
 -- ============================================================================
 
+-- for ZeD.Tk.clean: the board's words go through the ticket protocol's scrubber
 require "ZeD/ZeD_TicketProto"
 
+-- Reload-safe: loading this file twice reuses the tables instead of wiping them
 ZeD = ZeD or {}
 ZeD.Cm = ZeD.Cm or {}
 local Cm = ZeD.Cm
 
-Cm.MOD = "ZeDM"
+Cm.MOD = "ZeDM"             -- the module on every community command
 
 -- DESIGN CHOICES that could go either way, answered the careful way, each kept to one switch
--- Who writes the message of the day, the rules, the appeal line and the two ticks. The game has no capability for this: this
--- is the one that changes the server's options, the welcome message among them. Moderators do not hold it.
+-- Who writes the message of the day, the rules, the appeal line and the two ticks (ask players to agree when they join;
+-- ask again when a rule is added or changed). The game has no capability for this, so ZeD uses the one that changes
+-- the server's options, the welcome message among them. Moderators do not hold it.
 Cm.CAP_RULES = "ChangeAndReloadServerOptions"
 -- Who posts, pins and deletes news. The capability that sends a server message; moderators hold it, so they can post
 -- without holding the rules.
@@ -37,24 +40,25 @@ Cm.L = {
     POST_MAX = 500,
     NEWS_MAX = 50,                  -- posts kept; past it the oldest that is not pinned goes
     AGREED_MAX = 5000,              -- who agreed; past it the oldest agreement goes, and that player is asked again
-    SAVE_MS = 3000,
-    POST_MS = 5000,
-    PIN_MS = 500,
-    AGREE_MS = 2000,
-    GET_MS = 1000,
+    SAVE_MS = 3000,                 -- between two saves of the board's words, from one player
+    POST_MS = 5000,                 -- between two news posts
+    PIN_MS = 500,                   -- between two pins, and between two deletes
+    AGREE_MS = 2000,                -- between two agreements
+    GET_MS = 1000,                  -- between two asks for the board
     PUSH_MS = 5000,                 -- the board goes to everyone at most this often; whoever pressed gets it at once
     ASKED_MS = 300000,              -- asked and no answer for this long: one line in the log, and a Kick is owed
     ASKED_LOOK_MS = 5000,           -- how often the server looks
 }
 
--- typed words, several lines, trimmed: nil if they are not words or are too long. Empty is allowed: the caller says.
+--- typed words of several lines (the message of the day, a news post), trimmed: nil if not given a string or longer
+--- than max. Empty is allowed: the caller decides whether empty will do.
 function Cm.text(s, max)
     local c = ZeD.Tk.clean(s)
     if not c or #c > max then return nil end
     return c
 end
 
--- one line: a rule, the appeal line
+--- one line: a rule, the appeal line. Line breaks become spaces; nil if not given a string or longer than max
 function Cm.line(s, max)
     local c = ZeD.Tk.clean(s)
     if not c then return nil end
@@ -63,7 +67,8 @@ function Cm.line(s, max)
     return c
 end
 
--- the rule numbers marked NEW for the player a view was built for, in order. A first agreement marks nothing
+--- the rule numbers marked NEW for the player a view was built for, in order: rules added or changed after the
+--- revision they last agreed at (view.since). A player who has never agreed gets an empty list: there is nothing to compare against
 function Cm.newRules(view)
     local out = {}
     if not (view and view.rules and view.since) then return out end

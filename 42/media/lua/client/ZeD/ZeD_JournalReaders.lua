@@ -888,8 +888,8 @@ local function logBook(win)
     return nil
 end
 
--- the picker, a push button left of Save (it cycles the log only, then each carried
--- notebook); returns its width
+--- The picker, a push button left of Save (it cycles the log only, then each carried
+--- notebook); returns its width.
 function J.drawLogInto(panel, win, x, y, maxW, h)
     local T = ZeD.T
     J._fid = J._fid or focusedId(win)
@@ -932,7 +932,7 @@ function J.drawLogInto(panel, win, x, y, maxW, h)
     return pw
 end
 
--- a log entry, as the Journal's Save makes it; `source` names where it was written too
+--- A log entry, as the Journal's Save makes it; `source` names where it was written too.
 function J.addLogEntry(win, text, source)
     local gt = getGameTime()
     local md = win._playerObj:getModData()
@@ -952,8 +952,8 @@ function J.addLogEntry(win, text, source)
     win._journalCache = nil
 end
 
--- Save with a notebook picked: the character writes it there, then the log keeps it.
--- Returns true when it took the save (written, writing, or why not shown).
+--- Save with a notebook picked: the character writes it there, then the log keeps it.
+--- Returns true when it took the save (written, writing, or why not shown).
 function J.saveLog(win, text)
     local s = st(win)
     local b = logBook(win)
@@ -1003,9 +1003,9 @@ function J.onClick(win, x, y)
     return false
 end
 
--- the controller's elements (ids "jr:..."): every live zone; B goes back in a quick look.
--- The band's Show list open: its rows alone (the current choice first); shut, the focus
--- lands back on its box.
+--- The controller's elements (ids "jr:..."): every live zone; B goes back in a quick look.
+--- The band's Show list open: its rows alone (the current choice first); shut, the focus
+--- lands back on its box.
 function J.focusables(win)
     local out = {}
     local s = st(win)
@@ -1039,19 +1039,19 @@ function J.focusables(win)
     return out
 end
 
--- rebuild the controller's elements when the view scrolls or changes
+--- Rebuild the controller's elements when the view scrolls or changes.
 function J.scrollKey(win)
     local s = st(win)
     return tostring(s.key) .. ":" .. tostring(s.scroll.scrollPos) .. ":" .. tostring(s.nbId) .. ":" .. tostring(s.filter)
         .. ":" .. tostring(s.showOpen) .. ":" .. tostring(s.paperOpen)
 end
 
--- the log box's Into shows (a notebook is carried to write in)
+--- The log box's Into shows (a notebook is carried to write in).
 function J.intoShown(win)
     return #gather(win).books > 0
 end
 
--- each frame: zones start empty (the renderers stamp them); last frame's kept for the scroll-follow
+--- Each frame: zones start empty (the renderers stamp them); last frame's kept for the scroll-follow.
 function J.beginFrame(win)
     local s = st(win)
     s.lastZones = win._jrZones

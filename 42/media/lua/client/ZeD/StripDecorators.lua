@@ -8,8 +8,8 @@
 --     ZeD_CharacterWindow.addStripDecorator(id, fn)
 --     ZeD_WorldWindow.addStripDecorator(id, fn)
 -- Each frame, right after a strip button's icon is drawn (before its column
--- number badge, so the badge stays on top), the window calls every decorator
--- of its side:
+-- number badge and the World window's padlock, so those stay on top), the
+-- window calls every decorator of its side:
 --     fn(panel, entry, x, y, w, h, win)
 --   panel  the strip panel to draw on (draw with its drawRect, the ZeD atoms ...)
 --   entry  the window's own entry for that button: entry.inventory is the

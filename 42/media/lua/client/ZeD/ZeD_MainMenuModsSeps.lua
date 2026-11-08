@@ -4,10 +4,10 @@
 -- it extends the load order page (ZeD_MainMenuModsOrder.lua) by wrapping its
 -- methods, and that page calls back in to draw separator rows and build the band.
 --
--- Separators sort the load order, MO2-style: headings inside the list of mods that are on, where
--- a mod's place under a separator is its place in the order. They are ZeD's own: kept with the
--- list being edited and with each profile in Zomboid/Lua/ZeD_modprofiles.txt ("sep=" / "top="
--- lines, ZeD_ModOrder); the game's files only ever get the plain order.
+-- Separators sort the load order the way Mod Organizer 2's do: headings inside the list of mods
+-- that are on, where a mod's place under a separator is its place in the order. They are ZeD's
+-- own: kept with the list being edited and with each profile in Zomboid/Lua/ZeD_modprofiles.txt
+-- ("sep=" / "top=" lines, ZeD_ModOrder); the game's files only ever get the plain order.
 --   * rows: a checkbox (every mod under it on or off at once; the mods keep their places, dimmed
 --     and unnumbered while off), a triangle (collapse; the numbers jump past it), the name on a
 --     rule, the count
@@ -388,7 +388,7 @@ function ZeD_MMMods:drawSepRow(e, x, ry, rw, vy, vh, gp, modal)
     local cw = MM.textW(f3, e.cnt)
     local nameW = math.max(T.px(20), right - nx - cw - T.px(24))
     if e.tnw ~= nameW then e.tnw, e.tn = nameW, ZeD.Atoms.truncateText(e.name, f2, nameW) end
-    -- (the name: the label's text colour, which reads at 4.6 : 1; the rules keep the strong mark colour)
+    -- (the name: the label's text colour, which reads at 4.6 : 1 contrast; the rules keep the strong mark colour)
     local lt = lc and self:labelColor(e.sp.label, true)
     local ltc = lt and { r = lt.r, g = lt.g, b = lt.b, a = la } or nil
     local nc = onFocus and T.textOnFocus or ltc or (e.sp.on and T.textHead or T.textDim)
@@ -680,9 +680,9 @@ end
 --- The mods that are on made to be exactly want (Undo, Back).
 function ZeD_MMMods:sepMatchActive(want)
     if not (model() and want) then return end
-    -- (the player's own earlier set, back exactly, as one batch: restored one at a time the
-    -- game settles conflicts itself, and an Undo once brought back The Only Cure in place of
-    -- The Only Cure+)
+    -- (the player's own earlier set, back exactly, as one batch: restored one at a time, the
+    -- game settles each conflict itself and can bring back the wrong one of two mods that
+    -- conflict, The Only Cure in place of The Only Cure+)
     local go, _, off = self:applyOnSet(want, true)
     if off or #go > 0 then self:dirty() end
 end
@@ -746,7 +746,8 @@ function ZeD_MMMods:sepTurn(ids, on, together)
             end
         end
     end
-    -- (ZeD-GUI off under the separator took ZeD picks with it: ZeD-GUI back on, any way, brings them)
+    -- (ZeD picks needs ZeD-GUI: ZeD-GUI off under the separator took picks with it, so note it;
+    -- ZeD-GUI back on, any way, brings picks back)
     if not on and self.picksNoteOff then self:picksNoteOff(before) end
     local after = activeSet(m)
     self:sepReconcile(before, after, ids)

@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_ModSettings.lua
 -- ============================================================================
--- A MOD'S OWN SETTINGS FOR ITS INFO PANE — client; a data module the Mods
+-- A MOD'S OWN SETTINGS FOR ITS INFO PANE. Client; a data module the Mods
 -- screen reads: when a mod is selected in the list, its info pane shows the
 -- mod's own options and sandbox settings, read through here.
 --
@@ -20,11 +20,16 @@
 -- own translation file (the player's language, else English).
 --
 --   S.optionRows(modId)   { sections = { { title, entries } }, count }
+--   S.count(modId)        how many options (0 while the mod is off)
 --   S.apply(entry)        keep one row's value (after its control changed)
 --   S.defaults(modId)     every option back to the value the mod declared
+--   S.offDefault(modId)   does any option differ from its declared value?
 --   S.sig(r)              a row's value as a short string (the changed dot)
 --   S.help(entry)         the row's help text, plain
+--   S.defaultText(entry)  the row's default as words
 --   S.sandbox(modId)      { list = { setting, ... }, pages = { name, ... } } or nil
+--   S.sandboxCount(modId) how many sandbox settings it adds
+--   S.readLines(modId, path)  a file inside a mod as lines (ZeD picks, mod resets)
 --   S.reset()             forget what was read (the Mods screen opens)
 -- ============================================================================
 require "ZeD/ZeD_MainMenuOptions"
@@ -302,7 +307,10 @@ local function parse(modId)
 end
 
 --- A mod's sandbox settings, parsed once: { list = { setting, ... },
---- pages = { name, ... } }, or nil for a mod that adds none.
+--- pages = { name, ... } }, or nil for a mod that adds none. A setting is
+--- { name, label, tooltip, type, page } with its default: `on` for a boolean,
+--- `value` (the option's words) and `count` for an enum, else `value` and,
+--- when the file gives a min or max, `range = { min, max }`.
 function S.sandbox(modId)
     if sb[modId] == nil then
         local ok, r = pcall(parse, modId)

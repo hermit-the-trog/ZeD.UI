@@ -19,7 +19,9 @@
 --     { k = "swatch", id, label, color = { r, g, b }, run, help }
 --   band(card)  -> { buttons = { { id, text, run, variant, disabled, help } }, ask (a question with its red square) }
 --   cancel(card)   B, Escape and the close box
+--   onFinish(card) runs once the card has closed, however it closed
 --   playerNum
+--   cx, cy         the screen point a card on its own centers on (the screen's middle without them)
 --   dock()  -> panel, x, y, w, h: the card lives in that panel (a window's drawer) at the right of that box, as tall as
 --             the box allows, instead of on its own over the screen (the mark-sharing card rides the map's drawer)
 -- }
@@ -35,6 +37,7 @@ ZeD = ZeD or {}
 ZeD.FormCard = ZeD.FormCard or {}
 local FC = ZeD.FormCard
 
+-- sizes in design units (px() scales them); MAX_H is the tallest a card on its own gets, as a share of the screen
 local U = { W = 360, PAD = 12, ROW_GAP = 6, HEAD_ICON = 32, IND = 18, FIELD_H = 26, MAX_H = 0.75 }
 
 local function px(n) return ZeD.T.px(n) end
@@ -196,6 +199,7 @@ local function insetBox(p, x, y, w, h)
     p:drawRect(x + px(1), y + px(1), px(1), h - 2 * px(1), 0.45, 0, 0, 0)
 end
 
+-- one options table for ZeD.Focus.mark, reused every frame instead of a new one per draw
 local _fo = {}
 local function focusOpts(self) _fo.win, _fo.pad, _fo.focused = self, true, true; return _fo end
 

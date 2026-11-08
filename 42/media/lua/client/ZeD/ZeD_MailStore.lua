@@ -1,22 +1,24 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MailStore.lua
 -- ============================================================================
--- MAIL ON THIS COMPUTER. The copy the desk reads at the main menu, where no server can be reached:
--- one mailbox for each server and username this computer has dialed in to, each with its Inbox (letters handed over),
--- Outbox (letters written and not sent yet: they go at the next join) and Sent. ZeD_Mail.lua fills it in game;
--- ZeD_MainMenuMail.lua reads it and writes to the outbox at the desk. No drawing here.
+-- MAIL ON THIS COMPUTER. Client file, no drawing: the copy the desk reads at the main menu, where no server can be
+-- reached. One mailbox for each server and username this computer has dialed in to, each with its Inbox (letters
+-- handed over), Outbox (letters written and not sent yet: they go at the next join) and Sent. ZeD_Mail.lua fills it
+-- in game; ZeD_MainMenuMail.lua reads it and writes to the Outbox at the desk.
 --
 -- Files under Zomboid/Lua, the way ZeD keeps its own:
 --   ZeD_mail_boxes.txt   the mailboxes: a header, then "n|last dial-in|server key|username|server's name" a line
 --   ZeD_mail_<n>.txt     one mailbox: a header, then a record a line, its fields split by "|":
---                          i|id|from|to|t|day|read|subject|words     a letter in the Inbox (id: the server's)
+--                          i|id|from|to|t|day|read|subject|words     a letter in the Inbox (id: the server's; 0 for
+--                                                                    returned mail)
 --                          o|cid|to|t|subject|words                  a letter in the Outbox
 --                          s|cid|to|t|subject|words                  a letter in Sent
 --                          g|id                                      a letter already handed over (so it never comes twice)
 --                        A field's "\" is "\\", its line break "\n" and its "|" "\p": a record is always one line.
 -- Caps, oldest first: INBOX_KEEP letters in an Inbox, SENT_KEEP in Sent, GOT_KEEP numbers remembered. The Outbox holds
 -- OUT_MAX and says so; BOXES_MAX mailboxes, the one dialed into longest ago goes.
+-- Reading never checks the header line, and a record it cannot parse is dropped rather than failing the file.
 --
--- QA and the sims: MS.io holds the two file calls, so a sim swaps in its own.
+-- For the sims: MS.io holds the two file calls, so a sim can swap in its own, and MS.reset forgets the list read so far.
 -- ============================================================================
 
 require "ZeD/ZeD_MailProto"
@@ -42,6 +44,7 @@ MS.io = MS.io or {
 MS.seq = MS.seq or 0                 -- bumps on every change (the screens re-read)
 local function bump() MS.seq = MS.seq + 1 end
 
+-- the real time in whole seconds, as a letter's t holds it
 local function nowS()
     local ok, t = pcall(getTimestamp)
     if ok and type(t) == "number" then return math.floor(t) end
@@ -51,6 +54,8 @@ end
 -- ---------------------------------------------------------------------------
 -- FILES AND FIELDS
 -- ---------------------------------------------------------------------------
+-- The game's Java side can throw; pcall turns a crash into a nil we can test. readLines answers nil for a file that
+-- isn't there yet or a read that fails, writeLines false for a write that fails; a failure is logged once.
 local function readLines(name)
     local ok, r = pcall(MS.io.reader, name)
     if not ok or not r then return nil end
@@ -81,7 +86,8 @@ local function writeLines(name, lines)
     return ok
 end
 
--- a field to one line and back (by character code and slices, as Tk.clean: the game's strings are UTF-16)
+--- A field to one line and back (by character code and slices, as Tk.clean: the game's strings are UTF-16, and a
+--- slice keeps every character whole).
 function MS.esc(s)
     s = tostring(s or "")
     local out, from = {}, 1
@@ -130,6 +136,7 @@ end
 -- ---------------------------------------------------------------------------
 -- THE MAILBOXES
 -- ---------------------------------------------------------------------------
+--- Every mailbox on this computer, the last dialed into first: read from the index once, then kept.
 function MS.boxes()
     if MS._boxes then return MS._boxes end
     local list = {}
@@ -156,15 +163,17 @@ end
 
 function MS.fileOf(n) return "ZeD_mail_" .. tostring(n) .. ".txt" end
 
--- a mailbox's id: the server's address and the username on it
+--- A mailbox's id: the server's address and the username on it.
 function MS.keyOf(server, user) return tostring(server) .. "/" .. tostring(user) end
 
+--- The mailbox with this id (MS.keyOf), or nil.
 function MS.find(key)
     for _, b in ipairs(MS.boxes()) do if b.key == key then return b end end
     return nil
 end
 
--- the mailbox for this server and user, made when there is none (the one dialed into longest ago goes past BOXES_MAX)
+--- The mailbox for this server and user, made when there is none (the one dialed into longest ago goes past
+--- BOXES_MAX). One already here takes the server's name as it is now.
 function MS.box(serverKey, user, serverName)
     local key = MS.keyOf(serverKey, user)
     local b = MS.find(key)
@@ -192,7 +201,7 @@ function MS.box(serverKey, user, serverName)
     return b
 end
 
--- a mailbox's letters, read once
+--- A mailbox's letters: { inbox, outbox, sent, got }, read from its file once, then kept on the mailbox.
 function MS.load(b)
     if b.data then return b.data end
     local d = { inbox = {}, outbox = {}, sent = {}, got = {} }
@@ -214,6 +223,7 @@ function MS.load(b)
     return d
 end
 
+--- Write the mailbox's file again, whole. True when it was written.
 function MS.save(b)
     local d = MS.load(b)
     local lines = { MS.HEADER }
@@ -232,7 +242,7 @@ function MS.save(b)
     return ok
 end
 
--- the dial-in's time on the mailbox
+--- Stamp the dial-in's time on the mailbox, which moves it to the top of the list.
 function MS.dialed(b)
     b.t = nowS()
     table.sort(MS.boxes(), function(x, y) return (x.t or 0) > (y.t or 0) end)
@@ -245,8 +255,8 @@ end
 -- ---------------------------------------------------------------------------
 local function has(list, v) for _, x in ipairs(list) do if x == v then return true end end return false end
 
--- a letter handed over: kept (newest first in the Inbox) unless it came before. True when it is new. Saving is the caller's
--- (a batch saves once)
+--- A letter handed over: kept (newest first in the Inbox) unless it came before. True when it is new. Saving is the
+--- caller's (a batch saves once).
 function MS.receive(b, m)
     local d = MS.load(b)
     local id = tonumber(m.id)
@@ -259,7 +269,8 @@ function MS.receive(b, m)
     return true
 end
 
--- a letter for the next dial-in; nil and "full" / "to" / "text" / "subj" when it cannot go
+--- A new letter into the Outbox; nil and "full" / "to" / "text" / "subj" when it cannot go. Its cid is this
+--- computer's own number for it, so a letter sent again after a lost answer is taken only once.
 MS._cidN = MS._cidN or 0
 function MS.queue(b, to, subj, text)
     local d = MS.load(b)
@@ -279,7 +290,7 @@ function MS.queue(b, to, subj, text)
     return m
 end
 
--- the server took it: from the Outbox to Sent
+--- The server took it: from the Outbox to Sent.
 function MS.sent(b, cid)
     local d = MS.load(b)
     for i, m in ipairs(d.outbox) do
@@ -295,8 +306,8 @@ function MS.sent(b, cid)
     return nil
 end
 
--- the server would not take it (nobody by that name, words it refuses): it comes back to the Inbox as returned mail, the
--- way a 1993 mail server sent it back, and leaves the Outbox. why: the words to say, in the player's language
+--- The server would not take it (nobody by that name, words it refuses): it comes back to the Inbox as returned mail,
+--- the way a 1993 mail server sent it back, and leaves the Outbox. why: the words to say, in the player's language.
 function MS.returned(b, cid, why)
     local d = MS.load(b)
     for i, m in ipairs(d.outbox) do
@@ -312,19 +323,21 @@ function MS.returned(b, cid, why)
     return false
 end
 
+--- How many Inbox letters are not read yet.
 function MS.unread(b)
     local n = 0
     for _, m in ipairs(MS.load(b).inbox) do if not m.read then n = n + 1 end end
     return n
 end
 
+--- Mark an Inbox letter read, and save.
 function MS.markRead(b, m)
     if m.read then return end
     m.read = true
     MS.save(b)
 end
 
--- folder: "inbox" | "outbox" | "sent"; m: the letter itself
+--- Delete a letter. folder: "inbox" | "outbox" | "sent"; m: the letter itself.
 function MS.remove(b, folder, m)
     local list = MS.load(b)[folder]
     for i, x in ipairs(list or {}) do
@@ -337,7 +350,7 @@ function MS.remove(b, folder, m)
     return false
 end
 
--- forget what was read (the sims start over)
+--- Forget the mailbox list read so far: the next MS.boxes reads the index again (the sims start over).
 function MS.reset()
     MS._boxes = nil
 end

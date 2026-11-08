@@ -10,7 +10,12 @@
 --   - the target card's meta line (food / weapon / clothing / fluid /
 --     literature)
 --   - the icon for an option's name (ZeD's own map first, vanilla's after)
--- Drawing lives in the organisms and molecules; nothing here touches the UI.
+-- Drawing lives in the organisms and molecules. The one reach into the game's
+-- UI is the outline on what an option acts on: Registry.highlight tells the
+-- game's own menu (parked off screen) which row is lit, and two small wraps
+-- of vanilla functions, right after it, keep that outline steady.
+-- The lookups are built on first use and kept (translations, icons, groups);
+-- a mod that adds icon entries later calls Registry.resetTranslatedCaches.
 -- ============================================================================
 
 require "ZeD/ContextIcons"   -- provides ZeD.ContextIcons
@@ -162,7 +167,8 @@ local function firstWordOf(s)
 end
 
 -- True when the text holds a Chinese, Japanese or Korean character (code 0x2E80
--- and up), where one character is already a whole word.
+-- and up), where one character is already a whole word. Kahlua strings are
+-- Java strings, so byte() reads a whole character's code, not one UTF-8 byte.
 local function hasWideChar(s)
     for i = 1, #s do
         if string.byte(s, i) >= 0x2E80 then return true end
@@ -269,6 +275,9 @@ function Registry.exactCategories()
     return exact
 end
 
+-- The group an option's name sorts under: a whole known label first, then the
+-- player's language's group words, then the English keywords; ACTION when
+-- nothing matches.
 function Registry.categorize(optionName)
     if not optionName or optionName == "" then return "ACTION" end
     local lower = string.lower(optionName)
@@ -440,7 +449,7 @@ local function buildTranslatedCache()
     -- first words too. Only single-word entries go in: a bare "Equip" is the
     -- answer for any "Equip <thing>" label, while a multi-word entry such as
     -- "Equip Primary" stays out, so its leading word never claims labels that
-    -- belong to the bare verb..
+    -- belong to the bare verb.
     for name, cp in pairs(_translatedNameCache) do
         local fw = _firstWord(name)
         if fw and fw ~= name then
@@ -498,8 +507,8 @@ end
 --- icon's id; nil when the map has none.
 Registry.resolveIconForName = resolveIconForName
 
--- Forget what was read from the translations, so the next menu reads it again.
--- Call after a mod adds entries to ZeD.ContextIcons once menus are already open.
+--- Forget what was read from the translations, so the next menu reads it again.
+--- Call after a mod adds entries to ZeD.ContextIcons once menus are already open.
 function Registry.resetTranslatedCaches()
     _translatedNameCache = nil
     _firstWordCache = nil
@@ -560,14 +569,14 @@ local function tellMenu(menu, opt)
 end
 
 --- The row a menu of ours has selected, told to the game's menu: the game's own
---- checkHighlightedOption, so the option's onHighlight gets what the game gives it
---- (option, menu, on/off, its params), the last row is let go first, and the animal
---- rows that ask to be called every frame are. Calling onHighlight(option, true)
---- directly would hand the object through as nil: no outline, and an exception on
---- the rows that index it. holder is the strip or the list; a nil def lets go of
---- whatever is lit (a menu closing must, or the outline stays on the world
---- object). A row of a submenu lives on that submenu's menu, so leaving one lets
---- the old menu go.
+--- checkHighlightedOption, so the option's onHighlight gets what the game gives
+--- it (option, menu, on/off, its params), the last row is let go first, and an
+--- animal row that asks to be called every frame gets those calls. Calling
+--- onHighlight(option, true) directly would hand the object through as nil: no
+--- outline, and an exception on the rows that index it. holder is the strip or
+--- the list; a nil def lets go of whatever is lit (a menu closing must, or the
+--- outline stays on the world object). A row of a submenu lives on that
+--- submenu's menu, so leaving one lets the old menu go.
 function Registry.highlight(holder, def)
     local opt = def and def.vanillaRef or nil
     local menu = opt and def._vanillaMenu or nil
@@ -588,6 +597,8 @@ end
 -- and the game's handler puts its lit option out. ZeD lights it again only at the next
 -- prerender, after the world has drawn, so the outline flickered while the mouse moved.
 -- While ZeD holds the menu its option stays lit; the rest of the game's handler still runs.
+-- (A Lua reload wraps the wrapper again; harmless, each layer only sets the lit option
+-- aside and puts it back.)
 require "ISUI/ISContextMenu"
 local origMoveOutside = ISContextMenu.onMouseMoveOutside
 function ISContextMenu:onMouseMoveOutside(dx, dy)
@@ -602,6 +613,7 @@ end
 -- their own open container. With ZeD's windows up those pages are hidden and their
 -- update never runs, so nothing would ever put that outline out: a page that isn't
 -- showing has nothing to light. (Safe mode's pages show, and go on as the game does.)
+-- (A Lua reload wraps it again; harmless, each layer asks the same question.)
 require "ISUI/ISInventoryPage"
 local origObjHl = ISInventoryPage.OnObjectHighlighted
 function ISInventoryPage.OnObjectHighlighted(playerNum, object, isHighlighted)
@@ -716,7 +728,7 @@ local function makeActionDef(option, index, vanillaMenu, target)
     -- instanceMap, reached by :getSubMenu(num) (ISContextMenu.lua:1225);
     -- there is no .subMenus field to read - a drill-in that looks for one
     -- sees no children and the menu closes as a leaf.
-    def.subOption   = option.subOption   -- preserve for lazy re-populate below
+    def.subOption   = option.subOption   -- kept for the lazy drill-in (Registry._makeActionDef, below)
     def._vanillaMenu = vanillaMenu
     if option.subOption and vanillaMenu and vanillaMenu.getSubMenu then
         local ok, sub = pcall(function() return vanillaMenu:getSubMenu(option.subOption) end)
@@ -750,7 +762,7 @@ local function rememberFlattenName(key)
     end
 end
 rememberFlattenName("ContextMenu_More")
-FLATTEN_NAMES["More"] = true   -- belt-and-suspenders for unlocalized fallback
+FLATTEN_NAMES["More"] = true   -- the English word too, should the key's text be missing
 
 -- Returns true if name reads as a "More"-style overflow label, tolerating
 -- trailing dots / ellipses / whitespace and localized forms (registered via
@@ -999,7 +1011,8 @@ local function firstInventoryItem(t)
 end
 
 --- The target card's meta line for a menu target. Dispatches by probing for
---- methods rather than instanceof, which is the dearer check.
+--- methods rather than instanceof, which is the dearer check; only a weapon's
+--- condition asks instanceof.
 function Registry.getMetaFor(target)
     if not target then return "" end
     -- a world right-click (a Java ArrayList): no item meta applies - the
@@ -1057,7 +1070,7 @@ local function pickWorldObject(list)
             end
         end
     end
-    -- Pass 3: corpses (getCorpse / isCorpse flags vary; just check class name)
+    -- Pass 3: corpses, by class name (the getCorpse / isCorpse flags vary)
     for i = 0, sz - 1 do
         local obj = list:get(i)
         if obj then

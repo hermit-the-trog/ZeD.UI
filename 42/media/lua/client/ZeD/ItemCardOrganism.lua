@@ -233,7 +233,7 @@ local function _drawZoneRow220(panel, x, y, w, zCfg)
 end
 
 -- 480w zone row layout: NAME(60) | gap | PCT(36, right) | gap | BAR(1fr)
--- | gap | FLAG-TEXT(measured) | gap | DOCK(22). The wide card's five
+-- | gap | FLAG-TEXT(measured) | gap | DOCK(24). The wide card's five
 -- columns; 220w rows go through _drawZoneRow220 above.
 -- @param flagWOverride  Caller-computed flag column width (max across all
 --                       zones in the item) so columns align AND the column
@@ -691,8 +691,9 @@ end
 -- `_cancelRect` → the progress band's Cancel (the gamepad ring picks it up).
 -- ---------------------------------------------------------------------------
 local function stampGamepadFields(card, markRects, verbStripRects, verbList, cancelRect)
-    -- toggleRects / verbRects are ABSOLUTE screen coords: update() tests them
-    -- against getMouseX/Y, the gamepad ring converts them to drawer-local and
+    -- toggleRects / verbRects are ABSOLUTE screen coords: the card's pointer
+    -- poll (_pointer, run from render) tests them against getMouseX/Y, the
+    -- gamepad ring converts them to drawer-local and
     -- the focus outline subtracts the card's absolute origin. The draw helpers
     -- stamp card-local rects, so lift them here - left local, the chips and
     -- verbs take no clicks and the pad can never reach the card.
@@ -725,7 +726,7 @@ local function stampGamepadFields(card, markRects, verbStripRects, verbList, can
         }
     end
 
-    -- Progress band cancel button. Absolute coords for update()'s hit test
+    -- Progress band cancel button. Absolute coords for the pointer poll's hit test
     -- (matches _foldHitRects / _zoneDockRects convention). cancelRect is
     -- panel-local from drawProgressBand's outRect; absolutize here.
     card._cancelRect = abs(cancelRect)
@@ -881,7 +882,7 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
                 end
             end
         end
-        -- Hit rect for fold toggle. ItemCard:update() compares against
+        -- Hit rect for fold toggle. The card's pointer poll compares against
         -- ABSOLUTE mouse coords, so stamp absolute (add panel offsets).
         do
             local ax = card:getAbsoluteX()
@@ -969,7 +970,7 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
                     rowH, outDockRect = _drawZoneRow480(card, x, cy, w, zRow, maxFlagW)
                 end
                 if outDockRect and zCfg.action then
-                    -- Stamp absolute coords (update() compares vs absolute mouse).
+                    -- Stamp absolute coords (the pointer poll compares vs absolute mouse).
                     local ax, ay = card:getAbsoluteX(), card:getAbsoluteY()
                     card._zoneDockRects[#card._zoneDockRects + 1] = {
                         x = ax + outDockRect.x, y = ay + outDockRect.y,
@@ -1005,7 +1006,7 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
             if expanded then ZeD.Atoms.drawTriangleDown(card, x, cy + math.floor((hdrH - tri) / 2), tri, T.textDim)
             else ZeD.Atoms.drawTriangleRight(card, x, cy + math.floor((hdrH - tri) / 2), tri, T.textDim) end
             card:drawText(panel.title or ZeD.tr("UI_ZeD_Card_Facts"), x + T.px(12), textY, T.text.r, T.text.g, T.text.b, T.text.a, font)
-            -- Absolute coords for fold hit (update() compares vs absolute mouse)
+            -- Absolute coords for fold hit (the pointer poll compares vs absolute mouse)
             local ax, ay = card:getAbsoluteX(), card:getAbsoluteY()
             card._foldHitRects[#card._foldHitRects + 1] = {
                 x = ax + x, y = ay + cy, w = w, h = hdrH, key = discKey,
@@ -1256,14 +1257,15 @@ function ZeD_ItemCard:renderBody(ctx)
     local bbH = M.drawCardBackBar(self, 0, cy, w, "",
         headerVerbs, progressActive, compact, backBarRects, bbo)
     self._backBarRects   = backBarRects
-    self._lastHeaderVerbs = headerVerbs  -- update() reads label by hover index
+    self._lastHeaderVerbs = headerVerbs  -- the pointer poll reads the verb by hover index
     cy = cy + (bbH or 0)
 
     -- 1.5) Name row - full-width below the back-bar. Title font (T.fontF4),
     --      generous vertical padding, no fill of its own (the drawer surface
-    --      shows through). Hit rect stamped to `self._nameRowRect`. When
-    --      `_renaming` is true the name text is replaced by the lazy
-    --      ZeD_TextInput child overlay.
+    --      shows through). Hit rect stamped to `self._nameRowRect`. The
+    --      `_renaming` / `_renameInput` branch is left from the card's own
+    --      inline field, which is never started (renaming goes through
+    --      ZeD.ItemMenu.rename's prompt), so the name always draws.
     do
         local nameFont = T.fontF4
         local nameH    = T.fontF4H or ZeD.TM:getFontHeight(nameFont)

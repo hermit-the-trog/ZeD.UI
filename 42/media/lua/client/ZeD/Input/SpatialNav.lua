@@ -1,11 +1,13 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Input/SpatialNav.lua
 -- ============================================================================
 -- SPATIAL NAVIGATION — where a D-pad press goes, picked by geometry alone.
--- Client. Two pure functions, no state: FocusManager runs every in-game
--- window's moves through them; the main menu screens and the item card run
--- their own. A strict centre cone blocked moves that look obvious on screen —
--- a button beside a tall row sat outside the cone, so reaching it took down,
--- then over, then up. Freedom of movement wins over geometric purity.
+-- Client. The geometry floor of the controller stack: two pure functions, no
+-- state. FocusManager runs every focused ZeD window's D-pad moves through
+-- them; the main menu screens call N.pick directly, and the item card asks
+-- N.cost whether anything lies below before it scrolls. A strict centre cone
+-- blocked moves that look obvious on screen — a button beside a tall row sat
+-- outside the cone, so reaching it took down, then over, then up. Freedom of
+-- movement wins over geometric purity.
 --
 -- The rule (the one console UIs use): a press goes to the nearest control
 -- LINED UP in that direction (its edges overlap the focused control's across

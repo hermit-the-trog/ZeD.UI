@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_TicketCards.lua
 -- ============================================================================
--- THE TICKET CARDS (ZeDUI/MP_SERVER_PART_DESIGN.md, B9 and B11; the drawing is mockups/zed_tickets_v2.html). Drawing and
--- input only: ZeD_Tickets.lua is the model, and this file reads it and calls it.
+-- THE TICKET CARDS. Client; drawing and input only: ZeD_Tickets.lua is the model, and this file reads it and calls it.
+-- It is also the card engine (organism-level) the other multiplayer cards are built on.
 --
 -- Two tabs use these parts. Each tab keeps its one list; a card is a second render path behind st.card, the tab
 -- underneath and the card pushed on top with a back bar:
@@ -11,13 +11,15 @@
 -- on clicks and stops (TC.listClick, TC.itemStops). A card does all of that here (TC.renderCard, TC.cardClick,
 -- TC.cardStops).
 --
--- Without the server part (B9) the same cards read the game's list: one question and one answer, the help line saying
+-- Without the server part the same cards read the game's list: one question and one answer, the help line saying
 -- what is left out. Simple mode draws these same cards: they are already plain.
 --
 -- The admin tools (ZeD_AdminCards.lua) and the safehouse and faction cards (ZeD_ClaimCards.lua) push their cards on this
 -- same engine: TC.kinds holds a card kind's parts (data, items, foot, title, help, key, tick, back, gone, cancel, flag,
 -- padX, noBack) and TC.items a new item's (gap, layout, draw, stops), in a card or a tab's list alike. The join screen
 -- (ZeD_CommunityCards.lua) draws one such card in a window of its own, with its own pad: win._padId names the stop it holds.
+-- Before touching a helper: D and B go out as TC._D and TC._B, and the admin, claim, community, extras, log, mail and
+-- stats cards, the Server tab, chat and the main menu's mail and documents all build on them.
 --
 -- All player text is drawn with drawText, never through the game's rich text, which would act on <LINE> or <IMAGE:...>.
 -- Kind and status always carry their word, never color alone.
@@ -29,7 +31,7 @@
 --   TC.qaLink    "wait" / "off" / "frozen": the link as Send and the queue read it
 --   TC.qaHold    true: no traffic. The screen shows only what the QA script put in the model
 --   TC.qaOpen(win, st, "ask" | "mine" | "staff", id, game), TC.qaConfirm(st), TC.qaFlash(st, text), TC.qaAsk(st, kind, here)
--- ZeDUI/tools/qa/mp_ticket_cards.lua walks every state with these, from the mockup's tickets.
+-- ZeDUI/tools/qa/mp_ticket_cards.lua walks every state with these, with sample tickets put in the model.
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -48,7 +50,8 @@ local S = ZeD.ServerPart
 local Tk = ZeD.Tk
 local L = Tk.LIMITS
 
--- E5: OsLib reads real time in UTC, as far as the bytecode says. The date carries that word until QA settles it.
+-- The game's OsLib reads real time in UTC, as far as its bytecode says, so a real date carries the word UTC.
+-- TODO: settle it in play (os.date("%H:%M", getTimestamp()) printed beside the clock); the word stays until then.
 local DATE_SAYS_UTC = true
 TC.DATE_SAYS_UTC = DATE_SAYS_UTC
 
@@ -77,7 +80,7 @@ local ST_WORD = {
     Sent = "UI_ZeD_Tk_StSent", Seen = "UI_ZeD_Tk_StSeen", Open = "UI_ZeD_Tk_StOpen", Progress = "UI_ZeD_Tk_StProgress",
     Answered = "UI_ZeD_Tk_StAnswered", Closed = "UI_ZeD_Tk_StClosed", Spam = "UI_ZeD_Tk_StSpam",
 }
--- the mark's shape and token: the ZeD fonts have no round glyphs, and a status is a square mark (cohesion spec 1.2)
+-- the mark's shape and token: the ZeD fonts have no round glyphs, and a status is a square mark
 local ST_MARK = {
     Sent = { "hollow", "textDim" }, Seen = { "dot", "info" }, Open = { "dot", "accent" }, Progress = { "half", "warning" },
     Answered = { "dot", "positive" }, Closed = { "hollow", "textDim" }, Spam = { "dot", "danger" },
@@ -88,8 +91,9 @@ local MONTHS = {
     "UI_ZeD_Journal_MonthSep", "UI_ZeD_Journal_MonthOct", "UI_ZeD_Journal_MonthNov", "UI_ZeD_Journal_MonthDec",
 }
 
-local D = {}     -- the file's helpers (a table: Kahlua counts every local in the chunk)
+local D = {}     -- the file's helpers (a table: Kahlua counts every local in the chunk against its limit)
 local B = {}     -- what each card holds
+-- both go out to the other card files, which build their cards from these same parts
 TC._D, TC._B = D, B
 D.MONTHS = MONTHS
 -- Cards and items other files build on this frame (ZeD_AdminCards.lua, ZeD_ClaimCards.lua).

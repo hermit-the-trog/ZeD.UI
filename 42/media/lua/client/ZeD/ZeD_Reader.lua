@@ -1,7 +1,9 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_Reader.lua
 -- ============================================================================
--- THE READER (HOOK_MAP rows 13 and 24; mockup zed_reader_v2, director Oct 16
--- 2026: "Both full and character menu are needed")
+-- THE READER — client organism (ZeD_Reader, a ZeD_Window): newspapers,
+-- flyers and brochures, a CD's or a tape's label, and the notebook's page for
+-- vanilla's write action (THE NOTEBOOK, below). The Journal tab's quick looks
+-- (ZeD_JournalReaders.lua) live beside it, never instead of it.
 --
 -- The full reader: a ZeD window of its own over the game (the Character
 -- window's drawer is too narrow for a newspaper page), opened where vanilla
@@ -121,9 +123,9 @@ function ZeD_Reader:setPrintMedia(m)
     self.zoomIx, self.panX, self.panY, self.wscroll, self.storyIx = 1, 0, 0, 0, nil
 end
 
--- a CD's or a video tape's label (Overrides/MediaLabel.lua; the director, Nov 7 2026, vanilla windows B8: the game's
--- Read label opened ISMediaInfo): the label as a clean page in the words view, the recording's name at its head, who
--- made it under that, the label's words as paragraphs. No side column, no paper view, no places.
+-- a CD's or a video tape's label (Overrides/MediaLabel.lua; in the game, Read label opens ISMediaInfo): the label
+-- as a clean page in the words view, the recording's name at its head, who made it under that, the label's words
+-- as paragraphs. No side column, no paper view, no places.
 function ZeD_Reader:setLabel(text, item)
     self.mode = "label"
     self.item = item
@@ -220,8 +222,8 @@ end
 function ZeD_Reader:paperScale(c)
     local pg = self.page
     local u2 = 2 * ZeD.T.hair
-    -- (a small margin: a page's tilted under-sheets reach past its stated size, and a fit to the edge cut the
-    -- Kentucky Herald's foot, QA Nov 4 2026)
+    -- (94% of the fit, a small margin: a page's tilted under-sheets reach past its stated size, and a fit to the
+    -- edge cuts off the foot of a page like the Kentucky Herald's)
     local fit = math.min((c.w - u2) / pg.w, (c.h - u2) / pg.h) * 0.94
     return fit * ZOOMS[self.zoomIx]
 end
@@ -236,7 +238,7 @@ function ZeD_Reader:drawPaper(c)
     self.panY = math.max(-my, math.min(my, self.panY))
     local ox = c.x + math.floor((c.w - pw) / 2 + self.panX)
     local oy = c.y + math.floor((c.h - ph) / 2 + self.panY)
-    -- the page as the game draws it (the director, Nov 4 2026); ZeD's own setting of it only if that cannot be built
+    -- the page as the game draws it; ZeD's own setting of it only if that cannot be built
     self._vanillaPage = P.vanillaPlace(self, self.media, c, ox, oy, k)
     if not self._vanillaPage then P.draw(self, pg, ox, oy, k) end
     self._hits[#self._hits + 1] = { id = "canvas", x = c.x, y = c.y, w = c.w, h = c.h, drag = true }
@@ -658,12 +660,12 @@ function ZeD_Reader:onMouseWheel(del)
     return true
 end
 
--- The reader stays over the Character and World windows while it is open. It came up on
--- top, but the next press on either window raised that window over it: a flyer opened by
--- a double click in the Loot grid (the Read action ends a moment later, under the pointer
--- still clicking) sat half hidden under both windows until the
--- run quit (Oct 31 2026, break-it C2). What a window opened above itself in the meantime
--- (a menu, a prompt) is raised again after the reader, in its own order.
+-- The reader stays over the Character and World windows while it is open. It comes up on
+-- top, but without this the next press on either window raises that window over it: a
+-- flyer opened by a double click in the Loot grid (the Read action ends a moment later,
+-- under the pointer still clicking) sits half hidden under both windows until the run
+-- quits. What a window opened above itself in the meantime (a menu, a prompt) is raised
+-- again after the reader, in its own order.
 local function raise(ui) pcall(function() ui:bringToTop() end) end
 local function keepAbove(self)
     local me = self.javaObject
@@ -755,7 +757,7 @@ function ZeD_Reader:onJoypadDirLeft() if self.mode == "notebook" then return sel
 function ZeD_Reader:onJoypadDirRight() if self.mode == "notebook" then return self:turnPage(1) end; if self.view == "paper" then self.panX = self.panX - ZeD.T.px(STEP) end end
 
 -- ============================================================================
--- THE NOTEBOOK (HOOK_MAP row 24): vanilla's write action with ZeD's page
+-- THE NOTEBOOK: vanilla's write action with ZeD's page
 -- ============================================================================
 -- Vanilla's Write / Read note (ISWriteSomething) runs as it does: the
 -- character sits writing (light needed, and a pencil or pen for Write) for as
@@ -767,7 +769,7 @@ function ZeD_Reader:onJoypadDirRight() if self.mode == "notebook" then return se
 -- padlock locks the notebook to you at once, Done saves every page and the
 -- name, Back leaves it as it was; someone else's locked notebook, or a Read
 -- note without a pencil, opens to read only.
--- (MARGIN: the red line about a seventh of the page in, as on the real sheet; Nov 1 2026, punch list 50)
+-- (MARGIN: the red line about a seventh of the page in, as on the real sheet)
 local NB = { LINES = 15, LETTERS = 80, RAIL = 230, PAGE_W = 760, HOLE = 14, MARGIN = 104 }
 local RULE = { r = 0.725, g = 0.776, b = 0.839 }
 local MARGIN_C = { r = 0.827, g = 0.604, b = 0.573 }
@@ -970,10 +972,10 @@ function ZeD_Reader:drawNotePage(a)
         local hy = py + T.px(40) + math.floor((ph - T.px(80)) * k / 2) - math.floor(hole / 2)
         punch(self, px + T.px(14) + math.floor(hole / 2), hy + math.floor(hole / 2), math.floor(hole / 2), TABLE)
     end
-    -- the rules as the real sheet has them (director, Nov 1 2026, punch list 50): blue, edge to edge through
-    -- the margin, the first one closing the head band (the name and the page number write in the band), one
-    -- under each line of the box after it; the red margin runs the page's full height and nothing runs across
-    -- (the box's first line starts LINE_TOP below its top; each rule runs under a line)
+    -- the rules as the real sheet has them: blue, edge to edge through the margin, the first one closing the
+    -- head band (the name and the page number write in the band), one under each line of the box after it; the
+    -- red margin runs the page's full height and nothing runs across (the box's first line starts LINE_TOP
+    -- below its top; each rule runs under a line)
     local mx = px + T.px(NB.MARGIN)
     local LINE_TOP = T.px(4)
     for i = 0, NB.LINES do
@@ -1109,7 +1111,8 @@ local function show(win)
     end
 end
 
--- a newspaper, flyer or brochure (an item carrying modData.printMedia)
+--- open the reader on a newspaper, flyer or brochure (an item carrying modData.printMedia); false when the
+--- item carries no print media
 function R.openPrint(playerObj, item)
     if not (playerObj and P.media(item)) then return false end
     local win = window(playerObj)
@@ -1175,7 +1178,8 @@ function R.labelWords(text, item)
     return blocks
 end
 
--- the label in the reader (the game's Read label). False when there is nothing to show: the caller opens the game's
+--- the label in the reader (the game's Read label). False when there is nothing to show, or while a notebook is
+--- open for writing: the caller then opens the game's own window.
 function R.openLabel(playerObj, text)
     if not playerObj or text == nil or text == "" then return false end
     local win = window(playerObj)
@@ -1185,7 +1189,7 @@ function R.openLabel(playerObj, text)
     return true
 end
 
--- a piece by its id (the flyer map's pins)
+--- open a piece by its id (the flyer map's pins)
 function R.openPrintId(playerObj, id)
     if not (playerObj and id) then return false end
     local win = window(playerObj)
@@ -1194,9 +1198,10 @@ function R.openPrintId(playerObj, id)
     return true
 end
 
--- a notebook, journal or diary for vanilla's write action (Overrides/WriteNote.lua): the
--- window is handed to the action as its modal; the action adds it to the screen and
--- gives it the controller, and its stop / perform close it (destroy)
+--- a notebook, journal or diary for vanilla's write action (Overrides/WriteNote.lua): the
+--- window is handed to the action as its modal; the action adds it to the screen and
+--- gives it the controller, and its stop / perform close it (destroy). Returns the window (nil for an item
+--- with no pages to write).
 function R.openNotebook(playerObj, item, action, editable)
     if not (playerObj and item and item.getPageToWrite) then return nil end
     local win = window(playerObj)
@@ -1213,4 +1218,5 @@ function ZeD_Reader:initialise()
     ZeD_Window.initialise(self)
 end
 
+--- player pn's reader window (player 0 when not given), nil until one has opened
 function R.get(pn) return R.windows[pn or 0] end

@@ -1,8 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_ModScan.lua
 -- ============================================================================
--- WHAT THE MOD MANAGER KNOWS THAT VANILLA DOESN'T SAY — client; a data module
--- the Mods screen reads (no UI of its own): conflicts between the mods running
--- now, and each Workshop item's update state.
+-- WHAT THE MOD MANAGER KNOWS THAT VANILLA DOESN'T SAY. Client; a data module
+-- the Mods screen reads, with no UI of its own: conflicts between the mods
+-- running now, and each Workshop item's update state.
 --
 -- Two readers, both on the game's own data, nothing guessed:
 --
@@ -20,9 +20,9 @@
 --     (tested on 42.21.0: renaming the file flips the winner; reordering does not).
 --   A mod replacing one of the game's own scripts is counted (overrides), not
 --   flagged: that is how mods change the game.
---   The scan runs a slice per frame while the Mods screen is up (a coroutine),
---   so a long mod list never stalls the menu. "Fine, hide this" is kept in
---   Zomboid/Lua/ZeD_modconflicts_hidden.txt.
+--   The scan is a coroutine that runs in slices, up to 6 ms of them a frame
+--   while the Mods screen's list is up, so a long mod list never stalls the
+--   menu. "Fine, hide this" is kept in Zomboid/Lua/ZeD_modconflicts_hidden.txt.
 --
 -- WORKSHOP state of every subscribed item (getSteamWorkshopItemIDs and
 -- querySteamWorkshopItemDetails): installed, update waiting, downloading,
@@ -49,7 +49,7 @@ local MS = ZeD.ModScan
 local VANILLA = "pz-vanilla"
 local PICKS = "ZeD_Picks"         -- ZeD's helper mod for file picks (ZeD_ModPicks)
 local HIDE_FILE = "ZeD_modconflicts_hidden.txt"
-local SLICE = 60                  -- units of work per frame (a folder listing, or 40 script objects)
+local SLICE = 60                  -- folder listings per slice (the scan yields between slices)
 local WS_POLL_MS, WS_POLL_OPEN_MS = 30000, 10000
 
 -- the script kinds that are read, with the word the screen uses for each
@@ -133,7 +133,7 @@ end
 -- THE SCAN
 -- ----------------------------------------------------------------------------
 -- MS.res.byMod[id] = { entry, ... }; an entry is shared by the two mods it names:
---   { kind = "file" | "script", loser = id, winner = id, things = { text, ... }, nouns = { word = n }, key }
+--   { kind = "file" | "script", loser = id, winner = id, things = { path or { kind, name }, ... }, nouns = { word = n }, key }
 -- MS.res.overrides[id] = { total, kinds = { items = n, ... } }: the game's own scripts the mod replaces
 -- MS.res.adds[id] = { item = n, recipe = n, vehicle = n, building = n, model = n }: what it adds of its own
 MS.res = MS.res or { byMod = {}, overrides = {}, adds = {}, done = false }
@@ -174,8 +174,8 @@ local function scanBody(res)
         local p = string.lower(raw)
         local at = p:find("/media/", 1, true)
         local id = at and roots[p:sub(1, at - 1)]
-        -- (only media/lua/: the game runs every mod's media/registries.lua, read from its code, so
-        -- the same registries file in two mods is no conflict)
+        -- (only media/lua/: the game's code runs every mod's media/registries.lua, not one
+        -- winner, so the same registries file in two mods is no conflict)
         if id and p:sub(at + 1, at + 10) == "media/lua/" then
             local rel = p:sub(at + 1)
             winner[rel] = id
@@ -248,8 +248,10 @@ local function scanBody(res)
         if ok and list then
             for i = 0, list:size() - 1 do
                 local o = list:get(i)
-                -- what each mod adds of its own (the first definition is a mod's, not the game's):
-                -- the Mods screen's "if you turn it off" (ZeD_ModSafety)
+                -- the count holds two entries per definition (mod id, then text): 2 is one
+                -- definition, more than 2 is several.
+                -- What each mod adds of its own (the first definition is a mod's, not the
+                -- game's) feeds the Mods screen's "if you turn it off" (ZeD_ModSafety).
                 local n = o:getLoadedScriptBodyCount()
                 if n >= 2 then
                     local first = tostring(o:getLoadedScriptBodies():get(0))
@@ -362,7 +364,9 @@ function MS.dirtyCounts() MS.res.counts = nil end
 -- ----------------------------------------------------------------------------
 -- THE WORKSHOP
 -- ----------------------------------------------------------------------------
--- MS.ws.items[idString] = { id, title, state, updated, size, children }
+-- MS.ws.items[idString] = { id, title, state, updated, size, children }; MS.ws.order holds
+-- the same items sorted by title. updatedNow[id] marks an item that updated while the game
+-- ran; steamOff, pending and asked tell the screen why the list may still be empty.
 MS.ws = MS.ws or { items = {}, order = {}, at = 0, pending = false, first = {}, updatedNow = {}, asked = false }
 
 -- Steam's state flags (a text like "Subscribed|Installed") as one word for the screen
@@ -410,11 +414,12 @@ end
 
 --- Ask Steam for every subscribed item's state: at most every 10 s with `open`
 --- (the Mods screen is up), every 30 s otherwise. Steam answers later on the
---- main thread (onDetails). Only the Mods screen may call this — see the header.
+--- main thread (onDetails). Only the Mods screen may call this (the header says why).
 function MS.wsPoll(open)
     local ws = MS.ws
     if ws.fake then return end
     local t = nowMs()
+    -- a question still out: Steam gets 20 s to answer before it is asked again
     if ws.pending and t - ws.at < 20000 then return end
     if t - ws.at < (open and WS_POLL_OPEN_MS or WS_POLL_MS) then return end
     ws.at = t
@@ -459,7 +464,8 @@ local MONTHS = { "UI_ZeD_MainMenu_MonthJan", "UI_ZeD_MainMenu_MonthFeb", "UI_ZeD
     "UI_ZeD_MainMenu_MonthApr", "UI_ZeD_MainMenu_MonthMay", "UI_ZeD_MainMenu_MonthJun",
     "UI_ZeD_MainMenu_MonthJul", "UI_ZeD_MainMenu_MonthAug", "UI_ZeD_MainMenu_MonthSep",
     "UI_ZeD_MainMenu_MonthOct", "UI_ZeD_MainMenu_MonthNov", "UI_ZeD_MainMenu_MonthDec" }
---- A unix time as "2 h ago", "3 days ago" or "Sep 30" ("" for none).
+--- A unix time as "within the hour", "2 h ago", "yesterday" or "3 days ago",
+--- and past two weeks as a date, "Sep 30, 2026" ("" for none).
 function MS.ago(secs)
     if not secs or secs <= 0 then return "" end
     local d = getTimestamp() - secs
