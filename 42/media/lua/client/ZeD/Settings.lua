@@ -634,7 +634,7 @@ function ZeD.Settings.identitySimple()
     return ok and v == 2
 end
 
--- ----- THE HIDDEN FACTS (the director, Nov 7 2026, punch list 109: "Vanilla plus gates them. Only vanilla access.") -----
+-- ----- THE HIDDEN FACTS: Vanilla Plus gates them; only Vanilla Access opens them from the start -----
 -- Find first: the guide's TV schedule opens once the character has read TV Monthly, the infection odds once they have
 -- read a First Aid book (ZeD_HiddenFacts.lua). Always: both open from the start, and the crafting card's How to learn
 -- names the magazine. An addition: Find first in Vanilla and Vanilla Plus, Always in Vanilla Access.
@@ -647,7 +647,7 @@ function ZeD.Settings.hiddenFactsAlways()
     return ok and v == 2
 end
 
--- ----- RECIPES SKILLS TEACH (the director, Nov 7 2026, punch list 109) -----
+-- ----- RECIPES SKILLS TEACH -----
 -- The skill card also lists the recipes the game teaches by itself when a skill reaches a level (RecipeIndex.lua).
 -- The game never says which; so an addition, off for Vanilla and Vanilla Plus, on for Vanilla Access, Custom the
 -- player's pick. Read as the card draws, so a change applies at once.
@@ -926,7 +926,7 @@ local function setUpAdditions()
             -- Access, preset item 3, from before them gets them Simple, as the preset asks, instead of the preset
             -- reading Custom. The Identity row joined in beta 6, and Hidden facts after beta 7.)
             if val.additionsPreset == 3 then
-                -- (Recipes skills teach joined Nov 7 2026: item 2 is On)
+                -- (Recipes skills teach joined the presets after the rest: item 2 is On)
                 for _, id in ipairs({ "devicesStyle", "watchStyle", "dashStyle", "identityStyle", "hiddenFacts", "autoLearn" }) do
                     local o = opt(id)
                     if o and not has[id] then o:setValue(2) end

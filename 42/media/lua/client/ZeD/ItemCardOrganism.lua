@@ -1193,7 +1193,7 @@ local function drawInLists(card, item, x, y, w, compact)
     return cy - y
 end
 
--- What the character can make with the item (punch list 109): the game's own list of the recipes the item goes
+-- What the character can make with the item: the game's own list of the recipes the item goes
 -- into, as it would list them for the character (ZeD.RecipeIndex: its script item's getUsedInRecipes, the world's
 -- See Not Known Recipes, each recipe's OnAddToMenu check), each Known or Unknown as the Craft tab's card says it,
 -- known first. A press (or A) opens the recipe in the Craft or Build tab; past MAKES_MAX the last row opens the
@@ -1428,7 +1428,7 @@ function ZeD_ItemCard:renderBody(ctx)
         end
         -- the loadouts and outfits it is on
         contentH = (contentH or 0) + drawInLists(self, item, bodyX, bodyY - scrollOff + (contentH or 0), innerW, compact)
-        -- what the character can make with it (punch list 109)
+        -- what the character can make with it
         contentH = (contentH or 0) + drawMakes(self, item, bodyX, bodyY - scrollOff + (contentH or 0), innerW, compact,
             self._headH, self._headH + bodyH)
         -- what the character can't do yet: NEEDS lines / the folded row, after the content
