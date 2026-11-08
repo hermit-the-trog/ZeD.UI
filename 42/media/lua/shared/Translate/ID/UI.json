@@ -6224,5 +6224,15 @@
     "UI_ZeD_Mail_NoReport": "Server ini tidak bisa menerima laporan surat.",
     "UI_ZeD_Mail_Connecting": "Menyambung... mengirim %1, menerima %2",
     "UI_ZeD_Tk_ReportedLetter": "Surat yang dilaporkan",
-    "UI_ZeD_Tk_LetterWhose": "Sebagaimana diterima pemain."
+    "UI_ZeD_Tk_LetterWhose": "Sebagaimana diterima pemain.",
+    "UI_ZeD_Card_MakesTitle": "Dipakai untuk membuat",
+    "UI_ZeD_Card_MakesHelp": "Membuka resep di tab Buat atau Bangun.",
+    "UI_ZeD_Card_MakesMore": "%1 lagi",
+    "UI_ZeD_Card_MakesMoreHelp": "Membuka tab Buat dengan barang ini di pencarian.",
+    "UI_ZeD_Skills_UnlockHead": "Resep yang butuh tiap level",
+    "UI_ZeD_Skills_UnlockLevel": "Level %1",
+    "UI_ZeD_Skills_UnlockMore": "dan %1 lagi",
+    "UI_ZeD_Settings_AutoLearn": "Resep yang diajarkan keahlian",
+    "UI_ZeD_Settings_AutoLearnTip": "Kartu keahlian juga menampilkan resep yang diajarkan game dengan sendirinya saat keahlian mencapai suatu level. Mati: seperti game, yang tidak memberi tahu.",
+    "UI_ZeD_Skills_TaughtHead": "Dipelajari sendiri di tiap level"
 }

@@ -6224,5 +6224,15 @@
     "UI_ZeD_Mail_NoReport": "Este servidor não aceita a denúncia de uma carta.",
     "UI_ZeD_Mail_Connecting": "Conectando... enviando %1, recebendo %2",
     "UI_ZeD_Tk_ReportedLetter": "A carta denunciada",
-    "UI_ZeD_Tk_LetterWhose": "Como o jogador a recebeu."
+    "UI_ZeD_Tk_LetterWhose": "Como o jogador a recebeu.",
+    "UI_ZeD_Card_MakesTitle": "Serve para fazer",
+    "UI_ZeD_Card_MakesHelp": "Abre a receita na aba Fabricar ou Construir.",
+    "UI_ZeD_Card_MakesMore": "mais %1",
+    "UI_ZeD_Card_MakesMoreHelp": "Abre a aba Fabricar com este item na busca.",
+    "UI_ZeD_Skills_UnlockHead": "Receitas que precisam de cada nível",
+    "UI_ZeD_Skills_UnlockLevel": "Nível %1",
+    "UI_ZeD_Skills_UnlockMore": "e mais %1",
+    "UI_ZeD_Settings_AutoLearn": "Receitas que as habilidades ensinam",
+    "UI_ZeD_Settings_AutoLearnTip": "O cartão da habilidade também mostra as receitas que o jogo te ensina sozinho quando uma habilidade chega a um nível. Desligado: como o jogo, que não diz.",
+    "UI_ZeD_Skills_TaughtHead": "Aprendidas sozinhas em cada nível"
 }

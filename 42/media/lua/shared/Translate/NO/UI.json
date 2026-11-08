@@ -6224,5 +6224,15 @@
     "UI_ZeD_Mail_NoReport": "Denne serveren kan ikke ta imot en rapport om et brev.",
     "UI_ZeD_Mail_Connecting": "Kobler til... sender %1, mottar %2",
     "UI_ZeD_Tk_ReportedLetter": "Det rapporterte brevet",
-    "UI_ZeD_Tk_LetterWhose": "Slik spilleren mottok det."
+    "UI_ZeD_Tk_LetterWhose": "Slik spilleren mottok det.",
+    "UI_ZeD_Card_MakesTitle": "Brukes til å lage",
+    "UI_ZeD_Card_MakesHelp": "Åpner oppskriften på fanen Lag eller Bygg.",
+    "UI_ZeD_Card_MakesMore": "%1 til",
+    "UI_ZeD_Card_MakesMoreHelp": "Åpner fanen Lag med denne gjenstanden i søket.",
+    "UI_ZeD_Skills_UnlockHead": "Oppskrifter som krever hvert nivå",
+    "UI_ZeD_Skills_UnlockLevel": "Nivå %1",
+    "UI_ZeD_Skills_UnlockMore": "og %1 til",
+    "UI_ZeD_Settings_AutoLearn": "Oppskrifter ferdigheter lærer deg",
+    "UI_ZeD_Settings_AutoLearnTip": "Ferdighetskortet viser også oppskriftene spillet lærer deg av seg selv når en ferdighet når et nivå. Av: som spillet, som ikke sier det.",
+    "UI_ZeD_Skills_TaughtHead": "Læres av seg selv på hvert nivå"
 }

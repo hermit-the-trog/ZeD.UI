@@ -6224,5 +6224,15 @@
     "UI_ZeD_Mail_NoReport": "Ez a szerver nem fogad levélről szóló jelentést.",
     "UI_ZeD_Mail_Connecting": "Kapcsolódás... küldés %1, fogadás %2",
     "UI_ZeD_Tk_ReportedLetter": "A jelentett levél",
-    "UI_ZeD_Tk_LetterWhose": "Ahogy a játékos megkapta."
+    "UI_ZeD_Tk_LetterWhose": "Ahogy a játékos megkapta.",
+    "UI_ZeD_Card_MakesTitle": "Ehhez használható",
+    "UI_ZeD_Card_MakesHelp": "Megnyitja a receptet a Készítés vagy Építés lapon.",
+    "UI_ZeD_Card_MakesMore": "még %1",
+    "UI_ZeD_Card_MakesMoreHelp": "Megnyitja a Készítés lapot ezzel a tárggyal a keresőben.",
+    "UI_ZeD_Skills_UnlockHead": "Receptek, amelyekhez az adott szint kell",
+    "UI_ZeD_Skills_UnlockLevel": "%1. szint",
+    "UI_ZeD_Skills_UnlockMore": "és még %1",
+    "UI_ZeD_Settings_AutoLearn": "Képességek által tanított receptek",
+    "UI_ZeD_Settings_AutoLearnTip": "A képességkártya azokat a recepteket is mutatja, amelyeket a játék magától megtanít, amikor egy képesség elér egy szintet. Ki: mint a játékban, amely nem árulja el.",
+    "UI_ZeD_Skills_TaughtHead": "Magától tanult szintenként"
 }

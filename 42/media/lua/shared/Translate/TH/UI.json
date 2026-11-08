@@ -6224,5 +6224,15 @@
     "UI_ZeD_Mail_NoReport": "เซิร์ฟเวอร์นี้รับการรายงานจดหมายไม่ได้",
     "UI_ZeD_Mail_Connecting": "กำลังเชื่อมต่อ... ส่ง %1 รับ %2",
     "UI_ZeD_Tk_ReportedLetter": "จดหมายที่ถูกรายงาน",
-    "UI_ZeD_Tk_LetterWhose": "ตามที่ผู้เล่นได้รับ"
+    "UI_ZeD_Tk_LetterWhose": "ตามที่ผู้เล่นได้รับ",
+    "UI_ZeD_Card_MakesTitle": "ใช้ทำ",
+    "UI_ZeD_Card_MakesHelp": "เปิดสูตรในแท็บประดิษฐ์หรือก่อสร้าง",
+    "UI_ZeD_Card_MakesMore": "อีก %1",
+    "UI_ZeD_Card_MakesMoreHelp": "เปิดแท็บประดิษฐ์โดยค้นหาไอเท็มนี้",
+    "UI_ZeD_Skills_UnlockHead": "สูตรที่ต้องใช้แต่ละระดับ",
+    "UI_ZeD_Skills_UnlockLevel": "ระดับ %1",
+    "UI_ZeD_Skills_UnlockMore": "และอีก %1",
+    "UI_ZeD_Settings_AutoLearn": "สูตรที่ทักษะสอน",
+    "UI_ZeD_Settings_AutoLearnTip": "การ์ดทักษะจะแสดงสูตรที่เกมสอนให้เองเมื่อทักษะถึงระดับหนึ่งด้วย ปิด: เหมือนเกมซึ่งไม่บอก",
+    "UI_ZeD_Skills_TaughtHead": "เรียนรู้เองในแต่ละระดับ"
 }

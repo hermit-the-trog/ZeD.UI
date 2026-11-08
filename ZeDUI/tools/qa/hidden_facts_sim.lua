@@ -210,6 +210,8 @@ end
 local r6 = beta6()
 check("beta 6 repair: Identity set Simple", r6 and r6.dict.identityStyle:getValue() == 2)
 check("beta 6 repair: Hidden facts (no saved line) set Always", r6 and r6.dict.hiddenFacts:getValue() == 2)
+check("beta 6 repair: every newer row with no saved line (Recipes skills teach) set to Vanilla Access",
+      r6 and r6.dict.autoLearn ~= nil and r6.dict.autoLearn:getValue() == 2)
 check("beta 6 repair: the preset reads Vanilla Access", r6 and r6.dict.additionsPreset:getValue() == 3,
       r6 and r6.dict.additionsPreset:getValue())
 local r7 = beta6({ hiddenFacts = 1 })

@@ -6224,5 +6224,15 @@
     "UI_ZeD_Mail_NoReport": "Deze server kan geen melding van een brief aannemen.",
     "UI_ZeD_Mail_Connecting": "Verbinden... %1 versturen, %2 ontvangen",
     "UI_ZeD_Tk_ReportedLetter": "De gemelde brief",
-    "UI_ZeD_Tk_LetterWhose": "Zoals de speler hem ontving."
+    "UI_ZeD_Tk_LetterWhose": "Zoals de speler hem ontving.",
+    "UI_ZeD_Card_MakesTitle": "Gebruikt om te maken",
+    "UI_ZeD_Card_MakesHelp": "Opent het recept op het tabblad Maken of Bouwen.",
+    "UI_ZeD_Card_MakesMore": "nog %1",
+    "UI_ZeD_Card_MakesMoreHelp": "Opent het tabblad Maken met dit voorwerp in de zoekbalk.",
+    "UI_ZeD_Skills_UnlockHead": "Recepten die elk niveau nodig hebben",
+    "UI_ZeD_Skills_UnlockLevel": "Niveau %1",
+    "UI_ZeD_Skills_UnlockMore": "en nog %1",
+    "UI_ZeD_Settings_AutoLearn": "Recepten die vaardigheden leren",
+    "UI_ZeD_Settings_AutoLearnTip": "De vaardigheidskaart toont ook de recepten die het spel je vanzelf leert als een vaardigheid een niveau haalt. Uit: zoals het spel, dat het niet zegt.",
+    "UI_ZeD_Skills_TaughtHead": "Vanzelf geleerd per niveau"
 }
