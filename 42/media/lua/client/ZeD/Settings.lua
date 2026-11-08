@@ -528,10 +528,10 @@ additionsPreset:addItem(ZeD.tr("UI_ZeD_Settings_PresetAccessible"), false)
 additionsPreset:addItem(getText("Sandbox_Custom"), false)   -- (the game's own "Custom")
 ZeD.Settings.additionsPresetOption = additionsPreset
 
--- ----- ZED SCREENS (director, Nov 2 2026, punch list 55: "instead of doing a modular release, just allow our
--- mod to step aside"; a Workshop comment asked to turn the belt off and keep the rest) -----
--- One switch per ZeD screen that can hand itself back, under Safe mode in ZeD setup and read as it is (director,
--- Nov 2 2026: "you can turn it off. But why would you want to? In safety"): On gives that one screen back to the
+-- ----- ZED SCREENS: players asked to turn one screen off (the belt) and keep the rest, so the mod steps
+-- aside piece by piece instead of shipping as separate modules -----
+-- One switch per ZeD screen that can hand itself back, under Safe mode in ZeD setup and read the same way:
+-- On gives that one screen back to the
 -- game's own (what safe mode does for all of them, SafeMode.lua), Off (the default) keeps it ZeD's. Not additions:
 -- the presets leave them alone. (Combos are saved by position, so these stay after every older option.)
 ZeD.Settings.screenOptions = {}
@@ -543,7 +543,7 @@ for _, sc in ipairs({
     { "screenMoodles",   "moodles",   "UI_ZeD_Settings_ScreenMoodles" },
     { "screenWheels",    "wheels",    "UI_ZeD_Settings_ScreenWheels" },
     { "screenCharInfo",  "charinfo",  "UI_ZeD_Settings_ScreenCharInfo" },
-    { "screenConsole",   "console",   "UI_ZeD_Settings_ScreenConsole" },   -- (punch list 106, debug mode only: the Lua console)
+    { "screenConsole",   "console",   "UI_ZeD_Settings_ScreenConsole" },   -- (debug mode only: the Lua console)
 }) do
     local o = opts:addComboBox(sc[1], ZeD.tr(sc[3]), ZeD.tr(sc[3] .. "Tip"))
     o:addItem(getText("UI_Off"), true)   -- default: ZeD's
@@ -552,7 +552,7 @@ for _, sc in ipairs({
     if ZeD.Safe and ZeD.Safe.setPieceOption then ZeD.Safe.setPieceOption(sc[2], o) end
 end
 
--- ----- THE BELT'S FORM (director, Nov 2 2026, punch list 56: a full and a simple version, as for the action bar) -----
+-- ----- THE BELT'S FORM: a full and a simple version, as for the action bar -----
 -- Immersive: the leather strap and the profession buckle. Simple: the same slots and hands with no strap or buckle.
 -- ZeD_Belt.lua reads it as it lays out, so a change applies at once. Immersive is the default.
 local beltStyle = opts:addComboBox("beltStyle", ZeD.tr("UI_ZeD_Settings_Belt"), ZeD.tr("UI_ZeD_Settings_BeltTip"))
@@ -560,8 +560,7 @@ beltStyle:addItem(ZeD.tr("UI_ZeD_Settings_Immersive"), true)   -- default
 beltStyle:addItem(ZeD.tr("UI_ZeD_Settings_ActionBarSimple"), false)
 ZeD.Settings.beltStyleOption = beltStyle
 
--- ----- THE DEVICES' FORM (the director, Oct 30 2026, punch list 17; the rules approved Nov 2 2026, punch list 60 and
--- ZeDUI/SIMPLE_VERSIONS_PROPOSAL.md) -----
+-- ----- THE DEVICES' FORM -----
 -- Immersive: each device drawn as its face (radios, TVs, two-way sets, ovens, microwaves, the fryer, the grill, generators,
 -- washers and dryers). Simple: the same controls and readings as a plain ZeD card. Immersive is the default; Vanilla Plus
 -- keeps Immersive, Vanilla Access picks Simple (the additions presets below).
@@ -575,7 +574,7 @@ function ZeD.Settings.devicesSimple()
     return ok and v == 2
 end
 
--- ----- THE WATCH'S FORM (the director, Nov 2 2026, punch list 60: the watch is in the beta) -----
+-- ----- THE WATCH'S FORM -----
 -- Immersive: the watch you wear, drawn as itself (and the tape deck keys with none). Simple: a plain clock box with the
 -- same readings and buttons, and a plain time box for the small one on the belt.
 local watchStyle = opts:addComboBox("watchStyle", ZeD.tr("UI_ZeD_Settings_WatchStyle"), ZeD.tr("UI_ZeD_Settings_WatchStyleTip"))
@@ -587,7 +586,7 @@ function ZeD.Settings.watchSimple()
     return ok and v == 2
 end
 
--- ----- THE DASHBOARD'S FORM (the director, Nov 2 2026, punch list 60: the dashboard is in the beta) -----
+-- ----- THE DASHBOARD'S FORM -----
 -- Immersive: each car's own pixel dash (and the taxi meter, the siren controller). Simple: a plain strip with the same
 -- readings, lamps and switches.
 local dashStyle = opts:addComboBox("dashStyle", ZeD.tr("UI_ZeD_Settings_Dash"), ZeD.tr("UI_ZeD_Settings_DashTip"))
@@ -599,7 +598,7 @@ function ZeD.Settings.dashSimple()
     return ok and v == 2
 end
 
--- ----- THE SURVIVAL GUIDE'S FORM (the director, Nov 3 2026: "Both" looks; ZeDUI/SURVIVAL_GUIDE_DRAFT.md) -----
+-- ----- THE SURVIVAL GUIDE'S FORM -----
 -- Immersive: the guide as a printed book, Survive the Apocalypse (ZeD_SurvivalGuideBook.lua). Simple: a ZeD window with the
 -- same topics, clips and numbers (ZeD_SurvivalGuide.lua).
 local guideStyle = opts:addComboBox("guideStyle", ZeD.tr("UI_ZeD_Settings_Guide"), ZeD.tr("UI_ZeD_Settings_GuideTip"))

@@ -47,6 +47,8 @@ local function call(o, m, ...)
 end
 ST.call = call
 
+--- The kinds backed by a game entity (they take vanilla's one-player lock);
+--- ovens and microwaves are plain IsoStove objects.
 local function isEntityKind(kind) return kind == "bench" or kind == "machine" or kind == "general" end
 ST.isEntityKind = isEntityKind
 
@@ -157,12 +159,13 @@ local function partDist(player, st)
     return best or 999
 end
 
+--- "1 tile" / "N tiles" for a distance, one whole phrase per count.
 function ST.tilesText(d)
     local n = math.max(1, math.floor((d or 0) + 0.5))
     return n == 1 and ZeD.tr("UI_ZeD_Station_TileOne") or ZeD.tr("UI_ZeD_Station_TileMany", n)
 end
 
--- "The nearest is 3 tiles away." (a whole sentence per count, never glued)
+--- "The nearest is 3 tiles away." (a whole sentence per count, never glued)
 function ST.nearestText(d)
     local n = math.max(1, math.floor((d or 0) + 0.5))
     return n == 1 and ZeD.tr("UI_ZeD_Station_NearestOne") or ZeD.tr("UI_ZeD_Station_NearestMany", n)
@@ -233,8 +236,8 @@ function ST.scan(player)
     return out
 end
 
--- Throttled scan, cached per player. Lazily built fields (icon, recipe set)
--- carry over to the fresh entries for stations that are still there.
+--- Throttled scan, cached per player. Lazily built fields (icon, recipe set)
+--- carry over to the fresh entries for stations that are still there.
 function ST.nearby(player, force)
     if not player then return {} end
     local pn = player:getPlayerNum()
@@ -261,7 +264,7 @@ function ST.icon(st)
     return st.icon or nil
 end
 
--- Recipe names a bench or machine can make (lazy, cached on the station).
+--- Recipe names a bench or machine can make (lazy, cached on the station).
 function ST.recipeSet(st)
     if st.recipeSet then return st.recipeSet end
     local set = {}

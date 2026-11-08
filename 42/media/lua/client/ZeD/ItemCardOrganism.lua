@@ -69,9 +69,9 @@ local function widthPreset(w)
     return false, "480"
 end
 
--- Resolve the active value-class string from a numeric ratio in [0..1].
--- Mirrors v13 mockup color ramp: <0.30 = bad (red), <0.60 = warn (amber),
--- ≥0.60 = positive (green). Used for the cond-dot on CONDITION rows.
+-- Resolve the value-class string from a numeric ratio in [0..1]: dim at 0 or
+-- nil, bad under 0.30, warn under 0.60, plain up to 0.85, good from there on.
+-- Used for the cond-dot on CONDITION rows.
 local function ratioClass(r)
     if not r or r <= 0 then return "dim" end
     if r < 0.30 then return "bad"  end
@@ -90,11 +90,11 @@ local function ratioColor(r)
     return T.text
 end
 
--- v15 anatomical zone grouping. Each entry maps the full zone name (as
--- produced by ItemCard.lua's ZONE_DISPLAY_NAMES) to its mockup group + the
--- short within-group child name. v15 mockup groups consecutive same-group
--- zones under an orange-mono section header (TORSO, UPPER ARM, ...) with the
--- child name reduced to "Upper"/"Lower"/"Left"/"Right".
+-- Anatomical zone grouping. Each entry maps the full zone name (as produced
+-- by ItemCard.lua's ZONE_DISPLAY_NAMES) to its group + the short within-group
+-- child name. Consecutive same-group zones sit under one section header
+-- (TORSO, UPPER ARM, ...) with the child name reduced to
+-- "Upper"/"Lower"/"Left"/"Right".
 -- Both entries are translation keys (the group heading, the child word); the group key
 -- is also the identity that tells where one group ends and the next begins.
 local ZONE_GROUP_MAP = {
@@ -118,12 +118,12 @@ local ZONE_GROUP_MAP = {
     ["Right Hand"]      = {"UI_ZeD_Card_ZoneHand",     "UI_ZeD_Card_ZoneRight"},
 }
 
--- v15 220w short labels for Facts rows: a row may carry a `short` label (translated by
+-- 220w short labels for Facts rows: a row may carry a `short` label (translated by
 -- ItemFactsPanel). Long labels overflow the narrow card, so the short one is used at
--- compact widths only - 480w keeps the full labels per spec.
+-- compact widths only - 480w keeps the full labels.
 
--- Resolve a zone's seg-bar segment color per v15 spec - patch material
--- overrides condition for the visual; otherwise color ramps with condition.
+-- Resolve a zone's seg-bar segment color - patch material overrides
+-- condition for the visual; otherwise the color ramps with condition.
 local function _zoneSegColor(zCfg)
     local T = ZeD.T
     if zCfg.dock and zCfg.dock.flag then

@@ -326,8 +326,9 @@ local function invStandIn(p)
 end
 local function charStandIn(p)
     local inv = invStandIn(p)
-    -- (the calls the game's hairMenu / beardMenu make, written out: a name looked up on a Java
-    -- object is not always reachable, KB Q275; anything else a hair mod's menu asks is forwarded)
+    -- (the calls the game's hairMenu / beardMenu make, written out: a method read off a Java
+    -- object by name can come back nil even when calling it directly works, so the known calls
+    -- are spelled out; anything else a hair mod's menu asks is forwarded)
     local c = {
         getInventory   = function() return inv end,
         getHumanVisual = function() return p:getHumanVisual() end,
@@ -383,7 +384,7 @@ end
 -- ---------------------------------------------------------------------------
 -- rows
 -- ---------------------------------------------------------------------------
--- (make-up's groups are the game's categories and its Remove, in the game's words: B9)
+-- (make-up's groups are the game's categories and its Remove, in the game's words)
 local GROUPS = { "Tie", "Shave", "Cut", "Style", "Trim", "FullFace", "Eyes", "EyesShadow", "Lips", "Remove" }
 local GROUP_KEY = { Tie = "UI_ZeD_Hair_GrpTie", Shave = "UI_ZeD_Hair_GrpShave", Cut = "UI_ZeD_Hair_GrpCut",
                     Style = "UI_ZeD_Hair_GrpStyle", Trim = "UI_ZeD_Hair_GrpTrim",
@@ -532,7 +533,7 @@ local function buildRows(win, p, part)
             end
         end
     end
-    -- grouped in the mockup's order, the game's order inside each group; one row per style
+    -- grouped in GROUPS' order above, the game's order inside each group; one row per style
     local seen, out = {}, {}
     for _, g in ipairs(GROUPS) do
         for _, r in ipairs(rows) do
@@ -1103,7 +1104,7 @@ local function partsHeight()
     return math.max(math.max(ZeD.Atoms.radioSize(), F(2)) + ZeD.T.px(8), ZeD.T.buttonH)
 end
 
--- Cut's width (Oct 30 2026): the widest of its words (Cut, Trim, Style, Shave, Tie, Untie, Stop), so
+-- Cut's width: the widest of its words (Stop and every verb in CUT_WORDS), so
 -- the button keeps its size as the pick changes
 local CUT_WORDS = { "Cut", "Trim", "Style", "Shave", "Tie", "Untie", "Apply", "Remove" }
 local function cutW()
@@ -1184,8 +1185,8 @@ function HB.layout(win, w)
     local topH = math.max(T.px(HEAD_H) + T.px(3) + F(5), T.px(CUR_H) * (st.female and 2 or 3))
     add(L, { kind = "heads", x = x, y = y, w = cw, h = topH })
     y = y + topH + T.px(10)
-    -- Hair | Beard at the left, Cut at the right of the same row (Oct 30 2026: Cut moved up from the
-    -- card's foot band into the fold), and under them the line Cut speaks through
+    -- Hair | Beard at the left, Cut at the right of the same row (the verb button lives up here in
+    -- the fold, not in a band at the card's foot), and under them the line Cut speaks through
     local ph = partsHeight()
     local cutw = cutW()
     add(L, { kind = "parts", x = x, y = y, w = cw - cutw - T.px(8), h = ph })
@@ -1397,8 +1398,8 @@ end
 -- what Cut says this frame (defined with the doing, below)
 local stripState
 
--- Cut's button top and height in its row (row top y): the draw and the controller's stop share it
--- (Oct 30 2026, punch list 21 a-f: the stop was the whole row, and missing while Cut was out of view)
+-- Cut's button top and height in its row (row top y): the draw and the controller's stop share it,
+-- so the stop is the button itself (not the whole, taller row) and cannot drift from the draw
 local function cutBtnY(it, y)
     local bh = ZeD.T.buttonH
     return y + math.floor((it.h - bh) / 2), bh
@@ -1612,8 +1613,8 @@ function HB.draw(panel, win, L, x, top, w, viewY, viewH)
 end
 
 -- ---------------------------------------------------------------------------
--- Cut: what the picked row needs, and the button beside Hair | Beard (Oct 30 2026: it was the
--- card's foot band; the fold keeps its own controls). The line under the switch carries the
+-- Cut: what the picked row needs, and the button beside Hair | Beard (not a band at the card's
+-- foot: the fold keeps its own controls). The line under the switch carries the
 -- status words, the busy bar, the row's NEEDS line or its notes.
 -- ---------------------------------------------------------------------------
 local function itemName(it) return it and it:getDisplayName() or "" end
@@ -1759,7 +1760,7 @@ function HB.onClick(win, x, y)
         if inRect(z, x, y) then
             local it = z.item
             if it.kind == "row" then
-                if st.sel == it.row.key then st.sel = nil else st.sel = it.row.key end   -- a second click un-picks (`x and nil or y` always gave y)
+                if st.sel == it.row.key then st.sel = nil else st.sel = it.row.key end   -- a second click un-picks (an and/or chain cannot yield nil, so the if/else)
                 st.done = nil
             elseif it.kind == "more" then
                 DS.toggle(it.key)

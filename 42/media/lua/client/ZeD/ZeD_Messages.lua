@@ -1,8 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_Messages.lua
 -- ============================================================================
--- MESSAGES: other mods' notes and errors, kept in one window (MESSAGES_SPEC.md;
--- director, Oct 24 2026: "notification center works for me"; mockup
--- ZeDUI/mockups/zed_messages_v1.html)
+-- MESSAGES: other mods' notes and errors, kept in one window — a notification
+-- center. Client-side.
 --
 -- The store. A note (one OK button) that another mod opens with the game's own
 -- dialog classes is caught here instead of covering the game: ZeD's prompt for
@@ -215,7 +214,7 @@ function M.list()
 end
 
 -- ---------------------------------------------------------------------------
--- tickets (ZeDUI/MP_SERVER_PART_DESIGN.md, B7): a note when an admin answers. One item per ticket: a fresh answer on it
+-- tickets: a note when an admin answers. One item per ticket: a fresh answer on it
 -- marks it unread again, and the list the server repeats at each hello (who is nil) adds nothing to it. Only an answer
 -- makes a note; status changes appear in the ticket list.
 -- ---------------------------------------------------------------------------
@@ -246,7 +245,7 @@ function M.adminNote(text, bans)
     return it
 end
 
--- a notice of ZeD's own (the director, Nov 7 2026: every ZeD notice comes out of Messages): filed under head,
+-- a notice of ZeD's own (every ZeD notice comes out of Messages): filed under head,
 -- with the toast out of the belt's Messages note
 function M.notice(head, text)
     local it = M.add(head, "mods", { k = "notice", text = text })
@@ -279,7 +278,7 @@ function M.invite(text)
     return it
 end
 
--- controllers (the director, Nov 7 2026, vanilla windows B12 and B13; Overrides/Controllers.lua): a controller plugged
+-- controllers (Overrides/Controllers.lua): a controller plugged
 -- in, with the game's join choices as its buttons, or a player's controller unplugged. One note per controller or
 -- player (id): the newest replaces the one before it; never more than PAD_NOTES_MAX. buttons: { label, run } each,
 -- pressed on the note's card (ZeD_MessagesWindow); run returns true when it did what it says.
@@ -308,7 +307,7 @@ function M.ticketNew()
     return it
 end
 
--- the game's admin pop-up (ISAdminMessage, ZeDUI/VANILLA_WINDOWS_20261107.md C16) as a note: plain words, and the place
+-- the game's admin pop-up (ISAdminMessage) as a note: plain words, and the place
 -- it names (tp = { x, y, z }) for the card's Teleport, where the game's pop-up asked "Teleport?"
 local ADMIN_MSG_MAX = 30
 function M.adminMsg(text, tp)
@@ -319,7 +318,7 @@ function M.adminMsg(text, tp)
     return it
 end
 
--- the server's own word (VANILLA_WINDOWS C4: "saving"), under its own Server heading, an info bubble. One entry per id,
+-- the server's own word ("saving"), under its own Server heading, an info bubble. One entry per id,
 -- updated in place each time (a save every hour must not pile up notes)
 function M.serverNote(id, text)
     local name = ZeD.tr("UI_ZeD_Srv_Server")
