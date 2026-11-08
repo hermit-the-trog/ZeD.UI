@@ -25,7 +25,9 @@
 --     grouped view), each folder is a folding row like a category, before the
 --     categories, in the mod's folder order, named as the player named it; in
 --     the other sorts the list stays flat and the category column names the
---     folder. The grid shows the same groups.
+--     folder. The grid shows the same groups. A folder with nothing filed in it
+--     yet is a group row too, count 0, as an empty container (Build's call,
+--     Nov 7 2026: a folder just made shows at once).
 --   * the item menu gets "Virtual folders" (the mod's words): Create folder...
 --     and, for a filed thing, Rename folder... and Delete folder (keep items).
 --     The names are typed in ZeD's prompt (the game's text box, which ZeD
@@ -34,8 +36,7 @@
 -- Every change goes through the mod's own VIFState.mutate (it saves the modData),
 -- which this file wraps only to tell ZeD's lists to rebuild. Equipped and worn
 -- things are never filed (the mod's rule; ZeD lists them on the Equip tab).
--- Not carried over: a folder with nothing in it (ZeD lists no empty groups; it
--- shows again as soon as something is filed), the folder's weight on its row
+-- Not carried over: the folder's weight on its row
 -- (ZeD's group rows give the count), the mod's own fold state (ZeD keeps its own,
 -- as for categories) and dropping things on a folder row (filing is done from
 -- the item menu).
@@ -156,6 +157,19 @@ function G.rank(key)
         if fid == id then return i end
     end
     return nil
+end
+
+-- every folder of the character, in the mod's order: listed even with nothing filed
+function G.keys(inv, playerObj, isPlayerInv)
+    if not (isPlayerInv and playerObj and inv) or inv ~= playerObj:getInventory() then return nil end
+    local st = S.state(playerObj)
+    if not st then return nil end
+    local pre = PREFIX .. tostring(S.pane(playerObj).player) .. ":"
+    local out = {}
+    for _, fid in ipairs(st.order or {}) do
+        if st.folders[fid] then out[#out + 1] = pre .. tostring(fid) end
+    end
+    return out
 end
 
 -- every change goes through the mod's VIFState.mutate, which bumps S.gen (below)

@@ -34,8 +34,9 @@
 --     the game's Load screen, which ZeD replaces). ZeD's Load screen now gives
 --     the mod's reason with the save's other notes (a red square), and Play is
 --     off, as the mod has it.
---   * New Game: Next with a list the mod would hold back opens ZeD's prompt
---     with the mod's reasons, and the game does not start.
+--   * New Game: Next with a list the mod would hold back opens ZeD's note
+--     (centered, the main menu's controller on its OK) with the mod's reasons,
+--     and the game does not start.
 --   * Host: the mod's first reason is the band's problem line; Start is off.
 --   * the Mods screen: the band's line for pending changes adds that the mod
 --     sorts the load order on Accept; Back (and Discard changes) with the order
@@ -240,7 +241,11 @@ end
 -- NEW GAME
 -- ---------------------------------------------------------------------------
 
--- the mod's reasons in ZeD's prompt (the game's note, which ZeD replaces)
+-- The mod's reasons in ZeD's note (one OK), centered on the screen; the main menu's
+-- controller holds it and gets the menu back on OK, as the About Mods note does
+-- (Overrides/Prompts.lua hookNag). Safe mode, or a note ZeD cannot build: the game's own
+-- (ISModalDialog, which ZeD's hook leaves vanilla's then). Returns the note, or nil.
+S.NOTE_W, S.NOTE_H = 350, 150
 function S.tell(errs)
     local lines = {}
     for i, e in ipairs(errs) do
@@ -248,12 +253,30 @@ function S.tell(errs)
         lines[#lines + 1] = S.plain(e)
     end
     local text = ZeD.tr("UI_ZeD_BME_NotStarted", S.modName()) .. "\n" .. table.concat(lines, "\n")
-    local ok = pcall(function()
-        local d = ISModalDialog:new(0, 0, 350, 150, text, false, nil, nil, 0)
+    local ok, o = pcall(function()
+        local core = getCore()
+        local w, h = S.NOTE_W, S.NOTE_H
+        local x, y = math.floor((core:getScreenWidth() - w) / 2), math.floor((core:getScreenHeight() - h) / 2)
+        local d = nil
+        local P = ZeD.Prompt
+        if P and P.question and ZeD_Prompt and not (ZeD.Safe and ZeD.Safe.on and ZeD.Safe.on()) then
+            local okP, p = pcall(P.question, x, y, w, h, text, false, nil, nil, nil)
+            if okP and p then d = p else print("[ZeD] Better Mod Experience: the game's note: " .. tostring(p)) end
+        end
+        -- (no player at the main menu: nil, so the note gives the focus back to the menu's controller)
+        d = d or ISModalDialog:new(x, y, w, h, text, false, nil, nil, nil)
         d:initialise()
         d:addToUIManager()
+        local jd = JoypadState and JoypadState.getMainMenuJoypad and JoypadState.getMainMenuJoypad()
+        if jd then
+            d.prevFocus = jd.focus
+            jd.focus = d
+            updateJoypadFocus(jd)
+        end
+        return d
     end)
-    return ok
+    if not ok then print("[ZeD] Better Mod Experience: note failed: " .. tostring(o)); return nil end
+    return o
 end
 
 if ZeD_MMNewGame and ZeD_MMNewGame.next then

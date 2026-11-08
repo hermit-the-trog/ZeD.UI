@@ -1132,6 +1132,17 @@ local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, col
             end
         end
     end
+    -- a mod's groups listed even with nothing in them (ContainerGroups.lua: a folder with
+    -- nothing filed yet is a group row of its own, count 0, as an empty container); the
+    -- grouped view only (the other sorts are one flat list)
+    if sortCol == "cat" then
+        for _, key in ipairs(ZeD.ContainerGroups.keys(inv, playerObj, isPlayerInv)) do
+            if not groups[key] then
+                groups[key] = {}
+                catOrder[#catOrder + 1] = key
+            end
+        end
+    end
 
     local sorter    = makeSorter(sortCol, sortAsc)
     local useGroups = (sortCol == "cat")   -- only Sort by Category has category headers; the rest is one flat list

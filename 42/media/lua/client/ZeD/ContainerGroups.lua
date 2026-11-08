@@ -20,6 +20,10 @@
 --     sig   = function(inv, playerObj, isPlayerInv) -> a number or string that
 --             changes whenever group, label or rank would answer differently
 --             (the list is rebuilt when it changes)
+--     keys  = function(inv, playerObj, isPlayerInv) -> a list of group keys
+--             listed even with nothing in them (Nov 7 2026: a folder with
+--             nothing filed yet is a group row, count 0, as an empty
+--             container), or nil. Sort by Category only; sig covers it too.
 --   }
 -- The category column of a filed item shows its group's words. ZeD keeps its
 -- own fold state per group key, as for categories.
@@ -88,6 +92,28 @@ function G.rank(key)
         if ok and type(r) == "number" then return r end
     end
     return nil
+end
+
+-- The group keys listed even when empty (every provider's keys, in its order,
+-- each once). An empty list with nothing registered.
+local NONE = {}
+function G.keys(inv, playerObj, isPlayerInv)
+    local list = G.list
+    if #list == 0 then return NONE end
+    local out, seen = nil, nil
+    for _, p in ipairs(list) do
+        local ok, ks = ask(p, "keys", inv, playerObj, isPlayerInv)
+        if ok and type(ks) == "table" then
+            for _, k in ipairs(ks) do
+                if k ~= nil and k ~= "" then
+                    k = tostring(k)
+                    out, seen = out or {}, seen or {}
+                    if not seen[k] then seen[k] = true; out[#out + 1] = k end
+                end
+            end
+        end
+    end
+    return out or NONE
 end
 
 -- What the list's cache compares: false with nothing registered, else every
