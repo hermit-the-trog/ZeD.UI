@@ -80,13 +80,13 @@ add(300, function()
     give("Base.Bandage", 1)
     for _, ft in ipairs({ "Base.Pop", "Base.Banana", "Base.Spoon" }) do SendCommandToServer('/additem "bob" "' .. ft .. '" 1') end
 end)
-waitFor(15000, function() return firstOf("Apple") and firstOf("HuntingKnife") and firstOf("Bag_Schoolbag") and firstOf("WristWatch_Left_DigitalBlack") end, function(to)
+waitFor(15000, function() return firstOf("Apple") and firstOf("HuntingKnife") and firstOf("Bag_Schoolbag") and firstOf("WristWatch_Left_DigitalBlack") and firstOf("Jacket_Black") end, function(to)
     check(not to, "the server's items arrived on the admin client", to and "timed out" or nil)
     check(firstOf("Apple") ~= nil, "an apple")
     check(countOf("Nails") >= 1, "nails", countOf("Nails"))
     check(countOf("Pencil") >= 20, "pencils for the 20-item limit", countOf("Pencil"))
     local w = firstOf("WristWatch_Left_DigitalBlack")
-    if w then w:setFavorite(true); check(w:isFavorite(), "the watch is marked favorite") end
+    if w then w:setFavorite(true, true); check(w:isFavorite(), "the watch is marked favorite") end
     local j = firstOf("Jacket_Black")
     if j then pcall(function() ISTimedActionQueue.add(ISWearClothing:new(p, j, 50)) end) end
     local k = firstOf("HuntingKnife")
@@ -96,9 +96,9 @@ waitFor(15000, function() return firstOf("Apple") and firstOf("HuntingKnife") an
 end)
 add(9000, function()
     local j = firstOf("Jacket_Black")
-    check(j == nil or p:isEquippedClothing(j), "the jacket is worn")
+    check(j ~= nil and p:isEquippedClothing(j), "the jacket is worn")
     local k = firstOf("HuntingKnife")
-    check(k == nil or p:isEquipped(k), "the knife is in hand")
+    check(k ~= nil and p:isEquipped(k), "the knife is in hand")
     -- one bandage into the backpack (the game's transfer), one stays in the main inventory
     bag = firstOf("Bag_Schoolbag")
     local b = firstOf("Bandage")

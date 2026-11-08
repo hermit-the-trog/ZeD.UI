@@ -69,8 +69,14 @@ local function prompts()
     return out
 end
 add(500, function()
-    pcall(function() part:generateDeepWound() end)
-    check(part:HasInjury() or part:isDeepWounded(), "bob has a deep wound on the left hand", tostring(part:isDeepWounded()))
+    -- (Nov 8 QA, round 3) on a server the SERVER holds a player's body, and that copy is what the doctor's client is sent: a wound set here with
+    -- part:generateDeepWound() lives on bob's client only, so the admin's check read a healthy bob. The game's own health cheat sends it to the
+    -- server (ISHealthPanel.onCheatCurrentPlayer: the "player" command, generateDeepWound there, syncBodyPart back to this client).
+    if isClient() then pcall(ISHealthPanel.onCheatCurrentPlayer, part, "deepWound", p)
+    else pcall(function() part:generateDeepWound() end) end
+end)
+waitFor(15000, function() return part:isDeepWounded() end, function(to)
+    check(part:HasInjury() or part:isDeepWounded(), "bob has a deep wound on the left hand", to and "the server's wound did not come back in 15 s" or tostring(part:isDeepWounded()))
     note("bob's left hand: bandaged " .. tostring(part:bandaged()) .. ", deep wound " .. tostring(part:isDeepWounded()))
 end)
 local n = 0
@@ -101,6 +107,7 @@ waitFor(480000, function() return finished end, function(to)
     Events.OnTick.Remove(onTick)
     check(reqN >= 3, "bob answered all three medical check requests", reqN)
     check(seenBandage, "5: bob's hand showed the bandage")
+    if isClient() then pcall(ISHealthPanel.onCheatCurrentPlayer, part, "healthFullBody", p) end   -- (the server's copy too)
     pcall(function() bd:RestoreToFullHealth() end)
     note("bob's body put back to full health")
 end)

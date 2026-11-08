@@ -193,6 +193,56 @@ function Session:flashText()
     return nil
 end
 
+-- ---------------------------------------------------------------------------
+-- WORN, HELD, FAVORITE: vanilla's tests, and what backs them up (QA round 3, two players: a
+-- worn jacket, the knife in hand and a favorite watch were listed on the admin's client).
+-- Vanilla's player:isEquipped(item) / isEquippedClothing(item) compare the item OBJECT with
+-- the worn list and the hands. On a multiplayer client the server re-sends items, and the
+-- object in the main inventory can be a newer copy of the one the player wears or holds: the
+-- same item (same getID), not the same object, so the test says no. So the ids of what is worn
+-- and held are compared as well, and the item's own worn flag read. A favorite is the item's
+-- own field: it holds on a client only when it was set with the sync flag, as the game's
+-- Favorite menu does (item:setFavorite(true, true)); nothing here can read what was never sent.
+-- ---------------------------------------------------------------------------
+local function idOf(item)
+    local ok, id = pcall(function() return item:getID() end)
+    if ok and id ~= nil then return "id" .. tostring(id) end
+    return nil
+end
+
+--- The ids of everything the player wears or holds, { ["id123"] = true }.
+function TR.heldIds(player)
+    local ids = {}
+    pcall(function()
+        local worn = player:getWornItems()
+        for i = 1, worn:size() do
+            local w = worn:get(i - 1)
+            local k = w and idOf(w:getItem())
+            if k then ids[k] = true end
+        end
+    end)
+    pcall(function()
+        local a = player:getPrimaryHandItem()
+        local k = a and idOf(a)
+        if k then ids[k] = true end
+        local b = player:getSecondaryHandItem()
+        k = b and idOf(b)
+        if k then ids[k] = true end
+    end)
+    return ids
+end
+
+--- Is this item worn or held by the player? Vanilla's two calls first, then the ids and the worn flag.
+function TR.isHeld(player, item, ids)
+    local ok, yes = pcall(function() return player:isEquipped(item) or player:isEquippedClothing(item) end)
+    if ok and yes then return true end
+    local k = idOf(item)
+    if k and (ids or TR.heldIds(player))[k] then return true end
+    local okW, worn = pcall(function() return item:isWorn() end)
+    if okW and worn == true then return true end
+    return false
+end
+
 --- Vanilla's addItemToYourOffer, rule for rule.
 function Session:addItem(item)
     if not (self.open and item) then return false end
@@ -206,7 +256,7 @@ function Session:addItem(item)
         self:history(getText("IGUI_TradingUI_ItemNeedTransfer", item:getName()), false, false, false)
         return false
     end
-    if player:isEquipped(item) or player:isEquippedClothing(item) then
+    if TR.isHeld(player, item) then
         self:history(getText("IGUI_TradingUI_ItemNeedUnequip", item:getName()), false, false, false)
         return false
     end
@@ -297,7 +347,7 @@ end
 -- list renames them)
 local function addToGroup(self, tables, item, isEquipped, isInHotbar)
     local player = self.player
-    if player:isEquipped(item) or player:isEquippedClothing(item) then return end
+    if TR.isHeld(player, item, isEquipped.ids) then return end
     if item:isFavorite() then return end
     if item:isHidden() then return end
     if self:isOffered(item) then return end
@@ -342,6 +392,7 @@ end
 function Session:rebuild()
     local player = self.player
     local isEquipped, isInHotbar = {}, {}
+    isEquipped.ids = TR.heldIds(player)   -- (the worn and held items by id, for TR.isHeld)
     local ok = pcall(function()
         local worn = player:getWornItems()
         for i = 1, worn:size() do isEquipped[worn:get(i - 1):getItem()] = true end
