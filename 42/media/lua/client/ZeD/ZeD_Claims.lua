@@ -5,8 +5,9 @@
 -- its windows call them; its server checks them all, so this works on a server without ZeD's server part. The server
 -- part only adds what a client cannot learn (ZeD_ServerClaims.lua).
 --
--- Once a second the game's objects are read into plain tables here (C.safe, C.fac, C.wars, C.rules), and C.seq bumps
--- if anything changed. The cards draw those tables and never touch a Java object in a frame.
+-- Once a second the game's objects are read into plain tables here (C.safe, C.fac, C.wars, C.rules, and C.other: someone
+-- else's claim while a staff card shows it), and C.seq bumps if anything changed. The cards draw those tables and never
+-- touch a Java object in a frame.
 --
 -- The game's two invitation modals are taken off their events and an invitation waits in C.invites, as a note in the
 -- Server tab; while that tab is away (safe mode) ZeD calls the modals itself. The game has no answer to most calls:
@@ -114,37 +115,106 @@ function C.names(owner, list)
     return out
 end
 
-function C.readSafe(p)
-    local h = SafeHouse.hasSafehouse(p)
-    if not h then return nil end
+-- any safehouse, as p sees it (ISSafehouseUI's rules: the owner or CanSetupSafehouses manage it, Quit for a member who is
+-- not the owner). kind and other say whose read it is: C.latest finds the newest read of the same claim
+function C.readHouse(h, p, other)
     local me = p:getUsername()
     local owner = h:getOwner()
     local mine = h:isOwner(p)
+    local names = C.names(owner, h:getPlayers())
+    local member = false
+    for _, n in ipairs(names) do
+        if n == me then member = true end
+    end
     return {
+        kind = "safe", other = other == true,
         obj = h, id = Cl.houseKey(h), title = h:getTitle() or "", owner = owner, x = h:getX(), y = h:getY(),
         location = safe(function() return h:getLocation() end, nil),
         created = safe(function() return h:getDatetimeCreatedStr() end, nil),
-        respawn = h:isRespawnInSafehouse(me), isOwner = mine, manage = mine or C.cap("CanSetupSafehouses"),
-        names = C.names(owner, h:getPlayers()),
+        respawn = h:isRespawnInSafehouse(me), isOwner = mine, member = member, manage = mine or C.cap("CanSetupSafehouses"),
+        names = names,
+    }
+end
+
+function C.readSafe(p)
+    local h = SafeHouse.hasSafehouse(p)
+    if not h then return nil end
+    return C.readHouse(h, p)
+end
+
+-- any faction, as p sees it (ISFactionUI's: the owner or FactionCheat manage it). The two ticks are p's own, read for a
+-- member only
+function C.readFac(f, p, other)
+    local me = p:getUsername()
+    local owner = f:getOwner()
+    local mine = f:isOwner(me)
+    local cheat = C.cap("FactionCheat")
+    local col = f:getTagColor()
+    local names = C.names(owner, f:getPlayers())
+    local member = false
+    for _, n in ipairs(names) do
+        if n == me then member = true end
+    end
+    return {
+        kind = "fac", other = other == true,
+        obj = f, name = f:getName() or "", tag = f:getTag(), owner = owner, isOwner = mine, member = member, manage = mine or cheat,
+        -- (FactionChangeTagPacket tests canCreateTag with no exception for any role, so a role does not open the field)
+        canTag = (mine or cheat) and f:canCreateTag(), hasRoom = f:canCreateTag(),
+        color = col and { r = col:getR(), g = col:getG(), b = col:getB() } or nil,
+        names = names,
+        showTag = p:isShowTag(), pvp = p:isFactionPvp(),
     }
 end
 
 function C.readFaction(p)
     local f = Faction.getPlayerFaction(p)
     if not f then return nil end
-    local me = p:getUsername()
-    local owner = f:getOwner()
-    local mine = f:isOwner(me)
-    local cheat = C.cap("FactionCheat")
-    local col = f:getTagColor()
-    return {
-        obj = f, name = f:getName() or "", tag = f:getTag(), owner = owner, isOwner = mine, manage = mine or cheat,
-        -- (FactionChangeTagPacket tests canCreateTag with no exception for any role, so a role does not open the field)
-        canTag = (mine or cheat) and f:canCreateTag(), hasRoom = f:canCreateTag(),
-        color = col and { r = col:getR(), g = col:getG(), b = col:getB() } or nil,
-        names = C.names(owner, f:getPlayers()),
-        showTag = p:isShowTag(), pvp = p:isFactionPvp(),
-    }
+    return C.readFac(f, p)
+end
+
+-- ---------------------------------------------------------------------------
+-- SOMEONE ELSE'S CLAIM, for staff (the Admin tab's cards). The card names the claim each frame (C.watchOther); the
+-- second's work reads it into C.other, as it reads your own, and drops it when the card has gone or the claim has.
+-- ---------------------------------------------------------------------------
+local WATCH_MS = 2000         -- no frame of the card for this long: the claim is no longer read
+C.otherSent = C.otherSent or { safe = {}, fac = {} }   -- who staff invited to it from this client: name -> when
+
+function C.watchOther(kind, obj)
+    local w = C.watch
+    if not (w and w.obj == obj) then
+        C.watch = { kind = kind, obj = obj, at = now() }
+        C.otherSent = { safe = {}, fac = {} }
+        C.other = nil
+        C.dirty = true
+        return
+    end
+    w.at = now()
+end
+
+function C.readOther(p)
+    local w = C.watch
+    if not w or now() - w.at > WATCH_MS then
+        C.watch = nil
+        return nil
+    end
+    if w.kind == "safe" then
+        if not SafeHouse.getSafehouseList():contains(w.obj) then return nil end
+        return C.readHouse(w.obj, p, true)
+    end
+    if not Faction.getFactions():contains(w.obj) then return nil end
+    return C.readFac(w.obj, p, true)
+end
+
+-- the newest read of the claim a view was taken of: your own, or the one staff watch. nil once it has gone
+function C.latest(v, kind)
+    if not v then return nil end
+    if v.other then
+        local o = C.other
+        if o and o.obj == v.obj then return o end
+        return nil
+    end
+    if (kind or v.kind) == "fac" then return C.fac end
+    return C.safe
 end
 
 function C.readWars(p)
@@ -189,6 +259,17 @@ function C.signature()
     for _, w in ipairs(C.wars or {}) do
         parts[#parts + 1] = table.concat({ tostring(w.id), tostring(w.attacker), tostring(w.state), tostring(w.time) }, "|")
     end
+    local o = C.other
+    if o then
+        local c = o.color
+        parts[#parts + 1] = table.concat({ "o", o.kind, tostring(o.title or o.name), tostring(o.tag), tostring(o.owner), tostring(o.manage), tostring(o.canTag),
+            tostring(o.member), c and (tostring(c.r) .. tostring(c.g) .. tostring(c.b)) or "", sigList(o.names) }, "|")
+        for _, kind in ipairs({ "safe", "fac" }) do
+            for n in pairs(C.otherSent[kind]) do parts[#parts + 1] = "o" .. kind .. n end
+        end
+    elseif C.watch then
+        parts[#parts + 1] = "o-gone"
+    end
     if not f then
         -- (nothing else changes when a player passes the day to create one)
         parts[#parts + 1] = tostring(safe(C.canCreateFaction, false)) .. tostring(math.floor(safe(C.hoursSurvived, 0) / 24))
@@ -210,6 +291,7 @@ function C.refresh()
     C.safe = safe(function() return C.readSafe(p) end, nil)
     C.fac = safe(function() return C.readFaction(p) end, nil)
     C.wars = safe(function() return C.readWars(p) end, {})
+    C.other = safe(function() return C.readOther(p) end, nil)
     C.prune()
     local sig = C.signature()
     if sig ~= C.sig then
@@ -242,6 +324,19 @@ function C.prune()
             for _, n in ipairs(v.names) do keep[n] = nil end
         end
         C.sent[kind] = keep
+    end
+    -- (staff's invitations to someone else's claim: the server part keeps no list of those, so time and joining end them)
+    local o = C.other
+    for _, kind in ipairs({ "safe", "fac" }) do
+        local keep = {}
+        if o and o.kind == kind then
+            local t = now()
+            for n, at in pairs(C.otherSent[kind]) do
+                if t - at < SENT_MS then keep[n] = at end
+            end
+            for _, n in ipairs(o.names) do keep[n] = nil end
+        end
+        C.otherSent[kind] = keep
     end
 end
 
@@ -533,33 +628,39 @@ function C.doClaim(done)
     return true
 end
 
-function C.rename(text, done)
-    local h = C.safe
+-- v, on this and the calls below: someone else's claim, as staff read it (C.other); left out, your own
+function C.rename(text, done, v)
+    local h = v or C.safe
     if not h then return end
     sendSafehouseChangeTitle(h.obj, text)
-    C.expect(function() return C.safe and C.safe.title == text end, done)
+    C.expect(function()
+        local n = C.latest(h, "safe")
+        return n ~= nil and n.title == text
+    end, done)
 end
 
-function C.setRespawn(on)
-    local h = C.safe
+function C.setRespawn(on, v)
+    local h = v or C.safe
     if not h then return end
     sendSafehouseChangeRespawn(h.obj, C.me(), on == true)
     h.respawn = on == true
     C.bump()
 end
 
-function C.invite(kind, who)
+function C.invite(kind, who, v)
     local me = C.me()
-    if kind == "safe" then
-        if not C.safe then return end
-        sendSafehouseInvite(C.safe.obj, me, who)
+    local on = v or ((kind == "safe") and C.safe or C.fac)
+    if not on then return end
+    -- (the game's add-player windows send the one who presses as the host, staff too)
+    if kind == "safe" then sendSafehouseInvite(on.obj, me, who)
+    else sendFactionInvite(on.obj, me, who) end
+    if on.other then
+        C.otherSent[kind][who] = now()
     else
-        if not C.fac then return end
-        sendFactionInvite(C.fac.obj, me, who)
+        C.sent[kind][who] = now()
+        C.askSoon()
     end
-    C.sent[kind][who] = now()
     C.bump()
-    C.askSoon()
 end
 
 local function cancelled(c, a)
@@ -601,29 +702,26 @@ function C.cancelInvite(kind, who, done)
     C.cancelTurn(now())
 end
 
-function C.changeOwner(kind, who, done)
-    if kind == "safe" then
-        sendSafehouseChangeOwner(C.safe.obj, who)
-        C.expect(function() return C.safe and C.safe.owner == who end, done)
-    else
-        sendFactionChangeOwner(C.fac.obj, who)
-        C.expect(function() return C.fac and C.fac.owner == who end, done)
-    end
+function C.changeOwner(kind, who, done, v)
+    local on = v or ((kind == "safe") and C.safe or C.fac)
+    if kind == "safe" then sendSafehouseChangeOwner(on.obj, who)
+    else sendFactionChangeOwner(on.obj, who) end
+    C.expect(function()
+        local n = C.latest(on, kind)
+        return n ~= nil and n.owner == who
+    end, done)
 end
 
-function C.remove(kind, who, done)
-    local function gone(v)
-        if not v then return true end
-        for _, n in ipairs(v.names) do if n == who then return false end end
+function C.remove(kind, who, done, v)
+    local on = v or ((kind == "safe") and C.safe or C.fac)
+    local function gone(n)
+        if not n then return true end
+        for _, m in ipairs(n.names) do if m == who then return false end end
         return true
     end
-    if kind == "safe" then
-        sendSafehouseChangeMember(C.safe.obj, who)
-        C.expect(function() return gone(C.safe) end, done)
-    else
-        sendFactionRemoveMember(C.fac.obj, who)
-        C.expect(function() return gone(C.fac) end, done)
-    end
+    if kind == "safe" then sendSafehouseChangeMember(on.obj, who)
+    else sendFactionRemoveMember(on.obj, who) end
+    C.expect(function() return gone(C.latest(on, kind)) end, done)
 end
 
 -- h: the card's read of the safehouse. hasSafehouse answers the first match and staff can hold two: done is "this one has
@@ -647,22 +745,29 @@ function C.createFaction(name, done)
     C.expect(function() return Faction.getPlayerFaction(getPlayer()) ~= nil end, done)
 end
 
-function C.renameFaction(name, done)
-    sendFactionChangeTitle(C.fac.obj, name)
-    C.expect(function() return C.fac and C.fac.name == name end, done)
+function C.renameFaction(name, done, v)
+    local f = v or C.fac
+    sendFactionChangeTitle(f.obj, name)
+    C.expect(function()
+        local n = C.latest(f, "fac")
+        return n ~= nil and n.name == name
+    end, done)
 end
 
 -- sendFactionChangeTag reads the tag and color off the object as it sends (ISCreateFactionTagUI sets them first). They go
 -- back straight after: a tag the server takes comes to every client in a FactionSync, this one too, so the object here only
 -- ever holds what the server does and C.expect proves something. (A color alone resends the tag the faction already holds,
 -- and FactionChangeTagPacket.isConsistent takes that only from the owner's connection, whatever the role.)
-function C.setTag(tag, done)
-    local f = C.fac
+function C.setTag(tag, done, v)
+    local f = v or C.fac
     local was = f.obj:getTag()
     f.obj:setTag(tag)
     sendFactionChangeTag(f.obj)
     f.obj:setTag(was)
-    C.expect(function() return C.fac and C.fac.tag == tag end, done)
+    C.expect(function()
+        local n = C.latest(f, "fac")
+        return n ~= nil and n.tag == tag
+    end, done)
 end
 
 function C.setColor(c, done)
@@ -692,7 +797,12 @@ function C.factionPvp(on)
     C.bump()
 end
 
-function C.disband(done)
+function C.disband(done, v)
+    if v and v.other then
+        sendFactionDisband(v.obj)
+        C.expect(function() return not Faction.getFactions():contains(v.obj) end, done)
+        return
+    end
     sendFactionDisband(C.fac.obj)
     C.expect(function() return Faction.getPlayerFaction(getPlayer()) == nil end, done)
 end
@@ -727,10 +837,10 @@ function C.hoursSurvived()
     return p and p:getHoursSurvived() or 0
 end
 
--- who else has a safehouse or a faction, for the Add Player drawer
-function C.safeOf(who)
+-- who else has a safehouse or a faction, for the Add Player drawer. v: the claim the drawer adds to, your own if left out
+function C.safeOf(who, v)
     if C.qaOthers then return C.qaOthers.safe[who] end
-    local h = C.safe
+    local h = v or C.safe
     if not h then return nil end
     local other = safe(function() return h.obj:alreadyHaveSafehouse(who) end, nil)
     if other and other ~= h.obj then return safe(function() return other:getTitle() end, "") end

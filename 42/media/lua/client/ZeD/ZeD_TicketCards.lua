@@ -1709,8 +1709,16 @@ function D.playerCard(win, author)
     D.statsWindow(win, author)
 end
 
--- the game's stats window, as the Admin tab's Check stats opened it
+-- the player's stats: ZeD's stats card (ZeD_StatsCards.lua) over a card in the Admin tab, or the Admin tab opened on it from
+-- anywhere else; the game's own window only when that tab can't show (no admin tool, the window away)
 function D.statsWindow(win, author)
+    local SC = ZeD.StatsCards
+    local ast = win and win._adminTab
+    if SC and ast and ast.card then
+        SC.openStats(win, ast, author, "tk:pcard")
+        return
+    end
+    if SC and ZeD.AdminTab and ZeD.AdminTab.openNext and ZeD.AdminTab.openNext({ kind = "pstats", user = author }, win and win.playerNum) then return end
     local who = getPlayerFromUsername(author)
     local p = win._playerObj or getPlayer()
     if not (who and p) then return end
@@ -2218,6 +2226,8 @@ function D.backHelp(st, card)
     if from == "roles" then return tr("UI_ZeD_Adm_BackRoles") end
     if from == "player" then return tr("UI_ZeD_Adm_BackPlayer") end
     if from == "staff" then return tr("UI_ZeD_Tk_BackTicket") end
+    if from == "pstats" then return tr("UI_ZeD_St_BackStats") end
+    if from == "pinv" then return tr("UI_ZeD_St_BackInv") end
     if st.screen == "tickets" then return tr("UI_ZeD_Tk_BackTickets") end
     return tr("UI_ZeD_Tk_BackQueue")
 end
@@ -2586,7 +2596,8 @@ function TC.cardStops(win, st)
         elseif k == "field" then
             add(it.c, xi, dy, wi, it.h, it.y)
         elseif k == "fact" and it.c then
-            add(it.c, it.c.sx or (x0 + px(200)), dy, it.c.w, it.c.h, it.y)
+            -- (not drawn yet, under the fold: where it will draw, at the end of the row or after the label)
+            add(it.c, it.c.sx or (it.c.box and (x0 + (it.lw or 0) + px(FACT_GAP)) or (x0 + inner - it.c.w)), dy, it.c.w, it.c.h, it.y)
         elseif k == "btn" then
             add(it.c, x0, dy, it.c.w, it.c.h, it.y)
         elseif k == "msg" then
