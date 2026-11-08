@@ -1,10 +1,13 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ItemCard.lua
 -- ============================================================================
--- O08: ITEM CARD — Sticky head + scrollable body
--- Head (top, pinned): Icon + Name + Primary bar + Action strip
--- Body (below, scrolls): Badges, Stats, Category/Weight, Foldable disclosures
--- Disclosures: Per-Zone Detail (clothing), Nutrition/Ingredients (food)
--- Fold state persisted per item TYPE via player modData.
+-- O08: ITEM CARD — the organism's class, input and dispatch. Client.
+-- ZeD_ItemCard is the one card for any inventory item: sticky chrome on top,
+-- scrollable body below. This file owns the class (lifecycle, scroll, fold
+-- state, rename), the pointer and controller input, and the dispatch that
+-- turns a card press into vanilla's own actions. What the card draws each
+-- frame lives in ItemCardOrganism.lua (renderBody); the zone data builders
+-- at the end (ZeD.ItemDetail) are shared with the Equip tab.
+-- Fold state persists per disclosure key via player modData.
 -- ============================================================================
 require "ISUI/ISPanel"
 require "ZeD/Atoms"
@@ -91,7 +94,7 @@ local function formatFirearm(item)
 end
 local function formatFood(item)
     local T=ZeD.T; local s={}
-    -- Player-affecting stats only — nutrition (calories/carbs/proteins/fat) moved to nutrition label
+    -- Player-affecting stats only — nutrition (calories/carbs/proteins/fat) is the nutrition label's job
     local h=safeGet(item,"getHungerChange"); if h and h~=0 then local v=math.floor(h*100); table.insert(s,{label="Hunger",value=string.format("%+d",v),color=v<0 and T.positive or T.warning}) end
     local t=safeGet(item,"getThirstChange"); if t and t~=0 then local v=math.floor(t*100); table.insert(s,{label="Thirst",value=string.format("%+d",v),color=v<0 and T.positive or T.warning}) end
     local b=safeGet(item,"getUnhappyChange") or safeGet(item,"getBoredomChange"); if b and b~=0 then local v=math.floor(b); table.insert(s,{label="Boredom",value=string.format("%+d",v),color=v<0 and T.positive or T.warning}) end
@@ -107,7 +110,7 @@ local function formatFood(item)
 end
 local function formatClothing(item)
     local T=ZeD.T; local s={}
-    -- Body location moved to Zone 1 stat anchor (getItemSubtype)
+    -- No body-location row: the zones list already names the covered parts
     local bite=safeGet(item,"getBiteDefense"); if bite and bite>0 then table.insert(s,{label="Bite def.",value=math.floor(bite).."%"}) end
     local scr=safeGet(item,"getScratchDefense"); if scr and scr>0 then table.insert(s,{label="Scratch",value=math.floor(scr).."%"}) end
     local cm=safeGet(item,"getCombatSpeedModifier"); if cm and cm~=0 then table.insert(s,{label="Move pen.",value=string.format("%.1f",cm),color=cm>0 and T.warning or T.positive}) end
@@ -186,18 +189,18 @@ local function getBarsForItem(item)
     if cond and mc and mc>0 then table.insert(bars,{label="Condition",ratio=math.max(0,math.min(1,cond/mc))}) end; return bars
 end
 -- the facts, bars and kind of an item another surface shows without holding it (the recipe
--- preview, punch list 49: the item you would craft, and the one of yours it upgrades)
+-- preview: the item you would craft, and the one of yours it upgrades)
 ZeD.itemFacts = function(item) return getStatsForItem(item), getBarsForItem(item), getItemCategory(item) end
 
 local function getNutritionForItem(item)
     if not instanceof(item, "Food") then return {} end
     local n = {}
-    -- Serving size: whole item = 1 serving, use item weight in grams
+    -- Serving size: the whole item is one serving; its weight stands in
     local wt = safeGet(item,"getActualWeight") or safeGet(item,"getWeight") or 0
     if wt > 0 then
         table.insert(n, {label="Serving Size", value=string.format("%.1f kg", wt)})
     end
-    -- NLEA 21 CFR 101.9 mandatory order
+    -- Rows follow the US nutrition label's mandatory order (NLEA, 21 CFR 101.9)
     local cal = safeGet(item,"getCalories")
     table.insert(n, {label="Calories", value=cal and cal>0 and string.format("%.0f",cal) or "0"})
     local lip = safeGet(item,"getLipids")

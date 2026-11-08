@@ -80,8 +80,8 @@ local function makeEntry(side, inv, x, id)
     return e
 end
 
--- Asks every provider of `side` for its containers and returns the window's
--- list with them placed in. When nothing is added it returns `list` itself.
+--- Asks every provider of `side` for its containers and returns the window's
+--- list with them placed in. When nothing is added it returns `list` itself.
 function X.merge(side, playerObj, list)
     local reg = X[side]
     if not reg or #reg == 0 then return list end

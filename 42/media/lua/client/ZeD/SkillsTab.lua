@@ -1,10 +1,12 @@
 -- ZeD-UI/42/media/lua/client/ZeD/SkillsTab.lua
 -- ============================================================================
--- SKILLS TAB — 2-column skill grid, a ten-segment level bar on each row.
--- Category-grouped skills, the level bars (one segment per level), boost tags.
---
--- Design reference: CharInfoOverhaul XP screen (CharInfoPanel.lua 1060-1257).
--- Drawer widens to 480px via per-tab drawer width system.
+-- SKILLS TAB — client; the Character window's Skills tab.
+-- A 2-column skill grid, category-grouped, a ten-segment level bar on each
+-- row (one segment per level), boost tags, and the Training materials book
+-- list below. The layout follows the CharInfoOverhaul mod's XP screen.
+-- The drawer widens to 480 design px for this tab (the per-tab drawer widths
+-- in ZeD_CharacterWindow). A click on a row pins that skill to the title
+-- bar; other mods add to the rows through ROW EXTRAS, below.
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -54,11 +56,10 @@ local function getPreviousXpLvl(perk, level)
 end
 
 -- ============================================================================
--- THE LEVEL BAR (Oct 30 2026, director, punch list 22: "keeping it 93; the
--- segments help info at a glance")
--- Each row's XP fill under its words became ten segments at its right, one per
+-- THE LEVEL BAR — the segments give the level at a glance.
+-- Each row carries ten segments at its right, one per
 -- level, the levels reached lit (ZeD.Atoms.drawSegFill): green, yellow for the
--- skill pinned to the title bar and for a maxed one (the old gold). The XP
+-- skill pinned to the title bar and for a maxed one (vanilla's gold). The XP
 -- toward the next level is in the help line while the pointer is on the bar
 -- ("Fitness 5, 40% to level 6") and in the title bar for a pinned skill.
 -- ============================================================================
@@ -77,7 +78,7 @@ end
 
 -- ============================================================================
 -- LEVEL BADGE DRAW HELPER
--- 20px rect with centered level number, matching CIO design.
+-- 20px rect with centered level number.
 -- ============================================================================
 
 local BADGE_W = 20
@@ -108,7 +109,7 @@ end
 -- Right-aligned tag showing "+75% XP" etc: the one tag look, with a positive square.
 -- ============================================================================
 
--- A skill's name width in the row font, kept per scale (a row gives its bar's room to it, punch list 35)
+-- A skill's name width in the row font, kept per scale (a row gives its bar's room to it)
 local _skNameW, _skNameSig = {}, nil
 local function skillNameW(name, font)
     local sig = tostring(ZeD.T.scale)
