@@ -139,7 +139,9 @@ end
 function ZeD_MMTraits:back()
     local p = prof()
     MM.clickSound()
-    if not p or not p.previousScreen then MM.showView("newgame"); return end
+    -- (after a death, Overrides/Respawn.lua: the game's respawn screens go back to the spawn
+    -- choice or the death screen themselves, with no previousScreen)
+    if not p or (not p.previousScreen and not MM.respawn) then MM.showView("newgame"); return end
     MM.toVanilla()
     p:onOptionMouseDown({ internal = "BACK" }, 0, 0)
 end
@@ -223,6 +225,7 @@ function ZeD_MMTraits:setConfirm(mode)
         self.field:setText(tostring(text))
         self.field:setVisible(true)
         self.field:focus()
+        if ZeD.selectDefault then ZeD.selectDefault(self.field) end   -- (typing replaces the name offered)
     else
         self.field:setVisible(false)
         if self.field:isFocused() then self.field:unfocus() end

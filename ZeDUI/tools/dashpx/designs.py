@@ -239,8 +239,11 @@ def cl_cossette(b):
         a = 180 + 180 * v / 7.0
         ca, sa = math.cos(math.radians(a)), math.sin(math.radians(a))
         d.text(str(v), int(round(cx + ca * 63)), int(round(cy + sa * 63)) - 2, "paint_c" if v < 6 else "paint_r", align="c")
-    seg_readout(b, 227, 63, 3, 12, 22, 16, 3, "speed_mph", "#ffb02e")
-    m = d.text("MPH", 250, 88, "vfdoff", align="c", flatlight=True); b.lamp(m, "power", "#ffb02e")
+    # (Nov 7 2026, the director: the digital speed follows the game's Metric option; the glass prints both units and
+    # the one in use lights. The dials and wheels elsewhere stay in mph and miles)
+    seg_readout(b, 227, 63, 3, 12, 22, 16, 3, "speedShown", "#ffb02e")
+    m = d.text("MPH", 234, 88, "vfdoff", flatlight=True); b.lamp(m, "mphLamp", "#ffb02e")
+    m = d.text("KM/H", 251, 88, "vfdoff", flatlight=True); b.lamp(m, "kmhLamp", "#ffb02e")
     bar_stack(b, 94, 36, 12, 50, 12, 1, "fuel", "#ffb02e")
     for t, yy in (("F", 36), ("E", 81)):
         m = d.text(t, 110, yy, "vfdoff", flatlight=True); b.lamp(m, "power", "#ffb02e")
@@ -324,8 +327,10 @@ def luxury(b):
     b.check_flat(gx - 3, gy - 3, gw + 6, gh + 6, "glass cluster")
     win = window(d, gx, gy, gw, gh, 2.0, face="vfd", bezel="chrome", r=3, bezel_t=2, on=Z_CL)
     glare(d, win, slope=-0.4, width=12, offset=0.62, amount=0.05)
-    seg_readout(b, 196, 32, 3, 20, 36, 28, 4, "speed_mph", VC, ghost="vfdoff")
-    m = d.text("MPH", 284, 62, "vfdoff", flatlight=True); b.lamp(m, "power", VC)
+    # (Nov 7 2026: the figures in the game's units, both printed, the one in use lit; the Cossette's note)
+    seg_readout(b, 196, 32, 3, 20, 36, 28, 4, "speedShown", VC, ghost="vfdoff")
+    m = d.text("KM/H", 284, 54, "vfdoff", flatlight=True); b.lamp(m, "kmhLamp", VC)
+    m = d.text("MPH", 284, 62, "vfdoff", flatlight=True); b.lamp(m, "mphLamp", VC)
     for (x0, src, lab, lo, hi) in ((84, "fuel", "FUEL", "E", "F"), (396, "temp", "COOLANT", "C", "H")):
         bar_stack(b, x0, 32, 20, 48, 10, 1, src, VC, ghost="vfdoff", warn_from=8 if src == "temp" else None)
         m = d.text(lab, x0 + 10, 84, "vfdoff", align="c", flatlight=True)

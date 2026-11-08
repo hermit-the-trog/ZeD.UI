@@ -535,7 +535,10 @@ end
 local _setConfirm = ZeD_MMMods.setConfirm
 function ZeD_MMMods:setConfirm(mode)
     _setConfirm(self, mode)
-    if mode == "srename" and self.confirm == "srename" then self.field:setText(self._fieldPre or "") end
+    if mode == "srename" and self.confirm == "srename" then
+        self.field:setText(self._fieldPre or "")
+        if ZeD.selectDefault then ZeD.selectDefault(self.field) end   -- (typing replaces the name offered)
+    end
 end
 
 local function nameTaken(lo, name, exceptUid)

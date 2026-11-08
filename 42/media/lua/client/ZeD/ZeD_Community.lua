@@ -167,7 +167,10 @@ function M.newRules() return Cm.newRules(M.view) end
 function M.agree(rev)
     M.askAt = nil
     if M.qaHold then return end
-    K.requestOn(Cm.MOD, "m_agree", { rev = rev or (M.view and M.view.rev) or nil })
+    -- (taken: every part asks again for what the rules gate refused meanwhile)
+    K.requestOn(Cm.MOD, "m_agree", { rev = rev or (M.view and M.view.rev) or nil }, function(a)
+        if a.ok ~= false and S.agreed then S.agreed() end
+    end)
 end
 
 function M.leave()
