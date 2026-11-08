@@ -286,6 +286,33 @@ local VALID = { house = true }
 for _, k in ipairs({ "full", "half", "third", "quarter" }) do for _, nm in ipairs(A[k]) do VALID[nm] = true end end
 
 -- ---------------------------------------------------------------------------
+section("the ad lists and the art: every name its PNG, every PNG on a list (batch 5, Nov 7 2026)")
+-- ---------------------------------------------------------------------------
+do
+    local ADS = (ROOT ~= "" and ROOT or "") .. "42/media/textures/ZeD/guide/ads/"
+    local missing, seen = nil, {}
+    for _, k in ipairs({ "full", "half", "third", "quarter" }) do
+        for _, nm in ipairs(A[k]) do
+            if seen[nm] then missing = (missing or "") .. " twice:" .. nm end
+            seen[nm] = true
+            local f = io.open(ADS .. nm .. ".png", "rb")
+            if f then f:close() else missing = (missing or "") .. " " .. nm end
+        end
+    end
+    check("every listed ad has its PNG, none listed twice", missing == nil, missing)
+    local okLs, pipe = pcall(io.popen, 'dir /b "' .. (ROOT ~= "" and ROOT or ".\\") .. '42\\media\\textures\\ZeD\\guide\\ads\\*.png"')
+    if okLs and pipe then
+        local extra, n = nil, 0
+        for f in pipe:lines() do
+            local nm = f:match("^(.-)%.png$")
+            if nm then n = n + 1; if not VALID[nm] then extra = (extra or "") .. " " .. nm end end
+        end
+        pipe:close()
+        if n > 0 then check("every ad PNG is on a list", extra == nil, extra) end
+    end
+end
+
+-- ---------------------------------------------------------------------------
 section("the generator: every value below 2^31, never 0")
 -- ---------------------------------------------------------------------------
 do
@@ -326,9 +353,9 @@ do
     local fullPlus = { "house" }
     for _, v in ipairs(A.full) do fullPlus[#fullPlus + 1] = v end
     check("full deck: the 3 ads and the house ad", perm(d.full, fullPlus))
-    check("half deck: the 7", perm(d.half, A.half))
-    check("third deck: the 12", perm(d.third, A.third))
-    check("quarter deck: the 12", perm(d.quarter, A.quarter))
+    check("half deck: all " .. #A.half, perm(d.half, A.half))
+    check("third deck: all " .. #A.third, perm(d.third, A.third))
+    check("quarter deck: all " .. #A.quarter, perm(d.quarter, A.quarter))
     local d2 = B.adDeck(B.hashSeed("a"))
     check("the same seed, the same deck", table.concat(d.third, ",") == table.concat(d2.third, ",") and table.concat(d.full, ",") == table.concat(d2.full, ","))
     local differ = 0
@@ -932,7 +959,7 @@ do
         if k:find("^draw") then return noop end
         return nil
     end })
-    -- draw the first spread only (the blank page and the title page): no ad loads
+    -- draw the first spread only (the copyright page and the title page): no ad loads
     local W, X0, Y0 = U_.PW * u, 100, 50
     P:drawPage(1, X0, Y0, W, u)
     P:drawPage(2, X0 + W, Y0, W, u)
@@ -1166,10 +1193,10 @@ do
             local b = newBook()
             b:readTopics(1)
             local st = b.adStats
-            local line = string.format("  %s text, %s: %d pages; whole pages %d (%d with no full ad left)%s; 310 slots %d (%d with nothing left); 205 slots %d (%d with nothing left); NOTES blocks %d; dealt full %d/4, half %d/7, quarter %d/12, third %d/12",
+            local line = string.format("  %s text, %s: %d pages; whole pages %d (%d with no full ad left)%s; 310 slots %d (%d with nothing left); 205 slots %d (%d with nothing left); NOTES blocks %d; dealt full %d/%d, half %d/%d, quarter %d/%d, third %d/%d",
                 m[2], pd and "pad" or "keyboard", #b.pages, st.full, st.fullMiss, ((st.frontHouse or 0) > 0) and ", the house ad up front" or "",
                 st.ask310, st.miss310, st.ask205, st.miss205, st.notes,
-                st.at.full + (st.frontHouse or 0), st.at.half, st.at.quarter, st.at.third)
+                st.at.full + (st.frontHouse or 0), #A.full + 1, st.at.half, #A.half, st.at.quarter, #A.quarter, st.at.third, #A.third)
             local cs, cbad = checklists(b)
             line = line .. "; First Days checklist: " .. where(cs)
             realPrint(line)

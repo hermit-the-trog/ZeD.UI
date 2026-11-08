@@ -99,8 +99,19 @@ function ZeD_MMLooks:createChildren()
     self.sur = UI.newEntry(self)
     for _, e in ipairs({ self.fore, self.sur }) do
         e:setVisible(false)
-        e.onCommandEntered = function() self._enterAt = MM.now(); e:unfocus() end
+        e.onCommandEntered = function() self:nameEntered(e) end
     end
+end
+
+-- Return in a name field: the typed name goes to vanilla's field before the caret leaves (syncNames
+-- copies ours over only while ours is focused; unfocused first, the old name came back over it), and
+-- the same Return does not also press Play
+function ZeD_MMLooks:nameEntered(e)
+    self._enterAt = MM.now()
+    local v = looks()
+    local theirs = v and ((e == self.fore and v.forenameEntry) or (e == self.sur and v.surnameEntry))
+    if theirs and theirs:getText() ~= e:getText() then theirs:setText(e:getText()) end
+    e:unfocus()
 end
 
 function ZeD_MMLooks:onShow()
@@ -478,6 +489,7 @@ function ZeD_MMLooks:setConfirm(mode)
         self.field:setText(tostring(text))
         self.field:setVisible(true)
         self.field:focus()
+        if ZeD.selectDefault then ZeD.selectDefault(self.field) end   -- (typing replaces the name offered)
     else
         self.field:setVisible(false)
         if self.field:isFocused() then self.field:unfocus() end
@@ -546,7 +558,7 @@ function ZeD_MMLooks:activateRow(r)
     local T = ZeD.T
     local anchor = { x = self:getAbsoluteX() + self.width / 2, y = self:getAbsoluteY() + self.height / 3, w = T.px(280), h = T.px(24) }
     if r.kind == "name" then
-        local jd = MM.gamepad() and JoypadState and JoypadState.getMainMenuJoypad and JoypadState.getMainMenuJoypad()
+        local jd = MM.gamepad() and MM.joypad()
         if jd and OnScreenKeyboard and OnScreenKeyboard.Show then
             local osk = OnScreenKeyboard.Show(jd.player or 0, r.entry, jd)
             if osk then osk.prevFocus = jd.focus; jd.focus = osk; updateJoypadFocus(jd); return end

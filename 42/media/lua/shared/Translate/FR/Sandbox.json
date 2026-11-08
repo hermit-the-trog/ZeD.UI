@@ -7,5 +7,7 @@
     "Sandbox_ZeD_TaxiPerMinuteWaiting": "Taximètre : par minute d'attente",
     "Sandbox_ZeD_TaxiPerMinuteWaiting_tooltip": "Dollars que le compteur ajoute pour chaque minute en temps réel où le taxi attend (sous 5 km/h, moteur en marche) drapeau baissé.",
     "Sandbox_ZeD_TaxiPerExtraPassenger": "Taximètre : par passager supplémentaire",
-    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "Dollars affichés sous EXTRAS pour chaque passager après le premier. Le chauffeur ne compte pas."
+    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "Dollars affichés sous EXTRAS pour chaque passager après le premier. Le chauffeur ne compte pas.",
+    "Sandbox_ZeD_HostHelper": "Assistant d'hébergement (RCON)",
+    "Sandbox_ZeD_HostHelper_tooltip": "Activé : les bannissements, débannissements et expulsions que ZeD doit au jeu sont aussi écrits dans Zomboid/Lua/ZeD_helper/ pour l'assistant d'hébergement ZeD, un programme à part que le propriétaire lance sur la machine du serveur. Il les applique par la console à distance du serveur (RCONPort et RCONPassword dans les réglages du serveur), même sans modérateur en ligne. Désactivé : ils attendent qu'un membre de l'équipe se connecte."
 }
