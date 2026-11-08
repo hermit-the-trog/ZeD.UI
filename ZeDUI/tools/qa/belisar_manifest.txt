@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/belisar_manifest.txt (Nov 8 2026): Belisar's three mods (belisar_mods.txt) with ZeD last (batch_belisar.ps1)
+zedqa_prelude.lua | pre
+zedqa_pin_windows.lua | pnw | timeout=60
+zedqa_belisar.lua | bel | timeout=200
