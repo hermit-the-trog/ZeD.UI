@@ -197,6 +197,7 @@ G.ZED_GROUPS = {
                                      { "screenMoodles", "onoff", under = "UI_ZeD_Options_UnderScreenMoodles" },
                                      { "screenWheels", "onoff", under = "UI_ZeD_Options_UnderScreenWheels" },
                                      { "screenCharInfo", "onoff", under = "UI_ZeD_Options_UnderScreenCharInfo" },
+                                     { "screenConsole", "onoff", under = "UI_ZeD_Options_UnderScreenConsole" },
                                      { "testLanguage", "onoff" } } },
 }
 
