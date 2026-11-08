@@ -26,7 +26,12 @@ end
 local pickup, police, van, seatUI, lbUI
 local spawned = {}
 local function spawn(script, dx, dy)
-    local sq = getCell():getGridSquare(math.floor(p:getX()) + dx, math.floor(p:getY()) + dy, math.floor(p:getZ()))
+    -- (Nov 8 QA: a square beside the character can be missing, "no square"; try the others around it)
+    local sq
+    for _, o in ipairs({ { 0, 0 }, { 0, 3 }, { 0, -3 }, { -4, 4 }, { 4, 4 }, { -4, -4 }, { 8, 0 }, { -8, 0 } }) do
+        sq = getCell():getGridSquare(math.floor(p:getX()) + dx + o[1], math.floor(p:getY()) + dy + o[2], math.floor(p:getZ()))
+        if sq then break end
+    end
     if not sq then say("no square for " .. script); return nil end
     local v = addVehicleDebug(script, IsoDirections.N, nil, sq)
     if ZEDQA_VPROBE then ZEDQA_VPROBE("sl", sq, v) end   -- (punch list 47: the 720 bisect)

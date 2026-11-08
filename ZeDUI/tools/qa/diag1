@@ -1,0 +1,526 @@
+# ZeD-UI regression - 2026-11-07 22:28 - fullscreen4k (3840x2160 fullscreen)
+
+| | |
+|---|---|
+| Started | 2026-11-07 22:28:29 |
+| Finished | 2026-11-07 22:32:24 (3 min 54 s) |
+| Mode | fullscreen4k (3840x2160 fullscreen) |
+| Display | fullScreen=true height=2160 width=3840 |
+| Game build | 42.21.0 4a0e9546ec |
+| Mod version | 0.3.0-beta7 |
+| Save | Saves/Sandbox/ZeD-QA |
+| Manifest | diag1.txt (3 scripts) |
+| Result | **1/3 pass**, 0 warn, 2 fail, 0 timeout |
+| Go numbers | 23359 to 23363 |
+
+Screenshots are in `C:/Users/you/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
+
+## Run notes
+
+- ZeD settings: UI scale 1.75x (4K), additions Vanilla Plus (all on, Restock Casual) (the director's ModOptions.ini kept aside)
+- pzrestorewin.ps1 (before a fullscreen run): no backup
+- started ProjectZomboid64.exe -debug -nosteam (fullscreen, the director's options.ini)
+- loaded; clicked the screen centre (1920,1080) to pass 'click to start'
+- the bridge armed in game on Saves/Sandbox/ZeD-QA
+- quit: quit to the main menu, then to the desktop (go 23362, 23363)
+- ZeD settings: the director's ModOptions.ini put back
+
+## Results
+
+| # | Script | Tag | Status | Seconds | Screenshots | Notes |
+|---:|---|---|---|---:|---|---|
+| 1 | zedqa_prelude.lua | pre | PASS | 5 |  |  |
+| 2 | zedqa_curtain.lua | cu | **FAIL** | 125 | zqa_cu_0.png, zqa_cu_1.png, zqa_cu_2.png, zqa_cu_3.png, zqa_cu_4.png, zqa_cu_5.png, zqa_cu_6.png | 2 Java exception(s) in the log; 87 ERR line(s) |
+| 3 | zedqa_doll_v4.lua | dollv4 | **FAIL** | 17 | zqa_dollv4_3840x2160_wide.png, zqa_dollv4_3840x2160_dpad.png, zqa_dollv4_3840x2160_wide_pads.png, zqa_dollv4_3840x2160_card.png, zqa_dollv4_3840x2160_narrow.png | 1 Java exception(s) in the log; 34 ERR line(s) |
+
+## Scripts
+
+### 1. zedqa_prelude.lua (`ZEDQA pre`) - PASS, 5 s
+
+- go 23359 at 22:29:26
+
+```text
+[ZeD.QA] state #1 speed=1 paused=false player=928,13041 grid=19 inCar=false vehicles=25 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA pre moved from 928,13041,0 to the drag strip
+ZEDQA pre start
+[ZeD.QA] run #1 ok=true
+ZEDQA pre char true world true speed 1 ticks 299 frames 300
+ZEDQA pre search overlay: enabled false, override false, manager false
+ZEDQA pre DONE
+```
+
+### 2. zedqa_curtain.lua (`ZEDQA cu`) - FAIL, 125 s
+
+- go 23360 at 22:29:35
+- 2 Java exception(s) in the log
+- 87 ERR line(s)
+- screenshots: zqa_cu_0.png, zqa_cu_1.png, zqa_cu_2.png, zqa_cu_3.png, zqa_cu_4.png, zqa_cu_5.png, zqa_cu_6.png
+
+```text
+[ZeD.QA] state #2 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=36 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA cu start
+[ZeD.QA] run #2 ok=true
+ZEDQA cu loaded: Character 1134,0 777x735 rolled nil (saved -) | World 1929,0 777x735 rolled nil (saved -)
+ZEDQA cu scale 1.75 root 1.75 screen 3840x2160
+ZEDQA cu reset: ZeD_Window.resetLayout
+ZEDQA cu reset: Character 1134,0 777x735 rolled nil (saved -) | World 1929,0 777x735 rolled nil (saved -)
+ZEDQA cu before: x 1929 w 1617 title Ground + Maps button 244.94140625,11 23
+ZEDQA cu rolled nil: x 1929 w 1617 (sum 3546 was 3546) rod nil content false title Ground + Maps
+ZEDQA cu pad stops:
+ZEDQA cu unrolled true: x 1929 w 1617 content false rod nil
+ZEDQA cu FAIL first roll World: got 1929,0 1617x46 want 1929,0 1617x735 (dx 0 dy 0 dw 0 dh -689)
+ZEDQA cu rolled again nil
+ZEDQA cu tab closed: rolled nil x 1929 w 777 content true drawer false
+ZEDQA cu ok tab closed while rolled World 1929,0 777x735
+ZEDQA cu World before: 1929,0 1617x46 (other 1134,0 777x735) drawer true tab tab maps
+ZEDQA cu cycle1 World before roll: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x420.000 anchor 1092.000 tab loot drawer false) | World 1929,0 1617x46 rolled nil (saved 1102.286,0.000 444.000x420.000 tab maps drawer true)
+ZEDQA cu FAIL cycle1 World: no roll button
+ZEDQA cu cycle1 World rolled: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x420.000 anchor 1092.000 tab loot drawer false) | World 1929,0 1617x46 rolled nil (saved 1102.286,0.000 444.000x420.000 tab maps drawer true)
+ZEDQA cu cycle1 World rollW nil
+ZEDQA cu FAIL cycle1 rolled World: not rolled / no rod (rolled nil)
+ZEDQA cu ok cycle1 rolled World 1929,0 1617x46
+ZEDQA cu ok cycle1 while rolled: other Character 1134,0 777x735
+ZEDQA cu cycle1 World rolled, before unroll: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x420.000 anchor 1092.000 tab loot drawer false) | World 1929,0 1617x46 rolled nil (saved 1102.286,0.000 444.000x420.000 tab maps drawer true)
+ZEDQA cu cycle1 World unrolled: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x420.000 anchor 1092.000 tab loot drawer false) | World 1929,0 1617x46 rolled nil (saved 1102.286,0.000 444.000x420.000 tab maps drawer true)
+ZEDQA cu ok cycle1 World 1929,0 1617x46
+ZEDQA cu ok cycle1 other (Character) 1134,0 777x735
+ZEDQA cu ok cycle1 World saved 1102.286,0.000 444.000x420.000
+ZEDQA cu cycle2 World before roll: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x420.000 anchor 1092.000 tab loot drawer false) | World 1929,0 1617x46 rolled nil (saved 1102.286,0.000 444.000x420.000 tab maps drawer true)
+ZEDQA cu FAIL cycle2 World: no roll button
+ZEDQA cu cycle2 World rolled: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x420.000 anchor 1092.000 tab loot drawer false) | World 1929,0 1617x46 rolled nil (saved 1102.286,0.000 444.000x420.000 tab maps drawer true)
+ZEDQA cu cycle2 World rollW nil
+ZEDQA cu FAIL cycle2 rolled World: not rolled / no rod (rolled nil)
+ZEDQA cu ok cycle2 rolled World 1929,0 1617x46
+ZEDQA cu ok cycle2 while rolled: other Character 1134,0 777x735
+ZEDQA cu cycle2 World rolled, before unroll: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x420.000 anchor 1092.000 tab loot drawer false) | World 1929,0 1617x46 rolled nil (saved 1102.286,0.000 444.000x420.000 tab maps drawer true)
+ZEDQA cu cycle2 World unrolled: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x420.000 anchor 1092.000 tab loot drawer false) | World 1929,0 1617x46 rolled nil (saved 1102.286,0.000 444.000x420.000 tab maps drawer true)
+ZEDQA cu ok cycle2 World 1929,0 1617x46
+ZEDQA cu ok cycle2 other (Character) 1134,0 777x735
+ZEDQA cu ok cycle2 World saved 1102.286,0.000 444.000x420.000
+ZEDQA cu moved by rod World before roll: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x420.000 anchor 1092.000 tab loot drawer false) | World 1929,0 1617x46 rolled nil (saved 1102.286,0.000 444.000x420.000 tab maps drawer true)
+ZEDQA cu FAIL moved by rod World: no roll button
+ZEDQA cu moved by rod World rolled: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x420.000 anchor 1092.000 tab loot drawer false) | World 1929,0 1617x46 rolled nil (saved 1102.286,0.000 444.000x420.000 tab maps drawer true)
+ZEDQA cu moved by rod World rollW nil
+ZEDQA cu FAIL moved by rod rolled World: not rolled / no rod (rolled nil)
+ZEDQA cu ok moved by rod rolled World 1929,0 1617x46
+ZEDQA cu ok moved by rod while rolled: other Character 1134,0 777x735
+ERROR: General f:2086> Lua(Vanilla).after> Exception thrown
+    java.lang.RuntimeException: attempted index of non-table at KahluaUtil.fail(KahluaUtil.java:100).
+    Lua(Vanilla).after(spawnpoints.lua:244)
+    Lua(Vanilla).onTick(spawnpoints.lua:571)
+ZEDQA cu ERR 1011 attempted index of non-table java.lang.RuntimeException
+ZEDQA cu FAIL moved by rod moved World: not rolled / no rod (rolled nil)
+ZEDQA cu moved by rod World rolled, before unroll: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x420.000 anchor 1092.000 tab loot drawer false) | World 1929,0 1617x46 rolled nil (saved 1102.286,0.000 444.000x420.000 tab maps drawer true)
+ZEDQA cu moved by rod World unrolled: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x420.000 anchor 1092.000 tab loot drawer false) | World 1929,0 1617x46 rolled nil (saved 1102.286,0.000 444.000x420.000 tab maps drawer true)
+ZEDQA cu ok moved by rod World 1929,0 1617x46
+ZEDQA cu ok moved by rod other (Character) 1134,0 777x735
+ZEDQA cu ok moved by rod World saved 1102.286,0.000 444.000x420.000
+ZEDQA cu moved by title World before roll: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x420.000 anchor 1092.000 tab loot drawer false) | World 1929,0 1617x46 rolled nil (saved 1102.286,0.000 444.000x420.000 tab maps drawer true)
+ZEDQA cu FAIL moved by title World: no roll button
+ZEDQA cu moved by title World rolled: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x420.000 anchor 1092.000 tab loot drawer false) | World 1929,0 1617x46 rolled nil (saved 1102.286,0.000 444.000x420.000 tab maps drawer true)
+ZEDQA cu moved by title World rollW nil
+ZEDQA cu FAIL moved by title rolled World: not rolled / no rod (rolled nil)
+ZEDQA cu ok moved by title rolled World 1929,0 1617x46
+ZEDQA cu ok moved by title while rolled: other Character 1134,0 777x735
+ZEDQA cu moved by title World moved by 200,200 (title) to 2129,200 1617x46
+ZEDQA cu FAIL moved by title moved World: not rolled / no rod (rolled nil)
+ZEDQA cu moved by title World rolled, before unroll: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x420.000 anchor 1092.000 tab loot drawer false) | World 2129,200 1617x46 rolled nil (saved 1102.286,0.000 444.000x420.000 tab maps drawer true)
+ZEDQA cu moved by title World unrolled: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x420.000 anchor 1092.000 tab loot drawer false) | World 2129,200 1617x46 rolled nil (saved 1216.571,114.286 444.000x420.000 tab maps drawer true)
+ZEDQA cu ok moved by title World 2129,200 1617x46
+ZEDQA cu ok moved by title other (Character) 1134,0 777x735
+ZEDQA cu ok moved by title World saved 1216.571,114.286 444.000x420.000
+ZEDQA cu cycle5 World before roll: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x420.000 anchor 1092.000 tab loot drawer false) | World 2129,200 1617x46 rolled nil (saved 1216.571,114.286 444.000x420.000 tab maps drawer true)
+ZEDQA cu FAIL cycle5 World: no roll button
+ZEDQA cu cycle5 World rolled: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x420.000 anchor 1092.000 tab loot drawer false) | World 2129,200 1617x46 rolled nil (saved 1216.571,114.286 444.000x420.000 tab maps drawer true)
+ZEDQA cu cycle5 World rollW nil
+ZEDQA cu FAIL cycle5 rolled World: not rolled / no rod (rolled nil)
+ZEDQA cu ok cycle5 rolled World 2129,200 1617x46
+ZEDQA cu ok cycle5 while rolled: other Character 1134,0 777x735
+ZEDQA cu cycle5 World rolled, before unroll: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x420.000 anchor 1092.000 tab loot drawer false) | World 2129,200 1617x46 rolled nil (saved 1216.571,114.286 444.000x420.000 tab maps drawer true)
+ZEDQA cu cycle5 World unrolled: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x420.000 anchor 1092.000 tab loot drawer false) | World 2129,200 1617x46 rolled nil (saved 1216.571,114.286 444.000x420.000 tab maps drawer true)
+ZEDQA cu ok cycle5 World 2129,200 1617x46
+ZEDQA cu ok cycle5 other (Character) 1134,0 777x735
+ZEDQA cu ok cycle5 World saved 1216.571,114.286 444.000x420.000
+ZEDQA cu character health tab true
+ZEDQA cu Character before: 1134,0 777x735 (other 2129,200 1617x46) drawer true tab tab health
+ZEDQA cu cycle1 Character before roll: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 1617x46 rolled nil (saved 1216.571,114.286 444.000x420.000 tab maps drawer true)
+ZEDQA cu FAIL cycle1 Character: no roll button
+ZEDQA cu cycle1 Character rolled: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 1617x46 rolled nil (saved 1216.571,114.286 444.000x420.000 tab maps drawer true)
+ZEDQA cu cycle1 Character rollW nil
+ZEDQA cu FAIL cycle1 rolled Character: not rolled / no rod (rolled nil)
+ZEDQA cu ok cycle1 rolled Character 1134,0 777x735
+ZEDQA cu ok cycle1 while rolled: other World 2129,200 1617x46
+ZEDQA cu cycle1 Character rolled, before unroll: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 1617x46 rolled nil (saved 1216.571,114.286 444.000x420.000 tab maps drawer true)
+ZEDQA cu cycle1 Character unrolled: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 1617x46 rolled nil (saved 1216.571,114.286 444.000x420.000 tab maps drawer true)
+ZEDQA cu ok cycle1 Character 1134,0 777x735
+ZEDQA cu ok cycle1 other (World) 2129,200 1617x46
+ZEDQA cu ok cycle1 Character saved 648.000,0.000 444.000x420.000
+ZEDQA cu cycle2 Character before roll: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 1617x46 rolled nil (saved 1216.571,114.286 444.000x420.000 tab maps drawer true)
+ZEDQA cu FAIL cycle2 Character: no roll button
+ZEDQA cu cycle2 Character rolled: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 1617x46 rolled nil (saved 1216.571,114.286 444.000x420.000 tab maps drawer true)
+ZEDQA cu cycle2 Character rollW nil
+ZEDQA cu FAIL cycle2 rolled Character: not rolled / no rod (rolled nil)
+ZEDQA cu ok cycle2 rolled Character 1134,0 777x735
+ZEDQA cu ok cycle2 while rolled: other World 2129,200 1617x46
+ZEDQA cu cycle2 Character rolled, before unroll: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 1617x46 rolled nil (saved 1216.571,114.286 444.000x420.000 tab maps drawer true)
+ZEDQA cu cycle2 Character unrolled: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 1617x46 rolled nil (saved 1216.571,114.286 444.000x420.000 tab maps drawer true)
+ZEDQA cu ok cycle2 Character 1134,0 777x735
+ZEDQA cu ok cycle2 other (World) 2129,200 1617x46
+ZEDQA cu ok cycle2 Character saved 648.000,0.000 444.000x420.000
+ZEDQA cu moved by rod Character before roll: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 1617x46 rolled nil (saved 1216.571,114.286 444.000x420.000 tab maps drawer true)
+ZEDQA cu FAIL moved by rod Character: no roll button
+ZEDQA cu moved by rod Character rolled: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 1617x46 rolled nil (saved 1216.571,114.286 444.000x420.000 tab maps drawer true)
+ZEDQA cu moved by rod Character rollW nil
+ZEDQA cu FAIL moved by rod rolled Character: not rolled / no rod (rolled nil)
+ZEDQA cu ok moved by rod rolled Character 1134,0 777x735
+ZEDQA cu ok moved by rod while rolled: other World 2129,200 1617x46
+ERROR: General f:3321> Lua(Vanilla).after> Exception thrown
+    java.lang.RuntimeException: attempted index of non-table at KahluaUtil.fail(KahluaUtil.java:100).
+    Lua(Vanilla).after(spawnpoints.lua:244)
+    Lua(Vanilla).onTick(spawnpoints.lua:571)
+ZEDQA cu ERR 2246 attempted index of non-table java.lang.RuntimeException
+ZEDQA cu FAIL moved by rod moved Character: not rolled / no rod (rolled nil)
+ZEDQA cu moved by rod Character rolled, before unroll: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 1617x46 rolled nil (saved 1216.571,114.286 444.000x420.000 tab maps drawer true)
+ZEDQA cu moved by rod Character unrolled: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 1617x46 rolled nil (saved 1216.571,114.286 444.000x420.000 tab maps drawer true)
+ZEDQA cu ok moved by rod Character 1134,0 777x735
+ZEDQA cu ok moved by rod other (World) 2129,200 1617x46
+ZEDQA cu ok moved by rod Character saved 648.000,0.000 444.000x420.000
+ZEDQA cu moved by title Character before roll: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 1617x46 rolled nil (saved 1216.571,114.286 444.000x420.000 tab maps drawer true)
+ZEDQA cu FAIL moved by title Character: no roll button
+ZEDQA cu moved by title Character rolled: Character 1134,0 777x735 rolled nil (saved 648.000,0.000 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 1617x46 rolled nil (saved 1216.571,114.286 444.000x420.000 tab maps drawer true)
+ZEDQA cu moved by title Character rollW nil
+ZEDQA cu FAIL moved by title rolled Character: not rolled / no rod (rolled nil)
+ZEDQA cu ok moved by title rolled Character 1134,0 777x735
+ZEDQA cu ok moved by title while rolled: other World 2129,200 1617x46
+ZEDQA cu moved by title Character moved by 200,200 (title) to 1334,200 777x735
+ZEDQA cu FAIL moved by title moved Character: not rolled / no rod (rolled nil)
+ZEDQA cu moved by title Character rolled, before unroll: Character 1334,200 777x735 rolled nil (saved 648.000,114.286 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 1617x46 rolled nil (saved 1216.571,114.286 444.000x420.000 tab maps drawer true)
+ZEDQA cu moved by title Character unrolled: Character 1334,200 777x735 rolled nil (saved 648.000,114.286 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 1617x46 rolled nil (saved 1216.571,114.286 444.000x420.000 tab maps drawer true)
+ZEDQA cu ok moved by title Character 1334,200 777x735
+ZEDQA cu ok moved by title other (World) 2129,200 1617x46
+ZEDQA cu FAIL moved by title Character saved: got 648.000,114.286 444.000x420.000 a 1092.000 want 762.286,114.286 444.000x420.000 a 1206.286
+ZEDQA cu cycle5 Character before roll: Character 1334,200 777x735 rolled nil (saved 648.000,114.286 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 1617x46 rolled nil (saved 1216.571,114.286 444.000x420.000 tab maps drawer true)
+ZEDQA cu FAIL cycle5 Character: no roll button
+ZEDQA cu cycle5 Character rolled: Character 1334,200 777x735 rolled nil (saved 648.000,114.286 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 1617x46 rolled nil (saved 1216.571,114.286 444.000x420.000 tab maps drawer true)
+ZEDQA cu cycle5 Character rollW nil
+ZEDQA cu FAIL cycle5 rolled Character: not rolled / no rod (rolled nil)
+ZEDQA cu ok cycle5 rolled Character 1334,200 777x735
+ZEDQA cu ok cycle5 while rolled: other World 2129,200 1617x46
+ZEDQA cu cycle5 Character rolled, before unroll: Character 1334,200 777x735 rolled nil (saved 648.000,114.286 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 1617x46 rolled nil (saved 1216.571,114.286 444.000x420.000 tab maps drawer true)
+ZEDQA cu cycle5 Character unrolled: Character 1334,200 777x735 rolled nil (saved 648.000,114.286 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 1617x46 rolled nil (saved 1216.571,114.286 444.000x420.000 tab maps drawer true)
+ZEDQA cu ok cycle5 Character 1334,200 777x735
+ZEDQA cu ok cycle5 other (World) 2129,200 1617x46
+ZEDQA cu ok cycle5 Character saved 648.000,114.286 444.000x420.000
+ZEDQA cu closed rolled (inventory key) World reference, closed and reopened unrolled: Character 294,200 1617x735 rolled nil (saved 648.000,114.286 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 777x735 rolled nil (saved 1216.571,114.286 444.000x420.000 tab loot drawer false)
+ZEDQA cu ok closed rolled (inventory key) reference back on its tab World 2129,200 1617x46
+ZEDQA cu closed rolled (inventory key) World before roll: Character 294,200 1617x46 rolled nil (saved 648.000,114.286 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 1617x46 rolled nil (saved 1216.571,114.286 444.000x420.000 tab maps drawer true)
+ZEDQA cu FAIL closed rolled (inventory key) World roll button: none
+ZEDQA cu FAIL closed rolled (inventory key) World rolled: rods in UI 0
+ZEDQA cu ok closed rolled (inventory key) World window closed
+ZEDQA cu FAIL closed rolled (inventory key) World rod gone: rod visible nil, rods in UI 0
+ZEDQA cu closed rolled (inventory key) World reopened: Character 294,200 1617x735 rolled nil (saved 648.000,114.286 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 777x735 rolled nil (saved 1216.571,114.286 444.000x420.000 tab loot drawer false)
+ZEDQA cu ok closed rolled (inventory key) World reopened unrolled (rolled nil, rods in UI 0)
+ZEDQA cu ok closed rolled (inventory key) reopened as unrolled World 2129,200 777x735
+ZEDQA cu ok closed rolled (inventory key) reopened: other Character 294,200 1617x735
+ZEDQA cu closed rolled (rod close box) World reference, closed and reopened unrolled: Character 294,200 1617x46 rolled nil (saved 648.000,114.286 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 777x735 rolled nil (saved 1216.571,114.286 444.000x420.000 tab loot drawer false)
+ZEDQA cu FAIL closed rolled (rod close box) reference back on its tab World: got 2129,200 1617x735 want 2129,200 1617x46 (dx 0 dy 0 dw 0 dh 689)
+ZEDQA cu closed rolled (rod close box) World before roll: Character 294,200 1617x46 rolled nil (saved 648.000,114.286 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 1617x735 rolled nil (saved 1216.571,114.286 444.000x420.000 tab maps drawer true)
+ZEDQA cu ok closed rolled (rod close box) World rolled (rods in UI 1)
+ZEDQA cu ok closed rolled (rod close box) World window closed
+ZEDQA cu ok closed rolled (rod close box) World rod gone (rod visible false, rods in UI 0)
+ZEDQA cu closed rolled (rod close box) World reopened: Character 294,200 1617x46 rolled nil (saved 648.000,114.286 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 777x735 rolled nil (saved 1216.571,114.286 444.000x420.000 tab loot drawer false)
+ZEDQA cu ok closed rolled (rod close box) World reopened unrolled (rolled nil, rods in UI 0)
+ZEDQA cu ok closed rolled (rod close box) reopened as unrolled World 2129,200 777x735
+ZEDQA cu ok closed rolled (rod close box) reopened: other Character 294,200 1617x46
+ZEDQA cu closed rolled (controller Y hold) World reference, closed and reopened unrolled: Character 294,200 1617x735 rolled nil (saved 648.000,114.286 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 777x735 rolled nil (saved 1216.571,114.286 444.000x420.000 tab loot drawer false)
+ZEDQA cu FAIL closed rolled (controller Y hold) reference back on its tab World: got 2129,200 1617x46 want 2129,200 1617x735 (dx 0 dy 0 dw 0 dh -689)
+ZEDQA cu closed rolled (controller Y hold) World before roll: Character 294,200 1617x46 rolled nil (saved 648.000,114.286 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 1617x46 rolled nil (saved 1216.571,114.286 444.000x420.000 tab maps drawer true)
+ZEDQA cu FAIL closed rolled (controller Y hold) World roll button: none
+ZEDQA cu FAIL closed rolled (controller Y hold) World rolled: rods in UI 0
+ZEDQA cu ok closed rolled (controller Y hold) World window closed
+ZEDQA cu FAIL closed rolled (controller Y hold) World rod gone: rod visible nil, rods in UI 0
+ZEDQA cu closed rolled (controller Y hold) World reopened: Character 294,200 1617x735 rolled nil (saved 648.000,114.286 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 777x735 rolled nil (saved 1216.571,114.286 444.000x420.000 tab loot drawer false)
+ZEDQA cu ok closed rolled (controller Y hold) World reopened unrolled (rolled nil, rods in UI 0)
+ZEDQA cu ok closed rolled (controller Y hold) reopened as unrolled World 2129,200 777x735
+ZEDQA cu ok closed rolled (controller Y hold) reopened: other Character 294,200 1617x735
+ZEDQA cu closed rolled (inventory key) Character reference, closed and reopened unrolled: Character 294,200 1617x735 rolled nil (saved 648.000,114.286 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 777x735 rolled nil (saved 1216.571,114.286 444.000x420.000 tab loot drawer false)
+ZEDQA cu FAIL closed rolled (inventory key) reference back on its tab Character: got 294,200 1617x735 want 294,200 1617x46 (dx 0 dy 0 dw 0 dh 689)
+ZEDQA cu closed rolled (inventory key) Character before roll: Character 294,200 1617x735 rolled nil (saved 648.000,114.286 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 777x735 rolled nil (saved 1216.571,114.286 444.000x420.000 tab loot drawer false)
+ZEDQA cu FAIL closed rolled (inventory key) Character rolled: rods in UI 0
+ZEDQA cu ok closed rolled (inventory key) Character window closed
+ZEDQA cu FAIL closed rolled (inventory key) Character rod gone: rod visible nil, rods in UI 0
+ZEDQA cu closed rolled (inventory key) Character reopened: Character 294,200 1617x735 rolled nil (saved 648.000,114.286 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 777x735 rolled nil (saved 1216.571,114.286 444.000x420.000 tab loot drawer false)
+ZEDQA cu ok closed rolled (inventory key) Character reopened unrolled (rolled nil, rods in UI 0)
+ZEDQA cu ok closed rolled (inventory key) reopened as unrolled Character 294,200 1617x735
+ZEDQA cu ok closed rolled (inventory key) reopened: other World 2129,200 777x735
+ZEDQA cu closed rolled (close box) Character reference, closed and reopened unrolled: Character 294,200 1617x735 rolled nil (saved 648.000,114.286 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 777x46 rolled nil (saved 1216.571,114.286 444.000x420.000 tab loot drawer false)
+ZEDQA cu FAIL closed rolled (close box) reference back on its tab Character: got 294,200 1617x735 want 294,200 1617x46 (dx 0 dy 0 dw 0 dh 689)
+ZEDQA cu closed rolled (close box) Character before roll: Character 294,200 1617x735 rolled nil (saved 648.000,114.286 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 777x46 rolled nil (saved 1216.571,114.286 444.000x420.000 tab loot drawer false)
+ZEDQA cu ok closed rolled (close box) Character rolled (rods in UI 1)
+ZEDQA cu ok closed rolled (close box) Character window closed
+ZEDQA cu ok closed rolled (close box) Character rod gone (rod visible false, rods in UI 0)
+ZEDQA cu closed rolled (close box) Character reopened: Character 294,200 1617x735 rolled nil (saved 648.000,114.286 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 777x46 rolled nil (saved 1216.571,114.286 444.000x420.000 tab loot drawer false)
+ZEDQA cu ok closed rolled (close box) Character reopened unrolled (rolled nil, rods in UI 0)
+ZEDQA cu ok closed rolled (close box) reopened as unrolled Character 294,200 1617x735
+ZEDQA cu ok closed rolled (close box) reopened: other World 2129,200 777x46
+ZEDQA cu closed rolled (controller Y hold) Character reference, closed and reopened unrolled: Character 294,200 1617x735 rolled nil (saved 648.000,114.286 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 777x735 rolled nil (saved 1216.571,114.286 444.000x420.000 tab loot drawer false)
+ZEDQA cu ok closed rolled (controller Y hold) reference back on its tab Character 294,200 1617x735
+ZEDQA cu closed rolled (controller Y hold) Character before roll: Character 294,200 1617x735 rolled nil (saved 648.000,114.286 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 777x735 rolled nil (saved 1216.571,114.286 444.000x420.000 tab loot drawer false)
+ZEDQA cu FAIL closed rolled (controller Y hold) Character rolled: rods in UI 0
+ZEDQA cu ok closed rolled (controller Y hold) Character window closed
+ZEDQA cu FAIL closed rolled (controller Y hold) Character rod gone: rod visible nil, rods in UI 0
+ZEDQA cu closed rolled (controller Y hold) Character reopened: Character 294,200 1617x735 rolled nil (saved 648.000,114.286 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 777x735 rolled nil (saved 1216.571,114.286 444.000x420.000 tab loot drawer false)
+ZEDQA cu ok closed rolled (controller Y hold) Character reopened unrolled (rolled nil, rods in UI 0)
+ZEDQA cu ok closed rolled (controller Y hold) reopened as unrolled Character 294,200 1617x735
+ZEDQA cu ok closed rolled (controller Y hold) reopened: other World 2129,200 777x735
+ZEDQA cu World tabs: on maps 2129,200 1617x46 (other 294,200 1617x46)
+ZEDQA cu ok tab forage reference, back on maps World 2129,200 1617x46
+ZEDQA cu FAIL tab forage World roll button: none
+ZEDQA cu FAIL tab forage World rolled before the press
+ZEDQA cu FAIL tab forage World still rolled on the tab: tab forage
+ZEDQA cu ok tab forage rolled World 2129,200 1617x46
+ZEDQA cu ok tab forage World unrolled (rods in UI 0)
+ZEDQA cu ok tab forage unrolled World 2129,200 1617x46
+ZEDQA cu ok tab forage unrolled: other Character 294,200 1617x46
+ZEDQA cu ok tab forage back on maps World 2129,200 1617x46
+ZEDQA cu ok tab craft reference, back on maps World 2129,200 1617x46
+ZEDQA cu FAIL tab craft World roll button: none
+ZEDQA cu FAIL tab craft World rolled before the press
+ZEDQA cu FAIL tab craft World still rolled on the tab: tab craft
+ZEDQA cu ok tab craft rolled World 2129,200 1617x46
+ZEDQA cu ok tab craft World unrolled (rods in UI 0)
+ZEDQA cu ok tab craft unrolled World 2129,200 1617x46
+ZEDQA cu ok tab craft unrolled: other Character 294,200 1617x46
+ZEDQA cu ok tab craft back on maps World 2129,200 1617x46
+ZEDQA cu ok tab build reference, back on maps World 2129,200 1617x46
+ZEDQA cu FAIL tab build World roll button: none
+ZEDQA cu FAIL tab build World rolled before the press
+ZEDQA cu FAIL tab build World still rolled on the tab: tab build
+ZEDQA cu ok tab build rolled World 2129,200 1617x46
+ZEDQA cu ok tab build World unrolled (rods in UI 0)
+ZEDQA cu ok tab build unrolled World 2129,200 1617x46
+ZEDQA cu ok tab build unrolled: other Character 294,200 1617x46
+ZEDQA cu ok tab build back on maps World 2129,200 1617x46
+ZEDQA cu ok tab furniture reference, back on maps World 2129,200 1617x46
+ZEDQA cu FAIL tab furniture World roll button: none
+ZEDQA cu FAIL tab furniture World rolled before the press
+ZEDQA cu FAIL tab furniture World still rolled on the tab: tab furniture
+ZEDQA cu ok tab furniture rolled World 2129,200 1617x46
+ZEDQA cu ok tab furniture World unrolled (rods in UI 0)
+ZEDQA cu ok tab furniture unrolled World 2129,200 1617x46
+ZEDQA cu ok tab furniture unrolled: other Character 294,200 1617x46
+ZEDQA cu ok tab furniture back on maps World 2129,200 1617x46
+ZEDQA cu ok tab animals reference, back on maps World 2129,200 1617x46
+ZEDQA cu FAIL tab animals World roll button: none
+ZEDQA cu FAIL tab animals World rolled before the press
+ZEDQA cu FAIL tab animals World still rolled on the tab: tab animals
+ZEDQA cu ok tab animals rolled World 2129,200 1617x46
+ZEDQA cu ok tab animals World unrolled (rods in UI 0)
+ZEDQA cu ok tab animals unrolled World 2129,200 1617x46
+ZEDQA cu ok tab animals unrolled: other Character 294,200 1617x46
+ZEDQA cu ok tab animals back on maps World 2129,200 1617x46
+ZEDQA cu tab radio World: not shown here, skipped
+ZEDQA cu ok tab vehicle reference, back on maps World 2129,200 1617x46
+ZEDQA cu FAIL tab vehicle World roll button: none
+ZEDQA cu FAIL tab vehicle World rolled before the press
+ZEDQA cu FAIL tab vehicle World still rolled on the tab: tab vehicle
+ZEDQA cu ok tab vehicle rolled World 2129,200 1617x46
+ZEDQA cu ok tab vehicle World unrolled (rods in UI 0)
+ZEDQA cu ok tab vehicle unrolled World 2129,200 1617x46
+ZEDQA cu ok tab vehicle unrolled: other Character 294,200 1617x46
+ZEDQA cu ok tab vehicle back on maps World 2129,200 1617x46
+ZEDQA cu FAIL forage and back World still rolled: tab maps
+ZEDQA cu ok forage and back rolled World 2129,200 1617x46
+ZEDQA cu ok forage and back, unrolled World 2129,200 1617x46
+ZEDQA cu World Loot (unrolled) 2129,200 777x46
+ZEDQA cu FAIL Loot reference, back on maps World: got 2129,200 777x46 want 2129,200 1617x46 (dx 0 dy 0 dw -840 dh 0)
+ZEDQA cu FAIL Loot World rolled before the press
+ZEDQA cu ok Loot World side down with the press (rolled nil tab loot rods in UI 0)
+ZEDQA cu ok Loot while rolled World 2129,200 777x46
+ZEDQA cu ok Loot while rolled: other Character 294,200 1617x46
+ZEDQA cu FAIL Loot while rolled, back on maps World: got 2129,200 777x46 want 2129,200 1617x46 (dx 0 dy 0 dw -840 dh 0)
+ZEDQA cu FAIL maps again World rolled before the press
+ZEDQA cu ok maps again World side down (rolled nil)
+ZEDQA cu ok maps pressed again while rolled World 2129,200 777x46
+ZEDQA cu FAIL maps again, back on maps World: got 2129,200 777x46 want 2129,200 1617x46 (dx 0 dy 0 dw -840 dh 0)
+ZEDQA cu Character tabs: on health 294,200 1617x46 (other 2129,200 777x46)
+ZEDQA cu ok tab skills reference, back on health Character 294,200 1617x46
+ZEDQA cu FAIL tab skills Character roll button: none
+ZEDQA cu FAIL tab skills Character rolled before the press
+ZEDQA cu FAIL tab skills Character still rolled on the tab: tab skills
+ZEDQA cu ok tab skills rolled Character 294,200 1617x46
+ZEDQA cu ok tab skills Character unrolled (rods in UI 0)
+ZEDQA cu ok tab skills unrolled Character 294,200 1617x46
+ZEDQA cu ok tab skills unrolled: other World 2129,200 777x46
+ZEDQA cu ok tab skills back on health Character 294,200 1617x46
+ZEDQA cu ok tab equip reference, back on health Character 294,200 1617x46
+ZEDQA cu FAIL tab equip Character roll button: none
+ZEDQA cu FAIL tab equip Character rolled before the press
+ZEDQA cu FAIL tab equip Character still rolled on the tab: tab equip
+ZEDQA cu ok tab equip rolled Character 294,200 1617x46
+ZEDQA cu ok tab equip Character unrolled (rods in UI 0)
+ZEDQA cu ok tab equip unrolled Character 294,200 1617x46
+ZEDQA cu ok tab equip unrolled: other World 2129,200 777x46
+ZEDQA cu ok tab equip back on health Character 294,200 1617x46
+ZEDQA cu ok tab thermal reference, back on health Character 294,200 1617x46
+ZEDQA cu FAIL tab thermal Character roll button: none
+ZEDQA cu FAIL tab thermal Character rolled before the press
+ZEDQA cu FAIL tab thermal Character still rolled on the tab: tab thermal
+ZEDQA cu ok tab thermal rolled Character 294,200 1617x46
+ZEDQA cu ok tab thermal Character unrolled (rods in UI 0)
+ZEDQA cu ok tab thermal unrolled Character 294,200 1617x46
+ZEDQA cu ok tab thermal unrolled: other World 2129,200 777x46
+ZEDQA cu ok tab thermal back on health Character 294,200 1617x46
+ZEDQA cu ok tab identity reference, back on health Character 294,200 1617x46
+ZEDQA cu FAIL tab identity Character roll button: none
+ZEDQA cu FAIL tab identity Character rolled before the press
+ZEDQA cu FAIL tab identity Character still rolled on the tab: tab identity
+ZEDQA cu ok tab identity rolled Character 294,200 1617x46
+ZEDQA cu ok tab identity Character unrolled (rods in UI 0)
+ZEDQA cu ok tab identity unrolled Character 294,200 1617x46
+ZEDQA cu ok tab identity unrolled: other World 2129,200 777x46
+ZEDQA cu ok tab identity back on health Character 294,200 1617x46
+ZEDQA cu ok tab journal reference, back on health Character 294,200 1617x46
+ZEDQA cu FAIL tab journal Character roll button: none
+ZEDQA cu FAIL tab journal Character rolled before the press
+ZEDQA cu FAIL tab journal Character still rolled on the tab: tab journal
+ZEDQA cu ok tab journal rolled Character 294,200 1617x46
+ZEDQA cu ok tab journal Character unrolled (rods in UI 0)
+ZEDQA cu ok tab journal unrolled Character 294,200 1617x46
+ZEDQA cu ok tab journal unrolled: other World 2129,200 777x46
+ZEDQA cu ok tab journal back on health Character 294,200 1617x46
+ZEDQA cu tab radio Character: not shown here, skipped
+ZEDQA cu FAIL skills and back Character still rolled: tab health
+ZEDQA cu ok skills and back rolled Character 294,200 1617x46
+ZEDQA cu ok skills and back, unrolled Character 294,200 1617x46
+ZEDQA cu Character Loot (unrolled) 1134,200 777x46
+ZEDQA cu FAIL Loot reference, back on health Character: got 1134,200 777x46 want 294,200 1617x46 (dx 840 dy 0 dw -840 dh 0)
+ZEDQA cu FAIL Loot Character rolled before the press
+ZEDQA cu ok Loot Character side down with the press (rolled nil tab loot rods in UI 0)
+ZEDQA cu ok Loot while rolled Character 1134,200 777x46
+ZEDQA cu ok Loot while rolled: other World 2129,200 777x46
+ZEDQA cu FAIL Loot while rolled, back on health Character: got 1134,200 777x46 want 294,200 1617x46 (dx 840 dy 0 dw -840 dh 0)
+ZEDQA cu FAIL health again Character rolled before the press
+ZEDQA cu ok health again Character side down (rolled nil)
+ZEDQA cu ok health pressed again while rolled Character 1134,200 777x46
+ZEDQA cu FAIL health again, back on health Character: got 1134,200 777x46 want 294,200 1617x46 (dx 840 dy 0 dw -840 dh 0)
+ZEDQA cu geometry checks 235, differences 85
+ZEDQA cu at quit, unrolled: Character 1134,200 777x46 rolled nil (saved 648.000,114.286 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 777x46 rolled nil (saved 1216.571,114.286 444.000x420.000 tab maps drawer true)
+ZEDQA cu at quit, rolled: Character 1134,200 777x46 rolled nil (saved 648.000,114.286 444.000x420.000 anchor 1092.000 tab health drawer true) | World 2129,200 777x46 rolled nil (saved 1216.571,114.286 444.000x420.000 tab maps drawer true)
+ZEDQA cu DONE
+```
+
+### 3. zedqa_doll_v4.lua (`ZEDQA dollv4`) - FAIL, 17 s
+
+- go 23361 at 22:31:43
+- 1 Java exception(s) in the log
+- 34 ERR line(s)
+- screenshots: zqa_dollv4_3840x2160_wide.png, zqa_dollv4_3840x2160_dpad.png, zqa_dollv4_3840x2160_wide_pads.png, zqa_dollv4_3840x2160_card.png, zqa_dollv4_3840x2160_narrow.png
+
+```text
+[ZeD.QA] state #3 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=36 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA dollv4 start
+[ZeD.QA] run #3 ok=true
+ZEDQA dollv4 round 1: wearing 21 of 21
+ZEDQA dollv4 PASS 38 small slots defined | 38
+ZEDQA dollv4 FAIL wide: bands show | drawer 0px = 0 units, screen 3840x2160
+ZEDQA dollv4 FAIL wide: 49 slot boxes (11 big + 38 small) | 0
+ZEDQA dollv4 PASS wide: no slot overlaps another
+ZEDQA dollv4 PASS wide: every box inside the drawer's width | 840
+ZEDQA dollv4 PASS wide: the drawer is no wider than the full card (480 units) | 0.0 units
+ZEDQA dollv4 FAIL wide: a small slot is 14 units or more on screen
+ZEDQA dollv4 PASS wide: no leader lines | 0 lines
+ZEDQA dollv4 FAIL wide: Back at the top right above Belt, Arms on the left with Head
+ZEDQA dollv4 PASS every group name and place name has its words |
+ZEDQA dollv4 PASS round 1 wide: every worn thing lands in its small slot (21 on) |
+ZEDQA dollv4 FAIL round 1 wide: each has a card zone doll:<slot> | belly,airtank,tail,satchel,lring,rmiddle,wristl,elbowr,forearmr,kneer,thighl,shinl,gaiterr,fpfront,ammo,beltholster,ankleholster,necklace,gorget,ears,nose
+ZEDQA dollv4 PASS round 1 folded (data): every worn thing lands in its big slot (21 on) |
+ZEDQA dollv4 PASS belly button ring, air tank, tail in their small slots
+ZEDQA dollv4 empties 0, slots with things 0
+ZEDQA dollv4 FAIL charTabContent zone exists with the doll's stops | 0
+ZEDQA dollv4 FAIL Left from Neck steps into the left band
+ZEDQA dollv4 FAIL Right from the band's inner edge returns to a big slot
+ZEDQA dollv4 FAIL Right from Belt steps into the right band
+ZEDQA dollv4 FAIL Left from the right band's inner edge returns to a big slot
+ZEDQA dollv4 FAIL the doll's moves reach all 38 small slots | 0 missed ears,eartop,nose,necklace,necklacelong,gorget,padl,padr,padsport,elbowl,elbowr,wristl,wristr,forearml,forearmr,belly,holster,lmiddle,lring,rmiddle,rring,satchel,airtank,tail,fpfront,fpback,webbing,ammo,beltholster,kneel,kneer,thighl,thighr,shinl,shinr,gaiterl,gaiterr,ankleholster
+ZEDQA dollv4 FAIL and all 11 big slots (Up / Down in a column are the cone's) | 0 missed head,eyes,neck,torso,outer,hands,back,arms,belt,legs,feet
+ZEDQA dollv4 PASS the outer edge of each band row leaves the doll (18 rows)
+ZEDQA dollv4 dispatch Right from belt -> container:1
+ZEDQA dollv4 then Down -> container:2
+ZEDQA dollv4 dispatch Left from the left band's outer edge -> invrow:1
+ZEDQA dollv4 PASS the real Left at the outer edge does not land on another doll slot | invrow:1
+ZEDQA dollv4 round 2: wearing 1 of 1
+ZEDQA dollv4 PASS round 2 wide: every worn thing lands in its small slot (21 on) |
+ZEDQA dollv4 PASS the sport pads worn on top show in their small slot
+ZEDQA dollv4 PASS the air tank is gone from its slot
+ZEDQA dollv4 PASS a second layer shows as a count (2) | 2
+ZEDQA dollv4 FAIL pad stop for the filled small slot
+ZEDQA dollv4 FAIL A opens the small slot's card (outermost first) | nil item nil layer nil/nil
+ZEDQA dollv4 FAIL its outermost layer is the pair worn on top
+ZEDQA dollv4 FAIL Inner steps to layer 2
+ZEDQA dollv4 round 3: wearing 1 of 1
+ZEDQA dollv4 PASS round 3 wide: every worn thing lands in its small slot (20 on) |
+ZEDQA dollv4 FAIL round 3 wide: each has a card zone doll:<slot> | belly,tail,satchel,lring,rmiddle,wristl,elbowr,forearmr,kneer,thighl,shinl,gaiterr,ammo,beltholster,ankleholster,necklace,gorget,ears,nose,webbing
+ZEDQA dollv4 PASS round 3 folded (data): every worn thing lands in its big slot (20 on) |
+ZEDQA dollv4 round 4: wearing 2 of 2
+ZEDQA dollv4 PASS round 4 wide: every worn thing lands in its small slot (21 on) |
+ZEDQA dollv4 FAIL round 4 wide: each has a card zone doll:<slot> | belly,tail,satchel,lring,rmiddle,wristl,elbowr,forearmr,kneer,thighl,shinl,gaiterr,ammo,beltholster,ankleholster,necklace,gorget,ears,nose,padl,padr
+ZEDQA dollv4 PASS round 4 folded (data): every worn thing lands in its big slot (21 on) |
+ZEDQA dollv4 round 5: wearing 1 of 1
+ZEDQA dollv4 PASS round 5 wide: every worn thing lands in its small slot (20 on) |
+ZEDQA dollv4 FAIL round 5 wide: each has a card zone doll:<slot> | belly,tail,satchel,lring,rmiddle,wristl,elbowr,forearmr,kneer,thighl,shinl,gaiterr,ammo,beltholster,ankleholster,necklace,gorget,ears,nose,holster
+ZEDQA dollv4 PASS round 5 folded (data): every worn thing lands in its big slot (20 on) |
+ZEDQA dollv4 FAIL a cap dropped on Head is taken | no rect | loc base:hat
+ZEDQA dollv4 FAIL a cap dropped on a small slot that is not its place is refused
+ZEDQA dollv4 FAIL a ring dropped on the wrong small slot is refused
+ZEDQA dollv4 FAIL a ring dropped on its slot is taken | no rect
+ZEDQA dollv4 FAIL the ring was put on (vanilla's wear action ran)
+ZEDQA dollv4 FAIL the cap was put on
+ZEDQA dollv4 FAIL narrow: bands folded | drawer 0px = 0 units, screen 3840x2160
+ZEDQA dollv4 FAIL narrow: 11 big slot boxes, no small ones | 0
+ZEDQA dollv4 PASS narrow: no slot overlaps another
+ZEDQA dollv4 PASS narrow: every box inside the drawer's width | 840
+ZEDQA dollv4 PASS narrow: the drawer is no wider than the full card (480 units) | 0.0 units
+ZEDQA dollv4 PASS narrow: no leader lines | 0 lines
+ZEDQA dollv4 FAIL narrow: Back, Arms, Belt in that order down the right
+ZEDQA dollv4 PASS narrow: every worn thing lands in its big slot (20 on) |
+ZEDQA dollv4 FAIL narrow: each has a card zone doll:<slot> | belly,tail,satchel,lring,rmiddle,wristl,elbowr,forearmr,kneer,thighl,shinl,gaiterr,ammo,beltholster,ankleholster,necklace,gorget,ears,nose,holster
+ZEDQA dollv4 PASS narrow: no small-slot zone left | 0
+ZEDQA dollv4 narrow: Arms layers 3, Back 2, Legs 5, Belt 4, Hands 3
+ZEDQA dollv4 FAIL narrow: Back's card shows the folded layers (tail, satchel) | layers nil
+ZEDQA dollv4 FAIL short: the doll was measured
+ZEDQA dollv4 FAIL short: the bands still show
+ZEDQA dollv4 FAIL short: the small slots shrank (under 18 units, 14 or more) | 0.0 units
+ERROR: General f:15615 at KahluaThread.flushErrorMessage > -------------------------------------------------------------
+    attempted index: w of non-table: null
+ERROR: General f:15615> Lua(Vanilla).whenStill> Exception thrown
+    java.lang.RuntimeException: attempted index: w of non-table: null at KahluaThread.tableget(KahluaThread.java:1430).
+    Lua(Vanilla).whenStill(worldmap-annotations.lua:534)
+    Lua(Vanilla).poll(worldmap-annotations.lua:51)
+    Lua(Vanilla).onTick(worldmap-annotations.lua:567)
+ZEDQA dollv4 ERR step 248 attempted index: w of non-table: null java.lang.RuntimeException
+ZEDQA dollv4 passed 27, failed 33 | DONE
+```
+
+## Console errors outside scripts
+
+ERROR lines from launch to quit that fall in no script's window, once each (count first).
+
+```text
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont_0.png
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont2_0.png
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/fonts/zomboidDialogue.bmfc_0.png
+    2x ERROR: General f:N at FluidContainerScript.load > Sanitizing container name 'Large Bucket', name may not contain whitespaces.
+    2x ERROR: General f:N at FluidContainerScript.load > Sanitizing container name 'Fuel Pump', name may not contain whitespaces.
+    1x ERROR: General f:N at CraftRecipeComponentScript.getIconTexture> CraftRecipeComponentScript: Recipe Piano missing UiConfigScript - falling back to SpriteConfigScript first world object face for recipe icon.
+    1x ERROR: Lua f:N at Lua(Vanilla).handleMannequinZone > ERROR: Mannequin zone missing properties in media/maps/Muldraugh, KY/objects.lua coords: 13583, 1299, 0
+    1x ERROR: General f:N at Basements.mergeRoomsOntoMetaCell > duplicate RoomDef.metaID for room at 10707,9484,0
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #231 in cell 25,33 while reading map_meta.bin
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #327914 in cell 25,33 while reading map_meta.bin
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #327911 in cell 25,33 while reading map_meta.bin
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #655594 in cell 25,33 while reading map_meta.bin
+    2x ERROR: General f:N at LuaManager.getFunctionObject > no such function "Vehicles.Init.Radio"
+```

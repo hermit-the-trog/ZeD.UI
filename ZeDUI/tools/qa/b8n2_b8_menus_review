@@ -1,0 +1,170 @@
+# ZeD-UI regression - 2026-11-07 23:50 - fullscreen4k (3840x2160 fullscreen)
+
+| | |
+|---|---|
+| Started | 2026-11-07 23:50:25 |
+| Finished | 2026-11-07 23:52:41 (2 min 16 s) |
+| Mode | fullscreen4k (3840x2160 fullscreen) |
+| Display | fullScreen=true height=2160 width=3840 |
+| Game build | 42.21.0 4a0e9546ec |
+| Mod version | 0.3.0-beta7 |
+| Save | Saves/Sandbox/ZeD-QA |
+| Manifest | C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\tools\qa\b8_menus_review.txt (5 scripts) |
+| Result | **2/5 pass**, 3 warn, 0 fail, 0 timeout |
+| Go numbers | 23489 to 23495 |
+
+Screenshots are in `C:/Users/you/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
+
+## Run notes
+
+- ZeD settings: UI scale 1.75x (4K), additions Vanilla Plus (all on, Restock Casual) (the director's ModOptions.ini kept aside)
+- pzrestorewin.ps1 (before a fullscreen run): no backup
+- started ProjectZomboid64.exe -debug -nosteam (fullscreen, the director's options.ini)
+- loaded; clicked the screen centre (1920,1080) to pass 'click to start'
+- the bridge armed in game on Saves/Sandbox/ZeD-QA
+- quit: quit to the main menu, then to the desktop (go 23494, 23495)
+- ZeD settings: the director's ModOptions.ini put back
+
+## Results
+
+| # | Script | Tag | Status | Seconds | Screenshots | Notes |
+|---:|---|---|---|---:|---|---|
+| 1 | zedqa_prelude.lua | pre | PASS | 2 |  |  |
+| 2 | zedqa_pin_windows.lua | pnw | PASS | 1 |  |  |
+| 3 | zedqa_b8_cards.lua | b8cd | WARN | 13 | zqa_b8_cd_journal_question_card.png, zqa_b8_cd_journal_save_card.png, zqa_b8_cd_craft_tab.png, zqa_b8_cd_prompt.png | 1 ERR line(s) |
+| 4 | zedqa_b8_windows.lua | b8vw | WARN | 18 | zqa_b8_vw_b8_read_label.png, zqa_b8_vw_b14_character_window_while_paused.png, zqa_b8_vw_character_info_health_view.png, zqa_b8_vw_character_info_skills_view.png, zqa_b8_vw_world_map_m_.png, zqa_b8_vw_crafting_window.png, zqa_b8_vw_b1_carried_radio.png, zqa_b8_vw_b2_paper_map.png | 2 ERR line(s) |
+| 5 | zedqa_b8_dash.lua | b8dk | WARN | 8 | zqa_b8_dk_metric.png, zqa_b8_dk_imperial.png | 1 ERR line(s) |
+
+## Scripts
+
+### 1. zedqa_prelude.lua (`ZEDQA pre`) - PASS, 2 s
+
+- go 23489 at 23:51:22
+
+```text
+[ZeD.QA] state #1 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=37 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA pre start
+[ZeD.QA] run #1 ok=true
+ZEDQA pre char true world true speed 1 ticks 60 frames 61
+ZEDQA pre search overlay: enabled false, override false, manager false
+ZEDQA pre DONE
+```
+
+### 2. zedqa_pin_windows.lua (`ZEDQA pnw`) - PASS, 1 s
+
+- go 23490 at 23:51:27
+
+```text
+[ZeD.QA] state #2 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=37 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA pnw pinned both windows
+[ZeD.QA] run #2 ok=true
+ZEDQA pnw DONE
+```
+
+### 3. zedqa_b8_cards.lua (`ZEDQA b8cd`) - WARN, 13 s
+
+- go 23491 at 23:51:31
+- 1 ERR line(s)
+- screenshots: zqa_b8_cd_journal_question_card.png, zqa_b8_cd_journal_save_card.png, zqa_b8_cd_craft_tab.png, zqa_b8_cd_prompt.png
+
+```text
+[ZeD.QA] state #3 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=37 missing=get
+[ZeD.QA] windows reset (R)
+[ZeD.QA] run #3 ok=true
+ZEDQA b8cd PASS bandRoom with no card keeps the whole band (100,500)
+ZEDQA b8cd PASS bandRoom with a card over the right keeps the left part (100,300)
+ZEDQA b8cd PASS bandRoom with a card over the left keeps the right part (250,500)
+ZEDQA b8cd PASS bandRoom with less room than the band needs keeps the whole band (100,500)
+ZEDQA b8cd journal tab: active journal, mode tab
+ZEDQA b8cd PASS item 2: the Journal tab is open
+ZEDQA b8cd item card over the Journal: Belt
+ZEDQA b8cd card edge (drawer px) 455, bandRoom calls under a card 68, room 0 to 455
+ZEDQA b8cd PASS item 2: the band asks bandRoom while a card is open
+ZEDQA b8cd Cancel x 192..309, Delete x 323..441
+ZEDQA b8cd PASS item 2: Cancel lies left of the card's edge
+ZEDQA b8cd PASS item 2: Delete lies left of the card's edge
+ZEDQA b8cd Save x 336..441 of the card edge 455
+ZEDQA b8cd PASS item 2: Save lies left of the card's edge
+ZEDQA b8cd PASS item 2: the entry box ends at the card
+ZEDQA b8cd craft recipes in the game: 969
+ZEDQA b8cd start check over 969 of 969 recipes: passed 2, refused 967, no answer 0, passed with a count of 0: 0
+ZEDQA b8cd PASS item 8: every recipe was asked
+ZEDQA b8cd PASS item 8: the game answers the start check (not every answer nil)
+ZEDQA b8cd PASS item 8: no recipe passes the start check with a possible count of 0
+ZEDQA b8cd PASS item 8: the check refuses recipes this character cannot make (967)
+ZEDQA b8cd Craft tab: active craft
+ZEDQA b8cd PASS item 5: ZeD.selectDefault exists
+ZEDQA b8cd prompt field holds 'Duffel Bag', default recorded 'Duffel Bag'
+ZEDQA b8cd PASS item 5: the prompt's default is selected as it opens
+ZEDQA b8cd summary: 16 PASS, 0 FAIL
+ZEDQA b8cd DONE
+```
+
+### 4. zedqa_b8_windows.lua (`ZEDQA b8vw`) - WARN, 18 s
+
+- go 23492 at 23:51:48
+- 2 ERR line(s)
+- screenshots: zqa_b8_vw_b8_read_label.png, zqa_b8_vw_b14_character_window_while_paused.png, zqa_b8_vw_character_info_health_view.png, zqa_b8_vw_character_info_skills_view.png, zqa_b8_vw_world_map_m_.png, zqa_b8_vw_crafting_window.png, zqa_b8_vw_b1_carried_radio.png, zqa_b8_vw_b2_paper_map.png
+
+```text
+[ZeD.QA] state #4 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=37 missing=get
+[ZeD.QA] windows reset (R)
+[ZeD.QA] run #4 ok=true
+ZEDQA b8vw PASS B8 Read label (B8) | expected ZeD | ZeD: ZeD reader | game: -
+ZEDQA b8vw PASS B14 Character window while paused (B14) | expected ZeD | ZeD: Character window (tab loot) | game: -
+ZEDQA b8vw PASS Character info: Health view (HOOK_MAP Character info) | expected ZeD | ZeD: Character window (tab health), World window (tab loot) | game: -
+ZEDQA b8vw PASS Character info: Skills view (HOOK_MAP Character info) | expected ZeD | ZeD: Character window (tab skills), World window (tab loot) | game: -
+ZEDQA b8vw PASS World map (M) (HOOK_MAP World map) | expected ZeD | ZeD: World window (tab maps) | game: -
+ZEDQA b8vw PASS Crafting window (HOOK_MAP Crafting) | expected ZeD | ZeD: World window (tab craft) | game: -
+ZEDQA b8vw B1 radio item: Base.WalkieTalkie2
+ZEDQA b8vw FAIL B1 Carried radio (B1) | expected ZeD | ZeD: - | game: -
+ZEDQA b8vw B2 map item: Base.LouisvilleMap1
+ZEDQA b8vw PASS B2 Paper map (B2) | expected ZeD | ZeD: World window (tab loot) | game: -
+ZEDQA b8vw PASS B7 Mini-map | expected gone | the game's mini-map window visible: false
+ZEDQA b8vw summary: 8 PASS, 1 FAIL, 0 not run
+ZEDQA b8vw DONE
+```
+
+### 5. zedqa_b8_dash.lua (`ZEDQA b8dk`) - WARN, 8 s
+
+- go 23493 at 23:52:10
+- 1 ERR line(s)
+- screenshots: zqa_b8_dk_metric.png, zqa_b8_dk_imperial.png
+
+```text
+[ZeD.QA] state #5 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=37 missing=get
+[ZeD.QA] windows reset (R)
+[ZeD.QA] run #5 ok=true
+ZEDQA b8dk PASS D.plainSpeed exists
+ZEDQA b8dk PASS Imperial: 60 mph reads 60 with UI_ZeD_DashPlain_Mph
+ZEDQA b8dk PASS Metric: 96.6 km/h reads 97 with UI_ZeD_DashPlain_Kmh
+ZEDQA b8dk the km/h key reads 'km/h' in this language, the mph key 'mph'
+ZEDQA b8dk PASS the km/h key has a translation
+ZEDQA b8dk PASS Metric: the Simple strip asks for km/h (1 calls, metric true)
+ZEDQA b8dk PASS Imperial: the Simple strip asks for mph (2 calls, metric false)
+ZEDQA b8dk units put back: Metric, dash look 1
+ZEDQA b8dk summary: 6 PASS, 0 FAIL
+ZEDQA b8dk DONE
+```
+
+## Console errors outside scripts
+
+ERROR lines from launch to quit that fall in no script's window, once each (count first).
+
+```text
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont_0.png
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont2_0.png
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/fonts/zomboidDialogue.bmfc_0.png
+    2x ERROR: General f:N at FluidContainerScript.load > Sanitizing container name 'Large Bucket', name may not contain whitespaces.
+    2x ERROR: General f:N at FluidContainerScript.load > Sanitizing container name 'Fuel Pump', name may not contain whitespaces.
+    1x ERROR: General f:N at CraftRecipeComponentScript.getIconTexture> CraftRecipeComponentScript: Recipe Piano missing UiConfigScript - falling back to SpriteConfigScript first world object face for recipe icon.
+    1x ERROR: Lua f:N at Lua(Vanilla).handleMannequinZone > ERROR: Mannequin zone missing properties in media/maps/Muldraugh, KY/objects.lua coords: 13583, 1299, 0
+    1x ERROR: General f:N at Basements.mergeRoomsOntoMetaCell > duplicate RoomDef.metaID for room at 10707,9484,0
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #231 in cell 25,33 while reading map_meta.bin
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #327914 in cell 25,33 while reading map_meta.bin
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #327911 in cell 25,33 while reading map_meta.bin
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #655594 in cell 25,33 while reading map_meta.bin
+    2x ERROR: General f:N at LuaManager.getFunctionObject > no such function "Vehicles.Init.Radio"
+```

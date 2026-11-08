@@ -4,6 +4,7 @@
 # The main menu pieces are in b8_menus_review_mainmenu.txt and run LAST (they need the game started to the main menu); the
 # multiplayer pieces are in b8_menus_review_mp.txt.
 zedqa_prelude.lua | pre | timeout=120
+zedqa_pin_windows.lua | pnw | timeout=60   # pins both windows: unpinned ones roll up when the mouse is away (Nov 8 QA)
 zedqa_b8_cards.lua | b8cd | timeout=240
 zedqa_b8_windows.lua | b8vw | timeout=240
 zedqa_b8_dash.lua | b8dk | timeout=240

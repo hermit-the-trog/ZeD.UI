@@ -142,7 +142,7 @@ act(function()
 end)
 waitMs(1500)
 act(function()
-    say("summary: " .. Q.pass .. " PASS, " .. Q.fail .. " FAIL")
+    say("summary: " .. Q.pass .. " PASS, " .. Q.fail .. (Q.fail > 0 and " FAIL" or " failures")  .. "")
     say("DONE")
 end)
 

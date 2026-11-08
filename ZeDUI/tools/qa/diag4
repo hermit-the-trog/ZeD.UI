@@ -1,0 +1,314 @@
+# ZeD-UI regression - 2026-11-08 00:17 - fullscreen4k (3840x2160 fullscreen)
+
+| | |
+|---|---|
+| Started | 2026-11-08 00:17:40 |
+| Finished | 2026-11-08 00:20:03 (2 min 22 s) |
+| Mode | fullscreen4k (3840x2160 fullscreen) |
+| Display | fullScreen=true height=2160 width=3840 |
+| Game build | 42.21.0 4a0e9546ec |
+| Mod version | 0.3.0-beta7 |
+| Save | Saves/Sandbox/ZeD-QA |
+| Manifest | C:\Users\you\Zomboid\mods\ZeD-UI\ZeDUI\tools\qa\diag4.txt (6 scripts) |
+| Result | **4/6 pass**, 2 warn, 0 fail, 0 timeout |
+| Go numbers | 23553 to 23560 |
+
+Screenshots are in `C:/Users/you/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
+
+## Run notes
+
+- ZeD settings: UI scale 1.75x (4K), additions Vanilla Plus (all on, Restock Casual) (the director's ModOptions.ini kept aside)
+- pzrestorewin.ps1 (before a fullscreen run): no backup
+- started ProjectZomboid64.exe -debug -nosteam (fullscreen, the director's options.ini)
+- loaded; clicked the screen centre (1920,1080) to pass 'click to start'
+- the bridge armed in game on Saves/Sandbox/ZeD-QA
+- quit: quit to the main menu, then to the desktop (go 23559, 23560)
+- ZeD settings: the director's ModOptions.ini put back
+
+## Results
+
+| # | Script | Tag | Status | Seconds | Screenshots | Notes |
+|---:|---|---|---|---:|---|---|
+| 1 | zedqa_prelude.lua | pre | PASS | 2 |  |  |
+| 2 | zedqa_pin_windows.lua | pnw | PASS | 1 |  |  |
+| 3 | zedqa_b8_focus.lua | b8fo | WARN | 6 |  | 1 ERR line(s) |
+| 4 | zedqa_b8_everyday_a.lua | b8ea | PASS | 14 | zqa_b8ea_label.png, zqa_b8ea_makeup.png, zqa_b8ea_heater_lit.png, zqa_b8ea_dash_note.png |  |
+| 5 | zedqa_b8_paper_map.lua | b8pm | PASS | 12 | zqa_b8pm_paper_town.png, zqa_b8pm_paper_stash.png, zqa_b8pm_find_on_map.png, zqa_b8pm_safe_mode_map.png |  |
+| 6 | zedqa_b8_console.lua | b8dc | WARN | 10 | zqa_b8dc_open.png, zqa_b8dc_errors.png, zqa_b8dc_handed_back.png | 1 expected exception(s) ignored (expect=); 3 ERR line(s) |
+
+## Scripts
+
+### 1. zedqa_prelude.lua (`ZEDQA pre`) - PASS, 2 s
+
+- go 23553 at 00:18:37
+
+```text
+[ZeD.QA] state #1 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=37 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA pre start
+[ZeD.QA] run #1 ok=true
+ZEDQA pre char true world true speed 1 ticks 60 frames 61
+ZEDQA pre search overlay: enabled false, override false, manager false
+ZEDQA pre DONE
+```
+
+### 2. zedqa_pin_windows.lua (`ZEDQA pnw`) - PASS, 1 s
+
+- go 23554 at 00:18:42
+
+```text
+[ZeD.QA] state #2 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=37 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA pnw pinned both windows
+[ZeD.QA] run #2 ok=true
+ZEDQA pnw DONE
+```
+
+### 3. zedqa_b8_focus.lua (`ZEDQA b8fo`) - WARN, 6 s
+
+- go 23555 at 00:18:46
+- 1 ERR line(s)
+
+```text
+[ZeD.QA] state #3 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=37 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA b8fo start
+[ZeD.QA] run #3 ok=true
+ZEDQA b8fo PASS single player (not a server's client)
+ZEDQA b8fo the game's Pause on Focus Loss reads: false
+ZEDQA b8fo PASS getOptionPauseOnFocusloss is readable
+ZEDQA b8fo PASS the game has speed controls
+ZEDQA b8fo speed controls: visible true, y -4000; clock: visible false, y -4000
+ZEDQA b8fo the watch screen switch reads item 1 (1 = ZeD's)
+ZEDQA b8fo a watch is installed: nil
+ZEDQA b8fo PASS Pause on Focus Loss set On by hand
+ZEDQA b8fo PASS option On: the speed controls stayed visible = true and parked over 6 frames
+ZEDQA b8fo PASS Pause on Focus Loss set Off by hand
+ZEDQA b8fo PASS option Off: the speed controls stayed visible = true and parked over 6 frames
+ZEDQA b8fo PASS ZeD left the option as set (Off)
+ZEDQA b8fo PASS ZeD left the option as set (On)
+ZEDQA b8fo PASS option On again: the speed controls stayed visible = true and parked over 60 frames
+ZEDQA b8fo watch switch On (the game's own): speed controls: visible true, y -4000; clock: visible false, y -4000
+ZEDQA b8fo a second later: speed controls: visible true, y -4000; clock: visible false, y -4000
+ZEDQA b8fo diag: Safe.on('watch') false, W._speedY 10, W._clockY 10, switch 2
+ZEDQA b8fo FAIL watch handed back: the speed controls are on screen again (y -4000)
+ZEDQA b8fo after taking the watch back: speed controls: visible true, y -4000; clock: visible false, y -4000
+ZEDQA b8fo PASS watch taken back: the speed controls parked again, flag still on
+ZEDQA b8fo PASS the game's option is back at false
+ZEDQA b8fo 12 passed, 1 failed
+ZEDQA b8fo DONE
+```
+
+### 4. zedqa_b8_everyday_a.lua (`ZEDQA b8ea`) - PASS, 14 s
+
+- go 23556 at 00:18:56
+- screenshots: zqa_b8ea_label.png, zqa_b8ea_makeup.png, zqa_b8ea_heater_lit.png, zqa_b8ea_dash_note.png
+
+```text
+[ZeD.QA] state #4 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=37 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA b8ea start
+[ZeD.QA] run #4 ok=true
+ZEDQA b8ea PASS B7.1: the Map wheel has one slice (1)
+ZEDQA b8ea PASS B7.1: it is the World map (Show/Hide World Map)
+ZEDQA b8ea PASS B7.1: ZeD.Wheel.isMiniMapCommand exists
+ZEDQA b8ea PASS B7.3: the game's mini-map toggle is left out of ZeD's wheels
+ZEDQA b8ea PASS B7.3: the world map's toggle is not
+ZEDQA b8ea NOTE B7.4: no mini-map object for this player here; the hide check is skipped
+ZEDQA b8ea PASS B8.1: ZeD's reader opens on the label
+ZEDQA b8ea PASS B8.1: the game's label window was not made
+ZEDQA b8ea PASS B8.1: the label's two lines are two paragraphs (2)
+ZEDQA b8ea PASS B9: a lipstick given
+ZEDQA b8ea PASS B9.2: the lipstick offers a Lips spot (6 rows)
+ZEDQA b8ea PASS B9.2: with no mirror it is greyed with the game's reason (Need a Mirror item, or to be in front of a mirror.)
+ZEDQA b8ea PASS B9.3: with a mirror carried the spot can be done
+ZEDQA b8ea PASS B9.3: the game's Apply action ran to its end
+ZEDQA b8ea PASS B9.3: the spot is worn (Base.MakeUp_LipsRed)
+ZEDQA b8ea PASS B9.3: the lipstick's uses dropped by one
+ZEDQA b8ea PASS B9.4: the spot just applied shows under Remove
+ZEDQA b8ea PASS B9.4: Remove took it off at once (0 left)
+ZEDQA b8ea PASS B9.5: the Character window opens on Identity
+ZEDQA b8ea PASS B9.5: the hair section is on Make Up (part makeup)
+ZEDQA b8ea PASS B9.1: the switch carries Make Up (hair,beard,makeup)
+ZEDQA vp b8ea player=925,13040 grid=19 chunks (152 tiles) loaded x 848-1000 y 12968-13120 sq=920,13043 dist=6.0 chunk=true inMap=true car=Base.PickUpTruck at 920.0,13043.0 dist=6.0 vehicles=37
+ZEDQA b8ea B6 diag: keys in ignition right after setting them: true, the character is in it: true
+ZEDQA b8ea PASS B6: the pickup has a heater part
+ZEDQA b8ea PASS B6: ZeD's dash is up for the driver
+ZEDQA b8ea B6 diag: keys in ignition before the press: true, engine false
+ZEDQA b8ea PASS B6.1: the dash's climate controls are lit
+ZEDQA b8ea PASS B6.1: the game's heater window did not open
+ZEDQA b8ea PASS B6.1: the heater is on (part modData active true)
+ZEDQA b8ea B6.1 diag: part modData active true, engine false, keys true, battery 0.9668099880218506
+ZEDQA b8ea PASS B6.2: the second press turns the heater off
+ZEDQA b8ea PASS B6.2: still no game heater window
+ZEDQA b8ea PASS B6.3: with the key out nothing turns on
+ZEDQA b8ea PASS B6.3: and no game window
+ZEDQA b8ea B6 diag: keys in ignition right after setting them: true, the character is in it: true
+ZEDQA b8ea PASS B6.8: the Dashboard switch reads as the game's own
+ZEDQA b8ea PASS B6.8: with the game's dash the key opens the game's heater window
+ZEDQA b8ea PASS B6.8: ZeD's dash is back
+ZEDQA b8ea PASS B13.9: with a note kept the dash shows the Messages note
+ZEDQA b8ea PASS B13.9: the balloon's anchor is the dash's note, with the tail
+ZEDQA b8ea PASS B13.9: with nothing kept the dash shows no note
+ZEDQA b8ea checks: passes=35 misses=0
+ZEDQA b8ea DONE
+```
+
+### 5. zedqa_b8_paper_map.lua (`ZEDQA b8pm`) - PASS, 12 s
+
+- go 23557 at 00:19:13
+- screenshots: zqa_b8pm_paper_town.png, zqa_b8pm_paper_stash.png, zqa_b8pm_find_on_map.png, zqa_b8pm_safe_mode_map.png
+
+```text
+[ZeD.QA] state #5 speed=1 paused=false player=918,13042 grid=19 inCar=false vehicles=47 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA home b8pm moved from 918,13042,0 to the drag strip
+ZEDQA b8pm start
+[ZeD.QA] run #5 ok=true
+ZEDQA b8pm PASS setup: a town map, a stash map, a map in a backpack, a pencil, a red pen and an eraser given
+ZEDQA b8pm NOTE the stash map's stash: MulStashMap1; the town map's name: Map: Muldraugh
+ZEDQA b8pm PASS 1: the World window starts shut
+ZEDQA b8pm PASS 1.1: ZeD's map window opens on the town map
+ZEDQA b8pm PASS 1.1: titled with the map's name (Map: Muldraugh)
+ZEDQA b8pm PASS 1.1: no game ISMap window was made
+ZEDQA b8pm PASS 1.2: Read Map opened the World window just for the paper
+ZEDQA b8pm PASS 1.1: the map panel is bound to the paper
+ZEDQA b8pm PASS 1.1: the paper's area was read and revealed on the world map
+ZEDQA b8pm PASS 1.1: the whole paper is put in view
+ZEDQA b8pm PASS 1.1: the window is on the screen
+ZEDQA b8pm PASS 1.2: the paper is put away
+ZEDQA b8pm PASS 1.2: the World window Read Map opened closes with it
+ZEDQA b8pm PASS 1.4: the map starts in the backpack
+ZEDQA b8pm PASS 1.4: after the character moves it to the main inventory the window opens on it
+ZEDQA b8pm PASS 1.4: the map is now in the main inventory
+ZEDQA b8pm PASS 2.1: ZeD's map window opens on the stash map
+ZEDQA b8pm PASS 2.2: the band has the Find on map button (Find on map)
+ZEDQA b8pm NOTE 2.2 help line: Find the place this map shows on your world map.; greyed: false
+ZEDQA b8pm PASS 2.2: the paper in the window is the stash map
+ZEDQA b8pm PASS 2.2: a town map has no Find on map button
+ZEDQA b8pm PASS 2.3: Find on map starts the game's map-reading action
+ZEDQA b8pm PASS 2.3: the reading bar ended
+ZEDQA b8pm PASS 2.3: the paper is put away
+ZEDQA b8pm PASS 2.3 / 4.6: the World window stays open
+ZEDQA b8pm PASS 2.3: ZeD's world map is unfolded
+ZEDQA b8pm PASS 4.6: folding that world map leaves the World window open
+ZEDQA b8pm PASS 4.1: the paper is up
+ZEDQA b8pm PASS 4.1: with the map out of the main inventory the paper closes by itself
+ZEDQA b8pm PASS 4.1: and the World window it opened goes with it
+ZEDQA b8pm PASS 4.1: (the map is back in the inventory)
+ZEDQA b8pm PASS 4.2: reading a second map replaces the first
+ZEDQA b8pm PASS 4.2: the World window stays meanwhile
+ZEDQA b8pm PASS 4.2: the second paper is away
+ZEDQA b8pm PASS 4.2: closing the second paper closes the World window the first Read Map opened
+ZEDQA b8pm PASS 4.3: the world map is unfolded
+ZEDQA b8pm PASS 4.3: Read Map on a paper folds the world map and opens the paper
+ZEDQA b8pm PASS 4.3: the World window was open before (the paper does not own it)
+ZEDQA b8pm PASS 4.7: the World window's own fold puts the paper away and keeps the World window
+ZEDQA b8pm PASS 4.0: a World window that was open before stays open when the paper closes
+ZEDQA b8pm PASS 4.5: the World window is shut
+ZEDQA b8pm PASS 4.5: the paper went with it, nothing left on the screen
+ZEDQA b8pm PASS 4.5: the paper map module holds nothing
+ZEDQA b8pm PASS 7.1: safe mode on: the game's own ISMap window opens (made 1)
+ZEDQA b8pm PASS 7.1: and ZeD's paper window does not
+ZEDQA b8pm PASS 7.1: safe mode is back off
+ZEDQA b8pm checks: passes=44 misses=0
+ZEDQA b8pm DONE
+```
+
+### 6. zedqa_b8_console.lua (`ZEDQA b8dc`) - WARN, 10 s
+
+- go 23558 at 00:19:29
+- 1 expected exception(s) ignored (expect=)
+- 3 ERR line(s)
+- screenshots: zqa_b8dc_open.png, zqa_b8dc_errors.png, zqa_b8dc_handed_back.png
+
+```text
+[ZeD.QA] state #6 speed=1 paused=false player=925,13040 grid=19 inCar=false vehicles=37 missing=get
+[ZeD.QA] windows reset (R)
+ZEDQA b8dc start
+[ZeD.QA] run #6 ok=true
+ZEDQA b8dc NOTE the console was up at the start: true (UI.DebugConsole.StartVisible)
+ZEDQA b8dc PASS 1: with the game's flag down ZeD's Lua console is shut
+ZEDQA b8dc PASS 1: the game's own console is off the screen
+ZEDQA b8dc PASS 1: with the flag up (the key) ZeD's Lua console opens
+ZEDQA b8dc PASS 1: and the game's own console stays parked off the screen
+ZEDQA b8dc PASS 1: the window is on the screen
+ZEDQA b8dc PASS 3: print(...) shows in the list
+ZEDQA b8dc PASS 3: the game's line is empty after the run
+ZEDQA b8dc PASS 3: the line is the newest history entry (print("hello_b8dc"))
+ZEDQA b8dc PASS 6: the same line twice in a row keeps one history entry (1 then 1)
+ERROR: General f:4503> Lua(Vanilla).console> Exception thrown   (expected)
+    java.lang.RuntimeException: attempted index of non-table at KahluaUtil.fail(KahluaUtil.java:100).
+    Lua(Vanilla).console(worldmap-annotations.lua:1)
+    Lua((MOD:ZeD-GUI)).pcall(ZeD_DebugConsole.lua:193)
+    Lua((MOD:ZeD-GUI)).run(ZeD_DebugConsole.lua:193)
+    Lua(Vanilla).step(worldmap-annotations.lua:138)
+    Lua(Vanilla).onTick(worldmap-annotations.lua:69)
+ZEDQA b8dc FAIL 4: a runtime error adds an error block (0 then 0)
+ZEDQA b8dc 4 diag line 1: [USER] - "print("hello_b8dc")".
+ZEDQA b8dc 4 diag line 2: hello_b8dc
+ZEDQA b8dc 4 diag line 3: LOG : Lua f:4448> hello_b8dc
+ZEDQA b8dc 4 diag line 4: ZEDQA b8dc PASS 3: print(...) shows in the list
+ZEDQA b8dc 4 diag line 5: ZEDQA b8dc PASS 3: the game's line is empty after the run
+ZEDQA b8dc 4 diag line 6: ZEDQA b8dc PASS 3: the line is the newest history entry (print("hello_b8dc"))
+ZEDQA b8dc 4 diag line 7: [USER] - "print("hello_b8dc")".
+ZEDQA b8dc 4 diag line 8: hello_b8dc
+ZEDQA b8dc 4 diag line 9: LOG : Lua f:4488> ZEDQA b8dc PASS 3: print(...) shows in the list
+ZEDQA b8dc 4 diag line 10: LOG : Lua f:4488> ZEDQA b8dc PASS 3: the game's line is empty after the run
+ZEDQA b8dc 4 diag line 11: LOG : Lua f:4488> ZEDQA b8dc PASS 3: the line is the newest history entry (print("hello_b8dc"))
+ZEDQA b8dc 4 diag line 12: LOG : Lua f:4488> hello_b8dc
+ZEDQA b8dc 4 diag line 13: ZEDQA b8dc PASS 6: the same line twice in a row keeps one history entry (1 then 1)
+ZEDQA b8dc 4 diag line 14: LOG : Lua f:4498> ZEDQA b8dc PASS 6: the same line twice in a row keeps one history entry (1 then 1)
+ZEDQA b8dc 4 diag line 15: [USER] - "local t = nil; t.x = 1".
+ZEDQA b8dc 4 diag line 16: Lua(Vanilla).console(worldmap-annotations.lua:1)
+ZEDQA b8dc 4 diag line 17: Lua((MOD:ZeD-GUI)).pcall(ZeD_DebugConsole.lua:193)
+ZEDQA b8dc 4 diag line 18: Lua((MOD:ZeD-GUI)).run(ZeD_DebugConsole.lua:193)
+ZEDQA b8dc 4 diag line 19: Lua(Vanilla).step(worldmap-annotations.lua:138)
+ZEDQA b8dc 4 diag line 20: Lua(Vanilla).onTick(worldmap-annotations.lua:69)
+ZEDQA b8dc 4 diag line 21: se.krka.kahlua.vm.KahluaThread.luaMainloop(KahluaThread.java:1108)
+ZEDQA b8dc 4 diag line 22: se.krka.kahlua.vm.KahluaThread.call(KahluaThread.java:162)
+ZEDQA b8dc PASS 4: its words are in the list
+ZEDQA b8dc PASS 5: a line that does not compile adds an error block (0 then 1)
+ZEDQA b8dc PASS 5: the console's own compile message is in the list
+ZEDQA b8dc PASS 6: the history ends with the last line run (oldest first; 3 entries)
+ZEDQA b8dc 7 diag: suggestion visible false, text , line (ok truetruetrue)
+ZEDQA b8dc FAIL 7: the game's suggestion for getPl names getPlayer (nil)
+ZEDQA b8dc FAIL 7: Tab turns the line into getPlayer() (getPl)
+ZEDQA b8dc PASS 8: Clear empties the list
+ZEDQA b8dc PASS 8: new output shows after a clear
+ZEDQA b8dc PASS 8: the typed command clear empties the list too
+ZEDQA b8dc PASS 11: the close box shuts ZeD's window
+ZEDQA b8dc PASS 11: and the game's flag goes down with it
+ZEDQA b8dc PASS 11: the key (the flag) opens it again
+ZEDQA b8dc PASS pad 1: the ZeD wheel's last slice is the Lua console (Lua console)
+ZEDQA b8dc PASS pad 1: with the bug icon
+ZEDQA b8dc PASS 12: the switch On hands the console back to the game
+ZEDQA b8dc PASS 12: ZeD's window is shut
+ZEDQA b8dc PASS 12: the game's own console is back in its place (x 20)
+ZEDQA b8dc PASS 12: and open, as ZeD's was
+ZEDQA b8dc PASS 12: the switch Off takes it again
+ZEDQA b8dc PASS 12: ZeD's window is back
+ZEDQA b8dc PASS 12: the game's own console is parked again
+ZEDQA b8dc checks: passes=28 misses=3
+ZEDQA b8dc DONE
+```
+
+## Console errors outside scripts
+
+ERROR lines from launch to quit that fall in no script's window, once each (count first).
+
+```text
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont_0.png
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont2_0.png
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/fonts/zomboidDialogue.bmfc_0.png
+    2x ERROR: General f:N at FluidContainerScript.load > Sanitizing container name 'Large Bucket', name may not contain whitespaces.
+    2x ERROR: General f:N at FluidContainerScript.load > Sanitizing container name 'Fuel Pump', name may not contain whitespaces.
+    1x ERROR: General f:N at CraftRecipeComponentScript.getIconTexture> CraftRecipeComponentScript: Recipe Piano missing UiConfigScript - falling back to SpriteConfigScript first world object face for recipe icon.
+    1x ERROR: Lua f:N at Lua(Vanilla).handleMannequinZone > ERROR: Mannequin zone missing properties in media/maps/Muldraugh, KY/objects.lua coords: 13583, 1299, 0
+    1x ERROR: General f:N at Basements.mergeRoomsOntoMetaCell > duplicate RoomDef.metaID for room at 10707,9484,0
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #231 in cell 25,33 while reading map_meta.bin
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #327914 in cell 25,33 while reading map_meta.bin
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #327911 in cell 25,33 while reading map_meta.bin
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #655594 in cell 25,33 while reading map_meta.bin
+    2x ERROR: General f:N at LuaManager.getFunctionObject > no such function "Vehicles.Init.Radio"
+```

@@ -93,9 +93,21 @@ step(5, function()
     pcall(function() ZeD.Safe.reread() end)
     say("watch switch On (the game's own): " .. state())
 end)
-step(60, function()
+for k = 1, 8 do
+    step(25, function()
+        pcall(function()
+            local o = ZeD.Settings.screenOptions.watch
+            say("diag poll " .. k .. ": ms " .. tostring(getTimestampMs()) .. ", value " .. tostring(o:getValue()) .. " (" .. type(o:getValue()) .. ")")
+        end)
+    end)
+end
+step(150, function()
     local s = sc()
     say("a second later: " .. state())
+    pcall(function()
+        local W = ZeD.Watch
+        say("diag: Safe.on('watch') " .. tostring(ZeD.Safe.on("watch")) .. ", W._speedY " .. tostring(W and W._speedY) .. ", W._clockY " .. tostring(W and W._clockY) .. ", switch " .. tostring(ZeD.Settings.screenOptions.watch:getValue()) .. ", same object as the Safe-mode switch: " .. tostring(ZeD.Safe._pieceOptions and ZeD.Safe._pieceOptions.watch == ZeD.Settings.screenOptions.watch) .. ", that one reads " .. tostring(ZeD.Safe._pieceOptions and ZeD.Safe._pieceOptions.watch and ZeD.Safe._pieceOptions.watch:getValue()) .. ", ZeD.Safe.on()=" .. tostring(ZeD.Safe.on()))
+    end)
     check(s ~= nil and s:isVisible() == true and s:getY() >= 0, "watch handed back: the speed controls are on screen again (y " .. tostring(s and s:getY()) .. ")")
     local o = ZeD.Settings.screenOptions.watch
     pcall(function() o:setValue(S.was.watch or 1) end)
