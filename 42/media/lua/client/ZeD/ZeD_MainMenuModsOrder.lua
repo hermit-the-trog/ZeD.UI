@@ -1,24 +1,24 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MainMenuModsOrder.lua
 -- ============================================================================
--- THE MODS SCREEN'S LOAD ORDER AND MAP ORDER PAGES (MODS_LOAD_ORDER_SPEC.md, stage 1 of the
--- Mods screen work, punch list 41; mockup zed_mod_folders_v2, scenes e to h)
+-- THE MODS SCREEN'S LOAD ORDER AND MAP ORDER PAGES. Client-side; part of the
+-- ZeD_MMMods organism (pages of the window ZeD_MainMenuMods.lua builds).
 --
---   * built for 1,500 mods (spec 5): the order check, the place numbers, the gap counts and the
+--   * built for 1,500 mods: the order check, the place numbers, the gap counts and the
 --     list's rows are worked out once per change and kept (oVer counts the changes); each frame
 --     draws, and makes controller stops for, only the rows in sight (one either side, and the
 --     chosen one)
---   * Find in the load order (spec 1): only the matches, each with its real place number, the
+--   * Find in the load order: only the matches, each with its real place number, the
 --     gaps counted ("38 more"); A / Return / a double-click shows the match in the full list
---   * pins (spec 2): Load first / Load last blocks, with the mods they carry; ZeD picks kept
+--   * pins: Load first / Load last blocks, with the mods they carry; ZeD picks kept
 --     last by ZeD, shown and explained
---   * your rules (spec 3): Load after... / Load before... from a picker of the other mods, kept
+--   * your rules: Load after... / Load before... from a picker of the other mods, kept
 --     through Auto and profile loads, shown on the row, removable; circles refused with a reason
---   * moves (spec 8): one place (Y / X, Ctrl+Up / Down, Move up / Move down), to the top or the
+--   * moves: one place (Y / X, Ctrl+Up / Down, Move up / Move down), to the top or the
 --     bottom of the block (the row's menu, Ctrl+Home / End), drag (not while Find has text),
 --     Undo (the band, Ctrl+Z)
---   * held until Done (spec 2.11); Done keeps the list's pins and rules (ZeD_ModOrder)
+--   * held until Done; Done keeps the list's pins and rules (ZeD_ModOrder)
 --
--- Separators and sections (MOD_FOLDERS_SPEC 7, 8, 10, 11; stage 3) are ZeD_MainMenuModsSeps.lua:
+-- Separators and sections are ZeD_MainMenuModsSeps.lua:
 -- the list's entries, the separator rows, their pane and menu; this file keeps each mod's section
 -- (oSec) through every change, Undo and Back.
 -- ============================================================================
@@ -72,7 +72,7 @@ function ZeD_MMMods:onShow()
     if self.pfind then self.pfind:setText(""); self.pfind:setVisible(false) end
 end
 
--- each mod's needs and wishes, read from the game once and kept while the screen is up
+--- Each mod's needs and wishes, read from the game once and kept while the screen is up.
 function ZeD_MMMods:infoFor(m, ids)
     local c = self._infoAll
     if not c then c = {}; self._infoAll = c end
@@ -84,8 +84,8 @@ function ZeD_MMMods:infoFor(m, ids)
     return I
 end
 
--- a mod turned on (on the Mods page, by a profile) while the list has pins or rules: the order
--- is laid out again (spec 4: a new mod goes to the end, above the Load last block)
+--- A mod turned on (on the Mods page, by a profile) while the list has pins or rules: the order
+--- is laid out again (a new mod goes to the end, above the Load last block).
 function ZeD_MMMods:relayoutList()
     local m = model()
     if not m then return end
@@ -96,13 +96,15 @@ function ZeD_MMMods:relayoutList()
     self:saveOrder(order)
 end
 
--- stage 3 (separators): a separator's heading goes into the list before place i; while Find
--- has text, only one that holds a match (MODS_LOAD_ORDER_SPEC 1.3). push(entry, height).
+-- A seam for section headings while the list is built: called before place i, push(entry, height)
+-- adds one. A deliberate no-op — ZeD_MainMenuModsSeps builds its separator rows by wrapping
+-- orderEntries instead, so nothing overrides this.
 function ZeD_MMMods:orderSectionHook(ents, i, q, push) end
 
 -- ----------------------------------------------------------------------------
 -- ENTERING AND LEAVING
 -- ----------------------------------------------------------------------------
+--- Open the load order page ("order") or the map order page ("maps").
 function ZeD_MMMods:enterOrder(page)
     local m = model()
     if not m then return end
@@ -137,8 +139,8 @@ function ZeD_MMMods:enterOrder(page)
     self:orderChanged()
 end
 
--- keep = true writes the order (vanilla's correctAndSaveModOrder / getMapOrder) and the list's
--- pins and rules; false leaves both as they were
+--- keep = true writes the order (vanilla's correctAndSaveModOrder / getMapOrder) and the list's
+--- pins and rules; false leaves both as they were.
 function ZeD_MMMods:leaveOrder(keep)
     local m = model()
     if keep and m then
@@ -183,7 +185,7 @@ end
 -- ----------------------------------------------------------------------------
 function ZeD_MMMods:orderChanged()
     self.oVer = (self.oVer or 0) + 1
-    -- (the separators' lists follow the order: once per change, spec 5.1)
+    -- (the separators' lists follow the order: once per change)
     if self.page == "order" and O.hasSeps(self.oLo) then O.secSync(self.oLo, self.order, self.oZone, self.oSec) end
 end
 
@@ -201,7 +203,7 @@ function ZeD_MMMods:orderSeq()
     return seq
 end
 
--- the order check, worked out once per change (spec 5.1), not per frame
+-- the order check, worked out once per change, not per frame
 function ZeD_MMMods:orderCheck()
     local c = self._oCheck
     if c and c.ver == self.oVer and c.order == self.order then return c.res end
@@ -212,7 +214,7 @@ function ZeD_MMMods:orderCheck()
     return res
 end
 
--- (older callers: the per-row states and the first red row)
+--- The per-row states and the first red row, kept for older callers of this shape.
 function ZeD_MMMods:orderStates()
     local r = self:orderCheck()
     return r.st, r.firstBad
@@ -251,7 +253,7 @@ function ZeD_MMMods:orderUndo()
     self:say(ZeD.tr("UI_ZeD_Order_SayUndone"))
 end
 
--- lays the order out again (spec 4): after a pin, a rule, Auto (auto = true)
+-- lays the order out again: after a pin, a rule, Auto (auto = true)
 function ZeD_MMMods:orderLayout(auto)
     self.order, self.oZone, self.oCarried, self.oSec = O.layout(self:orderSeq(), self.oInfo, self.oLo, auto)
     self:orderChanged()
@@ -294,7 +296,7 @@ function ZeD_MMMods:orderBlockRange(i)
 end
 
 -- ----------------------------------------------------------------------------
--- MOVES (spec 8; 2.8 and 3.7: a move out of a block unpins, a move that breaks a rule removes it)
+-- MOVES: a move out of a block unpins; a move that breaks a rule removes the rule
 -- ----------------------------------------------------------------------------
 -- a manual move put x past the mods in passed: a rule between x and one of them that is no
 -- longer kept goes (the player's latest word); the band says so, Undo brings it back
@@ -333,7 +335,7 @@ function ZeD_MMMods:orderEdgeWhy(id)
     return ZeD.tr("UI_ZeD_Order_SayBlockEdge")
 end
 
--- one place up (-1) or down (1): a swap, never a layout (spec 5.6)
+--- One place up (-1) or down (1): a swap, never a layout.
 function ZeD_MMMods:move(delta)
     if self.pick or not self.order then return end
     local i = self.oSel or 1
@@ -352,7 +354,7 @@ function ZeD_MMMods:move(delta)
     if (self.oZone[a] or 2) ~= (self.oZone[b] or 2) then
         local pin = self:orderPinHere(a)
         if not pin then self:say(self:orderEdgeWhy(a)); MM.hoverSound(); return end
-        -- out of its block: unpinned, at the nearest place outside it (spec 2.8)
+        -- out of its block: unpinned, at the nearest place outside it
         self:orderSnap()
         O.setPin(self.oLo, a, nil)
         self:orderLayout(false)
@@ -411,7 +413,7 @@ function ZeD_MMMods:orderToEdge(dir)
     self:orderMoveTo(i, dir < 0 and a or b)
 end
 
--- Auto: the mods' own rules first, then requirements, pins and your rules (spec 4)
+-- Auto: the mods' own rules first, then requirements, pins and your rules
 function ZeD_MMMods:autoSort()
     if self.page ~= "order" or self.pick then return end
     local id = self.order[self.oSel or 1]
@@ -422,7 +424,7 @@ function ZeD_MMMods:autoSort()
 end
 
 -- ----------------------------------------------------------------------------
--- PINS (spec 2)
+-- PINS
 -- ----------------------------------------------------------------------------
 -- which = "first" | "last" | nil (Unpin)
 function ZeD_MMMods:orderPin(which)
@@ -479,8 +481,8 @@ end
 
 ZeD_MMMods._orderHeadText = headText
 
--- q: Find's text (lower case); skip: a mod left out (the picker's own); heads: the blocks'
--- headings; pfx: the stops' prefix ("orow:" the page, "lp:" the picker)
+--- q: Find's text (lower case); skip: a mod left out (the picker's own); heads: the blocks'
+--- headings; pfx: the stops' prefix ("orow:" the page, "lp:" the picker).
 function ZeD_MMMods:orderEntries(q, skip, heads, pfx)
     O.stats.views = O.stats.views + 1
     local T = ZeD.T
@@ -541,7 +543,7 @@ function ZeD_MMMods:orderView()
     if v and v.ver == self.oVer and v.q == q and v.rh == rh and v.order == self.order then return v end
     v = self:orderEntries(q, nil, self.page == "order", "orow:")
     v.ver, v.q, v.rh, v.order = self.oVer, q, rh, self.order
-    -- the row tags: pins, carried, rules (spec 2.2, 3.10)
+    -- the row tags: pins, carried, rules
     local pinOf, ruled = {}, {}
     for _, p in ipairs(self.oLo and self.oLo.first or EMPTY) do pinOf[p] = "first" end
     for _, p in ipairs(self.oLo and self.oLo.last or EMPTY) do pinOf[p] = "last" end
@@ -575,8 +577,10 @@ end
 
 -- ----------------------------------------------------------------------------
 -- FIND (both pages): the label, the field, the count of matches, Clear; a controller stop
--- (D-pad Up from the first row, then A: MODS_LOAD_ORDER_SPEC 8)
+-- (D-pad Up from the first row, then A)
 -- ----------------------------------------------------------------------------
+--- The Find bar for `entry` (the page's own field when nil); modal = drawn under the
+--- picker, so no stops or hits are made for it.
 function ZeD_MMMods:findBar(x, fY, w, fH, entry, idp, countText, modal)
     local T = ZeD.T
     entry = entry or self.find
@@ -635,7 +639,7 @@ end
 -- ----------------------------------------------------------------------------
 -- DRAWING THE PAGE
 -- ----------------------------------------------------------------------------
--- a row's tags at its right (spec 2.2, 3.10): built once per row per change
+-- a row's tags at its right: built once per row per change
 local function rowTags(self, e, v)
     if e.tags and e.tagsVer == v.ver then return e.tags end
     local T = ZeD.T
@@ -757,7 +761,7 @@ function ZeD_MMMods:clickOrderRow(i)
     self.focusId = "orow:" .. i
 end
 
--- Find's "where does it sit" (spec 1.6): Find cleared, the full list, the mod in the middle
+-- Find's "where does it sit": Find cleared, the full list, the mod in the middle
 function ZeD_MMMods:orderShowInFull(i)
     local id = self.order[i or self.oSel or 1]
     self.find:setText("")
@@ -766,7 +770,7 @@ function ZeD_MMMods:orderShowInFull(i)
     if id then self:orderSelect(id, true) end
 end
 
--- the row hit: a press starts a drag (spec 8: not while Find has text)
+-- the row hit: a press starts a drag (not while Find has text)
 local function rowHit(self, e)
     local h = e.hit
     if h then return h end
@@ -857,7 +861,7 @@ function ZeD_MMMods:drawOrderGap(e, x, ry, rw)
     self:drawRect(x, ry + e.h - T.px(1), rw, T.px(1), T.border.a, T.border.r, T.border.g, T.border.b)
 end
 
--- the load / map order page: Find, the list, the picked mod's pane (and the picker over the list)
+--- The load / map order page: Find, the list, the picked mod's pane (and the picker over the list).
 function ZeD_MMMods:drawOrder(x, y, w, h)
     local T = ZeD.T
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
@@ -962,7 +966,7 @@ function ZeD_MMMods:orderScrollBar(sx, vy, sbW, vh, total)
 end
 
 -- ----------------------------------------------------------------------------
--- THE PICKED MOD'S PANE (mockup scenes e, f, h): where it loads, its own rules, your rules,
+-- THE PICKED MOD'S PANE: where it loads, its own rules, your rules,
 -- the pins; its buttons. Worked out once per change and per pick, drawn each frame.
 -- ----------------------------------------------------------------------------
 -- a button spec of the pane (kept with the pane's model)
@@ -1009,7 +1013,7 @@ local RULE = {
     before = { kept = "UI_ZeD_Order_DetRuleBeforeKept", no = "UI_ZeD_Order_DetRuleBeforeNot", off = "UI_ZeD_Order_DetRuleBeforeOff", missing = "UI_ZeD_Order_DetRuleBeforeMissing" },
 }
 
--- the mod's own rules, each with what became of it (spec 2.6, 3.6)
+-- the mod's own rules, each with what became of it
 function ZeD_MMMods:ownRuleItems(items, rw, id, i, res)
     local T = ZeD.T
     local m = model()
@@ -1049,7 +1053,7 @@ function ZeD_MMMods:ownRuleItems(items, rw, id, i, res)
     if n == 0 then addText(items, rw, ZeD.tr("UI_ZeD_Order_DetOwnNone"), T.positive) end
 end
 
--- your rules on the mod, each with Remove (spec 3.10, 6.2, 6.3)
+-- your rules on the mod, each with Remove
 function ZeD_MMMods:yourRuleItems(items, rw, id, res)
     local T = ZeD.T
     local m = model()
@@ -1073,7 +1077,7 @@ function ZeD_MMMods:yourRuleItems(items, rw, id, res)
     end
 end
 
--- the pin's own words (spec 2.2, 2.4, 2.5, 2.7)
+-- the pin's own words in the pane: pinned, kept by ZeD, or carried, and why
 function ZeD_MMMods:pinItems(items, rw, id)
     local T = ZeD.T
     local m = model()
@@ -1213,7 +1217,7 @@ function ZeD_MMMods:drawOrderDetail(px0, y, pw0, h, modal)
 end
 
 -- ----------------------------------------------------------------------------
--- THE ROW'S MENU (spec 8: A on a row, Shift+F10 or the menu key, right-click)
+-- THE ROW'S MENU: A on a row, Shift+F10 or the menu key, right-click
 -- ----------------------------------------------------------------------------
 function ZeD_MMMods:orderMenu(anchor)
     if self.page ~= "order" or self.pick then return end
@@ -1270,7 +1274,7 @@ function ZeD_MMMods:rightClick(mx, my)
 end
 
 -- ----------------------------------------------------------------------------
--- THE LOAD AFTER... / LOAD BEFORE... PICKER (spec 3.1, 3.2, 6.1, 6.6; mockup scene g)
+-- THE LOAD AFTER... / LOAD BEFORE... PICKER
 -- ----------------------------------------------------------------------------
 function ZeD_MMMods:openPicker(how)
     if self.page ~= "order" then return end
@@ -1363,7 +1367,7 @@ function ZeD_MMMods:pickChoose(y, confirm)
     if MM.gamepad() then self.focusId = "lp:ok" end
 end
 
--- Load after / Load before: the rule kept, the mod moved now (spec 3.3)
+-- Load after / Load before: the rule kept, the mod moved now
 function ZeD_MMMods:pickerConfirm()
     local P = self.pick
     if not (P and P.sel) then return end
@@ -1408,7 +1412,7 @@ local function pickRowParts(self, e)
     if e.pspec then return e.pspec, e.hit end
     local id = e.id
     -- (listRow: the picker draws its rows itself; without it the window drew each stop as a
-    -- button with no text, "nil", over the names and below the list, QA Nov 1 2026)
+    -- button with no text, "nil", over the names and below the list)
     local sp = { id = e.sid, lpRow = true, listRow = true, listId = "lpick", row = e.i, col = 1, ry = e.y, rh = e.h, clip = {},
                  fn = function() self:pickChoose(id, false) end }
     local hit = { id = e.hid }
@@ -1553,7 +1557,7 @@ function ZeD_MMMods:drawPickRows(v, lx, ly, lw, lhh, gp, ax, ay)
 end
 
 -- ----------------------------------------------------------------------------
--- THE BAND (spec 8): Back; Undo while there is one; Auto; Done (greyed while a row is red)
+-- THE BAND: Back; Undo while there is one; Auto; Done (greyed while a row is red)
 -- ----------------------------------------------------------------------------
 function ZeD_MMMods:orderStrip(stripY, w, row)
     local T = ZeD.T
@@ -1591,10 +1595,10 @@ function ZeD_MMMods:orderStrip(stripY, w, row)
 end
 
 -- ----------------------------------------------------------------------------
--- CONTROLLER AND KEYS (spec 8; the director's pad rules: the focus returns where it was,
--- lands on the primary, the common actions cheapest)
+-- CONTROLLER AND KEYS. The pad rules here as everywhere: the focus returns where it
+-- was, lands on the primary, and the common actions are cheapest.
 -- ----------------------------------------------------------------------------
--- A: on a row, its menu (with Find: the match in the full list); true = handled
+--- A: on a row, its menu (with Find: the match in the full list); true = handled.
 function ZeD_MMMods:orderJoyA()
     local f = self.focusId or ""
     if f:sub(1, 5) ~= "orow:" or self.pick then return false end
@@ -1622,7 +1626,8 @@ function ZeD_MMMods:orderEscape()
     return false
 end
 
--- a page of rows up (-1) or down (1): LB / RB, Page Up / Page Down (sections come with stage 3)
+--- A page of rows up (-1) or down (1): LB / RB, Page Up / Page Down. Heading, gap and
+--- separator entries are skipped: only mod rows count toward the page.
 function ZeD_MMMods:orderPage(dir)
     local P = self.pick
     local v = P and self:pickView() or self:orderView()
@@ -1649,9 +1654,9 @@ function ZeD_MMMods:orderPage(dir)
     end
 end
 
--- keys (true = handled): Ctrl+F Find, Ctrl+Up / Down move, Ctrl+Home / End to the block's ends,
--- Page Up / Down, Ctrl+Z Undo, Shift+F10 or the menu key the row's menu, Return Done (or with
--- Find, the match in the full list)
+--- Keys (true = handled): Ctrl+F Find, Ctrl+Up / Down move, Ctrl+Home / End to the block's ends,
+--- Page Up / Down, Ctrl+Z Undo, Shift+F10 or the menu key the row's menu, Return Done (or with
+--- Find, the match in the full list).
 function ZeD_MMMods:orderKey(key)
     local K = Keyboard
     local ctrl, shift = isCtrlKeyDown(), isShiftKeyDown()
@@ -1695,7 +1700,7 @@ function ZeD_MMMods:orderKey(key)
     return false
 end
 
--- the footer's controller prompts on these pages
+--- The footer's controller prompts on these pages.
 function ZeD_MMMods:orderPrompts(f, sel, back)
     if self.pick then
         if f:sub(1, 3) == "lp:" and f ~= "lp:ok" and f ~= "lp:cancel" then
