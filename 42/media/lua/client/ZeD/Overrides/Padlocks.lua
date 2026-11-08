@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Overrides/Padlocks.lua
 -- ============================================================================
--- PADLOCK CODES — HOOK_MAP row 25
+-- PADLOCK CODES (override, client)
 -- Vanilla's world menu (built in Java, ISWorldObjectContextMenuLogic) offers
 -- Use Combination Padlock and Remove Combination Padlock on objects that take
 -- a padlock; both clear the queue, walk next to the object and open
@@ -8,7 +8,8 @@
 -- the walk only when the object is out of the card's reach. The after-walk
 -- functions are routed too, for anything else that calls them. Vanilla runs
 -- when ZeD declines (no World window), and every time while safe mode is on
--- (SafeMode.lua).
+-- (SafeMode.lua). The hooks sit behind the _zedPadlockHooked flag, so a Lua
+-- reload never wraps the wrapper.
 -- ============================================================================
 
 require "ZeD/SafeMode"

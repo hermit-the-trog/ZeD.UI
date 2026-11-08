@@ -1,33 +1,39 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Molecules.lua
 -- ============================================================================
 -- MOLECULE FACTORIES & COMPONENTS
--- Each molecule is composed of atoms. They are either:
---   - Draw functions (called inside a parent's render/prerender)
---   - ISPanel subclasses (created and added as children)
---
--- All molecules read from ZeD.T (the active palette).
+-- The mod's reusable building blocks, assembled from atoms. Client-side; the
+-- molecule layer. Each molecule is either:
+--   - a draw function (called inside a parent's render/prerender), or
+--   - an ISPanel subclass (created and added as a child).
+-- All molecules read ZeD.T (the active palette) at draw time, so a theme
+-- change shows up instantly. One thing to know before touching it: the draw
+-- helpers reuse shared option tables (NO_OPTS, the _xxOpts locals) to avoid
+-- per-frame garbage — set every field on every call, and use any table they
+-- hand back at once.
 -- ============================================================================
 
 require "ISUI/ISPanel"
 
--- Make sure atoms are loaded
+-- Atoms (draw primitives) and Tr (translations) must load first.
 require "ZeD/Atoms"
 require "ZeD/Tr"
 
+-- Reload-safe: loading this file twice reuses the tables instead of wiping them.
 ZeD = ZeD or {}
 ZeD.Molecules = ZeD.Molecules or {}
 
 -- ============================================================================
 -- 01. BUTTON
--- A clickable rectangle with a label. Three variants: default, primary, danger.
--- This is a factory that returns a configured ISButton.
+-- A clickable rectangle with a label. Variants: default, primary, danger, flat.
+-- drawButton is the draw helper; Button() below wraps it in an ISPanel-based
+-- component (ZeD_Button) — no vanilla ISButton anywhere.
 -- ============================================================================
 
 -- ---------------------------------------------------------------------------
 -- SYSTEM 7 BUTTON CHROME (draw helper)
--- The classic outset look: 1px outer border, 1px inner highlight (top+left),
--- 1px inner shadow (bottom+right). Creates that raised-plastic feel.
--- For pressed state: highlight and shadow swap (inset).
+-- A rounded outline in the variant's colour — two lines on the default answer,
+-- one line on the rest — over optional washes (hover, focus, a caller's fill),
+-- with the label centred. A press nudges the label 1px down-right.
 -- ---------------------------------------------------------------------------
 
 --- Draw a System 7 style button at (x, y) with dimensions (w, h)
@@ -35,7 +41,7 @@ ZeD.Molecules = ZeD.Molecules or {}
 -- @param x, y     Position
 -- @param w, h     Dimensions
 -- @param text     Button label
--- @param variant  "default", "primary", "danger", or "flat" (S115 — chassis flat-bordered)
+-- @param variant  "default", "primary", "danger", or "flat" (the radio chassis's flat look)
 -- @param pressed  Is the button currently pressed?
 -- @param colors   Optional override for "flat" variant — { bg, border, text, font? }.
 --                 Each value is an RGBA table. font is optional UIFont reference
@@ -45,7 +51,7 @@ ZeD.Molecules = ZeD.Molecules or {}
 --                 (the label colour, e.g. T.text over a focus fill, where a red or
 --                 accent label would sink into the accent). keepCase = true draws
 --                 the label as given instead of in sentence case (a key's name).
--- @param opts     Optional (the cohesion pass; the push button's states, spec 5 and 7):
+-- @param opts     Optional (the push button's shared states):
 --                   hover    = bool: the T.hover wash under the outline
 --                   disabled = bool: the whole control at T.disabledAlpha (no pulse)
 --                   compact  = bool: height T.buttonH - T.px(4) (inside a list row),
@@ -193,22 +199,23 @@ function ZeD.Molecules.drawButton(panel, x, y, w, h, text, variant, pressed, col
     end
     if onFocus then borderColor = T.textOnFocus end
 
-    -- Rounded border (colored per variant). The director, Nov 5 2026: "In System 7, only the default button gets the
-    -- two border line ... every other button's just a single line border." Two lines on the default button: "primary",
-    -- or a red button that is the default answer (opts.default: a confirm's Delete); one line on the rest.
+    -- Rounded border (colored per variant). In System 7 only the default button
+    -- carries the double border line; every other button gets a single line.
+    -- So: two lines on "primary", or on a red button that is the default answer
+    -- (opts.default: a confirm's Delete); one line on the rest.
     if variant == "primary" or opts.default then
         A.borderDoubleRounded(panel, x, y, w, h, borderColor.r, borderColor.g, borderColor.b, (borderColor.a or 1) * alpha)
     else
         A.borderRounded(panel, x, y, w, h, borderColor.r, borderColor.g, borderColor.b, (borderColor.a or 1) * alpha)
     end
 
-    -- Centered label (K22 Xanthus — instrument chrome)
+    -- Centered label, in the chrome voice
     local tw = ZeD.TM:MeasureStringX(font, text)
     local th = ZeD.TM:getFontHeight(font)
     local tx = x + math.floor((w - tw) / 2)
     local ty = y + math.floor((h - th) / 2)
-    -- (a gray button does not go down under the pointer: its label dipped and came back on a press that did nothing,
-    -- the outside review of beta 7's Mute on an offline player's card)
+    -- (a greyed button's label never dips: a press that does nothing must not
+    -- look like it did — the dip-and-return once read as a working button)
     if pressed and not opts.disabled then tx = tx + T.px(1); ty = ty + T.px(1) end
     panel:drawText(text, tx, ty, textColor.r, textColor.g, textColor.b, (textColor.a or 1) * alpha, font)
 
@@ -226,10 +233,10 @@ function ZeD.Molecules.buttonW(text, font)
 end
 
 -- ============================================================================
--- 01b. ICON BUTTON (cohesion spec 7)
+-- 01b. ICON BUTTON
 -- A square button holding a picture: the push button's rounded outline (single),
 -- a 16u icon centred, the T.hover wash on hover, solid accent when active (an
--- icon toggle that is on: the List of List / Grid), the whole control at
+-- icon toggle that is on: a list's List / Grid), the whole control at
 -- T.disabledAlpha when disabled, and a hint (its name) after ZeD.HINT_DELAY_MS.
 -- Icon buttons have no words, so they are the buttons that get hints.
 -- ============================================================================
@@ -301,7 +308,7 @@ local function drawBackGlyph(p, x, y, s, c)
 end
 
 --- The back key, the same on every card and drawer: an icon button with a left
--- triangle (cohesion spec 7). opts as drawIconButton; its hint defaults to "Back".
+-- triangle. opts as drawIconButton; its hint defaults to "Back".
 local _backOpts = {}
 function ZeD.Molecules.drawBackButton(panel, x, y, size, opts)
     opts = opts or NO_OPTS
@@ -314,7 +321,7 @@ function ZeD.Molecules.drawBackButton(panel, x, y, size, opts)
 end
 
 --- The close key of a card that shuts (the item card, the object card): an icon button with
--- the X of the progress band's Cancel (director, Oct 30 2026: "Make it an X"). The back key's
+-- the X of the progress band's Cancel — an X, not a triangle. The back key's
 -- triangle stays where a press steps back inside a tab (a vehicle part, the Equip to-do, the
 -- readers). opts as drawIconButton; its hint defaults to the game's "Close".
 local _closeOpts = {}
@@ -434,7 +441,7 @@ function ZeD.Molecules.drawListRow(panel, x, y, w, item, hovered)
     local alpha = disabled and T.disabledAlpha or 1.0
 
     -- Background: selected = the one accent wash (T.selectionA); hover = T.hover,
-    -- over it when both (cohesion spec 5)
+    -- laid over it when both
     if selected then
         local ac = T.accent
         panel:drawRect(x, y, w, h, (T.selectionA or 0.30) * alpha, ac.r, ac.g, ac.b)
@@ -488,7 +495,7 @@ end
 -- @param opts     Optional { font (default F2), focus (the ZeD.Focus.mark opts), padX (the words'
 --                  side room, default T.sp.tabPadX: a strip short of room closes it up) }
 -- @return width   Total width of the drawn tab (for laying out the next one)
--- The one sub-tab strip (cohesion spec 9; Journal and Animals move onto it): the
+-- The one sub-tab strip (Journal and Animals move onto it): the
 -- active tab is surface 2 open at the bottom into its content, its words bright;
 -- the others surface 1 with dim words; hover is the T.hover wash. Words read in
 -- sentence case.
@@ -553,7 +560,9 @@ end
 
 -- ============================================================================
 -- 04. TEXT INPUT FIELD
--- An editable text box. ISPanel subclass with keyboard focus handling.
+-- A visual text box: field, cursor and placeholder, but no real typing — the
+-- key handler is a stub. Real input lives in ZeD_TextEntry / ZeD_SearchField
+-- (ISTextEntryBox wrappers). ISPanel subclass.
 -- ============================================================================
 
 ZeD_TextInput = ISPanel:derive("ZeD_TextInput")
@@ -682,7 +691,7 @@ function ZeD_SearchField:new(x, y, w, placeholder)
     self.__index = self
 
     o.placeholder = placeholder or ZeD.tr("IGUI_FilterSearch")
-    o.iconAreaW = 24   -- reserved width for the search icon (S124 scale: design units, wrapped with T.px where used)
+    o.iconAreaW = 24   -- reserved width for the search icon (design units; every use wraps it in T.px)
     o.onFilter = nil   -- callback: function(self, text) — fires on each keystroke
     o.onSubmit = nil   -- callback: function(self, text) — fires on Enter
     o.borderEdges = nil
@@ -883,7 +892,7 @@ function ZeD.Molecules.drawStatChip(panel, x, y, icon, value, state)
         cx = cx + T.statIconSz + T.sp.statIconGap  -- tight gap between icon and value
     end
 
-    -- Value text (K22 Xanthus — chrome data voice)
+    -- Value text, in the chrome's data voice
     local textY = y + (T.titleBarH - ZeD.TM:MeasureStringY(T.fontF3, value)) / 2
     panel:drawText(value, cx, textY,
         valueColor.r, valueColor.g, valueColor.b, valueColor.a, T.fontF3)
@@ -895,8 +904,9 @@ end
 
 -- ============================================================================
 -- 07. SCROLLBAR (assembled component)
--- The full scrollbar: track + thumb + arrows. ISPanel subclass that
--- manages scroll state and fires callbacks.
+-- The full scrollbar: track + thumb + arrows, as pure state plus a draw
+-- method — not a child panel. It holds scroll state and fires callbacks;
+-- the parent list feeds it the mouse.
 -- ============================================================================
 
 -- ZeD_ScrollbarState: Pure state + draw object (NOT an ISPanel).
@@ -1040,8 +1050,9 @@ function ZeD_ScrollbarState:scrollRange()
     if r <= 0 or r >= 1 then return 0 end
     return self.height / r - self.height
 end
--- An arrow moves one row, as System 7's do (QA Nov 5 2026: 5% of the list was 20 rows on 395 mods, and nothing at
--- all on a list that only just runs over): self.lineH, a list's own row height, else a usual row. As a share of
+-- An arrow moves one row, as System 7's do. (A fixed 5% step was 20 rows on a
+-- 395-row list, and nothing at all on a list that only just runs over.) The row
+-- is self.lineH, a list's own row height, else a usual row. As a share of
 -- the bar's 0 to 1.
 function ZeD_ScrollbarState:lineStep()
     local range = self:scrollRange()
@@ -1116,7 +1127,7 @@ end
 
 ZeD.Molecules.ScrollbarState = ZeD_ScrollbarState
 
--- THE BAR FOR A LIST THAT KEEPS ITS OWN SCROLL IN PX (the director, Nov 5 2026: every bar is ZeD's bar). Called while
+-- THE BAR FOR A LIST THAT KEEPS ITS OWN SCROLL IN PX (every bar in the mod is this bar). Called while
 -- the list draws, each frame: the list says where the bar is and how to scroll, and the bar reads the mouse itself, so
 -- a surface needs no click code for it: an arrow steps a row and repeats while held, the track pages, the thumb drags.
 -- panel: draws it; win: the ZeD window (its pointer test: no window above holds the pointer; nil skips the test);
@@ -1195,7 +1206,7 @@ function ZeD_DragState:new()
     o.ghostY     = 0       -- screen-absolute cursor Y
     o.startX     = 0       -- screen-absolute mouseDown X
     o.startY     = 0       -- screen-absolute mouseDown Y
-    o.threshold  = 4       -- px before drag activates (S124 scale: design units, wrapped with T.px in checkThreshold)
+    o.threshold  = 4       -- design units before drag activates (checkThreshold wraps it in T.px)
     return o
 end
 
@@ -1548,7 +1559,7 @@ ZeD.Molecules.Dropdown = ZeD_Dropdown
 -- @param hovered    Is this header hovered?
 -- @param opts       Optional { focus = the ZeD.Focus.mark opts }
 -- @return height    Total height of the drawn header
--- The section head (cohesion spec 9): 20u unless heightOverride says otherwise,
+-- The section head: 20u unless heightOverride says otherwise,
 -- the triangle atom, F1 in sentence case, the count "(4)" in T.textDim, a content
 -- line (T.border) under it. The strip is surface 2 drawn without stacking on the
 -- body; hover is the T.hover wash over it.
@@ -1596,7 +1607,7 @@ function ZeD.Molecules.drawSectionHeader(panel, x, y, w, text, count, expanded, 
     local titleX = noArrow and discX or (discX + discSz + T.px(6))
     local tc = onFocus and T.textOnFocus or T.textHead
     -- the title is cut to its own strip (and the count's room), never drawn into the next
-    -- column's head (Oct 31 2026, break-it E1: "Combat - FirearCombat - Melee")
+    -- column's head (an uncut title once ran on as "Combat - FirearCombat - Melee")
     local countStr = count and ("(" .. tostring(count) .. ")") or nil
     local room = x + w - sp.sm - titleX
     if countStr then room = room - tm:MeasureStringX(T.fontF1, countStr) - sp.xs end
@@ -1620,7 +1631,7 @@ end
 
 -- ============================================================================
 -- 10a. CATEGORY ROW (draw helper)
--- The list's group row, "v Weapons (4)" (cohesion spec 9): 15u, the triangle
+-- The list's group row, "v Weapons (4)": 15u, the triangle
 -- atom (down when open), F1 in T.toneLo, sentence case, the count in brackets
 -- after the name, a content line under it. No fill: it sits on the list.
 -- The inventory list, the Equipment groups and Animals move onto it.
@@ -1673,14 +1684,14 @@ end
 -- bg and line rules extending full window width (edge-to-edge continuity
 -- with the inventory header on the other side). Text vertically centered.
 --
--- Returns: headerH (constant 37)
+-- Returns: headerH (the 37u strip, in screen px)
 -- Caller uses this to position scroll area: scrollY = y + headerH
 -- ============================================================================
 
 -- Sourced from ZeD.Spacing.tabHeaderH so the value lives in one place. Read
 -- at module load (ZeD.Spacing is the static table defined in Tokens.lua, not
 -- the per-theme T.sp which only exists after applyTheme).
-local TAB_HEADER_H     = (ZeD.Spacing and ZeD.Spacing.tabHeaderH) or 37  -- S124 scale: these four stay design units; every use wraps T.px
+local TAB_HEADER_H     = (ZeD.Spacing and ZeD.Spacing.tabHeaderH) or 37  -- these four stay design units; every use wraps them in T.px
 local TAB_HEADER_PAD   = 8    -- outer left/right pad (drawer sides → content edge)
 local TAB_HEADER_PAD_T = 8    -- content inset from top of scroll area
 local TAB_COL_GAP      = 10   -- gap between figure column and content column in Zone A
@@ -1693,7 +1704,7 @@ local TAB_COL_GAP      = 10   -- gap between figure column and content column in
 -- @param expanded  boolean — disclosure state
 -- @param hovered   boolean — mouse over header: the T.hover wash across it
 -- @param opts      Optional { focus = the ZeD.Focus.mark opts }
--- @return headerH  constant 37
+-- @return headerH  the 37u strip height, in screen px
 function ZeD.Molecules.drawTabHeader(panel, x, y, w, text, expanded, hovered, noArrow, opts)
     -- Tab headers (Defense / Health / Thermal / Identity / Skills) inherit
     -- the parent drawer panel's background — same rule as the radio drawer
@@ -1744,7 +1755,7 @@ end
 
 --- Return the standard tab header height (for measurement functions).
 function ZeD.Molecules.getTabHeaderH()
-    return ZeD.T.px(TAB_HEADER_H)  -- S124 scale: the getters return screen px
+    return ZeD.T.px(TAB_HEADER_H)  -- the getters return screen px
 end
 
 --- Return the standard tab content side padding.
@@ -1771,7 +1782,7 @@ function ZeD.Molecules.layoutZoneA(x, y, w, figW, figH)
     -- With scroll (w=466):    rightW = 466-238-8 = 220
     -- Without scroll (w=480): rightW = 480-238-8 = 234
     local leftX  = x + T.px(TAB_HEADER_PAD)          -- 8px outer left pad
-    local leftW  = T.sp.figureW                      -- the figure column: the figure at its whole zoom (Oct 21 2026)
+    local leftW  = T.sp.figureW                      -- the figure column: the figure at its whole zoom
     local rightX = leftX + leftW + T.px(TAB_COL_GAP) -- +10px column gap
     local rightW = w - T.px(TAB_HEADER_PAD) - rightX + x  -- fills to 8px from right edge
     return {
@@ -1823,9 +1834,9 @@ function ZeD.Molecules.drawStatRow(panel, x, y, w, label, value, valueColor, lab
         lc.r, lc.g, lc.b, lc.a or 1, lblFont)
 
     -- Value: right-aligned, cut with "..." to the room after its label: a value never
-    -- runs over its label; with no room left it is not drawn (Oct 31 2026, break-it E2:
-    -- the Vehicle tab's "4Distance"; the room left out the right pad, and a label wider
-    -- than the row skipped the cut altogether)
+    -- runs over its label; with no room left it is not drawn. (A value once overlapped
+    -- its label and read "4Distance" — the room math left out the right pad, and a
+    -- label wider than the row skipped the cut altogether.)
     local vc = valueColor or T.text
     local gap = T.px(8) -- minimum gap between label and value
     local rightPad = T.sp.sm
@@ -1898,8 +1909,8 @@ end
 -- label text after, the ten-segment bar at the right (ZeD.Atoms.rowBarW wide,
 -- the compact strip). Same row height (the larger of F3 / F2 + 8), the dark
 -- inset background, no border.
--- Oct 30 2026 (director, punch list 22): the fill under the row became the
--- segmented bar at its right, as the Skills rows did; pointing at the bar puts
+-- The fill that once sat under the whole row is the segmented bar at its
+-- right, as on the Skills rows; pointing at the bar puts
 -- "<label> <value>" in the help line.
 --
 -- fillRatio:  0.0 to 1.0 — the share the bar lights (whole tenths).
@@ -1931,7 +1942,7 @@ function ZeD.Molecules.drawStatBarRow(panel, x, y, w, value, label, fillRatio, f
         A.fillSegsLit(fillRatio), fillColor or T.accent)
     if hov and ZeD.Help then ZeD.Help.set(panel, ZeD.tr("UI_ZeD_Bar_Help", label, value)) end
 
-    -- 2. Value badge (K22 Xanthus — data readout)
+    -- 2. Value badge, in the chrome's data voice
     local vc = valueColor or T.toneNorm
     local bg = T.surf3
     local valW = ZeD.TM:MeasureStringX(valFont, value)
@@ -1942,7 +1953,7 @@ function ZeD.Molecules.drawStatBarRow(panel, x, y, w, value, label, fillRatio, f
     panel:drawText(value, valX, textY,
         vc.r, vc.g, vc.b, vc.a, valFont)
 
-    -- 3. Label text (after badge — Lekton, metadata voice), shortened clear of the bar
+    -- 3. Label text after the badge, shortened clear of the bar
     local labelX = x + badgeW + T.px(6)
     local tc = T.text
     local lblY = y + math.floor((rowH - lblH) / 2)
@@ -1984,7 +1995,7 @@ function ZeD.Molecules.drawBodyBg(panel, x, y, w, h, surfaceKey, alphaOverride)
 end
 
 -- ============================================================================
--- M14: WINDOW TITLE BAR — striped bar with title + stat cluster
+-- WINDOW TITLE BAR — striped bar with title + stat cluster
 -- ============================================================================
 -- Draws the complete ZeD window title bar: surf2 bg, stripe lines,
 -- title text with bg box, right-aligned stat cluster, bottom border.
@@ -2022,7 +2033,7 @@ function ZeD.Molecules.drawWindowTitleBar(panel, x, y, w, title, stats, opts)
     -- Bottom border
     panel:drawRect(x, y + tbH - T.px(1), w, T.px(1), T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
 
-    -- Title text with background box (K22 Xanthus — chrome voice)
+    -- Title text with background box, in the chrome voice
     if title and title ~= "" then
         local titleFont = T.fontF3
         local titleX = x + T.sp.sm + T.closeBoxSz + T.sp.md
@@ -2041,10 +2052,10 @@ function ZeD.Molecules.drawWindowTitleBar(panel, x, y, w, title, stats, opts)
         local statX = x + w - T.sp.sm - (opts.rightReserve or 0)
         local statFH = ZeD.TM:getFontHeight(T.fontF3)
         local statY = y + math.floor((tbH - statFH) / 2)
-        local dotSz = T.px(6)   -- the one status square (cohesion spec 1.2)
+        local dotSz = T.px(6)   -- the one status square, the same size everywhere
         local dotGap = T.px(4)
         local tc = T.text
-        -- Left boundary: don't overlap title text (reuses titleFont from above)
+        -- Left boundary: don't overlap the title (measured in the same F3 it draws in)
         local titleEndW = title and ZeD.TM:MeasureStringX(T.fontF3, title) or 0
         local minX = x + T.sp.sm + T.closeBoxSz + T.sp.md + titleEndW + T.sp.titleBoxPad * 2 + T.sp.md
         for i = #stats, 1, -1 do
@@ -2070,7 +2081,7 @@ function ZeD.Molecules.drawWindowTitleBar(panel, x, y, w, title, stats, opts)
 end
 
 -- ============================================================================
--- M15: DATA ROW — dim label + bright value on one line
+-- DATA ROW — dim label + bright value on one line
 -- ============================================================================
 -- Draws a label (fontF4, dimmed) + value (fontF2, full alpha) pair.
 -- Used by LootContextPanel for FUEL, TIME, ITEMS, WATER readouts.
@@ -2101,7 +2112,7 @@ function ZeD.Molecules.drawDataRow(panel, label, value, x, y, labelColor, valueC
 end
 
 -- ============================================================================
--- M16: ACTION STRIP — reusable row of icon toggle/action buttons
+-- M14: ACTION STRIP — reusable row of icon toggle/action buttons
 -- ============================================================================
 -- Renders a horizontal strip of icon buttons. Each def in the array is:
 -- Icon padding inside rounded button — 20% of button size, min 4px
@@ -2353,7 +2364,7 @@ function ZeD.Molecules.drawZoneRow(panel, x, y, w, zone, hovered, outDockRect)
             local greyd = (d.state == "grey")
             -- Pre-measure width
             local sTextW = d.flag and ZeD.TM:MeasureStringX(T.fontF1, d.flag) or 0
-            local flagW  = math.max(T.px(4), sTextW + T.px(4) * 2)  -- S124 scale: + 2 x drawDock padX, so the pre-measure matches drawDock
+            local flagW  = math.max(T.px(4), sTextW + T.px(4) * 2)  -- two drawDock padX, so the pre-measure matches drawDock
             local dockW  = d.icon and (flagW + btnSz) or flagW
             rx = rx - dockW
             M.drawDock(panel, rx, botY, nil, d.flag, nil, d.color, d.icon, hovered and not greyd, greyd)
@@ -2403,23 +2414,23 @@ function ZeD.Molecules.drawZoneRow(panel, x, y, w, zone, hovered, outDockRect)
 end
 
 -- ============================================================================
--- ITEM CARD UNIVERSAL MOLECULES (S120 — Phase 2)
+-- ITEM CARD UNIVERSAL MOLECULES
 -- The four chrome strips that compose every item card regardless of item type:
 --   drawCardBackBar      header strip with back btn, name, primary+sec verbs
 --   drawCardFlagStrip    "MARKED" + 3 flag chips (fav/nocraft/dispose)
 --   drawCardProgressBand observer wrapper around Atoms.drawProgressBand
 --   drawCardVerbStrip    right-aligned text-label verb buttons
--- All accept compact:bool to switch between 220w (browsing) and 480w (detail)
--- presets locked in S119 mockups v13/v15. Verbs grey out under progressActive
--- so the Progress Band's [x] becomes the only cancel surface (locked rule).
+-- All accept compact:bool to switch between the locked 220w (browsing) and
+-- 480w (detail) presets. Verbs grey out under progressActive
+-- so the Progress Band's [x] becomes the only cancel surface (a locked rule).
 -- Back keys and verbs are the library's icon and push buttons.
 -- ============================================================================
 
--- T2.1 CARD BACK-BAR ---------------------------------------------------------
+-- CARD BACK-BAR --------------------------------------------------------------
 --- Draw the card's header strip: back key + name + verb cluster.
 --- The back key is the icon button with a left triangle (the same on every card
---- and drawer); the verbs are push buttons (cohesion spec 7: keys only on the
---- hardware), the primary one accent, a danger one red.
+--- and drawer); the verbs are push buttons — flat keys belong to the hardware
+--- chassis alone — the primary one accent, a danger one red.
 --- @param panel ISPanel
 --- @param x, y  Top-left
 --- @param w     Total width
@@ -2517,7 +2528,7 @@ function ZeD.Molecules.drawCardBackBar(panel, x, y, w, name, verbs, progressActi
     return h
 end
 
--- T2.2 CARD FLAG STRIP -------------------------------------------------------
+-- CARD FLAG STRIP ------------------------------------------------------------
 --- Draw the "Marked" label + three flag chips (fav, nocraft, dispose): each its
 --- pixel icon (star, the craft tools struck through, the bin) and its word; the
 --- narrow card's chips the icon alone.
@@ -2586,7 +2597,7 @@ function ZeD.Molecules.drawCardFlagStrip(panel, x, y, w, marks, compact, outRect
         cursorX = cursorX + cw + gap
     end
 
-    -- The fourth mark (Oct 29 2026, loadouts B3): Lists, lit in the accent when the item
+    -- The fourth mark: Lists, lit in the accent when the item
     -- is on any loadout or outfit (marks.lists; nil: no button), its words after it
     -- (marks.listsText, "in 1 loadout", in T.textDim while there is room: the lit icon is the status)
     if marks and marks.lists ~= nil then
@@ -2614,7 +2625,7 @@ function ZeD.Molecules.drawCardFlagStrip(panel, x, y, w, marks, compact, outRect
     return h
 end
 
--- T2.3 CARD PROGRESS BAND (observer wrapper) ---------------------------------
+-- CARD PROGRESS BAND (observer wrapper) --------------------------------------
 --- Wrapper around Atoms.drawProgressBand. Reads observer state from
 --- ZeD.ItemActionManager — registered-observer pattern, NOT Events.OnTick.
 --- Idle items pay zero per-frame cost (manager returns nil → no draw).
@@ -2639,7 +2650,7 @@ function ZeD.Molecules.drawCardProgressBand(panel, x, y, w, item, compact, outRe
         outRect, compact, opts)
 end
 
--- T2.4 CARD VERB STRIP -------------------------------------------------------
+-- CARD VERB STRIP ------------------------------------------------------------
 --- Right-aligned row of verb push buttons at the list-row height
 --- (T.buttonH - T.px(4)). Empty list → no render at all (books have no
 --- maintenance verbs).
@@ -2686,21 +2697,21 @@ function ZeD.Molecules.drawCardVerbStrip(panel, rightEdge, y, verbs, progressAct
 end
 
 -- ============================================================================
--- ITEM CARD CONTENT MOLECULES (S120 — Phase 3)
+-- ITEM CARD CONTENT MOLECULES
 -- Top-of-body composables that sit below the FlagStrip:
 --   drawCardStatRow    — single key:value row (mono accent label + sans value)
 --   drawTopStatsList   — 220w single-column stat list (fixed 80px label column)
 --   drawTopStatsGrid   — 480w 2-column stat grid with 56px item icon left
--- Plus the Facts panel primitives (composed by Phase 4 panels):
+-- Plus the Facts panel primitives the facts panels compose:
 --   drawFactsTitle     — "Defense Facts" / "Nutrition Facts" heading
 --   drawFactsRuleThick — 2px text-color rule (above first row)
 --   drawFactsRuleThin  — 1px border-color rule (between sub-blocks)
 --   drawFactsRow       — label/value row, optional sub-indent + value class
 --
--- Distinct from existing M11 drawStatRow: v13/v15 mockup uses Fira Sans for
+-- Distinct from drawStatRow (M11): the card voice uses Fira Sans for
 -- values (T.fontF2) instead of Fira Mono (T.fontF3), and the mono label is
--- full-opacity T.accent rather than 50%-α toneLo. Sibling function avoids
--- breaking S118 callers that depend on the established voice.
+-- full-opacity T.accent rather than 50%-α toneLo. A sibling function keeps
+-- the established callers' voice untouched.
 -- ============================================================================
 
 -- Internal helpers: a value class ("warn"/"bad"/"dim"/"good"/nil) is drawn as default
@@ -2718,9 +2729,9 @@ local function _statClassMark(valueClass, T)
     return nil
 end
 
--- T3.x  CARD STAT ROW --------------------------------------------------------
---- Draw a single key:value stat row in v13 voice (mono accent label + sans value).
---- Matches the .stat-line-{220,480} CSS in mockups v13/v15.
+-- CARD STAT ROW --------------------------------------------------------------
+--- Draw a single key:value stat row in the card voice (mono accent label +
+--- sans value), the same line in the 220w and 480w presets.
 --- @param panel ISPanel
 --- @param x, y  Top-left
 --- @param w     Available width
@@ -2738,7 +2749,7 @@ function ZeD.Molecules.drawCardStatRow(panel, x, y, w, label, value, valueClass,
 
     local labelH = T.fontF1H or ZeD.TM:getFontHeight(lblFont)
     local valueH = T.fontF2H or ZeD.TM:getFontHeight(valFont)
-    local rowH   = math.max(labelH, valueH) + T.px(2)  -- 2px breathe (matches mockup padding:1px 0)
+    local rowH   = math.max(labelH, valueH) + T.px(2)  -- 2px breathe
     local labelY = y + math.floor((rowH - labelH) / 2)
     local valueY = y + math.floor((rowH - valueH) / 2)
 
@@ -2753,7 +2764,7 @@ function ZeD.Molecules.drawCardStatRow(panel, x, y, w, label, value, valueClass,
     local lblWMeasured = ZeD.TM:MeasureStringX(lblFont, lblText)
     local lblColW = fixedLabelW or lblWMeasured
 
-    -- Value column starts after the label column + 6px gap (mockup `gap:6px`)
+    -- Value column starts after the label column + 6px gap
     local valX     = x + lblColW + T.px(6)
     local maxValW  = w - (valX - x)
 
@@ -2784,8 +2795,8 @@ function ZeD.Molecules.drawCardStatRow(panel, x, y, w, label, value, valueClass,
     return rowH
 end
 
--- T3.2 TOP STATS LIST (220w preset) -----------------------------------------
---- Single-column stat list with fixed 80px label gutter (per v15 220w spec).
+-- TOP STATS LIST (220w preset) -----------------------------------------------
+--- Single-column stat list with fixed 80px label gutter (the 220w preset).
 --- @param panel ISPanel
 --- @param x, y  Top-left
 --- @param w     Available width
@@ -2804,8 +2815,8 @@ function ZeD.Molecules.drawTopStatsList(panel, x, y, w, statRows)
     return cy - y
 end
 
--- T3.1 TOP STATS GRID (480w preset) -----------------------------------------
---- 56px item icon (left) + 2-column stat grid (right). Per v13 480w spec.
+-- TOP STATS GRID (480w preset) -------------------------------------------------
+--- 56px item icon (left) + 2-column stat grid (right): the 480w preset.
 --- statRows fills column-major: row1L, row1R, row2L, row2R, ...
 --- @param panel ISPanel
 --- @param x, y  Top-left
@@ -2864,7 +2875,7 @@ function ZeD.Molecules.drawTopStatsGrid(panel, x, y, w, iconTexture, statRows, i
     return math.max(iconSz, cy - y)
 end
 
--- T3.3 FACTS PANEL PRIMITIVES ----------------------------------------------
+-- FACTS PANEL PRIMITIVES -------------------------------------------------------
 --- "Defense Facts" / "Nutrition Facts" / etc. title — sans, 14/12px, weight 600.
 --- @return height
 function ZeD.Molecules.drawFactsTitle(panel, x, y, w, text, compact)
@@ -2875,16 +2886,15 @@ function ZeD.Molecules.drawFactsTitle(panel, x, y, w, text, compact)
     local c = T.text
     panel:drawText(text or "", x, y,
         c.r, c.g, c.b, c.a or 1, font)
-    return h + T.px(2)  -- mockup margin-bottom:2px
+    return h + T.px(2)  -- 2px air under the title
 end
 
 --- 2px thick text-color rule (above first facts row).
 function ZeD.Molecules.drawFactsRuleThick(panel, x, y, w)
     local T = ZeD.T
     local c = T.text
-    -- mockup margin:4px 0 (480w) or 2px 0 (220w) — caller manages outer spacing;
-    -- molecule renders just the rule itself
-    local t = T.line(2)   -- two hairlines (Oct 21 2026: T.px(2) was 3 px beside 2 px hairlines at 1.5)
+    -- the caller manages the outer spacing; this draws just the rule itself
+    local t = T.line(2)   -- two hairlines (at scale 1.5, T.px(2) came to 3 px beside 2 px hairlines)
     panel:drawRect(x, y, w, t, c.a, c.r, c.g, c.b)
     return t
 end
@@ -2907,22 +2917,22 @@ end
 --- @param valueClass One of nil/"warn"/"bad"/"dim"/"good"
 --- @param isSub  bool — sub-row gets indent + smaller font + textSec label
 --- @param needsProbe bool — when true, append a small "*" badge in T.warning
----                          color after the label per v13 mockup convention
----                          (signals a value sourced from an unprobed Java getter
----                          that may resolve to a real number once Q125–Q128 land)
+---                          color after the label: the value comes from a Java
+---                          getter not yet verified in-game and may firm up
+---                          into a real number later
 --- @return height
 function ZeD.Molecules.drawFactsRow(panel, x, y, w, label, value, valueClass, isSub, needsProbe)
     local T = ZeD.T
 
-    -- v13: label is sans-serif weight 600 (~T.fontF4 small) for main, fontF2 for sub
-    -- v13: value is mono bold (T.fontF1)
+    -- label: sans-serif weight 600 (~T.fontF4 small) for main rows, fontF2 for sub
+    -- value: mono bold (T.fontF1)
     local labelFont = isSub and T.fontF2 or T.fontF4
     local valueFont = T.fontF1
 
     local labelH = isSub and T.fontF2H or T.fontF4H
         or ZeD.TM:getFontHeight(labelFont)
     local valueH = T.fontF1H or ZeD.TM:getFontHeight(valueFont)
-    local rowH   = math.max(labelH, valueH) + T.px(2)  -- mockup padding:2px 0
+    local rowH   = math.max(labelH, valueH) + T.px(2)  -- 2px breathe
 
     local indent = isSub and T.px(14) or 0
     local labelC = isSub and T.textSec or T.text
@@ -2944,9 +2954,9 @@ function ZeD.Molecules.drawFactsRow(panel, x, y, w, label, value, valueClass, is
     panel:drawText(labelStr, x + indent, labelY,
         labelC.r, labelC.g, labelC.b, labelC.a or 1, labelFont)
 
-    -- v13 ★ probe badge — small mono-warning suffix after the label.
-    -- Uses ASCII "*" until Fira live-verify confirms "★" (U+2605) renders
-    -- (Q15b — Fira font glyph gaps).
+    -- The probe badge — a small mono warning suffix after the label.
+    -- ASCII "*" until the Fira faces are confirmed to draw "★" (U+2605);
+    -- the set has glyph gaps.
     if needsProbe then
         local lblW    = ZeD.TM:MeasureStringX(labelFont, labelStr)
         local badgeC  = T.warning
@@ -3049,7 +3059,7 @@ end
 -- Returns:      stripH (20u), zones { {id, x, y, w, h, type = "sort" | "toggle" | "sortMenu"} }
 -- ============================================================================
 
-local STRIP_H = 20   -- S124 scale: design units; uses wrap with T.px
+local STRIP_H = 20   -- design units; every use wraps it in T.px
 local RADIO_GAP, CHOICE_GAP = 4, 10   -- design units: a radio to its words, between choices
 
 -- the focus mark under a part's words; true when the words switch to the focus ink
@@ -3060,12 +3070,12 @@ end
 
 -- The words a closed pop-up box shows in its room: "Exercise: Squats" whole when it fits, else the
 -- choice alone ("Squats", the value wins over its label, as the header drops its subtitle), cut
--- short only when even that does not fit. (Oct 31 2026, break-it B2: at UI scale 2.0 with Large
--- text Health's box read "E...", the choice lost.)
+-- short only when even that does not fit. (At UI scale 2.0 with Large text a box
+-- once read "E..." — the label won and the choice was lost.)
 -- When even "S..." is wider than the room, the first letters that fit, without the dots
 -- ("Cr" for "Craftable"): a box too narrow for its words still says which choice it
--- holds (Oct 31 2026, break-it B2: Craft's Sort and Show read nothing, the dots alone
--- did not fit). Kept per font, room and words (drawn every frame).
+-- holds, where a box the dots alone did not fit once read nothing at all.
+-- Kept per font, room and words (drawn every frame).
 local _letters = {}
 local function firstLetters(text, font, room)
     local byF = _letters[font]
@@ -3092,7 +3102,7 @@ local function popupWords(label, short, font, room)
 end
 
 -- the box's pads: its edges to the words and the triangle, the words to the triangle; a
--- tight box (a band short of room, punch list 28) closes them up to 4u and 2u
+-- tight box (a band short of room) closes them up to 4u and 2u
 local function popupPads(tight)
     local T = ZeD.T
     if tight then return T.px(4), T.px(2) end
@@ -3118,8 +3128,8 @@ local function drawPopupBox(panel, x, y, w, h, label, hover, focus, short, tight
     A.frame(panel, x, y, w, h, T.borderS)
 end
 
---- The closed pop-up menu as a control of its own (Oct 30 2026, punch list 21: the
--- header strips' and the bands' "Sort: Craftable", "View: Skin temperature",
+--- The closed pop-up menu as a control of its own (the header strips' and
+-- the bands' "Sort: Craftable", "View: Skin temperature",
 -- "Page: Journal"): the same box the sort strip folds into. The caller builds the
 -- words ("Sort: Craftable", through a key with %1), keeps the open state, and on a
 -- press draws the list with ZeD.Molecules.drawSortMenuList (last, over the rest)
@@ -3130,9 +3140,8 @@ end
 -- @param disabled  greyed, not pressable
 -- @param short  the choice alone ("Squats" for "Exercise: Squats"): shown instead of the
 --               label when the two do not fit together, cut short only if even it does not
---               (Oct 31 2026, break-it B2)
 -- @param tight  true: the pads closed up (4u edges, 2u words to triangle), for a band short of
---               room (Oct 31 2026, punch list 28); measure it with popupMenuW(label, true)
+--               room; measure it with popupMenuW(label, true)
 -- @return w, h
 local _popupDim = {}
 function ZeD.Molecules.drawPopupMenu(panel, x, y, w, h, label, hover, focus, disabled, short, tight)
@@ -3238,7 +3247,7 @@ function ZeD.Molecules.drawSortStrip(panel, x, y, w, modes, activeMode, rightTog
         end
     end
 
-    -- Right-aligned on/off: a System 7 checkbox and its words (cohesion spec 1.3)
+    -- Right-aligned on/off: a System 7 checkbox and its words
     if rightToggle then
         local togX = x + w - togW - T.px(6)
         local cb = T.checkboxSz
@@ -3259,7 +3268,7 @@ end
 -- the current choice carries the selected wash, the pointed one the hover wash.
 -- opts: optional { focusId / focus / focusParts (a mode id), minW (px), win }
 -- A mode may be { disabled = true, aside = "Mechanics Level 4" }: greyed, no hover wash, its
--- aside right-aligned after its words (a choice that is earned, Vehicle tab spec 2).
+-- aside right-aligned after its words (a choice that is earned, not yet unlocked).
 -- @return w, h, zones { {id = mode id, x, y, w, h, type = "sort", disabled} }
 function ZeD.Molecules.drawSortMenuList(panel, x, y, modes, activeMode, hoverZone, opts)
     local T, A, tm = ZeD.T, ZeD.Atoms, ZeD.TM
@@ -3354,7 +3363,7 @@ function ZeD.Molecules.drawAltBackStrip(panel, x, y, w, slotName, ownedCount, to
     local nc = T.textSec
     panel:drawText(statStr, statX, textY, nc.r, nc.g, nc.b, nc.a or 1, font)
 
-    -- Right: "Owned only", a System 7 checkbox and its words (cohesion spec 1.3)
+    -- Right: "Owned only", a System 7 checkbox and its words
     local togLabel = ZeD.tr("UI_ZeD_Strip_OwnedOnly")
     local cb = T.checkboxSz
     local togW = tm:MeasureStringX(font, togLabel) + cb + T.px(4)
@@ -3388,7 +3397,7 @@ end
 --           the focus ink when it asks; win }
 -- ============================================================================
 
-local RECIPE_ROW_H = 24   -- S124 scale: design units; uses wrap with T.px
+local RECIPE_ROW_H = 24   -- design units; every use wraps it in T.px
 
 -- a name cut to maxW with ".." (the recipe lists' own short ellipsis)
 local function cutName(tm, font, s, maxW)
@@ -3719,7 +3728,7 @@ end
 
 -- ============================================================================
 -- 23. QTY STEPPER (draw helper)
--- [-] n [+]: a readout between two square push buttons (cohesion spec 7), each
+-- [-] n [+]: a readout between two square push buttons, each
 -- disabled at its end of the range. Returns: totalW (width of the group), zones
 -- table for clicks ("dec", "inc").
 -- ============================================================================
@@ -3730,14 +3739,14 @@ local STEPPER_GAP = 4   -- design units between the keys and the readout
 --- @param hoverZone "dec" / "inc" / nil (nil: the pointer is tested here)
 --- @param opts      optional { focusId = "dec" / "inc" (with focus = its mark opts) or
 ---                  focusParts, win }: the key with the controller's focus; narrow = true:
----                  the readout only as wide as its digits, not a key's width (a band short
----                  of room; Oct 31 2026, break-it B2); single = true: the one amount box
+---                  the readout only as wide as its digits, not a key's width (a band
+---                  short of room); single = true: the one amount box
 ---                  (drawQtySpin; focusId "qty")
 local _stepOpts = {}
 local _spinDim = {}
 local SPIN_TRI = 5   -- design units: the amount box's step triangles
-local SPIN_PAD = 2   -- design units: the box's edge to a triangle, a triangle to the number (as narrow
-                     -- as its digits allow: the band short of room, punch list 28, Oct 31 2026)
+local SPIN_PAD = 2   -- design units: the box's edge to a triangle, a triangle to the number
+                     -- (as narrow as its digits allow, for the band short of room)
 
 --- The one amount box's width for qty (its number, two step triangles, their pads).
 function ZeD.Molecules.qtySpinW(qty)
@@ -3745,8 +3754,8 @@ function ZeD.Molecules.qtySpinW(qty)
     return ZeD.TM:MeasureStringX(T.fontF3, tostring(qty)) + T.px(SPIN_TRI) * 2 + T.px(SPIN_PAD) * 4
 end
 
--- The amount as ONE box (Oct 31 2026, punch list 28, the director's pick: on the smallest
--- screens the - / + collapse into one control, so Sort and Show keep their words): a 1u
+-- The amount as ONE box: on the smallest screens the - / + collapse into this
+-- one control, so Sort and Show keep their words. A 1u
 -- frame round "< 3 >"; a press on its left half steps down, on its right half up (the
 -- zones "dec" and "inc", as the keys'), the wheel and the pad's Left / Right step it too
 -- (the caller's). A triangle dims at its end of the range. opts.focusId "qty" marks it.
@@ -3904,26 +3913,26 @@ function ZeD.Molecules.drawCraftActionStrip(panel, x, y, w, qty, maxQty, canCraf
 end
 
 -- ============================================================================
--- CONTEXT MENU MOLECULES (S88)
--- Composed entirely from atoms in AtomExtensions.lua (Tasks 2-9) +
--- T.ctx tokens. No inline draw that duplicates an atom (DESIGN RULE #10).
--- Rendered by ZeD_ContextMenu organism; each molecule is side-effect-free
+-- CONTEXT MENU MOLECULES
+-- Composed entirely from the atoms in AtomExtensions.lua + T.ctx tokens; no
+-- inline draw duplicates an atom (a standing design rule).
+-- Rendered by the ZeD_ContextMenu organism; each molecule is side-effect-free
 -- except for registering hit zones on the panel (the convention for
--- click-target tracking, avoids PZ nested-panel mouse bugs Q1/Q4/Q5b).
+-- click-target tracking, which dodges the engine's nested-panel mouse bugs).
 -- ============================================================================
 
 -- ---------------------------------------------------------------------------
 -- drawContextCell — single 22×22 strip cell.
 --   def:   ActionDef from ContextMenuRegistry (may carry iconTexture)
 --   flags: { isActive, isBack, isPinned, hasSub, isDisabled }
--- States map to spec §3 cell table. Caller positions (x,y); cell has no
+-- Each flag flips one visual state. Caller positions (x,y); cell has no
 -- external margin (gaps are produced by the ink strip background showing
 -- through 1px between cells).
 -- ---------------------------------------------------------------------------
 function ZeD.Molecules.drawContextCell(panel, x, y, def, flags, T)
     local ctx = T.ctx
     local A = ZeD.Atoms
-    -- S101: context menu uses LOCKED System 7 paper/ink palette (matches
+    -- The context menu uses a LOCKED System 7 paper/ink palette (matching
     -- drawContextBalloon) so cells stand out identically on every theme.
     -- Active cell still uses the theme accent so selection feedback adapts.
     local ink    = { r = 0.08, g = 0.08, b = 0.08, a = 1 }
@@ -3974,7 +3983,7 @@ function ZeD.Molecules.drawContextCell(panel, x, y, def, flags, T)
             A.drawIcon(panel, def.iconTexture, iconX, iconY, ctx.iconPx, alpha, tint)
         end
     else
-        -- S99: no-icon fallback — draw first letter(s) in a box. Uses the
+        -- No-icon fallback — draw first letter(s) in a box. Uses the
         -- first two letters of def.name (stripping non-letters) in F1 (mono),
         -- in sentence case: a capital, then a small letter ("Op" for Open).
         -- Text colors tuned for max contrast: primary `text` on inactive
@@ -3990,8 +3999,8 @@ function ZeD.Molecules.drawContextCell(panel, x, y, def, flags, T)
         local textH = tm:getFontHeight(font)
         local tx = x + math.floor((ctx.cellW - textW) / 2)
         local ty = y + math.floor((ctx.cellH - textH) / 2)
-        -- S101: inactive cells now always render ink-on-paper for readability
-        -- on locked near-white cell bg. Active cells keep theme textOnAccent.
+        -- Inactive cells always render ink-on-paper for readability on the
+        -- locked near-white cell bg. Active cells keep theme textOnAccent.
         local lc = flags.isActive and (T.textOnAccent or T.text) or ink
         local alpha = flags.isDisabled and 0.45 or (lc.a or 1)
         panel:drawText(letters, tx, ty, lc.r, lc.g, lc.b, alpha, font)
@@ -4032,7 +4041,7 @@ end
 function ZeD.Molecules.drawContextStrip(panel, x, y, state, T)
     local ctx = T.ctx
     local A = ZeD.Atoms
-    -- S101: strip housing uses LOCKED ink so the 1px gridlines between
+    -- The strip housing uses LOCKED ink so the 1px gridlines between
     -- paper-white cells read dark-on-white on every theme.
     local ink    = { r = 0.08, g = 0.08, b = 0.08, a = 1 }
 
@@ -4065,11 +4074,11 @@ function ZeD.Molecules.drawContextStrip(panel, x, y, state, T)
     for i, def in ipairs(track) do
         local cx = innerX + originX + (i - 1) * (ctx.cellW + ctx.gap)
         -- Cull cells that fall entirely outside the visible window.
-        -- S103: extend the RIGHT buffer to match the LEFT (+cellW) so cells
+        -- The RIGHT buffer matches the LEFT (+cellW) so cells
         -- animating IN from the right edge are drawn during the slide instead
-        -- of popping into existence after they reach the viewport. Previously
-        -- a bare `cx <= innerX + innerW` check left a cellW-wide blank strip
-        -- on the right every time the carousel advanced. Symmetric buffer
+        -- of popping into existence after they reach the viewport — a bare
+        -- `cx <= innerX + innerW` check left a cellW-wide blank strip
+        -- on the right every time the carousel advanced. The symmetric buffer
         -- also covers slide-out from the left without regressing anything
         -- (stencil clips to [innerX, innerX+innerW] anyway).
         if cx + ctx.cellW >= innerX - ctx.cellW

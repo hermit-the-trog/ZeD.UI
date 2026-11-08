@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Overrides/Wheels.lua
 -- ============================================================================
--- VANILLA'S RADIAL WHEELS — HOOK_MAP row 29 (ZeD_Wheel.lua draws them)
+-- VANILLA'S RADIAL WHEELS (override, client; ZeD_Wheel.lua draws them)
 --
 -- Every wheel in the game is one of two vanilla objects: the shared
 -- ISRadialMenu (getPlayerRadialMenu: vehicle, animal, emotes, firearm, light,
@@ -11,7 +11,9 @@
 -- drawing underneath. instantiate makes a plain element instead of the Java
 -- RadialMenu, the slices live in Lua, the pick is worked out the engine's way
 -- (ZeD.Wheel.sliceFromMouse / sliceFromJoypad) and ZeD.Wheel.draw paints it.
--- Vanilla's object is used whenever ZeD's cannot be (no tokens yet).
+-- Vanilla's object is used whenever ZeD's cannot be (no tokens yet). The
+-- hooks keep vanilla's methods once (_zedOrig, behind the _zedWheel flag),
+-- so a Lua reload never wraps the wrapper.
 --
 -- The wheels' slices that open a vanilla window ZeD has replaced now open the
 -- ZeD surface (the same functions reached from anywhere else go there too):
@@ -133,8 +135,8 @@ local function hookRadial()
         if engineSide(self) then
             return O.addSlice(self, text, texture, command, arg1, arg2, arg3, arg4, arg5, arg6)
         end
-        -- (the director, Nov 7 2026, B7: no mini-map in ZeD's wheels. The game's own map wheel, holding the
-        -- map key, offers it last: left out, so nothing after it moves. Safe mode's engine wheel keeps it.)
+        -- (No mini-map in ZeD's wheels: the World window's map is the map. The game's own map wheel, holding
+        -- the map key, offers it last: left out, so nothing after it moves. Safe mode's engine wheel keeps it.)
         if W.isMiniMapCommand(command) then return end
         local slice = { text = text, texture = texture, command = { command, arg1, arg2, arg3, arg4, arg5, arg6 } }
         table.insert(self.slices, slice)

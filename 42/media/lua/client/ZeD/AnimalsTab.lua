@@ -1,11 +1,11 @@
 -- ZeD-UI/42/media/lua/client/ZeD/AnimalsTab.lua
 -- ============================================================================
--- ANIMALS TAB — World Window tab controller.
+-- ANIMALS TAB — client; an organism: the World window's tab controller.
 -- State machine routing: submode (ranch/butcher) × view (overview/zone/animal).
--- Session B: Ranch Overview molecules + O-ANOVW organism.
--- Session C: Zone Detail View — roster list + zone info band + sort cycle.
--- Session D: Animal Detail View — vitals + production + breeding + genetics.
--- Session E: Butcher sub-mode — eligibility filter + yield estimates.
+-- Ranch has three views: Overview (alerts + zone cards + totals), Zone detail
+-- (roster list + zone info band + sort cycle) and Animal detail (vitals +
+-- production + breeding + genetics). Butcher is one view: eligibility filter
+-- + yield estimates.
 --
 -- Molecules defined here (Animals-specific, not general-purpose):
 --   M-SUBM   drawSubmodeStrip        — Ranch / Butcher tab strip
@@ -28,8 +28,7 @@
 --   O-ANDTL  renderRanchAnimal       — Animal detail organism
 --   O-BOVW   renderButcherOverview   — Butcher overview organism
 --
--- Design: zed-animals-v2-fira.html (S84 approved).
--- Hunt sub-mode deferred to Phase 2.
+-- A Hunt sub-mode is planned but not built yet.
 -- ============================================================================
 
 require "ZeD/Tr"
@@ -48,7 +47,7 @@ ZeD.AnimalsTab = ZeD.AnimalsTab or {}
 
 local AT = ZeD.AnimalsTab
 
--- Lazy accessors — modules may not be fully initialized at require-time (Q21)
+-- Lazy accessors — modules may not be fully initialized at require-time
 local function AD() return ZeD.AnimalsData end
 local function SI() return ZeD.AnimalsStressInference end
 local function AP() return ZeD.AnimalsAlertPoller end
@@ -279,7 +278,7 @@ end
 -- ============================================================================
 -- SORT LOGIC
 -- Returns a new sorted array (never mutates the input).
--- Insertion sort — Kahlua-safe, no recursion (Q35).
+-- Insertion sort — Kahlua-safe, no recursion.
 -- ============================================================================
 
 local function sortAnimals(animals, mode)
@@ -317,7 +316,7 @@ local function sortAnimals(animals, mode)
         keyed[i] = { animal = animal, key = key or "" }
     end
 
-    -- Insertion sort (Q35: Kahlua table.sort stack-overflows on large arrays)
+    -- Insertion sort: Kahlua's table.sort stack-overflows on large arrays
     for i = 2, #keyed do
         local current = keyed[i]
         local j = i - 1
@@ -455,10 +454,10 @@ end
 local ZONE_MIN_DIM = 2
 local ZONE_MAX_DIM = 40
 
--- Forward declarations (Q104/Q105) — gp* helpers reference these which are
--- defined lower in the file. Without the hoist, Kahlua closures capture nil
--- at creation time. Assignments below change `local function foo` →
--- `foo = function` so the hoisted slots get filled.
+-- Forward declarations — gp* helpers reference these, which are defined lower
+-- in the file. Without the hoist, Kahlua closures capture nil at creation
+-- time. Assignments below change `local function foo` → `foo = function` so
+-- the hoisted slots get filled.
 local cancelZoneCreate
 local confirmZoneCreate
 local getZoneDimensions
@@ -475,8 +474,8 @@ local function getZoneCreateState(win)
             endY     = nil,      -- drag end world Y
             z        = 0,        -- floor level
             wasDown  = false,    -- mouse was down last frame (edge detection)
-            -- S109a: gamepad cursor. Separate from startX/endX so idle-phase
-            -- D-pad can reposition before the first A-press. Seeded to player
+            -- Gamepad cursor. Separate from startX/endX so idle-phase D-pad
+            -- can reposition before the first A-press. Seeded to the player's
             -- tile in startZoneCreate.
             cursorX  = nil,
             cursorY  = nil,
@@ -507,8 +506,8 @@ local function startZoneCreate(win)
     if player then
         player:setSeeDesignationZone(true)
         zc.z = math.floor(player:getZ())
-        -- S109a: seed gamepad cursor to player tile so idle-phase D-pad has
-        -- a valid start point if the user goes that path.
+        -- Seed the gamepad cursor to the player's tile so idle-phase D-pad
+        -- has a valid start point if the user goes that path.
         zc.cursorX = math.floor(player:getX())
         zc.cursorY = math.floor(player:getY())
     end
@@ -521,7 +520,7 @@ local function startZoneCreate(win)
 end
 
 -- ============================================================================
--- S109a — GAMEPAD ZONE-DRAW HELPERS
+-- GAMEPAD ZONE-DRAW HELPERS
 -- Parallel to mouse flow. State machine:
 --   idle  + A → place first corner (start = cursor), phase=drawing
 --   drawing + D-pad → move cursor AND endX/Y
@@ -572,9 +571,9 @@ local function gpConfirm(win)
         end
         -- else: ignore A; dims invalid (too small/large). User keeps moving.
     elseif zc.phase == "confirm" then
-        -- S109a: seed post-create focus so the ring lands on the new zone
-        -- card instead of falling back to idx-clamp (which drops the user on
-        -- the ranch submode pill). Refresh loop reads this hint.
+        -- Seed post-create focus so the ring lands on the new zone card
+        -- instead of falling back to idx-clamp (which drops the user on the
+        -- ranch submode pill). The refresh loop reads this hint.
         win._animalsFocusAfterCreate = zc.name
         confirmZoneCreate(win)
     end
@@ -596,7 +595,7 @@ local function gpCancel(win)
     end
 end
 
--- Q104 hoist: assign into forward-declared slot so gp* helpers above see it.
+-- Hoist: assign into the forward-declared slot so the gp* helpers above see it.
 cancelZoneCreate = function(win)
     local zc = getZoneCreateState(win)
     zc.active = false
@@ -741,8 +740,8 @@ local function cancelRemoveZone(win)
     win._animalsRemoveConfirm = false
 end
 
--- Returns normalized width, height, valid flags
--- Q104 hoist: assigned into forward-declared slot so gpConfirm above sees it.
+-- Returns normalized width, height, valid flags.
+-- Hoist: assigned into the forward-declared slot so gpConfirm above sees it.
 getZoneDimensions = function(zc)
     if not zc.startX or not zc.endX then return 0, 0, false, false end
     local sx, sy, ex, ey = zc.startX, zc.startY, zc.endX, zc.endY
@@ -825,7 +824,7 @@ local function updateZoneCreateMouse(win)
         addAreaHighlightForPlayer(0, sx, sy, ex + 1, ey + 1, zc.z, r, g, b, a)
     end
 
-    -- S109a: Gamepad cursor 1×1 tile highlight during idle phase so the user
+    -- Gamepad cursor: a 1×1 tile highlight during the idle phase so the user
     -- can see where the first corner will drop. Skipped in drawing/confirm
     -- phases since the main rect highlight subsumes it.
     if zc.phase == "idle" and zc.cursorX and zc.cursorY then
@@ -1337,9 +1336,9 @@ end
 -- O-ANOVW — RANCH OVERVIEW ORGANISM
 -- Composes: Alerts section → Zones section → Totals section.
 -- Reads all data from AlertPoller cache. Collapsible sections.
--- The whole page scrolls as one unit (QA Nov 5 2026: 24 animals made 27 alerts, a page of 1961 in a 650 view, with no
--- way down to the Totals, and the rows ran under the Create zone band): win._animalsScroll, the real bar, clipped
--- between the tab strip and the band. Its height is last frame's (win._animalsOvH).
+-- The whole page scrolls as one unit: 24 animals can make 27 alerts — a page of 1961 in a 650 view, no way down to
+-- the Totals, rows running under the Create zone band. win._animalsScroll is the real bar, clipped between the tab
+-- strip and the band. Its height is last frame's (win._animalsOvH).
 -- ============================================================================
 
 -- the controller's stop kept in view (win._animalsOvRows: each stop's place in the page, from the last frame)
@@ -1713,7 +1712,7 @@ local function drawAnimalRow(panel, x, y, w, animal, player, hovered, onFocus)
 end
 
 -- ============================================================================
--- M-STRUCT — HUTCHES / FEEDING TROUGHS / HOOKS rows (HOOK_MAP 20-22)
+-- M-STRUCT — HUTCHES / FEEDING TROUGHS / HOOKS rows
 -- One 34px row per structure: tile icon, name, a line of state, a tag and
 -- Open (the object card; walks there first when it is out of reach).
 -- ============================================================================
@@ -1957,7 +1956,8 @@ end
 -- ============================================================================
 local GENE_H = 24
 
--- the engine names genes in lower case ("maxweight"): vanilla's 19, worded
+-- the engine names genes in lower case ("maxweight"): vanilla's genes, worded;
+-- a name not in the table gets spaced and capitalised by geneLabel below
 local GENE_LABELS = {
     maxsize = "Max size", maxmilk = "Max milk", meatratio = "Meat ratio", agetogrow = "Age to grow",
     maxwool = "Max wool", maxweight = "Max weight", lifeexpectancy = "Life expectancy", resistance = "Resistance",
@@ -2175,7 +2175,7 @@ local function renderRanchZone(panel, win, x, y, w, h)
         focus = focusFor(win, "animals:sort"), help = ZeD.tr("UI_ZeD_Animals_HelpSort") })
     win._animalsSortZone = { x = sbx, y = sby, w = sbw, h = sbh }
 
-    -- Help (Nov 7 2026): the game's first-time zone note on request, in its own words (WorldRoutes.zoneHelp); the
+    -- Help: the game's first-time zone note on request, in its own words (WorldRoutes.zoneHelp); the
     -- help line says its opening sentence. The note never comes up on its own under ZeD's window.
     win._animalsZoneHelpZone = nil
     local WR = ZeD.WorldRoutes
@@ -2366,7 +2366,7 @@ local function drawVitalRow(panel, x, y, w, label, value, textDesc, numericDesc,
     panel:drawText(tc(label), x, valY, tc2.r, tc2.g, tc2.b, tc2.a or 1, lblFont)
 
     -- Fill bar (right-aligned): the framed strip, ten segments. Its help line is the row's own reading
-    -- ("Hunger Peckish" until the skill shows the number): no figure the game keeps back (Oct 30 2026)
+    -- ("Hunger Peckish" until the skill shows the number): no figure the game keeps back
     local barW = T.px(VITAL_BAR_W)
     local barX = x + w - barW
     local barH = T.fillBarH
@@ -2701,7 +2701,7 @@ local function renderRanchAnimal(panel, win, x, y, w, h)
         return
     end
 
-    -- (Nov 7 2026) an animal outside the ranch that the game's Info opened keeps the game's reach (WorldRoutes.lua)
+    -- an animal outside the ranch that the game's Info opened keeps the game's reach (WorldRoutes.lua)
     local WR = ZeD.WorldRoutes
     if WR and WR.animalLeft and WR.animalLeft(win, animal) then
         navigateBack(win)
@@ -2941,7 +2941,7 @@ local function renderButcherOverview(panel, win, x, y, w, h)
         return
     end
 
-    -- Sort by weight descending (insertion sort, Q35)
+    -- Sort by weight descending (insertion sort — Kahlua's table.sort stack-overflows on large arrays)
     for i = 2, #eligible do
         local current = eligible[i]
         local j = i - 1
@@ -3429,7 +3429,7 @@ function ZeD.AnimalsTab.onMouseWheel(win, del)
     local rosterScroll = win._animalsRosterScroll
     if rosterScroll and rosterScroll.needsScroll then
         local zs = getZoneViewState(win)
-        -- Q5: positive delta = scroll DOWN (inverted)
+        -- positive delta = scroll DOWN (inverted)
         local scrollStep = T.px(AROW_H)  -- scroll by one row per tick
         zs.scrollY = zs.scrollY + (del * scrollStep)
         zs.scrollY = math.max(0, math.min(zs.scrollY, rosterScroll.maxScroll))
@@ -3457,11 +3457,12 @@ function ZeD.AnimalsTab.onMouseWheel(win, del)
 end
 
 -- ============================================================================
--- PUBLIC NAVIGATION — called by roster/zone click handlers in future sessions
+-- PUBLIC NAVIGATION — entry points for the object cards, the World routes and
+-- the World window's gamepad builder
 -- ============================================================================
 
 AT.navigate         = navigate
--- (Nov 7 2026) the zone view's help button: the game's first-time zone note, for the window's player
+-- the zone view's help button: the game's first-time zone note, for the window's player
 function AT.zoneHelp(win)
     local WR = ZeD.WorldRoutes
     if not (WR and WR.zoneHelp) then return false end
@@ -3474,8 +3475,8 @@ function AT.zoneHelp(win)
     return WR.zoneHelp(pn)
 end
 AT.navigateBack     = navigateBack
--- HOOK_MAP 20-22: the cards link back here (a bird's INFO), and the World
--- window's gamepad builder opens and edits through these.
+-- The cards link back here (a bird's INFO), and the World window's gamepad
+-- builder opens and edits through these.
 AT.openStruct       = openStruct
 AT.genomeAct        = genomeAct
 function AT.showAnimal(win, animal)
@@ -3489,14 +3490,14 @@ function AT.showAnimal(win, animal)
     navigate(win, "animal", nil, animal)
 end
 AT.getState         = getState
--- S109: exported for World window gamepad builder (submode live-switch on
+-- Exported for the World window's gamepad builder (submode live-switch on
 -- focus + sort-btn A-press + roster/butcher/zonecard navigate calls).
 AT.switchSubmode    = switchSubmode
 AT.cycleSortMode    = cycleSortMode
 AT.getZoneViewState = getZoneViewState
 AT.getButcherState  = getButcherState
 AT.startZoneCreate  = startZoneCreate
--- S109a: gamepad zone-draw state machine.
+-- The gamepad zone-draw state machine.
 AT.gpMoveCursor     = gpMoveCursor
 AT.gpConfirm        = gpConfirm
 AT.gpCancel         = gpCancel

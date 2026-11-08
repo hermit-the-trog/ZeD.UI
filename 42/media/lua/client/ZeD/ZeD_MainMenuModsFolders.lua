@@ -1,12 +1,12 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MainMenuModsFolders.lua
 -- ============================================================================
--- THE MODS PAGE'S FOLDERS (MOD_FOLDERS_SPEC.md sections 1 to 6, 9, 12; stage 2 of the Mods screen
--- work, punch list 37; mockup zed_mod_folders_v1, scenes a and a2)
+-- THE MODS PAGE'S FOLDERS: grouping for the Mods list. Client-side; part of
+-- the ZeD_MMMods organism (it extends the class ZeD_MainMenuMods.lua builds).
 --
 -- Folders sort the collection (every installed mod, on or off) and live in Zomboid/Lua/ModFolders.cfg,
--- the file of [B42]Mod Folders by FieClaussell (ZeD_ModFolders.lua reads and writes it in that mod's
+-- the file of the [B42]Mod Folders mod (ZeD_ModFolders.lua reads and writes it in that mod's
 -- own format), so a player's layout is the same with or without ZeD. A folder never changes what is
--- on or the load order; its box turns its mods on or off at once (the director's pick: act, Accept
+-- on or the load order; its box turns its mods on or off at once (it acts now; Accept still
 -- commits).
 --   * once any folder exists the collection is grouped: the folders in their saved order, then
 --     Unfiled (every mod in no folder; not a folder, never written to the file). Folders open and
@@ -59,7 +59,7 @@ local function activeSet(m)
 end
 
 -- ----------------------------------------------------------------------------
--- SET-UP: the file read each time the Mods page opens (spec 9.1: outside edits show)
+-- SET-UP: the file read each time the Mods page opens, so outside edits show
 -- ----------------------------------------------------------------------------
 local _onShow = ZeD_MMMods.onShow
 function ZeD_MMMods:onShow()
@@ -69,15 +69,16 @@ function ZeD_MMMods:onShow()
     self._fView, self._fDet, self._fScrollTo = nil, nil, nil
 end
 
--- folders show (the Workshop tab stays flat: it lists Steam's items, spec 2.2)
+--- Folders show (the Workshop tab stays flat: it lists Steam's items).
 function ZeD_MMMods:foldersOn()
     -- (the Simple view lists the mods flat: folders are Full's)
     return self.filter ~= "ws" and F.any() and not self:simple()
 end
 
 -- ----------------------------------------------------------------------------
--- WHICH LIST THIS IS (spec 1.1, 1.2): a line over the list while folders exist
+-- WHICH LIST THIS IS: a line over the list while folders exist
 -- ----------------------------------------------------------------------------
+--- The line saying which list this is ("order" or the collection); returns the y under it.
 function ZeD_MMMods:listLine(x, top, w, which)
     if not F.any() then return top end
     local T = ZeD.T
@@ -123,7 +124,7 @@ function ZeD_MMMods:folderView()
     local m = model()
     local M = F.get()
     local rh, hh = T.px(ROW_H), T.px(HEAD_H)
-    -- every installed mod's folder: each folder's count and how many are on (its box, spec 6.1)
+    -- every installed mod's folder: each folder's count and how many are on (its box)
     local tot, on, bucket = {}, {}, {}
     for _, d in ipairs(m and m.sortedMods or EMPTY) do
         local fid = F.folderOf(d.modId) or UNFILED
@@ -143,7 +144,7 @@ function ZeD_MMMods:folderView()
     local unfiledOpen = F.unfiledOpen()
     local function head(fid, f)
         local b = bucket[fid] or EMPTY
-        -- (a tab or Find: a folder with nothing to show is not drawn, spec 2.1, 2.3)
+        -- (a tab or Find: a folder with nothing to show is not drawn)
         if narrowed and #b == 0 then return end
         local open
         if q ~= "" then open = true elseif f then open = f.open else open = unfiledOpen end
@@ -219,9 +220,9 @@ local function labelColor(key, asText)
 end
 ZeD_MMMods.labelColor = function(_, key, asText) return labelColor(key, asText) end
 
--- THE LABEL SWATCHES (the director, Nov 4 2026): None, then the eight label colours (ZeD.LABELS: ZeD's accents), in
--- the Maps tab's ink-swatch look: a hover wash and the controller's mark in a 2u ring round each, a 1u edge, a ring in
--- the text colour round the one in use, and the label's name beside them. pick(key or nil). Returns the y under them.
+--- THE LABEL SWATCHES: None, then the eight label colours (ZeD.LABELS: ZeD's accents), in
+--- the Maps tab's ink-swatch look: a hover wash and the controller's mark in a 2u ring round each, a 1u edge, a ring in
+--- the text colour round the one in use, and the label's name beside them. pick(key or nil). Returns the y under them.
 local SW = 18
 function ZeD_MMMods:labelSwatches(ix, cy, cur, pick, row, vy, vh, idp, modal)
     local T = ZeD.T
@@ -290,7 +291,7 @@ function ZeD_MMMods:labelSwatches(ix, cy, cur, pick, row, vy, vh, idp, modal)
     return cy + sz + ring
 end
 
--- a folder's box: ticked (all on), empty (none on), the dash (some on); greyed when empty (spec 6)
+-- a folder's box: ticked (all on), empty (none on), the dash (some on); greyed when empty
 local function drawFolderBox(p, x, y, n, k, hot)
     local T = ZeD.T
     local sz = T.checkboxSz
@@ -325,7 +326,7 @@ function ZeD_MMMods:drawFolderHead(e, x, ry, rw, vy, vh, gp)
         drawFolderPic(self, nx, ry + math.floor((e.h - ps) / 2), ps, onFocus and T.textOnFocus or (lc or T.text), lc ~= nil and not onFocus)
         nx = nx + ps + T.px(8)
     end
-    -- the box at the right (not on Unfiled, spec 5.1)
+    -- the box at the right (not on Unfiled)
     local cb = T.checkboxSz
     local bx = x + rw - T.px(10) - cb
     local right = e.f and (bx - T.px(8)) or (x + rw - T.px(10))
@@ -371,6 +372,8 @@ function ZeD_MMMods:folderStop(e, k)
     self._specs[#self._specs + 1] = sp
 end
 
+--- The Mods list grouped by folder (drawList hands over here once folders exist); vy is the top
+--- under the tabs and Find.
 function ZeD_MMMods:drawFolderRows(x, y, w, h, vy)
     local T = ZeD.T
     local v = self:folderView()
@@ -442,7 +445,7 @@ function ZeD_MMMods:clickFolder(e)
     self.focusId = e.sid
 end
 
--- the triangle, a double-click, A: open or close, saved (a folder: in the file, spec 3.6;
+-- the triangle, a double-click, A: open or close, saved (a folder: in the file;
 -- Unfiled: ZeD's own). While Find has text every folder with a match shows open for the moment.
 function ZeD_MMMods:folderOpenClose(e)
     if (self.find:getInternalText() or "") ~= "" then
@@ -468,7 +471,7 @@ function ZeD_MMMods:folderOpenClose(e)
 end
 
 -- ----------------------------------------------------------------------------
--- A FOLDER'S BOX (spec 6): every installed mod in it on (empty or mixed) or off (all on), at once;
+-- A FOLDER'S BOX: every installed mod in it on (empty or mixed) or off (all on), at once;
 -- the game's own rules, as a single tick; nothing reaches the game until Accept
 -- ----------------------------------------------------------------------------
 function ZeD_MMMods:folderBox(fid)
@@ -488,7 +491,7 @@ function ZeD_MMMods:folderBox(fid)
     local cannot, keptOn, inFolder = {}, {}, {}
     local SF = ZeD.ModSafety
     -- (on: one batch, the Mods screen's own; a mod that cannot run stays off, the first of two that
-    -- conflict wins, the template mod asks on its own row. QA Nov 1 2026, mhd: one at a time lost one)
+    -- conflict wins, the template mod asks on its own row. Set one at a time, a pair on together lost one)
     if turnOn then
         local ids = {}
         for _, d in ipairs(ds) do ids[#ids + 1] = d.modId end
@@ -536,7 +539,7 @@ function ZeD_MMMods:folderBox(fid)
 end
 
 -- ----------------------------------------------------------------------------
--- MOVING MODS (spec 4)
+-- MOVING MODS
 -- ----------------------------------------------------------------------------
 -- the mods a menu on row d acts on: every picked row when d is one of them, else d alone
 function ZeD_MMMods:folderTargets(d)
@@ -553,7 +556,7 @@ function ZeD_MMMods:folderTargets(d)
 end
 
 -- ids into folder fid (nil: Unfiled); the focus stays on the mod, in its new place (its folder's
--- row when that folder is closed, spec 4.3)
+-- row when that folder is closed)
 function ZeD_MMMods:folderMove(ids, fid)
     local m = model()
     local ok, res = F.assign(ids, fid)
@@ -583,7 +586,7 @@ function ZeD_MMMods:folderMove(ids, fid)
     self._fScrollTo = self.focusId
 end
 
--- the Move to folder pop-up (mockup a2): the folders, New folder..., and Take out of the folder
+-- the Move to folder pop-up: the folders, New folder..., and Take out of the folder
 function ZeD_MMMods:modFolderMenu(d, anchor)
     if not d then return end
     local ids = self:folderTargets(d)
@@ -606,8 +609,8 @@ function ZeD_MMMods:modFolderMenu(d, anchor)
     MM.openPopup("modFolder", items, anchor or self:folderAnchor(), false)
 end
 
--- Move to folder... in the mod's pane (the controller's way: A on it, the D-pad picks, A moves,
--- B leaves it where it was; the focus stays on the button)
+--- Move to folder... in the mod's pane (the controller's way: A on it, the D-pad picks, A moves,
+--- B leaves it where it was; the focus stays on the button).
 function ZeD_MMMods:folderVerb(d)
     local anchor = nil
     for _, b in ipairs(self._specs or EMPTY) do
@@ -633,7 +636,7 @@ function ZeD_MMMods:folderAnchor()
     return { x = ax + T.px(60), y = ay + T.px(60), w = T.px(10), h = T.px(10) }
 end
 
--- a folder row's menu (spec 3: Rename..., Delete folder, Move up / Move down, Open all / Close all)
+-- a folder row's menu: Rename..., Delete folder, Move up / Move down, Open all / Close all
 function ZeD_MMMods:folderMenu(e, anchor)
     local items = { { text = e.name, disabled = true }, "-" }
     local list = F.folders()
@@ -680,9 +683,9 @@ function ZeD_MMMods:folderAllOpen(open)
 end
 
 -- ----------------------------------------------------------------------------
--- THE BAND: New folder..., Rename..., Delete folder (spec 3.1 to 3.5)
+-- THE BAND: New folder..., Rename..., Delete folder
 -- ----------------------------------------------------------------------------
--- the Mods page band's button (greyed at 99 folders, spec 3.3)
+--- The Mods page band's New folder... button (greyed at 99 folders, the file format's own limit).
 function ZeD_MMMods:folderNewSpec()
     local full = #F.folders() >= F.MAX
     return { "fnew", ZeD.tr("UI_ZeD_Folders_BtnNew"), function() self:folderAskNew(nil) end, "default", full,
@@ -712,7 +715,7 @@ function ZeD_MMMods:folderAskDelete(fid)
     self:setConfirm("fdelete")
 end
 
--- Return in the band's field, or its button
+--- Return in the band's field, or its button: make or rename the folder.
 function ZeD_MMMods:folderFieldEnter(c)
     local text = F.trim(self.field:getText())
     if #text > F.NAME_MAX then text = string.sub(text, 1, F.NAME_MAX) end
@@ -726,7 +729,7 @@ function ZeD_MMMods:folderFieldEnter(c)
         if not ok then self:say(ZeD.tr("UI_ZeD_Folders_SayNoWrite")); return end
         MM.clickSound()
         self:say(ZeD.tr("UI_ZeD_Folders_SayMade", text))
-        -- (made from a row's menu: that row's mod, or every picked one, goes in, spec 3.1)
+        -- (made from a row's menu: that row's mod, or every picked one, goes in)
         if ids and #ids > 0 then self:folderMove(ids, res) end
     else
         local f = F.byId(self._fTarget)
@@ -756,6 +759,7 @@ function ZeD_MMMods:folderDelete()
     end
 end
 
+--- The band while a folder question is open (fnew / frename / fdelete); buildStrip hands over here.
 function ZeD_MMMods:folderStrip(stripY, stripH, w, row)
     local T = ZeD.T
     local c = self.confirm
@@ -792,12 +796,12 @@ function ZeD_MMMods:folderStrip(stripY, stripH, w, row)
     for _, b in ipairs(self._specs) do if b.row == row and b.x then firstBtn = math.min(firstBtn, b.x) end end
     local fh = T.px(24)
     UI.styleEntry(self.field, fx, stripY + math.floor((stripH - fh) / 2), math.max(T.px(80), firstBtn - T.px(12) - fx), fh)
-    -- (typing stops at 48 letters, spec 12.3)
+    -- (typing stops at 48 letters; longer names from the file stay)
     if #text > F.NAME_MAX then self.field:setText(string.sub(text, 1, F.NAME_MAX)) end
 end
 
 -- ----------------------------------------------------------------------------
--- THE FOLDER'S PANE (mockup a): what is in it, what is not installed, what the box does
+-- THE FOLDER'S PANE: what is in it, what is not installed, what the box does
 -- ----------------------------------------------------------------------------
 function ZeD_MMMods:folderDetailModel(iw)
     local T = ZeD.T
@@ -871,6 +875,7 @@ function ZeD_MMMods:paneLines(lines, ix, cy, color)
     return cy
 end
 
+--- The folder's pane in the detail area (drawDetail hands over here while a folder row is picked).
 function ZeD_MMMods:drawFolderDetail(x, vy, w, vh)
     local T = ZeD.T
     local pad = T.px(DETAIL_PAD)
@@ -919,7 +924,7 @@ function ZeD_MMMods:drawFolderDetail(x, vy, w, vh)
         end
         cy = cy + lineH
     end
-    -- what the file holds that is not installed (kept, not counted: spec 5.2, 5.3)
+    -- what the file holds that is not installed (kept in the file, not counted)
     if #c.missing > 0 then
         cy = cy + T.px(6)
         cy = self:paneHead(c.missHead, c.missCount, ix, iw, cy)
@@ -958,7 +963,7 @@ function ZeD_MMMods:folderDropMissing(id)
 end
 
 -- ----------------------------------------------------------------------------
--- PICKING SEVERAL ROWS (spec 4.1): Ctrl-click adds or drops a row, Shift-click a run of rows
+-- PICKING SEVERAL ROWS: Ctrl-click adds or drops a row, Shift-click a run of rows
 -- ----------------------------------------------------------------------------
 local _clickRow = ZeD_MMMods.clickRow
 function ZeD_MMMods:clickRow(d)
@@ -1092,7 +1097,7 @@ function ZeD_MMMods:getStatusLine()
     return _status(self)
 end
 
--- the folder row before (-1) or after (1) the focused entry (Page Up / Page Down, spec 12.8)
+-- the folder row before (-1) or after (1) the focused entry (Page Up / Page Down)
 function ZeD_MMMods:folderJump(dir)
     local v = self:folderView()
     local k = (self.focusId and v.at[self.focusId]) or 0
