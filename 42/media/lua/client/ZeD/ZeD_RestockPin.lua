@@ -1,6 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_RestockPin.lua
 -- ============================================================================
--- THE PINNED TO-DO (handoff equip_doll_v4_loadouts, part B5; mockup r2_06)
+-- THE PINNED TO-DO - client organism (ZeD_RestockPin, a plain ISPanel); the
+-- run itself is ZeD_Restock.lua, this only shows it.
 --
 -- While a Casual or Accessible restock (or unpack) runs, the to-do pins as a
 -- small list at the left edge of the screen: its name, the lines still to do
@@ -8,8 +9,9 @@
 -- notice ("Bandage x2 from the Bathroom Cabinet") or, walking, "Walking to 2 of
 -- 3 | 0:40 left". It goes when the list is empty (a few seconds after, with
 -- "Restocked") or when the run stops (with the reason). The close key at its
--- top right stops the run. Drawn with the library's tokens; not a stop for the
--- pad (any button stops the run, ZeD_Restock).
+-- top right stops the run. Drawn with the library's tokens. The controller
+-- never focuses it: any pad button cancels the run's queue instead (Casual
+-- then waits, Accessible stops; ZeD_Restock.lua).
 -- ============================================================================
 
 require "ISUI/ISPanel"
@@ -157,7 +159,7 @@ function P.hide(pn)
 end
 
 function P.update()
-    -- Loadouts and outfits off (Settings.lua; director, Oct 30 2026): no pin drawn
+    -- Loadouts and outfits off (Settings.lua): no pin drawn
     if not (ZeD.Lists and ZeD.Lists.on()) then
         local shown = {}
         for pn in pairs(P.panels) do shown[#shown + 1] = pn end
@@ -180,9 +182,11 @@ function P.update()
     end
 end
 
+-- Hooked once (a global flag survives a Lua reload); every 15 ticks it calls through ZeD.RestockPin, so a reload
+-- swaps in the new code.
 if not _G._zedRestockPinHooked then
     _G._zedRestockPinHooked = true
-    -- by the clock, not by frames (the old 15 ticks at 60 a second)
+    -- by the clock, not by frames (15 ticks at 60 a second)
     local last = 0
     Events.OnTick.Add(function()
         local now = getTimestampMs()

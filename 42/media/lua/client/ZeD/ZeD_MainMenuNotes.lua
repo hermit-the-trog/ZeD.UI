@@ -1,7 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MainMenuNotes.lua
 -- ============================================================================
--- THE DESK'S NOTES (punch list 104; the director, Nov 7 2026: "notes as both, one sticky note always on the desktop
--- plus a notepad whose files sit as icons on the desktop"). ZeD_DeskNotes.lua is the model; this file draws.
+-- THE DESK'S NOTES: one sticky note always on the desktop, plus the CletusWorks notepad, whose
+-- pages live in the Documents folder. Client-side; two organisms (the sticky's field, the
+-- notepad window). ZeD_DeskNotes.lua is the model; this file draws.
 --
 -- THE STICKY NOTE sits at the top of the desktop's left edge, always, under the windows like the icons. Its words
 -- are typed in place: a click puts the caret in it wherever it shows (a window over it keeps its own part), and on a
@@ -9,15 +10,16 @@
 -- typing stops and whenever it lets go of the keys. Pale yellow paper whatever the theme: it is a note stuck on the
 -- screen, not part of the system.
 --
--- CLETUSWORKS (the director: named after ClarisWorks, "the all-in-one on every school Mac in 1993"; the desktop
+-- CLETUSWORKS (named after ClarisWorks, the all-in-one on every school Mac in 1993; the desktop
 -- icon reads CletusWorks, the window "CletusWorks Notepad") is a ZeD window on the monitor with one page in it. The
 -- band holds New, Open, Rename, Delete and Save; the page's name is in the title bar's stats and the band's line
 -- says whether it is saved, or that the page is full (N.TEXT_MAX: the box takes no more). A new page becomes a note
--- when it is first saved. The notes are listed in the desktop's one Documents folder (ZeD_MainMenuDocs.lua; the
--- director, Nov 7 2026), and Open goes to that list. Delete asks in the band, as every question on the desk does, and
--- lands on Cancel. Leaving a page with unsaved words (the close box, B, New, Open, another icon) asks "Save
--- changes?" first: Discard changes, Cancel, Save. Words not saved yet are also kept as a draft (ZeD_DeskNotes), so
--- a game started from the menu bar loses nothing: the notepad opens with them next time.
+-- when it is first saved. The notes are listed in the desktop's one Documents folder
+-- (ZeD_MainMenuDocs.lua), and Open goes to that list. Delete asks in the band, as every question on the desk does, and
+-- lands on Cancel. Leaving a page with unsaved words (the close box, B, New, another note opened from Documents) asks
+-- "Save changes?" first: Discard changes, Cancel, Save. Any other way out (another desktop icon, the menu bar) asks
+-- nothing: the page stays as it was, and words not saved yet are kept as a draft (ZeD_DeskNotes), so a game started
+-- from the menu bar loses nothing: the notepad opens with them next time.
 --
 -- The ZeD menu (the logo, where System 7 kept its desk accessories) opens CletusWorks too.
 -- ============================================================================
@@ -51,7 +53,7 @@ local INK_HINT = { r = 0.42, g = 0.38, b = 0.24 }
 local function tr(k, ...) return ZeD.tr(k, ...) end
 local function gamepadJoy() return MM.gamepad() and JoypadState and JoypadState.getMainMenuJoypad and JoypadState.getMainMenuJoypad() or nil end
 
--- a field with the controller: ZeD's keyboard types into it; with the mouse or keys, the caret
+--- A field with the controller: ZeD's keyboard types into it; with the mouse or keys, the caret.
 local function editField(entry)
     local jd = gamepadJoy()
     if jd and OnScreenKeyboard and OnScreenKeyboard.Show then
@@ -72,6 +74,7 @@ MM.editField = editField
 -- ============================================================================
 ZeD_MMSticky = ISPanel:derive("ZeD_MMSticky")
 
+--- The sticky's field panel, made once by the desk (ZeD_MainMenu.lua); the icon layer places it each frame.
 function ZeD_MMSticky:new()
     local o = ISPanel:new(-10000, -10000, 10, 10)
     setmetatable(o, self)
@@ -132,7 +135,7 @@ function ZeD_MMSticky:place(c)
 end
 
 function ZeD_MMSticky:prerender()
-    -- (not placed this frame: the icon layer did not draw it, so the field goes too)
+    -- (not placed in the last half second: the icon layer stopped drawing it, so the field goes too)
     local shown = self._placedAt ~= nil and MM.now() - self._placedAt < 500
     if self.entry:isVisible() ~= shown then self.entry:setVisible(shown) end
 end
@@ -155,7 +158,8 @@ function ZeD_MMSticky:update()
 end
 
 -- the field under the pointer takes the press (MM.entryUnder hands the glass's press to a field): the sticky's,
--- when it shows there and nothing on the monitor lies over it
+-- when it shows there and nothing on the monitor lies over it. Each MM function this file wraps (entryUnder,
+-- menuItems, wheel, showView) keeps its base once in MM._notes*Base, so a Lua reload never wraps the wrapper.
 local _entryUnder = MM._notesEntryBase or MM.entryUnder
 MM._notesEntryBase = _entryUnder
 function MM.entryUnder(mx, my)
@@ -175,7 +179,7 @@ function MM.entryUnder(mx, my)
     return se
 end
 
--- is the sticky typing (its keys are its own)?
+--- Is the sticky typing (its keys are its own)?
 function MM.stickyTyping()
     local st = MM.root and MM.root.sticky
     return st ~= nil and st.entry ~= nil and st.entry:isFocused()
@@ -215,6 +219,7 @@ local STICKY_ITEM = {
     end,
 }
 
+--- Show the notepad, on page id when given (openNote is the same door, for the Documents list).
 function MM.openNotepad(id)
     MM.ctx.open = nil
     MM._noteWant = id or false        -- (false: the notepad as it was, or a new page)
@@ -223,11 +228,13 @@ end
 function MM.openNote(id) MM.openNotepad(id) end
 
 local CLETUS_ITEM = { id = "cletusworks", label = "", open = function() MM.openNotepad() end }
--- (the director, Nov 7 2026: the notes are not icons of their own; one Documents folder lists them all)
+-- (the notes are not icons of their own; one Documents folder lists them all)
 local DOCS_ITEM = { id = "documents", label = "", open = function() MM.openDocs() end }
 
 MM.leftApps = MM.leftApps or {}       -- more apps after CletusWorks (ZeD_MainMenuMail.lua adds Mail)
 local _left = { key = nil, list = nil }
+--- The desktop's left column, top to bottom: the sticky, CletusWorks, the apps, Documents
+--- (rebuilt when a note, an app or the mail count changes).
 function MM.leftItems()
     local MSq = ZeD.MailStore and ZeD.MailStore.seq or 0
     local key = tostring(N.seq) .. ":" .. tostring(#MM.leftApps) .. ":" .. tostring(MSq)
@@ -465,7 +472,7 @@ function ZeD_MMNotepad:setConfirm(mode)
     end
     if mode == "unsaved" or mode == "delete" or mode == "rename" then
         if self.edit:isFocused() then self.edit:unfocus() end
-        self.focusId = "confirm:no"            -- (a question that loses work lands on Cancel, Nov 1 2026)
+        self.focusId = "confirm:no"            -- (a question that loses work lands on Cancel)
     else
         self.pending = nil
         self.focusId = "doc"

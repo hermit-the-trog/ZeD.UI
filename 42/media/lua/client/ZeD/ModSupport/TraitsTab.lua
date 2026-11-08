@@ -1,6 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/TraitsTab.lua
 -- ============================================================================
--- THE TRAITS TAB'S SOURCES (shared by the support files of mods that add trait progress)
+-- THE TRAITS TAB'S SOURCES
+-- Client. The registry the support files of trait-progress mods add their rows to;
+-- not a shim for one mod itself.
 --
 -- ZeD's Character window has one Traits tab, right after Skills. Whichever support file
 -- owns it draws its own rows first (Traits As Skills, ModSupport/traitsAsSkills.lua);
@@ -27,7 +29,7 @@ ZeD = ZeD or {}
 ZeD.TraitsTab = ZeD.TraitsTab or { sources = {} }
 local TT = ZeD.TraitsTab
 
--- add (or replace) a source; the order of adding is the order on the tab
+--- Add (or replace) a source; the order of adding is the order on the tab.
 function TT.addSource(id, def)
     def.id = id
     for i, s in ipairs(TT.sources) do
@@ -36,10 +38,10 @@ function TT.addSource(id, def)
     TT.sources[#TT.sources + 1] = def
 end
 
--- every source, in order
+--- Every source, in order.
 function TT.list() return TT.sources end
 
--- the one source that owns a row id (or nil)
+--- The one source that owns a row id (or nil).
 function TT.ownerOf(id)
     if id == nil then return nil end
     for _, s in ipairs(TT.sources) do
@@ -50,7 +52,7 @@ function TT.ownerOf(id)
     return nil
 end
 
--- every source's rows added up: all of them, those with a trait now, those shown
+--- Every source's rows added up: all of them, those with a trait now, those shown.
 function TT.counts(win, q, only)
     local all, with, shown = 0, 0, 0
     for _, s in ipairs(TT.sources) do
@@ -60,7 +62,7 @@ function TT.counts(win, q, only)
     return all, with, shown
 end
 
--- every source lays out its items after the host's own (hosted = true: under its mod's name)
+--- Every source lays out its items after the host's own (hosted = true: under its mod's name).
 function TT.layout(win, L, x, y, w, q, only)
     for _, s in ipairs(TT.sources) do
         local ok, ny = pcall(s.layout, win, L, x, y, w, q, only, true)
@@ -70,7 +72,7 @@ function TT.layout(win, L, x, y, w, q, only)
     return y
 end
 
--- an item a source added (it.src is that source)
+--- Draw an item a source added (it.src is that source); returns the hovered row's id or nil.
 function TT.drawItem(panel, win, it, dy, mx, my, sel)
     local ok, hid = pcall(it.src.drawItem, panel, win, it, dy, mx, my, sel)
     if not ok then
@@ -80,7 +82,7 @@ function TT.drawItem(panel, win, it, dy, mx, my, sel)
     return hid
 end
 
--- the details at the foot for a source's row; false when no source owns the id
+--- The details at the foot for a source's row; false when no source owns the id.
 function TT.drawDetail(panel, win, id, x, y, w, h, sc)
     local s = TT.ownerOf(id)
     if not s then return false end
@@ -89,13 +91,13 @@ function TT.drawDetail(panel, win, id, x, y, w, h, sc)
     return true
 end
 
--- a click on a source's item; returns the row id to pick (or nil)
+--- A click on a source's item; returns the row id to pick (or nil).
 function TT.click(win, it)
     local ok, id = pcall(it.src.click, win, it)
     return ok and id or nil
 end
 
--- the controller's stop for a source's item (or nil)
+--- The controller's stop for a source's item (or nil).
 function TT.focusable(win, it, dy)
     local ok, el = pcall(it.src.focusable, win, it, dy)
     return ok and el or nil

@@ -1,9 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/TwoWayFull.lua
 -- ============================================================================
--- A TWO-WAY RADIO IN FULL VIEW — the radio tab's face on its own over the
--- world, no window frame, like the watch popped from the belt (director, Oct 25
--- 2026: "full view is like the watch, no window frame"; handoff
--- ZeDUI/HANDOFF_twoway_20261025.md, section 3a).
+-- A TWO-WAY RADIO IN FULL VIEW (client; organism — an ISPanel subclass) — the
+-- radio tab's face on its own over the world, no window frame, like the watch
+-- popped from the belt.
 --
 -- Opened from the radio tab: the full view button at the header's right end,
 -- or a click on any part of the face that is not a control. It is the same
@@ -18,6 +17,8 @@
 -- Controller: it takes focus while open. The D-pad walks the controls (up /
 -- down on a knob turns it), A presses, X stores or names, B closes and gives
 -- focus back to the window it was opened from.
+-- The drawing and every verb live in TwoWayFace.lua; this file places the
+-- face, passes input to it and closes it.
 -- ============================================================================
 
 require "ZeD/Tr"
@@ -51,7 +52,7 @@ function ZeD_TwoWayFull:new(character)
     o.moveWithMouse = false
     o.character = character
     o.playerNum = character:getPlayerNum()
-    o._zedLabel = "TwoWayFull"
+    o._zedLabel = "TwoWayFull"   -- the name the focus manager and safe mode call this panel by
     o.focusId = nil
     o._hits = {}
     o._press = nil         -- { id, t0, fired } while a key is held down
@@ -138,6 +139,7 @@ function ZeD_TwoWayFull:prerender()
         hoverId = (not joy) and self._hover or nil, pressId = self._press and self._press.id or nil, own = true })
     self._hits = hits
     self.st = st
+    -- (the controller starts on the first control in reading order)
     if joy and not self:focused() and hits[1] then self.focusId = TW.readingOrder(hits, k)[1].id end
     if stripH > 0 then
         local items = { { glyph = "D-PAD", label = ZeD.tr("UI_ZeD_RadioPrompt_Move") } }
@@ -155,6 +157,7 @@ end
 function ZeD_TwoWayFull:update()
     ISPanel.update(self)
     local jd = JoypadState and JoypadState.players and JoypadState.players[self.playerNum + 1]
+    -- (F.qaJoy: the controller look without a controller, for testing)
     self.joyfocus = (jd and jd.focus == self) and jd or (F.qaJoy and {} or nil)
     local h = TW.hitAt(self._hits, self:getMouseX(), self:getMouseY())
     self._hover = h and h.id or nil
@@ -204,6 +207,7 @@ function ZeD_TwoWayFull:onMouseUp(x, y)
     if d then
         self._drag = nil
         self:setCapture(false)
+        -- a real drag (2 px or more) keeps the new place, in design units
         if math.abs(d.nx - d.x) + math.abs(d.ny - d.y) >= 2 then
             local sc = (ZeD.T and ZeD.T.scale) or 1
             self.character:getModData().ZeD_TwoWayFull = { x = self:getX() / sc, y = self:getY() / sc }
@@ -231,7 +235,8 @@ function ZeD_TwoWayFull:onRightMouseDown(x, y)
 end
 function ZeD_TwoWayFull:onRightMouseUp(x, y) return true end
 
--- the wheel turns the knob under the pointer (a fast spin goes further per click)
+-- the wheel turns the knob under the pointer (a fast spin goes further per click:
+-- clicks under 110 ms apart build the streak TW.turnMult reads)
 function ZeD_TwoWayFull:onMouseWheel(del)
     local h = TW.hitAt(self._hits, self:getMouseX(), self:getMouseY())
     if h and h.knob then
@@ -260,6 +265,8 @@ function ZeD_TwoWayFull:moveFocus(dx, dy)
     if best then self.focusId = best.id; sound("UISelectListItem") end
 end
 
+-- up / down on a knob: presses under 260 ms apart build a streak, so a held
+-- D-pad spins the tuning knob faster
 function ZeD_TwoWayFull:dirTurn(dir)
     local t = now()
     local k = self._padTurn or { t = 0, streak = 0 }
@@ -291,14 +298,14 @@ function ZeD_TwoWayFull:onJoypadDirDown() if self:isKnobFocused() then self:dirT
 -- ---------------------------------------------------------------------------
 function F.get(pn) return F.views[pn or 0] end
 
--- the radio in full view for this player, nil when none
+--- The radio in full view for this player, nil when none.
 function F.showing(pn)
     local v = F.views[pn or 0]
     if v and v:isReallyVisible() then return v.dev end
     return nil
 end
 
--- open full view on a radio (win: the window whose tab opened it, for the controller's way back)
+--- Open full view on a radio (win: the window whose tab opened it, for the controller's way back).
 function F.open(character, dev, win)
     if not (character and dev and TW.plateId(dev)) then return nil end
     local pn = character:getPlayerNum()
@@ -327,14 +334,14 @@ function F.close(pn)
     return false
 end
 
--- the tab's button: full view on this radio, or off when it already shows it
+--- The tab's button: full view on this radio, or off when it already shows it.
 function F.toggle(character, dev, win)
     if not character then return end
     local pn = character:getPlayerNum()
     if F.showing(pn) == dev then F.close(pn) else F.open(character, dev, win) end
 end
 
--- Escape from anywhere (the prompts' key hook asks): full view closes
+--- Escape from anywhere (the prompts' key hook asks): full view closes.
 function F.takeEscape()
     for _, v in pairs(F.views) do
         if v and v:isReallyVisible() then v:close(); return true end

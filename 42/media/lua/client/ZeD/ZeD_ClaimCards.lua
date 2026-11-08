@@ -1,9 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_ClaimCards.lua
 -- ============================================================================
--- SAFEHOUSES, FACTIONS AND WARS IN CARDS (ZeDUI/MP_ADMIN_SCOPE.md, Phase 3; the drawing is
--- mockups/zed_safehouse_faction_v1.html). Drawing and input only: ZeD_Claims.lua is the model, and every act there is
--- the game's own call. The frame is the ticket cards' (ZeD_TicketCards.lua): the back bar, the foot, the text fields, the
--- pad keyboard and the focus. This file registers four cards and its own items with it:
+-- SAFEHOUSES, FACTIONS AND WARS IN CARDS. Client file, drawing and input only: ZeD_Claims.lua is the model, and every
+-- act there is the game's own call. The frame is the ticket cards' (ZeD_TicketCards.lua): the back bar, the foot, the
+-- text fields, the pad keyboard and the focus. This file registers six cards and its own items with it:
 --   safe      the title as the field itself, owner, members, invitations, respawn, the time left, the rules
 --   faction   name, tag, color, members, invitations, the two ticks
 --   newfac    create a faction: the name, in the card

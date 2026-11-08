@@ -1,17 +1,20 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_Wheel.lua
 -- ============================================================================
--- THE WHEEL — vanilla's radial menus as the context strip's cells on a ring.
--- Mockup ZeDUI/mockups/zed_wheels_v1.html (approved Oct 15 2026: keep the wheel,
--- larger cells, ZeD icons with vanilla's own pictures where they say more); since
--- Oct 27 2026 every slice draws the wheels' own icons (PICTURES below).
--- HOOK_MAP row 29; Overrides/Wheels.lua puts this in place of the engine's
+-- THE WHEEL — client; vanilla's radial menus as the context strip's cells on a
+-- ring. The wheel shape is kept; the cells are larger, and every slice draws
+-- the wheels' own icons, with vanilla's own pictures kept where they say more
+-- (PICTURES below). Overrides/Wheels.lua puts this in place of the engine's
 -- drawing for both vanilla wheels (getPlayerRadialMenu's ISRadialMenu and the
--- controller's ISBackButtonWheel).
+-- controller's ISBackButtonWheel). Not an organism: the wheel object stays
+-- vanilla's; this file is its drawing and its pick.
 --
--- Geometry is the engine's (RadialMenu.class, KB Q241): slice 1 centred at
+-- Geometry is the engine's (RadialMenu.class): slice 1 centred at
 -- 12 o'clock, the rest clockwise, each 360 / max(n, 2) degrees; a slice with
 -- no text and no picture is an empty place (kept, never drawn or picked). The
 -- pointer's direction (outside a small dead zone) or the right stick picks.
+-- Before touching it: place() in W.draw, W.sliceAt and ZeD_WheelGesture's
+-- G.sector all follow that one rule; change one and change all three, or the
+-- slice drawn under the pointer is not the one that fires.
 --
 -- Drawn with the strip's own parts: ZeD.Molecules.drawContextCell (paper cell,
 -- ink icon, accent when pointed, stipple when off, corner triangle, back glyph)
@@ -34,12 +37,11 @@ local W = ZeD.Wheel
 -- design units
 local U = {
     CELL = 22, ICON = 16,     -- a cell at rest: the strip's own size
-    CELL_ON = 33, ICON_ON = 24, -- the pointed cell grows to 1.5x (director, Oct 15: smaller at rest, bigger when pointed)
+    CELL_ON = 33, ICON_ON = 24, -- the pointed cell grows to 1.5x: smaller at rest, bigger when pointed
     GAP = 10,                 -- room between neighbouring resting cells (centre to centre: CELL + GAP),
                               -- enough that the grown cell clears its neighbours too
     MIN_R = 28,               -- the ring's smallest radius: the pointed cell just clears the hub. Above
-                              -- it the ring follows the number of slices (director, Oct 15: "is the size of
-                              -- the wheel determined by the amount of actions?")
+                              -- it the ring follows the number of slices, so a fuller wheel grows
     DEAD = 0.4,               -- the pointer's dead zone, as a share of the ring's radius
     BUBBLE = 110,             -- room above the ring for the balloon
     HUB = 7,                  -- the small square at the centre
@@ -54,9 +56,8 @@ local PAPER = { r = 0.95, g = 0.95, b = 0.95, a = 1 }
 local function lower(s) return string.lower(tostring(s or "")) end
 
 -- ---------------------------------------------------------------------------
--- PICTURES: the wheels' own icons (the director's, Oct 27 2026; handoff
--- ZeDUI/HANDOFF_wheel_icons_20261027.md, map wheel_icons_map.json, source
--- ZeDUI/tools/wheelpx). Items, traits and the controller's glyphs keep their
+-- PICTURES: the wheels' own icons (drawn with ZeDUI/tools/wheelpx).
+-- Items, traits and the controller's glyphs keep their
 -- pictures; anything unknown keeps its own (mods included).
 -- ---------------------------------------------------------------------------
 local _icons = {}
@@ -65,11 +66,11 @@ local function zicon(name)
     return _icons[name] or nil
 end
 
--- a wheel icon by its id, for an icon box of `box` screen px: the largest of
--- its four drawings that fits, drawn at its own size (pixel for pixel, never
--- stretched); a box under 16 scales the 16 down. Returns texture, size.
--- (The lookup is the library's, ZeD.PxIcon in Atoms.lua, shared with the
--- container row, the item card's marks and the windows' small controls.)
+--- A wheel icon by its id, for an icon box of `box` screen px: the largest of
+--- its four drawings that fits, drawn at its own size (pixel for pixel, never
+--- stretched); a box under 16 scales the 16 down. Returns texture, size.
+--- (The lookup is the library's, ZeD.PxIcon in Atoms.lua, shared with the
+--- container row, the item card's marks and the windows' small controls.)
 function W.iconTex(id, box)
     return ZeD.PxIcon.tex(id, box)
 end
@@ -82,7 +83,7 @@ W.TAB_ICONS = {
     ["build-tab-white"] = "bricks", ["move-tab-white"] = "chair", ["map-tab-white"] = "map",
     ["forage-tab-white"] = "magnifier", ["farm-tab-white"] = "cow", ["vehicle-tab-white"] = "car",
     ["appearance-tab-white"] = "mirror", ["traits-tab-white"] = "traits", ["cooking-tab-white"] = "pot",
-    ["server-tab-white"] = "tower", ["admin-tab-white"] = "badge",   -- (multiplayer, Nov 5 2026)
+    ["server-tab-white"] = "tower", ["admin-tab-white"] = "badge",   -- (multiplayer-only tabs)
 }
 
 -- the slice's words first: several vanilla slices share one picture
@@ -151,7 +152,7 @@ local TEX_ICONS = {
     { "emotes/crouch_off", "sneak_off" }, { "emotes/sit_on", "sit_ground" }, { "emotes/sit_off", "sit_ground_off" },
     { "emotes/autowalk_on", "autowalk" }, { "emotes/autowalk_off", "autowalk_off" },
 }
-W.TEXT_ICONS, W.KEEP, W.TEX_ICONS = TEXT_ICONS, KEEP, TEX_ICONS   -- (QA: zedqa_wheel_icons.lua)
+W.TEXT_ICONS, W.KEEP, W.TEX_ICONS = TEXT_ICONS, KEEP, TEX_ICONS   -- (for the icon check, ZeDUI/tools/qa/zedqa_wheel_icons.lua)
 -- the item and the words vanilla adds with no action carry no name of their own
 local OFF_NAMES = {
     { "vehicle_ignition", "IGUI_VehiclePartEngine" }, { "vehicle_sleep", "ContextMenu_Sleep" }, { "vehicle_repair", "ContextMenu_VehicleMechanics" },
@@ -215,10 +216,12 @@ end
 -- ---------------------------------------------------------------------------
 -- slices: what vanilla gave, read the strip's way
 -- ---------------------------------------------------------------------------
+--- A slice's kind: a place (no text, no picture: an empty spot kept in the ring), off (no
+--- command: drawn stippled), or Back (vanilla's back picture).
 function W.isPlace(slice) return slice and not slice.text and not slice.texture end
 function W.isOff(slice) return slice and not W.isPlace(slice) and not (slice.command and slice.command[1]) end
 function W.isBack(slice) return slice and texName(slice.texture):find("emotes/back", 1, true) ~= nil end
--- the game's mini-map commands (the director, Nov 7 2026, B7: ZeD's wheels leave them out; looked up at call time)
+--- The game's mini-map commands: ZeD's wheels leave them out (looked up at call time).
 function W.isMiniMapCommand(command)
     local M = ISMiniMap
     return command ~= nil and M ~= nil and (command == M.ToggleMiniMap or command == M.FocusMiniMap)
@@ -266,12 +269,13 @@ function W.sliceAt(menu, dx, dy)
     if n == 0 then return -1 end
     local step = 360 / math.max(n, 2)
     local deg = math.deg(math.atan2(dy, dx))
-    local a = (deg + 90 + step / 2 + 360) % 360   -- (the 360 first: Kahlua's % keeps the sign, and the top left came out dead)
+    local a = (deg + 90 + step / 2 + 360) % 360   -- (the 360 first: Kahlua's % keeps a negative sign, which left the top-left slices unpickable)
     local i = math.floor(a / step) + 1
     if i < 1 or i > n or W.isPlace(menu.slices[i]) then return -1 end
     return i
 end
 
+--- The slice under the pointer (x, y in the wheel's own pixels), or -1 in the dead zone or on a place.
 function W.sliceFromMouse(menu, x, y)
     local _, _, r, cx, cy = W.geom(menu)
     local dx, dy = x - cx, y - cy
@@ -279,6 +283,7 @@ function W.sliceFromMouse(menu, x, y)
     return W.sliceAt(menu, dx, dy)
 end
 
+--- The slice the right stick of pad `id` points at, or -1 (no pad, the stick under STICK, a place).
 function W.sliceFromJoypad(menu, id)
     if not id or id < 0 then return -1 end
     local ok, ax, ay = pcall(function() return getJoypadAimingAxisX(id), getJoypadAimingAxisY(id) end)
@@ -287,7 +292,7 @@ function W.sliceFromJoypad(menu, id)
     return W.sliceAt(menu, ax, ay)
 end
 
--- room for the ring and the balloon; the wheel keeps its centre when it grows
+--- Room for the ring and the balloon; the wheel keeps its centre when it grows.
 function W.fit(menu)
     local T = ZeD.T
     if not (T and T.px) then return end
@@ -335,6 +340,7 @@ local function drawCell(menu, x, y, cell, icon, slice, active)
     end
 end
 
+--- The whole wheel: the ring line and hub, every cell, the balloon, and the D-pad wheels' crumb and prompts.
 function W.draw(menu)
     local T = ZeD.T
     if not (T and T.px) then return end
@@ -408,7 +414,7 @@ function W.draw(menu)
         if not ok then ZeD.logOnce("Wheel: balloon", err) end
     end
     -- the D-pad wheels (ZeD_DpadWheels.lua): the breadcrumb and the button
-    -- prompts under the ring (mockup zed_dpad_wheels_v2)
+    -- prompts under the ring
     if menu._zedCrumb or menu._zedPrompts then
         local ok, err = pcall(W.drawUnder, menu, cx, cy + r + math.ceil(cellOn / 2) + T.px(12))
         if not ok then ZeD.logOnce("Wheel: crumb", err) end
@@ -447,9 +453,9 @@ function W.drawUnder(menu, cx, y)
     end
 end
 
--- the pointed slice, from the stick (a controller holds the wheel) or the mouse
+--- The pointed slice, from the stick (a controller holds the wheel) or the mouse.
 function W.update(menu)
-    if W.qaPoint then menu._zedPoint = W.qaPoint; return end   -- QA: a pointed slice without a pointer (zedqa_wheels.lua)
+    if W.qaPoint then menu._zedPoint = W.qaPoint; return end   -- (QA scripts point a slice with no pointer: ZeDUI/tools/qa/zedqa_wheels.lua)
     local st = menu._zedDpad
     if st and st.driven then return end   -- (a D-pad wheel on a stick: ZeD_WheelGesture points it, every frame)
     if menu.joyfocus then
@@ -459,13 +465,14 @@ function W.update(menu)
     end
 end
 
--- a category being opened names the next wheel (the emote categories)
+--- A category being opened names the next wheel (the emote categories).
 function W.noteChoice(menu, slice)
     if W.hasSub(slice) then
         W._pendingTitle, W._pendingFor = (lines(slice.text)[1]), menu
     end
 end
 
+--- The wheel was cleared for new slices: a category's pending title lands, the rest starts over.
 function W.onClear(menu)
     if W._pendingFor == menu then
         menu._zedTitle = W._pendingTitle

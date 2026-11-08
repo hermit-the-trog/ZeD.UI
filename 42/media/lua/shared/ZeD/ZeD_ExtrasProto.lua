@@ -1,21 +1,24 @@
 -- ZeD-UI/42/media/lua/shared/ZeD/ZeD_ExtrasProto.lua
 -- ============================================================================
--- THE SERVER EXTRAS PROTOCOL (ZeDUI/MP_ADMIN_SCOPE.md, Phase 6). What both sides agree on: the module, the settings and
--- what a good one looks like, every limit. Every extra is off until the owner turns it on, so solo play and vanilla-rules
--- servers are untouched. Pure Lua, ASCII, nothing client-only at load: this file also runs on a dedicated server.
+-- THE SERVER EXTRAS PROTOCOL: what both sides agree on. The module name, the settings and what a good one looks like,
+-- every limit. Four extras, each a group of settings: vc vehicle claims, sp safehouse protection, tp the staff map
+-- teleport, cl the container log in safehouses. Every extra is off until the owner turns it on, so solo play and
+-- vanilla-rules servers are untouched. Shared: this file loads on the client and on a dedicated server alike, so
+-- nothing client-only at file scope. Pure Lua, pure ASCII.
 -- ============================================================================
 
+-- Reload-safe: loading this file twice reuses the tables instead of wiping them
 ZeD = ZeD or {}
 ZeD.Ex = ZeD.Ex or {}
 local Ex = ZeD.Ex
 
-Ex.MOD = "ZeDX"
+Ex.MOD = "ZeDX"             -- the module on every extras command
 
--- THE DIRECTOR'S QUESTIONS, answered the careful way, each kept to one switch (MP_SERVER_PART_DESIGN.md, the last section)
+-- DESIGN CHOICES that could go either way, answered the careful way, each kept to one switch
 -- LOT_TILES: how far past the walls a claim's lot reaches when "Claims cover the lot" is ticked. The game keeps no lot
 -- lines a server can read, so the lot is the safehouse's rectangle and this many tiles around it.
 Ex.LOT_TILES = 5
--- CLAIM_NEEDS_KEY: does claiming a car take its key? false: standing by it is enough, as drawn. true: the key in the
+-- CLAIM_NEEDS_KEY: does claiming a car take its key? false: standing by it is enough. true: the key in the
 -- player's inventory too.
 Ex.CLAIM_NEEDS_KEY = false
 -- CLAIM_SHARE_FACTION: does "others" leave out the owner's faction? false: others means everyone but the owner.
@@ -26,12 +29,14 @@ Ex.CAP_EDIT = "ChangeAndReloadServerOptions"  -- change these settings: the game
 Ex.CAP_CAR = "ManipulateVehicle"              -- staff who pass a claim, and may release anyone's
 Ex.CAP_HOUSE = "UseBuildCheat"                -- staff who pass safehouse protection: the game's own pass for its sledgehammer rule
 Ex.CAP_MAP = "TeleportToCoordinates"          -- the map's teleport: what the game's /teleportto asks for
+-- the server looks each one up in the game's Capability list at load; one missing (a later game renamed it) keeps every
+-- extra off
 Ex.SERVER_CAPS = { Ex.CAP_EDIT, Ex.CAP_CAR, Ex.CAP_HOUSE, Ex.CAP_MAP }
 
 -- every limit in one place, so they can become server settings later
 Ex.L = {
-    PER_MIN = 1, PER_MAX = 5,           -- claims per player, as drawn
-    LAPSE_MIN = 1, LAPSE_MAX = 30,      -- real days away, as drawn
+    PER_MIN = 1, PER_MAX = 5,           -- claims per player
+    LAPSE_MIN = 1, LAPSE_MAX = 30,      -- real days away before a claim can lapse
     CLAIMS_MAX = 5000,                  -- claims on the server
     REACH_TILES = 6,                    -- how near a car a player stands to claim it: the tab's own limit
     TOOK_REACH = 150,                   -- how far from a container a player can be by the time the report lands: reports
@@ -43,11 +48,11 @@ Ex.L = {
     TOOK_BATCH_MS = 3000,               -- a client gathers its takes this long and sends them as one
     TOOK_SEND_MS = 1500,                -- a client leaves this long between reports
     TOOK_MS = 500,                      -- the server takes one in this long: well under that, or the network's jitter loses reports
-    SAVE_MS = 1000,
-    CLAIM_MS = 1000,
-    VEH_MS = 300,
-    MINE_MS = 1000,
-    TP_MS = 1000,
+    SAVE_MS = 1000,                     -- between two saves of the settings, from one player
+    CLAIM_MS = 1000,                    -- between two claims, and between two releases
+    VEH_MS = 300,                       -- between two asks who holds a car
+    MINE_MS = 1000,                     -- between two asks for your own claims
+    TP_MS = 1000,                       -- between two map teleports
     NOTE_MS = 5000,                     -- one refusal said and logged in this long, per player
     POLL_MS = 2000,                     -- how often the server looks at who is driving
     LEFT_POLLS = 5,                     -- and for how many polls it goes on looking at a claimed car once its driver has gone
@@ -56,6 +61,9 @@ Ex.L = {
     HIT_ROOM = 20,                      -- a swing's door damage times this, and no swing can land more
 }
 
+--- the settings a fresh server starts with, every extra off; a new table each call. Inside an extra, a tick that is on
+--- is a thing the server refuses to others: vc's parts, drive and tow (per: claims a player may hold; lapse: real days
+--- away before a claim can lapse), sp's dismantle and destroy (lot: a claim reaches LOT_TILES past the walls)
 function Ex.defaults()
     return {
         vc = { on = false, parts = true, drive = true, tow = false, per = 2, lapse = 7 },
@@ -65,6 +73,8 @@ function Ex.defaults()
     }
 end
 
+-- the two field checks: a wrong type takes the default d, and a whole number past lo or hi is held at that end, not
+-- refused
 local function bool(v, d)
     if type(v) == "boolean" then return v end
     return d
@@ -76,8 +86,8 @@ local function num(v, d, lo, hi)
     return v
 end
 
--- settings from anywhere, good ones: only the fields above, each its own type, numbers inside their limits. A missing or
--- wrong field takes its default, and every default is off
+--- settings from anywhere (a client, the saved table), made good: only the fields above, each its own type, numbers
+--- inside their limits. A missing or wrong field takes its default, and every extra's default is off
 function Ex.clean(raw)
     local d = Ex.defaults()
     if type(raw) ~= "table" then return d end
@@ -95,6 +105,8 @@ function Ex.clean(raw)
     return d
 end
 
+--- do two sets of clean settings hold the same values, field by field? Both must have every group (pass them through
+--- clean first)
 function Ex.same(a, b)
     for group, fields in pairs(Ex.defaults()) do
         for k in pairs(fields) do
@@ -104,10 +116,10 @@ function Ex.same(a, b)
     return true
 end
 
--- how many systems are on
+--- how many of the four extras are on
 function Ex.nOn(s) return (s.vc.on and 1 or 0) + (s.sp.on and 1 or 0) + (s.tp.on and 1 or 0) + (s.cl.on and 1 or 0) end
 
--- one short line of a set of settings, for the log
+--- one short line of a set of settings, for the log
 function Ex.summary(s)
     local function word(on) return on and "on" or "off" end
     return "claims " .. word(s.vc.on) .. " parts " .. word(s.vc.parts) .. " drive " .. word(s.vc.drive) .. " tow " .. word(s.vc.tow)
@@ -116,16 +128,18 @@ function Ex.summary(s)
         .. ", map " .. word(s.tp.on) .. ", containers " .. word(s.cl.on)
 end
 
--- a claim's key: the car's number in the game's vehicle database, which outlives a restart and goes where the car goes. The
--- game gives a removed car's number to the next new car, so the number alone doesn't prove the car: the server's F.claimOf
--- tests the car itself (F.sameCar). A string, so the table's keys are one type whatever the save does with numbers
+--- a claim's key: the car's number in the game's vehicle database, which outlives a restart and goes where the car goes. The
+--- game gives a removed car's number to the next new car, so the number alone doesn't prove the car: the server's F.claimOf
+--- tests the car itself (F.sameCar). A string, so the table's keys are one type whatever the save does with numbers
 function Ex.keyOf(sql) return "v" .. tostring(sql) end
+--- a claim key as a client may send it: "v" and digits, at most 16 characters
 function Ex.okKey(s) return type(s) == "string" and #s <= 16 and string.match(s, "^v%d+$") ~= nil end
 
--- a vehicle's short number as a client names it
+--- a vehicle's short number as a client names it
 function Ex.okVeh(n) return type(n) == "number" and n == math.floor(n) and n >= -32768 and n <= 65535 end
--- the vehicle the game's getVehicleById finds for a number: Kahlua's Double.intValue truncates, stops at the int's ends and
--- makes NaN 0, and getVehicleById narrows that to a short. nil for anything but a number (no % here: Kahlua's keeps the sign)
+--- the number the game's getVehicleById really looks up for a number a client sent: Kahlua's Double.intValue truncates,
+--- stops at the int's ends and makes NaN 0, and getVehicleById narrows that to a short. nil for anything but a number
+--- (no % here: Kahlua's keeps the sign)
 function Ex.vehId(n)
     if type(n) ~= "number" then return nil end
     if not (n > 0 or n <= 0) then return 0 end
@@ -135,6 +149,7 @@ function Ex.vehId(n)
     if low >= 32768 then return low - 65536 end
     return low
 end
+--- a tile coordinate a client may name: a whole number from 0 to WORLD_MAX
 function Ex.okCoord(n) return type(n) == "number" and n == math.floor(n) and n >= 0 and n <= Ex.L.WORLD_MAX end
 
 return Ex

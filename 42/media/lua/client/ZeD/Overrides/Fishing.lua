@@ -1,29 +1,27 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Overrides/Fishing.lua
 -- ============================================================================
--- THE LINE'S TENSION (HOOK_MAP row 10; mockup zed_fish_sleep_death v4 / v5,
--- director Oct 16 2026: "more real world item with the fishing rod ... pixel
--- art", "something cool with the dial to show tension", "rings around the rod
--- change color based on tension? Start out white with none", "all three")
+-- THE LINE'S TENSION (override, client)
 --
 -- Vanilla's fishing stays: FishingManager makes its tension meter
 -- (Fishing.ISTensionUI), shows it while the line is out, hides it when the
 -- fish is landed or the line comes in, and feeds it the rod's tension every
 -- frame (updateValue: below 0 slack, 0 to 1 the strain, past 1 it snaps).
--- In place of vanilla's little dial over the head, the meter draws the rod in
--- hand at the bottom of the screen, above the belt: a 1980s pistol-grip rod
--- with a low-profile baitcaster (the director's own tackle). Three reads of
--- the same tension: the blank bows deeper, the thread wraps light from the
--- reel toward the tip (white with none, gold, orange, red), and the reel's
--- side-plate dial turns its red pointer into MAX (lit near the limit); the
--- line sags slack, runs straight under load, and goes pale red before it
--- snaps.
+-- ZeD replaces only the drawing. In place of vanilla's little dial over the
+-- head, the meter draws the rod in hand at the bottom of the screen, above
+-- the belt: a 1980s pistol-grip rod with a low-profile baitcaster. Three
+-- reads of the same tension: the blank bows deeper, the thread wraps light
+-- from the reel toward the tip (white with none, gold, orange, red), and
+-- the reel's side-plate dial turns its red pointer into MAX (lit near the
+-- limit); the line sags slack, runs straight under load, and goes pale red
+-- before it snaps.
 --
 -- The rod's body is a strip of 17 plate frames by tension (media/textures/
--- ZeD/props/rod_00 .. rod_16.png, 360 x 200 plate pixels; a stand-in from
--- the approved mockup until Design's plate pipeline draws the final art,
--- with the same anchors); the line, the pointer and the MAX glow are drawn
--- live on it, at whole multiples (2 at 1080p, 4 at 4K).
--- While ZeD's safe mode is on, vanilla's dial draws instead.
+-- ZeD/props/rod_00 .. rod_16.png, 360 x 200 plate pixels; stand-in art
+-- until the final plates are drawn — they keep the same anchors); the line,
+-- the pointer and the MAX glow are drawn live on it, at whole multiples
+-- (2 at 1080p, 4 at 4K). The hooks keep the vanilla functions once
+-- (_zedOrig*), so a Lua reload never wraps the wrapper. While ZeD's safe
+-- mode is on, vanilla's dial draws instead.
 -- ============================================================================
 
 require "Fishing/TensionUI"
@@ -85,7 +83,7 @@ end
 function F.draw(self, ox, oy, k, t)
     local i = 0
     if t > 0 then i = math.floor(math.min(1, t) * F.FRAMES + 0.5) end
-    -- nearest filtering (3), so the pixel art stays square at 2x / 4x (Oct 16 2026: getTexture smoothed it)
+    -- nearest filtering (3), so the pixel art stays square at 2x / 4x (plain getTexture smoothed it)
     local tex = Texture.getSharedTexture(F.TEXDIR .. string.format("%02d", i) .. ".png", 3)
     local a = F.ANCH[i + 1]
     if not (tex and a) then return false end

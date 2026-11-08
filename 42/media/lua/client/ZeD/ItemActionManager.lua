@@ -1,28 +1,27 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ItemActionManager.lua
 -- ============================================================================
--- ITEM ACTION MANAGER (S120 — T2.3)
--- Tracks active timed actions per inventory item via a registered-observer
--- pattern. The Card Progress Band molecule queries getActiveAction(item) to
--- decide whether to render and in what mode.
---
--- Observer-driven, NOT Events.OnTick. Active actions push state changes
--- via notify(item, event, action). Inactive items pay zero per-frame cost —
--- the molecule short-circuits to height = 0 when getActiveAction returns nil.
---
--- This module is the scaffold for Phase 5 (S121) organism integration. The
--- PZ TimedAction wiring (subscribe ISRepairClothing / ISCookFood / ISReadABook
--- etc. to push start/tick/complete/cancel/danger events) lives in S121.
--- The contract — registerObserver / unregisterObserver / getActiveAction /
--- notify / clear — is what S121 will integrate against. Don't change shape
--- without updating Card Progress Band molecule + S121 organism in lockstep.
+-- ITEM ACTION MANAGER — client; a state module, no UI of its own.
+-- Answers one question fast: does this inventory item have a timed action
+-- running, and what does it look like (mode, label, percent, timeStr)?
+-- ItemActionHooks.lua pushes state in through notify(); the Card Progress
+-- Band molecule polls getActiveAction(item) each frame and draws nothing on
+-- nil, so idle items pay zero per-frame cost. No Events.OnTick here — this
+-- file never polls; detection lives with the callers.
+-- The public shape — registerObserver / unregisterObserver / getActiveAction
+-- / notify / clear — is what the card and the hooks build against; change it
+-- only with both ends in hand.
 -- ============================================================================
 
+-- Reload-safe: loading this file twice reuses the tables instead of wiping them.
 ZeD = ZeD or {}
 ZeD.ItemActionManager = ZeD.ItemActionManager or {}
 
 local M = ZeD.ItemActionManager
 
--- Active-action map. _active[item] = {mode, label, percent, timeStr} or nil.
+-- Active-action map. _active[item] = the action table last pushed, or nil:
+-- kind ("cooking" / "reading" / "repairing"), label, percent (0-1), and where
+-- known mode ("active" / "danger"; the band reads none as "active"), timeStr,
+-- and _action (the TimedAction itself, which the card's Cancel stops).
 -- Item is the table identity (Java userdata bridged via Kahlua) — works as a
 -- weak-ish key, though Kahlua tables don't support weak keys natively, so
 -- callers must call notify(item, "complete"/"cancel", ...) to free the entry.
@@ -33,16 +32,13 @@ M._observers = M._observers or {}
 
 local _nextHandle = 1
 
--- ---------------------------------------------------------------------------
--- registerObserver(item, callbacks) → handle
--- ---------------------------------------------------------------------------
--- Subscribe to lifecycle events for a single item. Callbacks is a table with
--- any subset of: onStart, onTick, onComplete, onCancel, onDanger. Each is
--- invoked under pcall so a buggy observer can't crash the engine loop.
---
--- @param item       PZ inventory item
--- @param callbacks  Table of optional onX functions; signature (item, action)
--- @return handle    Opaque value; pass to unregisterObserver to remove
+--- Subscribe to lifecycle events for a single item. callbacks is a table with
+--- any subset of onStart, onTick, onComplete, onCancel, onDanger; each fires
+--- under pcall so a buggy observer can't crash the engine loop. Nothing in
+--- the mod registers one today — the card polls getActiveAction instead.
+--- @param item       PZ inventory item
+--- @param callbacks  Table of optional onX functions; signature (item, action)
+--- @return handle    Opaque value; pass to unregisterObserver to remove
 function M.registerObserver(item, callbacks)
     if not item or not callbacks then return nil end
     M._observers[item] = M._observers[item] or {}
@@ -52,11 +48,8 @@ function M.registerObserver(item, callbacks)
     return h
 end
 
--- ---------------------------------------------------------------------------
--- unregisterObserver(item, handle)
--- ---------------------------------------------------------------------------
--- Cleanup. Always paired with registerObserver from the same caller. Safe to
--- call with stale handle — just clears that slot if present.
+--- Remove one observer. Always paired with registerObserver from the same
+--- caller. Safe with a stale handle — clears that slot if present.
 function M.unregisterObserver(item, handle)
     if not item or not handle then return end
     local obs = M._observers[item]
@@ -69,31 +62,23 @@ function M.unregisterObserver(item, handle)
     end
 end
 
--- ---------------------------------------------------------------------------
--- getActiveAction(item) → action | nil
--- ---------------------------------------------------------------------------
--- Returns the in-progress action for an item, or nil if idle. The Card
--- Progress Band molecule uses this as its render gate.
+--- The in-progress action for an item, or nil when idle. The Card Progress
+--- Band molecule uses this as its render gate.
 function M.getActiveAction(item)
     if not item then return nil end
     return M._active[item]
 end
 
--- ---------------------------------------------------------------------------
--- notify(item, event, action)
--- ---------------------------------------------------------------------------
--- Push a state change. Updates _active and fires matching observer callbacks.
---
--- Events drive the active map:
---   "start"    → _active[item] = action
---   "tick"     → _active[item] = action  (caller may pass updated percent/timeStr)
---   "danger"   → _active[item] = action  (mode flipped to "danger" by caller)
---   "complete" → _active[item] = nil
---   "cancel"   → _active[item] = nil
---
--- @param item   PZ inventory item
--- @param event  One of the strings above
--- @param action Table {mode, label, percent, timeStr} for start/tick/danger; nil for complete/cancel
+--- Push a state change. Updates _active and fires matching observer callbacks.
+--- Events drive the active map:
+---   "start"    → _active[item] = action
+---   "tick"     → _active[item] = action  (caller may pass updated percent/timeStr)
+---   "danger"   → _active[item] = action  (mode flipped to "danger" by caller)
+---   "complete" → _active[item] = nil
+---   "cancel"   → _active[item] = nil
+--- @param item   PZ inventory item
+--- @param event  One of the strings above
+--- @param action The action table (see the active-action map above) for start/tick/danger; nil for complete/cancel
 function M.notify(item, event, action)
     if not item or not event then return end
     if event == "complete" or event == "cancel" then
@@ -115,10 +100,8 @@ function M.notify(item, event, action)
     end
 end
 
--- ---------------------------------------------------------------------------
--- clear()
--- ---------------------------------------------------------------------------
--- Wipe all state. Called on player swap, save load, or test reset.
+--- Wipe all state — active actions, observers, handle counter. Here for
+--- player-swap / save-reload resets; nothing calls it yet.
 function M.clear()
     M.gen        = (M.gen or 0) + 1
     M._active    = {}

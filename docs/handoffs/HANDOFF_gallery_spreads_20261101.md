@@ -165,7 +165,7 @@ otherwise:
 - the pages: `spreads/` (60 spreads and `_book.json`) and `upload/` (61 replaced, `00_title.jpg` new);
 - the fonts: `fonts/FiraSans-SemiBold.ttf`, `fonts/FiraMono-Regular.ttf`;
 - the cover's D&B DOCS GROUP line: `cover_px.py`, `znix_01_cover.png`, `znix_01_cover_1x.png`;
-- this handoff: `ZeDUI/HANDOFF_gallery_spreads_20261101.md`.
+- this handoff: `docs/handoffs/HANDOFF_gallery_spreads_20261101.md`.
 
 QA's own afternoon change is not part of this: the two arrow numbers in `book_shots.py` and the `out_book/`
 re-render.

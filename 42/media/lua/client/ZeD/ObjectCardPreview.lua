@@ -1,7 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ObjectCardPreview.lua
 -- ============================================================================
--- OBJECT CARD: THE RECIPE PREVIEW (punch list 49; the director, Nov 1 2026: "I want to
--- see what that upgrade will do before I commit")
+-- OBJECT CARD: THE RECIPE PREVIEW (card definition, client)
+-- See what a recipe will make — and what an upgrade will change — before
+-- committing to it.
 -- A click on the picked recipe's icon in the Build or Craft header, or A on it with a
 -- controller, opens this half card over the drawer, the way an item card opens over a
 -- tab. A build recipe's card: the thing's picture (its tiles laid as the game lays them),
@@ -12,9 +13,10 @@
 -- verb builds or crafts as the drawer's button does. Reading is free: the card opens for
 -- a recipe you cannot make yet; only the verb says no. It closes with B or Back, the
 -- icon again, or when another recipe is picked (valid() follows the drawer's pick).
--- Strength (ISBuildIsoEntity:getHealth): a fixed health from the recipe's script, or its
--- skill base plus 50 a level of carpentry and 100 more for Handy (buildUtil.getWoodHealth);
--- barricades carry neither, their strength is each plank's.
+-- Strength is reckoned as the game sets it on the built thing (ISBuildIsoEntity):
+-- the script's health, plus its bonus health at the sandbox's Construction Bonus
+-- Points multiplier, plus skill level x the script's skill base health; barricades
+-- carry none of the three, their strength is each plank's.
 -- ============================================================================
 require "ZeD/ObjectCards"
 local OC = ZeD.ObjectCards
@@ -55,7 +57,7 @@ local function buildData(d, t, player)
     local okL, logic = pcall(function()
         local l = BuildLogic.new(player, nil, nil)
         -- (getSelectedBuildObject reads a recipe-to-entity lookup that only getAllBuildableRecipes fills:
-        -- without this call it threw on every refresh, QA, Nov 1 2026)
+        -- without this call it threw on every refresh)
         l:getAllBuildableRecipes()
         l:setRecipe(e.recipe)
         return l
@@ -99,8 +101,8 @@ local function buildData(d, t, player)
     -- the strength as the game sets it when the thing is built (ISBuildIsoEntity, the thumpable's max
     -- health): the script's health (0 where it has none) + its bonus health at the sandbox's Construction
     -- Bonus Points multiplier + the character's highest relevant skill level x the script's skill base
-    -- health. (QA, Nov 1 2026: the older getHealth helper that reads a fixed health alone is not what the
-    -- build uses.) Barricades carry none of the three: no line.
+    -- health. (The older getHealth helper that reads a fixed health alone is not what the build uses.)
+    -- Barricades carry none of the three: no line.
     local thump = script and call(script, "getIsThumpable")
     local base = math.max(script and call(script, "getHealth") or 0, 0)
     local skillBase = math.max(script and call(script, "getSkillBaseHealth") or 0, 0)
@@ -120,7 +122,7 @@ local function buildData(d, t, player)
         if perkName == "" and e.skillDefs and e.skillDefs[1] then perkName = tostring(e.skillDefs[1].name or "") end
         if perkName == "" and Perks and Perks.Woodwork then
             -- (Perks.Woodwork is the perk itself in Lua: its own name, as the skill chips read it; the
-            -- factory's getPerk wants its enum and gave nothing, QA's third run)
+            -- factory's getPerk wants its enum and gave nothing)
             perkName = tostring(call(Perks.Woodwork, "getName") or "")
             if perkName == "" and PerkFactory and PerkFactory.getPerkName then
                 local okN, nm = pcall(PerkFactory.getPerkName, Perks.Woodwork)

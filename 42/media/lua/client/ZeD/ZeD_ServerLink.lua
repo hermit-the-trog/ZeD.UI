@@ -1,23 +1,23 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_ServerLink.lua
 -- ============================================================================
--- THE LINK TO THE SERVER PART (ZeDUI/MP_SERVER_PART_DESIGN.md, B9). ZeD.ServerPart: is the server part here, what may
+-- THE LINK TO THE SERVER PART - client; a helper with no window. ZeD.ServerPart: is the server part here, what may
 -- this player do, and the one way to talk to it. Only on a server: in single player nothing here runs.
 --   present   nil while unknown, true once the server answered, false after three asks with no answer. A late answer
 --             still flips it true.
---   v         the server's protocol, so later phases can test v >= n. Each side ignores commands it does not know.
+--   v         the server's protocol, so a newer feature can test v >= n. Each side ignores commands it does not know.
 --   staff     AnswerTickets; admin: RolesWrite. The server decides every command regardless; these only draw buttons.
---   adm       the server part holds the admin tools (Phase 2)
---   lg        the server part holds the log (Phase 4)
---   cm        the server part holds community (Phase 5): the rules, the news. A server without it shows none of this
---   ml        the server part keeps mail (punch list 104); ZeD_Mail.lua reads it and dials in
--- The hello's a.ex, the server extras (Phase 6), goes to ZeD_Extras.lua, and a.cm to ZeD_Community.lua; each part of the
+--   adm       the server part holds the admin tools
+--   lg        the server part holds the log
+--   cm        the server part holds community: the rules, the news. A server without it shows none of this
+--   ml        (in the hello only, not kept here) the server part keeps mail; ZeD_Mail.lua reads it and dials in
+-- The hello's a.ex, the server extras, goes to ZeD_Extras.lua, and a.cm to ZeD_Community.lua; each part of the
 -- server's is on its own, so any of them can be missing from a hello.
 --   frozen    the server part is up and refuses writes (its data is from a newer ZeD)
---   forceOff  QA: behave as if no server part answered
+--   forceOff  for the test scripts: behave as if no server part answered
 -- Hello goes out at every OnCreatePlayer, a respawn included. send reads getPlayer() at each call: the object from
 -- before a death is not the one to hand sendClientCommand. A caller acting for one split-screen player hands that
 -- player (send's fourth argument): the game sends the player's index with the command (GameClient.sendClientCommand,
--- checked on 42.21), so the server sees that player, not the first (the dash's miles, known issue Nov 7 2026).
+-- checked on 42.21), so the server sees that player, not the first (the dash's miles ask goes this way).
 -- ============================================================================
 
 require "ZeD/ZeD_TicketProto"
@@ -36,6 +36,8 @@ local round = nil                    -- { at = when it started, sent = how many 
 
 local function now() return getTimestampMs() end
 
+--- a command to the server (module, command, args); player: the split-screen player it is for, else getPlayer().
+--- False when it could not go (single player, no player).
 function S.send(module, command, args, player)
     if not isClient() then return false end
     local p = player
@@ -45,19 +47,21 @@ function S.send(module, command, args, player)
     return true
 end
 
+--- the server part answered (and the test switch forceOff is off)
 function S.available() return S.present == true and not S.forceOff end
 
--- the same question again, now (a perm answer: this player's role may have changed)
+--- the same question again, now (a perm answer: this player's role may have changed)
 function S.hello()
     local ok = S.send(Tk.MOD_LINK, "hello", { v = Tk.PROTO })
     if ok then S.helloAt = now() end
     return ok
 end
 
+--- the server's commands for a module go to fn(command, args)
 function S.on(module, fn) S.routes[module] = fn end
 
 -- THE JOIN RULES ANSWERED. Until a player asked at joining agrees, the server refuses every ZeD command but the hello (Srv.gates.rules),
--- so whatever a part asked for meanwhile came back "perm" or not at all. Once the server takes the agreement, each part asks again:
+-- so whatever a part asked for meanwhile comes back "perm" or not at all. Once the server takes the agreement, each part asks again:
 -- the hello goes out (tickets, admin, extras and community fill from it) and every part's own hook runs (S.onAgreed). agreedN counts
 -- the agreements, for a part that keeps no hook (a dash per car compares it)
 S.agreeHooks = S.agreeHooks or {}
@@ -65,7 +69,9 @@ S.agreedN = S.agreedN or 0
 -- past HELLO_MS, the wait before the hello goes again: the server times the gap by when each hello arrives, and one that left on
 -- time but landed early through network jitter would be refused with nothing said
 S.HELLO_MARGIN_MS = 1000
+--- a part's hook for the rules agreed (one per name: a reload replaces it rather than adding another)
 function S.onAgreed(name, fn) S.agreeHooks[name] = fn end
+--- the server took the agreement: the hello goes again (now, or when the server's gap allows) and every hook runs
 function S.agreed()
     S.agreedN = S.agreedN + 1
     -- (the server answers one hello a HELLO_MS: one sent sooner after the last is refused, so it waits for its turn, the tick sends it)

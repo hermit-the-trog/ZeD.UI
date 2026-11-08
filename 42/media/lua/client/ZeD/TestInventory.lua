@@ -1,8 +1,13 @@
 -- ZeD-UI/42/media/lua/client/ZeD/TestInventory.lua
 -- ============================================================================
--- F6 TEST WINDOW — dev-only proving ground for InventoryRenderer.
--- Not required for production — safe to remove from Workshop builds.
--- Extracted renderer module to InventoryRenderer.lua.
+-- F6 TEST WINDOW (client, dev-only) — a bare test bench for InventoryRenderer.
+-- ZeD's inventory list was first built and proven here, and the Character and
+-- World windows grew out of this file. What is left is one ZeD window with a
+-- panel wired straight to the renderer's exports, nothing else, so a renderer
+-- change can be tried on F6 without opening either window.
+-- F6 toggles it for the first player wherever this file loads; there is no
+-- debug check. Not part of a release — safe to remove from Workshop builds,
+-- and the Workshop staging leaves it out.
 -- ============================================================================
 
 require "ZeD/InventoryRenderer"
@@ -74,11 +79,11 @@ local function toggleTestInventory()
     content._selectedContainers = {1}   -- start with main inventory
     content._activeCol  = 1             -- which column has focus
 
-    -- Initialize column states
     content._colStates = {}
     rebuildColStates(content)
 
-    -- Bind initial single-column state
+    -- The renderer's single-column path reads these off the panel itself, so
+    -- mirror the first column's state there.
     local cs = content._colStates[1]
     content._inventory       = cs.inventory
     content._selectedItems   = cs.selectedItems
@@ -104,7 +109,8 @@ local function toggleTestInventory()
     content._dragSourceCol  = nil
     content._dragSourceInv  = nil
 
-    -- Draw hooks: multi-column dispatcher replaces renderItemList
+    -- Draw hooks: the multi-column dispatcher draws the body, the drag ghost
+    -- draws over it.
     content._onPrerender = renderMultiColumnContent
     content._onRender = function(self) self._drag:drawGhost(self) end
 

@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Overrides/VehicleMechanics.lua
 -- ============================================================================
--- VEHICLE MECHANICS HOOK — HOOK_MAP row 3
+-- VEHICLE MECHANICS HOOK (override, client)
 -- Every vanilla way into the mechanics window (right-click Mechanics, the V
 -- radial, the mechanics key, using the hood) ends in ISOpenMechanicsUIAction,
 -- the walk-over-and-look timed action. Its perform() normally shows
@@ -10,7 +10,8 @@
 -- ISVehicleMenu.onMechanic is wrapped too: when the vehicle is already
 -- inspected, the tab opens straight away instead of repeating the look.
 -- Vanilla runs when ZeD declines (no World window available), and every time
--- while safe mode is on (SafeMode.lua).
+-- while safe mode is on (SafeMode.lua). The hooks sit behind _zed*Hooked
+-- flags, so a Lua reload never wraps the wrapper.
 -- ============================================================================
 
 require "ZeD/SafeMode"

@@ -1,14 +1,14 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_CarRadio.lua
 -- ============================================================================
 -- THE CAR RADIO, UP CLOSE — vanilla's Device Options window (ISRadioWindow on
--- a car's radio part) as the radio itself. Mockup ZeDUI/mockups/
--- zed_car_radio_v1.html (director, Oct 15 2026: "lose the handset/mic", then
--- "love it, build it, yes match the dash to the radio"). HOOK_MAP row 4; the
--- hook is Overrides/CarRadio.lua (ISVehicleMenu.onSignalDevice).
+-- a car's radio part) as the radio itself: no window chrome, no handset, the
+-- set's own face with working controls. Client organism. The hook is
+-- Overrides/CarRadio.lua (ISVehicleMenu.onSignalDevice, the wheel's Device
+-- Options slice).
 --
 -- The fitted radio's face rises above the dash's console, the road still in
 -- view, the way the siren controller does (only one of the two is up at a
--- time). Six faces in the dashboards' pixel art (director, Oct 16 2026; the
+-- time). Six faces in the dashboards' pixel art, drawn to match the dash (the
 -- plates in PhysPx.lua, drawn by the shared plate template ZeD_Plate.lua):
 -- Premium Technologies (CD), ValuTech, makeshift, and the two-way sets
 -- (Premium Technologies ham, US ARMY COMM., makeshift ham). Live on each: the
@@ -27,9 +27,9 @@
 -- presses, X stores (or names), B puts the radio away. Escape or leaving the
 -- seat puts it away too. Every change is vanilla's radio code (ZeD_RadioOps).
 --
--- SIMPLE (ZeD setup's Devices row, ZeD.Settings.devicesSimple; the rules in
--- ZeDUI/SIMPLE_VERSIONS_PROPOSAL.md): the plain card in place of the face, read
--- as it draws, so a switch applies at once. It is the radio tab's plain card
+-- SIMPLE (ZeD setup's Devices row, ZeD.Settings.devicesSimple): the plain
+-- card in place of the face, the setting read as the card draws, so a switch
+-- applies at once. It is the radio tab's plain card
 -- (PlainFace.lua) over this radio's driver (R.plainBase below): the heading
 -- (the radio's name), the readout (the frequency and station, or the CD's time
 -- and title), a row per face control in the face's order (power and volume

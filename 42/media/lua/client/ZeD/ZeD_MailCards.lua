@@ -1,18 +1,21 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MailCards.lua
 -- ============================================================================
--- MAIL IN GAME (punch list 104). Drawing and input only: ZeD_Mail.lua is the model, ZeD_MailStore.lua the copy on this
--- computer. The frame is the ticket cards' (ZeD_TicketCards.lua), in the Server tab, ZeD's social place in a world:
+-- MAIL IN GAME. Client file, drawing and input only: ZeD_Mail.lua is the model, ZeD_MailStore.lua the copy on this
+-- computer. The frame is the ticket cards' (ZeD_TicketCards.lua), in the Server tab, ZeD's social place in a world.
+-- This file gives the tab its Mail block and registers three cards with the frame:
 --   the Mail block    the dial-in's state, Inbox with its new letters (a row that opens the Mail card), Write a letter
 --   mlinbox           the Mail card: Write a letter, the Inbox, the Outbox while letters wait in it
 --   mlread            one letter: who, when, the words; Report, Delete, Reply (Report and Delete ask in the foot). Report
---                     (the director, Nov 7 2026) files a ticket through ZeD's tickets with the letter as the report's
---                     lines: its words reach staff only because the player chose to send them, logged as any report
---   mlwrite           a new letter: To, Subject, the letter; Send puts it in the Outbox and it goes at once
+--                     files a ticket through ZeD's tickets with the letter as the report's lines: its words reach staff
+--                     only because the player chose to send them, logged as any report
+--   mlwrite           a new letter: To, Subject, the letter; Send puts it in the Outbox, and while dialed in it goes at
+--                     once (otherwise at the next dial-in)
 -- A letter can go to any player who has joined this server since it began keeping mail, online or not: the server holds
 -- it until they join. Letters are private (ZeD_ServerMail.lua): the help says the server forgets each one once it is
 -- handed over and staff cannot read them.
 --
--- A server without mail shows no block at all. All player words are drawn with drawText, never as the game's rich text.
+-- A server without mail shows no block at all. All player words are drawn with drawText, never as the game's rich text,
+-- which would act on a <LINE> or <IMAGE:...> typed into a letter.
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -59,10 +62,14 @@ function P.subj(m) return (m.subj and m.subj ~= "") and m.subj or tr("UI_ZeD_Mai
 -- ---------------------------------------------------------------------------
 -- THE SERVER TAB'S BLOCK
 -- ---------------------------------------------------------------------------
+--- The Mail block, added to the Server tab's list L (ServerTab.lua calls this): the head with the count of new
+--- letters, the Inbox row, Write a letter. Adds nothing on a server without mail.
 function MC.serverItems(L, win, st)
     if not M.live() then return end
     local b = M.box()
     if not b then return end
+    -- (the tab's buttons open through ServerTab's OPEN table, which is made after ServerTab requires this file:
+    -- Write a letter's entry goes in here, the first time the block is built)
     local S2 = ZeD.ServerTab
     if S2 and S2.OPEN and not S2.OPEN.mailwrite then
         S2.OPEN.mailwrite = function(p, w) MC.openWrite(w, w._serverTab) end
@@ -75,8 +82,11 @@ function MC.serverItems(L, win, st)
     L[#L + 1] = { k = "btn", id = "mailwrite", text = tr("UI_ZeD_Mail_WriteLetter"), help = tr("UI_ZeD_Mail_HelpWrite") }
 end
 
+--- Push the Mail card (the Inbox, and the Outbox while letters wait in it) over the tab.
 function MC.openInbox(win, st) F.push(win, st, { kind = "mlinbox", from = "srv:tk:ml:inbox" }) end
 
+--- Push a new letter's card. to, subj and text fill it in (Reply gives To and Subject); without a To the card lands
+--- on the To field, with one on the letter itself.
 function MC.openWrite(win, st, to, subj, text)
     D.setField(win, "ml:to", to or "")
     D.setField(win, "ml:subj", subj or "")
@@ -86,6 +96,7 @@ function MC.openWrite(win, st, to, subj, text)
         seed = { to = to or "", subj = subj or "", text = text or "" } })
 end
 
+--- Push one letter's card. folder: "inbox" | "outbox"; a letter opened from the Inbox counts as read.
 function MC.openLetter(win, st, folder, m)
     local b = M.box()
     if b and folder == "inbox" then MS.markRead(b, m) end
@@ -93,7 +104,8 @@ function MC.openLetter(win, st, folder, m)
 end
 
 -- ---------------------------------------------------------------------------
--- THE CARDS
+-- THE CARDS. Each kind fills the frame's slots (TC.kinds, in ZeD_TicketCards.lua). The frame builds a card's items
+-- again when its key changes; MS.seq and M.seq move on every change to the mailbox and to the dial-in.
 -- ---------------------------------------------------------------------------
 TC.kinds.mlinbox = {
     data = function() return M.box() end,
@@ -220,6 +232,7 @@ function P.reportOf(m)
     return rep
 end
 
+-- Report: a GRIEF ticket that names the sender and the subject, the letter itself as its report lines
 function P.report(win, st, t, m)
     if P.reportWhy(m, t) then return end
     local C = ZeD.Tickets
@@ -298,6 +311,7 @@ TC.kinds.mlwrite = {
         if why then D.disable(b, why) end
         return { main = { b } }
     end,
+    -- X on a controller presses Send from anywhere on the card; a gray Send says why instead
     padX = function(win, st, t)
         local b = D.btn("mlsend", tr("UI_ZeD_Mail_Send"), function(ww) P.send(ww, st, t) end, "primary", tr("UI_ZeD_Mail_HelpSend"))
         local why = P.sendWhy(win, t)

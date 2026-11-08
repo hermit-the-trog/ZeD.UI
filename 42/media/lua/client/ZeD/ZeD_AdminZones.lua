@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_AdminZones.lua
 -- ============================================================================
--- THE ZONES CARD AND ITS MAP PICK (ZeDUI/VANILLA_WINDOWS_20261107.md, C14; the director, Nov 7: every admin tool becomes a
--- ZeD card). One card takes over the game's Zone editor, Non PVP Zone and Add Safezone windows (ISMultiplayerZoneEditor,
+-- THE ZONES CARD AND ITS MAP PICK. Client-only; every admin tool becomes a
+-- ZeD card. One card takes over the game's Zone editor, Non PVP Zone and Add Safezone windows (ISMultiplayerZoneEditor,
 -- ISPvpZonePanel with ISAddNonPvpZoneUI, ISAddSafeZoneUI):
 --   Non-PvP zones   every zone a row (name, corners, size); pick one for Go there and Remove (behind the foot's confirm);
 --                   See zones on the ground (the game's own highlight); Add a non-PvP zone

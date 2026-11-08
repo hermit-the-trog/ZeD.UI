@@ -1,7 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/BB_WhereAmI.lua
 -- ============================================================================
--- SUPPORT FOR WHERE AM I? (mod id BB_WhereAmI, Workshop 3097650043). Mockup
--- zed_map_overlays_v1, approved "as recommended" Oct 26 2026.
+-- SUPPORT FOR WHERE AM I? (mod id BB_WhereAmI, Workshop 3097650043). Client.
 --
 -- The mod shows the name of the area the character is in ("Muldraugh, KY") in a
 -- header on the game's map (its MapLocationHeader), from its own list of areas
@@ -17,6 +16,7 @@
 
 local MOD_ID = "BB_WhereAmI"
 
+-- Is the mod on? An id from getActivatedMods() can carry a leading backslash.
 local function modOn()
     local list = getActivatedMods and getActivatedMods()
     if not list then return false end
@@ -59,5 +59,5 @@ local X = { order = 60 }
 function X.banner(win) return S.area() end
 function X.mapMade(mp, win) _t = -1 end
 
-S.X = X   -- (the QA scripts drive it)
+S.X = X   -- (exposed so the QA scripts can reach the extension)
 ZeD.MapsTab.addExtension(MOD_ID, X)

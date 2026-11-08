@@ -1,8 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_ModSafety.lua
 -- ============================================================================
--- WHAT TURNING A MOD OFF DOES TO A SAVE (director, Oct 24 2026: "add feature
--- saying what will happen if you disable a mod on a save. if safe, if not
--- safe...")
+-- WHAT TURNING A MOD OFF DOES TO A SAVE. Client; a data module the Mods
+-- screen reads, with no UI of its own. Before a mod goes off on a save, this
+-- grades what the save would lose: safe, or not.
 --
 -- A save remembers what its mods put into the world, and the game cannot keep
 -- what a missing mod defined. ZeD cannot open a save to look (its world is in
@@ -25,7 +25,8 @@
 --
 --   SF.assess(modId)        { grade, lines = { { grade, text } }, unchecked }
 --   SF.forTurnOff(m, d)     { grade, main, deps = { { name, assess } } }
---   SF.reset()              forget (the Mods screen opens, the scan finishes)
+--   SF.headline(grade)      the grade's one-line headline
+--   SF.reset()              forget every grade (the Mods screen, as it opens)
 -- grade: "safe" | "careful" | "unchecked" | "unsafe"
 -- ============================================================================
 require "ZeD/ZeD_ModScan"
@@ -50,6 +51,10 @@ local function hasRegistries(id)
     return false
 end
 
+--- Grade one mod by id: { grade, lines = { { grade, text } }, unchecked }.
+--- Each line is one finding in the player's words; grade is the worst of them.
+--- Cached per mod until SF.reset, and keyed on the scan being done, so a
+--- finished scan refreshes the answer by itself.
 function SF.assess(id)
     local key = tostring(id) .. "|" .. tostring(MS.res.done)
     if cache[key] then return cache[key] end
@@ -107,6 +112,10 @@ local function dependents(m, id, seen, out)
     return out
 end
 
+--- The full answer for turning one mod off: { grade, main, deps }. m is the
+--- Mods screen's model (its .mods map), d the mod's row (its .modId). main is
+--- SF.assess of the mod itself; deps assesses each mod that turns off with it,
+--- and grade is the worst of all of them.
 function SF.forTurnOff(m, d)
     local main = SF.assess(d.modId)
     local res = { grade = main.grade, main = main, deps = {} }
@@ -118,7 +127,7 @@ function SF.forTurnOff(m, d)
     return res
 end
 
--- the headline for a grade
+--- The one-line headline for a grade, in the player's words.
 function SF.headline(grade)
     if grade == "unsafe" then return ZeD.tr("UI_ZeD_Mods_OffUnsafe") end
     if grade == "careful" then return ZeD.tr("UI_ZeD_Mods_OffCareful") end
@@ -126,4 +135,6 @@ function SF.headline(grade)
     return ZeD.tr("UI_ZeD_Mods_OffSafe")
 end
 
+--- Forget every cached grade. The Mods screen calls it each time it opens;
+--- a scan that finishes needs no reset, because the cache key changes with it.
 function SF.reset() cache = {} end

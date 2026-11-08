@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/KillTracker.lua
 -- ============================================================================
--- KILL TRACKER — native kill categorization via PZ event hooks.
+-- KILL TRACKER — client; sorts the player's zombie kills by cause.
 -- Tracks weapon category, fire, vehicle, and explosion kills.
 --
 -- Stores persistent data in player:getModData().ZeD_Kills.
@@ -141,10 +141,10 @@ local function gameKills(playerObj)
 end
 
 --- One-time fix for kill tables saved before KILLS_VERSION.
--- Up to beta 6 the weapon and explosion rows counted hits, not kills (OnWeaponHitXp
--- fires on every hit), and bombs never reached them. Beta 6a counted kills, but its
--- explosion test passed any weapon with no timer, sensor or remote, so a bat, a gun
--- and a thrown pipe bomb all went under explosion, and a timed bomb under Other.
+-- The oldest tables' weapon and explosion rows counted hits, not kills (OnWeaponHitXp
+-- fires on every hit), and bombs never reached them. A later release counted kills,
+-- but its explosion test passed any weapon with no timer, sensor or remote, so a bat,
+-- a gun and a thrown pipe bomb all went under explosion, and a timed bomb under Other.
 -- The table keeps only the sums, so no kill's weapon can be told now. The game's own
 -- count is exact for every kill but fire, so the rows are rebuilt from it: fire stays,
 -- vehicle stays (no more than the game's count, which holds car kills), and the rest
@@ -159,7 +159,7 @@ end
 -- count is; a count still 0 then is the truth: the old weapon and explosion rows were
 -- hits and go, fire stays, and vehicle is capped at the count like any other time.
 -- No path leaves hit-count rows under a total they exceed.
-local fixEpoch = 0   -- one more each time a table is rebuilt: a credit given before it is not taken back after
+local fixEpoch = 0   -- one more per rebuild: a credit given before a rebuild is never taken back after it
 
 --- The rows rebuilt from base (the game's count less the kill not yet tallied).
 local function rebuildRows(kd, base)
@@ -362,7 +362,7 @@ local function onZombieDead(zombie)
             if vehicle and vehicle:getDriver() == player then
                 -- onHitByVehicleApplyDamage has counted it: one pending; a burning
                 -- zombie on the ground that dies here with no attacker died of the burn,
-                -- which the game does not count (review, Nov 7)
+                -- which the game does not count
                 local kd = getKillData(player, fireMaybe and 0 or 1)
                 kd.vehicle = kd.vehicle + 1
                 -- kept only for a death that may be a burn's first, for the

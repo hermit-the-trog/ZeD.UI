@@ -1,9 +1,10 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MainMenuMail.lua
 -- ============================================================================
--- MAIL ON THE DESK (punch list 104; the director, Nov 7 2026: "email back then, you would dial in to connect, to send and
--- receive. So most of it was done offline."). At the main menu the game is connected to no server, so everything here
--- is the copy on this computer (ZeD_MailStore.lua): the letters handed over at the last join to each server, and an
--- Outbox that goes at the next one (ZeD_Mail.lua does the dial-in in game). Reading and writing are offline, as they were.
+-- MAIL ON THE DESK: the main menu's mail window. Client-side; an organism, a ZeD window on the desktop's monitor.
+-- The model is early-90s email: dial in, mail moves both ways, hang up, read offline. At the main menu the game is
+-- connected to no server, so everything here is the copy on this computer (ZeD_MailStore.lua): the letters handed
+-- over at the last join to each server, and an Outbox that goes at the next one (ZeD_Mail.lua does the dial-in in
+-- game). Reading and writing are offline, as they were.
 --
 -- A ZeD window on the monitor: on the left the mailbox (one for each server and name joined with, a pop-up when there
 -- is more than one), the folders as tabs (Inbox, Outbox, Sent) and the folder's letters; on the right the letter, or the
@@ -37,7 +38,7 @@ local function tr(k, ...) return ZeD.tr(k, ...) end
 local FOLDERS = { "inbox", "outbox", "sent" }
 local FOLDER_WORD = { inbox = "UI_ZeD_Mail_Inbox", outbox = "UI_ZeD_Mail_Outbox", sent = "UI_ZeD_Mail_Sent" }
 
--- "Nov 7, 9:42 PM" on this computer's clock (the ticket cards' words when they are loaded)
+-- "Nov 7, 9:42 PM" on this computer's clock; borrows the ticket cards' date words when that file is loaded
 local function when(sec)
     if type(sec) ~= "number" or sec <= 0 then return "" end
     local TCd = ZeD.TicketCards and ZeD.TicketCards._D
@@ -69,7 +70,7 @@ function MM.openMail()
     MM.showView("mail")
 end
 
--- (the director, Nov 7 2026: the app is "ProtoPOP3 Mail": the icon, the window and the menu; the in-game cards say Mail)
+-- The app is "ProtoPOP3 Mail" on the desk — the icon, the window and the menu; the in-game cards say Mail.
 local MAIL_ITEM = { id = "mail", menu = "UI_ZeD_Mail_AppName", open = function() MM.openMail() end }
 MAIL_ITEM.labelFn = function()
     local n = MM.mailUnread()
@@ -272,7 +273,7 @@ function ZeD_MMMail:setConfirm(mode)
     MM.clickSound()
     if mode then
         for _, e in ipairs({ self.toEntry, self.subjEntry, self.textEntry }) do if e:isFocused() then e:unfocus() end end
-        self.focusId = "confirm:no"            -- (a question that loses work lands on Cancel, Nov 1 2026)
+        self.focusId = "confirm:no"            -- a question that loses work lands on Cancel
     else
         self.focusId = self.compose and "f:text" or "new"
     end
@@ -584,6 +585,7 @@ function ZeD_MMMail:wheel(del)
     return false
 end
 function ZeD_MMMail:onMouseWheel(del) return MM.wheel(del) end
+-- Keep the base MM.wheel once, so a Lua reload never wraps the wrapper.
 local _wheel = MM._mailWheelBase or MM.wheel
 MM._mailWheelBase = _wheel
 function MM.wheel(del)

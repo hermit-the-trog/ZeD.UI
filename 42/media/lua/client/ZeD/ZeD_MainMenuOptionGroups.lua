@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_MainMenuOptionGroups.lua
 -- ============================================================================
--- OPTIONS, GROUPED LIKE A MODERN GAME (Oct 19 2026, mockup zed_settings_v1.html;
--- director: "Can we make PZ settings organized and feel like a modern game?")
+-- OPTIONS, GROUPED LIKE A MODERN GAME. Client-side; the Options window's
+-- grouping model: data tables and the build that files vanilla's rows into them.
 --
 -- Vanilla's eight pages (Display & Performance, UI, Audio, Key Bindings,
 -- Accessibility, Controller, Multiplayer, Mods) mix kinds: the UI page holds the
@@ -36,10 +36,10 @@ local function pageId(raw)
 end
 G.pageId = pageId
 
--- The words in the tables below are translation keys, turned into the player's language where
--- they show (G.text): ZeD's own (UI_ZeD_...) through ZeD.tr, the game's own words (UI_optionscreen_audio,
--- UI_DisplayOptions_Camera...) through getText, all-caps ones in sentence case. Anything else, such as
--- words a window has already put into the player's language, passes through as it is.
+--- The words in the tables below are translation keys, turned into the player's language where
+--- they show (G.text): ZeD's own (UI_ZeD_...) through ZeD.tr, the game's own words (UI_optionscreen_audio,
+--- UI_DisplayOptions_Camera...) through getText, all-caps ones in sentence case. Anything else, such as
+--- words a window has already put into the player's language, passes through as it is.
 function G.text(s)
     if type(s) ~= "string" or s == "" then return s end
     if s:sub(1, 7) == "UI_ZeD_" then return ZeD.tr(s) end
@@ -112,8 +112,8 @@ local FALLBACK = { display = "graphics", ui = "interface", audio = "audio", keys
                    mp = "gameplay", controller = "controls", mods = "mods" }
 
 -- Settings that do nothing with ZeD active: greyed, inert, the reason in the
--- row and the help band. From the code: ZeD replaces the surface and never
--- reads the option (a search for every getOption* call, Oct 19 2026).
+-- row and the help band. Each one sets a vanilla surface ZeD replaces, and no
+-- ZeD code reads it (no getOption* call names it).
 G.MOOT = {
     inventoryFont = "UI_ZeD_Options_MootInventoryFont",
     contextMenuFont = "UI_ZeD_Options_MootContextMenuFont",
@@ -125,7 +125,7 @@ G.MOOT = {
     cycleContainerKey = "UI_ZeD_Options_MootCycleContainer",
 }
 -- Still working, but only somewhere: { the line under its name, the help band's words }
--- (Oct 20 2026: the Dyslexic font replaces ZeD's text fonts with the game's own dyslexic ones, and
+-- (the Dyslexic font replaces ZeD's text fonts with the game's own dyslexic ones, and
 -- the Tooltip font sizes ZeD's tooltips as well as the item tooltip's facts)
 G.ONLY = {
     enableDyslexicFont = { "UI_ZeD_Options_OnlyDyslexic", "UI_ZeD_Options_OnlyDyslexicHelp" },
@@ -144,11 +144,10 @@ G.SETUP_GAME = {
     { "doVideoEffects", "UI_ZeD_Options_GroupGraphics", "UI_ZeD_Options_SecEffects", "UI_ZeD_Options_WhyVideoEffects" },
 }
 
--- ZeD setup: ZeD's own options in groups, each with the control it is drawn with
--- (Oct 21 2026, mockup ZeDUI/mockups/zed_settings_v2.html; director: "Apply and commit").
+-- ZeD setup: ZeD's own options in groups, each with the control it is drawn with.
 -- The value is still the combo's item (ModOptions saves that number), so a saved choice keeps
 -- its meaning; only the drawing changes (ZeD_MainMenuOptions' drawControl). The controls are
--- System 7's (spec 1.3): a radio button for one of a few, a pop-up menu for one of many, a checkbox
+-- System 7's: a radio button for one of a few, a pop-up menu for one of many, a checkbox
 -- for on or off.
 --   "radio"  radio buttons in a row, the pick filled (two or three choices)
 --   "swatch" the nine accents as colour wells; the window accents add "Same as Accent"
@@ -161,36 +160,39 @@ G.SETUP_GAME = {
 --   on the Mods page keeps the full ones) } } }
 -- An option of ZeD's this table doesn't name (a new one) lands under Other, as a drop-down.
 G.ZED_GROUPS = {
-    -- (Oct 26 2026, COHESION_SPEC.md section 4: the windows' See-through is the stepped slider under Text size, Solid while
-    -- in use a checkbox under it; Controller highlight leads Controls as a pop-up menu with a live sample beside it; Hidden
-    -- actions closes Windows as a pop-up menu. The windows' theme squares are gone with their setting.)
+    -- (the windows' See-through is the stepped slider under Text size, Solid while in use a
+    -- checkbox under it; Controller highlight leads Controls as a pop-up menu with a live sample
+    -- beside it; Hidden actions closes Windows as a pop-up menu. No row for theme squares: the
+    -- windows have none, and each window box's menu, ZeD_WindowMenu.lua, holds Theme, Accent
+    -- and Text size.)
     { "UI_ZeD_Options_ZedLook", { { "baseTheme", "radio" }, { "accentColor", "swatch" }, { "textSize", "radio" }, { "seeThrough", "scale" }, { "solidInUse", "onoff" }, { "uiScale", "scale", short = { "UI_ZeD_Settings_Auto" } } } },
-    -- (the director, Nov 2 2026, punch list 60: "the beta release is gonna have our vision and then a more simplified
-    -- vision"; one row per family. The director, Nov 7 2026, punch list 110: one phrase for the two forms, Immersive or
-    -- simple, for the rows drawn as the thing itself or as a plain card; the Identity card joins from Look. The Action bar
-    -- (to HUD) and the Mods screen (to Windows) are Detailed or simple; Context menu and Equipped items choose a layout,
-    -- so they sit in Windows by Inventory. Only the rows moved: every option keeps its items in order, so saved choices
-    -- keep their meaning.)
+    -- (One row per family, each offering ZeD's full vision or a plainer one, with one phrase for
+    -- the two forms: Immersive or simple, for the rows drawn as the thing itself or as a plain
+    -- card, the Identity card (once in Look) among them. The Action bar (in HUD) and the Mods
+    -- screen (in Windows) are Detailed or simple; Context menu and Equipped items choose a
+    -- layout, so they sit in Windows by Inventory. A row can move between groups freely: every
+    -- option keeps its items in order, so saved choices keep their meaning.)
     { "UI_ZeD_Options_ZedForms", { { "beltStyle", "radio" }, { "devicesStyle", "radio" }, { "watchStyle", "radio" }, { "dashStyle", "radio" }, { "guideStyle", "radio" }, { "identityStyle", "radio" } } },
-    -- (director, Oct 30 2026: every thing vanilla does not do in one group after the look, the preset first;
-    -- Settings.lua setUpAdditions. Put back, Messages and Sandbox in game had groups of their own until then,
-    -- Ammo on the belt, Moodle notices and Dashboard lamps were in HUD, Restock and the read marks in Windows.)
+    -- (everything vanilla does not do, in one group after the look, the preset first; the
+    -- presets' table is in Settings.lua's setUpAdditions. Put back, Messages and Sandbox in game
+    -- have no groups of their own; Ammo on the belt, Moodle notices and Dashboard lamps (once in
+    -- HUD) and Restock and the read marks (once in Windows) live here too.)
     { "UI_ZeD_Options_ZedAdditions", { { "additionsPreset", "radio", short = { "UI_ZeD_Settings_PresetVanilla", "UI_ZeD_Options_PresetPlus", "UI_ZeD_Options_PresetAccessible", "Sandbox_Custom" } },
         { "ammoBox", "onoff" }, { "readMarks", "onoff" }, { "readNext", "onoff" }, { "dimRead", "onoff" }, { "dashLamps", "onoff" },
         { "moodleNotices", "onoff" }, { "messagesCatch", "onoff" }, { "messagesToast", "onoff" }, { "haloBubble", "onoff" }, { "hintStrip", "radio" }, { "putBack", "onoff" },
         { "sandboxInGame", "onoff", under = "UI_ZeD_Options_UnderSandboxIG" }, { "hiddenFacts", "radio" }, { "autoLearn", "onoff" }, { "loadouts", "onoff" },
-        -- (director, Oct 30 2026: Restock works only with a loadout, so its row dims and goes inert while Loadouts is off)
+        -- (Restock works only with a loadout, so its row dims and goes inert while Loadouts is off)
         { "restock", "radio", needs = "loadouts", needsWhy = "UI_ZeD_Options_NeedsLoadouts" } } },
     { "UI_ZeD_Options_ZedWindows", { { "inventoryView", "radio" }, { "contextStyle", "radio" }, { "equipView", "radio" }, { "modsStyle", "radio" }, { "charAccent", "swatch" }, { "worldAccent", "swatch" }, { "hiddenActions" } } },
     { "UI_ZeD_Options_ZedHud", { { "moodlePlace", "radio", short = { "UI_ZeD_Options_MoodlesRight", "UI_ZeD_Options_MoodlesLeft", "UI_ZeD_Options_MoodlesBottom" } }, { "watchPlace", "radio" }, { "actionBar", "radio" } } },
-    -- (punch list 91: how the wheels are worked; Toggle mode overrides open and commit, so they dim while it is on)
+    -- (how the wheels are worked; Toggle mode overrides open and commit, so they dim while it is on)
     { "UI_ZeD_Options_ZedControls", { { "focusStyle" }, { "glyphDisplay" }, { "inputModeLock" },
         { "wheelOpen", "radio", needsNot = "wheelToggle", needsWhy = "UI_ZeD_Options_NeedsNoToggle" },
         { "wheelCommit", "radio", needsNot = "wheelToggle", needsWhy = "UI_ZeD_Options_NeedsNoToggle" },
         { "wheelToggle", "onoff" }, { "wheelDeadZone", "scale" } } },
-    -- (Oct 24 2026, mockup zed_quick_chords_v1: the twelve chords, ZeD_QuickChords; not ModOptions: rows of their own)
+    -- (the twelve chords, ZeD_QuickChords; not ModOptions: rows of their own)
     { "UI_ZeD_Options_ZedChords", {}, chords = true },
-    -- (director, Nov 2 2026, punch list 55: one screen at a time steps aside, under Safe mode and read as it is:
+    -- (one screen at a time steps aside, under Safe mode and read as it is:
     -- ticked, that screen is the game's own)
     { "UI_ZeD_Options_ZedTrouble", { { "safeMode", "onoff", under = "UI_ZeD_Options_UnderSafeMode" },
                                      { "screenWindows", "onoff", under = "UI_ZeD_Options_UnderScreenWindows", back = "windows" },
@@ -216,9 +218,9 @@ local function copyRow(r, under, why)
     return c
 end
 
--- Build every group's rows. pages = vanilla's pages ({ title, raw, view, keys });
--- rowsOf(page) = that page's rows (ZeD_MainMenuOptions' discovery, cached).
--- Returns { [groupId] = rows }.
+--- Build every group's rows. pages = vanilla's pages ({ title, raw, view, keys });
+--- rowsOf(page) = that page's rows (ZeD_MainMenuOptions' discovery, cached).
+--- Returns { [groupId] = rows }.
 function G.build(pages, rowsOf)
     local byName, byPage, used = {}, {}, {}
     local extra = {}   -- pages a mod added with MainOptions:addPage (titles the game doesn't have)
@@ -312,7 +314,7 @@ function G.build(pages, rowsOf)
                     -- the name is drawn through ZeD.tr each frame (ZeD_MainMenuOptions), so the test language reaches it
                     r.labelKey = opt.zedNameKey
                     -- its help: vanilla's options screen never gives a mod's drop-down the option's
-                    -- tooltip, so the band read nothing; the key is beside the name's (UI_ZeD_Settings_<x>Tip)
+                    -- tooltip, so the band would read nothing; the key is beside the name's (UI_ZeD_Settings_<x>Tip)
                     r.zedTipKey = opt.zedNameKey and (opt.zedNameKey .. "Tip")
                     r.zedOwn = true   -- (one of ZeD's own options: Find shows it on ZeD setup, G.findRows)
                     local c = copyRow(r, nil)
@@ -364,10 +366,10 @@ function G.build(pages, rowsOf)
     return out
 end
 
--- Find across the groups: the rows whose words (hayOf(r), lower case) hold q, each group's under its title.
--- ZeD's own options are found on ZeD setup, drawn with ZeD's own controls (radio rows, wells, the slider);
--- their plain drop-downs on the Mods page are left out (the outside review, Nov 7 2026). ZeD setup's copies of
--- the game's settings are found in their own groups, as before.
+--- Find across the groups: the rows whose words (hayOf(r), lower case) hold q, each group's under its title.
+--- ZeD's own options are found on ZeD setup, drawn with ZeD's own controls (radio rows, wells, the slider);
+--- their plain drop-downs on the Mods page are left out, so Find never offers the same option twice.
+--- ZeD setup's copies of the game's settings are left out the other way: each is found in its own group.
 function G.findRows(pages, rowsFor, q, hayOf)
     local rows = {}
     for _, p in ipairs(pages) do
@@ -390,7 +392,8 @@ end
 -- ----------------------------------------------------------------------------
 -- The first time the game starts with ZeD on, Options opens on ZeD setup by
 -- itself, once (Zomboid/Lua/ZeD_setup_seen.txt remembers). Not on a QA
--- autoload launch (QABridge sets ZeD.QAAutoload).
+-- autoload launch, a -debug test run that continues the latest save by
+-- itself (QABridge sets ZeD.QAAutoload).
 -- ----------------------------------------------------------------------------
 local SEEN_FILE = "ZeD_setup_seen.txt"
 local firstTicks = 0

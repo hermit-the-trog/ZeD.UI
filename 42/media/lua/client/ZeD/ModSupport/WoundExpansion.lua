@@ -1,9 +1,9 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/WoundExpansion.lua
 -- ============================================================================
 -- SUPPORT FOR WOUND EXPANSION (mod id WoundExpansion, Workshop 3819438691; the
--- base mod only, not its ZombieBuddy add-on). Written Oct 29 2026 from the mod's
--- own code; Compatibility round 3 found its wound details missing from ZeD's
--- Health tab.
+-- base mod only, not its ZombieBuddy add-on). Client. The mod's wound details
+-- were missing from ZeD's Health tab; this file carries them over. What follows
+-- about the mod was read from its own code.
 --
 -- What the mod does: it keeps its own record of nine wound kinds (abrasion,
 -- puncture, avulsion, frostbite, sprain, dislocation, concussion, joint damage,
@@ -85,10 +85,10 @@ local function severityOf(c)
     return "warning"
 end
 
--- Everything the mod would write under this body part on the game's health panel, as
--- ZeD's lines: { { text, color = {r,g,b}, severity }, ... }; nil when there is nothing
--- (or the mod is off in its options, or does not track this character).
--- The mod hands back its own cached list; this copies it so nothing of the mod's is held.
+--- Everything the mod would write under this body part on the game's health panel, as
+--- ZeD's lines: { { text, color = {r,g,b}, severity }, ... }; nil when there is nothing
+--- (or the mod is off in its options, or does not track this character).
+--- The mod hands back its own cached list; this copies it so nothing of the mod's is held.
 function S.partLines(playerObj, bodyPart)
     local mod = WE()
     if not (mod and playerObj and bodyPart) then return nil end

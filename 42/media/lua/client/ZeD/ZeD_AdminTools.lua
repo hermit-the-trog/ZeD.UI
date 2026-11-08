@@ -1,7 +1,7 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_AdminTools.lua
 -- ============================================================================
--- THE SERVER TOOLS' CARDS (ZeDUI/VANILLA_WINDOWS_20261107.md, C10, C12, C13; the director, Nov 7: every admin tool becomes
--- a ZeD card). The Admin tab's More tools open these in place of the game's windows:
+-- THE SERVER TOOLS' CARDS. Client-only. The rule here: every admin tool becomes
+-- a ZeD card. The Admin tab's More tools open these in place of the game's windows:
 --   Statistics     ISStatisticsUI: the game's own numbers for this client and the server (performance, network,
 --                  characters), read-only, while the card shows. The game sends them only while asked (its toggle)
 --   PvP log        ISPVPLogToolUI: the game's own PvP log in the Log card's look (ZeD_LogCards.lua's lines). Pick a line for
@@ -628,7 +628,7 @@ function P.climateItems(win, st, t, card)
 end
 
 -- the game's own sends from its Weather page (a client's: the server runs them). Each call named in full, with the
--- argument types it takes (javap: float hours; float strength and int front)
+-- argument types the Java side asks for (float hours; float strength and int front)
 P.SEND = {
     stop = function(c) c:transmitStopWeather() end,
     storm = function(c, card) c:transmitTriggerStorm(card.dur) end,

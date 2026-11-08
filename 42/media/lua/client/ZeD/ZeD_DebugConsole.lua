@@ -1,10 +1,11 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_DebugConsole.lua
 -- ============================================================================
--- THE LUA CONSOLE (punch list 106, the director, Nov 7 2026): the game's debug-mode console (only with -debug: run
+-- THE LUA CONSOLE: the game's debug-mode console (only with -debug: run
 -- Lua, read errors and output) as a ZeD window, from ZeD's own atoms and molecules.
+-- Client. Organism (ZeD_DebugConsoleWindow on ZeD_Window), one window.
 --
 -- The game's console is Java (zombie.ui.UIDebugConsole, made by UIManager.init with the in-game screens and kept as
--- UIManager.getDebugConsole()). Its parts, read from the class (javap, 42.21 and 42.22):
+-- UIManager.getDebugConsole()). Its parts, read from the game's class files (42.21 and 42.22):
 --   * outputLog, a text box holding everything the game prints while in debug mode (DebugLog's stream hands each
 --     write to addOutput; the console moves it into the box in its own update(), which runs only while it is
 --     visible; the box keeps the last 8192 characters), plus what the console says itself (a line that does not
@@ -179,9 +180,9 @@ function DC.mirror(text)
     pcall(function() P.cmd:SetText(text) end)
     -- (the game fills its suggestion box in its own update(), when the line's length has changed; it is run now, so the
     -- suggestion is there for Tab and for the help line in this same frame, never a frame late or not at all)
-    -- (QA round 3, from UIDebugConsole.update() in the jar: it works the suggestion out only when the LENGTH of the line
+    -- (From UIDebugConsole.update() in the jar: it works the suggestion out only when the LENGTH of the line
     -- differs from the length it last worked on, and an emptied line does not reset that length. So a line of the same
-    -- length as an earlier one got nothing, and the box stayed empty. The line is shown one character longer first, so
+    -- length as an earlier one gets nothing, and the box stays empty. The line is shown one character longer first, so
     -- the second update always sees a changed length and does the work for the line as it is.)
     if P.jc and text ~= "" then
         local ok, err = pcall(function()

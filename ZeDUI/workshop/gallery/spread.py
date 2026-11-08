@@ -1,4 +1,4 @@
-"""The Workshop gallery as a worked-through 1993 manual (director, Nov 1 2026; ZeDUI/HANDOFF_gallery_manual_20261101.md).
+"""The Workshop gallery as a worked-through 1993 manual (director, Nov 1 2026; docs/handoffs/HANDOFF_gallery_manual_20261101.md).
 
 Every slide is the book lying open: one 1920 x 1080 picture, two facing pages. What is printed is the publisher's
 (Doidbros & Buzzlord Division of Informatics Publishing LLC; the author, Ann Sibyl), set as a 1993 manual: a serif

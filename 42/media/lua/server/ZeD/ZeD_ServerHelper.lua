@@ -1,11 +1,12 @@
 -- ZeD-UI/42/media/lua/server/ZeD/ZeD_ServerHelper.lua
 -- ============================================================================
--- THE HOST HELPER'S FILES (ZeDUI/MP_SERVER_PART_DESIGN.md, "Rules that hold", Nov 7 2026). Optional, off by default: the
--- sandbox option ZeD.HostHelper turns it on. The helper is a small program the server's owner runs on the server machine
+-- THE HOST HELPER'S FILES. Server only (the first line); pure Lua, pure ASCII. Optional, off by default: the sandbox option
+-- ZeD.HostHelper turns it on. The helper is a small program the server's owner runs on the server machine
 -- (ZeDUI/server_helper/zed_rcon_helper.py, from the project's repository). It talks to the game's own remote console (RCON)
--- and makes the game calls ZeD owes (ban, unban, kick, a mute's voice ban), so the rules hold with no staff online. Server Lua cannot reach the
--- console itself (A7), so the two talk through two files in Zomboid/Lua/ZeD_helper/ on the server (getFileWriter and
--- getFileReader both work under the server's own Lua folder):
+-- and makes the game calls ZeD owes (ban, unban, kick, a mute's voice ban), so the rules hold with no staff online.
+-- Nothing here goes over the wire to a client: ZeD_ServerAdmin.lua decides what is owed and calls H.write and H.read. Server
+-- Lua cannot reach the console itself, so the two talk through two files in Zomboid/Lua/ZeD_helper/ on the server
+-- (getFileWriter and getFileReader both work under the server's own Lua folder):
 --
 --   queue.txt    this file writes it: "ZEDQ 1 <epoch>", then one call a line: id, try, act, target, reason (tab-separated),
 --                then "ZEDQ end". The game's file writer is not atomic, so the helper takes a queue only with its last line
@@ -14,9 +15,9 @@
 -- The epoch is a random word made at each server start (never saved), so the helper never takes another world's numbers, or
 -- the numbers of a table a crash rolled back, for these. Only the calls on the helper's own allow-list go in the queue, with targets already
 -- checked against the same patterns it checks them against again. A ban's reason is the only typed text: it loses its tabs and
--- line breaks here, its quotes and anything past plain ASCII in the helper. Results: ok, gone (a Kick on someone not on),
--- refused (the game or the helper said no: the call goes to a staff client), gone (a voice ban on someone not on), failed (it goes to a staff client too, and the
--- helper tries again HELPER_WAIT_S later, HELPER_TRIES tries in all).
+-- line breaks here, its quotes and anything past plain ASCII in the helper. Results: ok; gone (a Kick or a voice ban on
+-- someone not on); refused (the game or the helper said no: the call goes to a staff client); failed (it goes to a staff
+-- client too, and the helper tries again HELPER_WAIT_S later, HELPER_TRIES tries in all).
 -- ============================================================================
 if not isServer() then return end
 
@@ -40,6 +41,7 @@ H.END = "ZEDQ end"                     -- the queue's last line: a file without 
 -- -true or -false), so its name may not start with "-", which the console could read as that word
 H.ACTS = { Kick = "user", Ban = "user", UnBan = "user", BanSteamID = "sid", UnBanSteamID = "sid", VoiceBan = "voice" }
 
+--- The host helper is switched on (the sandbox option ZeD.HostHelper).
 function H.on()
     local z = SandboxVars and SandboxVars.ZeD
     return z ~= nil and z.HostHelper == true
@@ -55,6 +57,7 @@ function H.okTarget(kind, s)
     return string.sub(s, 1, 1) ~= " " and string.sub(s, -1) ~= " "
 end
 
+--- The helper may make this owed call: its act is on the allow-list and its target has the right shape.
 function H.can(e)
     local kind = H.ACTS[e.act]
     return kind ~= nil and H.okTarget(kind, e.target)
@@ -66,7 +69,7 @@ function H.epoch()
     return H.word
 end
 
--- running: its last answers file is fresh (H.seen is that file's own time)
+--- The helper is running: its last answers file is fresh (H.seen is that file's own time).
 function H.alive(now) return H.seen ~= nil and now - H.seen <= ZeD.Adm.L.HELPER_ALIVE_S end
 
 local function line(e)
@@ -74,7 +77,8 @@ local function line(e)
     return table.concat({ tostring(e.id), tostring(e.try or 1), e.act, e.target, reason }, "\t")
 end
 
--- the queue, rewritten when what it holds changed: every owed call the helper holds. True when the file says what it should
+--- The queue, rewritten when what it holds changed: every owed call the helper holds. True when the file says what it
+--- should.
 function H.write(md)
     local ids = {}
     for id, e in pairs(md.owed) do
@@ -94,7 +98,8 @@ function H.write(md)
     return true
 end
 
--- the helper's answers for this world: a list of { id, try, res, text }. H.seen becomes the file's time. Nothing there: {}
+--- The helper's answers for this world: a list of { id, try, res, text }. H.seen becomes the file's time. Nothing
+--- there: {}
 function H.read(md)
     local r = getFileReader(H.ANSWERS, false)
     if not r then return {} end

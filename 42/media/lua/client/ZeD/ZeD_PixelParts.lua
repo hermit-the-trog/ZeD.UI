@@ -1,15 +1,18 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_PixelParts.lua
 -- ============================================================================
--- PIXEL PARTS — the shelf atom for ZeD's pixel-art organisms (the dashboards first;
--- the belt buckles, the main menu desk and the radios share the same density rule).
+-- PIXEL PARTS — the draw helpers ZeD's pixel-art pieces are built from. Client;
+-- atoms (their only state is caches): the dashboards, the machine plates
+-- (ZeD_Plate), the radios, the watch and the bubbles draw through them, and the
+-- belt buckles and the main menu desk keep the same density rule. The caches and
+-- rect merges below only cut the drawing cost; each keeps the picture pixel for pixel.
 --
 -- One art pixel is one screen pixel at 1080p and a whole multiple k above it, so
 -- every pixel stays square. Pixel art loads with nearest filtering
--- (Texture.getSharedTexture(path, 3): FILTER_MIN_NEAREST 1 + FILTER_MAG_NEAREST 2,
--- KB Q205). Everything live is drawn the same way the art was painted: rects on
--- the art grid. A needle is rasterised into art pixels (a lit side and a shaded
--- side, its shadow below), seven-segment figures are segment rects, and text uses
--- the two pixel fonts (ZeD/PixelFonts.lua): 3 x 5 for legends, 5 x 7 for badges.
+-- (Texture.getSharedTexture(path, 3): FILTER_MIN_NEAREST 1 + FILTER_MAG_NEAREST 2).
+-- Everything live is drawn the same way the art was painted: rects on the art
+-- grid. A needle is rasterised into art pixels (a lit side and a shaded side, its
+-- shadow below), seven-segment figures are segment rects, and text uses the two
+-- pixel fonts (ZeD/PixelFonts.lua): 3 x 5 for legends, 5 x 7 for badges.
 --
 -- A "canvas" binds an element, the screen offset of the art's origin inside it,
 -- and the multiple: cv = P.canvas(self, 0, 0, k). Every coordinate after that is
@@ -29,6 +32,7 @@ P.NEAREST = 3
 -- colours and textures
 -- ---------------------------------------------------------------------------
 local _col = {}
+--- A "#rrggbb" colour as { r, g, b } (0 to 1), converted once and cached; a table passes through.
 function P.color(h)
     if type(h) == "table" then return h end
     local c = _col[h or "#ffffff"]
@@ -39,6 +43,7 @@ function P.color(h)
     end
     return c
 end
+--- A colour times f, each channel kept at 1 or under; cached per colour and factor.
 function P.shade(h, f)
     local key = tostring(h) .. "*" .. tostring(f)
     local c = _col[key]
@@ -52,7 +57,7 @@ end
 P.BLACK = { r = 0, g = 0, b = 0 }
 
 local _tex = {}
--- a texture with nearest filtering, cached (false when missing, so a missing file is asked for once)
+--- A texture with nearest filtering, cached (false when missing, so a missing file is asked for once).
 function P.tex(path)
     local t = _tex[path]
     if t == nil then
@@ -62,19 +67,20 @@ function P.tex(path)
     return t or nil
 end
 
--- the whole multiple for a UI scale (1080p = 1.0): never below 1, never fractional. The nearest whole
--- number (Oct 21 2026, director: crisp at every scale step; 1.75 draws at 2, 1.25 at 1, .5 rounds up);
--- it was the scale rounded down, which left every prop at 1x up to 1.95.
+--- The whole multiple for a UI scale (1080p = 1.0): never below 1, never fractional. The nearest whole
+--- number, so the art is crisp at every scale step: 1.75 draws at 2, 1.25 at 1, .5 rounds up (rounding
+--- down would leave every prop at 1x up to 1.95). ZeD.Scale.artZoom, when loaded, gives the same answer.
 function P.k(scale)
     local Sc = ZeD.Scale
     if Sc and Sc.artZoom then return Sc.artZoom(scale or 1) end
     return math.max(1, math.floor((scale or 1) + 0.5 + 1e-6))
 end
--- the face that fills the card (Oct 30 2026, HANDOFF_plates_fill_20261030.md): a plate is laid out at a few
--- widths (PhysPx.widths[pid], keyed by the plate's own width, or by the half card's panel width for a walkie,
--- whose face is 20 px narrower) and the widest whose key at `zoom` fits `roomPx` is drawn. Returns its id and
--- the key; (pid, nil) when the plate has no widths or none fits (the narrow rule then takes it from there).
--- Ids are "<pid>@<W>" (the entry's `base` names its plate): anything matching ids strips the suffix.
+--- The face that fills the card: a plate is laid out at a few widths (PhysPx.widths[pid], keyed as PhysPx's
+--- lookups say: by the face's own width for the machines and TVs, by the half card's panel width for a walkie,
+--- whose face is 20 px narrower, and the same way from 180 for the ordinary radios and the CD player) and the
+--- widest whose key at `zoom` fits `roomPx` is drawn. Returns its id and the key; (pid, nil) when the plate has
+--- no widths or none fits (the narrow rule then takes it from there). Ids are "<pid>@<W>" (the entry's `base`
+--- names its plate): anything matching ids strips the suffix.
 function P.pickWidth(pid, roomPx, zoom)
     local X = ZeD.PhysPx
     local t = X and X.widths and X.widths[pid]
@@ -86,16 +92,16 @@ function P.pickWidth(pid, roomPx, zoom)
     if not best then return pid, nil end
     return best, bestW
 end
--- a plate id without its width or narrow suffix ("oven_grey@392", "oven_grey_n" -> "oven_grey")
+--- A plate id without its width or narrow suffix ("oven_grey@392", "oven_grey_n" -> "oven_grey").
 function P.baseId(pid)
     if type(pid) ~= "string" then return pid end
     local b = pid:gsub("@%d+$", "")
     return (b:gsub("_n$", ""))
 end
--- the face to draw for a machine plate in `availW` screen px (the card's plate room, the same with or without
--- its scrollbar): the widest of its widths that fits at the plates' whole zoom; where none does, its narrow
--- face (PhysPx.narrow) when the main face is wider than the room (the rule the radio tab uses for a ham set),
--- else the main face. Returns the plate and its id; (nil, pid) when there is no such plate.
+--- The face to draw for a machine plate in `availW` screen px (the card's plate room, the same with or without
+--- its scrollbar): the widest of its widths that fits at the plates' whole zoom; where none does, its narrow
+--- face (PhysPx.narrow) when the main face is wider than the room (the rule the radio tab uses for a ham set),
+--- else the main face. Returns the plate and its id; (nil, pid) when there is no such plate.
 function P.pick(pid, availW)
     local X = ZeD.PhysPx
     local des = X and X.plates[pid]
@@ -109,8 +115,8 @@ function P.pick(pid, availW)
     end
     return des, pid
 end
--- the same, for art `artW` texels wide inside a column `availW` screen px wide (a plate in a card): a whole
--- step smaller while it would not fit, never below 1. The caller lays out with the k it gets.
+--- P.k, for art `artW` texels wide inside a column `availW` screen px wide (a plate in a card): a whole
+--- step smaller while it would not fit, never below 1. The caller lays out with the k it gets.
 function P.kFit(scale, artW, availW)
     local k = P.k(scale)
     while k > 1 and artW * k > availW do k = k - 1 end
@@ -120,8 +126,10 @@ end
 -- ---------------------------------------------------------------------------
 -- the canvas and its primitives (art pixels)
 -- ---------------------------------------------------------------------------
+--- A canvas: the element el, the screen offset of the art's origin inside it (ox, oy) and the multiple k.
 function P.canvas(el, ox, oy, k) return { el = el, ox = ox or 0, oy = oy or 0, k = k or 1 } end
 
+--- A w x h rect of colour c ({ r, g, b }) at art pixel (x, y); a is its alpha, 1 when nil.
 function P.rect(cv, x, y, w, h, c, a)
     if w <= 0 or h <= 0 then return end
     local k = cv.k
@@ -129,9 +137,9 @@ function P.rect(cv, x, y, w, h, c, a)
 end
 
 -- ---------------------------------------------------------------------------
--- Fewer rects, the same pixels (Oct 22 2026, the drawing-cost work): a set of rects of one colour that never
--- overlap can be drawn as fewer, taller rects where a rect sits right under one of the same x and width. Every
--- pixel is still covered exactly once, in the same colour and alpha, so the picture is the same.
+-- Fewer rects, the same pixels, to cut the drawing cost: a set of rects of one colour that never overlap can be
+-- drawn as fewer, taller rects where a rect sits right under one of the same x and width. Every pixel is still
+-- covered exactly once, in the same colour and alpha, so the picture is the same.
 -- ---------------------------------------------------------------------------
 -- flat {x, y, w, h, ...} -> the same pixels as fewer rects (flat), or the list itself when its rects overlap
 local function mergeFlat(list)
@@ -175,7 +183,7 @@ local function mergedOf(list)
 end
 P._mergeFlat = mergeFlat
 
--- a flat rect list {x, y, w, h, x, y, w, h, ...}, offset by (dx, dy)
+--- A flat rect list {x, y, w, h, x, y, w, h, ...} in one colour, offset by (dx, dy), drawn merged.
 function P.rects(cv, list, c, a, dx, dy)
     if not list then return end
     list = mergedOf(list)
@@ -213,13 +221,14 @@ local function mergeRuns(runs)
     return out
 end
 
+--- A texture stretched over w x h art pixels at (x, y).
 function P.image(cv, tex, x, y, w, h, a)
     if not tex then return end
     local k = cv.k
     cv.el:drawTextureScaled(tex, cv.ox + x * k, cv.oy + y * k, w * k, h * k, a or 1, 1, 1, 1)
 end
 
--- the same, its colours multiplied by m = { r, g, b } (a part in the dark: ZeD_Plate's night light)
+--- P.image with its colours multiplied by m = { r, g, b } (a part in the dark: ZeD_Plate's night light).
 function P.imageTint(cv, tex, x, y, w, h, m, a)
     if not tex then return end
     local k = cv.k
@@ -229,6 +238,7 @@ end
 -- a colour times a multiplier, kept per (multiplier, colour) so a frame allocates nothing once warm. Both
 -- are long-lived tables (P.color's cache, the night light's multipliers), so the cache stays small.
 local _mulc = {}
+--- Colour c times the multiplier m ({ r, g, b }); with no m, c itself.
 function P.mulColor(c, m)
     if not m then return c end
     local byM = _mulc[m]
@@ -302,9 +312,9 @@ function P.needleRuns(cx, cy, deg, r0, r1, w, hub)
 end
 
 
--- The rasterised needle, kept per needle and angle (Oct 22 2026, the drawing-cost work: a needle at rest is
--- rasterised once, not every frame), with each set also merged down for the drawing that has one colour:
--- { body, edge, all, bodyM, edgeM, allM }. A needle's angles past NR_MAX start its list over.
+-- The rasterised needle, kept per needle and angle (a needle at rest is rasterised once, not every frame),
+-- with each set also merged down for the drawing that has one colour: { body, edge, all, bodyM, edgeM, allM }.
+-- A needle's angles past NR_MAX start its list over.
 local NR_MAX = 64
 local _nr = {}
 -- the needle's samples as P.needleRuns takes them (the same steps, the same arithmetic): each sample's pixel
@@ -394,7 +404,8 @@ local function drawRunsCols(cv, runs, cols)
     end
 end
 
--- L (optional): a light the needle follows run by run (in the dark only the stretch in a bulb's pool reads)
+--- A needle as the banner above draws it, in colour c, its shadow left out with noShadow.
+--- L (optional): a light the needle follows run by run (in the dark only the stretch in a bulb's pool reads).
 function P.needle(cv, cx, cy, deg, r0, r1, w, hub, c, noShadow, L)
     local s = needleSets(cx, cy, deg, r0, r1, w, hub)
     if not noShadow then drawRuns(cv, mergedSet(s, 3), P.BLACK, 0.45, 1, 2) end
@@ -410,7 +421,7 @@ function P.needle(cv, cx, cy, deg, r0, r1, w, hub, c, noShadow, L)
     drawRuns(cv, mergedSet(s, 1), c)
 end
 
--- a plain pointer line (knob pointers, clock hands): no shading, no shadow
+--- A plain pointer line (knob pointers, clock hands): no shading, no shadow.
 function P.pointer(cv, cx, cy, deg, r0, r1, w, c, hub)
     local s = needleSets(cx, cy, deg, r0, r1, w or 1, hub or 0)
     drawRuns(cv, mergedSet(s, 3), c)
@@ -458,7 +469,7 @@ local function segRect(seg, x, y, w, h, t)
     return x + w - t, y + hh + t, t, h - hh - 2 * t   -- c
 end
 
--- txt is drawn into n cells (right-aligned unless align == "l"); returns nothing
+--- Seven-segment txt at (x, y), drawn into n cells (right-aligned unless align == "l"); returns nothing.
 function P.digits(cv, txt, x, y, cw, ch, pitch, t, c, ghost, align, n)
     local cells = {}
     txt = tostring(txt or "")
@@ -662,6 +673,7 @@ local function layoutOf(str, font)
     return lay
 end
 
+--- A text's width in art pixels, in a face ("35" when nil) at a scale (1 when nil).
 function P.textWidth(str, font, scale)
     str = tostring(str or ""); font = font or "35"; scale = scale or 1
     if str == "" then return 0 end
@@ -670,10 +682,12 @@ function P.textWidth(str, font, scale)
     return lay.w * scale
 end
 
--- ("57t", the 5 x 7 face with tall accented capitals, keeps the face's 7-row line: its marks draw above it)
+--- A face's line height in art pixels: 7 for the 5 x 7 faces, 5 for the rest. ("57t", the 5 x 7 face with
+--- tall accented capitals, keeps the face's 7-row line: its marks draw above it.)
 function P.fontHeight(font) return (font == "57" or font == "57t") and 7 or 5 end
 
--- fit a label in w pixels: the make off the front first, then the smaller face, then letters off the end
+--- Fit a label in w pixels: one scale step down first, then the make off the front, then the smaller face,
+--- then letters off the end. Returns the text, face and scale to draw it with.
 function P.fit(str, font, scale, w)
     str = tostring(str or "")
     if P.textWidth(str, font, scale) <= w then return str, font, scale end
@@ -693,8 +707,8 @@ end
 local CHROME = { "#15171b", "#24272d", "#3a3e46", "#5a5f69", "#848a94", "#b3b9c2", "#dde2e8", "#ffffff" }
 local CHROME_ROWS = { [5] = { 8, 7, 6, 6, 5 }, [7] = { 8, 8, 7, 6, 6, 5, 4 } }
 
--- A text in the pixel faces kept as its rects (Oct 22 2026, the drawing-cost work): the badges, legends and
--- readouts are the same text frame after frame, so their rects are worked out once, merged down where a run sits
+-- A text in the pixel faces kept as its rects, to cut the drawing cost: the badges, legends and readouts are
+-- the same text frame after frame, so their rects are worked out once, merged down where a run sits
 -- under one of the same colour, x and width (each pass covers its pixels exactly once, so the picture is the same),
 -- and a frame only draws them. Kept per text, face, scale, style and colours; past TC_MAX texts (a marquee walks
 -- through many) and on a language change (the Turkish dotted I) the store starts over. A text with a word in the
@@ -764,8 +778,9 @@ local function textRects(str, font, scale, style, c, shadow, mul)
     return e
 end
 
--- text at (x, y) (its top), align "l" | "c" | "r"; style "chrome" shades each row like the plate's chrome letters;
--- mul (optional { r, g, b }) dims the chrome rows too (a badge in the dark; flat colours come in already dimmed)
+--- Text at (x, y) (its top), align "l" | "c" | "r"; style "chrome" shades each row like the plate's chrome letters;
+--- shadow (optional) is drawn one pixel down and right; mul (optional { r, g, b }) dims the chrome rows too (a badge
+--- in the dark; flat colours come in already dimmed). Returns the width.
 function P.text(cv, str, x, y, c, font, scale, align, style, shadow, mul)
     str = tostring(str or "")
     if str == "" then return 0 end
@@ -823,16 +838,15 @@ function P.text(cv, str, x, y, c, font, scale, align, style, shadow, mul)
 end
 
 -- ---------------------------------------------------------------------------
--- odometer drums (Nov 6 2026, punch list 92; ZeDUI/tools/dashpx/live.py draw_drums is the reference): a row of n
--- wheels, each cw wide (cw - 1 painted on the plate, a 1 px gap) and ch tall, the figures in the 3 x 5 face centered in
--- each. The first n - 1 wheels are whole miles in fg, the last the tenths in last_fg (dark on its white wheel). The
+-- odometer drums (ZeDUI/tools/dashpx/live.py draw_drums is the reference): a row of n wheels, each cw wide (cw - 1
+-- painted on the plate, a 1 px gap) and ch tall, the figures in the 3 x 5 face centered in each. The first n - 1 wheels are whole miles in fg, the last the tenths in last_fg (dark on its white wheel). The
 -- tenths wheel holds its figure for the first 80% of each tenth and turns over in the last 20%, the next figure coming
 -- up from below, clipped to the wheel: a figure caught halfway is two half figures, and at 5 pixels that reads as
 -- neither, so it never sits there. The plate prints the wheels; these are only the figures.
 -- `text = true` is the LCD kind (the Dash Elite): its reading is a string, right-aligned to n characters, no roll.
 -- ---------------------------------------------------------------------------
--- the figures n wheels show for a reading (miles with decimals): n - 1 whole miles, zero padded and rolled over past
--- the last wheel as a real counter does, then the tenths; and how far the tenths wheel has turned (0 .. 1)
+--- The figures n wheels show for a reading (miles with decimals): n - 1 whole miles, zero padded and rolled over past
+--- the last wheel as a real counter does, then the tenths; and how far the tenths wheel has turned (0 .. 1).
 function P.drumFigures(value, n)
     local v = tonumber(value) or 0
     if v < 0 then v = 0 end
@@ -878,7 +892,8 @@ local function drumGlyph(cv, ch, gx, gy, dy, y0, wh, c, L, dimFn)
     end
 end
 
--- p: the part { x, y, n, cw, ch, fg, last_fg, tenths, text }; value: the reading (miles, or the LCD's string)
+--- The drums' figures. p: the part { x, y, n, cw, ch, fg, last_fg, tenths, text }; value: the reading (miles, or
+--- the LCD's string); L, dimFn: the night light, nil by day.
 function P.drums(cv, p, value, L, dimFn)
     local n, cw, wh, x0, y0 = p.n or 6, p.cw or 6, p.ch or 8, p.x, p.y
     local figs, roll

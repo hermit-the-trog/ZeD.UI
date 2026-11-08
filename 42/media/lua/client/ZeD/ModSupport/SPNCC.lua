@@ -1,8 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ModSupport/SPNCC.lua
 -- ============================================================================
 -- SUPPORT FOR SPONGIE'S CHARACTER CUSTOMISATION (mod id SPNCC, Workshop 3414634809)
--- Director, Oct 25 2026: "Can we add support for Spoungies character editor? so it
--- matches ZeD when that mod is active." Mockup zed_spongie_appearance_v1 approved.
+-- Client. With that mod on, its character editor is rebuilt as ZeD surfaces, so
+-- changing your looks matches the rest of ZeD.
 --
 -- ModSupport/<mod id>.lua is ZeD's pattern for working well with another mod: the
 -- file does nothing unless that mod is on, builds the mod's surfaces from ZeD's parts
@@ -61,8 +61,9 @@ local ZOOM_STEPS, ZOOM_MAX, Y_MIN, Y_MAX = 4, 18, -0.5, -0.875
 
 S.view = "grid"      -- "grid" (pictures) or "list"
 S.first = false      -- the mod asked for a look at game start (Save only, paused)
--- the heads that fold, shut or open for the session (FAIV, Nov 6 2026: the add-ons' long list of details). det and face: this
--- tab; looks: the Looks screen's details, kept apart. Details start shut, Face starts open
+-- the heads that fold, shut or open for the session (add-on packs can make the details list
+-- long). det and face: this tab; looks: the Looks screen's details, kept apart.
+-- Details start shut, Face starts open
 S.closed = { det = true, looks = true }
 
 local function mod(name)
@@ -402,8 +403,8 @@ local function previewCamera(st, opt)
     end
 end
 
--- every frame from the window (ZeD_CharacterWindow.extFrame): place the figures over
--- the rects the tab drew last frame, or hide them
+--- Every frame from the window (ZeD_CharacterWindow.extFrame): place the figures over
+--- the rects the tab drew last frame, or hide them.
 function S.onWindowFrame(win, drawerW)
     local st = win._spncc
     if not st then return end
@@ -989,6 +990,7 @@ local function buildZones(win, st, L, sy, sh, off)
     st.els = els
 end
 
+--- The tab, drawn each frame by the window: header, scrolling body, foot band.
 function S.render(panel, win, x, y, w, h)
     local T = ZeD.T
     local st = state(win)
@@ -1041,8 +1043,8 @@ function S.render(panel, win, x, y, w, h)
     st.btns = nil
     if showStrip then drawStrip(panel, win, st, x, y + h - stripH, w, stripH) end
     if needs then scroll:draw(panel) end
-    -- (the tab ends with the clips it started with: one left on hides the window's tab strip and
-    -- footer; punch list 95)
+    -- (the tab ends with the clips it started with: one left on hides the window's tab strip
+    -- and footer)
     panel:clearStencilRect()
     st.rendered = true
 end
@@ -1088,6 +1090,7 @@ end
 
 local function inRect(r, x, y) return r and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h end
 
+--- A press in the tab (window coordinates): scrollbar, view toggles, band buttons, then options.
 function S.onClick(win, x, y)
     local st = state(win)
     local sc = st.scroll
@@ -1119,9 +1122,9 @@ function S.onClick(win, x, y)
     end
 end
 
--- the controller's stops: the view pair, the heads that fold (A toggles; left and right keep moving
--- between the columns), every option of an open fold, the figure's buttons, Shave, the check boxes,
--- Cancel and Save (their rects as drawn this frame)
+--- The controller's stops: the view pair, the heads that fold (A toggles; left and right keep
+--- moving between the columns), every option of an open fold, the figure's buttons, Shave,
+--- the check boxes, Cancel and Save (their rects as drawn this frame).
 function S.buildFocusables(win)
     local st = win._spncc
     if not st or not st.data then return {} end
@@ -1150,6 +1153,7 @@ function S.buildFocusables(win)
     return out
 end
 
+--- Changes whenever the stops may have moved; the window rebuilds them when it does.
 function S.scrollKey(win)
     local st = win._spncc
     if not st then return nil end
@@ -1271,6 +1275,8 @@ end
 -- body hair shows for women too with the mod on (its CC_BodyHairReplacement)
 S.bodyHairForAll = true
 
+--- The mod's rows for the Looks screen (ZeD_MainMenuLooks calls this): muscle and
+--- body-hair ticks, the face combo, the details under a head that folds.
 function S.looksRows(v, rows, head)
     local panel = v and v.characterCustomisationPanel
     if not (panel and panel.faceMenu and panel.bodyDetailMenu) then return end

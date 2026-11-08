@@ -1,10 +1,11 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_LeftScreen.lua
 -- ============================================================================
--- KICKED OR DISCONNECTED (ZeDUI/VANILLA_WINDOWS_20261107.md, C17; the director, Nov 7 2026: "ZeD's desk screen with the
--- reason and, for a ban, the appeal line"). Where the game showed its two buttons over the frozen world
--- (ISServerDisconnectUI), the desk comes back: the room and the monitor as at the main menu, and on the monitor a ZeD
--- window (the pause window's kind, ZeD_MMWindow): what happened, the game's own words for it, for a ban the server's
--- appeal line, and in the band Quit to desktop and Exit to the main menu (the game's own two calls, through its screen).
+-- KICKED OR DISCONNECTED: ZeD's desk screen with the reason and, for a ban, the appeal line. Client-side organisms (the
+-- window and the desk behind it); ZeD_CommunityCards.lua opens them from the game's disconnect hook. Where the game
+-- showed its two buttons over the frozen world (ISServerDisconnectUI), the desk comes back: the room and the monitor as
+-- at the main menu, and on the monitor a ZeD window (the pause window's kind, ZeD_MMWindow): what happened, the game's
+-- own words for it, for a ban the server's appeal line, and in the band Quit to desktop and Exit to the main menu (the
+-- game's own two calls, through its screen).
 --
 -- The game's words: the engine draws the reason itself (ServerDisconnectState.render: GameWindow.kickReason, or
 -- "Connection to server lost", centered on the screen in the Medium face, after every Lua window). Lua can neither stop
@@ -34,7 +35,8 @@ local function tr(k, ...) return ZeD.tr(k, ...) end
 local function safe(fn, d) local ok, v = pcall(fn); if ok and v ~= nil then return v end; return d end
 local function fh(f) return ZeD.TM:getFontHeight(f) end
 
--- the game's words for a ban, each up to the reason's place (as ZeD_Community.lua reads the kick and ban words)
+--- True when a disconnect reason is a ban: the game's ban words, each cut where its reason goes, found in it (as
+--- ZeD_Community.lua reads the kick and ban words).
 function LS.isBan(reason)
     if type(reason) ~= "string" then return false end
     for _, key in ipairs(BAN_KEYS) do
@@ -232,7 +234,8 @@ function LS.quitAsk()
     if w and w.focusId ~= "quit" then w.focusId = "quit"; MM.hoverSound() end
 end
 
--- Shows the screen over the game's. info = { reason, kind = "ban" | "kick" | nil, appeal }. False if it could not.
+--- Shows the screen over the game's. info = { reason, kind = "ban" | "kick" | nil, appeal }. False if it could not
+--- (safe mode, or a failure: then the game's own screen stays).
 function LS.show(info)
     if ZeD.Safe and ZeD.Safe.on and ZeD.Safe.on() then return false end
     if not (ZeD.T and MM and MM.roomLayout and ZeD_MMWindow) then return false end

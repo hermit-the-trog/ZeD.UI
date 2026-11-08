@@ -1,16 +1,14 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_ControllerMap.lua
 -- ============================================================================
--- THE CONTROLLER MAP (the director, Nov 2 2026, punch list 67: "has to have it"; the layout approved: "The controller
--- map layout is right"). The gallery's chapter 42 page (ZeDUI/workshop/gallery/upload/42_controller_map.jpg) brought
--- into a ZeD window: the ZeD pad in its pixel art (ZeDUI/workshop/controller_map/pixel_pad.py, shipped as
--- media/textures/ZeD/controller_map.png at 4x), then the table of buttons and what each does, every button drawn in
--- the player's own button pictures (ZeD_PadGlyphs: Xbox, PlayStation, Steam Deck, Nintendo), or named in a box when
--- the pictures are off.
+-- THE CONTROLLER MAP — every pad button and what it does, on one page to read. Client organism (a ZeD_Window).
+-- The ZeD pad in its pixel art (shipped as media/textures/ZeD/controller_map.png at 4x), then the table of buttons
+-- and what each does, every button drawn in the player's own button pictures (ZeD_PadGlyphs: Xbox, PlayStation,
+-- Steam Deck, Nintendo), or named in a box when the pictures are off.
 --
--- Opened from the controller's quick wheel (Help, Controller map), where it read "Coming later." before.
+-- Opened from the controller's quick wheel (Help, Controller map).
 -- A full-card-wide window centred on the screen; the body scrolls as one piece when the screen is short (the mouse
--- wheel, the D-pad or the left stick up and down). B, Escape or the close box close it, and the controller goes back
--- to the game.
+-- wheel, the D-pad or the left stick up and down). A or B, Escape or the close box close it, and the controller goes
+-- back to the game.
 -- ============================================================================
 require "ZeD/Tr"
 require "ZeD/Tokens"
@@ -27,7 +25,7 @@ local PAD_ASPECT = 544 / 800
 local ROW_GAP_U, PIC_U, NAME_COL_U = 6, 16, 92
 local STEP_U = 40          -- one D-pad press of scroll
 
--- The rows: the button(s), then what it does (the gallery's Table 42-1, with the t16 marks).
+-- The rows: the button(s), then what it does.
 -- roles are ZeD_PadGlyphs roles; key is the translation key of the words.
 CM.ROWS = {
     { { "A" },          "UI_ZeD_CMap_A" },
@@ -172,7 +170,7 @@ end
 
 function ZeD_ControllerMap:render() ZeD_Window.render(self) end
 
--- always solid (QA, Nov 2 2026: the game showed through the table's words): a page to read, whatever See-through says
+-- always solid: a page to read, whatever See-through says (with the shared alpha the game showed through the table's words)
 function ZeD_ControllerMap:_surfaceAlpha(T)
     local base = (T.surf1 and T.surf1.a) or 1
     if base >= 0.999 then return nil end
@@ -227,7 +225,7 @@ end
 function ZeD_ControllerMap:onGainJoypadFocus(jd) self.joyfocus = jd end
 function ZeD_ControllerMap:onLoseJoypadFocus() self.joyfocus = nil end
 function ZeD_ControllerMap:onJoypadDown(button)
-    if button == Joypad.BButton then self:close() end   -- (B only, as the foot says: A has no job here; Nov 8 2026)
+    if button == Joypad.BButton then self:close() end   -- (B only, as the foot says: A has no job here)
 end
 function ZeD_ControllerMap:onJoypadDirUp() self:scrollBy(-ZeD.T.px(STEP_U)) end
 function ZeD_ControllerMap:onJoypadDirDown() self:scrollBy(ZeD.T.px(STEP_U)) end

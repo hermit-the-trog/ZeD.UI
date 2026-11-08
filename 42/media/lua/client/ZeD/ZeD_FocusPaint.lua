@@ -1,6 +1,8 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_FocusPaint.lua
 -- ============================================================================
--- CONTROLLER FOCUS MARKS (cohesion spec 5 and 6)
+-- CONTROLLER FOCUS MARKS
+-- Client. Shared draw helpers on ZeD.Focus; the only state is one mark record
+-- per window, used in the frame it was made.
 -- One way to say "the controller is here", in the look the player picks in ZeD
 -- setup or the window box (ZeD.Settings.focusStyle):
 --   hand     the hover wash under the element and a pixel pointing hand at its
@@ -46,7 +48,7 @@ local STALE_MS = 150    -- a record older than this was made in an earlier frame
 local NO_OPTS  = {}
 
 -- ---------------------------------------------------------------------------
--- The pointing hand: 16 x 11 art pixels, # black, . white (spec 6). Each row is
+-- The pointing hand: 16 x 11 art pixels, # black, . white. Each row is
 -- turned once into runs of one colour, and its silhouette for the shadow, so a
 -- frame draws about fifty rects.
 -- ---------------------------------------------------------------------------
@@ -258,7 +260,7 @@ function FP.mark(panel, x, y, w, h, opts, rounded)
     rec.solid, rec.zone, rec.t, rec.panel = opts.solid and true or false, opts.zone, getTimestampMs(), panel
     return swap
 end
-FP.paint = FP.mark   -- the spec's name for it
+FP.paint = FP.mark   -- a second name for mark, kept so either name works
 
 -- the record for `win`: its own, else one made by a panel inside it under
 -- another key (a window that is itself a child of another element)

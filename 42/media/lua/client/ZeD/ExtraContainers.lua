@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ExtraContainers.lua
 -- ============================================================================
--- EXTRA CONTAINERS FOR THE CONTAINER STRIPS (a general hook for other mods)
+-- EXTRA CONTAINERS FOR THE CONTAINER STRIPS - client; a hook for other mods.
 --
 -- The Character window's strip lists your main inventory, the bags you wear or
 -- hold and your key rings; the World window's lists the containers in reach.
@@ -32,7 +32,7 @@ ZeD = ZeD or {}
 local X = ZeD.ExtraContainers or { char = {}, world = {} }
 ZeD.ExtraContainers = X
 
--- Adds (or replaces, by id) a provider for one side: "char" or "world".
+--- Adds (or replaces, by id) a provider for one side: "char" or "world".
 function X.add(side, id, fn)
     local reg = X[side]
     if not reg or type(fn) ~= "function" then return end
@@ -80,8 +80,8 @@ local function makeEntry(side, inv, x, id)
     return e
 end
 
--- Asks every provider of `side` for its containers and returns the window's
--- list with them placed in. When nothing is added it returns `list` itself.
+--- Asks every provider of `side` for its containers and returns the window's
+--- list with them placed in. When nothing is added it returns `list` itself.
 function X.merge(side, playerObj, list)
     local reg = X[side]
     if not reg or #reg == 0 then return list end

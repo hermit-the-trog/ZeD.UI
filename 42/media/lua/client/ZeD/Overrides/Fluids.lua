@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Overrides/Fluids.lua
 -- ============================================================================
--- FLUID HOOKS — HOOK_MAP rows 8 and 9
+-- FLUID HOOKS (override, client)
 -- Vanilla's "Transfer Liquid" and "Container Info" open the ZeD fluid card in
 -- the World window's card drawer instead of the floating vanilla windows:
 --   * ISFluidContainerMenu.showUI (an item's Liquid menu) and
@@ -9,8 +9,9 @@
 --     timed action); the pour walks when it runs;
 --   * ISFluidTransferUI.OpenPanel / ISFluidInfoUI.OpenPanel catch every
 --     other caller (crafting station fluid slots, mods).
--- Vanilla runs only when ZeD declines (no World window, invalid container),
--- and every time while safe mode is on (SafeMode.lua).
+-- Each hook sets a _zed*Hooked flag before wrapping, so a Lua reload never
+-- wraps the wrapper. Vanilla runs only when ZeD declines (no World window,
+-- invalid container), and every time while safe mode is on (SafeMode.lua).
 -- ============================================================================
 
 require "ZeD/SafeMode"

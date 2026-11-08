@@ -1,8 +1,9 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_WorkshopText.lua
 -- ============================================================================
--- A WORKSHOP DESCRIPTION AS BLOCKS (director, Oct 16 2026: "edit descriptions
--- with modern layout controls for building communications that people will
--- read")
+-- A WORKSHOP DESCRIPTION AS BLOCKS - client; a library with no window of its
+-- own, used by the description editor (ZeD_MainMenuDescEdit.lua) and the
+-- Workshop screen (ZeD_MainMenuWorkshop.lua). The point is modern layout
+-- controls, so a mod's page is built to be read.
 --
 -- Steam stores a description as plain text with its own formatting codes
 -- ([h1], [b], [list], [table], ...; 8,000 characters at most). The editor works
@@ -19,8 +20,9 @@
 --     [b] [i] [u] [strike] [url=...]
 --
 -- BB.parse reads any description into blocks (what it does not know stays as
--- text, nothing is lost); BB.write writes blocks as Steam's codes; BB.draw*
--- show blocks the way Steam's page does, in the ZeD faces.
+-- text, nothing is lost: keep it that way, or a trip through the editor eats
+-- part of someone's page); BB.write writes blocks as Steam's codes;
+-- BB.drawBlock shows a block the way Steam's page does, in the ZeD faces.
 -- ============================================================================
 
 ZeD = ZeD or {}
@@ -60,8 +62,8 @@ BB.SECTIONS = {
     { "UI_ZeD_DescEdit_SecCredits", "text", "" },
 }
 
--- A name or starting text from the lists above: the translation of a key, "" or an address as it is.
--- (a "\n" a translator typed as two characters, the way the game's own files do, is a line break)
+--- A name or starting text from the lists above: the translation of a key, "" or an address as it is.
+--- (a "\n" a translator typed as two characters, the way the game's own files do, is a line break)
 function BB.text(s)
     if s == nil or s == "" or s:sub(1, 8) ~= "UI_ZeD_D" then return s or "" end
     return (ZeD.tr(s):gsub("\\n", "\n"))
@@ -122,6 +124,7 @@ local function writeBlock(b)
     return t
 end
 
+--- Blocks to one description in Steam's codes, a blank line between blocks.
 function BB.write(blocks)
     local out = {}
     for _, b in ipairs(blocks or {}) do
@@ -149,6 +152,7 @@ local function addText(blocks, s)
     end
 end
 
+--- Any description to blocks; an unknown or unclosed tag stays as text.
 function BB.parse(s)
     s = tostring(s or ""):gsub("\r\n", "\n")
     local blocks = {}
@@ -201,7 +205,7 @@ function BB.parse(s)
     return blocks
 end
 
--- the plain words of a description (codes out), for a short preview
+--- The plain words of a description (codes out), for a short preview.
 function BB.plain(s)
     return trim(tostring(s or ""):gsub("%[img%].-%[/img%]", " "):gsub("%[/?[%a%d%*]+[^%]]*%]", " "):gsub("%s+", " "))
 end
@@ -218,8 +222,8 @@ local function runs(text)
     while pos <= #s do
         local a, b, close, tag = s:find("%[(/?)(%a+)[^%]]*%]", pos)
         local chunk = s:sub(pos, (a or (#s + 1)) - 1)
-        -- a chunk that starts with a space puts it after the word BEFORE the chunk (Oct 22 2026: this
-        -- ran after the chunk's own words, so "[b]1.0[/b] First" drew as "1.0First")
+        -- a chunk that starts with a space puts it after the word BEFORE the chunk, so this comes before the
+        -- chunk's own words are added (after them, "[b]1.0[/b] First" would draw as "1.0First")
         if chunk:match("^%s") and #out > 0 then out[#out].sp = true end
         for word, space in chunk:gmatch("(%S+)(%s*)") do
             out[#out + 1] = { w = word, b = st.b > 0, i = st.i > 0, u = st.u > 0, s = st.s > 0, link = st.url > 0, sp = space ~= "", nl = space:find("\n", 1, true) ~= nil }
@@ -264,7 +268,7 @@ function BB.rich(p, text, x, y, w, font, color)
     return (cy - y) + lh
 end
 
--- one block as Steam shows it; draws when p is given; returns its height
+--- One block as Steam shows it; draws when p is given; returns its height.
 function BB.drawBlock(p, b, x, y, w)
     local T = ZeD.T
     local tm = ZeD.TM
@@ -388,14 +392,14 @@ function BB.drawBlock(p, b, x, y, w)
     return BB.rich(p, t, x, y, w, f2, txt)
 end
 
--- the space Steam leaves after a block
+--- The space Steam leaves after a block.
 function BB.gap(b)
     local T = ZeD.T
     if b.kind == "h1" or b.kind == "h2" or b.kind == "h3" then return T.px(4) end
     return T.px(10)
 end
 
--- 8000 as "8,000"
+--- A count with thousands commas: 8000 as "8,000".
 function BB.count(n)
     local s = tostring(math.floor(n or 0))
     local out = s:reverse():gsub("(%d%d%d)", "%1,"):reverse()

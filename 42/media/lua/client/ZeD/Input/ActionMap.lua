@@ -1,32 +1,28 @@
 -- ZeD-UI/42/media/lua/client/ZeD/Input/ActionMap.lua
 -- ============================================================================
--- LAYER 6 — ActionMap (S91 — Gamepad Phase 1 Infrastructure)
+-- ACTION MAP — every pad button and key as a named action, in one table.
+-- Client. The lookup floor of the controller stack: UI code asks "what action
+-- is this button?", never "is this the A button?", so a future rebinding
+-- screen touches this file alone and components never change. FocusManager's
+-- dispatchJoypadDown is the one caller today (fromGamepadButton); fromKey,
+-- getBinding and getHoldConfig are public but wait for callers.
 --
--- Logical action layer that decouples UI components from raw input. Every
--- interaction is a logical action with KBM and gamepad bindings; UI code
--- queries actions, never raw buttons. Future rebinding touches this file
--- only — components never change.
---
--- This file ships the Phase 1 SCHEMA. Consumers (FocusManager, BumperChord,
--- StripMenus) arrive in later phases and read from the table defined here.
--- Hold-variant fields (holdMs, tapAction, holdAction) are declared on B and
--- Y even though Phase 1 has no hold-detection layer — Phase 3's FocusManager
--- will read them without us needing to revisit this file.
---
--- Public interface (see GAMEPAD_SPEC.md §10):
---   ZeD.Input.Action.fromGamepadButton(button)   -> {actionId, ...} | {}
---   ZeD.Input.Action.fromKey(keyCode, mods)      -> {actionId, ...} | {}
+-- Public interface:
+--   ZeD.Input.Action.fromGamepadButton(button)   -> {actionId, ...} | nil
+--   ZeD.Input.Action.fromKey(keyCode, mods)      -> {actionId, ...} | nil
 --   ZeD.Input.Action.getBinding(actionId, mode)  -> binding value | nil
+--   ZeD.Input.Action.getHoldConfig(actionId)     -> hold fields | nil
 --
 -- Notes on the return shape:
 --   fromGamepadButton and fromKey return LISTS because some buttons are
 --   shared (DPad directions serve both nav_* and strip_*). The caller —
---   typically FocusManager — disambiguates by current focus state. For
---   uniquely-bound buttons (A, B, X, Y, Back) the list has exactly one
---   element; callers can just index [1].
+--   FocusManager — disambiguates by current focus state. For uniquely-bound
+--   buttons (A, B, X, Y, Back) the list has exactly one element; callers can
+--   just index [1].
 -- ============================================================================
 
--- Namespace setup. Matches the shape InputModeDetector establishes.
+-- Namespace setup. Matches the shape InputModeDetector establishes;
+-- reload-safe, and the guards let the Input/ files load in any order.
 ZeD = ZeD or {}
 ZeD.Input = ZeD.Input or {}
 ZeD.Input.Action = ZeD.Input.Action or {}
@@ -34,17 +30,18 @@ ZeD.Input.Action = ZeD.Input.Action or {}
 local Action = ZeD.Input.Action
 
 -- ---------------------------------------------------------------------------
--- ACTION TABLE (GAMEPAD_SPEC §10, locked S90)
--- The source of truth. Every binding flows from here.
+-- ACTION TABLE — the source of truth. Every binding flows from here.
 --
 -- Shape of each entry:
 --   { kbm = <keyName|"MouseRight"|nil>, gamepad = <buttonName|nil>,
 --     holdMs = <int>?, tapAction = <string>?, holdAction = <string>? }
 --
--- Hold semantics (only on `cancel` and `window_control` in Phase 1 schema):
---   holdMs      — threshold in ms; FocusManager's hold timer consumes this
---   tapAction   — fires on release BEFORE threshold; string is informational
---   holdAction  — fires once AT threshold with button still down
+-- Hold semantics (only window_control carries them today):
+--   holdMs      — threshold in ms
+--   tapAction   — fires on release BEFORE threshold; the string is informational
+--   holdAction  — fires once AT threshold with the button still down
+-- FocusManager keeps its own hold timers and thresholds; nothing reads these
+-- fields yet (getHoldConfig serves them when something does).
 -- ---------------------------------------------------------------------------
 ZeD.Input.Actions = {
     -- ----- NAVIGATION (universal) --------------------------------------------
@@ -53,34 +50,36 @@ ZeD.Input.Actions = {
         gamepad = "A",
     },
 
-    -- `cancel` is pure contextual post-S113 — fires the focused element's
-    -- onCancel if defined, else NO-OP. No shade-all fallback, no hold variant.
-    -- The Y-hold pair-close path supersedes the old B-hold close-all.
+    -- `cancel` is purely contextual — it fires the focused element's onCancel
+    -- if defined, else NO-OP. No shade-all fallback, no hold variant; closing
+    -- the window pair is Y-hold's job.
     cancel = {
         kbm = "Escape",
         gamepad = "B",
     },
 
-    -- D-pad = flat cone-nav across ALL focusable zones in the focused window
-    -- (S113 FLAT FREE-NAV model). Bumpers no longer cycle zones; they swap
-    -- between the two paired windows.
+    -- D-pad = flat spatial nav (SpatialNav) across ALL focusable zones in the
+    -- focused window. Bumpers do not cycle zones; they pick one of the two
+    -- paired windows. The engine fires a direction callback as well as the
+    -- button for one D-pad press; FocusManager moves on the direction and
+    -- ignores these ids, or every press would step twice.
     nav_up    = { kbm = "Up",    gamepad = "DPadUp"    },
     nav_down  = { kbm = "Down",  gamepad = "DPadDown"  },
     nav_left  = { kbm = "Left",  gamepad = "DPadLeft"  },
     nav_right = { kbm = "Right", gamepad = "DPadRight" },
 
-    -- ----- WINDOW SELECT (S113 — replaces S97 zone cycling) ----------------
+    -- ----- WINDOW SELECT ----------------------------------------------------
     -- LB = Character, RB = World (absolute — pressing LB while already on
     -- Character is a no-op, not a toggle). Always-paired on gamepad so the
     -- target window is guaranteed to exist. Only dispatched while a ZeD window
     -- is focused; BumperChord is disabled during focus so LB/RB route here.
-    -- When no window focused, BumperChord reclaims bumpers for zoom chord.
-    -- Action names retained for reverse-map continuity (window_prev/next was
-    -- the symmetric naming under the original toggle semantic).
+    -- When no window is focused, BumperChord reclaims bumpers for zoom chord.
+    -- The names date from an older symmetric prev/next toggle semantic and
+    -- stay for reverse-map continuity.
     window_prev = { kbm = nil, gamepad = "LB" },  -- LB → Character
     window_next = { kbm = nil, gamepad = "RB" },  -- RB → World
 
-    -- ----- WINDOW CONTROL (S113 paired semantics) ----------------------------
+    -- ----- WINDOW CONTROL (paired semantics) ---------------------------------
     -- Single button serves four roles based on state and tap/hold:
     --   tap + no windows open  → open pair (Character + World, Character focus)
     --   tap + pair visible     → hide pair (windowshade both, release focus)
@@ -96,47 +95,50 @@ ZeD.Input.Actions = {
     },
 
     -- ----- LAYOUT MODE (View/Share/Select button) ---------------------------
-    -- Modal toggle: press to enter layout-edit mode on focused window, press
-    -- again to exit. KBM has no binding; layout editing is a gamepad UX.
+    -- Reserved: a modal layout-edit toggle on the focused window. Nothing
+    -- dispatches it yet. KBM has no binding; layout editing is a gamepad UX.
     layout_mode = {
         kbm = nil,
         gamepad = "Back",
     },
 
-    -- ----- CONTEXT MENU (D12 RESOLVED S90) -----------------------------------
-    -- X on gamepad, RMB on KBM. Y was considered and permanently rejected
-    -- (see GAMEPAD_SPEC D12). Dispatch is handled by the S88 ZeD_ContextMenu
-    -- organism via the inputMode parameter.
+    -- ----- CONTEXT MENU ------------------------------------------------------
+    -- X on gamepad, RMB on KBM. Y was weighed for this and rejected for good —
+    -- Y is the pair control. FocusManager fires the focused element's
+    -- onContextMenu or onReset (tap) and its hold hooks (hold: a drag, or a
+    -- one-shot quick use).
     context_menu = {
         kbm = "MouseRight",
         gamepad = "X",
     },
 
-    -- ----- D-PAD STRIP MENUS (new §12, S90) ---------------------------------
-    -- Quick-access strips dispatched ONLY when no ZeD window has focus.
-    -- When a window IS focused, the DPad* buttons route to nav_* above
-    -- instead. Focus-state gating happens at dispatch time (Phase 3 concern).
-    -- ActionMap just declares the raw bindings flat — the fact that DPadUp
-    -- appears on both nav_up and strip_hotbar is intentional and is the
-    -- reason fromGamepadButton() returns a list.
+    -- ----- D-PAD STRIP MENUS -------------------------------------------------
+    -- Quick-access strips meant to fire ONLY when no ZeD window has focus;
+    -- when a window IS focused, the DPad* buttons route to nav_* above
+    -- instead. The bindings are declared flat — DPadUp on both nav_up and
+    -- strip_hotbar is deliberate, and is the reason fromGamepadButton()
+    -- returns a list. No dispatcher reads the strip ids yet; the D-pad wheels
+    -- (ZeD_DpadWheels) cover the no-focus D-pad today without this table.
+    -- strip_contextual was sketched as Vehicle-or-Animal; strip_favorites'
+    -- content was never settled.
     strip_hotbar     = { kbm = nil, gamepad = "DPadUp"    },
     strip_social     = { kbm = nil, gamepad = "DPadDown"  },
-    strip_contextual = { kbm = nil, gamepad = "DPadLeft"  },  -- Vehicle OR Animal
-    strip_favorites  = { kbm = nil, gamepad = "DPadRight" },  -- content TBD
+    strip_contextual = { kbm = nil, gamepad = "DPadLeft"  },
+    strip_favorites  = { kbm = nil, gamepad = "DPadRight" },
 
-    -- ----- LIST SORT / VIEW (Oct 23 2026, director: view-only toggles while a
-    -- window holds the pad; GAMEPAD_SPEC L3 / R3, Hard Rule #11 as amended) --
-    -- Dispatched by FocusManager only for the focused window; never in the
-    -- world. L3 steps the sort of the list the pad is on, R3 flips its
-    -- container between List and Grid (InventoryRenderer.padSort / padView).
+    -- ----- LIST SORT / VIEW (L3 / R3) ----------------------------------------
+    -- Stick clicks misfire under combat tension, so they carry view-only jobs
+    -- and nothing else (see the LS / RS note below). Dispatched by
+    -- FocusManager only for the focused window; never in the world. L3 steps
+    -- the sort of the list the pad is on, R3 flips its container between List
+    -- and Grid (InventoryRenderer.padSort / padView).
     list_sort = { kbm = nil, gamepad = "LStick" },
     list_view = { kbm = nil, gamepad = "RStick" },
 
     -- ----- INSPECT (KBM only) ------------------------------------------------
-    -- Gamepad reaches Inspect via context_menu (X -> strip -> Inspect cell),
-    -- so the gamepad binding is intentionally nil. Keeping the action in the
-    -- table so ItemCard's inspect hook can still use ZeD.Input.Action to look
-    -- up its KBM binding.
+    -- Declared for a keyboard inspect key; the gamepad binding is nil on
+    -- purpose. Nothing reads it yet — it sits here so the KBM binding has
+    -- one home when an inspect hook arrives.
     inspect = {
         kbm = "I",
         gamepad = nil,
@@ -144,52 +146,51 @@ ZeD.Input.Actions = {
 }
 
 -- ===========================================================================
--- INTENTIONALLY NOT IN ACTIONMAP (documented here so future sessions don't
--- wonder where these went):
---   * LB / RB (no-focus) — owned by BumperChord (Layer 2, zoom chord) when
+-- INTENTIONALLY NOT IN ACTIONMAP (documented so a reader doesn't wonder
+-- where these went):
+--   * LB / RB (no-focus) — owned by BumperChord (the zoom chord) when
 --                          NO ZeD window has focus. When a window IS focused,
 --                          FocusManager calls Chord.setEnabled(false) and the
 --                          bumpers route here as window_prev / window_next above
---                          (S113: swap focus between Char + World pair).
+--                          (LB the Character window, RB the World window).
 --                          Single physical button, two roles, gated by focus.
---   * LS / RS click  — Hard Rule #11 (no L3/R3 for state-changing ops). Stick
---                      clicks fire too readily under combat tension and the
---                      cost of a phantom press in a zombie crowd is death.
---                      Amended Oct 23 2026: list_sort / list_view above, the
---                      view of a list while a window holds the pad, and nothing else.
+--   * LS / RS click  — no state-changing jobs on stick clicks. They fire too
+--                      readily under combat tension and the cost of a phantom
+--                      press in a zombie crowd is death. The one amendment is
+--                      list_sort / list_view above — the view of a list while
+--                      a window holds the pad, and nothing else.
 --   * next_window /
---     prev_window    — Window ring killed S89. Paired-window semantics now
---                      live in `window_control` (Y) above.
+--     prev_window    — the old window-cycling ring is gone. Paired-window
+--                      semantics live in `window_control` (Y) above.
 --   * next_tab /
---     prev_tab       — Tab cycling is D-pad up/down AT THE TAB BAR ONLY and
---                      is handled inline by FocusManager when focus is on
---                      the tab bar. Not exposed as a separate logical action.
+--     prev_tab       — tabs are controls like any other: D-pad up/down walk
+--                      the tab column, A opens the focused tab, and a move
+--                      into the column lands on the active tab (FocusManager).
+--                      Not exposed as a separate logical action.
 --   * "secondary" /
---     "tertiary"     — Removed S90. No ZeD-UI surface ever referenced them;
---                      the Y and X buttons they claimed are now allocated to
---                      window_control and context_menu respectively. Their
---                      removal resolved both the Y-double-booking
---                      (secondary vs inspect) and the X-double-booking
---                      (tertiary vs context_menu).
+--     "tertiary"     — removed: no ZeD-UI surface ever referenced them, and
+--                      the Y and X buttons they claimed went to
+--                      window_control and context_menu. Their removal ended
+--                      Y and X each being double-booked.
 -- ===========================================================================
 
 -- ---------------------------------------------------------------------------
 -- GAMEPAD BUTTON -> SPEC-STRING MAP
--- The ActionMap table uses human-readable strings ("A", "DPadUp") while PZ's
+-- The Actions table uses human-readable strings ("A", "DPadUp") while PZ's
 -- onJoypadDown(button) dispatch callback delivers a JoypadButton object.
 -- This table bridges object -> string.
 --
--- Q109 (B42.17): shared/JoyPad/JoyPadSetup.lua aliases every Joypad.*Button
--- name to its corresponding JoypadButton.* object:
+-- B42.17: shared/JoyPad/JoyPadSetup.lua aliases every Joypad.*Button name to
+-- its corresponding JoypadButton.* object:
 --     Joypad.AButton = JoypadButton.A
---     Joypad.LBumper = JoypadButton.LeftBump    (rename trap — see KB)
+--     Joypad.LBumper = JoypadButton.LeftBump    (rename trap — not "LBump")
 --     ...
 -- Because those are literally the same reference, keying the table by
 -- Joypad.* still works: a lookup with a JoypadButton object resolves to the
 -- same slot the Joypad.* alias seeded. We keep the Joypad.* keys below for
 -- readability, but the table is effectively JoypadButton-keyed post-42.17.
 -- Polling moved to JoypadButton.<n>:isDown(id); dispatch callbacks arrive as
--- objects from JoypadButton.fromIndex(n) — see KB Q109 for the full story.
+-- objects from JoypadButton.fromIndex(n).
 -- ---------------------------------------------------------------------------
 local _gpButtonIntToName = {
     [Joypad.AButton]      = "A",
@@ -208,8 +209,8 @@ local _gpButtonIntToName = {
     [Joypad.DPadRight]    = "DPadRight",
 }
 
--- Reverse of the above — not used at runtime but handy for getBinding's
--- sanity checks and for debug tooling. Tiny table; zero-cost to ship.
+-- Reverse of the above. Nothing reads it yet — kept for debug tooling.
+-- Tiny table; zero-cost to ship.
 local _gpNameToButtonInt = {}
 for btnInt, btnName in pairs(_gpButtonIntToName) do
     _gpNameToButtonInt[btnName] = btnInt
@@ -220,8 +221,8 @@ end
 -- KBM bindings in the Action table are spec strings like "Return" or "I".
 -- Events.OnKeyPressed hands us a numeric keyCode from Keyboard.KEY_*.
 -- This table bridges the two. "MouseRight" is deliberately absent — mouse
--- buttons don't go through the keyboard event pipeline, and the context
--- menu hook routes mouse RMB directly without going through fromKey.
+-- buttons don't go through the keyboard event pipeline, so RMB never passes
+-- through fromKey.
 -- ---------------------------------------------------------------------------
 local _kbmNameToKeyCode = {
     ["Return"] = Keyboard.KEY_RETURN,
@@ -242,7 +243,7 @@ end
 -- ---------------------------------------------------------------------------
 -- REVERSE-LOOKUP TABLES (BINDING -> ACTION IDS)
 -- Built lazily on first call so any edit to ZeD.Input.Actions is picked up
--- if a mod / future phase mutates the table. Keyed by the binding STRING
+-- if a mod / console tweak mutates the table. Keyed by the binding STRING
 -- ("A", "DPadUp", "Return"), value is an array of action-id strings so we
 -- can return the full list when multiple actions share a button.
 -- ---------------------------------------------------------------------------
@@ -269,36 +270,31 @@ local function rebuildReverseMaps()
     _kbmReverseMap     = kb
 end
 
--- Public: force a rebuild. Consumers that mutate ZeD.Input.Actions at
--- runtime should call this afterwards to invalidate the cached reverse maps.
+--- Force a rebuild. Anything that mutates ZeD.Input.Actions at runtime
+--- should call this afterwards to invalidate the cached reverse maps.
 function Action.rebuild()
     rebuildReverseMaps()
 end
 
--- ---------------------------------------------------------------------------
--- PUBLIC: fromGamepadButton(button)
--- button is either the numeric Joypad.* constant (preferred) OR the spec
--- string ("A", "DPadUp"). Returns a list of action-id strings bound to that
--- button, or nil if unbound (AC-A2: "returns nil for unbound buttons").
---
--- The list shape covers shared-binding cases where one button maps to
--- multiple actions (DPadUp → nav_up AND strip_hotbar). Phase 3 dispatcher
--- picks which one fires based on focus state. For uniquely-bound buttons
--- the list has exactly one element; callers can just index [1].
---
--- Example:
---   fromGamepadButton(Joypad.AButton) -> {"confirm"}
---   fromGamepadButton("DPadUp")       -> {"nav_up", "strip_hotbar"}
---   fromGamepadButton(Joypad.LBumper) -> nil (owned by BumperChord)
--- ---------------------------------------------------------------------------
+--- The action ids bound to a gamepad button, or nil if unbound. `button` is
+--- either the Joypad.* constant (runtime dispatch) or the spec string
+--- ("A", "DPadUp" — debug/binding code). A list comes back because one
+--- button can map to several actions (DPadUp → nav_up AND strip_hotbar);
+--- the dispatcher picks which fires by focus state. Uniquely-bound buttons
+--- give a one-element list; callers can just index [1].
+---
+--- Example:
+---   fromGamepadButton(Joypad.AButton) -> {"confirm"}
+---   fromGamepadButton("DPadUp")       -> {"nav_up", "strip_hotbar"}
+---   fromGamepadButton(Joypad.Start)   -> nil (unbound)
 function Action.fromGamepadButton(button)
     if _gamepadReverseMap == nil then rebuildReverseMaps() end
     -- Normalize the input to a spec-string name. Callers may hand us either
     -- a JoypadButton object (runtime dispatch — type "userdata" post-42.17)
     -- or a spec-string handle ("A", "DPadUp" — debug/binding code).
     --
-    -- Q109 (B42.17): pre-42.17 this branch gated on `type(button) ==
-    -- "number"` because Joypad.AButton was an integer. Engine now aliases
+    -- B42.17 trap: pre-42.17 this branch gated on `type(button) == "number"`
+    -- because Joypad.AButton was an integer. The engine now aliases
     -- Joypad.AButton to JoypadButton.A (a Java userdata), so the number
     -- branch never matched and EVERY gamepad dispatch silently dropped
     -- through — no bumpers, no A/B/X/Y, no context menu. The unconditional
@@ -317,14 +313,10 @@ function Action.fromGamepadButton(button)
     return out
 end
 
--- ---------------------------------------------------------------------------
--- PUBLIC: fromKey(keyCode, mods)
--- keyCode is the numeric Keyboard.KEY_* value from OnKeyPressed events.
--- mods is an optional modifier string (reserved — no current binding uses
--- modifiers, but we keep the API shape so Phase 2+ bindings like "Shift+I"
--- can be added without a signature break).
--- Returns a list of action-id strings, or nil if unbound.
--- ---------------------------------------------------------------------------
+--- The action ids bound to a keyboard key, or nil if unbound. keyCode is the
+--- numeric Keyboard.KEY_* value from OnKeyPressed events. mods is reserved —
+--- no binding uses modifiers yet, but the signature keeps room so bindings
+--- like "Shift+I" can arrive without a break.
 function Action.fromKey(keyCode, _mods)
     if _kbmReverseMap == nil then rebuildReverseMaps() end
     if type(keyCode) ~= "number" then return nil end
@@ -337,14 +329,11 @@ function Action.fromKey(keyCode, _mods)
     return out
 end
 
--- ---------------------------------------------------------------------------
--- PUBLIC: getBinding(actionId, mode)
--- Returns the raw binding value for a given action and input mode.
---   mode = "kbm"     -> returns the KBM binding string ("Return", "MouseRight") or nil
---   mode = "gamepad" -> returns the gamepad binding string ("A", "DPadUp")    or nil
--- Handy for glyph rendering: "show me the button the player should press for
--- `confirm`" without touching the Actions table directly.
--- ---------------------------------------------------------------------------
+--- The raw binding value for an action in one input mode, or nil.
+---   mode = "kbm"     -> the KBM binding string ("Return", "MouseRight") or nil
+---   mode = "gamepad" -> the gamepad binding string ("A", "DPadUp")       or nil
+--- Handy for glyph rendering: "show me the button the player should press
+--- for `confirm`" without touching the Actions table directly.
 function Action.getBinding(actionId, mode)
     local entry = ZeD.Input.Actions[actionId]
     if not entry then return nil end
@@ -353,12 +342,8 @@ function Action.getBinding(actionId, mode)
     return nil
 end
 
--- ---------------------------------------------------------------------------
--- PUBLIC: getHoldConfig(actionId)
--- Returns the hold-variant fields for an action, or nil if the action has
--- no hold behavior. FocusManager's hold-timer (Phase 3) consumes this.
--- Shape: { holdMs = <int>, tapAction = <string>, holdAction = <string> }
--- ---------------------------------------------------------------------------
+--- The hold-variant fields for an action, or nil if the action has no hold
+--- behavior. Shape: { holdMs = <int>, tapAction = <string>, holdAction = <string> }
 function Action.getHoldConfig(actionId)
     local entry = ZeD.Input.Actions[actionId]
     if not entry or not entry.holdMs then return nil end
@@ -371,8 +356,8 @@ end
 
 -- ---------------------------------------------------------------------------
 -- BOOTSTRAP — eager reverse-map build, diagnostic line.
--- Eager build is safe: Tokens.lua / Joypad.* / Keyboard.KEY_* are all ready
--- by the time this file is loaded by PZ's client autoloader.
+-- Eager build is safe: Joypad.* and Keyboard.KEY_* are all ready by the time
+-- this file is loaded by PZ's client autoloader.
 -- ---------------------------------------------------------------------------
 rebuildReverseMaps()
 

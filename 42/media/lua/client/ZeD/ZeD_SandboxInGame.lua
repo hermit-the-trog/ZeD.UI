@@ -1,32 +1,34 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_SandboxInGame.lua
 -- ============================================================================
--- SANDBOX OPTIONS IN GAME (director, Oct 24 2026: "add our own midgame sandbox
--- settings option, default off, setting in the options menu ... show what does
--- what, what might have negative affects on a save and tips"; mockup
--- zed_sandbox_ingame_v1, approved: "pause window line, default off, single
--- player first"; HOOK_MAP "Sandbox options in game"; spec SANDBOX_INGAME_SPEC.md)
+-- SANDBOX OPTIONS IN GAME - client organism (ZeD_MMSandboxIG, the new-game
+-- sandbox window ZeD_MMSandbox carried over the pause screen). For each
+-- setting it shows what it does, what changing it does to this save, and a tip.
 --
 -- This save's sandbox settings, changed without starting over: the Options
 -- window's layout over the paused game (pages, Find, rows, the action strip),
 -- opened from the pause window's "Sandbox options" line, which shows only with
--- Options > ZeD setup > Sandbox switched on, and only in single player.
+-- Options > ZeD setup > Sandbox switched on (off by default), and only in
+-- single player. On a server the same window opens from the Admin tab's More
+-- tools for a role with the SandboxOptions capability, and Apply sends the
+-- changes to the server (THE SERVER'S OPTIONS, at the end).
 --
 -- The pages and settings are vanilla's (ServerSettingsScreen's table, as its own
 -- admin editor ISServerSandboxOptionsUI uses; other mods' settings come on their
 -- own pages). Each row carries two tags (ZeD_SandboxNotes): WHEN a change takes
--- effect (now / new places / new characters / fixed, locked) and its RISK
--- (careful / can't undo): the library tag, an outline with a square mark for the
--- state. The help band has three parts: what it does (vanilla's tooltip), what
--- changing it does to this save, a tip.
+-- effect (now / new places / new characters / after the next load / fixed,
+-- locked) and its RISK (careful / can't undo): the library tag, an outline
+-- with a square mark for the state. The help band has three parts: what it
+-- does (vanilla's tooltip), what changing it does to this save, a tip.
 --
 -- Nothing changes until Apply, which asks first (the Changed page shows what).
 -- Apply sets each changed option on the game's own SandboxOptions (the game
 -- writes them into the save, map_sand.bin, when it next saves), pushes them to
 -- SandboxVars (toLua), sets the day's length on the clock when Day Length
 -- changed, and re-reads the loot tables as vanilla's admin editor does. Every
--- apply goes into History (global ModData, kept in the save), where each change
--- has its Undo changes. The questions are bands (Cancel and the answer; leaving
--- with changes asks Cancel, Discard changes and Apply).
+-- apply goes into History (global ModData, kept in the save; on a server, kept
+-- for this session only), where each change has its Undo changes. The
+-- questions are bands (Cancel and the answer; leaving with changes asks
+-- Cancel, Discard changes and Apply).
 -- ============================================================================
 
 require "ZeD/ZeD_MainMenuSandbox"
@@ -285,6 +287,7 @@ function ZeD_MMSandboxIG:refreshDiff(force)
     end
 end
 
+-- (nothing to snapshot: the base the dots compare with is read in load)
 function ZeD_MMSandboxIG:snapshot() end
 
 -- settings that do nothing now: the fixed ones, and vanilla's greyed pairs
@@ -349,7 +352,7 @@ local function stampText(s)
 end
 
 -- sets every changed option on the game's own options, as the admin editor does. On a server (self.server: opened from
--- the Admin tab's More tools, C11) the changes go on a copy of the game's options and that copy goes to the server, as
+-- the Admin tab's More tools) the changes go on a copy of the game's options and that copy goes to the server, as
 -- ISServerSandboxOptionsUI:onButtonApply sends it; the server sets them and sends them back to every client
 function ZeD_MMSandboxIG:applyNow()
     self:commitCell()
@@ -382,7 +385,7 @@ function ZeD_MMSandboxIG:applyNow()
             self.confirm = false
             return
         end
-        if self.serverSent then pcall(self.serverSent, rows) end   -- (QA)
+        if self.serverSent then pcall(self.serverSent, rows) end   -- (a hook for the test scripts)
         -- (the client's own copy arrives back from the server: the window reads it when it next opens)
     else
         pcall(function() opts:toLua() end)
@@ -399,7 +402,7 @@ function ZeD_MMSandboxIG:applyNow()
     h[#h + 1] = { at = stamp(), rows = rows }
     while #h > HIST_MAX do table.remove(h, 1) end
     print("[ZeD] Sandbox in game: " .. (self.server and "sent to the server " or "applied ") .. #rows .. " change(s)")
-    if self.onApplied then pcall(self.onApplied, rows) end   -- (QA)
+    if self.onApplied then pcall(self.onApplied, rows) end   -- (a hook for the test scripts)
     if self.server then
         -- the server's answer is the game's own copy: until it comes, the rows keep what was sent, the base moves to it
         for _, r in ipairs(rows) do self.base[r.n] = r.to end
@@ -498,6 +501,7 @@ function ZeD_MMSandboxIG:back()
     if self:anyChanged() then self:setConfirm("close"); return end
     self:finish()
 end
+-- (no Next in game: the new-game window's Next starts the game)
 function ZeD_MMSandboxIG:next() end
 function ZeD_MMSandboxIG:close() self:back() end
 
@@ -750,7 +754,7 @@ end
 function ZeD_MMSandboxIG:drawHelp(x, hy, w, helpH, hr)
     local T = ZeD.T
     local bd = T.border   -- (the band's surface and its top line are drawn by ZeD_MMOptions:drawRows)
-    if self.qaHelp then hr = self.qaHelp end   -- (QA: the setting a test points at, wherever the pointer is)
+    if self.qaHelp then hr = self.qaHelp end   -- (for the test scripts: the setting a test points at, wherever the pointer is)
     -- the setting under the pointer, kept while the pointer moves down to read; a new page starts empty
     local view = tostring(self.pageIdx) .. "|" .. tostring(self.find:getInternalText() or "")
     if view ~= self._helpView then self._helpView = view; self._helpRow = nil end
@@ -861,12 +865,13 @@ end
 -- THE PAUSE WINDOW'S LINE
 -- ============================================================================
 
--- the line shows with the switch on, in single player
+--- does the pause window show the "Sandbox options" line: the switch on, in single player
 function MM.sandboxIGShown()
     if isClient() then return false end
     return ZeD.Settings and ZeD.Settings.sandboxInGameOn and ZeD.Settings.sandboxInGameOn() and MM.pauseSandbox ~= nil or false
 end
 
+--- the line's press: the window over the pause screen (single player only)
 function MM.openSandboxIG()
     local m = MainScreen and MainScreen.instance
     if not (m and m.inGame and MM.pauseSandbox) or isClient() then return end
@@ -876,9 +881,9 @@ function MM.openSandboxIG()
     MM.pauseSandbox:onShow()
 end
 
--- THE SERVER'S OPTIONS (C11: the Admin tab's More tools > Sandbox options, in place of ISServerSandboxOptionsUI). The same
--- window over the pause screen, its Apply sending to the server. The role's SandboxOptions capability gates the tool's row.
--- The pause screen opens first if it isn't up (as the D-pad wheels' Options does), and the window a few frames later.
+--- THE SERVER'S OPTIONS (the Admin tab's More tools > Sandbox options, in place of ISServerSandboxOptionsUI). The same
+--- window over the pause screen, its Apply sending to the server. The role's SandboxOptions capability gates the tool's row.
+--- The pause screen opens first if it isn't up (as the D-pad wheels' Options does), and the window a few frames later.
 function MM.openSandboxServer()
     if not isClient() then return false end
     local function show()
@@ -905,4 +910,4 @@ function MM.openSandboxServer()
     return true
 end
 
-ZeD.SandboxIG = { history = history, stampText = stampText, openServer = function() return MM.openSandboxServer() end }   -- (QA; the Admin tab)
+ZeD.SandboxIG = { history = history, stampText = stampText, openServer = function() return MM.openSandboxServer() end }   -- (for the test scripts and the Admin tab)
