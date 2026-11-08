@@ -396,7 +396,11 @@ do
     check("WoundsOverhaul.lua changes nothing of the mod's or the game's (no field written)", writes == 0, writes)
     check("it sets the mod's flag only around the game's menu", select(2, s:gsub("m%.menuFromView = true", "")) == 1
         and select(2, s:gsub("m%.menuFromView = nil", "")) == 1)
-    local function high(t) local _, n = t:gsub("[\128-\255]", ""); return n end
+    -- (code only: comments may change their own characters, as the comment pass did)
+    local function high(t)
+        local code = t:gsub("%-%-%[(=*)%[.-%]%1%]", ""):gsub("%-%-[^\n]*", "")
+        local _, n = code:gsub("[\128-\255]", ""); return n
+    end
     check("HealthTab.lua took no new non-ASCII", nowSource and oldSource and high(nowSource) == high(oldSource))
 end
 

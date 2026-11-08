@@ -491,6 +491,94 @@ function B.split(hud)
     return nil
 end
 
+-- B.addAlpha(id, spec): a mod that fades the HUD (Minimal Sidebar fades its column and keeps the hands that hold
+-- something) fades the belt's parts the same way. spec.frame(hud) runs once at the start of each frame the belt draws
+-- (the mod's own step); spec.alpha(hud, kind, box) returns 0..1 for a part or nil to leave it. kind: "strap" (the
+-- strap and the buckle), "slot" (box.i), "hand" (box.which "p" or "s"), "ammo" (the tab under the main hand), "watch",
+-- "lamp" (the Messages note), "chat", "pvp", "extra" (another mod's box). Providers multiply. Every draw of the part
+-- goes through a stand-in for the belt's Java element that scales its alpha; a part at 0 is not drawn. While a mod
+-- holds the belt's drawing with B.addSplit (Auto-Hide Hotbar) the fade stands aside for that frame.
+B._alphas = B._alphas or {}
+function B.addAlpha(id, spec) addById(B._alphas, id, { spec = spec }) end
+local ALPHA_LAST = {
+    DrawTexture = true, DrawTextureCol = true, DrawTextureColor = true,
+    DrawTextureScaled = true, DrawTextureScaledCol = true, DrawTextureScaledColor = true,
+    DrawTextureScaledAspect = true, DrawTextureScaledAspect2 = true, DrawTextureScaledUniform = true,
+    DrawTextureTiled = true, DrawTextureTiledX = true, DrawTextureTiledY = true,
+    DrawTextureAngle = true, DrawTextureIgnoreOffset = true, DrawSubTextureRGBA = true,
+    DrawText = true, DrawTextCentre = true, DrawTextRight = true, DrawTextUntrimmed = true,
+}
+-- a stand-in for the Java element: every draw's last number (its alpha) is scaled by px._a, the rest passes through
+local function newFadeProxy(real)
+    local px = { _fadeReal = real, _a = 1 }
+    local fns = {}
+    setmetatable(px, { __index = function(t, k)
+        local f = fns[k]
+        if f then return f end
+        local okm, m = pcall(function() return real[k] end)
+        if not okm or m == nil then return nil end
+        if ALPHA_LAST[k] then
+            f = function(_, ...)
+                local a = px._a
+                if a <= 0.002 then return end
+                local n = select("#", ...)
+                local t = { ... }
+                if type(t[n]) == "number" then t[n] = t[n] * a end
+                return m(real, unpack(t, 1, n))
+            end
+        else
+            f = function(_, ...) return m(real, ...) end
+        end
+        fns[k] = f
+        return f
+    end })
+    return px
+end
+-- the belt's fade for the part now drawing (a: nil or 1 draws as it is)
+function B.fadeTo(hud, a)
+    local st = rawget(hud, "_fade")
+    if not st then
+        if a == nil or a >= 0.999 then return end
+        st = {}
+        hud._fade = st
+    end
+    if a == nil or a >= 0.999 then
+        if st.on then hud.javaObject = st.real; st.on = false end
+        return
+    end
+    if not st.on then
+        local j = hud.javaObject
+        if not j then return end
+        if not st.px or st.pxReal ~= j then st.px, st.pxReal = newFadeProxy(j), j end
+        st.real, st.on = j, true
+        hud.javaObject = st.px
+    end
+    st.px._a = a < 0 and 0 or a
+end
+-- once a frame, before the belt draws: the element back as it was (a frame that threw) and the providers' steps
+function B.alphaFrame(hud)
+    B.fadeTo(hud, nil)
+    local on = false
+    for _, h in ipairs(B._alphas) do
+        local f = h.spec and h.spec.frame
+        if f then pcall(f, hud) end
+        on = true
+    end
+    hud._alphaOn = on
+end
+-- the product of the providers' answers for a part (1 when none speaks)
+function B.alphaFor(hud, kind, box)
+    local a = 1
+    for _, h in ipairs(B._alphas) do
+        local f = h.spec and h.spec.alpha
+        if f then
+            local ok, v = pcall(f, hud, kind, box)
+            if ok and type(v) == "number" then a = a * v end
+        end
+    end
+    return a
+end
+
 -- The strip or ring under an item: a mod's meter when one speaks for it, else its condition. Returns f, kind.
 function B.meter(item, where)
     if item == nil then return nil end
@@ -1858,6 +1946,8 @@ function ZeD_BeltHUD:_prerender()
     if self:getWidth() ~= w then self:setWidth(w) end
     if self:getHeight() ~= h then self:setHeight(h) end
     self._drawn = true
+    -- (B.addAlpha: a mod that fades the HUD; its steps for this frame)
+    if #B._alphas > 0 then B.alphaFrame(self) else self._alphaOn = false end
 
     -- (B.addSplit: a mod's drawing for the slots only. The rest is drawn on the real element at home: drawPart)
     local split = nil
@@ -1871,9 +1961,12 @@ function ZeD_BeltHUD:_prerender()
         end
     end
 
+    local fade = self._alphaOn and not split     -- (a mod's split holds the drawing: no fade this frame)
     if self._strap or self._buckle then drawPart(self, split, true) end
+    if fade and (self._strap or self._buckle) then B.fadeTo(self, B.alphaFor(self, "strap")) end
     if self._strap then self:_drawStrap() end      -- (the Simple belt has neither)
     if self._buckle then self:_drawBuckle() end
+    if fade then B.fadeTo(self, nil) end
     drawPart(self, split, false)
 
     local mx, my = self:getMouseX(), self:getMouseY()
@@ -1887,12 +1980,17 @@ function ZeD_BeltHUD:_prerender()
     for _, b in ipairs(self._boxes) do
         if b.kind == "ammo" then
             local a = self:_ammoState(p)
-            if a then self:_drawAmmo(b, a) end
+            if a then
+                if fade then B.fadeTo(self, B.alphaFor(self, "ammo", b)) end
+                self:_drawAmmo(b, a)
+                if fade then B.fadeTo(self, nil) end
+            end
         end
     end
 
     for _, b in ipairs(self._boxes) do
         if split then drawPart(self, split, b.kind == "slot") end
+        if fade then B.fadeTo(self, B.alphaFor(self, b.kind, b)) end
         local o = {}
         if b.kind == "lamp" then
             self:_drawLamp(b, gpTarget == b, b == over and not dragging)
@@ -1939,6 +2037,7 @@ function ZeD_BeltHUD:_prerender()
         end
     end
 
+    if fade then B.fadeTo(self, nil) end
     drawPart(self, split, false)
 
     -- the hovered box: its name and key, and the item tooltip (not while a
