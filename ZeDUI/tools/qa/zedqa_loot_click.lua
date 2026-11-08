@@ -12,7 +12,20 @@ local function say(s) print("ZEDQA lck " .. tostring(s)) end
 if ZEDQA_HOME then ZEDQA_HOME("lck") end
 local p = getPlayer()
 local md = p:getModData()
-local keepPins = md.ZeD_WinPinned and { char = md.ZeD_WinPinned.char, world = md.ZeD_WinPinned.world } or nil
+local keepPins = nil   -- (every pin key, the halves' too: charInv, charTabs, worldInv, worldTabs)
+if md.ZeD_WinPinned then keepPins = {}; for k, v in pairs(md.ZeD_WinPinned) do keepPins[k] = v end end
+-- the pins put back on the open windows, each half from its own key (WindowHalves; an older single key pins both)
+local function putPinsBack(t)
+    t = t or {}
+    for _, pair in ipairs({ { ZeD_CharacterWindow.getWindow(), "char" }, { ZeD_WorldWindow.getWindow(), "world" } }) do
+        local win, k = pair[1], pair[2]
+        if win and win._halves and ZeD.Halves then
+            local i, d = t[k .. "Inv"], t[k .. "Tabs"]
+            if i == nil and d == nil then i, d = t[k] == true, t[k] == true end
+            ZeD.Halves.setPin(win, "inv", i == true); ZeD.Halves.setPin(win, "drawer", d == true)
+        elseif win then win.pinned = t[k] == true end
+    end
+end
 local function WW() return ZeD_WorldWindow.getWindow() end
 local function vlVisible() local vl = getPlayerLoot(0); return vl ~= nil and vl:getIsVisible() end
 local function selInv() local w = WW(); local c = w and w._containers and w._containers[w._activeContainer or 0]; return c and c.inventory end
@@ -127,7 +140,8 @@ end)
 add(500, function()
     md.ZeD_WinPinned = keepPins or { char = true, world = true }
     if not ZeD_CharacterWindow.isOpen() then ZeD_CharacterWindow.toggleBothPaired(0) end
-    local w = WW(); if w and w.setPinned then w:setPinned(md.ZeD_WinPinned.world == true) end
+    local w = WW()
+    putPinsBack(md.ZeD_WinPinned)
     if w and w.windowShaded then w:setWindowShaded(false) end
     if ZEDQA_HOME then ZEDQA_HOME("lck") end
     say("DONE")

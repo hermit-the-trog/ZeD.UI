@@ -42,8 +42,10 @@ end
 local function charWin() return ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow() end
 local function worldWin() return ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow() end
 
--- the controls the controller may still use while paused: both windows' tab strips and bags
-local FREE_ZONES = { charTabBar = true, charContainerStrip = true, worldTabBar = true, worldContainerStrip = true }
+-- the controls the controller may still use while paused: both windows' tab strips and bags, and
+-- the pins in their title bars (WindowHalves: chrome, as the mouse's click on them)
+local FREE_ZONES = { charTabBar = true, charContainerStrip = true, worldTabBar = true, worldContainerStrip = true,
+    charTitlePins = true, worldTitlePins = true }
 --- Should the controller's A and X do nothing on window w now? True while
 --- paused on either ZeD window, except in its tab strip and its bags. (el, the
 --- focused element, is passed by FocusManager and not read here.)
